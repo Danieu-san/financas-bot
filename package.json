@@ -1,0 +1,25 @@
+{
+  "name": "financas-whatsapp-bot",
+  "version": "1.0.0",
+  "description": "Bot de controle financeiro via WhatsApp com Google Sheets e IA",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [
+    "whatsapp",
+    "bot",
+    "financas",
+    "google-sheets",
+    "ia",
+    "nodejs"
+  ],
+  "author": "Seu Nome e Thaís",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.0.0",
+    "googleapis": "^128.0.0",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.23.0"
+  }
+}
