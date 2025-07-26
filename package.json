@@ -1,25 +1,36 @@
 {
-  "name": "financas-whatsapp-bot",
-  "version": "1.0.0",
-  "description": "Bot de controle financeiro via WhatsApp com Google Sheets e IA",
+  "name": "whatsapp-finance-bot",
+  "version": "3.0.0",
+  "description": "Um bot de WhatsApp para controle financeiro com Google Sheets e Gemini.",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "pm2:start": "pm2 start ecosystem.config.js",
+    "pm2:stop": "pm2 stop all",
+    "pm2:logs": "pm2 logs"
   },
   "keywords": [
     "whatsapp",
     "bot",
-    "financas",
+    "finance",
     "google-sheets",
-    "ia",
-    "nodejs"
+    "gemini"
   ],
-  "author": "Seu Nome e Thaís",
-  "license": "MIT",
+  "author": "Daniel Santos",
+  "license": "ISC",
   "dependencies": {
-    "dotenv": "^16.0.0",
+    "dotenv": "^16.3.1",
     "googleapis": "^128.0.0",
     "qrcode-terminal": "^0.12.0",
-    "whatsapp-web.js": "^1.23.0"
+    "whatsapp-web.js": "^1.23.0",
+    "node-cron": "^3.0.2",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines" : { 
+    "node" : ">=18.0.0"
   }
 }
