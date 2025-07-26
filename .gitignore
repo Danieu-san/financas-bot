@@ -1,5 +1,10 @@
-node_modules
-.wwebjs_auth/
+# Dependências do Node (pasta gigante e desnecessária)
+node_modules/
+
+# Arquivos de ambiente com senhas e chaves (MUITO IMPORTANTE)
 .env
 credentials.json
+
+# Pastas de cache e sessão do whatsapp-web.js (contém dados de login)
+.wwebjs_auth/
 .wwebjs_cache/
