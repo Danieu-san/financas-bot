@@ -11,7 +11,20 @@ const isDate = (text) => {
     return /^\d{2}\/\d{2}\/\d{4}$/.test(text);
 };
 
+// FUNÇÃO DE DATA REFINADA
+const getFormattedDate = () => {
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0'); // Mês começa em 0
+    const year = now.getFullYear();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
+};
+
 module.exports = {
     parseValue,
     isDate,
+    getFormattedDate,
 };
