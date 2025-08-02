@@ -13,6 +13,24 @@ const GOOGLE_CREDENTIALS_PATH = process.env.GOOGLE_CREDENTIALS_PATH || path.reso
 let sheets; // Instância da API do Sheets, inicializada uma vez
 const sheetNameToId = {}; // Cache para os IDs das abas
 
+async function updateRowInSheet(range, values) {
+    try {
+        await sheets.spreadsheets.values.update({
+            spreadsheetId: SPREADSHEET_ID,
+            range: range,
+            valueInputOption: 'USER_ENTERED',
+            resource: {
+                values: [values],
+            },
+        });
+        console.log(`Linha no intervalo "${range}" atualizada com sucesso.`);
+        return { success: true };
+    } catch (error) {
+        console.error(`❌ Erro ao atualizar linha no intervalo "${range}":`, error.message);
+        throw new Error('Erro ao atualizar a planilha.');
+    }
+}
+
 async function authorizeGoogleSheets() {
     try {
         // Esta linha agora usa o caminho absoluto e corrigido
@@ -115,4 +133,5 @@ module.exports = {
     appendRowToSheet,
     deleteRowsByIndices,
     readDataFromSheet,
+    updateRowInSheet,
 };

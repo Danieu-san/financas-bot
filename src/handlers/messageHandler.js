@@ -4,6 +4,7 @@ const { userMap } = require('../config/constants');
 const userStateManager = require('../state/userStateManager');
 const creationHandler = require('./creationHandler');
 const deletionHandler = require('./deletionHandler');
+const debtHandler = require('./debtHandler');
 const { getStructuredResponseFromLLM, askLLM } = require('../services/gemini');
 const { appendRowToSheet, readDataFromSheet } = require('../services/sheets');
 const { getFormattedDate } = require('../utils/helpers');
@@ -27,6 +28,18 @@ const mapeamentoGastos = {
 };
 
 // Base de Conhecimento para Entradas
+const mapeamentoEntradas = {
+    "salário": { categoria: "Salário" },
+    "salario": { categoria: "Salário" },
+    "pagamento": { categoria: "Salário" },
+    "freela": { categoria: "Renda Extra" },
+    "freelance": { categoria: "Renda Extra" },
+    "bico": { categoria: "Renda Extra" },
+    "venda": { categoria: "Venda" },
+    "presente": { categoria: "Presente" },
+    "reembolso": { categoria: "Reembolso" },
+    "dividendos": { categoria: "Investimentos" },
+};
 const categoriasEntrada = ["Salário", "Renda Extra", "Investimentos", "Presente", "Reembolso", "Venda", "Outros"];
 const metodosRecebimento = ["Conta Corrente", "Poupança", "Dinheiro", "PIX"];
 
@@ -34,7 +47,7 @@ const metodosRecebimento = ["Conta Corrente", "Poupança", "Dinheiro", "PIX"];
 const MASTER_SCHEMA = {
     type: "OBJECT",
     properties: {
-        intent: { type: "STRING", enum: ["gasto", "entrada", "pergunta", "apagar_item", "criar_divida", "criar_meta", "desconhecido"] },
+        intent: { type: "STRING", enum: ["gasto", "entrada", "pergunta", "apagar_item", "criar_divida", "criar_meta", "registrar_pagamento", "desconhecido"] },
         gastoDetails: {
             type: "OBJECT",
             description: "Preenchido SOMENTE se a intenção for 'gasto'.",
@@ -57,6 +70,13 @@ const MASTER_SCHEMA = {
             type: "OBJECT",
             description: "Preenchido se a intenção for 'apagar_item'.",
             properties: { descricao: { type: "STRING" }, categoria: { type: "STRING" } }
+        },
+        pagamentoDetails: {
+            type: "OBJECT",
+            description: "Preenchido se a intenção for 'registrar_pagamento'.",
+            properties: {
+                descricao: { type: "STRING", description: "O nome da dívida que foi paga." }
+            }
         },
         question: { type: "STRING" }
     },
@@ -87,6 +107,10 @@ async function handleMessage(msg) {
     const currentState = userStateManager.getState(senderId);
     if (currentState) {
         switch (currentState.action) {
+            case 'awaiting_payment_amount':
+                await debtHandler.finalizePaymentRegistration(msg);
+                return;
+            
             case 'awaiting_payment_method':
                 const gasto = currentState.data;
                 const respostaPagamento = messageBody;
@@ -132,7 +156,7 @@ async function handleMessage(msg) {
     console.log(`Mensagem de ${pessoa} (${senderId}): "${messageBody}"`);
 
     try {
-        const masterPrompt = `Sua tarefa é analisar a mensagem de um usuário e extrair a intenção e os detalhes em um JSON. A mensagem é de "${pessoa}". ### Mensagem do Usuário: "${messageBody}" ### ORDEM DE ANÁLISE: 1. **INTENÇÃO DE APAGAR:** Se contiver "apagar", "excluir", etc., a intent é 'apagar_item'. Em 'deleteDetails.descricao', coloque APENAS o item a ser buscado (ex: de 'apagar gasto com remédio', a descrição é 'remédio'). Em 'deleteDetails.categoria', coloque o tipo ('gasto', 'entrada'). 2. **INTENÇÃO DE PERGUNTA:** Use a intent 'pergunta' APENAS se for uma pergunta explícita sobre dados financeiros (contendo "quanto", "quais", "liste", "resumo", etc.). Saudações como "bom dia" NÃO são perguntas. 3. **INTENÇÃO DE GASTO:** Se não for apagar/pergunta, verifique se é 'gasto'. Preencha 'gastoDetails'. Se não achar pagamento, deve ser nulo. 4. **INTENÇÃO DE ENTRADA:** Se não for gasto, verifique se é 'entrada'. Preencha 'entradaDetails'. Se não achar recebimento, deve ser nulo. 5. **OUTRAS:** Verifique se é 'criar_divida' ou 'criar_meta'. 6. **DESCONHECIDO:** Se não for nenhuma das anteriores, a intent é 'desconhecido'. ### Bases de Conhecimento: - Mapa de Gastos: ${JSON.stringify(mapeamentoGastos)} - Categorias de Entrada: ${categoriasEntrada.join(', ')} ### Formato de Saída Obrigatório: Retorne APENAS o objeto JSON, seguindo este schema: ${JSON.stringify(MASTER_SCHEMA)}`;
+        const masterPrompt = `Sua tarefa é analisar a mensagem e extrair a intenção e detalhes em um JSON. A mensagem é de "${pessoa}". ### Mensagem: "${messageBody}" ### ORDEM DE ANÁLISE: 1. **APAGAR:** Se contiver "apagar", "excluir", etc., a intent é 'apagar_item'. Para 'deleteDetails': a. **categoria**: Primeiro, veja se a frase contém o tipo explícito ('gasto', 'entrada', 'divida', 'meta'). Se não, analise o termo de busca (ex: 'financiamento', 'salário') e infira a categoria mais provável. 'financiamento' é uma 'divida'. 'salário' é uma 'entrada'. Em último caso, assuma 'gasto'. b. **descricao**: Coloque APENAS o item a ser buscado (ex: de 'apagar financiamento do ap', a descrição é 'financiamento ap'). 2. **PAGAMENTO:** Se contiver "paguei", etc., a intent é 'registrar_pagamento'. 3. **PERGUNTA:** Use a intent 'pergunta' APENAS se for uma pergunta explícita sobre dados financeiros. 4. **GASTO:** Se não for apagar/pagar/pergunta, verifique se é um 'gasto'. 5. **ENTRADA:** Se não for gasto, verifique se é uma 'entrada'. 6. **OUTRAS:** Verifique se é 'criar_divida' ou 'criar_meta'. 7. **DESCONHECIDO:** Se não for nenhuma das anteriores. ### Bases de Conhecimento: - Mapa de Gastos: ${JSON.stringify(mapeamentoGastos)} - Mapa de Entradas: ${JSON.stringify(mapeamentoEntradas)} ### Formato de Saída: Retorne APENAS o objeto JSON, seguindo este schema: ${JSON.stringify(MASTER_SCHEMA)}`;
         
         const structuredResponse = await getStructuredResponseFromLLM(masterPrompt);
         console.log("--- RESPOSTA BRUTA DA IA ---");
@@ -145,6 +169,10 @@ async function handleMessage(msg) {
         };
 
         switch (structuredResponse.intent) {
+            case 'registrar_pagamento':
+                await debtHandler.startPaymentRegistration(msg, structuredResponse.pagamentoDetails);
+                break;
+            
             case 'gasto':
                 const gasto = structuredResponse.gastoDetails;
                 if (!gasto || !gasto.valor) { await msg.reply("Entendi que é um gasto, mas não identifiquei o valor."); break; }

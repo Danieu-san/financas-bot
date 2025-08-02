@@ -1,5 +1,3 @@
-// src/utils/helpers.js
-
 const parseValue = (text) => {
     if (typeof text !== 'string') return null;
     const value = parseFloat(text.replace('.', '').replace(',', '.'));
@@ -11,7 +9,7 @@ const isDate = (text) => {
     return /^\d{2}\/\d{2}\/\d{4}$/.test(text);
 };
 
-// FUNÇÃO DE DATA REFINADA
+// Função padrão COM HORA (para Saídas, Entradas, etc.)
 const getFormattedDate = () => {
     const now = new Date();
     const day = String(now.getDate()).padStart(2, '0');
@@ -23,8 +21,28 @@ const getFormattedDate = () => {
     return `${day}/${month}/${year} ${hours}:${minutes}`;
 };
 
+// Função específica APENAS SEM HORA (para a Data de Início da Dívida)
+const getFormattedDateOnly = () => {
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+
+    return `${day}/${month}/${year}`;
+};
+
+const normalizeText = (text) => {
+    if (typeof text !== 'string') return '';
+    return text
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+};
+
 module.exports = {
     parseValue,
     isDate,
     getFormattedDate,
+    getFormattedDateOnly, // Exportamos a nova função
+    normalizeText,
 };

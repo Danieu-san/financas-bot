@@ -3,10 +3,17 @@
 const { readDataFromSheet, deleteRowsByIndices } = require('../services/sheets');
 const userStateManager = require('../state/userStateManager');
 const { sheetCategoryMap } = require('../config/constants');
+const { normalizeText } = require('../utils/helpers');
 
 async function handleDeletionRequest(msg, deleteDetails) {
     const senderId = msg.author || msg.from;
-    const termoBusca = deleteDetails.descricao.toLowerCase();
+
+    if (!deleteDetails || !deleteDetails.descricao || !deleteDetails.categoria) {
+        await msg.reply("Não consegui entender os detalhes do que apagar. Tente novamente, por exemplo: 'apagar gasto com uber'.");
+        return;
+    }
+
+    const termoBusca = deleteDetails.descricao;
     const categoriaAlvo = deleteDetails.categoria.toLowerCase();
 
     const sheetName = sheetCategoryMap[categoriaAlvo];
@@ -22,9 +29,9 @@ async function handleDeletionRequest(msg, deleteDetails) {
     }
 
     let rowsToDelete = [];
-    
-    // CORRIGIDO: Agora a checagem de "último" é mais robusta
-    if (termoBusca.includes('ultimo') || termoBusca.includes('último')) {
+    const termoBuscaNormalizado = normalizeText(termoBusca);
+
+    if (termoBuscaNormalizado.includes('ultimo')) {
         const lastRowIndex = allData.length - 1;
         rowsToDelete.push({ index: lastRowIndex, data: allData[lastRowIndex] });
     } else {
@@ -32,27 +39,32 @@ async function handleDeletionRequest(msg, deleteDetails) {
             .map((row, index) => ({ row, index }))
             .filter(item => {
                 if (item.index === 0) return false;
-                const rowText = item.row.join(' ').toLowerCase();
-                return rowText.includes(termoBusca);
+                const nomeDoItem = item.row[0] || '';
+                const nomeNormalizado = normalizeText(nomeDoItem);
+
+                return nomeNormalizado.includes(termoBuscaNormalizado);
             });
         rowsToDelete = filteredRows.map(item => ({ index: item.index, data: item.row }));
     }
     
     if (rowsToDelete.length === 0) {
-        await msg.reply(`Não encontrei nenhum item contendo "${termoBusca}" na aba "${sheetName}".`);
+        let helpMessage = `Não encontrei nenhum item contendo "${termoBusca}" na aba "${sheetName}".\n\n`;
+        helpMessage += `*Dica:* Para me ajudar a encontrar, tente ser mais específico incluindo o tipo. Por exemplo:\n`;
+        helpMessage += `- "apagar **gasto** com ${termoBusca}"\n`;
+        helpMessage += `- "apagar **entrada** com ${termoBusca}"`;
+        
+        await msg.reply(helpMessage);
         return;
     }
 
     userStateManager.setState(senderId, {
         action: 'confirming_delete',
         sheetName: sheetName,
-        // Armazena os itens encontrados para que o usuário possa escolher
-        foundItems: rowsToDelete 
+        foundItems: rowsToDelete
     });
 
     let confirmationMessage = `Encontrei ${rowsToDelete.length} item(ns) para apagar na aba "${sheetName}":\n\n`;
     rowsToDelete.forEach((item, idx) => {
-        // Adiciona um número de seleção para o usuário
         confirmationMessage += `*${idx + 1}.* ${item.data.slice(0, 5).join(' | ')}\n`;
     });
     confirmationMessage += "\nVocê tem certeza? Responda com *'sim'* para apagar tudo, ou os números dos itens que quer apagar (ex: *1* ou *1, 2*).";
@@ -60,7 +72,6 @@ async function handleDeletionRequest(msg, deleteDetails) {
     await msg.reply(confirmationMessage);
 }
 
-// ATUALIZADO: Função de confirmação agora entende números
 async function confirmDeletion(msg) {
     const senderId = msg.author || msg.from;
     const state = userStateManager.getState(senderId);
@@ -72,11 +83,10 @@ async function confirmDeletion(msg) {
     if (userReply === 'sim') {
         finalRowsToDelete = state.foundItems.map(item => item.index);
     } else {
-        // Tenta extrair os números da resposta do usuário
-        const indicesToKeep = userReply.match(/\d+/g)?.map(n => parseInt(n) - 1) || [];
-        const validItems = indicesToKeep
+        const indicesToSelect = userReply.match(/\d+/g)?.map(n => parseInt(n) - 1) || [];
+        const validItems = indicesToSelect
             .map(idx => state.foundItems[idx])
-            .filter(Boolean); // Remove itens inválidos/não encontrados
+            .filter(Boolean);
         
         if (validItems.length > 0) {
             finalRowsToDelete = validItems.map(item => item.index);
