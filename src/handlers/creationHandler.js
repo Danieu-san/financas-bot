@@ -2,7 +2,7 @@
 
 const { getStructuredResponseFromLLM, askLLM } = require('../services/gemini');
 const userStateManager = require('../state/userStateManager');
-const { appendRowToSheet } = require('../services/sheets');
+const { appendRowToSheet } = require('../services/google');
 const { userMap } = require('../config/constants');
 const { parseValue, isDate, getFormattedDate, getFormattedDateOnly } = require('../utils/helpers');
 

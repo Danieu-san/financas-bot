@@ -1,7 +1,7 @@
 require('dotenv').config();
 
 const { initializeWhatsAppClient } = require('./src/services/whatsapp');
-const { authorizeGoogleSheets, getSheetIds } = require('./src/services/sheets');
+const { authorizeGoogle, getSheetIds } = require('./src/services/google');
 const { handleMessage } = require('./src/handlers/messageHandler');
 
 async function startBot() {
@@ -15,7 +15,7 @@ async function startBot() {
 
     try {
         // 1. Autoriza e prepara a API do Google Sheets
-        await authorizeGoogleSheets();
+        await authorizeGoogle();
         await getSheetIds(); // Carrega os IDs das abas para o cache interno do módulo
 
         // 2. Inicializa o cliente do WhatsApp

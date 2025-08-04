@@ -1,6 +1,6 @@
 // src/handlers/debtHandler.js
 
-const { readDataFromSheet, updateRowInSheet } = require('../services/sheets');
+const { readDataFromSheet, updateRowInSheet } = require('../services/google');
 const userStateManager = require('../state/userStateManager');
 const { normalizeText, parseValue } = require('../utils/helpers');
 

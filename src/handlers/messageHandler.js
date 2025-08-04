@@ -6,7 +6,7 @@ const creationHandler = require('./creationHandler');
 const deletionHandler = require('./deletionHandler');
 const debtHandler = require('./debtHandler');
 const { getStructuredResponseFromLLM, askLLM } = require('../services/gemini');
-const { appendRowToSheet, readDataFromSheet } = require('../services/sheets');
+const { appendRowToSheet, readDataFromSheet, createCalendarEvent } = require('../services/google');
 const { getFormattedDate } = require('../utils/helpers');
 
 // Base de Conhecimento para Gastos
@@ -40,14 +40,14 @@ const mapeamentoEntradas = {
     "reembolso": { categoria: "Reembolso" },
     "dividendos": { categoria: "Investimentos" },
 };
-const categoriasEntrada = ["Salário", "Renda Extra", "Investimentos", "Presente", "Reembolso", "Venda", "Outros"];
+const categoriasEntradaOficiais = ["Salário", "Renda Extra", "Investimentos", "Presente", "Reembolso", "Venda", "Outros"];
 const metodosRecebimento = ["Conta Corrente", "Poupança", "Dinheiro", "PIX"];
 
 // Schema Unificado Completo
 const MASTER_SCHEMA = {
     type: "OBJECT",
     properties: {
-        intent: { type: "STRING", enum: ["gasto", "entrada", "pergunta", "apagar_item", "criar_divida", "criar_meta", "registrar_pagamento", "desconhecido"] },
+        intent: { type: "STRING", enum: ["gasto", "entrada", "pergunta", "apagar_item", "criar_divida", "criar_meta", "registrar_pagamento", "criar_lembrete", "desconhecido"] },
         gastoDetails: {
             type: "OBJECT",
             description: "Preenchido SOMENTE se a intenção for 'gasto'.",
@@ -61,11 +61,15 @@ const MASTER_SCHEMA = {
             type: "OBJECT",
             description: "Preenchido SOMENTE se a intenção for 'entrada'.",
             properties: {
-                descricao: { type: "STRING" }, categoria: { type: "STRING", enum: categoriasEntrada },
-                valor: { type: "NUMBER" }, recebimento: { type: "STRING", enum: metodosRecebimento },
-                recorrente: { type: "STRING", enum: ["Sim", "Não"] }, observacoes: { type: "STRING" }
+                descricao: { type: "STRING" }, 
+                categoria: { type: "STRING", enum: categoriasEntradaOficiais },
+                valor: { type: "NUMBER" }, 
+                recebimento: { type: "STRING", enum: metodosRecebimento },
+                recorrente: { type: "STRING", enum: ["Sim", "Não"] }, 
+                observacoes: { type: "STRING" }
             }
         },
+
         deleteDetails: {
             type: "OBJECT",
             description: "Preenchido se a intenção for 'apagar_item'.",
@@ -77,6 +81,15 @@ const MASTER_SCHEMA = {
             properties: {
                 descricao: { type: "STRING", description: "O nome da dívida que foi paga." }
             }
+        },
+        lembreteDetails: {
+            type: "OBJECT",
+            description: "Preenchido se a intenção for 'criar_lembrete'.",
+            properties: {
+                titulo: { type: "STRING", description: "O título do lembrete." },
+                dataHora: { type: "STRING", description: "A data e hora da primeira ocorrência do lembrete no formato ISO 8601 (AAAA-MM-DDTHH:MM:SS-03:00)." },
+             recorrencia: { type: "STRING", description: "A regra de recorrência no formato RRULE do iCalendar (ex: 'FREQ=MONTHLY'). Se não for recorrente, deve ser nulo." }
+         }
         },
         question: { type: "STRING" }
     },
@@ -156,7 +169,7 @@ async function handleMessage(msg) {
     console.log(`Mensagem de ${pessoa} (${senderId}): "${messageBody}"`);
 
     try {
-        const masterPrompt = `Sua tarefa é analisar a mensagem e extrair a intenção e detalhes em um JSON. A mensagem é de "${pessoa}". ### Mensagem: "${messageBody}" ### ORDEM DE ANÁLISE: 1. **APAGAR:** Se contiver "apagar", "excluir", etc., a intent é 'apagar_item'. Para 'deleteDetails': a. **categoria**: Primeiro, veja se a frase contém o tipo explícito ('gasto', 'entrada', 'divida', 'meta'). Se não, analise o termo de busca (ex: 'financiamento', 'salário') e infira a categoria mais provável. 'financiamento' é uma 'divida'. 'salário' é uma 'entrada'. Em último caso, assuma 'gasto'. b. **descricao**: Coloque APENAS o item a ser buscado (ex: de 'apagar financiamento do ap', a descrição é 'financiamento ap'). 2. **PAGAMENTO:** Se contiver "paguei", etc., a intent é 'registrar_pagamento'. 3. **PERGUNTA:** Use a intent 'pergunta' APENAS se for uma pergunta explícita sobre dados financeiros. 4. **GASTO:** Se não for apagar/pagar/pergunta, verifique se é um 'gasto'. 5. **ENTRADA:** Se não for gasto, verifique se é uma 'entrada'. 6. **OUTRAS:** Verifique se é 'criar_divida' ou 'criar_meta'. 7. **DESCONHECIDO:** Se não for nenhuma das anteriores. ### Bases de Conhecimento: - Mapa de Gastos: ${JSON.stringify(mapeamentoGastos)} - Mapa de Entradas: ${JSON.stringify(mapeamentoEntradas)} ### Formato de Saída: Retorne APENAS o objeto JSON, seguindo este schema: ${JSON.stringify(MASTER_SCHEMA)}`;
+        const masterPrompt = `Sua tarefa é analisar a mensagem e extrair a intenção e detalhes em um JSON. A mensagem é de "${pessoa}". A data e hora atual é ${new Date().toISOString()}. ### Mensagem: "${messageBody}" ### ORDEM DE ANÁLISE: 1. **CRIAR LEMBRETE:** Se contiver "lembrete", "me lembre", etc., a intent é 'criar_lembrete'. Extraia o 'titulo', a 'dataHora' da primeira ocorrência e a regra de 'recorrencia'. Para "todo dia 10", a recorrência é 'FREQ=MONTHLY;BYMONTHDAY=10'. Para "toda segunda-feira", é 'FREQ=WEEKLY;BYDAY=MO'. Se não for recorrente, a recorrência é nula. 2. **APAGAR:** ... 3. **PAGAMENTO:** ... 4. **PERGUNTA:** ... 5. **GASTO:** ... 6. **ENTRADA:** ... 7. **OUTRAS:** ... 8. **DESCONHECIDO:** ... ### Bases de Conhecimento: - Mapa de Gastos: ${JSON.stringify(mapeamentoGastos)} - Mapa de Entradas: ${JSON.stringify(mapeamentoEntradas)} ### Formato de Saída: Retorne APENAS o objeto JSON, seguindo este schema: ${JSON.stringify(MASTER_SCHEMA)}`;
         
         const structuredResponse = await getStructuredResponseFromLLM(masterPrompt);
         console.log("--- RESPOSTA BRUTA DA IA ---");
@@ -169,6 +182,20 @@ async function handleMessage(msg) {
         };
 
         switch (structuredResponse.intent) {
+            case 'criar_lembrete':
+                const lembrete = structuredResponse.lembreteDetails;
+                if (!lembrete || !lembrete.titulo || !lembrete.dataHora) {
+                    await msg.reply("Não entendi os detalhes do lembrete. Por favor, inclua o que e quando (ex: 'me lembre de pagar a luz amanhã às 10h').");
+                    break;
+                }
+                try {
+                    // Agora passamos a regra de recorrência para a função
+                    await createCalendarEvent(lembrete.titulo, lembrete.dataHora, lembrete.recorrencia);
+                    await msg.reply(`✅ Lembrete criado: "${lembrete.titulo}"`);
+                } catch (error) {
+                    await msg.reply("Houve um erro ao tentar salvar o evento na sua Agenda Google.");
+                }
+                break;
             case 'registrar_pagamento':
                 await debtHandler.startPaymentRegistration(msg, structuredResponse.pagamentoDetails);
                 break;

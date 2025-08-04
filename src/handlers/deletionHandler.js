@@ -1,6 +1,6 @@
 // src/handlers/deletionHandler.js
 
-const { readDataFromSheet, deleteRowsByIndices } = require('../services/sheets');
+const { readDataFromSheet, deleteRowsByIndices } = require('../services/google');
 const userStateManager = require('../state/userStateManager');
 const { sheetCategoryMap } = require('../config/constants');
 const { normalizeText } = require('../utils/helpers');
