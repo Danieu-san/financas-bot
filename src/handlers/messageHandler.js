@@ -55,6 +55,7 @@ const MASTER_SCHEMA = {
                 descricao: { type: "STRING" }, valor: { type: "NUMBER" }, categoria: { type: "STRING" },
                 subcategoria: { type: "STRING" }, pagamento: { type: "STRING", enum: ["Dinheiro", "Débito", "Crédito", "PIX"] },
                 recorrente: { type: "STRING", enum: ["Sim", "Não"] }, observacoes: { type: "STRING" },
+                data: { type: "STRING", description: "A data do gasto no formato DD/MM/AAAA, se mencionada." }
             }
         },
         entradaDetails: {
@@ -97,13 +98,18 @@ const MASTER_SCHEMA = {
 };
 
 // Função reutilizável para salvar gastos
-async function salvarGastoNaPlanilha(gasto, pessoa) {
+async function salvarGastoNaPlanilha(gasto, pessoa, dataParaSalvar) {
     const valorNumerico = parseFloat(gasto.valor);
     const rowData = [
-        getFormattedDate(),
-        gasto.descricao || 'Não especificado', gasto.categoria || 'Outros',
-        gasto.subcategoria || '', valorNumerico, pessoa, gasto.pagamento || '',
-        gasto.recorrente || 'Não', gasto.observacoes || ''
+        dataParaSalvar, // Usa a data correta que foi passada
+        gasto.descricao || 'Não especificado',
+        gasto.categoria || 'Outros',
+        gasto.subcategoria || '',
+        valorNumerico,
+        pessoa,
+        gasto.pagamento || '',
+        gasto.recorrente || 'Não',
+        gasto.observacoes || ''
     ];
     await appendRowToSheet('Saídas', rowData);
     return `✅ Gasto de R$${valorNumerico.toFixed(2)} registrado em *${gasto.categoria || 'Outros'} / ${gasto.subcategoria || 'N/A'}*!`;
@@ -130,7 +136,10 @@ async function handleMessage(msg) {
                 const promptCorrecaoPagamento = `Analise a resposta: "${respostaPagamento}" e normalize-a para uma das seguintes opções: 'Crédito', 'Débito', 'PIX', 'Dinheiro'. Se impossível, retorne "Outros". Retorne APENAS a palavra correta.`;
                 const pagamentoCorrigido = await askLLM(promptCorrecaoPagamento);
                 gasto.pagamento = pagamentoCorrigido.trim();
-                const confirmationMessage = await salvarGastoNaPlanilha(gasto, pessoa);
+
+                // Pega a data que salvamos no estado e passa para a função de salvar
+                const confirmationMessage = await salvarGastoNaPlanilha(gasto, pessoa, gasto.dataFinal);
+                
                 await msg.reply(confirmationMessage);
                 userStateManager.deleteState(senderId);
                 return;
@@ -203,11 +212,18 @@ async function handleMessage(msg) {
             case 'gasto':
                 const gasto = structuredResponse.gastoDetails;
                 if (!gasto || !gasto.valor) { await msg.reply("Entendi que é um gasto, mas não identifiquei o valor."); break; }
+                
+                // LÓGICA DE DATA CORRIGIDA
+                // Se a IA extraiu uma data, usa ela. Se não, usa a data atual.
+                const dataDoGasto = gasto.data ? gasto.data : getFormattedDate();
+
                 if (!gasto.pagamento) {
+                    // Adiciona a data correta ao estado antes de perguntar o pagamento
+                    gasto.dataFinal = dataDoGasto;
                     userStateManager.setState(senderId, { action: 'awaiting_payment_method', data: gasto });
                     await msg.reply('Entendido! E qual foi a forma de pagamento? (Crédito, Débito, PIX ou Dinheiro)');
                 } else {
-                    const confirmationMessage = await salvarGastoNaPlanilha(gasto, pessoa);
+                    const confirmationMessage = await salvarGastoNaPlanilha(gasto, pessoa, dataDoGasto);
                     await msg.reply(confirmationMessage);
                 }
                 break;
