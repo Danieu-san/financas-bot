@@ -1,6 +1,7 @@
 // src/services/gemini.js
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const fs = require('fs');
 
 async function callGemini(prompt, isJsonResponse = false) {
     try {
@@ -54,7 +55,49 @@ async function askLLM(prompt) {
     return callGemini(prompt, false);
 }
 
+async function transcribeAudio(filePath) {
+    try {
+        const audioBuffer = fs.readFileSync(filePath);
+        const base64Audio = audioBuffer.toString('base64');
+
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+
+        const payload = {
+            contents: [{
+                parts: [
+                    { text: "Transcreva este áudio em português do Brasil. Responda apenas com a transcrição." },
+                    { inlineData: { mimeType: "audio/mp3", data: base64Audio } }
+                ]
+            }]
+        };
+
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            throw new Error(`Erro na API Gemini ao transcrever: ${response.status} ${await response.text()}`);
+        }
+
+        const result = await response.json();
+        const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (!text) {
+            console.error("Resposta de transcrição inesperada:", JSON.stringify(result, null, 2));
+            return "Não consegui entender o áudio.";
+        }
+        return text.trim();
+
+    } catch (error) {
+        console.error("❌ Erro ao transcrever áudio:", error);
+        return "Ocorreu um erro ao processar a transcrição do áudio.";
+    }
+}
+
 module.exports = { 
     askLLM,
     getStructuredResponseFromLLM,
+    transcribeAudio,
 };

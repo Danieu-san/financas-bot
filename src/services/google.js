@@ -134,9 +134,63 @@ async function updateRowInSheet(range, values) {
     }
 }
 
+// Substitua a função getCalendarEventsForToday inteira por esta versão de diagnóstico
+async function getCalendarEventsForToday() {
+    try {
+        const calendarIdsString = process.env.GOOGLE_CALENDAR_ID;
+        if (!calendarIdsString) {
+            console.warn('Nenhum ID de Google Calendar configurado no .env. Pulando busca de eventos.');
+            return [];
+        }
+
+        const calendarIds = calendarIdsString.split(',');
+        // --- DETETIVE 1: Mostra quais agendas ele está tentando ler ---
+        console.log('[Diagnóstico Calendar] Lendo as seguintes agendas:', calendarIds);
+
+        const hoje = new Date();
+        const inicioDoDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 0, 0, 0);
+        const fimDoDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 23, 59, 59);
+
+        const promises = calendarIds.map(id => {
+            return calendar.events.list({
+                calendarId: id.trim(),
+                timeMin: inicioDoDia.toISOString(),
+                timeMax: fimDoDia.toISOString(),
+                singleEvents: true,
+                orderBy: 'startTime',
+            });
+        });
+
+        const results = await Promise.all(promises);
+        const allEvents = results.flatMap(result => result.data.items || []);
+
+        // --- DETETIVE 2: Mostra quantos eventos encontrou no total ---
+        console.log(`[Diagnóstico Calendar] Total de eventos encontrados: ${allEvents.length}`);
+
+        allEvents.sort((a, b) => {
+            const timeA = new Date(a.start.dateTime || a.start.date);
+            const timeB = new Date(b.start.dateTime || b.start.date);
+            return timeA - timeB;
+        });
+
+        // --- DETETIVE 3: Mostra os títulos dos eventos encontrados ---
+        if (allEvents.length > 0) {
+            console.log('[Diagnóstico Calendar] Títulos dos eventos:', allEvents.map(e => e.summary));
+        }
+
+        return allEvents;
+
+    } catch (error) {
+        // Se houver um erro, este bloco será executado
+        console.error('❌ [ERRO GRAVE Calendar] Erro ao buscar eventos do Google Calendar:', error.message);
+        return [];
+    }
+}
+
 module.exports = {
     authorizeGoogle,
     createCalendarEvent,
+    getCalendarEventsForToday,
     getSheetIds,
     appendRowToSheet,
     deleteRowsByIndices,

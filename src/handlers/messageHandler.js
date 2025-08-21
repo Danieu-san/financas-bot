@@ -8,6 +8,9 @@ const debtHandler = require('./debtHandler');
 const { getStructuredResponseFromLLM, askLLM } = require('../services/gemini');
 const { appendRowToSheet, readDataFromSheet, createCalendarEvent } = require('../services/google');
 const { getFormattedDate } = require('../utils/helpers');
+const cache = require('../utils/cache');
+const rateLimiter = require('../utils/rateLimiter');
+const { handleAudio } = require('./audioHandler');
 
 // Base de Conhecimento para Gastos
 const mapeamentoGastos = {
@@ -48,26 +51,32 @@ const MASTER_SCHEMA = {
     type: "OBJECT",
     properties: {
         intent: { type: "STRING", enum: ["gasto", "entrada", "pergunta", "apagar_item", "criar_divida", "criar_meta", "registrar_pagamento", "criar_lembrete", "desconhecido"] },
-        gastoDetails: {
-            type: "OBJECT",
-            description: "Preenchido SOMENTE se a intenção for 'gasto'.",
-            properties: {
-                descricao: { type: "STRING" }, valor: { type: "NUMBER" }, categoria: { type: "STRING" },
-                subcategoria: { type: "STRING" }, pagamento: { type: "STRING", enum: ["Dinheiro", "Débito", "Crédito", "PIX"] },
-                recorrente: { type: "STRING", enum: ["Sim", "Não"] }, observacoes: { type: "STRING" },
-                data: { type: "STRING", description: "A data do gasto no formato DD/MM/AAAA, se mencionada." }
+            gastoDetails: {
+            type: "ARRAY",
+            description: "Preenchido com uma lista de objetos se a intenção for 'gasto'. CADA gasto deve ser um objeto separado no array.",
+            items: {
+                type: "OBJECT",
+                properties: {
+                    descricao: { type: "STRING" }, valor: { type: "NUMBER" }, categoria: { type: "STRING" },
+                    subcategoria: { type: "STRING" }, pagamento: { type: "STRING", enum: ["Dinheiro", "Débito", "Crédito", "PIX"] },
+                    recorrente: { type: "STRING", enum: ["Sim", "Não"] }, observacoes: { type: "STRING" },
+                    data: { type: "STRING", description: "A data do gasto no formato DD/MM/AAAA, se mencionada." }
+                }
             }
         },
         entradaDetails: {
-            type: "OBJECT",
-            description: "Preenchido SOMENTE se a intenção for 'entrada'.",
-            properties: {
-                descricao: { type: "STRING" }, 
-                categoria: { type: "STRING", enum: categoriasEntradaOficiais },
-                valor: { type: "NUMBER" }, 
-                recebimento: { type: "STRING", enum: metodosRecebimento },
-                recorrente: { type: "STRING", enum: ["Sim", "Não"] }, 
-                observacoes: { type: "STRING" }
+            type: "ARRAY",
+            description: "Preenchido com uma lista de objetos se a intenção for 'entrada'. CADA entrada deve ser um objeto separado no array.",
+            items: {
+                type: "OBJECT",
+                properties: {
+                    descricao: { type: "STRING" }, 
+                    categoria: { type: "STRING", enum: categoriasEntradaOficiais },
+                    valor: { type: "NUMBER" }, 
+                    recebimento: { type: "STRING", enum: metodosRecebimento },
+                    recorrente: { type: "STRING", enum: ["Sim", "Não"] }, 
+                    observacoes: { type: "STRING" }
+                }
             }
         },
 
@@ -117,11 +126,31 @@ async function salvarGastoNaPlanilha(gasto, pessoa, dataParaSalvar) {
 
 // Função principal de tratamento de mensagens
 async function handleMessage(msg) {
+    // Verifica se a mensagem é um áudio (ptt = push to talk)
+    if (msg.type === 'ptt' || msg.type === 'audio') {
+        return handleAudio(msg); // Delega para o handler de áudio e encerra
+    }
     if (msg.isStatus || msg.fromMe) return;
 
     const senderId = msg.author || msg.from;
     const pessoa = userMap[senderId] || 'Ambos';
     const messageBody = msg.body.trim();
+    // --- RATE LIMITER ---
+    if (!rateLimiter.isAllowed(senderId)) {
+        // Opcional: Enviar uma mensagem informando o usuário.
+        // Cuidado para não criar um loop. Talvez só logar no console seja melhor.
+        console.log(`Usuário ${senderId} bloqueado pelo rate limit. Mensagem ignorada.`);
+        return; // Interrompe a execução
+    }
+// --- FIM DO RATE LIMITER ---
+    const cacheKey = `${senderId}:${messageBody}`;
+    const cachedResponse = cache.get(cacheKey);
+
+    if (cachedResponse) {
+        console.log(`♻️ Resposta encontrada no cache para a chave: ${cacheKey}`);
+        await msg.reply(cachedResponse);
+        return; // Interrompe a execução aqui, pois já respondemos
+    }
 
     const currentState = userStateManager.getState(senderId);
     if (currentState) {
@@ -129,6 +158,45 @@ async function handleMessage(msg) {
             case 'awaiting_payment_amount':
                 await debtHandler.finalizePaymentRegistration(msg);
                 return;
+            
+            case 'confirming_transactions':
+    if (msg.body.toLowerCase() === 'sim') {
+        const { transactions, sheetName, person } = currentState.data;
+        await msg.reply(`✅ Confirmado! Registrando ${transactions.length} itens...`);
+
+        let successCount = 0;
+        for (const item of transactions) {
+            try {
+                if (sheetName === 'Saídas') {
+                    const dataDoGasto = item.data || getFormattedDate();
+                    const valorNumerico = parseFloat(item.valor);
+                    const rowData = [
+                        dataDoGasto, item.descricao || 'Não especificado', item.categoria || 'Outros',
+                        item.subcategoria || '', valorNumerico, person, item.pagamento || '',
+                        item.recorrente || 'Não', item.observacoes || ''
+                    ];
+                    await appendRowToSheet('Saídas', rowData);
+                } else { // Entradas
+                    const valorNumerico = parseFloat(item.valor);
+                    const rowData = [
+                        getFormattedDate(), item.descricao || 'Não especificado', item.categoria || 'Outros',
+                        valorNumerico, person, item.recebimento || '',
+                        item.recorrente || 'Não', item.observacoes || ''
+                    ];
+                    await appendRowToSheet('Entradas', rowData);
+                }
+                successCount++;
+            } catch (e) {
+                console.error("Erro ao salvar item da lista:", item, e);
+            }
+        }
+        await msg.reply(`Registro finalizado. ${successCount} de ${transactions.length} itens foram salvos com sucesso.`);
+
+    } else {
+        await msg.reply("Ok, registro cancelado.");
+    }
+    userStateManager.deleteState(senderId);
+    return;
             
             case 'awaiting_payment_method':
                 const gasto = currentState.data;
@@ -178,7 +246,7 @@ async function handleMessage(msg) {
     console.log(`Mensagem de ${pessoa} (${senderId}): "${messageBody}"`);
 
     try {
-        const masterPrompt = `Sua tarefa é analisar a mensagem e extrair a intenção e detalhes em um JSON. A mensagem é de "${pessoa}". A data e hora atual é ${new Date().toISOString()}. ### Mensagem: "${messageBody}" ### ORDEM DE ANÁLISE: 1. **CRIAR LEMBRETE:** Se contiver "lembrete", "me lembre", etc., a intent é 'criar_lembrete'. Extraia o 'titulo', a 'dataHora' da primeira ocorrência e a regra de 'recorrencia'. Para "todo dia 10", a recorrência é 'FREQ=MONTHLY;BYMONTHDAY=10'. Para "toda segunda-feira", é 'FREQ=WEEKLY;BYDAY=MO'. Se não for recorrente, a recorrência é nula. 2. **APAGAR:** ... 3. **PAGAMENTO:** ... 4. **PERGUNTA:** ... 5. **GASTO:** ... 6. **ENTRADA:** ... 7. **OUTRAS:** ... 8. **DESCONHECIDO:** ... ### Bases de Conhecimento: - Mapa de Gastos: ${JSON.stringify(mapeamentoGastos)} - Mapa de Entradas: ${JSON.stringify(mapeamentoEntradas)} ### Formato de Saída: Retorne APENAS o objeto JSON, seguindo este schema: ${JSON.stringify(MASTER_SCHEMA)}`;
+        const masterPrompt = `Sua tarefa é analisar a mensagem e extrair a intenção e detalhes em um JSON. A mensagem é de "${pessoa}". A data e hora atual é ${new Date().toISOString()}. ### Mensagem: "${messageBody}" ### REGRA GERAL IMPORTANTE: Se a mensagem contiver múltiplas transações (ex: 'comprei X por 10 e Y por 20'), os campos 'gastoDetails' ou 'entradaDetails' devem ser um ARRAY contendo um objeto para CADA transação individual. ### ORDEM DE ANÁLISE: 1. **CRIAR LEMBRETE:** Se contiver "lembrete", "me lembre", etc., a intent é 'criar_lembrete'. Extraia o 'titulo', a 'dataHora' da primeira ocorrência e a regra de 'recorrencia'. Para "todo dia 10", a recorrência é 'FREQ=MONTHLY;BYMONTHDAY=10'. Para "toda segunda-feira", é 'FREQ=WEEKLY;BYDAY=MO'. Se não for recorrente, a recorrência é nula. 2. **APAGAR:** ... 3. **PAGAMENTO:** ... 4. **PERGUNTA:** ... 5. **GASTO:** ... 6. **ENTRADA:** ... 7. **OUTRAS:** ... 8. **DESCONHECIDO:** ... ### Bases de Conhecimento: - Mapa de Gastos: ${JSON.stringify(mapeamentoGastos)} - Mapa de Entradas: ${JSON.stringify(mapeamentoEntradas)} ### Formato de Saída: Retorne APENAS o objeto JSON, seguindo este schema: ${JSON.stringify(MASTER_SCHEMA)}`;
         
         const structuredResponse = await getStructuredResponseFromLLM(masterPrompt);
         console.log("--- RESPOSTA BRUTA DA IA ---");
@@ -210,40 +278,79 @@ async function handleMessage(msg) {
                 break;
             
             case 'gasto':
-                const gasto = structuredResponse.gastoDetails;
-                if (!gasto || !gasto.valor) { await msg.reply("Entendi que é um gasto, mas não identifiquei o valor."); break; }
-                
-                // LÓGICA DE DATA CORRIGIDA
-                // Se a IA extraiu uma data, usa ela. Se não, usa a data atual.
-                const dataDoGasto = gasto.data ? gasto.data : getFormattedDate();
+                let gastos = structuredResponse.gastoDetails;
+                if (!gastos || gastos.length === 0) {
+                    await msg.reply("Entendi que é um gasto, mas não identifiquei os detalhes (valor, descrição).");
+                    break;
+                }
 
-                if (!gasto.pagamento) {
-                    // Adiciona a data correta ao estado antes de perguntar o pagamento
+                // Garante que 'gastos' seja sempre um array para tratar tudo igual
+                if (!Array.isArray(gastos)) {
+                    gastos = [gastos];
+                }
+
+                // Se for só um gasto e faltar o pagamento, usa o fluxo antigo
+                if (gastos.length === 1 && !gastos[0].pagamento) {
+                    const gasto = gastos[0];
+                    const dataDoGasto = gasto.data ? gasto.data : getFormattedDate();
                     gasto.dataFinal = dataDoGasto;
                     userStateManager.setState(senderId, { action: 'awaiting_payment_method', data: gasto });
                     await msg.reply('Entendido! E qual foi a forma de pagamento? (Crédito, Débito, PIX ou Dinheiro)');
-                } else {
-                    const confirmationMessage = await salvarGastoNaPlanilha(gasto, pessoa, dataDoGasto);
-                    await msg.reply(confirmationMessage);
+                    break;
                 }
+
+                // Se tiver múltiplos gastos ou um gasto já completo, inicia a confirmação
+                let confirmationMessage = `Encontrei ${gastos.length} gasto(s) para registrar:\n\n`;
+                gastos.forEach((gasto, index) => {
+                    confirmationMessage += `*${index + 1}.* ${gasto.descricao} - *R$${gasto.valor}* (${gasto.pagamento || 'a definir'})\n`;
+                });
+                confirmationMessage += "\nVocê confirma o registro de todos os itens? Responda com *'sim'* ou *'não'*."
+
+                userStateManager.setState(senderId, {
+                    action: 'confirming_transactions',
+                    data: {
+                        transactions: gastos,
+                        sheetName: 'Saídas',
+                        person: pessoa
+                    }
+                });
+
+                await msg.reply(confirmationMessage);
                 break;
 
             case 'entrada':
-                const entrada = structuredResponse.entradaDetails;
-                if (!entrada || !entrada.valor) { await msg.reply("Entendi que é uma entrada, mas não identifiquei o valor."); break; }
-                if (!entrada.recebimento) {
-                    userStateManager.setState(senderId, { action: 'awaiting_receipt_method', data: entrada });
-                    await msg.reply('Entendido! E onde você recebeu esse valor? (Conta Corrente, Poupança, PIX ou Dinheiro)');
-                } else {
-                    const valorNumerico = parseFloat(entrada.valor);
-                    const entradaRowData = [
-                        getFormattedDate(), entrada.descricao || 'Não especificado', entrada.categoria || 'Outros',
-                        valorNumerico, pessoa, entrada.recebimento,
-                        entrada.recorrente || 'Não', entrada.observacoes || ''
-                    ];
-                    await appendRowToSheet('Entradas', entradaRowData);
-                    await msg.reply(`✅ Entrada de R$${valorNumerico.toFixed(2)} registrada na categoria *${entrada.categoria}*!`);
+                let entradas = structuredResponse.entradaDetails;
+                if (!entradas || entradas.length === 0) {
+                    await msg.reply("Entendi que é uma entrada, mas não identifiquei os detalhes (valor, descrição).");
+                    break;
                 }
+
+                if (!Array.isArray(entradas)) {
+                    entradas = [entradas];
+                }
+
+                if (entradas.length === 1 && !entradas[0].recebimento) {
+                    userStateManager.setState(senderId, { action: 'awaiting_receipt_method', data: entradas[0] });
+                    await msg.reply('Entendido! E onde você recebeu esse valor? (Conta Corrente, Poupança, PIX ou Dinheiro)');
+                    break;
+                }
+
+                let entradaConfMessage = `Encontrei ${entradas.length} entrada(s) para registrar:\n\n`;
+                entradas.forEach((entrada, index) => {
+                    entradaConfMessage += `*${index + 1}.* ${entrada.descricao} - *R$${entrada.valor}* (${entrada.recebimento || 'a definir'})\n`;
+                });
+                entradaConfMessage += "\nVocê confirma o registro de todos os itens? Responda com *'sim'* ou *'não'*."
+
+                userStateManager.setState(senderId, {
+                    action: 'confirming_transactions',
+                    data: {
+                        transactions: entradas,
+                        sheetName: 'Entradas',
+                        person: pessoa
+                    }
+                });
+
+                await msg.reply(entradaConfMessage);
                 break;
 
             case 'pergunta':
@@ -255,6 +362,7 @@ async function handleMessage(msg) {
                 const contextPrompt = `Com base nos dados JSON abaixo, responda à pergunta do usuário (${pessoa}): "${structuredResponse.question || messageBody}". Hoje é ${new Date().toLocaleDateString('pt-BR')}. Dados de Saídas: ${JSON.stringify(saidasData)} Dados de Entradas: ${JSON.stringify(entradasData)} Dados de Metas: ${JSON.stringify(metasData)} Dados de Dívidas: ${JSON.stringify(dividasData)}`;
                 const respostaIA = await askLLM(contextPrompt);
                 await msg.reply(respostaIA);
+                cache.set(cacheKey, respostaIA);
                 break;
 
             case 'apagar_item':
@@ -273,6 +381,7 @@ async function handleMessage(msg) {
             default:
                 const genericResponse = await askLLM(`A mensagem é de ${pessoa}. Responda de forma amigável: "${messageBody}"`);
                 await msg.reply(genericResponse);
+                cache.set(cacheKey, genericResponse);
                 break;
         }
     } catch (error) {

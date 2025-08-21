@@ -1,3 +1,5 @@
+// src/utils/helpers.js
+
 const parseValue = (text) => {
     if (typeof text !== 'string') return null;
     const value = parseFloat(text.replace('.', '').replace(',', '.'));
@@ -39,10 +41,19 @@ const normalizeText = (text) => {
         .replace(/[\u0300-\u036f]/g, "");
 };
 
+const parseSheetDate = (dateString) => {
+    if (!dateString || typeof dateString !== 'string') return null;
+    const parts = dateString.split('/');
+    if (parts.length !== 3) return null;
+    // Formato: Ano, Mês-1, Dia
+    return new Date(parts[2], parts[1] - 1, parts[0]);
+};
+
 module.exports = {
     parseValue,
     isDate,
     getFormattedDate,
     getFormattedDateOnly, // Exportamos a nova função
     normalizeText,
+    parseSheetDate,
 };

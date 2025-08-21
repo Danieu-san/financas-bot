@@ -1,8 +1,11 @@
+//index.js
+
 require('dotenv').config();
 
 const { initializeWhatsAppClient } = require('./src/services/whatsapp');
 const { authorizeGoogle, getSheetIds } = require('./src/services/google');
 const { handleMessage } = require('./src/handlers/messageHandler');
+const { initializeScheduler } = require('./src/jobs/scheduler');
 
 async function startBot() {
     console.log('Iniciando o bot...');
@@ -21,7 +24,10 @@ async function startBot() {
         // 2. Inicializa o cliente do WhatsApp
         const client = initializeWhatsAppClient();
 
-        // 3. Conecta o handler principal de mensagens ao evento 'message'
+        // 3. INICIA O AGENDADOR DE TAREFAS
+        initializeScheduler(client);
+
+        // 4. Conecta o handler principal de mensagens ao evento 'message'
         client.on('message', handleMessage);
 
         console.log('✅ Bot pronto para receber mensagens.');
