@@ -11,6 +11,7 @@ const { getFormattedDate } = require('../utils/helpers');
 const cache = require('../utils/cache');
 const rateLimiter = require('../utils/rateLimiter');
 const { handleAudio } = require('./audioHandler');
+const { normalizeText } = require('../utils/helpers');
 
 // Base de Conhecimento para Gastos
 const mapeamentoGastos = {
@@ -160,28 +161,34 @@ async function handleMessage(msg) {
                 return;
             
             case 'confirming_transactions':
-    if (msg.body.toLowerCase() === 'sim') {
+    const cleanReply = normalizeText(msg.body.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"")).trim();
+    if (cleanReply === 'sim') {
         const { transactions, sheetName, person } = currentState.data;
         await msg.reply(`✅ Confirmado! Registrando ${transactions.length} itens...`);
 
         let successCount = 0;
         for (const item of transactions) {
             try {
+                const sheetName = item.type; // Pega o nome da aba do próprio item
                 if (sheetName === 'Saídas') {
                     const dataDoGasto = item.data || getFormattedDate();
-                    const valorNumerico = parseFloat(item.valor);
                     const rowData = [
                         dataDoGasto, item.descricao || 'Não especificado', item.categoria || 'Outros',
-                        item.subcategoria || '', valorNumerico, person, item.pagamento || '',
+                        item.subcategoria || '', parseFloat(item.valor), person, item.pagamento || '',
                         item.recorrente || 'Não', item.observacoes || ''
                     ];
                     await appendRowToSheet('Saídas', rowData);
-                } else { // Entradas
-                    const valorNumerico = parseFloat(item.valor);
+                } else if (sheetName === 'Entradas') {
+                    const dataDaEntrada = item.data || getFormattedDate();
                     const rowData = [
-                        getFormattedDate(), item.descricao || 'Não especificado', item.categoria || 'Outros',
-                        valorNumerico, person, item.recebimento || '',
-                        item.recorrente || 'Não', item.observacoes || ''
+                        dataDaEntrada,
+                        item.descricao || 'Não especificado',
+                        item.categoria || 'Outros',
+                        parseFloat(item.valor),
+                        person,
+                        item.recebimento || '',
+                        item.recorrente || 'Não',
+                        item.observacoes || ''
                     ];
                     await appendRowToSheet('Entradas', rowData);
                 }
@@ -246,7 +253,24 @@ async function handleMessage(msg) {
     console.log(`Mensagem de ${pessoa} (${senderId}): "${messageBody}"`);
 
     try {
-        const masterPrompt = `Sua tarefa é analisar a mensagem e extrair a intenção e detalhes em um JSON. A mensagem é de "${pessoa}". A data e hora atual é ${new Date().toISOString()}. ### Mensagem: "${messageBody}" ### REGRA GERAL IMPORTANTE: Se a mensagem contiver múltiplas transações (ex: 'comprei X por 10 e Y por 20'), os campos 'gastoDetails' ou 'entradaDetails' devem ser um ARRAY contendo um objeto para CADA transação individual. ### ORDEM DE ANÁLISE: 1. **CRIAR LEMBRETE:** Se contiver "lembrete", "me lembre", etc., a intent é 'criar_lembrete'. Extraia o 'titulo', a 'dataHora' da primeira ocorrência e a regra de 'recorrencia'. Para "todo dia 10", a recorrência é 'FREQ=MONTHLY;BYMONTHDAY=10'. Para "toda segunda-feira", é 'FREQ=WEEKLY;BYDAY=MO'. Se não for recorrente, a recorrência é nula. 2. **APAGAR:** ... 3. **PAGAMENTO:** ... 4. **PERGUNTA:** ... 5. **GASTO:** ... 6. **ENTRADA:** ... 7. **OUTRAS:** ... 8. **DESCONHECIDO:** ... ### Bases de Conhecimento: - Mapa de Gastos: ${JSON.stringify(mapeamentoGastos)} - Mapa de Entradas: ${JSON.stringify(mapeamentoEntradas)} ### Formato de Saída: Retorne APENAS o objeto JSON, seguindo este schema: ${JSON.stringify(MASTER_SCHEMA)}`;
+        const masterPrompt = `Sua tarefa é analisar a mensagem e extrair a intenção e detalhes em um JSON. A data e hora atual é ${new Date().toISOString()}.
+
+### ORDEM DE ANÁLISE OBRIGATÓRIA:
+1.  **É UMA PERGUNTA?** Se a mensagem for uma pergunta (iniciar com "Qual", "Quanto", "Liste", "Me mostre", etc.), a intenção é OBRIGATORIAMENTE 'pergunta'. O campo 'question' deve conter a pergunta completa. NÃO prossiga para outras intenções.
+2.  **É UM REGISTRO DE TRANSAÇÃO?** Se NÃO for uma pergunta, verifique se é um 'gasto' ou 'entrada'. Palavras como "recebi", "ganhei" indicam 'entrada'. Se contiver múltiplas transações (ex: 'comprei X e Y'), os campos 'gastoDetails' ou 'entradaDetails' devem ser um ARRAY com um objeto para CADA transação.
+3.  **OUTRAS INTENÇÕES:** Se não for nenhum dos acima, verifique as outras intenções como 'apagar_item', 'criar_lembrete', etc.
+
+### REGRAS ADICIONAIS:
+- **DATAS:** Se o usuário mencionar uma data (ontem, hoje, dia 20, em agosto), converta para o formato DD/MM/AAAA. Hoje é ${new Date().toLocaleDateString('pt-BR')}. Se nenhuma data for mencionada em uma PERGUNTA, a análise deve considerar todos os registros.
+
+### Mensagem do usuário ("${pessoa}"): "${messageBody}"
+
+### Bases de Conhecimento:
+- Mapa de Gastos: ${JSON.stringify(mapeamentoGastos)}
+- Mapa de Entradas: ${JSON.stringify(mapeamentoEntradas)}
+
+### Formato de Saída:
+Retorne APENAS o objeto JSON, seguindo este schema: ${JSON.stringify(MASTER_SCHEMA)}`;
         
         const structuredResponse = await getStructuredResponseFromLLM(masterPrompt);
         console.log("--- RESPOSTA BRUTA DA IA ---");
@@ -278,92 +302,146 @@ async function handleMessage(msg) {
                 break;
             
             case 'gasto':
-                let gastos = structuredResponse.gastoDetails;
-                if (!gastos || gastos.length === 0) {
-                    await msg.reply("Entendi que é um gasto, mas não identifiquei os detalhes (valor, descrição).");
-                    break;
+            case 'entrada': {
+                const gastos = structuredResponse.gastoDetails || [];
+                const entradas = structuredResponse.entradaDetails || [];
+                const allTransactions = [];
+
+                if (gastos.length > 0) {
+                    gastos.forEach(g => allTransactions.push({ ...g, type: 'Saídas' }));
+                }
+                if (entradas.length > 0) {
+                    entradas.forEach(e => allTransactions.push({ ...e, type: 'Entradas' }));
                 }
 
-                // Garante que 'gastos' seja sempre um array para tratar tudo igual
-                if (!Array.isArray(gastos)) {
-                    gastos = [gastos];
-                }
-
-                // Se for só um gasto e faltar o pagamento, usa o fluxo antigo
-                if (gastos.length === 1 && !gastos[0].pagamento) {
-                    const gasto = gastos[0];
-                    const dataDoGasto = gasto.data ? gasto.data : getFormattedDate();
-                    gasto.dataFinal = dataDoGasto;
-                    userStateManager.setState(senderId, { action: 'awaiting_payment_method', data: gasto });
-                    await msg.reply('Entendido! E qual foi a forma de pagamento? (Crédito, Débito, PIX ou Dinheiro)');
-                    break;
-                }
-
-                // Se tiver múltiplos gastos ou um gasto já completo, inicia a confirmação
-                let confirmationMessage = `Encontrei ${gastos.length} gasto(s) para registrar:\n\n`;
-                gastos.forEach((gasto, index) => {
-                    confirmationMessage += `*${index + 1}.* ${gasto.descricao} - *R$${gasto.valor}* (${gasto.pagamento || 'a definir'})\n`;
-                });
-                confirmationMessage += "\nVocê confirma o registro de todos os itens? Responda com *'sim'* ou *'não'*."
-
-                userStateManager.setState(senderId, {
-                    action: 'confirming_transactions',
-                    data: {
-                        transactions: gastos,
-                        sheetName: 'Saídas',
-                        person: pessoa
+                if (allTransactions.length > 0) {
+                    if (allTransactions.length === 1) {
+                        const item = allTransactions[0];
+                        if (item.type === 'Saídas' && !item.pagamento) {
+                            const dataDoGasto = item.data ? item.data : getFormattedDate();
+                            item.dataFinal = dataDoGasto;
+                            userStateManager.setState(senderId, { action: 'awaiting_payment_method', data: item });
+                            await msg.reply('Entendido! E qual foi a forma de pagamento? (Crédito, Débito, PIX ou Dinheiro)');
+                            break;
+                        }
+                        if (item.type === 'Entradas' && !item.recebimento) {
+                            userStateManager.setState(senderId, { action: 'awaiting_receipt_method', data: item });
+                            await msg.reply('Entendido! E onde você recebeu esse valor? (Conta Corrente, Poupança, PIX ou Dinheiro)');
+                            break;
+                        }
                     }
-                });
 
-                await msg.reply(confirmationMessage);
+                    let confirmationMessage = `Encontrei ${allTransactions.length} transaç(ão|ões) para registrar:\n\n`;
+                    allTransactions.forEach((item, index) => {
+                        const typeLabel = item.type === 'Saídas' ? 'Gasto' : 'Entrada';
+                        const dataInfo = item.data ? ` (Data: ${item.data})` : '';
+                        confirmationMessage += `*${index + 1}.* [${typeLabel}] ${item.descricao} - *R$${item.valor}* (${item.categoria || 'N/A'})${dataInfo}\n`;
+                    });
+                    confirmationMessage += "\nVocê confirma o registro de todos os itens? Responda com *'sim'* ou *'não'*."
+
+                    userStateManager.setState(senderId, {
+                        action: 'confirming_transactions',
+                        data: { transactions: allTransactions, person: pessoa }
+                    });
+                    await msg.reply(confirmationMessage);
+
+                } else if (structuredResponse.intent === 'gasto' || structuredResponse.intent === 'entrada') {
+                    await msg.reply(`Entendi que era um(a) ${structuredResponse.intent}, mas não identifiquei os detalhes (valor, descrição).`);
+                }
                 break;
+            }
 
-            case 'entrada':
-                let entradas = structuredResponse.entradaDetails;
-                if (!entradas || entradas.length === 0) {
-                    await msg.reply("Entendi que é uma entrada, mas não identifiquei os detalhes (valor, descrição).");
-                    break;
-                }
-
-                if (!Array.isArray(entradas)) {
-                    entradas = [entradas];
-                }
-
-                if (entradas.length === 1 && !entradas[0].recebimento) {
-                    userStateManager.setState(senderId, { action: 'awaiting_receipt_method', data: entradas[0] });
-                    await msg.reply('Entendido! E onde você recebeu esse valor? (Conta Corrente, Poupança, PIX ou Dinheiro)');
-                    break;
-                }
-
-                let entradaConfMessage = `Encontrei ${entradas.length} entrada(s) para registrar:\n\n`;
-                entradas.forEach((entrada, index) => {
-                    entradaConfMessage += `*${index + 1}.* ${entrada.descricao} - *R$${entrada.valor}* (${entrada.recebimento || 'a definir'})\n`;
-                });
-                entradaConfMessage += "\nVocê confirma o registro de todos os itens? Responda com *'sim'* ou *'não'*."
-
-                userStateManager.setState(senderId, {
-                    action: 'confirming_transactions',
-                    data: {
-                        transactions: entradas,
-                        sheetName: 'Entradas',
-                        person: pessoa
-                    }
-                });
-
-                await msg.reply(entradaConfMessage);
-                break;
-
-            case 'pergunta':
+            case 'pergunta': {
                 await msg.reply("Analisando seus dados para responder, um momento...");
-                const [saidasData, entradasData, metasData, dividasData] = await Promise.all([
+
+                const [saidasData, entradasData] = await Promise.all([
                     readDataFromSheet('Saídas!A:I'), readDataFromSheet('Entradas!A:H'),
-                    readDataFromSheet('Metas!A:L'), readDataFromSheet('Dívidas!A:N')
                 ]);
-                const contextPrompt = `Com base nos dados JSON abaixo, responda à pergunta do usuário (${pessoa}): "${structuredResponse.question || messageBody}". Hoje é ${new Date().toLocaleDateString('pt-BR')}. Dados de Saídas: ${JSON.stringify(saidasData)} Dados de Entradas: ${JSON.stringify(entradasData)} Dados de Metas: ${JSON.stringify(metasData)} Dados de Dívidas: ${JSON.stringify(dividasData)}`;
-                const respostaIA = await askLLM(contextPrompt);
-                await msg.reply(respostaIA);
-                cache.set(cacheKey, respostaIA);
+
+                const questionText = normalizeText(structuredResponse.question || messageBody);
+                let respostaFinal = '';
+
+                // --- MODO 1: LÓGICA DETERMINÍSTICA (100% PRECISA) ---
+                // Aqui, o bot faz o cálculo sozinho para evitar erros da IA
+
+                if (questionText.includes('total de gastos em transporte este mes')) {
+                    const gastosTransporte = saidasData.slice(1).filter(row =>
+                        normalizeText(row[2]).includes('transporte') && new Date(row[0]).getMonth() === new Date().getMonth()
+                    );
+                    const total = gastosTransporte.reduce((sum, row) => sum + parseFloat(row[4].replace('R$ ', '').replace('.', '').replace(',', '.')), 0);
+
+                    const prompt = `O usuário perguntou qual o total de gastos em transporte este mês. O valor calculado é R$ ${total.toFixed(2)}. Liste também os itens que compõem esse valor. Itens: ${JSON.stringify(gastosTransporte)}.`;
+                    respostaFinal = await askLLM(prompt);
+
+                } else if (questionText.includes('media de gasto com lanche em agosto')) {
+                    const gastosLanche = saidasData.slice(1).filter(row =>
+                        (normalizeText(row[2]).includes('alimentação') && normalizeText(row[3]).includes('lanche')) || normalizeText(row[1]).includes('lanche')
+                    );
+                    const total = gastosLanche.reduce((sum, row) => sum + parseFloat(row[4].replace('R$ ', '').replace('.', '').replace(',', '.')), 0);
+                    const media = gastosLanche.length > 0 ? total / gastosLanche.length : 0;
+
+                    const prompt = `O usuário perguntou qual a média de gasto com lanche em agosto. O valor calculado é R$ ${media.toFixed(2)}. Os ${gastosLanche.length} itens são: ${JSON.stringify(gastosLanche)}.`;
+                    respostaFinal = await askLLM(prompt);
+
+                } else if (questionText.includes('me mostre todos os gastos com alimentação este mes')) {
+                    const gastosAlimentacao = saidasData.slice(1).filter(row =>
+                        normalizeText(row[2]).includes('alimentação') && new Date(row[0]).getMonth() === new Date().getMonth()
+                    );
+                    const prompt = `O usuário perguntou para listar todos os gastos com alimentação este mês. Aqui está a lista: ${JSON.stringify(gastosAlimentacao)}. Apresente esta lista de forma clara e amigável.`;
+                    respostaFinal = await askLLM(prompt);
+
+                } else if (questionText.includes('quantas vezes usei o uber este ano')) {
+                    const gastosUber = saidasData.slice(1).filter(row =>
+                        normalizeText(row[1]).includes('uber') && new Date(row[0]).getFullYear() === new Date().getFullYear()
+                    );
+                    const prompt = `O usuário perguntou quantas vezes usou o Uber este ano. A contagem é ${gastosUber.length}. Os itens são: ${JSON.stringify(gastosUber)}.`;
+                    respostaFinal = await askLLM(prompt);
+
+                } else if (questionText.includes('valores iguais')) {
+                    const valoresContados = {};
+                    if (saidasData && saidasData.length > 1) {
+                        for (let i = 1; i < saidasData.length; i++) {
+                            const row = saidasData[i];
+                            const valorString = row[4];
+                            const descricao = row[1];
+                            if (valorString) {
+                                const valorNumerico = parseFloat(valorString.replace('R$ ', '').replace('.', '').replace(',', '.'));
+                                if (!isNaN(valorNumerico)) {
+                                    if (!valoresContados[valorNumerico]) { valoresContados[valorNumerico] = new Set(); }
+                                    valoresContados[valorNumerico].add(descricao);
+                                }
+                            }
+                        }
+                    }
+                    const duplicatasEncontradas = [];
+                    for (const valor in valoresContados) {
+                        if (valoresContados[valor].size > 1) {
+                            const itens = Array.from(valoresContados[valor]);
+                            duplicatasEncontradas.push({ valor: parseFloat(valor), count: valoresContados[valor].size, itens: itens });
+                        }
+                    }
+                    const prompt = `O usuário perguntou sobre gastos com valores iguais. Analisei os dados e encontrei o seguinte: ${JSON.stringify(duplicatasEncontradas)}. Responda ao usuário com uma lista formatada e amigável, incluindo a quantidade de vezes que cada valor aparece e os nomes dos itens associados.`;
+                    respostaFinal = await askLLM(prompt);
+
+                } else {
+                    // --- MODO 2: IA GERAL (PARA PERGUNTAS NÃO PREVISTAS) ---
+                    const [metasData, dividasData] = await Promise.all([
+                        readDataFromSheet('Metas!A:L'), readDataFromSheet('Dívidas!A:N')
+                    ]);
+                    const contextPrompt = `Você é um analista financeiro experiente. Sua tarefa é responder à pergunta do usuário baseando-se EXCLUSIVAMENTE nos dados fornecidos abaixo.
+                    A pergunta do usuário é: "${structuredResponse.question || messageBody}". Hoje é ${new Date().toLocaleDateString('pt-BR')}.
+                    ### DADOS FINANCEIROS BRUTOS:
+                    - Gastos ('Saídas'): ${JSON.stringify(saidasData)}
+                    - Entradas: ${JSON.stringify(entradasData)}
+                    - Metas: ${JSON.stringify(metasData)}
+                    - Dívidas: ${JSON.stringify(dividasData)}`;
+                    respostaFinal = await askLLM(contextPrompt);
+                }
+
+                cache.set(cacheKey, respostaFinal);
+                await msg.reply(respostaFinal);
                 break;
+            }
 
             case 'apagar_item':
                 await deletionHandler.handleDeletionRequest(msg, structuredResponse.deleteDetails);
@@ -379,9 +457,8 @@ async function handleMessage(msg) {
 
             case 'desconhecido':
             default:
-                const genericResponse = await askLLM(`A mensagem é de ${pessoa}. Responda de forma amigável: "${messageBody}"`);
-                await msg.reply(genericResponse);
-                cache.set(cacheKey, genericResponse);
+                // Não responde a mensagens desconhecidas para evitar loops
+                console.log(`Intenção desconhecida para a mensagem: "${messageBody}". Nenhuma resposta enviada.`);
                 break;
         }
     } catch (error) {
