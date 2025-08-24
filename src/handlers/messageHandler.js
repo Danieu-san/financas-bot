@@ -12,6 +12,12 @@ const cache = require('../utils/cache');
 const rateLimiter = require('../utils/rateLimiter');
 const { handleAudio } = require('./audioHandler');
 const { normalizeText } = require('../utils/helpers');
+const analysisService = require('../services/analysisService');
+const { parseSheetDate } = require('../utils/helpers');
+const { classify } = require('../ai/intentClassifier');
+const { execute } = require('../services/calculationOrchestrator');
+const { generate } = require('../ai/responseGenerator');
+
 
 // Base de Conhecimento para Gastos
 const mapeamentoGastos = {
@@ -353,89 +359,50 @@ Retorne APENAS o objeto JSON, seguindo este schema: ${JSON.stringify(MASTER_SCHE
 
             case 'pergunta': {
                 await msg.reply("Analisando seus dados para responder, um momento...");
-
-                const [saidasData, entradasData] = await Promise.all([
-                    readDataFromSheet('Saídas!A:I'), readDataFromSheet('Entradas!A:H'),
+                
+                // 1. Coletar dados de todas as planilhas
+                const [saidasData, entradasData, metasData, dividasData] = await Promise.all([
+                    readDataFromSheet('Saídas!A:I'), 
+                    readDataFromSheet('Entradas!A:H'),
+                    readDataFromSheet('Metas!A:L'), 
+                    readDataFromSheet('Dívidas!A:N')
                 ]);
 
-                const questionText = normalizeText(structuredResponse.question || messageBody);
+                const userQuestion = structuredResponse.question || messageBody;
+                
                 let respostaFinal = '';
-
-                // --- MODO 1: LÓGICA DETERMINÍSTICA (100% PRECISA) ---
-                // Aqui, o bot faz o cálculo sozinho para evitar erros da IA
-
-                if (questionText.includes('total de gastos em transporte este mes')) {
-                    const gastosTransporte = saidasData.slice(1).filter(row =>
-                        normalizeText(row[2]).includes('transporte') && new Date(row[0]).getMonth() === new Date().getMonth()
-                    );
-                    const total = gastosTransporte.reduce((sum, row) => sum + parseFloat(row[4].replace('R$ ', '').replace('.', '').replace(',', '.')), 0);
-
-                    const prompt = `O usuário perguntou qual o total de gastos em transporte este mês. O valor calculado é R$ ${total.toFixed(2)}. Liste também os itens que compõem esse valor. Itens: ${JSON.stringify(gastosTransporte)}.`;
-                    respostaFinal = await askLLM(prompt);
-
-                } else if (questionText.includes('media de gasto com lanche em agosto')) {
-                    const gastosLanche = saidasData.slice(1).filter(row =>
-                        (normalizeText(row[2]).includes('alimentação') && normalizeText(row[3]).includes('lanche')) || normalizeText(row[1]).includes('lanche')
-                    );
-                    const total = gastosLanche.reduce((sum, row) => sum + parseFloat(row[4].replace('R$ ', '').replace('.', '').replace(',', '.')), 0);
-                    const media = gastosLanche.length > 0 ? total / gastosLanche.length : 0;
-
-                    const prompt = `O usuário perguntou qual a média de gasto com lanche em agosto. O valor calculado é R$ ${media.toFixed(2)}. Os ${gastosLanche.length} itens são: ${JSON.stringify(gastosLanche)}.`;
-                    respostaFinal = await askLLM(prompt);
-
-                } else if (questionText.includes('me mostre todos os gastos com alimentação este mes')) {
-                    const gastosAlimentacao = saidasData.slice(1).filter(row =>
-                        normalizeText(row[2]).includes('alimentação') && new Date(row[0]).getMonth() === new Date().getMonth()
-                    );
-                    const prompt = `O usuário perguntou para listar todos os gastos com alimentação este mês. Aqui está a lista: ${JSON.stringify(gastosAlimentacao)}. Apresente esta lista de forma clara e amigável.`;
-                    respostaFinal = await askLLM(prompt);
-
-                } else if (questionText.includes('quantas vezes usei o uber este ano')) {
-                    const gastosUber = saidasData.slice(1).filter(row =>
-                        normalizeText(row[1]).includes('uber') && new Date(row[0]).getFullYear() === new Date().getFullYear()
-                    );
-                    const prompt = `O usuário perguntou quantas vezes usou o Uber este ano. A contagem é ${gastosUber.length}. Os itens são: ${JSON.stringify(gastosUber)}.`;
-                    respostaFinal = await askLLM(prompt);
-
-                } else if (questionText.includes('valores iguais')) {
-                    const valoresContados = {};
-                    if (saidasData && saidasData.length > 1) {
-                        for (let i = 1; i < saidasData.length; i++) {
-                            const row = saidasData[i];
-                            const valorString = row[4];
-                            const descricao = row[1];
-                            if (valorString) {
-                                const valorNumerico = parseFloat(valorString.replace('R$ ', '').replace('.', '').replace(',', '.'));
-                                if (!isNaN(valorNumerico)) {
-                                    if (!valoresContados[valorNumerico]) { valoresContados[valorNumerico] = new Set(); }
-                                    valoresContados[valorNumerico].add(descricao);
-                                }
-                            }
+                try {
+                    // 2. Classificar a intenção
+                    const intentClassification = await classify(userQuestion);
+                    console.log('Classificação da intenção:', intentClassification);
+                    
+                    // 3. Executar o cálculo
+                    const analyzedData = await execute(
+                        intentClassification.intent,
+                        intentClassification.parameters,
+                        {
+                            saidas: saidasData,
+                            entradas: entradasData,
+                            metas: metasData,
+                            dividas: dividasData
                         }
-                    }
-                    const duplicatasEncontradas = [];
-                    for (const valor in valoresContados) {
-                        if (valoresContados[valor].size > 1) {
-                            const itens = Array.from(valoresContados[valor]);
-                            duplicatasEncontradas.push({ valor: parseFloat(valor), count: valoresContados[valor].size, itens: itens });
-                        }
-                    }
-                    const prompt = `O usuário perguntou sobre gastos com valores iguais. Analisei os dados e encontrei o seguinte: ${JSON.stringify(duplicatasEncontradas)}. Responda ao usuário com uma lista formatada e amigável, incluindo a quantidade de vezes que cada valor aparece e os nomes dos itens associados.`;
-                    respostaFinal = await askLLM(prompt);
+                    );
 
-                } else {
-                    // --- MODO 2: IA GERAL (PARA PERGUNTAS NÃO PREVISTAS) ---
-                    const [metasData, dividasData] = await Promise.all([
-                        readDataFromSheet('Metas!A:L'), readDataFromSheet('Dívidas!A:N')
-                    ]);
-                    const contextPrompt = `Você é um analista financeiro experiente. Sua tarefa é responder à pergunta do usuário baseando-se EXCLUSIVAMENTE nos dados fornecidos abaixo.
-                    A pergunta do usuário é: "${structuredResponse.question || messageBody}". Hoje é ${new Date().toLocaleDateString('pt-BR')}.
-                    ### DADOS FINANCEIROS BRUTOS:
-                    - Gastos ('Saídas'): ${JSON.stringify(saidasData)}
-                    - Entradas: ${JSON.stringify(entradasData)}
-                    - Metas: ${JSON.stringify(metasData)}
-                    - Dívidas: ${JSON.stringify(dividasData)}`;
-                    respostaFinal = await askLLM(contextPrompt);
+                    // 4. Gerar a resposta final
+                    respostaFinal = await generate({
+                        userQuestion,
+                        intent: intentClassification.intent,
+                        rawResults: analyzedData.results,
+                        details: analyzedData.details,
+                        dateContext: {
+                            currentMonth: new Date().getMonth(),
+                            currentYear: new Date().getFullYear()
+                        }
+                    });
+                
+                } catch (err) {
+                    console.error("Erro no novo sistema de perguntas:", err);
+                    respostaFinal = "Desculpe, não consegui processar essa análise. Tente reformular a pergunta.";
                 }
 
                 cache.set(cacheKey, respostaFinal);
