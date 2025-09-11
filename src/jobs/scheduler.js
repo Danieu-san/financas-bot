@@ -9,33 +9,6 @@ const targetIds = ['5521970112407@c.us', '5521964270368@c.us'];
 // Para evitar lembretes duplicados de eventos da agenda
 const notifiedEventIds = new Set();
 
-function initializeScheduler(wppClient) {
-    client = wppClient;
-    console.log('✅ Agendador de tarefas (cron) inicializado.');
-
-    // 1. TAREFA DIÁRIA (Resumos) - Roda todo dia às 8:00
-    cron.schedule('0 8 * * *', async () => {
-        const todayStr = getFormattedDateOnly();
-        console.log(`⏰ [${todayStr}] Executando tarefas diárias...`);
-        // Limpa a lista de eventos notificados no início de cada dia
-        notifiedEventIds.clear();
-        await sendMorningSummary();
-        await checkUpcomingBills();
-    }, {
-        scheduled: true,
-        timezone: "America/Sao_Paulo"
-    });
-
-    // 2. TAREFA FREQUENTE (Lembretes de Eventos) - Roda a cada 15 minutos
-    cron.schedule('*/15 * * * *', async () => {
-        console.log('⏰ Verificando compromissos próximos...');
-        await checkUpcomingEvents();
-    }, {
-        scheduled: true,
-        timezone: "America/Sao_Paulo"
-    });
-}
-
 // Função para verificar eventos que estão para começar (avisa 1h antes)
 async function checkUpcomingEvents() {
     try {
@@ -187,6 +160,75 @@ async function sendMorningSummary() {
     } catch (error) {
         console.error('❌ Erro ao enviar o resumo matinal completo:', error);
     }
+}
+
+// Nova função para enviar o resumo noturno
+async function sendEveningSummary() {
+    try {
+        console.log("-> Iniciando a construção do resumo noturno...");
+        const amanha = new Date();
+        amanha.setDate(amanha.getDate() + 1);
+        const amanhaStr = amanha.toLocaleDateString('pt-BR');
+
+        console.log("-> Buscando eventos para amanhã...");
+        const eventosDeAmanha = await getCalendarEventsForToday(amanha);
+        console.log(`-> Eventos encontrados: ${eventosDeAmanha.length}`);
+
+        let message = `Boa noite! 🌙 Aqui está o resumo da sua agenda para amanhã, ${amanhaStr}:\n`;
+        
+        if (eventosDeAmanha.length === 0) {
+            message += "📅 Nenhum compromisso agendado para amanhã. Aproveite!\n";
+        } else {
+            eventosDeAmanha.forEach(evento => {
+                let horario = "Dia inteiro";
+                if (evento.start.dateTime) {
+                    horario = new Date(evento.start.dateTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                }
+                message += ` - *${horario}* - ${evento.summary}\n`;
+            });
+        }
+        
+        console.log("-> Mensagem do resumo pronta. Preparando para enviar...");
+        console.log(message);
+
+        for (const id of targetIds) {
+            console.log(`--> Enviando para o ID: ${id}`);
+            await client.sendMessage(id, message);
+            console.log(`--> Mensagem enviada com sucesso para: ${id}`);
+        }
+
+        console.log("-> Resumo noturno concluído com sucesso!");
+
+    } catch (error) {
+        console.error('❌ Erro fatal ao enviar o resumo noturno:', error);
+    }
+}
+
+
+function initializeScheduler(wppClient) {
+    client = wppClient;
+    console.log('✅ Agendador de tarefas (cron) inicializado.');
+
+    // 1. TAREFA DIÁRIA (Resumos da manhã) - Roda todo dia às 7:00
+    cron.schedule('0 7 * * *', async () => {
+        const todayStr = getFormattedDateOnly();
+        console.log(`⏰ [${todayStr}] Executando tarefas diárias...`);
+        notifiedEventIds.clear();
+        await sendMorningSummary();
+        await checkUpcomingBills();
+    }, {
+        scheduled: true,
+        timezone: "America/Sao_Paulo"
+    });
+
+    // 2. NOVA TAREFA DIÁRIA (Resumos da noite para o dia seguinte) - Roda todo dia às 20:00
+    cron.schedule('0 20 * * *', async () => {
+        console.log('⏰ Executando resumo noturno para o dia seguinte...');
+        await sendEveningSummary();
+    }, {
+        scheduled: true,
+        timezone: "America/Sao_Paulo"
+    });
 }
 
 module.exports = { initializeScheduler };

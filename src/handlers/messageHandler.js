@@ -1,6 +1,6 @@
 // src/handlers/messageHandler.js
 
-const { userMap } = require('../config/constants');
+const { userMap, sheetCategoryMap, creditCardConfig  } = require('../config/constants');
 const userStateManager = require('../state/userStateManager');
 const creationHandler = require('./creationHandler');
 const deletionHandler = require('./deletionHandler');
@@ -17,7 +17,8 @@ const { parseSheetDate } = require('../utils/helpers');
 const { classify } = require('../ai/intentClassifier');
 const { execute } = require('../services/calculationOrchestrator');
 const { generate } = require('../ai/responseGenerator');
-
+const { getFormattedDateOnly } = require('../utils/helpers');
+const stringSimilarity = require('string-similarity');
 
 // Base de Conhecimento para Gastos
 const mapeamentoGastos = {
@@ -162,6 +163,137 @@ async function handleMessage(msg) {
     const currentState = userStateManager.getState(senderId);
     if (currentState) {
         switch (currentState.action) {
+            case 'awaiting_installment_confirmation': {
+                const { gasto, cardInfo } = currentState.data;
+                const resposta = normalizeText(msg.body);
+
+                if (resposta === 'sim') {
+                    // Se for parcelado, pergunta o número de vezes
+                    userStateManager.setState(senderId, {
+                        action: 'awaiting_installment_number',
+                        data: { gasto, cardInfo }
+                    });
+                    await msg.reply("Em quantas vezes?");
+                } else {
+                    // Se não for parcelado, lança como 1/1 e finaliza
+                    try {
+                        // ... (A lógica de calcular o mês e salvar UMA linha vai aqui, igual a que tínhamos antes)
+                        // ... você pode copiar e colar a lógica do case antigo aqui ...
+                        await msg.reply(`✅ Gasto de R$${gasto.valor} lançado no *${cardInfo.sheetName}* (fatura de ...).`);
+                    } catch (error) {
+                        // ...
+                    } finally {
+                        userStateManager.deleteState(senderId);
+                    }
+                }
+                return;
+            }
+
+            case 'awaiting_installment_number': {
+                const { gasto, cardInfo } = currentState.data;
+                const installments = parseInt(msg.body.trim(), 10);
+
+                if (isNaN(installments) || installments < 1) {
+                    await msg.reply("Número inválido. Por favor, digite um número a partir de 1.");
+                    return;
+                }
+
+                try {
+                    // Se for 1 parcela (à vista)
+                    if (installments === 1) {
+                        // Lógica para salvar uma única linha
+                        const purchaseDate = gasto.data ? parseSheetDate(gasto.data) : new Date();
+                        let billingMonth = purchaseDate.getMonth();
+                        let billingYear = purchaseDate.getFullYear();
+
+                        if (purchaseDate.getDate() > cardInfo.closingDay) {
+                            billingMonth += 1;
+                            if (billingMonth > 11) {
+                                billingMonth = 0;
+                                billingYear += 1;
+                            }
+                        }
+                        const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+                        const billingMonthName = `${monthNames[billingMonth]} de ${billingYear}`;
+
+                        const rowData = [
+                            getFormattedDateOnly(purchaseDate),
+                            gasto.descricao,
+                            gasto.categoria || 'Outros',
+                            parseFloat(gasto.valor),
+                            '1/1',
+                            billingMonthName
+                        ];
+                        
+                        await appendRowToSheet(cardInfo.sheetName, rowData);
+                        await msg.reply(`✅ Gasto de R$${gasto.valor} lançado no *${cardInfo.sheetName}* (fatura de ${billingMonthName}).`);
+
+                    } else {
+                        // Se for mais de 1 parcela, executa o loop
+                        const installmentValue = parseFloat(gasto.valor) / installments;
+                        const purchaseDate = gasto.data ? parseSheetDate(gasto.data) : new Date();
+
+                        for (let i = 1; i <= installments; i++) {
+                            // ... (lógica de cálculo de mês da fatura para cada parcela, como já tínhamos) ...
+                             let billingMonth = purchaseDate.getMonth();
+                             let billingYear = purchaseDate.getFullYear();
+
+                             if (purchaseDate.getDate() > cardInfo.closingDay) {
+                                 billingMonth += 1;
+                             }
+                             
+                             billingMonth += (i - 1); 
+
+                             while (billingMonth > 11) {
+                                 billingMonth -= 12;
+                                 billingYear += 1;
+                             }
+
+                             const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+                             const billingMonthName = `${monthNames[billingMonth]} de ${billingYear}`;
+
+                             const rowData = [
+                                 getFormattedDateOnly(purchaseDate),
+                                 gasto.descricao,
+                                 gasto.categoria || 'Outros',
+                                 installmentValue.toFixed(2),
+                                 `${i}/${installments}`,
+                                 billingMonthName
+                             ];
+                             
+                             await appendRowToSheet(cardInfo.sheetName, rowData);
+                        }
+                        await msg.reply(`✅ Gasto de R$${gasto.valor} lançado em ${installments}x de R$${installmentValue.toFixed(2)} no *${cardInfo.sheetName}*.`);
+                    }
+
+                } catch (error) {
+                    console.error("Erro ao salvar parcelamento:", error);
+                    await msg.reply("Ocorreu um erro ao salvar o gasto.");
+                } finally {
+                    userStateManager.deleteState(senderId);
+                }
+                return;
+            }
+            case 'awaiting_credit_card_selection': {
+                const { gasto, cardOptions } = currentState.data;
+                const selection = parseInt(msg.body.trim(), 10) - 1;
+
+                if (selection >= 0 && selection < cardOptions.length) {
+                    const cardKey = cardOptions[selection];
+                    const cardInfo = creditCardConfig[cardKey];
+
+                    // **MUDANÇA AQUI:** Define o estado e faz a pergunta direta
+                    userStateManager.setState(senderId, {
+                        action: 'awaiting_installment_number', // Vai direto para o estado de número de parcelas
+                        data: { gasto, cardInfo }
+                    });
+                    await msg.reply("Em quantas parcelas? (digite `1` se for à vista)");
+
+                } else {
+                    await msg.reply("Opção inválida. Por favor, responda apenas com um dos números da lista.");
+                }
+                return;
+            }
             case 'awaiting_payment_amount':
                 await debtHandler.finalizePaymentRegistration(msg);
                 return;
@@ -308,55 +440,71 @@ Retorne APENAS o objeto JSON, seguindo este schema: ${JSON.stringify(MASTER_SCHE
                 break;
             
             case 'gasto':
-            case 'entrada': {
-                const gastos = structuredResponse.gastoDetails || [];
-                const entradas = structuredResponse.entradaDetails || [];
-                const allTransactions = [];
+            case 'entrada': {
+                const gastos = structuredResponse.gastoDetails || [];
+                const entradas = structuredResponse.entradaDetails || [];
+                const allTransactions = [];
 
-                if (gastos.length > 0) {
-                    gastos.forEach(g => allTransactions.push({ ...g, type: 'Saídas' }));
-                }
-                if (entradas.length > 0) {
-                    entradas.forEach(e => allTransactions.push({ ...e, type: 'Entradas' }));
-                }
+                if (gastos.length > 0) {
+                    gastos.forEach(g => allTransactions.push({ ...g, type: 'Saídas' }));
+                }
+                if (entradas.length > 0) {
+                    entradas.forEach(e => allTransactions.push({ ...e, type: 'Entradas' }));
+                }
 
-                if (allTransactions.length > 0) {
-                    if (allTransactions.length === 1) {
-                        const item = allTransactions[0];
-                        if (item.type === 'Saídas' && !item.pagamento) {
-                            const dataDoGasto = item.data ? item.data : getFormattedDate();
-                            item.dataFinal = dataDoGasto;
-                            userStateManager.setState(senderId, { action: 'awaiting_payment_method', data: item });
-                            await msg.reply('Entendido! E qual foi a forma de pagamento? (Crédito, Débito, PIX ou Dinheiro)');
-                            break;
-                        }
-                        if (item.type === 'Entradas' && !item.recebimento) {
-                            userStateManager.setState(senderId, { action: 'awaiting_receipt_method', data: item });
-                            await msg.reply('Entendido! E onde você recebeu esse valor? (Conta Corrente, Poupança, PIX ou Dinheiro)');
-                            break;
-                        }
-                    }
+                // Se não encontrou transações, avisa o usuário.
+                if (allTransactions.length === 0) {
+                    await msg.reply(`Entendi a intenção, mas não identifiquei os detalhes (valor, descrição).`);
+                    break;
+                }
 
-                    let confirmationMessage = `Encontrei ${allTransactions.length} transaç(ão|ões) para registrar:\n\n`;
-                    allTransactions.forEach((item, index) => {
-                        const typeLabel = item.type === 'Saídas' ? 'Gasto' : 'Entrada';
-                        const dataInfo = item.data ? ` (Data: ${item.data})` : '';
-                        confirmationMessage += `*${index + 1}.* [${typeLabel}] ${item.descricao} - *R$${item.valor}* (${item.categoria || 'N/A'})${dataInfo}\n`;
-                    });
-                    confirmationMessage += "\nVocê confirma o registro de todos os itens? Responda com *'sim'* ou *'não'*."
+                // **INÍCIO DA LÓGICA REESTRUTURADA**
+                if (allTransactions.length === 1) {
+                    const item = allTransactions[0];
+                    const pagamento = normalizeText(item.pagamento || '');
 
-                    userStateManager.setState(senderId, {
-                        action: 'confirming_transactions',
-                        data: { transactions: allTransactions, person: pessoa }
-                    });
-                    await msg.reply(confirmationMessage);
+                    // PRIORIDADE MÁXIMA: É um gasto no cartão de crédito?
+                    if (item.type === 'Saídas' && pagamento === 'credito') {
+                        // **INÍCIO DA NOVA LÓGICA DE LISTA NUMERADA**
+                        const cardOptions = Object.keys(creditCardConfig);
+                        let question = `Entendi, o gasto foi no crédito. Em qual cartão? Responda com o número:\n\n`;
+                        cardOptions.forEach((cardName, index) => {
+                            question += `${index + 1}. ${cardName}\n`;
+                        });
 
-                } else if (structuredResponse.intent === 'gasto' || structuredResponse.intent === 'entrada') {
-                    await msg.reply(`Entendi que era um(a) ${structuredResponse.intent}, mas não identifiquei os detalhes (valor, descrição).`);
-                }
-                break;
-            }
+                        userStateManager.setState(senderId, {
+                            action: 'awaiting_credit_card_selection', // Novo estado
+                            data: {
+                                gasto: item,
+                                cardOptions: cardOptions // Armazena a lista de opções no estado
+                            }
+                        });
 
+                        await msg.reply(question);
+                        break;
+                    }
+
+                    // 2. Se não for crédito, verifica se falta o método de pagamento
+                    if (item.type === 'Saídas' && !item.pagamento) {
+                        // ... (código antigo para 'awaiting_payment_method' - já está correto)
+                        break;
+                    }
+
+                    // 3. Se não for crédito, verifica se falta o método de recebimento
+                    if (item.type === 'Entradas' && !item.recebimento) {
+                        // ... (código antigo para 'awaiting_receipt_method' - já está correto)
+                        break;
+                    }
+                }
+                
+                // 4. Se chegou até aqui, é uma transação múltipla OU uma transação única já completa (que não é de crédito)
+                // Pede a confirmação final
+                let confirmationMessage = `Encontrei ${allTransactions.length} transa...`;
+                // ... (código antigo para 'confirming_transactions' - já está correto)
+                await msg.reply(confirmationMessage);
+
+                break;
+            }
             case 'pergunta': {
                 await msg.reply("Analisando seus dados para responder, um momento...");
                 

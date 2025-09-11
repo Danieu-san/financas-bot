@@ -22,8 +22,29 @@ const sheetCategoryMap = {
     'meta': 'Metas'
 };
 
+const creditCardConfig = {
+    'nubank daniel': {
+        sheetName: 'Cartão Nubank - Daniel',
+        closingDay: 8
+    },
+    'nubank thais': {
+        sheetName: 'Cartão Nubank - Thais',
+        closingDay: 29
+    },
+    'nubank cristina': {
+        sheetName: 'Cartão Nubank - Cristina',
+        closingDay: 11
+    },
+    'atacadao': {
+        sheetName: 'Cartão Atacadão',
+        closingDay: 8
+    }
+    // Adicione outros cartões aqui
+};
+
 module.exports = {
-    adminIds, // Exportamos a nova lista de administradores
-    userMap,
-    sheetCategoryMap,
+    adminIds,
+    userMap,
+    sheetCategoryMap,
+    creditCardConfig
 };

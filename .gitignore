@@ -1,3 +1,4 @@
+#gitignore
 # Dependências do Node (pasta gigante e desnecessária)
 node_modules/
 
