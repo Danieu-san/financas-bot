@@ -2,6 +2,7 @@
 
 const { google } = require('googleapis');
 const path = require('path');
+const { convertToIsoDateTime } = require('../utils/helpers');
 
 const GOOGLE_CREDENTIALS_PATH = path.resolve(process.cwd(), 'credentials.json');
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
@@ -27,34 +28,37 @@ async function authorizeGoogle() {
     }
 }
 async function createCalendarEvent(title, startDateTime, recurrenceRule) {
-    try {
-        const event = {
-            summary: title,
-            start: {
-                dateTime: startDateTime,
-                timeZone: 'America/Sao_Paulo',
-            },
-            end: {
-                dateTime: startDateTime,
-                timeZone: 'America/Sao_Paulo',
-            },
-        };
+    try {
+        // CORREÇÃO: Converte a data para o formato ISO antes de enviar
+        const isoDateTime = convertToIsoDateTime(startDateTime);
 
-        if (recurrenceRule) {
-            event.recurrence = [`RRULE:${recurrenceRule}`];
-        }
+        const event = {
+            summary: title,
+            start: {
+                dateTime: isoDateTime, // Usa a data formatada
+                timeZone: 'America/Sao_Paulo',
+            },
+            end: {
+                dateTime: isoDateTime, // Usa a data formatada
+                timeZone: 'America/Sao_Paulo',
+            },
+        };
 
-        const response = await calendar.events.insert({
-            calendarId:'9514288e86be9262b198a99355e2fa4339f670836ec84eb64f3ccf4896d93137@group.calendar.google.com',
-            resource: event,
-        });
+        if (recurrenceRule) {
+            event.recurrence = [`RRULE:${recurrenceRule}`];
+        }
 
-        console.log(`Evento criado: ${response.data.summary}`);
-        return response.data;
-    } catch (error) {
-        console.error('❌ Erro ao criar evento na agenda:', error);
-        throw new Error('Não foi possível criar o evento na agenda.');
-    }
+        const response = await calendar.events.insert({
+            calendarId: '9514288e86be9262b198a99355e2fa4339f670836ec84eb64f3ccf4896d93137@group.calendar.google.com',
+            resource: event,
+        });
+
+        console.log(`Evento criado: ${response.data.summary}`);
+        return response.data;
+    } catch (error) {
+        console.error('❌ Erro ao criar evento na agenda:', error);
+        throw new Error('Não foi possível criar o evento na agenda.');
+    }
 }
 
 async function getSheetIds() {

@@ -2,9 +2,9 @@
 
 const { getStructuredResponseFromLLM, askLLM } = require('../services/gemini');
 const userStateManager = require('../state/userStateManager');
-const { appendRowToSheet } = require('../services/google');
+const { appendRowToSheet, readDataFromSheet } = require('../services/google');
 const { userMap } = require('../config/constants');
-const { parseValue, isDate, getFormattedDate, getFormattedDateOnly } = require('../utils/helpers');
+const { parseValue, parseDate, isDate, getFormattedDateOnly, parseAmount } = require('../utils/helpers');
 
 async function startDebtCreation(msg, initialData = {}) {
     const senderId = msg.author || msg.from;
@@ -32,30 +32,30 @@ async function startDebtCreation(msg, initialData = {}) {
 }
 
 async function handleDebtCreation(msg, isFirstRun = false) {
-    const senderId = msg.author || msg.from;
-    const state = userStateManager.getState(senderId);
-    if (!state) return;
+    const senderId = msg.author || msg.from;
+    const state = userStateManager.getState(senderId);
+    if (!state) return;
 
-    const messageBody = msg.body.trim();
-    if (messageBody.toLowerCase() === 'cancelar') {
-        userStateManager.deleteState(senderId);
-        await msg.reply("Criação de dívida cancelada.");
-        return;
-    }
+    const messageBody = msg.body.trim();
+    if (messageBody.toLowerCase() === 'cancelar') {
+        userStateManager.deleteState(senderId);
+        await msg.reply("Criação de dívida cancelada.");
+        return;
+    }
 
-    if (!isFirstRun) {
-        const step = state.step;
-        if (step === 1) { state.data["Nome da Dívida"] = messageBody; }
-        else if (step === 2) { state.data["Credor"] = messageBody; }
-        else if (step === 3) {
-            const promptCorrecao = `Normalize a resposta do usuário para uma das categorias: 'Empréstimo Pessoal', 'Financiamento', 'Cartão de Crédito', 'Outros'. Resposta: "${messageBody}"`;
-            const tipoCorrigido = await askLLM(promptCorrecao);
-            state.data["Tipo de Dívida"] = tipoCorrigido.trim();
-        }
-        else if (step === 4) { const valor = parseValue(messageBody); if (valor && valor > 0) { state.data["Valor Original"] = valor; } else { await msg.reply("Valor inválido."); } }
-        else if (step === 5) { const valor = parseValue(messageBody); if (valor && valor >= 0) { state.data["Saldo Devedor Atual"] = valor; } else { await msg.reply("Valor inválido."); } }
-        else if (step === 6) { const valor = parseValue(messageBody); if (valor && valor > 0) { state.data["Valor da Parcela"] = valor; } else { await msg.reply("Valor inválido."); } }
-        else if (step === 7) {
+    if (!isFirstRun) {
+        const step = state.step;
+        if (step === 1) { state.data["Nome da Dívida"] = messageBody; }
+        else if (step === 2) { state.data["Credor"] = messageBody; }
+        else if (step === 3) {
+            const promptCorrecao = `Normalize a resposta do usuário para uma das categorias: 'Empréstimo Pessoal', 'Financiamento', 'Cartão de Crédito', 'Outros'. Resposta: "${messageBody}"`;
+            const tipoCorrigido = await askLLM(promptCorrecao);
+            state.data["Tipo de Dívida"] = tipoCorrigido.trim();
+        }
+        else if (step === 4) { const valor = await parseAmount(messageBody); if (valor && valor > 0) { state.data["Valor Original"] = valor; } else { await msg.reply("Valor inválido."); } }
+        else if (step === 5) { const valor = await parseAmount(messageBody); if (valor >= 0) { state.data["Saldo Devedor Atual"] = valor; } else { await msg.reply("Valor inválido."); } }
+        else if (step === 6) { const valor = await parseAmount(messageBody); if (valor && valor > 0) { state.data["Valor da Parcela"] = valor; } else { await msg.reply("Valor inválido."); } }
+        else if (step === 7) {
             const promptPadronizacao = `
                 Sua tarefa é padronizar uma taxa de juros para o formato 'X% a.m.' (ao mês) ou 'X% a.a.' (ao ano).
                 A entrada do usuário pode ser ambígua (ex: '10aa'). Faça sua melhor suposição.
@@ -73,19 +73,18 @@ async function handleDebtCreation(msg, isFirstRun = false) {
             const jurosPadronizado = await askLLM(promptPadronizacao);
             state.data["Taxa de Juros"] = jurosPadronizado.trim();
         }
-        else if (step === 8) { const dia = parseInt(messageBody); if (dia >= 1 && dia <= 31) { state.data["Dia do Vencimento"] = dia; } else { await msg.reply("Dia inválido. Informe um número de 1 a 31."); } }
-        else if (step === 9) { // CORREÇÃO: Novo passo para a Data de Início
-            if (messageBody.toLowerCase() === 'hoje') {
-                state.data["Data de Início"] = getFormattedDateOnly();
-            } else if (isDate(messageBody)) {
-                state.data["Data de Início"] = messageBody;
-            } else {
-                await msg.reply("Formato inválido. Responda 'hoje' ou uma data em DD/MM/AAAA.");
-            }
-        }
-        else if (step === 10) { const parcelas = parseInt(messageBody); if (parcelas > 0) { state.data["Total de Parcelas"] = parcelas; } else { await msg.reply("Número de parcelas inválido."); } }
-        else if (step === 11) { state.data["Observações"] = messageBody; }
-    }
+        else if (step === 8) { const dia = await parseAmount(messageBody); if (dia >= 1 && dia <= 31) { state.data["Dia do Vencimento"] = dia; } else { await msg.reply("Dia inválido. Informe um número de 1 a 31."); } }
+        else if (step === 9) { // Passo da Data da Dívida
+            const dataFormatada = await parseDate(messageBody);
+            if (dataFormatada) {
+                state.data["Data de Início"] = dataFormatada;
+            } else {
+                await msg.reply("Formato de data inválido. Use 'hoje' ou DD/MM/AAAA, ou fale a data por extenso.");
+            }
+        }
+        else if (step === 10) { const parcelas = await parseAmount(messageBody); if (parcelas > 0) { state.data["Total de Parcelas"] = parcelas; } else { await msg.reply("Número de parcelas inválido."); } }
+        else if (step === 11) { state.data["Observações"] = messageBody; }
+    }
     
     let question = "";
     if (state.data["Nome da Dívida"] === null) { state.step = 1; question = "Qual o nome da dívida? (ex: Financiamento Carro)"; }
@@ -188,58 +187,49 @@ async function startGoalCreation(msg, initialData = {}) {
 }
 
 async function handleGoalCreation(msg, isFirstRun = false) {
-    const senderId = msg.author || msg.from;
-    const state = userStateManager.getState(senderId);
-    if (!state) return;
+    const senderId = msg.author || msg.from;
+    const state = userStateManager.getState(senderId);
+    if (!state) return;
 
-    const messageBody = msg.body.trim();
-    if (messageBody.toLowerCase() === 'cancelar') {
-        userStateManager.deleteState(senderId);
-        await msg.reply("Criação de meta cancelada.");
-        return;
-    }
+    const messageBody = msg.body.trim();
+    if (messageBody.toLowerCase() === 'cancelar') {
+        userStateManager.deleteState(senderId);
+        await msg.reply("Criação de meta cancelada.");
+        return;
+    }
 
-    if (!isFirstRun) {
-        const step = state.step;
-        // Valida e processa a resposta do passo anterior
-        if (step === 1) { // Resposta para "Nome da Meta"
-            state.data["Nome da Meta"] = messageBody;
-        } else if (step === 2) { // Resposta para "Valor Alvo"
-            const valor = parseValue(messageBody);
-            if (valor === null || valor <= 0) {
-                await msg.reply("Valor alvo inválido. Por favor, digite apenas números (ex: 15000).");
-            } else {
-                state.data["Valor Alvo"] = valor;
-            }
-        } else if (step === 3) { // Resposta para "Valor Atual"
-            const resposta = messageBody.toLowerCase();
-            if (['não', 'nao', 'nada', '0', 'zero'].includes(resposta)) {
-                state.data["Valor Atual"] = 0;
-            } else {
-                let valor = parseValue(messageBody);
-                if (valor === null) {
-                    const promptExtracaoValor = `Extraia apenas o valor numérico da seguinte frase: "${messageBody}". Se não houver um número claro, retorne "erro".`;
-                    const valorDaIA = await askLLM(promptExtracaoValor);
-                    valor = parseValue(valorDaIA);
-                }
-                if (valor !== null && valor >= 0) {
-                    state.data["Valor Atual"] = valor;
-                } else {
-                    await msg.reply("Não consegui entender esse valor. Por favor, digite apenas números (ex: 5000) ou responda 'não'.");
-                }
-            }
-        } else if (step === 4) { // Resposta para "Data Fim"
-            if (!isDate(messageBody)) {
-                await msg.reply("Formato de data inválido. Use DD/MM/AAAA, por favor.");
-            } else {
-                state.data["Data Fim"] = messageBody;
-            }
-        } else if (step === 5) { // Resposta para "Prioridade"
-            state.data["Prioridade"] = messageBody;
-        }
-    }
+    if (!isFirstRun) {
+        const step = state.step;
+        if (step === 1) { state.data["Nome da Meta"] = messageBody; } 
+        else if (step === 2) {
+            const valor = await parseAmount(messageBody);
+            if (valor === null || valor <= 0) {
+                await msg.reply("Valor alvo inválido. Por favor, digite apenas números (ex: 15000).");
+            } else { state.data["Valor Alvo"] = valor; }
+        } else if (step === 3) {
+            const resposta = messageBody.toLowerCase();
+            if (['não', 'nao', 'nada', '0', 'zero'].includes(resposta)) {
+                state.data["Valor Atual"] = 0;
+            } else {
+                const valor = await parseAmount(messageBody);
+                if (valor !== null && valor >= 0) {
+                    state.data["Valor Atual"] = valor;
+                } else { await msg.reply("Não consegui entender esse valor. Por favor, digite apenas números (ex: 5000) ou responda 'não'."); }
+            }
+        } else if (step === 4) { // Passo da Data da Meta
+            const dataFormatada = await parseDate(messageBody);
+            if (dataFormatada) {
+                state.data["Data Fim"] = dataFormatada;
+            } else {
+                await msg.reply("Formato de data inválido. Use DD/MM/AAAA ou fale a data por extenso.");
+            }
+        } else if (step === 5) {
+            const promptCorrecao = `Normalize a prioridade do usuário para "Alta", "Média" ou "Baixa". Resposta do usuário: "${messageBody}"`;
+            const prioridadeCorrigida = await askLLM(promptCorrecao);
+            state.data["Prioridade"] = prioridadeCorrigida.trim();
+        }
+    }
 
-    // Encontra a próxima pergunta a ser feita
     let question = "";
     if (state.data["Nome da Meta"] === null) {
         state.step = 1; question = "Qual o nome da sua nova meta?";
@@ -252,7 +242,7 @@ async function handleGoalCreation(msg, isFirstRun = false) {
     } else if (state.data["Prioridade"] === null) {
         state.step = 5; question = "E qual a prioridade dessa meta? (Ex: Alta, Média, Baixa)";
     } else {
-        await finalizeGoalCreation(msg); // Todos os dados foram coletados
+        await finalizeGoalCreation(msg);
         return;
     }
 
@@ -266,29 +256,38 @@ async function finalizeGoalCreation(msg) {
 
     try {
         const data = state.data;
+        // Pega o número da próxima linha para usar nas fórmulas
+        const rowIndex = (await readDataFromSheet('Metas')).length + 1; 
+
+        // --- CORREÇÃO 1: Recalculando o Valor Mensal ---
         const valorAlvo = parseFloat(data["Valor Alvo"]);
         const valorAtual = parseFloat(data["Valor Atual"]);
-
-        // Calcula o progresso
-        const progresso = valorAlvo > 0 ? (valorAtual / valorAlvo) : 0;
-
-        // Calcula o valor mensal necessário
+        
         const [day, month, year] = data["Data Fim"].split('/');
         const dataFim = new Date(year, month - 1, day);
         const dataInicio = new Date();
-        const meses = (dataFim.getFullYear() - dataInicio.getFullYear()) * 12 + (dataFim.getMonth() - dataInicio.getMonth());
-        let valorMensal = (meses > 0) ? (valorAlvo - valorAtual) / meses : 0;
-        if (valorMensal < 0) valorMensal = 0; // Se já atingiu a meta, não precisa de mais nada
+        // Calcula a diferença de meses entre hoje e a data final
+        const mesesRestantes = (dataFim.getFullYear() - dataInicio.getFullYear()) * 12 + (dataFim.getMonth() - dataInicio.getMonth());
+        
+        let valorMensal = 0;
+        if (mesesRestantes > 0) {
+            valorMensal = (valorAlvo - valorAtual) / mesesRestantes;
+        }
+        // Se já atingiu a meta ou não há meses restantes, o valor necessário é 0
+        if (valorMensal < 0) valorMensal = 0;
 
-        // MONTA A LINHA NA ORDEM CORRETA DA PLANILHA
+        // --- CORREÇÃO 2: Usando as Fórmulas e a Data Corrigida ---
+        const progressoFormula = `=C${rowIndex}/B${rowIndex}`;
+        const statusFormula = `=IF(C${rowIndex} >= B${rowIndex}; "Concluída"; "Em andamento")`;
+
         const rowData = [
             data["Nome da Meta"],
-            valorAlvo,
-            valorAtual,
-            `${(progresso * 100).toFixed(2)}%`, // Formata como porcentagem
-            valorMensal.toFixed(2),
-            data["Data Fim"],
-            data["Status"],
+            data["Valor Alvo"],
+            data["Valor Atual"],
+            progressoFormula,
+            valorMensal, // Adiciona o valor mensal calculado
+            data["Data Fim"], // A data já está no formato DD/MM/AAAA, a planilha interpreta corretamente
+            statusFormula,
             data["Prioridade"]
         ];
 

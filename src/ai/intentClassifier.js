@@ -1,30 +1,25 @@
-// src/ai/intentClassifier.js
-
 const { askLLM } = require('./geminiClient');
-const { normalizeText } = require('../utils/helpers'); 
+const { normalizeText } = require('../utils/helpers');
 
-// Função auxiliar para parsear nome de mês se necessário
 const parseMonthName = (monthStr) => {
-    const months = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-    const normalizedStr = monthStr.toLowerCase().trim();
-    const index = months.indexOf(normalizedStr);
-    return index !== -1 ? index : null;
+    const months = { 'janeiro': 0, 'fevereiro': 1, 'março': 2, 'marco': 2, 'abril': 3, 'maio': 4, 'junho': 5, 'julho': 6, 'agosto': 7, 'setembro': 8, 'outubro': 9, 'novembro': 10, 'dezembro': 11 };
+    const normalizedStr = normalizeText(String(monthStr).toLowerCase().trim());
+    return months[normalizedStr] !== undefined ? months[normalizedStr] : null;
 };
 
-/**
- * Classifica a pergunta do usuário em tipos reconhecidos
- */
 async function classify(questionText) {
     const today = new Date();
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
 
     const classificationPrompt = `
-Você é um classificador de intenções para um assistente financeiro.
-Sua única responsabilidade é analisar a pergunta do usuário e extrair a intenção e os parâmetros para um JSON.
+    Você é um classificador de intenções para um bot de finanças.
+    Sua tarefa é extrair a intenção e os parâmetros da pergunta do usuário.
 
-[INSTRUÇÕES]
-1.  **Tipos de Intenções:**
+    [DATA ATUAL DE REFERÊNCIA]
+    Hoje é: ${today.toLocaleDateString('pt-BR')}
+
+    [INTENÇÕES POSSÍVEIS]
     - total_gastos_categoria_mes
     - media_gastos_categoria_mes
     - listagem_gastos_categoria
@@ -34,66 +29,50 @@ Sua única responsabilidade é analisar a pergunta do usuário e extrair a inten
     - saldo_do_mes
     - pergunta_geral
 
-2.  **Regras de Parâmetros:**
-    - Para 'mes', use o número do mês (0 para janeiro, 1 para fevereiro, etc.).
-    - Para 'ano', use o ano completo (ex: 2025).
-    - Se o usuário disser "este mês", o 'mes' deve ser ${currentMonth}.
-    - Se o usuário disser "ano passado", o 'ano' deve ser ${currentYear - 1}.
-    - Se o usuário disser "agosto", o 'mes' deve ser 7.
+    [REGRAS DE EXTRAÇÃO DE PARÂMETROS]
+    - "categoria": O item sobre o qual o usuário pergunta (ex: "alimentação", "pedágio").
+    - "ano": O ano com 4 dígitos (ex: 2025). Se não for mencionado, use o ano atual: ${currentYear}.
+    - "mes": O NOME do mês (ex: "agosto").
 
-3.  **Intenções Especiais:**
-    - Se a pergunta não se encaixar em nenhuma das intenções acima, use 'pergunta_geral'.
+    [REGRAS DE TEMPO OBRIGATÓRIAS]
+    - Se a pergunta NÃO mencionar um mês específico (ex: "qual o maior gasto"), o parâmetro "mes" DEVE ser o mês atual: "${today.toLocaleString('pt-BR', { month: 'long' })}".
+    - Se a pergunta usar "mês passado", o parâmetro "mes" DEVE ser: "${new Date(today.getFullYear(), today.getMonth() - 1, 1).toLocaleString('pt-BR', { month: 'long' })}".
+    - REGRA MAIS IMPORTANTE: Se a pergunta se referir ao ano inteiro (contiver "neste ano", "em 2025", "anual"), o parâmetro "mes" DEVE ser \`null\`. NÃO adicione um mês padrão nesses casos.
 
-[PERGUNTA DO USUÁRIO]
-"${questionText}"
+    [PERGUNTA DO USUÁRIO]
+    "${questionText}"
 
-[FORMATO DE SAÍDA OBRIGATÓRIO]
-Responda APENAS com o objeto JSON. Não inclua texto explicativo, formatação extra, saudações ou qualquer outra coisa. Sua resposta deve começar e terminar com chaves {}.
-Exemplo:
-{
-  "intent": "total_gastos_categoria_mes",
-  "parameters": {
-    "categoria": "transporte",
-    "mes": ${currentMonth},
-    "ano": ${currentYear}
-  }
-}`;
+    [FORMATO DE SAÍDA OBRIGATÓRIO]
+    Responda APENAS com o objeto JSON.
+    Exemplo para pergunta anual:
+    {
+      "intent": "contagem_ocorrencias",
+      "parameters": {
+        "categoria": "pedágio",
+        "mes": null,
+        "ano": ${currentYear}
+      }
+    }`;
 
     try {
         const rawResponse = await askLLM(classificationPrompt);
-        console.log("Resposta bruta da IA:", rawResponse);
-
-        // Estratégia 1: Tentar extrair o JSON com uma Regex
+        console.log("Resposta bruta da IA (Classificação):", rawResponse);
         const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
-        let jsonString = rawResponse;
-        if (jsonMatch) {
-            jsonString = jsonMatch[0];
-        } else {
-            // Estratégia 2: Se a Regex falhou, tenta a limpeza simples
-            jsonString = rawResponse.replace(/```json\n?|\n?```/g, '').trim();
-        }
+        if (!jsonMatch) throw new Error("A resposta da IA não contém um JSON válido.");
+        
+        const classification = JSON.parse(jsonMatch[0]);
 
-        const classification = JSON.parse(jsonString);
-
-        // 3. Normalização Defensiva de Parâmetros
-        if (classification.parameters && classification.parameters.mes) {
-            // Sua lógica atual de normalização
-            const mesNormalizado = normalizeText(String(classification.parameters.mes));
-            if (mesNormalizado.includes('atual') || mesNormalizado.includes('este mes')) {
+        if (classification.parameters) {
+            if (classification.parameters.mes) {
+                const parsedMonth = parseMonthName(classification.parameters.mes);
+                classification.parameters.mes = parsedMonth;
+            } else if (classification.parameters.mes !== null) {
+                // Se o mês não foi especificado e não é uma busca anual, assume o mês atual
                 classification.parameters.mes = currentMonth;
-            } else if (mesNormalizado.includes('passado')) {
-                // Lógica para mês passado, caso necessário
-                classification.parameters.mes = (currentMonth - 1 + 12) % 12;
-            } else {
-                const parsedMonth = parseMonthName(mesNormalizado);
-                if (parsedMonth !== null) {
-                    classification.parameters.mes = parsedMonth;
-                }
             }
-        }
-        // Lógica para ano, se não existir
-        if (classification.parameters && !classification.parameters.ano) {
-            classification.parameters.ano = currentYear;
+            if (!classification.parameters.ano) {
+                classification.parameters.ano = currentYear;
+            }
         }
 
         return {
@@ -101,13 +80,14 @@ Exemplo:
             parameters: classification.parameters,
             originalQuestion: questionText
         };
-
     } catch (err) {
         console.warn("Classificação por IA falhou, usando fallback 'pergunta_geral'. Erro:", err.message);
         return {
             intent: 'pergunta_geral',
-            parameters: {}
+            parameters: {},
+            originalQuestion: questionText
         };
     }
 }
+
 module.exports = { classify };

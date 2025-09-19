@@ -20,6 +20,14 @@ function initializeWhatsAppClient() {
         qrcode.generate(qr, { small: true });
     });
 
+    client.on('loading_screen', (percent, message) => {
+        console.log('CARREGANDO TELA:', percent, message);
+    });
+
+    client.on('authenticated', () => {
+        console.log('AUTENTICADO COM SUCESSO!');
+    });
+
     client.on('ready', () => {
         console.log('✅ Cliente WhatsApp está pronto e conectado!');
     });

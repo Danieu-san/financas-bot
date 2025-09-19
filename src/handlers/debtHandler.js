@@ -53,7 +53,7 @@ async function finalizePaymentRegistration(msg) {
     const state = userStateManager.getState(senderId);
     if (!state || state.action !== 'awaiting_payment_amount') return;
 
-    const valorPago = parseValue(msg.body);
+    const valorPago = await parseAmount(msg.body);
     if (valorPago === null || valorPago <= 0) {
         await msg.reply("Valor inválido. Por favor, digite apenas o número que você pagou.");
         return;
@@ -66,14 +66,12 @@ async function finalizePaymentRegistration(msg) {
     const saldoDevedorAtual = parseFloat(rowData[4]);
     const novoSaldo = saldoDevedorAtual - valorPago;
 
-    // Atualiza o Saldo Devedor na coluna E (índice 4)
     rowData[4] = novoSaldo;
 
-    // Recalcula o % Quitado
     const valorOriginal = parseFloat(rowData[3]);
     if (valorOriginal > 0) {
         const percentualQuitado = (1 - (novoSaldo / valorOriginal)) * 100;
-        rowData[13] = `${percentualQuitado.toFixed(2)}%`; // Atualiza a coluna N: % Quitado
+        rowData[13] = `${percentualQuitado.toFixed(2)}%`;
     }
 
     const range = `Dívidas!A${rowIndex + 1}:${String.fromCharCode(65 + rowData.length - 1)}${rowIndex + 1}`;
@@ -87,6 +85,7 @@ async function finalizePaymentRegistration(msg) {
         userStateManager.deleteState(senderId);
     }
 }
+
 
 module.exports = {
     startPaymentRegistration,

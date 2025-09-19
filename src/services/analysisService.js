@@ -1,16 +1,10 @@
-// src/services/analysisService.js
-
-const { normalizeText, parseSheetDate } = require('../utils/helpers');
-
-const parseValue = (valueStr) => {
-    if (!valueStr) return 0;
-    return parseFloat(valueStr.toString().replace('R$ ', '').replace('.', '').replace(',', '.'));
-};
+const { normalizeText, parseSheetDate, parseValue } = require('../utils/helpers');
+const stringSimilarity = require('string-similarity');
 
 function getExpensesByMonthAndCategory(data, month, year, category) {
     const normalizedCategory = normalizeText(category);
     
-    return data.slice(1).filter(row => {
+    return data.filter(row => {
         const rowDate = parseSheetDate(row[0]);
         if (!rowDate) return false;
 
@@ -18,7 +12,6 @@ function getExpensesByMonthAndCategory(data, month, year, category) {
         const subcategoriaDaPlanilha = normalizeText(row[3] || '');
         const descricaoDaPlanilha = normalizeText(row[1] || '');
         
-        // CORREÇÃO: Busca a palavra-chave em Categoria, Subcategoria ou Descrição
         const categoriaMatch = categoriaDaPlanilha.includes(normalizedCategory);
         const subcategoriaMatch = subcategoriaDaPlanilha.includes(normalizedCategory);
         const descricaoMatch = descricaoDaPlanilha.includes(normalizedCategory);
@@ -31,52 +24,68 @@ function getExpensesByMonthAndCategory(data, month, year, category) {
     });
 }
 
-function calculateTotal(data) {
-    return data.reduce((sum, row) => sum + parseValue(row[4]), 0);
+function calculateTotal(data, valueColumnIndex = 4) {
+    return data.reduce((sum, row) => {
+        if (row && row[valueColumnIndex]) {
+            return sum + parseValue(row[valueColumnIndex]);
+        }
+        return sum;
+    }, 0);
 }
 
 function calculateAverage(data) {
+    if (data.length === 0) return 0;
     const total = calculateTotal(data);
-    return data.length > 0 ? total / data.length : 0;
+    return total / data.length;
 }
 
-function countOccurrences(data, keywords, year) {
-    return data.slice(1).filter(row => {
+function countOccurrences(data, keywords, year, month) {
+    const searchTerms = keywords.map(k => normalizeText(k));
+
+    const filteredByDate = data.filter(row => {
         const rowDate = parseSheetDate(row[0]);
         if (!rowDate) return false;
-        return (
-            keywords.some(keyword => normalizeText(row[1]).includes(normalizeText(keyword))) &&
-            rowDate.getFullYear() === year
+        const isMonthMatch = (typeof month === 'number') ? rowDate.getMonth() === month : true;
+        const isYearMatch = rowDate.getFullYear() === year;
+        return isMonthMatch && isYearMatch;
+    });
+
+    const matchingRows = filteredByDate.filter(row => {
+        const description = normalizeText(row[1] || '');
+        const wordsInDescription = description.split(' ');
+
+        return searchTerms.some(term => 
+            wordsInDescription.some(word => 
+                stringSimilarity.compareTwoStrings(term, word) > 0.65
+            )
         );
     });
+    
+    return matchingRows;
 }
 
 function findMinMax(data) {
-    if (data.length <= 1) return { min: null, max: null };
+    if (data.length === 0) return { min: null, max: null };
 
-    let minVal = Infinity;
-    let maxVal = -Infinity;
     let minItem = null;
     let maxItem = null;
+    
+    let minVal = Infinity;
+    let maxVal = -1;
 
-    for (const row of data.slice(1)) {
+    for (const row of data) {
         const value = parseValue(row[4]);
-        if (!isNaN(value)) {
-            if (value < minVal) {
-                minVal = value;
-                minItem = row;
-            }
-            if (value > maxVal) {
-                maxVal = value;
-                maxItem = row;
-            }
+        if (value < minVal) {
+            minVal = value;
+            minItem = row;
+        }
+        if (value > maxVal) {
+            maxVal = value;
+            maxItem = row;
         }
     }
 
-    return {
-        min: minItem,
-        max: maxItem
-    };
+    return { min: minItem, max: maxItem };
 }
 
 module.exports = {
@@ -85,5 +94,4 @@ module.exports = {
     calculateAverage,
     countOccurrences,
     findMinMax,
-    parseValue
 };

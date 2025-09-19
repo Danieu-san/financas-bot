@@ -27,67 +27,48 @@ async function handleAudio(msg) {
 
         if (!media || !media.data) {
             await msg.reply('❌ Desculpe, não consegui baixar o áudio. Tente novamente.');
-            return;
+            return null; // Retorna null em caso de falha
         }
 
-        // O áudio do WhatsApp vem no formato .ogg
         const timestamp = new Date().getTime();
         const audioPath = path.join(audioDir, `audio_${timestamp}.ogg`);
-
-        // Salva o áudio (em base64) como um arquivo .ogg
         fs.writeFileSync(audioPath, Buffer.from(media.data, 'base64'));
-
         console.log(`Áudio salvo em: ${audioPath}`);
 
         const mp3Path = audioPath.replace('.ogg', '.mp3');
+        console.log(`Convertendo ${audioPath} para ${mp3Path}...`);
 
-console.log(`Convertendo ${audioPath} para ${mp3Path}...`);
+        await new Promise((resolve, reject) => {
+            ffmpeg(audioPath)
+                .toFormat('mp3')
+                .on('end', () => {
+                    console.log('Conversão para MP3 finalizada com sucesso.');
+                    fs.unlinkSync(audioPath);
+                    resolve();
+                })
+                .on('error', (err) => {
+                    console.error('Erro na conversão do áudio:', err);
+                    reject(err);
+                })
+                .save(mp3Path);
+        });
 
-await new Promise((resolve, reject) => {
-    ffmpeg(audioPath)
-        .toFormat('mp3')
-        .on('end', () => {
-            console.log('Conversão para MP3 finalizada com sucesso.');
-            fs.unlinkSync(audioPath); // Apaga o arquivo .ogg original para economizar espaço
-            resolve();
-        })
-        .on('error', (err) => {
-            console.error('Erro na conversão do áudio:', err);
-            reject(err);
-        })
-        .save(mp3Path);
-});
+        console.log(`Transcrevendo o arquivo ${mp3Path}...`);
+        const transcribedText = await transcribeAudio(mp3Path);
+        fs.unlinkSync(mp3Path);
+        console.log(`Texto Transcrito: "${transcribedText}"`);
 
-console.log(`Transcrevendo o arquivo ${mp3Path}...`);
-const transcribedText = await transcribeAudio(mp3Path);
+        if (!transcribedText || transcribedText.toLowerCase().includes('não consegui entender')) {
+            await msg.reply(`Não consegui entender o que foi dito no áudio. Tente novamente.`);
+            return null; // Retorna null em caso de falha
+        }
 
-// Apaga o arquivo .mp3 após a transcrição
-fs.unlinkSync(mp3Path); 
-
-console.log(`Texto Transcrito: "${transcribedText}"`);
-
-console.log(`Texto Transcrito: "${transcribedText}"`);
-
-// Se a transcrição falhar ou vier vazia, avisa o usuário e para.
-if (!transcribedText || transcribedText.toLowerCase() === 'não consegui entender o áudio.') {
-    await msg.reply(`Não consegui entender o que foi dito no áudio. Tente novamente.`);
-    return;
-}
-
-// MODIFICA A MENSAGEM ORIGINAL PARA SER PROCESSADA COMO TEXTO
-msg.body = transcribedText;
-msg.type = 'chat';
-msg.hasMedia = false;
-
-// CHAMA O HANDLER PRINCIPAL com a mensagem original, agora modificada
-const { handleMessage } = require('./messageHandler');
-console.log('Encaminhando texto transcrito para o messageHandler para interpretação...');
-await handleMessage(msg); // Passamos o 'msg' original, não um 'fakeMsg'
-
+        return transcribedText; // Retorna o texto transcrito com sucesso
 
     } catch (error) {
         console.error('❌ Erro ao processar o áudio:', error);
         await msg.reply('Ocorreu um erro ao processar seu áudio. A equipe de TI foi notificada.');
+        return null;
     }
 }
 

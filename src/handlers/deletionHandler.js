@@ -4,6 +4,7 @@ const { readDataFromSheet, deleteRowsByIndices } = require('../services/google')
 const userStateManager = require('../state/userStateManager');
 const { sheetCategoryMap } = require('../config/constants');
 const { normalizeText } = require('../utils/helpers');
+const stringSimilarity = require('string-similarity');
 
 async function handleDeletionRequest(msg, deleteDetails) {
     const senderId = msg.author || msg.from;
@@ -33,16 +34,22 @@ async function handleDeletionRequest(msg, deleteDetails) {
 
     if (termoBuscaNormalizado.includes('ultimo')) {
         const lastRowIndex = allData.length - 1;
-        rowsToDelete.push({ index: lastRowIndex, data: allData[lastRowIndex] });
+        if(lastRowIndex > 0) { // Garante que não apague o cabeçalho
+             rowsToDelete.push({ index: lastRowIndex, data: allData[lastRowIndex] });
+        }
     } else {
+        // CORREÇÃO: Usa busca por similaridade e busca na coluna correta (Descrição)
+        const searchColumnIndex = (sheetName === 'Saídas' || sheetName === 'Entradas') ? 1 : 0;
+
         const filteredRows = allData
             .map((row, index) => ({ row, index }))
             .filter(item => {
                 if (item.index === 0) return false;
-                const nomeDoItem = item.row[0] || '';
-                const nomeNormalizado = normalizeText(nomeDoItem);
-
-                return nomeNormalizado.includes(termoBuscaNormalizado);
+                const itemDescription = normalizeText(item.row[searchColumnIndex] || '');
+                const wordsInDescription = itemDescription.split(' ');
+                
+                // Procura se alguma palavra na descrição é pelo menos 70% parecida com o termo de busca
+                return wordsInDescription.some(word => stringSimilarity.compareTwoStrings(word, termoBuscaNormalizado) > 0.7);
             });
         rowsToDelete = filteredRows.map(item => ({ index: item.index, data: item.row }));
     }
@@ -50,8 +57,8 @@ async function handleDeletionRequest(msg, deleteDetails) {
     if (rowsToDelete.length === 0) {
         let helpMessage = `Não encontrei nenhum item contendo "${termoBusca}" na aba "${sheetName}".\n\n`;
         helpMessage += `*Dica:* Para me ajudar a encontrar, tente ser mais específico incluindo o tipo. Por exemplo:\n`;
-        helpMessage += `- "apagar **gasto** com ${termoBusca}"\n`;
-        helpMessage += `- "apagar **entrada** com ${termoBusca}"`;
+        helpMessage += `- "apagar *gasto* com ${termoBusca}"\n`;
+        helpMessage += `- "apagar *entrada* com ${termoBusca}"`;
         
         await msg.reply(helpMessage);
         return;
@@ -80,7 +87,8 @@ async function confirmDeletion(msg) {
     const userReply = msg.body.toLowerCase();
     let finalRowsToDelete = [];
 
-    if (userReply === 'sim') {
+    // CORREÇÃO: Aceita "sm", "s", "ss" e outras variações de "sim"
+    if (stringSimilarity.compareTwoStrings(userReply, 'sim') > 0.6) {
         finalRowsToDelete = state.foundItems.map(item => item.index);
     } else {
         const indicesToSelect = userReply.match(/\d+/g)?.map(n => parseInt(n) - 1) || [];

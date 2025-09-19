@@ -40,9 +40,10 @@ async function callGemini(prompt, isJsonResponse = false) {
         return isJsonResponse ? JSON.parse(text) : text.trim();
 
     } catch (error) {
-        console.error("❌ Erro ao comunicar com o LLM:", error);
-        return isJsonResponse ? null : "Ocorreu um erro ao conectar com a IA.";
-    }
+    console.error("❌ Erro ao comunicar com o LLM:", error);
+    // Retorna um objeto de erro para que o messageHandler possa identificá-lo
+    return { error: true, message: "Falha na comunicação com a IA." };
+}
 }
 
 // VERSÃO CORRIGIDA E SIMPLIFICADA
