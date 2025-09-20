@@ -2,9 +2,15 @@
 
 const { readDataFromSheet, updateRowInSheet } = require('../services/google');
 const userStateManager = require('../state/userStateManager');
-const { normalizeText, parseValue } = require('../utils/helpers');
+const { normalizeText, parseAmount } = require('../utils/helpers');
 
 async function startPaymentRegistration(msg, pagamentoDetails) {
+    
+    if (!pagamentoDetails || !pagamentoDetails.descricao) {
+        await msg.reply("Entendi que você quer registrar um pagamento. Por favor, diga qual dívida você pagou. Ex: 'paguei o empréstimo do carro'.");
+         return;
+    }
+
     const senderId = msg.author || msg.from;
     const termoBusca = pagamentoDetails.descricao;
 
