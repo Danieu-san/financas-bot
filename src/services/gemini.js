@@ -36,8 +36,25 @@ async function callGemini(prompt, isJsonResponse = false) {
             console.error("Resposta inesperada do LLM:", JSON.stringify(result, null, 2));
             return isJsonResponse ? null : "Não consegui processar a resposta da IA.";
         }
+        let cleanText = text.trim();
+        
+        if (isJsonResponse) {
+            // Remove as cercas de código Markdown (```json e ```)
+            cleanText = cleanText.replace(/^```json\s*/i, ''); // Remove ```json no início
+            cleanText = cleanText.replace(/\s*```$/i, '');    // Remove ``` no final
+            cleanText = cleanText.trim();                      // Limpa qualquer espaço restante
 
-        return isJsonResponse ? JSON.parse(text) : text.trim();
+            try {
+                return JSON.parse(cleanText);
+            } catch (e) {
+                console.error("❌ ERRO NO PARSING JSON APÓS LIMPEZA:", e);
+                console.error("String JSON que falhou:", cleanText);
+                return null;
+            }
+        }
+
+        return cleanText; // Retorna o texto limpo (caso não seja JSON)
+        
 
     } catch (error) {
     console.error("❌ Erro ao comunicar com o LLM:", error);
