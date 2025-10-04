@@ -5,7 +5,7 @@ const fs = require('fs');
 
 async function callGemini(prompt, isJsonResponse = false) {
     try {
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
         
         const payload = {
             contents: [{ parts: [{ text: prompt }] }],
@@ -61,7 +61,7 @@ async function transcribeAudio(filePath) {
         const audioBuffer = fs.readFileSync(filePath);
         const base64Audio = audioBuffer.toString('base64');
 
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
         const payload = {
             contents: [{
