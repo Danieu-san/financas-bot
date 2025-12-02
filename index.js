@@ -25,7 +25,10 @@ async function startBot() {
         const client = initializeWhatsAppClient();
 
         // 3. INICIA O AGENDADOR DE TAREFAS
-        initializeScheduler(client);
+        client.on('ready', () => {
+            console.log('🚀 WhatsApp pronto! Iniciando agendador de tarefas...');
+            initializeScheduler(client);
+        });
 
         // 4. Conecta o handler principal de mensagens ao evento 'message'
         client.on('message', handleMessage);
