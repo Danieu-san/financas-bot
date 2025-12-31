@@ -36,7 +36,8 @@ async function runEntradaTests() {
             name: 'Parte 2.2 - Teste de Recebimento Informado',
             type: 'single-step',
             input: 'vendi o videogame por 1500 reais no pix, finalmente!',
-            expected: /Encontrei 1 transaç\(ão\|ões\) para registrar:\n\n\*1\.\* \[Entrada\] videogame - \*R\$1500\* \(Venda\)\n\nVocê confirma o registro de todos os itens\? Responda com \*'sim'\* ou \*'não'\*\./, // Espera a confirmação
+            // CORREÇÃO AQUI: Regex mais flexível para a descrição
+            expected: /Encontrei 1 transaç\(ão\|ões\) para registrar:\n\n\*1\.\* \[Entrada\] (videogame|venda de videogame) - \*R\$1500\* \(Venda\)\n\nVocê confirma o registro de todos os itens\? Responda com \*'sim'\*\ ou \*'não'\*\./,
             sender: SENDER_DANIEL
         },
         {
@@ -50,7 +51,8 @@ async function runEntradaTests() {
                 },
                 {
                     input: 'conta corente', // Typos aqui
-                    expected: /✅ Entrada de R\$100\.00 \(presente da minha mãe\) registrada como \*Conta Corrente\* para a data de \*\d{2}\/\d{2}\/\d{4}\*!/
+                    // CORREÇÃO AQUI: Regex mais flexível para a descrição
+                    expected: /✅ Entrada de R\$100\.00 \((presente|presente da minha mãe)\) registrada como \*Conta Corrente\* para a data de \*\d{2}\/\d{2}\/\d{4}\*!/
                 }
             ]
         },

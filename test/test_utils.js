@@ -94,11 +94,115 @@ function logRawAIResponse(aiResponse) {
     console.log('--------------------------');
 }
 
+/**
+ * Executa um caso de teste (single-step ou multi-step).
+ * @param {object} testCase O objeto do caso de teste.
+ */
+async function runTestCase(testCase) {
+    let currentBotResponse = null; // Variável local para a resposta do bot em cada passo/teste
+    userStateManager.resetAllStates(); // Limpa o estado antes de cada caso de teste
+    currentBotResponse = null; // Reseta a resposta capturada para cada teste
+
+    console.log(`\n--- Teste: ${testCase.name} ---`);
+
+    if (testCase.type === 'multi-step') {
+        console.log(`Tipo: Multi-passos`);
+        let allStepsPassed = true;
+        for (let i = 0; i < testCase.steps.length; i++) {
+            const step = testCase.steps[i];
+            console.log(`  Passo ${i + 1} - Entrada: "${step.input}"`);
+            currentBotResponse = null; // Reseta a resposta capturada para cada passo
+
+            const mockMessage = {
+                from: testCase.sender,
+                body: step.input,
+                id: { id: `mock-${Date.now()}-${Math.random()}` },
+                type: 'chat',
+                reply: async (response) => {
+                    console.log(`[BOT RESPONDEU]: ${response}`);
+                    currentBotResponse = response;
+                    return response;
+                }
+            };
+
+            try {
+                await handleMessage(mockMessage);
+                // Pequeno atraso para garantir que todas as operações assíncronas (Gemini, Google Sheets) sejam concluídas
+                await new Promise(resolve => setTimeout(resolve, 3000)); // Aumentado para 3 segundos
+
+                if (currentBotResponse) {
+                    const success = step.expected instanceof RegExp ? step.expected.test(currentBotResponse) : currentBotResponse.includes(step.expected);
+                    if (success) {
+                        console.log(`  ✅ SUCESSO! Resposta esperada (${step.expected}) encontrada.`);
+                    } else {
+                        console.error(`  ❌ FALHA! Resposta inesperada no Passo ${i + 1} para "${testCase.name}".`);
+                        console.error(`    Esperado: ${step.expected}`);
+                        console.error(`    Recebido: "${currentBotResponse}"`);
+                        allStepsPassed = false;
+                        break; // Para o teste multi-passos no primeiro erro
+                    }
+                } else {
+                    console.error(`  ❌ FALHA! Nenhuma resposta do bot no Passo ${i + 1} para "${testCase.name}".`);
+                    allStepsPassed = false;
+                    break;
+                }
+            } catch (error) {
+                console.error(`  ❌ ERRO durante o Passo ${i + 1} do teste "${testCase.name}":`, error);
+                allStepsPassed = false;
+                break;
+            }
+        }
+        if (allStepsPassed) {
+            console.log(`✅ TESTE MULTI-PASSOS "${testCase.name}" CONCLUÍDO COM SUCESSO!`);
+        } else {
+            console.error(`❌ TESTE MULTI-PASSOS "${testCase.name}" FALHOU.`);
+        }
+
+    } else { // Single-step test
+        console.log(`Mensagem de Entrada: "${testCase.input}"`);
+        currentBotResponse = null; // Reseta a resposta capturada
+
+        const mockMessage = {
+            from: testCase.sender,
+            body: testCase.input,
+            id: { id: `mock-${Date.now()}-${Math.random()}` },
+            type: 'chat',
+            reply: async (response) => {
+                console.log(`[BOT RESPONDEU]: ${response}`);
+                currentBotResponse = response;
+                return response;
+            }
+        };
+        
+        try {
+            await handleMessage(mockMessage);
+            await new Promise(resolve => setTimeout(resolve, 3000)); // Atraso para processamento
+
+            if (currentBotResponse) {
+                const success = testCase.expected instanceof RegExp ? testCase.expected.test(currentBotResponse) : currentBotResponse.includes(testCase.expected);
+                if (success) {
+                    console.log(`✅ SUCESSO! Resposta esperada (${testCase.expected}) encontrada.`);
+                } else {
+                    console.error(`❌ FALHA! Resposta inesperada para "${testCase.name}".`);
+                    console.error(`  Esperado: ${testCase.expected}`);
+                    console.error(`  Recebido: "${currentBotResponse}"`);
+                }
+            } else {
+                console.error(`❌ FALHA! Nenhuma resposta do bot para "${testCase.name}".`);
+            }
+        } catch (error) {
+            console.error(`❌ ERRO durante o teste "${testCase.name}":`, error);
+        }
+    }
+}
+
+
 module.exports = {
     setupBotForTest,
     simulateMessage,
     logTestResult,
     logRawAIResponse,
     SENDER_DANIEL,
-    SENDER_OTHER
+    SENDER_OTHER,
+    runTestCase // &lt;--- AGORA EXPORTADO!
 };
