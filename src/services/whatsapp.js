@@ -44,12 +44,12 @@ function initializeWhatsAppClient() {
 
     client.on('auth_failure', msg => {
         console.error('❌ Falha na autenticação do WhatsApp:', msg);
+        client.destroy();
     });
 
-    client.on('disconnected', reason => {
+    client.on('disconnected', async reason => {
         console.log('Cliente desconectado:', reason);
-        console.log('Tentando reconectar...');
-        client.initialize(); // Tenta reconectar
+        console.log('Aguardando reconexão automática do whatsapp-web.js...');
     });
 
     client.initialize();

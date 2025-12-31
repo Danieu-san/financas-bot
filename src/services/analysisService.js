@@ -94,4 +94,5 @@ module.exports = {
     calculateAverage,
     countOccurrences,
     findMinMax,
+    parseValue
 };

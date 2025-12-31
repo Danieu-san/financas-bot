@@ -1,3 +1,6 @@
+// src/handlers/messageHandler.js
+
+// Importações necessárias
 const { userMap, sheetCategoryMap, creditCardConfig } = require('../config/constants');
 const userStateManager = require('../state/userStateManager');
 const creationHandler = require('./creationHandler');
@@ -12,6 +15,7 @@ const { handleAudio } = require('./audioHandler');
 const { classify } = require('../ai/intentClassifier');
 const { execute } = require('../services/calculationOrchestrator');
 const { generate } = require('../ai/responseGenerator');
+const { isAdmin } = require('../utils/auth'); // Importa a função isAdmin
 
 // Base de Conhecimento para Gastos
 const mapeamentoGastos = {
@@ -95,13 +99,97 @@ async function handleMessage(msg) {
         return;
     }
 
+    // --- Variáveis de contexto da mensagem, declaradas no início ---
+    const senderId = msg.author || msg.from; // Padronizando para senderId
+    let messageBody = msg.body.trim(); // Usamos 'let' pois pode ser alterado pela transcrição de áudio
+    // --- FIM das variáveis de contexto ---
+
+    // --- Comando !cancelar (acessível a qualquer usuário) ---
+    if (messageBody.toLowerCase() === '!cancelar') {
+        userStateManager.clearState(senderId); // Limpa o estado do usuário atual
+        await msg.reply('Processo cancelado. Seu estado foi resetado.');
+        return; // Sai da função, pois o comando foi processado
+    }
+    // --- FIM: Comando !cancelar ---
+
+    // --- Interceptação e Lógica de Comandos Administrativos ---
+    if (messageBody.startsWith('!')) {
+        // Verifica se o usuário é admin para processar comandos admin
+        if (!isAdmin(senderId)) { // Usando senderId
+            await msg.reply('Você não tem permissão para usar comandos administrativos.');
+            return; // Sai da função se não for admin
+        }
+
+        // Se for admin, processa os comandos
+        switch (messageBody.toLowerCase()) { // Usar toLowerCase para flexibilidade
+            case '!souadmin':
+                await msg.reply('Você é um administrador.');
+                break;
+            case '!ajudaadmin':
+                await msg.reply(
+                    'Comandos administrativos disponíveis:\n' +
+                    '  !souadmin - Verifica seu status de administrador.\n' +
+                    '  !ajudaadmin - Mostra esta lista de comandos.\n' +
+                    '  !recarregarplanilhas - Recarrega os IDs das planilhas e a autorização do Google.\n' +
+                    '  !limparcache <userId> - Limpa o estado de um usuário específico (ex: !limparcache 5521970112407).\n' +
+                    '  !resetartodosestados - Reseta o estado de TODOS os usuários (use com extrema cautela!).\n' +
+                    '  !veridsplanilhas - Mostra os IDs das planilhas carregadas.'
+                );
+                break;
+            case '!recarregarplanilhas':
+                try {
+                    await authorizeGoogle(); // Reautoriza as APIs
+                    await getSheetIds(); // Recarrega os IDs das planilhas
+                    await msg.reply('IDs das planilhas e autorização do Google recarregados com sucesso!');
+                } catch (error) {
+                    console.error('Erro ao recarregar planilhas:', error);
+                    await msg.reply('Erro ao recarregar IDs das planilhas. Verifique os logs do servidor.');
+                }
+                break;
+            case '!resetartodosestados':
+                try {
+                    userStateManager.resetAllStates(); // Chamada correta da função importada
+                    await msg.reply('Estado de todos os usuários resetado com sucesso!');
+                } catch (error) {
+                    console.error('Erro ao resetar todos os estados:', error);
+                    await msg.reply('Erro ao resetar todos os estados. Verifique os logs do servidor.');
+                }
+                break;
+            case '!veridsplanilhas':
+                const currentSheetIds = getSheetIds(); // Pega os IDs carregados
+                await msg.reply(`IDs das planilhas carregados:\n\`\`\`json\n${JSON.stringify(currentSheetIds, null, 2)}\n\`\`\``);
+                break;
+            default:
+                // Para comandos que exigem um parâmetro (ex: !limparcache <userId>)
+                if (messageBody.toLowerCase().startsWith('!limparcache ')) {
+                    const targetUserId = messageBody.substring('!limparcache '.length).trim();
+                    if (targetUserId) {
+                        try {
+                            // userStateManager.clearState já está importado no topo
+                            userStateManager.clearState(targetUserId); 
+                            await msg.reply(`Estado do usuário ${targetUserId} limpo com sucesso!`);
+                        } catch (error) {
+                            console.error(`Erro ao limpar cache para ${targetUserId}:`, error);
+                            await msg.reply(`Erro ao limpar cache para ${targetUserId}. Verifique os logs do servidor.`);
+                        }
+                    } else {
+                        await msg.reply('Uso: !limparcache <userId>');
+                    }
+                } else {
+                    await msg.reply('Comando administrativo não reconhecido. Use !ajudaadmin para ver a lista.');
+                }
+                break;
+        }
+        return; // Importante: Sai da função para não processar com a IA
+    }
+
     // Se a mensagem for de áudio, processa primeiro.
     // Se não for, o processamento normal continua com o corpo original.
     if (msg.type === 'ptt' || msg.type === 'audio') {
         const transcribedText = await handleAudio(msg);
         if (!transcribedText) return; // Se a transcrição falhar, para aqui.
         
-        msg.body = transcribedText; // Atualiza o corpo da mensagem com o texto!
+        messageBody = transcribedText; // Atualiza o corpo da mensagem com o texto!
     }
 
     processedMessages.add(messageId);
@@ -109,9 +197,8 @@ async function handleMessage(msg) {
 
     if (msg.isStatus || msg.fromMe) return;
 
-    const senderId = msg.author || msg.from;
+    // A variável 'pessoa' depende de userMap e senderId, então fica aqui
     const pessoa = userMap[senderId] || 'Ambos';
-    const messageBody = msg.body.trim();
 
     if (!rateLimiter.isAllowed(senderId)) {
         console.log(`Usuário ${senderId} bloqueado pelo rate limit.`);
@@ -214,7 +301,7 @@ async function handleMessage(msg) {
                     console.error("Erro ao salvar parcelamento:", error);
                     await msg.reply("Ocorreu um erro ao salvar o gasto.");
                 } finally {
-                    userStateManager.deleteState(senderId);
+                    userStateManager.clearState(senderId);
                 }
                 return;
             }
@@ -270,7 +357,7 @@ async function handleMessage(msg) {
 
                 // MENSAGEM DE SUCESSO MELHORADA
                 await msg.reply(`✅ Gasto de R$${valorNumerico.toFixed(2)} (${gasto.descricao}) registrado como *${gasto.pagamento}* para a data de *${dataFinal}*!`);
-                userStateManager.deleteState(senderId);
+                userStateManager.clearState(senderId);
                 return;
             }
 
@@ -295,7 +382,7 @@ async function handleMessage(msg) {
 
                 await appendRowToSheet('Entradas', rowData);
                 await msg.reply(`✅ Entrada de R$${valorNumerico.toFixed(2)} (${entrada.descricao}) registrada como *${entrada.recebimento}* para a data de *${dataDaEntrada}*!`);
-                userStateManager.deleteState(senderId);
+                userStateManager.clearState(senderId);
                 return;
             }
 
@@ -331,7 +418,7 @@ async function handleMessage(msg) {
                     await msg.reply("Ótimo! E como esses itens foram pagos? (Crédito, Débito, PIX ou Dinheiro)");
                 } else {
                     await msg.reply("Ok, registro cancelado.");
-                    userStateManager.deleteState(senderId);
+                    userStateManager.clearState(senderId);
                 }
                 return; // Importante para esperar a próxima resposta do usuário
             }
@@ -416,7 +503,7 @@ async function handleMessage(msg) {
                 }
 
                 await msg.reply(`Registro finalizado. ${successCount} de ${transactions.length} itens foram salvos com sucesso.`);
-                userStateManager.deleteState(senderId);
+                userStateManager.clearState(senderId);
                 return;
             }
 
@@ -486,7 +573,7 @@ async function handleMessage(msg) {
 
                 if (Object.keys(installmentMap).length === 0) {
                     await msg.reply("Não consegui entender a divisão das parcelas. Vamos cancelar e você pode tentar de novo, ok?");
-                    userStateManager.deleteState(senderId);
+                    userStateManager.clearState(senderId);
                     return;
                 }
 
@@ -528,7 +615,7 @@ async function handleMessage(msg) {
                 }
 
                 await msg.reply(`✅ Lançamentos no crédito finalizados com sucesso!`);
-                userStateManager.deleteState(senderId);
+                userStateManager.clearState(senderId);
                 return;
             }
         }
@@ -618,7 +705,6 @@ async function handleMessage(msg) {
                                 action: 'awaiting_credit_card_selection',
                                 data: { gasto: item, cardOptions: cardOptions }
                             });
-                            await msg.reply(question);
                             return; 
                         }
                     if (item.type === 'Saídas' && !item.pagamento) {

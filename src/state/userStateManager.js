@@ -1,21 +1,27 @@
-// src/state/userStateManager.js
+    // src/state/userStateManager.js
 
-const userStates = {}; // Armazena o estado da conversa atual para cada usuário
+    const userStates = new Map(); // Armazena o estado de cada usuário
 
-const getState = (userId) => {
-    return userStates[userId];
-};
+    function setState(userId, state) {
+        userStates.set(userId, state);
+    }
 
-const setState = (userId, state) => {
-    userStates[userId] = state;
-};
+    function getState(userId) {
+        return userStates.get(userId);
+    }
 
-const deleteState = (userId) => {
-    delete userStates[userId];
-};
+    function clearState(userId) {
+        userStates.delete(userId);
+    }
 
-module.exports = {
-    getState,
-    setState,
-    deleteState,
-};
+    // NOVO: Função para resetar todos os estados (útil para testes)
+    function resetAllStates() {
+        userStates.clear();
+    }
+
+    module.exports = {
+        setState,
+        getState,
+        clearState,
+        resetAllStates // Exporta a nova função
+    };
