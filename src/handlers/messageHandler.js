@@ -7,7 +7,7 @@ const creationHandler = require('./creationHandler');
 const deletionHandler = require('./deletionHandler');
 const debtHandler = require('./debtHandler');
 const { getStructuredResponseFromLLM, askLLM } = require('../services/gemini');
-const { appendRowToSheet, readDataFromSheet, createCalendarEvent } = require('../services/google');
+const { authorizeGoogle, getSheetIds, appendRowToSheet, readDataFromSheet, createCalendarEvent } = require('../services/google');
 const { getFormattedDate, getFormattedDateOnly, normalizeText, parseSheetDate, parseAmount } = require('../utils/helpers');
 const cache = require('../utils/cache');
 const rateLimiter = require('../utils/rateLimiter');
@@ -16,6 +16,116 @@ const { classify } = require('../ai/intentClassifier');
 const { execute } = require('../services/calculationOrchestrator');
 const { generate } = require('../ai/responseGenerator');
 const { isAdmin } = require('../utils/auth'); // Importa a função isAdmin
+const debtUpdateHandler = require('./debtUpdateHandler');
+
+function tokenizeNormalized(text) {
+    const normalized = normalizeText(String(text || ''));
+    const cleaned = normalized
+        .replace(/[-_/]/g, ' ')
+        .replace(/[.,!?;:()"'[\]{}]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    const stopwords = new Set(['de', 'da', 'do', 'das', 'dos', 'no', 'na', 'nos', 'nas', 'cartao', 'cartão', 'banco']);
+    return cleaned
+        .split(' ')
+        .filter(t => t.length >= 2 && !stopwords.has(t) && !/^\d+$/.test(t));
+}
+
+function levenshtein(a, b) {
+    const s = String(a || '');
+    const t = String(b || '');
+    const m = s.length;
+    const n = t.length;
+
+    if (m === 0) return n;
+    if (n === 0) return m;
+
+    const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+
+    for (let i = 0; i <= n; i++) dp[i][0] = i;
+    for (let j = 0; j <= m; j++) dp[0][j] = j;
+
+    for (let i = 1; i <= n; i++) {
+        for (let j = 1; j <= m; j++) {
+            const cost = t.charAt(i - 1) === s.charAt(j - 1) ? 0 : 1;
+            dp[i][j] = Math.min(
+                dp[i - 1][j] + 1,
+                dp[i][j - 1] + 1,
+                dp[i - 1][j - 1] + cost
+            );
+        }
+    }
+    return dp[n][m];
+}
+
+function isFuzzyTokenMatch(token, candidate) {
+    if (!token || !candidate) return false;
+    if (token === candidate) return true;
+
+    const distance = levenshtein(token, candidate);
+    const maxLen = Math.max(token.length, candidate.length);
+
+    // tolerância a erros de digitação:
+    // - tokens curtos: 1 erro
+    // - tokens longos: 2 erros
+    if (maxLen <= 5) return distance <= 1;
+    return distance <= 2;
+}
+
+function countFuzzyMatches(messageTokens, candidateTokens) {
+    let score = 0;
+
+    for (const mt of messageTokens) {
+        for (const ct of candidateTokens) {
+            if (isFuzzyTokenMatch(mt, ct)) {
+                // Peso maior para tokens “mais informativos”
+                score += (ct.length >= 5 ? 2 : 1);
+                break;
+            }
+        }
+    }
+
+    return score;
+}
+
+function detectCardKeyFromTextFuzzy(text, creditCardConfig) {
+    const msgTokens = tokenizeNormalized(text);
+
+    let best = { cardKey: null, score: 0 };
+    let second = { cardKey: null, score: 0 };
+
+    for (const [cardKey, cardInfo] of Object.entries(creditCardConfig)) {
+        const keyTokens = tokenizeNormalized(cardKey);
+        const sheetTokens = tokenizeNormalized(cardInfo?.sheetName || '');
+
+        // tokens candidatos = chave + nome da aba
+        const candidateTokens = [...new Set([...keyTokens, ...sheetTokens])];
+
+        const score = countFuzzyMatches(msgTokens, candidateTokens);
+
+        if (score > best.score) {
+            second = best;
+            best = { cardKey, score };
+        } else if (score > second.score) {
+            second = { cardKey, score };
+        }
+    }
+
+    // Limiar: precisa ter “informação suficiente”
+    // - 2 já pega casos tipo "bradesco" (token forte)
+    // - 3 pega casos tipo "nubank thais" (dois tokens)
+    const threshold = 2;
+
+    // margem para evitar ambiguidade (ex.: "nubank" sozinho bate em vários)
+    const margin = 2;
+
+    if (best.cardKey && best.score >= threshold && best.score >= second.score + margin) {
+        return { cardKey: best.cardKey, cardInfo: creditCardConfig[best.cardKey] };
+    }
+
+    return null;
+}
 
 // Base de Conhecimento para Gastos
 const mapeamentoGastos = {
@@ -84,7 +194,14 @@ const MASTER_SCHEMA = {
         },
         deleteDetails: { type: "OBJECT", properties: { descricao: { type: "STRING" }, categoria: { type: "STRING" } } },
         pagamentoDetails: { type: "OBJECT", properties: { descricao: { type: "STRING" } } },
-        lembreteDetails: { type: "OBJECT", properties: { titulo: { type: "STRING" }, dataHora: { type: "STRING" }, recorrencia: { type: "STRING" } } },
+        lembreteDetails: {
+            type: "OBJECT",
+            properties: {
+                titulo: { type: "STRING" },
+                dataHora: { type: "STRING" },
+                recorrencia: { type: "STRING", enum: ["FREQ=DAILY", "FREQ=WEEKLY", "FREQ=MONTHLY", "FREQ=YEARLY"] }
+            }
+        },
         question: { type: "STRING" }
     },
     required: ["intent"]
@@ -156,7 +273,7 @@ async function handleMessage(msg) {
                 }
                 break;
             case '!veridsplanilhas':
-                const currentSheetIds = getSheetIds(); // Pega os IDs carregados
+                const currentSheetIds = await getSheetIds(); // Pega os IDs carregados
                 await msg.reply(`IDs das planilhas carregados:\n\`\`\`json\n${JSON.stringify(currentSheetIds, null, 2)}\n\`\`\``);
                 break;
             default:
@@ -217,23 +334,40 @@ async function handleMessage(msg) {
         // --- INÍCIO DA MÁQUINA DE ESTADOS (CONVERSAS EM ANDAMENTO) ---
         // Se existe uma conversa em andamento, o bot lida com ela e PARA AQUI.
         switch (currentState.action) {
-            case 'awaiting_credit_card_selection': {
-                const { gasto, cardOptions } = currentState.data;
-                const selection = parseInt(msg.body.trim(), 10) - 1;
-
-                if (selection >= 0 && selection < cardOptions.length) {
-                    const cardKey = cardOptions[selection];
-                    const cardInfo = creditCardConfig[cardKey];
-
-                    userStateManager.setState(senderId, {
-                        action: 'awaiting_installment_number',
-                        data: { gasto, cardInfo }
-                    });
-                    await msg.reply("Em quantas parcelas? (digite `1` se for à vista)");
-                } else {
-                    await msg.reply("Opção inválida. Por favor, responda apenas com um dos números da lista.");
-                }
+            case 'confirming_debt_update': {
+                await debtUpdateHandler.confirmDebtUpdateSelection(msg);
                 return;
+            }
+            case 'awaiting_credit_card_selection': {
+                 const { gasto, cardOptions } = currentState.data;
+
+                    let cardKey = null;
+
+                    // 1) Tentativa por número (comportamento atual)
+                    const selection = parseInt(msg.body.trim(), 10) - 1;
+                    if (!isNaN(selection) && selection >= 0 && selection < cardOptions.length) {
+                        cardKey = cardOptions[selection];
+                    } else {
+                        // 2) Tentativa por texto (fuzzy)
+                        const detected = detectCardKeyFromTextFuzzy(msg.body, creditCardConfig);
+                        if (detected && cardOptions.includes(detected.cardKey)) {
+                            cardKey = detected.cardKey;
+                        }
+                    }
+
+                    if (cardKey) {
+                        const cardInfo = creditCardConfig[cardKey];
+
+                        userStateManager.setState(senderId, {
+                            action: 'awaiting_installment_number',
+                            data: { gasto, cardInfo }
+                        });
+
+                        await msg.reply("Em quantas parcelas? (digite `1` se for à vista)");
+                    } else {
+                        await msg.reply("Opção inválida. Por favor, responda com um dos números da lista (ou digite o nome do cartão, ex: 'nubank thais').");
+                    }
+                    return;
             }
 
             case 'awaiting_installment_number': {
@@ -410,10 +544,10 @@ async function handleMessage(msg) {
                 const cleanReply = normalizeText(msg.body);
                 if (cleanReply === 'sim') {
                     // Agora, em vez de registrar, vamos para a próxima etapa
-                    const { transactions } = currentState.data;
+                    const { transactions, originalMessageBody  } = currentState.data;
                     userStateManager.setState(senderId, {
                         action: 'awaiting_batch_payment_method',
-                        data: { transactions } // Passamos as transações para o próximo estado
+                        data: { transactions, originalMessageBody  } // Passamos as transações para o próximo estado
                     });
                     await msg.reply("Ótimo! E como esses itens foram pagos? (Crédito, Débito, PIX ou Dinheiro)");
                 } else {
@@ -451,6 +585,24 @@ async function handleMessage(msg) {
                 // Uma verificação de segurança: o fluxo de crédito é complexo (pede cartão, parcelas, etc.).
                 // Por isso, é melhor tratar múltiplos itens no crédito de forma individual.
                 if (normalizeText(pagamentoFinal) === 'credito') {
+                const originalMessageBody = currentState.data?.originalMessageBody || '';
+                const detected = detectCardKeyFromTextFuzzy(originalMessageBody, creditCardConfig);
+
+                if (detected) {
+                    userStateManager.setState(senderId, {
+                        action: 'awaiting_installments_batch',
+                        data: { transactions, cardInfo: detected.cardInfo }
+                    });
+
+                    let installmentsQuestion = `Entendido, no cartão *${detected.cardInfo.sheetName}*. E as parcelas?\n\n`;
+                    installmentsQuestion += `*1.* Se foi tudo à vista (ou 1x), digite \`1\`.\n`;
+                    installmentsQuestion += `*2.* Se todos tiveram o mesmo nº de parcelas, digite o número (ex: \`3\`)\n`;
+                    installmentsQuestion += `*3.* Se foram parcelas diferentes, me diga quais (ex: \`${transactions[0].descricao} em 3x, o resto à vista\`).`;
+
+                    await msg.reply(installmentsQuestion);
+                    return;
+                };
+            
                     const cardOptions = Object.keys(creditCardConfig);
                     let question = `Ok, crédito. Em qual cartão? Responda com o número:\n\n`;
                     cardOptions.forEach((cardName, index) => {
@@ -510,14 +662,24 @@ async function handleMessage(msg) {
             case 'awaiting_credit_card_selection_batch': {
                 const { transactions } = currentState.data;
                 const cardOptions = Object.keys(creditCardConfig);
-                const selection = parseInt(msg.body.trim(), 10) - 1;
 
-                if (selection >= 0 && selection < cardOptions.length) {
-                    const cardKey = cardOptions[selection];
+                let cardKey = null;
+
+                const selection = parseInt(msg.body.trim(), 10) - 1;
+                if (!isNaN(selection) && selection >= 0 && selection < cardOptions.length) {
+                    cardKey = cardOptions[selection];
+                } else {
+                    const detected = detectCardKeyFromTextFuzzy(msg.body, creditCardConfig);
+                    if (detected && cardOptions.includes(detected.cardKey)) {
+                        cardKey = detected.cardKey;
+                    }
+                }
+
+                if (cardKey) {
                     const cardInfo = creditCardConfig[cardKey];
 
                     userStateManager.setState(senderId, {
-                        action: 'awaiting_installments_batch', // Próximo novo estado!
+                        action: 'awaiting_installments_batch',
                         data: { transactions, cardInfo }
                     });
 
@@ -528,7 +690,7 @@ async function handleMessage(msg) {
                     await msg.reply(question);
 
                 } else {
-                    await msg.reply("Opção inválida. Por favor, responda apenas com um dos números da lista.");
+                    await msg.reply("Opção inválida. Responda com um número da lista (ou digite o nome do cartão, ex: 'nubank thais').");
                 }
                 return;
             }
@@ -623,6 +785,8 @@ async function handleMessage(msg) {
         // --- INÍCIO DA ANÁLISE DE NOVOS COMANDOS ---
         console.log(`Mensagem de ${pessoa} (${senderId}): "${messageBody}"`);
         try {
+            const handledDebtUpdate = await debtUpdateHandler.startDebtUpdate(msg);
+            if (handledDebtUpdate) return;
             // CÓDIGO PARA SUBSTITUIR (APENAS A CONSTANTE masterPrompt)
 
             const masterPrompt = `Sua tarefa é analisar a mensagem e extrair a intenção e detalhes em um JSON. A data e hora atual é ${new Date().toISOString()}.
@@ -650,7 +814,20 @@ async function handleMessage(msg) {
             - Mapa de Gastos: ${JSON.stringify(mapeamentoGastos)}
             - Mapa de Entradas: ${JSON.stringify(mapeamentoEntradas)}
             ### Formato de Saída:
-            Retorne APENAS o objeto JSON, seguindo este schema: ${JSON.stringify(MASTER_SCHEMA)}`;
+            Retorne APENAS o objeto JSON, seguindo este schema: ${JSON.stringify(MASTER_SCHEMA)}
+
+            ### REGRAS ESPECÍFICAS PARA A INTENÇÃO 'criar_lembrete':
+            - O campo 'lembreteDetails.dataHora' DEVE ser EXATAMENTE um destes formatos:
+            1) DD/MM/AAAA
+            2) DD/MM/AAAA HH:MM   (24h, com espaço)
+            - É PROIBIDO incluir texto dentro de 'dataHora' (ex.: "às", "as", "dia", "de", etc.). Apenas números e separadores.
+            - Se o usuário não informar hora, use apenas DD/MM/AAAA (evento de dia inteiro).
+            - Se o usuário informar hora, use DD/MM/AAAA HH:MM.
+            - Datas relativas (hoje/amanhã) DEVEM ser calculadas considerando a data de hoje (${new Date().toLocaleDateString('pt-BR')}) e o fuso America/Sao_Paulo.
+            - Se não for possível determinar data/hora com segurança, NÃO inclua 'dataHora'.
+            - 'lembreteDetails.recorrencia' (quando existir) deve ser APENAS um destes valores canônicos:
+            FREQ=DAILY, FREQ=WEEKLY, FREQ=MONTHLY, FREQ=YEARLY
+            (não use "Diariamente", "Semanalmente", etc.)`;
             
             const structuredResponse = await getStructuredResponseFromLLM(masterPrompt);
             console.log("--- RESPOSTA BRUTA DA IA ---");
@@ -696,6 +873,15 @@ async function handleMessage(msg) {
                         const pagamento = normalizeText(item.pagamento || '');
 
                         if (item.type === 'Saídas' && pagamento === 'credito') {
+                            const detected = detectCardKeyFromTextFuzzy(messageBody, creditCardConfig);
+                                if (detected) {
+                                    userStateManager.setState(senderId, {
+                                        action: 'awaiting_installment_number',
+                                        data: { gasto: item, cardInfo: detected.cardInfo }
+                                    });
+                                    await msg.reply(`Entendi, no cartão *${detected.cardInfo.sheetName}*. Em quantas parcelas? (digite \`1\` se for à vista)`);
+                                    return;
+                                }
                             const cardOptions = Object.keys(creditCardConfig);
                             let question = `Entendi, o gasto foi no crédito. Em qual cartão? Responda com o número:\n\n`;
                             cardOptions.forEach((cardName, index) => {
@@ -705,6 +891,7 @@ async function handleMessage(msg) {
                                 action: 'awaiting_credit_card_selection',
                                 data: { gasto: item, cardOptions: cardOptions }
                             });
+                            await msg.reply(question);
                             return; 
                         }
                     if (item.type === 'Saídas' && !item.pagamento) {
@@ -738,7 +925,7 @@ async function handleMessage(msg) {
 
                     userStateManager.setState(senderId, {
                         action: 'confirming_transactions',
-                        data: { transactions: allTransactions, person: pessoa }
+                        data: { transactions: allTransactions, person: pessoa, originalMessageBody: messageBody }
                     });
                     await msg.reply(confirmationMessage);
                     break;

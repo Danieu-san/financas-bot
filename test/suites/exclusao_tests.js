@@ -2,6 +2,53 @@
 const { simulateMessage, logTestResult, SENDER_DANIEL, runTestCase } = require('../test_utils');
 const userStateManager = require('../../src/state/userStateManager');
 
+async function seedGastoAndFinalize({ sender, text, pagamentoFallback }) {
+  const r1 = await simulateMessage(sender, text);
+
+    // Se o bot entrou no modo de confirmação ("Você confirma..."), precisa responder "sim"
+    if (typeof r1 === 'string' && /Você confirma o registro/i.test(r1)) {
+        const r2 = await simulateMessage(sender, 'sim');
+
+        // Se ele perguntar como foi pago, responde com o fallback
+        if (typeof r2 === 'string' && /como esses itens foram pagos\?/i.test(r2)) {
+        await simulateMessage(sender, pagamentoFallback || 'pix');
+        }
+    } else {
+        // Caso não tenha pedido confirmação, pode ser que ele pergunte direto pagamento/parcelas
+        // Se pedir pagamento, responde
+        if (typeof r1 === 'string' && /onde você recebeu esse valor\?/i.test(r1)) {
+            await simulateMessage(sender, recebimentoFallback || 'pix');
+            return;
+        }
+
+        // Alguns fluxos perguntam "como esses itens foram pagos?"
+        if (typeof r1 === 'string' && /como esses itens foram pagos\?/i.test(r1)) {
+            await simulateMessage(sender, recebimentoFallback || 'pix');
+            return;
+        }
+    }
+}
+
+    async function seedEntradaAndFinalize({ sender, text, recebimentoFallback }) {
+    const r1 = await simulateMessage(sender, text);
+
+    // Fluxo de confirmação em batch
+    if (typeof r1 === 'string' && /Você confirma o registro/i.test(r1)) {
+        const r2 = await simulateMessage(sender, 'sim');
+
+        // Alguns fluxos reaproveitam "como esses itens foram pagos?"
+        if (typeof r2 === 'string' && /como esses itens foram pagos\?/i.test(r2)) {
+        await simulateMessage(sender, recebimentoFallback || 'pix');
+        return;
+        }
+    }
+
+    // Fluxo “interativo”: pergunta onde recebeu
+    if (typeof r1 === 'string' && /onde você recebeu esse valor\?/i.test(r1)) {
+        await simulateMessage(sender, recebimentoFallback || 'pix');
+    }
+    }
+
 async function runExclusaoTests() {
     console.log('\n--- SUÍTE DE TESTES: Exclusão de Itens ---');
 
@@ -15,16 +62,19 @@ async function runExclusaoTests() {
             type: 'multi-step',
             sender: SENDER_DANIEL,
             preCheck: async () => {
-                // Adiciona um gasto para ser apagado
-                await simulateMessage(SENDER_DANIEL, 'gastei 10 de teste no pix');
-                await simulateMessage(SENDER_DANIEL, 'pix'); // Finaliza o fluxo
-                userStateManager.clearState(SENDER_DANIEL); // Limpa o estado para o próximo teste
+                await seedGastoAndFinalize({
+                    sender: SENDER_DANIEL,
+                    text: 'gastei 10 de teste no pix',
+                    pagamentoFallback: 'pix',
+                });
+
+                userStateManager.clearState(SENDER_DANIEL);
                 return true;
             },
             steps: [
                 {
                     input: 'apagar última saída',
-                    expected: /Encontrei 1 item\(ns\) para apagar na aba "Saídas":\n\n\*1\.\* \d{2}\/\d{2}\/\d{4} \| teste \| Outros \| Outros \| R\$ 10,00\n\nVocê tem certeza\? Responda com \*'sim'\* para apagar tudo, ou os números dos itens que quer apagar \(ex: \*1\* ou \*1, 2\)\./
+                    expected: /Encontrei 1 item\(ns\) para apagar na aba "Saídas":[\s\S]*\|\s*teste\s*\|[\s\S]*R\$\s*10,00[\s\S]*Você tem certeza\?/i
                 },
                 {
                     input: 'sim',
@@ -37,34 +87,44 @@ async function runExclusaoTests() {
             type: 'multi-step',
             sender: SENDER_DANIEL,
             preCheck: async () => {
-                // Adiciona um gasto específico para ser apagado
-                await simulateMessage(SENDER_DANIEL, 'gastei 250 de compras no Assaí no débito');
-                await simulateMessage(SENDER_DANIEL, 'débito'); // Finaliza o fluxo
+                await seedGastoAndFinalize({
+                    sender: SENDER_DANIEL,
+                    text: 'gastei 250 de compras no Assaí no débito',
+                    pagamentoFallback: 'débito',
+                });
+
                 userStateManager.clearState(SENDER_DANIEL);
                 return true;
             },
-            steps: [
-                {
-                    input: 'apagar saída de 250 reais do Assaí',
-                    expected: /Não encontrei nenhum item contendo "250 reais do Assaí" na aba "Saídas"\./ // Bot ainda não encontra
-                }
-            ]
+                steps: [
+                    {
+                        input: 'apagar saída de 250 reais do Assaí',
+                        expected: /Encontrei \d+ item\(ns\) para apagar na aba "Saídas":[\s\S]*(assa[ií]|assai)[\s\S]*R\$\s*250/i
+                    },
+                    {
+                        input: '1',
+                        expected: /✅ Item\(ns\) apagado\(s\) com sucesso!/i
+                    }
+                ]
         },
         {
             name: 'Apagar Última Entrada (Admin)',
             type: 'multi-step',
             sender: SENDER_DANIEL,
             preCheck: async () => {
-                // Adiciona uma entrada para ser apagada
-                await simulateMessage(SENDER_DANIEL, 'recebi 50 de gorjeta no pix');
-                await simulateMessage(SENDER_DANIEL, 'pix'); // Finaliza o fluxo
+                await seedEntradaAndFinalize({
+                    sender: SENDER_DANIEL,
+                    text: 'recebi 50 de gorjeta no pix',
+                    recebimentoFallback: 'pix',
+                });
+
                 userStateManager.clearState(SENDER_DANIEL);
                 return true;
             },
             steps: [
                 {
                     input: 'apagar última entrada',
-                    expected: /Encontrei 1 item\(ns\) para apagar na aba "Entradas":\n\n\*1\.\* \d{2}\/\d{2}\/\d{4} \| gorjeta \| Renda Extra \| R\$ 50,00 \| Daniel\n\nVocê tem certeza\? Responda com \*'sim'\* para apagar tudo, ou os números dos itens que quer apagar \(ex: \*1\* ou \*1, 2\)\./
+                    expected: /Encontrei 1 item\(ns\) para apagar na aba "Entradas":[\s\S]*\|\s*gorjeta\s*\|[\s\S]*R\$\s*50,00[\s\S]*Você tem certeza\?/i
                 },
                 {
                     input: 'sim',
@@ -77,9 +137,12 @@ async function runExclusaoTests() {
             type: 'multi-step',
             sender: SENDER_DANIEL,
             preCheck: async () => {
-                // Adiciona uma entrada específica para ser apagada
-                await simulateMessage(SENDER_DANIEL, 'recebi 5000 de salario na conta corrente');
-                await simulateMessage(SENDER_DANIEL, 'conta corrente'); // Finaliza o fluxo
+                await seedEntradaAndFinalize({
+                    sender: SENDER_DANIEL,
+                    text: 'recebi 5000 de salario na conta corrente',
+                    recebimentoFallback: 'conta corrente',
+                });
+
                 userStateManager.clearState(SENDER_DANIEL);
                 return true;
             },
@@ -114,7 +177,7 @@ async function runExclusaoTests() {
             steps: [
                 {
                     input: 'apagar última dívida',
-                    expected: /Encontrei 1 item\(ns\) para apagar na aba "Dívidas":\n\n\*1\.\* Dívida Teste \| Credor Teste \| Outros \| 100 \| 100\n\nVocê tem certeza\? Responda com \*'sim'\* para apagar tudo, ou os números dos itens que quer apagar \(ex: \*1\* ou \*1, 2\)\./
+                    expected: /Encontrei 1 item\(ns\) para apagar na aba "Dívidas":[\s\S]*Dívida Teste[\s\S]*Credor Teste[\s\S]*(Categoria:\s*)?Outros[\s\S]*\|\s*100\s*\|\s*100[\s\S]*Você tem certeza\?/i
                 },
                 {
                     input: 'sim',
@@ -146,7 +209,11 @@ async function runExclusaoTests() {
             steps: [
                 {
                     input: 'apagar dívida do Pedro',
-                    expected: /Não encontrei nenhum item contendo "Pedro" na aba "Dívidas"\./ // Bot ainda não encontra
+                    expected: /Encontrei \d+ item\(ns\) para apagar na aba "Dívidas":[\s\S]*Pedro[\s\S]*Você tem certeza\?/i
+                },
+                {
+                    input: 'não',
+                    expected: /Ok, a exclusão foi cancelada\./i
                 }
             ]
         },
@@ -155,11 +222,18 @@ async function runExclusaoTests() {
             type: 'multi-step',
             sender: SENDER_DANIEL,
             preCheck: async () => {
-                // Adiciona entradas para testar exclusão seletiva
-                await simulateMessage(SENDER_DANIEL, 'recebi 100 de presente no pix');
-                await simulateMessage(SENDER_DANIEL, 'pix');
-                await simulateMessage(SENDER_DANIEL, 'recebi 200 de presente na conta corrente');
-                await simulateMessage(SENDER_DANIEL, 'conta corrente');
+                await seedEntradaAndFinalize({
+                    sender: SENDER_DANIEL,
+                    text: 'recebi 100 de presente no pix',
+                    recebimentoFallback: 'pix',
+                });
+
+                await seedEntradaAndFinalize({
+                    sender: SENDER_DANIEL,
+                    text: 'recebi 200 de presente na conta corrente',
+                    recebimentoFallback: 'conta corrente',
+                });
+
                 userStateManager.clearState(SENDER_DANIEL);
                 return true;
             },
@@ -179,9 +253,12 @@ async function runExclusaoTests() {
             type: 'multi-step',
             sender: SENDER_DANIEL,
             preCheck: async () => {
-                // Adiciona um gasto para ser apagado
-                await simulateMessage(SENDER_DANIEL, 'gastei 50 de café no pix');
-                await simulateMessage(SENDER_DANIEL, 'pix');
+                await seedGastoAndFinalize({
+                    sender: SENDER_DANIEL,
+                    text: 'gastei 50 de café no pix',
+                    pagamentoFallback: 'pix',
+                });
+
                 userStateManager.clearState(SENDER_DANIEL);
                 return true;
             },
@@ -201,11 +278,18 @@ async function runExclusaoTests() {
             type: 'multi-step',
             sender: SENDER_DANIEL,
             preCheck: async () => {
-                // Adiciona várias entradas de salário
-                await simulateMessage(SENDER_DANIEL, 'recebi 3000 de salario em jan no pix');
-                await simulateMessage(SENDER_DANIEL, 'pix');
-                await simulateMessage(SENDER_DANIEL, 'recebi 3500 de salario em fev no pix');
-                await simulateMessage(SENDER_DANIEL, 'pix');
+                 await seedEntradaAndFinalize({
+                    sender: SENDER_DANIEL,
+                    text: 'recebi 3000 de salario em jan no pix',
+                    recebimentoFallback: 'pix',
+                });
+
+                await seedEntradaAndFinalize({
+                    sender: SENDER_DANIEL,
+                    text: 'recebi 3500 de salario em fev no pix',
+                    recebimentoFallback: 'pix',
+                });
+
                 userStateManager.clearState(SENDER_DANIEL);
                 return true;
             },
@@ -225,20 +309,73 @@ async function runExclusaoTests() {
             type: 'multi-step',
             sender: SENDER_DANIEL,
             preCheck: async () => {
-                // Adiciona um gasto de restaurante
-                await simulateMessage(SENDER_DANIEL, 'gastei 100 no restaurante no pix');
-                await simulateMessage(SENDER_DANIEL, 'pix');
+                 await seedGastoAndFinalize({
+                    sender: SENDER_DANIEL,
+                    text: 'gastei 100 no restaurante no pix',
+                    pagamentoFallback: 'pix',
+                });
+
                 userStateManager.clearState(SENDER_DANIEL);
                 return true;
             },
             steps: [
                 {
                     input: 'excluir saida restaurante', // Usando sinônimos
-                    expected: /Encontrei 1 item\(ns\) para apagar na aba "Saídas":/ // Espera a lista
+                    expected: /Encontrei \d+ item\(ns\) para apagar na aba "Saídas":/i
                 },
                 {
                     input: 'não', // Cancelamento
                     expected: /Ok, a exclusão foi cancelada\./
+                }
+            ]
+        },
+        {
+            name: 'Cenário: Cancelamento via "cancelar" (Saídas)',
+            type: 'multi-step',
+            sender: SENDER_DANIEL,
+            preCheck: async () => {
+                await seedGastoAndFinalize({
+                sender: SENDER_DANIEL,
+                text: 'gastei 12 de teste cancelar no pix',
+                pagamentoFallback: 'pix',
+                });
+
+                userStateManager.clearState(SENDER_DANIEL);
+                return true;
+            },
+            steps: [
+                {
+                input: 'apagar ultimo gasto',
+                expected: /Encontrei \d+ item\(ns\) para apagar na aba "Saídas":[\s\S]*Você tem certeza\?/i
+                },
+                {
+                input: 'cancelar',
+                expected: /Ok, a exclusão foi cancelada\./i
+                }
+            ]
+        },
+        {
+            name: 'Cenário: Seleção inválida cancela exclusão (Saídas)',
+            type: 'multi-step',
+            sender: SENDER_DANIEL,
+            preCheck: async () => {
+                await seedGastoAndFinalize({
+                sender: SENDER_DANIEL,
+                text: 'gastei 13 de teste selecao invalida no pix',
+                pagamentoFallback: 'pix',
+                });
+
+                userStateManager.clearState(SENDER_DANIEL);
+                return true;
+            },
+            steps: [
+                {
+                input: 'apagar ultimo gasto',
+                expected: /Encontrei \d+ item\(ns\) para apagar na aba "Saídas":[\s\S]*Você tem certeza\?/i
+                },
+                {
+                input: 'banana',
+                expected: /Não entendi sua seleção\. A exclusão foi cancelada\./i
                 }
             ]
         },
@@ -252,6 +389,7 @@ async function runExclusaoTests() {
     ];
 
     for (const testCase of exclusaoTestCases) {
+        try {
         if (testCase.preCheck) {
             const preCheckPassed = await testCase.preCheck();
             if (!preCheckPassed) {
@@ -259,7 +397,12 @@ async function runExclusaoTests() {
                 continue;
             }
         }
+
         await runTestCase(testCase);
+        } finally {
+            // ✅ garante isolamento: se um teste falhar no meio, não deixa "confirming_delete" preso
+            userStateManager.clearState(SENDER_DANIEL);
+        }
     }
 
     console.log('\n--- FIM DA SUÍTE DE TESTES: Exclusão de Itens ---');

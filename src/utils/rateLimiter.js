@@ -9,23 +9,42 @@ const userRequests = new Map();
 
 console.log('✅ Módulo Rate Limiter inicializado.');
 
-function isAllowed(userId) {
-    const now = Date.now();
-    const requests = userRequests.get(userId) || [];
-
-    // 1. Remove os timestamps que já expiraram (são mais antigos que a janela de tempo)
-    const recentRequests = requests.filter(timestamp => (now - timestamp) < RATE_LIMIT_WINDOW_MS);
-
-    // 2. Verifica se o número de requisições recentes ultrapassou o limite
-    if (recentRequests.length >= RATE_LIMIT_MAX) {
-        console.warn(`🚦 Rate limit atingido para o usuário: ${userId}`);
-        return false; // Usuário bloqueado
-    }
-
-    // 3. Se estiver dentro do limite, adiciona o timestamp atual e permite a passagem
-    recentRequests.push(now);
-    userRequests.set(userId, recentRequests);
-    return true; // Usuário permitido
+function isTestEnv() {
+  const env = String(process.env.NODE_ENV || '').toLowerCase();
+  return env === 'test';
 }
 
-module.exports = { isAllowed };
+function isDisabledByEnv() {
+  // Permite desligar manualmente sem mexer em NODE_ENV
+  // Ex.: DISABLE_RATE_LIMITER=true
+  const v = String(process.env.DISABLE_RATE_LIMITER || '').toLowerCase();
+  return v === '1' || v === 'true' || v === 'yes';
+}
+
+function isAllowed(userId) {
+  // ✅ Em testes automatizados, não bloqueia
+  if (isTestEnv() || isDisabledByEnv()) return true;
+
+  const now = Date.now();
+  const requests = userRequests.get(userId) || [];
+
+  // Remove timestamps expirados
+  const recentRequests = requests.filter(timestamp => (now - timestamp) < RATE_LIMIT_WINDOW_MS);
+
+  // Verifica limite
+  if (recentRequests.length >= RATE_LIMIT_MAX) {
+    console.warn(`🚦 Rate limit atingido para o usuário: ${userId}`);
+    return false;
+  }
+
+  // Registra e permite
+  recentRequests.push(now);
+  userRequests.set(userId, recentRequests);
+  return true;
+}
+
+function resetRateLimiter() {
+  userRequests.clear();
+}
+
+module.exports = { isAllowed, resetRateLimiter };

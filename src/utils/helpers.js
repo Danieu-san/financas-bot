@@ -1,3 +1,4 @@
+// src/utils/helpers.js
 const { askLLM } = require('../services/gemini');
 
 const parseValue = (valueStr) => {
@@ -59,10 +60,18 @@ const parseSheetDate = (dateString) => {
 };
 
 const convertToIsoDateTime = (dateTimeStr) => {
-    const [datePart, timePart] = dateTimeStr.split(' ');
-    const [day, month, year] = datePart.split('/');
-    // Formato final: YYYY-MM-DDTHH:MM:SS
-    return `${year}-${month}-${day}T${timePart}:00`;
+  const raw = String(dateTimeStr || '').trim();
+
+  const parts = raw.split(' ');
+  const datePart = parts[0];
+  const timePart = parts[1]; // pode ser undefined
+
+  const [day, month, year] = datePart.split('/');
+
+  // Se não vier hora, define uma hora padrão (ex: 09:00)
+  const safeTime = timePart && /^\d{2}:\d{2}$/.test(timePart) ? timePart : '09:00';
+
+  return `${year}-${month}-${day}T${safeTime}:00`;
 };
 
 async function parseNumberFromText(text) {

@@ -9,4 +9,10 @@ const cache = new NodeCache({ stdTTL: 300, checkperiod: 120 });
 
 console.log('✅ Módulo de Cache inicializado.');
 
+function clearAllCache() {
+    cache.flushAll();
+}
+
+cache.clearAllCache = clearAllCache;
+
 module.exports = cache;

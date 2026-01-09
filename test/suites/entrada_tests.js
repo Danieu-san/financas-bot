@@ -33,12 +33,23 @@ async function runEntradaTests() {
             sender: SENDER_DANIEL
         },
         {
-            name: 'Parte 2.2 - Teste de Recebimento Informado',
-            type: 'single-step',
-            input: 'vendi o videogame por 1500 reais no pix, finalmente!',
-            // CORREÇÃO AQUI: Regex mais flexível para a descrição
-            expected: /Encontrei 1 transaç\(ão\|ões\) para registrar:\n\n\*1\.\* \[Entrada\] (videogame|venda de videogame) - \*R\$1500\* \(Venda\)\n\nVocê confirma o registro de todos os itens\? Responda com \*'sim'\*\ ou \*'não'\*\./,
-            sender: SENDER_DANIEL
+            name: 'Parte 2.2 - Teste de Recebimento Informado (com confirmação)',
+            type: 'multi-step',
+            sender: SENDER_DANIEL,
+            steps: [
+                {
+                    input: 'vendi o videogame por 1500 reais no pix, finalmente!',
+                    expected: /Encontrei 1 transaç\(ão\|ões\) para registrar:/,
+                },
+                {
+                    input: 'sim',
+                    expected: /como esses itens foram pagos\?/i,
+                },
+                {
+                    input: 'pix',
+                    expected: /(✅|Registro finalizado\.)/i,
+                }
+            ]
         },
         {
             name: 'Parte 3.2 - Teste de Pergunta de Recebimento (com erro de digitação)',

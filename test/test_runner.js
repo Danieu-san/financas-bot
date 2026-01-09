@@ -7,6 +7,8 @@ const readline = require('readline');
 // Importar utilitários e suítes de teste
 const { setupBotForTest } = require('./test_utils');
 const { testarAmbiente } = require('./environment_diagnostics'); // O diagnóstico de ambiente é um caso especial
+const { resetRateLimiter } = require('../src/utils/rateLimiter');
+const userStateManager = require('../src/state/userStateManager');
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -86,6 +88,7 @@ async function main() {
         const functionalTestsSelected = suitesToRun.some(suite => suite.name !== 'Diagnóstico de Ambiente');
         if (functionalTestsSelected) {
             console.log('\n--- CONFIGURANDO BOT PARA TESTES FUNCIONAIS ---');
+            resetRateLimiter();
             await setupBotForTest();
             console.log('--- CONFIGURAÇÃO CONCLUÍDA ---');
         }
@@ -93,6 +96,8 @@ async function main() {
         for (const suite of suitesToRun) {
             if (suite.name !== 'Diagnóstico de Ambiente') { // Não executa o diagnóstico de ambiente novamente
                 console.log(`\n=== EXECUTANDO SUÍTE: ${suite.name} ===`);
+                resetRateLimiter();
+                userStateManager.resetAllStates();
                 await suite.func();
                 console.log(`=== SUÍTE ${suite.name} CONCLUÍDA ===`);
             }

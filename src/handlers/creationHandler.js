@@ -4,7 +4,24 @@ const { getStructuredResponseFromLLM, askLLM } = require('../services/gemini');
 const userStateManager = require('../state/userStateManager');
 const { appendRowToSheet, readDataFromSheet } = require('../services/google');
 const { userMap } = require('../config/constants');
-const { parseValue, parseDate, isDate, getFormattedDateOnly, parseAmount } = require('../utils/helpers');
+const { parseValue, parseDate, isDate, getFormattedDateOnly, parseAmount, normalizeText } = require('../utils/helpers');
+
+function coerceDebtType(llmText) {
+    const allowed = ['Empréstimo Pessoal', 'Financiamento', 'Cartão de Crédito', 'Outros'];
+
+    const raw = String(llmText ?? '');
+    const norm = normalizeText(raw);
+
+    // tenta achar uma das categorias no texto, mesmo que venha com frase/markdown
+    const match =
+        norm.includes('emprestimo') ? 'Empréstimo Pessoal' :
+        norm.includes('financiamento') ? 'Financiamento' :
+        (norm.includes('cartao') && norm.includes('credito')) ? 'Cartão de Crédito' :
+        norm.includes('outros') ? 'Outros' :
+        null;
+
+    return match || 'Outros';
+}
 
 async function startDebtCreation(msg, initialData = {}) {
     const senderId = msg.author || msg.from;
@@ -38,7 +55,7 @@ async function handleDebtCreation(msg, isFirstRun = false) {
 
     const messageBody = msg.body.trim();
     if (messageBody.toLowerCase() === 'cancelar') {
-        userStateManager.deleteState(senderId);
+        userStateManager.clearState(senderId);;
         await msg.reply("Criação de dívida cancelada.");
         return;
     }
@@ -50,7 +67,7 @@ async function handleDebtCreation(msg, isFirstRun = false) {
         else if (step === 3) {
             const promptCorrecao = `Normalize a resposta do usuário para uma das categorias: 'Empréstimo Pessoal', 'Financiamento', 'Cartão de Crédito', 'Outros'. Resposta: "${messageBody}"`;
             const tipoCorrigido = await askLLM(promptCorrecao);
-            state.data["Tipo de Dívida"] = tipoCorrigido.trim();
+            state.data["Tipo de Dívida"] = coerceDebtType(tipoCorrigido);
         }
         else if (step === 4) { const valor = await parseAmount(messageBody); if (valor && valor > 0) { state.data["Valor Original"] = valor; } else { await msg.reply("Valor inválido."); } }
         else if (step === 5) { const valor = await parseAmount(messageBody); if (valor >= 0) { state.data["Saldo Devedor Atual"] = valor; } else { await msg.reply("Valor inválido."); } }
@@ -164,7 +181,7 @@ async function finalizeDebtCreation(msg) {
         await msg.reply('Houve um erro ao salvar sua dívida.');
         console.error("Erro ao finalizar a criação da dívida:", error);
     } finally {
-        userStateManager.deleteState(senderId);
+        userStateManager.clearState(senderId);;
     }
 }
 
@@ -193,7 +210,7 @@ async function handleGoalCreation(msg, isFirstRun = false) {
 
     const messageBody = msg.body.trim();
     if (messageBody.toLowerCase() === 'cancelar') {
-        userStateManager.deleteState(senderId);
+        userStateManager.clearState(senderId);;
         await msg.reply("Criação de meta cancelada.");
         return;
     }
@@ -298,7 +315,7 @@ async function finalizeGoalCreation(msg) {
         await msg.reply('Houve um erro ao salvar sua meta.');
         console.error("Erro ao finalizar a criação da meta:", error);
     } finally {
-        userStateManager.deleteState(senderId);
+        userStateManager.clearState(senderId);;
     }
 }
 

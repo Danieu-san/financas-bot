@@ -28,6 +28,11 @@ async function runAdminTests() {
     const expectedHelpAdmin = 'Comandos administrativos disponíveis:';
     logTestResult(testName, botResponse.includes(expectedHelpAdmin));
 
+    // Teste: !recarregarplanilhas
+    testName = 'Admin: !recarregarplanilhas';
+    botResponse = await simulateMessage(SENDER_DANIEL, '!recarregarplanilhas');
+    logTestResult(testName, /recarregados com sucesso/i.test(botResponse));
+
     // Teste: !veridsplanilhas
     testName = 'Admin: !veridsplanilhas';
     botResponse = await simulateMessage(SENDER_DANIEL, '!veridsplanilhas');

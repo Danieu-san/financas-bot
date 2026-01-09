@@ -2,13 +2,16 @@
 
 const { google } = require('googleapis');
 const path = require('path');
-const { convertToIsoDateTime } = require('../utils/helpers');
+const { buildCalendarStartEnd, normalizeRecurrenceToRrule } = require('../utils/dateTimeNormalizer');
 
 const GOOGLE_CREDENTIALS_PATH = path.resolve(process.cwd(), 'credentials.json');
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 let sheets;
 let tasks;
 let calendar;
+let cachedSheetIds = null;
+
+
 
 async function authorizeGoogle() {
     try {
@@ -28,49 +31,63 @@ async function authorizeGoogle() {
     }
 }
 async function createCalendarEvent(title, startDateTime, recurrenceRule) {
-    try {
-        // CORREÇÃO: Converte a data para o formato ISO antes de enviar
-        const isoDateTime = convertToIsoDateTime(startDateTime);
+  try {
+    const raw = String(startDateTime || '').trim();
 
-        const event = {
-            summary: title,
-            start: {
-                dateTime: isoDateTime, // Usa a data formatada
-                timeZone: 'America/Sao_Paulo',
-            },
-            end: {
-                dateTime: isoDateTime, // Usa a data formatada
-                timeZone: 'America/Sao_Paulo',
-            },
-        };
-
-        if (recurrenceRule) {
-            event.recurrence = [`RRULE:${recurrenceRule}`];
-        }
-
-        const response = await calendar.events.insert({
-            calendarId: '9514288e86be9262b198a99355e2fa4339f670836ec84eb64f3ccf4896d93137@group.calendar.google.com',
-            resource: event,
-        });
-
-        console.log(`Evento criado: ${response.data.summary}`);
-        return response.data;
-    } catch (error) {
-        console.error('❌ Erro ao criar evento na agenda:', error);
-        throw new Error('Não foi possível criar o evento na agenda.');
+    const timeMatch = raw.match(/(\d{1,2}):(\d{2})/);
+    if (timeMatch) {
+      const hh = Number(timeMatch[1]);
+      const mm = Number(timeMatch[2]);
+      const invalid = Number.isNaN(hh) || Number.isNaN(mm) || hh < 0 || hh > 23 || mm < 0 || mm > 59;
+      if (invalid) {
+        throw new Error(`Hora inválida informada: "${timeMatch[0]}"`);
+      }
     }
+
+    let event = { summary: title };
+
+    const timing = buildCalendarStartEnd(raw);
+    if (!timing) {
+      throw new Error(`Formato de dataHora inválido: "${raw}"`);
+    }
+
+    event.start = timing.start;
+    event.end = timing.end;
+
+    const rrule = normalizeRecurrenceToRrule(recurrenceRule);
+    if (recurrenceRule && !rrule) {
+      throw new Error(`Recorrência inválida: "${recurrenceRule}"`);
+    }
+    if (rrule) {
+      event.recurrence = [rrule];
+    }
+
+    const response = await calendar.events.insert({
+      calendarId:  process.env.GOOGLE_CALENDAR_ID || '9514288e86be9262b198a99355e2fa4339f670836ec84eb64f3ccf4896d93137@group.calendar.google.com',
+      resource: event,
+    });
+
+    console.log(`Evento criado: ${response.data.summary}`);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Erro ao criar evento na agenda:', error);
+    throw new Error('Não foi possível criar o evento na agenda.');
+  }
 }
 
 async function getSheetIds() {
-    try {
-        const response = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
-        const sheetData = response.data.sheets;
-        const sheetNameToId = {};
-        sheetData.forEach(sheet => { sheetNameToId[sheet.properties.title] = sheet.properties.sheetId; });
-        console.log('✅ IDs das abas carregados:', sheetNameToId);
-    } catch (error) {
-        console.error('❌ Erro ao carregar IDs das abas:', error);
-    }
+  try {
+    const response = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+    const sheetData = response.data.sheets;
+    const sheetNameToId = {};
+    sheetData.forEach(sheet => { sheetNameToId[sheet.properties.title] = sheet.properties.sheetId; });
+    cachedSheetIds = sheetNameToId;
+    console.log('✅ IDs das abas carregados:', sheetNameToId);
+    return sheetNameToId;
+  } catch (error) {
+    console.error('❌ Erro ao carregar IDs das abas:', error);
+    return cachedSheetIds || {};
+  }
 }
 async function appendRowToSheet(sheetName, row) {
     try {

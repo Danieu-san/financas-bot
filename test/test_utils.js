@@ -51,6 +51,7 @@ async function simulateMessage(senderId, messageBody) {
     let botResponse = '';
     const mockMessage = {
         from: senderId,
+        author: senderId,
         body: messageBody,
         id: { id: `mock-${Date.now()}-${Math.random()}` }, // ID único para evitar duplicação no Set
         type: 'chat', // Tipo padrão
@@ -58,7 +59,24 @@ async function simulateMessage(senderId, messageBody) {
             console.log(`[BOT RESPONDEU]: ${response}`);
             botResponse = response;
             return response;
-        }
+        },
+        async getChat() {
+            return {
+                id: { _serialized: senderId },
+                isGroup: false,
+                sendMessage: async (response) => {
+                console.log(`[BOT RESPONDEU]: ${response}`);
+                botResponse = response;
+                return response;
+                }
+            };
+            },
+            async getContact() {
+            return {
+                id: { _serialized: senderId },
+                isMe: false
+            };
+            },
     };
     console.log(`Mensagem de ${senderId}: "${messageBody}"`);
     await handleMessage(mockMessage);
@@ -122,7 +140,24 @@ async function runTestCase(testCase) {
                     console.log(`[BOT RESPONDEU]: ${response}`);
                     currentBotResponse = response;
                     return response;
-                }
+                },
+                async getChat() {
+                    return {
+                        id: { _serialized: testCase.sender },
+                        isGroup: false,
+                        sendMessage: async (response) => {
+                        console.log(`[BOT RESPONDEU]: ${response}`);
+                        currentBotResponse = response;
+                        return response;
+                        }
+                    };
+                    },
+                    async getContact() {
+                    return {
+                        id: { _serialized: testCase.sender },
+                        isMe: false
+                    };
+                    },
             };
 
             try {
@@ -171,7 +206,24 @@ async function runTestCase(testCase) {
                 console.log(`[BOT RESPONDEU]: ${response}`);
                 currentBotResponse = response;
                 return response;
-            }
+            },
+            async getChat() {
+                return {
+                    id: { _serialized: testCase.sender },
+                    isGroup: false,
+                    sendMessage: async (response) => {
+                    console.log(`[BOT RESPONDEU]: ${response}`);
+                    currentBotResponse = response;
+                    return response;
+                    }
+                };
+                },
+                async getContact() {
+                return {
+                    id: { _serialized: testCase.sender },
+                    isMe: false
+                };
+                },
         };
         
         try {

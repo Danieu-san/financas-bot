@@ -88,7 +88,7 @@ async function finalizePaymentRegistration(msg) {
     } catch (error) {
         await msg.reply("Ocorreu um erro ao tentar atualizar a dívida na planilha.");
     } finally {
-        userStateManager.deleteState(senderId);
+        userStateManager.clearState(senderId);;
     }
 }
 
