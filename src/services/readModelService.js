@@ -364,10 +364,144 @@ function initializeReadModel() {
     loadReadModelFromDisk();
 }
 
+function parseDateToTimestamp(dateStr, fallbackYear = null, fallbackMonth = null) {
+    const parsed = parseSheetDate(String(dateStr || '').trim());
+    if (parsed) return parsed.getTime();
+    if (typeof fallbackYear === 'number' && typeof fallbackMonth === 'number') {
+        return new Date(fallbackYear, fallbackMonth, 1).getTime();
+    }
+    return 0;
+}
+
+function getDashboardSnapshot(userId, { month, year } = {}) {
+    const currentDate = new Date();
+    const targetMonth = normalizeMonthParam(month) ?? currentDate.getMonth();
+    const targetYear = normalizeYearParam(year);
+
+    const saidasMonth = readModel.saidas.filter((entry) => entry.user_id === userId && periodMatches(entry, targetMonth, targetYear));
+    const entradasMonth = readModel.entradas.filter((entry) => entry.user_id === userId && periodMatches(entry, targetMonth, targetYear));
+    const cartoesMonth = readModel.cartoes.filter((entry) => entry.user_id === userId && periodMatches(entry, targetMonth, targetYear));
+
+    const totalEntradas = entradasMonth.reduce((sum, entry) => sum + entry.valor, 0);
+    const totalSaidas = saidasMonth.reduce((sum, entry) => sum + entry.valor, 0);
+    const totalCartoes = cartoesMonth.reduce((sum, entry) => sum + entry.valor, 0);
+    const saldo = totalEntradas - (totalSaidas + totalCartoes);
+
+    const categoryTotals = {};
+    [...saidasMonth, ...cartoesMonth].forEach((entry) => {
+        const key = entry.categoria || 'Outros';
+        categoryTotals[key] = (categoryTotals[key] || 0) + entry.valor;
+    });
+    const topCategories = Object.entries(categoryTotals)
+        .map(([category, value]) => ({ category, value }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 6);
+
+    const daily = {};
+    entradasMonth.forEach((entry) => {
+        const key = entry.data;
+        if (!daily[key]) daily[key] = { date: key, entradas: 0, saidas: 0, saldo: 0 };
+        daily[key].entradas += entry.valor;
+        daily[key].saldo += entry.valor;
+    });
+    [...saidasMonth, ...cartoesMonth].forEach((entry) => {
+        const key = entry.data;
+        if (!daily[key]) daily[key] = { date: key, entradas: 0, saidas: 0, saldo: 0 };
+        daily[key].saidas += entry.valor;
+        daily[key].saldo -= entry.valor;
+    });
+    const dailyFlow = Object.values(daily)
+        .sort((a, b) => parseDateToTimestamp(a.date) - parseDateToTimestamp(b.date))
+        .slice(-31);
+
+    const recentTransactions = [
+        ...entradasMonth.map((entry) => ({
+            date: entry.data,
+            description: entry.descricao,
+            type: 'entrada',
+            category: entry.categoria,
+            value: entry.valor,
+            timestamp: parseDateToTimestamp(entry.data, entry.year, entry.month)
+        })),
+        ...saidasMonth.map((entry) => ({
+            date: entry.data,
+            description: entry.descricao,
+            type: 'saida',
+            category: entry.categoria,
+            value: entry.valor,
+            timestamp: parseDateToTimestamp(entry.data, entry.year, entry.month)
+        })),
+        ...cartoesMonth.map((entry) => ({
+            date: entry.data,
+            description: entry.descricao,
+            type: 'cartao',
+            category: entry.categoria,
+            value: entry.valor,
+            timestamp: parseDateToTimestamp(entry.data, entry.year, entry.month)
+        }))
+    ]
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .slice(0, 12)
+        .map(({ timestamp, ...item }) => item);
+
+    const goals = readModel.metas
+        .filter((entry) => entry.user_id === userId)
+        .map((entry) => {
+            const row = entry.row || [];
+            const target = parseValue(row[1] || 0);
+            const current = parseValue(row[2] || 0);
+            const progress = target > 0 ? Math.min(100, (current / target) * 100) : parseValue(row[3] || 0);
+            return {
+                name: row[0] || 'Meta',
+                target,
+                current,
+                progressPct: progress
+            };
+        })
+        .slice(0, 8);
+
+    const debts = readModel.dividas
+        .filter((entry) => entry.user_id === userId)
+        .map((entry) => {
+            const row = entry.row || [];
+            const status = normalizeText(row[10] || '');
+            return {
+                name: row[0] || 'Dívida',
+                creditor: row[1] || '',
+                saldoAtual: parseValue(row[4] || 0),
+                jurosPct: parseValue(row[6] || 0),
+                status: row[10] || ''
+            };
+        });
+    const activeDebts = debts.filter((debt) => {
+        const s = normalizeText(debt.status || '');
+        return !(s.includes('quitad') || s.includes('pago') || s.includes('finalizad'));
+    });
+    const totalDebt = activeDebts.reduce((sum, debt) => sum + debt.saldoAtual, 0);
+
+    return {
+        period: { month: targetMonth, year: targetYear },
+        kpis: {
+            entradas: totalEntradas,
+            saidas: totalSaidas,
+            cartoes: totalCartoes,
+            saldo,
+            debtActiveCount: activeDebts.length,
+            debtTotal: totalDebt
+        },
+        topCategories,
+        dailyFlow,
+        recentTransactions,
+        goals,
+        debts: activeDebts.slice(0, 10),
+        sync: readModel.meta
+    };
+}
+
 module.exports = {
     initializeReadModel,
     syncReadModelIfNeeded,
     executeAnalyticalIntent,
-    getReadModelStats
+    getReadModelStats,
+    getDashboardSnapshot
 };
-

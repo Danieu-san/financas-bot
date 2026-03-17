@@ -8,6 +8,7 @@ const { handleMessage } = require('./src/handlers/messageHandler');
 const { initializeScheduler } = require('./src/jobs/scheduler');
 const { validateUserIdIntegrity, backfillMissingUserIds } = require('./src/services/userIdMaintenanceService');
 const { initializeReadModel, syncReadModelIfNeeded, getReadModelStats } = require('./src/services/readModelService');
+const { startDashboardServer } = require('./src/services/dashboardServer');
 const logger = require('./src/utils/logger');
 
 async function startBot() {
@@ -56,6 +57,7 @@ async function startBot() {
         // 2. Inicializa o cliente do WhatsApp
         const client = initializeWhatsAppClient();
         if (!client) return; // Evita erro se já estiver inicializando
+        startDashboardServer();
 
         // 3. Configura os handlers de eventos
         client.once('ready', () => {

@@ -30,6 +30,7 @@ const { handleOnboarding } = require('./onboardingHandler');
 const { buildHealthSummary } = require('../services/financialHealthService');
 const { buildDebtAvalanchePlan } = require('../services/debtAvalancheService');
 const { syncReadModelIfNeeded, executeAnalyticalIntent } = require('../services/readModelService');
+const { buildDashboardAccessLink } = require('../utils/dashboardAuth');
 const metrics = require('../utils/metrics');
 const { isAdminWithContext } = require('../utils/adminCheck');
 const logger = require('../utils/logger');
@@ -388,6 +389,27 @@ async function handleSettingsCommands(msg, user) {
     return false;
 }
 
+async function handleDashboardCommand(msg, user, senderId) {
+    const body = normalizeText(String(msg.body || '').trim());
+    if (!body) return false;
+    if (!['dashboard', 'painel', 'painel financeiro'].includes(body)) return false;
+
+    const linkData = buildDashboardAccessLink({ userId: user.user_id });
+    if (!linkData) {
+        await msg.reply('Dashboard indisponível no momento. O administrador precisa configurar DASHBOARD_BASE_URL.');
+        logger.warn(`[dashboard] base_url_ausente sender=${senderId} user_id=${user.user_id}`);
+        return true;
+    }
+
+    const hours = Math.max(1, Math.round((linkData.ttlSeconds || 0) / 3600));
+    await msg.reply(
+        `Seu painel está pronto. Acesse por este link (válido por ${hours}h):\n` +
+        `${linkData.url}`
+    );
+    logger.info(`[dashboard] link_emitido sender=${senderId} user_id=${user.user_id}`);
+    return true;
+}
+
 async function handleAccountLifecycleCommands(msg, user) {
     const body = normalizeText(String(msg.body || '').trim());
     if (!body) return false;
@@ -684,6 +706,11 @@ async function handleMessage(msg) {
 
     const handledLegal = await handleLegalCommands(msg);
     if (handledLegal) {
+        return;
+    }
+
+    const handledDashboard = await handleDashboardCommand(msg, activeUser, senderId);
+    if (handledDashboard) {
         return;
     }
 
@@ -1507,7 +1534,7 @@ async function handleMessage(msg) {
                 }
 
                 case 'ajuda': {
-                    const helpMessage = `Olá! Eu sou seu assistente financeiro. Veja como posso te ajudar:\n\n*PARA REGISTRAR:*\n- *Gasto:* \`gastei 50 no mercado ontem no pix\`\n- *Entrada:* \`recebi 1200 do freela na conta\`\n- *Múltiplos:* \`hoje paguei 100 de luz e 50 de internet\`\n\n*PARA CONSULTAR:*\n- *Saldo:* \`qual o saldo de agosto?\`\n- *Gastos:* \`quanto gastei com transporte este mês?\`\n- *Listar:* \`liste meus gastos com mercado\`\n\n*OUTROS COMANDOS:*\n- \`criar meta\`\n- \`criar dívida\`\n- \`apagar último gasto\`\n- \`me lembre de pagar a fatura amanhã às 10h\`\n- \`termos\` (termos e privacidade)\n\nÉ só me dizer o que precisa! 😉`;
+                    const helpMessage = `Olá! Eu sou seu assistente financeiro. Veja como posso te ajudar:\n\n*PARA REGISTRAR:*\n- *Gasto:* \`gastei 50 no mercado ontem no pix\`\n- *Entrada:* \`recebi 1200 do freela na conta\`\n- *Múltiplos:* \`hoje paguei 100 de luz e 50 de internet\`\n\n*PARA CONSULTAR:*\n- *Saldo:* \`qual o saldo de agosto?\`\n- *Gastos:* \`quanto gastei com transporte este mês?\`\n- *Listar:* \`liste meus gastos com mercado\`\n\n*OUTROS COMANDOS:*\n- \`dashboard\` (link do seu painel web)\n- \`criar meta\`\n- \`criar dívida\`\n- \`apagar último gasto\`\n- \`me lembre de pagar a fatura amanhã às 10h\`\n- \`termos\` (termos e privacidade)\n\nÉ só me dizer o que precisa! 😉`;
                     await msg.reply(helpMessage);
                     break;
                 }
