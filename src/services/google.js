@@ -177,6 +177,254 @@ async function batchUpdateRowsInSheet(data) {
     }
 }
 
+function buildEmptyGrid(rows = 40, cols = 13) {
+    return Array.from({ length: rows }, () => Array.from({ length: cols }, () => ''));
+}
+
+function setCell(grid, row, col, value) {
+    if (!grid[row - 1]) return;
+    grid[row - 1][col - 1] = value;
+}
+
+async function renderVisualDashboard(payload = {}) {
+    const {
+        userOptions = [],
+        monthOptions = [],
+        selectedUser = 'TODOS',
+        selectedMonth = 'TODOS',
+        periodLabel = 'Todos os períodos',
+        kpis = {},
+        topCategories = [],
+        dailyFlow = [],
+        updatedAt = new Date().toISOString()
+    } = payload;
+
+    const grid = buildEmptyGrid(45, 13); // A:M
+
+    setCell(grid, 1, 1, 'Painel Financeiro Visual');
+    setCell(grid, 2, 1, 'Resumo geral da planilha (filtro por usuário e mês).');
+    setCell(grid, 3, 1, 'Filtro usuário (user_id)');
+    setCell(grid, 3, 2, selectedUser);
+    setCell(grid, 4, 1, 'Filtro mês (YYYY-MM)');
+    setCell(grid, 4, 2, selectedMonth);
+    setCell(grid, 5, 1, 'Período aplicado');
+    setCell(grid, 5, 2, periodLabel);
+    setCell(grid, 6, 1, 'Atualizado em');
+    setCell(grid, 6, 2, updatedAt);
+
+    // KPIs
+    setCell(grid, 8, 1, 'KPIs');
+    setCell(grid, 9, 1, 'Entradas');
+    setCell(grid, 9, 2, Number(kpis.entradas || 0));
+    setCell(grid, 10, 1, 'Saídas (sem cartão)');
+    setCell(grid, 10, 2, Number(kpis.saidas || 0));
+    setCell(grid, 11, 1, 'Cartões');
+    setCell(grid, 11, 2, Number(kpis.cartoes || 0));
+    setCell(grid, 12, 1, 'Saldo');
+    setCell(grid, 12, 2, Number(kpis.saldo || 0));
+    setCell(grid, 13, 1, 'Dívidas ativas (qtd)');
+    setCell(grid, 13, 2, Number(kpis.debtActiveCount || 0));
+    setCell(grid, 14, 1, 'Dívidas ativas (total)');
+    setCell(grid, 14, 2, Number(kpis.debtTotal || 0));
+    setCell(grid, 15, 1, 'Metas ativas (qtd)');
+    setCell(grid, 15, 2, Number(kpis.goalsActiveCount || 0));
+    setCell(grid, 16, 1, 'Metas (valor alvo)');
+    setCell(grid, 16, 2, Number(kpis.goalsTargetTotal || 0));
+    setCell(grid, 17, 1, 'Metas (valor atual)');
+    setCell(grid, 17, 2, Number(kpis.goalsCurrentTotal || 0));
+
+    // Top categorias
+    setCell(grid, 8, 4, 'Top categorias');
+    setCell(grid, 9, 4, 'Categoria');
+    setCell(grid, 9, 5, 'Valor');
+    setCell(grid, 9, 6, 'Gráfico');
+    const topRows = topCategories.slice(0, 10);
+    for (let i = 0; i < topRows.length; i += 1) {
+        const row = 10 + i;
+        setCell(grid, row, 4, topRows[i].category || 'Outros');
+        setCell(grid, row, 5, Number(topRows[i].value || 0));
+        setCell(grid, row, 6, `=IF(E${row}=0,"",SPARKLINE(E${row},{"charttype","bar";"max",MAX($E$10:$E$19);"color1","#0f766e"}))`);
+    }
+
+    // Fluxo diário
+    setCell(grid, 21, 1, 'Fluxo diário');
+    setCell(grid, 22, 1, 'Data');
+    setCell(grid, 22, 2, 'Entradas');
+    setCell(grid, 22, 3, 'Saídas');
+    setCell(grid, 22, 4, 'Saldo');
+    const flowRows = dailyFlow.slice(-12);
+    for (let i = 0; i < flowRows.length; i += 1) {
+        const row = 23 + i;
+        setCell(grid, row, 1, flowRows[i].date || '');
+        setCell(grid, row, 2, Number(flowRows[i].entradas || 0));
+        setCell(grid, row, 3, Number(flowRows[i].saidas || 0));
+        setCell(grid, row, 4, Number(flowRows[i].saldo || 0));
+    }
+    setCell(grid, 22, 6, 'Tendência de saldo');
+    setCell(grid, 23, 6, '=IF(COUNTA($D$23:$D$34)=0,"",SPARKLINE($D$23:$D$34,{"charttype","line";"linewidth",2;"color","#0ea5a0"}))');
+
+    // Legenda do dashboard
+    setCell(grid, 37, 1, 'Legenda');
+    setCell(grid, 38, 1, 'Saldo > 0: saudável');
+    setCell(grid, 39, 1, 'Saldo < 0: atenção ao caixa');
+    setCell(grid, 40, 1, 'Filtros: B3 usuário | B4 mês');
+
+    // Opções para dropdown (colunas ocultáveis)
+    setCell(grid, 2, 12, 'user_options');
+    setCell(grid, 2, 13, 'month_options');
+    userOptions.slice(0, 40).forEach((item, idx) => setCell(grid, 3 + idx, 12, item));
+    monthOptions.slice(0, 40).forEach((item, idx) => setCell(grid, 3 + idx, 13, item));
+
+    await runWithGoogleRetry('renderVisualDashboard.updateValues', () => sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: 'Dashboard!A1:M45',
+        valueInputOption: 'USER_ENTERED',
+        resource: { values: grid }
+    }));
+
+    const sheetMap = await getSheetIds();
+    const dashboardSheetId = sheetMap.Dashboard;
+    if (dashboardSheetId === undefined) return;
+
+    const requests = [
+        // Título
+        {
+            repeatCell: {
+                range: { sheetId: dashboardSheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 6 },
+                cell: {
+                    userEnteredFormat: {
+                        backgroundColor: { red: 0.07, green: 0.46, blue: 0.43 },
+                        textFormat: { bold: true, foregroundColor: { red: 1, green: 1, blue: 1 }, fontSize: 14 }
+                    }
+                },
+                fields: 'userEnteredFormat(backgroundColor,textFormat)'
+            }
+        },
+        // Cabeçalhos de blocos
+        {
+            repeatCell: {
+                range: { sheetId: dashboardSheetId, startRowIndex: 7, endRowIndex: 8, startColumnIndex: 0, endColumnIndex: 6 },
+                cell: {
+                    userEnteredFormat: {
+                        backgroundColor: { red: 0.88, green: 0.94, blue: 0.95 },
+                        textFormat: { bold: true }
+                    }
+                },
+                fields: 'userEnteredFormat(backgroundColor,textFormat)'
+            }
+        },
+        {
+            repeatCell: {
+                range: { sheetId: dashboardSheetId, startRowIndex: 20, endRowIndex: 22, startColumnIndex: 0, endColumnIndex: 6 },
+                cell: {
+                    userEnteredFormat: {
+                        backgroundColor: { red: 0.95, green: 0.96, blue: 0.9 },
+                        textFormat: { bold: true }
+                    }
+                },
+                fields: 'userEnteredFormat(backgroundColor,textFormat)'
+            }
+        },
+        // Formato moeda
+        {
+            repeatCell: {
+                range: { sheetId: dashboardSheetId, startRowIndex: 8, endRowIndex: 20, startColumnIndex: 1, endColumnIndex: 2 },
+                cell: { userEnteredFormat: { numberFormat: { type: 'CURRENCY', pattern: '"R$"#,##0.00' } } },
+                fields: 'userEnteredFormat.numberFormat'
+            }
+        },
+        {
+            repeatCell: {
+                range: { sheetId: dashboardSheetId, startRowIndex: 9, endRowIndex: 20, startColumnIndex: 4, endColumnIndex: 5 },
+                cell: { userEnteredFormat: { numberFormat: { type: 'CURRENCY', pattern: '"R$"#,##0.00' } } },
+                fields: 'userEnteredFormat.numberFormat'
+            }
+        },
+        {
+            repeatCell: {
+                range: { sheetId: dashboardSheetId, startRowIndex: 22, endRowIndex: 35, startColumnIndex: 1, endColumnIndex: 4 },
+                cell: { userEnteredFormat: { numberFormat: { type: 'CURRENCY', pattern: '"R$"#,##0.00' } } },
+                fields: 'userEnteredFormat.numberFormat'
+            }
+        },
+        // Data validation dropdowns
+        {
+            setDataValidation: {
+                range: { sheetId: dashboardSheetId, startRowIndex: 2, endRowIndex: 3, startColumnIndex: 1, endColumnIndex: 2 },
+                rule: {
+                    condition: {
+                        type: 'ONE_OF_RANGE',
+                        values: [{ userEnteredValue: '=Dashboard!L3:L40' }]
+                    },
+                    strict: true,
+                    showCustomUi: true
+                }
+            }
+        },
+        {
+            setDataValidation: {
+                range: { sheetId: dashboardSheetId, startRowIndex: 3, endRowIndex: 4, startColumnIndex: 1, endColumnIndex: 2 },
+                rule: {
+                    condition: {
+                        type: 'ONE_OF_RANGE',
+                        values: [{ userEnteredValue: '=Dashboard!M3:M40' }]
+                    },
+                    strict: true,
+                    showCustomUi: true
+                }
+            }
+        },
+        // Bordas na área principal
+        {
+            updateBorders: {
+                range: { sheetId: dashboardSheetId, startRowIndex: 7, endRowIndex: 35, startColumnIndex: 0, endColumnIndex: 6 },
+                top: { style: 'SOLID', width: 1, color: { red: 0.8, green: 0.85, blue: 0.88 } },
+                bottom: { style: 'SOLID', width: 1, color: { red: 0.8, green: 0.85, blue: 0.88 } },
+                left: { style: 'SOLID', width: 1, color: { red: 0.8, green: 0.85, blue: 0.88 } },
+                right: { style: 'SOLID', width: 1, color: { red: 0.8, green: 0.85, blue: 0.88 } },
+                innerHorizontal: { style: 'SOLID', width: 1, color: { red: 0.9, green: 0.92, blue: 0.94 } },
+                innerVertical: { style: 'SOLID', width: 1, color: { red: 0.9, green: 0.92, blue: 0.94 } }
+            }
+        },
+        // Congela cabeçalho e configura largura de colunas
+        {
+            updateSheetProperties: {
+                properties: {
+                    sheetId: dashboardSheetId,
+                    gridProperties: { frozenRowCount: 1, frozenColumnCount: 1 }
+                },
+                fields: 'gridProperties.frozenRowCount,gridProperties.frozenColumnCount'
+            }
+        },
+        {
+            updateDimensionProperties: {
+                range: { sheetId: dashboardSheetId, dimension: 'COLUMNS', startIndex: 0, endIndex: 1 },
+                properties: { pixelSize: 240 },
+                fields: 'pixelSize'
+            }
+        },
+        {
+            updateDimensionProperties: {
+                range: { sheetId: dashboardSheetId, dimension: 'COLUMNS', startIndex: 1, endIndex: 2 },
+                properties: { pixelSize: 165 },
+                fields: 'pixelSize'
+            }
+        },
+        {
+            updateDimensionProperties: {
+                range: { sheetId: dashboardSheetId, dimension: 'COLUMNS', startIndex: 3, endIndex: 6 },
+                properties: { pixelSize: 170 },
+                fields: 'pixelSize'
+            }
+        }
+    ];
+
+    await runWithGoogleRetry('renderVisualDashboard.formatting', () => sheets.spreadsheets.batchUpdate({
+        spreadsheetId: SPREADSHEET_ID,
+        resource: { requests }
+    }));
+}
+
 async function syncDashboardForUser({ userId, periodLabel, metrics }) {
     const safeUserId = String(userId || '').trim();
     if (!safeUserId) {
@@ -186,7 +434,7 @@ async function syncDashboardForUser({ userId, periodLabel, metrics }) {
     const updatedAt = new Date().toISOString();
     const headers = ['Resumo Financeiro', 'Valor', 'Período', 'user_id', 'updated_at'];
 
-    const existing = await readDataFromSheet('Dashboard!A:E');
+    const existing = await readDataFromSheet('DashboardData!A:E');
     const existingRows = existing && existing.length > 1 ? existing.slice(1) : [];
     const preservedRows = existingRows.filter((row) => String(row[3] || '').trim() !== safeUserId);
     const userRows = metricRows.map((item) => ([
@@ -201,12 +449,12 @@ async function syncDashboardForUser({ userId, periodLabel, metrics }) {
 
     await runWithGoogleRetry('syncDashboardForUser.clear', () => sheets.spreadsheets.values.clear({
         spreadsheetId: SPREADSHEET_ID,
-        range: 'Dashboard!A2:E'
+        range: 'DashboardData!A2:E'
     }));
 
     await runWithGoogleRetry('syncDashboardForUser.update', () => sheets.spreadsheets.values.update({
         spreadsheetId: SPREADSHEET_ID,
-        range: `Dashboard!A1:E${allRows.length}`,
+        range: `DashboardData!A1:E${allRows.length}`,
         valueInputOption: 'USER_ENTERED',
         resource: { values: allRows }
     }));
@@ -244,7 +492,8 @@ async function ensureSpreadsheetStructure() {
         { title: 'Dívidas', headers: ['Nome', 'Credor', 'Tipo', 'Valor Original', 'Saldo Atual', 'Parcela', 'Juros', 'Vencimento', 'Início', 'Total Parcelas', 'Status', 'Responsável', 'Observações', '% Quitado', 'Próximo Vencimento', 'Atraso (Dias)', 'Data Prevista para Quitação', 'user_id'], color: { red: 0.8, green: 0.5, blue: 0.2 } },
         { title: 'Metas', headers: ['Nome', 'Valor Alvo', 'Valor Atual', '% Progresso', 'Valor Mensal', 'Data Fim', 'Status', 'Prioridade', 'user_id'], color: { red: 0.2, green: 0.6, blue: 0.8 } },
         { title: 'Contas', headers: ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id'], color: { red: 0.9, green: 0.7, blue: 0.3 } },
-        { title: 'Dashboard', headers: ['Resumo Financeiro', 'Valor', 'Período', 'user_id', 'updated_at'], color: { red: 0.5, green: 0.5, blue: 0.5 } },
+        { title: 'Dashboard', headers: ['Painel Visual', 'Valor', 'Período', 'user_id', 'updated_at'], color: { red: 0.5, green: 0.5, blue: 0.5 } },
+        { title: 'DashboardData', headers: ['Resumo Financeiro', 'Valor', 'Período', 'user_id', 'updated_at'], color: { red: 0.4, green: 0.4, blue: 0.6 } },
         { title: 'Cartão Nubank - Daniel', headers: ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'user_id'], color: { red: 0.6, green: 0.3, blue: 0.7 } },
         { title: 'Cartão Nubank - Thais', headers: ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'user_id'], color: { red: 0.6, green: 0.3, blue: 0.7 } },
         { title: 'Cartão Nubank - Cristina', headers: ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'user_id'], color: { red: 0.6, green: 0.3, blue: 0.7 } },
@@ -367,6 +616,7 @@ module.exports = {
     updateRowInSheet,
     batchUpdateRowsInSheet,
     syncDashboardForUser,
+    renderVisualDashboard,
     deleteRowsByIndices,
     ensureSpreadsheetStructure,
     get sheets() { return sheets; }

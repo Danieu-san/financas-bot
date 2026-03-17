@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { readDataFromSheet } = require('./google');
+const { readDataFromSheet, renderVisualDashboard } = require('./google');
 const analysisService = require('./analysisService');
 const { parseSheetDate, parseValue, normalizeText } = require('../utils/helpers');
 const { creditCardConfig } = require('../config/constants');
@@ -215,6 +215,141 @@ function mapGenericRows(rows, userIndex) {
         .filter((entry) => entry.user_id);
 }
 
+function buildDashboardPeriodLabel(monthKey) {
+    if (!monthKey || monthKey === 'TODOS') return 'Todos os períodos';
+    return monthKey;
+}
+
+function normalizeSelection(value, validOptions, fallback) {
+    const val = String(value || '').trim();
+    if (val && validOptions.includes(val)) return val;
+    return fallback;
+}
+
+function getMonthKey(record) {
+    const y = Number(record?.year);
+    const m = Number(record?.month);
+    if (!Number.isFinite(y) || !Number.isFinite(m)) return '';
+    return `${y}-${String(m + 1).padStart(2, '0')}`;
+}
+
+function filterBySelections(records, selectedUser, selectedMonth) {
+    return records.filter((item) => {
+        const userOk = selectedUser === 'TODOS' || item.user_id === selectedUser;
+        const monthOk = selectedMonth === 'TODOS' || getMonthKey(item) === selectedMonth;
+        return userOk && monthOk;
+    });
+}
+
+async function refreshVisualDashboardFromReadModel() {
+    try {
+        const users = Array.from(new Set([
+            ...readModel.saidas.map(r => r.user_id),
+            ...readModel.entradas.map(r => r.user_id),
+            ...readModel.cartoes.map(r => r.user_id)
+        ].filter(Boolean))).sort();
+        const userOptions = ['TODOS', ...users];
+
+        const monthSet = new Set();
+        [...readModel.saidas, ...readModel.entradas, ...readModel.cartoes].forEach((item) => {
+            const key = getMonthKey(item);
+            if (key) monthSet.add(key);
+        });
+        const monthOptions = ['TODOS', ...Array.from(monthSet).sort().reverse()];
+
+        const filterCells = await readDataFromSheet('Dashboard!B3:B4');
+        const selectedUserRaw = filterCells?.[0]?.[0] || 'TODOS';
+        const selectedMonthRaw = filterCells?.[1]?.[0] || (monthOptions[1] || 'TODOS');
+        const selectedUser = normalizeSelection(selectedUserRaw, userOptions, 'TODOS');
+        const selectedMonth = normalizeSelection(selectedMonthRaw, monthOptions, monthOptions[1] || 'TODOS');
+
+        const filteredEntradas = filterBySelections(readModel.entradas, selectedUser, selectedMonth);
+        const filteredSaidas = filterBySelections(readModel.saidas, selectedUser, selectedMonth);
+        const filteredCartoes = filterBySelections(readModel.cartoes, selectedUser, selectedMonth);
+
+        const kpis = {
+            entradas: filteredEntradas.reduce((s, r) => s + Number(r.valor || 0), 0),
+            saidas: filteredSaidas.reduce((s, r) => s + Number(r.valor || 0), 0),
+            cartoes: filteredCartoes.reduce((s, r) => s + Number(r.valor || 0), 0),
+            saldo: 0,
+            debtActiveCount: 0,
+            debtTotal: 0,
+            goalsActiveCount: 0,
+            goalsTargetTotal: 0,
+            goalsCurrentTotal: 0
+        };
+        kpis.saldo = kpis.entradas - (kpis.saidas + kpis.cartoes);
+
+        const debtFiltered = readModel.dividas
+            .filter((entry) => selectedUser === 'TODOS' || entry.user_id === selectedUser)
+            .map((entry) => {
+                const row = entry.row || [];
+                return { status: normalizeText(row[10] || ''), saldoAtual: parseValue(row[4] || 0) };
+            })
+            .filter((item) => !(item.status.includes('quitad') || item.status.includes('pago') || item.status.includes('finalizad')));
+        kpis.debtActiveCount = debtFiltered.length;
+        kpis.debtTotal = debtFiltered.reduce((sum, item) => sum + item.saldoAtual, 0);
+
+        const goalsFiltered = readModel.metas
+            .filter((entry) => selectedUser === 'TODOS' || entry.user_id === selectedUser)
+            .map((entry) => {
+                const row = entry.row || [];
+                const status = normalizeText(row[6] || '');
+                const target = parseValue(row[1] || 0);
+                const current = parseValue(row[2] || 0);
+                return { status, target, current };
+            })
+            .filter((item) => !item.status.includes('conclu'));
+
+        kpis.goalsActiveCount = goalsFiltered.length;
+        kpis.goalsTargetTotal = goalsFiltered.reduce((sum, item) => sum + Number(item.target || 0), 0);
+        kpis.goalsCurrentTotal = goalsFiltered.reduce((sum, item) => sum + Number(item.current || 0), 0);
+
+        const categoryTotals = {};
+        [...filteredSaidas, ...filteredCartoes].forEach((item) => {
+            const key = item.categoria || 'Outros';
+            categoryTotals[key] = (categoryTotals[key] || 0) + Number(item.valor || 0);
+        });
+        const topCategories = Object.entries(categoryTotals)
+            .map(([category, value]) => ({ category, value }))
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 10);
+
+        const dayMap = new Map();
+        filteredEntradas.forEach((item) => {
+            const key = item.data || '';
+            const base = dayMap.get(key) || { date: key, entradas: 0, saidas: 0, saldo: 0 };
+            base.entradas += Number(item.valor || 0);
+            base.saldo += Number(item.valor || 0);
+            dayMap.set(key, base);
+        });
+        [...filteredSaidas, ...filteredCartoes].forEach((item) => {
+            const key = item.data || '';
+            const base = dayMap.get(key) || { date: key, entradas: 0, saidas: 0, saldo: 0 };
+            base.saidas += Number(item.valor || 0);
+            base.saldo -= Number(item.valor || 0);
+            dayMap.set(key, base);
+        });
+        const dailyFlow = Array.from(dayMap.values())
+            .sort((a, b) => parseDateToTimestamp(a.date) - parseDateToTimestamp(b.date))
+            .slice(-12);
+
+        await renderVisualDashboard({
+            userOptions,
+            monthOptions,
+            selectedUser,
+            selectedMonth,
+            periodLabel: buildDashboardPeriodLabel(selectedMonth),
+            kpis,
+            topCategories,
+            dailyFlow,
+            updatedAt: new Date().toISOString()
+        });
+    } catch (error) {
+        logger.warn(`read-model: falha ao renderizar Dashboard visual (${error.message})`);
+    }
+}
+
 async function rebuildReadModelFromSheets() {
     const cardSheetNames = Object.values(creditCardConfig).map(card => card.sheetName);
     const sheetReads = [
@@ -248,6 +383,7 @@ async function rebuildReadModelFromSheets() {
 
     syncSnapshotToSqlite(readModel);
     saveReadModelToDisk();
+    await refreshVisualDashboardFromReadModel();
     logger.info(`read-model: sync concluído (saidas=${readModel.saidas.length}, entradas=${readModel.entradas.length}, cartoes=${readModel.cartoes.length})`);
 }
 
