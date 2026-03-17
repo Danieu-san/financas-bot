@@ -4,7 +4,22 @@ const { readDataFromSheet } = require('./google');
 const analysisService = require('./analysisService');
 const { parseSheetDate, parseValue, normalizeText } = require('../utils/helpers');
 const { creditCardConfig } = require('../config/constants');
+const {
+    ensureSqliteReady,
+    syncSnapshotToSqlite,
+    queryAnalyticalIntentSql,
+    queryKpis,
+    queryTopCategories,
+    queryCashflow,
+    queryDebts,
+    queryGoals,
+    queryRecentTransactions,
+    queryAlerts,
+    isSqliteReady,
+    getSqliteStats
+} = require('./sqliteReadModelService');
 const logger = require('../utils/logger');
+const metrics = require('../utils/metrics');
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 const STORE_FILE = path.join(DATA_DIR, 'read_model.json');
@@ -231,6 +246,7 @@ async function rebuildReadModelFromSheets() {
         dividas: mapGenericRows(dividasRows, 17)
     };
 
+    syncSnapshotToSqlite(readModel);
     saveReadModelToDisk();
     logger.info(`read-model: sync concluído (saidas=${readModel.saidas.length}, entradas=${readModel.entradas.length}, cartoes=${readModel.cartoes.length})`);
 }
@@ -265,6 +281,13 @@ function getUnifiedExpensesForUser(userId, month, year) {
 }
 
 async function executeAnalyticalIntent(intent, parameters, { userId }) {
+    const sqlResult = queryAnalyticalIntentSql(intent, parameters, { userId });
+    if (sqlResult) {
+        metrics.increment('read_model.sqlite.hit');
+        return sqlResult;
+    }
+    metrics.increment('read_model.sqlite.miss');
+
     const month = normalizeMonthParam(parameters?.mes);
     const year = normalizeYearParam(parameters?.ano);
     const categoria = parameters?.categoria || '';
@@ -356,12 +379,15 @@ function getReadModelStats() {
         entradas: readModel.entradas.length,
         cartoes: readModel.cartoes.length,
         metas: readModel.metas.length,
-        dividas: readModel.dividas.length
+        dividas: readModel.dividas.length,
+        sqlite: getSqliteStats()
     };
 }
 
 function initializeReadModel() {
     loadReadModelFromDisk();
+    ensureSqliteReady();
+    syncSnapshotToSqlite(readModel);
 }
 
 function parseDateToTimestamp(dateStr, fallbackYear = null, fallbackMonth = null) {
@@ -498,10 +524,38 @@ function getDashboardSnapshot(userId, { month, year } = {}) {
     };
 }
 
+function getDashboardSqlData(userId, { month, year } = {}) {
+    const kpis = queryKpis(userId, { month, year });
+    if (!kpis) return null;
+    return {
+        period: kpis.period,
+        kpis: {
+            entradas: kpis.entradas,
+            saidas: kpis.saidas,
+            cartoes: kpis.cartoes,
+            saldo: kpis.saldo,
+            debtActiveCount: kpis.debtActiveCount,
+            debtTotal: kpis.debtTotal
+        },
+        topCategories: queryTopCategories(userId, { month, year }) || [],
+        dailyFlow: queryCashflow(userId, { month, year }) || [],
+        recentTransactions: queryRecentTransactions(userId, { month, year }) || [],
+        goals: queryGoals(userId) || [],
+        debts: queryDebts(userId) || [],
+        alerts: queryAlerts(userId, { month, year }) || [],
+        sync: {
+            ...readModel.meta,
+            sqlite: getSqliteStats()
+        }
+    };
+}
+
 module.exports = {
     initializeReadModel,
     syncReadModelIfNeeded,
     executeAnalyticalIntent,
     getReadModelStats,
-    getDashboardSnapshot
+    getDashboardSnapshot,
+    getDashboardSqlData,
+    isSqliteReady
 };

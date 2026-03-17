@@ -1155,10 +1155,12 @@ async function handleMessage(msg) {
 
             let structuredResponse = detectFastPerguntaIntent(messageBody);
             if (structuredResponse) {
+                metrics.increment('message.pergunta.fast_path');
                 logger.info(`[routing] fast_path intent=pergunta sender=${senderId} msg="${messageBody}"`);
             }
 
             if (!structuredResponse) {
+                metrics.increment('message.ai.master_prompt.called');
                 const masterPrompt = `Sua tarefa é analisar a mensagem e extrair a intenção e detalhes em um JSON. A data e hora atual é ${new Date().toISOString()}.
 
             ### ORDEM DE ANÁLISE OBRIGATÓRIA:
@@ -1396,7 +1398,10 @@ async function handleMessage(msg) {
                             perfContext
                         );
                         if (localClassification) {
+                            metrics.increment('message.pergunta.local_classification');
                             logger.info(`[routing] local_classification intent=${localClassification.intent} sender=${senderId}`);
+                        } else {
+                            metrics.increment('message.ai.classify.called');
                         }
 
                         let analyzedData = null;
@@ -1463,6 +1468,7 @@ async function handleMessage(msg) {
                             analyzedData
                         });
                         if (!respostaFinal) {
+                            metrics.increment('message.ai.generate.called');
                             respostaFinal = await timeStep(
                                 'generate(response)',
                                 () => generate({
@@ -1479,6 +1485,7 @@ async function handleMessage(msg) {
                                 perfContext
                             );
                         } else {
+                            metrics.increment('message.pergunta.local_response');
                             logger.info(`[routing] local_response intent=${intentClassification.intent} sender=${senderId}`);
                         }
                     

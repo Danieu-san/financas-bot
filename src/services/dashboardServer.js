@@ -1,6 +1,6 @@
 const http = require('http');
 const { URL } = require('url');
-const { syncReadModelIfNeeded, getDashboardSnapshot } = require('./readModelService');
+const { syncReadModelIfNeeded, getDashboardSnapshot, getDashboardSqlData, isSqliteReady } = require('./readModelService');
 const { verifyDashboardToken } = require('../utils/dashboardAuth');
 const logger = require('../utils/logger');
 
@@ -178,11 +178,31 @@ function dashboardHtml() {
       }
       const month = monthEl.value;
       const year = yearEl.value;
-      const url = '/dashboard/api/summary?token=' + encodeURIComponent(token) + '&month=' + encodeURIComponent(month) + '&year=' + encodeURIComponent(year);
+      const base = '/dashboard/api';
       try {
-        const res = await fetch(url);
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Erro ao carregar painel');
+        const reqs = await Promise.all([
+          fetch(base + '/kpis?token=' + encodeURIComponent(token) + '&month=' + encodeURIComponent(month) + '&year=' + encodeURIComponent(year)),
+          fetch(base + '/cashflow?token=' + encodeURIComponent(token) + '&month=' + encodeURIComponent(month) + '&year=' + encodeURIComponent(year)),
+          fetch(base + '/goals?token=' + encodeURIComponent(token)),
+          fetch(base + '/debts?token=' + encodeURIComponent(token)),
+          fetch(base + '/alerts?token=' + encodeURIComponent(token) + '&month=' + encodeURIComponent(month) + '&year=' + encodeURIComponent(year)),
+          fetch(base + '/summary?token=' + encodeURIComponent(token) + '&month=' + encodeURIComponent(month) + '&year=' + encodeURIComponent(year))
+        ]);
+        const [kpisRes, cashflowRes, goalsRes, debtsRes, alertsRes, summaryRes] = reqs;
+        const [kpisData, cashflowData, goalsData, debtsData, alertsData, summaryData] = await Promise.all([
+          kpisRes.json(), cashflowRes.json(), goalsRes.json(), debtsRes.json(), alertsRes.json(), summaryRes.json()
+        ]);
+        if (!kpisRes.ok) throw new Error(kpisData.error || 'Erro ao carregar KPIs');
+
+        const data = {
+          ...summaryData,
+          kpis: kpisData.kpis || summaryData.kpis,
+          topCategories: kpisData.topCategories || summaryData.topCategories,
+          dailyFlow: cashflowData.dailyFlow || [],
+          goals: goalsData.goals || [],
+          debts: debtsData.debts || [],
+          alerts: alertsData.alerts || []
+        };
         render(data);
       } catch (e) {
         errorEl.textContent = e.message || 'Falha no carregamento';
@@ -238,8 +258,24 @@ async function handleApiSummary(reqUrl, res) {
 
     try {
         await syncReadModelIfNeeded();
-        const snapshot = getDashboardSnapshot(payload.uid, { month, year });
+        const snapshot = getDashboardSqlData(payload.uid, { month, year }) || getDashboardSnapshot(payload.uid, { month, year });
         sendJson(res, 200, snapshot);
+    } catch (error) {
+        logger.error(`dashboard api error: ${error.message}`);
+        sendJson(res, 500, { error: 'Falha ao carregar dados do dashboard.' });
+    }
+}
+
+async function withAuth(reqUrl, res, cb) {
+    const token = reqUrl.searchParams.get('token') || '';
+    const payload = verifyDashboardToken(token);
+    if (!payload) {
+        sendJson(res, 401, { error: 'Token inválido ou expirado.' });
+        return;
+    }
+    try {
+        await syncReadModelIfNeeded();
+        await cb(payload);
     } catch (error) {
         logger.error(`dashboard api error: ${error.message}`);
         sendJson(res, 500, { error: 'Falha ao carregar dados do dashboard.' });
@@ -267,8 +303,88 @@ function startDashboardServer() {
             await handleApiSummary(reqUrl, res);
             return;
         }
+        if (req.method === 'GET' && reqUrl.pathname === '/dashboard/api/kpis') {
+            await withAuth(reqUrl, res, async (payload) => {
+                const month = reqUrl.searchParams.get('month');
+                const year = reqUrl.searchParams.get('year');
+                const sql = getDashboardSqlData(payload.uid, { month, year });
+                if (sql) {
+                    sendJson(res, 200, {
+                        period: sql.period,
+                        kpis: sql.kpis,
+                        topCategories: sql.topCategories,
+                        source: 'sqlite'
+                    });
+                    return;
+                }
+                const legacy = getDashboardSnapshot(payload.uid, { month, year });
+                sendJson(res, 200, {
+                    period: legacy.period,
+                    kpis: legacy.kpis,
+                    topCategories: legacy.topCategories,
+                    source: 'memory'
+                });
+            });
+            return;
+        }
+        if (req.method === 'GET' && reqUrl.pathname === '/dashboard/api/cashflow') {
+            await withAuth(reqUrl, res, async (payload) => {
+                const month = reqUrl.searchParams.get('month');
+                const year = reqUrl.searchParams.get('year');
+                const sql = getDashboardSqlData(payload.uid, { month, year });
+                if (sql) {
+                    sendJson(res, 200, { period: sql.period, dailyFlow: sql.dailyFlow, source: 'sqlite' });
+                    return;
+                }
+                const legacy = getDashboardSnapshot(payload.uid, { month, year });
+                sendJson(res, 200, { period: legacy.period, dailyFlow: legacy.dailyFlow, source: 'memory' });
+            });
+            return;
+        }
+        if (req.method === 'GET' && reqUrl.pathname === '/dashboard/api/debts') {
+            await withAuth(reqUrl, res, async (payload) => {
+                const sql = getDashboardSqlData(payload.uid, {});
+                if (sql) {
+                    sendJson(res, 200, { debts: sql.debts, source: 'sqlite' });
+                    return;
+                }
+                const legacy = getDashboardSnapshot(payload.uid, {});
+                sendJson(res, 200, { debts: legacy.debts, source: 'memory' });
+            });
+            return;
+        }
+        if (req.method === 'GET' && reqUrl.pathname === '/dashboard/api/goals') {
+            await withAuth(reqUrl, res, async (payload) => {
+                const sql = getDashboardSqlData(payload.uid, {});
+                if (sql) {
+                    sendJson(res, 200, { goals: sql.goals, source: 'sqlite' });
+                    return;
+                }
+                const legacy = getDashboardSnapshot(payload.uid, {});
+                sendJson(res, 200, { goals: legacy.goals, source: 'memory' });
+            });
+            return;
+        }
+        if (req.method === 'GET' && reqUrl.pathname === '/dashboard/api/alerts') {
+            await withAuth(reqUrl, res, async (payload) => {
+                const month = reqUrl.searchParams.get('month');
+                const year = reqUrl.searchParams.get('year');
+                const sql = getDashboardSqlData(payload.uid, { month, year });
+                if (sql) {
+                    sendJson(res, 200, { alerts: sql.alerts, source: 'sqlite' });
+                    return;
+                }
+                const legacy = getDashboardSnapshot(payload.uid, { month, year });
+                const alerts = [];
+                if ((legacy?.kpis?.saldo || 0) < 0) {
+                    alerts.push({ level: 'high', code: 'NEGATIVE_CASHFLOW', message: 'Saldo negativo no período.' });
+                }
+                sendJson(res, 200, { alerts, source: 'memory' });
+            });
+            return;
+        }
         if (req.method === 'GET' && reqUrl.pathname === '/dashboard/health') {
-            sendJson(res, 200, { ok: true });
+            sendJson(res, 200, { ok: true, sqlite: isSqliteReady() });
             return;
         }
         sendJson(res, 404, { error: 'Rota não encontrada.' });
@@ -282,4 +398,3 @@ function startDashboardServer() {
 }
 
 module.exports = { startDashboardServer };
-
