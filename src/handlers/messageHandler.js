@@ -27,6 +27,7 @@ const { buildHealthSummary } = require('../services/financialHealthService');
 const { buildDebtAvalanchePlan } = require('../services/debtAvalancheService');
 const metrics = require('../utils/metrics');
 const { isAdminWithContext } = require('../utils/adminCheck');
+const logger = require('../utils/logger');
 
 // Base de Conhecimento para Gastos
 const mapeamentoGastos = {
@@ -228,12 +229,21 @@ async function handleAccountLifecycleCommands(msg, user) {
 async function handleAdminCommands(msg, senderId, activeUser) {
     const body = normalizeText(String(msg.body || '').trim());
     if (!body.startsWith('admin')) return false;
+
+    const adminContext = {
+        sender_id: senderId,
+        actor_user_id: activeUser?.user_id || '',
+        actor_name: activeUser?.display_name || ''
+    };
+
     if (!isAdminWithContext(senderId, activeUser)) {
+        logger.warn(`[admin] acesso_negado command="${body}" context=${JSON.stringify(adminContext)}`);
         await msg.reply('Comando restrito a administradores.');
         return true;
     }
 
     if (body === 'admin ajuda') {
+        logger.info(`[admin] ajuda context=${JSON.stringify(adminContext)}`);
         await msg.reply(
             'Comandos admin:\n' +
             '- admin listar usuarios\n' +
@@ -247,6 +257,7 @@ async function handleAdminCommands(msg, senderId, activeUser) {
 
     if (body === 'admin listar usuarios') {
         const users = await getAllUsers();
+        logger.info(`[admin] listar_usuarios context=${JSON.stringify({ ...adminContext, total_users: users.length })}`);
         if (!users.length) {
             await msg.reply('Nenhum usuário encontrado.');
             return true;
@@ -273,6 +284,7 @@ async function handleAdminCommands(msg, senderId, activeUser) {
 
     if (body === 'admin expirar pendentes') {
         const expired = await expireOldPendingUsers();
+        logger.info(`[admin] expirar_pendentes context=${JSON.stringify({ ...adminContext, expired_count: expired })}`);
         await msg.reply(`Pendentes expirados agora: ${expired}`);
         return true;
     }
@@ -289,13 +301,16 @@ async function handleAdminCommands(msg, senderId, activeUser) {
         const status = statusMap[action];
         const updated = await updateUserStatusByWhatsAppId(target, status);
         if (!updated) {
+            logger.warn(`[admin] alterar_status_nao_encontrado context=${JSON.stringify({ ...adminContext, action, target })}`);
             await msg.reply('Usuário não encontrado para esse telefone/WhatsApp ID.');
             return true;
         }
+        logger.info(`[admin] alterar_status context=${JSON.stringify({ ...adminContext, action, target, updated_whatsapp_id: updated.whatsapp_id, updated_status: updated.status })}`);
         await msg.reply(`Status atualizado: ${updated.whatsapp_id} -> ${updated.status}`);
         return true;
     }
 
+    logger.warn(`[admin] comando_desconhecido command="${body}" context=${JSON.stringify(adminContext)}`);
     await msg.reply('Comando admin não reconhecido. Use: admin ajuda');
     return true;
 }
