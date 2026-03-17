@@ -29,6 +29,7 @@ const {
 const { handleOnboarding } = require('./onboardingHandler');
 const { buildHealthSummary } = require('../services/financialHealthService');
 const { buildDebtAvalanchePlan } = require('../services/debtAvalancheService');
+const { syncReadModelIfNeeded, executeAnalyticalIntent } = require('../services/readModelService');
 const metrics = require('../utils/metrics');
 const { isAdminWithContext } = require('../utils/adminCheck');
 const logger = require('../utils/logger');
@@ -1168,47 +1169,70 @@ async function handleMessage(msg) {
                 case 'pergunta': {
                     await msg.reply("Analisando seus dados para responder, um momento...");
                     try {
-                        const sheetReads = [
-                            readDataFromSheet('Saídas!A:I'), 
-                            readDataFromSheet('Entradas!A:H'),
-                            readDataFromSheet('Metas!A:L'), 
-                            readDataFromSheet('Dívidas!A:N')
-                        ];
-                        const cardSheetNames = Object.values(creditCardConfig).map(card => card.sheetName);
-                        cardSheetNames.forEach(sheetName => {
-                            sheetReads.push(readDataFromSheet(`${sheetName}!A:F`)); 
-                        });
-                        const allSheetData = await timeStep(
-                            'pergunta.Promise.all(sheetReads)',
-                            () => Promise.all(sheetReads),
-                            perfContext
-                        );
-
-                        const [saidasData, entradasData, metasData, dividasData] = allSheetData;
-                        const creditCardData = allSheetData.slice(4);
-
                         const userQuestion = structuredResponse.question || messageBody;
                         const intentClassification = await timeStep(
                             'classify(userQuestion)',
                             () => classify(userQuestion),
                             perfContext
                         );
-                        
-                        const analyzedData = await timeStep(
-                            'execute(intent)',
-                            () => execute(
-                                intentClassification.intent,
-                                intentClassification.parameters,
-                                {
-                                    saidas: saidasData,
-                                    entradas: entradasData,
-                                    metas: metasData,
-                                    dividas: dividasData,
-                                    cartoes: creditCardData
-                                }
-                            ),
-                            perfContext
-                        );
+
+                        let analyzedData = null;
+                        let usedReadModel = false;
+                        try {
+                            await timeStep(
+                                'readModel.sync',
+                                () => syncReadModelIfNeeded(),
+                                perfContext
+                            );
+                            analyzedData = await timeStep(
+                                'readModel.execute',
+                                () => executeAnalyticalIntent(
+                                    intentClassification.intent,
+                                    intentClassification.parameters,
+                                    { userId }
+                                ),
+                                perfContext
+                            );
+                            usedReadModel = true;
+                        } catch (readModelError) {
+                            logger.warn(`[read-model] fallback legacy execute. motivo=${readModelError.message}`);
+                        }
+
+                        if (!analyzedData) {
+                            const sheetReads = [
+                                readDataFromSheet('Saídas!A:I'),
+                                readDataFromSheet('Entradas!A:H'),
+                                readDataFromSheet('Metas!A:L'),
+                                readDataFromSheet('Dívidas!A:N')
+                            ];
+                            const cardSheetNames = Object.values(creditCardConfig).map(card => card.sheetName);
+                            cardSheetNames.forEach(sheetName => {
+                                sheetReads.push(readDataFromSheet(`${sheetName}!A:F`));
+                            });
+                            const allSheetData = await timeStep(
+                                'pergunta.Promise.all(sheetReads)',
+                                () => Promise.all(sheetReads),
+                                perfContext
+                            );
+
+                            const [saidasData, entradasData, metasData, dividasData] = allSheetData;
+                            const creditCardData = allSheetData.slice(4);
+                            analyzedData = await timeStep(
+                                'execute(intent)',
+                                () => execute(
+                                    intentClassification.intent,
+                                    intentClassification.parameters,
+                                    {
+                                        saidas: saidasData,
+                                        entradas: entradasData,
+                                        metas: metasData,
+                                        dividas: dividasData,
+                                        cartoes: creditCardData
+                                    }
+                                ),
+                                perfContext
+                            );
+                        }
 
                         const respostaFinal = await timeStep(
                             'generate(response)',
@@ -1220,7 +1244,8 @@ async function handleMessage(msg) {
                                 dateContext: {
                                     currentMonth: new Date().getMonth(),
                                     currentYear: new Date().getFullYear()
-                                }
+                                },
+                                source: usedReadModel ? 'read_model' : 'legacy'
                             }),
                             perfContext
                         );

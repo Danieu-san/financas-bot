@@ -3,6 +3,7 @@ const { readDataFromSheet, getCalendarEventsForToday } = require('../services/go
 const { expireOldPendingUsers, getActiveUsers, getUserSettingsByUserId } = require('../services/userService');
 const { parseSheetDate, normalizeText, getFormattedDateOnly, parseValue } = require('../utils/helpers');
 const { creditCardConfig, adminIds } = require('../config/constants');
+const { syncReadModelIfNeeded, getReadModelStats } = require('../services/readModelService');
 const logger = require('../utils/logger');
 const metrics = require('../utils/metrics');
 
@@ -369,6 +370,15 @@ function initializeScheduler(wppClient) {
 
     cron.schedule('0 * * * *', async () => {
         await sendOperationalHeartbeat();
+    }, { scheduled: true, timezone: 'America/Sao_Paulo' });
+
+    cron.schedule('*/10 * * * *', async () => {
+        try {
+            await syncReadModelIfNeeded();
+            logger.info(`[read-model] sync agendado OK: ${JSON.stringify(getReadModelStats())}`);
+        } catch (error) {
+            logger.warn(`[read-model] falha no sync agendado: ${error.message}`);
+        }
     }, { scheduled: true, timezone: 'America/Sao_Paulo' });
 }
 

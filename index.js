@@ -7,6 +7,7 @@ const { authorizeGoogle, getSheetIds, ensureSpreadsheetStructure } = require('./
 const { handleMessage } = require('./src/handlers/messageHandler');
 const { initializeScheduler } = require('./src/jobs/scheduler');
 const { validateUserIdIntegrity, backfillMissingUserIds } = require('./src/services/userIdMaintenanceService');
+const { initializeReadModel, syncReadModelIfNeeded, getReadModelStats } = require('./src/services/readModelService');
 const logger = require('./src/utils/logger');
 
 async function startBot() {
@@ -24,6 +25,13 @@ async function startBot() {
         await authorizeGoogle();
         await ensureSpreadsheetStructure();
         await getSheetIds(); 
+        initializeReadModel();
+        try {
+            await syncReadModelIfNeeded({ force: true });
+            logger.info(`[startup] read-model pronto: ${JSON.stringify(getReadModelStats())}`);
+        } catch (readModelError) {
+            logger.warn(`[startup] read-model indisponível no boot. fallback legado ativo. motivo=${readModelError.message}`);
+        }
 
         const shouldAutoBackfill = String(process.env.AUTO_BACKFILL_USER_ID_ON_STARTUP || 'false').toLowerCase() === 'true';
         if (shouldAutoBackfill) {
