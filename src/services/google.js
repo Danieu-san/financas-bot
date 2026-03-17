@@ -8,24 +8,83 @@ const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 let sheets;
 let tasks;
 let calendar;
+let oAuth2Client;
+let authInFlight = null;
 
-async function authorizeGoogle() {
+function getErrorStatusCode(error) {
+    return error?.code || error?.status || error?.response?.status || null;
+}
+
+function isGoogleAuthError(error) {
+    const status = getErrorStatusCode(error);
+    const msg = String(error?.message || '').toLowerCase();
+    const oauthError = String(error?.response?.data?.error || '').toLowerCase();
+    const oauthDescription = String(error?.response?.data?.error_description || '').toLowerCase();
+
+    return (
+        status === 401 ||
+        msg.includes('deleted_client') ||
+        msg.includes('invalid_grant') ||
+        oauthError.includes('deleted_client') ||
+        oauthError.includes('invalid_grant') ||
+        oauthDescription.includes('deleted') ||
+        oauthDescription.includes('invalid')
+    );
+}
+
+async function runWithGoogleRetry(operationName, fn, { swallowOnError = false, fallbackValue = null } = {}) {
+    await ensureGoogleAuthorized();
     try {
-        const credentials = JSON.parse(fs.readFileSync(GOOGLE_CREDENTIALS_PATH));
-        const keys = credentials.installed || credentials.web;
-        const { client_secret, client_id, redirect_uris } = keys;
-        const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
-        oAuth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
-
-        sheets = google.sheets({ version: 'v4', auth: oAuth2Client });
-        tasks = google.tasks({ version: 'v1', auth: oAuth2Client });
-        calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
-
-        console.log('✅ Google APIs autorizadas com sucesso!');
+        return await fn();
     } catch (error) {
-        console.error('❌ Erro ao autorizar APIs do Google:', error.message);
+        if (isGoogleAuthError(error)) {
+            console.warn(`⚠️ ${operationName}: erro de autenticação Google detectado. Reautorizando e tentando novamente...`);
+            await authorizeGoogle(true);
+            try {
+                return await fn();
+            } catch (retryError) {
+                console.error(`❌ ${operationName}: falhou após reautorização:`, retryError.message);
+                if (swallowOnError) return fallbackValue;
+                throw retryError;
+            }
+        }
+
+        if (swallowOnError) return fallbackValue;
         throw error;
     }
+}
+
+async function ensureGoogleAuthorized() {
+    if (sheets && tasks && calendar && oAuth2Client) return;
+    await authorizeGoogle();
+}
+
+async function authorizeGoogle(forceRefresh = false) {
+    if (!forceRefresh && sheets && tasks && calendar && oAuth2Client) return;
+    if (authInFlight) return authInFlight;
+
+    authInFlight = (async () => {
+        try {
+            const credentials = JSON.parse(fs.readFileSync(GOOGLE_CREDENTIALS_PATH));
+            const keys = credentials.installed || credentials.web;
+            const { client_secret, client_id, redirect_uris } = keys;
+            oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+            oAuth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
+
+            sheets = google.sheets({ version: 'v4', auth: oAuth2Client });
+            tasks = google.tasks({ version: 'v1', auth: oAuth2Client });
+            calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
+
+            console.log('✅ Google APIs autorizadas com sucesso!');
+        } catch (error) {
+            console.error('❌ Erro ao autorizar APIs do Google:', error.message);
+            throw error;
+        } finally {
+            authInFlight = null;
+        }
+    })();
+
+    await authInFlight;
 }
 
 async function createCalendarEvent(title, startDateTime, recurrenceRule) {
@@ -37,10 +96,10 @@ async function createCalendarEvent(title, startDateTime, recurrenceRule) {
             end: { dateTime: isoDateTime, timeZone: 'America/Sao_Paulo' },
         };
         if (recurrenceRule) event.recurrence = [`RRULE:${recurrenceRule}`];
-        const response = await calendar.events.insert({
+        const response = await runWithGoogleRetry('createCalendarEvent', () => calendar.events.insert({
             calendarId: 'primary',
             resource: event,
-        });
+        }));
         return response.data;
     } catch (error) {
         console.error('❌ Erro no Calendar:', error);
@@ -50,7 +109,7 @@ async function createCalendarEvent(title, startDateTime, recurrenceRule) {
 
 async function getSheetIds() {
     try {
-        const response = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+        const response = await runWithGoogleRetry('getSheetIds', () => sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID }));
         const sheetData = response.data.sheets;
         const sheetNameToId = {};
         sheetData.forEach(sheet => { sheetNameToId[sheet.properties.title] = sheet.properties.sheetId; });
@@ -62,13 +121,13 @@ async function getSheetIds() {
 
 async function appendRowToSheet(sheetName, row) {
     try {
-        await sheets.spreadsheets.values.append({
+        await runWithGoogleRetry(`appendRowToSheet(${sheetName})`, () => sheets.spreadsheets.values.append({
             spreadsheetId: SPREADSHEET_ID,
             range: `${sheetName}!A:A`,
             valueInputOption: 'USER_ENTERED',
             insertDataOption: 'INSERT_ROWS',
             resource: { values: [row] },
-        });
+        }));
     } catch (error) {
         console.error(`❌ Erro ao adicionar linha em ${sheetName}:`, error.message);
         throw new Error('Erro ao salvar na planilha.');
@@ -77,7 +136,11 @@ async function appendRowToSheet(sheetName, row) {
 
 async function readDataFromSheet(range) {
     try {
-        const response = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range });
+        const response = await runWithGoogleRetry(
+            `readDataFromSheet(${range})`,
+            () => sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range }),
+            { swallowOnError: true, fallbackValue: { data: { values: [] } } }
+        );
         return response.data.values || [];
     } catch (error) {
         console.error(`❌ Erro ao ler dados da planilha (${range}):`, error.message);
@@ -87,12 +150,12 @@ async function readDataFromSheet(range) {
 
 async function updateRowInSheet(range, rowData) {
     try {
-        await sheets.spreadsheets.values.update({
+        await runWithGoogleRetry(`updateRowInSheet(${range})`, () => sheets.spreadsheets.values.update({
             spreadsheetId: SPREADSHEET_ID,
             range,
             valueInputOption: 'USER_ENTERED',
             resource: { values: [rowData] },
-        });
+        }));
     } catch (error) {
         console.error(`❌ Erro ao atualizar linha (${range}):`, error.message);
         throw new Error('Erro ao atualizar dados na planilha.');
@@ -101,13 +164,13 @@ async function updateRowInSheet(range, rowData) {
 
 async function batchUpdateRowsInSheet(data) {
     try {
-        await sheets.spreadsheets.values.batchUpdate({
+        await runWithGoogleRetry('batchUpdateRowsInSheet', () => sheets.spreadsheets.values.batchUpdate({
             spreadsheetId: SPREADSHEET_ID,
             resource: {
                 valueInputOption: 'USER_ENTERED',
                 data
             }
-        });
+        }));
     } catch (error) {
         console.error('❌ Erro em batchUpdateRowsInSheet:', error.message);
         throw new Error('Erro ao atualizar dados em lote na planilha.');
@@ -122,14 +185,14 @@ async function getCalendarEventsForToday(targetDate = new Date()) {
         const endOfDay = new Date(targetDate);
         endOfDay.setHours(23, 59, 59, 999);
 
-        const response = await calendar.events.list({
+        const response = await runWithGoogleRetry('getCalendarEventsForToday', () => calendar.events.list({
             calendarId: 'primary',
             timeMin: startOfDay.toISOString(),
             timeMax: endOfDay.toISOString(),
             singleEvents: true,
             orderBy: 'startTime',
             timeZone: 'America/Sao_Paulo'
-        });
+        }), { swallowOnError: true, fallbackValue: { data: { items: [] } } });
 
         return response.data.items || [];
     } catch (error) {
@@ -145,7 +208,7 @@ async function ensureSpreadsheetStructure() {
         { title: 'Entradas', headers: ['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Observações', 'user_id'], color: { red: 0.4, green: 0.8, blue: 0.4 } },
         { title: 'Dívidas', headers: ['Nome', 'Credor', 'Tipo', 'Valor Original', 'Saldo Atual', 'Parcela', 'Juros', 'Vencimento', 'Início', 'Total Parcelas', 'Status', 'Responsável', 'Observações', '% Quitado', 'Próximo Vencimento', 'Atraso (Dias)', 'Data Prevista para Quitação', 'user_id'], color: { red: 0.8, green: 0.5, blue: 0.2 } },
         { title: 'Metas', headers: ['Nome', 'Valor Alvo', 'Valor Atual', '% Progresso', 'Valor Mensal', 'Data Fim', 'Status', 'Prioridade', 'user_id'], color: { red: 0.2, green: 0.6, blue: 0.8 } },
-        { title: 'Contas', headers: ['Nome da Conta', 'Dia do Vencimento', 'Observações'], color: { red: 0.9, green: 0.7, blue: 0.3 } },
+        { title: 'Contas', headers: ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id'], color: { red: 0.9, green: 0.7, blue: 0.3 } },
         { title: 'Dashboard', headers: ['Resumo Financeiro', 'Valor'], color: { red: 0.5, green: 0.5, blue: 0.5 } },
         { title: 'Cartão Nubank - Daniel', headers: ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'user_id'], color: { red: 0.6, green: 0.3, blue: 0.7 } },
         { title: 'Cartão Nubank - Thais', headers: ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'user_id'], color: { red: 0.6, green: 0.3, blue: 0.7 } },
@@ -158,7 +221,7 @@ async function ensureSpreadsheetStructure() {
     ];
 
     try {
-        const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+        const spreadsheet = await runWithGoogleRetry('ensureSpreadsheetStructure.spreadsheets.get', () => sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID }));
         const existingSheets = spreadsheet.data.sheets.map(s => s.properties.title);
         const createRequests = [];
 
@@ -170,10 +233,10 @@ async function ensureSpreadsheetStructure() {
         }
 
         if (createRequests.length > 0) {
-            await sheets.spreadsheets.batchUpdate({ spreadsheetId: SPREADSHEET_ID, resource: { requests: createRequests } });
+            await runWithGoogleRetry('ensureSpreadsheetStructure.createSheets', () => sheets.spreadsheets.batchUpdate({ spreadsheetId: SPREADSHEET_ID, resource: { requests: createRequests } }));
         }
 
-        const updatedSpreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+        const updatedSpreadsheet = await runWithGoogleRetry('ensureSpreadsheetStructure.updatedSpreadsheet', () => sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID }));
         const sheetMap = {};
         updatedSpreadsheet.data.sheets.forEach(s => { sheetMap[s.properties.title] = s.properties.sheetId; });
 
@@ -211,10 +274,10 @@ async function ensureSpreadsheetStructure() {
         }
 
         try {
-            await sheets.spreadsheets.batchUpdate({ 
+            await runWithGoogleRetry('ensureSpreadsheetStructure.formatting', () => sheets.spreadsheets.batchUpdate({ 
                 spreadsheetId: SPREADSHEET_ID, 
                 resource: { requests: formattingRequests } 
-            });
+            }));
             console.log('✅ Planilha Sincronizada com Sucesso!');
         } catch (error) {
             console.warn('⚠️ Aviso: Algumas formatações da planilha não puderam ser aplicadas:', error.message);
@@ -247,10 +310,10 @@ async function deleteRowsByIndices(sheetName, rowIndices) {
             }
         }));
 
-        await sheets.spreadsheets.batchUpdate({
+        await runWithGoogleRetry(`deleteRowsByIndices(${sheetName})`, () => sheets.spreadsheets.batchUpdate({
             spreadsheetId: SPREADSHEET_ID,
             resource: { requests }
-        });
+        }));
 
         return { success: true };
     } catch (error) {

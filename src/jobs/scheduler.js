@@ -63,45 +63,59 @@ async function checkUpcomingEvents() {
 async function checkUpcomingBills() {
     console.log('Verificando contas pendentes...');
     try {
-        const contasData = await readDataFromSheet('Contas!A:C');
+        const contasData = await readDataFromSheet('Contas!A:D');
         if (!contasData || contasData.length <= 1) return;
 
-        const saidasData = await readDataFromSheet('Saídas!A:B');
+        const saidasData = await readDataFromSheet('Saídas!A:J');
+        const users = await getActiveUsers();
+        if (!users.length) return;
+
         const hoje = new Date();
         const anoAtual = hoje.getFullYear();
         const mesAtual = hoje.getMonth();
         hoje.setHours(0, 0, 0, 0);
 
-        const saidasDoMes = saidasData
-            .slice(1)
-            .filter(row => {
-                const dataSaida = parseSheetDate(row[0]);
-                return dataSaida && dataSaida.getFullYear() === anoAtual && dataSaida.getMonth() === mesAtual;
-            })
-            .map(row => normalizeText(row[1]));
+        const contasRows = contasData.slice(1);
+        const saidasRows = saidasData.slice(1);
+        const singleUserIdFallback = users.length === 1 ? String(users[0].user_id || '').trim() : '';
 
-        for (let i = 1; i < contasData.length; i++) {
-            const row = contasData[i];
-            const nomeConta = row[0];
-            const diaVencimento = parseInt(row[1], 10);
-            if (!nomeConta || isNaN(diaVencimento)) continue;
+        for (const user of users) {
+            const userId = String(user.user_id || '').trim();
+            if (!userId) continue;
 
-            const nomeContaNormalizado = normalizeText(nomeConta);
-            const jaFoiRegistrada = saidasDoMes.some(d => d.includes(nomeContaNormalizado));
-            if (jaFoiRegistrada) continue;
+            const saidasDoMesUsuario = saidasRows
+                .filter(row => String(row[9] || '').trim() === userId)
+                .filter(row => {
+                    const dataSaida = parseSheetDate(row[0]);
+                    return dataSaida && dataSaida.getFullYear() === anoAtual && dataSaida.getMonth() === mesAtual;
+                })
+                .map(row => normalizeText(row[1]));
 
-            const dataVencimento = new Date(anoAtual, mesAtual, diaVencimento);
-            const diffDays = Math.round((dataVencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+            const contasDoUsuario = contasRows.filter(row => {
+                const contaUserId = String(row[3] || '').trim();
+                if (contaUserId) return contaUserId === userId;
+                return singleUserIdFallback && singleUserIdFallback === userId;
+            });
 
-            let message = '';
-            if (diffDays === 5) message = `Lembrete! 💡 A conta de *${nomeConta}* vence em 5 dias (no dia ${diaVencimento}).`;
-            if (diffDays === 1) message = `Atenção! ⚠️ A conta de *${nomeConta}* vence amanhã!`;
-            if (diffDays === 0) message = `URGENTE! 🚨 A conta de *${nomeConta}* VENCE HOJE!`;
-            if (!message) continue;
+            for (const row of contasDoUsuario) {
+                const nomeConta = row[0];
+                const diaVencimento = parseInt(row[1], 10);
+                if (!nomeConta || isNaN(diaVencimento)) continue;
 
-            const recipients = await getRecipientIds();
-            for (const id of recipients) {
-                await client.sendMessage(id, message);
+                const nomeContaNormalizado = normalizeText(nomeConta);
+                const jaFoiRegistrada = saidasDoMesUsuario.some(d => d.includes(nomeContaNormalizado));
+                if (jaFoiRegistrada) continue;
+
+                const dataVencimento = new Date(anoAtual, mesAtual, diaVencimento);
+                const diffDays = Math.round((dataVencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+
+                let message = '';
+                if (diffDays === 5) message = `Lembrete! 💡 A conta de *${nomeConta}* vence em 5 dias (no dia ${diaVencimento}).`;
+                if (diffDays === 1) message = `Atenção! ⚠️ A conta de *${nomeConta}* vence amanhã!`;
+                if (diffDays === 0) message = `URGENTE! 🚨 A conta de *${nomeConta}* VENCE HOJE!`;
+                if (!message) continue;
+
+                await client.sendMessage(user.whatsapp_id, message);
             }
         }
     } catch (error) {
