@@ -116,6 +116,144 @@ function formatCurrencyBR(value) {
     return 'R$ ' + Number(value || 0).toFixed(2).replace('.', ',');
 }
 
+function getMonthNamePtBr(monthIndex) {
+    const names = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+    if (typeof monthIndex !== 'number' || monthIndex < 0 || monthIndex > 11) return null;
+    return names[monthIndex];
+}
+
+function parseMonthFromText(text) {
+    const normalized = normalizeText(String(text || '').trim());
+    const monthMap = {
+        janeiro: 0, fevereiro: 1, marco: 2, março: 2, abril: 3, maio: 4, junho: 5,
+        julho: 6, agosto: 7, setembro: 8, outubro: 9, novembro: 10, dezembro: 11
+    };
+    for (const [name, index] of Object.entries(monthMap)) {
+        if (normalized.includes(name)) return index;
+    }
+    return new Date().getMonth();
+}
+
+function parseYearFromText(text) {
+    const normalized = String(text || '');
+    const match = normalized.match(/\b(20\d{2})\b/);
+    if (match) return Number.parseInt(match[1], 10);
+    return new Date().getFullYear();
+}
+
+function extractCategoryFromQuestion(text) {
+    const normalized = normalizeText(String(text || '').trim());
+    const withCom = normalized.match(/\bcom\s+([a-zA-ZÀ-ÿ\s]+?)(?:\s+em\s+|\s+no\s+|\s+na\s+|$|\?)/i);
+    if (withCom && withCom[1]) return withCom[1].trim();
+    const withDe = normalized.match(/\bde\s+([a-zA-ZÀ-ÿ\s]+?)(?:\s+em\s+|\s+no\s+|\s+na\s+|$|\?)/i);
+    if (withDe && withDe[1]) return withDe[1].trim();
+    return '';
+}
+
+function detectFastPerguntaIntent(messageBody) {
+    const text = normalizeText(String(messageBody || '').trim());
+    if (!text) return null;
+
+    const isQuestionShape = /^(qual|quais|quanto|quantos|liste|listar|mostre|mostrar|me diga|como ficou|como esta|como estão)/.test(text) || text.includes('?');
+    if (!isQuestionShape) return null;
+
+    const looksAnalytical = /(saldo|gastei|gasto|gastos|entrada|entradas|divida|dividas|categoria|mes|ano|janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/.test(text);
+    if (!looksAnalytical) return null;
+
+    return {
+        intent: 'pergunta',
+        question: messageBody
+    };
+}
+
+function classifyPerguntaLocally(userQuestion) {
+    const text = normalizeText(String(userQuestion || '').trim());
+    if (!text) return null;
+
+    const mes = parseMonthFromText(text);
+    const ano = parseYearFromText(text);
+
+    if (text.includes('saldo')) {
+        return { intent: 'saldo_do_mes', parameters: { mes, ano } };
+    }
+    if (text.includes('media') && (text.includes('gasto') || text.includes('gastos'))) {
+        return { intent: 'media_gastos_categoria_mes', parameters: { categoria: extractCategoryFromQuestion(text), mes, ano } };
+    }
+    if (text.includes('liste') || text.includes('listar') || text.includes('mostre')) {
+        return { intent: 'listagem_gastos_categoria', parameters: { categoria: extractCategoryFromQuestion(text), mes, ano } };
+    }
+    if ((text.includes('quanto') || text.includes('total')) && (text.includes('gastei') || text.includes('gasto') || text.includes('gastos'))) {
+        return { intent: 'total_gastos_categoria_mes', parameters: { categoria: extractCategoryFromQuestion(text), mes, ano } };
+    }
+
+    return null;
+}
+
+function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
+    const results = analyzedData?.results;
+    const details = analyzedData?.details || {};
+    const mes = getMonthNamePtBr(details?.mes);
+    const ano = details?.ano;
+    const periodLabel = mes && ano ? `${mes}/${ano}` : (ano ? String(ano) : 'período informado');
+
+    if (intent === 'saldo_do_mes') {
+        return [
+            `Saldo em ${periodLabel}: ${formatCurrencyBR(results)}`,
+            `Entradas: ${formatCurrencyBR(details.totalEntradas)}`,
+            `Saídas: ${formatCurrencyBR(details.totalSaidas)}`
+        ].join('\n');
+    }
+
+    if (intent === 'total_gastos_categoria_mes') {
+        const cat = details.categoria || 'categoria informada';
+        return `Total gasto com ${cat} em ${periodLabel}: ${formatCurrencyBR(results)}`;
+    }
+
+    if (intent === 'media_gastos_categoria_mes') {
+        const cat = details.categoria || 'categoria informada';
+        return `Média de gastos com ${cat} em ${periodLabel}: ${formatCurrencyBR(results)}`;
+    }
+
+    if (intent === 'listagem_gastos_categoria') {
+        if (!Array.isArray(results) || results.length === 0) {
+            return `Não encontrei gastos para esse filtro em ${periodLabel}.`;
+        }
+        const lines = results.slice(0, 15).map((row, idx) => {
+            const data = row[0] || '-';
+            const desc = row[1] || 'sem descrição';
+            const val = formatCurrencyBR(row[4] || 0);
+            return `${idx + 1}. ${data} | ${desc} | ${val}`;
+        });
+        const truncated = results.length > 15 ? `\n... e mais ${results.length - 15} item(ns).` : '';
+        return `Gastos encontrados (${results.length}) em ${periodLabel}:\n${lines.join('\n')}${truncated}`;
+    }
+
+    if (intent === 'contagem_ocorrencias') {
+        return `Ocorrências encontradas em ${periodLabel}: ${results}`;
+    }
+
+    if (intent === 'gastos_valores_duplicados') {
+        if (!Array.isArray(results) || results.length === 0) {
+            return `Não encontrei valores duplicados em ${periodLabel}.`;
+        }
+        const lines = results.slice(0, 10).map((item, idx) => `${idx + 1}. ${formatCurrencyBR(item.valor)} (${item.count}x)`);
+        return `Valores duplicados em ${periodLabel}:\n${lines.join('\n')}`;
+    }
+
+    if (intent === 'maior_menor_gasto') {
+        const min = results?.min;
+        const max = results?.max;
+        if (!min && !max) return `Não encontrei gastos para esse período (${periodLabel}).`;
+        return [
+            `Maior e menor gasto em ${periodLabel}:`,
+            `- Maior: ${max ? `${max[1] || '-'} (${formatCurrencyBR(max[4] || 0)})` : '-'}`,
+            `- Menor: ${min ? `${min[1] || '-'} (${formatCurrencyBR(min[4] || 0)})` : '-'}`
+        ].join('\n');
+    }
+
+    return null;
+}
+
 function shouldRouteResumoToPergunta(messageBody) {
     const text = normalizeText(String(messageBody || '').trim());
     if (!text) return false;
@@ -988,7 +1126,13 @@ async function handleMessage(msg) {
         try {
             // CÓDIGO PARA SUBSTITUIR (APENAS A CONSTANTE masterPrompt)
 
-            const masterPrompt = `Sua tarefa é analisar a mensagem e extrair a intenção e detalhes em um JSON. A data e hora atual é ${new Date().toISOString()}.
+            let structuredResponse = detectFastPerguntaIntent(messageBody);
+            if (structuredResponse) {
+                logger.info(`[routing] fast_path intent=pergunta sender=${senderId} msg="${messageBody}"`);
+            }
+
+            if (!structuredResponse) {
+                const masterPrompt = `Sua tarefa é analisar a mensagem e extrair a intenção e detalhes em um JSON. A data e hora atual é ${new Date().toISOString()}.
 
             ### ORDEM DE ANÁLISE OBRIGATÓRIA:
             1.  **É UM PEDIDO DE RESUMO OU BALANÇO GERAL?** Se o usuário pedir um panorama geral (ex: "resumo", "como estão minhas finanças"), a intenção é OBRIGATORIAMENTE 'resumo'.
@@ -1017,14 +1161,15 @@ async function handleMessage(msg) {
             ### Formato de Saída:
             Retorne APENAS o objeto JSON, seguindo este schema: ${JSON.stringify(MASTER_SCHEMA)}`;
             
-            const structuredResponse = await timeStep(
-                'getStructuredResponseFromLLM',
-                () => getStructuredResponseFromLLM(masterPrompt),
-                perfContext
-            );
-            console.log("--- RESPOSTA BRUTA DA IA ---");
-            console.log(JSON.stringify(structuredResponse, null, 2));
-            console.log("--------------------------");
+                structuredResponse = await timeStep(
+                    'getStructuredResponseFromLLM',
+                    () => getStructuredResponseFromLLM(masterPrompt),
+                    perfContext
+                );
+                console.log("--- RESPOSTA BRUTA DA IA ---");
+                console.log(JSON.stringify(structuredResponse, null, 2));
+                console.log("--------------------------");
+            }
 
             if (structuredResponse && structuredResponse.error) {
             await msg.reply("A conexão com a IA está instável no momento. Por favor, tente novamente em alguns instantes.");
@@ -1217,11 +1362,15 @@ async function handleMessage(msg) {
                     await msg.reply("Analisando seus dados para responder, um momento...");
                     try {
                         const userQuestion = structuredResponse.question || messageBody;
-                        const intentClassification = await timeStep(
+                        const localClassification = classifyPerguntaLocally(userQuestion);
+                        const intentClassification = localClassification || await timeStep(
                             'classify(userQuestion)',
                             () => classify(userQuestion),
                             perfContext
                         );
+                        if (localClassification) {
+                            logger.info(`[routing] local_classification intent=${localClassification.intent} sender=${senderId}`);
+                        }
 
                         let analyzedData = null;
                         let usedReadModel = false;
@@ -1281,21 +1430,30 @@ async function handleMessage(msg) {
                             );
                         }
 
-                        const respostaFinal = await timeStep(
-                            'generate(response)',
-                            () => generate({
-                                userQuestion,
-                                intent: intentClassification.intent,
-                                rawResults: analyzedData.results,
-                                details: analyzedData.details,
-                                dateContext: {
-                                    currentMonth: new Date().getMonth(),
-                                    currentYear: new Date().getFullYear()
-                                },
-                                source: usedReadModel ? 'read_model' : 'legacy'
-                            }),
-                            perfContext
-                        );
+                        let respostaFinal = buildLocalPerguntaResponse({
+                            userQuestion,
+                            intent: intentClassification.intent,
+                            analyzedData
+                        });
+                        if (!respostaFinal) {
+                            respostaFinal = await timeStep(
+                                'generate(response)',
+                                () => generate({
+                                    userQuestion,
+                                    intent: intentClassification.intent,
+                                    rawResults: analyzedData.results,
+                                    details: analyzedData.details,
+                                    dateContext: {
+                                        currentMonth: new Date().getMonth(),
+                                        currentYear: new Date().getFullYear()
+                                    },
+                                    source: usedReadModel ? 'read_model' : 'legacy'
+                                }),
+                                perfContext
+                            );
+                        } else {
+                            logger.info(`[routing] local_response intent=${intentClassification.intent} sender=${senderId}`);
+                        }
                     
                         cache.set(cacheKey, respostaFinal);
                         await msg.reply(respostaFinal);
