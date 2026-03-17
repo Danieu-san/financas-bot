@@ -3,6 +3,7 @@ const assert = require('node:assert');
 const helpers = require('../src/utils/helpers');
 const analysisService = require('../src/services/analysisService');
 const userStateManager = require('../src/state/userStateManager');
+const userService = require('../src/services/userService');
 
 // --- Helpers Tests ---
 test('helpers.parseValue', (t) => {
@@ -93,4 +94,16 @@ test('userStateManager.stateFunctions', (t) => {
 
     userStateManager.deleteState(userId);
     assert.strictEqual(userStateManager.getState(userId), undefined, 'Should be deleted');
+});
+
+test('userService.legalInfoHelpers', (t) => {
+    assert.strictEqual(userService.isLegalInfoCommand('termos'), true);
+    assert.strictEqual(userService.isLegalInfoCommand('privacidade'), true);
+    assert.strictEqual(userService.isLegalInfoCommand('politica de privacidade'), true);
+    assert.strictEqual(userService.isLegalInfoCommand('qual saldo'), false);
+
+    const reply = userService.buildPublicLegalSummaryReply({ includeAcceptInstruction: true, termsVersion: 'v1.1' });
+    assert.ok(reply.includes('Termos (v1.1):'), 'Should include terms version');
+    assert.ok(reply.includes('Resumo legal:'), 'Should include summary header');
+    assert.ok(reply.includes('responda apenas: ACEITO'), 'Should include acceptance instruction when requested');
 });

@@ -10,6 +10,7 @@ const TERMS_URL = process.env.TERMS_URL || '';
 const PRIVACY_URL = process.env.PRIVACY_URL || '';
 const CONSENT_KEYWORD = 'aceito';
 const PENDING_TTL_HOURS = 48;
+const LEGAL_INFO_KEYWORDS = new Set(['termos', 'politica de privacidade', 'privacidade']);
 
 const USER_HEADERS = [
     'user_id',
@@ -119,6 +120,34 @@ function buildLegalFooter() {
         return `${TERMS_URL ? `\nTermos: ${TERMS_URL}` : ''}${PRIVACY_URL ? `\nPrivacidade: ${PRIVACY_URL}` : ''}`;
     }
     return '\nPara ver o resumo de termos e privacidade, envie: TERMOS';
+}
+
+function isLegalInfoCommand(normalizedMessage) {
+    return LEGAL_INFO_KEYWORDS.has(String(normalizedMessage || '').trim());
+}
+
+function buildPublicLegalSummaryReply({ includeAcceptInstruction = false, termsVersion = TERMS_VERSION } = {}) {
+    const termsLine = TERMS_URL
+        ? `Termos (${termsVersion}): ${TERMS_URL}`
+        : `Termos (${termsVersion}): resumo enviado abaixo.`;
+    const privacyLine = PRIVACY_URL
+        ? `Privacidade: ${PRIVACY_URL}`
+        : 'Privacidade: resumo enviado abaixo.';
+
+    const summary = [
+        'Resumo legal:',
+        '- Uso condicionado a consentimento por ACEITO.',
+        '- Dados tratados: identificacao WhatsApp e lancamentos financeiros enviados.',
+        '- Finalidade: operacao do bot, relatorios e auditoria.',
+        '- Ciclo de vida: PENDING, ACTIVE, INACTIVE, DELETED, EXPIRED.',
+        '- Mudanca de termos exige novo consentimento.'
+    ].join('\n');
+
+    const acceptLine = includeAcceptInstruction
+        ? '\n\nPara ativar seu acesso, responda apenas: ACEITO'
+        : '';
+
+    return `${termsLine}\n${privacyLine}\n\n${summary}${acceptLine}`;
 }
 
 async function appendConsentLog(user, { message, messageId }) {
@@ -367,10 +396,18 @@ async function resolveUserAccess(msg) {
     const messageId = msg.id?.id || '';
     const displayName = msg._data?.notifyName || msg._data?.pushname || '';
     const normalizedMessage = normalizeForCompare(messageBody);
+    const legalInfoRequest = isLegalInfoCommand(normalizedMessage);
 
     let user = await getUserByWhatsAppId(senderId);
     if (!user) {
         user = await createPendingUser(senderId, displayName);
+        if (legalInfoRequest) {
+            return {
+                allowed: false,
+                user: null,
+                reply: buildPublicLegalSummaryReply({ includeAcceptInstruction: true })
+            };
+        }
         return {
             allowed: false,
             user: null,
@@ -382,6 +419,13 @@ async function resolveUserAccess(msg) {
     }
 
     if (['INACTIVE', 'DELETED'].includes(user.status)) {
+        if (legalInfoRequest) {
+            return {
+                allowed: false,
+                user: null,
+                reply: buildPublicLegalSummaryReply({ includeAcceptInstruction: false })
+            };
+        }
         return {
             allowed: false,
             user: null,
@@ -390,6 +434,13 @@ async function resolveUserAccess(msg) {
     }
 
     if (user.status === 'EXPIRED') {
+        if (legalInfoRequest) {
+            return {
+                allowed: false,
+                user: null,
+                reply: buildPublicLegalSummaryReply({ includeAcceptInstruction: true })
+            };
+        }
         return {
             allowed: false,
             user: null,
@@ -405,6 +456,13 @@ async function resolveUserAccess(msg) {
             const activatedUser = await activateUserWithConsent(user, { message: messageBody, messageId });
             return { allowed: true, user: activatedUser, justActivated: true };
         }
+        if (legalInfoRequest) {
+            return {
+                allowed: false,
+                user: null,
+                reply: buildPublicLegalSummaryReply({ includeAcceptInstruction: true })
+            };
+        }
         return {
             allowed: false,
             user: null,
@@ -416,6 +474,13 @@ async function resolveUserAccess(msg) {
     }
 
     if (user.status !== 'ACTIVE') {
+        if (legalInfoRequest) {
+            return {
+                allowed: false,
+                user: null,
+                reply: buildPublicLegalSummaryReply({ includeAcceptInstruction: false })
+            };
+        }
         return {
             allowed: false,
             user: null,
@@ -428,6 +493,13 @@ async function resolveUserAccess(msg) {
         if (normalizedMessage === CONSENT_KEYWORD) {
             const refreshedUser = await refreshConsentForActiveUser(user, { message: messageBody, messageId });
             return { allowed: true, user: refreshedUser, justReconsented: true };
+        }
+        if (legalInfoRequest) {
+            return {
+                allowed: false,
+                user: null,
+                reply: buildPublicLegalSummaryReply({ includeAcceptInstruction: true })
+            };
         }
         return {
             allowed: false,
@@ -446,6 +518,8 @@ module.exports = {
     TERMS_VERSION,
     TERMS_URL,
     PRIVACY_URL,
+    isLegalInfoCommand,
+    buildPublicLegalSummaryReply,
     USER_HEADERS,
     resolveUserAccess,
     getUserByWhatsAppId,
