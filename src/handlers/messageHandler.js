@@ -116,6 +116,44 @@ function formatCurrencyBR(value) {
     return 'R$ ' + Number(value || 0).toFixed(2).replace('.', ',');
 }
 
+function shouldRouteResumoToPergunta(messageBody) {
+    const text = normalizeText(String(messageBody || '').trim());
+    if (!text) return false;
+
+    const startsAsQuestion = /^(qual|quais|quanto|quantos|liste|listar|mostre|mostrar|me diga|como ficou|como esta|como estão)/.test(text);
+    const hasQuestionMark = String(messageBody || '').includes('?');
+    if (!startsAsQuestion && !hasQuestionMark) return false;
+
+    const analyticalKeywords = [
+        'saldo',
+        'gasto',
+        'gastei',
+        'entrada',
+        'recebi',
+        'divida',
+        'meta',
+        'categoria',
+        'mes',
+        'ano',
+        'janeiro',
+        'fevereiro',
+        'marco',
+        'abril',
+        'maio',
+        'junho',
+        'julho',
+        'agosto',
+        'setembro',
+        'outubro',
+        'novembro',
+        'dezembro'
+    ];
+
+    const hasAnalyticalKeyword = analyticalKeywords.some((kw) => text.includes(kw));
+    const hasYear = /\b20\d{2}\b/.test(text);
+    return hasAnalyticalKeyword || hasYear;
+}
+
 function isCurrentMonthYear(date, month, year) {
     return date && date.getMonth() === month && date.getFullYear() === year;
 }
@@ -953,7 +991,8 @@ async function handleMessage(msg) {
             const masterPrompt = `Sua tarefa é analisar a mensagem e extrair a intenção e detalhes em um JSON. A data e hora atual é ${new Date().toISOString()}.
 
             ### ORDEM DE ANÁLISE OBRIGATÓRIA:
-            1.  **É UM PEDIDO DE RESUMO OU BALANÇO?** Se o usuário pedir resumo, saldo, quanto sobrou, ou como estão as finanças, a intenção é OBRIGATORIAMENTE 'resumo'.
+            1.  **É UM PEDIDO DE RESUMO OU BALANÇO GERAL?** Se o usuário pedir um panorama geral (ex: "resumo", "como estão minhas finanças"), a intenção é OBRIGATORIAMENTE 'resumo'.
+                - Se a mensagem for pergunta específica com mês/ano/categoria/valor (ex: "qual meu saldo de março?", "quanto gastei com alimentação?"), a intenção correta é 'pergunta', NÃO 'resumo'.
             2.  **É UM PEDIDO DE AJUDA?** Se o usuário perguntar o que você faz, quais são seus comandos, ou pedir ajuda, a intenção é OBRIGATORIAMENTE 'ajuda'.
             2.  **É UM PAGAMENTO DE DÍVIDA?** Se a mensagem indicar o pagamento de uma conta ou dívida existente (ex: "paguei o financiamento", "registre o pagamento da fatura", "paguei a parcela do carro"), a intenção é OBRIGATORIAMENTE 'registrar_pagamento'.
             3.  **É UM PEDIDO DE EXCLUSÃO?** Se a mensagem for para apagar algo, a intenção é 'apagar_item'.
@@ -992,10 +1031,18 @@ async function handleMessage(msg) {
             return;
         }
 
-        if (!structuredResponse || !structuredResponse.intent) {
+            if (!structuredResponse || !structuredResponse.intent) {
             await msg.reply("Desculpe, não entendi o que você quis dizer.");
             return;
         };
+
+            if (structuredResponse.intent === 'resumo' && shouldRouteResumoToPergunta(messageBody)) {
+                logger.info(`[routing] override_intent resumo->pergunta sender=${senderId} msg="${messageBody}"`);
+                structuredResponse.intent = 'pergunta';
+                if (!structuredResponse.question) {
+                    structuredResponse.question = messageBody;
+                }
+            }
 
             switch (structuredResponse.intent) {
                 case 'resumo': {
