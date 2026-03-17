@@ -20,7 +20,8 @@ async function generate(args) {
     switch (intent) {
         case 'total_gastos_categoria_mes':
             finalValue = formatCurrency(rawResults);
-            prompt = `O usuário perguntou o total de gastos com "${details.categoria}" em ${mesNome} de ${ano}. Formule uma resposta amigável que inclua o placeholder VALOR_FINAL. Exemplo: "Em ${mesNome} de ${ano}, seus gastos com ${details.categoria} totalizaram VALOR_FINAL."`;
+            const categoriaLabel = details.categoria || 'todas as categorias';
+            prompt = `O usuário perguntou o total de gastos com "${categoriaLabel}" em ${mesNome} de ${ano}. Formule uma resposta amigável que inclua o placeholder VALOR_FINAL. Exemplo: "Em ${mesNome} de ${ano}, seus gastos com ${categoriaLabel} totalizaram VALOR_FINAL."`;
             break;
 
         case 'saldo_do_mes':

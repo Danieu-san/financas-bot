@@ -122,6 +122,98 @@ async function parseDate(text) {
     }
 }
 
+function parsePortugueseNumberWords(text) {
+    const normalized = normalizeText(String(text || ''))
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    if (!normalized) return null;
+
+    const units = {
+        zero: 0, um: 1, uma: 1, dois: 2, duas: 2, tres: 3, quatro: 4, cinco: 5,
+        seis: 6, sete: 7, oito: 8, nove: 9, dez: 10, onze: 11, doze: 12, treze: 13,
+        quatorze: 14, catorze: 14, quinze: 15, dezesseis: 16, dezessete: 17, dezoito: 18, dezenove: 19
+    };
+    const tens = {
+        vinte: 20, trinta: 30, quarenta: 40, cinquenta: 50, sessenta: 60, setenta: 70, oitenta: 80, noventa: 90
+    };
+    const hundreds = {
+        cem: 100, cento: 100, duzentos: 200, trezentos: 300, quatrocentos: 400, quinhentos: 500,
+        seiscentos: 600, setecentos: 700, oitocentos: 800, novecentos: 900
+    };
+
+    const ignore = new Set(['e', 'reais', 'real', 'r', 'de']);
+    const tokens = normalized.split(' ').filter(Boolean).filter(t => !ignore.has(t));
+
+    let total = 0;
+    let current = 0;
+
+    for (const token of tokens) {
+        if (units[token] !== undefined) {
+            current += units[token];
+            continue;
+        }
+        if (tens[token] !== undefined) {
+            current += tens[token];
+            continue;
+        }
+        if (hundreds[token] !== undefined) {
+            current += hundreds[token];
+            continue;
+        }
+        if (token === 'mil') {
+            current = current || 1;
+            total += current * 1000;
+            current = 0;
+            continue;
+        }
+        if (token === 'milhao' || token === 'milhoes') {
+            current = current || 1;
+            total += current * 1000000;
+            current = 0;
+            continue;
+        }
+    }
+
+    const result = total + current;
+    return result > 0 ? result : null;
+}
+
+function parseAmountLocal(text) {
+    const raw = String(text || '').trim();
+    if (!raw) return null;
+
+    const normalized = normalizeText(raw).replace(/\s+/g, ' ').trim();
+
+    // Caso clássico BR de milhar sem decimais (ex: 2.000, 12.500)
+    if (/^\d{1,3}(\.\d{3})+$/.test(raw.replace(/\s/g, ''))) {
+        const thousands = parseInt(raw.replace(/\./g, ''), 10);
+        if (!isNaN(thousands)) return thousands;
+    }
+
+    // 1) Número com multiplicador (ex: 2 mil, 1,5 milhao)
+    const numericWithScale = normalized.match(/(\d+(?:[.,]\d+)?)\s*(milhao|milhoes|mil)?/);
+    if (numericWithScale) {
+        let amount = parseFloat(numericWithScale[1].replace('.', '').replace(',', '.'));
+        if (!isNaN(amount)) {
+            const scale = numericWithScale[2] || '';
+            if (scale === 'mil') amount *= 1000;
+            if (scale === 'milhao' || scale === 'milhoes') amount *= 1000000;
+            if (scale) return amount;
+        }
+    }
+
+    // 2) Caminho rápido: número puro/formato monetário
+    const direct = parseValue(raw);
+    if (direct !== 0 || normalized === '0') {
+        return direct;
+    }
+
+    // 3) Número por extenso em português (ex: dois mil e quinhentos)
+    const byWords = parsePortugueseNumberWords(normalized);
+    return byWords;
+}
+
 module.exports = {
     isDate,
     getFormattedDate,
@@ -129,6 +221,7 @@ module.exports = {
     normalizeText,
     parseSheetDate,
     parseValue,
+    parseAmountLocal,
     convertToIsoDateTime,
     parseAmount,
     parseDate

@@ -5,11 +5,13 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "cross-env NODE_ENV=test node test/test_runner.js",
     "dev": "nodemon index.js",
     "pm2:start": "pm2 start ecosystem.config.js",
     "pm2:stop": "pm2 stop all",
-    "pm2:logs": "pm2 logs"
+    "pm2:logs": "pm2 logs",
+    "backfill:user-id": "node scripts/backfillUserId.js",
+    "seed:known-users": "node scripts/seedKnownUsers.js",
+    "finalize:legacy-user-id": "node scripts/finalizeLegacyUserIds.js"
   },
   "keywords": [
     "whatsapp",
@@ -29,11 +31,10 @@
     "node-cron": "^3.0.2",
     "qrcode-terminal": "^0.12.0",
     "string-similarity": "^4.0.4",
-    "whatsapp-web.js": "github:pedroslopez/whatsapp-web.js#main",
+    "whatsapp-web.js": "github:pedroslopez/whatsapp-web.js",
     "winston": "^3.11.0"
   },
   "devDependencies": {
-    "cross-env": "^10.1.0",
     "nodemon": "^3.0.1"
   },
   "engines": {

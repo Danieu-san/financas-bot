@@ -1,67 +1,71 @@
-// obter_token.js
 const { google } = require('googleapis');
-const path = require('path');
+const http = require('http');
+const url = require('url');
 const fs = require('fs');
-const readline = require('readline');
+const path = require('path');
+const { exec } = require('child_process');
+require('dotenv').config();
 
-// Caminho para o seu arquivo de credenciais
-const CREDENTIALS_PATH = path.resolve(__dirname, 'credentials.json');
+const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
+const PORT = 3000;
+const REDIRECT_URI = `http://localhost:${PORT}`;
 
-// O escopo define o nível de acesso que estamos pedindo (ler e escrever em planilhas)
-const SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/tasks', 'https://www.googleapis.com/auth/calendar.events'];
+async function getNewToken() {
+    if (!fs.existsSync(CREDENTIALS_PATH)) {
+        console.error('? Erro: credentials.json n�o encontrado!');
+        return;
+    }
 
-async function authorize() {
-    try {
-        const credentialsContent = fs.readFileSync(CREDENTIALS_PATH);
-        if (!credentialsContent) {
-            console.error('Erro: O arquivo credentials.json está vazio ou não foi encontrado.');
-            return;
-        }
-        const credentials = JSON.parse(credentialsContent);
-        const { client_secret, client_id, redirect_uris } = credentials.installed;
-        const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+    const credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH));
+    const keys = credentials.web || credentials.installed;
+    const oAuth2Client = new google.auth.OAuth2(keys.client_id, keys.client_secret, REDIRECT_URI);
 
-        console.log('Gerando URL de autorização...');
-        const authUrl = oAuth2Client.generateAuthUrl({
-            access_type: 'offline', // 'offline' é necessário para obter um refresh_token
-            scope: SCOPES,
-        });
+    const authUrl = oAuth2Client.generateAuthUrl({
+        access_type: 'offline',
+        prompt: 'consent',
+        scope: [
+            'https://www.googleapis.com/auth/spreadsheets',
+            'https://www.googleapis.com/auth/calendar',
+            'https://www.googleapis.com/auth/tasks'
+        ]
+    });
 
-        console.log('--------------------------------------------------');
-        console.log('Copie e cole esta URL no seu navegador:\n');
-        console.log(authUrl);
-        console.log('--------------------------------------------------');
+    const server = http.createServer(async (req, res) => {
+        try {
+            const parsedUrl = url.parse(req.url, true);
+            if (parsedUrl.query.code) {
+                const { tokens } = await oAuth2Client.getToken(parsedUrl.query.code);
+                fs.writeFileSync('token.json', JSON.stringify(tokens, null, 2));
+                
+                res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+                res.end('<h1>? Autentica��o Conclu�da!</h1><p>O token foi salvo. Volte ao terminal.</p>');
+                
+                console.log('\n? SUCESSO! Token salvo em token.json');
+                console.log('\n--- REFRESH_TOKEN (COPIE PARA O .ENV) ---');
+                console.log(tokens.refresh_token);
+                console.log('-----------------------------------------');
 
-        const rl = readline.createInterface({
-            input: process.stdin,
-            output: process.stdout,
-        });
-
-        rl.question('Após autorizar no navegador, ele te dará um código. Cole o código que aparece na URL aqui e pressione Enter: ', async (code) => {
-            rl.close();
-            try {
-                const { tokens } = await oAuth2Client.getToken(code);
-                oAuth2Client.setCredentials(tokens);
-
-                if (!tokens.refresh_token) {
-                    console.error('\n\n--- ERRO! ---');
-                    console.error('Não foi possível obter um novo REFRESH token. Isso geralmente acontece se o seu projeto no Google Cloud não está configurado como "Publicado".');
-                    console.error('Por favor, siga os passos para publicar seu app e tente novamente.');
-                    return;
-                }
-
-                console.log('\n\n--- SUCESSO! ---');
-                console.log('Seu novo Refresh Token é:');
-                console.log('\x1b[32m%s\x1b[0m', tokens.refresh_token); // Imprime em verde
-                console.log('\nCopie este token, abra seu arquivo .env e cole na variável GOOGLE_REFRESH_TOKEN.');
-
-            } catch (err) {
-                console.error('Erro ao obter o token:', err.message);
+                setTimeout(() => { server.close(); process.exit(0); }, 1000);
             }
-        });
-    } catch (err) {
-        console.error('Erro ao ler o arquivo credentials.json:', err.message);
+        } catch (e) {
+            res.writeHead(500);
+            res.end('Erro interno.');
+        }
+    }).listen(PORT);
+
+    console.log('\n?? Login Autom�tico iniciado!');
+    console.log('1. O navegador deve abrir sozinho em instantes.');
+    console.log('2. Caso n�o abra, copie e cole este link manualmente:');
+    console.log('--------------------------------------------------');
+    console.log(authUrl);
+    console.log('--------------------------------------------------');
+
+    // Comando de abertura autom�tica corrigido para Windows
+    if (process.platform === 'win32') {
+        exec(`start "" "${authUrl.replace(/&/g, '^&')}"`);
+    } else {
+        exec(`open "${authUrl}"`);
     }
 }
 
-authorize().catch(console.error);
+getNewToken();

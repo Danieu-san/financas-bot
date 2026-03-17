@@ -1,5 +1,5 @@
 const analysisService = require('./analysisService');
-const { parseSheetDate, normalizeText } = require('../utils/helpers');
+const { parseSheetDate, normalizeText, parseValue } = require('../utils/helpers');
 const { creditCardConfig } = require('../config/constants');
 
 const getMonthIndex = (monthInput) => {
@@ -70,7 +70,7 @@ const operationRegistry = {
                     const billingMonth = row[5] || '';
                     const category = normalizeText(row[2] || '');
                     if (billingMonth === targetBillingMonth && category.includes(normalizeText(params.categoria))) {
-                        totalCartoes += analysisService.parseValue(row[3]);
+                        totalCartoes += parseValue(row[3]);
                     }
                 });
             });
@@ -113,7 +113,7 @@ const operationRegistry = {
                 return rowDate && rowDate.getMonth() === mes && rowDate.getFullYear() === ano;
             });
             for (const row of saidasDoMes) {
-                const valorNumerico = analysisService.parseValue(row[4]);
+                const valorNumerico = parseValue(row[4]);
                 const descricao = row[1];
                 const valorArredondado = Math.round(valorNumerico * 100) / 100;
                 if (!valoresContados.has(valorArredondado)) { valoresContados.set(valorArredondado, []); }
@@ -159,7 +159,7 @@ const operationRegistry = {
                 if (!cardSheetData || cardSheetData.length <= 1) return;
                 cardSheetData.slice(1).forEach(row => {
                     if ((row[5] || '') === targetBillingMonth) {
-                        totalCartoes += analysisService.parseValue(row[3]);
+                        totalCartoes += parseValue(row[3]);
                     }
                 });
             });

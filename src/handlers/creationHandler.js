@@ -4,24 +4,8 @@ const { getStructuredResponseFromLLM, askLLM } = require('../services/gemini');
 const userStateManager = require('../state/userStateManager');
 const { appendRowToSheet, readDataFromSheet } = require('../services/google');
 const { userMap } = require('../config/constants');
-const { parseValue, parseDate, isDate, getFormattedDateOnly, parseAmount, normalizeText } = require('../utils/helpers');
-
-function coerceDebtType(llmText) {
-    const allowed = ['Empréstimo Pessoal', 'Financiamento', 'Cartão de Crédito', 'Outros'];
-
-    const raw = String(llmText ?? '');
-    const norm = normalizeText(raw);
-
-    // tenta achar uma das categorias no texto, mesmo que venha com frase/markdown
-    const match =
-        norm.includes('emprestimo') ? 'Empréstimo Pessoal' :
-        norm.includes('financiamento') ? 'Financiamento' :
-        (norm.includes('cartao') && norm.includes('credito')) ? 'Cartão de Crédito' :
-        norm.includes('outros') ? 'Outros' :
-        null;
-
-    return match || 'Outros';
-}
+const { parseValue, parseDate, isDate, getFormattedDateOnly, parseAmount } = require('../utils/helpers');
+const { getUserByWhatsAppId } = require('../services/userService');
 
 async function startDebtCreation(msg, initialData = {}) {
     const senderId = msg.author || msg.from;
@@ -55,7 +39,7 @@ async function handleDebtCreation(msg, isFirstRun = false) {
 
     const messageBody = msg.body.trim();
     if (messageBody.toLowerCase() === 'cancelar') {
-        userStateManager.clearState(senderId);;
+        userStateManager.deleteState(senderId);
         await msg.reply("Criação de dívida cancelada.");
         return;
     }
@@ -67,7 +51,7 @@ async function handleDebtCreation(msg, isFirstRun = false) {
         else if (step === 3) {
             const promptCorrecao = `Normalize a resposta do usuário para uma das categorias: 'Empréstimo Pessoal', 'Financiamento', 'Cartão de Crédito', 'Outros'. Resposta: "${messageBody}"`;
             const tipoCorrigido = await askLLM(promptCorrecao);
-            state.data["Tipo de Dívida"] = coerceDebtType(tipoCorrigido);
+            state.data["Tipo de Dívida"] = tipoCorrigido.trim();
         }
         else if (step === 4) { const valor = await parseAmount(messageBody); if (valor && valor > 0) { state.data["Valor Original"] = valor; } else { await msg.reply("Valor inválido."); } }
         else if (step === 5) { const valor = await parseAmount(messageBody); if (valor >= 0) { state.data["Saldo Devedor Atual"] = valor; } else { await msg.reply("Valor inválido."); } }
@@ -128,6 +112,10 @@ async function finalizeDebtCreation(msg) {
     const state = userStateManager.getState(senderId);
     if (!state) return;
     try {
+        const user = await getUserByWhatsAppId(senderId);
+        if (!user || !user.user_id) {
+            throw new Error('Usuário ativo sem user_id. Operação bloqueada.');
+        }
         const data = state.data;
         const valorOriginal = parseFloat(data["Valor Original"]);
         const saldoAtual = parseFloat(data["Saldo Devedor Atual"]);
@@ -171,7 +159,8 @@ async function finalizeDebtCreation(msg) {
             '',                              // N: % Quitado (deixamos em branco para a fórmula da planilha)
             proximoVencimento.toLocaleDateString('pt-BR'), // O
             atrasoDias,                      // P
-            dataQuitacao.toLocaleDateString('pt-BR') // Q
+            dataQuitacao.toLocaleDateString('pt-BR'), // Q
+            user.user_id                     // R
         ];
 
         await appendRowToSheet('Dívidas', rowData);
@@ -181,7 +170,7 @@ async function finalizeDebtCreation(msg) {
         await msg.reply('Houve um erro ao salvar sua dívida.');
         console.error("Erro ao finalizar a criação da dívida:", error);
     } finally {
-        userStateManager.clearState(senderId);;
+        userStateManager.deleteState(senderId);
     }
 }
 
@@ -210,7 +199,7 @@ async function handleGoalCreation(msg, isFirstRun = false) {
 
     const messageBody = msg.body.trim();
     if (messageBody.toLowerCase() === 'cancelar') {
-        userStateManager.clearState(senderId);;
+        userStateManager.deleteState(senderId);
         await msg.reply("Criação de meta cancelada.");
         return;
     }
@@ -272,6 +261,10 @@ async function finalizeGoalCreation(msg) {
     if (!state) return;
 
     try {
+        const user = await getUserByWhatsAppId(senderId);
+        if (!user || !user.user_id) {
+            throw new Error('Usuário ativo sem user_id. Operação bloqueada.');
+        }
         const data = state.data;
         // Pega o número da próxima linha para usar nas fórmulas
         const rowIndex = (await readDataFromSheet('Metas')).length + 1; 
@@ -305,7 +298,8 @@ async function finalizeGoalCreation(msg) {
             valorMensal, // Adiciona o valor mensal calculado
             data["Data Fim"], // A data já está no formato DD/MM/AAAA, a planilha interpreta corretamente
             statusFormula,
-            data["Prioridade"]
+            data["Prioridade"],
+            user.user_id
         ];
 
         await appendRowToSheet('Metas', rowData);
@@ -315,7 +309,7 @@ async function finalizeGoalCreation(msg) {
         await msg.reply('Houve um erro ao salvar sua meta.');
         console.error("Erro ao finalizar a criação da meta:", error);
     } finally {
-        userStateManager.clearState(senderId);;
+        userStateManager.deleteState(senderId);
     }
 }
 
@@ -327,3 +321,4 @@ module.exports = {
     handleGoalCreation,
     finalizeGoalCreation,
 };
+

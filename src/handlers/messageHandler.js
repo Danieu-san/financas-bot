@@ -1,131 +1,32 @@
-// src/handlers/messageHandler.js
-
-// Importações necessárias
 const { userMap, sheetCategoryMap, creditCardConfig } = require('../config/constants');
 const userStateManager = require('../state/userStateManager');
 const creationHandler = require('./creationHandler');
 const deletionHandler = require('./deletionHandler');
 const debtHandler = require('./debtHandler');
 const { getStructuredResponseFromLLM, askLLM } = require('../services/gemini');
-const { authorizeGoogle, getSheetIds, appendRowToSheet, readDataFromSheet, createCalendarEvent } = require('../services/google');
-const { getFormattedDate, getFormattedDateOnly, normalizeText, parseSheetDate, parseAmount } = require('../utils/helpers');
+const { appendRowToSheet, readDataFromSheet, createCalendarEvent } = require('../services/google');
+const { getFormattedDate, getFormattedDateOnly, normalizeText, parseSheetDate, parseAmount, parseValue } = require('../utils/helpers');
 const cache = require('../utils/cache');
 const rateLimiter = require('../utils/rateLimiter');
 const { handleAudio } = require('./audioHandler');
 const { classify } = require('../ai/intentClassifier');
 const { execute } = require('../services/calculationOrchestrator');
 const { generate } = require('../ai/responseGenerator');
-const { isAdmin } = require('../utils/auth'); // Importa a função isAdmin
-const debtUpdateHandler = require('./debtUpdateHandler');
-
-function tokenizeNormalized(text) {
-    const normalized = normalizeText(String(text || ''));
-    const cleaned = normalized
-        .replace(/[-_/]/g, ' ')
-        .replace(/[.,!?;:()"'[\]{}]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-
-    const stopwords = new Set(['de', 'da', 'do', 'das', 'dos', 'no', 'na', 'nos', 'nas', 'cartao', 'cartão', 'banco']);
-    return cleaned
-        .split(' ')
-        .filter(t => t.length >= 2 && !stopwords.has(t) && !/^\d+$/.test(t));
-}
-
-function levenshtein(a, b) {
-    const s = String(a || '');
-    const t = String(b || '');
-    const m = s.length;
-    const n = t.length;
-
-    if (m === 0) return n;
-    if (n === 0) return m;
-
-    const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
-
-    for (let i = 0; i <= n; i++) dp[i][0] = i;
-    for (let j = 0; j <= m; j++) dp[0][j] = j;
-
-    for (let i = 1; i <= n; i++) {
-        for (let j = 1; j <= m; j++) {
-            const cost = t.charAt(i - 1) === s.charAt(j - 1) ? 0 : 1;
-            dp[i][j] = Math.min(
-                dp[i - 1][j] + 1,
-                dp[i][j - 1] + 1,
-                dp[i - 1][j - 1] + cost
-            );
-        }
-    }
-    return dp[n][m];
-}
-
-function isFuzzyTokenMatch(token, candidate) {
-    if (!token || !candidate) return false;
-    if (token === candidate) return true;
-
-    const distance = levenshtein(token, candidate);
-    const maxLen = Math.max(token.length, candidate.length);
-
-    // tolerância a erros de digitação:
-    // - tokens curtos: 1 erro
-    // - tokens longos: 2 erros
-    if (maxLen <= 5) return distance <= 1;
-    return distance <= 2;
-}
-
-function countFuzzyMatches(messageTokens, candidateTokens) {
-    let score = 0;
-
-    for (const mt of messageTokens) {
-        for (const ct of candidateTokens) {
-            if (isFuzzyTokenMatch(mt, ct)) {
-                // Peso maior para tokens “mais informativos”
-                score += (ct.length >= 5 ? 2 : 1);
-                break;
-            }
-        }
-    }
-
-    return score;
-}
-
-function detectCardKeyFromTextFuzzy(text, creditCardConfig) {
-    const msgTokens = tokenizeNormalized(text);
-
-    let best = { cardKey: null, score: 0 };
-    let second = { cardKey: null, score: 0 };
-
-    for (const [cardKey, cardInfo] of Object.entries(creditCardConfig)) {
-        const keyTokens = tokenizeNormalized(cardKey);
-        const sheetTokens = tokenizeNormalized(cardInfo?.sheetName || '');
-
-        // tokens candidatos = chave + nome da aba
-        const candidateTokens = [...new Set([...keyTokens, ...sheetTokens])];
-
-        const score = countFuzzyMatches(msgTokens, candidateTokens);
-
-        if (score > best.score) {
-            second = best;
-            best = { cardKey, score };
-        } else if (score > second.score) {
-            second = { cardKey, score };
-        }
-    }
-
-    // Limiar: precisa ter “informação suficiente”
-    // - 2 já pega casos tipo "bradesco" (token forte)
-    // - 3 pega casos tipo "nubank thais" (dois tokens)
-    const threshold = 2;
-
-    // margem para evitar ambiguidade (ex.: "nubank" sozinho bate em vários)
-    const margin = 2;
-
-    if (best.cardKey && best.score >= threshold && best.score >= second.score + margin) {
-        return { cardKey: best.cardKey, cardInfo: creditCardConfig[best.cardKey] };
-    }
-
-    return null;
-}
+const {
+    resolveUserAccess,
+    getUserProfileByUserId,
+    getUserSettingsByUserId,
+    upsertUserSettings,
+    updateUserStatus,
+    updateUserStatusByWhatsAppId,
+    getAllUsers,
+    expireOldPendingUsers
+} = require('../services/userService');
+const { handleOnboarding } = require('./onboardingHandler');
+const { buildHealthSummary } = require('../services/financialHealthService');
+const { buildDebtAvalanchePlan } = require('../services/debtAvalancheService');
+const metrics = require('../utils/metrics');
+const { isAdmin } = require('../utils/adminCheck');
 
 // Base de Conhecimento para Gastos
 const mapeamentoGastos = {
@@ -165,7 +66,7 @@ const metodosRecebimento = ["Conta Corrente", "Poupança", "Dinheiro", "PIX"];
 const MASTER_SCHEMA = {
     type: "OBJECT",
     properties: {
-        intent: { type: "STRING", enum: ["gasto", "entrada", "pergunta", "apagar_item", "criar_divida", "criar_meta", "registrar_pagamento", "criar_lembrete", "ajuda","desconhecido"] },
+        intent: { type: "STRING", enum: ["gasto", "entrada", "pergunta", "apagar_item", "criar_divida", "criar_meta", "registrar_pagamento", "criar_lembrete", "ajuda", "resumo", "desconhecido"] },
         gastoDetails: {
             type: "ARRAY",
             items: {
@@ -194,110 +95,216 @@ const MASTER_SCHEMA = {
         },
         deleteDetails: { type: "OBJECT", properties: { descricao: { type: "STRING" }, categoria: { type: "STRING" } } },
         pagamentoDetails: { type: "OBJECT", properties: { descricao: { type: "STRING" } } },
-        lembreteDetails: {
-            type: "OBJECT",
-            properties: {
-                titulo: { type: "STRING" },
-                dataHora: { type: "STRING" },
-                recorrencia: { type: "STRING", enum: ["FREQ=DAILY", "FREQ=WEEKLY", "FREQ=MONTHLY", "FREQ=YEARLY"] }
-            }
-        },
+        lembreteDetails: { type: "OBJECT", properties: { titulo: { type: "STRING" }, dataHora: { type: "STRING" }, recorrencia: { type: "STRING" } } },
         question: { type: "STRING" }
     },
     required: ["intent"]
 };
 
 const processedMessages = new Set();
+const monthNamesLower = ["janeiro", "fevereiro", "marco", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const monthNamesCapitalized = ["Janeiro", "Fevereiro", "Mar�o", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+const PERF_WARN_MS = Number.parseInt(process.env.MESSAGE_SLOW_LOG_MS || '4000', 10);
+
+function formatCurrencyBR(value) {
+    return 'R$ ' + Number(value || 0).toFixed(2).replace('.', ',');
+}
+
+function isCurrentMonthYear(date, month, year) {
+    return date && date.getMonth() === month && date.getFullYear() === year;
+}
+
+async function timeStep(label, fn, context = '') {
+    const startedAt = Date.now();
+    try {
+        return await fn();
+    } finally {
+        const elapsedMs = Date.now() - startedAt;
+        metrics.observeDuration(`message.step.${label}.ms`, elapsedMs);
+        if (elapsedMs >= PERF_WARN_MS) {
+            metrics.increment(`message.step.${label}.slow`);
+            console.warn(`[perf] ${label} levou ${elapsedMs}ms${context ? ` (${context})` : ''}`);
+        }
+    }
+}
+
+async function handleLegalCommands(msg) {
+    const body = normalizeText(String(msg.body || '').trim());
+    if (!body) return false;
+
+    const termsVersion = process.env.TERMS_VERSION || 'v1.0';
+    const termsUrl = process.env.TERMS_URL || '';
+    const privacyUrl = process.env.PRIVACY_URL || '';
+
+    if (body === 'termos' || body === 'politica de privacidade' || body === 'privacidade') {
+        const termsLine = termsUrl
+            ? `Termos (${termsVersion}): ${termsUrl}`
+            : `Termos (${termsVersion}): resumo enviado abaixo.`;
+        const privacyLine = privacyUrl
+            ? `Privacidade: ${privacyUrl}`
+            : 'Privacidade: resumo enviado abaixo.';
+        const summary = [
+            'Resumo legal:',
+            '- Uso condicionado a consentimento por ACEITO.',
+            '- Dados tratados: identificacao WhatsApp e lancamentos financeiros enviados.',
+            '- Finalidade: operacao do bot, relatorios e auditoria.',
+            '- Ciclo de vida: PENDING, ACTIVE, INACTIVE, DELETED, EXPIRED.',
+            '- Mudanca de termos exige novo consentimento.'
+        ].join('\n');
+        await msg.reply(`${termsLine}\n${privacyLine}\n\n${summary}`);
+        return true;
+    }
+
+    return false;
+}
+
+async function handleSettingsCommands(msg, user) {
+    const body = normalizeText(String(msg.body || '').trim());
+    if (!body) return false;
+
+    if (body === 'ativar checkin semanal') {
+        await upsertUserSettings(user.user_id, { weekly_checkin_opt_in: 'SIM' });
+        await msg.reply('Check-in semanal ativado. Enviarei 1 pergunta curta no domingo.');
+        return true;
+    }
+    if (body === 'desativar checkin semanal') {
+        await upsertUserSettings(user.user_id, { weekly_checkin_opt_in: 'NÃO' });
+        await msg.reply('Check-in semanal desativado.');
+        return true;
+    }
+    if (body === 'ativar relatorio mensal') {
+        await upsertUserSettings(user.user_id, { monthly_report_opt_in: 'SIM' });
+        await msg.reply('Relatório mensal ativado.');
+        return true;
+    }
+    if (body === 'desativar relatorio mensal') {
+        await upsertUserSettings(user.user_id, { monthly_report_opt_in: 'NÃO' });
+        await msg.reply('Relatório mensal desativado.');
+        return true;
+    }
+    if (body === 'desativar reserva automatica') {
+        await upsertUserSettings(user.user_id, { defaults_enabled: 'NÃO' });
+        await msg.reply('Regra automática de reserva desativada.');
+        return true;
+    }
+
+    const reserveMatch = body.match(/definir reserva\s+(\d{1,2})\s*%?/);
+    if (reserveMatch) {
+        const percent = parseInt(reserveMatch[1], 10);
+        if (isNaN(percent) || percent < 1 || percent > 50) {
+            await msg.reply('Use um percentual entre 1% e 50%. Exemplo: definir reserva 10%');
+            return true;
+        }
+        await upsertUserSettings(user.user_id, {
+            defaults_enabled: 'SIM',
+            default_reserve_percent: String(percent)
+        });
+        await msg.reply(`Regra de reserva automática configurada em ${percent}% das entradas.`);
+        return true;
+    }
+
+    return false;
+}
+
+async function handleAccountLifecycleCommands(msg, user) {
+    const body = normalizeText(String(msg.body || '').trim());
+    if (!body) return false;
+
+    if (body === 'inativar conta') {
+        await updateUserStatus(user.user_id, 'INACTIVE');
+        await msg.reply('Sua conta foi inativada com sucesso. Para reativar, fale com o administrador.');
+        return true;
+    }
+
+    if (body === 'excluir conta') {
+        await updateUserStatus(user.user_id, 'DELETED');
+        await msg.reply('Sua conta foi marcada como DELETED (soft delete). Seus dados históricos foram preservados.');
+        return true;
+    }
+
+    return false;
+}
+
+async function handleAdminCommands(msg, senderId) {
+    if (!isAdmin(senderId)) return false;
+
+    const body = normalizeText(String(msg.body || '').trim());
+    if (!body.startsWith('admin')) return false;
+
+    if (body === 'admin ajuda') {
+        await msg.reply(
+            'Comandos admin:\n' +
+            '- admin listar usuarios\n' +
+            '- admin ativar <telefone>\n' +
+            '- admin inativar <telefone>\n' +
+            '- admin deletar <telefone>\n' +
+            '- admin expirar pendentes'
+        );
+        return true;
+    }
+
+    if (body === 'admin listar usuarios') {
+        const users = await getAllUsers();
+        if (!users.length) {
+            await msg.reply('Nenhum usuário encontrado.');
+            return true;
+        }
+
+        const counters = users.reduce((acc, u) => {
+            const key = u.status || 'DESCONHECIDO';
+            acc[key] = (acc[key] || 0) + 1;
+            return acc;
+        }, {});
+
+        const statusSummary = Object.entries(counters)
+            .map(([status, total]) => `${status}: ${total}`)
+            .join(' | ');
+
+        const list = users
+            .slice(0, 30)
+            .map(u => `- ${u.whatsapp_id} | ${u.display_name || 'sem_nome'} | ${u.status}`)
+            .join('\n');
+
+        await msg.reply(`Usuários (${users.length})\n${statusSummary}\n${list}`);
+        return true;
+    }
+
+    if (body === 'admin expirar pendentes') {
+        const expired = await expireOldPendingUsers();
+        await msg.reply(`Pendentes expirados agora: ${expired}`);
+        return true;
+    }
+
+    const statusMatch = body.match(/^admin\s+(ativar|inativar|deletar)\s+(.+)$/);
+    if (statusMatch) {
+        const action = statusMatch[1];
+        const target = statusMatch[2];
+        const statusMap = {
+            ativar: 'ACTIVE',
+            inativar: 'INACTIVE',
+            deletar: 'DELETED'
+        };
+        const status = statusMap[action];
+        const updated = await updateUserStatusByWhatsAppId(target, status);
+        if (!updated) {
+            await msg.reply('Usuário não encontrado para esse telefone/WhatsApp ID.');
+            return true;
+        }
+        await msg.reply(`Status atualizado: ${updated.whatsapp_id} -> ${updated.status}`);
+        return true;
+    }
+
+    await msg.reply('Comando admin não reconhecido. Use: admin ajuda');
+    return true;
+}
 
 async function handleMessage(msg) {
+    metrics.increment('message.received');
     const messageId = msg.id.id;
     if (processedMessages.has(messageId)) {
+        metrics.increment('message.duplicate');
         console.log(`Mensagem duplicada ignorada: ${messageId}`);
         return;
-    }
-
-    // --- Variáveis de contexto da mensagem, declaradas no início ---
-    const senderId = msg.author || msg.from; // Padronizando para senderId
-    let messageBody = msg.body.trim(); // Usamos 'let' pois pode ser alterado pela transcrição de áudio
-    // --- FIM das variáveis de contexto ---
-
-    // --- Comando !cancelar (acessível a qualquer usuário) ---
-    if (messageBody.toLowerCase() === '!cancelar') {
-        userStateManager.clearState(senderId); // Limpa o estado do usuário atual
-        await msg.reply('Processo cancelado. Seu estado foi resetado.');
-        return; // Sai da função, pois o comando foi processado
-    }
-    // --- FIM: Comando !cancelar ---
-
-    // --- Interceptação e Lógica de Comandos Administrativos ---
-    if (messageBody.startsWith('!')) {
-        // Verifica se o usuário é admin para processar comandos admin
-        if (!isAdmin(senderId)) { // Usando senderId
-            await msg.reply('Você não tem permissão para usar comandos administrativos.');
-            return; // Sai da função se não for admin
-        }
-
-        // Se for admin, processa os comandos
-        switch (messageBody.toLowerCase()) { // Usar toLowerCase para flexibilidade
-            case '!souadmin':
-                await msg.reply('Você é um administrador.');
-                break;
-            case '!ajudaadmin':
-                await msg.reply(
-                    'Comandos administrativos disponíveis:\n' +
-                    '  !souadmin - Verifica seu status de administrador.\n' +
-                    '  !ajudaadmin - Mostra esta lista de comandos.\n' +
-                    '  !recarregarplanilhas - Recarrega os IDs das planilhas e a autorização do Google.\n' +
-                    '  !limparcache <userId> - Limpa o estado de um usuário específico (ex: !limparcache 5521970112407).\n' +
-                    '  !resetartodosestados - Reseta o estado de TODOS os usuários (use com extrema cautela!).\n' +
-                    '  !veridsplanilhas - Mostra os IDs das planilhas carregadas.'
-                );
-                break;
-            case '!recarregarplanilhas':
-                try {
-                    await authorizeGoogle(); // Reautoriza as APIs
-                    await getSheetIds(); // Recarrega os IDs das planilhas
-                    await msg.reply('IDs das planilhas e autorização do Google recarregados com sucesso!');
-                } catch (error) {
-                    console.error('Erro ao recarregar planilhas:', error);
-                    await msg.reply('Erro ao recarregar IDs das planilhas. Verifique os logs do servidor.');
-                }
-                break;
-            case '!resetartodosestados':
-                try {
-                    userStateManager.resetAllStates(); // Chamada correta da função importada
-                    await msg.reply('Estado de todos os usuários resetado com sucesso!');
-                } catch (error) {
-                    console.error('Erro ao resetar todos os estados:', error);
-                    await msg.reply('Erro ao resetar todos os estados. Verifique os logs do servidor.');
-                }
-                break;
-            case '!veridsplanilhas':
-                const currentSheetIds = await getSheetIds(); // Pega os IDs carregados
-                await msg.reply(`IDs das planilhas carregados:\n\`\`\`json\n${JSON.stringify(currentSheetIds, null, 2)}\n\`\`\``);
-                break;
-            default:
-                // Para comandos que exigem um parâmetro (ex: !limparcache <userId>)
-                if (messageBody.toLowerCase().startsWith('!limparcache ')) {
-                    const targetUserId = messageBody.substring('!limparcache '.length).trim();
-                    if (targetUserId) {
-                        try {
-                            // userStateManager.clearState já está importado no topo
-                            userStateManager.clearState(targetUserId); 
-                            await msg.reply(`Estado do usuário ${targetUserId} limpo com sucesso!`);
-                        } catch (error) {
-                            console.error(`Erro ao limpar cache para ${targetUserId}:`, error);
-                            await msg.reply(`Erro ao limpar cache para ${targetUserId}. Verifique os logs do servidor.`);
-                        }
-                    } else {
-                        await msg.reply('Uso: !limparcache <userId>');
-                    }
-                } else {
-                    await msg.reply('Comando administrativo não reconhecido. Use !ajudaadmin para ver a lista.');
-                }
-                break;
-        }
-        return; // Importante: Sai da função para não processar com a IA
     }
 
     // Se a mensagem for de áudio, processa primeiro.
@@ -306,7 +313,7 @@ async function handleMessage(msg) {
         const transcribedText = await handleAudio(msg);
         if (!transcribedText) return; // Se a transcrição falhar, para aqui.
         
-        messageBody = transcribedText; // Atualiza o corpo da mensagem com o texto!
+        msg.body = transcribedText; // Atualiza o corpo da mensagem com o texto!
     }
 
     processedMessages.add(messageId);
@@ -314,10 +321,58 @@ async function handleMessage(msg) {
 
     if (msg.isStatus || msg.fromMe) return;
 
-    // A variável 'pessoa' depende de userMap e senderId, então fica aqui
-    const pessoa = userMap[senderId] || 'Ambos';
+    const messageBody = msg.body.trim();
+    const senderId = msg.author || msg.from;
+    const perfContext = `sender=${senderId} msg=${messageId}`;
+    const messageStartedAt = Date.now();
+
+    const access = await timeStep('resolveUserAccess', () => resolveUserAccess(msg), perfContext);
+    if (!access.allowed) {
+        if (access.reply) {
+            await msg.reply(access.reply);
+        }
+        return;
+    }
+
+    const activeUser = access.user;
+    const userId = activeUser.user_id;
+    const pessoa = activeUser.display_name || userMap[senderId] || 'Usuário';
+
+    if (access.justActivated) {
+        await msg.reply('Cadastro confirmado com sucesso! Seu acesso foi ativado.');
+    }
+    if (access.justReconsented) {
+        await msg.reply('Termos atualizados e consentimento renovado com sucesso. Obrigado.');
+    }
+
+    const onboarding = await timeStep('handleOnboarding', () => handleOnboarding(msg, activeUser), perfContext);
+    if (onboarding.handled) {
+        return;
+    }
+
+    const handledLifecycle = await handleAccountLifecycleCommands(msg, activeUser);
+    if (handledLifecycle) {
+        userStateManager.deleteState(senderId);
+        return;
+    }
+
+    const handledSettings = await handleSettingsCommands(msg, activeUser);
+    if (handledSettings) {
+        return;
+    }
+
+    const handledLegal = await handleLegalCommands(msg);
+    if (handledLegal) {
+        return;
+    }
+
+    const handledAdmin = await handleAdminCommands(msg, senderId);
+    if (handledAdmin) {
+        return;
+    }
 
     if (!rateLimiter.isAllowed(senderId)) {
+        metrics.increment('message.rate_limited');
         console.log(`Usuário ${senderId} bloqueado pelo rate limit.`);
         return;
     }
@@ -325,6 +380,7 @@ async function handleMessage(msg) {
     const cacheKey = `${senderId}:${messageBody}`;
     const cachedResponse = cache.get(cacheKey);
     if (cachedResponse) {
+        metrics.increment('message.cache_hit');
         await msg.reply(cachedResponse);
         return;
     }
@@ -334,40 +390,23 @@ async function handleMessage(msg) {
         // --- INÍCIO DA MÁQUINA DE ESTADOS (CONVERSAS EM ANDAMENTO) ---
         // Se existe uma conversa em andamento, o bot lida com ela e PARA AQUI.
         switch (currentState.action) {
-            case 'confirming_debt_update': {
-                await debtUpdateHandler.confirmDebtUpdateSelection(msg);
-                return;
-            }
             case 'awaiting_credit_card_selection': {
-                 const { gasto, cardOptions } = currentState.data;
+                const { gasto, cardOptions } = currentState.data;
+                const selection = parseInt(msg.body.trim(), 10) - 1;
 
-                    let cardKey = null;
+                if (selection >= 0 && selection < cardOptions.length) {
+                    const cardKey = cardOptions[selection];
+                    const cardInfo = creditCardConfig[cardKey];
 
-                    // 1) Tentativa por número (comportamento atual)
-                    const selection = parseInt(msg.body.trim(), 10) - 1;
-                    if (!isNaN(selection) && selection >= 0 && selection < cardOptions.length) {
-                        cardKey = cardOptions[selection];
-                    } else {
-                        // 2) Tentativa por texto (fuzzy)
-                        const detected = detectCardKeyFromTextFuzzy(msg.body, creditCardConfig);
-                        if (detected && cardOptions.includes(detected.cardKey)) {
-                            cardKey = detected.cardKey;
-                        }
-                    }
-
-                    if (cardKey) {
-                        const cardInfo = creditCardConfig[cardKey];
-
-                        userStateManager.setState(senderId, {
-                            action: 'awaiting_installment_number',
-                            data: { gasto, cardInfo }
-                        });
-
-                        await msg.reply("Em quantas parcelas? (digite `1` se for à vista)");
-                    } else {
-                        await msg.reply("Opção inválida. Por favor, responda com um dos números da lista (ou digite o nome do cartão, ex: 'nubank thais').");
-                    }
-                    return;
+                    userStateManager.setState(senderId, {
+                        action: 'awaiting_installment_number',
+                        data: { gasto, cardInfo }
+                    });
+                    await msg.reply("Em quantas parcelas? (digite `1` se for à vista)");
+                } else {
+                    await msg.reply("Opção inválida. Por favor, responda apenas com um dos números da lista.");
+                }
+                return;
             }
 
             case 'awaiting_installment_number': {
@@ -397,7 +436,7 @@ async function handleMessage(msg) {
 
                         const rowData = [
                             getFormattedDateOnly(purchaseDate), gasto.descricao, gasto.categoria || 'Outros',
-                            parseFloat(gasto.valor), '1/1', billingMonthName
+                            parseFloat(gasto.valor), '1/1', billingMonthName, userId
                         ];
                         
                         await appendRowToSheet(cardInfo.sheetName, rowData);
@@ -424,7 +463,7 @@ async function handleMessage(msg) {
 
                              const rowData = [
                                  getFormattedDateOnly(purchaseDate), gasto.descricao, gasto.categoria || 'Outros',
-                                 String(installmentValue.toFixed(2)).replace('.',','), `${i}/${installments}`, billingMonthName
+                                 String(installmentValue.toFixed(2)).replace('.',','), `${i}/${installments}`, billingMonthName, userId
                              ];
                              
                              await appendRowToSheet(cardInfo.sheetName, rowData);
@@ -435,7 +474,7 @@ async function handleMessage(msg) {
                     console.error("Erro ao salvar parcelamento:", error);
                     await msg.reply("Ocorreu um erro ao salvar o gasto.");
                 } finally {
-                    userStateManager.clearState(senderId);
+                    userStateManager.deleteState(senderId);
                 }
                 return;
             }
@@ -485,13 +524,13 @@ async function handleMessage(msg) {
                 const rowData = [
                     dataFinal, gasto.descricao || 'Não especificado', gasto.categoria || 'Outros',
                     gasto.subcategoria || '', valorNumerico, pessoa, gasto.pagamento,
-                    gasto.recorrente || 'Não', gasto.observacoes || ''
+                    gasto.recorrente || 'Não', gasto.observacoes || '', userId
                 ];
                 await appendRowToSheet('Saídas', rowData);
 
                 // MENSAGEM DE SUCESSO MELHORADA
                 await msg.reply(`✅ Gasto de R$${valorNumerico.toFixed(2)} (${gasto.descricao}) registrado como *${gasto.pagamento}* para a data de *${dataFinal}*!`);
-                userStateManager.clearState(senderId);
+                userStateManager.deleteState(senderId);
                 return;
             }
 
@@ -511,12 +550,19 @@ async function handleMessage(msg) {
                 const rowData = [
                     dataDaEntrada, entrada.descricao || 'Não especificado',
                     entrada.categoria || 'Outros', valorNumerico, pessoa,
-                    entrada.recebimento, entrada.recorrente || 'Não', entrada.observacoes || ''
+                    entrada.recebimento, entrada.recorrente || 'Não', entrada.observacoes || '', userId
                 ];
 
                 await appendRowToSheet('Entradas', rowData);
                 await msg.reply(`✅ Entrada de R$${valorNumerico.toFixed(2)} (${entrada.descricao}) registrada como *${entrada.recebimento}* para a data de *${dataDaEntrada}*!`);
-                userStateManager.clearState(senderId);
+
+                const settings = await getUserSettingsByUserId(userId);
+                if (settings && normalizeText(settings.defaults_enabled) === 'sim') {
+                    const percent = Math.max(1, Math.min(50, parseInt(settings.default_reserve_percent, 10) || 10));
+                    const reserveSuggestion = (valorNumerico * percent) / 100;
+                    await msg.reply(`Sugestão automática: separar ${formatCurrencyBR(reserveSuggestion)} (${percent}%) para sua reserva.`);
+                }
+                userStateManager.deleteState(senderId);
                 return;
             }
 
@@ -544,15 +590,15 @@ async function handleMessage(msg) {
                 const cleanReply = normalizeText(msg.body);
                 if (cleanReply === 'sim') {
                     // Agora, em vez de registrar, vamos para a próxima etapa
-                    const { transactions, originalMessageBody  } = currentState.data;
+                    const { transactions } = currentState.data;
                     userStateManager.setState(senderId, {
                         action: 'awaiting_batch_payment_method',
-                        data: { transactions, originalMessageBody  } // Passamos as transações para o próximo estado
+                        data: { transactions } // Passamos as transações para o próximo estado
                     });
                     await msg.reply("Ótimo! E como esses itens foram pagos? (Crédito, Débito, PIX ou Dinheiro)");
                 } else {
                     await msg.reply("Ok, registro cancelado.");
-                    userStateManager.clearState(senderId);
+                    userStateManager.deleteState(senderId);
                 }
                 return; // Importante para esperar a próxima resposta do usuário
             }
@@ -585,24 +631,6 @@ async function handleMessage(msg) {
                 // Uma verificação de segurança: o fluxo de crédito é complexo (pede cartão, parcelas, etc.).
                 // Por isso, é melhor tratar múltiplos itens no crédito de forma individual.
                 if (normalizeText(pagamentoFinal) === 'credito') {
-                const originalMessageBody = currentState.data?.originalMessageBody || '';
-                const detected = detectCardKeyFromTextFuzzy(originalMessageBody, creditCardConfig);
-
-                if (detected) {
-                    userStateManager.setState(senderId, {
-                        action: 'awaiting_installments_batch',
-                        data: { transactions, cardInfo: detected.cardInfo }
-                    });
-
-                    let installmentsQuestion = `Entendido, no cartão *${detected.cardInfo.sheetName}*. E as parcelas?\n\n`;
-                    installmentsQuestion += `*1.* Se foi tudo à vista (ou 1x), digite \`1\`.\n`;
-                    installmentsQuestion += `*2.* Se todos tiveram o mesmo nº de parcelas, digite o número (ex: \`3\`)\n`;
-                    installmentsQuestion += `*3.* Se foram parcelas diferentes, me diga quais (ex: \`${transactions[0].descricao} em 3x, o resto à vista\`).`;
-
-                    await msg.reply(installmentsQuestion);
-                    return;
-                };
-            
                     const cardOptions = Object.keys(creditCardConfig);
                     let question = `Ok, crédito. Em qual cartão? Responda com o número:\n\n`;
                     cardOptions.forEach((cardName, index) => {
@@ -633,14 +661,14 @@ async function handleMessage(msg) {
                             rowData = [
                                 getFormattedDateOnly(dataDoGasto), item.descricao || 'Não especificado', item.categoria || 'Outros',
                                 item.subcategoria || '', parseFloat(item.valor), person, item.pagamento || '',
-                                item.recorrente || 'Não', item.observacoes || ''
+                                item.recorrente || 'Não', item.observacoes || '', userId
                             ];
                         } else if (sheetName === 'Entradas') {
                             const dataDaEntrada = item.data ? parseSheetDate(item.data) : new Date();
                             rowData = [
                                 getFormattedDateOnly(dataDaEntrada), item.descricao || 'Não especificado',
                                 item.categoria || 'Outros', parseFloat(item.valor), person,
-                                item.recebimento || '', item.recorrente || 'Não', item.observacoes || ''
+                                item.recebimento || '', item.recorrente || 'Não', item.observacoes || '', userId
                             ];
                         }
                         
@@ -655,31 +683,21 @@ async function handleMessage(msg) {
                 }
 
                 await msg.reply(`Registro finalizado. ${successCount} de ${transactions.length} itens foram salvos com sucesso.`);
-                userStateManager.clearState(senderId);
+                userStateManager.deleteState(senderId);
                 return;
             }
 
             case 'awaiting_credit_card_selection_batch': {
                 const { transactions } = currentState.data;
                 const cardOptions = Object.keys(creditCardConfig);
-
-                let cardKey = null;
-
                 const selection = parseInt(msg.body.trim(), 10) - 1;
-                if (!isNaN(selection) && selection >= 0 && selection < cardOptions.length) {
-                    cardKey = cardOptions[selection];
-                } else {
-                    const detected = detectCardKeyFromTextFuzzy(msg.body, creditCardConfig);
-                    if (detected && cardOptions.includes(detected.cardKey)) {
-                        cardKey = detected.cardKey;
-                    }
-                }
 
-                if (cardKey) {
+                if (selection >= 0 && selection < cardOptions.length) {
+                    const cardKey = cardOptions[selection];
                     const cardInfo = creditCardConfig[cardKey];
 
                     userStateManager.setState(senderId, {
-                        action: 'awaiting_installments_batch',
+                        action: 'awaiting_installments_batch', // Próximo novo estado!
                         data: { transactions, cardInfo }
                     });
 
@@ -690,7 +708,7 @@ async function handleMessage(msg) {
                     await msg.reply(question);
 
                 } else {
-                    await msg.reply("Opção inválida. Responda com um número da lista (ou digite o nome do cartão, ex: 'nubank thais').");
+                    await msg.reply("Opção inválida. Por favor, responda apenas com um dos números da lista.");
                 }
                 return;
             }
@@ -735,7 +753,7 @@ async function handleMessage(msg) {
 
                 if (Object.keys(installmentMap).length === 0) {
                     await msg.reply("Não consegui entender a divisão das parcelas. Vamos cancelar e você pode tentar de novo, ok?");
-                    userStateManager.clearState(senderId);
+                    userStateManager.deleteState(senderId);
                     return;
                 }
 
@@ -769,7 +787,7 @@ async function handleMessage(msg) {
 
                         const rowData = [
                             getFormattedDateOnly(purchaseDate), gasto.descricao, gasto.categoria || 'Outros',
-                            installmentValue.toFixed(2), `${i}/${numParcelas}`, billingMonthName
+                            installmentValue.toFixed(2), `${i}/${numParcelas}`, billingMonthName, userId
                         ];
                         
                         await appendRowToSheet(cardInfo.sheetName, rowData);
@@ -777,7 +795,7 @@ async function handleMessage(msg) {
                 }
 
                 await msg.reply(`✅ Lançamentos no crédito finalizados com sucesso!`);
-                userStateManager.clearState(senderId);
+                userStateManager.deleteState(senderId);
                 return;
             }
         }
@@ -785,14 +803,13 @@ async function handleMessage(msg) {
         // --- INÍCIO DA ANÁLISE DE NOVOS COMANDOS ---
         console.log(`Mensagem de ${pessoa} (${senderId}): "${messageBody}"`);
         try {
-            const handledDebtUpdate = await debtUpdateHandler.startDebtUpdate(msg);
-            if (handledDebtUpdate) return;
             // CÓDIGO PARA SUBSTITUIR (APENAS A CONSTANTE masterPrompt)
 
             const masterPrompt = `Sua tarefa é analisar a mensagem e extrair a intenção e detalhes em um JSON. A data e hora atual é ${new Date().toISOString()}.
 
             ### ORDEM DE ANÁLISE OBRIGATÓRIA:
-            1.  **É UM PEDIDO DE AJUDA?** Se o usuário perguntar o que você faz, quais são seus comandos, ou pedir ajuda, a intenção é OBRIGATORIAMENTE 'ajuda'.
+            1.  **É UM PEDIDO DE RESUMO OU BALANÇO?** Se o usuário pedir resumo, saldo, quanto sobrou, ou como estão as finanças, a intenção é OBRIGATORIAMENTE 'resumo'.
+            2.  **É UM PEDIDO DE AJUDA?** Se o usuário perguntar o que você faz, quais são seus comandos, ou pedir ajuda, a intenção é OBRIGATORIAMENTE 'ajuda'.
             2.  **É UM PAGAMENTO DE DÍVIDA?** Se a mensagem indicar o pagamento de uma conta ou dívida existente (ex: "paguei o financiamento", "registre o pagamento da fatura", "paguei a parcela do carro"), a intenção é OBRIGATORIAMENTE 'registrar_pagamento'.
             3.  **É UM PEDIDO DE EXCLUSÃO?** Se a mensagem for para apagar algo, a intenção é 'apagar_item'.
             4.  **É UMA PERGUNTA DE ANÁLISE?** Se a mensagem for uma pergunta sobre dados (iniciar com "Qual", "Quanto", "Liste", etc.), a intenção é OBRIGATORIAMENTE 'pergunta'.
@@ -814,22 +831,13 @@ async function handleMessage(msg) {
             - Mapa de Gastos: ${JSON.stringify(mapeamentoGastos)}
             - Mapa de Entradas: ${JSON.stringify(mapeamentoEntradas)}
             ### Formato de Saída:
-            Retorne APENAS o objeto JSON, seguindo este schema: ${JSON.stringify(MASTER_SCHEMA)}
-
-            ### REGRAS ESPECÍFICAS PARA A INTENÇÃO 'criar_lembrete':
-            - O campo 'lembreteDetails.dataHora' DEVE ser EXATAMENTE um destes formatos:
-            1) DD/MM/AAAA
-            2) DD/MM/AAAA HH:MM   (24h, com espaço)
-            - É PROIBIDO incluir texto dentro de 'dataHora' (ex.: "às", "as", "dia", "de", etc.). Apenas números e separadores.
-            - Se o usuário não informar hora, use apenas DD/MM/AAAA (evento de dia inteiro).
-            - Se o usuário informar hora, use DD/MM/AAAA HH:MM.
-            - Datas relativas (hoje/amanhã) DEVEM ser calculadas considerando a data de hoje (${new Date().toLocaleDateString('pt-BR')}) e o fuso America/Sao_Paulo.
-            - Se não for possível determinar data/hora com segurança, NÃO inclua 'dataHora'.
-            - 'lembreteDetails.recorrencia' (quando existir) deve ser APENAS um destes valores canônicos:
-            FREQ=DAILY, FREQ=WEEKLY, FREQ=MONTHLY, FREQ=YEARLY
-            (não use "Diariamente", "Semanalmente", etc.)`;
+            Retorne APENAS o objeto JSON, seguindo este schema: ${JSON.stringify(MASTER_SCHEMA)}`;
             
-            const structuredResponse = await getStructuredResponseFromLLM(masterPrompt);
+            const structuredResponse = await timeStep(
+                'getStructuredResponseFromLLM',
+                () => getStructuredResponseFromLLM(masterPrompt),
+                perfContext
+            );
             console.log("--- RESPOSTA BRUTA DA IA ---");
             console.log(JSON.stringify(structuredResponse, null, 2));
             console.log("--------------------------");
@@ -845,6 +853,97 @@ async function handleMessage(msg) {
         };
 
             switch (structuredResponse.intent) {
+                case 'resumo': {
+                    await msg.reply('Gerando seu resumo financeiro com saúde de caixa...');
+                    try {
+                        const sheetReads = [
+                            readDataFromSheet('Saídas!A:J'),
+                            readDataFromSheet('Entradas!A:I'),
+                            readDataFromSheet('Dívidas!A:R'),
+                            readDataFromSheet('Metas!A:I')
+                        ];
+
+                        const cardSheetNames = Object.values(creditCardConfig).map(card => card.sheetName);
+                        cardSheetNames.forEach(sheetName => {
+                            sheetReads.push(readDataFromSheet(sheetName + '!A:G'));
+                        });
+
+                        const allSheetData = await timeStep(
+                            'resumo.Promise.all(sheetReads)',
+                            () => Promise.all(sheetReads),
+                            perfContext
+                        );
+                        const [saidasData, entradasData, dividasData, metasData] = allSheetData;
+                        const creditCardData = allSheetData.slice(4);
+                        const userProfile = await getUserProfileByUserId(userId);
+
+                        const health = buildHealthSummary({
+                            user: activeUser,
+                            aliases: [pessoa, activeUser.display_name],
+                            profile: userProfile,
+                            saidasData,
+                            entradasData,
+                            dividasData,
+                            metasData,
+                            creditCardData
+                        });
+
+                        const extraBudgetForAvalanche = health.saldoMes > 0 ? health.saldoMes * 0.5 : 0;
+                        const avalanchePlan = buildDebtAvalanchePlan({
+                            debts: health.debtsForPlanning,
+                            extraBudget: extraBudgetForAvalanche
+                        });
+
+                        const riscoTexto = health.daysToNegative === null
+                            ? 'Sem dados suficientes para estimar dias até caixa negativo.'
+                            : 'Risco de caixa em ' + health.daysToNegative + ' dia(s) (nível ' + health.riskLevel + ').';
+
+                        const summaryMessage = [
+                            'Resumo inteligente de ' + health.periodLabel + ':',
+                            '- Entradas do mês: ' + formatCurrencyBR(health.currentMonthEntradas),
+                            '- Saídas do mês (exceto cartão): ' + formatCurrencyBR(health.currentMonthSaidas),
+                            '- Fatura no mês: ' + formatCurrencyBR(health.currentMonthCard),
+                            '- Saldo do mês: ' + formatCurrencyBR(health.saldoMes),
+                            '',
+                            'Radar de caixa (30 dias):',
+                            '- ' + riscoTexto,
+                            '- Por quê: ' + health.riskExplanation,
+                            '',
+                            'Reserva de emergência:',
+                            '- Alvo (3 meses): ' + formatCurrencyBR(health.reserveTarget3),
+                            '- Valor atual mapeado: ' + formatCurrencyBR(health.reserveCurrent),
+                            '- Progresso: ' + health.reserveProgressPct.toFixed(1) + '%'
+                        ].join('\n');
+
+                        let avalancheMessage = '';
+                        if (avalanchePlan) {
+                            const ordem = avalanchePlan.avalanche.order.length > 0
+                                ? avalanchePlan.avalanche.order.join(' -> ')
+                                : health.debtsForPlanning
+                                    .slice()
+                                    .sort((a, b) => b.monthlyRatePct - a.monthlyRatePct)
+                                    .map(d => d.name)
+                                    .join(' -> ');
+
+                            avalancheMessage = [
+                                '',
+                                'Plano de dívidas (estratégia avalanche):',
+                                '- Extra sugerido/mês: ' + formatCurrencyBR(avalanchePlan.recommendedExtraBudget),
+                                '- Ordem sugerida: ' + ordem,
+                                '- Prazo estimado (base): ' + avalanchePlan.baseline.months + ' mês(es)',
+                                '- Prazo estimado (avalanche): ' + avalanchePlan.avalanche.months + ' mês(es)',
+                                '- Economia estimada de juros: ' + formatCurrencyBR(avalanchePlan.interestSaved)
+                            ].join('\n');
+                        }
+
+                        cache.set(cacheKey, summaryMessage);
+                        await msg.reply(summaryMessage + avalancheMessage);
+                    } catch (err) {
+                        console.error('Erro ao gerar resumo financeiro:', err);
+                        await msg.reply('Não consegui gerar o resumo inteligente agora. Tente novamente em instantes.');
+                    }
+                    break;
+                }
                 case 'gasto':
                 case 'entrada': {
                     const gastos = structuredResponse.gastoDetails || [];
@@ -873,15 +972,6 @@ async function handleMessage(msg) {
                         const pagamento = normalizeText(item.pagamento || '');
 
                         if (item.type === 'Saídas' && pagamento === 'credito') {
-                            const detected = detectCardKeyFromTextFuzzy(messageBody, creditCardConfig);
-                                if (detected) {
-                                    userStateManager.setState(senderId, {
-                                        action: 'awaiting_installment_number',
-                                        data: { gasto: item, cardInfo: detected.cardInfo }
-                                    });
-                                    await msg.reply(`Entendi, no cartão *${detected.cardInfo.sheetName}*. Em quantas parcelas? (digite \`1\` se for à vista)`);
-                                    return;
-                                }
                             const cardOptions = Object.keys(creditCardConfig);
                             let question = `Entendi, o gasto foi no crédito. Em qual cartão? Responda com o número:\n\n`;
                             cardOptions.forEach((cardName, index) => {
@@ -925,7 +1015,7 @@ async function handleMessage(msg) {
 
                     userStateManager.setState(senderId, {
                         action: 'confirming_transactions',
-                        data: { transactions: allTransactions, person: pessoa, originalMessageBody: messageBody }
+                        data: { transactions: allTransactions, person: pessoa }
                     });
                     await msg.reply(confirmationMessage);
                     break;
@@ -944,36 +1034,52 @@ async function handleMessage(msg) {
                         cardSheetNames.forEach(sheetName => {
                             sheetReads.push(readDataFromSheet(`${sheetName}!A:F`)); 
                         });
-                        const allSheetData = await Promise.all(sheetReads);
+                        const allSheetData = await timeStep(
+                            'pergunta.Promise.all(sheetReads)',
+                            () => Promise.all(sheetReads),
+                            perfContext
+                        );
 
                         const [saidasData, entradasData, metasData, dividasData] = allSheetData;
                         const creditCardData = allSheetData.slice(4);
 
                         const userQuestion = structuredResponse.question || messageBody;
-                        const intentClassification = await classify(userQuestion);
+                        const intentClassification = await timeStep(
+                            'classify(userQuestion)',
+                            () => classify(userQuestion),
+                            perfContext
+                        );
                         
-                        const analyzedData = await execute(
-                            intentClassification.intent,
-                            intentClassification.parameters,
-                            {
-                                saidas: saidasData,
-                                entradas: entradasData,
-                                metas: metasData,
-                                dividas: dividasData,
-                                cartoes: creditCardData
-                            }
+                        const analyzedData = await timeStep(
+                            'execute(intent)',
+                            () => execute(
+                                intentClassification.intent,
+                                intentClassification.parameters,
+                                {
+                                    saidas: saidasData,
+                                    entradas: entradasData,
+                                    metas: metasData,
+                                    dividas: dividasData,
+                                    cartoes: creditCardData
+                                }
+                            ),
+                            perfContext
                         );
 
-                        const respostaFinal = await generate({
-                            userQuestion,
-                            intent: intentClassification.intent,
-                            rawResults: analyzedData.results,
-                            details: analyzedData.details,
-                            dateContext: {
-                                currentMonth: new Date().getMonth(),
-                                currentYear: new Date().getFullYear()
-                            }
-                        });
+                        const respostaFinal = await timeStep(
+                            'generate(response)',
+                            () => generate({
+                                userQuestion,
+                                intent: intentClassification.intent,
+                                rawResults: analyzedData.results,
+                                details: analyzedData.details,
+                                dateContext: {
+                                    currentMonth: new Date().getMonth(),
+                                    currentYear: new Date().getFullYear()
+                                }
+                            }),
+                            perfContext
+                        );
                     
                         cache.set(cacheKey, respostaFinal);
                         await msg.reply(respostaFinal);
@@ -1027,16 +1133,27 @@ async function handleMessage(msg) {
                 }
 
                 case 'ajuda': {
-                    const helpMessage = `Olá! Eu sou seu assistente financeiro. Veja como posso te ajudar:\n\n*PARA REGISTRAR:*\n- *Gasto:* \`gastei 50 no mercado ontem no pix\`\n- *Entrada:* \`recebi 1200 do freela na conta\`\n- *Múltiplos:* \`hoje paguei 100 de luz e 50 de internet\`\n\n*PARA CONSULTAR:*\n- *Saldo:* \`qual o saldo de agosto?\`\n- *Gastos:* \`quanto gastei com transporte este mês?\`\n- *Listar:* \`liste meus gastos com mercado\`\n\n*OUTROS COMANDOS:*\n- \`criar meta\`\n- \`criar dívida\`\n- \`apagar último gasto\`\n- \`me lembre de pagar a fatura amanhã às 10h\`\n\nÉ só me dizer o que precisa! 😉`;
+                    const helpMessage = `Olá! Eu sou seu assistente financeiro. Veja como posso te ajudar:\n\n*PARA REGISTRAR:*\n- *Gasto:* \`gastei 50 no mercado ontem no pix\`\n- *Entrada:* \`recebi 1200 do freela na conta\`\n- *Múltiplos:* \`hoje paguei 100 de luz e 50 de internet\`\n\n*PARA CONSULTAR:*\n- *Saldo:* \`qual o saldo de agosto?\`\n- *Gastos:* \`quanto gastei com transporte este mês?\`\n- *Listar:* \`liste meus gastos com mercado\`\n\n*OUTROS COMANDOS:*\n- \`criar meta\`\n- \`criar dívida\`\n- \`apagar último gasto\`\n- \`me lembre de pagar a fatura amanhã às 10h\`\n- \`termos\` (termos e privacidade)\n\nÉ só me dizer o que precisa! 😉`;
                     await msg.reply(helpMessage);
                     break;
                 }
             }
         } catch (error) {
+            metrics.increment('message.error.fatal');
             console.error('❌ Erro fatal ao processar mensagem:', error);
             await msg.reply('Ocorreu um erro interno e a equipe de TI (o Daniel) foi notificada.');
+        } finally {
+            const totalMs = Date.now() - messageStartedAt;
+            metrics.observeDuration('message.total.ms', totalMs);
+            if (totalMs >= PERF_WARN_MS) {
+                metrics.increment('message.total.slow');
+                console.warn(`[perf] handleMessage total ${totalMs}ms (${perfContext})`);
+            }
         }
     }
 }
 
 module.exports = { handleMessage };
+
+
+
