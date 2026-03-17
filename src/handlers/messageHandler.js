@@ -14,11 +14,15 @@ const { execute } = require('../services/calculationOrchestrator');
 const { generate } = require('../ai/responseGenerator');
 const {
     resolveUserAccess,
+    USER_STATUS,
     getUserProfileByUserId,
     getUserSettingsByUserId,
+    upsertUserProfile,
     upsertUserSettings,
     updateUserStatus,
     updateUserStatusByWhatsAppId,
+    getUserByLookup,
+    getConsentLogsByUserId,
     getAllUsers,
     expireOldPendingUsers
 } = require('../services/userService');
@@ -149,7 +153,7 @@ async function handleLegalCommands(msg) {
             '- Uso condicionado a consentimento por ACEITO.',
             '- Dados tratados: identificacao WhatsApp e lancamentos financeiros enviados.',
             '- Finalidade: operacao do bot, relatorios e auditoria.',
-            '- Ciclo de vida: PENDING, ACTIVE, INACTIVE, DELETED, EXPIRED.',
+            '- Ciclo de vida: PENDING, ACTIVE, INACTIVE, BLOCKED, DELETED, EXPIRED.',
             '- Mudanca de termos exige novo consentimento.'
         ].join('\n');
         await msg.reply(`${termsLine}\n${privacyLine}\n\n${summary}`);
@@ -227,7 +231,8 @@ async function handleAccountLifecycleCommands(msg, user) {
 }
 
 async function handleAdminCommands(msg, senderId, activeUser) {
-    const body = normalizeText(String(msg.body || '').trim());
+    const rawBody = String(msg.body || '').trim();
+    const body = normalizeText(rawBody);
     if (!body.startsWith('admin')) return false;
 
     const adminContext = {
@@ -247,10 +252,16 @@ async function handleAdminCommands(msg, senderId, activeUser) {
         await msg.reply(
             'Comandos admin:\n' +
             '- admin listar usuarios\n' +
+            '- admin status <telefone>\n' +
+            '- admin log <telefone>\n' +
             '- admin ativar <telefone>\n' +
             '- admin inativar <telefone>\n' +
+            '- admin bloquear <telefone>\n' +
             '- admin deletar <telefone>\n' +
-            '- admin expirar pendentes'
+            '- admin expirar pendentes\n' +
+            '- admin resetar onboarding <telefone>\n' +
+            '- admin mensagem <telefone> <texto>\n' +
+            '- admin stats'
         );
         return true;
     }
@@ -289,14 +300,130 @@ async function handleAdminCommands(msg, senderId, activeUser) {
         return true;
     }
 
-    const statusMatch = body.match(/^admin\s+(ativar|inativar|deletar)\s+(.+)$/);
+    if (body === 'admin stats') {
+        const users = await getAllUsers();
+        const counters = users.reduce((acc, u) => {
+            const key = u.status || 'DESCONHECIDO';
+            acc[key] = (acc[key] || 0) + 1;
+            return acc;
+        }, {});
+        logger.info(`[admin] stats context=${JSON.stringify({ ...adminContext, total_users: users.length, counters })}`);
+        const statusSummary = Object.entries(counters)
+            .map(([status, total]) => `${status}: ${total}`)
+            .join(' | ');
+        await msg.reply(`Stats usuários\nTotal: ${users.length}\n${statusSummary || 'sem dados'}`);
+        return true;
+    }
+
+    const statusQueryMatch = body.match(/^admin\s+status\s+(.+)$/);
+    if (statusQueryMatch) {
+        const target = statusQueryMatch[1];
+        const user = await getUserByLookup(target);
+        if (!user) {
+            logger.warn(`[admin] status_nao_encontrado context=${JSON.stringify({ ...adminContext, target })}`);
+            await msg.reply('Usuário não encontrado para esse telefone/WhatsApp ID.');
+            return true;
+        }
+        const profile = await getUserProfileByUserId(user.user_id);
+        const settings = await getUserSettingsByUserId(user.user_id);
+        logger.info(`[admin] status context=${JSON.stringify({ ...adminContext, target, target_user_id: user.user_id, target_status: user.status })}`);
+        await msg.reply(
+            `Status do usuário\n` +
+            `- whatsapp_id: ${user.whatsapp_id}\n` +
+            `- nome: ${user.display_name || 'sem_nome'}\n` +
+            `- status: ${user.status}\n` +
+            `- user_id: ${user.user_id}\n` +
+            `- onboarding_concluido: ${profile?.onboarding_completed_at ? 'SIM' : 'NÃO'}\n` +
+            `- checkin_semanal: ${settings?.weekly_checkin_opt_in || 'NÃO'}\n` +
+            `- relatorio_mensal: ${settings?.monthly_report_opt_in || 'NÃO'}`
+        );
+        return true;
+    }
+
+    const consentLogMatch = body.match(/^admin\s+log\s+(.+)$/);
+    if (consentLogMatch) {
+        const target = consentLogMatch[1];
+        const user = await getUserByLookup(target);
+        if (!user) {
+            logger.warn(`[admin] log_nao_encontrado context=${JSON.stringify({ ...adminContext, target })}`);
+            await msg.reply('Usuário não encontrado para esse telefone/WhatsApp ID.');
+            return true;
+        }
+        const logs = await getConsentLogsByUserId(user.user_id, 5);
+        logger.info(`[admin] log context=${JSON.stringify({ ...adminContext, target, target_user_id: user.user_id, consent_events: logs.length })}`);
+        if (!logs.length) {
+            await msg.reply('Nenhum evento de consentimento encontrado para este usuário.');
+            return true;
+        }
+        const formatted = logs.map((entry, idx) => {
+            let msgId = '';
+            try {
+                const evidence = JSON.parse(entry.evidence || '{}');
+                msgId = evidence.message_id || '';
+            } catch (error) {
+                msgId = '';
+            }
+            return `${idx + 1}. ${entry.accepted_at} | ${entry.terms_version || '-'} | msg_id: ${msgId || '-'}`;
+        }).join('\n');
+        await msg.reply(`Últimos consentimentos (${logs.length})\n${formatted}`);
+        return true;
+    }
+
+    const resetOnboardingMatch = body.match(/^admin\s+resetar onboarding\s+(.+)$/);
+    if (resetOnboardingMatch) {
+        const target = resetOnboardingMatch[1];
+        const user = await getUserByLookup(target);
+        if (!user) {
+            logger.warn(`[admin] resetar_onboarding_nao_encontrado context=${JSON.stringify({ ...adminContext, target })}`);
+            await msg.reply('Usuário não encontrado para esse telefone/WhatsApp ID.');
+            return true;
+        }
+        await upsertUserProfile(user.user_id, { onboarding_completed_at: '' });
+        userStateManager.deleteState(user.whatsapp_id);
+        const digits = String(user.whatsapp_id || '').replace('@c.us', '').replace('@lid', '').replace(/\D/g, '');
+        if (digits) {
+            userStateManager.deleteState(`${digits}@c.us`);
+            userStateManager.deleteState(`${digits}@lid`);
+        }
+        logger.info(`[admin] resetar_onboarding context=${JSON.stringify({ ...adminContext, target, target_user_id: user.user_id })}`);
+        await msg.reply(`Onboarding resetado para ${user.whatsapp_id}.`);
+        return true;
+    }
+
+    const manualMessageMatch = rawBody.match(/^admin\s+mensagem\s+(\S+)\s+([\s\S]+)$/i);
+    if (manualMessageMatch) {
+        const target = manualMessageMatch[1];
+        const manualText = String(manualMessageMatch[2] || '').trim();
+        if (!manualText) {
+            await msg.reply('Texto vazio. Use: admin mensagem <telefone> <texto>');
+            return true;
+        }
+        const user = await getUserByLookup(target);
+        if (!user) {
+            logger.warn(`[admin] mensagem_nao_encontrado context=${JSON.stringify({ ...adminContext, target })}`);
+            await msg.reply('Usuário não encontrado para esse telefone/WhatsApp ID.');
+            return true;
+        }
+        if (!msg.client || typeof msg.client.sendMessage !== 'function') {
+            logger.error(`[admin] mensagem_cliente_indisponivel context=${JSON.stringify({ ...adminContext, target, target_user_id: user.user_id })}`);
+            await msg.reply('Cliente WhatsApp indisponível para envio manual.');
+            return true;
+        }
+        await msg.client.sendMessage(user.whatsapp_id, manualText);
+        logger.info(`[admin] mensagem context=${JSON.stringify({ ...adminContext, target, target_user_id: user.user_id, target_whatsapp_id: user.whatsapp_id, message_length: manualText.length })}`);
+        await msg.reply(`Mensagem enviada para ${user.whatsapp_id}.`);
+        return true;
+    }
+
+    const statusMatch = body.match(/^admin\s+(ativar|inativar|bloquear|deletar)\s+(.+)$/);
     if (statusMatch) {
         const action = statusMatch[1];
         const target = statusMatch[2];
         const statusMap = {
-            ativar: 'ACTIVE',
-            inativar: 'INACTIVE',
-            deletar: 'DELETED'
+            ativar: USER_STATUS.ACTIVE,
+            inativar: USER_STATUS.INACTIVE,
+            bloquear: USER_STATUS.BLOCKED,
+            deletar: USER_STATUS.DELETED
         };
         const status = statusMap[action];
         const updated = await updateUserStatusByWhatsAppId(target, status);

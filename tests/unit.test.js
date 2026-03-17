@@ -111,7 +111,13 @@ test('userService.legalInfoHelpers', (t) => {
     const reply = userService.buildPublicLegalSummaryReply({ includeAcceptInstruction: true, termsVersion: 'v1.1' });
     assert.ok(reply.includes('Termos (v1.1):'), 'Should include terms version');
     assert.ok(reply.includes('Resumo legal:'), 'Should include summary header');
+    assert.ok(reply.includes('BLOCKED'), 'Should include BLOCKED in lifecycle summary');
     assert.ok(reply.includes('responda apenas: ACEITO'), 'Should include acceptance instruction when requested');
+});
+
+test('userService.USER_STATUS', (t) => {
+    assert.strictEqual(userService.USER_STATUS.BLOCKED, 'BLOCKED');
+    assert.strictEqual(userService.USER_STATUS.ACTIVE, 'ACTIVE');
 });
 
 test('adminCheck.isAdminWithContext', (t) => {

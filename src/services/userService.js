@@ -11,6 +11,14 @@ const PRIVACY_URL = process.env.PRIVACY_URL || '';
 const CONSENT_KEYWORD = 'aceito';
 const PENDING_TTL_HOURS = 48;
 const LEGAL_INFO_KEYWORDS = new Set(['termos', 'politica de privacidade', 'privacidade']);
+const USER_STATUS = Object.freeze({
+    PENDING: 'PENDING',
+    ACTIVE: 'ACTIVE',
+    INACTIVE: 'INACTIVE',
+    BLOCKED: 'BLOCKED',
+    DELETED: 'DELETED',
+    EXPIRED: 'EXPIRED'
+});
 
 const USER_HEADERS = [
     'user_id',
@@ -37,13 +45,18 @@ function normalizePhoneToWhatsappId(phoneOrWhatsappId) {
     const raw = String(phoneOrWhatsappId || '').trim();
     if (!raw) return '';
     if (raw.endsWith('@c.us')) return raw;
+    if (raw.endsWith('@lid')) return raw;
     const digits = raw.replace(/\D/g, '');
     return digits ? `${digits}@c.us` : '';
 }
 
 function toPhoneE164(whatsappId) {
-    const digits = normalizeWhatsappId(whatsappId).replace('@c.us', '').replace(/\D/g, '');
+    const digits = normalizeWhatsappId(whatsappId).replace('@c.us', '').replace('@lid', '').replace(/\D/g, '');
     return digits ? `+${digits}` : '';
+}
+
+function normalizeDigits(value) {
+    return String(value || '').replace(/\D/g, '');
 }
 
 function normalizeForCompare(text) {
@@ -139,7 +152,7 @@ function buildPublicLegalSummaryReply({ includeAcceptInstruction = false, termsV
         '- Uso condicionado a consentimento por ACEITO.',
         '- Dados tratados: identificacao WhatsApp e lancamentos financeiros enviados.',
         '- Finalidade: operacao do bot, relatorios e auditoria.',
-        '- Ciclo de vida: PENDING, ACTIVE, INACTIVE, DELETED, EXPIRED.',
+        '- Ciclo de vida: PENDING, ACTIVE, INACTIVE, BLOCKED, DELETED, EXPIRED.',
         '- Mudanca de termos exige novo consentimento.'
     ].join('\n');
 
@@ -351,23 +364,41 @@ async function updateUserStatus(userId, status) {
         ...user,
         status,
         updated_at: now,
-        deleted_at: status === 'DELETED' ? now : user.deleted_at
+        deleted_at: status === USER_STATUS.DELETED ? now : ''
     };
     await updateUserRowByIndex(user.rowIndex, updated);
     return updated;
 }
 
 async function updateUserStatusByWhatsAppId(whatsappOrPhone, status) {
-    const whatsappId = normalizePhoneToWhatsappId(whatsappOrPhone);
-    if (!whatsappId) return null;
-
-    const user = await getUserByWhatsAppId(whatsappId);
+    const user = await getUserByLookup(whatsappOrPhone);
     if (!user) return null;
     return updateUserStatus(user.user_id, status);
 }
 
+async function getUserByLookup(lookup) {
+    const raw = String(lookup || '').trim();
+    if (!raw) return null;
+
+    const users = await getAllUsers();
+    const normalizedId = normalizePhoneToWhatsappId(raw);
+    if (normalizedId) {
+        const exactMatch = users.find(u => normalizeWhatsappId(u.whatsapp_id) === normalizedId);
+        if (exactMatch) return exactMatch;
+    }
+
+    const rawDigits = normalizeDigits(raw);
+    if (!rawDigits) return null;
+
+    return (
+        users.find(u => normalizeDigits(u.phone_e164) === rawDigits) ||
+        users.find(u => normalizeDigits(u.whatsapp_id) === rawDigits) ||
+        null
+    );
+}
+
 function isPendingExpired(user) {
-    if (user.status !== 'PENDING') return false;
+    if (user.status !== USER_STATUS.PENDING) return false;
     const createdAt = new Date(user.created_at);
     if (Number.isNaN(createdAt.getTime())) return false;
     const elapsedMs = Date.now() - createdAt.getTime();
@@ -381,7 +412,7 @@ async function expireOldPendingUsers() {
         if (!isPendingExpired(user)) continue;
         const updated = {
             ...user,
-            status: 'EXPIRED',
+            status: USER_STATUS.EXPIRED,
             updated_at: nowIso()
         };
         await updateUserRowByIndex(user.rowIndex, updated);
@@ -418,7 +449,7 @@ async function resolveUserAccess(msg) {
         };
     }
 
-    if (['INACTIVE', 'DELETED'].includes(user.status)) {
+    if ([USER_STATUS.INACTIVE, USER_STATUS.DELETED].includes(user.status)) {
         if (legalInfoRequest) {
             return {
                 allowed: false,
@@ -433,7 +464,22 @@ async function resolveUserAccess(msg) {
         };
     }
 
-    if (user.status === 'EXPIRED') {
+    if (user.status === USER_STATUS.BLOCKED) {
+        if (legalInfoRequest) {
+            return {
+                allowed: false,
+                user: null,
+                reply: buildPublicLegalSummaryReply({ includeAcceptInstruction: false })
+            };
+        }
+        return {
+            allowed: false,
+            user: null,
+            reply: 'Seu acesso está bloqueado. Fale com o administrador para revisão.'
+        };
+    }
+
+    if (user.status === USER_STATUS.EXPIRED) {
         if (legalInfoRequest) {
             return {
                 allowed: false,
@@ -451,7 +497,7 @@ async function resolveUserAccess(msg) {
         };
     }
 
-    if (user.status === 'PENDING') {
+    if (user.status === USER_STATUS.PENDING) {
         if (normalizedMessage === CONSENT_KEYWORD) {
             const activatedUser = await activateUserWithConsent(user, { message: messageBody, messageId });
             return { allowed: true, user: activatedUser, justActivated: true };
@@ -473,7 +519,7 @@ async function resolveUserAccess(msg) {
         };
     }
 
-    if (user.status !== 'ACTIVE') {
+    if (user.status !== USER_STATUS.ACTIVE) {
         if (legalInfoRequest) {
             return {
                 allowed: false,
@@ -514,6 +560,35 @@ async function resolveUserAccess(msg) {
     return { allowed: true, user };
 }
 
+function mapConsentRow(row, rowIndex) {
+    return {
+        rowIndex,
+        consent_id: row[0] || '',
+        user_id: row[1] || '',
+        whatsapp_id: row[2] || '',
+        accepted_at: row[3] || '',
+        terms_version: row[4] || '',
+        channel: row[5] || '',
+        evidence: row[6] || ''
+    };
+}
+
+async function getConsentLogsByUserId(userId, limit = 5) {
+    const rows = await readDataFromSheet(`${CONSENT_SHEET}!A:G`);
+    if (!rows || rows.length <= 1) return [];
+
+    const parsed = rows.slice(1).map((row, idx) => mapConsentRow(row, idx + 2));
+    const filtered = parsed.filter(entry => entry.user_id === userId);
+
+    filtered.sort((a, b) => {
+        const da = new Date(a.accepted_at).getTime() || 0;
+        const db = new Date(b.accepted_at).getTime() || 0;
+        return db - da;
+    });
+
+    return filtered.slice(0, Math.max(1, Number(limit) || 5));
+}
+
 module.exports = {
     TERMS_VERSION,
     TERMS_URL,
@@ -522,7 +597,9 @@ module.exports = {
     buildPublicLegalSummaryReply,
     USER_HEADERS,
     resolveUserAccess,
+    USER_STATUS,
     getUserByWhatsAppId,
+    getUserByLookup,
     normalizePhoneToWhatsappId,
     createPendingUser,
     getUserProfileByUserId,
@@ -533,6 +610,7 @@ module.exports = {
     getActiveUsers,
     updateUserStatus,
     updateUserStatusByWhatsAppId,
+    getConsentLogsByUserId,
     getAllUsers,
     expireOldPendingUsers
 };
