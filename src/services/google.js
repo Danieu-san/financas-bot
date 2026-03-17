@@ -177,6 +177,41 @@ async function batchUpdateRowsInSheet(data) {
     }
 }
 
+async function syncDashboardForUser({ userId, periodLabel, metrics }) {
+    const safeUserId = String(userId || '').trim();
+    if (!safeUserId) {
+        throw new Error('syncDashboardForUser requer userId válido.');
+    }
+    const metricRows = Array.isArray(metrics) ? metrics : [];
+    const updatedAt = new Date().toISOString();
+    const headers = ['Resumo Financeiro', 'Valor', 'Período', 'user_id', 'updated_at'];
+
+    const existing = await readDataFromSheet('Dashboard!A:E');
+    const existingRows = existing && existing.length > 1 ? existing.slice(1) : [];
+    const preservedRows = existingRows.filter((row) => String(row[3] || '').trim() !== safeUserId);
+    const userRows = metricRows.map((item) => ([
+        String(item?.label || '').trim(),
+        String(item?.value || '').trim(),
+        String(periodLabel || '').trim(),
+        safeUserId,
+        updatedAt
+    ]));
+
+    const allRows = [headers, ...preservedRows, ...userRows];
+
+    await runWithGoogleRetry('syncDashboardForUser.clear', () => sheets.spreadsheets.values.clear({
+        spreadsheetId: SPREADSHEET_ID,
+        range: 'Dashboard!A2:E'
+    }));
+
+    await runWithGoogleRetry('syncDashboardForUser.update', () => sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `Dashboard!A1:E${allRows.length}`,
+        valueInputOption: 'USER_ENTERED',
+        resource: { values: allRows }
+    }));
+}
+
 async function getCalendarEventsForToday(targetDate = new Date()) {
     try {
         const startOfDay = new Date(targetDate);
@@ -209,7 +244,7 @@ async function ensureSpreadsheetStructure() {
         { title: 'Dívidas', headers: ['Nome', 'Credor', 'Tipo', 'Valor Original', 'Saldo Atual', 'Parcela', 'Juros', 'Vencimento', 'Início', 'Total Parcelas', 'Status', 'Responsável', 'Observações', '% Quitado', 'Próximo Vencimento', 'Atraso (Dias)', 'Data Prevista para Quitação', 'user_id'], color: { red: 0.8, green: 0.5, blue: 0.2 } },
         { title: 'Metas', headers: ['Nome', 'Valor Alvo', 'Valor Atual', '% Progresso', 'Valor Mensal', 'Data Fim', 'Status', 'Prioridade', 'user_id'], color: { red: 0.2, green: 0.6, blue: 0.8 } },
         { title: 'Contas', headers: ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id'], color: { red: 0.9, green: 0.7, blue: 0.3 } },
-        { title: 'Dashboard', headers: ['Resumo Financeiro', 'Valor'], color: { red: 0.5, green: 0.5, blue: 0.5 } },
+        { title: 'Dashboard', headers: ['Resumo Financeiro', 'Valor', 'Período', 'user_id', 'updated_at'], color: { red: 0.5, green: 0.5, blue: 0.5 } },
         { title: 'Cartão Nubank - Daniel', headers: ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'user_id'], color: { red: 0.6, green: 0.3, blue: 0.7 } },
         { title: 'Cartão Nubank - Thais', headers: ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'user_id'], color: { red: 0.6, green: 0.3, blue: 0.7 } },
         { title: 'Cartão Nubank - Cristina', headers: ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'user_id'], color: { red: 0.6, green: 0.3, blue: 0.7 } },
@@ -331,6 +366,7 @@ module.exports = {
     readDataFromSheet,
     updateRowInSheet,
     batchUpdateRowsInSheet,
+    syncDashboardForUser,
     deleteRowsByIndices,
     ensureSpreadsheetStructure,
     get sheets() { return sheets; }

@@ -4,7 +4,7 @@ const creationHandler = require('./creationHandler');
 const deletionHandler = require('./deletionHandler');
 const debtHandler = require('./debtHandler');
 const { getStructuredResponseFromLLM, askLLM } = require('../services/gemini');
-const { appendRowToSheet, readDataFromSheet, createCalendarEvent } = require('../services/google');
+const { appendRowToSheet, readDataFromSheet, createCalendarEvent, syncDashboardForUser } = require('../services/google');
 const { getFormattedDate, getFormattedDateOnly, normalizeText, parseSheetDate, parseAmount, parseValue } = require('../utils/helpers');
 const cache = require('../utils/cache');
 const rateLimiter = require('../utils/rateLimiter');
@@ -1282,6 +1282,17 @@ async function handleMessage(msg) {
                         ].join('\n');
 
                         let avalancheMessage = '';
+                        let dashboardMetrics = [
+                            { label: 'Entradas do mês', value: formatCurrencyBR(health.currentMonthEntradas) },
+                            { label: 'Saídas do mês (exceto cartão)', value: formatCurrencyBR(health.currentMonthSaidas) },
+                            { label: 'Fatura no mês', value: formatCurrencyBR(health.currentMonthCard) },
+                            { label: 'Saldo do mês', value: formatCurrencyBR(health.saldoMes) },
+                            { label: 'Radar de caixa (30 dias)', value: riscoTexto },
+                            { label: 'Radar de caixa - contexto', value: health.riskExplanation },
+                            { label: 'Reserva de emergência - alvo (3 meses)', value: formatCurrencyBR(health.reserveTarget3) },
+                            { label: 'Reserva de emergência - valor atual', value: formatCurrencyBR(health.reserveCurrent) },
+                            { label: 'Reserva de emergência - progresso', value: health.reserveProgressPct.toFixed(1) + '%' }
+                        ];
                         if (avalanchePlan) {
                             const ordem = avalanchePlan.avalanche.order.length > 0
                                 ? avalanchePlan.avalanche.order.join(' -> ')
@@ -1300,7 +1311,25 @@ async function handleMessage(msg) {
                                 '- Prazo estimado (avalanche): ' + avalanchePlan.avalanche.months + ' mês(es)',
                                 '- Economia estimada de juros: ' + formatCurrencyBR(avalanchePlan.interestSaved)
                             ].join('\n');
+
+                            dashboardMetrics = dashboardMetrics.concat([
+                                { label: 'Plano de dívidas - extra sugerido/mês', value: formatCurrencyBR(avalanchePlan.recommendedExtraBudget) },
+                                { label: 'Plano de dívidas - ordem sugerida', value: ordem },
+                                { label: 'Plano de dívidas - prazo base', value: avalanchePlan.baseline.months + ' mês(es)' },
+                                { label: 'Plano de dívidas - prazo avalanche', value: avalanchePlan.avalanche.months + ' mês(es)' },
+                                { label: 'Plano de dívidas - economia de juros', value: formatCurrencyBR(avalanchePlan.interestSaved) }
+                            ]);
                         }
+
+                        await timeStep(
+                            'resumo.syncDashboardForUser',
+                            () => syncDashboardForUser({
+                                userId,
+                                periodLabel: health.periodLabel,
+                                metrics: dashboardMetrics
+                            }),
+                            perfContext
+                        );
 
                         cache.set(cacheKey, summaryMessage);
                         await msg.reply(summaryMessage + avalancheMessage);
