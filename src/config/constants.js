@@ -4,7 +4,7 @@ const adminIdsString = process.env.ADMIN_IDS || '';
 const adminIds = new Set(
     adminIdsString
         .split(',')
-        .map((id) => id.trim())
+        .map((id) => id.trim().replace(/^"+|"+$/g, '').replace(/^'+|'+$/g, ''))
         .filter(Boolean)
 );
 

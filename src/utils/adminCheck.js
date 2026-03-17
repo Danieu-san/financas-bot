@@ -1,30 +1,47 @@
 // src/utils/adminCheck.js
+
+const { adminIds, userMap } = require('../config/constants');
+
 console.log('✅ Módulo de Verificação de Admin inicializado.');
 
-function normalizeWhatsappId(id) {
-  if (!id) return '';
-  let s = String(id).trim();
-
-  // remove aspas acidentais no env: "5521..." ou '5521...'
-  s = s.replace(/^['"]|['"]$/g, '');
-
-  // se já tem sufixo do WhatsApp, só padroniza
-  if (s.includes('@')) return s.toLowerCase();
-
-  // se veio só número, padroniza para @c.us
-  const digits = s.replace(/\D/g, '');
-  return digits ? `${digits}@c.us` : s.toLowerCase();
+function normalizeText(value) {
+    return String(value || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
 }
 
-/**
- * Verifica se um ID de usuário pertence à lista de administradores.
- * @param {string} userId - O ID do usuário (ex: '5521970112407@c.us')
- * @returns {boolean}
- */
+function normalizeDigits(value) {
+    return String(value || '').replace(/\D/g, '');
+}
+
+const adminDigits = new Set(
+    Array.from(adminIds).map(normalizeDigits).filter(Boolean)
+);
+
+const adminDisplayNames = new Set(
+    Array.from(adminIds)
+        .map(id => normalizeText(userMap[id]))
+        .filter(Boolean)
+);
+
 function isAdmin(userId) {
-    const { adminIds } = require('../config/constants'); // ✅ lazy require
-    const normalized = normalizeWhatsappId(userId);
-    return adminIds.has(normalized);
+    if (adminIds.has(userId)) return true;
+    const digits = normalizeDigits(userId);
+    return Boolean(digits && adminDigits.has(digits));
 }
 
-module.exports = { isAdmin, normalizeWhatsappId };
+function isAdminWithContext(userId, user) {
+    if (isAdmin(userId)) return true;
+
+    // Compatibilidade para IDs @lid quando o contato admin aparece com outro identificador.
+    const displayName = normalizeText(user?.display_name || '');
+    if (displayName && adminDisplayNames.has(displayName)) {
+        return true;
+    }
+
+    return false;
+}
+
+module.exports = { isAdmin, isAdminWithContext };

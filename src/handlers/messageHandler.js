@@ -26,7 +26,7 @@ const { handleOnboarding } = require('./onboardingHandler');
 const { buildHealthSummary } = require('../services/financialHealthService');
 const { buildDebtAvalanchePlan } = require('../services/debtAvalancheService');
 const metrics = require('../utils/metrics');
-const { isAdmin } = require('../utils/adminCheck');
+const { isAdminWithContext } = require('../utils/adminCheck');
 
 // Base de Conhecimento para Gastos
 const mapeamentoGastos = {
@@ -225,11 +225,13 @@ async function handleAccountLifecycleCommands(msg, user) {
     return false;
 }
 
-async function handleAdminCommands(msg, senderId) {
-    if (!isAdmin(senderId)) return false;
-
+async function handleAdminCommands(msg, senderId, activeUser) {
     const body = normalizeText(String(msg.body || '').trim());
     if (!body.startsWith('admin')) return false;
+    if (!isAdminWithContext(senderId, activeUser)) {
+        await msg.reply('Comando restrito a administradores.');
+        return true;
+    }
 
     if (body === 'admin ajuda') {
         await msg.reply(
@@ -366,7 +368,7 @@ async function handleMessage(msg) {
         return;
     }
 
-    const handledAdmin = await handleAdminCommands(msg, senderId);
+    const handledAdmin = await handleAdminCommands(msg, senderId, activeUser);
     if (handledAdmin) {
         return;
     }

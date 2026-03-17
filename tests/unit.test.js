@@ -1,9 +1,15 @@
 const test = require('node:test');
 const assert = require('node:assert');
+
+if (!process.env.ADMIN_IDS) {
+    process.env.ADMIN_IDS = '5521970112407@c.us,5521964270368@c.us';
+}
+
 const helpers = require('../src/utils/helpers');
 const analysisService = require('../src/services/analysisService');
 const userStateManager = require('../src/state/userStateManager');
 const userService = require('../src/services/userService');
+const adminCheck = require('../src/utils/adminCheck');
 
 // --- Helpers Tests ---
 test('helpers.parseValue', (t) => {
@@ -106,4 +112,17 @@ test('userService.legalInfoHelpers', (t) => {
     assert.ok(reply.includes('Termos (v1.1):'), 'Should include terms version');
     assert.ok(reply.includes('Resumo legal:'), 'Should include summary header');
     assert.ok(reply.includes('responda apenas: ACEITO'), 'Should include acceptance instruction when requested');
+});
+
+test('adminCheck.isAdminWithContext', (t) => {
+    assert.strictEqual(
+        adminCheck.isAdminWithContext('151058345148646@lid', { display_name: 'Daniel' }),
+        true,
+        'LID sender with known admin display name should be treated as admin'
+    );
+    assert.strictEqual(
+        adminCheck.isAdminWithContext('151058345148646@lid', { display_name: 'Outro Nome' }),
+        false,
+        'Unknown display name should not be admin'
+    );
 });
