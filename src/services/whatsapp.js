@@ -5,6 +5,9 @@ let clientInstance = null;
 let isAuthenticated = false;
 let isInitializing = false;
 
+const DEFAULT_WEB_VERSION = process.env.WWEB_VERSION || '2.3000.1035637479';
+const DEFAULT_USER_AGENT = process.env.WWEB_USER_AGENT || 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36';
+
 function initializeWhatsAppClient() {
     if (clientInstance) {
         return clientInstance;
@@ -22,6 +25,12 @@ function initializeWhatsAppClient() {
         authStrategy: new LocalAuth({
             clientId: 'bot-financeiro'
         }),
+        webVersion: DEFAULT_WEB_VERSION,
+        webVersionCache: {
+            type: 'local'
+        },
+        userAgent: DEFAULT_USER_AGENT,
+        authTimeoutMs: 120000,
         puppeteer: {
             headless: true,
             args: [
@@ -43,6 +52,14 @@ function initializeWhatsAppClient() {
         isAuthenticated = false;
         console.log('🔑 Novo QR Code gerado. Escaneie para conectar:');
         qrcode.generate(qr, { small: true });
+    });
+
+    client.on('loading_screen', (percent, message) => {
+        console.log(`⏳ WhatsApp carregando: ${percent}% - ${message}`);
+    });
+
+    client.on('change_state', state => {
+        console.log(`🔁 Estado do WhatsApp alterado: ${state}`);
     });
 
     client.on('authenticated', () => {
