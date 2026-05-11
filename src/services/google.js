@@ -744,6 +744,48 @@ async function ensureSpreadsheetStructure() {
         { title: 'ConsentLog', headers: ['consent_id', 'user_id', 'whatsapp_id', 'accepted_at', 'terms_version', 'channel', 'evidence'], color: { red: 0.5, green: 0.5, blue: 0.8 } }
     ];
 
+    const headerStyle = {
+        textFormat: {
+            bold: true,
+            foregroundColor: { red: 1, green: 1, blue: 1 },
+            fontSize: 10
+        },
+        horizontalAlignment: 'CENTER',
+        verticalAlignment: 'MIDDLE',
+        wrapStrategy: 'WRAP'
+    };
+
+    const bodyStyle = {
+        backgroundColor: { red: 0.98, green: 0.99, blue: 0.99 },
+        verticalAlignment: 'MIDDLE',
+        wrapStrategy: 'WRAP'
+    };
+
+    const headerToNumberFormat = (header) => {
+        const normalized = String(header || '').toLowerCase();
+        if (
+            normalized.includes('valor') ||
+            normalized.includes('saldo') ||
+            normalized.includes('monthly_income') ||
+            normalized.includes('fixed_expense')
+        ) {
+            return { type: 'CURRENCY', pattern: '"R$"#,##0.00' };
+        }
+        if (normalized.includes('%') || normalized.includes('percent')) {
+            return { type: 'PERCENT', pattern: '0.00%' };
+        }
+        if (
+            normalized === 'data' ||
+            normalized.includes('vencimento') ||
+            normalized.includes('início') ||
+            normalized.includes('inicio') ||
+            normalized.includes('data fim')
+        ) {
+            return { type: 'DATE', pattern: 'dd/mm/yyyy' };
+        }
+        return null;
+    };
+
     try {
         const spreadsheet = await runWithGoogleRetry('ensureSpreadsheetStructure.spreadsheets.get', () => sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID }));
         const existingSheets = spreadsheet.data.sheets.map(s => s.properties.title);
@@ -767,6 +809,21 @@ async function ensureSpreadsheetStructure() {
         const formattingRequests = [];
         for (const item of structure) {
             const sheetId = sheetMap[item.title];
+            const isDashboard = item.title === 'Dashboard';
+
+            formattingRequests.push({
+                updateSheetProperties: {
+                    properties: {
+                        sheetId,
+                        tabColor: item.color
+                    },
+                    fields: 'tabColor'
+                }
+            });
+
+            if (isDashboard) {
+                continue;
+            }
             
             // Cabeçalhos
             formattingRequests.push({
@@ -777,8 +834,7 @@ async function ensureSpreadsheetStructure() {
                             userEnteredValue: { stringValue: h },
                             userEnteredFormat: {
                                 backgroundColor: item.color,
-                                textFormat: { bold: true, foregroundColor: { red: 1, green: 1, blue: 1 } },
-                                horizontalAlignment: 'CENTER'
+                                ...headerStyle
                             }
                         }))
                     }],
@@ -786,15 +842,58 @@ async function ensureSpreadsheetStructure() {
                 }
             });
 
-            // Congelamento de linha (exceto Dashboard)
-            if (item.title !== 'Dashboard') {
+            formattingRequests.push({
+                repeatCell: {
+                    range: { sheetId, startRowIndex: 1, endRowIndex: 1000, startColumnIndex: 0, endColumnIndex: item.headers.length },
+                    cell: { userEnteredFormat: bodyStyle },
+                    fields: 'userEnteredFormat(backgroundColor,verticalAlignment,wrapStrategy)'
+                }
+            });
+
+            formattingRequests.push({
+                updateSheetProperties: {
+                    properties: { sheetId, gridProperties: { frozenRowCount: 1 } },
+                    fields: 'gridProperties.frozenRowCount'
+                }
+            });
+
+            formattingRequests.push({
+                updateDimensionProperties: {
+                    range: { sheetId, dimension: 'ROWS', startIndex: 0, endIndex: 1 },
+                    properties: { pixelSize: 36 },
+                    fields: 'pixelSize'
+                }
+            });
+
+            formattingRequests.push({
+                autoResizeDimensions: {
+                    dimensions: { sheetId, dimension: 'COLUMNS', startIndex: 0, endIndex: item.headers.length }
+                }
+            });
+
+            item.headers.forEach((header, index) => {
+                const numberFormat = headerToNumberFormat(header);
+                if (!numberFormat) return;
                 formattingRequests.push({
-                    updateSheetProperties: {
-                        properties: { sheetId, gridProperties: { frozenRowCount: 1 } },
-                        fields: 'gridProperties.frozenRowCount'
+                    repeatCell: {
+                        range: { sheetId, startRowIndex: 1, endRowIndex: 1000, startColumnIndex: index, endColumnIndex: index + 1 },
+                        cell: { userEnteredFormat: { numberFormat } },
+                        fields: 'userEnteredFormat.numberFormat'
                     }
                 });
-            }
+            });
+
+            formattingRequests.push({
+                clearBasicFilter: { sheetId }
+            });
+
+            formattingRequests.push({
+                setBasicFilter: {
+                    filter: {
+                        range: { sheetId, startRowIndex: 0, endRowIndex: 1000, startColumnIndex: 0, endColumnIndex: item.headers.length }
+                    }
+                }
+            });
         }
 
         try {
