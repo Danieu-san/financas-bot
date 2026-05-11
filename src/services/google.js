@@ -190,7 +190,7 @@ async function replaceDashboardCharts(dashboardSheetId) {
     const spreadsheet = await runWithGoogleRetry('replaceDashboardCharts.loadSpreadsheet', () => sheets.spreadsheets.get({
         spreadsheetId: SPREADSHEET_ID,
         includeGridData: false,
-        fields: 'sheets(properties(sheetId),charts(chartId,position)'
+        fields: 'sheets(properties(sheetId),charts(chartId,position))'
     }));
 
     const chartDeletes = [];
@@ -326,8 +326,7 @@ async function replaceDashboardCharts(dashboardSheetId) {
                                         }
                                     },
                                     targetAxis: 'LEFT_AXIS',
-                                    type: 'LINE',
-                                    lineStyle: { type: 'MEDIUM' }
+                                    type: 'LINE'
                                 }
                             ]
                         }
@@ -347,10 +346,15 @@ async function replaceDashboardCharts(dashboardSheetId) {
     ];
 
     const requests = [...chartDeletes, ...addCharts];
-    await runWithGoogleRetry('replaceDashboardCharts.batchUpdate', () => sheets.spreadsheets.batchUpdate({
-        spreadsheetId: SPREADSHEET_ID,
-        resource: { requests }
-    }));
+    try {
+        await runWithGoogleRetry('replaceDashboardCharts.batchUpdate', () => sheets.spreadsheets.batchUpdate({
+            spreadsheetId: SPREADSHEET_ID,
+            resource: { requests }
+        }));
+    } catch (error) {
+        console.error('❌ Detalhes do erro ao criar gráficos do Dashboard:', JSON.stringify(error?.response?.data || error.message, null, 2));
+        throw error;
+    }
 }
 
 async function renderVisualDashboard(payload = {}) {
@@ -406,11 +410,14 @@ async function renderVisualDashboard(payload = {}) {
     setCell(grid, 9, 5, 'Valor');
     setCell(grid, 9, 6, 'Barra');
     const topRows = topCategories.slice(0, 10);
+    const maxTopValue = topRows.reduce((max, item) => Math.max(max, Number(item.value || 0)), 0);
     for (let i = 0; i < topRows.length; i += 1) {
         const row = 10 + i;
+        const value = Number(topRows[i].value || 0);
+        const barSize = maxTopValue > 0 ? Math.max(1, Math.round((value / maxTopValue) * 18)) : 0;
         setCell(grid, row, 4, topRows[i].category || 'Outros');
-        setCell(grid, row, 5, Number(topRows[i].value || 0));
-        setCell(grid, row, 6, `=IF(E${row}=0,"",SPARKLINE(E${row},{"charttype","bar";"max",MAX($E$10:$E$19);"color1","#0f766e"}))`);
+        setCell(grid, row, 5, value);
+        setCell(grid, row, 6, barSize > 0 ? '#'.repeat(barSize) : '');
     }
 
     // Fluxo diário
@@ -442,36 +449,42 @@ async function renderVisualDashboard(payload = {}) {
     userOptions.slice(0, 40).forEach((item, idx) => setCell(grid, 3 + idx, 12, item));
     monthOptions.slice(0, 40).forEach((item, idx) => setCell(grid, 3 + idx, 13, item));
 
-    await runWithGoogleRetry('renderVisualDashboard.updateValues', () => sheets.spreadsheets.values.update({
-        spreadsheetId: SPREADSHEET_ID,
-        range: 'Dashboard!A1:M45',
-        valueInputOption: 'USER_ENTERED',
-        resource: { values: grid }
-    }));
-
     const sheetMap = await getSheetIds();
     const dashboardSheetId = sheetMap.Dashboard;
+    if (dashboardSheetId !== undefined) {
+        try {
+            await runWithGoogleRetry('renderVisualDashboard.unmergeAll', () => sheets.spreadsheets.batchUpdate({
+                spreadsheetId: SPREADSHEET_ID,
+                resource: {
+                    requests: [{
+                        unmergeCells: {
+                            range: { sheetId: dashboardSheetId }
+                        }
+                    }]
+                }
+            }));
+        } catch (error) {
+            console.error('❌ Detalhes do erro ao desmesclar Dashboard:', JSON.stringify(error?.response?.data || error.message, null, 2));
+            throw error;
+        }
+    }
+
+    try {
+        await runWithGoogleRetry('renderVisualDashboard.updateValues', () => sheets.spreadsheets.values.update({
+            spreadsheetId: SPREADSHEET_ID,
+            range: 'Dashboard!A1:M45',
+            valueInputOption: 'USER_ENTERED',
+            resource: { values: grid }
+        }));
+    } catch (error) {
+        console.error('❌ Detalhes do erro ao escrever Dashboard:', JSON.stringify(error?.response?.data || error.message, null, 2));
+        throw error;
+    }
+
     if (dashboardSheetId === undefined) return;
 
     const requests = [
         // Título e subtítulo
-        {
-            unmergeCells: {
-                range: { sheetId: dashboardSheetId, startRowIndex: 0, endRowIndex: 2, startColumnIndex: 0, endColumnIndex: 6 }
-            }
-        },
-        {
-            mergeCells: {
-                range: { sheetId: dashboardSheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 6 },
-                mergeType: 'MERGE_ALL'
-            }
-        },
-        {
-            mergeCells: {
-                range: { sheetId: dashboardSheetId, startRowIndex: 1, endRowIndex: 2, startColumnIndex: 0, endColumnIndex: 6 },
-                mergeType: 'MERGE_ALL'
-            }
-        },
         {
             repeatCell: {
                 range: { sheetId: dashboardSheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 6 },
@@ -608,16 +621,7 @@ async function renderVisualDashboard(payload = {}) {
                 innerVertical: { style: 'SOLID', width: 1, color: { red: 0.9, green: 0.92, blue: 0.94 } }
             }
         },
-        // Congela cabeçalho e configura largura de colunas
-        {
-            updateSheetProperties: {
-                properties: {
-                    sheetId: dashboardSheetId,
-                    gridProperties: { frozenRowCount: 1, frozenColumnCount: 1 }
-                },
-                fields: 'gridProperties.frozenRowCount,gridProperties.frozenColumnCount'
-            }
-        },
+        // Configura largura de colunas
         {
             updateDimensionProperties: {
                 range: { sheetId: dashboardSheetId, dimension: 'COLUMNS', startIndex: 0, endIndex: 1 },
@@ -648,10 +652,15 @@ async function renderVisualDashboard(payload = {}) {
         }
     ];
 
-    await runWithGoogleRetry('renderVisualDashboard.formatting', () => sheets.spreadsheets.batchUpdate({
-        spreadsheetId: SPREADSHEET_ID,
-        resource: { requests }
-    }));
+    try {
+        await runWithGoogleRetry('renderVisualDashboard.formatting', () => sheets.spreadsheets.batchUpdate({
+            spreadsheetId: SPREADSHEET_ID,
+            resource: { requests }
+        }));
+    } catch (error) {
+        console.error('❌ Detalhes do erro ao formatar Dashboard:', JSON.stringify(error?.response?.data || error.message, null, 2));
+        throw error;
+    }
 
     await replaceDashboardCharts(dashboardSheetId);
 }
