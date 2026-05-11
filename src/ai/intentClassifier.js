@@ -22,6 +22,7 @@ async function classify(questionText) {
     Hoje é: ${today.toLocaleDateString('pt-BR')}
 
     [INTENÇÕES POSSÍVEIS]
+    - total_gastos_mes
     - total_gastos_categoria_mes
     - media_gastos_categoria_mes
     - listagem_gastos_categoria
@@ -33,6 +34,8 @@ async function classify(questionText) {
 
     [REGRAS DE EXTRAÇÃO DE PARÂMETROS]
     - "categoria": O item sobre o qual o usuário pergunta (ex: "alimentação", "pedágio").
+    - Se o usuário perguntar quanto gastou no mês/período SEM citar uma categoria específica (ex: "quanto gastei em fevereiro?"), use a intenção "total_gastos_mes" e NÃO envie "categoria".
+    - Se o usuário citar categoria ou item específico (ex: "quanto gastei com alimentação?"), use "total_gastos_categoria_mes".
     - "ano": O ano com 4 dígitos (ex: 2025). Se não for mencionado, use o ano atual: ${currentYear}.
     - "mes": O NOME do mês (ex: "agosto").
 

@@ -437,6 +437,19 @@ async function executeAnalyticalIntent(intent, parameters, { userId }) {
     const gastosUnificados = getUnifiedExpensesForUser(userId, month, year);
 
     switch (intent) {
+    case 'total_gastos_mes': {
+        const totalSaidas = saidasDoUsuario.reduce((sum, entry) => sum + entry.valor, 0);
+        const totalCartoes = cartoesDoUsuario.reduce((sum, entry) => sum + entry.valor, 0);
+        return {
+            results: totalSaidas + totalCartoes,
+            details: {
+                totalSaidas,
+                totalCartoes,
+                mes: month,
+                ano: year
+            }
+        };
+    }
     case 'total_gastos_categoria_mes': {
         const totalSaidas = saidasDoUsuario
             .filter((entry) => categoryMatches(entry, categoria))

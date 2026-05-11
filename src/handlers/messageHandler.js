@@ -151,6 +151,20 @@ function extractCategoryFromQuestion(text) {
     return '';
 }
 
+function isGreetingMessage(messageBody) {
+    const text = normalizeText(String(messageBody || '').trim());
+    return /^(oi|ola|olá|bom dia|boa tarde|boa noite|e ai|e aí|opa|fala|alo|alô)[!.?\s]*$/.test(text);
+}
+
+function buildGreetingReply(name = '') {
+    const firstName = String(name || '').trim().split(/\s+/)[0] || 'por aqui';
+    return [
+        `Oi, ${firstName}!`,
+        'Posso registrar gastos e entradas, responder perguntas financeiras ou abrir seu dashboard.',
+        'Exemplos: "gastei 25 no mercado no pix", "quanto gastei em fevereiro?", "dashboard" ou "ajuda".'
+    ].join('\n');
+}
+
 function detectFastPerguntaIntent(messageBody) {
     const text = normalizeText(String(messageBody || '').trim());
     if (!text) return null;
@@ -184,7 +198,11 @@ function classifyPerguntaLocally(userQuestion) {
         return { intent: 'listagem_gastos_categoria', parameters: { categoria: extractCategoryFromQuestion(text), mes, ano } };
     }
     if ((text.includes('quanto') || text.includes('total')) && (text.includes('gastei') || text.includes('gasto') || text.includes('gastos'))) {
-        return { intent: 'total_gastos_categoria_mes', parameters: { categoria: extractCategoryFromQuestion(text), mes, ano } };
+        const categoria = extractCategoryFromQuestion(text);
+        if (!categoria) {
+            return { intent: 'total_gastos_mes', parameters: { mes, ano } };
+        }
+        return { intent: 'total_gastos_categoria_mes', parameters: { categoria, mes, ano } };
     }
 
     return null;
@@ -203,6 +221,15 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
             `Entradas: ${formatCurrencyBR(details.totalEntradas)}`,
             `Saídas: ${formatCurrencyBR(details.totalSaidas)}`
         ].join('\n');
+    }
+
+    if (intent === 'total_gastos_mes') {
+        const lines = [`Total gasto em ${periodLabel}: ${formatCurrencyBR(results)}`];
+        if (details.totalSaidas !== undefined || details.totalCartoes !== undefined) {
+            lines.push(`Saídas: ${formatCurrencyBR(details.totalSaidas)}`);
+            lines.push(`Cartões: ${formatCurrencyBR(details.totalCartoes)}`);
+        }
+        return lines.join('\n');
     }
 
     if (intent === 'total_gastos_categoria_mes') {
@@ -1153,7 +1180,15 @@ async function handleMessage(msg) {
         try {
             // CÓDIGO PARA SUBSTITUIR (APENAS A CONSTANTE masterPrompt)
 
-            let structuredResponse = detectFastPerguntaIntent(messageBody);
+            let structuredResponse = null;
+            if (isGreetingMessage(messageBody)) {
+                metrics.increment('message.greeting.fast_path');
+                logger.info(`[routing] fast_path intent=greeting sender=${senderId}`);
+                await msg.reply(buildGreetingReply(pessoa));
+                return;
+            }
+
+            structuredResponse = detectFastPerguntaIntent(messageBody);
             if (structuredResponse) {
                 metrics.increment('message.pergunta.fast_path');
                 logger.info(`[routing] fast_path intent=pergunta sender=${senderId} msg="${messageBody}"`);
@@ -1565,7 +1600,8 @@ async function handleMessage(msg) {
 
                 case 'desconhecido':
                 default: {
-                    console.log(`Intenção desconhecida para a mensagem: "${messageBody}". Nenhuma resposta enviada.`);
+                    logger.info(`[routing] unknown_intent sender=${senderId} msg="${messageBody}"`);
+                    await msg.reply('Não entendi esse pedido ainda. Envie "ajuda" para ver exemplos do que posso fazer.');
                     break;
                 }
 
@@ -1590,7 +1626,15 @@ async function handleMessage(msg) {
     }
 }
 
-module.exports = { handleMessage };
+module.exports = {
+    handleMessage,
+    __test__: {
+        classifyPerguntaLocally,
+        buildLocalPerguntaResponse,
+        isGreetingMessage,
+        buildGreetingReply
+    }
+};
 
 
 

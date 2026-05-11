@@ -48,6 +48,30 @@ const getUnifiedExpenses = (dataSources, mes, ano) => {
 };
 
 const operationRegistry = {
+    total_gastos_mes: async function(params, dataSources) {
+        const mes = getMonthIndex(params.mes);
+        const ano = parseInt(params.ano, 10);
+        const saidasLimpo = dataSources.saidas.slice(1);
+        const saidasFiltradas = saidasLimpo.filter(row => {
+            const rowDate = parseSheetDate(row[0]);
+            return rowDate && rowDate.getMonth() === mes && rowDate.getFullYear() === ano;
+        });
+        const totalSaidas = analysisService.calculateTotal(saidasFiltradas, 4);
+        let totalCartoes = 0;
+        if (dataSources.cartoes && mes !== null) {
+            const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+            const targetBillingMonth = `${monthNames[mes]} de ${ano}`;
+            dataSources.cartoes.forEach(cardSheetData => {
+                if (!cardSheetData || cardSheetData.length <= 1) return;
+                cardSheetData.slice(1).forEach(row => {
+                    if ((row[5] || '') === targetBillingMonth) {
+                        totalCartoes += parseValue(row[3]);
+                    }
+                });
+            });
+        }
+        return { results: totalSaidas + totalCartoes, details: { totalSaidas, totalCartoes, mes, ano } };
+    },
     total_gastos_categoria_mes: async function(params, dataSources) {
         const mes = getMonthIndex(params.mes);
         const ano = parseInt(params.ano, 10);

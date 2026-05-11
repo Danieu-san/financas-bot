@@ -461,6 +461,19 @@ function queryAnalyticalIntentSql(intent, parameters, { userId }) {
         };
     }
 
+    if (intent === 'total_gastos_mes') {
+        const kpi = queryKpis(userId, { month, year });
+        return {
+            results: kpi.saidas + kpi.cartoes,
+            details: {
+                totalSaidas: kpi.saidas,
+                totalCartoes: kpi.cartoes,
+                mes: month,
+                ano: year
+            }
+        };
+    }
+
     if (intent === 'total_gastos_categoria_mes') {
         const row = db.prepare(`
             SELECT COALESCE(SUM(value), 0) AS total
@@ -571,4 +584,3 @@ module.exports = {
     isSqliteReady,
     getSqliteStats
 };
-

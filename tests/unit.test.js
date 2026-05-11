@@ -10,6 +10,7 @@ const analysisService = require('../src/services/analysisService');
 const userStateManager = require('../src/state/userStateManager');
 const userService = require('../src/services/userService');
 const adminCheck = require('../src/utils/adminCheck');
+const messageHandler = require('../src/handlers/messageHandler');
 
 // --- Helpers Tests ---
 test('helpers.parseValue', (t) => {
@@ -131,4 +132,37 @@ test('adminCheck.isAdminWithContext', (t) => {
         false,
         'Unknown display name should not be admin'
     );
+});
+
+test('messageHandler.classifyPerguntaLocally distinguishes total month from category total', (t) => {
+    const { classifyPerguntaLocally } = messageHandler.__test__;
+
+    const totalMonth = classifyPerguntaLocally('Quanto gastei em fevereiro?');
+    assert.strictEqual(totalMonth.intent, 'total_gastos_mes');
+    assert.strictEqual(totalMonth.parameters.mes, 1);
+    assert.strictEqual(totalMonth.parameters.categoria, undefined);
+
+    const categoryTotal = classifyPerguntaLocally('Quanto gastei esse mês com alimentação?');
+    assert.strictEqual(categoryTotal.intent, 'total_gastos_categoria_mes');
+    assert.strictEqual(categoryTotal.parameters.categoria, 'alimentacao');
+});
+
+test('messageHandler.local replies cover greeting and total month', (t) => {
+    const { isGreetingMessage, buildGreetingReply, buildLocalPerguntaResponse } = messageHandler.__test__;
+
+    assert.strictEqual(isGreetingMessage('Oi'), true);
+    assert.strictEqual(isGreetingMessage('Quanto gastei?'), false);
+    assert.ok(buildGreetingReply('Daniel').includes('Oi, Daniel!'));
+
+    const reply = buildLocalPerguntaResponse({
+        intent: 'total_gastos_mes',
+        analyzedData: {
+            results: 150.5,
+            details: { totalSaidas: 100, totalCartoes: 50.5, mes: 1, ano: 2026 }
+        }
+    });
+
+    assert.ok(reply.includes('Total gasto em fevereiro/2026: R$ 150,50'));
+    assert.ok(reply.includes('Saídas: R$ 100,00'));
+    assert.ok(reply.includes('Cartões: R$ 50,50'));
 });
