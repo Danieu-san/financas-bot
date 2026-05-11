@@ -5,7 +5,8 @@ let clientInstance = null;
 let isAuthenticated = false;
 let isInitializing = false;
 
-const DEFAULT_WEB_VERSION = process.env.WWEB_VERSION || '2.3000.1035637479';
+const CONFIGURED_WEB_VERSION = String(process.env.WWEB_VERSION || '').trim();
+const WEB_VERSION_CACHE_TYPE = process.env.WWEB_CACHE_TYPE || 'none';
 const DEFAULT_USER_AGENT = process.env.WWEB_USER_AGENT || 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36';
 
 function initializeWhatsAppClient() {
@@ -21,13 +22,12 @@ function initializeWhatsAppClient() {
     isInitializing = true;
     console.log('🔄 Inicializando cliente WhatsApp...');
     
-    const client = new Client({
+    const clientOptions = {
         authStrategy: new LocalAuth({
             clientId: 'bot-financeiro'
         }),
-        webVersion: DEFAULT_WEB_VERSION,
         webVersionCache: {
-            type: 'local'
+            type: WEB_VERSION_CACHE_TYPE
         },
         userAgent: DEFAULT_USER_AGENT,
         authTimeoutMs: 120000,
@@ -46,7 +46,15 @@ function initializeWhatsAppClient() {
             handleSIGTERM: false,
             handleSIGHUP: false
         }
-    });
+    };
+
+    if (CONFIGURED_WEB_VERSION && CONFIGURED_WEB_VERSION.toLowerCase() !== 'latest') {
+        clientOptions.webVersion = CONFIGURED_WEB_VERSION;
+    }
+
+    console.log(`🌐 WhatsApp Web cache: ${WEB_VERSION_CACHE_TYPE}; versão: ${clientOptions.webVersion || 'live/default'}`);
+
+    const client = new Client(clientOptions);
 
     client.on('qr', qr => {
         isAuthenticated = false;
