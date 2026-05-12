@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const logger = require('../utils/logger');
+const { normalizeText } = require('../utils/helpers');
 
 let Database = null;
 try {
@@ -446,7 +447,16 @@ function queryAnalyticalIntentSql(intent, parameters, { userId }) {
     const month = normalizeMonthParam(parameters?.mes);
     const year = normalizeYearParam(parameters?.ano);
     const categoriaRaw = String(parameters?.categoria || '').trim();
-    const categoriaLike = `%${categoriaRaw}%`;
+
+    const expenseMatchesCategory = (row) => {
+        const target = normalizeText(categoriaRaw);
+        if (!target) return true;
+        return (
+            normalizeText(row.category || '').includes(target) ||
+            normalizeText(row.subcategory || '').includes(target) ||
+            normalizeText(row.description || '').includes(target)
+        );
+    };
 
     if (intent === 'saldo_do_mes') {
         const kpi = queryKpis(userId, { month, year });
@@ -475,36 +485,31 @@ function queryAnalyticalIntentSql(intent, parameters, { userId }) {
     }
 
     if (intent === 'total_gastos_categoria_mes') {
-        const row = db.prepare(`
-            SELECT COALESCE(SUM(value), 0) AS total
+        const rows = db.prepare(`
+            SELECT description, category, subcategory, value
             FROM expenses
             WHERE user_id = ? AND month = ? AND year = ?
-            AND (
-                lower(COALESCE(category, '')) LIKE lower(?)
-                OR lower(COALESCE(subcategory, '')) LIKE lower(?)
-                OR lower(COALESCE(description, '')) LIKE lower(?)
-            )
-        `).get(userId, month, year, categoriaLike, categoriaLike, categoriaLike);
+        `).all(userId, month, year);
+        const total = rows
+            .filter(expenseMatchesCategory)
+            .reduce((sum, row) => sum + Number(row.value || 0), 0);
 
         return {
-            results: Number(row?.total || 0),
+            results: total,
             details: { categoria: categoriaRaw, mes: month, ano: year }
         };
     }
 
     if (intent === 'media_gastos_categoria_mes') {
-        const row = db.prepare(`
-            SELECT COALESCE(AVG(value), 0) AS avg_value
+        const rows = db.prepare(`
+            SELECT description, category, subcategory, value
             FROM expenses
             WHERE user_id = ? AND month = ? AND year = ?
-            AND (
-                lower(COALESCE(category, '')) LIKE lower(?)
-                OR lower(COALESCE(subcategory, '')) LIKE lower(?)
-                OR lower(COALESCE(description, '')) LIKE lower(?)
-            )
-        `).get(userId, month, year, categoriaLike, categoriaLike, categoriaLike);
+        `).all(userId, month, year);
+        const filtered = rows.filter(expenseMatchesCategory);
+        const total = filtered.reduce((sum, row) => sum + Number(row.value || 0), 0);
         return {
-            results: Number(row?.avg_value || 0),
+            results: filtered.length > 0 ? total / filtered.length : 0,
             details: { categoria: categoriaRaw, mes: month, ano: year }
         };
     }
@@ -514,14 +519,10 @@ function queryAnalyticalIntentSql(intent, parameters, { userId }) {
             SELECT date_text, description, category, subcategory, value
             FROM expenses
             WHERE user_id = ? AND month = ? AND year = ?
-            AND (
-                lower(COALESCE(category, '')) LIKE lower(?)
-                OR lower(COALESCE(subcategory, '')) LIKE lower(?)
-                OR lower(COALESCE(description, '')) LIKE lower(?)
-            )
             ORDER BY date_text DESC
             LIMIT 100
-        `).all(userId, month, year, categoriaLike, categoriaLike, categoriaLike)
+        `).all(userId, month, year)
+            .filter(expenseMatchesCategory)
             .map((row) => [row.date_text, row.description, row.category, row.subcategory, row.value]);
         return {
             results: rows,

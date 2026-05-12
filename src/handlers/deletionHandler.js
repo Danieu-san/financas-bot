@@ -96,6 +96,20 @@ function extractDate(query) {
   return m ? m[1] : null;
 }
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function readSheetWithRetry(range, { minRows = 1, retries = 3, delayMs = 500 } = {}) {
+  let rows = [];
+  for (let attempt = 0; attempt < retries; attempt += 1) {
+    rows = await readDataFromSheet(range);
+    if (rows && rows.length >= minRows) return rows;
+    if (attempt < retries - 1) await sleep(delayMs);
+  }
+  return rows || [];
+}
+
 function tokenizeQuery(query) {
   const stop = new Set([
     'de','do','da','dos','das','com','no','na','nos','nas','em','a','o','e','para','pra','por',
@@ -208,7 +222,7 @@ async function handleDeletionRequest(msg, deleteDetails) {
     return;
   }
 
-  const allData = await readDataFromSheet(sheetName);
+  const allData = await readSheetWithRetry(sheetName, { minRows: 2 });
   if (!allData || allData.length <= 1) {
     userStateManager.clearState(senderId);
     await msg.reply(`A aba "${sheetName}" já está vazia.`);

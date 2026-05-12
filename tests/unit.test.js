@@ -47,6 +47,11 @@ test('helpers.parseSheetDate', (t) => {
     assert.strictEqual(d2.getDate(), 15);
     assert.strictEqual(d2.getFullYear(), 2026);
 
+    const d3 = helpers.parseSheetDate("46063");
+    assert.strictEqual(d3.getDate(), 10);
+    assert.strictEqual(d3.getMonth(), 1);
+    assert.strictEqual(d3.getFullYear(), 2026);
+
     assert.strictEqual(helpers.parseSheetDate("invalid"), null, 'Invalid date string should return null');
     assert.strictEqual(helpers.parseSheetDate(""), null, 'Empty string should return null');
 });

@@ -48,8 +48,19 @@ const normalizeText = (text) => {
 };
 
 const parseSheetDate = (dateString) => {
-    if (!dateString || typeof dateString !== 'string') return null;
-    const datePart = dateString.split(' ')[0];
+    if (dateString === null || dateString === undefined || dateString === '') return null;
+
+    const raw = String(dateString).trim();
+    if (/^\d+(\.\d+)?$/.test(raw)) {
+        const serial = Number(raw);
+        if (!Number.isFinite(serial) || serial <= 0) return null;
+        const googleEpoch = Date.UTC(1899, 11, 30);
+        const millis = googleEpoch + Math.floor(serial) * 24 * 60 * 60 * 1000;
+        const parsed = new Date(millis);
+        return new Date(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate());
+    }
+
+    const datePart = raw.split(' ')[0];
     const parts = datePart.split('/');
     if (parts.length !== 3) return null;
     const [day, month, year] = parts;

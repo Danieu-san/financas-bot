@@ -186,6 +186,7 @@ module.exports = {
     getState,
     setState,
     deleteState,
+    clearState: deleteState,
     closeStateStore,
     getStoreMode: () => storeMode
 };

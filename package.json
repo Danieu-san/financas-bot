@@ -9,6 +9,7 @@
     "pm2:start": "pm2 start ecosystem.config.js",
     "pm2:stop": "pm2 stop all",
     "pm2:logs": "pm2 logs",
+    "reset:spreadsheet": "node scripts/resetSpreadsheetData.js",
     "backfill:user-id": "node scripts/backfillUserId.js",
     "seed:known-users": "node scripts/seedKnownUsers.js",
     "finalize:legacy-user-id": "node scripts/finalizeLegacyUserIds.js"

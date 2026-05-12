@@ -33,8 +33,29 @@ const USER_HEADERS = [
     'deleted_at'
 ];
 
+let usersCache = [];
+let usersCacheLoaded = false;
+let profilesCache = [];
+let profilesCacheLoaded = false;
+
 function nowIso() {
     return new Date().toISOString();
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function readCriticalSheet(range, { retries = 3, delayMs = 500 } = {}) {
+    let rows = [];
+    for (let attempt = 0; attempt < retries; attempt += 1) {
+        rows = await readDataFromSheet(range);
+        if (rows && rows.length > 0) return rows;
+        if (attempt < retries - 1) {
+            await sleep(delayMs);
+        }
+    }
+    return rows || [];
 }
 
 function normalizeWhatsappId(whatsappId) {
@@ -84,18 +105,38 @@ function mapUserRow(row, rowIndex) {
 }
 
 async function getAllUsers() {
-    const rows = await readDataFromSheet(`${USERS_SHEET}!A:J`);
-    if (!rows || rows.length <= 1) return [];
-    return rows.slice(1).map((row, idx) => mapUserRow(row, idx + 2));
+    const rows = await readCriticalSheet(`${USERS_SHEET}!A:J`);
+    if (!rows || rows.length === 0) {
+        return usersCacheLoaded ? usersCache : [];
+    }
+    if (rows.length <= 1) {
+        usersCache = [];
+        usersCacheLoaded = true;
+        return [];
+    }
+    usersCache = rows.slice(1).map((row, idx) => mapUserRow(row, idx + 2));
+    usersCacheLoaded = true;
+    return usersCache;
 }
 
 async function getUserByWhatsAppId(whatsappId) {
     const normalized = normalizeWhatsappId(whatsappId);
     const users = await getAllUsers();
-    return users.find(u => normalizeWhatsappId(u.whatsapp_id) === normalized) || null;
+    const matches = users.filter(u => normalizeWhatsappId(u.whatsapp_id) === normalized);
+    if (matches.length === 0) return null;
+
+    return (
+        matches.find(u => u.status === USER_STATUS.ACTIVE) ||
+        matches.find(u => u.status === USER_STATUS.PENDING) ||
+        matches.find(u => ![USER_STATUS.DELETED, USER_STATUS.EXPIRED].includes(u.status)) ||
+        matches[0]
+    );
 }
 
 async function createPendingUser(whatsappId, displayName = '') {
+    const existing = await getUserByWhatsAppId(whatsappId);
+    if (existing) return existing;
+
     const createdAt = nowIso();
     const row = [
         crypto.randomUUID(),
@@ -110,6 +151,7 @@ async function createPendingUser(whatsappId, displayName = '') {
         ''
     ];
     await appendRowToSheet(USERS_SHEET, row);
+    usersCacheLoaded = false;
     return getUserByWhatsAppId(whatsappId);
 }
 
@@ -117,6 +159,7 @@ async function createDefaultUserRows(user) {
     const userId = user.user_id;
     const timestamp = nowIso();
     await appendRowToSheet(PROFILE_SHEET, [userId, '', '', '', '', '']);
+    profilesCacheLoaded = false;
     await appendRowToSheet(SETTINGS_SHEET, [userId, 'America/Sao_Paulo', 'NÃO', 'SIM', 'pt-BR', timestamp, 'NÃO', '10']);
 }
 
@@ -193,6 +236,7 @@ async function updateUserRowByIndex(rowIndex, userData) {
         userData.deleted_at || ''
     ];
     await updateRowInSheet(range, row);
+    usersCacheLoaded = false;
 }
 
 function mapProfileRow(row, rowIndex) {
@@ -208,10 +252,31 @@ function mapProfileRow(row, rowIndex) {
 }
 
 async function getUserProfileByUserId(userId) {
-    const rows = await readDataFromSheet(`${PROFILE_SHEET}!A:F`);
-    if (!rows || rows.length <= 1) return null;
-    const profiles = rows.slice(1).map((row, idx) => mapProfileRow(row, idx + 2));
-    return profiles.find(p => p.user_id === userId) || null;
+    const rows = await readCriticalSheet(`${PROFILE_SHEET}!A:F`);
+    if (!rows || rows.length === 0) {
+        if (!profilesCacheLoaded) return null;
+        const cachedMatches = profilesCache.filter(p => p.user_id === userId);
+        const cachedCompleted = cachedMatches.filter(p => p.onboarding_completed_at);
+        return cachedCompleted[cachedCompleted.length - 1] || cachedMatches[cachedMatches.length - 1] || null;
+    }
+    if (rows.length <= 1) {
+        profilesCache = [];
+        profilesCacheLoaded = true;
+        return null;
+    }
+
+    profilesCache = rows.slice(1).map((row, idx) => mapProfileRow(row, idx + 2));
+    profilesCacheLoaded = true;
+    const matches = profilesCache.filter(p => p.user_id === userId);
+    if (matches.length === 0) return null;
+
+    // Sheets can briefly expose duplicate profile rows if a default row is
+    // created at activation and a later upsert appends before the first row is
+    // visible. Prefer the completed/latest profile so onboarding does not
+    // restart for users who already finished it.
+    const completed = matches.filter(p => p.onboarding_completed_at);
+    if (completed.length > 0) return completed[completed.length - 1];
+    return matches[matches.length - 1];
 }
 
 async function upsertUserProfile(userId, patch) {
@@ -242,8 +307,15 @@ async function upsertUserProfile(userId, patch) {
 
     if (existing) {
         await updateRowInSheet(`${PROFILE_SHEET}!A${existing.rowIndex}:F${existing.rowIndex}`, rowData);
+        const cached = { ...updated, rowIndex: existing.rowIndex };
+        profilesCache = profilesCache
+            .filter(profile => !(profile.user_id === userId && profile.rowIndex === existing.rowIndex))
+            .concat(cached)
+            .sort((a, b) => (a.rowIndex || 0) - (b.rowIndex || 0));
+        profilesCacheLoaded = true;
     } else {
         await appendRowToSheet(PROFILE_SHEET, rowData);
+        profilesCacheLoaded = false;
     }
 
     return getUserProfileByUserId(userId);
@@ -574,7 +646,7 @@ function mapConsentRow(row, rowIndex) {
 }
 
 async function getConsentLogsByUserId(userId, limit = 5) {
-    const rows = await readDataFromSheet(`${CONSENT_SHEET}!A:G`);
+    const rows = await readCriticalSheet(`${CONSENT_SHEET}!A:G`);
     if (!rows || rows.length <= 1) return [];
 
     const parsed = rows.slice(1).map((row, idx) => mapConsentRow(row, idx + 2));

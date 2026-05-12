@@ -2,7 +2,7 @@
 
 const { getStructuredResponseFromLLM, askLLM } = require('../services/gemini');
 const userStateManager = require('../state/userStateManager');
-const { appendRowToSheet, readDataFromSheet } = require('../services/google');
+const { appendRowToSheet } = require('../services/google');
 const { userMap } = require('../config/constants');
 const { parseValue, parseDate, isDate, getFormattedDateOnly, parseAmount } = require('../utils/helpers');
 const { getUserByWhatsAppId } = require('../services/userService');
@@ -266,9 +266,6 @@ async function finalizeGoalCreation(msg) {
             throw new Error('Usuário ativo sem user_id. Operação bloqueada.');
         }
         const data = state.data;
-        // Pega o número da próxima linha para usar nas fórmulas
-        const rowIndex = (await readDataFromSheet('Metas')).length + 1; 
-
         // --- CORREÇÃO 1: Recalculando o Valor Mensal ---
         const valorAlvo = parseFloat(data["Valor Alvo"]);
         const valorAtual = parseFloat(data["Valor Atual"]);
@@ -287,8 +284,8 @@ async function finalizeGoalCreation(msg) {
         if (valorMensal < 0) valorMensal = 0;
 
         // --- CORREÇÃO 2: Usando as Fórmulas e a Data Corrigida ---
-        const progressoFormula = `=C${rowIndex}/B${rowIndex}`;
-        const statusFormula = `=IF(C${rowIndex} >= B${rowIndex}; "Concluída"; "Em andamento")`;
+        const progressoFormula = '=INDIRECT("C"&ROW())/INDIRECT("B"&ROW())';
+        const statusFormula = '=IF(INDIRECT("C"&ROW()) >= INDIRECT("B"&ROW()); "Concluída"; "Em andamento")';
 
         const rowData = [
             data["Nome da Meta"],
