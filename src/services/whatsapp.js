@@ -8,6 +8,13 @@ let isInitializing = false;
 const CONFIGURED_WEB_VERSION = String(process.env.WWEB_VERSION || '').trim();
 const WEB_VERSION_CACHE_TYPE = process.env.WWEB_CACHE_TYPE || 'none';
 const DEFAULT_USER_AGENT = process.env.WWEB_USER_AGENT || 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36';
+const READY_TIMEOUT_MS = Number(process.env.WWEB_READY_TIMEOUT_MS || 180000);
+const PROTOCOL_TIMEOUT_MS = Number(process.env.PUPPETEER_PROTOCOL_TIMEOUT_MS || 180000);
+
+function exitForSupervisor(reason, delayMs = 1500) {
+    console.error(`❌ WhatsApp indisponível: ${reason}. Encerrando para o PM2 reiniciar.`);
+    setTimeout(() => process.exit(1), delayMs);
+}
 
 function initializeWhatsAppClient() {
     if (clientInstance) {
@@ -42,6 +49,7 @@ function initializeWhatsAppClient() {
                 '--disable-gpu'
             ],
             // Aumentar o timeout para evitar falhas em conexões lentas
+            protocolTimeout: PROTOCOL_TIMEOUT_MS,
             handleSIGINT: false,
             handleSIGTERM: false,
             handleSIGHUP: false
@@ -55,6 +63,19 @@ function initializeWhatsAppClient() {
     console.log(`🌐 WhatsApp Web cache: ${WEB_VERSION_CACHE_TYPE}; versão: ${clientOptions.webVersion || 'live/default'}`);
 
     const client = new Client(clientOptions);
+    let readyWatchdog = setTimeout(() => {
+        if (isInitializing) {
+            isInitializing = false;
+            exitForSupervisor(`timeout aguardando ready (${READY_TIMEOUT_MS}ms)`);
+        }
+    }, READY_TIMEOUT_MS);
+
+    function clearReadyWatchdog() {
+        if (readyWatchdog) {
+            clearTimeout(readyWatchdog);
+            readyWatchdog = null;
+        }
+    }
 
     client.on('qr', qr => {
         isAuthenticated = false;
@@ -78,17 +99,21 @@ function initializeWhatsAppClient() {
     });
 
     client.on('ready', () => {
+        clearReadyWatchdog();
         isInitializing = false;
         console.log('🚀 Conexão estabelecida! WhatsApp pronto.');
     });
 
     client.on('auth_failure', msg => {
+        clearReadyWatchdog();
         console.error('❌ Falha na autenticação:', msg);
         isAuthenticated = false;
         isInitializing = false;
+        exitForSupervisor('falha de autenticação');
     });
 
     client.on('disconnected', async (reason) => {
+        clearReadyWatchdog();
         console.log('⚠️ Cliente desconectado:', reason);
         isAuthenticated = false;
         isInitializing = false;
@@ -100,19 +125,16 @@ function initializeWhatsAppClient() {
             } catch (e) {}
             process.exit(0);
         } else {
-            console.log('Tentando reconectar em 10 segundos...');
-            setTimeout(() => {
-                if (!isInitializing) {
-                    client.initialize().catch(err => console.error('Erro ao reinicializar:', err.message));
-                }
-            }, 10000);
+            exitForSupervisor(`cliente desconectado (${reason})`);
         }
     });
 
     // Inicia o processo de conexão
     client.initialize().catch(err => {
+        clearReadyWatchdog();
         console.error('❌ Erro na inicialização:', err.message);
         isInitializing = false;
+        exitForSupervisor(err.message);
     });
 
     clientInstance = client;
