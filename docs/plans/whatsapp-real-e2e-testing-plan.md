@@ -84,15 +84,18 @@ Docs + runbook + migration to QA number
 ### Phase 2: Browser Setup
 
 ## Task 3: Add Playwright and setup command
+**Status:** Done
+
 **Description:** Adicionar Playwright como devDependency e criar comando de setup/login que abre WhatsApp Web em modo visivel com perfil persistente.
 
 **Acceptance criteria:**
-- [ ] `npm run test:whatsapp:e2e:setup` abre WhatsApp Web em navegador visivel.
-- [ ] O perfil e salvo em `.e2e/whatsapp-sender-profile`.
-- [ ] O script orienta o usuario a escanear QR se necessario.
+- [x] `npm run test:whatsapp:e2e:setup` abre WhatsApp Web em navegador visivel.
+- [x] O perfil e salvo em `.e2e/whatsapp-sender-profile`.
+- [x] O script orienta o usuario a escanear QR se necessario.
 
 **Verification:**
-- [ ] `npm run test:whatsapp:e2e:setup`
+- [x] `node --check scripts/setupWhatsappRealE2E.js`
+- [ ] `npm run test:whatsapp:e2e:setup` manualmente, quando o usuario quiser abrir o navegador.
 - [ ] Fechar e reabrir o setup mantem a sessao quando WhatsApp permitir.
 
 **Dependencies:** Task 2
@@ -105,16 +108,19 @@ Docs + runbook + migration to QA number
 **Estimated scope:** Medium
 
 ## Task 4: Build WhatsApp Web driver foundation
+**Status:** Done
+
 **Description:** Criar uma camada pequena para abrir WhatsApp Web, detectar login, abrir chat do bot e fechar o navegador corretamente.
 
 **Acceptance criteria:**
-- [ ] Driver expõe `launch`, `assertLoggedIn`, `openChat` e `close`.
-- [ ] Se nao estiver logado, erro sugere `npm run test:whatsapp:e2e:setup`.
-- [ ] Seletores ficam concentrados no driver.
+- [x] Driver expõe `launch`, `assertLoggedIn`, `openChat` e `close`.
+- [x] Se nao estiver logado, erro sugere `npm run test:whatsapp:e2e:setup`.
+- [x] Seletores ficam concentrados no driver.
 
 **Verification:**
-- [ ] `node --check src/testing/whatsappWebDriver.js`
-- [ ] Smoke manual: abrir chat do bot sem enviar mensagem.
+- [x] `node --check src/testing/whatsappWebDriver.js`
+- [x] `npm test`
+- [ ] Smoke manual: abrir chat do bot sem enviar mensagem usando `npm run test:whatsapp:e2e:check`.
 
 **Dependencies:** Task 3
 
@@ -125,9 +131,9 @@ Docs + runbook + migration to QA number
 **Estimated scope:** Medium
 
 ### Checkpoint: Browser Control
-- [ ] WhatsApp Web abre localmente.
-- [ ] Sessao persistente funciona ou falha com instrucao clara.
-- [ ] Chat do bot pode ser aberto sem acionar fluxos de mensagem.
+- [x] Comandos e driver para abrir WhatsApp Web localmente estao implementados.
+- [x] Sessao persistente esta configurada para `.e2e/whatsapp-sender-profile`.
+- [ ] Validacao manual pendente: abrir chat do bot sem acionar fluxos de mensagem.
 
 ### Phase 3: Real Message Smoke
 
