@@ -132,6 +132,19 @@ class WhatsAppWebDriver {
         return contains;
     }
 
+    async waitForAnyIncomingMessage({ containsAny, previousCounts = {}, timeoutMs = this.config.timeoutMs }) {
+        const found = await this.page.waitForFunction(
+            ({ texts, counts }) => {
+                const bodyText = document.body.innerText || '';
+                return texts.find(text => bodyText.split(text).length - 1 > (counts[text] || 0)) || null;
+            },
+            { texts: containsAny, counts: previousCounts },
+            { timeout: timeoutMs }
+        );
+
+        return found.jsonValue();
+    }
+
     async close() {
         await this.context.close();
     }

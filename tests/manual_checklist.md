@@ -108,6 +108,13 @@ Este documento descreve os fluxos de conversa que devem ser validados manualment
 - [ ] **Mensagem:** "quanto gastei esse mês?"
 - [ ] **Resultado:** Resposta usa cálculo local/read-model e não mistura dados de outro usuário.
 
+## 8.2 Smoke Automatizado Via WhatsApp Web Local
+- [ ] **Config:** `.env` local contém `WHATSAPP_E2E_ENABLED=true`, `WHATSAPP_E2E_BOT_PHONE`, `WHATSAPP_E2E_TEST_USER_PHONE` e `WHATSAPP_E2E_SENDER_KIND=personal-temporary`.
+- [ ] **Setup:** Rodar `npm run test:whatsapp:e2e:setup` e autenticar o WhatsApp Web remetente, se necessário.
+- [ ] **Check seguro:** Rodar `npm run test:whatsapp:e2e:check` para abrir o chat do bot sem enviar mensagem.
+- [ ] **E2E real:** Rodar `npm run test:whatsapp:e2e` para validar termos/onboarding, gasto E2E, pergunta analítica e dashboard.
+- [ ] **Logs:** Conferir `pm2 logs financas-bot --lines 120 --nostream` no EC2 se houver timeout.
+
 ## 9. Casos de Borda e Erros
 - [ ] **Valor ausente:** "Gastei com mercado" -> Deve informar que não encontrou o valor.
 - [ ] **Cancelar fluxo:** No meio de um fluxo de criação, digitar "cancelar" -> Deve limpar o estado do usuário.

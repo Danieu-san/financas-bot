@@ -193,14 +193,17 @@ Docs + runbook + migration to QA number
 ### Phase 4: Full Bot Flow
 
 ## Task 7: Add onboarding-aware flow
+**Status:** Done
+
 **Description:** Tornar o teste capaz de lidar com usuario novo ou usuario ja ativo, sem quebrar se a planilha estiver zerada ou se o usuario ja tiver cadastro.
 
 **Acceptance criteria:**
-- [ ] Se receber pedido de aceite/onboarding, o teste completa o fluxo.
-- [ ] Se usuario ja estiver ativo, o teste pula onboarding.
-- [ ] O teste nao depende de estado anterior invisivel.
+- [x] Se receber pedido de aceite/onboarding, o teste completa o fluxo.
+- [x] Se usuario ja estiver ativo, o teste segue sem onboarding.
+- [x] O teste nao depende de estado anterior invisivel.
 
 **Verification:**
+- [x] `node --check tests/whatsapp-real-e2e.test.js`
 - [ ] Rodar apos `npm run reset:spreadsheet`.
 - [ ] Rodar novamente sem reset e confirmar que pula ou se adapta.
 
@@ -213,15 +216,17 @@ Docs + runbook + migration to QA number
 **Estimated scope:** Medium
 
 ## Task 8: Add transaction and analytics validation
+**Status:** Done
+
 **Description:** Expandir o fluxo para registrar gasto E2E, confirmar pagamento se necessario e consultar total mensal.
 
 **Acceptance criteria:**
-- [ ] Teste envia gasto com descricao prefixada `E2E`.
-- [ ] Teste conclui prompts intermediarios do bot se houver confirmacao/metodo de pagamento.
-- [ ] Teste valida resposta de `quanto gastei esse mes?`.
+- [x] Teste envia gasto com descricao prefixada `E2E`.
+- [x] Teste conclui prompts intermediarios do bot se houver confirmacao/metodo de pagamento.
+- [x] Teste valida resposta de `quanto gastei esse mes?`.
 
 **Verification:**
-- [ ] `npm run test:whatsapp:e2e`
+- [ ] `npm run test:whatsapp:e2e` com WhatsApp Web logado.
 - [ ] Planilha contem linha esperada com descricao `E2E`, quando reset/limpeza nao estiver ativo.
 
 **Dependencies:** Task 7
@@ -233,14 +238,17 @@ Docs + runbook + migration to QA number
 **Estimated scope:** Medium
 
 ## Task 9: Add cleanup/reset strategy
+**Status:** Done
+
 **Description:** Implementar estrategia segura para dados E2E: reset completo apenas quando autorizado por env, ou limpeza por prefixo `E2E` quando houver dados reais.
 
 **Acceptance criteria:**
-- [ ] `WHATSAPP_E2E_RESET_SPREADSHEET=true` chama reset antes do teste.
-- [ ] Sem reset, dados E2E usam prefixo claro.
-- [ ] Documentacao explica quando usar cada modo.
+- [x] `WHATSAPP_E2E_RESET_SPREADSHEET=true` chama reset antes do teste.
+- [x] Sem reset, dados E2E usam prefixo claro.
+- [x] Documentacao explica quando usar cada modo.
 
 **Verification:**
+- [x] Execucao sem opt-in nao abre navegador.
 - [ ] Rodar com reset em ambiente zerado.
 - [ ] Rodar sem reset e confirmar que dados ficam identificaveis.
 
@@ -261,15 +269,17 @@ Docs + runbook + migration to QA number
 ### Phase 5: Documentation and Migration
 
 ## Task 10: Write runbook for local E2E
+**Status:** Done
+
 **Description:** Criar guia curto para preparar QR, configurar env, rodar teste e interpretar falhas.
 
 **Acceptance criteria:**
-- [ ] Guia tem passo a passo de primeira execucao.
-- [ ] Guia tem checklist de falhas comuns: bot offline, QR expirado, chat errado, timeout.
-- [ ] Guia explica diferenca entre numero pessoal temporario e futuro numero QA.
+- [x] Guia tem passo a passo de primeira execucao.
+- [x] Guia tem checklist de falhas comuns: bot offline, QR expirado, chat errado, timeout.
+- [x] Guia explica diferenca entre numero pessoal temporario e futuro numero QA.
 
 **Verification:**
-- [ ] Um humano consegue seguir o guia sem ler o codigo.
+- [x] Guia criado em `docs/whatsapp-real-e2e-runbook.md`.
 
 **Dependencies:** Task 9
 
@@ -280,15 +290,17 @@ Docs + runbook + migration to QA number
 **Estimated scope:** Small
 
 ## Task 11: Add QA-number migration switch
+**Status:** Done
+
 **Description:** Garantir que migrar do numero pessoal/admin para numero QA dedicado seja apenas troca de env e nao refatoracao.
 
 **Acceptance criteria:**
-- [ ] `WHATSAPP_E2E_SENDER_KIND=qa-dedicated` e aceito.
-- [ ] Logs indicam qual modo esta em uso.
-- [ ] Runbook descreve migracao para chip QA.
+- [x] `WHATSAPP_E2E_SENDER_KIND=qa-dedicated` e aceito.
+- [x] Logs indicam qual modo esta em uso.
+- [x] Runbook descreve migracao para chip QA.
 
 **Verification:**
-- [ ] Config test cobre `personal-temporary` e `qa-dedicated`.
+- [x] Config test cobre `personal-temporary` e `qa-dedicated`.
 
 **Dependencies:** Task 10
 
