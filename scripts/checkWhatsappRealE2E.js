@@ -9,7 +9,8 @@ async function main() {
 
     try {
         await driver.gotoHome();
-        await driver.assertLoggedIn();
+        const loginSelector = await driver.assertLoggedIn();
+        console.log(`Login confirmado por seletor: ${loginSelector}`);
         const url = await driver.openChat(config.botPhone);
         console.log('WhatsApp E2E check OK.');
         console.log(`Chat do bot aberto sem envio de mensagem: ${url}`);

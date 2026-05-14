@@ -5,6 +5,7 @@ const {
     LOGGED_IN_SELECTORS,
     MESSAGE_BOX_SELECTORS,
     QR_SELECTORS,
+    SEARCH_BOX_SELECTORS,
     WHATSAPP_WEB_URL,
     buildChatUrl,
     countOccurrences
@@ -24,6 +25,7 @@ test('whatsappWebDriver exports stable selector groups', () => {
     assert.ok(LOGGED_IN_SELECTORS.length >= 1);
     assert.ok(MESSAGE_BOX_SELECTORS.length >= 1);
     assert.ok(QR_SELECTORS.length >= 1);
+    assert.ok(SEARCH_BOX_SELECTORS.length >= 1);
 });
 
 test('whatsappWebDriver.countOccurrences counts repeated reply text', () => {
