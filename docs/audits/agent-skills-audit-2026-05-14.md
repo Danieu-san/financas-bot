@@ -98,9 +98,9 @@ Verify:
 - Nao testar WhatsApp real via automacao local sem ferramenta confiavel de controle do WhatsApp Web.
 
 ## Open Questions
-- O deploy deve ser feito imediatamente apos merge ou em janela separada?
-- Devemos adicionar um dominio HTTPS antes de aumentar usuarios?
-- Devemos criar uma politica formal de retencao de dados financeiros?
+- Deploy imediato: executado em 2026-05-14 apos testes locais e commit.
+- Dominio HTTPS antes de aumentar usuarios: pendencia futura recomendada antes de escala real.
+- Politica formal de retencao de dados financeiros: pendencia futura recomendada antes de escala real.
 
 ## Execution Results
 
@@ -123,6 +123,33 @@ Verify:
 - `npm test` passou.
 - `npm run test:functional` passou com Google Sheets real e IA mockada.
 - `npm run reset:spreadsheet` passou apos o funcional.
+
+### Shipping run
+- Commit local criado: `9fb1a02 Harden multi-user flows and formalize bot audit`.
+- Push para `origin/main` concluido.
+- EC2 atualizado com `git pull origin main`.
+- `npm install` executado no EC2; auditoria retornou 0 vulnerabilidades.
+- PM2 reiniciado com `pm2 restart financas-bot --update-env`.
+- Health do dashboard respondeu `{"ok":true,"sqlite":true}`.
+- PM2 mostrou `financas-bot` online.
+- Pendencia manual: WhatsApp Web precisa ser reautenticado por QR Code no servidor. O bot ainda nao deve ser considerado totalmente operacional ate o QR ser escaneado e o log mostrar `Bot pronto para receber mensagens!`.
+
+### Post-deploy smoke checklist
+- [x] Codigo em GitHub.
+- [x] Dependencias atualizadas no EC2.
+- [x] PM2 online.
+- [x] Dashboard health OK.
+- [x] SQLite/read-model disponivel.
+- [ ] WhatsApp autenticado e pronto.
+- [ ] Smoke manual no WhatsApp: `Oi`, `dashboard`, `admin stats`, registrar um gasto pequeno e consultar resumo.
+
+### Rollback plan
+Se o smoke manual falhar apos autenticar WhatsApp:
+1. No EC2: `cd /home/ubuntu/financas-bot`.
+2. Reverter para commit anterior conhecido: `git reset --hard ce2e567`.
+3. Restaurar dependencias: `npm install`.
+4. Reiniciar: `pm2 restart financas-bot --update-env`.
+5. Verificar: `curl http://localhost:8787/dashboard/health` e `pm2 logs financas-bot --lines 120 --nostream`.
 
 ## Method Comparison
 
