@@ -138,16 +138,20 @@ Docs + runbook + migration to QA number
 ### Phase 3: Real Message Smoke
 
 ## Task 5: Implement send/wait primitives
+**Status:** Done
+
 **Description:** Adicionar primitives para enviar uma mensagem, esperar resposta nova e registrar logs com tempo de espera.
 
 **Acceptance criteria:**
-- [ ] `sendMessage(text)` envia texto no chat aberto.
-- [ ] `waitForIncomingMessage({ contains, timeoutMs })` espera uma resposta recebida, nao apenas mensagem antiga.
-- [ ] Timeout inclui mensagem enviada e expectativa.
+- [x] `sendMessage(text)` envia texto no chat aberto.
+- [x] `waitForIncomingMessage({ contains, timeoutMs })` espera uma resposta recebida, nao apenas mensagem antiga.
+- [x] Timeout inclui mensagem enviada e expectativa.
 
 **Verification:**
+- [x] `node --check src/testing/whatsappWebDriver.js`
+- [x] `node --check src/testing/e2eAssertions.js`
 - [ ] Smoke manual com mensagem inocua, por exemplo `Oi`.
-- [ ] Timeout proposital gera erro legivel.
+- [ ] Timeout proposital em WhatsApp real gera erro legivel.
 
 **Dependencies:** Task 4
 
@@ -158,15 +162,18 @@ Docs + runbook + migration to QA number
 **Estimated scope:** Medium
 
 ## Task 6: Create minimal real WhatsApp E2E test
+**Status:** Done
+
 **Description:** Criar primeiro teste real curto: abrir chat, enviar `TERMOS`, validar resposta, enviar `dashboard`, validar link.
 
 **Acceptance criteria:**
-- [ ] `npm run test:whatsapp:e2e` so roda com `WHATSAPP_E2E_ENABLED=true`.
-- [ ] Teste valida pelo menos uma resposta textual real.
-- [ ] Teste valida que `dashboard` retorna `/dashboard?token=`.
+- [x] `npm run test:whatsapp:e2e` so roda com `WHATSAPP_E2E_ENABLED=true`.
+- [x] Teste valida pelo menos uma resposta textual real.
+- [x] Teste valida que `dashboard` retorna `/dashboard?token=`.
 
 **Verification:**
-- [ ] `npm run test:whatsapp:e2e`
+- [x] Execucao sem opt-in falha antes de abrir navegador.
+- [ ] `npm run test:whatsapp:e2e` com WhatsApp Web logado.
 - [ ] `pm2 logs financas-bot --lines 120 --nostream` mostra mensagens recebidas.
 
 **Dependencies:** Task 5
@@ -181,7 +188,7 @@ Docs + runbook + migration to QA number
 ### Checkpoint: First Real E2E
 - [ ] O teste envia mensagem real ao bot.
 - [ ] O bot responde no WhatsApp real.
-- [ ] O teste falha com diagnostico acionavel quando algo externo esta fora.
+- [x] O teste falha com diagnostico acionavel quando algo externo esta fora.
 
 ### Phase 4: Full Bot Flow
 

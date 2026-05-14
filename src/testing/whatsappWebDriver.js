@@ -15,6 +15,14 @@ const QR_SELECTORS = [
     '[data-testid="qrcode"]'
 ];
 
+const MESSAGE_BOX_SELECTORS = [
+    'footer div[contenteditable="true"][role="textbox"]',
+    'div[aria-label="Digite uma mensagem"][contenteditable="true"]',
+    'div[aria-placeholder="Digite uma mensagem"][contenteditable="true"]',
+    'div[aria-label="Type a message"][contenteditable="true"]',
+    'div[aria-placeholder="Type a message"][contenteditable="true"]'
+];
+
 function firstVisibleLocator(page, selectors) {
     return Promise.any(selectors.map(async selector => {
         const locator = page.locator(selector).first();
@@ -25,6 +33,11 @@ function firstVisibleLocator(page, selectors) {
 
 function buildChatUrl(phone) {
     return `https://web.whatsapp.com/send?phone=${encodeURIComponent(phone)}&text=&type=phone_number&app_absent=0`;
+}
+
+function countOccurrences(text, search) {
+    if (!search) return 0;
+    return String(text || '').split(search).length - 1;
 }
 
 async function launchWhatsAppWebDriver(config, options = {}) {
@@ -79,7 +92,44 @@ class WhatsAppWebDriver {
         });
 
         await this.assertLoggedIn();
+        await this.getMessageBox();
         return this.page.url();
+    }
+
+    async getMessageBox() {
+        const result = await firstVisibleLocator(this.page, MESSAGE_BOX_SELECTORS);
+        if (!result) {
+            throw new Error('Campo de mensagem do WhatsApp Web nao encontrado. Verifique se o chat do bot abriu corretamente.');
+        }
+        return result.locator;
+    }
+
+    async getVisibleText() {
+        return this.page.evaluate(() => document.body.innerText || '');
+    }
+
+    async countTextOccurrences(search) {
+        return countOccurrences(await this.getVisibleText(), search);
+    }
+
+    async sendMessage(text) {
+        const box = await this.getMessageBox();
+        await box.click();
+        await this.page.keyboard.insertText(text);
+        await this.page.keyboard.press('Enter');
+    }
+
+    async waitForIncomingMessage({ contains, previousCount = 0, timeoutMs = this.config.timeoutMs }) {
+        await this.page.waitForFunction(
+            ({ text, minCount }) => {
+                const bodyText = document.body.innerText || '';
+                return bodyText.split(text).length - 1 > minCount;
+            },
+            { text: contains, minCount: previousCount },
+            { timeout: timeoutMs }
+        );
+
+        return contains;
     }
 
     async close() {
@@ -89,9 +139,11 @@ class WhatsAppWebDriver {
 
 module.exports = {
     LOGGED_IN_SELECTORS,
+    MESSAGE_BOX_SELECTORS,
     QR_SELECTORS,
     WHATSAPP_WEB_URL,
     WhatsAppWebDriver,
     buildChatUrl,
+    countOccurrences,
     launchWhatsAppWebDriver
 };
