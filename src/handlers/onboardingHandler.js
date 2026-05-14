@@ -176,5 +176,8 @@ async function handleOnboarding(msg, user) {
 }
 
 module.exports = {
-    handleOnboarding
+    handleOnboarding,
+    __test__: {
+        looksLikeBotCommand
+    }
 };

@@ -11,6 +11,7 @@ const userStateManager = require('../src/state/userStateManager');
 const userService = require('../src/services/userService');
 const adminCheck = require('../src/utils/adminCheck');
 const messageHandler = require('../src/handlers/messageHandler');
+const onboardingHandler = require('../src/handlers/onboardingHandler');
 const debtHandler = require('../src/handlers/debtHandler');
 const deletionHandler = require('../src/handlers/deletionHandler');
 const googleService = require('../src/services/google');
@@ -173,6 +174,30 @@ test('messageHandler.local replies cover greeting and total month', (t) => {
     assert.ok(reply.includes('Total gasto em fevereiro/2026: R$ 150,50'));
     assert.ok(reply.includes('Saídas: R$ 100,00'));
     assert.ok(reply.includes('Cartões: R$ 50,50'));
+});
+
+test('messageHandler active ACEITO is handled before AI routing', async (t) => {
+    const { handleAccountLifecycleCommands } = messageHandler.__test__;
+    const replies = [];
+    const msg = {
+        body: 'ACEITO',
+        reply: async text => replies.push(String(text))
+    };
+
+    const handled = await handleAccountLifecycleCommands(msg, { user_id: 'user-active' });
+
+    assert.strictEqual(handled, true);
+    assert.strictEqual(replies.length, 1);
+    assert.ok(replies[0].includes('consentimento já está ativo'));
+});
+
+test('onboarding rejects command-looking text as display name', (t) => {
+    const { looksLikeBotCommand } = onboardingHandler.__test__;
+
+    assert.strictEqual(looksLikeBotCommand('gastei 10 no teste E2E no pix'), true);
+    assert.strictEqual(looksLikeBotCommand('quanto gastei esse mês?'), true);
+    assert.strictEqual(looksLikeBotCommand('dashboard'), true);
+    assert.strictEqual(looksLikeBotCommand('Daniel'), false);
 });
 
 test('messageHandler.filterSheetRowsByUserId keeps header and isolates user rows', (t) => {

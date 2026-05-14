@@ -1654,7 +1654,8 @@ module.exports = {
         buildLocalPerguntaResponse,
         filterSheetRowsByUserId,
         isGreetingMessage,
-        buildGreetingReply
+        buildGreetingReply,
+        handleAccountLifecycleCommands
     }
 };
 
