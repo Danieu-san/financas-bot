@@ -63,12 +63,17 @@ function initializeWhatsAppClient() {
     console.log(`🌐 WhatsApp Web cache: ${WEB_VERSION_CACHE_TYPE}; versão: ${clientOptions.webVersion || 'live/default'}`);
 
     const client = new Client(clientOptions);
-    let readyWatchdog = setTimeout(() => {
-        if (isInitializing) {
-            isInitializing = false;
-            exitForSupervisor(`timeout aguardando ready (${READY_TIMEOUT_MS}ms)`);
-        }
-    }, READY_TIMEOUT_MS);
+    let readyWatchdog = null;
+
+    function armReadyWatchdog(label) {
+        clearReadyWatchdog();
+        readyWatchdog = setTimeout(() => {
+            if (isInitializing) {
+                isInitializing = false;
+                exitForSupervisor(`timeout aguardando ready após ${label} (${READY_TIMEOUT_MS}ms)`);
+            }
+        }, READY_TIMEOUT_MS);
+    }
 
     function clearReadyWatchdog() {
         if (readyWatchdog) {
@@ -77,8 +82,12 @@ function initializeWhatsAppClient() {
         }
     }
 
+    armReadyWatchdog('inicialização');
+
     client.on('qr', qr => {
         isAuthenticated = false;
+        clearReadyWatchdog();
+        console.log('⏸️ Aguardando leitura do QR Code. PM2 não será reiniciado enquanto a autenticação estiver pendente.');
         console.log('🔑 Novo QR Code gerado. Escaneie para conectar:');
         qrcode.generate(qr, { small: true });
     });
@@ -95,6 +104,8 @@ function initializeWhatsAppClient() {
         if (!isAuthenticated) {
             console.log('🔓 Autenticado com sucesso! Carregando chats...');
             isAuthenticated = true;
+            isInitializing = true;
+            armReadyWatchdog('autenticação');
         }
     });
 

@@ -143,6 +143,11 @@ Verify:
 - [ ] WhatsApp autenticado e pronto.
 - [ ] Smoke manual no WhatsApp: `Oi`, `dashboard`, `admin stats`, registrar um gasto pequeno e consultar resumo.
 
+### Follow-up risk fixes
+- WhatsApp/Puppeteer real: teste automatizado continua simulando mensagens, mas o checklist manual agora cobre smoke real pos-deploy. O watchdog do WhatsApp tambem foi ajustado para nao reiniciar o PM2 enquanto o QR Code aguarda leitura.
+- Calendar global: lembretes criados pelo bot agora recebem `extendedProperties.private.financas_bot_user_id`; crons de agenda filtram eventos por usuario antes de enviar mensagens.
+- Repositorio: `.gitignore` passou a bloquear `token.json`, chaves, `data/`, `logs/`, `backups/` e `state_store.json`.
+
 ### Rollback plan
 Se o smoke manual falhar apos autenticar WhatsApp:
 1. No EC2: `cd /home/ubuntu/financas-bot`.

@@ -92,6 +92,21 @@ Este documento descreve os fluxos de conversa que devem ser validados manualment
 ## 8. Lembretes (Google Calendar)
 - [ ] **Mensagem:** "Me lembre de pagar o IPVA amanhã às 9h"
 - [ ] **Resultado:** Evento criado no Google Calendar e resposta de confirmação do bot.
+- [ ] **Validação multiusuário:** O evento criado pelo bot deve ter `extendedProperties.private.financas_bot_user_id` do usuário que pediu o lembrete.
+- [ ] **Validação de privacidade:** Resumos/alertas de agenda enviados por cron não devem incluir eventos sem `financas_bot_user_id` nem eventos de outro usuário.
+
+## 8.1 Smoke Pós-Deploy (WhatsApp Web Real)
+- [ ] **PM2:** `pm2 logs financas-bot --lines 120 --nostream` deve mostrar `Bot pronto para receber mensagens!` após escanear o QR Code.
+- [ ] **Mensagem:** "Oi"
+- [ ] **Resultado:** Bot responde saudação ou menu inicial, sem passar pela IA pesada.
+- [ ] **Mensagem:** "dashboard"
+- [ ] **Resultado:** Bot envia link válido do dashboard.
+- [ ] **Mensagem:** "admin stats"
+- [ ] **Resultado:** Bot responde estatísticas e registra log `[admin] stats`.
+- [ ] **Mensagem:** "gastei 10 no teste no pix"
+- [ ] **Resultado:** Registro salvo em `Saídas` com `user_id` preenchido.
+- [ ] **Mensagem:** "quanto gastei esse mês?"
+- [ ] **Resultado:** Resposta usa cálculo local/read-model e não mistura dados de outro usuário.
 
 ## 9. Casos de Borda e Erros
 - [ ] **Valor ausente:** "Gastei com mercado" -> Deve informar que não encontrou o valor.

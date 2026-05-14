@@ -5,7 +5,16 @@ node_modules/
 # Arquivos de ambiente com senhas e chaves (MUITO IMPORTANTE)
 .env
 credentials.json
+token.json
+*.pem
+*.key
 
 # Pastas de cache e sessão do whatsapp-web.js (contém dados de login)
 .wwebjs_auth/
 .wwebjs_cache/
+
+# Estado/runtime local
+data/
+logs/
+backups/
+state_store.json

@@ -33,27 +33,28 @@ async function getRecipientIds({ weeklyOptIn = null, monthlyOptIn = null } = {})
 
 async function checkUpcomingEvents() {
     try {
-        const eventos = await getCalendarEventsForToday();
         const agora = new Date();
+        const users = await getActiveUsers();
 
-        for (const evento of eventos) {
-            if (!evento.start?.dateTime || notifiedEventIds.has(evento.id)) continue;
+        for (const user of users) {
+            const eventos = await getCalendarEventsForToday(undefined, { userId: user.user_id });
+            for (const evento of eventos) {
+                const notificationKey = `${user.user_id}:${evento.id}`;
+                if (!evento.start?.dateTime || notifiedEventIds.has(notificationKey)) continue;
 
-            const horaInicio = new Date(evento.start.dateTime);
-            const diffMinutes = Math.round((horaInicio.getTime() - agora.getTime()) / (1000 * 60));
+                const horaInicio = new Date(evento.start.dateTime);
+                const diffMinutes = Math.round((horaInicio.getTime() - agora.getTime()) / (1000 * 60));
 
-            if (diffMinutes >= 55 && diffMinutes <= 70) {
-                const message =
-                    `Lembrete de Agenda 🔔: Seu compromisso "*${evento.summary}*" começa em aproximadamente 1 hora, ` +
-                    `às ${horaInicio.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.`;
+                if (diffMinutes >= 55 && diffMinutes <= 70) {
+                    const message =
+                        `Lembrete de Agenda 🔔: Seu compromisso "*${evento.summary}*" começa em aproximadamente 1 hora, ` +
+                        `às ${horaInicio.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.`;
 
-                const recipients = await getRecipientIds();
-                for (const id of recipients) {
-                    await client.sendMessage(id, message);
+                    await client.sendMessage(user.whatsapp_id, message);
+
+                    notifiedEventIds.add(notificationKey);
+                    console.log(`Lembrete (1h) enviado para ${user.whatsapp_id}: "${evento.summary}"`);
                 }
-
-                notifiedEventIds.add(evento.id);
-                console.log(`Lembrete (1h) enviado para o evento: "${evento.summary}"`);
             }
         }
     } catch (error) {
@@ -133,8 +134,6 @@ async function sendMorningSummary() {
         const hoje = new Date();
         hoje.setHours(0, 0, 0, 0);
 
-        const eventosDeHoje = await getCalendarEventsForToday();
-
         for (const user of users) {
             const userId = String(user.user_id || '').trim();
             if (!userId) continue;
@@ -173,6 +172,8 @@ async function sendMorningSummary() {
                 });
             }
 
+            const eventosDeHoje = await getCalendarEventsForToday(hoje, { userId });
+
             message += '\n*Agenda de Hoje:*\n';
             if (eventosDeHoje.length === 0) {
                 message += '📅 Nenhum compromisso na agenda para hoje.\n';
@@ -198,24 +199,25 @@ async function sendEveningSummary() {
         const amanha = new Date();
         amanha.setDate(amanha.getDate() + 1);
         const amanhaStr = amanha.toLocaleDateString('pt-BR');
-        const eventosDeAmanha = await getCalendarEventsForToday(amanha);
+        const users = await getActiveUsers();
 
-        let message = `Boa noite! 🌙 Aqui está o resumo da sua agenda para amanhã, ${amanhaStr}:\n`;
-        if (eventosDeAmanha.length === 0) {
-            message += '📅 Nenhum compromisso agendado para amanhã. Aproveite!\n';
-        } else {
-            eventosDeAmanha.forEach(evento => {
-                let horario = 'Dia inteiro';
-                if (evento.start?.dateTime) {
-                    horario = new Date(evento.start.dateTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                }
-                message += ` - *${horario}* - ${evento.summary}\n`;
-            });
-        }
+        for (const user of users) {
+            const eventosDeAmanha = await getCalendarEventsForToday(amanha, { userId: user.user_id });
 
-        const recipients = await getRecipientIds();
-        for (const id of recipients) {
-            await client.sendMessage(id, message);
+            let message = `Boa noite! 🌙 Aqui está o resumo da sua agenda para amanhã, ${amanhaStr}:\n`;
+            if (eventosDeAmanha.length === 0) {
+                message += '📅 Nenhum compromisso agendado para amanhã. Aproveite!\n';
+            } else {
+                eventosDeAmanha.forEach(evento => {
+                    let horario = 'Dia inteiro';
+                    if (evento.start?.dateTime) {
+                        horario = new Date(evento.start.dateTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    }
+                    message += ` - *${horario}* - ${evento.summary}\n`;
+                });
+            }
+
+            await client.sendMessage(user.whatsapp_id, message);
         }
     } catch (error) {
         logger.error(`Erro ao enviar resumo noturno: ${error.message}`);

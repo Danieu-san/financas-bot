@@ -87,7 +87,14 @@ async function authorizeGoogle(forceRefresh = false) {
     await authInFlight;
 }
 
-async function createCalendarEvent(title, startDateTime, recurrenceRule) {
+const CALENDAR_USER_ID_PRIVATE_KEY = 'financas_bot_user_id';
+
+function eventBelongsToUser(event, userId) {
+    if (!userId) return true;
+    return String(event?.extendedProperties?.private?.[CALENDAR_USER_ID_PRIVATE_KEY] || '').trim() === String(userId).trim();
+}
+
+async function createCalendarEvent(title, startDateTime, recurrenceRule, options = {}) {
     try {
         const isoDateTime = convertToIsoDateTime(startDateTime);
         const event = {
@@ -95,6 +102,14 @@ async function createCalendarEvent(title, startDateTime, recurrenceRule) {
             start: { dateTime: isoDateTime, timeZone: 'America/Sao_Paulo' },
             end: { dateTime: isoDateTime, timeZone: 'America/Sao_Paulo' },
         };
+        if (options.userId) {
+            event.extendedProperties = {
+                private: {
+                    [CALENDAR_USER_ID_PRIVATE_KEY]: String(options.userId),
+                    financas_bot_source: 'whatsapp'
+                }
+            };
+        }
         if (recurrenceRule) event.recurrence = [`RRULE:${recurrenceRule}`];
         const response = await runWithGoogleRetry('createCalendarEvent', () => calendar.events.insert({
             calendarId: 'primary',
@@ -700,7 +715,7 @@ async function syncDashboardForUser({ userId, periodLabel, metrics }) {
     }));
 }
 
-async function getCalendarEventsForToday(targetDate = new Date()) {
+async function getCalendarEventsForToday(targetDate = new Date(), options = {}) {
     try {
         const startOfDay = new Date(targetDate);
         startOfDay.setHours(0, 0, 0, 0);
@@ -717,7 +732,10 @@ async function getCalendarEventsForToday(targetDate = new Date()) {
             timeZone: 'America/Sao_Paulo'
         }), { swallowOnError: true, fallbackValue: { data: { items: [] } } });
 
-        return response.data.items || [];
+        const events = response.data.items || [];
+        return options.userId
+            ? events.filter(event => eventBelongsToUser(event, options.userId))
+            : events;
     } catch (error) {
         console.error('❌ Erro ao buscar eventos no Calendar:', error.message);
         return [];
@@ -949,6 +967,9 @@ module.exports = {
     authorizeGoogle,
     createCalendarEvent,
     getCalendarEventsForToday,
+    __test__: {
+        eventBelongsToUser
+    },
     getSheetIds,
     appendRowToSheet,
     readDataFromSheet,

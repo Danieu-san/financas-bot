@@ -1583,7 +1583,10 @@ async function handleMessage(msg) {
                         break;
                     }
                     try {
-                        await createCalendarEvent(lembrete.titulo, lembrete.dataHora, lembrete.recorrencia);
+                        await createCalendarEvent(lembrete.titulo, lembrete.dataHora, lembrete.recorrencia, {
+                            userId,
+                            whatsappId: senderId
+                        });
                         await msg.reply(`✅ Lembrete criado: "${lembrete.titulo}"`);
                     } catch (error) {
                         await msg.reply("Houve um erro ao tentar salvar o evento na sua Agenda Google.");

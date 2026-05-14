@@ -13,6 +13,7 @@ const adminCheck = require('../src/utils/adminCheck');
 const messageHandler = require('../src/handlers/messageHandler');
 const debtHandler = require('../src/handlers/debtHandler');
 const deletionHandler = require('../src/handlers/deletionHandler');
+const googleService = require('../src/services/google');
 
 // --- Helpers Tests ---
 test('helpers.parseValue', (t) => {
@@ -225,4 +226,21 @@ test('deletionHandler.filterCandidateRowsByUserId isolates deletable rows by use
     const result = filterCandidateRowsByUserId(rows, headerMap, 'Saídas', 'user-a');
     assert.deepStrictEqual(result.map(item => item.index), [1, 3]);
     assert.deepStrictEqual(result.map(item => item.row[1]), ['lanche', 'mercado']);
+});
+
+test('google.eventBelongsToUser isolates Calendar events by private user_id', (t) => {
+    const { eventBelongsToUser } = googleService.__test__;
+    const event = {
+        id: 'event-1',
+        extendedProperties: {
+            private: {
+                financas_bot_user_id: 'user-a'
+            }
+        }
+    };
+
+    assert.strictEqual(eventBelongsToUser(event, 'user-a'), true);
+    assert.strictEqual(eventBelongsToUser(event, 'user-b'), false);
+    assert.strictEqual(eventBelongsToUser({ id: 'untagged' }, 'user-a'), false);
+    assert.strictEqual(eventBelongsToUser({ id: 'untagged' }), true);
 });

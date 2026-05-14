@@ -76,8 +76,8 @@ installMocks();
 const googlePath = require.resolve('../src/services/google');
 const googleService = require('../src/services/google');
 const googleHybrid = { ...googleService };
-googleHybrid.createCalendarEvent = async (title, startDateTime, recurrenceRule) => {
-    const event = { id: `mock-event-${createdCalendarEvents.length + 1}`, title, startDateTime, recurrenceRule };
+googleHybrid.createCalendarEvent = async (title, startDateTime, recurrenceRule, options = {}) => {
+    const event = { id: `mock-event-${createdCalendarEvents.length + 1}`, title, startDateTime, recurrenceRule, options };
     createdCalendarEvents.push(event);
     return event;
 };
@@ -271,6 +271,7 @@ functionalTest('functional smoke: principais fluxos do bot com Sheets real e IA 
     });
     assert.ok(last(await send('me lembre de pagar o IPVA amanhã às 9h')).includes('Lembrete criado'));
     assert.strictEqual(createdCalendarEvents.length, 1, 'Lembrete deve chamar Calendar mockado');
+    assert.strictEqual(createdCalendarEvents[0].options.userId, user.user_id, 'Lembrete deve ser marcado com user_id');
 
     await syncReadModelIfNeeded({ force: true });
 
