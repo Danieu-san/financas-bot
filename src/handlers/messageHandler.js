@@ -453,6 +453,11 @@ async function handleAccountLifecycleCommands(msg, user) {
     const body = normalizeText(String(msg.body || '').trim());
     if (!body) return false;
 
+    if (body === 'aceito') {
+        await msg.reply('Seu consentimento já está ativo. Você já pode usar o bot normalmente.');
+        return true;
+    }
+
     if (body === 'inativar conta') {
         await updateUserStatus(user.user_id, 'INACTIVE');
         await msg.reply('Sua conta foi inativada com sucesso. Para reativar, fale com o administrador.');

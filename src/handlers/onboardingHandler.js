@@ -28,6 +28,12 @@ function isYesNo(text) {
     return null;
 }
 
+function looksLikeBotCommand(text) {
+    const v = normalizeText(text || '');
+    return /^(gastei|gasto|paguei|recebi|entrada|dashboard|painel|resumo|termos|admin|ajuda)\b/.test(v) ||
+        v.includes('?');
+}
+
 function getQuestion(step) {
     switch (step) {
         case 1:
@@ -84,6 +90,10 @@ async function advanceOnboarding(senderId, state, msg, user) {
     if (step === 1) {
         if (!answer) {
             await msg.reply('Me diga um nome curto para te chamar.');
+            return;
+        }
+        if (looksLikeBotCommand(answer)) {
+            await msg.reply('Isso parece um comando, não um nome. Me diga só como prefere ser chamado. Ex: Daniel');
             return;
         }
         data.display_name = answer;
