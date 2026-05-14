@@ -126,59 +126,67 @@ async function checkUpcomingBills() {
 
 async function sendMorningSummary() {
     try {
-        const dividasData = await readDataFromSheet('Dívidas!A:P');
+        const dividasData = await readDataFromSheet('Dívidas!A:R');
+        const users = await getActiveUsers();
+        if (users.length === 0) return;
+
         const hoje = new Date();
         hoje.setHours(0, 0, 0, 0);
 
-        const contasProximas = [];
-        if (dividasData && dividasData.length > 1) {
-            for (let i = 1; i < dividasData.length; i++) {
-                const row = dividasData[i];
-                const nomeDivida = row[0];
-                const valorParcela = row[5];
-                const proximoVencimentoStr = row[14];
-                const dataVencimento = parseSheetDate(proximoVencimentoStr);
-                if (!nomeDivida || !valorParcela || !dataVencimento) continue;
-                const diffDays = Math.ceil((dataVencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
-                if (diffDays >= 0 && diffDays <= 7) {
-                    contasProximas.push({ nome: nomeDivida, valor: valorParcela, dias: diffDays });
+        const eventosDeHoje = await getCalendarEventsForToday();
+
+        for (const user of users) {
+            const userId = String(user.user_id || '').trim();
+            if (!userId) continue;
+
+            const contasProximas = [];
+            if (dividasData && dividasData.length > 1) {
+                for (let i = 1; i < dividasData.length; i++) {
+                    const row = dividasData[i];
+                    if (String(row[17] || '').trim() !== userId) continue;
+
+                    const nomeDivida = row[0];
+                    const valorParcela = row[5];
+                    const proximoVencimentoStr = row[14];
+                    const dataVencimento = parseSheetDate(proximoVencimentoStr);
+                    if (!nomeDivida || !valorParcela || !dataVencimento) continue;
+                    const diffDays = Math.ceil((dataVencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+                    if (diffDays >= 0 && diffDays <= 7) {
+                        contasProximas.push({ nome: nomeDivida, valor: valorParcela, dias: diffDays });
+                    }
                 }
             }
-        }
 
-        const eventosDeHoje = await getCalendarEventsForToday();
-        let message = `Bom dia! ☀️ Aqui está seu resumo de hoje, ${hoje.toLocaleDateString('pt-BR')}:\n`;
+            let message = `Bom dia! ☀️ Aqui está seu resumo de hoje, ${hoje.toLocaleDateString('pt-BR')}:\n`;
 
-        message += '\n*Financeiro (Próximos 7 dias):*\n';
-        if (contasProximas.length === 0) {
-            message += '✅ Nenhuma parcela de dívida com vencimento próximo.\n';
-        } else {
-            message += `🚨 *Atenção! Você tem ${contasProximas.length} parcela(s) vencendo:*\n`;
-            contasProximas.sort((a, b) => a.dias - b.dias);
-            contasProximas.forEach(conta => {
-                let texto = `em ${conta.dias} dias`;
-                if (conta.dias === 0) texto = 'VENCE HOJE!';
-                if (conta.dias === 1) texto = 'amanhã!';
-                message += ` - *${conta.nome}* (${texto}) - R$${conta.valor}\n`;
-            });
-        }
+            message += '\n*Financeiro (Próximos 7 dias):*\n';
+            if (contasProximas.length === 0) {
+                message += '✅ Nenhuma parcela de dívida com vencimento próximo.\n';
+            } else {
+                message += `🚨 *Atenção! Você tem ${contasProximas.length} parcela(s) vencendo:*\n`;
+                contasProximas.sort((a, b) => a.dias - b.dias);
+                contasProximas.forEach(conta => {
+                    let texto = `em ${conta.dias} dias`;
+                    if (conta.dias === 0) texto = 'VENCE HOJE!';
+                    if (conta.dias === 1) texto = 'amanhã!';
+                    message += ` - *${conta.nome}* (${texto}) - R$${conta.valor}\n`;
+                });
+            }
 
-        message += '\n*Agenda de Hoje:*\n';
-        if (eventosDeHoje.length === 0) {
-            message += '📅 Nenhum compromisso na agenda para hoje.\n';
-        } else {
-            eventosDeHoje.forEach(evento => {
-                let horario = 'Dia inteiro';
-                if (evento.start?.dateTime) {
-                    horario = new Date(evento.start.dateTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                }
-                message += ` - *${horario}* - ${evento.summary}\n`;
-            });
-        }
+            message += '\n*Agenda de Hoje:*\n';
+            if (eventosDeHoje.length === 0) {
+                message += '📅 Nenhum compromisso na agenda para hoje.\n';
+            } else {
+                eventosDeHoje.forEach(evento => {
+                    let horario = 'Dia inteiro';
+                    if (evento.start?.dateTime) {
+                        horario = new Date(evento.start.dateTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    }
+                    message += ` - *${horario}* - ${evento.summary}\n`;
+                });
+            }
 
-        const recipients = await getRecipientIds();
-        for (const id of recipients) {
-            await client.sendMessage(id, message);
+            await client.sendMessage(user.whatsapp_id, message);
         }
     } catch (error) {
         logger.error(`Erro ao enviar resumo matinal: ${error.message}`);

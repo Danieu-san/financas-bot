@@ -80,7 +80,7 @@ async function deleteLastRows(sheetName, count) {
     });
 }
 
-test.describe('Integration Tests - WhatsApp Flow to Google Sheets', { concurrency: false }, async () => {
+test.describe.skip('Legacy integration tests - superseded by functional.test.js', { concurrency: false }, async () => {
     test.before(async () => {
         await googleService.authorizeGoogle();
         console.log('Test setup complete.');

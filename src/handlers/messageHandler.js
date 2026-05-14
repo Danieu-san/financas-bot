@@ -282,6 +282,18 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
     return null;
 }
 
+function filterSheetRowsByUserId(rows, userIdIndex, userId) {
+    if (!Array.isArray(rows) || rows.length === 0) return [];
+    const [header, ...dataRows] = rows;
+    const safeUserId = String(userId || '').trim();
+    if (!safeUserId) return [header];
+
+    return [
+        header,
+        ...dataRows.filter(row => String(row?.[userIdIndex] || '').trim() === safeUserId)
+    ];
+}
+
 function shouldRouteResumoToPergunta(messageBody) {
     const text = normalizeText(String(messageBody || '').trim());
     if (!text) return false;
@@ -1492,14 +1504,14 @@ async function handleMessage(msg) {
 
                         if (!analyzedData) {
                             const sheetReads = [
-                                readDataFromSheet('Saídas!A:I'),
-                                readDataFromSheet('Entradas!A:H'),
-                                readDataFromSheet('Metas!A:L'),
-                                readDataFromSheet('Dívidas!A:N')
+                                readDataFromSheet('Saídas!A:J'),
+                                readDataFromSheet('Entradas!A:I'),
+                                readDataFromSheet('Metas!A:I'),
+                                readDataFromSheet('Dívidas!A:R')
                             ];
                             const cardSheetNames = Object.values(creditCardConfig).map(card => card.sheetName);
                             cardSheetNames.forEach(sheetName => {
-                                sheetReads.push(readDataFromSheet(`${sheetName}!A:F`));
+                                sheetReads.push(readDataFromSheet(`${sheetName}!A:G`));
                             });
                             const allSheetData = await timeStep(
                                 'pergunta.Promise.all(sheetReads)',
@@ -1509,17 +1521,18 @@ async function handleMessage(msg) {
 
                             const [saidasData, entradasData, metasData, dividasData] = allSheetData;
                             const creditCardData = allSheetData.slice(4);
+                            const filteredCreditCardData = creditCardData.map(sheetRows => filterSheetRowsByUserId(sheetRows, 6, userId));
                             analyzedData = await timeStep(
                                 'execute(intent)',
                                 () => execute(
                                     intentClassification.intent,
                                     intentClassification.parameters,
                                     {
-                                        saidas: saidasData,
-                                        entradas: entradasData,
-                                        metas: metasData,
-                                        dividas: dividasData,
-                                        cartoes: creditCardData
+                                        saidas: filterSheetRowsByUserId(saidasData, 9, userId),
+                                        entradas: filterSheetRowsByUserId(entradasData, 8, userId),
+                                        metas: filterSheetRowsByUserId(metasData, 8, userId),
+                                        dividas: filterSheetRowsByUserId(dividasData, 17, userId),
+                                        cartoes: filteredCreditCardData
                                     }
                                 ),
                                 perfContext
@@ -1631,6 +1644,7 @@ module.exports = {
     __test__: {
         classifyPerguntaLocally,
         buildLocalPerguntaResponse,
+        filterSheetRowsByUserId,
         isGreetingMessage,
         buildGreetingReply
     }

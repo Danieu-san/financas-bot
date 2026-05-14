@@ -3,6 +3,9 @@
 const userStateManager = require('../state/userStateManager');
 const { readDataFromSheet, updateRowInSheet } = require('../services/google');
 const { normalizeText, parseAmount } = require('../utils/helpers');
+const { getUserByWhatsAppId } = require('../services/userService');
+
+const DEBT_USER_ID_INDEX = 17;
 
 function parseHumanAmount(raw) {
   // suporta: 70, 70,50, 1.234,56, 70k, 1.2k, 2m, 2.5m
@@ -174,6 +177,11 @@ async function startDebtUpdate(msg) {
         console.log('[DebtUpdate] parsed=', parseDebtUpdateCommand(msg.body));
     }
     const senderId = msg.author || msg.from;
+    const user = await getUserByWhatsAppId(senderId);
+    if (!user || !user.user_id) {
+      await msg.reply('Não consegui identificar seu usuário para atualizar essa dívida.');
+      return true;
+    }
 
   const parsed = parseDebtUpdateCommand(msg.body);
   if (!parsed) return false;
@@ -206,6 +214,7 @@ async function startDebtUpdate(msg) {
   const candidates = allData
     .map((row, index) => ({ row, index }))
     .filter(x => x.index !== 0 && Array.isArray(x.row))
+    .filter(x => String(x.row[DEBT_USER_ID_INDEX] || '').trim() === String(user.user_id).trim())
     .map(x => {
       const nome = normalizeText(x.row[colNome] || '');
       const credor = normalizeText(x.row[colCredor] || '');
@@ -252,6 +261,7 @@ async function startDebtUpdate(msg) {
       data: {
         newSaldo,
         colSaldo,
+        user_id: user.user_id,
         matches: strong.map(x => ({
           sheetRowIndex: x.index,
           preview: {

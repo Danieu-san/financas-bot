@@ -11,6 +11,8 @@ const userStateManager = require('../src/state/userStateManager');
 const userService = require('../src/services/userService');
 const adminCheck = require('../src/utils/adminCheck');
 const messageHandler = require('../src/handlers/messageHandler');
+const debtHandler = require('../src/handlers/debtHandler');
+const deletionHandler = require('../src/handlers/deletionHandler');
 
 // --- Helpers Tests ---
 test('helpers.parseValue', (t) => {
@@ -170,4 +172,57 @@ test('messageHandler.local replies cover greeting and total month', (t) => {
     assert.ok(reply.includes('Total gasto em fevereiro/2026: R$ 150,50'));
     assert.ok(reply.includes('Saídas: R$ 100,00'));
     assert.ok(reply.includes('Cartões: R$ 50,50'));
+});
+
+test('messageHandler.filterSheetRowsByUserId keeps header and isolates user rows', (t) => {
+    const { filterSheetRowsByUserId } = messageHandler.__test__;
+    const rows = [
+        ['Data', 'Descrição', 'Valor', 'user_id'],
+        ['10/02/2026', 'lanche', '20', 'user-a'],
+        ['10/02/2026', 'uber', '30', 'user-b'],
+        ['11/02/2026', 'mercado', '40', 'user-a']
+    ];
+
+    const filtered = filterSheetRowsByUserId(rows, 3, 'user-a');
+    assert.deepStrictEqual(filtered, [
+        ['Data', 'Descrição', 'Valor', 'user_id'],
+        ['10/02/2026', 'lanche', '20', 'user-a'],
+        ['11/02/2026', 'mercado', '40', 'user-a']
+    ]);
+});
+
+test('debtHandler.filterDebtsByUserId isolates debts by user_id', (t) => {
+    const { filterDebtsByUserId } = debtHandler.__test__;
+    const rows = [
+        ['Nome', 'Credor', 'Tipo', 'Valor Original', 'Saldo Atual', 'Parcela', 'Taxa', 'Vencimento', 'Inicio', 'Total', 'Status', 'Responsável', 'Obs', '%', 'Proximo', 'Atraso', 'Quitacao', 'user_id'],
+        ['Carro', 'Banco A', 'Financiamento', 10000, 9000, 500, '2% a.m.', 10, '01/01/2026', 20, 'Em dia', 'Daniel', '', '', '', 0, '', 'user-a'],
+        ['Casa', 'Banco B', 'Financiamento', 20000, 19000, 800, '1% a.m.', 12, '01/01/2026', 30, 'Em dia', 'Thais', '', '', '', 0, '', 'user-b']
+    ];
+
+    const result = filterDebtsByUserId(rows, 'user-a');
+    assert.strictEqual(result.length, 1);
+    assert.strictEqual(result[0].row[0], 'Carro');
+    assert.strictEqual(result[0].index, 1);
+});
+
+test('deletionHandler.filterCandidateRowsByUserId isolates deletable rows by user_id', (t) => {
+    const { filterCandidateRowsByUserId } = deletionHandler.__test__;
+    const rows = [
+        ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id'],
+        ['10/02/2026', 'lanche', 'Alimentação', 'Lanche', '20', 'Daniel', 'PIX', 'Não', '', 'user-a'],
+        ['10/02/2026', 'uber', 'Transporte', 'App', '30', 'Thais', 'PIX', 'Não', '', 'user-b'],
+        ['11/02/2026', 'mercado', 'Alimentação', 'Mercado', '40', 'Daniel', 'PIX', 'Não', '', 'user-a']
+    ];
+    const headerMap = {
+        data: 0,
+        descricao: 1,
+        categoria: 2,
+        subcategoria: 3,
+        valor: 4,
+        user_id: 9
+    };
+
+    const result = filterCandidateRowsByUserId(rows, headerMap, 'Saídas', 'user-a');
+    assert.deepStrictEqual(result.map(item => item.index), [1, 3]);
+    assert.deepStrictEqual(result.map(item => item.row[1]), ['lanche', 'mercado']);
 });

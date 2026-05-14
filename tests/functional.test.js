@@ -91,6 +91,7 @@ const userService = require('../src/services/userService');
 const { syncReadModelIfNeeded } = require('../src/services/readModelService');
 
 const SENDER = '5521970112407@c.us';
+const RUN_FUNCTIONAL_TESTS = String(process.env.RUN_FUNCTIONAL_TESTS || '').toLowerCase() === 'true';
 
 function createMockMsg(body, from = SENDER) {
     const replies = [];
@@ -122,7 +123,7 @@ function last(replies) {
     return replies[replies.length - 1] || '';
 }
 
-async function readRows(range, { minRows = 1, retries = 6, delayMs = 750 } = {}) {
+async function readRows(range, { minRows = 1, retries = 20, delayMs = 1000 } = {}) {
     let rows = [];
     for (let attempt = 0; attempt < retries; attempt += 1) {
         rows = await googleService.readDataFromSheet(range);
@@ -133,8 +134,9 @@ async function readRows(range, { minRows = 1, retries = 6, delayMs = 750 } = {})
 }
 
 let functionalFailed = false;
+const functionalTest = RUN_FUNCTIONAL_TESTS ? test : test.skip;
 
-test('functional smoke: principais fluxos do bot com Sheets real e IA mockada', async () => {
+functionalTest('functional smoke: principais fluxos do bot com Sheets real e IA mockada', async () => {
     try {
     await resetSpreadsheetData();
     userStateManager.deleteState(SENDER);
@@ -314,5 +316,7 @@ test('functional smoke: principais fluxos do bot com Sheets real e IA mockada', 
 
 test.after(() => {
     userStateManager.closeStateStore();
-    setTimeout(() => process.exit(functionalFailed ? 1 : 0), 1000);
+    if (RUN_FUNCTIONAL_TESTS) {
+        setTimeout(() => process.exit(functionalFailed ? 1 : 0), 1000);
+    }
 });

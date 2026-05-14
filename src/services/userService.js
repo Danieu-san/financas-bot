@@ -35,8 +35,15 @@ const USER_HEADERS = [
 
 let usersCache = [];
 let usersCacheLoaded = false;
+let usersCacheLoadedAt = 0;
 let profilesCache = [];
 let profilesCacheLoaded = false;
+let profilesCacheLoadedAt = 0;
+let settingsCache = [];
+let settingsCacheLoaded = false;
+let settingsCacheLoadedAt = 0;
+
+const SHEETS_CACHE_TTL_MS = Number(process.env.USER_SERVICE_CACHE_TTL_MS || 30000);
 
 function nowIso() {
     return new Date().toISOString();
@@ -56,6 +63,16 @@ async function readCriticalSheet(range, { retries = 3, delayMs = 500 } = {}) {
         }
     }
     return rows || [];
+}
+
+function isCacheFresh(loaded, loadedAt) {
+    return loaded && loadedAt > 0 && (Date.now() - loadedAt) < SHEETS_CACHE_TTL_MS;
+}
+
+function invalidateUserCaches() {
+    usersCacheLoaded = false;
+    profilesCacheLoaded = false;
+    settingsCacheLoaded = false;
 }
 
 function normalizeWhatsappId(whatsappId) {
@@ -105,6 +122,10 @@ function mapUserRow(row, rowIndex) {
 }
 
 async function getAllUsers() {
+    if (isCacheFresh(usersCacheLoaded, usersCacheLoadedAt)) {
+        return usersCache;
+    }
+
     const rows = await readCriticalSheet(`${USERS_SHEET}!A:J`);
     if (!rows || rows.length === 0) {
         return usersCacheLoaded ? usersCache : [];
@@ -112,10 +133,12 @@ async function getAllUsers() {
     if (rows.length <= 1) {
         usersCache = [];
         usersCacheLoaded = true;
+        usersCacheLoadedAt = Date.now();
         return [];
     }
     usersCache = rows.slice(1).map((row, idx) => mapUserRow(row, idx + 2));
     usersCacheLoaded = true;
+    usersCacheLoadedAt = Date.now();
     return usersCache;
 }
 
@@ -161,6 +184,7 @@ async function createDefaultUserRows(user) {
     await appendRowToSheet(PROFILE_SHEET, [userId, '', '', '', '', '']);
     profilesCacheLoaded = false;
     await appendRowToSheet(SETTINGS_SHEET, [userId, 'America/Sao_Paulo', 'NÃO', 'SIM', 'pt-BR', timestamp, 'NÃO', '10']);
+    settingsCacheLoaded = false;
 }
 
 function buildEvidence({ message, messageId }) {
@@ -252,6 +276,12 @@ function mapProfileRow(row, rowIndex) {
 }
 
 async function getUserProfileByUserId(userId) {
+    if (isCacheFresh(profilesCacheLoaded, profilesCacheLoadedAt)) {
+        const matches = profilesCache.filter(p => p.user_id === userId);
+        const completed = matches.filter(p => p.onboarding_completed_at);
+        return completed[completed.length - 1] || matches[matches.length - 1] || null;
+    }
+
     const rows = await readCriticalSheet(`${PROFILE_SHEET}!A:F`);
     if (!rows || rows.length === 0) {
         if (!profilesCacheLoaded) return null;
@@ -262,11 +292,13 @@ async function getUserProfileByUserId(userId) {
     if (rows.length <= 1) {
         profilesCache = [];
         profilesCacheLoaded = true;
+        profilesCacheLoadedAt = Date.now();
         return null;
     }
 
     profilesCache = rows.slice(1).map((row, idx) => mapProfileRow(row, idx + 2));
     profilesCacheLoaded = true;
+    profilesCacheLoadedAt = Date.now();
     const matches = profilesCache.filter(p => p.user_id === userId);
     if (matches.length === 0) return null;
 
@@ -313,6 +345,7 @@ async function upsertUserProfile(userId, patch) {
             .concat(cached)
             .sort((a, b) => (a.rowIndex || 0) - (b.rowIndex || 0));
         profilesCacheLoaded = true;
+        profilesCacheLoadedAt = Date.now();
     } else {
         await appendRowToSheet(PROFILE_SHEET, rowData);
         profilesCacheLoaded = false;
@@ -349,10 +382,21 @@ function mapSettingsRow(row, rowIndex) {
 }
 
 async function getUserSettingsByUserId(userId) {
-    const rows = await readDataFromSheet(`${SETTINGS_SHEET}!A:H`);
-    if (!rows || rows.length <= 1) return null;
-    const settings = rows.slice(1).map((row, idx) => mapSettingsRow(row, idx + 2));
-    return settings.find(s => s.user_id === userId) || null;
+    if (isCacheFresh(settingsCacheLoaded, settingsCacheLoadedAt)) {
+        return settingsCache.find(s => s.user_id === userId) || null;
+    }
+
+    const rows = await readCriticalSheet(`${SETTINGS_SHEET}!A:H`);
+    if (!rows || rows.length <= 1) {
+        settingsCache = [];
+        settingsCacheLoaded = true;
+        settingsCacheLoadedAt = Date.now();
+        return null;
+    }
+    settingsCache = rows.slice(1).map((row, idx) => mapSettingsRow(row, idx + 2));
+    settingsCacheLoaded = true;
+    settingsCacheLoadedAt = Date.now();
+    return settingsCache.find(s => s.user_id === userId) || null;
 }
 
 async function upsertUserSettings(userId, patch) {
@@ -390,6 +434,7 @@ async function upsertUserSettings(userId, patch) {
     } else {
         await appendRowToSheet(SETTINGS_SHEET, rowData);
     }
+    settingsCacheLoaded = false;
 
     return getUserSettingsByUserId(userId);
 }
@@ -684,5 +729,6 @@ module.exports = {
     updateUserStatusByWhatsAppId,
     getConsentLogsByUserId,
     getAllUsers,
+    invalidateUserCaches,
     expireOldPendingUsers
 };

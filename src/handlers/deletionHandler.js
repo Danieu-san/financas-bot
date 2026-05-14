@@ -4,7 +4,15 @@ const { readDataFromSheet, deleteRowsByIndices } = require('../services/google')
 const userStateManager = require('../state/userStateManager');
 const { sheetCategoryMap } = require('../config/constants');
 const { normalizeText } = require('../utils/helpers');
+const { getUserByWhatsAppId } = require('../services/userService');
 const stringSimilarity = require('string-similarity');
+
+const USER_ID_FALLBACK_INDEX_BY_SHEET = {
+  'Saídas': 9,
+  'Entradas': 8,
+  'Metas': 8,
+  'Dívidas': 17,
+};
 
 function canonicalizeCategory(raw) {
   const c = normalizeText(raw || '');
@@ -72,6 +80,24 @@ function getColIndex(headerMap, candidates, fallbackIndex) {
     if (headerMap[key] !== undefined) return headerMap[key];
   }
   return fallbackIndex;
+}
+
+function getUserIdIndex(headerMap, sheetName) {
+  return getColIndex(
+    headerMap,
+    ['user_id', 'usuario_id', 'id_usuario'],
+    USER_ID_FALLBACK_INDEX_BY_SHEET[sheetName]
+  );
+}
+
+function filterCandidateRowsByUserId(allData, headerMap, sheetName, userId) {
+  const userIdIndex = getUserIdIndex(headerMap, sheetName);
+  if (!Number.isInteger(userIdIndex) || !userId) return [];
+
+  return (allData || [])
+    .map((row, index) => ({ row, index }))
+    .filter(item => item.index !== 0 && Array.isArray(item.row))
+    .filter(item => String(item.row[userIdIndex] || '').trim() === String(userId).trim());
 }
 
 function extractAmount(query) {
@@ -199,6 +225,12 @@ function scoreRow({ row, headerMap, sheetName, queryNorm, tokens, amount, date }
 
 async function handleDeletionRequest(msg, deleteDetails) {
   const senderId = msg.author || msg.from;
+  const user = await getUserByWhatsAppId(senderId);
+  if (!user || !user.user_id) {
+    userStateManager.clearState(senderId);
+    await msg.reply('Não consegui identificar seu usuário para apagar esse item.');
+    return;
+  }
 
   // ✅ se tinha exclusão pendente, zera para não prender o usuário
   const previousState = userStateManager.getState(senderId);
@@ -234,20 +266,19 @@ async function handleDeletionRequest(msg, deleteDetails) {
   const amount = extractAmount(termoBusca); // pode ser null
   const date = extractDate(termoBusca);     // pode ser null
   const headerMap = getHeaderMap(allData);
+  const candidateRows = filterCandidateRowsByUserId(allData, headerMap, sheetName, user.user_id);
 
   let rowsToDelete = [];
 
   // ✅ "último/ultima/ultimo" em qualquer forma
   if (termoBuscaNorm.includes('ultimo') || termoBuscaNorm.includes('ultima')) {
-    const lastRowIndex = allData.length - 1;
-    if (lastRowIndex > 0) {
-      rowsToDelete.push({ index: lastRowIndex, data: allData[lastRowIndex] });
+    const lastOwnedRow = candidateRows[candidateRows.length - 1];
+    if (lastOwnedRow) {
+      rowsToDelete.push({ index: lastOwnedRow.index, data: lastOwnedRow.row });
     }
   } else {
     // score em todas as linhas (exceto header)
-    const scored = allData
-        .map((row, index) => ({ row, index }))
-        .filter(x => x.index !== 0 && Array.isArray(x.row)) // ✅ evita row undefined => crash
+    const scored = candidateRows
         .map(x => {
             const s = scoreRow({
             row: x.row,
@@ -277,9 +308,7 @@ async function handleDeletionRequest(msg, deleteDetails) {
         if (rowsToDelete.length === 0 && tokens.length > 0) {
             const minTokenMatches = tokens.length >= 2 ? 2 : 1;
 
-                const fallback = allData
-                .map((row, index) => ({ row, index }))
-                .filter(x => x.index !== 0 && Array.isArray(x.row))
+                const fallback = candidateRows
                 .filter(x => {
                 const joined = normalizeText(x.row.join(' '));
                 const matches = tokens.filter(t => t.length >= 3 && joined.includes(t)).length;
@@ -308,6 +337,7 @@ async function handleDeletionRequest(msg, deleteDetails) {
   userStateManager.setState(senderId, {
     action: 'confirming_delete',
     sheetName,
+    user_id: user.user_id,
     foundItems: rowsToDelete
   });
 
@@ -389,4 +419,8 @@ async function confirmDeletion(msg) {
 module.exports = {
   handleDeletionRequest,
   confirmDeletion,
+  __test__: {
+    canonicalizeCategory,
+    filterCandidateRowsByUserId,
+  },
 };

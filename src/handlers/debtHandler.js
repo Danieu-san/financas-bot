@@ -3,6 +3,17 @@
 const { readDataFromSheet, updateRowInSheet } = require('../services/google');
 const userStateManager = require('../state/userStateManager');
 const { normalizeText, parseAmount } = require('../utils/helpers');
+const { getUserByWhatsAppId } = require('../services/userService');
+
+const DEBT_USER_ID_INDEX = 17;
+
+function filterDebtsByUserId(allDebts, userId) {
+    if (!Array.isArray(allDebts) || allDebts.length <= 1 || !userId) return [];
+
+    return allDebts
+        .map((row, index) => ({ row, index }))
+        .filter(item => item.index !== 0 && String(item.row?.[DEBT_USER_ID_INDEX] || '').trim() === userId);
+}
 
 async function startPaymentRegistration(msg, pagamentoDetails) {
     
@@ -12,6 +23,12 @@ async function startPaymentRegistration(msg, pagamentoDetails) {
     }
 
     const senderId = msg.author || msg.from;
+    const user = await getUserByWhatsAppId(senderId);
+    if (!user || !user.user_id) {
+        await msg.reply('Não consegui identificar seu usuário para registrar esse pagamento.');
+        return;
+    }
+
     const termoBusca = pagamentoDetails.descricao;
 
     if (!termoBusca) {
@@ -26,10 +43,8 @@ async function startPaymentRegistration(msg, pagamentoDetails) {
     }
 
     const termoBuscaNormalizado = normalizeText(termoBusca);
-    const foundDebts = allDebts
-        .map((row, index) => ({ row, index }))
+    const foundDebts = filterDebtsByUserId(allDebts, user.user_id)
         .filter(item => {
-            if (item.index === 0) return false;
             return normalizeText(item.row[0]).includes(termoBuscaNormalizado); // Procura na coluna "Nome da Dívida"
         });
 
@@ -48,7 +63,10 @@ async function startPaymentRegistration(msg, pagamentoDetails) {
 
     userStateManager.setState(senderId, {
         action: 'awaiting_payment_amount',
-        data: debtToUpdate
+        data: {
+            ...debtToUpdate,
+            user_id: user.user_id
+        }
     });
 
     await msg.reply(`Encontrei a dívida "${debtToUpdate.row[0]}" com uma parcela de R$${valorParcela}. Qual foi o valor que você pagou?`);
@@ -69,8 +87,14 @@ async function finalizePaymentRegistration(msg) {
     let rowData = debtToUpdate.row;
     const rowIndex = debtToUpdate.index;
 
+    if (String(rowData?.[DEBT_USER_ID_INDEX] || '').trim() !== String(debtToUpdate.user_id || '').trim()) {
+        await msg.reply('Não consegui validar que essa dívida pertence ao seu usuário. A operação foi cancelada por segurança.');
+        userStateManager.deleteState(senderId);
+        return;
+    }
+
     const saldoDevedorAtual = parseFloat(rowData[4]);
-    const novoSaldo = saldoDevedorAtual - valorPago;
+    const novoSaldo = Math.max(0, saldoDevedorAtual - valorPago);
 
     rowData[4] = novoSaldo;
 
@@ -95,5 +119,8 @@ async function finalizePaymentRegistration(msg) {
 
 module.exports = {
     startPaymentRegistration,
-    finalizePaymentRegistration
+    finalizePaymentRegistration,
+    __test__: {
+        filterDebtsByUserId
+    }
 };
