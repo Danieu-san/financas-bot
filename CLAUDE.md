@@ -3,6 +3,13 @@
 ## Visão Geral
 Bot de WhatsApp para controle financeiro pessoal. Usa **whatsapp-web.js** (via Puppeteer), **Gemini 2.5 Flash** como LLM e **Google Sheets/Calendar** como banco de dados.
 
+## Diretriz Legal/Privacidade Crítica
+**Antes de escalar para multiusuário real, remover o acesso admin a gastos de todos os usuários.**
+
+O dashboard admin com seletor `Todos os usuários` existe apenas como exceção temporária de beta/testes para diagnosticar dados presos em usuários de teste. Em produção/multiusuário, administradores não devem ter acesso amplo a lançamentos financeiros individuais por questões legais, LGPD e privacidade.
+
+Qualquer trabalho em dashboard, admin, permissões, multiusuário ou launch deve consultar `docs/decisions/ADR-002-admin-financial-data-access.md` e o checklist de release antes de seguir.
+
 **Usuários autorizados (constants.js):**
 - `5521970112407@c.us` → Daniel
 - `5521964270368@c.us` → Thaís

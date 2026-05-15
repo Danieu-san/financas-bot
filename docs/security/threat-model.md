@@ -29,6 +29,7 @@ This document covers the current FinancasBot production shape: WhatsApp bot, Goo
 | Risk | Impact | Mitigation now | Next hardening |
 |---|---:|---|---|
 | Cross-user data leakage | High | `user_id` write gates, filtered reads, dashboard token `uid`, SQLite tests. | Keep adding regression tests for every new sheet/table. |
+| Admin broad access to all users' transactions | High | Beta-only admin dashboard aggregate/user selector exists for testing diagnostics. | Must be removed before real multiuser scale or replaced by explicit consent + audited support mode. See ADR-002. |
 | Dashboard token reused/shared | Medium | Expiring signed token, `Referrer-Policy: no-referrer`, `Cache-Control: no-store`. | Shorten TTL for higher-risk users; optional one-time token store later. |
 | Missing dashboard secret in production | High | Public/production dashboard now requires `DASHBOARD_TOKEN_SECRET`. | Rotate secret periodically and document rotation. |
 | Admin typo changes wrong user | High | Target logs and soft statuses. | Add two-step confirmation for `ativar`, `inativar`, `bloquear`, `deletar`. |
@@ -41,6 +42,7 @@ This document covers the current FinancasBot production shape: WhatsApp bot, Goo
 
 - Sheets remains the write/audit store for now; SQLite is a read model and can be rebuilt from Sheets.
 - Dashboard endpoints are read-only and scoped exclusively by signed token payload.
+- Admin all-users transaction access is a temporary beta/testing exception only and must not ship as part of scaled multiuser production. See `docs/decisions/ADR-002-admin-financial-data-access.md`.
 - The dashboard token secret must not fall back to Gemini or any unrelated API key for public/production use.
 - Token-in-query is acceptable for the current WhatsApp-link flow only with short TTL, no referrer, no cache, and no third-party assets.
 - Admin lifecycle commands remain one-step during beta, but the documented next control is two-step confirmation before larger scale.
@@ -51,6 +53,7 @@ This document covers the current FinancasBot production shape: WhatsApp bot, Goo
 - [ ] `DASHBOARD_TOKEN_SECRET` is configured on EC2 when `DASHBOARD_BASE_URL` is public.
 - [ ] Dashboard invalid token returns a safe error.
 - [ ] Dashboard page/API include `Cache-Control: no-store` and `Referrer-Policy: no-referrer`.
+- [ ] Before real multiuser scale, admin `Todos os usuários` transaction-level dashboard access has been removed or replaced with consented/audited support mode.
 - [ ] `npm test` passes.
 - [ ] PM2 logs show read-model sync and no repeated auth/session failures.
 - [ ] Manual WhatsApp smoke covers `Oi`, `dashboard`, `admin stats`, and one analytical question.
