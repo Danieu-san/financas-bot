@@ -23,6 +23,7 @@ const CARD_SHEETS = [
 
 const sheets = {};
 const deletedRows = [];
+const structuredResponses = [];
 let stateMachineFailed = false;
 
 function stateMachineTest(name, fn) {
@@ -68,6 +69,11 @@ function resetSheets() {
         sheets[sheetName] = [['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'user_id']];
     }
     deletedRows.length = 0;
+    structuredResponses.length = 0;
+}
+
+function enqueueStructuredResponse(response) {
+    structuredResponses.push(response);
 }
 
 function getSheetName(rangeOrSheet) {
@@ -111,7 +117,7 @@ function installMocks() {
             if (text.includes('recebimento')) return 'PIX';
             return 'PIX';
         },
-        getStructuredResponseFromLLM: async () => ({}),
+        getStructuredResponseFromLLM: async () => structuredResponses.shift() || {},
         callGemini: async () => '',
         transcribeAudio: async () => ''
     };
@@ -191,6 +197,45 @@ stateMachineTest('financial states: payment method writes expense with user_id a
     assert.match(reply, /registrado/i);
     assert.strictEqual(sheets.Saídas.length, 2);
     assert.strictEqual(sheets.Saídas[1][9], USER_ID);
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
+
+stateMachineTest('financial states: explicit PIX expense is saved without asking payment again', async () => {
+    resetState();
+    enqueueStructuredResponse({
+        intent: 'gasto',
+        gastoDetails: [
+            {
+                descricao: 'mercado',
+                valor: 25,
+                categoria: 'Alimentação',
+                subcategoria: 'SUPERMERCADO',
+                pagamento: 'PIX',
+                recorrente: 'Não'
+            }
+        ]
+    });
+
+    const reply = await send('gastei 25 no mercado no pix');
+
+    assert.match(reply, /registrado como \*PIX\*/i);
+    assert.doesNotMatch(reply, /forma de pagamento|como esses itens foram pagos|confirma/i);
+    assert.strictEqual(sheets.Saídas.length, 2);
+    assert.strictEqual(sheets.Saídas[1][1], 'mercado');
+    assert.strictEqual(sheets.Saídas[1][4], 25);
+    assert.strictEqual(sheets.Saídas[1][6], 'PIX');
+    assert.strictEqual(sheets.Saídas[1][9], USER_ID);
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
+
+stateMachineTest('financial states: terms command is not swallowed by incomplete onboarding', async () => {
+    resetState();
+    sheets.UserProfile[1][5] = '';
+
+    const reply = await send('termos');
+
+    assert.match(reply, /Resumo legal/i);
+    assert.doesNotMatch(reply, /Antes de começarmos/i);
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
 });
 

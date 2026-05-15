@@ -118,6 +118,73 @@ function formatCurrencyBR(value) {
     return 'R$ ' + Number(value || 0).toFixed(2).replace('.', ',');
 }
 
+function normalizePaymentMethodLabel(value) {
+    const normalized = normalizeText(value || '');
+    if (!normalized) return '';
+    if (normalized === 'pix' || normalized.includes('pix')) return 'PIX';
+    if (normalized === 'debito' || normalized.includes('debito')) return 'Débito';
+    if (normalized === 'credito' || normalized.includes('credito')) return 'Crédito';
+    if (normalized === 'dinheiro' || normalized.includes('dinheiro')) return 'Dinheiro';
+    return String(value || '').trim();
+}
+
+function canSaveTransactionWithoutExtraPayment(item) {
+    if (!item || !item.type) return false;
+    if (item.type === 'Saídas') {
+        const method = normalizePaymentMethodLabel(item.pagamento);
+        return Boolean(method) && normalizeText(method) !== 'credito';
+    }
+    if (item.type === 'Entradas') {
+        return Boolean(normalizePaymentMethodLabel(item.recebimento));
+    }
+    return false;
+}
+
+async function saveTransactionWithoutExtraPayment(item, { person, userId }) {
+    if (item.type === 'Saídas') {
+        const dataDoGasto = item.data ? parseSheetDate(item.data) : new Date();
+        const dataFinal = getFormattedDateOnly(dataDoGasto);
+        const valorNumerico = parseFloat(item.valor);
+        const pagamentoFinal = normalizePaymentMethodLabel(item.pagamento);
+        const rowData = [
+            dataFinal,
+            item.descricao || 'Não especificado',
+            item.categoria || 'Outros',
+            item.subcategoria || '',
+            valorNumerico,
+            person,
+            pagamentoFinal,
+            item.recorrente || 'Não',
+            item.observacoes || '',
+            userId
+        ];
+        await appendRowToSheet('Saídas', rowData);
+        return { sheetName: 'Saídas', date: dataFinal, value: valorNumerico, method: pagamentoFinal };
+    }
+
+    if (item.type === 'Entradas') {
+        const dataDaEntrada = item.data ? parseSheetDate(item.data) : new Date();
+        const dataFinal = getFormattedDateOnly(dataDaEntrada);
+        const valorNumerico = parseFloat(item.valor);
+        const recebimentoFinal = normalizePaymentMethodLabel(item.recebimento);
+        const rowData = [
+            dataFinal,
+            item.descricao || 'Não especificado',
+            item.categoria || 'Outros',
+            valorNumerico,
+            person,
+            recebimentoFinal,
+            item.recorrente || 'Não',
+            item.observacoes || '',
+            userId
+        ];
+        await appendRowToSheet('Entradas', rowData);
+        return { sheetName: 'Entradas', date: dataFinal, value: valorNumerico, method: recebimentoFinal };
+    }
+
+    throw new Error(`Tipo de transação inválido: ${item.type}`);
+}
+
 function normalizeMetricLabel(value, fallback = 'unknown') {
     const raw = String(value || fallback).toLowerCase();
     const normalized = raw.replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
@@ -802,6 +869,11 @@ async function handleMessage(msg) {
         await sendPlainMessage(msg, 'Termos atualizados e consentimento renovado com sucesso. Obrigado.');
     }
 
+    const handledLegal = await handleLegalCommands(msg);
+    if (handledLegal) {
+        return;
+    }
+
     const onboarding = await timeStep('handleOnboarding', () => handleOnboarding(msg, activeUser), perfContext);
     if (onboarding.handled) {
         return;
@@ -815,11 +887,6 @@ async function handleMessage(msg) {
 
     const handledSettings = await handleSettingsCommands(msg, activeUser);
     if (handledSettings) {
-        return;
-    }
-
-    const handledLegal = await handleLegalCommands(msg);
-    if (handledLegal) {
         return;
     }
 
@@ -1066,11 +1133,28 @@ async function handleMessage(msg) {
             case 'confirming_transactions': {
                 const cleanReply = normalizeText(msg.body);
                 if (cleanReply === 'sim') {
-                    // Agora, em vez de registrar, vamos para a próxima etapa
-                    const { transactions } = currentState.data;
+                    const { transactions, person } = currentState.data;
+                    const canSaveNow = transactions.every(canSaveTransactionWithoutExtraPayment);
+
+                    if (canSaveNow) {
+                        let successCount = 0;
+                        for (const item of transactions) {
+                            try {
+                                await saveTransactionWithoutExtraPayment(item, { person: person || userMap[senderId] || 'Ambos', userId });
+                                successCount++;
+                            } catch (e) {
+                                console.error("Erro CRÍTICO ao salvar item confirmado:", item, e);
+                                await msg.reply(`Houve um erro ao tentar salvar o item "${item.descricao}".`);
+                            }
+                        }
+                        await msg.reply(`Registro finalizado. ${successCount} de ${transactions.length} itens foram salvos com sucesso.`);
+                        userStateManager.deleteState(senderId);
+                        return;
+                    }
+
                     userStateManager.setState(senderId, {
                         action: 'awaiting_batch_payment_method',
-                        data: { transactions } // Passamos as transações para o próximo estado
+                        data: { transactions }
                     });
                     await msg.reply("Ótimo! E como esses itens foram pagos? (Crédito, Débito, PIX ou Dinheiro)");
                 } else {
@@ -1534,19 +1618,26 @@ async function handleMessage(msg) {
                             await msg.reply(question);
                             return; 
                         }
-                    if (item.type === 'Saídas' && !item.pagamento) {
-                        const dataDoGasto = item.data ? parseSheetDate(item.data) : new Date();
-                        userStateManager.setState(senderId, {
-                            action: 'awaiting_payment_method',
-                            // A estrutura de dados correta é um objeto com a propriedade 'gasto'
-                            data: {
-                                gasto: item,
-                                dataFinal: getFormattedDateOnly(dataDoGasto)
-                            }
-                        });
-                        await msg.reply('Entendido! E qual foi a forma de pagamento? (Crédito, Débito, PIX ou Dinheiro)');
-                        return;
-                    }
+                        if (canSaveTransactionWithoutExtraPayment(item)) {
+                            const saved = await saveTransactionWithoutExtraPayment(item, { person: pessoa, userId });
+                            const typeLabel = item.type === 'Saídas' ? 'Gasto' : 'Entrada';
+                            await msg.reply(`✅ ${typeLabel} de R$${saved.value.toFixed(2)} (${item.descricao || 'Não especificado'}) registrado como *${saved.method}* para a data de *${saved.date}*!`);
+                            return;
+                        }
+
+                        if (item.type === 'Saídas' && !item.pagamento) {
+                            const dataDoGasto = item.data ? parseSheetDate(item.data) : new Date();
+                            userStateManager.setState(senderId, {
+                                action: 'awaiting_payment_method',
+                                // A estrutura de dados correta é um objeto com a propriedade 'gasto'
+                                data: {
+                                    gasto: item,
+                                    dataFinal: getFormattedDateOnly(dataDoGasto)
+                                }
+                            });
+                            await msg.reply('Entendido! E qual foi a forma de pagamento? (Crédito, Débito, PIX ou Dinheiro)');
+                            return;
+                        }
 
                         if (item.type === 'Entradas' && !item.recebimento) {
                             userStateManager.setState(senderId, { action: 'awaiting_receipt_method', data: item });
