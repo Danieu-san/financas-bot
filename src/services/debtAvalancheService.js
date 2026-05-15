@@ -15,6 +15,32 @@ function hasActiveDebt(debts) {
     return debts.some(d => d.balance > 0.01);
 }
 
+function formatMoney(value) {
+    return `R$ ${Number(value || 0).toFixed(2).replace('.', ',')}`;
+}
+
+function buildPlanInputs(debts, extraBudget) {
+    const sortedByRate = debts
+        .slice()
+        .sort((a, b) => Number(b.monthlyRatePct || 0) - Number(a.monthlyRatePct || 0));
+    const minimumBudget = debts.reduce((sum, debt) => sum + Number(debt.minPayment || 0), 0);
+    const totalBalance = debts.reduce((sum, debt) => sum + Number(debt.balance || 0), 0);
+    const highestRateDebt = sortedByRate[0] || null;
+
+    return {
+        debtCount: debts.length,
+        totalBalance: round2(totalBalance),
+        minimumBudget: round2(minimumBudget),
+        extraBudget: round2(Math.max(0, Number(extraBudget || 0))),
+        highestRateDebt: highestRateDebt
+            ? {
+                name: highestRateDebt.name,
+                monthlyRatePct: Number(highestRateDebt.monthlyRatePct || 0)
+            }
+            : null
+    };
+}
+
 function simulateBaseline(debtsInput, maxMonths = 600) {
     const debts = cloneDebts(debtsInput);
     let months = 0;
@@ -106,13 +132,19 @@ function buildDebtAvalanchePlan({ debts, extraBudget }) {
     const avalanche = simulateAvalanche(debts, extraBudget);
     const interestSaved = round2(Math.max(0, baseline.totalInterest - avalanche.totalInterest));
     const monthsSaved = Math.max(0, baseline.months - avalanche.months);
+    const inputs = buildPlanInputs(debts, extraBudget);
+    const explanation = inputs.highestRateDebt
+        ? `Usei ${inputs.debtCount} dívida(s), saldo total de ${formatMoney(inputs.totalBalance)}, mínimos de ${formatMoney(inputs.minimumBudget)} e extra de ${formatMoney(inputs.extraBudget)}; prioridade vai para "${inputs.highestRateDebt.name}" por ter a maior taxa (${inputs.highestRateDebt.monthlyRatePct}% a.m.).`
+        : `Usei ${inputs.debtCount} dívida(s), saldo total de ${formatMoney(inputs.totalBalance)}, mínimos de ${formatMoney(inputs.minimumBudget)} e extra de ${formatMoney(inputs.extraBudget)}.`;
 
     return {
         baseline,
         avalanche,
         interestSaved,
         monthsSaved,
-        recommendedExtraBudget: round2(Math.max(0, Number(extraBudget || 0)))
+        recommendedExtraBudget: inputs.extraBudget,
+        inputs,
+        explanation
     };
 }
 

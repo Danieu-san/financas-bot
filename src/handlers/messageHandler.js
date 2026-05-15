@@ -1400,7 +1400,8 @@ async function handleMessage(msg) {
                             'Reserva de emergência:',
                             '- Alvo (3 meses): ' + formatCurrencyBR(health.reserveTarget3),
                             '- Valor atual mapeado: ' + formatCurrencyBR(health.reserveCurrent),
-                            '- Progresso: ' + health.reserveProgressPct.toFixed(1) + '%'
+                            '- Progresso: ' + health.reserveProgressPct.toFixed(1) + '%',
+                            '- Como calculei: ' + health.reserveExplanation
                         ].join('\n');
 
                         let avalancheMessage = '';
@@ -1413,7 +1414,8 @@ async function handleMessage(msg) {
                             { label: 'Radar de caixa - contexto', value: health.riskExplanation },
                             { label: 'Reserva de emergência - alvo (3 meses)', value: formatCurrencyBR(health.reserveTarget3) },
                             { label: 'Reserva de emergência - valor atual', value: formatCurrencyBR(health.reserveCurrent) },
-                            { label: 'Reserva de emergência - progresso', value: health.reserveProgressPct.toFixed(1) + '%' }
+                            { label: 'Reserva de emergência - progresso', value: health.reserveProgressPct.toFixed(1) + '%' },
+                            { label: 'Reserva de emergência - cálculo', value: health.reserveExplanation }
                         ];
                         if (avalanchePlan) {
                             const ordem = avalanchePlan.avalanche.order.length > 0
@@ -1431,7 +1433,8 @@ async function handleMessage(msg) {
                                 '- Ordem sugerida: ' + ordem,
                                 '- Prazo estimado (base): ' + avalanchePlan.baseline.months + ' mês(es)',
                                 '- Prazo estimado (avalanche): ' + avalanchePlan.avalanche.months + ' mês(es)',
-                                '- Economia estimada de juros: ' + formatCurrencyBR(avalanchePlan.interestSaved)
+                                '- Economia estimada de juros: ' + formatCurrencyBR(avalanchePlan.interestSaved),
+                                '- Por quê: ' + avalanchePlan.explanation
                             ].join('\n');
 
                             dashboardMetrics = dashboardMetrics.concat([
@@ -1439,7 +1442,8 @@ async function handleMessage(msg) {
                                 { label: 'Plano de dívidas - ordem sugerida', value: ordem },
                                 { label: 'Plano de dívidas - prazo base', value: avalanchePlan.baseline.months + ' mês(es)' },
                                 { label: 'Plano de dívidas - prazo avalanche', value: avalanchePlan.avalanche.months + ' mês(es)' },
-                                { label: 'Plano de dívidas - economia de juros', value: formatCurrencyBR(avalanchePlan.interestSaved) }
+                                { label: 'Plano de dívidas - economia de juros', value: formatCurrencyBR(avalanchePlan.interestSaved) },
+                                { label: 'Plano de dívidas - contexto', value: avalanchePlan.explanation }
                             ]);
                         }
 

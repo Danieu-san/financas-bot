@@ -38,6 +38,10 @@ function safeNumber(value) {
     return Number.isFinite(n) ? n : 0;
 }
 
+function formatMoney(value) {
+    return `R$ ${Number(value || 0).toFixed(2).replace('.', ',')}`;
+}
+
 function findEmergencyReserveCurrent(metasData, userId) {
     if (!metasData || metasData.length <= 1) return 0;
     for (const row of metasData.slice(1)) {
@@ -210,11 +214,23 @@ function buildHealthSummary(data) {
                     ? 'baixo'
                     : 'controlado';
 
+    const riskInputs = {
+        upcomingDebtCount,
+        upcomingDebtTotal,
+        fixedExpenseEstimate,
+        variableAvg,
+        estimatedDailyBurn,
+        saldoMes
+    };
+
     const riskExplanation = [
-        `${upcomingDebtCount} parcela(s) de dívida vencendo em até 30 dias`,
-        `gasto fixo estimado de R$ ${fixedExpenseEstimate.toFixed(2)}`,
-        `média variável mensal de R$ ${variableAvg.toFixed(2)}`
+        `${upcomingDebtCount} parcela(s) de dívida vencendo em até 30 dias (${formatMoney(upcomingDebtTotal)})`,
+        `gasto fixo estimado de ${formatMoney(fixedExpenseEstimate)}`,
+        `média variável mensal de ${formatMoney(variableAvg)}`,
+        `queima diária estimada de ${formatMoney(estimatedDailyBurn)}`
     ].join(' + ');
+
+    const reserveExplanation = `Alvo de 3 meses calculado com gasto essencial mensal estimado em ${formatMoney(essentialMonthly)}.`;
 
     return {
         periodLabel: `${monthLabel}/${currentYear}`,
@@ -225,14 +241,18 @@ function buildHealthSummary(data) {
         fixedExpenseEstimate,
         variableAvg,
         monthlyAvgOutflow,
+        essentialMonthly,
         upcomingDebtCount,
         upcomingDebtTotal,
+        estimatedDailyBurn,
         daysToNegative,
         riskLevel,
+        riskInputs,
         riskExplanation,
         reserveCurrent,
         reserveTarget3,
         reserveProgressPct,
+        reserveExplanation,
         debtsForPlanning
     };
 }
