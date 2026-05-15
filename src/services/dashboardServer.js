@@ -391,7 +391,9 @@ function startDashboardServer() {
     });
 
     server.listen(port, host, () => {
-        logger.info(`dashboard: servidor web ativo em http://${host}:${port}`);
+        const address = server.address();
+        const activePort = address && typeof address === 'object' ? address.port : port;
+        logger.info(`dashboard: servidor web ativo em http://${host}:${activePort}`);
     });
 
     return server;
