@@ -19,6 +19,7 @@ const SQLITE_FILE = path.join(DATA_DIR, 'read_model.sqlite');
 let db = null;
 let sqliteReady = false;
 let currentSyncId = 0;
+const ALL_USERS_ID = '__ALL_USERS__';
 
 function ensureDataDir() {
     if (!fs.existsSync(DATA_DIR)) {
@@ -300,24 +301,29 @@ function normalizeYearParam(year) {
     return parsed;
 }
 
+function isAllUsersScope(userId) {
+    return String(userId || '') === ALL_USERS_ID;
+}
+
 function queryKpis(userId, { month, year } = {}) {
     if (!sqliteReady || !db) return null;
     const m = normalizeMonthParam(month);
     const y = normalizeYearParam(year);
 
-    const entradas = db.prepare('SELECT COALESCE(SUM(value), 0) AS total FROM entries WHERE user_id = ? AND month = ? AND year = ?').get(userId, m, y).total || 0;
-    const saidas = db.prepare("SELECT COALESCE(SUM(value), 0) AS total FROM expenses WHERE user_id = ? AND month = ? AND year = ? AND source_type = 'saida'").get(userId, m, y).total || 0;
-    const cartoes = db.prepare("SELECT COALESCE(SUM(value), 0) AS total FROM expenses WHERE user_id = ? AND month = ? AND year = ? AND source_type = 'cartao'").get(userId, m, y).total || 0;
+    const allUsers = isAllUsersScope(userId) ? 1 : 0;
+    const entradas = db.prepare('SELECT COALESCE(SUM(value), 0) AS total FROM entries WHERE (? = 1 OR user_id = ?) AND month = ? AND year = ?').get(allUsers, userId, m, y).total || 0;
+    const saidas = db.prepare("SELECT COALESCE(SUM(value), 0) AS total FROM expenses WHERE (? = 1 OR user_id = ?) AND month = ? AND year = ? AND source_type = 'saida'").get(allUsers, userId, m, y).total || 0;
+    const cartoes = db.prepare("SELECT COALESCE(SUM(value), 0) AS total FROM expenses WHERE (? = 1 OR user_id = ?) AND month = ? AND year = ? AND source_type = 'cartao'").get(allUsers, userId, m, y).total || 0;
     const debt = db.prepare(`
         SELECT
             COUNT(*) AS active_count,
             COALESCE(SUM(saldo_atual), 0) AS total
         FROM debts
-        WHERE user_id = ?
+        WHERE (? = 1 OR user_id = ?)
         AND lower(COALESCE(status, '')) NOT LIKE '%quitad%'
         AND lower(COALESCE(status, '')) NOT LIKE '%pago%'
         AND lower(COALESCE(status, '')) NOT LIKE '%finalizad%'
-    `).get(userId);
+    `).get(allUsers, userId);
 
     return {
         period: { month: m, year: y },
@@ -334,34 +340,36 @@ function queryTopCategories(userId, { month, year } = {}) {
     if (!sqliteReady || !db) return null;
     const m = normalizeMonthParam(month);
     const y = normalizeYearParam(year);
+    const allUsers = isAllUsersScope(userId) ? 1 : 0;
     return db.prepare(`
         SELECT category, COALESCE(SUM(value), 0) AS value
         FROM expenses
-        WHERE user_id = ? AND month = ? AND year = ?
+        WHERE (? = 1 OR user_id = ?) AND month = ? AND year = ?
         GROUP BY category
         ORDER BY value DESC
         LIMIT 8
-    `).all(userId, m, y);
+    `).all(allUsers, userId, m, y);
 }
 
 function queryCashflow(userId, { month, year } = {}) {
     if (!sqliteReady || !db) return null;
     const m = normalizeMonthParam(month);
     const y = normalizeYearParam(year);
+    const allUsers = isAllUsersScope(userId) ? 1 : 0;
 
     const entries = db.prepare(`
         SELECT date_text AS date, COALESCE(SUM(value), 0) AS value
         FROM entries
-        WHERE user_id = ? AND month = ? AND year = ?
+        WHERE (? = 1 OR user_id = ?) AND month = ? AND year = ?
         GROUP BY date_text
-    `).all(userId, m, y);
+    `).all(allUsers, userId, m, y);
 
     const expenses = db.prepare(`
         SELECT date_text AS date, COALESCE(SUM(value), 0) AS value
         FROM expenses
-        WHERE user_id = ? AND month = ? AND year = ?
+        WHERE (? = 1 OR user_id = ?) AND month = ? AND year = ?
         GROUP BY date_text
-    `).all(userId, m, y);
+    `).all(allUsers, userId, m, y);
 
     const map = new Map();
     entries.forEach((item) => {
@@ -378,42 +386,45 @@ function queryCashflow(userId, { month, year } = {}) {
 
 function queryDebts(userId) {
     if (!sqliteReady || !db) return null;
+    const allUsers = isAllUsersScope(userId) ? 1 : 0;
     return db.prepare(`
         SELECT name, creditor, status, saldo_atual AS saldoAtual, juros_pct AS jurosPct, next_due AS nextDue
         FROM debts
-        WHERE user_id = ?
+        WHERE (? = 1 OR user_id = ?)
         ORDER BY saldo_atual DESC
         LIMIT 20
-    `).all(userId);
+    `).all(allUsers, userId);
 }
 
 function queryGoals(userId) {
     if (!sqliteReady || !db) return null;
+    const allUsers = isAllUsersScope(userId) ? 1 : 0;
     return db.prepare(`
         SELECT name, target, current, progress_pct AS progressPct
         FROM goals
-        WHERE user_id = ?
+        WHERE (? = 1 OR user_id = ?)
         ORDER BY progress_pct DESC
         LIMIT 20
-    `).all(userId);
+    `).all(allUsers, userId);
 }
 
 function queryRecentTransactions(userId, { month, year } = {}) {
     if (!sqliteReady || !db) return null;
     const m = normalizeMonthParam(month);
     const y = normalizeYearParam(year);
+    const allUsers = isAllUsersScope(userId) ? 1 : 0;
 
     const recentEntries = db.prepare(`
         SELECT date_text AS date, description, category, value, 'entrada' AS type
         FROM entries
-        WHERE user_id = ? AND month = ? AND year = ?
-    `).all(userId, m, y);
+        WHERE (? = 1 OR user_id = ?) AND month = ? AND year = ?
+    `).all(allUsers, userId, m, y);
 
     const recentExpenses = db.prepare(`
         SELECT date_text AS date, description, category, value, source_type AS type
         FROM expenses
-        WHERE user_id = ? AND month = ? AND year = ?
-    `).all(userId, m, y);
+        WHERE (? = 1 OR user_id = ?) AND month = ? AND year = ?
+    `).all(allUsers, userId, m, y);
 
     return [...recentEntries, ...recentExpenses]
         .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
@@ -572,6 +583,7 @@ function getSqliteStats() {
 }
 
 module.exports = {
+    ALL_USERS_ID,
     ensureSqliteReady,
     syncSnapshotToSqlite,
     queryAnalyticalIntentSql,

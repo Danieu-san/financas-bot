@@ -1,7 +1,8 @@
 const http = require('http');
 const { URL } = require('url');
-const { syncReadModelIfNeeded, getDashboardSnapshot, getDashboardSqlData, isSqliteReady } = require('./readModelService');
+const { syncReadModelIfNeeded, getDashboardSnapshot, getDashboardSqlData, isSqliteReady, ALL_USERS_ID } = require('./readModelService');
 const { verifyDashboardToken } = require('../utils/dashboardAuth');
+const { getAllUsers } = require('./userService');
 const logger = require('../utils/logger');
 const metrics = require('../utils/metrics');
 
@@ -160,6 +161,7 @@ function dashboardHtml() {
       <div id="periodBadge" class="pill">Carregando período...</div>
     </header>
     <div class="toolbar">
+      <select id="user" class="field" style="display:none"></select>
       <select id="month" class="field"></select>
       <select id="year" class="field"></select>
       <button id="refresh" class="btn">Atualizar</button>
@@ -210,6 +212,7 @@ function dashboardHtml() {
     const monthNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
     const qs = new URLSearchParams(window.location.search);
     const token = qs.get('token') || '';
+    const userEl = document.getElementById('user');
     const monthEl = document.getElementById('month');
     const yearEl = document.getElementById('year');
     const errorEl = document.getElementById('error');
@@ -233,6 +236,22 @@ function dashboardHtml() {
       }
     }
 
+    async function setupUsers() {
+      if (!token) return;
+      try {
+        const res = await fetch('/dashboard/api/users?token=' + encodeURIComponent(token));
+        const data = await res.json();
+        if (!res.ok) return;
+        const users = data.users || [];
+        if (!users.length) return;
+        userEl.innerHTML = users.map(u => '<option value="' + esc(u.value) + '">' + esc(u.label) + '</option>').join('');
+        userEl.value = data.defaultUser || users[0].value;
+        if (data.isAdmin) userEl.style.display = '';
+      } catch (e) {
+        // O dashboard continua funcionando como painel pessoal se o seletor falhar.
+      }
+    }
+
     async function loadData() {
       errorEl.style.display = 'none';
       if (!token) {
@@ -242,15 +261,16 @@ function dashboardHtml() {
       }
       const month = monthEl.value;
       const year = yearEl.value;
+      const userParam = userEl.value ? '&user=' + encodeURIComponent(userEl.value) : '';
       const base = '/dashboard/api';
       try {
         const reqs = await Promise.all([
-          fetch(base + '/kpis?token=' + encodeURIComponent(token) + '&month=' + encodeURIComponent(month) + '&year=' + encodeURIComponent(year)),
-          fetch(base + '/cashflow?token=' + encodeURIComponent(token) + '&month=' + encodeURIComponent(month) + '&year=' + encodeURIComponent(year)),
-          fetch(base + '/goals?token=' + encodeURIComponent(token)),
-          fetch(base + '/debts?token=' + encodeURIComponent(token)),
-          fetch(base + '/alerts?token=' + encodeURIComponent(token) + '&month=' + encodeURIComponent(month) + '&year=' + encodeURIComponent(year)),
-          fetch(base + '/summary?token=' + encodeURIComponent(token) + '&month=' + encodeURIComponent(month) + '&year=' + encodeURIComponent(year))
+          fetch(base + '/kpis?token=' + encodeURIComponent(token) + userParam + '&month=' + encodeURIComponent(month) + '&year=' + encodeURIComponent(year)),
+          fetch(base + '/cashflow?token=' + encodeURIComponent(token) + userParam + '&month=' + encodeURIComponent(month) + '&year=' + encodeURIComponent(year)),
+          fetch(base + '/goals?token=' + encodeURIComponent(token) + userParam),
+          fetch(base + '/debts?token=' + encodeURIComponent(token) + userParam),
+          fetch(base + '/alerts?token=' + encodeURIComponent(token) + userParam + '&month=' + encodeURIComponent(month) + '&year=' + encodeURIComponent(year)),
+          fetch(base + '/summary?token=' + encodeURIComponent(token) + userParam + '&month=' + encodeURIComponent(month) + '&year=' + encodeURIComponent(year))
         ]);
         const [kpisRes, cashflowRes, goalsRes, debtsRes, alertsRes, summaryRes] = reqs;
         const [kpisData, cashflowData, goalsData, debtsData, alertsData, summaryData] = await Promise.all([
@@ -283,7 +303,9 @@ function dashboardHtml() {
       saldoEl.className = 'value ' + ((k.saldo || 0) >= 0 ? 'ok' : 'bad');
       document.getElementById('kpiDebts').textContent = (k.debtActiveCount || 0) + ' | ' + brl(k.debtTotal || 0);
       const period = data.period || {};
-      document.getElementById('periodBadge').textContent = monthNames[Number(period.month ?? monthEl.value)] + ' de ' + (period.year || yearEl.value);
+      const selectedUserLabel = userEl.options[userEl.selectedIndex]?.textContent || '';
+      const userSuffix = selectedUserLabel && userEl.style.display !== 'none' ? ' · ' + selectedUserLabel : '';
+      document.getElementById('periodBadge').textContent = monthNames[Number(period.month ?? monthEl.value)] + ' de ' + (period.year || yearEl.value) + userSuffix;
 
       const cats = data.topCategories || [];
       const maxCat = Math.max(1, ...cats.map(c => Number(c.value || 0)));
@@ -324,10 +346,28 @@ function dashboardHtml() {
 
     setupFilters();
     document.getElementById('refresh').addEventListener('click', loadData);
-    loadData();
+    userEl.addEventListener('change', loadData);
+    setupUsers().finally(loadData);
   </script>
 </body>
 </html>`;
+}
+
+function getDashboardDataUserId(payload, reqUrl) {
+    if (!payload?.adm) return payload.uid;
+    const requested = String(reqUrl.searchParams.get('user') || '').trim();
+    if (!requested || requested === 'all') return ALL_USERS_ID;
+    return requested;
+}
+
+function formatDashboardUserOption(user) {
+    const status = user.status ? ` · ${user.status}` : '';
+    const phone = user.phone_e164 || user.whatsapp_id || user.user_id;
+    const name = user.display_name || 'Sem nome';
+    return {
+        value: user.user_id,
+        label: `${name} · ${phone}${status}`
+    };
 }
 
 async function handleApiSummary(reqUrl, res) {
@@ -344,7 +384,8 @@ async function handleApiSummary(reqUrl, res) {
         const year = reqUrl.searchParams.get('year');
 
         await syncReadModelIfNeeded();
-        const snapshot = getDashboardSqlData(payload.uid, { month, year }) || getDashboardSnapshot(payload.uid, { month, year });
+        const dataUserId = getDashboardDataUserId(payload, reqUrl);
+        const snapshot = getDashboardSqlData(dataUserId, { month, year }) || getDashboardSnapshot(dataUserId, { month, year });
         metrics.increment('dashboard.api.summary.success');
         sendJson(res, 200, snapshot);
     } catch (error) {
@@ -365,7 +406,8 @@ async function withAuth(reqUrl, res, cb) {
         }
 
         await syncReadModelIfNeeded();
-        await cb(payload);
+        const dataUserId = getDashboardDataUserId(payload, reqUrl);
+        await cb(payload, dataUserId);
     } catch (error) {
         metrics.increment('dashboard.api.error');
         logger.error(`dashboard api error: ${error.message}`);
@@ -395,11 +437,33 @@ function startDashboardServer() {
             await handleApiSummary(reqUrl, res);
             return;
         }
-        if (req.method === 'GET' && reqUrl.pathname === '/dashboard/api/kpis') {
+        if (req.method === 'GET' && reqUrl.pathname === '/dashboard/api/users') {
             await withAuth(reqUrl, res, async (payload) => {
+                if (!payload.adm) {
+                    sendJson(res, 200, {
+                        isAdmin: false,
+                        defaultUser: payload.uid,
+                        users: [{ value: payload.uid, label: 'Meu usuário' }]
+                    });
+                    return;
+                }
+                const users = await getAllUsers();
+                sendJson(res, 200, {
+                    isAdmin: true,
+                    defaultUser: 'all',
+                    users: [
+                        { value: 'all', label: 'Todos os usuários' },
+                        ...users.map(formatDashboardUserOption)
+                    ]
+                });
+            });
+            return;
+        }
+        if (req.method === 'GET' && reqUrl.pathname === '/dashboard/api/kpis') {
+            await withAuth(reqUrl, res, async (payload, dataUserId) => {
                 const month = reqUrl.searchParams.get('month');
                 const year = reqUrl.searchParams.get('year');
-                const sql = getDashboardSqlData(payload.uid, { month, year });
+                const sql = getDashboardSqlData(dataUserId, { month, year });
                 if (sql) {
                     sendJson(res, 200, {
                         period: sql.period,
@@ -409,7 +473,7 @@ function startDashboardServer() {
                     });
                     return;
                 }
-                const legacy = getDashboardSnapshot(payload.uid, { month, year });
+                const legacy = getDashboardSnapshot(dataUserId, { month, year });
                 sendJson(res, 200, {
                     period: legacy.period,
                     kpis: legacy.kpis,
@@ -420,53 +484,53 @@ function startDashboardServer() {
             return;
         }
         if (req.method === 'GET' && reqUrl.pathname === '/dashboard/api/cashflow') {
-            await withAuth(reqUrl, res, async (payload) => {
+            await withAuth(reqUrl, res, async (payload, dataUserId) => {
                 const month = reqUrl.searchParams.get('month');
                 const year = reqUrl.searchParams.get('year');
-                const sql = getDashboardSqlData(payload.uid, { month, year });
+                const sql = getDashboardSqlData(dataUserId, { month, year });
                 if (sql) {
                     sendJson(res, 200, { period: sql.period, dailyFlow: sql.dailyFlow, source: 'sqlite' });
                     return;
                 }
-                const legacy = getDashboardSnapshot(payload.uid, { month, year });
+                const legacy = getDashboardSnapshot(dataUserId, { month, year });
                 sendJson(res, 200, { period: legacy.period, dailyFlow: legacy.dailyFlow, source: 'memory' });
             });
             return;
         }
         if (req.method === 'GET' && reqUrl.pathname === '/dashboard/api/debts') {
-            await withAuth(reqUrl, res, async (payload) => {
-                const sql = getDashboardSqlData(payload.uid, {});
+            await withAuth(reqUrl, res, async (payload, dataUserId) => {
+                const sql = getDashboardSqlData(dataUserId, {});
                 if (sql) {
                     sendJson(res, 200, { debts: sql.debts, source: 'sqlite' });
                     return;
                 }
-                const legacy = getDashboardSnapshot(payload.uid, {});
+                const legacy = getDashboardSnapshot(dataUserId, {});
                 sendJson(res, 200, { debts: legacy.debts, source: 'memory' });
             });
             return;
         }
         if (req.method === 'GET' && reqUrl.pathname === '/dashboard/api/goals') {
-            await withAuth(reqUrl, res, async (payload) => {
-                const sql = getDashboardSqlData(payload.uid, {});
+            await withAuth(reqUrl, res, async (payload, dataUserId) => {
+                const sql = getDashboardSqlData(dataUserId, {});
                 if (sql) {
                     sendJson(res, 200, { goals: sql.goals, source: 'sqlite' });
                     return;
                 }
-                const legacy = getDashboardSnapshot(payload.uid, {});
+                const legacy = getDashboardSnapshot(dataUserId, {});
                 sendJson(res, 200, { goals: legacy.goals, source: 'memory' });
             });
             return;
         }
         if (req.method === 'GET' && reqUrl.pathname === '/dashboard/api/alerts') {
-            await withAuth(reqUrl, res, async (payload) => {
+            await withAuth(reqUrl, res, async (payload, dataUserId) => {
                 const month = reqUrl.searchParams.get('month');
                 const year = reqUrl.searchParams.get('year');
-                const sql = getDashboardSqlData(payload.uid, { month, year });
+                const sql = getDashboardSqlData(dataUserId, { month, year });
                 if (sql) {
                     sendJson(res, 200, { alerts: sql.alerts, source: 'sqlite' });
                     return;
                 }
-                const legacy = getDashboardSnapshot(payload.uid, { month, year });
+                const legacy = getDashboardSnapshot(dataUserId, { month, year });
                 const alerts = [];
                 if ((legacy?.kpis?.saldo || 0) < 0) {
                     alerts.push({ level: 'high', code: 'NEGATIVE_CASHFLOW', message: 'Saldo negativo no período.' });

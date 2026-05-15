@@ -16,7 +16,8 @@ const {
     queryRecentTransactions,
     queryAlerts,
     isSqliteReady,
-    getSqliteStats
+    getSqliteStats,
+    ALL_USERS_ID
 } = require('./sqliteReadModelService');
 const logger = require('../utils/logger');
 const metrics = require('../utils/metrics');
@@ -706,6 +707,7 @@ function getDashboardSqlData(userId, { month, year } = {}) {
 }
 
 module.exports = {
+    ALL_USERS_ID,
     initializeReadModel,
     syncReadModelIfNeeded,
     executeAnalyticalIntent,

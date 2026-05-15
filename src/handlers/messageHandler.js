@@ -492,7 +492,10 @@ async function handleDashboardCommand(msg, user, senderId) {
 
     let linkData = null;
     try {
-        linkData = buildDashboardAccessLink({ userId: user.user_id });
+        linkData = buildDashboardAccessLink({
+            userId: user.user_id,
+            isAdmin: isAdminWithContext(senderId, user)
+        });
     } catch (error) {
         await sendPlainMessage(msg, 'Dashboard indisponível no momento. O administrador precisa configurar DASHBOARD_TOKEN_SECRET.');
         logger.warn(`[dashboard] token_secret_ausente sender=${senderId} user_id=${user.user_id}`);

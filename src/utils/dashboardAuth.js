@@ -59,7 +59,7 @@ function timingSafeStringEqual(left, right) {
     return crypto.timingSafeEqual(leftBuffer, rightBuffer);
 }
 
-function generateDashboardToken({ userId, ttlSeconds = DEFAULT_TTL_SECONDS }) {
+function generateDashboardToken({ userId, ttlSeconds = DEFAULT_TTL_SECONDS, isAdmin = false }) {
     const header = { alg: 'HS256', typ: 'JWT' };
     const nowSec = Math.floor(Date.now() / 1000);
     const parsedTtl = Number.parseInt(ttlSeconds, 10) || DEFAULT_TTL_SECONDS;
@@ -67,7 +67,8 @@ function generateDashboardToken({ userId, ttlSeconds = DEFAULT_TTL_SECONDS }) {
     const payload = {
         uid: String(userId || ''),
         iat: nowSec,
-        exp: nowSec + safeTtl
+        exp: nowSec + safeTtl,
+        adm: Boolean(isAdmin)
     };
 
     const encodedHeader = base64UrlEncode(JSON.stringify(header));
@@ -99,10 +100,10 @@ function verifyDashboardToken(token) {
     }
 }
 
-function buildDashboardAccessLink({ userId, ttlSeconds = DEFAULT_TTL_SECONDS }) {
+function buildDashboardAccessLink({ userId, ttlSeconds = DEFAULT_TTL_SECONDS, isAdmin = false }) {
     const baseUrl = getDashboardBaseUrl();
     if (!baseUrl) return null;
-    const token = generateDashboardToken({ userId, ttlSeconds });
+    const token = generateDashboardToken({ userId, ttlSeconds, isAdmin });
     return {
         url: `${baseUrl}/dashboard?token=${encodeURIComponent(token)}`,
         ttlSeconds

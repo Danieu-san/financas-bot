@@ -10,7 +10,8 @@ const {
     queryGoals,
     queryCashflow,
     queryRecentTransactions,
-    queryAlerts
+    queryAlerts,
+    ALL_USERS_ID
 } = require('../src/services/sqliteReadModelService');
 const { executeAnalyticalIntent } = require('../src/services/readModelService');
 const metrics = require('../src/utils/metrics');
@@ -90,6 +91,24 @@ test('sqlite read-model powers dashboard data without cross-user leakage', () =>
 
     const alerts = queryAlerts('user-read-a', { month: 1, year: 2026 });
     assert.deepStrictEqual(alerts, []);
+});
+
+test('sqlite read-model supports explicit admin all-users dashboard scope', () => {
+    syncControlledSnapshot();
+
+    const kpis = queryKpis(ALL_USERS_ID, { month: 1, year: 2026 });
+    assert.strictEqual(kpis.entradas, 6000);
+    assert.strictEqual(kpis.saidas, 1099);
+    assert.strictEqual(kpis.cartoes, 100);
+    assert.strictEqual(kpis.saldo, 4801);
+    assert.strictEqual(kpis.debtActiveCount, 2);
+
+    const debts = queryDebts(ALL_USERS_ID);
+    assert.deepStrictEqual(debts.map(item => item.name), ['Dívida outro', 'Financiamento']);
+
+    const recent = queryRecentTransactions(ALL_USERS_ID, { month: 1, year: 2026 });
+    assert.ok(recent.some(item => item.description === 'outro usuario'));
+    assert.ok(recent.some(item => item.description === 'salário'));
 });
 
 test('analytical read-model reports sqlite source and hit metric', async () => {

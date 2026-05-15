@@ -39,7 +39,8 @@ function installReadModelMock(calls) {
             getDashboardSnapshot: () => {
                 throw new Error('dashboard API contract test should use SQL data');
             },
-            isSqliteReady: () => true
+            isSqliteReady: () => true,
+            ALL_USERS_ID: '__ALL_USERS__'
         }
     };
 }
@@ -112,6 +113,25 @@ test('dashboard API endpoints expose stable user-scoped contracts', async () => 
 
         assert.ok(calls.length >= 6);
         assert.ok(calls.every(call => call.userId === 'user-dash-a'));
+    } finally {
+        await new Promise(resolve => server.close(resolve));
+    }
+});
+
+test('dashboard admin token can request all-users aggregate scope', async () => {
+    const calls = [];
+    const { server, baseUrl } = await startTestServer(calls);
+    const { generateDashboardToken } = require('../src/utils/dashboardAuth');
+    const adminToken = generateDashboardToken({ userId: 'admin-user', ttlSeconds: 600, isAdmin: true });
+
+    try {
+        const kpis = await fetchJson(`${baseUrl}/dashboard/api/kpis?token=${adminToken}&month=1&year=2026`);
+        assert.strictEqual(kpis.response.status, 200);
+        assert.strictEqual(calls.at(-1).userId, '__ALL_USERS__');
+
+        const personal = await fetchJson(`${baseUrl}/dashboard/api/kpis?token=${adminToken}&user=user-dash-a&month=1&year=2026`);
+        assert.strictEqual(personal.response.status, 200);
+        assert.strictEqual(calls.at(-1).userId, 'user-dash-a');
     } finally {
         await new Promise(resolve => server.close(resolve));
     }
