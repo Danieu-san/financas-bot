@@ -416,13 +416,19 @@ function getUnifiedExpensesForUser(userId, month, year) {
     return [...outgoing, ...cards];
 }
 
+function withResultSource(result, source) {
+    if (!result || typeof result !== 'object' || Array.isArray(result)) return result;
+    return { ...result, source };
+}
+
 async function executeAnalyticalIntent(intent, parameters, { userId }) {
     const sqlResult = queryAnalyticalIntentSql(intent, parameters, { userId });
     if (sqlResult) {
         metrics.increment('read_model.sqlite.hit');
-        return sqlResult;
+        return withResultSource(sqlResult, 'sqlite');
     }
     metrics.increment('read_model.sqlite.miss');
+    metrics.increment('read_model.memory_fallback.started');
 
     const month = normalizeMonthParam(parameters?.mes);
     const year = normalizeYearParam(parameters?.ano);
@@ -440,7 +446,7 @@ async function executeAnalyticalIntent(intent, parameters, { userId }) {
     case 'total_gastos_mes': {
         const totalSaidas = saidasDoUsuario.reduce((sum, entry) => sum + entry.valor, 0);
         const totalCartoes = cartoesDoUsuario.reduce((sum, entry) => sum + entry.valor, 0);
-        return {
+        return withResultSource({
             results: totalSaidas + totalCartoes,
             details: {
                 totalSaidas,
@@ -448,7 +454,7 @@ async function executeAnalyticalIntent(intent, parameters, { userId }) {
                 mes: month,
                 ano: year
             }
-        };
+        }, 'memory_fallback');
     }
     case 'total_gastos_categoria_mes': {
         const totalSaidas = saidasDoUsuario
@@ -457,24 +463,24 @@ async function executeAnalyticalIntent(intent, parameters, { userId }) {
         const totalCartoes = cartoesDoUsuario
             .filter((entry) => categoryMatches(entry, categoria))
             .reduce((sum, entry) => sum + entry.valor, 0);
-        return { results: totalSaidas + totalCartoes, details: { categoria, mes: month, ano: year } };
+        return withResultSource({ results: totalSaidas + totalCartoes, details: { categoria, mes: month, ano: year } }, 'memory_fallback');
     }
     case 'media_gastos_categoria_mes': {
         const filtered = saidasDoUsuario.filter((entry) => categoryMatches(entry, categoria));
         const total = filtered.reduce((sum, entry) => sum + entry.valor, 0);
         const media = filtered.length > 0 ? total / filtered.length : 0;
-        return { results: media, details: { categoria, mes: month, ano: year } };
+        return withResultSource({ results: media, details: { categoria, mes: month, ano: year } }, 'memory_fallback');
     }
     case 'listagem_gastos_categoria': {
         const filtered = saidasDoUsuario
             .filter((entry) => categoryMatches(entry, categoria))
             .map((entry) => [entry.data, entry.descricao, entry.categoria, entry.subcategoria, entry.valor]);
-        return { results: filtered, details: { categoria, mes: month, ano: year } };
+        return withResultSource({ results: filtered, details: { categoria, mes: month, ano: year } }, 'memory_fallback');
     }
     case 'contagem_ocorrencias': {
         const dataParaAnalise = gastosUnificados.map((entry) => [entry.data, entry.descricao]);
         const filtered = analysisService.countOccurrences(dataParaAnalise, [normalizeText(categoria)], year, month);
-        return { results: filtered.length, details: { categoria, mes: month, ano: year } };
+        return withResultSource({ results: filtered.length, details: { categoria, mes: month, ano: year } }, 'memory_fallback');
     }
     case 'gastos_valores_duplicados': {
         const valoresContados = new Map();
@@ -491,22 +497,22 @@ async function executeAnalyticalIntent(intent, parameters, { userId }) {
                 duplicatas.push({ valor, count: descricoes.length, itens: descricoes });
             }
         });
-        return { results: duplicatas, details: { mes: month, ano: year } };
+        return withResultSource({ results: duplicatas, details: { mes: month, ano: year } }, 'memory_fallback');
     }
     case 'maior_menor_gasto': {
         if (!gastosUnificados.length) {
-            return { results: { min: null, max: null }, details: { mes: month, ano: year } };
+            return withResultSource({ results: { min: null, max: null }, details: { mes: month, ano: year } }, 'memory_fallback');
         }
         const mapped = gastosUnificados.map((entry) => [entry.data, entry.descricao, entry.categoria, entry.subcategoria, entry.valor]);
         const minMax = analysisService.findMinMax(mapped);
-        return { results: { min: minMax.min, max: minMax.max }, details: { mes: month, ano: year } };
+        return withResultSource({ results: { min: minMax.min, max: minMax.max }, details: { mes: month, ano: year } }, 'memory_fallback');
     }
     case 'saldo_do_mes': {
         const totalEntradas = entradasDoUsuario.reduce((sum, entry) => sum + entry.valor, 0);
         const totalSaidas = saidasDoUsuario.reduce((sum, entry) => sum + entry.valor, 0);
         const totalCartoes = cartoesDoUsuario.reduce((sum, entry) => sum + entry.valor, 0);
         const saldo = totalEntradas - (totalSaidas + totalCartoes);
-        return {
+        return withResultSource({
             results: saldo,
             details: {
                 totalSaidas: totalSaidas + totalCartoes,
@@ -514,10 +520,10 @@ async function executeAnalyticalIntent(intent, parameters, { userId }) {
                 mes: month,
                 ano: year
             }
-        };
+        }, 'memory_fallback');
     }
     default:
-        return { results: 'Pergunta genérica', details: null };
+        return withResultSource({ results: 'Pergunta genérica', details: null }, 'memory_fallback');
     }
 }
 

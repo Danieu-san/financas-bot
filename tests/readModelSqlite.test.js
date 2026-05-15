@@ -12,6 +12,8 @@ const {
     queryRecentTransactions,
     queryAlerts
 } = require('../src/services/sqliteReadModelService');
+const { executeAnalyticalIntent } = require('../src/services/readModelService');
+const metrics = require('../src/utils/metrics');
 
 function syncControlledSnapshot() {
     assert.strictEqual(ensureSqliteReady(), true, 'SQLite should be available for read-model tests');
@@ -88,4 +90,23 @@ test('sqlite read-model powers dashboard data without cross-user leakage', () =>
 
     const alerts = queryAlerts('user-read-a', { month: 1, year: 2026 });
     assert.deepStrictEqual(alerts, []);
+});
+
+test('analytical read-model reports sqlite source and hit metric', async () => {
+    metrics.reset();
+    syncControlledSnapshot();
+
+    const result = await executeAnalyticalIntent(
+        'total_gastos_mes',
+        { mes: 1, ano: 2026 },
+        { userId: 'user-read-a' }
+    );
+
+    assert.strictEqual(result.source, 'sqlite');
+    assert.strictEqual(result.results, 200);
+
+    const snapshot = metrics.getSnapshot();
+    assert.strictEqual(snapshot.counters['read_model.sqlite.hit'], 1);
+    assert.strictEqual(snapshot.counters['read_model.sqlite.miss'] || 0, 0);
+    metrics.reset();
 });

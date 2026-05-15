@@ -117,6 +117,12 @@ function formatCurrencyBR(value) {
     return 'R$ ' + Number(value || 0).toFixed(2).replace('.', ',');
 }
 
+function normalizeMetricLabel(value, fallback = 'unknown') {
+    const raw = String(value || fallback).toLowerCase();
+    const normalized = raw.replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
+    return (normalized || fallback).slice(0, 60);
+}
+
 function getMonthNamePtBr(monthIndex) {
     const names = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
     if (typeof monthIndex !== 'number' || monthIndex < 0 || monthIndex > 11) return null;
@@ -1487,6 +1493,7 @@ async function handleMessage(msg) {
 
                         let analyzedData = null;
                         let usedReadModel = false;
+                        let analysisSource = 'unknown';
                         try {
                             await timeStep(
                                 'readModel.sync',
@@ -1503,11 +1510,18 @@ async function handleMessage(msg) {
                                 perfContext
                             );
                             usedReadModel = true;
+                            analysisSource = analyzedData?.source || 'read_model_unknown';
+                            metrics.increment(`message.pergunta.analysis.${normalizeMetricLabel(analysisSource)}`);
+                            logger.info(`[routing] analysis_source=${analysisSource} intent=${intentClassification.intent} sender=${senderId}`);
                         } catch (readModelError) {
+                            metrics.increment('message.pergunta.analysis.read_model_error');
                             logger.warn(`[read-model] fallback legacy execute. motivo=${readModelError.message}`);
                         }
 
                         if (!analyzedData) {
+                            metrics.increment('message.pergunta.analysis.sheets_fallback');
+                            analysisSource = 'sheets_fallback';
+                            logger.info(`[routing] analysis_source=${analysisSource} intent=${intentClassification.intent} sender=${senderId}`);
                             const sheetReads = [
                                 readDataFromSheet('Saídas!A:J'),
                                 readDataFromSheet('Entradas!A:I'),
@@ -1551,6 +1565,7 @@ async function handleMessage(msg) {
                         });
                         if (!respostaFinal) {
                             metrics.increment('message.ai.generate.called');
+                            metrics.increment('message.pergunta.response.ai_generate');
                             respostaFinal = await timeStep(
                                 'generate(response)',
                                 () => generate({
@@ -1562,12 +1577,13 @@ async function handleMessage(msg) {
                                         currentMonth: new Date().getMonth(),
                                         currentYear: new Date().getFullYear()
                                     },
-                                    source: usedReadModel ? 'read_model' : 'legacy'
+                                    source: usedReadModel ? analysisSource : 'legacy_sheets'
                                 }),
                                 perfContext
                             );
                         } else {
                             metrics.increment('message.pergunta.local_response');
+                            metrics.increment('message.pergunta.response.local');
                             logger.info(`[routing] local_response intent=${intentClassification.intent} sender=${senderId}`);
                         }
                     
@@ -1655,6 +1671,7 @@ module.exports = {
         filterSheetRowsByUserId,
         isGreetingMessage,
         buildGreetingReply,
+        normalizeMetricLabel,
         handleAccountLifecycleCommands
     }
 };

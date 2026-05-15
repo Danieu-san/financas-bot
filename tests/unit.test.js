@@ -204,6 +204,14 @@ test('messageHandler.local replies cover greeting and total month', (t) => {
     assert.ok(reply.includes('Cartões: R$ 50,50'));
 });
 
+test('messageHandler.normalizeMetricLabel keeps metric names bounded and safe', (t) => {
+    const { normalizeMetricLabel } = messageHandler.__test__;
+
+    assert.strictEqual(normalizeMetricLabel('SQLite'), 'sqlite');
+    assert.strictEqual(normalizeMetricLabel('sheets fallback!'), 'sheets_fallback');
+    assert.ok(normalizeMetricLabel('x'.repeat(100)).length <= 60);
+});
+
 test('messageHandler active ACEITO is handled before AI routing', async (t) => {
     const { handleAccountLifecycleCommands } = messageHandler.__test__;
     const replies = [];

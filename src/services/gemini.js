@@ -41,6 +41,9 @@ async function callGemini(prompt, isJsonResponse = false, retries = GEMINI_MAX_R
     metrics.increment('gemini.call.total');
     const startedAt = Date.now();
     const promptLength = String(prompt || '').length;
+    const responseMode = isJsonResponse ? 'json' : 'text';
+    metrics.increment('gemini.prompt_chars.total', promptLength);
+    metrics.increment(`gemini.prompt_chars.${responseMode}`, promptLength);
     const maxAttempts = Math.max(1, retries + 1);
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -90,8 +93,11 @@ async function callGemini(prompt, isJsonResponse = false, retries = GEMINI_MAX_R
                 cleanText = cleanText.replace(/^```json\s*/i, '');
                 cleanText = cleanText.replace(/\s*```$/i, '');
                 cleanText = cleanText.trim();
+                metrics.increment('gemini.response_chars.total', cleanText.length);
+                metrics.increment(`gemini.response_chars.${responseMode}`, cleanText.length);
 
                 try {
+                    metrics.observeDuration('gemini.call.ms', Date.now() - startedAt);
                     return JSON.parse(cleanText);
                 } catch (e) {
                     console.error("❌ ERRO NO PARSING JSON APÓS LIMPEZA:", e);
@@ -101,6 +107,8 @@ async function callGemini(prompt, isJsonResponse = false, retries = GEMINI_MAX_R
                 }
             }
 
+            metrics.increment('gemini.response_chars.total', cleanText.length);
+            metrics.increment(`gemini.response_chars.${responseMode}`, cleanText.length);
             metrics.observeDuration('gemini.call.ms', Date.now() - startedAt);
             return cleanText;
         } catch (error) {
