@@ -114,6 +114,10 @@ Este documento descreve os fluxos de conversa que devem ser validados manualment
 - [ ] **Check seguro:** Rodar `npm run test:whatsapp:e2e:check` para abrir o chat do bot sem enviar mensagem.
 - [ ] **E2E real:** Rodar `npm run test:whatsapp:e2e` para validar termos/onboarding, gasto E2E, pergunta analítica e dashboard.
 - [ ] **Logs:** Conferir `pm2 logs financas-bot --lines 120 --nostream` no EC2 se houver timeout.
+- [ ] **Evidência:** Registrar resultado dos comandos `npm test`, `npm run test:functional`, `npm run test:whatsapp:e2e:check`, `npm run test:whatsapp:e2e`, `pm2 status` e `curl http://localhost:8787/dashboard/health`.
+- [ ] **Falha QR:** Se aparecer QR no remetente local, repetir setup; se aparecer QR no bot do EC2, renovar sessão do bot no servidor.
+- [ ] **Falha timeout:** Conferir se o bot está online, se o WhatsApp do bot mostra `Bot pronto para receber mensagens!`, se o chat aberto é o número correto e se a planilha não bateu quota.
+- [ ] **Falha dashboard:** Abrir o link recebido, testar token inválido e verificar se a porta pública 8787 continua liberada.
 
 ## 9. Casos de Borda e Erros
 - [ ] **Valor ausente:** "Gastei com mercado" -> Deve informar que não encontrou o valor.
