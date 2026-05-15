@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const logger = require('../utils/logger');
-const { normalizeText } = require('../utils/helpers');
+const { normalizeText, parseValue } = require('../utils/helpers');
 
 let Database = null;
 try {
@@ -245,9 +245,9 @@ function syncSnapshotToSqlite(snapshot) {
 
         for (const item of metas) {
             const row = item.row || [];
-            const target = Number(row[1] || 0);
-            const current = Number(row[2] || 0);
-            const progressPct = target > 0 ? Math.min(100, (current / target) * 100) : Number(row[3] || 0);
+            const target = parseValue(row[1] || 0);
+            const current = parseValue(row[2] || 0);
+            const progressPct = target > 0 ? Math.min(100, (current / target) * 100) : parseValue(row[3] || 0);
             const fingerprint = makeFingerprint(['meta', item.user_id, row[0], target, current]);
             upsertGoal.run({
                 fingerprint,
@@ -269,8 +269,8 @@ function syncSnapshotToSqlite(snapshot) {
                 name: row[0] || 'Dívida',
                 creditor: row[1] || '',
                 status: row[10] || '',
-                saldo_atual: Number(row[4] || 0),
-                juros_pct: Number(row[6] || 0),
+                saldo_atual: parseValue(row[4] || 0),
+                juros_pct: parseValue(row[6] || 0),
                 next_due: row[14] || '',
                 last_seen_sync: currentSyncId
             });

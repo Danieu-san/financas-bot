@@ -32,12 +32,12 @@ function syncControlledSnapshot() {
             { user_id: 'user-read-b', data: '05/02/2026', descricao: 'salário outro', categoria: 'Salário', valor: 5000, month: 1, year: 2026 }
         ],
         metas: [
-            { user_id: 'user-read-a', row: ['Reserva', 1000, 250, '25%'] },
-            { user_id: 'user-read-b', row: ['Meta outro', 9999, 9999, '100%'] }
+            { user_id: 'user-read-a', row: ['Reserva', 'R$1.000,00', 'R$250,00', '25%'] },
+            { user_id: 'user-read-b', row: ['Meta outro', 'R$9.999,00', 'R$9.999,00', '100%'] }
         ],
         dividas: [
-            { user_id: 'user-read-a', row: ['Financiamento', 'Banco', 'Financiamento', 2000, 1200, 200, 2, 10, '01/01/2026', 10, 'Ativa', '', '', '40%', '10/03/2026'] },
-            { user_id: 'user-read-b', row: ['Dívida outro', 'Banco', 'Cartão', 9999, 9999, 999, 10, 10, '01/01/2026', 10, 'Ativa', '', '', '0%', '10/03/2026'] }
+            { user_id: 'user-read-a', row: ['Financiamento', 'Banco', 'Financiamento', 'R$2.000,00', 'R$1.200,00', 'R$200,00', '2% a.m.', 10, '01/01/2026', 10, 'Ativa', '', '', '40%', '10/03/2026'] },
+            { user_id: 'user-read-b', row: ['Dívida outro', 'Banco', 'Cartão', 'R$9.999,00', 'R$9.999,00', 'R$999,00', '10% a.m.', 10, '01/01/2026', 10, 'Ativa', '', '', '0%', '10/03/2026'] }
         ]
     });
     assert.strictEqual(synced, true);
@@ -78,9 +78,13 @@ test('sqlite read-model powers dashboard data without cross-user leakage', () =>
 
     const debts = queryDebts('user-read-a');
     assert.deepStrictEqual(debts.map(item => item.name), ['Financiamento']);
+    assert.strictEqual(debts[0].saldoAtual, 1200);
+    assert.strictEqual(debts[0].jurosPct, 2);
 
     const goals = queryGoals('user-read-a');
     assert.deepStrictEqual(goals.map(item => item.name), ['Reserva']);
+    assert.strictEqual(goals[0].target, 1000);
+    assert.strictEqual(goals[0].current, 250);
 
     const cashflow = queryCashflow('user-read-a', { month: 1, year: 2026 });
     assert.ok(cashflow.some(day => day.date === '05/02/2026' && day.entradas === 1000));
