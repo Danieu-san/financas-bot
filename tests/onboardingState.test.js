@@ -114,6 +114,14 @@ test('onboarding help explains recovery commands', async () => {
     assert.ok(msg.replies[0].includes('recomeçar'));
 });
 
+test('onboarding questions show progress', () => {
+    const { getQuestion } = onboardingHandler.__test__;
+
+    assert.match(getQuestion(1), /^\[1\/5\]/);
+    assert.match(getQuestion(5), /^\[5\/5\]/);
+    assert.match(getQuestion(5), /objetivo principal/i);
+});
+
 test('onboarding menu suggests debt registration when user has debt', () => {
     const { onboardingMenu } = onboardingHandler.__test__;
     const menu = onboardingMenu({ hasDebt: true, primaryGoal: 'quitar dívidas' });

@@ -13,6 +13,7 @@ const userService = require('../src/services/userService');
 const adminCheck = require('../src/utils/adminCheck');
 const messageHandler = require('../src/handlers/messageHandler');
 const onboardingHandler = require('../src/handlers/onboardingHandler');
+const creationHandler = require('../src/handlers/creationHandler');
 const debtHandler = require('../src/handlers/debtHandler');
 const deletionHandler = require('../src/handlers/deletionHandler');
 const googleService = require('../src/services/google');
@@ -213,6 +214,16 @@ test('messageHandler.local replies cover greeting and total month', (t) => {
     assert.ok(reply.includes('Total gasto em fevereiro/2026: R$ 150,50'));
     assert.ok(reply.includes('Saídas: R$ 100,00'));
     assert.ok(reply.includes('Cartões: R$ 50,50'));
+});
+
+test('creationHandler debt success message explains dashboard and spending distinction', () => {
+    const { buildDebtSuccessMessage } = creationHandler.__test__;
+    const message = buildDebtSuccessMessage('ap');
+
+    assert.match(message, /Dívida "ap" registrada com sucesso/);
+    assert.match(message, /dashboard/i);
+    assert.match(message, /não entra como gasto/i);
+    assert.match(message, /registrar pagamento/i);
 });
 
 test('messageHandler.normalizeMetricLabel keeps metric names bounded and safe', (t) => {

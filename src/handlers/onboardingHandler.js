@@ -10,6 +10,7 @@ const { sendPlainMessage } = require('../utils/whatsappMessaging');
 const ONBOARDING_ACTION = 'onboarding_flow';
 const ONBOARDING_TTL_SECONDS = 60 * 60 * 12; // 12h
 const POST_ONBOARDING_DEBT_OFFER_ACTION = 'post_onboarding_debt_offer';
+const ONBOARDING_TOTAL_STEPS = 5;
 
 function onboardingMenu({ hasDebt = false, primaryGoal = '' } = {}) {
     const goal = normalizeText(primaryGoal);
@@ -59,17 +60,18 @@ function isHelpCommand(text) {
 }
 
 function getQuestion(step) {
+    const progress = `[${step}/${ONBOARDING_TOTAL_STEPS}] `;
     switch (step) {
         case 1:
-            return 'Antes de começarmos, como você prefere ser chamado?';
+            return `${progress}Antes de começarmos, como você prefere ser chamado?`;
         case 2:
-            return 'Qual sua renda mensal aproximada? (ex: 2000, R$ 2 mil, dois mil)';
+            return `${progress}Qual sua renda mensal aproximada? (ex: 2000, R$ 2 mil, dois mil)`;
         case 3:
-            return 'Qual seu gasto fixo mensal aproximado?';
+            return `${progress}Qual seu gasto fixo mensal aproximado?`;
         case 4:
-            return 'Você tem dívidas ativas hoje? (sim/não)';
+            return `${progress}Você tem dívidas ativas hoje? (sim/não)`;
         case 5:
-            return 'Qual seu objetivo principal agora? (ex: quitar dívidas, montar reserva)';
+            return `${progress}Qual seu objetivo principal agora? (ex: quitar dívidas, montar reserva)`;
         default:
             return null;
     }
@@ -273,6 +275,7 @@ module.exports = {
         isBackCommand,
         buildOnboardingHelp,
         onboardingMenu,
+        getQuestion,
         advanceOnboarding
     }
 };

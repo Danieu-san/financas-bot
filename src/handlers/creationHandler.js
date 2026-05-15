@@ -7,6 +7,15 @@ const { userMap } = require('../config/constants');
 const { parseValue, parseDate, isDate, getFormattedDateOnly, parseAmount } = require('../utils/helpers');
 const { getUserByWhatsAppId } = require('../services/userService');
 
+function buildDebtSuccessMessage(debtName) {
+    return [
+        `✅ Dívida "${debtName}" registrada com sucesso!`,
+        '',
+        'Ela já entra na área de dívidas e no dashboard.',
+        'Importante: cadastrar a dívida não entra como gasto do mês. Quando pagar uma parcela, envie `registrar pagamento` ou `paguei a parcela da dívida`.'
+    ].join('\n');
+}
+
 async function startDebtCreation(msg, initialData = {}) {
     const senderId = msg.author || msg.from;
     const pessoa = userMap[senderId] || 'Ambos';
@@ -164,7 +173,7 @@ async function finalizeDebtCreation(msg) {
         ];
 
         await appendRowToSheet('Dívidas', rowData);
-        await msg.reply(`✅ Dívida "${data["Nome da Dívida"]}" registrada com sucesso!`);
+        await msg.reply(buildDebtSuccessMessage(data["Nome da Dívida"]));
 
     } catch (error) {
         await msg.reply('Houve um erro ao salvar sua dívida.');
@@ -317,5 +326,8 @@ module.exports = {
     startGoalCreation,
     handleGoalCreation,
     finalizeGoalCreation,
+    __test__: {
+        buildDebtSuccessMessage
+    }
 };
 
