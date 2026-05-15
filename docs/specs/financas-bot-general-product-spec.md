@@ -74,6 +74,17 @@ Run functional test harness:
 npm run test:functional
 ```
 
+This command is destructive because it resets spreadsheet data before running. It must fail safely unless the environment explicitly marks the target as a test spreadsheet:
+
+```env
+SPREADSHEET_RESET_CONFIRMATION=RESETAR_PLANILHA_TESTE
+FUNCTIONAL_TEST_SPREADSHEET_ID=<same value as SPREADSHEET_ID>
+# or, for a clearly temporary/local sheet only:
+SPREADSHEET_IS_TEST=true
+```
+
+Production spreadsheets must not be reset by default. If a maintainer temporarily allows reset while the sheet is intentionally disposable, that decision must be explicit in the environment and not committed.
+
 Run real WhatsApp E2E setup:
 
 ```bash

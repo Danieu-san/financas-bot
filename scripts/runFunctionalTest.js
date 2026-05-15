@@ -1,4 +1,12 @@
 const { spawnSync } = require('child_process');
+const { assertSpreadsheetResetAllowed } = require('./resetSpreadsheetData');
+
+try {
+    assertSpreadsheetResetAllowed();
+} catch (error) {
+    console.error(`Teste funcional bloqueado: ${error.message}`);
+    process.exit(1);
+}
 
 const result = spawnSync(
     process.execPath,

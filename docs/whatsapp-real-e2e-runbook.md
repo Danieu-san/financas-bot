@@ -36,6 +36,22 @@ Opcional, apenas quando voce aceitar limpar a planilha antes do teste:
 WHATSAPP_E2E_RESET_SPREADSHEET=true
 ```
 
+Para qualquer comando que efetivamente resete a planilha (`npm run test:functional`, `npm run reset:spreadsheet` ou E2E com reset), tambem e obrigatorio marcar o alvo como planilha de teste:
+
+```env
+SPREADSHEET_RESET_CONFIRMATION=RESETAR_PLANILHA_TESTE
+FUNCTIONAL_TEST_SPREADSHEET_ID=<mesmo valor de SPREADSHEET_ID>
+```
+
+Alternativa apenas para planilha temporaria/local claramente descartavel:
+
+```env
+SPREADSHEET_IS_TEST=true
+SPREADSHEET_RESET_CONFIRMATION=RESETAR_PLANILHA_TESTE
+```
+
+Sem essas variaveis, o reset deve falhar antes de apagar qualquer dado.
+
 ## Primeira Execucao
 Abra o WhatsApp Web local:
 
