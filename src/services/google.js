@@ -88,6 +88,42 @@ async function authorizeGoogle(forceRefresh = false) {
 }
 
 const CALENDAR_USER_ID_PRIVATE_KEY = 'financas_bot_user_id';
+const USER_SCOPED_APPEND_USER_ID_INDEX = Object.freeze({
+    'Saídas': 9,
+    'Entradas': 8,
+    'Dívidas': 17,
+    'Metas': 8,
+    'Contas': 3,
+    'Dashboard': 3,
+    'DashboardData': 3,
+    'Users': 0,
+    'UserProfile': 0,
+    'UserSettings': 0,
+    'ConsentLog': 1
+});
+
+function requireUserId(value, context) {
+    const safeUserId = String(value || '').trim();
+    if (!safeUserId) {
+        throw new Error(`${context} requer user_id válido.`);
+    }
+    return safeUserId;
+}
+
+function getUserIdIndexForAppend(sheetName) {
+    const normalized = String(sheetName || '').trim();
+    if (normalized.startsWith('Cartão ')) return 6;
+    return USER_SCOPED_APPEND_USER_ID_INDEX[normalized];
+}
+
+function validateUserScopedWrite(sheetName, row) {
+    const userIdIndex = getUserIdIndexForAppend(sheetName);
+    if (!Number.isInteger(userIdIndex)) return;
+    if (!Array.isArray(row)) {
+        throw new Error(`appendRowToSheet(${sheetName}) requer linha em formato de array.`);
+    }
+    requireUserId(row[userIdIndex], `appendRowToSheet(${sheetName})`);
+}
 
 function eventBelongsToUser(event, userId) {
     if (!userId) return true;
@@ -95,21 +131,20 @@ function eventBelongsToUser(event, userId) {
 }
 
 async function createCalendarEvent(title, startDateTime, recurrenceRule, options = {}) {
+    const safeUserId = requireUserId(options.userId, 'createCalendarEvent');
     try {
         const isoDateTime = convertToIsoDateTime(startDateTime);
         const event = {
             summary: title,
             start: { dateTime: isoDateTime, timeZone: 'America/Sao_Paulo' },
             end: { dateTime: isoDateTime, timeZone: 'America/Sao_Paulo' },
-        };
-        if (options.userId) {
-            event.extendedProperties = {
+            extendedProperties: {
                 private: {
-                    [CALENDAR_USER_ID_PRIVATE_KEY]: String(options.userId),
+                    [CALENDAR_USER_ID_PRIVATE_KEY]: safeUserId,
                     financas_bot_source: 'whatsapp'
                 }
-            };
-        }
+            }
+        };
         if (recurrenceRule) event.recurrence = [`RRULE:${recurrenceRule}`];
         const response = await runWithGoogleRetry('createCalendarEvent', () => calendar.events.insert({
             calendarId: 'primary',
@@ -135,6 +170,7 @@ async function getSheetIds() {
 }
 
 async function appendRowToSheet(sheetName, row) {
+    validateUserScopedWrite(sheetName, row);
     try {
         await runWithGoogleRetry(`appendRowToSheet(${sheetName})`, () => sheets.spreadsheets.values.append({
             spreadsheetId: SPREADSHEET_ID,
@@ -968,7 +1004,9 @@ module.exports = {
     createCalendarEvent,
     getCalendarEventsForToday,
     __test__: {
-        eventBelongsToUser
+        eventBelongsToUser,
+        requireUserId,
+        validateUserScopedWrite
     },
     getSheetIds,
     appendRowToSheet,

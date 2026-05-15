@@ -269,3 +269,31 @@ test('google.eventBelongsToUser isolates Calendar events by private user_id', (t
     assert.strictEqual(eventBelongsToUser({ id: 'untagged' }, 'user-a'), false);
     assert.strictEqual(eventBelongsToUser({ id: 'untagged' }), true);
 });
+
+test('google.validateUserScopedWrite blocks user scoped rows without user_id', (t) => {
+    const { validateUserScopedWrite } = googleService.__test__;
+
+    assert.throws(
+        () => validateUserScopedWrite('Saídas', ['10/02/2026', 'lanche', 'Alimentação', '', 10, 'Daniel', 'PIX', 'Não', '', '']),
+        /user_id válido/
+    );
+    assert.throws(
+        () => validateUserScopedWrite('Cartão Nubank - Daniel', ['10/02/2026', 'mercado', 'Alimentação', 50, '1/1', 'Fevereiro de 2026', '']),
+        /user_id válido/
+    );
+    assert.doesNotThrow(() => {
+        validateUserScopedWrite('Saídas', ['10/02/2026', 'lanche', 'Alimentação', '', 10, 'Daniel', 'PIX', 'Não', '', 'user-1']);
+        validateUserScopedWrite('Entradas', ['10/02/2026', 'salário', 'Salário', 1000, 'Daniel', 'PIX', 'Não', '', 'user-1']);
+        validateUserScopedWrite('Dívidas', ['financiamento', 'banco', 'Financiamento', 1000, 900, 100, '2%', 10, '01/01/2026', 10, 'Ativa', 'Daniel', '', '10%', '', '', '', 'user-1']);
+        validateUserScopedWrite('Metas', ['Reserva', 1000, 100, '10%', 100, '31/12/2026', 'Ativa', 'Alta', 'user-1']);
+        validateUserScopedWrite('DashboardData', ['Saldo', 'R$ 100', 'Maio/2026', 'user-1', '2026-05-15T00:00:00.000Z']);
+        validateUserScopedWrite('Cartão Nubank - Daniel', ['10/02/2026', 'mercado', 'Alimentação', 50, '1/1', 'Fevereiro de 2026', 'user-1']);
+    });
+});
+
+test('google.requireUserId protects calendar writes', (t) => {
+    const { requireUserId } = googleService.__test__;
+
+    assert.throws(() => requireUserId('', 'createCalendarEvent'), /user_id válido/);
+    assert.strictEqual(requireUserId(' user-1 ', 'createCalendarEvent'), 'user-1');
+});
