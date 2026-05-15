@@ -10,9 +10,20 @@ O dashboard admin com seletor `Todos os usuários` existe apenas como exceção 
 
 Qualquer trabalho em dashboard, admin, permissões, multiusuário ou launch deve consultar `docs/decisions/ADR-002-admin-financial-data-access.md` e o checklist de release antes de seguir.
 
-**Usuários autorizados (constants.js):**
-- `5521970112407@c.us` → Daniel
-- `5521964270368@c.us` → Thaís
+**Administração:**
+- Apenas números presentes em `ADMIN_IDS` têm privilégio de admin.
+- Em produção/beta atual, `ADMIN_IDS` deve conter apenas Daniel.
+- O número da Thaís deve ser tratado como usuário comum/de teste, sem privilégio administrativo.
+- Cartões/abas com nome "Thaís" podem continuar existindo como dados financeiros/cartões; isso não concede permissão admin.
+
+**Fluxo multiusuário aprovado:**
+- Novo usuário envia mensagem → recebe termos → responde `ACEITO`.
+- Após `ACEITO`, o status vira `PENDING_APPROVAL`; o admin é notificado.
+- Admin libera com `admin aprovar <telefone>`.
+- Usuário aprovado fica em `APPROVED_AWAITING_GOOGLE` até conectar Google.
+- Sem conexão Google concluída, o usuário não deve usar fluxos financeiros.
+- A planilha financeira final deve ser criada no Drive do próprio usuário.
+- Importação de extrato começa apenas com CSV/OFX; PDF/imagem ficam fora do MVP.
 
 ---
 

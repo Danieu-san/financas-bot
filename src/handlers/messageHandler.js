@@ -1,4 +1,4 @@
-const { userMap, sheetCategoryMap, creditCardConfig } = require('../config/constants');
+const { userMap, sheetCategoryMap, creditCardConfig, adminIds } = require('../config/constants');
 const userStateManager = require('../state/userStateManager');
 const creationHandler = require('./creationHandler');
 const deletionHandler = require('./deletionHandler');
@@ -21,6 +21,7 @@ const {
     upsertUserSettings,
     updateUserStatus,
     updateUserStatusByWhatsAppId,
+    approveUserByWhatsAppId,
     getUserByLookup,
     getConsentLogsByUserId,
     getAllUsers,
@@ -504,7 +505,7 @@ async function handleLegalCommands(msg) {
             '- Uso condicionado ao consentimento por ACEITO.',
             '- Dados tratados: identificação do WhatsApp e lançamentos financeiros enviados por você.',
             '- Finalidade: operação do bot, relatórios e auditoria.',
-            '- Ciclo de vida: PENDING, ACTIVE, INACTIVE, BLOCKED, DELETED, EXPIRED.',
+            '- Ciclo de vida: PENDING, PENDING_APPROVAL, APPROVED_AWAITING_GOOGLE, ACTIVE, INACTIVE, BLOCKED, DELETED, EXPIRED.',
             '- Mudança de termos exige novo consentimento.'
         ].join('\n');
         await sendPlainMessage(msg, `${termsLine}\n${privacyLine}\n\n${summary}`);
@@ -615,6 +616,29 @@ async function handleDashboardCommand(msg, user, senderId) {
     return true;
 }
 
+async function notifyAdminsAboutPendingApproval(msg, user) {
+    if (!msg?.client || typeof msg.client.sendMessage !== 'function') return;
+    const targetUser = user?.whatsapp_id || '';
+    const displayName = user?.display_name || 'sem nome';
+    const text = [
+        'Novo usuário aguardando aprovação:',
+        `- nome: ${displayName}`,
+        `- whatsapp_id: ${targetUser}`,
+        `- user_id: ${user?.user_id || '-'}`,
+        '',
+        `Para liberar a conexão Google, envie: admin aprovar ${targetUser}`
+    ].join('\n');
+
+    for (const adminId of adminIds) {
+        if (!adminId || adminId === targetUser) continue;
+        try {
+            await msg.client.sendMessage(adminId, text);
+        } catch (error) {
+            logger.warn(`[admin] falha_notificar_aprovacao admin_id=${adminId} target=${targetUser} error=${error.message}`);
+        }
+    }
+}
+
 async function handleAccountLifecycleCommands(msg, user) {
     const body = normalizeText(String(msg.body || '').trim());
     if (!body) return false;
@@ -663,6 +687,7 @@ async function handleAdminCommands(msg, senderId, activeUser) {
             '- admin listar usuarios\n' +
             '- admin status <telefone>\n' +
             '- admin log <telefone>\n' +
+            '- admin aprovar <telefone>\n' +
             '- admin ativar <telefone>\n' +
             '- admin inativar <telefone>\n' +
             '- admin bloquear <telefone>\n' +
@@ -746,6 +771,29 @@ async function handleAdminCommands(msg, senderId, activeUser) {
             `- checkin_semanal: ${settings?.weekly_checkin_opt_in || 'NÃO'}\n` +
             `- relatorio_mensal: ${settings?.monthly_report_opt_in || 'NÃO'}`
         );
+        return true;
+    }
+
+    const approveMatch = body.match(/^admin\s+aprovar\s+(.+)$/);
+    if (approveMatch) {
+        const target = approveMatch[1];
+        const updated = await approveUserByWhatsAppId(target);
+        if (!updated) {
+            logger.warn(`[admin] aprovar_nao_encontrado context=${JSON.stringify({ ...adminContext, target })}`);
+            await msg.reply('Usuário não encontrado para esse telefone/WhatsApp ID.');
+            return true;
+        }
+        logger.info(`[admin] aprovar context=${JSON.stringify({ ...adminContext, target, target_user_id: updated.user_id, updated_whatsapp_id: updated.whatsapp_id, updated_status: updated.status })}`);
+        await msg.reply(
+            `Usuário aprovado: ${updated.whatsapp_id} -> ${updated.status}\n` +
+            'Próximo passo: enviar o link de conexão Google quando o fluxo OAuth estiver configurado.'
+        );
+        if (msg.client && typeof msg.client.sendMessage === 'function') {
+            await msg.client.sendMessage(
+                updated.whatsapp_id,
+                'Seu cadastro foi aprovado. Agora falta conectar sua conta Google para criar sua planilha no seu Drive e ativar o bot.'
+            );
+        }
         return true;
     }
 
@@ -881,6 +929,9 @@ async function handleMessage(msg) {
 
     const access = await timeStep('resolveUserAccess', () => resolveUserAccess(msg), perfContext);
     if (!access.allowed) {
+        if (access.notifyAdmins && access.user) {
+            await notifyAdminsAboutPendingApproval(msg, access.user);
+        }
         if (access.reply) {
             await sendPlainMessage(msg, access.reply);
         }

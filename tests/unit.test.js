@@ -3,7 +3,7 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 
 if (!process.env.ADMIN_IDS) {
-    process.env.ADMIN_IDS = '5521970112407@c.us,5521964270368@c.us';
+    process.env.ADMIN_IDS = '5521970112407@c.us';
 }
 
 const helpers = require('../src/utils/helpers');
@@ -157,6 +157,8 @@ test('userService.legalInfoHelpers', (t) => {
 test('userService.USER_STATUS', (t) => {
     assert.strictEqual(userService.USER_STATUS.BLOCKED, 'BLOCKED');
     assert.strictEqual(userService.USER_STATUS.ACTIVE, 'ACTIVE');
+    assert.strictEqual(userService.USER_STATUS.PENDING_APPROVAL, 'PENDING_APPROVAL');
+    assert.strictEqual(userService.USER_STATUS.APPROVED_AWAITING_GOOGLE, 'APPROVED_AWAITING_GOOGLE');
 });
 
 test('adminCheck.isAdminWithContext', (t) => {

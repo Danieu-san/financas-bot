@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 
 process.env.NODE_ENV = 'test';
-process.env.ADMIN_IDS = process.env.ADMIN_IDS || '5521970112407@c.us,5521964270368@c.us';
+process.env.ADMIN_IDS = process.env.ADMIN_IDS || '5521970112407@c.us';
 
 const SENDER = '5599993000001@c.us';
 const USER_ID = 'state-machine-user';

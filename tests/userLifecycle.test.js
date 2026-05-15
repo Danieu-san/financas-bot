@@ -125,7 +125,63 @@ test('user lifecycle: INACTIVE, BLOCKED and DELETED users cannot use normal flow
     }
 });
 
-test('user lifecycle: EXPIRED user can accept terms again and becomes ACTIVE', async () => {
+test('user lifecycle: PENDING user accepts terms and waits for admin approval', async () => {
+    const whatsappId = '5599992000003@c.us';
+    const { userService, sheets } = installUserServiceWithSheets({
+        users: [buildUserRow({ whatsappId, status: 'PENDING', consentAt: '', termsVersion: '' })]
+    });
+
+    const access = await userService.resolveUserAccess(createMessage('ACEITO', whatsappId));
+
+    assert.strictEqual(access.allowed, false);
+    assert.strictEqual(access.justSubmittedForApproval, true);
+    assert.strictEqual(access.notifyAdmins, true);
+    assert.strictEqual(access.user.status, 'PENDING_APPROVAL');
+    assert.strictEqual(access.user.terms_version, process.env.TERMS_VERSION);
+    assert.match(access.reply, /aguardando aprovação/i);
+    assert.strictEqual(sheets.ConsentLog.length, 2, 'Acceptance should append consent evidence');
+    assert.strictEqual(sheets.UserProfile.length, 1, 'Pending approval should not start onboarding profile');
+    assert.strictEqual(sheets.UserSettings.length, 1, 'Pending approval should not create active settings');
+});
+
+test('user lifecycle: PENDING_APPROVAL user remains blocked from normal flows', async () => {
+    const whatsappId = '5599992000004@c.us';
+    const { userService } = installUserServiceWithSheets({
+        users: [buildUserRow({ whatsappId, status: 'PENDING_APPROVAL' })]
+    });
+
+    const access = await userService.resolveUserAccess(createMessage('dashboard', whatsappId));
+
+    assert.strictEqual(access.allowed, false);
+    assert.match(access.reply, /aguardando aprovação/i);
+});
+
+test('user lifecycle: APPROVED_AWAITING_GOOGLE user must connect Google before normal flows', async () => {
+    const whatsappId = '5599992000005@c.us';
+    const { userService } = installUserServiceWithSheets({
+        users: [buildUserRow({ whatsappId, status: 'APPROVED_AWAITING_GOOGLE' })]
+    });
+
+    const access = await userService.resolveUserAccess(createMessage('dashboard', whatsappId));
+
+    assert.strictEqual(access.allowed, false);
+    assert.match(access.reply, /conectar sua conta Google/i);
+});
+
+test('user lifecycle: admin approval moves user to APPROVED_AWAITING_GOOGLE and creates defaults', async () => {
+    const whatsappId = '5599992000006@c.us';
+    const { userService, sheets } = installUserServiceWithSheets({
+        users: [buildUserRow({ whatsappId, status: 'PENDING_APPROVAL' })]
+    });
+
+    const updated = await userService.approveUserByWhatsAppId(whatsappId);
+
+    assert.strictEqual(updated.status, 'APPROVED_AWAITING_GOOGLE');
+    assert.strictEqual(sheets.UserProfile.length, 2, 'Approval should create default profile');
+    assert.strictEqual(sheets.UserSettings.length, 2, 'Approval should create default settings');
+});
+
+test('user lifecycle: EXPIRED user can accept terms again and waits for admin approval', async () => {
     const whatsappId = '5599992000003@c.us';
     const { userService, sheets } = installUserServiceWithSheets({
         users: [buildUserRow({ whatsappId, status: 'EXPIRED', consentAt: '', termsVersion: '' })]
@@ -133,11 +189,11 @@ test('user lifecycle: EXPIRED user can accept terms again and becomes ACTIVE', a
 
     const access = await userService.resolveUserAccess(createMessage('ACEITO', whatsappId));
 
-    assert.strictEqual(access.allowed, true);
-    assert.strictEqual(access.justActivated, true);
-    assert.strictEqual(access.user.status, 'ACTIVE');
+    assert.strictEqual(access.allowed, false);
+    assert.strictEqual(access.justSubmittedForApproval, true);
+    assert.strictEqual(access.user.status, 'PENDING_APPROVAL');
     assert.strictEqual(access.user.terms_version, process.env.TERMS_VERSION);
     assert.strictEqual(sheets.ConsentLog.length, 2, 'Reactivation should append consent evidence');
-    assert.strictEqual(sheets.UserProfile.length, 2, 'Reactivation should create default profile');
-    assert.strictEqual(sheets.UserSettings.length, 2, 'Reactivation should create default settings');
+    assert.strictEqual(sheets.UserProfile.length, 1, 'Reactivation should wait for admin approval before defaults');
+    assert.strictEqual(sheets.UserSettings.length, 1, 'Reactivation should wait for admin approval before defaults');
 });

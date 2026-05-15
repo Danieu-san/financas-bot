@@ -11,6 +11,7 @@ Admin commands are handled in `src/handlers/messageHandler.js` by `handleAdminCo
 | `admin stats` | Show user counts by status. | Low | `[admin] stats` | No |
 | `admin status <telefone>` | Inspect one user's lifecycle/profile/settings status. | Medium: exposes operational metadata. | `[admin] status` | No |
 | `admin log <telefone>` | Show recent consent evidence summary. | Medium: audit metadata exposure. | `[admin] log` | No |
+| `admin aprovar <telefone>` | Move a consented user to `APPROVED_AWAITING_GOOGLE`. | High: starts the Google connection gate for a user. | `[admin] aprovar` | Consider two-step confirmation before broad rollout |
 | `admin expirar pendentes` | Expire stale `PENDING` users. | Medium: lifecycle-changing, but limited to pending users. | `[admin] expirar_pendentes` | No, safe enough for beta |
 | `admin resetar onboarding <telefone>` | Clear onboarding completion and state. | Medium: user experience disruption. | `[admin] resetar_onboarding` | No for beta; reconsider at scale |
 | `admin mensagem <telefone> <texto>` | Send manual operational message to a user. | Medium/High: user-facing communication. | `[admin] mensagem` | Not required now, but should be used carefully |

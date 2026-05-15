@@ -13,6 +13,8 @@ const PENDING_TTL_HOURS = 48;
 const LEGAL_INFO_KEYWORDS = new Set(['termos', 'politica de privacidade', 'privacidade']);
 const USER_STATUS = Object.freeze({
     PENDING: 'PENDING',
+    PENDING_APPROVAL: 'PENDING_APPROVAL',
+    APPROVED_AWAITING_GOOGLE: 'APPROVED_AWAITING_GOOGLE',
     ACTIVE: 'ACTIVE',
     INACTIVE: 'INACTIVE',
     BLOCKED: 'BLOCKED',
@@ -150,6 +152,8 @@ async function getUserByWhatsAppId(whatsappId) {
 
     return (
         matches.find(u => u.status === USER_STATUS.ACTIVE) ||
+        matches.find(u => u.status === USER_STATUS.APPROVED_AWAITING_GOOGLE) ||
+        matches.find(u => u.status === USER_STATUS.PENDING_APPROVAL) ||
         matches.find(u => u.status === USER_STATUS.PENDING) ||
         matches.find(u => ![USER_STATUS.DELETED, USER_STATUS.EXPIRED].includes(u.status)) ||
         matches[0]
@@ -219,7 +223,7 @@ function buildPublicLegalSummaryReply({ includeAcceptInstruction = false, termsV
         '- Uso condicionado ao consentimento por ACEITO.',
         '- Dados tratados: identificação do WhatsApp e lançamentos financeiros enviados por você.',
         '- Finalidade: operação do bot, relatórios e auditoria.',
-        '- Ciclo de vida: PENDING, ACTIVE, INACTIVE, BLOCKED, DELETED, EXPIRED.',
+        '- Ciclo de vida: PENDING, PENDING_APPROVAL, APPROVED_AWAITING_GOOGLE, ACTIVE, INACTIVE, BLOCKED, DELETED, EXPIRED.',
         '- Mudança de termos exige novo consentimento.'
     ].join('\n');
 
@@ -448,13 +452,12 @@ async function activateUserWithConsent(user, { message, messageId }) {
     const acceptedAt = await appendConsentLog(user, { message, messageId });
     const updated = {
         ...user,
-        status: 'ACTIVE',
+        status: USER_STATUS.PENDING_APPROVAL,
         consent_at: acceptedAt,
         terms_version: TERMS_VERSION,
         updated_at: nowIso()
     };
     await updateUserRowByIndex(user.rowIndex, updated);
-    await createDefaultUserRows(updated);
     return updated;
 }
 
@@ -491,6 +494,17 @@ async function updateUserStatusByWhatsAppId(whatsappOrPhone, status) {
     const user = await getUserByLookup(whatsappOrPhone);
     if (!user) return null;
     return updateUserStatus(user.user_id, status);
+}
+
+async function approveUserByWhatsAppId(whatsappOrPhone) {
+    const user = await getUserByLookup(whatsappOrPhone);
+    if (!user) return null;
+
+    const updated = await updateUserStatus(user.user_id, USER_STATUS.APPROVED_AWAITING_GOOGLE);
+    if (updated) {
+        await createDefaultUserRows(updated);
+    }
+    return updated;
 }
 
 async function getUserByLookup(lookup) {
@@ -599,7 +613,13 @@ async function resolveUserAccess(msg) {
     if (user.status === USER_STATUS.EXPIRED) {
         if (normalizedMessage === CONSENT_KEYWORD) {
             const activatedUser = await activateUserWithConsent(user, { message: messageBody, messageId });
-            return { allowed: true, user: activatedUser, justActivated: true };
+            return {
+                allowed: false,
+                user: activatedUser,
+                justSubmittedForApproval: true,
+                notifyAdmins: true,
+                reply: 'Consentimento registrado. Seu cadastro agora está aguardando aprovação do administrador.'
+            };
         }
         if (legalInfoRequest) {
             return {
@@ -621,7 +641,13 @@ async function resolveUserAccess(msg) {
     if (user.status === USER_STATUS.PENDING) {
         if (normalizedMessage === CONSENT_KEYWORD) {
             const activatedUser = await activateUserWithConsent(user, { message: messageBody, messageId });
-            return { allowed: true, user: activatedUser, justActivated: true };
+            return {
+                allowed: false,
+                user: activatedUser,
+                justSubmittedForApproval: true,
+                notifyAdmins: true,
+                reply: 'Consentimento registrado. Seu cadastro agora está aguardando aprovação do administrador.'
+            };
         }
         if (legalInfoRequest) {
             return {
@@ -637,6 +663,36 @@ async function resolveUserAccess(msg) {
                 `Para ativar seu acesso, responda apenas: ACEITO\n` +
                 `Termos atuais: ${TERMS_VERSION}` +
                 buildLegalFooter()
+        };
+    }
+
+    if (user.status === USER_STATUS.PENDING_APPROVAL) {
+        if (legalInfoRequest) {
+            return {
+                allowed: false,
+                user,
+                reply: buildPublicLegalSummaryReply({ includeAcceptInstruction: false })
+            };
+        }
+        return {
+            allowed: false,
+            user,
+            reply: 'Seu cadastro já está aguardando aprovação do administrador. Assim que for aprovado, você receberá o próximo passo.'
+        };
+    }
+
+    if (user.status === USER_STATUS.APPROVED_AWAITING_GOOGLE) {
+        if (legalInfoRequest) {
+            return {
+                allowed: false,
+                user,
+                reply: buildPublicLegalSummaryReply({ includeAcceptInstruction: false })
+            };
+        }
+        return {
+            allowed: false,
+            user,
+            reply: 'Seu cadastro foi aprovado. Agora falta conectar sua conta Google para criar sua planilha no seu Drive e ativar o bot.'
         };
     }
 
@@ -731,6 +787,7 @@ module.exports = {
     getActiveUsers,
     updateUserStatus,
     updateUserStatusByWhatsAppId,
+    approveUserByWhatsAppId,
     getConsentLogsByUserId,
     getAllUsers,
     invalidateUserCaches,

@@ -10,7 +10,7 @@ const FUNCTIONAL_SENDERS = Object.freeze({
 });
 
 process.env.ADMIN_IDS = [
-    process.env.ADMIN_IDS || '5521970112407@c.us,5521964270368@c.us',
+    process.env.ADMIN_IDS || '5521970112407@c.us',
     ...Object.values(FUNCTIONAL_SENDERS)
 ].filter(Boolean).join(',');
 process.env.DASHBOARD_BASE_URL = process.env.DASHBOARD_BASE_URL || 'http://localhost:8787';
@@ -160,8 +160,14 @@ async function activateAndOnboard(sender = SENDER) {
     assert.ok(last(replies).includes('Resumo legal:'), 'TERMOS deve mostrar resumo antes do aceite');
 
     replies = await send('ACEITO', sender);
-    assert.ok(replies.some(r => r.includes('Cadastro confirmado')), 'ACEITO deve ativar cadastro');
-    assert.ok(last(replies).includes('como você prefere ser chamado'), 'ACEITO deve iniciar onboarding');
+    assert.ok(replies.some(r => r.includes('aguardando aprovação')), 'ACEITO deve deixar cadastro aguardando aprovação');
+
+    let user = await userService.getUserByWhatsAppId(sender);
+    assert.strictEqual(user.status, 'PENDING_APPROVAL');
+    user = await userService.approveUserByWhatsAppId(sender);
+    assert.strictEqual(user.status, 'APPROVED_AWAITING_GOOGLE');
+    user = await userService.updateUserStatus(user.user_id, 'ACTIVE');
+    assert.strictEqual(user.status, 'ACTIVE');
 
     assert.ok(last(await send('Daniel Teste', sender)).includes('renda mensal'), 'Onboarding pergunta renda');
     assert.ok(last(await send('5000', sender)).includes('gasto fixo'), 'Onboarding pergunta gasto fixo');
@@ -173,7 +179,7 @@ async function activateAndOnboard(sender = SENDER) {
         assert.ok(last(await send('não', sender)).includes('criar dívida'), 'Oferta de dívida deve aceitar adiamento');
     }
 
-    const user = await userService.getUserByWhatsAppId(sender);
+    user = await userService.getUserByWhatsAppId(sender);
     assert.strictEqual(user.status, 'ACTIVE');
     assert.ok(user.user_id, 'Usuário ativo deve ter user_id');
     return user;

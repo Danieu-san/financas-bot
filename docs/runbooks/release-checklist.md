@@ -8,8 +8,9 @@ Use this before deploying `main` to the EC2 PM2 process.
 - [ ] `npm test` passes.
 - [ ] `npm audit --audit-level=high` returns no vulnerabilities.
 - [ ] `.env` on EC2 includes all required production variables from `.env.example`.
+- [ ] `ADMIN_IDS` on EC2 contains only intended admins; Thaís (`5521964270368`) must not be present while used as a test user.
 - [ ] `DASHBOARD_TOKEN_SECRET` is configured before deploying dashboard changes.
-- [ ] If this release moves toward real multiuser scale, ADR-002 has been reviewed and admin access to all users' transaction-level financial data has been removed or replaced with consented/audited support mode.
+- [ ] If this release moves toward real multiuser scale, ADR-002 and ADR-003 have been reviewed; admin access to all users' transaction-level financial data has been removed or replaced with consented/audited support mode.
 - [ ] Rollback command is ready before restart.
 
 ## EC2 Deploy
@@ -92,6 +93,7 @@ Do not use `git reset --hard` unless you explicitly decide to discard server-loc
 - Dashboard health fails.
 - `dashboard` command says `DASHBOARD_TOKEN_SECRET` is missing.
 - A production/multiuser release still exposes admin `Todos os usuários` transaction-level financial data. See `docs/decisions/ADR-002-admin-financial-data-access.md`.
+- `ADMIN_IDS` includes a normal/test user such as Thaís.
 - Google auth fails repeatedly.
 - Read-model sync fails repeatedly.
 - WhatsApp never reaches ready state after QR renewal.
