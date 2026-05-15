@@ -597,6 +597,10 @@ async function resolveUserAccess(msg) {
     }
 
     if (user.status === USER_STATUS.EXPIRED) {
+        if (normalizedMessage === CONSENT_KEYWORD) {
+            const activatedUser = await activateUserWithConsent(user, { message: messageBody, messageId });
+            return { allowed: true, user: activatedUser, justActivated: true };
+        }
         if (legalInfoRequest) {
             return {
                 allowed: false,
