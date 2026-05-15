@@ -188,5 +188,12 @@ module.exports = {
     deleteState,
     clearState: deleteState,
     closeStateStore,
-    getStoreMode: () => storeMode
+    getStoreMode: () => storeMode,
+    __test__: {
+        cleanupExpired,
+        flushStateToDisk,
+        serializeState,
+        getStateFilePaths: () => ({ stateFile: STATE_FILE, tempFile: TEMP_FILE }),
+        isDirty: () => dirty
+    }
 };

@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
+const fs = require('node:fs');
 
 if (!process.env.ADMIN_IDS) {
     process.env.ADMIN_IDS = '5521970112407@c.us,5521964270368@c.us';
@@ -110,6 +111,33 @@ test('userStateManager.stateFunctions', (t) => {
 
     userStateManager.deleteState(userId);
     assert.strictEqual(userStateManager.getState(userId), undefined, 'Should be deleted');
+});
+
+test('userStateManager TTL expires stale states', async (t) => {
+    const userId = 'ttl-user';
+
+    userStateManager.setState(userId, { step: 'temporary' }, 0.01);
+    assert.deepStrictEqual(userStateManager.getState(userId), { step: 'temporary' });
+
+    await new Promise(resolve => setTimeout(resolve, 25));
+    assert.strictEqual(userStateManager.getState(userId), undefined, 'Expired state should be removed');
+});
+
+test('userStateManager flush is atomic via temp file rename', (t) => {
+    const { flushStateToDisk, getStateFilePaths } = userStateManager.__test__;
+    const { stateFile, tempFile } = getStateFilePaths();
+    const userId = 'flush-user';
+
+    userStateManager.setState(userId, { step: 'persisted' });
+    flushStateToDisk();
+
+    assert.strictEqual(fs.existsSync(tempFile), false, 'Temporary file should not remain after atomic rename');
+    assert.strictEqual(fs.existsSync(stateFile), true, 'State file should exist after flush');
+    const parsed = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+    assert.deepStrictEqual(parsed[userId].data, { step: 'persisted' });
+
+    userStateManager.deleteState(userId);
+    flushStateToDisk();
 });
 
 test('userService.legalInfoHelpers', (t) => {
