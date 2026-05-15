@@ -43,6 +43,15 @@ Success means:
 - Process manager: PM2 on EC2.
 - Deployment target: AWS EC2.
 
+## Dashboard Roles
+
+The project intentionally has two dashboard surfaces with different jobs:
+
+- Web dashboard: user-facing view opened from the WhatsApp `dashboard` command through a short-lived token link. This is the primary product UI for monthly review, cashflow, categories, debts, goals, alerts, and recent transactions.
+- Google Sheets dashboard: admin/audit overview generated from the spreadsheet/read model. It exists to inspect source-of-truth data, validate formulas/sync, and support operations. It should not become the main user interface.
+
+Do not duplicate every web dashboard feature inside Google Sheets. If a feature is for daily user understanding, prefer the web dashboard. If a feature is for auditability, data cleanup, or admin investigation, keep it in Sheets.
+
 ## Commands
 Install dependencies:
 

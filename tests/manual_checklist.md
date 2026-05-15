@@ -118,6 +118,8 @@ Este documento descreve os fluxos de conversa que devem ser validados manualment
 - [ ] **Falha QR:** Se aparecer QR no remetente local, repetir setup; se aparecer QR no bot do EC2, renovar sessão do bot no servidor.
 - [ ] **Falha timeout:** Conferir se o bot está online, se o WhatsApp do bot mostra `Bot pronto para receber mensagens!`, se o chat aberto é o número correto e se a planilha não bateu quota.
 - [ ] **Falha dashboard:** Abrir o link recebido, testar token inválido e verificar se a porta pública 8787 continua liberada.
+- [ ] **Dashboard web:** Confirmar que o link do WhatsApp mostra visão do usuário com saldo, fluxo, categorias, dívidas, metas, alertas e estados vazios úteis.
+- [ ] **Dashboard da planilha:** Confirmar que é usado como visão admin/auditoria, não como substituto do dashboard web do usuário.
 
 ## 9. Casos de Borda e Erros
 - [ ] **Valor ausente:** "Gastei com mercado" -> Deve informar que não encontrou o valor.
