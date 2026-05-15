@@ -9,6 +9,7 @@ function loadDashboardAuthWithEnv(overrides = {}) {
         'DASHBOARD_TOKEN_SECRET',
         'DASHBOARD_REQUIRE_STRONG_SECRET',
         'DASHBOARD_TOKEN_TTL_SECONDS',
+        'DASHBOARD_TOKEN_MAX_TTL_SECONDS',
         'NODE_ENV',
         'GEMINI_API_KEY'
     ];
@@ -84,6 +85,21 @@ test('dashboard auth rejects tampered tokens and tokens signed with another secr
 
         process.env.DASHBOARD_TOKEN_SECRET = 'test-secret-two';
         assert.strictEqual(auth.verifyDashboardToken(token), null);
+    } finally {
+        restore();
+    }
+});
+
+test('dashboard auth caps excessive token ttl', () => {
+    const { auth, restore } = loadDashboardAuthWithEnv({
+        DASHBOARD_TOKEN_SECRET: 'test-secret-ttl',
+        DASHBOARD_TOKEN_MAX_TTL_SECONDS: '900'
+    });
+    try {
+        const before = Math.floor(Date.now() / 1000);
+        const token = auth.generateDashboardToken({ userId: 'user-a', ttlSeconds: 999999 });
+        const payload = auth.verifyDashboardToken(token);
+        assert.ok(payload.exp - before <= 901);
     } finally {
         restore();
     }

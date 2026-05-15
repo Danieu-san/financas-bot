@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 
 const DEFAULT_TTL_SECONDS = Math.max(300, Number.parseInt(process.env.DASHBOARD_TOKEN_TTL_SECONDS || '7200', 10));
+const MAX_TTL_SECONDS = Math.max(300, Number.parseInt(process.env.DASHBOARD_TOKEN_MAX_TTL_SECONDS || '86400', 10));
 const DEV_DASHBOARD_SECRET = 'dashboard-dev-secret';
 
 function getDashboardBaseUrl() {
@@ -51,13 +52,22 @@ function signTokenPayload(payload) {
         .replace(/=+$/g, '');
 }
 
+function timingSafeStringEqual(left, right) {
+    const leftBuffer = Buffer.from(String(left || ''));
+    const rightBuffer = Buffer.from(String(right || ''));
+    if (leftBuffer.length !== rightBuffer.length) return false;
+    return crypto.timingSafeEqual(leftBuffer, rightBuffer);
+}
+
 function generateDashboardToken({ userId, ttlSeconds = DEFAULT_TTL_SECONDS }) {
     const header = { alg: 'HS256', typ: 'JWT' };
     const nowSec = Math.floor(Date.now() / 1000);
+    const parsedTtl = Number.parseInt(ttlSeconds, 10) || DEFAULT_TTL_SECONDS;
+    const safeTtl = Math.min(MAX_TTL_SECONDS, Math.max(300, parsedTtl));
     const payload = {
         uid: String(userId || ''),
         iat: nowSec,
-        exp: nowSec + Math.max(300, Number.parseInt(ttlSeconds, 10) || DEFAULT_TTL_SECONDS)
+        exp: nowSec + safeTtl
     };
 
     const encodedHeader = base64UrlEncode(JSON.stringify(header));
@@ -76,7 +86,7 @@ function verifyDashboardToken(token) {
     const [encodedHeader, encodedPayload, signature] = parts;
     const body = `${encodedHeader}.${encodedPayload}`;
     const expectedSignature = signTokenPayload(body);
-    if (signature !== expectedSignature) return null;
+    if (!timingSafeStringEqual(signature, expectedSignature)) return null;
 
     try {
         const payload = JSON.parse(base64UrlDecode(encodedPayload));
