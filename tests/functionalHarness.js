@@ -169,6 +169,9 @@ async function activateAndOnboard(sender = SENDER) {
     assert.ok(last(await send('sim', sender)).includes('objetivo principal'), 'Onboarding pergunta objetivo');
     replies = await send('montar reserva', sender);
     assert.ok(replies.some(r => r.includes('Onboarding concluído')), 'Onboarding deve concluir');
+    if (replies.some(r => r.includes('cadastrar a primeira dívida'))) {
+        assert.ok(last(await send('não', sender)).includes('criar dívida'), 'Oferta de dívida deve aceitar adiamento');
+    }
 
     const user = await userService.getUserByWhatsAppId(sender);
     assert.strictEqual(user.status, 'ACTIVE');

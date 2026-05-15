@@ -338,6 +338,17 @@ test('google.validateUserScopedWrite blocks user scoped rows without user_id', (
     });
 });
 
+test('google.headerToNumberFormat distinguishes date columns from due-day columns', (t) => {
+    const { headerToNumberFormat } = googleService.__test__;
+
+    assert.deepStrictEqual(headerToNumberFormat('Data'), { type: 'DATE', pattern: 'dd/mm/yyyy' });
+    assert.deepStrictEqual(headerToNumberFormat('Próximo Vencimento'), { type: 'DATE', pattern: 'dd/mm/yyyy' });
+    assert.deepStrictEqual(headerToNumberFormat('Data Prevista para Quitação'), { type: 'DATE', pattern: 'dd/mm/yyyy' });
+    assert.deepStrictEqual(headerToNumberFormat('Dia do Vencimento'), { type: 'NUMBER', pattern: '0' });
+    assert.deepStrictEqual(headerToNumberFormat('Vencimento'), { type: 'NUMBER', pattern: '0' });
+    assert.deepStrictEqual(headerToNumberFormat('accepted_at'), { type: 'DATE_TIME', pattern: 'dd/mm/yyyy hh:mm' });
+});
+
 test('google.requireUserId protects calendar writes', (t) => {
     const { requireUserId } = googleService.__test__;
 

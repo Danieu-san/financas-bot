@@ -5,19 +5,28 @@ const {
     upsertUserProfile,
     updateUserDisplayName
 } = require('../services/userService');
+const { sendPlainMessage } = require('../utils/whatsappMessaging');
 
 const ONBOARDING_ACTION = 'onboarding_flow';
 const ONBOARDING_TTL_SECONDS = 60 * 60 * 12; // 12h
+const POST_ONBOARDING_DEBT_OFFER_ACTION = 'post_onboarding_debt_offer';
 
-function onboardingMenu() {
+function onboardingMenu({ hasDebt = false, primaryGoal = '' } = {}) {
+    const goal = normalizeText(primaryGoal);
+    const shouldSuggestDebt = hasDebt || goal.includes('quitar') || goal.includes('divida');
+    const debtSuggestion = shouldSuggestDebt
+        ? '\n\nComo você quer quitar dívidas, o próximo passo mais útil é cadastrar a primeira dívida.\nResponda `sim` para cadastrar agora ou `não` para deixar para depois.'
+        : '';
+
     return (
-        'Tudo pronto! Aqui vão 3 comandos úteis para começar:\n' +
+        'Tudo pronto. Aqui vão 3 comandos úteis para começar:\n' +
         '1) `gastei 50 no mercado`\n' +
         '2) `recebi 2000 de salário`\n' +
         '3) `qual meu saldo do mês?`\n\n' +
         'Configurações rápidas:\n' +
         '- `ativar checkin semanal`\n' +
-        '- `definir reserva 10%`'
+        '- `definir reserva 10%`' +
+        debtSuggestion
     );
 }
 
@@ -88,7 +97,7 @@ async function startOnboarding(senderId, msg) {
         },
         ONBOARDING_TTL_SECONDS
     );
-    await msg.reply(getQuestion(1));
+    await sendPlainMessage(msg, getQuestion(1));
 }
 
 async function completeOnboarding(senderId, userId, data, msg) {
@@ -104,9 +113,26 @@ async function completeOnboarding(senderId, userId, data, msg) {
         await updateUserDisplayName(userId, data.display_name);
     }
 
-    userStateManager.deleteState(senderId);
-    await msg.reply('Onboarding concluído com sucesso.');
-    await msg.reply(onboardingMenu());
+    const hasDebt = data.has_debt === 'SIM';
+    const primaryGoal = data.primary_goal || '';
+    const goal = normalizeText(primaryGoal);
+    const shouldOfferDebtCreation = hasDebt || goal.includes('quitar') || goal.includes('divida');
+
+    if (shouldOfferDebtCreation) {
+        userStateManager.setState(
+            senderId,
+            {
+                action: POST_ONBOARDING_DEBT_OFFER_ACTION,
+                data: { hasDebt, primaryGoal }
+            },
+            ONBOARDING_TTL_SECONDS
+        );
+    } else {
+        userStateManager.deleteState(senderId);
+    }
+
+    await sendPlainMessage(msg, 'Onboarding concluído com sucesso.');
+    await sendPlainMessage(msg, onboardingMenu({ hasDebt, primaryGoal }));
 }
 
 async function advanceOnboarding(senderId, state, msg, user) {
@@ -124,8 +150,8 @@ async function advanceOnboarding(senderId, state, msg, user) {
             },
             ONBOARDING_TTL_SECONDS
         );
-        await msg.reply('Sem problema, vamos recomeçar o onboarding.');
-        await msg.reply(getQuestion(1));
+        await sendPlainMessage(msg, 'Sem problema, vamos recomeçar o onboarding.');
+        await sendPlainMessage(msg, getQuestion(1));
         return;
     }
 
@@ -140,23 +166,23 @@ async function advanceOnboarding(senderId, state, msg, user) {
             },
             ONBOARDING_TTL_SECONDS
         );
-        await msg.reply(previousStep === step ? 'Você já está na primeira pergunta.' : 'Claro, vamos voltar uma etapa.');
-        await msg.reply(getQuestion(previousStep));
+        await sendPlainMessage(msg, previousStep === step ? 'Você já está na primeira pergunta.' : 'Claro, vamos voltar uma etapa.');
+        await sendPlainMessage(msg, getQuestion(previousStep));
         return;
     }
 
     if (isHelpCommand(answer)) {
-        await msg.reply(buildOnboardingHelp(step));
+        await sendPlainMessage(msg, buildOnboardingHelp(step));
         return;
     }
 
     if (step === 1) {
         if (!answer) {
-            await msg.reply('Me diga um nome curto para te chamar.');
+            await sendPlainMessage(msg, 'Me diga um nome curto para te chamar.');
             return;
         }
         if (looksLikeBotCommand(answer)) {
-            await msg.reply('Isso parece um comando, não um nome. Me diga só como prefere ser chamado. Ex: Daniel');
+            await sendPlainMessage(msg, 'Isso parece um comando, não um nome. Me diga só como prefere ser chamado. Ex: Daniel');
             return;
         }
         data.display_name = answer;
@@ -165,7 +191,7 @@ async function advanceOnboarding(senderId, state, msg, user) {
     if (step === 2) {
         const income = parseAmountLocal(answer);
         if (income === null || income < 0) {
-            await msg.reply('Não consegui entender a renda. Ex: 2000, R$ 2 mil, dois mil.');
+            await sendPlainMessage(msg, 'Não consegui entender a renda. Ex: 2000, R$ 2 mil, dois mil.');
             return;
         }
         data.monthly_income = income;
@@ -174,7 +200,7 @@ async function advanceOnboarding(senderId, state, msg, user) {
     if (step === 3) {
         const fixed = parseAmountLocal(answer);
         if (fixed === null || fixed < 0) {
-            await msg.reply('Não consegui entender o gasto fixo. Ex: 1500 ou R$ 1,5 mil.');
+            await sendPlainMessage(msg, 'Não consegui entender o gasto fixo. Ex: 1500 ou R$ 1,5 mil.');
             return;
         }
         data.fixed_expense_estimate = fixed;
@@ -183,7 +209,7 @@ async function advanceOnboarding(senderId, state, msg, user) {
     if (step === 4) {
         const yesNo = isYesNo(answer);
         if (!yesNo) {
-            await msg.reply('Responda apenas com: sim ou não.');
+            await sendPlainMessage(msg, 'Responda apenas com: sim ou não.');
             return;
         }
         data.has_debt = yesNo;
@@ -191,7 +217,7 @@ async function advanceOnboarding(senderId, state, msg, user) {
 
     if (step === 5) {
         if (!answer) {
-            await msg.reply('Me diga seu objetivo principal em uma frase curta.');
+            await sendPlainMessage(msg, 'Me diga seu objetivo principal em uma frase curta.');
             return;
         }
         data.primary_goal = answer;
@@ -212,7 +238,7 @@ async function advanceOnboarding(senderId, state, msg, user) {
         },
         ONBOARDING_TTL_SECONDS
     );
-    await msg.reply(getQuestion(nextStep));
+    await sendPlainMessage(msg, getQuestion(nextStep));
 }
 
 async function handleOnboarding(msg, user) {
@@ -240,11 +266,13 @@ async function handleOnboarding(msg, user) {
 
 module.exports = {
     handleOnboarding,
+    POST_ONBOARDING_DEBT_OFFER_ACTION,
     __test__: {
         looksLikeBotCommand,
         isRestartCommand,
         isBackCommand,
         buildOnboardingHelp,
+        onboardingMenu,
         advanceOnboarding
     }
 };

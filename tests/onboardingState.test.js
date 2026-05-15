@@ -114,6 +114,14 @@ test('onboarding help explains recovery commands', async () => {
     assert.ok(msg.replies[0].includes('recomeçar'));
 });
 
+test('onboarding menu suggests debt registration when user has debt', () => {
+    const { onboardingMenu } = onboardingHandler.__test__;
+    const menu = onboardingMenu({ hasDebt: true, primaryGoal: 'quitar dívidas' });
+
+    assert.ok(menu.includes('cadastrar a primeira dívida'));
+    assert.ok(menu.includes('Responda `sim`'));
+});
+
 test.after(() => {
     userStateManager.closeStateStore();
 });

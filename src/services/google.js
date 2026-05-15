@@ -125,6 +125,50 @@ function validateUserScopedWrite(sheetName, row) {
     requireUserId(row[userIdIndex], `appendRowToSheet(${sheetName})`);
 }
 
+function normalizeHeaderForNumberFormat(header) {
+    return String(header || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+}
+
+function headerToNumberFormat(header) {
+    const normalized = normalizeHeaderForNumberFormat(header);
+    if (
+        normalized.includes('valor') ||
+        normalized.includes('saldo') ||
+        normalized.includes('monthly_income') ||
+        normalized.includes('fixed_expense')
+    ) {
+        return { type: 'CURRENCY', pattern: '"R$"#,##0.00' };
+    }
+    if (normalized.includes('%') || normalized.includes('percent')) {
+        return { type: 'PERCENT', pattern: '0.00%' };
+    }
+    if (
+        normalized === 'dia do vencimento' ||
+        normalized === 'vencimento' ||
+        normalized.includes('total parcelas') ||
+        normalized.includes('parcelas pagas') ||
+        normalized.includes('atraso')
+    ) {
+        return { type: 'NUMBER', pattern: '0' };
+    }
+    if (
+        normalized === 'data' ||
+        normalized.includes('inicio') ||
+        normalized.includes('data fim') ||
+        normalized.includes('data prevista') ||
+        normalized.includes('proximo vencimento')
+    ) {
+        return { type: 'DATE', pattern: 'dd/mm/yyyy' };
+    }
+    if (normalized.endsWith('_at') || normalized.endsWith(' at')) {
+        return { type: 'DATE_TIME', pattern: 'dd/mm/yyyy hh:mm' };
+    }
+    return null;
+}
+
 function eventBelongsToUser(event, userId) {
     if (!userId) return true;
     return String(event?.extendedProperties?.private?.[CALENDAR_USER_ID_PRIVATE_KEY] || '').trim() === String(userId).trim();
@@ -780,6 +824,7 @@ async function getCalendarEventsForToday(targetDate = new Date(), options = {}) 
 
 async function ensureSpreadsheetStructure() {
     console.log('--- Verificando Estrutura da Planilha ---');
+    const FORMATTED_ROW_LIMIT = 5000;
     const structure = [
         { title: 'Saídas', headers: ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Observações', 'user_id'], color: { red: 0.9, green: 0.4, blue: 0.4 } },
         { title: 'Entradas', headers: ['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Observações', 'user_id'], color: { red: 0.4, green: 0.8, blue: 0.4 } },
@@ -813,31 +858,6 @@ async function ensureSpreadsheetStructure() {
         backgroundColor: { red: 0.98, green: 0.99, blue: 0.99 },
         verticalAlignment: 'MIDDLE',
         wrapStrategy: 'WRAP'
-    };
-
-    const headerToNumberFormat = (header) => {
-        const normalized = String(header || '').toLowerCase();
-        if (
-            normalized.includes('valor') ||
-            normalized.includes('saldo') ||
-            normalized.includes('monthly_income') ||
-            normalized.includes('fixed_expense')
-        ) {
-            return { type: 'CURRENCY', pattern: '"R$"#,##0.00' };
-        }
-        if (normalized.includes('%') || normalized.includes('percent')) {
-            return { type: 'PERCENT', pattern: '0.00%' };
-        }
-        if (
-            normalized === 'data' ||
-            normalized.includes('vencimento') ||
-            normalized.includes('início') ||
-            normalized.includes('inicio') ||
-            normalized.includes('data fim')
-        ) {
-            return { type: 'DATE', pattern: 'dd/mm/yyyy' };
-        }
-        return null;
     };
 
     try {
@@ -898,7 +918,7 @@ async function ensureSpreadsheetStructure() {
 
             formattingRequests.push({
                 repeatCell: {
-                    range: { sheetId, startRowIndex: 1, endRowIndex: 1000, startColumnIndex: 0, endColumnIndex: item.headers.length },
+                    range: { sheetId, startRowIndex: 1, endRowIndex: FORMATTED_ROW_LIMIT, startColumnIndex: 0, endColumnIndex: item.headers.length },
                     cell: { userEnteredFormat: bodyStyle },
                     fields: 'userEnteredFormat(backgroundColor,verticalAlignment,wrapStrategy)'
                 }
@@ -930,7 +950,7 @@ async function ensureSpreadsheetStructure() {
                 if (!numberFormat) return;
                 formattingRequests.push({
                     repeatCell: {
-                        range: { sheetId, startRowIndex: 1, endRowIndex: 1000, startColumnIndex: index, endColumnIndex: index + 1 },
+                        range: { sheetId, startRowIndex: 1, endRowIndex: FORMATTED_ROW_LIMIT, startColumnIndex: index, endColumnIndex: index + 1 },
                         cell: { userEnteredFormat: { numberFormat } },
                         fields: 'userEnteredFormat.numberFormat'
                     }
@@ -944,7 +964,7 @@ async function ensureSpreadsheetStructure() {
             formattingRequests.push({
                 setBasicFilter: {
                     filter: {
-                        range: { sheetId, startRowIndex: 0, endRowIndex: 1000, startColumnIndex: 0, endColumnIndex: item.headers.length }
+                        range: { sheetId, startRowIndex: 0, endRowIndex: FORMATTED_ROW_LIMIT, startColumnIndex: 0, endColumnIndex: item.headers.length }
                     }
                 }
             });
@@ -1006,7 +1026,8 @@ module.exports = {
     __test__: {
         eventBelongsToUser,
         requireUserId,
-        validateUserScopedWrite
+        validateUserScopedWrite,
+        headerToNumberFormat
     },
     getSheetIds,
     appendRowToSheet,

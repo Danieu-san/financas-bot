@@ -26,7 +26,7 @@ const {
     getAllUsers,
     expireOldPendingUsers
 } = require('../services/userService');
-const { handleOnboarding } = require('./onboardingHandler');
+const { handleOnboarding, POST_ONBOARDING_DEBT_OFFER_ACTION } = require('./onboardingHandler');
 const { buildHealthSummary } = require('../services/financialHealthService');
 const { buildDebtAvalanchePlan } = require('../services/debtAvalancheService');
 const { syncReadModelIfNeeded, executeAnalyticalIntent } = require('../services/readModelService');
@@ -34,6 +34,7 @@ const { buildDashboardAccessLink } = require('../utils/dashboardAuth');
 const metrics = require('../utils/metrics');
 const { isAdminWithContext } = require('../utils/adminCheck');
 const logger = require('../utils/logger');
+const { sendPlainMessage } = require('../utils/whatsappMessaging');
 
 // Base de Conhecimento para Gastos
 const mapeamentoGastos = {
@@ -423,13 +424,13 @@ async function handleLegalCommands(msg) {
             : 'Privacidade: resumo enviado abaixo.';
         const summary = [
             'Resumo legal:',
-            '- Uso condicionado a consentimento por ACEITO.',
-            '- Dados tratados: identificacao WhatsApp e lancamentos financeiros enviados.',
-            '- Finalidade: operacao do bot, relatorios e auditoria.',
+            '- Uso condicionado ao consentimento por ACEITO.',
+            '- Dados tratados: identificação do WhatsApp e lançamentos financeiros enviados por você.',
+            '- Finalidade: operação do bot, relatórios e auditoria.',
             '- Ciclo de vida: PENDING, ACTIVE, INACTIVE, BLOCKED, DELETED, EXPIRED.',
-            '- Mudanca de termos exige novo consentimento.'
+            '- Mudança de termos exige novo consentimento.'
         ].join('\n');
-        await msg.reply(`${termsLine}\n${privacyLine}\n\n${summary}`);
+        await sendPlainMessage(msg, `${termsLine}\n${privacyLine}\n\n${summary}`);
         return true;
     }
 
@@ -493,21 +494,23 @@ async function handleDashboardCommand(msg, user, senderId) {
     try {
         linkData = buildDashboardAccessLink({ userId: user.user_id });
     } catch (error) {
-        await msg.reply('Dashboard indisponível no momento. O administrador precisa configurar DASHBOARD_TOKEN_SECRET.');
+        await sendPlainMessage(msg, 'Dashboard indisponível no momento. O administrador precisa configurar DASHBOARD_TOKEN_SECRET.');
         logger.warn(`[dashboard] token_secret_ausente sender=${senderId} user_id=${user.user_id}`);
         return true;
     }
 
     if (!linkData) {
-        await msg.reply('Dashboard indisponível no momento. O administrador precisa configurar DASHBOARD_BASE_URL.');
+        await sendPlainMessage(msg, 'Dashboard indisponível no momento. O administrador precisa configurar DASHBOARD_BASE_URL.');
         logger.warn(`[dashboard] base_url_ausente sender=${senderId} user_id=${user.user_id}`);
         return true;
     }
 
     const hours = Math.max(1, Math.round((linkData.ttlSeconds || 0) / 3600));
-    await msg.reply(
-        `Seu painel está pronto. Acesse por este link (válido por ${hours}h):\n` +
-        `${linkData.url}`
+    await sendPlainMessage(
+        msg,
+        `Seu painel financeiro está pronto.\n\n` +
+        `Link válido por ${hours}h:\n${linkData.url}\n\n` +
+        `Não compartilhe esse link: ele dá acesso ao seu painel.`
     );
     logger.info(`[dashboard] link_emitido sender=${senderId} user_id=${user.user_id}`);
     return true;
@@ -780,7 +783,7 @@ async function handleMessage(msg) {
     const access = await timeStep('resolveUserAccess', () => resolveUserAccess(msg), perfContext);
     if (!access.allowed) {
         if (access.reply) {
-            await msg.reply(access.reply);
+            await sendPlainMessage(msg, access.reply);
         }
         return;
     }
@@ -790,10 +793,10 @@ async function handleMessage(msg) {
     const pessoa = activeUser.display_name || userMap[senderId] || 'Usuário';
 
     if (access.justActivated) {
-        await msg.reply('Cadastro confirmado com sucesso! Seu acesso foi ativado.');
+        await sendPlainMessage(msg, 'Cadastro confirmado com sucesso. Seu acesso foi ativado.');
     }
     if (access.justReconsented) {
-        await msg.reply('Termos atualizados e consentimento renovado com sucesso. Obrigado.');
+        await sendPlainMessage(msg, 'Termos atualizados e consentimento renovado com sucesso. Obrigado.');
     }
 
     const onboarding = await timeStep('handleOnboarding', () => handleOnboarding(msg, activeUser), perfContext);
@@ -846,6 +849,21 @@ async function handleMessage(msg) {
         // --- INÍCIO DA MÁQUINA DE ESTADOS (CONVERSAS EM ANDAMENTO) ---
         // Se existe uma conversa em andamento, o bot lida com ela e PARA AQUI.
         switch (currentState.action) {
+            case POST_ONBOARDING_DEBT_OFFER_ACTION: {
+                const answer = normalizeText(msg.body || '');
+                if (['sim', 's', 'ss', 'quero', 'cadastrar'].includes(answer)) {
+                    await creationHandler.startDebtCreation(msg);
+                    return;
+                }
+                if (['nao', 'não', 'n', 'depois', 'agora nao', 'agora não'].includes(answer)) {
+                    userStateManager.deleteState(senderId);
+                    await sendPlainMessage(msg, 'Sem problema. Quando quiser, envie `criar dívida`.');
+                    return;
+                }
+                await sendPlainMessage(msg, 'Quer cadastrar sua primeira dívida agora? Responda `sim` ou `não`.');
+                return;
+            }
+
             case 'awaiting_credit_card_selection': {
                 const { gasto, cardOptions } = currentState.data;
                 const selection = parseInt(msg.body.trim(), 10) - 1;
@@ -1551,7 +1569,6 @@ async function handleMessage(msg) {
                 }
 
                 case 'pergunta': {
-                    await msg.reply("Analisando seus dados para responder, um momento...");
                     try {
                         const userQuestion = structuredResponse.question || messageBody;
                         const localClassification = classifyPerguntaLocally(userQuestion);

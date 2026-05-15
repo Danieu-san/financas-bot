@@ -199,7 +199,7 @@ function buildLegalFooter() {
     if (TERMS_URL || PRIVACY_URL) {
         return `${TERMS_URL ? `\nTermos: ${TERMS_URL}` : ''}${PRIVACY_URL ? `\nPrivacidade: ${PRIVACY_URL}` : ''}`;
     }
-    return '\nPara ver o resumo de termos e privacidade, envie: TERMOS';
+    return '\nPara ler o resumo de termos e privacidade, envie: termos';
 }
 
 function isLegalInfoCommand(normalizedMessage) {
@@ -216,11 +216,11 @@ function buildPublicLegalSummaryReply({ includeAcceptInstruction = false, termsV
 
     const summary = [
         'Resumo legal:',
-        '- Uso condicionado a consentimento por ACEITO.',
-        '- Dados tratados: identificacao WhatsApp e lancamentos financeiros enviados.',
-        '- Finalidade: operacao do bot, relatorios e auditoria.',
+        '- Uso condicionado ao consentimento por ACEITO.',
+        '- Dados tratados: identificação do WhatsApp e lançamentos financeiros enviados por você.',
+        '- Finalidade: operação do bot, relatórios e auditoria.',
         '- Ciclo de vida: PENDING, ACTIVE, INACTIVE, BLOCKED, DELETED, EXPIRED.',
-        '- Mudanca de termos exige novo consentimento.'
+        '- Mudança de termos exige novo consentimento.'
     ].join('\n');
 
     const acceptLine = includeAcceptInstruction
@@ -560,8 +560,8 @@ async function resolveUserAccess(msg) {
             allowed: false,
             user: null,
             reply:
-                `Olá! Antes de usar o bot, preciso do seu consentimento de dados.\n` +
-                `Se você concorda com os termos (versão ${TERMS_VERSION}), responda apenas: ACEITO` +
+                `Antes de começar, preciso do seu consentimento para guardar e processar seus dados financeiros.\n\n` +
+                `Para aceitar os termos (${TERMS_VERSION}), envie: ACEITO` +
                 buildLegalFooter()
         };
     }

@@ -241,6 +241,6 @@ test.describe.skip('Legacy integration tests - superseded by functional.test.js'
         });
         
         await handleMessage(msg);
-        assert.ok(msg.getLastReply().includes('Analisando seus dados'), 'Should show analysis message');
+        assert.match(msg.getLastReply(), /Total gasto|gasto|R\$/i, 'Should answer directly without analysis placeholder');
     });
 });
