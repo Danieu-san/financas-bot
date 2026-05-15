@@ -11,6 +11,7 @@ const PRIVACY_URL = process.env.PRIVACY_URL || '';
 const CONSENT_KEYWORD = 'aceito';
 const PENDING_TTL_HOURS = 48;
 const LEGAL_INFO_KEYWORDS = new Set(['termos', 'politica de privacidade', 'privacidade']);
+const AUTH_GATE_REPLY_COOLDOWN_MS = Number.parseInt(process.env.AUTH_GATE_REPLY_COOLDOWN_MS || String(24 * 60 * 60 * 1000), 10);
 const USER_STATUS = Object.freeze({
     PENDING: 'PENDING',
     PENDING_APPROVAL: 'PENDING_APPROVAL',
@@ -44,6 +45,7 @@ let profilesCacheLoadedAt = 0;
 let settingsCache = [];
 let settingsCacheLoaded = false;
 let settingsCacheLoadedAt = 0;
+const authGateReplyHistory = new Map();
 
 const SHEETS_CACHE_TTL_MS = Number(process.env.USER_SERVICE_CACHE_TTL_MS || 30000);
 
@@ -215,6 +217,30 @@ function buildLegalFooter() {
 
 function isLegalInfoCommand(normalizedMessage) {
     return LEGAL_INFO_KEYWORDS.has(String(normalizedMessage || '').trim());
+}
+
+function shouldSilenceRepeatedAuthGateReply(senderId, normalizedMessage) {
+    const message = String(normalizedMessage || '').trim();
+    if (!senderId) return false;
+    if (message === CONSENT_KEYWORD || isLegalInfoCommand(message)) return false;
+    if (!Number.isFinite(AUTH_GATE_REPLY_COOLDOWN_MS) || AUTH_GATE_REPLY_COOLDOWN_MS <= 0) return false;
+
+    const now = Date.now();
+    const lastReplyAt = authGateReplyHistory.get(senderId) || 0;
+    if (lastReplyAt && (now - lastReplyAt) < AUTH_GATE_REPLY_COOLDOWN_MS) {
+        return true;
+    }
+    authGateReplyHistory.set(senderId, now);
+    return false;
+}
+
+function buildSilentAuthGateResponse(user = null) {
+    return {
+        allowed: false,
+        user,
+        silent: true,
+        reply: ''
+    };
 }
 
 function buildPublicLegalSummaryReply({ includeAcceptInstruction = false, termsVersion = TERMS_VERSION } = {}) {
@@ -514,6 +540,12 @@ async function approveUserByWhatsAppId(whatsappOrPhone) {
     return updated;
 }
 
+async function denyUserByWhatsAppId(whatsappOrPhone) {
+    const user = await getUserByLookup(whatsappOrPhone);
+    if (!user) return null;
+    return updateUserStatus(user.user_id, USER_STATUS.BLOCKED);
+}
+
 async function getUserByLookup(lookup) {
     const raw = String(lookup || '').trim();
     if (!raw) return null;
@@ -635,6 +667,9 @@ async function resolveUserAccess(msg) {
                 reply: buildPublicLegalSummaryReply({ includeAcceptInstruction: true })
             };
         }
+        if (shouldSilenceRepeatedAuthGateReply(senderId, normalizedMessage)) {
+            return buildSilentAuthGateResponse(user);
+        }
         return {
             allowed: false,
             user: null,
@@ -663,6 +698,9 @@ async function resolveUserAccess(msg) {
                 reply: buildPublicLegalSummaryReply({ includeAcceptInstruction: true })
             };
         }
+        if (shouldSilenceRepeatedAuthGateReply(senderId, normalizedMessage)) {
+            return buildSilentAuthGateResponse(user);
+        }
         return {
             allowed: false,
             user: null,
@@ -680,6 +718,9 @@ async function resolveUserAccess(msg) {
                 user,
                 reply: buildPublicLegalSummaryReply({ includeAcceptInstruction: false })
             };
+        }
+        if (shouldSilenceRepeatedAuthGateReply(senderId, normalizedMessage)) {
+            return buildSilentAuthGateResponse(user);
         }
         return {
             allowed: false,
@@ -797,6 +838,7 @@ module.exports = {
     updateUserStatus,
     updateUserStatusByWhatsAppId,
     approveUserByWhatsAppId,
+    denyUserByWhatsAppId,
     getConsentLogsByUserId,
     getAllUsers,
     invalidateUserCaches,

@@ -10,6 +10,7 @@ Use this before deploying `main` to the EC2 PM2 process.
 - [ ] `.env` on EC2 includes all required production variables from `.env.example`.
 - [ ] `ADMIN_IDS` on EC2 contains only intended admins; Thaís (`5521964270368`) must not be present while used as a test user.
 - [ ] Multiuser OAuth releases have `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_STATE_SECRET`, and `OAUTH_TOKEN_ENCRYPTION_KEY` configured.
+- [ ] `AUTH_GATE_REPLY_COOLDOWN_MS` is configured or intentionally left at the default to prevent bot-to-bot consent loops.
 - [ ] `DASHBOARD_TOKEN_SECRET` is configured before deploying dashboard changes.
 - [ ] If this release moves toward real multiuser scale, ADR-002 and ADR-003 have been reviewed; admin access to all users' transaction-level financial data has been removed or replaced with consented/audited support mode.
 - [ ] Rollback command is ready before restart.

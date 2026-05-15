@@ -22,6 +22,7 @@ const {
     updateUserStatus,
     updateUserStatusByWhatsAppId,
     approveUserByWhatsAppId,
+    denyUserByWhatsAppId,
     getUserByLookup,
     getConsentLogsByUserId,
     getAllUsers,
@@ -637,7 +638,8 @@ async function notifyAdminsAboutPendingApproval(msg, user) {
         `- whatsapp_id: ${targetUser}`,
         `- user_id: ${user?.user_id || '-'}`,
         '',
-        `Para liberar a conexão Google, envie: admin aprovar ${targetUser}`
+        `Para liberar a conexão Google, envie: admin aprovar ${targetUser}`,
+        `Para negar e bloquear propaganda/bot, envie: admin negar ${targetUser}`
     ].join('\n');
 
     for (const adminId of adminIds) {
@@ -699,6 +701,7 @@ async function handleAdminCommands(msg, senderId, activeUser) {
             '- admin status <telefone>\n' +
             '- admin log <telefone>\n' +
             '- admin aprovar <telefone>\n' +
+            '- admin negar <telefone>\n' +
             '- admin ativar <telefone>\n' +
             '- admin inativar <telefone>\n' +
             '- admin bloquear <telefone>\n' +
@@ -809,6 +812,27 @@ async function handleAdminCommands(msg, senderId, activeUser) {
             await msg.client.sendMessage(
                 updated.whatsapp_id,
                 connectReply || 'Seu cadastro foi aprovado. Agora falta conectar sua conta Google para criar sua planilha no seu Drive e ativar o bot.'
+            );
+        }
+        return true;
+    }
+
+    const denyMatch = body.match(/^admin\s+(negar|rejeitar|recusar)\s+(.+)$/);
+    if (denyMatch) {
+        const action = denyMatch[1];
+        const target = denyMatch[2];
+        const updated = await denyUserByWhatsAppId(target);
+        if (!updated) {
+            logger.warn(`[admin] negar_nao_encontrado context=${JSON.stringify({ ...adminContext, action, target })}`);
+            await msg.reply('Usuário não encontrado para esse telefone/WhatsApp ID.');
+            return true;
+        }
+        logger.info(`[admin] negar context=${JSON.stringify({ ...adminContext, action, target, target_user_id: updated.user_id, updated_whatsapp_id: updated.whatsapp_id, updated_status: updated.status })}`);
+        await msg.reply(`Usuário negado e bloqueado: ${updated.whatsapp_id} -> ${updated.status}`);
+        if (msg.client && typeof msg.client.sendMessage === 'function') {
+            await msg.client.sendMessage(
+                updated.whatsapp_id,
+                'Seu acesso ao FinançasBot não foi aprovado. Se isso foi um engano, fale com o administrador.'
             );
         }
         return true;

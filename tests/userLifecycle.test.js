@@ -92,6 +92,26 @@ test('user lifecycle: PENDING user sees consent gate before normal flows', async
     assert.match(access.reply, /responda apenas: ACEITO/i);
 });
 
+test('user lifecycle: PENDING user is not repeatedly answered during consent cooldown', async () => {
+    const whatsappId = '5599992000999@c.us';
+    const { userService } = installUserServiceWithSheets({
+        users: [buildUserRow({ whatsappId, status: 'PENDING', consentAt: '', termsVersion: '' })]
+    });
+
+    const first = await userService.resolveUserAccess(createMessage('promo automatica 1', whatsappId));
+    const second = await userService.resolveUserAccess(createMessage('promo automatica 2', whatsappId));
+    const terms = await userService.resolveUserAccess(createMessage('termos', whatsappId));
+    const accepted = await userService.resolveUserAccess(createMessage('ACEITO', whatsappId));
+
+    assert.strictEqual(first.allowed, false);
+    assert.match(first.reply, /ACEITO/i);
+    assert.strictEqual(second.allowed, false);
+    assert.strictEqual(second.silent, true);
+    assert.strictEqual(second.reply, '');
+    assert.match(terms.reply, /Resumo legal/i, 'Legal information must remain available despite cooldown');
+    assert.strictEqual(accepted.justSubmittedForApproval, true, 'Consent acceptance must remain available despite cooldown');
+});
+
 test('user lifecycle: ACTIVE user with current terms bypasses consent gate', async () => {
     const whatsappId = '5599992000002@c.us';
     const { userService } = installUserServiceWithSheets({
@@ -180,6 +200,20 @@ test('user lifecycle: admin approval moves user to APPROVED_AWAITING_GOOGLE and 
     assert.strictEqual(updated.status, 'APPROVED_AWAITING_GOOGLE');
     assert.strictEqual(sheets.UserProfile.length, 2, 'Approval should create default profile');
     assert.strictEqual(sheets.UserSettings.length, 2, 'Approval should create default settings');
+});
+
+test('user lifecycle: admin can deny pending user by blocking access', async () => {
+    const whatsappId = '5599992000007@c.us';
+    const { userService } = installUserServiceWithSheets({
+        users: [buildUserRow({ whatsappId, status: 'PENDING_APPROVAL' })]
+    });
+
+    const updated = await userService.denyUserByWhatsAppId(whatsappId);
+    const access = await userService.resolveUserAccess(createMessage('oi de novo', whatsappId));
+
+    assert.strictEqual(updated.status, 'BLOCKED');
+    assert.strictEqual(access.allowed, false);
+    assert.match(access.reply, /bloqueado/i);
 });
 
 test('user lifecycle: EXPIRED user can accept terms again and waits for admin approval', async () => {
