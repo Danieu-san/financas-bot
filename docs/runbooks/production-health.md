@@ -35,6 +35,12 @@ Important: old `TargetCloseError`, `Execution context was destroyed`, and old QR
 
 ## 3. Dashboard Health
 
+Required production env:
+
+- `DASHBOARD_BASE_URL` points to the public domain/IP.
+- `DASHBOARD_TOKEN_SECRET` is set to a long random value.
+- `DASHBOARD_REQUIRE_STRONG_SECRET=true` is recommended on EC2.
+
 ```bash
 curl http://localhost:8787/dashboard/health
 ```

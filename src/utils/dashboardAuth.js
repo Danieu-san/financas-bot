@@ -1,6 +1,19 @@
 const crypto = require('crypto');
 
 const DEFAULT_TTL_SECONDS = Math.max(300, Number.parseInt(process.env.DASHBOARD_TOKEN_TTL_SECONDS || '7200', 10));
+const DEV_DASHBOARD_SECRET = 'dashboard-dev-secret';
+
+function getDashboardBaseUrl() {
+    return String(process.env.DASHBOARD_BASE_URL || '').trim().replace(/\/+$/g, '');
+}
+
+function isProductionLikeDashboard() {
+    const nodeEnv = String(process.env.NODE_ENV || '').trim().toLowerCase();
+    return nodeEnv === 'production' ||
+        nodeEnv === 'prod' ||
+        String(process.env.DASHBOARD_REQUIRE_STRONG_SECRET || '').trim().toLowerCase() === 'true' ||
+        Boolean(getDashboardBaseUrl());
+}
 
 function base64UrlEncode(input) {
     return Buffer.from(input)
@@ -19,7 +32,12 @@ function base64UrlDecode(input) {
 }
 
 function getDashboardTokenSecret() {
-    return process.env.DASHBOARD_TOKEN_SECRET || process.env.GEMINI_API_KEY || 'dashboard-dev-secret';
+    const configuredSecret = String(process.env.DASHBOARD_TOKEN_SECRET || '').trim();
+    if (configuredSecret) return configuredSecret;
+    if (isProductionLikeDashboard()) {
+        throw new Error('DASHBOARD_TOKEN_SECRET is required when dashboard is enabled for public/production access.');
+    }
+    return DEV_DASHBOARD_SECRET;
 }
 
 function signTokenPayload(payload) {
@@ -71,10 +89,6 @@ function verifyDashboardToken(token) {
     }
 }
 
-function getDashboardBaseUrl() {
-    return String(process.env.DASHBOARD_BASE_URL || '').trim().replace(/\/+$/g, '');
-}
-
 function buildDashboardAccessLink({ userId, ttlSeconds = DEFAULT_TTL_SECONDS }) {
     const baseUrl = getDashboardBaseUrl();
     if (!baseUrl) return null;
@@ -89,6 +103,6 @@ module.exports = {
     generateDashboardToken,
     verifyDashboardToken,
     buildDashboardAccessLink,
-    getDashboardBaseUrl
+    getDashboardBaseUrl,
+    getDashboardTokenSecret
 };
-

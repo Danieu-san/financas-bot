@@ -129,3 +129,23 @@ test('dashboard API rejects invalid token with safe error', async () => {
         await new Promise(resolve => server.close(resolve));
     }
 });
+
+test('dashboard responses include security and privacy headers', async () => {
+    const calls = [];
+    const { server, baseUrl, token } = await startTestServer(calls);
+    try {
+        const page = await fetch(`${baseUrl}/dashboard?token=${token}`);
+        assert.strictEqual(page.status, 200);
+        assert.strictEqual(page.headers.get('cache-control'), 'no-store');
+        assert.strictEqual(page.headers.get('referrer-policy'), 'no-referrer');
+        assert.strictEqual(page.headers.get('x-frame-options'), 'DENY');
+        assert.ok(page.headers.get('content-security-policy').includes("frame-ancestors 'none'"));
+
+        const api = await fetch(`${baseUrl}/dashboard/api/summary?token=${token}`);
+        assert.strictEqual(api.status, 200);
+        assert.strictEqual(api.headers.get('cache-control'), 'no-store');
+        assert.strictEqual(api.headers.get('x-content-type-options'), 'nosniff');
+    } finally {
+        await new Promise(resolve => server.close(resolve));
+    }
+});

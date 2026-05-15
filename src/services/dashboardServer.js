@@ -7,13 +7,26 @@ const metrics = require('../utils/metrics');
 
 let server = null;
 
+const SECURITY_HEADERS = {
+    'Cache-Control': 'no-store',
+    'Referrer-Policy': 'no-referrer',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()'
+};
+
+const HTML_SECURITY_HEADERS = {
+    ...SECURITY_HEADERS,
+    'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'"
+};
+
 function sendJson(res, statusCode, payload) {
-    res.writeHead(statusCode, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.writeHead(statusCode, { ...SECURITY_HEADERS, 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify(payload));
 }
 
 function sendHtml(res, html) {
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.writeHead(200, { ...HTML_SECURITY_HEADERS, 'Content-Type': 'text/html; charset=utf-8' });
     res.end(html);
 }
 
@@ -318,18 +331,18 @@ function dashboardHtml() {
 }
 
 async function handleApiSummary(reqUrl, res) {
-    const token = reqUrl.searchParams.get('token') || '';
-    const payload = verifyDashboardToken(token);
-    if (!payload) {
-        metrics.increment('dashboard.api.auth_failed');
-        sendJson(res, 401, { error: 'Token inválido ou expirado.' });
-        return;
-    }
-
-    const month = reqUrl.searchParams.get('month');
-    const year = reqUrl.searchParams.get('year');
-
     try {
+        const token = reqUrl.searchParams.get('token') || '';
+        const payload = verifyDashboardToken(token);
+        if (!payload) {
+            metrics.increment('dashboard.api.auth_failed');
+            sendJson(res, 401, { error: 'Token inválido ou expirado.' });
+            return;
+        }
+
+        const month = reqUrl.searchParams.get('month');
+        const year = reqUrl.searchParams.get('year');
+
         await syncReadModelIfNeeded();
         const snapshot = getDashboardSqlData(payload.uid, { month, year }) || getDashboardSnapshot(payload.uid, { month, year });
         metrics.increment('dashboard.api.summary.success');
@@ -342,14 +355,15 @@ async function handleApiSummary(reqUrl, res) {
 }
 
 async function withAuth(reqUrl, res, cb) {
-    const token = reqUrl.searchParams.get('token') || '';
-    const payload = verifyDashboardToken(token);
-    if (!payload) {
-        metrics.increment('dashboard.api.auth_failed');
-        sendJson(res, 401, { error: 'Token inválido ou expirado.' });
-        return;
-    }
     try {
+        const token = reqUrl.searchParams.get('token') || '';
+        const payload = verifyDashboardToken(token);
+        if (!payload) {
+            metrics.increment('dashboard.api.auth_failed');
+            sendJson(res, 401, { error: 'Token inválido ou expirado.' });
+            return;
+        }
+
         await syncReadModelIfNeeded();
         await cb(payload);
     } catch (error) {

@@ -489,7 +489,15 @@ async function handleDashboardCommand(msg, user, senderId) {
     if (!body) return false;
     if (!['dashboard', 'painel', 'painel financeiro'].includes(body)) return false;
 
-    const linkData = buildDashboardAccessLink({ userId: user.user_id });
+    let linkData = null;
+    try {
+        linkData = buildDashboardAccessLink({ userId: user.user_id });
+    } catch (error) {
+        await msg.reply('Dashboard indisponível no momento. O administrador precisa configurar DASHBOARD_TOKEN_SECRET.');
+        logger.warn(`[dashboard] token_secret_ausente sender=${senderId} user_id=${user.user_id}`);
+        return true;
+    }
+
     if (!linkData) {
         await msg.reply('Dashboard indisponível no momento. O administrador precisa configurar DASHBOARD_BASE_URL.');
         logger.warn(`[dashboard] base_url_ausente sender=${senderId} user_id=${user.user_id}`);
