@@ -184,6 +184,17 @@ test('messageHandler.classifyPerguntaLocally distinguishes total month from cate
     assert.strictEqual(categoryTotal.parameters.categoria, 'alimentacao');
 });
 
+test('messageHandler local command routing avoids AI for common commands and low-signal text', (t) => {
+    const { detectLocalCommandIntent, shouldSkipAiForUnknownMessage } = messageHandler.__test__;
+
+    assert.deepStrictEqual(detectLocalCommandIntent('AJUDA'), { intent: 'ajuda' });
+    assert.deepStrictEqual(detectLocalCommandIntent('relatório mensal'), { intent: 'resumo' });
+    assert.strictEqual(shouldSkipAiForUnknownMessage('teste'), true);
+    assert.strictEqual(shouldSkipAiForUnknownMessage('valeu'), true);
+    assert.strictEqual(shouldSkipAiForUnknownMessage('Uber 20'), false);
+    assert.strictEqual(shouldSkipAiForUnknownMessage('gastei no mercado'), false);
+});
+
 test('messageHandler.local replies cover greeting and total month', (t) => {
     const { isGreetingMessage, buildGreetingReply, buildLocalPerguntaResponse } = messageHandler.__test__;
 

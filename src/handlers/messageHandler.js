@@ -187,6 +187,56 @@ function detectFastPerguntaIntent(messageBody) {
     };
 }
 
+function detectLocalCommandIntent(messageBody) {
+    const text = normalizeText(String(messageBody || '').trim());
+    if (!text) return null;
+
+    if (['ajuda', 'help', 'menu', 'comandos', 'o que voce faz', 'o que você faz'].includes(text)) {
+        return { intent: 'ajuda' };
+    }
+
+    if (
+        ['resumo', 'balanco', 'balanço', 'saude financeira', 'saúde financeira'].includes(text) ||
+        /^(resumo|balanco|balanço|relatorio|relatório)\b/.test(text)
+    ) {
+        return { intent: 'resumo' };
+    }
+
+    return null;
+}
+
+function shouldSkipAiForUnknownMessage(messageBody) {
+    const text = normalizeText(String(messageBody || '').trim());
+    if (!text) return true;
+    if (/\d/.test(text)) return false;
+
+    const lowSignalMessages = new Set([
+        'teste',
+        'test',
+        'ok',
+        'okay',
+        'obrigado',
+        'obrigada',
+        'valeu',
+        'vlw',
+        'show',
+        'beleza'
+    ]);
+    if (lowSignalMessages.has(text)) return true;
+
+    const knownSignals = [
+        'gastei', 'gasto', 'paguei', 'comprei', 'recebi', 'ganhei', 'entrada',
+        'criar', 'meta', 'divida', 'dívida', 'apagar', 'delete', 'registrar',
+        'pagamento', 'lembrete', 'lembre', 'quanto', 'qual', 'quais', 'liste',
+        'listar', 'mostre', 'mostrar', 'saldo', 'resumo', 'dashboard', 'painel',
+        'termos', 'privacidade', 'admin', 'ajuda', 'relatorio', 'relatório',
+        'checkin', 'reserva', 'cartao', 'cartão', 'credito', 'crédito', 'pix',
+        'dinheiro', 'debito', 'débito'
+    ];
+
+    return !knownSignals.some(signal => text.includes(normalizeText(signal))) && text.length <= 80;
+}
+
 function classifyPerguntaLocally(userQuestion) {
     const text = normalizeText(String(userQuestion || '').trim());
     if (!text) return null;
@@ -1218,6 +1268,20 @@ async function handleMessage(msg) {
             }
 
             if (!structuredResponse) {
+                structuredResponse = detectLocalCommandIntent(messageBody);
+                if (structuredResponse) {
+                    metrics.increment('message.command.fast_path');
+                    logger.info(`[routing] fast_path intent=${structuredResponse.intent} sender=${senderId}`);
+                }
+            }
+
+            if (!structuredResponse && shouldSkipAiForUnknownMessage(messageBody)) {
+                structuredResponse = { intent: 'desconhecido' };
+                metrics.increment('message.unknown.fast_path');
+                logger.info(`[routing] fast_path intent=desconhecido sender=${senderId}`);
+            }
+
+            if (!structuredResponse) {
                 metrics.increment('message.ai.master_prompt.called');
                 const masterPrompt = `Sua tarefa é analisar a mensagem e extrair a intenção e detalhes em um JSON. A data e hora atual é ${new Date().toISOString()}.
 
@@ -1667,6 +1731,8 @@ module.exports = {
     handleMessage,
     __test__: {
         classifyPerguntaLocally,
+        detectLocalCommandIntent,
+        shouldSkipAiForUnknownMessage,
         buildLocalPerguntaResponse,
         filterSheetRowsByUserId,
         isGreetingMessage,
