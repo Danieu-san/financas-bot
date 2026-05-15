@@ -514,6 +514,25 @@ async function handleLegalCommands(msg) {
     return false;
 }
 
+function getLegalCommandName(body) {
+    const normalized = normalizeText(String(body || '').trim());
+    if (normalized === 'termos') return 'termos';
+    if (normalized === 'politica de privacidade' || normalized === 'privacidade') return 'privacidade';
+    return null;
+}
+
+function buildLegalCommandLogContext(msg, user) {
+    const command = getLegalCommandName(msg?.body);
+    if (!command) return null;
+    return {
+        command,
+        sender_id: msg?.author || msg?.from || '',
+        user_id: user?.user_id || '',
+        display_name: user?.display_name || '',
+        terms_version: process.env.TERMS_VERSION || 'v1.1'
+    };
+}
+
 async function handleSettingsCommands(msg, user) {
     const body = normalizeText(String(msg.body || '').trim());
     if (!body) return false;
@@ -879,8 +898,12 @@ async function handleMessage(msg) {
         await sendPlainMessage(msg, 'Termos atualizados e consentimento renovado com sucesso. Obrigado.');
     }
 
+    const legalLogContext = buildLegalCommandLogContext(msg, activeUser);
     const handledLegal = await handleLegalCommands(msg);
     if (handledLegal) {
+        if (legalLogContext) {
+            logger.info(`[legal] ${legalLogContext.command} context=${JSON.stringify(legalLogContext)}`);
+        }
         return;
     }
 
@@ -1877,7 +1900,8 @@ module.exports = {
         isGreetingMessage,
         buildGreetingReply,
         normalizeMetricLabel,
-        handleAccountLifecycleCommands
+        handleAccountLifecycleCommands,
+        buildLegalCommandLogContext
     }
 };
 

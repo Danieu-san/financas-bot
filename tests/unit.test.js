@@ -249,6 +249,24 @@ test('messageHandler active ACEITO is handled before AI routing', async (t) => {
     assert.ok(replies[0].includes('consentimento já está ativo'));
 });
 
+test('messageHandler legal commands build audit log context', () => {
+    const { buildLegalCommandLogContext } = messageHandler.__test__;
+    const context = buildLegalCommandLogContext(
+        { body: 'TERMOS', author: '5511999999999@c.us' },
+        { user_id: 'user-123', display_name: 'Daniel' }
+    );
+
+    assert.deepStrictEqual(context, {
+        command: 'termos',
+        sender_id: '5511999999999@c.us',
+        user_id: 'user-123',
+        display_name: 'Daniel',
+        terms_version: process.env.TERMS_VERSION || 'v1.1'
+    });
+
+    assert.strictEqual(buildLegalCommandLogContext({ body: 'oi', from: 'x' }, { user_id: 'u' }), null);
+});
+
 test('onboarding rejects command-looking text as display name', (t) => {
     const { looksLikeBotCommand } = onboardingHandler.__test__;
 
