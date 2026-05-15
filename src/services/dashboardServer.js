@@ -47,8 +47,25 @@ function dashboardHtml() {
       min-height: 100vh;
     }
     .wrap { max-width: 1024px; margin: 0 auto; padding: 20px 14px 40px; }
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
     h1 { margin: 0; font-size: 1.6rem; letter-spacing: .2px; }
-    .subtitle { margin: 6px 0 18px; color: var(--muted); font-size: .95rem; }
+    .subtitle { margin: 6px 0 0; color: var(--muted); font-size: .95rem; }
+    .pill {
+      border: 1px solid #b7d8d3;
+      background: #eefaf8;
+      color: #0f5f58;
+      border-radius: 999px;
+      padding: 7px 10px;
+      white-space: nowrap;
+      font-size: .85rem;
+      font-weight: 700;
+    }
     .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
     .field {
       border: 1px solid var(--border);
@@ -83,6 +100,7 @@ function dashboardHtml() {
     .value.ok { color: var(--ok); }
     .value.bad { color: var(--danger); }
     .section { margin-top: 14px; }
+    .section-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 10px; margin-top: 14px; }
     .section h2 { margin: 0 0 8px; font-size: 1.05rem; }
     .bars { display: grid; gap: 8px; }
     .bar-row { display: grid; grid-template-columns: 120px 1fr auto; gap: 8px; align-items: center; }
@@ -91,6 +109,13 @@ function dashboardHtml() {
     .list { display: grid; gap: 7px; }
     .line { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px dashed #e5ddd3; padding-bottom: 5px; font-size: .92rem; }
     .muted { color: var(--muted); }
+    .empty { border: 1px dashed #d8d2c9; border-radius: 10px; padding: 10px; color: var(--muted); background: #fffaf2; }
+    .alert { border-left: 4px solid var(--accent); padding: 8px 9px; background: #f5fbfa; border-radius: 8px; }
+    .alert.high { border-left-color: var(--danger); background: #fff3f2; }
+    .spark-row { display: grid; grid-template-columns: 86px 1fr auto; gap: 8px; align-items: center; font-size: .88rem; }
+    .spark-track { height: 8px; border-radius: 999px; overflow: hidden; background: #e8e4de; }
+    .spark-fill { height: 100%; background: #0f766e; }
+    .spark-fill.bad { background: #b42318; }
     .error {
       background: #fff3f2;
       color: #8f1d18;
@@ -102,15 +127,24 @@ function dashboardHtml() {
     }
     @media (max-width: 700px) {
       .grid { grid-template-columns: 1fr; }
+      .hero { display: block; }
+      .pill { display: inline-flex; margin-top: 10px; }
+      .section-grid { grid-template-columns: 1fr; }
       .bar-row { grid-template-columns: 90px 1fr auto; }
+      .spark-row { grid-template-columns: 76px 1fr auto; }
       .wrap { padding: 14px 10px 30px; }
     }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>Painel Financeiro</h1>
-    <div class="subtitle">Visão rápida do seu mês com alertas práticos.</div>
+    <header class="hero">
+      <div>
+        <h1>Painel Financeiro</h1>
+        <div class="subtitle">Visão rápida do mês, com contexto para decidir o próximo passo.</div>
+      </div>
+      <div id="periodBadge" class="pill">Carregando período...</div>
+    </header>
     <div class="toolbar">
       <select id="month" class="field"></select>
       <select id="year" class="field"></select>
@@ -129,9 +163,25 @@ function dashboardHtml() {
       <div id="categories" class="bars"></div>
     </div>
 
+    <div class="section-grid">
+      <div class="card">
+        <h2>Alertas</h2>
+        <div id="alerts" class="list"></div>
+      </div>
+      <div class="card">
+        <h2>Fluxo Diário</h2>
+        <div id="cashflow" class="list"></div>
+      </div>
+    </div>
+
     <div class="section card">
       <h2>Lançamentos Recentes</h2>
       <div id="recent" class="list"></div>
+    </div>
+
+    <div class="section card">
+      <h2>Dívidas</h2>
+      <div id="debts" class="list"></div>
     </div>
 
     <div class="section card">
@@ -218,23 +268,44 @@ function dashboardHtml() {
       saldoEl.textContent = brl(k.saldo);
       saldoEl.className = 'value ' + ((k.saldo || 0) >= 0 ? 'ok' : 'bad');
       document.getElementById('kpiDebts').textContent = (k.debtActiveCount || 0) + ' | ' + brl(k.debtTotal || 0);
+      const period = data.period || {};
+      document.getElementById('periodBadge').textContent = monthNames[Number(period.month ?? monthEl.value)] + ' de ' + (period.year || yearEl.value);
 
       const cats = data.topCategories || [];
       const maxCat = Math.max(1, ...cats.map(c => Number(c.value || 0)));
       document.getElementById('categories').innerHTML = cats.length ? cats.map(c => {
         const pct = Math.max(3, Math.round((Number(c.value||0) / maxCat) * 100));
         return '<div class="bar-row"><div class="muted">' + esc(c.category) + '</div><div class="bar-track"><div class="bar-fill" style="width:' + pct + '%"></div></div><div>' + brl(c.value) + '</div></div>';
-      }).join('') : '<div class="muted">Sem dados no período.</div>';
+      }).join('') : '<div class="empty">Sem categorias neste período. Registre alguns gastos pelo WhatsApp para ver o mapa de consumo.</div>';
+
+      const alerts = data.alerts || [];
+      document.getElementById('alerts').innerHTML = alerts.length ? alerts.map(a => {
+        return '<div class="alert ' + esc(a.level) + '"><strong>' + esc(a.code || 'ALERTA') + '</strong><br><span>' + esc(a.message) + '</span></div>';
+      }).join('') : '<div class="empty">Nenhum alerta crítico para este período.</div>';
+
+      const flow = data.dailyFlow || [];
+      const maxFlow = Math.max(1, ...flow.map(day => Math.abs(Number(day.saldo || 0))));
+      document.getElementById('cashflow').innerHTML = flow.length ? flow.slice(-8).map(day => {
+        const saldo = Number(day.saldo || 0);
+        const pct = Math.max(4, Math.round((Math.abs(saldo) / maxFlow) * 100));
+        return '<div class="spark-row"><span class="muted">' + esc(day.date) + '</span><div class="spark-track"><div class="spark-fill ' + (saldo < 0 ? 'bad' : '') + '" style="width:' + pct + '%"></div></div><strong>' + brl(saldo) + '</strong></div>';
+      }).join('') : '<div class="empty">Sem fluxo diário no período selecionado.</div>';
 
       const recent = data.recentTransactions || [];
       document.getElementById('recent').innerHTML = recent.length ? recent.map(r => {
         return '<div class="line"><span>' + esc(r.date) + ' · ' + esc(r.description) + '</span><strong>' + brl(r.value) + '</strong></div>';
-      }).join('') : '<div class="muted">Sem lançamentos recentes.</div>';
+      }).join('') : '<div class="empty">Sem lançamentos recentes neste período.</div>';
+
+      const debts = data.debts || [];
+      document.getElementById('debts').innerHTML = debts.length ? debts.map(d => {
+        const rate = d.jurosPct !== undefined ? ' · ' + Number(d.jurosPct || 0).toFixed(2) + '% a.m.' : '';
+        return '<div class="line"><span>' + esc(d.name) + '<span class="muted">' + rate + '</span></span><strong>' + brl(d.saldoAtual || d.balance || 0) + '</strong></div>';
+      }).join('') : '<div class="empty">Sem dívidas ativas cadastradas.</div>';
 
       const goals = data.goals || [];
       document.getElementById('goals').innerHTML = goals.length ? goals.map(g => {
         return '<div class="line"><span>' + esc(g.name) + ' (' + Number(g.progressPct||0).toFixed(1) + '%)</span><strong>' + brl(g.current) + ' / ' + brl(g.target) + '</strong></div>';
-      }).join('') : '<div class="muted">Sem metas cadastradas.</div>';
+      }).join('') : '<div class="empty">Sem metas cadastradas. Uma boa primeira meta é reserva de emergência.</div>';
     }
 
     setupFilters();
