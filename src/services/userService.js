@@ -160,6 +160,13 @@ async function getUserByWhatsAppId(whatsappId) {
     );
 }
 
+async function getUserById(userId) {
+    const safeUserId = String(userId || '').trim();
+    if (!safeUserId) return null;
+    const users = await getAllUsers();
+    return users.find(u => u.user_id === safeUserId) || null;
+}
+
 async function createPendingUser(whatsappId, displayName = '') {
     const existing = await getUserByWhatsAppId(whatsappId);
     if (existing) return existing;
@@ -692,6 +699,7 @@ async function resolveUserAccess(msg) {
         return {
             allowed: false,
             user,
+            googleConnectRequired: true,
             reply: 'Seu cadastro foi aprovado. Agora falta conectar sua conta Google para criar sua planilha no seu Drive e ativar o bot.'
         };
     }
@@ -776,6 +784,7 @@ module.exports = {
     resolveUserAccess,
     USER_STATUS,
     getUserByWhatsAppId,
+    getUserById,
     getUserByLookup,
     normalizePhoneToWhatsappId,
     createPendingUser,

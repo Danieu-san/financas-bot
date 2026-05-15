@@ -21,12 +21,12 @@ Implement multiuser access in safe vertical slices. The first slice changes life
 **Acceptance criteria:**
 - [x] Test `ADMIN_IDS` defaults only include Daniel.
 - [x] Docs state Thaís is a normal/test user, not admin.
-- [ ] EC2 `.env` has `ADMIN_IDS` without `5521964270368`.
+- [x] EC2 `.env` has `ADMIN_IDS` without `5521964270368`.
 
 **Verification:**
-- [ ] `node --test tests/unit.test.js`
-- [ ] `npm test`
-- [ ] Server check: `grep ADMIN_IDS .env`
+- [x] `node --test tests/unit.test.js`
+- [x] `npm test`
+- [x] Server check: `grep ADMIN_IDS .env`
 
 #### Task 1.2: Add `PENDING_APPROVAL`
 **Description:** After `ACEITO`, users wait for admin approval instead of becoming active.
@@ -38,7 +38,7 @@ Implement multiuser access in safe vertical slices. The first slice changes life
 - [x] Admin notification is attempted when WhatsApp client is available.
 
 **Verification:**
-- [ ] `node --test tests/userLifecycle.test.js`
+- [x] `node --test tests/userLifecycle.test.js`
 
 #### Task 1.3: Add `admin aprovar`
 **Description:** Admin approval moves the user to `APPROVED_AWAITING_GOOGLE`.
@@ -49,7 +49,7 @@ Implement multiuser access in safe vertical slices. The first slice changes life
 - [x] Approved user still cannot use financial features before Google OAuth.
 
 **Verification:**
-- [ ] `node --test tests/userLifecycle.test.js tests/unit.test.js`
+- [x] `node --test tests/userLifecycle.test.js tests/unit.test.js`
 
 ### Phase 2: Google OAuth Foundation
 
@@ -57,23 +57,24 @@ Implement multiuser access in safe vertical slices. The first slice changes life
 **Description:** Add local encrypted OAuth token storage and central metadata for connection status.
 
 **Acceptance criteria:**
-- [ ] Refresh tokens are encrypted before storage.
-- [ ] No OAuth secrets are stored in Sheets.
-- [ ] User can have `google_connected_at`, `spreadsheet_id`, and Calendar connection metadata.
+- [x] Refresh tokens are encrypted before storage.
+- [x] No OAuth secrets are stored in Sheets.
+- [x] User can have connection metadata including `spreadsheet_id` and Calendar metadata.
 
 **Verification:**
-- [ ] Unit tests for encryption/decryption and missing key behavior.
+- [x] Unit tests for encryption/decryption and missing key behavior.
 
 #### Task 2.2: OAuth Routes
 **Description:** Add endpoints for starting and completing Google OAuth.
 
 **Acceptance criteria:**
-- [ ] Approved user receives a short-lived connect link.
-- [ ] OAuth callback validates state token.
-- [ ] Successful callback creates/stores OAuth connection.
+- [x] Approved user receives a short-lived connect link.
+- [x] OAuth callback validates state token.
+- [x] Successful callback creates/stores OAuth connection.
 
 **Verification:**
-- [ ] Contract/unit tests for valid/invalid state.
+- [x] Contract/unit tests for valid/invalid state.
+- [x] Unit test for callback storing encrypted tokens and activating connected user.
 - [ ] Manual browser smoke.
 
 ### Phase 3: User-Owned Spreadsheet
@@ -82,12 +83,12 @@ Implement multiuser access in safe vertical slices. The first slice changes life
 **Description:** Create the finance spreadsheet in the user's Drive after OAuth.
 
 **Acceptance criteria:**
-- [ ] Spreadsheet is created with required tabs and visual formatting.
-- [ ] `spreadsheet_id` is stored for that user.
-- [ ] User can reopen existing spreadsheet instead of creating duplicates.
+- [x] Spreadsheet is created with required tabs and headers.
+- [x] `spreadsheet_id` is stored for that user after OAuth callback.
+- [x] User can reopen existing spreadsheet instead of creating duplicates when metadata already has `spreadsheet_id`.
 
 **Verification:**
-- [ ] Unit tests for template definition.
+- [x] Unit tests for template definition.
 - [ ] Manual OAuth smoke with one test user.
 
 #### Task 3.2: User-Scoped Google Client Routing

@@ -165,6 +165,7 @@ test('user lifecycle: APPROVED_AWAITING_GOOGLE user must connect Google before n
     const access = await userService.resolveUserAccess(createMessage('dashboard', whatsappId));
 
     assert.strictEqual(access.allowed, false);
+    assert.strictEqual(access.googleConnectRequired, true);
     assert.match(access.reply, /conectar sua conta Google/i);
 });
 

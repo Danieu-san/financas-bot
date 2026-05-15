@@ -32,6 +32,7 @@ const { buildHealthSummary } = require('../services/financialHealthService');
 const { buildDebtAvalanchePlan } = require('../services/debtAvalancheService');
 const { syncReadModelIfNeeded, executeAnalyticalIntent, markReadModelDirty } = require('../services/readModelService');
 const { buildDashboardAccessLink } = require('../utils/dashboardAuth');
+const { buildGoogleConnectLink } = require('../services/googleOAuthService');
 const metrics = require('../utils/metrics');
 const { isAdminWithContext } = require('../utils/adminCheck');
 const logger = require('../utils/logger');
@@ -616,6 +617,16 @@ async function handleDashboardCommand(msg, user, senderId) {
     return true;
 }
 
+function buildGoogleConnectReply(user) {
+    const link = buildGoogleConnectLink({ userId: user.user_id });
+    return [
+        'Seu cadastro foi aprovado. Para ativar o bot, conecte sua conta Google neste link:',
+        link,
+        '',
+        'O bot criará sua planilha financeira no seu Drive e usará o Calendar apenas para seus lembretes.'
+    ].join('\n');
+}
+
 async function notifyAdminsAboutPendingApproval(msg, user) {
     if (!msg?.client || typeof msg.client.sendMessage !== 'function') return;
     const targetUser = user?.whatsapp_id || '';
@@ -784,14 +795,20 @@ async function handleAdminCommands(msg, senderId, activeUser) {
             return true;
         }
         logger.info(`[admin] aprovar context=${JSON.stringify({ ...adminContext, target, target_user_id: updated.user_id, updated_whatsapp_id: updated.whatsapp_id, updated_status: updated.status })}`);
+        let connectReply = '';
+        try {
+            connectReply = buildGoogleConnectReply(updated);
+        } catch (error) {
+            logger.warn(`[admin] aprovar_sem_link_google context=${JSON.stringify({ ...adminContext, target, target_user_id: updated.user_id, error: error.message })}`);
+        }
         await msg.reply(
             `Usuário aprovado: ${updated.whatsapp_id} -> ${updated.status}\n` +
-            'Próximo passo: enviar o link de conexão Google quando o fluxo OAuth estiver configurado.'
+            (connectReply ? 'Link de conexão Google enviado ao usuário.' : 'Configure OAuth Google para enviar o link de conexão.')
         );
         if (msg.client && typeof msg.client.sendMessage === 'function') {
             await msg.client.sendMessage(
                 updated.whatsapp_id,
-                'Seu cadastro foi aprovado. Agora falta conectar sua conta Google para criar sua planilha no seu Drive e ativar o bot.'
+                connectReply || 'Seu cadastro foi aprovado. Agora falta conectar sua conta Google para criar sua planilha no seu Drive e ativar o bot.'
             );
         }
         return true;
@@ -931,6 +948,14 @@ async function handleMessage(msg) {
     if (!access.allowed) {
         if (access.notifyAdmins && access.user) {
             await notifyAdminsAboutPendingApproval(msg, access.user);
+        }
+        if (access.googleConnectRequired && access.user) {
+            try {
+                await sendPlainMessage(msg, buildGoogleConnectReply(access.user));
+                return;
+            } catch (error) {
+                logger.warn(`[oauth] link_google_indisponivel sender=${senderId} user_id=${access.user.user_id} error=${error.message}`);
+            }
         }
         if (access.reply) {
             await sendPlainMessage(msg, access.reply);

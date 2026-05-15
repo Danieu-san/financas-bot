@@ -3,6 +3,7 @@ const { URL } = require('url');
 const { syncReadModelIfNeeded, getDashboardSnapshot, getDashboardSqlData, isSqliteReady, ALL_USERS_ID } = require('./readModelService');
 const { verifyDashboardToken } = require('../utils/dashboardAuth');
 const { getAllUsers } = require('./userService');
+const { buildGoogleAuthorizationUrl, completeGoogleOAuthCallback } = require('./googleOAuthService');
 const logger = require('../utils/logger');
 const metrics = require('../utils/metrics');
 
@@ -29,6 +30,36 @@ function sendJson(res, statusCode, payload) {
 function sendHtml(res, html) {
     res.writeHead(200, { ...HTML_SECURITY_HEADERS, 'Content-Type': 'text/html; charset=utf-8' });
     res.end(html);
+}
+
+function sendHtmlStatus(res, statusCode, html) {
+    res.writeHead(statusCode, { ...HTML_SECURITY_HEADERS, 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(html);
+}
+
+function safeOAuthPage(title, message) {
+    const esc = (value) => String(value || '').replace(/[&<>"']/g, c => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[c]));
+    return `<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>${esc(title)}</title>
+  <style>
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #f5f2ea; color: #1f2933; font-family: Georgia, 'Times New Roman', serif; }
+    main { max-width: 520px; margin: 24px; padding: 28px; border-radius: 20px; background: #fffaf2; border: 1px solid #e4d8c7; box-shadow: 0 18px 60px rgba(31,41,51,.12); }
+    h1 { margin: 0 0 12px; font-size: 1.6rem; }
+    p { margin: 0; line-height: 1.5; }
+  </style>
+</head>
+<body><main><h1>${esc(title)}</h1><p>${esc(message)}</p></main></body>
+</html>`;
 }
 
 function dashboardHtml() {
@@ -431,6 +462,45 @@ function startDashboardServer() {
         if (req.method === 'GET' && reqUrl.pathname === '/dashboard') {
             metrics.increment('dashboard.page.view');
             sendHtml(res, dashboardHtml());
+            return;
+        }
+        if (req.method === 'GET' && reqUrl.pathname === '/oauth/google/start') {
+            try {
+                const state = reqUrl.searchParams.get('state') || '';
+                const location = buildGoogleAuthorizationUrl(state);
+                res.writeHead(302, { ...SECURITY_HEADERS, Location: location });
+                res.end();
+            } catch (error) {
+                logger.warn(`oauth google start rejeitado: ${error.message}`);
+                sendHtmlStatus(res, 400, safeOAuthPage(
+                    'Link de conexão inválido ou expirado',
+                    'Peça um novo link pelo WhatsApp para conectar sua conta Google.'
+                ));
+            }
+            return;
+        }
+        if (req.method === 'GET' && reqUrl.pathname === '/oauth/google/callback') {
+            try {
+                const code = reqUrl.searchParams.get('code') || '';
+                const state = reqUrl.searchParams.get('state') || '';
+                if (!code || !state) {
+                    throw new Error('Callback OAuth sem code/state.');
+                }
+                const result = await completeGoogleOAuthCallback({ code, state });
+                metrics.increment('oauth.google.callback.success');
+                logger.info(`oauth: Google conectado para user_id=${result.userId}`);
+                sendHtmlStatus(res, 200, safeOAuthPage(
+                    'Google conectado com sucesso',
+                    'Pode voltar para o WhatsApp. O FinançasBot vai continuar a configuração por lá.'
+                ));
+            } catch (error) {
+                metrics.increment('oauth.google.callback.error');
+                logger.warn(`oauth google callback rejeitado: ${error.message}`);
+                sendHtmlStatus(res, 400, safeOAuthPage(
+                    'Não foi possível concluir a conexão',
+                    'Peça um novo link pelo WhatsApp e tente novamente.'
+                ));
+            }
             return;
         }
         if (req.method === 'GET' && reqUrl.pathname === '/dashboard/api/summary') {

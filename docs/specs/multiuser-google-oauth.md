@@ -19,6 +19,9 @@ Success means:
 - Current source of truth during transition: central Google Sheet + SQLite read model.
 - Target multiuser model: central operational registry + per-user Google spreadsheet + local read model keyed by `user_id`.
 - OAuth token storage: encrypted local SQLite for beta, with a clear future path to Postgres/Secrets Manager if scale grows.
+- Default Google OAuth scopes:
+  - `https://www.googleapis.com/auth/drive.file`
+  - `https://www.googleapis.com/auth/calendar.events.owned`
 
 ## Commands
 - Run tests: `npm test`
@@ -81,6 +84,8 @@ if (user.status === USER_STATUS.APPROVED_AWAITING_GOOGLE) {
 - `PENDING_APPROVAL` exists and is used after consent.
 - `admin aprovar <telefone>` exists and is audited.
 - `APPROVED_AWAITING_GOOGLE` blocks normal bot usage.
+- OAuth tokens are encrypted at rest in local SQLite.
+- OAuth callback creates a user-owned spreadsheet template before activation.
 - `.env` on production has `ADMIN_IDS` without Thaís.
 - Multiuser OAuth tasks are planned before implementation of per-user sheets.
 - CSV/OFX import is planned before PDF/image import.
