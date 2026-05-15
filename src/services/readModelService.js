@@ -409,6 +409,15 @@ async function syncReadModelIfNeeded({ force = false } = {}) {
     return syncInFlight;
 }
 
+function markReadModelDirty(reason = 'write') {
+    readModel.meta = {
+        ...(readModel.meta || {}),
+        lastSyncedAt: '',
+        source: `dirty:${reason}`
+    };
+    saveReadModelToDisk();
+}
+
 function getUnifiedExpensesForUser(userId, month, year) {
     const outgoing = readModel.saidas
         .filter((entry) => entry.user_id === userId && periodMatches(entry, month, year));
@@ -710,6 +719,7 @@ module.exports = {
     ALL_USERS_ID,
     initializeReadModel,
     syncReadModelIfNeeded,
+    markReadModelDirty,
     executeAnalyticalIntent,
     getReadModelStats,
     getDashboardSnapshot,

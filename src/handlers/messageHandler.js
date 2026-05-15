@@ -29,7 +29,7 @@ const {
 const { handleOnboarding, POST_ONBOARDING_DEBT_OFFER_ACTION } = require('./onboardingHandler');
 const { buildHealthSummary } = require('../services/financialHealthService');
 const { buildDebtAvalanchePlan } = require('../services/debtAvalancheService');
-const { syncReadModelIfNeeded, executeAnalyticalIntent } = require('../services/readModelService');
+const { syncReadModelIfNeeded, executeAnalyticalIntent, markReadModelDirty } = require('../services/readModelService');
 const { buildDashboardAccessLink } = require('../utils/dashboardAuth');
 const metrics = require('../utils/metrics');
 const { isAdminWithContext } = require('../utils/adminCheck');
@@ -128,6 +128,14 @@ function normalizePaymentMethodLabel(value) {
     return String(value || '').trim();
 }
 
+function markFinancialReadModelDirty(reason = 'financial_write') {
+    try {
+        markReadModelDirty(reason);
+    } catch (error) {
+        logger.warn(`read-model: falha ao marcar dados financeiros como sujos (${error.message})`);
+    }
+}
+
 function canSaveTransactionWithoutExtraPayment(item) {
     if (!item || !item.type) return false;
     if (item.type === 'Saídas') {
@@ -159,6 +167,7 @@ async function saveTransactionWithoutExtraPayment(item, { person, userId }) {
             userId
         ];
         await appendRowToSheet('Saídas', rowData);
+        markFinancialReadModelDirty('saida_write');
         return { sheetName: 'Saídas', date: dataFinal, value: valorNumerico, method: pagamentoFinal };
     }
 
@@ -179,6 +188,7 @@ async function saveTransactionWithoutExtraPayment(item, { person, userId }) {
             userId
         ];
         await appendRowToSheet('Entradas', rowData);
+        markFinancialReadModelDirty('entrada_write');
         return { sheetName: 'Entradas', date: dataFinal, value: valorNumerico, method: recebimentoFinal };
     }
 
@@ -984,6 +994,7 @@ async function handleMessage(msg) {
                         ];
                         
                         await appendRowToSheet(cardInfo.sheetName, rowData);
+                        markFinancialReadModelDirty('card_write');
                         await msg.reply(`✅ Gasto de R$${gasto.valor} lançado no *${cardInfo.sheetName}* (fatura de ${billingMonthName}).`);
                     } else {
                         const installmentValue = parseFloat(gasto.valor) / installments;
@@ -1012,6 +1023,7 @@ async function handleMessage(msg) {
                              
                              await appendRowToSheet(cardInfo.sheetName, rowData);
                         }
+                        markFinancialReadModelDirty('card_write');
                         await msg.reply(`✅ Gasto de R$${gasto.valor} lançado em ${installments}x de R$${installmentValue.toFixed(2)} no *${cardInfo.sheetName}*.`);
                     }
                 } catch (error) {
@@ -1071,6 +1083,7 @@ async function handleMessage(msg) {
                     gasto.recorrente || 'Não', gasto.observacoes || '', userId
                 ];
                 await appendRowToSheet('Saídas', rowData);
+                markFinancialReadModelDirty('saida_write');
 
                 // MENSAGEM DE SUCESSO MELHORADA
                 await msg.reply(`✅ Gasto de R$${valorNumerico.toFixed(2)} (${gasto.descricao}) registrado como *${gasto.pagamento}* para a data de *${dataFinal}*!`);
@@ -1098,6 +1111,7 @@ async function handleMessage(msg) {
                 ];
 
                 await appendRowToSheet('Entradas', rowData);
+                markFinancialReadModelDirty('entrada_write');
                 await msg.reply(`✅ Entrada de R$${valorNumerico.toFixed(2)} (${entrada.descricao}) registrada como *${entrada.recebimento}* para a data de *${dataDaEntrada}*!`);
 
                 const settings = await getUserSettingsByUserId(userId);
@@ -1235,6 +1249,7 @@ async function handleMessage(msg) {
                         
                         if (rowData.length > 0) {
                             await appendRowToSheet(sheetName, rowData);
+                            markFinancialReadModelDirty(sheetName === 'Saídas' ? 'saida_write' : 'entrada_write');
                             successCount++;
                         }
                     } catch (e) {
@@ -1355,6 +1370,7 @@ async function handleMessage(msg) {
                     }
                 }
 
+                markFinancialReadModelDirty('card_write');
                 await msg.reply(`✅ Lançamentos no crédito finalizados com sucesso!`);
                 userStateManager.deleteState(senderId);
                 return;

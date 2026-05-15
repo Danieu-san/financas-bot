@@ -142,6 +142,7 @@ installMocks();
 const { handleMessage } = require('../src/handlers/messageHandler');
 const userStateManager = require('../src/state/userStateManager');
 const userService = require('../src/services/userService');
+const { getReadModelStats } = require('../src/services/readModelService');
 const cache = require('../src/utils/cache');
 
 function createMockMessage(body) {
@@ -225,6 +226,7 @@ stateMachineTest('financial states: explicit PIX expense is saved without asking
     assert.strictEqual(sheets.Saídas[1][4], 25);
     assert.strictEqual(sheets.Saídas[1][6], 'PIX');
     assert.strictEqual(sheets.Saídas[1][9], USER_ID);
+    assert.match(getReadModelStats().source, /^dirty:/);
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
 });
 
