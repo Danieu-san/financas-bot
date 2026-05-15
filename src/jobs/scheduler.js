@@ -385,8 +385,10 @@ function initializeScheduler(wppClient) {
     cron.schedule('*/10 * * * *', async () => {
         try {
             await syncReadModelIfNeeded();
+            metrics.increment('read_model.sync.scheduled.success');
             logger.info(`[read-model] sync agendado OK: ${JSON.stringify(getReadModelStats())}`);
         } catch (error) {
+            metrics.increment('read_model.sync.scheduled.error');
             logger.warn(`[read-model] falha no sync agendado: ${error.message}`);
         }
     }, { scheduled: true, timezone: 'America/Sao_Paulo' });

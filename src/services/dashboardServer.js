@@ -3,6 +3,7 @@ const { URL } = require('url');
 const { syncReadModelIfNeeded, getDashboardSnapshot, getDashboardSqlData, isSqliteReady } = require('./readModelService');
 const { verifyDashboardToken } = require('../utils/dashboardAuth');
 const logger = require('../utils/logger');
+const metrics = require('../utils/metrics');
 
 let server = null;
 
@@ -320,6 +321,7 @@ async function handleApiSummary(reqUrl, res) {
     const token = reqUrl.searchParams.get('token') || '';
     const payload = verifyDashboardToken(token);
     if (!payload) {
+        metrics.increment('dashboard.api.auth_failed');
         sendJson(res, 401, { error: 'Token inválido ou expirado.' });
         return;
     }
@@ -330,8 +332,10 @@ async function handleApiSummary(reqUrl, res) {
     try {
         await syncReadModelIfNeeded();
         const snapshot = getDashboardSqlData(payload.uid, { month, year }) || getDashboardSnapshot(payload.uid, { month, year });
+        metrics.increment('dashboard.api.summary.success');
         sendJson(res, 200, snapshot);
     } catch (error) {
+        metrics.increment('dashboard.api.error');
         logger.error(`dashboard api error: ${error.message}`);
         sendJson(res, 500, { error: 'Falha ao carregar dados do dashboard.' });
     }
@@ -341,6 +345,7 @@ async function withAuth(reqUrl, res, cb) {
     const token = reqUrl.searchParams.get('token') || '';
     const payload = verifyDashboardToken(token);
     if (!payload) {
+        metrics.increment('dashboard.api.auth_failed');
         sendJson(res, 401, { error: 'Token inválido ou expirado.' });
         return;
     }
@@ -348,6 +353,7 @@ async function withAuth(reqUrl, res, cb) {
         await syncReadModelIfNeeded();
         await cb(payload);
     } catch (error) {
+        metrics.increment('dashboard.api.error');
         logger.error(`dashboard api error: ${error.message}`);
         sendJson(res, 500, { error: 'Falha ao carregar dados do dashboard.' });
     }
@@ -367,6 +373,7 @@ function startDashboardServer() {
     server = http.createServer(async (req, res) => {
         const reqUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
         if (req.method === 'GET' && reqUrl.pathname === '/dashboard') {
+            metrics.increment('dashboard.page.view');
             sendHtml(res, dashboardHtml());
             return;
         }
