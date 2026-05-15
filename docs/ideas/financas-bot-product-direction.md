@@ -48,3 +48,11 @@ The next stable product slice should include:
 
 ## Product Bet
 FinancasBot should become a personal finance operating system, but the winning path is not to build every surface immediately. The winning path is to make the core financial memory reliable first, then expand the experience around it.
+
+## Direction Anchor
+This direction is recorded as an accepted architectural/product decision in `docs/decisions/ADR-001-product-direction-personal-finance-os.md`.
+
+Future specs and task plans should keep the same marker visible:
+
+> Destination: personal finance operating system.
+> Path: reliable data-driven core first, then expand surfaces and automation.
