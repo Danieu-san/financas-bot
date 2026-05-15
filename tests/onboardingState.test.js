@@ -17,7 +17,8 @@ require.cache[userServicePath] = {
 };
 
 const userStateManager = require('../src/state/userStateManager');
-const { handleOnboarding } = require('../src/handlers/onboardingHandler');
+const onboardingHandler = require('../src/handlers/onboardingHandler');
+const { handleOnboarding } = onboardingHandler;
 
 function createMessage(body = 'qual meu saldo?') {
     const replies = [];
@@ -45,6 +46,72 @@ test('onboarding clears stale state when profile is already completed', async ()
     assert.deepStrictEqual(result, { handled: false });
     assert.strictEqual(userStateManager.getState(msg.from), undefined);
     assert.deepStrictEqual(msg.replies, []);
+});
+
+test('onboarding can go back one step without losing stored answers', async () => {
+    const { advanceOnboarding } = onboardingHandler.__test__;
+    const msg = createMessage('voltar');
+    userStateManager.setState(msg.from, {
+        action: 'onboarding_flow',
+        step: 3,
+        data: { display_name: 'Daniel', monthly_income: 2000 }
+    });
+
+    await advanceOnboarding(
+        msg.from,
+        userStateManager.getState(msg.from),
+        msg,
+        { user_id: 'onboarding-user' }
+    );
+
+    const state = userStateManager.getState(msg.from);
+    assert.strictEqual(state.step, 2);
+    assert.strictEqual(state.data.monthly_income, 2000);
+    assert.ok(msg.replies.some(text => text.includes('renda mensal')));
+});
+
+test('onboarding can restart from any step', async () => {
+    const { advanceOnboarding } = onboardingHandler.__test__;
+    const msg = createMessage('recomeçar');
+    userStateManager.setState(msg.from, {
+        action: 'onboarding_flow',
+        step: 4,
+        data: { display_name: 'Daniel', monthly_income: 2000, fixed_expense_estimate: 1200 }
+    });
+
+    await advanceOnboarding(
+        msg.from,
+        userStateManager.getState(msg.from),
+        msg,
+        { user_id: 'onboarding-user' }
+    );
+
+    const state = userStateManager.getState(msg.from);
+    assert.strictEqual(state.step, 1);
+    assert.deepStrictEqual(state.data, {});
+    assert.ok(msg.replies.some(text => text.includes('recomeçar')));
+    assert.ok(msg.replies.some(text => text.includes('como você prefere ser chamado')));
+});
+
+test('onboarding help explains recovery commands', async () => {
+    const { advanceOnboarding } = onboardingHandler.__test__;
+    const msg = createMessage('ajuda');
+    userStateManager.setState(msg.from, {
+        action: 'onboarding_flow',
+        step: 2,
+        data: { display_name: 'Daniel' }
+    });
+
+    await advanceOnboarding(
+        msg.from,
+        userStateManager.getState(msg.from),
+        msg,
+        { user_id: 'onboarding-user' }
+    );
+
+    assert.strictEqual(userStateManager.getState(msg.from).step, 2);
+    assert.ok(msg.replies[0].includes('voltar'));
+    assert.ok(msg.replies[0].includes('recomeçar'));
 });
 
 test.after(() => {

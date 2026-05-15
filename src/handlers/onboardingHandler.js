@@ -34,6 +34,21 @@ function looksLikeBotCommand(text) {
         v.includes('?');
 }
 
+function isRestartCommand(text) {
+    const v = normalizeText(text || '');
+    return ['recomecar', 'recomeçar', 'reiniciar', 'resetar', 'comecar de novo', 'começar de novo'].includes(v);
+}
+
+function isBackCommand(text) {
+    const v = normalizeText(text || '');
+    return ['voltar', 'corrigir', 'anterior'].includes(v);
+}
+
+function isHelpCommand(text) {
+    const v = normalizeText(text || '');
+    return ['ajuda', 'help', 'duvida', 'dúvida'].includes(v);
+}
+
 function getQuestion(step) {
     switch (step) {
         case 1:
@@ -49,6 +64,18 @@ function getQuestion(step) {
         default:
             return null;
     }
+}
+
+function buildOnboardingHelp(step) {
+    const question = getQuestion(step) || getQuestion(1);
+    return [
+        'Você está no onboarding inicial.',
+        `Pergunta atual: ${question}`,
+        'Comandos úteis aqui:',
+        '- `voltar` para corrigir a resposta anterior',
+        '- `recomeçar` para começar do zero',
+        '- `ajuda` para ver esta orientação'
+    ].join('\n');
 }
 
 async function startOnboarding(senderId, msg) {
@@ -86,6 +113,42 @@ async function advanceOnboarding(senderId, state, msg, user) {
     const answer = String(msg.body || '').trim();
     const data = { ...(state.data || {}) };
     const step = state.step || 1;
+
+    if (isRestartCommand(answer)) {
+        userStateManager.setState(
+            senderId,
+            {
+                action: ONBOARDING_ACTION,
+                step: 1,
+                data: {}
+            },
+            ONBOARDING_TTL_SECONDS
+        );
+        await msg.reply('Sem problema, vamos recomeçar o onboarding.');
+        await msg.reply(getQuestion(1));
+        return;
+    }
+
+    if (isBackCommand(answer)) {
+        const previousStep = Math.max(1, step - 1);
+        userStateManager.setState(
+            senderId,
+            {
+                action: ONBOARDING_ACTION,
+                step: previousStep,
+                data
+            },
+            ONBOARDING_TTL_SECONDS
+        );
+        await msg.reply(previousStep === step ? 'Você já está na primeira pergunta.' : 'Claro, vamos voltar uma etapa.');
+        await msg.reply(getQuestion(previousStep));
+        return;
+    }
+
+    if (isHelpCommand(answer)) {
+        await msg.reply(buildOnboardingHelp(step));
+        return;
+    }
 
     if (step === 1) {
         if (!answer) {
@@ -178,6 +241,10 @@ async function handleOnboarding(msg, user) {
 module.exports = {
     handleOnboarding,
     __test__: {
-        looksLikeBotCommand
+        looksLikeBotCommand,
+        isRestartCommand,
+        isBackCommand,
+        buildOnboardingHelp,
+        advanceOnboarding
     }
 };
