@@ -49,6 +49,13 @@ The next stable product slice should include:
 ## Product Bet
 FinancasBot should become a personal finance operating system, but the winning path is not to build every surface immediately. The winning path is to make the core financial memory reliable first, then expand the experience around it.
 
+## User Spreadsheet Experience Principle
+Every spreadsheet created for an end user must feel like a personal finance workspace, not an admin/debug database. User-owned spreadsheets should include only tabs that help the person understand, edit, audit, or plan their own finances: Dashboard, Manual, Saídas, Entradas, Cartões, Lançamentos Cartão, Dívidas, Metas, and Contas.
+
+Admin-only or diagnostic concepts such as import logs, hashes, internal IDs, cross-user warnings, beta debugging notes, or operational configuration belong in admin tooling and the admin manual, not in the user's spreadsheet. If a field is technically useful but would make the user wonder "what do I do with this?", it should be hidden, removed from the user template, or explained only in the right admin context.
+
+The user manual must be treated as part of the product, not as decoration. It should explain what the bot does, what each tab is for, how to use WhatsApp commands, where the dashboard lives, how cards work, how corrections happen, and what the user should do after Google connection. A new user should be able to open the spreadsheet and continue without guessing.
+
 ## Direction Anchor
 This direction is recorded as an accepted architectural/product decision in `docs/decisions/ADR-001-product-direction-personal-finance-os.md`.
 

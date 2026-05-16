@@ -56,6 +56,8 @@ const USER_SPREADSHEET_TABS = Object.freeze([
     }
 ]);
 
+const OBSOLETE_USER_SPREADSHEET_TABS = Object.freeze(['Importações', 'Configurações']);
+
 const THEME = Object.freeze({
     paper: { red: 0.98, green: 0.96, blue: 0.91 },
     white: { red: 1, green: 1, blue: 1 },
@@ -270,21 +272,29 @@ async function loadSpreadsheetMetadata({ sheetsClient, spreadsheetId }) {
 }
 
 async function ensureUserSpreadsheetTabs({ sheetsClient, spreadsheetId, spreadsheet }) {
-    const existingTitles = new Set((spreadsheet?.data?.sheets || spreadsheet?.sheets || []).map(sheet => sheet?.properties?.title).filter(Boolean));
+    const existingSheets = spreadsheet?.data?.sheets || spreadsheet?.sheets || [];
+    const existingTitles = new Set(existingSheets.map(sheet => sheet?.properties?.title).filter(Boolean));
     const missingTabs = USER_SPREADSHEET_TABS.filter(tab => !existingTitles.has(tab.title));
-    if (!missingTabs.length || !sheetsClient?.spreadsheets?.batchUpdate) return spreadsheet;
+    const obsoleteDeletes = existingSheets
+        .filter(sheet => OBSOLETE_USER_SPREADSHEET_TABS.includes(sheet?.properties?.title) && sheet?.properties?.sheetId !== undefined)
+        .map(sheet => ({ deleteSheet: { sheetId: sheet.properties.sheetId } }));
+
+    if ((!missingTabs.length && !obsoleteDeletes.length) || !sheetsClient?.spreadsheets?.batchUpdate) return spreadsheet;
 
     await sheetsClient.spreadsheets.batchUpdate({
         spreadsheetId,
         resource: {
-            requests: missingTabs.map(tab => ({
-                addSheet: {
-                    properties: {
-                        title: tab.title,
-                        gridProperties: { frozenRowCount: tab.type === 'dashboard' ? 4 : 1 }
+            requests: [
+                ...obsoleteDeletes,
+                ...missingTabs.map(tab => ({
+                    addSheet: {
+                        properties: {
+                            title: tab.title,
+                            gridProperties: { frozenRowCount: tab.type === 'dashboard' ? 4 : 1 }
+                        }
                     }
-                }
-            }))
+                }))
+            ]
         }
     });
 
@@ -683,6 +693,7 @@ async function completeGoogleConnectionForUser({ user, oauth2Client, sheetsClien
 
 module.exports = {
     USER_SPREADSHEET_TABS,
+    OBSOLETE_USER_SPREADSHEET_TABS,
     buildUserSpreadsheetResource,
     createUserSpreadsheetForUser,
     applyUserSpreadsheetTemplate,

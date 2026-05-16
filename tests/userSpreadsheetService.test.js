@@ -109,7 +109,9 @@ test('applyUserSpreadsheetTemplate upgrades an existing sheet without recreating
             sheets: [
                 { properties: { title: 'Dashboard', sheetId: 10 }, charts: [{ chartId: 77 }] },
                 { properties: { title: 'Saídas', sheetId: 11 } },
-                { properties: { title: 'Entradas', sheetId: 12 } }
+                { properties: { title: 'Entradas', sheetId: 12 } },
+                { properties: { title: 'Importações', sheetId: 98 } },
+                { properties: { title: 'Configurações', sheetId: 99 } }
             ]
         }
     };
@@ -152,6 +154,9 @@ test('applyUserSpreadsheetTemplate upgrades an existing sheet without recreating
     });
 
     assert.ok(calls.some(call => call.type === 'batchUpdate.addTabs'), 'Should add missing template tabs');
+    const tabUpdate = calls.find(call => call.type === 'batchUpdate.addTabs');
+    assert.ok(tabUpdate.payload.resource.requests.some(req => req.deleteSheet?.sheetId === 98));
+    assert.ok(tabUpdate.payload.resource.requests.some(req => req.deleteSheet?.sheetId === 99));
     const starterContent = calls.find(call => call.type === 'values.batchUpdate');
     assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Manual'!A1:C20"));
     const formatCall = calls.find(call => call.type === 'batchUpdate.format');
