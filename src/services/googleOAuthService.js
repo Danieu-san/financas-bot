@@ -157,8 +157,10 @@ async function completeGoogleOAuthCallback({ code, state, oauth2Client: injected
 
     return {
         userId: payload.userId,
+        whatsappId: completion.user?.whatsapp_id || user.whatsapp_id || '',
         connection,
         spreadsheetId: completion.spreadsheetId,
+        spreadsheetUrl: completion.spreadsheetUrl || '',
         userStatus: completion.user?.status || ''
     };
 }

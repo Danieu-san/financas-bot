@@ -5,11 +5,16 @@ const { once } = require('node:events');
 const dashboardServerPath = require.resolve('../src/services/dashboardServer');
 const readModelPath = require.resolve('../src/services/readModelService');
 const googleOAuthPath = require.resolve('../src/services/googleOAuthService');
+const whatsappPath = require.resolve('../src/services/whatsapp');
+
+let whatsappMessages = [];
 
 function installMocks({ callbackResult = { userId: 'user-oauth-route' } } = {}) {
+    whatsappMessages = [];
     delete require.cache[dashboardServerPath];
     delete require.cache[readModelPath];
     delete require.cache[googleOAuthPath];
+    delete require.cache[whatsappPath];
 
     require.cache[readModelPath] = {
         id: readModelPath,
@@ -36,6 +41,17 @@ function installMocks({ callbackResult = { userId: 'user-oauth-route' } } = {}) 
             completeGoogleOAuthCallback: async ({ code, state }) => {
                 if (code === 'bad') throw new Error('Falha OAuth de teste.');
                 return { ...callbackResult, code, state };
+            }
+        }
+    };
+
+    require.cache[whatsappPath] = {
+        id: whatsappPath,
+        filename: whatsappPath,
+        loaded: true,
+        exports: {
+            sendWhatsAppMessage: async (to, message) => {
+                whatsappMessages.push({ to, message });
             }
         }
     };
@@ -88,6 +104,32 @@ test('OAuth callback stores connection through service and returns safe success 
         assert.strictEqual(res.status, 200);
         assert.match(body, /Google conectado com sucesso/);
         assert.doesNotMatch(body, /abc123|signed-state/);
+    } finally {
+        await new Promise(resolve => server.close(resolve));
+    }
+});
+
+test('OAuth callback notifies user on WhatsApp after successful connection', async () => {
+    installMocks({
+        callbackResult: {
+            userId: 'user-oauth-route',
+            whatsappId: '5599999999999@c.us',
+            spreadsheetUrl: 'https://docs.google.com/spreadsheets/d/sheet-id/edit'
+        }
+    });
+    const { startDashboardServer } = require('../src/services/dashboardServer');
+    const server = startDashboardServer();
+    if (!server.listening) await once(server, 'listening');
+    const address = server.address();
+    const baseUrl = `http://127.0.0.1:${address.port}`;
+
+    try {
+        const res = await fetch(`${baseUrl}/oauth/google/callback?code=abc123&state=signed-state`);
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(whatsappMessages.length, 1);
+        assert.strictEqual(whatsappMessages[0].to, '5599999999999@c.us');
+        assert.match(whatsappMessages[0].message, /Google conectado com sucesso/);
+        assert.match(whatsappMessages[0].message, /Planilha/);
     } finally {
         await new Promise(resolve => server.close(resolve));
     }

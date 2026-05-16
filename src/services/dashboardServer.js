@@ -4,6 +4,7 @@ const { syncReadModelIfNeeded, getDashboardSnapshot, getDashboardSqlData, isSqli
 const { verifyDashboardToken } = require('../utils/dashboardAuth');
 const { getAllUsers } = require('./userService');
 const { buildGoogleAuthorizationUrl, completeGoogleOAuthCallback } = require('./googleOAuthService');
+const { sendWhatsAppMessage } = require('./whatsapp');
 const logger = require('../utils/logger');
 const metrics = require('../utils/metrics');
 
@@ -60,6 +61,34 @@ function safeOAuthPage(title, message) {
 </head>
 <body><main><h1>${esc(title)}</h1><p>${esc(message)}</p></main></body>
 </html>`;
+}
+
+function buildGoogleConnectionWhatsAppMessage(result = {}) {
+    return [
+        'Google conectado com sucesso.',
+        'Sua planilha foi criada no seu Drive e seu acesso ao FinançasBot está ativo.',
+        result.spreadsheetUrl ? `Planilha: ${result.spreadsheetUrl}` : '',
+        'Você já pode usar o bot pelo WhatsApp.',
+        'Comandos úteis:',
+        '1) gastei 25 no mercado no pix',
+        '2) recebi 2000 de salário',
+        '3) dashboard'
+    ].filter(Boolean).join('\n');
+}
+
+async function notifyUserAfterGoogleConnection(result = {}) {
+    const whatsappId = String(result.whatsappId || '').trim();
+    if (!whatsappId) {
+        logger.warn(`oauth: conexão Google sem whatsapp_id para user_id=${result.userId || ''}`);
+        return;
+    }
+
+    try {
+        await sendWhatsAppMessage(whatsappId, buildGoogleConnectionWhatsAppMessage(result));
+        logger.info(`oauth: confirmação WhatsApp enviada para user_id=${result.userId} whatsapp_id=${whatsappId}`);
+    } catch (error) {
+        logger.warn(`oauth: falha ao enviar confirmação WhatsApp user_id=${result.userId || ''} whatsapp_id=${whatsappId} error=${error.message}`);
+    }
 }
 
 function dashboardHtml() {
@@ -489,6 +518,7 @@ function startDashboardServer() {
                 const result = await completeGoogleOAuthCallback({ code, state });
                 metrics.increment('oauth.google.callback.success');
                 logger.info(`oauth: Google conectado para user_id=${result.userId}`);
+                await notifyUserAfterGoogleConnection(result);
                 sendHtmlStatus(res, 200, safeOAuthPage(
                     'Google conectado com sucesso',
                     'Pode voltar para o WhatsApp. O FinançasBot vai continuar a configuração por lá.'

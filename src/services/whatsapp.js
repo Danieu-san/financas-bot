@@ -152,4 +152,17 @@ function initializeWhatsAppClient() {
     return client;
 }
 
-module.exports = { initializeWhatsAppClient };
+function getWhatsAppClient() {
+    return clientInstance;
+}
+
+async function sendWhatsAppMessage(to, message) {
+    const safeTo = String(to || '').trim();
+    if (!safeTo) throw new Error('Destino WhatsApp ausente.');
+    if (!clientInstance || typeof clientInstance.sendMessage !== 'function') {
+        throw new Error('Cliente WhatsApp indisponível.');
+    }
+    return clientInstance.sendMessage(safeTo, message);
+}
+
+module.exports = { initializeWhatsAppClient, getWhatsAppClient, sendWhatsAppMessage };
