@@ -25,6 +25,22 @@ function rowsForUser(rows, userId, userIdIndex) {
     return rows.slice(1).filter(row => row[userIdIndex] === userId);
 }
 
+function assertMoney(reply, expected, context) {
+    const formatted = `R$ ${Number(expected).toFixed(2).replace('.', ',')}`;
+    assert.ok(
+        reply.includes(formatted),
+        `${context}: esperado ${formatted}, resposta recebida: ${reply}`
+    );
+}
+
+function assertRegistered(reply, context) {
+    assert.match(
+        reply,
+        /registrad[ao]|Registro finalizado/i,
+        `${context}: resposta recebida: ${reply}`
+    );
+}
+
 async function withFunctionalState(sender, fn) {
     try {
         if (!spreadsheetReset) {
@@ -69,9 +85,7 @@ functionalTest('functional: expenses, income and credit card installments', { co
                 data: '10/02/2026'
             }]
         });
-        assert.ok(last(await send('gastei 80 no lanche em fevereiro no pix')).includes('Você confirma'));
-        assert.ok(last(await send('sim')).includes('como esses itens foram pagos'));
-        assert.ok(last(await send('pix')).includes('Registro finalizado'));
+        assertRegistered(last(await send('gastei 80 no lanche em fevereiro no pix')), 'Gasto com pagamento informado deve registrar direto');
 
         const saidas = await readRows('Saídas!A:J', { minRows: 2 });
         const saidasDoUsuario = rowsForUser(saidas, user.user_id, 9);
@@ -88,9 +102,7 @@ functionalTest('functional: expenses, income and credit card installments', { co
                 recorrente: 'Não'
             }]
         });
-        assert.ok(last(await send('recebi 3000 de salário no pix')).includes('Você confirma'));
-        assert.ok(last(await send('sim')).includes('como esses itens foram pagos'));
-        assert.ok(last(await send('pix')).includes('Registro finalizado'));
+        assertRegistered(last(await send('recebi 3000 de salário no pix')), 'Entrada com recebimento informado deve registrar direto');
 
         const entradas = await readRows('Entradas!A:I', { minRows: 2 });
         const entradasDoUsuario = rowsForUser(entradas, user.user_id, 8);
@@ -189,24 +201,66 @@ functionalTest('functional: analytics, deletion, admin and fallback', { concurre
                 data: '10/02/2026'
             }]
         });
-        assert.ok(last(await send('gastei 80 no lanche em fevereiro no pix')).includes('Você confirma'));
-        assert.ok(last(await send('sim')).includes('como esses itens foram pagos'));
-        assert.ok(last(await send('pix')).includes('Registro finalizado'));
+        assertRegistered(last(await send('gastei 80 no lanche em fevereiro no pix')), 'Primeiro gasto analítico deve registrar direto');
+
+        enqueueStructured({
+            intent: 'gasto',
+            gastoDetails: [{
+                descricao: 'uber fevereiro',
+                valor: 30,
+                categoria: 'Transporte',
+                subcategoria: 'UBER / 99',
+                pagamento: 'PIX',
+                recorrente: 'Não',
+                data: '11/02/2026'
+            }]
+        });
+        assertRegistered(last(await send('gastei 30 de uber em fevereiro no pix')), 'Segundo gasto analítico deve registrar direto');
+
+        enqueueStructured({
+            intent: 'entrada',
+            entradaDetails: [{
+                descricao: 'salário fevereiro',
+                valor: 3000,
+                categoria: 'Salário',
+                recebimento: 'PIX',
+                recorrente: 'Não',
+                data: '01/02/2026'
+            }]
+        });
+        assertRegistered(last(await send('recebi 3000 de salário em fevereiro no pix')), 'Entrada analítica deve registrar direto');
 
         await syncReadModelIfNeeded({ force: true });
 
         let replies = await send('Quanto gastei em fevereiro?');
-        assert.ok(last(replies).includes('Total gasto em fevereiro/2026'), 'Total mensal sem categoria deve responder corretamente');
-        assert.ok(!last(replies).includes('categoria informada'), 'Total mensal não deve falar categoria informada');
+        let reply = last(replies);
+        assert.ok(reply.includes('Total gasto em fevereiro/2026'), 'Total mensal sem categoria deve responder corretamente');
+        assertMoney(reply, 110, 'Total mensal deve somar alimentação + transporte');
+        assertMoney(reply, 0, 'Total mensal deve informar cartão zerado');
+        assert.ok(!reply.includes('categoria informada'), 'Total mensal não deve falar categoria informada');
 
         replies = await send('Quanto gastei em fevereiro com alimentação?');
-        assert.ok(last(replies).includes('Total gasto com alimentacao em fevereiro/2026'));
+        reply = last(replies);
+        assert.ok(reply.includes('Total gasto com alimentacao em fevereiro/2026'));
+        assertMoney(reply, 80, 'Total por categoria alimentação');
+
+        replies = await send('Quanto gastei em fevereiro com transporte?');
+        reply = last(replies);
+        assert.ok(reply.includes('Total gasto com transporte em fevereiro/2026'));
+        assertMoney(reply, 30, 'Total por categoria transporte');
 
         replies = await send('qual meu saldo de fevereiro?');
-        assert.ok(last(replies).includes('Saldo em fevereiro/2026'));
+        reply = last(replies);
+        assert.ok(reply.includes('Saldo em fevereiro/2026'));
+        assertMoney(reply, 2890, 'Saldo deve ser entradas menos saídas e cartões');
+        assertMoney(reply, 3000, 'Saldo deve exibir entradas');
+        assertMoney(reply, 110, 'Saldo deve exibir saídas totais');
 
         replies = await send('liste meus gastos com alimentação em fevereiro');
-        assert.ok(last(replies).includes('Gastos encontrados'), 'Listagem deve retornar gastos');
+        reply = last(replies);
+        assert.ok(reply.includes('Gastos encontrados (1)'), 'Listagem deve retornar somente gastos da categoria pedida');
+        assert.ok(reply.includes('lanche fevereiro'), 'Listagem deve incluir o gasto correto');
+        assertMoney(reply, 80, 'Listagem deve exibir valor correto');
 
         enqueueStructured({
             intent: 'apagar_item',
@@ -216,7 +270,9 @@ functionalTest('functional: analytics, deletion, admin and fallback', { concurre
         assert.ok(last(await send('sim')).includes('apagado'));
 
         const saidas = await readRows('Saídas!A:J', { minRows: 1, retries: 15, delayMs: 1000 });
-        assert.strictEqual(rowsForUser(saidas, user.user_id, 9).length, 0, 'Exclusão deve remover saída do usuário');
+        const saidasRestantes = rowsForUser(saidas, user.user_id, 9);
+        assert.strictEqual(saidasRestantes.length, 1, 'Exclusão deve remover apenas o último gasto do usuário');
+        assert.strictEqual(saidasRestantes[0][1], 'lanche fevereiro');
 
         enqueueStructured({ intent: 'ajuda' });
         assert.ok(last(await send('ajuda')).includes('assistente financeiro'));

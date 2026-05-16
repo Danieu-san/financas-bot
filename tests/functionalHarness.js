@@ -169,6 +169,7 @@ async function activateAndOnboard(sender = SENDER) {
     user = await userService.updateUserStatus(user.user_id, 'ACTIVE');
     assert.strictEqual(user.status, 'ACTIVE');
 
+    assert.ok(last(await send('Oi', sender)).includes('como você prefere ser chamado'), 'Onboarding inicia perguntando nome');
     assert.ok(last(await send('Daniel Teste', sender)).includes('renda mensal'), 'Onboarding pergunta renda');
     assert.ok(last(await send('5000', sender)).includes('gasto fixo'), 'Onboarding pergunta gasto fixo');
     assert.ok(last(await send('2500', sender)).includes('dívidas ativas'), 'Onboarding pergunta dívidas');
