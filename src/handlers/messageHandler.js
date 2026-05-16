@@ -4,7 +4,10 @@ const creationHandler = require('./creationHandler');
 const deletionHandler = require('./deletionHandler');
 const debtHandler = require('./debtHandler');
 const { getStructuredResponseFromLLM, askLLM } = require('../services/gemini');
-const { appendRowToSheet, readDataFromSheet, createCalendarEvent, syncDashboardForUser } = require('../services/google');
+const googleService = require('../services/google');
+const { appendRowToSheet, readDataFromSheet, createCalendarEvent, syncDashboardForUser } = googleService;
+const runWithUserSheetContext = googleService.runWithUserSheetContext || ((user, fn) => fn());
+const hasUserSpreadsheetContext = googleService.hasUserSpreadsheetContext || (async () => false);
 const { getFormattedDate, getFormattedDateOnly, normalizeText, parseSheetDate, parseAmount, parseValue } = require('../utils/helpers');
 const cache = require('../utils/cache');
 const rateLimiter = require('../utils/rateLimiter');
@@ -988,6 +991,8 @@ async function handleMessage(msg) {
     }
 
     const activeUser = access.user;
+
+    return runWithUserSheetContext(activeUser, async () => {
     const userId = activeUser.user_id;
     const pessoa = activeUser.display_name || userMap[senderId] || 'Usuário';
 
@@ -1596,6 +1601,7 @@ async function handleMessage(msg) {
                 case 'resumo': {
                     await msg.reply('Gerando seu resumo financeiro com saúde de caixa...');
                     try {
+                        const usePersonalSpreadsheet = await hasUserSpreadsheetContext({ userId });
                         const sheetReads = [
                             readDataFromSheet('Saídas!A:J'),
                             readDataFromSheet('Entradas!A:I'),
@@ -1603,10 +1609,14 @@ async function handleMessage(msg) {
                             readDataFromSheet('Metas!A:I')
                         ];
 
-                        const cardSheetNames = Object.values(creditCardConfig).map(card => card.sheetName);
-                        cardSheetNames.forEach(sheetName => {
-                            sheetReads.push(readDataFromSheet(sheetName + '!A:G'));
-                        });
+                        if (usePersonalSpreadsheet) {
+                            sheetReads.push(readDataFromSheet('Lançamentos Cartão!A:J'));
+                        } else {
+                            const cardSheetNames = Object.values(creditCardConfig).map(card => card.sheetName);
+                            cardSheetNames.forEach(sheetName => {
+                                sheetReads.push(readDataFromSheet(sheetName + '!A:G'));
+                            });
+                        }
 
                         const allSheetData = await timeStep(
                             'resumo.Promise.all(sheetReads)',
@@ -1820,28 +1830,34 @@ async function handleMessage(msg) {
                         let analyzedData = null;
                         let usedReadModel = false;
                         let analysisSource = 'unknown';
-                        try {
-                            await timeStep(
-                                'readModel.sync',
-                                () => syncReadModelIfNeeded(),
-                                perfContext
-                            );
-                            analyzedData = await timeStep(
-                                'readModel.execute',
-                                () => executeAnalyticalIntent(
-                                    intentClassification.intent,
-                                    intentClassification.parameters,
-                                    { userId }
-                                ),
-                                perfContext
-                            );
-                            usedReadModel = true;
-                            analysisSource = analyzedData?.source || 'read_model_unknown';
-                            metrics.increment(`message.pergunta.analysis.${normalizeMetricLabel(analysisSource)}`);
-                            logger.info(`[routing] analysis_source=${analysisSource} intent=${intentClassification.intent} sender=${senderId}`);
-                        } catch (readModelError) {
-                            metrics.increment('message.pergunta.analysis.read_model_error');
-                            logger.warn(`[read-model] fallback legacy execute. motivo=${readModelError.message}`);
+                        const usePersonalSpreadsheet = await hasUserSpreadsheetContext({ userId });
+                        if (!usePersonalSpreadsheet) {
+                            try {
+                                await timeStep(
+                                    'readModel.sync',
+                                    () => syncReadModelIfNeeded(),
+                                    perfContext
+                                );
+                                analyzedData = await timeStep(
+                                    'readModel.execute',
+                                    () => executeAnalyticalIntent(
+                                        intentClassification.intent,
+                                        intentClassification.parameters,
+                                        { userId }
+                                    ),
+                                    perfContext
+                                );
+                                usedReadModel = true;
+                                analysisSource = analyzedData?.source || 'read_model_unknown';
+                                metrics.increment(`message.pergunta.analysis.${normalizeMetricLabel(analysisSource)}`);
+                                logger.info(`[routing] analysis_source=${analysisSource} intent=${intentClassification.intent} sender=${senderId}`);
+                            } catch (readModelError) {
+                                metrics.increment('message.pergunta.analysis.read_model_error');
+                                logger.warn(`[read-model] fallback legacy execute. motivo=${readModelError.message}`);
+                            }
+                        } else {
+                            metrics.increment('message.pergunta.analysis.personal_sheet');
+                            logger.info(`[routing] analysis_source=personal_sheet intent=${intentClassification.intent} sender=${senderId}`);
                         }
 
                         if (!analyzedData) {
@@ -1854,10 +1870,14 @@ async function handleMessage(msg) {
                                 readDataFromSheet('Metas!A:I'),
                                 readDataFromSheet('Dívidas!A:R')
                             ];
-                            const cardSheetNames = Object.values(creditCardConfig).map(card => card.sheetName);
-                            cardSheetNames.forEach(sheetName => {
-                                sheetReads.push(readDataFromSheet(`${sheetName}!A:G`));
-                            });
+                            if (usePersonalSpreadsheet) {
+                                sheetReads.push(readDataFromSheet('Lançamentos Cartão!A:J'));
+                            } else {
+                                const cardSheetNames = Object.values(creditCardConfig).map(card => card.sheetName);
+                                cardSheetNames.forEach(sheetName => {
+                                    sheetReads.push(readDataFromSheet(`${sheetName}!A:G`));
+                                });
+                            }
                             const allSheetData = await timeStep(
                                 'pergunta.Promise.all(sheetReads)',
                                 () => Promise.all(sheetReads),
@@ -1866,7 +1886,8 @@ async function handleMessage(msg) {
 
                             const [saidasData, entradasData, metasData, dividasData] = allSheetData;
                             const creditCardData = allSheetData.slice(4);
-                            const filteredCreditCardData = creditCardData.map(sheetRows => filterSheetRowsByUserId(sheetRows, 6, userId));
+                            const cardUserIdIndex = usePersonalSpreadsheet ? 9 : 6;
+                            const filteredCreditCardData = creditCardData.map(sheetRows => filterSheetRowsByUserId(sheetRows, cardUserIdIndex, userId));
                             analyzedData = await timeStep(
                                 'execute(intent)',
                                 () => execute(
@@ -1987,6 +2008,7 @@ async function handleMessage(msg) {
             }
         }
     }
+    });
 }
 
 module.exports = {

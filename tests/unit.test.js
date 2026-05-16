@@ -369,6 +369,36 @@ test('google.validateUserScopedWrite blocks user scoped rows without user_id', (
     });
 });
 
+test('google user spreadsheet mapping keeps legacy card flows compatible', (t) => {
+    const {
+        mapSheetNameForUserSpreadsheet,
+        mapRangeForUserSpreadsheet,
+        mapRowForUserSpreadsheet,
+        mapValuesFromUserSpreadsheetRange
+    } = googleService.__test__;
+
+    assert.strictEqual(mapSheetNameForUserSpreadsheet('Saídas'), 'Saídas');
+    assert.strictEqual(mapSheetNameForUserSpreadsheet('Cartão Nubank - Daniel'), 'Lançamentos Cartão');
+    assert.strictEqual(mapRangeForUserSpreadsheet('Dívidas'), 'Dívidas');
+    assert.strictEqual(mapRangeForUserSpreadsheet('Cartão Nubank - Daniel!A:G'), 'Lançamentos Cartão!A:J');
+
+    assert.deepStrictEqual(
+        mapRowForUserSpreadsheet('Cartão Nubank - Daniel', ['10/02/2026', 'mercado', 'Alimentação', 50, '1/1', 'Fevereiro de 2026', 'user-1']),
+        ['10/02/2026', 'mercado', 'Alimentação', 50, '1/1', 'Fevereiro de 2026', 'nubank-daniel', 'Cartão Nubank - Daniel', '', 'user-1']
+    );
+
+    assert.deepStrictEqual(
+        mapValuesFromUserSpreadsheetRange('Cartão Nubank - Daniel!A:G', [
+            ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Observações', 'user_id'],
+            ['10/02/2026', 'mercado', 'Alimentação', 50, '1/1', 'Fevereiro de 2026', 'nubank-daniel', 'Nubank', '', 'user-1']
+        ]),
+        [
+            ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'user_id'],
+            ['10/02/2026', 'mercado', 'Alimentação', 50, '1/1', 'Fevereiro de 2026', 'user-1']
+        ]
+    );
+});
+
 test('google.headerToNumberFormat distinguishes date columns from due-day columns', (t) => {
     const { headerToNumberFormat } = googleService.__test__;
 

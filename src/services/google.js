@@ -1,7 +1,9 @@
 const { google } = require('googleapis');
+const { AsyncLocalStorage } = require('async_hooks');
 const path = require('path');
 const fs = require('fs');
 const { convertToIsoDateTime } = require('../utils/helpers');
+const { getOAuthConnection } = require('./oauthTokenStore');
 
 const GOOGLE_CREDENTIALS_PATH = path.resolve(process.cwd(), 'credentials.json');
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
@@ -10,6 +12,107 @@ let tasks;
 let calendar;
 let oAuth2Client;
 let authInFlight = null;
+const sheetContext = new AsyncLocalStorage();
+
+const USER_SHEET_NAMES = new Set([
+    'Dashboard',
+    'Manual',
+    'Saídas',
+    'Entradas',
+    'Dívidas',
+    'Metas',
+    'Cartões',
+    'Lançamentos Cartão',
+    'Contas'
+]);
+
+function runWithUserSheetContext(userOrContext, fn) {
+    const userId = String(userOrContext?.user_id || userOrContext?.userId || '').trim();
+    return sheetContext.run({ userId }, fn);
+}
+
+function getCurrentSheetContext(options = {}) {
+    if (options.forceCentral) return {};
+    const explicitUserId = String(options.userId || '').trim();
+    if (explicitUserId) return { userId: explicitUserId };
+    return sheetContext.getStore() || {};
+}
+
+function isLegacyCreditCardSheetName(sheetName) {
+    return String(sheetName || '').trim().startsWith('Cartão ');
+}
+
+function splitRangeSheetName(range = '') {
+    const match = String(range || '').match(/^'((?:[^']|'')+)'!(.+)$/);
+    if (match) {
+        return {
+            sheetName: match[1].replace(/''/g, "'"),
+            suffix: match[2],
+            quoted: true
+        };
+    }
+    const bangIndex = String(range || '').indexOf('!');
+    if (bangIndex === -1) return { sheetName: String(range || ''), suffix: '', quoted: false };
+    return {
+        sheetName: String(range).slice(0, bangIndex),
+        suffix: String(range).slice(bangIndex + 1),
+        quoted: false
+    };
+}
+
+function shouldUseUserSpreadsheetForSheet(sheetName) {
+    const safeSheetName = String(sheetName || '').trim();
+    return USER_SHEET_NAMES.has(safeSheetName) || isLegacyCreditCardSheetName(safeSheetName);
+}
+
+function mapSheetNameForUserSpreadsheet(sheetName) {
+    return isLegacyCreditCardSheetName(sheetName) ? 'Lançamentos Cartão' : sheetName;
+}
+
+function mapRangeForUserSpreadsheet(range) {
+    const parsed = splitRangeSheetName(range);
+    const mappedSheetName = mapSheetNameForUserSpreadsheet(parsed.sheetName);
+    if (!parsed.suffix && !isLegacyCreditCardSheetName(parsed.sheetName)) return mappedSheetName;
+    const suffix = isLegacyCreditCardSheetName(parsed.sheetName) ? 'A:J' : parsed.suffix;
+    return `${mappedSheetName}!${suffix || 'A:A'}`;
+}
+
+function cardIdFromLegacySheetName(sheetName) {
+    return String(sheetName || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/^cartao\s+/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'cartao';
+}
+
+function mapRowForUserSpreadsheet(sheetName, row) {
+    if (!isLegacyCreditCardSheetName(sheetName)) return row;
+    return [
+        row[0] || '',
+        row[1] || '',
+        row[2] || '',
+        row[3] || '',
+        row[4] || '',
+        row[5] || '',
+        cardIdFromLegacySheetName(sheetName),
+        sheetName,
+        '',
+        row[6] || ''
+    ];
+}
+
+function mapValuesFromUserSpreadsheetRange(originalRange, values = []) {
+    const parsed = splitRangeSheetName(originalRange);
+    if (!isLegacyCreditCardSheetName(parsed.sheetName)) return values;
+    return values.map((row, index) => {
+        if (index === 0) {
+            return ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'user_id'];
+        }
+        return [row[0] || '', row[1] || '', row[2] || '', row[3] || '', row[4] || '', row[5] || '', row[9] || ''];
+    });
+}
 
 function getErrorStatusCode(error) {
     return error?.code || error?.status || error?.response?.status || null;
@@ -177,6 +280,7 @@ function eventBelongsToUser(event, userId) {
 async function createCalendarEvent(title, startDateTime, recurrenceRule, options = {}) {
     const safeUserId = requireUserId(options.userId, 'createCalendarEvent');
     try {
+        const target = await resolveCalendarTarget({ ...options, userId: safeUserId });
         const isoDateTime = convertToIsoDateTime(startDateTime);
         const event = {
             summary: title,
@@ -190,10 +294,15 @@ async function createCalendarEvent(title, startDateTime, recurrenceRule, options
             }
         };
         if (recurrenceRule) event.recurrence = [`RRULE:${recurrenceRule}`];
-        const response = await runWithGoogleRetry('createCalendarEvent', () => calendar.events.insert({
-            calendarId: 'primary',
-            resource: event,
-        }));
+        const response = target.userScoped
+            ? await target.calendarClient.events.insert({
+                calendarId: target.calendarId,
+                resource: event,
+            })
+            : await runWithGoogleRetry('createCalendarEvent', () => calendar.events.insert({
+                calendarId: target.calendarId,
+                resource: event,
+            }));
         return response.data;
     } catch (error) {
         console.error('❌ Erro no Calendar:', error);
@@ -201,9 +310,10 @@ async function createCalendarEvent(title, startDateTime, recurrenceRule, options
     }
 }
 
-async function getSheetIds() {
+async function getSheetIds(options = {}) {
+    const target = await resolveSpreadsheetTarget(options);
     try {
-        const response = await runWithGoogleRetry('getSheetIds', () => sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID }));
+        const response = await runSheetsOperation('getSheetIds', target, () => target.sheetsClient.spreadsheets.get({ spreadsheetId: target.spreadsheetId }));
         const sheetData = response.data.sheets;
         const sheetNameToId = {};
         sheetData.forEach(sheet => { sheetNameToId[sheet.properties.title] = sheet.properties.sheetId; });
@@ -213,15 +323,107 @@ async function getSheetIds() {
     }
 }
 
-async function appendRowToSheet(sheetName, row) {
-    validateUserScopedWrite(sheetName, row);
+function buildUserOAuthClient(tokens = {}) {
+    const clientId = String(process.env.GOOGLE_OAUTH_CLIENT_ID || '').trim();
+    const clientSecret = String(process.env.GOOGLE_OAUTH_CLIENT_SECRET || '').trim();
+    const redirectUri = String(process.env.GOOGLE_OAUTH_REDIRECT_URI || '').trim();
+    if (!clientId || !clientSecret) return null;
+    const client = new google.auth.OAuth2(clientId, clientSecret, redirectUri || undefined);
+    client.setCredentials(tokens);
+    return client;
+}
+
+async function resolveSpreadsheetTarget(options = {}) {
+    const context = getCurrentSheetContext(options);
+    const safeUserId = String(context.userId || '').trim();
+    const requestedSheet = String(options.sheetName || splitRangeSheetName(options.range || '').sheetName || '').trim();
+
+    if (safeUserId && shouldUseUserSpreadsheetForSheet(requestedSheet)) {
+        try {
+            const connection = getOAuthConnection(safeUserId, { includeTokens: true });
+            const spreadsheetId = String(connection?.spreadsheet_id || '').trim();
+            const auth = buildUserOAuthClient(connection?.tokens || {});
+            if (spreadsheetId && auth) {
+                return {
+                    userScoped: true,
+                    userId: safeUserId,
+                    spreadsheetId,
+                    sheetsClient: google.sheets({ version: 'v4', auth })
+                };
+            }
+        } catch (error) {
+            console.warn(`⚠️ Não foi possível usar planilha do usuário ${safeUserId}; usando planilha central. Motivo: ${error.message}`);
+        }
+    }
+
+    await ensureGoogleAuthorized();
+    return {
+        userScoped: false,
+        spreadsheetId: SPREADSHEET_ID,
+        sheetsClient: sheets
+    };
+}
+
+async function resolveCalendarTarget(options = {}) {
+    const context = getCurrentSheetContext(options);
+    const safeUserId = String(context.userId || '').trim();
+
+    if (safeUserId) {
+        try {
+            const connection = getOAuthConnection(safeUserId, { includeTokens: true });
+            const auth = buildUserOAuthClient(connection?.tokens || {});
+            if (auth) {
+                return {
+                    userScoped: true,
+                    userId: safeUserId,
+                    calendarClient: google.calendar({ version: 'v3', auth }),
+                    calendarId: connection?.calendar_id || 'primary'
+                };
+            }
+        } catch (error) {
+            console.warn(`⚠️ Não foi possível usar Calendar do usuário ${safeUserId}; usando Calendar central. Motivo: ${error.message}`);
+        }
+    }
+
+    await ensureGoogleAuthorized();
+    return {
+        userScoped: false,
+        calendarClient: calendar,
+        calendarId: 'primary'
+    };
+}
+
+async function hasUserSpreadsheetContext(options = {}) {
+    const target = await resolveSpreadsheetTarget({ ...options, sheetName: options.sheetName || 'Saídas' });
+    return Boolean(target.userScoped);
+}
+
+async function runSheetsOperation(operationName, target, fn, { swallowOnError = false, fallbackValue = null } = {}) {
+    if (!target?.userScoped) {
+        return runWithGoogleRetry(operationName, fn, { swallowOnError, fallbackValue });
+    }
+
     try {
-        await runWithGoogleRetry(`appendRowToSheet(${sheetName})`, () => sheets.spreadsheets.values.append({
-            spreadsheetId: SPREADSHEET_ID,
-            range: `${sheetName}!A:A`,
+        return await fn();
+    } catch (error) {
+        console.error(`❌ ${operationName}: erro na planilha do usuário:`, error.message);
+        if (swallowOnError) return fallbackValue;
+        throw error;
+    }
+}
+
+async function appendRowToSheet(sheetName, row, options = {}) {
+    validateUserScopedWrite(sheetName, row);
+    const target = await resolveSpreadsheetTarget({ ...options, sheetName });
+    const mappedSheetName = target.userScoped ? mapSheetNameForUserSpreadsheet(sheetName) : sheetName;
+    const mappedRow = target.userScoped ? mapRowForUserSpreadsheet(sheetName, row) : row;
+    try {
+        await runSheetsOperation(`appendRowToSheet(${sheetName})`, target, () => target.sheetsClient.spreadsheets.values.append({
+            spreadsheetId: target.spreadsheetId,
+            range: `${mappedSheetName}!A:A`,
             valueInputOption: 'USER_ENTERED',
             insertDataOption: 'INSERT_ROWS',
-            resource: { values: [row] },
+            resource: { values: [mappedRow] },
         }));
     } catch (error) {
         console.error(`❌ Erro ao adicionar linha em ${sheetName}:`, error.message);
@@ -229,25 +431,32 @@ async function appendRowToSheet(sheetName, row) {
     }
 }
 
-async function readDataFromSheet(range) {
+async function readDataFromSheet(range, options = {}) {
+    const target = await resolveSpreadsheetTarget({ ...options, range });
+    const mappedRange = target.userScoped ? mapRangeForUserSpreadsheet(range) : range;
     try {
-        const response = await runWithGoogleRetry(
+        const response = await runSheetsOperation(
             `readDataFromSheet(${range})`,
-            () => sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range }),
+            target,
+            () => target.sheetsClient.spreadsheets.values.get({ spreadsheetId: target.spreadsheetId, range: mappedRange }),
             { swallowOnError: true, fallbackValue: { data: { values: [] } } }
         );
-        return response.data.values || [];
+        return target.userScoped
+            ? mapValuesFromUserSpreadsheetRange(range, response.data.values || [])
+            : response.data.values || [];
     } catch (error) {
         console.error(`❌ Erro ao ler dados da planilha (${range}):`, error.message);
         return [];
     }
 }
 
-async function updateRowInSheet(range, rowData) {
+async function updateRowInSheet(range, rowData, options = {}) {
+    const target = await resolveSpreadsheetTarget({ ...options, range });
+    const mappedRange = target.userScoped ? mapRangeForUserSpreadsheet(range) : range;
     try {
-        await runWithGoogleRetry(`updateRowInSheet(${range})`, () => sheets.spreadsheets.values.update({
-            spreadsheetId: SPREADSHEET_ID,
-            range,
+        await runSheetsOperation(`updateRowInSheet(${range})`, target, () => target.sheetsClient.spreadsheets.values.update({
+            spreadsheetId: target.spreadsheetId,
+            range: mappedRange,
             valueInputOption: 'USER_ENTERED',
             resource: { values: [rowData] },
         }));
@@ -257,10 +466,11 @@ async function updateRowInSheet(range, rowData) {
     }
 }
 
-async function batchUpdateRowsInSheet(data) {
+async function batchUpdateRowsInSheet(data, options = {}) {
+    const target = await resolveSpreadsheetTarget(options);
     try {
-        await runWithGoogleRetry('batchUpdateRowsInSheet', () => sheets.spreadsheets.values.batchUpdate({
-            spreadsheetId: SPREADSHEET_ID,
+        await runSheetsOperation('batchUpdateRowsInSheet', target, () => target.sheetsClient.spreadsheets.values.batchUpdate({
+            spreadsheetId: target.spreadsheetId,
             resource: {
                 valueInputOption: 'USER_ENTERED',
                 data
@@ -985,12 +1195,14 @@ async function ensureSpreadsheetStructure() {
     }
 }
 
-async function deleteRowsByIndices(sheetName, rowIndices) {
+async function deleteRowsByIndices(sheetName, rowIndices, options = {}) {
     try {
-        const sheetMap = await getSheetIds();
-        const sheetId = sheetMap[sheetName];
+        const target = await resolveSpreadsheetTarget({ ...options, sheetName });
+        const mappedSheetName = target.userScoped ? mapSheetNameForUserSpreadsheet(sheetName) : sheetName;
+        const sheetMap = await getSheetIds({ ...options, sheetName });
+        const sheetId = sheetMap[mappedSheetName];
         if (sheetId === undefined) {
-            return { success: false, message: `Aba "${sheetName}" não encontrada.` };
+            return { success: false, message: `Aba "${mappedSheetName}" não encontrada.` };
         }
 
         // Deleta de baixo para cima para não deslocar os índices
@@ -1007,8 +1219,8 @@ async function deleteRowsByIndices(sheetName, rowIndices) {
             }
         }));
 
-        await runWithGoogleRetry(`deleteRowsByIndices(${sheetName})`, () => sheets.spreadsheets.batchUpdate({
-            spreadsheetId: SPREADSHEET_ID,
+        await runSheetsOperation(`deleteRowsByIndices(${sheetName})`, target, () => target.sheetsClient.spreadsheets.batchUpdate({
+            spreadsheetId: target.spreadsheetId,
             resource: { requests }
         }));
 
@@ -1027,7 +1239,13 @@ module.exports = {
         eventBelongsToUser,
         requireUserId,
         validateUserScopedWrite,
-        headerToNumberFormat
+        headerToNumberFormat,
+        mapSheetNameForUserSpreadsheet,
+        mapRangeForUserSpreadsheet,
+        mapRowForUserSpreadsheet,
+        mapValuesFromUserSpreadsheetRange,
+        runWithUserSheetContext,
+        hasUserSpreadsheetContext
     },
     getSheetIds,
     appendRowToSheet,
@@ -1038,5 +1256,7 @@ module.exports = {
     renderVisualDashboard,
     deleteRowsByIndices,
     ensureSpreadsheetStructure,
+    runWithUserSheetContext,
+    hasUserSpreadsheetContext,
     get sheets() { return sheets; }
 };

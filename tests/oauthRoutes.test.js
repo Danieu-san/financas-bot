@@ -110,6 +110,7 @@ test('OAuth callback stores connection through service and returns safe success 
 });
 
 test('OAuth callback notifies user on WhatsApp after successful connection', async () => {
+    process.env.USER_MANUAL_URL = 'https://docs.google.com/document/d/manual-id/view';
     installMocks({
         callbackResult: {
             userId: 'user-oauth-route',
@@ -130,9 +131,11 @@ test('OAuth callback notifies user on WhatsApp after successful connection', asy
         assert.strictEqual(whatsappMessages[0].to, '5599999999999@c.us');
         assert.match(whatsappMessages[0].message, /Google conectado com sucesso/);
         assert.match(whatsappMessages[0].message, /Planilha/);
+        assert.match(whatsappMessages[0].message, /Manual completo somente leitura/);
         assert.match(whatsappMessages[0].message, /aba "Manual"/);
-        assert.match(whatsappMessages[0].message, /cartões são individuais/i);
+        assert.match(whatsappMessages[0].message, /planilha é individual/i);
     } finally {
+        delete process.env.USER_MANUAL_URL;
         await new Promise(resolve => server.close(resolve));
     }
 });

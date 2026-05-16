@@ -1,6 +1,7 @@
 const http = require('http');
 const { URL } = require('url');
 const { syncReadModelIfNeeded, getDashboardSnapshot, getDashboardSqlData, isSqliteReady, ALL_USERS_ID } = require('./readModelService');
+const { getUserSheetDashboardData } = require('./userSheetAnalyticsService');
 const { verifyDashboardToken } = require('../utils/dashboardAuth');
 const { getAllUsers } = require('./userService');
 const { buildGoogleAuthorizationUrl, completeGoogleOAuthCallback } = require('./googleOAuthService');
@@ -64,12 +65,14 @@ function safeOAuthPage(title, message) {
 }
 
 function buildGoogleConnectionWhatsAppMessage(result = {}) {
+    const manualUrl = String(process.env.USER_MANUAL_URL || process.env.FINANCASBOT_USER_MANUAL_URL || '').trim();
     return [
         'Google conectado com sucesso.',
         'Sua planilha foi criada no seu Drive e seu acesso ao FinançasBot está ativo.',
         result.spreadsheetUrl ? `Planilha: ${result.spreadsheetUrl}` : '',
-        result.spreadsheetUrl ? 'Comece pela aba "Manual" dentro da planilha. Ela explica cada aba, como cadastrar seus próprios cartões e como usar o bot pelo WhatsApp.' : '',
-        'Importante: os cartões são individuais. Cadastre na aba "Cartões" apenas os cartões deste usuário; o bot usará esses cartões nos lançamentos de crédito.',
+        manualUrl ? `Manual completo somente leitura: ${manualUrl}` : '',
+        result.spreadsheetUrl ? 'Comece pela aba "Manual" da planilha para entender as abas. Use também o manual completo acima como referência.' : '',
+        'Importante: sua planilha é individual. Seus lançamentos financeiros passam a ser registrados nela quando sua conta Google está conectada.',
         'Você já pode usar o bot pelo WhatsApp.',
         'Comandos úteis:',
         '1) gastei 25 no mercado no pix',
@@ -510,8 +513,16 @@ async function handleApiSummary(reqUrl, res) {
         const month = reqUrl.searchParams.get('month');
         const year = reqUrl.searchParams.get('year');
 
-        await syncReadModelIfNeeded();
         const dataUserId = getDashboardDataUserId(payload, reqUrl);
+        const personal = dataUserId === payload.uid
+            ? await getUserSheetDashboardData(dataUserId, { month, year })
+            : null;
+        if (personal) {
+            metrics.increment('dashboard.api.summary.success');
+            sendJson(res, 200, personal);
+            return;
+        }
+        await syncReadModelIfNeeded();
         const snapshot = getDashboardSqlData(dataUserId, { month, year }) || getDashboardSnapshot(dataUserId, { month, year });
         metrics.increment('dashboard.api.summary.success');
         sendJson(res, 200, snapshot);
@@ -532,9 +543,19 @@ async function withAuth(reqUrl, res, cb) {
             return;
         }
 
-        await syncReadModelIfNeeded();
         const dataUserId = getDashboardDataUserId(payload, reqUrl);
-        await cb(payload, dataUserId);
+        const personal = dataUserId === payload.uid
+            ? await getUserSheetDashboardData(dataUserId, {
+                month: reqUrl.searchParams.get('month'),
+                year: reqUrl.searchParams.get('year')
+            })
+            : null;
+        if (personal) {
+            await cb(payload, dataUserId, personal);
+            return;
+        }
+        await syncReadModelIfNeeded();
+        await cb(payload, dataUserId, null);
     } catch (error) {
         metrics.increment('dashboard.api.error');
         logger.error(`dashboard api error: ${error.message}`);
@@ -627,9 +648,18 @@ function startDashboardServer() {
             return;
         }
         if (req.method === 'GET' && reqUrl.pathname === '/dashboard/api/kpis') {
-            await withAuth(reqUrl, res, async (payload, dataUserId) => {
+            await withAuth(reqUrl, res, async (payload, dataUserId, personal) => {
                 const month = reqUrl.searchParams.get('month');
                 const year = reqUrl.searchParams.get('year');
+                if (personal) {
+                    sendJson(res, 200, {
+                        period: personal.period,
+                        kpis: personal.kpis,
+                        topCategories: personal.topCategories,
+                        source: personal.source
+                    });
+                    return;
+                }
                 const sql = getDashboardSqlData(dataUserId, { month, year });
                 if (sql) {
                     sendJson(res, 200, {
@@ -651,9 +681,13 @@ function startDashboardServer() {
             return;
         }
         if (req.method === 'GET' && reqUrl.pathname === '/dashboard/api/cashflow') {
-            await withAuth(reqUrl, res, async (payload, dataUserId) => {
+            await withAuth(reqUrl, res, async (payload, dataUserId, personal) => {
                 const month = reqUrl.searchParams.get('month');
                 const year = reqUrl.searchParams.get('year');
+                if (personal) {
+                    sendJson(res, 200, { period: personal.period, dailyFlow: personal.dailyFlow, source: personal.source });
+                    return;
+                }
                 const sql = getDashboardSqlData(dataUserId, { month, year });
                 if (sql) {
                     sendJson(res, 200, { period: sql.period, dailyFlow: sql.dailyFlow, source: 'sqlite' });
@@ -665,7 +699,11 @@ function startDashboardServer() {
             return;
         }
         if (req.method === 'GET' && reqUrl.pathname === '/dashboard/api/debts') {
-            await withAuth(reqUrl, res, async (payload, dataUserId) => {
+            await withAuth(reqUrl, res, async (payload, dataUserId, personal) => {
+                if (personal) {
+                    sendJson(res, 200, { debts: personal.debts, source: personal.source });
+                    return;
+                }
                 const sql = getDashboardSqlData(dataUserId, {});
                 if (sql) {
                     sendJson(res, 200, { debts: sql.debts, source: 'sqlite' });
@@ -677,7 +715,11 @@ function startDashboardServer() {
             return;
         }
         if (req.method === 'GET' && reqUrl.pathname === '/dashboard/api/goals') {
-            await withAuth(reqUrl, res, async (payload, dataUserId) => {
+            await withAuth(reqUrl, res, async (payload, dataUserId, personal) => {
+                if (personal) {
+                    sendJson(res, 200, { goals: personal.goals, source: personal.source });
+                    return;
+                }
                 const sql = getDashboardSqlData(dataUserId, {});
                 if (sql) {
                     sendJson(res, 200, { goals: sql.goals, source: 'sqlite' });
@@ -689,9 +731,13 @@ function startDashboardServer() {
             return;
         }
         if (req.method === 'GET' && reqUrl.pathname === '/dashboard/api/alerts') {
-            await withAuth(reqUrl, res, async (payload, dataUserId) => {
+            await withAuth(reqUrl, res, async (payload, dataUserId, personal) => {
                 const month = reqUrl.searchParams.get('month');
                 const year = reqUrl.searchParams.get('year');
+                if (personal) {
+                    sendJson(res, 200, { alerts: personal.alerts, source: personal.source });
+                    return;
+                }
                 const sql = getDashboardSqlData(dataUserId, { month, year });
                 if (sql) {
                     sendJson(res, 200, { alerts: sql.alerts, source: 'sqlite' });
