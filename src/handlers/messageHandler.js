@@ -631,6 +631,64 @@ function buildGoogleConnectReply(user) {
     ].join('\n');
 }
 
+function buildLegacyCreditCardOptions() {
+    return Object.keys(creditCardConfig).map((key) => ({
+        key,
+        label: key,
+        cardInfo: creditCardConfig[key]
+    }));
+}
+
+async function buildCreditCardOptionsForUser(userId) {
+    const usesPersonalSpreadsheet = await hasUserSpreadsheetContext({ userId });
+    if (usesPersonalSpreadsheet) {
+        const rows = await readDataFromSheet('Cartões!A:H');
+        const personalOptions = rows.slice(1)
+            .filter((row) => {
+                const cardId = String(row[0] || '').trim();
+                const name = String(row[1] || '').trim();
+                const active = normalizeText(row[5] || 'SIM') !== 'nao';
+                const rowUserId = String(row[7] || '').trim();
+                return active && (cardId || name) && (!rowUserId || rowUserId === String(userId || '').trim());
+            })
+            .map((row) => {
+                const label = String(row[1] || row[0]).trim();
+                const closingDay = Number.parseInt(row[3], 10);
+                return {
+                    key: String(row[0] || label).trim(),
+                    label,
+                    cardInfo: {
+                        sheetName: `Cartão ${label}`,
+                        closingDay: Number.isInteger(closingDay) && closingDay >= 1 && closingDay <= 31 ? closingDay : 1
+                    }
+                };
+            });
+        return personalOptions;
+    }
+    return buildLegacyCreditCardOptions();
+}
+
+async function replyNoCreditCardsConfigured(msg) {
+    await msg.reply(
+        'Você ainda não tem cartão ativo cadastrado na aba "Cartões" da sua planilha. ' +
+        'Cadastre pelo menos um cartão com Ativo = SIM e tente registrar a compra no crédito novamente.'
+    );
+}
+
+function formatCreditCardOptionsQuestion(intro, cardOptions) {
+    let question = `${intro}\n\n`;
+    cardOptions.forEach((card, index) => {
+        question += `${index + 1}. ${card.label || card.key}\n`;
+    });
+    return question;
+}
+
+function getSelectedCardInfo(cardOptions, selection) {
+    if (selection < 0 || selection >= cardOptions.length) return null;
+    const option = cardOptions[selection];
+    return option.cardInfo || creditCardConfig[option.key || option];
+}
+
 async function notifyAdminsAboutPendingApproval(msg, user) {
     if (!msg?.client || typeof msg.client.sendMessage !== 'function') return;
     const targetUser = user?.whatsapp_id || '';
@@ -1077,8 +1135,7 @@ async function handleMessage(msg) {
                 const selection = parseInt(msg.body.trim(), 10) - 1;
 
                 if (selection >= 0 && selection < cardOptions.length) {
-                    const cardKey = cardOptions[selection];
-                    const cardInfo = creditCardConfig[cardKey];
+                    const cardInfo = getSelectedCardInfo(cardOptions, selection);
 
                     userStateManager.setState(senderId, {
                         action: 'awaiting_installment_number',
@@ -1171,11 +1228,12 @@ async function handleMessage(msg) {
 
                 // Se a resposta for crédito, inicia o fluxo do cartão
                 if (normalizeText(respostaPagamento) === 'credito') {
-                    const cardOptions = Object.keys(creditCardConfig);
-                    let question = `Ok, crédito. Em qual cartão? Responda com o número:\n\n`;
-                    cardOptions.forEach((cardName, index) => {
-                        question += `${index + 1}. ${cardName}\n`;
-                    });
+                    const cardOptions = await buildCreditCardOptionsForUser(userId);
+                    if (!cardOptions.length) {
+                        await replyNoCreditCardsConfigured(msg);
+                        return;
+                    }
+                    const question = formatCreditCardOptionsQuestion('Ok, crédito. Em qual cartão? Responda com o número:', cardOptions);
                     userStateManager.setState(senderId, {
                         action: 'awaiting_credit_card_selection',
                         data: { gasto: { ...gasto, pagamento: 'Crédito' }, cardOptions }
@@ -1334,15 +1392,16 @@ async function handleMessage(msg) {
                 // Uma verificação de segurança: o fluxo de crédito é complexo (pede cartão, parcelas, etc.).
                 // Por isso, é melhor tratar múltiplos itens no crédito de forma individual.
                 if (normalizeText(pagamentoFinal) === 'credito') {
-                    const cardOptions = Object.keys(creditCardConfig);
-                    let question = `Ok, crédito. Em qual cartão? Responda com o número:\n\n`;
-                    cardOptions.forEach((cardName, index) => {
-                        question += `${index + 1}. ${cardName}\n`;
-                    });
+                    const cardOptions = await buildCreditCardOptionsForUser(userId);
+                    if (!cardOptions.length) {
+                        await replyNoCreditCardsConfigured(msg);
+                        return;
+                    }
+                    const question = formatCreditCardOptionsQuestion('Ok, crédito. Em qual cartão? Responda com o número:', cardOptions);
 
                     userStateManager.setState(senderId, {
                         action: 'awaiting_credit_card_selection_batch', // Novo estado!
-                        data: { transactions }
+                        data: { transactions, cardOptions }
                     });
                     await msg.reply(question);
                     return;
@@ -1392,13 +1451,11 @@ async function handleMessage(msg) {
             }
 
             case 'awaiting_credit_card_selection_batch': {
-                const { transactions } = currentState.data;
-                const cardOptions = Object.keys(creditCardConfig);
+                const { transactions, cardOptions = buildLegacyCreditCardOptions() } = currentState.data;
                 const selection = parseInt(msg.body.trim(), 10) - 1;
 
                 if (selection >= 0 && selection < cardOptions.length) {
-                    const cardKey = cardOptions[selection];
-                    const cardInfo = creditCardConfig[cardKey];
+                    const cardInfo = getSelectedCardInfo(cardOptions, selection);
 
                     userStateManager.setState(senderId, {
                         action: 'awaiting_installments_batch', // Próximo novo estado!
@@ -1755,14 +1812,15 @@ async function handleMessage(msg) {
                         const pagamento = normalizeText(item.pagamento || '');
 
                         if (item.type === 'Saídas' && pagamento === 'credito') {
-                            const cardOptions = Object.keys(creditCardConfig);
-                            let question = `Entendi, o gasto foi no crédito. Em qual cartão? Responda com o número:\n\n`;
-                            cardOptions.forEach((cardName, index) => {
-                                question += `${index + 1}. ${cardName}\n`;
-                            });
+                            const cardOptions = await buildCreditCardOptionsForUser(userId);
+                            if (!cardOptions.length) {
+                                await replyNoCreditCardsConfigured(msg);
+                                return;
+                            }
+                            const question = formatCreditCardOptionsQuestion('Entendi, o gasto foi no crédito. Em qual cartão? Responda com o número:', cardOptions);
                             userStateManager.setState(senderId, {
                                 action: 'awaiting_credit_card_selection',
-                                data: { gasto: item, cardOptions: cardOptions }
+                                data: { gasto: item, cardOptions }
                             });
                             await msg.reply(question);
                             return; 
