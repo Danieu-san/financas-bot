@@ -22,10 +22,10 @@ test('user spreadsheet template includes required multiuser financial tabs', () 
         'Metas',
         'Cartões',
         'Lançamentos Cartão',
-        'Contas',
-        'Importações',
-        'Configurações'
+        'Contas'
     ]);
+    assert.strictEqual(titles.includes('Importações'), false);
+    assert.strictEqual(titles.includes('Configurações'), false);
 
     const cards = USER_SPREADSHEET_TABS.find(tab => tab.title === 'Cartões');
     assert.deepStrictEqual(cards.headers, [
@@ -96,7 +96,7 @@ test('createUserSpreadsheetForUser creates spreadsheet and writes headers to eve
     assert.ok(headerWrites.some(call => call.payload.range === "'Lançamentos Cartão'!A1:J1"));
     const starterContent = calls.find(call => call.type === 'values.batchUpdate');
     assert.ok(starterContent, 'Should write dashboard/manual starter content');
-    assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Manual'!A1:C16"));
+    assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Manual'!A1:C20"));
     const formatCall = calls.find(call => call.type === 'batchUpdate');
     assert.ok(formatCall, 'Should apply visual formatting');
     assert.ok(formatCall.payload.resource.requests.some(req => req.addChart), 'Should add a dashboard chart');
@@ -153,7 +153,7 @@ test('applyUserSpreadsheetTemplate upgrades an existing sheet without recreating
 
     assert.ok(calls.some(call => call.type === 'batchUpdate.addTabs'), 'Should add missing template tabs');
     const starterContent = calls.find(call => call.type === 'values.batchUpdate');
-    assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Manual'!A1:C16"));
+    assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Manual'!A1:C20"));
     const formatCall = calls.find(call => call.type === 'batchUpdate.format');
     assert.ok(formatCall.payload.resource.requests.some(req => req.deleteEmbeddedObject?.objectId === 77));
     assert.ok(formatCall.payload.resource.requests.some(req => req.addChart));
@@ -165,13 +165,26 @@ test('quoteSheetName escapes apostrophes for A1 notation', () => {
 });
 
 test('user spreadsheet manual explains user-owned cards and sheet purpose', () => {
-    const rows = __test__.buildManualRows({ user_id: 'user-1', display_name: 'Pessoa Teste' });
+    const rows = __test__.buildManualRows({ user: { user_id: 'user-1', display_name: 'Pessoa Teste' } });
     const text = rows.flat().join(' ');
+    const sections = rows.map(row => row[0]);
 
     assert.match(text, /Cartões/i);
     assert.match(text, /seus cartões/i);
     assert.match(text, /Dashboard/i);
     assert.match(text, /WhatsApp/i);
+    assert.doesNotMatch(text, /Daniel|Thaís|Hash|Linhas Detectadas|Importações|user_id|CSV|OFX/i);
+    for (const required of ['Primeiros passos', 'Comandos do WhatsApp', 'Saídas', 'Entradas', 'Cartões', 'Lançamentos Cartão', 'Dívidas', 'Metas', 'Contas', 'Dashboard web', 'Correções']) {
+        assert.ok(sections.includes(required), `Manual deve explicar: ${required}`);
+    }
+});
+
+test('user spreadsheet starter content does not expose admin or technical configuration ranges', () => {
+    const ranges = __test__.buildStarterValueRanges({ user: { user_id: 'user-1', display_name: 'Pessoa Teste' } });
+    const text = JSON.stringify(ranges);
+
+    assert.strictEqual(ranges.some(item => item.range.includes('Configurações')), false);
+    assert.doesNotMatch(text, /Daniel|Thaís|Hash|Linhas Detectadas|import_id|cartoes_do_usuario/i);
 });
 
 test('user spreadsheet dashboard keeps title row and uses correct formulas', () => {

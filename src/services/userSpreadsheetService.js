@@ -53,16 +53,6 @@ const USER_SPREADSHEET_TABS = Object.freeze([
         title: 'Contas',
         headers: ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id'],
         color: { red: 0.78, green: 0.54, blue: 0.17 }
-    },
-    {
-        title: 'Importações',
-        headers: ['import_id', 'Data Importação', 'Tipo', 'Arquivo', 'Status', 'Linhas Detectadas', 'Linhas Confirmadas', 'Hash', 'user_id'],
-        color: { red: 0.35, green: 0.42, blue: 0.53 }
-    },
-    {
-        title: 'Configurações',
-        headers: ['Chave', 'Valor', 'Observações', 'user_id'],
-        color: { red: 0.21, green: 0.27, blue: 0.34 }
     }
 ]);
 
@@ -185,30 +175,26 @@ function buildDashboardRows({ user = {} } = {}) {
 function buildManualRows({ user = {} } = {}) {
     const displayName = safeDisplayName(user.display_name || 'Usuário');
     return [
-        [`Manual rápido do FinançasBot para ${displayName}`, 'Use esta aba como mapa da sua planilha pessoal.', 'Comece pelo WhatsApp: "gastei 25 no mercado no pix"'],
-        ['Dashboard', 'Visão executiva com totais, saldo estimado e gráfico. Não edite as fórmulas desta aba.', 'Abra esta aba para se orientar.'],
-        ['Saídas', 'Gastos pagos fora do cartão: pix, débito, dinheiro, boleto e similares.', 'Data, descrição, categoria, valor e forma de pagamento.'],
-        ['Entradas', 'Recebimentos como salário, freela, reembolso ou presente.', 'Data, origem, categoria, valor e conta de recebimento.'],
-        ['Dívidas', 'Controle de empréstimos, financiamentos e parcelas em aberto.', 'Informe saldo atual, parcela, juros e vencimento.'],
-        ['Metas', 'Objetivos financeiros como reserva, viagem ou compra planejada.', 'Valor alvo, valor atual, data alvo e prioridade.'],
-        ['Cartões', 'Cadastre apenas os seus cartões. Cada usuário tem a própria lista de cartões.', 'Ex.: nubank-principal, Nubank, fechamento 8, vencimento 15.'],
-        ['Lançamentos Cartão', 'Gastos parcelados e compras no crédito vinculados ao card_id da aba Cartões.', 'O bot usa esta aba para organizar parcelas futuras.'],
-        ['Contas', 'Contas recorrentes e vencimentos importantes.', 'Aluguel dia 10, internet dia 15.'],
-        ['Importações', 'Área técnica para CSV/OFX quando o importador estiver em uso.', 'Não edite hashes/status se não souber o motivo.'],
-        ['Configurações', 'Preferências simples da sua planilha e do bot.', 'A chave cartoes_do_usuario explica o cadastro de cartões.'],
-        ['Como falar com o bot', 'Use frases naturais. O bot pergunta confirmação quando precisar.', 'recebi 2000 de salário; paguei 80 de luz no pix.'],
-        ['Dashboard web', 'No WhatsApp, envie "dashboard" para receber um link seguro com gráficos.', 'Não compartilhe o link.'],
-        ['Privacidade', 'Esta planilha pertence ao usuário conectado no OAuth. Administradores não devem usar isso como acesso amplo aos dados.', 'Você controla a conta Google autorizada.'],
-        ['Quando algo parecer errado', 'Responda no WhatsApp com detalhes ou peça ajuda ao administrador.', 'Ex.: "apagar último gasto" ou "ajuda".'],
-        ['Resumo', 'WhatsApp registra, planilha organiza, Dashboard mostra o panorama.', 'Comece com um gasto pequeno para validar.']
-    ];
-}
-
-function buildConfigurationRows({ user = {} } = {}) {
-    return [
-        ['cartoes_do_usuario', 'true', 'Cadastre na aba Cartões somente cartões deste usuário. Não use cartões de Daniel/Thaís de outra planilha.', user.user_id || ''],
-        ['manual_version', '2026-05-16', 'Versão inicial do manual e identidade visual da planilha do usuário.', user.user_id || ''],
-        ['dashboard_formula_mode', 'local_sheet', 'O dashboard desta planilha usa fórmulas locais e gráfico nativo do Google Sheets.', user.user_id || '']
+        [`Manual completo do FinançasBot para ${displayName}`, 'Esta planilha é seu painel financeiro pessoal. Use o WhatsApp para registrar e esta planilha para acompanhar.', 'Comece enviando no WhatsApp: "gastei 25 no mercado no pix".'],
+        ['Primeiros passos', '1) Leia este manual. 2) Cadastre seus cartões, se usar crédito. 3) Envie um gasto simples no WhatsApp. 4) Abra o Dashboard para conferir.', 'Depois teste: "recebi 2000 de salário".'],
+        ['Comandos do WhatsApp', 'O bot entende gastos, entradas, perguntas, metas, dívidas, lembretes, exclusões e dashboard. Ele pede confirmação quando precisar.', 'gastei 80 de gasolina no débito; quanto gastei este mês?; dashboard'],
+        ['Saídas', 'Aqui ficam gastos pagos por pix, débito, dinheiro, boleto ou qualquer pagamento que não seja cartão de crédito parcelado.', 'Campos principais: data, descrição, categoria, valor e forma de pagamento.'],
+        ['Entradas', 'Aqui ficam seus recebimentos: salário, freela, reembolso, venda, presente ou qualquer dinheiro que entrou.', 'Campos principais: data, descrição, categoria, valor e forma de recebimento.'],
+        ['Cartões', 'Cadastre apenas cartões que pertencem a este usuário. Esta lista define quais cartões o bot pode oferecer quando você registrar compras no crédito.', 'Exemplo: id nubank-principal, nome Nubank Principal, fechamento 8, vencimento 15, ativo SIM.'],
+        ['Lançamentos Cartão', 'Aqui ficam compras no crédito, compras parceladas e parcelas futuras. O nome do cartão deve existir na aba Cartões.', 'Exemplo: compra de R$ 300 em 3x vira parcelas mensais.'],
+        ['Dívidas', 'Use para empréstimos, financiamentos, acordos, parcelas em aberto e qualquer valor que você quer acompanhar até quitar.', 'Campos úteis: valor original, saldo atual, parcela, juros, vencimento, parcelas pagas e status.'],
+        ['Metas', 'Use para objetivos como reserva de emergência, viagem, quitar dívida, entrada de imóvel ou compra planejada.', 'Acompanhe valor alvo, valor atual, progresso, sugestão mensal e prioridade.'],
+        ['Contas', 'Use para despesas recorrentes e vencimentos que não podem ser esquecidos.', 'Exemplo: aluguel dia 10, internet dia 15, escola dia 5.'],
+        ['Dashboard', 'Mostra um resumo visual da planilha: entradas, saídas, cartões, saldo estimado, dívidas e gráfico. As fórmulas desta aba são automáticas.', 'Use para conferir se o mês está saudável. Evite editar fórmulas.'],
+        ['Dashboard web', 'No WhatsApp, envie "dashboard" para receber um link seguro com gráficos no navegador.', 'Não compartilhe esse link com outras pessoas.'],
+        ['Perguntas que o bot responde', 'Você pode perguntar totais, saldos, categorias, listas e maiores/menores gastos em linguagem natural.', 'qual meu saldo do mês?; quanto gastei com mercado?; liste gastos com transporte'],
+        ['Metas pelo bot', 'Envie "criar meta" para o bot guiar o cadastro de um objetivo financeiro.', 'criar meta; quero juntar 5000 para reserva'],
+        ['Dívidas pelo bot', 'Envie "criar dívida" ou registre pagamento de dívida para manter o saldo atualizado.', 'criar dívida; paguei 300 da parcela do carro'],
+        ['Lembretes', 'O bot pode criar lembretes no Google Calendar quando você pedir uma data e horário.', 'me lembre de pagar o aluguel amanhã às 10h'],
+        ['Correções', 'Se lançar algo errado, peça ajuda pelo WhatsApp. Para apagar algo recente, use o fluxo de exclusão.', 'apagar último gasto; ajuda'],
+        ['Boas práticas', 'Escreva valor, descrição e forma de pagamento. Quanto mais clara a mensagem, melhor o registro.', 'Melhor: "gastei 42,50 no mercado no pix" em vez de "42".'],
+        ['Privacidade', 'Esta planilha fica no Drive da conta Google autorizada por você. Não compartilhe links de planilha ou dashboard com quem não deve ver seus dados.', 'Se perder acesso ou notar algo estranho, fale com o responsável pelo bot.'],
+        ['Resumo', 'WhatsApp registra. A planilha organiza. O Dashboard mostra. O manual orienta. Se tiver dúvida, envie "ajuda" no WhatsApp.', 'Você não precisa mexer em fórmulas para usar o bot.']
     ];
 }
 
@@ -219,12 +205,8 @@ function buildStarterValueRanges({ user = {} } = {}) {
             values: buildDashboardRows({ user })
         },
         {
-            range: `${quoteSheetName('Manual')}!A1:C16`,
+            range: `${quoteSheetName('Manual')}!A1:C20`,
             values: buildManualRows({ user })
-        },
-        {
-            range: `${quoteSheetName('Configurações')}!A2:D4`,
-            values: buildConfigurationRows({ user })
         }
     ];
 }
@@ -589,11 +571,11 @@ function buildUserSpreadsheetFormattingRequests(sheetMap = {}, spreadsheet = {})
         requests.push(
             {
                 repeatCell: {
-                    range: { sheetId: manualSheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 3 },
+                    range: { sheetId: manualSheetId, startRowIndex: 0, endRowIndex: 20, startColumnIndex: 0, endColumnIndex: 3 },
                     cell: {
                         userEnteredFormat: {
                             backgroundColor: THEME.amberSoft,
-                            textFormat: textStyle({ bold: true, size: 12, color: THEME.ink }),
+                            textFormat: textStyle({ size: 10, color: THEME.ink }),
                             wrapStrategy: 'WRAP'
                         }
                     },
