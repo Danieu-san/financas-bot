@@ -68,6 +68,8 @@ function buildGoogleConnectionWhatsAppMessage(result = {}) {
         'Google conectado com sucesso.',
         'Sua planilha foi criada no seu Drive e seu acesso ao FinançasBot está ativo.',
         result.spreadsheetUrl ? `Planilha: ${result.spreadsheetUrl}` : '',
+        result.spreadsheetUrl ? 'Comece pela aba "Manual" dentro da planilha. Ela explica cada aba, como cadastrar seus próprios cartões e como usar o bot pelo WhatsApp.' : '',
+        'Importante: os cartões são individuais. Cadastre na aba "Cartões" apenas os cartões deste usuário; o bot usará esses cartões nos lançamentos de crédito.',
         'Você já pode usar o bot pelo WhatsApp.',
         'Comandos úteis:',
         '1) gastei 25 no mercado no pix',
@@ -177,6 +179,24 @@ function dashboardHtml() {
     .section { margin-top: 14px; }
     .section-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 10px; margin-top: 14px; }
     .section h2 { margin: 0 0 8px; font-size: 1.05rem; }
+    .chart-card {
+      position: relative;
+      overflow: hidden;
+      background:
+        linear-gradient(135deg, rgba(15,118,110,.10), rgba(255,250,242,.94)),
+        var(--card);
+    }
+    .chart-head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; margin-bottom: 8px; }
+    .chart-note { color: var(--muted); font-size: .85rem; }
+    .finance-chart { width: 100%; min-height: 260px; display: block; }
+    .chart-label { font-size: 12px; fill: #5e5b57; }
+    .chart-value { font-size: 12px; fill: #1d1b1a; font-weight: 700; }
+    .chart-axis { stroke: #d8d2c9; stroke-width: 1; }
+    .chart-bar.income { fill: #0f766e; }
+    .chart-bar.expense { fill: #b45309; }
+    .chart-bar.card { fill: #334155; }
+    .chart-bar.balance { fill: #166534; }
+    .chart-bar.balance.negative { fill: #b42318; }
     .bars { display: grid; gap: 8px; }
     .bar-row { display: grid; grid-template-columns: 120px 1fr auto; gap: 8px; align-items: center; }
     .bar-track { background: #e8e4de; border-radius: 999px; height: 10px; overflow: hidden; }
@@ -234,6 +254,14 @@ function dashboardHtml() {
       <div class="card"><div class="label">Dívidas Ativas</div><div id="kpiDebts" class="value">-</div></div>
     </div>
 
+    <div class="section card chart-card">
+      <div class="chart-head">
+        <h2>Visão Gráfica</h2>
+        <div class="chart-note">Entradas, saídas, cartão e saldo do período</div>
+      </div>
+      <div id="financeChart" class="finance-chart" role="img" aria-label="Gráfico financeiro do período"></div>
+    </div>
+
     <div class="section card">
       <h2>Top Categorias</h2>
       <div id="categories" class="bars"></div>
@@ -280,6 +308,9 @@ function dashboardHtml() {
 
     function brl(v){ return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0)); }
     function esc(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function compactMoney(v){
+      return new Intl.NumberFormat('pt-BR',{notation:'compact',maximumFractionDigits:1}).format(Number(v||0));
+    }
 
     function setupFilters() {
       for (let i = 0; i < 12; i++) {
@@ -366,6 +397,7 @@ function dashboardHtml() {
       const selectedUserLabel = userEl.options[userEl.selectedIndex]?.textContent || '';
       const userSuffix = selectedUserLabel && userEl.style.display !== 'none' ? ' · ' + selectedUserLabel : '';
       document.getElementById('periodBadge').textContent = monthNames[Number(period.month ?? monthEl.value)] + ' de ' + (period.year || yearEl.value) + userSuffix;
+      renderFinanceChart(k);
 
       const cats = data.topCategories || [];
       const maxCat = Math.max(1, ...cats.map(c => Number(c.value || 0)));
@@ -402,6 +434,41 @@ function dashboardHtml() {
       document.getElementById('goals').innerHTML = goals.length ? goals.map(g => {
         return '<div class="line"><span>' + esc(g.name) + ' (' + Number(g.progressPct||0).toFixed(1) + '%)</span><strong>' + brl(g.current) + ' / ' + brl(g.target) + '</strong></div>';
       }).join('') : '<div class="empty">Sem metas cadastradas. Uma boa primeira meta é reserva de emergência.</div>';
+    }
+
+    function renderFinanceChart(k) {
+      const items = [
+        { label: 'Entradas', value: Number(k.entradas || 0), cls: 'income' },
+        { label: 'Saídas', value: Number(k.saidas || 0), cls: 'expense' },
+        { label: 'Cartões', value: Number(k.cartoes || 0), cls: 'card' },
+        { label: 'Saldo', value: Number(k.saldo || 0), cls: 'balance' }
+      ];
+      const max = Math.max(1, ...items.map(item => Math.abs(item.value)));
+      const width = 720;
+      const height = 260;
+      const top = 24;
+      const baseline = 188;
+      const barW = 88;
+      const gap = 70;
+      const left = 54;
+      const maxBarH = 138;
+      const bars = items.map((item, index) => {
+        const h = Math.max(4, Math.round((Math.abs(item.value) / max) * maxBarH));
+        const x = left + index * (barW + gap);
+        const y = item.value >= 0 ? baseline - h : baseline;
+        const cls = item.cls + (item.cls === 'balance' && item.value < 0 ? ' negative' : '');
+        return [
+          '<rect class="chart-bar ' + cls + '" x="' + x + '" y="' + y + '" width="' + barW + '" height="' + h + '" rx="12"></rect>',
+          '<text class="chart-value" x="' + (x + barW / 2) + '" y="' + (item.value >= 0 ? y - 8 : y + h + 18) + '" text-anchor="middle">' + esc(compactMoney(item.value)) + '</text>',
+          '<text class="chart-label" x="' + (x + barW / 2) + '" y="226" text-anchor="middle">' + esc(item.label) + '</text>'
+        ].join('');
+      }).join('');
+      document.getElementById('financeChart').innerHTML =
+        '<svg viewBox="0 0 ' + width + ' ' + height + '" role="presentation" focusable="false">' +
+        '<line class="chart-axis" x1="34" y1="' + baseline + '" x2="680" y2="' + baseline + '"></line>' +
+        '<text class="chart-label" x="34" y="' + top + '">Maior valor: ' + esc(compactMoney(max)) + '</text>' +
+        bars +
+        '</svg>';
     }
 
     setupFilters();

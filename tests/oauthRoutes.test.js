@@ -130,6 +130,8 @@ test('OAuth callback notifies user on WhatsApp after successful connection', asy
         assert.strictEqual(whatsappMessages[0].to, '5599999999999@c.us');
         assert.match(whatsappMessages[0].message, /Google conectado com sucesso/);
         assert.match(whatsappMessages[0].message, /Planilha/);
+        assert.match(whatsappMessages[0].message, /aba "Manual"/);
+        assert.match(whatsappMessages[0].message, /cartões são individuais/i);
     } finally {
         await new Promise(resolve => server.close(resolve));
     }

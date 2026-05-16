@@ -160,6 +160,9 @@ test('dashboard responses include security and privacy headers', async () => {
         assert.strictEqual(page.headers.get('referrer-policy'), 'no-referrer');
         assert.strictEqual(page.headers.get('x-frame-options'), 'DENY');
         assert.ok(page.headers.get('content-security-policy').includes("frame-ancestors 'none'"));
+        const pageBody = await page.text();
+        assert.match(pageBody, /Visão Gráfica/);
+        assert.match(pageBody, /financeChart/);
 
         const api = await fetch(`${baseUrl}/dashboard/api/summary?token=${token}`);
         assert.strictEqual(api.status, 200);
