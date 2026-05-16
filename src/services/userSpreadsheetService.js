@@ -95,6 +95,11 @@ function buildUserSpreadsheetResource({ displayName = '' } = {}) {
     };
 }
 
+function buildSpreadsheetUrl(spreadsheetId) {
+    const safeSpreadsheetId = String(spreadsheetId || '').trim();
+    return safeSpreadsheetId ? `https://docs.google.com/spreadsheets/d/${safeSpreadsheetId}/edit` : '';
+}
+
 function quoteSheetName(sheetName) {
     return `'${String(sheetName || '').replace(/'/g, "''")}'`;
 }
@@ -677,10 +682,11 @@ async function completeGoogleConnectionForUser({ user, oauth2Client, sheetsClien
     if (!spreadsheetId) {
         const created = await createUserSpreadsheetForUser({ user: safeUser, oauth2Client, sheetsClient });
         spreadsheetId = created.spreadsheetId;
-        spreadsheetUrl = created.spreadsheetUrl;
+        spreadsheetUrl = created.spreadsheetUrl || buildSpreadsheetUrl(spreadsheetId);
         await updateOAuthConnectionMetadata(safeUser.user_id, { spreadsheetId });
     } else {
         await applyUserSpreadsheetTemplate({ user: safeUser, oauth2Client, sheetsClient, spreadsheetId });
+        spreadsheetUrl = buildSpreadsheetUrl(spreadsheetId);
     }
 
     const updatedUser = await updateUserStatus(safeUser.user_id, USER_STATUS.ACTIVE);
@@ -698,6 +704,7 @@ module.exports = {
     createUserSpreadsheetForUser,
     applyUserSpreadsheetTemplate,
     completeGoogleConnectionForUser,
+    buildSpreadsheetUrl,
     quoteSheetName,
     __test__: {
         columnLetter,

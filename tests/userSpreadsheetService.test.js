@@ -6,6 +6,7 @@ const {
     buildUserSpreadsheetResource,
     createUserSpreadsheetForUser,
     applyUserSpreadsheetTemplate,
+    buildSpreadsheetUrl,
     quoteSheetName,
     __test__
 } = require('../src/services/userSpreadsheetService');
@@ -167,6 +168,14 @@ test('applyUserSpreadsheetTemplate upgrades an existing sheet without recreating
 test('quoteSheetName escapes apostrophes for A1 notation', () => {
     assert.strictEqual(quoteSheetName('Saídas'), "'Saídas'");
     assert.strictEqual(quoteSheetName("Banco D'Água"), "'Banco D''Água'");
+});
+
+test('buildSpreadsheetUrl returns a usable sheet link for existing OAuth spreadsheets', () => {
+    assert.strictEqual(
+        buildSpreadsheetUrl('existing-sheet-id'),
+        'https://docs.google.com/spreadsheets/d/existing-sheet-id/edit'
+    );
+    assert.strictEqual(buildSpreadsheetUrl(''), '');
 });
 
 test('user spreadsheet manual explains user-owned cards and sheet purpose', () => {
