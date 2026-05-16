@@ -130,6 +130,16 @@ test('onboarding menu suggests debt registration when user has debt', () => {
     assert.ok(menu.includes('Responda `sim`'));
 });
 
+test('onboarding menu explains optional settings commands', () => {
+    const { onboardingMenu } = onboardingHandler.__test__;
+    const menu = onboardingMenu({ hasDebt: false, primaryGoal: 'montar reserva' });
+
+    assert.ok(menu.includes('Ajustes opcionais'));
+    assert.ok(menu.includes('pergunta curta no domingo'));
+    assert.ok(menu.includes('sugiro separar 10%'));
+    assert.ok(!menu.includes('Configurações rápidas'));
+});
+
 test.after(() => {
     userStateManager.closeStateStore();
 });

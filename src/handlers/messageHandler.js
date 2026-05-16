@@ -539,16 +539,28 @@ function buildLegalCommandLogContext(msg, user) {
     };
 }
 
+function normalizeSettingsCommandText(text) {
+    return normalizeText(String(text || ''))
+        .replace(/[`*_~]/g, ' ')
+        .replace(/[-–—]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function isCheckinSettingsCommand(body, action) {
+    return new RegExp(`^${action}\\s+(?:o\\s+)?check\\s*in(?:\\s+semanal)?$`).test(body);
+}
+
 async function handleSettingsCommands(msg, user) {
-    const body = normalizeText(String(msg.body || '').trim());
+    const body = normalizeSettingsCommandText(msg.body);
     if (!body) return false;
 
-    if (body === 'ativar checkin semanal') {
+    if (isCheckinSettingsCommand(body, 'ativar')) {
         await upsertUserSettings(user.user_id, { weekly_checkin_opt_in: 'SIM' });
         await msg.reply('Check-in semanal ativado. Enviarei 1 pergunta curta no domingo.');
         return true;
     }
-    if (body === 'desativar checkin semanal') {
+    if (isCheckinSettingsCommand(body, 'desativar')) {
         await upsertUserSettings(user.user_id, { weekly_checkin_opt_in: 'NÃO' });
         await msg.reply('Check-in semanal desativado.');
         return true;
@@ -1126,8 +1138,9 @@ async function handleMessage(msg) {
                     await sendPlainMessage(msg, 'Sem problema. Quando quiser, envie `criar dívida`.');
                     return;
                 }
-                await sendPlainMessage(msg, 'Quer cadastrar sua primeira dívida agora? Responda `sim` ou `não`.');
-                return;
+                userStateManager.deleteState(senderId);
+                // Se o usuário ignorou a oferta e enviou outro comando, não bloqueia o uso normal do bot.
+                break;
             }
 
             case 'awaiting_credit_card_selection': {
@@ -2080,6 +2093,8 @@ module.exports = {
         isGreetingMessage,
         buildGreetingReply,
         normalizeMetricLabel,
+        normalizeSettingsCommandText,
+        isCheckinSettingsCommand,
         handleAccountLifecycleCommands,
         buildLegalCommandLogContext
     }

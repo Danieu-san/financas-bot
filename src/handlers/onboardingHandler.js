@@ -19,16 +19,17 @@ function onboardingMenu({ hasDebt = false, primaryGoal = '' } = {}) {
         ? '\n\nComo você quer quitar dívidas, o próximo passo mais útil é cadastrar a primeira dívida.\nResponda `sim` para cadastrar agora ou `não` para deixar para depois.'
         : '';
 
-    return (
-        'Tudo pronto. Aqui vão 3 comandos úteis para começar:\n' +
-        '1) `gastei 50 no mercado`\n' +
-        '2) `recebi 2000 de salário`\n' +
-        '3) `qual meu saldo do mês?`\n\n' +
-        'Configurações rápidas:\n' +
-        '- `ativar checkin semanal`\n' +
-        '- `definir reserva 10%`' +
+    return [
+        'Tudo pronto. Aqui vão 3 comandos úteis para começar:',
+        '1) `gastei 50 no mercado`',
+        '2) `recebi 2000 de salário`',
+        '3) `qual meu saldo do mês?`',
+        '',
+        'Ajustes opcionais que você pode ativar quando quiser:',
+        '- `ativar checkin semanal`: eu envio uma pergunta curta no domingo para ajudar você a revisar a semana.',
+        '- `definir reserva 10%`: quando você registrar uma entrada, eu sugiro separar 10% para sua reserva.',
         debtSuggestion
-    );
+    ].filter(Boolean).join('\n');
 }
 
 function isYesNo(text) {
