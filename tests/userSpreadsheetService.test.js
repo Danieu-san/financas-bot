@@ -5,6 +5,7 @@ const {
     USER_SPREADSHEET_TABS,
     buildUserSpreadsheetResource,
     createUserSpreadsheetForUser,
+    applyUserSpreadsheetTemplate,
     quoteSheetName,
     __test__
 } = require('../src/services/userSpreadsheetService');
@@ -101,6 +102,63 @@ test('createUserSpreadsheetForUser creates spreadsheet and writes headers to eve
     assert.ok(formatCall.payload.resource.requests.some(req => req.addChart), 'Should add a dashboard chart');
 });
 
+test('applyUserSpreadsheetTemplate upgrades an existing sheet without recreating it', async () => {
+    const calls = [];
+    const existingSpreadsheet = {
+        data: {
+            sheets: [
+                { properties: { title: 'Dashboard', sheetId: 10 }, charts: [{ chartId: 77 }] },
+                { properties: { title: 'Saídas', sheetId: 11 } },
+                { properties: { title: 'Entradas', sheetId: 12 } }
+            ]
+        }
+    };
+    const upgradedSpreadsheet = {
+        data: {
+            sheets: USER_SPREADSHEET_TABS.map((tab, index) => ({
+                properties: { title: tab.title, sheetId: 10 + index },
+                charts: tab.title === 'Dashboard' ? [{ chartId: 77 }] : []
+            }))
+        }
+    };
+    const sheetsClient = {
+        spreadsheets: {
+            get: async () => {
+                calls.push({ type: 'get' });
+                return calls.filter(call => call.type === 'batchUpdate.addTabs').length ? upgradedSpreadsheet : existingSpreadsheet;
+            },
+            values: {
+                update: async (payload) => {
+                    calls.push({ type: 'values.update', payload });
+                    return { data: {} };
+                },
+                batchUpdate: async (payload) => {
+                    calls.push({ type: 'values.batchUpdate', payload });
+                    return { data: {} };
+                }
+            },
+            batchUpdate: async (payload) => {
+                const hasAddSheet = payload.resource.requests.some(req => req.addSheet);
+                calls.push({ type: hasAddSheet ? 'batchUpdate.addTabs' : 'batchUpdate.format', payload });
+                return { data: {} };
+            }
+        }
+    };
+
+    await applyUserSpreadsheetTemplate({
+        user: { user_id: 'user-existing', display_name: 'Usuário Existente' },
+        spreadsheetId: 'existing-sheet-id',
+        sheetsClient
+    });
+
+    assert.ok(calls.some(call => call.type === 'batchUpdate.addTabs'), 'Should add missing template tabs');
+    const starterContent = calls.find(call => call.type === 'values.batchUpdate');
+    assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Manual'!A1:C16"));
+    const formatCall = calls.find(call => call.type === 'batchUpdate.format');
+    assert.ok(formatCall.payload.resource.requests.some(req => req.deleteEmbeddedObject?.objectId === 77));
+    assert.ok(formatCall.payload.resource.requests.some(req => req.addChart));
+});
+
 test('quoteSheetName escapes apostrophes for A1 notation', () => {
     assert.strictEqual(quoteSheetName('Saídas'), "'Saídas'");
     assert.strictEqual(quoteSheetName("Banco D'Água"), "'Banco D''Água'");
@@ -127,4 +185,5 @@ test('user spreadsheet dashboard keeps title row and uses correct formulas', () 
         req.updateCells.range.startRowIndex === 0
     ));
     assert.strictEqual(overwritesDashboardTitle, false);
+    assert.ok(requests.some(req => req.unmergeCells), 'Should unmerge dashboard title area before reapplying template');
 });

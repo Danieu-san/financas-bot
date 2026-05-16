@@ -269,15 +269,44 @@ function getSheetMapFromSpreadsheet(spreadsheet = {}) {
     return map;
 }
 
-async function getCreatedSheetMap({ sheetsClient, spreadsheetId, createdSpreadsheet }) {
-    const fromCreate = getSheetMapFromSpreadsheet(createdSpreadsheet);
-    if (Object.keys(fromCreate).length > 0) return fromCreate;
-    if (!sheetsClient?.spreadsheets?.get) return {};
-    const loaded = await sheetsClient.spreadsheets.get({
+function getDashboardChartDeleteRequests(spreadsheet = {}, dashboardSheetId) {
+    if (dashboardSheetId === undefined) return [];
+    const sheets = spreadsheet?.sheets || spreadsheet?.data?.sheets || [];
+    const dashboardSheet = sheets.find(sheet => sheet?.properties?.sheetId === dashboardSheetId);
+    const charts = dashboardSheet?.charts || [];
+    return charts
+        .filter(chart => chart?.chartId !== undefined)
+        .map(chart => ({ deleteEmbeddedObject: { objectId: chart.chartId } }));
+}
+
+async function loadSpreadsheetMetadata({ sheetsClient, spreadsheetId }) {
+    if (!sheetsClient?.spreadsheets?.get) return { data: { sheets: [] } };
+    return sheetsClient.spreadsheets.get({
         spreadsheetId,
-        fields: 'sheets(properties(sheetId,title))'
+        fields: 'sheets(properties(sheetId,title),charts(chartId,position))'
     });
-    return getSheetMapFromSpreadsheet(loaded);
+}
+
+async function ensureUserSpreadsheetTabs({ sheetsClient, spreadsheetId, spreadsheet }) {
+    const existingTitles = new Set((spreadsheet?.data?.sheets || spreadsheet?.sheets || []).map(sheet => sheet?.properties?.title).filter(Boolean));
+    const missingTabs = USER_SPREADSHEET_TABS.filter(tab => !existingTitles.has(tab.title));
+    if (!missingTabs.length || !sheetsClient?.spreadsheets?.batchUpdate) return spreadsheet;
+
+    await sheetsClient.spreadsheets.batchUpdate({
+        spreadsheetId,
+        resource: {
+            requests: missingTabs.map(tab => ({
+                addSheet: {
+                    properties: {
+                        title: tab.title,
+                        gridProperties: { frozenRowCount: tab.type === 'dashboard' ? 4 : 1 }
+                    }
+                }
+            }))
+        }
+    });
+
+    return loadSpreadsheetMetadata({ sheetsClient, spreadsheetId });
 }
 
 function textStyle({ bold = false, size = 10, color = THEME.ink } = {}) {
@@ -311,7 +340,7 @@ function buildHeaderCell(header, tabTitle) {
     };
 }
 
-function buildUserSpreadsheetFormattingRequests(sheetMap = {}) {
+function buildUserSpreadsheetFormattingRequests(sheetMap = {}, spreadsheet = {}) {
     const requests = [];
 
     for (const tab of USER_SPREADSHEET_TABS) {
@@ -408,6 +437,12 @@ function buildUserSpreadsheetFormattingRequests(sheetMap = {}) {
     const dashboardSheetId = sheetMap.Dashboard;
     if (dashboardSheetId !== undefined) {
         requests.push(
+            ...getDashboardChartDeleteRequests(spreadsheet, dashboardSheetId),
+            {
+                unmergeCells: {
+                    range: { sheetId: dashboardSheetId, startRowIndex: 0, endRowIndex: 2, startColumnIndex: 0, endColumnIndex: 5 }
+                }
+            },
             {
                 mergeCells: {
                     range: { sheetId: dashboardSheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 5 },
@@ -585,15 +620,31 @@ function buildUserSpreadsheetFormattingRequests(sheetMap = {}) {
     return requests;
 }
 
-async function formatUserSpreadsheet({ sheetsClient, spreadsheetId, createdSpreadsheet }) {
+async function formatUserSpreadsheet({ sheetsClient, spreadsheetId, spreadsheet }) {
     if (!sheetsClient?.spreadsheets?.batchUpdate) return;
-    const sheetMap = await getCreatedSheetMap({ sheetsClient, spreadsheetId, createdSpreadsheet });
-    const requests = buildUserSpreadsheetFormattingRequests(sheetMap);
+    const sheetMap = getSheetMapFromSpreadsheet(spreadsheet);
+    const requests = buildUserSpreadsheetFormattingRequests(sheetMap, spreadsheet);
     if (!requests.length) return;
     await sheetsClient.spreadsheets.batchUpdate({
         spreadsheetId,
         resource: { requests }
     });
+}
+
+async function applyUserSpreadsheetTemplate({ user, oauth2Client, sheetsClient, spreadsheetId, spreadsheet }) {
+    const safeUser = user || {};
+    const safeSpreadsheetId = String(spreadsheetId || '').trim();
+    if (!safeSpreadsheetId) throw new Error('spreadsheetId é obrigatório para aplicar template da planilha do usuário.');
+    const client = sheetsClient || getSheetsClient(oauth2Client);
+
+    let spreadsheetMetadata = spreadsheet || await loadSpreadsheetMetadata({ sheetsClient: client, spreadsheetId: safeSpreadsheetId });
+    spreadsheetMetadata = await ensureUserSpreadsheetTabs({ sheetsClient: client, spreadsheetId: safeSpreadsheetId, spreadsheet: spreadsheetMetadata });
+
+    await writeHeaders({ sheetsClient: client, spreadsheetId: safeSpreadsheetId });
+    await writeStarterContent({ sheetsClient: client, spreadsheetId: safeSpreadsheetId, user: safeUser });
+    await formatUserSpreadsheet({ sheetsClient: client, spreadsheetId: safeSpreadsheetId, spreadsheet: spreadsheetMetadata });
+
+    return { spreadsheetId: safeSpreadsheetId };
 }
 
 async function createUserSpreadsheetForUser({ user, oauth2Client, sheetsClient }) {
@@ -608,9 +659,12 @@ async function createUserSpreadsheetForUser({ user, oauth2Client, sheetsClient }
     if (!spreadsheetId) {
         throw new Error('Google não retornou spreadsheetId ao criar planilha do usuário.');
     }
-    await writeHeaders({ sheetsClient: client, spreadsheetId });
-    await writeStarterContent({ sheetsClient: client, spreadsheetId, user: safeUser });
-    await formatUserSpreadsheet({ sheetsClient: client, spreadsheetId, createdSpreadsheet: created?.data });
+    await applyUserSpreadsheetTemplate({
+        user: safeUser,
+        sheetsClient: client,
+        spreadsheetId,
+        spreadsheet: created?.data
+    });
     return {
         spreadsheetId,
         spreadsheetUrl: created?.data?.spreadsheetUrl || ''
@@ -633,6 +687,8 @@ async function completeGoogleConnectionForUser({ user, oauth2Client, sheetsClien
         spreadsheetId = created.spreadsheetId;
         spreadsheetUrl = created.spreadsheetUrl;
         await updateOAuthConnectionMetadata(safeUser.user_id, { spreadsheetId });
+    } else {
+        await applyUserSpreadsheetTemplate({ user: safeUser, oauth2Client, sheetsClient, spreadsheetId });
     }
 
     const updatedUser = await updateUserStatus(safeUser.user_id, USER_STATUS.ACTIVE);
@@ -647,6 +703,7 @@ module.exports = {
     USER_SPREADSHEET_TABS,
     buildUserSpreadsheetResource,
     createUserSpreadsheetForUser,
+    applyUserSpreadsheetTemplate,
     completeGoogleConnectionForUser,
     quoteSheetName,
     __test__: {
@@ -657,6 +714,8 @@ module.exports = {
         buildManualRows,
         buildStarterValueRanges,
         buildUserSpreadsheetFormattingRequests,
+        getSheetMapFromSpreadsheet,
+        getDashboardChartDeleteRequests,
         headerToNumberFormat
     }
 };
