@@ -35,6 +35,7 @@ const { handleOnboarding, POST_ONBOARDING_DEBT_OFFER_ACTION } = require('./onboa
 const { buildHealthSummary } = require('../services/financialHealthService');
 const { buildDebtAvalanchePlan } = require('../services/debtAvalancheService');
 const { syncReadModelIfNeeded, executeAnalyticalIntent, markReadModelDirty } = require('../services/readModelService');
+const { parseImportMedia, unsupportedImportMessage } = require('../services/statementImportService');
 const { buildDashboardAccessLink } = require('../utils/dashboardAuth');
 const { buildGoogleConnectLink } = require('../services/googleOAuthService');
 const metrics = require('../utils/metrics');
@@ -208,6 +209,46 @@ async function saveTransactionWithoutExtraPayment(item, { person, userId }) {
     }
 
     throw new Error(`Tipo de transação inválido: ${item.type}`);
+}
+
+async function saveImportedTransactions(transactions = [], { person, userId }) {
+    let successCount = 0;
+    for (const item of transactions) {
+        await saveTransactionWithoutExtraPayment(item, { person, userId });
+        successCount += 1;
+    }
+    return successCount;
+}
+
+async function handleStatementImportMessage(msg, { senderId, person, userId }) {
+    if (!msg.hasMedia || typeof msg.downloadMedia !== 'function') return false;
+    if (msg.type === 'ptt' || msg.type === 'audio') return false;
+
+    const media = await msg.downloadMedia();
+    const parsed = parseImportMedia(media, msg);
+
+    if (!parsed.supported) {
+        await sendPlainMessage(msg, unsupportedImportMessage(parsed.reason));
+        return true;
+    }
+
+    if (!parsed.transactions.length) {
+        await sendPlainMessage(msg, parsed.preview);
+        return true;
+    }
+
+    userStateManager.setState(senderId, {
+        action: 'confirming_statement_import',
+        data: {
+            transactions: parsed.transactions,
+            filename: parsed.filename,
+            type: parsed.type,
+            person,
+            userId
+        }
+    });
+    await sendPlainMessage(msg, parsed.preview);
+    return true;
 }
 
 function normalizeMetricLabel(value, fallback = 'unknown') {
@@ -404,6 +445,23 @@ function buildGreetingReply(name = '') {
         `Oi, ${firstName}!`,
         'Posso registrar gastos e entradas, responder perguntas financeiras ou abrir seu dashboard.',
         'Exemplos: "gastei 25 no mercado no pix", "quanto gastei em fevereiro?", "dashboard" ou "ajuda".'
+    ].join('\n');
+}
+
+function normalizeInvitePhoneToWhatsAppId(value) {
+    const digits = String(value || '').replace(/\D/g, '');
+    if (digits.length < 10) return '';
+    return `${digits}@c.us`;
+}
+
+function buildPreOnboardingInviteMessage() {
+    return [
+        'Oi! Eu sou o FinançasBot, seu novo assistente financeiro no WhatsApp.',
+        '',
+        'Salve este número como FinançasBot para encontrar a conversa com facilidade.',
+        'Quando estiver pronto, responda aqui com `oi` para iniciar seu cadastro.',
+        '',
+        'Depois do cadastro, você poderá registrar gastos, entradas, metas, dívidas, lembretes e acompanhar tudo pelo dashboard.'
     ].join('\n');
 }
 
@@ -949,6 +1007,7 @@ async function handleAdminCommands(msg, senderId, activeUser) {
             '- admin log <telefone>\n' +
             '- admin aprovar <telefone>\n' +
             '- admin negar <telefone>\n' +
+            '- admin convidar <telefone>\n' +
             '- admin ativar <telefone>\n' +
             '- admin inativar <telefone>\n' +
             '- admin bloquear <telefone>\n' +
@@ -1007,6 +1066,25 @@ async function handleAdminCommands(msg, senderId, activeUser) {
             .map(([status, total]) => `${status}: ${total}`)
             .join(' | ');
         await msg.reply(`Stats usuários\nTotal: ${users.length}\n${statusSummary || 'sem dados'}`);
+        return true;
+    }
+
+    const inviteMatch = body.match(/^admin\s+(?:convidar|convite)\s+(.+)$/);
+    if (inviteMatch) {
+        const target = inviteMatch[1];
+        const targetWhatsAppId = normalizeInvitePhoneToWhatsAppId(target);
+        if (!targetWhatsAppId) {
+            await msg.reply('Telefone inválido. Use DDI + DDD + número. Ex.: admin convidar 5521999999999');
+            return true;
+        }
+        if (!msg.client || typeof msg.client.sendMessage !== 'function') {
+            logger.error(`[admin] convidar_cliente_indisponivel context=${JSON.stringify({ ...adminContext, target })}`);
+            await msg.reply('Cliente WhatsApp indisponível para enviar o convite.');
+            return true;
+        }
+        await msg.client.sendMessage(targetWhatsAppId, buildPreOnboardingInviteMessage());
+        logger.info(`[admin] convidar context=${JSON.stringify({ ...adminContext, target, target_whatsapp_id: targetWhatsAppId })}`);
+        await msg.reply(`Convite enviado para ${targetWhatsAppId}.`);
         return true;
     }
 
@@ -1296,6 +1374,11 @@ async function handleMessage(msg) {
         return;
     }
 
+    const handledImport = await handleStatementImportMessage(msg, { senderId, person: pessoa, userId });
+    if (handledImport) {
+        return;
+    }
+
     if (!rateLimiter.isAllowed(senderId)) {
         metrics.increment('message.rate_limited');
         console.log(`Usuário ${senderId} bloqueado pelo rate limit.`);
@@ -1528,6 +1611,35 @@ async function handleMessage(msg) {
 
             case 'confirming_delete': {
                 await deletionHandler.confirmDeletion(msg);
+                return;
+            }
+
+            case 'confirming_statement_import': {
+                const cleanReply = normalizeText(msg.body);
+                if (['sim', 's', 'ss', 'confirmo', 'importar'].includes(cleanReply)) {
+                    const { transactions, person: importPerson, userId: importUserId } = currentState.data || {};
+                    try {
+                        const successCount = await saveImportedTransactions(transactions || [], {
+                            person: importPerson || pessoa,
+                            userId: importUserId || userId
+                        });
+                        userStateManager.deleteState(senderId);
+                        await sendPlainMessage(msg, `Importação concluída. ${successCount} lançamento(s) foram salvos na sua planilha.`);
+                    } catch (error) {
+                        logger.error(`importacao: falha ao salvar lançamentos user_id=${userId} error=${error.message}`);
+                        userStateManager.deleteState(senderId);
+                        await sendPlainMessage(msg, 'Não consegui concluir a importação agora. Nenhum novo arquivo ficou armazenado; tente novamente em instantes.');
+                    }
+                    return;
+                }
+
+                if (['nao', 'não', 'n', 'cancelar', 'cancela'].includes(cleanReply)) {
+                    userStateManager.deleteState(senderId);
+                    await sendPlainMessage(msg, 'Importação cancelada. Nenhum lançamento foi salvo.');
+                    return;
+                }
+
+                await sendPlainMessage(msg, 'Responda `sim` para importar os lançamentos ou `não` para cancelar.');
                 return;
             }
 
@@ -2280,14 +2392,17 @@ module.exports = {
         filterSheetRowsByUserId,
         isGreetingMessage,
         buildGreetingReply,
+        buildPreOnboardingInviteMessage,
         inferAnalyticalQueryPlan,
         extractMultipleCategoriesFromQuestion,
         extractComparisonCategoriesFromQuestion,
+        normalizeInvitePhoneToWhatsAppId,
         normalizeMetricLabel,
         normalizeSettingsCommandText,
         isCheckinSettingsCommand,
         isReserveDisableCommand,
         markFinancialReadModelDirty,
+        saveImportedTransactions,
         handleAccountLifecycleCommands,
         handleAdminCommandBeforeAccess,
         buildLegalCommandLogContext

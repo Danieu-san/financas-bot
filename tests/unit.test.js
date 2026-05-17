@@ -314,6 +314,18 @@ test('messageHandler.local replies cover greeting and total month', (t) => {
     assert.ok(reply.includes('Cartões: R$ 50,50'));
 });
 
+test('messageHandler pre-onboarding invite helpers build safe admin invitation', () => {
+    const { buildPreOnboardingInviteMessage, normalizeInvitePhoneToWhatsAppId } = messageHandler.__test__;
+
+    assert.strictEqual(normalizeInvitePhoneToWhatsAppId('+55 (21) 98596-9034'), '5521985969034@c.us');
+    assert.strictEqual(normalizeInvitePhoneToWhatsAppId('123'), '');
+
+    const message = buildPreOnboardingInviteMessage();
+    assert.match(message, /FinançasBot/);
+    assert.match(message, /Salve este número/);
+    assert.match(message, /responda aqui com `oi`/);
+});
+
 test('messageHandler local replies cover richer spreadsheet calculations', () => {
     const { buildLocalPerguntaResponse } = messageHandler.__test__;
 
