@@ -199,6 +199,29 @@ test('adminCheck reads ADMIN_IDS dynamically when env changes', () => {
     }
 });
 
+test('messageHandler lets admin commands bypass access gate for admin LID', async () => {
+    const { handleAdminCommandBeforeAccess } = messageHandler.__test__;
+    const previousAdminIds = process.env.ADMIN_IDS;
+    const replies = [];
+
+    try {
+        process.env.ADMIN_IDS = '5521970112407@c.us';
+        const handled = await handleAdminCommandBeforeAccess(
+            {
+                body: 'admin ajuda',
+                reply: async (text) => replies.push(text)
+            },
+            '151058345148646@lid',
+            { allowed: false, user: { display_name: 'Daniel', status: userService.USER_STATUS.PENDING_APPROVAL } }
+        );
+
+        assert.strictEqual(handled, true);
+        assert.ok(replies[0].includes('Comandos admin:'));
+    } finally {
+        process.env.ADMIN_IDS = previousAdminIds;
+    }
+});
+
 test('messageHandler.classifyPerguntaLocally distinguishes total month from category total', (t) => {
     const { classifyPerguntaLocally } = messageHandler.__test__;
 

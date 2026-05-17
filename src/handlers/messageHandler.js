@@ -1024,6 +1024,15 @@ async function handleAdminCommands(msg, senderId, activeUser) {
     return true;
 }
 
+async function handleAdminCommandBeforeAccess(msg, senderId, access) {
+    const body = normalizeText(String(msg.body || '').trim());
+    if (!body.startsWith('admin')) return false;
+
+    // Admin precisa conseguir liberar/diagnosticar usuários mesmo se o próprio
+    // identificador @lid estiver preso no gate de consentimento/onboarding.
+    return handleAdminCommands(msg, senderId, access?.user);
+}
+
 async function handleMessage(msg) {
     metrics.increment('message.received');
     const messageId = msg.id.id;
@@ -1053,6 +1062,11 @@ async function handleMessage(msg) {
     const messageStartedAt = Date.now();
 
     const access = await timeStep('resolveUserAccess', () => resolveUserAccess(msg), perfContext);
+    const handledAdminBeforeAccess = await handleAdminCommandBeforeAccess(msg, senderId, access);
+    if (handledAdminBeforeAccess) {
+        return;
+    }
+
     if (!access.allowed) {
         if (access.notifyAdmins && access.user) {
             await notifyAdminsAboutPendingApproval(msg, access.user);
@@ -2107,6 +2121,7 @@ module.exports = {
         normalizeSettingsCommandText,
         isCheckinSettingsCommand,
         handleAccountLifecycleCommands,
+        handleAdminCommandBeforeAccess,
         buildLegalCommandLogContext
     }
 };
