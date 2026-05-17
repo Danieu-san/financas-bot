@@ -513,6 +513,20 @@ async function executeAnalyticalIntent(intent, parameters, { userId }) {
             details: { categoria, mes: month, ano: year, totalCategoria, totalGastos }
         }, 'memory_fallback');
     }
+    case 'comparacao_gastos_categorias': {
+        const categorias = Array.isArray(parameters?.categorias) ? parameters.categorias.filter(Boolean).slice(0, 2) : [];
+        return withResultSource({
+            results: {
+                categorias: categorias.map(cat => ({
+                    categoria: cat,
+                    total: gastosUnificados
+                        .filter((entry) => categoryMatches(entry, cat))
+                        .reduce((sum, entry) => sum + Number(entry.valor || 0), 0)
+                }))
+            },
+            details: { categorias, mes: month, ano: year }
+        }, 'memory_fallback');
+    }
     case 'listagem_gastos_categoria': {
         const filtered = saidasDoUsuario
             .filter((entry) => categoryMatches(entry, categoria))
@@ -548,6 +562,15 @@ async function executeAnalyticalIntent(intent, parameters, { userId }) {
         const mapped = gastosUnificados.map((entry) => [entry.data, entry.descricao, entry.categoria, entry.subcategoria, entry.valor]);
         const minMax = analysisService.findMinMax(mapped);
         return withResultSource({ results: { min: minMax.min, max: minMax.max }, details: { mes: month, ano: year } }, 'memory_fallback');
+    }
+    case 'maior_menor_gasto_categoria': {
+        const filtered = gastosUnificados.filter((entry) => categoryMatches(entry, categoria));
+        if (!filtered.length) {
+            return withResultSource({ results: { min: null, max: null }, details: { categoria, mes: month, ano: year } }, 'memory_fallback');
+        }
+        const mapped = filtered.map((entry) => [entry.data, entry.descricao, entry.categoria, entry.subcategoria, entry.valor]);
+        const minMax = analysisService.findMinMax(mapped);
+        return withResultSource({ results: { min: minMax.min, max: minMax.max }, details: { categoria, mes: month, ano: year } }, 'memory_fallback');
     }
     case 'saldo_do_mes': {
         const totalEntradas = entradasDoUsuario.reduce((sum, entry) => sum + entry.valor, 0);

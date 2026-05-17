@@ -75,6 +75,16 @@ test('sqlite read-model answers common analytical intents scoped by user_id', ()
     assert.strictEqual(percentage.results, 90);
     assert.strictEqual(percentage.details.totalCategoria, 180);
     assert.strictEqual(percentage.details.totalGastos, 200);
+
+    const comparison = queryAnalyticalIntentSql('comparacao_gastos_categorias', { categorias: ['alimentação', 'transporte'], mes: 1, ano: 2026 }, { userId: 'user-read-a' });
+    assert.deepStrictEqual(comparison.results.categorias, [
+        { categoria: 'alimentação', total: 180 },
+        { categoria: 'transporte', total: 20 }
+    ]);
+
+    const categoryMinMax = queryAnalyticalIntentSql('maior_menor_gasto_categoria', { categoria: 'alimentação', mes: 1, ano: 2026 }, { userId: 'user-read-a' });
+    assert.strictEqual(categoryMinMax.results.min[1], 'lanche');
+    assert.strictEqual(categoryMinMax.results.max[1], 'mercado cartão');
 });
 
 test('sqlite read-model powers dashboard data without cross-user leakage', () => {

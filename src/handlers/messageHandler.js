@@ -317,6 +317,23 @@ function extractPercentageCategoryFromQuestion(text) {
     return cleanAnalyticalCategory(extractCategoryFromQuestion(normalized));
 }
 
+function extractComparisonCategoriesFromQuestion(text) {
+    const normalized = normalizeText(String(text || '').trim());
+    const direct = normalized.match(/^(.+?)\s+(?:foi|e|eh|é|ficou|esta|está)?\s*(?:maior|menor|mais|menos)\s+(?:que|do que)\s+(.+?)(?:\s+em\s+|\s+no\s+|\s+na\s+|\?|$)/i);
+    if (direct && direct[1] && direct[2]) {
+        const categories = [cleanAnalyticalCategory(direct[1]), cleanAnalyticalCategory(direct[2])].filter(Boolean);
+        if (categories.length === 2) return categories;
+    }
+
+    const compare = normalized.match(/\b(?:comparar|compare|comparacao|comparação|diferença|diferenca)\s+(?:entre\s+)?(.+?)(?:\s+em\s+|\s+no\s+|\s+na\s+|\?|$)/i);
+    if (compare && compare[1]) {
+        const categories = splitCategoryList(compare[1]);
+        if (categories.length >= 2) return categories.slice(0, 2);
+    }
+
+    return [];
+}
+
 function inferAnalyticalQueryPlan(userQuestion) {
     const text = normalizeText(String(userQuestion || '').trim());
     if (!text) return null;
@@ -326,6 +343,7 @@ function inferAnalyticalQueryPlan(userQuestion) {
     const hasExpenseSignal = /\b(gastei|gasto|gastos|saida|saidas|despesa|despesas)\b/.test(text);
     const hasTotalSignal = /\b(quanto|total|soma|somar|somando|deu|ficou|some)\b/.test(text);
     const categories = extractMultipleCategoriesFromQuestion(text);
+    const comparisonCategories = extractComparisonCategoriesFromQuestion(text);
     const singleCategory = cleanAnalyticalCategory(extractCategoryFromQuestion(text));
 
     if (text.includes('saldo')) {
@@ -334,7 +352,13 @@ function inferAnalyticalQueryPlan(userQuestion) {
     if (text.includes('duplicad')) {
         return { metric: 'duplicates', intent: 'gastos_valores_duplicados', parameters: { mes, ano } };
     }
+    if (comparisonCategories.length === 2) {
+        return { metric: 'category_comparison', intent: 'comparacao_gastos_categorias', parameters: { categorias: comparisonCategories, mes, ano } };
+    }
     if (text.includes('maior') || text.includes('menor')) {
+        if (singleCategory) {
+            return { metric: 'category_extremes', intent: 'maior_menor_gasto_categoria', parameters: { categoria: singleCategory, mes, ano } };
+        }
         return { metric: 'extremes', intent: 'maior_menor_gasto', parameters: { mes, ano } };
     }
     if (text.includes('por cento') || text.includes('percentual') || text.includes('porcentagem') || text.includes('representou') || text.includes('representa') || text.includes('participacao') || text.includes('participação')) {
@@ -507,6 +531,26 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
         return `${cat} representou ${pct}% dos seus gastos em ${periodLabel}.\n${cat}: ${formatCurrencyBR(details.totalCategoria || 0)}\nTotal de gastos: ${formatCurrencyBR(details.totalGastos || 0)}`;
     }
 
+    if (intent === 'comparacao_gastos_categorias') {
+        const categorias = Array.isArray(results?.categorias) ? results.categorias : [];
+        if (categorias.length < 2) return `Não consegui comparar as categorias em ${periodLabel}.`;
+        const [first, second] = categorias;
+        const diff = Number(first.total || 0) - Number(second.total || 0);
+        const firstLine = `${first.categoria}: ${formatCurrencyBR(first.total || 0)}`;
+        const secondLine = `${second.categoria}: ${formatCurrencyBR(second.total || 0)}`;
+        if (Math.abs(diff) < 0.005) {
+            return `As categorias empataram em ${periodLabel}.\n${firstLine}\n${secondLine}`;
+        }
+        const higher = diff > 0 ? first : second;
+        const lower = diff > 0 ? second : first;
+        return [
+            `${higher.categoria} foi maior que ${lower.categoria} em ${periodLabel}.`,
+            firstLine,
+            secondLine,
+            `Diferença: ${formatCurrencyBR(Math.abs(diff))}`
+        ].join('\n');
+    }
+
     if (intent === 'listagem_gastos_categoria') {
         if (!Array.isArray(results) || results.length === 0) {
             return `Não encontrei gastos para esse filtro em ${periodLabel}.`;
@@ -533,12 +577,13 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
         return `Valores duplicados em ${periodLabel}:\n${lines.join('\n')}`;
     }
 
-    if (intent === 'maior_menor_gasto') {
+    if (intent === 'maior_menor_gasto' || intent === 'maior_menor_gasto_categoria') {
         const min = results?.min;
         const max = results?.max;
         if (!min && !max) return `Não encontrei gastos para esse período (${periodLabel}).`;
+        const categoryLabel = intent === 'maior_menor_gasto_categoria' && details.categoria ? ` com ${details.categoria}` : '';
         return [
-            `Maior e menor gasto em ${periodLabel}:`,
+            `Maior e menor gasto${categoryLabel} em ${periodLabel}:`,
             `- Maior: ${max ? `${max[1] || '-'} (${formatCurrencyBR(max[4] || 0)})` : '-'}`,
             `- Menor: ${min ? `${min[1] || '-'} (${formatCurrencyBR(min[4] || 0)})` : '-'}`
         ].join('\n');
@@ -2237,6 +2282,7 @@ module.exports = {
         buildGreetingReply,
         inferAnalyticalQueryPlan,
         extractMultipleCategoriesFromQuestion,
+        extractComparisonCategoriesFromQuestion,
         normalizeMetricLabel,
         normalizeSettingsCommandText,
         isCheckinSettingsCommand,

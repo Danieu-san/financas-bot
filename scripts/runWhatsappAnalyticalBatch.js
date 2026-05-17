@@ -125,6 +125,74 @@ async function main() {
                     expectAny: ['Saldo em maio/2026', 'R$ -35,35']
                 }
             ]
+        },
+        {
+            label: 'daniel-extra',
+            config: buildConfig({ profileDir: '.e2e/whatsapp-sender-profile' }),
+            cases: [
+                {
+                    question: 'quanto gastei só com transporte em maio de 2026?',
+                    expectAny: ['Total gasto com transporte', 'R$ 44,80']
+                },
+                {
+                    question: 'qual a média dos meus gastos com transporte em maio de 2026?',
+                    expectAny: ['Média de gastos com transporte', 'R$ 14,93']
+                },
+                {
+                    question: 'quanto o transporte representou dos meus gastos em maio de 2026?',
+                    expectAny: ['transporte representou', '33,01%']
+                },
+                {
+                    question: 'qual foi a soma de ônibus, metrô e uber em maio de 2026?',
+                    expectAny: ['Total gasto com onibus + metro + uber', 'R$ 44,80']
+                },
+                {
+                    question: 'liste meus gastos com mercdo em maio de 2026',
+                    expectAny: ['Gastos encontrados', 'mercado']
+                },
+                {
+                    question: 'qual foi o total de gastos de maio de 2026?',
+                    expectAny: ['Total gasto em maio/2026', 'R$ 135,70']
+                },
+                {
+                    question: 'quanto sobrou em maio de 2026?',
+                    expectAny: ['Saldo em maio/2026', 'R$ -135,70', 'Não consegui classificar']
+                },
+                {
+                    question: 'qual foi minha maior compra de mercado em maio de 2026?',
+                    expectAny: ['Maior e menor gasto', 'mercado', 'Não consegui classificar']
+                },
+                {
+                    question: 'mercado foi maior que transporte em maio de 2026?',
+                    expectAny: ['mercado representou', 'Total gasto', 'Não consegui classificar', 'Não entendi']
+                }
+            ]
+        },
+        {
+            label: 'amigo-extra',
+            config: buildConfig({ profileDir: '.e2e/whatsapp-friend-profile' }),
+            cases: [
+                {
+                    question: 'qual foi o total de gastos em maio de 2026?',
+                    expectAny: ['Total gasto em maio/2026', 'R$ 35,35']
+                },
+                {
+                    question: 'quanto gastei só com transporte em maio de 2026?',
+                    expectAny: ['Total gasto com transporte', 'R$ 0,00']
+                },
+                {
+                    question: 'qual a média dos gastos com mercado em maio de 2026?',
+                    expectAny: ['Média de gastos com mercado', 'R$ 35,35']
+                },
+                {
+                    question: 'liste gastos com mercado em maio de 2026',
+                    expectAny: ['Gastos encontrados', 'mercado']
+                },
+                {
+                    question: 'quanto sobrou em maio de 2026?',
+                    expectAny: ['Saldo em maio/2026', 'R$ -35,35', 'Não consegui classificar']
+                }
+            ]
         }
     ];
 

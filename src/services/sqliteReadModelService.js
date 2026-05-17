@@ -573,6 +573,26 @@ function queryAnalyticalIntentSql(intent, parameters, { userId }) {
         };
     }
 
+    if (intent === 'comparacao_gastos_categorias') {
+        const categorias = Array.isArray(parameters?.categorias) ? parameters.categorias.filter(Boolean).slice(0, 2) : [];
+        const rows = db.prepare(`
+            SELECT description, category, subcategory, value
+            FROM expenses
+            WHERE user_id = ? AND month = ? AND year = ?
+        `).all(userId, month, year);
+        return {
+            results: {
+                categorias: categorias.map(cat => ({
+                    categoria: cat,
+                    total: rows
+                        .filter(row => matchesAnyField([row.category || '', row.subcategory || '', row.description || ''], cat))
+                        .reduce((sum, row) => sum + Number(row.value || 0), 0)
+                }))
+            },
+            details: { categorias, mes: month, ano: year }
+        };
+    }
+
     if (intent === 'listagem_gastos_categoria') {
         const rows = db.prepare(`
             SELECT date_text, description, category, subcategory, value
@@ -622,6 +642,24 @@ function queryAnalyticalIntentSql(intent, parameters, { userId }) {
                 max: maxRow ? [maxRow.date_text, maxRow.description, maxRow.category, maxRow.subcategory, maxRow.value] : null
             },
             details: { mes: month, ano: year }
+        };
+    }
+
+    if (intent === 'maior_menor_gasto_categoria') {
+        const rows = db.prepare(`
+            SELECT date_text, description, category, subcategory, value
+            FROM expenses
+            WHERE user_id = ? AND month = ? AND year = ?
+        `).all(userId, month, year).filter(expenseMatchesCategory);
+        const sorted = rows.slice().sort((a, b) => Number(a.value || 0) - Number(b.value || 0));
+        const minRow = sorted[0];
+        const maxRow = sorted[sorted.length - 1];
+        return {
+            results: {
+                min: minRow ? [minRow.date_text, minRow.description, minRow.category, minRow.subcategory, minRow.value] : null,
+                max: maxRow ? [maxRow.date_text, maxRow.description, maxRow.category, maxRow.subcategory, maxRow.value] : null
+            },
+            details: { categoria: categoriaRaw, mes: month, ano: year }
         };
     }
 

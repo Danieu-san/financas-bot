@@ -153,6 +153,23 @@ const operationRegistry = {
         const percentual = totalGastos > 0 ? (totalCategoria / totalGastos) * 100 : 0;
         return { results: percentual, details: { ...params, mes, ano, totalCategoria, totalGastos } };
     },
+    comparacao_gastos_categorias: async function(params, dataSources) {
+        const mes = getMonthIndex(params.mes);
+        const ano = parseInt(params.ano, 10);
+        const categorias = Array.isArray(params.categorias) ? params.categorias.filter(Boolean).slice(0, 2) : [];
+        const gastosUnificados = getUnifiedExpenses(dataSources, mes, ano);
+        return {
+            results: {
+                categorias: categorias.map(category => ({
+                    categoria: category,
+                    total: gastosUnificados
+                        .filter(item => expenseMatchesCategory(item, category))
+                        .reduce((sum, item) => sum + parseValue(item.valor), 0)
+                }))
+            },
+            details: { ...params, categorias, mes, ano }
+        };
+    },
     listagem_gastos_categoria: async function(params, dataSources) {
         const mes = getMonthIndex(params.mes);
         const ano = parseInt(params.ano, 10);
@@ -199,6 +216,15 @@ const operationRegistry = {
         const mes = getMonthIndex(params.mes);
         const ano = parseInt(params.ano, 10);
         const gastosUnificados = getUnifiedExpenses(dataSources, mes, ano);
+        const dataParaAnalise = gastosUnificados.map(g => [g.data, g.descricao, g.categoria, g.subcategoria, g.valor]);
+        const minMax = analysisService.findMinMax(dataParaAnalise);
+        return { results: { min: minMax.min, max: minMax.max }, details: { ...params, mes, ano } };
+    },
+    maior_menor_gasto_categoria: async function(params, dataSources) {
+        const mes = getMonthIndex(params.mes);
+        const ano = parseInt(params.ano, 10);
+        const gastosUnificados = getUnifiedExpenses(dataSources, mes, ano)
+            .filter(item => expenseMatchesCategory(item, params.categoria));
         const dataParaAnalise = gastosUnificados.map(g => [g.data, g.descricao, g.categoria, g.subcategoria, g.valor]);
         const minMax = analysisService.findMinMax(dataParaAnalise);
         return { results: { min: minMax.min, max: minMax.max }, details: { ...params, mes, ano } };

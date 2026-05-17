@@ -28,6 +28,8 @@ async function classify(questionText) {
     - media_diaria_gastos_mes
     - total_gastos_multiplas_categorias
     - percentual_categoria_gastos
+    - comparacao_gastos_categorias
+    - maior_menor_gasto_categoria
     - listagem_gastos_categoria
     - contagem_ocorrencias
     - gastos_valores_duplicados
@@ -43,6 +45,8 @@ async function classify(questionText) {
     - Se o usuário pedir "por dia em média", use "media_diaria_gastos_mes".
     - Se o usuário pedir "somando X e Y", use "total_gastos_multiplas_categorias" com "categorias".
     - Se o usuário perguntar quanto uma categoria representa em porcentagem do total, use "percentual_categoria_gastos".
+    - Se o usuário comparar duas categorias (ex: "mercado foi maior que transporte?"), use "comparacao_gastos_categorias" com "categorias".
+    - Se o usuário pedir maior/menor compra de uma categoria específica (ex: "maior compra de mercado"), use "maior_menor_gasto_categoria".
     - "ano": O ano com 4 dígitos (ex: 2025). Se não for mencionado, use o ano atual: ${currentYear}.
     - "mes": O NOME do mês (ex: "agosto").
 

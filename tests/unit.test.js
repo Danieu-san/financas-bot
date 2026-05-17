@@ -270,6 +270,14 @@ test('messageHandler.classifyPerguntaLocally covers complex analytical questions
     const percentageVariant = inferAnalyticalQueryPlan('qual foi a participação de mercado no total de gastos em maio de 2026?');
     assert.strictEqual(percentageVariant.metric, 'percentage_of_expenses');
     assert.strictEqual(percentageVariant.parameters.categoria, 'mercado');
+
+    const categoryExtremes = inferAnalyticalQueryPlan('qual foi minha maior compra de mercado em maio de 2026?');
+    assert.strictEqual(categoryExtremes.intent, 'maior_menor_gasto_categoria');
+    assert.strictEqual(categoryExtremes.parameters.categoria, 'mercado');
+
+    const comparison = inferAnalyticalQueryPlan('mercado foi maior que transporte em maio de 2026?');
+    assert.strictEqual(comparison.intent, 'comparacao_gastos_categorias');
+    assert.deepStrictEqual(comparison.parameters.categorias, ['mercado', 'transporte']);
 });
 
 test('messageHandler local command routing avoids AI for common commands and low-signal text', (t) => {
@@ -328,6 +336,31 @@ test('messageHandler local replies cover richer spreadsheet calculations', () =>
             analyzedData: { results: 66.99, details: { categoria: 'mercado', mes: 4, ano: 2026, totalCategoria: 90.9, totalGastos: 135.7 } }
         }),
         /mercado representou 66,99%/
+    );
+
+    assert.match(
+        buildLocalPerguntaResponse({
+            intent: 'comparacao_gastos_categorias',
+            analyzedData: {
+                results: { categorias: [{ categoria: 'mercado', total: 90.9 }, { categoria: 'transporte', total: 44.8 }] },
+                details: { mes: 4, ano: 2026 }
+            }
+        }),
+        /mercado foi maior que transporte.*R\$ 90,90.*R\$ 44,80/s
+    );
+
+    assert.match(
+        buildLocalPerguntaResponse({
+            intent: 'maior_menor_gasto_categoria',
+            analyzedData: {
+                results: {
+                    min: ['17/05/2026', 'mercado do daniel', 'Alimentação', 'SUPERMERCADO', 44.44],
+                    max: ['17/05/2026', 'mercado', 'Alimentação', 'SUPERMERCADO', 46.46]
+                },
+                details: { categoria: 'mercado', mes: 4, ano: 2026 }
+            }
+        }),
+        /Maior e menor gasto com mercado.*mercado.*R\$ 46,46/s
     );
 });
 
