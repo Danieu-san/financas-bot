@@ -43,6 +43,15 @@ test('helpers.normalizeText', (t) => {
     assert.strictEqual(helpers.normalizeText(null), '', 'Null should return empty string');
 });
 
+test('textMatcher.fuzzyIncludes tolerates common finance typos', () => {
+    const { fuzzyIncludes, matchesAnyField } = require('../src/utils/textMatcher');
+
+    assert.strictEqual(fuzzyIncludes('Transporte', 'transpote'), true);
+    assert.strictEqual(fuzzyIncludes('ônibus volta', 'onibis'), true);
+    assert.strictEqual(matchesAnyField(['Moradia', 'INTERNET', 'internet casa'], 'internete'), true);
+    assert.strictEqual(matchesAnyField(['Alimentação', 'SUPERMERCADO', 'mercado'], 'transpote'), false);
+});
+
 test('helpers.parseSheetDate', (t) => {
     const d1 = helpers.parseSheetDate("15/03/2026");
     assert.strictEqual(d1.getDate(), 15);
@@ -185,6 +194,20 @@ test('messageHandler.classifyPerguntaLocally distinguishes total month from cate
     const categoryTotal = classifyPerguntaLocally('Quanto gastei esse mês com alimentação?');
     assert.strictEqual(categoryTotal.intent, 'total_gastos_categoria_mes');
     assert.strictEqual(categoryTotal.parameters.categoria, 'alimentacao');
+});
+
+test('messageHandler.classifyPerguntaLocally covers complex analytical questions', () => {
+    const { classifyPerguntaLocally } = messageHandler.__test__;
+
+    const count = classifyPerguntaLocally('quantas vezes usei onibis em fevereiro?');
+    assert.strictEqual(count.intent, 'contagem_ocorrencias');
+    assert.strictEqual(count.parameters.categoria, 'onibis');
+
+    const duplicates = classifyPerguntaLocally('tem valores duplicados em fevereiro?');
+    assert.strictEqual(duplicates.intent, 'gastos_valores_duplicados');
+
+    const minMax = classifyPerguntaLocally('qual foi o maior e menor gasto em fevereiro?');
+    assert.strictEqual(minMax.intent, 'maior_menor_gasto');
 });
 
 test('messageHandler local command routing avoids AI for common commands and low-signal text', (t) => {
@@ -425,4 +448,12 @@ test('google.requireUserId protects calendar writes', (t) => {
 
     assert.throws(() => requireUserId('', 'createCalendarEvent'), /user_id válido/);
     assert.strictEqual(requireUserId(' user-1 ', 'createCalendarEvent'), 'user-1');
+});
+
+test('google retry helpers classify Sheets quota and transient errors', () => {
+    const { isGoogleRetriableError } = googleService.__test__;
+
+    assert.strictEqual(isGoogleRetriableError({ code: 429, message: 'Quota exceeded for write requests' }), true);
+    assert.strictEqual(isGoogleRetriableError({ code: 503, message: 'backend unavailable' }), true);
+    assert.strictEqual(isGoogleRetriableError({ code: 400, message: 'invalid range' }), false);
 });

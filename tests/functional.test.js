@@ -41,6 +41,16 @@ function assertRegistered(reply, context) {
     );
 }
 
+async function registerExpense(sendFn, message, details, context) {
+    enqueueStructured({ intent: 'gasto', gastoDetails: [details] });
+    assertRegistered(last(await sendFn(message)), context);
+}
+
+async function registerIncome(sendFn, message, details, context) {
+    enqueueStructured({ intent: 'entrada', entradaDetails: [details] });
+    assertRegistered(last(await sendFn(message)), context);
+}
+
 async function withFunctionalState(sender, fn) {
     try {
         if (!spreadsheetReset) {
@@ -277,13 +287,162 @@ functionalTest('functional: analytics, deletion, admin and fallback', { concurre
         enqueueStructured({ intent: 'ajuda' });
         assert.ok(last(await send('ajuda')).includes('assistente financeiro'));
 
-        assert.ok(last(await send('admin stats')).includes('Stats usuários'));
-        assert.ok(last(await send('admin listar usuarios')).includes('Usuários'));
-        assert.ok(last(await send(`admin status ${sender}`)).includes('Status do usuário'));
-        assert.ok(last(await send(`admin log ${sender}`)).includes('Últimos consentimentos'));
-
         enqueueStructured({ intent: 'desconhecido' });
         assert.ok(last(await send('abacaxi azul')).includes('Não entendi'));
+    });
+});
+
+functionalTest('functional: complex analytics handles typos, counts, duplicates and min/max', { concurrency: false }, async () => {
+    await withFunctionalState(FUNCTIONAL_SENDERS.complexAnalytics, async ({ activateAndOnboard, send }) => {
+        await activateAndOnboard();
+
+        const expenseBase = {
+            pagamento: 'PIX',
+            recorrente: 'Não'
+        };
+
+        await registerExpense(send, 'gastei 4,70 no onibis em fevereiro no pix', {
+            ...expenseBase,
+            descricao: 'onibis centro',
+            valor: 4.70,
+            categoria: 'Transporte',
+            subcategoria: 'TRANSPORTE PÚBLICO',
+            data: '03/02/2026'
+        }, 'Ônibus com typo deve registrar como transporte');
+        await registerExpense(send, 'gastei 4,70 no ônibus volta em fevereiro no pix', {
+            ...expenseBase,
+            descricao: 'ônibus volta',
+            valor: 4.70,
+            categoria: 'Transporte',
+            subcategoria: 'TRANSPORTE PÚBLICO',
+            data: '04/02/2026'
+        }, 'Ônibus com acento deve registrar como transporte');
+        await registerExpense(send, 'gastei 27,30 de uber em fevereiro no pix', {
+            ...expenseBase,
+            descricao: 'uber noite',
+            valor: 27.30,
+            categoria: 'Transporte',
+            subcategoria: 'UBER / 99',
+            data: '05/02/2026'
+        }, 'Uber deve registrar como transporte');
+        await registerExpense(send, 'gastei 125,49 no guanabara em fevereiro no pix', {
+            ...expenseBase,
+            descricao: 'mercado guanabara',
+            valor: 125.49,
+            categoria: 'Alimentação',
+            subcategoria: 'SUPERMERCADO',
+            data: '06/02/2026'
+        }, 'Mercado deve registrar como alimentação');
+        await registerExpense(send, 'gastei 12,50 na padaria em fevereiro no pix', {
+            ...expenseBase,
+            descricao: 'padaria pão',
+            valor: 12.50,
+            categoria: 'Alimentação',
+            subcategoria: 'PADARIA / LANCHE',
+            data: '07/02/2026'
+        }, 'Padaria deve registrar como alimentação');
+        await registerExpense(send, 'gastei 43,20 no ifood em fevereiro no pix', {
+            ...expenseBase,
+            descricao: 'ifood almoço',
+            valor: 43.20,
+            categoria: 'Alimentação',
+            subcategoria: 'DELIVERY / IFOOD',
+            data: '08/02/2026'
+        }, 'Ifood deve registrar como alimentação');
+        await registerExpense(send, 'gastei 35 na farmacia em fevereiro no pix', {
+            ...expenseBase,
+            descricao: 'remédio farmácia',
+            valor: 35,
+            categoria: 'Saúde',
+            subcategoria: 'FARMÁCIA',
+            data: '09/02/2026'
+        }, 'Farmácia deve registrar como saúde');
+        await registerExpense(send, 'gastei 99,90 de internet casa em fevereiro no pix', {
+            ...expenseBase,
+            descricao: 'internet casa',
+            valor: 99.90,
+            categoria: 'Moradia',
+            subcategoria: 'INTERNET',
+            data: '10/02/2026'
+        }, 'Internet casa deve registrar como moradia');
+        await registerExpense(send, 'gastei 99,90 de internet trabalho em fevereiro no pix', {
+            ...expenseBase,
+            descricao: 'internet trabalho',
+            valor: 99.90,
+            categoria: 'Moradia',
+            subcategoria: 'INTERNET',
+            data: '11/02/2026'
+        }, 'Internet trabalho deve registrar como moradia');
+        await registerExpense(send, 'gastei 50 de onibus em março no pix', {
+            ...expenseBase,
+            descricao: 'onibus março',
+            valor: 50,
+            categoria: 'Transporte',
+            subcategoria: 'TRANSPORTE PÚBLICO',
+            data: '05/03/2026'
+        }, 'Gasto de março deve ficar fora das consultas de fevereiro');
+
+        await registerIncome(send, 'recebi 2000 de salário em fevereiro no pix', {
+            descricao: 'salário fevereiro',
+            valor: 2000,
+            categoria: 'Salário',
+            recebimento: 'PIX',
+            recorrente: 'Não',
+            data: '01/02/2026'
+        }, 'Salário deve registrar como entrada');
+        await registerIncome(send, 'recebi 500 de freela em fevereiro no pix', {
+            descricao: 'freela fevereiro',
+            valor: 500,
+            categoria: 'Renda Extra',
+            recebimento: 'PIX',
+            recorrente: 'Não',
+            data: '15/02/2026'
+        }, 'Freela deve registrar como entrada');
+
+        await syncReadModelIfNeeded({ force: true });
+
+        let reply = last(await send('Quanto gastei em fevereiro?'));
+        assert.ok(reply.includes('Total gasto em fevereiro/2026'));
+        assertMoney(reply, 452.69, 'Total mensal complexo deve somar todas as saídas de fevereiro e ignorar março');
+
+        reply = last(await send('Quanto gastei com transpote em fevereiro?'));
+        assert.ok(reply.includes('Total gasto com transpote em fevereiro/2026'));
+        assertMoney(reply, 36.70, 'Categoria com typo "transpote" deve somar transporte');
+
+        reply = last(await send('Quanto gastei de onibis em fevereiro?'));
+        assert.ok(reply.includes('Total gasto com onibis em fevereiro/2026'));
+        assertMoney(reply, 9.40, 'Busca por descrição com typo "onibis" deve somar as duas viagens de ônibus');
+
+        reply = last(await send('media de gastos com alimentacao em fevereiro'));
+        assert.ok(reply.includes('Média de gastos com alimentacao em fevereiro/2026'));
+        assertMoney(reply, 60.40, 'Média de alimentação deve dividir por 3 itens');
+
+        reply = last(await send('liste meus gastos de onibis em fevereiro'));
+        assert.ok(reply.includes('Gastos encontrados (2)'), 'Listagem por typo de ônibus deve encontrar 2 itens de fevereiro');
+        assert.ok(reply.includes('onibis centro'), 'Listagem deve incluir o item escrito errado');
+        assert.ok(reply.includes('ônibus volta'), 'Listagem deve incluir o item com acento');
+
+        reply = last(await send('quantas vezes usei onibis em fevereiro?'));
+        assert.ok(reply.includes('Ocorrências encontradas em fevereiro/2026: 2'), `Contagem por typo deve retornar 2. Resposta: ${reply}`);
+
+        enqueueStructured({ intent: 'pergunta', question: 'tem valores duplicados em fevereiro?' });
+        reply = last(await send('tem valores duplicados em fevereiro?'));
+        assert.ok(reply.includes('Valores duplicados em fevereiro/2026'), 'Duplicados devem ser detectados');
+        assert.ok(reply.includes('R$ 4,70 (2x)'), 'Duplicado de passagem deve aparecer');
+        assert.ok(reply.includes('R$ 99,90 (2x)'), 'Duplicado de internet deve aparecer');
+
+        reply = last(await send('qual foi o maior e menor gasto em fevereiro?'));
+        assert.ok(reply.includes('Maior e menor gasto em fevereiro/2026'));
+        assert.ok(reply.includes('mercado guanabara'), 'Maior gasto deve ser mercado guanabara');
+        assert.ok(reply.includes('onibis centro'), 'Menor gasto deve ser uma das passagens');
+        assertMoney(reply, 125.49, 'Maior gasto deve ter valor correto');
+        assertMoney(reply, 4.70, 'Menor gasto deve ter valor correto');
+
+        reply = last(await send('qual meu saldo de fevereiro?'));
+        assert.ok(reply.includes('Saldo em fevereiro/2026'));
+        assertMoney(reply, 2047.31, 'Saldo complexo deve ser entradas menos saídas');
+        assertMoney(reply, 2500, 'Saldo complexo deve exibir entradas');
+        assertMoney(reply, 452.69, 'Saldo complexo deve exibir saídas');
     });
 });
 

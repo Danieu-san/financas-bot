@@ -3,6 +3,7 @@ const path = require('path');
 const crypto = require('crypto');
 const logger = require('../utils/logger');
 const { normalizeText, parseValue } = require('../utils/helpers');
+const { matchesAnyField } = require('../utils/textMatcher');
 
 let Database = null;
 try {
@@ -460,12 +461,9 @@ function queryAnalyticalIntentSql(intent, parameters, { userId }) {
     const categoriaRaw = String(parameters?.categoria || '').trim();
 
     const expenseMatchesCategory = (row) => {
-        const target = normalizeText(categoriaRaw);
-        if (!target) return true;
-        return (
-            normalizeText(row.category || '').includes(target) ||
-            normalizeText(row.subcategory || '').includes(target) ||
-            normalizeText(row.description || '').includes(target)
+        return matchesAnyField(
+            [row.category || '', row.subcategory || '', row.description || ''],
+            categoriaRaw
         );
     };
 

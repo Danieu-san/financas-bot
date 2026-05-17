@@ -238,6 +238,8 @@ function extractCategoryFromQuestion(text) {
     if (withCom && withCom[1]) return withCom[1].trim();
     const withDe = normalized.match(/\bde\s+([a-zA-ZÀ-ÿ\s]+?)(?:\s+em\s+|\s+no\s+|\s+na\s+|$|\?)/i);
     if (withDe && withDe[1]) return withDe[1].trim();
+    const withVezes = normalized.match(/\bvezes\s+(?:que\s+)?(?:eu\s+)?(?:usei|peguei|paguei|comprei|gastei|fui\s+de)?\s*([a-zA-ZÀ-ÿ\s]+?)(?:\s+em\s+|\s+no\s+|\s+na\s+|$|\?)/i);
+    if (withVezes && withVezes[1]) return withVezes[1].trim();
     return '';
 }
 
@@ -259,10 +261,10 @@ function detectFastPerguntaIntent(messageBody) {
     const text = normalizeText(String(messageBody || '').trim());
     if (!text) return null;
 
-    const isQuestionShape = /^(qual|quais|quanto|quantos|liste|listar|mostre|mostrar|me diga|como ficou|como esta|como estão)/.test(text) || text.includes('?');
+    const isQuestionShape = /^(qual|quais|quanto|quantos|quantas|conte|contar|media|média|liste|listar|mostre|mostrar|me diga|como ficou|como esta|como estão)/.test(text) || text.includes('?');
     if (!isQuestionShape) return null;
 
-    const looksAnalytical = /(saldo|gastei|gasto|gastos|entrada|entradas|divida|dividas|categoria|mes|ano|janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/.test(text);
+    const looksAnalytical = /(saldo|gastei|gasto|gastos|entrada|entradas|divida|dividas|categoria|mes|ano|vezes|ocorrencia|ocorrencias|duplicad|maior|menor|onibus|ônibus|uber|transporte|janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/.test(text);
     if (!looksAnalytical) return null;
 
     return {
@@ -330,6 +332,15 @@ function classifyPerguntaLocally(userQuestion) {
 
     if (text.includes('saldo')) {
         return { intent: 'saldo_do_mes', parameters: { mes, ano } };
+    }
+    if (text.includes('duplicad')) {
+        return { intent: 'gastos_valores_duplicados', parameters: { mes, ano } };
+    }
+    if (text.includes('maior') || text.includes('menor')) {
+        return { intent: 'maior_menor_gasto', parameters: { mes, ano } };
+    }
+    if (text.includes('vezes') || text.includes('ocorrencia') || text.includes('ocorrencias')) {
+        return { intent: 'contagem_ocorrencias', parameters: { categoria: extractCategoryFromQuestion(text), mes, ano } };
     }
     if (text.includes('media') && (text.includes('gasto') || text.includes('gastos'))) {
         return { intent: 'media_gastos_categoria_mes', parameters: { categoria: extractCategoryFromQuestion(text), mes, ano } };

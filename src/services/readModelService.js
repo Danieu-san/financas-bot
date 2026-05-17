@@ -3,6 +3,7 @@ const path = require('path');
 const { readDataFromSheet, renderVisualDashboard } = require('./google');
 const analysisService = require('./analysisService');
 const { parseSheetDate, parseValue, normalizeText } = require('../utils/helpers');
+const { matchesAnyField } = require('../utils/textMatcher');
 const { creditCardConfig } = require('../config/constants');
 const {
     ensureSqliteReady,
@@ -134,12 +135,9 @@ function normalizeYearParam(year) {
 }
 
 function categoryMatches(record, category) {
-    const target = normalizeText(category || '');
-    if (!target) return true;
-    return (
-        normalizeText(record.categoria || '').includes(target) ||
-        normalizeText(record.subcategoria || '').includes(target) ||
-        normalizeText(record.descricao || '').includes(target)
+    return matchesAnyField(
+        [record.categoria || '', record.subcategoria || '', record.descricao || ''],
+        category
     );
 }
 

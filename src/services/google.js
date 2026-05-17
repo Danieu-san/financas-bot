@@ -135,16 +135,73 @@ function isGoogleAuthError(error) {
     );
 }
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function isGoogleRetriableError(error) {
+    const status = getErrorStatusCode(error);
+    const msg = String(error?.message || '').toLowerCase();
+    const reason = String(error?.errors?.[0]?.reason || error?.response?.data?.error?.errors?.[0]?.reason || '').toLowerCase();
+
+    return (
+        status === 429 ||
+        status === 500 ||
+        status === 502 ||
+        status === 503 ||
+        status === 504 ||
+        reason.includes('ratelimit') ||
+        reason.includes('quota') ||
+        msg.includes('quota exceeded') ||
+        msg.includes('rate limit') ||
+        msg.includes('user rate limit')
+    );
+}
+
+function getGoogleRetryConfig() {
+    return {
+        attempts: Math.max(1, Number.parseInt(process.env.GOOGLE_API_RETRY_ATTEMPTS || '3', 10)),
+        delayMs: Math.max(0, Number.parseInt(process.env.GOOGLE_API_RETRY_DELAY_MS || '30000', 10))
+    };
+}
+
+async function runRetriableGoogleOperation(operationName, fn) {
+    const retryConfig = getGoogleRetryConfig();
+    let lastError = null;
+
+    for (let attempt = 1; attempt <= retryConfig.attempts; attempt += 1) {
+        try {
+            return await fn();
+        } catch (error) {
+            lastError = error;
+
+            if (isGoogleRetriableError(error) && attempt < retryConfig.attempts) {
+                console.warn(`⚠️ ${operationName}: erro transitório/quota Google (${error.message}). Tentativa ${attempt}/${retryConfig.attempts}; aguardando ${retryConfig.delayMs}ms...`);
+                await sleep(retryConfig.delayMs);
+                continue;
+            }
+
+            break;
+        }
+    }
+
+    try {
+        throw lastError;
+    } catch (error) {
+        throw error;
+    }
+}
+
 async function runWithGoogleRetry(operationName, fn, { swallowOnError = false, fallbackValue = null } = {}) {
     await ensureGoogleAuthorized();
     try {
-        return await fn();
+        return await runRetriableGoogleOperation(operationName, fn);
     } catch (error) {
         if (isGoogleAuthError(error)) {
             console.warn(`⚠️ ${operationName}: erro de autenticação Google detectado. Reautorizando e tentando novamente...`);
             await authorizeGoogle(true);
             try {
-                return await fn();
+                return await runRetriableGoogleOperation(operationName, fn);
             } catch (retryError) {
                 console.error(`❌ ${operationName}: falhou após reautorização:`, retryError.message);
                 if (swallowOnError) return fallbackValue;
@@ -404,7 +461,7 @@ async function runSheetsOperation(operationName, target, fn, { swallowOnError = 
     }
 
     try {
-        return await fn();
+        return await runRetriableGoogleOperation(operationName, fn);
     } catch (error) {
         console.error(`❌ ${operationName}: erro na planilha do usuário:`, error.message);
         if (swallowOnError) return fallbackValue;
@@ -1239,6 +1296,8 @@ module.exports = {
         eventBelongsToUser,
         requireUserId,
         validateUserScopedWrite,
+        isGoogleRetriableError,
+        getGoogleRetryConfig,
         headerToNumberFormat,
         mapSheetNameForUserSpreadsheet,
         mapRangeForUserSpreadsheet,

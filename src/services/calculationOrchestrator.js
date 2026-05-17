@@ -1,5 +1,6 @@
 const analysisService = require('./analysisService');
 const { parseSheetDate, normalizeText, parseValue } = require('../utils/helpers');
+const { matchesAnyField } = require('../utils/textMatcher');
 const { creditCardConfig } = require('../config/constants');
 
 const getMonthIndex = (monthInput) => {
@@ -80,8 +81,7 @@ const operationRegistry = {
             const rowDate = parseSheetDate(row[0]);
             if (!rowDate) return false;
             if (rowDate.getMonth() !== mes || rowDate.getFullYear() !== ano) return false;
-            const normalizedParam = normalizeText(params.categoria);
-            return (normalizeText(row[2] || '')).includes(normalizedParam) || (normalizeText(row[3] || '')).includes(normalizedParam) || (normalizeText(row[1] || '')).includes(normalizedParam);
+            return matchesAnyField([row[2] || '', row[3] || '', row[1] || ''], params.categoria);
         });
         const totalSaidas = analysisService.calculateTotal(saidasFiltradas);
         let totalCartoes = 0;
@@ -92,8 +92,7 @@ const operationRegistry = {
                 if (!cardSheetData || cardSheetData.length <= 1) return;
                 cardSheetData.slice(1).forEach(row => {
                     const billingMonth = row[5] || '';
-                    const category = normalizeText(row[2] || '');
-                    if (billingMonth === targetBillingMonth && category.includes(normalizeText(params.categoria))) {
+                    if (billingMonth === targetBillingMonth && matchesAnyField([row[2] || '', row[1] || ''], params.categoria)) {
                         totalCartoes += parseValue(row[3]);
                     }
                 });

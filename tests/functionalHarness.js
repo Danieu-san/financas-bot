@@ -6,7 +6,8 @@ const FUNCTIONAL_SENDERS = Object.freeze({
     surface: '5599991000001@c.us',
     transactions: '5599991000002@c.us',
     creation: '5599991000003@c.us',
-    analytics: '5599991000004@c.us'
+    analytics: '5599991000004@c.us',
+    complexAnalytics: '5599991000005@c.us'
 });
 
 process.env.ADMIN_IDS = [

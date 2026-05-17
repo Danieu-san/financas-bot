@@ -1,5 +1,5 @@
 const { normalizeText, parseSheetDate, parseValue } = require('../utils/helpers');
-const stringSimilarity = require('string-similarity');
+const { matchesAnyField, fuzzyIncludes } = require('../utils/textMatcher');
 
 function getExpensesByMonthAndCategory(data, month, year, category) {
     const normalizedCategory = normalizeText(category);
@@ -8,18 +8,15 @@ function getExpensesByMonthAndCategory(data, month, year, category) {
         const rowDate = parseSheetDate(row[0]);
         if (!rowDate) return false;
 
-        const categoriaDaPlanilha = normalizeText(row[2] || '');
-        const subcategoriaDaPlanilha = normalizeText(row[3] || '');
-        const descricaoDaPlanilha = normalizeText(row[1] || '');
-        
-        const categoriaMatch = categoriaDaPlanilha.includes(normalizedCategory);
-        const subcategoriaMatch = subcategoriaDaPlanilha.includes(normalizedCategory);
-        const descricaoMatch = descricaoDaPlanilha.includes(normalizedCategory);
+        const matchesCategory = matchesAnyField(
+            [row[2] || '', row[3] || '', row[1] || ''],
+            normalizedCategory
+        );
 
         return (
             rowDate.getMonth() === month &&
             rowDate.getFullYear() === year &&
-            (categoriaMatch || subcategoriaMatch || descricaoMatch)
+            matchesCategory
         );
     });
 }
@@ -51,14 +48,8 @@ function countOccurrences(data, keywords, year, month) {
     });
 
     const matchingRows = filteredByDate.filter(row => {
-        const description = normalizeText(row[1] || '');
-        const wordsInDescription = description.split(' ');
-
-        return searchTerms.some(term => 
-            wordsInDescription.some(word => 
-                stringSimilarity.compareTwoStrings(term, word) > 0.65
-            )
-        );
+        const description = row[1] || '';
+        return searchTerms.some(term => fuzzyIncludes(description, term, { wordThreshold: 0.65 }));
     });
     
     return matchingRows;
