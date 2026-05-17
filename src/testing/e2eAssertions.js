@@ -1,11 +1,32 @@
+async function waitForChatToSettle(driver, delayMs = 2000) {
+    if (typeof driver.page?.waitForTimeout === 'function') {
+        await driver.page.waitForTimeout(delayMs);
+    }
+}
+
+async function describeVisibleTextTail(driver) {
+    try {
+        const text = await driver.getVisibleText();
+        return String(text || '').slice(-1500);
+    } catch (error) {
+        return `Nao foi possivel ler texto visivel: ${error.message}`;
+    }
+}
+
 async function sendAndWaitForReply(driver, text, expected, options = {}) {
     const timeoutMs = options.timeoutMs || driver.config.timeoutMs;
+    await waitForChatToSettle(driver, options.settleMs);
     const previousCount = await driver.countTextOccurrences(expected);
     const startedAt = Date.now();
 
     console.log(`[whatsapp-e2e] -> ${text}`);
     await driver.sendMessage(text);
-    await driver.waitForIncomingMessage({ contains: expected, previousCount, timeoutMs });
+    try {
+        await driver.waitForIncomingMessage({ contains: expected, previousCount, timeoutMs });
+    } catch (error) {
+        console.log(`[whatsapp-e2e] texto visivel ao falhar:\n${await describeVisibleTextTail(driver)}`);
+        throw error;
+    }
 
     const elapsedMs = Date.now() - startedAt;
     console.log(`[whatsapp-e2e] <- encontrou "${expected}" em ${elapsedMs}ms`);
@@ -18,17 +39,24 @@ async function sendAndWaitForAnyReply(driver, text, expectedAny, options = {}) {
     const previousCounts = {};
     const startedAt = Date.now();
 
+    await waitForChatToSettle(driver, options.settleMs);
     for (const expected of expectedAny) {
         previousCounts[expected] = await driver.countTextOccurrences(expected);
     }
 
     console.log(`[whatsapp-e2e] -> ${text}`);
     await driver.sendMessage(text);
-    const found = await driver.waitForAnyIncomingMessage({
-        containsAny: expectedAny,
-        previousCounts,
-        timeoutMs
-    });
+    let found;
+    try {
+        found = await driver.waitForAnyIncomingMessage({
+            containsAny: expectedAny,
+            previousCounts,
+            timeoutMs
+        });
+    } catch (error) {
+        console.log(`[whatsapp-e2e] texto visivel ao falhar:\n${await describeVisibleTextTail(driver)}`);
+        throw error;
+    }
 
     const elapsedMs = Date.now() - startedAt;
     console.log(`[whatsapp-e2e] <- encontrou "${found}" em ${elapsedMs}ms`);
@@ -38,5 +66,6 @@ async function sendAndWaitForAnyReply(driver, text, expectedAny, options = {}) {
 
 module.exports = {
     sendAndWaitForAnyReply,
-    sendAndWaitForReply
+    sendAndWaitForReply,
+    waitForChatToSettle
 };

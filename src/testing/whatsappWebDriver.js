@@ -66,6 +66,10 @@ function countOccurrences(text, search) {
     return String(text || '').split(search).length - 1;
 }
 
+function resolveWhatsAppLoadTimeout(config) {
+    return Number(config?.timeoutMs) || 60000;
+}
+
 async function describeContentEditableFields(page) {
     return page.locator('div[contenteditable="true"]').evaluateAll(nodes => nodes.slice(0, 10).map(node => ({
         ariaLabel: node.getAttribute('aria-label'),
@@ -118,7 +122,7 @@ class WhatsAppWebDriver {
     }
 
     async assertLoggedIn() {
-        const loggedIn = await firstVisibleLocator(this.page, LOGGED_IN_SELECTORS, Math.min(this.config.timeoutMs, 30000));
+        const loggedIn = await firstVisibleLocator(this.page, LOGGED_IN_SELECTORS, resolveWhatsAppLoadTimeout(this.config));
         if (loggedIn) {
             return loggedIn.selector;
         }
@@ -134,6 +138,12 @@ class WhatsAppWebDriver {
     }
 
     async openChat(phone = this.config.botPhone) {
+        try {
+            return await this.openChatByPhoneUrl(phone);
+        } catch (error) {
+            console.log(`Chat pelo telefone ${phone} nao abriu por URL direta; tentando busca. Motivo: ${error.message}`);
+        }
+
         if (this.config.botChatName) {
             try {
                 return await this.openChatBySearch(this.config.botChatName);
@@ -145,11 +155,22 @@ class WhatsAppWebDriver {
         return this.openChatBySearch(phone);
     }
 
+    async openChatByPhoneUrl(phone = this.config.botPhone) {
+        const url = buildChatUrl(phone);
+        await this.page.goto(url, {
+            waitUntil: 'domcontentloaded',
+            timeout: this.config.timeoutMs
+        });
+        await this.assertLoggedIn();
+        await this.getMessageBox();
+        return this.page.url();
+    }
+
     async openChatBySearch(query) {
         await this.gotoHome();
         await this.assertLoggedIn();
 
-        const search = await firstVisibleLocator(this.page, SEARCH_BOX_SELECTORS, Math.min(this.config.timeoutMs, 30000));
+        const search = await firstVisibleLocator(this.page, SEARCH_BOX_SELECTORS, resolveWhatsAppLoadTimeout(this.config));
         if (!search) {
             const candidates = await describeClickableCandidates(this.page);
             throw new Error(
@@ -246,5 +267,6 @@ module.exports = {
     countOccurrences,
     describeContentEditableFields,
     describeClickableCandidates,
-    launchWhatsAppWebDriver
+    launchWhatsAppWebDriver,
+    resolveWhatsAppLoadTimeout
 };

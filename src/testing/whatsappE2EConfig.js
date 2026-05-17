@@ -38,6 +38,13 @@ function normalizePhone(value, name) {
     return digits;
 }
 
+function parseAdminPhones(adminIds = '') {
+    return String(adminIds || '')
+        .split(',')
+        .map(value => value.replace(/\D/g, ''))
+        .filter(Boolean);
+}
+
 function requireEnv(env, name) {
     const value = env[name];
     if (value === undefined || value === null || String(value).trim() === '') {
@@ -67,6 +74,11 @@ function loadWhatsAppE2EConfig(env = process.env, options = {}) {
 
     if (botPhone === testUserPhone) {
         throw new Error('WHATSAPP_E2E_BOT_PHONE e WHATSAPP_E2E_TEST_USER_PHONE nao podem ser o mesmo numero.');
+    }
+
+    const adminPhones = parseAdminPhones(env.ADMIN_IDS);
+    if (adminPhones.includes(testUserPhone)) {
+        throw new Error('WHATSAPP_E2E_TEST_USER_PHONE nao pode ser um numero administrador em ADMIN_IDS.');
     }
 
     const senderKind = String(env.WHATSAPP_E2E_SENDER_KIND || 'personal-temporary').trim();
@@ -102,5 +114,6 @@ module.exports = {
     loadWhatsAppE2EConfig,
     parseBoolean,
     parsePositiveInteger,
-    normalizePhone
+    normalizePhone,
+    parseAdminPhones
 };

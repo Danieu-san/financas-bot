@@ -8,7 +8,8 @@ const {
     SEARCH_BOX_SELECTORS,
     WHATSAPP_WEB_URL,
     buildChatUrl,
-    countOccurrences
+    countOccurrences,
+    resolveWhatsAppLoadTimeout
 } = require('../src/testing/whatsappWebDriver');
 
 test('whatsappWebDriver.buildChatUrl opens the bot chat without prefilled text', () => {
@@ -32,4 +33,9 @@ test('whatsappWebDriver.countOccurrences counts repeated reply text', () => {
     assert.strictEqual(countOccurrences('abc abc abc', 'abc'), 3);
     assert.strictEqual(countOccurrences('sem correspondencia', 'xyz'), 0);
     assert.strictEqual(countOccurrences('', 'abc'), 0);
+});
+
+test('whatsappWebDriver respects configured load timeout for slow WhatsApp Web sessions', () => {
+    assert.strictEqual(resolveWhatsAppLoadTimeout({ timeoutMs: 180000 }), 180000);
+    assert.strictEqual(resolveWhatsAppLoadTimeout({}), 60000);
 });

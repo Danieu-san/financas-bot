@@ -5,13 +5,14 @@ require('dotenv').config();
 const { loadWhatsAppE2EConfig } = require('../src/testing/whatsappE2EConfig');
 const { launchWhatsAppWebDriver } = require('../src/testing/whatsappWebDriver');
 const { sendAndWaitForAnyReply, sendAndWaitForReply } = require('../src/testing/e2eAssertions');
+const userService = require('../src/services/userService');
 
 const config = loadWhatsAppE2EConfig(process.env);
 
 async function ensureUserReady(driver) {
     const termsResult = await sendAndWaitForAnyReply(driver, 'TERMOS', [
-        'Resumo legal:',
         'Para ativar seu acesso',
+        'Resumo legal:',
         'Termos atuais'
     ]);
 
@@ -20,6 +21,8 @@ async function ensureUserReady(driver) {
     }
 
     const aceitoResult = await sendAndWaitForAnyReply(driver, 'ACEITO', [
+        'aguardando aprovação',
+        'aguardando aprovacao',
         'como você prefere ser chamado',
         'como voce prefere ser chamado',
         'renda mensal',
@@ -36,7 +39,49 @@ async function ensureUserReady(driver) {
         'Nao entendi'
     ]);
 
+    if (await activateLatestPendingUserForE2EIfNeeded(aceitoResult)) {
+        const onboardingStart = await sendAndWaitForAnyReply(driver, 'Oi', [
+            'como você prefere ser chamado',
+            'como voce prefere ser chamado',
+            'renda mensal',
+            'Onboarding concluído',
+            'Onboarding concluido'
+        ]);
+        await completeOnboardingIfNeeded(driver, onboardingStart);
+        return;
+    }
+
     await completeOnboardingIfNeeded(driver, aceitoResult);
+}
+
+async function activateLatestPendingUserForE2EIfNeeded(text) {
+    const normalized = String(text || '').toLowerCase();
+    if (!normalized.includes('aguardando aprova')) {
+        return false;
+    }
+
+    const bridgeEnabled = ['true', '1', 'sim', 's'].includes(
+        String(process.env.WHATSAPP_E2E_APPROVAL_BRIDGE || '').trim().toLowerCase()
+    );
+    if (!bridgeEnabled) {
+        throw new Error(
+            'Usuário aguardando aprovação. Aprove pelo admin ou rode com WHATSAPP_E2E_APPROVAL_BRIDGE=true para ativação controlada de teste.'
+        );
+    }
+
+    const users = await userService.getAllUsers();
+    const pending = users
+        .filter(user => user.status === userService.USER_STATUS.PENDING_APPROVAL)
+        .sort((a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0));
+
+    if (!pending.length) {
+        throw new Error('E2E recebeu aguardando aprovação, mas não encontrou usuário PENDING_APPROVAL.');
+    }
+
+    const user = pending[0];
+    await userService.updateUserStatus(user.user_id, userService.USER_STATUS.ACTIVE);
+    console.log(`[whatsapp-e2e] usuário pendente ativado via bridge de teste: ${user.whatsapp_id}`);
+    return true;
 }
 
 function requiresConsentReply(text) {
@@ -105,11 +150,31 @@ async function completeOnboardingIfNeeded(driver, fallbackText = '') {
     }
 }
 
+async function ensureOnboardingReady(driver) {
+    await completeOnboardingIfNeeded(driver);
+
+    const result = await sendAndWaitForAnyReply(driver, 'Oi', [
+        'Oi,',
+        'como você prefere ser chamado',
+        'como voce prefere ser chamado',
+        'renda mensal',
+        'gasto fixo',
+        'dívidas ativas',
+        'dividas ativas',
+        'objetivo principal',
+        'Onboarding concluído',
+        'Onboarding concluido'
+    ]);
+
+    await completeOnboardingIfNeeded(driver, result);
+}
+
 async function registerExpense(driver) {
     const first = await sendAndWaitForAnyReply(driver, 'gastei 10 no teste E2E no pix', [
         'Você confirma',
         'Voce confirma',
         'Registro finalizado',
+        'registrado como',
         'como esses itens foram pagos',
         'forma de pagamento'
     ]);
@@ -127,7 +192,7 @@ async function registerExpense(driver) {
         return;
     }
 
-    if (!first.includes('Registro finalizado')) {
+    if (!first.includes('Registro finalizado') && !first.includes('registrado como')) {
         await sendAndWaitForReply(driver, 'pix', 'Registro finalizado');
     }
 }
@@ -142,6 +207,7 @@ test('whatsapp real e2e: onboarding, transaction, analytics and dashboard smoke'
 
         await completeOnboardingIfNeeded(driver);
         await ensureUserReady(driver);
+        await ensureOnboardingReady(driver);
         await registerExpense(driver);
         await sendAndWaitForAnyReply(driver, 'quanto gastei esse mês?', [
             'Total gasto',
