@@ -8,7 +8,8 @@ let isInitializing = false;
 const CONFIGURED_WEB_VERSION = String(process.env.WWEB_VERSION || '').trim();
 const WEB_VERSION_CACHE_TYPE = process.env.WWEB_CACHE_TYPE || 'none';
 const DEFAULT_USER_AGENT = process.env.WWEB_USER_AGENT || 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36';
-const READY_TIMEOUT_MS = Number(process.env.WWEB_READY_TIMEOUT_MS || 180000);
+const READY_TIMEOUT_MS = Number(process.env.WWEB_READY_TIMEOUT_MS || 420000);
+const AUTH_TIMEOUT_MS = Number(process.env.WWEB_AUTH_TIMEOUT_MS || 180000);
 const PROTOCOL_TIMEOUT_MS = Number(process.env.PUPPETEER_PROTOCOL_TIMEOUT_MS || 180000);
 
 function exitForSupervisor(reason, delayMs = 1500) {
@@ -37,7 +38,7 @@ function initializeWhatsAppClient() {
             type: WEB_VERSION_CACHE_TYPE
         },
         userAgent: DEFAULT_USER_AGENT,
-        authTimeoutMs: 120000,
+        authTimeoutMs: AUTH_TIMEOUT_MS,
         puppeteer: {
             headless: true,
             args: [
@@ -46,7 +47,14 @@ function initializeWhatsAppClient() {
                 '--disable-dev-shm-usage',
                 '--no-first-run',
                 '--no-zygote',
-                '--disable-gpu'
+                '--disable-gpu',
+                '--disable-extensions',
+                '--disable-background-networking',
+                '--disable-background-timer-throttling',
+                '--disable-renderer-backgrounding',
+                '--disable-sync',
+                '--disable-default-apps',
+                '--mute-audio'
             ],
             // Aumentar o timeout para evitar falhas em conexões lentas
             protocolTimeout: PROTOCOL_TIMEOUT_MS,
