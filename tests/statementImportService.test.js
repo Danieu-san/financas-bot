@@ -3,6 +3,7 @@ const assert = require('node:assert');
 
 const {
     buildImportPreviewMessage,
+    buildImportPreviewMessages,
     detectImportFileType,
     parseCsvTransactions,
     parseImportMedia,
@@ -79,4 +80,53 @@ test('statement import builds preview and parseImportMedia result', () => {
     assert.strictEqual(result.transactions.length, 1);
     assert.match(result.preview, /Encontrei 1 lançamento/);
     assert.match(buildImportPreviewMessage(result.transactions), /Uber/);
+});
+
+test('statement import preview includes every imported row instead of abbreviating', () => {
+    const csvRows = ['Data;Descrição;Valor;Tipo'];
+    for (let index = 1; index <= 27; index += 1) {
+        csvRows.push(`17/05/2026;Compra ${index};-${index},00;Débito`);
+    }
+
+    const transactions = parseCsvTransactions(csvRows.join('\n'));
+    const preview = buildImportPreviewMessage(transactions);
+
+    assert.strictEqual(transactions.length, 27);
+    assert.match(preview, /27\. \[Saída\]/);
+    assert.doesNotMatch(preview, /mais 10 lançamento/);
+});
+
+test('statement import can split complete previews into multiple WhatsApp-sized messages', () => {
+    const transactions = parseCsvTransactions([
+        'Data;Descrição;Valor;Tipo',
+        ...Array.from({ length: 12 }, (_, index) => `17/05/2026;Compra longa ${index + 1} com texto para dividir;-${index + 1},00;Débito`)
+    ].join('\n'));
+
+    const messages = buildImportPreviewMessages(transactions, { maxMessageLength: 450 });
+
+    assert.ok(messages.length > 1);
+    assert.match(messages[0], /Parte 1\//);
+    assert.match(messages.at(-1), /Responda `sim`/);
+    assert.ok(messages.join('\n').includes('12. [Saída]'));
+});
+
+test('statement import detects probable internal transfers using the user full name', () => {
+    const csv = [
+        'Data;Descrição;Valor;Tipo',
+        '17/05/2026;PIX ENVIADO DANIEL FERREIRA DOS SANTOS;-1000,00;Débito',
+        '17/05/2026;PIX MERCADO BOM PRECO;-50,00;Débito',
+        '18/05/2026;TRANSFERENCIA MESMA TITULARIDADE;500,00;Crédito'
+    ].join('\n');
+
+    const transactions = parseCsvTransactions(csv, {
+        ownerAliases: ['Daniel Ferreira dos Santos', 'Daniel']
+    });
+
+    assert.strictEqual(transactions[0].type, 'Transferências');
+    assert.strictEqual(transactions[0].status, 'Provável transferência interna');
+    assert.strictEqual(transactions[1].type, 'Saídas');
+    assert.strictEqual(transactions[2].type, 'Transferências');
+
+    const preview = buildImportPreviewMessage(transactions);
+    assert.match(preview, /Transferências internas prováveis: 2/);
 });

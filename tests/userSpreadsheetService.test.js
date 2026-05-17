@@ -19,6 +19,7 @@ test('user spreadsheet template includes required multiuser financial tabs', () 
         'Manual',
         'Saídas',
         'Entradas',
+        'Transferências',
         'Dívidas',
         'Metas',
         'Cartões',
@@ -97,7 +98,7 @@ test('createUserSpreadsheetForUser creates spreadsheet and writes headers to eve
     assert.ok(headerWrites.some(call => call.payload.range === "'Lançamentos Cartão'!A1:J1"));
     const starterContent = calls.find(call => call.type === 'values.batchUpdate');
     assert.ok(starterContent, 'Should write dashboard/manual starter content');
-    assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Manual'!A1:C20"));
+    assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Manual'!A1:C21"));
     const formatCall = calls.find(call => call.type === 'batchUpdate');
     assert.ok(formatCall, 'Should apply visual formatting');
     assert.ok(formatCall.payload.resource.requests.some(req => req.addChart), 'Should add a dashboard chart');
@@ -159,7 +160,7 @@ test('applyUserSpreadsheetTemplate upgrades an existing sheet without recreating
     assert.ok(tabUpdate.payload.resource.requests.some(req => req.deleteSheet?.sheetId === 98));
     assert.ok(tabUpdate.payload.resource.requests.some(req => req.deleteSheet?.sheetId === 99));
     const starterContent = calls.find(call => call.type === 'values.batchUpdate');
-    assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Manual'!A1:C20"));
+    assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Manual'!A1:C21"));
     const formatCall = calls.find(call => call.type === 'batchUpdate.format');
     assert.ok(formatCall.payload.resource.requests.some(req => req.deleteEmbeddedObject?.objectId === 77));
     assert.ok(formatCall.payload.resource.requests.some(req => req.addChart));

@@ -23,6 +23,7 @@ async function ensureUserReady(driver) {
     const aceitoResult = await sendAndWaitForAnyReply(driver, 'ACEITO', [
         'aguardando aprovação',
         'aguardando aprovacao',
+        'nome completo',
         'como você prefere ser chamado',
         'como voce prefere ser chamado',
         'renda mensal',
@@ -41,6 +42,7 @@ async function ensureUserReady(driver) {
 
     if (await activateLatestPendingUserForE2EIfNeeded(aceitoResult)) {
         const onboardingStart = await sendAndWaitForAnyReply(driver, 'Oi', [
+            'nome completo',
             'como você prefere ser chamado',
             'como voce prefere ser chamado',
             'renda mensal',
@@ -100,6 +102,7 @@ function detectOnboardingStep(text) {
         normalized.lastIndexOf('onboarding concluido')
     );
     const candidates = [
+        { step: 'full_name', patterns: ['nome completo'] },
         { step: 'name', patterns: ['como você prefere', 'como voce prefere'] },
         { step: 'income', patterns: ['renda mensal'] },
         { step: 'fixed_expense', patterns: ['gasto fixo', 'gastos fixos'] },
@@ -132,8 +135,10 @@ async function currentOnboardingStep(driver, fallbackText = '') {
 async function completeOnboardingIfNeeded(driver, fallbackText = '') {
     let step = await currentOnboardingStep(driver, fallbackText);
 
-    for (let guard = 0; step && guard < 5; guard += 1) {
-        if (step === 'name') {
+    for (let guard = 0; step && guard < 6; guard += 1) {
+        if (step === 'full_name') {
+            await sendAndWaitForAnyReply(driver, 'Daniel Ferreira E2E', ['como você prefere', 'como voce prefere']);
+        } else if (step === 'name') {
             await sendAndWaitForAnyReply(driver, 'Daniel E2E', ['renda mensal', 'renda']);
         } else if (step === 'income') {
             await sendAndWaitForAnyReply(driver, '5000', ['gasto fixo', 'gastos fixos']);
@@ -155,6 +160,7 @@ async function ensureOnboardingReady(driver) {
 
     const result = await sendAndWaitForAnyReply(driver, 'Oi', [
         'Oi,',
+        'nome completo',
         'como você prefere ser chamado',
         'como voce prefere ser chamado',
         'renda mensal',

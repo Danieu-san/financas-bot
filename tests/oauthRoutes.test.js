@@ -146,7 +146,7 @@ test('OAuth callback notifies user on WhatsApp after successful connection', asy
         assert.match(whatsappMessages[0].message, /Manual completo somente leitura/);
         assert.match(whatsappMessages[0].message, /aba "Manual"/);
         assert.match(whatsappMessages[0].message, /planilha é individual/i);
-        assert.match(whatsappMessages[0].message, /\[1\/5\] Antes de começarmos/);
+        assert.match(whatsappMessages[0].message, /\[1\/6\].*nome completo/);
         assert.match(whatsappMessages[0].message, /Depois do onboarding/);
     } finally {
         delete process.env.USER_MANUAL_URL;

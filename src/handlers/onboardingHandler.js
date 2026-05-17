@@ -10,7 +10,7 @@ const { sendPlainMessage } = require('../utils/whatsappMessaging');
 const ONBOARDING_ACTION = 'onboarding_flow';
 const ONBOARDING_TTL_SECONDS = 60 * 60 * 12; // 12h
 const POST_ONBOARDING_DEBT_OFFER_ACTION = 'post_onboarding_debt_offer';
-const ONBOARDING_TOTAL_STEPS = 5;
+const ONBOARDING_TOTAL_STEPS = 6;
 
 function onboardingMenu({ hasDebt = false, primaryGoal = '' } = {}) {
     const goal = normalizeText(primaryGoal);
@@ -64,14 +64,16 @@ function getQuestion(step) {
     const progress = `[${step}/${ONBOARDING_TOTAL_STEPS}] `;
     switch (step) {
         case 1:
-            return `${progress}Antes de começarmos, como você prefere ser chamado?`;
+            return `${progress}Qual é seu nome completo? Vou usar isso para reconhecer transferências entre contas da mesma titularidade em extratos.`;
         case 2:
-            return `${progress}Qual sua renda mensal aproximada? (ex: 2000, R$ 2 mil, dois mil)`;
+            return `${progress}E como você prefere ser chamado no dia a dia?`;
         case 3:
-            return `${progress}Qual seu gasto fixo mensal aproximado?`;
+            return `${progress}Qual sua renda mensal aproximada? (ex: 2000, R$ 2 mil, dois mil)`;
         case 4:
-            return `${progress}Você tem dívidas ativas hoje? (sim/não)`;
+            return `${progress}Qual seu gasto fixo mensal aproximado?`;
         case 5:
+            return `${progress}Você tem dívidas ativas hoje? (sim/não)`;
+        case 6:
             return `${progress}Qual seu objetivo principal agora? (ex: quitar dívidas, montar reserva)`;
         default:
             return null;
@@ -110,6 +112,7 @@ function prepareOnboardingState(senderId) {
 
 async function completeOnboarding(senderId, userId, data, msg) {
     await upsertUserProfile(userId, {
+        full_name: data.full_name ?? '',
         monthly_income: data.monthly_income ?? '',
         fixed_expense_estimate: data.fixed_expense_estimate ?? '',
         has_debt: data.has_debt ?? '',
@@ -186,7 +189,19 @@ async function advanceOnboarding(senderId, state, msg, user) {
 
     if (step === 1) {
         if (!answer) {
-            await sendPlainMessage(msg, 'Me diga um nome curto para te chamar.');
+            await sendPlainMessage(msg, 'Me diga seu nome completo. Isso ajuda a identificar transferências internas nos extratos.');
+            return;
+        }
+        if (looksLikeBotCommand(answer)) {
+            await sendPlainMessage(msg, 'Isso parece um comando, não um nome. Me diga seu nome completo. Ex: Daniel Ferreira dos Santos');
+            return;
+        }
+        data.full_name = answer;
+    }
+
+    if (step === 2) {
+        if (!answer) {
+            await sendPlainMessage(msg, 'Me diga um nome curto para te chamar. Ex: Daniel');
             return;
         }
         if (looksLikeBotCommand(answer)) {
@@ -196,7 +211,7 @@ async function advanceOnboarding(senderId, state, msg, user) {
         data.display_name = answer;
     }
 
-    if (step === 2) {
+    if (step === 3) {
         const income = parseAmountLocal(answer);
         if (income === null || income < 0) {
             await sendPlainMessage(msg, 'Não consegui entender a renda. Ex: 2000, R$ 2 mil, dois mil.');
@@ -205,7 +220,7 @@ async function advanceOnboarding(senderId, state, msg, user) {
         data.monthly_income = income;
     }
 
-    if (step === 3) {
+    if (step === 4) {
         const fixed = parseAmountLocal(answer);
         if (fixed === null || fixed < 0) {
             await sendPlainMessage(msg, 'Não consegui entender o gasto fixo. Ex: 1500 ou R$ 1,5 mil.');
@@ -214,7 +229,7 @@ async function advanceOnboarding(senderId, state, msg, user) {
         data.fixed_expense_estimate = fixed;
     }
 
-    if (step === 4) {
+    if (step === 5) {
         const yesNo = isYesNo(answer);
         if (!yesNo) {
             await sendPlainMessage(msg, 'Responda apenas com: sim ou não.');
@@ -223,7 +238,7 @@ async function advanceOnboarding(senderId, state, msg, user) {
         data.has_debt = yesNo;
     }
 
-    if (step === 5) {
+    if (step === 6) {
         if (!answer) {
             await sendPlainMessage(msg, 'Me diga seu objetivo principal em uma frase curta.');
             return;

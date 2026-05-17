@@ -19,6 +19,7 @@ const USER_SHEET_NAMES = new Set([
     'Manual',
     'Saídas',
     'Entradas',
+    'Transferências',
     'Dívidas',
     'Metas',
     'Cartões',
@@ -251,6 +252,7 @@ const CALENDAR_USER_ID_PRIVATE_KEY = 'financas_bot_user_id';
 const USER_SCOPED_APPEND_USER_ID_INDEX = Object.freeze({
     'Saídas': 9,
     'Entradas': 8,
+    'Transferências': 8,
     'Dívidas': 17,
     'Metas': 8,
     'Contas': 3,
@@ -1095,6 +1097,7 @@ async function ensureSpreadsheetStructure() {
     const structure = [
         { title: 'Saídas', headers: ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Observações', 'user_id'], color: { red: 0.9, green: 0.4, blue: 0.4 } },
         { title: 'Entradas', headers: ['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Observações', 'user_id'], color: { red: 0.4, green: 0.8, blue: 0.4 } },
+        { title: 'Transferências', headers: ['Data', 'Descrição', 'Valor', 'Conta Origem', 'Conta Destino', 'Método', 'Observações', 'Status', 'user_id'], color: { red: 0.42, green: 0.58, blue: 0.74 } },
         { title: 'Dívidas', headers: ['Nome', 'Credor', 'Tipo', 'Valor Original', 'Saldo Atual', 'Parcela', 'Juros', 'Vencimento', 'Início', 'Total Parcelas', 'Status', 'Responsável', 'Observações', '% Quitado', 'Próximo Vencimento', 'Atraso (Dias)', 'Data Prevista para Quitação', 'user_id'], color: { red: 0.8, green: 0.5, blue: 0.2 } },
         { title: 'Metas', headers: ['Nome', 'Valor Alvo', 'Valor Atual', '% Progresso', 'Valor Mensal', 'Data Fim', 'Status', 'Prioridade', 'user_id'], color: { red: 0.2, green: 0.6, blue: 0.8 } },
         { title: 'Contas', headers: ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id'], color: { red: 0.9, green: 0.7, blue: 0.3 } },
@@ -1105,7 +1108,7 @@ async function ensureSpreadsheetStructure() {
         { title: 'Cartão Nubank - Cristina', headers: ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'user_id'], color: { red: 0.6, green: 0.3, blue: 0.7 } },
         { title: 'Cartão Atacadão', headers: ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'user_id'], color: { red: 0.6, green: 0.3, blue: 0.7 } },
         { title: 'Users', headers: ['user_id', 'whatsapp_id', 'phone_e164', 'display_name', 'status', 'created_at', 'updated_at', 'consent_at', 'terms_version', 'deleted_at'], color: { red: 0.2, green: 0.5, blue: 0.9 } },
-        { title: 'UserProfile', headers: ['user_id', 'monthly_income', 'fixed_expense_estimate', 'has_debt', 'primary_goal', 'onboarding_completed_at'], color: { red: 0.3, green: 0.6, blue: 0.8 } },
+        { title: 'UserProfile', headers: ['user_id', 'full_name', 'monthly_income', 'fixed_expense_estimate', 'has_debt', 'primary_goal', 'onboarding_completed_at'], color: { red: 0.3, green: 0.6, blue: 0.8 } },
         { title: 'UserSettings', headers: ['user_id', 'timezone', 'weekly_checkin_opt_in', 'monthly_report_opt_in', 'language', 'created_at', 'defaults_enabled', 'default_reserve_percent'], color: { red: 0.4, green: 0.6, blue: 0.7 } },
         { title: 'ConsentLog', headers: ['consent_id', 'user_id', 'whatsapp_id', 'accepted_at', 'terms_version', 'channel', 'evidence'], color: { red: 0.5, green: 0.5, blue: 0.8 } }
     ];

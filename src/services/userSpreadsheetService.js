@@ -26,6 +26,11 @@ const USER_SPREADSHEET_TABS = Object.freeze([
         color: { red: 0.13, green: 0.55, blue: 0.36 }
     },
     {
+        title: 'Transferências',
+        headers: ['Data', 'Descrição', 'Valor', 'Conta Origem', 'Conta Destino', 'Método', 'Observações', 'Status', 'user_id'],
+        color: { red: 0.28, green: 0.48, blue: 0.70 }
+    },
+    {
         title: 'Dívidas',
         headers: [
             'Nome da Dívida', 'Credor', 'Tipo', 'Valor Original', 'Saldo Atual', 'Valor da Parcela',
@@ -174,6 +179,7 @@ function buildDashboardRows({ user = {} } = {}) {
         ['Saídas', '=B6', '', '', ''],
         ['Cartões', '=B7', '', '', ''],
         ['Dívidas', "=SUM('Dívidas'!E2:E)", '', '', ''],
+        ['Transferências internas', "=SUM('Transferências'!C2:C)", 'Movimentos entre suas próprias contas; não entram no saldo estimado.', user.user_id || '', '=NOW()'],
         ['', '', '', '', ''],
         ['Próximos passos', '1) Leia a aba Manual. 2) Cadastre seus cartões na aba Cartões. 3) Registre gastos pelo WhatsApp.', '', '', '']
     ];
@@ -187,6 +193,7 @@ function buildManualRows({ user = {} } = {}) {
         ['Comandos do WhatsApp', 'O bot entende gastos, entradas, perguntas, metas, dívidas, lembretes, exclusões e dashboard. Ele pede confirmação quando precisar.', 'gastei 80 de gasolina no débito; quanto gastei este mês?; dashboard'],
         ['Saídas', 'Aqui ficam gastos pagos por pix, débito, dinheiro, boleto ou qualquer pagamento que não seja cartão de crédito parcelado.', 'Campos principais: data, descrição, categoria, valor e forma de pagamento.'],
         ['Entradas', 'Aqui ficam seus recebimentos: salário, freela, reembolso, venda, presente ou qualquer dinheiro que entrou.', 'Campos principais: data, descrição, categoria, valor e forma de recebimento.'],
+        ['Transferências', 'Aqui ficam movimentos entre suas próprias contas. Elas são úteis para conferência, mas não contam como gasto nem como renda.', 'Exemplo: Pix entre sua conta do banco e sua conta da corretora.'],
         ['Cartões', 'Cadastre apenas cartões que pertencem a este usuário. Esta lista define quais cartões o bot pode oferecer quando você registrar compras no crédito.', 'Exemplo: id nubank-principal, nome Nubank Principal, fechamento 8, vencimento 15, ativo SIM.'],
         ['Lançamentos Cartão', 'Aqui ficam compras no crédito, compras parceladas e parcelas futuras. O nome do cartão deve existir na aba Cartões.', 'Exemplo: compra de R$ 300 em 3x vira parcelas mensais.'],
         ['Dívidas', 'Use para empréstimos, financiamentos, acordos, parcelas em aberto e qualquer valor que você quer acompanhar até quitar.', 'Campos úteis: valor original, saldo atual, parcela, juros, vencimento, parcelas pagas e status.'],
@@ -208,11 +215,11 @@ function buildManualRows({ user = {} } = {}) {
 function buildStarterValueRanges({ user = {} } = {}) {
     return [
         {
-            range: `${quoteSheetName('Dashboard')}!A1:E16`,
+            range: `${quoteSheetName('Dashboard')}!A1:E17`,
             values: buildDashboardRows({ user })
         },
         {
-            range: `${quoteSheetName('Manual')}!A1:C20`,
+            range: `${quoteSheetName('Manual')}!A1:C21`,
             values: buildManualRows({ user })
         }
     ];

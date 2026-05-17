@@ -39,7 +39,7 @@ function installUserServiceWithSheets({ users = [] } = {}) {
 
     const sheets = {
         Users: [USERS_HEADERS, ...users],
-        UserProfile: [['user_id', 'monthly_income', 'fixed_expense_estimate', 'has_debt', 'primary_goal', 'onboarding_completed_at']],
+        UserProfile: [['user_id', 'full_name', 'monthly_income', 'fixed_expense_estimate', 'has_debt', 'primary_goal', 'onboarding_completed_at']],
         UserSettings: [['user_id', 'timezone', 'weekly_checkin_enabled', 'monthly_report_enabled', 'language', 'created_at', 'auto_reserve_enabled', 'auto_reserve_percent']],
         ConsentLog: [['consent_id', 'user_id', 'whatsapp_id', 'accepted_at', 'terms_version', 'channel', 'evidence']]
     };

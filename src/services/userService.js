@@ -194,7 +194,7 @@ async function createPendingUser(whatsappId, displayName = '') {
 async function createDefaultUserRows(user) {
     const userId = user.user_id;
     const timestamp = nowIso();
-    await appendRowToSheet(PROFILE_SHEET, [userId, '', '', '', '', '']);
+    await appendRowToSheet(PROFILE_SHEET, [userId, '', '', '', '', '', '']);
     profilesCacheLoaded = false;
     await appendRowToSheet(SETTINGS_SHEET, [userId, 'America/Sao_Paulo', 'NÃO', 'SIM', 'pt-BR', timestamp, 'NÃO', '10']);
     settingsCacheLoaded = false;
@@ -304,11 +304,12 @@ function mapProfileRow(row, rowIndex) {
     return {
         rowIndex,
         user_id: row[0] || '',
-        monthly_income: row[1] || '',
-        fixed_expense_estimate: row[2] || '',
-        has_debt: row[3] || '',
-        primary_goal: row[4] || '',
-        onboarding_completed_at: row[5] || ''
+        full_name: row[1] || '',
+        monthly_income: row[2] || '',
+        fixed_expense_estimate: row[3] || '',
+        has_debt: row[4] || '',
+        primary_goal: row[5] || '',
+        onboarding_completed_at: row[6] || ''
     };
 }
 
@@ -319,7 +320,7 @@ async function getUserProfileByUserId(userId) {
         return completed[completed.length - 1] || matches[matches.length - 1] || null;
     }
 
-    const rows = await readCriticalSheet(`${PROFILE_SHEET}!A:F`);
+    const rows = await readCriticalSheet(`${PROFILE_SHEET}!A:G`);
     if (!rows || rows.length === 0) {
         if (!profilesCacheLoaded) return null;
         const cachedMatches = profilesCache.filter(p => p.user_id === userId);
@@ -352,6 +353,7 @@ async function upsertUserProfile(userId, patch) {
     const existing = await getUserProfileByUserId(userId);
     const base = existing || {
         user_id: userId,
+        full_name: '',
         monthly_income: '',
         fixed_expense_estimate: '',
         has_debt: '',
@@ -367,6 +369,7 @@ async function upsertUserProfile(userId, patch) {
 
     const rowData = [
         updated.user_id,
+        updated.full_name,
         updated.monthly_income,
         updated.fixed_expense_estimate,
         updated.has_debt,
@@ -375,7 +378,7 @@ async function upsertUserProfile(userId, patch) {
     ];
 
     if (existing) {
-        await updateRowInSheet(`${PROFILE_SHEET}!A${existing.rowIndex}:F${existing.rowIndex}`, rowData);
+        await updateRowInSheet(`${PROFILE_SHEET}!A${existing.rowIndex}:G${existing.rowIndex}`, rowData);
         const cached = { ...updated, rowIndex: existing.rowIndex };
         profilesCache = profilesCache
             .filter(profile => !(profile.user_id === userId && profile.rowIndex === existing.rowIndex))

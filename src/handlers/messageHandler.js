@@ -214,7 +214,21 @@ async function saveTransactionWithoutExtraPayment(item, { person, userId }) {
 async function saveImportedTransactions(transactions = [], { person, userId }) {
     let successCount = 0;
     for (const item of transactions) {
-        await saveTransactionWithoutExtraPayment(item, { person, userId });
+        if (item.type === 'Transferências') {
+            await appendRowToSheet('Transferências', [
+                item.data,
+                item.descricao,
+                item.valor,
+                item.origem || '',
+                item.destino || '',
+                item.metodo || 'Importação',
+                item.observacoes || 'Importado de arquivo',
+                item.status || 'Provável transferência interna',
+                userId
+            ]);
+        } else {
+            await saveTransactionWithoutExtraPayment(item, { person, userId });
+        }
         successCount += 1;
     }
     return successCount;
@@ -225,7 +239,13 @@ async function handleStatementImportMessage(msg, { senderId, person, userId }) {
     if (msg.type === 'ptt' || msg.type === 'audio') return false;
 
     const media = await msg.downloadMedia();
-    const parsed = parseImportMedia(media, msg);
+    const profile = userId ? await getUserProfileByUserId(userId) : null;
+    const parsed = parseImportMedia(media, msg, {
+        ownerAliases: [
+            profile?.full_name,
+            person
+        ].filter(Boolean)
+    });
 
     if (!parsed.supported) {
         await sendPlainMessage(msg, unsupportedImportMessage(parsed.reason));
@@ -247,7 +267,9 @@ async function handleStatementImportMessage(msg, { senderId, person, userId }) {
             userId
         }
     });
-    await sendPlainMessage(msg, parsed.preview);
+    for (const previewMessage of parsed.previewMessages || [parsed.preview]) {
+        await sendPlainMessage(msg, previewMessage);
+    }
     return true;
 }
 

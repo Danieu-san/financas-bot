@@ -139,7 +139,53 @@ function categorizeIncome(description = '') {
     return 'Outros';
 }
 
-function buildTransaction({ date, description, amount, explicitType = '' }) {
+function normalizeAlias(value = '') {
+    return normalizeText(value)
+        .replace(/\b(da|de|do|das|dos|e)\b/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function buildOwnerAliases(ownerAliases = []) {
+    return [...new Set(
+        ownerAliases
+            .map(normalizeAlias)
+            .filter(alias => alias.length >= 3)
+    )];
+}
+
+function isProbableInternalTransfer(description = '', ownerAliases = []) {
+    const text = normalizeAlias(description);
+    if (!text) return false;
+
+    if (text.includes('mesma titularidade') || text.includes('mesmo titular')) return true;
+
+    const transferTerms = [
+        'transferencia', 'transf', 'ted', 'doc', 'pix enviado', 'pix recebido',
+        'envio pix', 'recebimento pix', 'resgate', 'aplicacao', 'aplicacao financeira'
+    ];
+    const hasTransferTerm = transferTerms.some(term => text.includes(normalizeAlias(term)));
+    if (!hasTransferTerm) return false;
+
+    const aliases = buildOwnerAliases(ownerAliases);
+    return aliases.some(alias => text.includes(alias));
+}
+
+function buildTransfer({ date, description, amount, explicitType = '' }) {
+    return {
+        type: 'Transferências',
+        data: normalizeImportedDate(date),
+        descricao: String(description || 'Transferência importada').trim() || 'Transferência importada',
+        valor: Math.abs(Number(amount || 0)),
+        origem: '',
+        destino: '',
+        metodo: String(explicitType || '').trim() || 'Importação',
+        observacoes: 'Importado de arquivo; não conta como gasto nem renda',
+        status: 'Provável transferência interna'
+    };
+}
+
+function buildTransaction({ date, description, amount, explicitType = '', ownerAliases = [] }) {
     const value = Math.abs(Number(amount || 0));
     if (!value) return null;
 
@@ -149,6 +195,10 @@ function buildTransaction({ date, description, amount, explicitType = '' }) {
     if (!isIncome && !isExpense) return null;
 
     const safeDescription = String(description || 'Lançamento importado').trim() || 'Lançamento importado';
+    if (isProbableInternalTransfer(safeDescription, ownerAliases)) {
+        return buildTransfer({ date, description: safeDescription, amount, explicitType });
+    }
+
     if (isIncome && !isExpense) {
         return {
             type: 'Entradas',
@@ -176,7 +226,7 @@ function buildTransaction({ date, description, amount, explicitType = '' }) {
     };
 }
 
-function parseCsvTransactions(text) {
+function parseCsvTransactions(text, options = {}) {
     return parseDelimited(text)
         .map(row => {
             const date = pick(row, ['data', 'date', 'dt', 'dtpost']);
@@ -184,7 +234,7 @@ function parseCsvTransactions(text) {
             const amountRaw = pick(row, ['valor', 'amount', 'valor lancamento', 'quantia']);
             const explicitType = pick(row, ['tipo', 'type', 'natureza']);
             const amount = parseValue(amountRaw);
-            return buildTransaction({ date, description, amount, explicitType });
+            return buildTransaction({ date, description, amount, explicitType, ownerAliases: options.ownerAliases });
         })
         .filter(Boolean);
 }
@@ -195,7 +245,7 @@ function tagValue(block, tag) {
     return match ? match[1].trim() : '';
 }
 
-function parseOfxTransactions(text) {
+function parseOfxTransactions(text, options = {}) {
     const blocks = String(text || '').split(/<STMTTRN>/i).slice(1);
     return blocks
         .map(block => {
@@ -203,53 +253,105 @@ function parseOfxTransactions(text) {
             const description = tagValue(block, 'MEMO') || tagValue(block, 'NAME') || 'Lançamento OFX';
             const date = tagValue(block, 'DTPOSTED');
             const explicitType = tagValue(block, 'TRNTYPE');
-            return buildTransaction({ date, description, amount, explicitType });
+            return buildTransaction({ date, description, amount, explicitType, ownerAliases: options.ownerAliases });
         })
         .filter(Boolean);
 }
 
-function parseStatementText(text, type) {
-    if (type === 'ofx') return parseOfxTransactions(text);
-    return parseCsvTransactions(text);
+function parseStatementText(text, type, options = {}) {
+    if (type === 'ofx') return parseOfxTransactions(text, options);
+    return parseCsvTransactions(text, options);
+}
+
+function formatMoney(value) {
+    return Number(value || 0).toFixed(2).replace('.', ',');
+}
+
+function transactionLabel(item) {
+    if (item.type === 'Entradas') return 'Entrada';
+    if (item.type === 'Transferências') return 'Transferência';
+    return 'Saída';
+}
+
+function formatPreviewLine(item, index) {
+    return `${index + 1}. [${transactionLabel(item)}] ${item.data} | ${item.descricao} | R$ ${formatMoney(item.valor)} | ${item.categoria || item.status || 'Outros'}`;
+}
+
+function buildImportSummary(transactions = []) {
+    const entradas = transactions.filter(item => item.type === 'Entradas');
+    const saidas = transactions.filter(item => item.type === 'Saídas');
+    const transferencias = transactions.filter(item => item.type === 'Transferências');
+    const totalEntradas = entradas.reduce((sum, item) => sum + Number(item.valor || 0), 0);
+    const totalSaidas = saidas.reduce((sum, item) => sum + Number(item.valor || 0), 0);
+    const totalTransferencias = transferencias.reduce((sum, item) => sum + Number(item.valor || 0), 0);
+
+    return [
+        `Encontrei ${transactions.length} lançamento(s) no arquivo.`,
+        `Entradas: ${entradas.length} (R$ ${formatMoney(totalEntradas)})`,
+        `Saídas: ${saidas.length} (R$ ${formatMoney(totalSaidas)})`,
+        `Transferências internas prováveis: ${transferencias.length} (R$ ${formatMoney(totalTransferencias)})`
+    ];
 }
 
 function buildImportPreviewMessage(transactions = []) {
     if (!transactions.length) {
         return 'Não encontrei lançamentos válidos no arquivo. Confira se ele tem data, descrição e valor.';
     }
-    const entradas = transactions.filter(item => item.type === 'Entradas');
-    const saidas = transactions.filter(item => item.type === 'Saídas');
-    const totalEntradas = entradas.reduce((sum, item) => sum + Number(item.valor || 0), 0);
-    const totalSaidas = saidas.reduce((sum, item) => sum + Number(item.valor || 0), 0);
-    const lines = transactions.slice(0, 10).map((item, index) => {
-        const label = item.type === 'Entradas' ? 'Entrada' : 'Saída';
-        return `${index + 1}. [${label}] ${item.data} | ${item.descricao} | R$ ${Number(item.valor || 0).toFixed(2).replace('.', ',')} | ${item.categoria || 'Outros'}`;
-    });
-    const extra = transactions.length > 10 ? `\n... e mais ${transactions.length - 10} lançamento(s).` : '';
     return [
-        `Encontrei ${transactions.length} lançamento(s) no arquivo.`,
-        `Entradas: ${entradas.length} (R$ ${totalEntradas.toFixed(2).replace('.', ',')})`,
-        `Saídas: ${saidas.length} (R$ ${totalSaidas.toFixed(2).replace('.', ',')})`,
+        ...buildImportSummary(transactions),
         '',
-        lines.join('\n') + extra,
+        transactions.map(formatPreviewLine).join('\n'),
         '',
         'Responda `sim` para importar ou `não` para cancelar.'
     ].join('\n');
 }
 
-function parseImportMedia(media = {}, msg = {}) {
+function buildImportPreviewMessages(transactions = [], options = {}) {
+    const maxMessageLength = Number(options.maxMessageLength || 3000);
+    const full = buildImportPreviewMessage(transactions);
+    if (full.length <= maxMessageLength || !transactions.length) return [full];
+
+    const summary = buildImportSummary(transactions);
+    const lines = transactions.map(formatPreviewLine);
+    const chunks = [];
+    let current = [...summary, ''];
+
+    for (const line of lines) {
+        const candidate = [...current, line].join('\n');
+        if (candidate.length > maxMessageLength && current.length > summary.length + 1) {
+            chunks.push(current.join('\n'));
+            current = [line];
+        } else {
+            current.push(line);
+        }
+    }
+    if (current.length) chunks.push(current.join('\n'));
+
+    const total = chunks.length;
+    return chunks.map((chunk, index) => {
+        const header = `Prévia da importação - Parte ${index + 1}/${total}`;
+        const footer = index === total - 1
+            ? '\n\nResponda `sim` para importar ou `não` para cancelar.'
+            : '';
+        return `${header}\n${chunk}${footer}`;
+    });
+}
+
+function parseImportMedia(media = {}, msg = {}, options = {}) {
     const detected = detectImportFileType(media, msg);
     if (!detected.supported) {
         return { supported: false, reason: detected.reason, type: detected.type, transactions: [] };
     }
     const text = decodeMediaText(media);
-    const transactions = parseStatementText(text, detected.type);
+    const transactions = parseStatementText(text, detected.type, options);
+    const previewMessages = buildImportPreviewMessages(transactions);
     return {
         supported: true,
         type: detected.type,
         filename: detected.filename,
         transactions,
-        preview: buildImportPreviewMessage(transactions)
+        preview: previewMessages.join('\n\n'),
+        previewMessages
     };
 }
 
@@ -262,6 +364,7 @@ function unsupportedImportMessage(reason) {
 
 module.exports = {
     buildImportPreviewMessage,
+    buildImportPreviewMessages,
     detectImportFileType,
     parseCsvTransactions,
     parseImportMedia,
@@ -270,6 +373,7 @@ module.exports = {
     unsupportedImportMessage,
     __test__: {
         buildTransaction,
+        isProbableInternalTransfer,
         parseDelimited,
         splitDelimitedLine
     }

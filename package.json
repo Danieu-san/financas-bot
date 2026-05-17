@@ -12,6 +12,8 @@
     "test:whatsapp:e2e": "node scripts/runWhatsappRealE2E.js",
     "test:whatsapp:e2e:setup": "node scripts/setupWhatsappRealE2E.js",
     "test:whatsapp:e2e:check": "node scripts/checkWhatsappRealE2E.js",
+    "test:whatsapp:e2e:invite": "node scripts/runWhatsappPreOnboardingInviteE2E.js",
+    "test:whatsapp:e2e:import": "node scripts/runWhatsappImportE2E.js",
     "pm2:start": "pm2 start ecosystem.config.js",
     "pm2:stop": "pm2 stop all",
     "pm2:logs": "pm2 logs",

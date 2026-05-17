@@ -55,8 +55,8 @@ function activeUserRow() {
 function resetSheets() {
     sheets.Users = [USERS_HEADER, activeUserRow()];
     sheets.UserProfile = [
-        ['user_id', 'monthly_income', 'fixed_expense_estimate', 'has_debt', 'primary_goal', 'onboarding_completed_at'],
-        [USER_ID, 5000, 2500, 'SIM', 'montar reserva', '2026-01-01T00:00:00.000Z']
+        ['user_id', 'full_name', 'monthly_income', 'fixed_expense_estimate', 'has_debt', 'primary_goal', 'onboarding_completed_at'],
+        [USER_ID, 'Usuario Estado Completo', 5000, 2500, 'SIM', 'montar reserva', '2026-01-01T00:00:00.000Z']
     ];
     sheets.UserSettings = [
         ['user_id', 'timezone', 'weekly_checkin_enabled', 'monthly_report_enabled', 'language', 'created_at', 'auto_reserve_enabled', 'auto_reserve_percent'],
@@ -232,7 +232,7 @@ stateMachineTest('financial states: explicit PIX expense is saved without asking
 
 stateMachineTest('financial states: terms command is not swallowed by incomplete onboarding', async () => {
     resetState();
-    sheets.UserProfile[1][5] = '';
+    sheets.UserProfile[1][6] = '';
 
     const reply = await send('termos');
 

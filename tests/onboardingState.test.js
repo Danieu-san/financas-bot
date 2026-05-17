@@ -67,7 +67,7 @@ test('onboarding can go back one step without losing stored answers', async () =
     const state = userStateManager.getState(msg.from);
     assert.strictEqual(state.step, 2);
     assert.strictEqual(state.data.monthly_income, 2000);
-    assert.ok(msg.replies.some(text => text.includes('renda mensal')));
+    assert.ok(msg.replies.some(text => text.includes('prefere ser chamado')));
 });
 
 test('onboarding can restart from any step', async () => {
@@ -90,7 +90,7 @@ test('onboarding can restart from any step', async () => {
     assert.strictEqual(state.step, 1);
     assert.deepStrictEqual(state.data, {});
     assert.ok(msg.replies.some(text => text.includes('recomeçar')));
-    assert.ok(msg.replies.some(text => text.includes('como você prefere ser chamado')));
+    assert.ok(msg.replies.some(text => text.includes('nome completo')));
 });
 
 test('onboarding help explains recovery commands', async () => {
@@ -117,9 +117,12 @@ test('onboarding help explains recovery commands', async () => {
 test('onboarding questions show progress', () => {
     const { getQuestion } = onboardingHandler.__test__;
 
-    assert.match(getQuestion(1), /^\[1\/5\]/);
-    assert.match(getQuestion(5), /^\[5\/5\]/);
-    assert.match(getQuestion(5), /objetivo principal/i);
+    assert.match(getQuestion(1), /^\[1\/6\]/);
+    assert.match(getQuestion(1), /nome completo/i);
+    assert.match(getQuestion(2), /^\[2\/6\]/);
+    assert.match(getQuestion(2), /prefere ser chamado/i);
+    assert.match(getQuestion(6), /^\[6\/6\]/);
+    assert.match(getQuestion(6), /objetivo principal/i);
 });
 
 test('onboarding menu suggests debt registration when user has debt', () => {
