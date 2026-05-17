@@ -202,6 +202,24 @@ test('user lifecycle: admin approval moves user to APPROVED_AWAITING_GOOGLE and 
     assert.strictEqual(sheets.UserSettings.length, 2, 'Approval should create default settings');
 });
 
+test('user lifecycle: legacy profile rows keep onboarding data after full_name migration', async () => {
+    const userId = 'legacy-profile-user';
+    const { userService, sheets } = installUserServiceWithSheets();
+    sheets.UserProfile = [
+        ['user_id', 'monthly_income', 'fixed_expense_estimate', 'has_debt', 'primary_goal', 'onboarding_completed_at'],
+        [userId, '4500', '1800', 'sim', 'quitar dívidas', '2026-05-17T12:00:00.000Z']
+    ];
+
+    const profile = await userService.getUserProfileByUserId(userId);
+
+    assert.strictEqual(profile.full_name, '');
+    assert.strictEqual(profile.monthly_income, '4500');
+    assert.strictEqual(profile.fixed_expense_estimate, '1800');
+    assert.strictEqual(profile.has_debt, 'sim');
+    assert.strictEqual(profile.primary_goal, 'quitar dívidas');
+    assert.strictEqual(profile.onboarding_completed_at, '2026-05-17T12:00:00.000Z');
+});
+
 test('user lifecycle: admin can deny pending user by blocking access', async () => {
     const whatsappId = '5599992000007@c.us';
     const { userService } = installUserServiceWithSheets({

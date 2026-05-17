@@ -301,6 +301,20 @@ async function updateUserRowByIndex(rowIndex, userData) {
 }
 
 function mapProfileRow(row, rowIndex) {
+    const isLegacyProfileRow = row.length <= 6;
+    if (isLegacyProfileRow) {
+        return {
+            rowIndex,
+            user_id: row[0] || '',
+            full_name: '',
+            monthly_income: row[1] || '',
+            fixed_expense_estimate: row[2] || '',
+            has_debt: row[3] || '',
+            primary_goal: row[4] || '',
+            onboarding_completed_at: row[5] || ''
+        };
+    }
+
     return {
         rowIndex,
         user_id: row[0] || '',
