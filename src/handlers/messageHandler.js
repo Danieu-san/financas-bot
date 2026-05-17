@@ -35,7 +35,12 @@ const { handleOnboarding, POST_ONBOARDING_DEBT_OFFER_ACTION } = require('./onboa
 const { buildHealthSummary } = require('../services/financialHealthService');
 const { buildDebtAvalanchePlan } = require('../services/debtAvalancheService');
 const { syncReadModelIfNeeded, executeAnalyticalIntent, markReadModelDirty } = require('../services/readModelService');
-const { parseImportMedia, unsupportedImportMessage } = require('../services/statementImportService');
+const {
+    annotateImportDuplicates,
+    buildImportPreviewMessages,
+    parseImportMedia,
+    unsupportedImportMessage
+} = require('../services/statementImportService');
 const { buildDashboardAccessLink } = require('../utils/dashboardAuth');
 const { buildGoogleConnectLink } = require('../services/googleOAuthService');
 const metrics = require('../utils/metrics');
@@ -214,6 +219,7 @@ async function saveTransactionWithoutExtraPayment(item, { person, userId }) {
 async function saveImportedTransactions(transactions = [], { person, userId }) {
     let successCount = 0;
     for (const item of transactions) {
+        if (item.duplicate) continue;
         if (item.type === 'Transferências') {
             await appendRowToSheet('Transferências', [
                 item.data,
@@ -232,6 +238,25 @@ async function saveImportedTransactions(transactions = [], { person, userId }) {
         successCount += 1;
     }
     return successCount;
+}
+
+async function loadExistingImportRows({ userId } = {}) {
+    const options = userId ? { userId } : {};
+    const [saidas, entradas, transferencias] = await Promise.all([
+        readDataFromSheet('Saídas!A:J', options),
+        readDataFromSheet('Entradas!A:I', options),
+        readDataFromSheet('Transferências!A:I', options)
+    ]);
+    const belongsToUser = (row, userIdIndex) => {
+        if (!userId) return true;
+        const rowUserId = String(row?.[userIdIndex] || '').trim();
+        return rowUserId === userId;
+    };
+    return {
+        'Saídas': (saidas || []).slice(1).filter(row => belongsToUser(row, 9)),
+        'Entradas': (entradas || []).slice(1).filter(row => belongsToUser(row, 8)),
+        'Transferências': (transferencias || []).slice(1).filter(row => belongsToUser(row, 8))
+    };
 }
 
 async function handleStatementImportMessage(msg, { senderId, person, userId }) {
@@ -257,17 +282,21 @@ async function handleStatementImportMessage(msg, { senderId, person, userId }) {
         return true;
     }
 
+    const existingRowsByType = await loadExistingImportRows({ userId });
+    const transactions = annotateImportDuplicates(parsed.transactions, existingRowsByType);
+    const previewMessages = buildImportPreviewMessages(transactions);
+
     userStateManager.setState(senderId, {
         action: 'confirming_statement_import',
         data: {
-            transactions: parsed.transactions,
+            transactions,
             filename: parsed.filename,
             type: parsed.type,
             person,
             userId
         }
     });
-    for (const previewMessage of parsed.previewMessages || [parsed.preview]) {
+    for (const previewMessage of previewMessages) {
         await sendPlainMessage(msg, previewMessage);
     }
     return true;
@@ -805,9 +834,27 @@ function isReserveDisableCommand(body) {
     return /^desativar\s+(?:a\s+)?reserva(?:\s+automatica)?$/.test(body);
 }
 
+function extractFullNameSettingsCommand(text) {
+    const fullNameMatch = String(text || '').trim().match(/^(?:definir\s+nome\s+completo|meu\s+nome\s+completo\s+(?:e|é))\s+(.+)$/i);
+    if (!fullNameMatch) return '';
+    return String(fullNameMatch[1] || '').replace(/\s+/g, ' ').trim();
+}
+
 async function handleSettingsCommands(msg, user) {
+    const rawBody = String(msg.body || '').trim();
     const body = normalizeSettingsCommandText(msg.body);
     if (!body) return false;
+
+    const fullName = extractFullNameSettingsCommand(rawBody);
+    if (fullName) {
+        if (fullName.length < 5 || normalizeSettingsCommandText(fullName).split(' ').length < 2) {
+            await msg.reply('Me envie nome e sobrenome. Exemplo: definir nome completo Daniel Ferreira dos Santos');
+            return true;
+        }
+        await upsertUserProfile(user.user_id, { full_name: fullName });
+        await msg.reply(`Nome completo salvo: ${fullName}. Vou usar isso para reconhecer transferências internas nos extratos.`);
+        return true;
+    }
 
     if (isCheckinSettingsCommand(body, 'ativar')) {
         await upsertUserSettings(user.user_id, { weekly_checkin_opt_in: 'SIM' });
@@ -2423,6 +2470,7 @@ module.exports = {
         normalizeSettingsCommandText,
         isCheckinSettingsCommand,
         isReserveDisableCommand,
+        extractFullNameSettingsCommand,
         markFinancialReadModelDirty,
         saveImportedTransactions,
         handleAccountLifecycleCommands,

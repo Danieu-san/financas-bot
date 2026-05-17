@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 
 const {
+    annotateImportDuplicates,
     buildImportPreviewMessage,
     buildImportPreviewMessages,
     detectImportFileType,
@@ -128,5 +129,30 @@ test('statement import detects probable internal transfers using the user full n
     assert.strictEqual(transactions[2].type, 'Transferências');
 
     const preview = buildImportPreviewMessage(transactions);
-    assert.match(preview, /Transferências internas prováveis: 2/);
+    assert.match(preview, /Transferências internas prováveis no arquivo: 2/);
+});
+
+test('statement import marks duplicates already in the sheet or repeated in the file', () => {
+    const csv = [
+        'Data;Descrição;Valor;Tipo',
+        '17/05/2026;Mercado Guanabara;-35,35;Débito',
+        '18/05/2026;Uber;-20,00;Débito',
+        '18/05/2026;Uber;-20,00;Débito'
+    ].join('\n');
+    const transactions = parseCsvTransactions(csv);
+    const annotated = annotateImportDuplicates(transactions, {
+        'Saídas': [
+            ['17/05/2026', 'Mercado Guanabara', 'Alimentação', 'SUPERMERCADO', '35,35']
+        ]
+    });
+
+    assert.strictEqual(annotated[0].duplicate, true);
+    assert.strictEqual(annotated[0].duplicateReason, 'já existe na planilha');
+    assert.strictEqual(annotated[1].duplicate, undefined);
+    assert.strictEqual(annotated[2].duplicate, true);
+    assert.strictEqual(annotated[2].duplicateReason, 'repetido no arquivo');
+
+    const preview = buildImportPreviewMessage(annotated);
+    assert.match(preview, /Possíveis duplicados: 2/);
+    assert.match(preview, /será ignorado/);
 });

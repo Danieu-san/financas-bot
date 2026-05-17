@@ -267,30 +267,110 @@ function formatMoney(value) {
     return Number(value || 0).toFixed(2).replace('.', ',');
 }
 
+function valueToCents(value) {
+    const parsed = typeof value === 'number' ? value : parseValue(value);
+    return Math.round(Math.abs(Number(parsed || 0)) * 100);
+}
+
+function normalizeDateKey(value) {
+    const parsed = parseSheetDate(value);
+    return parsed ? getFormattedDateOnly(parsed) : normalizeImportedDate(value);
+}
+
+function normalizeDescriptionKey(value = '') {
+    return normalizeText(value)
+        .replace(/[^a-z0-9]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 140);
+}
+
+function buildImportDuplicateKey(item = {}) {
+    return [
+        item.type || '',
+        normalizeDateKey(item.data),
+        valueToCents(item.valor),
+        normalizeDescriptionKey(item.descricao)
+    ].join('|');
+}
+
+function existingRowToTransaction(sheetName, row = []) {
+    if (sheetName === 'Entradas') {
+        return { type: 'Entradas', data: row[0], descricao: row[1], valor: row[3] };
+    }
+    if (sheetName === 'Transferências') {
+        return { type: 'Transferências', data: row[0], descricao: row[1], valor: row[2] };
+    }
+    return { type: 'Saídas', data: row[0], descricao: row[1], valor: row[4] };
+}
+
+function buildExistingDuplicateKeys(existingRowsByType = {}) {
+    const keys = new Set();
+    for (const [sheetName, rows] of Object.entries(existingRowsByType || {})) {
+        for (const row of rows || []) {
+            const item = existingRowToTransaction(sheetName, row);
+            const key = buildImportDuplicateKey(item);
+            if (key) keys.add(key);
+        }
+    }
+    return keys;
+}
+
+function annotateImportDuplicates(transactions = [], existingRowsByType = {}) {
+    const existingKeys = buildExistingDuplicateKeys(existingRowsByType);
+    const batchKeys = new Set();
+
+    return transactions.map((item) => {
+        const key = buildImportDuplicateKey(item);
+        const duplicateInSpreadsheet = existingKeys.has(key);
+        const duplicateInFile = batchKeys.has(key);
+        batchKeys.add(key);
+
+        if (!duplicateInSpreadsheet && !duplicateInFile) return item;
+
+        return {
+            ...item,
+            duplicate: true,
+            duplicateReason: duplicateInSpreadsheet
+                ? 'já existe na planilha'
+                : 'repetido no arquivo'
+        };
+    });
+}
+
 function transactionLabel(item) {
+    if (item.duplicate) return 'Duplicado';
     if (item.type === 'Entradas') return 'Entrada';
     if (item.type === 'Transferências') return 'Transferência';
     return 'Saída';
 }
 
 function formatPreviewLine(item, index) {
-    return `${index + 1}. [${transactionLabel(item)}] ${item.data} | ${item.descricao} | R$ ${formatMoney(item.valor)} | ${item.categoria || item.status || 'Outros'}`;
+    const duplicateSuffix = item.duplicate ? ` | ${item.duplicateReason}; será ignorado` : '';
+    return `${index + 1}. [${transactionLabel(item)}] ${item.data} | ${item.descricao} | R$ ${formatMoney(item.valor)} | ${item.categoria || item.status || 'Outros'}${duplicateSuffix}`;
 }
 
 function buildImportSummary(transactions = []) {
     const entradas = transactions.filter(item => item.type === 'Entradas');
     const saidas = transactions.filter(item => item.type === 'Saídas');
     const transferencias = transactions.filter(item => item.type === 'Transferências');
+    const duplicados = transactions.filter(item => item.duplicate);
+    const importaveis = transactions.filter(item => !item.duplicate);
     const totalEntradas = entradas.reduce((sum, item) => sum + Number(item.valor || 0), 0);
     const totalSaidas = saidas.reduce((sum, item) => sum + Number(item.valor || 0), 0);
     const totalTransferencias = transferencias.reduce((sum, item) => sum + Number(item.valor || 0), 0);
 
-    return [
+    const summary = [
         `Encontrei ${transactions.length} lançamento(s) no arquivo.`,
-        `Entradas: ${entradas.length} (R$ ${formatMoney(totalEntradas)})`,
-        `Saídas: ${saidas.length} (R$ ${formatMoney(totalSaidas)})`,
-        `Transferências internas prováveis: ${transferencias.length} (R$ ${formatMoney(totalTransferencias)})`
+        `Novos que serão importados: ${importaveis.length}`,
+        `Entradas no arquivo: ${entradas.length} (R$ ${formatMoney(totalEntradas)})`,
+        `Saídas no arquivo: ${saidas.length} (R$ ${formatMoney(totalSaidas)})`,
+        `Transferências internas prováveis no arquivo: ${transferencias.length} (R$ ${formatMoney(totalTransferencias)})`
     ];
+    if (duplicados.length > 0) {
+        summary.push(`Possíveis duplicados: ${duplicados.length} (serão ignorados)`);
+    }
+    return summary;
 }
 
 function buildImportPreviewMessage(transactions = []) {
@@ -365,6 +445,8 @@ function unsupportedImportMessage(reason) {
 module.exports = {
     buildImportPreviewMessage,
     buildImportPreviewMessages,
+    annotateImportDuplicates,
+    buildImportDuplicateKey,
     detectImportFileType,
     parseCsvTransactions,
     parseImportMedia,
@@ -372,6 +454,7 @@ module.exports = {
     parseStatementText,
     unsupportedImportMessage,
     __test__: {
+        buildExistingDuplicateKeys,
         buildTransaction,
         isProbableInternalTransfer,
         parseDelimited,

@@ -398,7 +398,12 @@ test('messageHandler.normalizeMetricLabel keeps metric names bounded and safe', 
 });
 
 test('messageHandler settings commands tolerate WhatsApp formatting variants', () => {
-    const { normalizeSettingsCommandText, isCheckinSettingsCommand, isReserveDisableCommand } = messageHandler.__test__;
+    const {
+        normalizeSettingsCommandText,
+        isCheckinSettingsCommand,
+        isReserveDisableCommand,
+        extractFullNameSettingsCommand
+    } = messageHandler.__test__;
 
     assert.strictEqual(normalizeSettingsCommandText('`ativar check-in semanal`'), 'ativar check in semanal');
     assert.strictEqual(isCheckinSettingsCommand(normalizeSettingsCommandText('ativar checkin semanal'), 'ativar'), true);
@@ -407,6 +412,14 @@ test('messageHandler settings commands tolerate WhatsApp formatting variants', (
     assert.strictEqual(isCheckinSettingsCommand(normalizeSettingsCommandText('desativar o check-in semanal'), 'desativar'), true);
     assert.strictEqual(isReserveDisableCommand(normalizeSettingsCommandText('desativar reserva')), true);
     assert.strictEqual(isReserveDisableCommand(normalizeSettingsCommandText('desativar a reserva automática')), true);
+    assert.strictEqual(
+        extractFullNameSettingsCommand('definir nome completo Daniel dos Santos da Silva'),
+        'Daniel dos Santos da Silva'
+    );
+    assert.strictEqual(
+        extractFullNameSettingsCommand('meu nome completo é Maria Oliveira'),
+        'Maria Oliveira'
+    );
 });
 
 test('messageHandler active ACEITO is handled before AI routing', async (t) => {
@@ -625,4 +638,12 @@ test('google retry helpers classify Sheets quota and transient errors', () => {
     assert.strictEqual(isGoogleRetriableError({ code: 429, message: 'Quota exceeded for write requests' }), true);
     assert.strictEqual(isGoogleRetriableError({ code: 503, message: 'backend unavailable' }), true);
     assert.strictEqual(isGoogleRetriableError({ code: 400, message: 'invalid range' }), false);
+});
+
+test('google.isMissingUserSheetError detects missing user spreadsheet tabs', () => {
+    const { isMissingUserSheetError } = googleService.__test__;
+
+    assert.strictEqual(isMissingUserSheetError({ message: 'Unable to parse range: Transferências!A:I' }), true);
+    assert.strictEqual(isMissingUserSheetError({ response: { data: { error: { message: 'Range not found: Transferências' } } } }), true);
+    assert.strictEqual(isMissingUserSheetError({ code: 400, message: 'invalid request' }), false);
 });

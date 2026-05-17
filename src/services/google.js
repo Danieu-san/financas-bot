@@ -12,6 +12,7 @@ let tasks;
 let calendar;
 let oAuth2Client;
 let authInFlight = null;
+const repairedUserSpreadsheetIds = new Set();
 const sheetContext = new AsyncLocalStorage();
 
 const USER_SHEET_NAMES = new Set([
@@ -29,13 +30,19 @@ const USER_SHEET_NAMES = new Set([
 
 function runWithUserSheetContext(userOrContext, fn) {
     const userId = String(userOrContext?.user_id || userOrContext?.userId || '').trim();
-    return sheetContext.run({ userId }, fn);
+    const displayName = String(userOrContext?.display_name || userOrContext?.displayName || '').trim();
+    return sheetContext.run({ userId, displayName }, fn);
 }
 
 function getCurrentSheetContext(options = {}) {
     if (options.forceCentral) return {};
     const explicitUserId = String(options.userId || '').trim();
-    if (explicitUserId) return { userId: explicitUserId };
+    if (explicitUserId) {
+        return {
+            userId: explicitUserId,
+            displayName: String(options.displayName || '').trim()
+        };
+    }
     return sheetContext.getStore() || {};
 }
 
@@ -406,6 +413,7 @@ async function resolveSpreadsheetTarget(options = {}) {
                 return {
                     userScoped: true,
                     userId: safeUserId,
+                    displayName: context.displayName || '',
                     spreadsheetId,
                     sheetsClient: google.sheets({ version: 'v4', auth })
                 };
@@ -465,9 +473,45 @@ async function runSheetsOperation(operationName, target, fn, { swallowOnError = 
     try {
         return await runRetriableGoogleOperation(operationName, fn);
     } catch (error) {
+        if (isMissingUserSheetError(error) && await repairUserSpreadsheetTemplate(target)) {
+            return runRetriableGoogleOperation(`${operationName}.afterTemplateRepair`, fn);
+        }
         console.error(`❌ ${operationName}: erro na planilha do usuário:`, error.message);
         if (swallowOnError) return fallbackValue;
         throw error;
+    }
+}
+
+function isMissingUserSheetError(error) {
+    const message = String(error?.message || error?.response?.data?.error?.message || '').toLowerCase();
+    return (
+        message.includes('unable to parse range') ||
+        message.includes('cannot parse range') ||
+        (message.includes('range') && message.includes('not found'))
+    );
+}
+
+async function repairUserSpreadsheetTemplate(target = {}) {
+    if (!target.userScoped || !target.spreadsheetId || !target.sheetsClient) return false;
+    const cacheKey = `${target.userId || ''}:${target.spreadsheetId}`;
+    if (repairedUserSpreadsheetIds.has(cacheKey)) return false;
+    repairedUserSpreadsheetIds.add(cacheKey);
+
+    try {
+        const { applyUserSpreadsheetTemplate } = require('./userSpreadsheetService');
+        await applyUserSpreadsheetTemplate({
+            user: {
+                user_id: target.userId || '',
+                display_name: target.displayName || 'Usuário'
+            },
+            sheetsClient: target.sheetsClient,
+            spreadsheetId: target.spreadsheetId
+        });
+        console.warn(`⚠️ Planilha do usuário ${target.userId || ''} atualizada com abas/formatos faltantes.`);
+        return true;
+    } catch (repairError) {
+        console.error(`❌ Falha ao reparar planilha do usuário ${target.userId || ''}:`, repairError.message);
+        return false;
     }
 }
 
@@ -1306,6 +1350,7 @@ module.exports = {
         mapRangeForUserSpreadsheet,
         mapRowForUserSpreadsheet,
         mapValuesFromUserSpreadsheetRange,
+        isMissingUserSheetError,
         runWithUserSheetContext,
         hasUserSpreadsheetContext
     },
