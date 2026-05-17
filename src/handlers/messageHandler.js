@@ -562,6 +562,10 @@ function isCheckinSettingsCommand(body, action) {
     return new RegExp(`^${action}\\s+(?:o\\s+)?check\\s*in(?:\\s+semanal)?$`).test(body);
 }
 
+function isReserveDisableCommand(body) {
+    return /^desativar\s+(?:a\s+)?reserva(?:\s+automatica)?$/.test(body);
+}
+
 async function handleSettingsCommands(msg, user) {
     const body = normalizeSettingsCommandText(msg.body);
     if (!body) return false;
@@ -586,7 +590,7 @@ async function handleSettingsCommands(msg, user) {
         await msg.reply('Relatório mensal desativado.');
         return true;
     }
-    if (body === 'desativar reserva automatica') {
+    if (isReserveDisableCommand(body)) {
         await upsertUserSettings(user.user_id, { defaults_enabled: 'NÃO' });
         await msg.reply('Regra automática de reserva desativada.');
         return true;
@@ -2120,6 +2124,7 @@ module.exports = {
         normalizeMetricLabel,
         normalizeSettingsCommandText,
         isCheckinSettingsCommand,
+        isReserveDisableCommand,
         handleAccountLifecycleCommands,
         handleAdminCommandBeforeAccess,
         buildLegalCommandLogContext

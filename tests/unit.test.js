@@ -299,13 +299,15 @@ test('messageHandler.normalizeMetricLabel keeps metric names bounded and safe', 
 });
 
 test('messageHandler settings commands tolerate WhatsApp formatting variants', () => {
-    const { normalizeSettingsCommandText, isCheckinSettingsCommand } = messageHandler.__test__;
+    const { normalizeSettingsCommandText, isCheckinSettingsCommand, isReserveDisableCommand } = messageHandler.__test__;
 
     assert.strictEqual(normalizeSettingsCommandText('`ativar check-in semanal`'), 'ativar check in semanal');
     assert.strictEqual(isCheckinSettingsCommand(normalizeSettingsCommandText('ativar checkin semanal'), 'ativar'), true);
     assert.strictEqual(isCheckinSettingsCommand(normalizeSettingsCommandText('ativar check-in semanal'), 'ativar'), true);
     assert.strictEqual(isCheckinSettingsCommand(normalizeSettingsCommandText('ativar check in'), 'ativar'), true);
     assert.strictEqual(isCheckinSettingsCommand(normalizeSettingsCommandText('desativar o check-in semanal'), 'desativar'), true);
+    assert.strictEqual(isReserveDisableCommand(normalizeSettingsCommandText('desativar reserva')), true);
+    assert.strictEqual(isReserveDisableCommand(normalizeSettingsCommandText('desativar a reserva automática')), true);
 });
 
 test('messageHandler active ACEITO is handled before AI routing', async (t) => {
