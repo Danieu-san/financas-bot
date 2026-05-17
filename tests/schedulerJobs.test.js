@@ -65,6 +65,36 @@ test('scheduler weekly check-in only sends to opted-in active users', async () =
     assert.match(sent[0].message, /Check-in da semana/);
 });
 
+test('scheduler skips synthetic active test users outside test mode', async () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    const sent = [];
+    try {
+        const scheduler = installSchedulerMocks({
+            users: [
+                { user_id: 'test-user', whatsapp_id: '5599991000001@c.us' },
+                { user_id: 'real-user', whatsapp_id: '5511888888888@c.us' }
+            ],
+            settingsByUser: {
+                'test-user': { weekly_checkin_opt_in: 'SIM' },
+                'real-user': { weekly_checkin_opt_in: 'SIM' }
+            }
+        });
+
+        scheduler.__test__.setClientForTest({
+            sendMessage: async (to, message) => sent.push({ to, message })
+        });
+
+        await scheduler.__test__.sendWeeklyCheckIn();
+
+        assert.strictEqual(scheduler.__test__.isSyntheticTestWhatsAppId('5599991000001@c.us'), true);
+        assert.strictEqual(scheduler.__test__.shouldSendScheduledMessageToUser({ whatsapp_id: '5599991000001@c.us' }), false);
+        assert.deepStrictEqual(sent.map(item => item.to), ['5511888888888@c.us']);
+    } finally {
+        process.env.NODE_ENV = previousNodeEnv;
+    }
+});
+
 test('scheduler morning summary keeps debts and calendar events scoped per user', async () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);

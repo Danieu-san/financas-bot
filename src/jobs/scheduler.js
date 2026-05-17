@@ -11,8 +11,26 @@ let client;
 let isInitialized = false;
 const notifiedEventIds = new Set();
 
-async function getRecipientIds({ weeklyOptIn = null, monthlyOptIn = null } = {}) {
+function isSyntheticTestWhatsAppId(whatsappId) {
+    return /^559999\d+@(?:c\.us|lid)$/.test(String(whatsappId || '').trim());
+}
+
+function shouldSendScheduledMessageToUser(user = {}) {
+    const whatsappId = String(user.whatsapp_id || '').trim();
+    if (!whatsappId) return false;
+    if (process.env.NODE_ENV !== 'test' && isSyntheticTestWhatsAppId(whatsappId)) {
+        return false;
+    }
+    return true;
+}
+
+async function getScheduledActiveUsers() {
     const users = await getActiveUsers();
+    return users.filter(shouldSendScheduledMessageToUser);
+}
+
+async function getRecipientIds({ weeklyOptIn = null, monthlyOptIn = null } = {}) {
+    const users = await getScheduledActiveUsers();
     const recipients = [];
 
     for (const user of users) {
@@ -34,7 +52,7 @@ async function getRecipientIds({ weeklyOptIn = null, monthlyOptIn = null } = {})
 async function checkUpcomingEvents() {
     try {
         const agora = new Date();
-        const users = await getActiveUsers();
+        const users = await getScheduledActiveUsers();
 
         for (const user of users) {
             const eventos = await getCalendarEventsForToday(undefined, { userId: user.user_id });
@@ -69,7 +87,7 @@ async function checkUpcomingBills() {
         if (!contasData || contasData.length <= 1) return;
 
         const saidasData = await readDataFromSheet('Saídas!A:J');
-        const users = await getActiveUsers();
+        const users = await getScheduledActiveUsers();
         if (!users.length) return;
 
         const hoje = new Date();
@@ -128,7 +146,7 @@ async function checkUpcomingBills() {
 async function sendMorningSummary() {
     try {
         const dividasData = await readDataFromSheet('Dívidas!A:R');
-        const users = await getActiveUsers();
+        const users = await getScheduledActiveUsers();
         if (users.length === 0) return;
 
         const hoje = new Date();
@@ -199,7 +217,7 @@ async function sendEveningSummary() {
         const amanha = new Date();
         amanha.setDate(amanha.getDate() + 1);
         const amanhaStr = amanha.toLocaleDateString('pt-BR');
-        const users = await getActiveUsers();
+        const users = await getScheduledActiveUsers();
 
         for (const user of users) {
             const eventosDeAmanha = await getCalendarEventsForToday(amanha, { userId: user.user_id });
@@ -243,7 +261,7 @@ function belongsToUser(row, userIdIndex, userId) {
 
 async function sendMonthlyReports() {
     try {
-        const users = await getActiveUsers();
+        const users = await getScheduledActiveUsers();
         if (users.length === 0) return;
 
         const saidasData = await readDataFromSheet('Saídas!A:J');
@@ -410,6 +428,8 @@ module.exports = {
         sendWeeklyCheckIn,
         sendMonthlyReports,
         sendOperationalHeartbeat,
+        isSyntheticTestWhatsAppId,
+        shouldSendScheduledMessageToUser,
         notifiedEventIds
     }
 };
