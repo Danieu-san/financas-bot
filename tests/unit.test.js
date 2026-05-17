@@ -348,8 +348,37 @@ test('onboarding rejects command-looking text as display name', (t) => {
 
     assert.strictEqual(looksLikeBotCommand('gastei 10 no teste E2E no pix'), true);
     assert.strictEqual(looksLikeBotCommand('quanto gastei esse mês?'), true);
+    assert.strictEqual(looksLikeBotCommand('liste meus gastos com mercado em maio'), true);
+    assert.strictEqual(looksLikeBotCommand('qual meu saldo do mês'), true);
     assert.strictEqual(looksLikeBotCommand('dashboard'), true);
     assert.strictEqual(looksLikeBotCommand('Daniel'), false);
+});
+
+test('messageHandler formats personal sheet list rows with serial dates and BR values', (t) => {
+    const { buildLocalPerguntaResponse } = messageHandler.__test__;
+
+    const reply = buildLocalPerguntaResponse({
+        userQuestion: 'liste meus gastos com mercado em maio de 2026',
+        intent: 'listagem_gastos_categoria',
+        analyzedData: {
+            results: [['46159', 'mercado', 'Alimentação', 'SUPERMERCADO', '35,35']],
+            details: { categoria: 'mercado', mes: 4, ano: 2026 }
+        }
+    });
+
+    assert.match(reply, /17\/05\/2026 \| mercado \| R\$ 35,35/);
+    assert.doesNotMatch(reply, /46159/);
+    assert.doesNotMatch(reply, /NaN/);
+});
+
+test('messageHandler clears cached analytical replies after financial writes', (t) => {
+    const cache = require('../src/utils/cache');
+    const { markFinancialReadModelDirty } = messageHandler.__test__;
+
+    cache.set('user-1:liste meus gastos com mercado', 'resposta antiga');
+    markFinancialReadModelDirty('unit_test_write');
+
+    assert.strictEqual(cache.get('user-1:liste meus gastos com mercado'), undefined);
 });
 
 test('messageHandler.filterSheetRowsByUserId keeps header and isolates user rows', (t) => {

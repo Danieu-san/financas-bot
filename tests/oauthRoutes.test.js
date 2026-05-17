@@ -6,6 +6,7 @@ const dashboardServerPath = require.resolve('../src/services/dashboardServer');
 const readModelPath = require.resolve('../src/services/readModelService');
 const googleOAuthPath = require.resolve('../src/services/googleOAuthService');
 const whatsappPath = require.resolve('../src/services/whatsapp');
+const userServicePath = require.resolve('../src/services/userService');
 
 let whatsappMessages = [];
 
@@ -15,6 +16,7 @@ function installMocks({ callbackResult = { userId: 'user-oauth-route' } } = {}) 
     delete require.cache[readModelPath];
     delete require.cache[googleOAuthPath];
     delete require.cache[whatsappPath];
+    delete require.cache[userServicePath];
 
     require.cache[readModelPath] = {
         id: readModelPath,
@@ -53,6 +55,16 @@ function installMocks({ callbackResult = { userId: 'user-oauth-route' } } = {}) 
             sendWhatsAppMessage: async (to, message) => {
                 whatsappMessages.push({ to, message });
             }
+        }
+    };
+
+    require.cache[userServicePath] = {
+        id: userServicePath,
+        filename: userServicePath,
+        loaded: true,
+        exports: {
+            getAllUsers: async () => [],
+            getUserProfileByUserId: async () => ({ onboarding_completed_at: '' })
         }
     };
 }
@@ -134,6 +146,8 @@ test('OAuth callback notifies user on WhatsApp after successful connection', asy
         assert.match(whatsappMessages[0].message, /Manual completo somente leitura/);
         assert.match(whatsappMessages[0].message, /aba "Manual"/);
         assert.match(whatsappMessages[0].message, /planilha é individual/i);
+        assert.match(whatsappMessages[0].message, /\[1\/5\] Antes de começarmos/);
+        assert.match(whatsappMessages[0].message, /Depois do onboarding/);
     } finally {
         delete process.env.USER_MANUAL_URL;
         await new Promise(resolve => server.close(resolve));

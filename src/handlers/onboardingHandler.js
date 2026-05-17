@@ -41,7 +41,7 @@ function isYesNo(text) {
 
 function looksLikeBotCommand(text) {
     const v = normalizeText(text || '');
-    return /^(gastei|gasto|paguei|recebi|entrada|dashboard|painel|resumo|termos|admin|ajuda)\b/.test(v) ||
+    return /^(gastei|gasto|paguei|recebi|entrada|dashboard|painel|resumo|termos|admin|ajuda|liste|listar|mostre|mostrar|quanto|quantas|qual|saldo|criar|apagar|desativar|ativar|definir|me lembre)\b/.test(v) ||
         v.includes('?');
 }
 
@@ -91,6 +91,11 @@ function buildOnboardingHelp(step) {
 }
 
 async function startOnboarding(senderId, msg) {
+    const question = prepareOnboardingState(senderId);
+    await sendPlainMessage(msg, question);
+}
+
+function prepareOnboardingState(senderId) {
     userStateManager.setState(
         senderId,
         {
@@ -100,7 +105,7 @@ async function startOnboarding(senderId, msg) {
         },
         ONBOARDING_TTL_SECONDS
     );
-    await sendPlainMessage(msg, getQuestion(1));
+    return getQuestion(1);
 }
 
 async function completeOnboarding(senderId, userId, data, msg) {
@@ -270,6 +275,7 @@ async function handleOnboarding(msg, user) {
 module.exports = {
     handleOnboarding,
     POST_ONBOARDING_DEBT_OFFER_ACTION,
+    prepareOnboardingState,
     __test__: {
         looksLikeBotCommand,
         isRestartCommand,

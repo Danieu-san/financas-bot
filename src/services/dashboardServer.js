@@ -3,9 +3,10 @@ const { URL } = require('url');
 const { syncReadModelIfNeeded, getDashboardSnapshot, getDashboardSqlData, isSqliteReady, ALL_USERS_ID } = require('./readModelService');
 const { getUserSheetDashboardData } = require('./userSheetAnalyticsService');
 const { verifyDashboardToken } = require('../utils/dashboardAuth');
-const { getAllUsers } = require('./userService');
+const { getAllUsers, getUserProfileByUserId } = require('./userService');
 const { buildGoogleAuthorizationUrl, completeGoogleOAuthCallback } = require('./googleOAuthService');
 const { sendWhatsAppMessage } = require('./whatsapp');
+const { prepareOnboardingState } = require('../handlers/onboardingHandler');
 const logger = require('../utils/logger');
 const metrics = require('../utils/metrics');
 
@@ -66,6 +67,7 @@ function safeOAuthPage(title, message) {
 
 function buildGoogleConnectionWhatsAppMessage(result = {}) {
     const manualUrl = String(process.env.USER_MANUAL_URL || process.env.FINANCASBOT_USER_MANUAL_URL || '').trim();
+    const onboardingQuestion = String(result.onboardingQuestion || '').trim();
     return [
         'Google conectado com sucesso.',
         'Sua planilha foi criada no seu Drive e seu acesso ao FinançasBot está ativo.',
@@ -73,12 +75,28 @@ function buildGoogleConnectionWhatsAppMessage(result = {}) {
         manualUrl ? `Manual completo somente leitura: ${manualUrl}` : '',
         result.spreadsheetUrl ? 'Comece pela aba "Manual" da planilha para entender as abas. Use também o manual completo acima como referência.' : '',
         'Importante: sua planilha é individual. Seus lançamentos financeiros passam a ser registrados nela quando sua conta Google está conectada.',
-        'Você já pode usar o bot pelo WhatsApp.',
-        'Comandos úteis:',
+        onboardingQuestion ? 'Próximo passo: responda à pergunta abaixo para concluir seu onboarding inicial.' : 'Você já pode usar o bot pelo WhatsApp.',
+        onboardingQuestion,
+        onboardingQuestion ? 'Depois do onboarding, estes comandos úteis ficam disponíveis:' : 'Comandos úteis:',
         '1) gastei 25 no mercado no pix',
         '2) recebi 2000 de salário',
         '3) dashboard'
     ].filter(Boolean).join('\n');
+}
+
+async function buildPostConnectionNotificationPayload(result = {}) {
+    let onboardingQuestion = '';
+    if (result.userId && result.whatsappId) {
+        try {
+            const profile = await getUserProfileByUserId(result.userId);
+            if (!profile?.onboarding_completed_at) {
+                onboardingQuestion = prepareOnboardingState(result.whatsappId);
+            }
+        } catch (error) {
+            logger.warn(`oauth: não foi possível preparar onboarding para user_id=${result.userId}: ${error.message}`);
+        }
+    }
+    return { ...result, onboardingQuestion };
 }
 
 async function notifyUserAfterGoogleConnection(result = {}) {
@@ -89,7 +107,8 @@ async function notifyUserAfterGoogleConnection(result = {}) {
     }
 
     try {
-        await sendWhatsAppMessage(whatsappId, buildGoogleConnectionWhatsAppMessage(result));
+        const payload = await buildPostConnectionNotificationPayload(result);
+        await sendWhatsAppMessage(whatsappId, buildGoogleConnectionWhatsAppMessage(payload));
         logger.info(`oauth: confirmação WhatsApp enviada para user_id=${result.userId} whatsapp_id=${whatsappId}`);
     } catch (error) {
         logger.warn(`oauth: falha ao enviar confirmação WhatsApp user_id=${result.userId || ''} whatsapp_id=${whatsappId} error=${error.message}`);

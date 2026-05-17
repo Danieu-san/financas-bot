@@ -121,7 +121,13 @@ const monthNamesCapitalized = ["Janeiro", "Fevereiro", "Mar�o", "Abril", "Maio
 const PERF_WARN_MS = Number.parseInt(process.env.MESSAGE_SLOW_LOG_MS || '4000', 10);
 
 function formatCurrencyBR(value) {
-    return 'R$ ' + Number(value || 0).toFixed(2).replace('.', ',');
+    const numericValue = typeof value === 'number' ? value : parseValue(value);
+    return 'R$ ' + Number(numericValue || 0).toFixed(2).replace('.', ',');
+}
+
+function formatSheetDateForReply(value) {
+    const parsed = parseSheetDate(value);
+    return parsed ? getFormattedDateOnly(parsed) : (value || '-');
 }
 
 function normalizePaymentMethodLabel(value) {
@@ -137,6 +143,9 @@ function normalizePaymentMethodLabel(value) {
 function markFinancialReadModelDirty(reason = 'financial_write') {
     try {
         markReadModelDirty(reason);
+        if (typeof cache.clearAllCache === 'function') {
+            cache.clearAllCache();
+        }
     } catch (error) {
         logger.warn(`read-model: falha ao marcar dados financeiros como sujos (${error.message})`);
     }
@@ -398,7 +407,7 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
             return `Não encontrei gastos para esse filtro em ${periodLabel}.`;
         }
         const lines = results.slice(0, 15).map((row, idx) => {
-            const data = row[0] || '-';
+            const data = formatSheetDateForReply(row[0]);
             const desc = row[1] || 'sem descrição';
             const val = formatCurrencyBR(row[4] || 0);
             return `${idx + 1}. ${data} | ${desc} | ${val}`;
@@ -2125,6 +2134,7 @@ module.exports = {
         normalizeSettingsCommandText,
         isCheckinSettingsCommand,
         isReserveDisableCommand,
+        markFinancialReadModelDirty,
         handleAccountLifecycleCommands,
         handleAdminCommandBeforeAccess,
         buildLegalCommandLogContext
