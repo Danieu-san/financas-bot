@@ -164,7 +164,7 @@ async function main() {
                 },
                 {
                     question: 'mercado foi maior que transporte em maio de 2026?',
-                    expectAny: ['mercado foi maior que transporte', 'Diferença: R$ 46,10']
+                    expectAny: ['Diferença: R$ 46,10', 'mercado: R$ 90,90']
                 }
             ]
         },
