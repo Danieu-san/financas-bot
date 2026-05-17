@@ -160,11 +160,11 @@ async function main() {
                 },
                 {
                     question: 'qual foi minha maior compra de mercado em maio de 2026?',
-                    expectAny: ['Maior e menor gasto', 'mercado', 'Não consegui classificar']
+                    expectAny: ['Maior e menor gasto com mercado', 'R$ 46,46']
                 },
                 {
                     question: 'mercado foi maior que transporte em maio de 2026?',
-                    expectAny: ['mercado representou', 'Total gasto', 'Não consegui classificar', 'Não entendi']
+                    expectAny: ['mercado foi maior que transporte', 'Diferença: R$ 46,10']
                 }
             ]
         },

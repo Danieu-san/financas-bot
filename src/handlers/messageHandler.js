@@ -346,7 +346,7 @@ function inferAnalyticalQueryPlan(userQuestion) {
     const comparisonCategories = extractComparisonCategoriesFromQuestion(text);
     const singleCategory = cleanAnalyticalCategory(extractCategoryFromQuestion(text));
 
-    if (text.includes('saldo')) {
+    if (text.includes('saldo') || text.includes('sobrou') || text.includes('restou')) {
         return { metric: 'balance', intent: 'saldo_do_mes', parameters: { mes, ano } };
     }
     if (text.includes('duplicad')) {

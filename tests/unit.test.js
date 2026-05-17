@@ -248,6 +248,9 @@ test('messageHandler.classifyPerguntaLocally covers complex analytical questions
     const minMax = classifyPerguntaLocally('qual foi o maior e menor gasto em fevereiro?');
     assert.strictEqual(minMax.intent, 'maior_menor_gasto');
 
+    const leftover = classifyPerguntaLocally('quanto sobrou em maio de 2026?');
+    assert.strictEqual(leftover.intent, 'saldo_do_mes');
+
     const dailyAverage = classifyPerguntaLocally('quanto eu gastei por dia em média em maio de 2026?');
     assert.strictEqual(dailyAverage.intent, 'media_diaria_gastos_mes');
 
