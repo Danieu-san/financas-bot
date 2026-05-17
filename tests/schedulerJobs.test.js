@@ -1,0 +1,105 @@
+const test = require('node:test');
+const assert = require('node:assert');
+
+const schedulerPath = require.resolve('../src/jobs/scheduler');
+const googlePath = require.resolve('../src/services/google');
+const userServicePath = require.resolve('../src/services/userService');
+
+function formatDateBR(date) {
+    return [
+        String(date.getDate()).padStart(2, '0'),
+        String(date.getMonth() + 1).padStart(2, '0'),
+        date.getFullYear()
+    ].join('/');
+}
+
+function installSchedulerMocks({ users, settingsByUser, sheetsByRange = {}, eventsByUser = {} }) {
+    delete require.cache[schedulerPath];
+    delete require.cache[googlePath];
+    delete require.cache[userServicePath];
+
+    require.cache[googlePath] = {
+        id: googlePath,
+        filename: googlePath,
+        loaded: true,
+        exports: {
+            readDataFromSheet: async (range) => sheetsByRange[range] || [],
+            getCalendarEventsForToday: async (_date, options = {}) => eventsByUser[options.userId] || []
+        }
+    };
+
+    require.cache[userServicePath] = {
+        id: userServicePath,
+        filename: userServicePath,
+        loaded: true,
+        exports: {
+            expireOldPendingUsers: async () => 0,
+            getActiveUsers: async () => users,
+            getUserSettingsByUserId: async (userId) => settingsByUser[userId] || {}
+        }
+    };
+
+    return require('../src/jobs/scheduler');
+}
+
+test('scheduler weekly check-in only sends to opted-in active users', async () => {
+    const sent = [];
+    const scheduler = installSchedulerMocks({
+        users: [
+            { user_id: 'user-a', whatsapp_id: '5511000000001@c.us' },
+            { user_id: 'user-b', whatsapp_id: '5511000000002@c.us' }
+        ],
+        settingsByUser: {
+            'user-a': { weekly_checkin_opt_in: 'SIM' },
+            'user-b': { weekly_checkin_opt_in: 'NÃO' }
+        }
+    });
+
+    scheduler.__test__.setClientForTest({
+        sendMessage: async (to, message) => sent.push({ to, message })
+    });
+
+    await scheduler.__test__.sendWeeklyCheckIn();
+
+    assert.deepStrictEqual(sent.map(item => item.to), ['5511000000001@c.us']);
+    assert.match(sent[0].message, /Check-in da semana/);
+});
+
+test('scheduler morning summary keeps debts and calendar events scoped per user', async () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const sent = [];
+    const users = [
+        { user_id: 'user-a', whatsapp_id: '5511000000001@c.us' },
+        { user_id: 'user-b', whatsapp_id: '5511000000002@c.us' }
+    ];
+    const scheduler = installSchedulerMocks({
+        users,
+        settingsByUser: {},
+        sheetsByRange: {
+            'Dívidas!A:R': [
+                ['Nome', 'Credor', 'Tipo', 'Valor Original', 'Saldo Atual', 'Valor da Parcela', 'Taxa', 'Dia', 'Início', 'Total', 'Pagas', 'Status', 'Obs', '%', 'Próximo Vencimento', 'Atraso', 'Estratégia', 'user_id'],
+                ['Dívida A', 'Banco', 'Empréstimo', 1000, 800, 100, '', '', '', '', '', 'Ativa', '', '', formatDateBR(tomorrow), '', '', 'user-a'],
+                ['Dívida B', 'Banco', 'Empréstimo', 2000, 1800, 200, '', '', '', '', '', 'Ativa', '', '', formatDateBR(tomorrow), '', '', 'user-b']
+            ]
+        },
+        eventsByUser: {
+            'user-a': [{ summary: 'Evento A', start: { dateTime: tomorrow.toISOString() } }],
+            'user-b': [{ summary: 'Evento B', start: { dateTime: tomorrow.toISOString() } }]
+        }
+    });
+
+    scheduler.__test__.setClientForTest({
+        sendMessage: async (to, message) => sent.push({ to, message })
+    });
+
+    await scheduler.__test__.sendMorningSummary();
+
+    const byRecipient = Object.fromEntries(sent.map(item => [item.to, item.message]));
+    assert.match(byRecipient['5511000000001@c.us'], /Dívida A/);
+    assert.match(byRecipient['5511000000001@c.us'], /Evento A/);
+    assert.doesNotMatch(byRecipient['5511000000001@c.us'], /Dívida B|Evento B/);
+    assert.match(byRecipient['5511000000002@c.us'], /Dívida B/);
+    assert.match(byRecipient['5511000000002@c.us'], /Evento B/);
+    assert.doesNotMatch(byRecipient['5511000000002@c.us'], /Dívida A|Evento A/);
+});

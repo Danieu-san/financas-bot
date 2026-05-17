@@ -394,4 +394,22 @@ function initializeScheduler(wppClient) {
     }, { scheduled: true, timezone: 'America/Sao_Paulo' });
 }
 
-module.exports = { initializeScheduler };
+function setClientForTest(wppClient) {
+    client = wppClient;
+}
+
+module.exports = {
+    initializeScheduler,
+    __test__: {
+        setClientForTest,
+        getRecipientIds,
+        checkUpcomingEvents,
+        checkUpcomingBills,
+        sendMorningSummary,
+        sendEveningSummary,
+        sendWeeklyCheckIn,
+        sendMonthlyReports,
+        sendOperationalHeartbeat,
+        notifiedEventIds
+    }
+};

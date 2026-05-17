@@ -245,11 +245,128 @@ function extractCategoryFromQuestion(text) {
     const normalized = normalizeText(String(text || '').trim());
     const withCom = normalized.match(/\bcom\s+([a-zA-ZÀ-ÿ\s]+?)(?:\s+em\s+|\s+no\s+|\s+na\s+|$|\?)/i);
     if (withCom && withCom[1]) return withCom[1].trim();
-    const withDe = normalized.match(/\bde\s+([a-zA-ZÀ-ÿ\s]+?)(?:\s+em\s+|\s+no\s+|\s+na\s+|$|\?)/i);
+    const withDe = normalized.match(/\b(?:de|do|da|dos|das)\s+([a-zA-ZÀ-ÿ\s]+?)(?:\s+em\s+|\s+no\s+|\s+na\s+|$|\?)/i);
     if (withDe && withDe[1]) return withDe[1].trim();
     const withVezes = normalized.match(/\bvezes\s+(?:que\s+)?(?:eu\s+)?(?:usei|peguei|paguei|comprei|gastei|fui\s+de)?\s*([a-zA-ZÀ-ÿ\s]+?)(?:\s+em\s+|\s+no\s+|\s+na\s+|$|\?)/i);
     if (withVezes && withVezes[1]) return withVezes[1].trim();
     return '';
+}
+
+const analyticalStopWords = new Set([
+    'a', 'as', 'o', 'os', 'um', 'uma', 'uns', 'umas',
+    'de', 'do', 'da', 'dos', 'das', 'em', 'no', 'na', 'nos', 'nas',
+    'com', 'meu', 'minha', 'meus', 'minhas', 'eu',
+    'gasto', 'gastos', 'gastei', 'categoria', 'categorias',
+    'total', 'mes', 'ano', 'periodo', 'periodos',
+    'quanto', 'quantos', 'quantas', 'qual', 'quais',
+    'soma', 'somar', 'somando', 'junto', 'juntos',
+    'representou', 'representa', 'participacao', 'participação',
+    'percentual', 'porcentagem', 'por', 'cento', 'media', 'média',
+    'diaria', 'diária', 'dia', 'dias', 'vezes', 'ocorrencia', 'ocorrencias',
+    'ocorrência', 'ocorrências', 'foi', 'foi?', 'foi.',
+    'maior', 'menor', 'liste', 'listar', 'mostre', 'mostrar'
+]);
+
+function cleanAnalyticalCategory(value) {
+    const normalized = normalizeText(String(value || '').trim())
+        .replace(/[?!.,;:]+$/g, '')
+        .replace(/\b(?:em|no|na|nos|nas)\s+(?:janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b.*$/i, '')
+        .replace(/\b(?:em|no|na|nos|nas)\s+\d{4}\b.*$/i, '')
+        .replace(/\b(?:desse|deste|nesse|neste|ultimo|último|atual)\s+mes\b.*$/i, '')
+        .trim();
+
+    const words = normalized
+        .split(/\s+/)
+        .filter(Boolean)
+        .filter(word => !analyticalStopWords.has(word));
+
+    return words.join(' ').trim();
+}
+
+function splitCategoryList(value) {
+    return normalizeText(String(value || ''))
+        .split(/\s*(?:,|\/|\+|\be\b|\bmais\b|\be também\b|\btambem\b)\s*/i)
+        .map(cleanAnalyticalCategory)
+        .filter(Boolean)
+        .filter((item, index, items) => items.indexOf(item) === index);
+}
+
+function extractMultipleCategoriesFromQuestion(text) {
+    const normalized = normalizeText(String(text || '').trim());
+    const patterns = [
+        /\b(?:somando|somar|soma(?:r)?\s+de|soma\s+com|total\s+de)\s+(.+?)(?:\s+em\s+|\s+no\s+|\s+na\s+|$|\?)/i,
+        /\b(?:com|de|do|da|dos|das)\s+(.+?)(?:\s+em\s+|\s+no\s+|\s+na\s+|$|\?)/i
+    ];
+
+    for (const pattern of patterns) {
+        const match = normalized.match(pattern);
+        if (!match || !match[1]) continue;
+        const categories = splitCategoryList(match[1]);
+        if (categories.length > 1) return categories;
+    }
+
+    return [];
+}
+
+function extractPercentageCategoryFromQuestion(text) {
+    const normalized = normalizeText(String(text || '').trim());
+    const direct = normalized.match(/^(?:o|a|os|as)?\s*([a-zA-ZÀ-ÿ\s]+?)\s+(?:representou|representa)\b/i);
+    if (direct && direct[1]) return cleanAnalyticalCategory(direct[1]);
+    const byParticipation = normalized.match(/\b(?:participacao|participação|percentual|porcentagem)\s+(?:de|do|da|dos|das)\s+(.+?)(?:\s+(?:no|na|nos|nas|em|do|da)\s+|\?|$)/i);
+    if (byParticipation && byParticipation[1]) return cleanAnalyticalCategory(byParticipation[1]);
+    return cleanAnalyticalCategory(extractCategoryFromQuestion(normalized));
+}
+
+function inferAnalyticalQueryPlan(userQuestion) {
+    const text = normalizeText(String(userQuestion || '').trim());
+    if (!text) return null;
+
+    const mes = parseMonthFromText(text);
+    const ano = parseYearFromText(text);
+    const hasExpenseSignal = /\b(gastei|gasto|gastos|saida|saidas|despesa|despesas)\b/.test(text);
+    const hasTotalSignal = /\b(quanto|total|soma|somar|somando|deu|ficou|some)\b/.test(text);
+    const categories = extractMultipleCategoriesFromQuestion(text);
+    const singleCategory = cleanAnalyticalCategory(extractCategoryFromQuestion(text));
+
+    if (text.includes('saldo')) {
+        return { metric: 'balance', intent: 'saldo_do_mes', parameters: { mes, ano } };
+    }
+    if (text.includes('duplicad')) {
+        return { metric: 'duplicates', intent: 'gastos_valores_duplicados', parameters: { mes, ano } };
+    }
+    if (text.includes('maior') || text.includes('menor')) {
+        return { metric: 'extremes', intent: 'maior_menor_gasto', parameters: { mes, ano } };
+    }
+    if (text.includes('por cento') || text.includes('percentual') || text.includes('porcentagem') || text.includes('representou') || text.includes('representa') || text.includes('participacao') || text.includes('participação')) {
+        return {
+            metric: 'percentage_of_expenses',
+            intent: 'percentual_categoria_gastos',
+            parameters: { categoria: extractPercentageCategoryFromQuestion(text), mes, ano }
+        };
+    }
+    if (text.includes('vezes') || text.includes('ocorrencia') || text.includes('ocorrencias')) {
+        return { metric: 'count', intent: 'contagem_ocorrencias', parameters: { categoria: singleCategory, mes, ano } };
+    }
+    if ((text.includes('media') || text.includes('média')) && (/\bpor\s+dia\b/.test(text) || text.includes('diaria') || text.includes('diária'))) {
+        return { metric: 'daily_average', intent: 'media_diaria_gastos_mes', parameters: { mes, ano } };
+    }
+    if ((text.includes('media') || text.includes('média')) && hasExpenseSignal) {
+        return { metric: 'average', intent: 'media_gastos_categoria_mes', parameters: { categoria: singleCategory, mes, ano } };
+    }
+    if (text.includes('liste') || text.includes('listar') || text.includes('mostre') || text.includes('mostrar')) {
+        return { metric: 'list', intent: 'listagem_gastos_categoria', parameters: { categoria: singleCategory, mes, ano } };
+    }
+    if (categories.length > 1 && (hasTotalSignal || hasExpenseSignal)) {
+        return { metric: 'sum_by_categories', intent: 'total_gastos_multiplas_categorias', parameters: { categorias: categories, mes, ano } };
+    }
+    if ((hasTotalSignal || hasExpenseSignal) && hasExpenseSignal) {
+        if (!singleCategory) {
+            return { metric: 'sum_expenses', intent: 'total_gastos_mes', parameters: { mes, ano } };
+        }
+        return { metric: 'sum_by_category', intent: 'total_gastos_categoria_mes', parameters: { categoria: singleCategory, mes, ano } };
+    }
+
+    return null;
 }
 
 function isGreetingMessage(messageBody) {
@@ -333,39 +450,9 @@ function shouldSkipAiForUnknownMessage(messageBody) {
 }
 
 function classifyPerguntaLocally(userQuestion) {
-    const text = normalizeText(String(userQuestion || '').trim());
-    if (!text) return null;
-
-    const mes = parseMonthFromText(text);
-    const ano = parseYearFromText(text);
-
-    if (text.includes('saldo')) {
-        return { intent: 'saldo_do_mes', parameters: { mes, ano } };
-    }
-    if (text.includes('duplicad')) {
-        return { intent: 'gastos_valores_duplicados', parameters: { mes, ano } };
-    }
-    if (text.includes('maior') || text.includes('menor')) {
-        return { intent: 'maior_menor_gasto', parameters: { mes, ano } };
-    }
-    if (text.includes('vezes') || text.includes('ocorrencia') || text.includes('ocorrencias')) {
-        return { intent: 'contagem_ocorrencias', parameters: { categoria: extractCategoryFromQuestion(text), mes, ano } };
-    }
-    if (text.includes('media') && (text.includes('gasto') || text.includes('gastos'))) {
-        return { intent: 'media_gastos_categoria_mes', parameters: { categoria: extractCategoryFromQuestion(text), mes, ano } };
-    }
-    if (text.includes('liste') || text.includes('listar') || text.includes('mostre')) {
-        return { intent: 'listagem_gastos_categoria', parameters: { categoria: extractCategoryFromQuestion(text), mes, ano } };
-    }
-    if ((text.includes('quanto') || text.includes('total')) && (text.includes('gastei') || text.includes('gasto') || text.includes('gastos'))) {
-        const categoria = extractCategoryFromQuestion(text);
-        if (!categoria) {
-            return { intent: 'total_gastos_mes', parameters: { mes, ano } };
-        }
-        return { intent: 'total_gastos_categoria_mes', parameters: { categoria, mes, ano } };
-    }
-
-    return null;
+    const plan = inferAnalyticalQueryPlan(userQuestion);
+    if (!plan) return null;
+    return { intent: plan.intent, parameters: plan.parameters };
 }
 
 function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
@@ -400,6 +487,24 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
     if (intent === 'media_gastos_categoria_mes') {
         const cat = details.categoria || 'categoria informada';
         return `Média de gastos com ${cat} em ${periodLabel}: ${formatCurrencyBR(results)}`;
+    }
+
+    if (intent === 'media_diaria_gastos_mes') {
+        const dias = details.diasConsiderados || details.dias || 0;
+        const total = details.totalGastos !== undefined ? `\nTotal considerado: ${formatCurrencyBR(details.totalGastos)}` : '';
+        const suffix = dias ? ` (${dias} dia(s) considerados)` : '';
+        return `Média diária de gastos em ${periodLabel}: ${formatCurrencyBR(results)}${suffix}${total}`;
+    }
+
+    if (intent === 'total_gastos_multiplas_categorias') {
+        const cats = Array.isArray(details.categorias) ? details.categorias.join(' + ') : 'categorias informadas';
+        return `Total gasto com ${cats} em ${periodLabel}: ${formatCurrencyBR(results)}`;
+    }
+
+    if (intent === 'percentual_categoria_gastos') {
+        const cat = details.categoria || 'categoria informada';
+        const pct = Number(results || 0).toFixed(2).replace('.', ',');
+        return `${cat} representou ${pct}% dos seus gastos em ${periodLabel}.\n${cat}: ${formatCurrencyBR(details.totalCategoria || 0)}\nTotal de gastos: ${formatCurrencyBR(details.totalGastos || 0)}`;
     }
 
     if (intent === 'listagem_gastos_categoria') {
@@ -2130,6 +2235,8 @@ module.exports = {
         filterSheetRowsByUserId,
         isGreetingMessage,
         buildGreetingReply,
+        inferAnalyticalQueryPlan,
+        extractMultipleCategoriesFromQuestion,
         normalizeMetricLabel,
         normalizeSettingsCommandText,
         isCheckinSettingsCommand,

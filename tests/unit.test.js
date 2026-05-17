@@ -236,7 +236,7 @@ test('messageHandler.classifyPerguntaLocally distinguishes total month from cate
 });
 
 test('messageHandler.classifyPerguntaLocally covers complex analytical questions', () => {
-    const { classifyPerguntaLocally } = messageHandler.__test__;
+    const { classifyPerguntaLocally, inferAnalyticalQueryPlan } = messageHandler.__test__;
 
     const count = classifyPerguntaLocally('quantas vezes usei onibis em fevereiro?');
     assert.strictEqual(count.intent, 'contagem_ocorrencias');
@@ -247,6 +247,29 @@ test('messageHandler.classifyPerguntaLocally covers complex analytical questions
 
     const minMax = classifyPerguntaLocally('qual foi o maior e menor gasto em fevereiro?');
     assert.strictEqual(minMax.intent, 'maior_menor_gasto');
+
+    const dailyAverage = classifyPerguntaLocally('quanto eu gastei por dia em média em maio de 2026?');
+    assert.strictEqual(dailyAverage.intent, 'media_diaria_gastos_mes');
+
+    const dailyAverageVariant = inferAnalyticalQueryPlan('em média diária, quanto foram meus gastos em maio de 2026?');
+    assert.strictEqual(dailyAverageVariant.metric, 'daily_average');
+    assert.strictEqual(dailyAverageVariant.intent, 'media_diaria_gastos_mes');
+
+    const combined = classifyPerguntaLocally('quanto gastei somando mercado e transporte em maio de 2026?');
+    assert.strictEqual(combined.intent, 'total_gastos_multiplas_categorias');
+    assert.deepStrictEqual(combined.parameters.categorias, ['mercado', 'transporte']);
+
+    const combinedVariant = inferAnalyticalQueryPlan('qual foi a soma de alimentação, transporte e saúde em fevereiro?');
+    assert.strictEqual(combinedVariant.metric, 'sum_by_categories');
+    assert.deepStrictEqual(combinedVariant.parameters.categorias, ['alimentacao', 'transporte', 'saude']);
+
+    const percentage = classifyPerguntaLocally('o mercado representou quantos por cento dos meus gastos de maio de 2026?');
+    assert.strictEqual(percentage.intent, 'percentual_categoria_gastos');
+    assert.strictEqual(percentage.parameters.categoria, 'mercado');
+
+    const percentageVariant = inferAnalyticalQueryPlan('qual foi a participação de mercado no total de gastos em maio de 2026?');
+    assert.strictEqual(percentageVariant.metric, 'percentage_of_expenses');
+    assert.strictEqual(percentageVariant.parameters.categoria, 'mercado');
 });
 
 test('messageHandler local command routing avoids AI for common commands and low-signal text', (t) => {
@@ -278,6 +301,34 @@ test('messageHandler.local replies cover greeting and total month', (t) => {
     assert.ok(reply.includes('Total gasto em fevereiro/2026: R$ 150,50'));
     assert.ok(reply.includes('Saídas: R$ 100,00'));
     assert.ok(reply.includes('Cartões: R$ 50,50'));
+});
+
+test('messageHandler local replies cover richer spreadsheet calculations', () => {
+    const { buildLocalPerguntaResponse } = messageHandler.__test__;
+
+    assert.match(
+        buildLocalPerguntaResponse({
+            intent: 'media_diaria_gastos_mes',
+            analyzedData: { results: 2.079, details: { mes: 4, ano: 2026, diasConsiderados: 17, totalGastos: 35.35 } }
+        }),
+        /Média diária.*R\$ 2,08.*17 dia/
+    );
+
+    assert.match(
+        buildLocalPerguntaResponse({
+            intent: 'total_gastos_multiplas_categorias',
+            analyzedData: { results: 135.7, details: { categorias: ['mercado', 'transporte'], mes: 4, ano: 2026 } }
+        }),
+        /mercado \+ transporte.*R\$ 135,70/
+    );
+
+    assert.match(
+        buildLocalPerguntaResponse({
+            intent: 'percentual_categoria_gastos',
+            analyzedData: { results: 66.99, details: { categoria: 'mercado', mes: 4, ano: 2026, totalCategoria: 90.9, totalGastos: 135.7 } }
+        }),
+        /mercado representou 66,99%/
+    );
 });
 
 test('creationHandler debt success message explains dashboard and spending distinction', () => {

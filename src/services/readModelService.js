@@ -141,6 +141,14 @@ function categoryMatches(record, category) {
     );
 }
 
+function daysConsideredForAverage(month, year, now = new Date()) {
+    if (month === null || month === undefined) return 365;
+    if (year === now.getFullYear() && month === now.getMonth()) {
+        return Math.max(1, now.getDate());
+    }
+    return new Date(year, month + 1, 0).getDate();
+}
+
 function mapSaidasRows(rows) {
     if (!rows || rows.length <= 1) return [];
     const result = [];
@@ -478,6 +486,32 @@ async function executeAnalyticalIntent(intent, parameters, { userId }) {
         const total = filtered.reduce((sum, entry) => sum + entry.valor, 0);
         const media = filtered.length > 0 ? total / filtered.length : 0;
         return withResultSource({ results: media, details: { categoria, mes: month, ano: year } }, 'memory_fallback');
+    }
+    case 'media_diaria_gastos_mes': {
+        const total = gastosUnificados.reduce((sum, entry) => sum + Number(entry.valor || 0), 0);
+        const days = daysConsideredForAverage(month, year);
+        return withResultSource({
+            results: days > 0 ? total / days : 0,
+            details: { mes: month, ano: year, diasConsiderados: days, totalGastos: total }
+        }, 'memory_fallback');
+    }
+    case 'total_gastos_multiplas_categorias': {
+        const categorias = Array.isArray(parameters?.categorias) ? parameters.categorias.filter(Boolean) : [];
+        const total = gastosUnificados
+            .filter((entry) => categorias.some(cat => categoryMatches(entry, cat)))
+            .reduce((sum, entry) => sum + Number(entry.valor || 0), 0);
+        return withResultSource({ results: total, details: { categorias, mes: month, ano: year } }, 'memory_fallback');
+    }
+    case 'percentual_categoria_gastos': {
+        const totalGastos = gastosUnificados.reduce((sum, entry) => sum + Number(entry.valor || 0), 0);
+        const totalCategoria = gastosUnificados
+            .filter((entry) => categoryMatches(entry, categoria))
+            .reduce((sum, entry) => sum + Number(entry.valor || 0), 0);
+        const percentual = totalGastos > 0 ? (totalCategoria / totalGastos) * 100 : 0;
+        return withResultSource({
+            results: percentual,
+            details: { categoria, mes: month, ano: year, totalCategoria, totalGastos }
+        }, 'memory_fallback');
     }
     case 'listagem_gastos_categoria': {
         const filtered = saidasDoUsuario

@@ -25,6 +25,9 @@ async function classify(questionText) {
     - total_gastos_mes
     - total_gastos_categoria_mes
     - media_gastos_categoria_mes
+    - media_diaria_gastos_mes
+    - total_gastos_multiplas_categorias
+    - percentual_categoria_gastos
     - listagem_gastos_categoria
     - contagem_ocorrencias
     - gastos_valores_duplicados
@@ -34,8 +37,12 @@ async function classify(questionText) {
 
     [REGRAS DE EXTRAÇÃO DE PARÂMETROS]
     - "categoria": O item sobre o qual o usuário pergunta (ex: "alimentação", "pedágio").
+    - "categorias": Lista de itens quando o usuário pedir soma de mais de uma categoria (ex: ["mercado", "transporte"]).
     - Se o usuário perguntar quanto gastou no mês/período SEM citar uma categoria específica (ex: "quanto gastei em fevereiro?"), use a intenção "total_gastos_mes" e NÃO envie "categoria".
     - Se o usuário citar categoria ou item específico (ex: "quanto gastei com alimentação?"), use "total_gastos_categoria_mes".
+    - Se o usuário pedir "por dia em média", use "media_diaria_gastos_mes".
+    - Se o usuário pedir "somando X e Y", use "total_gastos_multiplas_categorias" com "categorias".
+    - Se o usuário perguntar quanto uma categoria representa em porcentagem do total, use "percentual_categoria_gastos".
     - "ano": O ano com 4 dígitos (ex: 2025). Se não for mencionado, use o ano atual: ${currentYear}.
     - "mes": O NOME do mês (ex: "agosto").
 

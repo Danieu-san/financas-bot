@@ -63,6 +63,18 @@ test('sqlite read-model answers common analytical intents scoped by user_id', ()
     const minMax = queryAnalyticalIntentSql('maior_menor_gasto', { mes: 1, ano: 2026 }, { userId: 'user-read-a' });
     assert.strictEqual(minMax.results.min[1], 'uber');
     assert.strictEqual(minMax.results.max[1], 'mercado cartão');
+
+    const dailyAverage = queryAnalyticalIntentSql('media_diaria_gastos_mes', { mes: 1, ano: 2026 }, { userId: 'user-read-a' });
+    assert.strictEqual(Math.round(dailyAverage.results * 100) / 100, Math.round((200 / 28) * 100) / 100);
+    assert.strictEqual(dailyAverage.details.totalGastos, 200);
+
+    const combined = queryAnalyticalIntentSql('total_gastos_multiplas_categorias', { categorias: ['alimentação', 'transporte'], mes: 1, ano: 2026 }, { userId: 'user-read-a' });
+    assert.strictEqual(combined.results, 200);
+
+    const percentage = queryAnalyticalIntentSql('percentual_categoria_gastos', { categoria: 'alimentação', mes: 1, ano: 2026 }, { userId: 'user-read-a' });
+    assert.strictEqual(percentage.results, 90);
+    assert.strictEqual(percentage.details.totalCategoria, 180);
+    assert.strictEqual(percentage.details.totalGastos, 200);
 });
 
 test('sqlite read-model powers dashboard data without cross-user leakage', () => {

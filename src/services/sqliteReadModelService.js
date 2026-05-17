@@ -302,6 +302,14 @@ function normalizeYearParam(year) {
     return parsed;
 }
 
+function daysConsideredForAverage(month, year, now = new Date()) {
+    if (month === null || month === undefined) return 365;
+    if (year === now.getFullYear() && month === now.getMonth()) {
+        return Math.max(1, now.getDate());
+    }
+    return new Date(year, month + 1, 0).getDate();
+}
+
 function isAllUsersScope(userId) {
     return String(userId || '') === ALL_USERS_ID;
 }
@@ -520,6 +528,48 @@ function queryAnalyticalIntentSql(intent, parameters, { userId }) {
         return {
             results: filtered.length > 0 ? total / filtered.length : 0,
             details: { categoria: categoriaRaw, mes: month, ano: year }
+        };
+    }
+
+    if (intent === 'media_diaria_gastos_mes') {
+        const kpi = queryKpis(userId, { month, year });
+        const total = kpi.saidas + kpi.cartoes;
+        const days = daysConsideredForAverage(month, year);
+        return {
+            results: days > 0 ? total / days : 0,
+            details: { mes: month, ano: year, diasConsiderados: days, totalGastos: total }
+        };
+    }
+
+    if (intent === 'total_gastos_multiplas_categorias') {
+        const categorias = Array.isArray(parameters?.categorias) ? parameters.categorias.filter(Boolean) : [];
+        const rows = db.prepare(`
+            SELECT description, category, subcategory, value
+            FROM expenses
+            WHERE user_id = ? AND month = ? AND year = ?
+        `).all(userId, month, year);
+        const total = rows
+            .filter(row => categorias.some(cat => matchesAnyField([row.category || '', row.subcategory || '', row.description || ''], cat)))
+            .reduce((sum, row) => sum + Number(row.value || 0), 0);
+        return {
+            results: total,
+            details: { categorias, mes: month, ano: year }
+        };
+    }
+
+    if (intent === 'percentual_categoria_gastos') {
+        const rows = db.prepare(`
+            SELECT description, category, subcategory, value
+            FROM expenses
+            WHERE user_id = ? AND month = ? AND year = ?
+        `).all(userId, month, year);
+        const totalGastos = rows.reduce((sum, row) => sum + Number(row.value || 0), 0);
+        const totalCategoria = rows
+            .filter(expenseMatchesCategory)
+            .reduce((sum, row) => sum + Number(row.value || 0), 0);
+        return {
+            results: totalGastos > 0 ? (totalCategoria / totalGastos) * 100 : 0,
+            details: { categoria: categoriaRaw, mes: month, ano: year, totalCategoria, totalGastos }
         };
     }
 

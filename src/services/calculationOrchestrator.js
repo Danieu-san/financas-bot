@@ -48,6 +48,21 @@ const getUnifiedExpenses = (dataSources, mes, ano) => {
     });
 };
 
+function daysConsideredForAverage(mes, ano, now = new Date()) {
+    if (mes === null || mes === undefined) return 365;
+    if (ano === now.getFullYear() && mes === now.getMonth()) {
+        return Math.max(1, now.getDate());
+    }
+    return new Date(ano, mes + 1, 0).getDate();
+}
+
+function expenseMatchesCategory(item, category) {
+    return matchesAnyField(
+        [item.categoria || '', item.subcategoria || '', item.descricao || ''],
+        category
+    );
+}
+
 const operationRegistry = {
     total_gastos_mes: async function(params, dataSources) {
         const mes = getMonthIndex(params.mes);
@@ -108,6 +123,35 @@ const operationRegistry = {
         const filteredData = analysisService.getExpensesByMonthAndCategory(saidasLimpo, mes, ano, params.categoria);
         const media = analysisService.calculateAverage(filteredData);
         return { results: media, details: { ...params, mes, ano } };
+    },
+    media_diaria_gastos_mes: async function(params, dataSources) {
+        const mes = getMonthIndex(params.mes);
+        const ano = parseInt(params.ano, 10);
+        const gastosUnificados = getUnifiedExpenses(dataSources, mes, ano);
+        const total = gastosUnificados.reduce((sum, item) => sum + parseValue(item.valor), 0);
+        const days = daysConsideredForAverage(mes, ano);
+        return { results: days > 0 ? total / days : 0, details: { ...params, mes, ano, diasConsiderados: days, totalGastos: total } };
+    },
+    total_gastos_multiplas_categorias: async function(params, dataSources) {
+        const mes = getMonthIndex(params.mes);
+        const ano = parseInt(params.ano, 10);
+        const categorias = Array.isArray(params.categorias) ? params.categorias.filter(Boolean) : [];
+        const gastosUnificados = getUnifiedExpenses(dataSources, mes, ano);
+        const total = gastosUnificados
+            .filter(item => categorias.some(category => expenseMatchesCategory(item, category)))
+            .reduce((sum, item) => sum + parseValue(item.valor), 0);
+        return { results: total, details: { ...params, categorias, mes, ano } };
+    },
+    percentual_categoria_gastos: async function(params, dataSources) {
+        const mes = getMonthIndex(params.mes);
+        const ano = parseInt(params.ano, 10);
+        const gastosUnificados = getUnifiedExpenses(dataSources, mes, ano);
+        const totalGastos = gastosUnificados.reduce((sum, item) => sum + parseValue(item.valor), 0);
+        const totalCategoria = gastosUnificados
+            .filter(item => expenseMatchesCategory(item, params.categoria))
+            .reduce((sum, item) => sum + parseValue(item.valor), 0);
+        const percentual = totalGastos > 0 ? (totalCategoria / totalGastos) * 100 : 0;
+        return { results: percentual, details: { ...params, mes, ano, totalCategoria, totalGastos } };
     },
     listagem_gastos_categoria: async function(params, dataSources) {
         const mes = getMonthIndex(params.mes);
