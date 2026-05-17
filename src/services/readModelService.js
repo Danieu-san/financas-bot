@@ -486,7 +486,7 @@ async function executeAnalyticalIntent(intent, parameters, { userId }) {
         return withResultSource({ results: filtered, details: { categoria, mes: month, ano: year } }, 'memory_fallback');
     }
     case 'contagem_ocorrencias': {
-        const dataParaAnalise = gastosUnificados.map((entry) => [entry.data, entry.descricao]);
+        const dataParaAnalise = gastosUnificados.map((entry) => [entry.data, entry.descricao, entry.categoria, entry.subcategoria]);
         const filtered = analysisService.countOccurrences(dataParaAnalise, [normalizeText(categoria)], year, month);
         return withResultSource({ results: filtered.length, details: { categoria, mes: month, ano: year } }, 'memory_fallback');
     }

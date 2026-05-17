@@ -539,6 +539,18 @@ function queryAnalyticalIntentSql(intent, parameters, { userId }) {
         };
     }
 
+    if (intent === 'contagem_ocorrencias') {
+        const rows = db.prepare(`
+            SELECT description, category, subcategory
+            FROM expenses
+            WHERE user_id = ? AND month = ? AND year = ?
+        `).all(userId, month, year);
+        return {
+            results: rows.filter(expenseMatchesCategory).length,
+            details: { categoria: categoriaRaw, mes: month, ano: year }
+        };
+    }
+
     if (intent === 'maior_menor_gasto') {
         const minRow = db.prepare(`
             SELECT date_text, description, category, subcategory, value

@@ -425,6 +425,9 @@ functionalTest('functional: complex analytics handles typos, counts, duplicates 
         reply = last(await send('quantas vezes usei onibis em fevereiro?'));
         assert.ok(reply.includes('Ocorrências encontradas em fevereiro/2026: 2'), `Contagem por typo deve retornar 2. Resposta: ${reply}`);
 
+        reply = last(await send('quantas vezes usei transporte em fevereiro?'));
+        assert.ok(reply.includes('Ocorrências encontradas em fevereiro/2026: 3'), `Contagem por categoria deve retornar 3. Resposta: ${reply}`);
+
         enqueueStructured({ intent: 'pergunta', question: 'tem valores duplicados em fevereiro?' });
         reply = last(await send('tem valores duplicados em fevereiro?'));
         assert.ok(reply.includes('Valores duplicados em fevereiro/2026'), 'Duplicados devem ser detectados');

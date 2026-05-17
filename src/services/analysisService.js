@@ -48,8 +48,8 @@ function countOccurrences(data, keywords, year, month) {
     });
 
     const matchingRows = filteredByDate.filter(row => {
-        const description = row[1] || '';
-        return searchTerms.some(term => fuzzyIncludes(description, term, { wordThreshold: 0.65 }));
+        const searchableFields = row.slice(1).filter(value => value !== undefined && value !== null);
+        return searchTerms.some(term => matchesAnyField(searchableFields, term));
     });
     
     return matchingRows;

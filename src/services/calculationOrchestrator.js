@@ -120,7 +120,7 @@ const operationRegistry = {
         const ano = parseInt(params.ano, 10);
         const mes = getMonthIndex(params.mes);
         const gastosUnificados = getUnifiedExpenses(dataSources, mes, ano);
-        const dataParaAnalise = gastosUnificados.map(g => [g.data, g.descricao]);
+        const dataParaAnalise = gastosUnificados.map(g => [g.data, g.descricao, g.categoria, g.subcategoria]);
         const searchTerms = [normalizeText(params.categoria)];
         const filteredItems = analysisService.countOccurrences(dataParaAnalise, searchTerms, ano, mes);
         return { results: filteredItems.length, details: { ...params, mes, ano } };
