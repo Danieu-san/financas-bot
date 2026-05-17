@@ -1,4 +1,4 @@
-const { userMap, sheetCategoryMap, creditCardConfig, adminIds } = require('../config/constants');
+const { userMap, sheetCategoryMap, creditCardConfig, getAdminIds } = require('../config/constants');
 const userStateManager = require('../state/userStateManager');
 const creationHandler = require('./creationHandler');
 const deletionHandler = require('./deletionHandler');
@@ -726,7 +726,7 @@ async function notifyAdminsAboutPendingApproval(msg, user) {
         `Para negar e bloquear propaganda/bot, envie: admin negar ${targetUser}`
     ].join('\n');
 
-    for (const adminId of adminIds) {
+    for (const adminId of getAdminIds()) {
         if (!adminId || adminId === targetUser) continue;
         try {
             await msg.client.sendMessage(adminId, text);

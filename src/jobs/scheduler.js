@@ -2,7 +2,7 @@ const cron = require('node-cron');
 const { readDataFromSheet, getCalendarEventsForToday } = require('../services/google');
 const { expireOldPendingUsers, getActiveUsers, getUserSettingsByUserId } = require('../services/userService');
 const { parseSheetDate, normalizeText, getFormattedDateOnly, parseValue } = require('../utils/helpers');
-const { creditCardConfig, adminIds } = require('../config/constants');
+const { creditCardConfig, getAdminIds } = require('../config/constants');
 const { syncReadModelIfNeeded, getReadModelStats } = require('../services/readModelService');
 const logger = require('../utils/logger');
 const metrics = require('../utils/metrics');
@@ -317,7 +317,7 @@ async function sendOperationalHeartbeat() {
         const shouldAlert = timeoutCount > 0 || fatalErrors > 0 || slowMessages >= 10;
         if (!shouldAlert) return;
 
-        const adminRecipients = Array.from(adminIds || []).filter(Boolean);
+        const adminRecipients = Array.from(getAdminIds() || []).filter(Boolean);
         if (adminRecipients.length === 0) return;
 
         const text = [

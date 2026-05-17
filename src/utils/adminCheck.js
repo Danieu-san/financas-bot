@@ -1,6 +1,7 @@
 // src/utils/adminCheck.js
 
-const { adminIds, userMap } = require('../config/constants');
+const constants = require('../config/constants');
+const { userMap } = constants;
 
 console.log('✅ Módulo de Verificação de Admin inicializado.');
 
@@ -16,20 +17,27 @@ function normalizeDigits(value) {
     return String(value || '').replace(/\D/g, '');
 }
 
-const adminDigits = new Set(
-    Array.from(adminIds).map(normalizeDigits).filter(Boolean)
-);
+function getCurrentAdminIds() {
+    return constants.getAdminIds ? constants.getAdminIds() : constants.adminIds;
+}
 
-const adminDisplayNames = new Set(
-    Array.from(adminIds)
-        .map(id => normalizeText(userMap[id]))
-        .filter(Boolean)
-);
+function getCurrentAdminDigits() {
+    return new Set(Array.from(getCurrentAdminIds()).map(normalizeDigits).filter(Boolean));
+}
+
+function getCurrentAdminDisplayNames() {
+    return new Set(
+        Array.from(getCurrentAdminIds())
+            .map(id => normalizeText(userMap[id]))
+            .filter(Boolean)
+    );
+}
 
 function isAdmin(userId) {
+    const adminIds = getCurrentAdminIds();
     if (adminIds.has(userId)) return true;
     const digits = normalizeDigits(userId);
-    return Boolean(digits && adminDigits.has(digits));
+    return Boolean(digits && getCurrentAdminDigits().has(digits));
 }
 
 function isAdminWithContext(userId, user) {
@@ -37,7 +45,7 @@ function isAdminWithContext(userId, user) {
 
     // Compatibilidade para IDs @lid quando o contato admin aparece com outro identificador.
     const displayName = normalizeText(user?.display_name || '');
-    if (displayName && adminDisplayNames.has(displayName)) {
+    if (displayName && getCurrentAdminDisplayNames().has(displayName)) {
         return true;
     }
 

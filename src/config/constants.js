@@ -1,17 +1,31 @@
 // src/config/constants.js
 
-const adminIdsString = process.env.ADMIN_IDS || '';
-const adminIds = new Set(
-    adminIdsString
-        .split(',')
-        .map((id) => id.trim().replace(/^"+|"+$/g, '').replace(/^'+|'+$/g, ''))
-        .filter(Boolean)
-);
-
-const userMap = {
+let adminIds = new Set();
+let adminIdsSource = null;
+let userMap = {
     '5521970112407@c.us': 'Daniel',
     '5521964270368@c.us': 'Thais'
 };
+
+function initializeConstants({ force = false } = {}) {
+    const adminIdsString = process.env.ADMIN_IDS || '';
+    if (!force && adminIdsSource === adminIdsString) {
+        return adminIds;
+    }
+
+    adminIdsSource = adminIdsString;
+    adminIds = new Set(
+        adminIdsString
+            .split(',')
+            .map((id) => id.trim().replace(/^"+|"+$/g, '').replace(/^'+|'+$/g, ''))
+            .filter(Boolean)
+    );
+    return adminIds;
+}
+
+function getAdminIds() {
+    return initializeConstants();
+}
 
 const sheetCategoryMap = {
     gasto: 'Saídas',
@@ -43,8 +57,12 @@ const creditCardConfig = {
 };
 
 module.exports = {
-    adminIds,
+    get adminIds() {
+        return getAdminIds();
+    },
+    getAdminIds,
     userMap,
     sheetCategoryMap,
-    creditCardConfig
+    creditCardConfig,
+    initializeConstants
 };

@@ -183,6 +183,22 @@ test('adminCheck.isAdminWithContext', (t) => {
     );
 });
 
+test('adminCheck reads ADMIN_IDS dynamically when env changes', () => {
+    const previousAdminIds = process.env.ADMIN_IDS;
+
+    try {
+        process.env.ADMIN_IDS = '111111111111@c.us';
+        assert.strictEqual(adminCheck.isAdmin('111111111111@c.us'), true);
+        assert.strictEqual(adminCheck.isAdmin('222222222222@c.us'), false);
+
+        process.env.ADMIN_IDS = '222222222222@c.us';
+        assert.strictEqual(adminCheck.isAdmin('111111111111@c.us'), false);
+        assert.strictEqual(adminCheck.isAdmin('222222222222@c.us'), true);
+    } finally {
+        process.env.ADMIN_IDS = previousAdminIds;
+    }
+});
+
 test('messageHandler.classifyPerguntaLocally distinguishes total month from category total', (t) => {
     const { classifyPerguntaLocally } = messageHandler.__test__;
 
