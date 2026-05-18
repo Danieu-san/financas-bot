@@ -523,7 +523,13 @@ test('messageHandler clears cached analytical replies after financial writes', (
 });
 
 test('messageHandler.filterSheetRowsByUserId keeps header and isolates user rows', (t) => {
-    const { filterSheetRowsByUserId, filterSheetRowsByUserIds, resolveQuestionUserScope } = messageHandler.__test__;
+    const {
+        filterSheetRowsByUserId,
+        filterSheetRowsByUserIds,
+        resolveQuestionUserScope,
+        resolveQuestionUserScopeMatch,
+        normalizeIntentForQuestionUserScope
+    } = messageHandler.__test__;
     const rows = [
         ['Data', 'Descrição', 'Valor', 'user_id'],
         ['10/02/2026', 'lanche', '20', 'user-a'],
@@ -558,6 +564,32 @@ test('messageHandler.filterSheetRowsByUserId keeps header and isolates user rows
             { user_id: 'user-b', display_name: 'Oficial' }
         ], ['user-a', 'user-b']),
         ['user-a', 'user-b']
+    );
+
+    const matchedUserScope = resolveQuestionUserScopeMatch('quanto o Oficial gastou em fevereiro?', [
+        { user_id: 'user-a', display_name: 'Daniel' },
+        { user_id: 'user-b', display_name: 'Oficial' }
+    ], ['user-a', 'user-b']);
+    assert.deepStrictEqual(matchedUserScope.userIds, ['user-b']);
+    assert.deepStrictEqual(
+        normalizeIntentForQuestionUserScope({
+            intent: 'total_gastos_categoria_mes',
+            parameters: { categoria: 'Oficial', mes: 'fevereiro', ano: 2026 }
+        }, matchedUserScope),
+        {
+            intent: 'total_gastos_mes',
+            parameters: { mes: 'fevereiro', ano: 2026 }
+        }
+    );
+    assert.deepStrictEqual(
+        normalizeIntentForQuestionUserScope({
+            intent: 'total_gastos_categoria_mes',
+            parameters: { categoria: 'mercado', mes: 'fevereiro', ano: 2026 }
+        }, matchedUserScope),
+        {
+            intent: 'total_gastos_categoria_mes',
+            parameters: { categoria: 'mercado', mes: 'fevereiro', ano: 2026 }
+        }
     );
 });
 

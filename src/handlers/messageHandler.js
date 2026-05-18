@@ -761,23 +761,67 @@ function buildUserQuestionAliases(user = {}) {
 }
 
 function resolveQuestionUserScope(userQuestion, users = [], defaultUserIds = []) {
+    return resolveQuestionUserScopeMatch(userQuestion, users, defaultUserIds).userIds;
+}
+
+function resolveQuestionUserScopeMatch(userQuestion, users = [], defaultUserIds = []) {
     const fallback = (Array.isArray(defaultUserIds) ? defaultUserIds : [defaultUserIds])
         .map(id => String(id || '').trim())
         .filter(Boolean);
-    if (fallback.length <= 1) return fallback;
+    const fallbackResult = { userIds: fallback, matchedUser: null, matchedAliases: [] };
+    if (fallback.length <= 1) return fallbackResult;
 
     const allowed = new Set(fallback);
     const text = normalizeText(userQuestion);
-    if (!text) return fallback;
+    if (!text) return fallbackResult;
 
     const matches = (Array.isArray(users) ? users : [])
         .filter(user => allowed.has(String(user?.user_id || '').trim()))
-        .filter(user => buildUserQuestionAliases(user).some(alias => text.includes(alias)))
-        .map(user => String(user.user_id || '').trim())
-        .filter(Boolean);
+        .map(user => {
+            const matchedAliases = buildUserQuestionAliases(user).filter(alias => text.includes(alias));
+            return { user, matchedAliases };
+        })
+        .filter(match => match.matchedAliases.length > 0);
 
-    const uniqueMatches = Array.from(new Set(matches));
-    return uniqueMatches.length === 1 ? uniqueMatches : fallback;
+    const uniqueMatches = Array.from(new Set(matches
+        .map(match => String(match.user?.user_id || '').trim())
+        .filter(Boolean)));
+    if (uniqueMatches.length !== 1) return fallbackResult;
+
+    const selected = matches.find(match => String(match.user?.user_id || '').trim() === uniqueMatches[0]);
+    return {
+        userIds: uniqueMatches,
+        matchedUser: selected?.user || null,
+        matchedAliases: selected?.matchedAliases || []
+    };
+}
+
+function categoryMatchesQuestionUser(category, userScopeMatch = {}) {
+    const normalizedCategory = normalizeText(category);
+    if (!normalizedCategory || !userScopeMatch?.matchedUser) return false;
+    return (userScopeMatch.matchedAliases || []).some(alias =>
+        normalizedCategory === alias ||
+        normalizedCategory.includes(alias) ||
+        alias.includes(normalizedCategory)
+    );
+}
+
+function normalizeIntentForQuestionUserScope(intentClassification, userScopeMatch = {}) {
+    if (!intentClassification || !categoryMatchesQuestionUser(intentClassification.parameters?.categoria, userScopeMatch)) {
+        return intentClassification;
+    }
+
+    const parameters = { ...(intentClassification.parameters || {}) };
+    delete parameters.categoria;
+    const intentByCategoryIntent = {
+        total_gastos_categoria_mes: 'total_gastos_mes',
+        maior_menor_gasto_categoria: 'maior_menor_gasto'
+    };
+    return {
+        ...intentClassification,
+        intent: intentByCategoryIntent[intentClassification.intent] || intentClassification.intent,
+        parameters
+    };
 }
 
 function shouldRouteResumoToPergunta(messageBody) {
@@ -2507,9 +2551,12 @@ async function handleMessage(msg) {
                         const usePersonalSpreadsheet = await hasUserSpreadsheetContext({ userId });
                         const financialScopeUserIds = usePersonalSpreadsheet ? getFinancialScopeUserIds(userId) : [userId];
                         let analyticalUserIds = financialScopeUserIds;
+                        let effectiveIntentClassification = intentClassification;
                         if (usePersonalSpreadsheet && financialScopeUserIds.length > 1) {
                             const usersForScope = await getAllUsers();
-                            analyticalUserIds = resolveQuestionUserScope(userQuestion, usersForScope, financialScopeUserIds);
+                            const userScopeMatch = resolveQuestionUserScopeMatch(userQuestion, usersForScope, financialScopeUserIds);
+                            analyticalUserIds = userScopeMatch.userIds;
+                            effectiveIntentClassification = normalizeIntentForQuestionUserScope(intentClassification, userScopeMatch);
                             if (analyticalUserIds.length !== financialScopeUserIds.length) {
                                 logger.info(`[routing] question_user_scope sender=${senderId} selected=${analyticalUserIds.length}/${financialScopeUserIds.length}`);
                             }
@@ -2524,8 +2571,8 @@ async function handleMessage(msg) {
                                 analyzedData = await timeStep(
                                     'readModel.execute',
                                     () => executeAnalyticalIntent(
-                                        intentClassification.intent,
-                                        intentClassification.parameters,
+                                        effectiveIntentClassification.intent,
+                                        effectiveIntentClassification.parameters,
                                         { userId }
                                     ),
                                     perfContext
@@ -2533,20 +2580,20 @@ async function handleMessage(msg) {
                                 usedReadModel = true;
                                 analysisSource = analyzedData?.source || 'read_model_unknown';
                                 metrics.increment(`message.pergunta.analysis.${normalizeMetricLabel(analysisSource)}`);
-                                logger.info(`[routing] analysis_source=${analysisSource} intent=${intentClassification.intent} sender=${senderId}`);
+                                logger.info(`[routing] analysis_source=${analysisSource} intent=${effectiveIntentClassification.intent} sender=${senderId}`);
                             } catch (readModelError) {
                                 metrics.increment('message.pergunta.analysis.read_model_error');
                                 logger.warn(`[read-model] fallback legacy execute. motivo=${readModelError.message}`);
                             }
                         } else {
                             metrics.increment('message.pergunta.analysis.personal_sheet');
-                            logger.info(`[routing] analysis_source=personal_sheet intent=${intentClassification.intent} sender=${senderId}`);
+                            logger.info(`[routing] analysis_source=personal_sheet intent=${effectiveIntentClassification.intent} sender=${senderId}`);
                         }
 
                         if (!analyzedData) {
                             metrics.increment('message.pergunta.analysis.sheets_fallback');
                             analysisSource = 'sheets_fallback';
-                            logger.info(`[routing] analysis_source=${analysisSource} intent=${intentClassification.intent} sender=${senderId}`);
+                            logger.info(`[routing] analysis_source=${analysisSource} intent=${effectiveIntentClassification.intent} sender=${senderId}`);
                             const sheetReads = [
                                 readDataFromSheet('Saídas!A:J'),
                                 readDataFromSheet('Entradas!A:I'),
@@ -2574,8 +2621,8 @@ async function handleMessage(msg) {
                             analyzedData = await timeStep(
                                 'execute(intent)',
                                 () => execute(
-                                    intentClassification.intent,
-                                    intentClassification.parameters,
+                                    effectiveIntentClassification.intent,
+                                    effectiveIntentClassification.parameters,
                                     {
                                         saidas: filterSheetRowsByUserIds(saidasData, 9, analyticalUserIds),
                                         entradas: filterSheetRowsByUserIds(entradasData, 8, analyticalUserIds),
@@ -2590,7 +2637,7 @@ async function handleMessage(msg) {
 
                         let respostaFinal = buildLocalPerguntaResponse({
                             userQuestion,
-                            intent: intentClassification.intent,
+                            intent: effectiveIntentClassification.intent,
                             analyzedData
                         });
                         if (!respostaFinal) {
@@ -2600,7 +2647,7 @@ async function handleMessage(msg) {
                                 'generate(response)',
                                 () => generate({
                                     userQuestion,
-                                    intent: intentClassification.intent,
+                                    intent: effectiveIntentClassification.intent,
                                     rawResults: analyzedData.results,
                                     details: analyzedData.details,
                                     dateContext: {
@@ -2614,7 +2661,7 @@ async function handleMessage(msg) {
                         } else {
                             metrics.increment('message.pergunta.local_response');
                             metrics.increment('message.pergunta.response.local');
-                            logger.info(`[routing] local_response intent=${intentClassification.intent} sender=${senderId}`);
+                            logger.info(`[routing] local_response intent=${effectiveIntentClassification.intent} sender=${senderId}`);
                         }
                     
                         cache.set(cacheKey, respostaFinal);
@@ -2705,6 +2752,8 @@ module.exports = {
         filterSheetRowsByUserIds,
         buildUserQuestionAliases,
         resolveQuestionUserScope,
+        resolveQuestionUserScopeMatch,
+        normalizeIntentForQuestionUserScope,
         isGreetingMessage,
         buildGreetingReply,
         buildPreOnboardingInviteMessage,
