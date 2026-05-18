@@ -53,6 +53,16 @@ function ensureDb() {
             revoked_at TEXT
         );
         CREATE INDEX IF NOT EXISTS idx_oauth_connections_provider ON oauth_connections(provider);
+        CREATE TABLE IF NOT EXISTS shared_spreadsheet_members (
+            user_id TEXT PRIMARY KEY,
+            owner_user_id TEXT NOT NULL,
+            spreadsheet_id TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            revoked_at TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_shared_spreadsheet_owner ON shared_spreadsheet_members(owner_user_id);
+        CREATE INDEX IF NOT EXISTS idx_shared_spreadsheet_id ON shared_spreadsheet_members(spreadsheet_id);
     `);
     return db;
 }
@@ -211,10 +221,116 @@ function updateOAuthConnectionMetadata(userId, patch = {}) {
     return getOAuthConnection(safeUserId);
 }
 
+function mapSharedMembership(row) {
+    if (!row) return null;
+    return {
+        user_id: row.user_id || '',
+        owner_user_id: row.owner_user_id || '',
+        spreadsheet_id: row.spreadsheet_id || '',
+        created_at: row.created_at || '',
+        updated_at: row.updated_at || '',
+        revoked_at: row.revoked_at || ''
+    };
+}
+
+function setSharedSpreadsheetMembership({ memberUserId, ownerUserId, spreadsheetId } = {}) {
+    const safeMemberUserId = String(memberUserId || '').trim();
+    const safeOwnerUserId = String(ownerUserId || '').trim();
+    const safeSpreadsheetId = String(spreadsheetId || '').trim();
+    if (!safeMemberUserId) throw new Error('memberUserId é obrigatório para compartilhar planilha.');
+    if (!safeOwnerUserId) throw new Error('ownerUserId é obrigatório para compartilhar planilha.');
+    if (!safeSpreadsheetId) throw new Error('spreadsheetId é obrigatório para compartilhar planilha.');
+    if (safeMemberUserId === safeOwnerUserId) {
+        throw new Error('O membro compartilhado precisa ser diferente do dono da planilha.');
+    }
+
+    const database = ensureDb();
+    const now = new Date().toISOString();
+    database.prepare(`
+        INSERT INTO shared_spreadsheet_members(user_id, owner_user_id, spreadsheet_id, created_at, updated_at, revoked_at)
+        VALUES(@user_id, @owner_user_id, @spreadsheet_id, @created_at, @updated_at, '')
+        ON CONFLICT(user_id) DO UPDATE SET
+            owner_user_id = excluded.owner_user_id,
+            spreadsheet_id = excluded.spreadsheet_id,
+            updated_at = excluded.updated_at,
+            revoked_at = ''
+    `).run({
+        user_id: safeMemberUserId,
+        owner_user_id: safeOwnerUserId,
+        spreadsheet_id: safeSpreadsheetId,
+        created_at: now,
+        updated_at: now
+    });
+    logger.info(`oauth: planilha compartilhada vinculada member_user_id=${safeMemberUserId} owner_user_id=${safeOwnerUserId}`);
+    return getSharedSpreadsheetMembership(safeMemberUserId);
+}
+
+function getSharedSpreadsheetMembership(userId) {
+    const safeUserId = String(userId || '').trim();
+    if (!safeUserId) return null;
+    const database = ensureDb();
+    const row = database.prepare(`
+        SELECT * FROM shared_spreadsheet_members
+        WHERE user_id = ? AND COALESCE(revoked_at, '') = ''
+    `).get(safeUserId);
+    return mapSharedMembership(row);
+}
+
+function revokeSharedSpreadsheetMembership(userId) {
+    const safeUserId = String(userId || '').trim();
+    if (!safeUserId) return null;
+    const existing = getSharedSpreadsheetMembership(safeUserId);
+    if (!existing) return null;
+
+    const database = ensureDb();
+    const now = new Date().toISOString();
+    database.prepare(`
+        UPDATE shared_spreadsheet_members
+        SET revoked_at = @revoked_at, updated_at = @updated_at
+        WHERE user_id = @user_id AND COALESCE(revoked_at, '') = ''
+    `).run({
+        user_id: safeUserId,
+        updated_at: now,
+        revoked_at: now
+    });
+    logger.info(`oauth: planilha compartilhada revogada member_user_id=${safeUserId} owner_user_id=${existing.owner_user_id}`);
+    return existing;
+}
+
+function listSharedSpreadsheetMembersBySpreadsheetId(spreadsheetId) {
+    const safeSpreadsheetId = String(spreadsheetId || '').trim();
+    if (!safeSpreadsheetId) return [];
+    const database = ensureDb();
+    return database.prepare(`
+        SELECT * FROM shared_spreadsheet_members
+        WHERE spreadsheet_id = ? AND COALESCE(revoked_at, '') = ''
+        ORDER BY created_at ASC
+    `).all(safeSpreadsheetId).map(mapSharedMembership);
+}
+
+function getFinancialScopeUserIds(userId) {
+    const safeUserId = String(userId || '').trim();
+    if (!safeUserId) return [];
+
+    const ownConnection = getOAuthConnection(safeUserId);
+    const membership = getSharedSpreadsheetMembership(safeUserId);
+    const spreadsheetId = membership?.spreadsheet_id || ownConnection?.spreadsheet_id || '';
+    const ownerUserId = membership?.owner_user_id || safeUserId;
+    if (!spreadsheetId) return [safeUserId];
+
+    const memberIds = listSharedSpreadsheetMembersBySpreadsheetId(spreadsheetId).map(member => member.user_id);
+    return Array.from(new Set([ownerUserId, ...memberIds, safeUserId].filter(Boolean)));
+}
+
 module.exports = {
     saveOAuthConnection,
     getOAuthConnection,
     updateOAuthConnectionMetadata,
+    setSharedSpreadsheetMembership,
+    getSharedSpreadsheetMembership,
+    revokeSharedSpreadsheetMembership,
+    listSharedSpreadsheetMembersBySpreadsheetId,
+    getFinancialScopeUserIds,
     __test__: {
         encryptJson,
         decryptJson,

@@ -43,6 +43,13 @@ const {
 } = require('../services/statementImportService');
 const { buildDashboardAccessLink } = require('../utils/dashboardAuth');
 const { buildGoogleConnectLink } = require('../services/googleOAuthService');
+const {
+    getOAuthConnection,
+    getFinancialScopeUserIds,
+    getSharedSpreadsheetMembership,
+    revokeSharedSpreadsheetMembership,
+    setSharedSpreadsheetMembership
+} = require('../services/oauthTokenStore');
 const metrics = require('../utils/metrics');
 const { isAdminWithContext } = require('../utils/adminCheck');
 const logger = require('../utils/logger');
@@ -242,6 +249,8 @@ async function saveImportedTransactions(transactions = [], { person, userId }) {
 
 async function loadExistingImportRows({ userId } = {}) {
     const options = userId ? { userId } : {};
+    const scopeUserIds = userId ? getFinancialScopeUserIds(userId) : [];
+    const allowedUserIds = new Set(scopeUserIds.map(id => String(id || '').trim()).filter(Boolean));
     const [saidas, entradas, transferencias] = await Promise.all([
         readDataFromSheet('Saídas!A:J', options),
         readDataFromSheet('Entradas!A:I', options),
@@ -250,7 +259,7 @@ async function loadExistingImportRows({ userId } = {}) {
     const belongsToUser = (row, userIdIndex) => {
         if (!userId) return true;
         const rowUserId = String(row?.[userIdIndex] || '').trim();
-        return rowUserId === userId;
+        return allowedUserIds.has(rowUserId);
     };
     return {
         'Saídas': (saidas || []).slice(1).filter(row => belongsToUser(row, 9)),
@@ -713,6 +722,20 @@ function filterSheetRowsByUserId(rows, userIdIndex, userId) {
     ];
 }
 
+function filterSheetRowsByUserIds(rows, userIdIndex, userIds) {
+    if (!Array.isArray(rows) || rows.length === 0) return [];
+    const [header, ...dataRows] = rows;
+    const allowed = new Set((Array.isArray(userIds) ? userIds : [userIds])
+        .map(id => String(id || '').trim())
+        .filter(Boolean));
+    if (allowed.size === 0) return [header];
+
+    return [
+        header,
+        ...dataRows.filter(row => allowed.has(String(row?.[userIdIndex] || '').trim()))
+    ];
+}
+
 function shouldRouteResumoToPergunta(messageBody) {
     const text = normalizeText(String(messageBody || '').trim());
     if (!text) return false;
@@ -1077,6 +1100,8 @@ async function handleAdminCommands(msg, senderId, activeUser) {
             '- admin aprovar <telefone>\n' +
             '- admin negar <telefone>\n' +
             '- admin convidar <telefone>\n' +
+            '- admin compartilhar planilha <dono> <membro>\n' +
+            '- admin remover compartilhamento <membro>\n' +
             '- admin ativar <telefone>\n' +
             '- admin inativar <telefone>\n' +
             '- admin bloquear <telefone>\n' +
@@ -1157,6 +1182,100 @@ async function handleAdminCommands(msg, senderId, activeUser) {
         return true;
     }
 
+    const shareSheetMatch = body.match(/^admin\s+compartilhar\s+planilha\s+(\S+)\s+(\S+)$/);
+    if (shareSheetMatch) {
+        const ownerLookup = shareSheetMatch[1];
+        const memberLookup = shareSheetMatch[2];
+        const owner = await getUserByLookup(ownerLookup);
+        const member = await getUserByLookup(memberLookup);
+        if (!owner || !member) {
+            logger.warn(`[admin] compartilhar_planilha_usuario_nao_encontrado context=${JSON.stringify({ ...adminContext, ownerLookup, memberLookup })}`);
+            await msg.reply('Dono ou membro não encontrado. Use: admin compartilhar planilha <telefone_dono> <telefone_membro>');
+            return true;
+        }
+        if (owner.user_id === member.user_id) {
+            await msg.reply('O dono e o membro precisam ser usuários diferentes.');
+            return true;
+        }
+        if (owner.status !== USER_STATUS.ACTIVE || member.status !== USER_STATUS.ACTIVE) {
+            await msg.reply('Para compartilhar planilha, dono e membro precisam estar ACTIVE e com cadastro concluído.');
+            return true;
+        }
+
+        const ownerConnection = getOAuthConnection(owner.user_id);
+        const spreadsheetId = String(ownerConnection?.spreadsheet_id || '').trim();
+        if (!spreadsheetId) {
+            await msg.reply('O dono ainda não tem planilha Google conectada. Conclua o OAuth do dono antes de compartilhar.');
+            return true;
+        }
+
+        setSharedSpreadsheetMembership({
+            ownerUserId: owner.user_id,
+            memberUserId: member.user_id,
+            spreadsheetId
+        });
+        const scopeIds = getFinancialScopeUserIds(member.user_id);
+        logger.info(`[admin] compartilhar_planilha context=${JSON.stringify({
+            ...adminContext,
+            owner_user_id: owner.user_id,
+            member_user_id: member.user_id,
+            spreadsheet_id: spreadsheetId,
+            scope_user_ids: scopeIds
+        })}`);
+        await msg.reply(
+            `Planilha compartilhada ativada.\n` +
+            `- dono: ${owner.display_name || owner.whatsapp_id}\n` +
+            `- membro: ${member.display_name || member.whatsapp_id}\n` +
+            `- membros no escopo financeiro: ${scopeIds.length}\n\n` +
+            `A partir de agora, os lançamentos dos dois entram na mesma planilha. Cada linha continua registrando quem lançou pelo campo Responsável e pelo user_id.`
+        );
+        if (msg.client && typeof msg.client.sendMessage === 'function') {
+            try {
+                await msg.client.sendMessage(
+                    member.whatsapp_id,
+                    `Você foi vinculado à planilha compartilhada de ${owner.display_name || 'outro membro'}.\n` +
+                    'Seus próximos lançamentos serão salvos nessa planilha, identificados com seu nome. Você também verá o dashboard com os dados do casal.'
+                );
+            } catch (error) {
+                logger.warn(`[admin] compartilhar_planilha_notificacao_falhou context=${JSON.stringify({
+                    ...adminContext,
+                    member_user_id: member.user_id,
+                    error: error.message
+                })}`);
+            }
+        }
+        return true;
+    }
+
+    const removeShareMatch = body.match(/^admin\s+remover\s+compartilhamento\s+(\S+)$/);
+    if (removeShareMatch) {
+        const memberLookup = removeShareMatch[1];
+        const member = await getUserByLookup(memberLookup);
+        if (!member) {
+            logger.warn(`[admin] remover_compartilhamento_usuario_nao_encontrado context=${JSON.stringify({ ...adminContext, memberLookup })}`);
+            await msg.reply('Membro não encontrado. Use: admin remover compartilhamento <telefone_membro>');
+            return true;
+        }
+
+        const revoked = revokeSharedSpreadsheetMembership(member.user_id);
+        if (!revoked) {
+            await msg.reply('Esse usuário não tem vínculo ativo de planilha compartilhada.');
+            return true;
+        }
+
+        logger.info(`[admin] remover_compartilhamento context=${JSON.stringify({
+            ...adminContext,
+            member_user_id: member.user_id,
+            previous_owner_user_id: revoked.owner_user_id,
+            spreadsheet_id: revoked.spreadsheet_id
+        })}`);
+        await msg.reply(
+            `Compartilhamento removido para ${member.display_name || member.whatsapp_id}.\n` +
+            'Os próximos lançamentos desse usuário voltarão para a planilha própria dele, se houver Google conectado.'
+        );
+        return true;
+    }
+
     const statusQueryMatch = body.match(/^admin\s+status\s+(.+)$/);
     if (statusQueryMatch) {
         const target = statusQueryMatch[1];
@@ -1168,6 +1287,8 @@ async function handleAdminCommands(msg, senderId, activeUser) {
         }
         const profile = await getUserProfileByUserId(user.user_id);
         const settings = await getUserSettingsByUserId(user.user_id);
+        const sharedMembership = getSharedSpreadsheetMembership(user.user_id);
+        const financialScopeUserIds = getFinancialScopeUserIds(user.user_id);
         logger.info(`[admin] status context=${JSON.stringify({ ...adminContext, target, target_user_id: user.user_id, target_status: user.status })}`);
         await msg.reply(
             `Status do usuário\n` +
@@ -1175,6 +1296,8 @@ async function handleAdminCommands(msg, senderId, activeUser) {
             `- nome: ${user.display_name || 'sem_nome'}\n` +
             `- status: ${user.status}\n` +
             `- user_id: ${user.user_id}\n` +
+            `- planilha_compartilhada: ${sharedMembership ? `SIM (dono=${sharedMembership.owner_user_id})` : 'NÃO'}\n` +
+            `- escopo_financeiro: ${financialScopeUserIds.length} usuário(s)\n` +
             `- onboarding_concluido: ${profile?.onboarding_completed_at ? 'SIM' : 'NÃO'}\n` +
             `- checkin_semanal: ${settings?.weekly_checkin_opt_in || 'NÃO'}\n` +
             `- relatorio_mensal: ${settings?.monthly_report_opt_in || 'NÃO'}`
@@ -2271,6 +2394,7 @@ async function handleMessage(msg) {
                         let usedReadModel = false;
                         let analysisSource = 'unknown';
                         const usePersonalSpreadsheet = await hasUserSpreadsheetContext({ userId });
+                        const financialScopeUserIds = usePersonalSpreadsheet ? getFinancialScopeUserIds(userId) : [userId];
                         if (!usePersonalSpreadsheet) {
                             try {
                                 await timeStep(
@@ -2327,17 +2451,17 @@ async function handleMessage(msg) {
                             const [saidasData, entradasData, metasData, dividasData] = allSheetData;
                             const creditCardData = allSheetData.slice(4);
                             const cardUserIdIndex = usePersonalSpreadsheet ? 9 : 6;
-                            const filteredCreditCardData = creditCardData.map(sheetRows => filterSheetRowsByUserId(sheetRows, cardUserIdIndex, userId));
+                            const filteredCreditCardData = creditCardData.map(sheetRows => filterSheetRowsByUserIds(sheetRows, cardUserIdIndex, financialScopeUserIds));
                             analyzedData = await timeStep(
                                 'execute(intent)',
                                 () => execute(
                                     intentClassification.intent,
                                     intentClassification.parameters,
                                     {
-                                        saidas: filterSheetRowsByUserId(saidasData, 9, userId),
-                                        entradas: filterSheetRowsByUserId(entradasData, 8, userId),
-                                        metas: filterSheetRowsByUserId(metasData, 8, userId),
-                                        dividas: filterSheetRowsByUserId(dividasData, 17, userId),
+                                        saidas: filterSheetRowsByUserIds(saidasData, 9, financialScopeUserIds),
+                                        entradas: filterSheetRowsByUserIds(entradasData, 8, financialScopeUserIds),
+                                        metas: filterSheetRowsByUserIds(metasData, 8, financialScopeUserIds),
+                                        dividas: filterSheetRowsByUserIds(dividasData, 17, financialScopeUserIds),
                                         cartoes: filteredCreditCardData
                                     }
                                 ),
@@ -2459,6 +2583,7 @@ module.exports = {
         shouldSkipAiForUnknownMessage,
         buildLocalPerguntaResponse,
         filterSheetRowsByUserId,
+        filterSheetRowsByUserIds,
         isGreetingMessage,
         buildGreetingReply,
         buildPreOnboardingInviteMessage,

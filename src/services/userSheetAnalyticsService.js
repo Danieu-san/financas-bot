@@ -1,4 +1,5 @@
 const { readDataFromSheet, runWithUserSheetContext, hasUserSpreadsheetContext } = require('./google');
+const { getFinancialScopeUserIds } = require('./oauthTokenStore');
 const { parseSheetDate, parseValue } = require('../utils/helpers');
 
 const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
@@ -24,6 +25,11 @@ function periodMatchesBillingMonth(value, month, year) {
 
 function rowBelongsToUser(row, index, userId) {
     return String(row?.[index] || '').trim() === String(userId || '').trim();
+}
+
+function rowBelongsToAnyUser(row, index, userIds = []) {
+    const allowed = new Set((Array.isArray(userIds) ? userIds : [userIds]).map(id => String(id || '').trim()).filter(Boolean));
+    return allowed.has(String(row?.[index] || '').trim());
 }
 
 function toTransaction(row, type) {
@@ -91,6 +97,7 @@ async function getUserSheetDashboardData(userId, { month, year } = {}) {
     if (!safeUserId || !(await hasUserSpreadsheetContext({ userId: safeUserId }))) return null;
 
     return runWithUserSheetContext({ userId: safeUserId }, async () => {
+        const financialScopeUserIds = getFinancialScopeUserIds(safeUserId);
         const period = normalizePeriod({ month, year });
         const [saidasRows, entradasRows, cartaoRows, metasRows, dividasRows] = await Promise.all([
             readDataFromSheet('Saídas!A:J'),
@@ -101,13 +108,13 @@ async function getUserSheetDashboardData(userId, { month, year } = {}) {
         ]);
 
         const saidas = saidasRows.slice(1)
-            .filter(row => rowBelongsToUser(row, 9, safeUserId) && periodMatchesDate(row[0], period.month, period.year))
+            .filter(row => rowBelongsToAnyUser(row, 9, financialScopeUserIds) && periodMatchesDate(row[0], period.month, period.year))
             .map(row => toTransaction(row, 'saida'));
         const entradas = entradasRows.slice(1)
-            .filter(row => rowBelongsToUser(row, 8, safeUserId) && periodMatchesDate(row[0], period.month, period.year))
+            .filter(row => rowBelongsToAnyUser(row, 8, financialScopeUserIds) && periodMatchesDate(row[0], period.month, period.year))
             .map(row => toTransaction(row, 'entrada'));
         const cartoes = cartaoRows.slice(1)
-            .filter(row => rowBelongsToUser(row, 9, safeUserId) && periodMatchesBillingMonth(row[5], period.month, period.year))
+            .filter(row => rowBelongsToAnyUser(row, 9, financialScopeUserIds) && periodMatchesBillingMonth(row[5], period.month, period.year))
             .map(toCardTransaction);
 
         const totalSaidas = saidas.reduce((sum, item) => sum + item.value, 0);
@@ -130,8 +137,8 @@ async function getUserSheetDashboardData(userId, { month, year } = {}) {
             topCategories: buildTopCategories(expenses),
             dailyFlow: buildDailyFlow({ entradas, saidas, cartoes }),
             recentTransactions: [...entradas, ...expenses].slice(-10).reverse(),
-            goals: metasRows.slice(1).filter(row => rowBelongsToUser(row, 8, safeUserId)),
-            debts: dividasRows.slice(1).filter(row => rowBelongsToUser(row, 17, safeUserId)),
+            goals: metasRows.slice(1).filter(row => rowBelongsToAnyUser(row, 8, financialScopeUserIds)),
+            debts: dividasRows.slice(1).filter(row => rowBelongsToAnyUser(row, 17, financialScopeUserIds)),
             alerts: [],
             source: 'personal_sheet'
         };
@@ -143,6 +150,7 @@ module.exports = {
     __test__: {
         normalizePeriod,
         periodMatchesBillingMonth,
-        buildTopCategories
+        buildTopCategories,
+        rowBelongsToAnyUser
     }
 };

@@ -65,6 +65,42 @@ test('oauthTokenStore encrypts refresh tokens at rest and decrypts only when req
     assert.strictEqual(rawFile.includes(Buffer.from('access-secret-value')), false);
 });
 
+test('oauthTokenStore links shared spreadsheets without merging user identities', () => {
+    resetModules();
+    configureTestEnv();
+    const store = require('../src/services/oauthTokenStore');
+
+    store.saveOAuthConnection('owner-user', {
+        scopes: ['scope-a'],
+        tokens: { refresh_token: 'owner-refresh-secret' },
+        spreadsheetId: 'spreadsheet-casal'
+    });
+    store.saveOAuthConnection('member-user', {
+        scopes: ['scope-a'],
+        tokens: { refresh_token: 'member-refresh-secret' },
+        spreadsheetId: 'spreadsheet-member-original'
+    });
+
+    const membership = store.setSharedSpreadsheetMembership({
+        ownerUserId: 'owner-user',
+        memberUserId: 'member-user',
+        spreadsheetId: 'spreadsheet-casal'
+    });
+
+    assert.strictEqual(membership.user_id, 'member-user');
+    assert.strictEqual(membership.owner_user_id, 'owner-user');
+    assert.strictEqual(membership.spreadsheet_id, 'spreadsheet-casal');
+    assert.deepStrictEqual(store.getFinancialScopeUserIds('member-user'), ['owner-user', 'member-user']);
+    assert.deepStrictEqual(store.getFinancialScopeUserIds('owner-user'), ['owner-user', 'member-user']);
+    assert.strictEqual(store.getOAuthConnection('member-user').spreadsheet_id, 'spreadsheet-member-original');
+
+    const revoked = store.revokeSharedSpreadsheetMembership('member-user');
+    assert.strictEqual(revoked.owner_user_id, 'owner-user');
+    assert.strictEqual(store.getSharedSpreadsheetMembership('member-user'), null);
+    assert.deepStrictEqual(store.getFinancialScopeUserIds('member-user'), ['member-user']);
+    assert.deepStrictEqual(store.getFinancialScopeUserIds('owner-user'), ['owner-user']);
+});
+
 test('oauthTokenStore refuses to store tokens without a strong encryption key', () => {
     resetModules();
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'financas-oauth-missing-key-'));

@@ -494,7 +494,7 @@ test('messageHandler clears cached analytical replies after financial writes', (
 });
 
 test('messageHandler.filterSheetRowsByUserId keeps header and isolates user rows', (t) => {
-    const { filterSheetRowsByUserId } = messageHandler.__test__;
+    const { filterSheetRowsByUserId, filterSheetRowsByUserIds } = messageHandler.__test__;
     const rows = [
         ['Data', 'Descrição', 'Valor', 'user_id'],
         ['10/02/2026', 'lanche', '20', 'user-a'],
@@ -508,6 +508,7 @@ test('messageHandler.filterSheetRowsByUserId keeps header and isolates user rows
         ['10/02/2026', 'lanche', '20', 'user-a'],
         ['11/02/2026', 'mercado', '40', 'user-a']
     ]);
+    assert.deepStrictEqual(filterSheetRowsByUserIds(rows, 3, ['user-a', 'user-b']), rows);
 });
 
 test('debtHandler.filterDebtsByUserId isolates debts by user_id', (t) => {

@@ -3,7 +3,7 @@ const { AsyncLocalStorage } = require('async_hooks');
 const path = require('path');
 const fs = require('fs');
 const { convertToIsoDateTime } = require('../utils/helpers');
-const { getOAuthConnection } = require('./oauthTokenStore');
+const { getOAuthConnection, getSharedSpreadsheetMembership } = require('./oauthTokenStore');
 
 const GOOGLE_CREDENTIALS_PATH = path.resolve(process.cwd(), 'credentials.json');
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
@@ -406,13 +406,17 @@ async function resolveSpreadsheetTarget(options = {}) {
 
     if (safeUserId && shouldUseUserSpreadsheetForSheet(requestedSheet)) {
         try {
-            const connection = getOAuthConnection(safeUserId, { includeTokens: true });
-            const spreadsheetId = String(connection?.spreadsheet_id || '').trim();
+            const sharedMembership = getSharedSpreadsheetMembership(safeUserId);
+            const connectionUserId = sharedMembership?.owner_user_id || safeUserId;
+            const connection = getOAuthConnection(connectionUserId, { includeTokens: true });
+            const spreadsheetId = String(sharedMembership?.spreadsheet_id || connection?.spreadsheet_id || '').trim();
             const auth = buildUserOAuthClient(connection?.tokens || {});
             if (spreadsheetId && auth) {
                 return {
                     userScoped: true,
                     userId: safeUserId,
+                    ownerUserId: connectionUserId,
+                    sharedSpreadsheet: Boolean(sharedMembership),
                     displayName: context.displayName || '',
                     spreadsheetId,
                     sheetsClient: google.sheets({ version: 'v4', auth })

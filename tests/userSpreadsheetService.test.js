@@ -10,6 +10,7 @@ const {
     quoteSheetName,
     __test__
 } = require('../src/services/userSpreadsheetService');
+const userSheetAnalyticsService = require('../src/services/userSheetAnalyticsService');
 
 test('user spreadsheet template includes required multiuser financial tabs', () => {
     const titles = USER_SPREADSHEET_TABS.map(tab => tab.title);
@@ -214,4 +215,15 @@ test('user spreadsheet dashboard keeps title row and uses correct formulas', () 
     ));
     assert.strictEqual(overwritesDashboardTitle, false);
     assert.ok(requests.some(req => req.unmergeCells), 'Should unmerge dashboard title area before reapplying template');
+});
+
+test('user sheet analytics can include all users in a shared financial scope', () => {
+    const { rowBelongsToAnyUser } = userSheetAnalyticsService.__test__;
+    const rowA = ['10/05/2026', 'mercado', 'Alimentação', '', 50, 'Daniel', 'PIX', 'Não', '', 'user-a'];
+    const rowB = ['11/05/2026', 'farmácia', 'Saúde', '', 30, 'Thais', 'PIX', 'Não', '', 'user-b'];
+    const rowC = ['12/05/2026', 'livro', 'Educação', '', 20, 'Outro', 'PIX', 'Não', '', 'user-c'];
+
+    assert.strictEqual(rowBelongsToAnyUser(rowA, 9, ['user-a', 'user-b']), true);
+    assert.strictEqual(rowBelongsToAnyUser(rowB, 9, ['user-a', 'user-b']), true);
+    assert.strictEqual(rowBelongsToAnyUser(rowC, 9, ['user-a', 'user-b']), false);
 });
