@@ -738,6 +738,48 @@ function filterSheetRowsByUserIds(rows, userIdIndex, userIds) {
     ];
 }
 
+function buildUserQuestionAliases(user = {}) {
+    const aliases = new Set();
+    const addAlias = (value) => {
+        const normalized = normalizeText(value);
+        if (normalized && normalized.length >= 3) aliases.add(normalized);
+    };
+
+    addAlias(user.display_name);
+    addAlias(user.full_name);
+    addAlias(user.preferred_name);
+
+    for (const alias of Array.from(aliases)) {
+        alias
+            .split(/\s+/)
+            .map(part => part.trim())
+            .filter(part => part.length >= 3)
+            .forEach(part => aliases.add(part));
+    }
+
+    return Array.from(aliases);
+}
+
+function resolveQuestionUserScope(userQuestion, users = [], defaultUserIds = []) {
+    const fallback = (Array.isArray(defaultUserIds) ? defaultUserIds : [defaultUserIds])
+        .map(id => String(id || '').trim())
+        .filter(Boolean);
+    if (fallback.length <= 1) return fallback;
+
+    const allowed = new Set(fallback);
+    const text = normalizeText(userQuestion);
+    if (!text) return fallback;
+
+    const matches = (Array.isArray(users) ? users : [])
+        .filter(user => allowed.has(String(user?.user_id || '').trim()))
+        .filter(user => buildUserQuestionAliases(user).some(alias => text.includes(alias)))
+        .map(user => String(user.user_id || '').trim())
+        .filter(Boolean);
+
+    const uniqueMatches = Array.from(new Set(matches));
+    return uniqueMatches.length === 1 ? uniqueMatches : fallback;
+}
+
 function shouldRouteResumoToPergunta(messageBody) {
     const text = normalizeText(String(messageBody || '').trim());
     if (!text) return false;
@@ -2464,6 +2506,14 @@ async function handleMessage(msg) {
                         let analysisSource = 'unknown';
                         const usePersonalSpreadsheet = await hasUserSpreadsheetContext({ userId });
                         const financialScopeUserIds = usePersonalSpreadsheet ? getFinancialScopeUserIds(userId) : [userId];
+                        let analyticalUserIds = financialScopeUserIds;
+                        if (usePersonalSpreadsheet && financialScopeUserIds.length > 1) {
+                            const usersForScope = await getAllUsers();
+                            analyticalUserIds = resolveQuestionUserScope(userQuestion, usersForScope, financialScopeUserIds);
+                            if (analyticalUserIds.length !== financialScopeUserIds.length) {
+                                logger.info(`[routing] question_user_scope sender=${senderId} selected=${analyticalUserIds.length}/${financialScopeUserIds.length}`);
+                            }
+                        }
                         if (!usePersonalSpreadsheet) {
                             try {
                                 await timeStep(
@@ -2520,17 +2570,17 @@ async function handleMessage(msg) {
                             const [saidasData, entradasData, metasData, dividasData] = allSheetData;
                             const creditCardData = allSheetData.slice(4);
                             const cardUserIdIndex = usePersonalSpreadsheet ? 9 : 6;
-                            const filteredCreditCardData = creditCardData.map(sheetRows => filterSheetRowsByUserIds(sheetRows, cardUserIdIndex, financialScopeUserIds));
+                            const filteredCreditCardData = creditCardData.map(sheetRows => filterSheetRowsByUserIds(sheetRows, cardUserIdIndex, analyticalUserIds));
                             analyzedData = await timeStep(
                                 'execute(intent)',
                                 () => execute(
                                     intentClassification.intent,
                                     intentClassification.parameters,
                                     {
-                                        saidas: filterSheetRowsByUserIds(saidasData, 9, financialScopeUserIds),
-                                        entradas: filterSheetRowsByUserIds(entradasData, 8, financialScopeUserIds),
-                                        metas: filterSheetRowsByUserIds(metasData, 8, financialScopeUserIds),
-                                        dividas: filterSheetRowsByUserIds(dividasData, 17, financialScopeUserIds),
+                                        saidas: filterSheetRowsByUserIds(saidasData, 9, analyticalUserIds),
+                                        entradas: filterSheetRowsByUserIds(entradasData, 8, analyticalUserIds),
+                                        metas: filterSheetRowsByUserIds(metasData, 8, analyticalUserIds),
+                                        dividas: filterSheetRowsByUserIds(dividasData, 17, analyticalUserIds),
                                         cartoes: filteredCreditCardData
                                     }
                                 ),
@@ -2653,6 +2703,8 @@ module.exports = {
         buildLocalPerguntaResponse,
         filterSheetRowsByUserId,
         filterSheetRowsByUserIds,
+        buildUserQuestionAliases,
+        resolveQuestionUserScope,
         isGreetingMessage,
         buildGreetingReply,
         buildPreOnboardingInviteMessage,

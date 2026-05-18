@@ -523,7 +523,7 @@ test('messageHandler clears cached analytical replies after financial writes', (
 });
 
 test('messageHandler.filterSheetRowsByUserId keeps header and isolates user rows', (t) => {
-    const { filterSheetRowsByUserId, filterSheetRowsByUserIds } = messageHandler.__test__;
+    const { filterSheetRowsByUserId, filterSheetRowsByUserIds, resolveQuestionUserScope } = messageHandler.__test__;
     const rows = [
         ['Data', 'Descrição', 'Valor', 'user_id'],
         ['10/02/2026', 'lanche', '20', 'user-a'],
@@ -538,6 +538,27 @@ test('messageHandler.filterSheetRowsByUserId keeps header and isolates user rows
         ['11/02/2026', 'mercado', '40', 'user-a']
     ]);
     assert.deepStrictEqual(filterSheetRowsByUserIds(rows, 3, ['user-a', 'user-b']), rows);
+    assert.deepStrictEqual(
+        resolveQuestionUserScope('quanto o Daniel gastou em fevereiro?', [
+            { user_id: 'user-a', display_name: 'Daniel' },
+            { user_id: 'user-b', display_name: 'Oficial' }
+        ], ['user-a', 'user-b']),
+        ['user-a']
+    );
+    assert.deepStrictEqual(
+        resolveQuestionUserScope('quanto o Oficial gastou em fevereiro?', [
+            { user_id: 'user-a', display_name: 'Daniel' },
+            { user_id: 'user-b', display_name: 'Oficial' }
+        ], ['user-a', 'user-b']),
+        ['user-b']
+    );
+    assert.deepStrictEqual(
+        resolveQuestionUserScope('quanto gastamos em fevereiro?', [
+            { user_id: 'user-a', display_name: 'Daniel' },
+            { user_id: 'user-b', display_name: 'Oficial' }
+        ], ['user-a', 'user-b']),
+        ['user-a', 'user-b']
+    );
 });
 
 test('debtHandler.filterDebtsByUserId isolates debts by user_id', (t) => {
