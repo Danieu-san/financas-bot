@@ -8,6 +8,8 @@ const googleService = require('../services/google');
 const { appendRowToSheet, readDataFromSheet, createCalendarEvent, syncDashboardForUser } = googleService;
 const runWithUserSheetContext = googleService.runWithUserSheetContext || ((user, fn) => fn());
 const hasUserSpreadsheetContext = googleService.hasUserSpreadsheetContext || (async () => false);
+const shareSpreadsheetWithUserEmail = googleService.shareSpreadsheetWithUserEmail || (async () => null);
+const revokeSpreadsheetPermission = googleService.revokeSpreadsheetPermission || (async () => false);
 const { getFormattedDate, getFormattedDateOnly, normalizeText, parseSheetDate, parseAmount, parseValue } = require('../utils/helpers');
 const cache = require('../utils/cache');
 const rateLimiter = require('../utils/rateLimiter');
@@ -1208,11 +1210,39 @@ async function handleAdminCommands(msg, senderId, activeUser) {
             await msg.reply('O dono ainda não tem planilha Google conectada. Conclua o OAuth do dono antes de compartilhar.');
             return true;
         }
+        const memberConnection = getOAuthConnection(member.user_id);
+        const memberGoogleEmail = String(memberConnection?.google_email || '').trim().toLowerCase();
+        if (!memberGoogleEmail) {
+            await msg.reply(
+                'O membro ainda não tem e-mail Google salvo no OAuth. Peça para ele reconectar o Google pelo link do bot e tente novamente.'
+            );
+            return true;
+        }
+
+        let driveShare;
+        try {
+            driveShare = await shareSpreadsheetWithUserEmail({
+                ownerUserId: owner.user_id,
+                spreadsheetId,
+                email: memberGoogleEmail
+            });
+        } catch (error) {
+            logger.warn(`[admin] compartilhar_planilha_drive_falhou context=${JSON.stringify({
+                ...adminContext,
+                owner_user_id: owner.user_id,
+                member_user_id: member.user_id,
+                error: error.message
+            })}`);
+            await msg.reply(`Não consegui compartilhar a planilha no Google Drive: ${error.message}`);
+            return true;
+        }
 
         setSharedSpreadsheetMembership({
             ownerUserId: owner.user_id,
             memberUserId: member.user_id,
-            spreadsheetId
+            spreadsheetId,
+            memberGoogleEmail,
+            drivePermissionId: driveShare?.permissionId || ''
         });
         const scopeIds = getFinancialScopeUserIds(member.user_id);
         logger.info(`[admin] compartilhar_planilha context=${JSON.stringify({
@@ -1220,12 +1250,14 @@ async function handleAdminCommands(msg, senderId, activeUser) {
             owner_user_id: owner.user_id,
             member_user_id: member.user_id,
             spreadsheet_id: spreadsheetId,
+            drive_permission_id: driveShare?.permissionId || '',
             scope_user_ids: scopeIds
         })}`);
         await msg.reply(
             `Planilha compartilhada ativada.\n` +
             `- dono: ${owner.display_name || owner.whatsapp_id}\n` +
             `- membro: ${member.display_name || member.whatsapp_id}\n` +
+            `- acesso ao Drive: concedido\n` +
             `- membros no escopo financeiro: ${scopeIds.length}\n\n` +
             `A partir de agora, os lançamentos dos dois entram na mesma planilha. Cada linha continua registrando quem lançou pelo campo Responsável e pelo user_id.`
         );
@@ -1257,11 +1289,38 @@ async function handleAdminCommands(msg, senderId, activeUser) {
             return true;
         }
 
-        const revoked = revokeSharedSpreadsheetMembership(member.user_id);
-        if (!revoked) {
+        const activeMembership = getSharedSpreadsheetMembership(member.user_id);
+        if (!activeMembership) {
             await msg.reply('Esse usuário não tem vínculo ativo de planilha compartilhada.');
             return true;
         }
+        if (activeMembership.drive_permission_id) {
+            try {
+                await revokeSpreadsheetPermission({
+                    ownerUserId: activeMembership.owner_user_id,
+                    spreadsheetId: activeMembership.spreadsheet_id,
+                    permissionId: activeMembership.drive_permission_id
+                });
+            } catch (error) {
+                logger.warn(`[admin] remover_compartilhamento_drive_falhou context=${JSON.stringify({
+                    ...adminContext,
+                    member_user_id: member.user_id,
+                    owner_user_id: activeMembership.owner_user_id,
+                    drive_permission_id: activeMembership.drive_permission_id,
+                    error: error.message
+                })}`);
+                await msg.reply(`Não consegui remover o acesso no Google Drive: ${error.message}`);
+                return true;
+            }
+        } else {
+            logger.warn(`[admin] remover_compartilhamento_sem_permission_id context=${JSON.stringify({
+                ...adminContext,
+                member_user_id: member.user_id,
+                owner_user_id: activeMembership.owner_user_id
+            })}`);
+        }
+
+        const revoked = revokeSharedSpreadsheetMembership(member.user_id);
 
         logger.info(`[admin] remover_compartilhamento context=${JSON.stringify({
             ...adminContext,
@@ -1271,7 +1330,8 @@ async function handleAdminCommands(msg, senderId, activeUser) {
         })}`);
         await msg.reply(
             `Compartilhamento removido para ${member.display_name || member.whatsapp_id}.\n` +
-            'Os próximos lançamentos desse usuário voltarão para a planilha própria dele, se houver Google conectado.'
+            'Os próximos lançamentos desse usuário voltarão para a planilha própria dele, se houver Google conectado.' +
+            (!activeMembership.drive_permission_id ? '\n\nAtenção: esse vínculo não tinha permissionId salvo; se a planilha foi compartilhada manualmente no Drive, revise o acesso manualmente.' : '')
         );
         return true;
     }

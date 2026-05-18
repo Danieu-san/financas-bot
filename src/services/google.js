@@ -399,6 +399,97 @@ function buildUserOAuthClient(tokens = {}) {
     return client;
 }
 
+function normalizeGoogleEmail(email) {
+    return String(email || '').trim().toLowerCase();
+}
+
+function isValidGoogleEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeGoogleEmail(email));
+}
+
+function buildDriveClientForUser(userId, injectedDriveClient) {
+    if (injectedDriveClient) return injectedDriveClient;
+    const connection = getOAuthConnection(userId, { includeTokens: true });
+    const auth = buildUserOAuthClient(connection?.tokens || {});
+    if (!auth) throw new Error('Conexão OAuth do dono não está disponível para compartilhar a planilha.');
+    return google.drive({ version: 'v3', auth });
+}
+
+async function findSpreadsheetPermissionByEmail(driveClient, spreadsheetId, email) {
+    const safeEmail = normalizeGoogleEmail(email);
+    if (!safeEmail) return '';
+    const response = await driveClient.permissions.list({
+        fileId: spreadsheetId,
+        fields: 'permissions(id,emailAddress,deleted)',
+        supportsAllDrives: true
+    });
+    const permissions = response?.data?.permissions || [];
+    const match = permissions.find(permission =>
+        normalizeGoogleEmail(permission.emailAddress) === safeEmail && !permission.deleted
+    );
+    return String(match?.id || '').trim();
+}
+
+async function shareSpreadsheetWithUserEmail({ ownerUserId, spreadsheetId, email, role = 'writer', driveClient } = {}) {
+    const safeOwnerUserId = String(ownerUserId || '').trim();
+    const safeSpreadsheetId = String(spreadsheetId || '').trim();
+    const safeEmail = normalizeGoogleEmail(email);
+    if (!safeOwnerUserId) throw new Error('ownerUserId é obrigatório para compartilhar planilha.');
+    if (!safeSpreadsheetId) throw new Error('spreadsheetId é obrigatório para compartilhar planilha.');
+    if (!isValidGoogleEmail(safeEmail)) throw new Error('E-mail Google do membro é inválido ou ausente.');
+
+    const client = buildDriveClientForUser(safeOwnerUserId, driveClient);
+    try {
+        const response = await runRetriableGoogleOperation('shareSpreadsheetWithUserEmail', () => client.permissions.create({
+            fileId: safeSpreadsheetId,
+            requestBody: {
+                type: 'user',
+                role,
+                emailAddress: safeEmail
+            },
+            fields: 'id',
+            sendNotificationEmail: true,
+            supportsAllDrives: true
+        }));
+        const permissionId = String(response?.data?.id || '').trim();
+        if (!permissionId) {
+            throw new Error('Google Drive não retornou permissionId para o compartilhamento.');
+        }
+        return {
+            email: safeEmail,
+            permissionId
+        };
+    } catch (error) {
+        if (error?.code === 409 || error?.response?.status === 409) {
+            const permissionId = await findSpreadsheetPermissionByEmail(client, safeSpreadsheetId, safeEmail);
+            if (permissionId) return { email: safeEmail, permissionId };
+        }
+        throw error;
+    }
+}
+
+async function revokeSpreadsheetPermission({ ownerUserId, spreadsheetId, permissionId, driveClient } = {}) {
+    const safeOwnerUserId = String(ownerUserId || '').trim();
+    const safeSpreadsheetId = String(spreadsheetId || '').trim();
+    const safePermissionId = String(permissionId || '').trim();
+    if (!safeOwnerUserId) throw new Error('ownerUserId é obrigatório para remover compartilhamento.');
+    if (!safeSpreadsheetId) throw new Error('spreadsheetId é obrigatório para remover compartilhamento.');
+    if (!safePermissionId) throw new Error('permissionId é obrigatório para remover compartilhamento no Drive.');
+
+    const client = buildDriveClientForUser(safeOwnerUserId, driveClient);
+    try {
+        await runRetriableGoogleOperation('revokeSpreadsheetPermission', () => client.permissions.delete({
+            fileId: safeSpreadsheetId,
+            permissionId: safePermissionId,
+            supportsAllDrives: true
+        }));
+        return true;
+    } catch (error) {
+        if (error?.code === 404 || error?.response?.status === 404) return false;
+        throw error;
+    }
+}
+
 async function resolveSpreadsheetTarget(options = {}) {
     const context = getCurrentSheetContext(options);
     const safeUserId = String(context.userId || '').trim();
@@ -1356,7 +1447,10 @@ module.exports = {
         mapValuesFromUserSpreadsheetRange,
         isMissingUserSheetError,
         runWithUserSheetContext,
-        hasUserSpreadsheetContext
+        hasUserSpreadsheetContext,
+        normalizeGoogleEmail,
+        isValidGoogleEmail,
+        findSpreadsheetPermissionByEmail
     },
     getSheetIds,
     appendRowToSheet,
@@ -1369,5 +1463,7 @@ module.exports = {
     ensureSpreadsheetStructure,
     runWithUserSheetContext,
     hasUserSpreadsheetContext,
+    shareSpreadsheetWithUserEmail,
+    revokeSpreadsheetPermission,
     get sheets() { return sheets; }
 };

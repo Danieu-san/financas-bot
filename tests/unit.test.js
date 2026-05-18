@@ -633,6 +633,52 @@ test('google.requireUserId protects calendar writes', (t) => {
     assert.strictEqual(requireUserId(' user-1 ', 'createCalendarEvent'), 'user-1');
 });
 
+test('google share helpers create and revoke Drive permissions by email', async () => {
+    const created = [];
+    const deleted = [];
+    const fakeDriveClient = {
+        permissions: {
+            create: async (request) => {
+                created.push(request);
+                return { data: { id: 'permission-1' } };
+            },
+            delete: async (request) => {
+                deleted.push(request);
+                return {};
+            }
+        }
+    };
+
+    const share = await googleService.shareSpreadsheetWithUserEmail({
+        ownerUserId: 'owner-user',
+        spreadsheetId: 'spreadsheet-1',
+        email: 'Member.User@Example.com',
+        driveClient: fakeDriveClient
+    });
+
+    assert.deepStrictEqual(share, {
+        email: 'member.user@example.com',
+        permissionId: 'permission-1'
+    });
+    assert.strictEqual(created[0].fileId, 'spreadsheet-1');
+    assert.strictEqual(created[0].requestBody.emailAddress, 'member.user@example.com');
+    assert.strictEqual(created[0].requestBody.role, 'writer');
+
+    const revoked = await googleService.revokeSpreadsheetPermission({
+        ownerUserId: 'owner-user',
+        spreadsheetId: 'spreadsheet-1',
+        permissionId: 'permission-1',
+        driveClient: fakeDriveClient
+    });
+
+    assert.strictEqual(revoked, true);
+    assert.deepStrictEqual(deleted[0], {
+        fileId: 'spreadsheet-1',
+        permissionId: 'permission-1',
+        supportsAllDrives: true
+    });
+});
+
 test('google retry helpers classify Sheets quota and transient errors', () => {
     const { isGoogleRetriableError } = googleService.__test__;
 

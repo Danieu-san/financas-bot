@@ -57,6 +57,8 @@ function ensureDb() {
             user_id TEXT PRIMARY KEY,
             owner_user_id TEXT NOT NULL,
             spreadsheet_id TEXT NOT NULL,
+            member_google_email TEXT,
+            drive_permission_id TEXT,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
             revoked_at TEXT
@@ -64,7 +66,15 @@ function ensureDb() {
         CREATE INDEX IF NOT EXISTS idx_shared_spreadsheet_owner ON shared_spreadsheet_members(owner_user_id);
         CREATE INDEX IF NOT EXISTS idx_shared_spreadsheet_id ON shared_spreadsheet_members(spreadsheet_id);
     `);
+    ensureColumn(db, 'shared_spreadsheet_members', 'member_google_email', 'TEXT');
+    ensureColumn(db, 'shared_spreadsheet_members', 'drive_permission_id', 'TEXT');
     return db;
+}
+
+function ensureColumn(database, tableName, columnName, definition) {
+    const columns = database.prepare(`PRAGMA table_info(${tableName})`).all();
+    if (columns.some(column => column.name === columnName)) return;
+    database.prepare(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`).run();
 }
 
 function decodeEncryptionKey() {
@@ -227,16 +237,20 @@ function mapSharedMembership(row) {
         user_id: row.user_id || '',
         owner_user_id: row.owner_user_id || '',
         spreadsheet_id: row.spreadsheet_id || '',
+        member_google_email: row.member_google_email || '',
+        drive_permission_id: row.drive_permission_id || '',
         created_at: row.created_at || '',
         updated_at: row.updated_at || '',
         revoked_at: row.revoked_at || ''
     };
 }
 
-function setSharedSpreadsheetMembership({ memberUserId, ownerUserId, spreadsheetId } = {}) {
+function setSharedSpreadsheetMembership({ memberUserId, ownerUserId, spreadsheetId, memberGoogleEmail = '', drivePermissionId = '' } = {}) {
     const safeMemberUserId = String(memberUserId || '').trim();
     const safeOwnerUserId = String(ownerUserId || '').trim();
     const safeSpreadsheetId = String(spreadsheetId || '').trim();
+    const safeMemberGoogleEmail = String(memberGoogleEmail || '').trim().toLowerCase();
+    const safeDrivePermissionId = String(drivePermissionId || '').trim();
     if (!safeMemberUserId) throw new Error('memberUserId é obrigatório para compartilhar planilha.');
     if (!safeOwnerUserId) throw new Error('ownerUserId é obrigatório para compartilhar planilha.');
     if (!safeSpreadsheetId) throw new Error('spreadsheetId é obrigatório para compartilhar planilha.');
@@ -247,17 +261,27 @@ function setSharedSpreadsheetMembership({ memberUserId, ownerUserId, spreadsheet
     const database = ensureDb();
     const now = new Date().toISOString();
     database.prepare(`
-        INSERT INTO shared_spreadsheet_members(user_id, owner_user_id, spreadsheet_id, created_at, updated_at, revoked_at)
-        VALUES(@user_id, @owner_user_id, @spreadsheet_id, @created_at, @updated_at, '')
+        INSERT INTO shared_spreadsheet_members(
+            user_id, owner_user_id, spreadsheet_id, member_google_email,
+            drive_permission_id, created_at, updated_at, revoked_at
+        )
+        VALUES(
+            @user_id, @owner_user_id, @spreadsheet_id, @member_google_email,
+            @drive_permission_id, @created_at, @updated_at, ''
+        )
         ON CONFLICT(user_id) DO UPDATE SET
             owner_user_id = excluded.owner_user_id,
             spreadsheet_id = excluded.spreadsheet_id,
+            member_google_email = excluded.member_google_email,
+            drive_permission_id = excluded.drive_permission_id,
             updated_at = excluded.updated_at,
             revoked_at = ''
     `).run({
         user_id: safeMemberUserId,
         owner_user_id: safeOwnerUserId,
         spreadsheet_id: safeSpreadsheetId,
+        member_google_email: safeMemberGoogleEmail,
+        drive_permission_id: safeDrivePermissionId,
         created_at: now,
         updated_at: now
     });

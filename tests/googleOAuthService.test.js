@@ -84,12 +84,16 @@ test('oauthTokenStore links shared spreadsheets without merging user identities'
     const membership = store.setSharedSpreadsheetMembership({
         ownerUserId: 'owner-user',
         memberUserId: 'member-user',
-        spreadsheetId: 'spreadsheet-casal'
+        spreadsheetId: 'spreadsheet-casal',
+        memberGoogleEmail: 'MEMBER@example.com',
+        drivePermissionId: 'permission-123'
     });
 
     assert.strictEqual(membership.user_id, 'member-user');
     assert.strictEqual(membership.owner_user_id, 'owner-user');
     assert.strictEqual(membership.spreadsheet_id, 'spreadsheet-casal');
+    assert.strictEqual(membership.member_google_email, 'member@example.com');
+    assert.strictEqual(membership.drive_permission_id, 'permission-123');
     assert.deepStrictEqual(store.getFinancialScopeUserIds('member-user'), ['owner-user', 'member-user']);
     assert.deepStrictEqual(store.getFinancialScopeUserIds('owner-user'), ['owner-user', 'member-user']);
     assert.strictEqual(store.getOAuthConnection('member-user').spreadsheet_id, 'spreadsheet-member-original');
@@ -138,6 +142,8 @@ test('googleOAuthService builds least-privilege OAuth links with signed state', 
     assert.strictEqual(googleUrl.searchParams.get('redirect_uri'), 'https://bot.example.com/oauth/google/callback');
 
     const scopes = googleUrl.searchParams.get('scope').split(' ');
+    assert.ok(scopes.includes('openid'));
+    assert.ok(scopes.includes('email'));
     assert.ok(scopes.includes('https://www.googleapis.com/auth/drive.file'));
     assert.ok(scopes.includes('https://www.googleapis.com/auth/calendar.events.owned'));
     assert.ok(!scopes.includes('https://www.googleapis.com/auth/drive'));
@@ -207,6 +213,16 @@ test('completeGoogleOAuthCallback stores encrypted tokens and activates connecte
         code: 'authorization-code',
         state,
         oauth2Client: fakeOAuthClient,
+        oauth2Api: {
+            userinfo: {
+                get: async () => ({
+                    data: {
+                        id: 'google-callback-user',
+                        email: 'Callback.User@Example.com'
+                    }
+                })
+            }
+        },
         sheetsClient: { mocked: true }
     });
 
@@ -219,4 +235,9 @@ test('completeGoogleOAuthCallback stores encrypted tokens and activates connecte
 
     const rawFile = fs.readFileSync(dbPath);
     assert.strictEqual(rawFile.includes(Buffer.from('callback-refresh-secret')), false);
+
+    const store = require('../src/services/oauthTokenStore');
+    const connection = store.getOAuthConnection('user-oauth-callback');
+    assert.strictEqual(connection.google_user_id, 'google-callback-user');
+    assert.strictEqual(connection.google_email, 'callback.user@example.com');
 });

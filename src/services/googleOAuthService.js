@@ -5,6 +5,8 @@ const { getUserById } = require('./userService');
 const { completeGoogleConnectionForUser } = require('./userSpreadsheetService');
 
 const GOOGLE_OAUTH_SCOPES = Object.freeze([
+    'openid',
+    'email',
     'https://www.googleapis.com/auth/drive.file',
     'https://www.googleapis.com/auth/calendar.events.owned'
 ]);
@@ -118,7 +120,26 @@ function buildGoogleAuthorizationUrl(state) {
     });
 }
 
-async function completeGoogleOAuthCallback({ code, state, oauth2Client: injectedOAuth2Client, sheetsClient } = {}) {
+async function fetchGoogleAccount(oauth2Client, injectedOAuth2Api) {
+    const oauth2Api = injectedOAuth2Api || google.oauth2({ version: 'v2', auth: oauth2Client });
+    const response = await oauth2Api.userinfo.get();
+    const data = response?.data || {};
+    return {
+        id: String(data.id || data.sub || '').trim(),
+        email: String(data.email || '').trim().toLowerCase()
+    };
+}
+
+async function tryFetchGoogleAccount(oauth2Client, injectedOAuth2Api) {
+    try {
+        return await fetchGoogleAccount(oauth2Client, injectedOAuth2Api);
+    } catch (error) {
+        console.warn(`⚠️ OAuth Google conectado sem e-mail da conta: ${error.message}`);
+        return {};
+    }
+}
+
+async function completeGoogleOAuthCallback({ code, state, oauth2Client: injectedOAuth2Client, oauth2Api, sheetsClient } = {}) {
     const payload = verifyOAuthState(state);
     if (!payload) {
         throw new Error('State OAuth inválido ou expirado.');
@@ -138,10 +159,11 @@ async function completeGoogleOAuthCallback({ code, state, oauth2Client: injected
         oauth2Client.setCredentials(tokens);
     }
 
+    const googleAccount = await tryFetchGoogleAccount(oauth2Client, oauth2Api);
     const connection = saveOAuthConnection(payload.userId, {
         scopes: GOOGLE_OAUTH_SCOPES,
         tokens,
-        googleAccount: {}
+        googleAccount
     });
 
     const user = await getUserById(payload.userId);
@@ -173,5 +195,8 @@ module.exports = {
     verifyOAuthState,
     createOAuthState,
     getOAuthClient,
-    getRedirectUri
+    getRedirectUri,
+    __test__: {
+        fetchGoogleAccount
+    }
 };
