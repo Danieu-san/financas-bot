@@ -222,6 +222,35 @@ test('messageHandler lets admin commands bypass access gate for admin LID', asyn
     }
 });
 
+test('messageHandler admin invite reports WhatsApp send failures without throwing', async () => {
+    const { handleAdminCommandBeforeAccess } = messageHandler.__test__;
+    const previousAdminIds = process.env.ADMIN_IDS;
+    const replies = [];
+
+    try {
+        process.env.ADMIN_IDS = '5521970112407@c.us';
+        const handled = await handleAdminCommandBeforeAccess(
+            {
+                body: 'admin convidar 5521985969034',
+                reply: async (text) => replies.push(text),
+                client: {
+                    sendMessage: async () => {
+                        throw new Error('No LID for user');
+                    }
+                }
+            },
+            '151058345148646@lid',
+            { allowed: false, user: { display_name: 'Daniel', status: userService.USER_STATUS.PENDING_APPROVAL } }
+        );
+
+        assert.strictEqual(handled, true);
+        assert.match(replies[0], /Não consegui enviar o convite/i);
+        assert.match(replies[0], /5521985969034@c\.us/);
+    } finally {
+        process.env.ADMIN_IDS = previousAdminIds;
+    }
+});
+
 test('messageHandler.classifyPerguntaLocally distinguishes total month from category total', (t) => {
     const { classifyPerguntaLocally } = messageHandler.__test__;
 

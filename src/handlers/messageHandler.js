@@ -1178,7 +1178,16 @@ async function handleAdminCommands(msg, senderId, activeUser) {
             await msg.reply('Cliente WhatsApp indisponível para enviar o convite.');
             return true;
         }
-        await msg.client.sendMessage(targetWhatsAppId, buildPreOnboardingInviteMessage());
+        try {
+            await msg.client.sendMessage(targetWhatsAppId, buildPreOnboardingInviteMessage());
+        } catch (error) {
+            logger.warn(`[admin] convidar_falhou context=${JSON.stringify({ ...adminContext, target_whatsapp_id: targetWhatsAppId, error: error.message })}`);
+            await msg.reply(
+                `Não consegui enviar o convite para ${targetWhatsAppId}. ` +
+                'Confirme se o número tem WhatsApp e tente enviar uma mensagem manual primeiro para abrir o contato.'
+            );
+            return true;
+        }
         logger.info(`[admin] convidar context=${JSON.stringify({ ...adminContext, target, target_whatsapp_id: targetWhatsAppId })}`);
         await msg.reply(`Convite enviado para ${targetWhatsAppId}.`);
         return true;
