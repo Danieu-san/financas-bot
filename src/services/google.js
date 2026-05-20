@@ -343,6 +343,22 @@ function eventBelongsToUser(event, userId) {
     return String(event?.extendedProperties?.private?.[CALENDAR_USER_ID_PRIVATE_KEY] || '').trim() === String(userId).trim();
 }
 
+function padDatePart(value) {
+    return String(value).padStart(2, '0');
+}
+
+function buildCalendarDayRange(targetDate = new Date()) {
+    const year = targetDate.getUTCFullYear();
+    const month = padDatePart(targetDate.getUTCMonth() + 1);
+    const day = padDatePart(targetDate.getUTCDate());
+    const date = `${year}-${month}-${day}`;
+    return {
+        timeMin: `${date}T00:00:00-03:00`,
+        timeMax: `${date}T23:59:59-03:00`,
+        timeZone: 'America/Sao_Paulo'
+    };
+}
+
 function filterCalendarEventsForTarget(events = [], target = {}, userId = '') {
     if (target?.userScoped) return events;
     return userId ? events.filter(event => eventBelongsToUser(event, userId)) : events;
@@ -1211,19 +1227,15 @@ async function syncDashboardForUser({ userId, periodLabel, metrics }) {
 async function getCalendarEventsForToday(targetDate = new Date(), options = {}) {
     try {
         const target = await resolveCalendarTarget(options);
-        const startOfDay = new Date(targetDate);
-        startOfDay.setHours(0, 0, 0, 0);
-
-        const endOfDay = new Date(targetDate);
-        endOfDay.setHours(23, 59, 59, 999);
+        const dayRange = buildCalendarDayRange(targetDate);
 
         const listEvents = () => target.calendarClient.events.list({
             calendarId: target.calendarId,
-            timeMin: startOfDay.toISOString(),
-            timeMax: endOfDay.toISOString(),
+            timeMin: dayRange.timeMin,
+            timeMax: dayRange.timeMax,
             singleEvents: true,
             orderBy: 'startTime',
-            timeZone: 'America/Sao_Paulo'
+            timeZone: dayRange.timeZone
         });
 
         const response = target.userScoped
@@ -1444,6 +1456,7 @@ module.exports = {
     getCalendarEventsForToday,
     __test__: {
         eventBelongsToUser,
+        buildCalendarDayRange,
         filterCalendarEventsForTarget,
         requireUserId,
         validateUserScopedWrite,

@@ -179,3 +179,14 @@ test('scheduler evening summary includes tomorrow calendar events and payment da
     assert.match(byRecipient['5511000000002@c.us'], /Internet B/);
     assert.doesNotMatch(byRecipient['5511000000002@c.us'], /Consulta A|Financiamento A|Internet A/);
 });
+
+test('scheduler date helpers use America/Sao_Paulo day even when server is already on next UTC day', () => {
+    const scheduler = installSchedulerMocks({
+        users: [],
+        settingsByUser: {}
+    });
+    const lateNightInBrazil = new Date('2026-05-20T00:30:00.000Z'); // 19/05/2026 21:30 in Sao Paulo
+    const tomorrow = scheduler.__test__.addDaysForSchedule(lateNightInBrazil, 1);
+
+    assert.strictEqual(formatDateBR(tomorrow), '20/05/2026');
+});

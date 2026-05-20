@@ -10,6 +10,32 @@ const metrics = require('../utils/metrics');
 let client;
 let isInitialized = false;
 const notifiedEventIds = new Set();
+const SCHEDULE_TIME_ZONE = 'America/Sao_Paulo';
+
+function getDatePartsInTimeZone(date = new Date(), timeZone = SCHEDULE_TIME_ZONE) {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).formatToParts(date);
+    const byType = Object.fromEntries(parts.map(part => [part.type, part.value]));
+    return {
+        year: Number.parseInt(byType.year, 10),
+        month: Number.parseInt(byType.month, 10),
+        day: Number.parseInt(byType.day, 10)
+    };
+}
+
+function buildUtcNoonDate({ year, month, day }) {
+    return new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0));
+}
+
+function addDaysForSchedule(date = new Date(), days = 0) {
+    const localDate = buildUtcNoonDate(getDatePartsInTimeZone(date));
+    localDate.setUTCDate(localDate.getUTCDate() + days);
+    return localDate;
+}
 
 function isSyntheticTestWhatsAppId(whatsappId) {
     return /^559999\d+@(?:c\.us|lid)$/.test(String(whatsappId || '').trim());
@@ -265,9 +291,7 @@ async function sendMorningSummary() {
 
 async function sendEveningSummary() {
     try {
-        const amanha = new Date();
-        amanha.setDate(amanha.getDate() + 1);
-        amanha.setHours(0, 0, 0, 0);
+        const amanha = addDaysForSchedule(new Date(), 1);
         const amanhaStr = amanha.toLocaleDateString('pt-BR');
         const users = await getScheduledActiveUsers();
         const singleUserIdFallback = users.length === 1 ? String(users[0].user_id || '').trim() : '';
@@ -507,6 +531,8 @@ module.exports = {
         sendMonthlyReports,
         sendOperationalHeartbeat,
         collectPaymentsDueOnDate,
+        addDaysForSchedule,
+        getDatePartsInTimeZone,
         isSyntheticTestWhatsAppId,
         shouldSendScheduledMessageToUser,
         notifiedEventIds

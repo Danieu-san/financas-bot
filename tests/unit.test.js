@@ -670,6 +670,15 @@ test('google.filterCalendarEventsForTarget keeps user-owned calendar events even
     );
 });
 
+test('google.buildCalendarDayRange uses Sao Paulo calendar-day bounds', (t) => {
+    const { buildCalendarDayRange } = googleService.__test__;
+    assert.deepStrictEqual(buildCalendarDayRange(new Date(Date.UTC(2026, 4, 20, 12, 0, 0))), {
+        timeMin: '2026-05-20T00:00:00-03:00',
+        timeMax: '2026-05-20T23:59:59-03:00',
+        timeZone: 'America/Sao_Paulo'
+    });
+});
+
 test('google.validateUserScopedWrite blocks user scoped rows without user_id', (t) => {
     const { validateUserScopedWrite } = googleService.__test__;
 
