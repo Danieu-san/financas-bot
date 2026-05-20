@@ -343,6 +343,11 @@ function eventBelongsToUser(event, userId) {
     return String(event?.extendedProperties?.private?.[CALENDAR_USER_ID_PRIVATE_KEY] || '').trim() === String(userId).trim();
 }
 
+function filterCalendarEventsForTarget(events = [], target = {}, userId = '') {
+    if (target?.userScoped) return events;
+    return userId ? events.filter(event => eventBelongsToUser(event, userId)) : events;
+}
+
 async function createCalendarEvent(title, startDateTime, recurrenceRule, options = {}) {
     const safeUserId = requireUserId(options.userId, 'createCalendarEvent');
     try {
@@ -1205,25 +1210,28 @@ async function syncDashboardForUser({ userId, periodLabel, metrics }) {
 
 async function getCalendarEventsForToday(targetDate = new Date(), options = {}) {
     try {
+        const target = await resolveCalendarTarget(options);
         const startOfDay = new Date(targetDate);
         startOfDay.setHours(0, 0, 0, 0);
 
         const endOfDay = new Date(targetDate);
         endOfDay.setHours(23, 59, 59, 999);
 
-        const response = await runWithGoogleRetry('getCalendarEventsForToday', () => calendar.events.list({
-            calendarId: 'primary',
+        const listEvents = () => target.calendarClient.events.list({
+            calendarId: target.calendarId,
             timeMin: startOfDay.toISOString(),
             timeMax: endOfDay.toISOString(),
             singleEvents: true,
             orderBy: 'startTime',
             timeZone: 'America/Sao_Paulo'
-        }), { swallowOnError: true, fallbackValue: { data: { items: [] } } });
+        });
+
+        const response = target.userScoped
+            ? await listEvents()
+            : await runWithGoogleRetry('getCalendarEventsForToday', listEvents, { swallowOnError: true, fallbackValue: { data: { items: [] } } });
 
         const events = response.data.items || [];
-        return options.userId
-            ? events.filter(event => eventBelongsToUser(event, options.userId))
-            : events;
+        return filterCalendarEventsForTarget(events, target, options.userId);
     } catch (error) {
         console.error('❌ Erro ao buscar eventos no Calendar:', error.message);
         return [];
@@ -1436,6 +1444,7 @@ module.exports = {
     getCalendarEventsForToday,
     __test__: {
         eventBelongsToUser,
+        filterCalendarEventsForTarget,
         requireUserId,
         validateUserScopedWrite,
         isGoogleRetriableError,

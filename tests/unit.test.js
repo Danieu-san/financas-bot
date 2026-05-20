@@ -646,6 +646,30 @@ test('google.eventBelongsToUser isolates Calendar events by private user_id', (t
     assert.strictEqual(eventBelongsToUser({ id: 'untagged' }), true);
 });
 
+test('google.filterCalendarEventsForTarget keeps user-owned calendar events even without bot marker', (t) => {
+    const { filterCalendarEventsForTarget } = googleService.__test__;
+    const events = [
+        { id: 'normal-calendar-event', summary: 'Reunião real da agenda' },
+        {
+            id: 'bot-event',
+            extendedProperties: { private: { financas_bot_user_id: 'user-a' } }
+        },
+        {
+            id: 'other-bot-event',
+            extendedProperties: { private: { financas_bot_user_id: 'user-b' } }
+        }
+    ];
+
+    assert.deepStrictEqual(
+        filterCalendarEventsForTarget(events, { userScoped: true }, 'user-a').map(event => event.id),
+        ['normal-calendar-event', 'bot-event', 'other-bot-event']
+    );
+    assert.deepStrictEqual(
+        filterCalendarEventsForTarget(events, { userScoped: false }, 'user-a').map(event => event.id),
+        ['bot-event']
+    );
+});
+
 test('google.validateUserScopedWrite blocks user scoped rows without user_id', (t) => {
     const { validateUserScopedWrite } = googleService.__test__;
 

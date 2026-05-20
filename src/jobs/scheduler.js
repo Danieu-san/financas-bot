@@ -29,6 +29,57 @@ async function getScheduledActiveUsers() {
     return users.filter(shouldSendScheduledMessageToUser);
 }
 
+function isSameCalendarDay(dateA, dateB) {
+    return Boolean(
+        dateA &&
+        dateB &&
+        dateA.getFullYear() === dateB.getFullYear() &&
+        dateA.getMonth() === dateB.getMonth() &&
+        dateA.getDate() === dateB.getDate()
+    );
+}
+
+function rowBelongsToScheduledUser(row, userIdIndex, userId, fallbackUserId = '') {
+    const rowUserId = String(row[userIdIndex] || '').trim();
+    if (rowUserId) return rowUserId === userId;
+    return Boolean(fallbackUserId && fallbackUserId === userId);
+}
+
+function collectPaymentsDueOnDate({ debtsData = [], billsData = [], targetDate, userId, singleUserIdFallback = '' } = {}) {
+    const payments = [];
+    const safeUserId = String(userId || '').trim();
+    if (!safeUserId || !targetDate) return payments;
+
+    if (debtsData && debtsData.length > 1) {
+        for (let i = 1; i < debtsData.length; i++) {
+            const row = debtsData[i];
+            if (!rowBelongsToScheduledUser(row, 17, safeUserId, singleUserIdFallback)) continue;
+
+            const nomeDivida = row[0];
+            const valorParcela = row[5];
+            const proximoVencimento = parseSheetDate(row[14]);
+            if (!nomeDivida || !proximoVencimento || !isSameCalendarDay(proximoVencimento, targetDate)) continue;
+
+            payments.push({ type: 'Dívida', name: nomeDivida, amount: valorParcela });
+        }
+    }
+
+    if (billsData && billsData.length > 1) {
+        for (let i = 1; i < billsData.length; i++) {
+            const row = billsData[i];
+            if (!rowBelongsToScheduledUser(row, 3, safeUserId, singleUserIdFallback)) continue;
+
+            const nomeConta = row[0];
+            const diaVencimento = Number.parseInt(row[1], 10);
+            if (!nomeConta || Number.isNaN(diaVencimento) || diaVencimento !== targetDate.getDate()) continue;
+
+            payments.push({ type: 'Conta', name: nomeConta, amount: '' });
+        }
+    }
+
+    return payments;
+}
+
 async function getRecipientIds({ weeklyOptIn = null, monthlyOptIn = null } = {}) {
     const users = await getScheduledActiveUsers();
     const recipients = [];
@@ -216,13 +267,30 @@ async function sendEveningSummary() {
     try {
         const amanha = new Date();
         amanha.setDate(amanha.getDate() + 1);
+        amanha.setHours(0, 0, 0, 0);
         const amanhaStr = amanha.toLocaleDateString('pt-BR');
         const users = await getScheduledActiveUsers();
+        const singleUserIdFallback = users.length === 1 ? String(users[0].user_id || '').trim() : '';
 
         for (const user of users) {
-            const eventosDeAmanha = await getCalendarEventsForToday(amanha, { userId: user.user_id });
+            const userId = String(user.user_id || '').trim();
+            if (!userId) continue;
+            const [eventosDeAmanha, dividasData, contasData] = await Promise.all([
+                getCalendarEventsForToday(amanha, { userId }),
+                readDataFromSheet('Dívidas!A:R', { userId }),
+                readDataFromSheet('Contas!A:D', { userId })
+            ]);
+            const pagamentosDeAmanha = collectPaymentsDueOnDate({
+                debtsData: dividasData,
+                billsData: contasData,
+                targetDate: amanha,
+                userId,
+                singleUserIdFallback
+            });
 
-            let message = `Boa noite! 🌙 Aqui está o resumo da sua agenda para amanhã, ${amanhaStr}:\n`;
+            let message = `Boa noite! 🌙 Aqui está seu resumo para amanhã, ${amanhaStr}:\n`;
+
+            message += '\n*Agenda de Amanhã:*\n';
             if (eventosDeAmanha.length === 0) {
                 message += '📅 Nenhum compromisso agendado para amanhã. Aproveite!\n';
             } else {
@@ -232,6 +300,16 @@ async function sendEveningSummary() {
                         horario = new Date(evento.start.dateTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                     }
                     message += ` - *${horario}* - ${evento.summary}\n`;
+                });
+            }
+
+            message += '\n*Pagamentos de Amanhã:*\n';
+            if (pagamentosDeAmanha.length === 0) {
+                message += '✅ Nenhum pagamento ou vencimento cadastrado para amanhã.\n';
+            } else {
+                pagamentosDeAmanha.forEach(item => {
+                    const amount = item.amount ? ` - R$${item.amount}` : '';
+                    message += ` - *${item.type}:* ${item.name}${amount}\n`;
                 });
             }
 
@@ -428,6 +506,7 @@ module.exports = {
         sendWeeklyCheckIn,
         sendMonthlyReports,
         sendOperationalHeartbeat,
+        collectPaymentsDueOnDate,
         isSyntheticTestWhatsAppId,
         shouldSendScheduledMessageToUser,
         notifiedEventIds

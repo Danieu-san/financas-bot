@@ -133,3 +133,49 @@ test('scheduler morning summary keeps debts and calendar events scoped per user'
     assert.match(byRecipient['5511000000002@c.us'], /Evento B/);
     assert.doesNotMatch(byRecipient['5511000000002@c.us'], /Dívida A|Evento A/);
 });
+
+test('scheduler evening summary includes tomorrow calendar events and payment dates', async () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const sent = [];
+    const users = [
+        { user_id: 'user-a', whatsapp_id: '5511000000001@c.us' },
+        { user_id: 'user-b', whatsapp_id: '5511000000002@c.us' }
+    ];
+    const scheduler = installSchedulerMocks({
+        users,
+        settingsByUser: {},
+        sheetsByRange: {
+            'Dívidas!A:R': [
+                ['Nome', 'Credor', 'Tipo', 'Valor Original', 'Saldo Atual', 'Valor da Parcela', 'Taxa', 'Dia', 'Início', 'Total', 'Pagas', 'Status', 'Obs', '%', 'Próximo Vencimento', 'Atraso', 'Estratégia', 'user_id'],
+                ['Financiamento A', 'Banco', 'Financiamento', 1000, 800, 123.45, '', '', '', '', '', 'Ativa', '', '', formatDateBR(tomorrow), '', '', 'user-a'],
+                ['Financiamento B', 'Banco', 'Financiamento', 2000, 1800, 222.22, '', '', '', '', '', 'Ativa', '', '', formatDateBR(tomorrow), '', '', 'user-b']
+            ],
+            'Contas!A:D': [
+                ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id'],
+                ['Internet A', tomorrow.getDate(), '', 'user-a'],
+                ['Internet B', tomorrow.getDate(), '', 'user-b']
+            ]
+        },
+        eventsByUser: {
+            'user-a': [{ summary: 'Consulta A', start: { dateTime: tomorrow.toISOString() } }],
+            'user-b': [{ summary: 'Consulta B', start: { dateTime: tomorrow.toISOString() } }]
+        }
+    });
+
+    scheduler.__test__.setClientForTest({
+        sendMessage: async (to, message) => sent.push({ to, message })
+    });
+
+    await scheduler.__test__.sendEveningSummary();
+
+    const byRecipient = Object.fromEntries(sent.map(item => [item.to, item.message]));
+    assert.match(byRecipient['5511000000001@c.us'], /Consulta A/);
+    assert.match(byRecipient['5511000000001@c.us'], /Financiamento A/);
+    assert.match(byRecipient['5511000000001@c.us'], /Internet A/);
+    assert.doesNotMatch(byRecipient['5511000000001@c.us'], /Consulta B|Financiamento B|Internet B/);
+    assert.match(byRecipient['5511000000002@c.us'], /Consulta B/);
+    assert.match(byRecipient['5511000000002@c.us'], /Financiamento B/);
+    assert.match(byRecipient['5511000000002@c.us'], /Internet B/);
+    assert.doesNotMatch(byRecipient['5511000000002@c.us'], /Consulta A|Financiamento A|Internet A/);
+});
