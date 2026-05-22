@@ -180,6 +180,34 @@ test('scheduler evening summary includes tomorrow calendar events and payment da
     assert.doesNotMatch(byRecipient['5511000000002@c.us'], /Consulta A|Financiamento A|Internet A/);
 });
 
+test('scheduler summary event times are formatted in America/Sao_Paulo', async () => {
+    const sent = [];
+    const users = [
+        { user_id: 'user-a', whatsapp_id: '5511000000001@c.us' }
+    ];
+    const scheduler = installSchedulerMocks({
+        users,
+        settingsByUser: {},
+        sheetsByRange: {
+            'Dívidas!A:R': [
+                ['Nome', 'Credor', 'Tipo', 'Valor Original', 'Saldo Atual', 'Valor da Parcela', 'Taxa', 'Dia', 'Início', 'Total', 'Pagas', 'Status', 'Obs', '%', 'Próximo Vencimento', 'Atraso', 'Estratégia', 'user_id']
+            ]
+        },
+        eventsByUser: {
+            'user-a': [{ summary: 'Calistenia', start: { dateTime: '2026-05-20T10:00:00.000Z' } }]
+        }
+    });
+
+    scheduler.__test__.setClientForTest({
+        sendMessage: async (to, message) => sent.push({ to, message })
+    });
+
+    await scheduler.__test__.sendMorningSummary();
+
+    assert.match(sent[0].message, /\*07:00\* - Calistenia/);
+    assert.doesNotMatch(sent[0].message, /\*10:00\* - Calistenia/);
+});
+
 test('scheduler date helpers use America/Sao_Paulo day even when server is already on next UTC day', () => {
     const scheduler = installSchedulerMocks({
         users: [],
@@ -189,4 +217,14 @@ test('scheduler date helpers use America/Sao_Paulo day even when server is alrea
     const tomorrow = scheduler.__test__.addDaysForSchedule(lateNightInBrazil, 1);
 
     assert.strictEqual(formatDateBR(tomorrow), '20/05/2026');
+});
+
+test('scheduler public date/time formatters use Sao Paulo timezone', () => {
+    const scheduler = installSchedulerMocks({
+        users: [],
+        settingsByUser: {}
+    });
+
+    assert.strictEqual(scheduler.__test__.formatScheduleTime(new Date('2026-05-20T10:00:00.000Z')), '07:00');
+    assert.strictEqual(scheduler.__test__.formatScheduleDate(new Date('2026-05-20T15:00:00.000Z')), '20/05/2026');
 });

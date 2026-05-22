@@ -37,6 +37,24 @@ function addDaysForSchedule(date = new Date(), days = 0) {
     return localDate;
 }
 
+function formatScheduleDate(date) {
+    return new Intl.DateTimeFormat('pt-BR', {
+        timeZone: SCHEDULE_TIME_ZONE,
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    }).format(date);
+}
+
+function formatScheduleTime(date) {
+    return new Intl.DateTimeFormat('pt-BR', {
+        timeZone: SCHEDULE_TIME_ZONE,
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+    }).format(date);
+}
+
 function isSyntheticTestWhatsAppId(whatsappId) {
     return /^559999\d+@(?:c\.us|lid)$/.test(String(whatsappId || '').trim());
 }
@@ -143,7 +161,7 @@ async function checkUpcomingEvents() {
                 if (diffMinutes >= 55 && diffMinutes <= 70) {
                     const message =
                         `Lembrete de Agenda 🔔: Seu compromisso "*${evento.summary}*" começa em aproximadamente 1 hora, ` +
-                        `às ${horaInicio.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.`;
+                        `às ${formatScheduleTime(horaInicio)}.`;
 
                     await client.sendMessage(user.whatsapp_id, message);
 
@@ -167,10 +185,9 @@ async function checkUpcomingBills() {
         const users = await getScheduledActiveUsers();
         if (!users.length) return;
 
-        const hoje = new Date();
-        const anoAtual = hoje.getFullYear();
-        const mesAtual = hoje.getMonth();
-        hoje.setHours(0, 0, 0, 0);
+        const hoje = addDaysForSchedule(new Date(), 0);
+        const anoAtual = hoje.getUTCFullYear();
+        const mesAtual = hoje.getUTCMonth();
 
         const contasRows = contasData.slice(1);
         const saidasRows = saidasData.slice(1);
@@ -203,7 +220,7 @@ async function checkUpcomingBills() {
                 const jaFoiRegistrada = saidasDoMesUsuario.some(d => d.includes(nomeContaNormalizado));
                 if (jaFoiRegistrada) continue;
 
-                const dataVencimento = new Date(anoAtual, mesAtual, diaVencimento);
+                const dataVencimento = buildUtcNoonDate({ year: anoAtual, month: mesAtual + 1, day: diaVencimento });
                 const diffDays = Math.round((dataVencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
 
                 let message = '';
@@ -224,10 +241,12 @@ async function sendMorningSummary() {
     try {
         const dividasData = await readDataFromSheet('Dívidas!A:R');
         const users = await getScheduledActiveUsers();
-        if (users.length === 0) return;
+        if (users.length === 0) {
+            logger.warn('[scheduler] resumo matinal ignorado: nenhum usuário ativo agendável.');
+            return;
+        }
 
-        const hoje = new Date();
-        hoje.setHours(0, 0, 0, 0);
+        const hoje = addDaysForSchedule(new Date(), 0);
 
         for (const user of users) {
             const userId = String(user.user_id || '').trim();
@@ -251,7 +270,7 @@ async function sendMorningSummary() {
                 }
             }
 
-            let message = `Bom dia! ☀️ Aqui está seu resumo de hoje, ${hoje.toLocaleDateString('pt-BR')}:\n`;
+            let message = `Bom dia! ☀️ Aqui está seu resumo de hoje, ${formatScheduleDate(hoje)}:\n`;
 
             message += '\n*Financeiro (Próximos 7 dias):*\n';
             if (contasProximas.length === 0) {
@@ -276,13 +295,14 @@ async function sendMorningSummary() {
                 eventosDeHoje.forEach(evento => {
                     let horario = 'Dia inteiro';
                     if (evento.start?.dateTime) {
-                        horario = new Date(evento.start.dateTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                        horario = formatScheduleTime(new Date(evento.start.dateTime));
                     }
                     message += ` - *${horario}* - ${evento.summary}\n`;
                 });
             }
 
             await client.sendMessage(user.whatsapp_id, message);
+            logger.info(`[scheduler] resumo matinal enviado user_id=${userId}`);
         }
     } catch (error) {
         logger.error(`Erro ao enviar resumo matinal: ${error.message}`);
@@ -292,8 +312,12 @@ async function sendMorningSummary() {
 async function sendEveningSummary() {
     try {
         const amanha = addDaysForSchedule(new Date(), 1);
-        const amanhaStr = amanha.toLocaleDateString('pt-BR');
+        const amanhaStr = formatScheduleDate(amanha);
         const users = await getScheduledActiveUsers();
+        if (users.length === 0) {
+            logger.warn('[scheduler] resumo noturno ignorado: nenhum usuário ativo agendável.');
+            return;
+        }
         const singleUserIdFallback = users.length === 1 ? String(users[0].user_id || '').trim() : '';
 
         for (const user of users) {
@@ -321,7 +345,7 @@ async function sendEveningSummary() {
                 eventosDeAmanha.forEach(evento => {
                     let horario = 'Dia inteiro';
                     if (evento.start?.dateTime) {
-                        horario = new Date(evento.start.dateTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                        horario = formatScheduleTime(new Date(evento.start.dateTime));
                     }
                     message += ` - *${horario}* - ${evento.summary}\n`;
                 });
@@ -338,6 +362,7 @@ async function sendEveningSummary() {
             }
 
             await client.sendMessage(user.whatsapp_id, message);
+            logger.info(`[scheduler] resumo noturno enviado user_id=${userId}`);
         }
     } catch (error) {
         logger.error(`Erro ao enviar resumo noturno: ${error.message}`);
@@ -533,6 +558,8 @@ module.exports = {
         collectPaymentsDueOnDate,
         addDaysForSchedule,
         getDatePartsInTimeZone,
+        formatScheduleDate,
+        formatScheduleTime,
         isSyntheticTestWhatsAppId,
         shouldSendScheduledMessageToUser,
         notifiedEventIds
