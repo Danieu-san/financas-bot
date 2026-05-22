@@ -226,6 +226,17 @@ function buildTransaction({ date, description, amount, explicitType = '', ownerA
     };
 }
 
+function convertTransactionsForCreditCardStatement(transactions = []) {
+    return transactions
+        .filter(item => item && item.type === 'Saídas' && !item.duplicate)
+        .map(item => ({
+            ...item,
+            type: 'Cartão',
+            parcela: '1/1',
+            observacoes: item.observacoes || 'Importado de extrato de cartão'
+        }));
+}
+
 function parseCsvTransactions(text, options = {}) {
     return parseDelimited(text)
         .map(row => {
@@ -301,6 +312,9 @@ function existingRowToTransaction(sheetName, row = []) {
     if (sheetName === 'Transferências') {
         return { type: 'Transferências', data: row[0], descricao: row[1], valor: row[2] };
     }
+    if (sheetName === 'Cartão' || sheetName === 'Lançamentos Cartão' || String(sheetName || '').startsWith('Cartão ')) {
+        return { type: 'Cartão', data: row[0], descricao: row[1], valor: row[3] };
+    }
     return { type: 'Saídas', data: row[0], descricao: row[1], valor: row[4] };
 }
 
@@ -342,6 +356,7 @@ function transactionLabel(item) {
     if (item.duplicate) return 'Duplicado';
     if (item.type === 'Entradas') return 'Entrada';
     if (item.type === 'Transferências') return 'Transferência';
+    if (item.type === 'Cartão') return 'Cartão';
     return 'Saída';
 }
 
@@ -353,11 +368,13 @@ function formatPreviewLine(item, index) {
 function buildImportSummary(transactions = []) {
     const entradas = transactions.filter(item => item.type === 'Entradas');
     const saidas = transactions.filter(item => item.type === 'Saídas');
+    const cartoes = transactions.filter(item => item.type === 'Cartão');
     const transferencias = transactions.filter(item => item.type === 'Transferências');
     const duplicados = transactions.filter(item => item.duplicate);
     const importaveis = transactions.filter(item => !item.duplicate);
     const totalEntradas = entradas.reduce((sum, item) => sum + Number(item.valor || 0), 0);
     const totalSaidas = saidas.reduce((sum, item) => sum + Number(item.valor || 0), 0);
+    const totalCartoes = cartoes.reduce((sum, item) => sum + Number(item.valor || 0), 0);
     const totalTransferencias = transferencias.reduce((sum, item) => sum + Number(item.valor || 0), 0);
 
     const summary = [
@@ -365,6 +382,7 @@ function buildImportSummary(transactions = []) {
         `Novos que serão importados: ${importaveis.length}`,
         `Entradas no arquivo: ${entradas.length} (R$ ${formatMoney(totalEntradas)})`,
         `Saídas no arquivo: ${saidas.length} (R$ ${formatMoney(totalSaidas)})`,
+        `Cartão no arquivo: ${cartoes.length} (R$ ${formatMoney(totalCartoes)})`,
         `Transferências internas prováveis no arquivo: ${transferencias.length} (R$ ${formatMoney(totalTransferencias)})`
     ];
     if (duplicados.length > 0) {
@@ -447,6 +465,7 @@ module.exports = {
     buildImportPreviewMessages,
     annotateImportDuplicates,
     buildImportDuplicateKey,
+    convertTransactionsForCreditCardStatement,
     detectImportFileType,
     parseCsvTransactions,
     parseImportMedia,
@@ -456,6 +475,7 @@ module.exports = {
     __test__: {
         buildExistingDuplicateKeys,
         buildTransaction,
+        convertTransactionsForCreditCardStatement,
         isProbableInternalTransfer,
         parseDelimited,
         splitDelimitedLine

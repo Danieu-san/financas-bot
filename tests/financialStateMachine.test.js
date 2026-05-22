@@ -64,6 +64,7 @@ function resetSheets() {
     ];
     sheets.Saídas = [['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Observações', 'user_id']];
     sheets.Entradas = [['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Observações', 'user_id']];
+    sheets.Transferências = [['Data', 'Descrição', 'Valor', 'Origem', 'Destino', 'Método', 'Observações', 'Status', 'user_id']];
     sheets.Dívidas = [DEBTS_HEADER];
     for (const sheetName of CARD_SHEETS) {
         sheets[sheetName] = [['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'user_id']];
@@ -163,8 +164,27 @@ function createMockMessage(body) {
     };
 }
 
+function createMockMediaMessage(text, { filename = 'extrato.csv', mimetype = 'text/csv' } = {}) {
+    const msg = createMockMessage('');
+    msg.hasMedia = true;
+    msg.type = 'document';
+    msg._data.filename = filename;
+    msg.downloadMedia = async () => ({
+        filename,
+        mimetype,
+        data: Buffer.from(text, 'utf8').toString('base64')
+    });
+    return msg;
+}
+
 async function send(body) {
     const msg = createMockMessage(body);
+    await handleMessage(msg);
+    return msg.replies.at(-1) || '';
+}
+
+async function sendMedia(text, options) {
+    const msg = createMockMediaMessage(text, options);
     await handleMessage(msg);
     return msg.replies.at(-1) || '';
 }
@@ -323,6 +343,58 @@ stateMachineTest('financial states: deletion confirmation supports cancel and se
     assert.match(await send('2'), /apagado/i);
     assert.deepStrictEqual(deletedRows, [{ sheetName: 'Saídas', indices: [5] }]);
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
+
+stateMachineTest('financial states: statement import asks account type before saving checking account rows', async () => {
+    resetState();
+    const csv = [
+        'Data;Descrição;Valor;Tipo',
+        '17/05/2026;Mercado Guanabara;-35,35;Débito'
+    ].join('\n');
+
+    const firstReply = await sendMedia(csv);
+    assert.match(firstReply, /conta corrente/i);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_statement_import_kind');
+
+    const preview = await send('1');
+    assert.match(preview, /Mercado Guanabara/);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_statement_import');
+
+    const done = await send('sim');
+    assert.match(done, /Importação concluída/);
+    assert.strictEqual(sheets.Saídas.length, 2);
+    assert.strictEqual(sheets.Saídas[1][1], 'Mercado Guanabara');
+    assert.strictEqual(sheets[CARD_SHEETS[0]].length, 1);
+});
+
+stateMachineTest('financial states: statement import can route credit card purchases to selected card', async () => {
+    resetState();
+    const csv = [
+        'Data;Descrição;Valor;Tipo',
+        '17/05/2026;Amazon;-120,00;Débito',
+        '18/05/2026;Estorno Amazon;20,00;Crédito'
+    ].join('\n');
+
+    const firstReply = await sendMedia(csv);
+    assert.match(firstReply, /cartão de crédito/i);
+
+    const cardQuestion = await send('2');
+    assert.match(cardQuestion, /Em qual cartão/i);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_statement_import_card_selection');
+
+    const preview = await send('1');
+    assert.match(preview, /Amazon/);
+    assert.doesNotMatch(preview, /Estorno Amazon/);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_statement_import');
+
+    const done = await send('sim');
+    assert.match(done, /Importação concluída/);
+    assert.strictEqual(sheets.Saídas.length, 1);
+    assert.strictEqual(sheets.Entradas.length, 1);
+    assert.strictEqual(sheets[CARD_SHEETS[0]].length, 2);
+    assert.strictEqual(sheets[CARD_SHEETS[0]][1][1], 'Amazon');
+    assert.strictEqual(sheets[CARD_SHEETS[0]][1][4], '1/1');
+    assert.strictEqual(sheets[CARD_SHEETS[0]][1][6], USER_ID);
 });
 
 test.after(() => {

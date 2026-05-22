@@ -40,6 +40,7 @@ const { syncReadModelIfNeeded, executeAnalyticalIntent, markReadModelDirty } = r
 const {
     annotateImportDuplicates,
     buildImportPreviewMessages,
+    convertTransactionsForCreditCardStatement,
     parseImportMedia,
     unsupportedImportMessage
 } = require('../services/statementImportService');
@@ -241,6 +242,13 @@ async function saveImportedTransactions(transactions = [], { person, userId }) {
                 item.status || 'Provável transferência interna',
                 userId
             ]);
+            markFinancialReadModelDirty('transfer_write');
+        } else if (item.type === 'Cartão') {
+            if (!item.cardInfo) {
+                throw new Error('Importação de cartão sem cartão selecionado.');
+            }
+            await appendRowToSheet(item.cardInfo.sheetName, buildImportedCreditCardRow(item, item.cardInfo, userId));
+            markFinancialReadModelDirty('card_write');
         } else {
             await saveTransactionWithoutExtraPayment(item, { person, userId });
         }
@@ -249,14 +257,67 @@ async function saveImportedTransactions(transactions = [], { person, userId }) {
     return successCount;
 }
 
-async function loadExistingImportRows({ userId } = {}) {
+const MONTH_NAMES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+function buildBillingMonthName(purchaseDate, cardInfo = {}) {
+    let billingMonth = purchaseDate.getMonth();
+    let billingYear = purchaseDate.getFullYear();
+    const closingDay = Number.parseInt(cardInfo.closingDay, 10);
+
+    if (Number.isInteger(closingDay) && closingDay >= 1 && closingDay <= 31 && purchaseDate.getDate() > closingDay) {
+        billingMonth += 1;
+        if (billingMonth > 11) {
+            billingMonth = 0;
+            billingYear += 1;
+        }
+    }
+
+    return `${MONTH_NAMES[billingMonth]} de ${billingYear}`;
+}
+
+function buildImportedCreditCardRow(item, cardInfo, userId) {
+    const purchaseDate = item.data ? parseSheetDate(item.data) : new Date();
+    const dataFinal = getFormattedDateOnly(purchaseDate);
+    const valorNumerico = parseFloat(item.valor);
+    return [
+        dataFinal,
+        item.descricao || 'Não especificado',
+        item.categoria || 'Outros',
+        valorNumerico,
+        item.parcela || '1/1',
+        item.mesCobranca || buildBillingMonthName(purchaseDate, cardInfo),
+        userId
+    ];
+}
+
+function buildStatementImportKindQuestion(filename = '') {
+    const fileLine = filename ? `Arquivo recebido: ${filename}\n\n` : '';
+    return (
+        `${fileLine}Esse extrato é de qual tipo?\n\n` +
+        '1. Conta corrente / conta de pagamento\n' +
+        '2. Cartão de crédito\n\n' +
+        'Responda com `1` ou `2`.'
+    );
+}
+
+function parseStatementImportKindReply(text = '') {
+    const normalized = normalizeText(text);
+    if (['1', 'conta', 'conta corrente', 'corrente', 'debito', 'débito'].includes(normalized)) return 'checking';
+    if (['2', 'cartao', 'cartão', 'cartao de credito', 'cartão de crédito', 'credito', 'crédito'].includes(normalized)) return 'credit_card';
+    return '';
+}
+
+async function loadExistingImportRows({ userId, includeCards = false } = {}) {
     const options = userId ? { userId } : {};
     const scopeUserIds = userId ? getFinancialScopeUserIds(userId) : [];
     const allowedUserIds = new Set(scopeUserIds.map(id => String(id || '').trim()).filter(Boolean));
-    const [saidas, entradas, transferencias] = await Promise.all([
+    const cardSheetNames = includeCards ? Object.values(creditCardConfig).map(card => card.sheetName) : [];
+    const [saidas, entradas, transferencias, lancamentosCartao, ...legacyCards] = await Promise.all([
         readDataFromSheet('Saídas!A:J', options),
         readDataFromSheet('Entradas!A:I', options),
-        readDataFromSheet('Transferências!A:I', options)
+        readDataFromSheet('Transferências!A:I', options),
+        includeCards ? readDataFromSheet('Lançamentos Cartão!A:J', options) : Promise.resolve([]),
+        ...cardSheetNames.map(sheetName => readDataFromSheet(`${sheetName}!A:G`, options))
     ]);
     const belongsToUser = (row, userIdIndex) => {
         if (!userId) return true;
@@ -266,7 +327,12 @@ async function loadExistingImportRows({ userId } = {}) {
     return {
         'Saídas': (saidas || []).slice(1).filter(row => belongsToUser(row, 9)),
         'Entradas': (entradas || []).slice(1).filter(row => belongsToUser(row, 8)),
-        'Transferências': (transferencias || []).slice(1).filter(row => belongsToUser(row, 8))
+        'Transferências': (transferencias || []).slice(1).filter(row => belongsToUser(row, 8)),
+        'Lançamentos Cartão': (lancamentosCartao || []).slice(1).filter(row => belongsToUser(row, 9)),
+        ...Object.fromEntries(cardSheetNames.map((sheetName, index) => [
+            sheetName,
+            (legacyCards[index] || []).slice(1).filter(row => belongsToUser(row, 6))
+        ]))
     };
 }
 
@@ -293,23 +359,17 @@ async function handleStatementImportMessage(msg, { senderId, person, userId }) {
         return true;
     }
 
-    const existingRowsByType = await loadExistingImportRows({ userId });
-    const transactions = annotateImportDuplicates(parsed.transactions, existingRowsByType);
-    const previewMessages = buildImportPreviewMessages(transactions);
-
     userStateManager.setState(senderId, {
-        action: 'confirming_statement_import',
+        action: 'awaiting_statement_import_kind',
         data: {
-            transactions,
+            parsedTransactions: parsed.transactions,
             filename: parsed.filename,
             type: parsed.type,
             person,
             userId
         }
     });
-    for (const previewMessage of previewMessages) {
-        await sendPlainMessage(msg, previewMessage);
-    }
+    await sendPlainMessage(msg, buildStatementImportKindQuestion(parsed.filename));
     return true;
 }
 
@@ -1958,6 +2018,100 @@ async function handleMessage(msg) {
 
             case 'confirming_delete': {
                 await deletionHandler.confirmDeletion(msg);
+                return;
+            }
+
+            case 'awaiting_statement_import_kind': {
+                const selectedKind = parseStatementImportKindReply(msg.body);
+                const { parsedTransactions = [], person: importPerson, userId: importUserId, filename } = currentState.data || {};
+
+                if (selectedKind === 'checking') {
+                    const existingRowsByType = await loadExistingImportRows({ userId: importUserId || userId });
+                    const transactions = annotateImportDuplicates(parsedTransactions, existingRowsByType);
+                    const previewMessages = buildImportPreviewMessages(transactions);
+
+                    userStateManager.setState(senderId, {
+                        action: 'confirming_statement_import',
+                        data: {
+                            transactions,
+                            filename,
+                            importKind: 'checking',
+                            person: importPerson || pessoa,
+                            userId: importUserId || userId
+                        }
+                    });
+                    for (const previewMessage of previewMessages) {
+                        await sendPlainMessage(msg, previewMessage);
+                    }
+                    return;
+                }
+
+                if (selectedKind === 'credit_card') {
+                    const cardTransactions = convertTransactionsForCreditCardStatement(parsedTransactions);
+                    if (!cardTransactions.length) {
+                        userStateManager.deleteState(senderId);
+                        await sendPlainMessage(
+                            msg,
+                            'Não encontrei compras de cartão para importar nesse arquivo. ' +
+                            'Créditos/estornos do cartão não são tratados como renda para evitar distorcer seu dashboard.'
+                        );
+                        return;
+                    }
+
+                    const cardOptions = await buildCreditCardOptionsForUser(importUserId || userId);
+                    if (!cardOptions.length) {
+                        await replyNoCreditCardsConfigured(msg);
+                        return;
+                    }
+
+                    userStateManager.setState(senderId, {
+                        action: 'awaiting_statement_import_card_selection',
+                        data: {
+                            cardTransactions,
+                            filename,
+                            person: importPerson || pessoa,
+                            userId: importUserId || userId,
+                            cardOptions
+                        }
+                    });
+                    await sendPlainMessage(msg, formatCreditCardOptionsQuestion('Em qual cartão devo lançar esse extrato?', cardOptions));
+                    return;
+                }
+
+                await sendPlainMessage(msg, 'Responda `1` para conta corrente ou `2` para cartão de crédito.');
+                return;
+            }
+
+            case 'awaiting_statement_import_card_selection': {
+                const { cardTransactions = [], cardOptions = [], person: importPerson, userId: importUserId, filename } = currentState.data || {};
+                const selection = parseInt(msg.body.trim(), 10) - 1;
+
+                if (selection < 0 || selection >= cardOptions.length) {
+                    await sendPlainMessage(msg, 'Opção inválida. Responda apenas com um dos números da lista de cartões.');
+                    return;
+                }
+
+                const cardInfo = getSelectedCardInfo(cardOptions, selection);
+                const existingRowsByType = await loadExistingImportRows({ userId: importUserId || userId, includeCards: true });
+                const transactions = annotateImportDuplicates(
+                    cardTransactions.map(item => ({ ...item, cardInfo })),
+                    existingRowsByType
+                );
+                const previewMessages = buildImportPreviewMessages(transactions);
+
+                userStateManager.setState(senderId, {
+                    action: 'confirming_statement_import',
+                    data: {
+                        transactions,
+                        filename,
+                        importKind: 'credit_card',
+                        person: importPerson || pessoa,
+                        userId: importUserId || userId
+                    }
+                });
+                for (const previewMessage of previewMessages) {
+                    await sendPlainMessage(msg, previewMessage);
+                }
                 return;
             }
 
