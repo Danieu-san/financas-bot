@@ -6,6 +6,8 @@ process.env.ADMIN_IDS = process.env.ADMIN_IDS || '5521970112407@c.us';
 
 const SENDER = '5599993000001@c.us';
 const USER_ID = 'state-machine-user';
+const PARTNER_ID = 'state-machine-partner';
+const PARTNER_SENDER = '5599993000002@c.us';
 const TERMS_VERSION = process.env.TERMS_VERSION || 'v1.1';
 
 const USERS_HEADER = ['user_id', 'whatsapp_id', 'phone_e164', 'display_name', 'status', 'created_at', 'updated_at', 'consent_at', 'terms_version', 'deleted_at'];
@@ -25,6 +27,7 @@ const sheets = {};
 const deletedRows = [];
 const structuredResponses = [];
 let stateMachineFailed = false;
+let financialScopeUserIds = [USER_ID];
 
 function stateMachineTest(name, fn) {
     test(name, async () => {
@@ -43,6 +46,21 @@ function activeUserRow() {
         SENDER,
         '+5599993000001',
         'Usuario Estado',
+        'ACTIVE',
+        '2026-01-01T00:00:00.000Z',
+        '2026-01-01T00:00:00.000Z',
+        '2026-01-01T00:00:00.000Z',
+        TERMS_VERSION,
+        ''
+    ];
+}
+
+function partnerUserRow() {
+    return [
+        PARTNER_ID,
+        PARTNER_SENDER,
+        '+5599993000002',
+        'Thais',
         'ACTIVE',
         '2026-01-01T00:00:00.000Z',
         '2026-01-01T00:00:00.000Z',
@@ -71,6 +89,7 @@ function resetSheets() {
     }
     deletedRows.length = 0;
     structuredResponses.length = 0;
+    financialScopeUserIds = [USER_ID];
 }
 
 function enqueueStructuredResponse(response) {
@@ -82,6 +101,20 @@ function getSheetName(rangeOrSheet) {
 }
 
 function installMocks() {
+    const oauthStorePath = require.resolve('../src/services/oauthTokenStore');
+    require.cache[oauthStorePath] = {
+        id: oauthStorePath,
+        filename: oauthStorePath,
+        loaded: true,
+        exports: {
+            getOAuthConnection: () => null,
+            getFinancialScopeUserIds: () => financialScopeUserIds,
+            getSharedSpreadsheetMembership: () => null,
+            revokeSharedSpreadsheetMembership: () => null,
+            setSharedSpreadsheetMembership: () => null
+        }
+    };
+
     const googlePath = require.resolve('../src/services/google');
     require.cache[googlePath] = {
         id: googlePath,
@@ -365,6 +398,54 @@ stateMachineTest('financial states: statement import asks account type before sa
     assert.strictEqual(sheets.Saídas.length, 2);
     assert.strictEqual(sheets.Saídas[1][1], 'Mercado Guanabara');
     assert.strictEqual(sheets[CARD_SHEETS[0]].length, 1);
+});
+
+stateMachineTest('financial states: family statement import asks owner and stores rows under selected member', async () => {
+    resetState();
+    sheets.Users.push(partnerUserRow());
+    sheets.UserProfile.push([
+        PARTNER_ID,
+        'Thais Cristina',
+        5000,
+        2500,
+        'NÃO',
+        'organizar contas',
+        '2026-01-01T00:00:00.000Z'
+    ]);
+    financialScopeUserIds = [USER_ID, PARTNER_ID];
+    if (typeof userService.invalidateUserCaches === 'function') {
+        userService.invalidateUserCaches();
+    }
+
+    const csv = [
+        'Data;Descrição;Valor;Tipo',
+        '17/05/2026;Mercado Guanabara;-35,35;Débito',
+        '17/05/2026;PIX TRANSF Usuario Estado;-50,00;Débito'
+    ].join('\n');
+
+    const ownerQuestion = await sendMedia(csv);
+    assert.match(ownerQuestion, /extrato/i);
+    assert.match(ownerQuestion, /1\. Usuario Estado/);
+    assert.match(ownerQuestion, /2\. Thais/);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_statement_import_owner');
+
+    const kindQuestion = await send('2');
+    assert.match(kindQuestion, /conta corrente/i);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_statement_import_kind');
+
+    const preview = await send('1');
+    assert.match(preview, /Mercado Guanabara/);
+    assert.match(preview, /Transferências internas prováveis no arquivo: 1/);
+
+    const done = await send('sim');
+    assert.match(done, /Importação concluída/);
+    assert.strictEqual(sheets.Saídas.length, 2);
+    assert.strictEqual(sheets.Saídas[1][1], 'Mercado Guanabara');
+    assert.strictEqual(sheets.Saídas[1][5], 'Thais');
+    assert.strictEqual(sheets.Saídas[1][9], PARTNER_ID);
+    assert.strictEqual(sheets.Transferências.length, 2);
+    assert.strictEqual(sheets.Transferências[1][1], 'PIX TRANSF Usuario Estado');
+    assert.strictEqual(sheets.Transferências[1][8], PARTNER_ID);
 });
 
 stateMachineTest('financial states: statement import asks for a fallback date only when the file has no dates', async () => {

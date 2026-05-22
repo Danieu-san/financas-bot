@@ -28,6 +28,7 @@ const {
     updateUserStatusByWhatsAppId,
     approveUserByWhatsAppId,
     denyUserByWhatsAppId,
+    getUserById,
     getUserByLookup,
     getConsentLogsByUserId,
     getAllUsers,
@@ -357,6 +358,81 @@ function parseStatementImportKindReply(text = '') {
     return '';
 }
 
+function buildStatementImportOwnerQuestion(filename = '', candidates = []) {
+    const suffix = filename ? ` (${filename})` : '';
+    const lines = [`Esse extrato${suffix} é de quem?`];
+    candidates.forEach((candidate, index) => {
+        lines.push(`${index + 1}. ${candidate.label}`);
+    });
+    lines.push('', 'Responda apenas com o número da pessoa.');
+    return lines.join('\n');
+}
+
+function parseStatementImportOwnerReply(text = '', candidates = []) {
+    const normalized = normalizeText(text);
+    const numericSelection = Number.parseInt(normalized, 10);
+    if (Number.isInteger(numericSelection) && numericSelection >= 1 && numericSelection <= candidates.length) {
+        return candidates[numericSelection - 1];
+    }
+
+    return candidates.find(candidate => {
+        const label = normalizeText(candidate.label || '');
+        const displayName = normalizeText(candidate.displayName || '');
+        const fullName = normalizeText(candidate.fullName || '');
+        return normalized && [label, displayName, fullName].some(value => value && (value === normalized || value.includes(normalized)));
+    }) || null;
+}
+
+async function buildStatementImportFamilyContext({ userId, person }) {
+    const safeUserId = String(userId || '').trim();
+    const scopeIds = safeUserId ? getFinancialScopeUserIds(safeUserId) : [];
+    const uniqueIds = Array.from(new Set((scopeIds.length ? scopeIds : [safeUserId]).filter(Boolean)));
+    const candidates = [];
+
+    for (const scopeUserId of uniqueIds) {
+        const [user, profile] = await Promise.all([
+            getUserById(scopeUserId),
+            getUserProfileByUserId(scopeUserId)
+        ]);
+        const displayName = String(user?.display_name || (scopeUserId === safeUserId ? person : '') || '').trim();
+        const fullName = String(profile?.full_name || '').trim();
+        const label = displayName || fullName || user?.whatsapp_id || scopeUserId;
+        candidates.push({
+            userId: scopeUserId,
+            label,
+            person: displayName || fullName || person || 'Usuário',
+            displayName,
+            fullName
+        });
+    }
+
+    const ownerAliases = Array.from(new Set(
+        candidates.flatMap(candidate => [candidate.fullName, candidate.displayName, candidate.label, candidate.person])
+            .map(value => String(value || '').trim())
+            .filter(Boolean)
+    ));
+
+    return { candidates, ownerAliases };
+}
+
+async function askNextStatementImportQuestion(msg, senderId, stateData) {
+    const transactions = stateData.parsedTransactions || [];
+    if (transactionsNeedDateInput(transactions)) {
+        userStateManager.setState(senderId, {
+            action: 'awaiting_statement_import_date',
+            data: stateData
+        });
+        await sendPlainMessage(msg, buildStatementImportDateQuestion(transactions));
+        return;
+    }
+
+    userStateManager.setState(senderId, {
+        action: 'awaiting_statement_import_kind',
+        data: stateData
+    });
+    await sendPlainMessage(msg, buildStatementImportKindQuestion(stateData.filename));
+}
+
 async function loadExistingImportRows({ userId, includeCards = false } = {}) {
     const options = userId ? { userId } : {};
     const scopeUserIds = userId ? getFinancialScopeUserIds(userId) : [];
@@ -391,12 +467,9 @@ async function handleStatementImportMessage(msg, { senderId, person, userId }) {
     if (msg.type === 'ptt' || msg.type === 'audio') return false;
 
     const media = await msg.downloadMedia();
-    const profile = userId ? await getUserProfileByUserId(userId) : null;
+    const familyContext = await buildStatementImportFamilyContext({ userId, person });
     const parsed = parseImportMedia(media, msg, {
-        ownerAliases: [
-            profile?.full_name,
-            person
-        ].filter(Boolean)
+        ownerAliases: familyContext.ownerAliases.length ? familyContext.ownerAliases : [person].filter(Boolean)
     });
 
     if (!parsed.supported) {
@@ -409,32 +482,25 @@ async function handleStatementImportMessage(msg, { senderId, person, userId }) {
         return true;
     }
 
-    if (transactionsNeedDateInput(parsed.transactions)) {
+    const baseStateData = {
+        parsedTransactions: parsed.transactions,
+        filename: parsed.filename,
+        type: parsed.type,
+        person,
+        userId,
+        importOwnerCandidates: familyContext.candidates
+    };
+
+    if (familyContext.candidates.length > 1) {
         userStateManager.setState(senderId, {
-            action: 'awaiting_statement_import_date',
-            data: {
-                parsedTransactions: parsed.transactions,
-                filename: parsed.filename,
-                type: parsed.type,
-                person,
-                userId
-            }
+            action: 'awaiting_statement_import_owner',
+            data: baseStateData
         });
-        await sendPlainMessage(msg, buildStatementImportDateQuestion(parsed.transactions));
+        await sendPlainMessage(msg, buildStatementImportOwnerQuestion(parsed.filename, familyContext.candidates));
         return true;
     }
 
-    userStateManager.setState(senderId, {
-        action: 'awaiting_statement_import_kind',
-        data: {
-            parsedTransactions: parsed.transactions,
-            filename: parsed.filename,
-            type: parsed.type,
-            person,
-            userId
-        }
-    });
-    await sendPlainMessage(msg, buildStatementImportKindQuestion(parsed.filename));
+    await askNextStatementImportQuestion(msg, senderId, baseStateData);
     return true;
 }
 
@@ -2083,6 +2149,23 @@ async function handleMessage(msg) {
 
             case 'confirming_delete': {
                 await deletionHandler.confirmDeletion(msg);
+                return;
+            }
+
+            case 'awaiting_statement_import_owner': {
+                const { importOwnerCandidates = [] } = currentState.data || {};
+                const selectedOwner = parseStatementImportOwnerReply(msg.body, importOwnerCandidates);
+
+                if (!selectedOwner) {
+                    await sendPlainMessage(msg, buildStatementImportOwnerQuestion(currentState.data?.filename, importOwnerCandidates));
+                    return;
+                }
+
+                await askNextStatementImportQuestion(msg, senderId, {
+                    ...(currentState.data || {}),
+                    person: selectedOwner.person || selectedOwner.label || pessoa,
+                    userId: selectedOwner.userId || userId
+                });
                 return;
             }
 
