@@ -79,6 +79,44 @@ function splitDelimitedLine(line, delimiter) {
     return cells;
 }
 
+function normalizeHeader(value = '') {
+    return normalizeText(String(value || ''))
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function chooseDelimiter(lines = []) {
+    let semicolonScore = 0;
+    let commaScore = 0;
+    for (const line of lines) {
+        semicolonScore = Math.max(semicolonScore, (line.match(/;/g) || []).length);
+        commaScore = Math.max(commaScore, (line.match(/,/g) || []).length);
+    }
+    return semicolonScore >= commaScore ? ';' : ',';
+}
+
+function headerHasAny(headers = [], aliases = []) {
+    const normalizedAliases = aliases.map(normalizeHeader);
+    return headers.some(header => normalizedAliases.includes(header));
+}
+
+function findHeaderLineIndex(lines = [], delimiter) {
+    for (let index = 0; index < lines.length; index += 1) {
+        const headers = splitDelimitedLine(lines[index], delimiter).map(normalizeHeader);
+        const hasDate = headerHasAny(headers, ['data', 'date', 'dt', 'dtpost', 'data lançamento', 'data lancamento', 'data movimento']);
+        const hasDescription = headerHasAny(headers, [
+            'descricao', 'descrição', 'historico', 'histórico', 'memo', 'name',
+            'descricao lancamento', 'lançamentos', 'lancamentos', 'title', 'titulo'
+        ]);
+        const hasAmount = headerHasAny(headers, [
+            'valor', 'amount', 'valor lancamento', 'valor lançamento', 'quantia',
+            'valor (r$)', 'debito', 'débito', 'credito', 'crédito'
+        ]);
+        if (hasDate && hasDescription && hasAmount) return index;
+    }
+    return 0;
+}
+
 function parseDelimited(text) {
     const lines = String(text || '')
         .split(/\r?\n/)
@@ -86,11 +124,11 @@ function parseDelimited(text) {
         .filter(Boolean);
     if (lines.length < 2) return [];
 
-    const first = lines[0];
-    const delimiter = (first.match(/;/g) || []).length >= (first.match(/,/g) || []).length ? ';' : ',';
-    const headers = splitDelimitedLine(first, delimiter).map(header => normalizeText(header));
+    const delimiter = chooseDelimiter(lines);
+    const headerIndex = findHeaderLineIndex(lines, delimiter);
+    const headers = splitDelimitedLine(lines[headerIndex], delimiter).map(normalizeHeader);
 
-    return lines.slice(1).map(line => {
+    return lines.slice(headerIndex + 1).map(line => {
         const cells = splitDelimitedLine(line, delimiter);
         return Object.fromEntries(headers.map((header, index) => [header, cells[index] || '']));
     });
@@ -98,7 +136,7 @@ function parseDelimited(text) {
 
 function pick(row, aliases) {
     for (const alias of aliases) {
-        const key = normalizeText(alias);
+        const key = normalizeHeader(alias);
         if (row[key] !== undefined && row[key] !== '') return row[key];
     }
     return '';
@@ -111,6 +149,11 @@ function normalizeImportedDate(value) {
     const ofxMatch = raw.match(/^(\d{4})(\d{2})(\d{2})/);
     if (ofxMatch) {
         return `${ofxMatch[3]}/${ofxMatch[2]}/${ofxMatch[1]}`;
+    }
+
+    const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (isoMatch) {
+        return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
     }
 
     const parsed = parseSheetDate(raw);
@@ -199,12 +242,14 @@ function buildTransaction({ date, description, amount, explicitType = '', ownerA
     const value = Math.abs(Number(amount || 0));
     if (!value) return null;
 
+    const safeDescription = String(description || 'Lançamento importado').trim() || 'Lançamento importado';
+    if (isBalanceMarker(safeDescription)) return null;
+
     const typeText = normalizeText(explicitType);
     const isIncome = amount > 0 || ['entrada', 'credito', 'crédito', 'credit', 'receita'].some(term => typeText.includes(normalizeText(term)));
     const isExpense = amount < 0 || ['saida', 'saída', 'debito', 'débito', 'debit', 'despesa'].some(term => typeText.includes(normalizeText(term)));
     if (!isIncome && !isExpense) return null;
 
-    const safeDescription = String(description || 'Lançamento importado').trim() || 'Lançamento importado';
     if (isProbableInternalTransfer(safeDescription, ownerAliases)) {
         return buildTransfer({ date, description: safeDescription, amount, explicitType });
     }
@@ -238,13 +283,38 @@ function buildTransaction({ date, description, amount, explicitType = '', ownerA
 
 function convertTransactionsForCreditCardStatement(transactions = []) {
     return transactions
-        .filter(item => item && item.type === 'Saídas' && !item.duplicate)
+        .filter(item => item && !item.duplicate)
+        .filter(item => item.type === 'Saídas' || (item.type === 'Entradas' && !isLikelyCreditCardCredit(item.descricao)))
         .map(item => ({
             ...item,
             type: 'Cartão',
             parcela: '1/1',
             observacoes: item.observacoes || 'Importado de extrato de cartão'
         }));
+}
+
+function isBalanceMarker(description = '') {
+    const text = normalizeText(description).trim();
+    return /\bsaldo\b/.test(text) && (
+        text.includes('saldo do dia') ||
+        text.includes('saldo anterior') ||
+        text.includes('saldo atual') ||
+        text === 'saldo'
+    );
+}
+
+function isLikelyCreditCardCredit(description = '') {
+    const text = normalizeText(description).trim();
+    return [
+        'estorno',
+        'credito',
+        'crédito',
+        'pagamento recebido',
+        'pagamento de fatura',
+        'cashback',
+        'ajuste credito',
+        'ajuste crédito'
+    ].some(term => text.includes(normalizeText(term)));
 }
 
 function transactionsNeedDateInput(transactions = []) {
@@ -271,14 +341,29 @@ function applyFallbackDateToTransactions(transactions = [], fallbackDate) {
 function parseCsvTransactions(text, options = {}) {
     return parseDelimited(text)
         .map(row => {
-            const date = pick(row, ['data', 'date', 'dt', 'dtpost']);
-            const description = pick(row, ['descricao', 'descrição', 'historico', 'histórico', 'memo', 'name', 'descricao lancamento']);
-            const amountRaw = pick(row, ['valor', 'amount', 'valor lancamento', 'quantia']);
-            const explicitType = pick(row, ['tipo', 'type', 'natureza']);
-            const amount = parseValue(amountRaw);
+            const date = pick(row, ['data', 'date', 'dt', 'dtpost', 'data lançamento', 'data lancamento', 'data movimento']);
+            const description = pick(row, [
+                'descricao', 'descrição', 'historico', 'histórico', 'memo', 'name',
+                'descricao lancamento', 'lançamentos', 'lancamentos', 'title', 'titulo'
+            ]);
+            const { amount, inferredType } = extractCsvAmount(row);
+            const explicitType = pick(row, ['tipo', 'type', 'natureza']) || inferredType;
             return buildTransaction({ date, description, amount, explicitType, ownerAliases: options.ownerAliases });
         })
         .filter(Boolean);
+}
+
+function extractCsvAmount(row = {}) {
+    const amountRaw = pick(row, ['valor', 'amount', 'valor lancamento', 'valor lançamento', 'valor (r$)', 'quantia']);
+    if (amountRaw !== '') return { amount: parseValue(amountRaw), inferredType: '' };
+
+    const debitRaw = pick(row, ['debito', 'débito', 'debit']);
+    if (debitRaw !== '') return { amount: -Math.abs(parseValue(debitRaw)), inferredType: 'Débito' };
+
+    const creditRaw = pick(row, ['credito', 'crédito', 'credit']);
+    if (creditRaw !== '') return { amount: Math.abs(parseValue(creditRaw)), inferredType: 'Crédito' };
+
+    return { amount: 0, inferredType: '' };
 }
 
 function tagValue(block, tag) {

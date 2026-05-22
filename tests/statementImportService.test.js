@@ -5,6 +5,7 @@ const {
     annotateImportDuplicates,
     buildImportPreviewMessage,
     buildImportPreviewMessages,
+    convertTransactionsForCreditCardStatement,
     detectImportFileType,
     parseCsvTransactions,
     parseImportMedia,
@@ -95,6 +96,72 @@ test('statement import marks rows that do not have a recognizable date', () => {
     assert.strictEqual(transactions[0].data, '');
     assert.strictEqual(transactions[0].needsDateInput, true);
     assert.match(buildImportPreviewMessage(transactions), /data pendente/i);
+});
+
+test('statement import finds the real header after bank metadata lines', () => {
+    const csv = [
+        'Extrato Conta Corrente',
+        'Período;01/01/2026 a 31/01/2026',
+        'Data Lançamento;Histórico;Valor (R$)',
+        '2026-01-05;Compra Mercado;-35,35',
+        '2026-01-06;Salário;2500,00'
+    ].join('\n');
+
+    const transactions = parseCsvTransactions(csv);
+
+    assert.strictEqual(transactions.length, 2);
+    assert.strictEqual(transactions[0].data, '05/01/2026');
+    assert.strictEqual(transactions[0].descricao, 'Compra Mercado');
+    assert.strictEqual(transactions[0].valor, 35.35);
+    assert.strictEqual(transactions[1].type, 'Entradas');
+    assert.strictEqual(transactions[1].data, '06/01/2026');
+});
+
+test('statement import parses bank CSVs with debit and credit in separate columns', () => {
+    const csv = [
+        'Data Movimento;Descrição;Débito;Crédito',
+        '07/01/2026;Pix Mercado;35,35;',
+        '08/01/2026;Recebimento;;120,00'
+    ].join('\n');
+
+    const transactions = parseCsvTransactions(csv);
+
+    assert.strictEqual(transactions.length, 2);
+    assert.strictEqual(transactions[0].type, 'Saídas');
+    assert.strictEqual(transactions[0].valor, 35.35);
+    assert.strictEqual(transactions[1].type, 'Entradas');
+    assert.strictEqual(transactions[1].valor, 120);
+});
+
+test('statement import ignores bank balance marker rows', () => {
+    const csv = [
+        'data,lançamentos ,,valor,saldo',
+        '20/05/2026,SALDO DO DIA,,,0.01',
+        '20/05/2026,PIX TRANSF Daniel 20/05,,300,'
+    ].join('\n');
+
+    const transactions = parseCsvTransactions(csv);
+
+    assert.strictEqual(transactions.length, 1);
+    assert.strictEqual(transactions[0].descricao, 'PIX TRANSF Daniel 20/05');
+});
+
+test('statement import converts positive Nubank card CSV rows into card purchases', () => {
+    const csv = [
+        'date,title,amount',
+        '2026-01-09,Okeo,9.00',
+        '2026-01-08,Shopee*Platinum Indust,39.90'
+    ].join('\n');
+
+    const parsed = parseCsvTransactions(csv);
+    const cardTransactions = convertTransactionsForCreditCardStatement(parsed);
+
+    assert.strictEqual(parsed.length, 2);
+    assert.strictEqual(cardTransactions.length, 2);
+    assert.strictEqual(cardTransactions[0].type, 'Cartão');
+    assert.strictEqual(cardTransactions[0].data, '09/01/2026');
+    assert.strictEqual(cardTransactions[0].descricao, 'Okeo');
+    assert.strictEqual(cardTransactions[0].valor, 9);
 });
 
 test('statement import preview includes every imported row instead of abbreviating', () => {
