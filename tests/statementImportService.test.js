@@ -83,6 +83,20 @@ test('statement import builds preview and parseImportMedia result', () => {
     assert.match(buildImportPreviewMessage(result.transactions), /Uber/);
 });
 
+test('statement import marks rows that do not have a recognizable date', () => {
+    const csv = [
+        'Descrição;Valor;Tipo',
+        'Mercado Guanabara;-35,35;Débito'
+    ].join('\n');
+
+    const transactions = parseCsvTransactions(csv);
+
+    assert.strictEqual(transactions.length, 1);
+    assert.strictEqual(transactions[0].data, '');
+    assert.strictEqual(transactions[0].needsDateInput, true);
+    assert.match(buildImportPreviewMessage(transactions), /data pendente/i);
+});
+
 test('statement import preview includes every imported row instead of abbreviating', () => {
     const csvRows = ['Data;Descrição;Valor;Tipo'];
     for (let index = 1; index <= 27; index += 1) {

@@ -39,9 +39,11 @@ const { buildDebtAvalanchePlan } = require('../services/debtAvalancheService');
 const { syncReadModelIfNeeded, executeAnalyticalIntent, markReadModelDirty } = require('../services/readModelService');
 const {
     annotateImportDuplicates,
+    applyFallbackDateToTransactions,
     buildImportPreviewMessages,
     convertTransactionsForCreditCardStatement,
     parseImportMedia,
+    transactionsNeedDateInput,
     unsupportedImportMessage
 } = require('../services/statementImportService');
 const { buildDashboardAccessLink } = require('../utils/dashboardAuth');
@@ -300,6 +302,54 @@ function buildStatementImportKindQuestion(filename = '') {
     );
 }
 
+function buildStatementImportDateQuestion(transactions = []) {
+    const missingCount = transactions.filter(item => item && item.needsDateInput).length;
+    const countLabel = missingCount === 1 ? '1 lançamento' : `${missingCount} lançamentos`;
+    return (
+        `Não encontrei data em ${countLabel} desse arquivo.\n\n` +
+        'Para não lançar no mês errado, me diga qual data ou mês devo usar nessas linhas.\n' +
+        'Exemplos: `17/01/2026` ou `janeiro/2026`.\n\n' +
+        'Se você informar só mês/ano, vou usar o dia 01 apenas para organizar no mês certo.'
+    );
+}
+
+function parseStatementImportFallbackDate(text = '') {
+    const raw = String(text || '').trim();
+    if (!raw) return null;
+
+    const parsedDate = parseSheetDate(raw);
+    if (parsedDate) return getFormattedDateOnly(parsedDate);
+
+    const numericMonth = raw.match(/^(0?[1-9]|1[0-2])[\/.-](20\d{2})$/);
+    if (numericMonth) {
+        return `01/${numericMonth[1].padStart(2, '0')}/${numericMonth[2]}`;
+    }
+
+    const normalized = normalizeText(raw);
+    const namedMonths = {
+        janeiro: '01', jan: '01',
+        fevereiro: '02', fev: '02',
+        marco: '03', março: '03', mar: '03',
+        abril: '04', abr: '04',
+        maio: '05', mai: '05',
+        junho: '06', jun: '06',
+        julho: '07', jul: '07',
+        agosto: '08', ago: '08',
+        setembro: '09', set: '09',
+        outubro: '10', out: '10',
+        novembro: '11', nov: '11',
+        dezembro: '12', dez: '12'
+    };
+    const yearMatch = normalized.match(/\b(20\d{2})\b/);
+    if (!yearMatch) return null;
+
+    const monthEntry = Object.entries(namedMonths)
+        .find(([name]) => new RegExp(`\\b${name}\\b`, 'i').test(normalized));
+    if (!monthEntry) return null;
+
+    return `01/${monthEntry[1]}/${yearMatch[1]}`;
+}
+
 function parseStatementImportKindReply(text = '') {
     const normalized = normalizeText(text);
     if (['1', 'conta', 'conta corrente', 'corrente', 'debito', 'débito'].includes(normalized)) return 'checking';
@@ -356,6 +406,21 @@ async function handleStatementImportMessage(msg, { senderId, person, userId }) {
 
     if (!parsed.transactions.length) {
         await sendPlainMessage(msg, parsed.preview);
+        return true;
+    }
+
+    if (transactionsNeedDateInput(parsed.transactions)) {
+        userStateManager.setState(senderId, {
+            action: 'awaiting_statement_import_date',
+            data: {
+                parsedTransactions: parsed.transactions,
+                filename: parsed.filename,
+                type: parsed.type,
+                person,
+                userId
+            }
+        });
+        await sendPlainMessage(msg, buildStatementImportDateQuestion(parsed.transactions));
         return true;
     }
 
@@ -2021,6 +2086,33 @@ async function handleMessage(msg) {
                 return;
             }
 
+            case 'awaiting_statement_import_date': {
+                const fallbackDate = parseStatementImportFallbackDate(msg.body);
+                const { parsedTransactions = [], person: importPerson, userId: importUserId, filename, type } = currentState.data || {};
+
+                if (!fallbackDate) {
+                    await sendPlainMessage(
+                        msg,
+                        'Não consegui entender essa data. Responda com uma data completa, como `17/01/2026`, ou com mês/ano, como `janeiro/2026`.'
+                    );
+                    return;
+                }
+
+                const transactions = applyFallbackDateToTransactions(parsedTransactions, fallbackDate);
+                userStateManager.setState(senderId, {
+                    action: 'awaiting_statement_import_kind',
+                    data: {
+                        parsedTransactions: transactions,
+                        filename,
+                        type,
+                        person: importPerson || pessoa,
+                        userId: importUserId || userId
+                    }
+                });
+                await sendPlainMessage(msg, buildStatementImportKindQuestion(filename));
+                return;
+            }
+
             case 'awaiting_statement_import_kind': {
                 const selectedKind = parseStatementImportKindReply(msg.body);
                 const { parsedTransactions = [], person: importPerson, userId: importUserId, filename } = currentState.data || {};
@@ -2094,7 +2186,15 @@ async function handleMessage(msg) {
                 const cardInfo = getSelectedCardInfo(cardOptions, selection);
                 const existingRowsByType = await loadExistingImportRows({ userId: importUserId || userId, includeCards: true });
                 const transactions = annotateImportDuplicates(
-                    cardTransactions.map(item => ({ ...item, cardInfo })),
+                    cardTransactions.map(item => {
+                        const parsedPurchaseDate = item.data ? parseSheetDate(item.data) : null;
+                        const purchaseDate = parsedPurchaseDate || new Date();
+                        return {
+                            ...item,
+                            cardInfo,
+                            mesCobranca: item.mesCobranca || buildBillingMonthName(purchaseDate, cardInfo)
+                        };
+                    }),
                     existingRowsByType
                 );
                 const previewMessages = buildImportPreviewMessages(transactions);

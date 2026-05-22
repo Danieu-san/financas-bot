@@ -367,6 +367,32 @@ stateMachineTest('financial states: statement import asks account type before sa
     assert.strictEqual(sheets[CARD_SHEETS[0]].length, 1);
 });
 
+stateMachineTest('financial states: statement import asks for a fallback date only when the file has no dates', async () => {
+    resetState();
+    const csv = [
+        'Descrição;Valor;Tipo',
+        'Mercado Guanabara;-35,35;Débito'
+    ].join('\n');
+
+    const dateQuestion = await sendMedia(csv);
+    assert.match(dateQuestion, /não encontrei data/i);
+    assert.match(dateQuestion, /janeiro\/2026/i);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_statement_import_date');
+
+    const kindQuestion = await send('janeiro/2026');
+    assert.match(kindQuestion, /conta corrente/i);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_statement_import_kind');
+
+    const preview = await send('1');
+    assert.match(preview, /01\/01\/2026/);
+    assert.match(preview, /Mercado Guanabara/);
+
+    const done = await send('sim');
+    assert.match(done, /Importação concluída/);
+    assert.strictEqual(sheets.Saídas.length, 2);
+    assert.strictEqual(sheets.Saídas[1][0], '01/01/2026');
+});
+
 stateMachineTest('financial states: statement import can route credit card purchases to selected card', async () => {
     resetState();
     const csv = [
@@ -384,6 +410,7 @@ stateMachineTest('financial states: statement import can route credit card purch
 
     const preview = await send('1');
     assert.match(preview, /Amazon/);
+    assert.match(preview, /Fatura: Junho de 2026/);
     assert.doesNotMatch(preview, /Estorno Amazon/);
     assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_statement_import');
 
@@ -394,6 +421,7 @@ stateMachineTest('financial states: statement import can route credit card purch
     assert.strictEqual(sheets[CARD_SHEETS[0]].length, 2);
     assert.strictEqual(sheets[CARD_SHEETS[0]][1][1], 'Amazon');
     assert.strictEqual(sheets[CARD_SHEETS[0]][1][4], '1/1');
+    assert.strictEqual(sheets[CARD_SHEETS[0]][1][5], 'Junho de 2026');
     assert.strictEqual(sheets[CARD_SHEETS[0]][1][6], USER_ID);
 });
 

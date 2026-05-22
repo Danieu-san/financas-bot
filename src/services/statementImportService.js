@@ -106,7 +106,7 @@ function pick(row, aliases) {
 
 function normalizeImportedDate(value) {
     const raw = String(value || '').trim();
-    if (!raw) return getFormattedDateOnly(new Date());
+    if (!raw) return '';
 
     const ofxMatch = raw.match(/^(\d{4})(\d{2})(\d{2})/);
     if (ofxMatch) {
@@ -114,7 +114,17 @@ function normalizeImportedDate(value) {
     }
 
     const parsed = parseSheetDate(raw);
-    return parsed ? getFormattedDateOnly(parsed) : raw;
+    return parsed ? getFormattedDateOnly(parsed) : '';
+}
+
+function buildImportedDateFields(value) {
+    const data = normalizeImportedDate(value);
+    if (data) return { data };
+    return {
+        data: '',
+        needsDateInput: true,
+        rawDate: String(value || '').trim()
+    };
 }
 
 function categorizeExpense(description = '') {
@@ -174,7 +184,7 @@ function isProbableInternalTransfer(description = '', ownerAliases = []) {
 function buildTransfer({ date, description, amount, explicitType = '' }) {
     return {
         type: 'Transferências',
-        data: normalizeImportedDate(date),
+        ...buildImportedDateFields(date),
         descricao: String(description || 'Transferência importada').trim() || 'Transferência importada',
         valor: Math.abs(Number(amount || 0)),
         origem: '',
@@ -202,7 +212,7 @@ function buildTransaction({ date, description, amount, explicitType = '', ownerA
     if (isIncome && !isExpense) {
         return {
             type: 'Entradas',
-            data: normalizeImportedDate(date),
+            ...buildImportedDateFields(date),
             descricao: safeDescription,
             categoria: categorizeIncome(safeDescription),
             valor: value,
@@ -215,7 +225,7 @@ function buildTransaction({ date, description, amount, explicitType = '', ownerA
     const category = categorizeExpense(safeDescription);
     return {
         type: 'Saídas',
-        data: normalizeImportedDate(date),
+        ...buildImportedDateFields(date),
         descricao: safeDescription,
         categoria: category.categoria,
         subcategoria: category.subcategoria,
@@ -235,6 +245,27 @@ function convertTransactionsForCreditCardStatement(transactions = []) {
             parcela: '1/1',
             observacoes: item.observacoes || 'Importado de extrato de cartão'
         }));
+}
+
+function transactionsNeedDateInput(transactions = []) {
+    return transactions.some(item => item && item.needsDateInput);
+}
+
+function applyFallbackDateToTransactions(transactions = [], fallbackDate) {
+    const normalizedFallback = normalizeImportedDate(fallbackDate);
+    if (!normalizedFallback) return transactions;
+
+    return transactions.map(item => {
+        if (!item || !item.needsDateInput) return item;
+        const { needsDateInput, rawDate, ...rest } = item;
+        return {
+            ...rest,
+            data: normalizedFallback,
+            observacoes: rest.observacoes
+                ? `${rest.observacoes}; data informada pelo usuário na importação`
+                : 'Data informada pelo usuário na importação'
+        };
+    });
 }
 
 function parseCsvTransactions(text, options = {}) {
@@ -362,7 +393,9 @@ function transactionLabel(item) {
 
 function formatPreviewLine(item, index) {
     const duplicateSuffix = item.duplicate ? ` | ${item.duplicateReason}; será ignorado` : '';
-    return `${index + 1}. [${transactionLabel(item)}] ${item.data} | ${item.descricao} | R$ ${formatMoney(item.valor)} | ${item.categoria || item.status || 'Outros'}${duplicateSuffix}`;
+    const dateLabel = item.data || 'data pendente';
+    const billingSuffix = item.type === 'Cartão' && item.mesCobranca ? ` | Fatura: ${item.mesCobranca}` : '';
+    return `${index + 1}. [${transactionLabel(item)}] ${dateLabel} | ${item.descricao} | R$ ${formatMoney(item.valor)} | ${item.categoria || item.status || 'Outros'}${billingSuffix}${duplicateSuffix}`;
 }
 
 function buildImportSummary(transactions = []) {
@@ -464,6 +497,7 @@ module.exports = {
     buildImportPreviewMessage,
     buildImportPreviewMessages,
     annotateImportDuplicates,
+    applyFallbackDateToTransactions,
     buildImportDuplicateKey,
     convertTransactionsForCreditCardStatement,
     detectImportFileType,
@@ -471,8 +505,10 @@ module.exports = {
     parseImportMedia,
     parseOfxTransactions,
     parseStatementText,
+    transactionsNeedDateInput,
     unsupportedImportMessage,
     __test__: {
+        applyFallbackDateToTransactions,
         buildExistingDuplicateKeys,
         buildTransaction,
         convertTransactionsForCreditCardStatement,
