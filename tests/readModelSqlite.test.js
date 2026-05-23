@@ -25,7 +25,11 @@ function syncControlledSnapshot() {
             { user_id: 'user-read-b', data: '10/02/2026', descricao: 'outro usuario', categoria: 'Alimentação', subcategoria: '', valor: 999, month: 1, year: 2026 }
         ],
         cartoes: [
-            { user_id: 'user-read-a', source: 'Cartão Nubank - Daniel', data: '12/02/2026', descricao: 'mercado cartão', categoria: 'Alimentação', subcategoria: 'Cartão de Crédito', valor: 100, month: 1, year: 2026 }
+            { user_id: 'user-read-a', source: 'Cartão Nubank - Daniel', data: '12/02/2026', descricao: 'mercado cartão', categoria: 'Alimentação', subcategoria: 'Cartão de Crédito', valor: 100, month: 1, year: 2026 },
+            { user_id: 'user-read-a', source: 'Cartão Nubank - Daniel', data: '13/02/2026', descricao: 'notebook', categoria: 'Eletrônicos', subcategoria: 'Cartão de Crédito', valor: 1000, month: 1, year: 2026 },
+            { user_id: 'user-read-a', source: 'Cartão Nubank - Daniel', data: '13/02/2026', descricao: 'notebook', categoria: 'Eletrônicos', subcategoria: 'Cartão de Crédito', valor: 1000, month: 2, year: 2026 },
+            { user_id: 'user-read-a', source: 'Cartão Itaú', data: '02/03/2026', descricao: 'farmácia', categoria: 'Saúde', subcategoria: 'Cartão de Crédito', valor: 50, month: 2, year: 2026 },
+            { user_id: 'user-read-b', source: 'Cartão Nubank - Outro', data: '12/02/2026', descricao: 'cartão outro', categoria: 'Alimentação', subcategoria: 'Cartão de Crédito', valor: 999, month: 1, year: 2026 }
         ],
         entradas: [
             { user_id: 'user-read-a', data: '05/02/2026', descricao: 'salário', categoria: 'Salário', valor: 1000, month: 1, year: 2026 },
@@ -47,8 +51,8 @@ test('sqlite read-model answers common analytical intents scoped by user_id', ()
     syncControlledSnapshot();
 
     const total = queryAnalyticalIntentSql('total_gastos_mes', { mes: 1, ano: 2026 }, { userId: 'user-read-a' });
-    assert.strictEqual(total.results, 200);
-    assert.deepStrictEqual(total.details, { totalSaidas: 100, totalCartoes: 100, mes: 1, ano: 2026 });
+    assert.strictEqual(total.results, 1200);
+    assert.deepStrictEqual(total.details, { totalSaidas: 100, totalCartoes: 1100, mes: 1, ano: 2026 });
 
     const category = queryAnalyticalIntentSql('total_gastos_categoria_mes', { categoria: 'alimentação', mes: 1, ano: 2026 }, { userId: 'user-read-a' });
     assert.strictEqual(category.results, 180);
@@ -58,23 +62,23 @@ test('sqlite read-model answers common analytical intents scoped by user_id', ()
     assert.ok(list.results.every(row => !String(row[1]).includes('outro usuario')));
 
     const balance = queryAnalyticalIntentSql('saldo_do_mes', { mes: 1, ano: 2026 }, { userId: 'user-read-a' });
-    assert.strictEqual(balance.results, 800);
+    assert.strictEqual(balance.results, -200);
 
     const minMax = queryAnalyticalIntentSql('maior_menor_gasto', { mes: 1, ano: 2026 }, { userId: 'user-read-a' });
     assert.strictEqual(minMax.results.min[1], 'uber');
-    assert.strictEqual(minMax.results.max[1], 'mercado cartão');
+    assert.strictEqual(minMax.results.max[1], 'notebook');
 
     const dailyAverage = queryAnalyticalIntentSql('media_diaria_gastos_mes', { mes: 1, ano: 2026 }, { userId: 'user-read-a' });
-    assert.strictEqual(Math.round(dailyAverage.results * 100) / 100, Math.round((200 / 28) * 100) / 100);
-    assert.strictEqual(dailyAverage.details.totalGastos, 200);
+    assert.strictEqual(Math.round(dailyAverage.results * 100) / 100, Math.round((1200 / 28) * 100) / 100);
+    assert.strictEqual(dailyAverage.details.totalGastos, 1200);
 
     const combined = queryAnalyticalIntentSql('total_gastos_multiplas_categorias', { categorias: ['alimentação', 'transporte'], mes: 1, ano: 2026 }, { userId: 'user-read-a' });
     assert.strictEqual(combined.results, 200);
 
     const percentage = queryAnalyticalIntentSql('percentual_categoria_gastos', { categoria: 'alimentação', mes: 1, ano: 2026 }, { userId: 'user-read-a' });
-    assert.strictEqual(percentage.results, 90);
+    assert.strictEqual(percentage.results, 15);
     assert.strictEqual(percentage.details.totalCategoria, 180);
-    assert.strictEqual(percentage.details.totalGastos, 200);
+    assert.strictEqual(percentage.details.totalGastos, 1200);
 
     const comparison = queryAnalyticalIntentSql('comparacao_gastos_categorias', { categorias: ['alimentação', 'transporte'], mes: 1, ano: 2026 }, { userId: 'user-read-a' });
     assert.deepStrictEqual(comparison.results.categorias, [
@@ -85,6 +89,23 @@ test('sqlite read-model answers common analytical intents scoped by user_id', ()
     const categoryMinMax = queryAnalyticalIntentSql('maior_menor_gasto_categoria', { categoria: 'alimentação', mes: 1, ano: 2026 }, { userId: 'user-read-a' });
     assert.strictEqual(categoryMinMax.results.min[1], 'lanche');
     assert.strictEqual(categoryMinMax.results.max[1], 'mercado cartão');
+
+    const invoice = queryAnalyticalIntentSql('total_fatura_cartao', { cartao: 'nubank', mes: 1, ano: 2026 }, { userId: 'user-read-a' });
+    assert.strictEqual(invoice.results, 1100);
+    assert.strictEqual(invoice.details.parcelas, 2);
+
+    const accentlessInvoice = queryAnalyticalIntentSql('total_fatura_cartao', { cartao: 'itau', mes: 2, ano: 2026 }, { userId: 'user-read-a' });
+    assert.strictEqual(accentlessInvoice.results, 50);
+    assert.strictEqual(accentlessInvoice.details.parcelas, 1);
+
+    const openCards = queryAnalyticalIntentSql('total_cartoes_em_aberto', { cartao: 'nubank', mes: 1, ano: 2026 }, { userId: 'user-read-a' });
+    assert.strictEqual(openCards.results, 2100);
+    assert.strictEqual(openCards.details.parcelas, 3);
+
+    const installments = queryAnalyticalIntentSql('resumo_parcelamentos_cartao', { cartao: 'nubank', mes: 1, ano: 2026 }, { userId: 'user-read-a' });
+    assert.strictEqual(installments.results.length, 1);
+    assert.strictEqual(installments.results[0].descricao, 'notebook');
+    assert.strictEqual(installments.results[0].totalPrevisto, 2000);
 });
 
 test('sqlite read-model powers dashboard data without cross-user leakage', () => {
@@ -93,8 +114,8 @@ test('sqlite read-model powers dashboard data without cross-user leakage', () =>
     const kpis = queryKpis('user-read-a', { month: 1, year: 2026 });
     assert.strictEqual(kpis.entradas, 1000);
     assert.strictEqual(kpis.saidas, 100);
-    assert.strictEqual(kpis.cartoes, 100);
-    assert.strictEqual(kpis.saldo, 800);
+    assert.strictEqual(kpis.cartoes, 1100);
+    assert.strictEqual(kpis.saldo, -200);
     assert.strictEqual(kpis.debtActiveCount, 1);
     assert.strictEqual(kpis.debtTotal, 1200);
 
@@ -116,7 +137,7 @@ test('sqlite read-model powers dashboard data without cross-user leakage', () =>
     assert.ok(recent.every(item => !String(item.description).includes('outro')));
 
     const alerts = queryAlerts('user-read-a', { month: 1, year: 2026 });
-    assert.deepStrictEqual(alerts, []);
+    assert.ok(alerts.some(item => item.code === 'NEGATIVE_CASHFLOW'));
 });
 
 test('sqlite read-model supports explicit admin all-users dashboard scope', () => {
@@ -125,8 +146,8 @@ test('sqlite read-model supports explicit admin all-users dashboard scope', () =
     const kpis = queryKpis(ALL_USERS_ID, { month: 1, year: 2026 });
     assert.strictEqual(kpis.entradas, 6000);
     assert.strictEqual(kpis.saidas, 1099);
-    assert.strictEqual(kpis.cartoes, 100);
-    assert.strictEqual(kpis.saldo, 4801);
+    assert.strictEqual(kpis.cartoes, 2099);
+    assert.strictEqual(kpis.saldo, 2802);
     assert.strictEqual(kpis.debtActiveCount, 2);
 
     const debts = queryDebts(ALL_USERS_ID);
@@ -148,7 +169,7 @@ test('analytical read-model reports sqlite source and hit metric', async () => {
     );
 
     assert.strictEqual(result.source, 'sqlite');
-    assert.strictEqual(result.results, 200);
+    assert.strictEqual(result.results, 1200);
 
     const snapshot = metrics.getSnapshot();
     assert.strictEqual(snapshot.counters['read_model.sqlite.hit'], 1);

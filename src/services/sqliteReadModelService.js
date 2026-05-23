@@ -467,6 +467,7 @@ function queryAnalyticalIntentSql(intent, parameters, { userId }) {
     const month = normalizeMonthParam(parameters?.mes);
     const year = normalizeYearParam(parameters?.ano);
     const categoriaRaw = String(parameters?.categoria || '').trim();
+    const cartaoRaw = String(parameters?.cartao || '').trim();
 
     const expenseMatchesCategory = (row) => {
         return matchesAnyField(
@@ -474,6 +475,21 @@ function queryAnalyticalIntentSql(intent, parameters, { userId }) {
             categoriaRaw
         );
     };
+
+    const normalizedSourceNameSql = [
+        ["'á'", "'a'"],
+        ["'à'", "'a'"],
+        ["'ã'", "'a'"],
+        ["'â'", "'a'"],
+        ["'é'", "'e'"],
+        ["'ê'", "'e'"],
+        ["'í'", "'i'"],
+        ["'ó'", "'o'"],
+        ["'ô'", "'o'"],
+        ["'õ'", "'o'"],
+        ["'ú'", "'u'"],
+        ["'ç'", "'c'"]
+    ].reduce((expr, [from, to]) => `REPLACE(${expr}, ${from}, ${to})`, 'LOWER(source_name)');
 
     if (intent === 'saldo_do_mes') {
         const kpi = queryKpis(userId, { month, year });
@@ -498,6 +514,64 @@ function queryAnalyticalIntentSql(intent, parameters, { userId }) {
                 mes: month,
                 ano: year
             }
+        };
+    }
+
+    if (intent === 'total_fatura_cartao') {
+        const cardNeedle = `%${normalizeText(cartaoRaw)}%`;
+        const rows = db.prepare(`
+            SELECT value
+            FROM expenses
+            WHERE user_id = ? AND source_type = 'cartao' AND month = ? AND year = ?
+              AND (? = '' OR ${normalizedSourceNameSql} LIKE ?)
+        `).all(userId, month, year, normalizeText(cartaoRaw), cardNeedle);
+        return {
+            results: rows.reduce((sum, row) => sum + Number(row.value || 0), 0),
+            details: { cartao: cartaoRaw, mes: month, ano: year, parcelas: rows.length }
+        };
+    }
+
+    if (intent === 'total_cartoes_em_aberto') {
+        const targetKey = Number(year || 0) * 12 + Number(month || 0);
+        const cardNeedle = `%${normalizeText(cartaoRaw)}%`;
+        const rows = db.prepare(`
+            SELECT value, year, month
+            FROM expenses
+            WHERE user_id = ? AND source_type = 'cartao'
+              AND ((year * 12) + month) >= ?
+              AND (? = '' OR ${normalizedSourceNameSql} LIKE ?)
+        `).all(userId, targetKey, normalizeText(cartaoRaw), cardNeedle);
+        const monthKeys = new Set(rows.map(row => `${row.year}-${row.month}`));
+        return {
+            results: rows.reduce((sum, row) => sum + Number(row.value || 0), 0),
+            details: { cartao: cartaoRaw, mes: month, ano: year, parcelas: rows.length, meses: monthKeys.size }
+        };
+    }
+
+    if (intent === 'resumo_parcelamentos_cartao') {
+        const targetKey = Number(year || 0) * 12 + Number(month || 0);
+        const cardNeedle = `%${normalizeText(cartaoRaw)}%`;
+        const rows = db.prepare(`
+            SELECT description, source_name, category, COUNT(*) AS parcelasLancadas, SUM(value) AS totalPrevisto, MIN(date_text) AS primeiraParcela, MAX(date_text) AS ultimaParcela
+            FROM expenses
+            WHERE user_id = ? AND source_type = 'cartao'
+              AND ((year * 12) + month) >= ?
+              AND (? = '' OR ${normalizedSourceNameSql} LIKE ?)
+            GROUP BY description, source_name, category
+            HAVING COUNT(*) > 1
+            ORDER BY totalPrevisto DESC
+        `).all(userId, targetKey, normalizeText(cartaoRaw), cardNeedle);
+        return {
+            results: rows.map(row => ({
+                descricao: row.description || '',
+                cartao: row.source_name || '',
+                categoria: row.category || '',
+                parcelasLancadas: Number(row.parcelasLancadas || 0),
+                totalPrevisto: Number(row.totalPrevisto || 0),
+                primeiraParcela: row.primeiraParcela || '',
+                ultimaParcela: row.ultimaParcela || ''
+            })),
+            details: { cartao: cartaoRaw, mes: month, ano: year }
         };
     }
 

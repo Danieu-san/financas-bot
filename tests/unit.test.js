@@ -17,6 +17,7 @@ const creationHandler = require('../src/handlers/creationHandler');
 const debtHandler = require('../src/handlers/debtHandler');
 const deletionHandler = require('../src/handlers/deletionHandler');
 const googleService = require('../src/services/google');
+const calculationOrchestrator = require('../src/services/calculationOrchestrator');
 
 // --- Helpers Tests ---
 test('helpers.parseValue', (t) => {
@@ -310,6 +311,18 @@ test('messageHandler.classifyPerguntaLocally covers complex analytical questions
     const comparison = inferAnalyticalQueryPlan('mercado foi maior que transporte em maio de 2026?');
     assert.strictEqual(comparison.intent, 'comparacao_gastos_categorias');
     assert.deepStrictEqual(comparison.parameters.categorias, ['mercado', 'transporte']);
+
+    const invoice = classifyPerguntaLocally('quanto está a fatura do nubank em maio de 2026?');
+    assert.strictEqual(invoice.intent, 'total_fatura_cartao');
+    assert.strictEqual(invoice.parameters.cartao, 'nubank');
+    assert.strictEqual(invoice.parameters.mes, 4);
+
+    const openCards = classifyPerguntaLocally('quanto ainda tenho em aberto nos cartões a partir de maio de 2026?');
+    assert.strictEqual(openCards.intent, 'total_cartoes_em_aberto');
+    assert.strictEqual(openCards.parameters.mes, 4);
+
+    const installments = classifyPerguntaLocally('quais parcelamentos tenho ativos no cartão?');
+    assert.strictEqual(installments.intent, 'resumo_parcelamentos_cartao');
 });
 
 test('messageHandler local command routing avoids AI for common commands and low-signal text', (t) => {
@@ -406,6 +419,41 @@ test('messageHandler local replies cover richer spreadsheet calculations', () =>
         }),
         /Maior e menor gasto com mercado.*mercado.*R\$ 46,46/s
     );
+
+    assert.match(
+        buildLocalPerguntaResponse({
+            intent: 'total_fatura_cartao',
+            analyzedData: {
+                results: 345.67,
+                details: { cartao: 'nubank', mes: 4, ano: 2026, parcelas: 3 }
+            }
+        }),
+        /Fatura.*nubank.*maio\/2026.*R\$ 345,67.*3 parcela/s
+    );
+
+    assert.match(
+        buildLocalPerguntaResponse({
+            intent: 'total_cartoes_em_aberto',
+            analyzedData: {
+                results: 800,
+                details: { cartao: '', mes: 4, ano: 2026, parcelas: 8, meses: 4 }
+            }
+        }),
+        /Em aberto.*cartões.*R\$ 800,00.*8 parcela/s
+    );
+
+    assert.match(
+        buildLocalPerguntaResponse({
+            intent: 'resumo_parcelamentos_cartao',
+            analyzedData: {
+                results: [
+                    { descricao: 'notebook', cartao: 'Nubank', categoria: 'Eletrônicos', parcelasLancadas: 3, totalPrevisto: 3000, primeiraParcela: '10/05/2026', ultimaParcela: '10/07/2026' }
+                ],
+                details: { cartao: '', mes: 4, ano: 2026 }
+            }
+        }),
+        /Parcelamentos.*notebook.*Nubank.*R\$ 3000,00/s
+    );
 });
 
 test('creationHandler debt success message explains dashboard and spending distinction', () => {
@@ -416,6 +464,35 @@ test('creationHandler debt success message explains dashboard and spending disti
     assert.match(message, /dashboard/i);
     assert.match(message, /não entra como gasto/i);
     assert.match(message, /registrar pagamento/i);
+});
+
+test('calculationOrchestrator calculates card invoices and open installments deterministically', async () => {
+    const dataSources = {
+        saidas: [['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id']],
+        entradas: [['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Obs', 'user_id']],
+        cartoes: [[
+            ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Observações', 'user_id'],
+            ['10/05/2026', 'notebook', 'Eletrônicos', 1000, '1/3', 'Maio de 2026', 'nubank-daniel', 'Nubank Daniel', '', 'user-1'],
+            ['10/05/2026', 'notebook', 'Eletrônicos', 1000, '2/3', 'Junho de 2026', 'nubank-daniel', 'Nubank Daniel', '', 'user-1'],
+            ['10/05/2026', 'notebook', 'Eletrônicos', 1000, '3/3', 'Julho de 2026', 'nubank-daniel', 'Nubank Daniel', '', 'user-1'],
+            ['12/05/2026', 'mercado', 'Alimentação', 200, '1/1', 'Maio de 2026', 'itau', 'Itaú', '', 'user-1']
+        ]]
+    };
+
+    const invoice = await calculationOrchestrator.execute('total_fatura_cartao', { cartao: 'nubank', mes: 4, ano: 2026 }, dataSources);
+    assert.strictEqual(invoice.results, 1000);
+    assert.strictEqual(invoice.details.parcelas, 1);
+
+    const open = await calculationOrchestrator.execute('total_cartoes_em_aberto', { mes: 4, ano: 2026 }, dataSources);
+    assert.strictEqual(open.results, 3200);
+    assert.strictEqual(open.details.parcelas, 4);
+    assert.strictEqual(open.details.meses, 3);
+
+    const installments = await calculationOrchestrator.execute('resumo_parcelamentos_cartao', { cartao: 'nubank', mes: 4, ano: 2026 }, dataSources);
+    assert.strictEqual(installments.results.length, 1);
+    assert.strictEqual(installments.results[0].descricao, 'notebook');
+    assert.strictEqual(installments.results[0].totalPrevisto, 3000);
+    assert.strictEqual(installments.results[0].parcelasLancadas, 3);
 });
 
 test('messageHandler.normalizeMetricLabel keeps metric names bounded and safe', (t) => {

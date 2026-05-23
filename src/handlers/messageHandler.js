@@ -558,7 +558,10 @@ const analyticalStopWords = new Set([
     'percentual', 'porcentagem', 'por', 'cento', 'media', 'média',
     'diaria', 'diária', 'dia', 'dias', 'vezes', 'ocorrencia', 'ocorrencias',
     'ocorrência', 'ocorrências', 'foi', 'foi?', 'foi.',
-    'maior', 'menor', 'liste', 'listar', 'mostre', 'mostrar'
+    'maior', 'menor', 'liste', 'listar', 'mostre', 'mostrar',
+    'cartao', 'cartão', 'credito', 'crédito', 'fatura', 'faturas',
+    'parcela', 'parcelas', 'parcelamento', 'parcelamentos',
+    'aberto', 'ativos', 'ativa', 'ativas'
 ]);
 
 function cleanAnalyticalCategory(value) {
@@ -628,6 +631,17 @@ function extractComparisonCategoriesFromQuestion(text) {
     return [];
 }
 
+function extractCardFromQuestion(text) {
+    const normalized = normalizeText(String(text || '').trim());
+    const knownCards = ['nubank', 'itau', 'itaú', 'atacadao', 'atacadão', 'inter', 'santander', 'bradesco'];
+    const known = knownCards.find(card => normalized.includes(normalizeText(card)));
+    if (known) return normalizeText(known);
+
+    const explicit = normalized.match(/\b(?:cartao|cartão|fatura)\s+(?:do|da|de)?\s*([a-z0-9À-ÿ\s]+?)(?:\s+em\s+|\s+no\s+|\s+na\s+|\s+a\s+partir\s+|\?|$)/i);
+    if (explicit && explicit[1]) return cleanAnalyticalCategory(explicit[1]);
+    return '';
+}
+
 function inferAnalyticalQueryPlan(userQuestion) {
     const text = normalizeText(String(userQuestion || '').trim());
     if (!text) return null;
@@ -639,6 +653,19 @@ function inferAnalyticalQueryPlan(userQuestion) {
     const categories = extractMultipleCategoriesFromQuestion(text);
     const comparisonCategories = extractComparisonCategoriesFromQuestion(text);
     const singleCategory = cleanAnalyticalCategory(extractCategoryFromQuestion(text));
+    const cardName = extractCardFromQuestion(text);
+
+    const hasCardSignal = text.includes('cartao') || text.includes('cartoes');
+
+    if (text.includes('fatura') || (hasCardSignal && text.includes('quanto') && !text.includes('aberto'))) {
+        return { metric: 'card_invoice_total', intent: 'total_fatura_cartao', parameters: { cartao: cardName, mes, ano } };
+    }
+    if ((text.includes('aberto') || text.includes('futuro') || text.includes('futuras')) && (hasCardSignal || text.includes('fatura') || text.includes('parcela'))) {
+        return { metric: 'open_card_installments', intent: 'total_cartoes_em_aberto', parameters: { cartao: cardName, mes, ano } };
+    }
+    if (text.includes('parcelamento') || (text.includes('parcelas') && (text.includes('ativas') || text.includes('ativos') || text.includes('quais')))) {
+        return { metric: 'card_installment_summary', intent: 'resumo_parcelamentos_cartao', parameters: { cartao: cardName, mes, ano } };
+    }
 
     if (text.includes('saldo') || text.includes('sobrou') || text.includes('restou')) {
         return { metric: 'balance', intent: 'saldo_do_mes', parameters: { mes, ano } };
@@ -722,10 +749,10 @@ function detectFastPerguntaIntent(messageBody) {
     const text = normalizeText(String(messageBody || '').trim());
     if (!text) return null;
 
-    const isQuestionShape = /^(qual|quais|quanto|quantos|quantas|conte|contar|media|média|liste|listar|mostre|mostrar|me diga|como ficou|como esta|como estão)/.test(text) || text.includes('?');
+    const isQuestionShape = /^(qual|quais|quanto|quantos|quantas|conte|contar|media|média|liste|listar|mostre|mostrar|me mostre|me mostra|me diga|como ficou|como esta|como estão)/.test(text) || text.includes('?');
     if (!isQuestionShape) return null;
 
-    const looksAnalytical = /(saldo|gastei|gasto|gastos|entrada|entradas|divida|dividas|categoria|mes|ano|vezes|ocorrencia|ocorrencias|duplicad|maior|menor|onibus|ônibus|uber|transporte|janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/.test(text);
+    const looksAnalytical = /(saldo|gastei|gasto|gastos|entrada|entradas|divida|dividas|categoria|mes|ano|vezes|ocorrencia|ocorrencias|duplicad|maior|menor|onibus|ônibus|uber|transporte|cartao|cartão|credito|crédito|fatura|parcelamento|parcelas|aberto|nubank|itau|itaú|atacadao|atacadão|janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/.test(text);
     if (!looksAnalytical) return null;
 
     return {
@@ -898,6 +925,34 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
             `- Maior: ${max ? `${max[1] || '-'} (${formatCurrencyBR(max[4] || 0)})` : '-'}`,
             `- Menor: ${min ? `${min[1] || '-'} (${formatCurrencyBR(min[4] || 0)})` : '-'}`
         ].join('\n');
+    }
+
+    if (intent === 'total_fatura_cartao') {
+        const cardLabel = details.cartao ? ` do ${details.cartao}` : '';
+        const parcelas = details.parcelas ? `\n${details.parcelas} parcela(s) lançadas` : '';
+        return `Fatura${cardLabel} em ${periodLabel}: ${formatCurrencyBR(results)}${parcelas}`;
+    }
+
+    if (intent === 'total_cartoes_em_aberto') {
+        const cardLabel = details.cartao ? ` no ${details.cartao}` : ' nos cartões';
+        const parcelas = details.parcelas ? `\n${details.parcelas} parcela(s) em aberto` : '';
+        const meses = details.meses ? `\nMeses com cobrança: ${details.meses}` : '';
+        return `Em aberto${cardLabel} a partir de ${periodLabel}: ${formatCurrencyBR(results)}${parcelas}${meses}`;
+    }
+
+    if (intent === 'resumo_parcelamentos_cartao') {
+        if (!Array.isArray(results) || results.length === 0) {
+            return `Não encontrei parcelamentos ativos a partir de ${periodLabel}.`;
+        }
+        const lines = results.slice(0, 10).map((item, idx) => [
+            `${idx + 1}. ${item.descricao || 'sem descrição'}`,
+            item.cartao ? ` | ${item.cartao}` : '',
+            ` | ${formatCurrencyBR(item.totalPrevisto || 0)}`,
+            ` | ${item.parcelasLancadas || 0} parcela(s)`,
+            item.ultimaParcela ? ` | até ${formatSheetDateForReply(item.ultimaParcela)}` : ''
+        ].join(''));
+        const truncated = results.length > 10 ? `\n... e mais ${results.length - 10} parcelamento(s).` : '';
+        return `Parcelamentos ativos a partir de ${periodLabel}:\n${lines.join('\n')}${truncated}`;
     }
 
     return null;

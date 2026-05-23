@@ -437,6 +437,40 @@ function withResultSource(result, source) {
     return { ...result, source };
 }
 
+function readModelCardMatches(entry, cardName) {
+    const needle = normalizeText(cardName || '');
+    if (!needle) return true;
+    return normalizeText(entry?.source || '').includes(needle);
+}
+
+function readModelCardRowsFromPeriod(entries, month, year) {
+    if (month === null || month === undefined || !Number.isInteger(year)) return entries;
+    const targetKey = year * 12 + month;
+    return entries.filter(entry => Number(entry.year || 0) * 12 + Number(entry.month || 0) >= targetKey);
+}
+
+function summarizeReadModelCardInstallments(entries) {
+    const grouped = new Map();
+    entries.forEach((entry) => {
+        const key = [normalizeText(entry.descricao), normalizeText(entry.source), normalizeText(entry.categoria)].join('|');
+        const existing = grouped.get(key) || {
+            descricao: entry.descricao || 'sem descrição',
+            cartao: entry.source || '',
+            categoria: entry.categoria || '',
+            parcelasLancadas: 0,
+            totalPrevisto: 0,
+            primeiraParcela: entry.data || '',
+            ultimaParcela: entry.data || ''
+        };
+        existing.parcelasLancadas += 1;
+        existing.totalPrevisto += Number(entry.valor || 0);
+        grouped.set(key, existing);
+    });
+    return Array.from(grouped.values())
+        .filter(item => item.parcelasLancadas > 1)
+        .sort((a, b) => b.totalPrevisto - a.totalPrevisto);
+}
+
 async function executeAnalyticalIntent(intent, parameters, { userId }) {
     const sqlResult = queryAnalyticalIntentSql(intent, parameters, { userId });
     if (sqlResult) {
@@ -585,6 +619,40 @@ async function executeAnalyticalIntent(intent, parameters, { userId }) {
                 mes: month,
                 ano: year
             }
+        }, 'memory_fallback');
+    }
+    case 'total_fatura_cartao': {
+        const rows = cartoesDoUsuario.filter(entry => readModelCardMatches(entry, parameters?.cartao));
+        return withResultSource({
+            results: rows.reduce((sum, entry) => sum + Number(entry.valor || 0), 0),
+            details: { cartao: parameters?.cartao || '', mes: month, ano: year, parcelas: rows.length }
+        }, 'memory_fallback');
+    }
+    case 'total_cartoes_em_aberto': {
+        const rows = readModelCardRowsFromPeriod(
+            readModel.cartoes
+                .filter(entry => entry.user_id === userId)
+                .filter(entry => readModelCardMatches(entry, parameters?.cartao)),
+            month,
+            year
+        );
+        const monthKeys = new Set(rows.map(entry => `${entry.year}-${entry.month}`));
+        return withResultSource({
+            results: rows.reduce((sum, entry) => sum + Number(entry.valor || 0), 0),
+            details: { cartao: parameters?.cartao || '', mes: month, ano: year, parcelas: rows.length, meses: monthKeys.size }
+        }, 'memory_fallback');
+    }
+    case 'resumo_parcelamentos_cartao': {
+        const rows = readModelCardRowsFromPeriod(
+            readModel.cartoes
+                .filter(entry => entry.user_id === userId)
+                .filter(entry => readModelCardMatches(entry, parameters?.cartao)),
+            month,
+            year
+        );
+        return withResultSource({
+            results: summarizeReadModelCardInstallments(rows),
+            details: { cartao: parameters?.cartao || '', mes: month, ano: year }
         }, 'memory_fallback');
     }
     default:

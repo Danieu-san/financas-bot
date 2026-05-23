@@ -48,6 +48,8 @@ const getUnifiedExpenses = (dataSources, mes, ano) => {
     });
 };
 
+const MONTH_NAMES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
 function daysConsideredForAverage(mes, ano, now = new Date()) {
     if (mes === null || mes === undefined) return 365;
     if (ano === now.getFullYear() && mes === now.getMonth()) {
@@ -61,6 +63,92 @@ function expenseMatchesCategory(item, category) {
         [item.categoria || '', item.subcategoria || '', item.descricao || ''],
         category
     );
+}
+
+function parseBillingMonth(value) {
+    const match = String(value || '').trim().match(/^([A-Za-zÀ-ÿ]+)\s+de\s+(20\d{2})$/i);
+    if (!match) return null;
+    const month = getMonthIndex(match[1]);
+    const year = Number.parseInt(match[2], 10);
+    if (month === null || !Number.isInteger(year)) return null;
+    return { month, year, key: year * 12 + month };
+}
+
+function targetBillingLabel(mes, ano) {
+    const month = getMonthIndex(mes);
+    const year = Number.parseInt(ano, 10);
+    if (month === null || !Number.isInteger(year)) return '';
+    return `${MONTH_NAMES[month]} de ${year}`;
+}
+
+function getCreditCardRows(dataSources = {}) {
+    const cardSheets = Array.isArray(dataSources.cartoes) ? dataSources.cartoes : [];
+    return cardSheets.flatMap((sheetRows) => {
+        if (!Array.isArray(sheetRows) || sheetRows.length <= 1) return [];
+        return sheetRows.slice(1).map(row => ({
+            date: row[0] || '',
+            descricao: row[1] || '',
+            categoria: row[2] || 'Cartão',
+            valor: parseValue(row[3]),
+            parcela: row[4] || '',
+            mesCobranca: row[5] || '',
+            cardId: row.length >= 10 ? row[6] || '' : '',
+            cartao: row.length >= 10 ? row[7] || row[6] || '' : '',
+            raw: row
+        }));
+    });
+}
+
+function cardMatches(row, cardName) {
+    const needle = normalizeText(cardName);
+    if (!needle) return true;
+    return [row.cardId, row.cartao]
+        .map(value => normalizeText(value))
+        .some(value => value.includes(needle));
+}
+
+function billingMatches(row, mes, ano) {
+    const expected = targetBillingLabel(mes, ano);
+    return expected && String(row.mesCobranca || '').trim() === expected;
+}
+
+function filterCardRowsFromPeriod(rows, mes, ano) {
+    const month = getMonthIndex(mes);
+    const year = Number.parseInt(ano, 10);
+    if (month === null || !Number.isInteger(year)) return rows;
+    const targetKey = year * 12 + month;
+    return rows.filter(row => {
+        const parsed = parseBillingMonth(row.mesCobranca);
+        return parsed && parsed.key >= targetKey;
+    });
+}
+
+function summarizeInstallments(rows) {
+    const grouped = new Map();
+    rows.forEach((row) => {
+        const key = [normalizeText(row.descricao), normalizeText(row.cartao), normalizeText(row.categoria)].join('|');
+        const existing = grouped.get(key) || {
+            descricao: row.descricao || 'sem descrição',
+            cartao: row.cartao || '',
+            categoria: row.categoria || '',
+            parcelasLancadas: 0,
+            totalPrevisto: 0,
+            primeiraParcela: row.date || '',
+            ultimaParcela: row.date || ''
+        };
+        existing.parcelasLancadas += 1;
+        existing.totalPrevisto += Number(row.valor || 0);
+        if (row.date && (!existing.primeiraParcela || String(row.date).localeCompare(String(existing.primeiraParcela)) < 0)) {
+            existing.primeiraParcela = row.date;
+        }
+        if (row.date && (!existing.ultimaParcela || String(row.date).localeCompare(String(existing.ultimaParcela)) > 0)) {
+            existing.ultimaParcela = row.date;
+        }
+        grouped.set(key, existing);
+    });
+    return Array.from(grouped.values())
+        .filter(item => item.parcelasLancadas > 1 || /\/[2-9]\d*$/.test(String(rows.find(row => row.descricao === item.descricao)?.parcela || '')))
+        .sort((a, b) => b.totalPrevisto - a.totalPrevisto);
 }
 
 const operationRegistry = {
@@ -260,6 +348,57 @@ const operationRegistry = {
         const saldo = totalEntradas - (totalSaidas + totalCartoes);
         return { results: saldo, details: { totalSaidas: totalSaidas + totalCartoes, totalEntradas, mes, ano } };
     },
+    total_fatura_cartao: async function(params, dataSources) {
+        const mes = getMonthIndex(params.mes);
+        const ano = parseInt(params.ano, 10);
+        const rows = getCreditCardRows(dataSources)
+            .filter(row => cardMatches(row, params.cartao))
+            .filter(row => billingMatches(row, mes, ano));
+        const total = rows.reduce((sum, row) => sum + Number(row.valor || 0), 0);
+        return {
+            results: total,
+            details: {
+                cartao: params.cartao || '',
+                mes,
+                ano,
+                parcelas: rows.length
+            }
+        };
+    },
+    total_cartoes_em_aberto: async function(params, dataSources) {
+        const mes = getMonthIndex(params.mes);
+        const ano = parseInt(params.ano, 10);
+        const rows = filterCardRowsFromPeriod(
+            getCreditCardRows(dataSources).filter(row => cardMatches(row, params.cartao)),
+            mes,
+            ano
+        );
+        const total = rows.reduce((sum, row) => sum + Number(row.valor || 0), 0);
+        const billingMonths = new Set(rows.map(row => row.mesCobranca).filter(Boolean));
+        return {
+            results: total,
+            details: {
+                cartao: params.cartao || '',
+                mes,
+                ano,
+                parcelas: rows.length,
+                meses: billingMonths.size
+            }
+        };
+    },
+    resumo_parcelamentos_cartao: async function(params, dataSources) {
+        const mes = getMonthIndex(params.mes);
+        const ano = parseInt(params.ano, 10);
+        const rows = filterCardRowsFromPeriod(
+            getCreditCardRows(dataSources).filter(row => cardMatches(row, params.cartao)),
+            mes,
+            ano
+        );
+        return {
+            results: summarizeInstallments(rows),
+            details: { cartao: params.cartao || '', mes, ano }
+        };
+    },
     pergunta_geral: async function(params, dataSources) {
         return { results: 'Pergunta genérica', details: null };
     }
@@ -270,4 +409,4 @@ async function execute(intent, parameters, dataSources) {
     return await calculator(parameters, dataSources);
 }
 
-module.exports = { execute };
+module.exports = { execute, __test__: { parseBillingMonth, getCreditCardRows, summarizeInstallments } };
