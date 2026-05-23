@@ -174,24 +174,24 @@ function headerToNumberFormat(header) {
     return null;
 }
 
-function buildDashboardRows({ user = {} } = {}) {
+function buildDashboardRows({ user = {}, dataStartRow = 2 } = {}) {
     const displayName = safeDisplayName(user.display_name || 'Usuário');
     return [
         [`FinançasBot - Painel de ${displayName}`, '', '', '', ''],
         ['Atualiza conforme seus lançamentos entram pelas abas e pelo WhatsApp.', '', '', '', ''],
         ['', '', '', '', ''],
         ['Indicador', 'Valor', 'Observação', 'user_id', 'updated_at'],
-        ['Entradas', "=SUM('Entradas'!D2:D)", 'Recebimentos registrados', user.user_id || '', '=NOW()'],
-        ['Saídas', "=SUM('Saídas'!E2:E)", 'Gastos pagos fora do cartão', user.user_id || '', '=NOW()'],
-        ['Cartões', "=SUM('Lançamentos Cartão'!D2:D)", 'Parcelas/faturas lançadas nos seus cartões', user.user_id || '', '=NOW()'],
+        ['Entradas', `=SUM('Entradas'!D${dataStartRow}:D)`, 'Recebimentos registrados', user.user_id || '', '=NOW()'],
+        ['Saídas', `=SUM('Saídas'!E${dataStartRow}:E)`, 'Gastos pagos fora do cartão', user.user_id || '', '=NOW()'],
+        ['Cartões', `=SUM('Lançamentos Cartão'!D${dataStartRow}:D)`, 'Parcelas/faturas lançadas nos seus cartões', user.user_id || '', '=NOW()'],
         ['Saldo estimado', '=B5-B6-B7', 'Entradas menos saídas e cartões', user.user_id || '', '=NOW()'],
         ['', '', '', '', ''],
         ['Resumo para gráfico', 'Valor', '', '', ''],
         ['Entradas', '=B5', '', '', ''],
         ['Saídas', '=B6', '', '', ''],
         ['Cartões', '=B7', '', '', ''],
-        ['Dívidas', "=SUM('Dívidas'!E2:E)", '', '', ''],
-        ['Transferências internas', "=SUM('Transferências'!C2:C)", 'Movimentos entre suas próprias contas; não entram no saldo estimado.', user.user_id || '', '=NOW()'],
+        ['Dívidas', `=SUM('Dívidas'!E${dataStartRow}:E)`, '', '', ''],
+        ['Transferências internas', `=SUM('Transferências'!C${dataStartRow}:C)`, 'Movimentos entre suas próprias contas; não entram no saldo estimado.', user.user_id || '', '=NOW()'],
         ['Faturas por mês', "=COUNTA('Faturas'!A2:A)", 'Aba Faturas mostra totais por cartão e mês de cobrança.', user.user_id || '', '=NOW()'],
         ['Parcelamentos ativos', "=COUNTA('Parcelamentos'!A2:A)", 'Aba Parcelamentos mostra compras agrupadas, parcelas lançadas e total previsto.', user.user_id || '', '=NOW()'],
         ['', '', '', '', ''],
@@ -228,9 +228,10 @@ function buildManualRows({ user = {} } = {}) {
     ];
 }
 
-function buildInvoiceSummaryRows() {
+function buildInvoiceSummaryRows({ dataStartRow = 2 } = {}) {
+    const headerCount = dataStartRow > 2 ? 0 : 1;
     return [[
-        '=QUERY(\'Lançamentos Cartão\'!A:J,"select H, F, sum(D), count(D), min(A), max(A) where H is not null group by H, F label H \'Cartão\', F \'Mês de Cobrança\', sum(D) \'Total da Fatura\', count(D) \'Parcelas Lançadas\', min(A) \'Primeira Compra\', max(A) \'Última Compra\'",1)',
+        `=QUERY('Lançamentos Cartão'!A${dataStartRow}:J,"select H, F, sum(D), count(D), min(A), max(A) where H is not null group by H, F label H 'Cartão', F 'Mês de Cobrança', sum(D) 'Total da Fatura', count(D) 'Parcelas Lançadas', min(A) 'Primeira Compra', max(A) 'Última Compra'",${headerCount})`,
         '',
         '',
         '',
@@ -239,9 +240,10 @@ function buildInvoiceSummaryRows() {
     ]];
 }
 
-function buildInstallmentSummaryRows() {
+function buildInstallmentSummaryRows({ dataStartRow = 2 } = {}) {
+    const headerCount = dataStartRow > 2 ? 0 : 1;
     return [[
-        '=QUERY(\'Lançamentos Cartão\'!A:J,"select B, H, C, count(D), sum(D), min(A), max(A) where B is not null group by B, H, C label B \'Descrição\', H \'Cartão\', C \'Categoria\', count(D) \'Parcelas Lançadas\', sum(D) \'Total Previsto\', min(A) \'Primeira Parcela\', max(A) \'Última Parcela\'",1)',
+        `=QUERY('Lançamentos Cartão'!A${dataStartRow}:J,"select B, H, C, count(D), sum(D), min(A), max(A) where B is not null group by B, H, C label B 'Descrição', H 'Cartão', C 'Categoria', count(D) 'Parcelas Lançadas', sum(D) 'Total Previsto', min(A) 'Primeira Parcela', max(A) 'Última Parcela'",${headerCount})`,
         '',
         '',
         '',
@@ -251,11 +253,30 @@ function buildInstallmentSummaryRows() {
     ]];
 }
 
-function buildStarterValueRanges({ user = {} } = {}) {
-    return [
+const USER_INPUT_EXAMPLE_ROWS = Object.freeze({
+    'Saídas': ['01/01/2026', 'Exemplo: mercado', 'Alimentação', 'Supermercado', '25,00', 'Seu nome', 'PIX', 'Não', 'Exemplo de gasto; pode apagar esta linha.', ''],
+    'Entradas': ['01/01/2026', 'Exemplo: salário', 'Salário', '3000,00', 'Seu nome', 'Conta Corrente', 'Sim', 'Exemplo de entrada; pode apagar esta linha.', ''],
+    'Transferências': ['01/01/2026', 'Exemplo: pix para reserva', '500,00', 'Conta corrente', 'Poupança', 'PIX', 'Transferência entre suas contas; não é gasto.', 'Conferida', ''],
+    'Dívidas': ['Exemplo: financiamento', 'Banco Exemplo', 'Financiamento', '10000,00', '8500,00', '500,00', '1,5% a.m.', '10', '01/01/2026', '24', '3', 'Em dia', 'Exemplo de dívida; pode apagar.', '', '', '', 'Avalanche', ''],
+    'Metas': ['Exemplo: reserva de emergência', '10000,00', '1500,00', '', '', '31/12/2026', 'Em andamento', 'Alta', ''],
+    'Cartões': ['nubank-principal', 'Nubank Principal', 'Nubank', '8', '15', 'SIM', 'Exemplo de cartão; edite ou apague.', ''],
+    'Lançamentos Cartão': ['01/01/2026', 'Exemplo: compra parcelada', 'Casa', '100,00', '1/3', 'Janeiro de 2026', 'nubank-principal', 'Nubank Principal', 'Exemplo gerado para orientar; pode apagar.', ''],
+    'Contas': ['Exemplo: internet', '15', 'Conta recorrente que vence todo mês.', '']
+});
+
+function buildInputExampleRanges() {
+    return Object.entries(USER_INPUT_EXAMPLE_ROWS).map(([title, values]) => ({
+        range: `${quoteSheetName(title)}!A2:${columnLetter(values.length - 1)}2`,
+        values: [values]
+    }));
+}
+
+function buildStarterValueRanges({ user = {}, includeInputExamples = false } = {}) {
+    const dataStartRow = includeInputExamples ? 3 : 2;
+    const ranges = [
         {
             range: `${quoteSheetName('Dashboard')}!A1:E19`,
-            values: buildDashboardRows({ user })
+            values: buildDashboardRows({ user, dataStartRow })
         },
         {
             range: `${quoteSheetName('Manual')}!A1:C23`,
@@ -263,13 +284,17 @@ function buildStarterValueRanges({ user = {} } = {}) {
         },
         {
             range: `${quoteSheetName('Faturas')}!A1:F1`,
-            values: buildInvoiceSummaryRows()
+            values: buildInvoiceSummaryRows({ dataStartRow })
         },
         {
             range: `${quoteSheetName('Parcelamentos')}!A1:G1`,
-            values: buildInstallmentSummaryRows()
+            values: buildInstallmentSummaryRows({ dataStartRow })
         }
     ];
+    if (includeInputExamples) {
+        ranges.push(...buildInputExampleRanges());
+    }
+    return ranges;
 }
 
 function getSheetsClient(auth) {
@@ -290,13 +315,13 @@ async function writeHeaders({ sheetsClient, spreadsheetId }) {
     }
 }
 
-async function writeStarterContent({ sheetsClient, spreadsheetId, user }) {
+async function writeStarterContent({ sheetsClient, spreadsheetId, user, includeInputExamples = false }) {
     if (!sheetsClient?.spreadsheets?.values?.batchUpdate) return;
     await sheetsClient.spreadsheets.values.batchUpdate({
         spreadsheetId,
         resource: {
             valueInputOption: 'USER_ENTERED',
-            data: buildStarterValueRanges({ user })
+            data: buildStarterValueRanges({ user, includeInputExamples })
         }
     });
 }
@@ -701,7 +726,7 @@ async function formatUserSpreadsheet({ sheetsClient, spreadsheetId, spreadsheet 
     });
 }
 
-async function applyUserSpreadsheetTemplate({ user, oauth2Client, sheetsClient, spreadsheetId, spreadsheet }) {
+async function applyUserSpreadsheetTemplate({ user, oauth2Client, sheetsClient, spreadsheetId, spreadsheet, includeInputExamples = false }) {
     const safeUser = user || {};
     const safeSpreadsheetId = String(spreadsheetId || '').trim();
     if (!safeSpreadsheetId) throw new Error('spreadsheetId é obrigatório para aplicar template da planilha do usuário.');
@@ -711,7 +736,7 @@ async function applyUserSpreadsheetTemplate({ user, oauth2Client, sheetsClient, 
     spreadsheetMetadata = await ensureUserSpreadsheetTabs({ sheetsClient: client, spreadsheetId: safeSpreadsheetId, spreadsheet: spreadsheetMetadata });
 
     await writeHeaders({ sheetsClient: client, spreadsheetId: safeSpreadsheetId });
-    await writeStarterContent({ sheetsClient: client, spreadsheetId: safeSpreadsheetId, user: safeUser });
+    await writeStarterContent({ sheetsClient: client, spreadsheetId: safeSpreadsheetId, user: safeUser, includeInputExamples });
     await formatUserSpreadsheet({ sheetsClient: client, spreadsheetId: safeSpreadsheetId, spreadsheet: spreadsheetMetadata });
 
     return { spreadsheetId: safeSpreadsheetId };
@@ -733,7 +758,8 @@ async function createUserSpreadsheetForUser({ user, oauth2Client, sheetsClient }
         user: safeUser,
         sheetsClient: client,
         spreadsheetId,
-        spreadsheet: created?.data
+        spreadsheet: created?.data,
+        includeInputExamples: true
     });
     return {
         spreadsheetId,
@@ -787,6 +813,8 @@ module.exports = {
         buildManualRows,
         buildInvoiceSummaryRows,
         buildInstallmentSummaryRows,
+        buildInputExampleRanges,
+        USER_INPUT_EXAMPLE_ROWS,
         buildStarterValueRanges,
         buildUserSpreadsheetFormattingRequests,
         getSheetMapFromSpreadsheet,

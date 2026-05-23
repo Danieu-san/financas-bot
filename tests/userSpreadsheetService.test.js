@@ -106,6 +106,12 @@ test('createUserSpreadsheetForUser creates spreadsheet and writes headers to eve
     assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Manual'!A1:C23"));
     assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Faturas'!A1:F1"));
     assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Parcelamentos'!A1:G1"));
+    assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Saídas'!A2:J2"));
+    assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Cartões'!A2:H2"));
+    const dashboard = starterContent.payload.resource.data.find(item => item.range === "'Dashboard'!A1:E19");
+    const faturas = starterContent.payload.resource.data.find(item => item.range === "'Faturas'!A1:F1");
+    assert.ok(JSON.stringify(dashboard.values).includes("'Saídas'!E3:E"));
+    assert.ok(faturas.values[0][0].includes("'Lançamentos Cartão'!A3:J"));
     const formatCall = calls.find(call => call.type === 'batchUpdate');
     assert.ok(formatCall, 'Should apply visual formatting');
     assert.ok(formatCall.payload.resource.requests.some(req => req.addChart), 'Should add a dashboard chart');
@@ -170,6 +176,9 @@ test('applyUserSpreadsheetTemplate upgrades an existing sheet without recreating
     assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Manual'!A1:C23"));
     assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Faturas'!A1:F1"));
     assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Parcelamentos'!A1:G1"));
+    assert.strictEqual(starterContent.payload.resource.data.some(item => item.range === "'Saídas'!A2:J2"), false);
+    const dashboard = starterContent.payload.resource.data.find(item => item.range === "'Dashboard'!A1:E19");
+    assert.ok(JSON.stringify(dashboard.values).includes("'Saídas'!E2:E"));
     const formatCall = calls.find(call => call.type === 'batchUpdate.format');
     assert.ok(formatCall.payload.resource.requests.some(req => req.deleteEmbeddedObject?.objectId === 77));
     assert.ok(formatCall.payload.resource.requests.some(req => req.addChart));
@@ -211,6 +220,32 @@ test('user spreadsheet starter content does not expose admin or technical config
     assert.doesNotMatch(text, /Daniel|Thaís|Hash|Linhas Detectadas|import_id|cartoes_do_usuario/i);
 });
 
+test('new user spreadsheets include non-counted example rows for user-filled tabs', () => {
+    const ranges = __test__.buildStarterValueRanges({
+        user: { user_id: 'user-1', display_name: 'Pessoa Teste' },
+        includeInputExamples: true
+    });
+    const examples = Object.keys(__test__.USER_INPUT_EXAMPLE_ROWS);
+
+    for (const title of examples) {
+        const exampleRange = ranges.find(item => item.range.startsWith(`${quoteSheetName(title)}!A2:`));
+        assert.ok(exampleRange, `Deve criar exemplo na linha 2 da aba ${title}`);
+        assert.strictEqual(exampleRange.values[0].at(-1), '', `Exemplo de ${title} não deve ter user_id para não entrar nos cálculos`);
+    }
+
+    const dashboard = ranges.find(item => item.range === "'Dashboard'!A1:E19");
+    const faturas = ranges.find(item => item.range === "'Faturas'!A1:F1");
+    const parcelamentos = ranges.find(item => item.range === "'Parcelamentos'!A1:G1");
+
+    assert.ok(JSON.stringify(dashboard.values).includes("'Entradas'!D3:D"));
+    assert.ok(JSON.stringify(dashboard.values).includes("'Saídas'!E3:E"));
+    assert.ok(JSON.stringify(dashboard.values).includes("'Lançamentos Cartão'!D3:D"));
+    assert.ok(faturas.values[0][0].includes("'Lançamentos Cartão'!A3:J"));
+    assert.ok(parcelamentos.values[0][0].includes("'Lançamentos Cartão'!A3:J"));
+    assert.ok(faturas.values[0][0].endsWith(',0)'));
+    assert.ok(parcelamentos.values[0][0].endsWith(',0)'));
+});
+
 test('user spreadsheet dashboard keeps title row and uses correct formulas', () => {
     const rows = __test__.buildDashboardRows({ user: { user_id: 'user-1', display_name: 'Pessoa Teste' } });
     assert.match(rows[0][0], /Painel de Pessoa Teste/);
@@ -236,8 +271,8 @@ test('user spreadsheet card summary tabs are formula-driven from card launches',
     assert.ok(parcelamentos, 'Should seed automatic installment summary');
     assert.match(faturas.values[0][0], /^=QUERY\(/);
     assert.match(parcelamentos.values[0][0], /^=QUERY\(/);
-    assert.match(faturas.values[0][0], /'Lançamentos Cartão'!A:J/);
-    assert.match(parcelamentos.values[0][0], /'Lançamentos Cartão'!A:J/);
+    assert.match(faturas.values[0][0], /'Lançamentos Cartão'!A2:J/);
+    assert.match(parcelamentos.values[0][0], /'Lançamentos Cartão'!A2:J/);
     assert.doesNotMatch(JSON.stringify([faturas, parcelamentos]), /Importações|Hash|Configurações/i);
 });
 
