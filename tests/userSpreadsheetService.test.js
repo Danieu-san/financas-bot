@@ -40,8 +40,7 @@ test('user spreadsheet template includes required multiuser financial tabs', () 
         'Dia de Fechamento',
         'Dia de Vencimento',
         'Ativo',
-        'Observações',
-        'user_id'
+        'Observações'
     ]);
 });
 
@@ -107,7 +106,7 @@ test('createUserSpreadsheetForUser creates spreadsheet and writes headers to eve
     assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Faturas'!A1:F1"));
     assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Parcelamentos'!A1:G1"));
     assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Saídas'!A2:J2"));
-    assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Cartões'!A2:H2"));
+    assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Cartões'!A2:G2"));
     const dashboard = starterContent.payload.resource.data.find(item => item.range === "'Dashboard'!A1:E19");
     const faturas = starterContent.payload.resource.data.find(item => item.range === "'Faturas'!A1:F1");
     assert.ok(JSON.stringify(dashboard.values).includes("'Saídas'!E3:E"));
@@ -230,8 +229,16 @@ test('new user spreadsheets include non-counted example rows for user-filled tab
     for (const title of examples) {
         const exampleRange = ranges.find(item => item.range.startsWith(`${quoteSheetName(title)}!A2:`));
         assert.ok(exampleRange, `Deve criar exemplo na linha 2 da aba ${title}`);
-        assert.strictEqual(exampleRange.values[0].at(-1), '', `Exemplo de ${title} não deve ter user_id para não entrar nos cálculos`);
+        const tab = USER_SPREADSHEET_TABS.find(item => item.title === title);
+        if (tab?.headers.includes('user_id')) {
+            assert.strictEqual(exampleRange.values[0].at(-1), '', `Exemplo de ${title} não deve ter user_id para não entrar nos cálculos`);
+        }
     }
+
+    const cardsTab = USER_SPREADSHEET_TABS.find(tab => tab.title === 'Cartões');
+    const cardsExample = ranges.find(item => item.range === "'Cartões'!A2:G2");
+    assert.ok(cardsExample, 'Aba Cartões deve ter exemplo legível sem coluna user_id');
+    assert.strictEqual(cardsTab.headers.includes('user_id'), false);
 
     const dashboard = ranges.find(item => item.range === "'Dashboard'!A1:E19");
     const faturas = ranges.find(item => item.range === "'Faturas'!A1:F1");

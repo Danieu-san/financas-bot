@@ -46,7 +46,7 @@ const USER_SPREADSHEET_TABS = Object.freeze([
     },
     {
         title: 'Cartões',
-        headers: ['card_id', 'Nome', 'Banco', 'Dia de Fechamento', 'Dia de Vencimento', 'Ativo', 'Observações', 'user_id'],
+        headers: ['card_id', 'Nome', 'Banco', 'Dia de Fechamento', 'Dia de Vencimento', 'Ativo', 'Observações'],
         color: { red: 0.45, green: 0.27, blue: 0.68 }
     },
     {
@@ -208,7 +208,7 @@ function buildManualRows({ user = {} } = {}) {
         ['Saídas', 'Aqui ficam gastos pagos por pix, débito, dinheiro, boleto ou qualquer pagamento que não seja cartão de crédito parcelado.', 'Campos principais: data, descrição, categoria, valor e forma de pagamento.'],
         ['Entradas', 'Aqui ficam seus recebimentos: salário, freela, reembolso, venda, presente ou qualquer dinheiro que entrou.', 'Campos principais: data, descrição, categoria, valor e forma de recebimento.'],
         ['Transferências', 'Aqui ficam movimentos entre suas próprias contas. Elas são úteis para conferência, mas não contam como gasto nem como renda.', 'Exemplo: Pix entre sua conta do banco e sua conta da corretora.'],
-        ['Cartões', 'Cadastre apenas cartões que pertencem a este usuário. Esta lista define quais cartões o bot pode oferecer quando você registrar compras no crédito.', 'Exemplo: id nubank-principal, nome Nubank Principal, fechamento 8, vencimento 15, ativo SIM.'],
+        ['Cartões', 'Cadastre os cartões que você usa nesta planilha. Em planilha compartilhada, cadastre também os cartões do casal ou família que devem aparecer no bot.', 'Exemplo: id nubank-principal, nome Nubank Principal, fechamento 8, vencimento 15, ativo SIM.'],
         ['Lançamentos Cartão', 'Aqui ficam compras no crédito, compras parceladas e parcelas futuras. O nome do cartão deve existir na aba Cartões.', 'Exemplo: compra de R$ 300 em 3x vira parcelas mensais.'],
         ['Faturas', 'Resumo automático das faturas por cartão e mês de cobrança. Use para ver quanto cada cartão tem previsto em cada mês.', 'Não edite as fórmulas; confira os detalhes em Lançamentos Cartão.'],
         ['Parcelamentos', 'Resumo automático das compras parceladas, agrupando parcelas por descrição, cartão e categoria.', 'Use para ver total previsto, quantidade de parcelas lançadas e primeira/última parcela.'],
@@ -259,7 +259,7 @@ const USER_INPUT_EXAMPLE_ROWS = Object.freeze({
     'Transferências': ['01/01/2026', 'Exemplo: pix para reserva', '500,00', 'Conta corrente', 'Poupança', 'PIX', 'Transferência entre suas contas; não é gasto.', 'Conferida', ''],
     'Dívidas': ['Exemplo: financiamento', 'Banco Exemplo', 'Financiamento', '10000,00', '8500,00', '500,00', '1,5% a.m.', '10', '01/01/2026', '24', '3', 'Em dia', 'Exemplo de dívida; pode apagar.', '', '', '', 'Avalanche', ''],
     'Metas': ['Exemplo: reserva de emergência', '10000,00', '1500,00', '', '', '31/12/2026', 'Em andamento', 'Alta', ''],
-    'Cartões': ['nubank-principal', 'Nubank Principal', 'Nubank', '8', '15', 'SIM', 'Exemplo de cartão; edite ou apague.', ''],
+    'Cartões': ['nubank-principal', 'Nubank Principal', 'Nubank', '8', '15', 'SIM', 'Exemplo de cartão; edite ou apague.'],
     'Lançamentos Cartão': ['01/01/2026', 'Exemplo: compra parcelada', 'Casa', '100,00', '1/3', 'Janeiro de 2026', 'nubank-principal', 'Nubank Principal', 'Exemplo gerado para orientar; pode apagar.', ''],
     'Contas': ['Exemplo: internet', '15', 'Conta recorrente que vence todo mês.', '']
 });
@@ -397,7 +397,7 @@ function buildHeaderCell(header, tabTitle) {
     const notes = {
         Cartões: {
             card_id: 'Identificador curto do seu cartão. Ex.: nubank-principal. Use este mesmo valor em Lançamentos Cartão.',
-            Nome: 'Nome amigável do cartão do usuário. Esta lista é individual, não copie cartões de outros usuários.',
+            Nome: 'Nome amigável do cartão. Em planilha compartilhada, cadastre os cartões que o casal ou família usa.',
             'Dia de Fechamento': 'Dia em que a fatura fecha.',
             'Dia de Vencimento': 'Dia em que a fatura vence.'
         }

@@ -1310,31 +1310,33 @@ function buildLegacyCreditCardOptions() {
     }));
 }
 
+function buildPersonalCreditCardOptionsFromRows(rows) {
+    return (Array.isArray(rows) ? rows : []).slice(1)
+        .filter((row) => {
+            const cardId = String(row[0] || '').trim();
+            const name = String(row[1] || '').trim();
+            const active = normalizeText(row[5] || 'SIM') !== 'nao';
+            return active && (cardId || name);
+        })
+        .map((row) => {
+            const label = String(row[1] || row[0]).trim();
+            const closingDay = Number.parseInt(row[3], 10);
+            return {
+                key: String(row[0] || label).trim(),
+                label,
+                cardInfo: {
+                    sheetName: `Cartão ${label}`,
+                    closingDay: Number.isInteger(closingDay) && closingDay >= 1 && closingDay <= 31 ? closingDay : 1
+                }
+            };
+        });
+}
+
 async function buildCreditCardOptionsForUser(userId) {
     const usesPersonalSpreadsheet = await hasUserSpreadsheetContext({ userId });
     if (usesPersonalSpreadsheet) {
-        const rows = await readDataFromSheet('Cartões!A:H');
-        const personalOptions = rows.slice(1)
-            .filter((row) => {
-                const cardId = String(row[0] || '').trim();
-                const name = String(row[1] || '').trim();
-                const active = normalizeText(row[5] || 'SIM') !== 'nao';
-                const rowUserId = String(row[7] || '').trim();
-                return active && (cardId || name) && (!rowUserId || rowUserId === String(userId || '').trim());
-            })
-            .map((row) => {
-                const label = String(row[1] || row[0]).trim();
-                const closingDay = Number.parseInt(row[3], 10);
-                return {
-                    key: String(row[0] || label).trim(),
-                    label,
-                    cardInfo: {
-                        sheetName: `Cartão ${label}`,
-                        closingDay: Number.isInteger(closingDay) && closingDay >= 1 && closingDay <= 31 ? closingDay : 1
-                    }
-                };
-            });
-        return personalOptions;
+        const rows = await readDataFromSheet('Cartões!A:G');
+        return buildPersonalCreditCardOptionsFromRows(rows);
     }
     return buildLegacyCreditCardOptions();
 }
@@ -3201,6 +3203,7 @@ module.exports = {
         buildGreetingReply,
         buildPreOnboardingInviteMessage,
         inferAnalyticalQueryPlan,
+        buildPersonalCreditCardOptionsFromRows,
         extractMultipleCategoriesFromQuestion,
         extractComparisonCategoriesFromQuestion,
         normalizeInvitePhoneToWhatsAppId,

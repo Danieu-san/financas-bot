@@ -414,6 +414,22 @@ test('messageHandler pre-onboarding invite helpers build safe admin invitation',
     assert.match(message, /responda aqui com `oi`/);
 });
 
+test('messageHandler builds personal credit card options without user_id column', () => {
+    const { buildPersonalCreditCardOptionsFromRows } = messageHandler.__test__;
+
+    const options = buildPersonalCreditCardOptionsFromRows([
+        ['card_id', 'Nome', 'Banco', 'Dia de Fechamento', 'Dia de Vencimento', 'Ativo', 'Observações'],
+        ['nubank-principal', 'Nubank Principal', 'Nubank', '8', '15', 'SIM', ''],
+        ['itau-familia', 'Itaú Família', 'Itaú', '29', '5', 'SIM', 'Cartão compartilhado'],
+        ['cartao-inativo', 'Cartão Inativo', 'Banco', '10', '20', 'NÃO', '']
+    ]);
+
+    assert.deepStrictEqual(options.map(option => option.key), ['nubank-principal', 'itau-familia']);
+    assert.deepStrictEqual(options.map(option => option.label), ['Nubank Principal', 'Itaú Família']);
+    assert.strictEqual(options[0].cardInfo.closingDay, 8);
+    assert.strictEqual(options[1].cardInfo.closingDay, 29);
+});
+
 test('messageHandler local replies cover richer spreadsheet calculations', () => {
     const { buildLocalPerguntaResponse } = messageHandler.__test__;
 
