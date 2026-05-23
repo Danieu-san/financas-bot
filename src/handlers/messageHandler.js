@@ -60,6 +60,7 @@ const metrics = require('../utils/metrics');
 const { isAdminWithContext } = require('../utils/adminCheck');
 const logger = require('../utils/logger');
 const { sendPlainMessage } = require('../utils/whatsappMessaging');
+const { recordQaFailure } = require('../services/qaFailureLogService');
 
 // Base de Conhecimento para Gastos
 const mapeamentoGastos = {
@@ -2976,6 +2977,17 @@ async function handleMessage(msg) {
                             } catch (readModelError) {
                                 metrics.increment('message.pergunta.analysis.read_model_error');
                                 logger.warn(`[read-model] fallback legacy execute. motivo=${readModelError.message}`);
+                                await recordQaFailure({
+                                    kind: 'analysis_fallback',
+                                    reason: 'read_model_error',
+                                    userId,
+                                    whatsappId: senderId,
+                                    message: userQuestion,
+                                    intent: effectiveIntentClassification.intent,
+                                    parameters: effectiveIntentClassification.parameters,
+                                    analysisSource: 'read_model_error',
+                                    error: readModelError
+                                });
                             }
                         } else {
                             metrics.increment('message.pergunta.analysis.personal_sheet');
@@ -3033,6 +3045,19 @@ async function handleMessage(msg) {
                             analyzedData
                         });
                         if (!respostaFinal) {
+                            if (effectiveIntentClassification.intent === 'pergunta_geral') {
+                                await recordQaFailure({
+                                    kind: 'question_needs_review',
+                                    reason: 'generic_question_intent',
+                                    userId,
+                                    whatsappId: senderId,
+                                    message: userQuestion,
+                                    intent: effectiveIntentClassification.intent,
+                                    parameters: effectiveIntentClassification.parameters,
+                                    analysisSource,
+                                    responseMode: 'ai_generation'
+                                });
+                            }
                             metrics.increment('message.ai.generate.called');
                             metrics.increment('message.pergunta.response.ai_generate');
                             respostaFinal = await timeStep(
@@ -3061,6 +3086,15 @@ async function handleMessage(msg) {
 
                     } catch (err) {
                         console.error("Erro no novo sistema de perguntas:", err);
+                        await recordQaFailure({
+                            kind: 'question_error',
+                            reason: 'pergunta_processing_error',
+                            userId,
+                            whatsappId: senderId,
+                            message: structuredResponse?.question || messageBody,
+                            intent: structuredResponse?.intent || 'pergunta',
+                            error: err
+                        });
                         await msg.reply("Desculpe, não consegui processar essa análise. Tente reformular a pergunta.");
                     }
                     break;
@@ -3069,6 +3103,15 @@ async function handleMessage(msg) {
                 case 'criar_lembrete': {
                     const lembrete = structuredResponse.lembreteDetails;
                     if (!lembrete || !lembrete.titulo || !lembrete.dataHora) {
+                        await recordQaFailure({
+                            kind: 'command_missing_details',
+                            reason: 'incomplete_reminder',
+                            userId,
+                            whatsappId: senderId,
+                            message: messageBody,
+                            intent: 'criar_lembrete',
+                            parameters: lembrete || {}
+                        });
                         await msg.reply("Não entendi os detalhes do lembrete. Por favor, inclua o que e quando (ex: 'me lembre de pagar a luz amanhã às 10h').");
                         break;
                     }
@@ -3107,6 +3150,14 @@ async function handleMessage(msg) {
                 case 'desconhecido':
                 default: {
                     logger.info(`[routing] unknown_intent sender=${senderId} msg="${messageBody}"`);
+                    await recordQaFailure({
+                        kind: 'unknown_intent',
+                        reason: 'routing_unknown_intent',
+                        userId,
+                        whatsappId: senderId,
+                        message: messageBody,
+                        intent: structuredResponse?.intent || 'desconhecido'
+                    });
                     await msg.reply('Não entendi esse pedido ainda. Envie "ajuda" para ver exemplos do que posso fazer.');
                     break;
                 }

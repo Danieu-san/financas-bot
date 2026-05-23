@@ -1,6 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 
 if (!process.env.ADMIN_IDS) {
     process.env.ADMIN_IDS = '5521970112407@c.us';
@@ -18,6 +20,7 @@ const debtHandler = require('../src/handlers/debtHandler');
 const deletionHandler = require('../src/handlers/deletionHandler');
 const googleService = require('../src/services/google');
 const calculationOrchestrator = require('../src/services/calculationOrchestrator');
+const qaFailureLogService = require('../src/services/qaFailureLogService');
 
 // --- Helpers Tests ---
 test('helpers.parseValue', (t) => {
@@ -249,6 +252,49 @@ test('messageHandler admin invite reports WhatsApp send failures without throwin
         assert.match(replies[0], /5521985969034@c\.us/);
     } finally {
         process.env.ADMIN_IDS = previousAdminIds;
+    }
+});
+
+test('qaFailureLogService records sanitized reviewable failures as jsonl', async () => {
+    const previousPath = process.env.QA_FAILURE_LOG_PATH;
+    const previousEnabled = process.env.QA_FAILURE_LOG_ENABLED;
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-qa-'));
+    const logPath = path.join(tempDir, 'qa-failures.jsonl');
+
+    try {
+        process.env.QA_FAILURE_LOG_PATH = logPath;
+        process.env.QA_FAILURE_LOG_ENABLED = 'true';
+
+        const entry = await qaFailureLogService.recordQaFailure({
+            kind: 'unknown_intent',
+            reason: 'routing_unknown_intent',
+            userId: 'user-real-id',
+            whatsappId: '5521999999999@c.us',
+            message: 'Meu email daniel@example.com e telefone 5521999999999 deram erro no link https://site.test/callback?code=abc&state=xyz',
+            intent: 'desconhecido',
+            parameters: { raw: 'token=super-secret' }
+        });
+
+        const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
+        const saved = JSON.parse(lines[0]);
+
+        assert.strictEqual(lines.length, 1);
+        assert.strictEqual(saved.kind, 'unknown_intent');
+        assert.strictEqual(saved.status, 'open');
+        assert.ok(saved.user_ref);
+        assert.ok(saved.whatsapp_ref);
+        assert.notStrictEqual(saved.user_ref, 'user-real-id');
+        assert.match(saved.message, /\[email\]/);
+        assert.match(saved.message, /\[telefone\]/);
+        assert.match(saved.message, /https:\/\/site\.test\/callback/);
+        assert.doesNotMatch(saved.message, /abc|xyz|daniel@example\.com|5521999999999/);
+        assert.strictEqual(entry.kind, saved.kind);
+    } finally {
+        if (previousPath === undefined) delete process.env.QA_FAILURE_LOG_PATH;
+        else process.env.QA_FAILURE_LOG_PATH = previousPath;
+        if (previousEnabled === undefined) delete process.env.QA_FAILURE_LOG_ENABLED;
+        else process.env.QA_FAILURE_LOG_ENABLED = previousEnabled;
+        fs.rmSync(tempDir, { recursive: true, force: true });
     }
 });
 
