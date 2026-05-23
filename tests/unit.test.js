@@ -537,7 +537,8 @@ test('calculationOrchestrator calculates card invoices and open installments det
             ['10/05/2026', 'notebook', 'Eletrônicos', 1000, '1/3', 'Maio de 2026', 'nubank-daniel', 'Nubank Daniel', '', 'user-1'],
             ['10/05/2026', 'notebook', 'Eletrônicos', 1000, '2/3', 'Junho de 2026', 'nubank-daniel', 'Nubank Daniel', '', 'user-1'],
             ['10/05/2026', 'notebook', 'Eletrônicos', 1000, '3/3', 'Julho de 2026', 'nubank-daniel', 'Nubank Daniel', '', 'user-1'],
-            ['12/05/2026', 'mercado', 'Alimentação', 200, '1/1', 'Maio de 2026', 'itau', 'Itaú', '', 'user-1']
+            ['12/05/2026', 'mercado', 'Alimentação', 200, '1/1', 'Maio de 2026', 'itau', 'Itaú', '', 'user-1'],
+            ['15/01/2026', 'farmácia', 'Saúde', 80, '1/1', 'Janeiro de 2026', 'nubank-thais', 'Cartão Nubank - Thais', '', 'user-2']
         ]]
     };
 
@@ -555,6 +556,10 @@ test('calculationOrchestrator calculates card invoices and open installments det
     assert.strictEqual(installments.results[0].descricao, 'notebook');
     assert.strictEqual(installments.results[0].totalPrevisto, 3000);
     assert.strictEqual(installments.results[0].parcelasLancadas, 3);
+
+    const thaisInvoice = await calculationOrchestrator.execute('total_fatura_cartao', { cartao: 'nubank thais', mes: 0, ano: 2026 }, dataSources);
+    assert.strictEqual(thaisInvoice.results, 80);
+    assert.strictEqual(thaisInvoice.details.parcelas, 1);
 });
 
 test('messageHandler.normalizeMetricLabel keeps metric names bounded and safe', (t) => {

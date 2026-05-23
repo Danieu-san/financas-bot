@@ -99,11 +99,18 @@ function getCreditCardRows(dataSources = {}) {
     });
 }
 
+function normalizeCardSearchText(value) {
+    return normalizeText(value)
+        .replace(/[^a-z0-9]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
 function cardMatches(row, cardName) {
-    const needle = normalizeText(cardName);
+    const needle = normalizeCardSearchText(cardName);
     if (!needle) return true;
     return [row.cardId, row.cartao]
-        .map(value => normalizeText(value))
+        .map(value => normalizeCardSearchText(value))
         .some(value => value.includes(needle));
 }
 
@@ -409,4 +416,4 @@ async function execute(intent, parameters, dataSources) {
     return await calculator(parameters, dataSources);
 }
 
-module.exports = { execute, __test__: { parseBillingMonth, getCreditCardRows, summarizeInstallments } };
+module.exports = { execute, __test__: { parseBillingMonth, getCreditCardRows, summarizeInstallments, normalizeCardSearchText, cardMatches } };

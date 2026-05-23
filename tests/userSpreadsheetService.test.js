@@ -111,6 +111,7 @@ test('createUserSpreadsheetForUser creates spreadsheet and writes headers to eve
     const faturas = starterContent.payload.resource.data.find(item => item.range === "'Faturas'!A1:F1");
     assert.ok(JSON.stringify(dashboard.values).includes("'Saídas'!E3:E"));
     assert.ok(faturas.values[0][0].includes("'Lançamentos Cartão'!A3:J"));
+    assert.ok(faturas.values[0][0].includes(';0)'));
     const formatCall = calls.find(call => call.type === 'batchUpdate');
     assert.ok(formatCall, 'Should apply visual formatting');
     assert.ok(formatCall.payload.resource.requests.some(req => req.addChart), 'Should add a dashboard chart');
@@ -249,8 +250,8 @@ test('new user spreadsheets include non-counted example rows for user-filled tab
     assert.ok(JSON.stringify(dashboard.values).includes("'Lançamentos Cartão'!D3:D"));
     assert.ok(faturas.values[0][0].includes("'Lançamentos Cartão'!A3:J"));
     assert.ok(parcelamentos.values[0][0].includes("'Lançamentos Cartão'!A3:J"));
-    assert.ok(faturas.values[0][0].endsWith(',0)'));
-    assert.ok(parcelamentos.values[0][0].endsWith(',0)'));
+    assert.ok(faturas.values[0][0].endsWith(';0)'));
+    assert.ok(parcelamentos.values[0][0].endsWith(';0)'));
 });
 
 test('user spreadsheet dashboard keeps title row and uses correct formulas', () => {
@@ -280,6 +281,10 @@ test('user spreadsheet card summary tabs are formula-driven from card launches',
     assert.match(parcelamentos.values[0][0], /^=QUERY\(/);
     assert.match(faturas.values[0][0], /'Lançamentos Cartão'!A2:J/);
     assert.match(parcelamentos.values[0][0], /'Lançamentos Cartão'!A2:J/);
+    assert.match(faturas.values[0][0], /;1\)$/);
+    assert.match(parcelamentos.values[0][0], /;1\)$/);
+    assert.doesNotMatch(faturas.values[0][0], /",1\)$/);
+    assert.doesNotMatch(parcelamentos.values[0][0], /",1\)$/);
     assert.doesNotMatch(JSON.stringify([faturas, parcelamentos]), /Importações|Hash|Configurações/i);
 });
 
@@ -293,6 +298,17 @@ test('user spreadsheet formatting does not overwrite formula-driven summary head
     assert.strictEqual(overwritesSummaryFormula, false);
     assert.ok(requests.some(req => req.repeatCell?.range?.sheetId === 31 && req.repeatCell.range.startRowIndex === 0));
     assert.ok(requests.some(req => req.repeatCell?.range?.sheetId === 32 && req.repeatCell.range.startRowIndex === 0));
+});
+
+test('user spreadsheet number formats keep card summary counts and dates readable', () => {
+    const { headerToNumberFormat } = __test__;
+
+    assert.deepStrictEqual(headerToNumberFormat('Total da Fatura'), { type: 'CURRENCY', pattern: '"R$"#,##0.00' });
+    assert.deepStrictEqual(headerToNumberFormat('Total Previsto'), { type: 'CURRENCY', pattern: '"R$"#,##0.00' });
+    assert.deepStrictEqual(headerToNumberFormat('Parcelas Lançadas'), { type: 'NUMBER', pattern: '0' });
+    assert.deepStrictEqual(headerToNumberFormat('Primeira Compra'), { type: 'DATE', pattern: 'dd/mm/yyyy' });
+    assert.deepStrictEqual(headerToNumberFormat('Última Parcela'), { type: 'DATE', pattern: 'dd/mm/yyyy' });
+    assert.strictEqual(headerToNumberFormat('Parcela'), null);
 });
 
 test('user sheet analytics can include all users in a shared financial scope', () => {

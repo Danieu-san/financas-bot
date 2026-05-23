@@ -142,9 +142,27 @@ function normalizeHeaderForNumberFormat(header) {
 function headerToNumberFormat(header) {
     const normalized = normalizeHeaderForNumberFormat(header);
     if (
+        normalized.includes('parcelas lancadas') ||
+        normalized.includes('total de parcelas') ||
+        normalized.includes('parcelas pagas') ||
+        normalized.includes('linhas detectadas') ||
+        normalized.includes('linhas confirmadas')
+    ) {
+        return { type: 'NUMBER', pattern: '0' };
+    }
+    if (
+        normalized.includes('primeira compra') ||
+        normalized.includes('ultima compra') ||
+        normalized.includes('primeira parcela') ||
+        normalized.includes('ultima parcela')
+    ) {
+        return { type: 'DATE', pattern: 'dd/mm/yyyy' };
+    }
+    if (
         normalized.includes('valor') ||
         normalized.includes('saldo') ||
-        normalized.includes('parcela')
+        normalized.includes('total da fatura') ||
+        normalized.includes('total previsto')
     ) {
         return { type: 'CURRENCY', pattern: '"R$"#,##0.00' };
     }
@@ -153,11 +171,7 @@ function headerToNumberFormat(header) {
     }
     if (
         normalized.includes('dia de fechamento') ||
-        normalized.includes('dia de vencimento') ||
-        normalized.includes('total de parcelas') ||
-        normalized.includes('parcelas pagas') ||
-        normalized.includes('linhas detectadas') ||
-        normalized.includes('linhas confirmadas')
+        normalized.includes('dia de vencimento')
     ) {
         return { type: 'NUMBER', pattern: '0' };
     }
@@ -231,7 +245,7 @@ function buildManualRows({ user = {} } = {}) {
 function buildInvoiceSummaryRows({ dataStartRow = 2 } = {}) {
     const headerCount = dataStartRow > 2 ? 0 : 1;
     return [[
-        `=QUERY('Lançamentos Cartão'!A${dataStartRow}:J,"select H, F, sum(D), count(D), min(A), max(A) where H is not null group by H, F label H 'Cartão', F 'Mês de Cobrança', sum(D) 'Total da Fatura', count(D) 'Parcelas Lançadas', min(A) 'Primeira Compra', max(A) 'Última Compra'",${headerCount})`,
+        `=QUERY('Lançamentos Cartão'!A${dataStartRow}:J;"select H, F, sum(D), count(D), min(A), max(A) where H is not null group by H, F label H 'Cartão', F 'Mês de Cobrança', sum(D) 'Total da Fatura', count(D) 'Parcelas Lançadas', min(A) 'Primeira Compra', max(A) 'Última Compra'";${headerCount})`,
         '',
         '',
         '',
@@ -243,7 +257,7 @@ function buildInvoiceSummaryRows({ dataStartRow = 2 } = {}) {
 function buildInstallmentSummaryRows({ dataStartRow = 2 } = {}) {
     const headerCount = dataStartRow > 2 ? 0 : 1;
     return [[
-        `=QUERY('Lançamentos Cartão'!A${dataStartRow}:J,"select B, H, C, count(D), sum(D), min(A), max(A) where B is not null group by B, H, C label B 'Descrição', H 'Cartão', C 'Categoria', count(D) 'Parcelas Lançadas', sum(D) 'Total Previsto', min(A) 'Primeira Parcela', max(A) 'Última Parcela'",${headerCount})`,
+        `=QUERY('Lançamentos Cartão'!A${dataStartRow}:J;"select B, H, C, count(D), sum(D), min(A), max(A) where B is not null group by B, H, C label B 'Descrição', H 'Cartão', C 'Categoria', count(D) 'Parcelas Lançadas', sum(D) 'Total Previsto', min(A) 'Primeira Parcela', max(A) 'Última Parcela'";${headerCount})`,
         '',
         '',
         '',

@@ -284,7 +284,8 @@ function buildTransaction({ date, description, amount, explicitType = '', ownerA
 function convertTransactionsForCreditCardStatement(transactions = []) {
     return transactions
         .filter(item => item && !item.duplicate)
-        .filter(item => item.type === 'Saídas' || (item.type === 'Entradas' && !isLikelyCreditCardCredit(item.descricao)))
+        .filter(item => !isLikelyCreditCardCredit(item.descricao))
+        .filter(item => item.type === 'Saídas' || item.type === 'Entradas')
         .map(item => ({
             ...item,
             type: 'Cartão',

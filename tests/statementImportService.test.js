@@ -164,6 +164,23 @@ test('statement import converts positive Nubank card CSV rows into card purchase
     assert.strictEqual(cardTransactions[0].valor, 9);
 });
 
+test('statement import skips credit card payments and credits when importing card statements', () => {
+    const csv = [
+        'date,title,amount',
+        '2026-01-09,Okeo,9.00',
+        '2026-01-08,Pagamento recebido,-1075.57',
+        '2026-01-07,Estorno compra,-35.00',
+        '2026-01-06,Cashback Nubank,-2.50'
+    ].join('\n');
+
+    const parsed = parseCsvTransactions(csv);
+    const cardTransactions = convertTransactionsForCreditCardStatement(parsed);
+
+    assert.deepStrictEqual(cardTransactions.map(item => item.descricao), ['Okeo']);
+    assert.strictEqual(cardTransactions[0].type, 'Cartão');
+    assert.strictEqual(cardTransactions[0].valor, 9);
+});
+
 test('statement import preview includes every imported row instead of abbreviating', () => {
     const csvRows = ['Data;Descrição;Valor;Tipo'];
     for (let index = 1; index <= 27; index += 1) {
