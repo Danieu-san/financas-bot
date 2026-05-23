@@ -635,8 +635,28 @@ function extractComparisonCategoriesFromQuestion(text) {
 function extractCardFromQuestion(text) {
     const normalized = normalizeText(String(text || '').trim());
     const knownCards = ['nubank', 'itau', 'itaú', 'atacadao', 'atacadão', 'inter', 'santander', 'bradesco'];
-    const known = knownCards.find(card => normalized.includes(normalizeText(card)));
-    if (known) return normalizeText(known);
+    const cardTailStopWords = new Set([
+        'a', 'as', 'o', 'os', 'de', 'do', 'da', 'dos', 'das',
+        'em', 'no', 'na', 'nos', 'nas', 'partir', 'quanto', 'qual', 'quais',
+        'fatura', 'faturas', 'cartao', 'cartoes', 'cartão', 'cartões',
+        'aberto', 'aberta', 'abertos', 'abertas', 'ativo', 'ativa', 'ativos', 'ativas',
+        'parcela', 'parcelas', 'parcelamento', 'parcelamentos',
+        'janeiro', 'fevereiro', 'marco', 'março', 'abril', 'maio', 'junho',
+        'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+    ]);
+
+    for (const card of knownCards) {
+        const normalizedCard = normalizeText(card);
+        const match = normalized.match(new RegExp(`\\b${normalizedCard}\\b(?:\\s+([a-z0-9]+))?(?:\\s+([a-z0-9]+))?`, 'i'));
+        if (!match) continue;
+
+        const cardWords = [normalizedCard];
+        for (const tailWord of match.slice(1).filter(Boolean)) {
+            if (cardTailStopWords.has(tailWord) || /^\d+$/.test(tailWord)) break;
+            cardWords.push(tailWord);
+        }
+        return cardWords.join(' ');
+    }
 
     const explicit = normalized.match(/\b(?:cartao|cartão|fatura)\s+(?:do|da|de)?\s*([a-z0-9À-ÿ\s]+?)(?:\s+em\s+|\s+no\s+|\s+na\s+|\s+a\s+partir\s+|\?|$)/i);
     if (explicit && explicit[1]) return cleanAnalyticalCategory(explicit[1]);
@@ -656,7 +676,7 @@ function inferAnalyticalQueryPlan(userQuestion) {
     const singleCategory = cleanAnalyticalCategory(extractCategoryFromQuestion(text));
     const cardName = extractCardFromQuestion(text);
 
-    const hasCardSignal = text.includes('cartao') || text.includes('cartoes');
+    const hasCardSignal = text.includes('cartao') || text.includes('cartoes') || Boolean(cardName);
 
     if (text.includes('fatura') || (hasCardSignal && text.includes('quanto') && !text.includes('aberto'))) {
         return { metric: 'card_invoice_total', intent: 'total_fatura_cartao', parameters: { cartao: cardName, mes, ano } };

@@ -363,12 +363,27 @@ test('messageHandler.classifyPerguntaLocally covers complex analytical questions
     assert.strictEqual(invoice.parameters.cartao, 'nubank');
     assert.strictEqual(invoice.parameters.mes, 4);
 
+    const namedInvoice = classifyPerguntaLocally('qual a fatura do nubank thais em maio de 2026?');
+    assert.strictEqual(namedInvoice.intent, 'total_fatura_cartao');
+    assert.strictEqual(namedInvoice.parameters.cartao, 'nubank thais');
+    assert.strictEqual(namedInvoice.parameters.mes, 4);
+
     const openCards = classifyPerguntaLocally('quanto ainda tenho em aberto nos cartões a partir de maio de 2026?');
     assert.strictEqual(openCards.intent, 'total_cartoes_em_aberto');
     assert.strictEqual(openCards.parameters.mes, 4);
 
+    const namedOpenCards = classifyPerguntaLocally('quanto tem em aberto no nubank thais a partir de janeiro de 2026?');
+    assert.strictEqual(namedOpenCards.intent, 'total_cartoes_em_aberto');
+    assert.strictEqual(namedOpenCards.parameters.cartao, 'nubank thais');
+    assert.strictEqual(namedOpenCards.parameters.mes, 0);
+
     const installments = classifyPerguntaLocally('quais parcelamentos tenho ativos no cartão?');
     assert.strictEqual(installments.intent, 'resumo_parcelamentos_cartao');
+
+    const namedInstallments = classifyPerguntaLocally('quais parcelamentos ativos no nubank thais a partir de janeiro de 2026?');
+    assert.strictEqual(namedInstallments.intent, 'resumo_parcelamentos_cartao');
+    assert.strictEqual(namedInstallments.parameters.cartao, 'nubank thais');
+    assert.strictEqual(namedInstallments.parameters.mes, 0);
 });
 
 test('messageHandler local command routing avoids AI for common commands and low-signal text', (t) => {
