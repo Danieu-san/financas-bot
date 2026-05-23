@@ -55,6 +55,18 @@ const USER_SPREADSHEET_TABS = Object.freeze([
         color: { red: 0.45, green: 0.27, blue: 0.68 }
     },
     {
+        title: 'Faturas',
+        headers: ['Cartão', 'Mês de Cobrança', 'Total da Fatura', 'Parcelas Lançadas', 'Primeira Compra', 'Última Compra'],
+        color: { red: 0.36, green: 0.20, blue: 0.55 },
+        type: 'summary'
+    },
+    {
+        title: 'Parcelamentos',
+        headers: ['Descrição', 'Cartão', 'Categoria', 'Parcelas Lançadas', 'Total Previsto', 'Primeira Parcela', 'Última Parcela'],
+        color: { red: 0.54, green: 0.31, blue: 0.64 },
+        type: 'summary'
+    },
+    {
         title: 'Contas',
         headers: ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id'],
         color: { red: 0.78, green: 0.54, blue: 0.17 }
@@ -180,6 +192,8 @@ function buildDashboardRows({ user = {} } = {}) {
         ['Cartões', '=B7', '', '', ''],
         ['Dívidas', "=SUM('Dívidas'!E2:E)", '', '', ''],
         ['Transferências internas', "=SUM('Transferências'!C2:C)", 'Movimentos entre suas próprias contas; não entram no saldo estimado.', user.user_id || '', '=NOW()'],
+        ['Faturas por mês', "=COUNTA('Faturas'!A2:A)", 'Aba Faturas mostra totais por cartão e mês de cobrança.', user.user_id || '', '=NOW()'],
+        ['Parcelamentos ativos', "=COUNTA('Parcelamentos'!A2:A)", 'Aba Parcelamentos mostra compras agrupadas, parcelas lançadas e total previsto.', user.user_id || '', '=NOW()'],
         ['', '', '', '', ''],
         ['Próximos passos', '1) Leia a aba Manual. 2) Cadastre seus cartões na aba Cartões. 3) Registre gastos pelo WhatsApp.', '', '', '']
     ];
@@ -196,6 +210,8 @@ function buildManualRows({ user = {} } = {}) {
         ['Transferências', 'Aqui ficam movimentos entre suas próprias contas. Elas são úteis para conferência, mas não contam como gasto nem como renda.', 'Exemplo: Pix entre sua conta do banco e sua conta da corretora.'],
         ['Cartões', 'Cadastre apenas cartões que pertencem a este usuário. Esta lista define quais cartões o bot pode oferecer quando você registrar compras no crédito.', 'Exemplo: id nubank-principal, nome Nubank Principal, fechamento 8, vencimento 15, ativo SIM.'],
         ['Lançamentos Cartão', 'Aqui ficam compras no crédito, compras parceladas e parcelas futuras. O nome do cartão deve existir na aba Cartões.', 'Exemplo: compra de R$ 300 em 3x vira parcelas mensais.'],
+        ['Faturas', 'Resumo automático das faturas por cartão e mês de cobrança. Use para ver quanto cada cartão tem previsto em cada mês.', 'Não edite as fórmulas; confira os detalhes em Lançamentos Cartão.'],
+        ['Parcelamentos', 'Resumo automático das compras parceladas, agrupando parcelas por descrição, cartão e categoria.', 'Use para ver total previsto, quantidade de parcelas lançadas e primeira/última parcela.'],
         ['Dívidas', 'Use para empréstimos, financiamentos, acordos, parcelas em aberto e qualquer valor que você quer acompanhar até quitar.', 'Campos úteis: valor original, saldo atual, parcela, juros, vencimento, parcelas pagas e status.'],
         ['Metas', 'Use para objetivos como reserva de emergência, viagem, quitar dívida, entrada de imóvel ou compra planejada.', 'Acompanhe valor alvo, valor atual, progresso, sugestão mensal e prioridade.'],
         ['Contas', 'Use para despesas recorrentes e vencimentos que não podem ser esquecidos.', 'Exemplo: aluguel dia 10, internet dia 15, escola dia 5.'],
@@ -212,15 +228,46 @@ function buildManualRows({ user = {} } = {}) {
     ];
 }
 
+function buildInvoiceSummaryRows() {
+    return [[
+        '=QUERY(\'Lançamentos Cartão\'!A:J,"select H, F, sum(D), count(D), min(A), max(A) where H is not null group by H, F label H \'Cartão\', F \'Mês de Cobrança\', sum(D) \'Total da Fatura\', count(D) \'Parcelas Lançadas\', min(A) \'Primeira Compra\', max(A) \'Última Compra\'",1)',
+        '',
+        '',
+        '',
+        '',
+        ''
+    ]];
+}
+
+function buildInstallmentSummaryRows() {
+    return [[
+        '=QUERY(\'Lançamentos Cartão\'!A:J,"select B, H, C, count(D), sum(D), min(A), max(A) where B is not null group by B, H, C label B \'Descrição\', H \'Cartão\', C \'Categoria\', count(D) \'Parcelas Lançadas\', sum(D) \'Total Previsto\', min(A) \'Primeira Parcela\', max(A) \'Última Parcela\'",1)',
+        '',
+        '',
+        '',
+        '',
+        '',
+        ''
+    ]];
+}
+
 function buildStarterValueRanges({ user = {} } = {}) {
     return [
         {
-            range: `${quoteSheetName('Dashboard')}!A1:E17`,
+            range: `${quoteSheetName('Dashboard')}!A1:E19`,
             values: buildDashboardRows({ user })
         },
         {
-            range: `${quoteSheetName('Manual')}!A1:C21`,
+            range: `${quoteSheetName('Manual')}!A1:C23`,
             values: buildManualRows({ user })
+        },
+        {
+            range: `${quoteSheetName('Faturas')}!A1:F1`,
+            values: buildInvoiceSummaryRows()
+        },
+        {
+            range: `${quoteSheetName('Parcelamentos')}!A1:G1`,
+            values: buildInstallmentSummaryRows()
         }
     ];
 }
@@ -352,6 +399,7 @@ function buildUserSpreadsheetFormattingRequests(sheetMap = {}, spreadsheet = {})
         if (sheetId === undefined) continue;
         const isDashboard = tab.type === 'dashboard';
         const isManual = tab.type === 'manual';
+        const isSummary = tab.type === 'summary';
 
         requests.push({
             updateSheetProperties: {
@@ -364,12 +412,30 @@ function buildUserSpreadsheetFormattingRequests(sheetMap = {}, spreadsheet = {})
             }
         });
 
-        if (!isDashboard && !isManual) {
+        if (!isDashboard && !isManual && !isSummary) {
             requests.push({
                 updateCells: {
                     range: { sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: tab.headers.length },
                     rows: [{ values: tab.headers.map(header => buildHeaderCell(header, tab.title)) }],
                     fields: 'userEnteredValue,userEnteredFormat,note'
+                }
+            });
+        }
+
+        if (isSummary) {
+            requests.push({
+                repeatCell: {
+                    range: { sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: tab.headers.length },
+                    cell: {
+                        userEnteredFormat: {
+                            backgroundColor: tab.color,
+                            textFormat: textStyle({ bold: true, size: 10, color: THEME.white }),
+                            horizontalAlignment: 'CENTER',
+                            verticalAlignment: 'MIDDLE',
+                            wrapStrategy: 'WRAP'
+                        }
+                    },
+                    fields: 'userEnteredFormat(backgroundColor,textFormat,horizontalAlignment,verticalAlignment,wrapStrategy)'
                 }
             });
         }
@@ -593,7 +659,7 @@ function buildUserSpreadsheetFormattingRequests(sheetMap = {}, spreadsheet = {})
         requests.push(
             {
                 repeatCell: {
-                    range: { sheetId: manualSheetId, startRowIndex: 0, endRowIndex: 20, startColumnIndex: 0, endColumnIndex: 3 },
+                    range: { sheetId: manualSheetId, startRowIndex: 0, endRowIndex: 23, startColumnIndex: 0, endColumnIndex: 3 },
                     cell: {
                         userEnteredFormat: {
                             backgroundColor: THEME.amberSoft,
@@ -719,6 +785,8 @@ module.exports = {
         writeHeaders,
         buildDashboardRows,
         buildManualRows,
+        buildInvoiceSummaryRows,
+        buildInstallmentSummaryRows,
         buildStarterValueRanges,
         buildUserSpreadsheetFormattingRequests,
         getSheetMapFromSpreadsheet,

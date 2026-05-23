@@ -25,6 +25,8 @@ test('user spreadsheet template includes required multiuser financial tabs', () 
         'Metas',
         'Cartões',
         'Lançamentos Cartão',
+        'Faturas',
+        'Parcelamentos',
         'Contas'
     ]);
     assert.strictEqual(titles.includes('Importações'), false);
@@ -97,9 +99,13 @@ test('createUserSpreadsheetForUser creates spreadsheet and writes headers to eve
     assert.ok(headerWrites.every(call => call.payload.spreadsheetId === 'spreadsheet-user-1'));
     assert.ok(headerWrites.some(call => call.payload.range === "'Saídas'!A1:J1"));
     assert.ok(headerWrites.some(call => call.payload.range === "'Lançamentos Cartão'!A1:J1"));
+    assert.ok(headerWrites.some(call => call.payload.range === "'Faturas'!A1:F1"));
+    assert.ok(headerWrites.some(call => call.payload.range === "'Parcelamentos'!A1:G1"));
     const starterContent = calls.find(call => call.type === 'values.batchUpdate');
     assert.ok(starterContent, 'Should write dashboard/manual starter content');
-    assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Manual'!A1:C21"));
+    assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Manual'!A1:C23"));
+    assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Faturas'!A1:F1"));
+    assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Parcelamentos'!A1:G1"));
     const formatCall = calls.find(call => call.type === 'batchUpdate');
     assert.ok(formatCall, 'Should apply visual formatting');
     assert.ok(formatCall.payload.resource.requests.some(req => req.addChart), 'Should add a dashboard chart');
@@ -161,7 +167,9 @@ test('applyUserSpreadsheetTemplate upgrades an existing sheet without recreating
     assert.ok(tabUpdate.payload.resource.requests.some(req => req.deleteSheet?.sheetId === 98));
     assert.ok(tabUpdate.payload.resource.requests.some(req => req.deleteSheet?.sheetId === 99));
     const starterContent = calls.find(call => call.type === 'values.batchUpdate');
-    assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Manual'!A1:C21"));
+    assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Manual'!A1:C23"));
+    assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Faturas'!A1:F1"));
+    assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Parcelamentos'!A1:G1"));
     const formatCall = calls.find(call => call.type === 'batchUpdate.format');
     assert.ok(formatCall.payload.resource.requests.some(req => req.deleteEmbeddedObject?.objectId === 77));
     assert.ok(formatCall.payload.resource.requests.some(req => req.addChart));
@@ -190,7 +198,7 @@ test('user spreadsheet manual explains user-owned cards and sheet purpose', () =
     assert.match(text, /Dashboard/i);
     assert.match(text, /WhatsApp/i);
     assert.doesNotMatch(text, /Daniel|Thaís|Hash|Linhas Detectadas|Importações|user_id|CSV|OFX/i);
-    for (const required of ['Primeiros passos', 'Comandos do WhatsApp', 'Saídas', 'Entradas', 'Cartões', 'Lançamentos Cartão', 'Dívidas', 'Metas', 'Contas', 'Dashboard web', 'Correções']) {
+    for (const required of ['Primeiros passos', 'Comandos do WhatsApp', 'Saídas', 'Entradas', 'Cartões', 'Lançamentos Cartão', 'Faturas', 'Parcelamentos', 'Dívidas', 'Metas', 'Contas', 'Dashboard web', 'Correções']) {
         assert.ok(sections.includes(required), `Manual deve explicar: ${required}`);
     }
 });
@@ -207,6 +215,8 @@ test('user spreadsheet dashboard keeps title row and uses correct formulas', () 
     const rows = __test__.buildDashboardRows({ user: { user_id: 'user-1', display_name: 'Pessoa Teste' } });
     assert.match(rows[0][0], /Painel de Pessoa Teste/);
     assert.strictEqual(rows[4][1], "=SUM('Entradas'!D2:D)");
+    assert.ok(rows.some(row => row[0] === 'Faturas por mês' && String(row[1]).includes('Faturas')));
+    assert.ok(rows.some(row => row[0] === 'Parcelamentos ativos' && String(row[1]).includes('Parcelamentos')));
 
     const requests = __test__.buildUserSpreadsheetFormattingRequests({ Dashboard: 1, Manual: 2, Saídas: 3 });
     const overwritesDashboardTitle = requests.some(req => (
@@ -215,6 +225,32 @@ test('user spreadsheet dashboard keeps title row and uses correct formulas', () 
     ));
     assert.strictEqual(overwritesDashboardTitle, false);
     assert.ok(requests.some(req => req.unmergeCells), 'Should unmerge dashboard title area before reapplying template');
+});
+
+test('user spreadsheet card summary tabs are formula-driven from card launches', () => {
+    const ranges = __test__.buildStarterValueRanges({ user: { user_id: 'user-1', display_name: 'Pessoa Teste' } });
+    const faturas = ranges.find(item => item.range === "'Faturas'!A1:F1");
+    const parcelamentos = ranges.find(item => item.range === "'Parcelamentos'!A1:G1");
+
+    assert.ok(faturas, 'Should seed automatic invoice summary');
+    assert.ok(parcelamentos, 'Should seed automatic installment summary');
+    assert.match(faturas.values[0][0], /^=QUERY\(/);
+    assert.match(parcelamentos.values[0][0], /^=QUERY\(/);
+    assert.match(faturas.values[0][0], /'Lançamentos Cartão'!A:J/);
+    assert.match(parcelamentos.values[0][0], /'Lançamentos Cartão'!A:J/);
+    assert.doesNotMatch(JSON.stringify([faturas, parcelamentos]), /Importações|Hash|Configurações/i);
+});
+
+test('user spreadsheet formatting does not overwrite formula-driven summary headers', () => {
+    const requests = __test__.buildUserSpreadsheetFormattingRequests({ Faturas: 31, Parcelamentos: 32 });
+    const overwritesSummaryFormula = requests.some(req => (
+        req.updateCells?.range?.startRowIndex === 0 &&
+        [31, 32].includes(req.updateCells.range.sheetId)
+    ));
+
+    assert.strictEqual(overwritesSummaryFormula, false);
+    assert.ok(requests.some(req => req.repeatCell?.range?.sheetId === 31 && req.repeatCell.range.startRowIndex === 0));
+    assert.ok(requests.some(req => req.repeatCell?.range?.sheetId === 32 && req.repeatCell.range.startRowIndex === 0));
 });
 
 test('user sheet analytics can include all users in a shared financial scope', () => {
