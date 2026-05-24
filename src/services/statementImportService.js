@@ -414,8 +414,23 @@ function normalizeDescriptionKey(value = '') {
 }
 
 function buildImportDuplicateKey(item = {}) {
+    const userKey = String(item.userId || item.ownerUserId || '').trim();
+    const cardKey = item.type === 'Cartão'
+        ? normalizeDescriptionKey(
+            item.cardId ||
+            item.cardKey ||
+            item.cartao ||
+            item.cardName ||
+            item.cardInfo?.cardId ||
+            item.cardInfo?.key ||
+            item.cardInfo?.sheetName ||
+            ''
+        )
+        : '';
     return [
         item.type || '',
+        userKey,
+        cardKey,
         normalizeDateKey(item.data),
         valueToCents(item.valor),
         normalizeDescriptionKey(item.descricao)
@@ -424,15 +439,34 @@ function buildImportDuplicateKey(item = {}) {
 
 function existingRowToTransaction(sheetName, row = []) {
     if (sheetName === 'Entradas') {
-        return { type: 'Entradas', data: row[0], descricao: row[1], valor: row[3] };
+        return { type: 'Entradas', data: row[0], descricao: row[1], valor: row[3], userId: row[8] };
     }
     if (sheetName === 'Transferências') {
-        return { type: 'Transferências', data: row[0], descricao: row[1], valor: row[2] };
+        return { type: 'Transferências', data: row[0], descricao: row[1], valor: row[2], userId: row[8] };
     }
-    if (sheetName === 'Cartão' || sheetName === 'Lançamentos Cartão' || String(sheetName || '').startsWith('Cartão ')) {
-        return { type: 'Cartão', data: row[0], descricao: row[1], valor: row[3] };
+    if (sheetName === 'Lançamentos Cartão') {
+        return {
+            type: 'Cartão',
+            data: row[0],
+            descricao: row[1],
+            valor: row[3],
+            cardId: row[6],
+            cartao: row[7],
+            userId: row[9]
+        };
     }
-    return { type: 'Saídas', data: row[0], descricao: row[1], valor: row[4] };
+    if (sheetName === 'Cartão' || String(sheetName || '').startsWith('Cartão ')) {
+        return {
+            type: 'Cartão',
+            data: row[0],
+            descricao: row[1],
+            valor: row[3],
+            cardId: sheetName,
+            cartao: sheetName,
+            userId: row[6]
+        };
+    }
+    return { type: 'Saídas', data: row[0], descricao: row[1], valor: row[4], userId: row[9] };
 }
 
 function buildExistingDuplicateKeys(existingRowsByType = {}) {

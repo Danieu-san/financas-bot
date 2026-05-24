@@ -254,3 +254,68 @@ test('statement import marks duplicates already in the sheet or repeated in the 
     assert.match(preview, /Possíveis duplicados: 2/);
     assert.match(preview, /será ignorado/);
 });
+
+test('statement import scopes duplicate checks by user and card', () => {
+    const samePurchase = {
+        type: 'Cartão',
+        data: '17/05/2026',
+        descricao: 'Uber - NuPay',
+        valor: 2.95
+    };
+    const existingRowsByType = {
+        'Lançamentos Cartão': [
+            ['17/05/2026', 'Uber - NuPay', 'Transporte', 2.95, '1/1', 'Maio de 2026', 'nubank-thais', 'Cartão Nubank - Thais', '', 'user-thais']
+        ]
+    };
+
+    const danielCard = annotateImportDuplicates([
+        {
+            ...samePurchase,
+            userId: 'user-daniel',
+            cardId: 'nubank-daniel',
+            cartao: 'Cartão Nubank - Daniel'
+        }
+    ], existingRowsByType);
+    assert.strictEqual(danielCard[0].duplicate, undefined);
+
+    const thaisDifferentCard = annotateImportDuplicates([
+        {
+            ...samePurchase,
+            userId: 'user-thais',
+            cardId: 'itau-thais',
+            cartao: 'Cartão Itaú - Thais'
+        }
+    ], existingRowsByType);
+    assert.strictEqual(thaisDifferentCard[0].duplicate, undefined);
+
+    const thaisSameCard = annotateImportDuplicates([
+        {
+            ...samePurchase,
+            userId: 'user-thais',
+            cardId: 'nubank-thais',
+            cartao: 'Cartão Nubank - Thais'
+        }
+    ], existingRowsByType);
+    assert.strictEqual(thaisSameCard[0].duplicate, true);
+    assert.strictEqual(thaisSameCard[0].duplicateReason, 'já existe na planilha');
+});
+
+test('statement import scopes checking-account duplicate checks by user', () => {
+    const csv = [
+        'Data;Descrição;Valor;Tipo',
+        '17/05/2026;Mercado Guanabara;-35,35;Débito'
+    ].join('\n');
+    const [transaction] = parseCsvTransactions(csv);
+    const existingRowsByType = {
+        'Saídas': [
+            ['17/05/2026', 'Mercado Guanabara', 'Alimentação', 'SUPERMERCADO', '35,35', 'Thaís', 'Débito', 'Não', '', 'user-thais']
+        ]
+    };
+
+    const danielImport = annotateImportDuplicates([{ ...transaction, userId: 'user-daniel' }], existingRowsByType);
+    assert.strictEqual(danielImport[0].duplicate, undefined);
+
+    const thaisImport = annotateImportDuplicates([{ ...transaction, userId: 'user-thais' }], existingRowsByType);
+    assert.strictEqual(thaisImport[0].duplicate, true);
+    assert.strictEqual(thaisImport[0].duplicateReason, 'já existe na planilha');
+});

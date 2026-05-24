@@ -1326,7 +1326,11 @@ function buildLegacyCreditCardOptions() {
     return Object.keys(creditCardConfig).map((key) => ({
         key,
         label: key,
-        cardInfo: creditCardConfig[key]
+        cardInfo: {
+            ...creditCardConfig[key],
+            key,
+            cardId: key
+        }
     }));
 }
 
@@ -1345,6 +1349,9 @@ function buildPersonalCreditCardOptionsFromRows(rows) {
                 key: String(row[0] || label).trim(),
                 label,
                 cardInfo: {
+                    key: String(row[0] || label).trim(),
+                    cardId: String(row[0] || label).trim(),
+                    label,
                     sheetName: `Cartão ${label}`,
                     closingDay: Number.isInteger(closingDay) && closingDay >= 1 && closingDay <= 31 ? closingDay : 1
                 }
@@ -2280,7 +2287,11 @@ async function handleMessage(msg) {
 
                 if (selectedKind === 'checking') {
                     const existingRowsByType = await loadExistingImportRows({ userId: importUserId || userId });
-                    const transactions = annotateImportDuplicates(parsedTransactions, existingRowsByType);
+                    const targetUserId = importUserId || userId;
+                    const transactions = annotateImportDuplicates(
+                        parsedTransactions.map(item => ({ ...item, userId: targetUserId })),
+                        existingRowsByType
+                    );
                     const previewMessages = buildImportPreviewMessages(transactions);
 
                     userStateManager.setState(senderId, {
@@ -2352,6 +2363,9 @@ async function handleMessage(msg) {
                         const purchaseDate = parsedPurchaseDate || new Date();
                         return {
                             ...item,
+                            userId: importUserId || userId,
+                            cardId: cardInfo.cardId || cardInfo.key || cardInfo.sheetName,
+                            cartao: cardInfo.label || cardInfo.sheetName,
                             cardInfo,
                             mesCobranca: item.mesCobranca || buildBillingMonthName(purchaseDate, cardInfo)
                         };
