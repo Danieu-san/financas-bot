@@ -422,6 +422,14 @@ function buildImportDuplicateKey(item = {}) {
     ].join('|');
 }
 
+function buildImportPossibleDuplicateKey(item = {}) {
+    return [
+        item.type || '',
+        normalizeDateKey(item.data),
+        valueToCents(item.valor)
+    ].join('|');
+}
+
 function existingRowToTransaction(sheetName, row = []) {
     if (sheetName === 'Entradas') {
         return { type: 'Entradas', data: row[0], descricao: row[1], valor: row[3], userId: row[8] };
@@ -466,8 +474,27 @@ function buildExistingDuplicateKeys(existingRowsByType = {}) {
     return keys;
 }
 
+function buildExistingPossibleDuplicateIndex(existingRowsByType = {}) {
+    const index = new Map();
+    for (const [sheetName, rows] of Object.entries(existingRowsByType || {})) {
+        for (const row of rows || []) {
+            const item = existingRowToTransaction(sheetName, row);
+            const key = buildImportPossibleDuplicateKey(item);
+            if (key && !index.has(key)) {
+                index.set(key, {
+                    descricao: item.descricao || 'lançamento existente',
+                    data: normalizeDateKey(item.data),
+                    valor: item.valor
+                });
+            }
+        }
+    }
+    return index;
+}
+
 function annotateImportDuplicates(transactions = [], existingRowsByType = {}) {
     const existingKeys = buildExistingDuplicateKeys(existingRowsByType);
+    const existingPossibleDuplicates = buildExistingPossibleDuplicateIndex(existingRowsByType);
     const batchKeys = new Set();
 
     return transactions.map((item) => {
@@ -476,20 +503,30 @@ function annotateImportDuplicates(transactions = [], existingRowsByType = {}) {
         const duplicateInFile = batchKeys.has(key);
         batchKeys.add(key);
 
-        if (!duplicateInSpreadsheet && !duplicateInFile) return item;
+        if (duplicateInSpreadsheet || duplicateInFile) {
+            return {
+                ...item,
+                duplicate: true,
+                duplicateReason: duplicateInSpreadsheet
+                    ? 'já existe na planilha'
+                    : 'repetido no arquivo'
+            };
+        }
+
+        const possibleDuplicate = existingPossibleDuplicates.get(buildImportPossibleDuplicateKey(item));
+        if (!possibleDuplicate) return item;
 
         return {
             ...item,
-            duplicate: true,
-            duplicateReason: duplicateInSpreadsheet
-                ? 'já existe na planilha'
-                : 'repetido no arquivo'
+            possibleDuplicate: true,
+            possibleDuplicateReason: `mesma data e valor de "${possibleDuplicate.descricao}"`
         };
     });
 }
 
 function transactionLabel(item) {
     if (item.duplicate) return 'Duplicado';
+    if (item.possibleDuplicate) return 'Possível duplicado';
     if (item.type === 'Entradas') return 'Entrada';
     if (item.type === 'Transferências') return 'Transferência';
     if (item.type === 'Cartão') return 'Cartão';
@@ -498,9 +535,12 @@ function transactionLabel(item) {
 
 function formatPreviewLine(item, index) {
     const duplicateSuffix = item.duplicate ? ` | ${item.duplicateReason}; será ignorado` : '';
+    const possibleDuplicateSuffix = !item.duplicate && item.possibleDuplicate
+        ? ` | atenção: ${item.possibleDuplicateReason}; será importado se você confirmar`
+        : '';
     const dateLabel = item.data || 'data pendente';
     const billingSuffix = item.type === 'Cartão' && item.mesCobranca ? ` | Fatura: ${item.mesCobranca}` : '';
-    return `${index + 1}. [${transactionLabel(item)}] ${dateLabel} | ${item.descricao} | R$ ${formatMoney(item.valor)} | ${item.categoria || item.status || 'Outros'}${billingSuffix}${duplicateSuffix}`;
+    return `${index + 1}. [${transactionLabel(item)}] ${dateLabel} | ${item.descricao} | R$ ${formatMoney(item.valor)} | ${item.categoria || item.status || 'Outros'}${billingSuffix}${duplicateSuffix}${possibleDuplicateSuffix}`;
 }
 
 function buildImportSummary(transactions = []) {
@@ -509,6 +549,7 @@ function buildImportSummary(transactions = []) {
     const cartoes = transactions.filter(item => item.type === 'Cartão');
     const transferencias = transactions.filter(item => item.type === 'Transferências');
     const duplicados = transactions.filter(item => item.duplicate);
+    const possiveisDuplicados = transactions.filter(item => item.possibleDuplicate && !item.duplicate);
     const importaveis = transactions.filter(item => !item.duplicate);
     const totalEntradas = entradas.reduce((sum, item) => sum + Number(item.valor || 0), 0);
     const totalSaidas = saidas.reduce((sum, item) => sum + Number(item.valor || 0), 0);
@@ -525,6 +566,9 @@ function buildImportSummary(transactions = []) {
     ];
     if (duplicados.length > 0) {
         summary.push(`Possíveis duplicados: ${duplicados.length} (serão ignorados)`);
+    }
+    if (possiveisDuplicados.length > 0) {
+        summary.push(`Alertas de possível duplicidade: ${possiveisDuplicados.length} (confira; serão importados se você confirmar)`);
     }
     return summary;
 }

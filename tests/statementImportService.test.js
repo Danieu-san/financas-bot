@@ -322,3 +322,27 @@ test('statement import rejects exact checking-account duplicates across family u
     assert.strictEqual(thaisImport[0].duplicate, true);
     assert.strictEqual(thaisImport[0].duplicateReason, 'já existe na planilha');
 });
+
+test('statement import warns about possible duplicates by same type date and value without blocking import', () => {
+    const csv = [
+        'Data;Descrição;Valor;Tipo',
+        '24/05/2026;LOJA ABC MATERIAL CONSTRUCAO;-27,80;Débito'
+    ].join('\n');
+    const [transaction] = parseCsvTransactions(csv);
+    const existingRowsByType = {
+        'Saídas': [
+            ['24/05/2026', 'material para reforma da casa', 'Casa', 'Reforma', '27,80', 'Daniel', 'PIX', 'Não', '', 'user-daniel']
+        ]
+    };
+
+    const annotated = annotateImportDuplicates([transaction], existingRowsByType);
+
+    assert.strictEqual(annotated[0].duplicate, undefined);
+    assert.strictEqual(annotated[0].possibleDuplicate, true);
+    assert.match(annotated[0].possibleDuplicateReason, /material para reforma da casa/i);
+
+    const preview = buildImportPreviewMessage(annotated);
+    assert.match(preview, /Novos que serão importados: 1/);
+    assert.match(preview, /Alertas de possível duplicidade: 1/);
+    assert.match(preview, /será importado se você confirmar/);
+});
