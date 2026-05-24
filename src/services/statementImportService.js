@@ -414,23 +414,8 @@ function normalizeDescriptionKey(value = '') {
 }
 
 function buildImportDuplicateKey(item = {}) {
-    const userKey = String(item.userId || item.ownerUserId || '').trim();
-    const cardKey = item.type === 'Cartão'
-        ? normalizeDescriptionKey(
-            item.cardId ||
-            item.cardKey ||
-            item.cartao ||
-            item.cardName ||
-            item.cardInfo?.cardId ||
-            item.cardInfo?.key ||
-            item.cardInfo?.sheetName ||
-            ''
-        )
-        : '';
     return [
         item.type || '',
-        userKey,
-        cardKey,
         normalizeDateKey(item.data),
         valueToCents(item.valor),
         normalizeDescriptionKey(item.descricao)

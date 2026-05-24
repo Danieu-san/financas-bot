@@ -255,7 +255,7 @@ test('statement import marks duplicates already in the sheet or repeated in the 
     assert.match(preview, /será ignorado/);
 });
 
-test('statement import scopes duplicate checks by user and card', () => {
+test('statement import rejects exact duplicate purchases across family users and cards', () => {
     const samePurchase = {
         type: 'Cartão',
         data: '17/05/2026',
@@ -276,7 +276,8 @@ test('statement import scopes duplicate checks by user and card', () => {
             cartao: 'Cartão Nubank - Daniel'
         }
     ], existingRowsByType);
-    assert.strictEqual(danielCard[0].duplicate, undefined);
+    assert.strictEqual(danielCard[0].duplicate, true);
+    assert.strictEqual(danielCard[0].duplicateReason, 'já existe na planilha');
 
     const thaisDifferentCard = annotateImportDuplicates([
         {
@@ -286,7 +287,8 @@ test('statement import scopes duplicate checks by user and card', () => {
             cartao: 'Cartão Itaú - Thais'
         }
     ], existingRowsByType);
-    assert.strictEqual(thaisDifferentCard[0].duplicate, undefined);
+    assert.strictEqual(thaisDifferentCard[0].duplicate, true);
+    assert.strictEqual(thaisDifferentCard[0].duplicateReason, 'já existe na planilha');
 
     const thaisSameCard = annotateImportDuplicates([
         {
@@ -300,7 +302,7 @@ test('statement import scopes duplicate checks by user and card', () => {
     assert.strictEqual(thaisSameCard[0].duplicateReason, 'já existe na planilha');
 });
 
-test('statement import scopes checking-account duplicate checks by user', () => {
+test('statement import rejects exact checking-account duplicates across family users', () => {
     const csv = [
         'Data;Descrição;Valor;Tipo',
         '17/05/2026;Mercado Guanabara;-35,35;Débito'
@@ -313,7 +315,8 @@ test('statement import scopes checking-account duplicate checks by user', () => 
     };
 
     const danielImport = annotateImportDuplicates([{ ...transaction, userId: 'user-daniel' }], existingRowsByType);
-    assert.strictEqual(danielImport[0].duplicate, undefined);
+    assert.strictEqual(danielImport[0].duplicate, true);
+    assert.strictEqual(danielImport[0].duplicateReason, 'já existe na planilha');
 
     const thaisImport = annotateImportDuplicates([{ ...transaction, userId: 'user-thais' }], existingRowsByType);
     assert.strictEqual(thaisImport[0].duplicate, true);

@@ -832,6 +832,16 @@ function shouldSkipAiForUnknownMessage(messageBody) {
     return !knownSignals.some(signal => text.includes(normalizeText(signal))) && text.length <= 80;
 }
 
+function shouldInterruptStatementImportConfirmation(messageBody) {
+    const text = normalizeText(String(messageBody || '').trim());
+    if (!text) return false;
+    if (['sim', 's', 'ss', 'confirmo', 'importar', 'nao', 'não', 'n', 'cancelar', 'cancela'].includes(text)) {
+        return false;
+    }
+
+    return /^(gastei|gasto|paguei|comprei|recebi|ganhei|entrada|quanto|qual|quais|liste|listar|mostre|mostrar|dashboard|painel|ajuda|criar|apagar|registrar|me lembre|lembre|resumo)\b/.test(text);
+}
+
 function classifyPerguntaLocally(userQuestion) {
     const plan = inferAnalyticalQueryPlan(userQuestion);
     if (!plan) return null;
@@ -2016,7 +2026,12 @@ async function handleMessage(msg) {
         return;
     }
 
-    const currentState = userStateManager.getState(senderId);
+    let currentState = userStateManager.getState(senderId);
+    if (currentState?.action === 'confirming_statement_import' && shouldInterruptStatementImportConfirmation(messageBody)) {
+        logger.info(`[state] import_confirmation_interrupted sender=${senderId} msg="${messageBody}"`);
+        userStateManager.deleteState(senderId);
+        currentState = null;
+    }
     if (currentState) {
         // --- INÍCIO DA MÁQUINA DE ESTADOS (CONVERSAS EM ANDAMENTO) ---
         // Se existe uma conversa em andamento, o bot lida com ela e PARA AQUI.

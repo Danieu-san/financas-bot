@@ -283,6 +283,47 @@ stateMachineTest('financial states: explicit PIX expense is saved without asking
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
 });
 
+stateMachineTest('financial states: new expense command interrupts pending statement import confirmation', async () => {
+    resetState();
+    userStateManager.setState(SENDER, {
+        action: 'confirming_statement_import',
+        data: {
+            transactions: [
+                {
+                    type: 'Saídas',
+                    data: '17/05/2026',
+                    descricao: 'Mercado antigo',
+                    valor: 35.35,
+                    userId: USER_ID
+                }
+            ],
+            filename: 'extrato-antigo.csv',
+            importKind: 'checking',
+            person: 'Usuario Estado',
+            userId: USER_ID
+        }
+    });
+    enqueueStructuredResponse({
+        intent: 'gasto',
+        gastoDetails: [
+            {
+                descricao: 'material para reforma da casa',
+                valor: 27.80,
+                categoria: 'Casa',
+                subcategoria: 'Reforma',
+                recorrente: 'Não'
+            }
+        ]
+    });
+
+    const reply = await send('gastei 27,80 comprando material para reforma da casa');
+
+    assert.doesNotMatch(reply, /importar os lançamentos/i);
+    assert.match(reply, /forma de pagamento/i);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_payment_method');
+    assert.strictEqual(userStateManager.getState(SENDER).data.gasto.descricao, 'material para reforma da casa');
+});
+
 stateMachineTest('financial states: terms command is not swallowed by incomplete onboarding', async () => {
     resetState();
     sheets.UserProfile[1][6] = '';
