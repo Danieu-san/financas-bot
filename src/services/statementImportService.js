@@ -173,11 +173,17 @@ function buildImportedDateFields(value) {
 function categorizeExpense(description = '') {
     const text = normalizeText(description);
     const rules = [
-        { terms: ['mercado', 'supermercado', 'guanabara', 'assai', 'assaí'], categoria: 'Alimentação', subcategoria: 'SUPERMERCADO' },
-        { terms: ['restaurante', 'ifood', 'lanche', 'padaria'], categoria: 'Alimentação', subcategoria: 'RESTAURANTE / LANCHE' },
-        { terms: ['uber', '99', 'onibus', 'ônibus', 'metro', 'metrô', 'trem', 'gasolina'], categoria: 'Transporte', subcategoria: 'TRANSPORTE' },
-        { terms: ['farmacia', 'farmácia', 'remedio', 'remédio', 'consulta'], categoria: 'Saúde', subcategoria: 'SAÚDE' },
-        { terms: ['aluguel', 'condominio', 'condomínio', 'luz', 'energia', 'agua', 'água', 'internet'], categoria: 'Moradia', subcategoria: 'CONTAS DA CASA' }
+        { terms: ['gci caixa', 'habitacao', 'habitação', 'ccisa', 'incorporadora', 'llz garantidora', 'aluguel', 'condominio', 'condomínio'], categoria: 'Moradia', subcategoria: 'HABITAÇÃO' },
+        { terms: ['light', 'energia', 'eletricidade'], categoria: 'Moradia', subcategoria: 'ENERGIA' },
+        { terms: ['ceg', 'naturgy', 'gas', 'gás', 'agua', 'água'], categoria: 'Moradia', subcategoria: 'CONTAS DA CASA' },
+        { terms: ['claro', 'vivo', 'tim', 'internet', 'telefone'], categoria: 'Moradia', subcategoria: 'INTERNET / TELEFONE' },
+        { terms: ['mercado', 'supermercado', 'guanabara', 'assai', 'assaí', 'hortifruti', 'hortfruti'], categoria: 'Alimentação', subcategoria: 'SUPERMERCADO' },
+        { terms: ['restaurante', 'ifood', 'lanche', 'padaria', 'pastel'], categoria: 'Alimentação', subcategoria: 'RESTAURANTE / LANCHE' },
+        { terms: ['uber', '99', 'onibus', 'ônibus', 'metro', 'metrô', 'trem', 'gasolina', 'veloe', 'estacionamento'], categoria: 'Transporte', subcategoria: 'TRANSPORTE' },
+        { terms: ['farmacia', 'farmácia', 'drogaria', 'pacheco', 'remedio', 'remédio', 'consulta'], categoria: 'Saúde', subcategoria: 'SAÚDE' },
+        { terms: ['open english', 'qconcursos', 'curso', 'aula', 'livro'], categoria: 'Educação', subcategoria: 'CURSOS / ESTUDOS' },
+        { terms: ['canva', 'capcut', 'moises', 'google', 'assinatura', 'premium', 'premiun'], categoria: 'Assinaturas', subcategoria: 'SERVIÇOS DIGITAIS' },
+        { terms: ['mercadolivre', 'mercado livre', 'shopee', 'amazon'], categoria: 'Compras', subcategoria: 'COMPRAS ONLINE' }
     ];
     const found = rules.find(rule => rule.terms.some(term => text.includes(normalizeText(term))));
     return found || { categoria: 'Outros', subcategoria: 'Importação' };
@@ -238,6 +244,31 @@ function buildTransfer({ date, description, amount, explicitType = '' }) {
     };
 }
 
+function isCreditCardPaymentMovement(description = '') {
+    const text = normalizeText(description);
+    return [
+        'pagamento de fatura',
+        'pag boleto nu pagamentos',
+        'nu pagamentos s/a',
+        'banco csf'
+    ].some(term => text.includes(normalizeText(term)));
+}
+
+function isInvestmentMovement(description = '') {
+    const text = normalizeText(description);
+    return [
+        'aplicacao rdb',
+        'aplicação rdb',
+        'resgate rdb',
+        'aplicacao financeira',
+        'aplicação financeira'
+    ].some(term => text.includes(normalizeText(term)));
+}
+
+function isInternalFinancialMovement(description = '') {
+    return isCreditCardPaymentMovement(description) || isInvestmentMovement(description);
+}
+
 function buildTransaction({ date, description, amount, explicitType = '', ownerAliases = [] }) {
     const value = Math.abs(Number(amount || 0));
     if (!value) return null;
@@ -249,6 +280,10 @@ function buildTransaction({ date, description, amount, explicitType = '', ownerA
     const isIncome = amount > 0 || ['entrada', 'credito', 'crédito', 'credit', 'receita'].some(term => typeText.includes(normalizeText(term)));
     const isExpense = amount < 0 || ['saida', 'saída', 'debito', 'débito', 'debit', 'despesa'].some(term => typeText.includes(normalizeText(term)));
     if (!isIncome && !isExpense) return null;
+
+    if (isInternalFinancialMovement(safeDescription)) {
+        return buildTransfer({ date, description: safeDescription, amount, explicitType });
+    }
 
     if (isProbableInternalTransfer(safeDescription, ownerAliases)) {
         return buildTransfer({ date, description: safeDescription, amount, explicitType });
@@ -286,12 +321,17 @@ function convertTransactionsForCreditCardStatement(transactions = []) {
         .filter(item => item && !item.duplicate)
         .filter(item => !isLikelyCreditCardCredit(item.descricao))
         .filter(item => item.type === 'Saídas' || item.type === 'Entradas')
-        .map(item => ({
-            ...item,
-            type: 'Cartão',
-            parcela: '1/1',
-            observacoes: item.observacoes || 'Importado de extrato de cartão'
-        }));
+        .map(item => {
+            const category = categorizeExpense(item.descricao);
+            return {
+                ...item,
+                type: 'Cartão',
+                categoria: item.categoria && item.categoria !== 'Outros' ? item.categoria : category.categoria,
+                subcategoria: item.subcategoria && item.subcategoria !== 'Importação' ? item.subcategoria : category.subcategoria,
+                parcela: '1/1',
+                observacoes: item.observacoes || 'Importado de extrato de cartão'
+            };
+        });
 }
 
 function isBalanceMarker(description = '') {
@@ -847,7 +887,9 @@ module.exports = {
         applyFallbackDateToTransactions,
         buildExistingDuplicateKeys,
         buildTransaction,
+        categorizeExpense,
         convertTransactionsForCreditCardStatement,
+        isInternalFinancialMovement,
         recurringDescriptionSignature,
         isProbableInternalTransfer,
         parseDelimited,
