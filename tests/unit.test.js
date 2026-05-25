@@ -22,6 +22,7 @@ const googleService = require('../src/services/google');
 const calculationOrchestrator = require('../src/services/calculationOrchestrator');
 const qaFailureLogService = require('../src/services/qaFailureLogService');
 const userSheetAnalyticsService = require('../src/services/userSheetAnalyticsService');
+const userIdMaintenanceService = require('../src/services/userIdMaintenanceService');
 
 // --- Helpers Tests ---
 test('helpers.parseValue', (t) => {
@@ -46,6 +47,15 @@ test('helpers.normalizeText', (t) => {
     assert.strictEqual(helpers.normalizeText("TEXTO"), "texto", 'Should lowercase');
     assert.strictEqual(helpers.normalizeText("É o bicho!"), "e o bicho!", 'Mixed case and accents');
     assert.strictEqual(helpers.normalizeText(null), '', 'Null should return empty string');
+});
+
+test('userIdMaintenance ignores blank legacy spreadsheet rows', () => {
+    const { isMeaningfulTrackedRow } = userIdMaintenanceService.__test__;
+
+    assert.strictEqual(isMeaningfulTrackedRow([], 9), false);
+    assert.strictEqual(isMeaningfulTrackedRow(['', '', '', '', '', '', '', '', '', ''], 9), false);
+    assert.strictEqual(isMeaningfulTrackedRow(['', '', '', '', '', '', '', '', '', 'user-1'], 9), false);
+    assert.strictEqual(isMeaningfulTrackedRow(['20/05/2026', 'Aluguel', '', '', '900', '', '', '', '', ''], 9), true);
 });
 
 test('textMatcher.fuzzyIncludes tolerates common finance typos', () => {

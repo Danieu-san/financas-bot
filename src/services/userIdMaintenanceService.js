@@ -100,6 +100,14 @@ function getTrackedSheets() {
     ];
 }
 
+function isMeaningfulTrackedRow(row, userIndex) {
+    if (!Array.isArray(row)) return false;
+    return row.some((cell, index) => {
+        if (index === userIndex) return false;
+        return String(cell || '').trim() !== '';
+    });
+}
+
 async function validateUserIdIntegrity() {
     const tracked = getTrackedSheets();
     const report = {
@@ -115,8 +123,9 @@ async function validateUserIdIntegrity() {
         let sheetRows = 0;
         if (rows && rows.length > 1) {
             for (let i = 1; i < rows.length; i++) {
-                sheetRows += 1;
                 const row = rows[i];
+                if (!isMeaningfulTrackedRow(row, config.userIndex)) continue;
+                sheetRows += 1;
                 const userId = String(row[config.userIndex] || '').trim();
                 if (!userId) sheetMissing += 1;
             }
@@ -157,6 +166,7 @@ async function backfillMissingUserIds({ allowSingleUserFallback = false } = {}) 
 
         for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
+            if (!isMeaningfulTrackedRow(row, config.userIndex)) continue;
             const currentUserId = String(row[config.userIndex] || '').trim();
             if (currentUserId) continue;
 
@@ -204,5 +214,8 @@ async function backfillMissingUserIds({ allowSingleUserFallback = false } = {}) 
 
 module.exports = {
     validateUserIdIntegrity,
-    backfillMissingUserIds
+    backfillMissingUserIds,
+    __test__: {
+        isMeaningfulTrackedRow
+    }
 };
