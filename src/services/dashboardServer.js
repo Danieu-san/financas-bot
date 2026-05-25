@@ -495,6 +495,8 @@ function dashboardHtml() {
 
     setupFilters();
     document.getElementById('refresh').addEventListener('click', loadData);
+    monthEl.addEventListener('change', loadData);
+    yearEl.addEventListener('change', loadData);
     userEl.addEventListener('change', loadData);
     setupUsers().finally(loadData);
   </script>
@@ -505,7 +507,8 @@ function dashboardHtml() {
 function getDashboardDataUserId(payload, reqUrl) {
     if (!payload?.adm) return payload.uid;
     const requested = String(reqUrl.searchParams.get('user') || '').trim();
-    if (!requested || requested === 'all') return ALL_USERS_ID;
+    if (!requested) return payload.uid;
+    if (requested === 'all') return ALL_USERS_ID;
     return requested;
 }
 
@@ -517,6 +520,10 @@ function formatDashboardUserOption(user) {
         value: user.user_id,
         label: `${name} · ${phone}${status}`
     };
+}
+
+function isDashboardSelectableUser(user) {
+    return String(user?.status || '').trim() === 'ACTIVE' && !String(user?.deleted_at || '').trim();
 }
 
 async function handleApiSummary(reqUrl, res) {
@@ -655,12 +662,13 @@ function startDashboardServer() {
                     return;
                 }
                 const users = await getAllUsers();
+                const activeUsers = users.filter(isDashboardSelectableUser);
                 sendJson(res, 200, {
                     isAdmin: true,
-                    defaultUser: 'all',
+                    defaultUser: payload.uid,
                     users: [
                         { value: 'all', label: 'Todos os usuários' },
-                        ...users.map(formatDashboardUserOption)
+                        ...activeUsers.map(formatDashboardUserOption)
                     ]
                 });
             });

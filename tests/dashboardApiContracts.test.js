@@ -4,11 +4,15 @@ const { once } = require('node:events');
 
 const dashboardServerPath = require.resolve('../src/services/dashboardServer');
 const readModelPath = require.resolve('../src/services/readModelService');
+const userSheetAnalyticsPath = require.resolve('../src/services/userSheetAnalyticsService');
+const userServicePath = require.resolve('../src/services/userService');
 const dashboardAuthPath = require.resolve('../src/utils/dashboardAuth');
 
 function installReadModelMock(calls) {
     delete require.cache[dashboardServerPath];
     delete require.cache[readModelPath];
+    delete require.cache[userSheetAnalyticsPath];
+    delete require.cache[userServicePath];
     require.cache[readModelPath] = {
         id: readModelPath,
         filename: readModelPath,
@@ -41,6 +45,28 @@ function installReadModelMock(calls) {
             },
             isSqliteReady: () => true,
             ALL_USERS_ID: '__ALL_USERS__'
+        }
+    };
+    require.cache[userSheetAnalyticsPath] = {
+        id: userSheetAnalyticsPath,
+        filename: userSheetAnalyticsPath,
+        loaded: true,
+        exports: {
+            getUserSheetDashboardData: async () => null
+        }
+    };
+    require.cache[userServicePath] = {
+        id: userServicePath,
+        filename: userServicePath,
+        loaded: true,
+        exports: {
+            getAllUsers: async () => [
+                { user_id: 'admin-user', display_name: 'Daniel', phone_e164: '5521970112407', status: 'ACTIVE' },
+                { user_id: 'user-dash-a', display_name: 'Usuário A', phone_e164: '5599999999999', status: 'ACTIVE' },
+                { user_id: 'inactive-user', display_name: 'Inativo', phone_e164: '5588888888888', status: 'INACTIVE' },
+                { user_id: 'deleted-user', display_name: 'Deletado', phone_e164: '5577777777777', status: 'DELETED', deleted_at: '2026-05-01T00:00:00.000Z' }
+            ],
+            getUserProfileByUserId: async () => null
         }
     };
 }
@@ -118,7 +144,7 @@ test('dashboard API endpoints expose stable user-scoped contracts', async () => 
     }
 });
 
-test('dashboard admin token can request all-users aggregate scope', async () => {
+test('dashboard admin token defaults to own user and can explicitly request all-users aggregate scope', async () => {
     const calls = [];
     const { server, baseUrl } = await startTestServer(calls);
     const { generateDashboardToken } = require('../src/utils/dashboardAuth');
@@ -127,11 +153,49 @@ test('dashboard admin token can request all-users aggregate scope', async () => 
     try {
         const kpis = await fetchJson(`${baseUrl}/dashboard/api/kpis?token=${adminToken}&month=1&year=2026`);
         assert.strictEqual(kpis.response.status, 200);
+        assert.strictEqual(calls.at(-1).userId, 'admin-user');
+
+        const aggregate = await fetchJson(`${baseUrl}/dashboard/api/kpis?token=${adminToken}&user=all&month=1&year=2026`);
+        assert.strictEqual(aggregate.response.status, 200);
         assert.strictEqual(calls.at(-1).userId, '__ALL_USERS__');
 
         const personal = await fetchJson(`${baseUrl}/dashboard/api/kpis?token=${adminToken}&user=user-dash-a&month=1&year=2026`);
         assert.strictEqual(personal.response.status, 200);
         assert.strictEqual(calls.at(-1).userId, 'user-dash-a');
+    } finally {
+        await new Promise(resolve => server.close(resolve));
+    }
+});
+
+test('dashboard page reloads data when month or year filters change', async () => {
+    const calls = [];
+    const { server, baseUrl, token } = await startTestServer(calls);
+    try {
+        const page = await fetch(`${baseUrl}/dashboard?token=${token}`);
+        assert.strictEqual(page.status, 200);
+        const html = await page.text();
+        assert.match(html, /monthEl\.addEventListener\('change', loadData\)/);
+        assert.match(html, /yearEl\.addEventListener\('change', loadData\)/);
+    } finally {
+        await new Promise(resolve => server.close(resolve));
+    }
+});
+
+test('dashboard admin user selector only lists active users', async () => {
+    const calls = [];
+    const { server, baseUrl } = await startTestServer(calls);
+    const { generateDashboardToken } = require('../src/utils/dashboardAuth');
+    const adminToken = generateDashboardToken({ userId: 'admin-user', ttlSeconds: 600, isAdmin: true });
+
+    try {
+        const result = await fetchJson(`${baseUrl}/dashboard/api/users?token=${adminToken}`);
+        assert.strictEqual(result.response.status, 200);
+        const values = result.json.users.map(user => user.value);
+        assert.ok(values.includes('admin-user'));
+        assert.ok(values.includes('user-dash-a'));
+        assert.ok(values.includes('all'));
+        assert.ok(!values.includes('inactive-user'));
+        assert.ok(!values.includes('deleted-user'));
     } finally {
         await new Promise(resolve => server.close(resolve));
     }
