@@ -173,20 +173,39 @@ function buildImportedDateFields(value) {
 function categorizeExpense(description = '') {
     const text = normalizeText(description);
     const rules = [
+        { terms: ['99food', 'ifood'], categoria: 'Alimentação', subcategoria: 'RESTAURANTE / LANCHE' },
+        { terms: ['mercadolivre', 'mercado livre', 'shopee', 'amazon'], categoria: 'Compras', subcategoria: 'COMPRAS ONLINE' },
         { terms: ['gci caixa', 'habitacao', 'habitação', 'ccisa', 'incorporadora', 'llz garantidora', 'aluguel', 'condominio', 'condomínio'], categoria: 'Moradia', subcategoria: 'HABITAÇÃO' },
         { terms: ['light', 'energia', 'eletricidade'], categoria: 'Moradia', subcategoria: 'ENERGIA' },
-        { terms: ['ceg', 'naturgy', 'gas', 'gás', 'agua', 'água'], categoria: 'Moradia', subcategoria: 'CONTAS DA CASA' },
+        { terms: ['ceg', 'naturgy', 'gas natural', 'gás natural', 'agua', 'água'], categoria: 'Moradia', subcategoria: 'CONTAS DA CASA' },
         { terms: ['claro', 'vivo', 'tim', 'internet', 'telefone'], categoria: 'Moradia', subcategoria: 'INTERNET / TELEFONE' },
         { terms: ['mercado', 'supermercado', 'guanabara', 'assai', 'assaí', 'hortifruti', 'hortfruti'], categoria: 'Alimentação', subcategoria: 'SUPERMERCADO' },
         { terms: ['restaurante', 'ifood', 'lanche', 'padaria', 'pastel'], categoria: 'Alimentação', subcategoria: 'RESTAURANTE / LANCHE' },
-        { terms: ['uber', '99', 'onibus', 'ônibus', 'metro', 'metrô', 'trem', 'gasolina', 'veloe', 'estacionamento'], categoria: 'Transporte', subcategoria: 'TRANSPORTE' },
+        { terms: ['uber', '99', 'onibus', 'ônibus', 'metro', 'metrô', 'trem', 'gasolina', 'auto posto', 'posto', 'veloe', 'estacionamento'], categoria: 'Transporte', subcategoria: 'TRANSPORTE' },
         { terms: ['farmacia', 'farmácia', 'drogaria', 'pacheco', 'remedio', 'remédio', 'consulta'], categoria: 'Saúde', subcategoria: 'SAÚDE' },
         { terms: ['open english', 'qconcursos', 'curso', 'aula', 'livro'], categoria: 'Educação', subcategoria: 'CURSOS / ESTUDOS' },
-        { terms: ['canva', 'capcut', 'moises', 'google', 'assinatura', 'premium', 'premiun'], categoria: 'Assinaturas', subcategoria: 'SERVIÇOS DIGITAIS' },
-        { terms: ['mercadolivre', 'mercado livre', 'shopee', 'amazon'], categoria: 'Compras', subcategoria: 'COMPRAS ONLINE' }
+        { terms: ['canva', 'capcut', 'moises', 'google', 'assinatura', 'premium', 'premiun'], categoria: 'Assinaturas', subcategoria: 'SERVIÇOS DIGITAIS' }
     ];
-    const found = rules.find(rule => rule.terms.some(term => text.includes(normalizeText(term))));
+    const found = rules.find(rule => rule.terms.some(term => normalizedTextIncludesTerm(text, term)));
     return found || { categoria: 'Outros', subcategoria: 'Importação' };
+}
+
+function escapeRegex(value = '') {
+    return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function normalizedTextIncludesTerm(text, term) {
+    const normalizedTerm = normalizeText(term).trim();
+    if (!normalizedTerm) return false;
+    if (!/^[a-z0-9]+(?:\s+[a-z0-9]+)*$/.test(normalizedTerm)) {
+        return text.includes(normalizedTerm);
+    }
+
+    const pattern = normalizedTerm
+        .split(/\s+/)
+        .map(escapeRegex)
+        .join('[^a-z0-9]+');
+    return new RegExp(`(^|[^a-z0-9])${pattern}($|[^a-z0-9])`, 'i').test(text);
 }
 
 function categorizeIncome(description = '') {
@@ -890,6 +909,7 @@ module.exports = {
         categorizeExpense,
         convertTransactionsForCreditCardStatement,
         isInternalFinancialMovement,
+        normalizedTextIncludesTerm,
         recurringDescriptionSignature,
         isProbableInternalTransfer,
         parseDelimited,
