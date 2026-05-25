@@ -176,6 +176,9 @@ test('dashboard page reloads data when month or year filters change', async () =
         const html = await page.text();
         assert.match(html, /monthEl\.addEventListener\('change', loadData\)/);
         assert.match(html, /yearEl\.addEventListener\('change', loadData\)/);
+        assert.match(html, /fetch\(base \+ '\/summary\?token='/);
+        assert.doesNotMatch(html, /fetch\(base \+ '\/kpis\?token='/);
+        assert.doesNotMatch(html, /fetch\(base \+ '\/cashflow\?token='/);
     } finally {
         await new Promise(resolve => server.close(resolve));
     }

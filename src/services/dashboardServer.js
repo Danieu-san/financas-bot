@@ -377,30 +377,11 @@ function dashboardHtml() {
       const userParam = userEl.value ? '&user=' + encodeURIComponent(userEl.value) : '';
       const base = '/dashboard/api';
       try {
-        const reqs = await Promise.all([
-          fetch(base + '/kpis?token=' + encodeURIComponent(token) + userParam + '&month=' + encodeURIComponent(month) + '&year=' + encodeURIComponent(year)),
-          fetch(base + '/cashflow?token=' + encodeURIComponent(token) + userParam + '&month=' + encodeURIComponent(month) + '&year=' + encodeURIComponent(year)),
-          fetch(base + '/goals?token=' + encodeURIComponent(token) + userParam),
-          fetch(base + '/debts?token=' + encodeURIComponent(token) + userParam),
-          fetch(base + '/alerts?token=' + encodeURIComponent(token) + userParam + '&month=' + encodeURIComponent(month) + '&year=' + encodeURIComponent(year)),
-          fetch(base + '/summary?token=' + encodeURIComponent(token) + userParam + '&month=' + encodeURIComponent(month) + '&year=' + encodeURIComponent(year))
-        ]);
-        const [kpisRes, cashflowRes, goalsRes, debtsRes, alertsRes, summaryRes] = reqs;
-        const [kpisData, cashflowData, goalsData, debtsData, alertsData, summaryData] = await Promise.all([
-          kpisRes.json(), cashflowRes.json(), goalsRes.json(), debtsRes.json(), alertsRes.json(), summaryRes.json()
-        ]);
-        if (!kpisRes.ok) throw new Error(kpisData.error || 'Erro ao carregar KPIs');
+        const summaryRes = await fetch(base + '/summary?token=' + encodeURIComponent(token) + userParam + '&month=' + encodeURIComponent(month) + '&year=' + encodeURIComponent(year));
+        const summaryData = await summaryRes.json();
+        if (!summaryRes.ok) throw new Error(summaryData.error || 'Erro ao carregar dashboard');
 
-        const data = {
-          ...summaryData,
-          kpis: kpisData.kpis || summaryData.kpis,
-          topCategories: kpisData.topCategories || summaryData.topCategories,
-          dailyFlow: cashflowData.dailyFlow || [],
-          goals: goalsData.goals || [],
-          debts: debtsData.debts || [],
-          alerts: alertsData.alerts || []
-        };
-        render(data);
+        render(summaryData);
       } catch (e) {
         errorEl.textContent = e.message || 'Falha no carregamento';
         errorEl.style.display = 'block';
