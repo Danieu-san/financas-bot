@@ -379,6 +379,15 @@ test('messageHandler.classifyPerguntaLocally covers complex analytical questions
     assert.strictEqual(namedInvoice.parameters.cartao, 'nubank thais');
     assert.strictEqual(namedInvoice.parameters.mes, 4);
 
+    const invoiceByCard = classifyPerguntaLocally('qual o valor da fatura de cada cartão que paguei em maio de 2026?');
+    assert.strictEqual(invoiceByCard.intent, 'total_faturas_por_cartao');
+    assert.strictEqual(invoiceByCard.parameters.mes, 4);
+    assert.strictEqual(invoiceByCard.parameters.cartao, '');
+
+    const invoiceByCardsVariant = classifyPerguntaLocally('quais os valores das faturas dos cartões em maio de 2026?');
+    assert.strictEqual(invoiceByCardsVariant.intent, 'total_faturas_por_cartao');
+    assert.strictEqual(invoiceByCardsVariant.parameters.mes, 4);
+
     const paidInvoice = classifyPerguntaLocally('quanto paguei de fatura em maio de 2026?');
     assert.strictEqual(paidInvoice.intent, 'total_pagamentos_fatura_mes');
     assert.strictEqual(paidInvoice.parameters.mes, 4);
@@ -531,6 +540,20 @@ test('messageHandler local replies cover richer spreadsheet calculations', () =>
 
     assert.match(
         buildLocalPerguntaResponse({
+            intent: 'total_faturas_por_cartao',
+            analyzedData: {
+                results: [
+                    { cartao: 'Nubank Daniel', total: 345.67, parcelas: 3 },
+                    { cartao: 'Itaú', total: 200, parcelas: 1 }
+                ],
+                details: { mes: 4, ano: 2026, total: 545.67, cartoes: 2, parcelas: 4 }
+            }
+        }),
+        /Faturas por cartão.*maio\/2026.*Nubank Daniel: R\$ 345,67.*Itaú: R\$ 200,00.*Total: R\$ 545,67/s
+    );
+
+    assert.match(
+        buildLocalPerguntaResponse({
             intent: 'total_pagamentos_fatura_mes',
             analyzedData: {
                 results: 1234.56,
@@ -621,6 +644,14 @@ test('calculationOrchestrator calculates card invoices and open installments det
     const thaisInvoice = await calculationOrchestrator.execute('total_fatura_cartao', { cartao: 'nubank thais', mes: 0, ano: 2026 }, dataSources);
     assert.strictEqual(thaisInvoice.results, 80);
     assert.strictEqual(thaisInvoice.details.parcelas, 1);
+
+    const invoiceByCard = await calculationOrchestrator.execute('total_faturas_por_cartao', { mes: 4, ano: 2026 }, dataSources);
+    assert.deepStrictEqual(invoiceByCard.results, [
+        { cartao: 'Nubank Daniel', total: 1000, parcelas: 1 },
+        { cartao: 'Itaú', total: 200, parcelas: 1 }
+    ]);
+    assert.strictEqual(invoiceByCard.details.total, 1200);
+    assert.strictEqual(invoiceByCard.details.cartoes, 2);
 });
 
 test('calculationOrchestrator answers recurring bills and paid invoice questions from sheet data', async () => {

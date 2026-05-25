@@ -158,6 +158,24 @@ function summarizeInstallments(rows) {
         .sort((a, b) => b.totalPrevisto - a.totalPrevisto);
 }
 
+function summarizeInvoicesByCard(rows) {
+    const grouped = new Map();
+    rows.forEach((row) => {
+        const cardName = String(row.cartao || row.cardId || 'Cartão').trim() || 'Cartão';
+        const key = normalizeCardSearchText(cardName) || cardName;
+        const existing = grouped.get(key) || {
+            cartao: cardName,
+            total: 0,
+            parcelas: 0
+        };
+        existing.total += Number(row.valor || 0);
+        existing.parcelas += 1;
+        grouped.set(key, existing);
+    });
+    return Array.from(grouped.values())
+        .sort((a, b) => b.total - a.total || String(a.cartao).localeCompare(String(b.cartao), 'pt-BR'));
+}
+
 function transferRowMatchesMonth(row, mes, ano) {
     const month = getMonthIndex(mes);
     const year = Number.parseInt(ano, 10);
@@ -418,6 +436,25 @@ const operationRegistry = {
                 cartao: params.cartao || '',
                 mes,
                 ano,
+                parcelas: rows.length
+            }
+        };
+    },
+    total_faturas_por_cartao: async function(params, dataSources) {
+        const mes = getMonthIndex(params.mes);
+        const ano = parseInt(params.ano, 10);
+        const rows = getCreditCardRows(dataSources)
+            .filter(row => cardMatches(row, params.cartao))
+            .filter(row => billingMatches(row, mes, ano));
+        const results = summarizeInvoicesByCard(rows);
+        return {
+            results,
+            details: {
+                cartao: params.cartao || '',
+                mes,
+                ano,
+                total: results.reduce((sum, item) => sum + Number(item.total || 0), 0),
+                cartoes: results.length,
                 parcelas: rows.length
             }
         };

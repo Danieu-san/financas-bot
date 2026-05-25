@@ -677,7 +677,7 @@ function extractCardFromQuestion(text) {
     const normalized = normalizeText(String(text || '').trim());
     const knownCards = ['nubank', 'itau', 'itaú', 'atacadao', 'atacadão', 'inter', 'santander', 'bradesco'];
     const cardTailStopWords = new Set([
-        'a', 'as', 'o', 'os', 'de', 'do', 'da', 'dos', 'das',
+        'a', 'as', 'o', 'os', 'de', 'do', 'da', 'dos', 'das', 'cada', 'todo', 'todos', 'todas',
         'em', 'no', 'na', 'nos', 'nas', 'partir', 'quanto', 'qual', 'quais',
         'fatura', 'faturas', 'cartao', 'cartoes', 'cartão', 'cartões',
         'aberto', 'aberta', 'abertos', 'abertas', 'ativo', 'ativa', 'ativos', 'ativas',
@@ -704,6 +704,17 @@ function extractCardFromQuestion(text) {
     return '';
 }
 
+function isInvoiceByCardQuestion(text) {
+    const normalized = normalizeText(String(text || '').trim());
+    if (!normalized.includes('fatura')) return false;
+    return (
+        /\b(cada|todo|todos|todas)\s+(cartao|cartoes)\b/.test(normalized) ||
+        /\bpor\s+(cartao|cartoes)\b/.test(normalized) ||
+        /\bfaturas?\s+(dos|das|de|por)\s+(cartao|cartoes)\b/.test(normalized) ||
+        /\bvalores?\s+das?\s+faturas?\s+(dos|das|de)\s+(cartao|cartoes)\b/.test(normalized)
+    );
+}
+
 function inferAnalyticalQueryPlan(userQuestion) {
     const text = normalizeText(String(userQuestion || '').trim());
     if (!text) return null;
@@ -724,6 +735,9 @@ function inferAnalyticalQueryPlan(userQuestion) {
         (text.includes('quantas') || text.includes('quais') || text.includes('listar') || text.includes('liste') || text.includes('mostrar') || text.includes('mostre') || text.includes('tenho'))
     ) {
         return { metric: 'recurring_bills_summary', intent: 'resumo_contas_recorrentes', parameters: {} };
+    }
+    if (isInvoiceByCardQuestion(text)) {
+        return { metric: 'card_invoice_by_card', intent: 'total_faturas_por_cartao', parameters: { cartao: '', mes, ano } };
     }
     if (
         text.includes('fatura') &&
@@ -1015,6 +1029,21 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
         const cardLabel = details.cartao ? ` do ${details.cartao}` : '';
         const parcelas = details.parcelas ? `\n${details.parcelas} parcela(s) lançadas` : '';
         return `Fatura${cardLabel} em ${periodLabel}: ${formatCurrencyBR(results)}${parcelas}`;
+    }
+
+    if (intent === 'total_faturas_por_cartao') {
+        const rows = Array.isArray(results) ? results : [];
+        if (rows.length === 0) return `Não encontrei faturas de cartão em ${periodLabel}.`;
+        const lines = rows.slice(0, 12).map((item, idx) => {
+            const parcelas = Number(item.parcelas || 0);
+            const parcelasLabel = parcelas === 1 ? '1 parcela' : `${parcelas} parcelas`;
+            return `${idx + 1}. ${item.cartao || 'Cartão'}: ${formatCurrencyBR(item.total || 0)} (${parcelasLabel})`;
+        });
+        const truncated = rows.length > 12 ? `\n... e mais ${rows.length - 12} cartão(ões).` : '';
+        const total = details.total !== undefined
+            ? Number(details.total || 0)
+            : rows.reduce((sum, item) => sum + Number(item.total || 0), 0);
+        return `Faturas por cartão em ${periodLabel}:\n${lines.join('\n')}${truncated}\nTotal: ${formatCurrencyBR(total)}`;
     }
 
     if (intent === 'total_pagamentos_fatura_mes') {

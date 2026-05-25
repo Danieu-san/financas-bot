@@ -531,6 +531,34 @@ function queryAnalyticalIntentSql(intent, parameters, { userId }) {
         };
     }
 
+    if (intent === 'total_faturas_por_cartao') {
+        const cardNeedle = `%${normalizeText(cartaoRaw)}%`;
+        const rows = db.prepare(`
+            SELECT COALESCE(source_name, 'Cartão') AS cartao, SUM(value) AS total, COUNT(*) AS parcelas
+            FROM expenses
+            WHERE user_id = ? AND source_type = 'cartao' AND month = ? AND year = ?
+              AND (? = '' OR ${normalizedSourceNameSql} LIKE ?)
+            GROUP BY COALESCE(source_name, 'Cartão')
+            ORDER BY total DESC, cartao ASC
+        `).all(userId, month, year, normalizeText(cartaoRaw), cardNeedle);
+        const results = rows.map(row => ({
+            cartao: row.cartao || 'Cartão',
+            total: Number(row.total || 0),
+            parcelas: Number(row.parcelas || 0)
+        }));
+        return {
+            results,
+            details: {
+                cartao: cartaoRaw,
+                mes: month,
+                ano: year,
+                total: results.reduce((sum, row) => sum + Number(row.total || 0), 0),
+                cartoes: results.length,
+                parcelas: results.reduce((sum, row) => sum + Number(row.parcelas || 0), 0)
+            }
+        };
+    }
+
     if (intent === 'total_cartoes_em_aberto') {
         const targetKey = Number(year || 0) * 12 + Number(month || 0);
         const cardNeedle = `%${normalizeText(cartaoRaw)}%`;

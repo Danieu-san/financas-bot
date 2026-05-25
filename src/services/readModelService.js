@@ -471,6 +471,20 @@ function summarizeReadModelCardInstallments(entries) {
         .sort((a, b) => b.totalPrevisto - a.totalPrevisto);
 }
 
+function summarizeReadModelInvoicesByCard(entries) {
+    const grouped = new Map();
+    entries.forEach((entry) => {
+        const cardName = String(entry.source || 'Cartão').trim() || 'Cartão';
+        const key = normalizeText(cardName) || cardName;
+        const existing = grouped.get(key) || { cartao: cardName, total: 0, parcelas: 0 };
+        existing.total += Number(entry.valor || 0);
+        existing.parcelas += 1;
+        grouped.set(key, existing);
+    });
+    return Array.from(grouped.values())
+        .sort((a, b) => b.total - a.total || String(a.cartao).localeCompare(String(b.cartao), 'pt-BR'));
+}
+
 async function executeAnalyticalIntent(intent, parameters, { userId }) {
     const sqlResult = queryAnalyticalIntentSql(intent, parameters, { userId });
     if (sqlResult) {
@@ -626,6 +640,21 @@ async function executeAnalyticalIntent(intent, parameters, { userId }) {
         return withResultSource({
             results: rows.reduce((sum, entry) => sum + Number(entry.valor || 0), 0),
             details: { cartao: parameters?.cartao || '', mes: month, ano: year, parcelas: rows.length }
+        }, 'memory_fallback');
+    }
+    case 'total_faturas_por_cartao': {
+        const rows = cartoesDoUsuario.filter(entry => readModelCardMatches(entry, parameters?.cartao));
+        const results = summarizeReadModelInvoicesByCard(rows);
+        return withResultSource({
+            results,
+            details: {
+                cartao: parameters?.cartao || '',
+                mes: month,
+                ano: year,
+                total: results.reduce((sum, item) => sum + Number(item.total || 0), 0),
+                cartoes: results.length,
+                parcelas: rows.length
+            }
         }, 'memory_fallback');
     }
     case 'total_cartoes_em_aberto': {
