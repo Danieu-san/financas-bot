@@ -195,6 +195,7 @@ test('statement import treats investments and credit card payments as non-spendi
         '07/05/2026;Pagamento de fatura;-2254,00;Débito',
         '13/05/2026;Aplicação RDB;-800,00;Débito',
         '20/05/2026;Resgate RDB;300,00;Crédito',
+        '21/05/2026;Resgate de caixinha Nubank;500,00;Crédito',
         '18/05/2026;PAG BOLETO NU PAGAMENTOS SA;-1377,82;Débito',
         '19/05/2026;PIX QRS BANCO CSF19/05;-1148,00;Débito',
         '10/05/2026;PIX QRS NU PAGAMENT08/04;-1142,19;Débito'
@@ -202,9 +203,12 @@ test('statement import treats investments and credit card payments as non-spendi
 
     const transactions = parseCsvTransactions(csv);
 
-    assert.strictEqual(transactions.length, 6);
+    assert.strictEqual(transactions.length, 7);
     assert.ok(transactions.every(item => item.type === 'Transferências'));
     assert.ok(transactions.every(item => /não conta como gasto nem renda/i.test(item.observacoes)));
+    assert.strictEqual(transactions[0].status, 'Pagamento de fatura');
+    assert.strictEqual(transactions[3].status, 'Movimentação de reserva/investimento');
+    assert.strictEqual(transactions[6].status, 'Pagamento de fatura');
 });
 
 test('statement import classifies reserve yields as investment income', () => {
@@ -225,12 +229,13 @@ test('statement import improves imported expense and card categories', () => {
         'Data;Descrição;Valor;Tipo',
         '07/05/2026;Pagamento de boleto efetuado - GCI CAIXA  - HABITACAO;-2621,23;Débito',
         '07/05/2026;Transferência enviada pelo Pix - LIGHT SERVICOS DE ELETRICIDADE S A;-343,28;Débito',
-        '11/05/2026;PIX QRS Pastel Da C11/05;-13,00;Débito'
+        '11/05/2026;PIX QRS Pastel Da C11/05;-13,00;Débito',
+        '24/05/2026;Material reforma casa teste validacao;-127,80;Débito'
     ].join('\n');
     const checking = parseCsvTransactions(checkingCsv);
 
-    assert.deepStrictEqual(checking.map(item => item.categoria), ['Moradia', 'Moradia', 'Alimentação']);
-    assert.deepStrictEqual(checking.map(item => item.subcategoria), ['HABITAÇÃO', 'ENERGIA', 'RESTAURANTE / LANCHE']);
+    assert.deepStrictEqual(checking.map(item => item.categoria), ['Moradia', 'Moradia', 'Alimentação', 'Moradia']);
+    assert.deepStrictEqual(checking.map(item => item.subcategoria), ['HABITAÇÃO', 'ENERGIA', 'RESTAURANTE / LANCHE', 'REFORMA / MANUTENÇÃO']);
 
     const cardCsv = [
         'date,title,amount',
@@ -477,11 +482,13 @@ test('statement import detects repeated expense as bill reminder candidate', () 
 test('statement import applies active account classification rules before preview', () => {
     const csv = [
         'Data;Descrição;Valor;Tipo',
-        '10/03/2026;GRPLQ;-1500,00;Débito'
+        '10/03/2026;GRPLQ;-1500,00;Débito',
+        '24/05/2026;TESTE_APAGAR - Pagamento de boleto efetuado - GCI CAIXA  - HABITACAO;-2504,07;Débito'
     ].join('\n');
     const transactions = parseCsvTransactions(csv);
     const accountRows = [
-        ['GRPLQ', '10', 'Aluguel recorrente', 'user-daniel', 'Aluguel', 'Moradia', 'ALUGUEL', '1500,00', 'SIM']
+        ['GRPLQ', '10', 'Aluguel recorrente', 'user-daniel', 'Aluguel', 'Moradia', 'ALUGUEL', '1500,00', 'SIM'],
+        ['Pagamento de boleto efetuado - GCI CAIXA - HABITACAO', '12', 'Taxa de obra', 'user-daniel', 'Taxa de obra do ap', 'Moradia', 'TAXA DE OBRA DO FINANCIAMENTO', '', 'SIM']
     ];
 
     const classified = applyAccountClassificationRules(transactions, accountRows);
@@ -490,6 +497,10 @@ test('statement import applies active account classification rules before previe
     assert.strictEqual(classified[0].subcategoria, 'ALUGUEL');
     assert.strictEqual(classified[0].recorrente, 'Sim');
     assert.match(classified[0].observacoes, /regra da conta recorrente/i);
+    assert.strictEqual(classified[1].categoria, 'Moradia');
+    assert.strictEqual(classified[1].subcategoria, 'TAXA DE OBRA DO FINANCIAMENTO');
+    assert.strictEqual(classified[1].recorrente, 'Sim');
+    assert.match(classified[1].observacoes, /Taxa de obra do ap/);
 });
 
 test('statement import parses recurring bill classification replies', () => {

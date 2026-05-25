@@ -180,6 +180,7 @@ function categorizeExpense(description = '') {
         { terms: ['light', 'energia', 'eletricidade'], categoria: 'Moradia', subcategoria: 'ENERGIA' },
         { terms: ['ceg', 'naturgy', 'gas natural', 'gás natural', 'agua', 'água'], categoria: 'Moradia', subcategoria: 'CONTAS DA CASA' },
         { terms: ['claro', 'vivo', 'tim', 'internet', 'telefone'], categoria: 'Moradia', subcategoria: 'INTERNET / TELEFONE' },
+        { terms: ['reforma', 'material de construcao', 'material de construção', 'obra casa'], categoria: 'Moradia', subcategoria: 'REFORMA / MANUTENÇÃO' },
         { terms: ['mercado', 'supermercado', 'guanabara', 'assai', 'assaí', 'hortifruti', 'hortfruti'], categoria: 'Alimentação', subcategoria: 'SUPERMERCADO' },
         { terms: ['restaurante', 'ifood', 'lanche', 'padaria', 'pastel'], categoria: 'Alimentação', subcategoria: 'RESTAURANTE / LANCHE' },
         { terms: ['uber', 'uberrides', '99', '99 ride', 'riocard', 'mais mobi', 'onibus', 'ônibus', 'metro', 'metrô', 'trem', 'gasolina', 'auto posto', 'posto', 'veloe', 'estacionamento', 'auto pecas', 'auto peças'], categoria: 'Transporte', subcategoria: 'TRANSPORTE' },
@@ -295,7 +296,15 @@ function accountRuleMatchesDescription(rule = {}, description = '') {
     if (text.includes(rawName) || rawName.includes(text)) return true;
 
     const descriptionSignature = recurringDescriptionSignature(description);
-    return Boolean(rule.signature && descriptionSignature && rule.signature === descriptionSignature);
+    return Boolean(
+        rule.signature &&
+        descriptionSignature &&
+        (
+            rule.signature === descriptionSignature ||
+            descriptionSignature.includes(rule.signature) ||
+            rule.signature.includes(descriptionSignature)
+        )
+    );
 }
 
 function appendRuleObservation(current = '', rule = {}) {
@@ -382,6 +391,12 @@ function isProbableInternalTransfer(description = '', ownerAliases = []) {
 }
 
 function buildTransfer({ date, description, amount, explicitType = '' }) {
+    const status = isCreditCardPaymentMovement(description)
+        ? 'Pagamento de fatura'
+        : isInvestmentMovement(description)
+            ? 'Movimentação de reserva/investimento'
+            : 'Provável transferência interna';
+
     return {
         type: 'Transferências',
         ...buildImportedDateFields(date),
@@ -391,7 +406,7 @@ function buildTransfer({ date, description, amount, explicitType = '' }) {
         destino: '',
         metodo: String(explicitType || '').trim() || 'Importação',
         observacoes: 'Importado de arquivo; não conta como gasto nem renda',
-        status: 'Provável transferência interna'
+        status
     };
 }
 
@@ -412,6 +427,9 @@ function isInvestmentMovement(description = '') {
         'aplicacao rdb',
         'aplicação rdb',
         'resgate rdb',
+        'resgate de caixinha',
+        'resgate caixinha',
+        'caixinha nubank',
         'aplicacao financeira',
         'aplicação financeira'
     ].some(term => text.includes(normalizeText(term)));
