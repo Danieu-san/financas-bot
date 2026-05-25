@@ -174,17 +174,21 @@ function categorizeExpense(description = '') {
     const text = normalizeText(description);
     const rules = [
         { terms: ['99food', 'ifood'], categoria: 'Alimentação', subcategoria: 'RESTAURANTE / LANCHE' },
-        { terms: ['mercadolivre', 'mercado livre', 'shopee', 'amazon'], categoria: 'Compras', subcategoria: 'COMPRAS ONLINE' },
+        { terms: ['mcdonalds', 'macdonalds', 'lanche', 'lanchonete', 'panificacao', 'panificação', 'cafe', 'café', 'frutt', 'fruti', 'hortifruti', 'hortfruti', 'pastel'], categoria: 'Alimentação', subcategoria: 'RESTAURANTE / LANCHE' },
+        { terms: ['mercadolivre', 'mercado livre', 'shopee', 'shein', 'amazon'], categoria: 'Compras', subcategoria: 'COMPRAS ONLINE' },
         { terms: ['gci caixa', 'habitacao', 'habitação', 'ccisa', 'incorporadora', 'llz garantidora', 'aluguel', 'condominio', 'condomínio'], categoria: 'Moradia', subcategoria: 'HABITAÇÃO' },
         { terms: ['light', 'energia', 'eletricidade'], categoria: 'Moradia', subcategoria: 'ENERGIA' },
         { terms: ['ceg', 'naturgy', 'gas natural', 'gás natural', 'agua', 'água'], categoria: 'Moradia', subcategoria: 'CONTAS DA CASA' },
         { terms: ['claro', 'vivo', 'tim', 'internet', 'telefone'], categoria: 'Moradia', subcategoria: 'INTERNET / TELEFONE' },
         { terms: ['mercado', 'supermercado', 'guanabara', 'assai', 'assaí', 'hortifruti', 'hortfruti'], categoria: 'Alimentação', subcategoria: 'SUPERMERCADO' },
         { terms: ['restaurante', 'ifood', 'lanche', 'padaria', 'pastel'], categoria: 'Alimentação', subcategoria: 'RESTAURANTE / LANCHE' },
-        { terms: ['uber', '99', 'onibus', 'ônibus', 'metro', 'metrô', 'trem', 'gasolina', 'auto posto', 'posto', 'veloe', 'estacionamento'], categoria: 'Transporte', subcategoria: 'TRANSPORTE' },
-        { terms: ['farmacia', 'farmácia', 'drogaria', 'pacheco', 'remedio', 'remédio', 'consulta'], categoria: 'Saúde', subcategoria: 'SAÚDE' },
+        { terms: ['uber', 'uberrides', '99', '99 ride', 'riocard', 'mais mobi', 'onibus', 'ônibus', 'metro', 'metrô', 'trem', 'gasolina', 'auto posto', 'posto', 'veloe', 'estacionamento', 'auto pecas', 'auto peças'], categoria: 'Transporte', subcategoria: 'TRANSPORTE' },
+        { terms: ['farmacia', 'farmácia', 'drogaria', 'pacheco', 'remedio', 'remédio', 'consulta', 'amorsaude', 'amor saude', 'amor saúde', 'biostevi', 'gymnast'], categoria: 'Saúde', subcategoria: 'SAÚDE' },
+        { terms: ['cinema', 'cine'], categoria: 'Lazer', subcategoria: 'ENTRETENIMENTO' },
+        { terms: ['barbershop', 'barbearia', 'perfumaria', 'dona chic', 'demas divas', 'demas & divas'], categoria: 'Cuidados Pessoais', subcategoria: 'BELEZA / CUIDADOS' },
         { terms: ['open english', 'qconcursos', 'curso', 'aula', 'livro'], categoria: 'Educação', subcategoria: 'CURSOS / ESTUDOS' },
-        { terms: ['canva', 'capcut', 'moises', 'google', 'assinatura', 'premium', 'premiun'], categoria: 'Assinaturas', subcategoria: 'SERVIÇOS DIGITAIS' }
+        { terms: ['apple.com/bill', 'apple', 'canva', 'capcut', 'moises', 'google', 'melimais', 'assinatura', 'premium', 'premiun'], categoria: 'Assinaturas', subcategoria: 'SERVIÇOS DIGITAIS' },
+        { terms: ['iof', 'multa por fatura', 'juros'], categoria: 'Taxas e Juros', subcategoria: 'ENCARGOS FINANCEIROS' }
     ];
     const found = rules.find(rule => rule.terms.some(term => normalizedTextIncludesTerm(text, term)));
     return found || { categoria: 'Outros', subcategoria: 'Importação' };
@@ -371,6 +375,8 @@ function isLikelyCreditCardCredit(description = '') {
         'crédito',
         'pagamento recebido',
         'pagamento de fatura',
+        'valor pendente do mes anterior',
+        'valor pendente do mês anterior',
         'cashback',
         'ajuste credito',
         'ajuste crédito'

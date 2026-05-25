@@ -174,7 +174,8 @@ test('statement import skips credit card payments and credits when importing car
         '2026-01-09,Okeo,9.00',
         '2026-01-08,Pagamento recebido,-1075.57',
         '2026-01-07,Estorno compra,-35.00',
-        '2026-01-06,Cashback Nubank,-2.50'
+        '2026-01-06,Cashback Nubank,-2.50',
+        '2026-01-05,Valor pendente do mês anterior,685.78'
     ].join('\n');
 
     const parsed = parseCsvTransactions(csv);
@@ -218,11 +219,25 @@ test('statement import improves imported expense and card categories', () => {
         'date,title,amount',
         '2026-04-12,Supermercado Guanabara,74.83',
         '2026-04-14,99 - NuPay,5.40',
-        '2026-05-11,Dm *Open English - Parcela 3/12,277.38'
+        '2026-05-11,Dm *Open English - Parcela 3/12,277.38',
+        '2026-05-12,Mcdonalds - Arcos Dour,58.70',
+        '2026-05-13,Mais Mobi Riocard,50.00',
+        '2026-05-14,Mtd*Amorsaude Rj Meier,40.00',
+        '2026-05-15,Cine Mad Shopping Rio,36.00',
+        '2026-05-16,Apple.Com/Bill.,19.90'
     ].join('\n');
     const cardTransactions = convertTransactionsForCreditCardStatement(parseCsvTransactions(cardCsv));
 
-    assert.deepStrictEqual(cardTransactions.map(item => item.categoria), ['Alimentação', 'Transporte', 'Educação']);
+    assert.deepStrictEqual(cardTransactions.map(item => item.categoria), [
+        'Alimentação',
+        'Transporte',
+        'Educação',
+        'Alimentação',
+        'Transporte',
+        'Saúde',
+        'Lazer',
+        'Assinaturas'
+    ]);
 });
 
 test('statement import preview includes every imported row instead of abbreviating', () => {
