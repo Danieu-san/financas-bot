@@ -3,8 +3,10 @@ const assert = require('node:assert');
 
 const {
     annotateImportDuplicates,
+    applyAccountClassificationRules,
     buildImportPreviewMessage,
     buildImportPreviewMessages,
+    buildRecurringBillClassificationQuestion,
     applyRecurringIncomeClassification,
     convertTransactionsForCreditCardStatement,
     detectRecurringBillCandidates,
@@ -13,6 +15,7 @@ const {
     parseCsvTransactions,
     parseImportMedia,
     parseOfxTransactions,
+    parseRecurringBillClassificationReply,
     parseRecurringIncomeClassificationReply,
     unsupportedImportMessage
 } = require('../src/services/statementImportService');
@@ -468,4 +471,38 @@ test('statement import detects repeated expense as bill reminder candidate', () 
     assert.match(candidate.description, /Internet/);
     assert.strictEqual(candidate.suggestedDueDay, 5);
     assert.strictEqual(candidate.monthCount, 3);
+});
+
+test('statement import applies active account classification rules before preview', () => {
+    const csv = [
+        'Data;Descrição;Valor;Tipo',
+        '10/03/2026;GRPLQ;-1500,00;Débito'
+    ].join('\n');
+    const transactions = parseCsvTransactions(csv);
+    const accountRows = [
+        ['GRPLQ', '10', 'Aluguel recorrente', 'user-daniel', 'Aluguel', 'Moradia', 'ALUGUEL', '1500,00', 'SIM']
+    ];
+
+    const classified = applyAccountClassificationRules(transactions, accountRows);
+
+    assert.strictEqual(classified[0].categoria, 'Moradia');
+    assert.strictEqual(classified[0].subcategoria, 'ALUGUEL');
+    assert.strictEqual(classified[0].recorrente, 'Sim');
+    assert.match(classified[0].observacoes, /regra da conta recorrente/i);
+});
+
+test('statement import parses recurring bill classification replies', () => {
+    const candidate = { description: 'GRPLQ', suggestedDueDay: 10, monthCount: 3 };
+    const question = buildRecurringBillClassificationQuestion(candidate);
+    assert.match(question, /como devo chamar/i);
+    assert.match(question, /aluguel/i);
+
+    const parsed = parseRecurringBillClassificationReply('aluguel');
+    assert.strictEqual(parsed.friendlyName, 'Aluguel');
+    assert.strictEqual(parsed.categoria, 'Moradia');
+    assert.strictEqual(parsed.subcategoria, 'ALUGUEL');
+    assert.strictEqual(parsed.ruleActive, 'SIM');
+
+    const reminderOnly = parseRecurringBillClassificationReply('só lembrar');
+    assert.strictEqual(reminderOnly.ruleActive, 'NÃO');
 });

@@ -194,6 +194,133 @@ function categorizeExpense(description = '') {
     return found || { categoria: 'Outros', subcategoria: 'Importação' };
 }
 
+function inferRecurringBillClassification(label = '') {
+    const text = normalizeText(label);
+    const directRules = [
+        { terms: ['aluguel'], categoria: 'Moradia', subcategoria: 'ALUGUEL' },
+        { terms: ['condominio', 'condomínio'], categoria: 'Moradia', subcategoria: 'CONDOMÍNIO' },
+        { terms: ['iptu'], categoria: 'Moradia', subcategoria: 'IPTU' },
+        { terms: ['luz', 'energia'], categoria: 'Moradia', subcategoria: 'ENERGIA' },
+        { terms: ['agua', 'água'], categoria: 'Moradia', subcategoria: 'ÁGUA' },
+        { terms: ['internet', 'telefone'], categoria: 'Moradia', subcategoria: 'INTERNET / TELEFONE' },
+        { terms: ['escola', 'faculdade', 'curso'], categoria: 'Educação', subcategoria: 'MENSALIDADE / CURSO' },
+        { terms: ['plano de saude', 'plano saúde', 'saude', 'saúde'], categoria: 'Saúde', subcategoria: 'PLANO / RECORRENTE' },
+        { terms: ['assinatura', 'netflix', 'spotify', 'canva', 'google', 'apple'], categoria: 'Assinaturas', subcategoria: 'SERVIÇOS DIGITAIS' }
+    ];
+    const direct = directRules.find(rule => rule.terms.some(term => normalizedTextIncludesTerm(text, term)));
+    return direct || categorizeExpense(label);
+}
+
+function titleCaseLabel(value = '') {
+    return String(value || '')
+        .trim()
+        .replace(/\s+/g, ' ')
+        .toLowerCase()
+        .replace(/(^|\s)(\S)/g, (_, space, char) => `${space}${char.toUpperCase()}`);
+}
+
+function parseRecurringBillClassificationReply(text = '') {
+    const raw = String(text || '').trim();
+    const normalized = normalizeText(raw);
+    if (!normalized) return null;
+
+    if (['so lembrar', 'só lembrar', 'apenas lembrar', 'sem regra', 'nao classificar', 'não classificar'].includes(normalized)) {
+        return {
+            friendlyName: '',
+            categoria: '',
+            subcategoria: '',
+            expectedValue: '',
+            ruleActive: 'NÃO'
+        };
+    }
+
+    const [labelPart, valuePart = ''] = raw.split(/\s*;\s*/);
+    const classification = inferRecurringBillClassification(labelPart);
+    return {
+        friendlyName: titleCaseLabel(labelPart),
+        categoria: classification.categoria || 'Outros',
+        subcategoria: classification.subcategoria || 'Importação',
+        expectedValue: valuePart.trim(),
+        ruleActive: 'SIM'
+    };
+}
+
+function buildRecurringBillClassificationQuestion(candidate = {}) {
+    return [
+        'Perfeito. Como devo chamar e classificar essa conta daqui para frente?',
+        '',
+        `Nome detectado no extrato: "${candidate.description || 'conta recorrente'}"`,
+        `Vencimento provável: dia ${candidate.suggestedDueDay || 1}`,
+        '',
+        'Responda com algo simples, por exemplo:',
+        '- aluguel',
+        '- internet',
+        '- luz',
+        '',
+        'Se quiser só o lembrete, sem classificar futuros lançamentos, responda `só lembrar`.'
+    ].join('\n');
+}
+
+function accountRuleIsActive(value) {
+    const normalized = normalizeText(String(value || 'SIM'));
+    return !['nao', 'não', 'n', 'false', '0', 'inativo', 'desativado'].includes(normalized);
+}
+
+function accountRowsToClassificationRules(accountRows = []) {
+    return (accountRows || [])
+        .map(row => {
+            const rawName = String(row?.[0] || '').trim();
+            const friendlyName = String(row?.[4] || '').trim();
+            const categoria = String(row?.[5] || '').trim();
+            const subcategoria = String(row?.[6] || '').trim();
+            const expectedValue = String(row?.[7] || '').trim();
+            const active = accountRuleIsActive(row?.[8]);
+            if (!rawName || !categoria || !active) return null;
+            return {
+                rawName,
+                friendlyName,
+                categoria,
+                subcategoria: subcategoria || 'Importação',
+                expectedValue,
+                signature: recurringDescriptionSignature(rawName)
+            };
+        })
+        .filter(Boolean);
+}
+
+function accountRuleMatchesDescription(rule = {}, description = '') {
+    const text = normalizeText(description);
+    const rawName = normalizeText(rule.rawName || '');
+    if (!text || !rawName) return false;
+    if (text.includes(rawName) || rawName.includes(text)) return true;
+
+    const descriptionSignature = recurringDescriptionSignature(description);
+    return Boolean(rule.signature && descriptionSignature && rule.signature === descriptionSignature);
+}
+
+function appendRuleObservation(current = '', rule = {}) {
+    const note = `Classificado pela regra da conta recorrente: ${rule.friendlyName || rule.rawName}`;
+    return current ? `${current}; ${note}` : note;
+}
+
+function applyAccountClassificationRules(transactions = [], accountRows = []) {
+    const rules = accountRowsToClassificationRules(accountRows);
+    if (!rules.length) return transactions;
+
+    return transactions.map(item => {
+        if (!item || item.type !== 'Saídas') return item;
+        const rule = rules.find(candidate => accountRuleMatchesDescription(candidate, item.descricao));
+        if (!rule) return item;
+        return {
+            ...item,
+            categoria: rule.categoria,
+            subcategoria: rule.subcategoria,
+            recorrente: 'Sim',
+            observacoes: appendRuleObservation(item.observacoes || '', rule)
+        };
+    });
+}
+
 function escapeRegex(value = '') {
     return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -525,7 +652,7 @@ function existingRowToTransaction(sheetName, row = []) {
             userId: row[6]
         };
     }
-    return { type: 'Saídas', data: row[0], descricao: row[1], valor: row[4], userId: row[9] };
+    return { type: 'Saídas', data: row[0], descricao: row[1], categoria: row[2], subcategoria: row[3], valor: row[4], userId: row[9] };
 }
 
 function buildExistingDuplicateKeys(existingRowsByType = {}) {
@@ -668,11 +795,16 @@ function buildRecurringCandidate({ item, index, existingItems, kind }) {
     if (months.size < 3) return null;
 
     const days = [dayFromDate(item.data), ...matching.map(existing => existing.day)].filter(Number.isFinite);
+    const categorySource = [item, ...matching].find(existing =>
+        existing?.categoria && existing.categoria !== 'Outros'
+    ) || {};
     return {
         kind,
         signature,
         transactionIndexes: [index],
         description: item.descricao || matching[0]?.descricao || 'lançamento recorrente',
+        categoria: categorySource.categoria || '',
+        subcategoria: categorySource.subcategoria || '',
         value: Number(item.valor || 0),
         suggestedDueDay: modeNumber(days),
         monthCount: months.size,
@@ -893,10 +1025,12 @@ module.exports = {
     buildImportPreviewMessage,
     buildImportPreviewMessages,
     annotateImportDuplicates,
+    applyAccountClassificationRules,
     applyRecurringIncomeClassification,
     applyFallbackDateToTransactions,
     buildImportDuplicateKey,
     buildRecurringBillSuggestionMessage,
+    buildRecurringBillClassificationQuestion,
     buildRecurringIncomeQuestion,
     convertTransactionsForCreditCardStatement,
     detectRecurringBillCandidates,
@@ -905,15 +1039,18 @@ module.exports = {
     parseCsvTransactions,
     parseImportMedia,
     parseOfxTransactions,
+    parseRecurringBillClassificationReply,
     parseRecurringIncomeClassificationReply,
     parseStatementText,
     transactionsNeedDateInput,
     unsupportedImportMessage,
     __test__: {
         applyFallbackDateToTransactions,
+        accountRowsToClassificationRules,
         buildExistingDuplicateKeys,
         buildTransaction,
         categorizeExpense,
+        inferRecurringBillClassification,
         convertTransactionsForCreditCardStatement,
         isInternalFinancialMovement,
         normalizedTextIncludesTerm,

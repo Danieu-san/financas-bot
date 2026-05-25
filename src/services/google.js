@@ -1259,7 +1259,7 @@ async function ensureSpreadsheetStructure() {
         { title: 'Transferências', headers: ['Data', 'Descrição', 'Valor', 'Conta Origem', 'Conta Destino', 'Método', 'Observações', 'Status', 'user_id'], color: { red: 0.42, green: 0.58, blue: 0.74 } },
         { title: 'Dívidas', headers: ['Nome', 'Credor', 'Tipo', 'Valor Original', 'Saldo Atual', 'Parcela', 'Juros', 'Vencimento', 'Início', 'Total Parcelas', 'Status', 'Responsável', 'Observações', '% Quitado', 'Próximo Vencimento', 'Atraso (Dias)', 'Data Prevista para Quitação', 'user_id'], color: { red: 0.8, green: 0.5, blue: 0.2 } },
         { title: 'Metas', headers: ['Nome', 'Valor Alvo', 'Valor Atual', '% Progresso', 'Valor Mensal', 'Data Fim', 'Status', 'Prioridade', 'user_id'], color: { red: 0.2, green: 0.6, blue: 0.8 } },
-        { title: 'Contas', headers: ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id'], color: { red: 0.9, green: 0.7, blue: 0.3 } },
+        { title: 'Contas', headers: ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa'], color: { red: 0.9, green: 0.7, blue: 0.3 } },
         { title: 'Dashboard', headers: ['Painel Visual', 'Valor', 'Período', 'user_id', 'updated_at'], color: { red: 0.5, green: 0.5, blue: 0.5 } },
         { title: 'DashboardData', headers: ['Resumo Financeiro', 'Valor', 'Período', 'user_id', 'updated_at'], color: { red: 0.4, green: 0.4, blue: 0.6 } },
         { title: 'Cartão Nubank - Daniel', headers: ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'user_id'], color: { red: 0.6, green: 0.3, blue: 0.7 } },

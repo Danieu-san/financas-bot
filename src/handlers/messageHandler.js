@@ -40,8 +40,10 @@ const { buildDebtAvalanchePlan } = require('../services/debtAvalancheService');
 const { syncReadModelIfNeeded, executeAnalyticalIntent, markReadModelDirty } = require('../services/readModelService');
 const {
     annotateImportDuplicates,
+    applyAccountClassificationRules,
     applyRecurringIncomeClassification,
     applyFallbackDateToTransactions,
+    buildRecurringBillClassificationQuestion,
     buildRecurringBillSuggestionMessage,
     buildRecurringIncomeQuestion,
     buildImportPreviewMessages,
@@ -49,6 +51,7 @@ const {
     detectRecurringBillCandidates,
     detectRecurringIncomeCandidates,
     parseImportMedia,
+    parseRecurringBillClassificationReply,
     parseRecurringIncomeClassificationReply,
     transactionsNeedDateInput,
     unsupportedImportMessage
@@ -469,7 +472,19 @@ async function loadExistingImportRows({ userId, includeCards = false } = {}) {
     };
 }
 
-function buildRecurringBillAccountRow(candidate = {}, userId = '') {
+async function loadRecurringAccountRows({ userId } = {}) {
+    const options = userId ? { userId } : {};
+    const scopeUserIds = userId ? getFinancialScopeUserIds(userId) : [];
+    const allowedUserIds = new Set(scopeUserIds.map(id => String(id || '').trim()).filter(Boolean));
+    const contas = await readDataFromSheet('Contas!A:I', options);
+    return (contas || []).slice(1).filter(row => {
+        if (!userId) return true;
+        const rowUserId = String(row?.[3] || '').trim();
+        return allowedUserIds.has(rowUserId);
+    });
+}
+
+function buildRecurringBillAccountRow(candidate = {}, userId = '', classification = {}) {
     const rawName = String(candidate.description || 'Conta recorrente detectada')
         .replace(/\s+/g, ' ')
         .trim()
@@ -480,7 +495,12 @@ function buildRecurringBillAccountRow(candidate = {}, userId = '') {
         rawName,
         safeDueDay,
         `Detectado automaticamente em ${candidate.monthCount || 3} meses de importações. Revise se o dia de vencimento estiver diferente.`,
-        userId
+        userId,
+        classification.friendlyName || '',
+        classification.categoria || '',
+        classification.subcategoria || '',
+        classification.expectedValue || '',
+        classification.ruleActive || 'NÃO'
     ];
 }
 
@@ -2278,9 +2298,14 @@ async function handleMessage(msg) {
                 const { recurringBillCandidate, userId: importUserId } = currentState.data || {};
 
                 if (['sim', 's', 'ss', 'confirmo', 'cadastrar'].includes(cleanReply)) {
-                    await appendRowToSheet('Contas', buildRecurringBillAccountRow(recurringBillCandidate, importUserId || userId));
-                    userStateManager.deleteState(senderId);
-                    await sendPlainMessage(msg, 'Conta recorrente cadastrada. Vou considerar esse vencimento nos próximos lembretes.');
+                    userStateManager.setState(senderId, {
+                        action: 'awaiting_recurring_bill_classification',
+                        data: {
+                            recurringBillCandidate,
+                            userId: importUserId || userId
+                        }
+                    });
+                    await sendPlainMessage(msg, buildRecurringBillClassificationQuestion(recurringBillCandidate));
                     return;
                 }
 
@@ -2291,6 +2316,30 @@ async function handleMessage(msg) {
                 }
 
                 await sendPlainMessage(msg, 'Responda `sim` para cadastrar essa conta recorrente ou `não` para ignorar.');
+                return;
+            }
+
+            case 'awaiting_recurring_bill_classification': {
+                const { recurringBillCandidate, userId: importUserId } = currentState.data || {};
+                const classification = parseRecurringBillClassificationReply(msg.body);
+
+                if (!classification) {
+                    await sendPlainMessage(msg, buildRecurringBillClassificationQuestion(recurringBillCandidate));
+                    return;
+                }
+
+                await appendRowToSheet('Contas', buildRecurringBillAccountRow(recurringBillCandidate, importUserId || userId, classification));
+                userStateManager.deleteState(senderId);
+
+                if (classification.ruleActive === 'SIM') {
+                    await sendPlainMessage(
+                        msg,
+                        `Conta recorrente cadastrada. Vou lembrar o vencimento e classificar futuros lançamentos parecidos como ${classification.categoria} / ${classification.subcategoria}.`
+                    );
+                    return;
+                }
+
+                await sendPlainMessage(msg, 'Conta recorrente cadastrada. Vou considerar esse vencimento nos próximos lembretes, sem alterar a classificação automática.');
                 return;
             }
 
@@ -2385,8 +2434,13 @@ async function handleMessage(msg) {
                 if (selectedKind === 'checking') {
                     const existingRowsByType = await loadExistingImportRows({ userId: importUserId || userId });
                     const targetUserId = importUserId || userId;
-                    const transactions = annotateImportDuplicates(
+                    const recurringAccountRows = await loadRecurringAccountRows({ userId: targetUserId });
+                    const classifiedByAccounts = applyAccountClassificationRules(
                         parsedTransactions.map(item => ({ ...item, userId: targetUserId })),
+                        recurringAccountRows
+                    );
+                    const transactions = annotateImportDuplicates(
+                        classifiedByAccounts,
                         existingRowsByType
                     );
                     const recurringIncomeCandidate = detectRecurringIncomeCandidates(transactions, existingRowsByType)[0] || null;

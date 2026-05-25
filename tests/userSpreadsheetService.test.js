@@ -232,7 +232,8 @@ test('new user spreadsheets include non-counted example rows for user-filled tab
         assert.ok(exampleRange, `Deve criar exemplo na linha 2 da aba ${title}`);
         const tab = USER_SPREADSHEET_TABS.find(item => item.title === title);
         if (tab?.headers.includes('user_id')) {
-            assert.strictEqual(exampleRange.values[0].at(-1), '', `Exemplo de ${title} não deve ter user_id para não entrar nos cálculos`);
+            const userIdIndex = tab.headers.indexOf('user_id');
+            assert.strictEqual(exampleRange.values[0][userIdIndex], '', `Exemplo de ${title} não deve ter user_id para não entrar nos cálculos`);
         }
     }
 

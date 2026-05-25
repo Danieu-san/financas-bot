@@ -83,7 +83,7 @@ function resetSheets() {
     sheets.Saídas = [['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Observações', 'user_id']];
     sheets.Entradas = [['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Observações', 'user_id']];
     sheets.Transferências = [['Data', 'Descrição', 'Valor', 'Origem', 'Destino', 'Método', 'Observações', 'Status', 'user_id']];
-    sheets.Contas = [['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id']];
+    sheets.Contas = [['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa']];
     sheets.Dívidas = [DEBTS_HEADER];
     for (const sheetName of CARD_SHEETS) {
         sheets[sheetName] = [['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'user_id']];
@@ -548,11 +548,20 @@ stateMachineTest('financial states: statement import suggests recurring bills af
     assert.match(done, /saída recorrente/i);
     assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_recurring_bill_suggestion');
 
-    const created = await send('sim');
+    const classificationQuestion = await send('sim');
+    assert.match(classificationQuestion, /como devo chamar/i);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_recurring_bill_classification');
+
+    const created = await send('internet');
     assert.match(created, /Conta recorrente cadastrada/i);
+    assert.match(created, /classificar/i);
     assert.strictEqual(sheets.Contas.length, 2);
     assert.strictEqual(sheets.Contas[1][1], 5);
     assert.strictEqual(sheets.Contas[1][3], USER_ID);
+    assert.strictEqual(sheets.Contas[1][4], 'Internet');
+    assert.strictEqual(sheets.Contas[1][5], 'Moradia');
+    assert.strictEqual(sheets.Contas[1][6], 'INTERNET / TELEFONE');
+    assert.strictEqual(sheets.Contas[1][8], 'SIM');
 });
 
 stateMachineTest('financial states: statement import asks for a fallback date only when the file has no dates', async () => {

@@ -3,6 +3,11 @@
 ## Visão Geral
 Bot de WhatsApp para controle financeiro pessoal. Usa **whatsapp-web.js** (via Puppeteer), **Gemini 2.5 Flash** como LLM e **Google Sheets/Calendar** como banco de dados.
 
+## Memória Operacional do Agente
+Antes de trabalhos não triviais, leia primeiro `docs/agent-memory/README.md`.
+
+Essa pasta é a memória curta e atualizável do projeto. Ela evita reler o histórico inteiro e aponta quais documentos/códigos consultar por tarefa. Não substitui validação em código, testes, logs ou EC2 quando a tarefa envolver produção.
+
 ## Diretriz Legal/Privacidade Crítica
 **Antes de escalar para multiusuário real, remover o acesso admin a gastos de todos os usuários.**
 

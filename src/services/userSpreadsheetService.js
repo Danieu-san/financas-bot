@@ -68,7 +68,7 @@ const USER_SPREADSHEET_TABS = Object.freeze([
     },
     {
         title: 'Contas',
-        headers: ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id'],
+        headers: ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa'],
         color: { red: 0.78, green: 0.54, blue: 0.17 }
     }
 ]);
@@ -228,7 +228,7 @@ function buildManualRows({ user = {} } = {}) {
         ['Parcelamentos', 'Resumo automático das compras parceladas, agrupando parcelas por descrição, cartão e categoria.', 'Use para ver total previsto, quantidade de parcelas lançadas e primeira/última parcela.'],
         ['Dívidas', 'Use para empréstimos, financiamentos, acordos, parcelas em aberto e qualquer valor que você quer acompanhar até quitar.', 'Campos úteis: valor original, saldo atual, parcela, juros, vencimento, parcelas pagas e status.'],
         ['Metas', 'Use para objetivos como reserva de emergência, viagem, quitar dívida, entrada de imóvel ou compra planejada.', 'Acompanhe valor alvo, valor atual, progresso, sugestão mensal e prioridade.'],
-        ['Contas', 'Use para despesas recorrentes e vencimentos que não podem ser esquecidos.', 'Exemplo: aluguel dia 10, internet dia 15, escola dia 5.'],
+        ['Contas', 'Use para despesas recorrentes e vencimentos que não podem ser esquecidos. Se categoria, subcategoria e regra ativa estiverem preenchidas, o bot usa a linha para classificar futuros lançamentos parecidos.', 'Exemplo: GRPLQ dia 10, nome Aluguel, categoria Moradia, subcategoria ALUGUEL, regra ativa SIM.'],
         ['Dashboard', 'Mostra um resumo visual da planilha: entradas, saídas, cartões, saldo estimado, dívidas e gráfico. As fórmulas desta aba são automáticas.', 'Use para conferir se o mês está saudável. Evite editar fórmulas.'],
         ['Dashboard web', 'No WhatsApp, envie "dashboard" para receber um link seguro com gráficos no navegador.', 'Não compartilhe esse link com outras pessoas.'],
         ['Perguntas que o bot responde', 'Você pode perguntar totais, saldos, categorias, listas e maiores/menores gastos em linguagem natural.', 'qual meu saldo do mês?; quanto gastei com mercado?; liste gastos com transporte'],
@@ -275,7 +275,7 @@ const USER_INPUT_EXAMPLE_ROWS = Object.freeze({
     'Metas': ['Exemplo: reserva de emergência', '10000,00', '1500,00', '', '', '31/12/2026', 'Em andamento', 'Alta', ''],
     'Cartões': ['nubank-principal', 'Nubank Principal', 'Nubank', '8', '15', 'SIM', 'Exemplo de cartão; edite ou apague.'],
     'Lançamentos Cartão': ['01/01/2026', 'Exemplo: compra parcelada', 'Casa', '100,00', '1/3', 'Janeiro de 2026', 'nubank-principal', 'Nubank Principal', 'Exemplo gerado para orientar; pode apagar.', ''],
-    'Contas': ['Exemplo: internet', '15', 'Conta recorrente que vence todo mês.', '']
+    'Contas': ['Exemplo: internet', '15', 'Conta recorrente que vence todo mês.', '', 'Internet', 'Moradia', 'INTERNET / TELEFONE', '120,00', 'SIM']
 });
 
 function buildInputExampleRanges() {
