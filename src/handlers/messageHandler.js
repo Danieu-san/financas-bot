@@ -3272,10 +3272,12 @@ async function handleMessage(msg) {
                                 readDataFromSheet('Saídas!A:J'),
                                 readDataFromSheet('Entradas!A:I'),
                                 readDataFromSheet('Metas!A:I'),
-                                readDataFromSheet('Dívidas!A:R'),
-                                readDataFromSheet('Transferências!A:I'),
-                                readDataFromSheet('Contas!A:I')
+                                readDataFromSheet('Dívidas!A:R')
                             ];
+                            const needsTransfers = effectiveIntentClassification.intent === 'total_pagamentos_fatura_mes';
+                            const needsAccounts = effectiveIntentClassification.intent === 'resumo_contas_recorrentes';
+                            if (needsTransfers) sheetReads.push(readDataFromSheet('Transferências!A:I'));
+                            if (needsAccounts) sheetReads.push(readDataFromSheet('Contas!A:I'));
                             if (usePersonalSpreadsheet) {
                                 sheetReads.push(readDataFromSheet('Lançamentos Cartão!A:J'));
                             } else {
@@ -3290,8 +3292,15 @@ async function handleMessage(msg) {
                                 perfContext
                             );
 
-                            const [saidasData, entradasData, metasData, dividasData, transferenciasData, contasData] = allSheetData;
-                            const creditCardData = allSheetData.slice(6);
+                            const [saidasData, entradasData, metasData, dividasData] = allSheetData;
+                            let nextSheetIndex = 4;
+                            const transferenciasData = needsTransfers
+                                ? allSheetData[nextSheetIndex++]
+                                : [['Data', 'Descrição', 'Valor', 'Conta Origem', 'Conta Destino', 'Método', 'Observações', 'Status', 'user_id']];
+                            const contasData = needsAccounts
+                                ? allSheetData[nextSheetIndex++]
+                                : [['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa']];
+                            const creditCardData = allSheetData.slice(nextSheetIndex);
                             const cardUserIdIndex = usePersonalSpreadsheet ? 9 : 6;
                             const filteredCreditCardData = creditCardData.map(sheetRows => filterSheetRowsByUserIds(sheetRows, cardUserIdIndex, analyticalUserIds));
                             analyzedData = await timeStep(
