@@ -158,6 +158,56 @@ function summarizeInstallments(rows) {
         .sort((a, b) => b.totalPrevisto - a.totalPrevisto);
 }
 
+function transferRowMatchesMonth(row, mes, ano) {
+    const month = getMonthIndex(mes);
+    const year = Number.parseInt(ano, 10);
+    const rowDate = parseSheetDate(row?.[0]);
+    if (!rowDate) return false;
+    if (month !== null && rowDate.getMonth() !== month) return false;
+    return Number.isInteger(year) && rowDate.getFullYear() === year;
+}
+
+function isInvoicePaymentTransfer(row) {
+    const status = normalizeText(row?.[7] || '');
+    const description = normalizeText(row?.[1] || '');
+    return status.includes('pagamento de fatura') ||
+        (/fatura/.test(description) && /\b(pagamento|paguei|pag)\b/.test(description)) ||
+        description.includes('qrs nu pagament');
+}
+
+function summarizeRecurringAccounts(dataSources = {}) {
+    const rows = Array.isArray(dataSources.contas) ? dataSources.contas.slice(1) : [];
+    const accounts = rows
+        .filter(row => String(row?.[0] || row?.[4] || '').trim())
+        .map(row => {
+            const active = normalizeText(row?.[8] || '') === 'sim';
+            const rawDay = Number.parseInt(row?.[1], 10);
+            return {
+                nome: String(row?.[4] || row?.[0] || 'Conta recorrente').trim(),
+                dia: Number.isInteger(rawDay) && rawDay >= 1 && rawDay <= 31 ? rawDay : null,
+                categoria: String(row?.[5] || '').trim(),
+                subcategoria: String(row?.[6] || '').trim(),
+                valorEsperado: row?.[7] || '',
+                ativa: active
+            };
+        })
+        .sort((a, b) => {
+            const dayA = a.dia || 99;
+            const dayB = b.dia || 99;
+            if (dayA !== dayB) return dayA - dayB;
+            return String(a.nome).localeCompare(String(b.nome), 'pt-BR');
+        });
+
+    return {
+        results: accounts,
+        details: {
+            total: accounts.length,
+            regrasAtivas: accounts.filter(account => account.ativa).length,
+            lembretes: accounts.filter(account => account.dia).length
+        }
+    };
+}
+
 const operationRegistry = {
     total_gastos_mes: async function(params, dataSources) {
         const mes = getMonthIndex(params.mes);
@@ -371,6 +421,25 @@ const operationRegistry = {
                 parcelas: rows.length
             }
         };
+    },
+    total_pagamentos_fatura_mes: async function(params, dataSources) {
+        const mes = getMonthIndex(params.mes);
+        const ano = parseInt(params.ano, 10);
+        const rows = (Array.isArray(dataSources.transferencias) ? dataSources.transferencias.slice(1) : [])
+            .filter(row => transferRowMatchesMonth(row, mes, ano))
+            .filter(isInvoicePaymentTransfer);
+        return {
+            results: rows.reduce((sum, row) => sum + parseValue(row[2]), 0),
+            details: {
+                mes,
+                ano,
+                pagamentos: rows.length,
+                canGroupByCard: false
+            }
+        };
+    },
+    resumo_contas_recorrentes: async function(params, dataSources) {
+        return summarizeRecurringAccounts(dataSources);
     },
     total_cartoes_em_aberto: async function(params, dataSources) {
         const mes = getMonthIndex(params.mes);

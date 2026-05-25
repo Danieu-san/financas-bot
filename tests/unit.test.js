@@ -369,6 +369,16 @@ test('messageHandler.classifyPerguntaLocally covers complex analytical questions
     assert.strictEqual(namedInvoice.parameters.cartao, 'nubank thais');
     assert.strictEqual(namedInvoice.parameters.mes, 4);
 
+    const paidInvoice = classifyPerguntaLocally('quanto paguei de fatura em maio de 2026?');
+    assert.strictEqual(paidInvoice.intent, 'total_pagamentos_fatura_mes');
+    assert.strictEqual(paidInvoice.parameters.mes, 4);
+
+    const recurringBillsCount = classifyPerguntaLocally('quantas contas recorrentes tenho?');
+    assert.strictEqual(recurringBillsCount.intent, 'resumo_contas_recorrentes');
+
+    const recurringBillsList = classifyPerguntaLocally('quais contas recorrentes tenho?');
+    assert.strictEqual(recurringBillsList.intent, 'resumo_contas_recorrentes');
+
     const openCards = classifyPerguntaLocally('quanto ainda tenho em aberto nos cartões a partir de maio de 2026?');
     assert.strictEqual(openCards.intent, 'total_cartoes_em_aberto');
     assert.strictEqual(openCards.parameters.mes, 4);
@@ -511,6 +521,31 @@ test('messageHandler local replies cover richer spreadsheet calculations', () =>
 
     assert.match(
         buildLocalPerguntaResponse({
+            intent: 'total_pagamentos_fatura_mes',
+            analyzedData: {
+                results: 1234.56,
+                details: { mes: 4, ano: 2026, pagamentos: 1 }
+            }
+        }),
+        /Pagamentos de fatura.*maio\/2026.*R\$ 1234,56.*1 pagamento/s
+    );
+
+    assert.match(
+        buildLocalPerguntaResponse({
+            intent: 'resumo_contas_recorrentes',
+            analyzedData: {
+                results: [
+                    { nome: 'Aluguel', dia: 7, categoria: 'Moradia', subcategoria: 'ALUGUEL', ativa: true },
+                    { nome: 'Cartão Nubank', dia: 5, categoria: '', subcategoria: '', ativa: false }
+                ],
+                details: { total: 2, regrasAtivas: 1, lembretes: 2 }
+            }
+        }),
+        /2 conta\(s\) recorrente\(s\).*1 com classificação automática.*dia 7 - Aluguel/s
+    );
+
+    assert.match(
+        buildLocalPerguntaResponse({
             intent: 'total_cartoes_em_aberto',
             analyzedData: {
                 results: 800,
@@ -576,6 +611,34 @@ test('calculationOrchestrator calculates card invoices and open installments det
     const thaisInvoice = await calculationOrchestrator.execute('total_fatura_cartao', { cartao: 'nubank thais', mes: 0, ano: 2026 }, dataSources);
     assert.strictEqual(thaisInvoice.results, 80);
     assert.strictEqual(thaisInvoice.details.parcelas, 1);
+});
+
+test('calculationOrchestrator answers recurring bills and paid invoice questions from sheet data', async () => {
+    const dataSources = {
+        saidas: [['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id']],
+        entradas: [['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Obs', 'user_id']],
+        cartoes: [[['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Observações', 'user_id']]],
+        transferencias: [
+            ['Data', 'Descrição', 'Valor', 'Conta Origem', 'Conta Destino', 'Método', 'Observações', 'Status', 'user_id'],
+            ['24/05/2026', 'PIX QRS NU PAGAMENT24/05', 1234.56, 'Nubank', 'Cartão', 'PIX', '', 'Pagamento de fatura', 'user-1'],
+            ['24/05/2026', 'Resgate caixinha', 500, 'Reserva', 'Nubank', 'PIX', '', 'Movimentação de reserva/investimento', 'user-1']
+        ],
+        contas: [
+            ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa'],
+            ['GRPQAMoradia', 7, 'aluguel', 'user-1', 'Aluguel', 'Moradia', 'ALUGUEL', '932,97', 'SIM'],
+            ['Cartão Nubank', 5, 'lembrete', 'user-1', 'Cartão Nubank', '', '', '', 'NÃO']
+        ]
+    };
+
+    const paidInvoice = await calculationOrchestrator.execute('total_pagamentos_fatura_mes', { mes: 4, ano: 2026 }, dataSources);
+    assert.strictEqual(paidInvoice.results, 1234.56);
+    assert.strictEqual(paidInvoice.details.pagamentos, 1);
+
+    const recurring = await calculationOrchestrator.execute('resumo_contas_recorrentes', {}, dataSources);
+    assert.strictEqual(recurring.results.length, 2);
+    assert.strictEqual(recurring.details.total, 2);
+    assert.strictEqual(recurring.details.regrasAtivas, 1);
+    assert.deepStrictEqual(recurring.results.map(item => item.nome), ['Cartão Nubank', 'Aluguel']);
 });
 
 test('messageHandler.normalizeMetricLabel keeps metric names bounded and safe', (t) => {

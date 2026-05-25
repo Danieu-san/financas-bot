@@ -719,6 +719,18 @@ function inferAnalyticalQueryPlan(userQuestion) {
 
     const hasCardSignal = text.includes('cartao') || text.includes('cartoes') || Boolean(cardName);
 
+    if (
+        (text.includes('conta recorrente') || text.includes('contas recorrentes') || (text.includes('contas') && text.includes('recorrente'))) &&
+        (text.includes('quantas') || text.includes('quais') || text.includes('listar') || text.includes('liste') || text.includes('mostrar') || text.includes('mostre') || text.includes('tenho'))
+    ) {
+        return { metric: 'recurring_bills_summary', intent: 'resumo_contas_recorrentes', parameters: {} };
+    }
+    if (
+        text.includes('fatura') &&
+        (text.includes('paguei') || text.includes('pagamento') || text.includes('pagamentos') || text.includes('paga') || text.includes('pagas') || text.includes('quitei'))
+    ) {
+        return { metric: 'paid_card_invoice_total', intent: 'total_pagamentos_fatura_mes', parameters: { mes, ano } };
+    }
     if (text.includes('fatura') || (hasCardSignal && text.includes('quanto') && !text.includes('aberto'))) {
         return { metric: 'card_invoice_total', intent: 'total_fatura_cartao', parameters: { cartao: cardName, mes, ano } };
     }
@@ -814,7 +826,7 @@ function detectFastPerguntaIntent(messageBody) {
     const isQuestionShape = /^(qual|quais|quanto|quantos|quantas|conte|contar|media|média|liste|listar|mostre|mostrar|me mostre|me mostra|me diga|como ficou|como esta|como estão)/.test(text) || text.includes('?');
     if (!isQuestionShape) return null;
 
-    const looksAnalytical = /(saldo|gastei|gasto|gastos|entrada|entradas|divida|dividas|categoria|mes|ano|vezes|ocorrencia|ocorrencias|duplicad|maior|menor|onibus|ônibus|uber|transporte|cartao|cartão|credito|crédito|fatura|parcelamento|parcelas|aberto|nubank|itau|itaú|atacadao|atacadão|janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/.test(text);
+    const looksAnalytical = /(saldo|gastei|gasto|gastos|entrada|entradas|divida|dividas|categoria|mes|ano|vezes|ocorrencia|ocorrencias|duplicad|maior|menor|onibus|ônibus|uber|transporte|cartao|cartão|credito|crédito|fatura|parcelamento|parcelas|aberto|conta|contas|recorrente|recorrentes|nubank|itau|itaú|atacadao|atacadão|janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/.test(text);
     if (!looksAnalytical) return null;
 
     return {
@@ -867,7 +879,7 @@ function shouldSkipAiForUnknownMessage(messageBody) {
         'listar', 'mostre', 'mostrar', 'saldo', 'resumo', 'dashboard', 'painel',
         'termos', 'privacidade', 'admin', 'ajuda', 'relatorio', 'relatório',
         'checkin', 'reserva', 'cartao', 'cartão', 'credito', 'crédito', 'pix',
-        'dinheiro', 'debito', 'débito'
+        'dinheiro', 'debito', 'débito', 'conta', 'contas', 'recorrente'
     ];
 
     return !knownSignals.some(signal => text.includes(normalizeText(signal))) && text.length <= 80;
@@ -1003,6 +1015,36 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
         const cardLabel = details.cartao ? ` do ${details.cartao}` : '';
         const parcelas = details.parcelas ? `\n${details.parcelas} parcela(s) lançadas` : '';
         return `Fatura${cardLabel} em ${periodLabel}: ${formatCurrencyBR(results)}${parcelas}`;
+    }
+
+    if (intent === 'total_pagamentos_fatura_mes') {
+        const pagamentos = Number(details.pagamentos || 0);
+        const countLabel = pagamentos === 1 ? '1 pagamento encontrado' : `${pagamentos} pagamentos encontrados`;
+        const note = details.canGroupByCard === false
+            ? '\nNão consegui separar por cartão porque o extrato não trouxe essa identificação no pagamento.'
+            : '';
+        return `Pagamentos de fatura em ${periodLabel}: ${formatCurrencyBR(results)}\n${countLabel}${note}`;
+    }
+
+    if (intent === 'resumo_contas_recorrentes') {
+        const contas = Array.isArray(results) ? results : [];
+        if (contas.length === 0) return 'Não encontrei contas recorrentes cadastradas.';
+        const total = Number(details.total || contas.length);
+        const regrasAtivas = Number(details.regrasAtivas || 0);
+        const lembretes = Number(details.lembretes || total);
+        const lines = contas.slice(0, 15).map((item, idx) => {
+            const dia = item.dia ? `dia ${item.dia}` : 'sem dia';
+            const categoria = [item.categoria, item.subcategoria].filter(Boolean).join(' / ');
+            const suffix = categoria ? ` (${categoria})` : '';
+            const rule = item.ativa ? ' - classificação automática ativa' : '';
+            return `${idx + 1}. ${dia} - ${item.nome || 'Conta recorrente'}${suffix}${rule}`;
+        });
+        const truncated = contas.length > 15 ? `\n... e mais ${contas.length - 15} conta(s).` : '';
+        return [
+            `${total} conta(s) recorrente(s) cadastrada(s).`,
+            `${regrasAtivas} com classificação automática; ${lembretes} com lembrete/vencimento.`,
+            lines.join('\n') + truncated
+        ].join('\n');
     }
 
     if (intent === 'total_cartoes_em_aberto') {
@@ -3181,7 +3223,8 @@ async function handleMessage(msg) {
                                 logger.info(`[routing] question_user_scope sender=${senderId} selected=${analyticalUserIds.length}/${financialScopeUserIds.length}`);
                             }
                         }
-                        if (!usePersonalSpreadsheet) {
+                        const sheetOnlyIntents = new Set(['total_pagamentos_fatura_mes', 'resumo_contas_recorrentes']);
+                        if (!usePersonalSpreadsheet && !sheetOnlyIntents.has(effectiveIntentClassification.intent)) {
                             try {
                                 await timeStep(
                                     'readModel.sync',
@@ -3229,7 +3272,9 @@ async function handleMessage(msg) {
                                 readDataFromSheet('Saídas!A:J'),
                                 readDataFromSheet('Entradas!A:I'),
                                 readDataFromSheet('Metas!A:I'),
-                                readDataFromSheet('Dívidas!A:R')
+                                readDataFromSheet('Dívidas!A:R'),
+                                readDataFromSheet('Transferências!A:I'),
+                                readDataFromSheet('Contas!A:I')
                             ];
                             if (usePersonalSpreadsheet) {
                                 sheetReads.push(readDataFromSheet('Lançamentos Cartão!A:J'));
@@ -3245,8 +3290,8 @@ async function handleMessage(msg) {
                                 perfContext
                             );
 
-                            const [saidasData, entradasData, metasData, dividasData] = allSheetData;
-                            const creditCardData = allSheetData.slice(4);
+                            const [saidasData, entradasData, metasData, dividasData, transferenciasData, contasData] = allSheetData;
+                            const creditCardData = allSheetData.slice(6);
                             const cardUserIdIndex = usePersonalSpreadsheet ? 9 : 6;
                             const filteredCreditCardData = creditCardData.map(sheetRows => filterSheetRowsByUserIds(sheetRows, cardUserIdIndex, analyticalUserIds));
                             analyzedData = await timeStep(
@@ -3259,6 +3304,8 @@ async function handleMessage(msg) {
                                         entradas: filterSheetRowsByUserIds(entradasData, 8, analyticalUserIds),
                                         metas: filterSheetRowsByUserIds(metasData, 8, analyticalUserIds),
                                         dividas: filterSheetRowsByUserIds(dividasData, 17, analyticalUserIds),
+                                        transferencias: filterSheetRowsByUserIds(transferenciasData, 8, analyticalUserIds),
+                                        contas: filterSheetRowsByUserIds(contasData, 3, analyticalUserIds),
                                         cartoes: filteredCreditCardData
                                     }
                                 ),
