@@ -215,6 +215,7 @@ function normalizedTextIncludesTerm(text, term) {
 function categorizeIncome(description = '') {
     const text = normalizeText(description);
     if (text.includes('salario') || text.includes('salário') || text.includes('pagamento')) return 'Salário';
+    if (text.includes('rendimento') || text.includes('rend pago aplic') || text.includes('dividendo')) return 'Investimentos';
     if (text.includes('freela') || text.includes('freelance')) return 'Renda Extra';
     if (text.includes('reembolso')) return 'Reembolso';
     if (text.includes('venda')) return 'Venda';

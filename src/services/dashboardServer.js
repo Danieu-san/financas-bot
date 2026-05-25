@@ -219,6 +219,7 @@ function dashboardHtml() {
     .chart-bar.card { fill: #334155; }
     .chart-bar.balance { fill: #166534; }
     .chart-bar.balance.negative { fill: #b42318; }
+    .chart-bar.available { fill: #0ea5a0; }
     .bars { display: grid; gap: 8px; }
     .bar-row { display: grid; grid-template-columns: 120px 1fr auto; gap: 8px; align-items: center; }
     .bar-track { background: #e8e4de; border-radius: 999px; height: 10px; overflow: hidden; }
@@ -273,13 +274,13 @@ function dashboardHtml() {
       <div class="card"><div class="label">Entradas</div><div id="kpiEntradas" class="value">-</div></div>
       <div class="card"><div class="label">Saídas + Cartões</div><div id="kpiSaidas" class="value">-</div></div>
       <div class="card"><div class="label">Saldo</div><div id="kpiSaldo" class="value">-</div></div>
-      <div class="card"><div class="label">Dívidas Ativas</div><div id="kpiDebts" class="value">-</div></div>
+      <div class="card"><div class="label">Disponível estimado</div><div id="kpiDisponivel" class="value">-</div><div id="reserveNote" class="muted"></div></div>
     </div>
 
     <div class="section card chart-card">
       <div class="chart-head">
         <h2>Visão Gráfica</h2>
-        <div class="chart-note">Entradas, saídas, cartão e saldo do período</div>
+        <div class="chart-note">Saldo econômico e disponível após caixinha/reserva</div>
       </div>
       <div id="financeChart" class="finance-chart" role="img" aria-label="Gráfico financeiro do período"></div>
     </div>
@@ -395,7 +396,19 @@ function dashboardHtml() {
       const saldoEl = document.getElementById('kpiSaldo');
       saldoEl.textContent = brl(k.saldo);
       saldoEl.className = 'value ' + ((k.saldo || 0) >= 0 ? 'ok' : 'bad');
-      document.getElementById('kpiDebts').textContent = (k.debtActiveCount || 0) + ' | ' + brl(k.debtTotal || 0);
+      const disponivel = k.saldoDisponivelEstimado ?? k.saldo;
+      const disponivelEl = document.getElementById('kpiDisponivel');
+      disponivelEl.textContent = brl(disponivel);
+      disponivelEl.className = 'value ' + ((disponivel || 0) >= 0 ? 'ok' : 'bad');
+      const reservaLiquida = Number(k.reservaLiquida || 0);
+      const reserveNote = document.getElementById('reserveNote');
+      if (reservaLiquida > 0) {
+        reserveNote.textContent = brl(reservaLiquida) + ' líquidos foram para reserva/caixinha.';
+      } else if (reservaLiquida < 0) {
+        reserveNote.textContent = brl(Math.abs(reservaLiquida)) + ' líquidos vieram da reserva/caixinha.';
+      } else {
+        reserveNote.textContent = 'Sem movimento líquido de reserva.';
+      }
       const period = data.period || {};
       const selectedUserLabel = userEl.options[userEl.selectedIndex]?.textContent || '';
       const userSuffix = selectedUserLabel && userEl.style.display !== 'none' ? ' · ' + selectedUserLabel : '';
@@ -444,7 +457,8 @@ function dashboardHtml() {
         { label: 'Entradas', value: Number(k.entradas || 0), cls: 'income' },
         { label: 'Saídas', value: Number(k.saidas || 0), cls: 'expense' },
         { label: 'Cartões', value: Number(k.cartoes || 0), cls: 'card' },
-        { label: 'Saldo', value: Number(k.saldo || 0), cls: 'balance' }
+        { label: 'Saldo', value: Number(k.saldo || 0), cls: 'balance' },
+        { label: 'Disponível', value: Number((k.saldoDisponivelEstimado ?? k.saldo) || 0), cls: 'available' }
       ];
       const max = Math.max(1, ...items.map(item => Math.abs(item.value)));
       const width = 720;

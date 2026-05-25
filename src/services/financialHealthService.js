@@ -82,6 +82,8 @@ function buildHealthSummary(data) {
     } = data;
 
     const now = new Date();
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
     const monthLabel = monthNamesLower[currentMonth];
@@ -182,13 +184,13 @@ function buildHealthSummary(data) {
 
     let upcomingDebtCount = 0;
     let upcomingDebtTotal = 0;
-    const thirtyDaysFromNow = new Date(now);
+    const thirtyDaysFromNow = new Date(todayStart);
     thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
     debtsRows.forEach(row => {
         const dueDate = parseSheetDate(row[14]);
         if (!dueDate) return;
-        if (dueDate >= now && dueDate <= thirtyDaysFromNow) {
+        if (dueDate >= todayStart && dueDate <= thirtyDaysFromNow) {
             upcomingDebtCount += 1;
             upcomingDebtTotal += parseValue(row[5]);
         }

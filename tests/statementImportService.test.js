@@ -203,6 +203,19 @@ test('statement import treats investments and credit card payments as non-spendi
     assert.ok(transactions.every(item => /não conta como gasto nem renda/i.test(item.observacoes)));
 });
 
+test('statement import classifies reserve yields as investment income', () => {
+    const csv = [
+        'Data;Descrição;Valor;Tipo',
+        '19/05/2026;REND PAGO APLIC AUT MAIS;0,01;Crédito'
+    ].join('\n');
+
+    const transactions = parseCsvTransactions(csv);
+
+    assert.strictEqual(transactions.length, 1);
+    assert.strictEqual(transactions[0].type, 'Entradas');
+    assert.strictEqual(transactions[0].categoria, 'Investimentos');
+});
+
 test('statement import improves imported expense and card categories', () => {
     const checkingCsv = [
         'Data;Descrição;Valor;Tipo',

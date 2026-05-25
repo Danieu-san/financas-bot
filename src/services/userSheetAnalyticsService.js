@@ -1,6 +1,6 @@
 const { readDataFromSheet, runWithUserSheetContext, hasUserSpreadsheetContext } = require('./google');
 const { getFinancialScopeUserIds } = require('./oauthTokenStore');
-const { parseSheetDate, parseValue } = require('../utils/helpers');
+const { parseSheetDate, parseValue, normalizeText } = require('../utils/helpers');
 
 const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
@@ -52,6 +52,69 @@ function toCardTransaction(row) {
     };
 }
 
+function toTransfer(row) {
+    return {
+        date: row[0] || '',
+        description: row[1] || '',
+        value: parseValue(row[2]),
+        observations: row[6] || '',
+        status: row[7] || ''
+    };
+}
+
+function transferHasReserveKeyword(item) {
+    const text = normalizeText(`${item.description || ''} ${item.observations || ''} ${item.status || ''}`);
+    return [
+        'rdb',
+        'caixinha',
+        'nu reserva',
+        'reserva',
+        'investimento',
+        'aplic aut',
+        'aplicacao aut',
+        'aplicação aut'
+    ].some(term => text.includes(normalizeText(term)));
+}
+
+function isReserveApplication(item) {
+    const description = normalizeText(item.description || '');
+    return transferHasReserveKeyword(item) && (
+        description.includes('aplicacao') ||
+        description.includes('aplicação') ||
+        description.includes('guardar') ||
+        description.includes('guardado')
+    );
+}
+
+function isReserveRedemption(item) {
+    const description = normalizeText(item.description || '');
+    return transferHasReserveKeyword(item) && (
+        description.includes('resgate') ||
+        description.includes('retirada')
+    );
+}
+
+function roundMoney(value) {
+    return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
+}
+
+function buildReserveSummary(transfers = []) {
+    const applied = roundMoney(transfers
+        .filter(isReserveApplication)
+        .reduce((sum, item) => sum + Number(item.value || 0), 0));
+    const redeemed = roundMoney(transfers
+        .filter(isReserveRedemption)
+        .reduce((sum, item) => sum + Number(item.value || 0), 0));
+    const netApplied = roundMoney(applied - redeemed);
+
+    return {
+        applied,
+        redeemed,
+        netApplied,
+        movementCount: transfers.filter(item => isReserveApplication(item) || isReserveRedemption(item)).length
+    };
+}
+
 function buildTopCategories(transactions) {
     const totals = new Map();
     transactions.forEach((item) => {
@@ -99,10 +162,11 @@ async function getUserSheetDashboardData(userId, { month, year } = {}) {
     return runWithUserSheetContext({ userId: safeUserId }, async () => {
         const financialScopeUserIds = getFinancialScopeUserIds(safeUserId);
         const period = normalizePeriod({ month, year });
-        const [saidasRows, entradasRows, cartaoRows, metasRows, dividasRows] = await Promise.all([
+        const [saidasRows, entradasRows, cartaoRows, transferRows, metasRows, dividasRows] = await Promise.all([
             readDataFromSheet('Saídas!A:J'),
             readDataFromSheet('Entradas!A:I'),
             readDataFromSheet('Lançamentos Cartão!A:J'),
+            readDataFromSheet('Transferências!A:I'),
             readDataFromSheet('Metas!A:I'),
             readDataFromSheet('Dívidas!A:R')
         ]);
@@ -116,10 +180,16 @@ async function getUserSheetDashboardData(userId, { month, year } = {}) {
         const cartoes = cartaoRows.slice(1)
             .filter(row => rowBelongsToAnyUser(row, 9, financialScopeUserIds) && periodMatchesBillingMonth(row[5], period.month, period.year))
             .map(toCardTransaction);
+        const transfers = transferRows.slice(1)
+            .filter(row => rowBelongsToAnyUser(row, 8, financialScopeUserIds) && periodMatchesDate(row[0], period.month, period.year))
+            .map(toTransfer);
 
         const totalSaidas = saidas.reduce((sum, item) => sum + item.value, 0);
         const totalEntradas = entradas.reduce((sum, item) => sum + item.value, 0);
         const totalCartoes = cartoes.reduce((sum, item) => sum + item.value, 0);
+        const reserveSummary = buildReserveSummary(transfers);
+        const saldo = roundMoney(totalEntradas - totalSaidas - totalCartoes);
+        const saldoDisponivelEstimado = roundMoney(saldo - reserveSummary.netApplied);
         const expenses = [...saidas, ...cartoes];
 
         return {
@@ -132,7 +202,11 @@ async function getUserSheetDashboardData(userId, { month, year } = {}) {
                 entradas: totalEntradas,
                 saidas: totalSaidas,
                 cartoes: totalCartoes,
-                saldo: totalEntradas - totalSaidas - totalCartoes
+                saldo,
+                reservaAplicada: reserveSummary.applied,
+                reservaResgatada: reserveSummary.redeemed,
+                reservaLiquida: reserveSummary.netApplied,
+                saldoDisponivelEstimado
             },
             topCategories: buildTopCategories(expenses),
             dailyFlow: buildDailyFlow({ entradas, saidas, cartoes }),
@@ -151,6 +225,9 @@ module.exports = {
         normalizePeriod,
         periodMatchesBillingMonth,
         buildTopCategories,
-        rowBelongsToAnyUser
+        rowBelongsToAnyUser,
+        buildReserveSummary,
+        isReserveApplication,
+        isReserveRedemption
     }
 };

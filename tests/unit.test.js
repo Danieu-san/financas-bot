@@ -21,6 +21,7 @@ const deletionHandler = require('../src/handlers/deletionHandler');
 const googleService = require('../src/services/google');
 const calculationOrchestrator = require('../src/services/calculationOrchestrator');
 const qaFailureLogService = require('../src/services/qaFailureLogService');
+const userSheetAnalyticsService = require('../src/services/userSheetAnalyticsService');
 
 // --- Helpers Tests ---
 test('helpers.parseValue', (t) => {
@@ -967,4 +968,29 @@ test('google.isMissingUserSheetError detects missing user spreadsheet tabs', () 
     assert.strictEqual(isMissingUserSheetError({ message: 'Unable to parse range: Transferências!A:I' }), true);
     assert.strictEqual(isMissingUserSheetError({ response: { data: { error: { message: 'Range not found: Transferências' } } } }), true);
     assert.strictEqual(isMissingUserSheetError({ code: 400, message: 'invalid request' }), false);
+});
+
+test('userSheetAnalytics reserve summary separates economic balance from available cash', () => {
+    const { buildReserveSummary, isReserveApplication, isReserveRedemption } = userSheetAnalyticsService.__test__;
+    const transfers = [
+        { description: 'Aplicação RDB', value: 1438.86, status: 'Movimento de investimento/reserva' },
+        { description: 'Aplicação RDB', value: 800, status: 'Movimento de investimento/reserva' },
+        { description: 'Aplicação RDB', value: 500, status: 'Movimento de investimento/reserva' },
+        { description: 'Resgate RDB', value: 130, status: 'Movimento de investimento/reserva' },
+        { description: 'Resgate RDB', value: 900, status: 'Movimento de investimento/reserva' },
+        { description: 'Resgate RDB', value: 300, status: 'Movimento de investimento/reserva' },
+        { description: 'Resgate de empréstimo', value: 2.25, status: 'Importado de arquivo' },
+        { description: 'PIX QRS BANCO CSF19/05', value: 1148, status: 'Pagamento de fatura/cartão' }
+    ];
+
+    assert.strictEqual(isReserveApplication(transfers[0]), true);
+    assert.strictEqual(isReserveRedemption(transfers[3]), true);
+    assert.strictEqual(isReserveRedemption(transfers[6]), false);
+
+    assert.deepStrictEqual(buildReserveSummary(transfers), {
+        applied: 2738.86,
+        redeemed: 1330,
+        netApplied: 1408.86,
+        movementCount: 6
+    });
 });
