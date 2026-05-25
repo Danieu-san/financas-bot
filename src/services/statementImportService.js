@@ -400,6 +400,7 @@ function isCreditCardPaymentMovement(description = '') {
     return [
         'pagamento de fatura',
         'pag boleto nu pagamentos',
+        'qrs nu pagament',
         'nu pagamentos s/a',
         'banco csf'
     ].some(term => text.includes(normalizeText(term)));

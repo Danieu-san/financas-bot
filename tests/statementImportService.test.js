@@ -196,12 +196,13 @@ test('statement import treats investments and credit card payments as non-spendi
         '13/05/2026;Aplicação RDB;-800,00;Débito',
         '20/05/2026;Resgate RDB;300,00;Crédito',
         '18/05/2026;PAG BOLETO NU PAGAMENTOS SA;-1377,82;Débito',
-        '19/05/2026;PIX QRS BANCO CSF19/05;-1148,00;Débito'
+        '19/05/2026;PIX QRS BANCO CSF19/05;-1148,00;Débito',
+        '10/05/2026;PIX QRS NU PAGAMENT08/04;-1142,19;Débito'
     ].join('\n');
 
     const transactions = parseCsvTransactions(csv);
 
-    assert.strictEqual(transactions.length, 5);
+    assert.strictEqual(transactions.length, 6);
     assert.ok(transactions.every(item => item.type === 'Transferências'));
     assert.ok(transactions.every(item => /não conta como gasto nem renda/i.test(item.observacoes)));
 });
