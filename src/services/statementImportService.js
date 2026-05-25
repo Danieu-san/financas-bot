@@ -524,6 +524,187 @@ function annotateImportDuplicates(transactions = [], existingRowsByType = {}) {
     });
 }
 
+function monthKeyFromDate(value) {
+    const parsed = parseSheetDate(value);
+    if (!parsed) return '';
+    return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function dayFromDate(value) {
+    const parsed = parseSheetDate(value);
+    return parsed ? parsed.getDate() : 0;
+}
+
+function modeNumber(values = []) {
+    const counts = new Map();
+    for (const value of values.filter(Number.isFinite)) {
+        counts.set(value, (counts.get(value) || 0) + 1);
+    }
+    return [...counts.entries()]
+        .sort((a, b) => b[1] - a[1] || a[0] - b[0])
+        .map(([value]) => value)[0] || 0;
+}
+
+function recurringDescriptionSignature(description = '') {
+    return normalizeText(description)
+        .replace(/\d{1,2}\/\d{1,2}/g, ' ')
+        .replace(/\b\d{2,}\b/g, ' ')
+        .replace(/[•*_.:/\\|()[\]-]+/g, ' ')
+        .replace(/\b(transferencia|transferencia recebida|recebida|recebido|enviada|enviado|pelo|pela|pix|transf|agencia|conta|bco|banco|s a|sa|ltda|importacao|pagamento|boleto|efetuado)\b/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 100);
+}
+
+function isIncomingTransferLike(description = '') {
+    const text = normalizeDescriptionKey(description);
+    return (
+        text.includes('recebida') ||
+        text.includes('recebido') ||
+        text.includes('pix transf') ||
+        text.includes('transferencia recebida')
+    );
+}
+
+function recurringRowsToItems(existingRowsByType = {}, allowedTypes = new Set()) {
+    const items = [];
+    for (const [sheetName, rows] of Object.entries(existingRowsByType || {})) {
+        const type = sheetName === 'Entradas'
+            ? 'Entradas'
+            : sheetName === 'Transferências'
+                ? 'Transferências'
+                : 'Saídas';
+        if (allowedTypes.size && !allowedTypes.has(type)) continue;
+        for (const row of rows || []) {
+            const item = existingRowToTransaction(sheetName, row);
+            const signature = recurringDescriptionSignature(item.descricao);
+            const monthKey = monthKeyFromDate(item.data);
+            if (!signature || !monthKey) continue;
+            items.push({
+                ...item,
+                signature,
+                monthKey,
+                day: dayFromDate(item.data),
+                value: Number(parseValue(item.valor) || 0)
+            });
+        }
+    }
+    return items;
+}
+
+function buildRecurringCandidate({ item, index, existingItems, kind }) {
+    const signature = recurringDescriptionSignature(item.descricao);
+    const monthKey = monthKeyFromDate(item.data);
+    if (!signature || !monthKey) return null;
+
+    const matching = existingItems.filter(existing => existing.signature === signature);
+    const months = new Set([monthKey, ...matching.map(existing => existing.monthKey).filter(Boolean)]);
+    if (months.size < 3) return null;
+
+    const days = [dayFromDate(item.data), ...matching.map(existing => existing.day)].filter(Number.isFinite);
+    return {
+        kind,
+        signature,
+        transactionIndexes: [index],
+        description: item.descricao || matching[0]?.descricao || 'lançamento recorrente',
+        value: Number(item.valor || 0),
+        suggestedDueDay: modeNumber(days),
+        monthCount: months.size,
+        months: [...months].sort()
+    };
+}
+
+function mergeCandidates(candidates = []) {
+    const bySignature = new Map();
+    for (const candidate of candidates.filter(Boolean)) {
+        const existing = bySignature.get(candidate.signature);
+        if (!existing) {
+            bySignature.set(candidate.signature, { ...candidate });
+            continue;
+        }
+        existing.transactionIndexes = [...new Set([...existing.transactionIndexes, ...candidate.transactionIndexes])];
+        existing.months = [...new Set([...existing.months, ...candidate.months])].sort();
+        existing.monthCount = existing.months.length;
+    }
+    return [...bySignature.values()]
+        .sort((a, b) => b.monthCount - a.monthCount || a.description.localeCompare(b.description));
+}
+
+function detectRecurringIncomeCandidates(transactions = [], existingRowsByType = {}) {
+    const existingItems = recurringRowsToItems(existingRowsByType, new Set(['Entradas', 'Transferências']));
+    const candidates = transactions
+        .map((item, index) => {
+            if (!item || item.duplicate || item.type !== 'Transferências') return null;
+            if (!isIncomingTransferLike(item.descricao)) return null;
+            return buildRecurringCandidate({ item, index, existingItems, kind: 'income' });
+        });
+    return mergeCandidates(candidates);
+}
+
+function detectRecurringBillCandidates(transactions = [], existingRowsByType = {}) {
+    const existingItems = recurringRowsToItems(existingRowsByType, new Set(['Saídas']));
+    const candidates = transactions
+        .map((item, index) => {
+            if (!item || item.duplicate || item.type !== 'Saídas') return null;
+            return buildRecurringCandidate({ item, index, existingItems, kind: 'bill' });
+        });
+    return mergeCandidates(candidates);
+}
+
+function parseRecurringIncomeClassificationReply(text = '') {
+    const normalized = normalizeText(text);
+    if (['1', 'salario', 'salário', 'salario recorrente', 'salário recorrente'].includes(normalized)) return 'salary';
+    if (['2', 'renda extra', 'extra', 'renda recorrente', 'outra renda'].includes(normalized)) return 'extra_income';
+    if (['3', 'transferencia', 'transferência', 'transferencia interna', 'transferência interna'].includes(normalized)) return 'internal_transfer';
+    if (['4', 'ignorar', 'deixar', 'deixar como esta', 'deixar como está', 'nao sei', 'não sei'].includes(normalized)) return 'ignore';
+    return '';
+}
+
+function applyRecurringIncomeClassification(transactions = [], candidate = {}, classification = '') {
+    const indexes = new Set(candidate.transactionIndexes || []);
+    if (!indexes.size || !['salary', 'extra_income'].includes(classification)) return transactions;
+
+    const category = classification === 'salary' ? 'Salário' : 'Renda Extra';
+    return transactions.map((item, index) => {
+        if (!indexes.has(index) || item.type !== 'Transferências') return item;
+        return {
+            type: 'Entradas',
+            data: item.data,
+            descricao: item.descricao,
+            categoria: category,
+            valor: item.valor,
+            recebimento: 'Conta Corrente',
+            recorrente: 'Sim',
+            observacoes: 'Reclassificado de transferência recorrente durante importação',
+            userId: item.userId
+        };
+    });
+}
+
+function buildRecurringIncomeQuestion(candidate = {}) {
+    return [
+        'Percebi uma entrada recorrente parecida com:',
+        `"${candidate.description || 'lançamento recorrente'}"`,
+        '',
+        `Ela aparece em ${candidate.monthCount || 3} meses. Como devo tratar essa importação?`,
+        '1. Salário recorrente',
+        '2. Renda extra recorrente',
+        '3. Transferência interna',
+        '4. Deixar como está por enquanto'
+    ].join('\n');
+}
+
+function buildRecurringBillSuggestionMessage(candidate = {}) {
+    const day = candidate.suggestedDueDay || 1;
+    return [
+        `Percebi uma saída recorrente parecida com "${candidate.description || 'conta recorrente'}".`,
+        `Ela aparece em ${candidate.monthCount || 3} meses, perto do dia ${day}.`,
+        '',
+        'Quer cadastrar isso na aba Contas para eu lembrar nos próximos vencimentos?',
+        'Responda `sim` para cadastrar ou `não` para ignorar.'
+    ].join('\n');
+}
+
 function transactionLabel(item) {
     if (item.duplicate) return 'Duplicado';
     if (item.possibleDuplicate) return 'Possível duplicado';
@@ -646,13 +827,19 @@ module.exports = {
     buildImportPreviewMessage,
     buildImportPreviewMessages,
     annotateImportDuplicates,
+    applyRecurringIncomeClassification,
     applyFallbackDateToTransactions,
     buildImportDuplicateKey,
+    buildRecurringBillSuggestionMessage,
+    buildRecurringIncomeQuestion,
     convertTransactionsForCreditCardStatement,
+    detectRecurringBillCandidates,
+    detectRecurringIncomeCandidates,
     detectImportFileType,
     parseCsvTransactions,
     parseImportMedia,
     parseOfxTransactions,
+    parseRecurringIncomeClassificationReply,
     parseStatementText,
     transactionsNeedDateInput,
     unsupportedImportMessage,
@@ -661,6 +848,7 @@ module.exports = {
         buildExistingDuplicateKeys,
         buildTransaction,
         convertTransactionsForCreditCardStatement,
+        recurringDescriptionSignature,
         isProbableInternalTransfer,
         parseDelimited,
         splitDelimitedLine

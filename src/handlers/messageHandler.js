@@ -40,10 +40,16 @@ const { buildDebtAvalanchePlan } = require('../services/debtAvalancheService');
 const { syncReadModelIfNeeded, executeAnalyticalIntent, markReadModelDirty } = require('../services/readModelService');
 const {
     annotateImportDuplicates,
+    applyRecurringIncomeClassification,
     applyFallbackDateToTransactions,
+    buildRecurringBillSuggestionMessage,
+    buildRecurringIncomeQuestion,
     buildImportPreviewMessages,
     convertTransactionsForCreditCardStatement,
+    detectRecurringBillCandidates,
+    detectRecurringIncomeCandidates,
     parseImportMedia,
+    parseRecurringIncomeClassificationReply,
     transactionsNeedDateInput,
     unsupportedImportMessage
 } = require('../services/statementImportService');
@@ -461,6 +467,21 @@ async function loadExistingImportRows({ userId, includeCards = false } = {}) {
             (legacyCards[index] || []).slice(1).filter(row => belongsToUser(row, 6))
         ]))
     };
+}
+
+function buildRecurringBillAccountRow(candidate = {}, userId = '') {
+    const rawName = String(candidate.description || 'Conta recorrente detectada')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 90) || 'Conta recorrente detectada';
+    const dueDay = Number(candidate.suggestedDueDay || 1);
+    const safeDueDay = Number.isInteger(dueDay) && dueDay >= 1 && dueDay <= 31 ? dueDay : 1;
+    return [
+        rawName,
+        safeDueDay,
+        `Detectado automaticamente em ${candidate.monthCount || 3} meses de importações. Revise se o dia de vencimento estiver diferente.`,
+        userId
+    ];
 }
 
 async function handleStatementImportMessage(msg, { senderId, person, userId }) {
@@ -2252,6 +2273,27 @@ async function handleMessage(msg) {
                 return;
             }
 
+            case 'confirming_recurring_bill_suggestion': {
+                const cleanReply = normalizeText(msg.body);
+                const { recurringBillCandidate, userId: importUserId } = currentState.data || {};
+
+                if (['sim', 's', 'ss', 'confirmo', 'cadastrar'].includes(cleanReply)) {
+                    await appendRowToSheet('Contas', buildRecurringBillAccountRow(recurringBillCandidate, importUserId || userId));
+                    userStateManager.deleteState(senderId);
+                    await sendPlainMessage(msg, 'Conta recorrente cadastrada. Vou considerar esse vencimento nos próximos lembretes.');
+                    return;
+                }
+
+                if (['nao', 'não', 'n', 'ignorar', 'cancelar'].includes(cleanReply)) {
+                    userStateManager.deleteState(senderId);
+                    await sendPlainMessage(msg, 'Sem problema. Não cadastrei essa conta recorrente.');
+                    return;
+                }
+
+                await sendPlainMessage(msg, 'Responda `sim` para cadastrar essa conta recorrente ou `não` para ignorar.');
+                return;
+            }
+
             case 'awaiting_statement_import_owner': {
                 const { importOwnerCandidates = [] } = currentState.data || {};
                 const selectedOwner = parseStatementImportOwnerReply(msg.body, importOwnerCandidates);
@@ -2266,6 +2308,46 @@ async function handleMessage(msg) {
                     person: selectedOwner.person || selectedOwner.label || pessoa,
                     userId: selectedOwner.userId || userId
                 });
+                return;
+            }
+
+            case 'awaiting_statement_recurring_income_classification': {
+                const classification = parseRecurringIncomeClassificationReply(msg.body);
+                const {
+                    transactions = [],
+                    filename,
+                    person: importPerson,
+                    userId: importUserId,
+                    recurringIncomeCandidate,
+                    recurringBillCandidate
+                } = currentState.data || {};
+
+                if (!classification) {
+                    await sendPlainMessage(msg, buildRecurringIncomeQuestion(recurringIncomeCandidate));
+                    return;
+                }
+
+                let classifiedTransactions = applyRecurringIncomeClassification(transactions, recurringIncomeCandidate, classification);
+                if (['salary', 'extra_income'].includes(classification)) {
+                    const existingRowsByType = await loadExistingImportRows({ userId: importUserId || userId });
+                    classifiedTransactions = annotateImportDuplicates(classifiedTransactions, existingRowsByType);
+                }
+                const previewMessages = buildImportPreviewMessages(classifiedTransactions);
+
+                userStateManager.setState(senderId, {
+                    action: 'confirming_statement_import',
+                    data: {
+                        transactions: classifiedTransactions,
+                        filename,
+                        importKind: 'checking',
+                        person: importPerson || pessoa,
+                        userId: importUserId || userId,
+                        recurringBillCandidate
+                    }
+                });
+                for (const previewMessage of previewMessages) {
+                    await sendPlainMessage(msg, previewMessage);
+                }
                 return;
             }
 
@@ -2307,6 +2389,26 @@ async function handleMessage(msg) {
                         parsedTransactions.map(item => ({ ...item, userId: targetUserId })),
                         existingRowsByType
                     );
+                    const recurringIncomeCandidate = detectRecurringIncomeCandidates(transactions, existingRowsByType)[0] || null;
+                    const recurringBillCandidate = detectRecurringBillCandidates(transactions, existingRowsByType)[0] || null;
+
+                    if (recurringIncomeCandidate) {
+                        userStateManager.setState(senderId, {
+                            action: 'awaiting_statement_recurring_income_classification',
+                            data: {
+                                transactions,
+                                filename,
+                                importKind: 'checking',
+                                person: importPerson || pessoa,
+                                userId: targetUserId,
+                                recurringIncomeCandidate,
+                                recurringBillCandidate
+                            }
+                        });
+                        await sendPlainMessage(msg, buildRecurringIncomeQuestion(recurringIncomeCandidate));
+                        return;
+                    }
+
                     const previewMessages = buildImportPreviewMessages(transactions);
 
                     userStateManager.setState(senderId, {
@@ -2316,7 +2418,8 @@ async function handleMessage(msg) {
                             filename,
                             importKind: 'checking',
                             person: importPerson || pessoa,
-                            userId: importUserId || userId
+                            userId: targetUserId,
+                            recurringBillCandidate
                         }
                     });
                     for (const previewMessage of previewMessages) {
@@ -2408,14 +2511,33 @@ async function handleMessage(msg) {
             case 'confirming_statement_import': {
                 const cleanReply = normalizeText(msg.body);
                 if (['sim', 's', 'ss', 'confirmo', 'importar'].includes(cleanReply)) {
-                    const { transactions, person: importPerson, userId: importUserId } = currentState.data || {};
+                    const {
+                        transactions,
+                        person: importPerson,
+                        userId: importUserId,
+                        importKind,
+                        recurringBillCandidate
+                    } = currentState.data || {};
                     try {
                         const successCount = await saveImportedTransactions(transactions || [], {
                             person: importPerson || pessoa,
                             userId: importUserId || userId
                         });
+                        const doneMessage = `Importação concluída. ${successCount} lançamento(s) foram salvos na sua planilha.`;
+                        if (successCount > 0 && importKind === 'checking' && recurringBillCandidate) {
+                            userStateManager.setState(senderId, {
+                                action: 'confirming_recurring_bill_suggestion',
+                                data: {
+                                    recurringBillCandidate,
+                                    userId: importUserId || userId
+                                }
+                            });
+                            await sendPlainMessage(msg, `${doneMessage}\n\n${buildRecurringBillSuggestionMessage(recurringBillCandidate)}`);
+                            return;
+                        }
+
                         userStateManager.deleteState(senderId);
-                        await sendPlainMessage(msg, `Importação concluída. ${successCount} lançamento(s) foram salvos na sua planilha.`);
+                        await sendPlainMessage(msg, doneMessage);
                     } catch (error) {
                         logger.error(`importacao: falha ao salvar lançamentos user_id=${userId} error=${error.message}`);
                         userStateManager.deleteState(senderId);

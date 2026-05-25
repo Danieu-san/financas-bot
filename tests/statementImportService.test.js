@@ -5,11 +5,15 @@ const {
     annotateImportDuplicates,
     buildImportPreviewMessage,
     buildImportPreviewMessages,
+    applyRecurringIncomeClassification,
     convertTransactionsForCreditCardStatement,
+    detectRecurringBillCandidates,
+    detectRecurringIncomeCandidates,
     detectImportFileType,
     parseCsvTransactions,
     parseImportMedia,
     parseOfxTransactions,
+    parseRecurringIncomeClassificationReply,
     unsupportedImportMessage
 } = require('../src/services/statementImportService');
 
@@ -345,4 +349,55 @@ test('statement import warns about possible duplicates by same type date and val
     assert.match(preview, /Novos que serão importados: 1/);
     assert.match(preview, /Alertas de possível duplicidade: 1/);
     assert.match(preview, /será importado se você confirmar/);
+});
+
+test('statement import detects repeated incoming transfer and can classify it as salary', () => {
+    const csv = [
+        'Data;Descrição;Valor;Tipo',
+        '04/03/2026;Transferência Recebida - DANIEL DOS SANTOS - BCO BRADESCO S.A.;7464,43;Crédito'
+    ].join('\n');
+    const transactions = parseCsvTransactions(csv, { ownerAliases: ['Daniel dos Santos', 'Daniel'] });
+    const existingRowsByType = {
+        'Transferências': [
+            ['06/01/2026', 'Transferência Recebida - DANIEL DOS SANTOS - BCO BRADESCO S.A.', '7464,43', '', '', 'Importação', '', 'Provável transferência interna', 'user-daniel'],
+            ['04/02/2026', 'Transferência Recebida - DANIEL DOS SANTOS - BCO BRADESCO S.A.', '7464,43', '', '', 'Importação', '', 'Provável transferência interna', 'user-daniel']
+        ]
+    };
+
+    assert.strictEqual(transactions[0].type, 'Transferências');
+
+    const [candidate] = detectRecurringIncomeCandidates(transactions, existingRowsByType);
+    assert.ok(candidate);
+    assert.match(candidate.description, /BRADESCO/);
+    assert.strictEqual(candidate.monthCount, 3);
+
+    const classified = applyRecurringIncomeClassification(transactions, candidate, 'salary');
+    assert.strictEqual(classified[0].type, 'Entradas');
+    assert.strictEqual(classified[0].categoria, 'Salário');
+    assert.strictEqual(classified[0].recorrente, 'Sim');
+    assert.match(classified[0].observacoes, /recorrente/i);
+
+    assert.strictEqual(parseRecurringIncomeClassificationReply('1'), 'salary');
+    assert.strictEqual(parseRecurringIncomeClassificationReply('renda extra'), 'extra_income');
+});
+
+test('statement import detects repeated expense as bill reminder candidate', () => {
+    const csv = [
+        'Data;Descrição;Valor;Tipo',
+        '05/03/2026;Pagamento de boleto - Internet;-120,00;Débito'
+    ].join('\n');
+    const transactions = parseCsvTransactions(csv);
+    const existingRowsByType = {
+        'Saídas': [
+            ['05/01/2026', 'Pagamento de boleto - Internet', 'Moradia', 'CONTAS DA CASA', '120,00', 'Daniel', 'Débito', 'Não', '', 'user-daniel'],
+            ['05/02/2026', 'Pagamento de boleto - Internet', 'Moradia', 'CONTAS DA CASA', '120,00', 'Daniel', 'Débito', 'Não', '', 'user-daniel']
+        ]
+    };
+
+    const [candidate] = detectRecurringBillCandidates(transactions, existingRowsByType);
+
+    assert.ok(candidate);
+    assert.match(candidate.description, /Internet/);
+    assert.strictEqual(candidate.suggestedDueDay, 5);
+    assert.strictEqual(candidate.monthCount, 3);
 });

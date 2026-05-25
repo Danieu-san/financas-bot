@@ -83,6 +83,7 @@ function resetSheets() {
     sheets.Saídas = [['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Observações', 'user_id']];
     sheets.Entradas = [['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Observações', 'user_id']];
     sheets.Transferências = [['Data', 'Descrição', 'Valor', 'Origem', 'Destino', 'Método', 'Observações', 'Status', 'user_id']];
+    sheets.Contas = [['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id']];
     sheets.Dívidas = [DEBTS_HEADER];
     for (const sheetName of CARD_SHEETS) {
         sheets[sheetName] = [['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'user_id']];
@@ -487,6 +488,71 @@ stateMachineTest('financial states: family statement import asks owner and store
     assert.strictEqual(sheets.Transferências.length, 2);
     assert.strictEqual(sheets.Transferências[1][1], 'PIX TRANSF Usuario Estado');
     assert.strictEqual(sheets.Transferências[1][8], PARTNER_ID);
+});
+
+stateMachineTest('financial states: statement import asks how to classify repeated incoming transfer before preview', async () => {
+    resetState();
+    sheets.Transferências.push(
+        ['05/01/2026', 'Transferência Recebida - Usuario Estado - BCO BRADESCO S.A.', '2000', '', '', 'Importação', '', 'Provável transferência interna', USER_ID],
+        ['05/02/2026', 'Transferência Recebida - Usuario Estado - BCO BRADESCO S.A.', '2000', '', '', 'Importação', '', 'Provável transferência interna', USER_ID]
+    );
+
+    const csv = [
+        'Data;Descrição;Valor;Tipo',
+        '05/03/2026;Transferência Recebida - Usuario Estado - BCO BRADESCO S.A.;2000,00;Crédito'
+    ].join('\n');
+
+    const firstReply = await sendMedia(csv);
+    assert.match(firstReply, /conta corrente/i);
+
+    const classificationQuestion = await send('1');
+    assert.match(classificationQuestion, /entrada recorrente/i);
+    assert.match(classificationQuestion, /Salário recorrente/i);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_statement_recurring_income_classification');
+
+    const preview = await send('1');
+    assert.match(preview, /\[Entrada\]/);
+    assert.match(preview, /Salário/);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_statement_import');
+
+    const done = await send('sim');
+    assert.match(done, /Importação concluída/);
+    assert.strictEqual(sheets.Entradas.length, 2);
+    assert.strictEqual(sheets.Entradas[1][1], 'Transferência Recebida - Usuario Estado - BCO BRADESCO S.A.');
+    assert.strictEqual(sheets.Entradas[1][2], 'Salário');
+    assert.strictEqual(sheets.Entradas[1][6], 'Sim');
+    assert.strictEqual(sheets.Transferências.length, 3);
+});
+
+stateMachineTest('financial states: statement import suggests recurring bills after saving', async () => {
+    resetState();
+    sheets.Saídas.push(
+        ['05/01/2026', 'Pagamento de boleto - Internet', 'Moradia', 'CONTAS DA CASA', '120', 'Usuario Estado', 'Débito', 'Não', '', USER_ID],
+        ['05/02/2026', 'Pagamento de boleto - Internet', 'Moradia', 'CONTAS DA CASA', '120', 'Usuario Estado', 'Débito', 'Não', '', USER_ID]
+    );
+
+    const csv = [
+        'Data;Descrição;Valor;Tipo',
+        '05/03/2026;Pagamento de boleto - Internet;-120,00;Débito'
+    ].join('\n');
+
+    const firstReply = await sendMedia(csv);
+    assert.match(firstReply, /conta corrente/i);
+
+    const preview = await send('1');
+    assert.match(preview, /Pagamento de boleto - Internet/);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_statement_import');
+
+    const done = await send('sim');
+    assert.match(done, /Importação concluída/);
+    assert.match(done, /saída recorrente/i);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_recurring_bill_suggestion');
+
+    const created = await send('sim');
+    assert.match(created, /Conta recorrente cadastrada/i);
+    assert.strictEqual(sheets.Contas.length, 2);
+    assert.strictEqual(sheets.Contas[1][1], 5);
+    assert.strictEqual(sheets.Contas[1][3], USER_ID);
 });
 
 stateMachineTest('financial states: statement import asks for a fallback date only when the file has no dates', async () => {
