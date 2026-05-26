@@ -96,8 +96,8 @@ test('scheduler skips synthetic active test users outside test mode', async () =
 });
 
 test('scheduler morning summary keeps debts and calendar events scoped per user', async () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const fixedNow = new Date('2026-05-20T15:00:00.000Z');
+    const tomorrow = new Date('2026-05-21T12:00:00.000Z');
     const sent = [];
     const users = [
         { user_id: 'user-a', whatsapp_id: '5511000000001@c.us' },
@@ -122,6 +122,7 @@ test('scheduler morning summary keeps debts and calendar events scoped per user'
     scheduler.__test__.setClientForTest({
         sendMessage: async (to, message) => sent.push({ to, message })
     });
+    scheduler.__test__.setNowForTest(fixedNow);
 
     await scheduler.__test__.sendMorningSummary();
 
@@ -135,8 +136,8 @@ test('scheduler morning summary keeps debts and calendar events scoped per user'
 });
 
 test('scheduler evening summary includes tomorrow calendar events and payment dates', async () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const fixedNow = new Date('2026-05-20T15:00:00.000Z');
+    const tomorrow = new Date('2026-05-21T12:00:00.000Z');
     const sent = [];
     const users = [
         { user_id: 'user-a', whatsapp_id: '5511000000001@c.us' },
@@ -166,6 +167,7 @@ test('scheduler evening summary includes tomorrow calendar events and payment da
     scheduler.__test__.setClientForTest({
         sendMessage: async (to, message) => sent.push({ to, message })
     });
+    scheduler.__test__.setNowForTest(fixedNow);
 
     await scheduler.__test__.sendEveningSummary();
 

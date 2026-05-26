@@ -10,6 +10,7 @@ test('financial health summary explains cash risk and emergency reserve inputs',
         user,
         aliases: ['Daniel'],
         profile: { fixed_expense_estimate: 600 },
+        now: new Date('2026-05-20T12:00:00.000Z'),
         saidasData: [
             ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id'],
             ['10/05/2026', 'mercado', 'Alimentação', 'Supermercado', 300, 'Daniel', 'PIX', 'Não', '', user.user_id]

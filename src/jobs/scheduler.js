@@ -11,6 +11,11 @@ let client;
 let isInitialized = false;
 const notifiedEventIds = new Set();
 const SCHEDULE_TIME_ZONE = 'America/Sao_Paulo';
+let nowProvider = () => new Date();
+
+function getNow() {
+    return nowProvider();
+}
 
 function getDatePartsInTimeZone(date = new Date(), timeZone = SCHEDULE_TIME_ZONE) {
     const parts = new Intl.DateTimeFormat('en-CA', {
@@ -146,7 +151,7 @@ async function getRecipientIds({ weeklyOptIn = null, monthlyOptIn = null } = {})
 
 async function checkUpcomingEvents() {
     try {
-        const agora = new Date();
+        const agora = getNow();
         const users = await getScheduledActiveUsers();
 
         for (const user of users) {
@@ -185,7 +190,7 @@ async function checkUpcomingBills() {
         const users = await getScheduledActiveUsers();
         if (!users.length) return;
 
-        const hoje = addDaysForSchedule(new Date(), 0);
+        const hoje = addDaysForSchedule(getNow(), 0);
         const anoAtual = hoje.getUTCFullYear();
         const mesAtual = hoje.getUTCMonth();
 
@@ -246,7 +251,7 @@ async function sendMorningSummary() {
             return;
         }
 
-        const hoje = addDaysForSchedule(new Date(), 0);
+        const hoje = addDaysForSchedule(getNow(), 0);
 
         for (const user of users) {
             const userId = String(user.user_id || '').trim();
@@ -311,7 +316,7 @@ async function sendMorningSummary() {
 
 async function sendEveningSummary() {
     try {
-        const amanha = addDaysForSchedule(new Date(), 1);
+        const amanha = addDaysForSchedule(getNow(), 1);
         const amanhaStr = formatScheduleDate(amanha);
         const users = await getScheduledActiveUsers();
         if (users.length === 0) {
@@ -396,7 +401,7 @@ async function sendMonthlyReports() {
         const cardSheetNames = Object.values(creditCardConfig).map(c => c.sheetName);
         const cardData = await Promise.all(cardSheetNames.map(n => readDataFromSheet(`${n}!A:G`)));
 
-        const now = new Date();
+        const now = getNow();
         const reportDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         const month = reportDate.getMonth();
         const year = reportDate.getFullYear();
@@ -543,10 +548,20 @@ function setClientForTest(wppClient) {
     client = wppClient;
 }
 
+function setNowForTest(fixedNow) {
+    nowProvider = () => new Date(fixedNow);
+}
+
+function resetNowForTest() {
+    nowProvider = () => new Date();
+}
+
 module.exports = {
     initializeScheduler,
     __test__: {
         setClientForTest,
+        setNowForTest,
+        resetNowForTest,
         getRecipientIds,
         checkUpcomingEvents,
         checkUpcomingBills,

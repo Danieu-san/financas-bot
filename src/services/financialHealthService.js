@@ -81,7 +81,7 @@ function buildHealthSummary(data) {
         creditCardData
     } = data;
 
-    const now = new Date();
+    const now = data.now ? new Date(data.now) : new Date();
     const todayStart = new Date(now);
     todayStart.setHours(0, 0, 0, 0);
     const currentMonth = now.getMonth();
