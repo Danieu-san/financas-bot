@@ -75,7 +75,7 @@ Atencao:
 
 ## Perguntas financeiras adversariais
 
-Status: implementado localmente e coberto por testes; confirmar deploy/PM2 antes de assumir que esta ativo em producao.
+Status: perguntas deterministicas implantadas em producao no commit `1efb5d3`; gate local de seguranca contra extracao interna/prompt injection implementado localmente em 2026-05-26, coberto por testes unitarios, mas ainda precisa de commit/deploy para valer em producao.
 
 Deploy confirmado em producao no commit `1efb5d3`.
 
@@ -91,6 +91,16 @@ Depois de uma bateria real no WhatsApp, perguntas abertas que antes caiam em fal
 - `compare meus gastos com o mes anterior`
 
 Tambem foi endurecido o calculo de vencimento recorrente para meses curtos: vencimento dia 31 usa o ultimo dia valido quando o mes nao tem dia 31.
+
+O gate de seguranca bloqueia antes de IA/calculo financeiro mensagens que pedem:
+
+- IDs internos (`sheet id`, `user id`, identificadores de planilha/tenant).
+- Prompt, regras internas, schema interno ou instrucoes do sistema.
+- Tokens, secrets, credenciais OAuth ou chaves.
+- Dados/planilhas de outros usuarios/clientes ou `todos os usuarios`.
+- Bypass de regras, modo admin/suporte/desenvolvedor ou tentativas de ignorar seguranca.
+
+Tambem sanitiza logs de mensagens para esconder tokens, parametros OAuth e IDs de documentos Google.
 
 ## Higiene do workspace
 

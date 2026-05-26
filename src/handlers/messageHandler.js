@@ -148,6 +148,84 @@ const processedMessages = new Set();
 const monthNamesLower = ["janeiro", "fevereiro", "marco", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 const monthNamesCapitalized = ["Janeiro", "Fevereiro", "Mar�o", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 const PERF_WARN_MS = Number.parseInt(process.env.MESSAGE_SLOW_LOG_MS || '4000', 10);
+const SECURITY_BLOCK_REPLY = [
+    'Não posso mostrar identificadores internos, tokens, prompts, regras internas ou dados de outros usuários.',
+    'Posso ajudar com os seus próprios lançamentos, sua planilha, seu dashboard e orientações financeiras dentro do seu acesso.'
+].join('\n');
+
+function sanitizeLogText(value, maxLength = 220) {
+    const original = String(value || '');
+    if (!original) return '';
+
+    let sanitized = original
+        .replace(/([?&](?:token|code|state|access_token|refresh_token|client_secret|secret|api_key|key)=)[^&\s"']+/gi, '$1[REDACTED]')
+        .replace(/\bGOCSPX-[A-Za-z0-9_-]+\b/g, '[REDACTED_GOOGLE_SECRET]')
+        .replace(/\b(?:ya29|1\/\/)[A-Za-z0-9._/-]{20,}\b/g, '[REDACTED_OAUTH_TOKEN]')
+        .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, '[REDACTED_JWT]')
+        .replace(/(docs\.google\.com\/(?:spreadsheets|document)\/d\/)[A-Za-z0-9_-]+/gi, '$1[REDACTED_DOC_ID]')
+        .replace(/(drive\.google\.com\/file\/d\/)[A-Za-z0-9_-]+/gi, '$1[REDACTED_DOC_ID]');
+
+    if (sanitized.length > maxLength) {
+        sanitized = `${sanitized.slice(0, maxLength)}...`;
+    }
+    return sanitized;
+}
+
+function hasSecurityPattern(text, patterns) {
+    return patterns.some((pattern) => pattern.test(text));
+}
+
+function detectSecuritySensitiveRequest(messageBody) {
+    const text = normalizeText(String(messageBody || '').trim());
+    if (!text) return { blocked: false };
+
+    const internalIdentifierPatterns = [
+        /\b(?:sheet|spreadsheet|tenant|workspace|user|usuario|cliente)\s*id\b/,
+        /\bid\s+(?:da|do|de)\s+(?:planilha|spreadsheet|sheet|usuario|usuaria|user|cliente|tenant|workspace)\b/,
+        /\bidentificador(?:es)?\s+(?:interno|internos|da planilha|do usuario|do cliente)\b/,
+        /\b(?:planilha|spreadsheet|sheet)\s+(?:id|interna|original)\b/
+    ];
+    if (hasSecurityPattern(text, internalIdentifierPatterns)) {
+        return { blocked: true, category: 'internal_identifier' };
+    }
+
+    const promptLeakPatterns = [
+        /\b(?:prompt|system prompt|mensagem do sistema|instrucoes internas|instrucoes do sistema|regras internas|developer message|schema interno)\b/,
+        /\b(?:mostre|mostrar|revele|revelar|copie|copiar|diga|exiba|vaze|vazar).{0,50}\b(?:prompt|instrucoes|regras internas|schema)\b/
+    ];
+    if (hasSecurityPattern(text, promptLeakPatterns)) {
+        return { blocked: true, category: 'prompt_leak' };
+    }
+
+    const secretPatterns = [
+        /\b(?:refresh token|access token|client secret|client_secret|chave secreta|segredo oauth|oauth secret|api key|apikey|token de acesso|token secreto)\b/,
+        /\b(?:mostre|mostrar|revele|revelar|diga|exiba|vaze|vazar).{0,50}\b(?:token|segredo|secret|senha|credencial|credenciais|oauth)\b/
+    ];
+    if (hasSecurityPattern(text, secretPatterns)) {
+        return { blocked: true, category: 'secret_extraction' };
+    }
+
+    const crossUserPatterns = [
+        /\b(?:planilha|dados|gastos|entradas|lancamentos|lançamentos).{0,40}\b(?:de|do|da|dos|das)\s+(?:outro usuario|outra usuaria|outros usuarios|cliente|clientes)\b/,
+        /\b(?:todos os usuarios|todos os clientes|todos usuarios|todos clientes)\b/,
+        /\b(?:gastos|entradas|lancamentos|lançamentos|dados).{0,30}\b(?:de todos|dos usuarios|dos clientes)\b/,
+        /\b(?:acesse|abrir|abra|consulte|consultar|ler|leia).{0,60}\b(?:planilha de outro|dados de outro|cliente|outro usuario|outra usuaria)\b/
+    ];
+    if (hasSecurityPattern(text, crossUserPatterns)) {
+        return { blocked: true, category: 'cross_user_data' };
+    }
+
+    const bypassPatterns = [
+        /\b(?:ignore|ignora|desconsidere|desconsidera).{0,40}\b(?:instrucoes|regras|politicas|seguranca|segurança|permissoes|permissões)\b/,
+        /\b(?:sou|modo)\s+(?:admin|administrador|suporte|desenvolvedor|root|sistema)\b/,
+        /\b(?:bypass|jailbreak|contorne|desative|desabilite).{0,40}\b(?:seguranca|segurança|permissao|permissão|regras)\b/
+    ];
+    if (hasSecurityPattern(text, bypassPatterns)) {
+        return { blocked: true, category: 'policy_bypass' };
+    }
+
+    return { blocked: false };
+}
 
 function formatCurrencyBR(value) {
     const numericValue = typeof value === 'number' ? value : parseValue(value);
@@ -1684,7 +1762,7 @@ async function handleAdminCommands(msg, senderId, activeUser) {
     };
 
     if (!isAdminWithContext(senderId, activeUser)) {
-        logger.warn(`[admin] acesso_negado command="${body}" context=${JSON.stringify(adminContext)}`);
+        logger.warn(`[admin] acesso_negado command="${sanitizeLogText(body)}" context=${JSON.stringify(adminContext)}`);
         await msg.reply('Comando restrito a administradores.');
         return true;
     }
@@ -2118,7 +2196,7 @@ async function handleAdminCommands(msg, senderId, activeUser) {
         return true;
     }
 
-    logger.warn(`[admin] comando_desconhecido command="${body}" context=${JSON.stringify(adminContext)}`);
+    logger.warn(`[admin] comando_desconhecido command="${sanitizeLogText(body)}" context=${JSON.stringify(adminContext)}`);
     await msg.reply('Comando admin não reconhecido. Use: admin ajuda');
     return true;
 }
@@ -2243,6 +2321,14 @@ async function handleMessage(msg) {
         return;
     }
 
+    const securityCheck = detectSecuritySensitiveRequest(messageBody);
+    if (securityCheck.blocked) {
+        metrics.increment('message.security.blocked');
+        logger.warn(`[security] sensitive_request_blocked category=${securityCheck.category} sender=${senderId} msg="${sanitizeLogText(messageBody)}"`);
+        await sendPlainMessage(msg, SECURITY_BLOCK_REPLY);
+        return;
+    }
+
     const cacheKey = `${senderId}:${messageBody}`;
     const cachedResponse = cache.get(cacheKey);
     if (cachedResponse) {
@@ -2253,7 +2339,7 @@ async function handleMessage(msg) {
 
     let currentState = userStateManager.getState(senderId);
     if (currentState?.action === 'confirming_statement_import' && shouldInterruptStatementImportConfirmation(messageBody)) {
-        logger.info(`[state] import_confirmation_interrupted sender=${senderId} msg="${messageBody}"`);
+        logger.info(`[state] import_confirmation_interrupted sender=${senderId} msg="${sanitizeLogText(messageBody)}"`);
         userStateManager.deleteState(senderId);
         currentState = null;
     }
@@ -3027,7 +3113,7 @@ async function handleMessage(msg) {
         }
     } else {
         // --- INÍCIO DA ANÁLISE DE NOVOS COMANDOS ---
-        console.log(`Mensagem de ${pessoa} (${senderId}): "${messageBody}"`);
+        console.log(`Mensagem de ${pessoa} (${senderId}): "${sanitizeLogText(messageBody)}"`);
         try {
             // CÓDIGO PARA SUBSTITUIR (APENAS A CONSTANTE masterPrompt)
 
@@ -3042,7 +3128,7 @@ async function handleMessage(msg) {
             structuredResponse = detectFastPerguntaIntent(messageBody);
             if (structuredResponse) {
                 metrics.increment('message.pergunta.fast_path');
-                logger.info(`[routing] fast_path intent=pergunta sender=${senderId} msg="${messageBody}"`);
+                logger.info(`[routing] fast_path intent=pergunta sender=${senderId} msg="${sanitizeLogText(messageBody)}"`);
             }
 
             if (!structuredResponse) {
@@ -3111,7 +3197,7 @@ async function handleMessage(msg) {
         };
 
             if (structuredResponse.intent === 'resumo' && shouldRouteResumoToPergunta(messageBody)) {
-                logger.info(`[routing] override_intent resumo->pergunta sender=${senderId} msg="${messageBody}"`);
+                logger.info(`[routing] override_intent resumo->pergunta sender=${senderId} msg="${sanitizeLogText(messageBody)}"`);
                 structuredResponse.intent = 'pergunta';
                 if (!structuredResponse.question) {
                     structuredResponse.question = messageBody;
@@ -3574,7 +3660,7 @@ async function handleMessage(msg) {
 
                 case 'desconhecido':
                 default: {
-                    logger.info(`[routing] unknown_intent sender=${senderId} msg="${messageBody}"`);
+                    logger.info(`[routing] unknown_intent sender=${senderId} msg="${sanitizeLogText(messageBody)}"`);
                     await recordQaFailure({
                         kind: 'unknown_intent',
                         reason: 'routing_unknown_intent',
@@ -3634,6 +3720,8 @@ module.exports = {
         normalizeSettingsCommandText,
         isCheckinSettingsCommand,
         isReserveDisableCommand,
+        sanitizeLogText,
+        detectSecuritySensitiveRequest,
         extractFullNameSettingsCommand,
         markFinancialReadModelDirty,
         saveImportedTransactions,

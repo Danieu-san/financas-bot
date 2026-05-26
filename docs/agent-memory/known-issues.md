@@ -63,9 +63,10 @@ Ja houve divergencia entre horario exibido no WhatsApp e Google Calendar. Ao mex
 
 ## Prompt injection em perguntas financeiras
 
-- Prompt injection basico pedindo acesso a outra planilha foi rejeitado como `desconhecido` em teste real.
-- Ainda existe risco de uma mensagem maliciosa que contenha uma pergunta financeira legitima, como `qual o saldo de agosto`, ser roteada para calculo do proprio usuario em vez de ser bloqueada como tentativa de extrair informacao interna.
-- Proximo endurecimento recomendado: filtro local para termos como `sheet id`, `user id`, `tenant id`, `identificador interno`, `planilha de outro cliente` e pedidos de bypass/admin antes da classificacao financeira.
+- Em 2026-05-26 foi implementado gate local que bloqueia pedidos por `sheet id`, `user id`, `tenant id`, identificador interno, prompt/regras internas, tokens/secrets, dados de outros usuarios/clientes e bypass/admin antes da classificacao financeira.
+- O gate e coberto por testes unitarios e tambem sanitiza logs de mensagens com tokens, parametros OAuth e IDs de documentos Google.
+- Ainda falta validar/deployar em producao depois do commit desta mudanca.
+- Cuidado com falso positivo: perguntas legitimas sobre a propria familia devem continuar permitidas; pedidos amplos por `todos os usuarios/clientes` devem continuar bloqueados.
 
 ## WhatsApp Web pode travar ao iniciar
 
