@@ -65,7 +65,7 @@ Ja houve divergencia entre horario exibido no WhatsApp e Google Calendar. Ao mex
 
 - Em 2026-05-26 foi implementado gate local que bloqueia pedidos por `sheet id`, `user id`, `tenant id`, identificador interno, prompt/regras internas, tokens/secrets, dados de outros usuarios/clientes e bypass/admin antes da classificacao financeira.
 - O gate e coberto por testes unitarios e tambem sanitiza logs de mensagens com tokens, parametros OAuth e IDs de documentos Google.
-- Ainda falta validar/deployar em producao depois do commit desta mudanca.
+- Deploy em producao confirmado no commit `6dfca42`.
 - Cuidado com falso positivo: perguntas legitimas sobre a propria familia devem continuar permitidas; pedidos amplos por `todos os usuarios/clientes` devem continuar bloqueados.
 
 ## WhatsApp Web pode travar ao iniciar

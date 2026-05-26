@@ -75,7 +75,7 @@ Atencao:
 
 ## Perguntas financeiras adversariais
 
-Status: perguntas deterministicas implantadas em producao no commit `1efb5d3`; gate local de seguranca contra extracao interna/prompt injection implementado localmente em 2026-05-26, coberto por testes unitarios, mas ainda precisa de commit/deploy para valer em producao.
+Status: perguntas deterministicas implantadas em producao no commit `1efb5d3`; gate de seguranca contra extracao interna/prompt injection implantado em producao no commit `6dfca42`, coberto por testes unitarios.
 
 Deploy confirmado em producao no commit `1efb5d3`.
 
