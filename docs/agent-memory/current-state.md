@@ -11,8 +11,8 @@ Atualizado em: 2026-05-26
 
 ## Estado de producao conhecido
 
-- Ultimo deploy validado antes desta rodada: commit `8428698` (`fix: make scheduled tests timezone deterministic`).
-- Alteracoes desta rodada ainda precisam passar pelo checklist de release antes de serem consideradas em producao.
+- Ultimo deploy validado: commit `1efb5d3` (`fix: route complex financial questions deterministically`).
+- Health check em producao respondeu `{"ok":true,"sqlite":true}` e PM2 confirmou `Bot pronto para receber mensagens`.
 - Dashboard passou a mostrar `Saldo` economico e `Disponivel estimado` apos caixinha/reserva.
 - O bot estava online no PM2 e WhatsApp chegou em `Bot pronto para receber mensagens` apos o deploy.
 - Health check esperado: `/dashboard/health` retornando `ok`.
@@ -76,6 +76,8 @@ Atencao:
 ## Perguntas financeiras adversariais
 
 Status: implementado localmente e coberto por testes; confirmar deploy/PM2 antes de assumir que esta ativo em producao.
+
+Deploy confirmado em producao no commit `1efb5d3`.
 
 Depois de uma bateria real no WhatsApp, perguntas abertas que antes caiam em fallback generico ou categoria errada agora sao roteadas para calculo deterministico:
 

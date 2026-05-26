@@ -59,6 +59,13 @@ Ja houve divergencia entre horario exibido no WhatsApp e Google Calendar. Ao mex
 - Padrao: `GOOGLE_SHEETS_READ_CACHE_TTL_MS=20000`; usar `0` em scripts/testes que precisam enxergar alteracoes imediatamente.
 - Escritas invalidam o cache por seguranca.
 - Ainda vale monitorar quota se usuarios fizerem muitas perguntas analiticas em paralelo; o cache reduz burst, mas nao substitui read-model por usuario em todos os fluxos.
+- Baterias reais muito rapidas pelo WhatsApp ainda podem acumular leituras e gerar `Quota exceeded`; preferir testes espaçados ou scripts que validem intents sem martelar Sheets.
+
+## Prompt injection em perguntas financeiras
+
+- Prompt injection basico pedindo acesso a outra planilha foi rejeitado como `desconhecido` em teste real.
+- Ainda existe risco de uma mensagem maliciosa que contenha uma pergunta financeira legitima, como `qual o saldo de agosto`, ser roteada para calculo do proprio usuario em vez de ser bloqueada como tentativa de extrair informacao interna.
+- Proximo endurecimento recomendado: filtro local para termos como `sheet id`, `user id`, `tenant id`, `identificador interno`, `planilha de outro cliente` e pedidos de bypass/admin antes da classificacao financeira.
 
 ## WhatsApp Web pode travar ao iniciar
 
