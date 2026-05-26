@@ -1751,10 +1751,87 @@ async function handleAccountLifecycleCommands(msg, user) {
     return false;
 }
 
-async function handleAdminCommands(msg, senderId, activeUser) {
+const ADMIN_CONFIRMATION_TTL_SECONDS = 5 * 60;
+const ADMIN_CONFIRMATION_ACTION = 'awaiting_admin_command_confirmation';
+const ADMIN_CONFIRMATION_REPLY = 'confirmar admin';
+const pendingAdminConfirmations = new Map();
+
+function getAdminConfirmationKey(senderId) {
+    return `admin-confirmation:${senderId}`;
+}
+
+function setPendingAdminConfirmation(senderId, data) {
+    pendingAdminConfirmations.set(getAdminConfirmationKey(senderId), {
+        ...data,
+        expiresAt: Date.now() + ADMIN_CONFIRMATION_TTL_SECONDS * 1000
+    });
+}
+
+function getPendingAdminConfirmation(senderId) {
+    const key = getAdminConfirmationKey(senderId);
+    const pending = pendingAdminConfirmations.get(key);
+    if (!pending) return null;
+    if (pending.expiresAt && pending.expiresAt <= Date.now()) {
+        pendingAdminConfirmations.delete(key);
+        return null;
+    }
+    return pending;
+}
+
+function clearPendingAdminConfirmation(senderId) {
+    pendingAdminConfirmations.delete(getAdminConfirmationKey(senderId));
+}
+
+function isAdminConfirmationReply(text) {
+    const body = normalizeText(String(text || '').trim());
+    return body === ADMIN_CONFIRMATION_REPLY || body === 'confirmo admin';
+}
+
+function summarizeAdminCommandForConfirmation(rawBody, body) {
+    const normalizedBody = body || normalizeText(rawBody);
+    const normalizedRules = [
+        { pattern: /^admin\s+(?:convidar|convite)\s+(.+)$/, action: 'enviar convite de pré-onboarding', targetIndex: 1, risk: 'mensagem enviada ao usuário' },
+        { pattern: /^admin\s+compartilhar\s+planilha\s+(\S+)\s+(\S+)$/, action: 'compartilhar planilha familiar', targetIndex: 0, risk: 'altera acesso a dados financeiros e Drive' },
+        { pattern: /^admin\s+remover\s+compartilhamento\s+(\S+)$/, action: 'remover compartilhamento de planilha', targetIndex: 1, risk: 'altera acesso familiar e Drive' },
+        { pattern: /^admin\s+aprovar\s+(.+)$/, action: 'aprovar usuário', targetIndex: 1, risk: 'libera o fluxo de conexão Google' },
+        { pattern: /^admin\s+(negar|rejeitar|recusar)\s+(.+)$/, action: 'negar/bloquear usuário', targetIndex: 2, risk: 'bloqueia o acesso do usuário' },
+        { pattern: /^admin\s+resetar onboarding\s+(.+)$/, action: 'resetar onboarding', targetIndex: 1, risk: 'reinicia a experiência de cadastro' },
+        { pattern: /^admin\s+mensagem\s+(\S+)\s+([\s\S]+)$/i, action: 'enviar mensagem manual', targetIndex: 1, risk: 'envia comunicação direta ao usuário', raw: true },
+        { pattern: /^admin\s+(ativar|inativar|bloquear|deletar)\s+(.+)$/, action: 'alterar status de usuário', targetIndex: 2, risk: 'altera permissão de acesso' }
+    ];
+
+    for (const rule of normalizedRules) {
+        const source = rule.raw ? String(rawBody || '').trim() : normalizedBody;
+        const match = source.match(rule.pattern);
+        if (!match) continue;
+        const target = rule.targetIndex === 0
+            ? `${match[1] || '-'} -> ${match[2] || '-'}`
+            : match[rule.targetIndex] || '-';
+        return {
+            required: true,
+            action: rule.action,
+            target: String(target).trim(),
+            risk: rule.risk
+        };
+    }
+
+    if (normalizedBody === 'admin expirar pendentes') {
+        return {
+            required: true,
+            action: 'expirar usuários pendentes',
+            target: 'todos os pendentes antigos',
+            risk: 'altera status em lote'
+        };
+    }
+
+    return { required: false };
+}
+
+async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
     const rawBody = String(msg.body || '').trim();
     const body = normalizeText(rawBody);
-    if (!body.startsWith('admin')) return false;
+    const isConfirmationReply = isAdminConfirmationReply(body);
+    if (!body.startsWith('admin') && !isConfirmationReply) return false;
 
     const adminContext = {
         sender_id: senderId,
@@ -1766,6 +1843,48 @@ async function handleAdminCommands(msg, senderId, activeUser) {
         logger.warn(`[admin] acesso_negado command="${sanitizeLogText(body)}" context=${JSON.stringify(adminContext)}`);
         await msg.reply('Comando restrito a administradores.');
         return true;
+    }
+
+    if (isConfirmationReply) {
+        const pending = getPendingAdminConfirmation(senderId);
+        if (!pending || pending.action !== ADMIN_CONFIRMATION_ACTION || !pending.rawCommand) {
+            await msg.reply('Nenhum comando admin está aguardando confirmação.');
+            return true;
+        }
+        clearPendingAdminConfirmation(senderId);
+        logger.info(`[admin] confirmacao_recebida context=${JSON.stringify({
+            ...adminContext,
+            action: pending.summary?.action || '',
+            target: pending.summary?.target || ''
+        })}`);
+        return handleAdminCommands({ ...msg, body: pending.rawCommand }, senderId, activeUser, { ...options, skipConfirmation: true });
+    }
+
+    if (!options.skipConfirmation) {
+        const confirmation = summarizeAdminCommandForConfirmation(rawBody, body);
+        if (confirmation.required) {
+            setPendingAdminConfirmation(senderId, {
+                action: ADMIN_CONFIRMATION_ACTION,
+                rawCommand: rawBody,
+                normalizedCommand: body,
+                requestedAt: new Date().toISOString(),
+                summary: confirmation
+            });
+            logger.warn(`[admin] confirmacao_pendente context=${JSON.stringify({
+                ...adminContext,
+                action: confirmation.action,
+                target: confirmation.target,
+                risk: confirmation.risk
+            })}`);
+            await msg.reply(
+                `Confirmação necessária para ${confirmation.action}.\n` +
+                `Alvo: ${confirmation.target}\n` +
+                `Risco: ${confirmation.risk}\n\n` +
+                `Para executar, responda exatamente: ${ADMIN_CONFIRMATION_REPLY}\n` +
+                'Se não quiser executar, ignore esta mensagem. A confirmação expira em 5 minutos.'
+            );
+            return true;
+        }
     }
 
     if (body === 'admin ajuda') {
@@ -1787,7 +1906,8 @@ async function handleAdminCommands(msg, senderId, activeUser) {
             '- admin expirar pendentes\n' +
             '- admin resetar onboarding <telefone>\n' +
             '- admin mensagem <telefone> <texto>\n' +
-            '- admin stats'
+            '- admin stats\n\n' +
+            'Comandos que aprovam, bloqueiam, convidam, enviam mensagem ou alteram compartilhamento exigem confirmação com: confirmar admin'
         );
         return true;
     }
@@ -2204,7 +2324,7 @@ async function handleAdminCommands(msg, senderId, activeUser) {
 
 async function handleAdminCommandBeforeAccess(msg, senderId, access) {
     const body = normalizeText(String(msg.body || '').trim());
-    if (!body.startsWith('admin')) return false;
+    if (!body.startsWith('admin') && !isAdminConfirmationReply(body)) return false;
 
     // Admin precisa conseguir liberar/diagnosticar usuários mesmo se o próprio
     // identificador @lid estiver preso no gate de consentimento/onboarding.
@@ -3723,6 +3843,11 @@ module.exports = {
         isReserveDisableCommand,
         sanitizeLogText,
         detectSecuritySensitiveRequest,
+        summarizeAdminCommandForConfirmation,
+        isAdminConfirmationReply,
+        getAdminConfirmationKey,
+        getPendingAdminConfirmation,
+        clearPendingAdminConfirmation,
         extractFullNameSettingsCommand,
         markFinancialReadModelDirty,
         saveImportedTransactions,

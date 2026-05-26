@@ -14,6 +14,7 @@ Use this before deploying `main` to the EC2 PM2 process.
 - [ ] `DASHBOARD_TOKEN_SECRET` is configured before deploying dashboard changes.
 - [ ] `DASHBOARD_ADMIN_ALL_USERS_ENABLED` is unset/false for beta or production unless a temporary support/test mode was explicitly approved.
 - [ ] Dashboard admin cross-user scopes are rejected by default (`user=all` or another user returns `403`).
+- [ ] Risky admin commands still require a second WhatsApp message `confirmar admin` and log `confirmacao_pendente`/`confirmacao_recebida`.
 - [ ] If this release moves toward real multiuser scale, ADR-002 and ADR-003 have been reviewed; admin access to all users' transaction-level financial data remains removed or replaced with consented/audited support mode.
 - [ ] If cron/payment reminders changed, a real validation marker was created and cleaned up (`TESTE_APAGAR Cron` or equivalent).
 - [ ] Rollback command is ready before restart.

@@ -11,14 +11,17 @@ Admin commands are handled in `src/handlers/messageHandler.js` by `handleAdminCo
 | `admin stats` | Show user counts by status. | Low | `[admin] stats` | No |
 | `admin status <telefone>` | Inspect one user's lifecycle/profile/settings status. | Medium: exposes operational metadata. | `[admin] status` | No |
 | `admin log <telefone>` | Show recent consent evidence summary. | Medium: audit metadata exposure. | `[admin] log` | No |
-| `admin aprovar <telefone>` | Move a consented user to `APPROVED_AWAITING_GOOGLE`. | High: starts the Google connection gate for a user. | `[admin] aprovar` | Consider two-step confirmation before broad rollout |
-| `admin expirar pendentes` | Expire stale `PENDING` users. | Medium: lifecycle-changing, but limited to pending users. | `[admin] expirar_pendentes` | No, safe enough for beta |
-| `admin resetar onboarding <telefone>` | Clear onboarding completion and state. | Medium: user experience disruption. | `[admin] resetar_onboarding` | No for beta; reconsider at scale |
-| `admin mensagem <telefone> <texto>` | Send manual operational message to a user. | Medium/High: user-facing communication. | `[admin] mensagem` | Not required now, but should be used carefully |
-| `admin ativar <telefone>` | Set user lifecycle to `ACTIVE`. | High: grants access. | `[admin] alterar_status` | Consider two-step confirmation before broad rollout |
-| `admin inativar <telefone>` | Set user lifecycle to `INACTIVE`. | High: blocks access. | `[admin] alterar_status` | Consider two-step confirmation before broad rollout |
-| `admin bloquear <telefone>` | Set user lifecycle to `BLOCKED`. | High: blocks for abuse/spam. | `[admin] alterar_status` | Consider two-step confirmation before broad rollout |
-| `admin deletar <telefone>` | Soft-delete a user (`DELETED`). | High: lifecycle/destructive semantics, historical data retained. | `[admin] alterar_status` | Recommended before non-beta users |
+| `admin aprovar <telefone>` | Move a consented user to `APPROVED_AWAITING_GOOGLE`. | High: starts the Google connection gate for a user. | `[admin] confirmacao_pendente`, `[admin] confirmacao_recebida`, `[admin] aprovar` | Yes |
+| `admin expirar pendentes` | Expire stale `PENDING` users. | Medium: lifecycle-changing, but limited to pending users. | `[admin] confirmacao_pendente`, `[admin] confirmacao_recebida`, `[admin] expirar_pendentes` | Yes |
+| `admin resetar onboarding <telefone>` | Clear onboarding completion and state. | Medium: user experience disruption. | `[admin] confirmacao_pendente`, `[admin] confirmacao_recebida`, `[admin] resetar_onboarding` | Yes |
+| `admin mensagem <telefone> <texto>` | Send manual operational message to a user. | Medium/High: user-facing communication. | `[admin] confirmacao_pendente`, `[admin] confirmacao_recebida`, `[admin] mensagem` | Yes |
+| `admin ativar <telefone>` | Set user lifecycle to `ACTIVE`. | High: grants access. | `[admin] confirmacao_pendente`, `[admin] confirmacao_recebida`, `[admin] alterar_status` | Yes |
+| `admin inativar <telefone>` | Set user lifecycle to `INACTIVE`. | High: blocks access. | `[admin] confirmacao_pendente`, `[admin] confirmacao_recebida`, `[admin] alterar_status` | Yes |
+| `admin bloquear <telefone>` | Set user lifecycle to `BLOCKED`. | High: blocks for abuse/spam. | `[admin] confirmacao_pendente`, `[admin] confirmacao_recebida`, `[admin] alterar_status` | Yes |
+| `admin deletar <telefone>` | Soft-delete a user (`DELETED`). | High: lifecycle/destructive semantics, historical data retained. | `[admin] confirmacao_pendente`, `[admin] confirmacao_recebida`, `[admin] alterar_status` | Yes |
+| `admin convidar <telefone>` | Send pre-onboarding invitation to a phone number. | Medium/High: initiates user-facing communication. | `[admin] confirmacao_pendente`, `[admin] confirmacao_recebida`, `[admin] convidar` | Yes |
+| `admin compartilhar planilha <dono> <membro>` | Link two active users to a shared financial spreadsheet and Drive permission. | High: changes financial data location and Drive access. | `[admin] confirmacao_pendente`, `[admin] confirmacao_recebida`, `[admin] compartilhar_planilha` | Yes |
+| `admin remover compartilhamento <membro>` | Remove shared spreadsheet membership and revoke Drive permission when possible. | High: changes family financial access and Drive permission. | `[admin] confirmacao_pendente`, `[admin] confirmacao_recebida`, `[admin] remover_compartilhamento` | Yes |
 
 ## Current Strengths
 
@@ -26,20 +29,20 @@ Admin commands are handled in `src/handlers/messageHandler.js` by `handleAdminCo
 - Lifecycle changes use soft status changes instead of physical deletion.
 - Logs include actor context (`sender_id`, `actor_user_id`, `actor_name`) and target context where relevant.
 - Manual messages log `message_length`, not message content.
+- Risky admin commands now require a second WhatsApp message: `confirmar admin`.
+- Pending confirmations live only in process memory and expire after 5 minutes; they are not persisted to `state_store.json`.
 
 ## Current Gaps
 
-- High-risk lifecycle commands execute immediately after one message.
 - Admin responses include WhatsApp IDs in chat; this is acceptable for the current admin-only beta, but should be reviewed if admin group size grows.
 - There is no immutable AdminActionLog sheet yet; PM2 logs are the current audit trail.
 
 ## Recommendation
 
-Before adding many users or multiple admins, add a confirmation state for high-risk commands:
+Before adding many users or multiple admins, consider replacing PM2-only logs with an append-only audit store:
 
 ```text
-admin deletar 5521...
-Bot: Confirme com: CONFIRMAR DELETAR 5521...
+AdminActionLog: actor, action, target, timestamp, result, non-sensitive metadata
 ```
 
-Also consider an append-only `AdminActionLog` sheet with command, actor, target, timestamp, result, and non-sensitive metadata.
+Keep confirmation prompts concise and avoid echoing secrets or financial content.

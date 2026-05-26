@@ -238,30 +238,122 @@ test('messageHandler lets admin commands bypass access gate for admin LID', asyn
 });
 
 test('messageHandler admin invite reports WhatsApp send failures without throwing', async () => {
-    const { handleAdminCommandBeforeAccess } = messageHandler.__test__;
+    const { handleAdminCommandBeforeAccess, clearPendingAdminConfirmation } = messageHandler.__test__;
     const previousAdminIds = process.env.ADMIN_IDS;
     const replies = [];
+    const senderId = '151058345148646@lid';
 
     try {
         process.env.ADMIN_IDS = '5521970112407@c.us';
-        const handled = await handleAdminCommandBeforeAccess(
-            {
-                body: 'admin convidar 5521985969034',
-                reply: async (text) => replies.push(text),
-                client: {
-                    sendMessage: async () => {
-                        throw new Error('No LID for user');
-                    }
+        clearPendingAdminConfirmation(senderId);
+        const commandMsg = {
+            body: 'admin convidar 5521985969034',
+            reply: async (text) => replies.push(text),
+            client: {
+                sendMessage: async () => {
+                    throw new Error('No LID for user');
                 }
+            }
+        };
+        const handled = await handleAdminCommandBeforeAccess(
+            commandMsg,
+            senderId,
+            { allowed: false, user: { display_name: 'Daniel', status: userService.USER_STATUS.PENDING_APPROVAL } }
+        );
+        const confirmed = await handleAdminCommandBeforeAccess(
+            {
+                ...commandMsg,
+                body: 'confirmar admin',
+                reply: async (text) => replies.push(text),
             },
-            '151058345148646@lid',
+            senderId,
             { allowed: false, user: { display_name: 'Daniel', status: userService.USER_STATUS.PENDING_APPROVAL } }
         );
 
         assert.strictEqual(handled, true);
-        assert.match(replies[0], /Não consegui enviar o convite/i);
-        assert.match(replies[0], /5521985969034@c\.us/);
+        assert.strictEqual(confirmed, true);
+        assert.match(replies[0], /Confirmação necessária/i);
+        assert.match(replies[1], /Não consegui enviar o convite/i);
+        assert.match(replies[1], /5521985969034@c\.us/);
     } finally {
+        clearPendingAdminConfirmation(senderId);
+        process.env.ADMIN_IDS = previousAdminIds;
+    }
+});
+
+test('messageHandler admin high-risk commands require confirmation before execution', async () => {
+    const {
+        handleAdminCommandBeforeAccess,
+        getPendingAdminConfirmation,
+        clearPendingAdminConfirmation,
+        summarizeAdminCommandForConfirmation,
+        isAdminConfirmationReply
+    } = messageHandler.__test__;
+    const previousAdminIds = process.env.ADMIN_IDS;
+    const senderId = '151058345148646@lid';
+    const replies = [];
+    let sentMessages = 0;
+
+    try {
+        process.env.ADMIN_IDS = '5521970112407@c.us';
+        clearPendingAdminConfirmation(senderId);
+
+        assert.strictEqual(summarizeAdminCommandForConfirmation('admin stats').required, false);
+        assert.strictEqual(summarizeAdminCommandForConfirmation('admin aprovar 5521985969034').required, true);
+        assert.strictEqual(summarizeAdminCommandForConfirmation('admin compartilhar planilha 5521970112407 5521985969034').required, true);
+        assert.strictEqual(isAdminConfirmationReply('confirmar admin'), true);
+
+        const handled = await handleAdminCommandBeforeAccess(
+            {
+                body: 'admin mensagem 5521985969034 Olá, teste beta',
+                reply: async (text) => replies.push(text),
+                client: {
+                    sendMessage: async () => {
+                        sentMessages += 1;
+                    }
+                }
+            },
+            senderId,
+            { allowed: false, user: { display_name: 'Daniel', status: userService.USER_STATUS.PENDING_APPROVAL } }
+        );
+
+        const pending = getPendingAdminConfirmation(senderId);
+
+        assert.strictEqual(handled, true);
+        assert.strictEqual(sentMessages, 0);
+        assert.match(replies[0], /Confirmação necessária/);
+        assert.match(replies[0], /confirmar admin/);
+        assert.strictEqual(pending.action, 'awaiting_admin_command_confirmation');
+        assert.strictEqual(pending.rawCommand, 'admin mensagem 5521985969034 Olá, teste beta');
+    } finally {
+        clearPendingAdminConfirmation(senderId);
+        process.env.ADMIN_IDS = previousAdminIds;
+    }
+});
+
+test('messageHandler admin confirmation without pending command is handled safely', async () => {
+    const { handleAdminCommandBeforeAccess, clearPendingAdminConfirmation } = messageHandler.__test__;
+    const previousAdminIds = process.env.ADMIN_IDS;
+    const senderId = '151058345148646@lid';
+    const replies = [];
+
+    try {
+        process.env.ADMIN_IDS = '5521970112407@c.us';
+        clearPendingAdminConfirmation(senderId);
+
+        const handled = await handleAdminCommandBeforeAccess(
+            {
+                body: 'confirmar admin',
+                reply: async (text) => replies.push(text)
+            },
+            senderId,
+            { allowed: false, user: { display_name: 'Daniel', status: userService.USER_STATUS.PENDING_APPROVAL } }
+        );
+
+        assert.strictEqual(handled, true);
+        assert.match(replies[0], /Nenhum comando admin/);
+    } finally {
+        clearPendingAdminConfirmation(senderId);
         process.env.ADMIN_IDS = previousAdminIds;
     }
 });
