@@ -1024,6 +1024,61 @@ test('google.requireUserId protects calendar writes', (t) => {
     assert.strictEqual(requireUserId(' user-1 ', 'createCalendarEvent'), 'user-1');
 });
 
+test('google.readDataFromSheet caches repeated reads and invalidates after writes', async () => {
+    const previousTtl = process.env.GOOGLE_SHEETS_READ_CACHE_TTL_MS;
+    process.env.GOOGLE_SHEETS_READ_CACHE_TTL_MS = '60000';
+    googleService.__test__.clearSheetsReadCache();
+
+    let getCalls = 0;
+    let updateCalls = 0;
+    const fakeSheets = {
+        spreadsheets: {
+            values: {
+                get: async () => {
+                    getCalls += 1;
+                    return { data: { values: [['Data', 'Descrição'], ['10/05/2026', `mercado-${getCalls}`]] } };
+                },
+                update: async () => {
+                    updateCalls += 1;
+                    return {};
+                },
+                append: async () => ({})
+            },
+            batchUpdate: async () => ({})
+        }
+    };
+
+    googleService.__test__.setGoogleClientsForTest({
+        sheetsClient: fakeSheets,
+        tasksClient: {},
+        calendarClient: {},
+        oauthClient: {}
+    });
+
+    try {
+        const first = await googleService.readDataFromSheet('Saídas!A:J', { forceCentral: true });
+        first[1][1] = 'mutado pelo chamador';
+        const second = await googleService.readDataFromSheet('Saídas!A:J', { forceCentral: true });
+
+        assert.strictEqual(getCalls, 1);
+        assert.strictEqual(second[1][1], 'mercado-1');
+
+        await googleService.updateRowInSheet('Saídas!A2:J2', ['10/05/2026', 'mercado atualizado'], { forceCentral: true });
+        const third = await googleService.readDataFromSheet('Saídas!A:J', { forceCentral: true });
+
+        assert.strictEqual(updateCalls, 1);
+        assert.strictEqual(getCalls, 2);
+        assert.strictEqual(third[1][1], 'mercado-2');
+    } finally {
+        googleService.__test__.clearSheetsReadCache();
+        if (previousTtl === undefined) {
+            delete process.env.GOOGLE_SHEETS_READ_CACHE_TTL_MS;
+        } else {
+            process.env.GOOGLE_SHEETS_READ_CACHE_TTL_MS = previousTtl;
+        }
+    }
+});
+
 test('google share helpers create and revoke Drive permissions by email', async () => {
     const created = [];
     const deleted = [];

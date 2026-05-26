@@ -1,18 +1,20 @@
 # Problemas conhecidos e armadilhas
 
-Atualizado em: 2026-05-25
+Atualizado em: 2026-05-26
 
 ## Privacidade/admin
 
-- O dashboard admin com acesso a todos os usuarios e temporario para beta/testes.
-- Antes de beta amplo, remover acesso admin amplo a dados financeiros individuais.
+- O dashboard admin com acesso a todos os usuarios foi mitigado por padrao no codigo.
+- `DASHBOARD_ADMIN_ALL_USERS_ENABLED` deve ficar ausente ou `false` em beta/producao.
+- Se `DASHBOARD_ADMIN_ALL_USERS_ENABLED=true` for usado, tratar como modo suporte/teste controlado, temporario e aprovado explicitamente.
+- Antes de beta amplo, manter removido o acesso admin amplo a dados financeiros individuais.
 - Sempre consultar `docs/decisions/ADR-002-admin-financial-data-access.md` em mudancas de admin, dashboard, familia ou launch.
 
 ## `Contas` como memoria de categorizacao
 
 Status:
 
-- Resolvido no codigo local em 2026-05-25, pendente de deploy se ainda nao houver commit/deploy posterior.
+- Implementado e coberto por testes; confirmar deploy/PM2 antes de assumir que esta ativo em producao.
 
 Comportamento novo:
 
@@ -49,6 +51,14 @@ Ja houve divergencia entre horario exibido no WhatsApp e Google Calendar. Ao mex
 - Testar com eventos reais de hoje/amanha.
 - Conferir timezone America/Sao_Paulo.
 - Verificar tanto resumo matinal quanto noturno.
+- Em 2026-05-26 foi feita validacao real com evento e conta `TESTE_APAGAR Cron`; agenda e vencimento apareceram na mensagem simulada e a limpeza terminou com `remainingRows=0`, `remainingEvents=0`.
+
+## Quota do Google Sheets
+
+- Leituras repetidas de planilha agora usam cache curto em memoria via `readDataFromSheet`.
+- Padrao: `GOOGLE_SHEETS_READ_CACHE_TTL_MS=20000`; usar `0` em scripts/testes que precisam enxergar alteracoes imediatamente.
+- Escritas invalidam o cache por seguranca.
+- Ainda vale monitorar quota se usuarios fizerem muitas perguntas analiticas em paralelo; o cache reduz burst, mas nao substitui read-model por usuario em todos os fluxos.
 
 ## WhatsApp Web pode travar ao iniciar
 

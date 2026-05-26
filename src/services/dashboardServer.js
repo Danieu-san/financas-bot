@@ -500,11 +500,44 @@ function dashboardHtml() {
 }
 
 function getDashboardDataUserId(payload, reqUrl) {
-    if (!payload?.adm) return payload.uid;
     const requested = String(reqUrl.searchParams.get('user') || '').trim();
-    if (!requested) return payload.uid;
-    if (requested === 'all') return ALL_USERS_ID;
-    return requested;
+    if (!requested || requested === payload.uid) return payload.uid;
+    if (payload?.adm && isAdminAllUsersDashboardEnabled()) {
+        if (requested === 'all') return ALL_USERS_ID;
+        return requested;
+    }
+    return null;
+}
+
+function isAdminAllUsersDashboardEnabled() {
+    return ['true', '1', 'sim', 's'].includes(String(process.env.DASHBOARD_ADMIN_ALL_USERS_ENABLED || '').trim().toLowerCase());
+}
+
+function sendForbiddenDashboardScope(res) {
+    sendJson(res, 403, { error: 'Este dashboard só permite acessar os dados do próprio usuário.' });
+}
+
+function dashboardAuthFailedForScope(dataUserId, res) {
+    if (dataUserId) return false;
+    metrics.increment('dashboard.api.scope_forbidden');
+    sendForbiddenDashboardScope(res);
+    return true;
+}
+
+function buildDashboardUserOptions(payload, users = []) {
+    if (payload?.adm && isAdminAllUsersDashboardEnabled()) {
+        const activeUsers = users.filter(isDashboardSelectableUser);
+        return [
+            { value: 'all', label: 'Todos os usuários' },
+            ...activeUsers.map(formatDashboardUserOption)
+        ];
+    }
+
+    const ownUser = users.find(user => user.user_id === payload.uid);
+    return [{
+        value: payload.uid,
+        label: ownUser ? formatDashboardUserOption(ownUser).label : 'Meu usuário'
+    }];
 }
 
 function formatDashboardUserOption(user) {
@@ -535,6 +568,7 @@ async function handleApiSummary(reqUrl, res) {
         const year = reqUrl.searchParams.get('year');
 
         const dataUserId = getDashboardDataUserId(payload, reqUrl);
+        if (dashboardAuthFailedForScope(dataUserId, res)) return;
         const personal = dataUserId === payload.uid
             ? await getUserSheetDashboardData(dataUserId, { month, year })
             : null;
@@ -565,6 +599,7 @@ async function withAuth(reqUrl, res, cb) {
         }
 
         const dataUserId = getDashboardDataUserId(payload, reqUrl);
+        if (dashboardAuthFailedForScope(dataUserId, res)) return;
         const personal = dataUserId === payload.uid
             ? await getUserSheetDashboardData(dataUserId, {
                 month: reqUrl.searchParams.get('month'),
@@ -657,14 +692,10 @@ function startDashboardServer() {
                     return;
                 }
                 const users = await getAllUsers();
-                const activeUsers = users.filter(isDashboardSelectableUser);
                 sendJson(res, 200, {
                     isAdmin: true,
                     defaultUser: payload.uid,
-                    users: [
-                        { value: 'all', label: 'Todos os usuários' },
-                        ...activeUsers.map(formatDashboardUserOption)
-                    ]
+                    users: buildDashboardUserOptions(payload, users)
                 });
             });
             return;

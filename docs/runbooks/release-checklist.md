@@ -12,7 +12,10 @@ Use this before deploying `main` to the EC2 PM2 process.
 - [ ] Multiuser OAuth releases have `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_STATE_SECRET`, and `OAUTH_TOKEN_ENCRYPTION_KEY` configured.
 - [ ] `AUTH_GATE_REPLY_COOLDOWN_MS` is configured or intentionally left at the default to prevent bot-to-bot consent loops.
 - [ ] `DASHBOARD_TOKEN_SECRET` is configured before deploying dashboard changes.
-- [ ] If this release moves toward real multiuser scale, ADR-002 and ADR-003 have been reviewed; admin access to all users' transaction-level financial data has been removed or replaced with consented/audited support mode.
+- [ ] `DASHBOARD_ADMIN_ALL_USERS_ENABLED` is unset/false for beta or production unless a temporary support/test mode was explicitly approved.
+- [ ] Dashboard admin cross-user scopes are rejected by default (`user=all` or another user returns `403`).
+- [ ] If this release moves toward real multiuser scale, ADR-002 and ADR-003 have been reviewed; admin access to all users' transaction-level financial data remains removed or replaced with consented/audited support mode.
+- [ ] If cron/payment reminders changed, a real validation marker was created and cleaned up (`TESTE_APAGAR Cron` or equivalent).
 - [ ] Rollback command is ready before restart.
 
 ## EC2 Deploy
@@ -71,6 +74,7 @@ Expected:
 
 - Health returns `{ "ok": true, "sqlite": true }`.
 - Invalid token returns `401` with `Token inválido ou expirado.`.
+- Admin token with `user=all` returns `403` unless `DASHBOARD_ADMIN_ALL_USERS_ENABLED=true` was deliberately enabled for a controlled support/test session.
 - Browser-opened dashboard loads cards, charts/sections, alerts, debts, goals, and recent transactions.
 
 ## Rollback
@@ -95,6 +99,7 @@ Do not use `git reset --hard` unless you explicitly decide to discard server-loc
 - Dashboard health fails.
 - `dashboard` command says `DASHBOARD_TOKEN_SECRET` is missing.
 - A production/multiuser release still exposes admin `Todos os usuários` transaction-level financial data. See `docs/decisions/ADR-002-admin-financial-data-access.md`.
+- `DASHBOARD_ADMIN_ALL_USERS_ENABLED=true` is present without an explicit, time-boxed support/test reason.
 - `ADMIN_IDS` includes a normal/test user such as Thaís.
 - Google auth fails repeatedly.
 - Read-model sync fails repeatedly.

@@ -14,6 +14,8 @@ let oAuth2Client;
 let authInFlight = null;
 const repairedUserSpreadsheetIds = new Set();
 const sheetContext = new AsyncLocalStorage();
+const sheetsReadCache = new Map();
+const sheetsReadInFlight = new Map();
 
 const USER_SHEET_NAMES = new Set([
     'Dashboard',
@@ -145,6 +147,57 @@ function isGoogleAuthError(error) {
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function cloneSheetValues(values = []) {
+    return Array.isArray(values)
+        ? values.map(row => (Array.isArray(row) ? [...row] : row))
+        : [];
+}
+
+function getSheetsReadCacheTtlMs() {
+    return Math.max(0, Number.parseInt(process.env.GOOGLE_SHEETS_READ_CACHE_TTL_MS || '20000', 10));
+}
+
+function buildSheetsReadCacheKey(target = {}, mappedRange = '') {
+    return [
+        target.userScoped ? 'user' : 'central',
+        target.spreadsheetId || '',
+        target.ownerUserId || target.userId || '',
+        mappedRange
+    ].join(':');
+}
+
+function clearSheetsReadCache() {
+    sheetsReadCache.clear();
+    sheetsReadInFlight.clear();
+}
+
+function invalidateSheetsReadCache(target = null) {
+    if (!target?.spreadsheetId) {
+        clearSheetsReadCache();
+        return;
+    }
+
+    const spreadsheetId = String(target.spreadsheetId || '');
+    for (const key of Array.from(sheetsReadCache.keys())) {
+        if (key.includes(`:${spreadsheetId}:`) || key.includes(`:${spreadsheetId}`)) {
+            sheetsReadCache.delete(key);
+        }
+    }
+    for (const key of Array.from(sheetsReadInFlight.keys())) {
+        if (key.includes(`:${spreadsheetId}:`) || key.includes(`:${spreadsheetId}`)) {
+            sheetsReadInFlight.delete(key);
+        }
+    }
+}
+
+function setGoogleClientsForTest({ sheetsClient = sheets, tasksClient = tasks, calendarClient = calendar, oauthClient = oAuth2Client } = {}) {
+    sheets = sheetsClient;
+    tasks = tasksClient;
+    calendar = calendarClient;
+    oAuth2Client = oauthClient;
+    authInFlight = null;
 }
 
 function isGoogleRetriableError(error) {
@@ -644,6 +697,7 @@ async function appendRowToSheet(sheetName, row, options = {}) {
             insertDataOption: 'INSERT_ROWS',
             resource: { values: [mappedRow] },
         }));
+        invalidateSheetsReadCache(target);
     } catch (error) {
         console.error(`❌ Erro ao adicionar linha em ${sheetName}:`, error.message);
         throw new Error('Erro ao salvar na planilha.');
@@ -653,19 +707,49 @@ async function appendRowToSheet(sheetName, row, options = {}) {
 async function readDataFromSheet(range, options = {}) {
     const target = await resolveSpreadsheetTarget({ ...options, range });
     const mappedRange = target.userScoped ? mapRangeForUserSpreadsheet(range) : range;
-    try {
+    const cacheTtlMs = getSheetsReadCacheTtlMs();
+    const cacheKey = buildSheetsReadCacheKey(target, mappedRange);
+    const cached = sheetsReadCache.get(cacheKey);
+    if (cacheTtlMs > 0 && cached && (Date.now() - cached.storedAt) < cacheTtlMs) {
+        const cachedValues = cloneSheetValues(cached.values);
+        return target.userScoped
+            ? mapValuesFromUserSpreadsheetRange(range, cachedValues)
+            : cachedValues;
+    }
+    if (cacheTtlMs > 0 && sheetsReadInFlight.has(cacheKey)) {
+        const inFlightValues = cloneSheetValues(await sheetsReadInFlight.get(cacheKey));
+        return target.userScoped
+            ? mapValuesFromUserSpreadsheetRange(range, inFlightValues)
+            : inFlightValues;
+    }
+
+    const loadValues = async () => {
         const response = await runSheetsOperation(
             `readDataFromSheet(${range})`,
             target,
-            () => target.sheetsClient.spreadsheets.values.get({ spreadsheetId: target.spreadsheetId, range: mappedRange }),
-            { swallowOnError: true, fallbackValue: { data: { values: [] } } }
+            () => target.sheetsClient.spreadsheets.values.get({ spreadsheetId: target.spreadsheetId, range: mappedRange })
         );
+        const values = cloneSheetValues(response.data.values || []);
+        if (cacheTtlMs > 0) {
+            sheetsReadCache.set(cacheKey, { storedAt: Date.now(), values: cloneSheetValues(values) });
+        }
+        return values;
+    };
+
+    const readPromise = loadValues();
+    if (cacheTtlMs > 0) {
+        sheetsReadInFlight.set(cacheKey, readPromise);
+    }
+    try {
+        const values = await readPromise;
         return target.userScoped
-            ? mapValuesFromUserSpreadsheetRange(range, response.data.values || [])
-            : response.data.values || [];
+            ? mapValuesFromUserSpreadsheetRange(range, cloneSheetValues(values))
+            : cloneSheetValues(values);
     } catch (error) {
         console.error(`❌ Erro ao ler dados da planilha (${range}):`, error.message);
         return [];
+    } finally {
+        sheetsReadInFlight.delete(cacheKey);
     }
 }
 
@@ -679,6 +763,7 @@ async function updateRowInSheet(range, rowData, options = {}) {
             valueInputOption: 'USER_ENTERED',
             resource: { values: [rowData] },
         }));
+        invalidateSheetsReadCache(target);
     } catch (error) {
         console.error(`❌ Erro ao atualizar linha (${range}):`, error.message);
         throw new Error('Erro ao atualizar dados na planilha.');
@@ -695,6 +780,7 @@ async function batchUpdateRowsInSheet(data, options = {}) {
                 data
             }
         }));
+        invalidateSheetsReadCache(target);
     } catch (error) {
         console.error('❌ Erro em batchUpdateRowsInSheet:', error.message);
         throw new Error('Erro ao atualizar dados em lote na planilha.');
@@ -1443,6 +1529,7 @@ async function deleteRowsByIndices(sheetName, rowIndices, options = {}) {
             resource: { requests }
         }));
 
+        invalidateSheetsReadCache(target);
         return { success: true };
     } catch (error) {
         console.error(`❌ Erro ao deletar linhas em ${sheetName}:`, error.message);
@@ -1470,6 +1557,12 @@ module.exports = {
         isMissingUserSheetError,
         runWithUserSheetContext,
         hasUserSpreadsheetContext,
+        buildSheetsReadCacheKey,
+        clearSheetsReadCache,
+        cloneSheetValues,
+        getSheetsReadCacheTtlMs,
+        invalidateSheetsReadCache,
+        setGoogleClientsForTest,
         normalizeGoogleEmail,
         isValidGoogleEmail,
         findSpreadsheetPermissionByEmail

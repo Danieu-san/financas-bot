@@ -71,11 +71,16 @@ function installReadModelMock(calls) {
     };
 }
 
-async function startTestServer(calls) {
+async function startTestServer(calls, options = {}) {
     process.env.DASHBOARD_ENABLED = 'true';
     process.env.DASHBOARD_HOST = '127.0.0.1';
     process.env.DASHBOARD_PORT = '0';
     process.env.DASHBOARD_TOKEN_SECRET = 'dashboard-contract-secret';
+    if (options.adminAllUsersEnabled) {
+        process.env.DASHBOARD_ADMIN_ALL_USERS_ENABLED = 'true';
+    } else {
+        delete process.env.DASHBOARD_ADMIN_ALL_USERS_ENABLED;
+    }
     delete require.cache[dashboardAuthPath];
     installReadModelMock(calls);
 
@@ -144,7 +149,7 @@ test('dashboard API endpoints expose stable user-scoped contracts', async () => 
     }
 });
 
-test('dashboard admin token defaults to own user and can explicitly request all-users aggregate scope', async () => {
+test('dashboard admin token defaults to own user and rejects cross-user financial scopes by default', async () => {
     const calls = [];
     const { server, baseUrl } = await startTestServer(calls);
     const { generateDashboardToken } = require('../src/utils/dashboardAuth');
@@ -155,6 +160,27 @@ test('dashboard admin token defaults to own user and can explicitly request all-
         assert.strictEqual(kpis.response.status, 200);
         assert.strictEqual(calls.at(-1).userId, 'admin-user');
 
+        const callsAfterOwnDashboard = calls.length;
+
+        const aggregate = await fetchJson(`${baseUrl}/dashboard/api/kpis?token=${adminToken}&user=all&month=1&year=2026`);
+        assert.strictEqual(aggregate.response.status, 403);
+        assert.match(aggregate.json.error, /próprio usuário/);
+
+        const personal = await fetchJson(`${baseUrl}/dashboard/api/kpis?token=${adminToken}&user=user-dash-a&month=1&year=2026`);
+        assert.strictEqual(personal.response.status, 403);
+        assert.match(personal.json.error, /próprio usuário/);
+        assert.strictEqual(calls.length, callsAfterOwnDashboard);
+    } finally {
+        await new Promise(resolve => server.close(resolve));
+    }
+});
+
+test('dashboard admin all-users support mode requires explicit env flag', async () => {
+    const calls = [];
+    const { server, baseUrl } = await startTestServer(calls, { adminAllUsersEnabled: true });
+    const { generateDashboardToken } = require('../src/utils/dashboardAuth');
+    const adminToken = generateDashboardToken({ userId: 'admin-user', ttlSeconds: 600, isAdmin: true });
+    try {
         const aggregate = await fetchJson(`${baseUrl}/dashboard/api/kpis?token=${adminToken}&user=all&month=1&year=2026`);
         assert.strictEqual(aggregate.response.status, 200);
         assert.strictEqual(calls.at(-1).userId, '__ALL_USERS__');
@@ -163,6 +189,7 @@ test('dashboard admin token defaults to own user and can explicitly request all-
         assert.strictEqual(personal.response.status, 200);
         assert.strictEqual(calls.at(-1).userId, 'user-dash-a');
     } finally {
+        delete process.env.DASHBOARD_ADMIN_ALL_USERS_ENABLED;
         await new Promise(resolve => server.close(resolve));
     }
 });
@@ -197,8 +224,8 @@ test('dashboard admin user selector only lists active users', async () => {
         assert.strictEqual(result.response.status, 200);
         const values = result.json.users.map(user => user.value);
         assert.ok(values.includes('admin-user'));
-        assert.ok(values.includes('user-dash-a'));
-        assert.ok(values.includes('all'));
+        assert.ok(!values.includes('user-dash-a'));
+        assert.ok(!values.includes('all'));
         assert.ok(!values.includes('inactive-user'));
         assert.ok(!values.includes('deleted-user'));
     } finally {

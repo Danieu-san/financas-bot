@@ -1,6 +1,6 @@
 # Estado atual do FinancasBot
 
-Atualizado em: 2026-05-25
+Atualizado em: 2026-05-26
 
 ## Produto
 
@@ -11,7 +11,8 @@ Atualizado em: 2026-05-25
 
 ## Estado de producao conhecido
 
-- Ultimo deploy validado nesta memoria: commit `3d44fd3` (`fix: show reserve-adjusted dashboard cash`).
+- Ultimo deploy validado antes desta rodada: commit `8428698` (`fix: make scheduled tests timezone deterministic`).
+- Alteracoes desta rodada ainda precisam passar pelo checklist de release antes de serem consideradas em producao.
 - Dashboard passou a mostrar `Saldo` economico e `Disponivel estimado` apos caixinha/reserva.
 - O bot estava online no PM2 e WhatsApp chegou em `Bot pronto para receber mensagens` apos o deploy.
 - Health check esperado: `/dashboard/health` retornando `ok`.
@@ -22,7 +23,7 @@ Sempre revalidar EC2/PM2/logs antes de afirmar que producao esta saudavel.
 
 - Em beta atual, `ADMIN_IDS` deve conter apenas Daniel.
 - Thais deve ser tratada como usuario comum/teste, mesmo que existam cartoes/abas com nome dela.
-- Dashboard admin com `Todos os usuarios` e excecao temporaria de beta; nao liberar para multiusuario real sem remover acesso amplo a dados financeiros individuais.
+- Dashboard admin nao deve expor `Todos os usuarios` por padrao. Acesso cruzado a dados financeiros so pode existir com `DASHBOARD_ADMIN_ALL_USERS_ENABLED=true`, em modo suporte/teste controlado e com aprovacao explicita.
 - Consultar `docs/decisions/ADR-002-admin-financial-data-access.md` antes de qualquer mudanca em admin, dashboard, familia, permissoes ou launch.
 
 ## Funcionalidades importantes ja implementadas
@@ -34,8 +35,10 @@ Sempre revalidar EC2/PM2/logs antes de afirmar que producao esta saudavel.
 - Importacao diferencia conta corrente, cartao, transferencias internas, caixinha/reserva e rendimentos.
 - Familia/planilha compartilhada: lancamentos podem ir para a planilha dona do grupo com `user_id` do responsavel.
 - Dashboard com filtros de usuario/mes e API de resumo consolidada para reduzir quota de Google Sheets.
+- Leituras diretas do Google Sheets passam por cache curto em memoria (`GOOGLE_SHEETS_READ_CACHE_TTL_MS`, padrao 20s) com invalidacao apos escrita, para reduzir bursts de quota sem misturar dados entre planilhas.
 - Perguntas financeiras via read model/SQLite e fallback.
 - Cron jobs de resumo, agenda e vencimentos.
+- Validacao real de cron em 2026-05-26 confirmou agenda do Google Calendar e vencimentos de `Contas`; marcadores `TESTE_APAGAR Cron` foram removidos ao final (`remainingRows=0`, `remainingEvents=0`).
 
 ## Mudanca recente sobre caixinha/reserva
 
@@ -54,7 +57,7 @@ Exemplo real validado em maio/2026:
 
 ## Contas e classificacao recorrente
 
-Status: implementado localmente em 2026-05-25, pendente de deploy se ainda nao houver commit/deploy posterior.
+Status: implementado e coberto por testes; confirmar deploy/PM2 antes de assumir que esta ativo em producao.
 
 Comportamento:
 
