@@ -402,10 +402,22 @@ test('messageHandler.classifyPerguntaLocally covers complex analytical questions
     assert.strictEqual(openCards.intent, 'total_cartoes_em_aberto');
     assert.strictEqual(openCards.parameters.mes, 4);
 
+    const futureCards = classifyPerguntaLocally('quanto vou pagar de cartão nos próximos meses?');
+    assert.strictEqual(futureCards.intent, 'total_cartoes_em_aberto');
+    assert.strictEqual(futureCards.parameters.cartao, '');
+
     const namedOpenCards = classifyPerguntaLocally('quanto tem em aberto no nubank thais a partir de janeiro de 2026?');
     assert.strictEqual(namedOpenCards.intent, 'total_cartoes_em_aberto');
     assert.strictEqual(namedOpenCards.parameters.cartao, 'nubank thais');
     assert.strictEqual(namedOpenCards.parameters.mes, 0);
+
+    const dueThisMonth = classifyPerguntaLocally('quanto vence no cartão esse mês?');
+    assert.strictEqual(dueThisMonth.intent, 'total_fatura_cartao');
+    assert.strictEqual(dueThisMonth.parameters.cartao, '');
+
+    const paidWithCardThisMonth = classifyPerguntaLocally('quanto paguei no cartão esse mês?');
+    assert.strictEqual(paidWithCardThisMonth.intent, 'total_fatura_cartao');
+    assert.strictEqual(paidWithCardThisMonth.parameters.cartao, '');
 
     const installments = classifyPerguntaLocally('quais parcelamentos tenho ativos no cartão?');
     assert.strictEqual(installments.intent, 'resumo_parcelamentos_cartao');

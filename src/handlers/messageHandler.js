@@ -676,12 +676,20 @@ function extractComparisonCategoriesFromQuestion(text) {
 function extractCardFromQuestion(text) {
     const normalized = normalizeText(String(text || '').trim());
     const knownCards = ['nubank', 'itau', 'itaú', 'atacadao', 'atacadão', 'inter', 'santander', 'bradesco'];
+    const ignoredCardNames = new Set([
+        'cada', 'todo', 'todos', 'todas',
+        'esse', 'essa', 'este', 'esta', 'neste', 'nesta',
+        'mes', 'meses', 'proximo', 'proximos', 'proxima', 'proximas',
+        'proximo mes', 'proximos meses', 'proxima fatura', 'este mes', 'esse mes'
+    ]);
     const cardTailStopWords = new Set([
         'a', 'as', 'o', 'os', 'de', 'do', 'da', 'dos', 'das', 'cada', 'todo', 'todos', 'todas',
         'em', 'no', 'na', 'nos', 'nas', 'partir', 'quanto', 'qual', 'quais',
         'fatura', 'faturas', 'cartao', 'cartoes', 'cartão', 'cartões',
         'aberto', 'aberta', 'abertos', 'abertas', 'ativo', 'ativa', 'ativos', 'ativas',
         'parcela', 'parcelas', 'parcelamento', 'parcelamentos',
+        'esse', 'essa', 'este', 'esta', 'neste', 'nesta', 'mes', 'meses',
+        'proximo', 'proximos', 'proxima', 'proximas', 'futuro', 'futuros', 'futura', 'futuras',
         'janeiro', 'fevereiro', 'marco', 'março', 'abril', 'maio', 'junho',
         'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
     ]);
@@ -700,7 +708,10 @@ function extractCardFromQuestion(text) {
     }
 
     const explicit = normalized.match(/\b(?:cartao|cartão|fatura)\s+(?:do|da|de)?\s*([a-z0-9À-ÿ\s]+?)(?:\s+em\s+|\s+no\s+|\s+na\s+|\s+a\s+partir\s+|\?|$)/i);
-    if (explicit && explicit[1]) return cleanAnalyticalCategory(explicit[1]);
+    if (explicit && explicit[1]) {
+        const cleaned = cleanAnalyticalCategory(explicit[1]);
+        return ignoredCardNames.has(cleaned) ? '' : cleaned;
+    }
     return '';
 }
 
@@ -745,11 +756,11 @@ function inferAnalyticalQueryPlan(userQuestion) {
     ) {
         return { metric: 'paid_card_invoice_total', intent: 'total_pagamentos_fatura_mes', parameters: { mes, ano } };
     }
+    if ((text.includes('aberto') || text.includes('futuro') || text.includes('futuros') || text.includes('futura') || text.includes('futuras') || text.includes('proximo') || text.includes('proximos') || text.includes('proxima') || text.includes('proximas')) && (hasCardSignal || text.includes('fatura') || text.includes('parcela'))) {
+        return { metric: 'open_card_installments', intent: 'total_cartoes_em_aberto', parameters: { cartao: cardName, mes, ano } };
+    }
     if (text.includes('fatura') || (hasCardSignal && text.includes('quanto') && !text.includes('aberto'))) {
         return { metric: 'card_invoice_total', intent: 'total_fatura_cartao', parameters: { cartao: cardName, mes, ano } };
-    }
-    if ((text.includes('aberto') || text.includes('futuro') || text.includes('futuras')) && (hasCardSignal || text.includes('fatura') || text.includes('parcela'))) {
-        return { metric: 'open_card_installments', intent: 'total_cartoes_em_aberto', parameters: { cartao: cardName, mes, ano } };
     }
     if (text.includes('parcelamento') || (text.includes('parcelas') && (text.includes('ativas') || text.includes('ativos') || text.includes('quais')))) {
         return { metric: 'card_installment_summary', intent: 'resumo_parcelamentos_cartao', parameters: { cartao: cardName, mes, ano } };
