@@ -105,7 +105,7 @@ function buildDashboardAccessLink({ userId, ttlSeconds = DEFAULT_TTL_SECONDS, is
     if (!baseUrl) return null;
     const token = generateDashboardToken({ userId, ttlSeconds, isAdmin });
     return {
-        url: `${baseUrl}/dashboard?token=${encodeURIComponent(token)}`,
+        url: `${baseUrl}/dashboard#token=${encodeURIComponent(token)}`,
         ttlSeconds
     };
 }

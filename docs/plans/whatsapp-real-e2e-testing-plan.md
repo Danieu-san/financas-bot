@@ -169,7 +169,7 @@ Docs + runbook + migration to QA number
 **Acceptance criteria:**
 - [x] `npm run test:whatsapp:e2e` so roda com `WHATSAPP_E2E_ENABLED=true`.
 - [x] Teste valida pelo menos uma resposta textual real.
-- [x] Teste valida que `dashboard` retorna `/dashboard?token=`.
+- [x] Teste valida que `dashboard` retorna `/dashboard#token=`.
 
 **Verification:**
 - [x] Execucao sem opt-in falha antes de abrir navegador.

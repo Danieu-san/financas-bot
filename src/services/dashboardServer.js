@@ -321,8 +321,7 @@ function dashboardHtml() {
 
   <script>
     const monthNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-    const qs = new URLSearchParams(window.location.search);
-    const token = qs.get('token') || '';
+    const token = readDashboardToken();
     const userEl = document.getElementById('user');
     const monthEl = document.getElementById('month');
     const yearEl = document.getElementById('year');
@@ -333,6 +332,26 @@ function dashboardHtml() {
     function esc(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
     function compactMoney(v){
       return new Intl.NumberFormat('pt-BR',{notation:'compact',maximumFractionDigits:1}).format(Number(v||0));
+    }
+
+    function readDashboardToken() {
+      const qs = new URLSearchParams(window.location.search);
+      const hash = new URLSearchParams(String(window.location.hash || '').replace(/^#/, ''));
+      const tokenFromUrl = hash.get('token') || qs.get('token') || '';
+      if (tokenFromUrl) {
+        try {
+          sessionStorage.setItem('financasbot_dashboard_token', tokenFromUrl);
+          history.replaceState(null, '', window.location.pathname);
+        } catch (e) {
+          // Se o navegador bloquear sessionStorage/history, o token ainda vale nesta carga da página.
+        }
+        return tokenFromUrl;
+      }
+      try {
+        return sessionStorage.getItem('financasbot_dashboard_token') || '';
+      } catch (e) {
+        return '';
+      }
     }
 
     function setupFilters() {

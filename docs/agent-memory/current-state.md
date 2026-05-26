@@ -35,6 +35,7 @@ Sempre revalidar EC2/PM2/logs antes de afirmar que producao esta saudavel.
 - Importacao diferencia conta corrente, cartao, transferencias internas, caixinha/reserva e rendimentos.
 - Familia/planilha compartilhada: lancamentos podem ir para a planilha dona do grupo com `user_id` do responsavel.
 - Dashboard com filtros de usuario/mes e API de resumo consolidada para reduzir quota de Google Sheets.
+- Links do dashboard enviados pelo WhatsApp usam `#token=`; a pagina guarda o token em `sessionStorage` e remove o token da barra de endereco para reduzir exposicao em logs/historico/referrer.
 - Leituras diretas do Google Sheets passam por cache curto em memoria (`GOOGLE_SHEETS_READ_CACHE_TTL_MS`, padrao 20s) com invalidacao apos escrita, para reduzir bursts de quota sem misturar dados entre planilhas.
 - Perguntas financeiras via read model/SQLite e fallback.
 - Cron jobs de resumo, agenda e vencimentos.

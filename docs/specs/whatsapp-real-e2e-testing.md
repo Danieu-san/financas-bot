@@ -138,7 +138,7 @@ Fluxo minimo do E2E real:
 9. Esperar confirmacao e concluir fluxo de pagamento se o bot perguntar.
 10. Enviar `quanto gastei esse mes?`.
 11. Validar resposta com total coerente.
-12. Enviar `dashboard` e validar que a resposta contem `/dashboard?token=`.
+12. Enviar `dashboard` e validar que a resposta contem `/dashboard#token=`.
 
 Testes negativos desejaveis:
 - Bot offline: falha com mensagem clara.

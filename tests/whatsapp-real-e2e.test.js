@@ -220,7 +220,7 @@ test('whatsapp real e2e: onboarding, transaction, analytics and dashboard smoke'
             'Total gasto em',
             'R$'
         ]);
-        await sendAndWaitForReply(driver, 'dashboard', '/dashboard?token=');
+        await sendAndWaitForReply(driver, 'dashboard', '/dashboard#token=');
     } finally {
         await driver.close();
     }

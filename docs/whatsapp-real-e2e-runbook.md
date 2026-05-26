@@ -89,7 +89,7 @@ Guarde estes sinais quando o E2E passar. Eles conectam o teste real ao fluxo de 
 | `ACEITO` + onboarding | Teste responde perguntas ate concluir | Usuario fica `ACTIVE` e onboarding concluido | Ciclo de vida + perfil inicial |
 | Gasto E2E | Teste recebe confirmacao de registro | PM2 mostra mensagem processada sem erro | Captura financeira com `user_id` |
 | Pergunta analitica | Teste recebe total do periodo | Logs indicam rota local/read-model quando aplicavel | Calculo deterministico/read-model |
-| `dashboard` | Resposta contem `/dashboard?token=` | `curl /dashboard/health` retorna `ok` | Link autenticado por usuario |
+| `dashboard` | Resposta contem `/dashboard#token=` | `curl /dashboard/health` retorna `ok` | Link autenticado por usuario sem token no querystring |
 
 Evidencia minima para anexar em uma validacao manual:
 

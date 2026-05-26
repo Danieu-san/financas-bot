@@ -8,7 +8,7 @@ This document covers the current FinancasBot production shape: WhatsApp bot, Goo
 |---|---|---|
 | Financial transactions | Sensitive personal finance history. | `user_id` scoping, Sheets access via service credentials, SQLite local read model. |
 | User lifecycle and consent | LGPD/legal basis and access control. | Consent gate, `ConsentLog`, lifecycle statuses, admin-only commands. |
-| Dashboard tokens | Temporary access to user financial view. | Signed token with `uid` and expiry, tokenized WhatsApp link, no client-provided `user_id`. |
+| Dashboard tokens | Temporary access to user financial view. | Signed token with `uid` and expiry, WhatsApp link uses URL fragment (`#token=`), browser stores it in `sessionStorage` and removes it from the address bar, no client-provided `user_id`. |
 | Google refresh token and API keys | Full integration access. | `.env` and `credentials.json` ignored by Git. |
 | WhatsApp session | Controls bot identity. | `.wwebjs_auth/` ignored by Git, QR renewal runbook. |
 | Admin commands | Can grant/block access and message users. | Admin check, structured logs, soft lifecycle changes. |
@@ -30,7 +30,7 @@ This document covers the current FinancasBot production shape: WhatsApp bot, Goo
 |---|---:|---|---|
 | Cross-user data leakage | High | `user_id` write gates, filtered reads, dashboard token `uid`, SQLite tests. | Keep adding regression tests for every new sheet/table. |
 | Admin broad access to all users' transactions | High | Beta-only admin dashboard aggregate/user selector exists for testing diagnostics. | Must be removed before real multiuser scale or replaced by explicit consent + audited support mode. See ADR-002. |
-| Dashboard token reused/shared | Medium | Expiring signed token, `Referrer-Policy: no-referrer`, `Cache-Control: no-store`. | Shorten TTL for higher-risk users; optional one-time token store later. |
+| Dashboard token reused/shared | Medium | Expiring signed token, `#token=` fragment link, browser URL cleanup, `Referrer-Policy: no-referrer`, `Cache-Control: no-store`. | Shorten TTL for higher-risk users; optional one-time token store later. |
 | Missing dashboard secret in production | High | Public/production dashboard now requires `DASHBOARD_TOKEN_SECRET`. | Rotate secret periodically and document rotation. |
 | Admin typo changes wrong user | High | Target logs and soft statuses. | Add two-step confirmation for `ativar`, `inativar`, `bloquear`, `deletar`. |
 | Logs expose sensitive content | Medium | Admin manual messages log length, not body. | Periodically grep logs for token/secret patterns. |
@@ -44,7 +44,7 @@ This document covers the current FinancasBot production shape: WhatsApp bot, Goo
 - Dashboard endpoints are read-only and scoped exclusively by signed token payload.
 - Admin all-users transaction access is a temporary beta/testing exception only and must not ship as part of scaled multiuser production. See `docs/decisions/ADR-002-admin-financial-data-access.md`.
 - The dashboard token secret must not fall back to Gemini or any unrelated API key for public/production use.
-- Token-in-query is acceptable for the current WhatsApp-link flow only with short TTL, no referrer, no cache, and no third-party assets.
+- Dashboard links sent on WhatsApp should use `#token=` instead of querystring so the token is not sent in the initial HTTP request. API calls still pass the token to same-origin dashboard endpoints, with short TTL, no referrer, no cache, and no third-party assets.
 - Admin lifecycle commands remain one-step during beta, but the documented next control is two-step confirmation before larger scale.
 
 ## Release Checklist

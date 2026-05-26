@@ -104,3 +104,22 @@ test('dashboard auth caps excessive token ttl', () => {
         restore();
     }
 });
+
+test('dashboard access link keeps token out of query string', () => {
+    const { auth, restore } = loadDashboardAuthWithEnv({
+        DASHBOARD_BASE_URL: 'https://finance.example.com',
+        DASHBOARD_TOKEN_SECRET: 'test-secret-link'
+    });
+    try {
+        const link = auth.buildDashboardAccessLink({ userId: 'user-a', ttlSeconds: 600 });
+        const url = new URL(link.url);
+        assert.strictEqual(url.pathname, '/dashboard');
+        assert.strictEqual(url.searchParams.get('token'), null);
+        assert.match(url.hash, /^#token=/);
+
+        const token = new URLSearchParams(url.hash.slice(1)).get('token');
+        assert.strictEqual(auth.verifyDashboardToken(token).uid, 'user-a');
+    } finally {
+        restore();
+    }
+});

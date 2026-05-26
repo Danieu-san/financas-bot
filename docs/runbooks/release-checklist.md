@@ -59,7 +59,7 @@ quanto gastei esse mês?
 Expected:
 
 - `Oi` returns the local greeting/menu without AI.
-- `dashboard` returns a valid tokenized link.
+- `dashboard` returns a valid tokenized link using `/dashboard#token=`, not `/dashboard?token=`.
 - `admin stats` returns user counts and logs `[admin] stats`.
 - Analytical question uses deterministic/read-model route when possible.
 
@@ -74,6 +74,7 @@ Expected:
 
 - Health returns `{ "ok": true, "sqlite": true }`.
 - Invalid token returns `401` with `Token inválido ou expirado.`.
+- Dashboard link token is kept out of the initial HTTP querystring and removed from the browser address bar after page load.
 - Admin token with `user=all` returns `403` unless `DASHBOARD_ADMIN_ALL_USERS_ENABLED=true` was deliberately enabled for a controlled support/test session.
 - Browser-opened dashboard loads cards, charts/sections, alerts, debts, goals, and recent transactions.
 
