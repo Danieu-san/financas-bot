@@ -70,6 +70,7 @@ const { isAdminWithContext } = require('../utils/adminCheck');
 const logger = require('../utils/logger');
 const { sendPlainMessage } = require('../utils/whatsappMessaging');
 const { recordQaFailure } = require('../services/qaFailureLogService');
+const { recordAdminAction } = require('../services/adminActionLogService');
 
 // Base de Conhecimento para Gastos
 const mapeamentoGastos = {
@@ -192,7 +193,9 @@ function detectSecuritySensitiveRequest(messageBody) {
 
     const promptLeakPatterns = [
         /\b(?:prompt|system prompt|mensagem do sistema|instrucoes internas|instrucoes do sistema|regras internas|developer message|schema interno)\b/,
-        /\b(?:mostre|mostrar|revele|revelar|copie|copiar|diga|exiba|vaze|vazar).{0,50}\b(?:prompt|instrucoes|regras internas|schema)\b/
+        /\b(?:mostre|mostrar|revele|revelar|copie|copiar|diga|exiba|vaze|vazar).{0,50}\b(?:prompt|instrucoes|regras internas|schema)\b/,
+        /\b(?:instrucoes|regras|diretrizes).{0,60}\b(?:antes|conversa|recebeu|recebidas|ocultas|internas)\b/,
+        /\b(?:complete|completa|termine|termina).{0,80}\b(?:nao posso responder|não posso responder|nao devo responder|não devo responder)\b/
     ];
     if (hasSecurityPattern(text, promptLeakPatterns)) {
         return { blocked: true, category: 'prompt_leak' };
@@ -824,6 +827,33 @@ function inferAnalyticalQueryPlan(userQuestion) {
 
     const hasCardSignal = text.includes('cartao') || text.includes('cartoes') || Boolean(cardName);
 
+    if (/\b(meta|metas|objetivo|objetivos)\b/.test(text)) {
+        if (
+            text.includes('falta') ||
+            text.includes('faltam') ||
+            text.includes('bater') ||
+            text.includes('atingir') ||
+            text.includes('alcancar') ||
+            text.includes('alcançar') ||
+            text.includes('progresso') ||
+            text.includes('andamento')
+        ) {
+            return { metric: 'goals_progress', intent: 'progresso_metas', parameters: {} };
+        }
+        if (
+            text.includes('minhas metas') ||
+            text.includes('liste') ||
+            text.includes('listar') ||
+            text.includes('quais') ||
+            text.includes('mostre') ||
+            text.includes('mostrar') ||
+            text === 'metas' ||
+            text === 'minhas metas'
+        ) {
+            return { metric: 'goals_summary', intent: 'resumo_metas', parameters: {} };
+        }
+    }
+
     if ((text.includes('reserva') || text.includes('caixinha')) && (text.includes('disponivel') || text.includes('disponível') || text.includes('realmente'))) {
         return { metric: 'available_cash', intent: 'saldo_disponivel_estimado', parameters: { mes, ano } };
     }
@@ -1288,6 +1318,40 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
             `${anteriorLabel}: ${formatCurrencyBR(results?.anterior || 0)}`,
             `Diferença: ${formatCurrencyBR(Math.abs(diferenca))} (${direction})`
         ].join('\n');
+    }
+
+    if (intent === 'resumo_metas') {
+        const metas = Array.isArray(results) ? results : [];
+        if (metas.length === 0) return 'Não encontrei metas cadastradas.';
+        const total = Number(details.total || metas.length);
+        const ativas = Number(details.ativas || 0);
+        const lines = metas.slice(0, 10).map((item, idx) => {
+            const pct = Number(item.progressoPct || 0).toFixed(1).replace('.', ',');
+            const status = item.status ? ` | ${item.status}` : '';
+            const prioridade = item.prioridade ? ` | prioridade: ${item.prioridade}` : '';
+            const prazo = item.dataFim ? ` | prazo: ${item.dataFim}` : '';
+            return `${idx + 1}. ${item.nome || 'Meta'}: ${formatCurrencyBR(item.atual || 0)} / ${formatCurrencyBR(item.alvo || 0)} (${pct}%)${status}${prioridade}${prazo}`;
+        });
+        const truncated = metas.length > 10 ? `\n... e mais ${metas.length - 10} meta(s).` : '';
+        return [
+            `${total} meta(s) cadastrada(s); ${ativas} em andamento.`,
+            lines.join('\n') + truncated,
+            `Falta total: ${formatCurrencyBR(details.totalFalta || 0)}`
+        ].join('\n');
+    }
+
+    if (intent === 'progresso_metas') {
+        const metas = Array.isArray(results) ? results : [];
+        if (metas.length === 0) return 'Não encontrei metas em andamento.';
+        const lines = metas.slice(0, 10).map((item, idx) => {
+            const pct = Number(item.progressoPct || 0).toFixed(1).replace('.', ',');
+            const monthly = Number(item.valorMensal || 0) > 0 ? ` | mensal sugerido: ${formatCurrencyBR(item.valorMensal)}` : '';
+            return `${idx + 1}. ${item.nome || 'Meta'}: faltam ${formatCurrencyBR(item.falta || 0)} (${pct}% concluído)${monthly}`;
+        });
+        const monthlyTotal = Number(details.totalValorMensal || 0) > 0
+            ? `\nValor mensal sugerido total: ${formatCurrencyBR(details.totalValorMensal)}`
+            : '';
+        return `Falta para suas metas: ${formatCurrencyBR(details.totalFalta || 0)}\n${lines.join('\n')}${monthlyTotal}`;
     }
 
     return null;
@@ -1827,6 +1891,26 @@ function summarizeAdminCommandForConfirmation(rawBody, body) {
     return { required: false };
 }
 
+async function auditAdminAction(adminContext, action, {
+    target = '',
+    result = 'success',
+    metadata = {},
+    error = null
+} = {}) {
+    await recordAdminAction({
+        action,
+        result,
+        actor: {
+            senderId: adminContext?.sender_id || '',
+            userId: adminContext?.actor_user_id || '',
+            name: adminContext?.actor_name || ''
+        },
+        target,
+        metadata,
+        error
+    });
+}
+
 async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
     const rawBody = String(msg.body || '').trim();
     const body = normalizeText(rawBody);
@@ -1841,6 +1925,10 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
 
     if (!isAdminWithContext(senderId, activeUser)) {
         logger.warn(`[admin] acesso_negado command="${sanitizeLogText(body)}" context=${JSON.stringify(adminContext)}`);
+        await auditAdminAction(adminContext, 'access_denied', {
+            result: 'denied',
+            metadata: { command_prefix: body.split(/\s+/).slice(0, 2).join(' ') }
+        });
         await msg.reply('Comando restrito a administradores.');
         return true;
     }
@@ -1857,6 +1945,11 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
             action: pending.summary?.action || '',
             target: pending.summary?.target || ''
         })}`);
+        await auditAdminAction(adminContext, 'confirmation_received', {
+            target: pending.summary?.target || '',
+            result: 'confirmed',
+            metadata: { requested_action: pending.summary?.action || '' }
+        });
         return handleAdminCommands({ ...msg, body: pending.rawCommand }, senderId, activeUser, { ...options, skipConfirmation: true });
     }
 
@@ -1876,6 +1969,14 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
                 target: confirmation.target,
                 risk: confirmation.risk
             })}`);
+            await auditAdminAction(adminContext, 'confirmation_pending', {
+                target: confirmation.target,
+                result: 'pending',
+                metadata: {
+                    requested_action: confirmation.action,
+                    risk: confirmation.risk
+                }
+            });
             await msg.reply(
                 `Confirmação necessária para ${confirmation.action}.\n` +
                 `Alvo: ${confirmation.target}\n` +
@@ -1942,6 +2043,11 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
     if (body === 'admin expirar pendentes') {
         const expired = await expireOldPendingUsers();
         logger.info(`[admin] expirar_pendentes context=${JSON.stringify({ ...adminContext, expired_count: expired })}`);
+        await auditAdminAction(adminContext, 'expire_pending_users', {
+            target: 'pending_users',
+            result: 'success',
+            metadata: { expired_count: expired }
+        });
         await msg.reply(`Pendentes expirados agora: ${expired}`);
         return true;
     }
@@ -1966,11 +2072,21 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
         const target = inviteMatch[1];
         const targetWhatsAppId = normalizeInvitePhoneToWhatsAppId(target);
         if (!targetWhatsAppId) {
+            await auditAdminAction(adminContext, 'invite_user', {
+                target,
+                result: 'validation_error',
+                metadata: { reason: 'invalid_phone' }
+            });
             await msg.reply('Telefone inválido. Use DDI + DDD + número. Ex.: admin convidar 5521999999999');
             return true;
         }
         if (!msg.client || typeof msg.client.sendMessage !== 'function') {
             logger.error(`[admin] convidar_cliente_indisponivel context=${JSON.stringify({ ...adminContext, target })}`);
+            await auditAdminAction(adminContext, 'invite_user', {
+                target: targetWhatsAppId,
+                result: 'failed',
+                metadata: { reason: 'whatsapp_client_unavailable' }
+            });
             await msg.reply('Cliente WhatsApp indisponível para enviar o convite.');
             return true;
         }
@@ -1978,6 +2094,11 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
             await msg.client.sendMessage(targetWhatsAppId, buildPreOnboardingInviteMessage());
         } catch (error) {
             logger.warn(`[admin] convidar_falhou context=${JSON.stringify({ ...adminContext, target_whatsapp_id: targetWhatsAppId, error: error.message })}`);
+            await auditAdminAction(adminContext, 'invite_user', {
+                target: targetWhatsAppId,
+                result: 'failed',
+                error
+            });
             await msg.reply(
                 `Não consegui enviar o convite para ${targetWhatsAppId}. ` +
                 'Confirme se o número tem WhatsApp e tente enviar uma mensagem manual primeiro para abrir o contato.'
@@ -1985,6 +2106,10 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
             return true;
         }
         logger.info(`[admin] convidar context=${JSON.stringify({ ...adminContext, target, target_whatsapp_id: targetWhatsAppId })}`);
+        await auditAdminAction(adminContext, 'invite_user', {
+            target: targetWhatsAppId,
+            result: 'success'
+        });
         await msg.reply(`Convite enviado para ${targetWhatsAppId}.`);
         return true;
     }
@@ -1997,14 +2122,28 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
         const member = await getUserByLookup(memberLookup);
         if (!owner || !member) {
             logger.warn(`[admin] compartilhar_planilha_usuario_nao_encontrado context=${JSON.stringify({ ...adminContext, ownerLookup, memberLookup })}`);
+            await auditAdminAction(adminContext, 'share_spreadsheet', {
+                target: `${ownerLookup} -> ${memberLookup}`,
+                result: 'not_found'
+            });
             await msg.reply('Dono ou membro não encontrado. Use: admin compartilhar planilha <telefone_dono> <telefone_membro>');
             return true;
         }
         if (owner.user_id === member.user_id) {
+            await auditAdminAction(adminContext, 'share_spreadsheet', {
+                target: `${owner.whatsapp_id} -> ${member.whatsapp_id}`,
+                result: 'validation_error',
+                metadata: { reason: 'same_user' }
+            });
             await msg.reply('O dono e o membro precisam ser usuários diferentes.');
             return true;
         }
         if (owner.status !== USER_STATUS.ACTIVE || member.status !== USER_STATUS.ACTIVE) {
+            await auditAdminAction(adminContext, 'share_spreadsheet', {
+                target: `${owner.whatsapp_id} -> ${member.whatsapp_id}`,
+                result: 'validation_error',
+                metadata: { owner_status: owner.status, member_status: member.status }
+            });
             await msg.reply('Para compartilhar planilha, dono e membro precisam estar ACTIVE e com cadastro concluído.');
             return true;
         }
@@ -2012,12 +2151,22 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
         const ownerConnection = getOAuthConnection(owner.user_id);
         const spreadsheetId = String(ownerConnection?.spreadsheet_id || '').trim();
         if (!spreadsheetId) {
+            await auditAdminAction(adminContext, 'share_spreadsheet', {
+                target: `${owner.whatsapp_id} -> ${member.whatsapp_id}`,
+                result: 'validation_error',
+                metadata: { reason: 'owner_missing_spreadsheet' }
+            });
             await msg.reply('O dono ainda não tem planilha Google conectada. Conclua o OAuth do dono antes de compartilhar.');
             return true;
         }
         const memberConnection = getOAuthConnection(member.user_id);
         const memberGoogleEmail = String(memberConnection?.google_email || '').trim().toLowerCase();
         if (!memberGoogleEmail) {
+            await auditAdminAction(adminContext, 'share_spreadsheet', {
+                target: `${owner.whatsapp_id} -> ${member.whatsapp_id}`,
+                result: 'validation_error',
+                metadata: { reason: 'member_missing_google_email' }
+            });
             await msg.reply(
                 'O membro ainda não tem e-mail Google salvo no OAuth. Peça para ele reconectar o Google pelo link do bot e tente novamente.'
             );
@@ -2038,6 +2187,12 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
                 member_user_id: member.user_id,
                 error: error.message
             })}`);
+            await auditAdminAction(adminContext, 'share_spreadsheet', {
+                target: `${owner.whatsapp_id} -> ${member.whatsapp_id}`,
+                result: 'failed',
+                metadata: { stage: 'drive_permission' },
+                error
+            });
             await msg.reply(`Não consegui compartilhar a planilha no Google Drive: ${error.message}`);
             return true;
         }
@@ -2058,6 +2213,16 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
             drive_permission_id: driveShare?.permissionId || '',
             scope_user_ids: scopeIds
         })}`);
+        await auditAdminAction(adminContext, 'share_spreadsheet', {
+            target: `${owner.whatsapp_id} -> ${member.whatsapp_id}`,
+            result: 'success',
+            metadata: {
+                owner_user_id: owner.user_id,
+                member_user_id: member.user_id,
+                drive_permission_saved: Boolean(driveShare?.permissionId),
+                scope_user_count: scopeIds.length
+            }
+        });
         await msg.reply(
             `Planilha compartilhada ativada.\n` +
             `- dono: ${owner.display_name || owner.whatsapp_id}\n` +
@@ -2090,12 +2255,21 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
         const member = await getUserByLookup(memberLookup);
         if (!member) {
             logger.warn(`[admin] remover_compartilhamento_usuario_nao_encontrado context=${JSON.stringify({ ...adminContext, memberLookup })}`);
+            await auditAdminAction(adminContext, 'remove_spreadsheet_share', {
+                target: memberLookup,
+                result: 'not_found'
+            });
             await msg.reply('Membro não encontrado. Use: admin remover compartilhamento <telefone_membro>');
             return true;
         }
 
         const activeMembership = getSharedSpreadsheetMembership(member.user_id);
         if (!activeMembership) {
+            await auditAdminAction(adminContext, 'remove_spreadsheet_share', {
+                target: member.whatsapp_id,
+                result: 'validation_error',
+                metadata: { reason: 'no_active_membership' }
+            });
             await msg.reply('Esse usuário não tem vínculo ativo de planilha compartilhada.');
             return true;
         }
@@ -2114,6 +2288,12 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
                     drive_permission_id: activeMembership.drive_permission_id,
                     error: error.message
                 })}`);
+                await auditAdminAction(adminContext, 'remove_spreadsheet_share', {
+                    target: member.whatsapp_id,
+                    result: 'failed',
+                    metadata: { stage: 'drive_permission_revoke' },
+                    error
+                });
                 await msg.reply(`Não consegui remover o acesso no Google Drive: ${error.message}`);
                 return true;
             }
@@ -2133,6 +2313,15 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
             previous_owner_user_id: revoked.owner_user_id,
             spreadsheet_id: revoked.spreadsheet_id
         })}`);
+        await auditAdminAction(adminContext, 'remove_spreadsheet_share', {
+            target: member.whatsapp_id,
+            result: 'success',
+            metadata: {
+                member_user_id: member.user_id,
+                previous_owner_user_id: revoked.owner_user_id,
+                drive_permission_present: Boolean(activeMembership.drive_permission_id)
+            }
+        });
         await msg.reply(
             `Compartilhamento removido para ${member.display_name || member.whatsapp_id}.\n` +
             'Os próximos lançamentos desse usuário voltarão para a planilha própria dele, se houver Google conectado.' +
@@ -2176,6 +2365,10 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
         const updated = await approveUserByWhatsAppId(target);
         if (!updated) {
             logger.warn(`[admin] aprovar_nao_encontrado context=${JSON.stringify({ ...adminContext, target })}`);
+            await auditAdminAction(adminContext, 'approve_user', {
+                target,
+                result: 'not_found'
+            });
             await msg.reply('Usuário não encontrado para esse telefone/WhatsApp ID.');
             return true;
         }
@@ -2186,6 +2379,15 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
         } catch (error) {
             logger.warn(`[admin] aprovar_sem_link_google context=${JSON.stringify({ ...adminContext, target, target_user_id: updated.user_id, error: error.message })}`);
         }
+        await auditAdminAction(adminContext, 'approve_user', {
+            target: updated.whatsapp_id,
+            result: 'success',
+            metadata: {
+                target_user_id: updated.user_id,
+                updated_status: updated.status,
+                google_link_built: Boolean(connectReply)
+            }
+        });
         await msg.reply(
             `Usuário aprovado: ${updated.whatsapp_id} -> ${updated.status}\n` +
             (connectReply ? 'Link de conexão Google enviado ao usuário.' : 'Configure OAuth Google para enviar o link de conexão.')
@@ -2206,10 +2408,24 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
         const updated = await denyUserByWhatsAppId(target);
         if (!updated) {
             logger.warn(`[admin] negar_nao_encontrado context=${JSON.stringify({ ...adminContext, action, target })}`);
+            await auditAdminAction(adminContext, 'deny_user', {
+                target,
+                result: 'not_found',
+                metadata: { requested_action: action }
+            });
             await msg.reply('Usuário não encontrado para esse telefone/WhatsApp ID.');
             return true;
         }
         logger.info(`[admin] negar context=${JSON.stringify({ ...adminContext, action, target, target_user_id: updated.user_id, updated_whatsapp_id: updated.whatsapp_id, updated_status: updated.status })}`);
+        await auditAdminAction(adminContext, 'deny_user', {
+            target: updated.whatsapp_id,
+            result: 'success',
+            metadata: {
+                requested_action: action,
+                target_user_id: updated.user_id,
+                updated_status: updated.status
+            }
+        });
         await msg.reply(`Usuário negado e bloqueado: ${updated.whatsapp_id} -> ${updated.status}`);
         if (msg.client && typeof msg.client.sendMessage === 'function') {
             await msg.client.sendMessage(
@@ -2255,6 +2471,10 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
         const user = await getUserByLookup(target);
         if (!user) {
             logger.warn(`[admin] resetar_onboarding_nao_encontrado context=${JSON.stringify({ ...adminContext, target })}`);
+            await auditAdminAction(adminContext, 'reset_onboarding', {
+                target,
+                result: 'not_found'
+            });
             await msg.reply('Usuário não encontrado para esse telefone/WhatsApp ID.');
             return true;
         }
@@ -2266,6 +2486,11 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
             userStateManager.deleteState(`${digits}@lid`);
         }
         logger.info(`[admin] resetar_onboarding context=${JSON.stringify({ ...adminContext, target, target_user_id: user.user_id })}`);
+        await auditAdminAction(adminContext, 'reset_onboarding', {
+            target: user.whatsapp_id,
+            result: 'success',
+            metadata: { target_user_id: user.user_id }
+        });
         await msg.reply(`Onboarding resetado para ${user.whatsapp_id}.`);
         return true;
     }
@@ -2281,16 +2506,34 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
         const user = await getUserByLookup(target);
         if (!user) {
             logger.warn(`[admin] mensagem_nao_encontrado context=${JSON.stringify({ ...adminContext, target })}`);
+            await auditAdminAction(adminContext, 'manual_message', {
+                target,
+                result: 'not_found',
+                metadata: { message_length: manualText.length }
+            });
             await msg.reply('Usuário não encontrado para esse telefone/WhatsApp ID.');
             return true;
         }
         if (!msg.client || typeof msg.client.sendMessage !== 'function') {
             logger.error(`[admin] mensagem_cliente_indisponivel context=${JSON.stringify({ ...adminContext, target, target_user_id: user.user_id })}`);
+            await auditAdminAction(adminContext, 'manual_message', {
+                target: user.whatsapp_id,
+                result: 'failed',
+                metadata: { reason: 'whatsapp_client_unavailable', message_length: manualText.length }
+            });
             await msg.reply('Cliente WhatsApp indisponível para envio manual.');
             return true;
         }
         await msg.client.sendMessage(user.whatsapp_id, manualText);
         logger.info(`[admin] mensagem context=${JSON.stringify({ ...adminContext, target, target_user_id: user.user_id, target_whatsapp_id: user.whatsapp_id, message_length: manualText.length })}`);
+        await auditAdminAction(adminContext, 'manual_message', {
+            target: user.whatsapp_id,
+            result: 'success',
+            metadata: {
+                target_user_id: user.user_id,
+                message_length: manualText.length
+            }
+        });
         await msg.reply(`Mensagem enviada para ${user.whatsapp_id}.`);
         return true;
     }
@@ -2309,10 +2552,23 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
         const updated = await updateUserStatusByWhatsAppId(target, status);
         if (!updated) {
             logger.warn(`[admin] alterar_status_nao_encontrado context=${JSON.stringify({ ...adminContext, action, target })}`);
+            await auditAdminAction(adminContext, 'change_user_status', {
+                target,
+                result: 'not_found',
+                metadata: { requested_action: action, requested_status: status }
+            });
             await msg.reply('Usuário não encontrado para esse telefone/WhatsApp ID.');
             return true;
         }
         logger.info(`[admin] alterar_status context=${JSON.stringify({ ...adminContext, action, target, updated_whatsapp_id: updated.whatsapp_id, updated_status: updated.status })}`);
+        await auditAdminAction(adminContext, 'change_user_status', {
+            target: updated.whatsapp_id,
+            result: 'success',
+            metadata: {
+                requested_action: action,
+                updated_status: updated.status
+            }
+        });
         await msg.reply(`Status atualizado: ${updated.whatsapp_id} -> ${updated.status}`);
         return true;
     }

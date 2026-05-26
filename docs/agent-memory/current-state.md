@@ -37,6 +37,7 @@ Sempre revalidar EC2/PM2/logs antes de afirmar que producao esta saudavel.
 - Dashboard com filtros de usuario/mes e API de resumo consolidada para reduzir quota de Google Sheets.
 - Links do dashboard enviados pelo WhatsApp usam `#token=`; a pagina guarda o token em `sessionStorage` e remove o token da barra de endereco para reduzir exposicao em logs/historico/referrer.
 - Comandos admin sensiveis agora exigem segunda mensagem `confirmar admin` antes de executar. A confirmacao fica so em memoria, expira em 5 minutos e nao grava o comando pendente em `state_store.json`.
+- AdminActionLog local foi adicionado para acoes admin sensiveis: grava JSONL sanitizado em `data/admin-actions.jsonl` por padrao, com actor/target em hash e sem corpo de mensagem manual. Validar deploy antes de assumir ativo em producao.
 - Leituras diretas do Google Sheets passam por cache curto em memoria (`GOOGLE_SHEETS_READ_CACHE_TTL_MS`, padrao 20s) com invalidacao apos escrita, para reduzir bursts de quota sem misturar dados entre planilhas.
 - Perguntas financeiras via read model/SQLite e fallback.
 - Cron jobs de resumo, agenda e vencimentos.
@@ -94,6 +95,14 @@ Depois de uma bateria real no WhatsApp, perguntas abertas que antes caiam em fal
 
 Tambem foi endurecido o calculo de vencimento recorrente para meses curtos: vencimento dia 31 usa o ultimo dia valido quando o mes nao tem dia 31.
 
+Nova correcao local pendente/recente: perguntas de metas agora tambem tem rota deterministica:
+
+- `liste minhas metas`
+- `minhas metas`
+- `quanto falta para eu bater minhas metas?`
+
+Isso evita o erro observado em beta no qual metas caiam como `listagem_gastos_categoria` ou `pergunta_geral`.
+
 O gate de seguranca bloqueia antes de IA/calculo financeiro mensagens que pedem:
 
 - IDs internos (`sheet id`, `user id`, identificadores de planilha/tenant).
@@ -101,6 +110,7 @@ O gate de seguranca bloqueia antes de IA/calculo financeiro mensagens que pedem:
 - Tokens, secrets, credenciais OAuth ou chaves.
 - Dados/planilhas de outros usuarios/clientes ou `todos os usuarios`.
 - Bypass de regras, modo admin/suporte/desenvolvedor ou tentativas de ignorar seguranca.
+- Probing de instrucoes recebidas antes da conversa e frases de completacao do tipo `Nao posso responder...`.
 
 Tambem sanitiza logs de mensagens para esconder tokens, parametros OAuth e IDs de documentos Google.
 

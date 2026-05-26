@@ -106,6 +106,16 @@ test('sqlite read-model answers common analytical intents scoped by user_id', ()
     assert.strictEqual(installments.results.length, 1);
     assert.strictEqual(installments.results[0].descricao, 'notebook');
     assert.strictEqual(installments.results[0].totalPrevisto, 2000);
+
+    const goalsSummary = queryAnalyticalIntentSql('resumo_metas', {}, { userId: 'user-read-a' });
+    assert.strictEqual(goalsSummary.results.length, 1);
+    assert.strictEqual(goalsSummary.results[0].nome, 'Reserva');
+    assert.strictEqual(goalsSummary.results[0].falta, 750);
+    assert.strictEqual(goalsSummary.details.totalFalta, 750);
+
+    const goalsProgress = queryAnalyticalIntentSql('progresso_metas', {}, { userId: 'user-read-a' });
+    assert.strictEqual(goalsProgress.results.length, 1);
+    assert.strictEqual(goalsProgress.results[0].progressoPct, 25);
 });
 
 test('sqlite read-model powers dashboard data without cross-user leakage', () => {

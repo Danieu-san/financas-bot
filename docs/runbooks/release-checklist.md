@@ -15,6 +15,8 @@ Use this before deploying `main` to the EC2 PM2 process.
 - [ ] `DASHBOARD_ADMIN_ALL_USERS_ENABLED` is unset/false for beta or production unless a temporary support/test mode was explicitly approved.
 - [ ] Dashboard admin cross-user scopes are rejected by default (`user=all` or another user returns `403`).
 - [ ] Risky admin commands still require a second WhatsApp message `confirmar admin` and log `confirmacao_pendente`/`confirmacao_recebida`.
+- [ ] AdminActionLog is enabled or intentionally disabled; risky admin actions append sanitized entries to `data/admin-actions.jsonl` or `ADMIN_ACTION_LOG_PATH`.
+- [ ] Prompt-injection/security gate tests still block internal IDs, prompt/system instructions, secrets, cross-user data, and bypass attempts.
 - [ ] If this release moves toward real multiuser scale, ADR-002 and ADR-003 have been reviewed; admin access to all users' transaction-level financial data remains removed or replaced with consented/audited support mode.
 - [ ] If cron/payment reminders changed, a real validation marker was created and cleaned up (`TESTE_APAGAR Cron` or equivalent).
 - [ ] Rollback command is ready before restart.
@@ -45,6 +47,7 @@ Expected health:
 - [ ] Logs show `integridade user_id validada: sem pendencias`.
 - [ ] Logs show `dashboard: servidor web ativo`.
 - [ ] WhatsApp reaches ready state or shows a QR that can be scanned.
+- [ ] If an admin command was tested, AdminActionLog did not store raw phone numbers, message bodies, tokens or Google document IDs.
 
 ## WhatsApp Smoke
 
@@ -55,6 +58,7 @@ Oi
 dashboard
 admin stats
 quanto gastei esse mês?
+liste minhas metas
 ```
 
 Expected:
@@ -63,6 +67,7 @@ Expected:
 - `dashboard` returns a valid tokenized link using `/dashboard#token=`, not `/dashboard?token=`.
 - `admin stats` returns user counts and logs `[admin] stats`.
 - Analytical question uses deterministic/read-model route when possible.
+- Goals question uses deterministic `resumo_metas` or `progresso_metas` route, not generic AI fallback.
 
 ## Dashboard Smoke
 

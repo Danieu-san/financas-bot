@@ -603,6 +603,45 @@ function queryAnalyticalIntentSql(intent, parameters, { userId }) {
         };
     }
 
+    if (intent === 'resumo_metas' || intent === 'progresso_metas') {
+        const rows = db.prepare(`
+            SELECT name, target, current, progress_pct AS progressPct
+            FROM goals
+            WHERE user_id = ?
+            ORDER BY progress_pct ASC, target DESC
+            LIMIT 100
+        `).all(userId);
+        const allGoals = rows.map(row => {
+            const alvo = Number(row.target || 0);
+            const atual = Number(row.current || 0);
+            const falta = Math.max(0, alvo - atual);
+            return {
+                nome: row.name || 'Meta',
+                alvo,
+                atual,
+                progressoPct: Number(row.progressPct || 0),
+                falta,
+                valorMensal: 0,
+                dataFim: '',
+                status: falta > 0 ? 'Em andamento' : 'Concluída',
+                prioridade: '',
+                ativa: falta > 0
+            };
+        }).sort((a, b) => Number(b.ativa) - Number(a.ativa) || b.falta - a.falta || String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
+        const goals = intent === 'progresso_metas' ? allGoals.filter(goal => goal.ativa) : allGoals;
+        return {
+            results: goals,
+            details: {
+                total: allGoals.length,
+                ativas: allGoals.filter(goal => goal.ativa).length,
+                totalAlvo: allGoals.reduce((sum, goal) => sum + goal.alvo, 0),
+                totalAtual: allGoals.reduce((sum, goal) => sum + goal.atual, 0),
+                totalFalta: goals.reduce((sum, goal) => sum + goal.falta, 0),
+                totalValorMensal: 0
+            }
+        };
+    }
+
     if (intent === 'total_gastos_categoria_mes') {
         const rows = db.prepare(`
             SELECT description, category, subcategory, value

@@ -226,6 +226,74 @@ function summarizeRecurringAccounts(dataSources = {}) {
     };
 }
 
+function findHeaderIndex(headers, aliases, fallbackIndex) {
+    if (!Array.isArray(headers)) return fallbackIndex;
+    const normalizedAliases = aliases.map(alias => normalizeText(alias));
+    const found = headers.findIndex(header => normalizedAliases.includes(normalizeText(header)));
+    return found >= 0 ? found : fallbackIndex;
+}
+
+function isGoalActive(status) {
+    const normalized = normalizeText(status || '');
+    return !/(concluid|finalizad|atingid|quitad|cancelad)/.test(normalized);
+}
+
+function summarizeGoals(dataSources = {}, { onlyActive = false } = {}) {
+    const rows = Array.isArray(dataSources.metas) ? dataSources.metas : [];
+    if (rows.length <= 1) {
+        return {
+            results: [],
+            details: { total: 0, ativas: 0, totalAlvo: 0, totalAtual: 0, totalFalta: 0, totalValorMensal: 0 }
+        };
+    }
+
+    const headers = rows[0] || [];
+    const idx = {
+        nome: findHeaderIndex(headers, ['Nome', 'Nome da Meta'], 0),
+        alvo: findHeaderIndex(headers, ['Valor Alvo', 'Alvo'], 1),
+        atual: findHeaderIndex(headers, ['Valor Atual', 'Atual'], 2),
+        valorMensal: findHeaderIndex(headers, ['Valor Mensal', 'Valor Mensal Necessário'], 4),
+        dataFim: findHeaderIndex(headers, ['Data Fim', 'Data Final', 'Prazo'], 5),
+        status: findHeaderIndex(headers, ['Status'], 6),
+        prioridade: findHeaderIndex(headers, ['Prioridade'], 7)
+    };
+
+    const allGoals = rows.slice(1)
+        .filter(row => String(row?.[idx.nome] || '').trim())
+        .map(row => {
+            const alvo = parseValue(row[idx.alvo]);
+            const atual = parseValue(row[idx.atual]);
+            const falta = Math.max(0, alvo - atual);
+            const progressoPct = alvo > 0 ? Math.min(100, (atual / alvo) * 100) : parseValue(row[3]);
+            return {
+                nome: String(row[idx.nome] || 'Meta').trim(),
+                alvo,
+                atual,
+                progressoPct,
+                falta,
+                valorMensal: parseValue(row[idx.valorMensal]),
+                dataFim: row[idx.dataFim] || '',
+                status: row[idx.status] || '',
+                prioridade: row[idx.prioridade] || '',
+                ativa: isGoalActive(row[idx.status]) && falta > 0
+            };
+        })
+        .sort((a, b) => Number(b.ativa) - Number(a.ativa) || b.falta - a.falta || String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
+
+    const goals = onlyActive ? allGoals.filter(goal => goal.ativa) : allGoals;
+    return {
+        results: goals,
+        details: {
+            total: allGoals.length,
+            ativas: allGoals.filter(goal => goal.ativa).length,
+            totalAlvo: allGoals.reduce((sum, goal) => sum + goal.alvo, 0),
+            totalAtual: allGoals.reduce((sum, goal) => sum + goal.atual, 0),
+            totalFalta: goals.reduce((sum, goal) => sum + goal.falta, 0),
+            totalValorMensal: goals.reduce((sum, goal) => sum + Number(goal.valorMensal || 0), 0)
+        }
+    };
+}
+
 function isReserveTransfer(row) {
     const text = normalizeText(`${row?.[1] || ''} ${row?.[6] || ''} ${row?.[7] || ''}`);
     return ['rdb', 'caixinha', 'nu reserva', 'reserva', 'investimento', 'aplicacao', 'aplicação']
@@ -594,6 +662,12 @@ const operationRegistry = {
             })
             .sort((a, b) => a.diasAteVencimento - b.diasAteVencimento || String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
         return { results, details: { dias: days, amanha: Boolean(params.amanha) } };
+    },
+    resumo_metas: async function(params, dataSources) {
+        return summarizeGoals(dataSources);
+    },
+    progresso_metas: async function(params, dataSources) {
+        return summarizeGoals(dataSources, { onlyActive: true });
     },
     total_cartoes_em_aberto: async function(params, dataSources) {
         const mes = getMonthIndex(params.mes);

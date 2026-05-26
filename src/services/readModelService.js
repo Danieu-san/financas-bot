@@ -485,6 +485,48 @@ function summarizeReadModelInvoicesByCard(entries) {
         .sort((a, b) => b.total - a.total || String(a.cartao).localeCompare(String(b.cartao), 'pt-BR'));
 }
 
+function isReadModelGoalActive(status, target, current) {
+    const normalized = normalizeText(status || '');
+    return !/(concluid|finalizad|atingid|quitad|cancelad)/.test(normalized) && Number(target || 0) > Number(current || 0);
+}
+
+function summarizeReadModelGoals(userId, { onlyActive = false } = {}) {
+    const allGoals = readModel.metas
+        .filter(entry => entry.user_id === userId)
+        .map((entry) => {
+            const row = entry.row || [];
+            const alvo = parseValue(row[1] || 0);
+            const atual = parseValue(row[2] || 0);
+            const falta = Math.max(0, alvo - atual);
+            const progressoPct = alvo > 0 ? Math.min(100, (atual / alvo) * 100) : parseValue(row[3] || 0);
+            return {
+                nome: row[0] || 'Meta',
+                alvo,
+                atual,
+                progressoPct,
+                falta,
+                valorMensal: parseValue(row[4] || 0),
+                dataFim: row[5] || '',
+                status: row[6] || '',
+                prioridade: row[7] || '',
+                ativa: isReadModelGoalActive(row[6], alvo, atual)
+            };
+        })
+        .sort((a, b) => Number(b.ativa) - Number(a.ativa) || b.falta - a.falta || String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
+    const goals = onlyActive ? allGoals.filter(goal => goal.ativa) : allGoals;
+    return {
+        results: goals,
+        details: {
+            total: allGoals.length,
+            ativas: allGoals.filter(goal => goal.ativa).length,
+            totalAlvo: allGoals.reduce((sum, goal) => sum + goal.alvo, 0),
+            totalAtual: allGoals.reduce((sum, goal) => sum + goal.atual, 0),
+            totalFalta: goals.reduce((sum, goal) => sum + goal.falta, 0),
+            totalValorMensal: goals.reduce((sum, goal) => sum + Number(goal.valorMensal || 0), 0)
+        }
+    };
+}
+
 async function executeAnalyticalIntent(intent, parameters, { userId }) {
     const sqlResult = queryAnalyticalIntentSql(intent, parameters, { userId });
     if (sqlResult) {
@@ -684,6 +726,10 @@ async function executeAnalyticalIntent(intent, parameters, { userId }) {
             details: { cartao: parameters?.cartao || '', mes: month, ano: year }
         }, 'memory_fallback');
     }
+    case 'resumo_metas':
+        return withResultSource(summarizeReadModelGoals(userId), 'memory_fallback');
+    case 'progresso_metas':
+        return withResultSource(summarizeReadModelGoals(userId, { onlyActive: true }), 'memory_fallback');
     default:
         return withResultSource({ results: 'Pergunta genérica', details: null }, 'memory_fallback');
     }

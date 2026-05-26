@@ -11,7 +11,7 @@ This document covers the current FinancasBot production shape: WhatsApp bot, Goo
 | Dashboard tokens | Temporary access to user financial view. | Signed token with `uid` and expiry, WhatsApp link uses URL fragment (`#token=`), browser stores it in `sessionStorage` and removes it from the address bar, no client-provided `user_id`. |
 | Google refresh token and API keys | Full integration access. | `.env` and `credentials.json` ignored by Git. |
 | WhatsApp session | Controls bot identity. | `.wwebjs_auth/` ignored by Git, QR renewal runbook. |
-| Admin commands | Can grant/block access and message users. | Admin check, structured logs, soft lifecycle changes, two-step confirmation for risky commands. |
+| Admin commands | Can grant/block access and message users. | Admin check, structured logs, append-only AdminActionLog JSONL, soft lifecycle changes, two-step confirmation for risky commands. |
 
 ## Trust Boundaries
 
@@ -32,8 +32,9 @@ This document covers the current FinancasBot production shape: WhatsApp bot, Goo
 | Admin broad access to all users' transactions | High | Beta-only admin dashboard aggregate/user selector exists for testing diagnostics. | Must be removed before real multiuser scale or replaced by explicit consent + audited support mode. See ADR-002. |
 | Dashboard token reused/shared | Medium | Expiring signed token, `#token=` fragment link, browser URL cleanup, `Referrer-Policy: no-referrer`, `Cache-Control: no-store`. | Shorten TTL for higher-risk users; optional one-time token store later. |
 | Missing dashboard secret in production | High | Public/production dashboard now requires `DASHBOARD_TOKEN_SECRET`. | Rotate secret periodically and document rotation. |
-| Admin typo changes wrong user | High | Target logs, soft statuses, and second-message confirmation with `confirmar admin` for risky commands. | Add immutable admin action log before multiple admins. |
+| Admin typo changes wrong user | High | Target logs, append-only AdminActionLog JSONL, soft statuses, and second-message confirmation with `confirmar admin` for risky commands. | Move admin audit to a managed append-only store before multiple admins if JSONL is not enough operationally. |
 | Logs expose sensitive content | Medium | Admin manual messages log length, not body. | Periodically grep logs for token/secret patterns. |
+| Prompt injection / prompt probing | High | Security gate blocks internal IDs, system instructions, secrets, cross-user data and bypass attempts before LLM routing; logs are sanitized. | Keep adding real adversarial phrases from beta as regression tests. |
 | Google auth/token failure | Medium | Runbook and auth recovery path. | Alert on repeated `deleted_client`, `401`, or sync errors. |
 | WhatsApp Web protocol/session instability | Medium | PM2 logs, QR renewal runbook, dependency update note. | Real E2E smoke before releases with dedicated test number. |
 | Dependency vulnerability | Medium | `npm audit --audit-level=high` in release checklist. | Keep dependency updates scheduled. |
@@ -46,6 +47,8 @@ This document covers the current FinancasBot production shape: WhatsApp bot, Goo
 - The dashboard token secret must not fall back to Gemini or any unrelated API key for public/production use.
 - Dashboard links sent on WhatsApp should use `#token=` instead of querystring so the token is not sent in the initial HTTP request. API calls still pass the token to same-origin dashboard endpoints, with short TTL, no referrer, no cache, and no third-party assets.
 - Risky admin commands require a second WhatsApp message (`confirmar admin`) within 5 minutes. Pending confirmations are memory-only and are not persisted to `state_store.json`.
+- AdminActionLog writes sanitized JSONL entries to `data/admin-actions.jsonl` by default. It stores hashed actor/target refs, action, result, sanitized metadata and no manual-message body.
+- Questions about metas now have deterministic routes (`resumo_metas`, `progresso_metas`) to reduce LLM exposure and avoid misrouting to unrelated expense intents.
 
 ## Release Checklist
 
@@ -55,6 +58,7 @@ This document covers the current FinancasBot production shape: WhatsApp bot, Goo
 - [ ] Dashboard page/API include `Cache-Control: no-store` and `Referrer-Policy: no-referrer`.
 - [ ] Before real multiuser scale, admin `Todos os usuários` transaction-level dashboard access has been removed or replaced with consented/audited support mode.
 - [ ] Risky admin commands still require `confirmar admin`; PM2 logs show both `confirmacao_pendente` and `confirmacao_recebida`.
+- [ ] AdminActionLog is enabled or intentionally disabled with `ADMIN_ACTION_LOG_ENABLED=false`; if enabled, `data/admin-actions.jsonl` receives sanitized entries.
 - [ ] `npm test` passes.
 - [ ] PM2 logs show read-model sync and no repeated auth/session failures.
 - [ ] Manual WhatsApp smoke covers `Oi`, `dashboard`, `admin stats`, and one analytical question.
