@@ -603,7 +603,10 @@ const analyticalStopWords = new Set([
     'maior', 'menor', 'liste', 'listar', 'mostre', 'mostrar',
     'cartao', 'cartão', 'credito', 'crédito', 'fatura', 'faturas',
     'parcela', 'parcelas', 'parcelamento', 'parcelamentos',
-    'aberto', 'ativos', 'ativa', 'ativas'
+    'aberto', 'ativos', 'ativa', 'ativas',
+    'este', 'esta', 'estes', 'estas', 'esse', 'essa', 'esses', 'essas',
+    'neste', 'nesta', 'nesse', 'nessa', 'deste', 'desta', 'desse', 'dessa',
+    'tive', 'incluindo', 'base', 'lancamento', 'lancamentos', 'lançamento', 'lançamentos'
 ]);
 
 function cleanAnalyticalCategory(value) {
@@ -611,7 +614,7 @@ function cleanAnalyticalCategory(value) {
         .replace(/[?!.,;:]+$/g, '')
         .replace(/\b(?:em|no|na|nos|nas)\s+(?:janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b.*$/i, '')
         .replace(/\b(?:em|no|na|nos|nas)\s+\d{4}\b.*$/i, '')
-        .replace(/\b(?:desse|deste|nesse|neste|ultimo|último|atual)\s+mes\b.*$/i, '')
+        .replace(/\b(?:esse|este|essa|esta|desse|deste|dessa|desta|nesse|neste|nessa|nesta|ultimo|último|atual)\s+mes\b.*$/i, '')
         .trim();
 
     const words = normalized
@@ -633,6 +636,7 @@ function splitCategoryList(value) {
 function extractMultipleCategoriesFromQuestion(text) {
     const normalized = normalizeText(String(text || '').trim());
     const patterns = [
+        /\b(?:quanto\s+foi|quanto\s+deu|quanto\s+ficou|some|soma)\s+(.+?)(?:\s+em\s+|\s+no\s+|\s+na\s+|\s+mes\s+|\s+mês\s+|$|\?)/i,
         /\b(?:somando|somar|soma(?:r)?\s+de|soma\s+com|total\s+de)\s+(.+?)(?:\s+em\s+|\s+no\s+|\s+na\s+|$|\?)/i,
         /\b(?:com|de|do|da|dos|das)\s+(.+?)(?:\s+em\s+|\s+no\s+|\s+na\s+|$|\?)/i
     ];
@@ -741,6 +745,23 @@ function inferAnalyticalQueryPlan(userQuestion) {
 
     const hasCardSignal = text.includes('cartao') || text.includes('cartoes') || Boolean(cardName);
 
+    if ((text.includes('reserva') || text.includes('caixinha')) && (text.includes('disponivel') || text.includes('disponível') || text.includes('realmente'))) {
+        return { metric: 'available_cash', intent: 'saldo_disponivel_estimado', parameters: { mes, ano } };
+    }
+    if (
+        (text.includes('vencendo') || text.includes('vencem') || text.includes('vencimento') || text.includes('compromissos financeiros')) &&
+        (text.includes('conta') || text.includes('pagamento') || text.includes('pagamentos') || text.includes('compromissos'))
+    ) {
+        const amanha = text.includes('amanha') || text.includes('amanhã');
+        const dias = amanha ? 1 : (text.includes('semana') || text.includes('7 dias') || text.includes('sete dias') ? 7 : 7);
+        return { metric: 'upcoming_bills', intent: 'contas_vencendo', parameters: { dias, amanha } };
+    }
+    if (text.includes('compare') || text.includes('comparar') || text.includes('comparacao') || text.includes('comparação')) {
+        if (text.includes('mes anterior') || text.includes('mês anterior') || text.includes('periodo anterior') || text.includes('período anterior')) {
+            return { metric: 'period_comparison', intent: 'comparacao_gastos_periodo', parameters: { mes, ano } };
+        }
+    }
+
     if (
         (text.includes('conta recorrente') || text.includes('contas recorrentes') || (text.includes('contas') && text.includes('recorrente'))) &&
         (text.includes('quantas') || text.includes('quais') || text.includes('listar') || text.includes('liste') || text.includes('mostrar') || text.includes('mostre') || text.includes('tenho'))
@@ -757,6 +778,9 @@ function inferAnalyticalQueryPlan(userQuestion) {
         return { metric: 'paid_card_invoice_total', intent: 'total_pagamentos_fatura_mes', parameters: { mes, ano } };
     }
     if ((text.includes('aberto') || text.includes('futuro') || text.includes('futuros') || text.includes('futura') || text.includes('futuras') || text.includes('proximo') || text.includes('proximos') || text.includes('proxima') || text.includes('proximas')) && (hasCardSignal || text.includes('fatura') || text.includes('parcela'))) {
+        if ((text.includes('qual') || text.includes('quais')) && (text.includes('mais') || text.includes('maior')) && (text.includes('parcelas') || text.includes('valor'))) {
+            return { metric: 'open_cards_ranking', intent: 'ranking_cartoes_em_aberto', parameters: { mes, ano } };
+        }
         return { metric: 'open_card_installments', intent: 'total_cartoes_em_aberto', parameters: { cartao: cardName, mes, ano } };
     }
     if (text.includes('fatura') || (hasCardSignal && text.includes('quanto') && !text.includes('aberto'))) {
@@ -771,6 +795,12 @@ function inferAnalyticalQueryPlan(userQuestion) {
     }
     if (text.includes('duplicad')) {
         return { metric: 'duplicates', intent: 'gastos_valores_duplicados', parameters: { mes, ano } };
+    }
+    if (text.includes('categoria') && (text.includes('consumiu') || text.includes('mais dinheiro') || text.includes('maior gasto') || text.includes('mais gast'))) {
+        return { metric: 'top_expense_categories', intent: 'ranking_categorias_gastos', parameters: { mes, ano } };
+    }
+    if ((text.includes('cortar') || text.includes('economizar') || text.includes('onde eu deveria')) && (text.includes('gasto') || text.includes('gastos') || text.includes('lancamento') || text.includes('lançamento'))) {
+        return { metric: 'top_expense_categories', intent: 'ranking_categorias_gastos', parameters: { mes, ano, advice: true } };
     }
     if (comparisonCategories.length === 2) {
         return { metric: 'category_comparison', intent: 'comparacao_gastos_categorias', parameters: { categorias: comparisonCategories, mes, ano } };
@@ -787,6 +817,9 @@ function inferAnalyticalQueryPlan(userQuestion) {
             intent: 'percentual_categoria_gastos',
             parameters: { categoria: extractPercentageCategoryFromQuestion(text), mes, ano }
         };
+    }
+    if ((text.includes('quantos') || text.includes('quantas')) && (text.includes('lancamento') || text.includes('lançamento') || text.includes('saidas') || text.includes('saídas'))) {
+        return { metric: 'output_count', intent: 'contagem_lancamentos_saida', parameters: { mes, ano } };
     }
     if (text.includes('vezes') || text.includes('ocorrencia') || text.includes('ocorrencias')) {
         return { metric: 'count', intent: 'contagem_ocorrencias', parameters: { categoria: singleCategory, mes, ano } };
@@ -941,6 +974,15 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
         ].join('\n');
     }
 
+    if (intent === 'saldo_disponivel_estimado') {
+        return [
+            `Disponível estimado em ${periodLabel}: ${formatCurrencyBR(results)}`,
+            `Saldo econômico: ${formatCurrencyBR(details.saldo)}`,
+            `Reserva/caixinha líquida: ${formatCurrencyBR(details.reservaLiquida || 0)}`,
+            `Aplicado: ${formatCurrencyBR(details.reservaAplicada || 0)} | Resgatado: ${formatCurrencyBR(details.reservaResgatada || 0)}`
+        ].join('\n');
+    }
+
     if (intent === 'total_gastos_mes') {
         const lines = [`Total gasto em ${periodLabel}: ${formatCurrencyBR(results)}`];
         if (details.totalSaidas !== undefined || details.totalCartoes !== undefined) {
@@ -1016,6 +1058,10 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
         return `Ocorrências encontradas em ${periodLabel}: ${results}`;
     }
 
+    if (intent === 'contagem_lancamentos_saida') {
+        return `${results} lançamento(s) de saída em ${periodLabel}.`;
+    }
+
     if (intent === 'gastos_valores_duplicados') {
         if (!Array.isArray(results) || results.length === 0) {
             return `Não encontrei valores duplicados em ${periodLabel}.`;
@@ -1087,11 +1133,36 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
         ].join('\n');
     }
 
+    if (intent === 'contas_vencendo') {
+        const contas = Array.isArray(results) ? results : [];
+        const dias = Number(details.dias || 7);
+        const title = details.amanha ? 'Vencimentos de amanhã' : `Vencimentos nos próximos ${dias} dias`;
+        if (contas.length === 0) return `${title}: não encontrei pagamento ou vencimento cadastrado.`;
+        const lines = contas.slice(0, 15).map((item, idx) => {
+            const valor = item.valorEsperado ? ` | ${formatCurrencyBR(item.valorEsperado)}` : '';
+            const prazo = item.diasAteVencimento === 0 ? 'hoje' : `em ${item.diasAteVencimento} dia(s)`;
+            return `${idx + 1}. ${item.data} - ${item.nome || 'Conta'} (${prazo})${valor}`;
+        });
+        const truncated = contas.length > 15 ? `\n... e mais ${contas.length - 15} vencimento(s).` : '';
+        return `${title}:\n${lines.join('\n')}${truncated}`;
+    }
+
     if (intent === 'total_cartoes_em_aberto') {
         const cardLabel = details.cartao ? ` no ${details.cartao}` : ' nos cartões';
         const parcelas = details.parcelas ? `\n${details.parcelas} parcela(s) em aberto` : '';
         const meses = details.meses ? `\nMeses com cobrança: ${details.meses}` : '';
         return `Em aberto${cardLabel} a partir de ${periodLabel}: ${formatCurrencyBR(results)}${parcelas}${meses}`;
+    }
+
+    if (intent === 'ranking_cartoes_em_aberto') {
+        const rows = Array.isArray(results) ? results : [];
+        if (rows.length === 0) return `Não encontrei parcelas em aberto a partir de ${periodLabel}.`;
+        const lines = rows.slice(0, 10).map((item, idx) => {
+            const parcelas = Number(item.parcelas || 0);
+            const parcelasLabel = parcelas === 1 ? '1 parcela' : `${parcelas} parcelas`;
+            return `${idx + 1}. ${item.cartao || 'Cartão'}: ${formatCurrencyBR(item.total || 0)} (${parcelasLabel})`;
+        });
+        return `Cartões com mais parcelas em aberto a partir de ${periodLabel}:\n${lines.join('\n')}`;
     }
 
     if (intent === 'resumo_parcelamentos_cartao') {
@@ -1107,6 +1178,37 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
         ].join(''));
         const truncated = results.length > 10 ? `\n... e mais ${results.length - 10} parcelamento(s).` : '';
         return `Parcelamentos ativos a partir de ${periodLabel}:\n${lines.join('\n')}${truncated}`;
+    }
+
+    if (intent === 'ranking_categorias_gastos') {
+        const rows = Array.isArray(results) ? results : [];
+        if (rows.length === 0) return `Não encontrei gastos em ${periodLabel}.`;
+        const totalGastos = Number(details.totalGastos || rows.reduce((sum, item) => sum + Number(item.total || 0), 0));
+        const lines = rows.slice(0, 8).map((item, idx) => {
+            const pct = totalGastos > 0 ? ` (${((Number(item.total || 0) / totalGastos) * 100).toFixed(1).replace('.', ',')}%)` : '';
+            const count = item.count ? `, ${item.count} lançamento(s)` : '';
+            return `${idx + 1}. ${item.categoria || 'Outros'}: ${formatCurrencyBR(item.total || 0)}${pct}${count}`;
+        });
+        const advice = details.advice
+            ? '\nComece revisando as 2 primeiras categorias: são onde um ajuste pequeno costuma gerar maior impacto.'
+            : '';
+        return `Categorias que mais consumiram em ${periodLabel}:\n${lines.join('\n')}${advice}`;
+    }
+
+    if (intent === 'comparacao_gastos_periodo') {
+        const atualMes = getMonthNamePtBr(details?.mes);
+        const anteriorMes = getMonthNamePtBr(details?.mesAnterior);
+        const atualLabel = atualMes && details?.ano ? `${atualMes}/${details.ano}` : periodLabel;
+        const anteriorLabel = anteriorMes && details?.anoAnterior ? `${anteriorMes}/${details.anoAnterior}` : 'período anterior';
+        const diferenca = Number(results?.diferenca || 0);
+        const pct = Math.abs(Number(results?.percentual || 0)).toFixed(2).replace('.', ',');
+        const direction = Math.abs(diferenca) < 0.005 ? 'ficaram praticamente iguais' : (diferenca > 0 ? `aumentaram ${pct}%` : `diminuíram ${pct}%`);
+        return [
+            `Comparação de gastos: ${atualLabel} vs ${anteriorLabel}`,
+            `${atualLabel}: ${formatCurrencyBR(results?.atual || 0)}`,
+            `${anteriorLabel}: ${formatCurrencyBR(results?.anterior || 0)}`,
+            `Diferença: ${formatCurrencyBR(Math.abs(diferenca))} (${direction})`
+        ].join('\n');
     }
 
     return null;
@@ -3263,7 +3365,7 @@ async function handleMessage(msg) {
                                 logger.info(`[routing] question_user_scope sender=${senderId} selected=${analyticalUserIds.length}/${financialScopeUserIds.length}`);
                             }
                         }
-                        const sheetOnlyIntents = new Set(['total_pagamentos_fatura_mes', 'resumo_contas_recorrentes']);
+                        const sheetOnlyIntents = new Set(['total_pagamentos_fatura_mes', 'resumo_contas_recorrentes', 'contas_vencendo', 'saldo_disponivel_estimado']);
                         if (!usePersonalSpreadsheet && !sheetOnlyIntents.has(effectiveIntentClassification.intent)) {
                             try {
                                 await timeStep(
@@ -3314,8 +3416,8 @@ async function handleMessage(msg) {
                                 readDataFromSheet('Metas!A:I'),
                                 readDataFromSheet('Dívidas!A:R')
                             ];
-                            const needsTransfers = effectiveIntentClassification.intent === 'total_pagamentos_fatura_mes';
-                            const needsAccounts = effectiveIntentClassification.intent === 'resumo_contas_recorrentes';
+                            const needsTransfers = effectiveIntentClassification.intent === 'total_pagamentos_fatura_mes' || effectiveIntentClassification.intent === 'saldo_disponivel_estimado';
+                            const needsAccounts = effectiveIntentClassification.intent === 'resumo_contas_recorrentes' || effectiveIntentClassification.intent === 'contas_vencendo';
                             if (needsTransfers) sheetReads.push(readDataFromSheet('Transferências!A:I'));
                             if (needsAccounts) sheetReads.push(readDataFromSheet('Contas!A:I'));
                             if (usePersonalSpreadsheet) {

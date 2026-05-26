@@ -73,6 +73,23 @@ Atencao:
 - Planilhas existentes precisam ter os novos cabecalhos aplicados por template/ensure ou manualmente antes de a regra ficar visivel para o usuario.
 - O scheduler continua lendo `Contas!A:D`, entao lembretes nao dependem das novas colunas.
 
+## Perguntas financeiras adversariais
+
+Status: implementado localmente e coberto por testes; confirmar deploy/PM2 antes de assumir que esta ativo em producao.
+
+Depois de uma bateria real no WhatsApp, perguntas abertas que antes caiam em fallback generico ou categoria errada agora sao roteadas para calculo deterministico:
+
+- `quais contas vencem nos proximos 7 dias?`
+- `tenho algum pagamento vencendo amanha?`
+- `qual categoria consumiu mais dinheiro este mes?`
+- `quantos lancamentos de saida eu tive este mes?`
+- `qual cartao tem mais parcelas em aberto?`
+- `considerando minha reserva ou caixinha, quanto esta realmente disponivel?`
+- `me diga onde eu deveria cortar gastos com base nos meus lancamentos`
+- `compare meus gastos com o mes anterior`
+
+Tambem foi endurecido o calculo de vencimento recorrente para meses curtos: vencimento dia 31 usa o ultimo dia valido quando o mes nao tem dia 31.
+
 ## Higiene do workspace
 
 Em 2026-05-25, `git status --short` mostrava arquivos nao rastreados antigos:

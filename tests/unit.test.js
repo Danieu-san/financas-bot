@@ -426,6 +426,33 @@ test('messageHandler.classifyPerguntaLocally covers complex analytical questions
     assert.strictEqual(namedInstallments.intent, 'resumo_parcelamentos_cartao');
     assert.strictEqual(namedInstallments.parameters.cartao, 'nubank thais');
     assert.strictEqual(namedInstallments.parameters.mes, 0);
+
+    const topCategory = classifyPerguntaLocally('qual categoria consumiu mais dinheiro este mês?');
+    assert.strictEqual(topCategory.intent, 'ranking_categorias_gastos');
+
+    const cutAdvice = classifyPerguntaLocally('me diga onde eu deveria cortar gastos com base nos meus lançamentos');
+    assert.strictEqual(cutAdvice.intent, 'ranking_categorias_gastos');
+
+    const outputCount = classifyPerguntaLocally('quantos lançamentos de saída eu tive este mês?');
+    assert.strictEqual(outputCount.intent, 'contagem_lancamentos_saida');
+    assert.strictEqual(outputCount.parameters.categoria, undefined);
+
+    const availableCash = classifyPerguntaLocally('considerando minha reserva ou caixinha, quanto está realmente disponível?');
+    assert.strictEqual(availableCash.intent, 'saldo_disponivel_estimado');
+
+    const upcomingBills = classifyPerguntaLocally('quais contas vencem nos próximos 7 dias?');
+    assert.strictEqual(upcomingBills.intent, 'contas_vencendo');
+    assert.strictEqual(upcomingBills.parameters.dias, 7);
+
+    const tomorrowBills = classifyPerguntaLocally('tenho algum pagamento vencendo amanhã?');
+    assert.strictEqual(tomorrowBills.intent, 'contas_vencendo');
+    assert.strictEqual(tomorrowBills.parameters.amanha, true);
+
+    const periodComparison = classifyPerguntaLocally('compare meus gastos com o mês anterior');
+    assert.strictEqual(periodComparison.intent, 'comparacao_gastos_periodo');
+
+    const cardRanking = classifyPerguntaLocally('qual cartão tem mais parcelas em aberto?');
+    assert.strictEqual(cardRanking.intent, 'ranking_cartoes_em_aberto');
 });
 
 test('messageHandler local command routing avoids AI for common commands and low-signal text', (t) => {
@@ -612,6 +639,80 @@ test('messageHandler local replies cover richer spreadsheet calculations', () =>
         }),
         /Parcelamentos.*notebook.*Nubank.*R\$ 3000,00/s
     );
+
+    assert.match(
+        buildLocalPerguntaResponse({
+            intent: 'ranking_categorias_gastos',
+            analyzedData: {
+                results: [
+                    { categoria: 'Moradia', total: 2000, count: 2 },
+                    { categoria: 'Alimentação', total: 500, count: 5 }
+                ],
+                details: { mes: 4, ano: 2026, totalGastos: 2500 }
+            }
+        }),
+        /Categorias que mais consumiram.*Moradia: R\$ 2000,00.*Alimentação: R\$ 500,00/s
+    );
+
+    assert.match(
+        buildLocalPerguntaResponse({
+            intent: 'contagem_lancamentos_saida',
+            analyzedData: {
+                results: 12,
+                details: { mes: 4, ano: 2026 }
+            }
+        }),
+        /12 lançamento\(s\) de saída/
+    );
+
+    assert.match(
+        buildLocalPerguntaResponse({
+            intent: 'saldo_disponivel_estimado',
+            analyzedData: {
+                results: 700,
+                details: { mes: 4, ano: 2026, saldo: 1000, reservaAplicada: 500, reservaResgatada: 200, reservaLiquida: 300 }
+            }
+        }),
+        /Disponível estimado.*R\$ 700,00.*Saldo econômico: R\$ 1000,00.*Reserva\/caixinha líquida: R\$ 300,00/s
+    );
+
+    assert.match(
+        buildLocalPerguntaResponse({
+            intent: 'contas_vencendo',
+            analyzedData: {
+                results: [
+                    { nome: 'Aluguel', dia: 7, data: '07/05/2026', diasAteVencimento: 2, valorEsperado: '932,97' }
+                ],
+                details: { dias: 7, amanha: false }
+            }
+        }),
+        /Vencimentos nos próximos 7 dias.*07\/05\/2026 - Aluguel.*R\$ 932,97/s
+    );
+
+    assert.match(
+        buildLocalPerguntaResponse({
+            intent: 'comparacao_gastos_periodo',
+            analyzedData: {
+                results: { atual: 9500, anterior: 8000, diferenca: 1500, percentual: 18.75 },
+                details: { mes: 4, ano: 2026, mesAnterior: 3, anoAnterior: 2026 }
+            }
+        }),
+        /maio\/2026.*abril\/2026.*R\$ 9500,00.*R\$ 8000,00.*aumentaram 18,75%/s
+    );
+
+    assert.match(
+        buildLocalPerguntaResponse({
+            intent: 'ranking_cartoes_em_aberto',
+            analyzedData: {
+                results: [
+                    { cartao: 'Nubank Thais', total: 1000, parcelas: 10 },
+                    { cartao: 'Nubank Daniel', total: 500, parcelas: 4 }
+                ],
+                details: { mes: 4, ano: 2026 }
+            }
+        }),
+        /Cartões com mais parcelas em aberto.*Nubank Thais.*10 parcela/s
+    );
 });
 
 test('creationHandler debt success message explains dashboard and spending distinction', () => {
@@ -692,6 +793,68 @@ test('calculationOrchestrator answers recurring bills and paid invoice questions
     assert.strictEqual(recurring.details.total, 2);
     assert.strictEqual(recurring.details.regrasAtivas, 1);
     assert.deepStrictEqual(recurring.results.map(item => item.nome), ['Cartão Nubank', 'Aluguel']);
+
+    const [todayYear, todayMonth, todayDay] = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(new Date()).split('-').map(Number);
+    const saoPauloToday = new Date(todayYear, todayMonth - 1, todayDay, 12, 0, 0, 0);
+    const tomorrow = new Date(saoPauloToday.getFullYear(), saoPauloToday.getMonth(), saoPauloToday.getDate() + 1, 12, 0, 0, 0);
+    const upcoming = await calculationOrchestrator.execute('contas_vencendo', { dias: 7 }, {
+        ...dataSources,
+        contas: [
+            dataSources.contas[0],
+            ['Conta amanhã', tomorrow.getDate(), 'teste', 'user-1', 'Conta amanhã', 'Moradia', 'TESTE', '123,45', 'SIM']
+        ]
+    });
+    assert.strictEqual(upcoming.results.length, 1);
+    assert.strictEqual(upcoming.results[0].nome, 'Conta amanhã');
+
+    const available = await calculationOrchestrator.execute('saldo_disponivel_estimado', { mes: 4, ano: 2026 }, {
+        ...dataSources,
+        entradas: [
+            ['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Obs', 'user_id'],
+            ['24/05/2026', 'Salário', 'Salário', 5000, 'Daniel', 'PIX', 'Sim', '', 'user-1']
+        ],
+        saidas: [
+            ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id'],
+            ['24/05/2026', 'Aluguel', 'Moradia', 'ALUGUEL', 1000, 'Daniel', 'PIX', 'Sim', '', 'user-1']
+        ],
+        cartoes: [[
+            ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Observações', 'user_id'],
+            ['10/05/2026', 'Mercado', 'Alimentação', 500, '1/1', 'Maio de 2026', 'nubank', 'Nubank', '', 'user-1']
+        ]],
+        transferencias: [
+            ['Data', 'Descrição', 'Valor', 'Conta Origem', 'Conta Destino', 'Método', 'Observações', 'Status', 'user_id'],
+            ['24/05/2026', 'Aplicação RDB', 800, 'Nubank', 'Reserva', 'PIX', '', 'Movimentação de reserva/investimento', 'user-1'],
+            ['25/05/2026', 'Resgate RDB', 300, 'Reserva', 'Nubank', 'PIX', '', 'Movimentação de reserva/investimento', 'user-1']
+        ]
+    });
+    assert.strictEqual(available.details.saldo, 3500);
+    assert.strictEqual(available.details.reservaLiquida, 500);
+    assert.strictEqual(available.results, 3000);
+
+    const topCategories = await calculationOrchestrator.execute('ranking_categorias_gastos', { mes: 4, ano: 2026 }, {
+        ...dataSources,
+        saidas: [
+            ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id'],
+            ['24/05/2026', 'Aluguel', 'Moradia', 'ALUGUEL', 1000, 'Daniel', 'PIX', 'Sim', '', 'user-1'],
+            ['25/05/2026', 'Mercado', 'Alimentação', 'SUPERMERCADO', 200, 'Daniel', 'PIX', 'Não', '', 'user-1']
+        ]
+    });
+    assert.deepStrictEqual(topCategories.results.slice(0, 2).map(item => item.categoria), ['Moradia', 'Alimentação']);
+
+    const outputCount = await calculationOrchestrator.execute('contagem_lancamentos_saida', { mes: 4, ano: 2026 }, {
+        ...dataSources,
+        saidas: [
+            ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id'],
+            ['24/05/2026', 'Aluguel', 'Moradia', 'ALUGUEL', 1000, 'Daniel', 'PIX', 'Sim', '', 'user-1'],
+            ['25/05/2026', 'Mercado', 'Alimentação', 'SUPERMERCADO', 200, 'Daniel', 'PIX', 'Não', '', 'user-1']
+        ]
+    });
+    assert.strictEqual(outputCount.results, 2);
 });
 
 test('messageHandler.normalizeMetricLabel keeps metric names bounded and safe', (t) => {

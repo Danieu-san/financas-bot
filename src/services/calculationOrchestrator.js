@@ -226,6 +226,72 @@ function summarizeRecurringAccounts(dataSources = {}) {
     };
 }
 
+function isReserveTransfer(row) {
+    const text = normalizeText(`${row?.[1] || ''} ${row?.[6] || ''} ${row?.[7] || ''}`);
+    return ['rdb', 'caixinha', 'nu reserva', 'reserva', 'investimento', 'aplicacao', 'aplicação']
+        .some(term => text.includes(normalizeText(term)));
+}
+
+function isReserveApplication(row) {
+    const description = normalizeText(row?.[1] || '');
+    return isReserveTransfer(row) && (
+        description.includes('aplicacao') ||
+        description.includes('aplicação') ||
+        description.includes('guardar') ||
+        description.includes('guardado')
+    );
+}
+
+function isReserveRedemption(row) {
+    const description = normalizeText(row?.[1] || '');
+    return isReserveTransfer(row) && (
+        description.includes('resgate') ||
+        description.includes('retirada')
+    );
+}
+
+function getPeriodExpenseTotal(dataSources, mes, ano) {
+    return getUnifiedExpenses(dataSources, mes, ano)
+        .reduce((sum, item) => sum + parseValue(item.valor), 0);
+}
+
+function previousMonthPeriod(mes, ano) {
+    const month = getMonthIndex(mes);
+    const year = Number.parseInt(ano, 10);
+    if (month === null || !Number.isInteger(year)) return { mes: month, ano: year };
+    if (month === 0) return { mes: 11, ano: year - 1 };
+    return { mes: month - 1, ano: year };
+}
+
+function getSaoPauloToday() {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
+    const [year, month, day] = formatter.format(new Date()).split('-').map(Number);
+    return new Date(year, month - 1, day, 12, 0, 0, 0);
+}
+
+function buildDueDateForDay(day, baseDate = getSaoPauloToday()) {
+    const dueDay = Number.parseInt(day, 10);
+    if (!Number.isInteger(dueDay) || dueDay < 1 || dueDay > 31) return null;
+    const buildCandidate = (year, month) => {
+        const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+        return new Date(year, month, Math.min(dueDay, lastDayOfMonth), 12, 0, 0, 0);
+    };
+    let candidate = buildCandidate(baseDate.getFullYear(), baseDate.getMonth());
+    if (candidate < baseDate) {
+        candidate = buildCandidate(baseDate.getFullYear(), baseDate.getMonth() + 1);
+    }
+    return candidate;
+}
+
+function formatDateBR(date) {
+    return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+}
+
 const operationRegistry = {
     total_gastos_mes: async function(params, dataSources) {
         const mes = getMonthIndex(params.mes);
@@ -423,6 +489,31 @@ const operationRegistry = {
         const saldo = totalEntradas - (totalSaidas + totalCartoes);
         return { results: saldo, details: { totalSaidas: totalSaidas + totalCartoes, totalEntradas, mes, ano } };
     },
+    saldo_disponivel_estimado: async function(params, dataSources) {
+        const mes = getMonthIndex(params.mes);
+        const ano = parseInt(params.ano, 10);
+        const saldoData = await operationRegistry.saldo_do_mes(params, dataSources);
+        const transferRows = Array.isArray(dataSources.transferencias) ? dataSources.transferencias.slice(1) : [];
+        const monthTransfers = transferRows.filter(row => transferRowMatchesMonth(row, mes, ano));
+        const reservaAplicada = monthTransfers
+            .filter(isReserveApplication)
+            .reduce((sum, row) => sum + parseValue(row[2]), 0);
+        const reservaResgatada = monthTransfers
+            .filter(isReserveRedemption)
+            .reduce((sum, row) => sum + parseValue(row[2]), 0);
+        const reservaLiquida = reservaAplicada - reservaResgatada;
+        const saldo = Number(saldoData.results || 0);
+        return {
+            results: saldo - reservaLiquida,
+            details: {
+                ...saldoData.details,
+                saldo,
+                reservaAplicada,
+                reservaResgatada,
+                reservaLiquida
+            }
+        };
+    },
     total_fatura_cartao: async function(params, dataSources) {
         const mes = getMonthIndex(params.mes);
         const ano = parseInt(params.ano, 10);
@@ -478,6 +569,32 @@ const operationRegistry = {
     resumo_contas_recorrentes: async function(params, dataSources) {
         return summarizeRecurringAccounts(dataSources);
     },
+    contas_vencendo: async function(params, dataSources) {
+        const days = Math.max(1, Number.parseInt(params.dias || '7', 10) || 7);
+        const today = getSaoPauloToday();
+        const start = params.amanha ? new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1, 12, 0, 0, 0) : today;
+        const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + (params.amanha ? 0 : days - 1), 23, 59, 59, 999);
+        const accounts = summarizeRecurringAccounts(dataSources).results;
+        const results = accounts
+            .map(account => {
+                const dueDate = buildDueDateForDay(account.dia, today);
+                if (!dueDate) return null;
+                const daysUntil = Math.round((dueDate - today) / (24 * 60 * 60 * 1000));
+                return {
+                    ...account,
+                    data: formatDateBR(dueDate),
+                    diasAteVencimento: daysUntil
+                };
+            })
+            .filter(Boolean)
+            .filter(account => account.dia && account.diasAteVencimento >= 0 && account.data)
+            .filter(account => {
+                const dueDate = buildDueDateForDay(account.dia, today);
+                return dueDate >= start && dueDate <= end;
+            })
+            .sort((a, b) => a.diasAteVencimento - b.diasAteVencimento || String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
+        return { results, details: { dias: days, amanha: Boolean(params.amanha) } };
+    },
     total_cartoes_em_aberto: async function(params, dataSources) {
         const mes = getMonthIndex(params.mes);
         const ano = parseInt(params.ano, 10);
@@ -499,6 +616,24 @@ const operationRegistry = {
             }
         };
     },
+    ranking_cartoes_em_aberto: async function(params, dataSources) {
+        const mes = getMonthIndex(params.mes);
+        const ano = parseInt(params.ano, 10);
+        const rows = filterCardRowsFromPeriod(getCreditCardRows(dataSources), mes, ano);
+        const grouped = new Map();
+        rows.forEach((row) => {
+            const cardName = String(row.cartao || row.cardId || 'Cartão').trim() || 'Cartão';
+            const key = normalizeCardSearchText(cardName) || cardName;
+            const existing = grouped.get(key) || { cartao: cardName, total: 0, parcelas: 0 };
+            existing.total += Number(row.valor || 0);
+            existing.parcelas += 1;
+            grouped.set(key, existing);
+        });
+        return {
+            results: Array.from(grouped.values()).sort((a, b) => b.parcelas - a.parcelas || b.total - a.total),
+            details: { mes, ano }
+        };
+    },
     resumo_parcelamentos_cartao: async function(params, dataSources) {
         const mes = getMonthIndex(params.mes);
         const ano = parseInt(params.ano, 10);
@@ -510,6 +645,46 @@ const operationRegistry = {
         return {
             results: summarizeInstallments(rows),
             details: { cartao: params.cartao || '', mes, ano }
+        };
+    },
+    ranking_categorias_gastos: async function(params, dataSources) {
+        const mes = getMonthIndex(params.mes);
+        const ano = parseInt(params.ano, 10);
+        const grouped = new Map();
+        getUnifiedExpenses(dataSources, mes, ano).forEach((item) => {
+            const categoria = String(item.categoria || 'Outros').trim() || 'Outros';
+            const existing = grouped.get(categoria) || { categoria, total: 0, count: 0 };
+            existing.total += parseValue(item.valor);
+            existing.count += 1;
+            grouped.set(categoria, existing);
+        });
+        const results = Array.from(grouped.values()).sort((a, b) => b.total - a.total || b.count - a.count);
+        return {
+            results,
+            details: {
+                ...params,
+                mes,
+                ano,
+                totalGastos: results.reduce((sum, item) => sum + Number(item.total || 0), 0)
+            }
+        };
+    },
+    contagem_lancamentos_saida: async function(params, dataSources) {
+        const mes = getMonthIndex(params.mes);
+        const ano = parseInt(params.ano, 10);
+        return { results: getUnifiedExpenses(dataSources, mes, ano).length, details: { ...params, mes, ano } };
+    },
+    comparacao_gastos_periodo: async function(params, dataSources) {
+        const mes = getMonthIndex(params.mes);
+        const ano = parseInt(params.ano, 10);
+        const previous = previousMonthPeriod(mes, ano);
+        const atual = getPeriodExpenseTotal(dataSources, mes, ano);
+        const anterior = getPeriodExpenseTotal(dataSources, previous.mes, previous.ano);
+        const diferenca = atual - anterior;
+        const percentual = anterior > 0 ? (diferenca / anterior) * 100 : 0;
+        return {
+            results: { atual, anterior, diferenca, percentual },
+            details: { ...params, mes, ano, mesAnterior: previous.mes, anoAnterior: previous.ano }
         };
     },
     pergunta_geral: async function(params, dataSources) {
