@@ -431,7 +431,17 @@ function mapSettingsRow(row, rowIndex) {
         language: row[4] || 'pt-BR',
         created_at: row[5] || '',
         defaults_enabled: row[6] || 'NÃO',
-        default_reserve_percent: row[7] || '10'
+        default_reserve_percent: row[7] || '10',
+        daily_goal_enabled: row[8] || 'NÃO',
+        daily_goal_amount: row[9] || '',
+        daily_goal_last_alert_date: row[10] || '',
+        daily_goal_last_alert_level: row[11] || '',
+        daily_goal_scope: row[12] || 'personal',
+        monthly_budget_enabled: row[13] || 'NÃO',
+        monthly_budget_amount: row[14] || '',
+        monthly_budget_last_alert_date: row[15] || '',
+        monthly_budget_last_alert_level: row[16] || '',
+        monthly_budget_scope: row[17] || 'personal'
     };
 }
 
@@ -440,7 +450,7 @@ async function getUserSettingsByUserId(userId) {
         return settingsCache.find(s => s.user_id === userId) || null;
     }
 
-    const rows = await readCriticalSheet(`${SETTINGS_SHEET}!A:H`);
+    const rows = await readCriticalSheet(`${SETTINGS_SHEET}!A:M`);
     if (!rows || rows.length <= 1) {
         settingsCache = [];
         settingsCacheLoaded = true;
@@ -463,7 +473,17 @@ async function upsertUserSettings(userId, patch) {
         language: 'pt-BR',
         created_at: nowIso(),
         defaults_enabled: 'NÃO',
-        default_reserve_percent: '10'
+        default_reserve_percent: '10',
+        daily_goal_enabled: 'NÃO',
+        daily_goal_amount: '',
+        daily_goal_last_alert_date: '',
+        daily_goal_last_alert_level: '',
+        daily_goal_scope: 'personal',
+        monthly_budget_enabled: 'NÃO',
+        monthly_budget_amount: '',
+        monthly_budget_last_alert_date: '',
+        monthly_budget_last_alert_level: '',
+        monthly_budget_scope: 'personal'
     };
 
     const updated = {
@@ -480,11 +500,21 @@ async function upsertUserSettings(userId, patch) {
         updated.language,
         updated.created_at,
         updated.defaults_enabled,
-        updated.default_reserve_percent
+        updated.default_reserve_percent,
+        updated.daily_goal_enabled,
+        updated.daily_goal_amount,
+        updated.daily_goal_last_alert_date,
+        updated.daily_goal_last_alert_level,
+        updated.daily_goal_scope,
+        updated.monthly_budget_enabled,
+        updated.monthly_budget_amount,
+        updated.monthly_budget_last_alert_date,
+        updated.monthly_budget_last_alert_level,
+        updated.monthly_budget_scope
     ];
 
     if (existing) {
-        await updateRowInSheet(`${SETTINGS_SHEET}!A${existing.rowIndex}:H${existing.rowIndex}`, rowData);
+        await updateRowInSheet(`${SETTINGS_SHEET}!A${existing.rowIndex}:M${existing.rowIndex}`, rowData);
     } else {
         await appendRowToSheet(SETTINGS_SHEET, rowData);
     }

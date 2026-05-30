@@ -74,6 +74,21 @@ test('dashboard auth allows local dev fallback only without public/production mo
     }
 });
 
+test('dashboard auth uses short-lived tokens by default', () => {
+    const { auth, restore } = loadDashboardAuthWithEnv({
+        DASHBOARD_TOKEN_SECRET: 'test-secret-default-ttl'
+    });
+    try {
+        const before = Math.floor(Date.now() / 1000);
+        const token = auth.generateDashboardToken({ userId: 'user-a' });
+        const payload = auth.verifyDashboardToken(token);
+        assert.ok(payload.exp - before <= 901);
+        assert.ok(payload.exp - before >= 299);
+    } finally {
+        restore();
+    }
+});
+
 test('dashboard auth rejects tampered tokens and tokens signed with another secret', () => {
     const { auth, restore } = loadDashboardAuthWithEnv({
         DASHBOARD_TOKEN_SECRET: 'test-secret-one'
@@ -100,6 +115,25 @@ test('dashboard auth caps excessive token ttl', () => {
         const token = auth.generateDashboardToken({ userId: 'user-a', ttlSeconds: 999999 });
         const payload = auth.verifyDashboardToken(token);
         assert.ok(payload.exp - before <= 901);
+    } finally {
+        restore();
+    }
+});
+
+test('dashboard access link reports the effective capped ttl', () => {
+    const { auth, restore } = loadDashboardAuthWithEnv({
+        DASHBOARD_BASE_URL: 'https://finance.example.com',
+        DASHBOARD_TOKEN_SECRET: 'test-secret-link-ttl',
+        DASHBOARD_TOKEN_MAX_TTL_SECONDS: '900'
+    });
+    try {
+        const link = auth.buildDashboardAccessLink({ userId: 'user-a', ttlSeconds: 999999 });
+        assert.strictEqual(link.ttlSeconds, 900);
+        assert.match(link.tokenRef, /^[a-f0-9]{16}$/);
+
+        const token = new URLSearchParams(new URL(link.url).hash.slice(1)).get('token');
+        const payload = auth.verifyDashboardToken(token);
+        assert.ok(payload.exp - payload.iat <= 900);
     } finally {
         restore();
     }

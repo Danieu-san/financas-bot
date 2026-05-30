@@ -1,7 +1,8 @@
 const crypto = require('crypto');
 
-const DEFAULT_TTL_SECONDS = Math.max(300, Number.parseInt(process.env.DASHBOARD_TOKEN_TTL_SECONDS || '7200', 10));
-const MAX_TTL_SECONDS = Math.max(300, Number.parseInt(process.env.DASHBOARD_TOKEN_MAX_TTL_SECONDS || '86400', 10));
+const MIN_TTL_SECONDS = 300;
+const DEFAULT_TTL_SECONDS = Math.max(MIN_TTL_SECONDS, Number.parseInt(process.env.DASHBOARD_TOKEN_TTL_SECONDS || '900', 10));
+const MAX_TTL_SECONDS = Math.max(MIN_TTL_SECONDS, Number.parseInt(process.env.DASHBOARD_TOKEN_MAX_TTL_SECONDS || '1800', 10));
 const DEV_DASHBOARD_SECRET = 'dashboard-dev-secret';
 
 function getDashboardBaseUrl() {
@@ -52,6 +53,10 @@ function signTokenPayload(payload) {
         .replace(/=+$/g, '');
 }
 
+function hashDashboardToken(token) {
+    return crypto.createHash('sha256').update(String(token || '')).digest('hex').slice(0, 16);
+}
+
 function timingSafeStringEqual(left, right) {
     const leftBuffer = Buffer.from(String(left || ''));
     const rightBuffer = Buffer.from(String(right || ''));
@@ -59,11 +64,15 @@ function timingSafeStringEqual(left, right) {
     return crypto.timingSafeEqual(leftBuffer, rightBuffer);
 }
 
+function resolveDashboardTtl(ttlSeconds = DEFAULT_TTL_SECONDS) {
+    const parsedTtl = Number.parseInt(ttlSeconds, 10) || DEFAULT_TTL_SECONDS;
+    return Math.min(MAX_TTL_SECONDS, Math.max(MIN_TTL_SECONDS, parsedTtl));
+}
+
 function generateDashboardToken({ userId, ttlSeconds = DEFAULT_TTL_SECONDS, isAdmin = false }) {
     const header = { alg: 'HS256', typ: 'JWT' };
     const nowSec = Math.floor(Date.now() / 1000);
-    const parsedTtl = Number.parseInt(ttlSeconds, 10) || DEFAULT_TTL_SECONDS;
-    const safeTtl = Math.min(MAX_TTL_SECONDS, Math.max(300, parsedTtl));
+    const safeTtl = resolveDashboardTtl(ttlSeconds);
     const payload = {
         uid: String(userId || ''),
         iat: nowSec,
@@ -103,10 +112,12 @@ function verifyDashboardToken(token) {
 function buildDashboardAccessLink({ userId, ttlSeconds = DEFAULT_TTL_SECONDS, isAdmin = false }) {
     const baseUrl = getDashboardBaseUrl();
     if (!baseUrl) return null;
-    const token = generateDashboardToken({ userId, ttlSeconds, isAdmin });
+    const effectiveTtlSeconds = resolveDashboardTtl(ttlSeconds);
+    const token = generateDashboardToken({ userId, ttlSeconds: effectiveTtlSeconds, isAdmin });
     return {
         url: `${baseUrl}/dashboard#token=${encodeURIComponent(token)}`,
-        ttlSeconds
+        ttlSeconds: effectiveTtlSeconds,
+        tokenRef: hashDashboardToken(token)
     };
 }
 

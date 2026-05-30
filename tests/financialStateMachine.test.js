@@ -22,9 +22,16 @@ const CARD_SHEETS = [
     'Cartão Nubank - Cristina',
     'Cartão Atacadão'
 ];
+const USER_SETTINGS_HEADER = [
+    'user_id', 'timezone', 'weekly_checkin_enabled', 'monthly_report_enabled',
+    'language', 'created_at', 'auto_reserve_enabled', 'auto_reserve_percent',
+    'daily_goal_enabled', 'daily_goal_amount', 'daily_goal_last_alert_date', 'daily_goal_last_alert_level', 'daily_goal_scope',
+    'monthly_budget_enabled', 'monthly_budget_amount', 'monthly_budget_last_alert_date', 'monthly_budget_last_alert_level', 'monthly_budget_scope'
+];
 
 const sheets = {};
 const deletedRows = [];
+const createdCalendarEvents = [];
 const structuredResponses = [];
 let stateMachineFailed = false;
 let financialScopeUserIds = [USER_ID];
@@ -77,20 +84,47 @@ function resetSheets() {
         [USER_ID, 'Usuario Estado Completo', 5000, 2500, 'SIM', 'montar reserva', '2026-01-01T00:00:00.000Z']
     ];
     sheets.UserSettings = [
-        ['user_id', 'timezone', 'weekly_checkin_enabled', 'monthly_report_enabled', 'language', 'created_at', 'auto_reserve_enabled', 'auto_reserve_percent'],
-        [USER_ID, 'America/Sao_Paulo', 'NÃO', 'SIM', 'pt-BR', '2026-01-01T00:00:00.000Z', 'NÃO', '10']
+        USER_SETTINGS_HEADER,
+        [USER_ID, 'America/Sao_Paulo', 'NÃO', 'SIM', 'pt-BR', '2026-01-01T00:00:00.000Z', 'NÃO', '10', 'NÃO', '', '', '', 'personal', 'NÃO', '', '', '', 'personal']
     ];
     sheets.Saídas = [['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Observações', 'user_id']];
     sheets.Entradas = [['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Observações', 'user_id']];
     sheets.Transferências = [['Data', 'Descrição', 'Valor', 'Origem', 'Destino', 'Método', 'Observações', 'Status', 'user_id']];
     sheets.Contas = [['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa']];
     sheets.Dívidas = [DEBTS_HEADER];
+    sheets.Metas = [['Nome da Meta', 'Valor Alvo', 'Valor Atual', '% Progresso', 'Valor Mensal Necessário', 'Data Fim', 'Status', 'Prioridade', 'user_id']];
     for (const sheetName of CARD_SHEETS) {
         sheets[sheetName] = [['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'user_id']];
     }
     deletedRows.length = 0;
+    createdCalendarEvents.length = 0;
     structuredResponses.length = 0;
     financialScopeUserIds = [USER_ID];
+}
+
+function todayBr() {
+    return new Intl.DateTimeFormat('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    }).format(new Date());
+}
+
+function daysRemainingTodaySaoPaulo() {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).formatToParts(new Date()).reduce((acc, part) => {
+        acc[part.type] = part.value;
+        return acc;
+    }, {});
+    const year = Number(parts.year);
+    const month = Number(parts.month) - 1;
+    const day = Number(parts.day);
+    return Math.max(1, new Date(year, month + 1, 0).getDate() - day + 1);
 }
 
 function enqueueStructuredResponse(response) {
@@ -128,6 +162,11 @@ function installMocks() {
                 if (!sheets[name]) sheets[name] = [[]];
                 sheets[name].push(row);
             },
+            createCalendarEvent: async (title, startDateTime, recurrenceRule, options = {}) => {
+                const event = { title, startDateTime, recurrenceRule, options };
+                createdCalendarEvents.push(event);
+                return event;
+            },
             updateRowInSheet: async (range, row) => {
                 const name = getSheetName(range);
                 const rowMatch = String(range).match(/![A-Z]+(\d+):/);
@@ -148,8 +187,16 @@ function installMocks() {
     const geminiMock = {
         askLLM: async (prompt = '') => {
             const text = String(prompt).toLowerCase();
-            if (text.includes('forma de pagamento')) return 'PIX';
+            if (text.includes('forma de pagamento')) {
+                const answerMatch = String(prompt).match(/Resposta do usu.rio:\s*"([^"]*)"/i);
+                const answer = (answerMatch?.[1] || '').toLowerCase();
+                if (answer.includes('credito') || answer.includes('crédito')) return 'Crédito';
+                if (answer.includes('debito') || answer.includes('débito')) return 'Débito';
+                if (answer.includes('dinheiro')) return 'Dinheiro';
+                return 'PIX';
+            }
             if (text.includes('recebimento')) return 'PIX';
+            if (text.includes('prioridade')) return 'Alta';
             return 'PIX';
         },
         getStructuredResponseFromLLM: async () => structuredResponses.shift() || {},
@@ -169,6 +216,19 @@ function installMocks() {
         filename: geminiClientPath,
         loaded: true,
         exports: { askLLM: geminiMock.askLLM }
+    };
+
+    const audioPath = require.resolve('../src/handlers/audioHandler');
+    require.cache[audioPath] = {
+        id: audioPath,
+        filename: audioPath,
+        loaded: true,
+        exports: {
+            handleAudio: async (msg) => {
+                await msg.reply('🎙️ Entendido! Recebi seu áudio e já estou processando. Um momento...');
+                return msg.__transcribedText || 'gastei 30 com uber no pix';
+            }
+        }
     };
 }
 
@@ -211,6 +271,18 @@ function createMockMediaMessage(text, { filename = 'extrato.csv', mimetype = 'te
     return msg;
 }
 
+function createMockAudioMessage(transcribedText) {
+    const msg = createMockMessage('');
+    msg.type = 'ptt';
+    msg.hasMedia = true;
+    msg.__transcribedText = transcribedText;
+    msg.downloadMedia = async () => ({
+        mimetype: 'audio/ogg',
+        data: Buffer.from('fake-audio', 'utf8').toString('base64')
+    });
+    return msg;
+}
+
 async function send(body) {
     const msg = createMockMessage(body);
     await handleMessage(msg);
@@ -221,6 +293,12 @@ async function sendMedia(text, options) {
     const msg = createMockMediaMessage(text, options);
     await handleMessage(msg);
     return msg.replies.at(-1) || '';
+}
+
+async function sendAudio(transcribedText) {
+    const msg = createMockAudioMessage(transcribedText);
+    await handleMessage(msg);
+    return msg.replies;
 }
 
 function resetState() {
@@ -284,6 +362,34 @@ stateMachineTest('financial states: explicit PIX expense is saved without asking
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
 });
 
+stateMachineTest('financial states: audio transcription enters the normal financial routing', async () => {
+    resetState();
+    enqueueStructuredResponse({
+        intent: 'gasto',
+        gastoDetails: [
+            {
+                descricao: 'uber do áudio',
+                valor: 30,
+                categoria: 'Transporte',
+                subcategoria: 'UBER / 99',
+                pagamento: 'PIX',
+                recorrente: 'Não',
+                data: '10/02/2026'
+            }
+        ]
+    });
+
+    const replies = await sendAudio('gastei 30 com uber no pix');
+
+    assert.match(replies[0], /áudio/i);
+    assert.match(replies.at(-1), /Gasto de R\$30\.00/i);
+    assert.strictEqual(sheets.Saídas.length, 2);
+    assert.strictEqual(sheets.Saídas[1][1], 'uber do áudio');
+    assert.strictEqual(sheets.Saídas[1][6], 'PIX');
+    assert.strictEqual(sheets.Saídas[1][9], USER_ID);
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
+
 stateMachineTest('financial states: new expense command interrupts pending statement import confirmation', async () => {
     resetState();
     userStateManager.setState(SENDER, {
@@ -336,6 +442,142 @@ stateMachineTest('financial states: terms command is not swallowed by incomplete
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
 });
 
+stateMachineTest('financial states: settings commands update UserSettings and clear state', async () => {
+    resetState();
+
+    let reply = await send('ativar checkin semanal');
+    assert.match(reply, /Check-in semanal ativado/i);
+    assert.strictEqual(sheets.UserSettings[1][2], 'SIM');
+
+    reply = await send('desativar checkin semanal');
+    assert.match(reply, /Check-in semanal desativado/i);
+    assert.strictEqual(sheets.UserSettings[1][2], 'NÃO');
+
+    reply = await send('definir reserva 12%');
+    assert.match(reply, /12%/);
+    assert.strictEqual(sheets.UserSettings[1][6], 'SIM');
+    assert.strictEqual(String(sheets.UserSettings[1][7]), '12');
+
+    reply = await send('desativar reserva');
+    assert.match(reply, /reserva desativada/i);
+    assert.strictEqual(sheets.UserSettings[1][6], 'NÃO');
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
+
+stateMachineTest('financial states: monthly budget settings command stores the monthly free budget', async () => {
+    resetState();
+
+    const reply = await send('definir orçamento mensal 3000');
+
+    assert.match(reply, /orçamento mensal livre/i);
+    assert.match(reply, /R\$ 3000,00/);
+    assert.strictEqual(sheets.UserSettings[1][13], 'SIM');
+    assert.strictEqual(String(sheets.UserSettings[1][14]), '3000');
+    assert.strictEqual(sheets.UserSettings[1][17], 'personal');
+    assert.strictEqual(sheets.UserSettings[1][8], 'NÃO');
+});
+
+stateMachineTest('financial states: monthly budget asks for scope when user has family sharing', async () => {
+    resetState();
+    financialScopeUserIds = [USER_ID, PARTNER_ID];
+
+    let reply = await send('definir orçamento mensal 3000');
+
+    assert.match(reply, /pessoal ou da família/i);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_monthly_budget_scope');
+
+    reply = await send('família');
+
+    assert.match(reply, /Orçamento mensal livre familiar configurado/i);
+    assert.strictEqual(sheets.UserSettings[1][13], 'SIM');
+    assert.strictEqual(String(sheets.UserSettings[1][14]), '3000');
+    assert.strictEqual(sheets.UserSettings[1][17], 'family');
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
+
+stateMachineTest('financial states: monthly budget can ask for amount before scope', async () => {
+    resetState();
+    financialScopeUserIds = [USER_ID, PARTNER_ID];
+
+    let reply = await send('definir orçamento mensal');
+
+    assert.match(reply, /Qual é o valor/i);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_monthly_budget_amount');
+
+    reply = await send('2500');
+
+    assert.match(reply, /pessoal ou da família/i);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_monthly_budget_scope');
+
+    reply = await send('família');
+
+    assert.match(reply, /Orçamento mensal livre familiar configurado/i);
+    assert.strictEqual(String(sheets.UserSettings[1][14]), '2500');
+    assert.strictEqual(sheets.UserSettings[1][17], 'family');
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
+
+stateMachineTest('financial states: owner can switch an existing monthly budget to family scope after sharing', async () => {
+    resetState();
+    financialScopeUserIds = [USER_ID, PARTNER_ID];
+    sheets.UserSettings[1][13] = 'SIM';
+    sheets.UserSettings[1][14] = '3000';
+    sheets.UserSettings[1][17] = 'personal';
+
+    const reply = await send('orçamento mensal família');
+
+    assert.match(reply, /alterado para familiar/i);
+    assert.strictEqual(sheets.UserSettings[1][17], 'family');
+});
+
+stateMachineTest('financial states: monthly budget alert fires when spending reaches the daily pace milestone', async () => {
+    resetState();
+    sheets.UserSettings[1][13] = 'SIM';
+    sheets.UserSettings[1][14] = String(50 * daysRemainingTodaySaoPaulo());
+    sheets.Saídas.push([todayBr(), 'mercado anterior', 'Alimentação', 'SUPERMERCADO', 20, 'Usuario Estado', 'PIX', 'Não', '', USER_ID]);
+    enqueueStructuredResponse({
+        intent: 'gasto',
+        gastoDetails: [{
+            descricao: 'farmácia',
+            valor: 25,
+            categoria: 'Saúde',
+            subcategoria: 'FARMÁCIA',
+            pagamento: 'PIX',
+            recorrente: 'Não',
+            data: todayBr()
+        }]
+    });
+
+    const reply = await send('gastei 25 na farmácia no pix');
+
+    assert.match(reply, /orçamento mensal/i);
+    assert.match(reply, /90%/);
+    assert.strictEqual(sheets.UserSettings[1][15], todayBr());
+    assert.strictEqual(String(sheets.UserSettings[1][16]), '80');
+});
+
+stateMachineTest('financial states: reminder creation writes Calendar event scoped to user', async () => {
+    resetState();
+    enqueueStructuredResponse({
+        intent: 'criar_lembrete',
+        lembreteDetails: {
+            titulo: 'Pagar IPVA',
+            dataHora: '12/05/2026 09:00',
+            recorrencia: ''
+        }
+    });
+
+    const reply = await send('me lembre de pagar o IPVA amanhã às 9h');
+
+    assert.match(reply, /Lembrete criado/i);
+    assert.strictEqual(createdCalendarEvents.length, 1);
+    assert.strictEqual(createdCalendarEvents[0].title, 'Pagar IPVA');
+    assert.strictEqual(createdCalendarEvents[0].startDateTime, '12/05/2026 09:00');
+    assert.strictEqual(createdCalendarEvents[0].options.userId, USER_ID);
+    assert.strictEqual(createdCalendarEvents[0].options.whatsappId, SENDER);
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
+
 stateMachineTest('financial states: credit card selection validates input and installment writes keep user_id', async () => {
     resetState();
     userStateManager.setState(SENDER, {
@@ -370,6 +612,82 @@ stateMachineTest('financial states: credit card selection validates input and in
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
 });
 
+stateMachineTest('financial states: explicit credit card and à vista expense skips card and installment questions', async () => {
+    resetState();
+    enqueueStructuredResponse({
+        intent: 'gasto',
+        gastoDetails: [{
+            descricao: 'mercado',
+            valor: 10,
+            categoria: 'Alimentação',
+            subcategoria: 'SUPERMERCADO',
+            pagamento: 'Crédito',
+            recorrente: 'Não'
+        }]
+    });
+
+    const reply = await send('gastei 10 reais no mercado no crédito no cartão nubank thais à vista');
+
+    assert.match(reply, /lançado no/i);
+    assert.match(reply, /Cartão Nubank - Thais/i);
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
+    assert.strictEqual(sheets['Cartão Nubank - Thais'].length, 2);
+    assert.strictEqual(sheets['Cartão Nubank - Thais'][1][4], '1/1');
+    assert.strictEqual(sheets['Cartão Nubank - Thais'][1].at(-1), USER_ID);
+});
+
+stateMachineTest('financial states: monthly budget alert counts explicit credit card spending in legacy card sheets', async () => {
+    resetState();
+    sheets.UserSettings[1][13] = 'SIM';
+    sheets.UserSettings[1][14] = String(20 * daysRemainingTodaySaoPaulo());
+    enqueueStructuredResponse({
+        intent: 'gasto',
+        gastoDetails: [{
+            descricao: 'mercado',
+            valor: 20,
+            categoria: 'Alimentação',
+            subcategoria: 'SUPERMERCADO',
+            pagamento: 'Crédito',
+            recorrente: 'Não'
+        }]
+    });
+
+    const reply = await send('gastei 20 reais no mercado no crédito no cartão nubank thais à vista');
+
+    assert.match(reply, /orçamento mensal/i);
+    assert.match(reply, /100%/);
+    assert.strictEqual(sheets.UserSettings[1][15], todayBr());
+    assert.strictEqual(sheets.UserSettings[1][16], '100');
+});
+
+stateMachineTest('financial states: family monthly budget alert includes partner spending', async () => {
+    resetState();
+    financialScopeUserIds = [USER_ID, PARTNER_ID];
+    sheets.UserSettings[1][13] = 'SIM';
+    sheets.UserSettings[1][14] = String(50 * daysRemainingTodaySaoPaulo());
+    sheets.UserSettings[1][17] = 'family';
+    sheets.Saídas.push([todayBr(), 'mercado parceiro', 'Alimentação', 'SUPERMERCADO', 20, 'Thais', 'PIX', 'Não', '', PARTNER_ID]);
+    enqueueStructuredResponse({
+        intent: 'gasto',
+        gastoDetails: [{
+            descricao: 'farmácia',
+            valor: 25,
+            categoria: 'Saúde',
+            subcategoria: 'FARMÁCIA',
+            pagamento: 'PIX',
+            recorrente: 'Não',
+            data: todayBr()
+        }]
+    });
+
+    const reply = await send('gastei 25 na farmácia no pix');
+
+    assert.match(reply, /orçamento mensal familiar/i);
+    assert.match(reply, /90%/);
+    assert.strictEqual(sheets.UserSettings[1][15], todayBr());
+    assert.strictEqual(String(sheets.UserSettings[1][16]), '80');
+});
+
 stateMachineTest('financial states: debt payment validates amount, updates owned debt and clears state', async () => {
     resetState();
     const debtRow = [
@@ -388,6 +706,171 @@ stateMachineTest('financial states: debt payment validates amount, updates owned
     assert.match(await send('100'), /novo saldo devedor/i);
     assert.strictEqual(Number(sheets.Dívidas[1][4]), 900);
     assert.strictEqual(sheets.Dívidas[1][13], '10.00%');
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
+
+stateMachineTest('financial states: goal creation writes Metas row with user_id and clears state', async () => {
+    resetState();
+    enqueueStructuredResponse({ intent: 'criar_meta' });
+
+    let reply = await send('criar meta');
+    assert.match(reply, /nome da sua nova meta/i);
+
+    reply = await send('Reserva de emergência');
+    assert.match(reply, /valor alvo/i);
+
+    reply = await send('10000');
+    assert.match(reply, /valor guardado/i);
+
+    reply = await send('2500');
+    assert.match(reply, /data final/i);
+
+    reply = await send('31/12/2026');
+    assert.match(reply, /prioridade/i);
+
+    reply = await send('alta');
+    assert.match(reply, /registrada com sucesso/i);
+
+    assert.strictEqual(sheets.Metas.length, 2);
+    const row = sheets.Metas[1];
+    assert.strictEqual(row[0], 'Reserva de emergência');
+    assert.strictEqual(row[1], 10000);
+    assert.strictEqual(row[2], 2500);
+    assert.strictEqual(row[7], 'Alta');
+    assert.strictEqual(row[8], USER_ID);
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
+
+stateMachineTest('financial states: batch confirmation saves mixed entries with existing payment methods', async () => {
+    resetState();
+    userStateManager.setState(SENDER, {
+        action: 'confirming_transactions',
+        data: {
+            person: 'Usuario Estado',
+            transactions: [
+                {
+                    type: 'Saídas',
+                    data: '10/02/2026',
+                    descricao: 'mercado lote',
+                    categoria: 'Alimentação',
+                    subcategoria: 'SUPERMERCADO',
+                    valor: 80,
+                    pagamento: 'PIX',
+                    recorrente: 'Não'
+                },
+                {
+                    type: 'Entradas',
+                    data: '10/02/2026',
+                    descricao: 'freela lote',
+                    categoria: 'Renda Extra',
+                    valor: 200,
+                    recebimento: 'PIX',
+                    recorrente: 'Não'
+                }
+            ]
+        }
+    });
+
+    const reply = await send('sim');
+
+    assert.match(reply, /2 de 2 itens foram salvos/i);
+    assert.strictEqual(sheets.Saídas.length, 2);
+    assert.strictEqual(sheets.Entradas.length, 2);
+    assert.strictEqual(sheets.Saídas[1][1], 'mercado lote');
+    assert.strictEqual(sheets.Entradas[1][1], 'freela lote');
+    assert.strictEqual(sheets.Saídas[1][9], USER_ID);
+    assert.strictEqual(sheets.Entradas[1][8], USER_ID);
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
+
+stateMachineTest('financial states: batch asks one payment method when missing and writes every item', async () => {
+    resetState();
+    userStateManager.setState(SENDER, {
+        action: 'confirming_transactions',
+        data: {
+            transactions: [
+                {
+                    type: 'Saídas',
+                    data: '10/02/2026',
+                    descricao: 'padaria lote',
+                    categoria: 'Alimentação',
+                    subcategoria: 'PADARIA',
+                    valor: 20,
+                    recorrente: 'Não'
+                },
+                {
+                    type: 'Saídas',
+                    data: '11/02/2026',
+                    descricao: 'ônibus lote',
+                    categoria: 'Transporte',
+                    subcategoria: 'TRANSPORTE PÚBLICO',
+                    valor: 5,
+                    recorrente: 'Não'
+                }
+            ]
+        }
+    });
+
+    let reply = await send('sim');
+    assert.match(reply, /como esses itens foram pagos/i);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_batch_payment_method');
+
+    reply = await send('pix');
+
+    assert.match(reply, /2 de 2 itens foram salvos/i);
+    assert.strictEqual(sheets.Saídas.length, 3);
+    assert.deepStrictEqual(sheets.Saídas.slice(1).map(row => [row[1], row[6], row[9]]), [
+        ['padaria lote', 'PIX', USER_ID],
+        ['ônibus lote', 'PIX', USER_ID]
+    ]);
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
+
+stateMachineTest('financial states: batch credit card flow writes installments for every item', async () => {
+    resetState();
+    userStateManager.setState(SENDER, {
+        action: 'awaiting_batch_payment_method',
+        data: {
+            transactions: [
+                {
+                    type: 'Saídas',
+                    data: '10/02/2026',
+                    descricao: 'mercado crédito lote',
+                    categoria: 'Alimentação',
+                    valor: 100,
+                    recorrente: 'Não'
+                },
+                {
+                    type: 'Saídas',
+                    data: '10/02/2026',
+                    descricao: 'farmácia crédito lote',
+                    categoria: 'Saúde',
+                    valor: 50,
+                    recorrente: 'Não'
+                }
+            ]
+        }
+    });
+
+    let reply = await send('credito');
+    assert.match(reply, /Em qual cartão/i);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_credit_card_selection_batch');
+
+    reply = await send('1');
+    assert.match(reply, /E as parcelas/i);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_installments_batch');
+
+    reply = await send('2');
+
+    assert.match(reply, /Lançamentos no crédito finalizados/i);
+    const cardRows = sheets[CARD_SHEETS[0]].slice(1);
+    assert.strictEqual(cardRows.length, 4);
+    assert.deepStrictEqual(cardRows.map(row => [row[1], row[3], row[4], row[6]]), [
+        ['mercado crédito lote', '50.00', '1/2', USER_ID],
+        ['mercado crédito lote', '50.00', '2/2', USER_ID],
+        ['farmácia crédito lote', '25.00', '1/2', USER_ID],
+        ['farmácia crédito lote', '25.00', '2/2', USER_ID]
+    ]);
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
 });
 

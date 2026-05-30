@@ -1,6 +1,6 @@
 # Estado atual do FinancasBot
 
-Atualizado em: 2026-05-26
+Atualizado em: 2026-05-29
 
 ## Produto
 
@@ -32,16 +32,28 @@ Sempre revalidar EC2/PM2/logs antes de afirmar que producao esta saudavel.
 - Planilha criada no Drive do usuario.
 - Manual/link de orientacao enviado no onboarding.
 - Importacao de CSV/OFX com previa completa, confirmacao e deteccao de duplicados.
+- Importacao de CSV/OFX tem limites antes do parse: `IMPORT_MAX_FILE_BYTES` padrao 1 MiB e `IMPORT_MAX_ROWS` padrao 1000 linhas nao vazias.
 - Importacao diferencia conta corrente, cartao, transferencias internas, caixinha/reserva e rendimentos.
 - Familia/planilha compartilhada: lancamentos podem ir para a planilha dona do grupo com `user_id` do responsavel.
 - Dashboard com filtros de usuario/mes e API de resumo consolidada para reduzir quota de Google Sheets.
 - Links do dashboard enviados pelo WhatsApp usam `#token=`; a pagina guarda o token em `sessionStorage` e remove o token da barra de endereco para reduzir exposicao em logs/historico/referrer.
+- Tokens de dashboard agora sao curtos por padrao: `DASHBOARD_TOKEN_TTL_SECONDS` padrao 900s e `DASHBOARD_TOKEN_MAX_TTL_SECONDS` padrao 1800s.
+- Acesso ao dashboard grava auditoria local sanitizada em `data/dashboard-access.jsonl` por padrao, controlada por `DASHBOARD_ACCESS_LOG_ENABLED` e `DASHBOARD_ACCESS_LOG_PATH`. O log guarda hashes de token/usuarios, evento, escopo e caminho sem querystring; nao guarda token, URL completa, telefone ou dados financeiros.
 - Comandos admin sensiveis agora exigem segunda mensagem `confirmar admin` antes de executar. A confirmacao fica so em memoria, expira em 5 minutos e nao grava o comando pendente em `state_store.json`.
 - AdminActionLog local foi adicionado para acoes admin sensiveis: grava JSONL sanitizado em `data/admin-actions.jsonl` por padrao, com actor/target em hash e sem corpo de mensagem manual. Validar deploy antes de assumir ativo em producao.
 - Leituras diretas do Google Sheets passam por cache curto em memoria (`GOOGLE_SHEETS_READ_CACHE_TTL_MS`, padrao 20s) com invalidacao apos escrita, para reduzir bursts de quota sem misturar dados entre planilhas.
 - Perguntas financeiras via read model/SQLite e fallback.
 - Cron jobs de resumo, agenda e vencimentos.
 - Validacao real de cron em 2026-05-26 confirmou agenda do Google Calendar e vencimentos de `Contas`; marcadores `TESTE_APAGAR Cron` foram removidos ao final (`remainingRows=0`, `remainingEvents=0`).
+- Auditoria de cobertura criada em `docs/audits/bot-capability-coverage.md` para rastrear caminhos basicos prometidos pelo bot e evitar lacunas de teste como a de metas.
+- Checklist completo de cobertura criado em `docs/audits/bot-complete-coverage-checklist.md`, mapeando cada caminho conhecido do bot para teste ativo ou E2E opcional documentado.
+- `npm test` agora roda apenas testes ativos. O antigo `tests/integration.test.js` foi removido por ser legado/pulado e o `tests/functional.test.js` ficou apenas como E2E opcional via `npm run test:functional`.
+- Fluxos de audio e lotes financeiros foram promovidos para cobertura ativa em `tests/financialStateMachine.test.js`: audio transcrito entra no mesmo roteamento textual, lote misto grava entradas/saidas, lote sem pagamento pergunta uma vez, e lote no credito grava parcelas por item.
+- Dependencias moderadamente vulneraveis foram atualizadas em 2026-05-26: `googleapis`, `node-cron` e `qs`. Validar sempre com `npm audit --audit-level=moderate` antes de release.
+- Orcamento mensal livre substitui a meta diaria fixa: comando `definir orçamento mensal <valor>`, comando `desativar orçamento mensal`, alertas por WhatsApp em 50%, 80% e 100% do ritmo diario recomendado e graficos diario/mensal no dashboard. O onboarding sugere `definir orçamento mensal 3000`.
+- Orcamento mensal livre tem escopo `personal` ou `family`. Com familia ativa, `definir orçamento mensal <valor>` pergunta se o orçamento e pessoal ou familiar. A resposta curta `orçamento mensal família`/`orçamento mensal pessoal` altera o escopo de um orçamento ja ativo.
+- Ao ativar vinculo familiar por `admin compartilhar planilha`, se o dono ja tiver orçamento mensal ativo, o bot envia ao dono uma pergunta para decidir se ele continua pessoal ou vira familiar.
+- Roteamento de gastos ficou mais inteligente em 2026-05-29: se a mensagem ja trouxer `credito`, nome do cartao e `a vista`/parcelas, o bot pula perguntas redundantes e grava direto. Ha fallback para contar cartoes em `Lançamentos Cartão` e em abas legadas `Cartão ...` no orçamento mensal.
 
 ## Mudanca recente sobre caixinha/reserva
 
@@ -116,7 +128,7 @@ Tambem sanitiza logs de mensagens para esconder tokens, parametros OAuth e IDs d
 
 ## Higiene do workspace
 
-Em 2026-05-25, `git status --short` mostrava arquivos nao rastreados antigos:
+Em 2026-05-26, `git status --short` ainda mostrava arquivos nao rastreados antigos:
 
 - `.claude/`
 - `.env.bak-manual-url`
@@ -125,4 +137,12 @@ Em 2026-05-25, `git status --short` mostrava arquivos nao rastreados antigos:
 - `update_spreadsheet.js`
 - `update_spreadsheet_v2.js`
 
-Nao apagar nem mexer sem confirmar necessidade.
+Decisao recomendada registrada em `docs/audits/bot-complete-coverage-checklist.md`:
+
+- `.env.bak-manual-url`: mover para cofre fora do repo ou apagar com cuidado, pois e backup sensivel.
+- `debug.log`: apagar se nao houver investigacao ativa.
+- `site-analysis/`: apagar ou mover para pasta de artefatos fora do repo.
+- `update_spreadsheet.js` e `update_spreadsheet_v2.js`: apagar ou migrar para `scripts/` com travas antes de qualquer uso, pois podem alterar planilha real.
+- `.claude/settings.local.json`: manter fora do Git se ainda for usado pela ferramenta, ou apagar se estiver obsoleto.
+
+Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.

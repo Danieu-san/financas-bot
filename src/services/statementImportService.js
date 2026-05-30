@@ -9,6 +9,20 @@ const SUPPORTED_MIME_HINTS = [
     'application/vnd.ms-excel',
     'text/plain'
 ];
+const DEFAULT_MAX_IMPORT_FILE_BYTES = 1024 * 1024;
+const DEFAULT_MAX_IMPORT_ROWS = 1000;
+
+function getPositiveIntegerEnv(name, fallback) {
+    const parsed = Number.parseInt(process.env[name] || '', 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function getImportLimits() {
+    return {
+        maxFileBytes: getPositiveIntegerEnv('IMPORT_MAX_FILE_BYTES', DEFAULT_MAX_IMPORT_FILE_BYTES),
+        maxRows: getPositiveIntegerEnv('IMPORT_MAX_ROWS', DEFAULT_MAX_IMPORT_ROWS)
+    };
+}
 
 function getMediaFilename(media = {}, msg = {}) {
     return String(
@@ -49,6 +63,21 @@ function decodeMediaText(media = {}) {
     const data = String(media.data || '');
     if (!data) return '';
     return Buffer.from(data, 'base64').toString('utf8').replace(/^\uFEFF/, '');
+}
+
+function validateImportText(text) {
+    const { maxFileBytes, maxRows } = getImportLimits();
+    const byteLength = Buffer.byteLength(String(text || ''), 'utf8');
+    if (byteLength > maxFileBytes) {
+        return { valid: false, reason: 'file_too_large', maxFileBytes, byteLength };
+    }
+
+    const lineCount = String(text || '').split(/\r?\n/).filter(line => line.trim()).length;
+    if (lineCount > maxRows) {
+        return { valid: false, reason: 'too_many_rows', maxRows, lineCount };
+    }
+
+    return { valid: true, maxFileBytes, maxRows, byteLength, lineCount };
 }
 
 function splitDelimitedLine(line, delimiter) {
@@ -1021,6 +1050,17 @@ function parseImportMedia(media = {}, msg = {}, options = {}) {
         return { supported: false, reason: detected.reason, type: detected.type, transactions: [] };
     }
     const text = decodeMediaText(media);
+    const validation = validateImportText(text);
+    if (!validation.valid) {
+        return {
+            supported: false,
+            reason: validation.reason,
+            type: detected.type,
+            filename: detected.filename,
+            transactions: [],
+            limits: validation
+        };
+    }
     const transactions = parseStatementText(text, detected.type, options);
     const previewMessages = buildImportPreviewMessages(transactions);
     return {
@@ -1036,6 +1076,12 @@ function parseImportMedia(media = {}, msg = {}, options = {}) {
 function unsupportedImportMessage(reason) {
     if (reason === 'unsupported_binary') {
         return 'Por enquanto eu só importo extratos em CSV ou OFX. PDF e imagens ficam fora deste MVP.';
+    }
+    if (reason === 'file_too_large') {
+        return 'Esse arquivo está grande demais para importação segura. Envie um CSV/OFX menor ou divida o extrato em partes.';
+    }
+    if (reason === 'too_many_rows') {
+        return 'Esse arquivo tem linhas demais para uma conferência segura. Envie um CSV/OFX menor ou divida o extrato em partes.';
     }
     return 'Não reconheci esse arquivo para importação. Envie um extrato em CSV ou OFX.';
 }
@@ -1075,6 +1121,7 @@ module.exports = {
         normalizedTextIncludesTerm,
         recurringDescriptionSignature,
         isProbableInternalTransfer,
+        validateImportText,
         parseDelimited,
         splitDelimitedLine
     }

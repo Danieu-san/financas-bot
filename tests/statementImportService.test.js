@@ -91,6 +91,42 @@ test('statement import builds preview and parseImportMedia result', () => {
     assert.match(buildImportPreviewMessage(result.transactions), /Uber/);
 });
 
+test('statement import rejects oversized files before parsing', () => {
+    const previous = process.env.IMPORT_MAX_FILE_BYTES;
+    try {
+        process.env.IMPORT_MAX_FILE_BYTES = '40';
+        const media = mediaFromText('Data,Descricao,Valor\n17/05/2026,Uber,-23.40');
+        const result = parseImportMedia(media);
+
+        assert.strictEqual(result.supported, false);
+        assert.strictEqual(result.reason, 'file_too_large');
+        assert.match(unsupportedImportMessage(result.reason), /grande demais/i);
+    } finally {
+        if (previous === undefined) delete process.env.IMPORT_MAX_FILE_BYTES;
+        else process.env.IMPORT_MAX_FILE_BYTES = previous;
+    }
+});
+
+test('statement import rejects files with too many lines before parsing', () => {
+    const previous = process.env.IMPORT_MAX_ROWS;
+    try {
+        process.env.IMPORT_MAX_ROWS = '2';
+        const media = mediaFromText([
+            'Data,Descricao,Valor',
+            '17/05/2026,Uber,-23.40',
+            '18/05/2026,Mercado,-35.10'
+        ].join('\n'));
+        const result = parseImportMedia(media);
+
+        assert.strictEqual(result.supported, false);
+        assert.strictEqual(result.reason, 'too_many_rows');
+        assert.match(unsupportedImportMessage(result.reason), /linhas demais/i);
+    } finally {
+        if (previous === undefined) delete process.env.IMPORT_MAX_ROWS;
+        else process.env.IMPORT_MAX_ROWS = previous;
+    }
+});
+
 test('statement import marks rows that do not have a recognizable date', () => {
     const csv = [
         'Descrição;Valor;Tipo',

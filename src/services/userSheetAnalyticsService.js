@@ -1,5 +1,6 @@
 const { readDataFromSheet, runWithUserSheetContext, hasUserSpreadsheetContext } = require('./google');
-const { getFinancialScopeUserIds } = require('./oauthTokenStore');
+const { getFinancialScopeUserIds, getSharedSpreadsheetMembership } = require('./oauthTokenStore');
+const { getUserSettingsByUserId } = require('./userService');
 const { parseSheetDate, parseValue, normalizeText } = require('../utils/helpers');
 
 const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
@@ -98,6 +99,47 @@ function roundMoney(value) {
     return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
 }
 
+function getTodaySaoPauloDateString() {
+    return new Intl.DateTimeFormat('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    }).format(new Date());
+}
+
+function getSaoPauloDateParts() {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).formatToParts(new Date()).reduce((acc, part) => {
+        acc[part.type] = part.value;
+        return acc;
+    }, {});
+    return {
+        year: Number(parts.year),
+        month: Number(parts.month) - 1,
+        day: Number(parts.day)
+    };
+}
+
+function isFreeSpendingRow(row) {
+    const category = normalizeText(row?.[2] || '');
+    const recurring = normalizeText(row?.[7] || '');
+    if (recurring === 'sim') return false;
+    return ![
+        'transferencia',
+        'transferencias',
+        'divida',
+        'dividas',
+        'investimento',
+        'investimentos',
+        'reserva'
+    ].some(term => category.includes(term));
+}
+
 function buildReserveSummary(transfers = []) {
     const applied = roundMoney(transfers
         .filter(isReserveApplication)
@@ -155,6 +197,82 @@ function buildDailyFlow({ entradas, saidas, cartoes }) {
     });
 }
 
+function buildDailyGoalSummary({ settings, saidasRows, cartaoRows, userIds, period }) {
+    if (normalizeText(settings?.monthly_budget_enabled || '') !== 'sim') return null;
+    const monthlyAmount = parseValue(settings?.monthly_budget_amount);
+    if (!monthlyAmount || monthlyAmount <= 0) return null;
+    const scope = settings?.monthly_budget_scope === 'family' ? 'family' : 'personal';
+    const normalizedPeriod = normalizePeriod(period);
+    const todayParts = getSaoPauloDateParts();
+    const isCurrentMonth = normalizedPeriod.month === todayParts.month && normalizedPeriod.year === todayParts.year;
+
+    const today = getTodaySaoPauloDateString();
+    const todayMatches = (value) => {
+        const parsed = parseSheetDate(value);
+        return parsed ? `${String(parsed.getDate()).padStart(2, '0')}/${String(parsed.getMonth() + 1).padStart(2, '0')}/${parsed.getFullYear()}` === today : String(value || '').trim() === today;
+    };
+    const saidasEligible = saidasRows.slice(1)
+        .filter(row => rowBelongsToAnyUser(row, 9, userIds) && isFreeSpendingRow(row));
+    const cartoesEligible = cartaoRows.slice(1)
+        .filter(row => rowBelongsToAnyUser(row, 9, userIds));
+    const saidasToday = isCurrentMonth
+        ? saidasEligible.filter(row => todayMatches(row[0])).reduce((sum, row) => sum + parseValue(row[4]), 0)
+        : 0;
+    const cartoesToday = isCurrentMonth
+        ? cartoesEligible.filter(row => todayMatches(row[0])).reduce((sum, row) => sum + parseValue(row[3]), 0)
+        : 0;
+    const saidasMonth = saidasEligible
+        .filter(row => periodMatchesDate(row[0], normalizedPeriod.month, normalizedPeriod.year))
+        .reduce((sum, row) => sum + parseValue(row[4]), 0);
+    const cartoesMonth = cartoesEligible
+        .filter(row => periodMatchesDate(row[0], normalizedPeriod.month, normalizedPeriod.year))
+        .reduce((sum, row) => sum + parseValue(row[3]), 0);
+    const spent = roundMoney(saidasToday + cartoesToday);
+    const monthSpent = roundMoney(saidasMonth + cartoesMonth);
+    const monthRemaining = roundMoney(Math.max(0, monthlyAmount - monthSpent));
+    const monthPercentUsed = monthlyAmount > 0 ? Math.round((monthSpent / monthlyAmount) * 100) : 0;
+    const daysInMonth = new Date(normalizedPeriod.year, normalizedPeriod.month + 1, 0).getDate();
+    const daysRemaining = isCurrentMonth ? Math.max(1, daysInMonth - todayParts.day + 1) : 0;
+    const spentBeforeToday = Math.max(0, monthSpent - spent);
+    const budgetBeforeToday = Math.max(0, monthlyAmount - spentBeforeToday);
+    const dailyRecommendedAmount = isCurrentMonth ? roundMoney(budgetBeforeToday / daysRemaining) : 0;
+    const remaining = roundMoney(Math.max(0, dailyRecommendedAmount - spent));
+    const percentUsed = dailyRecommendedAmount > 0 ? Math.round((spent / dailyRecommendedAmount) * 100) : 0;
+
+    return {
+        mode: 'monthly_budget',
+        date: isCurrentMonth ? today : '',
+        amount: dailyRecommendedAmount,
+        monthlyAmount,
+        spent,
+        remaining,
+        percentUsed,
+        exceeded: isCurrentMonth && spent > dailyRecommendedAmount,
+        scope,
+        monthSpent,
+        monthRemaining,
+        monthPercentUsed,
+        daysRemaining,
+        dailyRecommendedAmount,
+        period: {
+            month: normalizedPeriod.month,
+            year: normalizedPeriod.year,
+            label: `${MONTH_NAMES[normalizedPeriod.month]} de ${normalizedPeriod.year}`
+        }
+    };
+}
+
+async function getDailyGoalDashboardSettings(userId) {
+    const membership = getSharedSpreadsheetMembership(userId);
+    if (membership?.owner_user_id) {
+        const ownerSettings = await getUserSettingsByUserId(membership.owner_user_id);
+        if (normalizeText(ownerSettings?.monthly_budget_enabled || '') === 'sim' && ownerSettings?.monthly_budget_scope === 'family') {
+            return { settings: ownerSettings, ownerUserId: membership.owner_user_id };
+        }
+    }
+    return { settings: await getUserSettingsByUserId(userId), ownerUserId: userId };
+}
+
 async function getUserSheetDashboardData(userId, { month, year } = {}) {
     const safeUserId = String(userId || '').trim();
     if (!safeUserId || !(await hasUserSpreadsheetContext({ userId: safeUserId }))) return null;
@@ -162,6 +280,7 @@ async function getUserSheetDashboardData(userId, { month, year } = {}) {
     return runWithUserSheetContext({ userId: safeUserId }, async () => {
         const financialScopeUserIds = getFinancialScopeUserIds(safeUserId);
         const period = normalizePeriod({ month, year });
+        const dailyGoalConfig = await getDailyGoalDashboardSettings(safeUserId);
         const [saidasRows, entradasRows, cartaoRows, transferRows, metasRows, dividasRows] = await Promise.all([
             readDataFromSheet('Saídas!A:J'),
             readDataFromSheet('Entradas!A:I'),
@@ -210,6 +329,13 @@ async function getUserSheetDashboardData(userId, { month, year } = {}) {
             },
             topCategories: buildTopCategories(expenses),
             dailyFlow: buildDailyFlow({ entradas, saidas, cartoes }),
+            dailyGoal: buildDailyGoalSummary({
+                settings: dailyGoalConfig.settings,
+                saidasRows,
+                cartaoRows,
+                userIds: dailyGoalConfig.settings?.monthly_budget_scope === 'family' ? financialScopeUserIds : [safeUserId],
+                period
+            }),
             recentTransactions: [...entradas, ...expenses].slice(-10).reverse(),
             goals: metasRows.slice(1).filter(row => rowBelongsToAnyUser(row, 8, financialScopeUserIds)),
             debts: dividasRows.slice(1).filter(row => rowBelongsToAnyUser(row, 17, financialScopeUserIds)),
@@ -228,6 +354,8 @@ module.exports = {
         rowBelongsToAnyUser,
         buildReserveSummary,
         isReserveApplication,
-        isReserveRedemption
+        isReserveRedemption,
+        isFreeSpendingRow,
+        buildDailyGoalSummary
     }
 };

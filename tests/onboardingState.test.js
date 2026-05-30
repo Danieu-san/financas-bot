@@ -140,7 +140,47 @@ test('onboarding menu explains optional settings commands', () => {
     assert.ok(menu.includes('Ajustes opcionais'));
     assert.ok(menu.includes('pergunta curta no domingo'));
     assert.ok(menu.includes('sugiro separar 10%'));
+    assert.ok(menu.includes('definir orçamento mensal 3000'));
+    assert.ok(menu.includes('gráficos diário e mensal no dashboard'));
     assert.ok(!menu.includes('Configurações rápidas'));
+});
+
+test('onboarding advances through the objective step before completing', async () => {
+    const { advanceOnboarding } = onboardingHandler.__test__;
+    const msgDebt = createMessage('sim');
+    userStateManager.setState(msgDebt.from, {
+        action: 'onboarding_flow',
+        step: 5,
+        data: {
+            full_name: 'Daniel Teste',
+            display_name: 'Daniel',
+            monthly_income: 5000,
+            fixed_expense_estimate: 2500
+        }
+    });
+
+    await advanceOnboarding(
+        msgDebt.from,
+        userStateManager.getState(msgDebt.from),
+        msgDebt,
+        { user_id: 'onboarding-user' }
+    );
+
+    assert.strictEqual(userStateManager.getState(msgDebt.from).step, 6);
+    assert.ok(msgDebt.replies.some(text => text.includes('objetivo principal')));
+
+    const msgGoal = createMessage('montar reserva');
+    await advanceOnboarding(
+        msgGoal.from,
+        userStateManager.getState(msgGoal.from),
+        msgGoal,
+        { user_id: 'onboarding-user' }
+    );
+
+    const state = userStateManager.getState(msgGoal.from);
+    assert.strictEqual(state.action, onboardingHandler.POST_ONBOARDING_DEBT_OFFER_ACTION);
+    assert.strictEqual(state.data.primaryGoal, 'montar reserva');
+    assert.ok(msgGoal.replies.some(text => text.includes('Onboarding concluído')));
 });
 
 test.after(() => {

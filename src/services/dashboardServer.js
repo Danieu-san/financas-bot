@@ -7,6 +7,7 @@ const { getAllUsers, getUserProfileByUserId } = require('./userService');
 const { buildGoogleAuthorizationUrl, completeGoogleOAuthCallback } = require('./googleOAuthService');
 const { sendWhatsAppMessage } = require('./whatsapp');
 const { prepareOnboardingState } = require('../handlers/onboardingHandler');
+const { recordDashboardAccessEvent } = require('./dashboardAccessLogService');
 const logger = require('../utils/logger');
 const metrics = require('../utils/metrics');
 
@@ -220,6 +221,12 @@ function dashboardHtml() {
     .chart-bar.balance { fill: #166534; }
     .chart-bar.balance.negative { fill: #b42318; }
     .chart-bar.available { fill: #0ea5a0; }
+    .daily-goal-grid { display: grid; grid-template-columns: repeat(2, 180px) 1fr; gap: 18px; align-items: center; }
+    .daily-donut { width: 180px; min-height: 180px; display: grid; place-items: center; }
+    .daily-goal-copy { display: grid; gap: 8px; }
+    .daily-goal-status { font-weight: 700; font-size: 1.1rem; }
+    .daily-goal-status.bad { color: var(--danger); }
+    .daily-goal-status.ok { color: var(--ok); }
     .bars { display: grid; gap: 8px; }
     .bar-row { display: grid; grid-template-columns: 120px 1fr auto; gap: 8px; align-items: center; }
     .bar-track { background: #e8e4de; border-radius: 999px; height: 10px; overflow: hidden; }
@@ -248,6 +255,8 @@ function dashboardHtml() {
       .hero { display: block; }
       .pill { display: inline-flex; margin-top: 10px; }
       .section-grid { grid-template-columns: 1fr; }
+      .daily-goal-grid { grid-template-columns: 1fr; }
+      .daily-donut { margin: 0 auto; }
       .bar-row { grid-template-columns: 90px 1fr auto; }
       .spark-row { grid-template-columns: 76px 1fr auto; }
       .wrap { padding: 14px 10px 30px; }
@@ -283,6 +292,14 @@ function dashboardHtml() {
         <div class="chart-note">Saldo econômico e disponível após caixinha/reserva</div>
       </div>
       <div id="financeChart" class="finance-chart" role="img" aria-label="Gráfico financeiro do período"></div>
+    </div>
+
+    <div class="section card">
+      <div class="chart-head">
+        <h2>Orçamento Livre</h2>
+        <div class="chart-note">Ritmo diário recalculado a partir do orçamento mensal</div>
+      </div>
+      <div id="dailyGoal" class="daily-goal-grid"></div>
     </div>
 
     <div class="section card">
@@ -433,6 +450,7 @@ function dashboardHtml() {
       const userSuffix = selectedUserLabel && userEl.style.display !== 'none' ? ' · ' + selectedUserLabel : '';
       document.getElementById('periodBadge').textContent = monthNames[Number(period.month ?? monthEl.value)] + ' de ' + (period.year || yearEl.value) + userSuffix;
       renderFinanceChart(k);
+      renderDailyGoal(data.dailyGoal);
 
       const cats = data.topCategories || [];
       const maxCat = Math.max(1, ...cats.map(c => Number(c.value || 0)));
@@ -507,6 +525,45 @@ function dashboardHtml() {
         '</svg>';
     }
 
+    function renderDailyGoal(goal) {
+      const container = document.getElementById('dailyGoal');
+      if (!goal || !goal.monthlyAmount) {
+        container.innerHTML = '<div class="empty">Orçamento mensal livre desativado. Para ativar, envie no WhatsApp: <strong>definir orçamento mensal 3000</strong>.</div>';
+        return;
+      }
+      const percent = Math.max(0, Number(goal.percentUsed || 0));
+      const usedArc = Math.min(100, percent);
+      const remaining = Math.max(0, Number(goal.remaining || 0));
+      const monthPercent = Math.max(0, Number(goal.monthPercentUsed || 0));
+      const monthArc = Math.min(100, monthPercent);
+      const monthRemaining = Math.max(0, Number(goal.monthRemaining || 0));
+      const scopeText = goal.scope === 'family' ? 'Orçamento familiar' : 'Orçamento pessoal';
+      const statusClass = goal.exceeded ? 'bad' : 'ok';
+      const statusText = goal.amount
+        ? (goal.exceeded ? 'Ritmo de hoje ultrapassado' : 'Dentro do ritmo de hoje')
+        : 'Mês fechado para comparação';
+      const donut = (label, value, arc, color) =>
+        '<div class="daily-donut" role="img" aria-label="' + esc(label) + '">' +
+          '<div style="background: conic-gradient(' + color + ' 0 ' + arc + '%, #e8e4de ' + arc + '% 100%); border-radius: 50%; width: 168px; height: 168px; display:grid; place-items:center;">' +
+            '<div style="width:104px;height:104px;border-radius:50%;background:#fffaf2;display:grid;place-items:center;text-align:center;border:1px solid #e8e0d6">' +
+              '<strong>' + esc(value) + '%</strong><span class="muted">' + esc(label) + '</span>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      container.innerHTML =
+        donut('hoje', percent, usedArc, '#b45309') +
+        donut('mês', monthPercent, monthArc, '#0f766e') +
+        '<div class="daily-goal-copy">' +
+          '<div class="daily-goal-status ' + statusClass + '">' + esc(statusText) + '</div>' +
+          '<div class="muted">' + esc(scopeText) + '</div>' +
+          '<div>Orçamento do mês: <strong>' + brl(goal.monthSpent) + '</strong> de <strong>' + brl(goal.monthlyAmount) + '</strong>.</div>' +
+          '<div class="muted">Restante no mês: ' + brl(monthRemaining) + '.</div>' +
+          (goal.amount ? '<div>Hoje: <strong>' + brl(goal.spent) + '</strong> de <strong>' + brl(goal.amount) + '</strong> recomendados.</div>' : '') +
+          (goal.amount ? '<div class="muted">' + (goal.exceeded ? 'Acima do ritmo: ' + brl(Number(goal.spent || 0) - Number(goal.amount || 0)) : 'Disponível hoje: ' + brl(remaining)) + '</div>' : '') +
+          '<div class="muted">' + esc(goal.period?.label || '') + (goal.daysRemaining ? ' · ' + esc(goal.daysRemaining) + ' dia(s) restantes' : '') + '</div>' +
+        '</div>';
+    }
+
     setupFilters();
     document.getElementById('refresh').addEventListener('click', loadData);
     monthEl.addEventListener('change', loadData);
@@ -536,9 +593,39 @@ function sendForbiddenDashboardScope(res) {
     sendJson(res, 403, { error: 'Este dashboard só permite acessar os dados do próprio usuário.' });
 }
 
-function dashboardAuthFailedForScope(dataUserId, res) {
+function getDashboardAuditScope(payload, dataUserId) {
+    if (!dataUserId) return 'forbidden';
+    if (dataUserId === payload.uid) return 'own';
+    if (dataUserId === ALL_USERS_ID) return 'all_users';
+    return 'support_user';
+}
+
+async function recordDashboardApiAccess({ event = 'api_access', result = 'success', token = '', payload = {}, dataUserId = '', reqUrl, metadata = {} }) {
+    await recordDashboardAccessEvent({
+        event,
+        result,
+        token,
+        userId: payload?.uid || '',
+        dataUserId,
+        isAdmin: Boolean(payload?.adm),
+        scope: getDashboardAuditScope(payload, dataUserId),
+        path: reqUrl?.pathname || '',
+        metadata
+    });
+}
+
+async function dashboardAuthFailedForScope(dataUserId, res, { token = '', payload = {}, reqUrl } = {}) {
     if (dataUserId) return false;
     metrics.increment('dashboard.api.scope_forbidden');
+    await recordDashboardApiAccess({
+        event: 'api_scope_forbidden',
+        result: 'denied',
+        token,
+        payload,
+        dataUserId,
+        reqUrl,
+        metadata: { requested_user: reqUrl?.searchParams?.has('user') ? 'present' : 'absent' }
+    });
     sendForbiddenDashboardScope(res);
     return true;
 }
@@ -579,6 +666,12 @@ async function handleApiSummary(reqUrl, res) {
         const payload = verifyDashboardToken(token);
         if (!payload) {
             metrics.increment('dashboard.api.auth_failed');
+            await recordDashboardApiAccess({
+                event: 'api_auth_failed',
+                result: 'denied',
+                token,
+                reqUrl
+            });
             sendJson(res, 401, { error: 'Token inválido ou expirado.' });
             return;
         }
@@ -587,7 +680,8 @@ async function handleApiSummary(reqUrl, res) {
         const year = reqUrl.searchParams.get('year');
 
         const dataUserId = getDashboardDataUserId(payload, reqUrl);
-        if (dashboardAuthFailedForScope(dataUserId, res)) return;
+        if (await dashboardAuthFailedForScope(dataUserId, res, { token, payload, reqUrl })) return;
+        await recordDashboardApiAccess({ token, payload, dataUserId, reqUrl });
         const personal = dataUserId === payload.uid
             ? await getUserSheetDashboardData(dataUserId, { month, year })
             : null;
@@ -613,12 +707,19 @@ async function withAuth(reqUrl, res, cb) {
         const payload = verifyDashboardToken(token);
         if (!payload) {
             metrics.increment('dashboard.api.auth_failed');
+            await recordDashboardApiAccess({
+                event: 'api_auth_failed',
+                result: 'denied',
+                token,
+                reqUrl
+            });
             sendJson(res, 401, { error: 'Token inválido ou expirado.' });
             return;
         }
 
         const dataUserId = getDashboardDataUserId(payload, reqUrl);
-        if (dashboardAuthFailedForScope(dataUserId, res)) return;
+        if (await dashboardAuthFailedForScope(dataUserId, res, { token, payload, reqUrl })) return;
+        await recordDashboardApiAccess({ token, payload, dataUserId, reqUrl });
         const personal = dataUserId === payload.uid
             ? await getUserSheetDashboardData(dataUserId, {
                 month: reqUrl.searchParams.get('month'),

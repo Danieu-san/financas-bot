@@ -11,11 +11,13 @@ Use este arquivo para escolher a bateria minima antes de afirmar que algo esta p
 
 ## Comandos locais
 
-- Suite completa: `npm test`.
+- Suite completa local, somente com testes ativos e sem E2E real destrutivo: `npm test`.
 - Unidade/contratos: `npm run test:unit`.
-- Funcional: `npm run test:functional`.
+- Funcional com reset controlado de planilha real/sandbox: `npm run test:functional`.
 - E2E WhatsApp check: `npm run test:whatsapp:e2e:check`.
 - Importacao WhatsApp: `npm run test:whatsapp:e2e:import`.
+
+`tests/functional.test.js` fica fora do `npm test` por seguranca operacional: ele e um E2E opcional acionado por `scripts/runFunctionalTest.js`, que habilita `RUN_FUNCTIONAL_TESTS=true` e passa pelas travas de reset.
 
 ## Onboarding
 
@@ -72,6 +74,7 @@ Validar:
 - Admin nao deve depender de `Todos os usuarios` para uso normal.
 - KPIs de `Saldo` e `Disponivel estimado` aparecem quando houver reserva/caixinha.
 - Graficos renderizam.
+- Orcamento mensal livre mostra grafico diario e mensal, muda corretamente entre escopo pessoal/familiar e nao conta recorrentes, transferencias, dividas ou reserva como gasto livre.
 
 ## Scheduler e Calendar
 

@@ -22,6 +22,7 @@ const googleService = require('../src/services/google');
 const calculationOrchestrator = require('../src/services/calculationOrchestrator');
 const qaFailureLogService = require('../src/services/qaFailureLogService');
 const adminActionLogService = require('../src/services/adminActionLogService');
+const dashboardAccessLogService = require('../src/services/dashboardAccessLogService');
 const userSheetAnalyticsService = require('../src/services/userSheetAnalyticsService');
 const userIdMaintenanceService = require('../src/services/userIdMaintenanceService');
 
@@ -458,6 +459,55 @@ test('adminActionLogService records append-only sanitized admin actions as jsonl
         else process.env.ADMIN_ACTION_LOG_PATH = previousPath;
         if (previousEnabled === undefined) delete process.env.ADMIN_ACTION_LOG_ENABLED;
         else process.env.ADMIN_ACTION_LOG_ENABLED = previousEnabled;
+        fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+});
+
+test('dashboardAccessLogService records dashboard access without raw tokens or user ids', async () => {
+    const previousPath = process.env.DASHBOARD_ACCESS_LOG_PATH;
+    const previousEnabled = process.env.DASHBOARD_ACCESS_LOG_ENABLED;
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-dashboard-audit-'));
+    const logPath = path.join(tempDir, 'dashboard-access.jsonl');
+
+    try {
+        process.env.DASHBOARD_ACCESS_LOG_PATH = logPath;
+        process.env.DASHBOARD_ACCESS_LOG_ENABLED = 'true';
+
+        const entry = await dashboardAccessLogService.recordDashboardAccessEvent({
+            event: 'api_access',
+            result: 'success',
+            token: 'eyJ.secret.token',
+            userId: 'admin-user-real-id',
+            dataUserId: 'target-user-real-id',
+            isAdmin: true,
+            scope: 'support_user',
+            path: '/dashboard/api/summary?token=eyJ.secret.token&user=target-user-real-id',
+            metadata: {
+                spreadsheet: 'https://docs.google.com/spreadsheets/d/1aj4SebwH04RemPBVWxXm7y2Antan5o3qBBds1YSt4QQ/edit',
+                phone: '5521985969034@c.us'
+            }
+        });
+
+        const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
+        const saved = JSON.parse(lines[0]);
+
+        assert.strictEqual(lines.length, 1);
+        assert.strictEqual(saved.event, 'api_access');
+        assert.strictEqual(saved.result, 'success');
+        assert.ok(saved.token_ref);
+        assert.ok(saved.actor_user_ref);
+        assert.ok(saved.data_user_ref);
+        assert.notStrictEqual(saved.token_ref, 'eyJ.secret.token');
+        assert.notStrictEqual(saved.actor_user_ref, 'admin-user-real-id');
+        assert.notStrictEqual(saved.data_user_ref, 'target-user-real-id');
+        assert.doesNotMatch(JSON.stringify(saved), /eyJ\.secret\.token|admin-user-real-id|target-user-real-id|5521985969034|1aj4SebwH04RemPBVWxXm7y2Antan5o3qBBds1YSt4QQ/);
+        assert.strictEqual(saved.path, '/dashboard/api/summary');
+        assert.strictEqual(entry.event, saved.event);
+    } finally {
+        if (previousPath === undefined) delete process.env.DASHBOARD_ACCESS_LOG_PATH;
+        else process.env.DASHBOARD_ACCESS_LOG_PATH = previousPath;
+        if (previousEnabled === undefined) delete process.env.DASHBOARD_ACCESS_LOG_ENABLED;
+        else process.env.DASHBOARD_ACCESS_LOG_ENABLED = previousEnabled;
         fs.rmSync(tempDir, { recursive: true, force: true });
     }
 });
@@ -955,6 +1005,68 @@ test('creationHandler debt success message explains dashboard and spending disti
     assert.match(message, /registrar pagamento/i);
 });
 
+test('calculationOrchestrator answers complex spending questions deterministically', async () => {
+    const round2 = value => Math.round(Number(value || 0) * 100) / 100;
+    const dataSources = {
+        saidas: [
+            ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id'],
+            ['03/02/2026', 'onibis centro', 'Transporte', 'TRANSPORTE PÚBLICO', 4.70, 'Daniel', 'PIX', 'Não', '', 'user-1'],
+            ['04/02/2026', 'ônibus volta', 'Transporte', 'TRANSPORTE PÚBLICO', 4.70, 'Daniel', 'PIX', 'Não', '', 'user-1'],
+            ['05/02/2026', 'uber noite', 'Transporte', 'UBER / 99', 27.30, 'Daniel', 'PIX', 'Não', '', 'user-1'],
+            ['06/02/2026', 'mercado guanabara', 'Alimentação', 'SUPERMERCADO', 125.49, 'Daniel', 'PIX', 'Não', '', 'user-1'],
+            ['07/02/2026', 'padaria pão', 'Alimentação', 'PADARIA / LANCHE', 12.50, 'Daniel', 'PIX', 'Não', '', 'user-1'],
+            ['08/02/2026', 'ifood almoço', 'Alimentação', 'DELIVERY / IFOOD', 43.20, 'Daniel', 'PIX', 'Não', '', 'user-1'],
+            ['09/02/2026', 'remédio farmácia', 'Saúde', 'FARMÁCIA', 35, 'Daniel', 'PIX', 'Não', '', 'user-1'],
+            ['10/02/2026', 'internet casa', 'Moradia', 'INTERNET', 99.90, 'Daniel', 'PIX', 'Não', '', 'user-1'],
+            ['11/02/2026', 'internet trabalho', 'Moradia', 'INTERNET', 99.90, 'Daniel', 'PIX', 'Não', '', 'user-1'],
+            ['05/03/2026', 'onibus março', 'Transporte', 'TRANSPORTE PÚBLICO', 50, 'Daniel', 'PIX', 'Não', '', 'user-1']
+        ],
+        entradas: [
+            ['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Obs', 'user_id'],
+            ['01/02/2026', 'salário fevereiro', 'Salário', 2000, 'Daniel', 'PIX', 'Não', '', 'user-1'],
+            ['15/02/2026', 'freela fevereiro', 'Renda Extra', 500, 'Daniel', 'PIX', 'Não', '', 'user-1']
+        ],
+        cartoes: [[['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Observações', 'user_id']]],
+        metas: [['Nome da Meta', 'Valor Alvo', 'Valor Atual', '% Progresso', 'Valor Mensal Necessário', 'Data Fim', 'Status', 'Prioridade', 'user_id']],
+        dividas: [['Nome', 'Credor', 'Tipo', 'Valor Original', 'Saldo Atual', 'Valor da Parcela', 'Taxa', 'Vencimento', 'Início', 'Total', 'Pagas', 'Status', 'Obs', '%', 'Último', 'Próximo', 'Estratégia', 'user_id']],
+        transferencias: [['Data', 'Descrição', 'Valor', 'Origem', 'Destino', 'Método', 'Observações', 'Status', 'user_id']],
+        contas: [['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa']]
+    };
+
+    const total = await calculationOrchestrator.execute('total_gastos_mes', { mes: 1, ano: 2026 }, dataSources);
+    assert.strictEqual(round2(total.results), 452.69);
+
+    const typoCategory = await calculationOrchestrator.execute('total_gastos_categoria_mes', { categoria: 'transpote', mes: 1, ano: 2026 }, dataSources);
+    assert.strictEqual(round2(typoCategory.results), 36.70);
+
+    const typoDescription = await calculationOrchestrator.execute('total_gastos_categoria_mes', { categoria: 'onibis', mes: 1, ano: 2026 }, dataSources);
+    assert.strictEqual(round2(typoDescription.results), 9.40);
+
+    const average = await calculationOrchestrator.execute('media_gastos_categoria_mes', { categoria: 'alimentacao', mes: 1, ano: 2026 }, dataSources);
+    assert.strictEqual(round2(average.results), 60.40);
+
+    const countTypo = await calculationOrchestrator.execute('contagem_ocorrencias', { categoria: 'onibis', mes: 1, ano: 2026 }, dataSources);
+    assert.strictEqual(countTypo.results, 2);
+
+    const countCategory = await calculationOrchestrator.execute('contagem_ocorrencias', { categoria: 'transporte', mes: 1, ano: 2026 }, dataSources);
+    assert.strictEqual(countCategory.results, 3);
+
+    const duplicates = await calculationOrchestrator.execute('gastos_valores_duplicados', { mes: 1, ano: 2026 }, dataSources);
+    assert.deepStrictEqual(duplicates.results.map(item => [item.valor, item.count]), [
+        [4.7, 2],
+        [99.9, 2]
+    ]);
+
+    const minMax = await calculationOrchestrator.execute('maior_menor_gasto', { mes: 1, ano: 2026 }, dataSources);
+    assert.strictEqual(minMax.results.max[1], 'mercado guanabara');
+    assert.strictEqual(minMax.results.min[1], 'onibis centro');
+
+    const balance = await calculationOrchestrator.execute('saldo_do_mes', { mes: 1, ano: 2026 }, dataSources);
+    assert.strictEqual(round2(balance.results), 2047.31);
+    assert.strictEqual(balance.details.totalEntradas, 2500);
+    assert.strictEqual(round2(balance.details.totalSaidas), 452.69);
+});
+
 test('calculationOrchestrator calculates card invoices and open installments deterministically', async () => {
     const dataSources = {
         saidas: [['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id']],
@@ -1286,6 +1398,100 @@ test('messageHandler.filterSheetRowsByUserId keeps header and isolates user rows
     );
 });
 
+test('financial analytics filters family scope before calculations and ignores outsiders', async () => {
+    const {
+        filterSheetRowsByUserIds,
+        resolveQuestionUserScopeMatch,
+        normalizeIntentForQuestionUserScope
+    } = messageHandler.__test__;
+    const familyUserIds = ['user-a', 'user-b'];
+    const users = [
+        { user_id: 'user-a', display_name: 'Daniel' },
+        { user_id: 'user-b', display_name: 'Thais' },
+        { user_id: 'user-outside', display_name: 'Pessoa Fora' }
+    ];
+    const sourceRows = {
+        saidas: [
+            ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id'],
+            ['10/05/2026', 'aluguel daniel', 'Moradia', 'ALUGUEL', 100, 'Daniel', 'PIX', 'Não', '', 'user-a'],
+            ['11/05/2026', 'mercado thais', 'Alimentação', 'SUPERMERCADO', 50, 'Thais', 'PIX', 'Não', '', 'user-b'],
+            ['12/05/2026', 'vazamento fora', 'Lazer', '', 9999, 'Outro', 'PIX', 'Não', '', 'user-outside']
+        ],
+        entradas: [
+            ['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Obs', 'user_id'],
+            ['01/05/2026', 'salario daniel', 'Salário', 3000, 'Daniel', 'PIX', 'Sim', '', 'user-a'],
+            ['01/05/2026', 'salario thais', 'Salário', 2000, 'Thais', 'PIX', 'Sim', '', 'user-b'],
+            ['01/05/2026', 'entrada fora', 'Salário', 5000, 'Outro', 'PIX', 'Sim', '', 'user-outside']
+        ],
+        cartoes: [[
+            ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Observações', 'user_id'],
+            ['20/05/2026', 'notebook daniel', 'Eletrônicos', 200, '1/2', 'Maio de 2026', 'nubank-daniel', 'Nubank Daniel', '', 'user-a'],
+            ['21/05/2026', 'farmacia thais', 'Saúde', 300, '1/1', 'Maio de 2026', 'nubank-thais', 'Nubank Thais', '', 'user-b'],
+            ['22/05/2026', 'cartao fora', 'Lazer', 777, '1/1', 'Maio de 2026', 'nubank-outro', 'Nubank Outro', '', 'user-outside']
+        ]]
+    };
+    const buildDataSourcesForScope = (userIds) => ({
+        saidas: filterSheetRowsByUserIds(sourceRows.saidas, 9, userIds),
+        entradas: filterSheetRowsByUserIds(sourceRows.entradas, 8, userIds),
+        metas: [['Nome da Meta', 'Valor Alvo', 'Valor Atual', '% Progresso', 'Valor Mensal Necessário', 'Data Fim', 'Status', 'Prioridade', 'user_id']],
+        dividas: [['Nome', 'Credor', 'Tipo', 'Valor Original', 'Saldo Atual', 'Valor da Parcela', 'Taxa', 'Vencimento', 'Início', 'Total', 'Pagas', 'Status', 'Obs', '%', 'Último', 'Próximo', 'Estratégia', 'user_id']],
+        transferencias: [['Data', 'Descrição', 'Valor', 'Origem', 'Destino', 'Método', 'Observações', 'Status', 'user_id']],
+        contas: [['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa']],
+        cartoes: sourceRows.cartoes.map(rows => filterSheetRowsByUserIds(rows, 9, userIds))
+    });
+
+    const danielScope = resolveQuestionUserScopeMatch('quanto o Daniel gastou em maio?', users, familyUserIds);
+    const danielIntent = normalizeIntentForQuestionUserScope({
+        intent: 'total_gastos_categoria_mes',
+        parameters: { categoria: 'Daniel', mes: 4, ano: 2026 }
+    }, danielScope);
+    const danielTotal = await calculationOrchestrator.execute(
+        danielIntent.intent,
+        danielIntent.parameters,
+        buildDataSourcesForScope(danielScope.userIds)
+    );
+
+    assert.deepStrictEqual(danielScope.userIds, ['user-a']);
+    assert.strictEqual(danielIntent.intent, 'total_gastos_mes');
+    assert.strictEqual(danielTotal.results, 300);
+
+    const thaisScope = resolveQuestionUserScopeMatch('quanto a Thais gastou em maio?', users, familyUserIds);
+    const thaisIntent = normalizeIntentForQuestionUserScope({
+        intent: 'total_gastos_categoria_mes',
+        parameters: { categoria: 'Thais', mes: 4, ano: 2026 }
+    }, thaisScope);
+    const thaisTotal = await calculationOrchestrator.execute(
+        thaisIntent.intent,
+        thaisIntent.parameters,
+        buildDataSourcesForScope(thaisScope.userIds)
+    );
+
+    assert.deepStrictEqual(thaisScope.userIds, ['user-b']);
+    assert.strictEqual(thaisIntent.intent, 'total_gastos_mes');
+    assert.strictEqual(thaisTotal.results, 350);
+
+    const familyTotal = await calculationOrchestrator.execute(
+        'total_gastos_mes',
+        { mes: 4, ano: 2026 },
+        buildDataSourcesForScope(familyUserIds)
+    );
+    const invoices = await calculationOrchestrator.execute(
+        'total_faturas_por_cartao',
+        { mes: 4, ano: 2026 },
+        buildDataSourcesForScope(familyUserIds)
+    );
+
+    assert.strictEqual(familyTotal.results, 650);
+    assert.strictEqual(invoices.details.total, 500);
+    assert.deepStrictEqual(
+        invoices.results.map(item => [item.cartao, item.total, item.parcelas]),
+        [
+            ['Nubank Thais', 300, 1],
+            ['Nubank Daniel', 200, 1]
+        ]
+    );
+});
+
 test('debtHandler.filterDebtsByUserId isolates debts by user_id', (t) => {
     const { filterDebtsByUserId } = debtHandler.__test__;
     const rows = [
@@ -1580,5 +1786,70 @@ test('userSheetAnalytics reserve summary separates economic balance from availab
         redeemed: 1330,
         netApplied: 1408.86,
         movementCount: 6
+    });
+});
+
+test('userSheetAnalytics monthly budget summary combines free debit and card spending', () => {
+    const { buildDailyGoalSummary } = userSheetAnalyticsService.__test__;
+    const today = new Intl.DateTimeFormat('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    }).format(new Date());
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).formatToParts(new Date()).reduce((acc, part) => {
+        acc[part.type] = part.value;
+        return acc;
+    }, {});
+    const year = Number(parts.year);
+    const month = Number(parts.month) - 1;
+    const day = Number(parts.day);
+    const daysRemaining = Math.max(1, new Date(year, month + 1, 0).getDate() - day + 1);
+    const monthlyAmount = 100 * daysRemaining;
+    const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+    const summary = buildDailyGoalSummary({
+        settings: { monthly_budget_enabled: 'SIM', monthly_budget_amount: String(monthlyAmount), monthly_budget_scope: 'personal' },
+        userIds: ['user-1'],
+        period: { month, year },
+        saidasRows: [
+            ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id'],
+            [today, 'Mercado', 'Alimentação', 'SUPERMERCADO', 35, '', 'PIX', 'Não', '', 'user-1'],
+            [today, 'Aluguel', 'Moradia', 'ALUGUEL', 1000, '', 'PIX', 'Sim', '', 'user-1'],
+            [today, 'Caixinha', 'Transferências', '', 500, '', 'PIX', 'Não', '', 'user-1'],
+            [today, 'Outro usuário', 'Casa', '', 99, '', 'PIX', 'Não', '', 'user-2'],
+            ['01/01/2026', 'Antigo', 'Casa', '', 20, '', 'PIX', 'Não', '', 'user-1']
+        ],
+        cartaoRows: [
+            ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Observações', 'user_id'],
+            [today, 'Farmácia', 'Saúde', 20, '1/1', 'Maio de 2026', 'nubank', 'Nubank', '', 'user-1']
+        ]
+    });
+
+    assert.deepStrictEqual(summary, {
+        mode: 'monthly_budget',
+        date: today,
+        amount: 100,
+        monthlyAmount,
+        spent: 55,
+        remaining: 45,
+        percentUsed: 55,
+        exceeded: false,
+        scope: 'personal',
+        monthSpent: 55,
+        monthRemaining: monthlyAmount - 55,
+        monthPercentUsed: Math.round((55 / monthlyAmount) * 100),
+        daysRemaining,
+        dailyRecommendedAmount: 100,
+        period: {
+            month,
+            year,
+            label: `${monthNames[month]} de ${year}`
+        }
     });
 });

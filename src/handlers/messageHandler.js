@@ -71,6 +71,7 @@ const logger = require('../utils/logger');
 const { sendPlainMessage } = require('../utils/whatsappMessaging');
 const { recordQaFailure } = require('../services/qaFailureLogService');
 const { recordAdminAction } = require('../services/adminActionLogService');
+const { recordDashboardAccessEvent } = require('../services/dashboardAccessLogService');
 
 // Base de Conhecimento para Gastos
 const mapeamentoGastos = {
@@ -231,6 +232,14 @@ function detectSecuritySensitiveRequest(messageBody) {
     return { blocked: false };
 }
 
+function formatDashboardTtlForReply(ttlSeconds) {
+    const seconds = Number.parseInt(ttlSeconds, 10) || 0;
+    const minutes = Math.max(1, Math.round(seconds / 60));
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.max(1, Math.round(minutes / 60));
+    return `${hours}h`;
+}
+
 function formatCurrencyBR(value) {
     const numericValue = typeof value === 'number' ? value : parseValue(value);
     return 'R$ ' + Number(numericValue || 0).toFixed(2).replace('.', ',');
@@ -383,6 +392,275 @@ function buildImportedCreditCardRow(item, cardInfo, userId) {
         item.mesCobranca || buildBillingMonthName(purchaseDate, cardInfo),
         userId
     ];
+}
+
+function getTodaySaoPauloDateString() {
+    return new Intl.DateTimeFormat('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    }).format(new Date());
+}
+
+function dateStringMatchesToday(value, today = getTodaySaoPauloDateString()) {
+    const parsed = parseSheetDate(value);
+    return parsed ? getFormattedDateOnly(parsed) === today : String(value || '').trim() === today;
+}
+
+function getDailyGoalMilestone(percentUsed) {
+    if (percentUsed >= 100) return 100;
+    if (percentUsed >= 80) return 80;
+    if (percentUsed >= 50) return 50;
+    return 0;
+}
+
+function normalizeDailyGoalScope(value) {
+    const text = normalizeText(value || '');
+    if (/\b(familia|familiar|casal|nossa|nosso|compartilhada|compartilhado)\b/.test(text)) return 'family';
+    if (/\b(pessoal|individual|minha|meu|propria|proprio)\b/.test(text)) return 'personal';
+    return '';
+}
+
+function getDailyGoalScopeLabel(scope) {
+    return scope === 'family' ? 'da família' : 'pessoal';
+}
+
+function normalizeMonthlyBudgetScope(value) {
+    return normalizeDailyGoalScope(value);
+}
+
+function getMonthlyBudgetScopeLabel(scope) {
+    return scope === 'family' ? 'familiar' : 'pessoal';
+}
+
+function getMonthlyBudgetScopeUserIds(userId, settings = {}) {
+    const userIds = settings.monthly_budget_scope === 'family' ? getFinancialScopeUserIds(userId) : [userId];
+    return Array.from(new Set(userIds.map(id => String(id || '').trim()).filter(Boolean)));
+}
+
+async function resolveMonthlyBudgetSettingsForUser(userId) {
+    const userSettings = await getUserSettingsByUserId(userId);
+    const membership = getSharedSpreadsheetMembership(userId);
+    if (membership?.owner_user_id) {
+        const ownerSettings = await getUserSettingsByUserId(membership.owner_user_id);
+        if (normalizeText(ownerSettings?.monthly_budget_enabled || '') === 'sim' && ownerSettings?.monthly_budget_scope === 'family') {
+            return { ownerUserId: membership.owner_user_id, settings: ownerSettings };
+        }
+    }
+    return { ownerUserId: userId, settings: userSettings };
+}
+
+function buildDailyGoalFamilyScopeReviewMessage(ownerName, memberName, settings) {
+    const amount = formatCurrencyBR(settings?.monthly_budget_amount || 0);
+    return [
+        `${ownerName || 'Você'} acabou de vincular ${memberName || 'outro usuário'} à sua planilha familiar.`,
+        `Seu orçamento mensal livre atual é ${amount}. Ele continua pessoal ou passa a ser familiar?`,
+        'Responda `orçamento mensal pessoal` ou `orçamento mensal família`.'
+    ].join('\n');
+}
+
+function dateStringMatchesMonth(value, month, year) {
+    const parsed = parseSheetDate(value);
+    return Boolean(parsed && parsed.getMonth() === month && parsed.getFullYear() === year);
+}
+
+function getSaoPauloDateParts() {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).formatToParts(new Date()).reduce((acc, part) => {
+        acc[part.type] = part.value;
+        return acc;
+    }, {});
+    return {
+        year: Number(parts.year),
+        month: Number(parts.month) - 1,
+        day: Number(parts.day)
+    };
+}
+
+function isFreeSpendingRow(row) {
+    const category = normalizeText(row?.[2] || '');
+    const recurring = normalizeText(row?.[7] || '');
+    if (recurring === 'sim') return false;
+    return ![
+        'transferencia',
+        'transferencias',
+        'divida',
+        'dividas',
+        'investimento',
+        'investimentos',
+        'reserva'
+    ].some(term => category.includes(term));
+}
+
+async function calculateMonthlyBudgetSpend(userId, today = getTodaySaoPauloDateString(), userIds = [userId]) {
+    const safeReadRows = async (range) => {
+        try {
+            return await readDataFromSheet(range) || [];
+        } catch (error) {
+            logger.warn(`[monthly-budget] leitura_ignorada range="${range}" error="${error?.message || error}"`);
+            return [];
+        }
+    };
+    const [saidasRows, cardRows] = await Promise.all([
+        safeReadRows('Saídas!A:J'),
+        safeReadRows('Lançamentos Cartão!A:J')
+    ]);
+    const allowedUserIds = new Set((Array.isArray(userIds) ? userIds : [userId]).map(id => String(id || '').trim()).filter(Boolean));
+    const matchesUser = (row, index) => allowedUserIds.has(String(row?.[index] || '').trim());
+    const todayParts = getSaoPauloDateParts();
+    const sumRows = (rows, userIndex, amountIndex) => rows
+        .filter(row => matchesUser(row, userIndex) && isFreeSpendingRow(row))
+        .reduce((acc, row) => {
+            const amount = parseValue(row[amountIndex]);
+            const isToday = dateStringMatchesToday(row[0], today);
+            const isMonth = dateStringMatchesMonth(row[0], todayParts.month, todayParts.year);
+            if (isToday) acc.today += amount;
+            if (isMonth) acc.month += amount;
+            return acc;
+        }, { today: 0, month: 0 });
+
+    const saidas = sumRows((saidasRows || []).slice(1), 9, 4);
+    const cardDataRows = (cardRows || []).slice(1);
+    let cartoes = cardDataRows
+        .filter(row => matchesUser(row, 9))
+        .reduce((acc, row) => {
+            const amount = parseValue(row[3]);
+            if (dateStringMatchesToday(row[0], today)) acc.today += amount;
+            if (dateStringMatchesMonth(row[0], todayParts.month, todayParts.year)) acc.month += amount;
+            return acc;
+        }, { today: 0, month: 0 });
+
+    if (cardDataRows.length === 0) {
+        const legacyCardRows = await Promise.all(
+            Object.values(creditCardConfig).map(card => safeReadRows(`${card.sheetName}!A:G`))
+        );
+        cartoes = legacyCardRows.flatMap(rows => (rows || []).slice(1))
+            .filter(row => matchesUser(row, 6))
+            .reduce((acc, row) => {
+                const amount = parseValue(row[3]);
+                if (dateStringMatchesToday(row[0], today)) acc.today += amount;
+                if (dateStringMatchesMonth(row[0], todayParts.month, todayParts.year)) acc.month += amount;
+                return acc;
+            }, { today: 0, month: 0 });
+    }
+
+    return {
+        today: Math.round((saidas.today + cartoes.today + Number.EPSILON) * 100) / 100,
+        month: Math.round((saidas.month + cartoes.month + Number.EPSILON) * 100) / 100,
+        todayParts
+    };
+}
+
+function calculateMonthlyBudgetPace(monthlyBudget, monthSpent, todaySpent, todayParts = getSaoPauloDateParts()) {
+    const daysInMonth = new Date(todayParts.year, todayParts.month + 1, 0).getDate();
+    const daysRemaining = Math.max(1, daysInMonth - todayParts.day + 1);
+    const spentBeforeToday = Math.max(0, Number(monthSpent || 0) - Number(todaySpent || 0));
+    const budgetBeforeToday = Math.max(0, Number(monthlyBudget || 0) - spentBeforeToday);
+    const dailyRecommended = Math.round(((budgetBeforeToday / daysRemaining) + Number.EPSILON) * 100) / 100;
+    return { daysInMonth, daysRemaining, dailyRecommended };
+}
+
+async function maybeNotifyDailyGoalAfterExpense(msg, userId) {
+    const { ownerUserId, settings } = await resolveMonthlyBudgetSettingsForUser(userId);
+    if (normalizeText(settings?.monthly_budget_enabled || '') !== 'sim') return null;
+
+    const monthlyBudget = parseValue(settings?.monthly_budget_amount);
+    if (!monthlyBudget || monthlyBudget <= 0) return null;
+
+    const today = getTodaySaoPauloDateString();
+    const scopeUserIds = getMonthlyBudgetScopeUserIds(ownerUserId, settings);
+    const spend = await calculateMonthlyBudgetSpend(ownerUserId, today, scopeUserIds);
+    const pace = calculateMonthlyBudgetPace(monthlyBudget, spend.month, spend.today, spend.todayParts);
+    if (!pace.dailyRecommended || pace.dailyRecommended <= 0) return null;
+
+    const percentUsed = Math.round((spend.today / pace.dailyRecommended) * 100);
+    const milestone = getDailyGoalMilestone(percentUsed);
+    if (!milestone) return null;
+
+    const lastDate = String(settings?.monthly_budget_last_alert_date || '');
+    const lastLevel = lastDate === today ? Number.parseInt(settings?.monthly_budget_last_alert_level || '0', 10) || 0 : 0;
+    if (milestone <= lastLevel) return null;
+
+    const remainingToday = Math.max(0, pace.dailyRecommended - spend.today);
+    const remainingMonth = Math.max(0, monthlyBudget - spend.month);
+    await upsertUserSettings(ownerUserId, {
+        monthly_budget_last_alert_date: today,
+        monthly_budget_last_alert_level: String(milestone)
+    });
+
+    const scopeLabel = getMonthlyBudgetScopeLabel(settings.monthly_budget_scope);
+    const statusLine = spend.today > pace.dailyRecommended
+        ? `Hoje vocês passaram ${formatCurrencyBR(spend.today - pace.dailyRecommended)} do ritmo recomendado.`
+        : `Ainda restam ${formatCurrencyBR(remainingToday)} para hoje.`;
+    const message = [
+        `Alerta de orçamento mensal ${scopeLabel}: hoje já foi usado ${percentUsed}% do ritmo diário recomendado.`,
+        `Gasto livre de hoje: ${formatCurrencyBR(spend.today)}. Ritmo recomendado: ${formatCurrencyBR(pace.dailyRecommended)}.`,
+        `Restante no mês: ${formatCurrencyBR(remainingMonth)} em ${pace.daysRemaining} dia(s).`,
+        statusLine
+    ].join('\n');
+    await sendPlainMessage(msg, message);
+    return { spent: spend.today, goalAmount: pace.dailyRecommended, percentUsed, milestone };
+}
+
+async function calculateDailyGoalSpend(userId, today = getTodaySaoPauloDateString(), userIds = [userId]) {
+    const spend = await calculateMonthlyBudgetSpend(userId, today, userIds);
+    return spend.today;
+}
+
+/*
+ * Compatibilidade: o nome da função ainda é usado em vários fluxos após salvar
+ * gasto, mas a semântica atual é orçamento mensal com ritmo diário derivado.
+ */
+async function maybeNotifyLegacyDailyGoalAfterExpense() {
+    return null;
+}
+
+async function saveCreditCardExpense(gasto, cardInfo, installments, userId) {
+    const purchaseDate = gasto.data ? parseSheetDate(gasto.data) : new Date();
+    const safeInstallments = Math.max(1, Number.parseInt(installments, 10) || 1);
+    const totalValue = parseFloat(gasto.valor);
+    const installmentValue = totalValue / safeInstallments;
+
+    for (let i = 1; i <= safeInstallments; i++) {
+        let billingMonth = purchaseDate.getMonth();
+        let billingYear = purchaseDate.getFullYear();
+        const closingDay = Number.parseInt(cardInfo.closingDay, 10);
+
+        if (Number.isInteger(closingDay) && closingDay >= 1 && closingDay <= 31 && purchaseDate.getDate() > closingDay) {
+            billingMonth += 1;
+        }
+        billingMonth += (i - 1);
+
+        while (billingMonth > 11) {
+            billingMonth -= 12;
+            billingYear += 1;
+        }
+
+        const billingMonthName = `${MONTH_NAMES[billingMonth]} de ${billingYear}`;
+        const value = safeInstallments === 1 ? totalValue : installmentValue;
+        await appendRowToSheet(cardInfo.sheetName, [
+            getFormattedDateOnly(purchaseDate),
+            gasto.descricao || 'Não especificado',
+            gasto.categoria || 'Outros',
+            safeInstallments === 1 ? value : String(value.toFixed(2)).replace('.', ','),
+            `${i}/${safeInstallments}`,
+            billingMonthName,
+            userId
+        ]);
+    }
+
+    markFinancialReadModelDirty('card_write');
+    return {
+        installments: safeInstallments,
+        installmentValue,
+        totalValue,
+        sheetName: cardInfo.sheetName
+    };
 }
 
 function buildStatementImportKindQuestion(filename = '') {
@@ -1574,6 +1852,10 @@ function buildLegalCommandLogContext(msg, user) {
     };
 }
 
+function senderIdFromMessage(msg) {
+    return msg?.author || msg?.from || '';
+}
+
 function normalizeSettingsCommandText(text) {
     return normalizeText(String(text || ''))
         .replace(/[`*_~]/g, ' ')
@@ -1590,10 +1872,48 @@ function isReserveDisableCommand(body) {
     return /^desativar\s+(?:a\s+)?reserva(?:\s+automatica)?$/.test(body);
 }
 
+function isMonthlyBudgetCommandLike(body) {
+    const text = normalizeSettingsCommandText(body);
+    return /\borcamento\b/.test(text) && (
+        /\bmensal\b/.test(text) ||
+        /\blivre\b/.test(text) ||
+        /\bgastos?\b/.test(text)
+    );
+}
+
+function parseMonthlyBudgetCommand(body) {
+    const text = normalizeSettingsCommandText(body);
+    if (!/^(?:definir|ativar|configurar|criar)\s+/.test(text) || !isMonthlyBudgetCommandLike(text)) return null;
+    const amountMatch = text.match(/\b\d+(?:[.,]\d{1,2})?\b/);
+    const amount = amountMatch ? parseValue(amountMatch[0]) : 0;
+    if (!Number.isFinite(amount) || amount <= 0) return null;
+    return {
+        amount,
+        scope: normalizeMonthlyBudgetScope(text)
+    };
+}
+
+function isLegacyDailyGoalCommandLike(body) {
+    const text = normalizeSettingsCommandText(body);
+    return /\bmeta\b/.test(text) && /\bdiaria\b/.test(text);
+}
+
 function extractFullNameSettingsCommand(text) {
     const fullNameMatch = String(text || '').trim().match(/^(?:definir\s+nome\s+completo|meu\s+nome\s+completo\s+(?:e|é))\s+(.+)$/i);
     if (!fullNameMatch) return '';
     return String(fullNameMatch[1] || '').replace(/\s+/g, ' ').trim();
+}
+
+async function saveMonthlyBudgetSettings(userId, amount, scope = 'personal') {
+    const normalizedScope = scope === 'family' ? 'family' : 'personal';
+    await upsertUserSettings(userId, {
+        monthly_budget_enabled: 'SIM',
+        monthly_budget_amount: String(amount),
+        monthly_budget_scope: normalizedScope,
+        monthly_budget_last_alert_date: '',
+        monthly_budget_last_alert_level: '',
+        daily_goal_enabled: 'NÃO'
+    });
 }
 
 async function handleSettingsCommands(msg, user) {
@@ -1638,6 +1958,90 @@ async function handleSettingsCommands(msg, user) {
         return true;
     }
 
+    if (/^desativar\s+(?:o\s+)?orcamento(?:\s+(?:mensal|livre))?$/.test(body) || /^desativar\s+(?:a\s+)?meta\s+diaria$/.test(body)) {
+        await upsertUserSettings(user.user_id, {
+            monthly_budget_enabled: 'NÃO',
+            monthly_budget_last_alert_date: '',
+            monthly_budget_last_alert_level: '',
+            daily_goal_enabled: 'NÃO',
+            daily_goal_last_alert_date: '',
+            daily_goal_last_alert_level: ''
+        });
+        await msg.reply('Orçamento mensal livre desativado.');
+        return true;
+    }
+
+    const monthlyBudgetCommand = parseMonthlyBudgetCommand(body);
+    if (monthlyBudgetCommand) {
+        const familyScopeAvailable = getFinancialScopeUserIds(user.user_id).length > 1;
+        if (monthlyBudgetCommand.scope === 'family' && !familyScopeAvailable) {
+            await saveMonthlyBudgetSettings(user.user_id, monthlyBudgetCommand.amount, 'personal');
+            await msg.reply(`Você ainda não tem vínculo familiar ativo. Configurei o orçamento mensal livre pessoal em ${formatCurrencyBR(monthlyBudgetCommand.amount)}.`);
+            return true;
+        }
+        if (!monthlyBudgetCommand.scope && familyScopeAvailable) {
+            userStateManager.setState(senderIdFromMessage(msg), {
+                action: 'awaiting_monthly_budget_scope',
+                data: { amount: monthlyBudgetCommand.amount }
+            });
+            await msg.reply(
+                `Esse orçamento mensal livre de ${formatCurrencyBR(monthlyBudgetCommand.amount)} é pessoal ou da família?\n` +
+                'Responda `pessoal` ou `família`.'
+            );
+            return true;
+        }
+        const scope = monthlyBudgetCommand.scope || 'personal';
+        await saveMonthlyBudgetSettings(user.user_id, monthlyBudgetCommand.amount, scope);
+        await msg.reply(`Orçamento mensal livre ${getMonthlyBudgetScopeLabel(scope)} configurado em ${formatCurrencyBR(monthlyBudgetCommand.amount)}. Vou calcular um ritmo diário recomendado e avisar quando o gasto livre do dia atingir 50%, 80% e 100% desse ritmo.`);
+        return true;
+    }
+    const monthlyBudgetScopeOnly = body.match(/^orcamento\s+(?:mensal\s+|livre\s+)?(.+)$/);
+    if (monthlyBudgetScopeOnly) {
+        const scope = normalizeMonthlyBudgetScope(monthlyBudgetScopeOnly[1]);
+        if (scope) {
+            const settings = await getUserSettingsByUserId(user.user_id);
+            const amount = parseValue(settings?.monthly_budget_amount);
+            if (!settings || normalizeText(settings.monthly_budget_enabled || '') !== 'sim' || !amount) {
+                await msg.reply('Você ainda não tem orçamento mensal livre ativo. Exemplo: `definir orçamento mensal 3000`.');
+                return true;
+            }
+            if (scope === 'family' && getFinancialScopeUserIds(user.user_id).length <= 1) {
+                await msg.reply('Você ainda não tem vínculo familiar ativo para transformar o orçamento mensal em familiar.');
+                return true;
+            }
+            await saveMonthlyBudgetSettings(user.user_id, amount, scope);
+            await msg.reply(`Orçamento mensal livre alterado para ${getMonthlyBudgetScopeLabel(scope)}.`);
+            return true;
+        }
+    }
+
+    if (isLegacyDailyGoalCommandLike(body)) {
+        await msg.reply(
+            'A meta diária fixa foi substituída pelo orçamento mensal livre, que calcula automaticamente um ritmo diário.\n' +
+            'Exemplos:\n' +
+            '- `definir orçamento mensal 3000`\n' +
+            '- `definir orçamento mensal 3000 família`'
+        );
+        return true;
+    }
+
+    if (isMonthlyBudgetCommandLike(body)) {
+        if (/^(?:definir|ativar|configurar|criar)\s+/.test(body)) {
+            userStateManager.setState(senderIdFromMessage(msg), {
+                action: 'awaiting_monthly_budget_amount',
+                data: { scope: normalizeMonthlyBudgetScope(body) }
+            });
+            await msg.reply('Qual é o valor do orçamento mensal livre? Exemplo: `3000`.');
+            return true;
+        }
+        await msg.reply(
+            'Para criar um orçamento mensal livre, inclua o valor. Exemplos:\n' +
+            '- `definir orçamento mensal 3000`\n' +
+            '- `definir orçamento mensal 3000 família`'
+        );
+        return true;
+    }
+
     const reserveMatch = body.match(/definir reserva\s+(\d{1,2})\s*%?/);
     if (reserveMatch) {
         const percent = parseInt(reserveMatch[1], 10);
@@ -1679,13 +2083,23 @@ async function handleDashboardCommand(msg, user, senderId) {
         return true;
     }
 
-    const hours = Math.max(1, Math.round((linkData.ttlSeconds || 0) / 3600));
     await sendPlainMessage(
         msg,
         `Seu painel financeiro está pronto.\n\n` +
-        `Link válido por ${hours}h:\n${linkData.url}\n\n` +
+        `Link válido por ${formatDashboardTtlForReply(linkData.ttlSeconds)}:\n${linkData.url}\n\n` +
         `Não compartilhe esse link: ele dá acesso ao seu painel.`
     );
+    await recordDashboardAccessEvent({
+        event: 'link_issued',
+        result: 'success',
+        tokenRef: linkData.tokenRef,
+        userId: user.user_id,
+        dataUserId: user.user_id,
+        isAdmin: isAdminWithContext(senderId, user),
+        scope: 'own',
+        path: '/dashboard',
+        metadata: { ttl_seconds: linkData.ttlSeconds }
+    });
     logger.info(`[dashboard] link_emitido sender=${senderId} user_id=${user.user_id}`);
     return true;
 }
@@ -1765,6 +2179,32 @@ function getSelectedCardInfo(cardOptions, selection) {
     if (selection < 0 || selection >= cardOptions.length) return null;
     const option = cardOptions[selection];
     return option.cardInfo || creditCardConfig[option.key || option];
+}
+
+function detectInstallmentsFromMessage(messageBody = '') {
+    const text = normalizeText(messageBody);
+    if (/\b(a vista|avista|1x|1 x|uma vez)\b/.test(text)) return 1;
+    const match = text.match(/\b(?:em\s*)?(\d{1,2})\s*(?:x|vezes|parcelas)\b/);
+    if (!match) return null;
+    const value = Number.parseInt(match[1], 10);
+    return Number.isInteger(value) && value >= 1 ? value : null;
+}
+
+function findExplicitCardOption(messageBody = '', cardOptions = []) {
+    const text = normalizeText(messageBody);
+    const matches = cardOptions.filter((option) => {
+        const parts = [
+            option.key,
+            option.label,
+            option.cardInfo?.key,
+            option.cardInfo?.cardId,
+            option.cardInfo?.label,
+            option.cardInfo?.sheetName
+        ].map(value => normalizeText(value || '')).filter(Boolean);
+
+        return parts.some((part) => part.length >= 3 && text.includes(part));
+    });
+    return matches.length === 1 ? matches[0] : null;
 }
 
 async function notifyAdminsAboutPendingApproval(msg, user) {
@@ -2231,6 +2671,28 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
             `- membros no escopo financeiro: ${scopeIds.length}\n\n` +
             `A partir de agora, os lançamentos dos dois entram na mesma planilha. Cada linha continua registrando quem lançou pelo campo Responsável e pelo user_id.`
         );
+        const ownerSettings = await getUserSettingsByUserId(owner.user_id);
+        if (normalizeText(ownerSettings?.monthly_budget_enabled || '') === 'sim') {
+            const reviewMessage = buildDailyGoalFamilyScopeReviewMessage(
+                owner.display_name || 'Você',
+                member.display_name || member.whatsapp_id,
+                ownerSettings
+            );
+            if (owner.whatsapp_id === senderId) {
+                await msg.reply(reviewMessage);
+            } else if (msg.client && typeof msg.client.sendMessage === 'function') {
+                try {
+                    await msg.client.sendMessage(owner.whatsapp_id, reviewMessage);
+                } catch (error) {
+                    logger.warn(`[admin] compartilhar_planilha_orcamento_mensal_notificacao_falhou context=${JSON.stringify({
+                        ...adminContext,
+                        owner_user_id: owner.user_id,
+                        member_user_id: member.user_id,
+                        error: error.message
+                    })}`);
+                }
+            }
+        }
         if (msg.client && typeof msg.client.sendMessage === 'function') {
             try {
                 await msg.client.sendMessage(
@@ -2740,12 +3202,79 @@ async function handleMessage(msg) {
                 break;
             }
 
+            case 'awaiting_monthly_budget_amount': {
+                const amount = parseValue(msg.body || '');
+                if (!Number.isFinite(amount) || amount <= 0) {
+                    await msg.reply('Me envie um valor válido para o orçamento mensal livre. Exemplo: `3000`.');
+                    return;
+                }
+                const requestedScope = currentState.data?.scope || '';
+                const familyScopeAvailable = getFinancialScopeUserIds(userId).length > 1;
+                if (requestedScope === 'family' && !familyScopeAvailable) {
+                    await saveMonthlyBudgetSettings(userId, amount, 'personal');
+                    userStateManager.deleteState(senderId);
+                    await msg.reply(`Você ainda não tem vínculo familiar ativo. Configurei o orçamento mensal livre pessoal em ${formatCurrencyBR(amount)}.`);
+                    return;
+                }
+                if (!requestedScope && familyScopeAvailable) {
+                    userStateManager.setState(senderId, {
+                        action: 'awaiting_monthly_budget_scope',
+                        data: { amount }
+                    });
+                    await msg.reply(
+                        `Esse orçamento mensal livre de ${formatCurrencyBR(amount)} é pessoal ou da família?\n` +
+                        'Responda `pessoal` ou `família`.'
+                    );
+                    return;
+                }
+                const scope = requestedScope || 'personal';
+                await saveMonthlyBudgetSettings(userId, amount, scope);
+                userStateManager.deleteState(senderId);
+                await msg.reply(`Orçamento mensal livre ${getMonthlyBudgetScopeLabel(scope)} configurado em ${formatCurrencyBR(amount)}. Vou calcular o ritmo diário recomendado automaticamente.`);
+                return;
+            }
+
+            case 'awaiting_monthly_budget_scope':
+            case 'awaiting_daily_goal_scope': {
+                const scope = normalizeMonthlyBudgetScope(msg.body || '');
+                if (!scope) {
+                    await msg.reply('Responda apenas `pessoal` ou `família` para configurar o escopo do orçamento mensal livre.');
+                    return;
+                }
+                if (scope === 'family' && getFinancialScopeUserIds(userId).length <= 1) {
+                    await msg.reply('Você ainda não tem vínculo familiar ativo. Vou manter esse orçamento como pessoal.');
+                    await saveMonthlyBudgetSettings(userId, currentState.data?.amount, 'personal');
+                } else {
+                    await saveMonthlyBudgetSettings(userId, currentState.data?.amount, scope);
+                    await msg.reply(`Orçamento mensal livre ${getMonthlyBudgetScopeLabel(scope)} configurado em ${formatCurrencyBR(currentState.data?.amount)}.`);
+                }
+                userStateManager.deleteState(senderId);
+                return;
+            }
+
             case 'awaiting_credit_card_selection': {
                 const { gasto, cardOptions } = currentState.data;
                 const selection = parseInt(msg.body.trim(), 10) - 1;
 
                 if (selection >= 0 && selection < cardOptions.length) {
                     const cardInfo = getSelectedCardInfo(cardOptions, selection);
+                    if (gasto.installments) {
+                        try {
+                            const saved = await saveCreditCardExpense(gasto, cardInfo, gasto.installments, userId);
+                            if (saved.installments === 1) {
+                                await msg.reply(`✅ Gasto de R$${gasto.valor} lançado no *${saved.sheetName}*.`);
+                            } else {
+                                await msg.reply(`✅ Gasto de R$${gasto.valor} lançado em ${saved.installments}x de R$${saved.installmentValue.toFixed(2)} no *${saved.sheetName}*.`);
+                            }
+                            await maybeNotifyDailyGoalAfterExpense(msg, userId);
+                        } catch (error) {
+                            console.error("Erro ao salvar gasto no cartão:", error);
+                            await msg.reply("Ocorreu um erro ao salvar o gasto.");
+                        } finally {
+                            userStateManager.deleteState(senderId);
+                        }
+                        return;
+                    }
 
                     userStateManager.setState(senderId, {
                         action: 'awaiting_installment_number',
@@ -2768,59 +3297,13 @@ async function handleMessage(msg) {
                 }
 
                 try {
-                    const purchaseDate = gasto.data ? parseSheetDate(gasto.data) : new Date();
-                    if (installments === 1) {
-                        let billingMonth = purchaseDate.getMonth();
-                        let billingYear = purchaseDate.getFullYear();
-
-                        if (purchaseDate.getDate() > cardInfo.closingDay) {
-                            billingMonth += 1;
-                            if (billingMonth > 11) {
-                                billingMonth = 0;
-                                billingYear += 1;
-                            }
-                        }
-                        const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-                        const billingMonthName = `${monthNames[billingMonth]} de ${billingYear}`;
-
-                        const rowData = [
-                            getFormattedDateOnly(purchaseDate), gasto.descricao, gasto.categoria || 'Outros',
-                            parseFloat(gasto.valor), '1/1', billingMonthName, userId
-                        ];
-                        
-                        await appendRowToSheet(cardInfo.sheetName, rowData);
-                        markFinancialReadModelDirty('card_write');
-                        await msg.reply(`✅ Gasto de R$${gasto.valor} lançado no *${cardInfo.sheetName}* (fatura de ${billingMonthName}).`);
+                    const saved = await saveCreditCardExpense(gasto, cardInfo, installments, userId);
+                    if (saved.installments === 1) {
+                        await msg.reply(`✅ Gasto de R$${gasto.valor} lançado no *${saved.sheetName}*.`);
                     } else {
-                        const installmentValue = parseFloat(gasto.valor) / installments;
-                        for (let i = 1; i <= installments; i++) {
-                             let billingMonth = purchaseDate.getMonth();
-                             let billingYear = purchaseDate.getFullYear();
-
-                             if (purchaseDate.getDate() > cardInfo.closingDay) {
-                                 billingMonth += 1;
-                             }
-                             
-                             billingMonth += (i - 1); 
-
-                             while (billingMonth > 11) {
-                                 billingMonth -= 12;
-                                 billingYear += 1;
-                             }
-
-                             const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-                             const billingMonthName = `${monthNames[billingMonth]} de ${billingYear}`;
-
-                             const rowData = [
-                                 getFormattedDateOnly(purchaseDate), gasto.descricao, gasto.categoria || 'Outros',
-                                 String(installmentValue.toFixed(2)).replace('.',','), `${i}/${installments}`, billingMonthName, userId
-                             ];
-                             
-                             await appendRowToSheet(cardInfo.sheetName, rowData);
-                        }
-                        markFinancialReadModelDirty('card_write');
-                        await msg.reply(`✅ Gasto de R$${gasto.valor} lançado em ${installments}x de R$${installmentValue.toFixed(2)} no *${cardInfo.sheetName}*.`);
+                        await msg.reply(`✅ Gasto de R$${gasto.valor} lançado em ${saved.installments}x de R$${saved.installmentValue.toFixed(2)} no *${saved.sheetName}*.`);
                     }
+                    await maybeNotifyDailyGoalAfterExpense(msg, userId);
                 } catch (error) {
                     console.error("Erro ao salvar parcelamento:", error);
                     await msg.reply("Ocorreu um erro ao salvar o gasto.");
@@ -2843,10 +3326,11 @@ async function handleMessage(msg) {
                         await replyNoCreditCardsConfigured(msg);
                         return;
                     }
+                    const installments = detectInstallmentsFromMessage(respostaPagamento);
                     const question = formatCreditCardOptionsQuestion('Ok, crédito. Em qual cartão? Responda com o número:', cardOptions);
                     userStateManager.setState(senderId, {
                         action: 'awaiting_credit_card_selection',
-                        data: { gasto: { ...gasto, pagamento: 'Crédito' }, cardOptions }
+                        data: { gasto: { ...gasto, pagamento: 'Crédito', installments }, cardOptions }
                     });
                     await msg.reply(question);
                     return;
@@ -2883,6 +3367,7 @@ async function handleMessage(msg) {
 
                 // MENSAGEM DE SUCESSO MELHORADA
                 await msg.reply(`✅ Gasto de R$${valorNumerico.toFixed(2)} (${gasto.descricao}) registrado como *${gasto.pagamento}* para a data de *${dataFinal}*!`);
+                await maybeNotifyDailyGoalAfterExpense(msg, userId);
                 userStateManager.deleteState(senderId);
                 return;
             }
@@ -3744,10 +4229,32 @@ async function handleMessage(msg) {
                                 await replyNoCreditCardsConfigured(msg);
                                 return;
                             }
+                            const explicitCard = findExplicitCardOption(messageBody, cardOptions);
+                            const explicitInstallments = detectInstallmentsFromMessage(messageBody);
+                            if (explicitCard && explicitInstallments) {
+                                const cardInfo = getSelectedCardInfo(cardOptions, cardOptions.indexOf(explicitCard));
+                                const saved = await saveCreditCardExpense(item, cardInfo, explicitInstallments, userId);
+                                if (saved.installments === 1) {
+                                    await msg.reply(`✅ Gasto de R$${item.valor} lançado no *${saved.sheetName}*.`);
+                                } else {
+                                    await msg.reply(`✅ Gasto de R$${item.valor} lançado em ${saved.installments}x de R$${saved.installmentValue.toFixed(2)} no *${saved.sheetName}*.`);
+                                }
+                                await maybeNotifyDailyGoalAfterExpense(msg, userId);
+                                return;
+                            }
+                            if (explicitCard) {
+                                const cardInfo = getSelectedCardInfo(cardOptions, cardOptions.indexOf(explicitCard));
+                                userStateManager.setState(senderId, {
+                                    action: 'awaiting_installment_number',
+                                    data: { gasto: item, cardInfo }
+                                });
+                                await msg.reply(`Entendi, o gasto foi no *${cardInfo.sheetName}*. Em quantas parcelas? (digite \`1\` se for à vista)`);
+                                return;
+                            }
                             const question = formatCreditCardOptionsQuestion('Entendi, o gasto foi no crédito. Em qual cartão? Responda com o número:', cardOptions);
                             userStateManager.setState(senderId, {
                                 action: 'awaiting_credit_card_selection',
-                                data: { gasto: item, cardOptions }
+                                data: { gasto: { ...item, installments: explicitInstallments }, cardOptions }
                             });
                             await msg.reply(question);
                             return; 
@@ -3756,6 +4263,9 @@ async function handleMessage(msg) {
                             const saved = await saveTransactionWithoutExtraPayment(item, { person: pessoa, userId });
                             const typeLabel = item.type === 'Saídas' ? 'Gasto' : 'Entrada';
                             await msg.reply(`✅ ${typeLabel} de R$${saved.value.toFixed(2)} (${item.descricao || 'Não especificado'}) registrado como *${saved.method}* para a data de *${saved.date}*!`);
+                            if (item.type === 'Saídas') {
+                                await maybeNotifyDailyGoalAfterExpense(msg, userId);
+                            }
                             return;
                         }
 
