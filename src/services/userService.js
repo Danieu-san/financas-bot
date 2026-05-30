@@ -450,7 +450,7 @@ async function getUserSettingsByUserId(userId) {
         return settingsCache.find(s => s.user_id === userId) || null;
     }
 
-    const rows = await readCriticalSheet(`${SETTINGS_SHEET}!A:M`);
+    const rows = await readCriticalSheet(`${SETTINGS_SHEET}!A:R`);
     if (!rows || rows.length <= 1) {
         settingsCache = [];
         settingsCacheLoaded = true;
@@ -514,7 +514,7 @@ async function upsertUserSettings(userId, patch) {
     ];
 
     if (existing) {
-        await updateRowInSheet(`${SETTINGS_SHEET}!A${existing.rowIndex}:M${existing.rowIndex}`, rowData);
+        await updateRowInSheet(`${SETTINGS_SHEET}!A${existing.rowIndex}:R${existing.rowIndex}`, rowData);
     } else {
         await appendRowToSheet(SETTINGS_SHEET, rowData);
     }

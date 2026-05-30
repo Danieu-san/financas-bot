@@ -52,6 +52,7 @@ Sempre revalidar EC2/PM2/logs antes de afirmar que producao esta saudavel.
 - Dependencias moderadamente vulneraveis foram atualizadas em 2026-05-26: `googleapis`, `node-cron` e `qs`. Validar sempre com `npm audit --audit-level=moderate` antes de release.
 - Orcamento mensal livre substitui a meta diaria fixa: comando `definir orçamento mensal <valor>`, comando `desativar orçamento mensal`, alertas por WhatsApp em 50%, 80% e 100% do ritmo diario recomendado e graficos diario/mensal no dashboard. O onboarding sugere `definir orçamento mensal 3000`.
 - Orcamento mensal livre tem escopo `personal` ou `family`. Com familia ativa, `definir orçamento mensal <valor>` pergunta se o orçamento e pessoal ou familiar. A resposta curta `orçamento mensal família`/`orçamento mensal pessoal` altera o escopo de um orçamento ja ativo.
+- Correcao local em 2026-05-30: `UserSettings` deve ser lido/escrito em `A:R`; usar ranges antigos `A:M` quebra o salvamento do orçamento mensal porque os campos `monthly_budget_*` ficam nas colunas N:R.
 - Ao ativar vinculo familiar por `admin compartilhar planilha`, se o dono ja tiver orçamento mensal ativo, o bot envia ao dono uma pergunta para decidir se ele continua pessoal ou vira familiar.
 - Roteamento de gastos ficou mais inteligente em 2026-05-29: se a mensagem ja trouxer `credito`, nome do cartao e `a vista`/parcelas, o bot pula perguntas redundantes e grava direto. Ha fallback para contar cartoes em `Lançamentos Cartão` e em abas legadas `Cartão ...` no orçamento mensal.
 

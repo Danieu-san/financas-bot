@@ -1916,6 +1916,17 @@ async function saveMonthlyBudgetSettings(userId, amount, scope = 'personal') {
     });
 }
 
+async function saveMonthlyBudgetSettingsWithFeedback(msg, userId, amount, scope = 'personal') {
+    try {
+        await saveMonthlyBudgetSettings(userId, amount, scope);
+        return true;
+    } catch (error) {
+        logger.error(`[settings] monthly_budget_save_failed user_id=${userId} error=${error.message}`);
+        await msg.reply('Não consegui salvar o orçamento mensal agora. O bot continua online; tente novamente em alguns instantes.');
+        return false;
+    }
+}
+
 async function handleSettingsCommands(msg, user) {
     const rawBody = String(msg.body || '').trim();
     const body = normalizeSettingsCommandText(msg.body);
@@ -1975,7 +1986,7 @@ async function handleSettingsCommands(msg, user) {
     if (monthlyBudgetCommand) {
         const familyScopeAvailable = getFinancialScopeUserIds(user.user_id).length > 1;
         if (monthlyBudgetCommand.scope === 'family' && !familyScopeAvailable) {
-            await saveMonthlyBudgetSettings(user.user_id, monthlyBudgetCommand.amount, 'personal');
+            if (!await saveMonthlyBudgetSettingsWithFeedback(msg, user.user_id, monthlyBudgetCommand.amount, 'personal')) return true;
             await msg.reply(`Você ainda não tem vínculo familiar ativo. Configurei o orçamento mensal livre pessoal em ${formatCurrencyBR(monthlyBudgetCommand.amount)}.`);
             return true;
         }
@@ -1991,7 +2002,7 @@ async function handleSettingsCommands(msg, user) {
             return true;
         }
         const scope = monthlyBudgetCommand.scope || 'personal';
-        await saveMonthlyBudgetSettings(user.user_id, monthlyBudgetCommand.amount, scope);
+        if (!await saveMonthlyBudgetSettingsWithFeedback(msg, user.user_id, monthlyBudgetCommand.amount, scope)) return true;
         await msg.reply(`Orçamento mensal livre ${getMonthlyBudgetScopeLabel(scope)} configurado em ${formatCurrencyBR(monthlyBudgetCommand.amount)}. Vou calcular um ritmo diário recomendado e avisar quando o gasto livre do dia atingir 50%, 80% e 100% desse ritmo.`);
         return true;
     }
@@ -2009,7 +2020,7 @@ async function handleSettingsCommands(msg, user) {
                 await msg.reply('Você ainda não tem vínculo familiar ativo para transformar o orçamento mensal em familiar.');
                 return true;
             }
-            await saveMonthlyBudgetSettings(user.user_id, amount, scope);
+            if (!await saveMonthlyBudgetSettingsWithFeedback(msg, user.user_id, amount, scope)) return true;
             await msg.reply(`Orçamento mensal livre alterado para ${getMonthlyBudgetScopeLabel(scope)}.`);
             return true;
         }
@@ -3211,7 +3222,7 @@ async function handleMessage(msg) {
                 const requestedScope = currentState.data?.scope || '';
                 const familyScopeAvailable = getFinancialScopeUserIds(userId).length > 1;
                 if (requestedScope === 'family' && !familyScopeAvailable) {
-                    await saveMonthlyBudgetSettings(userId, amount, 'personal');
+                    if (!await saveMonthlyBudgetSettingsWithFeedback(msg, userId, amount, 'personal')) return;
                     userStateManager.deleteState(senderId);
                     await msg.reply(`Você ainda não tem vínculo familiar ativo. Configurei o orçamento mensal livre pessoal em ${formatCurrencyBR(amount)}.`);
                     return;
@@ -3228,7 +3239,7 @@ async function handleMessage(msg) {
                     return;
                 }
                 const scope = requestedScope || 'personal';
-                await saveMonthlyBudgetSettings(userId, amount, scope);
+                if (!await saveMonthlyBudgetSettingsWithFeedback(msg, userId, amount, scope)) return;
                 userStateManager.deleteState(senderId);
                 await msg.reply(`Orçamento mensal livre ${getMonthlyBudgetScopeLabel(scope)} configurado em ${formatCurrencyBR(amount)}. Vou calcular o ritmo diário recomendado automaticamente.`);
                 return;
@@ -3243,9 +3254,9 @@ async function handleMessage(msg) {
                 }
                 if (scope === 'family' && getFinancialScopeUserIds(userId).length <= 1) {
                     await msg.reply('Você ainda não tem vínculo familiar ativo. Vou manter esse orçamento como pessoal.');
-                    await saveMonthlyBudgetSettings(userId, currentState.data?.amount, 'personal');
+                    if (!await saveMonthlyBudgetSettingsWithFeedback(msg, userId, currentState.data?.amount, 'personal')) return;
                 } else {
-                    await saveMonthlyBudgetSettings(userId, currentState.data?.amount, scope);
+                    if (!await saveMonthlyBudgetSettingsWithFeedback(msg, userId, currentState.data?.amount, scope)) return;
                     await msg.reply(`Orçamento mensal livre ${getMonthlyBudgetScopeLabel(scope)} configurado em ${formatCurrencyBR(currentState.data?.amount)}.`);
                 }
                 userStateManager.deleteState(senderId);

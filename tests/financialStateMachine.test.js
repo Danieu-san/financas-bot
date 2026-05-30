@@ -135,6 +135,10 @@ function getSheetName(rangeOrSheet) {
     return String(rangeOrSheet || '').split('!')[0];
 }
 
+function columnNumber(column) {
+    return String(column || '').split('').reduce((total, char) => (total * 26) + char.charCodeAt(0) - 64, 0);
+}
+
 function installMocks() {
     const oauthStorePath = require.resolve('../src/services/oauthTokenStore');
     require.cache[oauthStorePath] = {
@@ -170,6 +174,13 @@ function installMocks() {
             updateRowInSheet: async (range, row) => {
                 const name = getSheetName(range);
                 const rowMatch = String(range).match(/![A-Z]+(\d+):/);
+                const rangeMatch = String(range).match(/!([A-Z]+)\d+:([A-Z]+)\d+/);
+                if (rangeMatch) {
+                    const width = columnNumber(rangeMatch[2]) - columnNumber(rangeMatch[1]) + 1;
+                    if (row.length > width) {
+                        throw new Error(`Mock range ${range} has width ${width}, but row has ${row.length} columns`);
+                    }
+                }
                 const rowNumber = Number(rowMatch?.[1] || 0);
                 sheets[name][rowNumber - 1] = row;
             },
