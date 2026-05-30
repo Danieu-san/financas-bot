@@ -54,6 +54,13 @@ function initializeWhatsAppClient() {
                 '--disable-renderer-backgrounding',
                 '--disable-sync',
                 '--disable-default-apps',
+                '--single-process',
+                '--renderer-process-limit=1',
+                '--aggressive-cache-discard',
+                '--disable-cache',
+                '--disk-cache-size=1',
+                '--media-cache-size=1',
+                '--disable-features=site-per-process,Translate,BackForwardCache,AcceptCHFrame,MediaRouter,OptimizationHints',
                 '--mute-audio'
             ],
             // Aumentar o timeout para evitar falhas em conexões lentas
