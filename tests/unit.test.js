@@ -1619,6 +1619,7 @@ test('google.validateUserScopedWrite blocks user scoped rows without user_id', (
 
 test('google user spreadsheet mapping keeps legacy card flows compatible', (t) => {
     const {
+        shouldUseUserSpreadsheetForSheet,
         mapSheetNameForUserSpreadsheet,
         mapRangeForUserSpreadsheet,
         mapRowForUserSpreadsheet,
@@ -1629,6 +1630,8 @@ test('google user spreadsheet mapping keeps legacy card flows compatible', (t) =
     assert.strictEqual(mapSheetNameForUserSpreadsheet('Cartão Nubank - Daniel'), 'Lançamentos Cartão');
     assert.strictEqual(mapRangeForUserSpreadsheet('Dívidas'), 'Dívidas');
     assert.strictEqual(mapRangeForUserSpreadsheet('Cartão Nubank - Daniel!A:G'), 'Lançamentos Cartão!A:J');
+    assert.strictEqual(shouldUseUserSpreadsheetForSheet('Faturas'), true);
+    assert.strictEqual(shouldUseUserSpreadsheetForSheet('Parcelamentos'), true);
 
     assert.deepStrictEqual(
         mapRowForUserSpreadsheet('Cartão Nubank - Daniel', ['10/02/2026', 'mercado', 'Alimentação', 50, '1/1', 'Fevereiro de 2026', 'user-1']),

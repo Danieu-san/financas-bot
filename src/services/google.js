@@ -27,6 +27,8 @@ const USER_SHEET_NAMES = new Set([
     'Metas',
     'Cartões',
     'Lançamentos Cartão',
+    'Faturas',
+    'Parcelamentos',
     'Contas'
 ]);
 
@@ -1550,6 +1552,7 @@ module.exports = {
         isGoogleRetriableError,
         getGoogleRetryConfig,
         headerToNumberFormat,
+        shouldUseUserSpreadsheetForSheet,
         mapSheetNameForUserSpreadsheet,
         mapRangeForUserSpreadsheet,
         mapRowForUserSpreadsheet,

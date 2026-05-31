@@ -387,7 +387,7 @@ function buildBillingMonthName(purchaseDate, cardInfo = {}) {
 function buildImportedCreditCardRow(item, cardInfo, userId) {
     const purchaseDate = item.data ? parseSheetDate(item.data) : new Date();
     const dataFinal = getFormattedDateOnly(purchaseDate);
-    const valorNumerico = parseFloat(item.valor);
+    const valorNumerico = parseValue(item.valor);
     return [
         dataFinal,
         item.descricao || 'Não especificado',
@@ -644,7 +644,7 @@ async function maybeNotifyLegacyDailyGoalAfterExpense() {
 async function saveCreditCardExpense(gasto, cardInfo, installments, userId) {
     const purchaseDate = gasto.data ? parseSheetDate(gasto.data) : new Date();
     const safeInstallments = Math.max(1, Number.parseInt(installments, 10) || 1);
-    const totalValue = parseFloat(gasto.valor);
+    const totalValue = parseValue(gasto.valor);
     const installmentValue = totalValue / safeInstallments;
 
     for (let i = 1; i <= safeInstallments; i++) {
@@ -668,7 +668,7 @@ async function saveCreditCardExpense(gasto, cardInfo, installments, userId) {
             getFormattedDateOnly(purchaseDate),
             gasto.descricao || 'Não especificado',
             gasto.categoria || 'Outros',
-            safeInstallments === 1 ? value : String(value.toFixed(2)).replace('.', ','),
+            Math.round((value + Number.EPSILON) * 100) / 100,
             `${i}/${safeInstallments}`,
             billingMonthName,
             userId
@@ -4044,7 +4044,7 @@ async function handleMessage(msg) {
                     const descNormalizada = normalizeText(gasto.descricao);
                     const numParcelas = installmentMap[descNormalizada] || 1; // Se a IA não mapear um, assume 1x
 
-                    const installmentValue = parseFloat(gasto.valor) / numParcelas;
+                    const installmentValue = parseValue(gasto.valor) / numParcelas;
                     const purchaseDate = gasto.data ? parseSheetDate(gasto.data) : new Date();
 
                     for (let i = 1; i <= numParcelas; i++) {
@@ -4067,7 +4067,7 @@ async function handleMessage(msg) {
 
                         const rowData = [
                             getFormattedDateOnly(purchaseDate), gasto.descricao, gasto.categoria || 'Outros',
-                            installmentValue.toFixed(2), `${i}/${numParcelas}`, billingMonthName, userId
+                            Math.round((installmentValue + Number.EPSILON) * 100) / 100, `${i}/${numParcelas}`, billingMonthName, userId
                         ];
                         
                         await appendRowToSheet(cardInfo.sheetName, rowData);

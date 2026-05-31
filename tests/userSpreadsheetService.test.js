@@ -259,8 +259,8 @@ test('user spreadsheet dashboard keeps title row and uses correct formulas', () 
     const rows = __test__.buildDashboardRows({ user: { user_id: 'user-1', display_name: 'Pessoa Teste' } });
     assert.match(rows[0][0], /Painel de Pessoa Teste/);
     assert.strictEqual(rows[4][1], "=SUM('Entradas'!D2:D)");
-    assert.ok(rows.some(row => row[0] === 'Faturas por mês' && String(row[1]).includes('Faturas')));
-    assert.ok(rows.some(row => row[0] === 'Parcelamentos ativos' && String(row[1]).includes('Parcelamentos')));
+    assert.ok(rows.some(row => row[0] === 'Total em faturas' && String(row[1]).includes("SUM('Faturas'!C2:C)")));
+    assert.ok(rows.some(row => row[0] === 'Total em parcelamentos' && String(row[1]).includes("SUM('Parcelamentos'!E2:E)")));
 
     const requests = __test__.buildUserSpreadsheetFormattingRequests({ Dashboard: 1, Manual: 2, Saídas: 3 });
     const overwritesDashboardTitle = requests.some(req => (

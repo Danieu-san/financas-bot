@@ -206,8 +206,8 @@ function buildDashboardRows({ user = {}, dataStartRow = 2 } = {}) {
         ['Cartões', '=B7', '', '', ''],
         ['Dívidas', `=SUM('Dívidas'!E${dataStartRow}:E)`, '', '', ''],
         ['Transferências internas', `=SUM('Transferências'!C${dataStartRow}:C)`, 'Movimentos entre suas próprias contas; não entram no saldo estimado.', user.user_id || '', '=NOW()'],
-        ['Faturas por mês', "=COUNTA('Faturas'!A2:A)", 'Aba Faturas mostra totais por cartão e mês de cobrança.', user.user_id || '', '=NOW()'],
-        ['Parcelamentos ativos', "=COUNTA('Parcelamentos'!A2:A)", 'Aba Parcelamentos mostra compras agrupadas, parcelas lançadas e total previsto.', user.user_id || '', '=NOW()'],
+        ['Total em faturas', "=SUM('Faturas'!C2:C)", 'Aba Faturas mostra totais por cartão e mês de cobrança.', user.user_id || '', '=NOW()'],
+        ['Total em parcelamentos', "=SUM('Parcelamentos'!E2:E)", 'Aba Parcelamentos mostra compras agrupadas, parcelas lançadas e total previsto.', user.user_id || '', '=NOW()'],
         ['', '', '', '', ''],
         ['Próximos passos', '1) Leia a aba Manual. 2) Cadastre seus cartões na aba Cartões. 3) Registre gastos pelo WhatsApp.', '', '', '']
     ];

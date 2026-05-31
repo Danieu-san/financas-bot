@@ -667,6 +667,7 @@ stateMachineTest('financial states: explicit credit card and à vista expense sk
     assert.match(reply, /Cartão Nubank - Thais/i);
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
     assert.strictEqual(sheets['Cartão Nubank - Thais'].length, 2);
+    assert.strictEqual(sheets['Cartão Nubank - Thais'][1][3], 10);
     assert.strictEqual(sheets['Cartão Nubank - Thais'][1][4], '1/1');
     assert.strictEqual(sheets['Cartão Nubank - Thais'][1].at(-1), USER_ID);
 });
@@ -901,10 +902,10 @@ stateMachineTest('financial states: batch credit card flow writes installments f
     const cardRows = sheets[CARD_SHEETS[0]].slice(1);
     assert.strictEqual(cardRows.length, 4);
     assert.deepStrictEqual(cardRows.map(row => [row[1], row[3], row[4], row[6]]), [
-        ['mercado crédito lote', '50.00', '1/2', USER_ID],
-        ['mercado crédito lote', '50.00', '2/2', USER_ID],
-        ['farmácia crédito lote', '25.00', '1/2', USER_ID],
-        ['farmácia crédito lote', '25.00', '2/2', USER_ID]
+        ['mercado crédito lote', 50, '1/2', USER_ID],
+        ['mercado crédito lote', 50, '2/2', USER_ID],
+        ['farmácia crédito lote', 25, '1/2', USER_ID],
+        ['farmácia crédito lote', 25, '2/2', USER_ID]
     ]);
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
 });
