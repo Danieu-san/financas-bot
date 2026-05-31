@@ -2246,6 +2246,11 @@ function getSelectedCardInfo(cardOptions, selection) {
     return option.cardInfo || creditCardConfig[option.key || option];
 }
 
+function hasExplicitDebitPaymentSignal(messageBody = '') {
+    const text = normalizeText(messageBody);
+    return /\b(debito|cartao de debito|no debito|em debito|deb)\b/.test(text);
+}
+
 function detectInstallmentsFromMessage(messageBody = '') {
     const text = normalizeText(messageBody);
     if (/\b(a vista|avista|1x|1 x|uma vez)\b/.test(text)) return 1;
@@ -4330,41 +4335,50 @@ async function handleMessage(msg) {
                         const item = allTransactions[0];
                         const pagamento = normalizeText(item.pagamento || '');
 
-                        if (item.type === 'Saídas' && pagamento === 'credito') {
+                        const messageMentionsCard = normalizeText(messageBody).includes('cartao');
+                        if (item.type === 'Saídas' && (pagamento === 'credito' || messageMentionsCard)) {
                             const cardOptions = await buildCreditCardOptionsForUser(userId);
-                            if (!cardOptions.length) {
+                            if (pagamento === 'credito' && !cardOptions.length) {
                                 await replyNoCreditCardsConfigured(msg);
                                 return;
                             }
                             const explicitCard = findExplicitCardOption(messageBody, cardOptions);
-                            const explicitInstallments = detectInstallmentsFromMessage(messageBody);
-                            if (explicitCard && explicitInstallments) {
-                                const cardInfo = getSelectedCardInfo(cardOptions, cardOptions.indexOf(explicitCard));
-                                const saved = await saveCreditCardExpense(item, cardInfo, explicitInstallments, userId);
-                                if (saved.installments === 1) {
-                                    await msg.reply(`✅ Gasto de R$${item.valor} lançado no *${saved.sheetName}*.`);
-                                } else {
-                                    await msg.reply(`✅ Gasto de R$${item.valor} lançado em ${saved.installments}x de R$${saved.installmentValue.toFixed(2)} no *${saved.sheetName}*.`);
+                            const shouldUseCreditCardFlow = pagamento === 'credito' || (explicitCard && !hasExplicitDebitPaymentSignal(messageBody));
+                            if (shouldUseCreditCardFlow) {
+                                if (!cardOptions.length) {
+                                    await replyNoCreditCardsConfigured(msg);
+                                    return;
                                 }
-                                await maybeNotifyDailyGoalAfterExpense(msg, userId);
-                                return;
-                            }
-                            if (explicitCard) {
-                                const cardInfo = getSelectedCardInfo(cardOptions, cardOptions.indexOf(explicitCard));
+                                const creditCardItem = { ...item, pagamento: 'Crédito' };
+                                const explicitInstallments = detectInstallmentsFromMessage(messageBody);
+                                if (explicitCard && explicitInstallments) {
+                                    const cardInfo = getSelectedCardInfo(cardOptions, cardOptions.indexOf(explicitCard));
+                                    const saved = await saveCreditCardExpense(creditCardItem, cardInfo, explicitInstallments, userId);
+                                    if (saved.installments === 1) {
+                                        await msg.reply(`✅ Gasto de R$${creditCardItem.valor} lançado no *${saved.sheetName}*.`);
+                                    } else {
+                                        await msg.reply(`✅ Gasto de R$${creditCardItem.valor} lançado em ${saved.installments}x de R$${saved.installmentValue.toFixed(2)} no *${saved.sheetName}*.`);
+                                    }
+                                    await maybeNotifyDailyGoalAfterExpense(msg, userId);
+                                    return;
+                                }
+                                if (explicitCard) {
+                                    const cardInfo = getSelectedCardInfo(cardOptions, cardOptions.indexOf(explicitCard));
+                                    userStateManager.setState(senderId, {
+                                        action: 'awaiting_installment_number',
+                                        data: { gasto: creditCardItem, cardInfo }
+                                    });
+                                    await msg.reply(`Entendi, o gasto foi no *${cardInfo.sheetName}*. Em quantas parcelas? (digite \`1\` se for à vista)`);
+                                    return;
+                                }
+                                const question = formatCreditCardOptionsQuestion('Entendi, o gasto foi no crédito. Em qual cartão? Responda com o número:', cardOptions);
                                 userStateManager.setState(senderId, {
-                                    action: 'awaiting_installment_number',
-                                    data: { gasto: item, cardInfo }
+                                    action: 'awaiting_credit_card_selection',
+                                    data: { gasto: { ...creditCardItem, installments: explicitInstallments }, cardOptions }
                                 });
-                                await msg.reply(`Entendi, o gasto foi no *${cardInfo.sheetName}*. Em quantas parcelas? (digite \`1\` se for à vista)`);
+                                await msg.reply(question);
                                 return;
                             }
-                            const question = formatCreditCardOptionsQuestion('Entendi, o gasto foi no crédito. Em qual cartão? Responda com o número:', cardOptions);
-                            userStateManager.setState(senderId, {
-                                action: 'awaiting_credit_card_selection',
-                                data: { gasto: { ...item, installments: explicitInstallments }, cardOptions }
-                            });
-                            await msg.reply(question);
-                            return; 
                         }
                         if (canSaveTransactionWithoutExtraPayment(item)) {
                             const saved = await saveTransactionWithoutExtraPayment(item, { person: pessoa, userId });

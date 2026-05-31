@@ -672,6 +672,32 @@ stateMachineTest('financial states: explicit credit card and à vista expense sk
     assert.strictEqual(sheets['Cartão Nubank - Thais'][1].at(-1), USER_ID);
 });
 
+stateMachineTest('financial states: explicit card name overrides mistaken debit classification when debit was not said', async () => {
+    resetState();
+    enqueueStructuredResponse({
+        intent: 'gasto',
+        gastoDetails: [{
+            descricao: 'restaurante malz',
+            valor: 125.25,
+            categoria: 'Alimentação',
+            subcategoria: 'RESTAURANTE',
+            pagamento: 'Débito',
+            recorrente: 'Não'
+        }]
+    });
+
+    const reply = await send('gastei 125,25 hoje no restaurante malz à vista no cartão nubank thais');
+
+    assert.match(reply, /lançado no/i);
+    assert.match(reply, /Cartão Nubank - Thais/i);
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
+    assert.strictEqual(sheets['Saídas'].length, 1);
+    assert.strictEqual(sheets['Cartão Nubank - Thais'].length, 2);
+    assert.strictEqual(sheets['Cartão Nubank - Thais'][1][3], 125.25);
+    assert.strictEqual(sheets['Cartão Nubank - Thais'][1][4], '1/1');
+    assert.strictEqual(sheets['Cartão Nubank - Thais'][1].at(-1), USER_ID);
+});
+
 stateMachineTest('financial states: monthly budget alert counts explicit credit card spending in legacy card sheets', async () => {
     resetState();
     sheets.UserSettings[1][13] = 'SIM';
