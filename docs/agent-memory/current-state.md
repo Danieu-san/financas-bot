@@ -11,7 +11,7 @@ Atualizado em: 2026-05-31
 
 ## Estado de producao conhecido
 
-- Ultimo deploy validado: commit `4182ae4` (`fix: include first card row in sheet summaries`).
+- Ultimo deploy validado: commit `376c2c8` (`fix: infer credit card from explicit card name`).
 - Health check em producao respondeu `{"ok":true,"sqlite":true}` e PM2 confirmou `Bot pronto para receber mensagens`.
 - Dashboard passou a mostrar `Saldo` economico e `Disponivel estimado` apos caixinha/reserva.
 - O bot estava online no PM2 e WhatsApp chegou em `Bot pronto para receber mensagens` apos o deploy.
@@ -58,6 +58,8 @@ Sempre revalidar EC2/PM2/logs antes de afirmar que producao esta saudavel.
 - Roteamento de gastos ficou mais inteligente em 2026-05-29: se a mensagem ja trouxer `credito`, nome do cartao e `a vista`/parcelas, o bot pula perguntas redundantes e grava direto. Ha fallback para contar cartoes em `Lançamentos Cartão` e em abas legadas `Cartão ...` no orçamento mensal.
 - Planilha do usuario teve correcoes em 2026-05-31: `Faturas` e `Parcelamentos` agora sao tratadas como abas da planilha pessoal, lancamentos de cartao passam a gravar valor numerico (nao texto) e as formulas `QUERY` dos resumos usam `headers=0` para nao ignorar a primeira compra real.
 - Planilha real do Daniel foi copiada antes da limpeza (`Backup FinancasBot Daniel antes limpeza 2026-05-31 0249`) e depois teve linhas financeiras anteriores a 29/05/2026 removidas de `Entradas`, `Saídas`, `Transferências` e `Lançamentos Cartão`. Configuracoes, contas, metas, dividas, manual, dashboard e formulas foram preservados.
+- Correcao em 2026-05-31: quando o usuario cita um cartao cadastrado pelo nome (ex.: `cartao nubank thais`) sem dizer `debito`, o bot trata como cartao de credito mesmo se a IA classificar equivocadamente como `Débito`; `à vista` vira parcela `1/1`. Se o usuario disser explicitamente `debito`, o fluxo de debito e preservado.
+- Dado real corrigido em 2026-05-31: `restaurante malz` de R$125,25 foi movido de `Saídas/Débito` para `Lançamentos Cartão/Cartão Nubank - Thais`, apos backup `Backup FinancasBot Daniel antes mover restaurante malz 2026-05-31 1249`.
 
 ## Mudanca recente sobre caixinha/reserva
 
