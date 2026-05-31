@@ -494,6 +494,21 @@ test('statement import detects repeated incoming transfer and can classify it as
     assert.strictEqual(parseRecurringIncomeClassificationReply('renda extra'), 'extra_income');
 });
 
+test('statement import does not classify generic payment processor names as salary', () => {
+    const csv = [
+        'Data;Descrição;Valor;Tipo',
+        '11/05/2026;Transferência Recebida - João Carlos - NU PAGAMENTOS;67,50;Crédito',
+        '05/05/2026;PAGTO SALARIO EMPRESA ABC;3000,00;Crédito'
+    ].join('\n');
+
+    const transactions = parseCsvTransactions(csv);
+
+    assert.strictEqual(transactions[0].type, 'Entradas');
+    assert.strictEqual(transactions[0].categoria, 'Outros');
+    assert.strictEqual(transactions[1].type, 'Entradas');
+    assert.strictEqual(transactions[1].categoria, 'Salário');
+});
+
 test('statement import detects repeated expense as bill reminder candidate', () => {
     const csv = [
         'Data;Descrição;Valor;Tipo',

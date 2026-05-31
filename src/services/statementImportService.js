@@ -379,7 +379,17 @@ function normalizedTextIncludesTerm(text, term) {
 
 function categorizeIncome(description = '') {
     const text = normalizeText(description);
-    if (text.includes('salario') || text.includes('salário') || text.includes('pagamento')) return 'Salário';
+    if (
+        text.includes('salario') ||
+        text.includes('salário') ||
+        text.includes('pagto salario') ||
+        text.includes('pagamento salario') ||
+        text.includes('pagamento de salario') ||
+        text.includes('credito salario') ||
+        text.includes('crédito salário') ||
+        text.includes('folha de pagamento') ||
+        text.includes('proventos')
+    ) return 'Salário';
     if (text.includes('rendimento') || text.includes('rend pago aplic') || text.includes('dividendo')) return 'Investimentos';
     if (text.includes('freela') || text.includes('freelance')) return 'Renda Extra';
     if (text.includes('reembolso')) return 'Reembolso';
