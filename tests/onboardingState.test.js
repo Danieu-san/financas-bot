@@ -140,8 +140,8 @@ test('onboarding menu explains optional settings commands', () => {
     assert.ok(menu.includes('Ajustes opcionais'));
     assert.ok(menu.includes('pergunta curta no domingo'));
     assert.ok(menu.includes('sugiro separar 10%'));
-    assert.ok(menu.includes('definir orçamento mensal 3000'));
-    assert.ok(menu.includes('gráficos diário e mensal no dashboard'));
+    assert.ok(menu.includes('definir orçamento mensal 3000 dia 5'));
+    assert.ok(menu.includes('gráficos diário e do ciclo no dashboard'));
     assert.ok(!menu.includes('Configurações rápidas'));
 });
 

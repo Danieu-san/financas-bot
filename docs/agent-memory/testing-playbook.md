@@ -74,7 +74,7 @@ Validar:
 - Admin nao deve depender de `Todos os usuarios` para uso normal.
 - KPIs de `Saldo` e `Disponivel estimado` aparecem quando houver reserva/caixinha.
 - Graficos renderizam.
-- Orcamento mensal livre mostra grafico diario e mensal, muda corretamente entre escopo pessoal/familiar e nao conta recorrentes, transferencias, dividas ou reserva como gasto livre.
+- Orcamento mensal livre mostra grafico diario e do ciclo, respeita o dia de inicio configurado (1 a 31), muda corretamente entre escopo pessoal/familiar e nao conta recorrentes, transferencias, dividas ou reserva como gasto livre.
 
 ## Scheduler e Calendar
 

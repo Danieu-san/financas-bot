@@ -212,7 +212,7 @@ test('dashboard page reloads data when month or year filters change', async () =
         assert.match(html, /saldoDisponivelEstimado/);
         assert.match(html, /Orçamento Livre/);
         assert.match(html, /renderDailyGoal\(data\.dailyGoal\)/);
-        assert.match(html, /definir orçamento mensal 3000/);
+        assert.match(html, /definir orçamento mensal 3000 dia 5/);
     } finally {
         await new Promise(resolve => server.close(resolve));
     }

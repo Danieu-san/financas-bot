@@ -11,6 +11,11 @@ const hasUserSpreadsheetContext = googleService.hasUserSpreadsheetContext || (as
 const shareSpreadsheetWithUserEmail = googleService.shareSpreadsheetWithUserEmail || (async () => null);
 const revokeSpreadsheetPermission = googleService.revokeSpreadsheetPermission || (async () => false);
 const { getFormattedDate, getFormattedDateOnly, normalizeText, parseSheetDate, parseAmount, parseValue } = require('../utils/helpers');
+const {
+    normalizeCycleStartDay,
+    getBudgetCycleForDate,
+    dateIsWithinCycle
+} = require('../utils/budgetCycle');
 const cache = require('../utils/cache');
 const rateLimiter = require('../utils/rateLimiter');
 const { handleAudio } = require('./audioHandler');
@@ -434,6 +439,15 @@ function getMonthlyBudgetScopeLabel(scope) {
     return scope === 'family' ? 'familiar' : 'pessoal';
 }
 
+function getMonthlyBudgetCycleStartDay(settings = {}) {
+    return normalizeCycleStartDay(settings?.monthly_budget_cycle_start_day || '1');
+}
+
+function formatMonthlyBudgetCycle(cycleStartDay, todayParts = getSaoPauloDateParts()) {
+    const cycle = getBudgetCycleForDate(todayParts, cycleStartDay);
+    return cycle.label;
+}
+
 function getMonthlyBudgetScopeUserIds(userId, settings = {}) {
     const userIds = settings.monthly_budget_scope === 'family' ? getFinancialScopeUserIds(userId) : [userId];
     return Array.from(new Set(userIds.map(id => String(id || '').trim()).filter(Boolean)));
@@ -497,7 +511,7 @@ function isFreeSpendingRow(row) {
     ].some(term => category.includes(term));
 }
 
-async function calculateMonthlyBudgetSpend(userId, today = getTodaySaoPauloDateString(), userIds = [userId]) {
+async function calculateMonthlyBudgetSpend(userId, today = getTodaySaoPauloDateString(), userIds = [userId], cycleStartDay = 1) {
     const safeReadRows = async (range) => {
         try {
             return await readDataFromSheet(range) || [];
@@ -513,12 +527,14 @@ async function calculateMonthlyBudgetSpend(userId, today = getTodaySaoPauloDateS
     const allowedUserIds = new Set((Array.isArray(userIds) ? userIds : [userId]).map(id => String(id || '').trim()).filter(Boolean));
     const matchesUser = (row, index) => allowedUserIds.has(String(row?.[index] || '').trim());
     const todayParts = getSaoPauloDateParts();
+    const cycle = getBudgetCycleForDate(todayParts, cycleStartDay);
     const sumRows = (rows, userIndex, amountIndex) => rows
         .filter(row => matchesUser(row, userIndex) && isFreeSpendingRow(row))
         .reduce((acc, row) => {
             const amount = parseValue(row[amountIndex]);
+            const parsedDate = parseSheetDate(row[0]);
             const isToday = dateStringMatchesToday(row[0], today);
-            const isMonth = dateStringMatchesMonth(row[0], todayParts.month, todayParts.year);
+            const isMonth = dateIsWithinCycle(parsedDate, cycle);
             if (isToday) acc.today += amount;
             if (isMonth) acc.month += amount;
             return acc;
@@ -530,8 +546,9 @@ async function calculateMonthlyBudgetSpend(userId, today = getTodaySaoPauloDateS
         .filter(row => matchesUser(row, 9))
         .reduce((acc, row) => {
             const amount = parseValue(row[3]);
+            const parsedDate = parseSheetDate(row[0]);
             if (dateStringMatchesToday(row[0], today)) acc.today += amount;
-            if (dateStringMatchesMonth(row[0], todayParts.month, todayParts.year)) acc.month += amount;
+            if (dateIsWithinCycle(parsedDate, cycle)) acc.month += amount;
             return acc;
         }, { today: 0, month: 0 });
 
@@ -543,8 +560,9 @@ async function calculateMonthlyBudgetSpend(userId, today = getTodaySaoPauloDateS
             .filter(row => matchesUser(row, 6))
             .reduce((acc, row) => {
                 const amount = parseValue(row[3]);
+                const parsedDate = parseSheetDate(row[0]);
                 if (dateStringMatchesToday(row[0], today)) acc.today += amount;
-                if (dateStringMatchesMonth(row[0], todayParts.month, todayParts.year)) acc.month += amount;
+                if (dateIsWithinCycle(parsedDate, cycle)) acc.month += amount;
                 return acc;
             }, { today: 0, month: 0 });
     }
@@ -552,17 +570,18 @@ async function calculateMonthlyBudgetSpend(userId, today = getTodaySaoPauloDateS
     return {
         today: Math.round((saidas.today + cartoes.today + Number.EPSILON) * 100) / 100,
         month: Math.round((saidas.month + cartoes.month + Number.EPSILON) * 100) / 100,
-        todayParts
+        todayParts,
+        cycle
     };
 }
 
-function calculateMonthlyBudgetPace(monthlyBudget, monthSpent, todaySpent, todayParts = getSaoPauloDateParts()) {
-    const daysInMonth = new Date(todayParts.year, todayParts.month + 1, 0).getDate();
-    const daysRemaining = Math.max(1, daysInMonth - todayParts.day + 1);
+function calculateMonthlyBudgetPace(monthlyBudget, monthSpent, todaySpent, todayParts = getSaoPauloDateParts(), cycleStartDay = 1) {
+    const cycle = getBudgetCycleForDate(todayParts, cycleStartDay);
+    const daysRemaining = Math.max(1, cycle.daysRemaining || 1);
     const spentBeforeToday = Math.max(0, Number(monthSpent || 0) - Number(todaySpent || 0));
     const budgetBeforeToday = Math.max(0, Number(monthlyBudget || 0) - spentBeforeToday);
     const dailyRecommended = Math.round(((budgetBeforeToday / daysRemaining) + Number.EPSILON) * 100) / 100;
-    return { daysInMonth, daysRemaining, dailyRecommended };
+    return { daysInCycle: cycle.daysInCycle, daysRemaining, dailyRecommended, cycle };
 }
 
 async function maybeNotifyDailyGoalAfterExpense(msg, userId) {
@@ -573,9 +592,10 @@ async function maybeNotifyDailyGoalAfterExpense(msg, userId) {
     if (!monthlyBudget || monthlyBudget <= 0) return null;
 
     const today = getTodaySaoPauloDateString();
+    const cycleStartDay = getMonthlyBudgetCycleStartDay(settings);
     const scopeUserIds = getMonthlyBudgetScopeUserIds(ownerUserId, settings);
-    const spend = await calculateMonthlyBudgetSpend(ownerUserId, today, scopeUserIds);
-    const pace = calculateMonthlyBudgetPace(monthlyBudget, spend.month, spend.today, spend.todayParts);
+    const spend = await calculateMonthlyBudgetSpend(ownerUserId, today, scopeUserIds, cycleStartDay);
+    const pace = calculateMonthlyBudgetPace(monthlyBudget, spend.month, spend.today, spend.todayParts, cycleStartDay);
     if (!pace.dailyRecommended || pace.dailyRecommended <= 0) return null;
 
     const percentUsed = Math.round((spend.today / pace.dailyRecommended) * 100);
@@ -600,9 +620,10 @@ async function maybeNotifyDailyGoalAfterExpense(msg, userId) {
     const message = [
         `Alerta de orçamento mensal ${scopeLabel}: hoje já foi usado ${percentUsed}% do ritmo diário recomendado.`,
         `Gasto livre de hoje: ${formatCurrencyBR(spend.today)}. Ritmo recomendado: ${formatCurrencyBR(pace.dailyRecommended)}.`,
-        `Restante no mês: ${formatCurrencyBR(remainingMonth)} em ${pace.daysRemaining} dia(s).`,
+        `Restante no ciclo: ${formatCurrencyBR(remainingMonth)} em ${pace.daysRemaining} dia(s).`,
+        pace.cycle?.label || '',
         statusLine
-    ].join('\n');
+    ].filter(Boolean).join('\n');
     await sendPlainMessage(msg, message);
     return { spent: spend.today, goalAmount: pace.dailyRecommended, percentUsed, milestone };
 }
@@ -1889,7 +1910,8 @@ function parseMonthlyBudgetCommand(body) {
     if (!Number.isFinite(amount) || amount <= 0) return null;
     return {
         amount,
-        scope: normalizeMonthlyBudgetScope(text)
+        scope: normalizeMonthlyBudgetScope(text),
+        cycleStartDay: extractMonthlyBudgetCycleStartDay(text)
     };
 }
 
@@ -1898,27 +1920,44 @@ function isLegacyDailyGoalCommandLike(body) {
     return /\bmeta\b/.test(text) && /\bdiaria\b/.test(text);
 }
 
+function extractMonthlyBudgetCycleStartDay(body) {
+    const text = normalizeSettingsCommandText(body);
+    const match = text.match(/(?:comec(?:a|ando)|inicio|iniciar|a partir do|ciclo|dia)\s+(?:no\s+)?(?:dia\s+)?(\d{1,2})\b/);
+    if (!match) return null;
+    const day = Number.parseInt(match[1], 10);
+    return day >= 1 && day <= 31 ? day : null;
+}
+
+function parseMonthlyBudgetCycleStartDayReply(body) {
+    const match = String(body || '').match(/\b(\d{1,2})\b/);
+    if (!match) return null;
+    const day = Number.parseInt(match[1], 10);
+    return day >= 1 && day <= 31 ? day : null;
+}
+
 function extractFullNameSettingsCommand(text) {
     const fullNameMatch = String(text || '').trim().match(/^(?:definir\s+nome\s+completo|meu\s+nome\s+completo\s+(?:e|é))\s+(.+)$/i);
     if (!fullNameMatch) return '';
     return String(fullNameMatch[1] || '').replace(/\s+/g, ' ').trim();
 }
 
-async function saveMonthlyBudgetSettings(userId, amount, scope = 'personal') {
+async function saveMonthlyBudgetSettings(userId, amount, scope = 'personal', cycleStartDay = 1) {
     const normalizedScope = scope === 'family' ? 'family' : 'personal';
+    const normalizedCycleStartDay = normalizeCycleStartDay(cycleStartDay);
     await upsertUserSettings(userId, {
         monthly_budget_enabled: 'SIM',
         monthly_budget_amount: String(amount),
         monthly_budget_scope: normalizedScope,
+        monthly_budget_cycle_start_day: String(normalizedCycleStartDay),
         monthly_budget_last_alert_date: '',
         monthly_budget_last_alert_level: '',
         daily_goal_enabled: 'NÃO'
     });
 }
 
-async function saveMonthlyBudgetSettingsWithFeedback(msg, userId, amount, scope = 'personal') {
+async function saveMonthlyBudgetSettingsWithFeedback(msg, userId, amount, scope = 'personal', cycleStartDay = 1) {
     try {
-        await saveMonthlyBudgetSettings(userId, amount, scope);
+        await saveMonthlyBudgetSettings(userId, amount, scope, cycleStartDay);
         return true;
     } catch (error) {
         logger.error(`[settings] monthly_budget_save_failed user_id=${userId} error=${error.message}`);
@@ -1984,16 +2023,27 @@ async function handleSettingsCommands(msg, user) {
 
     const monthlyBudgetCommand = parseMonthlyBudgetCommand(body);
     if (monthlyBudgetCommand) {
+        if (!monthlyBudgetCommand.cycleStartDay) {
+            userStateManager.setState(senderIdFromMessage(msg), {
+                action: 'awaiting_monthly_budget_cycle_start_day',
+                data: {
+                    amount: monthlyBudgetCommand.amount,
+                    scope: monthlyBudgetCommand.scope
+                }
+            });
+            await msg.reply('Em qual dia do mês seu ciclo de orçamento começa? Responda um número de 1 a 31. Exemplo: `5`.');
+            return true;
+        }
         const familyScopeAvailable = getFinancialScopeUserIds(user.user_id).length > 1;
         if (monthlyBudgetCommand.scope === 'family' && !familyScopeAvailable) {
-            if (!await saveMonthlyBudgetSettingsWithFeedback(msg, user.user_id, monthlyBudgetCommand.amount, 'personal')) return true;
-            await msg.reply(`Você ainda não tem vínculo familiar ativo. Configurei o orçamento mensal livre pessoal em ${formatCurrencyBR(monthlyBudgetCommand.amount)}.`);
+            if (!await saveMonthlyBudgetSettingsWithFeedback(msg, user.user_id, monthlyBudgetCommand.amount, 'personal', monthlyBudgetCommand.cycleStartDay)) return true;
+            await msg.reply(`Você ainda não tem vínculo familiar ativo. Configurei o orçamento mensal livre pessoal em ${formatCurrencyBR(monthlyBudgetCommand.amount)}. ${formatMonthlyBudgetCycle(monthlyBudgetCommand.cycleStartDay)}.`);
             return true;
         }
         if (!monthlyBudgetCommand.scope && familyScopeAvailable) {
             userStateManager.setState(senderIdFromMessage(msg), {
                 action: 'awaiting_monthly_budget_scope',
-                data: { amount: monthlyBudgetCommand.amount }
+                data: { amount: monthlyBudgetCommand.amount, cycleStartDay: monthlyBudgetCommand.cycleStartDay }
             });
             await msg.reply(
                 `Esse orçamento mensal livre de ${formatCurrencyBR(monthlyBudgetCommand.amount)} é pessoal ou da família?\n` +
@@ -2002,8 +2052,8 @@ async function handleSettingsCommands(msg, user) {
             return true;
         }
         const scope = monthlyBudgetCommand.scope || 'personal';
-        if (!await saveMonthlyBudgetSettingsWithFeedback(msg, user.user_id, monthlyBudgetCommand.amount, scope)) return true;
-        await msg.reply(`Orçamento mensal livre ${getMonthlyBudgetScopeLabel(scope)} configurado em ${formatCurrencyBR(monthlyBudgetCommand.amount)}. Vou calcular um ritmo diário recomendado e avisar quando o gasto livre do dia atingir 50%, 80% e 100% desse ritmo.`);
+        if (!await saveMonthlyBudgetSettingsWithFeedback(msg, user.user_id, monthlyBudgetCommand.amount, scope, monthlyBudgetCommand.cycleStartDay)) return true;
+        await msg.reply(`Orçamento mensal livre ${getMonthlyBudgetScopeLabel(scope)} configurado em ${formatCurrencyBR(monthlyBudgetCommand.amount)}. ${formatMonthlyBudgetCycle(monthlyBudgetCommand.cycleStartDay)}. Vou calcular um ritmo diário recomendado e avisar quando o gasto livre do dia atingir 50%, 80% e 100% desse ritmo.`);
         return true;
     }
     const monthlyBudgetScopeOnly = body.match(/^orcamento\s+(?:mensal\s+|livre\s+)?(.+)$/);
@@ -2013,15 +2063,16 @@ async function handleSettingsCommands(msg, user) {
             const settings = await getUserSettingsByUserId(user.user_id);
             const amount = parseValue(settings?.monthly_budget_amount);
             if (!settings || normalizeText(settings.monthly_budget_enabled || '') !== 'sim' || !amount) {
-                await msg.reply('Você ainda não tem orçamento mensal livre ativo. Exemplo: `definir orçamento mensal 3000`.');
+                await msg.reply('Você ainda não tem orçamento mensal livre ativo. Exemplo: `definir orçamento mensal 3000 dia 5`.');
                 return true;
             }
             if (scope === 'family' && getFinancialScopeUserIds(user.user_id).length <= 1) {
                 await msg.reply('Você ainda não tem vínculo familiar ativo para transformar o orçamento mensal em familiar.');
                 return true;
             }
-            if (!await saveMonthlyBudgetSettingsWithFeedback(msg, user.user_id, amount, scope)) return true;
-            await msg.reply(`Orçamento mensal livre alterado para ${getMonthlyBudgetScopeLabel(scope)}.`);
+            const cycleStartDay = getMonthlyBudgetCycleStartDay(settings);
+            if (!await saveMonthlyBudgetSettingsWithFeedback(msg, user.user_id, amount, scope, cycleStartDay)) return true;
+            await msg.reply(`Orçamento mensal livre alterado para ${getMonthlyBudgetScopeLabel(scope)}. ${formatMonthlyBudgetCycle(cycleStartDay)}.`);
             return true;
         }
     }
@@ -2030,8 +2081,8 @@ async function handleSettingsCommands(msg, user) {
         await msg.reply(
             'A meta diária fixa foi substituída pelo orçamento mensal livre, que calcula automaticamente um ritmo diário.\n' +
             'Exemplos:\n' +
-            '- `definir orçamento mensal 3000`\n' +
-            '- `definir orçamento mensal 3000 família`'
+            '- `definir orçamento mensal 3000 dia 5`\n' +
+            '- `definir orçamento mensal 3000 família dia 5`'
         );
         return true;
     }
@@ -2040,15 +2091,18 @@ async function handleSettingsCommands(msg, user) {
         if (/^(?:definir|ativar|configurar|criar)\s+/.test(body)) {
             userStateManager.setState(senderIdFromMessage(msg), {
                 action: 'awaiting_monthly_budget_amount',
-                data: { scope: normalizeMonthlyBudgetScope(body) }
+                data: {
+                    scope: normalizeMonthlyBudgetScope(body),
+                    cycleStartDay: extractMonthlyBudgetCycleStartDay(body)
+                }
             });
             await msg.reply('Qual é o valor do orçamento mensal livre? Exemplo: `3000`.');
             return true;
         }
         await msg.reply(
             'Para criar um orçamento mensal livre, inclua o valor. Exemplos:\n' +
-            '- `definir orçamento mensal 3000`\n' +
-            '- `definir orçamento mensal 3000 família`'
+            '- `definir orçamento mensal 3000 dia 5`\n' +
+            '- `definir orçamento mensal 3000 família dia 5`'
         );
         return true;
     }
@@ -3220,17 +3274,26 @@ async function handleMessage(msg) {
                     return;
                 }
                 const requestedScope = currentState.data?.scope || '';
+                const requestedCycleStartDay = currentState.data?.cycleStartDay || null;
+                if (!requestedCycleStartDay) {
+                    userStateManager.setState(senderId, {
+                        action: 'awaiting_monthly_budget_cycle_start_day',
+                        data: { amount, scope: requestedScope }
+                    });
+                    await msg.reply('Em qual dia do mês seu ciclo de orçamento começa? Responda um número de 1 a 31. Exemplo: `5`.');
+                    return;
+                }
                 const familyScopeAvailable = getFinancialScopeUserIds(userId).length > 1;
                 if (requestedScope === 'family' && !familyScopeAvailable) {
-                    if (!await saveMonthlyBudgetSettingsWithFeedback(msg, userId, amount, 'personal')) return;
+                    if (!await saveMonthlyBudgetSettingsWithFeedback(msg, userId, amount, 'personal', requestedCycleStartDay)) return;
                     userStateManager.deleteState(senderId);
-                    await msg.reply(`Você ainda não tem vínculo familiar ativo. Configurei o orçamento mensal livre pessoal em ${formatCurrencyBR(amount)}.`);
+                    await msg.reply(`Você ainda não tem vínculo familiar ativo. Configurei o orçamento mensal livre pessoal em ${formatCurrencyBR(amount)}. ${formatMonthlyBudgetCycle(requestedCycleStartDay)}.`);
                     return;
                 }
                 if (!requestedScope && familyScopeAvailable) {
                     userStateManager.setState(senderId, {
                         action: 'awaiting_monthly_budget_scope',
-                        data: { amount }
+                        data: { amount, cycleStartDay: requestedCycleStartDay }
                     });
                     await msg.reply(
                         `Esse orçamento mensal livre de ${formatCurrencyBR(amount)} é pessoal ou da família?\n` +
@@ -3239,9 +3302,42 @@ async function handleMessage(msg) {
                     return;
                 }
                 const scope = requestedScope || 'personal';
-                if (!await saveMonthlyBudgetSettingsWithFeedback(msg, userId, amount, scope)) return;
+                if (!await saveMonthlyBudgetSettingsWithFeedback(msg, userId, amount, scope, requestedCycleStartDay)) return;
                 userStateManager.deleteState(senderId);
-                await msg.reply(`Orçamento mensal livre ${getMonthlyBudgetScopeLabel(scope)} configurado em ${formatCurrencyBR(amount)}. Vou calcular o ritmo diário recomendado automaticamente.`);
+                await msg.reply(`Orçamento mensal livre ${getMonthlyBudgetScopeLabel(scope)} configurado em ${formatCurrencyBR(amount)}. ${formatMonthlyBudgetCycle(requestedCycleStartDay)}. Vou calcular o ritmo diário recomendado automaticamente.`);
+                return;
+            }
+
+            case 'awaiting_monthly_budget_cycle_start_day': {
+                const cycleStartDay = parseMonthlyBudgetCycleStartDayReply(msg.body);
+                if (!Number.isInteger(cycleStartDay) || cycleStartDay < 1 || cycleStartDay > 31) {
+                    await msg.reply('Responda com um dia válido de 1 a 31. Exemplo: `5`.');
+                    return;
+                }
+                const amount = currentState.data?.amount;
+                const requestedScope = currentState.data?.scope || '';
+                const familyScopeAvailable = getFinancialScopeUserIds(userId).length > 1;
+                if (requestedScope === 'family' && !familyScopeAvailable) {
+                    if (!await saveMonthlyBudgetSettingsWithFeedback(msg, userId, amount, 'personal', cycleStartDay)) return;
+                    userStateManager.deleteState(senderId);
+                    await msg.reply(`Você ainda não tem vínculo familiar ativo. Configurei o orçamento mensal livre pessoal em ${formatCurrencyBR(amount)}. ${formatMonthlyBudgetCycle(cycleStartDay)}.`);
+                    return;
+                }
+                if (!requestedScope && familyScopeAvailable) {
+                    userStateManager.setState(senderId, {
+                        action: 'awaiting_monthly_budget_scope',
+                        data: { amount, cycleStartDay }
+                    });
+                    await msg.reply(
+                        `Esse orçamento mensal livre de ${formatCurrencyBR(amount)} é pessoal ou da família?\n` +
+                        'Responda `pessoal` ou `família`.'
+                    );
+                    return;
+                }
+                const scope = requestedScope || 'personal';
+                if (!await saveMonthlyBudgetSettingsWithFeedback(msg, userId, amount, scope, cycleStartDay)) return;
+                userStateManager.deleteState(senderId);
+                await msg.reply(`Orçamento mensal livre ${getMonthlyBudgetScopeLabel(scope)} configurado em ${formatCurrencyBR(amount)}. ${formatMonthlyBudgetCycle(cycleStartDay)}. Vou calcular o ritmo diário recomendado automaticamente.`);
                 return;
             }
 
@@ -3254,10 +3350,10 @@ async function handleMessage(msg) {
                 }
                 if (scope === 'family' && getFinancialScopeUserIds(userId).length <= 1) {
                     await msg.reply('Você ainda não tem vínculo familiar ativo. Vou manter esse orçamento como pessoal.');
-                    if (!await saveMonthlyBudgetSettingsWithFeedback(msg, userId, currentState.data?.amount, 'personal')) return;
+                    if (!await saveMonthlyBudgetSettingsWithFeedback(msg, userId, currentState.data?.amount, 'personal', currentState.data?.cycleStartDay || 1)) return;
                 } else {
-                    if (!await saveMonthlyBudgetSettingsWithFeedback(msg, userId, currentState.data?.amount, scope)) return;
-                    await msg.reply(`Orçamento mensal livre ${getMonthlyBudgetScopeLabel(scope)} configurado em ${formatCurrencyBR(currentState.data?.amount)}.`);
+                    if (!await saveMonthlyBudgetSettingsWithFeedback(msg, userId, currentState.data?.amount, scope, currentState.data?.cycleStartDay || 1)) return;
+                    await msg.reply(`Orçamento mensal livre ${getMonthlyBudgetScopeLabel(scope)} configurado em ${formatCurrencyBR(currentState.data?.amount)}. ${formatMonthlyBudgetCycle(currentState.data?.cycleStartDay || 1)}.`);
                 }
                 userStateManager.deleteState(senderId);
                 return;

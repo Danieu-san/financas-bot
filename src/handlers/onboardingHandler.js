@@ -28,7 +28,7 @@ function onboardingMenu({ hasDebt = false, primaryGoal = '' } = {}) {
         'Ajustes opcionais que você pode ativar quando quiser:',
         '- `ativar checkin semanal`: eu envio uma pergunta curta no domingo para ajudar você a revisar a semana.',
         '- `definir reserva 10%`: quando você registrar uma entrada, eu sugiro separar 10% para sua reserva.',
-        '- `definir orçamento mensal 3000`: eu calculo um ritmo diário recomendado, aviso quando o dia aperta e mostro os gráficos diário e mensal no dashboard.',
+        '- `definir orçamento mensal 3000 dia 5`: eu calculo um ritmo diário recomendado pelo seu ciclo de orçamento, aviso quando o dia aperta e mostro os gráficos diário e do ciclo no dashboard.',
         debtSuggestion
     ].filter(Boolean).join('\n');
 }

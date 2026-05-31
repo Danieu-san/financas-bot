@@ -441,7 +441,8 @@ function mapSettingsRow(row, rowIndex) {
         monthly_budget_amount: row[14] || '',
         monthly_budget_last_alert_date: row[15] || '',
         monthly_budget_last_alert_level: row[16] || '',
-        monthly_budget_scope: row[17] || 'personal'
+        monthly_budget_scope: row[17] || 'personal',
+        monthly_budget_cycle_start_day: row[18] || '1'
     };
 }
 
@@ -450,7 +451,7 @@ async function getUserSettingsByUserId(userId) {
         return settingsCache.find(s => s.user_id === userId) || null;
     }
 
-    const rows = await readCriticalSheet(`${SETTINGS_SHEET}!A:R`);
+    const rows = await readCriticalSheet(`${SETTINGS_SHEET}!A:S`);
     if (!rows || rows.length <= 1) {
         settingsCache = [];
         settingsCacheLoaded = true;
@@ -483,7 +484,8 @@ async function upsertUserSettings(userId, patch) {
         monthly_budget_amount: '',
         monthly_budget_last_alert_date: '',
         monthly_budget_last_alert_level: '',
-        monthly_budget_scope: 'personal'
+        monthly_budget_scope: 'personal',
+        monthly_budget_cycle_start_day: '1'
     };
 
     const updated = {
@@ -510,11 +512,12 @@ async function upsertUserSettings(userId, patch) {
         updated.monthly_budget_amount,
         updated.monthly_budget_last_alert_date,
         updated.monthly_budget_last_alert_level,
-        updated.monthly_budget_scope
+        updated.monthly_budget_scope,
+        updated.monthly_budget_cycle_start_day
     ];
 
     if (existing) {
-        await updateRowInSheet(`${SETTINGS_SHEET}!A${existing.rowIndex}:R${existing.rowIndex}`, rowData);
+        await updateRowInSheet(`${SETTINGS_SHEET}!A${existing.rowIndex}:S${existing.rowIndex}`, rowData);
     } else {
         await appendRowToSheet(SETTINGS_SHEET, rowData);
     }

@@ -2,6 +2,11 @@ const { readDataFromSheet, runWithUserSheetContext, hasUserSpreadsheetContext } 
 const { getFinancialScopeUserIds, getSharedSpreadsheetMembership } = require('./oauthTokenStore');
 const { getUserSettingsByUserId } = require('./userService');
 const { parseSheetDate, parseValue, normalizeText } = require('../utils/helpers');
+const {
+    normalizeCycleStartDay,
+    getBudgetCycleForPeriod,
+    dateIsWithinCycle
+} = require('../utils/budgetCycle');
 
 const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
@@ -18,6 +23,10 @@ function normalizePeriod({ month, year } = {}) {
 function periodMatchesDate(value, month, year) {
     const date = parseSheetDate(value);
     return Boolean(date && date.getMonth() === month && date.getFullYear() === year);
+}
+
+function cycleMatchesDate(value, cycle) {
+    return dateIsWithinCycle(parseSheetDate(value), cycle);
 }
 
 function periodMatchesBillingMonth(value, month, year) {
@@ -202,9 +211,11 @@ function buildDailyGoalSummary({ settings, saidasRows, cartaoRows, userIds, peri
     const monthlyAmount = parseValue(settings?.monthly_budget_amount);
     if (!monthlyAmount || monthlyAmount <= 0) return null;
     const scope = settings?.monthly_budget_scope === 'family' ? 'family' : 'personal';
+    const cycleStartDay = normalizeCycleStartDay(settings?.monthly_budget_cycle_start_day || '1');
     const normalizedPeriod = normalizePeriod(period);
     const todayParts = getSaoPauloDateParts();
-    const isCurrentMonth = normalizedPeriod.month === todayParts.month && normalizedPeriod.year === todayParts.year;
+    const cycle = getBudgetCycleForPeriod(normalizedPeriod, cycleStartDay, todayParts);
+    const isCurrentCycle = cycle.isCurrent;
 
     const today = getTodaySaoPauloDateString();
     const todayMatches = (value) => {
@@ -215,49 +226,51 @@ function buildDailyGoalSummary({ settings, saidasRows, cartaoRows, userIds, peri
         .filter(row => rowBelongsToAnyUser(row, 9, userIds) && isFreeSpendingRow(row));
     const cartoesEligible = cartaoRows.slice(1)
         .filter(row => rowBelongsToAnyUser(row, 9, userIds));
-    const saidasToday = isCurrentMonth
+    const saidasToday = isCurrentCycle
         ? saidasEligible.filter(row => todayMatches(row[0])).reduce((sum, row) => sum + parseValue(row[4]), 0)
         : 0;
-    const cartoesToday = isCurrentMonth
+    const cartoesToday = isCurrentCycle
         ? cartoesEligible.filter(row => todayMatches(row[0])).reduce((sum, row) => sum + parseValue(row[3]), 0)
         : 0;
     const saidasMonth = saidasEligible
-        .filter(row => periodMatchesDate(row[0], normalizedPeriod.month, normalizedPeriod.year))
+        .filter(row => cycleMatchesDate(row[0], cycle))
         .reduce((sum, row) => sum + parseValue(row[4]), 0);
     const cartoesMonth = cartoesEligible
-        .filter(row => periodMatchesDate(row[0], normalizedPeriod.month, normalizedPeriod.year))
+        .filter(row => cycleMatchesDate(row[0], cycle))
         .reduce((sum, row) => sum + parseValue(row[3]), 0);
     const spent = roundMoney(saidasToday + cartoesToday);
     const monthSpent = roundMoney(saidasMonth + cartoesMonth);
     const monthRemaining = roundMoney(Math.max(0, monthlyAmount - monthSpent));
     const monthPercentUsed = monthlyAmount > 0 ? Math.round((monthSpent / monthlyAmount) * 100) : 0;
-    const daysInMonth = new Date(normalizedPeriod.year, normalizedPeriod.month + 1, 0).getDate();
-    const daysRemaining = isCurrentMonth ? Math.max(1, daysInMonth - todayParts.day + 1) : 0;
+    const daysRemaining = isCurrentCycle ? Math.max(1, cycle.daysRemaining || 1) : 0;
     const spentBeforeToday = Math.max(0, monthSpent - spent);
     const budgetBeforeToday = Math.max(0, monthlyAmount - spentBeforeToday);
-    const dailyRecommendedAmount = isCurrentMonth ? roundMoney(budgetBeforeToday / daysRemaining) : 0;
+    const dailyRecommendedAmount = isCurrentCycle ? roundMoney(budgetBeforeToday / daysRemaining) : 0;
     const remaining = roundMoney(Math.max(0, dailyRecommendedAmount - spent));
     const percentUsed = dailyRecommendedAmount > 0 ? Math.round((spent / dailyRecommendedAmount) * 100) : 0;
 
     return {
         mode: 'monthly_budget',
-        date: isCurrentMonth ? today : '',
+        date: isCurrentCycle ? today : '',
         amount: dailyRecommendedAmount,
         monthlyAmount,
         spent,
         remaining,
         percentUsed,
-        exceeded: isCurrentMonth && spent > dailyRecommendedAmount,
+        exceeded: isCurrentCycle && spent > dailyRecommendedAmount,
         scope,
         monthSpent,
         monthRemaining,
         monthPercentUsed,
         daysRemaining,
         dailyRecommendedAmount,
+        cycleStartDay,
         period: {
             month: normalizedPeriod.month,
             year: normalizedPeriod.year,
-            label: `${MONTH_NAMES[normalizedPeriod.month]} de ${normalizedPeriod.year}`
+            label: cycle.label,
+            start: cycle.startLabel,
+            end: cycle.endLabel
         }
     };
 }

@@ -297,7 +297,7 @@ function dashboardHtml() {
     <div class="section card">
       <div class="chart-head">
         <h2>Orçamento Livre</h2>
-        <div class="chart-note">Ritmo diário recalculado a partir do orçamento mensal</div>
+        <div class="chart-note">Ritmo diário recalculado a partir do ciclo do seu orçamento</div>
       </div>
       <div id="dailyGoal" class="daily-goal-grid"></div>
     </div>
@@ -528,7 +528,7 @@ function dashboardHtml() {
     function renderDailyGoal(goal) {
       const container = document.getElementById('dailyGoal');
       if (!goal || !goal.monthlyAmount) {
-        container.innerHTML = '<div class="empty">Orçamento mensal livre desativado. Para ativar, envie no WhatsApp: <strong>definir orçamento mensal 3000</strong>.</div>';
+        container.innerHTML = '<div class="empty">Orçamento mensal livre desativado. Para ativar, envie no WhatsApp: <strong>definir orçamento mensal 3000 dia 5</strong>.</div>';
         return;
       }
       const percent = Math.max(0, Number(goal.percentUsed || 0));
@@ -556,8 +556,8 @@ function dashboardHtml() {
         '<div class="daily-goal-copy">' +
           '<div class="daily-goal-status ' + statusClass + '">' + esc(statusText) + '</div>' +
           '<div class="muted">' + esc(scopeText) + '</div>' +
-          '<div>Orçamento do mês: <strong>' + brl(goal.monthSpent) + '</strong> de <strong>' + brl(goal.monthlyAmount) + '</strong>.</div>' +
-          '<div class="muted">Restante no mês: ' + brl(monthRemaining) + '.</div>' +
+          '<div>Orçamento do ciclo: <strong>' + brl(goal.monthSpent) + '</strong> de <strong>' + brl(goal.monthlyAmount) + '</strong>.</div>' +
+          '<div class="muted">Restante no ciclo: ' + brl(monthRemaining) + '.</div>' +
           (goal.amount ? '<div>Hoje: <strong>' + brl(goal.spent) + '</strong> de <strong>' + brl(goal.amount) + '</strong> recomendados.</div>' : '') +
           (goal.amount ? '<div class="muted">' + (goal.exceeded ? 'Acima do ritmo: ' + brl(Number(goal.spent || 0) - Number(goal.amount || 0)) : 'Disponível hoje: ' + brl(remaining)) + '</div>' : '') +
           '<div class="muted">' + esc(goal.period?.label || '') + (goal.daysRemaining ? ' · ' + esc(goal.daysRemaining) + ' dia(s) restantes' : '') + '</div>' +

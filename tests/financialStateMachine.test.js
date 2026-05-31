@@ -26,7 +26,7 @@ const USER_SETTINGS_HEADER = [
     'user_id', 'timezone', 'weekly_checkin_enabled', 'monthly_report_enabled',
     'language', 'created_at', 'auto_reserve_enabled', 'auto_reserve_percent',
     'daily_goal_enabled', 'daily_goal_amount', 'daily_goal_last_alert_date', 'daily_goal_last_alert_level', 'daily_goal_scope',
-    'monthly_budget_enabled', 'monthly_budget_amount', 'monthly_budget_last_alert_date', 'monthly_budget_last_alert_level', 'monthly_budget_scope'
+    'monthly_budget_enabled', 'monthly_budget_amount', 'monthly_budget_last_alert_date', 'monthly_budget_last_alert_level', 'monthly_budget_scope', 'monthly_budget_cycle_start_day'
 ];
 
 const sheets = {};
@@ -85,7 +85,7 @@ function resetSheets() {
     ];
     sheets.UserSettings = [
         USER_SETTINGS_HEADER,
-        [USER_ID, 'America/Sao_Paulo', 'NÃO', 'SIM', 'pt-BR', '2026-01-01T00:00:00.000Z', 'NÃO', '10', 'NÃO', '', '', '', 'personal', 'NÃO', '', '', '', 'personal']
+        [USER_ID, 'America/Sao_Paulo', 'NÃO', 'SIM', 'pt-BR', '2026-01-01T00:00:00.000Z', 'NÃO', '10', 'NÃO', '', '', '', 'personal', 'NÃO', '', '', '', 'personal', '1']
     ];
     sheets.Saídas = [['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Observações', 'user_id']];
     sheets.Entradas = [['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Observações', 'user_id']];
@@ -478,21 +478,38 @@ stateMachineTest('financial states: settings commands update UserSettings and cl
 stateMachineTest('financial states: monthly budget settings command stores the monthly free budget', async () => {
     resetState();
 
-    const reply = await send('definir orçamento mensal 3000');
+    const reply = await send('definir orçamento mensal 3000 dia 5');
 
     assert.match(reply, /orçamento mensal livre/i);
     assert.match(reply, /R\$ 3000,00/);
+    assert.match(reply, /Ciclo/i);
     assert.strictEqual(sheets.UserSettings[1][13], 'SIM');
     assert.strictEqual(String(sheets.UserSettings[1][14]), '3000');
     assert.strictEqual(sheets.UserSettings[1][17], 'personal');
+    assert.strictEqual(sheets.UserSettings[1][18], '5');
     assert.strictEqual(sheets.UserSettings[1][8], 'NÃO');
+});
+
+stateMachineTest('financial states: monthly budget asks for cycle start day when omitted', async () => {
+    resetState();
+
+    let reply = await send('definir orçamento mensal 3000');
+
+    assert.match(reply, /qual dia/i);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_monthly_budget_cycle_start_day');
+
+    reply = await send('17');
+
+    assert.match(reply, /Orçamento mensal livre pessoal configurado/i);
+    assert.strictEqual(sheets.UserSettings[1][18], '17');
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
 });
 
 stateMachineTest('financial states: monthly budget asks for scope when user has family sharing', async () => {
     resetState();
     financialScopeUserIds = [USER_ID, PARTNER_ID];
 
-    let reply = await send('definir orçamento mensal 3000');
+    let reply = await send('definir orçamento mensal 3000 dia 5');
 
     assert.match(reply, /pessoal ou da família/i);
     assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_monthly_budget_scope');
@@ -503,6 +520,7 @@ stateMachineTest('financial states: monthly budget asks for scope when user has 
     assert.strictEqual(sheets.UserSettings[1][13], 'SIM');
     assert.strictEqual(String(sheets.UserSettings[1][14]), '3000');
     assert.strictEqual(sheets.UserSettings[1][17], 'family');
+    assert.strictEqual(sheets.UserSettings[1][18], '5');
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
 });
 
@@ -517,6 +535,11 @@ stateMachineTest('financial states: monthly budget can ask for amount before sco
 
     reply = await send('2500');
 
+    assert.match(reply, /qual dia/i);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_monthly_budget_cycle_start_day');
+
+    reply = await send('17');
+
     assert.match(reply, /pessoal ou da família/i);
     assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_monthly_budget_scope');
 
@@ -525,6 +548,7 @@ stateMachineTest('financial states: monthly budget can ask for amount before sco
     assert.match(reply, /Orçamento mensal livre familiar configurado/i);
     assert.strictEqual(String(sheets.UserSettings[1][14]), '2500');
     assert.strictEqual(sheets.UserSettings[1][17], 'family');
+    assert.strictEqual(sheets.UserSettings[1][18], '17');
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
 });
 

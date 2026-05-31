@@ -25,6 +25,7 @@ const adminActionLogService = require('../src/services/adminActionLogService');
 const dashboardAccessLogService = require('../src/services/dashboardAccessLogService');
 const userSheetAnalyticsService = require('../src/services/userSheetAnalyticsService');
 const userIdMaintenanceService = require('../src/services/userIdMaintenanceService');
+const budgetCycle = require('../src/utils/budgetCycle');
 
 // --- Helpers Tests ---
 test('helpers.parseValue', (t) => {
@@ -86,6 +87,23 @@ test('helpers.parseSheetDate', (t) => {
 
     assert.strictEqual(helpers.parseSheetDate("invalid"), null, 'Invalid date string should return null');
     assert.strictEqual(helpers.parseSheetDate(""), null, 'Empty string should return null');
+});
+
+test('budgetCycle supports arbitrary salary-cycle start days and short months', () => {
+    const cycle = budgetCycle.getBudgetCycleForDate({ year: 2026, month: 4, day: 30 }, 17);
+    assert.strictEqual(cycle.startLabel, '17/05/2026');
+    assert.strictEqual(cycle.endLabel, '16/06/2026');
+    assert.strictEqual(cycle.daysInCycle, 31);
+    assert.strictEqual(cycle.daysRemaining, 18);
+    assert.strictEqual(cycle.isCurrent, true);
+
+    const shortMonth = budgetCycle.getBudgetCycleForDate({ year: 2026, month: 1, day: 28 }, 31);
+    assert.strictEqual(shortMonth.startLabel, '28/02/2026');
+    assert.strictEqual(shortMonth.endLabel, '30/03/2026');
+
+    const previousCycle = budgetCycle.getBudgetCycleForDate({ year: 2026, month: 5, day: 5 }, 17);
+    assert.strictEqual(previousCycle.startLabel, '17/05/2026');
+    assert.strictEqual(previousCycle.endLabel, '16/06/2026');
 });
 
 test('helpers.getFormattedDateOnly', (t) => {
@@ -1811,7 +1829,7 @@ test('userSheetAnalytics monthly budget summary combines free debit and card spe
     const day = Number(parts.day);
     const daysRemaining = Math.max(1, new Date(year, month + 1, 0).getDate() - day + 1);
     const monthlyAmount = 100 * daysRemaining;
-    const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const cycle = budgetCycle.getBudgetCycleForPeriod({ month, year }, 1, { year, month, day });
 
     const summary = buildDailyGoalSummary({
         settings: { monthly_budget_enabled: 'SIM', monthly_budget_amount: String(monthlyAmount), monthly_budget_scope: 'personal' },
@@ -1846,10 +1864,13 @@ test('userSheetAnalytics monthly budget summary combines free debit and card spe
         monthPercentUsed: Math.round((55 / monthlyAmount) * 100),
         daysRemaining,
         dailyRecommendedAmount: 100,
+        cycleStartDay: 1,
         period: {
             month,
             year,
-            label: `${monthNames[month]} de ${year}`
+            label: cycle.label,
+            start: cycle.startLabel,
+            end: cycle.endLabel
         }
     });
 });
