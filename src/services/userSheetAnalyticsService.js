@@ -1,7 +1,7 @@
 const { readDataFromSheet, runWithUserSheetContext, hasUserSpreadsheetContext } = require('./google');
 const { getFinancialScopeUserIds, getSharedSpreadsheetMembership } = require('./oauthTokenStore');
 const { getAllUsers, getUserSettingsByUserId } = require('./userService');
-const { parseSheetDate, parseValue, normalizeText } = require('../utils/helpers');
+const { parseSheetDate, parseValue, normalizeText, getFormattedDateOnly } = require('../utils/helpers');
 const {
     normalizeCycleStartDay,
     getBudgetCycleForPeriod,
@@ -23,6 +23,19 @@ function normalizePeriod({ month, year } = {}) {
 function periodMatchesDate(value, month, year) {
     const date = parseSheetDate(value);
     return Boolean(date && date.getMonth() === month && date.getFullYear() === year);
+}
+
+function formatDashboardDate(value) {
+    const raw = String(value ?? '').trim();
+    if (!raw) return '';
+    if (/^\d{2}\/\d{2}\/\d{4}(?:\s+\d{2}:\d{2})?$/.test(raw)) return raw;
+    const parsed = parseSheetDate(raw);
+    return parsed ? getFormattedDateOnly(parsed) : raw;
+}
+
+function transactionTimestamp(value) {
+    const parsed = parseSheetDate(value);
+    return parsed ? parsed.getTime() : 0;
 }
 
 function cycleMatchesDate(value, cycle) {
@@ -103,21 +116,29 @@ function rowBelongsToAnyUser(row, index, userIds = []) {
 
 function toTransaction(row, type) {
     return {
-        date: row[0] || '',
+        date: formatDashboardDate(row[0]),
+        rawDate: row[0] || '',
         description: row[1] || '',
         category: row[2] || 'Outros',
         value: parseValue(row[type === 'entrada' ? 3 : 4]),
-        type
+        type,
+        typeLabel: type === 'entrada' ? 'Entrada' : 'Saída',
+        timestamp: transactionTimestamp(row[0])
     };
 }
 
 function toCardTransaction(row) {
     return {
-        date: row[0] || '',
+        date: formatDashboardDate(row[0]),
+        rawDate: row[0] || '',
         description: row[1] || '',
         category: row[2] || 'Cartão',
         value: parseValue(row[3]),
-        type: 'cartao'
+        type: 'cartao',
+        typeLabel: 'Cartão',
+        installment: row[4] || '',
+        card: row[7] || row[6] || '',
+        timestamp: transactionTimestamp(row[0])
     };
 }
 
@@ -235,6 +256,64 @@ function buildTopCategories(transactions) {
         .map(([category, value]) => ({ category, value }))
         .sort((a, b) => b.value - a.value)
         .slice(0, 8);
+}
+
+function parseInstallmentLabel(value) {
+    const match = String(value || '').trim().match(/^(\d+)\s*\/\s*(\d+)$/);
+    if (!match) return { current: null, total: null };
+    const current = Number.parseInt(match[1], 10);
+    const total = Number.parseInt(match[2], 10);
+    if (!Number.isInteger(current) || !Number.isInteger(total) || total <= 1) {
+        return { current: null, total: null };
+    }
+    return { current, total };
+}
+
+function buildRecentTransactions({ entradas = [], saidas = [], cartoes = [], limit = 10 } = {}) {
+    const cardGroups = new Map();
+    const groupedCards = [];
+
+    cartoes.forEach((item) => {
+        const installment = parseInstallmentLabel(item.installment);
+        if (!installment.total) {
+            groupedCards.push(item);
+            return;
+        }
+
+        const key = [
+            item.rawDate || item.date || '',
+            normalizeText(item.description || ''),
+            normalizeText(item.category || ''),
+            normalizeText(item.card || ''),
+            installment.total
+        ].join('|');
+        const existing = cardGroups.get(key) || {
+            ...item,
+            value: 0,
+            installmentCount: 0,
+            installmentTotal: installment.total,
+            typeLabel: 'Cartão'
+        };
+        existing.value += Number(item.value || 0);
+        existing.installmentCount += 1;
+        existing.timestamp = Math.max(Number(existing.timestamp || 0), Number(item.timestamp || 0));
+        cardGroups.set(key, existing);
+    });
+
+    cardGroups.forEach((item) => {
+        groupedCards.push({
+            ...item,
+            value: roundMoney(item.value),
+            description: item.installmentTotal
+                ? `${item.description} (${item.installmentTotal}x no cartão)`
+                : item.description
+        });
+    });
+
+    return [...entradas, ...saidas, ...groupedCards]
+        .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0))
+        .slice(0, limit)
+        .map(({ timestamp, rawDate, installment, card, installmentCount, installmentTotal, ...item }) => item);
 }
 
 function buildDailyFlow({ entradas, saidas, cartoes }) {
@@ -484,7 +563,7 @@ async function getUserSheetDashboardData(userId, { month, year } = {}) {
                 userIds: dailyGoalConfig.settings?.monthly_budget_scope === 'family' ? financialScopeUserIds : [safeUserId],
                 period
             }),
-            recentTransactions: [...entradas, ...expenses].slice(-10).reverse(),
+            recentTransactions: buildRecentTransactions({ entradas, saidas, cartoes }),
             goals: metasRows.slice(1).filter(row => rowBelongsToAnyUser(row, 8, financialScopeUserIds)),
             debts: dividasRows.slice(1).filter(row => rowBelongsToAnyUser(row, 17, financialScopeUserIds)),
             alerts: [],
@@ -500,7 +579,9 @@ module.exports = {
         periodMatchesBillingMonth,
         cardRowMatchesDashboardPeriod,
         parseBillingMonth,
+        formatDashboardDate,
         buildTopCategories,
+        buildRecentTransactions,
         rowBelongsToAnyUser,
         buildReserveSummary,
         buildMemberBreakdown,

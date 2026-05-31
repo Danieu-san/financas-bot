@@ -1868,6 +1868,85 @@ test('userSheetAnalytics dashboard counts card spending by purchase month, not i
     ]);
 });
 
+test('userSheetAnalytics recent transactions format serial dates, label types and group installments', () => {
+    const { buildRecentTransactions, formatDashboardDate } = userSheetAnalyticsService.__test__;
+
+    assert.strictEqual(formatDashboardDate('46173'), '31/05/2026');
+    assert.strictEqual(formatDashboardDate('30/05/2026 22:00'), '30/05/2026 22:00');
+
+    const recent = buildRecentTransactions({
+        entradas: [
+            {
+                date: '31/05/2026',
+                rawDate: '46173',
+                description: '13° salário',
+                category: 'Salário',
+                value: 6615.8,
+                type: 'entrada',
+                typeLabel: 'Entrada',
+                timestamp: helpers.parseSheetDate('46173').getTime()
+            }
+        ],
+        saidas: [
+            {
+                date: '30/05/2026',
+                rawDate: '30/05/2026',
+                description: 'hortifruti',
+                category: 'Alimentação',
+                value: 35.59,
+                type: 'saida',
+                typeLabel: 'Saída',
+                timestamp: helpers.parseSheetDate('30/05/2026').getTime()
+            }
+        ],
+        cartoes: [
+            {
+                date: '30/05/2026',
+                rawDate: '30/05/2026',
+                description: 'compra na Shoppe',
+                category: 'Compras',
+                value: 50.23,
+                type: 'cartao',
+                typeLabel: 'Cartão',
+                installment: '1/3',
+                card: 'Nubank Thais',
+                timestamp: helpers.parseSheetDate('30/05/2026').getTime()
+            },
+            {
+                date: '30/05/2026',
+                rawDate: '30/05/2026',
+                description: 'compra na Shoppe',
+                category: 'Compras',
+                value: 50.23,
+                type: 'cartao',
+                typeLabel: 'Cartão',
+                installment: '2/3',
+                card: 'Nubank Thais',
+                timestamp: helpers.parseSheetDate('30/05/2026').getTime()
+            },
+            {
+                date: '30/05/2026',
+                rawDate: '30/05/2026',
+                description: 'compra na Shoppe',
+                category: 'Compras',
+                value: 50.23,
+                type: 'cartao',
+                typeLabel: 'Cartão',
+                installment: '3/3',
+                card: 'Nubank Thais',
+                timestamp: helpers.parseSheetDate('30/05/2026').getTime()
+            }
+        ]
+    });
+
+    assert.strictEqual(recent[0].date, '31/05/2026');
+    assert.strictEqual(recent[0].typeLabel, 'Entrada');
+    const groupedCard = recent.find(item => item.type === 'cartao');
+    assert.strictEqual(groupedCard.description, 'compra na Shoppe (3x no cartão)');
+    assert.strictEqual(groupedCard.value, 150.69);
+    assert.strictEqual(recent.filter(item => item.description.includes('Shoppe')).length, 1);
+});
+
 test('userSheetAnalytics monthly budget summary combines free debit and card installments due in the cycle', () => {
     const { buildDailyGoalSummary } = userSheetAnalyticsService.__test__;
     const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];

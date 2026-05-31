@@ -100,6 +100,21 @@ Atencao:
 - Planilhas existentes precisam ter os novos cabecalhos aplicados por template/ensure ou manualmente antes de a regra ficar visivel para o usuario.
 - O scheduler continua lendo `Contas!A:D`, entao lembretes nao dependem das novas colunas.
 
+## Dashboard - lançamentos recentes
+
+Status: corrigido localmente em 2026-05-31; validar deploy/PM2 antes de assumir producao.
+
+Comportamento esperado:
+
+- Datas serializadas do Google Sheets, como `46173`, devem ser exibidas em formato brasileiro (`31/05/2026`) no dashboard.
+- A lista `Lançamentos Recentes` deve sinalizar o tipo do item: `Entrada`, `Saída` ou `Cartão`.
+- Compras parceladas no cartão devem aparecer agrupadas como uma compra só, com o valor total exibido e sufixo como `(3x no cartão)`.
+- O agrupamento dos parcelamentos e somente visual no dashboard recente; nao altera os lancamentos reais nem as abas de faturas/parcelamentos.
+
+Teste de regressao:
+
+- `userSheetAnalytics recent transactions format serial dates, label types and group installments`.
+
 ## Perguntas financeiras adversariais
 
 Status: perguntas deterministicas implantadas em producao no commit `1efb5d3`; gate de seguranca contra extracao interna/prompt injection implantado em producao no commit `6dfca42`, coberto por testes unitarios.

@@ -233,6 +233,9 @@ function dashboardHtml() {
     .bar-fill { background: linear-gradient(90deg, #0f766e, #0ea5a0); height: 100%; }
     .list { display: grid; gap: 7px; }
     .line { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px dashed #e5ddd3; padding-bottom: 5px; font-size: .92rem; }
+    .type-badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 2px 7px; margin-right: 6px; font-size: .75rem; font-weight: 800; background: #eef7f5; color: #0f766e; }
+    .type-badge.saida { background: #fff4e5; color: #9a3412; }
+    .type-badge.cartao { background: #eef2f7; color: #334155; }
     .muted { color: var(--muted); }
     .scope-summary { display: grid; gap: 8px; }
     .scope-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
@@ -483,7 +486,9 @@ function dashboardHtml() {
 
       const recent = data.recentTransactions || [];
       document.getElementById('recent').innerHTML = recent.length ? recent.map(r => {
-        return '<div class="line"><span>' + esc(r.date) + ' · ' + esc(r.description) + '</span><strong>' + brl(r.value) + '</strong></div>';
+        const type = String(r.type || '').toLowerCase();
+        const label = r.typeLabel || (type === 'entrada' ? 'Entrada' : type === 'cartao' ? 'Cartão' : 'Saída');
+        return '<div class="line"><span><span class="type-badge ' + esc(type) + '">' + esc(label) + '</span>' + esc(r.date) + ' · ' + esc(r.description) + '</span><strong>' + brl(r.value) + '</strong></div>';
       }).join('') : '<div class="empty">Sem lançamentos recentes neste período.</div>';
 
       const debts = data.debts || [];
