@@ -33,6 +33,7 @@ Armadilha:
 Sintoma:
 
 - Usuario acha que o saldo do dashboard esta alto demais.
+- Em 2026-05-31, um lancamento manual `guardei ... na caixinha` entrou como `Entradas/Poupança` antes da correcao do roteamento.
 
 Causa:
 
@@ -43,6 +44,13 @@ Mitigacao atual:
 
 - Dashboard exibe `Saldo` e `Disponivel estimado`.
 - Importador classifica aplicacoes/resgates de reserva como `Transferências`.
+- Fluxo manual agora tambem classifica `caixinha/reserva/investimento` como `Transferências`, nao como renda.
+
+## Transferencias familiares manuais
+
+- Em escopo familiar, mensagens como `transferi 1269,74 para a thais` devem entrar em `Transferências` com status `Provável transferência interna`.
+- Isso evita inflar `Saídas`, orçamento mensal livre e alertas diarios.
+- A deteccao depende de o membro estar no escopo financeiro familiar ativo; sem vinculo, o bot pode tratar como gasto comum.
 
 ## Horarios do Google Calendar
 

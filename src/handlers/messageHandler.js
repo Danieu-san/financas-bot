@@ -288,11 +288,126 @@ function canSaveTransactionWithoutExtraPayment(item) {
     return false;
 }
 
+function messageLooksLikeReserveMovement(item = {}, messageBody = '') {
+    const text = normalizeText([
+        messageBody,
+        item.descricao,
+        item.categoria,
+        item.subcategoria,
+        item.recebimento,
+        item.pagamento,
+        item.observacoes
+    ].filter(Boolean).join(' '));
+
+    const hasReserveDestination = /\b(caixinha|reserva|poupanca|investimento|investi|rdb|tesouro|aplicacao|aplicado|apliquei)\b/.test(text);
+    const hasMovementVerb = /\b(guardei|guardar|reservei|reservar|apliquei|aplicar|investi|investir|transferi|enviei|mandei|coloquei|poupei)\b/.test(text);
+    const hasIncomeSignal = /\b(salario|decimo|13|recebi|renda|bonus|bonificacao|pagamento recebido)\b/.test(text);
+
+    return hasReserveDestination && hasMovementVerb && !hasIncomeSignal;
+}
+
+function buildReserveTransfer(item = {}, messageBody = '') {
+    if (!messageLooksLikeReserveMovement(item, messageBody)) return null;
+
+    const transferDate = item.data ? parseSheetDate(item.data) : new Date();
+    const destination = normalizeText(item.descricao || messageBody).includes('nubank')
+        ? 'Caixinha Nubank'
+        : 'Reserva/Caixinha';
+
+    return {
+        data: getFormattedDateOnly(transferDate),
+        descricao: item.descricao || 'Aplicação em reserva/caixinha',
+        valor: parseValue(item.valor),
+        origem: item.recebimento && normalizeText(item.recebimento) !== 'poupanca' ? normalizePaymentMethodLabel(item.recebimento) : '',
+        destino: destination,
+        metodo: 'Transferência',
+        observacoes: 'Movimentação de reserva/investimento registrada pelo WhatsApp; não conta como gasto nem renda.',
+        status: 'Movimentação de reserva/investimento'
+    };
+}
+
+function buildFamilyMemberAliases(user = {}) {
+    return [
+        user.display_name,
+        user.full_name,
+        user.name,
+        user.phone_e164,
+        user.whatsapp_id
+    ]
+        .filter(Boolean)
+        .map(value => normalizeText(String(value)))
+        .filter(value => value && value.length >= 3);
+}
+
+async function findMentionedFinancialScopeMember(messageBody = '', currentUserId = '') {
+    const text = normalizeText(messageBody);
+    if (!/\b(transferi|transferencia|enviei|mandei|passei|pix)\b/.test(text)) return null;
+
+    let scopeIds = [];
+    try {
+        scopeIds = await Promise.resolve(getFinancialScopeUserIds(currentUserId));
+    } catch (error) {
+        logger.warn(`familia: falha ao obter escopo financeiro user_id=${currentUserId} error=${error.message}`);
+    }
+
+    const uniqueScopeIds = Array.from(new Set((scopeIds || []).filter(Boolean)));
+    if (uniqueScopeIds.length <= 1) return null;
+
+    const users = await getAllUsers();
+    return users.find((user) => {
+        if (!user?.user_id || user.user_id === currentUserId) return false;
+        if (!uniqueScopeIds.includes(user.user_id)) return false;
+        return buildFamilyMemberAliases(user).some(alias => text.includes(alias));
+    }) || null;
+}
+
+async function buildFamilyTransfer(item = {}, messageBody = '', currentUserId = '') {
+    if (item.type !== 'Saídas') return null;
+    const member = await findMentionedFinancialScopeMember(messageBody, currentUserId);
+    if (!member) return null;
+
+    const transferDate = item.data ? parseSheetDate(item.data) : new Date();
+    return {
+        data: getFormattedDateOnly(transferDate),
+        descricao: item.descricao || `Transferência para ${member.display_name || 'membro da família'}`,
+        valor: parseValue(item.valor),
+        origem: '',
+        destino: member.display_name || member.full_name || member.phone_e164 || 'Membro da família',
+        metodo: normalizePaymentMethodLabel(item.pagamento) || 'PIX',
+        observacoes: 'Transferência interna familiar registrada pelo WhatsApp; não conta como gasto nem renda.',
+        status: 'Provável transferência interna'
+    };
+}
+
+async function buildManualTransferFromMessage(item = {}, messageBody = '', currentUserId = '') {
+    const originalMessage = [item.originalMessage, messageBody].filter(Boolean).join(' ');
+    const reserveTransfer = buildReserveTransfer(item, originalMessage);
+    if (reserveTransfer) return reserveTransfer;
+    return buildFamilyTransfer(item, originalMessage, currentUserId);
+}
+
+async function saveManualTransfer(transfer, userId) {
+    const value = parseValue(transfer.valor);
+    await appendRowToSheet('Transferências', [
+        transfer.data || getFormattedDateOnly(new Date()),
+        transfer.descricao || 'Transferência',
+        value,
+        transfer.origem || '',
+        transfer.destino || '',
+        transfer.metodo || 'Transferência',
+        transfer.observacoes || '',
+        transfer.status || 'Transferência interna',
+        userId
+    ]);
+    markFinancialReadModelDirty('transfer_write');
+    return { ...transfer, valor: value };
+}
+
 async function saveTransactionWithoutExtraPayment(item, { person, userId }) {
     if (item.type === 'Saídas') {
         const dataDoGasto = item.data ? parseSheetDate(item.data) : new Date();
         const dataFinal = getFormattedDateOnly(dataDoGasto);
-        const valorNumerico = parseFloat(item.valor);
+        const valorNumerico = parseValue(item.valor);
         const pagamentoFinal = normalizePaymentMethodLabel(item.pagamento);
         const rowData = [
             dataFinal,
@@ -314,7 +429,7 @@ async function saveTransactionWithoutExtraPayment(item, { person, userId }) {
     if (item.type === 'Entradas') {
         const dataDaEntrada = item.data ? parseSheetDate(item.data) : new Date();
         const dataFinal = getFormattedDateOnly(dataDaEntrada);
-        const valorNumerico = parseFloat(item.valor);
+        const valorNumerico = parseValue(item.valor);
         const recebimentoFinal = normalizePaymentMethodLabel(item.recebimento);
         const rowData = [
             dataFinal,
@@ -3468,7 +3583,15 @@ async function handleMessage(msg) {
                 const pagamentoCorrigido = await askLLM(promptCorrecaoPagamento);
                 gasto.pagamento = pagamentoCorrigido.trim();
 
-                const valorNumerico = parseFloat(gasto.valor);
+                const manualTransfer = await buildManualTransferFromMessage(gasto, `${gasto.descricao || ''} ${gasto.observacoes || ''}`, userId);
+                if (manualTransfer) {
+                    const saved = await saveManualTransfer(manualTransfer, userId);
+                    await msg.reply(`✅ Transferência de ${formatCurrencyBR(saved.valor)} (${saved.descricao}) registrada como *${saved.status}* para a data de *${saved.data}*.`);
+                    userStateManager.deleteState(senderId);
+                    return;
+                }
+
+                const valorNumerico = parseValue(gasto.valor);
                 const rowData = [
                     dataFinal, gasto.descricao || 'Não especificado', gasto.categoria || 'Outros',
                     gasto.subcategoria || '', valorNumerico, pessoa, gasto.pagamento,
@@ -3495,7 +3618,15 @@ async function handleMessage(msg) {
                 entrada.recebimento = recebimentoCorrigido.trim();
 
                 const dataDaEntrada = entrada.data || getFormattedDateOnly();
-                const valorNumerico = parseFloat(entrada.valor);
+                const manualTransfer = await buildManualTransferFromMessage(entrada, `${entrada.descricao || ''} ${entrada.observacoes || ''}`, userId);
+                if (manualTransfer) {
+                    const saved = await saveManualTransfer(manualTransfer, userId);
+                    await msg.reply(`✅ Transferência de ${formatCurrencyBR(saved.valor)} (${saved.descricao}) registrada como *${saved.status}* para a data de *${saved.data}*.`);
+                    userStateManager.deleteState(senderId);
+                    return;
+                }
+
+                const valorNumerico = parseValue(entrada.valor);
 
                 const rowData = [
                     dataDaEntrada, entrada.descricao || 'Não especificado',
@@ -3864,7 +3995,12 @@ async function handleMessage(msg) {
                         let successCount = 0;
                         for (const item of transactions) {
                             try {
-                                await saveTransactionWithoutExtraPayment(item, { person: person || userMap[senderId] || 'Ambos', userId });
+                                const manualTransfer = await buildManualTransferFromMessage(item, messageBody, userId);
+                                if (manualTransfer) {
+                                    await saveManualTransfer(manualTransfer, userId);
+                                } else {
+                                    await saveTransactionWithoutExtraPayment(item, { person: person || userMap[senderId] || 'Ambos', userId });
+                                }
                                 successCount++;
                             } catch (e) {
                                 console.error("Erro CRÍTICO ao salvar item confirmado:", item, e);
@@ -3942,18 +4078,25 @@ async function handleMessage(msg) {
                         item.pagamento = pagamentoFinal;
                         item.recebimento = pagamentoFinal;
 
+                        const manualTransfer = await buildManualTransferFromMessage(item, `${item.descricao || ''} ${item.observacoes || ''}`, userId);
+                        if (manualTransfer) {
+                            await saveManualTransfer(manualTransfer, userId);
+                            successCount++;
+                            continue;
+                        }
+
                         if (sheetName === 'Saídas') {
                             const dataDoGasto = item.data ? parseSheetDate(item.data) : new Date();
                             rowData = [
                                 getFormattedDateOnly(dataDoGasto), item.descricao || 'Não especificado', item.categoria || 'Outros',
-                                item.subcategoria || '', parseFloat(item.valor), person, item.pagamento || '',
+                                item.subcategoria || '', parseValue(item.valor), person, item.pagamento || '',
                                 item.recorrente || 'Não', item.observacoes || '', userId
                             ];
                         } else if (sheetName === 'Entradas') {
                             const dataDaEntrada = item.data ? parseSheetDate(item.data) : new Date();
                             rowData = [
                                 getFormattedDateOnly(dataDaEntrada), item.descricao || 'Não especificado',
-                                item.categoria || 'Outros', parseFloat(item.valor), person,
+                                item.categoria || 'Outros', parseValue(item.valor), person,
                                 item.recebimento || '', item.recorrente || 'Não', item.observacoes || '', userId
                             ];
                         }
@@ -4333,6 +4476,13 @@ async function handleMessage(msg) {
 
                     if (allTransactions.length === 1) {
                         const item = allTransactions[0];
+                        const manualTransfer = await buildManualTransferFromMessage(item, messageBody, userId);
+                        if (manualTransfer) {
+                            const saved = await saveManualTransfer(manualTransfer, userId);
+                            await msg.reply(`✅ Transferência de ${formatCurrencyBR(saved.valor)} (${saved.descricao}) registrada como *${saved.status}* para a data de *${saved.data}*.`);
+                            return;
+                        }
+
                         const pagamento = normalizeText(item.pagamento || '');
 
                         const messageMentionsCard = normalizeText(messageBody).includes('cartao');
@@ -4396,7 +4546,7 @@ async function handleMessage(msg) {
                                 action: 'awaiting_payment_method',
                                 // A estrutura de dados correta é um objeto com a propriedade 'gasto'
                                 data: {
-                                    gasto: item,
+                                    gasto: { ...item, originalMessage: messageBody },
                                     dataFinal: getFormattedDateOnly(dataDoGasto)
                                 }
                             });
@@ -4405,7 +4555,7 @@ async function handleMessage(msg) {
                         }
 
                         if (item.type === 'Entradas' && !item.recebimento) {
-                            userStateManager.setState(senderId, { action: 'awaiting_receipt_method', data: item });
+                            userStateManager.setState(senderId, { action: 'awaiting_receipt_method', data: { ...item, originalMessage: messageBody } });
                             await msg.reply('Entendido! E onde você recebeu esse valor? (Conta Corrente, Poupança, PIX ou Dinheiro)');
                             return;
                         }
@@ -4421,7 +4571,7 @@ async function handleMessage(msg) {
 
                     userStateManager.setState(senderId, {
                         action: 'confirming_transactions',
-                        data: { transactions: allTransactions, person: pessoa }
+                        data: { transactions: allTransactions.map(item => ({ ...item, originalMessage: messageBody })), person: pessoa }
                     });
                     await msg.reply(confirmationMessage);
                     break;

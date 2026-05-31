@@ -698,6 +698,62 @@ stateMachineTest('financial states: explicit card name overrides mistaken debit 
     assert.strictEqual(sheets['Cartão Nubank - Thais'][1].at(-1), USER_ID);
 });
 
+stateMachineTest('financial states: manual caixinha application is saved as transfer not income', async () => {
+    resetState();
+    enqueueStructuredResponse({
+        intent: 'entrada',
+        entradaDetails: [{
+            data: '31/05/2026',
+            descricao: 'Caixinha do Nubank',
+            categoria: 'Outros',
+            valor: 6666.62,
+            recebimento: 'Poupança',
+            recorrente: 'Não'
+        }]
+    });
+
+    const reply = await send('guardei 6666,62 na caixinha do nubank');
+
+    assert.match(reply, /Transferência de R\$ 6666,62/i);
+    assert.strictEqual(sheets.Entradas.length, 1);
+    assert.strictEqual(sheets.Transferências.length, 2);
+    assert.strictEqual(sheets.Transferências[1][1], 'Caixinha do Nubank');
+    assert.strictEqual(sheets.Transferências[1][2], 6666.62);
+    assert.strictEqual(sheets.Transferências[1][4], 'Caixinha Nubank');
+    assert.strictEqual(sheets.Transferências[1][7], 'Movimentação de reserva/investimento');
+    assert.strictEqual(sheets.Transferências[1][8], USER_ID);
+});
+
+stateMachineTest('financial states: transfer to family member is saved as internal transfer not expense', async () => {
+    resetState();
+    sheets.Users.push(partnerUserRow());
+    financialScopeUserIds = [USER_ID, PARTNER_ID];
+    enqueueStructuredResponse({
+        intent: 'gasto',
+        gastoDetails: [{
+            data: '31/05/2026',
+            descricao: 'Transferência para Thais',
+            categoria: 'Outros',
+            subcategoria: 'Outros',
+            valor: 1269.74,
+            pagamento: 'PIX',
+            recorrente: 'Não'
+        }]
+    });
+
+    const reply = await send('transferi 1269,74 para a thais');
+
+    assert.match(reply, /Transferência de R\$ 1269,74/i);
+    assert.strictEqual(sheets.Saídas.length, 1);
+    assert.strictEqual(sheets.Transferências.length, 2);
+    assert.strictEqual(sheets.Transferências[1][1], 'Transferência para Thais');
+    assert.strictEqual(sheets.Transferências[1][2], 1269.74);
+    assert.strictEqual(sheets.Transferências[1][4], 'Thais');
+    assert.strictEqual(sheets.Transferências[1][5], 'PIX');
+    assert.strictEqual(sheets.Transferências[1][7], 'Provável transferência interna');
+    assert.strictEqual(sheets.Transferências[1][8], USER_ID);
+});
+
 stateMachineTest('financial states: monthly budget alert counts explicit credit card spending in legacy card sheets', async () => {
     resetState();
     sheets.UserSettings[1][13] = 'SIM';

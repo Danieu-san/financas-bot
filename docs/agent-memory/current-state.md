@@ -60,6 +60,7 @@ Sempre revalidar EC2/PM2/logs antes de afirmar que producao esta saudavel.
 - Planilha real do Daniel foi copiada antes da limpeza (`Backup FinancasBot Daniel antes limpeza 2026-05-31 0249`) e depois teve linhas financeiras anteriores a 29/05/2026 removidas de `Entradas`, `Saídas`, `Transferências` e `Lançamentos Cartão`. Configuracoes, contas, metas, dividas, manual, dashboard e formulas foram preservados.
 - Correcao em 2026-05-31: quando o usuario cita um cartao cadastrado pelo nome (ex.: `cartao nubank thais`) sem dizer `debito`, o bot trata como cartao de credito mesmo se a IA classificar equivocadamente como `Débito`; `à vista` vira parcela `1/1`. Se o usuario disser explicitamente `debito`, o fluxo de debito e preservado.
 - Dado real corrigido em 2026-05-31: `restaurante malz` de R$125,25 foi movido de `Saídas/Débito` para `Lançamentos Cartão/Cartão Nubank - Thais`, apos backup `Backup FinancasBot Daniel antes mover restaurante malz 2026-05-31 1249`.
+- Correcao local em 2026-05-31: lancamentos manuais como `guardei ... na caixinha` agora entram em `Transferências` como reserva/investimento, nao em `Entradas`; transferencias manuais para membro do escopo familiar entram em `Transferências`, nao em `Saídas`; valores manuais usam `parseValue` para preservar centavos com virgula. Cobertura adicionada em `tests/financialStateMachine.test.js`; `npm test` passou com 214 testes.
 
 ## Mudanca recente sobre caixinha/reserva
 
