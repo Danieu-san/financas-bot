@@ -11,7 +11,7 @@ Atualizado em: 2026-05-31
 
 ## Estado de producao conhecido
 
-- Ultimo deploy validado: commit local/GitHub `8f7c27a` (`fix: count card installments by budget cycle due date`). Em producao, o mesmo patch foi aplicado por `git am` como `8ec1aae`.
+- Ultimo deploy validado: commit local/GitHub `631b99f` (`fix: show card spending in dashboard month view`). Em producao, o mesmo patch foi aplicado por `git am` como `fdb5c33`.
 - Health check em producao respondeu `{"ok":true,"sqlite":true}` e PM2 confirmou `Bot pronto para receber mensagens`.
 - Dashboard passou a mostrar `Saldo` economico e `Disponivel estimado` apos caixinha/reserva.
 - O bot estava online no PM2 e WhatsApp chegou em `Bot pronto para receber mensagens` apos o deploy.
@@ -63,7 +63,7 @@ Sempre revalidar EC2/PM2/logs antes de afirmar que producao esta saudavel.
 - Correcao local em 2026-05-31: lancamentos manuais como `guardei ... na caixinha` agora entram em `Transferências` como reserva/investimento, nao em `Entradas`; transferencias manuais para membro do escopo familiar entram em `Transferências`, nao em `Saídas`; valores manuais usam `parseValue` para preservar centavos com virgula. Cobertura adicionada em `tests/financialStateMachine.test.js`; `npm test` passou com 214 testes.
 - Correcao local em 2026-05-31: formulas da aba `Dashboard` da planilha pessoal passaram a somar linhas com `user_id` preenchido, em vez de depender de uma linha inicial fixa. Isso evita zerar totais quando o usuario apaga a linha de exemplo. `Faturas` e `Parcelamentos` tambem passam a consultar `Lançamentos Cartão!A2:J` filtrando `J is not null`, para ignorar exemplos sem perder a primeira linha real.
 - Correcao local em 2026-05-31: orçamento mensal livre passou a contar lançamentos de cartão pela competência/vencimento da parcela/fatura, usando `Lançamentos Cartão` + `Cartões`, e nao pela data da compra. Assim uma compra parcelada impacta o ciclo apenas pela parcela que vence nele. O dashboard tambem mudou o rótulo de `Orçamento do ciclo` para `Gasto livre no ciclo` e mostra a data explicita em `Hoje`.
-- Correcao local em 2026-05-31: o dashboard web mensal passou a mostrar consumo de cartao pela data da compra, para que categorias de `Lançamentos Cartão` apareçam no mês em que o gasto aconteceu. Isso nao altera a regra do orçamento mensal livre, que continua usando competência/vencimento da fatura. O gráfico financeiro tambem foi ajustado para nao cortar a quinta barra (`Disponível`).
+- Correcao implantada em 2026-05-31: o dashboard web mensal passou a mostrar consumo de cartao pela data da compra, para que categorias de `Lançamentos Cartão` apareçam no mês em que o gasto aconteceu. Isso nao altera a regra do orçamento mensal livre, que continua usando competência/vencimento da fatura. O gráfico financeiro tambem foi ajustado para nao cortar a quinta barra (`Disponível`).
 - Dado real corrigido em 2026-05-31: o lançamento `restaurante malz` de R$125,25 do Daniel em `Lançamentos Cartão` foi ajustado de `31/05/2026` para `30/05/2026 22:00`, apos backup `Backup FinancasBot Daniel antes ajustar data restaurante malz 2026-05-31T14-16-28-865Z`.
 - Manuais externos em `C:\Users\horus\Documents\FinancasBot\manuals` foram regenerados em 2026-05-31 com backup dos PDFs anteriores. O manual do usuário usa a capa aprovada `ChatGPT Image 29 de mai. de 2026, 19_42_25.png`; ambos incluem a regra nova de parcelamentos no orçamento.
 
