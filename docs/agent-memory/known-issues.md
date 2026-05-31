@@ -1,6 +1,6 @@
 # Problemas conhecidos e armadilhas
 
-Atualizado em: 2026-05-26
+Atualizado em: 2026-05-31
 
 ## Privacidade/admin
 
@@ -109,3 +109,5 @@ Arquivos nao rastreados antigos podem existir. Nao remover sem pedido explicito:
 - Ha abas especificas para `Lançamentos Cartão`, `Faturas` e `Parcelamentos`.
 - Mudancas em colunas podem quebrar formulas e perguntas analiticas.
 - Verificar `tests/userSpreadsheetService.test.js` e perguntas do read model antes de alterar estrutura.
+- Armadilha corrigida em 2026-05-31: se a formula `QUERY` de `Faturas`/`Parcelamentos` consultar `Lançamentos Cartão!A2:J`, o parametro de cabecalho precisa ser `0`; usar `1` faz a primeira compra real virar cabecalho e sumir dos totais.
+- Armadilha corrigida em 2026-05-31: valores de cartao escritos como texto com virgula fazem `SUM` retornar `0`. Novos fluxos gravam numero; planilhas antigas podem precisar de normalizacao da coluna `Valor Parcela`.

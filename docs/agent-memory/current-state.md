@@ -1,6 +1,6 @@
 # Estado atual do FinancasBot
 
-Atualizado em: 2026-05-29
+Atualizado em: 2026-05-31
 
 ## Produto
 
@@ -11,7 +11,7 @@ Atualizado em: 2026-05-29
 
 ## Estado de producao conhecido
 
-- Ultimo deploy validado: commit `1efb5d3` (`fix: route complex financial questions deterministically`).
+- Ultimo deploy validado: commit `4182ae4` (`fix: include first card row in sheet summaries`).
 - Health check em producao respondeu `{"ok":true,"sqlite":true}` e PM2 confirmou `Bot pronto para receber mensagens`.
 - Dashboard passou a mostrar `Saldo` economico e `Disponivel estimado` apos caixinha/reserva.
 - O bot estava online no PM2 e WhatsApp chegou em `Bot pronto para receber mensagens` apos o deploy.
@@ -56,6 +56,8 @@ Sempre revalidar EC2/PM2/logs antes de afirmar que producao esta saudavel.
 - Correcao local em 2026-05-30: `UserSettings` deve ser lido/escrito em `A:S`; usar ranges antigos `A:M`/`A:R` quebra o salvamento do orçamento mensal porque os campos `monthly_budget_*` ficam nas colunas N:S.
 - Ao ativar vinculo familiar por `admin compartilhar planilha`, se o dono ja tiver orçamento mensal ativo, o bot envia ao dono uma pergunta para decidir se ele continua pessoal ou vira familiar.
 - Roteamento de gastos ficou mais inteligente em 2026-05-29: se a mensagem ja trouxer `credito`, nome do cartao e `a vista`/parcelas, o bot pula perguntas redundantes e grava direto. Ha fallback para contar cartoes em `Lançamentos Cartão` e em abas legadas `Cartão ...` no orçamento mensal.
+- Planilha do usuario teve correcoes em 2026-05-31: `Faturas` e `Parcelamentos` agora sao tratadas como abas da planilha pessoal, lancamentos de cartao passam a gravar valor numerico (nao texto) e as formulas `QUERY` dos resumos usam `headers=0` para nao ignorar a primeira compra real.
+- Planilha real do Daniel foi copiada antes da limpeza (`Backup FinancasBot Daniel antes limpeza 2026-05-31 0249`) e depois teve linhas financeiras anteriores a 29/05/2026 removidas de `Entradas`, `Saídas`, `Transferências` e `Lançamentos Cartão`. Configuracoes, contas, metas, dividas, manual, dashboard e formulas foram preservados.
 
 ## Mudanca recente sobre caixinha/reserva
 
