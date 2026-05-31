@@ -234,6 +234,12 @@ function dashboardHtml() {
     .list { display: grid; gap: 7px; }
     .line { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px dashed #e5ddd3; padding-bottom: 5px; font-size: .92rem; }
     .muted { color: var(--muted); }
+    .scope-summary { display: grid; gap: 8px; }
+    .scope-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+    .scope-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
+    .member-card { border: 1px solid #eee7dd; border-radius: 12px; padding: 10px; background: #fffdf9; }
+    .member-name { font-weight: 800; margin-bottom: 6px; }
+    .member-row { display: flex; justify-content: space-between; gap: 10px; font-size: .9rem; padding: 2px 0; }
     .empty { border: 1px dashed #d8d2c9; border-radius: 10px; padding: 10px; color: var(--muted); background: #fffaf2; }
     .alert { border-left: 4px solid var(--accent); padding: 8px 9px; background: #f5fbfa; border-radius: 8px; }
     .alert.high { border-left-color: var(--danger); background: #fff3f2; }
@@ -285,6 +291,8 @@ function dashboardHtml() {
       <div class="card"><div class="label">Saldo</div><div id="kpiSaldo" class="value">-</div></div>
       <div class="card"><div class="label">Disponível estimado</div><div id="kpiDisponivel" class="value">-</div><div id="reserveNote" class="muted"></div></div>
     </div>
+
+    <div id="scopeCard" class="section card scope-summary" style="display:none"></div>
 
     <div class="section card chart-card">
       <div class="chart-head">
@@ -450,6 +458,7 @@ function dashboardHtml() {
       const userSuffix = selectedUserLabel && userEl.style.display !== 'none' ? ' · ' + selectedUserLabel : '';
       document.getElementById('periodBadge').textContent = monthNames[Number(period.month ?? monthEl.value)] + ' de ' + (period.year || yearEl.value) + userSuffix;
       renderFinanceChart(k);
+      renderScopeSummary(data.scope);
       renderDailyGoal(data.dailyGoal);
 
       const cats = data.topCategories || [];
@@ -487,6 +496,37 @@ function dashboardHtml() {
       document.getElementById('goals').innerHTML = goals.length ? goals.map(g => {
         return '<div class="line"><span>' + esc(g.name) + ' (' + Number(g.progressPct||0).toFixed(1) + '%)</span><strong>' + brl(g.current) + ' / ' + brl(g.target) + '</strong></div>';
       }).join('') : '<div class="empty">Sem metas cadastradas. Uma boa primeira meta é reserva de emergência.</div>';
+    }
+
+    function renderScopeSummary(scope) {
+      const card = document.getElementById('scopeCard');
+      const members = Array.isArray(scope?.members) ? scope.members : [];
+      if (!scope || !members.length) {
+        card.style.display = 'none';
+        card.innerHTML = '';
+        return;
+      }
+
+      const isFamily = scope.mode === 'family' || members.length > 1;
+      const helper = isFamily
+        ? 'Este dashboard está somando os lançamentos da planilha compartilhada. Abaixo está a composição por pessoa.'
+        : 'Este dashboard está mostrando somente os seus lançamentos.';
+
+      card.style.display = '';
+      card.innerHTML =
+        '<div class="scope-head"><h2>Escopo: ' + esc(scope.label || (isFamily ? 'Família' : 'Pessoal')) + '</h2><span class="muted">' + esc(helper) + '</span></div>' +
+        '<div class="scope-grid">' + members.map(member => {
+          const totalSaidas = Number(member.saidas || 0) + Number(member.cartoes || 0);
+          const saldoClass = Number(member.saldo || 0) >= 0 ? 'ok' : 'bad';
+          return '<div class="member-card">' +
+            '<div class="member-name">' + esc(member.name || 'Membro') + '</div>' +
+            '<div class="member-row"><span class="muted">Entradas</span><strong>' + brl(member.entradas) + '</strong></div>' +
+            '<div class="member-row"><span class="muted">Saídas</span><strong>' + brl(member.saidas) + '</strong></div>' +
+            '<div class="member-row"><span class="muted">Cartões</span><strong>' + brl(member.cartoes) + '</strong></div>' +
+            '<div class="member-row"><span class="muted">Saídas + Cartões</span><strong>' + brl(totalSaidas) + '</strong></div>' +
+            '<div class="member-row"><span class="muted">Saldo</span><strong class="' + saldoClass + '">' + brl(member.saldo) + '</strong></div>' +
+          '</div>';
+        }).join('') + '</div>';
     }
 
     function renderFinanceChart(k) {

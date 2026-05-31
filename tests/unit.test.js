@@ -1807,6 +1807,39 @@ test('userSheetAnalytics reserve summary separates economic balance from availab
     });
 });
 
+test('userSheetAnalytics member breakdown explains family dashboard totals', () => {
+    const { buildMemberBreakdown } = userSheetAnalyticsService.__test__;
+    const userNames = new Map([
+        ['daniel-id', 'Daniel'],
+        ['thais-id', 'Thaís']
+    ]);
+
+    const members = buildMemberBreakdown({
+        userIds: ['daniel-id', 'thais-id'],
+        userNames,
+        period: { month: 4, year: 2026 },
+        entradasRows: [
+            ['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Obs', 'user_id'],
+            ['04/05/2026', 'Salário', 'Salário', 5000, 'Daniel', 'PIX', 'Não', '', 'daniel-id'],
+            ['04/04/2026', 'Mês anterior', 'Salário', 1000, 'Daniel', 'PIX', 'Não', '', 'daniel-id']
+        ],
+        saidasRows: [
+            ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id'],
+            ['05/05/2026', 'Aluguel', 'Moradia', 'ALUGUEL', 1200, 'Daniel', 'PIX', 'Sim', '', 'daniel-id']
+        ],
+        cartaoRows: [
+            ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Observações', 'user_id'],
+            ['08/05/2026', 'Mercado', 'Alimentação', 300, '1/1', 'Maio de 2026', 'nubank', 'Nubank', '', 'daniel-id'],
+            ['08/05/2026', 'Farmácia', 'Saúde', 200, '1/1', 'Maio de 2026', 'nubank-thais', 'Nubank Thaís', '', 'thais-id']
+        ]
+    });
+
+    assert.deepStrictEqual(members, [
+        { name: 'Daniel', entradas: 5000, saidas: 1200, cartoes: 300, saldo: 3500 },
+        { name: 'Thaís', entradas: 0, saidas: 0, cartoes: 200, saldo: -200 }
+    ]);
+});
+
 test('userSheetAnalytics monthly budget summary combines free debit and card spending', () => {
     const { buildDailyGoalSummary } = userSheetAnalyticsService.__test__;
     const today = new Intl.DateTimeFormat('pt-BR', {

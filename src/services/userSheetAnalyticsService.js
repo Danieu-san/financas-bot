@@ -1,6 +1,6 @@
 const { readDataFromSheet, runWithUserSheetContext, hasUserSpreadsheetContext } = require('./google');
 const { getFinancialScopeUserIds, getSharedSpreadsheetMembership } = require('./oauthTokenStore');
-const { getUserSettingsByUserId } = require('./userService');
+const { getAllUsers, getUserSettingsByUserId } = require('./userService');
 const { parseSheetDate, parseValue, normalizeText } = require('../utils/helpers');
 const {
     normalizeCycleStartDay,
@@ -206,6 +206,60 @@ function buildDailyFlow({ entradas, saidas, cartoes }) {
     });
 }
 
+function roundBreakdownItem(item) {
+    const { userId: _internalUserId, ...publicItem } = item;
+    return {
+        ...publicItem,
+        entradas: roundMoney(item.entradas),
+        saidas: roundMoney(item.saidas),
+        cartoes: roundMoney(item.cartoes),
+        saldo: roundMoney(item.entradas - item.saidas - item.cartoes)
+    };
+}
+
+function buildMemberBreakdown({ entradasRows, saidasRows, cartaoRows, userIds, userNames, period }) {
+    const members = new Map();
+    const ensure = (userId) => {
+        const safeUserId = String(userId || '').trim();
+        if (!safeUserId) return null;
+        if (!members.has(safeUserId)) {
+            members.set(safeUserId, {
+                userId: safeUserId,
+                name: userNames?.get(safeUserId) || 'Membro',
+                entradas: 0,
+                saidas: 0,
+                cartoes: 0
+            });
+        }
+        return members.get(safeUserId);
+    };
+
+    (Array.isArray(userIds) ? userIds : [userIds]).forEach(ensure);
+
+    entradasRows.slice(1).forEach((row) => {
+        const member = ensure(row?.[8]);
+        if (member && periodMatchesDate(row[0], period.month, period.year)) {
+            member.entradas += parseValue(row[3]);
+        }
+    });
+    saidasRows.slice(1).forEach((row) => {
+        const member = ensure(row?.[9]);
+        if (member && periodMatchesDate(row[0], period.month, period.year)) {
+            member.saidas += parseValue(row[4]);
+        }
+    });
+    cartaoRows.slice(1).forEach((row) => {
+        const member = ensure(row?.[9]);
+        if (member && periodMatchesBillingMonth(row[5], period.month, period.year)) {
+            member.cartoes += parseValue(row[3]);
+        }
+    });
+
+    return Array.from(members.values())
+        .filter(member => (Array.isArray(userIds) ? userIds : [userIds]).map(String).includes(member.userId))
+        .map(roundBreakdownItem);
+}
+
 function buildDailyGoalSummary({ settings, saidasRows, cartaoRows, userIds, period }) {
     if (normalizeText(settings?.monthly_budget_enabled || '') !== 'sim') return null;
     const monthlyAmount = parseValue(settings?.monthly_budget_amount);
@@ -290,6 +344,12 @@ async function getUserSheetDashboardData(userId, { month, year } = {}) {
     const safeUserId = String(userId || '').trim();
     if (!safeUserId || !(await hasUserSpreadsheetContext({ userId: safeUserId }))) return null;
 
+    const users = await getAllUsers();
+    const userNames = new Map(users.map(user => [
+        String(user.user_id || '').trim(),
+        String(user.display_name || user.phone_e164 || 'Membro').trim()
+    ]));
+
     return runWithUserSheetContext({ userId: safeUserId }, async () => {
         const financialScopeUserIds = getFinancialScopeUserIds(safeUserId);
         const period = normalizePeriod({ month, year });
@@ -323,12 +383,25 @@ async function getUserSheetDashboardData(userId, { month, year } = {}) {
         const saldo = roundMoney(totalEntradas - totalSaidas - totalCartoes);
         const saldoDisponivelEstimado = roundMoney(saldo - reserveSummary.netApplied);
         const expenses = [...saidas, ...cartoes];
+        const members = buildMemberBreakdown({
+            entradasRows,
+            saidasRows,
+            cartaoRows,
+            userIds: financialScopeUserIds,
+            userNames,
+            period
+        });
 
         return {
             period: {
                 month: period.month,
                 year: period.year,
                 label: `${MONTH_NAMES[period.month]} de ${period.year}`
+            },
+            scope: {
+                mode: financialScopeUserIds.length > 1 ? 'family' : 'personal',
+                label: financialScopeUserIds.length > 1 ? 'Família' : 'Pessoal',
+                members
             },
             kpis: {
                 entradas: totalEntradas,
@@ -366,6 +439,7 @@ module.exports = {
         buildTopCategories,
         rowBelongsToAnyUser,
         buildReserveSummary,
+        buildMemberBreakdown,
         isReserveApplication,
         isReserveRedemption,
         isFreeSpendingRow,
