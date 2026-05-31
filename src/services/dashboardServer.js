@@ -211,7 +211,7 @@ function dashboardHtml() {
     }
     .chart-head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; margin-bottom: 8px; }
     .chart-note { color: var(--muted); font-size: .85rem; }
-    .finance-chart { width: 100%; min-height: 260px; display: block; }
+    .finance-chart { width: 100%; min-height: 290px; display: block; }
     .chart-label { font-size: 12px; fill: #5e5b57; }
     .chart-value { font-size: 12px; fill: #1d1b1a; font-weight: 700; }
     .chart-axis { stroke: #d8d2c9; stroke-width: 1; }
@@ -287,7 +287,7 @@ function dashboardHtml() {
 
     <div class="grid">
       <div class="card"><div class="label">Entradas</div><div id="kpiEntradas" class="value">-</div></div>
-      <div class="card"><div class="label">Saídas + Cartões</div><div id="kpiSaidas" class="value">-</div></div>
+      <div class="card"><div class="label">Saídas + gastos no cartão</div><div id="kpiSaidas" class="value">-</div></div>
       <div class="card"><div class="label">Saldo</div><div id="kpiSaldo" class="value">-</div></div>
       <div class="card"><div class="label">Disponível estimado</div><div id="kpiDisponivel" class="value">-</div><div id="reserveNote" class="muted"></div></div>
     </div>
@@ -523,7 +523,7 @@ function dashboardHtml() {
             '<div class="member-row"><span class="muted">Entradas</span><strong>' + brl(member.entradas) + '</strong></div>' +
             '<div class="member-row"><span class="muted">Saídas</span><strong>' + brl(member.saidas) + '</strong></div>' +
             '<div class="member-row"><span class="muted">Cartões</span><strong>' + brl(member.cartoes) + '</strong></div>' +
-            '<div class="member-row"><span class="muted">Saídas + Cartões</span><strong>' + brl(totalSaidas) + '</strong></div>' +
+            '<div class="member-row"><span class="muted">Saídas + gastos no cartão</span><strong>' + brl(totalSaidas) + '</strong></div>' +
             '<div class="member-row"><span class="muted">Saldo</span><strong class="' + saldoClass + '">' + brl(member.saldo) + '</strong></div>' +
           '</div>';
         }).join('') + '</div>';
@@ -538,28 +538,31 @@ function dashboardHtml() {
         { label: 'Disponível', value: Number((k.saldoDisponivelEstimado ?? k.saldo) || 0), cls: 'available' }
       ];
       const max = Math.max(1, ...items.map(item => Math.abs(item.value)));
-      const width = 720;
-      const height = 260;
+      const width = 760;
+      const height = 280;
       const top = 24;
-      const baseline = 188;
-      const barW = 88;
-      const gap = 70;
+      const baseline = 198;
+      const barW = 82;
       const left = 54;
-      const maxBarH = 138;
+      const right = 44;
+      const labelY = 246;
+      const maxBarH = 142;
+      const gap = Math.max(18, Math.floor((width - left - right - (items.length * barW)) / Math.max(1, items.length - 1)));
       const bars = items.map((item, index) => {
         const h = Math.max(4, Math.round((Math.abs(item.value) / max) * maxBarH));
         const x = left + index * (barW + gap);
         const y = item.value >= 0 ? baseline - h : baseline;
         const cls = item.cls + (item.cls === 'balance' && item.value < 0 ? ' negative' : '');
+        const valueY = item.value >= 0 ? Math.max(18, y - 8) : Math.min(height - 8, y + h + 18);
         return [
           '<rect class="chart-bar ' + cls + '" x="' + x + '" y="' + y + '" width="' + barW + '" height="' + h + '" rx="12"></rect>',
-          '<text class="chart-value" x="' + (x + barW / 2) + '" y="' + (item.value >= 0 ? y - 8 : y + h + 18) + '" text-anchor="middle">' + esc(compactMoney(item.value)) + '</text>',
-          '<text class="chart-label" x="' + (x + barW / 2) + '" y="226" text-anchor="middle">' + esc(item.label) + '</text>'
+          '<text class="chart-value" x="' + (x + barW / 2) + '" y="' + valueY + '" text-anchor="middle">' + esc(compactMoney(item.value)) + '</text>',
+          '<text class="chart-label" x="' + (x + barW / 2) + '" y="' + labelY + '" text-anchor="middle">' + esc(item.label) + '</text>'
         ].join('');
       }).join('');
       document.getElementById('financeChart').innerHTML =
         '<svg viewBox="0 0 ' + width + ' ' + height + '" role="presentation" focusable="false">' +
-        '<line class="chart-axis" x1="34" y1="' + baseline + '" x2="680" y2="' + baseline + '"></line>' +
+        '<line class="chart-axis" x1="34" y1="' + baseline + '" x2="' + (width - right + 10) + '" y2="' + baseline + '"></line>' +
         '<text class="chart-label" x="34" y="' + top + '">Maior valor: ' + esc(compactMoney(max)) + '</text>' +
         bars +
         '</svg>';

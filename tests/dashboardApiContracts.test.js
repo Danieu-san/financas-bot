@@ -211,6 +211,7 @@ test('dashboard page reloads data when month or year filters change', async () =
         assert.match(html, /kpiDisponivel/);
         assert.match(html, /saldoDisponivelEstimado/);
         assert.match(html, /Orçamento Livre/);
+        assert.match(html, /Saídas \+ gastos no cartão/);
         assert.match(html, /renderDailyGoal\(data\.dailyGoal\)/);
         assert.match(html, /Escopo:/);
         assert.match(html, /renderScopeSummary\(data\.scope\)/);

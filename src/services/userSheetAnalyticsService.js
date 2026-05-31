@@ -33,6 +33,11 @@ function periodMatchesBillingMonth(value, month, year) {
     return String(value || '').trim() === `${MONTH_NAMES[month]} de ${year}`;
 }
 
+function cardRowMatchesDashboardPeriod(row, month, year) {
+    if (periodMatchesDate(row?.[0], month, year)) return true;
+    return !parseSheetDate(row?.[0]) && periodMatchesBillingMonth(row?.[5], month, year);
+}
+
 function parseBillingMonth(value) {
     const text = normalizeText(String(value || '').trim());
     const match = text.match(/^(.+?)\s+de\s+(\d{4})$/);
@@ -304,7 +309,7 @@ function buildMemberBreakdown({ entradasRows, saidasRows, cartaoRows, userIds, u
     });
     cartaoRows.slice(1).forEach((row) => {
         const member = ensure(row?.[9]);
-        if (member && periodMatchesBillingMonth(row[5], period.month, period.year)) {
+        if (member && cardRowMatchesDashboardPeriod(row, period.month, period.year)) {
             member.cartoes += parseValue(row[3]);
         }
     });
@@ -426,7 +431,7 @@ async function getUserSheetDashboardData(userId, { month, year } = {}) {
             .filter(row => rowBelongsToAnyUser(row, 8, financialScopeUserIds) && periodMatchesDate(row[0], period.month, period.year))
             .map(row => toTransaction(row, 'entrada'));
         const cartoes = cartaoRows.slice(1)
-            .filter(row => rowBelongsToAnyUser(row, 9, financialScopeUserIds) && periodMatchesBillingMonth(row[5], period.month, period.year))
+            .filter(row => rowBelongsToAnyUser(row, 9, financialScopeUserIds) && cardRowMatchesDashboardPeriod(row, period.month, period.year))
             .map(toCardTransaction);
         const transfers = transferRows.slice(1)
             .filter(row => rowBelongsToAnyUser(row, 8, financialScopeUserIds) && periodMatchesDate(row[0], period.month, period.year))
@@ -493,6 +498,7 @@ module.exports = {
     __test__: {
         normalizePeriod,
         periodMatchesBillingMonth,
+        cardRowMatchesDashboardPeriod,
         parseBillingMonth,
         buildTopCategories,
         rowBelongsToAnyUser,

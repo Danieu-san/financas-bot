@@ -1843,6 +1843,31 @@ test('userSheetAnalytics member breakdown explains family dashboard totals', () 
     ]);
 });
 
+test('userSheetAnalytics dashboard counts card spending by purchase month, not invoice month', () => {
+    const { cardRowMatchesDashboardPeriod, buildMemberBreakdown } = userSheetAnalyticsService.__test__;
+    const userNames = new Map([['daniel-id', 'Daniel']]);
+    const juneInvoiceCardPurchase = ['30/05/2026', 'Restaurante', 'Alimentação', 125.25, '1/1', 'Junho de 2026', 'nubank-thais', 'Nubank Thais', '', 'daniel-id'];
+
+    assert.strictEqual(cardRowMatchesDashboardPeriod(juneInvoiceCardPurchase, 4, 2026), true);
+    assert.strictEqual(cardRowMatchesDashboardPeriod(juneInvoiceCardPurchase, 5, 2026), false);
+
+    const members = buildMemberBreakdown({
+        userIds: ['daniel-id'],
+        userNames,
+        period: { month: 4, year: 2026 },
+        entradasRows: [['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Obs', 'user_id']],
+        saidasRows: [['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id']],
+        cartaoRows: [
+            ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Observações', 'user_id'],
+            juneInvoiceCardPurchase
+        ]
+    });
+
+    assert.deepStrictEqual(members, [
+        { name: 'Daniel', entradas: 0, saidas: 0, cartoes: 125.25, saldo: -125.25 }
+    ]);
+});
+
 test('userSheetAnalytics monthly budget summary combines free debit and card installments due in the cycle', () => {
     const { buildDailyGoalSummary } = userSheetAnalyticsService.__test__;
     const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
