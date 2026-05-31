@@ -282,8 +282,8 @@ test('user spreadsheet card summary tabs are formula-driven from card launches',
     assert.match(parcelamentos.values[0][0], /^=QUERY\(/);
     assert.match(faturas.values[0][0], /'Lançamentos Cartão'!A2:J/);
     assert.match(parcelamentos.values[0][0], /'Lançamentos Cartão'!A2:J/);
-    assert.match(faturas.values[0][0], /;1\)$/);
-    assert.match(parcelamentos.values[0][0], /;1\)$/);
+    assert.match(faturas.values[0][0], /;0\)$/);
+    assert.match(parcelamentos.values[0][0], /;0\)$/);
     assert.doesNotMatch(faturas.values[0][0], /",1\)$/);
     assert.doesNotMatch(parcelamentos.values[0][0], /",1\)$/);
     assert.doesNotMatch(JSON.stringify([faturas, parcelamentos]), /Importações|Hash|Configurações/i);

@@ -243,7 +243,7 @@ function buildManualRows({ user = {} } = {}) {
 }
 
 function buildInvoiceSummaryRows({ dataStartRow = 2 } = {}) {
-    const headerCount = dataStartRow > 2 ? 0 : 1;
+    const headerCount = 0;
     return [[
         `=QUERY('Lançamentos Cartão'!A${dataStartRow}:J;"select H, F, sum(D), count(D), min(A), max(A) where H is not null group by H, F label H 'Cartão', F 'Mês de Cobrança', sum(D) 'Total da Fatura', count(D) 'Parcelas Lançadas', min(A) 'Primeira Compra', max(A) 'Última Compra'";${headerCount})`,
         '',
@@ -255,7 +255,7 @@ function buildInvoiceSummaryRows({ dataStartRow = 2 } = {}) {
 }
 
 function buildInstallmentSummaryRows({ dataStartRow = 2 } = {}) {
-    const headerCount = dataStartRow > 2 ? 0 : 1;
+    const headerCount = 0;
     return [[
         `=QUERY('Lançamentos Cartão'!A${dataStartRow}:J;"select B, H, C, count(D), sum(D), min(A), max(A) where B is not null group by B, H, C label B 'Descrição', H 'Cartão', C 'Categoria', count(D) 'Parcelas Lançadas', sum(D) 'Total Previsto', min(A) 'Primeira Parcela', max(A) 'Última Parcela'";${headerCount})`,
         '',
