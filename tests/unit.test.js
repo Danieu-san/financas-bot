@@ -1843,8 +1843,9 @@ test('userSheetAnalytics member breakdown explains family dashboard totals', () 
     ]);
 });
 
-test('userSheetAnalytics monthly budget summary combines free debit and card spending', () => {
+test('userSheetAnalytics monthly budget summary combines free debit and card installments due in the cycle', () => {
     const { buildDailyGoalSummary } = userSheetAnalyticsService.__test__;
+    const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
     const today = new Intl.DateTimeFormat('pt-BR', {
         timeZone: 'America/Sao_Paulo',
         day: '2-digit',
@@ -1866,11 +1867,19 @@ test('userSheetAnalytics monthly budget summary combines free debit and card spe
     const daysRemaining = Math.max(1, new Date(year, month + 1, 0).getDate() - day + 1);
     const monthlyAmount = 100 * daysRemaining;
     const cycle = budgetCycle.getBudgetCycleForPeriod({ month, year }, 1, { year, month, day });
+    const billingLabel = (offset) => {
+        const billingDate = new Date(year, month + offset, 1);
+        return `${monthNames[billingDate.getMonth()]} de ${billingDate.getFullYear()}`;
+    };
 
     const summary = buildDailyGoalSummary({
         settings: { monthly_budget_enabled: 'SIM', monthly_budget_amount: String(monthlyAmount), monthly_budget_scope: 'personal' },
         userIds: ['user-1'],
         period: { month, year },
+        cardConfigRows: [
+            ['card_id', 'Nome', 'Banco', 'Dia de Fechamento', 'Dia de Vencimento', 'Ativo', 'Observações'],
+            ['nubank', 'Nubank', 'Nubank', '8', String(day), 'SIM', '']
+        ],
         saidasRows: [
             ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id'],
             [today, 'Mercado', 'Alimentação', 'SUPERMERCADO', 35, '', 'PIX', 'Não', '', 'user-1'],
@@ -1881,7 +1890,9 @@ test('userSheetAnalytics monthly budget summary combines free debit and card spe
         ],
         cartaoRows: [
             ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Observações', 'user_id'],
-            [today, 'Farmácia', 'Saúde', 20, '1/1', 'Maio de 2026', 'nubank', 'Nubank', '', 'user-1']
+            [today, 'Compra parcelada', 'Casa', 20, '1/3', billingLabel(0), 'nubank', 'Nubank', '', 'user-1'],
+            [today, 'Compra parcelada', 'Casa', 20, '2/3', billingLabel(1), 'nubank', 'Nubank', '', 'user-1'],
+            [today, 'Compra parcelada', 'Casa', 20, '3/3', billingLabel(2), 'nubank', 'Nubank', '', 'user-1']
         ]
     });
 

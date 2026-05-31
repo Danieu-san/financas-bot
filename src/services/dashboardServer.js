@@ -596,9 +596,9 @@ function dashboardHtml() {
         '<div class="daily-goal-copy">' +
           '<div class="daily-goal-status ' + statusClass + '">' + esc(statusText) + '</div>' +
           '<div class="muted">' + esc(scopeText) + '</div>' +
-          '<div>Orçamento do ciclo: <strong>' + brl(goal.monthSpent) + '</strong> de <strong>' + brl(goal.monthlyAmount) + '</strong>.</div>' +
+          '<div>Gasto livre no ciclo: <strong>' + brl(goal.monthSpent) + '</strong> de <strong>' + brl(goal.monthlyAmount) + '</strong>.</div>' +
           '<div class="muted">Restante no ciclo: ' + brl(monthRemaining) + '.</div>' +
-          (goal.amount ? '<div>Hoje: <strong>' + brl(goal.spent) + '</strong> de <strong>' + brl(goal.amount) + '</strong> recomendados.</div>' : '') +
+          (goal.amount ? '<div>Hoje' + (goal.date ? ' (' + esc(goal.date) + ')' : '') + ': <strong>' + brl(goal.spent) + '</strong> de <strong>' + brl(goal.amount) + '</strong> recomendados.</div>' : '') +
           (goal.amount ? '<div class="muted">' + (goal.exceeded ? 'Acima do ritmo: ' + brl(Number(goal.spent || 0) - Number(goal.amount || 0)) : 'Disponível hoje: ' + brl(remaining)) + '</div>' : '') +
           '<div class="muted">' + esc(goal.period?.label || '') + (goal.daysRemaining ? ' · ' + esc(goal.daysRemaining) + ' dia(s) restantes' : '') + '</div>' +
         '</div>';

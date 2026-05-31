@@ -117,6 +117,7 @@ Arquivos nao rastreados antigos podem existir. Nao remover sem pedido explicito:
 - Ha abas especificas para `Lançamentos Cartão`, `Faturas` e `Parcelamentos`.
 - Mudancas em colunas podem quebrar formulas e perguntas analiticas.
 - Verificar `tests/userSpreadsheetService.test.js` e perguntas do read model antes de alterar estrutura.
+- Regra atual do orçamento mensal livre: lançamentos de cartão entram pelo vencimento/competência da parcela, consultando `Mês de Cobrança` em `Lançamentos Cartão` e `Dia de Vencimento` em `Cartões`. Nao voltar a usar a data da compra para o orçamento, pois isso faz parcelamentos pesarem integralmente no ciclo da compra.
 - Armadilha corrigida em 2026-05-31: se a formula `QUERY` de `Faturas`/`Parcelamentos` consultar `Lançamentos Cartão!A2:J`, o parametro de cabecalho precisa ser `0`; usar `1` faz a primeira compra real virar cabecalho e sumir dos totais.
 - Armadilha corrigida em 2026-05-31: valores de cartao escritos como texto com virgula fazem `SUM` retornar `0`. Novos fluxos gravam numero; planilhas antigas podem precisar de normalizacao da coluna `Valor Parcela`.
 - Armadilha corrigida em 2026-05-31: frases como `à vista no cartão nubank thais` podem ser classificadas pela IA como `Débito`. O roteamento agora usa o nome do cartao cadastrado como sinal mais forte de credito, exceto quando o usuario disser explicitamente `debito`.

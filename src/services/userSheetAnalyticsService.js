@@ -33,6 +33,60 @@ function periodMatchesBillingMonth(value, month, year) {
     return String(value || '').trim() === `${MONTH_NAMES[month]} de ${year}`;
 }
 
+function parseBillingMonth(value) {
+    const text = normalizeText(String(value || '').trim());
+    const match = text.match(/^(.+?)\s+de\s+(\d{4})$/);
+    if (!match) return null;
+    const month = MONTH_NAMES.findIndex(name => normalizeText(name) === match[1]);
+    const year = Number.parseInt(match[2], 10);
+    if (month < 0 || !Number.isInteger(year)) return null;
+    return { month, year };
+}
+
+function parseDayOfMonth(value) {
+    const parsed = Number.parseInt(String(value || '').trim(), 10);
+    if (!Number.isInteger(parsed) || parsed < 1 || parsed > 31) return null;
+    return parsed;
+}
+
+function daysInMonth(year, month) {
+    return new Date(year, month + 1, 0).getDate();
+}
+
+function normalizeCardKey(value) {
+    return normalizeText(String(value || '').trim()).replace(/\s+/g, ' ');
+}
+
+function buildCardDueDayMap(cardConfigRows = []) {
+    const map = new Map();
+    (Array.isArray(cardConfigRows) ? cardConfigRows.slice(1) : []).forEach((row) => {
+        const active = normalizeText(row?.[5] || 'sim');
+        if (['nao', 'não', 'n', 'false', 'inativo'].includes(active)) return;
+        const dueDay = parseDayOfMonth(row?.[4]);
+        if (!dueDay) return;
+        [row?.[0], row?.[1]].forEach((key) => {
+            const normalized = normalizeCardKey(key);
+            if (normalized) map.set(normalized, dueDay);
+        });
+    });
+    return map;
+}
+
+function getCardDueDay(row, dueDayMap) {
+    const keys = [row?.[6], row?.[7]].map(normalizeCardKey).filter(Boolean);
+    for (const key of keys) {
+        if (dueDayMap.has(key)) return dueDayMap.get(key);
+    }
+    return 1;
+}
+
+function getCardBudgetImpactDate(row, dueDayMap = new Map()) {
+    const billing = parseBillingMonth(row?.[5]);
+    if (!billing) return parseSheetDate(row?.[0]);
+    const dueDay = Math.min(getCardDueDay(row, dueDayMap), daysInMonth(billing.year, billing.month));
+    return new Date(billing.year, billing.month, dueDay, 12, 0, 0, 0);
+}
+
 function rowBelongsToUser(row, index, userId) {
     return String(row?.[index] || '').trim() === String(userId || '').trim();
 }
@@ -260,7 +314,7 @@ function buildMemberBreakdown({ entradasRows, saidasRows, cartaoRows, userIds, u
         .map(roundBreakdownItem);
 }
 
-function buildDailyGoalSummary({ settings, saidasRows, cartaoRows, userIds, period }) {
+function buildDailyGoalSummary({ settings, saidasRows, cartaoRows, cardConfigRows = [], userIds, period }) {
     if (normalizeText(settings?.monthly_budget_enabled || '') !== 'sim') return null;
     const monthlyAmount = parseValue(settings?.monthly_budget_amount);
     if (!monthlyAmount || monthlyAmount <= 0) return null;
@@ -273,24 +327,25 @@ function buildDailyGoalSummary({ settings, saidasRows, cartaoRows, userIds, peri
 
     const today = getTodaySaoPauloDateString();
     const todayMatches = (value) => {
-        const parsed = parseSheetDate(value);
+        const parsed = value instanceof Date ? value : parseSheetDate(value);
         return parsed ? `${String(parsed.getDate()).padStart(2, '0')}/${String(parsed.getMonth() + 1).padStart(2, '0')}/${parsed.getFullYear()}` === today : String(value || '').trim() === today;
     };
     const saidasEligible = saidasRows.slice(1)
         .filter(row => rowBelongsToAnyUser(row, 9, userIds) && isFreeSpendingRow(row));
     const cartoesEligible = cartaoRows.slice(1)
         .filter(row => rowBelongsToAnyUser(row, 9, userIds));
+    const cardDueDayMap = buildCardDueDayMap(cardConfigRows);
     const saidasToday = isCurrentCycle
         ? saidasEligible.filter(row => todayMatches(row[0])).reduce((sum, row) => sum + parseValue(row[4]), 0)
         : 0;
     const cartoesToday = isCurrentCycle
-        ? cartoesEligible.filter(row => todayMatches(row[0])).reduce((sum, row) => sum + parseValue(row[3]), 0)
+        ? cartoesEligible.filter(row => todayMatches(getCardBudgetImpactDate(row, cardDueDayMap))).reduce((sum, row) => sum + parseValue(row[3]), 0)
         : 0;
     const saidasMonth = saidasEligible
         .filter(row => cycleMatchesDate(row[0], cycle))
         .reduce((sum, row) => sum + parseValue(row[4]), 0);
     const cartoesMonth = cartoesEligible
-        .filter(row => cycleMatchesDate(row[0], cycle))
+        .filter(row => dateIsWithinCycle(getCardBudgetImpactDate(row, cardDueDayMap), cycle))
         .reduce((sum, row) => sum + parseValue(row[3]), 0);
     const spent = roundMoney(saidasToday + cartoesToday);
     const monthSpent = roundMoney(saidasMonth + cartoesMonth);
@@ -354,10 +409,11 @@ async function getUserSheetDashboardData(userId, { month, year } = {}) {
         const financialScopeUserIds = getFinancialScopeUserIds(safeUserId);
         const period = normalizePeriod({ month, year });
         const dailyGoalConfig = await getDailyGoalDashboardSettings(safeUserId);
-        const [saidasRows, entradasRows, cartaoRows, transferRows, metasRows, dividasRows] = await Promise.all([
+        const [saidasRows, entradasRows, cartaoRows, cardConfigRows, transferRows, metasRows, dividasRows] = await Promise.all([
             readDataFromSheet('Saídas!A:J'),
             readDataFromSheet('Entradas!A:I'),
             readDataFromSheet('Lançamentos Cartão!A:J'),
+            readDataFromSheet('Cartões!A:G'),
             readDataFromSheet('Transferências!A:I'),
             readDataFromSheet('Metas!A:I'),
             readDataFromSheet('Dívidas!A:R')
@@ -419,6 +475,7 @@ async function getUserSheetDashboardData(userId, { month, year } = {}) {
                 settings: dailyGoalConfig.settings,
                 saidasRows,
                 cartaoRows,
+                cardConfigRows,
                 userIds: dailyGoalConfig.settings?.monthly_budget_scope === 'family' ? financialScopeUserIds : [safeUserId],
                 period
             }),
@@ -436,6 +493,7 @@ module.exports = {
     __test__: {
         normalizePeriod,
         periodMatchesBillingMonth,
+        parseBillingMonth,
         buildTopCategories,
         rowBelongsToAnyUser,
         buildReserveSummary,
@@ -443,6 +501,8 @@ module.exports = {
         isReserveApplication,
         isReserveRedemption,
         isFreeSpendingRow,
+        buildCardDueDayMap,
+        getCardBudgetImpactDate,
         buildDailyGoalSummary
     }
 };
