@@ -11,7 +11,7 @@ Atualizado em: 2026-05-31
 
 ## Estado de producao conhecido
 
-- Ultimo deploy validado: commit `376c2c8` (`fix: infer credit card from explicit card name`).
+- Ultimo deploy validado: commit local/GitHub `8f7c27a` (`fix: count card installments by budget cycle due date`). Em producao, o mesmo patch foi aplicado por `git am` como `8ec1aae`.
 - Health check em producao respondeu `{"ok":true,"sqlite":true}` e PM2 confirmou `Bot pronto para receber mensagens`.
 - Dashboard passou a mostrar `Saldo` economico e `Disponivel estimado` apos caixinha/reserva.
 - O bot estava online no PM2 e WhatsApp chegou em `Bot pronto para receber mensagens` apos o deploy.
