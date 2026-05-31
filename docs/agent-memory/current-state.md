@@ -61,6 +61,7 @@ Sempre revalidar EC2/PM2/logs antes de afirmar que producao esta saudavel.
 - Correcao em 2026-05-31: quando o usuario cita um cartao cadastrado pelo nome (ex.: `cartao nubank thais`) sem dizer `debito`, o bot trata como cartao de credito mesmo se a IA classificar equivocadamente como `Débito`; `à vista` vira parcela `1/1`. Se o usuario disser explicitamente `debito`, o fluxo de debito e preservado.
 - Dado real corrigido em 2026-05-31: `restaurante malz` de R$125,25 foi movido de `Saídas/Débito` para `Lançamentos Cartão/Cartão Nubank - Thais`, apos backup `Backup FinancasBot Daniel antes mover restaurante malz 2026-05-31 1249`.
 - Correcao local em 2026-05-31: lancamentos manuais como `guardei ... na caixinha` agora entram em `Transferências` como reserva/investimento, nao em `Entradas`; transferencias manuais para membro do escopo familiar entram em `Transferências`, nao em `Saídas`; valores manuais usam `parseValue` para preservar centavos com virgula. Cobertura adicionada em `tests/financialStateMachine.test.js`; `npm test` passou com 214 testes.
+- Correcao local em 2026-05-31: formulas da aba `Dashboard` da planilha pessoal passaram a somar linhas com `user_id` preenchido, em vez de depender de uma linha inicial fixa. Isso evita zerar totais quando o usuario apaga a linha de exemplo. `Faturas` e `Parcelamentos` tambem passam a consultar `Lançamentos Cartão!A2:J` filtrando `J is not null`, para ignorar exemplos sem perder a primeira linha real.
 
 ## Mudanca recente sobre caixinha/reserva
 

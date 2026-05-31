@@ -195,17 +195,17 @@ function buildDashboardRows({ user = {}, dataStartRow = 2 } = {}) {
         ['Atualiza conforme seus lançamentos entram pelas abas e pelo WhatsApp.', '', '', '', ''],
         ['', '', '', '', ''],
         ['Indicador', 'Valor', 'Observação', 'user_id', 'updated_at'],
-        ['Entradas', `=SUM('Entradas'!D${dataStartRow}:D)`, 'Recebimentos registrados', user.user_id || '', '=NOW()'],
-        ['Saídas', `=SUM('Saídas'!E${dataStartRow}:E)`, 'Gastos pagos fora do cartão', user.user_id || '', '=NOW()'],
-        ['Cartões', `=SUM('Lançamentos Cartão'!D${dataStartRow}:D)`, 'Parcelas/faturas lançadas nos seus cartões', user.user_id || '', '=NOW()'],
+        ['Entradas', '=SUMIF(\'Entradas\'!I2:I;"<>";\'Entradas\'!D2:D)', 'Recebimentos registrados', user.user_id || '', '=NOW()'],
+        ['Saídas', '=SUMIF(\'Saídas\'!J2:J;"<>";\'Saídas\'!E2:E)', 'Gastos pagos fora do cartão', user.user_id || '', '=NOW()'],
+        ['Cartões', '=SUMIF(\'Lançamentos Cartão\'!J2:J;"<>";\'Lançamentos Cartão\'!D2:D)', 'Parcelas/faturas lançadas nos seus cartões', user.user_id || '', '=NOW()'],
         ['Saldo estimado', '=B5-B6-B7', 'Entradas menos saídas e cartões', user.user_id || '', '=NOW()'],
         ['', '', '', '', ''],
         ['Resumo para gráfico', 'Valor', '', '', ''],
         ['Entradas', '=B5', '', '', ''],
         ['Saídas', '=B6', '', '', ''],
         ['Cartões', '=B7', '', '', ''],
-        ['Dívidas', `=SUM('Dívidas'!E${dataStartRow}:E)`, '', '', ''],
-        ['Transferências internas', `=SUM('Transferências'!C${dataStartRow}:C)`, 'Movimentos entre suas próprias contas; não entram no saldo estimado.', user.user_id || '', '=NOW()'],
+        ['Dívidas', '=SUMIF(\'Dívidas\'!R2:R;"<>";\'Dívidas\'!E2:E)', '', '', ''],
+        ['Transferências internas', '=SUMIF(\'Transferências\'!I2:I;"<>";\'Transferências\'!C2:C)', 'Movimentos entre suas próprias contas; não entram no saldo estimado.', user.user_id || '', '=NOW()'],
         ['Total em faturas', "=SUM('Faturas'!C2:C)", 'Aba Faturas mostra totais por cartão e mês de cobrança.', user.user_id || '', '=NOW()'],
         ['Total em parcelamentos', "=SUM('Parcelamentos'!E2:E)", 'Aba Parcelamentos mostra compras agrupadas, parcelas lançadas e total previsto.', user.user_id || '', '=NOW()'],
         ['', '', '', '', ''],
@@ -243,9 +243,8 @@ function buildManualRows({ user = {} } = {}) {
 }
 
 function buildInvoiceSummaryRows({ dataStartRow = 2 } = {}) {
-    const headerCount = 0;
     return [[
-        `=QUERY('Lançamentos Cartão'!A${dataStartRow}:J;"select H, F, sum(D), count(D), min(A), max(A) where H is not null group by H, F label H 'Cartão', F 'Mês de Cobrança', sum(D) 'Total da Fatura', count(D) 'Parcelas Lançadas', min(A) 'Primeira Compra', max(A) 'Última Compra'";${headerCount})`,
+        '=QUERY(\'Lançamentos Cartão\'!A2:J;"select H, F, sum(D), count(D), min(A), max(A) where J is not null and H is not null group by H, F label H \'Cartão\', F \'Mês de Cobrança\', sum(D) \'Total da Fatura\', count(D) \'Parcelas Lançadas\', min(A) \'Primeira Compra\', max(A) \'Última Compra\'";0)',
         '',
         '',
         '',
@@ -255,9 +254,8 @@ function buildInvoiceSummaryRows({ dataStartRow = 2 } = {}) {
 }
 
 function buildInstallmentSummaryRows({ dataStartRow = 2 } = {}) {
-    const headerCount = 0;
     return [[
-        `=QUERY('Lançamentos Cartão'!A${dataStartRow}:J;"select B, H, C, count(D), sum(D), min(A), max(A) where B is not null group by B, H, C label B 'Descrição', H 'Cartão', C 'Categoria', count(D) 'Parcelas Lançadas', sum(D) 'Total Previsto', min(A) 'Primeira Parcela', max(A) 'Última Parcela'";${headerCount})`,
+        '=QUERY(\'Lançamentos Cartão\'!A2:J;"select B, H, C, count(D), sum(D), min(A), max(A) where J is not null and B is not null group by B, H, C label B \'Descrição\', H \'Cartão\', C \'Categoria\', count(D) \'Parcelas Lançadas\', sum(D) \'Total Previsto\', min(A) \'Primeira Parcela\', max(A) \'Última Parcela\'";0)',
         '',
         '',
         '',

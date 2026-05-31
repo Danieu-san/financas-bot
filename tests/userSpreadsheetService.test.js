@@ -109,8 +109,9 @@ test('createUserSpreadsheetForUser creates spreadsheet and writes headers to eve
     assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Cartões'!A2:G2"));
     const dashboard = starterContent.payload.resource.data.find(item => item.range === "'Dashboard'!A1:E19");
     const faturas = starterContent.payload.resource.data.find(item => item.range === "'Faturas'!A1:F1");
-    assert.ok(JSON.stringify(dashboard.values).includes("'Saídas'!E3:E"));
-    assert.ok(faturas.values[0][0].includes("'Lançamentos Cartão'!A3:J"));
+    assert.ok(JSON.stringify(dashboard.values).includes("SUMIF('Saídas'!J2:J"));
+    assert.ok(faturas.values[0][0].includes("'Lançamentos Cartão'!A2:J"));
+    assert.ok(faturas.values[0][0].includes('where J is not null'));
     assert.ok(faturas.values[0][0].includes(';0)'));
     const formatCall = calls.find(call => call.type === 'batchUpdate');
     assert.ok(formatCall, 'Should apply visual formatting');
@@ -246,11 +247,13 @@ test('new user spreadsheets include non-counted example rows for user-filled tab
     const faturas = ranges.find(item => item.range === "'Faturas'!A1:F1");
     const parcelamentos = ranges.find(item => item.range === "'Parcelamentos'!A1:G1");
 
-    assert.ok(JSON.stringify(dashboard.values).includes("'Entradas'!D3:D"));
-    assert.ok(JSON.stringify(dashboard.values).includes("'Saídas'!E3:E"));
-    assert.ok(JSON.stringify(dashboard.values).includes("'Lançamentos Cartão'!D3:D"));
-    assert.ok(faturas.values[0][0].includes("'Lançamentos Cartão'!A3:J"));
-    assert.ok(parcelamentos.values[0][0].includes("'Lançamentos Cartão'!A3:J"));
+    assert.ok(JSON.stringify(dashboard.values).includes("SUMIF('Entradas'!I2:I"));
+    assert.ok(JSON.stringify(dashboard.values).includes("SUMIF('Saídas'!J2:J"));
+    assert.ok(JSON.stringify(dashboard.values).includes("SUMIF('Lançamentos Cartão'!J2:J"));
+    assert.ok(faturas.values[0][0].includes("'Lançamentos Cartão'!A2:J"));
+    assert.ok(parcelamentos.values[0][0].includes("'Lançamentos Cartão'!A2:J"));
+    assert.ok(faturas.values[0][0].includes('where J is not null'));
+    assert.ok(parcelamentos.values[0][0].includes('where J is not null'));
     assert.ok(faturas.values[0][0].endsWith(';0)'));
     assert.ok(parcelamentos.values[0][0].endsWith(';0)'));
 });
@@ -258,7 +261,7 @@ test('new user spreadsheets include non-counted example rows for user-filled tab
 test('user spreadsheet dashboard keeps title row and uses correct formulas', () => {
     const rows = __test__.buildDashboardRows({ user: { user_id: 'user-1', display_name: 'Pessoa Teste' } });
     assert.match(rows[0][0], /Painel de Pessoa Teste/);
-    assert.strictEqual(rows[4][1], "=SUM('Entradas'!D2:D)");
+    assert.strictEqual(rows[4][1], '=SUMIF(\'Entradas\'!I2:I;"<>";\'Entradas\'!D2:D)');
     assert.ok(rows.some(row => row[0] === 'Total em faturas' && String(row[1]).includes("SUM('Faturas'!C2:C)")));
     assert.ok(rows.some(row => row[0] === 'Total em parcelamentos' && String(row[1]).includes("SUM('Parcelamentos'!E2:E)")));
 
