@@ -36,6 +36,44 @@ const USER_HEADERS = [
     'deleted_at'
 ];
 
+const SETTINGS_HEADERS = [
+    'user_id',
+    'timezone',
+    'weekly_checkin_opt_in',
+    'monthly_report_opt_in',
+    'language',
+    'created_at',
+    'defaults_enabled',
+    'default_reserve_percent',
+    'daily_goal_enabled',
+    'daily_goal_amount',
+    'daily_goal_last_alert_date',
+    'daily_goal_last_alert_level',
+    'daily_goal_scope',
+    'monthly_budget_enabled',
+    'monthly_budget_amount',
+    'monthly_budget_last_alert_date',
+    'monthly_budget_last_alert_level',
+    'monthly_budget_scope',
+    'monthly_budget_cycle_start_day'
+];
+
+function columnNameFromNumber(columnNumber) {
+    let number = Number(columnNumber);
+    let name = '';
+    while (number > 0) {
+        const remainder = (number - 1) % 26;
+        name = String.fromCharCode(65 + remainder) + name;
+        number = Math.floor((number - 1) / 26);
+    }
+    return name;
+}
+
+function settingsRange(rowIndex = '') {
+    const lastColumn = columnNameFromNumber(SETTINGS_HEADERS.length);
+    return rowIndex ? `${SETTINGS_SHEET}!A${rowIndex}:${lastColumn}${rowIndex}` : `${SETTINGS_SHEET}!A:${lastColumn}`;
+}
+
 let usersCache = [];
 let usersCacheLoaded = false;
 let usersCacheLoadedAt = 0;
@@ -196,7 +234,27 @@ async function createDefaultUserRows(user) {
     const timestamp = nowIso();
     await appendRowToSheet(PROFILE_SHEET, [userId, '', '', '', '', '', '']);
     profilesCacheLoaded = false;
-    await appendRowToSheet(SETTINGS_SHEET, [userId, 'America/Sao_Paulo', 'NÃO', 'SIM', 'pt-BR', timestamp, 'NÃO', '10']);
+    await appendRowToSheet(SETTINGS_SHEET, buildSettingsRow({
+        user_id: userId,
+        timezone: 'America/Sao_Paulo',
+        weekly_checkin_opt_in: 'NÃO',
+        monthly_report_opt_in: 'SIM',
+        language: 'pt-BR',
+        created_at: timestamp,
+        defaults_enabled: 'NÃO',
+        default_reserve_percent: '10',
+        daily_goal_enabled: 'NÃO',
+        daily_goal_amount: '',
+        daily_goal_last_alert_date: '',
+        daily_goal_last_alert_level: '',
+        daily_goal_scope: 'personal',
+        monthly_budget_enabled: 'NÃO',
+        monthly_budget_amount: '',
+        monthly_budget_last_alert_date: '',
+        monthly_budget_last_alert_level: '',
+        monthly_budget_scope: 'personal',
+        monthly_budget_cycle_start_day: '1'
+    }));
     settingsCacheLoaded = false;
 }
 
@@ -446,12 +504,36 @@ function mapSettingsRow(row, rowIndex) {
     };
 }
 
+function buildSettingsRow(settings) {
+    return [
+        settings.user_id,
+        settings.timezone,
+        settings.weekly_checkin_opt_in,
+        settings.monthly_report_opt_in,
+        settings.language,
+        settings.created_at,
+        settings.defaults_enabled,
+        settings.default_reserve_percent,
+        settings.daily_goal_enabled,
+        settings.daily_goal_amount,
+        settings.daily_goal_last_alert_date,
+        settings.daily_goal_last_alert_level,
+        settings.daily_goal_scope,
+        settings.monthly_budget_enabled,
+        settings.monthly_budget_amount,
+        settings.monthly_budget_last_alert_date,
+        settings.monthly_budget_last_alert_level,
+        settings.monthly_budget_scope,
+        settings.monthly_budget_cycle_start_day
+    ];
+}
+
 async function getUserSettingsByUserId(userId) {
     if (isCacheFresh(settingsCacheLoaded, settingsCacheLoadedAt)) {
         return settingsCache.find(s => s.user_id === userId) || null;
     }
 
-    const rows = await readCriticalSheet(`${SETTINGS_SHEET}!A:S`);
+    const rows = await readCriticalSheet(settingsRange());
     if (!rows || rows.length <= 1) {
         settingsCache = [];
         settingsCacheLoaded = true;
@@ -494,30 +576,10 @@ async function upsertUserSettings(userId, patch) {
         user_id: userId
     };
 
-    const rowData = [
-        updated.user_id,
-        updated.timezone,
-        updated.weekly_checkin_opt_in,
-        updated.monthly_report_opt_in,
-        updated.language,
-        updated.created_at,
-        updated.defaults_enabled,
-        updated.default_reserve_percent,
-        updated.daily_goal_enabled,
-        updated.daily_goal_amount,
-        updated.daily_goal_last_alert_date,
-        updated.daily_goal_last_alert_level,
-        updated.daily_goal_scope,
-        updated.monthly_budget_enabled,
-        updated.monthly_budget_amount,
-        updated.monthly_budget_last_alert_date,
-        updated.monthly_budget_last_alert_level,
-        updated.monthly_budget_scope,
-        updated.monthly_budget_cycle_start_day
-    ];
+    const rowData = buildSettingsRow(updated);
 
     if (existing) {
-        await updateRowInSheet(`${SETTINGS_SHEET}!A${existing.rowIndex}:S${existing.rowIndex}`, rowData);
+        await updateRowInSheet(settingsRange(existing.rowIndex), rowData);
     } else {
         await appendRowToSheet(SETTINGS_SHEET, rowData);
     }
@@ -892,5 +954,11 @@ module.exports = {
     getConsentLogsByUserId,
     getAllUsers,
     invalidateUserCaches,
-    expireOldPendingUsers
+    expireOldPendingUsers,
+    __test__: {
+        SETTINGS_HEADERS,
+        columnNameFromNumber,
+        settingsRange,
+        buildSettingsRow
+    }
 };

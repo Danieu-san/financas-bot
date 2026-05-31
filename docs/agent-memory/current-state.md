@@ -122,6 +122,21 @@ Teste de regressao:
 
 - `userSheetAnalytics recent transactions format serial dates, label types and group installments`.
 
+## UserSettings e orçamento mensal
+
+Status: corrigido localmente em 2026-05-31; validar deploy/PM2 antes de assumir producao.
+
+Causa raiz do erro `UserSettings!A2:M2 ... tried writing to column [N]`:
+
+- `UserSettings` foi expandida para 19 colunas (`A:S`) com orçamento mensal, escopo familiar e dia inicial do ciclo.
+- Um processo/codigo antigo ainda tentou atualizar somente `A:M`, mas enviou dados além da coluna M.
+
+Mitigacao:
+
+- `userService` agora deriva o range de leitura/escrita a partir de `SETTINGS_HEADERS`.
+- Novas linhas default de `UserSettings` ja sao criadas com o schema completo.
+- Teste de regressao: `userService UserSettings range follows the full settings schema`.
+
 ## Perguntas financeiras adversariais
 
 Status: perguntas deterministicas implantadas em producao no commit `1efb5d3`; gate de seguranca contra extracao interna/prompt injection implantado em producao no commit `6dfca42`, coberto por testes unitarios.

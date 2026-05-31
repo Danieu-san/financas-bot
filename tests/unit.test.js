@@ -205,6 +205,37 @@ test('userService.USER_STATUS', (t) => {
     assert.strictEqual(userService.USER_STATUS.APPROVED_AWAITING_GOOGLE, 'APPROVED_AWAITING_GOOGLE');
 });
 
+test('userService UserSettings range follows the full settings schema', () => {
+    const { SETTINGS_HEADERS, settingsRange, buildSettingsRow } = userService.__test__;
+    const settings = {
+        user_id: 'settings-user',
+        timezone: 'America/Sao_Paulo',
+        weekly_checkin_opt_in: 'NÃO',
+        monthly_report_opt_in: 'SIM',
+        language: 'pt-BR',
+        created_at: '2026-05-31T00:00:00.000Z',
+        defaults_enabled: 'NÃO',
+        default_reserve_percent: '10',
+        daily_goal_enabled: 'NÃO',
+        daily_goal_amount: '',
+        daily_goal_last_alert_date: '',
+        daily_goal_last_alert_level: '',
+        daily_goal_scope: 'personal',
+        monthly_budget_enabled: 'SIM',
+        monthly_budget_amount: '3000',
+        monthly_budget_last_alert_date: '',
+        monthly_budget_last_alert_level: '',
+        monthly_budget_scope: 'family',
+        monthly_budget_cycle_start_day: '5'
+    };
+    const row = buildSettingsRow(settings);
+
+    assert.strictEqual(SETTINGS_HEADERS.length, 19);
+    assert.strictEqual(row.length, SETTINGS_HEADERS.length);
+    assert.strictEqual(settingsRange(2), 'UserSettings!A2:S2');
+    assert.strictEqual(settingsRange(), 'UserSettings!A:S');
+});
+
 test('adminCheck.isAdminWithContext', (t) => {
     assert.strictEqual(
         adminCheck.isAdminWithContext('151058345148646@lid', { display_name: 'Daniel' }),
