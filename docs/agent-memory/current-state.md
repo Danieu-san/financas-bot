@@ -124,7 +124,14 @@ Teste de regressao:
 
 ## UserSettings e orçamento mensal
 
-Status: corrigido localmente em 2026-05-31; validar deploy/PM2 antes de assumir producao.
+Status: implementado e validado em producao em 2026-05-31.
+
+Deploy:
+
+- GitHub/local: `88caf5c`.
+- EC2 via `git am`: `f33ed71`.
+- Health confirmado: `/dashboard/health` retornou `{"ok":true,"sqlite":true}`.
+- WhatsApp confirmou `Bot pronto para receber mensagens`.
 
 Causa raiz do erro `UserSettings!A2:M2 ... tried writing to column [N]`:
 
