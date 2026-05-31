@@ -102,7 +102,14 @@ Atencao:
 
 ## Dashboard - lançamentos recentes
 
-Status: corrigido localmente em 2026-05-31; validar deploy/PM2 antes de assumir producao.
+Status: implementado e validado em producao em 2026-05-31.
+
+Deploy:
+
+- GitHub/local: `0c82a54`.
+- EC2 via `git am`: `83346c1`.
+- Health confirmado: `/dashboard/health` retornou `{"ok":true,"sqlite":true}`.
+- WhatsApp confirmou `Bot pronto para receber mensagens` apos restart automatico do PM2.
 
 Comportamento esperado:
 
