@@ -89,6 +89,14 @@ Validar:
 - Graficos renderizam.
 - Orcamento mensal livre mostra grafico diario e do ciclo, respeita o dia de inicio configurado (1 a 31), muda corretamente entre escopo pessoal/familiar e nao conta recorrentes, transferencias, dividas ou reserva como gasto livre.
 
+## Admin e manutencao
+
+Validar:
+
+- `admin status bot` ou `admin health` responde resumo operacional sem credenciais, IDs internos, variaveis de ambiente ou dados financeiros individuais.
+- `admin reiniciar bot` exige `confirmar admin` e so agenda reinicio do processo; nao deve aceitar comando livre de terminal.
+- Apos deploy de manutencao, conferir PM2, `/dashboard/health` e logs ate `Bot pronto para receber mensagens`.
+
 ## Scheduler e Calendar
 
 Validar:

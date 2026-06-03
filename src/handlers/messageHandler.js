@@ -42,7 +42,7 @@ const {
 const { handleOnboarding, POST_ONBOARDING_DEBT_OFFER_ACTION } = require('./onboardingHandler');
 const { buildHealthSummary } = require('../services/financialHealthService');
 const { buildDebtAvalanchePlan } = require('../services/debtAvalancheService');
-const { syncReadModelIfNeeded, executeAnalyticalIntent, markReadModelDirty } = require('../services/readModelService');
+const { syncReadModelIfNeeded, executeAnalyticalIntent, markReadModelDirty, getReadModelStats } = require('../services/readModelService');
 const {
     annotateImportDuplicates,
     applyAccountClassificationRules,
@@ -84,6 +84,12 @@ const { sendPlainMessage } = require('../utils/whatsappMessaging');
 const { recordQaFailure } = require('../services/qaFailureLogService');
 const { recordAdminAction } = require('../services/adminActionLogService');
 const { recordDashboardAccessEvent } = require('../services/dashboardAccessLogService');
+const {
+    buildAdminBotStatusReply,
+    scheduleAdminProcessRestart,
+    setRestartSchedulerForTests: setAdminMaintenanceRestartSchedulerForTests,
+    resetRestartSchedulerForTests: resetAdminMaintenanceRestartSchedulerForTests
+} = require('../services/adminMaintenanceService');
 
 // Base de Conhecimento para Gastos
 const mapeamentoGastos = {
@@ -2530,6 +2536,7 @@ function summarizeAdminCommandForConfirmation(rawBody, body) {
         { pattern: /^admin\s+(negar|rejeitar|recusar)\s+(.+)$/, action: 'negar/bloquear usuário', targetIndex: 2, risk: 'bloqueia o acesso do usuário' },
         { pattern: /^admin\s+resetar onboarding\s+(.+)$/, action: 'resetar onboarding', targetIndex: 1, risk: 'reinicia a experiência de cadastro' },
         { pattern: /^admin\s+mensagem\s+(\S+)\s+([\s\S]+)$/i, action: 'enviar mensagem manual', targetIndex: 1, risk: 'envia comunicação direta ao usuário', raw: true },
+        { pattern: /^admin\s+reiniciar\s+(bot)$/, action: 'reiniciar o bot', targetIndex: 1, risk: 'interrompe o atendimento por alguns segundos e depende do PM2 para subir novamente' },
         { pattern: /^admin\s+(ativar|inativar|bloquear|deletar)\s+(.+)$/, action: 'alterar status de usuário', targetIndex: 2, risk: 'altera permissão de acesso' }
     ];
 
@@ -2680,6 +2687,8 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
         await msg.reply(
             'Comandos admin:\n' +
             '- admin listar usuarios\n' +
+            '- admin status bot\n' +
+            '- admin reiniciar bot\n' +
             '- admin status <telefone>\n' +
             '- admin log <telefone>\n' +
             '- admin aprovar <telefone>\n' +
@@ -2695,7 +2704,7 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
             '- admin resetar onboarding <telefone>\n' +
             '- admin mensagem <telefone> <texto>\n' +
             '- admin stats\n\n' +
-            'Comandos que aprovam, bloqueiam, convidam, enviam mensagem ou alteram compartilhamento exigem confirmação com: confirmar admin'
+            'Comandos que aprovam, bloqueiam, reiniciam, convidam, enviam mensagem ou alteram compartilhamento exigem confirmação com: confirmar admin'
         );
         return true;
     }
@@ -2751,6 +2760,41 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
             .map(([status, total]) => `${status}: ${total}`)
             .join(' | ');
         await msg.reply(`Stats usuários\nTotal: ${users.length}\n${statusSummary || 'sem dados'}`);
+        return true;
+    }
+
+    if (body === 'admin status bot' || body === 'admin health' || body === 'admin saude bot') {
+        let stats = null;
+        try {
+            stats = getReadModelStats();
+        } catch (error) {
+            logger.warn(`[admin] status_bot_read_model_falhou context=${JSON.stringify({ ...adminContext, error: error.message })}`);
+        }
+        logger.info(`[admin] status_bot context=${JSON.stringify(adminContext)}`);
+        await auditAdminAction(adminContext, 'bot_status', {
+            target: 'bot',
+            result: 'success',
+            metadata: {
+                read_model_available: Boolean(stats),
+                sqlite_ready: stats?.sqlite?.ready !== false
+            }
+        });
+        await msg.reply(buildAdminBotStatusReply({ readModelStats: stats }));
+        return true;
+    }
+
+    if (body === 'admin reiniciar bot') {
+        logger.warn(`[admin] reiniciar_bot context=${JSON.stringify(adminContext)}`);
+        const scheduled = scheduleAdminProcessRestart({ reason: 'admin_whatsapp_command' });
+        await auditAdminAction(adminContext, 'restart_bot', {
+            target: 'bot',
+            result: 'scheduled',
+            metadata: { delay_ms: scheduled.delayMs }
+        });
+        await msg.reply(
+            'Reinício agendado. Vou encerrar o processo em alguns segundos e ele será reiniciado pelo PM2 automaticamente.\n' +
+            'Se o WhatsApp demorar a responder, aguarde a inicialização terminar.'
+        );
         return true;
     }
 
@@ -4943,6 +4987,8 @@ module.exports = {
         getAdminConfirmationKey,
         getPendingAdminConfirmation,
         clearPendingAdminConfirmation,
+        setAdminMaintenanceRestartSchedulerForTests,
+        resetAdminMaintenanceRestartSchedulerForTests,
         extractFullNameSettingsCommand,
         markFinancialReadModelDirty,
         saveImportedTransactions,

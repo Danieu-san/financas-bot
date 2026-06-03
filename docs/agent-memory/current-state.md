@@ -54,6 +54,7 @@ Correcao implantada em 2026-06-03:
 - Acesso ao dashboard grava auditoria local sanitizada em `data/dashboard-access.jsonl` por padrao, controlada por `DASHBOARD_ACCESS_LOG_ENABLED` e `DASHBOARD_ACCESS_LOG_PATH`. O log guarda hashes de token/usuarios, evento, escopo e caminho sem querystring; nao guarda token, URL completa, telefone ou dados financeiros.
 - Comandos admin sensiveis agora exigem segunda mensagem `confirmar admin` antes de executar. A confirmacao fica so em memoria, expira em 5 minutos e nao grava o comando pendente em `state_store.json`.
 - AdminActionLog local foi adicionado para acoes admin sensiveis: grava JSONL sanitizado em `data/admin-actions.jsonl` por padrao, com actor/target em hash e sem corpo de mensagem manual. Validar deploy antes de assumir ativo em producao.
+- Comandos de manutencao admin seguros foram adicionados em 2026-06-03: `admin status bot`/`admin health` retorna resumo operacional sanitizado sem segredos/dados financeiros individuais, e `admin reiniciar bot` exige `confirmar admin` antes de agendar `process.exit(0)` para o PM2 reiniciar o processo. Nao existe comando de shell livre pelo WhatsApp.
 - Leituras diretas do Google Sheets passam por cache curto em memoria (`GOOGLE_SHEETS_READ_CACHE_TTL_MS`, padrao 20s) com invalidacao apos escrita, para reduzir bursts de quota sem misturar dados entre planilhas.
 - Perguntas financeiras via read model/SQLite e fallback.
 - Cron jobs de resumo, agenda e vencimentos.

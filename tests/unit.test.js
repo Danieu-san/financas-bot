@@ -513,6 +513,86 @@ test('messageHandler admin confirmation without pending command is handled safel
     }
 });
 
+test('messageHandler admin bot status replies with sanitized operational summary', async () => {
+    const { handleAdminCommandBeforeAccess } = messageHandler.__test__;
+    const previousAdminIds = process.env.ADMIN_IDS;
+    const senderId = '151058345148646@lid';
+    const replies = [];
+
+    try {
+        process.env.ADMIN_IDS = '5521970112407@c.us';
+
+        const handled = await handleAdminCommandBeforeAccess(
+            {
+                body: 'admin status bot',
+                reply: async (text) => replies.push(text)
+            },
+            senderId,
+            { allowed: false, user: { display_name: 'Daniel', status: userService.USER_STATUS.PENDING_APPROVAL } }
+        );
+
+        assert.strictEqual(handled, true);
+        assert.match(replies[0], /Status do FinançasBot/i);
+        assert.match(replies[0], /Uptime/i);
+        assert.doesNotMatch(replies[0], /SPREADSHEET_ID|GEMINI|GOOGLE_REFRESH_TOKEN|CLIENT_SECRET|\.env|token=/i);
+    } finally {
+        process.env.ADMIN_IDS = previousAdminIds;
+    }
+});
+
+test('messageHandler admin restart requires confirmation and schedules safe PM2 restart', async () => {
+    const {
+        handleAdminCommandBeforeAccess,
+        clearPendingAdminConfirmation,
+        getPendingAdminConfirmation,
+        setAdminMaintenanceRestartSchedulerForTests,
+        resetAdminMaintenanceRestartSchedulerForTests
+    } = messageHandler.__test__;
+    const previousAdminIds = process.env.ADMIN_IDS;
+    const senderId = '151058345148646@lid';
+    const replies = [];
+    const restartRequests = [];
+
+    try {
+        process.env.ADMIN_IDS = '5521970112407@c.us';
+        clearPendingAdminConfirmation(senderId);
+        setAdminMaintenanceRestartSchedulerForTests((request) => restartRequests.push(request));
+
+        const handled = await handleAdminCommandBeforeAccess(
+            {
+                body: 'admin reiniciar bot',
+                reply: async (text) => replies.push(text)
+            },
+            senderId,
+            { allowed: false, user: { display_name: 'Daniel', status: userService.USER_STATUS.PENDING_APPROVAL } }
+        );
+
+        assert.strictEqual(handled, true);
+        assert.strictEqual(restartRequests.length, 0);
+        assert.match(replies[0], /Confirmação necessária/i);
+        assert.match(replies[0], /confirmar admin/i);
+        assert.strictEqual(getPendingAdminConfirmation(senderId).rawCommand, 'admin reiniciar bot');
+
+        const confirmed = await handleAdminCommandBeforeAccess(
+            {
+                body: 'confirmar admin',
+                reply: async (text) => replies.push(text)
+            },
+            senderId,
+            { allowed: false, user: { display_name: 'Daniel', status: userService.USER_STATUS.PENDING_APPROVAL } }
+        );
+
+        assert.strictEqual(confirmed, true);
+        assert.strictEqual(restartRequests.length, 1);
+        assert.strictEqual(restartRequests[0].reason, 'admin_whatsapp_command');
+        assert.match(replies[1], /reiniciado pelo PM2/i);
+    } finally {
+        resetAdminMaintenanceRestartSchedulerForTests();
+        clearPendingAdminConfirmation(senderId);
+        process.env.ADMIN_IDS = previousAdminIds;
+    }
+});
+
 test('qaFailureLogService records sanitized reviewable failures as jsonl', async () => {
     const previousPath = process.env.QA_FAILURE_LOG_PATH;
     const previousEnabled = process.env.QA_FAILURE_LOG_ENABLED;
