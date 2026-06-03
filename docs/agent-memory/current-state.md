@@ -11,7 +11,7 @@ Atualizado em: 2026-06-03
 
 ## Estado de producao conhecido
 
-- Ultimo deploy validado: commit local/GitHub `631b99f` (`fix: show card spending in dashboard month view`). Em producao, o mesmo patch foi aplicado por `git am` como `fdb5c33`.
+- Ultimo deploy validado: commit local/GitHub `1ba4932` (`feat: add trackable goal movements`). Em producao, o mesmo patch foi aplicado por `git am` como `b38f7e1`.
 - Health check em producao respondeu `{"ok":true,"sqlite":true}` e PM2 confirmou `Bot pronto para receber mensagens`.
 - Dashboard passou a mostrar `Saldo` economico e `Disponivel estimado` apos caixinha/reserva.
 - O bot estava online no PM2 e WhatsApp chegou em `Bot pronto para receber mensagens` apos o deploy.
@@ -72,6 +72,7 @@ Correcao implantada em 2026-06-03:
 - Metas passaram a funcionar como cofrinho rastreavel em 2026-06-03. Comandos suportados: `guardei 500 na meta reserva`, `retirei 200 da meta reserva`, `ajustar meta reserva para 1500`, `pausar meta reserva`, `retomar meta reserva`, `cancelar meta reserva` e `concluir meta reserva`. A aba nova `Movimentações Metas` audita valor antes/depois, responsavel e dono da meta.
 - Metas familiares usam a planilha principal do grupo e preservam `user_id` de quem movimentou. Na criacao de meta, se houver familia ativa, o bot pergunta se a meta e pessoal ou familiar. Perguntas e dashboard carregam status, escopo e ultima movimentacao; metas pausadas/canceladas nao entram como progresso ativo.
 - Validacao local do sistema de metas em 2026-06-03: `npm test` passou com 224 testes e `npm audit --audit-level=moderate` retornou 0 vulnerabilidades.
+- Deploy em producao do sistema de metas em 2026-06-03: GitHub/local `1ba4932`; EC2 aplicado via patch como `b38f7e1` porque o repo privado bloqueou `git pull` HTTPS no servidor. Validacao: `/dashboard/health` publico retornou `{"ok":true,"sqlite":true}`, PM2 `financas-bot` online, logs mostraram `WhatsApp pronto` e `Bot pronto para receber mensagens`.
 - Planilha do usuario teve correcoes em 2026-05-31: `Faturas` e `Parcelamentos` agora sao tratadas como abas da planilha pessoal, lancamentos de cartao passam a gravar valor numerico (nao texto) e as formulas `QUERY` dos resumos usam `headers=0` para nao ignorar a primeira compra real.
 - Planilha real do Daniel foi copiada antes da limpeza (`Backup FinancasBot Daniel antes limpeza 2026-05-31 0249`) e depois teve linhas financeiras anteriores a 29/05/2026 removidas de `Entradas`, `Saídas`, `Transferências` e `Lançamentos Cartão`. Configuracoes, contas, metas, dividas, manual, dashboard e formulas foram preservados.
 - Correcao em 2026-05-31: quando o usuario cita um cartao cadastrado pelo nome (ex.: `cartao nubank thais`) sem dizer `debito`, o bot trata como cartao de credito mesmo se a IA classificar equivocadamente como `Débito`; `à vista` vira parcela `1/1`. Se o usuario disser explicitamente `debito`, o fluxo de debito e preservado.
