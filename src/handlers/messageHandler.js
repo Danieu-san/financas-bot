@@ -63,6 +63,7 @@ const {
 } = require('../services/statementImportService');
 const { buildDashboardAccessLink } = require('../utils/dashboardAuth');
 const { buildGoogleConnectLink } = require('../services/googleOAuthService');
+const { sendWhatsAppMessage } = require('../services/whatsapp');
 const {
     getOAuthConnection,
     getFinancialScopeUserIds,
@@ -2536,6 +2537,16 @@ async function auditAdminAction(adminContext, action, {
     });
 }
 
+async function sendAdminDirectMessage(msg, to, text, options = {}) {
+    if (typeof options.directMessageSender === 'function') {
+        return options.directMessageSender(to, text);
+    }
+    if (msg?.client && typeof msg.client.sendMessage === 'function') {
+        return msg.client.sendMessage(to, text);
+    }
+    return sendWhatsAppMessage(to, text);
+}
+
 async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
     const rawBody = String(msg.body || '').trim();
     const body = normalizeText(rawBody);
@@ -2705,18 +2716,8 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
             await msg.reply('Telefone inválido. Use DDI + DDD + número. Ex.: admin convidar 5521999999999');
             return true;
         }
-        if (!msg.client || typeof msg.client.sendMessage !== 'function') {
-            logger.error(`[admin] convidar_cliente_indisponivel context=${JSON.stringify({ ...adminContext, target })}`);
-            await auditAdminAction(adminContext, 'invite_user', {
-                target: targetWhatsAppId,
-                result: 'failed',
-                metadata: { reason: 'whatsapp_client_unavailable' }
-            });
-            await msg.reply('Cliente WhatsApp indisponível para enviar o convite.');
-            return true;
-        }
         try {
-            await msg.client.sendMessage(targetWhatsAppId, buildPreOnboardingInviteMessage());
+            await sendAdminDirectMessage(msg, targetWhatsAppId, buildPreOnboardingInviteMessage(), options);
         } catch (error) {
             logger.warn(`[admin] convidar_falhou context=${JSON.stringify({ ...adminContext, target_whatsapp_id: targetWhatsAppId, error: error.message })}`);
             await auditAdminAction(adminContext, 'invite_user', {
@@ -3161,27 +3162,28 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
             await msg.reply('Usuário não encontrado para esse telefone/WhatsApp ID.');
             return true;
         }
-        if (!msg.client || typeof msg.client.sendMessage !== 'function') {
-            logger.error(`[admin] mensagem_cliente_indisponivel context=${JSON.stringify({ ...adminContext, target, target_user_id: user.user_id })}`);
+        try {
+            await sendAdminDirectMessage(msg, user.whatsapp_id, manualText, options);
+            logger.info(`[admin] mensagem context=${JSON.stringify({ ...adminContext, target, target_user_id: user.user_id, target_whatsapp_id: user.whatsapp_id, message_length: manualText.length })}`);
+            await auditAdminAction(adminContext, 'manual_message', {
+                target: user.whatsapp_id,
+                result: 'success',
+                metadata: {
+                    target_user_id: user.user_id,
+                    message_length: manualText.length
+                }
+            });
+            await msg.reply(`Mensagem enviada para ${user.whatsapp_id}.`);
+        } catch (error) {
+            logger.warn(`[admin] mensagem_falhou context=${JSON.stringify({ ...adminContext, target_whatsapp_id: user.whatsapp_id, error: error.message })}`);
             await auditAdminAction(adminContext, 'manual_message', {
                 target: user.whatsapp_id,
                 result: 'failed',
-                metadata: { reason: 'whatsapp_client_unavailable', message_length: manualText.length }
+                metadata: { target_user_id: user.user_id, message_length: manualText.length },
+                error
             });
-            await msg.reply('Cliente WhatsApp indisponível para envio manual.');
-            return true;
+            await msg.reply(`Não consegui enviar a mensagem para ${user.whatsapp_id}. Erro: ${error.message}`);
         }
-        await msg.client.sendMessage(user.whatsapp_id, manualText);
-        logger.info(`[admin] mensagem context=${JSON.stringify({ ...adminContext, target, target_user_id: user.user_id, target_whatsapp_id: user.whatsapp_id, message_length: manualText.length })}`);
-        await auditAdminAction(adminContext, 'manual_message', {
-            target: user.whatsapp_id,
-            result: 'success',
-            metadata: {
-                target_user_id: user.user_id,
-                message_length: manualText.length
-            }
-        });
-        await msg.reply(`Mensagem enviada para ${user.whatsapp_id}.`);
         return true;
     }
 
@@ -3225,13 +3227,13 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
     return true;
 }
 
-async function handleAdminCommandBeforeAccess(msg, senderId, access) {
+async function handleAdminCommandBeforeAccess(msg, senderId, access, options = {}) {
     const body = normalizeText(String(msg.body || '').trim());
     if (!body.startsWith('admin') && !isAdminConfirmationReply(body)) return false;
 
     // Admin precisa conseguir liberar/diagnosticar usuários mesmo se o próprio
     // identificador @lid estiver preso no gate de consentimento/onboarding.
-    return handleAdminCommands(msg, senderId, access?.user);
+    return handleAdminCommands(msg, senderId, access?.user, options);
 }
 
 async function handleMessage(msg) {

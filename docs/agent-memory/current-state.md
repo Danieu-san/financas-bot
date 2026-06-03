@@ -1,6 +1,6 @@
 # Estado atual do FinancasBot
 
-Atualizado em: 2026-05-31
+Atualizado em: 2026-06-03
 
 ## Produto
 
@@ -18,6 +18,15 @@ Atualizado em: 2026-05-31
 - Health check esperado: `/dashboard/health` retornando `ok`.
 
 Sempre revalidar EC2/PM2/logs antes de afirmar que producao esta saudavel.
+
+## Convites de pre-onboarding
+
+Correcao local em 2026-06-03:
+
+- `admin convidar <telefone>` e `admin mensagem <telefone> <texto>` agora usam fallback para o singleton global do WhatsApp quando `msg.client` nao esta anexado ao objeto da mensagem.
+- Isso corrige o caso real em que `confirmar admin` era recebido, mas o convite nao era disparado, com log `convidar_cliente_indisponivel`.
+- Teste de regressao: `messageHandler admin invite uses fallback sender when message client is missing`.
+- `npm test` passou com 218 testes em 2026-06-02/03 antes do deploy.
 
 ## Usuarios e privacidade
 

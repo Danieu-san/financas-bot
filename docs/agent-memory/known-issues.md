@@ -1,6 +1,6 @@
 # Problemas conhecidos e armadilhas
 
-Atualizado em: 2026-05-31
+Atualizado em: 2026-06-03
 
 ## Privacidade/admin
 
@@ -9,6 +9,14 @@ Atualizado em: 2026-05-31
 - Se `DASHBOARD_ADMIN_ALL_USERS_ENABLED=true` for usado, tratar como modo suporte/teste controlado, temporario e aprovado explicitamente.
 - Antes de beta amplo, manter removido o acesso admin amplo a dados financeiros individuais.
 - Sempre consultar `docs/decisions/ADR-002-admin-financial-data-access.md` em mudancas de admin, dashboard, familia ou launch.
+
+## Convites e mensagens diretas de admin
+
+- Armadilha corrigida em 2026-06-03: `admin convidar <telefone>` e `admin mensagem <telefone> <texto>` nao podem depender apenas de `msg.client.sendMessage`.
+- Em alguns caminhos de admin antes do gate de acesso, especialmente quando o admin chega por `@lid`, a mensagem recebida pode nao carregar `msg.client`, mesmo com o singleton do WhatsApp online.
+- Sintoma real: `confirmar admin` era recebido e logado, mas o convite nao era enviado; o log mostrava `convidar_cliente_indisponivel`.
+- Mitigacao: usar `msg.client` quando existir e cair para `sendWhatsAppMessage` do singleton global quando faltar.
+- Teste de regressao: `messageHandler admin invite uses fallback sender when message client is missing`.
 
 ## `Contas` como memoria de categorizacao
 
