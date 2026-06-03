@@ -21,12 +21,16 @@ Sempre revalidar EC2/PM2/logs antes de afirmar que producao esta saudavel.
 
 ## Convites de pre-onboarding
 
-Correcao local em 2026-06-03:
+Correcao implantada em 2026-06-03:
 
 - `admin convidar <telefone>` e `admin mensagem <telefone> <texto>` agora usam fallback para o singleton global do WhatsApp quando `msg.client` nao esta anexado ao objeto da mensagem; respostas admin tambem usam fallback quando `msg.reply` nao existe.
 - Isso corrige o caso real em que `confirmar admin` era recebido, mas o convite nao era disparado, com log `convidar_cliente_indisponivel`.
 - Testes de regressao: `messageHandler admin invite uses fallback sender when message client is missing` e `messageHandler admin confirmation replies through fallback when reply is missing`.
-- `npm test` passou com 218 testes em 2026-06-02/03 antes do deploy.
+- GitHub/local: `26f22e9` e `90b3ab7`.
+- EC2 via `git am`: os mesmos patches foram aplicados em producao.
+- `npm test` passou com 219 testes em 2026-06-02/03 antes do deploy final.
+- Validacao de producao: `/dashboard/health` retornou `{"ok":true,"sqlite":true}`, PM2 ficou `online` e WhatsApp confirmou `Bot pronto para receber mensagens`.
+- O `error.log` nao teve novas escritas apos `2026-06-03 00:08:11 UTC`; os erros `convidar_cliente_indisponivel` e `msg.reply is not a function` vistos no tail eram historico anterior ao deploy final.
 
 ## Usuarios e privacidade
 
