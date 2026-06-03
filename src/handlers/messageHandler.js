@@ -2548,6 +2548,14 @@ async function sendAdminDirectMessage(msg, to, text, options = {}) {
 }
 
 async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
+    const originalMsg = msg;
+    if (typeof msg?.reply !== 'function') {
+        msg = {
+            ...msg,
+            reply: async (text) => sendAdminDirectMessage(originalMsg, senderId, text, options)
+        };
+    }
+
     const rawBody = String(msg.body || '').trim();
     const body = normalizeText(rawBody);
     const isConfirmationReply = isAdminConfirmationReply(body);

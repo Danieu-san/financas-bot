@@ -23,9 +23,9 @@ Sempre revalidar EC2/PM2/logs antes de afirmar que producao esta saudavel.
 
 Correcao local em 2026-06-03:
 
-- `admin convidar <telefone>` e `admin mensagem <telefone> <texto>` agora usam fallback para o singleton global do WhatsApp quando `msg.client` nao esta anexado ao objeto da mensagem.
+- `admin convidar <telefone>` e `admin mensagem <telefone> <texto>` agora usam fallback para o singleton global do WhatsApp quando `msg.client` nao esta anexado ao objeto da mensagem; respostas admin tambem usam fallback quando `msg.reply` nao existe.
 - Isso corrige o caso real em que `confirmar admin` era recebido, mas o convite nao era disparado, com log `convidar_cliente_indisponivel`.
-- Teste de regressao: `messageHandler admin invite uses fallback sender when message client is missing`.
+- Testes de regressao: `messageHandler admin invite uses fallback sender when message client is missing` e `messageHandler admin confirmation replies through fallback when reply is missing`.
 - `npm test` passou com 218 testes em 2026-06-02/03 antes do deploy.
 
 ## Usuarios e privacidade

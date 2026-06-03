@@ -382,6 +382,50 @@ test('messageHandler admin invite uses fallback sender when message client is mi
     }
 });
 
+test('messageHandler admin confirmation replies through fallback when reply is missing', async () => {
+    const { handleAdminCommandBeforeAccess, clearPendingAdminConfirmation } = messageHandler.__test__;
+    const previousAdminIds = process.env.ADMIN_IDS;
+    const replies = [];
+    const sentMessages = [];
+    const senderId = '151058345148646@lid';
+
+    try {
+        process.env.ADMIN_IDS = '5521970112407@c.us';
+        clearPendingAdminConfirmation(senderId);
+        const options = {
+            directMessageSender: async (to, text) => {
+                sentMessages.push({ to, text });
+            }
+        };
+
+        await handleAdminCommandBeforeAccess(
+            {
+                body: 'admin convidar 5521999949737',
+                reply: async (text) => replies.push(text)
+            },
+            senderId,
+            { allowed: false, user: { display_name: 'Daniel', status: userService.USER_STATUS.PENDING_APPROVAL } },
+            options
+        );
+        const confirmed = await handleAdminCommandBeforeAccess(
+            { body: 'confirmar admin' },
+            senderId,
+            { allowed: false, user: { display_name: 'Daniel', status: userService.USER_STATUS.PENDING_APPROVAL } },
+            options
+        );
+
+        assert.strictEqual(confirmed, true);
+        assert.strictEqual(sentMessages.length, 2);
+        assert.strictEqual(sentMessages[0].to, '5521999949737@c.us');
+        assert.match(sentMessages[0].text, /FinançasBot/i);
+        assert.strictEqual(sentMessages[1].to, senderId);
+        assert.match(sentMessages[1].text, /Convite enviado para 5521999949737@c\.us/i);
+    } finally {
+        clearPendingAdminConfirmation(senderId);
+        process.env.ADMIN_IDS = previousAdminIds;
+    }
+});
+
 test('messageHandler admin high-risk commands require confirmation before execution', async () => {
     const {
         handleAdminCommandBeforeAccess,

@@ -15,8 +15,8 @@ Atualizado em: 2026-06-03
 - Armadilha corrigida em 2026-06-03: `admin convidar <telefone>` e `admin mensagem <telefone> <texto>` nao podem depender apenas de `msg.client.sendMessage`.
 - Em alguns caminhos de admin antes do gate de acesso, especialmente quando o admin chega por `@lid`, a mensagem recebida pode nao carregar `msg.client`, mesmo com o singleton do WhatsApp online.
 - Sintoma real: `confirmar admin` era recebido e logado, mas o convite nao era enviado; o log mostrava `convidar_cliente_indisponivel`.
-- Mitigacao: usar `msg.client` quando existir e cair para `sendWhatsAppMessage` do singleton global quando faltar.
-- Teste de regressao: `messageHandler admin invite uses fallback sender when message client is missing`.
+- Mitigacao: usar `msg.client` quando existir e cair para `sendWhatsAppMessage` do singleton global quando faltar; respostas admin tambem recebem fallback se `msg.reply` nao existir.
+- Testes de regressao: `messageHandler admin invite uses fallback sender when message client is missing` e `messageHandler admin confirmation replies through fallback when reply is missing`.
 
 ## `Contas` como memoria de categorizacao
 
