@@ -36,7 +36,8 @@ function syncControlledSnapshot() {
             { user_id: 'user-read-b', data: '05/02/2026', descricao: 'salário outro', categoria: 'Salário', valor: 5000, month: 1, year: 2026 }
         ],
         metas: [
-            { user_id: 'user-read-a', row: ['Reserva', 'R$1.000,00', 'R$250,00', '25%'] },
+            { user_id: 'user-read-a', row: ['Reserva', 'R$1.000,00', 'R$250,00', '25%', '', '31/12/2026', 'Em andamento', 'Alta', 'user-read-a', 'family', 'Aporte de R$250,00'] },
+            { user_id: 'user-read-a', row: ['Viagem pausada', 'R$2.000,00', 'R$100,00', '5%', '', '31/12/2026', 'Pausada', 'Baixa', 'user-read-a', 'personal', 'Status: Pausada'] },
             { user_id: 'user-read-b', row: ['Meta outro', 'R$9.999,00', 'R$9.999,00', '100%'] }
         ],
         dividas: [
@@ -108,10 +109,15 @@ test('sqlite read-model answers common analytical intents scoped by user_id', ()
     assert.strictEqual(installments.results[0].totalPrevisto, 2000);
 
     const goalsSummary = queryAnalyticalIntentSql('resumo_metas', {}, { userId: 'user-read-a' });
-    assert.strictEqual(goalsSummary.results.length, 1);
-    assert.strictEqual(goalsSummary.results[0].nome, 'Reserva');
-    assert.strictEqual(goalsSummary.results[0].falta, 750);
-    assert.strictEqual(goalsSummary.details.totalFalta, 750);
+    assert.strictEqual(goalsSummary.results.length, 2);
+    const reservaGoal = goalsSummary.results.find(goal => goal.nome === 'Reserva');
+    const pausedGoal = goalsSummary.results.find(goal => goal.nome === 'Viagem pausada');
+    assert.strictEqual(reservaGoal.falta, 750);
+    assert.strictEqual(reservaGoal.escopo, 'family');
+    assert.strictEqual(pausedGoal.ativa, false);
+    assert.strictEqual(pausedGoal.status, 'Pausada');
+    assert.strictEqual(goalsSummary.details.ativas, 1);
+    assert.strictEqual(goalsSummary.details.totalFalta, 2650);
 
     const goalsProgress = queryAnalyticalIntentSql('progresso_metas', {}, { userId: 'user-read-a' });
     assert.strictEqual(goalsProgress.results.length, 1);
@@ -135,9 +141,11 @@ test('sqlite read-model powers dashboard data without cross-user leakage', () =>
     assert.strictEqual(debts[0].jurosPct, 2);
 
     const goals = queryGoals('user-read-a');
-    assert.deepStrictEqual(goals.map(item => item.name), ['Reserva']);
+    assert.deepStrictEqual(goals.map(item => item.name), ['Reserva', 'Viagem pausada']);
     assert.strictEqual(goals[0].target, 1000);
     assert.strictEqual(goals[0].current, 250);
+    assert.strictEqual(goals[0].scope, 'family');
+    assert.strictEqual(goals[1].status, 'Pausada');
 
     const cashflow = queryCashflow('user-read-a', { month: 1, year: 2026 });
     assert.ok(cashflow.some(day => day.date === '05/02/2026' && day.entradas === 1000));

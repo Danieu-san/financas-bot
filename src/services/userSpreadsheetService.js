@@ -41,8 +41,13 @@ const USER_SPREADSHEET_TABS = Object.freeze([
     },
     {
         title: 'Metas',
-        headers: ['Nome da Meta', 'Valor Alvo', 'Valor Atual', '% Progresso', 'Valor Mensal Sugerido', 'Data Alvo', 'Status', 'Prioridade', 'user_id'],
+        headers: ['Nome da Meta', 'Valor Alvo', 'Valor Atual', '% Progresso', 'Valor Mensal Sugerido', 'Data Alvo', 'Status', 'Prioridade', 'user_id', 'Escopo', 'Última Movimentação'],
         color: { red: 0.14, green: 0.43, blue: 0.67 }
+    },
+    {
+        title: 'Movimentações Metas',
+        headers: ['Data', 'Meta', 'Tipo', 'Valor', 'Valor Antes', 'Valor Depois', 'Observação', 'Responsável', 'user_id', 'goal_user_id'],
+        color: { red: 0.16, green: 0.50, blue: 0.62 }
     },
     {
         title: 'Cartões',
@@ -227,12 +232,13 @@ function buildManualRows({ user = {} } = {}) {
         ['Faturas', 'Resumo automático das faturas por cartão e mês de cobrança. Use para ver quanto cada cartão tem previsto em cada mês.', 'Não edite as fórmulas; confira os detalhes em Lançamentos Cartão.'],
         ['Parcelamentos', 'Resumo automático das compras parceladas, agrupando parcelas por descrição, cartão e categoria.', 'Use para ver total previsto, quantidade de parcelas lançadas e primeira/última parcela.'],
         ['Dívidas', 'Use para empréstimos, financiamentos, acordos, parcelas em aberto e qualquer valor que você quer acompanhar até quitar.', 'Campos úteis: valor original, saldo atual, parcela, juros, vencimento, parcelas pagas e status.'],
-        ['Metas', 'Use para objetivos como reserva de emergência, viagem, quitar dívida, entrada de imóvel ou compra planejada.', 'Acompanhe valor alvo, valor atual, progresso, sugestão mensal e prioridade.'],
+        ['Metas', 'Use para objetivos como reserva de emergência, viagem, quitar dívida, entrada de imóvel ou compra planejada. O bot atualiza valor atual, progresso, sugestão mensal, escopo e status.', 'criar meta; guardei 500 na meta reserva; retirei 200 da meta viagem'],
+        ['Movimentações Metas', 'Histórico de aportes, retiradas, ajustes e mudanças de status das metas. Use para auditar por que o valor atual mudou.', 'Não edite manualmente; confira aportes e retiradas aqui.'],
         ['Contas', 'Use para despesas recorrentes e vencimentos que não podem ser esquecidos. Se categoria, subcategoria e regra ativa estiverem preenchidas, o bot usa a linha para classificar futuros lançamentos parecidos.', 'Exemplo: GRPLQ dia 10, nome Aluguel, categoria Moradia, subcategoria ALUGUEL, regra ativa SIM.'],
         ['Dashboard', 'Mostra um resumo visual da planilha: entradas, saídas, cartões, saldo estimado, dívidas e gráfico. As fórmulas desta aba são automáticas.', 'Use para conferir se o mês está saudável. Evite editar fórmulas.'],
         ['Dashboard web', 'No WhatsApp, envie "dashboard" para receber um link seguro com gráficos no navegador.', 'Não compartilhe esse link com outras pessoas.'],
         ['Perguntas que o bot responde', 'Você pode perguntar totais, saldos, categorias, listas e maiores/menores gastos em linguagem natural.', 'qual meu saldo do mês?; quanto gastei com mercado?; liste gastos com transporte'],
-        ['Metas pelo bot', 'Envie "criar meta" para o bot guiar o cadastro de um objetivo financeiro.', 'criar meta; quero juntar 5000 para reserva'],
+        ['Metas pelo bot', 'Envie "criar meta" para cadastrar. Depois use comandos de aporte, retirada, ajuste e status.', 'guardei 500 na meta reserva; retirei 200 da meta reserva; ajustar meta reserva para 2500; pausar meta viagem'],
         ['Dívidas pelo bot', 'Envie "criar dívida" ou registre pagamento de dívida para manter o saldo atualizado.', 'criar dívida; paguei 300 da parcela do carro'],
         ['Lembretes', 'O bot pode criar lembretes no Google Calendar quando você pedir uma data e horário.', 'me lembre de pagar o aluguel amanhã às 10h'],
         ['Correções', 'Se lançar algo errado, peça ajuda pelo WhatsApp. Para apagar algo recente, use o fluxo de exclusão.', 'apagar último gasto; ajuda'],
@@ -270,7 +276,8 @@ const USER_INPUT_EXAMPLE_ROWS = Object.freeze({
     'Entradas': ['01/01/2026', 'Exemplo: salário', 'Salário', '3000,00', 'Seu nome', 'Conta Corrente', 'Sim', 'Exemplo de entrada; pode apagar esta linha.', ''],
     'Transferências': ['01/01/2026', 'Exemplo: pix para reserva', '500,00', 'Conta corrente', 'Poupança', 'PIX', 'Transferência entre suas contas; não é gasto.', 'Conferida', ''],
     'Dívidas': ['Exemplo: financiamento', 'Banco Exemplo', 'Financiamento', '10000,00', '8500,00', '500,00', '1,5% a.m.', '10', '01/01/2026', '24', '3', 'Em dia', 'Exemplo de dívida; pode apagar.', '', '', '', 'Avalanche', ''],
-    'Metas': ['Exemplo: reserva de emergência', '10000,00', '1500,00', '', '', '31/12/2026', 'Em andamento', 'Alta', ''],
+    'Metas': ['Exemplo: reserva de emergência', '10000,00', '1500,00', '', '', '31/12/2026', 'Em andamento', 'Alta', '', 'personal', ''],
+    'Movimentações Metas': ['01/01/2026', 'Exemplo: reserva de emergência', 'Aporte', '1500,00', '0,00', '1500,00', 'Exemplo de histórico; pode apagar.', 'Seu nome', '', ''],
     'Cartões': ['nubank-principal', 'Nubank Principal', 'Nubank', '8', '15', 'SIM', 'Exemplo de cartão; edite ou apague.'],
     'Lançamentos Cartão': ['01/01/2026', 'Exemplo: compra parcelada', 'Casa', '100,00', '1/3', 'Janeiro de 2026', 'nubank-principal', 'Nubank Principal', 'Exemplo gerado para orientar; pode apagar.', ''],
     'Contas': ['Exemplo: internet', '15', 'Conta recorrente que vence todo mês.', '', 'Internet', 'Moradia', 'INTERNET / TELEFONE', '120,00', 'SIM']
@@ -285,14 +292,15 @@ function buildInputExampleRanges() {
 
 function buildStarterValueRanges({ user = {}, includeInputExamples = false } = {}) {
     const dataStartRow = includeInputExamples ? 3 : 2;
+    const manualRows = buildManualRows({ user });
     const ranges = [
         {
             range: `${quoteSheetName('Dashboard')}!A1:E19`,
             values: buildDashboardRows({ user, dataStartRow })
         },
         {
-            range: `${quoteSheetName('Manual')}!A1:C23`,
-            values: buildManualRows({ user })
+            range: `${quoteSheetName('Manual')}!A1:C${manualRows.length}`,
+            values: manualRows
         },
         {
             range: `${quoteSheetName('Faturas')}!A1:F1`,

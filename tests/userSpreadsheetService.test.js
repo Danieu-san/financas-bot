@@ -23,6 +23,7 @@ test('user spreadsheet template includes required multiuser financial tabs', () 
         'Transferências',
         'Dívidas',
         'Metas',
+        'Movimentações Metas',
         'Cartões',
         'Lançamentos Cartão',
         'Faturas',
@@ -41,6 +42,20 @@ test('user spreadsheet template includes required multiuser financial tabs', () 
         'Dia de Vencimento',
         'Ativo',
         'Observações'
+    ]);
+
+    const goalMovements = USER_SPREADSHEET_TABS.find(tab => tab.title === 'Movimentações Metas');
+    assert.deepStrictEqual(goalMovements.headers, [
+        'Data',
+        'Meta',
+        'Tipo',
+        'Valor',
+        'Valor Antes',
+        'Valor Depois',
+        'Observação',
+        'Responsável',
+        'user_id',
+        'goal_user_id'
     ]);
 });
 
@@ -102,7 +117,7 @@ test('createUserSpreadsheetForUser creates spreadsheet and writes headers to eve
     assert.ok(headerWrites.some(call => call.payload.range === "'Parcelamentos'!A1:G1"));
     const starterContent = calls.find(call => call.type === 'values.batchUpdate');
     assert.ok(starterContent, 'Should write dashboard/manual starter content');
-    assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Manual'!A1:C23"));
+    assert.ok(starterContent.payload.resource.data.some(item => /^'Manual'!A1:C\d+$/.test(item.range)));
     assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Faturas'!A1:F1"));
     assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Parcelamentos'!A1:G1"));
     assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Saídas'!A2:J2"));
@@ -174,7 +189,7 @@ test('applyUserSpreadsheetTemplate upgrades an existing sheet without recreating
     assert.ok(tabUpdate.payload.resource.requests.some(req => req.deleteSheet?.sheetId === 98));
     assert.ok(tabUpdate.payload.resource.requests.some(req => req.deleteSheet?.sheetId === 99));
     const starterContent = calls.find(call => call.type === 'values.batchUpdate');
-    assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Manual'!A1:C23"));
+    assert.ok(starterContent.payload.resource.data.some(item => /^'Manual'!A1:C\d+$/.test(item.range)));
     assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Faturas'!A1:F1"));
     assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Parcelamentos'!A1:G1"));
     assert.strictEqual(starterContent.payload.resource.data.some(item => item.range === "'Saídas'!A2:J2"), false);

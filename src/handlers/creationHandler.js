@@ -6,6 +6,8 @@ const { appendRowToSheet } = require('../services/google');
 const { userMap } = require('../config/constants');
 const { parseValue, parseDate, isDate, getFormattedDateOnly, parseAmount } = require('../utils/helpers');
 const { getUserByWhatsAppId } = require('../services/userService');
+const { getFinancialScopeUserIds } = require('../services/oauthTokenStore');
+const { GOAL_STATUS } = require('../services/goalService');
 
 function buildDebtSuccessMessage(debtName) {
     return [
@@ -185,16 +187,19 @@ async function finalizeDebtCreation(msg) {
 
 async function startGoalCreation(msg, initialData = {}) {
     const senderId = msg.author || msg.from;
+    const user = await getUserByWhatsAppId(senderId);
+    const hasFamilyScope = user?.user_id && getFinancialScopeUserIds(user.user_id).length > 1;
     userStateManager.setState(senderId, {
         action: 'creating_goal',
         step: 0,
         // ESTRUTURA DE DADOS CORRIGIDA PARA BATER COM A PLANILHA
         data: {
+            "Escopo": initialData.escopo || initialData.scope || (hasFamilyScope ? null : 'personal'),
             "Nome da Meta": initialData.descricao || null,
             "Valor Alvo": initialData.valor || null,
             "Valor Atual": null, // Será perguntado
             "Data Fim": null, // Será perguntado
-            "Status": "Em andamento", // Valor padrão
+            "Status": GOAL_STATUS.ACTIVE, // Valor padrão
             "Prioridade": null // Será perguntado no final
         }
     });
@@ -215,7 +220,17 @@ async function handleGoalCreation(msg, isFirstRun = false) {
 
     if (!isFirstRun) {
         const step = state.step;
-        if (step === 1) { state.data["Nome da Meta"] = messageBody; } 
+        if (step === 0) {
+            const normalized = messageBody.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            if (normalized.includes('familia') || normalized.includes('familiar')) {
+                state.data["Escopo"] = 'family';
+            } else if (normalized.includes('pessoal') || normalized.includes('individual')) {
+                state.data["Escopo"] = 'personal';
+            } else {
+                await msg.reply("Não entendi o escopo. Responda 'pessoal' ou 'família'.");
+            }
+        }
+        else if (step === 1) { state.data["Nome da Meta"] = messageBody; } 
         else if (step === 2) {
             const valor = await parseAmount(messageBody);
             if (valor === null || valor <= 0) {
@@ -243,10 +258,12 @@ async function handleGoalCreation(msg, isFirstRun = false) {
             const prioridadeCorrigida = await askLLM(promptCorrecao);
             state.data["Prioridade"] = prioridadeCorrigida.trim();
         }
-    }
+    }
 
     let question = "";
-    if (state.data["Nome da Meta"] === null) {
+    if (state.data["Escopo"] === null) {
+        state.step = 0; question = "Essa meta é pessoal ou familiar?";
+    } else if (state.data["Nome da Meta"] === null) {
         state.step = 1; question = "Qual o nome da sua nova meta?";
     } else if (state.data["Valor Alvo"] === null) {
         state.step = 2; question = `Qual o valor alvo para a meta "${state.data["Nome da Meta"]}"?`;
@@ -305,7 +322,9 @@ async function finalizeGoalCreation(msg) {
             data["Data Fim"], // A data já está no formato DD/MM/AAAA, a planilha interpreta corretamente
             statusFormula,
             data["Prioridade"],
-            user.user_id
+            user.user_id,
+            data["Escopo"] || 'personal',
+            ''
         ];
 
         await appendRowToSheet('Metas', rowData);

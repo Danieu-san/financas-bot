@@ -499,7 +499,13 @@ function dashboardHtml() {
 
       const goals = data.goals || [];
       document.getElementById('goals').innerHTML = goals.length ? goals.map(g => {
-        return '<div class="line"><span>' + esc(g.name) + ' (' + Number(g.progressPct||0).toFixed(1) + '%)</span><strong>' + brl(g.current) + ' / ' + brl(g.target) + '</strong></div>';
+        const meta = [
+          Number(g.progressPct||0).toFixed(1) + '%',
+          g.status || '',
+          g.scope === 'family' ? 'familiar' : 'pessoal',
+          g.lastMovement ? 'última mov.: ' + g.lastMovement : ''
+        ].filter(Boolean).join(' · ');
+        return '<div class="line"><span>' + esc(g.name) + '<span class="muted"> ' + esc(meta) + '</span></span><strong>' + brl(g.current) + ' / ' + brl(g.target) + '</strong></div>';
       }).join('') : '<div class="empty">Sem metas cadastradas. Uma boa primeira meta é reserva de emergência.</div>';
     }
 

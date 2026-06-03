@@ -92,7 +92,8 @@ function resetSheets() {
     sheets.Transferências = [['Data', 'Descrição', 'Valor', 'Origem', 'Destino', 'Método', 'Observações', 'Status', 'user_id']];
     sheets.Contas = [['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa']];
     sheets.Dívidas = [DEBTS_HEADER];
-    sheets.Metas = [['Nome da Meta', 'Valor Alvo', 'Valor Atual', '% Progresso', 'Valor Mensal Necessário', 'Data Fim', 'Status', 'Prioridade', 'user_id']];
+    sheets.Metas = [['Nome da Meta', 'Valor Alvo', 'Valor Atual', '% Progresso', 'Valor Mensal Necessário', 'Data Fim', 'Status', 'Prioridade', 'user_id', 'Escopo', 'Última Movimentação']];
+    sheets['Movimentações Metas'] = [['Data', 'Meta', 'Tipo', 'Valor', 'Valor Antes', 'Valor Depois', 'Observação', 'Responsável', 'user_id', 'goal_user_id']];
     for (const sheetName of CARD_SHEETS) {
         sheets[sheetName] = [['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'user_id']];
     }
@@ -188,6 +189,7 @@ function installMocks() {
                 deletedRows.push({ sheetName, indices });
                 return { success: true };
             },
+            syncDashboardForUser: async () => {},
             __test__: {
                 eventBelongsToUser: (event, userId) => event?.extendedProperties?.private?.user_id === userId
             }
@@ -857,6 +859,86 @@ stateMachineTest('financial states: goal creation writes Metas row with user_id 
     assert.strictEqual(row[7], 'Alta');
     assert.strictEqual(row[8], USER_ID);
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
+
+stateMachineTest('financial states: goal movements update current value and append audit history', async () => {
+    resetState();
+    sheets.Metas.push(['Reserva de emergência', 10000, 1500, '', '', '31/12/2026', 'Em andamento', 'Alta', USER_ID, 'personal', '']);
+
+    const reply = await send('guardei 500 na meta reserva');
+
+    assert.match(reply, /Aporte registrado/i);
+    assert.strictEqual(Number(sheets.Metas[1][2]), 2000);
+    assert.strictEqual(sheets.Metas[1][6], 'Em andamento');
+    assert.strictEqual(sheets.Metas[1][8], USER_ID);
+    assert.strictEqual(sheets['Movimentações Metas'].length, 2);
+    assert.strictEqual(sheets['Movimentações Metas'][1][1], 'Reserva de emergência');
+    assert.strictEqual(sheets['Movimentações Metas'][1][2], 'Aporte');
+    assert.strictEqual(Number(sheets['Movimentações Metas'][1][3]), 500);
+    assert.strictEqual(Number(sheets['Movimentações Metas'][1][4]), 1500);
+    assert.strictEqual(Number(sheets['Movimentações Metas'][1][5]), 2000);
+    assert.strictEqual(sheets['Movimentações Metas'][1][8], USER_ID);
+});
+
+stateMachineTest('financial states: goal withdrawals cannot make the goal negative', async () => {
+    resetState();
+    sheets.Metas.push(['Viagem', 3000, 200, '', '', '31/12/2026', 'Em andamento', 'Média', USER_ID, 'personal', '']);
+
+    const reply = await send('retirei 500 da meta viagem');
+
+    assert.match(reply, /deixaria a meta "Viagem" negativa/i);
+    assert.strictEqual(Number(sheets.Metas[1][2]), 200);
+    assert.strictEqual(sheets['Movimentações Metas'].length, 1);
+});
+
+stateMachineTest('financial states: goal adjustment sets exact current value and status commands are audited', async () => {
+    resetState();
+    sheets.Metas.push(['Reserva de emergência', 10000, 1500, '', '', '31/12/2026', 'Em andamento', 'Alta', USER_ID, 'personal', '']);
+
+    let reply = await send('ajustar meta reserva para 2500');
+    assert.match(reply, /Ajuste registrado/i);
+    assert.strictEqual(Number(sheets.Metas[1][2]), 2500);
+
+    reply = await send('pausar meta reserva');
+    assert.match(reply, /marcada como Pausada/i);
+    assert.strictEqual(sheets.Metas[1][6], 'Pausada');
+
+    reply = await send('retomar meta reserva');
+    assert.match(reply, /marcada como Em andamento/i);
+    assert.strictEqual(sheets.Metas[1][6], 'Em andamento');
+    assert.strictEqual(sheets['Movimentações Metas'].length, 4);
+    assert.strictEqual(sheets['Movimentações Metas'][2][2], 'Status: Pausada');
+    assert.strictEqual(sheets['Movimentações Metas'][3][2], 'Status: Em andamento');
+});
+
+stateMachineTest('financial states: family goal can be moved by a family member', async () => {
+    resetState();
+    sheets.Users.push(partnerUserRow());
+    sheets.UserProfile.push([
+        PARTNER_ID,
+        'Thais Cristina',
+        5000,
+        2500,
+        'NÃO',
+        'organizar contas',
+        '2026-01-01T00:00:00.000Z'
+    ]);
+    financialScopeUserIds = [USER_ID, PARTNER_ID];
+    sheets.Metas.push(['Reserva da família', 12000, 3000, '', '', '31/12/2026', 'Em andamento', 'Alta', USER_ID, 'family', '']);
+    if (typeof userService.invalidateUserCaches === 'function') {
+        userService.invalidateUserCaches();
+    }
+
+    const originalCreateMockMessage = createMockMessage;
+    const msg = originalCreateMockMessage('guardei 700 na meta reserva da família');
+    msg.from = PARTNER_SENDER;
+    msg.author = PARTNER_SENDER;
+    await handleMessage(msg);
+
+    assert.match(msg.replies.at(-1), /Aporte registrado/i);
+    assert.strictEqual(Number(sheets.Metas[1][2]), 3700);
+    assert.strictEqual(sheets['Movimentações Metas'][1][8], PARTNER_ID);
+    assert.strictEqual(sheets['Movimentações Metas'][1][9], USER_ID);
 });
 
 stateMachineTest('financial states: batch confirmation saves mixed entries with existing payment methods', async () => {

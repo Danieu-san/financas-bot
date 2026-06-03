@@ -16,6 +16,7 @@ Use este mapa para escolher rapidamente quais arquivos abrir por tarefa.
 - `src/handlers/creationHandler.js` - criacao de metas e dividas.
 - `src/handlers/deletionHandler.js` - exclusao de itens.
 - `src/handlers/debtHandler.js` e `src/handlers/debtUpdateHandler.js` - pagamentos/atualizacao de dividas.
+- `src/services/goalService.js` - movimentacoes de metas/cofrinho, ajuste de valor atual, status e auditoria.
 
 ## Importacao de extratos
 
@@ -28,7 +29,7 @@ Use este mapa para escolher rapidamente quais arquivos abrir por tarefa.
 - `src/services/google.js` - API Google Sheets/Calendar, leitura/escrita, estrutura central/legada.
 - `src/services/userSpreadsheetService.js` - cria planilha individual do usuario, abas, formulas, exemplos e visual.
 - `src/services/userSheetAnalyticsService.js` - calcula dashboard a partir da planilha do usuario/familia.
-- Abas principais: `Saídas`, `Entradas`, `Transferências`, `Dívidas`, `Metas`, `Contas`, `Cartões`, `Lançamentos Cartão`, `Faturas`, `Parcelamentos`.
+- Abas principais: `Saídas`, `Entradas`, `Transferências`, `Dívidas`, `Metas`, `Movimentações Metas`, `Contas`, `Cartões`, `Lançamentos Cartão`, `Faturas`, `Parcelamentos`.
 
 ## Perguntas financeiras e calculos
 

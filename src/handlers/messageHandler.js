@@ -65,6 +65,12 @@ const { buildDashboardAccessLink } = require('../utils/dashboardAuth');
 const { buildGoogleConnectLink } = require('../services/googleOAuthService');
 const { sendWhatsAppMessage } = require('../services/whatsapp');
 const {
+    GOAL_STATUS,
+    applyGoalMovement,
+    parseGoalCommand,
+    updateGoalStatus
+} = require('../services/goalService');
+const {
     getOAuthConnection,
     getFinancialScopeUserIds,
     getSharedSpreadsheetMembership,
@@ -2285,6 +2291,43 @@ async function handleDashboardCommand(msg, user, senderId) {
     return true;
 }
 
+async function handleGoalManagementCommand(msg, user, senderId, person) {
+    const parsed = parseGoalCommand(msg.body || '');
+    if (!parsed) return false;
+
+    const financialScopeUserIds = getFinancialScopeUserIds(user.user_id);
+    const base = {
+        actorUserId: user.user_id,
+        actorName: person || user.display_name || 'Usuário',
+        financialScopeUserIds
+    };
+
+    let result = null;
+    if (parsed.action === 'movement') {
+        result = await applyGoalMovement({
+            ...base,
+            goalQuery: parsed.goalQuery,
+            type: parsed.type,
+            amount: parsed.amount,
+            note: msg.body || ''
+        });
+    } else if (parsed.action === 'status') {
+        result = await updateGoalStatus({
+            ...base,
+            goalQuery: parsed.goalQuery,
+            status: parsed.status || GOAL_STATUS.ACTIVE,
+            note: msg.body || ''
+        });
+    }
+
+    if (!result) return false;
+    await msg.reply(result.message);
+    if (result.ok) {
+        markFinancialReadModelDirty('goal_write');
+    }
+    return true;
+}
+
 function buildGoogleConnectReply(user) {
     const link = buildGoogleConnectLink({ userId: user.user_id });
     return [
@@ -3346,6 +3389,11 @@ async function handleMessage(msg) {
 
     const handledImport = await handleStatementImportMessage(msg, { senderId, person: pessoa, userId });
     if (handledImport) {
+        return;
+    }
+
+    const handledGoalManagement = await handleGoalManagementCommand(msg, activeUser, senderId, pessoa);
+    if (handledGoalManagement) {
         return;
     }
 

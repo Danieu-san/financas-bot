@@ -64,6 +64,19 @@ Testar perguntas que exigem dados e calculos:
 
 Nao basta ensinar respostas fixas; validar se a rota de calculo usa dados reais/read model.
 
+## Metas
+
+Validar:
+
+- Criacao de meta pessoal e, quando houver vinculo familiar, pergunta de escopo pessoal/familiar.
+- Aportes: `guardei 500 na meta reserva`.
+- Retiradas/subtracoes: `retirei 200 da meta reserva`.
+- Ajuste seguro: `ajustar meta reserva para 1500`.
+- Status: `pausar meta reserva`, `retomar meta reserva`, `cancelar meta reserva`, `concluir meta reserva`.
+- Aba `Movimentações Metas` registra historico com valor antes/depois, responsavel e dono da meta.
+- Membro da familia pode movimentar meta familiar gravada na planilha dona, preservando `user_id` do responsavel.
+- Perguntas `liste minhas metas` e `quanto falta para bater minhas metas?` ignoram metas pausadas/canceladas no progresso ativo.
+
 ## Dashboard
 
 Validar:

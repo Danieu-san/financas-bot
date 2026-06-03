@@ -235,7 +235,7 @@ function findHeaderIndex(headers, aliases, fallbackIndex) {
 
 function isGoalActive(status) {
     const normalized = normalizeText(status || '');
-    return !/(concluid|finalizad|atingid|quitad|cancelad)/.test(normalized);
+    return !/(concluid|finalizad|atingid|quitad|cancelad|pausad)/.test(normalized);
 }
 
 function summarizeGoals(dataSources = {}, { onlyActive = false } = {}) {
@@ -252,8 +252,8 @@ function summarizeGoals(dataSources = {}, { onlyActive = false } = {}) {
         nome: findHeaderIndex(headers, ['Nome', 'Nome da Meta'], 0),
         alvo: findHeaderIndex(headers, ['Valor Alvo', 'Alvo'], 1),
         atual: findHeaderIndex(headers, ['Valor Atual', 'Atual'], 2),
-        valorMensal: findHeaderIndex(headers, ['Valor Mensal', 'Valor Mensal Necessário'], 4),
-        dataFim: findHeaderIndex(headers, ['Data Fim', 'Data Final', 'Prazo'], 5),
+        valorMensal: findHeaderIndex(headers, ['Valor Mensal', 'Valor Mensal Necessário', 'Valor Mensal Sugerido'], 4),
+        dataFim: findHeaderIndex(headers, ['Data Fim', 'Data Final', 'Data Alvo', 'Prazo'], 5),
         status: findHeaderIndex(headers, ['Status'], 6),
         prioridade: findHeaderIndex(headers, ['Prioridade'], 7)
     };

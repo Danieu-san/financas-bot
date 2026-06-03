@@ -25,6 +25,7 @@ const adminActionLogService = require('../src/services/adminActionLogService');
 const dashboardAccessLogService = require('../src/services/dashboardAccessLogService');
 const userSheetAnalyticsService = require('../src/services/userSheetAnalyticsService');
 const userIdMaintenanceService = require('../src/services/userIdMaintenanceService');
+const goalService = require('../src/services/goalService');
 const budgetCycle = require('../src/utils/budgetCycle');
 
 // --- Helpers Tests ---
@@ -43,6 +44,15 @@ test('helpers.parseAmountLocal', (t) => {
     assert.strictEqual(helpers.parseAmountLocal('R$ 2 mil'), 2000);
     assert.strictEqual(helpers.parseAmountLocal('dois mil'), 2000);
     assert.strictEqual(helpers.parseAmountLocal('dois mil e quinhentos'), 2500);
+});
+
+test('goalService.parseGoalCommand keeps four-digit BR amounts intact', () => {
+    const parsed = goalService.parseGoalCommand('guardei 1500,00 na meta reserva');
+
+    assert.strictEqual(parsed.action, 'movement');
+    assert.strictEqual(parsed.type, 'aporte');
+    assert.strictEqual(parsed.amount, 1500);
+    assert.strictEqual(parsed.goalQuery, 'reserva');
 });
 
 test('helpers.normalizeText', (t) => {

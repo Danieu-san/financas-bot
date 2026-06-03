@@ -72,6 +72,10 @@ function initSchema() {
             target REAL,
             current REAL,
             progress_pct REAL,
+            status TEXT,
+            priority TEXT,
+            scope TEXT,
+            last_movement TEXT,
             last_seen_sync INTEGER NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_goals_user ON goals(user_id);
@@ -94,6 +98,22 @@ function initSchema() {
             value TEXT
         );
     `);
+    ensureGoalSchemaColumns();
+}
+
+function ensureGoalSchemaColumns() {
+    const columns = new Set(db.pragma('table_info(goals)').map((column) => column.name));
+    const additions = [
+        ['status', 'TEXT'],
+        ['priority', 'TEXT'],
+        ['scope', 'TEXT'],
+        ['last_movement', 'TEXT']
+    ];
+    additions.forEach(([name, type]) => {
+        if (!columns.has(name)) {
+            db.exec(`ALTER TABLE goals ADD COLUMN ${name} ${type}`);
+        }
+    });
 }
 
 function ensureSqliteReady() {
@@ -167,14 +187,18 @@ function syncSnapshotToSqlite(snapshot) {
     `);
 
     const upsertGoal = db.prepare(`
-        INSERT INTO goals(fingerprint, user_id, name, target, current, progress_pct, last_seen_sync)
-        VALUES(@fingerprint, @user_id, @name, @target, @current, @progress_pct, @last_seen_sync)
+        INSERT INTO goals(fingerprint, user_id, name, target, current, progress_pct, status, priority, scope, last_movement, last_seen_sync)
+        VALUES(@fingerprint, @user_id, @name, @target, @current, @progress_pct, @status, @priority, @scope, @last_movement, @last_seen_sync)
         ON CONFLICT(fingerprint) DO UPDATE SET
             user_id = excluded.user_id,
             name = excluded.name,
             target = excluded.target,
             current = excluded.current,
             progress_pct = excluded.progress_pct,
+            status = excluded.status,
+            priority = excluded.priority,
+            scope = excluded.scope,
+            last_movement = excluded.last_movement,
             last_seen_sync = excluded.last_seen_sync
     `);
 
@@ -257,6 +281,10 @@ function syncSnapshotToSqlite(snapshot) {
                 target,
                 current,
                 progress_pct: progressPct,
+                status: row[6] || '',
+                priority: row[7] || '',
+                scope: row[9] || '',
+                last_movement: row[10] || '',
                 last_seen_sync: currentSyncId
             });
         }
@@ -312,6 +340,11 @@ function daysConsideredForAverage(month, year, now = new Date()) {
 
 function isAllUsersScope(userId) {
     return String(userId || '') === ALL_USERS_ID;
+}
+
+function isGoalActive(status, target, current) {
+    const normalized = normalizeText(status || '');
+    return !/(concluid|finalizad|atingid|quitad|cancelad|pausad)/.test(normalized) && Number(target || 0) > Number(current || 0);
 }
 
 function queryKpis(userId, { month, year } = {}) {
@@ -409,7 +442,7 @@ function queryGoals(userId) {
     if (!sqliteReady || !db) return null;
     const allUsers = isAllUsersScope(userId) ? 1 : 0;
     return db.prepare(`
-        SELECT name, target, current, progress_pct AS progressPct
+        SELECT name, target, current, progress_pct AS progressPct, status, priority, scope, last_movement AS lastMovement
         FROM goals
         WHERE (? = 1 OR user_id = ?)
         ORDER BY progress_pct DESC
@@ -605,7 +638,7 @@ function queryAnalyticalIntentSql(intent, parameters, { userId }) {
 
     if (intent === 'resumo_metas' || intent === 'progresso_metas') {
         const rows = db.prepare(`
-            SELECT name, target, current, progress_pct AS progressPct
+            SELECT name, target, current, progress_pct AS progressPct, status, priority, scope, last_movement AS lastMovement
             FROM goals
             WHERE user_id = ?
             ORDER BY progress_pct ASC, target DESC
@@ -623,9 +656,11 @@ function queryAnalyticalIntentSql(intent, parameters, { userId }) {
                 falta,
                 valorMensal: 0,
                 dataFim: '',
-                status: falta > 0 ? 'Em andamento' : 'Concluída',
-                prioridade: '',
-                ativa: falta > 0
+                status: row.status || (falta > 0 ? 'Em andamento' : 'Concluída'),
+                prioridade: row.priority || '',
+                escopo: row.scope || '',
+                ultimaMovimentacao: row.lastMovement || '',
+                ativa: isGoalActive(row.status, alvo, atual)
             };
         }).sort((a, b) => Number(b.ativa) - Number(a.ativa) || b.falta - a.falta || String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
         const goals = intent === 'progresso_metas' ? allGoals.filter(goal => goal.ativa) : allGoals;

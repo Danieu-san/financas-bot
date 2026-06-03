@@ -7,6 +7,7 @@ const {
     getBudgetCycleForPeriod,
     dateIsWithinCycle
 } = require('../utils/budgetCycle');
+const { goalRowToObject } = require('./goalService');
 
 const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
@@ -398,6 +399,29 @@ function buildMemberBreakdown({ entradasRows, saidasRows, cartaoRows, userIds, u
         .map(roundBreakdownItem);
 }
 
+function buildGoalDashboardRows(metasRows = [], userIds = []) {
+    const headers = metasRows[0] || [];
+    const allowedUserIds = new Set((Array.isArray(userIds) ? userIds : [userIds])
+        .map(id => String(id || '').trim())
+        .filter(Boolean));
+
+    return metasRows.slice(1)
+        .map((row, offset) => goalRowToObject(row, offset + 2, headers))
+        .filter(goal => goal.name && allowedUserIds.has(goal.userId))
+        .map(goal => ({
+            name: goal.name,
+            target: goal.target,
+            current: goal.current,
+            progressPct: goal.progressPct,
+            status: goal.status,
+            priority: goal.priority,
+            scope: goal.scope,
+            lastMovement: goal.lastMovement,
+            user_id: goal.userId
+        }))
+        .sort((a, b) => Number(b.current || 0) - Number(a.current || 0));
+}
+
 function buildDailyGoalSummary({ settings, saidasRows, cartaoRows, cardConfigRows = [], userIds, period }) {
     if (normalizeText(settings?.monthly_budget_enabled || '') !== 'sim') return null;
     const monthlyAmount = parseValue(settings?.monthly_budget_amount);
@@ -564,7 +588,7 @@ async function getUserSheetDashboardData(userId, { month, year } = {}) {
                 period
             }),
             recentTransactions: buildRecentTransactions({ entradas, saidas, cartoes }),
-            goals: metasRows.slice(1).filter(row => rowBelongsToAnyUser(row, 8, financialScopeUserIds)),
+            goals: buildGoalDashboardRows(metasRows, financialScopeUserIds),
             debts: dividasRows.slice(1).filter(row => rowBelongsToAnyUser(row, 17, financialScopeUserIds)),
             alerts: [],
             source: 'personal_sheet'
@@ -585,6 +609,7 @@ module.exports = {
         rowBelongsToAnyUser,
         buildReserveSummary,
         buildMemberBreakdown,
+        buildGoalDashboardRows,
         isReserveApplication,
         isReserveRedemption,
         isFreeSpendingRow,

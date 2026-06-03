@@ -362,7 +362,7 @@ async function rebuildReadModelFromSheets() {
     const sheetReads = [
         readDataFromSheet('Saídas!A:J'),
         readDataFromSheet('Entradas!A:I'),
-        readDataFromSheet('Metas!A:I'),
+        readDataFromSheet('Metas!A:K'),
         readDataFromSheet('Dívidas!A:R'),
         ...cardSheetNames.map((sheetName) => readDataFromSheet(`${sheetName}!A:G`))
     ];
@@ -487,7 +487,7 @@ function summarizeReadModelInvoicesByCard(entries) {
 
 function isReadModelGoalActive(status, target, current) {
     const normalized = normalizeText(status || '');
-    return !/(concluid|finalizad|atingid|quitad|cancelad)/.test(normalized) && Number(target || 0) > Number(current || 0);
+    return !/(concluid|finalizad|atingid|quitad|cancelad|pausad)/.test(normalized) && Number(target || 0) > Number(current || 0);
 }
 
 function summarizeReadModelGoals(userId, { onlyActive = false } = {}) {
@@ -509,6 +509,8 @@ function summarizeReadModelGoals(userId, { onlyActive = false } = {}) {
                 dataFim: row[5] || '',
                 status: row[6] || '',
                 prioridade: row[7] || '',
+                escopo: row[9] || '',
+                ultimaMovimentacao: row[10] || '',
                 ativa: isReadModelGoalActive(row[6], alvo, atual)
             };
         })
