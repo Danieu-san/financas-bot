@@ -756,6 +756,15 @@ async function maybeNotifyDailyGoalAfterExpense(msg, userId) {
     return { spent: spend.today, goalAmount: pace.dailyRecommended, percentUsed, milestone };
 }
 
+async function safeMaybeNotifyDailyGoalAfterExpense(msg, userId, context = 'expense') {
+    try {
+        return await maybeNotifyDailyGoalAfterExpense(msg, userId);
+    } catch (error) {
+        logger.warn(`[monthly-budget] alert_failed context=${context} user_id=${userId} error=${error.message}`);
+        return null;
+    }
+}
+
 async function calculateDailyGoalSpend(userId, today = getTodaySaoPauloDateString(), userIds = [userId]) {
     const spend = await calculateMonthlyBudgetSpend(userId, today, userIds);
     return spend.today;
@@ -3595,7 +3604,7 @@ async function handleMessage(msg) {
                             } else {
                                 await msg.reply(`✅ Gasto de R$${gasto.valor} lançado em ${saved.installments}x de R$${saved.installmentValue.toFixed(2)} no *${saved.sheetName}*.`);
                             }
-                            await maybeNotifyDailyGoalAfterExpense(msg, userId);
+                            await safeMaybeNotifyDailyGoalAfterExpense(msg, userId, 'credit_card_selection');
                         } catch (error) {
                             console.error("Erro ao salvar gasto no cartão:", error);
                             await msg.reply("Ocorreu um erro ao salvar o gasto.");
@@ -3632,7 +3641,7 @@ async function handleMessage(msg) {
                     } else {
                         await msg.reply(`✅ Gasto de R$${gasto.valor} lançado em ${saved.installments}x de R$${saved.installmentValue.toFixed(2)} no *${saved.sheetName}*.`);
                     }
-                    await maybeNotifyDailyGoalAfterExpense(msg, userId);
+                    await safeMaybeNotifyDailyGoalAfterExpense(msg, userId, 'installment_number');
                 } catch (error) {
                     console.error("Erro ao salvar parcelamento:", error);
                     await msg.reply("Ocorreu um erro ao salvar o gasto.");
@@ -3704,7 +3713,7 @@ async function handleMessage(msg) {
 
                 // MENSAGEM DE SUCESSO MELHORADA
                 await msg.reply(`✅ Gasto de R$${valorNumerico.toFixed(2)} (${gasto.descricao}) registrado como *${gasto.pagamento}* para a data de *${dataFinal}*!`);
-                await maybeNotifyDailyGoalAfterExpense(msg, userId);
+                await safeMaybeNotifyDailyGoalAfterExpense(msg, userId, 'payment_method');
                 userStateManager.deleteState(senderId);
                 return;
             }
@@ -4611,7 +4620,7 @@ async function handleMessage(msg) {
                                     } else {
                                         await msg.reply(`✅ Gasto de R$${creditCardItem.valor} lançado em ${saved.installments}x de R$${saved.installmentValue.toFixed(2)} no *${saved.sheetName}*.`);
                                     }
-                                    await maybeNotifyDailyGoalAfterExpense(msg, userId);
+                                    await safeMaybeNotifyDailyGoalAfterExpense(msg, userId, 'single_expense');
                                     return;
                                 }
                                 if (explicitCard) {
@@ -4637,7 +4646,7 @@ async function handleMessage(msg) {
                             const typeLabel = item.type === 'Saídas' ? 'Gasto' : 'Entrada';
                             await msg.reply(`✅ ${typeLabel} de R$${saved.value.toFixed(2)} (${item.descricao || 'Não especificado'}) registrado como *${saved.method}* para a data de *${saved.date}*!`);
                             if (item.type === 'Saídas') {
-                                await maybeNotifyDailyGoalAfterExpense(msg, userId);
+                                await safeMaybeNotifyDailyGoalAfterExpense(msg, userId, 'structured_expense');
                             }
                             return;
                         }

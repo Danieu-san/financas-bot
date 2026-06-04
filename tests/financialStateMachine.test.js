@@ -35,6 +35,7 @@ const createdCalendarEvents = [];
 const structuredResponses = [];
 let stateMachineFailed = false;
 let financialScopeUserIds = [USER_ID];
+let failNextPlainMessage = false;
 
 function stateMachineTest(name, fn) {
     test(name, async () => {
@@ -101,6 +102,7 @@ function resetSheets() {
     createdCalendarEvents.length = 0;
     structuredResponses.length = 0;
     financialScopeUserIds = [USER_ID];
+    failNextPlainMessage = false;
 }
 
 function todayBr() {
@@ -240,6 +242,22 @@ function installMocks() {
             handleAudio: async (msg) => {
                 await msg.reply('🎙️ Entendido! Recebi seu áudio e já estou processando. Um momento...');
                 return msg.__transcribedText || 'gastei 30 com uber no pix';
+            }
+        }
+    };
+
+    const whatsappMessagingPath = require.resolve('../src/utils/whatsappMessaging');
+    require.cache[whatsappMessagingPath] = {
+        id: whatsappMessagingPath,
+        filename: whatsappMessagingPath,
+        loaded: true,
+        exports: {
+            sendPlainMessage: async (msg, text) => {
+                if (failNextPlainMessage) {
+                    failNextPlainMessage = false;
+                    throw new Error('simulated WhatsApp send failure');
+                }
+                return msg.reply(String(text));
             }
         }
     };
@@ -778,6 +796,40 @@ stateMachineTest('financial states: monthly budget alert counts explicit credit 
     assert.match(reply, /100%/);
     assert.strictEqual(sheets.UserSettings[1][15], todayBr());
     assert.strictEqual(sheets.UserSettings[1][16], '100');
+});
+
+stateMachineTest('financial states: saved credit card expense is not reported as failed when budget alert send fails', async () => {
+    resetState();
+    sheets.UserSettings[1][13] = 'SIM';
+    sheets.UserSettings[1][14] = String(10 * daysRemainingTodaySaoPaulo());
+    userStateManager.setState(SENDER, {
+        action: 'awaiting_installment_number',
+        data: {
+            gasto: {
+                data: todayBr(),
+                descricao: 'roupa',
+                categoria: 'Vestuário',
+                subcategoria: 'Roupa',
+                valor: 10,
+                pagamento: 'Crédito',
+                recorrente: 'Não'
+            },
+            cardInfo: {
+                sheetName: CARD_SHEETS[0],
+                displayName: 'Nubank - Daniel',
+                closingDay: 8
+            }
+        }
+    });
+    failNextPlainMessage = true;
+
+    const reply = await send('1');
+
+    assert.match(reply, /lançado/i);
+    assert.doesNotMatch(reply, /erro ao salvar/i);
+    assert.strictEqual(sheets[CARD_SHEETS[0]].length, 2);
+    assert.strictEqual(sheets[CARD_SHEETS[0]][1][1], 'roupa');
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
 });
 
 stateMachineTest('financial states: family monthly budget alert includes partner spending', async () => {
