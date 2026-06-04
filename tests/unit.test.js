@@ -27,6 +27,8 @@ const userSheetAnalyticsService = require('../src/services/userSheetAnalyticsSer
 const userIdMaintenanceService = require('../src/services/userIdMaintenanceService');
 const goalService = require('../src/services/goalService');
 const budgetCycle = require('../src/utils/budgetCycle');
+const financialQueryPlan = require('../src/query/financialQueryPlan');
+const financialQueryEngine = require('../src/query/financialQueryEngine');
 
 // --- Helpers Tests ---
 test('helpers.parseValue', (t) => {
@@ -114,6 +116,379 @@ test('budgetCycle supports arbitrary salary-cycle start days and short months', 
     const previousCycle = budgetCycle.getBudgetCycleForDate({ year: 2026, month: 5, day: 5 }, 17);
     assert.strictEqual(previousCycle.startLabel, '17/05/2026');
     assert.strictEqual(previousCycle.endLabel, '16/06/2026');
+});
+
+test('financialQueryPlan accepts a detailed card query plan with safe defaults', () => {
+    const result = financialQueryPlan.normalizeFinancialQueryPlan({
+        kind: 'financial_query',
+        domain: 'cards',
+        operation: 'detail',
+        filters: {
+            period: { type: 'month', month: 4, year: 2026 },
+            scope: 'family',
+            card: 'Nubank Thais'
+        },
+        groupBy: ['card', 'category', 'merchant'],
+        limit: 100,
+        answerStyle: 'detailed'
+    });
+
+    assert.strictEqual(result.ok, true);
+    assert.strictEqual(result.plan.domain, 'cards');
+    assert.strictEqual(result.plan.timeBasis, 'billing_month');
+    assert.strictEqual(result.plan.limit, 50);
+    assert.deepStrictEqual(result.plan.groupBy, ['card', 'category', 'merchant']);
+    assert.strictEqual(result.plan.filters.period.month, 4);
+});
+
+test('financialQueryPlan rejects sensitive/internal fields from LLM planner output', () => {
+    const result = financialQueryPlan.normalizeFinancialQueryPlan({
+        kind: 'financial_query',
+        domain: 'expenses',
+        operation: 'list',
+        filters: {
+            period: { type: 'month', month: 4, year: 2026 },
+            spreadsheetId: 'should-not-exist'
+        }
+    });
+
+    assert.strictEqual(result.ok, false);
+    assert.match(result.errors.join(' '), /sensiveis|internos|bloqueados/i);
+});
+
+test('financialQueryPlan rejects unknown top-level and filter fields', () => {
+    const result = financialQueryPlan.normalizeFinancialQueryPlan({
+        kind: 'financial_query',
+        domain: 'expenses',
+        operation: 'sum',
+        filters: {
+            period: { type: 'month', month: 4, year: 2026 },
+            madeUpFilter: 'x'
+        },
+        executeShell: true
+    });
+
+    assert.strictEqual(result.ok, false);
+    assert.match(result.errors.join(' '), /campos nao permitidos/i);
+});
+
+test('financialQueryPlan maps legacy detail and category intents to composable plans', () => {
+    const detail = financialQueryPlan.legacyIntentToQueryPlan('detalhamento_gastos_mes', { mes: 4, ano: 2026 });
+    assert.strictEqual(detail.ok, true);
+    assert.strictEqual(detail.plan.domain, 'expenses');
+    assert.strictEqual(detail.plan.operation, 'detail');
+    assert.deepStrictEqual(detail.plan.groupBy, ['category', 'merchant']);
+
+    const category = financialQueryPlan.legacyIntentToQueryPlan('total_gastos_categoria_mes', { mes: 4, ano: 2026, categoria: 'Mercado' });
+    assert.strictEqual(category.ok, true);
+    assert.strictEqual(category.plan.filters.category, 'Mercado');
+    assert.strictEqual(category.plan.operation, 'sum');
+});
+
+test('financialQueryPlan maps current analytical legacy intents before full migration', () => {
+    const intents = [
+        'total_gastos_mes',
+        'total_gastos_categoria_mes',
+        'media_gastos_categoria_mes',
+        'media_diaria_gastos_mes',
+        'total_gastos_multiplas_categorias',
+        'percentual_categoria_gastos',
+        'comparacao_gastos_categorias',
+        'listagem_gastos_categoria',
+        'contagem_ocorrencias',
+        'contagem_lancamentos_saida',
+        'gastos_valores_duplicados',
+        'maior_menor_gasto',
+        'maior_menor_gasto_categoria',
+        'ranking_categorias_gastos',
+        'comparacao_gastos_periodo',
+        'detalhamento_gastos_mes',
+        'ranking_estabelecimentos_gastos',
+        'detalhamento_cartao_mes',
+        'total_fatura_cartao',
+        'total_faturas_por_cartao',
+        'total_cartoes_em_aberto',
+        'ranking_cartoes_em_aberto',
+        'resumo_parcelamentos_cartao',
+        'total_pagamentos_fatura_mes',
+        'saldo_do_mes',
+        'saldo_disponivel_estimado',
+        'resumo_metas',
+        'progresso_metas',
+        'contas_vencendo',
+        'resumo_contas_recorrentes'
+    ];
+
+    intents.forEach((intent) => {
+        const result = financialQueryPlan.legacyIntentToQueryPlan(intent, {
+            mes: 4,
+            ano: 2026,
+            categoria: 'Mercado',
+            categorias: ['Mercado', 'Transporte'],
+            cartao: 'Nubank'
+        });
+        assert.strictEqual(result.ok, true, `${intent} deve mapear para FinancialQueryPlan`);
+        assert.strictEqual(result.plan.kind, 'financial_query');
+    });
+});
+
+test('financialQueryEngine sums, groups and lists expenses with card rows deterministically', async () => {
+    const dataSources = {
+        saidas: [
+            ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id'],
+            ['04/05/2026', 'Mercado bairro', 'Alimentação', 'Mercado', '100,50', 'Daniel', 'PIX', 'Não', '', 'user-a'],
+            ['05/05/2026', 'Ônibus integração', 'Transporte', 'Ônibus', '8,80', 'Daniel', 'Débito', 'Não', '', 'user-a']
+        ],
+        cartoes: [[
+            ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Obs', 'user_id'],
+            ['20/04/2026', 'iFood jantar', 'Alimentação', '40,00', '1/1', 'Maio de 2026', 'nubank', 'Nubank Daniel', '', 'user-a'],
+            ['25/05/2026', 'Google One', 'Assinaturas', '10,00', '1/1', 'Junho de 2026', 'nubank', 'Nubank Daniel', '', 'user-a']
+        ]]
+    };
+
+    const result = await financialQueryEngine.executeFinancialQuery({
+        kind: 'financial_query',
+        domain: 'expenses',
+        operation: 'detail',
+        filters: { period: { type: 'month', month: 4, year: 2026 } },
+        groupBy: ['category', 'merchant'],
+        timeBasis: 'billing_month',
+        answerStyle: 'detailed'
+    }, dataSources);
+
+    assert.strictEqual(result.ok, true);
+    assert.strictEqual(result.result.value.total, 149.3);
+    assert.strictEqual(result.result.value.count, 3);
+    assert.deepStrictEqual(
+        result.result.value.groups.category.map(item => [item.label, item.total]),
+        [['Alimentação', 140.5], ['Transporte', 8.8]]
+    );
+    assert.strictEqual(result.result.value.groups.merchant[0].label, 'Mercado bairro');
+});
+
+test('financialQueryEngine distinguishes card transaction date from billing month', async () => {
+    const dataSources = {
+        saidas: [['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor']],
+        cartoes: [[
+            ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão'],
+            ['20/04/2026', 'Compra fatura maio', 'Casa', '90,00', '1/1', 'Maio de 2026', 'nubank', 'Nubank Daniel'],
+            ['25/05/2026', 'Compra fatura junho', 'Casa', '50,00', '1/1', 'Junho de 2026', 'nubank', 'Nubank Daniel']
+        ]]
+    };
+
+    const byBilling = await financialQueryEngine.executeFinancialQuery({
+        kind: 'financial_query',
+        domain: 'cards',
+        operation: 'sum',
+        filters: { period: { type: 'month', month: 4, year: 2026 }, card: 'nubank' }
+    }, dataSources);
+
+    const byPurchase = await financialQueryEngine.executeFinancialQuery({
+        kind: 'financial_query',
+        domain: 'cards',
+        operation: 'sum',
+        filters: { period: { type: 'month', month: 4, year: 2026 }, card: 'nubank' },
+        timeBasis: 'transaction_date'
+    }, dataSources);
+
+    assert.strictEqual(byBilling.ok, true);
+    assert.strictEqual(byBilling.result.value, 90);
+    assert.strictEqual(byBilling.plan.timeBasis, 'billing_month');
+    assert.strictEqual(byPurchase.result.value, 50);
+    assert.strictEqual(byPurchase.plan.timeBasis, 'transaction_date');
+});
+
+test('financialQueryEngine ranks card merchants from a composable plan', async () => {
+    const dataSources = {
+        saidas: [['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor']],
+        cartoes: [[
+            ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão'],
+            ['01/05/2026', 'iFood almoço', 'Alimentação', '30,00', '1/1', 'Maio de 2026', 'nubank', 'Nubank Daniel'],
+            ['02/05/2026', 'iFood jantar', 'Alimentação', '45,00', '1/1', 'Maio de 2026', 'nubank', 'Nubank Daniel'],
+            ['03/05/2026', 'Uber corrida', 'Transporte', '20,00', '1/1', 'Maio de 2026', 'nubank', 'Nubank Daniel']
+        ]]
+    };
+
+    const result = await financialQueryEngine.executeFinancialQuery({
+        kind: 'financial_query',
+        domain: 'cards',
+        operation: 'rank',
+        filters: { period: { type: 'month', month: 4, year: 2026 } },
+        groupBy: ['merchant']
+    }, dataSources);
+
+    assert.strictEqual(result.ok, true);
+    assert.deepStrictEqual(result.result.value.slice(0, 2).map(item => [item.label, item.total, item.count]), [
+        ['iFood', 75, 2],
+        ['Uber', 20, 1]
+    ]);
+});
+
+test('financialQueryEngine handles income, transfers, goals and bills without exposing raw internals', async () => {
+    const dataSources = {
+        entradas: [
+            ['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Obs', 'user_id'],
+            ['04/05/2026', 'Salário principal', 'Salário', '5000,00', 'Daniel', 'Conta Corrente', 'Sim', '', 'user-a'],
+            ['12/05/2026', 'Freela', 'Renda Extra', '700,00', 'Daniel', 'PIX', 'Não', '', 'user-a'],
+            ['04/04/2026', 'Salário anterior', 'Salário', '4800,00', 'Daniel', 'Conta Corrente', 'Sim', '', 'user-a']
+        ],
+        transferencias: [
+            ['Data', 'Descrição', 'Valor', 'Origem', 'Destino', 'Método', 'Observações', 'Status', 'user_id'],
+            ['10/05/2026', 'Aplicação RDB caixinha', '1000,00', 'Conta', 'Caixinha', 'PIX', '', 'Movimento de investimento/reserva', 'user-a'],
+            ['20/05/2026', 'QRS NU PAGAMENT fatura', '900,00', 'Conta', 'Nubank', 'PIX', '', 'Pagamento de fatura/cartão', 'user-a']
+        ],
+        metas: [
+            ['Nome', 'Valor Alvo', 'Valor Atual', '% Progresso', 'Valor Mensal', 'Data Fim', 'Status', 'Prioridade', 'user_id', 'Escopo'],
+            ['Reserva', '10000,00', '3500,00', '35%', '800,00', '31/12/2026', 'Ativa', 'Alta', 'user-a', 'family'],
+            ['Viagem', '5000,00', '5000,00', '100%', '0,00', '01/07/2026', 'Concluída', 'Baixa', 'user-a', 'personal']
+        ],
+        contas: [
+            ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa'],
+            ['GRPQAMoradia', '7', 'Aluguel', 'user-a', 'Aluguel', 'Moradia', 'ALUGUEL', '1200,00', 'SIM'],
+            ['CANVA', '', 'Cancelado', 'user-a', 'Canva', 'Assinaturas', 'SERVIÇOS DIGITAIS', '35,00', 'NÃO']
+        ]
+    };
+
+    const income = await financialQueryEngine.executeFinancialQuery({
+        kind: 'financial_query',
+        domain: 'income',
+        operation: 'group',
+        filters: { period: { type: 'month', month: 4, year: 2026 } },
+        groupBy: ['category']
+    }, dataSources);
+
+    assert.strictEqual(income.ok, true);
+    assert.deepStrictEqual(income.result.value.map(item => [item.label, item.total]), [
+        ['Salário', 5000],
+        ['Renda Extra', 700]
+    ]);
+
+    const transfers = await financialQueryEngine.executeFinancialQuery({
+        kind: 'financial_query',
+        domain: 'transfers',
+        operation: 'sum',
+        filters: { period: { type: 'month', month: 4, year: 2026 }, status: 'reserva' }
+    }, dataSources);
+
+    assert.strictEqual(transfers.ok, true);
+    assert.strictEqual(transfers.result.value, 1000);
+
+    const goals = await financialQueryEngine.executeFinancialQuery({
+        kind: 'financial_query',
+        domain: 'goals',
+        operation: 'explain'
+    }, dataSources);
+
+    assert.strictEqual(goals.ok, true);
+    assert.deepStrictEqual(goals.result.value.totals, {
+        target: 15000,
+        current: 8500,
+        missing: 6500,
+        monthlyRequired: 800
+    });
+    assert.strictEqual(goals.result.value.activeCount, 1);
+
+    const bills = await financialQueryEngine.executeFinancialQuery({
+        kind: 'financial_query',
+        domain: 'bills',
+        operation: 'list',
+        filters: { status: 'sim' }
+    }, dataSources);
+
+    assert.strictEqual(bills.ok, true);
+    assert.deepStrictEqual(bills.result.value.map(item => [item.description, item.category, item.value]), [
+        ['Aluguel', 'Moradia', 1200]
+    ]);
+    assert.strictEqual(Object.prototype.hasOwnProperty.call(bills.result.value[0], 'userId'), false);
+});
+
+test('financialQueryEngine handles monthly budget settings as a public analytical domain', async () => {
+    const dataSources = {
+        userSettings: [
+            ['user_id', 'monthly_budget_enabled', 'monthly_budget_amount', 'monthly_budget_scope', 'monthly_budget_cycle_start_day'],
+            ['user-a', 'SIM', '1500,00', 'family', '28']
+        ]
+    };
+
+    const budget = await financialQueryEngine.executeFinancialQuery({
+        kind: 'financial_query',
+        domain: 'budget',
+        operation: 'explain'
+    }, dataSources);
+
+    assert.strictEqual(budget.ok, true);
+    assert.strictEqual(budget.result.value.total, 1500);
+    assert.deepStrictEqual(budget.result.value.items, [
+        {
+            date: '28',
+            description: 'Orçamento mensal livre',
+            category: 'family',
+            subcategory: '',
+            value: 1500,
+            source: 'UserSettings',
+            paymentMethod: undefined,
+            card: undefined,
+            installment: undefined,
+            billingMonth: undefined,
+            status: 'SIM'
+        }
+    ]);
+    assert.strictEqual(Object.prototype.hasOwnProperty.call(budget.result.value.items[0], 'userId'), false);
+});
+
+test('financialQueryEngine supports percentage, average, extreme and category comparisons', async () => {
+    const dataSources = {
+        saidas: [
+            ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id'],
+            ['04/05/2026', 'Mercado bairro', 'Alimentação', 'Mercado', '100,00', 'Daniel', 'PIX', 'Não', '', 'user-a'],
+            ['05/05/2026', 'Restaurante', 'Alimentação', 'Restaurante', '50,00', 'Daniel', 'Débito', 'Não', '', 'user-a'],
+            ['06/05/2026', 'Ônibus', 'Transporte', 'Ônibus', '10,00', 'Daniel', 'PIX', 'Não', '', 'user-a']
+        ],
+        cartoes: [[
+            ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Obs', 'user_id'],
+            ['07/05/2026', 'Uber', 'Transporte', '40,00', '1/1', 'Maio de 2026', 'nubank', 'Nubank Daniel', '', 'user-a']
+        ]]
+    };
+
+    const percentage = await financialQueryEngine.executeFinancialQuery({
+        kind: 'financial_query',
+        domain: 'expenses',
+        operation: 'percentage',
+        filters: { period: { type: 'month', month: 4, year: 2026 }, category: 'Alimentação' }
+    }, dataSources);
+    assert.strictEqual(percentage.ok, true);
+    assert.strictEqual(percentage.result.value.percent, 75);
+    assert.strictEqual(percentage.result.value.part, 150);
+    assert.strictEqual(percentage.result.value.total, 200);
+
+    const average = await financialQueryEngine.executeFinancialQuery({
+        kind: 'financial_query',
+        domain: 'expenses',
+        operation: 'average',
+        filters: { period: { type: 'month', month: 4, year: 2026 } }
+    }, dataSources);
+    assert.strictEqual(average.result.value, 50);
+
+    const extreme = await financialQueryEngine.executeFinancialQuery({
+        kind: 'financial_query',
+        domain: 'expenses',
+        operation: 'extreme',
+        filters: { period: { type: 'month', month: 4, year: 2026 } }
+    }, dataSources);
+    assert.strictEqual(extreme.result.value.max.description, 'Mercado bairro');
+    assert.strictEqual(extreme.result.value.min.description, 'Ônibus');
+
+    const comparison = await financialQueryEngine.executeFinancialQuery({
+        kind: 'financial_query',
+        domain: 'expenses',
+        operation: 'compare',
+        filters: { period: { type: 'month', month: 4, year: 2026 }, categories: ['Alimentação', 'Transporte'] },
+        groupBy: ['category']
+    }, dataSources);
+    assert.deepStrictEqual(comparison.result.value.items.map(item => [item.label, item.total]), [
+        ['Alimentação', 150],
+        ['Transporte', 50]
+    ]);
 });
 
 test('helpers.getFormattedDateOnly', (t) => {
@@ -932,6 +1307,21 @@ test('messageHandler.classifyPerguntaLocally covers complex analytical questions
     const cardRanking = classifyPerguntaLocally('qual cartão tem mais parcelas em aberto?');
     assert.strictEqual(cardRanking.intent, 'ranking_cartoes_em_aberto');
 
+    const expenseDetails = classifyPerguntaLocally('detalhe os gastos pra mim');
+    assert.strictEqual(expenseDetails.intent, 'detalhamento_gastos_mes');
+
+    const expenseComposition = classifyPerguntaLocally('me explica de onde veio esse total de gastos');
+    assert.strictEqual(expenseComposition.intent, 'detalhamento_gastos_mes');
+
+    const cardDetails = classifyPerguntaLocally('foram gastos como no cartão?');
+    assert.strictEqual(cardDetails.intent, 'detalhamento_cartao_mes');
+
+    const establishments = classifyPerguntaLocally('foram em quais estabelecimentos?');
+    assert.strictEqual(establishments.intent, 'ranking_estabelecimentos_gastos');
+
+    const spokenValueEstablishments = classifyPerguntaLocally('os 328 e 81 foram gastos em quais estabelecimentos?');
+    assert.strictEqual(spokenValueEstablishments.intent, 'ranking_estabelecimentos_gastos');
+
     const goalsList = classifyPerguntaLocally('liste minhas metas');
     assert.strictEqual(goalsList.intent, 'resumo_metas');
 
@@ -940,6 +1330,49 @@ test('messageHandler.classifyPerguntaLocally covers complex analytical questions
 
     const goalsProgress = classifyPerguntaLocally('quanto falta para eu bater minhas metas?');
     assert.strictEqual(goalsProgress.intent, 'progresso_metas');
+});
+
+test('messageHandler analytical follow-ups inherit safe context without raw spreadsheet data', () => {
+    const {
+        classifyPerguntaLocally,
+        storeAnalyticalContext,
+        getAnalyticalContext,
+        clearAnalyticalContextForTests
+    } = messageHandler.__test__;
+
+    clearAnalyticalContextForTests();
+    storeAnalyticalContext('sender-a', {
+        intent: 'total_gastos_mes',
+        parameters: {
+            mes: 4,
+            ano: 2026,
+            categoria: 'alimentacao',
+            spreadsheetId: 'nao deve persistir',
+            user_id: 'tambem nao'
+        }
+    });
+
+    const context = getAnalyticalContext('sender-a');
+    assert.deepStrictEqual(context.parameters, { mes: 4, ano: 2026, categoria: 'alimentacao' });
+    assert.strictEqual(Object.prototype.hasOwnProperty.call(context.parameters, 'spreadsheetId'), false);
+    assert.strictEqual(Object.prototype.hasOwnProperty.call(context.parameters, 'user_id'), false);
+
+    const cardFollowUp = classifyPerguntaLocally('e no cartão?', context);
+    assert.strictEqual(cardFollowUp.intent, 'detalhamento_cartao_mes');
+    assert.strictEqual(cardFollowUp.parameters.mes, 4);
+    assert.strictEqual(cardFollowUp.parameters.ano, 2026);
+
+    const merchantFollowUp = classifyPerguntaLocally('foram em quais estabelecimentos?', context);
+    assert.strictEqual(merchantFollowUp.intent, 'ranking_estabelecimentos_gastos');
+    assert.strictEqual(merchantFollowUp.parameters.mes, 4);
+    assert.strictEqual(merchantFollowUp.parameters.ano, 2026);
+
+    const categoryFollowUp = classifyPerguntaLocally('e por categoria?', context);
+    assert.strictEqual(categoryFollowUp.intent, 'ranking_categorias_gastos');
+    assert.strictEqual(categoryFollowUp.parameters.mes, 4);
+    assert.strictEqual(categoryFollowUp.parameters.ano, 2026);
+
+    clearAnalyticalContextForTests();
 });
 
 test('messageHandler local command routing avoids AI for common commands and low-signal text', (t) => {
@@ -1143,6 +1576,46 @@ test('messageHandler local replies cover richer spreadsheet calculations', () =>
 
     assert.match(
         buildLocalPerguntaResponse({
+            intent: 'detalhamento_gastos_mes',
+            analyzedData: {
+                results: {
+                    total: 328.81,
+                    totalSaidas: 100,
+                    totalCartoes: 228.81,
+                    categorias: [
+                        { label: 'Alimentação', total: 200, count: 3 },
+                        { label: 'Transporte', total: 128.81, count: 2 }
+                    ],
+                    estabelecimentos: [
+                        { label: 'iFood', total: 116.98, count: 2 },
+                        { label: 'Uber', total: 60, count: 1 }
+                    ],
+                    lancamentos: [
+                        { data: '04/06/2026', descricao: 'iFood', categoria: 'Alimentação', valor: 16.98, origem: 'Cartão', cartao: 'Nubank' }
+                    ]
+                },
+                details: { mes: 5, ano: 2026, totalLancamentos: 5 }
+            }
+        }),
+        /Detalhamento dos gastos.*junho\/2026.*Total: R\$ 328,81.*Saídas: R\$ 100,00.*Cartões: R\$ 228,81.*Por categoria.*Alimentação: R\$ 200,00.*Principais estabelecimentos.*iFood: R\$ 116,98.*Lançamentos que compõem/s
+    );
+
+    assert.match(
+        buildLocalPerguntaResponse({
+            intent: 'ranking_estabelecimentos_gastos',
+            analyzedData: {
+                results: [
+                    { label: 'iFood', total: 116.98, count: 2 },
+                    { label: 'Uber', total: 60, count: 1 }
+                ],
+                details: { mes: 5, ano: 2026, total: 176.98, totalLancamentos: 3 }
+            }
+        }),
+        /Estabelecimentos.*junho\/2026.*iFood: R\$ 116,98.*2 lançamento/s
+    );
+
+    assert.match(
+        buildLocalPerguntaResponse({
             intent: 'contagem_lancamentos_saida',
             analyzedData: {
                 results: 12,
@@ -1298,6 +1771,47 @@ test('calculationOrchestrator answers complex spending questions deterministical
     assert.strictEqual(round2(balance.results), 2047.31);
     assert.strictEqual(balance.details.totalEntradas, 2500);
     assert.strictEqual(round2(balance.details.totalSaidas), 452.69);
+});
+
+test('calculationOrchestrator details expenses by category, establishment and source', async () => {
+    const round2 = value => Math.round(Number(value || 0) * 100) / 100;
+    const dataSources = {
+        saidas: [
+            ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id'],
+            ['04/06/2026', 'iFood almoço', 'Alimentação', 'Delivery', 16.98, 'Thaís', 'PIX', 'Não', '', 'user-2'],
+            ['03/06/2026', 'Uber casa', 'Transporte', 'Aplicativo', 40, 'Thaís', 'PIX', 'Não', '', 'user-2']
+        ],
+        entradas: [['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Obs', 'user_id']],
+        cartoes: [[
+            ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Observações', 'user_id'],
+            ['02/06/2026', 'iFood jantar', 'Alimentação', 100, '1/1', 'Junho de 2026', 'nubank-thais', 'Nubank Thais', '', 'user-2'],
+            ['01/06/2026', 'Mercado Bom', 'Alimentação', 171.83, '1/1', 'Junho de 2026', 'nubank-thais', 'Nubank Thais', '', 'user-2']
+        ]]
+    };
+
+    const details = await calculationOrchestrator.execute('detalhamento_gastos_mes', { mes: 5, ano: 2026 }, dataSources);
+    assert.strictEqual(round2(details.results.total), 328.81);
+    assert.strictEqual(round2(details.results.totalSaidas), 56.98);
+    assert.strictEqual(round2(details.results.totalCartoes), 271.83);
+    assert.deepStrictEqual(details.results.categorias.map(item => [item.label, round2(item.total), item.count]), [
+        ['Alimentação', 288.81, 3],
+        ['Transporte', 40, 1]
+    ]);
+    assert.deepStrictEqual(details.results.estabelecimentos.slice(0, 2).map(item => [item.label, round2(item.total), item.count]), [
+        ['Mercado Bom', 171.83, 1],
+        ['iFood', 116.98, 2]
+    ]);
+
+    const cardDetails = await calculationOrchestrator.execute('detalhamento_cartao_mes', { mes: 5, ano: 2026, cartao: 'nubank thais' }, dataSources);
+    assert.strictEqual(round2(cardDetails.results.total), 271.83);
+    assert.strictEqual(cardDetails.results.lancamentos.length, 2);
+
+    const establishments = await calculationOrchestrator.execute('ranking_estabelecimentos_gastos', { mes: 5, ano: 2026 }, dataSources);
+    assert.deepStrictEqual(establishments.results.slice(0, 3).map(item => [item.label, round2(item.total), item.count]), [
+        ['Mercado Bom', 171.83, 1],
+        ['iFood', 116.98, 2],
+        ['Uber', 40, 1]
+    ]);
 });
 
 test('calculationOrchestrator calculates card invoices and open installments deterministically', async () => {

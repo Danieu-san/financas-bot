@@ -31,6 +31,9 @@ async function classify(questionText) {
     - comparacao_gastos_categorias
     - maior_menor_gasto_categoria
     - listagem_gastos_categoria
+    - detalhamento_gastos_mes
+    - detalhamento_cartao_mes
+    - ranking_estabelecimentos_gastos
     - contagem_ocorrencias
     - gastos_valores_duplicados
     - maior_menor_gasto
@@ -47,6 +50,9 @@ async function classify(questionText) {
     - Se o usuário perguntar quanto uma categoria representa em porcentagem do total, use "percentual_categoria_gastos".
     - Se o usuário comparar duas categorias (ex: "mercado foi maior que transporte?"), use "comparacao_gastos_categorias" com "categorias".
     - Se o usuário pedir maior/menor compra de uma categoria específica (ex: "maior compra de mercado"), use "maior_menor_gasto_categoria".
+    - Se o usuário pedir para detalhar, explicar, abrir ou discriminar os gastos de um período, use "detalhamento_gastos_mes".
+    - Se o usuário pedir detalhamento de cartão, crédito ou fatura, use "detalhamento_cartao_mes".
+    - Se o usuário perguntar em quais estabelecimentos, lojas, lugares ou comércios o dinheiro foi gasto, use "ranking_estabelecimentos_gastos".
     - "ano": O ano com 4 dígitos (ex: 2025). Se não for mencionado, use o ano atual: ${currentYear}.
     - "mes": O NOME do mês (ex: "agosto").
 

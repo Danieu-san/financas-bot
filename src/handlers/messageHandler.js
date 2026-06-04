@@ -165,6 +165,8 @@ const MASTER_SCHEMA = {
 };
 
 const processedMessages = new Set();
+const ANALYTICAL_CONTEXT_TTL_MS = 5 * 60 * 1000;
+const analyticalContextBySender = new Map();
 const monthNamesLower = ["janeiro", "fevereiro", "marco", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 const monthNamesCapitalized = ["Janeiro", "Fevereiro", "Mar�o", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 const PERF_WARN_MS = Number.parseInt(process.env.MESSAGE_SLOW_LOG_MS || '4000', 10);
@@ -1248,9 +1250,118 @@ function isInvoiceByCardQuestion(text) {
     );
 }
 
-function inferAnalyticalQueryPlan(userQuestion) {
+function sanitizeAnalyticalParametersForContext(parameters = {}) {
+    const safe = {};
+    ['mes', 'ano', 'categoria', 'cartao', 'origem'].forEach((key) => {
+        if (parameters[key] !== undefined) safe[key] = parameters[key];
+    });
+    if (Array.isArray(parameters.categorias)) safe.categorias = parameters.categorias.slice(0, 5);
+    return safe;
+}
+
+function storeAnalyticalContext(senderId, intentClassification = {}, meta = {}) {
+    const key = String(senderId || '').trim();
+    const intent = String(intentClassification.intent || '').trim();
+    if (!key || !intent || intent === 'pergunta_geral') return;
+
+    analyticalContextBySender.set(key, {
+        intent,
+        parameters: sanitizeAnalyticalParametersForContext(intentClassification.parameters || {}),
+        metric: meta.metric || '',
+        storedAt: Date.now(),
+        expiresAt: Date.now() + ANALYTICAL_CONTEXT_TTL_MS
+    });
+}
+
+function getAnalyticalContext(senderId) {
+    const key = String(senderId || '').trim();
+    if (!key) return null;
+    const context = analyticalContextBySender.get(key);
+    if (!context) return null;
+    if (Date.now() > Number(context.expiresAt || 0)) {
+        analyticalContextBySender.delete(key);
+        return null;
+    }
+    return context;
+}
+
+function clearAnalyticalContextForTests() {
+    analyticalContextBySender.clear();
+}
+
+function hasExplicitMonthSignal(text) {
+    return /(janeiro|fevereiro|marco|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|mes passado|mês passado|este mes|este mês|esse mes|esse mês|mês atual|mes atual)/.test(text);
+}
+
+function deriveFollowUpAnalyticalQueryPlan(text, context) {
+    if (!context || !context.intent) return null;
+
+    const previousParams = context.parameters || {};
+    const mes = hasExplicitMonthSignal(text) ? parseMonthFromText(text) : previousParams.mes;
+    const ano = /\b20\d{2}\b/.test(text) ? parseYearFromText(text) : previousParams.ano;
+    const inheritedParams = {
+        ...previousParams,
+        mes,
+        ano
+    };
+    const cardName = extractCardFromQuestion(text) || previousParams.cartao || '';
+    const hasCardSignal = text.includes('cartao') || text.includes('cartoes') || text.includes('credito') || text.includes('crédito') || text.includes('fatura') || Boolean(extractCardFromQuestion(text));
+    const hasEstablishmentSignal = (
+        /\b(estabelecimento|estabelecimentos|loja|lojas|local|locais|lugar|lugares|comercio|comércio|comercios|comércios|fornecedor|fornecedores)\b/.test(text) ||
+        text.includes('onde') ||
+        text.includes('em quais')
+    );
+    const hasDetailSignal = (
+        /\b(detalh|detalhe|detalhar|explique|explica|abrir|abra|quebra|quebre|compoe|compõe)\b/.test(text) ||
+        text.includes('como foi') ||
+        text.includes('como ficou')
+    );
+    const asksCategoryBreakdown = /\b(categoria|categorias|tipo|tipos)\b/.test(text) && /\b(por|quais|qual|distribui|divid)\b/.test(text);
+    const followUpShape = (
+        /^(e|mas|agora|tambem|também)\b/.test(text) ||
+        text.length <= 80 ||
+        /\b(desse|desses|dessa|dessas|isso|esse|esses|essa|essas|total|valor)\b/.test(text)
+    );
+    if (!followUpShape) return null;
+
+    if (hasEstablishmentSignal) {
+        return {
+            metric: 'expense_establishments_followup',
+            intent: 'ranking_estabelecimentos_gastos',
+            parameters: { ...inheritedParams, origem: hasCardSignal || context.intent === 'detalhamento_cartao_mes' ? 'cartao' : '', cartao: cardName }
+        };
+    }
+    if (hasCardSignal) {
+        return {
+            metric: 'card_expense_detail_followup',
+            intent: 'detalhamento_cartao_mes',
+            parameters: { ...inheritedParams, cartao: cardName }
+        };
+    }
+    if (hasDetailSignal) {
+        return {
+            metric: 'expense_detail_followup',
+            intent: context.intent === 'detalhamento_cartao_mes' ? 'detalhamento_cartao_mes' : 'detalhamento_gastos_mes',
+            parameters: { ...inheritedParams, cartao: cardName }
+        };
+    }
+    if (asksCategoryBreakdown) {
+        return {
+            metric: 'top_expense_categories_followup',
+            intent: 'ranking_categorias_gastos',
+            parameters: inheritedParams
+        };
+    }
+
+    return null;
+}
+
+function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
     const text = normalizeText(String(userQuestion || '').trim());
     if (!text) return null;
+
+    const followUpPlan = deriveFollowUpAnalyticalQueryPlan(text, previousContext);
+    if (followUpPlan) return followUpPlan;
 
     const mes = parseMonthFromText(text);
     const ano = parseYearFromText(text);
@@ -1262,6 +1373,35 @@ function inferAnalyticalQueryPlan(userQuestion) {
     const cardName = extractCardFromQuestion(text);
 
     const hasCardSignal = text.includes('cartao') || text.includes('cartoes') || Boolean(cardName);
+    const hasDetailSignal = (
+        /\b(detalh|detalhe|detalhar|explique|explica|explicar|compoe|compõe|composicao|composição|discrimine|abra|abrir|quebra|quebre)\b/.test(text) ||
+        text.includes('de onde veio') ||
+        text.includes('como foi gasto') ||
+        text.includes('como foram gastos') ||
+        text.includes('foram gastos como') ||
+        text.includes('o que entrou nesse total')
+    );
+    const hasEstablishmentSignal = (
+        /\b(estabelecimento|estabelecimentos|loja|lojas|local|locais|lugar|lugares|comercio|comércio|comercios|comércios|fornecedor|fornecedores)\b/.test(text) ||
+        text.includes('onde foi gasto') ||
+        text.includes('onde foram gastos')
+    );
+
+    if (hasEstablishmentSignal && (hasExpenseSignal || hasCardSignal || text.includes('gasto') || text.includes('gastos') || text.includes('foram'))) {
+        return {
+            metric: 'expense_establishments',
+            intent: 'ranking_estabelecimentos_gastos',
+            parameters: { mes, ano, origem: hasCardSignal ? 'cartao' : '', cartao: cardName }
+        };
+    }
+
+    if (hasDetailSignal && (hasExpenseSignal || hasCardSignal || text.includes('total') || text.includes('valor'))) {
+        return {
+            metric: hasCardSignal ? 'card_expense_detail' : 'expense_detail',
+            intent: hasCardSignal ? 'detalhamento_cartao_mes' : 'detalhamento_gastos_mes',
+            parameters: { mes, ano, cartao: cardName }
+        };
+    }
 
     if (/\b(meta|metas|objetivo|objetivos)\b/.test(text)) {
         if (
@@ -1426,10 +1566,10 @@ function detectFastPerguntaIntent(messageBody) {
     const text = normalizeText(String(messageBody || '').trim());
     if (!text) return null;
 
-    const isQuestionShape = /^(qual|quais|quanto|quantos|quantas|conte|contar|media|média|liste|listar|mostre|mostrar|me mostre|me mostra|me diga|como ficou|como esta|como estão)/.test(text) || text.includes('?');
+    const isQuestionShape = /^(qual|quais|quanto|quantos|quantas|conte|contar|media|média|liste|listar|mostre|mostrar|me mostre|me mostra|me diga|como ficou|como esta|como estão|detalhe|detalhar|explique|explica)/.test(text) || text.includes('?');
     if (!isQuestionShape) return null;
 
-    const looksAnalytical = /(saldo|gastei|gasto|gastos|entrada|entradas|divida|dividas|categoria|mes|ano|vezes|ocorrencia|ocorrencias|duplicad|maior|menor|onibus|ônibus|uber|transporte|cartao|cartão|credito|crédito|fatura|parcelamento|parcelas|aberto|conta|contas|recorrente|recorrentes|nubank|itau|itaú|atacadao|atacadão|janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/.test(text);
+    const looksAnalytical = /(saldo|gastei|gasto|gastos|entrada|entradas|divida|dividas|categoria|mes|ano|vezes|ocorrencia|ocorrencias|duplicad|maior|menor|onibus|ônibus|uber|transporte|cartao|cartão|credito|crédito|fatura|parcelamento|parcelas|aberto|conta|contas|recorrente|recorrentes|nubank|itau|itaú|atacadao|atacadão|detalh|estabelecimento|estabelecimentos|loja|lojas|comercio|comércio|comercios|comércios|total|janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/.test(text);
     if (!looksAnalytical) return null;
 
     return {
@@ -1482,7 +1622,8 @@ function shouldSkipAiForUnknownMessage(messageBody) {
         'listar', 'mostre', 'mostrar', 'saldo', 'resumo', 'dashboard', 'painel',
         'termos', 'privacidade', 'admin', 'ajuda', 'relatorio', 'relatório',
         'checkin', 'reserva', 'cartao', 'cartão', 'credito', 'crédito', 'pix',
-        'dinheiro', 'debito', 'débito', 'conta', 'contas', 'recorrente'
+        'dinheiro', 'debito', 'débito', 'conta', 'contas', 'recorrente',
+        'detalhe', 'detalhar', 'estabelecimento', 'estabelecimentos'
     ];
 
     return !knownSignals.some(signal => text.includes(normalizeText(signal))) && text.length <= 80;
@@ -1498,8 +1639,8 @@ function shouldInterruptStatementImportConfirmation(messageBody) {
     return /^(gastei|gasto|paguei|comprei|recebi|ganhei|entrada|quanto|qual|quais|liste|listar|mostre|mostrar|dashboard|painel|ajuda|criar|apagar|registrar|me lembre|lembre|resumo)\b/.test(text);
 }
 
-function classifyPerguntaLocally(userQuestion) {
-    const plan = inferAnalyticalQueryPlan(userQuestion);
+function classifyPerguntaLocally(userQuestion, previousContext = null) {
+    const plan = inferAnalyticalQueryPlan(userQuestion, previousContext);
     if (!plan) return null;
     return { intent: plan.intent, parameters: plan.parameters };
 }
@@ -1738,6 +1879,76 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
             ? '\nComece revisando as 2 primeiras categorias: são onde um ajuste pequeno costuma gerar maior impacto.'
             : '';
         return `Categorias que mais consumiram em ${periodLabel}:\n${lines.join('\n')}${advice}`;
+    }
+
+    if (intent === 'detalhamento_gastos_mes' || intent === 'detalhamento_cartao_mes') {
+        const payload = results || {};
+        const lancamentos = Array.isArray(payload.lancamentos) ? payload.lancamentos : [];
+        if (lancamentos.length === 0) {
+            return `Não encontrei gastos para detalhar em ${periodLabel}.`;
+        }
+        const title = intent === 'detalhamento_cartao_mes'
+            ? `Detalhamento dos gastos no cartão em ${periodLabel}:`
+            : `Detalhamento dos gastos em ${periodLabel}:`;
+        const lines = [
+            title,
+            `Total: ${formatCurrencyBR(payload.total || 0)}`
+        ];
+        if (intent !== 'detalhamento_cartao_mes') {
+            lines.push(`Saídas: ${formatCurrencyBR(payload.totalSaidas || 0)}`);
+            lines.push(`Cartões: ${formatCurrencyBR(payload.totalCartoes || 0)}`);
+        }
+
+        const categories = Array.isArray(payload.categorias) ? payload.categorias.slice(0, 5) : [];
+        if (categories.length > 0) {
+            lines.push('');
+            lines.push('Por categoria:');
+            categories.forEach((item, idx) => {
+                const count = item.count ? ` (${item.count} lançamento(s))` : '';
+                lines.push(`${idx + 1}. ${item.label || 'Outros'}: ${formatCurrencyBR(item.total || 0)}${count}`);
+            });
+        }
+
+        const establishments = Array.isArray(payload.estabelecimentos) ? payload.estabelecimentos.slice(0, 5) : [];
+        if (establishments.length > 0) {
+            lines.push('');
+            lines.push('Principais estabelecimentos:');
+            establishments.forEach((item, idx) => {
+                const count = item.count ? ` (${item.count} lançamento(s))` : '';
+                lines.push(`${idx + 1}. ${item.label || 'Sem descrição'}: ${formatCurrencyBR(item.total || 0)}${count}`);
+            });
+        }
+
+        lines.push('');
+        lines.push('Lançamentos que compõem:');
+        lancamentos.slice(0, 8).forEach((item, idx) => {
+            const date = formatSheetDateForReply(item.data);
+            const source = item.tipo === 'cartao'
+                ? `Cartão${item.cartao ? ` - ${item.cartao}` : ''}`
+                : (item.pagamento || item.origem || 'Saída');
+            lines.push(`${idx + 1}. ${date} | ${item.descricao || 'sem descrição'} | ${item.categoria || 'Outros'} | ${formatCurrencyBR(item.valor || 0)} | ${source}`);
+        });
+        if (lancamentos.length > 8) {
+            lines.push(`... e mais ${lancamentos.length - 8} lançamento(s).`);
+        }
+        if (details.criterioCartao === 'mes_cobranca' && Number(payload.totalCartoes || 0) > 0) {
+            lines.push('');
+            lines.push('Obs.: cartões entram pelo mês de cobrança/fatura, não necessariamente pela data da compra.');
+        }
+        return lines.join('\n');
+    }
+
+    if (intent === 'ranking_estabelecimentos_gastos') {
+        const rows = Array.isArray(results) ? results : [];
+        const scope = details.somenteCartao ? ' no cartão' : '';
+        if (rows.length === 0) return `Não encontrei estabelecimentos com gastos${scope} em ${periodLabel}.`;
+        const total = Number(details.total || rows.reduce((sum, item) => sum + Number(item.total || 0), 0));
+        const lines = rows.slice(0, 12).map((item, idx) => {
+            const count = item.count ? ` (${item.count} lançamento(s))` : '';
+            return `${idx + 1}. ${item.label || 'Sem descrição'}: ${formatCurrencyBR(item.total || 0)}${count}`;
+        });
+        const truncated = rows.length > 12 ? `\n... e mais ${rows.length - 12} estabelecimento(s).` : '';
+        return `Estabelecimentos com gastos${scope} em ${periodLabel}:\n${lines.join('\n')}${truncated}\nTotal detalhado: ${formatCurrencyBR(total)}`;
     }
 
     if (intent === 'comparacao_gastos_periodo') {
@@ -4691,7 +4902,8 @@ async function handleMessage(msg) {
                 case 'pergunta': {
                     try {
                         const userQuestion = structuredResponse.question || messageBody;
-                        const localClassification = classifyPerguntaLocally(userQuestion);
+                        const previousAnalyticalContext = getAnalyticalContext(senderId);
+                        const localClassification = classifyPerguntaLocally(userQuestion, previousAnalyticalContext);
                         const intentClassification = localClassification || await timeStep(
                             'classify(userQuestion)',
                             () => classify(userQuestion),
@@ -4863,6 +5075,7 @@ async function handleMessage(msg) {
                     
                         cache.set(cacheKey, respostaFinal);
                         await msg.reply(respostaFinal);
+                        storeAnalyticalContext(senderId, effectiveIntentClassification);
 
                     } catch (err) {
                         console.error("Erro no novo sistema de perguntas:", err);
@@ -4981,6 +5194,10 @@ module.exports = {
         buildGreetingReply,
         buildPreOnboardingInviteMessage,
         inferAnalyticalQueryPlan,
+        deriveFollowUpAnalyticalQueryPlan,
+        storeAnalyticalContext,
+        getAnalyticalContext,
+        clearAnalyticalContextForTests,
         buildPersonalCreditCardOptionsFromRows,
         extractMultipleCategoriesFromQuestion,
         extractComparisonCategoriesFromQuestion,

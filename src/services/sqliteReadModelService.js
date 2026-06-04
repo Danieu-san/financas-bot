@@ -347,6 +347,66 @@ function isGoalActive(status, target, current) {
     return !/(concluid|finalizad|atingid|quitad|cancelad|pausad)/.test(normalized) && Number(target || 0) > Number(current || 0);
 }
 
+function titleCaseLabel(value) {
+    return String(value || '')
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(Boolean)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
+        .trim();
+}
+
+function normalizeEstablishmentLabel(description) {
+    const original = String(description || '').trim();
+    const normalized = normalizeText(original);
+    if (!normalized) return 'Sem descrição';
+    if (normalized.includes('ifood') || normalized.includes('i food')) return 'iFood';
+    if (normalized.includes('uber')) return 'Uber';
+    if (normalized.includes('mercadolivre') || normalized.includes('mercado livre')) return 'Mercado Livre';
+    if (normalized.includes('google')) return 'Google';
+
+    const cleaned = original
+        .replace(/\s*[-–—]?\s*(?:parcela\s*)?\d+\s*\/\s*\d+\s*$/i, '')
+        .replace(/\b(?:compra|pagamento|pix|debito|débito|credito|crédito|nu\s*pay|nupay)\b/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    return titleCaseLabel(cleaned || original).slice(0, 60);
+}
+
+function groupExpenseRows(rows, keyFn) {
+    const grouped = new Map();
+    rows.forEach((row) => {
+        const label = String(keyFn(row) || 'Outros').trim() || 'Outros';
+        const key = normalizeText(label) || label;
+        const existing = grouped.get(key) || { label, total: 0, count: 0 };
+        existing.total += Number(row.valor || row.value || 0);
+        existing.count += 1;
+        grouped.set(key, existing);
+    });
+    return Array.from(grouped.values())
+        .sort((a, b) => b.total - a.total || b.count - a.count || String(a.label).localeCompare(String(b.label), 'pt-BR'));
+}
+
+function buildExpenseDetailResult(rows, params = {}) {
+    const totalSaidas = rows
+        .filter(row => row.tipo === 'saida')
+        .reduce((sum, row) => sum + Number(row.valor || 0), 0);
+    const totalCartoes = rows
+        .filter(row => row.tipo === 'cartao')
+        .reduce((sum, row) => sum + Number(row.valor || 0), 0);
+    return {
+        total: totalSaidas + totalCartoes,
+        totalSaidas,
+        totalCartoes,
+        categorias: groupExpenseRows(rows, row => row.categoria || 'Outros').slice(0, 8),
+        estabelecimentos: groupExpenseRows(rows, row => normalizeEstablishmentLabel(row.descricao)).slice(0, 10),
+        formas: groupExpenseRows(rows, row => row.tipo === 'cartao' ? (row.cartao || 'Cartão de Crédito') : 'Saídas').slice(0, 8),
+        lancamentos: rows.slice(0, 12),
+        filtroCartao: params.cartao || ''
+    };
+}
+
 function queryKpis(userId, { month, year } = {}) {
     if (!sqliteReady || !db) return null;
     const m = normalizeMonthParam(month);
@@ -588,6 +648,77 @@ function queryAnalyticalIntentSql(intent, parameters, { userId }) {
                 total: results.reduce((sum, row) => sum + Number(row.total || 0), 0),
                 cartoes: results.length,
                 parcelas: results.reduce((sum, row) => sum + Number(row.parcelas || 0), 0)
+            }
+        };
+    }
+
+    if (intent === 'detalhamento_gastos_mes' || intent === 'detalhamento_cartao_mes' || intent === 'ranking_estabelecimentos_gastos') {
+        const allUsers = isAllUsersScope(userId) ? 1 : 0;
+        const onlyCards = intent === 'detalhamento_cartao_mes' || normalizeText(parameters?.origem || '') === 'cartao';
+        const cardNeedle = `%${normalizeText(cartaoRaw)}%`;
+        const sourceTypeFilter = onlyCards ? 'cartao' : '';
+        const rows = db.prepare(`
+            SELECT
+                date_text AS data,
+                description AS descricao,
+                category AS categoria,
+                subcategory AS subcategoria,
+                value AS valor,
+                source_type AS tipo,
+                source_name AS cartao
+            FROM expenses
+            WHERE (? = 1 OR user_id = ?)
+              AND month = ? AND year = ?
+              AND (? = '' OR source_type = ?)
+              AND (? = '' OR ${normalizedSourceNameSql} LIKE ?)
+            ORDER BY value DESC, date_text DESC
+            LIMIT 300
+        `).all(
+            allUsers,
+            userId,
+            month,
+            year,
+            sourceTypeFilter,
+            sourceTypeFilter,
+            normalizeText(cartaoRaw),
+            cardNeedle
+        ).map(row => ({
+            data: row.data || '',
+            descricao: row.descricao || '',
+            categoria: row.categoria || 'Outros',
+            subcategoria: row.subcategoria || '',
+            valor: Number(row.valor || 0),
+            origem: row.tipo === 'cartao' ? 'Cartão' : 'Saídas',
+            tipo: row.tipo || '',
+            pagamento: row.tipo === 'cartao' ? 'Crédito' : '',
+            cartao: row.cartao || '',
+            parcela: '',
+            mesCobranca: ''
+        }));
+
+        if (intent === 'ranking_estabelecimentos_gastos') {
+            const results = groupExpenseRows(rows, row => normalizeEstablishmentLabel(row.descricao)).slice(0, 15);
+            return {
+                results,
+                details: {
+                    mes: month,
+                    ano: year,
+                    total: results.reduce((sum, item) => sum + Number(item.total || 0), 0),
+                    totalLancamentos: rows.length,
+                    somenteCartao: onlyCards
+                }
+            };
+        }
+
+        return {
+            results: buildExpenseDetailResult(rows, { cartao: cartaoRaw }),
+            details: {
+                cartao: cartaoRaw,
+                mes: month,
+                ano: year,
+                totalLancamentos: rows.length,
+                criterioCartao: 'mes_cobranca',
+                somenteCartao: onlyCards
             }
         };
     }

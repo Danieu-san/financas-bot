@@ -54,6 +54,9 @@ Testar perguntas que exigem dados e calculos:
 
 - saldo do mes;
 - total por categoria;
+- detalhamento de gastos do mes;
+- detalhamento de cartao/fatura;
+- ranking de estabelecimentos/lojas;
 - contagem de ocorrencias com grafia imperfeita;
 - soma de multiplas categorias;
 - percentual de categoria no gasto total;
@@ -63,6 +66,25 @@ Testar perguntas que exigem dados e calculos:
 - perguntas por responsavel em familia.
 
 Nao basta ensinar respostas fixas; validar se a rota de calculo usa dados reais/read model.
+
+Para a migracao Query Engine, validar tambem que novas perguntas sejam cobertas por combinacao de:
+
+- dominio: gastos, entradas, cartoes, transferencias, orcamento, metas, dividas, contas, importacoes, dashboard;
+- operacao: somar, contar, listar, detalhar, agrupar, ranquear, comparar, explicar, detectar, projetar;
+- filtros: periodo, pessoa/familia, categoria, estabelecimento, forma de pagamento, cartao, status e origem;
+- base temporal: data da compra, mes da fatura, vencimento ou ciclo de orcamento.
+
+Regra de seguranca: quando houver planner LLM, o plano deve passar por `FinancialQueryPlan`; campos como `sheetId`, `user_id`, `token`, `rawRows`, `allUsers` ou `admin` devem ser rejeitados.
+
+Perguntas livres que devem continuar cobertas:
+
+- `detalhe os gastos pra mim`;
+- `me explica de onde veio esse total de gastos`;
+- `foram gastos como no cartão?`;
+- `foram em quais estabelecimentos?`;
+- `os 328 e 81 foram gastos em quais estabelecimentos?`.
+- follow-ups apos uma pergunta financeira, herdando periodo/escopo seguro: `e no cartão?`, `foram em quais estabelecimentos?`, `e por categoria?`, `detalha esse total`.
+- o contexto de follow-up nao pode guardar ou devolver `spreadsheetId`, `user_id`, `sheet id`, token, prompt interno nem linhas cruas da planilha.
 
 ## Metas
 

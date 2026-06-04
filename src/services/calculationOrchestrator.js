@@ -2,6 +2,8 @@ const analysisService = require('./analysisService');
 const { parseSheetDate, normalizeText, parseValue } = require('../utils/helpers');
 const { matchesAnyField } = require('../utils/textMatcher');
 const { creditCardConfig } = require('../config/constants');
+const { legacyIntentToQueryPlan } = require('../query/financialQueryPlan');
+const { executeFinancialQuery } = require('../query/financialQueryEngine');
 
 const getMonthIndex = (monthInput) => {
     if (monthInput === null || monthInput === undefined) return null;
@@ -21,6 +23,12 @@ const getUnifiedExpenses = (dataSources, mes, ano) => {
         categoria: row[2],
         subcategoria: row[3],
         valor: row[4],
+        origem: 'Saídas',
+        tipo: 'saida',
+        pagamento: row[6] || '',
+        cartao: '',
+        parcela: '',
+        mesCobranca: ''
     }));
 
     if (dataSources.cartoes) {
@@ -32,6 +40,13 @@ const getUnifiedExpenses = (dataSources, mes, ano) => {
                 categoria: row[2],
                 subcategoria: 'Cartão de Crédito',
                 valor: row[3],
+                origem: 'Cartão',
+                tipo: 'cartao',
+                pagamento: 'Crédito',
+                parcela: row[4] || '',
+                mesCobranca: row[5] || '',
+                cardId: row.length >= 10 ? row[6] || '' : '',
+                cartao: row.length >= 10 ? row[7] || row[6] || '' : ''
             }));
             unifiedList.push(...cardExpenses);
         });
@@ -47,6 +62,193 @@ const getUnifiedExpenses = (dataSources, mes, ano) => {
         return isMonthMatch && isYearMatch;
     });
 };
+
+async function executeLegacyExpenseQueryIntent(intent, params = {}, dataSources = {}) {
+    const mapped = legacyIntentToQueryPlan(intent, params);
+    if (!mapped.ok) return null;
+
+    const execution = await executeFinancialQuery(mapped.plan, dataSources);
+    if (!execution.ok) return null;
+
+    const value = execution.result?.value;
+    const mes = getMonthIndex(params.mes);
+    const ano = parseInt(params.ano, 10);
+
+    if (intent === 'ranking_estabelecimentos_gastos') {
+        return {
+            results: Array.isArray(value) ? value : [],
+            details: {
+                ...params,
+                mes,
+                ano,
+                total: execution.result?.details?.total || 0,
+                totalLancamentos: execution.result?.details?.count || 0,
+                somenteCartao: mapped.plan.domain === 'cards' || normalizeText(params.origem || '') === 'cartao'
+            }
+        };
+    }
+
+    const detail = value || {};
+    const onlyCards = intent === 'detalhamento_cartao_mes';
+    const items = Array.isArray(detail.items) ? detail.items : [];
+    const legacyItems = items.map(item => ({
+        data: item.date || '',
+        descricao: item.description || '',
+        categoria: item.category || 'Outros',
+        subcategoria: item.subcategory || '',
+        valor: Number(item.value || 0),
+        origem: item.source || '',
+        tipo: String(item.source || '').toLowerCase().includes('cart') ? 'cartao' : 'saida',
+        pagamento: item.paymentMethod || '',
+        cartao: item.card || '',
+        parcela: item.installment || '',
+        mesCobranca: item.billingMonth || ''
+    }));
+
+    return {
+        results: {
+            total: Number(detail.total || 0),
+            totalSaidas: Number(detail.totals?.outputs || 0),
+            totalCartoes: Number(detail.totals?.cards || 0),
+            categorias: detail.groups?.category || [],
+            estabelecimentos: detail.groups?.merchant || [],
+            formas: onlyCards ? (detail.groups?.card || []) : (detail.groups?.paymentMethod || []),
+            lancamentos: legacyItems,
+            filtroCartao: params.cartao || ''
+        },
+        details: {
+            ...params,
+            mes,
+            ano,
+            totalLancamentos: execution.result?.details?.count || 0,
+            criterioCartao: execution.plan?.timeBasis || 'billing_month',
+            somenteCartao: onlyCards
+        }
+    };
+}
+
+function titleCaseLabel(value) {
+    return String(value || '')
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(Boolean)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
+        .trim();
+}
+
+function normalizeEstablishmentLabel(description) {
+    const original = String(description || '').trim();
+    const normalized = normalizeText(original);
+    if (!normalized) return 'Sem descrição';
+    if (normalized.includes('ifood') || normalized.includes('i food')) return 'iFood';
+    if (normalized.includes('uber')) return 'Uber';
+    if (normalized.includes('mercadolivre') || normalized.includes('mercado livre')) return 'Mercado Livre';
+    if (normalized.includes('google')) return 'Google';
+
+    const cleaned = original
+        .replace(/\s*[-–—]?\s*(?:parcela\s*)?\d+\s*\/\s*\d+\s*$/i, '')
+        .replace(/\b(?:compra|pagamento|pix|debito|débito|credito|crédito|nu\s*pay|nupay)\b/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    return titleCaseLabel(cleaned || original).slice(0, 60);
+}
+
+function sortRowsByValueThenDate(a, b) {
+    const valueDiff = Number(b.valor || 0) - Number(a.valor || 0);
+    if (Math.abs(valueDiff) > 0.005) return valueDiff;
+    const dateA = parseSheetDate(a.data)?.getTime() || 0;
+    const dateB = parseSheetDate(b.data)?.getTime() || 0;
+    return dateB - dateA;
+}
+
+function groupExpenseRows(rows, keyFn) {
+    const grouped = new Map();
+    rows.forEach((row) => {
+        const label = String(keyFn(row) || 'Outros').trim() || 'Outros';
+        const key = normalizeText(label) || label;
+        const existing = grouped.get(key) || { label, total: 0, count: 0 };
+        existing.total += parseValue(row.valor);
+        existing.count += 1;
+        grouped.set(key, existing);
+    });
+    return Array.from(grouped.values())
+        .sort((a, b) => b.total - a.total || b.count - a.count || String(a.label).localeCompare(String(b.label), 'pt-BR'));
+}
+
+function getDetailedExpenseRows(dataSources = {}, params = {}, { onlyCards = false } = {}) {
+    const mes = getMonthIndex(params.mes);
+    const ano = parseInt(params.ano, 10);
+    const hasValidYear = Number.isInteger(ano);
+    const rows = [];
+
+    if (!onlyCards && Array.isArray(dataSources.saidas) && dataSources.saidas.length > 1) {
+        dataSources.saidas.slice(1).forEach((row) => {
+            const rowDate = parseSheetDate(row[0]);
+            if (!rowDate) return;
+            if (hasValidYear && rowDate.getFullYear() !== ano) return;
+            if (mes !== null && rowDate.getMonth() !== mes) return;
+            rows.push({
+                data: row[0] || '',
+                descricao: row[1] || '',
+                categoria: row[2] || 'Outros',
+                subcategoria: row[3] || '',
+                valor: parseValue(row[4]),
+                origem: 'Saídas',
+                tipo: 'saida',
+                pagamento: row[6] || '',
+                cartao: '',
+                parcela: '',
+                mesCobranca: ''
+            });
+        });
+    }
+
+    getCreditCardRows(dataSources)
+        .filter(row => cardMatches(row, params.cartao))
+        .filter(row => {
+            if (!hasValidYear || mes === null) return true;
+            return billingMatches(row, mes, ano);
+        })
+        .forEach((row) => {
+            rows.push({
+                data: row.date || '',
+                descricao: row.descricao || '',
+                categoria: row.categoria || 'Cartão',
+                subcategoria: 'Cartão de Crédito',
+                valor: Number(row.valor || 0),
+                origem: 'Cartão',
+                tipo: 'cartao',
+                pagamento: 'Crédito',
+                cartao: row.cartao || row.cardId || '',
+                parcela: row.parcela || '',
+                mesCobranca: row.mesCobranca || ''
+            });
+        });
+
+    return rows
+        .filter(row => Number(row.valor || 0) > 0)
+        .sort(sortRowsByValueThenDate);
+}
+
+function buildExpenseDetailResult(rows, params = {}) {
+    const totalSaidas = rows
+        .filter(row => row.tipo === 'saida')
+        .reduce((sum, row) => sum + Number(row.valor || 0), 0);
+    const totalCartoes = rows
+        .filter(row => row.tipo === 'cartao')
+        .reduce((sum, row) => sum + Number(row.valor || 0), 0);
+    return {
+        total: totalSaidas + totalCartoes,
+        totalSaidas,
+        totalCartoes,
+        categorias: groupExpenseRows(rows, row => row.categoria || 'Outros').slice(0, 8),
+        estabelecimentos: groupExpenseRows(rows, row => normalizeEstablishmentLabel(row.descricao)).slice(0, 10),
+        formas: groupExpenseRows(rows, row => row.tipo === 'cartao' ? (row.cartao || 'Cartão de Crédito') : (row.pagamento || 'Saídas')).slice(0, 8),
+        lancamentos: rows.slice(0, 12),
+        filtroCartao: params.cartao || ''
+    };
+}
 
 const MONTH_NAMES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
@@ -743,6 +945,64 @@ const operationRegistry = {
             }
         };
     },
+    detalhamento_gastos_mes: async function(params, dataSources) {
+        const queryEngineResult = await executeLegacyExpenseQueryIntent('detalhamento_gastos_mes', params, dataSources);
+        if (queryEngineResult) return queryEngineResult;
+
+        const mes = getMonthIndex(params.mes);
+        const ano = parseInt(params.ano, 10);
+        const rows = getDetailedExpenseRows(dataSources, { ...params, mes, ano });
+        return {
+            results: buildExpenseDetailResult(rows, params),
+            details: {
+                ...params,
+                mes,
+                ano,
+                totalLancamentos: rows.length,
+                criterioCartao: 'mes_cobranca'
+            }
+        };
+    },
+    detalhamento_cartao_mes: async function(params, dataSources) {
+        const queryEngineResult = await executeLegacyExpenseQueryIntent('detalhamento_cartao_mes', params, dataSources);
+        if (queryEngineResult) return queryEngineResult;
+
+        const mes = getMonthIndex(params.mes);
+        const ano = parseInt(params.ano, 10);
+        const rows = getDetailedExpenseRows(dataSources, { ...params, mes, ano }, { onlyCards: true });
+        return {
+            results: buildExpenseDetailResult(rows, params),
+            details: {
+                ...params,
+                mes,
+                ano,
+                totalLancamentos: rows.length,
+                criterioCartao: 'mes_cobranca',
+                somenteCartao: true
+            }
+        };
+    },
+    ranking_estabelecimentos_gastos: async function(params, dataSources) {
+        const queryEngineResult = await executeLegacyExpenseQueryIntent('ranking_estabelecimentos_gastos', params, dataSources);
+        if (queryEngineResult) return queryEngineResult;
+
+        const mes = getMonthIndex(params.mes);
+        const ano = parseInt(params.ano, 10);
+        const onlyCards = normalizeText(params.origem || '') === 'cartao';
+        const rows = getDetailedExpenseRows(dataSources, { ...params, mes, ano }, { onlyCards });
+        const results = groupExpenseRows(rows, row => normalizeEstablishmentLabel(row.descricao)).slice(0, 15);
+        return {
+            results,
+            details: {
+                ...params,
+                mes,
+                ano,
+                total: results.reduce((sum, item) => sum + Number(item.total || 0), 0),
+                totalLancamentos: rows.length,
+                somenteCartao: onlyCards
+            }
+        };
+    },
     contagem_lancamentos_saida: async function(params, dataSources) {
         const mes = getMonthIndex(params.mes);
         const ano = parseInt(params.ano, 10);
@@ -771,4 +1031,16 @@ async function execute(intent, parameters, dataSources) {
     return await calculator(parameters, dataSources);
 }
 
-module.exports = { execute, __test__: { parseBillingMonth, getCreditCardRows, summarizeInstallments, normalizeCardSearchText, cardMatches } };
+module.exports = {
+    execute,
+    __test__: {
+        parseBillingMonth,
+        getCreditCardRows,
+        summarizeInstallments,
+        normalizeCardSearchText,
+        cardMatches,
+        normalizeEstablishmentLabel,
+        getDetailedExpenseRows,
+        buildExpenseDetailResult
+    }
+};

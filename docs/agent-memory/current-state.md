@@ -200,6 +200,41 @@ O gate de seguranca bloqueia antes de IA/calculo financeiro mensagens que pedem:
 
 Tambem sanitiza logs de mensagens para esconder tokens, parametros OAuth e IDs de documentos Google.
 
+## Modo analista para detalhamento de gastos
+
+Status: implementado localmente em 2026-06-04; validar deploy antes de assumir ativo em producao.
+
+Motivacao:
+
+- Uma usuaria perguntou detalhes sobre gastos e estabelecimentos; o bot classificou perguntas como `detalhe os gastos pra mim`, `foram gastos como no cartão?` e `foram em quais estabelecimentos?` como totais genericos ou `pergunta_geral`.
+- O dashboard nao substitui esse caso: o usuario queria explicar a composicao de um valor diretamente no WhatsApp.
+
+Comportamento novo:
+
+- Novas intents deterministicas: `detalhamento_gastos_mes`, `detalhamento_cartao_mes` e `ranking_estabelecimentos_gastos`.
+- O roteamento local reconhece pedidos como `detalhe os gastos`, `explique esse total`, `foram gastos como no cartão?`, `em quais estabelecimentos?` e variacoes de fala/transcricao como `os 328 e 81 foram gastos em quais estabelecimentos?`.
+- A resposta local mostra total, quebra por categoria, principais estabelecimentos e lancamentos que compoem o valor.
+- Para cartoes, o criterio e `Mês de Cobrança`/fatura, coerente com as perguntas de fatura. A resposta avisa que cartoes entram pela competencia da fatura.
+- SQLite/read-model e fallback em memoria tambem sabem responder essas intents, reduzindo dependencia de leituras diretas do Google Sheets.
+
+Decisao arquitetural:
+
+- Nao enviar planilha inteira ao LLM.
+- A IA pode ajudar a entender a pergunta, mas os calculos e agrupamentos devem ser feitos por codigo deterministico.
+- Documento de ideia/contrato salvo em `docs/ideas/financial-query-engine.md`.
+- Em 2026-06-04, o documento foi ampliado para cobrir o universo de perguntas financeiras por dominios, operacoes, filtros, escopo familiar e base temporal.
+- Nova base local: `src/query/financialQueryPlan.js` valida planos `FinancialQueryPlan`, bloqueia campos sensiveis/internos vindos de planner LLM e mapeia todos os intents analiticos legados atuais para um contrato composicional.
+- Nova base local: `src/query/financialQueryEngine.js` executa a engine generica para `expenses`, `cards`, `income`, `transfers`, `goals`, `debts`, `bills`, `budget` e `dashboard`, com operacoes de soma, contagem, lista, detalhe, agrupamento, ranking, media, percentual, extremos, comparacao, forecast, busca, trend/recommend inicial e deteccao inicial.
+- `calculationOrchestrator` ja usa a Query Engine por baixo para `detalhamento_gastos_mes`, `detalhamento_cartao_mes` e `ranking_estabelecimentos_gastos`, preservando o formato legado de resposta para nao quebrar o WhatsApp.
+- `messageHandler` agora guarda contexto analitico curto por remetente (TTL 5 minutos) apos uma pergunta financeira bem sucedida. O contexto preserva apenas intent e parametros seguros (`mes`, `ano`, `categoria`, `categorias`, `cartao`, `origem`), sem linhas da planilha, `user_id`, sheet id, token ou dados crus.
+- Follow-ups como `e no cartão?`, `foram em quais estabelecimentos?`, `e por categoria?` e `detalha esse total` herdam periodo/cartao/categoria da pergunta anterior quando nao houver periodo explicito. Em follow-up, mes/ano so sao substituidos se o usuario mencionar explicitamente outro periodo.
+
+Testes:
+
+- `node --test tests/unit.test.js` passou com 86 testes.
+- `node --test tests/readModelSqlite.test.js` passou com 4 testes.
+- `npm test` passou com 241 testes em 2026-06-04.
+
 ## Higiene do workspace
 
 Em 2026-05-26, `git status --short` ainda mostrava arquivos nao rastreados antigos:

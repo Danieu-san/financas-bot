@@ -108,6 +108,28 @@ test('sqlite read-model answers common analytical intents scoped by user_id', ()
     assert.strictEqual(installments.results[0].descricao, 'notebook');
     assert.strictEqual(installments.results[0].totalPrevisto, 2000);
 
+    const expenseDetails = queryAnalyticalIntentSql('detalhamento_gastos_mes', { mes: 1, ano: 2026 }, { userId: 'user-read-a' });
+    assert.strictEqual(expenseDetails.results.total, 1200);
+    assert.deepStrictEqual(expenseDetails.results.categorias.slice(0, 2).map(item => [item.label, item.total, item.count]), [
+        ['Eletrônicos', 1000, 1],
+        ['Alimentação', 180, 2]
+    ]);
+    assert.ok(expenseDetails.results.estabelecimentos.some(item => item.label === 'Mercado Cartão' && item.total === 100));
+    assert.ok(expenseDetails.results.lancamentos.every(item => !String(item.descricao).includes('outro')));
+
+    const cardDetails = queryAnalyticalIntentSql('detalhamento_cartao_mes', { cartao: 'nubank', mes: 1, ano: 2026 }, { userId: 'user-read-a' });
+    assert.strictEqual(cardDetails.results.total, 1100);
+    assert.strictEqual(cardDetails.results.totalSaidas, 0);
+    assert.strictEqual(cardDetails.results.totalCartoes, 1100);
+    assert.strictEqual(cardDetails.results.lancamentos.length, 2);
+
+    const establishments = queryAnalyticalIntentSql('ranking_estabelecimentos_gastos', { mes: 1, ano: 2026 }, { userId: 'user-read-a' });
+    assert.deepStrictEqual(establishments.results.slice(0, 3).map(item => [item.label, item.total, item.count]), [
+        ['Notebook', 1000, 1],
+        ['Mercado Cartão', 100, 1],
+        ['Lanche', 80, 1]
+    ]);
+
     const goalsSummary = queryAnalyticalIntentSql('resumo_metas', {}, { userId: 'user-read-a' });
     assert.strictEqual(goalsSummary.results.length, 2);
     const reservaGoal = goalsSummary.results.find(goal => goal.nome === 'Reserva');

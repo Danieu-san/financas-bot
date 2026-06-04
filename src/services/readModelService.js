@@ -485,6 +485,82 @@ function summarizeReadModelInvoicesByCard(entries) {
         .sort((a, b) => b.total - a.total || String(a.cartao).localeCompare(String(b.cartao), 'pt-BR'));
 }
 
+function titleCaseLabel(value) {
+    return String(value || '')
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(Boolean)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
+        .trim();
+}
+
+function normalizeEstablishmentLabel(description) {
+    const original = String(description || '').trim();
+    const normalized = normalizeText(original);
+    if (!normalized) return 'Sem descrição';
+    if (normalized.includes('ifood') || normalized.includes('i food')) return 'iFood';
+    if (normalized.includes('uber')) return 'Uber';
+    if (normalized.includes('mercadolivre') || normalized.includes('mercado livre')) return 'Mercado Livre';
+    if (normalized.includes('google')) return 'Google';
+
+    const cleaned = original
+        .replace(/\s*[-–—]?\s*(?:parcela\s*)?\d+\s*\/\s*\d+\s*$/i, '')
+        .replace(/\b(?:compra|pagamento|pix|debito|débito|credito|crédito|nu\s*pay|nupay)\b/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    return titleCaseLabel(cleaned || original).slice(0, 60);
+}
+
+function groupExpenseRows(entries, keyFn) {
+    const grouped = new Map();
+    entries.forEach((entry) => {
+        const label = String(keyFn(entry) || 'Outros').trim() || 'Outros';
+        const key = normalizeText(label) || label;
+        const existing = grouped.get(key) || { label, total: 0, count: 0 };
+        existing.total += Number(entry.valor || 0);
+        existing.count += 1;
+        grouped.set(key, existing);
+    });
+    return Array.from(grouped.values())
+        .sort((a, b) => b.total - a.total || b.count - a.count || String(a.label).localeCompare(String(b.label), 'pt-BR'));
+}
+
+function normalizeReadModelExpense(entry, type) {
+    return {
+        data: entry.data || '',
+        descricao: entry.descricao || '',
+        categoria: entry.categoria || 'Outros',
+        subcategoria: entry.subcategoria || '',
+        valor: Number(entry.valor || 0),
+        origem: type === 'cartao' ? 'Cartão' : 'Saídas',
+        tipo: type,
+        pagamento: type === 'cartao' ? 'Crédito' : '',
+        cartao: type === 'cartao' ? entry.source || '' : '',
+        parcela: '',
+        mesCobranca: ''
+    };
+}
+
+function buildReadModelExpenseDetail(rows, params = {}) {
+    const totalSaidas = rows
+        .filter(row => row.tipo === 'saida')
+        .reduce((sum, row) => sum + Number(row.valor || 0), 0);
+    const totalCartoes = rows
+        .filter(row => row.tipo === 'cartao')
+        .reduce((sum, row) => sum + Number(row.valor || 0), 0);
+    return {
+        total: totalSaidas + totalCartoes,
+        totalSaidas,
+        totalCartoes,
+        categorias: groupExpenseRows(rows, row => row.categoria || 'Outros').slice(0, 8),
+        estabelecimentos: groupExpenseRows(rows, row => normalizeEstablishmentLabel(row.descricao)).slice(0, 10),
+        formas: groupExpenseRows(rows, row => row.tipo === 'cartao' ? (row.cartao || 'Cartão de Crédito') : 'Saídas').slice(0, 8),
+        lancamentos: rows.slice(0, 12),
+        filtroCartao: params.cartao || ''
+    };
+}
+
 function isReadModelGoalActive(status, target, current) {
     const normalized = normalizeText(status || '');
     return !/(concluid|finalizad|atingid|quitad|cancelad|pausad)/.test(normalized) && Number(target || 0) > Number(current || 0);
@@ -698,6 +774,43 @@ async function executeAnalyticalIntent(intent, parameters, { userId }) {
                 total: results.reduce((sum, item) => sum + Number(item.total || 0), 0),
                 cartoes: results.length,
                 parcelas: rows.length
+            }
+        }, 'memory_fallback');
+    }
+    case 'detalhamento_gastos_mes':
+    case 'detalhamento_cartao_mes':
+    case 'ranking_estabelecimentos_gastos': {
+        const onlyCards = intent === 'detalhamento_cartao_mes' || normalizeText(parameters?.origem || '') === 'cartao';
+        const rows = [
+            ...(onlyCards ? [] : saidasDoUsuario.map(entry => normalizeReadModelExpense(entry, 'saida'))),
+            ...cartoesDoUsuario
+                .filter(entry => readModelCardMatches(entry, parameters?.cartao))
+                .map(entry => normalizeReadModelExpense(entry, 'cartao'))
+        ].sort((a, b) => Number(b.valor || 0) - Number(a.valor || 0) || String(b.data || '').localeCompare(String(a.data || '')));
+
+        if (intent === 'ranking_estabelecimentos_gastos') {
+            const results = groupExpenseRows(rows, row => normalizeEstablishmentLabel(row.descricao)).slice(0, 15);
+            return withResultSource({
+                results,
+                details: {
+                    mes: month,
+                    ano: year,
+                    total: results.reduce((sum, item) => sum + Number(item.total || 0), 0),
+                    totalLancamentos: rows.length,
+                    somenteCartao: onlyCards
+                }
+            }, 'memory_fallback');
+        }
+
+        return withResultSource({
+            results: buildReadModelExpenseDetail(rows, parameters),
+            details: {
+                cartao: parameters?.cartao || '',
+                mes: month,
+                ano: year,
+                totalLancamentos: rows.length,
+                criterioCartao: 'mes_cobranca',
+                somenteCartao: onlyCards
             }
         }, 'memory_fallback');
     }
