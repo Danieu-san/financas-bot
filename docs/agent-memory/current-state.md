@@ -202,7 +202,7 @@ Tambem sanitiza logs de mensagens para esconder tokens, parametros OAuth e IDs d
 
 ## Modo analista para detalhamento de gastos
 
-Status: implementado localmente em 2026-06-04; validar deploy antes de assumir ativo em producao.
+Status: implantado em producao em 2026-06-04.
 
 Motivacao:
 
@@ -234,6 +234,12 @@ Testes:
 - `node --test tests/unit.test.js` passou com 86 testes.
 - `node --test tests/readModelSqlite.test.js` passou com 4 testes.
 - `npm test` passou com 241 testes em 2026-06-04.
+
+Deploy:
+
+- GitHub/local: `9c59e88` (`feat: add financial query engine`).
+- EC2 via `git am`: `ea0e943`, porque o repo privado bloqueia `git pull` HTTPS sem credencial interativa.
+- Validacao em producao: `npm install` retornou 0 vulnerabilidades, `/dashboard/health` retornou `{"ok":true,"sqlite":true}`, PM2 ficou `online`, logs mostraram `WhatsApp pronto` e `Bot pronto para receber mensagens`.
 
 ## Higiene do workspace
 
