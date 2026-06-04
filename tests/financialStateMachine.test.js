@@ -1103,6 +1103,39 @@ stateMachineTest('financial states: deletion confirmation supports cancel and se
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
 });
 
+stateMachineTest('financial states: apagar ultimo gasto targets latest expense regardless of sheet', async () => {
+    resetState();
+    sheets[CARD_SHEETS[0]].push([
+        todayBr(),
+        'teste cartão apagar',
+        'Outros',
+        2.49,
+        '1/1',
+        'Junho de 2026',
+        USER_ID
+    ]);
+    enqueueStructuredResponse({
+        intent: 'apagar_item',
+        deleteDetails: {
+            descricao: 'último',
+            categoria: 'gasto'
+        }
+    });
+
+    const reply = await send('Apagar último gasto');
+    assert.match(reply, /Cartão Nubank - Daniel/i);
+    assert.doesNotMatch(reply, /Saídas.*vazia/i);
+
+    const state = userStateManager.getState(SENDER);
+    assert.strictEqual(state.action, 'confirming_delete');
+    assert.strictEqual(state.sheetName, CARD_SHEETS[0]);
+    assert.strictEqual(state.foundItems[0].data[1], 'teste cartão apagar');
+
+    const confirmed = await send('sim');
+    assert.match(confirmed, /apagado/i);
+    assert.deepStrictEqual(deletedRows, [{ sheetName: CARD_SHEETS[0], indices: [1] }]);
+});
+
 stateMachineTest('financial states: statement import asks account type before saving checking account rows', async () => {
     resetState();
     const csv = [

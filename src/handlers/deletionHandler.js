@@ -2,8 +2,8 @@
 
 const { readDataFromSheet, deleteRowsByIndices } = require('../services/google');
 const userStateManager = require('../state/userStateManager');
-const { sheetCategoryMap } = require('../config/constants');
-const { normalizeText } = require('../utils/helpers');
+const { sheetCategoryMap, creditCardConfig } = require('../config/constants');
+const { normalizeText, parseSheetDate } = require('../utils/helpers');
 const { getUserByWhatsAppId } = require('../services/userService');
 const stringSimilarity = require('string-similarity');
 
@@ -12,7 +12,18 @@ const USER_ID_FALLBACK_INDEX_BY_SHEET = {
   'Entradas': 8,
   'Metas': 8,
   'Dívidas': 17,
+  'Lançamentos Cartão': 9,
 };
+
+const CREDIT_CARD_SHEET_NAMES = Array.from(new Set(
+  Object.values(creditCardConfig || {})
+    .map(config => config?.sheetName)
+    .filter(Boolean)
+));
+
+for (const sheetName of CREDIT_CARD_SHEET_NAMES) {
+  USER_ID_FALLBACK_INDEX_BY_SHEET[sheetName] = 6;
+}
 
 function canonicalizeCategory(raw) {
   const c = normalizeText(raw || '');
@@ -90,6 +101,22 @@ function getUserIdIndex(headerMap, sheetName) {
   );
 }
 
+function getValueFallbackIndex(sheetName) {
+  if (sheetName === 'Lançamentos Cartão' || CREDIT_CARD_SHEET_NAMES.includes(sheetName)) return 3;
+  return 4;
+}
+
+function getDeletionSheetNames(canonicalCategory) {
+  const primary = sheetCategoryMap[canonicalCategory];
+  if (canonicalCategory !== 'gasto') return primary ? [primary] : [];
+
+  return [
+    'Saídas',
+    'Lançamentos Cartão',
+    ...CREDIT_CARD_SHEET_NAMES
+  ];
+}
+
 function filterCandidateRowsByUserId(allData, headerMap, sheetName, userId) {
   const userIdIndex = getUserIdIndex(headerMap, sheetName);
   if (!Number.isInteger(userIdIndex) || !userId) return [];
@@ -150,6 +177,13 @@ function tokenizeQuery(query) {
     .filter(t => !stop.has(t));
 }
 
+function getRowTimestamp(row, headerMap) {
+  const colData = getColIndex(headerMap, ['data'], 0);
+  const raw = Array.isArray(row) ? row[colData] : '';
+  const parsed = parseSheetDate(String(raw || '').trim());
+  return parsed ? parsed.getTime() : 0;
+}
+
 function scoreRow({ row, headerMap, sheetName, queryNorm, tokens, amount, date }) {
      // ✅ Nunca quebra se row vier undefined/null/valor estranho
   if (!Array.isArray(row)) {
@@ -162,7 +196,7 @@ function scoreRow({ row, headerMap, sheetName, queryNorm, tokens, amount, date }
   const colDescricao = getColIndex(headerMap, ['descricao', 'descrição', 'nome'], 1);
   const colCategoria = getColIndex(headerMap, ['categoria'], 2);
   const colSubcategoria = getColIndex(headerMap, ['subcategoria'], 3);
-  const colValor = getColIndex(headerMap, ['valor'], 4);
+  const colValor = getColIndex(headerMap, ['valor', 'valor parcela', 'valor_parcela'], getValueFallbackIndex(sheetName));
   const colObservacoes = getColIndex(headerMap, ['observacoes', 'observações', 'obs'], 8);
   const colCredor = getColIndex(headerMap, ['credor'], 1);
 
@@ -223,6 +257,47 @@ function scoreRow({ row, headerMap, sheetName, queryNorm, tokens, amount, date }
   return { score, matchedTokens };
 }
 
+async function collectDeletionCandidates(sheetName, userId, readOptions = {}) {
+  const allData = await readSheetWithRetry(sheetName, { minRows: 2, ...readOptions });
+  if (!allData || allData.length <= 1) {
+    return {
+      sheetName,
+      empty: true,
+      headerMap: {},
+      candidateRows: []
+    };
+  }
+
+  const headerMap = getHeaderMap(allData);
+  const candidateRows = filterCandidateRowsByUserId(allData, headerMap, sheetName, userId)
+    .map(item => ({
+      ...item,
+      sheetName,
+      headerMap
+    }));
+
+  return {
+    sheetName,
+    empty: false,
+    headerMap,
+    candidateRows
+  };
+}
+
+function pickLatestCandidate(candidates = []) {
+  return candidates
+    .map((item, order) => ({
+      ...item,
+      order,
+      timestamp: getRowTimestamp(item.row, item.headerMap)
+    }))
+    .sort((a, b) => {
+      if (b.timestamp !== a.timestamp) return b.timestamp - a.timestamp;
+      if (b.index !== a.index && a.sheetName === b.sheetName) return b.index - a.index;
+      return b.order - a.order;
+    })[0] || null;
+}
+
 async function handleDeletionRequest(msg, deleteDetails) {
   const senderId = msg.author || msg.from;
   const user = await getUserByWhatsAppId(senderId);
@@ -247,17 +322,33 @@ async function handleDeletionRequest(msg, deleteDetails) {
   const termoBusca = String(deleteDetails.descricao || '');
   const categoriaCanonica = canonicalizeCategory(deleteDetails.categoria);
 
-  const sheetName = sheetCategoryMap[categoriaCanonica];
-  if (!sheetName) {
+  const sheetNames = getDeletionSheetNames(categoriaCanonica);
+  if (!sheetNames.length) {
     userStateManager.clearState(senderId);
     await msg.reply(`Não entendi se você quer apagar um 'gasto', 'entrada', etc.`);
     return;
   }
 
-  const allData = await readSheetWithRetry(sheetName, { minRows: 2 });
-  if (!allData || allData.length <= 1) {
+  const sheetResults = [];
+  const readOptions = sheetNames.length > 1 ? { retries: 1 } : {};
+  for (const sheetName of sheetNames) {
+    const result = await collectDeletionCandidates(sheetName, user.user_id, readOptions);
+    sheetResults.push(result);
+
+    // Em planilhas novas, Lançamentos Cartão substitui as abas legadas de cartão.
+    // Se ela já trouxe candidatos, evitar ler as abas legadas que mapeiam para a mesma aba.
+    if (categoriaCanonica === 'gasto' && sheetName === 'Lançamentos Cartão' && result.candidateRows.length > 0) {
+      break;
+    }
+  }
+
+  const candidateRows = sheetResults.flatMap(result => result.candidateRows);
+  const allSheetsEmpty = sheetResults.every(result => result.empty);
+  const singleSheetName = sheetNames.length === 1 ? sheetNames[0] : null;
+
+  if (singleSheetName && allSheetsEmpty) {
     userStateManager.clearState(senderId);
-    await msg.reply(`A aba "${sheetName}" já está vazia.`);
+    await msg.reply(`A aba "${singleSheetName}" já está vazia.`);
     return;
   }
 
@@ -265,16 +356,14 @@ async function handleDeletionRequest(msg, deleteDetails) {
   const tokens = tokenizeQuery(termoBusca);
   const amount = extractAmount(termoBusca); // pode ser null
   const date = extractDate(termoBusca);     // pode ser null
-  const headerMap = getHeaderMap(allData);
-  const candidateRows = filterCandidateRowsByUserId(allData, headerMap, sheetName, user.user_id);
 
   let rowsToDelete = [];
 
   // ✅ "último/ultima/ultimo" em qualquer forma
   if (termoBuscaNorm.includes('ultimo') || termoBuscaNorm.includes('ultima')) {
-    const lastOwnedRow = candidateRows[candidateRows.length - 1];
+    const lastOwnedRow = pickLatestCandidate(candidateRows);
     if (lastOwnedRow) {
-      rowsToDelete.push({ index: lastOwnedRow.index, data: lastOwnedRow.row });
+      rowsToDelete.push({ sheetName: lastOwnedRow.sheetName, index: lastOwnedRow.index, data: lastOwnedRow.row });
     }
   } else {
     // score em todas as linhas (exceto header)
@@ -282,15 +371,15 @@ async function handleDeletionRequest(msg, deleteDetails) {
         .map(x => {
             const s = scoreRow({
             row: x.row,
-            headerMap,
-            sheetName,
+            headerMap: x.headerMap,
+            sheetName: x.sheetName,
             queryNorm: termoBuscaNorm,
             tokens,
             amount,
             date
             });
 
-            return { index: x.index, row: x.row, score: s.score, matchedTokens: s.matchedTokens };
+            return { sheetName: x.sheetName, index: x.index, row: x.row, score: s.score, matchedTokens: s.matchedTokens };
         })
         .filter(x => {
             // ✅ Regra de segurança: se o usuário digitou 2+ tokens relevantes,
@@ -302,7 +391,7 @@ async function handleDeletionRequest(msg, deleteDetails) {
         })
         .sort((a, b) => b.score - a.score);
 
-        rowsToDelete = scored.map(x => ({ index: x.index, data: x.row }));
+        rowsToDelete = scored.map(x => ({ sheetName: x.sheetName, index: x.index, data: x.row }));
 
         // ✅ fallback: se nada passou no score, tenta contains bruto do termo normalizado
         if (rowsToDelete.length === 0 && tokens.length > 0) {
@@ -315,14 +404,15 @@ async function handleDeletionRequest(msg, deleteDetails) {
                 return matches >= minTokenMatches;
                 });
 
-                rowsToDelete = fallback.map(x => ({ index: x.index, data: x.row }));
+                rowsToDelete = fallback.map(x => ({ sheetName: x.sheetName, index: x.index, data: x.row }));
         }
     }
 
   if (rowsToDelete.length === 0) {
     userStateManager.clearState(senderId);
 
-    let helpMessage = `Não encontrei nenhum item contendo "${termoBusca}" na aba "${sheetName}".\n\n`;
+    const scopeLabel = singleSheetName ? `na aba "${singleSheetName}"` : 'nas abas de gastos e cartões';
+    let helpMessage = `Não encontrei nenhum item contendo "${termoBusca}" ${scopeLabel}.\n\n`;
     helpMessage += `*Dica:* tente incluir o tipo, valor e/ou data. Exemplos:\n`;
     helpMessage += `- "apagar *gasto* com uber"\n`;
     helpMessage += `- "apagar *saida* de 250 do assai"\n`;
@@ -334,14 +424,19 @@ async function handleDeletionRequest(msg, deleteDetails) {
 
   // ✅ não deixa o usuário preso com estados antigos
   userStateManager.clearState(senderId);
+  const stateSheetName = rowsToDelete.every(item => item.sheetName === rowsToDelete[0]?.sheetName)
+    ? rowsToDelete[0]?.sheetName
+    : '';
   userStateManager.setState(senderId, {
     action: 'confirming_delete',
-    sheetName,
+    sheetName: stateSheetName,
     user_id: user.user_id,
     foundItems: rowsToDelete
   });
 
-  let confirmationMessage = `Encontrei ${rowsToDelete.length} item(ns) para apagar na aba "${sheetName}":\n\n`;
+  let confirmationMessage = stateSheetName
+    ? `Encontrei ${rowsToDelete.length} item(ns) para apagar na aba "${stateSheetName}":\n\n`
+    : `Encontrei ${rowsToDelete.length} item(ns) para apagar:\n\n`;
   const safeCell = (v) =>
     String(v ?? '')
         .replace(/\s+/g, ' ')
@@ -353,7 +448,8 @@ async function handleDeletionRequest(msg, deleteDetails) {
                 .map(safeCell)
                 .join(' | ');
 
-            confirmationMessage += `*${idx + 1}.* ${line}\n`;
+            const sheetPrefix = stateSheetName ? '' : `[${item.sheetName}] `;
+            confirmationMessage += `*${idx + 1}.* ${sheetPrefix}${line}\n`;
         });
   confirmationMessage += "\nVocê tem certeza? Responda com *'sim'* para apagar tudo, ou os números dos itens que quer apagar (ex: *1* ou *1, 2*).";
 
@@ -377,19 +473,20 @@ async function confirmDeletion(msg) {
     return;
     }
   let finalRowsToDelete = [];
+  let finalItemsToDelete = [];
 
   // ✅ aceita variações: "sim", "s", "ss", "sm", "claro", "pode", etc.
   const yesWords = ['sim','s','ss','sm','claro','pode','confirmo','confirmar','ok','pode sim','isso','apaga','apagar'];
   const isYes = yesWords.some(w => stringSimilarity.compareTwoStrings(userReply, w) > 0.72);
 
   if (isYes) {
-    finalRowsToDelete = state.foundItems.map(item => item.index);
+    finalItemsToDelete = state.foundItems;
   } else {
     const indicesToSelect = (msg.body || '').match(/\d+/g)?.map(n => parseInt(n, 10) - 1) || [];
     const validItems = indicesToSelect.map(idx => state.foundItems[idx]).filter(Boolean);
 
     if (validItems.length > 0) {
-      finalRowsToDelete = validItems.map(item => item.index);
+      finalItemsToDelete = validItems;
     } else {
       await msg.reply("Não entendi sua seleção. A exclusão foi cancelada.");
       userStateManager.clearState(senderId);
@@ -397,17 +494,28 @@ async function confirmDeletion(msg) {
     }
   }
 
-  // ✅ dedupe + ordena DESC (mais seguro ao deletar várias linhas)
-  finalRowsToDelete = Array.from(new Set(finalRowsToDelete)).sort((a, b) => b - a);
+  const groupedBySheet = finalItemsToDelete.reduce((acc, item) => {
+    const sheetName = item.sheetName || state.sheetName;
+    if (!sheetName) return acc;
+    if (!acc[sheetName]) acc[sheetName] = [];
+    acc[sheetName].push(item.index);
+    return acc;
+  }, {});
 
-  if (finalRowsToDelete.length > 0) {
-    await msg.reply(`Confirmado. Apagando ${finalRowsToDelete.length} item(ns)...`);
-    const result = await deleteRowsByIndices(state.sheetName, finalRowsToDelete);
+  if (Object.keys(groupedBySheet).length > 0) {
+    const total = Object.values(groupedBySheet).reduce((sum, rows) => sum + rows.length, 0);
+    await msg.reply(`Confirmado. Apagando ${total} item(ns)...`);
 
-    if (result.success) {
+    const results = [];
+    for (const [sheetName, rows] of Object.entries(groupedBySheet)) {
+      const finalRowsToDelete = Array.from(new Set(rows)).sort((a, b) => b - a);
+      results.push(await deleteRowsByIndices(sheetName, finalRowsToDelete));
+    }
+
+    if (results.every(result => result.success)) {
       await msg.reply(`✅ Item(ns) apagado(s) com sucesso!`);
     } else {
-      await msg.reply(result.message || "Ocorreu um erro ao apagar.");
+      await msg.reply(results.find(result => !result.success)?.message || "Ocorreu um erro ao apagar.");
     }
   } else {
     await msg.reply("Nenhum item selecionado. A exclusão foi cancelada.");
@@ -422,5 +530,7 @@ module.exports = {
   __test__: {
     canonicalizeCategory,
     filterCandidateRowsByUserId,
+    getDeletionSheetNames,
+    pickLatestCandidate,
   },
 };
