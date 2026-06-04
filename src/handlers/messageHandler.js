@@ -1652,6 +1652,16 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
     const mes = getMonthNamePtBr(details?.mes);
     const ano = details?.ano;
     const periodLabel = mes && ano ? `${mes}/${ano}` : (ano ? String(ano) : 'período informado');
+    const normalizedQuestion = normalizeText(String(userQuestion || ''));
+    const isTotalExplanationQuestion = (
+        normalizedQuestion.includes('de onde veio') ||
+        normalizedQuestion.includes('explica') ||
+        normalizedQuestion.includes('explique') ||
+        normalizedQuestion.includes('compoe') ||
+        normalizedQuestion.includes('compõe') ||
+        normalizedQuestion.includes('composicao') ||
+        normalizedQuestion.includes('composição')
+    ) && /\b(total|valor|isso)\b/.test(normalizedQuestion);
 
     if (intent === 'saldo_do_mes') {
         return [
@@ -1888,12 +1898,14 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
         if (lancamentos.length === 0) {
             return `Não encontrei gastos para detalhar em ${periodLabel}.`;
         }
-        const title = intent === 'detalhamento_cartao_mes'
-            ? `Detalhamento dos gastos no cartão em ${periodLabel}:`
-            : `Detalhamento dos gastos em ${periodLabel}:`;
+        const title = isTotalExplanationQuestion
+            ? `Esse total em ${periodLabel} vem de:`
+            : (intent === 'detalhamento_cartao_mes'
+                ? `Detalhamento dos gastos no cartão em ${periodLabel}:`
+                : `Detalhamento dos gastos em ${periodLabel}:`);
         const lines = [
             title,
-            `Total: ${formatCurrencyBR(payload.total || 0)}`
+            `${isTotalExplanationQuestion ? 'Total explicado' : 'Total'}: ${formatCurrencyBR(payload.total || 0)}`
         ];
         if (intent !== 'detalhamento_cartao_mes') {
             lines.push(`Saídas: ${formatCurrencyBR(payload.totalSaidas || 0)}`);

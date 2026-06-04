@@ -256,6 +256,12 @@ Nova correcao local em 2026-06-04 apos "bloco 2" real no WhatsApp:
 - Ajuste: parser de mes agora compara tokens limpos, nao substring; `percentual_categoria_gastos`, `maior_menor_gasto` e `maior_menor_gasto_categoria` usam a Query Engine com `billing_month`; `contagem_ocorrencias` usa linhas detalhadas com fatura para cartoes e mantem fuzzy matching para typos como `onibis`.
 - Teste de regressao: `calculationOrchestrator block 2 analytics keep card billing-month totals consistent`.
 
+Complemento local em 2026-06-04:
+
+- Sintoma UX: `me explica de onde veio esse total` era classificado como detalhe, mas a resposta parecia uma listagem generica (`Detalhamento dos gastos...`) em vez de responder diretamente a pergunta do usuario.
+- Ajuste: `buildLocalPerguntaResponse` detecta perguntas de explicacao/composicao do total e abre a resposta com `Esse total ... vem de:` e `Total explicado`, mantendo categorias, estabelecimentos e lancamentos.
+- Teste de regressao atualizado em `messageHandler local replies cover richer spreadsheet calculations`.
+
 ## Higiene do workspace
 
 Em 2026-05-26, `git status --short` ainda mostrava arquivos nao rastreados antigos:

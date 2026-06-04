@@ -1590,6 +1590,7 @@ test('messageHandler local replies cover richer spreadsheet calculations', () =>
 
     assert.match(
         buildLocalPerguntaResponse({
+            userQuestion: 'me explica de onde veio esse total',
             intent: 'detalhamento_gastos_mes',
             analyzedData: {
                 results: {
@@ -1611,7 +1612,7 @@ test('messageHandler local replies cover richer spreadsheet calculations', () =>
                 details: { mes: 5, ano: 2026, totalLancamentos: 5 }
             }
         }),
-        /Detalhamento dos gastos.*junho\/2026.*Total: R\$ 328,81.*Saídas: R\$ 100,00.*Cartões: R\$ 228,81.*Por categoria.*Alimentação: R\$ 200,00.*Principais estabelecimentos.*iFood: R\$ 116,98.*Lançamentos que compõem/s
+        /Esse total em junho\/2026 vem de:.*Total explicado: R\$ 328,81.*Saídas: R\$ 100,00.*Cartões: R\$ 228,81.*Por categoria.*Alimentação: R\$ 200,00.*Principais estabelecimentos.*iFood: R\$ 116,98.*Lançamentos que compõem/s
     );
 
     assert.match(
