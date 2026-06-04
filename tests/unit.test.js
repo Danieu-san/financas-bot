@@ -1194,6 +1194,10 @@ test('messageHandler.classifyPerguntaLocally covers complex analytical questions
     const minMax = classifyPerguntaLocally('qual foi o maior e menor gasto em fevereiro?');
     assert.strictEqual(minMax.intent, 'maior_menor_gasto');
 
+    const juneMax = inferAnalyticalQueryPlan('qual foi meu maior gasto em junho de 2026?');
+    assert.strictEqual(juneMax.intent, 'maior_menor_gasto');
+    assert.strictEqual(juneMax.parameters.mes, 5);
+
     const leftover = classifyPerguntaLocally('quanto sobrou em maio de 2026?');
     assert.strictEqual(leftover.intent, 'saldo_do_mes');
 
@@ -1833,6 +1837,43 @@ test('calculationOrchestrator details expenses by category, establishment and so
         ['restaurante malz', 125.25, 1],
         ['iFood', 116.98, 2]
     ]);
+});
+
+test('calculationOrchestrator block 2 analytics keep card billing-month totals consistent', async () => {
+    const round2 = value => Math.round(Number(value || 0) * 100) / 100;
+    const dataSources = {
+        saidas: [['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id']],
+        entradas: [['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Obs', 'user_id']],
+        cartoes: [[
+            ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Observações', 'user_id'],
+            ['30/05/2026', 'restaurante malz', 'Alimentação', 125.25, '1/1', 'Junho de 2026', 'nubank-thais', 'Cartão Nubank - Thais', '', 'user-2'],
+            ['30/05/2026', 'compra na Shoppe', 'Compras', 50.23, '1/1', 'Junho de 2026', 'nubank-thais', 'Cartão Nubank - Thais', '', 'user-2'],
+            ['29/05/2026', 'barbeiro', 'Serviços Pessoais', 40, '1/1', 'Junho de 2026', 'nubank-thais', 'Cartão Nubank - Thais', '', 'user-2'],
+            ['30/05/2026', 'hortifruti', 'Alimentação', 35.59, '1/1', 'Junho de 2026', 'nubank-thais', 'Cartão Nubank - Thais', '', 'user-2'],
+            ['01/06/2026', 'abastecendo o carro', 'Transporte', 30, '1/1', 'Junho de 2026', 'nubank-thais', 'Cartão Nubank - Thais', '', 'user-2'],
+            ['29/05/2026', 'Mercado', 'Alimentação', 21.89, '1/1', 'Junho de 2026', 'nubank-thais', 'Cartão Nubank - Thais', '', 'user-2'],
+            ['04/06/2026', 'iFood', 'Alimentação', 16.98, '1/1', 'Junho de 2026', 'nubank-thais', 'Cartão Nubank - Thais', '', 'user-2'],
+            ['04/06/2026', 'mercado', 'Alimentação', 2.49, '1/1', 'Junho de 2026', 'nubank-daniel', 'Cartão Nubank - Daniel', '', 'user-1'],
+            ['04/06/2026', 'mercado', 'Alimentação', 2.49, '1/1', 'Junho de 2026', 'nubank-thais', 'Cartão Nubank - Thais', '', 'user-2'],
+            ['04/06/2026', 'Gasto', 'Outros', 2.39, '1/1', 'Junho de 2026', 'nubank-thais', 'Cartão Nubank - Thais', '', 'user-2'],
+            ['04/06/2026', 'mercado', 'Alimentação', 1.50, '1/1', 'Junho de 2026', 'nubank-thais', 'Cartão Nubank - Thais', '', 'user-2']
+        ]]
+    };
+
+    const percentage = await calculationOrchestrator.execute('percentual_categoria_gastos', { categoria: 'alimentacao', mes: 5, ano: 2026 }, dataSources);
+    assert.strictEqual(round2(percentage.results), 62.71);
+    assert.strictEqual(round2(percentage.details.totalCategoria), 206.19);
+    assert.strictEqual(round2(percentage.details.totalGastos), 328.81);
+
+    const minMax = await calculationOrchestrator.execute('maior_menor_gasto', { mes: 5, ano: 2026 }, dataSources);
+    assert.strictEqual(minMax.details.mes, 5);
+    assert.strictEqual(minMax.results.max[1], 'restaurante malz');
+    assert.strictEqual(round2(minMax.results.max[4]), 125.25);
+    assert.strictEqual(minMax.results.min[1], 'mercado');
+    assert.strictEqual(round2(minMax.results.min[4]), 1.50);
+
+    const countIfood = await calculationOrchestrator.execute('contagem_ocorrencias', { categoria: 'ifood', mes: 5, ano: 2026 }, dataSources);
+    assert.strictEqual(countIfood.results, 1);
 });
 
 test('calculationOrchestrator calculates card invoices and open installments deterministically', async () => {

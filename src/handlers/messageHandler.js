@@ -1084,8 +1084,9 @@ function parseMonthFromText(text) {
         janeiro: 0, fevereiro: 1, marco: 2, março: 2, abril: 3, maio: 4, junho: 5,
         julho: 6, agosto: 7, setembro: 8, outubro: 9, novembro: 10, dezembro: 11
     };
+    const tokens = normalized.match(/[a-z0-9]+/g) || [];
     for (const [name, index] of Object.entries(monthMap)) {
-        if (normalized.includes(name)) return index;
+        if (tokens.includes(name)) return index;
     }
     return new Date().getMonth();
 }

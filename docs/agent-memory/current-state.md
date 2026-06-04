@@ -249,6 +249,13 @@ Correcao local em 2026-06-04 apos teste real no WhatsApp:
 - `me explica de onde veio esse total` agora e reconhecido como pergunta analitica rapida, evitando fallback generico.
 - Teste de regressao adicionado em `tests/unit.test.js` cobrindo compras feitas em maio com fatura de junho, ranking por estabelecimento no cartao e explicacao de total.
 
+Nova correcao local em 2026-06-04 apos "bloco 2" real no WhatsApp:
+
+- Sintoma: `qual foi meu maior gasto esse mês?` respondia `maio/2026`, porque o parser de mes encontrava `maio` dentro da palavra `maior`.
+- Sintoma: `quanto alimentação representa do total de gastos?` usava R$23,46/R$55,85 em vez de R$206,19/R$328,81, pois `percentual_categoria_gastos` ainda passava pelo calculo legado por data da compra.
+- Ajuste: parser de mes agora compara tokens limpos, nao substring; `percentual_categoria_gastos`, `maior_menor_gasto` e `maior_menor_gasto_categoria` usam a Query Engine com `billing_month`; `contagem_ocorrencias` usa linhas detalhadas com fatura para cartoes e mantem fuzzy matching para typos como `onibis`.
+- Teste de regressao: `calculationOrchestrator block 2 analytics keep card billing-month totals consistent`.
+
 ## Higiene do workspace
 
 Em 2026-05-26, `git status --short` ainda mostrava arquivos nao rastreados antigos:

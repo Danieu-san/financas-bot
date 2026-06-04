@@ -74,6 +74,59 @@ async function executeLegacyExpenseQueryIntent(intent, params = {}, dataSources 
     const mes = getMonthIndex(params.mes);
     const ano = parseInt(params.ano, 10);
 
+    const publicItemToLegacyRow = (item = {}) => ([
+        item.date || '',
+        item.description || '',
+        item.category || 'Outros',
+        item.subcategory || '',
+        Number(item.value || 0),
+        '',
+        item.paymentMethod || '',
+        '',
+        ''
+    ]);
+
+    if (intent === 'percentual_categoria_gastos') {
+        const result = value || {};
+        return {
+            results: Number(result.percent || 0),
+            details: {
+                ...params,
+                mes,
+                ano,
+                totalCategoria: Number(result.part || 0),
+                totalGastos: Number(result.total || 0)
+            }
+        };
+    }
+
+    if (intent === 'contagem_ocorrencias') {
+        return {
+            results: Number(value || 0),
+            details: {
+                ...params,
+                mes,
+                ano,
+                totalGastos: execution.result?.details?.total || 0
+            }
+        };
+    }
+
+    if (intent === 'maior_menor_gasto' || intent === 'maior_menor_gasto_categoria') {
+        return {
+            results: {
+                min: value?.min ? publicItemToLegacyRow(value.min) : null,
+                max: value?.max ? publicItemToLegacyRow(value.max) : null
+            },
+            details: {
+                ...params,
+                mes,
+                ano,
+                totalGastos: execution.result?.details?.total || 0
+            }
+        };
+    }
+
     if (intent === 'ranking_estabelecimentos_gastos') {
         return {
             results: Array.isArray(value) ? value : [],
@@ -661,6 +714,9 @@ const operationRegistry = {
         return { results: total, details: { ...params, categorias, mes, ano } };
     },
     percentual_categoria_gastos: async function(params, dataSources) {
+        const queryEngineResult = await executeLegacyExpenseQueryIntent('percentual_categoria_gastos', params, dataSources);
+        if (queryEngineResult) return queryEngineResult;
+
         const mes = getMonthIndex(params.mes);
         const ano = parseInt(params.ano, 10);
         const gastosUnificados = getUnifiedExpenses(dataSources, mes, ano);
@@ -698,11 +754,9 @@ const operationRegistry = {
     contagem_ocorrencias: async function(params, dataSources) {
         const ano = parseInt(params.ano, 10);
         const mes = getMonthIndex(params.mes);
-        const gastosUnificados = getUnifiedExpenses(dataSources, mes, ano);
-        const dataParaAnalise = gastosUnificados.map(g => [g.data, g.descricao, g.categoria, g.subcategoria]);
-        const searchTerms = [normalizeText(params.categoria)];
-        const filteredItems = analysisService.countOccurrences(dataParaAnalise, searchTerms, ano, mes);
-        return { results: filteredItems.length, details: { ...params, mes, ano } };
+        const rows = getDetailedExpenseRows(dataSources, { ...params, mes, ano });
+        const filteredItems = rows.filter(row => matchesAnyField([row.descricao || '', row.categoria || '', row.subcategoria || ''], params.categoria));
+        return { results: filteredItems.length, details: { ...params, mes, ano, totalGastos: rows.reduce((sum, row) => sum + parseValue(row.valor), 0) } };
     },
     gastos_valores_duplicados: async function(params, dataSources) {
         const mes = getMonthIndex(params.mes);
@@ -731,6 +785,9 @@ const operationRegistry = {
         return { results: duplicatasEncontradas, details: { ...params, mes, ano } };
     },
     maior_menor_gasto: async function(params, dataSources) {
+        const queryEngineResult = await executeLegacyExpenseQueryIntent('maior_menor_gasto', params, dataSources);
+        if (queryEngineResult) return queryEngineResult;
+
         const mes = getMonthIndex(params.mes);
         const ano = parseInt(params.ano, 10);
         const gastosUnificados = getUnifiedExpenses(dataSources, mes, ano);
@@ -739,6 +796,9 @@ const operationRegistry = {
         return { results: { min: minMax.min, max: minMax.max }, details: { ...params, mes, ano } };
     },
     maior_menor_gasto_categoria: async function(params, dataSources) {
+        const queryEngineResult = await executeLegacyExpenseQueryIntent('maior_menor_gasto_categoria', params, dataSources);
+        if (queryEngineResult) return queryEngineResult;
+
         const mes = getMonthIndex(params.mes);
         const ano = parseInt(params.ano, 10);
         const gastosUnificados = getUnifiedExpenses(dataSources, mes, ano)
