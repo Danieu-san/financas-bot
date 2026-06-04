@@ -241,6 +241,14 @@ Deploy:
 - EC2 via `git am`: `ea0e943`, porque o repo privado bloqueia `git pull` HTTPS sem credencial interativa.
 - Validacao em producao: `npm install` retornou 0 vulnerabilidades, `/dashboard/health` retornou `{"ok":true,"sqlite":true}`, PM2 ficou `online`, logs mostraram `WhatsApp pronto` e `Bot pronto para receber mensagens`.
 
+Correcao local em 2026-06-04 apos teste real no WhatsApp:
+
+- Sintoma: `quanto gastei esse mês?` respondia R$328,81, mas follow-ups como `detalhe os gastos pra mim`, `foram em quais estabelecimentos?` e `e por categoria?` caiam para R$55,85 porque alguns caminhos usavam data da compra enquanto outros usavam mes da fatura.
+- Ajuste: intents analiticas legadas de gastos passam a usar `timeBasis: billing_month` de forma consistente quando incluem cartoes; follow-ups com `origem=cartao` usam dominio `cards`.
+- `ranking_categorias_gastos` tambem passou pela Query Engine antes do fallback legado para nao misturar criterios.
+- `me explica de onde veio esse total` agora e reconhecido como pergunta analitica rapida, evitando fallback generico.
+- Teste de regressao adicionado em `tests/unit.test.js` cobrindo compras feitas em maio com fatura de junho, ranking por estabelecimento no cartao e explicacao de total.
+
 ## Higiene do workspace
 
 Em 2026-05-26, `git status --short` ainda mostrava arquivos nao rastreados antigos:

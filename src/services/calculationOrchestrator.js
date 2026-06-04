@@ -88,6 +88,25 @@ async function executeLegacyExpenseQueryIntent(intent, params = {}, dataSources 
         };
     }
 
+    if (intent === 'ranking_categorias_gastos') {
+        const rows = Array.isArray(value) ? value : [];
+        return {
+            results: rows.map(item => ({
+                categoria: item.label || item.categoria || 'Outros',
+                label: item.label || item.categoria || 'Outros',
+                total: Number(item.total || 0),
+                count: Number(item.count || 0)
+            })),
+            details: {
+                ...params,
+                mes,
+                ano,
+                totalGastos: execution.result?.details?.total || rows.reduce((sum, item) => sum + Number(item.total || 0), 0),
+                somenteCartao: mapped.plan.domain === 'cards' || normalizeText(params.origem || '') === 'cartao'
+            }
+        };
+    }
+
     const detail = value || {};
     const onlyCards = intent === 'detalhamento_cartao_mes';
     const items = Array.isArray(detail.items) ? detail.items : [];
@@ -924,6 +943,9 @@ const operationRegistry = {
         };
     },
     ranking_categorias_gastos: async function(params, dataSources) {
+        const queryEngineResult = await executeLegacyExpenseQueryIntent('ranking_categorias_gastos', params, dataSources);
+        if (queryEngineResult) return queryEngineResult;
+
         const mes = getMonthIndex(params.mes);
         const ano = parseInt(params.ano, 10);
         const grouped = new Map();

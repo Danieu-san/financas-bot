@@ -177,7 +177,13 @@ test('financialQueryPlan maps legacy detail and category intents to composable p
     assert.strictEqual(detail.ok, true);
     assert.strictEqual(detail.plan.domain, 'expenses');
     assert.strictEqual(detail.plan.operation, 'detail');
+    assert.strictEqual(detail.plan.timeBasis, 'billing_month');
     assert.deepStrictEqual(detail.plan.groupBy, ['category', 'merchant']);
+
+    const cardEstablishments = financialQueryPlan.legacyIntentToQueryPlan('ranking_estabelecimentos_gastos', { mes: 5, ano: 2026, origem: 'cartao' });
+    assert.strictEqual(cardEstablishments.ok, true);
+    assert.strictEqual(cardEstablishments.plan.domain, 'cards');
+    assert.strictEqual(cardEstablishments.plan.timeBasis, 'billing_month');
 
     const category = financialQueryPlan.legacyIntentToQueryPlan('total_gastos_categoria_mes', { mes: 4, ano: 2026, categoria: 'Mercado' });
     assert.strictEqual(category.ok, true);
@@ -1376,10 +1382,14 @@ test('messageHandler analytical follow-ups inherit safe context without raw spre
 });
 
 test('messageHandler local command routing avoids AI for common commands and low-signal text', (t) => {
-    const { detectLocalCommandIntent, shouldSkipAiForUnknownMessage } = messageHandler.__test__;
+    const { detectFastPerguntaIntent, detectLocalCommandIntent, shouldSkipAiForUnknownMessage } = messageHandler.__test__;
 
     assert.deepStrictEqual(detectLocalCommandIntent('AJUDA'), { intent: 'ajuda' });
     assert.deepStrictEqual(detectLocalCommandIntent('relatório mensal'), { intent: 'resumo' });
+    assert.deepStrictEqual(detectFastPerguntaIntent('me explica de onde veio esse total'), {
+        intent: 'pergunta',
+        question: 'me explica de onde veio esse total'
+    });
     assert.strictEqual(shouldSkipAiForUnknownMessage('teste'), true);
     assert.strictEqual(shouldSkipAiForUnknownMessage('valeu'), true);
     assert.strictEqual(shouldSkipAiForUnknownMessage('Uber 20'), false);
@@ -1784,33 +1794,44 @@ test('calculationOrchestrator details expenses by category, establishment and so
         entradas: [['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Obs', 'user_id']],
         cartoes: [[
             ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Observações', 'user_id'],
+            ['30/05/2026', 'restaurante malz', 'Alimentação', 125.25, '1/1', 'Junho de 2026', 'nubank-thais', 'Nubank Thais', '', 'user-2'],
+            ['30/05/2026', 'compra na Shoppe', 'Compras', 50.23, '1/1', 'Junho de 2026', 'nubank-thais', 'Nubank Thais', '', 'user-2'],
+            ['29/05/2026', 'barbeiro', 'Serviços Pessoais', 40, '1/1', 'Junho de 2026', 'nubank-thais', 'Nubank Thais', '', 'user-2'],
+            ['30/05/2026', 'hortifruti', 'Alimentação', 35.59, '1/1', 'Junho de 2026', 'nubank-thais', 'Nubank Thais', '', 'user-2'],
             ['02/06/2026', 'iFood jantar', 'Alimentação', 100, '1/1', 'Junho de 2026', 'nubank-thais', 'Nubank Thais', '', 'user-2'],
             ['01/06/2026', 'Mercado Bom', 'Alimentação', 171.83, '1/1', 'Junho de 2026', 'nubank-thais', 'Nubank Thais', '', 'user-2']
         ]]
     };
 
     const details = await calculationOrchestrator.execute('detalhamento_gastos_mes', { mes: 5, ano: 2026 }, dataSources);
-    assert.strictEqual(round2(details.results.total), 328.81);
+    assert.strictEqual(round2(details.results.total), 579.88);
     assert.strictEqual(round2(details.results.totalSaidas), 56.98);
-    assert.strictEqual(round2(details.results.totalCartoes), 271.83);
-    assert.deepStrictEqual(details.results.categorias.map(item => [item.label, round2(item.total), item.count]), [
-        ['Alimentação', 288.81, 3],
-        ['Transporte', 40, 1]
-    ]);
+    assert.strictEqual(round2(details.results.totalCartoes), 522.9);
+    const categoriesByLabel = new Map(details.results.categorias.map(item => [item.label, [round2(item.total), item.count]]));
+    assert.deepStrictEqual(categoriesByLabel.get('Alimentação'), [449.65, 5]);
+    assert.deepStrictEqual(categoriesByLabel.get('Compras'), [50.23, 1]);
+    assert.deepStrictEqual(categoriesByLabel.get('Transporte'), [40, 1]);
     assert.deepStrictEqual(details.results.estabelecimentos.slice(0, 2).map(item => [item.label, round2(item.total), item.count]), [
         ['Mercado Bom', 171.83, 1],
-        ['iFood', 116.98, 2]
+        ['restaurante malz', 125.25, 1]
+    ]);
+
+    const cardEstablishments = await calculationOrchestrator.execute('ranking_estabelecimentos_gastos', { mes: 5, ano: 2026, origem: 'cartao' }, dataSources);
+    assert.deepStrictEqual(cardEstablishments.results.slice(0, 3).map(item => [item.label, round2(item.total), item.count]), [
+        ['Mercado Bom', 171.83, 1],
+        ['restaurante malz', 125.25, 1],
+        ['iFood', 100, 1]
     ]);
 
     const cardDetails = await calculationOrchestrator.execute('detalhamento_cartao_mes', { mes: 5, ano: 2026, cartao: 'nubank thais' }, dataSources);
-    assert.strictEqual(round2(cardDetails.results.total), 271.83);
-    assert.strictEqual(cardDetails.results.lancamentos.length, 2);
+    assert.strictEqual(round2(cardDetails.results.total), 522.9);
+    assert.strictEqual(cardDetails.results.lancamentos.length, 6);
 
     const establishments = await calculationOrchestrator.execute('ranking_estabelecimentos_gastos', { mes: 5, ano: 2026 }, dataSources);
     assert.deepStrictEqual(establishments.results.slice(0, 3).map(item => [item.label, round2(item.total), item.count]), [
         ['Mercado Bom', 171.83, 1],
-        ['iFood', 116.98, 2],
-        ['Uber', 40, 1]
+        ['restaurante malz', 125.25, 1],
+        ['iFood', 116.98, 2]
     ]);
 });
 

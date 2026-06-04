@@ -318,25 +318,28 @@ function legacyIntentToQueryPlan(intent, parameters = {}) {
     const baseFilters = Object.keys(period).length > 0 ? { period } : {};
     const categoryFilters = parameters.categoria ? { ...baseFilters, category: parameters.categoria } : baseFilters;
     const cardFilters = parameters.cartao ? { ...baseFilters, card: parameters.cartao } : baseFilters;
+    const originIsCard = normalizeText(parameters.origem || parameters.source || '') === 'cartao';
+    const expenseDomain = originIsCard ? 'cards' : 'expenses';
+    const expenseFilters = originIsCard ? cardFilters : baseFilters;
 
     const map = {
-        total_gastos_mes: { domain: 'expenses', operation: 'sum', filters: baseFilters },
-        total_gastos_categoria_mes: { domain: 'expenses', operation: 'sum', filters: categoryFilters, groupBy: ['category'] },
-        media_gastos_categoria_mes: { domain: 'expenses', operation: 'average', filters: categoryFilters },
-        media_diaria_gastos_mes: { domain: 'expenses', operation: 'average', filters: baseFilters, groupBy: ['date'] },
-        total_gastos_multiplas_categorias: { domain: 'expenses', operation: 'sum', filters: { ...baseFilters, categories: parameters.categorias || [] }, groupBy: ['category'] },
-        percentual_categoria_gastos: { domain: 'expenses', operation: 'percentage', filters: categoryFilters, groupBy: ['category'] },
-        comparacao_gastos_categorias: { domain: 'expenses', operation: 'compare', filters: { ...baseFilters, categories: parameters.categorias || [] }, groupBy: ['category'] },
-        listagem_gastos_categoria: { domain: 'expenses', operation: 'list', filters: categoryFilters, answerStyle: 'detailed' },
-        contagem_ocorrencias: { domain: 'expenses', operation: 'count', filters: categoryFilters },
-        contagem_lancamentos_saida: { domain: 'expenses', operation: 'count', filters: baseFilters },
-        gastos_valores_duplicados: { domain: 'expenses', operation: 'detect', filters: baseFilters },
-        maior_menor_gasto: { domain: 'expenses', operation: 'extreme', filters: baseFilters },
-        maior_menor_gasto_categoria: { domain: 'expenses', operation: 'extreme', filters: categoryFilters },
-        ranking_categorias_gastos: { domain: 'expenses', operation: 'rank', filters: baseFilters, groupBy: ['category'] },
-        comparacao_gastos_periodo: { domain: 'expenses', operation: 'compare', filters: baseFilters },
-        detalhamento_gastos_mes: { domain: 'expenses', operation: 'detail', filters: baseFilters, groupBy: ['category', 'merchant'], answerStyle: 'detailed' },
-        ranking_estabelecimentos_gastos: { domain: 'expenses', operation: 'rank', filters: baseFilters, groupBy: ['merchant'] },
+        total_gastos_mes: { domain: 'expenses', operation: 'sum', filters: baseFilters, timeBasis: 'billing_month' },
+        total_gastos_categoria_mes: { domain: 'expenses', operation: 'sum', filters: categoryFilters, groupBy: ['category'], timeBasis: 'billing_month' },
+        media_gastos_categoria_mes: { domain: 'expenses', operation: 'average', filters: categoryFilters, timeBasis: 'billing_month' },
+        media_diaria_gastos_mes: { domain: 'expenses', operation: 'average', filters: baseFilters, groupBy: ['date'], timeBasis: 'billing_month' },
+        total_gastos_multiplas_categorias: { domain: 'expenses', operation: 'sum', filters: { ...baseFilters, categories: parameters.categorias || [] }, groupBy: ['category'], timeBasis: 'billing_month' },
+        percentual_categoria_gastos: { domain: 'expenses', operation: 'percentage', filters: categoryFilters, groupBy: ['category'], timeBasis: 'billing_month' },
+        comparacao_gastos_categorias: { domain: 'expenses', operation: 'compare', filters: { ...baseFilters, categories: parameters.categorias || [] }, groupBy: ['category'], timeBasis: 'billing_month' },
+        listagem_gastos_categoria: { domain: 'expenses', operation: 'list', filters: categoryFilters, answerStyle: 'detailed', timeBasis: 'billing_month' },
+        contagem_ocorrencias: { domain: 'expenses', operation: 'count', filters: categoryFilters, timeBasis: 'billing_month' },
+        contagem_lancamentos_saida: { domain: 'expenses', operation: 'count', filters: baseFilters, timeBasis: 'billing_month' },
+        gastos_valores_duplicados: { domain: 'expenses', operation: 'detect', filters: baseFilters, timeBasis: 'billing_month' },
+        maior_menor_gasto: { domain: 'expenses', operation: 'extreme', filters: baseFilters, timeBasis: 'billing_month' },
+        maior_menor_gasto_categoria: { domain: 'expenses', operation: 'extreme', filters: categoryFilters, timeBasis: 'billing_month' },
+        ranking_categorias_gastos: { domain: expenseDomain, operation: 'rank', filters: expenseFilters, groupBy: ['category'], timeBasis: 'billing_month' },
+        comparacao_gastos_periodo: { domain: 'expenses', operation: 'compare', filters: baseFilters, timeBasis: 'billing_month' },
+        detalhamento_gastos_mes: { domain: 'expenses', operation: 'detail', filters: baseFilters, groupBy: ['category', 'merchant'], answerStyle: 'detailed', timeBasis: 'billing_month' },
+        ranking_estabelecimentos_gastos: { domain: expenseDomain, operation: 'rank', filters: expenseFilters, groupBy: ['merchant'], timeBasis: 'billing_month' },
         detalhamento_cartao_mes: { domain: 'cards', operation: 'detail', filters: cardFilters, groupBy: ['card', 'category', 'merchant'], answerStyle: 'detailed' },
         total_fatura_cartao: { domain: 'cards', operation: 'sum', filters: cardFilters },
         total_faturas_por_cartao: { domain: 'cards', operation: 'group', filters: cardFilters, groupBy: ['card'] },
