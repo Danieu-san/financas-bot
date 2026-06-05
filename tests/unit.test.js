@@ -1317,6 +1317,21 @@ test('messageHandler.classifyPerguntaLocally covers complex analytical questions
     const cardRanking = classifyPerguntaLocally('qual cartão tem mais parcelas em aberto?');
     assert.strictEqual(cardRanking.intent, 'ranking_cartoes_em_aberto');
 
+    const cardOpenValueRanking = classifyPerguntaLocally('qual cartão tem mais valor em aberto?');
+    assert.strictEqual(cardOpenValueRanking.intent, 'ranking_cartoes_em_aberto');
+
+    const invoiceComposition = classifyPerguntaLocally('quais compras compõem a fatura deste mês?');
+    assert.strictEqual(invoiceComposition.intent, 'detalhamento_cartao_mes');
+
+    const invoiceItems = classifyPerguntaLocally('me mostra os itens da fatura');
+    assert.strictEqual(invoiceItems.intent, 'detalhamento_cartao_mes');
+
+    const invoiceEntries = classifyPerguntaLocally('quais lançamentos estão na fatura desse mês?');
+    assert.strictEqual(invoiceEntries.intent, 'detalhamento_cartao_mes');
+
+    const futureInstallments = classifyPerguntaLocally('quais parcelas ainda tenho para pagar?');
+    assert.strictEqual(futureInstallments.intent, 'resumo_parcelamentos_cartao');
+
     const expenseDetails = classifyPerguntaLocally('detalhe os gastos pra mim');
     assert.strictEqual(expenseDetails.intent, 'detalhamento_gastos_mes');
 
@@ -1613,6 +1628,33 @@ test('messageHandler local replies cover richer spreadsheet calculations', () =>
             }
         }),
         /Esse total em junho\/2026 vem de:.*Total explicado: R\$ 328,81.*Saídas: R\$ 100,00.*Cartões: R\$ 228,81.*Por categoria.*Alimentação: R\$ 200,00.*Principais estabelecimentos.*iFood: R\$ 116,98.*Lançamentos que compõem/s
+    );
+
+    assert.match(
+        buildLocalPerguntaResponse({
+            userQuestion: 'quais compras compõem a fatura deste mês?',
+            intent: 'detalhamento_cartao_mes',
+            analyzedData: {
+                results: {
+                    total: 328.81,
+                    totalSaidas: 0,
+                    totalCartoes: 328.81,
+                    categorias: [
+                        { label: 'Alimentação', total: 206.19, count: 7 },
+                        { label: 'Compras', total: 50.23, count: 1 }
+                    ],
+                    estabelecimentos: [
+                        { label: 'restaurante malz', total: 125.25, count: 1 },
+                        { label: 'Shoppe', total: 50.23, count: 1 }
+                    ],
+                    lancamentos: [
+                        { data: '30/05/2026', descricao: 'restaurante malz', categoria: 'Alimentação', valor: 125.25, origem: 'Lançamentos Cartão', cartao: 'Cartão Nubank - Thais', mesCobranca: 'Junho de 2026' }
+                    ]
+                },
+                details: { mes: 5, ano: 2026, totalLancamentos: 10, somenteCartao: true }
+            }
+        }),
+        /Compras que compõem a fatura em junho\/2026:.*Total: R\$ 328,81.*Por categoria.*Alimentação: R\$ 206,19.*Lançamentos que compõem.*restaurante malz.*Cartão - Cartão Nubank - Thais/s
     );
 
     assert.match(
@@ -1917,6 +1959,19 @@ test('calculationOrchestrator calculates card invoices and open installments det
     ]);
     assert.strictEqual(invoiceByCard.details.total, 1200);
     assert.strictEqual(invoiceByCard.details.cartoes, 2);
+
+    const openRanking = await calculationOrchestrator.execute('ranking_cartoes_em_aberto', { mes: 4, ano: 2026 }, dataSources);
+    assert.deepStrictEqual(openRanking.results.map(item => [item.cartao, item.total, item.parcelas]), [
+        ['Nubank Daniel', 3000, 3],
+        ['Itaú', 200, 1]
+    ]);
+
+    const invoiceComposition = await calculationOrchestrator.execute('detalhamento_cartao_mes', { mes: 4, ano: 2026 }, dataSources);
+    assert.strictEqual(invoiceComposition.results.total, 1200);
+    assert.deepStrictEqual(invoiceComposition.results.lancamentos.map(item => [item.descricao, item.cartao, item.mesCobranca]), [
+        ['notebook', 'Nubank Daniel', 'Maio de 2026'],
+        ['mercado', 'Itaú', 'Maio de 2026']
+    ]);
 });
 
 test('calculationOrchestrator answers recurring bills and paid invoice questions from sheet data', async () => {

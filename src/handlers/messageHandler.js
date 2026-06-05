@@ -1374,6 +1374,7 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
     const cardName = extractCardFromQuestion(text);
 
     const hasCardSignal = text.includes('cartao') || text.includes('cartoes') || Boolean(cardName);
+    const hasInvoiceSignal = text.includes('fatura') || text.includes('faturas');
     const hasDetailSignal = (
         /\b(detalh|detalhe|detalhar|explique|explica|explicar|compoe|compõe|composicao|composição|discrimine|abra|abrir|quebra|quebre)\b/.test(text) ||
         text.includes('de onde veio') ||
@@ -1386,6 +1387,11 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
         /\b(estabelecimento|estabelecimentos|loja|lojas|local|locais|lugar|lugares|comercio|comércio|comercios|comércios|fornecedor|fornecedores)\b/.test(text) ||
         text.includes('onde foi gasto') ||
         text.includes('onde foram gastos')
+    );
+    const hasInvoiceCompositionSignal = hasInvoiceSignal && (
+        /\b(compra|compras|item|itens|lancamento|lancamentos|lançamento|lançamentos|compoe|compõe|composicao|composição|detalh|detalhe|detalhar|mostra|mostrar|liste|listar|quais)\b/.test(text) ||
+        text.includes('o que entrou') ||
+        text.includes('de onde veio')
     );
 
     if (hasEstablishmentSignal && (hasExpenseSignal || hasCardSignal || text.includes('gasto') || text.includes('gastos') || text.includes('foram'))) {
@@ -1463,11 +1469,20 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
     ) {
         return { metric: 'paid_card_invoice_total', intent: 'total_pagamentos_fatura_mes', parameters: { mes, ano } };
     }
+    if (hasInvoiceCompositionSignal) {
+        return { metric: 'card_invoice_composition', intent: 'detalhamento_cartao_mes', parameters: { mes, ano, cartao: cardName } };
+    }
     if ((text.includes('aberto') || text.includes('futuro') || text.includes('futuros') || text.includes('futura') || text.includes('futuras') || text.includes('proximo') || text.includes('proximos') || text.includes('proxima') || text.includes('proximas')) && (hasCardSignal || text.includes('fatura') || text.includes('parcela'))) {
         if ((text.includes('qual') || text.includes('quais')) && (text.includes('mais') || text.includes('maior')) && (text.includes('parcelas') || text.includes('valor'))) {
             return { metric: 'open_cards_ranking', intent: 'ranking_cartoes_em_aberto', parameters: { mes, ano } };
         }
         return { metric: 'open_card_installments', intent: 'total_cartoes_em_aberto', parameters: { cartao: cardName, mes, ano } };
+    }
+    if (
+        (text.includes('parcela') || text.includes('parcelas') || text.includes('parcelamento') || text.includes('parcelamentos')) &&
+        (text.includes('pagar') || text.includes('em aberto') || text.includes('aberto') || text.includes('restante') || text.includes('restantes') || text.includes('ativas') || text.includes('ativos') || text.includes('quais') || text.includes('liste') || text.includes('listar'))
+    ) {
+        return { metric: 'card_installment_summary', intent: 'resumo_parcelamentos_cartao', parameters: { cartao: cardName, mes, ano } };
     }
     if (text.includes('fatura') || (hasCardSignal && text.includes('quanto') && !text.includes('aberto'))) {
         return { metric: 'card_invoice_total', intent: 'total_fatura_cartao', parameters: { cartao: cardName, mes, ano } };
@@ -1662,6 +1677,14 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
         normalizedQuestion.includes('composicao') ||
         normalizedQuestion.includes('composição')
     ) && /\b(total|valor|isso)\b/.test(normalizedQuestion);
+    const isInvoiceCompositionQuestion = (
+        /\bfaturas?\b/.test(normalizedQuestion) &&
+        (
+            /\b(compra|compras|item|itens|lancamento|lancamentos|lançamento|lançamentos|compoe|compõe|composicao|composição|detalh|detalhe|detalhar|mostra|mostrar|liste|listar|quais)\b/.test(normalizedQuestion) ||
+            normalizedQuestion.includes('o que entrou') ||
+            normalizedQuestion.includes('de onde veio')
+        )
+    );
 
     if (intent === 'saldo_do_mes') {
         return [
@@ -1898,11 +1921,13 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
         if (lancamentos.length === 0) {
             return `Não encontrei gastos para detalhar em ${periodLabel}.`;
         }
-        const title = isTotalExplanationQuestion
-            ? `Esse total em ${periodLabel} vem de:`
-            : (intent === 'detalhamento_cartao_mes'
-                ? `Detalhamento dos gastos no cartão em ${periodLabel}:`
-                : `Detalhamento dos gastos em ${periodLabel}:`);
+        const title = isInvoiceCompositionQuestion
+            ? `Compras que compõem a fatura em ${periodLabel}:`
+            : (isTotalExplanationQuestion
+                ? `Esse total em ${periodLabel} vem de:`
+                : (intent === 'detalhamento_cartao_mes'
+                    ? `Detalhamento dos gastos no cartão em ${periodLabel}:`
+                    : `Detalhamento dos gastos em ${periodLabel}:`));
         const lines = [
             title,
             `${isTotalExplanationQuestion ? 'Total explicado' : 'Total'}: ${formatCurrencyBR(payload.total || 0)}`
@@ -1936,7 +1961,9 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
         lines.push('Lançamentos que compõem:');
         lancamentos.slice(0, 8).forEach((item, idx) => {
             const date = formatSheetDateForReply(item.data);
-            const source = item.tipo === 'cartao'
+            const itemSourceText = normalizeText(`${item.tipo || ''} ${item.origem || ''} ${item.pagamento || ''} ${item.cartao || ''}`);
+            const isCardItem = item.tipo === 'cartao' || itemSourceText.includes('cartao') || itemSourceText.includes('credito') || Boolean(item.cartao);
+            const source = isCardItem
                 ? `Cartão${item.cartao ? ` - ${item.cartao}` : ''}`
                 : (item.pagamento || item.origem || 'Saída');
             lines.push(`${idx + 1}. ${date} | ${item.descricao || 'sem descrição'} | ${item.categoria || 'Outros'} | ${formatCurrencyBR(item.valor || 0)} | ${source}`);

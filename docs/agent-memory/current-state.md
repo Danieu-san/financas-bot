@@ -262,6 +262,14 @@ Complemento local em 2026-06-04:
 - Ajuste: `buildLocalPerguntaResponse` detecta perguntas de explicacao/composicao do total e abre a resposta com `Esse total ... vem de:` e `Total explicado`, mantendo categorias, estabelecimentos e lancamentos.
 - Teste de regressao atualizado em `messageHandler local replies cover richer spreadsheet calculations`.
 
+Novo complemento local em 2026-06-04:
+
+- A familia semantica de cartoes/faturas/parcelamentos foi ampliada sem depender de frases exatas.
+- Perguntas como `quais compras compõem a fatura deste mês?`, `me mostra os itens da fatura`, `quais lançamentos estão na fatura desse mês?`, `qual cartão tem mais valor em aberto?` e `quais parcelas ainda tenho para pagar?` agora roteiam para respostas deterministicas de composicao de fatura, ranking de cartoes em aberto ou resumo de parcelamentos.
+- Respostas de composicao de fatura abrem com `Compras que compõem a fatura...`, evitando UX ambigua de detalhe generico.
+- Itens vindos de `Lançamentos Cartão` sao sinalizados como `Cartão - <nome>` mesmo quando o payload nao traz `tipo=cartao`, desde que contenha origem/pagamento/cartao compativel.
+- Testes adicionados em `messageHandler.classifyPerguntaLocally covers complex analytical questions`, `messageHandler local replies cover richer spreadsheet calculations` e `calculationOrchestrator calculates card invoices and open installments deterministically`.
+
 ## Higiene do workspace
 
 Em 2026-05-26, `git status --short` ainda mostrava arquivos nao rastreados antigos:
