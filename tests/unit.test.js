@@ -2404,7 +2404,7 @@ test('adminActionLogService records append-only sanitized admin actions as jsonl
                 message_length: 42,
                 email: 'friend@example.com',
                 link: 'https://financasbot.duckdns.org/dashboard?token=abc.def.ghi',
-                spreadsheet: 'https://docs.google.com/spreadsheets/d/1aj4SebwH04RemPBVWxXm7y2Antan5o3qBBds1YSt4QQ/edit'
+                spreadsheet: 'https://docs.google.com/spreadsheets/d/FAKE_TEST_SPREADSHEET_ID_000000000000000000000/edit'
             }
         });
 
@@ -2426,7 +2426,7 @@ test('adminActionLogService records append-only sanitized admin actions as jsonl
         assert.ok(first.target_ref);
         assert.notStrictEqual(first.actor_ref, '5521970112407@c.us');
         assert.notStrictEqual(first.target_ref, '5521985969034@c.us');
-        assert.doesNotMatch(JSON.stringify(first), /5521970112407|5521985969034|friend@example\.com|abc\.def\.ghi|1aj4SebwH04RemPBVWxXm7y2Antan5o3qBBds1YSt4QQ/);
+        assert.doesNotMatch(JSON.stringify(first), /5521970112407|5521985969034|friend@example\.com|abc\.def\.ghi|FAKE_TEST_SPREADSHEET_ID_000000000000000000000/);
         assert.match(first.target_hint, /\[telefone\]/);
         assert.match(first.metadata.email, /\[email\]/);
         assert.strictEqual(first.metadata.link, 'https://financasbot.duckdns.org/dashboard');
@@ -2461,7 +2461,7 @@ test('dashboardAccessLogService records dashboard access without raw tokens or u
             scope: 'support_user',
             path: '/dashboard/api/summary?token=eyJ.secret.token&user=target-user-real-id',
             metadata: {
-                spreadsheet: 'https://docs.google.com/spreadsheets/d/1aj4SebwH04RemPBVWxXm7y2Antan5o3qBBds1YSt4QQ/edit',
+                spreadsheet: 'https://docs.google.com/spreadsheets/d/FAKE_TEST_SPREADSHEET_ID_000000000000000000000/edit',
                 phone: '5521985969034@c.us'
             }
         });
@@ -2478,7 +2478,7 @@ test('dashboardAccessLogService records dashboard access without raw tokens or u
         assert.notStrictEqual(saved.token_ref, 'eyJ.secret.token');
         assert.notStrictEqual(saved.actor_user_ref, 'admin-user-real-id');
         assert.notStrictEqual(saved.data_user_ref, 'target-user-real-id');
-        assert.doesNotMatch(JSON.stringify(saved), /eyJ\.secret\.token|admin-user-real-id|target-user-real-id|5521985969034|1aj4SebwH04RemPBVWxXm7y2Antan5o3qBBds1YSt4QQ/);
+        assert.doesNotMatch(JSON.stringify(saved), /eyJ\.secret\.token|admin-user-real-id|target-user-real-id|5521985969034|FAKE_TEST_SPREADSHEET_ID_000000000000000000000/);
         assert.strictEqual(saved.path, '/dashboard/api/summary');
         assert.strictEqual(entry.event, saved.event);
     } finally {
@@ -2526,10 +2526,10 @@ test('messageHandler security gate blocks prompt injection and sensitive data ex
 
 test('messageHandler log sanitizer redacts tokens, OAuth params and internal document ids', () => {
     const { sanitizeLogText } = messageHandler.__test__;
-    const raw = 'link https://financasbot.duckdns.org/dashboard?token=abc.def.ghi&code=supersecret&state=state123 segredo GOCSPX-abc123 planilha https://docs.google.com/spreadsheets/d/1aj4SebwH04RemPBVWxXm7y2Antan5o3qBBds1YSt4QQ/edit';
+    const raw = 'link https://financasbot.duckdns.org/dashboard?token=abc.def.ghi&code=supersecret&state=state123 segredo GOCSPX-abc123 planilha https://docs.google.com/spreadsheets/d/FAKE_TEST_SPREADSHEET_ID_000000000000000000000/edit';
     const sanitized = sanitizeLogText(raw);
 
-    assert.doesNotMatch(sanitized, /abc\.def\.ghi|supersecret|state123|GOCSPX-abc123|1aj4SebwH04RemPBVWxXm7y2Antan5o3qBBds1YSt4QQ/);
+    assert.doesNotMatch(sanitized, /abc\.def\.ghi|supersecret|state123|GOCSPX-abc123|FAKE_TEST_SPREADSHEET_ID_000000000000000000000/);
     assert.match(sanitized, /\[REDACTED/);
 });
 
