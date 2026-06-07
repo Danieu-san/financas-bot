@@ -5,7 +5,7 @@ const deletionHandler = require('./deletionHandler');
 const debtHandler = require('./debtHandler');
 const { getStructuredResponseFromLLM, askLLM } = require('../services/gemini');
 const googleService = require('../services/google');
-const { appendRowToSheet, readDataFromSheet, createCalendarEvent, syncDashboardForUser } = googleService;
+const { appendRowToSheet, readDataFromSheet, createCalendarEvent } = googleService;
 const runWithUserSheetContext = googleService.runWithUserSheetContext || ((user, fn) => fn());
 const hasUserSpreadsheetContext = googleService.hasUserSpreadsheetContext || (async () => false);
 const shareSpreadsheetWithUserEmail = googleService.shareSpreadsheetWithUserEmail || (async () => null);
@@ -22,6 +22,7 @@ const { handleAudio } = require('./audioHandler');
 const { classify } = require('../ai/intentClassifier');
 const { execute } = require('../services/calculationOrchestrator');
 const { generate } = require('../ai/responseGenerator');
+const { legacyIntentToQueryPlan, normalizeFinancialQueryPlan } = require('../query/financialQueryPlan');
 const {
     resolveUserAccess,
     USER_STATUS,
@@ -40,9 +41,9 @@ const {
     expireOldPendingUsers
 } = require('../services/userService');
 const { handleOnboarding, POST_ONBOARDING_DEBT_OFFER_ACTION } = require('./onboardingHandler');
-const { buildHealthSummary } = require('../services/financialHealthService');
-const { buildDebtAvalanchePlan } = require('../services/debtAvalancheService');
-const { syncReadModelIfNeeded, executeAnalyticalIntent, markReadModelDirty, getReadModelStats } = require('../services/readModelService');
+const { syncReadModelIfNeeded, executeAnalyticalIntent, executeFinancialQueryPlanFromReadModel, markReadModelDirty, getReadModelStats, getDashboardSqlData, getDashboardSnapshot } = require('../services/readModelService');
+const { getUserSheetDashboardData } = require('../services/userSheetAnalyticsService');
+const { buildDashboardWhatsAppSummary } = require('../services/dashboardSummaryService');
 const {
     annotateImportDuplicates,
     applyAccountClassificationRules,
@@ -77,12 +78,18 @@ const {
     revokeSharedSpreadsheetMembership,
     setSharedSpreadsheetMembership
 } = require('../services/oauthTokenStore');
+const {
+    resolveFinancialQueryScope,
+    applyResolvedScopeToClassification,
+    buildScopeClarificationReply,
+    buildPublicUserAliases
+} = require('../services/financialScopeResolver');
 const metrics = require('../utils/metrics');
 const { isAdminWithContext } = require('../utils/adminCheck');
 const logger = require('../utils/logger');
 const { sendPlainMessage } = require('../utils/whatsappMessaging');
 const { recordQaFailure } = require('../services/qaFailureLogService');
-const { recordAdminAction } = require('../services/adminActionLogService');
+const { recordAdminAction, hashRef, sanitizeValue } = require('../services/adminActionLogService');
 const { recordDashboardAccessEvent } = require('../services/dashboardAccessLogService');
 const {
     buildAdminBotStatusReply,
@@ -280,6 +287,170 @@ function normalizePaymentMethodLabel(value) {
     return String(value || '').trim();
 }
 
+function classifyLocalDescription(description, mapping = {}, fallback = {}) {
+    const text = normalizeText(description || '');
+    if (!text) return fallback;
+
+    for (const [keyword, classification] of Object.entries(mapping || {})) {
+        const normalizedKeyword = normalizeText(keyword);
+        if (normalizedKeyword && text.includes(normalizedKeyword)) {
+            return classification || fallback;
+        }
+    }
+
+    return fallback;
+}
+
+function extractLocalAmount(messageBody) {
+    const text = String(messageBody || '');
+    const amountPattern = /(?:r\$\s*)?(?:\d{1,3}(?:\.\d{3})+|\d+)(?:[,.]\d{1,2})?/gi;
+    const matches = Array.from(text.matchAll(amountPattern));
+
+    for (const match of matches) {
+        const raw = match[0];
+        const index = match.index || 0;
+        const before = text[index - 1] || '';
+        const after = text[index + raw.length] || '';
+        const context = text.slice(Math.max(0, index - 8), Math.min(text.length, index + raw.length + 12)).toLowerCase();
+
+        if (before === '/' || after === '/') continue;
+        if (/^\d{1,2}$/.test(raw) && /\bdia\s*$/.test(text.slice(Math.max(0, index - 8), index).toLowerCase())) continue;
+
+        const value = parseValue(raw);
+        const hasMoneyContext = /r\$|reais|real/.test(context);
+        const hasDecimal = /[,.]\d{1,2}$/.test(raw);
+        if (Number.isFinite(value) && value > 0 && (hasMoneyContext || hasDecimal || value >= 1)) {
+            return { raw, value, index, end: index + raw.length };
+        }
+    }
+
+    return null;
+}
+
+function extractLocalTransactionDate(messageBody) {
+    const raw = String(messageBody || '');
+    const text = normalizeText(raw);
+    const explicitDate = raw.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/);
+    if (explicitDate) {
+        const day = String(explicitDate[1]).padStart(2, '0');
+        const month = String(explicitDate[2]).padStart(2, '0');
+        let year = explicitDate[3];
+        if (!year) year = String(new Date().getFullYear());
+        if (year.length === 2) year = `20${year}`;
+        return `${day}/${month}/${year}`;
+    }
+
+    if (/\bontem\b/.test(text)) {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        return getFormattedDateOnly(yesterday);
+    }
+
+    if (/\bhoje\b/.test(text)) {
+        return getFormattedDateOnly(new Date());
+    }
+
+    return '';
+}
+
+function extractLocalPaymentMethod(messageBody, type) {
+    const text = normalizeText(messageBody || '');
+    if (type === 'Saídas') {
+        if (/\b(?:pix)\b/.test(text)) return 'PIX';
+        if (/\b(?:debito|debito)\b/.test(text)) return 'Débito';
+        if (/\b(?:credito|cartao)\b/.test(text)) return 'Crédito';
+        if (/\b(?:dinheiro|especie)\b/.test(text)) return 'Dinheiro';
+        return '';
+    }
+
+    if (/\b(?:pix)\b/.test(text)) return 'PIX';
+    if (/\b(?:conta corrente|corrente|\bcc\b)\b/.test(text)) return 'Conta Corrente';
+    if (/\b(?:poupanca|caixinha)\b/.test(text)) return 'Poupança';
+    if (/\b(?:dinheiro|especie)\b/.test(text)) return 'Dinheiro';
+    return '';
+}
+
+function extractLocalInstallments(messageBody) {
+    const text = normalizeText(messageBody || '');
+    const match = text.match(/\b(\d{1,2})\s*x\b|\b(\d{1,2})\s+parcelas?\b/);
+    if (!match) return null;
+    const installments = Number.parseInt(match[1] || match[2], 10);
+    return Number.isInteger(installments) && installments >= 1 && installments <= 48 ? installments : null;
+}
+
+function cleanLocalTransactionDescription(messageBody, amountInfo) {
+    if (!amountInfo) return '';
+    const raw = String(messageBody || '');
+    let description = raw.slice(amountInfo.end);
+
+    description = description
+        .replace(/\b(?:reais|real|r\$)\b/gi, ' ')
+        .replace(/\b(?:hoje|ontem)\b/gi, ' ')
+        .replace(/\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/g, ' ')
+        .replace(/\b(?:comprando|compra(?:ndo)?)\b/gi, ' ')
+        .replace(/\b(?:no|na|num|numa|em|de|do|da|com|por|para|pra)\s+(?=(?:pix|debito|débito|credito|crédito|cartao|cartão|dinheiro|conta corrente|corrente|cc|poupanca|poupança)\b)/gi, ' ')
+        .replace(/\b(?:pix|debito|débito|credito|crédito|cartao|cartão|dinheiro|conta corrente|corrente|cc|poupanca|poupança)\b/gi, ' ')
+        .replace(/\b\d{1,2}\s*x\b/gi, ' ')
+        .replace(/\b\d{1,2}\s+parcelas?\b/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    description = description
+        .replace(/^(?:no|na|num|numa|em|de|do|da|com|por|para|pra)\s+/i, '')
+        .replace(/^(?:um|uma|o|a|os|as)\s+/i, '')
+        .trim();
+    return description || 'Não especificado';
+}
+
+function detectLocalTransactionIntent(messageBody) {
+    const text = normalizeText(String(messageBody || '').trim());
+    if (!text || text.includes('?')) return null;
+
+    const isExpense = /^(?:gastei|gasto|comprei)\b/.test(text);
+    const isIncome = /^(?:recebi|ganhei)\b/.test(text);
+    if (!isExpense && !isIncome) return null;
+
+    const amount = extractLocalAmount(messageBody);
+    if (!amount) return null;
+
+    const description = cleanLocalTransactionDescription(messageBody, amount);
+    const data = extractLocalTransactionDate(messageBody);
+    const installments = extractLocalInstallments(messageBody);
+
+    if (isExpense) {
+        const classification = classifyLocalDescription(description, mapeamentoGastos, {
+            categoria: 'Outros',
+            subcategoria: ''
+        });
+        const gasto = {
+            descricao: description,
+            valor: amount.value,
+            categoria: classification.categoria || 'Outros',
+            subcategoria: classification.subcategoria || '',
+            pagamento: extractLocalPaymentMethod(messageBody, 'Saídas'),
+            recorrente: 'Não',
+            observacoes: 'Classificado por fallback local sem IA',
+            data
+        };
+        if (installments) gasto.installments = installments;
+        return { intent: 'gasto', gastoDetails: [gasto] };
+    }
+
+    const classification = classifyLocalDescription(description, mapeamentoEntradas, { categoria: 'Outros' });
+    return {
+        intent: 'entrada',
+        entradaDetails: [{
+            descricao: description,
+            valor: amount.value,
+            categoria: classification.categoria || 'Outros',
+            recebimento: extractLocalPaymentMethod(messageBody, 'Entradas'),
+            recorrente: 'Não',
+            observacoes: 'Classificado por fallback local sem IA',
+            data
+        }]
+    };
+}
+
 function markFinancialReadModelDirty(reason = 'financial_write') {
     try {
         markReadModelDirty(reason);
@@ -315,26 +486,35 @@ function messageLooksLikeReserveMovement(item = {}, messageBody = '') {
     ].filter(Boolean).join(' '));
 
     const hasReserveDestination = /\b(caixinha|reserva|poupanca|investimento|investi|rdb|tesouro|aplicacao|aplicado|apliquei)\b/.test(text);
-    const hasMovementVerb = /\b(guardei|guardar|reservei|reservar|apliquei|aplicar|investi|investir|transferi|enviei|mandei|coloquei|poupei)\b/.test(text);
-    const hasIncomeSignal = /\b(salario|decimo|13|recebi|renda|bonus|bonificacao|pagamento recebido)\b/.test(text);
+    const hasApplicationVerb = /\b(guardei|guardar|reservei|reservar|apliquei|aplicar|investi|investir|transferi|enviei|mandei|coloquei|poupei)\b/.test(text);
+    const hasRedemptionVerb = /\b(resgate|resgatei|resgatar|retirei|retirar|saque|saquei|sacar|tirei|tirar)\b/.test(text);
+    const hasReserveSourcePattern = /\b(recebi|ganhei|entrou|caiu)\b.*\b(?:da|de|do)\s+(?:minha\s+|meu\s+)?(?:caixinha|reserva|poupanca|investimento|rdb|tesouro)\b/.test(text);
+    const hasIncomeCategorySignal = /\b(salario|decimo|13|renda\s+extra|bonus|bonificacao|pagamento recebido|reembolso|venda|freela|freelance)\b/.test(text);
 
-    return hasReserveDestination && hasMovementVerb && !hasIncomeSignal;
+    return hasReserveDestination && (hasApplicationVerb || hasRedemptionVerb || hasReserveSourcePattern) && !hasIncomeCategorySignal;
 }
 
 function buildReserveTransfer(item = {}, messageBody = '') {
     if (!messageLooksLikeReserveMovement(item, messageBody)) return null;
 
     const transferDate = item.data ? parseSheetDate(item.data) : new Date();
-    const destination = normalizeText(item.descricao || messageBody).includes('nubank')
+    const text = normalizeText([messageBody, item.descricao, item.observacoes].filter(Boolean).join(' '));
+    const reserveAccount = text.includes('nubank')
         ? 'Caixinha Nubank'
         : 'Reserva/Caixinha';
+    const isRedemption = (
+        /\b(resgate|resgatei|resgatar|retirei|retirar|saque|saquei|sacar|tirei|tirar)\b/.test(text) ||
+        /\b(recebi|ganhei|entrou|caiu)\b.*\b(?:da|de|do)\s+(?:minha\s+|meu\s+)?(?:caixinha|reserva|poupanca|investimento|rdb|tesouro)\b/.test(text)
+    );
+    const method = normalizePaymentMethodLabel(item.recebimento || item.pagamento);
+    const methodIsReserve = ['poupanca', 'caixinha', 'reserva'].includes(normalizeText(method));
 
     return {
         data: getFormattedDateOnly(transferDate),
         descricao: item.descricao || 'Aplicação em reserva/caixinha',
         valor: parseValue(item.valor),
-        origem: item.recebimento && normalizeText(item.recebimento) !== 'poupanca' ? normalizePaymentMethodLabel(item.recebimento) : '',
-        destino: destination,
+        origem: isRedemption ? reserveAccount : (method && !methodIsReserve ? method : ''),
+        destino: isRedemption ? (method && !methodIsReserve ? method : '') : reserveAccount,
         metodo: 'Transferência',
         observacoes: 'Movimentação de reserva/investimento registrada pelo WhatsApp; não conta como gasto nem renda.',
         status: 'Movimentação de reserva/investimento'
@@ -362,7 +542,7 @@ async function findMentionedFinancialScopeMember(messageBody = '', currentUserId
     try {
         scopeIds = await Promise.resolve(getFinancialScopeUserIds(currentUserId));
     } catch (error) {
-        logger.warn(`familia: falha ao obter escopo financeiro user_id=${currentUserId} error=${error.message}`);
+        logger.warn(`familia: falha ao obter escopo financeiro error=${error.message}`);
     }
 
     const uniqueScopeIds = Array.from(new Set((scopeIds || []).filter(Boolean)));
@@ -1098,6 +1278,28 @@ function parseYearFromText(text) {
     return new Date().getFullYear();
 }
 
+function getSaoPauloDateOnly(offsetDays = 0) {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
+    const [year, month, day] = formatter.format(new Date()).split('-').map(Number);
+    const date = new Date(year, month - 1, day + offsetDays, 12, 0, 0, 0);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function getSaoPauloMonthRange(months = 6) {
+    const today = getSaoPauloDateOnly(0);
+    const [year, month] = today.split('-').map(Number);
+    const safeMonths = Math.max(1, Math.min(24, Number(months || 6)));
+    const fromDate = new Date(year, month - safeMonths, 1, 12, 0, 0, 0);
+    const toDate = new Date(year, month, 0, 12, 0, 0, 0);
+    const format = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return { from: format(fromDate), to: format(toDate), label: `últimos ${safeMonths} meses` };
+}
+
 function extractCategoryFromQuestion(text) {
     const normalized = normalizeText(String(text || '').trim());
     const withCom = normalized.match(/\bcom\s+([a-zA-ZÀ-ÿ\s]+?)(?:\s+em\s+|\s+no\s+|\s+na\s+|$|\?)/i);
@@ -1113,7 +1315,9 @@ const analyticalStopWords = new Set([
     'a', 'as', 'o', 'os', 'um', 'uma', 'uns', 'umas',
     'de', 'do', 'da', 'dos', 'das', 'em', 'no', 'na', 'nos', 'nas',
     'com', 'meu', 'minha', 'meus', 'minhas', 'eu',
-    'gasto', 'gastos', 'gastei', 'categoria', 'categorias',
+    'gasto', 'gastos', 'gastei', 'entrada', 'entradas', 'recebi', 'recebido', 'recebemos',
+    'renda', 'salario', 'salário', 'fonte', 'fontes', 'recebimento', 'recebimentos',
+    'categoria', 'categorias',
     'total', 'mes', 'ano', 'periodo', 'periodos',
     'quanto', 'quantos', 'quantas', 'qual', 'quais',
     'soma', 'somar', 'somando', 'junto', 'juntos',
@@ -1144,6 +1348,144 @@ function cleanAnalyticalCategory(value) {
         .filter(word => !analyticalStopWords.has(word));
 
     return words.join(' ').trim();
+}
+
+function detectIncomeScopeFromQuestion(text) {
+    const normalized = normalizeText(String(text || ''));
+    if (/\b(nos|nós|nosso|nossa|nossos|nossas|familia|família|familiar|recebemos)\b/.test(normalized)) {
+        return 'family';
+    }
+    if (/\b(eu|meu|minha|meus|minhas|recebi)\b/.test(normalized)) {
+        return 'personal';
+    }
+    return '';
+}
+
+function incomeQuestionHasInternalMovementAmbiguity(text) {
+    const normalized = normalizeText(String(text || ''));
+    const hasIncomeShape = /\b(entrada|entradas|entrou|recebi|recebido|recebemos|renda|salario|salário|dinheiro)\b/.test(normalized);
+    const hasInternalMovement = /\b(transferencia|transferência|transferi|transferido|caixinha|reserva|resgate|aporte|aplicacao|aplicação|investimento|fatura)\b/.test(normalized);
+    return hasIncomeShape && hasInternalMovement;
+}
+
+function incomeInternalMovementQuestionNeedsClarification(text) {
+    const raw = String(text || '').trim();
+    const normalized = normalizeText(raw);
+    const questionShape = raw.includes('?') || /^(quanto|qual|quais|liste|listar|mostre|mostrar|me\s+mostre|me\s+mostra|detalhe|detalhar)\b/.test(normalized);
+    return questionShape && incomeQuestionHasInternalMovementAmbiguity(raw);
+}
+
+function buildIncomeInternalMovementClarificationMessage() {
+    return [
+        'Isso pode ser renda nova ou movimentação de reserva/transferência interna.',
+        'Para eu calcular certo, me diga qual visão você quer:',
+        '1. renda recebida de verdade',
+        '2. movimentações de reserva/caixinha',
+        '3. transferências internas'
+    ].join('\n');
+}
+
+function extractIncomeCategoryFromQuestion(text) {
+    const normalized = normalizeText(String(text || ''));
+    if (/\b(salario|salário|ordenado|provento|holerite)\b/.test(normalized)) return 'Salário';
+    if (/\b(renda\s+extra|freela|freelance|bico|bonus|bônus|bonificacao|bonificação)\b/.test(normalized)) return 'Renda Extra';
+    if (/\b(reembolso|estorno)\b/.test(normalized)) return 'Reembolso';
+    if (/\b(venda|vendas)\b/.test(normalized)) return 'Venda';
+    if (/\b(rendimento|dividendo|dividendos|juros|investimento|investimentos)\b/.test(normalized)) return 'Investimentos';
+    return cleanAnalyticalCategory(extractCategoryFromQuestion(normalized));
+}
+
+function buildIncomeParameters(text, extra = {}) {
+    const scope = detectIncomeScopeFromQuestion(text);
+    const categoria = extractIncomeCategoryFromQuestion(text);
+    return {
+        mes: parseMonthFromText(text),
+        ano: parseYearFromText(text),
+        ...(scope ? { scope } : {}),
+        ...(categoria ? { categoria } : {}),
+        ...extra
+    };
+}
+
+function extractTransferMemberFromQuestion(text) {
+    const normalized = normalizeText(String(text || ''));
+    const match = normalized.match(/\b(?:para|pra|pro|p\/)\s+([a-z0-9çãõáéíóúâêô ]{2,30})/);
+    if (!match || !match[1]) return '';
+    const cleaned = match[1]
+        .replace(/\b(foi|gasto|transferencia|transferência|esse|essa|este|esta|mes|mês|em|no|na)\b/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    return cleaned.split(/\s+/).slice(0, 2).join(' ');
+}
+
+function detectTransferScopeFromQuestion(text) {
+    const normalized = normalizeText(String(text || ''));
+    if (/\b(nos|nós|nosso|nossa|nossos|nossas|familia|família|familiar|casal|transferimos|mandamos|enviamos|pagamos)\b/.test(normalized)) {
+        return 'family';
+    }
+    if (/\b(eu|meu|minha|meus|minhas|transferi|mandei|enviei|passei|pixei|paguei)\b/.test(normalized)) {
+        return 'personal';
+    }
+    return detectIncomeScopeFromQuestion(text);
+}
+
+function buildTransferParameters(text, extra = {}) {
+    const scope = detectTransferScopeFromQuestion(text);
+    const member = extractTransferMemberFromQuestion(text);
+    return {
+        mes: parseMonthFromText(text),
+        ano: parseYearFromText(text),
+        ...(scope ? { scope } : {}),
+        ...(member ? { member } : {}),
+        ...extra
+    };
+}
+
+function detectBudgetScopeFromQuestion(text) {
+    const normalized = normalizeText(String(text || ''));
+    if (/\b(eu|meu|minha|meus|minhas|pessoal|so meus|só meus)\b/.test(normalized)) return 'personal';
+    if (/\b(nos|nós|nosso|nossa|nossos|nossas|familia|família|familiar|casal)\b/.test(normalized)) return 'family';
+    return '';
+}
+
+function buildBudgetParameters(text, extra = {}) {
+    const scope = detectBudgetScopeFromQuestion(text);
+    return {
+        ...(scope ? { scope } : {}),
+        ...extra
+    };
+}
+
+function detectDebtScopeFromQuestion(text) {
+    const normalized = normalizeText(String(text || ''));
+    if (/\b(nos|nós|nosso|nossa|nossos|nossas|familia|família|familiar)\b/.test(normalized)) return 'family';
+    if (/\b(eu|meu|minha|meus|minhas)\b/.test(normalized)) return 'personal';
+    return '';
+}
+
+function extractDebtFromQuestion(text) {
+    const normalized = normalizeText(String(text || ''));
+    const match = normalized.match(/\b(?:divida|dívida|emprestimo|empréstimo|financiamento)\s+(?:do|da|de)?\s*([a-z0-9çãõáéíóúâêô ]{2,40})/);
+    if (!match || !match[1]) return '';
+    return match[1]
+        .replace(/\b(credor|saldo|falta|quitar|quitei|vence|vencem|vencimento|parcela|parcelas|maior|menor|juros|total)\b/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim() || match[1].trim();
+}
+
+function buildDebtParameters(text, extra = {}) {
+    const scope = detectDebtScopeFromQuestion(text);
+    const divida = extractDebtFromQuestion(text);
+    const normalized = normalizeText(String(text || ''));
+    const hasExplicitMonth = hasExplicitMonthSignal(normalized);
+    const hasExplicitYear = /\b20\d{2}\b/.test(normalized);
+    return {
+        ...(hasExplicitMonth ? { mes: parseMonthFromText(text), ano: parseYearFromText(text) } : {}),
+        ...(!hasExplicitMonth && hasExplicitYear ? { ano: parseYearFromText(text) } : {}),
+        ...(scope ? { scope } : {}),
+        ...(divida ? { divida } : {}),
+        ...extra
+    };
 }
 
 function splitCategoryList(value) {
@@ -1240,6 +1582,13 @@ function extractCardFromQuestion(text) {
     return '';
 }
 
+function extractMerchantFromCardQuestion(text) {
+    const normalized = normalizeText(String(text || '').trim());
+    const match = normalized.match(/\b(?:compra|compras|parcelamento|parcelamentos|parcela|parcelas)\s+(?:na|no|da|do|de)\s+([a-z0-9À-ÿ\s]+?)(?:\s+em\s+|\s+no\s+|\s+na\s+|\s+do\s+|\s+da\s+|\s+dos\s+|\s+das\s+|\?|$)/i);
+    if (!match || !match[1]) return '';
+    return cleanAnalyticalCategory(match[1]);
+}
+
 function isInvoiceByCardQuestion(text) {
     const normalized = normalizeText(String(text || '').trim());
     if (!normalized.includes('fatura')) return false;
@@ -1253,7 +1602,7 @@ function isInvoiceByCardQuestion(text) {
 
 function sanitizeAnalyticalParametersForContext(parameters = {}) {
     const safe = {};
-    ['mes', 'ano', 'categoria', 'cartao', 'origem'].forEach((key) => {
+    ['mes', 'ano', 'categoria', 'cartao', 'origem', 'scope', 'member', 'meta', 'status', 'source'].forEach((key) => {
         if (parameters[key] !== undefined) safe[key] = parameters[key];
     });
     if (Array.isArray(parameters.categorias)) safe.categorias = parameters.categorias.slice(0, 5);
@@ -1324,14 +1673,73 @@ function deriveFollowUpAnalyticalQueryPlan(text, context) {
         /\b(desse|desses|dessa|dessas|isso|esse|esses|essa|essas|total|valor)\b/.test(text)
     );
     if (!followUpShape) return null;
+    const standaloneCardQuestion = /^(quanto|qual|quais|liste|listar|mostre|mostrar|me\s+mostra|me\s+mostre)\b/.test(text) &&
+        (hasCardSignal || text.includes('parcela') || text.includes('parcelamento') || text.includes('compra'));
+    if (standaloneCardQuestion) return null;
 
-    if (hasEstablishmentSignal) {
-        return {
-            metric: 'expense_establishments_followup',
-            intent: 'ranking_estabelecimentos_gastos',
-            parameters: { ...inheritedParams, origem: hasCardSignal || context.intent === 'detalhamento_cartao_mes' ? 'cartao' : '', cartao: cardName }
-        };
+    const isIncomeContext = /entradas?|income/.test(normalizeText(context.intent));
+    const isGoalContext = /\bmeta|metas|goal/.test(normalizeText(context.intent));
+    if (isGoalContext && !hasCardSignal) {
+        if (/\b(historico|histórico|movimentacao|movimentação|movimentacoes|movimentações)\b/.test(text)) {
+            return { metric: 'goal_history_followup', intent: 'historico_meta', parameters: inheritedParams };
+        }
+        if (/\b(aportei|aportado|aportes?)\b/.test(text)) {
+            return { metric: 'goal_contributions_followup', intent: 'total_aportes_meta', parameters: inheritedParams };
+        }
+        if (/\b(retirei|retirado|retiradas?)\b/.test(text)) {
+            return { metric: 'goal_withdrawals_followup', intent: 'total_retiradas_meta', parameters: inheritedParams };
+        }
+        if (hasDetailSignal || /\b(progresso|falta|faltam|valor atual)\b/.test(text)) {
+            return { metric: 'goal_explanation_followup', intent: 'explicacao_meta', parameters: inheritedParams };
+        }
     }
+
+    if (isIncomeContext && !hasCardSignal) {
+        if (incomeQuestionHasInternalMovementAmbiguity(text)) return null;
+        if (/\bevolu|\b(evolucao|evolução|historico|histórico|tendencia|tendência)\b/.test(text)) {
+            return {
+                metric: 'income_trend_followup',
+                intent: 'tendencia_entradas_mensal',
+                parameters: inheritedParams
+            };
+        }
+        if (/\b(compare|comparar|comparacao|comparação|versus|vs)\b/.test(text) || text.includes('mes anterior') || text.includes('mês anterior')) {
+            return {
+                metric: 'income_comparison_followup',
+                intent: 'comparacao_entradas_periodo',
+                parameters: inheritedParams
+            };
+        }
+        if (text.includes('por cento') || text.includes('percentual') || text.includes('porcentagem') || text.includes('representou') || text.includes('representa') || text.includes('participacao') || text.includes('participação')) {
+            return {
+                metric: 'income_category_percentage_followup',
+                intent: 'percentual_categoria_entradas',
+                parameters: buildIncomeParameters(text, inheritedParams)
+            };
+        }
+        if (text.includes('forma de recebimento') || text.includes('formas de recebimento') || text.includes('por recebimento')) {
+            return {
+                metric: 'income_payment_method_followup',
+                intent: 'ranking_formas_recebimento',
+                parameters: inheritedParams
+            };
+        }
+        if (hasDetailSignal || /\b(total|valor|isso)\b/.test(text)) {
+            return {
+                metric: 'income_detail_followup',
+                intent: 'detalhamento_entradas_mes',
+                parameters: inheritedParams
+            };
+        }
+        if (asksCategoryBreakdown || text.includes('de onde veio') || /\b(fonte|fontes)\b/.test(text)) {
+            return {
+                metric: 'income_sources_followup',
+                intent: 'ranking_fontes_entradas',
+                parameters: inheritedParams
+            };
+        }
+    }
+
     if (hasCardSignal) {
         return {
             metric: 'card_expense_detail_followup',
@@ -1344,6 +1752,13 @@ function deriveFollowUpAnalyticalQueryPlan(text, context) {
             metric: 'expense_detail_followup',
             intent: context.intent === 'detalhamento_cartao_mes' ? 'detalhamento_cartao_mes' : 'detalhamento_gastos_mes',
             parameters: { ...inheritedParams, cartao: cardName }
+        };
+    }
+    if (hasEstablishmentSignal) {
+        return {
+            metric: 'expense_establishments_followup',
+            intent: 'ranking_estabelecimentos_gastos',
+            parameters: { ...inheritedParams, origem: hasCardSignal || context.intent === 'detalhamento_cartao_mes' ? 'cartao' : '', cartao: cardName }
         };
     }
     if (asksCategoryBreakdown) {
@@ -1372,9 +1787,41 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
     const comparisonCategories = extractComparisonCategoriesFromQuestion(text);
     const singleCategory = cleanAnalyticalCategory(extractCategoryFromQuestion(text));
     const cardName = extractCardFromQuestion(text);
+    const cardMerchant = extractMerchantFromCardQuestion(text);
 
     const hasCardSignal = text.includes('cartao') || text.includes('cartoes') || Boolean(cardName);
     const hasInvoiceSignal = text.includes('fatura') || text.includes('faturas');
+    const hasBudgetContext = Boolean(previousContext?.intent && String(previousContext.intent).startsWith('orcamento_'));
+    const hasBudgetSignal = (
+        /\b(orcamento|orçamento|ritmo|ciclo|gasto livre|posso gastar|usei do orcamento|usei do orçamento|falta ate o fim|falta até o fim)\b/.test(text) ||
+        (hasBudgetContext && /\b(o que entrou|calculo|cálculo|criterio|critério|por que|porque|mudou|ritmo|falta|restante|resta|hoje|pessoal|familiar|familia|família)\b/.test(text))
+    );
+    const hasTransferSignal = /\b(transferencia|transferências|transferencias|transferi|transferido|transferir|pix para|mandei|enviei)\b/.test(text);
+    const hasReserveSignal = /\b(caixinha|reserva|rdb|investimento|investimentos|aplicacao|aplicação|resgate|resgatei|resgatado|guardar|guardei)\b/.test(text);
+    const hasAvailabilitySignal = /\b(disponivel|disponível|saldo)\b/.test(text) && (hasReserveSignal || text.includes('realmente') || text.includes('menor') || text.includes('diferente'));
+    const hasIncomeSignal = (
+        /\b(entrada|entradas|recebi|recebido|recebemos|renda|salario|salário|recebimento|recebimentos)\b/.test(text) ||
+        /\bquanto\s+entrou\b/.test(text) ||
+        text.includes('de onde veio meu dinheiro')
+    );
+    const hasGoalSignal = /\b(meta|metas|objetivo|objetivos)\b/.test(text) ||
+        (/\b(aportei|aportado|retirei|retirado)\b/.test(text) && /\breserva\b/.test(text));
+    const hasDebtSignal = /\b(divida|dívida|dividas|dívidas|emprestimo|empréstimo|financiamento|financiamentos|credor|credores|devo|quitar|quitação|quitacao|juros)\b/.test(text) ||
+        (/\bparcela|parcelas\b/.test(text) && /\bvence|vencem|vencimento|proxima|próxima|proximas|próximas|mes|mês\b/.test(text));
+    const hasBillSignal = (
+        /\b(conta|contas|conta fixa|contas fixas|recorrente|recorrentes|vencimento|vencimentos|vence|vencem|pendente|pendentes|esperado|realizado)\b/.test(text) ||
+        /\bja paguei\b/.test(text)
+    ) && !hasDebtSignal && !hasCardSignal && !hasInvoiceSignal && !hasTransferSignal && !hasReserveSignal;
+    const debtWriteSignal = /\b(criar|cadastrar|cadastre|nova|novo|paguei|pagar|pago|registre|registrar|atualizar|alterar|mudar|ajustar)\b/.test(text) &&
+        /\b(divida|dívida|emprestimo|empréstimo|financiamento|parcela|parcelas)\b/.test(text);
+    const goalNameMatch = text.match(/\bmeta\s+(.+?)(?:\?|$)/);
+    const goalName = goalNameMatch
+        ? goalNameMatch[1]
+            .replace(/\b(reserva|familiar|pessoal|pausada|pausadas|cancelada|canceladas|concluida|concluídas|concluidas)\b.*$/i, match => match.split(/\s+/)[0])
+            .replace(/\b(quanto|qual|quais|progresso|historico|histórico|explique|explica|falta|faltam)\b/gi, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+        : (/\b(aportei|retirei)\b/.test(text) && /\breserva\b/.test(text) ? 'reserva' : '');
     const hasDetailSignal = (
         /\b(detalh|detalhe|detalhar|explique|explica|explicar|compoe|compõe|composicao|composição|discrimine|abra|abrir|quebra|quebre)\b/.test(text) ||
         text.includes('de onde veio') ||
@@ -1393,6 +1840,310 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
         text.includes('o que entrou') ||
         text.includes('de onde veio')
     );
+
+    if (hasGoalSignal && /\b(liste|listar|mostre|mostrar|quais|qual|quanto|progresso|falta|faltam|historico|histórico|explique|explica|media|média|ranking|percentual|porcentagem|compare|comparar|aportei|retirei)\b/.test(text)) {
+        const parameters = {
+            ...(goalName ? { meta: goalName } : {}),
+            ...(/\b(familiar(?:es)?|familia|família)\b/.test(text) ? { scope: 'family' } : {})
+        };
+        if (/\b(historico|histórico|movimentacao|movimentação|movimentacoes|movimentações)\b/.test(text)) {
+            return { metric: 'goal_history', intent: 'historico_meta', parameters };
+        }
+        if (/\b(aportei|aportado|aportes?)\b/.test(text)) {
+            return { metric: 'goal_contributions', intent: 'total_aportes_meta', parameters };
+        }
+        if (/\b(retirei|retirado|retiradas?)\b/.test(text)) {
+            return { metric: 'goal_withdrawals', intent: 'total_retiradas_meta', parameters };
+        }
+        if (/\b(pausada|pausadas)\b/.test(text)) {
+            return { metric: 'goals_paused', intent: 'metas_por_status', parameters: { ...parameters, status: 'Pausada' } };
+        }
+        if (/\b(cancelada|canceladas)\b/.test(text)) {
+            return { metric: 'goals_cancelled', intent: 'metas_por_status', parameters: { ...parameters, status: 'Cancelada' } };
+        }
+        if (/\b(conclui|concluida|concluídas|concluidas)\b/.test(text)) {
+            return { metric: 'goals_completed', intent: 'metas_por_status', parameters: { ...parameters, status: 'Concluída' } };
+        }
+        if (/\b(explique|explica|de onde veio)\b/.test(text)) {
+            return { metric: 'goal_explanation', intent: 'explicacao_meta', parameters };
+        }
+        if (/\b(media|média)\b/.test(text)) {
+            return { metric: 'goals_average', intent: 'media_progresso_metas', parameters };
+        }
+        if (/\b(percentual|porcentagem|representa)\b/.test(text)) {
+            return { metric: 'goal_percentage', intent: 'percentual_meta', parameters };
+        }
+        if (/\b(compare|comparar|comparacao|comparação)\b/.test(text)) {
+            return { metric: 'goals_comparison', intent: 'comparacao_metas', parameters };
+        }
+        if (/\b(ranking|maior|mais avancada|mais avançada)\b/.test(text)) {
+            return { metric: 'goals_ranking', intent: 'ranking_metas', parameters };
+        }
+        if (/\b(falta|faltam|bater|atingir|progresso|andamento)\b/.test(text)) {
+            return { metric: 'goals_progress', intent: 'progresso_metas', parameters };
+        }
+        return { metric: 'goals_summary', intent: 'resumo_metas', parameters };
+    }
+
+    if (hasDebtSignal && !debtWriteSignal && /\b(liste|listar|mostre|mostrar|quais|qual|quanto|saldo|devo|falta|faltam|quitar|vencem|vence|vencimento|parcela|parcelas|atrasada|atrasadas|quitei|quitada|quitadas|juros|priorizar|prioridade|explica|explique|calculou|ranking|maior)\b/.test(text)) {
+        const debtParams = (extra = {}) => buildDebtParameters(text, extra);
+        if (/\b(explica|explique|calculou|calculo|cálculo|de onde veio)\b/.test(text)) {
+            return { metric: 'debt_explain', intent: 'explicacao_dividas', parameters: debtParams() };
+        }
+        if (/\b(priorizar|prioridade|deveria priorizar|qual pagar primeiro)\b/.test(text)) {
+            return { metric: 'debt_priority', intent: 'prioridade_dividas', parameters: debtParams() };
+        }
+        if (/\b(juros|taxa)\b/.test(text) && /\b(maior|ranking|qual)\b/.test(text)) {
+            return { metric: 'debt_interest_rank', intent: 'ranking_dividas_juros', parameters: debtParams() };
+        }
+        if (/\b(maior saldo|saldo maior|mais devo|maior divida|maior dívida)\b/.test(text)) {
+            return { metric: 'debt_balance_rank', intent: 'ranking_dividas_saldo', parameters: debtParams() };
+        }
+        if (/\b(vencimento|vence|vencem)\b/.test(text) && /\b(maior|ranking|ordem)\b/.test(text)) {
+            return { metric: 'debt_due_rank', intent: 'ranking_dividas_vencimento', parameters: debtParams() };
+        }
+        if (/\b(atrasada|atrasadas|atrasado|atrasados)\b/.test(text)) {
+            return { metric: 'debt_overdue', intent: 'dividas_atrasadas', parameters: debtParams() };
+        }
+        if (/\b(quitei|quitada|quitadas|quitado|quitados)\b/.test(text)) {
+            return { metric: 'debt_paid', intent: 'dividas_quitadas', parameters: debtParams() };
+        }
+        if (/\b(vencem|vence|vencimento|proximos dias|próximos dias|proximas|próximas)\b/.test(text)) {
+            const params = /\bproximos dias|próximos dias|proximas|próximas\b/.test(text)
+                ? debtParams({ dias: 10 })
+                : debtParams();
+            return { metric: 'debt_upcoming', intent: text.includes('parcela') ? 'parcelas_dividas_mes' : 'dividas_vencendo', parameters: params };
+        }
+        if (/\b(falta|faltam|quitar|saldo)\b/.test(text)) {
+            return { metric: 'debt_balance', intent: 'saldo_divida', parameters: debtParams() };
+        }
+        return { metric: 'debt_total', intent: 'total_dividas', parameters: debtParams() };
+    }
+
+    if (hasBillSignal && !/\b(criar|cadastrar|cadastre|alterar|mudar|editar|lembrete|calendario|calendário)\b/.test(text)) {
+        const scope = /\b(familia|família|familiar|familiares)\b/.test(text) ? 'family' : undefined;
+        const namedBill = text.match(/\b(?:paguei|pago|pendente|conta de|conta do|conta da)\s+([a-z0-9 çãõáéíóúâêô-]+?)(?:\?|$|\s+este|\s+esse|\s+neste|\s+nesse)/)?.[1]?.trim();
+        const parameters = { ...(scope ? { scope } : {}), ...(namedBill && !['essa conta', 'conta'].includes(namedBill) ? { conta: namedBill } : {}) };
+        if (/\b(por que|porque|explica|explique|calculou|calculo|cálculo)\b/.test(text)) {
+            return { metric: 'bill_explain', intent: 'explicacao_conta_recorrente', parameters };
+        }
+        if (/\b(esperado|realizado)\b/.test(text)) {
+            return { metric: 'bill_expected_vs_realized', intent: 'comparacao_contas_realizado', parameters: { ...parameters, mes, ano } };
+        }
+        if (/\b(pendente|pendentes|falta pagar|ainda falta)\b/.test(text)) {
+            return { metric: 'bill_pending', intent: 'contas_pendentes', parameters: { ...parameters, mes, ano } };
+        }
+        if (/\b(ja paguei|já paguei|esta paga|está paga|foi paga|pago)\b/.test(text)) {
+            return { metric: 'bill_status', intent: 'status_conta_recorrente', parameters: { ...parameters, mes, ano } };
+        }
+        if (/\b(vence|vencem|vencimento|vencimentos)\b/.test(text)) {
+            const amanha = /\bamanha|amanhã\b/.test(text);
+            const hoje = /\bhoje\b/.test(text);
+            const explicitDays = text.match(/\bproximos?\s+(\d{1,3})\s+dias\b/);
+            return {
+                metric: 'upcoming_bills',
+                intent: 'contas_vencendo',
+                parameters: { ...parameters, dias: amanha || hoje ? 1 : (explicitDays ? Number.parseInt(explicitDays[1], 10) : 7), amanha, hoje }
+            };
+        }
+        if (hasTotalSignal || /\bquanto tenho\b/.test(text)) {
+            return { metric: 'recurring_bills_total', intent: 'total_contas_recorrentes', parameters: { ...parameters, mes, ano } };
+        }
+        if (/\b(quais|liste|listar|mostre|mostrar|quantas|tenho)\b/.test(text)) {
+            return { metric: 'recurring_bills_summary', intent: 'resumo_contas_recorrentes', parameters: { ...parameters, mes, ano } };
+        }
+    }
+
+    if (hasAvailabilitySignal) {
+        return {
+            metric: 'transfer_available_cash',
+            intent: 'saldo_disponivel_estimado',
+            parameters: buildTransferParameters(text)
+        };
+    }
+
+    if (hasBudgetSignal && !/\b(definir|alterar|mudar|desativar|ativar|configurar|criar)\b/.test(text)) {
+        const budgetParams = (extra = {}) => buildBudgetParameters(text, extra);
+        if (/\b(o que entrou|calculo|cálculo|criterio|critério|por que|porque|mudou|entra no orcamento|entra no orçamento|cartao entra|cartão entra|transferencia entra|transferência entra)\b/.test(text)) {
+            return { metric: 'budget_explain', intent: 'orcamento_explicacao', parameters: budgetParams() };
+        }
+        if (/\b(pessoal|familiar|familia|família|escopo)\b/.test(text) && /\b(orcamento|orçamento)\b/.test(text)) {
+            return { metric: 'budget_scope', intent: 'orcamento_escopo', parameters: budgetParams() };
+        }
+        if (/\b(ritmo|diario|diário)\b/.test(text)) {
+            return { metric: 'budget_daily_pace', intent: 'orcamento_ritmo_diario', parameters: budgetParams() };
+        }
+        if (/\b(falta|sobrou|restante|resta|fim do ciclo|ate o fim|até o fim)\b/.test(text)) {
+            return { metric: 'budget_remaining_cycle', intent: 'orcamento_restante_ciclo', parameters: budgetParams() };
+        }
+        if (/\b(usei|usou|usamos|gastei|gastou|gasto do orcamento|gasto do orçamento|acima|abaixo)\b/.test(text)) {
+            return { metric: 'budget_used_cycle', intent: 'orcamento_usado_ciclo', parameters: budgetParams() };
+        }
+        if (/\b(posso gastar|gastar hoje|hoje)\b/.test(text)) {
+            return { metric: 'budget_available_today', intent: 'orcamento_disponivel_hoje', parameters: budgetParams() };
+        }
+    }
+
+    if (
+        text.includes('fatura') &&
+        !isInvoiceByCardQuestion(text) &&
+        (text.includes('paguei') || text.includes('pagamento') || text.includes('pagamentos') || text.includes('paga') || text.includes('pagas') || text.includes('quitei'))
+    ) {
+        return { metric: 'paid_card_invoice_total', intent: 'total_pagamentos_fatura_mes', parameters: buildTransferParameters(text) };
+    }
+
+    if (hasReserveSignal && !hasIncomeSignal) {
+        if (/\b(resgate|resgatei|resgatado|retirei|retirada)\b/.test(text)) {
+            return {
+                metric: 'reserve_redeemed_total',
+                intent: 'total_reserva_resgatada_mes',
+                parameters: buildTransferParameters(text)
+            };
+        }
+        if (/\b(liquido|líquido|saldo|net)\b/.test(text)) {
+            return {
+                metric: 'reserve_net_total',
+                intent: 'total_reserva_liquida_mes',
+                parameters: buildTransferParameters(text)
+            };
+        }
+        if (hasTotalSignal || /\b(mandei|enviei|guardei|apliquei|coloquei|quanto)\b/.test(text)) {
+            return {
+                metric: 'reserve_applied_total',
+                intent: 'total_reserva_aplicada_mes',
+                parameters: buildTransferParameters(text)
+            };
+        }
+    }
+
+    if (hasTransferSignal) {
+        if (/\b(gasto|despesa|orcamento|orçamento|conta como)\b/.test(text) && /\b(thais|thaís|familia|família|familiar|casal|membro)\b/.test(text)) {
+            return {
+                metric: 'family_transfer_explain',
+                intent: 'transferencia_familiar_eh_gasto',
+                parameters: buildTransferParameters(text)
+            };
+        }
+        if (/\b(contas proprias|contas próprias|minhas contas|entre minhas contas|conta corrente|poupanca|poupança)\b/.test(text)) {
+            return {
+                metric: 'own_transfer_total',
+                intent: 'total_transferencias_contas_mes',
+                parameters: buildTransferParameters(text)
+            };
+        }
+        if (/\b(familia|família|familiar|thais|thaís|casal|membro)\b/.test(text)) {
+            return {
+                metric: 'family_transfer_total',
+                intent: 'total_transferencias_familia_mes',
+                parameters: buildTransferParameters(text)
+            };
+        }
+        if (/\b(quais|liste|listar|mostre|mostrar|detalhe|detalhar)\b/.test(text)) {
+            return {
+                metric: 'transfer_list',
+                intent: 'listagem_transferencias_mes',
+                parameters: buildTransferParameters(text)
+            };
+        }
+        if (hasTotalSignal || /\b(transferi|transferencias|transferências)\b/.test(text)) {
+            return {
+                metric: 'transfer_total',
+                intent: 'total_transferencias_mes',
+                parameters: buildTransferParameters(text)
+            };
+        }
+    }
+
+    if (hasIncomeSignal && !hasCardSignal && !hasInvoiceSignal) {
+        if (incomeQuestionHasInternalMovementAmbiguity(text)) return null;
+
+        const incomeParams = (extra = {}) => buildIncomeParameters(text, extra);
+        if (/\bevolu|\b(evolucao|evolução|historico|histórico|tendencia|tendência)\b/.test(text)) {
+            return {
+                metric: 'income_trend',
+                intent: 'tendencia_entradas_mensal',
+                parameters: incomeParams()
+            };
+        }
+        if (/\b(compare|comparar|comparacao|comparação|versus|vs)\b/.test(text) || text.includes('mes anterior') || text.includes('mês anterior')) {
+            return {
+                metric: 'income_comparison',
+                intent: 'comparacao_entradas_periodo',
+                parameters: incomeParams()
+            };
+        }
+        if (text.includes('por cento') || text.includes('percentual') || text.includes('porcentagem') || text.includes('representou') || text.includes('representa') || text.includes('participacao') || text.includes('participação')) {
+            return {
+                metric: 'income_category_percentage',
+                intent: 'percentual_categoria_entradas',
+                parameters: incomeParams()
+            };
+        }
+        if (/\b(media|média)\b/.test(text)) {
+            return {
+                metric: 'income_average',
+                intent: 'media_entradas_mes',
+                parameters: incomeParams()
+            };
+        }
+        if (/\b(quantas|quantos|qtd|quantidade|numero|número)\b/.test(text)) {
+            return {
+                metric: 'income_count',
+                intent: 'contagem_entradas_mes',
+                parameters: incomeParams()
+            };
+        }
+        if (/\b(maior|menor)\b/.test(text) && !/\b(fonte|fontes)\b/.test(text)) {
+            return {
+                metric: 'income_extreme',
+                intent: 'maior_menor_entrada',
+                parameters: incomeParams()
+            };
+        }
+        if (hasDetailSignal || /\b(detalhe|detalhar|explica|explique)\b/.test(text)) {
+            return {
+                metric: 'income_detail',
+                intent: 'detalhamento_entradas_mes',
+                parameters: incomeParams()
+            };
+        }
+        if (/\b(quais|liste|listar|mostre|mostrar)\b/.test(text) && /\b(entrada|entradas|recebimentos?)\b/.test(text)) {
+            return {
+                metric: 'income_list',
+                intent: 'listagem_entradas_mes',
+                parameters: incomeParams()
+            };
+        }
+        if (text.includes('forma de recebimento') || text.includes('formas de recebimento') || text.includes('por recebimento')) {
+            return {
+                metric: 'income_payment_method_rank',
+                intent: 'ranking_formas_recebimento',
+                parameters: incomeParams()
+            };
+        }
+        if (text.includes('de onde veio') || /\b(fonte|fontes|por categoria|por fonte)\b/.test(text)) {
+            return {
+                metric: 'income_source_rank',
+                intent: 'ranking_fontes_entradas',
+                parameters: incomeParams()
+            };
+        }
+        const categoria = extractIncomeCategoryFromQuestion(text);
+        if (categoria) {
+            return {
+                metric: 'income_category_total',
+                intent: 'total_entradas_categoria_mes',
+                parameters: incomeParams({ categoria })
+            };
+        }
+        if (hasTotalSignal || /\b(recebi|recebemos|entrou|entradas?)\b/.test(text)) {
+            return {
+                metric: 'income_total',
+                intent: 'total_entradas_mes',
+                parameters: incomeParams({ categoria: undefined })
+            };
+        }
+    }
 
     if (hasEstablishmentSignal && (hasExpenseSignal || hasCardSignal || text.includes('gasto') || text.includes('gastos') || text.includes('foram'))) {
         return {
@@ -1437,9 +2188,6 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
         }
     }
 
-    if ((text.includes('reserva') || text.includes('caixinha')) && (text.includes('disponivel') || text.includes('disponível') || text.includes('realmente'))) {
-        return { metric: 'available_cash', intent: 'saldo_disponivel_estimado', parameters: { mes, ano } };
-    }
     if (
         (text.includes('vencendo') || text.includes('vencem') || text.includes('vencimento') || text.includes('compromissos financeiros')) &&
         (text.includes('conta') || text.includes('pagamento') || text.includes('pagamentos') || text.includes('compromissos'))
@@ -1463,14 +2211,14 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
     if (isInvoiceByCardQuestion(text)) {
         return { metric: 'card_invoice_by_card', intent: 'total_faturas_por_cartao', parameters: { cartao: '', mes, ano } };
     }
-    if (
-        text.includes('fatura') &&
-        (text.includes('paguei') || text.includes('pagamento') || text.includes('pagamentos') || text.includes('paga') || text.includes('pagas') || text.includes('quitei'))
-    ) {
-        return { metric: 'paid_card_invoice_total', intent: 'total_pagamentos_fatura_mes', parameters: { mes, ano } };
-    }
     if (hasInvoiceCompositionSignal) {
         return { metric: 'card_invoice_composition', intent: 'detalhamento_cartao_mes', parameters: { mes, ano, cartao: cardName } };
+    }
+    if (
+        (text.includes('evolu') || text.includes('tendencia') || text.includes('tendência')) &&
+        (hasExpenseSignal || text.includes('meus gastos') || text.includes('gastos'))
+    ) {
+        return { metric: 'expense_trend', intent: 'tendencia_gastos_mensal', parameters: {} };
     }
     if ((text.includes('aberto') || text.includes('futuro') || text.includes('futuros') || text.includes('futura') || text.includes('futuras') || text.includes('proximo') || text.includes('proximos') || text.includes('proxima') || text.includes('proximas')) && (hasCardSignal || text.includes('fatura') || text.includes('parcela'))) {
         if ((text.includes('qual') || text.includes('quais')) && (text.includes('mais') || text.includes('maior')) && (text.includes('parcelas') || text.includes('valor'))) {
@@ -1479,9 +2227,19 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
         return { metric: 'open_card_installments', intent: 'total_cartoes_em_aberto', parameters: { cartao: cardName, mes, ano } };
     }
     if (
+        text.includes('compra') &&
+        (text.includes('falta') || text.includes('faltam') || text.includes('resta') || text.includes('restante') || text.includes('pagar')) &&
+        cardMerchant
+    ) {
+        return { metric: 'card_installment_balance', intent: 'saldo_compra_parcelada_cartao', parameters: { cartao: cardName, merchant: cardMerchant, mes, ano } };
+    }
+    if (
         (text.includes('parcela') || text.includes('parcelas') || text.includes('parcelamento') || text.includes('parcelamentos')) &&
         (text.includes('pagar') || text.includes('em aberto') || text.includes('aberto') || text.includes('restante') || text.includes('restantes') || text.includes('ativas') || text.includes('ativos') || text.includes('quais') || text.includes('liste') || text.includes('listar'))
     ) {
+        if ((text.includes('falta') || text.includes('resta') || text.includes('restante') || text.includes('pagar')) && cardMerchant) {
+            return { metric: 'card_installment_balance', intent: 'saldo_compra_parcelada_cartao', parameters: { cartao: cardName, merchant: cardMerchant, mes, ano } };
+        }
         return { metric: 'card_installment_summary', intent: 'resumo_parcelamentos_cartao', parameters: { cartao: cardName, mes, ano } };
     }
     if (text.includes('fatura') || (hasCardSignal && text.includes('quanto') && !text.includes('aberto'))) {
@@ -1507,6 +2265,9 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
         return { metric: 'category_comparison', intent: 'comparacao_gastos_categorias', parameters: { categorias: comparisonCategories, mes, ano } };
     }
     if (text.includes('maior') || text.includes('menor')) {
+        if (hasCardSignal || text.includes('parcelada') || text.includes('parcelado')) {
+            return { metric: 'card_purchase_extremes', intent: 'maior_menor_compra_cartao', parameters: { cartao: cardName, mes, ano } };
+        }
         if (singleCategory) {
             return { metric: 'category_extremes', intent: 'maior_menor_gasto_categoria', parameters: { categoria: singleCategory, mes, ano } };
         }
@@ -1585,7 +2346,7 @@ function detectFastPerguntaIntent(messageBody) {
     const isQuestionShape = /^(qual|quais|quanto|quantos|quantas|conte|contar|media|média|liste|listar|mostre|mostrar|me mostre|me mostra|me diga|me explique|me explica|como ficou|como esta|como estão|detalhe|detalhar|explique|explica)/.test(text) || text.includes('?');
     if (!isQuestionShape) return null;
 
-    const looksAnalytical = /(saldo|gastei|gasto|gastos|entrada|entradas|divida|dividas|categoria|mes|ano|vezes|ocorrencia|ocorrencias|duplicad|maior|menor|onibus|ônibus|uber|transporte|cartao|cartão|credito|crédito|fatura|parcelamento|parcelas|aberto|conta|contas|recorrente|recorrentes|nubank|itau|itaú|atacadao|atacadão|detalh|explica|explique|estabelecimento|estabelecimentos|loja|lojas|comercio|comércio|comercios|comércios|total|janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/.test(text);
+    const looksAnalytical = /(saldo|gastei|gasto|gastos|entrada|entradas|divida|dividas|categoria|mes|ano|vezes|ocorrencia|ocorrencias|duplicad|maior|menor|onibus|ônibus|uber|transporte|cartao|cartão|credito|crédito|fatura|parcelamento|parcelas|aberto|conta|contas|recorrente|recorrentes|nubank|itau|itaú|atacadao|atacadão|detalh|explica|explique|evolu|tendencia|tendência|estabelecimento|estabelecimentos|loja|lojas|comercio|comércio|comercios|comércios|total|janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/.test(text);
     if (!looksAnalytical) return null;
 
     return {
@@ -1633,13 +2394,15 @@ function shouldSkipAiForUnknownMessage(messageBody) {
 
     const knownSignals = [
         'gastei', 'gasto', 'paguei', 'comprei', 'recebi', 'ganhei', 'entrada',
+        'entradas', 'renda', 'salario', 'salário', 'recebimento', 'recebimentos',
         'criar', 'meta', 'divida', 'dívida', 'apagar', 'delete', 'registrar',
         'pagamento', 'lembrete', 'lembre', 'quanto', 'qual', 'quais', 'liste',
         'listar', 'mostre', 'mostrar', 'saldo', 'resumo', 'dashboard', 'painel',
         'termos', 'privacidade', 'admin', 'ajuda', 'relatorio', 'relatório',
         'checkin', 'reserva', 'cartao', 'cartão', 'credito', 'crédito', 'pix',
         'dinheiro', 'debito', 'débito', 'conta', 'contas', 'recorrente',
-        'detalhe', 'detalhar', 'estabelecimento', 'estabelecimentos'
+        'detalhe', 'detalhar', 'estabelecimento', 'estabelecimentos',
+        'orcamento', 'orçamento', 'ritmo', 'ciclo'
     ];
 
     return !knownSignals.some(signal => text.includes(normalizeText(signal))) && text.length <= 80;
@@ -1658,7 +2421,186 @@ function shouldInterruptStatementImportConfirmation(messageBody) {
 function classifyPerguntaLocally(userQuestion, previousContext = null) {
     const plan = inferAnalyticalQueryPlan(userQuestion, previousContext);
     if (!plan) return null;
-    return { intent: plan.intent, parameters: plan.parameters };
+    const financialQueryPlan = buildFinancialQueryPlanForLocalClassification(plan, userQuestion);
+    return { intent: plan.intent, parameters: plan.parameters, financialQueryPlan };
+}
+
+function buildFinancialQueryPlanForLocalClassification(classification = {}, userQuestion = '') {
+    const intent = String(classification.intent || '');
+    const parameters = classification.parameters || {};
+    const mapped = legacyIntentToQueryPlan(intent, parameters);
+    if (!mapped.ok) return null;
+
+    const text = normalizeText(String(userQuestion || ''));
+    let draft = {
+        ...mapped.plan,
+        filters: { ...(mapped.plan.filters || {}) },
+        groupBy: [...(mapped.plan.groupBy || [])],
+        sort: { ...(mapped.plan.sort || {}) }
+    };
+
+    if (draft.domain === 'income') {
+        draft.timeBasis = 'transaction_date';
+        if (intent === 'tendencia_entradas_mensal') {
+            const explicitMonths = text.match(/ultimos?\s+(\d{1,2})\s+mes(?:es)?/);
+            const monthRange = getSaoPauloMonthRange(explicitMonths ? Number.parseInt(explicitMonths[1], 10) : 6);
+            draft.filters.period = { type: 'date_range', ...monthRange };
+            draft.groupBy = ['month'];
+            draft.answerStyle = 'detailed';
+        }
+    }
+
+    if (draft.domain === 'transfers') {
+        draft.timeBasis = 'transaction_date';
+        if (intent === 'total_transferencias_familia_mes') {
+            draft.groupBy = ['member'];
+        }
+        if (intent === 'listagem_transferencias_mes') {
+            draft.answerStyle = 'detailed';
+        }
+    }
+
+    if (!['expenses', 'cards', 'income', 'transfers'].includes(draft.domain)) return draft;
+
+    if (intent === 'tendencia_gastos_mensal') {
+        const explicitMonths = text.match(/ultimos?\s+(\d{1,2})\s+mes(?:es)?/);
+        const monthRange = getSaoPauloMonthRange(explicitMonths ? Number.parseInt(explicitMonths[1], 10) : 6);
+        draft.timeBasis = 'billing_month';
+        draft.filters.period = { type: 'date_range', ...monthRange };
+        draft.groupBy = ['month'];
+    }
+
+    if (draft.domain === 'cards') {
+        draft.timeBasis = 'billing_month';
+        if (intent === 'resumo_parcelamentos_cartao') {
+            draft.filters.status = 'active_installments';
+            if (/\b(ainda|pagar|falta|faltam|restante|restantes|proximo|proximos|próximo|próximos|vou\s+pagar)\b/.test(text)) {
+                draft.operation = 'forecast';
+                draft.groupBy = ['month'];
+            } else {
+                draft.operation = 'list';
+                draft.groupBy = ['card'];
+            }
+            draft.answerStyle = 'detailed';
+        }
+        if (intent === 'total_cartoes_em_aberto') {
+            draft.groupBy = ['month'];
+            draft.answerStyle = 'detailed';
+        }
+        if (intent === 'ranking_cartoes_em_aberto') {
+            draft.groupBy = ['card'];
+            draft.sort = {
+                ...draft.sort,
+                by: /\b(parcela|parcelas)\b/.test(text) ? 'count' : 'value',
+                direction: 'desc'
+            };
+        }
+        if (intent === 'maior_menor_compra_cartao') {
+            draft.filters.status = 'installment_purchase';
+        }
+        if (intent === 'saldo_compra_parcelada_cartao') {
+            draft.filters.status = 'active_installments';
+            draft.groupBy = ['month'];
+            draft.answerStyle = 'detailed';
+        }
+    }
+
+    if (text.includes('hoje')) {
+        const today = getSaoPauloDateOnly(0);
+        draft.timeBasis = 'transaction_date';
+        draft.filters.period = { type: 'today', from: today, to: today, label: 'hoje' };
+    } else if (text.includes('ontem')) {
+        const yesterday = getSaoPauloDateOnly(-1);
+        draft.timeBasis = 'transaction_date';
+        draft.filters.period = { type: 'date_range', from: yesterday, to: yesterday, label: 'ontem' };
+    } else {
+        const lastDays = text.match(/ultimos?\s+(\d{1,3})\s+dias/);
+        if (lastDays) {
+            const days = Math.max(1, Math.min(366, Number.parseInt(lastDays[1], 10)));
+            draft.timeBasis = 'transaction_date';
+            draft.filters.period = {
+                type: 'date_range',
+                from: getSaoPauloDateOnly(-(days - 1)),
+                to: getSaoPauloDateOnly(0),
+                days,
+                label: `ultimos ${days} dias`
+            };
+        }
+    }
+
+    if (/\b(pix|dinheiro|debito|débito)\b/.test(text)) {
+        draft.timeBasis = 'transaction_date';
+        if (text.includes('pix')) draft.filters.paymentMethod = 'pix';
+        else if (text.includes('dinheiro')) draft.filters.paymentMethod = 'dinheiro';
+        else if (text.includes('debito') || text.includes('débito')) draft.filters.paymentMethod = 'debito';
+    }
+
+    if (draft.domain === 'cards' && (text.includes('data da compra') || text.includes('compra hoje') || text.includes('comprei hoje'))) {
+        draft.timeBasis = 'transaction_date';
+    }
+
+    if (
+        intent === 'detalhamento_gastos_mes' &&
+        (
+            text.includes('de onde veio') ||
+            text.includes('explica') ||
+            text.includes('explique') ||
+            text.includes('composicao') ||
+            text.includes('composição')
+        )
+    ) {
+        draft.operation = 'explain';
+        draft.answerStyle = 'audit';
+    }
+
+    const normalized = normalizeFinancialQueryPlan(draft);
+    return normalized.ok ? normalized.plan : null;
+}
+
+function usesBillingMonthCardCriterion(details = {}, cardTotal = 0) {
+    const criterion = normalizeText(details.criterioCartao || details.timeBasis || '');
+    const total = Number(cardTotal || details.totalCartoes || 0);
+    return total > 0 && (criterion === 'billing_month' || criterion === 'mes_cobranca');
+}
+
+function billingMonthCardNote(details = {}, cardTotal = 0) {
+    return usesBillingMonthCardCriterion(details, cardTotal)
+        ? 'Obs.: cartões entram pelo mês de cobrança/fatura, não necessariamente pela data da compra.'
+        : '';
+}
+
+function appendBillingMonthCardNote(lines, details = {}, cardTotal = 0) {
+    const note = billingMonthCardNote(details, cardTotal);
+    if (note) lines.push(note);
+    return lines;
+}
+
+function cardTemporalBasisNote(details = {}) {
+    const criterion = normalizeText(details.criterioCartao || details.timeBasis || 'billing_month');
+    if (criterion === 'transaction_date' || criterion === 'data_compra') {
+        return 'Critério: compras no cartão pela data da compra.';
+    }
+    return 'Critério: fatura/cartão pelo mês de cobrança/fatura.';
+}
+
+function incomeTemporalBasisNote() {
+    return 'Critério: data de recebimento registrada.';
+}
+
+function transferTemporalBasisNote() {
+    return 'Critério: data da transferência registrada.';
+}
+
+function budgetTemporalBasisNote() {
+    return 'Critério: ciclo de orçamento configurado; cartões entram pelo vencimento/competência da parcela.';
+}
+
+function debtTemporalBasisNote() {
+    return 'Critério: vencimento cadastrado da dívida; quando houver Próximo Vencimento, ele prevalece sobre o dia fixo.';
+}
+
+function billsTemporalBasisNote() {
+    return 'Critério: data de vencimento recorrente registrada, ajustada para o último dia válido em meses curtos.';
 }
 
 function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
@@ -1685,6 +2627,138 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
             normalizedQuestion.includes('de onde veio')
         )
     );
+    const formatIncomeItemLine = (item, idx) => {
+        const date = formatSheetDateForReply(item?.data || item?.date || '');
+        const desc = item?.descricao || item?.description || 'sem descrição';
+        const category = item?.categoria || item?.category || 'Entrada';
+        const method = item?.recebimento || item?.paymentMethod || '';
+        const methodSuffix = method ? ` | ${method}` : '';
+        return `${idx + 1}. ${date} | ${desc} | ${category} | ${formatCurrencyBR(item?.valor ?? item?.value ?? 0)}${methodSuffix}`;
+    };
+
+    if (intent === 'total_entradas_mes') {
+        const lines = [
+            `Total recebido em ${periodLabel}: ${formatCurrencyBR(results)}`,
+            `${details.totalLancamentos || 0} entrada(s).`,
+            incomeTemporalBasisNote()
+        ];
+        return lines.join('\n');
+    }
+
+    if (intent === 'total_entradas_categoria_mes') {
+        const cat = details.categoria || 'categoria informada';
+        return [
+            `Total recebido de ${cat} em ${periodLabel}: ${formatCurrencyBR(results)}`,
+            `Total recebido no período: ${formatCurrencyBR(details.totalEntradas || 0)}`,
+            incomeTemporalBasisNote()
+        ].join('\n');
+    }
+
+    if (intent === 'listagem_entradas_mes') {
+        const rows = Array.isArray(results) ? results : [];
+        if (rows.length === 0) return `Não encontrei entradas em ${periodLabel}.\n${incomeTemporalBasisNote()}`;
+        const lines = rows.slice(0, 15).map(formatIncomeItemLine);
+        const truncated = rows.length > 15 ? `\n... e mais ${rows.length - 15} entrada(s).` : '';
+        return `Entradas em ${periodLabel}:\n${lines.join('\n')}${truncated}\n${incomeTemporalBasisNote()}`;
+    }
+
+    if (intent === 'detalhamento_entradas_mes') {
+        const payload = results || {};
+        const lancamentos = Array.isArray(payload.lancamentos) ? payload.lancamentos : [];
+        if (lancamentos.length === 0) return `Não encontrei entradas para detalhar em ${periodLabel}.\n${incomeTemporalBasisNote()}`;
+        const lines = [
+            `Detalhamento das entradas em ${periodLabel}:`,
+            `Total: ${formatCurrencyBR(payload.total || 0)}`
+        ];
+        const categorias = Array.isArray(payload.categorias) ? payload.categorias.slice(0, 6) : [];
+        if (categorias.length > 0) {
+            lines.push('');
+            lines.push('Por categoria/fonte:');
+            categorias.forEach((item, idx) => {
+                const count = item.count ? ` (${item.count} entrada(s))` : '';
+                lines.push(`${idx + 1}. ${item.label || 'Entrada'}: ${formatCurrencyBR(item.total || 0)}${count}`);
+            });
+        }
+        const formas = Array.isArray(payload.formas) ? payload.formas.slice(0, 6) : [];
+        if (formas.length > 0) {
+            lines.push('');
+            lines.push('Por forma de recebimento:');
+            formas.forEach((item, idx) => {
+                const count = item.count ? ` (${item.count} entrada(s))` : '';
+                lines.push(`${idx + 1}. ${item.label || 'Recebimento'}: ${formatCurrencyBR(item.total || 0)}${count}`);
+            });
+        }
+        lines.push('');
+        lines.push('Lançamentos:');
+        lancamentos.slice(0, 8).forEach((item, idx) => lines.push(formatIncomeItemLine(item, idx)));
+        if (lancamentos.length > 8) lines.push(`... e mais ${lancamentos.length - 8} entrada(s).`);
+        lines.push(incomeTemporalBasisNote());
+        return lines.join('\n');
+    }
+
+    if (intent === 'ranking_fontes_entradas' || intent === 'ranking_formas_recebimento') {
+        const rows = Array.isArray(results) ? results : [];
+        if (rows.length === 0) return `Não encontrei entradas em ${periodLabel}.\n${incomeTemporalBasisNote()}`;
+        const title = intent === 'ranking_formas_recebimento' ? 'Formas de recebimento' : 'Fontes de entrada';
+        const lines = rows.slice(0, 10).map((item, idx) => {
+            const count = item.count ? ` (${item.count} entrada(s))` : '';
+            return `${idx + 1}. ${item.label || item.categoria || 'Entrada'}: ${formatCurrencyBR(item.total || 0)}${count}`;
+        });
+        return `${title} em ${periodLabel}:\n${lines.join('\n')}\n${incomeTemporalBasisNote()}`;
+    }
+
+    if (intent === 'maior_menor_entrada') {
+        const min = results?.min;
+        const max = results?.max;
+        if (!min && !max) return `Não encontrei entradas para esse período (${periodLabel}).\n${incomeTemporalBasisNote()}`;
+        return [
+            `Maior e menor entrada em ${periodLabel}:`,
+            `- Maior: ${max ? `${max.descricao || '-'} (${formatCurrencyBR(max.valor || 0)})` : '-'}`,
+            `- Menor: ${min ? `${min.descricao || '-'} (${formatCurrencyBR(min.valor || 0)})` : '-'}`,
+            incomeTemporalBasisNote()
+        ].join('\n');
+    }
+
+    if (intent === 'contagem_entradas_mes') {
+        return `Entradas registradas em ${periodLabel}: ${results}\n${incomeTemporalBasisNote()}`;
+    }
+
+    if (intent === 'media_entradas_mes') {
+        return `Média das entradas em ${periodLabel}: ${formatCurrencyBR(results)}\n${incomeTemporalBasisNote()}`;
+    }
+
+    if (intent === 'percentual_categoria_entradas') {
+        const cat = details.categoria || 'categoria informada';
+        const pct = Number(results || 0).toFixed(2).replace('.', ',');
+        return [
+            `${cat} representou ${pct}% do total recebido em ${periodLabel}. ${cat}: ${formatCurrencyBR(details.totalCategoria || 0)} de ${formatCurrencyBR(details.totalEntradas || 0)}`,
+            incomeTemporalBasisNote()
+        ].join('\n');
+    }
+
+    if (intent === 'comparacao_entradas_periodo') {
+        const atualMes = getMonthNamePtBr(details?.mes);
+        const anteriorMes = getMonthNamePtBr(details?.mesAnterior);
+        const atualLabel = atualMes && details?.ano ? `${atualMes}/${details.ano}` : periodLabel;
+        const anteriorLabel = anteriorMes && details?.anoAnterior ? `${anteriorMes}/${details.anoAnterior}` : 'período anterior';
+        const diferenca = Number(results?.diferenca || 0);
+        const pct = Math.abs(Number(results?.percentual || 0)).toFixed(2).replace('.', ',');
+        const direction = Math.abs(diferenca) < 0.005 ? 'ficaram praticamente iguais' : (diferenca > 0 ? `aumentaram ${pct}%` : `diminuíram ${pct}%`);
+        return [
+            `Comparação de entradas: ${atualLabel} vs ${anteriorLabel}`,
+            `${atualLabel}: ${formatCurrencyBR(results?.atual || 0)}`,
+            `${anteriorLabel}: ${formatCurrencyBR(results?.anterior || 0)}`,
+            `Diferença: ${formatCurrencyBR(Math.abs(diferenca))} (${direction})`,
+            incomeTemporalBasisNote()
+        ].join('\n');
+    }
+
+    if (intent === 'tendencia_entradas_mensal') {
+        const rows = Array.isArray(results) ? results : [];
+        if (rows.length === 0) return `Não encontrei entradas para mostrar evolução.\n${incomeTemporalBasisNote()}`;
+        const lines = rows.slice(0, 12).map((item, idx) => `${idx + 1}. ${item.label || 'Mês'}: ${formatCurrencyBR(item.total || 0)} (${item.count || 0} entrada(s))`);
+        return `Evolução das entradas:\n${lines.join('\n')}\n${incomeTemporalBasisNote()}`;
+    }
 
     if (intent === 'saldo_do_mes') {
         return [
@@ -1699,8 +2773,233 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
             `Disponível estimado em ${periodLabel}: ${formatCurrencyBR(results)}`,
             `Saldo econômico: ${formatCurrencyBR(details.saldo)}`,
             `Reserva/caixinha líquida: ${formatCurrencyBR(details.reservaLiquida || 0)}`,
-            `Aplicado: ${formatCurrencyBR(details.reservaAplicada || 0)} | Resgatado: ${formatCurrencyBR(details.reservaResgatada || 0)}`
+            `Aplicado: ${formatCurrencyBR(details.reservaAplicada || 0)} | Resgatado: ${formatCurrencyBR(details.reservaResgatada || 0)}`,
+            details.explicacao || 'Transferências internas, fatura paga e caixinha não entram como gasto ou renda nova.',
+            transferTemporalBasisNote()
         ].join('\n');
+    }
+
+    if (intent === 'total_transferencias_mes') {
+        return [
+            `Transferências em ${periodLabel}: ${formatCurrencyBR(results)}`,
+            `${details.totalLancamentos || 0} movimento(s) interno(s).`,
+            'Transferências não entram como gasto real nem renda nova.',
+            transferTemporalBasisNote()
+        ].join('\n');
+    }
+
+    if (intent === 'total_reserva_aplicada_mes') {
+        return [
+            `Enviado para reserva/caixinha em ${periodLabel}: ${formatCurrencyBR(results)}`,
+            'Esse valor reduz o disponível estimado, mas não é despesa de consumo.',
+            transferTemporalBasisNote()
+        ].join('\n');
+    }
+
+    if (intent === 'total_reserva_resgatada_mes') {
+        return [
+            `Resgatado da reserva/caixinha em ${periodLabel}: ${formatCurrencyBR(results)}`,
+            'Esse valor aumenta o disponível estimado, mas não é renda nova.',
+            transferTemporalBasisNote()
+        ].join('\n');
+    }
+
+    if (intent === 'total_reserva_liquida_mes') {
+        return [
+            `Reserva/caixinha líquida em ${periodLabel}: ${formatCurrencyBR(results)}`,
+            'Cálculo: aplicado menos resgatado no período.',
+            transferTemporalBasisNote()
+        ].join('\n');
+    }
+
+    if (intent === 'total_transferencias_contas_mes' || intent === 'total_transferencias_familia_mes') {
+        const target = intent === 'total_transferencias_familia_mes' ? 'para membros familiares autorizados' : 'entre suas contas próprias';
+        return [
+            `Transferências ${target} em ${periodLabel}: ${formatCurrencyBR(results)}`,
+            'Movimento interno: não entra como gasto real.',
+            transferTemporalBasisNote()
+        ].join('\n');
+    }
+
+    if (intent === 'transferencia_familiar_eh_gasto') {
+        const payload = results || {};
+        return [
+            'Não. Essa transferência não é gasto de consumo.',
+            `Total localizado no período: ${formatCurrencyBR(payload.total || 0)}`,
+            payload.explanation || 'Transferência familiar autorizada é movimento interno/familiar.',
+            transferTemporalBasisNote()
+        ].join('\n');
+    }
+
+    if (intent === 'listagem_transferencias_mes') {
+        const rows = Array.isArray(results) ? results : [];
+        if (rows.length === 0) return `Não encontrei transferências em ${periodLabel}.\n${transferTemporalBasisNote()}`;
+        const lines = rows.slice(0, 15).map((item, idx) => {
+            const date = formatSheetDateForReply(item.data || item.date || '');
+            const desc = item.descricao || item.description || 'Transferência';
+            const origin = item.origem || item.from || '';
+            const destination = item.destino || item.to || '';
+            const path = [origin, destination].filter(Boolean).join(' -> ');
+            const pathSuffix = path ? ` | ${path}` : '';
+            return `${idx + 1}. ${date} | ${desc} | ${formatCurrencyBR(item.valor ?? item.value ?? 0)}${pathSuffix}`;
+        });
+        const truncated = rows.length > 15 ? `\n... e mais ${rows.length - 15} transferência(s).` : '';
+        return `Transferências em ${periodLabel}:\n${lines.join('\n')}${truncated}\n${transferTemporalBasisNote()}`;
+    }
+
+    if ([
+        'orcamento_disponivel_hoje',
+        'orcamento_usado_ciclo',
+        'orcamento_explicacao',
+        'orcamento_ritmo_diario',
+        'orcamento_restante_ciclo',
+        'orcamento_escopo'
+    ].includes(intent)) {
+        const summary = results || {};
+        if (summary.active === false) {
+            return 'Orçamento mensal livre desativado. Para ativar, use o comando de configuração do orçamento mensal livre.';
+        }
+        const cycle = summary.period || {};
+        const scopeLabel = summary.scope === 'family' ? 'familiar' : 'pessoal';
+        const lines = [
+            `Orçamento mensal livre ${scopeLabel}`,
+            `Ciclo: ${cycle.start || '-'} a ${cycle.end || '-'}`,
+            `Dia inicial do ciclo: ${summary.cycleStartDay || '-'}`,
+            `Limite do ciclo: ${formatCurrencyBR(summary.monthlyAmount || 0)}`,
+            `Gasto livre no ciclo: ${formatCurrencyBR(summary.cycleSpent || 0)}`,
+            `Gasto livre de hoje: ${formatCurrencyBR(summary.todaySpent || 0)}`,
+            `Ritmo diário recomendado: ${formatCurrencyBR(summary.dailyRecommendedAmount || 0)}`,
+            `Restante no ciclo: ${formatCurrencyBR(summary.remainingInCycle || 0)}`,
+            `Disponível hoje pelo ritmo: ${formatCurrencyBR(summary.remainingToday || 0)}`,
+            `Dias restantes: ${summary.daysRemaining ?? 0}`,
+            budgetTemporalBasisNote()
+        ];
+        if (intent === 'orcamento_explicacao' || intent === 'orcamento_escopo') {
+            lines.push(summary.explanation || summary.criteria || '');
+        }
+        return lines.filter(Boolean).join('\n');
+    }
+
+    const debtIntents = new Set([
+        'total_dividas',
+        'saldo_divida',
+        'parcelas_dividas_mes',
+        'dividas_vencendo',
+        'dividas_atrasadas',
+        'dividas_quitadas',
+        'ranking_dividas_juros',
+        'ranking_dividas_vencimento',
+        'ranking_dividas_saldo',
+        'prioridade_dividas',
+        'explicacao_dividas'
+    ]);
+    if (debtIntents.has(intent)) {
+        const formatDebtLine = (item, idx) => {
+            const name = item?.nome || item?.description || item?.descricao || 'Dívida';
+            const balance = item?.saldoAtual ?? item?.value ?? item?.valor ?? 0;
+            const status = item?.status ? ` | ${item.status}` : '';
+            const due = item?.nextDueDate || item?.proximoVencimento || item?.date || '';
+            const dueSuffix = due ? ` | vence ${due}` : '';
+            const interest = item?.interestRatePct || item?.jurosPct;
+            const interestSuffix = interest ? ` | juros ${interest}%` : '';
+            return `${idx + 1}. ${name}: ${formatCurrencyBR(balance)}${status}${dueSuffix}${interestSuffix}`;
+        };
+        if (typeof results === 'number') {
+            const title = intent === 'saldo_divida' ? 'Saldo da dívida' : 'Saldo total de dívidas';
+            return [
+                `${title}: ${formatCurrencyBR(results)}`,
+                `Dívidas ativas consideradas: ${details.activeCount ?? details.count ?? 0}`,
+                `Pagamentos registrados estimados: ${formatCurrencyBR(details.paidAmount || 0)}`,
+                debtTemporalBasisNote()
+            ].join('\n');
+        }
+        if (Array.isArray(results)) {
+            if (results.length === 0) return `Não encontrei dívidas para esse recorte.\n${debtTemporalBasisNote()}`;
+            const titles = {
+                parcelas_dividas_mes: 'Parcelas de dívidas',
+                dividas_vencendo: 'Dívidas vencendo',
+                dividas_atrasadas: 'Dívidas atrasadas',
+                dividas_quitadas: 'Dívidas quitadas',
+                ranking_dividas_juros: 'Ranking de dívidas por juros',
+                ranking_dividas_vencimento: 'Ranking de dívidas por vencimento',
+                ranking_dividas_saldo: 'Ranking de dívidas por saldo'
+            };
+            return `${titles[intent] || 'Dívidas'}:\n${results.slice(0, 10).map(formatDebtLine).join('\n')}\n${debtTemporalBasisNote()}`;
+        }
+        if (intent === 'prioridade_dividas') {
+            const item = results?.item;
+            const line = item ? formatDebtLine(item, 0) : 'Nenhuma dívida ativa encontrada.';
+            return [
+                'Prioridade sugerida de dívida:',
+                line,
+                results?.criteria || details.criterioDividas || details.criteria || '',
+                results?.disclaimer || 'Isso não é garantia financeira nem recomendação absoluta; é uma ordenação objetiva pelos dados cadastrados.',
+                debtTemporalBasisNote()
+            ].filter(Boolean).join('\n');
+        }
+        const summary = results || {};
+        const items = Array.isArray(summary.items) ? summary.items : [];
+        const lines = [
+            `Saldo total de dívidas: ${formatCurrencyBR(summary.totalBalance ?? details.total ?? 0)}`,
+            `Dívidas ativas: ${summary.activeCount ?? details.activeCount ?? 0}`,
+            `Dívidas quitadas: ${summary.paidCount ?? details.paidCount ?? 0}`,
+            `Dívidas atrasadas: ${summary.overdueCount ?? details.overdueCount ?? 0}`,
+            `Pagamentos registrados estimados: ${formatCurrencyBR(summary.paidAmount ?? details.paidAmount ?? 0)}`,
+            debtTemporalBasisNote(),
+            summary.criteria || details.criterioDividas || details.criteria || ''
+        ];
+        if (summary.historyGap) lines.push(summary.historyGap);
+        if (items.length > 0) {
+            lines.push('Itens considerados:');
+            items.slice(0, 8).forEach((item, idx) => lines.push(formatDebtLine(item, idx)));
+        }
+        return lines.filter(Boolean).join('\n');
+    }
+
+    const billIntents = new Set([
+        'resumo_contas_recorrentes',
+        'contas_vencendo',
+        'status_conta_recorrente',
+        'total_contas_recorrentes',
+        'comparacao_contas_realizado',
+        'contas_pendentes',
+        'explicacao_conta_recorrente'
+    ]);
+    if (billIntents.has(intent)) {
+        const summary = results && !Array.isArray(results) ? results : {};
+        const rows = Array.isArray(results) ? results : (summary.items || []);
+        const isLegacyRecurringList = intent === 'resumo_contas_recorrentes' && rows.some(item => item.dia !== undefined) && rows.every(item => !item.data);
+        if (isLegacyRecurringList) {
+            const total = Number(details.total || rows.length);
+            const regrasAtivas = Number(details.regrasAtivas || 0);
+            const lines = rows.slice(0, 15).map((item, idx) => {
+                const categoria = [item.categoria, item.subcategoria].filter(Boolean).join(' / ');
+                return `${idx + 1}. dia ${item.dia || '-'} - ${item.nome || 'Conta recorrente'}${categoria ? ` (${categoria})` : ''}${item.ativa ? ' - classificação automática ativa' : ''}`;
+            });
+            return `${total} conta(s) recorrente(s) cadastrada(s).\n${regrasAtivas} com classificação automática.\n${lines.join('\n')}\n${billsTemporalBasisNote()}`;
+        }
+        const totals = summary.totals || details.totals || {};
+        const formatBillLine = (item, idx) => `${idx + 1}. ${item.date || item.data || 'sem data'} - ${item.description || item.nome || 'Conta'} | esperado ${formatCurrencyBR(item.expectedValue ?? item.valorEsperado ?? item.value ?? 0)} | realizado ${formatCurrencyBR(item.realizedValue ?? item.valorRealizado ?? 0)} | ${item.status === 'paid' ? 'paga' : 'pendente'}`;
+        const criteria = details.criterioContas || details.criteria || summary.criteria || '';
+        if (intent === 'total_contas_recorrentes') {
+            return `Total esperado de contas recorrentes: ${formatCurrencyBR(results || 0)}\n${billsTemporalBasisNote()}`;
+        }
+        if (intent === 'comparacao_contas_realizado') {
+            return [
+                `Esperado: ${formatCurrencyBR(totals.expected || 0)}`,
+                `Realizado: ${formatCurrencyBR(totals.realized || 0)}`,
+                `Pendente: ${formatCurrencyBR(totals.pending || 0)}`,
+                billsTemporalBasisNote(),
+                criteria
+            ].filter(Boolean).join('\n');
+        }
+        if (rows.length === 0) return `Não encontrei contas para esse recorte.\n${billsTemporalBasisNote()}`;
+        const title = intent === 'contas_pendentes'
+            ? 'Contas pendentes'
+            : (intent === 'contas_vencendo'
+                ? (details.amanha ? 'Vencimentos de amanhã' : `Vencimentos nos próximos ${Number(details.dias || 7)} dias`)
+                : 'Contas recorrentes');
+        return `${title}:\n${rows.slice(0, 15).map(formatBillLine).join('\n')}\n${billsTemporalBasisNote()}${criteria ? `\n${criteria}` : ''}`;
     }
 
     if (intent === 'total_gastos_mes') {
@@ -1709,6 +3008,7 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
             lines.push(`Saídas: ${formatCurrencyBR(details.totalSaidas)}`);
             lines.push(`Cartões: ${formatCurrencyBR(details.totalCartoes)}`);
         }
+        appendBillingMonthCardNote(lines, details, details.totalCartoes);
         return lines.join('\n');
     }
 
@@ -1737,7 +3037,13 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
     if (intent === 'percentual_categoria_gastos') {
         const cat = details.categoria || 'categoria informada';
         const pct = Number(results || 0).toFixed(2).replace('.', ',');
-        return `${cat} representou ${pct}% dos seus gastos em ${periodLabel}.\n${cat}: ${formatCurrencyBR(details.totalCategoria || 0)}\nTotal de gastos: ${formatCurrencyBR(details.totalGastos || 0)}`;
+        const lines = [
+            `${cat} representou ${pct}% dos seus gastos em ${periodLabel}.`,
+            `${cat}: ${formatCurrencyBR(details.totalCategoria || 0)}`,
+            `Total de gastos: ${formatCurrencyBR(details.totalGastos || 0)}`
+        ];
+        appendBillingMonthCardNote(lines, details, details.totalCartoes);
+        return lines.join('\n');
     }
 
     if (intent === 'comparacao_gastos_categorias') {
@@ -1805,7 +3111,9 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
     if (intent === 'total_fatura_cartao') {
         const cardLabel = details.cartao ? ` do ${details.cartao}` : '';
         const parcelas = details.parcelas ? `\n${details.parcelas} parcela(s) lançadas` : '';
-        return `Fatura${cardLabel} em ${periodLabel}: ${formatCurrencyBR(results)}${parcelas}`;
+        const isPurchaseDate = normalizeText(details.criterioCartao || details.timeBasis || '') === 'transaction_date';
+        const label = isPurchaseDate ? `Compras no cartão${cardLabel}` : `Fatura${cardLabel}`;
+        return `${label} em ${periodLabel}: ${formatCurrencyBR(results)}${parcelas}\n${cardTemporalBasisNote(details)}`;
     }
 
     if (intent === 'total_faturas_por_cartao') {
@@ -1820,7 +3128,7 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
         const total = details.total !== undefined
             ? Number(details.total || 0)
             : rows.reduce((sum, item) => sum + Number(item.total || 0), 0);
-        return `Faturas por cartão em ${periodLabel}:\n${lines.join('\n')}${truncated}\nTotal: ${formatCurrencyBR(total)}`;
+        return `Faturas por cartão em ${periodLabel}:\n${lines.join('\n')}${truncated}\nTotal: ${formatCurrencyBR(total)}\n${cardTemporalBasisNote(details)}`;
     }
 
     if (intent === 'total_pagamentos_fatura_mes') {
@@ -1829,7 +3137,7 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
         const note = details.canGroupByCard === false
             ? '\nNão consegui separar por cartão porque o extrato não trouxe essa identificação no pagamento.'
             : '';
-        return `Pagamentos de fatura em ${periodLabel}: ${formatCurrencyBR(results)}\n${countLabel}${note}`;
+        return `Pagamentos de fatura em ${periodLabel}: ${formatCurrencyBR(results)}\n${countLabel}${note}\nPagamento de fatura é movimento financeiro interno, não compra nova.\n${transferTemporalBasisNote()}`;
     }
 
     if (intent === 'resumo_contas_recorrentes') {
@@ -1871,7 +3179,7 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
         const cardLabel = details.cartao ? ` no ${details.cartao}` : ' nos cartões';
         const parcelas = details.parcelas ? `\n${details.parcelas} parcela(s) em aberto` : '';
         const meses = details.meses ? `\nMeses com cobrança: ${details.meses}` : '';
-        return `Em aberto${cardLabel} a partir de ${periodLabel}: ${formatCurrencyBR(results)}${parcelas}${meses}`;
+        return `Em aberto${cardLabel} a partir de ${periodLabel}: ${formatCurrencyBR(results)}${parcelas}${meses}\n${cardTemporalBasisNote(details)}`;
     }
 
     if (intent === 'ranking_cartoes_em_aberto') {
@@ -1882,7 +3190,7 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
             const parcelasLabel = parcelas === 1 ? '1 parcela' : `${parcelas} parcelas`;
             return `${idx + 1}. ${item.cartao || 'Cartão'}: ${formatCurrencyBR(item.total || 0)} (${parcelasLabel})`;
         });
-        return `Cartões com mais parcelas em aberto a partir de ${periodLabel}:\n${lines.join('\n')}`;
+        return `Cartões com mais parcelas em aberto a partir de ${periodLabel}:\n${lines.join('\n')}\n${cardTemporalBasisNote(details)}`;
     }
 
     if (intent === 'resumo_parcelamentos_cartao') {
@@ -1897,7 +3205,35 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
             item.ultimaParcela ? ` | até ${formatSheetDateForReply(item.ultimaParcela)}` : ''
         ].join(''));
         const truncated = results.length > 10 ? `\n... e mais ${results.length - 10} parcelamento(s).` : '';
-        return `Parcelamentos ativos a partir de ${periodLabel}:\n${lines.join('\n')}${truncated}`;
+        return `Parcelamentos ativos a partir de ${periodLabel}:\n${lines.join('\n')}${truncated}\n${cardTemporalBasisNote(details)}`;
+    }
+
+    if (intent === 'maior_menor_compra_cartao') {
+        const min = results?.min;
+        const max = results?.max;
+        if (!min && !max) return `Não encontrei compras parceladas no cartão a partir de ${periodLabel}.\n${cardTemporalBasisNote(details)}`;
+        return [
+            `Maior e menor compra parcelada no cartão a partir de ${periodLabel}:`,
+            `- Maior: ${max ? `${max.description || '-'} (${max.card || 'Cartão'}; ${formatCurrencyBR(max.totalPlanned || max.remainingTotal || 0)})` : '-'}`,
+            `- Menor: ${min ? `${min.description || '-'} (${min.card || 'Cartão'}; ${formatCurrencyBR(min.totalPlanned || min.remainingTotal || 0)})` : '-'}`,
+            cardTemporalBasisNote(details)
+        ].join('\n');
+    }
+
+    if (intent === 'saldo_compra_parcelada_cartao') {
+        const compras = Array.isArray(details.compras) ? details.compras : [];
+        const grupos = Array.isArray(details.grupos) ? details.grupos : [];
+        const head = details.merchant
+            ? `Falta pagar da compra em ${details.merchant} a partir de ${periodLabel}: ${formatCurrencyBR(results)}`
+            : `Falta pagar da compra parcelada a partir de ${periodLabel}: ${formatCurrencyBR(results)}`;
+        const purchaseLines = compras.slice(0, 5).map((item, idx) => `${idx + 1}. ${item.description || 'sem descrição'} | ${item.card || 'Cartão'} | ${formatCurrencyBR(item.remainingTotal || 0)} | ${item.remainingInstallments || 0} parcela(s)`);
+        const monthLines = grupos.slice(0, 6).map((item, idx) => `${idx + 1}. ${item.label || 'Mês'}: ${formatCurrencyBR(item.total || 0)}`);
+        return [
+            head,
+            purchaseLines.length ? purchaseLines.join('\n') : '',
+            monthLines.length ? `Por mês:\n${monthLines.join('\n')}` : '',
+            cardTemporalBasisNote(details)
+        ].filter(Boolean).join('\n');
     }
 
     if (intent === 'ranking_categorias_gastos') {
@@ -1912,7 +3248,8 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
         const advice = details.advice
             ? '\nComece revisando as 2 primeiras categorias: são onde um ajuste pequeno costuma gerar maior impacto.'
             : '';
-        return `Categorias que mais consumiram em ${periodLabel}:\n${lines.join('\n')}${advice}`;
+        const note = billingMonthCardNote(details, details.totalCartoes);
+        return `Categorias que mais consumiram em ${periodLabel}:\n${lines.join('\n')}${note ? `\n${note}` : ''}${advice}`;
     }
 
     if (intent === 'detalhamento_gastos_mes' || intent === 'detalhamento_cartao_mes') {
@@ -1971,9 +3308,12 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
         if (lancamentos.length > 8) {
             lines.push(`... e mais ${lancamentos.length - 8} lançamento(s).`);
         }
-        if (details.criterioCartao === 'mes_cobranca' && Number(payload.totalCartoes || 0) > 0) {
+        const note = intent === 'detalhamento_cartao_mes'
+            ? cardTemporalBasisNote(details)
+            : billingMonthCardNote(details, payload.totalCartoes);
+        if (note) {
             lines.push('');
-            lines.push('Obs.: cartões entram pelo mês de cobrança/fatura, não necessariamente pela data da compra.');
+            lines.push(note);
         }
         return lines.join('\n');
     }
@@ -1988,7 +3328,23 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
             return `${idx + 1}. ${item.label || 'Sem descrição'}: ${formatCurrencyBR(item.total || 0)}${count}`;
         });
         const truncated = rows.length > 12 ? `\n... e mais ${rows.length - 12} estabelecimento(s).` : '';
-        return `Estabelecimentos com gastos${scope} em ${periodLabel}:\n${lines.join('\n')}${truncated}\nTotal detalhado: ${formatCurrencyBR(total)}`;
+        const note = details.somenteCartao
+            ? cardTemporalBasisNote(details)
+            : billingMonthCardNote(details, details.totalCartoes);
+        return `Estabelecimentos com gastos${scope} em ${periodLabel}:\n${lines.join('\n')}${truncated}\nTotal detalhado: ${formatCurrencyBR(total)}${note ? `\n${note}` : ''}`;
+    }
+
+    if (intent === 'tendencia_gastos_mensal') {
+        const rows = Array.isArray(results) ? results : [];
+        if (rows.length === 0) return 'Não encontrei gastos para mostrar evolução.';
+        const cardTotal = rows.reduce((sum, item) => sum + Number(item.cards || 0), 0);
+        const lines = rows.slice(0, 12).map((item, idx) => {
+            const parts = [`Saídas: ${formatCurrencyBR(item.outputs || 0)}`];
+            if (Number(item.cards || 0) > 0) parts.push(`Cartões: ${formatCurrencyBR(item.cards || 0)}`);
+            return `${idx + 1}. ${item.label || 'Mês'}: ${formatCurrencyBR(item.total || 0)} (${parts.join('; ')})`;
+        });
+        appendBillingMonthCardNote(lines, details, details.totalCartoes || cardTotal);
+        return `Evolução dos gastos:\n${lines.join('\n')}`;
     }
 
     if (intent === 'comparacao_gastos_periodo') {
@@ -2023,7 +3379,8 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
         return [
             `${total} meta(s) cadastrada(s); ${ativas} em andamento.`,
             lines.join('\n') + truncated,
-            `Falta total: ${formatCurrencyBR(details.totalFalta || 0)}`
+            `Falta total: ${formatCurrencyBR(details.totalFalta || 0)} (somente metas ativas).`,
+            `Critério: ${details.criterioMetas || 'valor atual e status registrados em Metas.'}`
         ].join('\n');
     }
 
@@ -2038,7 +3395,54 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
         const monthlyTotal = Number(details.totalValorMensal || 0) > 0
             ? `\nValor mensal sugerido total: ${formatCurrencyBR(details.totalValorMensal)}`
             : '';
-        return `Falta para suas metas: ${formatCurrencyBR(details.totalFalta || 0)}\n${lines.join('\n')}${monthlyTotal}`;
+        return `Falta para suas metas ativas: ${formatCurrencyBR(details.totalFalta || 0)}\n${lines.join('\n')}${monthlyTotal}\nCritério: ${details.criterioMetas || 'valor atual e status registrados em Metas; pausadas e canceladas não entram no faltante ativo.'}`;
+    }
+
+    if (intent === 'historico_meta') {
+        const rows = Array.isArray(results) ? results : [];
+        if (rows.length === 0) return 'Não encontrei movimentações para essa meta.';
+        const lines = rows.map((item, idx) => `${idx + 1}. ${item.data || 'sem data'} | ${item.tipo || 'Movimentação'} | ${formatCurrencyBR(item.valor || 0)} | ${formatCurrencyBR(item.valorAntes || 0)} → ${formatCurrencyBR(item.valorDepois || 0)}`);
+        return `Histórico auditável da meta:\n${lines.join('\n')}\nCritério: ${details.criterioMetas || 'movimentações registradas em Movimentações Metas.'}`;
+    }
+
+    if (intent === 'total_aportes_meta' || intent === 'total_retiradas_meta') {
+        const label = intent === 'total_aportes_meta' ? 'Total aportado' : 'Total retirado';
+        return `${label}: ${formatCurrencyBR(results || 0)}\nCritério: ${details.criterioMetas || 'movimentações registradas em Movimentações Metas.'}`;
+    }
+
+    if (intent === 'metas_por_status') {
+        const rows = Array.isArray(results) ? results : [];
+        if (rows.length === 0) return 'Não encontrei metas com esse status.';
+        return `${rows.map((item, idx) => `${idx + 1}. ${item.nome || 'Meta'} | ${item.status || 'sem status'} | ${formatCurrencyBR(item.atual || 0)} / ${formatCurrencyBR(item.alvo || 0)}`).join('\n')}\nCritério: status registrado em Metas.`;
+    }
+
+    if (intent === 'explicacao_meta') {
+        const rows = Array.isArray(results) ? results : [];
+        if (rows.length === 0) return 'Não encontrei essa meta.';
+        const lines = rows.map((item, idx) => `${idx + 1}. ${item.nome}: ${formatCurrencyBR(item.atual || 0)} de ${formatCurrencyBR(item.alvo || 0)}; faltam ${formatCurrencyBR(item.falta || 0)}.`);
+        const contributions = Number(details.movementTotals?.contributions || 0);
+        const withdrawals = Number(details.movementTotals?.withdrawals || 0);
+        return `Explicação do progresso:\n${lines.join('\n')}\nAportes auditados: ${formatCurrencyBR(contributions)} | Retiradas auditadas: ${formatCurrencyBR(withdrawals)}\nCritério: ${details.criterioMetas || 'Metas fornece o valor atual; Movimentações Metas audita sua origem, sem dupla contagem.'}`;
+    }
+
+    if (intent === 'ranking_metas') {
+        const rows = Array.isArray(results) ? results : [];
+        if (rows.length === 0) return 'Não encontrei metas para ranquear.';
+        return `Ranking de metas por progresso:\n${rows.map((item, idx) => `${idx + 1}. ${item.nome || 'Meta'}: ${Number(item.progressoPct || 0).toFixed(1).replace('.', ',')}% | ${formatCurrencyBR(item.atual || 0)}`).join('\n')}\nCritério: progresso calculado pela Query Engine a partir do valor atual e alvo registrados.`;
+    }
+
+    if (intent === 'media_progresso_metas') {
+        return `Progresso médio das metas: ${Number(results || 0).toFixed(2).replace('.', ',')}%\nCritério: média calculada pela Query Engine sobre o progresso registrado das metas filtradas.`;
+    }
+
+    if (intent === 'percentual_meta') {
+        return `A meta representa ${Number(results?.percent || 0).toFixed(2).replace('.', ',')}% do valor já acumulado nas metas (${formatCurrencyBR(results?.part || 0)} de ${formatCurrencyBR(results?.total || 0)}).\nCritério: percentual calculado pela Query Engine.`;
+    }
+
+    if (intent === 'comparacao_metas') {
+        const rows = Array.isArray(results?.items) ? results.items : [];
+        if (rows.length === 0) return 'Não encontrei metas para comparar.';
+        return `Comparação de metas:\n${rows.map((item, idx) => `${idx + 1}. ${item.nome || item.description || 'Meta'}: ${formatCurrencyBR(item.atual ?? item.current ?? item.value ?? 0)}`).join('\n')}\nCritério: valores atuais registrados em Metas.`;
     }
 
     return null;
@@ -2071,25 +3475,7 @@ function filterSheetRowsByUserIds(rows, userIdIndex, userIds) {
 }
 
 function buildUserQuestionAliases(user = {}) {
-    const aliases = new Set();
-    const addAlias = (value) => {
-        const normalized = normalizeText(value);
-        if (normalized && normalized.length >= 3) aliases.add(normalized);
-    };
-
-    addAlias(user.display_name);
-    addAlias(user.full_name);
-    addAlias(user.preferred_name);
-
-    for (const alias of Array.from(aliases)) {
-        alias
-            .split(/\s+/)
-            .map(part => part.trim())
-            .filter(part => part.length >= 3)
-            .forEach(part => aliases.add(part));
-    }
-
-    return Array.from(aliases);
+    return buildPublicUserAliases(user);
 }
 
 function resolveQuestionUserScope(userQuestion, users = [], defaultUserIds = []) {
@@ -2100,32 +3486,60 @@ function resolveQuestionUserScopeMatch(userQuestion, users = [], defaultUserIds 
     const fallback = (Array.isArray(defaultUserIds) ? defaultUserIds : [defaultUserIds])
         .map(id => String(id || '').trim())
         .filter(Boolean);
-    const fallbackResult = { userIds: fallback, matchedUser: null, matchedAliases: [] };
-    if (fallback.length <= 1) return fallbackResult;
+    if (fallback.length === 0) return { userIds: [], matchedUser: null, matchedAliases: [] };
+    const resolved = resolveFinancialQueryScope({
+        currentUserId: fallback[0],
+        question: userQuestion,
+        authorizedUserIds: fallback,
+        users
+    });
+    return resolved.decision === 'allow'
+        ? resolved
+        : { userIds: [], matchedUser: null, matchedAliases: [] };
+}
 
-    const allowed = new Set(fallback);
-    const text = normalizeText(userQuestion);
-    if (!text) return fallbackResult;
+function getAnalyticalRequestedScope(intentClassification = {}) {
+    return normalizeText(
+        intentClassification?.financialQueryPlan?.filters?.scope ||
+        intentClassification?.parameters?.scope ||
+        ''
+    );
+}
 
-    const matches = (Array.isArray(users) ? users : [])
-        .filter(user => allowed.has(String(user?.user_id || '').trim()))
-        .map(user => {
-            const matchedAliases = buildUserQuestionAliases(user).filter(alias => text.includes(alias));
-            return { user, matchedAliases };
-        })
-        .filter(match => match.matchedAliases.length > 0);
+function isTransferTargetQuestionForScopePreservation(userQuestion = '', intentClassification = {}) {
+    const planDomain = intentClassification?.financialQueryPlan?.domain;
+    const intent = String(intentClassification?.intent || '');
+    if (planDomain !== 'transfers' && !/transfer|reserva|fatura|saldo_disponivel/.test(intent)) return false;
 
-    const uniqueMatches = Array.from(new Set(matches
-        .map(match => String(match.user?.user_id || '').trim())
-        .filter(Boolean)));
-    if (uniqueMatches.length !== 1) return fallbackResult;
+    const text = normalizeText(String(userQuestion || ''));
+    const hasTarget = /\b(?:para|pra|pro|p\/)\b/.test(text);
+    if (!hasTarget) return false;
 
-    const selected = matches.find(match => String(match.user?.user_id || '').trim() === uniqueMatches[0]);
-    return {
-        userIds: uniqueMatches,
-        matchedUser: selected?.user || null,
-        matchedAliases: selected?.matchedAliases || []
-    };
+    return (
+        /\b(?:transferi|enviei|mandei|passei|pixei)\b/.test(text) ||
+        /\b(?:essa|esta|esse|este)\s+transferencia\b/.test(text)
+    );
+}
+
+function resolveAnalyticalUserIdsForQuestion({
+    userQuestion = '',
+    intentClassification = {},
+    currentUserId = '',
+    users = [],
+    financialScopeUserIds = []
+} = {}) {
+    const requestedScope = getAnalyticalRequestedScope(intentClassification);
+    const preserveTransferTarget = isTransferTargetQuestionForScopePreservation(userQuestion, intentClassification);
+    return resolveFinancialQueryScope({
+        currentUserId,
+        question: userQuestion,
+        requestedScope: preserveTransferTarget ? '' : requestedScope,
+        requestedMember: preserveTransferTarget
+            ? ''
+            : intentClassification?.financialQueryPlan?.filters?.member || intentClassification?.parameters?.member || '',
+        authorizedUserIds: financialScopeUserIds,
+        users
+    });
 }
 
 function categoryMatchesQuestionUser(category, userScopeMatch = {}) {
@@ -2857,6 +4271,51 @@ async function sendAdminDirectMessage(msg, to, text, options = {}) {
     return sendWhatsAppMessage(to, text);
 }
 
+async function sendApprovedGoogleConnectMessage(msg, updatedUser, adminContext = {}, options = {}) {
+    const buildApprovalLinkLogContext = (extra = {}) => ({
+        actor_ref: hashRef(adminContext.sender_id || adminContext.senderId || ''),
+        actor_user_ref: hashRef(adminContext.actor_user_id || adminContext.actorUserId || ''),
+        actor_name: sanitizeValue(adminContext.actor_name || adminContext.actorName || ''),
+        target_hint: sanitizeValue(adminContext.target || ''),
+        target_ref: hashRef(updatedUser?.whatsapp_id || updatedUser?.user_id || ''),
+        target_user_ref: hashRef(updatedUser?.user_id || ''),
+        ...sanitizeValue(extra)
+    });
+    let connectReply = '';
+    try {
+        connectReply = buildGoogleConnectReply(updatedUser);
+    } catch (error) {
+        logger.warn(`[admin] aprovar_sem_link_google context=${JSON.stringify(buildApprovalLinkLogContext({
+            error: error.message
+        }))}`);
+    }
+
+    const message = connectReply || 'Seu cadastro foi aprovado. Agora falta conectar sua conta Google para criar sua planilha no seu Drive e ativar o bot.';
+    try {
+        await sendAdminDirectMessage(msg, updatedUser.whatsapp_id, message, options);
+        logger.info(`[admin] aprovar_link_enviado context=${JSON.stringify(buildApprovalLinkLogContext({
+            google_link_built: Boolean(connectReply)
+        }))}`);
+        return {
+            sent: true,
+            googleLinkBuilt: Boolean(connectReply),
+            connectReply,
+            error: null
+        };
+    } catch (error) {
+        logger.warn(`[admin] aprovar_link_falhou context=${JSON.stringify(buildApprovalLinkLogContext({
+            google_link_built: Boolean(connectReply),
+            error: error.message
+        }))}`);
+        return {
+            sent: false,
+            googleLinkBuilt: Boolean(connectReply),
+            connectReply,
+            error
+        };
+    }
+}
+
 async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
     const originalMsg = msg;
     if (typeof msg?.reply !== 'function') {
@@ -3375,32 +4834,30 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
             await msg.reply('Usuário não encontrado para esse telefone/WhatsApp ID.');
             return true;
         }
-        logger.info(`[admin] aprovar context=${JSON.stringify({ ...adminContext, target, target_user_id: updated.user_id, updated_whatsapp_id: updated.whatsapp_id, updated_status: updated.status })}`);
-        let connectReply = '';
-        try {
-            connectReply = buildGoogleConnectReply(updated);
-        } catch (error) {
-            logger.warn(`[admin] aprovar_sem_link_google context=${JSON.stringify({ ...adminContext, target, target_user_id: updated.user_id, error: error.message })}`);
-        }
+        logger.info(`[admin] aprovar context=${JSON.stringify({
+            ...sanitizeValue(adminContext),
+            target_hint: sanitizeValue(target),
+            target_ref: hashRef(updated.whatsapp_id || target),
+            target_user_ref: hashRef(updated.user_id),
+            updated_status: updated.status
+        })}`);
+        const notification = await sendApprovedGoogleConnectMessage(msg, updated, { ...adminContext, target }, options);
         await auditAdminAction(adminContext, 'approve_user', {
             target: updated.whatsapp_id,
             result: 'success',
             metadata: {
                 target_user_id: updated.user_id,
                 updated_status: updated.status,
-                google_link_built: Boolean(connectReply)
+                google_link_built: notification.googleLinkBuilt,
+                google_link_sent: notification.sent
             }
         });
-        await msg.reply(
-            `Usuário aprovado: ${updated.whatsapp_id} -> ${updated.status}\n` +
-            (connectReply ? 'Link de conexão Google enviado ao usuário.' : 'Configure OAuth Google para enviar o link de conexão.')
-        );
-        if (msg.client && typeof msg.client.sendMessage === 'function') {
-            await msg.client.sendMessage(
-                updated.whatsapp_id,
-                connectReply || 'Seu cadastro foi aprovado. Agora falta conectar sua conta Google para criar sua planilha no seu Drive e ativar o bot.'
-            );
-        }
+        const adminReplySuffix = notification.sent
+            ? (notification.googleLinkBuilt
+                ? 'Link de conexão Google enviado ao usuário.'
+                : 'Usuário avisado, mas configure OAuth Google para enviar o link de conexão.')
+            : `Usuário aprovado, mas não consegui enviar a mensagem automática. Peça para ele mandar "oi" ao bot para receber o link. Erro: ${notification.error?.message || 'desconhecido'}`;
+        await msg.reply(`Usuário aprovado: ${updated.whatsapp_id} -> ${updated.status}\n${adminReplySuffix}`);
         return true;
     }
 
@@ -3600,9 +5057,11 @@ async function handleMessage(msg) {
         return;
     }
 
+    const wasAudioMessage = msg.type === 'ptt' || msg.type === 'audio';
+
     // Se a mensagem for de áudio, processa primeiro.
     // Se não for, o processamento normal continua com o corpo original.
-    if (msg.type === 'ptt' || msg.type === 'audio') {
+    if (wasAudioMessage) {
         const transcribedText = await handleAudio(msg);
         if (!transcribedText) return; // Se a transcrição falhar, para aqui.
         
@@ -4604,6 +6063,13 @@ async function handleMessage(msg) {
                 return;
             }
 
+            if (incomeInternalMovementQuestionNeedsClarification(messageBody)) {
+                metrics.increment('message.pergunta.income_internal_movement_clarification');
+                logger.info(`[routing] income_internal_movement_clarification sender=${senderId}`);
+                await msg.reply(buildIncomeInternalMovementClarificationMessage());
+                return;
+            }
+
             structuredResponse = detectFastPerguntaIntent(messageBody);
             if (structuredResponse) {
                 metrics.increment('message.pergunta.fast_path');
@@ -4614,6 +6080,14 @@ async function handleMessage(msg) {
                 structuredResponse = detectLocalCommandIntent(messageBody);
                 if (structuredResponse) {
                     metrics.increment('message.command.fast_path');
+                    logger.info(`[routing] fast_path intent=${structuredResponse.intent} sender=${senderId}`);
+                }
+            }
+
+            if (!structuredResponse && !wasAudioMessage) {
+                structuredResponse = detectLocalTransactionIntent(messageBody);
+                if (structuredResponse) {
+                    metrics.increment('message.transaction.fast_path');
                     logger.info(`[routing] fast_path intent=${structuredResponse.intent} sender=${senderId}`);
                 }
             }
@@ -4666,7 +6140,11 @@ async function handleMessage(msg) {
             }
 
             if (structuredResponse && structuredResponse.error) {
-            await msg.reply("A conexão com a IA está instável no momento. Por favor, tente novamente em alguns instantes.");
+            const errorCode = String(structuredResponse.code || '').toUpperCase();
+            const aiUnavailableReply = errorCode === 'RESOURCE_EXHAUSTED'
+                ? 'A IA do bot está temporariamente sem crédito/quota. O bot continua online para comandos simples como "dashboard", "ajuda" e registros básicos, mas áudio e mensagens mais complexas podem falhar até a quota ser regularizada.'
+                : 'A conexão com a IA está instável no momento. Por favor, tente novamente em alguns instantes.';
+            await msg.reply(aiUnavailableReply);
             return;
         }
 
@@ -4685,131 +6163,32 @@ async function handleMessage(msg) {
 
             switch (structuredResponse.intent) {
                 case 'resumo': {
-                    await msg.reply('Gerando seu resumo financeiro com saúde de caixa...');
+                    await msg.reply('Gerando seu resumo pelo mesmo critério do dashboard...');
                     try {
+                        const now = new Date();
+                        const period = { month: now.getMonth(), year: now.getFullYear() };
                         const usePersonalSpreadsheet = await hasUserSpreadsheetContext({ userId });
-                        const sheetReads = [
-                            readDataFromSheet('Saídas!A:J'),
-                            readDataFromSheet('Entradas!A:I'),
-                            readDataFromSheet('Dívidas!A:R'),
-                            readDataFromSheet('Metas!A:I')
-                        ];
-
-                        if (usePersonalSpreadsheet) {
-                            sheetReads.push(readDataFromSheet('Lançamentos Cartão!A:J'));
-                        } else {
-                            const cardSheetNames = Object.values(creditCardConfig).map(card => card.sheetName);
-                            cardSheetNames.forEach(sheetName => {
-                                sheetReads.push(readDataFromSheet(sheetName + '!A:G'));
-                            });
-                        }
-
-                        const allSheetData = await timeStep(
-                            'resumo.Promise.all(sheetReads)',
-                            () => Promise.all(sheetReads),
+                        const dashboardData = usePersonalSpreadsheet
+                            ? await timeStep(
+                                'resumo.getUserSheetDashboardData',
+                                () => getUserSheetDashboardData(userId, period),
+                                perfContext
+                            )
+                            : null;
+                        const dashboardSnapshot = dashboardData || await timeStep(
+                            'resumo.getDashboardReadModel',
+                            async () => {
+                                await syncReadModelIfNeeded();
+                                return getDashboardSqlData(userId, period) || getDashboardSnapshot(userId, period);
+                            },
                             perfContext
                         );
-                        const [saidasData, entradasData, dividasData, metasData] = allSheetData;
-                        const creditCardData = allSheetData.slice(4);
-                        const userProfile = await getUserProfileByUserId(userId);
-
-                        const health = buildHealthSummary({
-                            user: activeUser,
-                            aliases: [pessoa, activeUser.display_name],
-                            profile: userProfile,
-                            saidasData,
-                            entradasData,
-                            dividasData,
-                            metasData,
-                            creditCardData
-                        });
-
-                        const extraBudgetForAvalanche = health.saldoMes > 0 ? health.saldoMes * 0.5 : 0;
-                        const avalanchePlan = buildDebtAvalanchePlan({
-                            debts: health.debtsForPlanning,
-                            extraBudget: extraBudgetForAvalanche
-                        });
-
-                        const riscoTexto = health.daysToNegative === null
-                            ? 'Sem dados suficientes para estimar dias até caixa negativo.'
-                            : 'Risco de caixa em ' + health.daysToNegative + ' dia(s) (nível ' + health.riskLevel + ').';
-
-                        const summaryMessage = [
-                            'Resumo inteligente de ' + health.periodLabel + ':',
-                            '- Entradas do mês: ' + formatCurrencyBR(health.currentMonthEntradas),
-                            '- Saídas do mês (exceto cartão): ' + formatCurrencyBR(health.currentMonthSaidas),
-                            '- Fatura no mês: ' + formatCurrencyBR(health.currentMonthCard),
-                            '- Saldo do mês: ' + formatCurrencyBR(health.saldoMes),
-                            '',
-                            'Radar de caixa (30 dias):',
-                            '- ' + riscoTexto,
-                            '- Por quê: ' + health.riskExplanation,
-                            '',
-                            'Reserva de emergência:',
-                            '- Alvo (3 meses): ' + formatCurrencyBR(health.reserveTarget3),
-                            '- Valor atual mapeado: ' + formatCurrencyBR(health.reserveCurrent),
-                            '- Progresso: ' + health.reserveProgressPct.toFixed(1) + '%',
-                            '- Como calculei: ' + health.reserveExplanation
-                        ].join('\n');
-
-                        let avalancheMessage = '';
-                        let dashboardMetrics = [
-                            { label: 'Entradas do mês', value: formatCurrencyBR(health.currentMonthEntradas) },
-                            { label: 'Saídas do mês (exceto cartão)', value: formatCurrencyBR(health.currentMonthSaidas) },
-                            { label: 'Fatura no mês', value: formatCurrencyBR(health.currentMonthCard) },
-                            { label: 'Saldo do mês', value: formatCurrencyBR(health.saldoMes) },
-                            { label: 'Radar de caixa (30 dias)', value: riscoTexto },
-                            { label: 'Radar de caixa - contexto', value: health.riskExplanation },
-                            { label: 'Reserva de emergência - alvo (3 meses)', value: formatCurrencyBR(health.reserveTarget3) },
-                            { label: 'Reserva de emergência - valor atual', value: formatCurrencyBR(health.reserveCurrent) },
-                            { label: 'Reserva de emergência - progresso', value: health.reserveProgressPct.toFixed(1) + '%' },
-                            { label: 'Reserva de emergência - cálculo', value: health.reserveExplanation }
-                        ];
-                        if (avalanchePlan) {
-                            const ordem = avalanchePlan.avalanche.order.length > 0
-                                ? avalanchePlan.avalanche.order.join(' -> ')
-                                : health.debtsForPlanning
-                                    .slice()
-                                    .sort((a, b) => b.monthlyRatePct - a.monthlyRatePct)
-                                    .map(d => d.name)
-                                    .join(' -> ');
-
-                            avalancheMessage = [
-                                '',
-                                'Plano de dívidas (estratégia avalanche):',
-                                '- Extra sugerido/mês: ' + formatCurrencyBR(avalanchePlan.recommendedExtraBudget),
-                                '- Ordem sugerida: ' + ordem,
-                                '- Prazo estimado (base): ' + avalanchePlan.baseline.months + ' mês(es)',
-                                '- Prazo estimado (avalanche): ' + avalanchePlan.avalanche.months + ' mês(es)',
-                                '- Economia estimada de juros: ' + formatCurrencyBR(avalanchePlan.interestSaved),
-                                '- Por quê: ' + avalanchePlan.explanation
-                            ].join('\n');
-
-                            dashboardMetrics = dashboardMetrics.concat([
-                                { label: 'Plano de dívidas - extra sugerido/mês', value: formatCurrencyBR(avalanchePlan.recommendedExtraBudget) },
-                                { label: 'Plano de dívidas - ordem sugerida', value: ordem },
-                                { label: 'Plano de dívidas - prazo base', value: avalanchePlan.baseline.months + ' mês(es)' },
-                                { label: 'Plano de dívidas - prazo avalanche', value: avalanchePlan.avalanche.months + ' mês(es)' },
-                                { label: 'Plano de dívidas - economia de juros', value: formatCurrencyBR(avalanchePlan.interestSaved) },
-                                { label: 'Plano de dívidas - contexto', value: avalanchePlan.explanation }
-                            ]);
-                        }
-
-                        await timeStep(
-                            'resumo.syncDashboardForUser',
-                            () => syncDashboardForUser({
-                                userId,
-                                periodLabel: health.periodLabel,
-                                metrics: dashboardMetrics
-                            }),
-                            perfContext
-                        );
-
+                        const summaryMessage = buildDashboardWhatsAppSummary(dashboardSnapshot);
                         cache.set(cacheKey, summaryMessage);
-                        await msg.reply(summaryMessage + avalancheMessage);
+                        await msg.reply(summaryMessage);
                     } catch (err) {
                         console.error('Erro ao gerar resumo financeiro:', err);
-                        await msg.reply('Não consegui gerar o resumo inteligente agora. Tente novamente em instantes.');
+                        await msg.reply('Não consegui gerar o resumo do dashboard agora. Tente novamente em instantes.');
                     }
                     break;
                 }
@@ -4942,13 +6321,25 @@ async function handleMessage(msg) {
                 case 'pergunta': {
                     try {
                         const userQuestion = structuredResponse.question || messageBody;
+                        if (incomeInternalMovementQuestionNeedsClarification(userQuestion)) {
+                            metrics.increment('message.pergunta.income_internal_movement_clarification');
+                            logger.info(`[routing] income_internal_movement_clarification sender=${senderId}`);
+                            await msg.reply(buildIncomeInternalMovementClarificationMessage());
+                            return;
+                        }
+
                         const previousAnalyticalContext = getAnalyticalContext(senderId);
                         const localClassification = classifyPerguntaLocally(userQuestion, previousAnalyticalContext);
-                        const intentClassification = localClassification || await timeStep(
+                        const rawIntentClassification = localClassification || await timeStep(
                             'classify(userQuestion)',
                             () => classify(userQuestion),
                             perfContext
                         );
+                        const mappedFinancialQueryPlan = rawIntentClassification?.financialQueryPlan ||
+                            buildFinancialQueryPlanForLocalClassification(rawIntentClassification, userQuestion);
+                        const intentClassification = mappedFinancialQueryPlan
+                            ? { ...rawIntentClassification, financialQueryPlan: mappedFinancialQueryPlan }
+                            : rawIntentClassification;
                         if (localClassification) {
                             metrics.increment('message.pergunta.local_classification');
                             logger.info(`[routing] local_classification intent=${localClassification.intent} sender=${senderId}`);
@@ -4961,18 +6352,37 @@ async function handleMessage(msg) {
                         let analysisSource = 'unknown';
                         const usePersonalSpreadsheet = await hasUserSpreadsheetContext({ userId });
                         const financialScopeUserIds = usePersonalSpreadsheet ? getFinancialScopeUserIds(userId) : [userId];
-                        let analyticalUserIds = financialScopeUserIds;
-                        let effectiveIntentClassification = intentClassification;
-                        if (usePersonalSpreadsheet && financialScopeUserIds.length > 1) {
-                            const usersForScope = await getAllUsers();
-                            const userScopeMatch = resolveQuestionUserScopeMatch(userQuestion, usersForScope, financialScopeUserIds);
-                            analyticalUserIds = userScopeMatch.userIds;
-                            effectiveIntentClassification = normalizeIntentForQuestionUserScope(intentClassification, userScopeMatch);
-                            if (analyticalUserIds.length !== financialScopeUserIds.length) {
-                                logger.info(`[routing] question_user_scope sender=${senderId} selected=${analyticalUserIds.length}/${financialScopeUserIds.length}`);
-                            }
+                        const usersForScope = financialScopeUserIds.length > 1 ? await getAllUsers() : [];
+                        const preserveTransferTarget = isTransferTargetQuestionForScopePreservation(userQuestion, intentClassification);
+                        const resolvedScope = resolveFinancialQueryScope({
+                            currentUserId: userId,
+                            question: userQuestion,
+                            requestedScope: preserveTransferTarget ? '' : getAnalyticalRequestedScope(intentClassification),
+                            requestedMember: preserveTransferTarget
+                                ? ''
+                                : intentClassification?.financialQueryPlan?.filters?.member || intentClassification?.parameters?.member || '',
+                            previousScope: previousAnalyticalContext?.parameters?.scope || '',
+                            authorizedUserIds: financialScopeUserIds,
+                            users: usersForScope,
+                            isAdmin: isAdminWithContext(senderId, user)
+                        });
+                        if (resolvedScope.decision === 'block') {
+                            metrics.increment('message.pergunta.scope.blocked');
+                            logger.warn(`[routing] financial_scope_blocked reason=${resolvedScope.reason}`);
+                            await msg.reply(SECURITY_BLOCK_REPLY);
+                            return;
                         }
-                        const sheetOnlyIntents = new Set(['total_pagamentos_fatura_mes', 'resumo_contas_recorrentes', 'contas_vencendo', 'saldo_disponivel_estimado']);
+                        if (resolvedScope.decision === 'clarify') {
+                            metrics.increment('message.pergunta.scope.clarify');
+                            logger.info(`[routing] financial_scope_clarify reason=${resolvedScope.reason}`);
+                            await msg.reply(buildScopeClarificationReply(resolvedScope));
+                            return;
+                        }
+                        const analyticalUserIds = resolvedScope.userIds;
+                        const scopeNormalizedIntent = normalizeIntentForQuestionUserScope(intentClassification, resolvedScope);
+                        const effectiveIntentClassification = applyResolvedScopeToClassification(scopeNormalizedIntent, resolvedScope);
+                        logger.info(`[routing] financial_scope_resolved scope=${resolvedScope.scope} selected=${analyticalUserIds.length}`);
+                        const sheetOnlyIntents = new Set();
                         if (!usePersonalSpreadsheet && !sheetOnlyIntents.has(effectiveIntentClassification.intent)) {
                             try {
                                 await timeStep(
@@ -4980,16 +6390,30 @@ async function handleMessage(msg) {
                                     () => syncReadModelIfNeeded(),
                                     perfContext
                                 );
-                                analyzedData = await timeStep(
-                                    'readModel.execute',
-                                    () => executeAnalyticalIntent(
-                                        effectiveIntentClassification.intent,
-                                        effectiveIntentClassification.parameters,
-                                        { userId }
-                                    ),
-                                    perfContext
-                                );
-                                usedReadModel = true;
+                                analyzedData = effectiveIntentClassification.financialQueryPlan
+                                    ? await timeStep(
+                                        'readModel.queryEngine.execute',
+                                        () => executeFinancialQueryPlanFromReadModel(
+                                            effectiveIntentClassification.financialQueryPlan,
+                                            effectiveIntentClassification.intent,
+                                            effectiveIntentClassification.parameters,
+                                            { userId, resolvedScope }
+                                        ),
+                                        perfContext
+                                    )
+                                    : null;
+                                if (!analyzedData && !effectiveIntentClassification.financialQueryPlan) {
+                                    analyzedData = await timeStep(
+                                        'readModel.execute',
+                                        () => executeAnalyticalIntent(
+                                            effectiveIntentClassification.intent,
+                                            effectiveIntentClassification.parameters,
+                                            { userId }
+                                        ),
+                                        perfContext
+                                    );
+                                }
+                                usedReadModel = Boolean(analyzedData);
                                 analysisSource = analyzedData?.source || 'read_model_unknown';
                                 metrics.increment(`message.pergunta.analysis.${normalizeMetricLabel(analysisSource)}`);
                                 logger.info(`[routing] analysis_source=${analysisSource} intent=${effectiveIntentClassification.intent} sender=${senderId}`);
@@ -5020,13 +6444,61 @@ async function handleMessage(msg) {
                             const sheetReads = [
                                 readDataFromSheet('Saídas!A:J'),
                                 readDataFromSheet('Entradas!A:I'),
-                                readDataFromSheet('Metas!A:I'),
+                                readDataFromSheet('Metas!A:K'),
                                 readDataFromSheet('Dívidas!A:R')
                             ];
-                            const needsTransfers = effectiveIntentClassification.intent === 'total_pagamentos_fatura_mes' || effectiveIntentClassification.intent === 'saldo_disponivel_estimado';
-                            const needsAccounts = effectiveIntentClassification.intent === 'resumo_contas_recorrentes' || effectiveIntentClassification.intent === 'contas_vencendo';
+                            const transferIntents = new Set([
+                                'total_transferencias_mes',
+                                'listagem_transferencias_mes',
+                                'total_reserva_aplicada_mes',
+                                'total_reserva_resgatada_mes',
+                                'total_reserva_liquida_mes',
+                                'total_transferencias_contas_mes',
+                                'total_transferencias_familia_mes',
+                                'transferencia_familiar_eh_gasto',
+                                'total_pagamentos_fatura_mes',
+                                'saldo_disponivel_estimado'
+                            ]);
+                            const budgetIntents = new Set([
+                                'orcamento_disponivel_hoje',
+                                'orcamento_usado_ciclo',
+                                'orcamento_explicacao',
+                                'orcamento_ritmo_diario',
+                                'orcamento_restante_ciclo',
+                                'orcamento_escopo'
+                            ]);
+                            const goalIntents = new Set([
+                                'resumo_metas',
+                                'progresso_metas',
+                                'historico_meta',
+                                'total_aportes_meta',
+                                'total_retiradas_meta',
+                                'metas_por_status',
+                                'ranking_metas',
+                                'media_progresso_metas',
+                                'percentual_meta',
+                                'comparacao_metas',
+                                'explicacao_meta'
+                            ]);
+                            const needsTransfers = transferIntents.has(effectiveIntentClassification.intent);
+                            const needsBudget = budgetIntents.has(effectiveIntentClassification.intent);
+                            const needsGoalMovements = goalIntents.has(effectiveIntentClassification.intent);
+                            const needsAccounts = new Set([
+                                'resumo_contas_recorrentes',
+                                'contas_vencendo',
+                                'status_conta_recorrente',
+                                'total_contas_recorrentes',
+                                'comparacao_contas_realizado',
+                                'contas_pendentes',
+                                'explicacao_conta_recorrente'
+                            ]).has(effectiveIntentClassification.intent);
                             if (needsTransfers) sheetReads.push(readDataFromSheet('Transferências!A:I'));
                             if (needsAccounts) sheetReads.push(readDataFromSheet('Contas!A:I'));
+                            if (needsGoalMovements) sheetReads.push(readDataFromSheet('Movimentações Metas!A:J'));
+                            if (needsBudget) {
+                                sheetReads.push(readDataFromSheet('UserSettings!A:S'));
+                                sheetReads.push(readDataFromSheet('Cartões!A:G'));
+                            }
                             if (usePersonalSpreadsheet) {
                                 sheetReads.push(readDataFromSheet('Lançamentos Cartão!A:J'));
                             } else {
@@ -5049,21 +6521,40 @@ async function handleMessage(msg) {
                             const contasData = needsAccounts
                                 ? allSheetData[nextSheetIndex++]
                                 : [['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa']];
+                            const movimentacoesMetasData = needsGoalMovements
+                                ? allSheetData[nextSheetIndex++]
+                                : [['Data', 'Meta', 'Tipo', 'Valor', 'Valor Antes', 'Valor Depois', 'Observação', 'Responsável', 'user_id', 'goal_user_id']];
+                            const userSettingsData = needsBudget
+                                ? allSheetData[nextSheetIndex++]
+                                : [['user_id', 'timezone', 'weekly_checkin_enabled', 'monthly_report_enabled', 'language', 'created_at', 'auto_reserve_enabled', 'auto_reserve_percent', 'daily_goal_enabled', 'daily_goal_amount', 'daily_goal_last_alert_date', 'daily_goal_last_alert_level', 'daily_goal_scope', 'monthly_budget_enabled', 'monthly_budget_amount', 'monthly_budget_last_alert_date', 'monthly_budget_last_alert_level', 'monthly_budget_scope', 'monthly_budget_cycle_start_day']];
+                            const cartoesConfigData = needsBudget
+                                ? allSheetData[nextSheetIndex++]
+                                : [['card_id', 'Nome', 'Banco', 'Dia de Fechamento', 'Dia de Vencimento', 'Ativo', 'Observações']];
                             const creditCardData = allSheetData.slice(nextSheetIndex);
                             const cardUserIdIndex = usePersonalSpreadsheet ? 9 : 6;
                             const filteredCreditCardData = creditCardData.map(sheetRows => filterSheetRowsByUserIds(sheetRows, cardUserIdIndex, analyticalUserIds));
+                            const executionParameters = effectiveIntentClassification.financialQueryPlan
+                                ? {
+                                    ...effectiveIntentClassification.parameters,
+                                    financialQueryPlan: effectiveIntentClassification.financialQueryPlan
+                                }
+                                : effectiveIntentClassification.parameters;
                             analyzedData = await timeStep(
                                 'execute(intent)',
                                 () => execute(
                                     effectiveIntentClassification.intent,
-                                    effectiveIntentClassification.parameters,
+                                    executionParameters,
                                     {
                                         saidas: filterSheetRowsByUserIds(saidasData, 9, analyticalUserIds),
                                         entradas: filterSheetRowsByUserIds(entradasData, 8, analyticalUserIds),
                                         metas: filterSheetRowsByUserIds(metasData, 8, analyticalUserIds),
+                                        movimentacoesMetas: filterSheetRowsByUserIds(movimentacoesMetasData, 9, analyticalUserIds),
                                         dividas: filterSheetRowsByUserIds(dividasData, 17, analyticalUserIds),
                                         transferencias: filterSheetRowsByUserIds(transferenciasData, 8, analyticalUserIds),
                                         contas: filterSheetRowsByUserIds(contasData, 3, analyticalUserIds),
+                                        userSettings: filterSheetRowsByUserIds(userSettingsData, 0, analyticalUserIds),
+                                        cartoesConfig: cartoesConfigData,
+                                        scopeUserIds: analyticalUserIds,
                                         cartoes: filteredCreditCardData
                                     }
                                 ),
@@ -5223,6 +6714,8 @@ module.exports = {
         classifyPerguntaLocally,
         detectFastPerguntaIntent,
         detectLocalCommandIntent,
+        detectLocalTransactionIntent,
+        messageLooksLikeReserveMovement,
         shouldSkipAiForUnknownMessage,
         buildLocalPerguntaResponse,
         filterSheetRowsByUserId,
@@ -5230,6 +6723,7 @@ module.exports = {
         buildUserQuestionAliases,
         resolveQuestionUserScope,
         resolveQuestionUserScopeMatch,
+        resolveAnalyticalUserIdsForQuestion,
         normalizeIntentForQuestionUserScope,
         isGreetingMessage,
         buildGreetingReply,
@@ -5256,12 +6750,14 @@ module.exports = {
         clearPendingAdminConfirmation,
         setAdminMaintenanceRestartSchedulerForTests,
         resetAdminMaintenanceRestartSchedulerForTests,
+        sendApprovedGoogleConnectMessage,
         extractFullNameSettingsCommand,
         markFinancialReadModelDirty,
         saveImportedTransactions,
         handleAccountLifecycleCommands,
         handleAdminCommandBeforeAccess,
-        buildLegalCommandLogContext
+        buildLegalCommandLogContext,
+        buildDashboardWhatsAppSummary
     }
 };
 

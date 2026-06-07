@@ -9,6 +9,7 @@ const {
     ensureSqliteReady,
     syncSnapshotToSqlite,
     queryAnalyticalIntentSql,
+    queryFinancialQueryDataSourcesSql,
     queryKpis,
     queryTopCategories,
     queryCashflow,
@@ -20,6 +21,8 @@ const {
     getSqliteStats,
     ALL_USERS_ID
 } = require('./sqliteReadModelService');
+const { executeFinancialQueryPlanForLegacyIntent } = require('./calculationOrchestrator');
+const { decorateDashboardSummary } = require('./dashboardSummaryService');
 const logger = require('../utils/logger');
 const metrics = require('../utils/metrics');
 
@@ -51,9 +54,14 @@ let readModel = {
     },
     saidas: [],
     entradas: [],
+    transferencias: [],
     cartoes: [],
+    cartoesConfig: [],
+    userSettings: [],
     metas: [],
-    dividas: []
+    movimentacoesMetas: [],
+    dividas: [],
+    contas: []
 };
 
 let syncInFlight = null;
@@ -85,9 +93,14 @@ function loadReadModelFromDisk() {
             meta: parsed.meta || { lastSyncedAt: '', source: 'disk' },
             saidas: Array.isArray(parsed.saidas) ? parsed.saidas : [],
             entradas: Array.isArray(parsed.entradas) ? parsed.entradas : [],
+            transferencias: Array.isArray(parsed.transferencias) ? parsed.transferencias : [],
             cartoes: Array.isArray(parsed.cartoes) ? parsed.cartoes : [],
+            cartoesConfig: Array.isArray(parsed.cartoesConfig) ? parsed.cartoesConfig : [],
+            userSettings: Array.isArray(parsed.userSettings) ? parsed.userSettings : [],
             metas: Array.isArray(parsed.metas) ? parsed.metas : [],
-            dividas: Array.isArray(parsed.dividas) ? parsed.dividas : []
+            movimentacoesMetas: Array.isArray(parsed.movimentacoesMetas) ? parsed.movimentacoesMetas : [],
+            dividas: Array.isArray(parsed.dividas) ? parsed.dividas : [],
+            contas: Array.isArray(parsed.contas) ? parsed.contas : []
         };
         logger.info(`read-model: carregado do disco (saidas=${readModel.saidas.length}, entradas=${readModel.entradas.length}, cartoes=${readModel.cartoes.length})`);
     } catch (error) {
@@ -185,6 +198,33 @@ function mapEntradasRows(rows) {
             descricao: row[1] || '',
             categoria: row[2] || '',
             valor: parseValue(row[3]),
+            recebimento: row[5] || '',
+            recorrente: row[6] || '',
+            month: dateObj.getMonth(),
+            year: dateObj.getFullYear()
+        });
+    });
+    return result;
+}
+
+function mapTransferenciasRows(rows) {
+    if (!rows || rows.length <= 1) return [];
+    const result = [];
+    rows.slice(1).forEach((row) => {
+        const user_id = String(row[8] || '').trim();
+        if (!user_id) return;
+        const dateObj = parseSheetDate(row[0]);
+        if (!dateObj) return;
+        result.push({
+            user_id,
+            data: row[0] || '',
+            descricao: row[1] || '',
+            valor: parseValue(row[2]),
+            origem: row[3] || '',
+            destino: row[4] || '',
+            metodo: row[5] || '',
+            observacoes: row[6] || '',
+            status: row[7] || '',
             month: dateObj.getMonth(),
             year: dateObj.getFullYear()
         });
@@ -215,11 +255,48 @@ function mapCardRows(rows, sheetName) {
     return result;
 }
 
-function mapGenericRows(rows, userIndex) {
+function mapUserSettingsRows(rows) {
     if (!rows || rows.length <= 1) return [];
     return rows.slice(1)
-        .map((row) => ({ row, user_id: String(row[userIndex] || '').trim() }))
+        .map(row => ({
+            user_id: String(row[0] || '').trim(),
+            monthly_budget_enabled: row[13] || '',
+            monthly_budget_amount: row[14] || '',
+            monthly_budget_scope: row[17] || 'personal',
+            monthly_budget_cycle_start_day: row[18] || '1'
+        }))
+        .filter(item => item.user_id);
+}
+
+function mapCartoesConfigRows(rows) {
+    if (!rows || rows.length <= 1) return [];
+    return rows.slice(1)
+        .map(row => ({
+            card_id: row[0] || '',
+            nome: row[1] || row[0] || '',
+            due_day: row[4] || '1',
+            active: row[5] || 'SIM'
+        }))
+        .filter(item => item.card_id || item.nome);
+}
+
+function mapGenericRows(rows, userIndex) {
+    if (!rows || rows.length <= 1) return [];
+    const headers = Array.isArray(rows[0]) ? rows[0] : [];
+    return rows.slice(1)
+        .map((row) => ({ row, headers, user_id: String(row[userIndex] || '').trim() }))
         .filter((entry) => entry.user_id);
+}
+
+function genericRowValue(entry = {}, aliases = [], fallbackIndex = -1) {
+    const row = Array.isArray(entry.row) ? entry.row : [];
+    const headers = Array.isArray(entry.headers) ? entry.headers : [];
+    if (headers.length > 0) {
+        const normalizedAliases = aliases.map(alias => normalizeText(alias));
+        const index = headers.findIndex(header => normalizedAliases.includes(normalizeText(header)));
+        return index >= 0 ? row[index] : '';
+    }
+    return fallbackIndex >= 0 ? row[fallbackIndex] : '';
 }
 
 function buildDashboardPeriodLabel(monthKey) {
@@ -362,14 +439,19 @@ async function rebuildReadModelFromSheets() {
     const sheetReads = [
         readDataFromSheet('Saídas!A:J'),
         readDataFromSheet('Entradas!A:I'),
+        readDataFromSheet('Transferências!A:I'),
         readDataFromSheet('Metas!A:K'),
+        readDataFromSheet('Movimentações Metas!A:J'),
         readDataFromSheet('Dívidas!A:R'),
+        readDataFromSheet('Contas!A:I'),
+        readDataFromSheet('UserSettings!A:S'),
+        readDataFromSheet('Cartões!A:G'),
         ...cardSheetNames.map((sheetName) => readDataFromSheet(`${sheetName}!A:G`))
     ];
 
     const allData = await Promise.all(sheetReads);
-    const [saidasRows, entradasRows, metasRows, dividasRows] = allData;
-    const cardRowsList = allData.slice(4);
+    const [saidasRows, entradasRows, transferenciasRows, metasRows, movimentacoesMetasRows, dividasRows, contasRows, userSettingsRows, cartoesConfigRows] = allData;
+    const cardRowsList = allData.slice(9);
 
     const cartoes = [];
     cardRowsList.forEach((rows, idx) => {
@@ -383,9 +465,14 @@ async function rebuildReadModelFromSheets() {
         },
         saidas: mapSaidasRows(saidasRows),
         entradas: mapEntradasRows(entradasRows),
+        transferencias: mapTransferenciasRows(transferenciasRows),
         cartoes,
+        cartoesConfig: mapCartoesConfigRows(cartoesConfigRows),
+        userSettings: mapUserSettingsRows(userSettingsRows),
         metas: mapGenericRows(metasRows, 8),
-        dividas: mapGenericRows(dividasRows, 17)
+        movimentacoesMetas: mapGenericRows(movimentacoesMetasRows, 8),
+        dividas: mapGenericRows(dividasRows, 17),
+        contas: mapGenericRows(contasRows, 3)
     };
 
     syncSnapshotToSqlite(readModel);
@@ -850,14 +937,64 @@ async function executeAnalyticalIntent(intent, parameters, { userId }) {
     }
 }
 
+async function executeFinancialQueryPlanFromReadModel(financialQueryPlan, intent, parameters, { userId, resolvedScope } = {}) {
+    if (!financialQueryPlan || !intent) return null;
+
+    if (String(userId || '').trim() === ALL_USERS_ID) {
+        metrics.increment('read_model.sqlite.query_engine_scope_blocked');
+        return null;
+    }
+    if (resolvedScope && resolvedScope.decision !== 'allow') {
+        metrics.increment('read_model.sqlite.query_engine_scope_blocked');
+        return null;
+    }
+    const resolvedUserIds = resolvedScope?.decision === 'allow'
+        ? Array.from(new Set((resolvedScope.userIds || []).map(id => String(id || '').trim()).filter(Boolean)))
+        : [String(userId || '').trim()].filter(Boolean);
+    if (resolvedUserIds.length === 0) return null;
+    const effectiveScope = resolvedScope?.decision === 'allow' ? resolvedScope.scope : 'personal';
+    const scopedFinancialQueryPlan = {
+        ...financialQueryPlan,
+        filters: {
+            ...(financialQueryPlan.filters || {}),
+            scope: effectiveScope
+        }
+    };
+    if (effectiveScope === 'member') delete scopedFinancialQueryPlan.filters.member;
+
+    const sqliteDataSources = queryFinancialQueryDataSourcesSql(scopedFinancialQueryPlan, {
+        userId,
+        userIds: resolvedUserIds,
+        currentDate: parameters?.currentDate
+    });
+    if (sqliteDataSources) {
+        const result = await executeFinancialQueryPlanForLegacyIntent(
+            intent,
+            { ...(parameters || {}), scope: effectiveScope, financialQueryPlan: scopedFinancialQueryPlan },
+            sqliteDataSources
+        );
+        if (result) {
+            metrics.increment('read_model.sqlite.query_engine_hit');
+            return withResultSource(result, 'sqlite_query_engine');
+        }
+    }
+
+    return null;
+}
+
 function getReadModelStats() {
     return {
         ...readModel.meta,
         saidas: readModel.saidas.length,
         entradas: readModel.entradas.length,
         cartoes: readModel.cartoes.length,
+        transferencias: readModel.transferencias.length,
+        cartoesConfig: readModel.cartoesConfig.length,
+        userSettings: readModel.userSettings.length,
         metas: readModel.metas.length,
+        movimentacoesMetas: readModel.movimentacoesMetas.length,
         dividas: readModel.dividas.length,
+        contas: readModel.contas.length,
         sqlite: getSqliteStats()
     };
 }
@@ -877,6 +1014,52 @@ function parseDateToTimestamp(dateStr, fallbackYear = null, fallbackMonth = null
     return 0;
 }
 
+function transferDashboardText(entry = {}) {
+    return normalizeText([
+        entry.descricao,
+        entry.origem,
+        entry.destino,
+        entry.observacoes,
+        entry.status
+    ].filter(Boolean).join(' '));
+}
+
+function transferHasReserveKeyword(entry = {}) {
+    const text = transferDashboardText(entry);
+    return [
+        'rdb',
+        'caixinha',
+        'nu reserva',
+        'reserva',
+        'investimento',
+        'aplic aut',
+        'aplicacao aut',
+        'aplicação aut'
+    ].some(term => text.includes(normalizeText(term)));
+}
+
+function isDashboardReserveApplication(entry = {}) {
+    const text = transferDashboardText(entry);
+    return transferHasReserveKeyword(entry) && (
+        text.includes('aplicacao') ||
+        text.includes('aplicação') ||
+        text.includes('guardar') ||
+        text.includes('guardado')
+    );
+}
+
+function isDashboardReserveRedemption(entry = {}) {
+    const text = transferDashboardText(entry);
+    return transferHasReserveKeyword(entry) && (
+        text.includes('resgate') ||
+        text.includes('retirada')
+    );
+}
+
+function roundDashboardMoney(value) {
+    return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
+}
+
 function getDashboardSnapshot(userId, { month, year } = {}) {
     const currentDate = new Date();
     const targetMonth = normalizeMonthParam(month) ?? currentDate.getMonth();
@@ -885,11 +1068,16 @@ function getDashboardSnapshot(userId, { month, year } = {}) {
     const saidasMonth = readModel.saidas.filter((entry) => entry.user_id === userId && periodMatches(entry, targetMonth, targetYear));
     const entradasMonth = readModel.entradas.filter((entry) => entry.user_id === userId && periodMatches(entry, targetMonth, targetYear));
     const cartoesMonth = readModel.cartoes.filter((entry) => entry.user_id === userId && periodMatches(entry, targetMonth, targetYear));
+    const transferenciasMonth = readModel.transferencias.filter((entry) => entry.user_id === userId && periodMatches(entry, targetMonth, targetYear));
 
     const totalEntradas = entradasMonth.reduce((sum, entry) => sum + entry.valor, 0);
     const totalSaidas = saidasMonth.reduce((sum, entry) => sum + entry.valor, 0);
     const totalCartoes = cartoesMonth.reduce((sum, entry) => sum + entry.valor, 0);
-    const saldo = totalEntradas - (totalSaidas + totalCartoes);
+    const reservaAplicada = roundDashboardMoney(transferenciasMonth.filter(isDashboardReserveApplication).reduce((sum, entry) => sum + Number(entry.valor || 0), 0));
+    const reservaResgatada = roundDashboardMoney(transferenciasMonth.filter(isDashboardReserveRedemption).reduce((sum, entry) => sum + Number(entry.valor || 0), 0));
+    const reservaLiquida = roundDashboardMoney(reservaAplicada - reservaResgatada);
+    const saldo = roundDashboardMoney(totalEntradas - (totalSaidas + totalCartoes));
+    const saldoDisponivelEstimado = roundDashboardMoney(saldo - reservaLiquida);
 
     const categoryTotals = {};
     [...saidasMonth, ...cartoesMonth].forEach((entry) => {
@@ -939,7 +1127,17 @@ function getDashboardSnapshot(userId, { month, year } = {}) {
             date: entry.data,
             description: entry.descricao,
             type: 'cartao',
+            typeLabel: 'Cartão',
             category: entry.categoria,
+            value: entry.valor,
+            timestamp: parseDateToTimestamp(entry.data, entry.year, entry.month)
+        })),
+        ...transferenciasMonth.map((entry) => ({
+            date: entry.data,
+            description: entry.descricao,
+            type: 'transferencia',
+            typeLabel: 'Transferência',
+            category: 'Transferência',
             value: entry.valor,
             timestamp: parseDateToTimestamp(entry.data, entry.year, entry.month)
         }))
@@ -968,13 +1166,14 @@ function getDashboardSnapshot(userId, { month, year } = {}) {
         .filter((entry) => entry.user_id === userId)
         .map((entry) => {
             const row = entry.row || [];
-            const status = normalizeText(row[10] || '');
+            const statusValue = genericRowValue(entry, ['Status'], 10);
+            const status = normalizeText(statusValue);
             return {
                 name: row[0] || 'Dívida',
                 creditor: row[1] || '',
                 saldoAtual: parseValue(row[4] || 0),
                 jurosPct: parseValue(row[6] || 0),
-                status: row[10] || ''
+                status: statusValue || ''
             };
         });
     const activeDebts = debts.filter((debt) => {
@@ -983,13 +1182,17 @@ function getDashboardSnapshot(userId, { month, year } = {}) {
     });
     const totalDebt = activeDebts.reduce((sum, debt) => sum + debt.saldoAtual, 0);
 
-    return {
+    return decorateDashboardSummary({
         period: { month: targetMonth, year: targetYear },
         kpis: {
             entradas: totalEntradas,
             saidas: totalSaidas,
             cartoes: totalCartoes,
             saldo,
+            reservaAplicada,
+            reservaResgatada,
+            reservaLiquida,
+            saldoDisponivelEstimado,
             debtActiveCount: activeDebts.length,
             debtTotal: totalDebt
         },
@@ -999,19 +1202,23 @@ function getDashboardSnapshot(userId, { month, year } = {}) {
         goals,
         debts: activeDebts.slice(0, 10),
         sync: readModel.meta
-    };
+    });
 }
 
 function getDashboardSqlData(userId, { month, year } = {}) {
     const kpis = queryKpis(userId, { month, year });
     if (!kpis) return null;
-    return {
+    return decorateDashboardSummary({
         period: kpis.period,
         kpis: {
             entradas: kpis.entradas,
             saidas: kpis.saidas,
             cartoes: kpis.cartoes,
             saldo: kpis.saldo,
+            reservaAplicada: kpis.reservaAplicada,
+            reservaResgatada: kpis.reservaResgatada,
+            reservaLiquida: kpis.reservaLiquida,
+            saldoDisponivelEstimado: kpis.saldoDisponivelEstimado,
             debtActiveCount: kpis.debtActiveCount,
             debtTotal: kpis.debtTotal
         },
@@ -1025,7 +1232,7 @@ function getDashboardSqlData(userId, { month, year } = {}) {
             ...readModel.meta,
             sqlite: getSqliteStats()
         }
-    };
+    });
 }
 
 module.exports = {
@@ -1034,6 +1241,7 @@ module.exports = {
     syncReadModelIfNeeded,
     markReadModelDirty,
     executeAnalyticalIntent,
+    executeFinancialQueryPlanFromReadModel,
     getReadModelStats,
     getDashboardSnapshot,
     getDashboardSqlData,

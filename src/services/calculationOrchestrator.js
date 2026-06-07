@@ -5,6 +5,89 @@ const { creditCardConfig } = require('../config/constants');
 const { legacyIntentToQueryPlan } = require('../query/financialQueryPlan');
 const { executeFinancialQuery } = require('../query/financialQueryEngine');
 
+const FINANCIAL_QUERY_ENGINE_PRIMARY_INTENTS = new Set([
+    'total_gastos_mes',
+    'total_gastos_categoria_mes',
+    'media_gastos_categoria_mes',
+    'total_gastos_multiplas_categorias',
+    'percentual_categoria_gastos',
+    'comparacao_gastos_categorias',
+    'listagem_gastos_categoria',
+    'contagem_ocorrencias',
+    'maior_menor_gasto',
+    'maior_menor_gasto_categoria',
+    'ranking_categorias_gastos',
+    'tendencia_gastos_mensal',
+    'comparacao_gastos_periodo',
+    'detalhamento_gastos_mes',
+    'ranking_estabelecimentos_gastos',
+    'total_entradas_mes',
+    'total_entradas_categoria_mes',
+    'listagem_entradas_mes',
+    'detalhamento_entradas_mes',
+    'ranking_fontes_entradas',
+    'ranking_formas_recebimento',
+    'maior_menor_entrada',
+    'contagem_entradas_mes',
+    'media_entradas_mes',
+    'percentual_categoria_entradas',
+    'comparacao_entradas_periodo',
+    'tendencia_entradas_mensal',
+    'total_fatura_cartao',
+    'total_faturas_por_cartao',
+    'detalhamento_cartao_mes',
+    'total_cartoes_em_aberto',
+    'ranking_cartoes_em_aberto',
+    'resumo_parcelamentos_cartao',
+    'maior_menor_compra_cartao',
+    'saldo_compra_parcelada_cartao',
+    'total_transferencias_mes',
+    'listagem_transferencias_mes',
+    'total_reserva_aplicada_mes',
+    'total_reserva_resgatada_mes',
+    'total_reserva_liquida_mes',
+    'total_transferencias_contas_mes',
+    'total_transferencias_familia_mes',
+    'transferencia_familiar_eh_gasto',
+    'total_pagamentos_fatura_mes',
+    'saldo_disponivel_estimado',
+    'orcamento_disponivel_hoje',
+    'orcamento_usado_ciclo',
+    'orcamento_explicacao',
+    'orcamento_ritmo_diario',
+    'orcamento_restante_ciclo',
+    'orcamento_escopo',
+    'resumo_metas',
+    'progresso_metas',
+    'historico_meta',
+    'total_aportes_meta',
+    'total_retiradas_meta',
+    'metas_por_status',
+    'ranking_metas',
+    'media_progresso_metas',
+    'percentual_meta',
+    'comparacao_metas',
+    'explicacao_meta',
+    'total_dividas',
+    'saldo_divida',
+    'parcelas_dividas_mes',
+    'dividas_vencendo',
+    'dividas_atrasadas',
+    'dividas_quitadas',
+    'ranking_dividas_juros',
+    'ranking_dividas_vencimento',
+    'ranking_dividas_saldo',
+    'prioridade_dividas',
+    'explicacao_dividas',
+    'resumo_contas_recorrentes',
+    'contas_vencendo',
+    'status_conta_recorrente',
+    'total_contas_recorrentes',
+    'comparacao_contas_realizado',
+    'contas_pendentes',
+    'explicacao_conta_recorrente'
+]);
+
 const getMonthIndex = (monthInput) => {
     if (monthInput === null || monthInput === undefined) return null;
     if (typeof monthInput === 'number' && monthInput >= 0 && monthInput <= 11) return monthInput;
@@ -64,7 +147,9 @@ const getUnifiedExpenses = (dataSources, mes, ano) => {
 };
 
 async function executeLegacyExpenseQueryIntent(intent, params = {}, dataSources = {}) {
-    const mapped = legacyIntentToQueryPlan(intent, params);
+    const mapped = params.financialQueryPlan
+        ? { ok: true, plan: params.financialQueryPlan }
+        : legacyIntentToQueryPlan(intent, params);
     if (!mapped.ok) return null;
 
     const execution = await executeFinancialQuery(mapped.plan, dataSources);
@@ -73,6 +158,7 @@ async function executeLegacyExpenseQueryIntent(intent, params = {}, dataSources 
     const value = execution.result?.value;
     const mes = getMonthIndex(params.mes);
     const ano = parseInt(params.ano, 10);
+    const { financialQueryPlan: _ignoredPlan, ...safeParams } = params || {};
 
     const publicItemToLegacyRow = (item = {}) => ([
         item.date || '',
@@ -86,16 +172,477 @@ async function executeLegacyExpenseQueryIntent(intent, params = {}, dataSources 
         ''
     ]);
 
+    const publicIncomeItem = (item = {}) => ({
+        data: item.date || '',
+        descricao: item.description || '',
+        categoria: item.category || 'Entrada',
+        valor: Number(item.value || 0),
+        recebimento: item.paymentMethod || '',
+        recorrente: item.recurrence || ''
+    });
+
+    const publicTransferItem = (item = {}) => ({
+        data: item.date || '',
+        descricao: item.description || '',
+        valor: Number(item.value || 0),
+        origem: item.from || '',
+        destino: item.to || '',
+        metodo: item.paymentMethod || '',
+        status: item.status || item.transferType || ''
+    });
+
+    const incomeDetails = {
+        ...safeParams,
+        mes,
+        ano,
+        totalEntradas: Number(execution.result?.details?.total || 0),
+        totalLancamentos: execution.result?.details?.count || 0,
+        criterioEntrada: execution.plan?.timeBasis || 'transaction_date',
+        timeBasis: execution.plan?.timeBasis || 'transaction_date'
+    };
+
+    const incomeIntents = new Set([
+        'total_entradas_mes',
+        'total_entradas_categoria_mes',
+        'listagem_entradas_mes',
+        'detalhamento_entradas_mes',
+        'ranking_fontes_entradas',
+        'ranking_formas_recebimento',
+        'maior_menor_entrada',
+        'contagem_entradas_mes',
+        'media_entradas_mes',
+        'percentual_categoria_entradas',
+        'comparacao_entradas_periodo',
+        'tendencia_entradas_mensal'
+    ]);
+
+    if (incomeIntents.has(intent)) {
+        if (intent === 'total_entradas_mes') {
+            return { results: Number(value || 0), details: { ...incomeDetails, totalEntradas: Number(value || 0) } };
+        }
+        if (intent === 'total_entradas_categoria_mes') {
+            const denominatorMapped = legacyIntentToQueryPlan('total_entradas_mes', params);
+            const denominatorExecution = denominatorMapped.ok ? await executeFinancialQuery(denominatorMapped.plan, dataSources) : null;
+            return {
+                results: Number(value || 0),
+                details: {
+                    ...incomeDetails,
+                    totalCategoria: Number(value || 0),
+                    totalEntradas: Number(denominatorExecution?.result?.value ?? value ?? 0)
+                }
+            };
+        }
+        if (intent === 'listagem_entradas_mes') {
+            return {
+                results: Array.isArray(value) ? value.map(publicIncomeItem) : [],
+                details: incomeDetails
+            };
+        }
+        if (intent === 'detalhamento_entradas_mes') {
+            const payload = value || {};
+            return {
+                results: {
+                    total: Number(payload.total || 0),
+                    count: Number(payload.count || 0),
+                    categorias: payload.groups?.category || [],
+                    formas: payload.groups?.paymentMethod || [],
+                    lancamentos: Array.isArray(payload.items) ? payload.items.map(publicIncomeItem) : []
+                },
+                details: { ...incomeDetails, totalEntradas: Number(payload.total || 0), totalLancamentos: Number(payload.count || 0) }
+            };
+        }
+        if (intent === 'ranking_fontes_entradas' || intent === 'ranking_formas_recebimento') {
+            const rows = Array.isArray(value) ? value : [];
+            return {
+                results: rows.map(item => ({
+                    label: item.label || 'Entrada',
+                    categoria: item.label || 'Entrada',
+                    total: Number(item.total || 0),
+                    count: Number(item.count || 0)
+                })),
+                details: incomeDetails
+            };
+        }
+        if (intent === 'maior_menor_entrada') {
+            return {
+                results: {
+                    min: value?.min ? publicIncomeItem(value.min) : null,
+                    max: value?.max ? publicIncomeItem(value.max) : null
+                },
+                details: incomeDetails
+            };
+        }
+        if (intent === 'contagem_entradas_mes' || intent === 'media_entradas_mes') {
+            return { results: Number(value || 0), details: incomeDetails };
+        }
+        if (intent === 'percentual_categoria_entradas') {
+            const result = value || {};
+            return {
+                results: Number(result.percent || 0),
+                details: {
+                    ...incomeDetails,
+                    totalCategoria: Number(result.part || 0),
+                    totalEntradas: Number(result.total || 0)
+                }
+            };
+        }
+        if (intent === 'comparacao_entradas_periodo') {
+            return {
+                results: {
+                    atual: Number(value?.current || 0),
+                    anterior: Number(value?.previous || 0),
+                    diferenca: Number(value?.difference || 0),
+                    percentual: Number(value?.percent || 0)
+                },
+                details: {
+                    ...incomeDetails,
+                    mesAnterior: mapped.plan?.filters?.period?.month === 0 ? 11 : Number(mapped.plan?.filters?.period?.month || 0) - 1,
+                    anoAnterior: mapped.plan?.filters?.period?.month === 0 ? ano - 1 : ano
+                }
+            };
+        }
+        if (intent === 'tendencia_entradas_mensal') {
+            const rows = Array.isArray(value) ? value : [];
+            return {
+                results: rows,
+                details: {
+                    ...incomeDetails,
+                    totalEntradas: execution.result?.details?.total || 0
+                }
+            };
+        }
+    }
+
+    const transferDetails = {
+        ...safeParams,
+        mes,
+        ano,
+        totalTransferencias: Number(execution.result?.details?.total || 0),
+        totalLancamentos: execution.result?.details?.count || 0,
+        criterioTransferencia: execution.plan?.timeBasis || 'transaction_date',
+        timeBasis: execution.plan?.timeBasis || 'transaction_date'
+    };
+
+    const transferIntents = new Set([
+        'total_transferencias_mes',
+        'listagem_transferencias_mes',
+        'total_reserva_aplicada_mes',
+        'total_reserva_resgatada_mes',
+        'total_reserva_liquida_mes',
+        'total_transferencias_contas_mes',
+        'total_transferencias_familia_mes',
+        'transferencia_familiar_eh_gasto',
+        'total_pagamentos_fatura_mes',
+        'saldo_disponivel_estimado'
+    ]);
+
+    if (transferIntents.has(intent)) {
+        if (intent === 'listagem_transferencias_mes') {
+            return {
+                results: Array.isArray(value) ? value.map(publicTransferItem) : [],
+                details: transferDetails
+            };
+        }
+        if (intent === 'saldo_disponivel_estimado') {
+            const summary = value || {};
+            return {
+                results: Number(summary.availableEstimate || 0),
+                details: {
+                    ...transferDetails,
+                    saldo: Number(summary.balance || 0),
+                    totalEntradas: Number(summary.income || 0),
+                    totalSaidas: Number(summary.spending || 0),
+                    reservaAplicada: Number(summary.reserveApplied || 0),
+                    reservaResgatada: Number(summary.reserveRedeemed || 0),
+                    reservaLiquida: Number(summary.reserveNet || 0),
+                    pagamentosFatura: Number(summary.invoicePayments || 0),
+                    transferenciasInternas: Number(summary.internalTransfers || 0),
+                    explicacao: summary.explanation || ''
+                }
+            };
+        }
+        if (intent === 'transferencia_familiar_eh_gasto') {
+            return {
+                results: value || { total: 0, isExpense: false, explanation: '' },
+                details: transferDetails
+            };
+        }
+        if (intent === 'total_pagamentos_fatura_mes') {
+            return {
+                results: Number(value || 0),
+                details: {
+                    ...transferDetails,
+                    pagamentos: execution.result?.details?.count || 0,
+                    canGroupByCard: false
+                }
+            };
+        }
+        return {
+            results: Number(value || 0),
+            details: transferDetails
+        };
+    }
+
+    const budgetIntents = new Set([
+        'orcamento_disponivel_hoje',
+        'orcamento_usado_ciclo',
+        'orcamento_explicacao',
+        'orcamento_ritmo_diario',
+        'orcamento_restante_ciclo',
+        'orcamento_escopo'
+    ]);
+
+    if (budgetIntents.has(intent)) {
+        return {
+            results: value || {},
+            details: {
+                ...safeParams,
+                timeBasis: execution.plan?.timeBasis || 'budget_cycle',
+                criterioOrcamento: execution.plan?.timeBasis || 'budget_cycle',
+                totalGastoLivre: Number(value?.cycleSpent || 0),
+                gastoHoje: Number(value?.todaySpent || 0),
+                restanteCiclo: Number(value?.remainingInCycle || 0),
+                ritmoDiario: Number(value?.dailyRecommendedAmount || 0),
+                escopo: value?.scope || execution.plan?.filters?.scope || ''
+            }
+        };
+    }
+
+    const goalIntents = new Set([
+        'resumo_metas',
+        'progresso_metas',
+        'historico_meta',
+        'total_aportes_meta',
+        'total_retiradas_meta',
+        'metas_por_status',
+        'ranking_metas',
+        'media_progresso_metas',
+        'percentual_meta',
+        'comparacao_metas',
+        'explicacao_meta'
+    ]);
+    if (goalIntents.has(intent)) {
+        const publicGoal = (item = {}) => ({
+            nome: item.description || '',
+            alvo: Number(item.target || 0),
+            atual: Number(item.current ?? item.value ?? 0),
+            falta: Number(item.missing || 0),
+            progressoPct: Number(item.progressPercent || 0),
+            valorMensal: Number(item.monthlyRequired || 0),
+            status: item.status || '',
+            escopo: item.scope || '',
+            data: item.date || '',
+            tipo: item.movementType || '',
+            valor: Number(item.value || 0),
+            valorAntes: Number(item.valueBefore || 0),
+            valorDepois: Number(item.valueAfter || 0),
+            observacao: item.subcategory || ''
+        });
+        const summary = value && !Array.isArray(value) ? value : {};
+        const goalItems = Array.isArray(value) ? value : (summary.items || []);
+        const publicValue = Array.isArray(value)
+            ? value.map(publicGoal)
+            : (summary.items && ['progresso_metas', 'explicacao_meta'].includes(intent)
+                ? summary.items.map(publicGoal)
+                : (summary.items ? { ...summary, items: summary.items.map(publicGoal), movements: (summary.movements || []).map(publicGoal) } : value));
+        return {
+            results: publicValue,
+            details: {
+                ...safeParams,
+                timeBasis: execution.plan?.timeBasis,
+                criterioMetas: execution.result?.details?.criteria || summary.criteria || '',
+                total: Number(summary.count || execution.result?.details?.count || goalItems.length),
+                ativas: Number(summary.activeCount ?? goalItems.filter(item => item.active).length),
+                totalAlvo: Number(summary.totals?.target ?? goalItems.reduce((sum, item) => sum + Number(item.target || 0), 0)),
+                totalAtual: Number(summary.totals?.current ?? goalItems.reduce((sum, item) => sum + Number(item.current || 0), 0)),
+                totalFalta: Number(summary.totals?.missing ?? goalItems.filter(item => item.active).reduce((sum, item) => sum + Number(item.missing || 0), 0)),
+                totalValorMensal: Number(summary.totals?.monthlyRequired ?? goalItems.filter(item => item.active).reduce((sum, item) => sum + Number(item.monthlyRequired || 0), 0)),
+                movements: (summary.movements || []).map(publicGoal),
+                movementTotals: summary.movementTotals || {}
+            }
+        };
+    }
+
+    const debtIntents = new Set([
+        'total_dividas',
+        'saldo_divida',
+        'parcelas_dividas_mes',
+        'dividas_vencendo',
+        'dividas_atrasadas',
+        'dividas_quitadas',
+        'ranking_dividas_juros',
+        'ranking_dividas_vencimento',
+        'ranking_dividas_saldo',
+        'prioridade_dividas',
+        'explicacao_dividas'
+    ]);
+    if (debtIntents.has(intent)) {
+        const publicDebt = (item = {}) => ({
+            nome: item.description || '',
+            credor: item.subcategory || '',
+            tipo: item.category || '',
+            saldoAtual: Number(item.value || 0),
+            valorOriginal: Number(item.originalValue || 0),
+            valorPago: Number(item.paidAmount || 0),
+            progressoPct: Number(item.progressPercent || 0),
+            parcela: Number(item.installmentValue || 0),
+            jurosPct: Number(item.interestRatePct || 0),
+            vencimentoDia: item.dueDay || '',
+            proximoVencimento: item.nextDueDate || item.date || '',
+            atrasoDias: Number(item.overdueDays || 0),
+            status: item.status || ''
+        });
+        const summary = value && !Array.isArray(value) ? value : {};
+        const publicValue = Array.isArray(value)
+            ? value.map(publicDebt)
+            : (summary.items ? { ...summary, items: summary.items.map(publicDebt), ranking: (summary.ranking || []).map(publicDebt), item: summary.item ? publicDebt(summary.item) : null } : value);
+        return {
+            results: publicValue,
+            details: {
+                ...safeParams,
+                timeBasis: execution.plan?.timeBasis || 'due_date',
+                criterioDividas: execution.result?.details?.criteria || summary.criteria || '',
+                total: Number(summary.totalBalance ?? execution.result?.details?.total ?? 0),
+                activeCount: Number(summary.activeCount ?? execution.result?.details?.activeCount ?? 0),
+                paidCount: Number(summary.paidCount ?? execution.result?.details?.paidCount ?? 0),
+                overdueCount: Number(summary.overdueCount ?? execution.result?.details?.overdueCount ?? 0),
+                paidAmount: Number(summary.paidAmount ?? execution.result?.details?.paidAmount ?? 0)
+            }
+        };
+    }
+
+    const billIntents = new Set([
+        'resumo_contas_recorrentes',
+        'contas_vencendo',
+        'status_conta_recorrente',
+        'total_contas_recorrentes',
+        'comparacao_contas_realizado',
+        'contas_pendentes',
+        'explicacao_conta_recorrente'
+    ]);
+    if (billIntents.has(intent)) {
+        const publicBill = (item = {}) => ({
+            data: item.date || '',
+            nome: item.description || '',
+            categoria: item.category || '',
+            subcategoria: item.subcategory || '',
+            valorEsperado: Number(item.expectedValue ?? item.value ?? 0),
+            valorRealizado: Number(item.realizedValue || 0),
+            valorPendente: Number(item.pendingValue || 0),
+            status: item.status || '',
+            dia: item.dueDay || '',
+            ativa: normalizeText(item.ruleActive || '') === 'sim'
+        });
+        const summary = value && !Array.isArray(value) ? value : {};
+        const publicValue = Array.isArray(value)
+            ? value.map(publicBill)
+            : (summary.items ? { ...summary, items: summary.items.map(publicBill) } : value);
+        return {
+            results: publicValue,
+            details: {
+                ...safeParams,
+                timeBasis: execution.plan?.timeBasis || 'due_date',
+                criterioContas: execution.result?.details?.criteria || summary.criteria || '',
+                totals: execution.result?.details?.totals || summary.totals || {},
+                total: intent === 'resumo_contas_recorrentes'
+                    ? Number(execution.result?.details?.count || 0)
+                    : Number(execution.result?.details?.total || 0),
+                count: Number(execution.result?.details?.count || 0),
+                regrasAtivas: Number(execution.result?.details?.rulesActive || 0),
+                lembretes: Number(execution.result?.details?.count || 0)
+            }
+        };
+    }
+
+    if (intent === 'total_gastos_mes' || intent === 'total_gastos_categoria_mes' || intent === 'total_gastos_multiplas_categorias') {
+        return {
+            results: Number(value || 0),
+            details: {
+                ...safeParams,
+                mes,
+                ano,
+                totalSaidas: Number(execution.result?.details?.totals?.outputs || 0),
+                totalCartoes: Number(execution.result?.details?.totals?.cards || 0),
+                totalGastos: Number(value || 0),
+                criterioCartao: execution.plan?.timeBasis || 'billing_month'
+            }
+        };
+    }
+
+    if (intent === 'media_gastos_categoria_mes') {
+        return {
+            results: Number(value || 0),
+            details: {
+                ...safeParams,
+                mes,
+                ano,
+                totalGastos: execution.result?.details?.total || 0,
+                totalLancamentos: execution.result?.details?.count || 0
+            }
+        };
+    }
+
+    if (intent === 'listagem_gastos_categoria') {
+        return {
+            results: Array.isArray(value) ? value.map(publicItemToLegacyRow) : [],
+            details: { ...safeParams, mes, ano }
+        };
+    }
+
+    if (intent === 'comparacao_gastos_categorias') {
+        const rows = Array.isArray(value?.items) ? value.items : [];
+        return {
+            results: {
+                categorias: rows.map(item => ({
+                    categoria: item.label || 'Outros',
+                    total: Number(item.total || 0)
+                }))
+            },
+            details: { ...safeParams, mes, ano }
+        };
+    }
+
+    if (intent === 'comparacao_gastos_periodo') {
+        return {
+            results: {
+                atual: Number(value?.current || 0),
+                anterior: Number(value?.previous || 0),
+                diferenca: Number(value?.difference || 0),
+                percentual: Number(value?.percent || 0)
+            },
+            details: {
+                ...safeParams,
+                mes,
+                ano,
+                mesAnterior: mapped.plan?.filters?.period?.month === 0 ? 11 : Number(mapped.plan?.filters?.period?.month || 0) - 1,
+                anoAnterior: mapped.plan?.filters?.period?.month === 0 ? ano - 1 : ano
+            }
+        };
+    }
+
+    if (intent === 'gastos_valores_duplicados') {
+        return {
+            results: Array.isArray(value) ? value.map(item => ({
+                valor: item.total,
+                count: item.count,
+                itens: [item.label]
+            })) : [],
+            details: { ...safeParams, mes, ano }
+        };
+    }
+
     if (intent === 'percentual_categoria_gastos') {
         const result = value || {};
         return {
             results: Number(result.percent || 0),
             details: {
-                ...params,
+                ...safeParams,
                 mes,
                 ano,
                 totalCategoria: Number(result.part || 0),
-                totalGastos: Number(result.total || 0)
+                totalGastos: Number(result.total || 0),
+                totalCartoes: Number(execution.result?.details?.denominatorTotals?.cards || 0),
+                criterioCartao: execution.plan?.timeBasis || 'billing_month'
             }
         };
     }
@@ -104,7 +651,7 @@ async function executeLegacyExpenseQueryIntent(intent, params = {}, dataSources 
         return {
             results: Number(value || 0),
             details: {
-                ...params,
+                ...safeParams,
                 mes,
                 ano,
                 totalGastos: execution.result?.details?.total || 0
@@ -119,7 +666,7 @@ async function executeLegacyExpenseQueryIntent(intent, params = {}, dataSources 
                 max: value?.max ? publicItemToLegacyRow(value.max) : null
             },
             details: {
-                ...params,
+                ...safeParams,
                 mes,
                 ano,
                 totalGastos: execution.result?.details?.total || 0
@@ -131,10 +678,12 @@ async function executeLegacyExpenseQueryIntent(intent, params = {}, dataSources 
         return {
             results: Array.isArray(value) ? value : [],
             details: {
-                ...params,
+                ...safeParams,
                 mes,
                 ano,
                 total: execution.result?.details?.total || 0,
+                totalCartoes: Number(execution.result?.details?.totals?.cards || 0),
+                criterioCartao: execution.plan?.timeBasis || 'billing_month',
                 totalLancamentos: execution.result?.details?.count || 0,
                 somenteCartao: mapped.plan.domain === 'cards' || normalizeText(params.origem || '') === 'cartao'
             }
@@ -151,12 +700,108 @@ async function executeLegacyExpenseQueryIntent(intent, params = {}, dataSources 
                 count: Number(item.count || 0)
             })),
             details: {
-                ...params,
+                ...safeParams,
                 mes,
                 ano,
                 totalGastos: execution.result?.details?.total || rows.reduce((sum, item) => sum + Number(item.total || 0), 0),
+                totalCartoes: Number(execution.result?.details?.totals?.cards || 0),
+                criterioCartao: execution.plan?.timeBasis || 'billing_month',
                 somenteCartao: mapped.plan.domain === 'cards' || normalizeText(params.origem || '') === 'cartao'
             }
+        };
+    }
+
+    if (intent === 'tendencia_gastos_mensal') {
+        const rows = Array.isArray(value) ? value : [];
+        return {
+            results: rows,
+            details: {
+                ...safeParams,
+                mes,
+                ano,
+                totalGastos: execution.result?.details?.total || rows.reduce((sum, item) => sum + Number(item.total || 0), 0),
+                totalCartoes: Number(execution.result?.details?.totals?.cards || 0),
+                criterioCartao: execution.plan?.timeBasis || 'billing_month'
+            }
+        };
+    }
+
+    const cardTemporalDetails = {
+        ...safeParams,
+        mes,
+        ano,
+        totalLancamentos: execution.result?.details?.count || 0,
+        criterioCartao: execution.plan?.timeBasis || 'billing_month'
+    };
+
+    if (intent === 'total_fatura_cartao') {
+        return {
+            results: Number(value || 0),
+            details: {
+                ...cardTemporalDetails,
+                parcelas: execution.result?.details?.count || 0,
+                cartao: params.cartao || execution.plan?.filters?.card || ''
+            }
+        };
+    }
+
+    if (intent === 'total_faturas_por_cartao' || intent === 'ranking_cartoes_em_aberto') {
+        const rows = Array.isArray(value) ? value : [];
+        return {
+            results: rows.map(item => ({
+                cartao: item.label || 'Cartão',
+                total: Number(item.total || 0),
+                parcelas: Number(item.count || 0)
+            })),
+            details: {
+                ...cardTemporalDetails,
+                total: execution.result?.details?.total || rows.reduce((sum, item) => sum + Number(item.total || 0), 0),
+                cartoes: rows.length,
+                parcelas: rows.reduce((sum, item) => sum + Number(item.count || 0), 0)
+            }
+        };
+    }
+
+    if (intent === 'total_cartoes_em_aberto' || intent === 'saldo_compra_parcelada_cartao') {
+        const payload = value || {};
+        return {
+            results: Number(payload.total || 0),
+            details: {
+                ...cardTemporalDetails,
+                parcelas: execution.result?.details?.count || 0,
+                meses: Array.isArray(payload.groups) ? payload.groups.length : 0,
+                grupos: Array.isArray(payload.groups) ? payload.groups : [],
+                compras: Array.isArray(payload.purchases) ? payload.purchases : []
+            }
+        };
+    }
+
+    if (intent === 'resumo_parcelamentos_cartao') {
+        const rows = Array.isArray(value) ? value : [];
+        return {
+            results: rows.map(item => ({
+                descricao: item.description || 'sem descrição',
+                cartao: item.card || '',
+                categoria: item.category || 'Cartão',
+                parcelasLancadas: Number(item.paidOrScheduledInstallments || 0),
+                parcelasRestantes: Number(item.remainingInstallments || 0),
+                totalPrevisto: Number(item.totalPlanned || 0),
+                totalRestante: Number(item.remainingTotal || 0),
+                valorParcela: Number(item.installmentValue || 0),
+                primeiraParcela: item.firstPurchaseDate || '',
+                ultimaParcela: item.lastBillingMonth || ''
+            })),
+            details: cardTemporalDetails
+        };
+    }
+
+    if (intent === 'maior_menor_compra_cartao') {
+        return {
+            results: {
+                min: value?.min || null,
+                max: value?.max || null
+            },
+            details: cardTemporalDetails
         };
     }
 
@@ -189,7 +834,7 @@ async function executeLegacyExpenseQueryIntent(intent, params = {}, dataSources 
             filtroCartao: params.cartao || ''
         },
         details: {
-            ...params,
+            ...safeParams,
             mes,
             ano,
             totalLancamentos: execution.result?.details?.count || 0,
@@ -1109,12 +1754,25 @@ const operationRegistry = {
 };
 
 async function execute(intent, parameters, dataSources) {
+    if (FINANCIAL_QUERY_ENGINE_PRIMARY_INTENTS.has(intent)) {
+        const queryEngineResult = await executeLegacyExpenseQueryIntent(intent, parameters, dataSources);
+        if (queryEngineResult) return queryEngineResult;
+        return {
+            results: null,
+            details: {
+                ...(parameters || {}),
+                engineGap: true,
+                gapReason: 'financial_query_engine_gap'
+            }
+        };
+    }
     const calculator = operationRegistry[intent] || operationRegistry.pergunta_geral;
     return await calculator(parameters, dataSources);
 }
 
 module.exports = {
     execute,
+    executeFinancialQueryPlanForLegacyIntent: executeLegacyExpenseQueryIntent,
     __test__: {
         parseBillingMonth,
         getCreditCardRows,

@@ -6,6 +6,7 @@ const { creditCardConfig, getAdminIds } = require('../config/constants');
 const { syncReadModelIfNeeded, getReadModelStats } = require('../services/readModelService');
 const logger = require('../utils/logger');
 const metrics = require('../utils/metrics');
+const { buildNextRecurringDueDate, isRecurringDueOnDate } = require('../utils/recurringDueDate');
 
 let client;
 let isInitialized = false;
@@ -94,6 +95,12 @@ function rowBelongsToScheduledUser(row, userIdIndex, userId, fallbackUserId = ''
     return Boolean(fallbackUserId && fallbackUserId === userId);
 }
 
+function findHeaderIndex(headers = [], aliases = [], fallbackIndex = -1) {
+    const normalizedAliases = aliases.map(alias => normalizeText(alias));
+    const found = headers.findIndex(header => normalizedAliases.includes(normalizeText(header)));
+    return found >= 0 ? found : fallbackIndex;
+}
+
 function collectPaymentsDueOnDate({ debtsData = [], billsData = [], targetDate, userId, singleUserIdFallback = '' } = {}) {
     const payments = [];
     const safeUserId = String(userId || '').trim();
@@ -114,15 +121,20 @@ function collectPaymentsDueOnDate({ debtsData = [], billsData = [], targetDate, 
     }
 
     if (billsData && billsData.length > 1) {
+        const headers = billsData[0] || [];
+        const nameIndex = findHeaderIndex(headers, ['Nome da Conta', 'Nome'], 0);
+        const dueDayIndex = findHeaderIndex(headers, ['Dia do Vencimento', 'Vencimento', 'Dia'], 1);
+        const userIdIndex = findHeaderIndex(headers, ['user_id', 'user id'], 3);
+        const expectedIndex = findHeaderIndex(headers, ['Valor Esperado', 'Valor'], -1);
         for (let i = 1; i < billsData.length; i++) {
             const row = billsData[i];
-            if (!rowBelongsToScheduledUser(row, 3, safeUserId, singleUserIdFallback)) continue;
+            if (!rowBelongsToScheduledUser(row, userIdIndex, safeUserId, singleUserIdFallback)) continue;
 
-            const nomeConta = row[0];
-            const diaVencimento = Number.parseInt(row[1], 10);
-            if (!nomeConta || Number.isNaN(diaVencimento) || diaVencimento !== targetDate.getDate()) continue;
+            const nomeConta = row[nameIndex];
+            const diaVencimento = Number.parseInt(row[dueDayIndex], 10);
+            if (!nomeConta || Number.isNaN(diaVencimento) || !isRecurringDueOnDate(diaVencimento, targetDate)) continue;
 
-            payments.push({ type: 'Conta', name: nomeConta, amount: '' });
+            payments.push({ type: 'Conta', name: nomeConta, amount: expectedIndex >= 0 ? row[expectedIndex] || '' : '' });
         }
     }
 
@@ -183,7 +195,7 @@ async function checkUpcomingEvents() {
 async function checkUpcomingBills() {
     console.log('Verificando contas pendentes...');
     try {
-        const contasData = await readDataFromSheet('Contas!A:D');
+        const contasData = await readDataFromSheet('Contas!A:I');
         if (!contasData || contasData.length <= 1) return;
 
         const saidasData = await readDataFromSheet('Saídas!A:J');
@@ -195,6 +207,11 @@ async function checkUpcomingBills() {
         const mesAtual = hoje.getUTCMonth();
 
         const contasRows = contasData.slice(1);
+        const contasHeaders = contasData[0] || [];
+        const contaNameIndex = findHeaderIndex(contasHeaders, ['Nome da Conta', 'Nome'], 0);
+        const contaFriendlyNameIndex = findHeaderIndex(contasHeaders, ['Nome Amigável', 'Nome Amigavel'], 4);
+        const contaDueDayIndex = findHeaderIndex(contasHeaders, ['Dia do Vencimento', 'Vencimento', 'Dia'], 1);
+        const contaUserIdIndex = findHeaderIndex(contasHeaders, ['user_id', 'user id'], 3);
         const saidasRows = saidasData.slice(1);
         const singleUserIdFallback = users.length === 1 ? String(users[0].user_id || '').trim() : '';
 
@@ -211,25 +228,32 @@ async function checkUpcomingBills() {
                 .map(row => normalizeText(row[1]));
 
             const contasDoUsuario = contasRows.filter(row => {
-                const contaUserId = String(row[3] || '').trim();
+                const contaUserId = String(row[contaUserIdIndex] || '').trim();
                 if (contaUserId) return contaUserId === userId;
                 return singleUserIdFallback && singleUserIdFallback === userId;
             });
 
             for (const row of contasDoUsuario) {
-                const nomeConta = row[0];
-                const diaVencimento = parseInt(row[1], 10);
+                const nomeConta = row[contaNameIndex];
+                const nomeAmigavel = row[contaFriendlyNameIndex] || '';
+                const diaVencimento = parseInt(row[contaDueDayIndex], 10);
                 if (!nomeConta || isNaN(diaVencimento)) continue;
 
                 const nomeContaNormalizado = normalizeText(nomeConta);
-                const jaFoiRegistrada = saidasDoMesUsuario.some(d => d.includes(nomeContaNormalizado));
+                const nomeAmigavelNormalizado = normalizeText(nomeAmigavel);
+                const jaFoiRegistrada = saidasDoMesUsuario.some(d =>
+                    d.includes(nomeContaNormalizado) ||
+                    (nomeAmigavelNormalizado && d.includes(nomeAmigavelNormalizado))
+                );
                 if (jaFoiRegistrada) continue;
 
-                const dataVencimento = buildUtcNoonDate({ year: anoAtual, month: mesAtual + 1, day: diaVencimento });
+                const dataVencimento = buildNextRecurringDueDate(diaVencimento, hoje);
+                if (!dataVencimento) continue;
                 const diffDays = Math.round((dataVencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+                const diaRealVencimento = dataVencimento.getDate();
 
                 let message = '';
-                if (diffDays === 5) message = `Lembrete! 💡 A conta de *${nomeConta}* vence em 5 dias (no dia ${diaVencimento}).`;
+                if (diffDays === 5) message = `Lembrete! 💡 A conta de *${nomeConta}* vence em 5 dias (no dia ${diaRealVencimento}).`;
                 if (diffDays === 1) message = `Atenção! ⚠️ A conta de *${nomeConta}* vence amanhã!`;
                 if (diffDays === 0) message = `URGENTE! 🚨 A conta de *${nomeConta}* VENCE HOJE!`;
                 if (!message) continue;
@@ -331,7 +355,7 @@ async function sendEveningSummary() {
             const [eventosDeAmanha, dividasData, contasData] = await Promise.all([
                 getCalendarEventsForToday(amanha, { userId }),
                 readDataFromSheet('Dívidas!A:R', { userId }),
-                readDataFromSheet('Contas!A:D', { userId })
+                readDataFromSheet('Contas!A:I', { userId })
             ]);
             const pagamentosDeAmanha = collectPaymentsDueOnDate({
                 debtsData: dividasData,

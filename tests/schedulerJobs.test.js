@@ -152,7 +152,7 @@ test('scheduler evening summary includes tomorrow calendar events and payment da
                 ['Financiamento A', 'Banco', 'Financiamento', 1000, 800, 123.45, '', '', '', '', '', 'Ativa', '', '', formatDateBR(tomorrow), '', '', 'user-a'],
                 ['Financiamento B', 'Banco', 'Financiamento', 2000, 1800, 222.22, '', '', '', '', '', 'Ativa', '', '', formatDateBR(tomorrow), '', '', 'user-b']
             ],
-            'Contas!A:D': [
+            'Contas!A:I': [
                 ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id'],
                 ['Internet A', tomorrow.getDate(), '', 'user-a'],
                 ['Internet B', tomorrow.getDate(), '', 'user-b']
@@ -229,4 +229,49 @@ test('scheduler public date/time formatters use Sao Paulo timezone', () => {
 
     assert.strictEqual(scheduler.__test__.formatScheduleTime(new Date('2026-05-20T10:00:00.000Z')), '07:00');
     assert.strictEqual(scheduler.__test__.formatScheduleDate(new Date('2026-05-20T15:00:00.000Z')), '20/05/2026');
+});
+
+test('scheduler clamps recurring bill day 31 to the last valid day of a short month', () => {
+    const scheduler = installSchedulerMocks({
+        users: [],
+        settingsByUser: {}
+    });
+    const targetDate = new Date(2026, 1, 28, 12, 0, 0, 0);
+    const payments = scheduler.__test__.collectPaymentsDueOnDate({
+        billsData: [
+            ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id'],
+            ['Internet', '31', '', 'user-a']
+        ],
+        targetDate,
+        userId: 'user-a'
+    });
+
+    assert.deepStrictEqual(payments, [{ type: 'Conta', name: 'Internet', amount: '' }]);
+});
+
+test('scheduler upcoming bill reminders cross month and year boundaries', async () => {
+    const sent = [];
+    const scheduler = installSchedulerMocks({
+        users: [{ user_id: 'user-a', whatsapp_id: '5511000000001@c.us' }],
+        settingsByUser: {},
+        sheetsByRange: {
+            'Contas!A:I': [
+                ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id'],
+                ['Conta janeiro', '2', '', 'user-a']
+            ],
+            'Saídas!A:J': [
+                ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id']
+            ]
+        }
+    });
+    scheduler.__test__.setClientForTest({
+        sendMessage: async (to, message) => sent.push({ to, message })
+    });
+    scheduler.__test__.setNowForTest(new Date(2026, 11, 28, 12, 0, 0, 0));
+
+    await scheduler.__test__.checkUpcomingBills();
+
+    assert.deepStrictEqual(sent.map(item => item.to), ['5511000000001@c.us']);
+    assert.match(sent[0].message, /Conta janeiro/);
+    assert.match(sent[0].message, /vence em 5 dias/);
 });

@@ -141,6 +141,10 @@ test('dashboard API endpoints expose stable user-scoped contracts', async () => 
         assert.strictEqual(summary.response.status, 200);
         assert.ok(summary.json.recentTransactions);
         assert.ok(summary.json.sync);
+        assert.ok(summary.json.criteria);
+        assert.match(summary.json.criteria.balance, /data da compra/i);
+        assert.match(summary.json.criteria.budget, /ciclo/i);
+        assert.match(summary.json.criteria.recentTransactions, /Entrada.*Saída.*Cartão.*Transferência/i);
 
         assert.ok(calls.length >= 6);
         assert.ok(calls.every(call => call.userId === 'user-dash-a'));
@@ -215,6 +219,9 @@ test('dashboard page reloads data when month or year filters change', async () =
         assert.match(html, /renderDailyGoal\(data\.dailyGoal\)/);
         assert.match(html, /Escopo:/);
         assert.match(html, /renderScopeSummary\(data\.scope\)/);
+        assert.match(html, /criteriaBalance/);
+        assert.match(html, /criteriaCategories/);
+        assert.match(html, /criteriaRecent/);
         assert.match(html, /definir orçamento mensal 3000 dia 5/);
         assert.match(html, /type-badge/);
     } finally {

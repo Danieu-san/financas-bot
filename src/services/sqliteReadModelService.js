@@ -2,8 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const logger = require('../utils/logger');
-const { normalizeText, parseValue } = require('../utils/helpers');
+const { normalizeText, parseValue, parseSheetDate } = require('../utils/helpers');
 const { matchesAnyField } = require('../utils/textMatcher');
+const { normalizeCycleStartDay, getBudgetCycleForDate, getBudgetCycleForPeriod } = require('../utils/budgetCycle');
 
 let Database = null;
 try {
@@ -16,6 +17,7 @@ try {
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 const SQLITE_FILE = path.join(DATA_DIR, 'read_model.sqlite');
+const MONTH_NAMES_PT = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
 let db = null;
 let sqliteReady = false;
@@ -33,6 +35,17 @@ function makeFingerprint(parts) {
     return crypto.createHash('sha1').update(payload).digest('hex');
 }
 
+function snapshotRowValue(item = {}, aliases = [], fallbackIndex = -1) {
+    const row = Array.isArray(item.row) ? item.row : [];
+    const headers = Array.isArray(item.headers) ? item.headers : [];
+    if (headers.length > 0) {
+        const normalizedAliases = aliases.map(alias => normalizeText(alias));
+        const index = headers.findIndex(header => normalizedAliases.includes(normalizeText(header)));
+        return index >= 0 ? row[index] : '';
+    }
+    return fallbackIndex >= 0 ? row[fallbackIndex] : '';
+}
+
 function initSchema() {
     db.exec(`
         CREATE TABLE IF NOT EXISTS expenses (
@@ -47,6 +60,9 @@ function initSchema() {
             category TEXT,
             subcategory TEXT,
             value REAL NOT NULL,
+            card_id TEXT,
+            card_name TEXT,
+            installment_text TEXT,
             last_seen_sync INTEGER NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_expenses_user_period ON expenses(user_id, year, month);
@@ -61,9 +77,47 @@ function initSchema() {
             description TEXT,
             category TEXT,
             value REAL NOT NULL,
+            payment_method TEXT,
+            recurrence TEXT,
             last_seen_sync INTEGER NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_entries_user_period ON entries(user_id, year, month);
+
+        CREATE TABLE IF NOT EXISTS transfers (
+            fingerprint TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            date_text TEXT,
+            year INTEGER,
+            month INTEGER,
+            description TEXT,
+            value REAL NOT NULL,
+            origin TEXT,
+            destination TEXT,
+            method TEXT,
+            notes TEXT,
+            status TEXT,
+            last_seen_sync INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_transfers_user_period ON transfers(user_id, year, month);
+        CREATE INDEX IF NOT EXISTS idx_transfers_user_status ON transfers(user_id, status);
+
+        CREATE TABLE IF NOT EXISTS budget_settings (
+            user_id TEXT PRIMARY KEY,
+            monthly_budget_enabled TEXT,
+            monthly_budget_amount REAL,
+            monthly_budget_scope TEXT,
+            monthly_budget_cycle_start_day INTEGER,
+            last_seen_sync INTEGER NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS card_configs (
+            fingerprint TEXT PRIMARY KEY,
+            card_id TEXT,
+            name TEXT,
+            due_day INTEGER,
+            active TEXT,
+            last_seen_sync INTEGER NOT NULL
+        );
 
         CREATE TABLE IF NOT EXISTS goals (
             fingerprint TEXT PRIMARY KEY,
@@ -80,6 +134,22 @@ function initSchema() {
         );
         CREATE INDEX IF NOT EXISTS idx_goals_user ON goals(user_id);
 
+        CREATE TABLE IF NOT EXISTS goal_movements (
+            fingerprint TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            goal_user_id TEXT,
+            date_text TEXT,
+            goal_name TEXT,
+            movement_type TEXT,
+            value REAL,
+            value_before REAL,
+            value_after REAL,
+            notes TEXT,
+            responsible TEXT,
+            last_seen_sync INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_goal_movements_owner_goal ON goal_movements(goal_user_id, goal_name);
+
         CREATE TABLE IF NOT EXISTS debts (
             fingerprint TEXT PRIMARY KEY,
             user_id TEXT NOT NULL,
@@ -93,12 +163,74 @@ function initSchema() {
         );
         CREATE INDEX IF NOT EXISTS idx_debts_user ON debts(user_id);
 
+        CREATE TABLE IF NOT EXISTS recurring_bills (
+            fingerprint TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            account_name TEXT,
+            friendly_name TEXT,
+            due_day INTEGER,
+            notes TEXT,
+            category TEXT,
+            subcategory TEXT,
+            expected_value REAL,
+            rule_active TEXT,
+            last_seen_sync INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_recurring_bills_user_due ON recurring_bills(user_id, due_day);
+
         CREATE TABLE IF NOT EXISTS sync_meta (
             key TEXT PRIMARY KEY,
             value TEXT
         );
     `);
+    ensureExpenseSchemaColumns();
+    ensureEntrySchemaColumns();
+    ensureTransferSchemaColumns();
     ensureGoalSchemaColumns();
+    ensureDebtSchemaColumns();
+}
+
+function ensureExpenseSchemaColumns() {
+    const columns = new Set(db.pragma('table_info(expenses)').map((column) => column.name));
+    const additions = [
+        ['card_id', 'TEXT'],
+        ['card_name', 'TEXT'],
+        ['installment_text', 'TEXT']
+    ];
+    additions.forEach(([name, type]) => {
+        if (!columns.has(name)) {
+            db.exec(`ALTER TABLE expenses ADD COLUMN ${name} ${type}`);
+        }
+    });
+}
+
+function ensureEntrySchemaColumns() {
+    const columns = new Set(db.pragma('table_info(entries)').map((column) => column.name));
+    const additions = [
+        ['payment_method', 'TEXT'],
+        ['recurrence', 'TEXT']
+    ];
+    additions.forEach(([name, type]) => {
+        if (!columns.has(name)) {
+            db.exec(`ALTER TABLE entries ADD COLUMN ${name} ${type}`);
+        }
+    });
+}
+
+function ensureTransferSchemaColumns() {
+    const columns = new Set(db.pragma('table_info(transfers)').map((column) => column.name));
+    const additions = [
+        ['origin', 'TEXT'],
+        ['destination', 'TEXT'],
+        ['method', 'TEXT'],
+        ['notes', 'TEXT'],
+        ['status', 'TEXT']
+    ];
+    additions.forEach(([name, type]) => {
+        if (!columns.has(name)) {
+            db.exec(`ALTER TABLE transfers ADD COLUMN ${name} ${type}`);
+        }
+    });
 }
 
 function ensureGoalSchemaColumns() {
@@ -112,6 +244,28 @@ function ensureGoalSchemaColumns() {
     additions.forEach(([name, type]) => {
         if (!columns.has(name)) {
             db.exec(`ALTER TABLE goals ADD COLUMN ${name} ${type}`);
+        }
+    });
+}
+
+function ensureDebtSchemaColumns() {
+    const columns = new Set(db.pragma('table_info(debts)').map((column) => column.name));
+    const additions = [
+        ['debt_type', 'TEXT'],
+        ['original_value', 'REAL'],
+        ['installment_value', 'REAL'],
+        ['due_day', 'TEXT'],
+        ['start_date', 'TEXT'],
+        ['total_installments', 'REAL'],
+        ['responsible', 'TEXT'],
+        ['notes', 'TEXT'],
+        ['progress_pct', 'REAL'],
+        ['overdue_days', 'REAL'],
+        ['payoff_date', 'TEXT']
+    ];
+    additions.forEach(([name, type]) => {
+        if (!columns.has(name)) {
+            db.exec(`ALTER TABLE debts ADD COLUMN ${name} ${type}`);
         }
     });
 }
@@ -149,15 +303,20 @@ function syncSnapshotToSqlite(snapshot) {
     if (!ensureSqliteReady() || !db) return false;
     const saidas = Array.isArray(snapshot?.saidas) ? snapshot.saidas : [];
     const entradas = Array.isArray(snapshot?.entradas) ? snapshot.entradas : [];
+    const transferencias = Array.isArray(snapshot?.transferencias) ? snapshot.transferencias : [];
+    const userSettings = Array.isArray(snapshot?.userSettings) ? snapshot.userSettings : [];
+    const cartoesConfig = Array.isArray(snapshot?.cartoesConfig) ? snapshot.cartoesConfig : [];
     const cartoes = Array.isArray(snapshot?.cartoes) ? snapshot.cartoes : [];
     const metas = Array.isArray(snapshot?.metas) ? snapshot.metas : [];
+    const movimentacoesMetas = Array.isArray(snapshot?.movimentacoesMetas) ? snapshot.movimentacoesMetas : [];
     const dividas = Array.isArray(snapshot?.dividas) ? snapshot.dividas : [];
+    const contas = Array.isArray(snapshot?.contas) ? snapshot.contas : [];
 
     currentSyncId = Date.now();
 
     const upsertExpense = db.prepare(`
-        INSERT INTO expenses(fingerprint, user_id, source_type, source_name, date_text, year, month, description, category, subcategory, value, last_seen_sync)
-        VALUES(@fingerprint, @user_id, @source_type, @source_name, @date_text, @year, @month, @description, @category, @subcategory, @value, @last_seen_sync)
+        INSERT INTO expenses(fingerprint, user_id, source_type, source_name, date_text, year, month, description, category, subcategory, value, card_id, card_name, installment_text, last_seen_sync)
+        VALUES(@fingerprint, @user_id, @source_type, @source_name, @date_text, @year, @month, @description, @category, @subcategory, @value, @card_id, @card_name, @installment_text, @last_seen_sync)
         ON CONFLICT(fingerprint) DO UPDATE SET
             user_id = excluded.user_id,
             source_type = excluded.source_type,
@@ -169,12 +328,15 @@ function syncSnapshotToSqlite(snapshot) {
             category = excluded.category,
             subcategory = excluded.subcategory,
             value = excluded.value,
+            card_id = excluded.card_id,
+            card_name = excluded.card_name,
+            installment_text = excluded.installment_text,
             last_seen_sync = excluded.last_seen_sync
     `);
 
     const upsertEntry = db.prepare(`
-        INSERT INTO entries(fingerprint, user_id, date_text, year, month, description, category, value, last_seen_sync)
-        VALUES(@fingerprint, @user_id, @date_text, @year, @month, @description, @category, @value, @last_seen_sync)
+        INSERT INTO entries(fingerprint, user_id, date_text, year, month, description, category, value, payment_method, recurrence, last_seen_sync)
+        VALUES(@fingerprint, @user_id, @date_text, @year, @month, @description, @category, @value, @payment_method, @recurrence, @last_seen_sync)
         ON CONFLICT(fingerprint) DO UPDATE SET
             user_id = excluded.user_id,
             date_text = excluded.date_text,
@@ -183,6 +345,26 @@ function syncSnapshotToSqlite(snapshot) {
             description = excluded.description,
             category = excluded.category,
             value = excluded.value,
+            payment_method = excluded.payment_method,
+            recurrence = excluded.recurrence,
+            last_seen_sync = excluded.last_seen_sync
+    `);
+
+    const upsertTransfer = db.prepare(`
+        INSERT INTO transfers(fingerprint, user_id, date_text, year, month, description, value, origin, destination, method, notes, status, last_seen_sync)
+        VALUES(@fingerprint, @user_id, @date_text, @year, @month, @description, @value, @origin, @destination, @method, @notes, @status, @last_seen_sync)
+        ON CONFLICT(fingerprint) DO UPDATE SET
+            user_id = excluded.user_id,
+            date_text = excluded.date_text,
+            year = excluded.year,
+            month = excluded.month,
+            description = excluded.description,
+            value = excluded.value,
+            origin = excluded.origin,
+            destination = excluded.destination,
+            method = excluded.method,
+            notes = excluded.notes,
+            status = excluded.status,
             last_seen_sync = excluded.last_seen_sync
     `);
 
@@ -202,17 +384,96 @@ function syncSnapshotToSqlite(snapshot) {
             last_seen_sync = excluded.last_seen_sync
     `);
 
+    const upsertGoalMovement = db.prepare(`
+        INSERT INTO goal_movements(fingerprint, user_id, goal_user_id, date_text, goal_name, movement_type, value, value_before, value_after, notes, responsible, last_seen_sync)
+        VALUES(@fingerprint, @user_id, @goal_user_id, @date_text, @goal_name, @movement_type, @value, @value_before, @value_after, @notes, @responsible, @last_seen_sync)
+        ON CONFLICT(fingerprint) DO UPDATE SET
+            user_id = excluded.user_id,
+            goal_user_id = excluded.goal_user_id,
+            date_text = excluded.date_text,
+            goal_name = excluded.goal_name,
+            movement_type = excluded.movement_type,
+            value = excluded.value,
+            value_before = excluded.value_before,
+            value_after = excluded.value_after,
+            notes = excluded.notes,
+            responsible = excluded.responsible,
+            last_seen_sync = excluded.last_seen_sync
+    `);
+
+    const upsertBudgetSettings = db.prepare(`
+        INSERT INTO budget_settings(user_id, monthly_budget_enabled, monthly_budget_amount, monthly_budget_scope, monthly_budget_cycle_start_day, last_seen_sync)
+        VALUES(@user_id, @monthly_budget_enabled, @monthly_budget_amount, @monthly_budget_scope, @monthly_budget_cycle_start_day, @last_seen_sync)
+        ON CONFLICT(user_id) DO UPDATE SET
+            monthly_budget_enabled = excluded.monthly_budget_enabled,
+            monthly_budget_amount = excluded.monthly_budget_amount,
+            monthly_budget_scope = excluded.monthly_budget_scope,
+            monthly_budget_cycle_start_day = excluded.monthly_budget_cycle_start_day,
+            last_seen_sync = excluded.last_seen_sync
+    `);
+
+    const upsertCardConfig = db.prepare(`
+        INSERT INTO card_configs(fingerprint, card_id, name, due_day, active, last_seen_sync)
+        VALUES(@fingerprint, @card_id, @name, @due_day, @active, @last_seen_sync)
+        ON CONFLICT(fingerprint) DO UPDATE SET
+            card_id = excluded.card_id,
+            name = excluded.name,
+            due_day = excluded.due_day,
+            active = excluded.active,
+            last_seen_sync = excluded.last_seen_sync
+    `);
+
     const upsertDebt = db.prepare(`
-        INSERT INTO debts(fingerprint, user_id, name, creditor, status, saldo_atual, juros_pct, next_due, last_seen_sync)
-        VALUES(@fingerprint, @user_id, @name, @creditor, @status, @saldo_atual, @juros_pct, @next_due, @last_seen_sync)
+        INSERT INTO debts(
+            fingerprint, user_id, name, creditor, debt_type, original_value, saldo_atual,
+            installment_value, juros_pct, due_day, start_date, total_installments, status,
+            responsible, notes, progress_pct, next_due, overdue_days, payoff_date, last_seen_sync
+        )
+        VALUES(
+            @fingerprint, @user_id, @name, @creditor, @debt_type, @original_value, @saldo_atual,
+            @installment_value, @juros_pct, @due_day, @start_date, @total_installments, @status,
+            @responsible, @notes, @progress_pct, @next_due, @overdue_days, @payoff_date, @last_seen_sync
+        )
         ON CONFLICT(fingerprint) DO UPDATE SET
             user_id = excluded.user_id,
             name = excluded.name,
             creditor = excluded.creditor,
+            debt_type = excluded.debt_type,
+            original_value = excluded.original_value,
             status = excluded.status,
             saldo_atual = excluded.saldo_atual,
+            installment_value = excluded.installment_value,
             juros_pct = excluded.juros_pct,
+            due_day = excluded.due_day,
+            start_date = excluded.start_date,
+            total_installments = excluded.total_installments,
+            responsible = excluded.responsible,
+            notes = excluded.notes,
+            progress_pct = excluded.progress_pct,
             next_due = excluded.next_due,
+            overdue_days = excluded.overdue_days,
+            payoff_date = excluded.payoff_date,
+            last_seen_sync = excluded.last_seen_sync
+    `);
+    const upsertBill = db.prepare(`
+        INSERT INTO recurring_bills(
+            fingerprint, user_id, account_name, friendly_name, due_day, notes,
+            category, subcategory, expected_value, rule_active, last_seen_sync
+        )
+        VALUES(
+            @fingerprint, @user_id, @account_name, @friendly_name, @due_day, @notes,
+            @category, @subcategory, @expected_value, @rule_active, @last_seen_sync
+        )
+        ON CONFLICT(fingerprint) DO UPDATE SET
+            user_id = excluded.user_id,
+            account_name = excluded.account_name,
+            friendly_name = excluded.friendly_name,
+            due_day = excluded.due_day,
+            notes = excluded.notes,
+            category = excluded.category,
+            subcategory = excluded.subcategory,
+            expected_value = excluded.expected_value,
+            rule_active = excluded.rule_active,
             last_seen_sync = excluded.last_seen_sync
     `);
 
@@ -231,12 +492,15 @@ function syncSnapshotToSqlite(snapshot) {
                 category: item.categoria || '',
                 subcategory: item.subcategoria || '',
                 value: Number(item.valor || 0),
+                card_id: '',
+                card_name: '',
+                installment_text: '',
                 last_seen_sync: currentSyncId
             });
         }
 
         for (const item of cartoes) {
-            const fingerprint = makeFingerprint(['cartao', item.user_id, item.source, item.data, item.descricao, item.categoria, item.valor, item.month, item.year]);
+            const fingerprint = makeFingerprint(['cartao', item.user_id, item.source, item.data, item.descricao, item.categoria, item.valor, item.month, item.year, item.parcela]);
             upsertExpense.run({
                 fingerprint,
                 user_id: item.user_id,
@@ -249,6 +513,9 @@ function syncSnapshotToSqlite(snapshot) {
                 category: item.categoria || '',
                 subcategory: item.subcategoria || 'Cartão de Crédito',
                 value: Number(item.valor || 0),
+                card_id: item.card_id || item.cardId || item.source || '',
+                card_name: item.cartao || item.cardName || item.source || '',
+                installment_text: item.parcela || item.installment || '',
                 last_seen_sync: currentSyncId
             });
         }
@@ -264,6 +531,54 @@ function syncSnapshotToSqlite(snapshot) {
                 description: item.descricao || '',
                 category: item.categoria || '',
                 value: Number(item.valor || 0),
+                payment_method: item.recebimento || item.paymentMethod || '',
+                recurrence: item.recorrente || item.recurrence || '',
+                last_seen_sync: currentSyncId
+            });
+        }
+
+        for (const item of transferencias) {
+            const fingerprint = makeFingerprint(['transferencia', item.user_id, item.data, item.descricao, item.valor, item.origem, item.destino, item.status]);
+            upsertTransfer.run({
+                fingerprint,
+                user_id: item.user_id,
+                date_text: item.data || '',
+                year: Number(item.year || 0),
+                month: Number(item.month || 0),
+                description: item.descricao || '',
+                value: Number(item.valor || 0),
+                origin: item.origem || item.origin || '',
+                destination: item.destino || item.destination || '',
+                method: item.metodo || item.method || '',
+                notes: item.observacoes || item.notes || '',
+                status: item.status || '',
+                last_seen_sync: currentSyncId
+            });
+        }
+
+        for (const item of userSettings) {
+            const user_id = String(item.user_id || '').trim();
+            if (!user_id) continue;
+            upsertBudgetSettings.run({
+                user_id,
+                monthly_budget_enabled: item.monthly_budget_enabled || item.enabled || '',
+                monthly_budget_amount: parseValue(item.monthly_budget_amount || item.amount || 0),
+                monthly_budget_scope: item.monthly_budget_scope || item.scope || 'personal',
+                monthly_budget_cycle_start_day: Number.parseInt(item.monthly_budget_cycle_start_day || item.cycleStartDay || '1', 10) || 1,
+                last_seen_sync: currentSyncId
+            });
+        }
+
+        for (const item of cartoesConfig) {
+            const cardId = item.card_id || item.cardId || item.id || '';
+            const name = item.nome || item.name || item.cartao || item.cardName || '';
+            const fingerprint = makeFingerprint(['card_config', cardId, name]);
+            upsertCardConfig.run({
+                fingerprint,
+                card_id: cardId,
+                name,
+                due_day: Number.parseInt(item.due_day || item.dueDay || item.dia_vencimento || item.vencimento || '1', 10) || 1,
+                active: item.active || item.ativo || 'SIM',
                 last_seen_sync: currentSyncId
             });
         }
@@ -289,26 +604,89 @@ function syncSnapshotToSqlite(snapshot) {
             });
         }
 
-        for (const item of dividas) {
+        for (const item of movimentacoesMetas) {
             const row = item.row || [];
-            const fingerprint = makeFingerprint(['divida', item.user_id, row[0], row[1], row[4], row[10]]);
+            const fingerprint = makeFingerprint(['goal-movement', item.user_id, row[9], row[0], row[1], row[2], row[3], row[4], row[5]]);
+            upsertGoalMovement.run({
+                fingerprint,
+                user_id: item.user_id,
+                goal_user_id: row[9] || item.user_id,
+                date_text: row[0] || '',
+                goal_name: row[1] || '',
+                movement_type: row[2] || '',
+                value: parseValue(row[3] || 0),
+                value_before: parseValue(row[4] || 0),
+                value_after: parseValue(row[5] || 0),
+                notes: row[6] || '',
+                responsible: row[7] || '',
+                last_seen_sync: currentSyncId
+            });
+        }
+
+        for (const item of dividas) {
+            const name = snapshotRowValue(item, ['Nome', 'Nome da Dívida'], 0);
+            const creditor = snapshotRowValue(item, ['Credor'], 1);
+            const debtType = snapshotRowValue(item, ['Tipo'], 2);
+            const originalValue = parseValue(snapshotRowValue(item, ['Valor Original'], 3) || 0);
+            const saldoAtual = parseValue(snapshotRowValue(item, ['Saldo Atual'], 4) || 0);
+            const status = snapshotRowValue(item, ['Status'], 10);
+            const fingerprint = makeFingerprint(['divida', item.user_id, name, creditor, saldoAtual, status]);
+            const progressPct = originalValue > 0
+                ? Math.min(100, Math.max(0, ((originalValue - saldoAtual) / originalValue) * 100))
+                : parseValue(snapshotRowValue(item, ['% Quitado', 'Quitado'], 13) || 0);
             upsertDebt.run({
                 fingerprint,
                 user_id: item.user_id,
-                name: row[0] || 'Dívida',
-                creditor: row[1] || '',
-                status: row[10] || '',
-                saldo_atual: parseValue(row[4] || 0),
-                juros_pct: parseValue(row[6] || 0),
-                next_due: row[14] || '',
+                name: name || 'Dívida',
+                creditor: creditor || '',
+                debt_type: debtType || '',
+                original_value: originalValue,
+                status: status || '',
+                saldo_atual: saldoAtual,
+                installment_value: parseValue(snapshotRowValue(item, ['Parcela', 'Valor da Parcela'], 5) || 0),
+                juros_pct: parseValue(snapshotRowValue(item, ['Juros', 'Taxa de Juros', 'Taxa'], 6) || 0),
+                due_day: snapshotRowValue(item, ['Vencimento', 'Dia de Vencimento'], 7) || '',
+                start_date: snapshotRowValue(item, ['Início', 'Inicio', 'Data de Início', 'Data de Inicio'], 8) || '',
+                total_installments: parseValue(snapshotRowValue(item, ['Total Parcelas', 'Total de Parcelas'], 9) || 0),
+                responsible: snapshotRowValue(item, ['Responsável', 'Responsavel'], 11) || '',
+                notes: snapshotRowValue(item, ['Observações', 'Observacoes', 'Obs'], 12) || '',
+                progress_pct: progressPct,
+                next_due: snapshotRowValue(item, ['Próximo Vencimento', 'Proximo Vencimento', 'Next Due'], 14) || '',
+                overdue_days: parseValue(snapshotRowValue(item, ['Atraso (Dias)', 'Dias de Atraso', 'Atraso'], 15) || 0),
+                payoff_date: snapshotRowValue(item, ['Data Prevista para Quitação', 'Data Prevista para Quitacao'], 16) || '',
+                last_seen_sync: currentSyncId
+            });
+        }
+
+        for (const item of contas) {
+            const accountName = snapshotRowValue(item, ['Nome da Conta', 'Nome'], 0);
+            const friendlyName = snapshotRowValue(item, ['Nome Amigável', 'Nome Amigavel'], 4);
+            const dueDay = Number.parseInt(snapshotRowValue(item, ['Dia do Vencimento', 'Vencimento', 'Dia'], 1), 10);
+            const fingerprint = makeFingerprint(['conta', item.user_id, accountName, friendlyName, dueDay]);
+            upsertBill.run({
+                fingerprint,
+                user_id: item.user_id,
+                account_name: accountName || '',
+                friendly_name: friendlyName || '',
+                due_day: Number.isInteger(dueDay) ? dueDay : null,
+                notes: snapshotRowValue(item, ['Observações', 'Observacoes', 'Obs'], 2) || '',
+                category: snapshotRowValue(item, ['Categoria'], 5) || '',
+                subcategory: snapshotRowValue(item, ['Subcategoria'], 6) || '',
+                expected_value: parseValue(snapshotRowValue(item, ['Valor Esperado', 'Valor'], 7) || 0),
+                rule_active: snapshotRowValue(item, ['Regra Ativa'], 8) || '',
                 last_seen_sync: currentSyncId
             });
         }
 
         db.prepare('DELETE FROM expenses WHERE last_seen_sync < ?').run(currentSyncId);
         db.prepare('DELETE FROM entries WHERE last_seen_sync < ?').run(currentSyncId);
+        db.prepare('DELETE FROM transfers WHERE last_seen_sync < ?').run(currentSyncId);
+        db.prepare('DELETE FROM budget_settings WHERE last_seen_sync < ?').run(currentSyncId);
+        db.prepare('DELETE FROM card_configs WHERE last_seen_sync < ?').run(currentSyncId);
         db.prepare('DELETE FROM goals WHERE last_seen_sync < ?').run(currentSyncId);
+        db.prepare('DELETE FROM goal_movements WHERE last_seen_sync < ?').run(currentSyncId);
         db.prepare('DELETE FROM debts WHERE last_seen_sync < ?').run(currentSyncId);
+        db.prepare('DELETE FROM recurring_bills WHERE last_seen_sync < ?').run(currentSyncId);
     });
 
     tx();
@@ -407,6 +785,71 @@ function buildExpenseDetailResult(rows, params = {}) {
     };
 }
 
+function transferDashboardText(row = {}) {
+    return normalizeText([
+        row.description,
+        row.origin,
+        row.destination,
+        row.notes,
+        row.status
+    ].filter(Boolean).join(' '));
+}
+
+function transferHasReserveKeyword(row = {}) {
+    const text = transferDashboardText(row);
+    return [
+        'rdb',
+        'caixinha',
+        'nu reserva',
+        'reserva',
+        'investimento',
+        'aplic aut',
+        'aplicacao aut',
+        'aplicação aut'
+    ].some(term => text.includes(normalizeText(term)));
+}
+
+function isDashboardReserveApplication(row = {}) {
+    const text = transferDashboardText(row);
+    return transferHasReserveKeyword(row) && (
+        text.includes('aplicacao') ||
+        text.includes('aplicação') ||
+        text.includes('guardar') ||
+        text.includes('guardado')
+    );
+}
+
+function isDashboardReserveRedemption(row = {}) {
+    const text = transferDashboardText(row);
+    return transferHasReserveKeyword(row) && (
+        text.includes('resgate') ||
+        text.includes('retirada')
+    );
+}
+
+function roundDashboardMoney(value) {
+    return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
+}
+
+function dashboardDateTimestamp(value) {
+    const parsed = parseSheetDate(value);
+    return parsed ? parsed.getTime() : 0;
+}
+
+function summarizeDashboardReserveTransfers(rows = []) {
+    const applied = roundDashboardMoney(rows
+        .filter(isDashboardReserveApplication)
+        .reduce((sum, row) => sum + Number(row.value || 0), 0));
+    const redeemed = roundDashboardMoney(rows
+        .filter(isDashboardReserveRedemption)
+        .reduce((sum, row) => sum + Number(row.value || 0), 0));
+    return {
+        applied,
+        redeemed,
+        netApplied: roundDashboardMoney(applied - redeemed)
+    };
+}
+
 function queryKpis(userId, { month, year } = {}) {
     if (!sqliteReady || !db) return null;
     const m = normalizeMonthParam(month);
@@ -426,13 +869,24 @@ function queryKpis(userId, { month, year } = {}) {
         AND lower(COALESCE(status, '')) NOT LIKE '%pago%'
         AND lower(COALESCE(status, '')) NOT LIKE '%finalizad%'
     `).get(allUsers, userId);
+    const transferRows = db.prepare(`
+        SELECT date_text, description, value, origin, destination, notes, status
+        FROM transfers
+        WHERE (? = 1 OR user_id = ?) AND month = ? AND year = ?
+    `).all(allUsers, userId, m, y);
+    const reserveSummary = summarizeDashboardReserveTransfers(transferRows);
+    const saldo = entradas - (saidas + cartoes);
 
     return {
         period: { month: m, year: y },
         entradas,
         saidas,
         cartoes,
-        saldo: entradas - (saidas + cartoes),
+        saldo,
+        reservaAplicada: reserveSummary.applied,
+        reservaResgatada: reserveSummary.redeemed,
+        reservaLiquida: reserveSummary.netApplied,
+        saldoDisponivelEstimado: roundDashboardMoney(saldo - reserveSummary.netApplied),
         debtActiveCount: Number(debt?.active_count || 0),
         debtTotal: Number(debt?.total || 0)
     };
@@ -483,7 +937,9 @@ function queryCashflow(userId, { month, year } = {}) {
         current.saldo -= Number(item.value || 0);
         map.set(item.date, current);
     });
-    return Array.from(map.values()).slice(-31);
+    return Array.from(map.values())
+        .sort((a, b) => dashboardDateTimestamp(a.date) - dashboardDateTimestamp(b.date))
+        .slice(-31);
 }
 
 function queryDebts(userId) {
@@ -528,9 +984,25 @@ function queryRecentTransactions(userId, { month, year } = {}) {
         WHERE (? = 1 OR user_id = ?) AND month = ? AND year = ?
     `).all(allUsers, userId, m, y);
 
-    return [...recentEntries, ...recentExpenses]
-        .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
-        .slice(0, 20);
+    const recentTransfers = db.prepare(`
+        SELECT date_text AS date, description, 'Transferência' AS category, value, 'transferencia' AS type
+        FROM transfers
+        WHERE (? = 1 OR user_id = ?) AND month = ? AND year = ?
+    `).all(allUsers, userId, m, y);
+
+    return [...recentEntries, ...recentExpenses, ...recentTransfers]
+        .sort((a, b) => dashboardDateTimestamp(b.date) - dashboardDateTimestamp(a.date))
+        .slice(0, 20)
+        .map(item => ({
+            ...item,
+            typeLabel: item.type === 'entrada'
+                ? 'Entrada'
+                : item.type === 'cartao'
+                    ? 'Cartão'
+                    : item.type === 'transferencia'
+                        ? 'Transferência'
+                        : 'Saída'
+        }));
 }
 
 function queryAlerts(userId, { month, year } = {}) {
@@ -973,6 +1445,563 @@ function queryAnalyticalIntentSql(intent, parameters, { userId }) {
     return null;
 }
 
+function parseIsoMonthKey(value) {
+    const match = String(value || '').match(/^(\d{4})-(\d{2})-\d{2}$/);
+    if (!match) return null;
+    const year = Number.parseInt(match[1], 10);
+    const month = Number.parseInt(match[2], 10) - 1;
+    if (!Number.isInteger(year) || !Number.isInteger(month)) return null;
+    return year * 12 + month;
+}
+
+function sqlDateExpression(column = 'date_text') {
+    return `date(substr(${column}, 7, 4) || '-' || substr(${column}, 4, 2) || '-' || substr(${column}, 1, 2))`;
+}
+
+function planNeedsFutureCardRows(plan = {}) {
+    if (plan.domain !== 'cards') return false;
+    const status = normalizeText(plan.filters?.status || '');
+    const isInstallmentStatus = status.includes('installment') ||
+        status.includes('parcel') ||
+        status.includes('ativo') ||
+        status.includes('aberto');
+    const isOpenCardRanking = plan.operation === 'rank' &&
+        Array.isArray(plan.groupBy) &&
+        plan.groupBy.includes('card') &&
+        !plan.filters?.category &&
+        !plan.filters?.merchant;
+    return plan.operation === 'forecast' || isInstallmentStatus || isOpenCardRanking;
+}
+
+function buildFinancialQuerySqlWhere(plan = {}, { allUsers = false, scopeUserIds = [] } = {}) {
+    const where = [];
+    const params = [];
+
+    if (!allUsers) {
+        where.push(`user_id IN (${scopeUserIds.map(() => '?').join(', ')})`);
+        params.push(...scopeUserIds);
+    }
+
+    if (plan.domain === 'cards') {
+        where.push("source_type = 'cartao'");
+    } else if (plan.domain === 'expenses') {
+        where.push("source_type IN ('saida', 'cartao')");
+    }
+
+    const period = plan.filters?.period || {};
+    const month = Number.isInteger(period.month) ? period.month : null;
+    const year = Number.isInteger(period.year) ? period.year : null;
+    const usesTransactionDate = plan.timeBasis === 'transaction_date';
+    const needsFutureCards = planNeedsFutureCardRows(plan);
+
+    if (month !== null && year !== null) {
+        if (usesTransactionDate) {
+            where.push(`CAST(substr(date_text, 7, 4) AS INTEGER) = ?`);
+            where.push(`CAST(substr(date_text, 4, 2) AS INTEGER) = ?`);
+            params.push(year, month + 1);
+        } else if (needsFutureCards) {
+            where.push('(year * 12 + month) >= ?');
+            params.push(year * 12 + month);
+        } else {
+            where.push('year = ?');
+            where.push('month = ?');
+            params.push(year, month);
+        }
+    } else if (period.from || period.to) {
+        if (usesTransactionDate) {
+            if (period.from) {
+                where.push(`${sqlDateExpression()} >= date(?)`);
+                params.push(period.from);
+            }
+            if (period.to) {
+                where.push(`${sqlDateExpression()} <= date(?)`);
+                params.push(period.to);
+            }
+        } else {
+            const fromKey = parseIsoMonthKey(period.from);
+            const toKey = parseIsoMonthKey(period.to);
+            if (fromKey !== null) {
+                where.push('(year * 12 + month) >= ?');
+                params.push(fromKey);
+            }
+            if (toKey !== null && !needsFutureCards) {
+                where.push('(year * 12 + month) <= ?');
+                params.push(toKey);
+            }
+        }
+    }
+
+    return {
+        clause: where.length > 0 ? `WHERE ${where.join(' AND ')}` : '',
+        params
+    };
+}
+
+function buildDebtFinancialQuerySqlWhere(plan = {}, { allUsers = false, scopeUserIds = [], currentDate = '' } = {}) {
+    const where = [];
+    const params = [];
+
+    if (!allUsers) {
+        where.push(`user_id IN (${scopeUserIds.map(() => '?').join(', ')})`);
+        params.push(...scopeUserIds);
+    }
+
+    const period = plan.filters?.period || {};
+    const nextDueExpression = sqlDateExpression('next_due');
+    const missingNextDue = `(next_due IS NULL OR trim(next_due) = '')`;
+    const month = Number.isInteger(period.month) ? period.month : null;
+    const year = Number.isInteger(period.year) ? period.year : null;
+
+    if (month !== null && year !== null) {
+        where.push(`(${missingNextDue} OR (CAST(substr(next_due, 7, 4) AS INTEGER) = ? AND CAST(substr(next_due, 4, 2) AS INTEGER) = ?))`);
+        params.push(year, month + 1);
+    } else if (period.from || period.to) {
+        if (period.from) {
+            where.push(`(${missingNextDue} OR ${nextDueExpression} >= date(?))`);
+            params.push(period.from);
+        }
+        if (period.to) {
+            where.push(`(${missingNextDue} OR ${nextDueExpression} <= date(?))`);
+            params.push(period.to);
+        }
+    }
+
+    const status = normalizeText(plan.filters?.status || '');
+    const referenceDate = parseSheetDate(currentDate) || new Date();
+    const referenceIso = formatIsoDate(referenceDate);
+    if (status.includes('overdue') || status.includes('atras')) {
+        where.push(`(${missingNextDue} OR COALESCE(overdue_days, 0) > 0 OR ${nextDueExpression} < date(?))`);
+        params.push(referenceIso);
+    } else if ((status.includes('upcoming') || status.includes('venc')) && period.type === 'relative') {
+        const days = Number.parseInt(period.days || period.amount || period.value || '10', 10) || 10;
+        const toDate = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), referenceDate.getDate() + days, 12, 0, 0, 0);
+        where.push(`(${missingNextDue} OR ${nextDueExpression} >= date(?))`);
+        where.push(`(${missingNextDue} OR ${nextDueExpression} <= date(?))`);
+        params.push(referenceIso, formatIsoDate(toDate));
+    }
+
+    return {
+        clause: where.length > 0 ? `WHERE ${where.join(' AND ')}` : '',
+        params
+    };
+}
+
+function buildTransferenciasDataSource(rows = []) {
+    const transferencias = [
+        ['Data', 'Descrição', 'Valor', 'Origem', 'Destino', 'Método', 'Observações', 'Status', 'user_id']
+    ];
+    rows.forEach((row) => {
+        transferencias.push([
+            row.date_text || '',
+            row.description || '',
+            Number(row.value || 0),
+            row.origin || '',
+            row.destination || '',
+            row.method || '',
+            row.notes || '',
+            row.status || '',
+            row.user_id || ''
+        ]);
+    });
+    return transferencias;
+}
+
+function buildEntradasDataSource(rows = []) {
+    const entradas = [
+        ['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Obs', 'user_id']
+    ];
+    rows.forEach((row) => {
+        entradas.push([
+            row.date_text || '',
+            row.description || '',
+            row.category || '',
+            Number(row.value || 0),
+            '',
+            row.payment_method || '',
+            row.recurrence || '',
+            '',
+            row.user_id || ''
+        ]);
+    });
+    return entradas;
+}
+
+function buildDividasDataSource(rows = []) {
+    const dividas = [
+        ['Nome', 'Credor', 'Tipo', 'Valor Original', 'Saldo Atual', 'Parcela', 'Juros', 'Vencimento', 'Início', 'Total Parcelas', 'Status', 'Responsável', 'Observações', '% Quitado', 'Próximo Vencimento', 'Atraso (Dias)', 'Data Prevista para Quitação', 'user_id']
+    ];
+    rows.forEach((row) => {
+        dividas.push([
+            row.name || '',
+            row.creditor || '',
+            row.debt_type || '',
+            Number(row.original_value || 0),
+            Number(row.saldo_atual || 0),
+            Number(row.installment_value || 0),
+            Number(row.juros_pct || 0),
+            row.due_day || '',
+            row.start_date || '',
+            Number(row.total_installments || 0),
+            row.status || '',
+            row.responsible || '',
+            row.notes || '',
+            Number(row.progress_pct || 0),
+            row.next_due || '',
+            Number(row.overdue_days || 0),
+            row.payoff_date || '',
+            row.user_id || ''
+        ]);
+    });
+    return dividas;
+}
+
+function formatIsoDate(date) {
+    if (!(date instanceof Date)) return '';
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function parseBudgetReferenceDate(value) {
+    const parsed = parseSheetDate(value);
+    if (parsed) return parsed;
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0);
+}
+
+function buildUserSettingsDataSource(rows = []) {
+    const userSettings = [
+        ['user_id', 'monthly_budget_enabled', 'monthly_budget_amount', 'monthly_budget_scope', 'monthly_budget_cycle_start_day']
+    ];
+    rows.forEach((row) => {
+        userSettings.push([
+            row.user_id || '',
+            row.monthly_budget_enabled || '',
+            Number(row.monthly_budget_amount || 0),
+            row.monthly_budget_scope || 'personal',
+            row.monthly_budget_cycle_start_day || 1
+        ]);
+    });
+    return userSettings;
+}
+
+function buildCardConfigsDataSource(rows = []) {
+    const cartoesConfig = [
+        ['card_id', 'Nome', 'Banco', 'Dia de Fechamento', 'Dia de Vencimento', 'Ativo', 'Observações']
+    ];
+    rows.forEach((row) => {
+        cartoesConfig.push([
+            row.card_id || '',
+            row.name || '',
+            '',
+            '',
+            row.due_day || 1,
+            row.active || 'SIM',
+            ''
+        ]);
+    });
+    return cartoesConfig;
+}
+
+function queryBudgetFinancialQueryDataSourcesSql(plan, { userId, userIds, currentDate } = {}) {
+    const requestedUserIds = Array.isArray(userIds)
+        ? userIds.map(value => String(value || '').trim()).filter(Boolean)
+        : [];
+    const scopeUserIds = requestedUserIds.length > 0
+        ? Array.from(new Set(requestedUserIds))
+        : [String(userId || '').trim()].filter(Boolean);
+    if (scopeUserIds.length === 0) return null;
+
+    const settingsPlaceholders = scopeUserIds.map(() => '?').join(', ');
+    const settingsRows = db.prepare(`
+        SELECT user_id, monthly_budget_enabled, monthly_budget_amount, monthly_budget_scope, monthly_budget_cycle_start_day
+        FROM budget_settings
+        WHERE user_id IN (${settingsPlaceholders})
+        ORDER BY CASE WHEN user_id = ? THEN 0 ELSE 1 END
+    `).all(...scopeUserIds, String(userId || '').trim());
+    if (settingsRows.length === 0) return null;
+
+    const requestedScope = normalizeText(plan.filters?.scope || '');
+    const activeSettingsRows = settingsRows.filter(row =>
+        normalizeText(row.monthly_budget_enabled || '') === 'sim' &&
+        Number(row.monthly_budget_amount || 0) > 0
+    );
+    const activeSettings = requestedScope
+        ? activeSettingsRows.find(row => normalizeText(row.monthly_budget_scope || '') === requestedScope)
+        : (
+            scopeUserIds.length > 1
+                ? activeSettingsRows.find(row => normalizeText(row.monthly_budget_scope || '') === 'family') || activeSettingsRows[0]
+                : activeSettingsRows[0]
+        );
+    const cycleSettings = activeSettings ||
+        settingsRows.find(row => normalizeText(row.monthly_budget_scope || '') === requestedScope) ||
+        settingsRows[0];
+    const cycleStartDay = normalizeCycleStartDay(cycleSettings.monthly_budget_cycle_start_day || 1);
+    const referenceDate = parseBudgetReferenceDate(currentDate);
+    const referenceParts = {
+        year: referenceDate.getFullYear(),
+        month: referenceDate.getMonth(),
+        day: referenceDate.getDate()
+    };
+    const period = plan.filters?.period || {};
+    const cycle = period.type === 'month' && Number.isInteger(period.month) && Number.isInteger(period.year)
+        ? getBudgetCycleForPeriod(period, cycleStartDay, referenceParts)
+        : getBudgetCycleForDate(referenceParts, cycleStartDay);
+    const startIso = formatIsoDate(cycle.start);
+    const endIso = formatIsoDate(cycle.end);
+    const startKey = cycle.start.getFullYear() * 12 + cycle.start.getMonth();
+    const endKey = cycle.end.getFullYear() * 12 + cycle.end.getMonth();
+
+    const userPlaceholders = scopeUserIds.map(() => '?').join(', ');
+    const expenseRows = db.prepare(`
+        SELECT user_id, source_type, source_name, date_text, year, month, description, category, subcategory, value, card_id, card_name, installment_text
+        FROM expenses
+        WHERE user_id IN (${userPlaceholders})
+          AND (
+            (source_type = 'saida' AND ${sqlDateExpression()} >= date(?) AND ${sqlDateExpression()} <= date(?))
+            OR
+            (source_type = 'cartao' AND (year * 12 + month) >= ? AND (year * 12 + month) <= ?)
+          )
+        ORDER BY year DESC, month DESC, date_text DESC
+    `).all(...scopeUserIds, startIso, endIso, startKey, endKey);
+
+    const cardConfigRows = db.prepare(`
+        SELECT card_id, name, due_day, active
+        FROM card_configs
+        ORDER BY name ASC, card_id ASC
+    `).all();
+
+    return {
+        ...buildExpensesDataSourcesFromRows(expenseRows),
+        userSettings: buildUserSettingsDataSource(settingsRows),
+        cartoesConfig: buildCardConfigsDataSource(cardConfigRows),
+        scopeUserIds,
+        currentDate: currentDate || ''
+    };
+}
+
+function queryFinancialQueryDataSourcesSql(plan, { userId, userIds, currentDate } = {}) {
+    if (!sqliteReady || !db || !plan || !['expenses', 'cards', 'income', 'transfers', 'budget', 'goals', 'debts', 'bills'].includes(plan.domain)) return null;
+
+    if (plan.domain === 'budget') {
+        return queryBudgetFinancialQueryDataSourcesSql(plan, { userId, userIds, currentDate });
+    }
+
+    const requestedUserIds = Array.isArray(userIds)
+        ? userIds.map(value => String(value || '').trim()).filter(Boolean)
+        : [];
+    const scopeUserIds = requestedUserIds.length > 0
+        ? Array.from(new Set(requestedUserIds))
+        : [String(userId || '').trim()].filter(Boolean);
+    const allUsers = isAllUsersScope(userId) || scopeUserIds.includes(ALL_USERS_ID);
+    if (!allUsers && scopeUserIds.length === 0) return null;
+
+    if (plan.domain === 'bills') {
+        const ownerClause = allUsers ? '1 = 1' : `user_id IN (${scopeUserIds.map(() => '?').join(', ')})`;
+        const ownerParams = allUsers ? [] : scopeUserIds;
+        const billRows = db.prepare(`
+            SELECT user_id, account_name, friendly_name, due_day, notes, category, subcategory, expected_value, rule_active
+            FROM recurring_bills
+            WHERE ${ownerClause}
+            ORDER BY due_day ASC, friendly_name ASC, account_name ASC
+        `).all(...ownerParams);
+        const referenceDate = parseSheetDate(currentDate) || new Date();
+        const period = plan.filters?.period || {};
+        let start = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 1, 12, 0, 0, 0);
+        let end = new Date(referenceDate.getFullYear(), referenceDate.getMonth() + 1, 0, 12, 0, 0, 0);
+        if (Number.isInteger(period.month) && Number.isInteger(period.year)) {
+            start = new Date(period.year, period.month, 1, 12, 0, 0, 0);
+            end = new Date(period.year, period.month + 1, 0, 12, 0, 0, 0);
+        } else if (period.from || period.to) {
+            start = parseSheetDate(period.from) || start;
+            end = parseSheetDate(period.to) || start;
+        } else if (period.type === 'relative') {
+            const days = Math.max(1, Number.parseInt(period.days || '7', 10) || 7);
+            const offset = period.label === 'tomorrow' ? 1 : 0;
+            start = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), referenceDate.getDate() + offset, 12, 0, 0, 0);
+            end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + days - 1, 12, 0, 0, 0);
+        } else if (period.type === 'today') {
+            start = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), referenceDate.getDate(), 12, 0, 0, 0);
+            end = start;
+        }
+        const expenseRows = db.prepare(`
+            SELECT user_id, source_type, source_name, date_text, year, month, description, category, subcategory, value, card_id, card_name, installment_text
+            FROM expenses
+            WHERE ${ownerClause} AND source_type = 'saida'
+              AND ${sqlDateExpression()} >= date(?)
+              AND ${sqlDateExpression()} <= date(?)
+            ORDER BY date_text DESC
+        `).all(...ownerParams, formatIsoDate(new Date(start.getFullYear(), start.getMonth(), 1, 12, 0, 0, 0)), formatIsoDate(new Date(end.getFullYear(), end.getMonth() + 1, 0, 12, 0, 0, 0)));
+        return {
+            ...buildExpensesDataSourcesFromRows(expenseRows),
+            contas: [
+                ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa'],
+                ...billRows.map(row => [
+                    row.account_name || '',
+                    row.due_day || '',
+                    row.notes || '',
+                    row.user_id || '',
+                    row.friendly_name || '',
+                    row.category || '',
+                    row.subcategory || '',
+                    Number(row.expected_value || 0),
+                    row.rule_active || ''
+                ])
+            ],
+            scopeUserIds: allUsers ? billRows.map(row => String(row.user_id || '')) : scopeUserIds,
+            currentDate: currentDate || ''
+        };
+    }
+
+    if (plan.domain === 'goals') {
+        const ownerClause = allUsers ? '1 = 1' : `user_id IN (${scopeUserIds.map(() => '?').join(', ')})`;
+        const visibilityClause = allUsers ? '1 = 1' : "(user_id = ? OR lower(COALESCE(scope, '')) IN ('family', 'familiar'))";
+        const ownerParams = allUsers ? [] : [...scopeUserIds, String(userId || '')];
+        const goalRows = db.prepare(`
+            SELECT user_id, name, target, current, progress_pct, status, priority, scope, last_movement
+            FROM goals
+            WHERE ${ownerClause} AND ${visibilityClause}
+            ORDER BY name ASC
+        `).all(...ownerParams);
+        const visibleGoalKeys = new Set(goalRows.map(row => `${String(row.user_id)}|${normalizeText(row.name)}`));
+        const movementOwnerClause = allUsers ? '1 = 1' : `goal_user_id IN (${scopeUserIds.map(() => '?').join(', ')})`;
+        const movementRows = db.prepare(`
+            SELECT user_id, goal_user_id, date_text, goal_name, movement_type, value, value_before, value_after, notes, responsible
+            FROM goal_movements
+            WHERE ${movementOwnerClause}
+            ORDER BY date_text DESC
+        `).all(...(allUsers ? [] : scopeUserIds))
+            .filter(row => visibleGoalKeys.has(`${String(row.goal_user_id)}|${normalizeText(row.goal_name)}`));
+
+        return {
+            metas: [
+                ['Nome da Meta', 'Valor Alvo', 'Valor Atual', '% Progresso', 'Valor Mensal Sugerido', 'Data Alvo', 'Status', 'Prioridade', 'user_id', 'Escopo', 'Última Movimentação'],
+                ...goalRows.map(row => [row.name, row.target, row.current, row.progress_pct, 0, '', row.status, row.priority, row.user_id, row.scope, row.last_movement])
+            ],
+            movimentacoesMetas: [
+                ['Data', 'Meta', 'Tipo', 'Valor', 'Valor Antes', 'Valor Depois', 'Observação', 'Responsável', 'user_id', 'goal_user_id'],
+                ...movementRows.map(row => [row.date_text, row.goal_name, row.movement_type, row.value, row.value_before, row.value_after, row.notes, row.responsible, row.goal_user_id, row.goal_user_id])
+            ]
+        };
+    }
+
+    if (plan.domain === 'debts') {
+        const debtFilter = buildDebtFinancialQuerySqlWhere(plan, { allUsers, scopeUserIds, currentDate });
+        const debtRows = db.prepare(`
+            SELECT
+                user_id, name, creditor, debt_type, original_value, saldo_atual,
+                installment_value, juros_pct, due_day, start_date, total_installments,
+                status, responsible, notes, progress_pct, next_due, overdue_days, payoff_date
+            FROM debts
+            ${debtFilter.clause}
+            ORDER BY saldo_atual DESC, name ASC
+        `).all(...debtFilter.params);
+
+        return {
+            dividas: buildDividasDataSource(debtRows),
+            scopeUserIds: allUsers ? [] : scopeUserIds,
+            currentDate: currentDate || ''
+        };
+    }
+
+    const sqlFilter = buildFinancialQuerySqlWhere(plan, { allUsers, scopeUserIds });
+    if (plan.domain === 'income') {
+        const rows = db.prepare(`
+            SELECT user_id, date_text, year, month, description, category, value, payment_method, recurrence
+            FROM entries
+            ${sqlFilter.clause}
+            ORDER BY year DESC, month DESC, date_text DESC
+        `).all(...sqlFilter.params);
+
+        return {
+            entradas: buildEntradasDataSource(rows),
+            saidas: [['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id']],
+            cartoes: [[['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Observações', 'user_id']]]
+        };
+    }
+
+    if (plan.domain === 'transfers') {
+        const transferRows = db.prepare(`
+            SELECT user_id, date_text, year, month, description, value, origin, destination, method, notes, status
+            FROM transfers
+            ${sqlFilter.clause}
+            ORDER BY year DESC, month DESC, date_text DESC
+        `).all(...sqlFilter.params);
+
+        const entryRows = db.prepare(`
+            SELECT user_id, date_text, year, month, description, category, value, payment_method, recurrence
+            FROM entries
+            ${sqlFilter.clause}
+            ORDER BY year DESC, month DESC, date_text DESC
+        `).all(...sqlFilter.params);
+
+        const expenseRows = db.prepare(`
+            SELECT user_id, source_type, source_name, date_text, year, month, description, category, subcategory, value, card_id, card_name, installment_text
+            FROM expenses
+            ${buildFinancialQuerySqlWhere({ ...plan, domain: 'expenses', timeBasis: 'billing_month' }, { allUsers, scopeUserIds }).clause}
+            ORDER BY year DESC, month DESC, date_text DESC
+        `).all(...buildFinancialQuerySqlWhere({ ...plan, domain: 'expenses', timeBasis: 'billing_month' }, { allUsers, scopeUserIds }).params);
+
+        const expenseSources = buildExpensesDataSourcesFromRows(expenseRows);
+        return {
+            ...expenseSources,
+            entradas: buildEntradasDataSource(entryRows),
+            transferencias: buildTransferenciasDataSource(transferRows)
+        };
+    }
+
+    const rows = db.prepare(`
+        SELECT user_id, source_type, source_name, date_text, year, month, description, category, subcategory, value, card_id, card_name, installment_text
+        FROM expenses
+        ${sqlFilter.clause}
+        ORDER BY year DESC, month DESC, date_text DESC
+    `).all(...sqlFilter.params);
+
+    return buildExpensesDataSourcesFromRows(rows);
+}
+
+function buildExpensesDataSourcesFromRows(rows = []) {
+    const saidas = [
+        ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id']
+    ];
+    const cartoes = [[
+        ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Observações', 'user_id']
+    ]];
+
+    rows.forEach((row) => {
+        if (row.source_type === 'cartao') {
+            const monthIndex = Number(row.month || 0);
+            const billingMonth = `${MONTH_NAMES_PT[monthIndex] || ''} de ${row.year}`;
+            cartoes[0].push([
+                row.date_text || '',
+                row.description || '',
+                row.category || '',
+                Number(row.value || 0),
+                row.installment_text || '',
+                billingMonth,
+                row.card_id || row.source_name || '',
+                row.card_name || row.source_name || '',
+                '',
+                row.user_id || ''
+            ]);
+            return;
+        }
+
+        saidas.push([
+            row.date_text || '',
+            row.description || '',
+            row.category || '',
+            row.subcategory || '',
+            Number(row.value || 0),
+            '',
+            '',
+            '',
+            '',
+            row.user_id || ''
+        ]);
+    });
+
+    return { saidas, cartoes };
+}
+
 function isSqliteReady() {
     return sqliteReady;
 }
@@ -981,10 +2010,15 @@ function getSqliteStats() {
     if (!sqliteReady || !db) return { ready: false };
     const expenses = db.prepare('SELECT COUNT(*) AS c FROM expenses').get()?.c || 0;
     const entries = db.prepare('SELECT COUNT(*) AS c FROM entries').get()?.c || 0;
+    const transfers = db.prepare('SELECT COUNT(*) AS c FROM transfers').get()?.c || 0;
+    const budgetSettings = db.prepare('SELECT COUNT(*) AS c FROM budget_settings').get()?.c || 0;
+    const cardConfigs = db.prepare('SELECT COUNT(*) AS c FROM card_configs').get()?.c || 0;
     const goals = db.prepare('SELECT COUNT(*) AS c FROM goals').get()?.c || 0;
+    const goalMovements = db.prepare('SELECT COUNT(*) AS c FROM goal_movements').get()?.c || 0;
     const debts = db.prepare('SELECT COUNT(*) AS c FROM debts').get()?.c || 0;
+    const recurringBills = db.prepare('SELECT COUNT(*) AS c FROM recurring_bills').get()?.c || 0;
     const syncAt = db.prepare("SELECT value FROM sync_meta WHERE key = 'last_sync_at'").get()?.value || '';
-    return { ready: true, expenses, entries, goals, debts, lastSyncAt: syncAt };
+    return { ready: true, expenses, entries, transfers, budgetSettings, cardConfigs, goals, goalMovements, debts, recurringBills, lastSyncAt: syncAt };
 }
 
 module.exports = {
@@ -992,6 +2026,7 @@ module.exports = {
     ensureSqliteReady,
     syncSnapshotToSqlite,
     queryAnalyticalIntentSql,
+    queryFinancialQueryDataSourcesSql,
     queryKpis,
     queryTopCategories,
     queryCashflow,

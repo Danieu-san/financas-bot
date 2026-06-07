@@ -3,6 +3,7 @@ const assert = require('node:assert');
 
 const { buildHealthSummary } = require('../src/services/financialHealthService');
 const { buildDebtAvalanchePlan } = require('../src/services/debtAvalancheService');
+const { executeFinancialQuery } = require('../src/query/financialQueryEngine');
 
 test('financial health summary explains cash risk and emergency reserve inputs', () => {
     const user = { user_id: 'user-explain-a' };
@@ -56,4 +57,41 @@ test('debt avalanche plan explains selected inputs and priority debt', () => {
     assert.strictEqual(plan.inputs.highestRateDebt.name, 'Cartão');
     assert.ok(plan.explanation.includes('Cartão'));
     assert.ok(plan.explanation.includes('maior taxa'));
+});
+
+test('debt Query Engine recommendation is auditable, read-only, and redacts internal ids', async () => {
+    const result = await executeFinancialQuery(
+        {
+            kind: 'financial_query',
+            domain: 'debts',
+            operation: 'recommend',
+            filters: {},
+            groupBy: [],
+            sort: { by: 'interest', direction: 'desc' },
+            limit: 10,
+            timeBasis: 'due_date',
+            needsContext: false,
+            answerStyle: 'audit'
+        },
+        {
+            currentDate: '15/06/2026',
+            scopeUserIds: ['user-explain-a'],
+            dividas: [
+                ['Nome', 'Credor', 'Tipo', 'Valor Original', 'Saldo Atual', 'Parcela', 'Juros', 'Vencimento', 'Início', 'Total Parcelas', 'Status', 'Responsável', 'Observações', '% Quitado', 'Próximo Vencimento', 'Atraso (Dias)', 'Data Prevista para Quitação', 'user_id'],
+                ['Banco', 'Banco Alfa', 'Empréstimo', 2000, 1200, 200, '2% a.m.', 20, '01/01/2026', 10, 'Ativa', 'Daniel', '', '40%', '20/06/2026', 0, '', 'user-explain-a'],
+                ['Cartão caro', 'Beta Financeira', 'Cartão', 1000, 600, 150, '8% a.m.', 10, '01/01/2026', 8, 'Ativa', 'Daniel', '', '40%', '10/06/2026', 5, '', 'user-explain-a'],
+                ['Outro usuário', 'Credor externo', 'Empréstimo', 9999, 9999, 999, '20% a.m.', 10, '01/01/2026', 10, 'Ativa', 'Outro', '', '0%', '10/06/2026', 5, '', 'user-explain-b']
+            ]
+        }
+    );
+
+    assert.strictEqual(result.ok, true);
+    assert.strictEqual(result.result.value.item.description, 'Cartão caro');
+    assert.match(result.result.value.criteria, /critério/i);
+    assert.match(result.result.value.criteria, /atraso/i);
+    assert.match(result.result.value.criteria, /juros/i);
+    assert.match(result.result.value.disclaimer, /não é garantia financeira/i);
+    assert.ok(!JSON.stringify(result.result.value).includes('user-explain-a'));
+    assert.ok(!JSON.stringify(result.result.value).includes('user-explain-b'));
+    assert.ok(!JSON.stringify(result.result.value).includes('Outro usuário'));
 });

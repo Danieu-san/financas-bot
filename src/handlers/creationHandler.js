@@ -2,12 +2,62 @@
 
 const { getStructuredResponseFromLLM, askLLM } = require('../services/gemini');
 const userStateManager = require('../state/userStateManager');
-const { appendRowToSheet } = require('../services/google');
+const { appendRowToSheet, readDataFromSheet } = require('../services/google');
 const { userMap } = require('../config/constants');
-const { parseValue, parseDate, isDate, getFormattedDateOnly, parseAmount } = require('../utils/helpers');
+const { parseValue, parseDate, isDate, getFormattedDateOnly, parseAmount, normalizeText } = require('../utils/helpers');
 const { getUserByWhatsAppId } = require('../services/userService');
 const { getFinancialScopeUserIds } = require('../services/oauthTokenStore');
 const { GOAL_STATUS } = require('../services/goalService');
+
+const LEGACY_DEBT_HEADERS = [
+    'Nome', 'Credor', 'Tipo', 'Valor Original', 'Saldo Atual', 'Parcela', 'Juros', 'Vencimento',
+    'Início', 'Total Parcelas', 'Status', 'Responsável', 'Observações', '% Quitado',
+    'Próximo Vencimento', 'Atraso (Dias)', 'Data Prevista para Quitação', 'user_id'
+];
+
+function computeNextDebtDueDate(referenceDate, dueDay) {
+    const safeReference = referenceDate instanceof Date ? referenceDate : new Date();
+    const day = Math.max(1, Number.parseInt(dueDay, 10) || 1);
+    const buildForMonth = (year, month) => {
+        const maxDay = new Date(year, month + 1, 0).getDate();
+        return new Date(year, month, Math.min(day, maxDay), 12, 0, 0, 0);
+    };
+    const currentDue = buildForMonth(safeReference.getFullYear(), safeReference.getMonth());
+    if (safeReference.getDate() > currentDue.getDate()) {
+        return buildForMonth(safeReference.getFullYear(), safeReference.getMonth() + 1);
+    }
+    return currentDue;
+}
+
+function buildDebtRowForHeaders(headers = [], data = {}, computed = {}, userId = '') {
+    const values = new Map();
+    const add = (aliases, value) => aliases.forEach(alias => values.set(normalizeText(alias), value));
+
+    add(['Nome', 'Nome da Dívida'], data['Nome da Dívida']);
+    add(['Credor'], data.Credor);
+    add(['Tipo', 'Tipo de Dívida'], data['Tipo de Dívida']);
+    add(['Valor Original'], computed.valorOriginal);
+    add(['Saldo Atual'], computed.saldoAtual);
+    add(['Parcela', 'Valor da Parcela'], data['Valor da Parcela']);
+    add(['Juros', 'Taxa de Juros', 'Taxa'], data['Taxa de Juros']);
+    add(['Vencimento', 'Dia de Vencimento'], Number.parseInt(data['Dia do Vencimento'], 10));
+    add(['Início', 'Inicio', 'Data de Início', 'Data de Inicio'], data['Data de Início']);
+    add(['Total Parcelas', 'Total de Parcelas'], Number.parseInt(data['Total de Parcelas'], 10));
+    add(['Parcelas Pagas'], 0);
+    add(['Status'], data.Status);
+    add(['Responsável', 'Responsavel'], data.Responsável);
+    add(['Observações', 'Observacoes', 'Obs'], normalizeText(data.Observações) === 'nao' ? '' : data.Observações);
+    add(['% Quitado', 'Quitado'], '');
+    add(['Último Pagamento', 'Ultimo Pagamento'], '');
+    add(['Próximo Vencimento', 'Proximo Vencimento'], computed.proximoVencimento);
+    add(['Atraso (Dias)', 'Dias de Atraso', 'Atraso'], computed.atrasoDias);
+    add(['Data Prevista para Quitação', 'Data Prevista para Quitacao'], computed.dataQuitacao);
+    add(['Estratégia', 'Estrategia'], '');
+    add(['user_id', 'user id'], userId);
+
+    const safeHeaders = Array.isArray(headers) && headers.length > 0 ? headers : LEGACY_DEBT_HEADERS;
+    return safeHeaders.map(header => values.get(normalizeText(header)) ?? '');
+}
 
 function buildDebtSuccessMessage(debtName) {
     return [
@@ -136,10 +186,7 @@ async function finalizeDebtCreation(msg) {
         // Próximo Vencimento e Atraso
         const hoje = new Date();
         const diaVencimento = parseInt(data["Dia do Vencimento"]);
-        let proximoVencimento = new Date(hoje.getFullYear(), hoje.getMonth(), diaVencimento);
-        if (hoje.getDate() > diaVencimento) {
-            proximoVencimento.setMonth(proximoVencimento.getMonth() + 1);
-        }
+        const proximoVencimento = computeNextDebtDueDate(hoje, diaVencimento);
         const atrasoMs = hoje.getTime() - proximoVencimento.getTime();
         const atrasoDias = Math.max(0, Math.floor(atrasoMs / (1000 * 60 * 60 * 24)));
         if (atrasoDias > 0) {
@@ -152,27 +199,15 @@ async function finalizeDebtCreation(msg) {
         const totalParcelas = parseInt(data["Total de Parcelas"]);
         let dataQuitacao = new Date(dataInicio.setMonth(dataInicio.getMonth() + totalParcelas));
         
-        // --- MONTAGEM FINAL DA LINHA ---
-        const rowData = [
-            data["Nome da Dívida"],          // A
-            data["Credor"],                  // B
-            data["Tipo de Dívida"],          // C
-            valorOriginal,                   // D
-            saldoAtual,                      // E
-            data["Valor da Parcela"],        // F
-            data["Taxa de Juros"],           // G
-            diaVencimento,                   // H
-            data["Data de Início"],          // I
-            totalParcelas,                   // J
-            data["Status"],                  // K
-            data["Responsável"],             // L
-            data["Observações"].toLowerCase() === 'não' ? '' : data["Observações"], // M
-            '',                              // N: % Quitado (deixamos em branco para a fórmula da planilha)
-            proximoVencimento.toLocaleDateString('pt-BR'), // O
-            atrasoDias,                      // P
-            dataQuitacao.toLocaleDateString('pt-BR'), // Q
-            user.user_id                     // R
-        ];
+        const headerRows = await readDataFromSheet('Dívidas!A1:R1');
+        const headers = Array.isArray(headerRows?.[0]) ? headerRows[0] : LEGACY_DEBT_HEADERS;
+        const rowData = buildDebtRowForHeaders(headers, data, {
+            valorOriginal,
+            saldoAtual,
+            proximoVencimento: proximoVencimento.toLocaleDateString('pt-BR'),
+            atrasoDias,
+            dataQuitacao: dataQuitacao.toLocaleDateString('pt-BR')
+        }, user.user_id);
 
         await appendRowToSheet('Dívidas', rowData);
         await msg.reply(buildDebtSuccessMessage(data["Nome da Dívida"]));
@@ -346,7 +381,9 @@ module.exports = {
     handleGoalCreation,
     finalizeGoalCreation,
     __test__: {
-        buildDebtSuccessMessage
+        buildDebtSuccessMessage,
+        buildDebtRowForHeaders,
+        computeNextDebtDueDate
     }
 };
 

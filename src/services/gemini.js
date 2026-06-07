@@ -21,9 +21,18 @@ function parseGeminiError(error, timeoutMs) {
         };
     }
 
+    const message = error?.message || '';
+    if (/RESOURCE_EXHAUSTED|prepayment credits are depleted|quota/i.test(message)) {
+        metrics.increment('gemini.resource_exhausted');
+        return {
+            code: 'RESOURCE_EXHAUSTED',
+            message: 'Crédito/quota da API Gemini esgotado.'
+        };
+    }
+
     return {
         code: 'GENERIC',
-        message: error?.message || 'Falha na comunicação com a IA.'
+        message: message || 'Falha na comunicação com a IA.'
     };
 }
 

@@ -285,7 +285,7 @@ function setSharedSpreadsheetMembership({ memberUserId, ownerUserId, spreadsheet
         created_at: now,
         updated_at: now
     });
-    logger.info(`oauth: planilha compartilhada vinculada member_user_id=${safeMemberUserId} owner_user_id=${safeOwnerUserId}`);
+    logger.info('oauth: planilha compartilhada familiar vinculada');
     return getSharedSpreadsheetMembership(safeMemberUserId);
 }
 
@@ -317,7 +317,7 @@ function revokeSharedSpreadsheetMembership(userId) {
         updated_at: now,
         revoked_at: now
     });
-    logger.info(`oauth: planilha compartilhada revogada member_user_id=${safeUserId} owner_user_id=${existing.owner_user_id}`);
+    logger.info('oauth: planilha compartilhada familiar revogada');
     return existing;
 }
 

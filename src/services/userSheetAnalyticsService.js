@@ -8,6 +8,7 @@ const {
     dateIsWithinCycle
 } = require('../utils/budgetCycle');
 const { goalRowToObject } = require('./goalService');
+const { decorateDashboardSummary } = require('./dashboardSummaryService');
 
 const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
@@ -145,11 +146,16 @@ function toCardTransaction(row) {
 
 function toTransfer(row) {
     return {
-        date: row[0] || '',
+        date: formatDashboardDate(row[0]),
+        rawDate: row[0] || '',
         description: row[1] || '',
+        category: 'Transferência',
         value: parseValue(row[2]),
+        type: 'transferencia',
+        typeLabel: 'Transferência',
         observations: row[6] || '',
-        status: row[7] || ''
+        status: row[7] || '',
+        timestamp: transactionTimestamp(row[0])
     };
 }
 
@@ -270,7 +276,7 @@ function parseInstallmentLabel(value) {
     return { current, total };
 }
 
-function buildRecentTransactions({ entradas = [], saidas = [], cartoes = [], limit = 10 } = {}) {
+function buildRecentTransactions({ entradas = [], saidas = [], cartoes = [], transferencias = [], limit = 10 } = {}) {
     const cardGroups = new Map();
     const groupedCards = [];
 
@@ -311,10 +317,10 @@ function buildRecentTransactions({ entradas = [], saidas = [], cartoes = [], lim
         });
     });
 
-    return [...entradas, ...saidas, ...groupedCards]
+    return [...entradas, ...saidas, ...groupedCards, ...transferencias]
         .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0))
         .slice(0, limit)
-        .map(({ timestamp, rawDate, installment, card, installmentCount, installmentTotal, ...item }) => item);
+        .map(({ timestamp, rawDate, installment, card, installmentCount, installmentTotal, observations, status, ...item }) => item);
 }
 
 function buildDailyFlow({ entradas, saidas, cartoes }) {
@@ -556,7 +562,7 @@ async function getUserSheetDashboardData(userId, { month, year } = {}) {
             period
         });
 
-        return {
+        return decorateDashboardSummary({
             period: {
                 month: period.month,
                 year: period.year,
@@ -587,12 +593,12 @@ async function getUserSheetDashboardData(userId, { month, year } = {}) {
                 userIds: dailyGoalConfig.settings?.monthly_budget_scope === 'family' ? financialScopeUserIds : [safeUserId],
                 period
             }),
-            recentTransactions: buildRecentTransactions({ entradas, saidas, cartoes }),
+            recentTransactions: buildRecentTransactions({ entradas, saidas, cartoes, transferencias: transfers }),
             goals: buildGoalDashboardRows(metasRows, financialScopeUserIds),
             debts: dividasRows.slice(1).filter(row => rowBelongsToAnyUser(row, 17, financialScopeUserIds)),
             alerts: [],
             source: 'personal_sheet'
-        };
+        });
     });
 }
 

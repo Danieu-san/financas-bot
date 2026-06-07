@@ -744,6 +744,31 @@ stateMachineTest('financial states: manual caixinha application is saved as tran
     assert.strictEqual(sheets.Transferências[1][8], USER_ID);
 });
 
+stateMachineTest('financial states: reserve redemption is saved as transfer not income', async () => {
+    resetState();
+
+    const reply = await send('recebi 900 da caixinha do nubank');
+
+    assert.match(reply, /Transferência de R\$ 900,00/i);
+    assert.strictEqual(sheets.Entradas.length, 1);
+    assert.strictEqual(sheets.Transferências.length, 2);
+    assert.strictEqual(sheets.Transferências[1][1], 'caixinha do nubank');
+    assert.strictEqual(sheets.Transferências[1][2], 900);
+    assert.strictEqual(sheets.Transferências[1][3], 'Caixinha Nubank');
+    assert.strictEqual(sheets.Transferências[1][7], 'Movimentação de reserva/investimento');
+    assert.strictEqual(sheets.Transferências[1][8], USER_ID);
+});
+
+stateMachineTest('financial states: ambiguous income reserve question asks clarification without Gemini', async () => {
+    resetState();
+
+    const reply = await send('quanto dinheiro entrou na caixinha?');
+
+    assert.match(reply, /Isso pode ser renda nova ou movimentação de reserva/i);
+    assert.match(reply, /renda|transferência/i);
+    assert.strictEqual(structuredResponses.length, 0);
+});
+
 stateMachineTest('financial states: transfer to family member is saved as internal transfer not expense', async () => {
     resetState();
     sheets.Users.push(partnerUserRow());

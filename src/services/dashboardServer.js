@@ -2,6 +2,7 @@ const http = require('http');
 const { URL } = require('url');
 const { syncReadModelIfNeeded, getDashboardSnapshot, getDashboardSqlData, isSqliteReady, ALL_USERS_ID } = require('./readModelService');
 const { getUserSheetDashboardData } = require('./userSheetAnalyticsService');
+const { decorateDashboardSummary } = require('./dashboardSummaryService');
 const { verifyDashboardToken } = require('../utils/dashboardAuth');
 const { getAllUsers, getUserProfileByUserId } = require('./userService');
 const { buildGoogleAuthorizationUrl, completeGoogleOAuthCallback } = require('./googleOAuthService');
@@ -211,6 +212,7 @@ function dashboardHtml() {
     }
     .chart-head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; margin-bottom: 8px; }
     .chart-note { color: var(--muted); font-size: .85rem; }
+    .criteria-note { color: var(--muted); font-size: .82rem; line-height: 1.35; margin-top: 8px; }
     .finance-chart { width: 100%; min-height: 290px; display: block; }
     .chart-label { font-size: 12px; fill: #5e5b57; }
     .chart-value { font-size: 12px; fill: #1d1b1a; font-weight: 700; }
@@ -236,6 +238,7 @@ function dashboardHtml() {
     .type-badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 2px 7px; margin-right: 6px; font-size: .75rem; font-weight: 800; background: #eef7f5; color: #0f766e; }
     .type-badge.saida { background: #fff4e5; color: #9a3412; }
     .type-badge.cartao { background: #eef2f7; color: #334155; }
+    .type-badge.transferencia { background: #f0f9ff; color: #0369a1; }
     .muted { color: var(--muted); }
     .scope-summary { display: grid; gap: 8px; }
     .scope-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
@@ -294,6 +297,7 @@ function dashboardHtml() {
       <div class="card"><div class="label">Saldo</div><div id="kpiSaldo" class="value">-</div></div>
       <div class="card"><div class="label">Disponível estimado</div><div id="kpiDisponivel" class="value">-</div><div id="reserveNote" class="muted"></div></div>
     </div>
+    <div id="criteriaBalance" class="criteria-note"></div>
 
     <div id="scopeCard" class="section card scope-summary" style="display:none"></div>
 
@@ -310,11 +314,13 @@ function dashboardHtml() {
         <h2>Orçamento Livre</h2>
         <div class="chart-note">Ritmo diário recalculado a partir do ciclo do seu orçamento</div>
       </div>
+      <div id="criteriaBudget" class="criteria-note"></div>
       <div id="dailyGoal" class="daily-goal-grid"></div>
     </div>
 
     <div class="section card">
       <h2>Top Categorias</h2>
+      <div id="criteriaCategories" class="criteria-note"></div>
       <div id="categories" class="bars"></div>
     </div>
 
@@ -331,6 +337,7 @@ function dashboardHtml() {
 
     <div class="section card">
       <h2>Lançamentos Recentes</h2>
+      <div id="criteriaRecent" class="criteria-note"></div>
       <div id="recent" class="list"></div>
     </div>
 
@@ -438,6 +445,7 @@ function dashboardHtml() {
 
     function render(data) {
       const k = data.kpis || {};
+      const criteria = data.criteria || {};
       document.getElementById('kpiEntradas').textContent = brl(k.entradas);
       document.getElementById('kpiSaidas').textContent = brl((k.saidas || 0) + (k.cartoes || 0));
       const saldoEl = document.getElementById('kpiSaldo');
@@ -456,6 +464,10 @@ function dashboardHtml() {
       } else {
         reserveNote.textContent = 'Sem movimento líquido de reserva.';
       }
+      document.getElementById('criteriaBalance').textContent = [criteria.balance, criteria.available].filter(Boolean).join(' ');
+      document.getElementById('criteriaBudget').textContent = criteria.budget || '';
+      document.getElementById('criteriaCategories').textContent = criteria.categories || '';
+      document.getElementById('criteriaRecent').textContent = criteria.recentTransactions || '';
       const period = data.period || {};
       const selectedUserLabel = userEl.options[userEl.selectedIndex]?.textContent || '';
       const userSuffix = selectedUserLabel && userEl.style.display !== 'none' ? ' · ' + selectedUserLabel : '';
@@ -741,13 +753,13 @@ async function handleApiSummary(reqUrl, res) {
             : null;
         if (personal) {
             metrics.increment('dashboard.api.summary.success');
-            sendJson(res, 200, personal);
+            sendJson(res, 200, decorateDashboardSummary(personal));
             return;
         }
         await syncReadModelIfNeeded();
         const snapshot = getDashboardSqlData(dataUserId, { month, year }) || getDashboardSnapshot(dataUserId, { month, year });
         metrics.increment('dashboard.api.summary.success');
-        sendJson(res, 200, snapshot);
+        sendJson(res, 200, decorateDashboardSummary(snapshot));
     } catch (error) {
         metrics.increment('dashboard.api.error');
         logger.error(`dashboard api error: ${error.message}`);

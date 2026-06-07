@@ -1,6 +1,6 @@
 # Estado atual do FinancasBot
 
-Atualizado em: 2026-06-03
+Atualizado em: 2026-06-07
 
 ## Produto
 
@@ -116,7 +116,7 @@ Comportamento:
 Atencao:
 
 - Planilhas existentes precisam ter os novos cabecalhos aplicados por template/ensure ou manualmente antes de a regra ficar visivel para o usuario.
-- O scheduler continua lendo `Contas!A:D`, entao lembretes nao dependem das novas colunas.
+- O scheduler le `Contas!A:I` e resolve os campos por cabecalho, preservando compatibilidade com layouts atuais e legados sem depender de posicoes fixas.
 
 ## Dashboard - lançamentos recentes
 
@@ -200,6 +200,11 @@ O gate de seguranca bloqueia antes de IA/calculo financeiro mensagens que pedem:
 
 Tambem sanitiza logs de mensagens para esconder tokens, parametros OAuth e IDs de documentos Google.
 
+Complemento de seguranca da Financial Query:
+
+- Checklist de seguranca LLM/dados criado em `docs/security/financial-query-security-checklist.md` e auditoria documental aplicada em `docs/audits/financial-query-security-audit.md`.
+- A bateria de aceite usa `security/block/clarify` apenas como resultado pre-plano de Security Gate, roteamento ou esclarecimento. Esses valores nao sao operacoes executaveis do `FinancialQueryPlan`.
+
 ## Modo analista para detalhamento de gastos
 
 Status: implantado em producao em 2026-06-04.
@@ -269,6 +274,137 @@ Novo complemento local em 2026-06-04:
 - Respostas de composicao de fatura abrem com `Compras que compõem a fatura...`, evitando UX ambigua de detalhe generico.
 - Itens vindos de `Lançamentos Cartão` sao sinalizados como `Cartão - <nome>` mesmo quando o payload nao traz `tipo=cartao`, desde que contenha origem/pagamento/cartao compativel.
 - Testes adicionados em `messageHandler.classifyPerguntaLocally covers complex analytical questions`, `messageHandler local replies cover richer spreadsheet calculations` e `calculationOrchestrator calculates card invoices and open installments deterministically`.
+
+Arquitetura alvo oficial:
+
+- Em 2026-06-05, a arquitetura alvo das perguntas financeiras foi formalizada em `docs/specs/financial-query-architecture.md`.
+- Decisao central: perguntas financeiras sao consultas analiticas read-only; devem virar `FinancialQueryPlan`, ser calculadas pela Query Engine e formatadas pelo Response Composer.
+- Gemini pode interpretar linguagem natural ou melhorar redacao, mas nao pode calcular saldo, total, percentual, ranking, parcelas, orcamento, metas ou dividas.
+- Query Engine fica separada da Command Engine: registrar gasto, importar extrato, criar/apagar itens, admin, OAuth e manutencao continuam fora da Query Engine.
+- A matriz de cobertura das perguntas financeiras foi criada em `docs/specs/financial-query-coverage-matrix.md`, organizando dominios, operacoes, filtros, bases temporais, fallback e aceite por dominio.
+- O contrato oficial do `FinancialQueryPlan` foi criado em `docs/specs/financial-query-plan-contract.md`. Formato canonico: `period` e `scope` ficam dentro de `filters`; `period.month` e zero-based (`0` janeiro, `5` junho, `11` dezembro); campos internos/sensiveis como `user_id`, `sheet_id`, tokens, prompts e linhas cruas devem ser bloqueados antes da execucao.
+- O mapa do legado das perguntas financeiras foi criado em `docs/audits/financial-query-legacy-map.md`, classificando rotas atuais como Query Engine, adaptadores legados, SQLite/read-model, fallback em memoria, fallback Sheets, Gemini e riscos conhecidos.
+- O roadmap oficial de migracao por dominio foi criado em `docs/specs/financial-query-migration-roadmap.md`. A ordem fixada e: gastos; cartoes/faturas/parcelamentos; entradas; transferencias/caixinha/reserva; orcamento; metas; dividas; contas/vencimentos; familia/escopo; dashboard/resumos. Implementacoes futuras devem seguir esse roteiro e so marcar um dominio como pronto quando ele virar `query_engine_primary`.
+- Os pacotes de implementacao para capacidade alta foram criados em `docs/specs/implementation-packets/`. Cada pacote fixa objetivo, arquivos provaveis, limites, aceite, testes, perguntas reais, riscos e criterio de pronto para migrar um dominio sem voltar a remendar frases isoladas.
+- A bateria oficial de aceitacao da Financial Query Engine foi criada em `docs/qa/financial-query-acceptance-battery.md`. Ela registra 265 casos porque os minimos por bloco somam 265, cobrindo dominios financeiros, familia, dashboard, adversariais, typos e follow-ups.
+
+Inicio local do Packet 01 - Expenses em 2026-06-05:
+
+- Perguntas locais de gastos agora carregam um `FinancialQueryPlan` validado antes da consulta de dados; `calculationOrchestrator` fica como adaptador temporario de formato para gastos.
+- A Query Engine calcula soma, detalhe, ranking por categoria/estabelecimento, percentual, media, maior/menor e trend/evolucao mensal para gastos gerais, incluindo cartoes por `billing_month` quando a pergunta e mensal geral.
+- Perguntas de hoje/ontem/ultimos dias e metodos como Pix/dinheiro/debito usam `transaction_date`.
+- Respostas de gastos com cartao por `billing_month` agora avisam que cartoes entram pelo mes de cobranca/fatura, nao necessariamente pela data da compra. Isso cobre total mensal, detalhamento, ranking, percentual e evolucao.
+- SQLite/read-model segue como fonte preferida quando disponivel e alimenta a Query Engine em caminhos cobertos. Decisao do Packet 01: usuarios em planilha pessoal ainda podem cair no fallback escopado de Google Sheets quando SQLite/read-model nao cobre ou nao esta sincronizado; esse caminho fica documentado como lacuna aceita, medido por `analysis_source=personal_sheet`/`analysis_source=sheets_fallback`, sem enviar dados crus ao Gemini, sem mudar schema e preservando escopo pessoal/familiar.
+- Lacunas explicitas do pacote: `gastos_valores_duplicados` e `contagem_lancamentos_saida` permanecem fora do caminho primario porque nao representam consumo geral com cartoes inclusos.
+- Validacao local apos revisao do Packet 01: `node --check` passou nos JS alterados; `node --test tests/unit.test.js tests/readModelSqlite.test.js` passou com 100 testes; `npm test` passou com 251 testes.
+
+Inicio local do Packet 02 - Cards, Invoices and Installments em 2026-06-05:
+
+- Perguntas analiticas de cartao/fatura/parcelamento agora entram como `FinancialQueryPlan` com dominio `cards` e passam pelo `query_engine_primary` antes de qualquer fallback.
+- Cobertura implementada: total de fatura, faturas por cartao, composicao/itens da fatura, ranking por cartao em aberto, parcelas/parcelamentos ativos, previsao por meses futuros, maior/menor compra parcelada e saldo restante por estabelecimento.
+- A Query Engine calcula valores finais, rankings, extremos, previsoes e agrupamentos; `calculationOrchestrator` segue apenas como adaptador temporario para formatos legados de resposta.
+- Respostas de cartao declaram a base temporal: fatura/cartao por mes de cobranca/fatura; compras feitas hoje/ontem/data explicita por data da compra.
+- SQLite/read-model recebeu metadados derivados de cartao (`card_id`, `card_name`, `installment_text`) para alimentar a Query Engine tambem em parcelamentos sem mudar schema da planilha real.
+- Correcao local apos auditoria do Packet 02: a fonte SQLite da Query Engine nao usa mais `LIMIT 1000` antes do calculo. O read-model aplica filtros SQL de escopo, dominio e periodo antes de devolver linhas para a engine, evitando total incompleto silencioso em historicos grandes.
+- Semantica ajustada para compra parcelada: quando a pergunta e sobre a compra original maior/menor, o total planejado usa o maior valor entre a soma das parcelas no escopo e `valor da parcela * total de parcelas`; o saldo/restante continua usando apenas parcelas em aberto/no escopo consultado.
+- Fallback Sheets continua existindo como rota escopada quando SQLite/read-model nao esta sincronizado ou nao cobre o contexto, mas nao e rota principal e nao envia dados crus ao Gemini.
+
+Inicio local do Packet 03 - Income/Entradas em 2026-06-05:
+
+- Perguntas analiticas de entradas/recebimentos/renda agora entram como `FinancialQueryPlan` com dominio `income` e `timeBasis=transaction_date`, usando a Query Engine como rota primaria.
+- Cobertura implementada: total recebido, total por categoria/fonte, salario, renda extra, listagem/detalhe, ranking de fontes e formas de recebimento, maior/menor entrada, contagem, media, percentual, comparacao com mes anterior e evolucao mensal.
+- Entradas usam criterio temporal explicito de data de recebimento registrada; respostas locais incluem `Critério: data de recebimento registrada.` quando relevante.
+- SQLite/read-model passou a alimentar a Query Engine para entradas com filtros SQL de escopo e periodo antes do calculo, incluindo `Recebimento` e `Recorrente` como metadados derivados, sem alterar schema de planilha real.
+- Perguntas ambiguas entre entrada, transferencia, caixinha/reserva ou fatura nao sao roteadas como `income` pelo planner local; quando chegam como pergunta, recebem esclarecimento antes de Gemini/calculo.
+- Escritas manuais como `recebi ... da caixinha/reserva` sao tratadas como `Transferências` (resgate de reserva), nao como `Entradas`, para nao inflar renda/dashboard.
+
+Inicio local do Packet 04 - Transferencias/Caixinha/Reserva em 2026-06-05:
+
+- Perguntas analiticas de transferencias, caixinha/reserva e pagamento de fatura agora entram como `FinancialQueryPlan` com dominio `transfers` e `timeBasis=transaction_date`, usando a Query Engine como rota primaria.
+- Cobertura implementada: total de transferencias, listagem, reserva aplicada, reserva resgatada, reserva liquida, transferencias entre contas proprias, transferencias para membro familiar autorizado, pagamento de fatura e disponivel estimado.
+- A Query Engine classifica transferencias em categorias canonicas (`reserve_applied`, `reserve_redeemed`, `invoice_payment`, `own_transfer`, `family_transfer`) e calcula disponivel estimado como saldo economico ajustado pela reserva liquida.
+- SQLite/read-model passou a sincronizar `Transferências` e alimentar a Query Engine com filtros SQL de escopo e periodo antes do calculo, sem mudar schema da planilha real.
+- Respostas locais explicam que transferencia interna, pagamento de fatura e caixinha/reserva nao sao gasto real nem renda nova; tambem declaram `Critério: data da transferência registrada.`
+- Correcao apos auditoria do Packet 04: escopo explicito pessoal em perguntas de transferencia (`transferi`, `mandei`, `enviei`, `paguei`) agora limita a consulta ao usuario atual; frases como `transferencia para Thais` preservam o escopo familiar/autorizado e usam `Thais` como destino/filtro de membro, nao como troca automatica de `user_id`.
+- Fallback Sheets continua existindo apenas como compatibilidade escopada quando SQLite/read-model nao cobre ou nao esta sincronizado; ele nao envia dados crus ao Gemini.
+
+Inicio local do Packet 05 - Budget/Orcamento em 2026-06-06:
+
+- Perguntas analiticas de orcamento mensal livre agora entram como `FinancialQueryPlan` com dominio `budget` e `timeBasis=budget_cycle`, usando a Query Engine como rota primaria.
+- Cobertura implementada: quanto posso gastar hoje, quanto ja usei do orcamento, ritmo diario, restante ate o fim do ciclo, escopo pessoal/familiar e explicacao auditavel do calculo.
+- A Query Engine calcula ciclo configurado, gasto livre do ciclo, gasto de hoje, ritmo diario recomendado, restante no ciclo, dias restantes, totais por saidas/cartoes e criterios; Response Composer/local reply apenas formata.
+- A semantica do dashboard foi preservada: orcamento nao usa mes calendario quando ha dia inicial configurado; ciclos podem cruzar meses; dias 1/28/30/31 usam o helper existente de ciclo; cartoes impactam o orcamento por vencimento/competencia da parcela, nao por data da compra.
+- SQLite/read-model passou a sincronizar configuracao publica de orcamento (`UserSettings`) e cadastro de cartoes (`Cartões`) para alimentar a Query Engine com escopo e periodo filtrados antes do calculo, sem mudar schema da planilha real.
+- Escopo familiar continua resolvido fora do LLM; resultados de agrupamento por membro usam rotulos publicos (`Membro 1`, etc.) e nao expõem `user_id`.
+- Correcao apos auditoria do Packet 05: configuracao de orcamento agora e selecionada pelo escopo pedido. Consulta pessoal nao reutiliza silenciosamente orcamento familiar; consulta familiar usa a configuracao familiar mesmo quando o membro possui orcamento pessoal antigo; sem escopo explicito, vinculo familiar com orcamento familiar ativo prioriza o familiar, em paridade com o dashboard.
+- Definir, alterar e desativar orcamento continuam na Command Engine; alertas existentes seguem fora da Query Engine. Fallback Sheets permanece apenas como compatibilidade escopada quando SQLite/read-model nao cobre/sincroniza.
+- Auditoria de recuperacao concluida em 2026-06-06: a cobertura equivalente dos Packets 01-04 foi reconstruida por capacidade em `tests/unit.test.js`, cobrindo planner, Query Engine, Response Composer, bases temporais, follow-ups seguros, escopo pessoal/familiar e seguranca. A auditoria encontrou e corrigiu regressões funcionais causadas pela recuperacao: tendencia mensal agrupando linhas/dias em vez de meses, maior/menor compra parcelada comparando parcelas isoladas e reserva liquida somando aplicacao com resgate em vez de subtrair. Uma revisao adversarial posterior tambem corrigiu tendencias por `transaction_date` que ainda agrupavam cartoes pelo mes da fatura, limite de tendencia que retornava os meses mais antigos e fusao indevida de compras parceladas distintas com mesmo estabelecimento/cartao/categoria. `tests/unit.test.js` passou com 110/110; bateria focada com SQLite e maquina de estados passou com 161/161; `npm test` passou com 274/274. O blocker de cobertura antes do Packet 06 foi removido, mas nenhum trabalho do Packet 06 foi iniciado.
+
+## Packet 06 - Goals/Metas (local, sem deploy)
+
+- Consultas analiticas de metas agora usam `FinancialQueryPlan` com `domain=goals` e passam por `query_engine_primary`.
+- `Metas` permanece a fonte autoritativa de valor atual, alvo, status e escopo. `Movimentacoes Metas` alimenta historico, aportes, retiradas e explicacao auditavel; a Query Engine nao soma as duas fontes, evitando dupla contagem.
+- O read-model SQLite ganhou `goal_movements` e filtra metas pessoais/familiares autorizadas antes da Query Engine. Sheets permanece como fallback escopado e observado.
+- Metas pausadas, canceladas e concluidas sao distinguidas e nao entram no faltante/progresso ativo.
+- Criacao, aporte, retirada, ajuste e mudanca de status continuam exclusivamente no Command Engine.
+- Cobertura local adicionada para planner, progresso/faltante, historico, status, escopo familiar, ausencia de IDs publicos e compatibilidade com a maquina de estados.
+- Correcao apos auditoria do Packet 06: `resumo_metas` agora preserva filtros seguros vindos do planner, incluindo `scope=family`, e o classificador local reconhece `familiares` no plural. Isso evita que perguntas como "quais metas familiares temos?" misturem metas pessoais na resposta.
+- Validacao apos auditoria: bateria focada (`unit`, `readModelSqlite`, `financialStateMachine`) passou com 167/167 e `npm test` passou com 280/280. Nenhum deploy, commit ou Packet 07 iniciado.
+
+## Packet 07 - Debts/Dividas (local, sem deploy)
+
+- Consultas analiticas de dividas agora usam `FinancialQueryPlan` com `domain=debts` e `timeBasis=due_date`, passando por `query_engine_primary`.
+- Cobertura implementada: saldo total, saldo por divida/credor, parcelas/vencimentos proximos, atrasadas, quitadas, ranking por juros/vencimento/saldo, recomendacao read-only de prioridade e explicacao auditavel.
+- SQLite/read-model sincroniza campos ja existentes da aba `Dívidas` para uma tabela local expandida e alimenta a Query Engine com escopo filtrado antes do calculo. A planilha real nao teve schema alterado.
+- Criar divida e registrar pagamento continuam no Command Engine; perguntas de escrita nao entram na Query Engine.
+- Resultados publicos nao expoem `user_id`, `sheet_id`, tokens, URLs privadas ou linhas cruas. Escopo pessoal/familiar segue resolvido antes da Query Engine.
+- Lacuna aceita: a aba atual nao possui historico individual de pagamentos de dividas; "pagamentos registrados" sao inferidos de forma deterministica como `Valor Original - Saldo Atual`. Historico detalhado exigiria pacote/schema proprio futuro.
+- Correcao apos auditoria do Packet 07: perguntas de vencimento relativo como "nos proximos dias" nao recebem mais mes/ano implicitos e atravessam corretamente a virada do mes.
+- Correcao apos auditoria do Packet 07: o read-model preserva e usa os cabecalhos reais da aba `Dívidas`, mantendo compatibilidade com o schema legado e com o schema atual de planilhas de usuario.
+- Correcao apos auditoria do Packet 07: dividas ativas sem `Próximo Vencimento` explicito derivam o proximo vencimento pelo dia cadastrado e nao ficam atrasadas para sempre; dias 29/30/31 sao ajustados para meses curtos.
+- Correcao apos auditoria do Packet 07: a criacao de divida monta a linha conforme os cabecalhos da planilha ativa, evitando gravar status, parcelas pagas e proximo vencimento em colunas incorretas.
+- Validacao apos auditoria: bateria focada (`unit`, `readModelSqlite`, `financialExplainability`, `financialStateMachine`) passou com 178/178 e `npm test` passou com 289/289. A bateria `functional.test.js` habilitada permaneceu bloqueada corretamente pela trava de seguranca de reset de planilha; ela nao foi forçada contra dados reais. Nenhum deploy, commit ou Packet 08 iniciado.
+
+## Packet 08 - Bills/Contas e vencimentos (local, sem deploy)
+
+- Consultas analiticas de contas recorrentes e vencimentos agora usam `FinancialQueryPlan` com `domain=bills` e `timeBasis=due_date`, passando por `query_engine_primary`.
+- Cobertura implementada: cadastro/listagem de contas recorrentes, vencimentos hoje/amanha/proximos N dias, total esperado, total realizado associado, total pendente, status pago/pendente, comparacao esperado versus realizado e explicacao auditavel.
+- A Query Engine materializa ocorrencias mensais deterministicamente e ajusta dias 29, 30 e 31 para o ultimo dia valido em meses curtos. Janelas relativas atravessam viradas de mes e ano.
+- `Contas` continua sendo a fonte do valor esperado e vencimento; `Saídas` fornece o realizado. Cada saida e atribuida a melhor conta compativel do mesmo usuario e mes por descricao, categoria e subcategoria, sem dupla contagem. `Regra Ativa` continua significando classificacao automatica, nao status pago.
+- SQLite/read-model ganhou a tabela local `recurring_bills` e alimenta a Query Engine com contas e apenas as saidas do escopo/periodo necessario antes do calculo. Nao houve mudanca no schema real da planilha.
+- Scheduler e Query Engine compartilham a mesma regra de vencimento recorrente para meses curtos. Eventos do Calendar permanecem fora do calculo financeiro de contas.
+- Escopo pessoal/familiar continua resolvido antes da Query Engine; resultados publicos nao expoem IDs internos. Criar/alterar conta, lembrete e calendario continuam fora da Query Engine.
+- Lacunas aceitas: a aba `Contas` nao possui confirmacao explicita de pagamento, entao pago/pendente e inferido por associacao com `Saídas`; uma conta manual paga somente por cartao ou registrada apenas como transferencia pode continuar pendente ate existir vinculacao explicita entre fontes. Contas muito parecidas podem exigir um identificador de regra em pacote/schema futuro. Planilha pessoal ainda pode usar fallback Sheets escopado quando o read-model nao cobre ou nao esta sincronizado.
+- Validacao apos auditoria do Packet 08: bateria focada (`unit`, `readModelSqlite`, `schedulerJobs`, `financialExplainability`, `financialStateMachine`) passou com 197/197; `npm test` passou com 301/301. Nenhum deploy, commit ou Packet 09 iniciado.
+- Correcao apos auditoria do Packet 08: o scheduler agora calcula o proximo vencimento recorrente, atravessando viradas de mes e ano, e mostra o dia real quando um vencimento 29/30/31 e ajustado para mes curto.
+- Correcao apos auditoria do Packet 08: a inferencia de pagamento deixou de aceitar subcategoria isolada como evidencia suficiente; exige nome/descricao compativel ou categoria, subcategoria e valor esperado compativeis.
+- Correcao apos auditoria do Packet 08: textos muito curtos nao podem produzir correspondencia fuzzy e marcar uma conta como parcialmente realizada por engano.
+- Correcao apos auditoria do Packet 08: consultas familiares autorizadas reconhecem pagamento feito por outro membro, enquanto consultas pessoais continuam isoladas. Perguntas por conta especifica filtram tanto nome amigavel quanto nome original cadastrado.
+
+## Packet 09 - Family and Scope (local, sem deploy)
+
+- O `Scope Resolver` transversal foi consolidado em `src/services/financialScopeResolver.js` e agora roda uma unica vez, fora do LLM, depois do plano e antes de qualquer leitura financeira.
+- Escopo pessoal virou o default efetivo. Familia exige vinculo ativo; membro exige correspondencia unica dentro do vinculo autorizado; ambiguidade ou membro nao autorizado gera esclarecimento antes da Query Engine.
+- O escopo resolvido e aplicado ao `FinancialQueryPlan`, ao SQLite/read-model e ao fallback Sheets. O read-model ignora listas de usuarios que tentem ampliar acesso sem um escopo resolvido autorizado.
+- Follow-ups preservam apenas `scope` e nome publico seguro do membro. Contexto pessoal nao pode ser promovido silenciosamente para familia/membro, e revogar o vinculo remove o membro da proxima resolucao imediatamente.
+- Correcao apos auditoria do Packet 09: follow-up generico vindo de contexto pessoal tambem nao pode ser promovido para `member` apenas porque planner/contexto trouxe `requestedMember`. A promocao para membro segue permitida quando o usuario nomeia explicitamente o membro na nova pergunta.
+- Correcao apos auditoria do Packet 09: `matchedUser` no resultado do resolver foi reduzido a rotulo publico, evitando carregar o registro completo do usuario em objetos que podem circular por helpers, logs ou testes.
+- Nomes de cartao nao concedem identidade/permissao de membro. Consultas como fatura do `Nubank Thais` continuam pessoais salvo pedido familiar ou por pessoa explicitamente autorizado.
+- Admin nao ganha acesso financeiro amplo pela Query Engine. `ALL_USERS_ID` e pedidos de todos os usuarios sao bloqueados nesse caminho; a excecao temporaria do dashboard continua separada e regida pelo ADR-002.
+- Logs novos de resolucao registram apenas escopo, contagem e motivo seguro. Logs de vinculo/revogacao familiar deixaram de imprimir IDs internos.
+- Lacuna aceita: o dashboard ainda possui excecao all-users controlada por flag para beta/teste, fora da Financial Query Engine; sua remocao/substituicao permanece gate obrigatorio antes de escala multiusuario, conforme ADR-002.
+- Lacuna aceita: logs novos da rota analitica e de vinculo/revogacao familiar nao imprimem IDs internos, mas ainda existem logs operacionais legados fora da Query Engine, especialmente em admin/OAuth/escritas, que carregam IDs. A sanitizacao global deve ser tratada em pacote proprio para nao ampliar o Packet 09 sobre onboarding, OAuth, admin e escrita financeira.
+- Validacao local do Packet 09: `node --check` passou nos 12 arquivos JS alterados; bateria focada de escopo, seguranca, Query Engine, SQLite, OAuth, explainability e maquina de estados passou com 207/207; `npm test` passou com 307/307. Nenhum deploy, commit ou Packet 10 iniciado.
+- Revalidacao apos auditoria corretiva do Packet 09: `node --check` passou nos arquivos revisados; bateria focada (`unit`, `readModelSqlite`, `googleOAuthService`, `financialStateMachine`, `dashboardAuthSecurity`) passou com 204/204; `npm test` passou com 307/307; `state_store.json` foi restaurado para `{}`. Nenhum deploy, commit ou Packet 10 iniciado.
+
+## Packet 10 - Dashboard and Summaries (local, sem deploy)
+
+- Dashboard API, UI e WhatsApp `resumo` passaram a compartilhar criterios publicos de calculo via `dashboardSummaryService`, sem Gemini calcular KPIs, percentuais, rankings, orcamento, metas, dividas ou parcelas.
+- O `resumo` do WhatsApp deixou de montar leitura paralela de Sheets/saude de caixa e agora formata o mesmo snapshot deterministico do dashboard/read-model ou da planilha pessoal escopada.
+- O dashboard declara bases temporais: entradas por data de recebimento/lancamento, saidas por data da compra/lancamento, cartoes do dashboard mensal por data da compra, orcamento por ciclo configurado/competencia da parcela, e transferencias internas fora de renda/gasto.
+- SQLite/read-model agora inclui reserva/caixinha no `saldoDisponivelEstimado` e mostra transferencias em lancamentos recentes com tipo explicito, sem misturar com renda ou despesa.
+- Planilha pessoal continua como fonte primaria quando existe contexto OAuth do usuario, mas o contrato publico agora e decorado com os mesmos criterios do dashboard. A excecao admin `ALL_USERS_ID` continua apenas como modo beta/suporte isolado por flag conforme ADR-002.
+- Validacao local do Packet 10: `node --check` passou nos JS alterados; bateria obrigatoria (`dashboardApiContracts`, `dashboardAuthSecurity`, `financialExplainability`, `readModelSqlite`, `unit`) passou com 170/170; `npm test` passou com 309/309; `git diff --check` passou; varredura NUL sem achados; `state_store.json` restaurado para `{}`. Nenhum deploy, commit ou Packet 11 iniciado.
 
 ## Higiene do workspace
 
