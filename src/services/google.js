@@ -750,7 +750,9 @@ async function readDataFromSheet(range, options = {}) {
             ? mapValuesFromUserSpreadsheetRange(range, cloneSheetValues(values))
             : cloneSheetValues(values);
     } catch (error) {
-        console.error(`❌ Erro ao ler dados da planilha (${range}):`, error.message);
+        if (!(options.suppressMissingSheetError && isMissingUserSheetError(error))) {
+            console.error(`❌ Erro ao ler dados da planilha (${range}):`, error.message);
+        }
         return [];
     } finally {
         sheetsReadInFlight.delete(cacheKey);

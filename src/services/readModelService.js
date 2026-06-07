@@ -445,7 +445,7 @@ async function rebuildReadModelFromSheets() {
         readDataFromSheet('Dívidas!A:R'),
         readDataFromSheet('Contas!A:I'),
         readDataFromSheet('UserSettings!A:S'),
-        readDataFromSheet('Cartões!A:G'),
+        readDataFromSheet('Cartões!A:G', { suppressMissingSheetError: true }),
         ...cardSheetNames.map((sheetName) => readDataFromSheet(`${sheetName}!A:G`))
     ];
 

@@ -4010,6 +4010,42 @@ test('google.readDataFromSheet caches repeated reads and invalidates after write
     }
 });
 
+test('google.readDataFromSheet silently tolerates an explicitly optional missing sheet', async () => {
+    googleService.__test__.clearSheetsReadCache();
+    const originalConsoleError = console.error;
+    const errors = [];
+    const fakeSheets = {
+        spreadsheets: {
+            values: {
+                get: async () => {
+                    throw new Error('Unable to parse range: Cartões!A:G');
+                }
+            }
+        }
+    };
+
+    googleService.__test__.setGoogleClientsForTest({
+        sheetsClient: fakeSheets,
+        tasksClient: {},
+        calendarClient: {},
+        oauthClient: {}
+    });
+    console.error = (...args) => errors.push(args);
+
+    try {
+        const rows = await googleService.readDataFromSheet('Cartões!A:G', {
+            forceCentral: true,
+            suppressMissingSheetError: true
+        });
+
+        assert.deepStrictEqual(rows, []);
+        assert.deepStrictEqual(errors, []);
+    } finally {
+        console.error = originalConsoleError;
+        googleService.__test__.clearSheetsReadCache();
+    }
+});
+
 test('google share helpers create and revoke Drive permissions by email', async () => {
     const created = [];
     const deleted = [];
