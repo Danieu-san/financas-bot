@@ -142,3 +142,11 @@ test('whatsapp import e2e confirmation expectations use the generated row count'
         ]
     );
 });
+
+test('whatsapp import e2e selects document inputs and rejects image-only inputs', () => {
+    const { findDocumentInputIndex } = require('../scripts/runWhatsappImportE2E');
+
+    assert.strictEqual(findDocumentInputIndex(['image/*', 'application/*']), 1);
+    assert.strictEqual(findDocumentInputIndex(['image/*', 'text/csv']), 1);
+    assert.strictEqual(findDocumentInputIndex(['image/*']), -1);
+});

@@ -45,6 +45,93 @@ function buildConfirmationExpectations(expectedCount) {
     ];
 }
 
+async function waitForAnyNewText(driver, expectedAny, previousCounts) {
+    return driver.waitForAnyIncomingMessage({
+        containsAny: expectedAny,
+        previousCounts,
+        timeoutMs: driver.config.timeoutMs
+    });
+}
+
+async function progressImportToPreview(driver, previewMarker, previousCounts) {
+    const expectedSteps = [
+        previewMarker,
+        'é de quem?',
+        'Esse extrato é de qual tipo?',
+        'Não encontrei data em'
+    ];
+    let found = await waitForAnyNewText(driver, expectedSteps, previousCounts);
+
+    for (let guard = 0; found !== previewMarker && guard < 4; guard += 1) {
+        if (found === 'é de quem?') {
+            found = await sendAndWaitForAnyReply(driver, '1', [
+                previewMarker,
+                'Esse extrato é de qual tipo?',
+                'Não encontrei data em'
+            ]);
+            continue;
+        }
+        if (found === 'Não encontrei data em') {
+            found = await sendAndWaitForAnyReply(driver, '17/05/2026', [
+                previewMarker,
+                'Esse extrato é de qual tipo?'
+            ]);
+            continue;
+        }
+        if (found === 'Esse extrato é de qual tipo?') {
+            found = await sendAndWaitForAnyReply(driver, '1', [previewMarker]);
+            continue;
+        }
+        break;
+    }
+
+    if (found !== previewMarker) {
+        throw new Error(`Fluxo de importação não chegou à prévia. Última etapa observada: ${found || 'nenhuma'}`);
+    }
+}
+
+async function cleanupImportedFixture(driver, suffix) {
+    for (const type of ['gasto', 'entrada']) {
+        const found = await sendAndWaitForAnyReply(driver, `apagar ${type} ${suffix}`, [
+            'Encontrei',
+            'Não encontrei nenhum item'
+        ]);
+        if (found === 'Não encontrei nenhum item') {
+            throw new Error(`Limpeza seletiva não encontrou o ${type} marcado com ${suffix}.`);
+        }
+        await sendAndWaitForAnyReply(driver, 'sim', [
+            'Item(ns) apagado(s) com sucesso',
+            'Ocorreu um erro ao apagar'
+        ]);
+    }
+}
+
+async function prepareImportPreview(driver, filePath, previewMarker, expectedPreviewText) {
+    const expectedSteps = [
+        previewMarker,
+        'é de quem?',
+        'Esse extrato é de qual tipo?',
+        'Não encontrei data em'
+    ];
+    const previousCounts = {};
+    for (const expected of expectedSteps) {
+        previousCounts[expected] = await driver.countTextOccurrences(expected);
+    }
+    const previousPromptCount = await driver.countTextOccurrences('Responda sim');
+
+    await uploadFile(driver, filePath);
+    await progressImportToPreview(driver, previewMarker, previousCounts);
+    const visibleText = await driver.getVisibleText();
+    if (!visibleText.includes(expectedPreviewText)) {
+        throw new Error(`A prévia nova não informou a contagem esperada: ${expectedPreviewText}.`);
+    }
+    await driver.waitForIncomingMessage({
+        contains: 'Responda sim',
+        previousCount: previousPromptCount,
+        timeoutMs: driver.config.timeoutMs
+    });
+}
+
 async function uploadFile(driver, filePath) {
     const page = driver.page;
     const attachSelectors = [
@@ -62,45 +149,95 @@ async function uploadFile(driver, filePath) {
         }
     }
 
-    const fileInputs = page.locator('input[type="file"]');
-    const fileInputCount = await fileInputs.count();
-    const accepts = [];
-    let selectedIndex = Math.max(0, fileInputCount - 1);
-    for (let index = 0; index < fileInputCount; index += 1) {
-        const accept = await fileInputs.nth(index).getAttribute('accept').catch(() => '') || '';
-        accepts.push(accept);
-        const normalizedAccept = accept.toLowerCase();
-        if (
-            !normalizedAccept ||
-            normalizedAccept.includes('*') ||
-            normalizedAccept.includes('text') ||
-            normalizedAccept.includes('csv') ||
-            normalizedAccept.includes('application')
-        ) {
-            selectedIndex = index;
+    const documentOptionFactories = [
+        () => page.locator('button[role="menuitem"][aria-label="Documento"]').last(),
+        () => page.locator('button[role="menuitem"][aria-label="Document"]').last(),
+        () => page.locator('[role="menuitem"][aria-label="Documento"]').last(),
+        () => page.locator('[role="menuitem"][aria-label="Document"]').last(),
+        () => page.getByText('Documento', { exact: true }).last(),
+        () => page.getByText('Document', { exact: true }).last(),
+        () => page.locator('[aria-label="Documento"]').last(),
+        () => page.locator('[aria-label="Document"]').last()
+    ];
+    for (const buildCandidate of documentOptionFactories) {
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+            const candidate = buildCandidate();
+            if (!(await candidate.isVisible({ timeout: 1500 }).catch(() => false))) break;
+
+            const fileChooserPromise = page.waitForEvent('filechooser', { timeout: 10000 }).catch(() => null);
+            const clicked = await candidate.click({ force: true, timeout: 5000 })
+                .then(() => true)
+                .catch(() => false);
+            if (!clicked) continue;
+
+            const fileChooser = await fileChooserPromise;
+            if (fileChooser) {
+                await fileChooser.setFiles(filePath);
+                return clickAttachmentSendButton(page);
+            }
             break;
         }
     }
+
+    const fileInputs = page.locator('input[type="file"]');
+    const fileInputCount = await fileInputs.count();
+    const accepts = [];
+    for (let index = 0; index < fileInputCount; index += 1) {
+        const accept = await fileInputs.nth(index).getAttribute('accept').catch(() => '') || '';
+        accepts.push(accept);
+    }
+    const selectedIndex = findDocumentInputIndex(accepts);
     if (fileInputCount === 0) {
         throw new Error('Nenhum input de arquivo apareceu após clicar em anexar.');
+    }
+    if (selectedIndex < 0) {
+        throw new Error(`Nenhum input de documento apareceu após clicar em anexar. Inputs accept vistos: ${JSON.stringify(accepts)}`);
     }
 
     const fileInput = fileInputs.nth(selectedIndex);
     await fileInput.setInputFiles(filePath);
+    await clickAttachmentSendButton(page);
+}
 
+async function clickAttachmentSendButton(page) {
     const sendSelectors = [
         '[aria-label="Enviar"]',
         '[aria-label="Send"]',
-        'span[data-icon="send"]'
+        '[aria-label^="Enviar "]',
+        '[aria-label^="Send "]',
+        'span[data-icon="send"]',
+        'span[data-icon="wds-ic-send-filled"]'
     ];
     for (const selector of sendSelectors) {
         const candidate = page.locator(selector).last();
-        if (await candidate.isVisible({ timeout: 30000 }).catch(() => false)) {
-            await candidate.click();
-            return;
+        const visible = await candidate.waitFor({ state: 'visible', timeout: 10000 })
+            .then(() => true)
+            .catch(() => false);
+        if (!visible) continue;
+        await candidate.click({ force: true });
+        const previewClosed = await candidate.waitFor({ state: 'hidden', timeout: 30000 })
+            .then(() => true)
+            .catch(() => false);
+        if (!previewClosed) {
+            throw new Error('A prévia do anexo permaneceu aberta após clicar em enviar.');
         }
+        return;
     }
-    throw new Error(`Botão de envio do anexo não apareceu. Inputs accept vistos: ${JSON.stringify(accepts)}`);
+    throw new Error('Botão de envio do anexo não apareceu.');
+}
+
+function findDocumentInputIndex(accepts = []) {
+    return accepts.findIndex(accept => {
+        const normalized = String(accept || '').toLowerCase();
+        if (!normalized) return true;
+        if (normalized.includes('image/') && !normalized.includes('application')) return false;
+        return (
+            normalized.includes('*') ||
+            normalized.includes('text') ||
+            normalized.includes('csv') ||
+            normalized.includes('application')
+        );
+    });
 }
 
 async function main() {
@@ -109,30 +246,26 @@ async function main() {
     const shouldConfirm = ['1', 'true', 'sim', 's', 'yes'].includes(
         String(process.env.IMPORT_E2E_CONFIRM || '').trim().toLowerCase()
     );
+    const shouldCheckDuplicate = ['1', 'true', 'sim', 's', 'yes'].includes(
+        String(process.env.IMPORT_E2E_DUPLICATE_CHECK || '').trim().toLowerCase()
+    );
     const driver = await launchWhatsAppWebDriver(config);
 
     try {
-        console.log(`[import-e2e] fixture=${filePath} suffix=${suffix} count=${expectedCount} complex=${complex} confirm=${shouldConfirm}`);
+        console.log(`[import-e2e] fixture=${filePath} suffix=${suffix} count=${expectedCount} complex=${complex} confirm=${shouldConfirm} duplicate=${shouldCheckDuplicate}`);
         await driver.gotoHome();
         await driver.assertLoggedIn();
         await driver.openChat(config.botPhone);
         const expectedPreviewText = `Encontrei ${expectedCount} lançamento`;
-        const previousPreviewCount = await driver.countTextOccurrences(expectedPreviewText);
-        const previousPromptCount = await driver.countTextOccurrences('Responda sim');
-        await uploadFile(driver, filePath);
-        await driver.waitForIncomingMessage({
-            contains: expectedPreviewText,
-            previousCount: previousPreviewCount,
-            timeoutMs: config.timeoutMs
-        });
-        await driver.waitForIncomingMessage({
-            contains: 'Responda sim',
-            previousCount: previousPromptCount,
-            timeoutMs: config.timeoutMs
-        });
+        await prepareImportPreview(driver, filePath, suffix, expectedPreviewText);
 
         if (shouldConfirm) {
             await sendAndWaitForAnyReply(driver, 'sim', buildConfirmationExpectations(expectedCount));
+            if (shouldCheckDuplicate) {
+                await prepareImportPreview(driver, filePath, suffix, expectedPreviewText);
+                await sendAndWaitForAnyReply(driver, 'sim', buildConfirmationExpectations(0));
+            }
+            await cleanupImportedFixture(driver, suffix);
         } else {
             await sendAndWaitForAnyReply(driver, 'não', [
                 'Importação cancelada',
@@ -155,5 +288,9 @@ if (require.main === module) {
 module.exports = {
     buildConfirmationExpectations,
     buildImportFixture,
+    cleanupImportedFixture,
+    findDocumentInputIndex,
+    prepareImportPreview,
+    progressImportToPreview,
     uploadFile
 };

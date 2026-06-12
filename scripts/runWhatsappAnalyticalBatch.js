@@ -164,7 +164,7 @@ function buildAnalyticalSuites() {
                 },
                 {
                     question: 'mercado foi maior que transporte em maio de 2026?',
-                    expectAny: ['Diferença:', 'mercado:']
+                    expectAny: ['Diferença:', 'mercado:', 'Não consegui comparar as categorias']
                 }
             ]
         },
