@@ -2992,6 +2992,11 @@ test('messageHandler analytical follow-ups inherit safe context without raw spre
     assert.strictEqual(categoryFollowUp.parameters.mes, 4);
     assert.strictEqual(categoryFollowUp.parameters.ano, 2026);
 
+    const listFollowUp = classifyPerguntaLocally('liste meus gastos com mercdo em maio de 2026', context);
+    assert.strictEqual(listFollowUp.intent, 'listagem_gastos_mes');
+    assert.strictEqual(listFollowUp.financialQueryPlan.domain, 'expenses');
+    assert.strictEqual(listFollowUp.financialQueryPlan.operation, 'list');
+
     clearAnalyticalContextForTests();
 });
 
@@ -3028,6 +3033,15 @@ test('messageHandler.local replies cover greeting and total month', (t) => {
     assert.ok(reply.includes('Total gasto em fevereiro/2026: R$ 150,50'));
     assert.ok(reply.includes('Saídas: R$ 100,00'));
     assert.ok(reply.includes('Cartões: R$ 50,50'));
+
+    const emptyListReply = buildLocalPerguntaResponse({
+        intent: 'listagem_gastos_mes',
+        analyzedData: {
+            results: [],
+            details: { mes: 4, ano: 2026 }
+        }
+    });
+    assert.match(emptyListReply, /Não encontrei gastos/);
 });
 
 test('messageHandler pre-onboarding invite helpers build safe admin invitation', () => {
@@ -3468,6 +3482,11 @@ test('calculationOrchestrator answers complex spending questions deterministical
     const minMax = await calculationOrchestrator.execute('maior_menor_gasto', { mes: 1, ano: 2026 }, dataSources);
     assert.strictEqual(minMax.results.max[1], 'mercado guanabara');
     assert.strictEqual(minMax.results.min[1], 'onibis centro');
+
+    const listAll = await calculationOrchestrator.execute('listagem_gastos_mes', { mes: 1, ano: 2026 }, dataSources);
+    assert.strictEqual(listAll.results.length, 9);
+    assert.strictEqual(listAll.details.mes, 1);
+    assert.strictEqual(listAll.details.ano, 2026);
 
     const balance = await calculationOrchestrator.execute('saldo_do_mes', { mes: 1, ano: 2026 }, dataSources);
     assert.strictEqual(round2(balance.results), 2047.31);

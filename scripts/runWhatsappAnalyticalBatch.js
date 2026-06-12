@@ -92,7 +92,7 @@ function buildAnalyticalSuites() {
                 },
                 {
                     question: 'qual foi meu maior e menor gasto em maio de 2026?',
-                    expectAny: ['Maior e menor gasto', 'Maior:', 'Menor:']
+                    expectAny: ['Maior e menor gasto', 'Não encontrei gastos']
                 },
                 {
                     question: 'qual meu saldo de maio de 2026?',

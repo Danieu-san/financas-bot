@@ -12,6 +12,7 @@ const FINANCIAL_QUERY_ENGINE_PRIMARY_INTENTS = new Set([
     'total_gastos_multiplas_categorias',
     'percentual_categoria_gastos',
     'comparacao_gastos_categorias',
+    'listagem_gastos_mes',
     'listagem_gastos_categoria',
     'contagem_ocorrencias',
     'maior_menor_gasto',
@@ -617,7 +618,7 @@ async function executeLegacyExpenseQueryIntent(intent, params = {}, dataSources 
         };
     }
 
-    if (intent === 'listagem_gastos_categoria') {
+    if (intent === 'listagem_gastos_categoria' || intent === 'listagem_gastos_mes') {
         return {
             results: Array.isArray(value) ? value.map(publicItemToLegacyRow) : [],
             details: { ...safeParams, mes, ano }

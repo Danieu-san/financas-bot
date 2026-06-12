@@ -3541,7 +3541,7 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
         ].join('\n');
     }
 
-    if (intent === 'listagem_gastos_categoria') {
+    if (intent === 'listagem_gastos_categoria' || intent === 'listagem_gastos_mes') {
         if (!Array.isArray(results) || results.length === 0) {
             return `Não encontrei gastos para esse filtro em ${periodLabel}.`;
         }
