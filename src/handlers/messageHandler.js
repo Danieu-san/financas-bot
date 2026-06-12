@@ -131,6 +131,12 @@ const mapeamentoEntradas = {
 };
 const categoriasEntradaOficiais = ["Salário", "Renda Extra", "Investimentos", "Presente", "Reembolso", "Venda", "Outros"];
 const metodosRecebimento = ["Conta Corrente", "Poupança", "Dinheiro", "PIX"];
+const expenseComparisonTerms = new Set([
+    ...Object.keys(mapeamentoGastos),
+    ...Object.values(mapeamentoGastos).flatMap(item => [item.categoria, item.subcategoria]),
+    'alimentacao', 'assinaturas', 'compras', 'educacao', 'lazer', 'moradia', 'outros',
+    'saude', 'servicos pessoais', 'transporte', 'vestuario'
+].map(normalizeText));
 
 // Schema Unificado Completo
 const MASTER_SCHEMA = {
@@ -1577,6 +1583,10 @@ function extractComparisonCategoriesFromQuestion(text) {
     return [];
 }
 
+function categoriesLookLikeExpenses(categories = []) {
+    return categories.length === 2 && categories.every(category => expenseComparisonTerms.has(normalizeText(category)));
+}
+
 function extractCardFromQuestion(text) {
     const normalized = normalizeText(String(text || '').trim());
     const knownCards = ['nubank', 'itau', 'itaú', 'atacadao', 'atacadão', 'inter', 'santander', 'bradesco'];
@@ -2696,7 +2706,14 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
     if ((text.includes('cortar') || text.includes('economizar') || text.includes('onde eu deveria')) && (text.includes('gasto') || text.includes('gastos') || text.includes('lancamento') || text.includes('lançamento'))) {
         return { metric: 'expense_recommendation', intent: 'recomendacao_corte_gastos', parameters: expenseParams({ advice: true }) };
     }
-    if (comparisonCategories.length === 2) {
+    if (
+        comparisonCategories.length === 2 &&
+        (
+            hasExpenseSignal ||
+            /\b(categoria|categorias|gasto|gastos|despesa|despesas)\b/.test(text) ||
+            categoriesLookLikeExpenses(comparisonCategories)
+        )
+    ) {
         return { metric: 'category_comparison', intent: 'comparacao_gastos_categorias', parameters: expenseParams({ categorias: comparisonCategories }) };
     }
     if (text.includes('maior') || text.includes('menor')) {

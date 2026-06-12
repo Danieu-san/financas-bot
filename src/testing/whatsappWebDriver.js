@@ -223,9 +223,18 @@ class WhatsAppWebDriver {
         return countOccurrences(await this.getVisibleText(), search);
     }
 
+    async countIncomingTextOccurrences(search) {
+        return this.page.evaluate(text => {
+            return Array.from(document.querySelectorAll('.message-in, [data-id]'))
+                .filter(message => message.matches('.message-in') || message.querySelector('[data-icon="tail-in"]'))
+                .reduce((total, message) => total + (String(message.innerText || '').split(text).length - 1), 0);
+        }, search);
+    }
+
     async getLatestIncomingFingerprint() {
         return this.page.evaluate(() => {
-            const messages = Array.from(document.querySelectorAll('.message-in'));
+            const messages = Array.from(document.querySelectorAll('.message-in, [data-id]'))
+                .filter(message => message.matches('.message-in') || message.querySelector('[data-icon="tail-in"]'));
             const latest = messages[messages.length - 1];
             if (!latest) return '';
             const container = latest.closest('[data-id]') || latest;
@@ -251,8 +260,12 @@ class WhatsAppWebDriver {
     }) {
         await this.page.waitForFunction(
             ({ text, minCount, oldFingerprint }) => {
-                const bodyText = document.body.innerText || '';
-                const messages = Array.from(document.querySelectorAll('.message-in'));
+                const messages = Array.from(document.querySelectorAll('.message-in, [data-id]'))
+                    .filter(message => message.matches('.message-in') || message.querySelector('[data-icon="tail-in"]'));
+                const incomingCount = messages.reduce(
+                    (total, message) => total + (String(message.innerText || '').split(text).length - 1),
+                    0
+                );
                 const latest = messages[messages.length - 1];
                 const container = latest?.closest('[data-id]') || latest;
                 const fingerprint = container?.getAttribute('data-id') ||
@@ -261,7 +274,7 @@ class WhatsAppWebDriver {
                     latest?.outerHTML ||
                     '';
                 const latestText = latest?.innerText || '';
-                return bodyText.split(text).length - 1 > minCount ||
+                return incomingCount > minCount ||
                     (fingerprint && fingerprint !== oldFingerprint && latestText.includes(text));
             },
             { text: contains, minCount: previousCount, oldFingerprint: previousFingerprint },
@@ -279,11 +292,16 @@ class WhatsAppWebDriver {
     }) {
         const found = await this.page.waitForFunction(
             ({ texts, counts, oldFingerprint }) => {
-                const bodyText = document.body.innerText || '';
-                const countMatch = texts.find(text => bodyText.split(text).length - 1 > (counts[text] || 0));
+                const messages = Array.from(document.querySelectorAll('.message-in, [data-id]'))
+                    .filter(message => message.matches('.message-in') || message.querySelector('[data-icon="tail-in"]'));
+                const countMatch = texts.find(text => {
+                    const incomingCount = messages.reduce(
+                        (total, message) => total + (String(message.innerText || '').split(text).length - 1),
+                        0
+                    );
+                    return incomingCount > (counts[text] || 0);
+                });
                 if (countMatch) return countMatch;
-
-                const messages = Array.from(document.querySelectorAll('.message-in'));
                 const latest = messages[messages.length - 1];
                 const container = latest?.closest('[data-id]') || latest;
                 const fingerprint = container?.getAttribute('data-id') ||

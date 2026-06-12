@@ -16,7 +16,7 @@ async function describeVisibleTextTail(driver) {
 async function sendAndWaitForReply(driver, text, expected, options = {}) {
     const timeoutMs = options.timeoutMs || driver.config.timeoutMs;
     await waitForChatToSettle(driver, options.settleMs);
-    const previousCount = await driver.countTextOccurrences(expected);
+    const previousCount = await driver.countIncomingTextOccurrences(expected);
     const previousFingerprint = await driver.getLatestIncomingFingerprint();
     const startedAt = Date.now();
 
@@ -43,7 +43,7 @@ async function sendAndWaitForAnyReply(driver, text, expectedAny, options = {}) {
     await waitForChatToSettle(driver, options.settleMs);
     const previousFingerprint = await driver.getLatestIncomingFingerprint();
     for (const expected of expectedAny) {
-        previousCounts[expected] = await driver.countTextOccurrences(expected);
+        previousCounts[expected] = await driver.countIncomingTextOccurrences(expected);
     }
 
     console.log(`[whatsapp-e2e] -> ${text}`);

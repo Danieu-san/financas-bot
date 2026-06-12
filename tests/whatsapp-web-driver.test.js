@@ -57,6 +57,31 @@ test('whatsappWebDriver recognizes a repeated analytical answer as new when the 
     );
 });
 
+test('whatsapp E2E assertions count only incoming replies before sending a message', async () => {
+    const { sendAndWaitForAnyReply } = require('../src/testing/e2eAssertions');
+    const calls = [];
+    const driver = {
+        config: { timeoutMs: 1000 },
+        countIncomingTextOccurrences: async text => {
+            calls.push(['countIncoming', text]);
+            return 0;
+        },
+        getLatestIncomingFingerprint: async () => 'before',
+        sendMessage: async text => calls.push(['send', text]),
+        waitForAnyIncomingMessage: async options => {
+            calls.push(['wait', options]);
+            return 'reserva';
+        },
+        getVisibleText: async () => ''
+    };
+
+    await sendAndWaitForAnyReply(driver, 'pergunta com reserva', ['reserva'], { settleMs: 0 });
+
+    assert.deepStrictEqual(calls[0], ['countIncoming', 'reserva']);
+    assert.deepStrictEqual(calls[1], ['send', 'pergunta com reserva']);
+    assert.strictEqual(calls[2][1].previousCounts.reserva, 0);
+});
+
 test('whatsappWebDriver respects configured load timeout for slow WhatsApp Web sessions', () => {
     assert.strictEqual(resolveWhatsAppLoadTimeout({ timeoutMs: 180000 }), 180000);
     assert.strictEqual(resolveWhatsAppLoadTimeout({}), 60000);

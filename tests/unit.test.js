@@ -2628,6 +2628,15 @@ test('messageHandler.classifyPerguntaLocally covers complex analytical questions
     assert.strictEqual(comparison.intent, 'comparacao_gastos_categorias');
     assert.deepStrictEqual(comparison.parameters.categorias, ['mercado', 'transporte']);
 
+    assert.strictEqual(
+        inferAnalyticalQueryPlan('qual a diferença entre reserva de emergência e investimento?'),
+        null
+    );
+    assert.strictEqual(
+        inferAnalyticalQueryPlan('qual a diferença entre débito e crédito?'),
+        null
+    );
+
     const periodIncrease = classifyPerguntaLocally('meus gastos aumentaram em relação a abril?');
     assert.strictEqual(periodIncrease.intent, 'comparacao_gastos_periodo');
     assert.strictEqual(periodIncrease.financialQueryPlan.operation, 'compare');
