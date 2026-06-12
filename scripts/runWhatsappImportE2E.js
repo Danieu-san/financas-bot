@@ -37,6 +37,14 @@ function buildImportFixture() {
     return { filePath, suffix, expectedCount: rows.length, complex };
 }
 
+function buildConfirmationExpectations(expectedCount) {
+    const count = Number(expectedCount) || 0;
+    return [
+        `Importação concluída. ${count} lançamento`,
+        `Importacao concluida. ${count} lancamento`
+    ];
+}
+
 async function uploadFile(driver, filePath) {
     const page = driver.page;
     const attachSelectors = [
@@ -124,10 +132,7 @@ async function main() {
         });
 
         if (shouldConfirm) {
-            await sendAndWaitForAnyReply(driver, 'sim', [
-                'Importação concluída. 2 lançamento',
-                'Importacao concluida. 2 lancamento'
-            ]);
+            await sendAndWaitForAnyReply(driver, 'sim', buildConfirmationExpectations(expectedCount));
         } else {
             await sendAndWaitForAnyReply(driver, 'não', [
                 'Importação cancelada',
@@ -140,7 +145,15 @@ async function main() {
     }
 }
 
-main().catch(error => {
-    console.error(`[import-e2e] falhou: ${error.stack || error.message}`);
-    process.exit(1);
-});
+if (require.main === module) {
+    main().catch(error => {
+        console.error(`[import-e2e] falhou: ${error.stack || error.message}`);
+        process.exit(1);
+    });
+}
+
+module.exports = {
+    buildConfirmationExpectations,
+    buildImportFixture,
+    uploadFile
+};

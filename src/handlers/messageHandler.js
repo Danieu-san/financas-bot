@@ -230,18 +230,20 @@ function detectSecuritySensitiveRequest(messageBody) {
     }
 
     const secretPatterns = [
-        /\b(?:refresh token|access token|client secret|client_secret|chave secreta|segredo oauth|oauth secret|api key|apikey|token de acesso|token secreto)\b/,
-        /\b(?:mostre|mostrar|revele|revelar|diga|exiba|vaze|vazar).{0,50}\b(?:token|segredo|secret|senha|credencial|credenciais|oauth)\b/
+        /\b(?:refresh token|access token|client secret|client_secret|chave secreta|chave de criptografia|encryption key|segredo oauth|oauth secret|api key|apikey|token de acesso|token secreto)\b/,
+        /\b(?:mostre|mostrar|revele|revelar|diga|exiba|vaze|vazar|qual|quais).{0,50}\b(?:token|segredo|secret|senha|credencial|credenciais|oauth|chave de criptografia)\b/
     ];
     if (hasSecurityPattern(text, secretPatterns)) {
         return { blocked: true, category: 'secret_extraction' };
     }
 
     const crossUserPatterns = [
-        /\b(?:planilha|dados|gastos|entradas|lancamentos|lançamentos).{0,40}\b(?:de|do|da|dos|das)\s+(?:outro usuario|outra usuaria|outros usuarios|cliente|clientes)\b/,
+        /\b(?:planilha|dados|gastos|entradas|lancamentos|lançamentos).{0,40}\b(?:de|do|da|dos|das)\s+(?:outro usuario|outra usuaria|outros usuarios|outro cliente|outra cliente|cliente|clientes)\b/,
+        /\b(?:dados|gastos|entradas|lancamentos|lançamentos).{0,60}\b(?:familia|família).{0,40}\b(?:outro cliente|outra cliente|outro usuario|outra usuaria)\b/,
         /\b(?:todos os usuarios|todos os clientes|todos usuarios|todos clientes)\b/,
         /\b(?:gastos|entradas|lancamentos|lançamentos|dados).{0,30}\b(?:de todos|dos usuarios|dos clientes)\b/,
-        /\b(?:acesse|abrir|abra|consulte|consultar|ler|leia).{0,60}\b(?:planilha de outro|dados de outro|cliente|outro usuario|outra usuaria)\b/
+        /\b(?:acesse|abrir|abra|consulte|consultar|ler|leia|use).{0,60}\b(?:planilha de outro|dados de outro|cliente|outro usuario|outra usuaria)\b/,
+        /\b(?:depois|apos|após).{0,40}\b(?:remover|removido|revogar|revogado|desfazer).{0,40}\b(?:membro|vinculo|vínculo)\b/
     ];
     if (hasSecurityPattern(text, crossUserPatterns)) {
         return { blocked: true, category: 'cross_user_data' };
@@ -250,10 +252,22 @@ function detectSecuritySensitiveRequest(messageBody) {
     const bypassPatterns = [
         /\b(?:ignore|ignora|desconsidere|desconsidera).{0,40}\b(?:instrucoes|regras|politicas|seguranca|segurança|permissoes|permissões)\b/,
         /\b(?:sou|modo)\s+(?:admin|administrador|suporte|desenvolvedor|root|sistema)\b/,
+        /\b(?:finja|finge|simule|simula).{0,30}\b(?:admin|administrador|suporte|desenvolvedor|root|sistema)\b/,
+        /\b(?:aprove|aprovar|promova|promover).{0,40}\b(?:admin|administrador|si mesmo|voce|você)\b/,
+        /\b(?:consulta|consultar|execute|executar).{0,60}\b(?:sem validar|sem validacao|sem validação).{0,40}\b(?:plano|query|financialqueryplan)\b/,
         /\b(?:bypass|jailbreak|contorne|desative|desabilite).{0,40}\b(?:seguranca|segurança|permissao|permissão|regras)\b/
     ];
     if (hasSecurityPattern(text, bypassPatterns)) {
         return { blocked: true, category: 'policy_bypass' };
+    }
+
+    const internalDataPatterns = [
+        /\b(?:linhas cruas|raw rows|dados crus|json com as linhas|linhas da planilha)\b/,
+        /\b(?:endpoint interno|endpoints internos|url privada|url completa privada|logs financeiros|todos os logs)\b/,
+        /\b(?:mostre|mostrar|mande|enviar|envie|responda|exiba|liste|listar).{0,60}\b(?:logs|linhas cruas|raw rows|dados crus|url privada|endpoint interno)\b/
+    ];
+    if (hasSecurityPattern(text, internalDataPatterns)) {
+        return { blocked: true, category: 'internal_data_extraction' };
     }
 
     return { blocked: false };
@@ -1361,6 +1375,26 @@ function detectIncomeScopeFromQuestion(text) {
     return '';
 }
 
+function extractMemberFromAnalyticalQuestion(text) {
+    const normalized = normalizeText(String(text || ''));
+    const match = normalized.match(/\b(?:a|o|da|do|de)\s+([a-z][a-z0-9çãõáéíóúâêô-]{2,30})\s+(?:recebeu|gastou|pagou|contribuiu)\b/);
+    if (!match?.[1]) return '';
+    const candidate = match[1].trim();
+    if (['familia', 'família', 'casal', 'pessoa', 'membro', 'cartao', 'cartão'].includes(candidate)) return '';
+    return candidate;
+}
+
+function detectExpenseScopeFromQuestion(text) {
+    const normalized = normalizeText(String(text || ''));
+    if (/\b(nos|nós|nosso|nossa|nossos|nossas|familia|família|familiar|casal|gastamos)\b/.test(normalized)) {
+        return 'family';
+    }
+    if (/\b(eu|meu|minha|meus|minhas|gastei)\b/.test(normalized)) {
+        return 'personal';
+    }
+    return '';
+}
+
 function incomeQuestionHasInternalMovementAmbiguity(text) {
     const normalized = normalizeText(String(text || ''));
     const hasIncomeShape = /\b(entrada|entradas|entrou|recebi|recebido|recebemos|renda|salario|salário|dinheiro)\b/.test(normalized);
@@ -1397,12 +1431,15 @@ function extractIncomeCategoryFromQuestion(text) {
 
 function buildIncomeParameters(text, extra = {}) {
     const scope = detectIncomeScopeFromQuestion(text);
+    const member = extractMemberFromAnalyticalQuestion(text);
     const categoria = extractIncomeCategoryFromQuestion(text);
+    const paymentMethod = extractLocalPaymentMethod(text, 'Entradas');
     return {
         mes: parseMonthFromText(text),
         ano: parseYearFromText(text),
-        ...(scope ? { scope } : {}),
+        ...(member ? { scope: 'member', member } : (scope ? { scope } : {})),
         ...(categoria ? { categoria } : {}),
+        ...(paymentMethod ? { paymentMethod } : {}),
         ...extra
     };
 }
@@ -1662,7 +1699,7 @@ function deriveFollowUpAnalyticalQueryPlan(text, context) {
         text.includes('em quais')
     );
     const hasDetailSignal = (
-        /\b(detalh|detalhe|detalhar|explique|explica|abrir|abra|quebra|quebre|compoe|compõe)\b/.test(text) ||
+        /\b(detalh\w*|detalhe|detalhar|explique|explica|abrir|abra|quebra|quebre|compoe\w*|compõe\w*)\b/.test(text) ||
         text.includes('como foi') ||
         text.includes('como ficou')
     );
@@ -1740,18 +1777,81 @@ function deriveFollowUpAnalyticalQueryPlan(text, context) {
         }
     }
 
+    if (/\b(sem cartao|sem cartão|fora do cartao|fora do cartão)\b/.test(text)) {
+        return {
+            metric: 'expense_total_without_card_followup',
+            intent: 'total_gastos_mes',
+            parameters: { ...inheritedParams, origem: 'saida', timeBasis: 'transaction_date' }
+        };
+    }
+    if (hasExplicitMonthSignal(text) && /\b(passado|passada|anterior)\b/.test(text)) {
+        return {
+            metric: 'expense_previous_period_followup',
+            intent: 'comparacao_gastos_periodo',
+            parameters: { ...inheritedParams, timeBasis: 'billing_month' }
+        };
+    }
     if (hasCardSignal) {
+        if (/\b(fatura|faturas|fatra)\b/.test(text) && !hasDetailSignal && !hasEstablishmentSignal && !asksCategoryBreakdown) {
+            return {
+                metric: 'card_invoice_total_followup',
+                intent: 'total_fatura_cartao',
+                parameters: { ...inheritedParams, cartao: cardName, timeBasis: 'context' }
+            };
+        }
         return {
             metric: 'card_expense_detail_followup',
             intent: 'detalhamento_cartao_mes',
-            parameters: { ...inheritedParams, cartao: cardName }
+            parameters: { ...inheritedParams, cartao: cardName, timeBasis: 'context' }
+        };
+    }
+    if (/\b(considerando|incluindo|com)\b/.test(text) && /\b(familia|família|familiar|casal)\b/.test(text)) {
+        return {
+            metric: 'family_expense_total_followup',
+            intent: 'total_gastos_mes',
+            parameters: { ...inheritedParams, scope: 'family', timeBasis: 'context' }
+        };
+    }
+    if (/\b(disponivel|disponível|saldo real|realmente disponivel|realmente disponível)\b/.test(text)) {
+        return {
+            metric: 'dashboard_availability_followup',
+            intent: 'dashboard_explicacao',
+            parameters: { ...inheritedParams, timeBasis: 'context' }
+        };
+    }
+    if (/\b(itens?|lancamentos?|lançamentos?)\b/.test(text) && /\b(compoe\w*|compõe\w*|formam|fazem parte)\b/.test(text)) {
+        return {
+            metric: 'card_items_followup',
+            intent: 'detalhamento_cartao_mes',
+            parameters: { ...inheritedParams, cartao: cardName, timeBasis: 'context' }
+        };
+    }
+    if (/\b(por pessoa|por membro|por responsavel|por responsável)\b/.test(text)) {
+        return {
+            metric: 'expense_group_by_member_followup',
+            intent: 'agrupamento_gastos_por_membro',
+            parameters: { ...inheritedParams, scope: inheritedParams.scope === 'family' ? 'family' : inheritedParams.scope, timeBasis: 'context' }
+        };
+    }
+    if (/\b(compare|comparar|compara|comparacao|comparação|antes|anterior)\b/.test(text)) {
+        return {
+            metric: 'expense_comparison_followup',
+            intent: 'comparacao_gastos_periodo',
+            parameters: { ...inheritedParams, timeBasis: hasExplicitMonthSignal(text) ? 'billing_month' : 'context' }
+        };
+    }
+    if (/\b(mostra|mostre|listar|liste|lista)\b/.test(text)) {
+        return {
+            metric: 'expense_list_followup',
+            intent: 'listagem_gastos_mes',
+            parameters: { ...inheritedParams, timeBasis: 'context' }
         };
     }
     if (hasDetailSignal) {
         return {
             metric: 'expense_detail_followup',
             intent: context.intent === 'detalhamento_cartao_mes' ? 'detalhamento_cartao_mes' : 'detalhamento_gastos_mes',
-            parameters: { ...inheritedParams, cartao: cardName }
+            parameters: { ...inheritedParams, cartao: cardName, timeBasis: 'context' }
         };
     }
     if (hasEstablishmentSignal) {
@@ -1781,7 +1881,14 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
 
     const mes = parseMonthFromText(text);
     const ano = parseYearFromText(text);
-    const hasExpenseSignal = /\b(gastei|gasto|gastos|saida|saidas|despesa|despesas)\b/.test(text);
+    const expenseScope = detectExpenseScopeFromQuestion(text);
+    const expenseParams = (extra = {}) => ({
+        mes,
+        ano,
+        ...(expenseScope ? { scope: expenseScope } : {}),
+        ...extra
+    });
+    const hasExpenseSignal = /\b(gastei|gstei|gasto|gastos|gastamos|gastamo|gastou|saida|saidas|despesa|despesas)\b/.test(text);
     const hasTotalSignal = /\b(quanto|total|soma|somar|somando|deu|ficou|some)\b/.test(text);
     const categories = extractMultipleCategoriesFromQuestion(text);
     const comparisonCategories = extractComparisonCategoriesFromQuestion(text);
@@ -1790,30 +1897,38 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
     const cardMerchant = extractMerchantFromCardQuestion(text);
 
     const hasCardSignal = text.includes('cartao') || text.includes('cartoes') || Boolean(cardName);
-    const hasInvoiceSignal = text.includes('fatura') || text.includes('faturas');
+    const hasInvoiceSignal = text.includes('fatura') || text.includes('faturas') || text.includes('fatra');
     const hasBudgetContext = Boolean(previousContext?.intent && String(previousContext.intent).startsWith('orcamento_'));
     const hasBudgetSignal = (
-        /\b(orcamento|orçamento|ritmo|ciclo|gasto livre|posso gastar|usei do orcamento|usei do orçamento|falta ate o fim|falta até o fim)\b/.test(text) ||
+        /\b(orcamento|orçamento|orcmento|ritmo|ciclo|gasto livre|posso gastar|usei do orcamento|usei do orçamento|falta ate o fim|falta até o fim)\b/.test(text) ||
+        /\b(se eu gastar|essa semana|para essa semana|o que entrou nesse calculo|o que entrou nesse cálculo)\b/.test(text) ||
         (hasBudgetContext && /\b(o que entrou|calculo|cálculo|criterio|critério|por que|porque|mudou|ritmo|falta|restante|resta|hoje|pessoal|familiar|familia|família)\b/.test(text))
     );
-    const hasTransferSignal = /\b(transferencia|transferências|transferencias|transferi|transferido|transferir|pix para|mandei|enviei)\b/.test(text);
-    const hasReserveSignal = /\b(caixinha|reserva|rdb|investimento|investimentos|aplicacao|aplicação|resgate|resgatei|resgatado|guardar|guardei)\b/.test(text);
+    const hasTransferSignal = /\b(transferencia|transferência|transferências|transferencias|transferi|transferido|transferir|pix para|mandei|enviei)\b/.test(text);
+    const hasReserveSignal = /\b(caixinha|caxinha|reserva|rdb|investimento|investimentos|aplicacao|aplicação|resgate|resgatei|resgatado|guardar|guardei)\b/.test(text);
     const hasAvailabilitySignal = /\b(disponivel|disponível|saldo)\b/.test(text) && (hasReserveSignal || text.includes('realmente') || text.includes('menor') || text.includes('diferente'));
+    const hasDashboardSignal = /\b(dashboard|dashbord|painel|grafico|gráfico|kpi|indicador|indicadores|lancamentos recentes|lançamentos recentes|resumo do whatsapp)\b/.test(text);
     const hasIncomeSignal = (
-        /\b(entrada|entradas|recebi|recebido|recebemos|renda|salario|salário|recebimento|recebimentos)\b/.test(text) ||
+        /\b(entrada|entradas|entrou|recebi|recebeu|recebido|recebemos|renda|salario|salário|recebimento|recebimentos)\b/.test(text) ||
         /\bquanto\s+entrou\b/.test(text) ||
         text.includes('de onde veio meu dinheiro')
     );
     const hasGoalSignal = /\b(meta|metas|objetivo|objetivos)\b/.test(text) ||
         (/\b(aportei|aportado|retirei|retirado)\b/.test(text) && /\breserva\b/.test(text));
-    const hasDebtSignal = /\b(divida|dívida|dividas|dívidas|emprestimo|empréstimo|financiamento|financiamentos|credor|credores|devo|quitar|quitação|quitacao|juros)\b/.test(text) ||
-        (/\bparcela|parcelas\b/.test(text) && /\bvence|vencem|vencimento|proxima|próxima|proximas|próximas|mes|mês\b/.test(text));
+    const hasBudgetOverrideSignal = /\b(orcamento|orçamento)\b/.test(text) &&
+        /\b(cortar|economizar|fechar|categoria|categorias|consumiu|consumiram|semana|ciclo)\b/.test(text);
+    const hasDebtSignal = !hasBudgetOverrideSignal && (
+        /\b(divida|dívida|dividas|dívidas|divdas|emprestimo|empréstimo|financiamento|financiamentos|credor|credores|devo|quitar|quitação|quitacao|juros)\b/.test(text) ||
+        (/\b(parcela|parcelas)\b/.test(text) && /\b(vence|vencem|vencimento|proxima|próxima|proximas|próximas|mes|mês|falta|faltam)\b/.test(text))
+    );
+    const mentionsBankAccount = /\b(conta corrente|corrente|\bcc\b|conta poupanca|conta poupança|poupanca|poupança)\b/.test(text);
     const hasBillSignal = (
-        /\b(conta|contas|conta fixa|contas fixas|recorrente|recorrentes|vencimento|vencimentos|vence|vencem|pendente|pendentes|esperado|realizado)\b/.test(text) ||
+        /\b(conta|contas|conta fixa|contas fixas|recorrente|recorrentes|vencimento|vencimentos|vence|vencem|vencer|pendente|pendentes|esperado|realizado)\b/.test(text) ||
         /\bja paguei\b/.test(text)
-    ) && !hasDebtSignal && !hasCardSignal && !hasInvoiceSignal && !hasTransferSignal && !hasReserveSignal;
+    ) && !mentionsBankAccount && !hasDebtSignal && !hasCardSignal && !hasInvoiceSignal && !hasTransferSignal && !hasReserveSignal;
     const debtWriteSignal = /\b(criar|cadastrar|cadastre|nova|novo|paguei|pagar|pago|registre|registrar|atualizar|alterar|mudar|ajustar)\b/.test(text) &&
-        /\b(divida|dívida|emprestimo|empréstimo|financiamento|parcela|parcelas)\b/.test(text);
+        /\b(divida|dívida|emprestimo|empréstimo|financiamento|parcela|parcelas)\b/.test(text) &&
+        !/\b(se eu pagar|simule|simular|simulacao|simulação|o que muda|quanto paguei|quanto foi pago|total pago|pagamentos?)\b/.test(text);
     const goalNameMatch = text.match(/\bmeta\s+(.+?)(?:\?|$)/);
     const goalName = goalNameMatch
         ? goalNameMatch[1]
@@ -1823,7 +1938,7 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
             .trim()
         : (/\b(aportei|retirei)\b/.test(text) && /\breserva\b/.test(text) ? 'reserva' : '');
     const hasDetailSignal = (
-        /\b(detalh|detalhe|detalhar|explique|explica|explicar|compoe|compõe|composicao|composição|discrimine|abra|abrir|quebra|quebre)\b/.test(text) ||
+        /\b(detalh|detalhe|detalhar|detale|explique|explica|explicar|esplica|compoe|compõe|composicao|composição|discrimine|abra|abrir|quebra|quebre)\b/.test(text) ||
         text.includes('de onde veio') ||
         text.includes('como foi gasto') ||
         text.includes('como foram gastos') ||
@@ -1831,7 +1946,7 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
         text.includes('o que entrou nesse total')
     );
     const hasEstablishmentSignal = (
-        /\b(estabelecimento|estabelecimentos|loja|lojas|local|locais|lugar|lugares|comercio|comércio|comercios|comércios|fornecedor|fornecedores)\b/.test(text) ||
+        /\b(estabelecimento|estabelecimentos|estabalecimento|estabalecimentos|loja|lojas|local|locais|lugar|lugares|comercio|comércio|comercios|comércios|fornecedor|fornecedores)\b/.test(text) ||
         text.includes('onde foi gasto') ||
         text.includes('onde foram gastos')
     );
@@ -1840,12 +1955,91 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
         text.includes('o que entrou') ||
         text.includes('de onde veio')
     );
+    const hasCardInvoiceExplainSignal = hasInvoiceSignal && (
+        /\b(explica|explique|por que|porque|diferença|diferenca|criterio|critério|calculou|calculo|cálculo|veio nesse valor)\b/.test(text) ||
+        text.includes('compra no cartao') ||
+        text.includes('compra no cartão') ||
+        text.includes('depois do pagamento') ||
+        text.includes('em aberto depois')
+    );
 
-    if (hasGoalSignal && /\b(liste|listar|mostre|mostrar|quais|qual|quanto|progresso|falta|faltam|historico|histórico|explique|explica|media|média|ranking|percentual|porcentagem|compare|comparar|aportei|retirei)\b/.test(text)) {
+    if (
+        hasDashboardSignal &&
+        (
+            /\b(troque|trocar|mude|mudar|altere|alterar)\b/.test(text) ||
+            /\b(gere|gerar|crie|criar|mande|enviar)\b/.test(text) && /\blink\b/.test(text)
+        )
+    ) {
+        return null;
+    }
+
+    if (/\bresumo financeiro\b/.test(text) && /\bciclo\b/.test(text)) {
+        return { metric: 'dashboard_cycle_summary', intent: 'dashboard_detalhe', parameters: { mes, ano, timeBasis: 'budget_cycle' } };
+    }
+
+    if (/\b(valores?|indicadores?)\b/.test(text) && /\b(diferente|diferentes|diferença|diferenca)\b/.test(text) && /\b(maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|janeiro|fevereiro|marco|março|abril)\b/.test(text)) {
+        return { metric: 'dashboard_compare', intent: 'dashboard_comparacao', parameters: { mes, ano, timeBasis: 'billing_month' } };
+    }
+
+    if (hasCardInvoiceExplainSignal) {
+        return { metric: 'card_invoice_explanation', intent: 'explicacao_fatura_cartao', parameters: { cartao: cardName, mes, ano } };
+    }
+
+    if (hasCardSignal && /\b(outra pessoa|outro membro|membro|familia|família|meu total|aparece)\b/.test(text) && /\b(total|aparece|inclui|entra|escopo)\b/.test(text)) {
+        return { metric: 'card_scope_explanation', intent: 'explicacao_fatura_cartao', parameters: { cartao: cardName, mes, ano, scope: 'family' } };
+    }
+
+    if (hasInvoiceSignal && (/\b(aumentou|aumentaram|diminuiu|diminuiram|comparad|comparar|compare|relacao|relação)\b/.test(text) || text.includes('mes passado') || text.includes('mês passado'))) {
+        return { metric: 'card_invoice_comparison', intent: 'comparacao_fatura_cartao', parameters: { cartao: cardName, mes, ano } };
+    }
+
+    if (hasDashboardSignal && hasBudgetSignal && /\b(orcamento|orçamento|ritmo|gasto livre|acima|abaixo)\b/.test(text)) {
+        return { metric: 'budget_explain_from_dashboard', intent: 'orcamento_explicacao', parameters: buildBudgetParameters(text) };
+    }
+
+    if (hasDashboardSignal || hasAvailabilitySignal) {
+        const dashboardParams = (extra = {}) => ({
+            mes,
+            ano,
+            ...(text.includes('orcamento') || text.includes('orçamento') || text.includes('ciclo') ? { timeBasis: 'budget_cycle' } : {}),
+            ...((hasCardSignal || hasInvoiceSignal || /\b(categoria|categorias|grafico|gráfico|mes|mês|mensal|familia|família|familiar)\b/.test(text)) ? { timeBasis: 'billing_month' } : {}),
+            ...extra
+        });
+        if (hasAvailabilitySignal && /\b(disponivel|disponível|saldo|reserva|caixinha|caxinha)\b/.test(text)) {
+            return { metric: 'dashboard_available_explain', intent: 'dashboard_explicacao', parameters: dashboardParams() };
+        }
+        if (/\b(compare|comparar|comparacao|comparação|bate|diferente|diferentes|diferença|diferenca)\b/.test(text) || (/\b(maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|janeiro|fevereiro|marco|março|abril)\b/.test(text) && /\be\b/.test(text))) {
+            return { metric: 'dashboard_compare', intent: 'dashboard_comparacao', parameters: dashboardParams({ timeBasis: 'billing_month' }) };
+        }
+        if (/\b(maior|mais|ranking|pesa|pesou)\b/.test(text) && /\b(kpi|indicador|categoria|categorias)\b/.test(text)) {
+            return { metric: 'dashboard_rank', intent: 'dashboard_ranking', parameters: dashboardParams({ timeBasis: 'billing_month' }) };
+        }
+        if (/\b(zerado|erro|inconsistente|inconsistência|inconsistencia)\b/.test(text)) {
+            return { metric: 'dashboard_detect', intent: 'dashboard_detectar', parameters: dashboardParams({ timeBasis: 'billing_month' }) };
+        }
+        if (/\b(inativo|inativos|inativa|inativas)\b/.test(text)) {
+            return { metric: 'dashboard_inactive_explain', intent: 'dashboard_explicacao', parameters: dashboardParams({ timeBasis: 'none' }) };
+        }
+        if (/\b(resume|resumo|mostre|mostrar|entrou|saiu|ciclo)\b/.test(text)) {
+            return { metric: 'dashboard_detail', intent: 'dashboard_detalhe', parameters: dashboardParams() };
+        }
+        return { metric: 'dashboard_explain', intent: 'dashboard_explicacao', parameters: dashboardParams() };
+    }
+
+    if (hasGoalSignal && (/\b(liste|listar|mostre|mostrar|quais|qual|quem|quanto|progresso|falta|faltam|historico|histórico|explique|explica|media|média|ranking|percentual|porcentagem|compare|comparar|aportei|retirei|contribuiu|contribuiram|contribuíram|tendencia|tendência|precisa|precisam)\b/.test(text) || /\bevolu/.test(text))) {
         const parameters = {
             ...(goalName ? { meta: goalName } : {}),
             ...(/\b(familiar(?:es)?|familia|família)\b/.test(text) ? { scope: 'family' } : {})
         };
+        if (/\b(quem|membro|pessoa|pessoas|contribuiu|contribuiram|contribuíram)\b/.test(text)) {
+            return { metric: 'goal_contributor_ranking', intent: 'ranking_contribuidores_meta', parameters: { ...parameters, scope: parameters.scope || 'family' } };
+        }
+        if (/\bevolu|\b(evolucao|evolução|historico mensal|histórico mensal|tendencia|tendência)\b/.test(text)) {
+            return { metric: 'goals_trend', intent: 'tendencia_metas', parameters };
+        }
+        if (/\b(precisa|precisam|mais aporte|maior aporte)\b/.test(text)) {
+            return { metric: 'goals_need_ranking', intent: 'ranking_metas', parameters };
+        }
         if (/\b(historico|histórico|movimentacao|movimentação|movimentacoes|movimentações)\b/.test(text)) {
             return { metric: 'goal_history', intent: 'historico_meta', parameters };
         }
@@ -1885,8 +2079,20 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
         return { metric: 'goals_summary', intent: 'resumo_metas', parameters };
     }
 
-    if (hasDebtSignal && !debtWriteSignal && /\b(liste|listar|mostre|mostrar|quais|qual|quanto|saldo|devo|falta|faltam|quitar|vencem|vence|vencimento|parcela|parcelas|atrasada|atrasadas|quitei|quitada|quitadas|juros|priorizar|prioridade|explica|explique|calculou|ranking|maior)\b/.test(text)) {
+    if (hasDebtSignal && !debtWriteSignal && /\b(liste|listar|mostre|mostrar|quais|qual|quanto|saldo|devo|falta|faltam|quitar|vencem|vence|vencimento|parcela|parcelas|atrasada|atrasadas|quitei|quitada|quitadas|juros|priorizar|prioridade|explica|explique|calculou|ranking|maior|evolu\w*|tendencia|tendência|historico|histórico|se eu pagar|simule|simular|simulacao|simulação|o que muda)\b/.test(text)) {
         const debtParams = (extra = {}) => buildDebtParameters(text, extra);
+        if (/\b(se eu pagar|simule|simular|simulacao|simulação|o que muda)\b/.test(text)) {
+            return { metric: 'debt_payment_forecast', intent: 'simulacao_pagamento_divida', parameters: debtParams() };
+        }
+        if (/\bevolu\w*|\b(evolucao|evolução|historico|histórico|tendencia|tendência)\b/.test(text)) {
+            return { metric: 'debt_trend', intent: 'tendencia_dividas', parameters: debtParams() };
+        }
+        if (/\b(quanto|total|soma)\b/.test(text) && /\b(paguei|pago|pagamento|pagamentos)\b/.test(text)) {
+            return { metric: 'debt_payments_total', intent: 'total_pagamentos_dividas_mes', parameters: debtParams() };
+        }
+        if (/\b(quantas|quantos)\b/.test(text) && /\b(parcela|parcelas)\b/.test(text)) {
+            return { metric: 'debt_installment_count', intent: 'contagem_parcelas_dividas', parameters: debtParams() };
+        }
         if (/\b(explica|explique|calculou|calculo|cálculo|de onde veio)\b/.test(text)) {
             return { metric: 'debt_explain', intent: 'explicacao_dividas', parameters: debtParams() };
         }
@@ -1899,7 +2105,16 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
         if (/\b(maior saldo|saldo maior|mais devo|maior divida|maior dívida)\b/.test(text)) {
             return { metric: 'debt_balance_rank', intent: 'ranking_dividas_saldo', parameters: debtParams() };
         }
+        if (/\b(menor divida|menor dívida|menor saldo|qual e a menor|qual é a menor)\b/.test(text)) {
+            return { metric: 'debt_extreme', intent: 'maior_menor_divida', parameters: debtParams() };
+        }
+        if (/\b(parcela|parcelas)\b/.test(text) && /\b(vencem|vence|vencimento|este mes|este mês|mes|mês)\b/.test(text)) {
+            return { metric: 'debt_upcoming', intent: 'parcelas_dividas_mes', parameters: debtParams() };
+        }
         if (/\b(vencimento|vence|vencem)\b/.test(text) && /\b(maior|ranking|ordem)\b/.test(text)) {
+            return { metric: 'debt_due_rank', intent: 'ranking_dividas_vencimento', parameters: debtParams() };
+        }
+        if (/\b(vence|vencem|vencimento)\b/.test(text) && /\b(primeiro|proxima|próxima|qual)\b/.test(text)) {
             return { metric: 'debt_due_rank', intent: 'ranking_dividas_vencimento', parameters: debtParams() };
         }
         if (/\b(atrasada|atrasadas|atrasado|atrasados)\b/.test(text)) {
@@ -1915,15 +2130,38 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
             return { metric: 'debt_upcoming', intent: text.includes('parcela') ? 'parcelas_dividas_mes' : 'dividas_vencendo', parameters: params };
         }
         if (/\b(falta|faltam|quitar|saldo)\b/.test(text)) {
+            if (/\b(divida do|dívida do|divida da|dívida da|banco|credor)\b/.test(text)) {
+                return { metric: 'debt_detail', intent: 'detalhamento_divida', parameters: debtParams() };
+            }
             return { metric: 'debt_balance', intent: 'saldo_divida', parameters: debtParams() };
         }
+        if (/\b(quais|liste|listar|mostre|mostrar|tenho)\b/.test(text)) {
+            return { metric: 'debt_list', intent: 'listagem_dividas', parameters: debtParams() };
+        }
         return { metric: 'debt_total', intent: 'total_dividas', parameters: debtParams() };
+    }
+
+    if (hasExpenseSignal && /\b(recorrente|recorrentes|todo mes|todo mês|todo dia|todo ano|repetem|repetidos|parecem recorrentes)\b/.test(text)) {
+        return { metric: 'recurring_expense_detection', intent: 'gastos_valores_duplicados', parameters: expenseParams({ timeBasis: 'transaction_date' }) };
+    }
+
+    if (/\b(compras?|gastos?|valores?)\b/.test(text) && /\b(pequenas?|baixos?|baixo|somaram|esperava|suspeit)\b/.test(text)) {
+        return { metric: 'small_expense_detection', intent: 'gastos_valores_duplicados', parameters: expenseParams({ timeBasis: 'billing_month' }) };
     }
 
     if (hasBillSignal && !/\b(criar|cadastrar|cadastre|alterar|mudar|editar|lembrete|calendario|calendário)\b/.test(text)) {
         const scope = /\b(familia|família|familiar|familiares)\b/.test(text) ? 'family' : undefined;
         const namedBill = text.match(/\b(?:paguei|pago|pendente|conta de|conta do|conta da)\s+([a-z0-9 çãõáéíóúâêô-]+?)(?:\?|$|\s+este|\s+esse|\s+neste|\s+nesse)/)?.[1]?.trim();
         const parameters = { ...(scope ? { scope } : {}), ...(namedBill && !['essa conta', 'conta'].includes(namedBill) ? { conta: namedBill } : {}) };
+        if (/\b(apareceu no extrato|consta no extrato|veio no extrato)\b/.test(text)) {
+            return { metric: 'bill_statement_detection', intent: 'detectar_conta_extrato', parameters: { ...parameters, mes, ano } };
+        }
+        if (/\b(sem categoria|categoria vazia|mal classificada|mal classificadas)\b/.test(text)) {
+            return { metric: 'bill_missing_category_detection', intent: 'detectar_contas_sem_categoria', parameters: { ...parameters, mes, ano } };
+        }
+        if (/\bevolu|\b(evolucao|evolução|mudaram|historico|histórico|tendencia|tendência)\b/.test(text)) {
+            return { metric: 'bill_trend', intent: 'tendencia_contas_recorrentes', parameters: { ...parameters, mes, ano } };
+        }
         if (/\b(por que|porque|explica|explique|calculou|calculo|cálculo)\b/.test(text)) {
             return { metric: 'bill_explain', intent: 'explicacao_conta_recorrente', parameters };
         }
@@ -1933,13 +2171,23 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
         if (/\b(pendente|pendentes|falta pagar|ainda falta)\b/.test(text)) {
             return { metric: 'bill_pending', intent: 'contas_pendentes', parameters: { ...parameters, mes, ano } };
         }
-        if (/\b(ja paguei|já paguei|esta paga|está paga|foi paga|pago)\b/.test(text)) {
-            return { metric: 'bill_status', intent: 'status_conta_recorrente', parameters: { ...parameters, mes, ano } };
+        if (/\b(atrasada|atrasadas|atrasado|atrasados)\b/.test(text)) {
+            return { metric: 'bill_overdue', intent: 'contas_pendentes', parameters: { ...parameters, mes, ano, status: 'overdue' } };
         }
-        if (/\b(vence|vencem|vencimento|vencimentos)\b/.test(text)) {
+        if (/\b(ja paguei|já paguei|esta paga|está paga|foi paga|pago)\b/.test(text)) {
+            return { metric: 'bill_payment_detection', intent: 'detectar_pagamento_conta', parameters: { ...parameters, mes, ano } };
+        }
+        if (/\b(vence|vencem|vencer|vencimento|vencimentos)\b/.test(text)) {
             const amanha = /\bamanha|amanhã\b/.test(text);
             const hoje = /\bhoje\b/.test(text);
             const explicitDays = text.match(/\bproximos?\s+(\d{1,3})\s+dias\b/);
+            if (/\b(proxima|próxima|primeira|primeiro|qual)\b/.test(text)) {
+                return {
+                    metric: 'next_bill_rank',
+                    intent: 'ranking_contas_vencimento',
+                    parameters: { ...parameters, dias: amanha || hoje ? 1 : (explicitDays ? Number.parseInt(explicitDays[1], 10) : 30), amanha, hoje }
+                };
+            }
             return {
                 metric: 'upcoming_bills',
                 intent: 'contas_vencendo',
@@ -1949,7 +2197,13 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
         if (hasTotalSignal || /\bquanto tenho\b/.test(text)) {
             return { metric: 'recurring_bills_total', intent: 'total_contas_recorrentes', parameters: { ...parameters, mes, ano } };
         }
-        if (/\b(quais|liste|listar|mostre|mostrar|quantas|tenho)\b/.test(text)) {
+        if (/\b(quantas|quantos)\b/.test(text)) {
+            return { metric: 'recurring_bills_count', intent: 'contagem_contas_recorrentes', parameters: { ...parameters, mes, ano } };
+        }
+        if (/\b(conta|contas)\s+de\s+\w+/.test(text) && /\b(quais|liste|listar|mostre|mostrar|tenho)\b/.test(text)) {
+            return { metric: 'bills_by_category', intent: 'contas_vencendo', parameters: { ...parameters, mes, ano } };
+        }
+        if (/\b(quais|liste|listar|mostre|mostrar|tenho)\b/.test(text)) {
             return { metric: 'recurring_bills_summary', intent: 'resumo_contas_recorrentes', parameters: { ...parameters, mes, ano } };
         }
     }
@@ -1964,11 +2218,32 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
 
     if (hasBudgetSignal && !/\b(definir|alterar|mudar|desativar|ativar|configurar|criar)\b/.test(text)) {
         const budgetParams = (extra = {}) => buildBudgetParameters(text, extra);
+        if (/\b(cortar|economizar|reduzir)\b/.test(text)) {
+            return { metric: 'budget_recommendation', intent: 'orcamento_recomendacao', parameters: budgetParams() };
+        }
+        if (/\b(quem|membro|membros|pessoa|pessoas|cada um)\b/.test(text) && /\b(consumiu|consumiram|mais|maior|ranking|gastou|gastaram)\b/.test(text)) {
+            return { metric: 'budget_member_ranking', intent: 'orcamento_ranking_membros', parameters: budgetParams({ scope: 'family' }) };
+        }
+        if (/\b(categoria|categorias)\b/.test(text) && /\b(consumiu|consumiram|mais|maior|ranking|pesou|pesaram)\b/.test(text)) {
+            return { metric: 'budget_category_ranking', intent: 'orcamento_ranking_categorias', parameters: budgetParams() };
+        }
+        if (/\b(compare|comparar|comparacao|comparação)\b/.test(text) || text.includes('ciclo anterior')) {
+            return { metric: 'budget_cycle_comparison', intent: 'orcamento_comparacao', parameters: budgetParams() };
+        }
+        if (/\b(esta como|está como|como esta|como está|situacao|situação|status)\b/.test(text)) {
+            return { metric: 'budget_detail', intent: 'orcamento_detalhe', parameters: budgetParams() };
+        }
+        if (/\b(se eu gastar|fic(?:o|arei)|ficaria|projecao|projeção|previsao|previsão|essa semana|semana)\b/.test(text)) {
+            return { metric: 'budget_forecast', intent: 'orcamento_disponivel_hoje', parameters: budgetParams() };
+        }
         if (/\b(o que entrou|calculo|cálculo|criterio|critério|por que|porque|mudou|entra no orcamento|entra no orçamento|cartao entra|cartão entra|transferencia entra|transferência entra)\b/.test(text)) {
             return { metric: 'budget_explain', intent: 'orcamento_explicacao', parameters: budgetParams() };
         }
         if (/\b(pessoal|familiar|familia|família|escopo)\b/.test(text) && /\b(orcamento|orçamento)\b/.test(text)) {
             return { metric: 'budget_scope', intent: 'orcamento_escopo', parameters: budgetParams() };
+        }
+        if (/\bciclo\b/.test(text) && /\b(qual|quais|periodo|período|inicio|início)\b/.test(text) && !/\b(falta|sobrou|restante|resta)\b/.test(text)) {
+            return { metric: 'budget_cycle_explain', intent: 'orcamento_explicacao', parameters: budgetParams() };
         }
         if (/\b(ritmo|diario|diário)\b/.test(text)) {
             return { metric: 'budget_daily_pace', intent: 'orcamento_ritmo_diario', parameters: budgetParams() };
@@ -1989,10 +2264,23 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
         !isInvoiceByCardQuestion(text) &&
         (text.includes('paguei') || text.includes('pagamento') || text.includes('pagamentos') || text.includes('paga') || text.includes('pagas') || text.includes('quitei'))
     ) {
+        if (hasCardInvoiceExplainSignal) {
+            return { metric: 'card_invoice_explanation', intent: 'explicacao_fatura_cartao', parameters: { cartao: cardName, mes, ano } };
+        }
+        if (/\b(quais|liste|listar|mostre|mostrar|detalhe|detalhar)\b/.test(text)) {
+            return { metric: 'paid_card_invoice_list', intent: 'listagem_pagamentos_fatura_mes', parameters: buildTransferParameters(text) };
+        }
         return { metric: 'paid_card_invoice_total', intent: 'total_pagamentos_fatura_mes', parameters: buildTransferParameters(text) };
     }
 
     if (hasReserveSignal && !hasIncomeSignal) {
+        if (/\bevolu|\b(evolucao|evolução|historico|histórico|tendencia|tendência)\b/.test(text)) {
+            return {
+                metric: 'reserve_trend',
+                intent: 'tendencia_reserva_mensal',
+                parameters: buildTransferParameters(text)
+            };
+        }
         if (/\b(resgate|resgatei|resgatado|retirei|retirada)\b/.test(text)) {
             return {
                 metric: 'reserve_redeemed_total',
@@ -2017,6 +2305,34 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
     }
 
     if (hasTransferSignal) {
+        if (/\bevolu|\b(evolucao|evolução|historico|histórico|tendencia|tendência)\b/.test(text)) {
+            return {
+                metric: 'transfer_trend',
+                intent: 'tendencia_transferencias_mensal',
+                parameters: buildTransferParameters(text)
+            };
+        }
+        if (/\b(aumentou|aumentaram|diminuiu|diminuiram|comparad|comparar|compare|relacao|relação)\b/.test(text)) {
+            return {
+                metric: 'transfer_comparison',
+                intent: 'comparacao_transferencias_periodo',
+                parameters: buildTransferParameters(text)
+            };
+        }
+        if (/\b(errada|erradas|erro|inconsistente|suspeita|suspeitas)\b/.test(text)) {
+            return {
+                metric: 'transfer_detection',
+                intent: 'transferencias_detectar',
+                parameters: buildTransferParameters(text)
+            };
+        }
+        if (/\b(maior|menor)\b/.test(text)) {
+            return {
+                metric: 'transfer_extreme',
+                intent: 'maior_menor_transferencia',
+                parameters: buildTransferParameters(text)
+            };
+        }
         if (/\b(gasto|despesa|orcamento|orçamento|conta como)\b/.test(text) && /\b(thais|thaís|familia|família|familiar|casal|membro)\b/.test(text)) {
             return {
                 metric: 'family_transfer_explain',
@@ -2032,6 +2348,13 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
             };
         }
         if (/\b(familia|família|familiar|thais|thaís|casal|membro)\b/.test(text)) {
+            if (/\b(cada|membro|membros|por pessoa|quem)\b/.test(text)) {
+                return {
+                    metric: 'family_transfer_group',
+                    intent: 'transferencias_familia_por_membro',
+                    parameters: buildTransferParameters(text)
+                };
+            }
             return {
                 metric: 'family_transfer_total',
                 intent: 'total_transferencias_familia_mes',
@@ -2055,9 +2378,16 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
     }
 
     if (hasIncomeSignal && !hasCardSignal && !hasInvoiceSignal) {
+        const incomeParams = (extra = {}) => buildIncomeParameters(text, extra);
+        if (/\b(reserva|caixinha|caxinha)\b/.test(text) && /\b(inclui|conta como|entra como)\b/.test(text)) {
+            return {
+                metric: 'income_reserve_explanation',
+                intent: 'explicacao_entrada_reserva',
+                parameters: incomeParams()
+            };
+        }
         if (incomeQuestionHasInternalMovementAmbiguity(text)) return null;
 
-        const incomeParams = (extra = {}) => buildIncomeParameters(text, extra);
         if (/\bevolu|\b(evolucao|evolução|historico|histórico|tendencia|tendência)\b/.test(text)) {
             return {
                 metric: 'income_trend',
@@ -2065,10 +2395,24 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
                 parameters: incomeParams()
             };
         }
-        if (/\b(compare|comparar|comparacao|comparação|versus|vs)\b/.test(text) || text.includes('mes anterior') || text.includes('mês anterior')) {
+        if (/\b(compare|comparar|comparacao|comparação|versus|vs|aumentou|aumentaram|diminuiu|diminuiram|relacao|relação)\b/.test(text) || text.includes('mes anterior') || text.includes('mês anterior') || text.includes('mes passado') || text.includes('mês passado')) {
             return {
                 metric: 'income_comparison',
                 intent: 'comparacao_entradas_periodo',
+                parameters: incomeParams()
+            };
+        }
+        if (/\b(recorrente|recorrentes|todo mes|todo mês|repetiu|repetem)\b/.test(text)) {
+            return {
+                metric: 'income_recurring_detection',
+                intent: 'entradas_recorrentes_detectar',
+                parameters: incomeParams()
+            };
+        }
+        if (/\b(mal classificad\w*|errada|erradas|erro|inconsistente|suspeita|suspeitas)\b/.test(text)) {
+            return {
+                metric: 'income_classification_detection',
+                intent: 'entradas_mal_classificadas_detectar',
                 parameters: incomeParams()
             };
         }
@@ -2097,6 +2441,13 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
             return {
                 metric: 'income_extreme',
                 intent: 'maior_menor_entrada',
+                parameters: incomeParams()
+            };
+        }
+        if (/\b(mal classificad\w*|errad[ao]s?|inconsisten\w*|revisar|revisao|revisão)\b/.test(text)) {
+            return {
+                metric: 'income_misclassified_detect',
+                intent: 'entradas_mal_classificadas_detectar',
                 parameters: incomeParams()
             };
         }
@@ -2129,6 +2480,13 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
             };
         }
         const categoria = extractIncomeCategoryFromQuestion(text);
+        if (hasBudgetSignal && (hasTotalSignal || /\b(recebi|recebemos|entrou|entradas?)\b/.test(text))) {
+            return {
+                metric: 'income_total_budget_cycle',
+                intent: 'total_entradas_mes',
+                parameters: incomeParams({ categoria: undefined, timeBasis: 'budget_cycle' })
+            };
+        }
         if (categoria) {
             return {
                 metric: 'income_category_total',
@@ -2140,16 +2498,64 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
             return {
                 metric: 'income_total',
                 intent: 'total_entradas_mes',
-                parameters: incomeParams({ categoria: undefined })
+                parameters: incomeParams({ categoria: undefined, ...(hasBudgetSignal ? { timeBasis: 'budget_cycle' } : {}) })
             };
         }
+    }
+
+    if (!hasCardSignal && /\b(compare|comparar|comparacao|comparação)\b/.test(text) && /\b(familia|família|familiar|casal)\b/.test(text) && hasExpenseSignal) {
+        return {
+            metric: 'family_expense_comparison',
+            intent: 'comparacao_gastos_periodo',
+            parameters: expenseParams({ scope: 'family' })
+        };
+    }
+
+    if (!hasCardSignal && /\b(outra pessoa|outro membro|outra pessoa da familia|outra pessoa da família)\b/.test(text) && hasExpenseSignal && hasTotalSignal) {
+        return {
+            metric: 'member_expense_total',
+            intent: 'total_gastos_mes',
+            parameters: expenseParams({ scope: 'member' })
+        };
+    }
+
+    if (!hasCardSignal && /\b(familia|família|familiar|casal)\b/.test(text) && hasExpenseSignal && /\b(mostre|mostrar|detalh|detalhe)\b/.test(text)) {
+        return {
+            metric: 'family_expense_detail',
+            intent: 'detalhamento_gastos_mes',
+            parameters: expenseParams({ scope: 'family' })
+        };
+    }
+
+    if (!hasCardSignal && /\b(quem|membro|membros|pessoa|pessoas|por pessoa|cada um)\b/.test(text) && hasExpenseSignal && /\b(mais|maior|ranking|gastou|gastaram)\b/.test(text)) {
+        return {
+            metric: 'family_expense_member_rank',
+            intent: 'ranking_gastos_por_membro',
+            parameters: expenseParams({ scope: 'family' })
+        };
     }
 
     if (hasEstablishmentSignal && (hasExpenseSignal || hasCardSignal || text.includes('gasto') || text.includes('gastos') || text.includes('foram'))) {
         return {
             metric: 'expense_establishments',
             intent: 'ranking_estabelecimentos_gastos',
-            parameters: { mes, ano, origem: hasCardSignal ? 'cartao' : '', cartao: cardName }
+            parameters: expenseParams({ origem: hasCardSignal ? 'cartao' : '', cartao: cardName })
+        };
+    }
+
+    if (hasExpenseSignal && /\b(aumentou|aumentaram|diminuiu|diminuiram|comparad|comparar|compare|relacao|relação)\b/.test(text)) {
+        return { metric: 'expense_period_comparison', intent: 'comparacao_gastos_periodo', parameters: expenseParams() };
+    }
+
+    if (hasExpenseSignal && /\b(fora do cartao|fora do cartão|sem cartao|sem cartão)\b/.test(text) && /\b(mais|maior|ranking|em que)\b/.test(text)) {
+        return { metric: 'expense_non_card_ranking', intent: 'ranking_categorias_gastos', parameters: expenseParams({ timeBasis: 'transaction_date' }) };
+    }
+
+    if (/\b(explica|explique|esplica|criterio|critério|calculou|calculo|cálculo|de onde veio)\b/.test(text) && /\b(total|gastos?|valor)\b/.test(text)) {
+        return {
+            metric: 'expense_explanation',
+            intent: 'explicacao_gastos',
+            parameters: expenseParams({ timeBasis: /\bcontexto|esse|essa|isso\b/.test(text) ? 'context' : 'billing_month' })
         };
     }
 
@@ -2157,7 +2563,7 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
         return {
             metric: hasCardSignal ? 'card_expense_detail' : 'expense_detail',
             intent: hasCardSignal ? 'detalhamento_cartao_mes' : 'detalhamento_gastos_mes',
-            parameters: { mes, ano, cartao: cardName }
+            parameters: expenseParams({ cartao: cardName })
         };
     }
 
@@ -2214,6 +2620,35 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
     if (hasInvoiceCompositionSignal) {
         return { metric: 'card_invoice_composition', intent: 'detalhamento_cartao_mes', parameters: { mes, ano, cartao: cardName } };
     }
+    if (hasCardInvoiceExplainSignal) {
+        return { metric: 'card_invoice_explanation', intent: 'explicacao_fatura_cartao', parameters: { mes, ano, cartao: cardName } };
+    }
+    if (hasCardSignal && /\b(duplicad|duplicada|duplicado|repetida|repetido)\b/.test(text)) {
+        return { metric: 'card_duplicate_detection', intent: 'compras_duplicadas_cartao', parameters: { mes, ano, cartao: cardName } };
+    }
+    if (hasCardSignal && /\b(cada|membro|membros|por pessoa|quem)\b/.test(text)) {
+        return { metric: 'card_member_group', intent: 'total_cartao_por_membro', parameters: { mes, ano, cartao: cardName, scope: 'family' } };
+    }
+    if (hasCardSignal && /\b(parcela|parcelas|parcelamento|parcelamentos)\b/.test(text) && /\b(mais|mas|maior|ranking|qual)\b/.test(text)) {
+        return { metric: 'card_installment_rank', intent: 'ranking_cartoes_em_aberto', parameters: { mes, ano, cartao: cardName } };
+    }
+    if (
+        hasCardSignal &&
+        /\b(categoria|categorias)\b/.test(text) &&
+        /\b(pesaram|pesou|mais|maior|ranking)\b/.test(text)
+    ) {
+        return { metric: 'card_category_ranking', intent: 'ranking_categorias_gastos', parameters: expenseParams({ origem: 'cartao', cartao: cardName }) };
+    }
+    if (hasCardSignal && /\b(quantas|quantos)\b/.test(text) && /\b(compra|compras|lancamento|lancamentos|lançamento|lançamentos)\b/.test(text)) {
+        return { metric: 'card_purchase_count', intent: 'contagem_ocorrencias', parameters: expenseParams({ origem: 'cartao', cartao: cardName }) };
+    }
+    if (hasCardSignal && /\b(maior|menor)\b/.test(text) && /\b(compra|compras)\b/.test(text)) {
+        return { metric: 'card_purchase_extremes', intent: 'maior_menor_compra_cartao', parameters: expenseParams({ cartao: cardName }) };
+    }
+    if (hasCardSignal && /\b(compra|compras|lancamento|lancamentos|lançamento|lançamentos)\b/.test(text)) {
+        const purchaseDateBasis = /\b(hoje|ontem|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\b/.test(text) ? 'transaction_date' : undefined;
+        return { metric: 'card_purchase_list', intent: 'detalhamento_cartao_mes', parameters: expenseParams({ cartao: cardName, timeBasis: purchaseDateBasis }) };
+    }
     if (
         (text.includes('evolu') || text.includes('tendencia') || text.includes('tendência')) &&
         (hasExpenseSignal || text.includes('meus gastos') || text.includes('gastos'))
@@ -2253,56 +2688,59 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
         return { metric: 'balance', intent: 'saldo_do_mes', parameters: { mes, ano } };
     }
     if (text.includes('duplicad')) {
-        return { metric: 'duplicates', intent: 'gastos_valores_duplicados', parameters: { mes, ano } };
+        return { metric: 'duplicates', intent: 'gastos_valores_duplicados', parameters: expenseParams({ origem: hasCardSignal ? 'cartao' : '' }) };
     }
     if (text.includes('categoria') && (text.includes('consumiu') || text.includes('mais dinheiro') || text.includes('maior gasto') || text.includes('mais gast'))) {
-        return { metric: 'top_expense_categories', intent: 'ranking_categorias_gastos', parameters: { mes, ano } };
+        return { metric: 'top_expense_categories', intent: 'ranking_categorias_gastos', parameters: expenseParams() };
     }
     if ((text.includes('cortar') || text.includes('economizar') || text.includes('onde eu deveria')) && (text.includes('gasto') || text.includes('gastos') || text.includes('lancamento') || text.includes('lançamento'))) {
-        return { metric: 'top_expense_categories', intent: 'ranking_categorias_gastos', parameters: { mes, ano, advice: true } };
+        return { metric: 'expense_recommendation', intent: 'recomendacao_corte_gastos', parameters: expenseParams({ advice: true }) };
     }
     if (comparisonCategories.length === 2) {
-        return { metric: 'category_comparison', intent: 'comparacao_gastos_categorias', parameters: { categorias: comparisonCategories, mes, ano } };
+        return { metric: 'category_comparison', intent: 'comparacao_gastos_categorias', parameters: expenseParams({ categorias: comparisonCategories }) };
     }
     if (text.includes('maior') || text.includes('menor')) {
+        if (/\bmaiores\b/.test(text) && hasExpenseSignal) {
+            return { metric: 'expense_biggest_ranking', intent: 'ranking_maiores_gastos', parameters: expenseParams() };
+        }
         if (hasCardSignal || text.includes('parcelada') || text.includes('parcelado')) {
-            return { metric: 'card_purchase_extremes', intent: 'maior_menor_compra_cartao', parameters: { cartao: cardName, mes, ano } };
+            return { metric: 'card_purchase_extremes', intent: 'maior_menor_compra_cartao', parameters: expenseParams({ cartao: cardName }) };
         }
         if (singleCategory) {
-            return { metric: 'category_extremes', intent: 'maior_menor_gasto_categoria', parameters: { categoria: singleCategory, mes, ano } };
+            return { metric: 'category_extremes', intent: 'maior_menor_gasto_categoria', parameters: expenseParams({ categoria: singleCategory }) };
         }
-        return { metric: 'extremes', intent: 'maior_menor_gasto', parameters: { mes, ano } };
+        return { metric: 'extremes', intent: 'maior_menor_gasto', parameters: expenseParams() };
     }
     if (text.includes('por cento') || text.includes('percentual') || text.includes('porcentagem') || text.includes('representou') || text.includes('representa') || text.includes('participacao') || text.includes('participação')) {
         return {
             metric: 'percentage_of_expenses',
             intent: 'percentual_categoria_gastos',
-            parameters: { categoria: extractPercentageCategoryFromQuestion(text), mes, ano }
+            parameters: expenseParams({ categoria: extractPercentageCategoryFromQuestion(text) })
         };
     }
     if ((text.includes('quantos') || text.includes('quantas')) && (text.includes('lancamento') || text.includes('lançamento') || text.includes('saidas') || text.includes('saídas'))) {
-        return { metric: 'output_count', intent: 'contagem_lancamentos_saida', parameters: { mes, ano } };
+        return { metric: 'output_count', intent: 'contagem_lancamentos_saida', parameters: expenseParams() };
     }
     if (text.includes('vezes') || text.includes('ocorrencia') || text.includes('ocorrencias')) {
-        return { metric: 'count', intent: 'contagem_ocorrencias', parameters: { categoria: singleCategory, mes, ano } };
+        return { metric: 'count', intent: 'contagem_ocorrencias', parameters: expenseParams({ categoria: singleCategory }) };
     }
     if ((text.includes('media') || text.includes('média')) && (/\bpor\s+dia\b/.test(text) || text.includes('diaria') || text.includes('diária'))) {
-        return { metric: 'daily_average', intent: 'media_diaria_gastos_mes', parameters: { mes, ano } };
+        return { metric: 'daily_average', intent: 'media_diaria_gastos_mes', parameters: expenseParams() };
     }
     if ((text.includes('media') || text.includes('média')) && hasExpenseSignal) {
-        return { metric: 'average', intent: 'media_gastos_categoria_mes', parameters: { categoria: singleCategory, mes, ano } };
+        return { metric: 'average', intent: 'media_gastos_categoria_mes', parameters: expenseParams({ categoria: singleCategory }) };
     }
     if (text.includes('liste') || text.includes('listar') || text.includes('mostre') || text.includes('mostrar')) {
-        return { metric: 'list', intent: 'listagem_gastos_categoria', parameters: { categoria: singleCategory, mes, ano } };
+        return { metric: 'list', intent: 'listagem_gastos_categoria', parameters: expenseParams({ categoria: singleCategory }) };
     }
     if (categories.length > 1 && (hasTotalSignal || hasExpenseSignal)) {
-        return { metric: 'sum_by_categories', intent: 'total_gastos_multiplas_categorias', parameters: { categorias: categories, mes, ano } };
+        return { metric: 'sum_by_categories', intent: 'total_gastos_multiplas_categorias', parameters: expenseParams({ categorias: categories }) };
     }
     if ((hasTotalSignal || hasExpenseSignal) && hasExpenseSignal) {
         if (!singleCategory) {
-            return { metric: 'sum_expenses', intent: 'total_gastos_mes', parameters: { mes, ano } };
+            return { metric: 'sum_expenses', intent: 'total_gastos_mes', parameters: expenseParams() };
         }
-        return { metric: 'sum_by_category', intent: 'total_gastos_categoria_mes', parameters: { categoria: singleCategory, mes, ano } };
+        return { metric: 'sum_by_category', intent: 'total_gastos_categoria_mes', parameters: expenseParams({ categoria: singleCategory }) };
     }
 
     return null;
@@ -2440,7 +2878,7 @@ function buildFinancialQueryPlanForLocalClassification(classification = {}, user
     };
 
     if (draft.domain === 'income') {
-        draft.timeBasis = 'transaction_date';
+        draft.timeBasis = draft.timeBasis === 'budget_cycle' ? 'budget_cycle' : 'transaction_date';
         if (intent === 'tendencia_entradas_mensal') {
             const explicitMonths = text.match(/ultimos?\s+(\d{1,2})\s+mes(?:es)?/);
             const monthRange = getSaoPauloMonthRange(explicitMonths ? Number.parseInt(explicitMonths[1], 10) : 6);
@@ -2528,10 +2966,13 @@ function buildFinancialQueryPlanForLocalClassification(classification = {}, user
         }
     }
 
-    if (/\b(pix|dinheiro|debito|débito)\b/.test(text)) {
+    const hasPaymentMethodFilter = /\bpix\b/.test(text) ||
+        /\b(debito|débito)\b/.test(text) ||
+        /\b(no|na|em|com|por|via)\s+dinheiro\b/.test(text);
+    if (hasPaymentMethodFilter) {
         draft.timeBasis = 'transaction_date';
         if (text.includes('pix')) draft.filters.paymentMethod = 'pix';
-        else if (text.includes('dinheiro')) draft.filters.paymentMethod = 'dinheiro';
+        else if (/\b(no|na|em|com|por|via)\s+dinheiro\b/.test(text)) draft.filters.paymentMethod = 'dinheiro';
         else if (text.includes('debito') || text.includes('débito')) draft.filters.paymentMethod = 'debito';
     }
 
@@ -2766,6 +3207,40 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
             `Entradas: ${formatCurrencyBR(details.totalEntradas)}`,
             `Saídas: ${formatCurrencyBR(details.totalSaidas)}`
         ].join('\n');
+    }
+
+    if ([
+        'dashboard_explicacao',
+        'dashboard_detalhe',
+        'dashboard_comparacao',
+        'dashboard_ranking',
+        'dashboard_detectar'
+    ].includes(intent)) {
+        const summary = results || {};
+        const basis = normalizeText(details.timeBasis || details.criterioDashboard || '');
+        const criterion = basis === 'budget_cycle'
+            ? 'Critério: ciclo de orçamento configurado.'
+            : (basis === 'billing_month'
+                ? 'Critério: visão mensal do dashboard; cartões e categorias seguem o critério público do painel.'
+                : 'Critério: lançamentos, entradas, transferências e disponível pela data registrada.');
+        const lines = [
+            `Resumo do dashboard em ${periodLabel}:`,
+            `Entradas: ${formatCurrencyBR(details.totalEntradas ?? summary.income ?? 0)}`,
+            `Saídas: ${formatCurrencyBR(details.totalSaidas ?? summary.outputs ?? summary.spending ?? 0)}`,
+            `Cartões: ${formatCurrencyBR(details.totalCartoes ?? summary.cards ?? 0)}`,
+            `Saldo: ${formatCurrencyBR(details.saldo ?? summary.balance ?? 0)}`,
+            `Disponível estimado: ${formatCurrencyBR(details.disponivel ?? summary.availableEstimate ?? 0)}`,
+            `Reserva/caixinha líquida: ${formatCurrencyBR(details.reservaLiquida ?? summary.reserveNet ?? 0)}`,
+            `Transferências internas: ${formatCurrencyBR(details.transferenciasInternas ?? summary.internalTransfers ?? 0)}`,
+            criterion
+        ];
+        if (intent === 'dashboard_detectar') {
+            lines.push('Se algum indicador parecer zerado, eu comparo o KPI com os lançamentos visíveis no seu escopo antes de tratar como erro.');
+        }
+        if (intent === 'dashboard_comparacao') {
+            lines.push('Comparações do dashboard devem usar os mesmos critérios públicos do painel para evitar diferença entre WhatsApp e web.');
+        }
+        return lines.join('\n');
     }
 
     if (intent === 'saldo_disponivel_estimado') {
@@ -6364,7 +6839,7 @@ async function handleMessage(msg) {
                             previousScope: previousAnalyticalContext?.parameters?.scope || '',
                             authorizedUserIds: financialScopeUserIds,
                             users: usersForScope,
-                            isAdmin: isAdminWithContext(senderId, user)
+                            isAdmin: isAdminWithContext(senderId, activeUser)
                         });
                         if (resolvedScope.decision === 'block') {
                             metrics.increment('message.pergunta.scope.blocked');

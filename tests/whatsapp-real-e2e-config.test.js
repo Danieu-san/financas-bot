@@ -112,3 +112,33 @@ test('whatsappE2EConfig helpers normalize common inputs', () => {
     assert.strictEqual(normalizePhone('+55 (21) 97011-2407', 'phone'), '5521970112407');
     assert.deepStrictEqual(parseAdminPhones('5521970112407@c.us,151058345148646@lid'), ['5521970112407', '151058345148646']);
 });
+
+test('whatsapp analytical batch expectations avoid fixed historical amounts', () => {
+    const { buildAnalyticalSuites } = require('../scripts/runWhatsappAnalyticalBatch');
+    const suites = buildAnalyticalSuites();
+    const fixedValuePattern = /\bR\$\s*\d|\b\d{1,3},\d{2}%\b/;
+
+    assert.ok(suites.length > 0);
+    for (const suite of suites) {
+        assert.ok(suite.cases.length > 0, `suite ${suite.label} deve ter casos`);
+        for (const testCase of suite.cases) {
+            assert.ok(testCase.expectAny.length > 0, `caso ${testCase.question} deve ter marcadores`);
+            assert.ok(
+                testCase.expectAny.every(marker => !fixedValuePattern.test(marker)),
+                `caso ${testCase.question} nao deve depender de valor historico fixo`
+            );
+        }
+    }
+});
+
+test('whatsapp import e2e confirmation expectations use the generated row count', () => {
+    const { buildConfirmationExpectations } = require('../scripts/runWhatsappImportE2E');
+
+    assert.deepStrictEqual(
+        buildConfirmationExpectations(27),
+        [
+            'Importação concluída. 27 lançamento',
+            'Importacao concluida. 27 lancamento'
+        ]
+    );
+});

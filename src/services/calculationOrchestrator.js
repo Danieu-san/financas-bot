@@ -51,6 +51,11 @@ const FINANCIAL_QUERY_ENGINE_PRIMARY_INTENTS = new Set([
     'transferencia_familiar_eh_gasto',
     'total_pagamentos_fatura_mes',
     'saldo_disponivel_estimado',
+    'dashboard_explicacao',
+    'dashboard_detalhe',
+    'dashboard_comparacao',
+    'dashboard_ranking',
+    'dashboard_detectar',
     'orcamento_disponivel_hoje',
     'orcamento_usado_ciclo',
     'orcamento_explicacao',
@@ -380,6 +385,36 @@ async function executeLegacyExpenseQueryIntent(intent, params = {}, dataSources 
         return {
             results: Number(value || 0),
             details: transferDetails
+        };
+    }
+
+    const dashboardIntents = new Set([
+        'dashboard_explicacao',
+        'dashboard_detalhe',
+        'dashboard_comparacao',
+        'dashboard_ranking',
+        'dashboard_detectar'
+    ]);
+
+    if (dashboardIntents.has(intent)) {
+        const summary = value || {};
+        return {
+            results: summary,
+            details: {
+                ...safeParams,
+                mes,
+                ano,
+                timeBasis: execution.plan?.timeBasis || 'transaction_date',
+                criterioDashboard: execution.result?.details?.timeBasis || execution.plan?.timeBasis || 'transaction_date',
+                total: Number(execution.result?.details?.total || summary.balance || 0),
+                totalEntradas: Number(summary.income || summary.totalEntradas || 0),
+                totalSaidas: Number(summary.outputs || summary.spending || summary.totalSaidas || 0),
+                totalCartoes: Number(summary.cards || summary.totalCartoes || 0),
+                saldo: Number(summary.balance || 0),
+                disponivel: Number(summary.availableEstimate || summary.available || 0),
+                reservaLiquida: Number(summary.reserveNet || 0),
+                transferenciasInternas: Number(summary.internalTransfers || 0)
+            }
         };
     }
 

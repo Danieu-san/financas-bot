@@ -1482,11 +1482,14 @@ function executeBillsQuery(plan, dataSources = {}) {
     if (plan.operation === 'list') return { ok: true, plan, result: { value: items, details: { ...details, ...summary } } };
     if (plan.operation === 'sum') return { ok: true, plan, result: { value: totals.expected, details: { ...details, ...summary } } };
     if (plan.operation === 'count') return { ok: true, plan, result: { value: selected.length, details: { ...details, ...summary } } };
-    if (['compare', 'detail', 'explain'].includes(plan.operation)) {
+    if (['compare', 'detail', 'explain', 'detect'].includes(plan.operation)) {
         return { ok: true, plan, result: { value: summary, details: { ...details, ...summary } } };
     }
     if (['group', 'rank'].includes(plan.operation)) {
         return { ok: true, plan, result: { value: groupRows(selected, plan.groupBy, 'due_date').slice(0, plan.limit), details } };
+    }
+    if (plan.operation === 'trend') {
+        return { ok: true, plan, result: { value: sortMonthlyGroups(groupRows(selected, ['month'], 'due_date')).slice(0, plan.limit), details: { ...details, groupBy: ['month'] } } };
     }
     return null;
 }
@@ -1530,12 +1533,22 @@ function executeDebtsQuery(plan, dataSources = {}) {
         const denominator = roundMoney(visibleRows.filter(debtIsActive).reduce((sum, item) => sum + Number(item.value || 0), 0));
         return { ok: true, plan, result: { value: { percent: denominator > 0 ? roundMoney((part / denominator) * 100) : 0, part, total: denominator }, details: { ...details, denominator } } };
     }
+    if (plan.operation === 'detect') {
+        return { ok: true, plan, result: { value: detail, details: { ...details, ...detail } } };
+    }
     if (plan.operation === 'extreme') {
         const sorted = sortRows(activeRows, { by: 'value', direction: 'asc' });
         return { ok: true, plan, result: { value: { min: sorted[0] ? publicItem(sorted[0]) : null, max: sorted[sorted.length - 1] ? publicItem(sorted[sorted.length - 1]) : null }, details } };
     }
     if (plan.operation === 'explain' || plan.operation === 'detail') {
         return { ok: true, plan, result: { value: detail, details: { ...details, ...detail } } };
+    }
+    if (plan.operation === 'forecast') {
+        const recommendation = buildDebtRecommendation(rows, dataSources);
+        return { ok: true, plan, result: { value: recommendation, details: { ...details, criteria: recommendation.criteria } } };
+    }
+    if (plan.operation === 'trend') {
+        return { ok: true, plan, result: { value: sortMonthlyGroups(groupRows(rows, ['month'], 'transaction_date')).slice(0, plan.limit), details: { ...details, groupBy: ['month'] } } };
     }
     if (plan.operation === 'recommend') {
         const recommendation = buildDebtRecommendation(rows, dataSources);
