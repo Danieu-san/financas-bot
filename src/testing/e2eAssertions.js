@@ -17,12 +17,13 @@ async function sendAndWaitForReply(driver, text, expected, options = {}) {
     const timeoutMs = options.timeoutMs || driver.config.timeoutMs;
     await waitForChatToSettle(driver, options.settleMs);
     const previousCount = await driver.countTextOccurrences(expected);
+    const previousFingerprint = await driver.getLatestIncomingFingerprint();
     const startedAt = Date.now();
 
     console.log(`[whatsapp-e2e] -> ${text}`);
     await driver.sendMessage(text);
     try {
-        await driver.waitForIncomingMessage({ contains: expected, previousCount, timeoutMs });
+        await driver.waitForIncomingMessage({ contains: expected, previousCount, previousFingerprint, timeoutMs });
     } catch (error) {
         console.log(`[whatsapp-e2e] texto visivel ao falhar:\n${await describeVisibleTextTail(driver)}`);
         throw error;
@@ -40,6 +41,7 @@ async function sendAndWaitForAnyReply(driver, text, expectedAny, options = {}) {
     const startedAt = Date.now();
 
     await waitForChatToSettle(driver, options.settleMs);
+    const previousFingerprint = await driver.getLatestIncomingFingerprint();
     for (const expected of expectedAny) {
         previousCounts[expected] = await driver.countTextOccurrences(expected);
     }
@@ -51,6 +53,7 @@ async function sendAndWaitForAnyReply(driver, text, expectedAny, options = {}) {
         found = await driver.waitForAnyIncomingMessage({
             containsAny: expectedAny,
             previousCounts,
+            previousFingerprint,
             timeoutMs
         });
     } catch (error) {

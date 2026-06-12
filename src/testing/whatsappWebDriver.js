@@ -66,6 +66,11 @@ function countOccurrences(text, search) {
     return String(text || '').split(search).length - 1;
 }
 
+function isNewExpectedReply(text, fingerprint, previousFingerprint, expectedAny = []) {
+    if (!fingerprint || fingerprint === previousFingerprint) return null;
+    return expectedAny.find(expected => String(text || '').includes(expected)) || null;
+}
+
 function resolveWhatsAppLoadTimeout(config) {
     return Number(config?.timeoutMs) || 60000;
 }
@@ -218,6 +223,19 @@ class WhatsAppWebDriver {
         return countOccurrences(await this.getVisibleText(), search);
     }
 
+    async getLatestIncomingFingerprint() {
+        return this.page.evaluate(() => {
+            const messages = Array.from(document.querySelectorAll('.message-in'));
+            const latest = messages[messages.length - 1];
+            if (!latest) return '';
+            const container = latest.closest('[data-id]') || latest;
+            return container.getAttribute('data-id') ||
+                container.getAttribute('id') ||
+                latest.querySelector('[data-pre-plain-text]')?.getAttribute('data-pre-plain-text') ||
+                latest.outerHTML;
+        });
+    }
+
     async sendMessage(text) {
         const box = await this.getMessageBox();
         await box.click();
@@ -225,26 +243,59 @@ class WhatsAppWebDriver {
         await this.page.keyboard.press('Enter');
     }
 
-    async waitForIncomingMessage({ contains, previousCount = 0, timeoutMs = this.config.timeoutMs }) {
+    async waitForIncomingMessage({
+        contains,
+        previousCount = 0,
+        previousFingerprint = '',
+        timeoutMs = this.config.timeoutMs
+    }) {
         await this.page.waitForFunction(
-            ({ text, minCount }) => {
+            ({ text, minCount, oldFingerprint }) => {
                 const bodyText = document.body.innerText || '';
-                return bodyText.split(text).length - 1 > minCount;
+                const messages = Array.from(document.querySelectorAll('.message-in'));
+                const latest = messages[messages.length - 1];
+                const container = latest?.closest('[data-id]') || latest;
+                const fingerprint = container?.getAttribute('data-id') ||
+                    container?.getAttribute('id') ||
+                    latest?.querySelector('[data-pre-plain-text]')?.getAttribute('data-pre-plain-text') ||
+                    latest?.outerHTML ||
+                    '';
+                const latestText = latest?.innerText || '';
+                return bodyText.split(text).length - 1 > minCount ||
+                    (fingerprint && fingerprint !== oldFingerprint && latestText.includes(text));
             },
-            { text: contains, minCount: previousCount },
+            { text: contains, minCount: previousCount, oldFingerprint: previousFingerprint },
             { timeout: timeoutMs }
         );
 
         return contains;
     }
 
-    async waitForAnyIncomingMessage({ containsAny, previousCounts = {}, timeoutMs = this.config.timeoutMs }) {
+    async waitForAnyIncomingMessage({
+        containsAny,
+        previousCounts = {},
+        previousFingerprint = '',
+        timeoutMs = this.config.timeoutMs
+    }) {
         const found = await this.page.waitForFunction(
-            ({ texts, counts }) => {
+            ({ texts, counts, oldFingerprint }) => {
                 const bodyText = document.body.innerText || '';
-                return texts.find(text => bodyText.split(text).length - 1 > (counts[text] || 0)) || null;
+                const countMatch = texts.find(text => bodyText.split(text).length - 1 > (counts[text] || 0));
+                if (countMatch) return countMatch;
+
+                const messages = Array.from(document.querySelectorAll('.message-in'));
+                const latest = messages[messages.length - 1];
+                const container = latest?.closest('[data-id]') || latest;
+                const fingerprint = container?.getAttribute('data-id') ||
+                    container?.getAttribute('id') ||
+                    latest?.querySelector('[data-pre-plain-text]')?.getAttribute('data-pre-plain-text') ||
+                    latest?.outerHTML ||
+                    '';
+                const latestText = latest?.innerText || '';
+                if (!fingerprint || fingerprint === oldFingerprint) return null;
+                return texts.find(text => latestText.includes(text)) || null;
             },
-            { texts: containsAny, counts: previousCounts },
+            { texts: containsAny, counts: previousCounts, oldFingerprint: previousFingerprint },
             { timeout: timeoutMs }
         );
 
@@ -267,6 +318,7 @@ module.exports = {
     countOccurrences,
     describeContentEditableFields,
     describeClickableCandidates,
+    isNewExpectedReply,
     launchWhatsAppWebDriver,
     resolveWhatsAppLoadTimeout
 };

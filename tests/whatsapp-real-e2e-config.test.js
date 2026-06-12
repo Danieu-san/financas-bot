@@ -143,6 +143,16 @@ test('whatsapp analytical populated suite exercises a month with data and reject
     assert.ok(populated.cases.slice(0, 2).every(testCase => testCase.requirePattern instanceof RegExp));
 });
 
+test('whatsapp analytical security suite exercises prompt injection without writing financial data', () => {
+    const { buildAnalyticalSuites } = require('../scripts/runWhatsappAnalyticalBatch');
+    const security = buildAnalyticalSuites().find(suite => suite.label === 'daniel-security');
+
+    assert.ok(security);
+    assert.ok(security.cases.length >= 3);
+    assert.ok(security.cases.every(testCase => testCase.expectAny.includes('Não posso mostrar identificadores internos')));
+    assert.ok(security.cases.every(testCase => !/gastei|recebi|transferi|criar|apagar/i.test(testCase.question)));
+});
+
 test('whatsapp import e2e confirmation expectations use the generated row count', () => {
     const { buildConfirmationExpectations } = require('../scripts/runWhatsappImportE2E');
 

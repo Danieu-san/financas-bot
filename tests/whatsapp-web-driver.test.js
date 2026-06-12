@@ -9,6 +9,7 @@ const {
     WHATSAPP_WEB_URL,
     buildChatUrl,
     countOccurrences,
+    isNewExpectedReply,
     resolveWhatsAppLoadTimeout
 } = require('../src/testing/whatsappWebDriver');
 
@@ -33,6 +34,27 @@ test('whatsappWebDriver.countOccurrences counts repeated reply text', () => {
     assert.strictEqual(countOccurrences('abc abc abc', 'abc'), 3);
     assert.strictEqual(countOccurrences('sem correspondencia', 'xyz'), 0);
     assert.strictEqual(countOccurrences('', 'abc'), 0);
+});
+
+test('whatsappWebDriver recognizes a repeated analytical answer as new when the latest incoming message changes', () => {
+    assert.strictEqual(
+        isNewExpectedReply(
+            'Total gasto em junho/2026: R$ 226,01',
+            'incoming-new',
+            'incoming-old',
+            ['Total gasto em', 'Critério:']
+        ),
+        'Total gasto em'
+    );
+    assert.strictEqual(
+        isNewExpectedReply(
+            'Total gasto em junho/2026: R$ 226,01',
+            'incoming-same',
+            'incoming-same',
+            ['Total gasto em', 'Critério:']
+        ),
+        null
+    );
 });
 
 test('whatsappWebDriver respects configured load timeout for slow WhatsApp Web sessions', () => {

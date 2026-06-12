@@ -417,6 +417,15 @@ Inicio local do Packet 05 - Budget/Orcamento em 2026-06-06:
 
 ## Higiene do workspace
 
+## Validacao completa de 2026-06-12
+
+- A bateria `Financial Query Acceptance` passou com 265/265 casos, incluindo 23 pedidos adversariais bloqueados antes do planner.
+- O smoke analitico real de Daniel passou usando um periodo populado (`junho de 2026`) e confirmou totais, detalhamento, categorias, extremos e estabelecimentos coerentes.
+- O runner do WhatsApp Web deixou de depender apenas da contagem de texto visivel. Ele agora reconhece a ultima mensagem recebida por fingerprint, evitando falso timeout quando o WhatsApp virtualiza uma resposta antiga e uma nova resposta identica entra no DOM.
+- O security gate passou a bloquear identificadores internos escritos com separadores, como `sheet_id` e `user-id`, antes de chamar Gemini ou Query Engine.
+- Benchmark final: `gemini-3.1-flash-lite` teve 96/120 correspondencias, JSON valido 120/120, zero saida insegura, consistencia 40/40 e media de 1138 ms; `gemini-3.5-flash` teve 90/120, JSON valido 120/120, zero saida insegura, consistencia 40/40 e media de 5141 ms. Nenhum atingiu o gate de 98% de campos criticos, portanto nao trocar o modelo de producao ainda.
+- O teto mensal foi liberado temporariamente e permitiu concluir o benchmark, mas o proprio benchmark consumiu a nova margem. Mesmo apos novo aumento informado em 2026-06-12, uma chamada minima ainda recebeu `monthly_spending_cap`; pode haver atraso de propagacao no AI Studio. Consultas deterministicas continuam operacionais; audio e interpretacao livre dependem da liberacao efetiva do teto.
+
 Em 2026-05-26, `git status --short` ainda mostrava arquivos nao rastreados antigos:
 
 - `.claude/`

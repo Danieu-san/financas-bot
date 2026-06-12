@@ -210,7 +210,7 @@ function detectSecuritySensitiveRequest(messageBody) {
 
     const internalIdentifierPatterns = [
         /\b(?:sheetid|spreadsheetid|tenantid|userid|usuarioid|clienteid)\b/,
-        /\b(?:sheet|spreadsheet|tenant|workspace|user|usuario|cliente)\s*id\b/,
+        /\b(?:sheet|spreadsheet|tenant|workspace|user|usuario|cliente)[_\s-]*id\b/,
         /\bid\s+(?:da|do|de)\s+(?:planilha|spreadsheet|sheet|usuario|usuaria|user|cliente|tenant|workspace)\b/,
         /\bidentificador(?:es)?\s+(?:interno|internos|da planilha|do usuario|do cliente)\b/,
         /\b(?:planilha|spreadsheet|sheet)\s+(?:id|interna|original)\b/
