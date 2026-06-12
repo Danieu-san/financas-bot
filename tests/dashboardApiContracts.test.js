@@ -239,7 +239,12 @@ test('dashboard admin user selector only lists active users', async () => {
         const result = await fetchJson(`${baseUrl}/dashboard/api/users?token=${adminToken}`);
         assert.strictEqual(result.response.status, 200);
         const values = result.json.users.map(user => user.value);
+        const labels = result.json.users.map(user => user.label);
         assert.ok(values.includes('admin-user'));
+        assert.deepStrictEqual(labels, ['Daniel']);
+        assert.ok(!JSON.stringify(labels).includes('5521970112407'));
+        assert.ok(!JSON.stringify(labels).includes('admin-user'));
+        assert.ok(!JSON.stringify(labels).includes('ACTIVE'));
         assert.ok(!values.includes('user-dash-a'));
         assert.ok(!values.includes('all'));
         assert.ok(!values.includes('inactive-user'));

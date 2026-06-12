@@ -713,12 +713,10 @@ function buildDashboardUserOptions(payload, users = []) {
 }
 
 function formatDashboardUserOption(user) {
-    const status = user.status ? ` · ${user.status}` : '';
-    const phone = user.phone_e164 || user.whatsapp_id || user.user_id;
-    const name = user.display_name || 'Sem nome';
+    const name = String(user.display_name || '').trim() || 'Meu usuário';
     return {
         value: user.user_id,
-        label: `${name} · ${phone}${status}`
+        label: name
     };
 }
 

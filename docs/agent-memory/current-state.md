@@ -420,6 +420,7 @@ Inicio local do Packet 05 - Budget/Orcamento em 2026-06-06:
 ## Validacao completa de 2026-06-12
 
 - A bateria `Financial Query Acceptance` passou com 265/265 casos, incluindo 23 pedidos adversariais bloqueados antes do planner.
+- O seletor de usuario do dashboard deixou de exibir telefone, `user_id` e status no rotulo visivel; o identificador interno continua restrito ao valor usado pela autorizacao da API.
 - O smoke analitico real de Daniel passou usando um periodo populado (`junho de 2026`) e confirmou totais, detalhamento, categorias, extremos e estabelecimentos coerentes.
 - O runner do WhatsApp Web deixou de depender apenas da contagem de texto visivel. Ele agora reconhece a ultima mensagem recebida por fingerprint, evitando falso timeout quando o WhatsApp virtualiza uma resposta antiga e uma nova resposta identica entra no DOM.
 - O security gate passou a bloquear identificadores internos escritos com separadores, como `sheet_id` e `user-id`, antes de chamar Gemini ou Query Engine.
