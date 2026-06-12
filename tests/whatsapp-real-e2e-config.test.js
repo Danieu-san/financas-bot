@@ -172,3 +172,14 @@ test('whatsapp import e2e selects document inputs and rejects image-only inputs'
     assert.strictEqual(findDocumentInputIndex(['image/*', 'text/csv']), 1);
     assert.strictEqual(findDocumentInputIndex(['image/*']), -1);
 });
+
+test('whatsapp import e2e owner choice is configurable for family imports', () => {
+    const { resolveImportOwnerChoice } = require('../scripts/runWhatsappImportE2E');
+
+    assert.strictEqual(resolveImportOwnerChoice({}), '1');
+    assert.strictEqual(resolveImportOwnerChoice({ IMPORT_E2E_OWNER_CHOICE: '2' }), '2');
+    assert.throws(
+        () => resolveImportOwnerChoice({ IMPORT_E2E_OWNER_CHOICE: 'thais' }),
+        /IMPORT_E2E_OWNER_CHOICE/
+    );
+});

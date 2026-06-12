@@ -38,12 +38,17 @@ async function sendAndWaitForReply(driver, text, expected, options = {}) {
 async function sendAndWaitForAnyReply(driver, text, expectedAny, options = {}) {
     const timeoutMs = options.timeoutMs || driver.config.timeoutMs;
     const previousCounts = {};
+    const previousVisibleCounts = {};
     const startedAt = Date.now();
 
     await waitForChatToSettle(driver, options.settleMs);
     const previousFingerprint = await driver.getLatestIncomingFingerprint();
     for (const expected of expectedAny) {
         previousCounts[expected] = await driver.countIncomingTextOccurrences(expected);
+    }
+    const visibleBefore = await driver.getVisibleText().catch(() => '');
+    for (const expected of expectedAny) {
+        previousVisibleCounts[expected] = countVisibleOccurrences(visibleBefore, expected);
     }
 
     console.log(`[whatsapp-e2e] -> ${text}`);
@@ -57,8 +62,12 @@ async function sendAndWaitForAnyReply(driver, text, expectedAny, options = {}) {
             timeoutMs
         });
     } catch (error) {
-        console.log(`[whatsapp-e2e] texto visivel ao falhar:\n${await describeVisibleTextTail(driver)}`);
-        throw error;
+        const visibleAfter = await driver.getVisibleText().catch(() => '');
+        found = expectedAny.find(expected => countVisibleOccurrences(visibleAfter, expected) > previousVisibleCounts[expected]);
+        if (!found) {
+            console.log(`[whatsapp-e2e] texto visivel ao falhar:\n${String(visibleAfter || '').slice(-1500)}`);
+            throw error;
+        }
     }
 
     const elapsedMs = Date.now() - startedAt;
@@ -67,7 +76,22 @@ async function sendAndWaitForAnyReply(driver, text, expectedAny, options = {}) {
     return found;
 }
 
+function countVisibleOccurrences(text, search) {
+    const haystack = String(text || '');
+    const needle = String(search || '');
+    if (!needle) return 0;
+
+    let count = 0;
+    let index = 0;
+    while ((index = haystack.indexOf(needle, index)) !== -1) {
+        count += 1;
+        index += needle.length;
+    }
+    return count;
+}
+
 module.exports = {
+    countVisibleOccurrences,
     sendAndWaitForAnyReply,
     sendAndWaitForReply,
     waitForChatToSettle

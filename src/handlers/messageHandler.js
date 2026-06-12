@@ -4171,6 +4171,37 @@ function senderIdFromMessage(msg) {
     return msg?.author || msg?.from || '';
 }
 
+const IMPORT_STATE_ACTIONS = new Set([
+    'awaiting_statement_import_owner',
+    'awaiting_statement_import_date',
+    'awaiting_statement_import_kind',
+    'awaiting_statement_import_card_selection',
+    'awaiting_statement_recurring_income_classification',
+    'confirming_statement_import',
+    'confirming_recurring_bill_suggestion',
+    'awaiting_recurring_bill_classification'
+]);
+
+function getConversationStateForMessage(senderId, activeUser = {}) {
+    const direct = userStateManager.getState(senderId);
+    if (direct) return direct;
+
+    const activeUserId = String(activeUser?.user_id || '').trim();
+    if (!activeUserId || typeof userStateManager.findStateEntry !== 'function') return undefined;
+
+    const recovered = userStateManager.findStateEntry((key, state) => {
+        if (!state || !IMPORT_STATE_ACTIONS.has(state.action)) return false;
+        if (key === senderId) return false;
+        return String(state.data?.userId || state.data?.importUserId || '').trim() === activeUserId;
+    });
+    if (!recovered) return undefined;
+
+    userStateManager.deleteState(recovered.key);
+    userStateManager.setState(senderId, recovered.data);
+    logger.info(`[state] recovered_import_state_for_sender action=${recovered.data.action} sender=${senderId}`);
+    return recovered.data;
+}
+
 function normalizeSettingsCommandText(text) {
     return normalizeText(String(text || ''))
         .replace(/[`*_~]/g, ' ')
@@ -5674,7 +5705,7 @@ async function handleMessage(msg) {
         return;
     }
 
-    let currentState = userStateManager.getState(senderId);
+    let currentState = getConversationStateForMessage(senderId, activeUser);
     if (currentState?.action === 'confirming_statement_import' && shouldInterruptStatementImportConfirmation(messageBody)) {
         logger.info(`[state] import_confirmation_interrupted sender=${senderId} msg="${sanitizeLogText(messageBody)}"`);
         userStateManager.deleteState(senderId);

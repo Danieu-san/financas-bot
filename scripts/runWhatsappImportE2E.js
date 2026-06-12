@@ -64,7 +64,7 @@ async function progressImportToPreview(driver, previewMarker, previousCounts) {
 
     for (let guard = 0; found !== previewMarker && guard < 4; guard += 1) {
         if (found === 'é de quem?') {
-            found = await sendAndWaitForAnyReply(driver, '1', [
+            found = await sendAndWaitForAnyReply(driver, resolveImportOwnerChoice(), [
                 previewMarker,
                 'Esse extrato é de qual tipo?',
                 'Não encontrei data em'
@@ -88,6 +88,14 @@ async function progressImportToPreview(driver, previewMarker, previousCounts) {
     if (found !== previewMarker) {
         throw new Error(`Fluxo de importação não chegou à prévia. Última etapa observada: ${found || 'nenhuma'}`);
     }
+}
+
+function resolveImportOwnerChoice(env = process.env) {
+    const choice = String(env.IMPORT_E2E_OWNER_CHOICE || '1').trim();
+    if (!/^[1-9]\d*$/.test(choice)) {
+        throw new Error('IMPORT_E2E_OWNER_CHOICE deve ser um numero positivo.');
+    }
+    return choice;
 }
 
 async function cleanupImportedFixture(driver, suffix) {
@@ -292,5 +300,6 @@ module.exports = {
     findDocumentInputIndex,
     prepareImportPreview,
     progressImportToPreview,
+    resolveImportOwnerChoice,
     uploadFile
 };

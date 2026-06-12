@@ -1283,6 +1283,41 @@ stateMachineTest('financial states: family statement import asks owner and store
     assert.strictEqual(sheets.Transferências[1][8], PARTNER_ID);
 });
 
+stateMachineTest('financial states: statement import owner reply recovers state saved under another sender id for same user', async () => {
+    resetState();
+    sheets.Users.push(partnerUserRow());
+    sheets.UserProfile.push([
+        PARTNER_ID,
+        'Thais Cristina',
+        5000,
+        2500,
+        'NÃO',
+        'organizar contas',
+        '2026-01-01T00:00:00.000Z'
+    ]);
+    financialScopeUserIds = [USER_ID, PARTNER_ID];
+    if (typeof userService.invalidateUserCaches === 'function') {
+        userService.invalidateUserCaches();
+    }
+
+    const csv = [
+        'Data;Descrição;Valor;Tipo',
+        '17/05/2026;Mercado Guanabara;-35,35;Débito'
+    ].join('\n');
+
+    const ownerQuestion = await sendMedia(csv);
+    assert.match(ownerQuestion, /extrato/i);
+
+    const pendingState = userStateManager.getState(SENDER);
+    userStateManager.deleteState(SENDER);
+    userStateManager.setState('alternate-statement-import@lid', pendingState);
+
+    const kindQuestion = await send('2');
+    assert.match(kindQuestion, /conta corrente/i);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_statement_import_kind');
+    assert.strictEqual(userStateManager.getState('alternate-statement-import@lid'), undefined);
+});
+
 stateMachineTest('financial states: statement import asks how to classify repeated incoming transfer before preview', async () => {
     resetState();
     sheets.Transferências.push(

@@ -82,6 +82,32 @@ test('whatsapp E2E assertions count only incoming replies before sending a messa
     assert.strictEqual(calls[2][1].previousCounts.reserva, 0);
 });
 
+test('whatsapp E2E assertions can accept a newly visible reply when incoming selector misses it', async () => {
+    const { sendAndWaitForAnyReply } = require('../src/testing/e2eAssertions');
+    let visibleText = 'historico';
+    const driver = {
+        config: { timeoutMs: 1000 },
+        countIncomingTextOccurrences: async () => 0,
+        getLatestIncomingFingerprint: async () => 'before',
+        getVisibleText: async () => visibleText,
+        sendMessage: async () => {
+            visibleText += '\nItem(ns) apagado(s) com sucesso!';
+        },
+        waitForAnyIncomingMessage: async () => {
+            throw new Error('selector missed the incoming message');
+        }
+    };
+
+    const found = await sendAndWaitForAnyReply(
+        driver,
+        'sim',
+        ['Item(ns) apagado(s) com sucesso'],
+        { settleMs: 0 }
+    );
+
+    assert.strictEqual(found, 'Item(ns) apagado(s) com sucesso');
+});
+
 test('whatsappWebDriver respects configured load timeout for slow WhatsApp Web sessions', () => {
     assert.strictEqual(resolveWhatsAppLoadTimeout({ timeoutMs: 180000 }), 180000);
     assert.strictEqual(resolveWhatsAppLoadTimeout({}), 60000);

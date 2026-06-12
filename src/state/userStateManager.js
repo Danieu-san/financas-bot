@@ -147,6 +147,17 @@ function deleteState(userId) {
     }
 }
 
+function findStateEntry(predicate) {
+    cleanupExpired();
+    for (const [key, wrapper] of stateMap.entries()) {
+        const data = wrapper?.data;
+        if (predicate(key, data)) {
+            return { key, data };
+        }
+    }
+    return null;
+}
+
 function closeStateStore() {
     cleanupExpired();
     if (storeMode === 'redis' && redisReady) {
@@ -187,6 +198,7 @@ module.exports = {
     setState,
     deleteState,
     clearState: deleteState,
+    findStateEntry,
     closeStateStore,
     getStoreMode: () => storeMode,
     __test__: {
