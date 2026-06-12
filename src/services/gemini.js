@@ -22,7 +22,7 @@ function parseGeminiError(error, timeoutMs) {
     }
 
     const message = error?.message || '';
-    if (/RESOURCE_EXHAUSTED|prepayment credits are depleted|quota/i.test(message)) {
+    if (/RESOURCE_EXHAUSTED|prepayment credits are depleted|quota|monthly spending cap|limite mensal|teto mensal/i.test(message)) {
         metrics.increment('gemini.resource_exhausted');
         return {
             code: 'RESOURCE_EXHAUSTED',
@@ -209,4 +209,7 @@ module.exports = {
     askLLM,
     getStructuredResponseFromLLM,
     transcribeAudio,
+    __test__: {
+        parseGeminiError
+    }
 };

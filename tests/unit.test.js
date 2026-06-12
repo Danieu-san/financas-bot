@@ -4632,3 +4632,13 @@ test('financial question scope resolver uses activeUser instead of undefined use
         /isAdminWithContext\(senderId,\s*activeUser\)/
     );
 });
+
+test('gemini classifies monthly spending cap as resource exhausted', () => {
+    const { __test__ } = require('../src/services/gemini');
+    const parsed = __test__.parseGeminiError(
+        new Error('Your project has exceeded its monthly spending cap.'),
+        25000
+    );
+
+    assert.strictEqual(parsed.code, 'RESOURCE_EXHAUSTED');
+});

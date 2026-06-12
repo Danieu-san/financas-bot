@@ -19,6 +19,14 @@ Atualizado em: 2026-06-07
 
 Sempre revalidar EC2/PM2/logs antes de afirmar que producao esta saudavel.
 
+## Validacao completa e benchmark Gemini - 2026-06-12
+
+- A bateria offline da Financial Query Engine executou `265/265` casos sem divergencias; `23` casos adversariais foram bloqueados intencionalmente antes do planner.
+- E2E real de importacao via WhatsApp do Daniel validou cancelar, confirmar, arquivo complexo sem abreviacao, duplicidade e limpeza seletiva dos marcadores.
+- O benchmark sintetico comparou `gemini-2.5-flash`, `gemini-2.5-flash-lite`, `gemini-3.1-flash-lite` e `gemini-3.5-flash` sem usar dados reais. Na triagem, `gemini-3.1-flash-lite` teve a melhor precisao de campos; nenhuma troca de modelo foi feita.
+- A etapa final do benchmark esta bloqueada por `429` com mensagem de limite mensal de gastos do projeto. O runner interrompe com seguranca apos tres erros consecutivos desse tipo.
+- Consultas deterministicas da Query Engine continuam funcionando sem Gemini. Fluxos que dependem do Gemini permanecem degradados ate o limite mensal ser elevado ou renovado.
+
 ## Convites de pre-onboarding
 
 Correcao implantada em 2026-06-03:
