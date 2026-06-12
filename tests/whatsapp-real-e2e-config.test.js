@@ -131,6 +131,18 @@ test('whatsapp analytical batch expectations avoid fixed historical amounts', ()
     }
 });
 
+test('whatsapp analytical populated suite exercises a month with data and rejects empty results', () => {
+    const { buildAnalyticalSuites } = require('../scripts/runWhatsappAnalyticalBatch');
+    const populated = buildAnalyticalSuites({ populatedPeriod: 'junho de 2026' })
+        .find(suite => suite.label === 'daniel-populated');
+
+    assert.ok(populated);
+    assert.ok(populated.cases.length >= 5);
+    assert.ok(populated.cases.every(testCase => /junho de 2026/i.test(testCase.question)));
+    assert.ok(populated.cases.every(testCase => testCase.rejectAny.includes('Não encontrei gastos')));
+    assert.ok(populated.cases.slice(0, 2).every(testCase => testCase.requirePattern instanceof RegExp));
+});
+
 test('whatsapp import e2e confirmation expectations use the generated row count', () => {
     const { buildConfirmationExpectations } = require('../scripts/runWhatsappImportE2E');
 

@@ -42,6 +42,18 @@ async function runCases(label, config, cases) {
                 settleMs: 1500
             });
             const tail = await visibleTail(driver);
+            const questionIndex = tail.lastIndexOf(testCase.question);
+            const recentReply = questionIndex >= 0
+                ? tail.slice(questionIndex + testCase.question.length)
+                : tail;
+            for (const rejected of testCase.rejectAny || []) {
+                if (recentReply.includes(rejected)) {
+                    throw new Error(`Resposta invalida para "${testCase.question}": encontrou "${rejected}".`);
+                }
+            }
+            if (testCase.requirePattern && !testCase.requirePattern.test(recentReply)) {
+                throw new Error(`Resposta invalida para "${testCase.question}": nao comprovou resultado populado.`);
+            }
             results.push({
                 label,
                 question: testCase.question,
@@ -60,8 +72,43 @@ async function runCases(label, config, cases) {
     return results;
 }
 
-function buildAnalyticalSuites() {
+function buildAnalyticalSuites({ populatedPeriod = 'junho de 2026' } = {}) {
+    const populatedRejectAny = ['Não encontrei gastos', 'Nao encontrei gastos'];
+
     return [
+        {
+            label: 'daniel-populated',
+            config: buildConfig({ profileDir: '.e2e/whatsapp-sender-profile' }),
+            cases: [
+                {
+                    question: `qual foi o total de gastos em ${populatedPeriod}?`,
+                    expectAny: ['Total gasto em', 'Critério:'],
+                    rejectAny: populatedRejectAny,
+                    requirePattern: /Total gasto em[\s\S]*R\$\s*(?!0,00\b)\d/i
+                },
+                {
+                    question: `detalhe meus gastos em ${populatedPeriod}`,
+                    expectAny: ['Detalhamento dos gastos', 'Lançamentos que compõem'],
+                    rejectAny: populatedRejectAny,
+                    requirePattern: /Total:\s*R\$\s*(?!0,00\b)\d/i
+                },
+                {
+                    question: `quais categorias consumiram mais em ${populatedPeriod}?`,
+                    expectAny: ['Categorias que mais consumiram', 'Critério:'],
+                    rejectAny: populatedRejectAny
+                },
+                {
+                    question: `qual foi meu maior e menor gasto em ${populatedPeriod}?`,
+                    expectAny: ['Maior e menor gasto', 'Critério:'],
+                    rejectAny: populatedRejectAny
+                },
+                {
+                    question: `em quais estabelecimentos gastei em ${populatedPeriod}?`,
+                    expectAny: ['Estabelecimentos com gastos', 'Total detalhado'],
+                    rejectAny: populatedRejectAny
+                }
+            ]
+        },
         {
             label: 'daniel',
             config: buildConfig({ profileDir: '.e2e/whatsapp-sender-profile' }),
@@ -198,10 +245,12 @@ function buildAnalyticalSuites() {
 }
 
 async function main() {
-    const suites = buildAnalyticalSuites();
-
     const suiteArg = process.argv.find(arg => arg.startsWith('--suite='))?.split('=')[1];
     const startArg = process.argv.find(arg => arg.startsWith('--start='))?.split('=')[1];
+    const periodArg = process.argv.find(arg => arg.startsWith('--period='))?.slice('--period='.length);
+    const suites = buildAnalyticalSuites({
+        populatedPeriod: String(periodArg || process.env.WHATSAPP_ANALYTICS_POPULATED_PERIOD || 'junho de 2026').trim()
+    });
     const onlySuite = String(suiteArg || process.env.WHATSAPP_ANALYTICS_SUITE || '').trim().toLowerCase();
     const startAt = Math.max(1, Number.parseInt(startArg || process.env.WHATSAPP_ANALYTICS_START_AT || '1', 10) || 1);
 

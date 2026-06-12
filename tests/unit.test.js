@@ -3494,6 +3494,22 @@ test('calculationOrchestrator answers complex spending questions deterministical
     assert.strictEqual(round2(balance.details.totalSaidas), 452.69);
 });
 
+test('calculationOrchestrator total month preserves card subtotal from Query Engine', async () => {
+    const dataSources = {
+        saidas: [['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id']],
+        cartoes: [[
+            ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Observações', 'user_id'],
+            ['01/06/2026', 'mercado', 'Alimentação', 25, '1/1', 'Junho de 2026', 'card-1', 'Nubank', '', 'user-1']
+        ]]
+    };
+
+    const total = await calculationOrchestrator.execute('total_gastos_mes', { mes: 5, ano: 2026 }, dataSources);
+
+    assert.strictEqual(total.results, 25);
+    assert.strictEqual(total.details.totalSaidas, 0);
+    assert.strictEqual(total.details.totalCartoes, 25);
+});
+
 test('calculationOrchestrator details expenses by category, establishment and source', async () => {
     const round2 = value => Math.round(Number(value || 0) * 100) / 100;
     const dataSources = {

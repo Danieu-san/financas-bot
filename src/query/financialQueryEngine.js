@@ -1727,11 +1727,20 @@ async function executeFinancialQuery(rawPlan, dataSources = {}) {
         : getRowsForDomain(dataSources, plan);
     const rows = applyFilters(sourceRows, plan.filters);
     const total = roundMoney(rows.reduce((sum, item) => sum + Number(item.value || 0), 0));
+    const totals = {
+        outputs: roundMoney(rows
+            .filter(item => item.sourceType === 'expense')
+            .reduce((sum, item) => sum + Number(item.value || 0), 0)),
+        cards: roundMoney(rows
+            .filter(item => item.sourceType === 'card')
+            .reduce((sum, item) => sum + Number(item.value || 0), 0))
+    };
     const baseDetails = {
         domain: plan.domain,
         operation: plan.operation,
         count: rows.length,
         total,
+        totals,
         timeBasis: plan.timeBasis,
         filters: plan.filters
     };
