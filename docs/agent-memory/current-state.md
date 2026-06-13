@@ -23,6 +23,7 @@ Sempre revalidar EC2/PM2/logs antes de afirmar que producao esta saudavel.
 
 - A bateria offline da Financial Query Engine executou `265/265` casos sem divergencias; `23` casos adversariais foram bloqueados intencionalmente antes do planner.
 - E2E real de importacao via WhatsApp do Daniel validou cancelar, confirmar, arquivo complexo sem abreviacao, duplicidade e limpeza seletiva dos marcadores.
+- A deteccao de cartao pessoal citado na mensagem agora ignora diferencas de pontuacao e separadores, por exemplo `Nubank - Thais` versus `nubank thais`, sem escolher silenciosamente quando mais de um cartao combina com um nome generico.
 - O smoke analitico real passou a exigir um mes populado. Ele encontrou e corrigiu uma inconsistencia em que o total mensal incluia cartoes, mas o subtotal `Cartões` era exibido como zero; a Query Engine agora devolve subtotais por fonte tambem em operacoes de soma.
 - O benchmark sintetico comparou `gemini-2.5-flash`, `gemini-2.5-flash-lite`, `gemini-3.1-flash-lite` e `gemini-3.5-flash` sem usar dados reais. Na triagem, `gemini-3.1-flash-lite` teve a melhor precisao de campos; nenhuma troca de modelo foi feita.
 - A etapa final do benchmark esta bloqueada por `429` com mensagem de limite mensal de gastos do projeto. O runner interrompe com seguranca apos tres erros consecutivos desse tipo.

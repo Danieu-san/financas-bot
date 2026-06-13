@@ -36,6 +36,7 @@ const structuredResponses = [];
 let stateMachineFailed = false;
 let financialScopeUserIds = [USER_ID];
 let failNextPlainMessage = false;
+let usesPersonalSpreadsheet = false;
 
 function stateMachineTest(name, fn) {
     test(name, async () => {
@@ -103,6 +104,7 @@ function resetSheets() {
     structuredResponses.length = 0;
     financialScopeUserIds = [USER_ID];
     failNextPlainMessage = false;
+    usesPersonalSpreadsheet = false;
 }
 
 function todayBr() {
@@ -191,6 +193,7 @@ function installMocks() {
                 deletedRows.push({ sheetName, indices });
                 return { success: true };
             },
+            hasUserSpreadsheetContext: async () => usesPersonalSpreadsheet,
             syncDashboardForUser: async () => {},
             __test__: {
                 eventBelongsToUser: (event, userId) => event?.extendedProperties?.private?.user_id === userId
@@ -690,6 +693,67 @@ stateMachineTest('financial states: explicit credit card and à vista expense sk
     assert.strictEqual(sheets['Cartão Nubank - Thais'][1][3], 10);
     assert.strictEqual(sheets['Cartão Nubank - Thais'][1][4], '1/1');
     assert.strictEqual(sheets['Cartão Nubank - Thais'][1].at(-1), USER_ID);
+});
+
+stateMachineTest('financial states: explicit personal card name ignores separators and skips redundant questions', async () => {
+    resetState();
+    usesPersonalSpreadsheet = true;
+    sheets.Cartões = [
+        ['card_id', 'Nome do Cartão', 'Dia de Vencimento', 'Dia de Fechamento', 'Bandeira', 'Ativo', 'Observações'],
+        ['card-thais', 'Nubank - Thais', '5', '29', 'Mastercard', 'SIM', '']
+    ];
+    enqueueStructuredResponse({
+        intent: 'gasto',
+        gastoDetails: [{
+            descricao: 'mercado',
+            valor: 10,
+            categoria: 'Alimentação',
+            subcategoria: 'SUPERMERCADO',
+            pagamento: 'Crédito',
+            recorrente: 'Não'
+        }]
+    });
+
+    const reply = await send('gastei 10 reais no mercado no crédito no cartão nubank thais à vista');
+
+    assert.match(reply, /lançado no/i);
+    assert.match(reply, /Cartão Nubank - Thais/i);
+    assert.doesNotMatch(reply, /qual cartão|parcelas/i);
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
+    assert.strictEqual(sheets['Cartão Nubank - Thais'].length, 2);
+    assert.strictEqual(sheets['Cartão Nubank - Thais'][1][3], 10);
+    assert.strictEqual(sheets['Cartão Nubank - Thais'][1][4], '1/1');
+    assert.strictEqual(sheets['Cartão Nubank - Thais'][1].at(-1), USER_ID);
+});
+
+stateMachineTest('financial states: generic personal card name remains ambiguous when multiple cards match', async () => {
+    resetState();
+    usesPersonalSpreadsheet = true;
+    sheets.Cartões = [
+        ['card_id', 'Nome do Cartão', 'Dia de Vencimento', 'Dia de Fechamento', 'Bandeira', 'Ativo', 'Observações'],
+        ['card-daniel', 'Nubank - Daniel', '5', '8', 'Mastercard', 'SIM', ''],
+        ['card-thais', 'Nubank - Thais', '5', '29', 'Mastercard', 'SIM', '']
+    ];
+    enqueueStructuredResponse({
+        intent: 'gasto',
+        gastoDetails: [{
+            descricao: 'mercado',
+            valor: 10,
+            categoria: 'Alimentação',
+            subcategoria: 'SUPERMERCADO',
+            pagamento: 'Crédito',
+            recorrente: 'Não'
+        }]
+    });
+
+    const reply = await send('gastei 10 reais no mercado no crédito no cartão nubank à vista');
+
+    assert.match(reply, /qual cartão/i);
+    assert.match(reply, /1\. Nubank - Daniel/i);
+    assert.match(reply, /2\. Nubank - Thais/i);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_credit_card_selection');
+    assert.strictEqual(sheets['Cartão Nubank - Daniel'].length, 1);
+    assert.strictEqual(sheets['Cartão Nubank - Thais'].length, 1);
 });
 
 stateMachineTest('financial states: explicit card name overrides mistaken debit classification when debit was not said', async () => {

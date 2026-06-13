@@ -4622,8 +4622,15 @@ function detectInstallmentsFromMessage(messageBody = '') {
     return Number.isInteger(value) && value >= 1 ? value : null;
 }
 
+function normalizeExplicitCardText(value = '') {
+    return normalizeText(String(value || ''))
+        .replace(/[^a-z0-9]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
 function findExplicitCardOption(messageBody = '', cardOptions = []) {
-    const text = normalizeText(messageBody);
+    const text = normalizeExplicitCardText(messageBody);
     const matches = cardOptions.filter((option) => {
         const parts = [
             option.key,
@@ -4632,7 +4639,7 @@ function findExplicitCardOption(messageBody = '', cardOptions = []) {
             option.cardInfo?.cardId,
             option.cardInfo?.label,
             option.cardInfo?.sheetName
-        ].map(value => normalizeText(value || '')).filter(Boolean);
+        ].map(normalizeExplicitCardText).filter(Boolean);
 
         return parts.some((part) => part.length >= 3 && text.includes(part));
     });
