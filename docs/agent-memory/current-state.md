@@ -439,6 +439,9 @@ Inicio local do Packet 05 - Budget/Orcamento em 2026-06-06:
 - Quatro rejeicoes nao tratadas encontradas nos ultimos logs de producao pertenciam a fluxos ja corrigidos no codigo atual: feedback seguro ao falhar salvamento de orcamento e fallback de resposta em comandos admin sem `msg.reply`.
 - Producao auditada antes do hardening final: PM2 online, health com SQLite saudavel, worktree remoto limpo, all-users desativado, `state_store.json` limpo e zero marcadores `TESTE_APAGAR_` em dados.
 - Onboarding/OAuth novo completo continua dependendo de numero e conta Google descartaveis. Acoes admin destrutivas e alteracao real de familia permanecem validadas automaticamente ou por evidencia historica, sem serem repetidas contra dados reais apenas para cumprir ritual.
+- A release final foi implantada no commit `dfbf528`, com rollback registrado em `05b4d85`. O pos-deploy confirmou PM2 online, WhatsApp ready, health/SQLite saudaveis, worktree remoto limpo, all-users desativado, estado limpo e zero marcadores de teste.
+- A verificacao de logs posteriores ao marcador sintetico de seguranca confirmou zero identificadores crus, zero rejeicoes nao tratadas e zero dumps crus de respostas da IA. Linhas antigas anteriores ao hardening permanecem no arquivo historico ate a politica de retencao remove-las.
+- O plano de validacao completa esta encerrado. O relatorio oficial esta em `docs/qa/complete-validation-report-2026-06-13.md` e o manifesto em `docs/qa/complete-validation-manifest-2026-06-13.json`.
 
 Em 2026-05-26, `git status --short` ainda mostrava arquivos nao rastreados antigos:
 

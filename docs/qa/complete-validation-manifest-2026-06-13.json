@@ -1,7 +1,17 @@
 {
   "run_id": "COMPLETE_VALIDATION_20260613",
   "scope": "FinancasBot completo, Financial Query Engine, integracoes reais seguras, seguranca e producao",
-  "status": "ready_for_final_release",
+  "status": "completed",
+  "release": {
+    "commit": "dfbf528",
+    "rollback_commit": "05b4d85",
+    "production_health": "passed",
+    "whatsapp_ready": true,
+    "remote_worktree_clean": true,
+    "post_deploy_raw_identifiers": 0,
+    "post_deploy_unhandled_rejections": 0,
+    "post_deploy_raw_ai_dumps": 0
+  },
   "automated": {
     "financial_query_acceptance": {
       "total": 265,

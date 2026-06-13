@@ -4,7 +4,7 @@
 
 A validacao executavel do FinancasBot esta verde. A rodada cobriu o motor financeiro deterministico, fluxos reais seguros pelo WhatsApp, importacao, dashboard, Calendar/scheduler, seguranca adversarial, limpeza e saude de producao.
 
-O fechamento de release ainda exige criar commit intencional, implantar e confirmar logs novos sem identificadores crus.
+Release concluida e validada em producao no commit `dfbf528`.
 
 ## Financial Query Engine
 
@@ -73,13 +73,16 @@ Esses itens nao sao falhas conhecidas do produto; sao limites deliberados da rod
 - Estado conversacional: limpo.
 - Dados reais anteriores: preservados.
 
-## Gate final
+## Gate final concluido
 
-Antes de declarar a release concluida:
+- Suite completa: 344/344.
+- Bateria financeira: 265/265, sem divergencias.
+- Auditoria de dependencias de alta severidade: zero vulnerabilidades.
+- Commit de release: `dfbf528`.
+- Rollback registrado: `05b4d85`.
+- Producao: PM2 online, WhatsApp ready, health e SQLite saudaveis.
+- Worktree remoto limpo e `all-users` desativado.
+- Estado conversacional limpo e zero marcadores `TESTE_APAGAR_` em dados.
+- Logs gerados depois do hardening: zero identificadores crus, zero rejeicoes nao tratadas e zero dumps crus da IA.
 
-1. Reexecutar suite completa, bateria de 265 casos, audit, checks e NUL scan.
-2. Fazer commit apenas dos arquivos intencionais.
-3. Criar backup e registrar rollback.
-4. Implantar.
-5. Confirmar PM2, WhatsApp ready, health, SQLite, all-users desativado e worktree remoto limpo.
-6. Gerar logs novos e confirmar zero identificadores crus, zero rejeicoes nao tratadas e zero marcadores.
+O plano de validacao completa esta encerrado. Permanecem apenas as limitacoes externas deliberadas descritas neste relatorio.
