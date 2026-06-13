@@ -1,8 +1,35 @@
 const { createLogger, format, transports } = require('winston');
 const path = require('path');
 
+function redactLogIdentifier(value) {
+    return String(value || '').trim() ? '[REDACTED_ID]' : '';
+}
+
+function sanitizeLogMessage(value) {
+    return String(value || '')
+        .replace(/\b(?:msg|command)="[^"]*"/gi, match => `${match.split('=')[0]}=[REDACTED_CONTENT]`)
+        .replace(/([?&](?:token|code|state|access_token|refresh_token|client_secret|secret|api_key|key)=)[^&\s"']+/gi, '$1[REDACTED_SECRET]')
+        .replace(/\bGOCSPX-[A-Za-z0-9_-]+\b/g, '[REDACTED_SECRET]')
+        .replace(/\b(?:ya29|1\/\/)[A-Za-z0-9._/-]{20,}\b/g, '[REDACTED_TOKEN]')
+        .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, '[REDACTED_TOKEN]')
+        .replace(/(docs\.google\.com\/(?:spreadsheets|document)\/d\/)[A-Za-z0-9_-]+/gi, '$1[REDACTED_DOC_ID]')
+        .replace(/(drive\.google\.com\/file\/d\/)[A-Za-z0-9_-]+/gi, '$1[REDACTED_DOC_ID]')
+        .replace(/("(?:user_id|sender_id|actor_user_id|whatsapp_id|target_whatsapp_id)"\s*:\s*")[^"]*"/gi, '$1[REDACTED_ID]"')
+        .replace(/\b(?:user_id|sender|sender_id|actor_user_id|whatsapp_id|target_whatsapp_id)=([^\s,}"']+)/gi, match => `${match.split('=')[0]}=[REDACTED_ID]`)
+        .replace(/\b\d{10,20}@(c\.us|lid)\b/gi, '[REDACTED_ID]')
+        .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/gi, '[REDACTED_ID]')
+        .replace(/\b\d{10,15}\b/g, '[REDACTED_ID]');
+}
+
+const sanitizedMessageFormat = format(info => {
+    info.message = sanitizeLogMessage(info.message);
+    if (info.stack) info.stack = sanitizeLogMessage(info.stack);
+    return info;
+});
+
 const logger = createLogger({
     format: format.combine(
+        sanitizedMessageFormat(),
         format.timestamp({ format: 'DD/MM/YYYY HH:mm:ss' }),
         format.printf(({ timestamp, level, message }) => `[${timestamp}] ${level.toUpperCase()}: ${message}`)
     ),
@@ -17,5 +44,11 @@ const logger = createLogger({
         })
     ]
 });
+
+logger.redactIdentifier = redactLogIdentifier;
+logger.__test__ = {
+    redactLogIdentifier,
+    sanitizeLogMessage
+};
 
 module.exports = logger;

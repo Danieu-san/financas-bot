@@ -2,6 +2,7 @@
 
 const { askLLM } = require('./geminiClient');
 const { normalizeText } = require('../utils/helpers');
+const logger = require('../utils/logger');
 
 const parseMonthName = (monthStr) => {
     const months = { 'janeiro': 0, 'fevereiro': 1, 'março': 2, 'marco': 2, 'abril': 3, 'maio': 4, 'junho': 5, 'julho': 6, 'agosto': 7, 'setembro': 8, 'outubro': 9, 'novembro': 10, 'dezembro': 11 };
@@ -78,7 +79,6 @@ async function classify(questionText) {
 
     try {
         const rawResponse = await askLLM(classificationPrompt);
-        console.log("Resposta bruta da IA (Classificação):", rawResponse);
         const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
         if (!jsonMatch) throw new Error("A resposta da IA não contém um JSON válido.");
         
@@ -103,7 +103,7 @@ async function classify(questionText) {
             originalQuestion: questionText
         };
     } catch (err) {
-        console.warn("Classificação por IA falhou, usando fallback 'pergunta_geral'. Erro:", err.message);
+        logger.warn(`[ai] classification_fallback error=${err.message}`);
         return {
             intent: 'pergunta_geral',
             parameters: {},

@@ -1,0 +1,41 @@
+{
+  "run_id": "COMPLETE_VALIDATION_20260613",
+  "scope": "FinancasBot completo, Financial Query Engine, integracoes reais seguras, seguranca e producao",
+  "status": "ready_for_final_release",
+  "automated": {
+    "financial_query_acceptance": {
+      "total": 265,
+      "matched": 265,
+      "mismatches": 0,
+      "blocked_before_planner": 23
+    },
+    "full_suite_after_final_log_hardening": {
+      "passed": 344,
+      "failed": 0
+    },
+    "npm_audit_high": 0
+  },
+  "real_integrations": {
+    "whatsapp_common_user": "passed",
+    "statement_import_and_duplicate_detection": "passed",
+    "analytical_questions_with_populated_period": "passed",
+    "adversarial_whatsapp_requests": "passed",
+    "dashboard_desktop_mobile_and_month_switch": "passed",
+    "calendar_scheduler_controlled": "passed",
+    "calendar_cleanup_idempotent": "passed"
+  },
+  "cleanup": {
+    "state_store_clean": true,
+    "production_test_markers_remaining": 0,
+    "calendar_test_event_remaining": false
+  },
+  "model_benchmark": {
+    "recommendation": "Keep current production model until a candidate reaches the critical-field accuracy gate.",
+    "automatic_model_switch": false
+  },
+  "external_limitations": [
+    "Fresh end-to-end onboarding and OAuth require a disposable phone number and Google account.",
+    "Destructive admin actions are intentionally validated automatically, not against real users.",
+    "Real family-link mutation is not repeated when current production data would be changed only for testing."
+  ]
+}

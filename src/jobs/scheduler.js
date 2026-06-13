@@ -183,7 +183,7 @@ async function checkUpcomingEvents() {
                     await client.sendMessage(user.whatsapp_id, message);
 
                     notifiedEventIds.add(notificationKey);
-                    console.log(`Lembrete (1h) enviado para ${user.whatsapp_id}: "${evento.summary}"`);
+                    logger.info(`[scheduler] event_reminder_sent user_id=${user.user_id}`);
                 }
             }
         }

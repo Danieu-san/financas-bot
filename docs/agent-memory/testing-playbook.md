@@ -128,6 +128,9 @@ Validar:
 - `Contas` e `Dívidas` sao lidas.
 - Timezone America/Sao_Paulo esta correto.
 - Eventos do Google Calendar aparecem com horario correto.
+- Para validacao real controlada, usar `scripts/runCalendarSchedulerValidation.js <usuario_exato> <TESTE_APAGAR_marcador>`.
+- A limpeza real deve usar apenas `deleteTestCalendarEventsByExactSummary`: titulo exato, usuario exato, origem `whatsapp` e prefixo `TESTE_APAGAR_`.
+- Confirmar que a segunda limpeza retorna zero. Nunca apagar evento por substring, descricao generica ou busca fuzzy.
 
 ## Familia
 

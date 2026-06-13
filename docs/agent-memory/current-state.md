@@ -429,6 +429,17 @@ Inicio local do Packet 05 - Budget/Orcamento em 2026-06-06:
 - Benchmark final: `gemini-3.1-flash-lite` teve 96/120 correspondencias, JSON valido 120/120, zero saida insegura, consistencia 40/40 e media de 1138 ms; `gemini-3.5-flash` teve 90/120, JSON valido 120/120, zero saida insegura, consistencia 40/40 e media de 5141 ms. Nenhum atingiu o gate de 98% de campos criticos, portanto nao trocar o modelo de producao ainda.
 - O teto mensal foi liberado temporariamente e permitiu concluir o benchmark, mas o proprio benchmark consumiu a nova margem. Mesmo apos novo aumento informado em 2026-06-12, uma chamada minima ainda recebeu `monthly_spending_cap`; pode haver atraso de propagacao no AI Studio. Consultas deterministicas continuam operacionais; audio e interpretacao livre dependem da liberacao efetiva do teto.
 
+## Fechamento da validacao completa de 2026-06-13
+
+- A bateria `Financial Query Acceptance` foi reexecutada com 265/265 casos aceitos, zero divergencias e 23 pedidos bloqueados antes do planner. Os 20 casos `ADV-*` continuam bloqueados intencionalmente pelo Security Gate.
+- A suite automatizada completa passou com 342/342 testes antes do hardening final de logs. O fechamento final deve sempre reexecutar a suite depois das ultimas alteracoes.
+- O E2E real controlado de Calendar/scheduler com usuario comum passou: evento exato criado e lido, lembrete isolado capturado por cliente falso, limpeza exata confirmada e segunda limpeza idempotente com zero exclusoes.
+- Foi criada a primitiva `deleteTestCalendarEventsByExactSummary`, que exige `user_id`, marcador `TESTE_APAGAR_`, titulo exato, propriedade privada do usuario e origem `whatsapp`. Ela nao aceita limpeza fuzzy nem titulos normais.
+- A auditoria de logs encontrou identificadores crus em caminhos operacionais legados. O logger Winston passou a sanitizar centralmente IDs, telefones, tokens, URLs privadas e conteudo de `msg`/`command`; escapes `console.*` identificados em mensagem, scheduler, Google e rate limit foram movidos para o logger sanitizado.
+- Quatro rejeicoes nao tratadas encontradas nos ultimos logs de producao pertenciam a fluxos ja corrigidos no codigo atual: feedback seguro ao falhar salvamento de orcamento e fallback de resposta em comandos admin sem `msg.reply`.
+- Producao auditada antes do hardening final: PM2 online, health com SQLite saudavel, worktree remoto limpo, all-users desativado, `state_store.json` limpo e zero marcadores `TESTE_APAGAR_` em dados.
+- Onboarding/OAuth novo completo continua dependendo de numero e conta Google descartaveis. Acoes admin destrutivas e alteracao real de familia permanecem validadas automaticamente ou por evidencia historica, sem serem repetidas contra dados reais apenas para cumprir ritual.
+
 Em 2026-05-26, `git status --short` ainda mostrava arquivos nao rastreados antigos:
 
 - `.claude/`

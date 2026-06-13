@@ -2554,6 +2554,36 @@ test('messageHandler log sanitizer redacts tokens, OAuth params and internal doc
     assert.match(sanitized, /\[REDACTED/);
 });
 
+test('logger sanitizer redacts identifiers, tokens, private URLs and message content', () => {
+    const { sanitizeLogMessage, redactLogIdentifier } = logger.__test__;
+    const raw = [
+        'sender=5521999999999@lid',
+        'user_id=11111111-2222-4333-8444-555555555555',
+        'msg="gastei 150 no mercado"',
+        'GOCSPX-exampleSecret',
+        'https://financasbot.example/dashboard?token=abc.def.ghi',
+        'https://docs.google.com/spreadsheets/d/FAKE_TEST_SPREADSHEET_ID_000000000000000000000/edit'
+    ].join(' ');
+    const sanitized = sanitizeLogMessage(raw);
+
+    assert.doesNotMatch(sanitized, /5521999999999|11111111-2222-4333-8444-555555555555|gastei 150|GOCSPX-exampleSecret|abc\.def\.ghi|FAKE_TEST_SPREADSHEET_ID/);
+    assert.match(sanitized, /\[REDACTED_/);
+    assert.strictEqual(redactLogIdentifier('5521999999999@lid'), '[REDACTED_ID]');
+});
+
+test('AI execution paths do not dump raw model responses to logs', () => {
+    const files = [
+        path.resolve(process.cwd(), 'src/handlers/messageHandler.js'),
+        path.resolve(process.cwd(), 'src/ai/intentClassifier.js'),
+        path.resolve(process.cwd(), 'src/services/gemini.js')
+    ];
+    const source = files.map(file => fs.readFileSync(file, 'utf8')).join('\n');
+
+    assert.doesNotMatch(source, /RESPOSTA BRUTA DA IA|Resposta bruta da IA/);
+    assert.doesNotMatch(source, /Resposta inesperada do LLM:",\s*JSON\.stringify/);
+    assert.doesNotMatch(source, /Resposta de transcrição inesperada:",\s*JSON\.stringify/);
+});
+
 test('messageHandler.classifyPerguntaLocally distinguishes total month from category total', (t) => {
     const { classifyPerguntaLocally } = messageHandler.__test__;
 
@@ -4204,6 +4234,103 @@ test('google.requireUserId protects calendar writes', (t) => {
 
     assert.throws(() => requireUserId('', 'createCalendarEvent'), /user_id válido/);
     assert.strictEqual(requireUserId(' user-1 ', 'createCalendarEvent'), 'user-1');
+});
+
+test('google.findDeletableTestCalendarEvents only selects exact owned WhatsApp test events', () => {
+    const { findDeletableTestCalendarEvents } = googleService.__test__;
+    const summary = 'TESTE_APAGAR_CALENDAR_20260613';
+    const events = [
+        {
+            id: 'exact-owned',
+            summary,
+            extendedProperties: { private: { financas_bot_user_id: 'user-a', financas_bot_source: 'whatsapp' } }
+        },
+        {
+            id: 'wrong-user',
+            summary,
+            extendedProperties: { private: { financas_bot_user_id: 'user-b', financas_bot_source: 'whatsapp' } }
+        },
+        {
+            id: 'wrong-source',
+            summary,
+            extendedProperties: { private: { financas_bot_user_id: 'user-a', financas_bot_source: 'manual' } }
+        },
+        {
+            id: 'partial-title',
+            summary: `${summary}_OUTRO`,
+            extendedProperties: { private: { financas_bot_user_id: 'user-a', financas_bot_source: 'whatsapp' } }
+        },
+        {
+            summary,
+            extendedProperties: { private: { financas_bot_user_id: 'user-a', financas_bot_source: 'whatsapp' } }
+        }
+    ];
+
+    assert.deepStrictEqual(
+        findDeletableTestCalendarEvents(events, summary, 'user-a').map(event => event.id),
+        ['exact-owned']
+    );
+});
+
+test('google.deleteTestCalendarEventsByExactSummary rejects unsafe cleanup requests', async () => {
+    await assert.rejects(
+        () => googleService.deleteTestCalendarEventsByExactSummary('TESTE_APAGAR_CALENDAR_20260613', new Date(), {}),
+        /user_id válido/
+    );
+    await assert.rejects(
+        () => googleService.deleteTestCalendarEventsByExactSummary('Reunião real', new Date(), { userId: 'user-a' }),
+        /TESTE_APAGAR_/
+    );
+});
+
+test('google.deleteTestCalendarEventsByExactSummary is exact and idempotent', async () => {
+    const summary = 'TESTE_APAGAR_CALENDAR_20260613';
+    let events = [
+        {
+            id: 'exact-owned',
+            summary,
+            extendedProperties: { private: { financas_bot_user_id: 'user-a', financas_bot_source: 'whatsapp' } }
+        },
+        {
+            id: 'real-event',
+            summary: 'Compromisso real',
+            extendedProperties: { private: { financas_bot_user_id: 'user-a', financas_bot_source: 'whatsapp' } }
+        }
+    ];
+    const deletedIds = [];
+    const fakeCalendar = {
+        events: {
+            list: async () => ({ data: { items: events } }),
+            delete: async ({ eventId }) => {
+                deletedIds.push(eventId);
+                events = events.filter(event => event.id !== eventId);
+                return {};
+            }
+        }
+    };
+
+    googleService.__test__.setGoogleClientsForTest({
+        sheetsClient: {},
+        tasksClient: {},
+        calendarClient: fakeCalendar,
+        oauthClient: {}
+    });
+
+    const first = await googleService.deleteTestCalendarEventsByExactSummary(
+        summary,
+        new Date(Date.UTC(2026, 5, 13, 12, 0, 0)),
+        { userId: 'user-a', forceCentral: true }
+    );
+    const second = await googleService.deleteTestCalendarEventsByExactSummary(
+        summary,
+        new Date(Date.UTC(2026, 5, 13, 12, 0, 0)),
+        { userId: 'user-a', forceCentral: true }
+    );
+
+    assert.deepStrictEqual(first, { deletedCount: 1 });
+    assert.deepStrictEqual(second, { deletedCount: 0 });
+    assert.deepStrictEqual(deletedIds, ['exact-owned']);
+    assert.deepStrictEqual(events.map(event => event.id), ['real-event']);
 });
 
 test('google.readDataFromSheet caches repeated reads and invalidates after writes', async () => {

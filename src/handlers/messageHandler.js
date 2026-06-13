@@ -5583,7 +5583,7 @@ async function handleMessage(msg) {
     const messageId = msg.id.id;
     if (processedMessages.has(messageId)) {
         metrics.increment('message.duplicate');
-        console.log(`Mensagem duplicada ignorada: ${messageId}`);
+        logger.info(`[message] duplicate_ignored msg=${logger.redactIdentifier(messageId)}`);
         return;
     }
 
@@ -5605,7 +5605,7 @@ async function handleMessage(msg) {
 
     const messageBody = msg.body.trim();
     const senderId = msg.author || msg.from;
-    const perfContext = `sender=${senderId} msg=${messageId}`;
+    const perfContext = `sender=${logger.redactIdentifier(senderId)} msg=${logger.redactIdentifier(messageId)}`;
     const messageStartedAt = Date.now();
 
     const access = await timeStep('resolveUserAccess', () => resolveUserAccess(msg), perfContext);
@@ -5692,7 +5692,7 @@ async function handleMessage(msg) {
 
     if (!rateLimiter.isAllowed(senderId)) {
         metrics.increment('message.rate_limited');
-        console.log(`Usuário ${senderId} bloqueado pelo rate limit.`);
+        logger.warn(`[rate-limit] message_blocked sender=${senderId}`);
         return;
     }
 
@@ -6581,7 +6581,7 @@ async function handleMessage(msg) {
         }
     } else {
         // --- INÍCIO DA ANÁLISE DE NOVOS COMANDOS ---
-        console.log(`Mensagem de ${pessoa} (${senderId}): "${sanitizeLogText(messageBody)}"`);
+        logger.info(`[message] received sender=${logger.redactIdentifier(senderId)}`);
         try {
             // CÓDIGO PARA SUBSTITUIR (APENAS A CONSTANTE masterPrompt)
 
@@ -6664,9 +6664,7 @@ async function handleMessage(msg) {
                     () => getStructuredResponseFromLLM(masterPrompt),
                     perfContext
                 );
-                console.log("--- RESPOSTA BRUTA DA IA ---");
-                console.log(JSON.stringify(structuredResponse, null, 2));
-                console.log("--------------------------");
+                logger.info(`[ai] structured_response_received intent=${structuredResponse?.intent || 'unknown'}`);
             }
 
             if (structuredResponse && structuredResponse.error) {

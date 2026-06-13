@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const { convertToIsoDateTime } = require('../utils/helpers');
 const { getOAuthConnection, getSharedSpreadsheetMembership } = require('./oauthTokenStore');
+const logger = require('../utils/logger');
 
 const GOOGLE_CREDENTIALS_PATH = path.resolve(process.cwd(), 'credentials.json');
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
@@ -421,6 +422,54 @@ function filterCalendarEventsForTarget(events = [], target = {}, userId = '') {
     return userId ? events.filter(event => eventBelongsToUser(event, userId)) : events;
 }
 
+function findDeletableTestCalendarEvents(events = [], exactSummary = '', userId = '') {
+    const safeSummary = String(exactSummary || '').trim();
+    const safeUserId = String(userId || '').trim();
+    return events.filter(event => (
+        Boolean(event?.id) &&
+        String(event?.summary || '').trim() === safeSummary &&
+        eventBelongsToUser(event, safeUserId) &&
+        String(event?.extendedProperties?.private?.financas_bot_source || '').trim() === 'whatsapp'
+    ));
+}
+
+async function deleteTestCalendarEventsByExactSummary(exactSummary, targetDate = new Date(), options = {}) {
+    const safeUserId = requireUserId(options.userId, 'deleteTestCalendarEventsByExactSummary');
+    const safeSummary = String(exactSummary || '').trim();
+    if (!safeSummary.startsWith('TESTE_APAGAR_')) {
+        throw new Error('A limpeza segura do Calendar exige marcador exato TESTE_APAGAR_.');
+    }
+
+    const target = await resolveCalendarTarget({ ...options, userId: safeUserId });
+    const dayRange = buildCalendarDayRange(targetDate);
+    const listEvents = () => target.calendarClient.events.list({
+        calendarId: target.calendarId,
+        timeMin: dayRange.timeMin,
+        timeMax: dayRange.timeMax,
+        singleEvents: true,
+        orderBy: 'startTime',
+        timeZone: dayRange.timeZone
+    });
+    const response = target.userScoped
+        ? await listEvents()
+        : await runWithGoogleRetry('deleteTestCalendarEventsByExactSummary.list', listEvents);
+    const candidates = findDeletableTestCalendarEvents(response?.data?.items || [], safeSummary, safeUserId);
+
+    for (const event of candidates) {
+        const deleteEvent = () => target.calendarClient.events.delete({
+            calendarId: target.calendarId,
+            eventId: event.id
+        });
+        if (target.userScoped) {
+            await deleteEvent();
+        } else {
+            await runWithGoogleRetry('deleteTestCalendarEventsByExactSummary.delete', deleteEvent);
+        }
+    }
+
+    return { deletedCount: candidates.length };
+}
+
 async function createCalendarEvent(title, startDateTime, recurrenceRule, options = {}) {
     const safeUserId = requireUserId(options.userId, 'createCalendarEvent');
     try {
@@ -680,10 +729,10 @@ async function repairUserSpreadsheetTemplate(target = {}) {
             sheetsClient: target.sheetsClient,
             spreadsheetId: target.spreadsheetId
         });
-        console.warn(`⚠️ Planilha do usuário ${target.userId || ''} atualizada com abas/formatos faltantes.`);
+        logger.warn(`[google] user_spreadsheet_template_repaired user_id=${target.userId || ''}`);
         return true;
     } catch (repairError) {
-        console.error(`❌ Falha ao reparar planilha do usuário ${target.userId || ''}:`, repairError.message);
+        logger.error(`[google] user_spreadsheet_template_repair_failed user_id=${target.userId || ''} error=${repairError.message}`);
         return false;
     }
 }
@@ -1547,11 +1596,13 @@ async function deleteRowsByIndices(sheetName, rowIndices, options = {}) {
 module.exports = {
     authorizeGoogle,
     createCalendarEvent,
+    deleteTestCalendarEventsByExactSummary,
     getCalendarEventsForToday,
     __test__: {
         eventBelongsToUser,
         buildCalendarDayRange,
         filterCalendarEventsForTarget,
+        findDeletableTestCalendarEvents,
         requireUserId,
         validateUserScopedWrite,
         isGoogleRetriableError,

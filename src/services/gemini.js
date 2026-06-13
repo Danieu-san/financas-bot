@@ -3,6 +3,7 @@
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const fs = require('fs');
 const metrics = require('../utils/metrics');
+const logger = require('../utils/logger');
 const GEMINI_TIMEOUT_MS = Number.parseInt(process.env.GEMINI_TIMEOUT_MS || '25000', 10);
 const GEMINI_MAX_RETRIES = Number.parseInt(process.env.GEMINI_MAX_RETRIES || '1', 10);
 const GEMINI_RETRY_DELAY_MS = Number.parseInt(process.env.GEMINI_RETRY_DELAY_MS || '1500', 10);
@@ -88,11 +89,11 @@ async function callGemini(prompt, isJsonResponse = false, retries = GEMINI_MAX_R
             metrics.observeDuration('gemini.attempt.ms', attemptDuration);
             if (attemptDuration >= GEMINI_SLOW_LOG_MS) {
                 metrics.increment('gemini.slow');
-                console.warn(`[perf] Gemini lento: ${attemptDuration}ms (json=${isJsonResponse}, tentativa=${attempt}/${maxAttempts}, prompt_len=${promptLength})`);
+                logger.warn(`[perf] gemini_slow duration_ms=${attemptDuration} json=${isJsonResponse} attempt=${attempt}/${maxAttempts} prompt_len=${promptLength}`);
             }
 
             if (!text) {
-                console.error("Resposta inesperada do LLM:", JSON.stringify(result, null, 2));
+                logger.error('[ai] empty_llm_response');
                 return isJsonResponse ? null : "Não consegui processar a resposta da IA.";
             }
 
@@ -109,8 +110,7 @@ async function callGemini(prompt, isJsonResponse = false, retries = GEMINI_MAX_R
                     metrics.observeDuration('gemini.call.ms', Date.now() - startedAt);
                     return JSON.parse(cleanText);
                 } catch (e) {
-                    console.error("❌ ERRO NO PARSING JSON APÓS LIMPEZA:", e);
-                    console.error("String JSON que falhou:", cleanText);
+                    logger.error(`[ai] json_parse_failed error=${e.message} response_chars=${cleanText.length}`);
                     metrics.increment('gemini.parse_json_error');
                     return null;
                 }
@@ -126,7 +126,7 @@ async function callGemini(prompt, isJsonResponse = false, retries = GEMINI_MAX_R
             const attemptDuration = Date.now() - attemptStartedAt;
             const hasNextAttempt = attempt < maxAttempts;
 
-            console.warn(`⚠️ Gemini falhou (${parsedError.code}) em ${attemptDuration}ms (tentativa ${attempt}/${maxAttempts}).`);
+            logger.warn(`[ai] gemini_call_failed code=${parsedError.code} duration_ms=${attemptDuration} attempt=${attempt}/${maxAttempts}`);
 
             if (hasNextAttempt) {
                 metrics.increment('gemini.retry');
@@ -135,7 +135,7 @@ async function callGemini(prompt, isJsonResponse = false, retries = GEMINI_MAX_R
             }
 
             const totalMs = Date.now() - startedAt;
-            console.error(`❌ Erro final ao comunicar com o LLM após ${totalMs}ms:`, error);
+            logger.error(`[ai] gemini_call_final_error code=${parsedError.code} duration_ms=${totalMs} error=${parsedError.message}`);
             return { error: true, code: parsedError.code, message: parsedError.message };
         }
     }
@@ -183,7 +183,7 @@ async function transcribeAudio(filePath) {
         const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
 
         if (!text) {
-            console.error("Resposta de transcrição inesperada:", JSON.stringify(result, null, 2));
+            logger.error('[ai] empty_transcription_response');
             return "Não consegui entender o áudio.";
         }
 
@@ -191,7 +191,7 @@ async function transcribeAudio(filePath) {
         metrics.observeDuration('gemini.transcribe.ms', elapsedMs);
         if (elapsedMs >= GEMINI_SLOW_LOG_MS) {
             metrics.increment('gemini.transcribe.slow');
-            console.warn(`[perf] Transcrição Gemini lenta: ${elapsedMs}ms`);
+            logger.warn(`[perf] gemini_transcription_slow duration_ms=${elapsedMs}`);
         }
 
         return text.trim();
@@ -200,7 +200,7 @@ async function transcribeAudio(filePath) {
         metrics.increment('gemini.transcribe.error');
         const parsedError = parseGeminiError(error, GEMINI_TIMEOUT_MS);
         const elapsedMs = Date.now() - startedAt;
-        console.error(`❌ Erro ao transcrever áudio (${parsedError.code}) após ${elapsedMs}ms:`, error);
+        logger.error(`[ai] gemini_transcription_failed code=${parsedError.code} duration_ms=${elapsedMs} error=${parsedError.message}`);
         return "Ocorreu um erro ao processar a transcrição do áudio.";
     }
 }

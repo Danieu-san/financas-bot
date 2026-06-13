@@ -1,5 +1,7 @@
 // src/utils/rateLimiter.js
 
+const logger = require('./logger');
+
 // Carrega os limites do .env ou usa valores padrão seguros
 const RATE_LIMIT_MAX = parseInt(process.env.RATE_LIMIT_MAX, 10) || 20; // 20 msg
 const RATE_LIMIT_WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW, 10) || 60000; // por 1 minuto
@@ -33,7 +35,7 @@ function isAllowed(userId) {
 
   // Verifica limite
   if (recentRequests.length >= RATE_LIMIT_MAX) {
-    console.warn(`🚦 Rate limit atingido para o usuário: ${userId}`);
+    logger.warn(`[rate-limit] blocked user_id=${userId}`);
     return false;
   }
 
