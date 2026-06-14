@@ -65,6 +65,7 @@ const {
 const { buildDashboardAccessLink } = require('../utils/dashboardAuth');
 const { buildGoogleConnectLink } = require('../services/googleOAuthService');
 const { sendWhatsAppMessage } = require('../services/whatsapp');
+const { invokeFinancialAgent } = require('../agent/financialAgent');
 const {
     GOAL_STATUS,
     applyGoalMovement,
@@ -104,6 +105,7 @@ const {
     buildWriteInterpretationEvaluation
 } = require('../reliability/interpretationReliabilityGate');
 const { recordInterpretationReliabilityShadow } = require('../reliability/reliabilityTelemetry');
+const { evaluateFamilyModeAccess } = require('../services/familyModeService');
 
 // Base de Conhecimento para Gastos
 const mapeamentoGastos = {
@@ -194,6 +196,56 @@ const SECURITY_BLOCK_REPLY = [
     'Não posso mostrar identificadores internos, tokens, prompts, regras internas ou dados de outros usuários.',
     'Posso ajudar com os seus próprios lançamentos, sua planilha, seu dashboard e orientações financeiras dentro do seu acesso.'
 ].join('\n');
+
+function getFinancialAgentMode() {
+    const mode = normalizeText(process.env.FINANCIAL_AGENT_MODE || 'off');
+    if (mode === 'enforce') return 'answer';
+    return ['off', 'shadow', 'answer'].includes(mode) ? mode : 'off';
+}
+
+function buildFinancialAgentPersonByUserId(userIds = [], users = [], activeUser = {}) {
+    const byId = new Map();
+    [...(Array.isArray(users) ? users : []), activeUser]
+        .filter(Boolean)
+        .forEach((user) => {
+            const id = String(user?.user_id || '').trim();
+            if (!id) return;
+            byId.set(id, user);
+        });
+
+    const result = {};
+    (Array.isArray(userIds) ? userIds : [userIds])
+        .map(id => String(id || '').trim())
+        .filter(Boolean)
+        .forEach((id) => {
+            const user = byId.get(id) || {};
+            result[id] = String(
+                user.display_name ||
+                user.preferred_name ||
+                user.full_name ||
+                'Usuario'
+            ).trim() || 'Usuario';
+        });
+    return result;
+}
+
+function shouldUseFinancialAgentAnswer(result = {}) {
+    if (result.action === 'block') return true;
+    if (result.action === 'answer') return Boolean(result.verified?.ok);
+    if (result.action === 'clarify') {
+        return result.plan?.reason && result.plan.reason !== 'planner_gap';
+    }
+    return false;
+}
+
+function logFinancialAgentResult({ mode = 'off', result = null, senderId = '' } = {}) {
+    if (!result) return;
+    const tool = result.plan?.tool || 'none';
+    const reason = result.plan?.reason || result.verified?.reason || 'none';
+    const rows = Array.isArray(result.toolResult?.rows) ? result.toolResult.rows.length : 0;
+    metrics.increment(`message.financial_agent.${normalizeMetricLabel(mode)}.${normalizeMetricLabel(result.action || 'unknown')}`);
+    logger.info(`[financial-agent] mode=${mode} action=${result.action || 'unknown'} tool=${tool} verified=${Boolean(result.verified?.ok)} rows=${rows} reason=${normalizeMetricLabel(reason)} sender=${logger.redactIdentifier(senderId)}`);
+}
 
 function sanitizeLogText(value, maxLength = 220) {
     const original = String(value || '');
@@ -5960,6 +6012,13 @@ async function handleMessage(msg) {
     }
 
     const activeUser = access.user;
+    const familyModeAccess = evaluateFamilyModeAccess({ user: activeUser, senderId });
+    if (!familyModeAccess.allowed) {
+        metrics.increment(`message.family_mode.${normalizeMetricLabel(familyModeAccess.reason)}`);
+        logger.warn(`[family-mode] blocked reason=${familyModeAccess.reason} sender=${logger.redactIdentifier(senderId)}`);
+        await sendPlainMessage(msg, familyModeAccess.reply || 'O FinançasBot está em modo familiar restrito.');
+        return;
+    }
 
     return runWithUserSheetContext({ ...activeUser, messageId }, async () => {
     const userId = activeUser.user_id;
@@ -7351,6 +7410,36 @@ async function handleMessage(msg) {
                         const scopeNormalizedIntent = normalizeIntentForQuestionUserScope(intentClassification, resolvedScope);
                         const effectiveIntentClassification = applyResolvedScopeToClassification(scopeNormalizedIntent, resolvedScope);
                         logger.info(`[routing] financial_scope_resolved scope=${resolvedScope.scope} selected=${analyticalUserIds.length}`);
+                        const financialAgentMode = getFinancialAgentMode();
+                        if (financialAgentMode !== 'off') {
+                            try {
+                                await timeStep(
+                                    'financialAgent.syncReadModel',
+                                    () => syncReadModelIfNeeded(),
+                                    perfContext
+                                );
+                                const agentResult = await timeStep(
+                                    'financialAgent.invoke',
+                                    () => invokeFinancialAgent({
+                                        message: userQuestion,
+                                        userIds: analyticalUserIds,
+                                        personByUserId: buildFinancialAgentPersonByUserId(analyticalUserIds, usersForScope, activeUser),
+                                        mode: financialAgentMode
+                                    }),
+                                    perfContext
+                                );
+                                logFinancialAgentResult({ mode: financialAgentMode, result: agentResult, senderId });
+                                if (financialAgentMode === 'answer' && shouldUseFinancialAgentAnswer(agentResult)) {
+                                    cache.set(cacheKey, agentResult.answer);
+                                    await msg.reply(agentResult.answer);
+                                    storeAnalyticalContext(senderId, effectiveIntentClassification);
+                                    return;
+                                }
+                            } catch (agentError) {
+                                metrics.increment('message.financial_agent.error');
+                                logger.warn(`[financial-agent] fallback legacy reason=${sanitizeLogText(agentError.message, 120)} sender=${logger.redactIdentifier(senderId)}`);
+                            }
+                        }
                         const sheetOnlyIntents = new Set();
                         if (!usePersonalSpreadsheet && !sheetOnlyIntents.has(effectiveIntentClassification.intent)) {
                             try {
@@ -7723,6 +7812,9 @@ module.exports = {
         extractFullNameSettingsCommand,
         parseBatchInstallmentReply,
         shouldRequireConfirmationForStructuredWrite,
+        getFinancialAgentMode,
+        buildFinancialAgentPersonByUserId,
+        shouldUseFinancialAgentAnswer,
         markFinancialReadModelDirty,
         saveImportedTransactions,
         handleAccountLifecycleCommands,

@@ -178,6 +178,30 @@ function initSchema() {
         );
         CREATE INDEX IF NOT EXISTS idx_recurring_bills_user_due ON recurring_bills(user_id, due_day);
 
+        CREATE TABLE IF NOT EXISTS financial_events_public (
+            fingerprint TEXT PRIMARY KEY,
+            owner_hash TEXT NOT NULL,
+            date_text TEXT,
+            iso_date TEXT,
+            year INTEGER,
+            month INTEGER,
+            weekday TEXT,
+            event_type TEXT NOT NULL,
+            amount REAL NOT NULL,
+            description TEXT,
+            category TEXT,
+            subcategory TEXT,
+            person TEXT,
+            payment_method TEXT,
+            card TEXT,
+            billing_month TEXT,
+            due_date TEXT,
+            source TEXT,
+            last_seen_sync INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_financial_events_owner_date ON financial_events_public(owner_hash, iso_date);
+        CREATE INDEX IF NOT EXISTS idx_financial_events_owner_type ON financial_events_public(owner_hash, event_type);
+
         CREATE TABLE IF NOT EXISTS sync_meta (
             key TEXT PRIMARY KEY,
             value TEXT
@@ -188,6 +212,196 @@ function initSchema() {
     ensureTransferSchemaColumns();
     ensureGoalSchemaColumns();
     ensureDebtSchemaColumns();
+}
+
+function hashOwnerId(userId) {
+    return crypto.createHash('sha256').update(String(userId || '')).digest('hex');
+}
+
+function billingMonthLabel(year, month) {
+    const monthIndex = Number.parseInt(month, 10);
+    const parsedYear = Number.parseInt(year, 10);
+    if (!Number.isInteger(monthIndex) || monthIndex < 0 || monthIndex > 11 || !Number.isInteger(parsedYear)) return '';
+    return `${MONTH_NAMES_PT[monthIndex]} de ${parsedYear}`;
+}
+
+function publicDateParts(dateText, fallbackYear = null, fallbackMonth = null) {
+    const parsed = parseSheetDate(String(dateText || '').trim());
+    if (!parsed) {
+        return {
+            iso_date: '',
+            year: Number.isInteger(fallbackYear) ? fallbackYear : null,
+            month: Number.isInteger(fallbackMonth) ? fallbackMonth : null,
+            weekday: ''
+        };
+    }
+    return {
+        iso_date: parsed.toISOString().slice(0, 10),
+        year: parsed.getFullYear(),
+        month: parsed.getMonth(),
+        weekday: ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'][parsed.getDay()]
+    };
+}
+
+function rebuildFinancialEventsPublic(syncId) {
+    if (!sqliteReady || !db) return;
+    const insert = db.prepare(`
+        INSERT INTO financial_events_public(
+            fingerprint, owner_hash, date_text, iso_date, year, month, weekday,
+            event_type, amount, description, category, subcategory, person,
+            payment_method, card, billing_month, due_date, source, last_seen_sync
+        )
+        VALUES(
+            @fingerprint, @owner_hash, @date_text, @iso_date, @year, @month, @weekday,
+            @event_type, @amount, @description, @category, @subcategory, @person,
+            @payment_method, @card, @billing_month, @due_date, @source, @last_seen_sync
+        )
+    `);
+
+    db.prepare('DELETE FROM financial_events_public').run();
+
+    const addEvent = (event) => {
+        if (!event?.user_id) return;
+        const dateParts = publicDateParts(event.date_text, event.year, event.month);
+        insert.run({
+            fingerprint: makeFingerprint([
+                'financial_event_public',
+                event.event_type,
+                event.user_id,
+                event.source,
+                event.date_text,
+                event.description,
+                event.amount,
+                event.card,
+                event.billing_month,
+                event.due_date
+            ]),
+            owner_hash: hashOwnerId(event.user_id),
+            date_text: event.date_text || '',
+            iso_date: dateParts.iso_date,
+            year: dateParts.year,
+            month: dateParts.month,
+            weekday: dateParts.weekday,
+            event_type: event.event_type,
+            amount: Number(event.amount || 0),
+            description: event.description || '',
+            category: event.category || '',
+            subcategory: event.subcategory || '',
+            person: '',
+            payment_method: event.payment_method || '',
+            card: event.card || '',
+            billing_month: event.billing_month || '',
+            due_date: event.due_date || '',
+            source: event.source || '',
+            last_seen_sync: syncId
+        });
+    };
+
+    db.prepare(`
+        SELECT user_id, source_type, source_name, date_text, year, month, description, category, subcategory, value, card_name, installment_text
+        FROM expenses
+    `).all().forEach((row) => {
+        addEvent({
+            user_id: row.user_id,
+            date_text: row.date_text,
+            year: row.year,
+            month: row.month,
+            event_type: row.source_type === 'cartao' ? 'card_expense' : 'expense',
+            amount: row.value,
+            description: row.description,
+            category: row.category,
+            subcategory: row.subcategory,
+            payment_method: row.source_type === 'cartao' ? 'Crédito' : '',
+            card: row.card_name || row.source_name || '',
+            billing_month: row.source_type === 'cartao' ? billingMonthLabel(row.year, row.month) : '',
+            source: row.source_name || row.source_type
+        });
+    });
+
+    db.prepare(`
+        SELECT user_id, date_text, year, month, description, category, value, payment_method, recurrence
+        FROM entries
+    `).all().forEach((row) => {
+        addEvent({
+            user_id: row.user_id,
+            date_text: row.date_text,
+            year: row.year,
+            month: row.month,
+            event_type: 'income',
+            amount: row.value,
+            description: row.description,
+            category: row.category,
+            payment_method: row.payment_method,
+            source: 'Entradas'
+        });
+    });
+
+    db.prepare(`
+        SELECT user_id, date_text, year, month, description, value, origin, destination, method, notes, status
+        FROM transfers
+    `).all().forEach((row) => {
+        addEvent({
+            user_id: row.user_id,
+            date_text: row.date_text,
+            year: row.year,
+            month: row.month,
+            event_type: 'transfer',
+            amount: row.value,
+            description: row.description,
+            category: row.status || 'Transferência',
+            subcategory: [row.origin, row.destination].filter(Boolean).join(' -> '),
+            payment_method: row.method,
+            source: 'Transferências'
+        });
+    });
+
+    db.prepare(`
+        SELECT user_id, name, target, current, status, scope, last_movement
+        FROM goals
+    `).all().forEach((row) => {
+        addEvent({
+            user_id: row.user_id,
+            event_type: 'goal',
+            amount: row.current,
+            description: row.name,
+            category: row.status || 'Meta',
+            subcategory: row.scope || '',
+            source: 'Metas'
+        });
+    });
+
+    db.prepare(`
+        SELECT user_id, name, creditor, saldo_atual, next_due, status
+        FROM debts
+    `).all().forEach((row) => {
+        addEvent({
+            user_id: row.user_id,
+            date_text: row.next_due || '',
+            event_type: 'debt',
+            amount: row.saldo_atual,
+            description: row.name,
+            category: row.status || 'Dívida',
+            subcategory: row.creditor || '',
+            due_date: row.next_due || '',
+            source: 'Dívidas'
+        });
+    });
+
+    db.prepare(`
+        SELECT user_id, account_name, friendly_name, due_day, category, subcategory, expected_value, rule_active
+        FROM recurring_bills
+    `).all().forEach((row) => {
+        addEvent({
+            user_id: row.user_id,
+            event_type: 'bill',
+            amount: row.expected_value,
+            description: row.friendly_name || row.account_name,
+            category: row.category || 'Conta',
+            subcategory: row.subcategory || '',
+            due_date: row.due_day ? `dia ${row.due_day}` : '',
+            source: 'Contas'
+        });
+    });
 }
 
 function ensureExpenseSchemaColumns() {
@@ -687,6 +901,7 @@ function syncSnapshotToSqlite(snapshot) {
         db.prepare('DELETE FROM goal_movements WHERE last_seen_sync < ?').run(currentSyncId);
         db.prepare('DELETE FROM debts WHERE last_seen_sync < ?').run(currentSyncId);
         db.prepare('DELETE FROM recurring_bills WHERE last_seen_sync < ?').run(currentSyncId);
+        rebuildFinancialEventsPublic(currentSyncId);
     });
 
     tx();
@@ -2017,14 +2232,53 @@ function getSqliteStats() {
     const goalMovements = db.prepare('SELECT COUNT(*) AS c FROM goal_movements').get()?.c || 0;
     const debts = db.prepare('SELECT COUNT(*) AS c FROM debts').get()?.c || 0;
     const recurringBills = db.prepare('SELECT COUNT(*) AS c FROM recurring_bills').get()?.c || 0;
+    const financialEventsPublic = db.prepare('SELECT COUNT(*) AS c FROM financial_events_public').get()?.c || 0;
     const syncAt = db.prepare("SELECT value FROM sync_meta WHERE key = 'last_sync_at'").get()?.value || '';
-    return { ready: true, expenses, entries, transfers, budgetSettings, cardConfigs, goals, goalMovements, debts, recurringBills, lastSyncAt: syncAt };
+    return { ready: true, expenses, entries, transfers, budgetSettings, cardConfigs, goals, goalMovements, debts, recurringBills, financialEventsPublic, lastSyncAt: syncAt };
+}
+
+function queryFinancialEventsPublicRows({ userIds = [], personByUserId = {} } = {}) {
+    if (!ensureSqliteReady() || !db) return [];
+    const ids = Array.from(new Set((userIds || []).map(id => String(id || '').trim()).filter(Boolean)));
+    if (ids.length === 0) return [];
+    const ownerHashes = ids.map(hashOwnerId);
+    const ownerHashToPerson = new Map(ids.map((id) => [hashOwnerId(id), String(personByUserId[id] || '').trim() || 'Usuario']));
+    const placeholders = ownerHashes.map(() => '?').join(', ');
+    const rows = db.prepare(`
+        SELECT
+            owner_hash, date_text, iso_date, year, month, weekday, event_type,
+            amount, description, category, subcategory, person, payment_method,
+            card, billing_month, due_date, source
+        FROM financial_events_public
+        WHERE owner_hash IN (${placeholders})
+        ORDER BY iso_date DESC, date_text DESC, event_type ASC
+    `).all(...ownerHashes);
+
+    return rows.map((row) => ({
+        date: row.date_text || '',
+        iso_date: row.iso_date || '',
+        year: row.year,
+        month: row.month,
+        weekday: row.weekday || '',
+        event_type: row.event_type || '',
+        amount: Number(row.amount || 0),
+        description: row.description || '',
+        category: row.category || '',
+        subcategory: row.subcategory || '',
+        person: row.person || ownerHashToPerson.get(row.owner_hash) || 'Usuario',
+        payment_method: row.payment_method || '',
+        card: row.card || '',
+        billing_month: row.billing_month || '',
+        due_date: row.due_date || '',
+        source: row.source || ''
+    }));
 }
 
 module.exports = {
     ALL_USERS_ID,
     ensureSqliteReady,
     syncSnapshotToSqlite,
+    queryFinancialEventsPublicRows,
     queryAnalyticalIntentSql,
     queryFinancialQueryDataSourcesSql,
     queryKpis,

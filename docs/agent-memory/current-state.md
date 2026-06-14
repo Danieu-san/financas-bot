@@ -1,6 +1,6 @@
 # Estado atual do FinancasBot
 
-Atualizado em: 2026-06-07
+Atualizado em: 2026-06-14
 
 ## Produto
 
@@ -8,6 +8,19 @@ Atualizado em: 2026-06-07
 - Stack: Node.js, whatsapp-web.js/Puppeteer, Gemini 2.5 Flash, Google Sheets, Google Calendar, SQLite read model e dashboard web.
 - Producao atual em EC2 com dominio `https://financasbot.duckdns.org`.
 - Multiusuario existe, mas ainda exige cuidado juridico/privacidade antes de beta amplo.
+
+## Arquitetura familiar com LangGraphJS - local, sem deploy
+
+- Decisao arquitetural registrada em `docs/decisions/ADR-004-family-langgraph-financial-agent.md`: LangGraphJS passa a ser o runtime final de orquestracao para analises financeiras read-only do assistente familiar Daniel/Thais.
+- Spec criada em `docs/specs/family-langgraph-financial-agent.md`. A Query Engine vira ferramenta confiavel; SQL sandbox read-only cobre perguntas novas; Gemini pode planejar/redigir, mas nao calcular valores finais.
+- `@langchain/langgraph` foi adicionado como dependencia e isolado em `src/agent/langGraphRuntime.mjs`, com wrapper CommonJS em `src/agent/financialAgent.js`. O projeto agora declara Node `>=20.0.0`; a EC2 foi verificada com Node `v22.17.1`.
+- Family Mode foi adicionado em `src/services/familyModeService.js` e ligado ao `messageHandler`: `FAMILY_MODE_ENABLED=true` restringe acesso normal ao allowlist `FAMILY_MODE_USER_IDS`/`FAMILY_MODE_WHATSAPP_IDS`. O padrao permanece desligado; se ativado sem allowlist, o modo fica fechado por seguranca. Ele nao apaga nem altera status de usuarios antigos automaticamente.
+- SQLite ganhou a superficie publica `financial_events_public`, exportada por `queryFinancialEventsPublicRows` sem `user_id`, `sheet_id`, tokens, OAuth, prompts, URLs privadas ou linhas cruas.
+- Ferramentas iniciais do agente: `list_recent_transactions` e `run_safe_readonly_sql`. O verificador bloqueia valores inventados e vazamento de campos internos antes da resposta.
+- Planner Gemini do agente foi criado em `src/agent/financialAgentPlanner.js`, mas fica desligado por padrao via `FINANCIAL_AGENT_LLM_PLANNER_ENABLED`. Quando ligado, ele recebe apenas a pergunta e o contrato publico de ferramentas/tabela; a saida e tratada como nao confiavel e passa por allowlist + `validateSafeReadonlySql`.
+- `messageHandler` integra o agente atras de `FINANCIAL_AGENT_MODE=off|shadow|answer`; `enforce` e aceito como alias de `answer`. O padrao permanece `off`. Em `shadow`, o agente observa sem responder; em `answer`, planner gaps caem no legado e respostas so saem se aprovadas pelo verificador.
+- Cobertura local inicial: `tests/financialAgent.test.js` cobre superficie publica, SQL sandbox, ferramenta de ultimos lancamentos, verificador, runtime LangGraph e politica de ativacao; `tests/familyModeService.test.js` cobre allowlist familiar e falha fechada sem configuracao.
+- Ainda nao foi implementado nesta fatia: planner Gemini estruturado dentro do grafo, wrapper da Query Engine como ferramenta, dashboard snapshot tool, bateria agentic de 200 perguntas, deploy shadow e inativacao operacional de usuarios fora de Daniel/Thais.
 
 ## Estado de producao conhecido
 
