@@ -443,6 +443,15 @@ Inicio local do Packet 05 - Budget/Orcamento em 2026-06-06:
 - A verificacao de logs posteriores ao marcador sintetico de seguranca confirmou zero identificadores crus, zero rejeicoes nao tratadas e zero dumps crus de respostas da IA. Linhas antigas anteriores ao hardening permanecem no arquivo historico ate a politica de retencao remove-las.
 - O plano de validacao completa esta encerrado. O relatorio oficial esta em `docs/qa/complete-validation-report-2026-06-13.md` e o manifesto em `docs/qa/complete-validation-manifest-2026-06-13.json`.
 
+## Auditoria de confiabilidade de interpretacao - 2026-06-13
+
+- Foi iniciada uma camada model-independent para escrita financeira, documentada em `docs/specs/interpretation-reliability-layer.md` e auditada em `docs/audits/interpretation-reliability-audit.md`.
+- A bateria offline de confiabilidade gera 340 casos em `src/reliability/interpretationReliabilityAcceptance.js`; o artefato de QA esta em `docs/qa/interpretation-reliability-acceptance-battery.md`.
+- Correcoes locais cobertas por TDD: avaliador Gemini v2 por campo, defaults inseguros de pagamento/recebimento, composer analitico sem Gemini/raw rows, privacidade de audio, append sem retry cego por padrao, ledger opcional de escrita, estado persistido redigido, shadow telemetry sanitizada, remocao de telefones reais de codigo/docs/fixtures versionados, parse de valor/data sem Gemini, confirmacao obrigatoria para escritas financeiras derivadas de linguagem livre/LLM e QA log com hash/referencia em vez de mensagem financeira.
+- Verificacao local final: `npm test` 377/377, `npm audit --audit-level=high` sem vulnerabilidades, bateria financeira 265/265, bateria de confiabilidade 340/340, `node --check` nos JS alterados sem erro, `git diff --check` sem erro bloqueante, `state_store.json` `{}`, NUL scan sem achados e varredura de padroes sensiveis sem achados nos artefatos novos/testes auditados. Sem deploy e sem commit nesta etapa.
+- Shadow mode usa `INTERPRETATION_RELIABILITY_MODE=off|shadow|enforce` e `INTERPRETATION_RELIABILITY_OPERATIONS`; o padrao continua `off`. Nao ativar `enforce` antes de observar decisoes reais sanitizadas conforme os gates da spec.
+- Nesta etapa offline foram usadas 0 chamadas Gemini. O manifesto esta em `docs/qa/interpretation-reliability-manifest-2026-06-13.json`.
+
 Em 2026-05-26, `git status --short` ainda mostrava arquivos nao rastreados antigos:
 
 - `.claude/`

@@ -1,0 +1,222 @@
+# Camada de confiabilidade de interpretacao
+
+Atualizado em: 2026-06-13
+
+## Problema
+
+O bot financeiro nao pode depender apenas do LLM para interpretar mensagens que escrevem dados. O LLM pode ajudar com linguagem natural, mas campos criticos de escrita precisam ser extraidos, canonicalizados e validados por codigo antes de qualquer append, update ou delete.
+
+## Objetivo
+
+Criar uma camada model-independent que:
+
+- extraia campos deterministicamente quando possivel;
+- use Gemini apenas para lacunas;
+- canonicalize aliases e categorias;
+- valide conflitos;
+- decida entre executar, confirmar, perguntar ou bloquear;
+- execute escritas com idempotencia e recibo;
+- registre telemetria sanitizada em shadow mode.
+
+## Pipeline alvo
+
+```text
+Mensagem/audio
+-> Security Gate
+-> Extrator deterministico
+-> Gemini somente para lacunas
+-> Canonicalizacao
+-> Validacao cruzada
+-> Decisao de risco
+-> Confirmacao/esclarecimento quando necessario
+-> Executor idempotente
+-> Recibo estruturado
+-> Read-model/dashboard
+```
+
+## Contratos
+
+### InterpretationCandidate
+
+```js
+{
+  operation: 'expense.create',
+  fields: {
+    amount: {
+      value: 25,
+      source: 'deterministic',
+      assurance: 'verified',
+      evidence: 'money_pattern'
+    }
+  },
+  conflicts: [],
+  missingFields: [],
+  itemCount: 1
+}
+```
+
+Fontes permitidas:
+
+- `deterministic`
+- `user_state`
+- `llm`
+- `inferred`
+
+Garantias permitidas:
+
+- `verified`
+- `supported`
+- `ambiguous`
+- `missing`
+
+### InterpretationDecision
+
+```js
+{
+  action: 'execute',
+  reasons: [],
+  clarificationFields: [],
+  preview: 'expense.create - R$ 25,00 - PIX'
+}
+```
+
+Acoes permitidas:
+
+- `execute`
+- `confirm`
+- `clarify`
+- `block`
+
+### FinancialWriteEnvelope
+
+```js
+{
+  operationKey: 'hash',
+  actorScope: { userHash: 'hash', scope: 'personal' },
+  operation: 'expense.create',
+  payload: { sheetName: 'Saidas', rowFingerprint: 'hash' },
+  provenance: { messageIdHash: 'hash' },
+  validationVersion: 'interpretation-reliability-v1'
+}
+```
+
+O envelope nao pode conter mensagem financeira bruta, telefone, `user_id`, `sheet_id`, token, URL privada ou prompt interno. Valores e descricoes sao armazenados como hash quando necessarios para auditoria/reconciliacao.
+
+## Politica de decisao
+
+Executar automaticamente somente quando:
+
+- item unico;
+- operacao allowlisted;
+- escopo autorizado;
+- campos criticos completos;
+- campos criticos deterministicos ou vindos de estado do usuario e `verified`;
+- sem conflito entre parser, estado e Gemini;
+- chave idempotente livre;
+- credito tem cartao e parcelas explicitos;
+- transferencia tem tipo/direcao claros.
+
+Confirmar quando:
+
+- todos os campos existem, mas algum campo critico depende de LLM ou inferencia;
+- a mensagem veio do master LLM e resultaria em escrita financeira;
+- operacao e sensivel;
+- ha lote, importacao, exclusao, correcao, meta, divida, conta, lembrete ou possivel duplicidade.
+
+Perguntar quando:
+
+- falta campo critico;
+- parser e LLM discordam;
+- escopo, valor, data, pagamento, cartao, parcelas ou alvo e ambiguo;
+- Gemini esta indisponivel, invalido ou sem quota.
+
+Bloquear quando:
+
+- ha prompt injection, falso admin, bypass, escopo nao autorizado ou pedido de dado interno;
+- operacao viola invariantes financeiros ou de privacidade.
+
+## Campos criticos
+
+Sempre criticos:
+
+- operacao;
+- valor;
+- usuario/responsavel/escopo;
+- tipo/direcao do movimento.
+
+Criticos por operacao:
+
+- gasto em credito: cartao e parcelas;
+- transferencia: origem/destino ou tipo;
+- meta/divida/conta: alvo;
+- exclusao/correcao: item alvo;
+- importacao: origem, tipo de extrato e proprietario quando houver familia.
+
+## Componentes implementados nesta etapa
+
+- `src/reliability/deterministicExtractor.js`
+  - detecta operacoes e campos basicos sem Gemini;
+  - nao trata nomes pessoais como familia sem aliases autorizados.
+- `src/reliability/interpretationReliability.js`
+  - canonicalizacao;
+  - decisao de risco;
+  - aliases de pagamento/transferencia;
+  - sanitizacao de telemetria.
+- `src/reliability/financialWriteLedger.js`
+  - ledger SQLite de operacoes de escrita;
+  - estados `pending`, `committed`, `uncertain`, `failed`;
+  - envelopes sanitizados.
+- `src/reliability/reliabilityTelemetry.js`
+  - shadow telemetry opt-in;
+  - allowlist por operacao;
+  - JSONL sanitizado.
+- `src/reliability/interpretationReliabilityAcceptance.js`
+  - 340 casos offline executaveis para aceite.
+- `scripts/runInterpretationReliabilityAcceptanceBattery.js`
+  - runner standalone da bateria IRAB.
+
+## Integracoes aplicadas
+
+- Appends no contexto de mensagem usam operation key automatica e ledger quando possivel.
+- Append financeiro nao faz retry cego por padrao.
+- Escrita derivada do master LLM exige confirmacao antes de salvar.
+- Parcelas de lote sao mapeadas deterministicamente; item nao mapeado pergunta de novo.
+- `parseAmount` e `parseDate` nao chamam Gemini para campos criticos.
+- Preview de confirmacao mostra reserva/familia como `Transferencia` quando o destino real e a aba `Transferencias`.
+- QA failure log guarda `message_ref` e tamanho, nao mensagem financeira textual.
+
+## Flags
+
+- `INTERPRETATION_RELIABILITY_MODE=off|shadow|enforce`
+- `INTERPRETATION_RELIABILITY_OPERATIONS=expense.create,income.create`
+- `INTERPRETATION_RELIABILITY_TELEMETRY_PATH=data/interpretation-reliability-shadow.jsonl`
+
+Padrao: `off`.
+
+## Shadow mode
+
+No modo `shadow`:
+
+- a camada avalia campos e decisao;
+- o fluxo atual continua respondendo;
+- nenhuma chamada Gemini adicional e feita;
+- nenhuma escrita financeira adicional e feita;
+- a telemetria guarda apenas hashes, fontes, garantias, operacao, decisao e motivos.
+
+## Rollout recomendado
+
+1. Manter `off` por padrao no deploy inicial.
+2. Ativar `shadow` apenas para `expense.create,income.create`.
+3. Observar pelo menos 50 decisoes reais sanitizadas por 14 dias.
+4. Exigir zero divergencia critica inexplicada.
+5. Ativar `enforce` apenas para operacoes candidatas a auto-save.
+6. Expandir para credito, transferencias, lotes, audio, importacao, metas, dividas, contas, exclusao e correcao.
+
+## Nao fazer
+
+- Nao enviar planilha inteira ao Gemini.
+- Nao deixar Gemini calcular saldo, total, percentual, ranking, fatura, orcamento, meta ou divida.
+- Nao transformar erro de Gemini em default financeiro.
+- Nao registrar mensagem financeira crua em log, estado, QA log, ledger ou telemetria.
+- Nao usar `all_users` ou admin como escopo financeiro de escrita.
+- Nao repetir append financeiro sem idempotencia ou reconciliacao.

@@ -1,7 +1,7 @@
 const assert = require('node:assert');
 
 process.env.NODE_ENV = 'test';
-const SENDER = '5521970112407@c.us';
+const SENDER = '5599990000001@c.us';
 const FUNCTIONAL_SENDERS = Object.freeze({
     surface: '5599991000001@c.us',
     transactions: '5599991000002@c.us',
@@ -11,7 +11,7 @@ const FUNCTIONAL_SENDERS = Object.freeze({
 });
 
 process.env.ADMIN_IDS = [
-    process.env.ADMIN_IDS || '5521970112407@c.us',
+    process.env.ADMIN_IDS || '5599990000001@c.us',
     ...Object.values(FUNCTIONAL_SENDERS)
 ].filter(Boolean).join(',');
 process.env.DASHBOARD_BASE_URL = process.env.DASHBOARD_BASE_URL || 'http://localhost:8787';

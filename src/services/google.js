@@ -13,6 +13,7 @@ let tasks;
 let calendar;
 let oAuth2Client;
 let authInFlight = null;
+let defaultFinancialWriteLedger = null;
 const repairedUserSpreadsheetIds = new Set();
 const sheetContext = new AsyncLocalStorage();
 const sheetsReadCache = new Map();
@@ -37,7 +38,9 @@ const USER_SHEET_NAMES = new Set([
 function runWithUserSheetContext(userOrContext, fn) {
     const userId = String(userOrContext?.user_id || userOrContext?.userId || '').trim();
     const displayName = String(userOrContext?.display_name || userOrContext?.displayName || '').trim();
-    return sheetContext.run({ userId, displayName }, fn);
+    const messageId = String(userOrContext?.message_id || userOrContext?.messageId || '').trim();
+    const writeLedger = userOrContext?.writeLedger || null;
+    return sheetContext.run({ userId, displayName, messageId, writeLedger, writeSequence: 0 }, fn);
 }
 
 function getCurrentSheetContext(options = {}) {
@@ -230,18 +233,19 @@ function getGoogleRetryConfig() {
     };
 }
 
-async function runRetriableGoogleOperation(operationName, fn) {
+async function runRetriableGoogleOperation(operationName, fn, { retry = true } = {}) {
     const retryConfig = getGoogleRetryConfig();
+    const maxAttempts = retry ? retryConfig.attempts : 1;
     let lastError = null;
 
-    for (let attempt = 1; attempt <= retryConfig.attempts; attempt += 1) {
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         try {
             return await fn();
         } catch (error) {
             lastError = error;
 
-            if (isGoogleRetriableError(error) && attempt < retryConfig.attempts) {
-                console.warn(`⚠️ ${operationName}: erro transitório/quota Google (${error.message}). Tentativa ${attempt}/${retryConfig.attempts}; aguardando ${retryConfig.delayMs}ms...`);
+            if (retry && isGoogleRetriableError(error) && attempt < maxAttempts) {
+                console.warn(`⚠️ ${operationName}: erro transitório/quota Google (${error.message}). Tentativa ${attempt}/${maxAttempts}; aguardando ${retryConfig.delayMs}ms...`);
                 await sleep(retryConfig.delayMs);
                 continue;
             }
@@ -257,16 +261,16 @@ async function runRetriableGoogleOperation(operationName, fn) {
     }
 }
 
-async function runWithGoogleRetry(operationName, fn, { swallowOnError = false, fallbackValue = null } = {}) {
+async function runWithGoogleRetry(operationName, fn, { swallowOnError = false, fallbackValue = null, retry = true } = {}) {
     await ensureGoogleAuthorized();
     try {
-        return await runRetriableGoogleOperation(operationName, fn);
+        return await runRetriableGoogleOperation(operationName, fn, { retry });
     } catch (error) {
         if (isGoogleAuthError(error)) {
             console.warn(`⚠️ ${operationName}: erro de autenticação Google detectado. Reautorizando e tentando novamente...`);
             await authorizeGoogle(true);
             try {
-                return await runRetriableGoogleOperation(operationName, fn);
+                return await runRetriableGoogleOperation(operationName, fn, { retry });
             } catch (retryError) {
                 console.error(`❌ ${operationName}: falhou após reautorização:`, retryError.message);
                 if (swallowOnError) return fallbackValue;
@@ -687,16 +691,16 @@ async function hasUserSpreadsheetContext(options = {}) {
     return Boolean(target.userScoped);
 }
 
-async function runSheetsOperation(operationName, target, fn, { swallowOnError = false, fallbackValue = null } = {}) {
+async function runSheetsOperation(operationName, target, fn, { swallowOnError = false, fallbackValue = null, retry = true } = {}) {
     if (!target?.userScoped) {
-        return runWithGoogleRetry(operationName, fn, { swallowOnError, fallbackValue });
+        return runWithGoogleRetry(operationName, fn, { swallowOnError, fallbackValue, retry });
     }
 
     try {
-        return await runRetriableGoogleOperation(operationName, fn);
+        return await runRetriableGoogleOperation(operationName, fn, { retry });
     } catch (error) {
         if (isMissingUserSheetError(error) && await repairUserSpreadsheetTemplate(target)) {
-            return runRetriableGoogleOperation(`${operationName}.afterTemplateRepair`, fn);
+            return runRetriableGoogleOperation(`${operationName}.afterTemplateRepair`, fn, { retry });
         }
         console.error(`❌ ${operationName}: erro na planilha do usuário:`, error.message);
         if (swallowOnError) return fallbackValue;
@@ -742,18 +746,156 @@ async function appendRowToSheet(sheetName, row, options = {}) {
     const target = await resolveSpreadsheetTarget({ ...options, sheetName });
     const mappedSheetName = target.userScoped ? mapSheetNameForUserSpreadsheet(sheetName) : sheetName;
     const mappedRow = target.userScoped ? mapRowForUserSpreadsheet(sheetName, row) : row;
+    const writeContext = sheetContext.getStore() || {};
+    const operationKey = resolveAppendOperationKey(sheetName, mappedRow, options, writeContext);
+    const writeLedger = getFinancialWriteLedgerForAppend(options, writeContext, operationKey);
+    const messageId = String(options.messageId || writeContext.messageId || '').trim();
+
+    if (writeLedger && operationKey) {
+        const existing = writeLedger.getOperation(operationKey);
+        if (existing?.status === 'committed') {
+            return existing;
+        }
+        if (existing?.status === 'pending' || existing?.status === 'uncertain') {
+            const reconciled = await reconcileUncertainAppend(target, mappedSheetName, mappedRow);
+            if (reconciled) {
+                return writeLedger.commitOperation(operationKey, {
+                    receipt: {
+                        sheetName,
+                        mappedSheetName,
+                        reconciled: true,
+                        rowFingerprint: buildRowFingerprintForLedger(mappedRow)
+                    }
+                });
+            }
+
+            const uncertainError = new Error('Operação anterior com resultado incerto; repetição automática bloqueada.');
+            uncertainError.code = 'FINANCIAL_WRITE_UNCERTAIN';
+            throw uncertainError;
+        }
+        writeLedger.beginOperation({
+            operationKey,
+            actorScope: {
+                userHash: buildRowFingerprintForLedger([target.userId || row[getUserIdIndexForAppend(sheetName)] || '']),
+                scope: target.userScoped ? 'user_spreadsheet' : 'central'
+            },
+            operation: `append.${sheetName}`,
+            payload: {
+                sheetName,
+                mappedSheetName,
+                rowFingerprint: buildRowFingerprintForLedger(mappedRow)
+            },
+            provenance: {
+                messageId,
+                source: options.source || 'google.appendRowToSheet'
+            }
+        });
+    }
+
     try {
-        await runSheetsOperation(`appendRowToSheet(${sheetName})`, target, () => target.sheetsClient.spreadsheets.values.append({
+        const response = await runSheetsOperation(`appendRowToSheet(${sheetName})`, target, () => target.sheetsClient.spreadsheets.values.append({
             spreadsheetId: target.spreadsheetId,
             range: `${mappedSheetName}!A:A`,
             valueInputOption: 'USER_ENTERED',
             insertDataOption: 'INSERT_ROWS',
             resource: { values: [mappedRow] },
-        }));
+        }), { retry: Boolean(options.allowNonIdempotentRetry) });
         invalidateSheetsReadCache(target);
+        if (writeLedger && operationKey) {
+            return writeLedger.commitOperation(operationKey, {
+                receipt: {
+                    sheetName,
+                    mappedSheetName,
+                    updatedRange: response?.data?.updates?.updatedRange || '',
+                    rowFingerprint: buildRowFingerprintForLedger(mappedRow)
+                }
+            });
+        }
+        return {
+            status: 'committed',
+            receipt: {
+                sheetName,
+                mappedSheetName,
+                updatedRange: response?.data?.updates?.updatedRange || ''
+            }
+        };
     } catch (error) {
+        if (writeLedger && operationKey) {
+            if (isGoogleRetriableError(error)) {
+                writeLedger.markUncertain(operationKey, {
+                    receipt: { sheetName, mappedSheetName, error: error.message }
+                });
+            } else {
+                writeLedger.markFailed(operationKey, {
+                    receipt: { sheetName, mappedSheetName, error: error.message }
+                });
+            }
+        }
         console.error(`❌ Erro ao adicionar linha em ${sheetName}:`, error.message);
         throw new Error('Erro ao salvar na planilha.');
+    }
+}
+
+function getFinancialWriteLedgerForAppend(options = {}, writeContext = {}, operationKey = '') {
+    if (!operationKey) return null;
+    if (options.writeLedger) return options.writeLedger;
+    if (writeContext.writeLedger) return writeContext.writeLedger;
+    const { FinancialWriteLedger } = require('../reliability/financialWriteLedger');
+    if (!defaultFinancialWriteLedger) {
+        defaultFinancialWriteLedger = new FinancialWriteLedger();
+    }
+    return defaultFinancialWriteLedger;
+}
+
+function resolveAppendOperationKey(sheetName, mappedRow, options = {}, writeContext = {}) {
+    const explicitOperationKey = String(options.operationKey || '').trim();
+    if (explicitOperationKey) return explicitOperationKey;
+
+    const messageId = String(options.messageId || writeContext.messageId || '').trim();
+    const userId = String(options.userId || writeContext.userId || '').trim();
+    if (!messageId || !userId) return '';
+
+    writeContext.writeSequence = Number(writeContext.writeSequence || 0) + 1;
+    const { createOperationKey } = require('../reliability/financialWriteLedger');
+    return createOperationKey({
+        userId,
+        messageId,
+        operation: `append.${sheetName}`,
+        itemFingerprint: `${writeContext.writeSequence}:${buildRowFingerprintForLedger(mappedRow)}`
+    });
+}
+
+function buildRowFingerprintForLedger(row) {
+    const { __test__ } = require('../reliability/financialWriteLedger');
+    const normalizedRow = Array.isArray(row) ? row.map(normalizeLedgerCell) : [];
+    return __test__.sha256(JSON.stringify(normalizedRow), 24);
+}
+
+function normalizeLedgerCell(value) {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+    return String(value).trim().replace(/\s+/g, ' ');
+}
+
+function quoteSheetNameForA1(sheetName) {
+    return `'${String(sheetName || '').replace(/'/g, "''")}'`;
+}
+
+async function reconcileUncertainAppend(target, mappedSheetName, mappedRow) {
+    try {
+        const response = await target.sheetsClient.spreadsheets.values.get({
+            spreadsheetId: target.spreadsheetId,
+            range: `${quoteSheetNameForA1(mappedSheetName)}!A:ZZ`
+        });
+        const expectedFingerprint = buildRowFingerprintForLedger(mappedRow);
+        const rows = response?.data?.values || [];
+        const lastNonEmptyRow = [...rows].reverse().find(
+            row => Array.isArray(row) && row.some(cell => normalizeLedgerCell(cell) !== '')
+        );
+        return Boolean(lastNonEmptyRow)
+            && buildRowFingerprintForLedger(lastNonEmptyRow) === expectedFingerprint;
+    } catch (error) {
+        return false;
     }
 }
 
@@ -812,13 +954,21 @@ async function updateRowInSheet(range, rowData, options = {}) {
     const target = await resolveSpreadsheetTarget({ ...options, range });
     const mappedRange = target.userScoped ? mapRangeForUserSpreadsheet(range) : range;
     try {
-        await runSheetsOperation(`updateRowInSheet(${range})`, target, () => target.sheetsClient.spreadsheets.values.update({
+        const response = await runSheetsOperation(`updateRowInSheet(${range})`, target, () => target.sheetsClient.spreadsheets.values.update({
             spreadsheetId: target.spreadsheetId,
             range: mappedRange,
             valueInputOption: 'USER_ENTERED',
             resource: { values: [rowData] },
         }));
         invalidateSheetsReadCache(target);
+        return {
+            success: true,
+            status: 'committed',
+            receipt: {
+                range: mappedRange,
+                updatedRange: response?.data?.updatedRange || ''
+            }
+        };
     } catch (error) {
         console.error(`❌ Erro ao atualizar linha (${range}):`, error.message);
         throw new Error('Erro ao atualizar dados na planilha.');
@@ -828,7 +978,7 @@ async function updateRowInSheet(range, rowData, options = {}) {
 async function batchUpdateRowsInSheet(data, options = {}) {
     const target = await resolveSpreadsheetTarget(options);
     try {
-        await runSheetsOperation('batchUpdateRowsInSheet', target, () => target.sheetsClient.spreadsheets.values.batchUpdate({
+        const response = await runSheetsOperation('batchUpdateRowsInSheet', target, () => target.sheetsClient.spreadsheets.values.batchUpdate({
             spreadsheetId: target.spreadsheetId,
             resource: {
                 valueInputOption: 'USER_ENTERED',
@@ -836,6 +986,13 @@ async function batchUpdateRowsInSheet(data, options = {}) {
             }
         }));
         invalidateSheetsReadCache(target);
+        return {
+            success: true,
+            status: 'committed',
+            receipt: {
+                updatedRanges: response?.data?.responses?.map(item => item?.updatedRange).filter(Boolean) || []
+            }
+        };
     } catch (error) {
         console.error('❌ Erro em batchUpdateRowsInSheet:', error.message);
         throw new Error('Erro ao atualizar dados em lote na planilha.');
@@ -1580,13 +1737,21 @@ async function deleteRowsByIndices(sheetName, rowIndices, options = {}) {
             }
         }));
 
-        await runSheetsOperation(`deleteRowsByIndices(${sheetName})`, target, () => target.sheetsClient.spreadsheets.batchUpdate({
+        const response = await runSheetsOperation(`deleteRowsByIndices(${sheetName})`, target, () => target.sheetsClient.spreadsheets.batchUpdate({
             spreadsheetId: target.spreadsheetId,
             resource: { requests }
-        }));
+        }), { retry: false });
 
         invalidateSheetsReadCache(target);
-        return { success: true };
+        return {
+            success: true,
+            status: 'committed',
+            receipt: {
+                sheetName: mappedSheetName,
+                deletedRows: sortedIndices.length,
+                replies: response?.data?.replies?.length || 0
+            }
+        };
     } catch (error) {
         console.error(`❌ Erro ao deletar linhas em ${sheetName}:`, error.message);
         return { success: false, message: 'Erro ao apagar item na planilha.' };
@@ -1624,7 +1789,8 @@ module.exports = {
         setGoogleClientsForTest,
         normalizeGoogleEmail,
         isValidGoogleEmail,
-        findSpreadsheetPermissionByEmail
+        findSpreadsheetPermissionByEmail,
+        runSheetsOperation
     },
     getSheetIds,
     appendRowToSheet,

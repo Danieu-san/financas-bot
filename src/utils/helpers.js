@@ -1,5 +1,4 @@
 // src/utils/helpers.js
-const { askLLM } = require('../services/gemini');
 
 const parseValue = (valueStr) => {
     if (!valueStr) return 0;
@@ -18,8 +17,10 @@ const parseValue = (valueStr) => {
 };
 
 const isDate = (text) => {
-    if (typeof text !== 'string') return false;
-    return /^\d{2}\/\d{2}\/\d{4}$/.test(text);
+    if (typeof text !== 'string' || !/^\d{2}\/\d{2}\/\d{4}$/.test(text)) return false;
+    const [day, month, year] = text.split('/').map(Number);
+    const parsed = new Date(year, month - 1, day);
+    return parsed.getFullYear() === year && parsed.getMonth() === month - 1 && parsed.getDate() === day;
 };
 
 const getFormattedDate = () => {
@@ -85,54 +86,6 @@ const convertToIsoDateTime = (dateTimeStr) => {
   return `${year}-${month}-${day}T${safeTime}:00`;
 };
 
-async function parseNumberFromText(text) {
-    // Se o texto já parece um número, não gasta uma chamada de IA
-    if (!isNaN(parseFloat(text))) {
-        return parseFloat(text);
-    }
-    const prompt = `Converta o seguinte texto para um número em dígitos. Responda APENAS com o número. Se não for um número claro, responda com "erro".\n\nTexto: "${text}"`;
-    try {
-        const response = await askLLM(prompt);
-        const number = parseFloat(response);
-        return isNaN(number) ? null : number;
-    } catch (error) {
-        console.error("Erro ao tentar converter texto para número via IA:", error);
-        return null;
-    }
-}
-
-// Nossa nova "super função" de parse
-async function parseAmount(text) {
-    // Tentativa 1: O caminho rápido, para números digitados
-    const directParse = parseValue(text);
-    if (directParse !== 0 || text.trim() === '0') { // O parseValue funciona
-        return directParse;
-    }
-    
-    // Tentativa 2: O caminho inteligente, para números falados (ex: "cinco mil")
-    const llmParse = await parseNumberFromText(text);
-    return llmParse;
-}
-
-async function parseDate(text) {
-    // Tentativa 1: O caminho rápido, para datas digitadas
-    if (isDate(text)) {
-        return text;
-    }
-
-    // Tentativa 2: O caminho inteligente, para datas faladas
-    const today = new Date().toLocaleDateString('pt-BR');
-    const prompt = `Converta o texto a seguir para uma data no formato DD/MM/AAAA. A data de hoje é ${today}. Se não for uma data clara, responda 'erro'.\n\nTexto: "${text}"`;
-    try {
-        const response = await askLLM(prompt);
-        // Se a resposta da IA for uma data válida, retorna. Senão, retorna null.
-        return isDate(response) ? response : null;
-    } catch (error) {
-        console.error("Erro ao tentar converter texto para data via IA:", error);
-        return null;
-    }
-}
-
 function parsePortugueseNumberWords(text) {
     const normalized = normalizeText(String(text || ''))
         .replace(/[^a-z0-9\s]/g, ' ')
@@ -184,10 +137,11 @@ function parsePortugueseNumberWords(text) {
             current = 0;
             continue;
         }
+        return null;
     }
 
     const result = total + current;
-    return result > 0 ? result : null;
+    return result >= 0 ? result : null;
 }
 
 function parseAmountLocal(text) {
@@ -203,26 +157,62 @@ function parseAmountLocal(text) {
     }
 
     // 1) Número com multiplicador (ex: 2 mil, 1,5 milhao)
-    const numericWithScale = normalized.match(/(\d+(?:[.,]\d+)?)\s*(milhao|milhoes|mil)?/);
+    const numericWithScale = normalized.match(/^(?:r\$?\s*)?(\d+(?:[.,]\d+)?)\s*(milhao|milhoes|mil)(?:\s+reais?)?$/);
     if (numericWithScale) {
         let amount = parseFloat(numericWithScale[1].replace('.', '').replace(',', '.'));
         if (!isNaN(amount)) {
             const scale = numericWithScale[2] || '';
             if (scale === 'mil') amount *= 1000;
             if (scale === 'milhao' || scale === 'milhoes') amount *= 1000000;
-            if (scale) return amount;
+            return amount;
         }
     }
 
     // 2) Caminho rápido: número puro/formato monetário
-    const direct = parseValue(raw);
-    if (direct !== 0 || normalized === '0') {
+    const compact = raw.replace(/\s/g, '');
+    if (/^(?:R\$)?\d+(?:\.\d{3})*(?:,\d+)?(?:reais?)?$/i.test(compact) || /^(?:R\$)?\d+(?:\.\d+)?(?:reais?)?$/i.test(compact)) {
+        const direct = parseValue(raw.replace(/\s*reais?$/i, ''));
         return direct;
     }
 
     // 3) Número por extenso em português (ex: dois mil e quinhentos)
     const byWords = parsePortugueseNumberWords(normalized);
     return byWords;
+}
+
+function parseDateLocal(text, now = new Date()) {
+    const raw = String(text || '').trim();
+    if (!raw) return null;
+
+    const normalized = normalizeText(raw).replace(/\s+/g, ' ').trim();
+    const relativeDays = { ontem: -1, hoje: 0, amanha: 1 };
+    if (Object.prototype.hasOwnProperty.call(relativeDays, normalized)) {
+        const relative = new Date(now.getFullYear(), now.getMonth(), now.getDate() + relativeDays[normalized]);
+        return getFormattedDateOnly(relative);
+    }
+
+    const numericDate = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+    if (numericDate) {
+        const candidate = `${numericDate[1].padStart(2, '0')}/${numericDate[2].padStart(2, '0')}/${numericDate[3]}`;
+        return isDate(candidate) ? candidate : null;
+    }
+
+    const months = {
+        janeiro: 1, fevereiro: 2, marco: 3, abril: 4, maio: 5, junho: 6,
+        julho: 7, agosto: 8, setembro: 9, outubro: 10, novembro: 11, dezembro: 12
+    };
+    const writtenDate = normalized.match(/^(?:dia\s+)?(\d{1,2})\s+de\s+([a-z]+)\s+de\s+(\d{4})$/);
+    if (!writtenDate || !months[writtenDate[2]]) return null;
+    const candidate = `${writtenDate[1].padStart(2, '0')}/${String(months[writtenDate[2]]).padStart(2, '0')}/${writtenDate[3]}`;
+    return isDate(candidate) ? candidate : null;
+}
+
+async function parseAmount(text) {
+    return parseAmountLocal(text);
+}
+
+async function parseDate(text) {
+    return parseDateLocal(text);
 }
 
 module.exports = {
@@ -233,6 +223,7 @@ module.exports = {
     parseSheetDate,
     parseValue,
     parseAmountLocal,
+    parseDateLocal,
     convertToIsoDateTime,
     parseAmount,
     parseDate

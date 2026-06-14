@@ -58,6 +58,7 @@ function sanitizeValue(value) {
 }
 
 function buildQaFailureEntry(input = {}) {
+    const rawMessage = String(input.message || input.userQuestion || '');
     const error = input.error
         ? {
             name: input.error.name || 'Error',
@@ -73,7 +74,8 @@ function buildQaFailureEntry(input = {}) {
         reason: sanitizeText(input.reason || ''),
         user_ref: hashRef(input.userId),
         whatsapp_ref: hashRef(input.whatsappId),
-        message: sanitizeText(input.message || input.userQuestion || ''),
+        message_ref: hashRef(rawMessage),
+        message_length: rawMessage.length,
         intent: sanitizeText(input.intent || ''),
         parameters: sanitizeValue(input.parameters || {}),
         analysis_source: sanitizeText(input.analysisSource || ''),

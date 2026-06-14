@@ -1,6 +1,7 @@
 // src/state/userStateManager.js
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const logger = require('../utils/logger');
 
 const STATE_FILE = path.resolve(process.cwd(), 'state_store.json');
@@ -47,9 +48,56 @@ function loadStateFromJsonString(raw) {
 function serializeState() {
     const obj = {};
     for (const [key, value] of stateMap.entries()) {
-        obj[key] = value;
+        obj[key] = sanitizeStateForPersistence(value);
     }
     return JSON.stringify(obj, null, 2);
+}
+
+const REDACT_STATE_KEYS = new Set([
+    'originalmessage',
+    'messagebody',
+    'rawmessage',
+    'body',
+    'text',
+    'transcribedtext',
+    'audiotranscript',
+    'descricao',
+    'description',
+    'observacoes',
+    'observations',
+    'note',
+    'notes',
+    'titulo',
+    'title'
+]);
+
+function hashStateContent(value) {
+    return crypto
+        .createHash('sha256')
+        .update(String(value || ''))
+        .digest('hex')
+        .slice(0, 16);
+}
+
+function sanitizeStateForPersistence(value) {
+    if (Array.isArray(value)) {
+        return value.map(item => sanitizeStateForPersistence(item));
+    }
+
+    if (!value || typeof value !== 'object') {
+        return value;
+    }
+
+    const sanitized = {};
+    for (const [key, item] of Object.entries(value)) {
+        const normalizedKey = String(key || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (REDACT_STATE_KEYS.has(normalizedKey) && typeof item === 'string' && item.trim()) {
+            sanitized[key] = `[REDACTED_CONTENT:${hashStateContent(item)}]`;
+            continue;
+        }
+        sanitized[key] = sanitizeStateForPersistence(item);
+    }
+    return sanitized;
 }
 
 function flushStateToDisk() {

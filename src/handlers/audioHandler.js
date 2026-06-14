@@ -5,6 +5,7 @@ const path = require('path');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('ffmpeg-static'); // Importa um helper para encontrar o caminho
 const { transcribeAudio } = require('../services/gemini');
+const logger = require('../utils/logger');
 
 // Se o ffmpeg foi instalado globalmente e está no PATH, a linha abaixo pode não ser necessária,
 // mas é uma boa prática para garantir que o código encontre o executável.
@@ -19,10 +20,12 @@ if (!fs.existsSync(audioDir)) {
 }
 
 async function handleAudio(msg) {
+    let audioPath = '';
+    let mp3Path = '';
     try {
         await msg.reply('🎙️ Entendido! Recebi seu áudio e já estou processando. Um momento...');
         
-        console.log('Baixando mídia de áudio...');
+        logger.info('[audio] download_started');
         const media = await msg.downloadMedia();
 
         if (!media || !media.data) {
@@ -31,32 +34,32 @@ async function handleAudio(msg) {
         }
 
         const timestamp = new Date().getTime();
-        const audioPath = path.join(audioDir, `audio_${timestamp}.ogg`);
+        audioPath = path.join(audioDir, `audio_${timestamp}.ogg`);
         fs.writeFileSync(audioPath, Buffer.from(media.data, 'base64'));
-        console.log(`Áudio salvo em: ${audioPath}`);
+        logger.info('[audio] temp_file_created type=ogg');
 
-        const mp3Path = audioPath.replace('.ogg', '.mp3');
-        console.log(`Convertendo ${audioPath} para ${mp3Path}...`);
+        mp3Path = audioPath.replace('.ogg', '.mp3');
+        logger.info('[audio] conversion_started');
 
         await new Promise((resolve, reject) => {
             ffmpeg(audioPath)
                 .toFormat('mp3')
                 .on('end', () => {
-                    console.log('Conversão para MP3 finalizada com sucesso.');
-                    fs.unlinkSync(audioPath);
+                    logger.info('[audio] conversion_finished');
+                    safeUnlink(audioPath);
                     resolve();
                 })
                 .on('error', (err) => {
-                    console.error('Erro na conversão do áudio:', err);
+                    logger.error(`[audio] conversion_failed error=${err.message}`);
                     reject(err);
                 })
                 .save(mp3Path);
         });
 
-        console.log(`Transcrevendo o arquivo ${mp3Path}...`);
+        logger.info('[audio] transcription_started');
         const transcribedText = await transcribeAudio(mp3Path);
-        fs.unlinkSync(mp3Path);
-        console.log(`Texto Transcrito: "${transcribedText}"`);
+        safeUnlink(mp3Path);
+        logger.info('[audio] transcription_finished');
 
         if (!transcribedText || transcribedText.toLowerCase().includes('não consegui entender')) {
             await msg.reply(`Não consegui entender o que foi dito no áudio. Tente novamente.`);
@@ -66,9 +69,23 @@ async function handleAudio(msg) {
         return transcribedText; // Retorna o texto transcrito com sucesso
 
     } catch (error) {
-        console.error('❌ Erro ao processar o áudio:', error);
+        logger.error(`[audio] processing_failed error=${error.message}`);
         await msg.reply('Ocorreu um erro ao processar seu áudio. A equipe de TI foi notificada.');
         return null;
+    } finally {
+        safeUnlink(audioPath);
+        safeUnlink(mp3Path);
+    }
+}
+
+function safeUnlink(filePath) {
+    if (!filePath) return;
+    try {
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+    } catch (error) {
+        logger.warn(`[audio] temp_cleanup_failed error=${error.message}`);
     }
 }
 

@@ -21,7 +21,7 @@ Implement multiuser access in safe vertical slices. The first slice changes life
 **Acceptance criteria:**
 - [x] Test `ADMIN_IDS` defaults only include Daniel.
 - [x] Docs state Thaís is a normal/test user, not admin.
-- [x] EC2 `.env` has `ADMIN_IDS` without `5521964270368`.
+- [x] EC2 `.env` has `ADMIN_IDS` without normal/test users.
 
 **Verification:**
 - [x] `node --test tests/unit.test.js`

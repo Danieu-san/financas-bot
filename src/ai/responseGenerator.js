@@ -1,78 +1,71 @@
-const { askLLM } = require('./geminiClient');
 const { parseValue } = require('../utils/helpers');
 
 function formatCurrency(value) {
-    if (typeof value !== 'number') {
-        value = parseFloat(value) || 0;
-    }
-    return `R$ ${value.toFixed(2).replace('.', ',')}`;
+    const numeric = typeof value === 'number' ? value : parseFloat(value) || 0;
+    return `R$ ${numeric.toFixed(2).replace('.', ',')}`;
 }
 
-async function generate(args) {
-    const { intent, rawResults, details, userQuestion } = args;
-    const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
-    const mesNome = details && typeof details.mes === 'number' ? monthNames[details.mes] : 'o período solicitado';
-    const ano = details ? details.ano : new Date().getFullYear();
+function getMonthLabel(details = {}) {
+    const monthNames = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+    const month = Number(details.mes);
+    const year = Number(details.ano) || new Date().getFullYear();
+    return month >= 0 && month <= 11 ? `${monthNames[month]} de ${year}` : 'o período solicitado';
+}
 
-    let prompt;
-    let finalValue = null;
+function formatListRows(rows = []) {
+    return rows
+        .slice(0, 12)
+        .map((row, index) => `${index + 1}. ${row?.[1] || 'Lançamento'} - ${formatCurrency(parseValue(row?.[4]))}`)
+        .join('\n');
+}
+
+async function generate(args = {}) {
+    const { intent, rawResults, details = {} } = args;
+    const period = getMonthLabel(details);
 
     switch (intent) {
-        case 'total_gastos_mes':
-            finalValue = formatCurrency(rawResults);
-            prompt = `O usuário perguntou o total de gastos em ${mesNome} de ${ano}. Formule uma resposta amigável que inclua o placeholder VALOR_FINAL. Se os detalhes estiverem disponíveis, considere que saídas foram ${formatCurrency(details?.totalSaidas)} e cartões foram ${formatCurrency(details?.totalCartoes)}.`;
-            break;
+        case 'total_gastos_mes': {
+            const total = formatCurrency(rawResults);
+            const parts = [`Total de gastos em ${period}: ${total}.`];
+            if (details.totalSaidas !== undefined || details.totalCartoes !== undefined) {
+                parts.push(`Saídas: ${formatCurrency(details.totalSaidas)}. Cartões: ${formatCurrency(details.totalCartoes)}.`);
+            }
+            return parts.join('\n');
+        }
 
-        case 'total_gastos_categoria_mes':
-            finalValue = formatCurrency(rawResults);
-            const categoriaLabel = details.categoria || 'todas as categorias';
-            prompt = `O usuário perguntou o total de gastos com "${categoriaLabel}" em ${mesNome} de ${ano}. Formule uma resposta amigável que inclua o placeholder VALOR_FINAL. Exemplo: "Em ${mesNome} de ${ano}, seus gastos com ${categoriaLabel} totalizaram VALOR_FINAL."`;
-            break;
+        case 'total_gastos_categoria_mes': {
+            const categoria = details.categoria || 'categoria solicitada';
+            return `Em ${period}, seus gastos com ${categoria} totalizaram ${formatCurrency(rawResults)}.`;
+        }
 
         case 'saldo_do_mes':
-            finalValue = formatCurrency(rawResults);
-            prompt = `O usuário perguntou o saldo de ${mesNome} de ${ano}. Formule uma resposta amigável sobre o saldo do mês que inclua o placeholder VALOR_FINAL. Mencione que o total de entradas foi ${formatCurrency(details.totalEntradas)} e o de saídas foi ${formatCurrency(details.totalSaidas)}.`;
-            break;
+            return [
+                `Saldo de ${period}: ${formatCurrency(rawResults)}.`,
+                `Entradas: ${formatCurrency(details.totalEntradas)}. Saídas: ${formatCurrency(details.totalSaidas)}.`
+            ].join('\n');
 
-        case 'maior_menor_gasto':
-            if (!rawResults || !rawResults.max) {
-                prompt = `O usuário perguntou sobre o maior gasto em ${mesNome} de ${ano}, mas não encontrei nenhum gasto registrado para este período. Informe isso a ele de forma amigável.`;
-            } else {
-                const maiorGasto = { descricao: rawResults.max[1], valor: formatCurrency(parseValue(rawResults.max[4])) };
-                prompt = `O usuário perguntou sobre o maior gasto em ${mesNome} de ${ano}. O maior gasto encontrado foi "${maiorGasto.descricao}" no valor de ${maiorGasto.valor}. Formule uma resposta amigável com essa informação.`;
+        case 'maior_menor_gasto': {
+            if (!rawResults?.max) {
+                return `Não encontrei gastos registrados em ${period}.`;
             }
-            break;
-        
-        case 'listagem_gastos_categoria':
-            if (!rawResults || rawResults.length === 0) {
-                prompt = `O usuário pediu uma lista de gastos com "${details.categoria}" em ${mesNome}, mas não encontrei nenhum. Informe isso a ele.`;
-            } else {
-                const total = rawResults.reduce((sum, row) => sum + parseValue(row[4]), 0);
-                let listaFormatada = rawResults.map(row => `- ${row[1]} (${formatCurrency(parseValue(row[4]))})`).join('\n');
-                
-                finalValue = formatCurrency(total);
-                prompt = `
-                    O usuário pediu uma lista de gastos com "${details.categoria}" em ${mesNome}. O total gasto foi VALOR_FINAL.
-                    A lista de itens é:\n${listaFormatada}\n
-                    Sua tarefa é montar uma resposta amigável apresentando o total (usando o placeholder VALOR_FINAL) e a lista de gastos de forma clara. É OBRIGATÓRIO incluir a lista.
-                `;
-            }
-            break;
-            
-        default:
-            prompt = `O usuário perguntou: "${userQuestion}". O resultado da análise foi: ${JSON.stringify(rawResults)}. Use essas informações para dar uma resposta clara.`;
-            break;
-    }
-
-    try {
-        const llmResponse = await askLLM(prompt);
-        if (finalValue) {
-            return llmResponse.replace(/VALOR_FINAL/g, finalValue);
+            return `Maior gasto em ${period}: ${rawResults.max[1]} (${formatCurrency(parseValue(rawResults.max[4]))}).`;
         }
-        return llmResponse;
-    } catch (err) {
-        console.error("Erro ao gerar resposta formatada via IA", err);
-        return `Ocorreu um erro ao processar a resposta.`;
+
+        case 'listagem_gastos_categoria': {
+            const categoria = details.categoria || 'categoria solicitada';
+            if (!Array.isArray(rawResults) || rawResults.length === 0) {
+                return `Não encontrei gastos com ${categoria} em ${period}.`;
+            }
+            const total = rawResults.reduce((sum, row) => sum + parseValue(row?.[4]), 0);
+            const extra = rawResults.length > 12 ? `\n... e mais ${rawResults.length - 12} lançamento(s).` : '';
+            return [
+                `Gastos com ${categoria} em ${period}: ${formatCurrency(total)}.`,
+                formatListRows(rawResults) + extra
+            ].join('\n');
+        }
+
+        default:
+            return 'Resposta segura: consegui processar a consulta, mas esse caminho legado não envia dados crus ao Gemini. Tente pedir o detalhamento ou o dashboard para ver a composição calculada.';
     }
 }
 

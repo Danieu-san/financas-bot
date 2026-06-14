@@ -61,7 +61,7 @@ function installReadModelMock(calls) {
         loaded: true,
         exports: {
             getAllUsers: async () => [
-                { user_id: 'admin-user', display_name: 'Daniel', phone_e164: '5521970112407', status: 'ACTIVE' },
+                { user_id: 'admin-user', display_name: 'Daniel', phone_e164: '5599990000001', status: 'ACTIVE' },
                 { user_id: 'user-dash-a', display_name: 'Usuário A', phone_e164: '5599999999999', status: 'ACTIVE' },
                 { user_id: 'inactive-user', display_name: 'Inativo', phone_e164: '5588888888888', status: 'INACTIVE' },
                 { user_id: 'deleted-user', display_name: 'Deletado', phone_e164: '5577777777777', status: 'DELETED', deleted_at: '2026-05-01T00:00:00.000Z' }
@@ -242,7 +242,7 @@ test('dashboard admin user selector only lists active users', async () => {
         const labels = result.json.users.map(user => user.label);
         assert.ok(values.includes('admin-user'));
         assert.deepStrictEqual(labels, ['Daniel']);
-        assert.ok(!JSON.stringify(labels).includes('5521970112407'));
+        assert.ok(!JSON.stringify(labels).includes('5599990000001'));
         assert.ok(!JSON.stringify(labels).includes('admin-user'));
         assert.ok(!JSON.stringify(labels).includes('ACTIVE'));
         assert.ok(!values.includes('user-dash-a'));

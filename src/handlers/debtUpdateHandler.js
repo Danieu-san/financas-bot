@@ -172,10 +172,6 @@ function scoreRow(row, colNome, colCredor, tokens) {
 }
 
 async function startDebtUpdate(msg) {
-    if (process.env.NODE_ENV === 'test') {
-        console.log('[DebtUpdate] body=', msg.body);
-        console.log('[DebtUpdate] parsed=', parseDebtUpdateCommand(msg.body));
-    }
     const senderId = msg.author || msg.from;
     const user = await getUserByWhatsAppId(senderId);
     if (!user || !user.user_id) {

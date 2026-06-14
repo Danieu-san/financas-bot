@@ -10,6 +10,16 @@ const DEFAULT_MODELS = [
     'gemini-3.5-flash'
 ];
 const FORBIDDEN_KEYS = new Set(['user_id', 'sheet_id', 'token', 'raw_rows', 'prompt', 'api_key', 'secret']);
+const SEVERITY_RANK = { none: 0, cosmetic: 1, important: 2, critical: 3 };
+const CRITICAL_FIELDS = new Set([
+    'intent',
+    'amount',
+    'payment',
+    'card',
+    'installments',
+    'date',
+    'needsClarification'
+]);
 
 const CASES = [
     ['gastei 25 no mercado no pix', { items: [{ intent: 'expense', amount: 25, payment: 'PIX' }], needsClarification: false }],
@@ -67,6 +77,211 @@ Mensagem: ${JSON.stringify(input)}`;
 function normalized(value) {
     if (typeof value !== 'string') return value;
     return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+}
+
+function normalizeLooseText(value) {
+    return String(value ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim()
+        .replace(/\s+/g, ' ');
+}
+
+function normalizeBenchmarkField(field, value) {
+    if (value === null || value === undefined) return value;
+    const key = normalizeLooseText(String(field || '').split('.').pop().replace(/\[\d+\]/g, ''));
+    const text = normalizeLooseText(value);
+
+    if (key === 'payment' || key === 'recebimento' || key === 'method') {
+        if (/\b(pix|pics|px)\b/.test(text)) return 'PIX';
+        if (/\b(credito|credit|cartao|card)\b/.test(text)) return 'CREDIT';
+        if (/\b(debito|debit)\b/.test(text)) return 'DEBIT';
+        if (/\b(dinheiro|cash|especie)\b/.test(text)) return 'CASH';
+        if (/\b(conta corrente|corrente|cc)\b/.test(text)) return 'CHECKING';
+        if (/\b(poupanca|poupança)\b/.test(text)) return 'SAVINGS';
+    }
+
+    if (key === 'intent' || key === 'operation') {
+        if (/\b(gasto|saida|expense|despesa|compra)\b/.test(text)) return 'expense';
+        if (/\b(entrada|income|receita|renda|recebi)\b/.test(text)) return 'income';
+        if (/\b(transfer|transferencia|caixinha|reserva|fatura)\b/.test(text)) return 'transfer';
+        if (/\b(pergunta|query|consulta)\b/.test(text)) return 'query';
+        if (/\b(ambiguous|ambigua|inseguro|block|clarify)\b/.test(text)) return 'ambiguous';
+    }
+
+    if (key === 'category' || key === 'categoria') {
+        if (/\b(onibus|uber|99|taxi|combustivel|gasolina|posto|transporte)\b/.test(text)) return 'Transporte';
+        if (/\b(mercado|supermercado|hortifruti|ifood|restaurante|alimentacao|alimento|pao)\b/.test(text)) return 'Alimentação';
+        if (/\b(aluguel|condominio|luz|energia|gas|internet|moradia|reforma)\b/.test(text)) return 'Moradia';
+        if (/\b(roupa|vestuario|camisa)\b/.test(text)) return 'Vestuário';
+        if (/\b(farmacia|remedio|saude)\b/.test(text)) return 'Saúde';
+        if (/\b(canva|netflix|spotify|assinatura|servico digital)\b/.test(text)) return 'Assinaturas';
+    }
+
+    if (key === 'transfer type' || key === 'transfertype' || key === 'tipo transferencia') {
+        if (/\b(resgate|resgatei|retirada|tirei)\b/.test(text)) return 'reserve_redeemed';
+        if (/\b(guardei|apliquei|aplicacao|reserva|caixinha)\b/.test(text)) return 'reserve_applied';
+        if (/\b(fatura|pagamento de fatura)\b/.test(text)) return 'invoice_payment';
+        if (/\b(propria|mesma titularidade|minha conta)\b/.test(text)) return 'own_transfer';
+        if (/\b(familia|thais|membro)\b/.test(text)) return 'family_transfer';
+    }
+
+    if (key === 'card' || key === 'cartao') {
+        return text
+            .replace(/\bcartao\b/g, '')
+            .replace(/\bcredito\b/g, '')
+            .replace(/\bde\b/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    if (typeof value === 'string') {
+        return text;
+    }
+    return value;
+}
+
+function fieldSeverity(field) {
+    const key = String(field || '').split('.').at(-1);
+    if (CRITICAL_FIELDS.has(key)) return 'critical';
+    if (/category|categoria|transferType|description|descricao/i.test(key)) return 'important';
+    return 'cosmetic';
+}
+
+function worseSeverity(a, b) {
+    return SEVERITY_RANK[b] > SEVERITY_RANK[a] ? b : a;
+}
+
+function compareBenchmarkField(pathKey, actual, expected) {
+    if (typeof expected === 'number') {
+        const ok = Math.abs(Number(actual) - expected) < 0.001;
+        return {
+            path: pathKey,
+            status: ok ? 'exact' : 'mismatch',
+            severity: ok ? 'none' : fieldSeverity(pathKey),
+            expected,
+            actual
+        };
+    }
+
+    if (typeof expected === 'string') {
+        const exact = normalized(actual) === normalized(expected);
+        const semantic = normalizeBenchmarkField(pathKey, actual) === normalizeBenchmarkField(pathKey, expected);
+        return {
+            path: pathKey,
+            status: exact ? 'exact' : semantic ? 'semantic' : 'mismatch',
+            severity: exact || semantic ? 'none' : fieldSeverity(pathKey),
+            expected,
+            actual
+        };
+    }
+
+    const exact = actual === expected;
+    return {
+        path: pathKey,
+        status: exact ? 'exact' : 'mismatch',
+        severity: exact ? 'none' : fieldSeverity(pathKey),
+        expected,
+        actual
+    };
+}
+
+function evaluateExpectedSubset(actual, expected, pathKey = '') {
+    const fields = [];
+    if (Array.isArray(expected)) {
+        if (!Array.isArray(actual) || actual.length !== expected.length) {
+            fields.push({
+                path: pathKey || 'array',
+                status: 'mismatch',
+                severity: 'critical',
+                expected: expected.length,
+                actual: Array.isArray(actual) ? actual.length : null,
+                reason: 'item_count_mismatch'
+            });
+            return fields;
+        }
+        expected.forEach((item, index) => {
+            fields.push(...evaluateExpectedSubset(actual[index], item, `${pathKey}[${index}]`));
+        });
+        return fields;
+    }
+
+    if (expected && typeof expected === 'object') {
+        if (!actual || typeof actual !== 'object') {
+            fields.push({
+                path: pathKey || 'object',
+                status: 'missing',
+                severity: fieldSeverity(pathKey),
+                expected,
+                actual,
+                reason: 'missing_object'
+            });
+            return fields;
+        }
+        for (const [key, expectedValue] of Object.entries(expected)) {
+            const nextPath = pathKey ? `${pathKey}.${key}` : key;
+            if (!(key in actual)) {
+                fields.push({
+                    path: nextPath,
+                    status: 'missing',
+                    severity: fieldSeverity(nextPath),
+                    expected: expectedValue,
+                    actual: undefined,
+                    reason: 'missing_field'
+                });
+            } else {
+                fields.push(...evaluateExpectedSubset(actual[key], expectedValue, nextPath));
+            }
+        }
+        return fields;
+    }
+
+    fields.push(compareBenchmarkField(pathKey, actual, expected));
+    return fields;
+}
+
+function evaluateBenchmarkResult(actual, expected) {
+    const fields = evaluateExpectedSubset(actual, expected);
+    const expectedIntent = normalizeBenchmarkField('intent', expected?.items?.[0]?.intent);
+    const actualIntent = normalizeBenchmarkField('intent', actual?.items?.[0]?.intent);
+    const actualNeedsClarification = Boolean(actual?.needsClarification);
+
+    if (expectedIntent === 'ambiguous' && actualIntent !== 'ambiguous') {
+        fields.push({
+            path: 'items[0].intent',
+            status: 'unsafe',
+            severity: 'critical',
+            expected: 'ambiguous',
+            actual: actual?.items?.[0]?.intent,
+            reason: 'unsafe_execution'
+        });
+    }
+    if (expected?.needsClarification === true && actualNeedsClarification === false && expectedIntent === 'ambiguous') {
+        fields.push({
+            path: 'needsClarification',
+            status: 'unsafe',
+            severity: 'critical',
+            expected: true,
+            actual: actual?.needsClarification,
+            reason: 'unsafe_execution'
+        });
+    }
+
+    const worstSeverity = fields.reduce((current, field) => worseSeverity(current, field.severity || 'none'), 'none');
+    const criticalMatch = fields.every(field => field.severity !== 'critical');
+    const completeMatch = fields.every(field => field.severity === 'none');
+    return {
+        completeMatch,
+        criticalMatch,
+        worstSeverity,
+        fields,
+        counts: fields.reduce((acc, field) => {
+            acc[field.status] = (acc[field.status] || 0) + 1;
+            return acc;
+        }, {})
+    };
 }
 
 function matchesExpected(actual, expected) {
@@ -154,6 +369,9 @@ async function benchmarkModel(model, apiKey, runs = 1) {
                 } catch {}
             }
             const forbiddenKeys = jsonValid ? collectForbiddenKeys(parsed) : [];
+            const fieldEvaluation = jsonValid
+                ? evaluateBenchmarkResult(parsed, testCase.expected)
+                : { completeMatch: false, criticalMatch: false, worstSeverity: 'critical', fields: [] };
             results.push({
                 id: testCase.id,
                 run,
@@ -161,7 +379,10 @@ async function benchmarkModel(model, apiKey, runs = 1) {
                 status: response.status || 200,
                 latencyMs: response.latencyMs,
                 jsonValid,
-                fieldsMatch: jsonValid && matchesExpected(parsed, testCase.expected),
+                fieldsMatch: fieldEvaluation.completeMatch,
+                criticalFieldsMatch: fieldEvaluation.criticalMatch,
+                worstSeverity: fieldEvaluation.worstSeverity,
+                fieldEvaluation,
                 forbiddenKeys,
                 expected: testCase.expected,
                 actual: parsed,
@@ -193,6 +414,8 @@ async function benchmarkModel(model, apiKey, runs = 1) {
             apiOk: validResponses.length,
             jsonValid: results.filter(item => item.jsonValid).length,
             fieldsMatch: results.filter(item => item.fieldsMatch).length,
+            criticalFieldsMatch: results.filter(item => item.criticalFieldsMatch).length,
+            semanticOrExact: results.filter(item => ['none', 'cosmetic'].includes(item.worstSeverity)).length,
             unsafe: results.filter(item => item.forbiddenKeys.length).length,
             consistentCases,
             abortedReason,
@@ -235,7 +458,9 @@ if (require.main === module) {
 module.exports = {
     CASES,
     collectForbiddenKeys,
+    evaluateBenchmarkResult,
     isMonthlyCapError,
     matchesExpected,
+    normalizeBenchmarkField,
     parseJsonText
 };

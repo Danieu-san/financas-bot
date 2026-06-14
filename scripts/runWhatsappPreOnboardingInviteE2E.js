@@ -10,7 +10,7 @@ function normalizePhone(value) {
 
 async function main() {
     const config = loadWhatsAppE2EConfig(process.env);
-    const targetPhone = normalizePhone(process.env.INVITE_E2E_TARGET_PHONE || '5521985969034');
+    const targetPhone = normalizePhone(process.env.INVITE_E2E_TARGET_PHONE);
 
     if (!targetPhone) {
         throw new Error('Defina INVITE_E2E_TARGET_PHONE com DDI + DDD + telefone.');

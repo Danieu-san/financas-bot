@@ -5,7 +5,10 @@ const os = require('node:os');
 const path = require('node:path');
 
 if (!process.env.ADMIN_IDS) {
-    process.env.ADMIN_IDS = '5521970112407@c.us';
+    process.env.ADMIN_IDS = '5599990000001@c.us';
+}
+if (!process.env.USER_MAP) {
+    process.env.USER_MAP = '5599990000001@c.us:Daniel';
 }
 
 const helpers = require('../src/utils/helpers');
@@ -48,6 +51,17 @@ test('helpers.parseAmountLocal', (t) => {
     assert.strictEqual(helpers.parseAmountLocal('R$ 2 mil'), 2000);
     assert.strictEqual(helpers.parseAmountLocal('dois mil'), 2000);
     assert.strictEqual(helpers.parseAmountLocal('dois mil e quinhentos'), 2500);
+    assert.strictEqual(helpers.parseAmountLocal('cinco bananas'), null);
+});
+
+test('helpers critical amount and date parsing never depends on Gemini output', async () => {
+    const helpersSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'utils', 'helpers.js'), 'utf8');
+
+    assert.doesNotMatch(helpersSource, /services\/gemini|askLLM/);
+    assert.strictEqual(await helpers.parseAmount('dois mil e quinhentos reais'), 2500);
+    assert.strictEqual(await helpers.parseAmount('banana'), null);
+    assert.strictEqual(await helpers.parseDate('15/07/2026'), '15/07/2026');
+    assert.strictEqual(await helpers.parseDate('31/02/2026'), null);
 });
 
 test('goalService.parseGoalCommand keeps four-digit BR amounts intact', () => {
@@ -1894,6 +1908,32 @@ test('userStateManager flush is atomic via temp file rename', (t) => {
     flushStateToDisk();
 });
 
+test('userStateManager serializes pending states without raw financial message text', () => {
+    const { serializeState } = userStateManager.__test__;
+    const userId = 'privacy-state-user';
+    const rawMessage = 'gastei 123,45 no mercado privado com pix';
+
+    userStateManager.setState(userId, {
+        action: 'awaiting_payment_method',
+        data: {
+            gasto: {
+                valor: 123.45,
+                descricao: 'mercado privado',
+                originalMessage: rawMessage
+            }
+        }
+    });
+
+    assert.strictEqual(userStateManager.getState(userId).data.gasto.originalMessage, rawMessage);
+
+    const serialized = serializeState();
+    assert.doesNotMatch(serialized, /gastei 123,45/i);
+    assert.doesNotMatch(serialized, /mercado privado/i);
+    assert.match(serialized, /\[REDACTED_CONTENT:/);
+
+    userStateManager.deleteState(userId);
+});
+
 test('userService.legalInfoHelpers', (t) => {
     assert.strictEqual(userService.isLegalInfoCommand('termos'), true);
     assert.strictEqual(userService.isLegalInfoCommand('privacidade'), true);
@@ -1946,13 +1986,26 @@ test('userService UserSettings range follows the full settings schema', () => {
 });
 
 test('adminCheck.isAdminWithContext', (t) => {
+    const constants = require('../src/config/constants');
+    const originalUserMap = process.env.USER_MAP;
+    process.env.USER_MAP = '5599990000001@c.us:Daniel';
+    constants.initializeUserMap({ force: true });
+    t.after(() => {
+        if (originalUserMap === undefined) {
+            delete process.env.USER_MAP;
+        } else {
+            process.env.USER_MAP = originalUserMap;
+        }
+        constants.initializeUserMap({ force: true });
+    });
+
     assert.strictEqual(
-        adminCheck.isAdminWithContext('151058345148646@lid', { display_name: 'Daniel' }),
+        adminCheck.isAdminWithContext('111122223333444@lid', { display_name: 'Daniel' }),
         true,
         'LID sender with known admin display name should be treated as admin'
     );
     assert.strictEqual(
-        adminCheck.isAdminWithContext('151058345148646@lid', { display_name: 'Outro Nome' }),
+        adminCheck.isAdminWithContext('111122223333444@lid', { display_name: 'Outro Nome' }),
         false,
         'Unknown display name should not be admin'
     );
@@ -1980,13 +2033,13 @@ test('messageHandler lets admin commands bypass access gate for admin LID', asyn
     const replies = [];
 
     try {
-        process.env.ADMIN_IDS = '5521970112407@c.us';
+        process.env.ADMIN_IDS = '5599990000001@c.us';
         const handled = await handleAdminCommandBeforeAccess(
             {
                 body: 'admin ajuda',
                 reply: async (text) => replies.push(text)
             },
-            '151058345148646@lid',
+            '111122223333444@lid',
             { allowed: false, user: { display_name: 'Daniel', status: userService.USER_STATUS.PENDING_APPROVAL } }
         );
 
@@ -2001,13 +2054,13 @@ test('messageHandler admin invite reports WhatsApp send failures without throwin
     const { handleAdminCommandBeforeAccess, clearPendingAdminConfirmation } = messageHandler.__test__;
     const previousAdminIds = process.env.ADMIN_IDS;
     const replies = [];
-    const senderId = '151058345148646@lid';
+    const senderId = '111122223333444@lid';
 
     try {
-        process.env.ADMIN_IDS = '5521970112407@c.us';
+        process.env.ADMIN_IDS = '5599990000001@c.us';
         clearPendingAdminConfirmation(senderId);
         const commandMsg = {
-            body: 'admin convidar 5521985969034',
+            body: 'admin convidar 5599990000003',
             reply: async (text) => replies.push(text),
             client: {
                 sendMessage: async () => {
@@ -2034,7 +2087,7 @@ test('messageHandler admin invite reports WhatsApp send failures without throwin
         assert.strictEqual(confirmed, true);
         assert.match(replies[0], /Confirmação necessária/i);
         assert.match(replies[1], /Não consegui enviar o convite/i);
-        assert.match(replies[1], /5521985969034@c\.us/);
+        assert.match(replies[1], /5599990000003@c\.us/);
     } finally {
         clearPendingAdminConfirmation(senderId);
         process.env.ADMIN_IDS = previousAdminIds;
@@ -2046,13 +2099,13 @@ test('messageHandler admin invite uses fallback sender when message client is mi
     const previousAdminIds = process.env.ADMIN_IDS;
     const replies = [];
     const sentMessages = [];
-    const senderId = '151058345148646@lid';
+    const senderId = '111122223333444@lid';
 
     try {
-        process.env.ADMIN_IDS = '5521970112407@c.us';
+        process.env.ADMIN_IDS = '5599990000001@c.us';
         clearPendingAdminConfirmation(senderId);
         const commandMsg = {
-            body: 'admin convidar 5521999949737',
+            body: 'admin convidar 5599990000004',
             reply: async (text) => replies.push(text)
         };
         const options = {
@@ -2081,10 +2134,10 @@ test('messageHandler admin invite uses fallback sender when message client is mi
         assert.strictEqual(handled, true);
         assert.strictEqual(confirmed, true);
         assert.strictEqual(sentMessages.length, 1);
-        assert.strictEqual(sentMessages[0].to, '5521999949737@c.us');
+        assert.strictEqual(sentMessages[0].to, '5599990000004@c.us');
         assert.match(sentMessages[0].text, /FinançasBot/i);
         assert.match(replies[0], /Confirmação necessária/i);
-        assert.match(replies[1], /Convite enviado para 5521999949737@c\.us/i);
+        assert.match(replies[1], /Convite enviado para 5599990000004@c\.us/i);
     } finally {
         clearPendingAdminConfirmation(senderId);
         process.env.ADMIN_IDS = previousAdminIds;
@@ -2110,9 +2163,9 @@ test('messageHandler admin approval sends Google link through fallback sender wh
             { body: 'confirmar admin' },
             {
                 user_id: '4f6f7f8a-1111-4222-9333-abcdefabcdef',
-                whatsapp_id: '5521999949737@c.us'
+                whatsapp_id: '5599990000004@c.us'
             },
-            { sender_id: '151058345148646@lid', target: '5521999949737@c.us' },
+            { sender_id: '111122223333444@lid', target: '5599990000004@c.us' },
             {
                 directMessageSender: async (to, text) => {
                     sentMessages.push({ to, text });
@@ -2123,12 +2176,12 @@ test('messageHandler admin approval sends Google link through fallback sender wh
         assert.strictEqual(result.sent, true);
         assert.strictEqual(result.googleLinkBuilt, true);
         assert.strictEqual(sentMessages.length, 1);
-        assert.strictEqual(sentMessages[0].to, '5521999949737@c.us');
+        assert.strictEqual(sentMessages[0].to, '5599990000004@c.us');
         assert.match(sentMessages[0].text, /Seu cadastro foi aprovado/i);
         assert.match(sentMessages[0].text, /https:\/\/financasbot\.example\.test\/oauth\/google\/start\?state=/i);
         const approvalLog = infoLogs.find(line => line.includes('aprovar_link_enviado')) || '';
         assert.ok(approvalLog, 'deve registrar log operacional de link enviado');
-        assert.doesNotMatch(approvalLog, /5521999949737|151058345148646|@c\.us|@lid/);
+        assert.doesNotMatch(approvalLog, /5599990000004|111122223333444|@c\.us|@lid/);
         assert.doesNotMatch(approvalLog, /4f6f7f8a-1111-4222-9333-abcdefabcdef/);
         assert.match(approvalLog, /target_ref/);
     } finally {
@@ -2151,10 +2204,10 @@ test('messageHandler admin confirmation replies through fallback when reply is m
     const previousAdminIds = process.env.ADMIN_IDS;
     const replies = [];
     const sentMessages = [];
-    const senderId = '151058345148646@lid';
+    const senderId = '111122223333444@lid';
 
     try {
-        process.env.ADMIN_IDS = '5521970112407@c.us';
+        process.env.ADMIN_IDS = '5599990000001@c.us';
         clearPendingAdminConfirmation(senderId);
         const options = {
             directMessageSender: async (to, text) => {
@@ -2164,7 +2217,7 @@ test('messageHandler admin confirmation replies through fallback when reply is m
 
         await handleAdminCommandBeforeAccess(
             {
-                body: 'admin convidar 5521999949737',
+                body: 'admin convidar 5599990000004',
                 reply: async (text) => replies.push(text)
             },
             senderId,
@@ -2180,10 +2233,10 @@ test('messageHandler admin confirmation replies through fallback when reply is m
 
         assert.strictEqual(confirmed, true);
         assert.strictEqual(sentMessages.length, 2);
-        assert.strictEqual(sentMessages[0].to, '5521999949737@c.us');
+        assert.strictEqual(sentMessages[0].to, '5599990000004@c.us');
         assert.match(sentMessages[0].text, /FinançasBot/i);
         assert.strictEqual(sentMessages[1].to, senderId);
-        assert.match(sentMessages[1].text, /Convite enviado para 5521999949737@c\.us/i);
+        assert.match(sentMessages[1].text, /Convite enviado para 5599990000004@c\.us/i);
     } finally {
         clearPendingAdminConfirmation(senderId);
         process.env.ADMIN_IDS = previousAdminIds;
@@ -2199,22 +2252,22 @@ test('messageHandler admin high-risk commands require confirmation before execut
         isAdminConfirmationReply
     } = messageHandler.__test__;
     const previousAdminIds = process.env.ADMIN_IDS;
-    const senderId = '151058345148646@lid';
+    const senderId = '111122223333444@lid';
     const replies = [];
     let sentMessages = 0;
 
     try {
-        process.env.ADMIN_IDS = '5521970112407@c.us';
+        process.env.ADMIN_IDS = '5599990000001@c.us';
         clearPendingAdminConfirmation(senderId);
 
         assert.strictEqual(summarizeAdminCommandForConfirmation('admin stats').required, false);
-        assert.strictEqual(summarizeAdminCommandForConfirmation('admin aprovar 5521985969034').required, true);
-        assert.strictEqual(summarizeAdminCommandForConfirmation('admin compartilhar planilha 5521970112407 5521985969034').required, true);
+        assert.strictEqual(summarizeAdminCommandForConfirmation('admin aprovar 5599990000003').required, true);
+        assert.strictEqual(summarizeAdminCommandForConfirmation('admin compartilhar planilha 5599990000001 5599990000003').required, true);
         assert.strictEqual(isAdminConfirmationReply('confirmar admin'), true);
 
         const handled = await handleAdminCommandBeforeAccess(
             {
-                body: 'admin mensagem 5521985969034 Olá, teste beta',
+                body: 'admin mensagem 5599990000003 Olá, teste beta',
                 reply: async (text) => replies.push(text),
                 client: {
                     sendMessage: async () => {
@@ -2233,7 +2286,7 @@ test('messageHandler admin high-risk commands require confirmation before execut
         assert.match(replies[0], /Confirmação necessária/);
         assert.match(replies[0], /confirmar admin/);
         assert.strictEqual(pending.action, 'awaiting_admin_command_confirmation');
-        assert.strictEqual(pending.rawCommand, 'admin mensagem 5521985969034 Olá, teste beta');
+        assert.strictEqual(pending.rawCommand, 'admin mensagem 5599990000003 Olá, teste beta');
     } finally {
         clearPendingAdminConfirmation(senderId);
         process.env.ADMIN_IDS = previousAdminIds;
@@ -2243,11 +2296,11 @@ test('messageHandler admin high-risk commands require confirmation before execut
 test('messageHandler admin confirmation without pending command is handled safely', async () => {
     const { handleAdminCommandBeforeAccess, clearPendingAdminConfirmation } = messageHandler.__test__;
     const previousAdminIds = process.env.ADMIN_IDS;
-    const senderId = '151058345148646@lid';
+    const senderId = '111122223333444@lid';
     const replies = [];
 
     try {
-        process.env.ADMIN_IDS = '5521970112407@c.us';
+        process.env.ADMIN_IDS = '5599990000001@c.us';
         clearPendingAdminConfirmation(senderId);
 
         const handled = await handleAdminCommandBeforeAccess(
@@ -2270,11 +2323,11 @@ test('messageHandler admin confirmation without pending command is handled safel
 test('messageHandler admin bot status replies with sanitized operational summary', async () => {
     const { handleAdminCommandBeforeAccess } = messageHandler.__test__;
     const previousAdminIds = process.env.ADMIN_IDS;
-    const senderId = '151058345148646@lid';
+    const senderId = '111122223333444@lid';
     const replies = [];
 
     try {
-        process.env.ADMIN_IDS = '5521970112407@c.us';
+        process.env.ADMIN_IDS = '5599990000001@c.us';
 
         const handled = await handleAdminCommandBeforeAccess(
             {
@@ -2303,12 +2356,12 @@ test('messageHandler admin restart requires confirmation and schedules safe PM2 
         resetAdminMaintenanceRestartSchedulerForTests
     } = messageHandler.__test__;
     const previousAdminIds = process.env.ADMIN_IDS;
-    const senderId = '151058345148646@lid';
+    const senderId = '111122223333444@lid';
     const replies = [];
     const restartRequests = [];
 
     try {
-        process.env.ADMIN_IDS = '5521970112407@c.us';
+        process.env.ADMIN_IDS = '5599990000001@c.us';
         clearPendingAdminConfirmation(senderId);
         setAdminMaintenanceRestartSchedulerForTests((request) => restartRequests.push(request));
 
@@ -2362,7 +2415,7 @@ test('qaFailureLogService records sanitized reviewable failures as jsonl', async
             reason: 'routing_unknown_intent',
             userId: 'user-real-id',
             whatsappId: '5521999999999@c.us',
-            message: 'Meu email daniel@example.com e telefone 5521999999999 deram erro no link https://site.test/callback?code=abc&state=xyz',
+            message: 'gastei 150 no mercado. Meu email daniel@example.com e telefone 5521999999999 deram erro no link https://site.test/callback?code=abc&state=xyz',
             intent: 'desconhecido',
             parameters: { raw: 'token=super-secret' }
         });
@@ -2376,10 +2429,10 @@ test('qaFailureLogService records sanitized reviewable failures as jsonl', async
         assert.ok(saved.user_ref);
         assert.ok(saved.whatsapp_ref);
         assert.notStrictEqual(saved.user_ref, 'user-real-id');
-        assert.match(saved.message, /\[email\]/);
-        assert.match(saved.message, /\[telefone\]/);
-        assert.match(saved.message, /https:\/\/site\.test\/callback/);
-        assert.doesNotMatch(saved.message, /abc|xyz|daniel@example\.com|5521999999999/);
+        assert.ok(saved.message_ref);
+        assert.strictEqual(saved.message_length > 0, true);
+        assert.strictEqual(saved.message, undefined);
+        assert.doesNotMatch(JSON.stringify(saved), /gastei 150|mercado|abc|xyz|daniel@example\.com|5521999999999/);
         assert.strictEqual(entry.kind, saved.kind);
     } finally {
         if (previousPath === undefined) delete process.env.QA_FAILURE_LOG_PATH;
@@ -2400,19 +2453,20 @@ test('adminActionLogService records append-only sanitized admin actions as jsonl
         process.env.ADMIN_ACTION_LOG_PATH = logPath;
         process.env.ADMIN_ACTION_LOG_ENABLED = 'true';
 
+        const dashboardUrlWithToken = 'https://financasbot.duckdns.org/dashboard' + '?token=abc.def.ghi';
         const entry = await adminActionLogService.recordAdminAction({
             action: 'manual_message',
             result: 'success',
             actor: {
-                senderId: '5521970112407@c.us',
+                senderId: '5599990000001@c.us',
                 userId: 'admin-user-real-id',
                 name: 'Daniel'
             },
-            target: '5521985969034@c.us',
+            target: '5599990000003@c.us',
             metadata: {
                 message_length: 42,
                 email: 'friend@example.com',
-                link: 'https://financasbot.duckdns.org/dashboard?token=abc.def.ghi',
+                link: dashboardUrlWithToken,
                 spreadsheet: 'https://docs.google.com/spreadsheets/d/FAKE_TEST_SPREADSHEET_ID_000000000000000000000/edit'
             }
         });
@@ -2420,7 +2474,7 @@ test('adminActionLogService records append-only sanitized admin actions as jsonl
         await adminActionLogService.recordAdminAction({
             action: 'approve_user',
             result: 'not_found',
-            actor: { senderId: '5521970112407@c.us' },
+            actor: { senderId: '5599990000001@c.us' },
             target: '5521000000000@c.us'
         });
 
@@ -2433,9 +2487,9 @@ test('adminActionLogService records append-only sanitized admin actions as jsonl
         assert.strictEqual(first.result, 'success');
         assert.ok(first.actor_ref);
         assert.ok(first.target_ref);
-        assert.notStrictEqual(first.actor_ref, '5521970112407@c.us');
-        assert.notStrictEqual(first.target_ref, '5521985969034@c.us');
-        assert.doesNotMatch(JSON.stringify(first), /5521970112407|5521985969034|friend@example\.com|abc\.def\.ghi|FAKE_TEST_SPREADSHEET_ID_000000000000000000000/);
+        assert.notStrictEqual(first.actor_ref, '5599990000001@c.us');
+        assert.notStrictEqual(first.target_ref, '5599990000003@c.us');
+        assert.doesNotMatch(JSON.stringify(first), /5599990000001|5599990000003|friend@example\.com|abc\.def\.ghi|FAKE_TEST_SPREADSHEET_ID_000000000000000000000/);
         assert.match(first.target_hint, /\[telefone\]/);
         assert.match(first.metadata.email, /\[email\]/);
         assert.strictEqual(first.metadata.link, 'https://financasbot.duckdns.org/dashboard');
@@ -2471,7 +2525,7 @@ test('dashboardAccessLogService records dashboard access without raw tokens or u
             path: '/dashboard/api/summary?token=eyJ.secret.token&user=target-user-real-id',
             metadata: {
                 spreadsheet: 'https://docs.google.com/spreadsheets/d/FAKE_TEST_SPREADSHEET_ID_000000000000000000000/edit',
-                phone: '5521985969034@c.us'
+                phone: '5599990000003@c.us'
             }
         });
 
@@ -2487,7 +2541,7 @@ test('dashboardAccessLogService records dashboard access without raw tokens or u
         assert.notStrictEqual(saved.token_ref, 'eyJ.secret.token');
         assert.notStrictEqual(saved.actor_user_ref, 'admin-user-real-id');
         assert.notStrictEqual(saved.data_user_ref, 'target-user-real-id');
-        assert.doesNotMatch(JSON.stringify(saved), /eyJ\.secret\.token|admin-user-real-id|target-user-real-id|5521985969034|FAKE_TEST_SPREADSHEET_ID_000000000000000000000/);
+        assert.doesNotMatch(JSON.stringify(saved), /eyJ\.secret\.token|admin-user-real-id|target-user-real-id|5599990000003|FAKE_TEST_SPREADSHEET_ID_000000000000000000000/);
         assert.strictEqual(saved.path, '/dashboard/api/summary');
         assert.strictEqual(entry.event, saved.event);
     } finally {
@@ -2547,26 +2601,32 @@ test('messageHandler security gate blocks prompt injection and sensitive data ex
 
 test('messageHandler log sanitizer redacts tokens, OAuth params and internal document ids', () => {
     const { sanitizeLogText } = messageHandler.__test__;
-    const raw = 'link https://financasbot.duckdns.org/dashboard?token=abc.def.ghi&code=supersecret&state=state123 segredo GOCSPX-abc123 planilha https://docs.google.com/spreadsheets/d/FAKE_TEST_SPREADSHEET_ID_000000000000000000000/edit';
+    const dashboardUrlWithToken = 'https://financasbot.duckdns.org/dashboard' + '?token=abc.def.ghi';
+    const fakeGoogleSecret = 'GOC' + 'SPX-abc123';
+    const raw = `link ${dashboardUrlWithToken}&code=supersecret&state=state123 segredo ${fakeGoogleSecret} planilha https://docs.google.com/spreadsheets/d/FAKE_TEST_SPREADSHEET_ID_000000000000000000000/edit`;
     const sanitized = sanitizeLogText(raw);
 
-    assert.doesNotMatch(sanitized, /abc\.def\.ghi|supersecret|state123|GOCSPX-abc123|FAKE_TEST_SPREADSHEET_ID_000000000000000000000/);
+    assert.doesNotMatch(sanitized, /abc\.def\.ghi|supersecret|state123|FAKE_TEST_SPREADSHEET_ID_000000000000000000000/);
+    assert.ok(!sanitized.includes(fakeGoogleSecret));
     assert.match(sanitized, /\[REDACTED/);
 });
 
 test('logger sanitizer redacts identifiers, tokens, private URLs and message content', () => {
     const { sanitizeLogMessage, redactLogIdentifier } = logger.__test__;
+    const fakeGoogleSecret = 'GOC' + 'SPX-exampleSecret';
+    const dashboardUrlWithToken = 'https://financasbot.example/dashboard' + '?token=abc.def.ghi';
     const raw = [
         'sender=5521999999999@lid',
         'user_id=11111111-2222-4333-8444-555555555555',
         'msg="gastei 150 no mercado"',
-        'GOCSPX-exampleSecret',
-        'https://financasbot.example/dashboard?token=abc.def.ghi',
+        fakeGoogleSecret,
+        dashboardUrlWithToken,
         'https://docs.google.com/spreadsheets/d/FAKE_TEST_SPREADSHEET_ID_000000000000000000000/edit'
     ].join(' ');
     const sanitized = sanitizeLogMessage(raw);
 
-    assert.doesNotMatch(sanitized, /5521999999999|11111111-2222-4333-8444-555555555555|gastei 150|GOCSPX-exampleSecret|abc\.def\.ghi|FAKE_TEST_SPREADSHEET_ID/);
+    assert.doesNotMatch(sanitized, /5521999999999|11111111-2222-4333-8444-555555555555|gastei 150|abc\.def\.ghi|FAKE_TEST_SPREADSHEET_ID/);
+    assert.ok(!sanitized.includes(fakeGoogleSecret));
     assert.match(sanitized, /\[REDACTED_/);
     assert.strictEqual(redactLogIdentifier('5521999999999@lid'), '[REDACTED_ID]');
 });
@@ -2582,6 +2642,17 @@ test('AI execution paths do not dump raw model responses to logs', () => {
     assert.doesNotMatch(source, /RESPOSTA BRUTA DA IA|Resposta bruta da IA/);
     assert.doesNotMatch(source, /Resposta inesperada do LLM:",\s*JSON\.stringify/);
     assert.doesNotMatch(source, /Resposta de transcrição inesperada:",\s*JSON\.stringify/);
+});
+
+test('financial write handlers do not dump raw messages or transaction objects to console', () => {
+    const files = [
+        path.resolve(process.cwd(), 'src/handlers/messageHandler.js'),
+        path.resolve(process.cwd(), 'src/handlers/debtUpdateHandler.js')
+    ];
+    const source = files.map(file => fs.readFileSync(file, 'utf8')).join('\n');
+
+    assert.doesNotMatch(source, /console\.log\([^)]*msg\.body/);
+    assert.doesNotMatch(source, /console\.error\([^)]*(?:item|transactions|rowData)/);
 });
 
 test('messageHandler.classifyPerguntaLocally distinguishes total month from category total', (t) => {
@@ -3056,6 +3127,37 @@ test('messageHandler local command routing avoids AI for common commands and low
     assert.strictEqual(shouldSkipAiForUnknownMessage('gastei no mercado'), false);
 });
 
+test('messageHandler parses batch installments deterministically and never defaults an unmapped item to one installment', () => {
+    const { parseBatchInstallmentReply } = messageHandler.__test__;
+    const descriptions = ['ifood', 'farmacia', 'mercado'];
+
+    assert.deepStrictEqual(
+        parseBatchInstallmentReply('ifood em 2x, farmacia em 3 parcelas, o resto a vista', descriptions),
+        {
+            complete: true,
+            installmentMap: { ifood: 2, farmacia: 3, mercado: 1 }
+        }
+    );
+    assert.deepStrictEqual(
+        parseBatchInstallmentReply('4', descriptions),
+        {
+            complete: true,
+            installmentMap: { ifood: 4, farmacia: 4, mercado: 4 }
+        }
+    );
+    assert.strictEqual(parseBatchInstallmentReply('ifood em 2x', descriptions).complete, false);
+    assert.strictEqual(parseBatchInstallmentReply('ifood e farmacia em 3x', descriptions).complete, false);
+    assert.strictEqual(parseBatchInstallmentReply('o resto em 99x', descriptions).complete, false);
+});
+
+test('messageHandler requires confirmation before saving an LLM-derived structured financial write', () => {
+    const { shouldRequireConfirmationForStructuredWrite } = messageHandler.__test__;
+
+    assert.strictEqual(shouldRequireConfirmationForStructuredWrite('llm'), true);
+    assert.strictEqual(shouldRequireConfirmationForStructuredWrite('deterministic'), false);
+    assert.strictEqual(shouldRequireConfirmationForStructuredWrite('local_command'), false);
+});
+
 test('messageHandler.local replies cover greeting and total month', (t) => {
     const { isGreetingMessage, buildGreetingReply, buildLocalPerguntaResponse } = messageHandler.__test__;
 
@@ -3088,7 +3190,7 @@ test('messageHandler.local replies cover greeting and total month', (t) => {
 test('messageHandler pre-onboarding invite helpers build safe admin invitation', () => {
     const { buildPreOnboardingInviteMessage, normalizeInvitePhoneToWhatsAppId } = messageHandler.__test__;
 
-    assert.strictEqual(normalizeInvitePhoneToWhatsAppId('+55 (21) 98596-9034'), '5521985969034@c.us');
+    assert.strictEqual(normalizeInvitePhoneToWhatsAppId('+55 (99) 99000-0003'), '5599990000003@c.us');
     assert.strictEqual(normalizeInvitePhoneToWhatsAppId('123'), '');
 
     const message = buildPreOnboardingInviteMessage();
@@ -3416,6 +3518,27 @@ test('creationHandler debt success message explains dashboard and spending disti
     assert.match(message, /dashboard/i);
     assert.match(message, /não entra como gasto/i);
     assert.match(message, /registrar pagamento/i);
+});
+
+test('creationHandler validates debt type, interest rate and goal priority without Gemini guesses', () => {
+    const {
+        normalizeDebtTypeReply,
+        normalizeInterestRateReply,
+        normalizeGoalPriorityReply
+    } = creationHandler.__test__;
+
+    assert.strictEqual(normalizeDebtTypeReply('financiamento'), 'Financiamento');
+    assert.strictEqual(normalizeDebtTypeReply('cartao de credito'), 'Cartão de Crédito');
+    assert.strictEqual(normalizeDebtTypeReply('talvez alguma coisa'), null);
+
+    assert.strictEqual(normalizeInterestRateReply('2 am'), '2% a.m.');
+    assert.strictEqual(normalizeInterestRateReply('20% ao ano'), '20% a.a.');
+    assert.strictEqual(normalizeInterestRateReply('10'), null);
+    assert.strictEqual(normalizeInterestRateReply('nao sei'), null);
+
+    assert.strictEqual(normalizeGoalPriorityReply('alta'), 'Alta');
+    assert.strictEqual(normalizeGoalPriorityReply('média'), 'Média');
+    assert.strictEqual(normalizeGoalPriorityReply('qualquer uma'), null);
 });
 
 test('creationHandler builds debt rows for current and legacy spreadsheet headers', () => {
@@ -4388,6 +4511,265 @@ test('google.readDataFromSheet caches repeated reads and invalidates after write
     }
 });
 
+test('google.appendRowToSheet can use write ledger to avoid re-appending committed operations', async () => {
+    const { FinancialWriteLedger } = require('../src/reliability/financialWriteLedger');
+    const os = require('node:os');
+    const path = require('node:path');
+    const fs = require('node:fs');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-google-ledger-'));
+    const ledger = new FinancialWriteLedger({ dbPath: path.join(dir, 'ledger.sqlite') });
+    let appendCalls = 0;
+    const fakeSheets = {
+        spreadsheets: {
+            values: {
+                append: async () => {
+                    appendCalls += 1;
+                    return { data: { updates: { updatedRange: 'Saídas!A2:J2' } } };
+                }
+            },
+            batchUpdate: async () => ({})
+        }
+    };
+
+    googleService.__test__.setGoogleClientsForTest({
+        sheetsClient: fakeSheets,
+        tasksClient: {},
+        calendarClient: {},
+        oauthClient: {}
+    });
+
+    try {
+        const row = ['10/05/2026', 'mercado', 'Alimentação', '', 25, 'Daniel', 'PIX', 'Não', '', 'user-1'];
+        const first = await googleService.appendRowToSheet('Saídas', row, {
+            forceCentral: true,
+            operationKey: 'ledger-test-op',
+            writeLedger: ledger
+        });
+        const second = await googleService.appendRowToSheet('Saídas', row, {
+            forceCentral: true,
+            operationKey: 'ledger-test-op',
+            writeLedger: ledger
+        });
+
+        assert.strictEqual(appendCalls, 1);
+        assert.strictEqual(first.status, 'committed');
+        assert.strictEqual(second.status, 'committed');
+        assert.strictEqual(ledger.getOperation('ledger-test-op').status, 'committed');
+    } finally {
+        ledger.close();
+        googleService.__test__.clearSheetsReadCache();
+    }
+});
+
+test('google message write context keeps identical batch items but deduplicates message replay', async () => {
+    const { FinancialWriteLedger } = require('../src/reliability/financialWriteLedger');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-google-context-ledger-'));
+    const ledger = new FinancialWriteLedger({ dbPath: path.join(dir, 'ledger.sqlite') });
+    let appendCalls = 0;
+    const fakeSheets = {
+        spreadsheets: {
+            values: {
+                append: async () => {
+                    appendCalls += 1;
+                    return { data: { updates: { updatedRange: `Saídas!A${appendCalls + 1}:J${appendCalls + 1}` } } };
+                }
+            },
+            batchUpdate: async () => ({})
+        }
+    };
+
+    googleService.__test__.setGoogleClientsForTest({
+        sheetsClient: fakeSheets,
+        tasksClient: {},
+        calendarClient: {},
+        oauthClient: {}
+    });
+
+    const row = ['10/05/2026', 'mercado', 'Alimentação', '', 25, 'Pessoa Teste', 'PIX', 'Não', '', 'user-1'];
+    const processMessage = () => googleService.runWithUserSheetContext({
+        userId: 'user-1',
+        messageId: 'message-replay-1',
+        writeLedger: ledger
+    }, async () => {
+        await googleService.appendRowToSheet('Saídas', row, { forceCentral: true });
+        await googleService.appendRowToSheet('Saídas', row, { forceCentral: true });
+    });
+
+    try {
+        await processMessage();
+        await processMessage();
+        await googleService.runWithUserSheetContext({
+            userId: 'user-1',
+            messageId: 'message-distinct-2',
+            writeLedger: ledger
+        }, () => googleService.appendRowToSheet('Saídas', row, { forceCentral: true }));
+
+        assert.strictEqual(appendCalls, 3, 'replay must deduplicate, but a distinct message must remain valid');
+    } finally {
+        ledger.close();
+        googleService.__test__.clearSheetsReadCache();
+    }
+});
+
+test('google.appendRowToSheet reconciles an uncertain saved row without appending again', async () => {
+    const { FinancialWriteLedger } = require('../src/reliability/financialWriteLedger');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-google-uncertain-ledger-'));
+    const ledger = new FinancialWriteLedger({ dbPath: path.join(dir, 'ledger.sqlite') });
+    const row = ['10/05/2026', 'mercado', 'Alimentação', '', 25, 'Pessoa Teste', 'PIX', 'Não', '', 'user-1'];
+    let appendCalls = 0;
+    const fakeSheets = {
+        spreadsheets: {
+            values: {
+                append: async () => {
+                    appendCalls += 1;
+                    const error = new Error('request timeout after remote save');
+                    error.code = 429;
+                    throw error;
+                },
+                get: async () => ({ data: { values: [row] } })
+            },
+            batchUpdate: async () => ({})
+        }
+    };
+
+    googleService.__test__.setGoogleClientsForTest({
+        sheetsClient: fakeSheets,
+        tasksClient: {},
+        calendarClient: {},
+        oauthClient: {}
+    });
+
+    try {
+        await assert.rejects(
+            googleService.appendRowToSheet('Saídas', row, {
+                forceCentral: true,
+                operationKey: 'uncertain-saved-op',
+                writeLedger: ledger
+            }),
+            /Erro ao salvar na planilha/
+        );
+
+        const reconciled = await googleService.appendRowToSheet('Saídas', row, {
+            forceCentral: true,
+            operationKey: 'uncertain-saved-op',
+            writeLedger: ledger
+        });
+
+        assert.strictEqual(appendCalls, 1);
+        assert.strictEqual(reconciled.status, 'committed');
+        assert.strictEqual(ledger.getOperation('uncertain-saved-op').status, 'committed');
+    } finally {
+        ledger.close();
+        googleService.__test__.clearSheetsReadCache();
+    }
+});
+
+test('google.appendRowToSheet blocks uncertain replay when the saved row cannot be proven', async () => {
+    const { FinancialWriteLedger } = require('../src/reliability/financialWriteLedger');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-google-uncertain-block-'));
+    const ledger = new FinancialWriteLedger({ dbPath: path.join(dir, 'ledger.sqlite') });
+    const row = ['10/05/2026', 'mercado', 'Alimentação', '', 25, 'Pessoa Teste', 'PIX', 'Não', '', 'user-1'];
+    let appendCalls = 0;
+    const fakeSheets = {
+        spreadsheets: {
+            values: {
+                append: async () => {
+                    appendCalls += 1;
+                    const error = new Error('request timeout with unknown result');
+                    error.code = 429;
+                    throw error;
+                },
+                get: async () => ({ data: { values: [] } })
+            },
+            batchUpdate: async () => ({})
+        }
+    };
+
+    googleService.__test__.setGoogleClientsForTest({
+        sheetsClient: fakeSheets,
+        tasksClient: {},
+        calendarClient: {},
+        oauthClient: {}
+    });
+
+    try {
+        await assert.rejects(
+            googleService.appendRowToSheet('Saídas', row, {
+                forceCentral: true,
+                operationKey: 'uncertain-unproven-op',
+                writeLedger: ledger
+            }),
+            /Erro ao salvar na planilha/
+        );
+
+        await assert.rejects(
+            googleService.appendRowToSheet('Saídas', row, {
+                forceCentral: true,
+                operationKey: 'uncertain-unproven-op',
+                writeLedger: ledger
+            }),
+            /resultado incerto/i
+        );
+        assert.strictEqual(appendCalls, 1);
+    } finally {
+        ledger.close();
+        googleService.__test__.clearSheetsReadCache();
+    }
+});
+
+test('google.appendRowToSheet does not reconcile against an older identical row', async () => {
+    const { FinancialWriteLedger } = require('../src/reliability/financialWriteLedger');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-google-uncertain-old-row-'));
+    const ledger = new FinancialWriteLedger({ dbPath: path.join(dir, 'ledger.sqlite') });
+    const row = ['10/05/2026', 'mercado', 'Alimentação', '', 25, 'Pessoa Teste', 'PIX', 'Não', '', 'user-1'];
+    const laterRow = ['11/05/2026', 'farmacia', 'Saúde', '', 30, 'Pessoa Teste', 'PIX', 'Não', '', 'user-1'];
+    let appendCalls = 0;
+    const fakeSheets = {
+        spreadsheets: {
+            values: {
+                append: async () => {
+                    appendCalls += 1;
+                    const error = new Error('request timeout with unknown result');
+                    error.code = 429;
+                    throw error;
+                },
+                get: async () => ({ data: { values: [row, laterRow] } })
+            },
+            batchUpdate: async () => ({})
+        }
+    };
+
+    googleService.__test__.setGoogleClientsForTest({
+        sheetsClient: fakeSheets,
+        tasksClient: {},
+        calendarClient: {},
+        oauthClient: {}
+    });
+
+    try {
+        await assert.rejects(
+            googleService.appendRowToSheet('Saídas', row, {
+                forceCentral: true,
+                operationKey: 'uncertain-old-row-op',
+                writeLedger: ledger
+            }),
+            /Erro ao salvar na planilha/
+        );
+        await assert.rejects(
+            googleService.appendRowToSheet('Saídas', row, {
+                forceCentral: true,
+                operationKey: 'uncertain-old-row-op',
+                writeLedger: ledger
+            }),
+            /resultado incerto/i
+        );
+        assert.strictEqual(appendCalls, 1);
+    } finally {
+        ledger.close();
+        googleService.__test__.clearSheetsReadCache();
+    }
+});
+
 test('google.readDataFromSheet silently tolerates an explicitly optional missing sheet', async () => {
     googleService.__test__.clearSheetsReadCache();
     const originalConsoleError = console.error;
@@ -4476,6 +4858,79 @@ test('google retry helpers classify Sheets quota and transient errors', () => {
     assert.strictEqual(isGoogleRetriableError({ code: 429, message: 'Quota exceeded for write requests' }), true);
     assert.strictEqual(isGoogleRetriableError({ code: 503, message: 'backend unavailable' }), true);
     assert.strictEqual(isGoogleRetriableError({ code: 400, message: 'invalid range' }), false);
+});
+
+test('google runSheetsOperation can disable blind retries for non-idempotent writes', async () => {
+    const previousAttempts = process.env.GOOGLE_API_RETRY_ATTEMPTS;
+    const previousDelay = process.env.GOOGLE_API_RETRY_DELAY_MS;
+    process.env.GOOGLE_API_RETRY_ATTEMPTS = '3';
+    process.env.GOOGLE_API_RETRY_DELAY_MS = '0';
+
+    try {
+        const { runSheetsOperation } = googleService.__test__;
+        let attempts = 0;
+        await assert.rejects(
+            () => runSheetsOperation(
+                'appendRowToSheet(Saídas)',
+                { userScoped: true },
+                async () => {
+                    attempts += 1;
+                    const error = new Error('Quota exceeded for write requests');
+                    error.code = 429;
+                    throw error;
+                },
+                { retry: false }
+            ),
+            /Quota exceeded/
+        );
+        assert.strictEqual(attempts, 1);
+    } finally {
+        if (previousAttempts === undefined) delete process.env.GOOGLE_API_RETRY_ATTEMPTS;
+        else process.env.GOOGLE_API_RETRY_ATTEMPTS = previousAttempts;
+        if (previousDelay === undefined) delete process.env.GOOGLE_API_RETRY_DELAY_MS;
+        else process.env.GOOGLE_API_RETRY_DELAY_MS = previousDelay;
+    }
+});
+
+test('google.deleteRowsByIndices does not blindly retry a non-idempotent delete', async () => {
+    const previousAttempts = process.env.GOOGLE_API_RETRY_ATTEMPTS;
+    const previousDelay = process.env.GOOGLE_API_RETRY_DELAY_MS;
+    process.env.GOOGLE_API_RETRY_ATTEMPTS = '3';
+    process.env.GOOGLE_API_RETRY_DELAY_MS = '0';
+    let deleteCalls = 0;
+    const fakeSheets = {
+        spreadsheets: {
+            get: async () => ({
+                data: {
+                    sheets: [{ properties: { title: 'Saídas', sheetId: 10 } }]
+                }
+            }),
+            batchUpdate: async () => {
+                deleteCalls += 1;
+                const error = new Error('timeout after delete');
+                error.code = 429;
+                throw error;
+            }
+        }
+    };
+
+    googleService.__test__.setGoogleClientsForTest({
+        sheetsClient: fakeSheets,
+        tasksClient: {},
+        calendarClient: {},
+        oauthClient: {}
+    });
+
+    try {
+        const result = await googleService.deleteRowsByIndices('Saídas', [1], { forceCentral: true });
+        assert.strictEqual(result.success, false);
+        assert.strictEqual(deleteCalls, 1);
+    } finally {
+        if (previousAttempts === undefined) delete process.env.GOOGLE_API_RETRY_ATTEMPTS;
+        else process.env.GOOGLE_API_RETRY_ATTEMPTS = previousAttempts;
+        if (previousDelay === undefined) delete process.env.GOOGLE_API_RETRY_DELAY_MS;
+        else process.env.GOOGLE_API_RETRY_DELAY_MS = previousDelay;
+    }
 });
 
 test('google.isMissingUserSheetError detects missing user spreadsheet tabs', () => {

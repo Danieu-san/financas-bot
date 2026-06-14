@@ -53,8 +53,8 @@ test('whatsappE2EConfig rejects using the bot number as sender', () => {
 test('whatsappE2EConfig rejects using an admin number as test user', () => {
     assert.throws(
         () => loadWhatsAppE2EConfig(baseEnv({
-            WHATSAPP_E2E_TEST_USER_PHONE: '55 21 97011-2407',
-            ADMIN_IDS: '5521970112407@c.us,151058345148646@lid'
+            WHATSAPP_E2E_TEST_USER_PHONE: '55 99 99000-0001',
+            ADMIN_IDS: '5599990000001@c.us,111122223333444@lid'
         })),
         /nao pode ser um numero administrador/
     );
@@ -109,8 +109,8 @@ test('whatsappE2EConfig rejects invalid sender kind and timeout', () => {
 test('whatsappE2EConfig helpers normalize common inputs', () => {
     assert.strictEqual(parseBoolean('sim'), true);
     assert.strictEqual(parseBoolean('nao'), false);
-    assert.strictEqual(normalizePhone('+55 (21) 97011-2407', 'phone'), '5521970112407');
-    assert.deepStrictEqual(parseAdminPhones('5521970112407@c.us,151058345148646@lid'), ['5521970112407', '151058345148646']);
+    assert.strictEqual(normalizePhone('+55 (99) 99000-0001', 'phone'), '5599990000001');
+    assert.deepStrictEqual(parseAdminPhones('5599990000001@c.us,111122223333444@lid'), ['5599990000001', '111122223333444']);
 });
 
 test('whatsapp analytical batch expectations avoid fixed historical amounts', () => {

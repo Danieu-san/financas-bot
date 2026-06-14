@@ -1,0 +1,76 @@
+{
+  "run_id": "INTERPRETATION_RELIABILITY_20260613",
+  "started_at": "2026-06-13T12:00:00-03:00",
+  "updated_at": "2026-06-13T23:45:00-03:00",
+  "mode": "offline_first",
+  "gemini_budget": {
+    "text_calls_allowed": 40,
+    "audio_calls_allowed": 2,
+    "text_calls_used_in_this_phase": 0,
+    "audio_calls_used_in_this_phase": 0
+  },
+  "artifacts": [
+    "docs/audits/interpretation-reliability-audit.md",
+    "docs/specs/interpretation-reliability-layer.md",
+    "docs/qa/interpretation-reliability-acceptance-battery.md",
+    "scripts/runInterpretationReliabilityAcceptanceBattery.js",
+    "src/reliability/deterministicExtractor.js",
+    "src/reliability/interpretationReliability.js",
+    "src/reliability/financialWriteLedger.js",
+    "src/reliability/reliabilityTelemetry.js",
+    "src/reliability/interpretationReliabilityAcceptance.js"
+  ],
+  "real_data_policy": {
+    "real_whatsapp_e2e": false,
+    "real_sheets_reset": false,
+    "real_calendar_write": false,
+    "marker_prefix_required_for_future_real_tests": "TESTE_APAGAR_"
+  },
+  "interpretation_acceptance": {
+    "total": 340,
+    "matched": 340,
+    "execute": "100/100",
+    "confirm": "130/130",
+    "clarify": "80/80",
+    "block": "30/30",
+    "mismatches": 0
+  },
+  "verification": {
+    "npm_test": "377/377",
+    "npm_audit_high": "0 vulnerabilities",
+    "financial_query_acceptance": "265/265",
+    "interpretation_reliability_acceptance": "340/340",
+    "node_check_changed_js": "passed",
+    "git_diff_check": "passed_with_crlf_warnings_only",
+    "nul_scan": "no_matches",
+    "sensitive_pattern_scan": "no_matches_in_new_artifacts_and_audited_tests",
+    "state_store_json": "{}"
+  },
+  "findings_fixed": [
+    "IRA-001",
+    "IRA-002",
+    "IRA-003",
+    "IRA-004",
+    "IRA-005",
+    "IRA-006",
+    "IRA-007",
+    "IRA-008",
+    "IRA-009",
+    "IRA-010",
+    "IRA-011",
+    "IRA-012",
+    "IRA-013",
+    "IRA-014",
+    "IRA-015",
+    "IRA-016",
+    "IRA-017",
+    "IRA-018",
+    "IRA-019"
+  ],
+  "cleanup_expectations": {
+    "state_store_json": "{}",
+    "no_test_markers_expected": true,
+    "no_shadow_telemetry_expected_unless_flag_enabled": true
+  },
+  "status": "local_verification_passed_no_deploy_no_commit"
+}

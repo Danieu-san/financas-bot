@@ -3,7 +3,7 @@ const userStateManager = require('../state/userStateManager');
 const creationHandler = require('./creationHandler');
 const deletionHandler = require('./deletionHandler');
 const debtHandler = require('./debtHandler');
-const { getStructuredResponseFromLLM, askLLM } = require('../services/gemini');
+const { getStructuredResponseFromLLM } = require('../services/gemini');
 const googleService = require('../services/google');
 const { appendRowToSheet, readDataFromSheet, createCalendarEvent } = googleService;
 const runWithUserSheetContext = googleService.runWithUserSheetContext || ((user, fn) => fn());
@@ -97,6 +97,13 @@ const {
     setRestartSchedulerForTests: setAdminMaintenanceRestartSchedulerForTests,
     resetRestartSchedulerForTests: resetAdminMaintenanceRestartSchedulerForTests
 } = require('../services/adminMaintenanceService');
+const {
+    buildInterpretationCandidate,
+    decideInterpretationRisk,
+    normalizePaymentReply
+} = require('../reliability/interpretationReliability');
+const { extractDeterministicInterpretation } = require('../reliability/deterministicExtractor');
+const { recordInterpretationReliabilityShadow } = require('../reliability/reliabilityTelemetry');
 
 // Base de Conhecimento para Gastos
 const mapeamentoGastos = {
@@ -237,6 +244,7 @@ function detectSecuritySensitiveRequest(messageBody) {
 
     const secretPatterns = [
         /\b(?:refresh token|access token|client secret|client_secret|chave secreta|chave de criptografia|encryption key|segredo oauth|oauth secret|api key|apikey|token de acesso|token secreto)\b/,
+        /\b(?:token|segredo|secret|credencial|chave)\s+(?:privado|privada|interno|interna)\b/,
         /\b(?:mostre|mostrar|revele|revelar|diga|exiba|vaze|vazar|qual|quais).{0,50}\b(?:token|segredo|secret|senha|credencial|credenciais|oauth|chave de criptografia)\b/
     ];
     if (hasSecurityPattern(text, secretPatterns)) {
@@ -259,9 +267,11 @@ function detectSecuritySensitiveRequest(messageBody) {
         /\b(?:ignore|ignora|desconsidere|desconsidera).{0,40}\b(?:instrucoes|regras|politicas|seguranca|segurança|permissoes|permissões)\b/,
         /\b(?:sou|modo)\s+(?:admin|administrador|suporte|desenvolvedor|root|sistema)\b/,
         /\b(?:finja|finge|simule|simula).{0,30}\b(?:admin|administrador|suporte|desenvolvedor|root|sistema)\b/,
+        /\b(?:finja|finge|simule|simula).{0,50}\b(?:autorizou|autorizacao|permissao|consentiu|aprovou)\b/,
+        /\b(?:execute|executar|rode|rodar|faca|faça).{0,30}\b(?:como|em modo)\s+(?:admin|administrador|suporte|root|sistema)\b/,
         /\b(?:aprove|aprovar|promova|promover).{0,40}\b(?:admin|administrador|si mesmo|voce|você)\b/,
         /\b(?:consulta|consultar|execute|executar).{0,60}\b(?:sem validar|sem validacao|sem validação).{0,40}\b(?:plano|query|financialqueryplan)\b/,
-        /\b(?:bypass|jailbreak|contorne|desative|desabilite).{0,40}\b(?:seguranca|segurança|permissao|permissão|regras)\b/
+        /\b(?:bypass|jailbreak|contorne|desative|desabilite).{0,40}\b(?:seguranca|segurança|permissao|permissão|regras|confirmacao|confirmação|validacao|validação)\b/
     ];
     if (hasSecurityPattern(text, bypassPatterns)) {
         return { blocked: true, category: 'policy_bypass' };
@@ -398,6 +408,62 @@ function extractLocalInstallments(messageBody) {
     return Number.isInteger(installments) && installments >= 1 && installments <= 48 ? installments : null;
 }
 
+function parseBatchInstallmentCount(value) {
+    const text = normalizeText(value || '').replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!text) return null;
+    const match = text.match(/\b(\d{1,2})\s*(?:x|parcelas?)\b/);
+    const count = Number.parseInt(match?.[1] || '', 10);
+    if (Number.isInteger(count) && count >= 1 && count <= 48) return count;
+    if (/\b(?:a vista|avista|uma vez)\b/.test(text)) return 1;
+    return null;
+}
+
+function parseBatchInstallmentReply(userReply, descriptions = []) {
+    const normalizedReply = normalizeText(userReply || '').replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+    const normalizedDescriptions = descriptions.map(description => normalizeText(description || '').trim()).filter(Boolean);
+    const installmentMap = {};
+    const uniform = Number.parseInt(normalizedReply, 10);
+
+    if (/^\d{1,2}$/.test(normalizedReply) && uniform >= 1 && uniform <= 48) {
+        normalizedDescriptions.forEach(description => {
+            installmentMap[description] = uniform;
+        });
+        return { complete: normalizedDescriptions.length > 0, installmentMap };
+    }
+
+    const positions = normalizedDescriptions
+        .map(description => {
+            const compactDescription = description.replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+            return { description, compactDescription, index: normalizedReply.indexOf(compactDescription) };
+        })
+        .filter(item => item.index >= 0)
+        .sort((left, right) => left.index - right.index);
+    const restStart = normalizedReply.search(/\b(?:o resto|os outros|restante|demais)\b/);
+
+    for (const [positionIndex, item] of positions.entries()) {
+        const { description, compactDescription, index } = item;
+        const nextDescriptionStart = positions[positionIndex + 1]?.index ?? Number.POSITIVE_INFINITY;
+        const nextRestStart = restStart > index ? restStart : Number.POSITIVE_INFINITY;
+        const nearbyEnd = Math.min(index + compactDescription.length + 50, nextDescriptionStart, nextRestStart);
+        const nearby = normalizedReply.slice(index + compactDescription.length, nearbyEnd);
+        const count = parseBatchInstallmentCount(nearby);
+        if (count) installmentMap[description] = count;
+    }
+
+    const restMatch = normalizedReply.match(/\b(?:o resto|os outros|restante|demais)\b(.{0,40})/);
+    const restCount = parseBatchInstallmentCount(restMatch?.[1] || '');
+    if (restCount) {
+        normalizedDescriptions.forEach(description => {
+            if (!installmentMap[description]) installmentMap[description] = restCount;
+        });
+    }
+
+    return {
+        complete: normalizedDescriptions.length > 0 && normalizedDescriptions.every(description => Boolean(installmentMap[description])),
+        installmentMap
+    };
+}
+
 function cleanLocalTransactionDescription(messageBody, amountInfo) {
     if (!amountInfo) return '';
     const raw = String(messageBody || '');
@@ -492,6 +558,10 @@ function canSaveTransactionWithoutExtraPayment(item) {
         return Boolean(normalizePaymentMethodLabel(item.recebimento));
     }
     return false;
+}
+
+function shouldRequireConfirmationForStructuredWrite(source = '') {
+    return String(source || '').trim().toLowerCase() === 'llm';
 }
 
 function messageLooksLikeReserveMovement(item = {}, messageBody = '') {
@@ -601,8 +671,49 @@ async function buildManualTransferFromMessage(item = {}, messageBody = '', curre
     return buildFamilyTransfer(item, originalMessage, currentUserId);
 }
 
+function reliabilityField(value, source = 'inferred', assurance = 'supported', evidence = '') {
+    return { value, source, assurance, evidence };
+}
+
+function verifiedField(value, source = 'deterministic', evidence = '') {
+    return reliabilityField(value, source, 'verified', evidence);
+}
+
+function recordWriteInterpretationShadow({ operation, userId, message, fields, itemCount = 1 }) {
+    try {
+        const extracted = extractDeterministicInterpretation(message);
+        const candidate = extracted.operation === operation
+            ? extracted
+            : buildInterpretationCandidate({
+            operation,
+            fields,
+            itemCount
+        });
+        const decision = decideInterpretationRisk(candidate);
+        recordInterpretationReliabilityShadow({
+            userId,
+            message,
+            candidate,
+            decision
+        });
+    } catch (error) {
+        logger.warn(`interpretation-reliability: shadow_record_failed error=${error.message}`);
+    }
+}
+
 async function saveManualTransfer(transfer, userId) {
     const value = parseValue(transfer.valor);
+    recordWriteInterpretationShadow({
+        operation: 'transfer.create',
+        userId,
+        message: transfer.descricao,
+        fields: {
+            amount: verifiedField(value),
+            scope: verifiedField('personal', 'user_state'),
+            movementType: verifiedField('transfer'),
+            transferType: verifiedField(transfer.status || transfer.observacoes || 'transferencia')
+        }
+    });
     await appendRowToSheet('Transferências', [
         transfer.data || getFormattedDateOnly(new Date()),
         transfer.descricao || 'Transferência',
@@ -624,6 +735,17 @@ async function saveTransactionWithoutExtraPayment(item, { person, userId }) {
         const dataFinal = getFormattedDateOnly(dataDoGasto);
         const valorNumerico = parseValue(item.valor);
         const pagamentoFinal = normalizePaymentMethodLabel(item.pagamento);
+        recordWriteInterpretationShadow({
+            operation: 'expense.create',
+            userId,
+            message: item.originalMessage || item.descricao,
+            fields: {
+                amount: reliabilityField(valorNumerico),
+                scope: verifiedField('personal', 'user_state'),
+                movementType: reliabilityField('expense'),
+                payment: verifiedField(pagamentoFinal, 'user_state')
+            }
+        });
         const rowData = [
             dataFinal,
             item.descricao || 'Não especificado',
@@ -646,6 +768,17 @@ async function saveTransactionWithoutExtraPayment(item, { person, userId }) {
         const dataFinal = getFormattedDateOnly(dataDaEntrada);
         const valorNumerico = parseValue(item.valor);
         const recebimentoFinal = normalizePaymentMethodLabel(item.recebimento);
+        recordWriteInterpretationShadow({
+            operation: 'income.create',
+            userId,
+            message: item.originalMessage || item.descricao,
+            fields: {
+                amount: reliabilityField(valorNumerico),
+                scope: verifiedField('personal', 'user_state'),
+                movementType: reliabilityField('income'),
+                receipt: verifiedField(recebimentoFinal, 'user_state')
+            }
+        });
         const rowData = [
             dataFinal,
             item.descricao || 'Não especificado',
@@ -5634,7 +5767,7 @@ async function handleMessage(msg) {
 
     const activeUser = access.user;
 
-    return runWithUserSheetContext(activeUser, async () => {
+    return runWithUserSheetContext({ ...activeUser, messageId }, async () => {
     const userId = activeUser.user_id;
     const pessoa = activeUser.display_name || userMap[senderId] || 'Usuário';
 
@@ -5896,9 +6029,15 @@ async function handleMessage(msg) {
                 const { gasto } = currentState.data; // A data já está dentro do objeto 'gasto'
                 const respostaPagamento = messageBody;
                 const dataFinal = gasto.data || getFormattedDateOnly(); // Usar a data do gasto, ou a de hoje como fallback
+                const pagamentoCorrigido = normalizePaymentReply(respostaPagamento);
+
+                if (!pagamentoCorrigido || !['Débito', 'Crédito', 'PIX', 'Dinheiro'].includes(pagamentoCorrigido)) {
+                    await msg.reply('Não consegui entender a forma de pagamento. Responda com Crédito, Débito, PIX ou Dinheiro.');
+                    return;
+                }
 
                 // Se a resposta for crédito, inicia o fluxo do cartão
-                if (normalizeText(respostaPagamento) === 'credito') {
+                if (pagamentoCorrigido === 'Crédito') {
                     const cardOptions = await buildCreditCardOptionsForUser(userId);
                     if (!cardOptions.length) {
                         await replyNoCreditCardsConfigured(msg);
@@ -5914,25 +6053,8 @@ async function handleMessage(msg) {
                     return;
                 }
 
-                // Se for outro método, salva direto
-                const promptCorrecaoPagamento = `
-                Sua tarefa é normalizar a forma de pagamento informada pelo usuário.
-                A resposta DEVE ser uma das seguintes opções: 'Débito', 'Crédito', 'PIX', 'Dinheiro'.
-
-                Analise a resposta do usuário e faça a correspondência:
-                - Se for 'd', 'deb', 'cartao de debito', a resposta é 'Débito'.
-                - Se for 'c', 'cred', 'cartao de credito', a resposta é 'Crédito'.
-                - Se for 'p', 'px', 'pics', a resposta é 'PIX'.
-                - Se for 'din', 'vivo', 'especie', a resposta é 'Dinheiro'.
-
-                Se não for possível determinar, retorne 'PIX' como padrão.
-
-                NÃO forneça nenhuma explicação. Retorne APENAS a palavra final.
-
-                Resposta do usuário: "${respostaPagamento}"
-                `;
-                const pagamentoCorrigido = await askLLM(promptCorrecaoPagamento);
-                gasto.pagamento = pagamentoCorrigido.trim();
+                // Se for outro método reconhecido deterministicamente, salva direto.
+                gasto.pagamento = pagamentoCorrigido;
 
                 const manualTransfer = await buildManualTransferFromMessage(gasto, `${gasto.descricao || ''} ${gasto.observacoes || ''}`, userId);
                 if (manualTransfer) {
@@ -5963,10 +6085,12 @@ async function handleMessage(msg) {
                 const metodoRecebimento = msg.body.trim();
                 const pessoa = userMap[senderId] || 'Ambos';
 
-                // Usamos a IA para normalizar a resposta do usuário
-                const promptCorrecaoRecebimento = `Analise a resposta: "${metodoRecebimento}" e normalize-a para 'Conta Corrente', 'Poupança', 'PIX' ou 'Dinheiro'. Se impossível, retorne 'PIX'. Retorne APENAS a palavra correta.`;
-                const recebimentoCorrigido = await askLLM(promptCorrecaoRecebimento);
-                entrada.recebimento = recebimentoCorrigido.trim();
+                const recebimentoCorrigido = normalizePaymentReply(metodoRecebimento);
+                if (!recebimentoCorrigido || !['Conta Corrente', 'Poupança', 'PIX', 'Dinheiro'].includes(recebimentoCorrigido)) {
+                    await msg.reply('Não consegui entender onde você recebeu. Responda com Conta Corrente, Poupança, PIX ou Dinheiro.');
+                    return;
+                }
+                entrada.recebimento = recebimentoCorrigido;
 
                 const dataDaEntrada = entrada.data || getFormattedDateOnly();
                 const manualTransfer = await buildManualTransferFromMessage(entrada, `${entrada.descricao || ''} ${entrada.observacoes || ''}`, userId);
@@ -6354,7 +6478,7 @@ async function handleMessage(msg) {
                                 }
                                 successCount++;
                             } catch (e) {
-                                console.error("Erro CRÍTICO ao salvar item confirmado:", item, e);
+                                logger.error(`[financial-write] confirmed_item_save_failed error=${e.message}`);
                                 await msg.reply(`Houve um erro ao tentar salvar o item "${item.descricao}".`);
                             }
                         }
@@ -6380,25 +6504,11 @@ async function handleMessage(msg) {
                 const respostaPagamento = msg.body.trim();
                 const person = userMap[senderId] || 'Ambos';
 
-                // Reutilizamos nosso prompt inteligente para normalizar a resposta de pagamento
-                const promptCorrecaoPagamento = `
-                Sua tarefa é normalizar a forma de pagamento informada pelo usuário.
-                A resposta DEVE ser uma das seguintes opções: 'Débito', 'Crédito', 'PIX', 'Dinheiro'.
-
-                Analise a resposta do usuário e faça a correspondência:
-                - Se for 'd', 'deb', 'cartao de debito', a resposta é 'Débito'.
-                - Se for 'c', 'cred', 'cartao de credito', a resposta é 'Crédito'.
-                - Se for 'p', 'px', 'pics', a resposta é 'PIX'.
-                - Se for 'din', 'vivo', 'especie', a resposta é 'Dinheiro'.
-
-                Se não for possível determinar, retorne 'PIX' como padrão.
-
-                NÃO forneça nenhuma explicação. Retorne APENAS a palavra final.
-
-                Resposta do usuário: "${respostaPagamento}"
-                `;
-                const pagamentoCorrigido = await askLLM(promptCorrecaoPagamento);
-                const pagamentoFinal = pagamentoCorrigido.trim();
+                const pagamentoFinal = normalizePaymentReply(respostaPagamento);
+                if (!pagamentoFinal || !['Débito', 'Crédito', 'PIX', 'Dinheiro'].includes(pagamentoFinal)) {
+                    await msg.reply('Não consegui entender a forma de pagamento. Responda com Crédito, Débito, PIX ou Dinheiro.');
+                    return;
+                }
 
                 // Uma verificação de segurança: o fluxo de crédito é complexo (pede cartão, parcelas, etc.).
                 // Por isso, é melhor tratar múltiplos itens no crédito de forma individual.
@@ -6458,7 +6568,7 @@ async function handleMessage(msg) {
                             successCount++;
                         }
                     } catch (e) {
-                        console.error("Erro CRÍTICO ao salvar item da lista (batch):", item, e);
+                        logger.error(`[financial-write] batch_item_save_failed error=${e.message}`);
                         await msg.reply(`Houve um erro ao tentar salvar o item "${item.descricao}".`);
                     }
                 }
@@ -6495,44 +6605,15 @@ async function handleMessage(msg) {
             case 'awaiting_installments_batch': {
                 const { transactions, cardInfo } = currentState.data;
                 const userReply = msg.body.trim();
-                const installments = parseInt(userReply, 10);
 
-                let installmentMap = {};
+                const installmentResult = parseBatchInstallmentReply(
+                    userReply,
+                    transactions.map(transaction => transaction.descricao)
+                );
+                const installmentMap = installmentResult.installmentMap;
 
-                // Se a resposta for um número simples, cria um mapa com esse número para todos.
-                if (!isNaN(installments) && installments > 0) {
-                    transactions.forEach(t => installmentMap[normalizeText(t.descricao)] = installments);
-                } else {
-                    // Se for texto, pedimos ajuda para a IA mapear
-                    await msg.reply("Ok, entendi que são parcelas diferentes. Estou analisando sua resposta para aplicar corretamente...");
-                    const descricoes = transactions.map(t => t.descricao);
-                    const promptMapeamento = `
-                        Sua tarefa é analisar a resposta do usuário e mapear o número de parcelas para cada item de uma lista.
-                        Itens disponíveis: ${JSON.stringify(descricoes)}.
-                        Resposta do usuário: "${userReply}".
-
-                        Regras:
-                        - "à vista", "1x", "uma vez" significa 1 parcela.
-                        - "o resto", "os outros" se aplica a todos os itens que não foram explicitamente mencionados. Se nada mais for mencionado, aplica-se a todos.
-                        - Retorne APENAS um objeto JSON no formato {"nome do item": numero_de_parcelas}.
-
-                        Exemplo:
-                        - Itens: ["ifood", "farmacia"]
-                        - Resposta: "ifood em 2x, o resto a vista"
-                        - Saída JSON: {"ifood": 2, "farmacia": 1}
-                    `;
-                    const mappedInstallments = await getStructuredResponseFromLLM(promptMapeamento);
-                    // Normalizamos as chaves do objeto retornado pela IA para garantir a correspondência
-                    if (mappedInstallments) {
-                        for (const key in mappedInstallments) {
-                            installmentMap[normalizeText(key)] = mappedInstallments[key];
-                        }
-                    }
-                }
-
-                if (Object.keys(installmentMap).length === 0) {
-                    await msg.reply("Não consegui entender a divisão das parcelas. Vamos cancelar e você pode tentar de novo, ok?");
-                    userStateManager.deleteState(senderId);
+                if (!installmentResult.complete) {
+                    await msg.reply('Não consegui mapear todas as parcelas com segurança. Responda, por exemplo: `ifood 2x, farmacia 3x, o resto à vista`.');
                     return;
                 }
 
@@ -6541,7 +6622,7 @@ async function handleMessage(msg) {
                 // A partir daqui, a lógica de salvar é a mesma, mas dentro de um loop
                 for (const gasto of transactions) {
                     const descNormalizada = normalizeText(gasto.descricao);
-                    const numParcelas = installmentMap[descNormalizada] || 1; // Se a IA não mapear um, assume 1x
+                    const numParcelas = installmentMap[descNormalizada];
 
                     const installmentValue = parseValue(gasto.valor) / numParcelas;
                     const purchaseDate = gasto.data ? parseSheetDate(gasto.data) : new Date();
@@ -6586,6 +6667,7 @@ async function handleMessage(msg) {
             // CÓDIGO PARA SUBSTITUIR (APENAS A CONSTANTE masterPrompt)
 
             let structuredResponse = null;
+            let structuredResponseSource = '';
             if (isGreetingMessage(messageBody)) {
                 metrics.increment('message.greeting.fast_path');
                 logger.info(`[routing] fast_path intent=greeting sender=${senderId}`);
@@ -6602,6 +6684,7 @@ async function handleMessage(msg) {
 
             structuredResponse = detectFastPerguntaIntent(messageBody);
             if (structuredResponse) {
+                structuredResponseSource = 'deterministic';
                 metrics.increment('message.pergunta.fast_path');
                 logger.info(`[routing] fast_path intent=pergunta sender=${senderId} msg="${sanitizeLogText(messageBody)}"`);
             }
@@ -6609,6 +6692,7 @@ async function handleMessage(msg) {
             if (!structuredResponse) {
                 structuredResponse = detectLocalCommandIntent(messageBody);
                 if (structuredResponse) {
+                    structuredResponseSource = 'local_command';
                     metrics.increment('message.command.fast_path');
                     logger.info(`[routing] fast_path intent=${structuredResponse.intent} sender=${senderId}`);
                 }
@@ -6617,6 +6701,7 @@ async function handleMessage(msg) {
             if (!structuredResponse && !wasAudioMessage) {
                 structuredResponse = detectLocalTransactionIntent(messageBody);
                 if (structuredResponse) {
+                    structuredResponseSource = 'deterministic';
                     metrics.increment('message.transaction.fast_path');
                     logger.info(`[routing] fast_path intent=${structuredResponse.intent} sender=${senderId}`);
                 }
@@ -6624,12 +6709,14 @@ async function handleMessage(msg) {
 
             if (!structuredResponse && shouldSkipAiForUnknownMessage(messageBody)) {
                 structuredResponse = { intent: 'desconhecido' };
+                structuredResponseSource = 'deterministic';
                 metrics.increment('message.unknown.fast_path');
                 logger.info(`[routing] fast_path intent=desconhecido sender=${senderId}`);
             }
 
             if (!structuredResponse) {
                 metrics.increment('message.ai.master_prompt.called');
+                structuredResponseSource = 'llm';
                 const masterPrompt = `Sua tarefa é analisar a mensagem e extrair a intenção e detalhes em um JSON. A data e hora atual é ${new Date().toISOString()}.
 
             ### ORDEM DE ANÁLISE OBRIGATÓRIA:
@@ -6743,7 +6830,7 @@ async function handleMessage(msg) {
                         break;
                     }
 
-                    if (allTransactions.length === 1) {
+                    if (allTransactions.length === 1 && !shouldRequireConfirmationForStructuredWrite(structuredResponseSource)) {
                         const item = allTransactions[0];
                         const manualTransfer = await buildManualTransferFromMessage(item, messageBody, userId);
                         if (manualTransfer) {
@@ -6831,11 +6918,15 @@ async function handleMessage(msg) {
                     }
                     
                     let confirmationMessage = `Encontrei ${allTransactions.length} transaç(ão|ões) para registrar:\n\n`;
-                    allTransactions.forEach((item, index) => {
-                        const typeLabel = item.type === 'Saídas' ? 'Gasto' : 'Entrada';
+                    for (const [index, item] of allTransactions.entries()) {
+                        const manualTransfer = await buildManualTransferFromMessage(item, messageBody, userId);
+                        const typeLabel = manualTransfer
+                            ? 'Transferência'
+                            : (item.type === 'Saídas' ? 'Gasto' : 'Entrada');
+                        const categoryLabel = manualTransfer?.status || item.categoria || 'N/A';
                         const dataInfo = item.data ? ` (Data: ${item.data})` : '';
-                        confirmationMessage += `*${index + 1}.* [${typeLabel}] ${item.descricao} - *R$${item.valor}* (${item.categoria || 'N/A'})${dataInfo}\n`;
-                    });
+                        confirmationMessage += `*${index + 1}.* [${typeLabel}] ${item.descricao} - *R$${item.valor}* (${categoryLabel})${dataInfo}\n`;
+                    }
                     confirmationMessage += "\nVocê confirma o registro de todos os itens? Responda com *'sim'* ou *'não'*.";
 
                     userStateManager.setState(senderId, {
@@ -7280,6 +7371,8 @@ module.exports = {
         resetAdminMaintenanceRestartSchedulerForTests,
         sendApprovedGoogleConnectMessage,
         extractFullNameSettingsCommand,
+        parseBatchInstallmentReply,
+        shouldRequireConfirmationForStructuredWrite,
         markFinancialReadModelDirty,
         saveImportedTransactions,
         handleAccountLifecycleCommands,

@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 
 process.env.NODE_ENV = 'test';
-process.env.ADMIN_IDS = process.env.ADMIN_IDS || '5521970112407@c.us';
+process.env.ADMIN_IDS = process.env.ADMIN_IDS || '5599990000001@c.us';
 
 const SENDER = '5599993000001@c.us';
 const USER_ID = 'state-machine-user';
@@ -367,6 +367,49 @@ stateMachineTest('financial states: payment method writes expense with user_id a
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
 });
 
+stateMachineTest('financial states: unknown payment method asks again instead of defaulting to PIX', async () => {
+    resetState();
+    userStateManager.setState(SENDER, {
+        action: 'awaiting_payment_method',
+        data: {
+            gasto: {
+                data: '10/02/2026',
+                descricao: 'lanche',
+                categoria: 'Alimentação',
+                subcategoria: 'PADARIA / LANCHE',
+                valor: 80,
+                recorrente: 'Não'
+            }
+        }
+    });
+
+    const reply = await send('banana');
+
+    assert.match(reply, /não consegui entender a forma de pagamento/i);
+    assert.strictEqual(sheets.Saídas.length, 1);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_payment_method');
+});
+
+stateMachineTest('financial states: unknown receipt method asks again instead of defaulting to PIX', async () => {
+    resetState();
+    userStateManager.setState(SENDER, {
+        action: 'awaiting_receipt_method',
+        data: {
+            data: '10/02/2026',
+            descricao: 'freela',
+            categoria: 'Renda Extra',
+            valor: 300,
+            recorrente: 'Não'
+        }
+    });
+
+    const reply = await send('banana');
+
+    assert.match(reply, /não consegui entender onde você recebeu/i);
+    assert.strictEqual(sheets.Entradas.length, 1);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_receipt_method');
+});
+
 stateMachineTest('financial states: explicit PIX expense is saved without asking payment again', async () => {
     resetState();
     enqueueStructuredResponse({
@@ -416,7 +459,13 @@ stateMachineTest('financial states: audio transcription enters the normal financ
     const replies = await sendAudio('gastei 30 com uber no pix');
 
     assert.match(replies[0], /áudio/i);
-    assert.match(replies.at(-1), /Gasto de R\$30\.00/i);
+    assert.match(replies.at(-1), /Você confirma o registro/i);
+    assert.strictEqual(sheets.Saídas.length, 1);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_transactions');
+
+    const confirmationReply = await send('sim');
+
+    assert.match(confirmationReply, /1 de 1 itens foram salvos/i);
     assert.strictEqual(sheets.Saídas.length, 2);
     assert.strictEqual(sheets.Saídas[1][1], 'uber do áudio');
     assert.strictEqual(sheets.Saídas[1][6], 'PIX');
@@ -798,8 +847,13 @@ stateMachineTest('financial states: manual caixinha application is saved as tran
 
     const reply = await send('guardei 6666,62 na caixinha do nubank');
 
-    assert.match(reply, /Transferência de R\$ 6666,62/i);
+    assert.match(reply, /\[Transferência\].*Caixinha do Nubank/i);
     assert.strictEqual(sheets.Entradas.length, 1);
+    assert.strictEqual(sheets.Transferências.length, 1);
+
+    const confirmationReply = await send('sim');
+
+    assert.match(confirmationReply, /1 de 1 itens foram salvos/i);
     assert.strictEqual(sheets.Transferências.length, 2);
     assert.strictEqual(sheets.Transferências[1][1], 'Caixinha do Nubank');
     assert.strictEqual(sheets.Transferências[1][2], 6666.62);
@@ -852,8 +906,13 @@ stateMachineTest('financial states: transfer to family member is saved as intern
 
     const reply = await send('transferi 1269,74 para a thais');
 
-    assert.match(reply, /Transferência de R\$ 1269,74/i);
+    assert.match(reply, /\[Transferência\].*Transferência para Thais/i);
     assert.strictEqual(sheets.Saídas.length, 1);
+    assert.strictEqual(sheets.Transferências.length, 1);
+
+    const confirmationReply = await send('sim');
+
+    assert.match(confirmationReply, /1 de 1 itens foram salvos/i);
     assert.strictEqual(sheets.Transferências.length, 2);
     assert.strictEqual(sheets.Transferências[1][1], 'Transferência para Thais');
     assert.strictEqual(sheets.Transferências[1][2], 1269.74);
@@ -1165,6 +1224,31 @@ stateMachineTest('financial states: batch asks one payment method when missing a
         ['ônibus lote', 'PIX', USER_ID]
     ]);
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
+
+stateMachineTest('financial states: unknown batch payment method asks again instead of defaulting to PIX', async () => {
+    resetState();
+    userStateManager.setState(SENDER, {
+        action: 'awaiting_batch_payment_method',
+        data: {
+            transactions: [
+                {
+                    type: 'Saídas',
+                    descricao: 'mercado',
+                    valor: 20,
+                    categoria: 'Alimentação',
+                    subcategoria: 'SUPERMERCADO',
+                    recorrente: 'Não'
+                }
+            ]
+        }
+    });
+
+    const reply = await send('banana');
+
+    assert.match(reply, /não consegui entender a forma de pagamento/i);
+    assert.strictEqual(sheets.Saídas.length, 1);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_batch_payment_method');
 });
 
 stateMachineTest('financial states: batch credit card flow writes installments for every item', async () => {

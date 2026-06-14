@@ -1,6 +1,5 @@
 // src/handlers/creationHandler.js
 
-const { getStructuredResponseFromLLM, askLLM } = require('../services/gemini');
 const userStateManager = require('../state/userStateManager');
 const { appendRowToSheet, readDataFromSheet } = require('../services/google');
 const { userMap } = require('../config/constants');
@@ -8,6 +7,44 @@ const { parseValue, parseDate, isDate, getFormattedDateOnly, parseAmount, normal
 const { getUserByWhatsAppId } = require('../services/userService');
 const { getFinancialScopeUserIds } = require('../services/oauthTokenStore');
 const { GOAL_STATUS } = require('../services/goalService');
+
+function normalizeDebtTypeReply(value) {
+    const text = normalizeText(value);
+    if (!text) return null;
+    if (/\bemprestimo\b/.test(text)) return 'Empréstimo Pessoal';
+    if (/\bfinanciamento\b/.test(text)) return 'Financiamento';
+    if (/\bcartao\b/.test(text) && /\bcredito\b/.test(text)) return 'Cartão de Crédito';
+    if (/\boutro(?:s)?\b/.test(text)) return 'Outros';
+    return null;
+}
+
+function normalizeInterestRateReply(value) {
+    const text = normalizeText(value);
+    if (!text) return null;
+    if (/^(?:0|zero|sem juros)$/.test(text)) return '0% a.m.';
+
+    const amountMatch = String(value || '').match(/\d+(?:[.,]\d+)?/);
+    if (!amountMatch) return null;
+    const amount = Number.parseFloat(amountMatch[0].replace(',', '.'));
+    if (!Number.isFinite(amount) || amount < 0 || amount > 1000) return null;
+
+    const period = /\b(?:aa|a a|ano|anual|ao ano)\b/.test(text)
+        ? 'a.a.'
+        : /\b(?:am|a m|mes|mensal|ao mes)\b/.test(text)
+            ? 'a.m.'
+            : '';
+    if (!period) return null;
+    return `${String(amount).replace('.', ',')}% ${period}`;
+}
+
+function normalizeGoalPriorityReply(value) {
+    const text = normalizeText(value);
+    if (!text) return null;
+    if (/\b(?:alta|urgente)\b/.test(text)) return 'Alta';
+    if (/\b(?:media|normal)\b/.test(text)) return 'Média';
+    if (/\bbaixa\b/.test(text)) return 'Baixa';
+    return null;
+}
 
 const LEGACY_DEBT_HEADERS = [
     'Nome', 'Credor', 'Tipo', 'Valor Original', 'Saldo Atual', 'Parcela', 'Juros', 'Vencimento',
@@ -110,30 +147,23 @@ async function handleDebtCreation(msg, isFirstRun = false) {
         if (step === 1) { state.data["Nome da Dívida"] = messageBody; }
         else if (step === 2) { state.data["Credor"] = messageBody; }
         else if (step === 3) {
-            const promptCorrecao = `Normalize a resposta do usuário para uma das categorias: 'Empréstimo Pessoal', 'Financiamento', 'Cartão de Crédito', 'Outros'. Resposta: "${messageBody}"`;
-            const tipoCorrigido = await askLLM(promptCorrecao);
-            state.data["Tipo de Dívida"] = tipoCorrigido.trim();
+            const tipoCorrigido = normalizeDebtTypeReply(messageBody);
+            if (!tipoCorrigido) {
+                await msg.reply("Não consegui identificar o tipo. Responda Empréstimo Pessoal, Financiamento, Cartão de Crédito ou Outros.");
+                return;
+            }
+            state.data["Tipo de Dívida"] = tipoCorrigido;
         }
         else if (step === 4) { const valor = await parseAmount(messageBody); if (valor && valor > 0) { state.data["Valor Original"] = valor; } else { await msg.reply("Valor inválido."); } }
         else if (step === 5) { const valor = await parseAmount(messageBody); if (valor >= 0) { state.data["Saldo Devedor Atual"] = valor; } else { await msg.reply("Valor inválido."); } }
         else if (step === 6) { const valor = await parseAmount(messageBody); if (valor && valor > 0) { state.data["Valor da Parcela"] = valor; } else { await msg.reply("Valor inválido."); } }
         else if (step === 7) {
-            const promptPadronizacao = `
-                Sua tarefa é padronizar uma taxa de juros para o formato 'X% a.m.' (ao mês) ou 'X% a.a.' (ao ano).
-                A entrada do usuário pode ser ambígua (ex: '10aa'). Faça sua melhor suposição.
-                NÃO forneça explicações. Retorne APENAS o valor padronizado.
-
-                Entrada do usuário: "${messageBody}"
-
-                Exemplos:
-                - Entrada: "2 am" -> Saída: "2% a.m."
-                - Entrada: "20aa" -> Saída: "20% a.a."
-                - Entrada: "1.5 ao mes" -> Saída: "1.5% a.m."
-
-                Retorne APENAS o resultado final.
-            `;
-            const jurosPadronizado = await askLLM(promptPadronizacao);
-            state.data["Taxa de Juros"] = jurosPadronizado.trim();
+            const jurosPadronizado = normalizeInterestRateReply(messageBody);
+            if (!jurosPadronizado) {
+                await msg.reply("Não consegui identificar a taxa. Informe o valor e o período, por exemplo `2% ao mês` ou `20% ao ano`.");
+                return;
+            }
+            state.data["Taxa de Juros"] = jurosPadronizado;
         }
         else if (step === 8) { const dia = await parseAmount(messageBody); if (dia >= 1 && dia <= 31) { state.data["Dia do Vencimento"] = dia; } else { await msg.reply("Dia inválido. Informe um número de 1 a 31."); } }
         else if (step === 9) { // Passo da Data da Dívida
@@ -289,9 +319,12 @@ async function handleGoalCreation(msg, isFirstRun = false) {
                 await msg.reply("Formato de data inválido. Use DD/MM/AAAA ou fale a data por extenso.");
             }
         } else if (step === 5) {
-            const promptCorrecao = `Normalize a prioridade do usuário para "Alta", "Média" ou "Baixa". Resposta do usuário: "${messageBody}"`;
-            const prioridadeCorrigida = await askLLM(promptCorrecao);
-            state.data["Prioridade"] = prioridadeCorrigida.trim();
+            const prioridadeCorrigida = normalizeGoalPriorityReply(messageBody);
+            if (!prioridadeCorrigida) {
+                await msg.reply('Não consegui identificar a prioridade. Responda Alta, Média ou Baixa.');
+                return;
+            }
+            state.data["Prioridade"] = prioridadeCorrigida;
         }
     }
 
@@ -383,7 +416,10 @@ module.exports = {
     __test__: {
         buildDebtSuccessMessage,
         buildDebtRowForHeaders,
-        computeNextDebtDueDate
+        computeNextDebtDueDate,
+        normalizeDebtTypeReply,
+        normalizeInterestRateReply,
+        normalizeGoalPriorityReply
     }
 };
 

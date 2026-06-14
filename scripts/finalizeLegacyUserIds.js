@@ -3,42 +3,50 @@ require('dotenv').config();
 const { authorizeGoogle, batchUpdateRowsInSheet, deleteRowsByIndices } = require('../src/services/google');
 const { getUserByWhatsAppId } = require('../src/services/userService');
 
-const DANIEL_WPP = '5521970112407@c.us';
-const THAIS_WPP = '5521964270368@c.us';
+function requireWhatsAppId(envName) {
+    const value = String(process.env[envName] || '').trim();
+    if (!value) {
+        throw new Error(`Defina ${envName} antes de rodar este script legado.`);
+    }
+    return value.endsWith('@c.us') || value.endsWith('@lid') ? value : `${value.replace(/\D/g, '')}@c.us`;
+}
 
 // Regras finais acordadas:
-// - Linhas com referencia explicita a Thaís -> user_id da Thaís
-// - Demais ambíguas antigas ("Ambos") -> user_id do Daniel
+// - Linhas com referencia explicita ao parceiro -> user_id do parceiro
+// - Demais ambiguas antigas ("Ambos") -> user_id do dono
 // - Linha incompleta sem valor util -> remover
-const SAIDAS_TO_DANIEL = [44, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 136];
-const SAIDAS_TO_THAIS = [135];
-const ENTRADAS_TO_DANIEL = [11, 13, 14];
-const ENTRADAS_TO_THAIS = [9, 10];
+const SAIDAS_TO_OWNER = [44, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 136];
+const SAIDAS_TO_PARTNER = [135];
+const ENTRADAS_TO_OWNER = [11, 13, 14];
+const ENTRADAS_TO_PARTNER = [9, 10];
 const SAIDAS_DELETE = [121];
 
 async function run() {
     await authorizeGoogle();
 
-    const daniel = await getUserByWhatsAppId(DANIEL_WPP);
-    const thais = await getUserByWhatsAppId(THAIS_WPP);
+    const ownerWpp = requireWhatsAppId('LEGACY_OWNER_WPP');
+    const partnerWpp = requireWhatsAppId('LEGACY_PARTNER_WPP');
 
-    if (!daniel?.user_id || !thais?.user_id) {
-        throw new Error('Usuarios Daniel/Thais nao encontrados na aba Users.');
+    const owner = await getUserByWhatsAppId(ownerWpp);
+    const partner = await getUserByWhatsAppId(partnerWpp);
+
+    if (!owner?.user_id || !partner?.user_id) {
+        throw new Error('Usuarios legados nao encontrados na aba Users.');
     }
 
     const updates = [];
 
-    SAIDAS_TO_DANIEL.forEach((row) => {
-        updates.push({ range: `Saídas!J${row}`, values: [[daniel.user_id]] });
+    SAIDAS_TO_OWNER.forEach((row) => {
+        updates.push({ range: `Saídas!J${row}`, values: [[owner.user_id]] });
     });
-    SAIDAS_TO_THAIS.forEach((row) => {
-        updates.push({ range: `Saídas!J${row}`, values: [[thais.user_id]] });
+    SAIDAS_TO_PARTNER.forEach((row) => {
+        updates.push({ range: `Saídas!J${row}`, values: [[partner.user_id]] });
     });
-    ENTRADAS_TO_DANIEL.forEach((row) => {
-        updates.push({ range: `Entradas!I${row}`, values: [[daniel.user_id]] });
+    ENTRADAS_TO_OWNER.forEach((row) => {
+        updates.push({ range: `Entradas!I${row}`, values: [[owner.user_id]] });
     });
-    ENTRADAS_TO_THAIS.forEach((row) => {
-        updates.push({ range: `Entradas!I${row}`, values: [[thais.user_id]] });
+    ENTRADAS_TO_PARTNER.forEach((row) => {
+        updates.push({ range: `Entradas!I${row}`, values: [[partner.user_id]] });
     });
 
     await batchUpdateRowsInSheet(updates);
