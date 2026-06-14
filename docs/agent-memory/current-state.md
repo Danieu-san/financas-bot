@@ -9,7 +9,7 @@ Atualizado em: 2026-06-14
 - Producao atual em EC2 com dominio `https://financasbot.duckdns.org`.
 - Multiusuario existe, mas ainda exige cuidado juridico/privacidade antes de beta amplo.
 
-## Arquitetura familiar com LangGraphJS - local, sem deploy
+## Arquitetura familiar com LangGraphJS - shadow em producao
 
 - Decisao arquitetural registrada em `docs/decisions/ADR-004-family-langgraph-financial-agent.md`: LangGraphJS passa a ser o runtime final de orquestracao para analises financeiras read-only do assistente familiar Daniel/Thais.
 - Spec criada em `docs/specs/family-langgraph-financial-agent.md`. A Query Engine vira ferramenta confiavel; SQL sandbox read-only cobre perguntas novas; Gemini pode planejar/redigir, mas nao calcular valores finais.
@@ -20,7 +20,11 @@ Atualizado em: 2026-06-14
 - Planner Gemini do agente foi criado em `src/agent/financialAgentPlanner.js`, mas fica desligado por padrao via `FINANCIAL_AGENT_LLM_PLANNER_ENABLED`. Quando ligado, ele recebe apenas a pergunta e o contrato publico de ferramentas/tabela; a saida e tratada como nao confiavel e passa por allowlist + `validateSafeReadonlySql`.
 - `messageHandler` integra o agente atras de `FINANCIAL_AGENT_MODE=off|shadow|answer`; `enforce` e aceito como alias de `answer`. O padrao permanece `off`. Em `shadow`, o agente observa sem responder; em `answer`, planner gaps caem no legado e respostas so saem se aprovadas pelo verificador.
 - Cobertura local inicial: `tests/financialAgent.test.js` cobre superficie publica, SQL sandbox, ferramenta de ultimos lancamentos, verificador, runtime LangGraph e politica de ativacao; `tests/familyModeService.test.js` cobre allowlist familiar e falha fechada sem configuracao.
-- Ainda nao foi implementado nesta fatia: planner Gemini estruturado dentro do grafo, wrapper da Query Engine como ferramenta, dashboard snapshot tool, bateria agentic de 200 perguntas, deploy shadow e inativacao operacional de usuarios fora de Daniel/Thais.
+- Ainda nao foi implementado nesta fatia: wrapper da Query Engine como ferramenta, dashboard snapshot tool, bateria agentic de 200 perguntas e inativacao operacional de usuarios fora de Daniel/Thais. O planner Gemini estruturado existe, mas permanece desligado por seguranca/custo ate a cobertura agentic evoluir.
+- Deploy shadow concluido em 2026-06-14 no commit `5615915`. Producao ficou com `FINANCIAL_AGENT_MODE=shadow`, `FINANCIAL_AGENT_LLM_PLANNER_ENABLED=false` e `FAMILY_MODE_ENABLED=false`; o agente observa perguntas analiticas sem substituir respostas, sem chamada Gemini adicional pelo planner novo e sem restringir usuarios ainda.
+- Backup pre-deploy: `/home/ubuntu/financas-bot-backups/release-20260614-family-langgraph-shadow-5615915`. Rollback de codigo: `192acb7`.
+- Pos-deploy validado: PM2 online, WhatsApp pronto, health publico `{"ok":true,"sqlite":true}`, worktree remoto limpo e read-model com `financialEventsPublic=45`. Nenhum novo registro foi gravado no error log apos o restart.
+- Proximos gates: observar telemetria sanitizada do shadow, implementar ferramentas agentic restantes, executar bateria livre de pelo menos 200 perguntas e somente depois considerar `FINANCIAL_AGENT_MODE=answer`. Family Mode deve ser ativado apenas depois de validar a allowlist real de Daniel/Thais para evitar bloqueio acidental.
 
 ## Estado de producao conhecido
 
