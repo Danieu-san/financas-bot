@@ -847,6 +847,17 @@ function getFinancialWriteLedgerForAppend(options = {}, writeContext = {}, opera
     return defaultFinancialWriteLedger;
 }
 
+function getFinancialWriteLedgerForMutation(options = {}, writeContext = {}, operationKey = '') {
+    if (!operationKey) return null;
+    if (options.writeLedger) return options.writeLedger;
+    if (writeContext.writeLedger) return writeContext.writeLedger;
+    const { FinancialWriteLedger } = require('../reliability/financialWriteLedger');
+    if (!defaultFinancialWriteLedger) {
+        defaultFinancialWriteLedger = new FinancialWriteLedger();
+    }
+    return defaultFinancialWriteLedger;
+}
+
 function resolveAppendOperationKey(sheetName, mappedRow, options = {}, writeContext = {}) {
     const explicitOperationKey = String(options.operationKey || '').trim();
     if (explicitOperationKey) return explicitOperationKey;
@@ -865,10 +876,53 @@ function resolveAppendOperationKey(sheetName, mappedRow, options = {}, writeCont
     });
 }
 
+function resolveUpdateOperationKey(mappedRange, rowData, options = {}, writeContext = {}) {
+    const explicitOperationKey = String(options.operationKey || '').trim();
+    if (explicitOperationKey) return explicitOperationKey;
+
+    const messageId = String(options.messageId || writeContext.messageId || '').trim();
+    const userId = String(options.userId || writeContext.userId || '').trim();
+    if (!messageId || !userId) return '';
+
+    const { createOperationKey } = require('../reliability/financialWriteLedger');
+    return createOperationKey({
+        userId,
+        messageId,
+        operation: `update.${splitRangeSheetName(mappedRange).sheetName}`,
+        itemFingerprint: `${mappedRange}:${buildRowFingerprintForLedger(rowData)}`
+    });
+}
+
+function resolveDeleteOperationKey(sheetName, sortedIndices, options = {}, writeContext = {}) {
+    const explicitOperationKey = String(options.operationKey || '').trim();
+    if (explicitOperationKey) return explicitOperationKey;
+
+    const messageId = String(options.messageId || writeContext.messageId || '').trim();
+    const userId = String(options.userId || writeContext.userId || '').trim();
+    if (!messageId || !userId) return '';
+
+    const { createOperationKey } = require('../reliability/financialWriteLedger');
+    return createOperationKey({
+        userId,
+        messageId,
+        operation: `delete.${sheetName}`,
+        itemFingerprint: buildDeleteFingerprintForLedger(sortedIndices)
+    });
+}
+
 function buildRowFingerprintForLedger(row) {
     const { __test__ } = require('../reliability/financialWriteLedger');
     const normalizedRow = Array.isArray(row) ? row.map(normalizeLedgerCell) : [];
     return __test__.sha256(JSON.stringify(normalizedRow), 24);
+}
+
+function buildDeleteFingerprintForLedger(rowIndices) {
+    const { __test__ } = require('../reliability/financialWriteLedger');
+    const normalized = Array.from(new Set(rowIndices || []))
+        .map(index => Number(index))
+        .filter(index => Number.isInteger(index) && index >= 0)
+        .sort((a, b) => b - a);
+    return __test__.sha256(JSON.stringify(normalized), 24);
 }
 
 function normalizeLedgerCell(value) {
@@ -894,6 +948,20 @@ async function reconcileUncertainAppend(target, mappedSheetName, mappedRow) {
         );
         return Boolean(lastNonEmptyRow)
             && buildRowFingerprintForLedger(lastNonEmptyRow) === expectedFingerprint;
+    } catch (error) {
+        return false;
+    }
+}
+
+async function reconcileUncertainUpdate(target, mappedRange, rowData) {
+    try {
+        const response = await target.sheetsClient.spreadsheets.values.get({
+            spreadsheetId: target.spreadsheetId,
+            range: mappedRange
+        });
+        const rows = response?.data?.values || [];
+        const currentRow = Array.isArray(rows[0]) ? rows[0] : [];
+        return buildRowFingerprintForLedger(currentRow) === buildRowFingerprintForLedger(rowData);
     } catch (error) {
         return false;
     }
@@ -953,15 +1021,66 @@ async function readDataFromSheet(range, options = {}) {
 async function updateRowInSheet(range, rowData, options = {}) {
     const target = await resolveSpreadsheetTarget({ ...options, range });
     const mappedRange = target.userScoped ? mapRangeForUserSpreadsheet(range) : range;
+    const writeContext = sheetContext.getStore() || {};
+    const operationKey = resolveUpdateOperationKey(mappedRange, rowData, options, writeContext);
+    const writeLedger = getFinancialWriteLedgerForMutation(options, writeContext, operationKey);
+    const messageId = String(options.messageId || writeContext.messageId || '').trim();
+
     try {
+        if (writeLedger && operationKey) {
+            const existing = writeLedger.getOperation(operationKey);
+            if (existing?.status === 'committed') {
+                return {
+                    success: true,
+                    status: 'committed',
+                    receipt: {
+                        ...(existing.receipt || {}),
+                        replayed: true
+                    }
+                };
+            }
+            if (existing?.status === 'pending' || existing?.status === 'uncertain') {
+                const reconciled = await reconcileUncertainUpdate(target, mappedRange, rowData);
+                if (reconciled) {
+                    return writeLedger.commitOperation(operationKey, {
+                        receipt: {
+                            range: mappedRange,
+                            reconciled: true,
+                            rowFingerprint: buildRowFingerprintForLedger(rowData)
+                        }
+                    });
+                }
+
+                const uncertainError = new Error('Operação anterior de atualização com resultado incerto; repetição automática bloqueada.');
+                uncertainError.code = 'FINANCIAL_WRITE_UNCERTAIN';
+                throw uncertainError;
+            }
+            writeLedger.beginOperation({
+                operationKey,
+                actorScope: {
+                    userHash: buildRowFingerprintForLedger([target.userId || options.userId || writeContext.userId || '']),
+                    scope: target.userScoped ? 'user_spreadsheet' : 'central'
+                },
+                operation: `update.${splitRangeSheetName(mappedRange).sheetName}`,
+                payload: {
+                    range: mappedRange,
+                    rowFingerprint: buildRowFingerprintForLedger(rowData)
+                },
+                provenance: {
+                    messageId,
+                    source: options.source || 'google.updateRowInSheet'
+                }
+            });
+        }
+
         const response = await runSheetsOperation(`updateRowInSheet(${range})`, target, () => target.sheetsClient.spreadsheets.values.update({
             spreadsheetId: target.spreadsheetId,
             range: mappedRange,
             valueInputOption: 'USER_ENTERED',
             resource: { values: [rowData] },
-        }));
+        }), { retry: writeLedger ? Boolean(options.allowIdempotentUpdateRetry) : true });
         invalidateSheetsReadCache(target);
-        return {
+        const committedResult = {
             success: true,
             status: 'committed',
             receipt: {
@@ -969,7 +1088,30 @@ async function updateRowInSheet(range, rowData, options = {}) {
                 updatedRange: response?.data?.updatedRange || ''
             }
         };
+        if (writeLedger && operationKey) {
+            writeLedger.commitOperation(operationKey, {
+                receipt: {
+                    ...committedResult.receipt,
+                    rowFingerprint: buildRowFingerprintForLedger(rowData)
+                }
+            });
+        }
+        return committedResult;
     } catch (error) {
+        if (error?.code === 'FINANCIAL_WRITE_UNCERTAIN') {
+            throw error;
+        }
+        if (writeLedger && operationKey) {
+            if (isGoogleRetriableError(error)) {
+                writeLedger.markUncertain(operationKey, {
+                    receipt: { range: mappedRange, error: error.message }
+                });
+            } else {
+                writeLedger.markFailed(operationKey, {
+                    receipt: { range: mappedRange, error: error.message }
+                });
+            }
+        }
         console.error(`❌ Erro ao atualizar linha (${range}):`, error.message);
         throw new Error('Erro ao atualizar dados na planilha.');
     }
@@ -1725,6 +1867,49 @@ async function deleteRowsByIndices(sheetName, rowIndices, options = {}) {
 
         // Deleta de baixo para cima para não deslocar os índices
         const sortedIndices = [...rowIndices].sort((a, b) => b - a);
+        const writeContext = sheetContext.getStore() || {};
+        const operationKey = resolveDeleteOperationKey(sheetName, sortedIndices, options, writeContext);
+        const writeLedger = getFinancialWriteLedgerForMutation(options, writeContext, operationKey);
+        const messageId = String(options.messageId || writeContext.messageId || '').trim();
+
+        if (writeLedger && operationKey) {
+            const existing = writeLedger.getOperation(operationKey);
+            if (existing?.status === 'committed') {
+                return {
+                    success: true,
+                    status: 'committed',
+                    receipt: {
+                        ...(existing.receipt || {}),
+                        replayed: true
+                    }
+                };
+            }
+            if (existing?.status === 'pending' || existing?.status === 'uncertain') {
+                return {
+                    success: false,
+                    status: existing.status,
+                    message: 'Operação anterior de exclusão com resultado incerto; repetição automática bloqueada.'
+                };
+            }
+            writeLedger.beginOperation({
+                operationKey,
+                actorScope: {
+                    userHash: buildRowFingerprintForLedger([target.userId || options.userId || writeContext.userId || '']),
+                    scope: target.userScoped ? 'user_spreadsheet' : 'central'
+                },
+                operation: `delete.${sheetName}`,
+                payload: {
+                    sheetName,
+                    mappedSheetName,
+                    deletedRows: sortedIndices.length,
+                    rowsFingerprint: buildDeleteFingerprintForLedger(sortedIndices)
+                },
+                provenance: {
+                    messageId,
+                    source: options.source || 'google.deleteRowsByIndices'
+                }
+            });
+        }
 
         const requests = sortedIndices.map(index => ({
             deleteDimension: {
@@ -1743,7 +1928,7 @@ async function deleteRowsByIndices(sheetName, rowIndices, options = {}) {
         }), { retry: false });
 
         invalidateSheetsReadCache(target);
-        return {
+        const committedResult = {
             success: true,
             status: 'committed',
             receipt: {
@@ -1752,7 +1937,26 @@ async function deleteRowsByIndices(sheetName, rowIndices, options = {}) {
                 replies: response?.data?.replies?.length || 0
             }
         };
+        if (writeLedger && operationKey) {
+            writeLedger.commitOperation(operationKey, { receipt: committedResult.receipt });
+        }
+        return committedResult;
     } catch (error) {
+        const writeContext = sheetContext.getStore() || {};
+        const sortedIndices = [...(rowIndices || [])].sort((a, b) => b - a);
+        const operationKey = resolveDeleteOperationKey(sheetName, sortedIndices, options, writeContext);
+        const writeLedger = getFinancialWriteLedgerForMutation(options, writeContext, operationKey);
+        if (writeLedger && operationKey) {
+            if (isGoogleRetriableError(error)) {
+                writeLedger.markUncertain(operationKey, {
+                    receipt: { sheetName, error: error.message }
+                });
+            } else {
+                writeLedger.markFailed(operationKey, {
+                    receipt: { sheetName, error: error.message }
+                });
+            }
+        }
         console.error(`❌ Erro ao deletar linhas em ${sheetName}:`, error.message);
         return { success: false, message: 'Erro ao apagar item na planilha.' };
     }

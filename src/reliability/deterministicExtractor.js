@@ -28,9 +28,28 @@ function countAmounts(text) {
 
 function extractFirstAmount(text) {
     const raw = String(text || '');
-    const numeric = raw.match(/\b\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?\b|\b\d+(?:[.,]\d+)?\b/);
-    if (numeric) return parseAmountLocal(numeric[0]);
-    return parseAmountLocal(raw);
+    const pattern = /\b\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?\b|\b\d+(?:[.,]\d+)?\b/g;
+    const candidates = Array.from(raw.matchAll(pattern))
+        .filter(match => {
+            const index = match.index || 0;
+            const before = raw[index - 1] || '';
+            const after = raw[index + match[0].length] || '';
+            if (before === '/' || after === '/') return false;
+            return !/\bdia\s*$/.test(raw.slice(Math.max(0, index - 8), index));
+        })
+        .map(match => {
+            const index = match.index || 0;
+            const context = raw.slice(Math.max(0, index - 8), index + match[0].length + 12);
+            return {
+                value: parseAmountLocal(match[0]),
+                strong: /r\$|reais|real/.test(context) || /[,.]\d{1,2}$/.test(match[0])
+            };
+        })
+        .filter(candidate => Number.isFinite(candidate.value) && candidate.value > 0);
+    const strongCandidates = candidates.filter(candidate => candidate.strong);
+    if (strongCandidates.length === 1) return strongCandidates[0].value;
+    if (strongCandidates.length > 1 || candidates.length !== 1) return null;
+    return candidates[0].value;
 }
 
 function hasMultipleFinancialItems(text) {

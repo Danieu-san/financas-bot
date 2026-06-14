@@ -98,11 +98,11 @@ const {
     resetRestartSchedulerForTests: resetAdminMaintenanceRestartSchedulerForTests
 } = require('../services/adminMaintenanceService');
 const {
-    buildInterpretationCandidate,
-    decideInterpretationRisk,
     normalizePaymentReply
 } = require('../reliability/interpretationReliability');
-const { extractDeterministicInterpretation } = require('../reliability/deterministicExtractor');
+const {
+    buildWriteInterpretationEvaluation
+} = require('../reliability/interpretationReliabilityGate');
 const { recordInterpretationReliabilityShadow } = require('../reliability/reliabilityTelemetry');
 
 // Base de Conhecimento para Gastos
@@ -335,6 +335,7 @@ function extractLocalAmount(messageBody) {
     const text = String(messageBody || '');
     const amountPattern = /(?:r\$\s*)?(?:\d{1,3}(?:\.\d{3})+|\d+)(?:[,.]\d{1,2})?/gi;
     const matches = Array.from(text.matchAll(amountPattern));
+    const candidates = [];
 
     for (const match of matches) {
         const raw = match[0];
@@ -350,11 +351,20 @@ function extractLocalAmount(messageBody) {
         const hasMoneyContext = /r\$|reais|real/.test(context);
         const hasDecimal = /[,.]\d{1,2}$/.test(raw);
         if (Number.isFinite(value) && value > 0 && (hasMoneyContext || hasDecimal || value >= 1)) {
-            return { raw, value, index, end: index + raw.length };
+            candidates.push({
+                raw,
+                value,
+                index,
+                end: index + raw.length,
+                strong: hasMoneyContext || hasDecimal
+            });
         }
     }
 
-    return null;
+    const strongCandidates = candidates.filter(candidate => candidate.strong);
+    if (strongCandidates.length === 1) return strongCandidates[0];
+    if (strongCandidates.length > 1 || candidates.length !== 1) return null;
+    return candidates[0];
 }
 
 function extractLocalTransactionDate(messageBody) {
@@ -679,11 +689,20 @@ function verifiedField(value, source = 'deterministic', evidence = '') {
     return reliabilityField(value, source, 'verified', evidence);
 }
 
-function buildWriteShadowDivergence(decision = {}) {
-    if (decision.action === 'execute') {
+function buildWriteShadowDivergence(decision = {}, currentFlowOutcome = 'write_attempt') {
+    const alignedOutcomes = {
+        execute: new Set(['write_attempt', 'auto_write_attempt', 'confirmed_write_attempt']),
+        confirm: new Set(['confirmation_requested', 'confirmed_write_attempt']),
+        clarify: new Set(['clarification_requested']),
+        block: new Set(['blocked'])
+    };
+    if (alignedOutcomes[decision.action]?.has(currentFlowOutcome)) {
         return { severity: 'none', reason: '' };
     }
-    if (['confirm', 'clarify', 'block'].includes(decision.action)) {
+    if (
+        ['confirm', 'clarify', 'block'].includes(decision.action)
+        && ['write_attempt', 'auto_write_attempt'].includes(currentFlowOutcome)
+    ) {
         return {
             severity: 'critical',
             reason: `current_flow_would_write_but_reliability_${decision.action}`
@@ -695,30 +714,151 @@ function buildWriteShadowDivergence(decision = {}) {
     };
 }
 
-function recordWriteInterpretationShadow({ operation, userId, message, fields, itemCount = 1 }) {
+function recordWriteInterpretationShadow({
+    operation,
+    userId,
+    message,
+    fields,
+    itemCount = 1,
+    currentFlowOutcome = 'write_attempt'
+}) {
     try {
-        const extracted = extractDeterministicInterpretation(message);
-        const candidate = extracted.operation === operation
-            ? extracted
-            : buildInterpretationCandidate({
+        const startedAt = performance.now();
+        const evaluation = buildWriteInterpretationEvaluation({
             operation,
+            message,
             fields,
             itemCount
         });
-        const decision = decideInterpretationRisk(candidate);
-        const divergence = buildWriteShadowDivergence(decision);
-        recordInterpretationReliabilityShadow({
+        const evaluationLatencyMs = performance.now() - startedAt;
+        recordWriteInterpretationEvaluation({
+            evaluation,
             userId,
             message,
-            candidate,
-            decision,
-            currentFlowOutcome: 'write_attempt',
-            divergenceSeverity: divergence.severity,
-            divergenceReason: divergence.reason
+            currentFlowOutcome,
+            evaluationLatencyMs
         });
+        return evaluation;
     } catch (error) {
         logger.warn(`interpretation-reliability: shadow_record_failed error=${error.message}`);
+        return null;
     }
+}
+
+function recordWriteInterpretationEvaluation({
+    evaluation,
+    userId,
+    message,
+    currentFlowOutcome,
+    evaluationLatencyMs = 0
+}) {
+    const divergence = buildWriteShadowDivergence(evaluation.decision, currentFlowOutcome);
+    return recordInterpretationReliabilityShadow({
+        userId,
+        message,
+        candidate: evaluation.candidate,
+        decision: evaluation.decision,
+        currentFlowOutcome,
+        divergenceSeverity: divergence.severity,
+        divergenceReason: divergence.reason,
+        evaluationLatencyMs,
+        additionalGeminiCalls: 0
+    });
+}
+
+function sourceField(value, source = 'inferred', evidence = '') {
+    const verified = ['deterministic', 'user_state'].includes(source);
+    return reliabilityField(value, source, verified ? 'verified' : 'supported', evidence);
+}
+
+function sanitizeStructuredTransaction(item = {}) {
+    const internalFields = new Set([
+        'interpretationSource',
+        'originalMessage',
+        'person',
+        'scope',
+        'senderId',
+        'userId',
+        'user_id'
+    ]);
+    return Object.fromEntries(Object.entries(item).filter(([key]) => (
+        !internalFields.has(key) && !/^reliability/i.test(key)
+    )));
+}
+
+function buildTransactionReliabilityFields(item = {}, {
+    interpretationSource = item.interpretationSource || 'inferred',
+    methodSource = interpretationSource
+} = {}) {
+    const source = interpretationSource === 'local_command' ? 'deterministic' : interpretationSource;
+    const isExpense = item.type === 'Saídas';
+    return {
+        amount: sourceField(parseValue(item.valor), source, 'transaction_value'),
+        scope: verifiedField('personal', 'user_state', 'active_user_scope'),
+        movementType: sourceField(isExpense ? 'expense' : 'income', source, 'structured_intent'),
+        ...(isExpense
+            ? { payment: sourceField(normalizePaymentMethodLabel(item.pagamento), methodSource, 'payment_method') }
+            : { receipt: sourceField(normalizePaymentMethodLabel(item.recebimento), methodSource, 'receipt_method') })
+    };
+}
+
+async function requireReliabilityControlBeforeStateWrite({
+    msg,
+    senderId,
+    userId,
+    item,
+    person,
+    methodSource = 'user_state'
+}) {
+    const operation = item.type === 'Saídas' ? 'expense.create' : 'income.create';
+    const message = item.originalMessage || item.descricao || '';
+    const startedAt = performance.now();
+    const evaluation = buildWriteInterpretationEvaluation({
+        operation,
+        message,
+        fields: buildTransactionReliabilityFields(item, { methodSource })
+    });
+    const evaluationLatencyMs = performance.now() - startedAt;
+
+    if (!evaluation.gate.applied || evaluation.gate.proceed) {
+        return false;
+    }
+
+    const currentFlowOutcome = evaluation.gate.action === 'confirm'
+        ? 'confirmation_requested'
+        : (evaluation.gate.action === 'clarify' ? 'clarification_requested' : 'blocked');
+    recordWriteInterpretationEvaluation({
+        evaluation,
+        userId,
+        message,
+        currentFlowOutcome,
+        evaluationLatencyMs
+    });
+
+    if (evaluation.gate.action === 'confirm') {
+        userStateManager.setState(senderId, {
+            action: 'confirming_transactions',
+            data: {
+                transactions: [{ ...item, reliabilityConfirmed: true }],
+                person
+            }
+        });
+        await msg.reply(
+            `Antes de salvar, confirme os dados interpretados:\n\n` +
+            `1. ${item.descricao || 'Não especificado'} - *R$${parseValue(item.valor).toFixed(2)}*\n\n` +
+            `Responda *sim* para confirmar ou *não* para cancelar.`
+        );
+        return true;
+    }
+
+    if (evaluation.gate.action === 'clarify') {
+        await msg.reply('Ainda falta confirmar um dado essencial desse lançamento. Envie novamente a mensagem completa com valor e forma de pagamento/recebimento.');
+        return true;
+    }
+
+    userStateManager.deleteState(senderId);
+    await msg.reply('Não posso executar esse lançamento porque ele não passou pelas validações de segurança.');
+    return true;
 }
 
 async function saveManualTransfer(transfer, userId) {
@@ -749,7 +889,7 @@ async function saveManualTransfer(transfer, userId) {
     return { ...transfer, valor: value };
 }
 
-async function saveTransactionWithoutExtraPayment(item, { person, userId }) {
+async function saveTransactionWithoutExtraPayment(item, { person, userId, writeOptions = {} }) {
     if (item.type === 'Saídas') {
         const dataDoGasto = item.data ? parseSheetDate(item.data) : new Date();
         const dataFinal = getFormattedDateOnly(dataDoGasto);
@@ -764,7 +904,8 @@ async function saveTransactionWithoutExtraPayment(item, { person, userId }) {
                 scope: verifiedField('personal', 'user_state'),
                 movementType: reliabilityField('expense'),
                 payment: verifiedField(pagamentoFinal, 'user_state')
-            }
+            },
+            currentFlowOutcome: item.reliabilityConfirmed ? 'confirmed_write_attempt' : 'write_attempt'
         });
         const rowData = [
             dataFinal,
@@ -778,7 +919,7 @@ async function saveTransactionWithoutExtraPayment(item, { person, userId }) {
             item.observacoes || '',
             userId
         ];
-        await appendRowToSheet('Saídas', rowData);
+        await appendRowToSheet('Saídas', rowData, writeOptions);
         markFinancialReadModelDirty('saida_write');
         return { sheetName: 'Saídas', date: dataFinal, value: valorNumerico, method: pagamentoFinal };
     }
@@ -797,7 +938,8 @@ async function saveTransactionWithoutExtraPayment(item, { person, userId }) {
                 scope: verifiedField('personal', 'user_state'),
                 movementType: reliabilityField('income'),
                 receipt: verifiedField(recebimentoFinal, 'user_state')
-            }
+            },
+            currentFlowOutcome: item.reliabilityConfirmed ? 'confirmed_write_attempt' : 'write_attempt'
         });
         const rowData = [
             dataFinal,
@@ -810,7 +952,7 @@ async function saveTransactionWithoutExtraPayment(item, { person, userId }) {
             item.observacoes || '',
             userId
         ];
-        await appendRowToSheet('Entradas', rowData);
+        await appendRowToSheet('Entradas', rowData, writeOptions);
         markFinancialReadModelDirty('entrada_write');
         return { sheetName: 'Entradas', date: dataFinal, value: valorNumerico, method: recebimentoFinal };
     }
@@ -818,10 +960,42 @@ async function saveTransactionWithoutExtraPayment(item, { person, userId }) {
     throw new Error(`Tipo de transação inválido: ${item.type}`);
 }
 
+function buildImportedTransactionOperationKey(item = {}, index = 0, userId = '') {
+    const { createOperationKey } = require('../reliability/financialWriteLedger');
+    const fingerprint = {
+        index,
+        type: item.type || '',
+        data: item.data || '',
+        descricao: normalizeText(item.descricao || ''),
+        categoria: normalizeText(item.categoria || ''),
+        subcategoria: normalizeText(item.subcategoria || ''),
+        valor: parseValue(item.valor),
+        pagamento: normalizeText(item.pagamento || item.metodo || ''),
+        recebimento: normalizeText(item.recebimento || ''),
+        parcela: item.parcela || '',
+        mesCobranca: item.mesCobranca || '',
+        status: normalizeText(item.status || ''),
+        origem: normalizeText(item.origem || ''),
+        destino: normalizeText(item.destino || ''),
+        cardSheetName: item.cardInfo?.sheetName || ''
+    };
+    return createOperationKey({
+        userId,
+        messageId: 'statement_import',
+        operation: `import.${item.type || 'unknown'}`,
+        itemFingerprint: JSON.stringify(fingerprint)
+    });
+}
+
 async function saveImportedTransactions(transactions = [], { person, userId }) {
     let successCount = 0;
-    for (const item of transactions) {
+    for (const [index, item] of transactions.entries()) {
         if (item.duplicate) continue;
+        const writeOptions = {
+            operationKey: buildImportedTransactionOperationKey(item, index, userId),
+            userId,
+            source: 'statement_import'
+        };
         if (item.type === 'Transferências') {
             await appendRowToSheet('Transferências', [
                 item.data,
@@ -833,16 +1007,16 @@ async function saveImportedTransactions(transactions = [], { person, userId }) {
                 item.observacoes || 'Importado de arquivo',
                 item.status || 'Provável transferência interna',
                 userId
-            ]);
+            ], writeOptions);
             markFinancialReadModelDirty('transfer_write');
         } else if (item.type === 'Cartão') {
             if (!item.cardInfo) {
                 throw new Error('Importação de cartão sem cartão selecionado.');
             }
-            await appendRowToSheet(item.cardInfo.sheetName, buildImportedCreditCardRow(item, item.cardInfo, userId));
+            await appendRowToSheet(item.cardInfo.sheetName, buildImportedCreditCardRow(item, item.cardInfo, userId), writeOptions);
             markFinancialReadModelDirty('card_write');
         } else {
-            await saveTransactionWithoutExtraPayment(item, { person, userId });
+            await saveTransactionWithoutExtraPayment(item, { person, userId, writeOptions });
         }
         successCount += 1;
     }
@@ -6084,6 +6258,28 @@ async function handleMessage(msg) {
                     return;
                 }
 
+                const completedExpense = {
+                    ...gasto,
+                    type: 'Saídas',
+                    originalMessage: gasto.originalMessage || gasto.descricao,
+                    interpretationSource: gasto.interpretationSource || 'inferred'
+                };
+                if (await requireReliabilityControlBeforeStateWrite({
+                    msg,
+                    senderId,
+                    userId,
+                    item: completedExpense,
+                    person: pessoa
+                })) {
+                    return;
+                }
+
+                recordWriteInterpretationShadow({
+                    operation: 'expense.create',
+                    userId,
+                    message: completedExpense.originalMessage,
+                    fields: buildTransactionReliabilityFields(completedExpense, { methodSource: 'user_state' })
+                });
                 const valorNumerico = parseValue(gasto.valor);
                 const rowData = [
                     dataFinal, gasto.descricao || 'Não especificado', gasto.categoria || 'Outros',
@@ -6121,6 +6317,28 @@ async function handleMessage(msg) {
                     return;
                 }
 
+                const completedIncome = {
+                    ...entrada,
+                    type: 'Entradas',
+                    originalMessage: entrada.originalMessage || entrada.descricao,
+                    interpretationSource: entrada.interpretationSource || 'inferred'
+                };
+                if (await requireReliabilityControlBeforeStateWrite({
+                    msg,
+                    senderId,
+                    userId,
+                    item: completedIncome,
+                    person: pessoa
+                })) {
+                    return;
+                }
+
+                recordWriteInterpretationShadow({
+                    operation: 'income.create',
+                    userId,
+                    message: completedIncome.originalMessage,
+                    fields: buildTransactionReliabilityFields(completedIncome, { methodSource: 'user_state' })
+                });
                 const valorNumerico = parseValue(entrada.valor);
 
                 const rowData = [
@@ -6490,11 +6708,12 @@ async function handleMessage(msg) {
                         let successCount = 0;
                         for (const item of transactions) {
                             try {
-                                const manualTransfer = await buildManualTransferFromMessage(item, messageBody, userId);
+                                const confirmedItem = { ...item, reliabilityConfirmed: true };
+                                const manualTransfer = await buildManualTransferFromMessage(confirmedItem, messageBody, userId);
                                 if (manualTransfer) {
                                     await saveManualTransfer(manualTransfer, userId);
                                 } else {
-                                    await saveTransactionWithoutExtraPayment(item, { person: person || userMap[senderId] || 'Ambos', userId });
+                                    await saveTransactionWithoutExtraPayment(confirmedItem, { person: person || userMap[senderId] || 'Ambos', userId });
                                 }
                                 successCount++;
                             } catch (e) {
@@ -6509,7 +6728,9 @@ async function handleMessage(msg) {
 
                     userStateManager.setState(senderId, {
                         action: 'awaiting_batch_payment_method',
-                        data: { transactions }
+                        data: {
+                            transactions: transactions.map(item => ({ ...item, reliabilityConfirmed: true }))
+                        }
                     });
                     await msg.reply("Ótimo! E como esses itens foram pagos? (Crédito, Débito, PIX ou Dinheiro)");
                 } else {
@@ -6842,15 +7063,97 @@ async function handleMessage(msg) {
                     }
                     // --- FIM DA VALIDAÇÃO ---
 
-                    if (gastos.length > 0) gastos.forEach(g => allTransactions.push({ ...g, type: 'Saídas' }));
-                    if (entradas.length > 0) entradas.forEach(e => allTransactions.push({ ...e, type: 'Entradas' }));
+                    if (gastos.length > 0) gastos.forEach(g => allTransactions.push({
+                        ...sanitizeStructuredTransaction(g),
+                        type: 'Saídas',
+                        originalMessage: messageBody,
+                        interpretationSource: structuredResponseSource
+                    }));
+                    if (entradas.length > 0) entradas.forEach(e => allTransactions.push({
+                        ...sanitizeStructuredTransaction(e),
+                        type: 'Entradas',
+                        originalMessage: messageBody,
+                        interpretationSource: structuredResponseSource
+                    }));
 
                     if (allTransactions.length === 0) {
                         await msg.reply(`Entendi a intenção, mas não identifiquei os detalhes (valor, descrição).`);
                         break;
                     }
 
-                    if (allTransactions.length === 1 && !shouldRequireConfirmationForStructuredWrite(structuredResponseSource)) {
+                    let singleReliabilityEvaluation = null;
+                    let singleReliabilityLatencyMs = 0;
+                    let singleCanUseMethodClarification = false;
+                    if (allTransactions.length === 1) {
+                        const singleItem = allTransactions[0];
+                        const operation = singleItem.type === 'Saídas' ? 'expense.create' : 'income.create';
+                        const startedAt = performance.now();
+                        singleReliabilityEvaluation = buildWriteInterpretationEvaluation({
+                            operation,
+                            message: messageBody,
+                            fields: buildTransactionReliabilityFields(singleItem)
+                        });
+                        singleReliabilityLatencyMs = performance.now() - startedAt;
+
+                        if (
+                            singleReliabilityEvaluation.gate.mode === 'enforce'
+                            && singleReliabilityEvaluation.gate.applied
+                            && singleReliabilityEvaluation.gate.action === 'block'
+                        ) {
+                            recordWriteInterpretationEvaluation({
+                                evaluation: singleReliabilityEvaluation,
+                                userId,
+                                message: messageBody,
+                                currentFlowOutcome: 'blocked',
+                                evaluationLatencyMs: singleReliabilityLatencyMs
+                            });
+                            await msg.reply('Não posso executar esse lançamento porque ele não passou pelas validações de segurança.');
+                            return;
+                        }
+
+                        const expectedMethodField = singleItem.type === 'Saídas' ? 'payment' : 'receipt';
+                        const clarificationFields = singleReliabilityEvaluation.decision.clarificationFields || [];
+                        const methodIsMissing = singleItem.type === 'Saídas'
+                            ? !singleItem.pagamento
+                            : !singleItem.recebimento;
+                        singleCanUseMethodClarification = (
+                            singleReliabilityEvaluation.gate.action === 'clarify'
+                            && methodIsMissing
+                            && clarificationFields.length > 0
+                            && clarificationFields.every(field => field === expectedMethodField)
+                        );
+
+                        if (
+                            singleReliabilityEvaluation.gate.mode === 'enforce'
+                            && singleReliabilityEvaluation.gate.applied
+                            && singleReliabilityEvaluation.gate.action === 'clarify'
+                            && !singleCanUseMethodClarification
+                        ) {
+                            recordWriteInterpretationEvaluation({
+                                evaluation: singleReliabilityEvaluation,
+                                userId,
+                                message: messageBody,
+                                currentFlowOutcome: 'clarification_requested',
+                                evaluationLatencyMs: singleReliabilityLatencyMs
+                            });
+                            await msg.reply('Encontrei um conflito em um dado essencial desse lançamento. Envie novamente a mensagem deixando valor e forma de pagamento/recebimento bem claros.');
+                            return;
+                        }
+                    }
+
+                    const legacyRequiresConfirmation = shouldRequireConfirmationForStructuredWrite(structuredResponseSource);
+                    const enforceApplied = singleReliabilityEvaluation?.gate?.mode === 'enforce'
+                        && singleReliabilityEvaluation?.gate?.applied;
+                    const canUseDirectSingleFlow = allTransactions.length === 1 && (
+                        enforceApplied
+                            ? (
+                                singleReliabilityEvaluation.gate.action === 'execute'
+                                || singleCanUseMethodClarification
+                            )
+                            : !legacyRequiresConfirmation
+                    );
+
+                    if (canUseDirectSingleFlow) {
                         const item = allTransactions[0];
                         const manualTransfer = await buildManualTransferFromMessage(item, messageBody, userId);
                         if (manualTransfer) {
@@ -6917,6 +7220,15 @@ async function handleMessage(msg) {
                         }
 
                         if (item.type === 'Saídas' && !item.pagamento) {
+                            if (singleReliabilityEvaluation) {
+                                recordWriteInterpretationEvaluation({
+                                    evaluation: singleReliabilityEvaluation,
+                                    userId,
+                                    message: messageBody,
+                                    currentFlowOutcome: 'clarification_requested',
+                                    evaluationLatencyMs: singleReliabilityLatencyMs
+                                });
+                            }
                             const dataDoGasto = item.data ? parseSheetDate(item.data) : new Date();
                             userStateManager.setState(senderId, {
                                 action: 'awaiting_payment_method',
@@ -6931,6 +7243,15 @@ async function handleMessage(msg) {
                         }
 
                         if (item.type === 'Entradas' && !item.recebimento) {
+                            if (singleReliabilityEvaluation) {
+                                recordWriteInterpretationEvaluation({
+                                    evaluation: singleReliabilityEvaluation,
+                                    userId,
+                                    message: messageBody,
+                                    currentFlowOutcome: 'clarification_requested',
+                                    evaluationLatencyMs: singleReliabilityLatencyMs
+                                });
+                            }
                             userStateManager.setState(senderId, { action: 'awaiting_receipt_method', data: { ...item, originalMessage: messageBody } });
                             await msg.reply('Entendido! E onde você recebeu esse valor? (Conta Corrente, Poupança, PIX ou Dinheiro)');
                             return;
@@ -6949,6 +7270,15 @@ async function handleMessage(msg) {
                     }
                     confirmationMessage += "\nVocê confirma o registro de todos os itens? Responda com *'sim'* ou *'não'*.";
 
+                    if (singleReliabilityEvaluation) {
+                        recordWriteInterpretationEvaluation({
+                            evaluation: singleReliabilityEvaluation,
+                            userId,
+                            message: messageBody,
+                            currentFlowOutcome: 'confirmation_requested',
+                            evaluationLatencyMs: singleReliabilityLatencyMs
+                        });
+                    }
                     userStateManager.setState(senderId, {
                         action: 'confirming_transactions',
                         data: { transactions: allTransactions.map(item => ({ ...item, originalMessage: messageBody })), person: pessoa }

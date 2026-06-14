@@ -16,9 +16,9 @@ function parseOperationAllowlist(env = process.env) {
     return new Set(raw.split(',').map(item => item.trim()).filter(Boolean));
 }
 
-function operationIsAllowed(operation, env = process.env) {
+function operationIsAllowed(operation, env = process.env, { requireExplicitAllowlist = false } = {}) {
     const allowlist = parseOperationAllowlist(env);
-    if (!allowlist) return true;
+    if (!allowlist) return !requireExplicitAllowlist;
     return allowlist.has(operation);
 }
 
@@ -47,6 +47,8 @@ function recordInterpretationReliabilityShadow(input = {}, options = {}) {
 }
 
 module.exports = {
+    getReliabilityMode,
+    operationIsAllowed,
     recordInterpretationReliabilityShadow,
     __test__: {
         getReliabilityMode,

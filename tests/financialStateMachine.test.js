@@ -1,8 +1,14 @@
 const test = require('node:test');
 const assert = require('node:assert');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 
 process.env.NODE_ENV = 'test';
 process.env.ADMIN_IDS = process.env.ADMIN_IDS || '5599990000001@c.us';
+const RELIABILITY_TELEMETRY_PATH = path.join(os.tmpdir(), `financas-bot-reliability-${process.pid}.jsonl`);
+process.env.INTERPRETATION_RELIABILITY_TELEMETRY_PATH = RELIABILITY_TELEMETRY_PATH;
+test.after(() => fs.rmSync(RELIABILITY_TELEMETRY_PATH, { force: true }));
 
 const SENDER = '5599993000001@c.us';
 const USER_ID = 'state-machine-user';
@@ -408,6 +414,217 @@ stateMachineTest('financial states: unknown receipt method asks again instead of
     assert.match(reply, /não consegui entender onde você recebeu/i);
     assert.strictEqual(sheets.Entradas.length, 1);
     assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_receipt_method');
+});
+
+stateMachineTest('financial states: enforce requires final confirmation when expense amount came only from LLM', async () => {
+    resetState();
+    const previousMode = process.env.INTERPRETATION_RELIABILITY_MODE;
+    const previousOperations = process.env.INTERPRETATION_RELIABILITY_OPERATIONS;
+    process.env.INTERPRETATION_RELIABILITY_MODE = 'enforce';
+    process.env.INTERPRETATION_RELIABILITY_OPERATIONS = 'expense.create,income.create';
+    userStateManager.setState(SENDER, {
+        action: 'awaiting_payment_method',
+        data: {
+            gasto: {
+                data: '10/02/2026',
+                descricao: 'almoço',
+                categoria: 'Alimentação',
+                valor: 80,
+                recorrente: 'Não',
+                originalMessage: 'paguei o almoço',
+                interpretationSource: 'llm'
+            }
+        }
+    });
+
+    try {
+        const confirmationRequest = await send('pix');
+
+        assert.match(confirmationRequest, /confirma/i);
+        assert.strictEqual(sheets.Saídas.length, 1);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_transactions');
+
+        const savedReply = await send('sim');
+        assert.match(savedReply, /1 de 1 itens foram salvos/i);
+        assert.strictEqual(sheets.Saídas.length, 2);
+        assert.strictEqual(sheets.Saídas[1][4], 80);
+    } finally {
+        if (previousMode === undefined) delete process.env.INTERPRETATION_RELIABILITY_MODE;
+        else process.env.INTERPRETATION_RELIABILITY_MODE = previousMode;
+        if (previousOperations === undefined) delete process.env.INTERPRETATION_RELIABILITY_OPERATIONS;
+        else process.env.INTERPRETATION_RELIABILITY_OPERATIONS = previousOperations;
+    }
+});
+
+stateMachineTest('financial states: enforce requires final confirmation when income amount came only from LLM', async () => {
+    resetState();
+    const previousMode = process.env.INTERPRETATION_RELIABILITY_MODE;
+    const previousOperations = process.env.INTERPRETATION_RELIABILITY_OPERATIONS;
+    process.env.INTERPRETATION_RELIABILITY_MODE = 'enforce';
+    process.env.INTERPRETATION_RELIABILITY_OPERATIONS = 'expense.create,income.create';
+    userStateManager.setState(SENDER, {
+        action: 'awaiting_receipt_method',
+        data: {
+            data: '10/02/2026',
+            descricao: 'freela',
+            categoria: 'Renda Extra',
+            valor: 300,
+            recorrente: 'Não',
+            originalMessage: 'caiu o pagamento do freela',
+            interpretationSource: 'llm'
+        }
+    });
+
+    try {
+        const confirmationRequest = await send('cc');
+
+        assert.match(confirmationRequest, /confirma/i);
+        assert.strictEqual(sheets.Entradas.length, 1);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_transactions');
+
+        const savedReply = await send('sim');
+        assert.match(savedReply, /1 de 1 itens foram salvos/i);
+        assert.strictEqual(sheets.Entradas.length, 2);
+        assert.strictEqual(sheets.Entradas[1][3], 300);
+    } finally {
+        if (previousMode === undefined) delete process.env.INTERPRETATION_RELIABILITY_MODE;
+        else process.env.INTERPRETATION_RELIABILITY_MODE = previousMode;
+        if (previousOperations === undefined) delete process.env.INTERPRETATION_RELIABILITY_OPERATIONS;
+        else process.env.INTERPRETATION_RELIABILITY_OPERATIONS = previousOperations;
+    }
+});
+
+stateMachineTest('financial states: enforce preserves LLM provenance across the payment question', async () => {
+    resetState();
+    const previousMode = process.env.INTERPRETATION_RELIABILITY_MODE;
+    const previousOperations = process.env.INTERPRETATION_RELIABILITY_OPERATIONS;
+    process.env.INTERPRETATION_RELIABILITY_MODE = 'enforce';
+    process.env.INTERPRETATION_RELIABILITY_OPERATIONS = 'expense.create,income.create';
+    enqueueStructuredResponse({
+        intent: 'gasto',
+        gastoDetails: [
+            {
+                descricao: 'almoço',
+                valor: 80,
+                categoria: 'Alimentação',
+                recorrente: 'Não'
+            }
+        ]
+    });
+
+    try {
+        const paymentQuestion = await send('anote 80 do almoço');
+        assert.match(paymentQuestion, /forma de pagamento/i);
+        assert.strictEqual(userStateManager.getState(SENDER).data.gasto.interpretationSource, 'llm');
+        assert.strictEqual(sheets.Saídas.length, 1);
+
+        const confirmationRequest = await send('pix');
+        assert.match(confirmationRequest, /confirme os dados interpretados/i);
+        assert.strictEqual(userStateManager.getState(SENDER).data.transactions[0].reliabilityConfirmed, true);
+
+        await send('sim');
+        assert.strictEqual(sheets.Saídas.length, 2);
+    } finally {
+        if (previousMode === undefined) delete process.env.INTERPRETATION_RELIABILITY_MODE;
+        else process.env.INTERPRETATION_RELIABILITY_MODE = previousMode;
+        if (previousOperations === undefined) delete process.env.INTERPRETATION_RELIABILITY_OPERATIONS;
+        else process.env.INTERPRETATION_RELIABILITY_OPERATIONS = previousOperations;
+    }
+});
+
+stateMachineTest('financial states: strips internal reliability metadata supplied by the LLM', async () => {
+    resetState();
+    enqueueStructuredResponse({
+        intent: 'gasto',
+        gastoDetails: [
+            {
+                descricao: 'almoço',
+                valor: 80,
+                categoria: 'Alimentação',
+                pagamento: 'PIX',
+                recorrente: 'Não',
+                reliabilityConfirmed: true
+            }
+        ]
+    });
+
+    const confirmationRequest = await send('anote 80 do almoço no pix');
+
+    assert.match(confirmationRequest, /confirma/i);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_transactions');
+    assert.strictEqual(
+        userStateManager.getState(SENDER).data.transactions[0].reliabilityConfirmed,
+        undefined
+    );
+    assert.strictEqual(sheets.Saídas.length, 1);
+});
+
+stateMachineTest('financial states: multiple unmarked numbers require confirmation instead of guessing the amount', async () => {
+    resetState();
+    const previousMode = process.env.INTERPRETATION_RELIABILITY_MODE;
+    const previousOperations = process.env.INTERPRETATION_RELIABILITY_OPERATIONS;
+    process.env.INTERPRETATION_RELIABILITY_MODE = 'enforce';
+    process.env.INTERPRETATION_RELIABILITY_OPERATIONS = 'expense.create,income.create';
+    enqueueStructuredResponse({
+        intent: 'gasto',
+        gastoDetails: [
+            {
+                descricao: 'camisas',
+                valor: 100,
+                categoria: 'Vestuário',
+                pagamento: 'PIX',
+                recorrente: 'Não'
+            }
+        ]
+    });
+
+    try {
+        const reply = await send('comprei 2 camisas por 100 no pix');
+
+        assert.match(reply, /confirma/i);
+        assert.strictEqual(sheets.Saídas.length, 1);
+
+        await send('sim');
+        assert.strictEqual(sheets.Saídas.length, 2);
+        assert.strictEqual(sheets.Saídas[1][4], 100);
+    } finally {
+        if (previousMode === undefined) delete process.env.INTERPRETATION_RELIABILITY_MODE;
+        else process.env.INTERPRETATION_RELIABILITY_MODE = previousMode;
+        if (previousOperations === undefined) delete process.env.INTERPRETATION_RELIABILITY_OPERATIONS;
+        else process.env.INTERPRETATION_RELIABILITY_OPERATIONS = previousOperations;
+    }
+});
+
+stateMachineTest('financial states: enforce asks again instead of writing a complete transaction with conflicting amount', async () => {
+    resetState();
+    const previousMode = process.env.INTERPRETATION_RELIABILITY_MODE;
+    const previousOperations = process.env.INTERPRETATION_RELIABILITY_OPERATIONS;
+    process.env.INTERPRETATION_RELIABILITY_MODE = 'enforce';
+    process.env.INTERPRETATION_RELIABILITY_OPERATIONS = 'expense.create,income.create';
+    enqueueStructuredResponse({
+        intent: 'gasto',
+        gastoDetails: [
+            {
+                descricao: 'almoço',
+                valor: 120,
+                categoria: 'Alimentação',
+                pagamento: 'PIX',
+                recorrente: 'Não'
+            }
+        ]
+    });
+
+    try {
+        const reply = await send('paguei 100 no pix');
+
+        assert.match(reply, /conflito|confirmar um dado essencial|envie novamente/i);
+        assert.strictEqual(sheets.Saídas.length, 1);
+    } finally {
+        if (previousMode === undefined) delete process.env.INTERPRETATION_RELIABILITY_MODE;
+        else process.env.INTERPRETATION_RELIABILITY_MODE = previousMode;
+        if (previousOperations === undefined) delete process.env.INTERPRETATION_RELIABILITY_OPERATIONS;
+        else process.env.INTERPRETATION_RELIABILITY_OPERATIONS = previousOperations;
+    }
 });
 
 stateMachineTest('financial states: explicit PIX expense is saved without asking payment again', async () => {

@@ -22,6 +22,10 @@ const {
     recordInterpretationReliabilityShadow
 } = require('../src/reliability/reliabilityTelemetry');
 const {
+    buildWriteInterpretationEvaluation,
+    evaluateInterpretationReliabilityGate
+} = require('../src/reliability/interpretationReliabilityGate');
+const {
     evaluateEnforceReadiness,
     parseShadowTelemetryJsonl
 } = require('../src/reliability/enforceReadinessMonitor');
@@ -145,6 +149,8 @@ test('interpretation reliability telemetry is sanitized and does not store raw f
         message: 'gastei 1234,56 no mercado secreto',
         amount: 1234.56,
         decision: { action: 'confirm', reasons: ['critical_field_not_deterministic'] },
+        evaluationLatencyMs: 7.8,
+        additionalGeminiCalls: 0,
         candidate: {
             operation: 'expense.create',
             fields: {
@@ -159,6 +165,8 @@ test('interpretation reliability telemetry is sanitized and does not store raw f
     assert.doesNotMatch(serialized, /mercado secreto|1234,56|1234\.56|5521999999999|real-user-id/);
     assert.ok(telemetry.messageHash);
     assert.ok(telemetry.userHash);
+    assert.strictEqual(telemetry.evaluationLatencyMs, 8);
+    assert.strictEqual(telemetry.additionalGeminiCalls, 0);
 });
 
 test('interpretation reliability shadow telemetry is disabled by default and never stores raw content', () => {
@@ -245,6 +253,201 @@ test('interpretation reliability shadow telemetry can record sanitized current-f
     assert.doesNotMatch(payload, /mercado privado|100 no mercado|real-user-id|5521999999999/);
 });
 
+test('interpretation reliability gate preserves current flow while off or shadow', () => {
+    const decision = { action: 'clarify', reasons: ['missing_critical_field'], clarificationFields: ['payment'] };
+
+    const disabled = evaluateInterpretationReliabilityGate({
+        operation: 'expense.create',
+        decision
+    }, {
+        env: { INTERPRETATION_RELIABILITY_MODE: 'off' }
+    });
+    const shadow = evaluateInterpretationReliabilityGate({
+        operation: 'expense.create',
+        decision
+    }, {
+        env: {
+            INTERPRETATION_RELIABILITY_MODE: 'shadow',
+            INTERPRETATION_RELIABILITY_OPERATIONS: 'expense.create'
+        }
+    });
+
+    assert.deepStrictEqual(disabled, {
+        mode: 'off',
+        applied: false,
+        proceed: true,
+        action: 'bypass',
+        reason: 'disabled'
+    });
+    assert.deepStrictEqual(shadow, {
+        mode: 'shadow',
+        applied: true,
+        proceed: true,
+        action: 'observe',
+        reason: 'shadow_observation_only'
+    });
+});
+
+test('interpretation reliability gate enforces only allowlisted operations', () => {
+    const env = {
+        INTERPRETATION_RELIABILITY_MODE: 'enforce',
+        INTERPRETATION_RELIABILITY_OPERATIONS: 'expense.create,income.create'
+    };
+
+    const execute = evaluateInterpretationReliabilityGate({
+        operation: 'expense.create',
+        decision: { action: 'execute', reasons: [] }
+    }, { env });
+    const confirm = evaluateInterpretationReliabilityGate({
+        operation: 'income.create',
+        decision: { action: 'confirm', reasons: ['critical_field_not_deterministic'] }
+    }, { env });
+    const clarify = evaluateInterpretationReliabilityGate({
+        operation: 'expense.create',
+        decision: { action: 'clarify', reasons: ['missing_critical_field'], clarificationFields: ['payment'] }
+    }, { env });
+    const block = evaluateInterpretationReliabilityGate({
+        operation: 'expense.create',
+        decision: { action: 'block', reasons: ['unauthorized_scope'] }
+    }, { env });
+    const outsideAllowlist = evaluateInterpretationReliabilityGate({
+        operation: 'transfer.create',
+        decision: { action: 'block', reasons: ['unauthorized_scope'] }
+    }, { env });
+
+    assert.strictEqual(execute.proceed, true);
+    assert.strictEqual(execute.action, 'execute');
+    assert.strictEqual(confirm.proceed, false);
+    assert.strictEqual(confirm.action, 'confirm');
+    assert.strictEqual(clarify.proceed, false);
+    assert.strictEqual(clarify.action, 'clarify');
+    assert.strictEqual(block.proceed, false);
+    assert.strictEqual(block.action, 'block');
+    assert.deepStrictEqual(outsideAllowlist, {
+        mode: 'enforce',
+        applied: false,
+        proceed: true,
+        action: 'bypass',
+        reason: 'operation_not_allowlisted'
+    });
+});
+
+test('interpretation reliability gate does not enforce any operation without an explicit allowlist', () => {
+    const result = evaluateInterpretationReliabilityGate({
+        operation: 'expense.create',
+        decision: { action: 'execute', reasons: [] }
+    }, {
+        env: { INTERPRETATION_RELIABILITY_MODE: 'enforce' }
+    });
+
+    assert.deepStrictEqual(result, {
+        mode: 'enforce',
+        applied: false,
+        proceed: true,
+        action: 'bypass',
+        reason: 'operation_not_allowlisted'
+    });
+});
+
+test('interpretation reliability gate allows a confirm decision only after explicit user confirmation', () => {
+    const env = {
+        INTERPRETATION_RELIABILITY_MODE: 'enforce',
+        INTERPRETATION_RELIABILITY_OPERATIONS: 'expense.create'
+    };
+    const decision = { action: 'confirm', reasons: ['critical_field_not_deterministic'] };
+
+    const beforeConfirmation = evaluateInterpretationReliabilityGate({
+        operation: 'expense.create',
+        decision
+    }, { env });
+    const afterConfirmation = evaluateInterpretationReliabilityGate({
+        operation: 'expense.create',
+        decision,
+        userConfirmed: true
+    }, { env });
+
+    assert.strictEqual(beforeConfirmation.proceed, false);
+    assert.deepStrictEqual(afterConfirmation, {
+        mode: 'enforce',
+        applied: true,
+        proceed: true,
+        action: 'execute_after_confirmation',
+        reason: 'user_confirmation_satisfied'
+    });
+});
+
+test('write interpretation evaluation merges deterministic message evidence with verified state fields', () => {
+    const evaluation = buildWriteInterpretationEvaluation({
+        operation: 'expense.create',
+        message: 'gastei 25 no mercado',
+        fields: {
+            payment: { value: 'PIX', source: 'user_state', assurance: 'verified', evidence: 'payment_reply' }
+        }
+    }, {
+        env: {
+            INTERPRETATION_RELIABILITY_MODE: 'enforce',
+            INTERPRETATION_RELIABILITY_OPERATIONS: 'expense.create'
+        }
+    });
+
+    assert.strictEqual(evaluation.candidate.fields.amount.source, 'deterministic');
+    assert.strictEqual(evaluation.candidate.fields.payment.source, 'user_state');
+    assert.strictEqual(evaluation.decision.action, 'execute');
+    assert.strictEqual(evaluation.gate.proceed, true);
+});
+
+test('write interpretation evaluation does not auto-execute a critical amount supplied only by LLM', () => {
+    const evaluation = buildWriteInterpretationEvaluation({
+        operation: 'expense.create',
+        message: 'paguei o almoço',
+        fields: {
+            amount: { value: 25, source: 'llm', assurance: 'supported', evidence: 'structured_response' },
+            payment: { value: 'PIX', source: 'user_state', assurance: 'verified', evidence: 'payment_reply' },
+            scope: { value: 'personal', source: 'user_state', assurance: 'verified', evidence: 'active_user' },
+            movementType: { value: 'expense', source: 'llm', assurance: 'supported', evidence: 'structured_response' }
+        }
+    }, {
+        env: {
+            INTERPRETATION_RELIABILITY_MODE: 'enforce',
+            INTERPRETATION_RELIABILITY_OPERATIONS: 'expense.create'
+        }
+    });
+
+    assert.strictEqual(evaluation.decision.action, 'confirm');
+    assert.strictEqual(evaluation.gate.proceed, false);
+    assert.strictEqual(evaluation.gate.action, 'confirm');
+});
+
+test('write interpretation evaluation clarifies when deterministic and LLM critical fields conflict', () => {
+    const evaluation = buildWriteInterpretationEvaluation({
+        operation: 'expense.create',
+        message: 'gastei 100 no pix',
+        fields: {
+            amount: { value: 120, source: 'llm', assurance: 'supported', evidence: 'structured_response' },
+            payment: { value: 'PIX', source: 'llm', assurance: 'supported', evidence: 'structured_response' },
+            scope: { value: 'personal', source: 'user_state', assurance: 'verified', evidence: 'active_user' },
+            movementType: { value: 'expense', source: 'llm', assurance: 'supported', evidence: 'structured_response' }
+        }
+    }, {
+        env: {
+            INTERPRETATION_RELIABILITY_MODE: 'enforce',
+            INTERPRETATION_RELIABILITY_OPERATIONS: 'expense.create'
+        }
+    });
+
+    assert.strictEqual(evaluation.decision.action, 'clarify');
+    assert.ok(evaluation.decision.clarificationFields.includes('amount'));
+    assert.strictEqual(evaluation.gate.proceed, false);
+});
+
+test('deterministic interpretation does not guess the amount when a message has multiple unmarked numbers', () => {
+    const candidate = extractDeterministicInterpretation('comprei 2 camisas por 100 no pix');
+
+    assert.strictEqual(candidate.operation, 'expense.create');
+    assert.strictEqual(candidate.fields.amount, undefined);
+    assert.ok(candidate.missingFields.includes('amount'));
+});
+
 test('enforce readiness monitor requires enough shadow evidence before manual review', () => {
     const now = new Date('2026-06-30T12:00:00.000Z');
     const makeEntry = (index, operation = index % 2 === 0 ? 'expense.create' : 'income.create') => ({
@@ -254,6 +457,8 @@ test('enforce readiness monitor requires enough shadow evidence before manual re
         action: 'execute',
         currentFlowOutcome: 'write_attempt',
         divergenceSeverity: 'none',
+        evaluationLatencyMs: 5,
+        additionalGeminiCalls: 0,
         fields: {
             amount: { source: 'deterministic', assurance: 'verified', valueHash: `h${index}` },
             scope: { source: 'user_state', assurance: 'verified', valueHash: `s${index}` }
@@ -274,6 +479,10 @@ test('enforce readiness monitor requires enough shadow evidence before manual re
     assert.strictEqual(ready.readyForManualReview, true);
     assert.strictEqual(ready.recommendedMode, 'manual_review_for_enforce');
     assert.deepStrictEqual(ready.blockers, []);
+    assert.strictEqual(ready.autoSaveCandidatePrecision, 1);
+    assert.strictEqual(ready.ambiguousAutoSaveViolations, 0);
+    assert.strictEqual(ready.additionalGeminiCalls, 0);
+    assert.strictEqual(ready.evaluationLatencyP95Ms, 5);
 });
 
 test('enforce readiness monitor blocks critical divergence and short observation windows', () => {
@@ -284,7 +493,9 @@ test('enforce readiness monitor blocks critical divergence and short observation
         operation: index % 2 === 0 ? 'expense.create' : 'income.create',
         action: 'execute',
         currentFlowOutcome: 'write_attempt',
-        divergenceSeverity: index === 10 ? 'critical' : 'none'
+        divergenceSeverity: index === 10 ? 'critical' : 'none',
+        evaluationLatencyMs: 5,
+        additionalGeminiCalls: 0
     }));
 
     const report = evaluateEnforceReadiness(entries, { now });
@@ -293,6 +504,50 @@ test('enforce readiness monitor blocks critical divergence and short observation
     assert.ok(report.blockers.includes('observation_window_too_short'));
     assert.ok(report.blockers.includes('critical_divergence_found'));
     assert.strictEqual(report.criticalDivergences, 1);
+});
+
+test('enforce readiness monitor requires a meaningful sample for every operation', () => {
+    const now = new Date('2026-06-30T12:00:00.000Z');
+    const entries = Array.from({ length: 50 }, (_, index) => ({
+        ts: new Date(now.getTime() - (15 * 24 * 60 * 60 * 1000) + (index * 60 * 1000)).toISOString(),
+        mode: 'shadow',
+        operation: index === 49 ? 'income.create' : 'expense.create',
+        action: 'execute',
+        currentFlowOutcome: 'write_attempt',
+        divergenceSeverity: 'none',
+        evaluationLatencyMs: 5,
+        additionalGeminiCalls: 0
+    }));
+
+    const report = evaluateEnforceReadiness(entries, { now });
+
+    assert.strictEqual(report.readyForManualReview, false);
+    assert.ok(report.blockers.includes('missing_required_operation:income.create'));
+});
+
+test('enforce readiness monitor blocks unsafe autosave alignment, extra Gemini calls and missing latency evidence', () => {
+    const now = new Date('2026-06-30T12:00:00.000Z');
+    const entries = Array.from({ length: 50 }, (_, index) => ({
+        ts: new Date(now.getTime() - (15 * 24 * 60 * 60 * 1000) + (index * 60 * 1000)).toISOString(),
+        mode: 'shadow',
+        operation: index % 2 === 0 ? 'expense.create' : 'income.create',
+        action: index === 1 ? 'clarify' : 'execute',
+        currentFlowOutcome: 'write_attempt',
+        divergenceSeverity: index === 0 ? 'important' : 'none',
+        evaluationLatencyMs: index === 2 ? undefined : (index >= 3 && index <= 8 ? 100 : 5),
+        additionalGeminiCalls: index === 4 ? 1 : 0
+    }));
+
+    const report = evaluateEnforceReadiness(entries, { now });
+
+    assert.strictEqual(report.readyForManualReview, false);
+    assert.ok(report.blockers.includes('auto_save_precision_below_threshold'));
+    assert.ok(report.blockers.includes('ambiguous_auto_save_violation'));
+    assert.ok(report.blockers.includes('extra_gemini_calls_detected'));
+    assert.ok(report.blockers.includes('missing_latency_evidence'));
+    assert.ok(report.blockers.includes('evaluation_latency_too_high'));
+    assert.strictEqual(report.ambiguousAutoSaveViolations, 1);
+    assert.strictEqual(report.additionalGeminiCalls, 1);
 });
 
 test('enforce readiness monitor parses jsonl without treating malformed lines as safe', () => {
@@ -321,6 +576,10 @@ test('interpretation readiness alert notifies admins once when shadow is ready f
         observationWindowDays: 15,
         criticalDivergences: 0,
         invalidLines: 0,
+        autoSaveCandidatePrecision: 1,
+        ambiguousAutoSaveViolations: 0,
+        additionalGeminiCalls: 0,
+        evaluationLatencyP95Ms: 4.5,
         byOperation: { 'expense.create': 40, 'income.create': 32 },
         thresholds: { minDecisions: 50, minObservationDays: 14 },
         missingFile: false
@@ -351,6 +610,8 @@ test('interpretation readiness alert notifies admins once when shadow is ready f
     assert.strictEqual(sent[0].to, '5511999999999@c.us');
     assert.match(sent[0].message, /Shadow pronto para revisão manual/);
     assert.match(sent[0].message, /O enforce NAO foi ativado automaticamente/);
+    assert.match(sent[0].message, /Precisão dos candidatos a auto-save: 100.00%/);
+    assert.match(sent[0].message, /Chamadas Gemini adicionais: 0/);
     assert.doesNotMatch(sent[0].message, /5511999999999|user_id|sheet_id|token/i);
 });
 

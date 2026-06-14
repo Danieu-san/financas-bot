@@ -126,9 +126,20 @@ Validar:
 - `npm run report:interpretation-readiness` permanece em `keep_shadow` enquanto os gates nao forem cumpridos.
 - O scheduler chama o notifier diariamente as 09:15, mas fica silencioso sem condicao de alerta.
 - Prontidao envia uma unica mensagem sanitizada somente aos admins.
+- Prontidao exige alinhamento de auto-save >= 99,5%, zero caso ambiguo auto-gravado, zero chamada Gemini adicional, latencia p95 local <= 50 ms e evidencia completa dessas metricas.
+- O alinhamento de auto-save e apenas proxy operacional; confirmar bateria offline e revisar amostra humana antes de ativar `enforce`.
 - Divergencia critica envia alerta `NAO ative enforce` e so repete quando a contagem aumenta.
+- Em teste com `INTERPRETATION_RELIABILITY_MODE=enforce`, gasto/entrada unitarios com campo critico LLM-only devem pedir confirmacao; mensagens deterministicas completas devem continuar diretas.
+- JSON do LLM nao pode fornecer `reliabilityConfirmed`, escopo ou identidade internos.
+- Frases com multiplos numeros sem marcador monetario inequivoco nao podem fazer auto-save.
+- Conflito entre campo deterministico e campo LLM deve exigir esclarecimento.
 - `data/interpretation-reliability-alert-state.json` nao contem telefone, `user_id`, texto financeiro, token ou ID de planilha.
 - O notifier nunca altera `INTERPRETATION_RELIABILITY_MODE`.
+- Repetir a mesma exclusao financeira com a mesma `operationKey` ou mesmo contexto de mensagem nao pode chamar o Google duas vezes.
+- Exclusao com resultado `uncertain` deve bloquear replay automatico, nao tentar apagar novamente.
+- Repetir o mesmo update financeiro com a mesma `operationKey` ou mesmo contexto de mensagem nao pode chamar o Google duas vezes.
+- Update `uncertain` deve reconciliar somente se a linha atual ja tiver o valor esperado; se a linha mudou, deve bloquear replay automatico.
+- Repetir a confirmacao de uma mesma importacao com outro id de mensagem nao pode salvar novamente os itens ja importados; a chave deve ser estavel por item do arquivo e preservar itens identicos legitimos quando o indice for diferente.
 
 ## Scheduler e Calendar
 

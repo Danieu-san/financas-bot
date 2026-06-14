@@ -1,6 +1,6 @@
 # Auditoria de confiabilidade de interpretacao
 
-Atualizado em: 2026-06-13
+Atualizado em: 2026-06-14
 
 ## Objetivo
 
@@ -52,6 +52,16 @@ Fora de escopo desta rodada:
 | IRA-017 | MEDIUM | privacidade | QA failure log guardava mensagem textual sanitizada | Sanitizacao removia segredos, mas preservava conteudo financeiro | `message_ref` hash + tamanho, sem mensagem bruta | `tests/unit.test.js` |
 | IRA-018 | MEDIUM | UX/seguranca | Confirmacao de movimento interno mostrava `Entrada`/`Gasto` antes de salvar como transferencia | Preview nao aplicava detector de transferencia | Preview de confirmacao agora rotula reserva/familia como `Transferencia` | `tests/financialStateMachine.test.js` |
 | IRA-019 | HIGH | escopo | Frase com alias familiar autorizado e `cartao/fatura` podia ser classificada como pagamento de fatura | Prioridade de alias familiar vinha depois de `cartao/fatura` | Alias familiar autorizado passa a vencer `invoice_payment`, preservando reserva/caixinha como prioridade maior | `tests/interpretationReliability.test.js` e bateria IRAB |
+| IRA-020 | HIGH | validacao | A flag `enforce` era aceita pela telemetria, mas nao controlava o fluxo de escrita | Nao existia policy gate antes da escrita | Gate real `off/shadow/enforce`; em `enforce`, somente decisao `execute` prossegue sem controle humano e confirmacao explicita satisfaz apenas decisao `confirm` | `tests/interpretationReliability.test.js` e `tests/financialStateMachine.test.js` |
+| IRA-021 | HIGH | estado | Valor vindo do LLM podia ser salvo depois de o usuario responder apenas o metodo, sem confirmacao final do valor interpretado | Proveniencia da interpretacao se perdia entre estados | Proveniencia atravessa a maquina de estados; gasto/entrada LLM-only exigem confirmacao final em `enforce` | `tests/financialStateMachine.test.js` |
+| IRA-022 | MEDIUM | observabilidade | Readiness media apenas volume, janela e divergencia critica | Faltavam gates de custo e desempenho | Monitor passou a bloquear revisao quando houver auto-save desalinhado, caso ambiguo auto-gravado, chamada Gemini adicional, falta de evidencia ou latencia p95 acima do limite | `tests/interpretationReliability.test.js` |
+| IRA-023 | HIGH | seguranca | JSON estruturado do LLM podia carregar metadados internos como `reliabilityConfirmed` para o estado | Transacao externa era espalhada diretamente no objeto interno | Fronteira remove metadados de confiabilidade, escopo e identidade antes de adicionar proveniencia controlada pelo codigo | `tests/financialStateMachine.test.js` |
+| IRA-024 | HIGH | interpretacao | `comprei 2 camisas por 100 no pix` era auto-gravado como R$ 2,00 pelo fast-path | Parser escolhia silenciosamente o primeiro numero da frase | Multiplos numeros sem marcador monetario inequivoco deixam de ser auto-save; o fluxo pede confirmacao/interpretacao segura | `tests/financialStateMachine.test.js` e `tests/interpretationReliability.test.js` |
+| IRA-025 | HIGH | validacao | Campo critico deterministico podia sobrescrever valor divergente vindo da interpretacao sem registrar conflito | Merge privilegiava parser sem comparacao cruzada | Divergencias em campos criticos viram `field_conflict` e exigem esclarecimento antes de escrever | `tests/interpretationReliability.test.js` e `tests/financialStateMachine.test.js` |
+| IRA-026 | MEDIUM | observabilidade | Uma unica amostra de uma operacao era suficiente para o readiness recomendar revisao de `enforce` | Gate por operacao exigia apenas presenca | Readiness exige ao menos 10 decisoes reais por operacao obrigatoria | `tests/interpretationReliability.test.js` |
+| IRA-027 | HIGH | recuperacao | Repetir uma confirmacao de exclusao podia chamar `deleteRowsByIndices` novamente e apagar outra linha deslocada | Delete nao usava ledger/chave idempotente, embora retry cego ja estivesse desligado | `deleteRowsByIndices` ganhou operation key por contexto de mensagem, ledger para `committed`, bloqueio de `pending/uncertain` e recibo idempotente | `tests/unit.test.js` |
+| IRA-028 | HIGH | recuperacao | Repetir update de meta/divida ou retry incerto podia aplicar de novo ou restaurar valor antigo | `updateRowInSheet` nao usava ledger e nao reconciliava linha atual antes de replay | `updateRowInSheet` ganhou operation key, ledger, replay idempotente, reconciliacao por fingerprint da linha atual e bloqueio de replay incerto quando a linha mudou | `tests/unit.test.js` |
+| IRA-029 | HIGH | recuperacao | Repetir a confirmacao de uma importacao com novo id de mensagem podia salvar novamente itens ja confirmados | Importacao herdava chave do contexto da confirmacao, nao uma chave estavel por item do arquivo | Cada item importado ganhou operation key estavel derivada de tipo, data, descricao, valor, metodo, cartao e indice do arquivo; replay confirmado retorna via ledger sem novo append | `tests/unit.test.js` |
 
 ## Resultado dos gates
 
@@ -63,19 +73,23 @@ Fora de escopo desta rodada:
 ## Regras consolidadas
 
 - Auto-save so deve ocorrer quando campos criticos estiverem completos, validados e sem conflito.
+- Multiplos numeros sem um unico valor monetario inequivoco nunca podem virar auto-save.
+- Metadados internos de confiabilidade, identidade ou escopo nunca podem ser aceitos de resposta LLM.
 - Campo critico dependente de Gemini exige confirmacao ou esclarecimento.
 - Falha de Gemini, JSON invalido ou quota nunca vira valor padrao.
-- Append financeiro nao deve repetir cegamente.
+- Append, update e delete financeiro nao devem repetir cegamente.
 - Logs, estado persistido, QA logs, ledger, shadow telemetry e codigo versionado nao devem guardar mensagem financeira bruta, telefone real, `user_id`, token, `sheet_id` ou URL privada.
 - Shadow mode nao chama Gemini extra e nao escreve dado financeiro.
 - O monitor de prontidao do shadow nunca altera flags nem habilita `enforce`; ele so emite `keep_shadow` ou `manual_review_for_enforce`.
+- O alinhamento observado dos candidatos a auto-save e um proxy operacional, nao prova de correcao semantica. A decisao de ativar `enforce` continua exigindo bateria offline e revisao humana.
 - Alias de membro familiar so e valido quando vem do escopo familiar autorizado fora do LLM.
 
 ## Limitacoes ainda aceitas
 
-- A idempotencia esta forte para appends no contexto de mensagem; escritas operacionais fora desse contexto ainda devem migrar por pacote proprio.
+- A idempotencia esta forte para appends, updates, deletes e importacoes com chaves estaveis por item. Batches manuais e escritas operacionais fora desse contexto ainda devem migrar por pacote proprio.
 - A reconciliacao de append incerto compara a ultima linha nao vazia da aba. Se outra escrita entrar depois de uma operacao incerta, o sistema bloqueia a repeticao em vez de tentar adivinhar. Isso e intencional para evitar duplicacao silenciosa, mas um pacote futuro deve evoluir para identificador de operacao por linha.
 - Shadow mode esta integrado a escritas manuais estruturadas e deve ser expandido gradualmente para todos os comandos sensiveis.
+- O gate real de `enforce` cobre inicialmente gasto/entrada unitarios fora do credito. Cartao, transferencias, lotes, audio, importacoes e demais mutacoes continuam fora do enforce inicial.
 - Estados redigidos em disco podem perder contexto livre apos restart. Esse e um tradeoff consciente: e melhor pedir de novo do que salvar dado sensivel cru no snapshot.
 - A validacao real continua limitada pelo teto de custo Gemini definido no plano.
 
@@ -83,15 +97,19 @@ Fora de escopo desta rodada:
 
 - `node --test --test-name-pattern="helpers critical|helpers.parseAmountLocal|financial write handlers do not dump" tests\unit.test.js` -> 3/3.
 - `node --test --test-name-pattern="qaFailureLogService records" tests\unit.test.js` -> 1/1.
-- `node --test tests\interpretationReliability.test.js tests\financialStateMachine.test.js tests\audioHandlerPrivacy.test.js tests\geminiModelBenchmark.test.js` -> 67/67.
+- `node --test tests\interpretationReliability.test.js tests\financialStateMachine.test.js` -> 81/81 apos a revisao adversarial.
+- `node --test tests\unit.test.js --test-name-pattern "updateRowInSheet can use write ledger|updateRowInSheet reconciles uncertain|updateRowInSheet blocks uncertain"` -> 165/165, com regressao de update idempotente, reconciliacao de update incerto e bloqueio quando a linha mudou.
+- `node --test tests\unit.test.js --test-name-pattern "deleteRowsByIndices|message write context deduplicates delete"` -> 162/162, com regressao de delete idempotente, replay incerto e contexto de mensagem.
+- `node --test tests\unit.test.js --test-name-pattern "statement import uses stable"` -> 166/166, com regressao de importacao por item usando chave estavel entre confirmacoes.
 - `C:\Users\horus\AppData\Local\Microsoft\WindowsApps\pwsh.exe -Command "node scripts\runInterpretationReliabilityAcceptanceBattery.js"` -> 340/340, mismatches 0.
 - `node scripts\runFinancialQueryAcceptanceBattery.js` -> 265/265, mismatches 0, bloqueados antes do planner 23.
-- `npm test` -> 377/377.
+- `npm test` -> 408/408.
 - `npm audit --audit-level=high` -> 0 vulnerabilidades.
 - `node --check` nos JS alterados -> sem erro.
 - `git diff --check` -> sem erro bloqueante, apenas avisos CRLF esperados no Windows.
 - Varredura NUL em `docs`, `src`, `scripts`, `tests`, `package.json` e `state_store.json` -> sem achados.
 - Varredura de padroes sensiveis nos artefatos novos e testes auditados -> sem achados.
 - `state_store.json` -> `{}`.
+- `npm run report:interpretation-readiness` -> `KEEP_SHADOW`, 0/50 decisoes reais, 0 divergencias criticas e bloqueio esperado por falta de amostra/janela.
 
-Fechamento local: aprovado para permanecer sem deploy nesta etapa. O proximo passo operacional e ativar `shadow` apenas quando houver uma janela controlada de observacao real, acompanhar com `npm run report:interpretation-readiness` e manter `enforce` bloqueado ate cumprir os gates da spec e passar por revisao humana.
+Fechamento local: aprovado para manter producao em `shadow`; `enforce` continua bloqueado ate cumprir os gates da spec e passar por revisao humana. Esta evolucao local ainda requer commit/release separado antes de chegar a producao.

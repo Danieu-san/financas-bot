@@ -272,6 +272,8 @@ function buildPreview(candidate = {}) {
 
 function sanitizeReliabilityTelemetry(input = {}) {
     const candidate = input.candidate || {};
+    const evaluationLatencyMs = Number(input.evaluationLatencyMs);
+    const additionalGeminiCalls = Number(input.additionalGeminiCalls);
     return {
         ts: new Date().toISOString(),
         userHash: hashValue(input.userId || input.senderId || ''),
@@ -283,6 +285,12 @@ function sanitizeReliabilityTelemetry(input = {}) {
         currentFlowOutcome: sanitizeTelemetryLabel(input.currentFlowOutcome || ''),
         divergenceSeverity: sanitizeTelemetryLabel(input.divergenceSeverity || input.divergence?.severity || 'none', 'none'),
         divergenceReason: sanitizeTelemetryLabel(input.divergenceReason || input.divergence?.reason || ''),
+        evaluationLatencyMs: Number.isFinite(evaluationLatencyMs)
+            ? Math.max(0, Math.min(60000, Math.round(evaluationLatencyMs)))
+            : null,
+        additionalGeminiCalls: Number.isInteger(additionalGeminiCalls)
+            ? Math.max(0, Math.min(100, additionalGeminiCalls))
+            : null,
         itemCount: Number(candidate.itemCount || 1),
         fields: Object.fromEntries(Object.entries(candidate.fields || {}).map(([key, field]) => [
             key,

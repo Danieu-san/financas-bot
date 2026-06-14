@@ -111,6 +111,7 @@ Executar automaticamente somente quando:
 - escopo autorizado;
 - campos criticos completos;
 - campos criticos deterministicos ou vindos de estado do usuario e `verified`;
+- existe um unico valor monetario inequivoco; frases com multiplos numeros sem marcador monetario exigem confirmacao/esclarecimento;
 - sem conflito entre parser, estado e Gemini;
 - chave idempotente livre;
 - credito tem cartao e parcelas explicitos;
@@ -187,6 +188,11 @@ Criticos por operacao:
 
 - Appends no contexto de mensagem usam operation key automatica e ledger quando possivel.
 - Append financeiro nao faz retry cego por padrao.
+- Updates no contexto de mensagem usam operation key automatica e ledger quando possivel.
+- Update financeiro `committed` e idempotente por replay; update `pending/uncertain` so reconcilia quando a linha atual ja tem exatamente o valor esperado, senao bloqueia para evitar restaurar valor antigo.
+- Deletes no contexto de mensagem usam operation key automatica e ledger quando possivel.
+- Delete financeiro nao faz retry cego; replay `committed` retorna recibo idempotente e replay `pending/uncertain` bloqueia em vez de arriscar apagar linha deslocada.
+- Importacoes confirmadas usam operation key estavel por item importado, derivada de campos canonicos do item e do indice no arquivo. Isso permite repetir a confirmacao sem duplicar linhas e preserva compras legitimamente iguais dentro do mesmo arquivo.
 - Escrita derivada do master LLM exige confirmacao antes de salvar.
 - Parcelas de lote sao mapeadas deterministicamente; item nao mapeado pergunta de novo.
 - `parseAmount` e `parseDate` nao chamam Gemini para campos criticos.
@@ -212,6 +218,17 @@ No modo `shadow`:
 - nenhuma escrita financeira adicional e feita;
 - a telemetria guarda apenas hashes, fontes, garantias, operacao, decisao, motivos e comparacao sanitizada com o fluxo atual.
 
+No modo `enforce`:
+
+- somente operacoes presentes em `INTERPRETATION_RELIABILITY_OPERATIONS` sao controladas;
+- allowlist ausente nao habilita nenhuma operacao em `enforce`;
+- `execute` permite seguir;
+- `confirm` exige confirmacao explicita do usuario;
+- `clarify` exige completar o campo critico ausente;
+- `block` interrompe o fluxo;
+- operacoes fora da allowlist preservam o comportamento atual;
+- a ativacao inicial cobre apenas gasto/entrada unitarios fora do credito. Credito, transferencias, lotes, audio, importacao e demais mutacoes exigem pacotes proprios antes de entrar na allowlist. A protecao idempotente de importacao ja existe, mas nao significa que importacao esteja liberada para `enforce`.
+
 ## Monitor de prontidao para enforce
 
 O bot possui um observador local para o shadow mode, executavel por:
@@ -226,11 +243,15 @@ O monitor verifica:
 
 - pelo menos 50 decisoes reais em `shadow`;
 - janela minima de 14 dias desde a primeira decisao observada;
-- pelo menos uma decisao para cada operacao obrigatoria inicial (`expense.create` e `income.create`);
+- pelo menos 10 decisoes para cada operacao obrigatoria inicial (`expense.create` e `income.create`);
 - zero divergencia critica entre o fluxo atual e a decisao da camada de confiabilidade;
 - zero linha de telemetria invalida.
+- pelo menos 99,5% de alinhamento operacional dos candidatos a auto-save;
+- zero caso ambiguo observado sendo auto-gravado;
+- zero chamada Gemini adicional causada pela camada;
+- evidencia de latencia em todas as decisoes e p95 de avaliacao local de no maximo 50 ms.
 
-O monitor nunca altera `INTERPRETATION_RELIABILITY_MODE`, nunca escreve dados financeiros e nunca habilita `enforce` sozinho. Quando todos os gates passam, a recomendacao e apenas `manual_review_for_enforce`; a troca para `enforce` continua exigindo revisao humana, configuracao reversivel, smoke dedicado e rollback por flag.
+O alinhamento operacional compara a decisao da camada com o controle aplicado pelo fluxo atual. Ele nao prova sozinho que a interpretacao financeira esta semanticamente correta. O monitor nunca altera `INTERPRETATION_RELIABILITY_MODE`, nunca escreve dados financeiros e nunca habilita `enforce` sozinho. Quando todos os gates passam, a recomendacao e apenas `manual_review_for_enforce`; a troca para `enforce` continua exigindo bateria offline, revisao humana, configuracao reversivel, smoke dedicado e rollback por flag.
 
 O scheduler executa o observador diariamente as 09:15 no fuso `America/Sao_Paulo`. Ele permanece silencioso enquanto nao houver condicao de alerta. Quando o shadow estiver pronto para revisao manual, envia uma unica mensagem aos admins configurados. Se surgir divergencia critica, envia um alerta de bloqueio e volta a avisar somente quando a contagem de divergencias criticas aumentar. O estado de deduplicacao fica em `data/interpretation-reliability-alert-state.json` e guarda apenas tipo, chave e data do ultimo alerta.
 
@@ -248,6 +269,8 @@ O scheduler executa o observador diariamente as 09:15 no fuso `America/Sao_Paulo
 ## Nao fazer
 
 - Nao enviar planilha inteira ao Gemini.
+- Nao aceitar metadados internos de confiabilidade, identidade ou escopo vindos do JSON do Gemini.
+- Nao escolher silenciosamente o primeiro numero de uma frase como valor financeiro.
 - Nao deixar Gemini calcular saldo, total, percentual, ranking, fatura, orcamento, meta ou divida.
 - Nao transformar erro de Gemini em default financeiro.
 - Nao registrar mensagem financeira crua em log, estado, QA log, ledger ou telemetria.

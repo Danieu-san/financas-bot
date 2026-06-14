@@ -4511,6 +4511,175 @@ test('google.readDataFromSheet caches repeated reads and invalidates after write
     }
 });
 
+test('google.updateRowInSheet can use write ledger to avoid updating twice', async () => {
+    const { FinancialWriteLedger } = require('../src/reliability/financialWriteLedger');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-google-update-ledger-'));
+    const ledger = new FinancialWriteLedger({ dbPath: path.join(dir, 'ledger.sqlite') });
+    let updateCalls = 0;
+    const fakeSheets = {
+        spreadsheets: {
+            values: {
+                update: async () => {
+                    updateCalls += 1;
+                    return { data: { updatedRange: 'Metas!A2:K2' } };
+                }
+            },
+            batchUpdate: async () => ({})
+        }
+    };
+
+    googleService.__test__.setGoogleClientsForTest({
+        sheetsClient: fakeSheets,
+        tasksClient: {},
+        calendarClient: {},
+        oauthClient: {}
+    });
+
+    try {
+        const row = ['Reserva', 1000, 250, '25%'];
+        const first = await googleService.updateRowInSheet('Metas!A2:K2', row, {
+            forceCentral: true,
+            operationKey: 'update-ledger-test-op',
+            writeLedger: ledger
+        });
+        const second = await googleService.updateRowInSheet('Metas!A2:K2', row, {
+            forceCentral: true,
+            operationKey: 'update-ledger-test-op',
+            writeLedger: ledger
+        });
+
+        assert.strictEqual(updateCalls, 1);
+        assert.strictEqual(first.status, 'committed');
+        assert.strictEqual(second.status, 'committed');
+        assert.strictEqual(ledger.getOperation('update-ledger-test-op').status, 'committed');
+    } finally {
+        ledger.close();
+        googleService.__test__.clearSheetsReadCache();
+    }
+});
+
+test('google.updateRowInSheet reconciles uncertain replay only when the target row matches', async () => {
+    const { FinancialWriteLedger } = require('../src/reliability/financialWriteLedger');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-google-update-uncertain-'));
+    const ledger = new FinancialWriteLedger({ dbPath: path.join(dir, 'ledger.sqlite') });
+    const previousAttempts = process.env.GOOGLE_API_RETRY_ATTEMPTS;
+    const previousDelay = process.env.GOOGLE_API_RETRY_DELAY_MS;
+    process.env.GOOGLE_API_RETRY_ATTEMPTS = '2';
+    process.env.GOOGLE_API_RETRY_DELAY_MS = '0';
+    const row = ['Reserva', 1000, 250, '25%'];
+    let updateCalls = 0;
+    const fakeSheets = {
+        spreadsheets: {
+            values: {
+                update: async () => {
+                    updateCalls += 1;
+                    const error = new Error('timeout after update');
+                    error.code = 429;
+                    throw error;
+                },
+                get: async () => ({ data: { values: [row] } })
+            },
+            batchUpdate: async () => ({})
+        }
+    };
+
+    googleService.__test__.setGoogleClientsForTest({
+        sheetsClient: fakeSheets,
+        tasksClient: {},
+        calendarClient: {},
+        oauthClient: {}
+    });
+
+    try {
+        await assert.rejects(
+            googleService.updateRowInSheet('Metas!A2:K2', row, {
+                forceCentral: true,
+                operationKey: 'update-uncertain-reconciled-op',
+                writeLedger: ledger
+            }),
+            /Erro ao atualizar dados/
+        );
+
+        const reconciled = await googleService.updateRowInSheet('Metas!A2:K2', row, {
+            forceCentral: true,
+            operationKey: 'update-uncertain-reconciled-op',
+            writeLedger: ledger
+        });
+
+        assert.strictEqual(updateCalls, 1);
+        assert.strictEqual(reconciled.status, 'committed');
+        assert.strictEqual(reconciled.receipt.reconciled, true);
+        assert.strictEqual(ledger.getOperation('update-uncertain-reconciled-op').status, 'committed');
+    } finally {
+        ledger.close();
+        googleService.__test__.clearSheetsReadCache();
+        if (previousAttempts === undefined) delete process.env.GOOGLE_API_RETRY_ATTEMPTS;
+        else process.env.GOOGLE_API_RETRY_ATTEMPTS = previousAttempts;
+        if (previousDelay === undefined) delete process.env.GOOGLE_API_RETRY_DELAY_MS;
+        else process.env.GOOGLE_API_RETRY_DELAY_MS = previousDelay;
+    }
+});
+
+test('google.updateRowInSheet blocks uncertain replay when the target row changed', async () => {
+    const { FinancialWriteLedger } = require('../src/reliability/financialWriteLedger');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-google-update-uncertain-block-'));
+    const ledger = new FinancialWriteLedger({ dbPath: path.join(dir, 'ledger.sqlite') });
+    const previousAttempts = process.env.GOOGLE_API_RETRY_ATTEMPTS;
+    const previousDelay = process.env.GOOGLE_API_RETRY_DELAY_MS;
+    process.env.GOOGLE_API_RETRY_ATTEMPTS = '2';
+    process.env.GOOGLE_API_RETRY_DELAY_MS = '0';
+    const row = ['Reserva', 1000, 250, '25%'];
+    let updateCalls = 0;
+    const fakeSheets = {
+        spreadsheets: {
+            values: {
+                update: async () => {
+                    updateCalls += 1;
+                    const error = new Error('timeout after update');
+                    error.code = 429;
+                    throw error;
+                },
+                get: async () => ({ data: { values: [['Reserva', 1000, 500, '50%']] } })
+            },
+            batchUpdate: async () => ({})
+        }
+    };
+
+    googleService.__test__.setGoogleClientsForTest({
+        sheetsClient: fakeSheets,
+        tasksClient: {},
+        calendarClient: {}
+    });
+
+    try {
+        await assert.rejects(
+            googleService.updateRowInSheet('Metas!A2:K2', row, {
+                forceCentral: true,
+                operationKey: 'update-uncertain-blocked-op',
+                writeLedger: ledger
+            }),
+            /Erro ao atualizar dados/
+        );
+
+        await assert.rejects(
+            googleService.updateRowInSheet('Metas!A2:K2', row, {
+                forceCentral: true,
+                operationKey: 'update-uncertain-blocked-op',
+                writeLedger: ledger
+            }),
+            /resultado incerto/i
+        );
+        assert.strictEqual(updateCalls, 1);
+    } finally {
+        ledger.close();
+        googleService.__test__.clearSheetsReadCache();
+        if (previousAttempts === undefined) delete process.env.GOOGLE_API_RETRY_ATTEMPTS;
+        else process.env.GOOGLE_API_RETRY_ATTEMPTS = previousAttempts;
+        if (previousDelay === undefined) delete process.env.GOOGLE_API_RETRY_DELAY_MS;
+        else process.env.GOOGLE_API_RETRY_DELAY_MS = previousDelay;
+    }
+});
+
 test('google.appendRowToSheet can use write ledger to avoid re-appending committed operations', async () => {
     const { FinancialWriteLedger } = require('../src/reliability/financialWriteLedger');
     const os = require('node:os');
@@ -4605,6 +4774,66 @@ test('google message write context keeps identical batch items but deduplicates 
         }, () => googleService.appendRowToSheet('Saídas', row, { forceCentral: true }));
 
         assert.strictEqual(appendCalls, 3, 'replay must deduplicate, but a distinct message must remain valid');
+    } finally {
+        ledger.close();
+        googleService.__test__.clearSheetsReadCache();
+    }
+});
+
+test('statement import uses stable per-item operation keys across confirmation retries', async () => {
+    const { FinancialWriteLedger } = require('../src/reliability/financialWriteLedger');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-import-ledger-'));
+    const ledger = new FinancialWriteLedger({ dbPath: path.join(dir, 'ledger.sqlite') });
+    let appendCalls = 0;
+    const fakeSheets = {
+        spreadsheets: {
+            values: {
+                append: async () => {
+                    appendCalls += 1;
+                    return { data: { updates: { updatedRange: `Saídas!A${appendCalls + 1}:J${appendCalls + 1}` } } };
+                }
+            },
+            batchUpdate: async () => ({})
+        }
+    };
+
+    googleService.__test__.setGoogleClientsForTest({
+        sheetsClient: fakeSheets,
+        tasksClient: {},
+        calendarClient: {},
+        oauthClient: {}
+    });
+
+    const transactions = [
+        {
+            type: 'Saídas',
+            data: '10/05/2026',
+            descricao: 'Mercado importado',
+            categoria: 'Alimentação',
+            subcategoria: '',
+            valor: 25,
+            pagamento: 'Importação',
+            recorrente: 'Não',
+            observacoes: 'Importado de arquivo'
+        }
+    ];
+
+    const runImport = (messageId) => googleService.runWithUserSheetContext({
+        userId: 'user-1',
+        messageId,
+        writeLedger: ledger
+    }, () => messageHandler.__test__.saveImportedTransactions(transactions, {
+        person: 'Pessoa Teste',
+        userId: 'user-1'
+    }));
+
+    try {
+        const first = await runImport('import-confirmation-1');
+        const second = await runImport('import-confirmation-2');
+
+        assert.strictEqual(first, 1);
+        assert.strictEqual(second, 1);
+        assert.strictEqual(appendCalls, 1);
     } finally {
         ledger.close();
         googleService.__test__.clearSheetsReadCache();
@@ -4930,6 +5159,152 @@ test('google.deleteRowsByIndices does not blindly retry a non-idempotent delete'
         else process.env.GOOGLE_API_RETRY_ATTEMPTS = previousAttempts;
         if (previousDelay === undefined) delete process.env.GOOGLE_API_RETRY_DELAY_MS;
         else process.env.GOOGLE_API_RETRY_DELAY_MS = previousDelay;
+    }
+});
+
+test('google.deleteRowsByIndices can use write ledger to avoid deleting twice', async () => {
+    const { FinancialWriteLedger } = require('../src/reliability/financialWriteLedger');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-google-delete-ledger-'));
+    const ledger = new FinancialWriteLedger({ dbPath: path.join(dir, 'ledger.sqlite') });
+    let deleteCalls = 0;
+    const fakeSheets = {
+        spreadsheets: {
+            get: async () => ({
+                data: {
+                    sheets: [{ properties: { title: 'Saídas', sheetId: 10 } }]
+                }
+            }),
+            batchUpdate: async () => {
+                deleteCalls += 1;
+                return { data: { replies: [{}] } };
+            }
+        }
+    };
+
+    googleService.__test__.setGoogleClientsForTest({
+        sheetsClient: fakeSheets,
+        tasksClient: {},
+        calendarClient: {},
+        oauthClient: {}
+    });
+
+    try {
+        const first = await googleService.deleteRowsByIndices('Saídas', [2], {
+            forceCentral: true,
+            operationKey: 'delete-ledger-test-op',
+            writeLedger: ledger
+        });
+        const second = await googleService.deleteRowsByIndices('Saídas', [2], {
+            forceCentral: true,
+            operationKey: 'delete-ledger-test-op',
+            writeLedger: ledger
+        });
+
+        assert.strictEqual(deleteCalls, 1);
+        assert.strictEqual(first.status, 'committed');
+        assert.strictEqual(second.status, 'committed');
+        assert.strictEqual(ledger.getOperation('delete-ledger-test-op').status, 'committed');
+    } finally {
+        ledger.close();
+        googleService.__test__.clearSheetsReadCache();
+    }
+});
+
+test('google.deleteRowsByIndices blocks uncertain replay instead of risking a second delete', async () => {
+    const { FinancialWriteLedger } = require('../src/reliability/financialWriteLedger');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-google-delete-uncertain-'));
+    const ledger = new FinancialWriteLedger({ dbPath: path.join(dir, 'ledger.sqlite') });
+    let deleteCalls = 0;
+    const fakeSheets = {
+        spreadsheets: {
+            get: async () => ({
+                data: {
+                    sheets: [{ properties: { title: 'Saídas', sheetId: 10 } }]
+                }
+            }),
+            batchUpdate: async () => {
+                deleteCalls += 1;
+                const error = new Error('timeout after delete');
+                error.code = 429;
+                throw error;
+            }
+        }
+    };
+
+    googleService.__test__.setGoogleClientsForTest({
+        sheetsClient: fakeSheets,
+        tasksClient: {},
+        calendarClient: {},
+        oauthClient: {}
+    });
+
+    try {
+        const first = await googleService.deleteRowsByIndices('Saídas', [2], {
+            forceCentral: true,
+            operationKey: 'delete-uncertain-test-op',
+            writeLedger: ledger
+        });
+        const second = await googleService.deleteRowsByIndices('Saídas', [2], {
+            forceCentral: true,
+            operationKey: 'delete-uncertain-test-op',
+            writeLedger: ledger
+        });
+
+        assert.strictEqual(deleteCalls, 1);
+        assert.strictEqual(first.success, false);
+        assert.strictEqual(second.success, false);
+        assert.strictEqual(second.status, 'uncertain');
+        assert.match(second.message, /incerto/i);
+        assert.strictEqual(ledger.getOperation('delete-uncertain-test-op').status, 'uncertain');
+    } finally {
+        ledger.close();
+        googleService.__test__.clearSheetsReadCache();
+    }
+});
+
+test('google message write context deduplicates delete replay without an explicit operation key', async () => {
+    const { FinancialWriteLedger } = require('../src/reliability/financialWriteLedger');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-google-delete-context-'));
+    const ledger = new FinancialWriteLedger({ dbPath: path.join(dir, 'ledger.sqlite') });
+    let deleteCalls = 0;
+    const fakeSheets = {
+        spreadsheets: {
+            get: async () => ({
+                data: {
+                    sheets: [{ properties: { title: 'Saídas', sheetId: 10 } }]
+                }
+            }),
+            batchUpdate: async () => {
+                deleteCalls += 1;
+                return { data: { replies: [{}] } };
+            }
+        }
+    };
+
+    googleService.__test__.setGoogleClientsForTest({
+        sheetsClient: fakeSheets,
+        tasksClient: {},
+        calendarClient: {},
+        oauthClient: {}
+    });
+
+    const processMessage = () => googleService.runWithUserSheetContext({
+        userId: 'user-1',
+        messageId: 'delete-message-replay-1',
+        writeLedger: ledger
+    }, () => googleService.deleteRowsByIndices('Saídas', [2], { forceCentral: true }));
+
+    try {
+        const first = await processMessage();
+        const second = await processMessage();
+
+        assert.strictEqual(deleteCalls, 1);
+        assert.strictEqual(first.success, true);
+        assert.strictEqual(second.success, true);
+        assert.strictEqual(second.receipt.replayed, true);
+    } finally {
+        ledger.close();
+        googleService.__test__.clearSheetsReadCache();
     }
 });
 
