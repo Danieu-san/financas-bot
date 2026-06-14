@@ -454,6 +454,7 @@ Inicio local do Packet 05 - Budget/Orcamento em 2026-06-06:
 - O notifier de prontidao foi conectado ao scheduler para rodar diariamente as 09:15. Em shadow, ele fica silencioso durante a coleta, avisa admins uma unica vez quando chegar a `manual_review_for_enforce` e alerta quando surgir/aumentar divergencia critica. O estado local de deduplicacao nao guarda dados financeiros ou IDs de usuarios, e o notifier nunca ativa `enforce`.
 - Revalidacao local do monitor/notifier: `npm test` 385/385, `npm audit --audit-level=high` sem vulnerabilidades, bateria financeira 265/265, bateria de confiabilidade 340/340, `npm run report:interpretation-readiness` recomendou `keep_shadow` por falta esperada de telemetria real, `git diff --check` sem erro bloqueante, NUL scan sem achados e `state_store.json` `{}`. Sem deploy nesta etapa.
 - Nesta etapa offline foram usadas 0 chamadas Gemini. O manifesto esta em `docs/qa/interpretation-reliability-manifest-2026-06-13.json`.
+- Deploy do shadow/notifier concluido em 2026-06-14 com o codigo `3cab49d`. Producao ficou com `INTERPRETATION_RELIABILITY_MODE=shadow`, allowlist `expense.create,income.create`, alertas habilitados e `DASHBOARD_ADMIN_ALL_USERS_ENABLED=false`. PM2, WhatsApp e `/dashboard/health` ficaram saudaveis; o monitor recomendou `keep_shadow` com 0 decisoes, 0 divergencias criticas e nenhum alerta indevido. Rollback: `79d0a9b`; backup: `/home/ubuntu/financas-bot-backups/release-20260614T0218Z-interpretation-shadow`.
 
 Em 2026-05-26, `git status --short` ainda mostrava arquivos nao rastreados antigos:
 
