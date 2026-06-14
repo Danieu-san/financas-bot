@@ -7424,6 +7424,7 @@ async function handleMessage(msg) {
                                         message: userQuestion,
                                         userIds: analyticalUserIds,
                                         personByUserId: buildFinancialAgentPersonByUserId(analyticalUserIds, usersForScope, activeUser),
+                                        financialQueryPlan: effectiveIntentClassification.financialQueryPlan || null,
                                         mode: financialAgentMode
                                     }),
                                     perfContext

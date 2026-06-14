@@ -479,6 +479,17 @@ Inicio local do Packet 05 - Budget/Orcamento em 2026-06-06:
 - Producao permanece em `shadow`; esta evolucao local nao ativa `enforce`. Credito, transferencias, lotes, audio, importacao e demais mutacoes continuam fora do gate inicial.
 - Revalidacao local da recuperacao em 2026-06-14: `node --check` passou em 10 JS alterados, testes focados de ledger/importacao passaram, confiabilidade+state machine 81/81, bateria IRAB 340/340, bateria Financial Query 265/265, `npm audit --audit-level=high` 0 vulnerabilidades, `npm test` 408/408, `git diff --check` sem erro bloqueante, NUL scan limpo, `state_store.json` `{}` e readiness `KEEP_SHADOW` por falta esperada de amostra real.
 
+## Expansao local do LangGraph financial agent - 2026-06-14
+
+- O agente read-only passou a reutilizar o `FinancialQueryPlan` ja validado pelo roteamento local e executa a Query Engine como ferramenta; o Gemini nao pode construir esse plano.
+- Foram adicionadas ferramentas deterministicas de snapshot do dashboard e explicacao de metricas. Resultados aninhados passam por sanitizacao de chaves internas antes de circular no agente.
+- Orcamento sem configuracao ativa passou a ser um estado consultavel e seguro, em vez de parecer indisponibilidade do read-model.
+- Pedidos de navegacao/geracao de dashboard sao esclarecidos e nao confundidos com analise financeira.
+- O runner `npm run test:financial-agent` executou os 265 casos oficiais pelo LangGraph com 265/265 aceitos, 23 bloqueios de seguranca, 238 respostas verificadas e 0 chamadas Gemini.
+- Revisao adversarial confirmou: ferramentas somente leitura, escopo resolvido fora do LLM, SQL sandbox em memoria sobre dados publicos escopados, planner Gemini desligado e `answer` desligado.
+- Verificacao local deste incremento: testes focados 19/19, `npm test` 430/430, Financial Query Acceptance 265/265, Interpretation Reliability 340/340, `npm audit --audit-level=high` sem vulnerabilidades, `git diff --check` sem erro bloqueante, NUL scan limpo e `state_store.json` restaurado para `{}`.
+- Proximo gate: deploy apenas em `shadow`, mantendo `FINANCIAL_AGENT_LLM_PLANNER_ENABLED=false`, `FAMILY_MODE_ENABLED=false` e sem ativar `answer`. Antes de `answer`, ainda faltam verificador forte de percentuais/ordenacao/contagens/tendencias e bateria livre controlada do planner Gemini.
+
 Em 2026-05-26, `git status --short` ainda mostrava arquivos nao rastreados antigos:
 
 - `.claude/`

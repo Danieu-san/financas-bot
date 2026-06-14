@@ -3,7 +3,13 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const { normalizeText } = require('../utils/helpers');
-const { listRecentTransactions, runSafeReadonlySqlTool } = require('./financialAgentTools');
+const {
+    listRecentTransactions,
+    runSafeReadonlySqlTool,
+    queryFinancialPlanTool,
+    getDashboardSnapshotTool,
+    explainMetricTool
+} = require('./financialAgentTools');
 const { verifyAgentAnswer } = require('./resultVerifier');
 const { planWithGemini } = require('./financialAgentPlanner');
 
@@ -11,6 +17,7 @@ const AgentState = Annotation.Root({
     message: Annotation(),
     userIds: Annotation(),
     personByUserId: Annotation(),
+    financialQueryPlan: Annotation(),
     mode: Annotation(),
     plan: Annotation(),
     toolResult: Annotation(),
@@ -36,8 +43,36 @@ function eventTypeLabel(type) {
     return labels[type] || 'lançamento';
 }
 
+function domainLabel(domain) {
+    const labels = {
+        expenses: 'gastos',
+        cards: 'cartões/faturas',
+        income: 'entradas',
+        transfers: 'transferências/reserva',
+        budget: 'orçamento',
+        goals: 'metas',
+        debts: 'dívidas',
+        bills: 'contas',
+        dashboard: 'dashboard'
+    };
+    return labels[domain] || 'análise financeira';
+}
+
 function unsafeMessage(normalized) {
     return /\b(sheet[\s_-]*id|user[\s_-]*id|token|segredo|secret|prompt|regras internas|bypass|modo admin|todos os usuarios|todos os usuários)\b/.test(normalized);
+}
+
+function inferDashboardMetric(normalized) {
+    if (/disponivel|disponível|caixinha|reserva/.test(normalized)) return 'available';
+    if (/categoria/.test(normalized)) return 'categories';
+    if (/orcamento|orçamento|ritmo/.test(normalized)) return 'budget';
+    if (/recente|ultimo|último|lancamento|lançamento/.test(normalized)) return 'recentTransactions';
+    return 'balance';
+}
+
+function isDashboardNavigationRequest(normalized) {
+    if (!normalized.includes('dashboard')) return false;
+    return /\b(abra|abrir|altere|alterar|envia|enviar|envie|gere|gerar|link|mude|mudar|troque|trocar)\b/.test(normalized);
 }
 
 function buildFallbackWeekdaySql() {
@@ -105,6 +140,66 @@ async function planTurn(state) {
         };
     }
 
+    if (state.financialQueryPlan) {
+        if (state.financialQueryPlan.domain === 'dashboard') {
+            if (state.financialQueryPlan.operation === 'explain') {
+                return {
+                    plan: {
+                        action: 'tool',
+                        tool: 'explain_metric',
+                        args: {
+                            metric: inferDashboardMetric(normalized),
+                            month: state.financialQueryPlan.filters?.period?.month,
+                            year: state.financialQueryPlan.filters?.period?.year
+                        }
+                    },
+                    action: 'tool'
+                };
+            }
+            return {
+                plan: {
+                    action: 'tool',
+                    tool: 'get_dashboard_snapshot',
+                    args: {
+                        month: state.financialQueryPlan.filters?.period?.month,
+                        year: state.financialQueryPlan.filters?.period?.year
+                    }
+                },
+                action: 'tool'
+            };
+        }
+        return {
+            plan: {
+                action: 'tool',
+                tool: 'query_financial_plan',
+                args: { plan: state.financialQueryPlan }
+            },
+            action: 'tool'
+        };
+    }
+
+    if (isDashboardNavigationRequest(normalized)) {
+        return {
+            plan: {
+                action: 'clarify',
+                question: 'Você quer abrir o dashboard ou consultar algum indicador financeiro aqui na conversa?'
+            },
+            action: 'clarify'
+        };
+    }
+
+    if (/(dashboard|resumo financeiro)/.test(normalized)) {
+        const wantsExplanation = /(por que|explique|explica|criterio|critério)/.test(normalized);
+        return {
+            plan: {
+                action: 'tool',
+                tool: wantsExplanation ? 'explain_metric' : 'get_dashboard_snapshot',
+                args: wantsExplanation ? { metric: inferDashboardMetric(normalized) } : {}
+            },
+            action: 'tool'
+        };
+    }
+
     const llmPlan = await planWithGemini({ message });
     if (llmPlan) {
         return { plan: llmPlan, action: llmPlan.action };
@@ -133,7 +228,125 @@ async function runTool(state) {
     if (plan.tool === 'run_safe_readonly_sql') {
         return { toolResult: await runSafeReadonlySqlTool({ ...common, ...(plan.args || {}) }) };
     }
+    if (plan.tool === 'query_financial_plan') {
+        return { toolResult: await queryFinancialPlanTool({ ...common, ...(plan.args || {}) }) };
+    }
+    if (plan.tool === 'get_dashboard_snapshot') {
+        return { toolResult: await getDashboardSnapshotTool({ ...common, ...(plan.args || {}) }) };
+    }
+    if (plan.tool === 'explain_metric') {
+        return { toolResult: await explainMetricTool({ ...common, ...(plan.args || {}) }) };
+    }
     return { toolResult: { ok: false, reason: 'tool_not_allowed', rows: [] } };
+}
+
+function valueFromItem(item = {}) {
+    const candidates = ['total', 'value', 'amount', 'current', 'balance', 'saldo', 'expected', 'remaining'];
+    for (const key of candidates) {
+        if (Number.isFinite(Number(item?.[key]))) return Number(item[key]);
+    }
+    return null;
+}
+
+function labelFromItem(item = {}) {
+    return item.label || item.description || item.name || item.category || item.card || item.monthLabel || item.month || 'item';
+}
+
+function composeList(items = [], title = 'Resultados') {
+    const safeItems = Array.isArray(items) ? items.slice(0, 10) : [];
+    if (safeItems.length === 0) return `${title}: nenhum item encontrado.`;
+    const lines = safeItems.map((item, index) => {
+        const value = valueFromItem(item);
+        const count = Number.isFinite(Number(item?.count)) ? `, ${Number(item.count)} lançamento(s)` : '';
+        return `${index + 1}. ${labelFromItem(item)}${value === null ? '' : `: ${moneyBR(value)}`}${count}`;
+    });
+    return `${title}:\n${lines.join('\n')}`;
+}
+
+function composeBudgetAnswer(summary = {}) {
+    if (!summary.active) {
+        return summary.criteria || 'Nenhum orçamento mensal livre está ativo neste escopo.';
+    }
+    return [
+        'Orçamento do ciclo:',
+        `- Limite mensal: ${moneyBR(summary.monthlyAmount || 0)}`,
+        `- Gasto no ciclo: ${moneyBR(summary.cycleSpent || 0)}`,
+        `- Restante no ciclo: ${moneyBR(summary.remainingInCycle || 0)}`,
+        `- Gasto hoje: ${moneyBR(summary.todaySpent || 0)}`,
+        `- Ritmo recomendado hoje: ${moneyBR(summary.dailyRecommendedAmount || 0)}`,
+        `- Dias restantes: ${Number(summary.daysRemaining || 0)}`,
+        summary.period?.label ? `- Ciclo: ${summary.period.label}` : '',
+        summary.criteria
+    ].filter(Boolean).join('\n');
+}
+
+function composeFinancialPlanAnswer(toolResult = {}) {
+    const plan = toolResult.plan || {};
+    const result = toolResult.result || {};
+    const value = result.value;
+    const details = result.details || {};
+    const title = domainLabel(plan.domain);
+    const criteria = details.criteria || value?.criteria || '';
+
+    if (plan.domain === 'budget' && value && typeof value === 'object' && !Array.isArray(value)) {
+        return composeBudgetAnswer(value);
+    }
+
+    let body = '';
+    if (plan.operation === 'count') {
+        body = `Contagem de ${title}: ${Number(value || 0)}.`;
+    } else if (typeof value === 'number') {
+        body = `${title.charAt(0).toUpperCase() + title.slice(1)}: ${moneyBR(value)}.`;
+    } else if (Array.isArray(value)) {
+        body = composeList(value, title.charAt(0).toUpperCase() + title.slice(1));
+    } else if (value?.percent !== undefined) {
+        body = `${title.charAt(0).toUpperCase() + title.slice(1)} representam ${Number(value.percent || 0).toLocaleString('pt-BR')}%: ${moneyBR(value.part || 0)} de ${moneyBR(value.total || 0)}.`;
+    } else if (Array.isArray(value?.items)) {
+        const totalLine = value.total !== undefined ? `Total: ${moneyBR(value.total)}.\n` : '';
+        body = `${totalLine}${composeList(value.items, title.charAt(0).toUpperCase() + title.slice(1))}`;
+    } else if (value && typeof value === 'object') {
+        const numericEntries = Object.entries(value)
+            .filter(([, item]) => typeof item === 'number' && Number.isFinite(item))
+            .slice(0, 8);
+        if (numericEntries.length > 0) {
+            body = `${title.charAt(0).toUpperCase() + title.slice(1)}:\n${numericEntries
+                .map(([key, item]) => `- ${key}: ${moneyBR(item)}`)
+                .join('\n')}`;
+        }
+    }
+
+    if (!body) {
+        body = `Consegui analisar ${title}, mas o resultado precisa de uma apresentação mais específica.`;
+    }
+    const basis = plan.timeBasis ? `Critério temporal: ${plan.timeBasis}.` : '';
+    return [body, criteria, basis].filter(Boolean).join('\n');
+}
+
+function composeDashboardAnswer(snapshot = {}) {
+    const kpis = snapshot.kpis || {};
+    return [
+        'Resumo financeiro:',
+        `- Entradas: ${moneyBR(kpis.entradas || 0)}`,
+        `- Saídas: ${moneyBR(kpis.saidas || 0)}`,
+        `- Cartões: ${moneyBR(kpis.cartoes || 0)}`,
+        `- Saldo: ${moneyBR(kpis.saldo || 0)}`,
+        `- Disponível estimado: ${moneyBR(kpis.saldoDisponivelEstimado ?? kpis.saldo ?? 0)}`,
+        snapshot.criteria?.balance,
+        snapshot.criteria?.available
+    ].filter(Boolean).join('\n');
+}
+
+function composeMetricExplanation(result = {}) {
+    const lines = [`Explicação de ${result.metric || 'métrica'}:`];
+    if (Array.isArray(result.components)) {
+        lines.push(composeList(result.components, 'Componentes'));
+    } else {
+        Object.entries(result.components || {}).slice(0, 10).forEach(([key, value]) => {
+            if (typeof value === 'number') lines.push(`- ${key}: ${moneyBR(value)}`);
+        });
+    }
+    if (result.criteria) lines.push(result.criteria);
+    return lines.join('\n');
 }
 
 function composeAnswer(state) {
@@ -177,6 +390,15 @@ function composeAnswer(state) {
             action: 'answer'
         };
     }
+    if (plan.tool === 'query_financial_plan') {
+        return { answer: composeFinancialPlanAnswer(result), action: 'answer' };
+    }
+    if (plan.tool === 'get_dashboard_snapshot') {
+        return { answer: composeDashboardAnswer(result.snapshot || {}), action: 'answer' };
+    }
+    if (plan.tool === 'explain_metric') {
+        return { answer: composeMetricExplanation(result), action: 'answer' };
+    }
     return { answer: 'Não consegui compor uma resposta segura para essa análise.', action: 'error' };
 }
 
@@ -209,6 +431,7 @@ export async function invokeFinancialAgentRuntime(input = {}) {
         message: input.message || '',
         userIds: input.userIds || [],
         personByUserId: input.personByUserId || {},
+        financialQueryPlan: input.financialQueryPlan || null,
         mode: input.mode || 'shadow'
     });
     return {

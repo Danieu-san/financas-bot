@@ -1932,8 +1932,6 @@ function queryBudgetFinancialQueryDataSourcesSql(plan, { userId, userIds, curren
         WHERE user_id IN (${settingsPlaceholders})
         ORDER BY CASE WHEN user_id = ? THEN 0 ELSE 1 END
     `).all(...scopeUserIds, String(userId || '').trim());
-    if (settingsRows.length === 0) return null;
-
     const requestedScope = normalizeText(plan.filters?.scope || '');
     const activeSettingsRows = settingsRows.filter(row =>
         normalizeText(row.monthly_budget_enabled || '') === 'sim' &&
@@ -1948,7 +1946,8 @@ function queryBudgetFinancialQueryDataSourcesSql(plan, { userId, userIds, curren
         );
     const cycleSettings = activeSettings ||
         settingsRows.find(row => normalizeText(row.monthly_budget_scope || '') === requestedScope) ||
-        settingsRows[0];
+        settingsRows[0] ||
+        { monthly_budget_cycle_start_day: 1 };
     const cycleStartDay = normalizeCycleStartDay(cycleSettings.monthly_budget_cycle_start_day || 1);
     const referenceDate = parseBudgetReferenceDate(currentDate);
     const referenceParts = {

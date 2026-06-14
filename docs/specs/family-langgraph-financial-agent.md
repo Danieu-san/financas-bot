@@ -101,16 +101,16 @@ The public table stores owner hashes internally for filtering, but exported agen
 
 ## Tools
 
-Initial tools:
-
-- `list_recent_transactions`
-- `run_safe_readonly_sql`
-
-Planned tools:
+Implemented tools:
 
 - `query_financial_plan`
+- `list_recent_transactions`
+- `run_safe_readonly_sql`
 - `get_dashboard_snapshot`
 - `explain_metric`
+
+Routing-only actions:
+
 - `ask_clarification`
 - `block_unsafe_request`
 
@@ -160,7 +160,7 @@ The verifier blocks:
 - Internal identifiers or sensitive terms.
 - Currency values not present in tool results.
 
-Future verifier expansion should check:
+Verifier expansion required before `answer` mode should check:
 
 - percent numerator and denominator;
 - ordering for latest/oldest;
@@ -177,17 +177,19 @@ Implemented:
 - `financial_events_public`.
 - Safe SQL validator and in-memory sandbox.
 - Recent transactions tool.
+- Query Engine tool fed only by an already validated `FinancialQueryPlan`.
+- Dashboard snapshot and metric explanation tools.
 - Result verifier.
 - WhatsApp integration behind `FINANCIAL_AGENT_MODE`.
-- Tests for public rows, SQL sandbox, recent transactions, verifier, runtime and activation gate.
+- Official Financial Query Acceptance battery executed through the agent with 265/265 accepted, 23 security blocks, 238 verified answers and zero Gemini calls.
+- Tests for public rows, SQL sandbox, tools, verifier, runtime and activation gate.
 
 Not yet implemented:
 
-- Gemini structured planner inside the graph.
-- Dashboard snapshot tool inside the graph.
-- Query Engine tool wrapper inside the graph.
-- Broad 200-question agentic battery.
-- Production shadow deployment.
+- Production activation of the Gemini planner; the adapter exists but remains disabled.
+- A novel free-form battery focused specifically on LLM-planned SQL/tool calls.
+- Strong verifier checks for percentages, ordering, row-count claims and trend labels.
+- Production deployment of the expanded tool set in this slice.
 - Deactivation workflow for non-family users.
 
 ## Acceptance For This Slice
@@ -196,5 +198,7 @@ Not yet implemented:
 - `shadow` cannot change user-facing answer.
 - `answer` cannot use planner-gap clarification to bypass the legacy route.
 - Agent rows do not expose internal IDs.
+- Agent tool results do not expose internal IDs.
 - SQL sandbox rejects non-public tables and unsafe commands.
 - A latest-gasto question can be answered through LangGraph with verified output.
+- All official Financial Query Acceptance cases pass through the graph without Gemini.

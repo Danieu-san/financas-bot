@@ -7,7 +7,12 @@ const {
     queryFinancialEventsPublicRows
 } = require('../src/services/sqliteReadModelService');
 const { runSafeReadonlySql, validateSafeReadonlySql } = require('../src/agent/safeReadonlySql');
-const { listRecentTransactions } = require('../src/agent/financialAgentTools');
+const {
+    listRecentTransactions,
+    queryFinancialPlanTool,
+    getDashboardSnapshotTool,
+    explainMetricTool
+} = require('../src/agent/financialAgentTools');
 const { verifyAgentAnswer } = require('../src/agent/resultVerifier');
 const { invokeFinancialAgent } = require('../src/agent/financialAgent');
 const {
@@ -107,6 +112,82 @@ test('financial agent tools can answer latest transaction questions without lega
     assert.strictEqual(latest.rows[0].person, 'Thais');
 });
 
+test('financial agent Query Engine tool executes a validated scoped FinancialQueryPlan', async () => {
+    syncAgentSnapshot();
+
+    const result = await queryFinancialPlanTool({
+        userIds: ['agent-daniel', 'agent-thais'],
+        plan: {
+            kind: 'financial_query',
+            domain: 'expenses',
+            operation: 'sum',
+            filters: { period: { type: 'month', month: 5, year: 2026 } },
+            timeBasis: 'billing_month'
+        }
+    });
+
+    assert.strictEqual(result.ok, true);
+    assert.strictEqual(result.tool, 'query_financial_plan');
+    assert.strictEqual(result.plan.filters.scope, 'family');
+    assert.strictEqual(result.result.value, 105);
+    assert.doesNotMatch(JSON.stringify(result), /agent-outsider|user_id|owner_hash/);
+});
+
+test('financial agent Query Engine treats missing budget settings as a valid inactive budget', async () => {
+    syncAgentSnapshot();
+
+    const result = await queryFinancialPlanTool({
+        userIds: ['agent-daniel'],
+        plan: {
+            kind: 'financial_query',
+            domain: 'budget',
+            operation: 'forecast',
+            filters: { period: { type: 'cycle', label: 'ciclo atual' } },
+            timeBasis: 'budget_cycle'
+        }
+    });
+
+    assert.strictEqual(result.ok, true);
+    assert.strictEqual(result.result.value.active, false);
+    assert.match(result.result.value.criteria, /desativado/i);
+});
+
+test('financial agent dashboard and explain tools expose deterministic public snapshots', async () => {
+    syncAgentSnapshot();
+
+    const dashboard = await getDashboardSnapshotTool({
+        userIds: ['agent-daniel'],
+        month: 5,
+        year: 2026
+    });
+    assert.strictEqual(dashboard.ok, true);
+    assert.strictEqual(dashboard.snapshot.kpis.entradas, 5000);
+    assert.strictEqual(dashboard.snapshot.kpis.saidas, 30);
+    assert.match(dashboard.snapshot.criteria.balance, /Critério/i);
+    assert.doesNotMatch(JSON.stringify(dashboard), /agent-daniel|user_id|owner_hash/);
+
+    const explanation = await explainMetricTool({
+        metric: 'available',
+        userIds: ['agent-daniel'],
+        month: 5,
+        year: 2026
+    });
+    assert.strictEqual(explanation.ok, true);
+    assert.strictEqual(explanation.metric, 'available');
+    assert.match(explanation.criteria, /disponível estimado/i);
+});
+
+test('financial agent dashboard sanitizer removes nested internal identifiers', () => {
+    const sanitized = require('../src/agent/financialAgentTools').__test__.sanitizeDashboardSnapshot({
+        kpis: { saldo: 10, user_id: 'internal-user' },
+        recentTransactions: [{ description: 'mercado', owner_hash: 'internal-hash', amount: 10 }],
+        goals: [{ name: 'Reserva', sheet_id: 'internal-sheet' }]
+    });
+
+    assert.strictEqual(sanitized.kpis.saldo, 10);
+    assert.doesNotMatch(JSON.stringify(sanitized), /internal-user|internal-hash|internal-sheet|user_id|owner_hash|sheet_id/i);
+});
+
 test('result verifier rejects invented numbers and internal fields', () => {
     const toolResult = {
         ok: true,
@@ -134,6 +215,43 @@ test('LangGraph financial agent answers read-only latest expense with verified r
     assert.match(result.answer, /restaurante/i);
     assert.match(result.answer, /05\/06\/2026/);
     assert.doesNotMatch(result.answer, /agent-daniel|user_id|sheet/i);
+});
+
+test('LangGraph financial agent executes an existing FinancialQueryPlan as a trusted tool', async () => {
+    syncAgentSnapshot();
+
+    const result = await invokeFinancialAgent({
+        message: 'Quanto nós gastamos em junho?',
+        userIds: ['agent-daniel', 'agent-thais'],
+        personByUserId: { 'agent-daniel': 'Daniel', 'agent-thais': 'Thais' },
+        financialQueryPlan: {
+            kind: 'financial_query',
+            domain: 'expenses',
+            operation: 'sum',
+            filters: { period: { type: 'month', month: 5, year: 2026 }, scope: 'family' },
+            timeBasis: 'billing_month'
+        },
+        mode: 'shadow'
+    });
+
+    assert.strictEqual(result.action, 'answer');
+    assert.strictEqual(result.plan.tool, 'query_financial_plan');
+    assert.strictEqual(result.verified.ok, true);
+    assert.match(result.answer, /R\$\s*105,00/i);
+    assert.doesNotMatch(result.answer, /agent-|user_id|owner_hash/i);
+});
+
+test('LangGraph financial agent clarifies dashboard navigation instead of treating it as analytics', async () => {
+    const result = await invokeFinancialAgent({
+        message: 'gere link do dashboard',
+        userIds: ['agent-daniel'],
+        mode: 'shadow'
+    });
+
+    assert.strictEqual(result.action, 'clarify');
+    assert.strictEqual(result.plan.action, 'clarify');
+    assert.notStrictEqual(result.toolResult?.ok, true);
+    assert.match(result.answer, /abrir o dashboard|consultar algum indicador/i);
 });
 
 test('financial agent activation defaults to off and accepts enforce as answer alias', () => {

@@ -4,8 +4,11 @@ const { validateSafeReadonlySql } = require('./safeReadonlySql');
 const { DEFAULT_EVENT_TYPES } = require('./financialAgentTools');
 
 const ALLOWED_AGENT_TOOLS = new Set([
+    'query_financial_plan',
     'list_recent_transactions',
-    'run_safe_readonly_sql'
+    'run_safe_readonly_sql',
+    'get_dashboard_snapshot',
+    'explain_metric'
 ]);
 
 function truthy(value) {
@@ -24,6 +27,8 @@ function buildPlannerPrompt(message = '') {
         'Ferramentas permitidas:',
         '- list_recent_transactions: para ultimo/ultimos lancamentos. Args: eventTypes, limit.',
         '- run_safe_readonly_sql: para consultas read-only flexiveis.',
+        '- get_dashboard_snapshot: para resumo deterministico do dashboard. Args: month, year.',
+        '- explain_metric: explica saldo, disponivel, categorias, orcamento ou lancamentos recentes. Args: metric, month, year.',
         '',
         'Tabela SQL publica allowlisted: financial_events_public.',
         'Colunas publicas: date, iso_date, year, month, weekday, event_type, amount, description, category, subcategory, person, payment_method, card, billing_month, due_date, source.',
@@ -38,6 +43,8 @@ function buildPlannerPrompt(message = '') {
         'Formato:',
         '{"action":"tool","tool":"run_safe_readonly_sql","args":{"sql":"SELECT ... LIMIT 20"}}',
         '{"action":"tool","tool":"list_recent_transactions","args":{"eventTypes":["expense"],"limit":1}}',
+        '{"action":"tool","tool":"get_dashboard_snapshot","args":{"month":5,"year":2026}}',
+        '{"action":"tool","tool":"explain_metric","args":{"metric":"available","month":5,"year":2026}}',
         '{"action":"clarify","question":"..."}',
         '{"action":"block","reason":"unsafe_request"}',
         '',
@@ -83,6 +90,37 @@ function normalizePlannerPlan(rawPlan = {}) {
             source: 'llm_planner'
         };
     }
+
+    if (tool === 'get_dashboard_snapshot') {
+        return {
+            action: 'tool',
+            tool,
+            args: {
+                month: Number.isInteger(Number(args.month)) ? Number(args.month) : undefined,
+                year: Number.isInteger(Number(args.year)) ? Number(args.year) : undefined
+            },
+            source: 'llm_planner'
+        };
+    }
+
+    if (tool === 'explain_metric') {
+        const metric = String(args.metric || '').trim();
+        if (!metric) return null;
+        return {
+            action: 'tool',
+            tool,
+            args: {
+                metric,
+                month: Number.isInteger(Number(args.month)) ? Number(args.month) : undefined,
+                year: Number.isInteger(Number(args.year)) ? Number(args.year) : undefined
+            },
+            source: 'llm_planner'
+        };
+    }
+
+    // The LLM planner cannot construct FinancialQueryPlan yet. This tool is fed
+    // only by the already validated local planner in messageHandler.
+    if (tool === 'query_financial_plan') return null;
 
     if (tool === 'run_safe_readonly_sql') {
         const sql = String(args.sql || '').trim();

@@ -141,6 +141,20 @@ Validar:
 - Update `uncertain` deve reconciliar somente se a linha atual ja tiver o valor esperado; se a linha mudou, deve bloquear replay automatico.
 - Repetir a confirmacao de uma mesma importacao com outro id de mensagem nao pode salvar novamente os itens ja importados; a chave deve ser estavel por item do arquivo e preservar itens identicos legitimos quando o indice for diferente.
 
+## Financial agent shadow
+
+Validar:
+
+- `npm run test:financial-agent` executa todos os casos oficiais pela rota LangGraph e termina sem gaps.
+- O relatorio deve registrar `gemini_calls=0` enquanto `FINANCIAL_AGENT_LLM_PLANNER_ENABLED=false`.
+- Pedidos adversariais devem ser bloqueados antes do agente.
+- Respostas e resultados de ferramentas nao podem conter IDs internos, tokens, prompts, owner hashes ou linhas cruas.
+- `query_financial_plan` recebe apenas plano previamente validado; o planner Gemini nao pode construir esse plano.
+- Orcamento inativo e uma resposta valida, nao erro de read-model.
+- Pedidos para abrir, gerar link ou trocar UI do dashboard nao devem ser confundidos com consulta analitica.
+- `FINANCIAL_AGENT_MODE=shadow` nunca muda a resposta enviada ao usuario.
+- Nao ativar `answer` antes de fortalecer verificacao de percentuais, ordenacao, contagens e tendencias, e antes de validar uma bateria livre do planner Gemini com teto de custo.
+
 ## Scheduler e Calendar
 
 Validar:
