@@ -49,3 +49,15 @@ Not enabled:
 - Run a controlled novel free-form battery for Gemini-planned tool calls with an explicit cost ceiling.
 - Observe sanitized production shadow telemetry.
 - Perform a separate review before enabling `answer`.
+
+## Deployment
+
+- Commit: `565e843`.
+- Mode: `shadow`.
+- Gemini planner: disabled.
+- Family Mode: disabled.
+- Dashboard all-users: disabled.
+- Backup: `/home/ubuntu/financas-bot-backups/release-20260614-agent-shadow-tools-565e843`.
+- Rollback commit: `9c6047a`.
+- Post-deploy health: PM2 online, SQLite healthy, WhatsApp ready after one controlled automatic restart.
+- Synthetic read-only smoke: verified `query_financial_plan` answer with no financial write.

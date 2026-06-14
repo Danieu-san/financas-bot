@@ -489,6 +489,9 @@ Inicio local do Packet 05 - Budget/Orcamento em 2026-06-06:
 - Revisao adversarial confirmou: ferramentas somente leitura, escopo resolvido fora do LLM, SQL sandbox em memoria sobre dados publicos escopados, planner Gemini desligado e `answer` desligado.
 - Verificacao local deste incremento: testes focados 19/19, `npm test` 430/430, Financial Query Acceptance 265/265, Interpretation Reliability 340/340, `npm audit --audit-level=high` sem vulnerabilidades, `git diff --check` sem erro bloqueante, NUL scan limpo e `state_store.json` restaurado para `{}`.
 - Proximo gate: deploy apenas em `shadow`, mantendo `FINANCIAL_AGENT_LLM_PLANNER_ENABLED=false`, `FAMILY_MODE_ENABLED=false` e sem ativar `answer`. Antes de `answer`, ainda faltam verificador forte de percentuais/ordenacao/contagens/tendencias e bateria livre controlada do planner Gemini.
+- Deploy da expansao shadow concluido no commit `565e843` em 2026-06-14. Backup: `/home/ubuntu/financas-bot-backups/release-20260614-agent-shadow-tools-565e843`; rollback: `9c6047a`.
+- Pos-deploy: PM2 online, `/dashboard/health` com SQLite saudavel, Google/Sheets/read-model prontos, WhatsApp ready apos o timeout controlado da primeira tentativa e um reinicio automatico do PM2. Smoke sintetico read-only retornou `query_financial_plan` com resposta verificada.
+- Flags confirmadas em producao: `FINANCIAL_AGENT_MODE=shadow`, `FINANCIAL_AGENT_LLM_PLANNER_ENABLED=false`, `FAMILY_MODE_ENABLED=false` e `DASHBOARD_ADMIN_ALL_USERS_ENABLED=false`. O agente ainda nao responde ao usuario e nao faz chamadas Gemini adicionais.
 
 Em 2026-05-26, `git status --short` ainda mostrava arquivos nao rastreados antigos:
 
