@@ -119,6 +119,17 @@ Validar:
 - `admin reiniciar bot` exige `confirmar admin` e so agenda reinicio do processo; nao deve aceitar comando livre de terminal.
 - Apos deploy de manutencao, conferir PM2, `/dashboard/health` e logs ate `Bot pronto para receber mensagens`.
 
+## Interpretation reliability shadow
+
+Validar:
+
+- `npm run report:interpretation-readiness` permanece em `keep_shadow` enquanto os gates nao forem cumpridos.
+- O scheduler chama o notifier diariamente as 09:15, mas fica silencioso sem condicao de alerta.
+- Prontidao envia uma unica mensagem sanitizada somente aos admins.
+- Divergencia critica envia alerta `NAO ative enforce` e so repete quando a contagem aumenta.
+- `data/interpretation-reliability-alert-state.json` nao contem telefone, `user_id`, texto financeiro, token ou ID de planilha.
+- O notifier nunca altera `INTERPRETATION_RELIABILITY_MODE`.
+
 ## Scheduler e Calendar
 
 Validar:

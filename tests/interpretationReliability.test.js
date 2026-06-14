@@ -26,6 +26,9 @@ const {
     parseShadowTelemetryJsonl
 } = require('../src/reliability/enforceReadinessMonitor');
 const {
+    sendInterpretationReadinessAlert
+} = require('../src/reliability/enforceReadinessNotifier');
+const {
     buildInterpretationReliabilityAcceptanceCases,
     runInterpretationReliabilityAcceptance
 } = require('../src/reliability/interpretationReliabilityAcceptance');
@@ -303,6 +306,121 @@ test('enforce readiness monitor parses jsonl without treating malformed lines as
     assert.strictEqual(parsed.invalidLines, 1);
     assert.strictEqual(evaluateEnforceReadiness(parsed.entries, { invalidLines: parsed.invalidLines }).readyForManualReview, false);
     assert.ok(evaluateEnforceReadiness(parsed.entries, { invalidLines: parsed.invalidLines }).blockers.includes('invalid_telemetry_lines'));
+});
+
+test('interpretation readiness alert notifies admins once when shadow is ready for manual review', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-readiness-alert-'));
+    const statePath = path.join(dir, 'readiness-state.json');
+    const sent = [];
+    const readyReport = {
+        readyForManualReview: true,
+        recommendedMode: 'manual_review_for_enforce',
+        blockers: [],
+        warnings: [],
+        shadowEntries: 72,
+        observationWindowDays: 15,
+        criticalDivergences: 0,
+        invalidLines: 0,
+        byOperation: { 'expense.create': 40, 'income.create': 32 },
+        thresholds: { minDecisions: 50, minObservationDays: 14 },
+        missingFile: false
+    };
+
+    const client = {
+        sendMessage: async (to, message) => sent.push({ to, message })
+    };
+
+    const first = await sendInterpretationReadinessAlert({
+        client,
+        adminIds: ['5511999999999@c.us'],
+        statePath,
+        env: { INTERPRETATION_RELIABILITY_MODE: 'shadow' },
+        reportBuilder: () => readyReport
+    });
+    const second = await sendInterpretationReadinessAlert({
+        client,
+        adminIds: ['5511999999999@c.us'],
+        statePath,
+        env: { INTERPRETATION_RELIABILITY_MODE: 'shadow' },
+        reportBuilder: () => readyReport
+    });
+
+    assert.strictEqual(first.sent, true);
+    assert.strictEqual(second.sent, false);
+    assert.strictEqual(sent.length, 1);
+    assert.strictEqual(sent[0].to, '5511999999999@c.us');
+    assert.match(sent[0].message, /Shadow pronto para revisão manual/);
+    assert.match(sent[0].message, /O enforce NAO foi ativado automaticamente/);
+    assert.doesNotMatch(sent[0].message, /5511999999999|user_id|sheet_id|token/i);
+});
+
+test('interpretation readiness alert warns admins once about critical divergence', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-readiness-critical-'));
+    const statePath = path.join(dir, 'readiness-state.json');
+    const sent = [];
+    const criticalReport = {
+        readyForManualReview: false,
+        recommendedMode: 'keep_shadow',
+        blockers: ['critical_divergence_found'],
+        warnings: [],
+        shadowEntries: 80,
+        observationWindowDays: 16,
+        criticalDivergences: 2,
+        invalidLines: 0,
+        byOperation: { 'expense.create': 50, 'income.create': 30 },
+        thresholds: { minDecisions: 50, minObservationDays: 14 },
+        missingFile: false
+    };
+
+    const client = {
+        sendMessage: async (to, message) => sent.push({ to, message })
+    };
+
+    const first = await sendInterpretationReadinessAlert({
+        client,
+        adminIds: ['5511999999999@c.us'],
+        statePath,
+        env: { INTERPRETATION_RELIABILITY_MODE: 'shadow' },
+        reportBuilder: () => criticalReport
+    });
+    const second = await sendInterpretationReadinessAlert({
+        client,
+        adminIds: ['5511999999999@c.us'],
+        statePath,
+        env: { INTERPRETATION_RELIABILITY_MODE: 'shadow' },
+        reportBuilder: () => criticalReport
+    });
+    const third = await sendInterpretationReadinessAlert({
+        client,
+        adminIds: ['5511999999999@c.us'],
+        statePath,
+        env: { INTERPRETATION_RELIABILITY_MODE: 'shadow' },
+        reportBuilder: () => ({ ...criticalReport, criticalDivergences: 3 })
+    });
+
+    assert.strictEqual(first.sent, true);
+    assert.strictEqual(second.sent, false);
+    assert.strictEqual(third.sent, true);
+    assert.strictEqual(sent.length, 2);
+    assert.match(sent[0].message, /Divergência crítica no shadow/);
+    assert.match(sent[0].message, /NAO ative enforce/);
+    assert.match(sent[1].message, /Divergências críticas observadas: 3/);
+});
+
+test('interpretation readiness alert stays silent when shadow mode is off', async () => {
+    const sent = [];
+    const result = await sendInterpretationReadinessAlert({
+        client: { sendMessage: async (to, message) => sent.push({ to, message }) },
+        adminIds: ['5511999999999@c.us'],
+        env: { INTERPRETATION_RELIABILITY_MODE: 'off' },
+        reportBuilder: () => {
+            throw new Error('report should not be built when disabled');
+        }
+    });
+
+    assert.strictEqual(result.sent, false);
+    assert.strictEqual(result.reason, 'shadow_disabled');
+    assert.deepStrictEqual(sent, []);
 });
 
 test('financial write ledger tracks operation states and keeps operation keys stable', () => {

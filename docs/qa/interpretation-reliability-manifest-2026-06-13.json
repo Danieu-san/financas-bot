@@ -19,8 +19,10 @@
     "src/reliability/financialWriteLedger.js",
     "src/reliability/reliabilityTelemetry.js",
     "src/reliability/enforceReadinessMonitor.js",
+    "src/reliability/enforceReadinessNotifier.js",
     "src/reliability/interpretationReliabilityAcceptance.js",
-    "scripts/reportInterpretationEnforceReadiness.js"
+    "scripts/reportInterpretationEnforceReadiness.js",
+    "src/jobs/scheduler.js"
   ],
   "real_data_policy": {
     "real_whatsapp_e2e": false,
@@ -38,7 +40,7 @@
     "mismatches": 0
   },
   "verification": {
-    "npm_test": "381/381",
+    "npm_test": "385/385",
     "npm_audit_high": "0 vulnerabilities",
     "financial_query_acceptance": "265/265",
     "interpretation_reliability_acceptance": "340/340",

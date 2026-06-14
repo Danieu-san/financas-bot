@@ -7,6 +7,7 @@ const { syncReadModelIfNeeded, getReadModelStats } = require('../services/readMo
 const logger = require('../utils/logger');
 const metrics = require('../utils/metrics');
 const { buildNextRecurringDueDate, isRecurringDueOnDate } = require('../utils/recurringDueDate');
+const { sendInterpretationReadinessAlert } = require('../reliability/enforceReadinessNotifier');
 
 let client;
 let isInitialized = false;
@@ -509,6 +510,22 @@ async function sendOperationalHeartbeat() {
     }
 }
 
+async function sendInterpretationReadinessAdminAlert() {
+    try {
+        const result = await sendInterpretationReadinessAlert({
+            client,
+            adminIds: getAdminIds()
+        });
+        if (result.sent) {
+            logger.info(`[scheduler] interpretation_readiness_alert_sent type=${result.alertType}`);
+        }
+        return result;
+    } catch (error) {
+        logger.error(`Erro no alerta de prontidao do shadow: ${error.message}`);
+        return { sent: false, reason: 'alert_failed' };
+    }
+}
+
 function initializeScheduler(wppClient) {
     if (isInitialized) {
         console.log('⚠️ Agendador já estava inicializado. Ignorando...');
@@ -556,6 +573,10 @@ function initializeScheduler(wppClient) {
         await sendOperationalHeartbeat();
     }, { scheduled: true, timezone: 'America/Sao_Paulo' });
 
+    cron.schedule('15 9 * * *', async () => {
+        await sendInterpretationReadinessAdminAlert();
+    }, { scheduled: true, timezone: 'America/Sao_Paulo' });
+
     cron.schedule('*/10 * * * *', async () => {
         try {
             await syncReadModelIfNeeded();
@@ -594,6 +615,7 @@ module.exports = {
         sendWeeklyCheckIn,
         sendMonthlyReports,
         sendOperationalHeartbeat,
+        sendInterpretationReadinessAdminAlert,
         collectPaymentsDueOnDate,
         addDaysForSchedule,
         getDatePartsInTimeZone,

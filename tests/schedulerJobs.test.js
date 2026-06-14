@@ -4,6 +4,7 @@ const assert = require('node:assert');
 const schedulerPath = require.resolve('../src/jobs/scheduler');
 const googlePath = require.resolve('../src/services/google');
 const userServicePath = require.resolve('../src/services/userService');
+const readinessNotifierPath = require.resolve('../src/reliability/enforceReadinessNotifier');
 
 function formatDateBR(date) {
     return [
@@ -13,10 +14,11 @@ function formatDateBR(date) {
     ].join('/');
 }
 
-function installSchedulerMocks({ users, settingsByUser, sheetsByRange = {}, eventsByUser = {} }) {
+function installSchedulerMocks({ users, settingsByUser, sheetsByRange = {}, eventsByUser = {}, readinessAlertSender = null }) {
     delete require.cache[schedulerPath];
     delete require.cache[googlePath];
     delete require.cache[userServicePath];
+    delete require.cache[readinessNotifierPath];
 
     require.cache[googlePath] = {
         id: googlePath,
@@ -38,6 +40,17 @@ function installSchedulerMocks({ users, settingsByUser, sheetsByRange = {}, even
             getUserSettingsByUserId: async (userId) => settingsByUser[userId] || {}
         }
     };
+
+    if (readinessAlertSender) {
+        require.cache[readinessNotifierPath] = {
+            id: readinessNotifierPath,
+            filename: readinessNotifierPath,
+            loaded: true,
+            exports: {
+                sendInterpretationReadinessAlert: readinessAlertSender
+            }
+        };
+    }
 
     return require('../src/jobs/scheduler');
 }
@@ -274,4 +287,31 @@ test('scheduler upcoming bill reminders cross month and year boundaries', async 
     assert.deepStrictEqual(sent.map(item => item.to), ['5511000000001@c.us']);
     assert.match(sent[0].message, /Conta janeiro/);
     assert.match(sent[0].message, /vence em 5 dias/);
+});
+
+test('scheduler sends interpretation readiness alerts only through the admin notifier', async () => {
+    const previousAdminIds = process.env.ADMIN_IDS;
+    process.env.ADMIN_IDS = '5511999999999@c.us';
+    const calls = [];
+    try {
+        const scheduler = installSchedulerMocks({
+            users: [],
+            settingsByUser: {},
+            readinessAlertSender: async (options) => {
+                calls.push(options);
+                return { sent: true, alertType: 'ready_for_manual_review' };
+            }
+        });
+        const client = { sendMessage: async () => {} };
+        scheduler.__test__.setClientForTest(client);
+
+        const result = await scheduler.__test__.sendInterpretationReadinessAdminAlert();
+
+        assert.strictEqual(result.sent, true);
+        assert.strictEqual(calls.length, 1);
+        assert.strictEqual(calls[0].client, client);
+        assert.deepStrictEqual(Array.from(calls[0].adminIds), ['5511999999999@c.us']);
+    } finally {
+        process.env.ADMIN_IDS = previousAdminIds;
+    }
 });

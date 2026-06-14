@@ -173,6 +173,9 @@ Criticos por operacao:
 - `src/reliability/enforceReadinessMonitor.js`
   - avalia se o shadow tem evidencia suficiente para revisao manual de `enforce`;
   - nao altera flags, nao escreve dados financeiros e nao executa a camada em modo `enforce`.
+- `src/reliability/enforceReadinessNotifier.js`
+  - envia alerta sanitizado somente aos admins configurados;
+  - deduplica alertas de prontidao e de divergencia critica em estado local sem dados financeiros.
 - `src/reliability/interpretationReliabilityAcceptance.js`
   - 340 casos offline executaveis para aceite.
 - `scripts/runInterpretationReliabilityAcceptanceBattery.js`
@@ -195,6 +198,7 @@ Criticos por operacao:
 - `INTERPRETATION_RELIABILITY_MODE=off|shadow|enforce`
 - `INTERPRETATION_RELIABILITY_OPERATIONS=expense.create,income.create`
 - `INTERPRETATION_RELIABILITY_TELEMETRY_PATH=data/interpretation-reliability-shadow.jsonl`
+- `INTERPRETATION_RELIABILITY_ALERTS_ENABLED=true|false`
 
 Padrao: `off`.
 
@@ -227,6 +231,8 @@ O monitor verifica:
 - zero linha de telemetria invalida.
 
 O monitor nunca altera `INTERPRETATION_RELIABILITY_MODE`, nunca escreve dados financeiros e nunca habilita `enforce` sozinho. Quando todos os gates passam, a recomendacao e apenas `manual_review_for_enforce`; a troca para `enforce` continua exigindo revisao humana, configuracao reversivel, smoke dedicado e rollback por flag.
+
+O scheduler executa o observador diariamente as 09:15 no fuso `America/Sao_Paulo`. Ele permanece silencioso enquanto nao houver condicao de alerta. Quando o shadow estiver pronto para revisao manual, envia uma unica mensagem aos admins configurados. Se surgir divergencia critica, envia um alerta de bloqueio e volta a avisar somente quando a contagem de divergencias criticas aumentar. O estado de deduplicacao fica em `data/interpretation-reliability-alert-state.json` e guarda apenas tipo, chave e data do ultimo alerta.
 
 ## Rollout recomendado
 
