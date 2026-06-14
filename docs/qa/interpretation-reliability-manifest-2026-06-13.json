@@ -1,7 +1,7 @@
 {
   "run_id": "INTERPRETATION_RELIABILITY_20260613",
   "started_at": "2026-06-13T12:00:00-03:00",
-  "updated_at": "2026-06-13T23:45:00-03:00",
+  "updated_at": "2026-06-14T01:55:00-03:00",
   "mode": "offline_first",
   "gemini_budget": {
     "text_calls_allowed": 40,
@@ -18,7 +18,9 @@
     "src/reliability/interpretationReliability.js",
     "src/reliability/financialWriteLedger.js",
     "src/reliability/reliabilityTelemetry.js",
-    "src/reliability/interpretationReliabilityAcceptance.js"
+    "src/reliability/enforceReadinessMonitor.js",
+    "src/reliability/interpretationReliabilityAcceptance.js",
+    "scripts/reportInterpretationEnforceReadiness.js"
   ],
   "real_data_policy": {
     "real_whatsapp_e2e": false,
@@ -36,7 +38,7 @@
     "mismatches": 0
   },
   "verification": {
-    "npm_test": "377/377",
+    "npm_test": "381/381",
     "npm_audit_high": "0 vulnerabilities",
     "financial_query_acceptance": "265/265",
     "interpretation_reliability_acceptance": "340/340",
@@ -72,5 +74,5 @@
     "no_test_markers_expected": true,
     "no_shadow_telemetry_expected_unless_flag_enabled": true
   },
-  "status": "local_verification_passed_no_deploy_no_commit"
+  "status": "local_verification_passed_no_deploy"
 }

@@ -679,6 +679,22 @@ function verifiedField(value, source = 'deterministic', evidence = '') {
     return reliabilityField(value, source, 'verified', evidence);
 }
 
+function buildWriteShadowDivergence(decision = {}) {
+    if (decision.action === 'execute') {
+        return { severity: 'none', reason: '' };
+    }
+    if (['confirm', 'clarify', 'block'].includes(decision.action)) {
+        return {
+            severity: 'critical',
+            reason: `current_flow_would_write_but_reliability_${decision.action}`
+        };
+    }
+    return {
+        severity: 'important',
+        reason: 'current_flow_would_write_but_reliability_unknown'
+    };
+}
+
 function recordWriteInterpretationShadow({ operation, userId, message, fields, itemCount = 1 }) {
     try {
         const extracted = extractDeterministicInterpretation(message);
@@ -690,11 +706,15 @@ function recordWriteInterpretationShadow({ operation, userId, message, fields, i
             itemCount
         });
         const decision = decideInterpretationRisk(candidate);
+        const divergence = buildWriteShadowDivergence(decision);
         recordInterpretationReliabilityShadow({
             userId,
             message,
             candidate,
-            decision
+            decision,
+            currentFlowOutcome: 'write_attempt',
+            divergenceSeverity: divergence.severity,
+            divergenceReason: divergence.reason
         });
     } catch (error) {
         logger.warn(`interpretation-reliability: shadow_record_failed error=${error.message}`);

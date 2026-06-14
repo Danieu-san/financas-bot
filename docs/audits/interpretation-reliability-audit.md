@@ -39,7 +39,7 @@ Fora de escopo desta rodada:
 | IRA-004 | MEDIUM | privacidade | Audio podia registrar texto transcrito/caminho local e deixar temporarios apos falha | Logs verbosos e cleanup parcial | Logs por evento e cleanup idempotente em falha/sucesso | `tests/audioHandlerPrivacy.test.js` |
 | IRA-005 | HIGH | recuperacao | Append financeiro podia repetir em retry de erro transiente | Retry cego em operacao nao idempotente | Retry de append desativado por padrao, operation key automatica no contexto de mensagem, ledger e reconciliacao de ultima linha | `tests/unit.test.js` |
 | IRA-006 | MEDIUM | estado | `state_store.json` podia guardar mensagem/descritivo financeiro cru | Serializacao direta do estado em memoria | Sanitizacao no snapshot persistido, preservando estado vivo em memoria | `tests/unit.test.js` |
-| IRA-007 | MEDIUM | observabilidade | Nao havia shadow mode local e sanitizado para medir confiabilidade | Camada sem trilha operacional | Telemetria opt-in por flag, allowlist e JSONL sanitizado | `tests/interpretationReliability.test.js` |
+| IRA-007 | MEDIUM | observabilidade | Nao havia shadow mode local e sanitizado para medir confiabilidade | Camada sem trilha operacional | Telemetria opt-in por flag, allowlist, JSONL sanitizado e monitor de prontidao que recomenda apenas revisao manual antes de `enforce` | `tests/interpretationReliability.test.js` |
 | IRA-008 | HIGH | privacidade | Telefones reais apareciam em codigo/docs/fixtures | Fixtures historicos foram reaproveitados | Fixtures sinteticas e mapeamento legado por env | `tests/unit.test.js` e varreduras `rg` |
 | IRA-009 | HIGH | QA | Bateria de 300+ casos apenas contava fixtures | Runner nao executava decisoes | Runner executavel offline com 340/340 casos e relatorio por decisao | `tests/interpretationReliability.test.js` e `scripts/runInterpretationReliabilityAcceptanceBattery.js` |
 | IRA-010 | HIGH | seguranca | Quatro familias de bypass escapavam do Security Gate inicial | Padroes adversariais incompletos | Bloqueio de token privado, bypass de confirmacao/validacao, falsa autorizacao e execucao como admin | `tests/unit.test.js` e bateria IRAB |
@@ -68,6 +68,7 @@ Fora de escopo desta rodada:
 - Append financeiro nao deve repetir cegamente.
 - Logs, estado persistido, QA logs, ledger, shadow telemetry e codigo versionado nao devem guardar mensagem financeira bruta, telefone real, `user_id`, token, `sheet_id` ou URL privada.
 - Shadow mode nao chama Gemini extra e nao escreve dado financeiro.
+- O monitor de prontidao do shadow nunca altera flags nem habilita `enforce`; ele so emite `keep_shadow` ou `manual_review_for_enforce`.
 - Alias de membro familiar so e valido quando vem do escopo familiar autorizado fora do LLM.
 
 ## Limitacoes ainda aceitas
@@ -93,4 +94,4 @@ Fora de escopo desta rodada:
 - Varredura de padroes sensiveis nos artefatos novos e testes auditados -> sem achados.
 - `state_store.json` -> `{}`.
 
-Fechamento local: aprovado para permanecer sem deploy e sem commit nesta etapa. O proximo passo operacional e ativar `shadow` apenas quando houver uma janela controlada de observacao real, mantendo `enforce` bloqueado ate cumprir os gates da spec.
+Fechamento local: aprovado para permanecer sem deploy nesta etapa. O proximo passo operacional e ativar `shadow` apenas quando houver uma janela controlada de observacao real, acompanhar com `npm run report:interpretation-readiness` e manter `enforce` bloqueado ate cumprir os gates da spec e passar por revisao humana.

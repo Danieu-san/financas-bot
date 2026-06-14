@@ -100,9 +100,13 @@ Enforce:
 
 - pelo menos 300 casos offline balanceados verdes;
 - pelo menos 50 decisoes reais sanitizadas observadas por 14 dias;
+- `npm run report:interpretation-readiness` retornando recomendacao `manual_review_for_enforce`;
 - zero divergencia critica nao explicada;
+- zero linha invalida no JSONL de telemetria;
+- cobertura minima das operacoes obrigatorias iniciais (`expense.create` e `income.create`);
 - 100% dos casos ambiguos impedidos de auto-save;
 - precisao minima de 99,5% nas operacoes candidatas a auto-save;
+- revisao humana obrigatoria antes de alterar `INTERPRETATION_RELIABILITY_MODE`;
 - rollback imediato por flag para `shadow` ou `off`.
 
 ## Relacao com outras baterias

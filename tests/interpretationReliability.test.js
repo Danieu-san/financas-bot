@@ -22,6 +22,10 @@ const {
     recordInterpretationReliabilityShadow
 } = require('../src/reliability/reliabilityTelemetry');
 const {
+    evaluateEnforceReadiness,
+    parseShadowTelemetryJsonl
+} = require('../src/reliability/enforceReadinessMonitor');
+const {
     buildInterpretationReliabilityAcceptanceCases,
     runInterpretationReliabilityAcceptance
 } = require('../src/reliability/interpretationReliabilityAcceptance');
@@ -200,6 +204,105 @@ test('interpretation reliability shadow telemetry is disabled by default and nev
     const payload = fs.readFileSync(telemetryPath, 'utf8');
     assert.match(payload, /expense\.create/);
     assert.doesNotMatch(payload, /mercado privado|123,45|123\.45|real-user-id|5521999999999/);
+});
+
+test('interpretation reliability shadow telemetry can record sanitized current-flow comparison', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-shadow-comparison-'));
+    const telemetryPath = path.join(dir, 'shadow.jsonl');
+    const candidate = buildInterpretationCandidate({
+        operation: 'expense.create',
+        fields: {
+            amount: { value: 100, source: 'llm', assurance: 'supported' },
+            payment: { value: 'PIX', source: 'llm', assurance: 'supported' },
+            scope: { value: 'personal', source: 'user_state', assurance: 'verified' },
+            movementType: { value: 'expense', source: 'deterministic', assurance: 'verified' }
+        }
+    });
+    const decision = decideInterpretationRisk(candidate);
+
+    recordInterpretationReliabilityShadow({
+        userId: 'real-user-id-123',
+        senderId: '5521999999999@c.us',
+        message: 'gastei 100 no mercado privado',
+        candidate,
+        decision,
+        currentFlowOutcome: 'write_attempt',
+        divergenceSeverity: decision.action === 'execute' ? 'none' : 'critical',
+        divergenceReason: 'current_flow_would_write_but_reliability_requires_user_control'
+    }, {
+        env: { INTERPRETATION_RELIABILITY_MODE: 'shadow' },
+        telemetryPath
+    });
+
+    const payload = fs.readFileSync(telemetryPath, 'utf8');
+    const saved = JSON.parse(payload.trim());
+    assert.strictEqual(saved.currentFlowOutcome, 'write_attempt');
+    assert.strictEqual(saved.divergenceSeverity, 'critical');
+    assert.match(saved.divergenceReason, /requires_user_control/);
+    assert.doesNotMatch(payload, /mercado privado|100 no mercado|real-user-id|5521999999999/);
+});
+
+test('enforce readiness monitor requires enough shadow evidence before manual review', () => {
+    const now = new Date('2026-06-30T12:00:00.000Z');
+    const makeEntry = (index, operation = index % 2 === 0 ? 'expense.create' : 'income.create') => ({
+        ts: new Date(now.getTime() - (15 * 24 * 60 * 60 * 1000) + (index * 60 * 1000)).toISOString(),
+        mode: 'shadow',
+        operation,
+        action: 'execute',
+        currentFlowOutcome: 'write_attempt',
+        divergenceSeverity: 'none',
+        fields: {
+            amount: { source: 'deterministic', assurance: 'verified', valueHash: `h${index}` },
+            scope: { source: 'user_state', assurance: 'verified', valueHash: `s${index}` }
+        }
+    });
+
+    const insufficientVolume = evaluateEnforceReadiness(
+        Array.from({ length: 49 }, (_, index) => makeEntry(index)),
+        { now }
+    );
+    assert.strictEqual(insufficientVolume.readyForManualReview, false);
+    assert.ok(insufficientVolume.blockers.includes('not_enough_decisions'));
+
+    const ready = evaluateEnforceReadiness(
+        Array.from({ length: 50 }, (_, index) => makeEntry(index)),
+        { now }
+    );
+    assert.strictEqual(ready.readyForManualReview, true);
+    assert.strictEqual(ready.recommendedMode, 'manual_review_for_enforce');
+    assert.deepStrictEqual(ready.blockers, []);
+});
+
+test('enforce readiness monitor blocks critical divergence and short observation windows', () => {
+    const now = new Date('2026-06-30T12:00:00.000Z');
+    const entries = Array.from({ length: 50 }, (_, index) => ({
+        ts: new Date(now.getTime() - (3 * 24 * 60 * 60 * 1000) + (index * 60 * 1000)).toISOString(),
+        mode: 'shadow',
+        operation: index % 2 === 0 ? 'expense.create' : 'income.create',
+        action: 'execute',
+        currentFlowOutcome: 'write_attempt',
+        divergenceSeverity: index === 10 ? 'critical' : 'none'
+    }));
+
+    const report = evaluateEnforceReadiness(entries, { now });
+
+    assert.strictEqual(report.readyForManualReview, false);
+    assert.ok(report.blockers.includes('observation_window_too_short'));
+    assert.ok(report.blockers.includes('critical_divergence_found'));
+    assert.strictEqual(report.criticalDivergences, 1);
+});
+
+test('enforce readiness monitor parses jsonl without treating malformed lines as safe', () => {
+    const parsed = parseShadowTelemetryJsonl([
+        JSON.stringify({ ts: '2026-06-01T00:00:00.000Z', mode: 'shadow', operation: 'expense.create' }),
+        '{invalid-json',
+        ''
+    ].join('\n'));
+
+    assert.strictEqual(parsed.entries.length, 1);
+    assert.strictEqual(parsed.invalidLines, 1);
+    assert.strictEqual(evaluateEnforceReadiness(parsed.entries, { invalidLines: parsed.invalidLines }).readyForManualReview, false);
+    assert.ok(evaluateEnforceReadiness(parsed.entries, { invalidLines: parsed.invalidLines }).blockers.includes('invalid_telemetry_lines'));
 });
 
 test('financial write ledger tracks operation states and keeps operation keys stable', () => {

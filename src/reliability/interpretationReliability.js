@@ -70,6 +70,14 @@ function hashValue(value) {
         .slice(0, 16);
 }
 
+function sanitizeTelemetryLabel(value, fallback = '') {
+    const normalized = normalizeText(value)
+        .replace(/\s+/g, '_')
+        .replace(/[^a-z0-9_:-]/g, '')
+        .slice(0, 120);
+    return normalized || fallback;
+}
+
 function normalizePaymentReply(value) {
     const text = normalizeText(value);
     if (!text) return null;
@@ -272,6 +280,9 @@ function sanitizeReliabilityTelemetry(input = {}) {
         operation: candidate.operation || '',
         action: input.decision?.action || '',
         reasons: Array.isArray(input.decision?.reasons) ? input.decision.reasons.slice(0, 8) : [],
+        currentFlowOutcome: sanitizeTelemetryLabel(input.currentFlowOutcome || ''),
+        divergenceSeverity: sanitizeTelemetryLabel(input.divergenceSeverity || input.divergence?.severity || 'none', 'none'),
+        divergenceReason: sanitizeTelemetryLabel(input.divergenceReason || input.divergence?.reason || ''),
         itemCount: Number(candidate.itemCount || 1),
         fields: Object.fromEntries(Object.entries(candidate.fields || {}).map(([key, field]) => [
             key,
@@ -295,6 +306,7 @@ module.exports = {
     sanitizeReliabilityTelemetry,
     __test__: {
         hashValue,
-        requiredCriticalFields
+        requiredCriticalFields,
+        sanitizeTelemetryLabel
     }
 };

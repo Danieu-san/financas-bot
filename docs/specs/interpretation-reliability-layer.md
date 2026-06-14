@@ -170,10 +170,15 @@ Criticos por operacao:
   - shadow telemetry opt-in;
   - allowlist por operacao;
   - JSONL sanitizado.
+- `src/reliability/enforceReadinessMonitor.js`
+  - avalia se o shadow tem evidencia suficiente para revisao manual de `enforce`;
+  - nao altera flags, nao escreve dados financeiros e nao executa a camada em modo `enforce`.
 - `src/reliability/interpretationReliabilityAcceptance.js`
   - 340 casos offline executaveis para aceite.
 - `scripts/runInterpretationReliabilityAcceptanceBattery.js`
   - runner standalone da bateria IRAB.
+- `scripts/reportInterpretationEnforceReadiness.js`
+  - comando local para emitir o relatorio de prontidao do shadow.
 
 ## Integracoes aplicadas
 
@@ -201,16 +206,38 @@ No modo `shadow`:
 - o fluxo atual continua respondendo;
 - nenhuma chamada Gemini adicional e feita;
 - nenhuma escrita financeira adicional e feita;
-- a telemetria guarda apenas hashes, fontes, garantias, operacao, decisao e motivos.
+- a telemetria guarda apenas hashes, fontes, garantias, operacao, decisao, motivos e comparacao sanitizada com o fluxo atual.
+
+## Monitor de prontidao para enforce
+
+O bot possui um observador local para o shadow mode, executavel por:
+
+```bash
+npm run report:interpretation-readiness
+```
+
+Ele le `data/interpretation-reliability-shadow.jsonl` ou o caminho configurado em `INTERPRETATION_RELIABILITY_TELEMETRY_PATH` e aplica gates de seguranca antes de qualquer discussao sobre `enforce`.
+
+O monitor verifica:
+
+- pelo menos 50 decisoes reais em `shadow`;
+- janela minima de 14 dias desde a primeira decisao observada;
+- pelo menos uma decisao para cada operacao obrigatoria inicial (`expense.create` e `income.create`);
+- zero divergencia critica entre o fluxo atual e a decisao da camada de confiabilidade;
+- zero linha de telemetria invalida.
+
+O monitor nunca altera `INTERPRETATION_RELIABILITY_MODE`, nunca escreve dados financeiros e nunca habilita `enforce` sozinho. Quando todos os gates passam, a recomendacao e apenas `manual_review_for_enforce`; a troca para `enforce` continua exigindo revisao humana, configuracao reversivel, smoke dedicado e rollback por flag.
 
 ## Rollout recomendado
 
 1. Manter `off` por padrao no deploy inicial.
 2. Ativar `shadow` apenas para `expense.create,income.create`.
 3. Observar pelo menos 50 decisoes reais sanitizadas por 14 dias.
-4. Exigir zero divergencia critica inexplicada.
-5. Ativar `enforce` apenas para operacoes candidatas a auto-save.
-6. Expandir para credito, transferencias, lotes, audio, importacao, metas, dividas, contas, exclusao e correcao.
+4. Rodar `npm run report:interpretation-readiness`.
+5. Exigir zero divergencia critica inexplicada e recomendacao `manual_review_for_enforce`.
+6. Fazer revisao humana antes de qualquer alteracao de flag.
+7. Ativar `enforce` apenas para operacoes candidatas a auto-save.
+8. Expandir para credito, transferencias, lotes, audio, importacao, metas, dividas, contas, exclusao e correcao.
 
 ## Nao fazer
 
