@@ -153,7 +153,10 @@ Validar:
 - Orcamento inativo e uma resposta valida, nao erro de read-model.
 - Pedidos para abrir, gerar link ou trocar UI do dashboard nao devem ser confundidos com consulta analitica.
 - `FINANCIAL_AGENT_MODE=shadow` nunca muda a resposta enviada ao usuario.
-- Nao ativar `answer` antes de fortalecer verificacao de percentuais, ordenacao, contagens e tendencias, e antes de validar uma bateria livre do planner Gemini com teto de custo.
+- O verificador deve bloquear percentuais inventados, relacao percentual invalida, contagens sem suporte, "ultimo" fora da primeira linha ordenada e tendencias/rankings fora da ordem retornada pela ferramenta.
+- `npm run test:financial-agent:novel` roda em `dry-run`, valida planos amostrais livres e deve consumir 0 chamadas Gemini.
+- A bateria live do planner livre deve ser rodada somente com decisao explicita e comando com teto, por exemplo `node scripts/runFinancialAgentNovelPlannerBattery.js --live --max-calls 5`. Nunca rodar live sem `--max-calls`; o hard limit do script e 40 chamadas.
+- Nao ativar `answer` antes de uma bateria live curta do planner Gemini, auditoria dos gaps e revisao humana dos casos livres.
 
 ## Scheduler e Calendar
 

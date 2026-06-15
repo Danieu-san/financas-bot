@@ -159,13 +159,17 @@ The verifier blocks:
 - Empty answer.
 - Internal identifiers or sensitive terms.
 - Currency values not present in tool results.
+- Percentages not present in tool results.
+- Invalid percentage math for percentage and comparison results.
+- Unsupported row-count claims.
+- "Latest" answers that do not reference the first row from a descending recent-transaction result.
+- Trend/ranking labels presented in a different order than the tool result.
 
-Verifier expansion required before `answer` mode should check:
+Verifier expansion still required before broad conversational composition should check:
 
-- percent numerator and denominator;
-- ordering for latest/oldest;
-- row-count claims;
-- trend period labels.
+- oldest-specific wording when the planner starts producing oldest queries;
+- richer claim contracts for future Gemini-written prose;
+- source/citation references if the composer becomes LLM-based.
 
 ## Current Slice
 
@@ -180,15 +184,16 @@ Implemented:
 - Query Engine tool fed only by an already validated `FinancialQueryPlan`.
 - Dashboard snapshot and metric explanation tools.
 - Result verifier.
+- Strong verifier checks for percentages, row-count claims, latest ordering and trend/ranking label order.
 - WhatsApp integration behind `FINANCIAL_AGENT_MODE`.
 - Official Financial Query Acceptance battery executed through the agent with 265/265 accepted, 23 security blocks, 238 verified answers and zero Gemini calls.
+- Novel planner dry-run battery with safe sample plans and live mode gated by explicit `--live --max-calls N`.
 - Tests for public rows, SQL sandbox, tools, verifier, runtime and activation gate.
 
 Not yet implemented:
 
 - Production activation of the Gemini planner; the adapter exists but remains disabled.
-- A novel free-form battery focused specifically on LLM-planned SQL/tool calls.
-- Strong verifier checks for percentages, ordering, row-count claims and trend labels.
+- A live novel free-form battery focused specifically on Gemini-planned SQL/tool calls.
 - Production deployment of the expanded tool set in this slice.
 - Deactivation workflow for non-family users.
 

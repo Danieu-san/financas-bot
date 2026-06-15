@@ -200,6 +200,129 @@ test('result verifier rejects invented numbers and internal fields', () => {
     assert.strictEqual(verifyAgentAnswer('Usei user_id agent-daniel para consultar.', { toolResult }).ok, false);
 });
 
+test('result verifier validates percentage claims and their mathematical relationship', () => {
+    const toolResult = {
+        ok: true,
+        tool: 'query_financial_plan',
+        plan: { domain: 'expenses', operation: 'percentage' },
+        result: {
+            value: { percent: 25, part: 50, total: 200 },
+            details: { denominator: 200 }
+        }
+    };
+
+    assert.strictEqual(
+        verifyAgentAnswer('Alimentação representa 25%: R$ 50,00 de R$ 200,00.', { toolResult }).ok,
+        true
+    );
+    assert.strictEqual(
+        verifyAgentAnswer('Alimentação representa 30%: R$ 50,00 de R$ 200,00.', { toolResult }).reason,
+        'invented_percentage'
+    );
+    assert.strictEqual(
+        verifyAgentAnswer('Alimentação representa 25%: R$ 200,00 de R$ 50,00.', { toolResult }).reason,
+        'wrong_percentage_components'
+    );
+
+    const inconsistentToolResult = {
+        ...toolResult,
+        result: {
+            ...toolResult.result,
+            value: { percent: 30, part: 50, total: 200 }
+        }
+    };
+    assert.strictEqual(
+        verifyAgentAnswer('Alimentação representa 30%: R$ 50,00 de R$ 200,00.', { toolResult: inconsistentToolResult }).reason,
+        'invalid_percentage_relation'
+    );
+
+    const inconsistentComparison = {
+        ok: true,
+        tool: 'query_financial_plan',
+        plan: { domain: 'expenses', operation: 'compare' },
+        result: {
+            value: { current: 150, previous: 100, difference: 50, percent: 25 },
+            details: {}
+        }
+    };
+    assert.strictEqual(
+        verifyAgentAnswer('Os gastos cresceram 25%.', { toolResult: inconsistentComparison }).reason,
+        'invalid_percentage_relation'
+    );
+});
+
+test('result verifier rejects unsupported row-count claims', () => {
+    const toolResult = {
+        ok: true,
+        tool: 'run_safe_readonly_sql',
+        rows: [{ category: 'Alimentação' }, { category: 'Transporte' }],
+        rowCount: 2
+    };
+
+    assert.strictEqual(verifyAgentAnswer('Encontrei 2 resultados para essa análise.', { toolResult }).ok, true);
+    assert.strictEqual(
+        verifyAgentAnswer('Encontrei 3 resultados para essa análise.', { toolResult }).reason,
+        'invented_count'
+    );
+});
+
+test('result verifier requires latest answers to reference the first correctly ordered row', () => {
+    const toolResult = {
+        ok: true,
+        tool: 'list_recent_transactions',
+        rows: [
+            { description: 'restaurante', amount: 75, date: '05/06/2026', iso_date: '2026-06-05', person: 'Thais' },
+            { description: 'mercado', amount: 30, date: '01/06/2026', iso_date: '2026-06-01', person: 'Daniel' }
+        ],
+        criteria: { sort: 'iso_date desc', limit: 2 }
+    };
+
+    assert.strictEqual(
+        verifyAgentAnswer('Seu último gasto foi em 05/06/2026: restaurante, R$ 75,00 (Thais).', { toolResult }).ok,
+        true
+    );
+    assert.strictEqual(
+        verifyAgentAnswer('Seu último gasto foi em 01/06/2026: mercado, R$ 30,00 (Daniel).', { toolResult }).reason,
+        'wrong_latest_item'
+    );
+
+    const incorrectlyOrdered = { ...toolResult, rows: [...toolResult.rows].reverse() };
+    assert.strictEqual(
+        verifyAgentAnswer('Seu último gasto foi em 01/06/2026: mercado, R$ 30,00 (Daniel).', { toolResult: incorrectlyOrdered }).reason,
+        'invalid_tool_order'
+    );
+});
+
+test('result verifier preserves the ordered labels returned for trends', () => {
+    const toolResult = {
+        ok: true,
+        tool: 'query_financial_plan',
+        plan: { domain: 'expenses', operation: 'trend' },
+        result: {
+            value: [
+                { label: 'abril/2026', total: 100, count: 2 },
+                { label: 'maio/2026', total: 150, count: 3 }
+            ],
+            details: { count: 5, groupBy: ['month'] }
+        }
+    };
+
+    assert.strictEqual(
+        verifyAgentAnswer(
+            'Evolução:\n1. abril/2026: R$ 100,00, 2 lançamentos\n2. maio/2026: R$ 150,00, 3 lançamentos',
+            { toolResult }
+        ).ok,
+        true
+    );
+    assert.strictEqual(
+        verifyAgentAnswer(
+            'Evolução:\n1. maio/2026: R$ 150,00, 3 lançamentos\n2. abril/2026: R$ 100,00, 2 lançamentos',
+            { toolResult }
+        ).reason,
+        'wrong_result_order'
+    );
+});
+
 test('LangGraph financial agent answers read-only latest expense with verified result', async () => {
     syncAgentSnapshot();
 
