@@ -144,6 +144,7 @@ The graph has a Gemini planner adapter, but it is disabled by default:
 The planner receives only:
 
 - the user question;
+- the current reference date for relative periods;
 - the public table contract;
 - allowed tools;
 - safety rules.
@@ -151,6 +152,8 @@ The planner receives only:
 It does not receive spreadsheet rows, raw results, user IDs, sheet IDs, tokens, OAuth data or private URLs.
 
 Planner output is untrusted. It must pass `normalizePlannerPlan`. SQL plans must also pass `validateSafeReadonlySql` before execution.
+
+Relative periods such as `hoje`, `ontem`, `este mes` and `do mes` must be interpreted from the reference date supplied by code in `America/Sao_Paulo`, not guessed by the model or derived from the server UTC day. Generic words such as `lancamento`, `movimento` and `transacao` mean public financial events unless the user restricts the event type.
 
 ## Verifier Rules
 
@@ -188,12 +191,13 @@ Implemented:
 - WhatsApp integration behind `FINANCIAL_AGENT_MODE`.
 - Official Financial Query Acceptance battery executed through the agent with 265/265 accepted, 23 security blocks, 238 verified answers and zero Gemini calls.
 - Novel planner dry-run battery with safe sample plans and live mode gated by explicit `--live --max-calls N`.
+- Novel planner live battery supports `--case <ID>` for targeted gap revalidation with minimal Gemini calls.
 - Tests for public rows, SQL sandbox, tools, verifier, runtime and activation gate.
 
 Not yet implemented:
 
 - Production activation of the Gemini planner; the adapter exists but remains disabled.
-- A live novel free-form battery focused specifically on Gemini-planned SQL/tool calls.
+- A broad live novel free-form battery focused specifically on Gemini-planned SQL/tool calls. The first short live check used 6 calls total and only validates the initial gate, not production `answer`.
 - Production deployment of the expanded tool set in this slice.
 - Deactivation workflow for non-family users.
 

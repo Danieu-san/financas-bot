@@ -18,7 +18,8 @@ const { invokeFinancialAgent } = require('../src/agent/financialAgent');
 const {
     buildPlannerPrompt,
     isLlmPlannerEnabled,
-    normalizePlannerPlan
+    normalizePlannerPlan,
+    __test__: plannerTest
 } = require('../src/agent/financialAgentPlanner');
 const { __test__: messageHandlerTest } = require('../src/handlers/messageHandler');
 
@@ -433,9 +434,13 @@ test('Gemini planner is disabled by default and can only produce safe tool plans
     assert.strictEqual(isLlmPlannerEnabled({}), false);
     assert.strictEqual(isLlmPlannerEnabled({ FINANCIAL_AGENT_LLM_PLANNER_ENABLED: 'true' }), true);
 
-    const prompt = buildPlannerPrompt('Em que dia da semana eu mais gasto?');
+    const prompt = buildPlannerPrompt('Em que dia da semana eu mais gasto?', {
+        referenceDate: new Date('2026-06-15T12:00:00.000Z')
+    });
     assert.match(prompt, /financial_events_public/);
     assert.match(prompt, /Nao calcule valores|Não calcule valores/i);
+    assert.match(prompt, /Data de referencia: 2026-06-15/);
+    assert.match(prompt, /este mes|do mes/i);
     assert.doesNotMatch(prompt, /user_id.*permitido/i);
 
     const safePlan = normalizePlannerPlan({
@@ -455,4 +460,11 @@ test('Gemini planner is disabled by default and can only produce safe tool plans
     });
     assert.strictEqual(unsafePlan.action, 'clarify');
     assert.match(unsafePlan.reason, /unsafe_sql/);
+});
+
+test('Gemini planner reference date follows the Sao Paulo calendar day', () => {
+    assert.strictEqual(
+        plannerTest.formatReferenceDate(new Date('2026-06-15T00:30:00.000Z')),
+        '2026-06-14'
+    );
 });

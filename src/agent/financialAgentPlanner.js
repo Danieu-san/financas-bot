@@ -10,6 +10,7 @@ const ALLOWED_AGENT_TOOLS = new Set([
     'get_dashboard_snapshot',
     'explain_metric'
 ]);
+const FINANCIAL_REFERENCE_TIME_ZONE = 'America/Sao_Paulo';
 
 function truthy(value) {
     return ['1', 'true', 'sim', 'yes', 'on', 'enabled', 'ativo'].includes(normalizeText(value));
@@ -19,10 +20,26 @@ function isLlmPlannerEnabled(env = process.env) {
     return truthy(env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED);
 }
 
-function buildPlannerPrompt(message = '') {
+function formatReferenceDate(referenceDate = new Date()) {
+    const date = referenceDate instanceof Date ? referenceDate : new Date(referenceDate);
+    if (Number.isNaN(date.getTime())) return formatReferenceDate(new Date());
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: FINANCIAL_REFERENCE_TIME_ZONE,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).formatToParts(date);
+    const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+    return `${values.year}-${values.month}-${values.day}`;
+}
+
+function buildPlannerPrompt(message = '', { referenceDate = new Date() } = {}) {
+    const referenceDateIso = formatReferenceDate(referenceDate);
+    const [referenceYear, referenceMonth] = referenceDateIso.split('-').map(Number);
     return [
         'Voce e um planner de ferramenta para um assistente financeiro familiar.',
         'Retorne APENAS JSON valido. Nao calcule valores. Nao escreva resposta final.',
+        `Data de referencia: ${referenceDateIso}. Mes atual: ${referenceMonth}. Ano atual: ${referenceYear}.`,
         '',
         'Ferramentas permitidas:',
         '- list_recent_transactions: para ultimo/ultimos lancamentos. Args: eventTypes, limit.',
@@ -38,6 +55,8 @@ function buildPlannerPrompt(message = '') {
         '- Nunca use user_id, sheet_id, spreadsheet_id, token, oauth, prompt, owner_hash ou dados internos.',
         '- SQL deve ser somente SELECT, usar somente financial_events_public e conter LIMIT.',
         '- Se a pergunta pedir escrita, admin, OAuth, dados internos ou bypass, retorne block.',
+        '- Interprete hoje, ontem, esta semana, este mes e do mes usando a data de referencia.',
+        '- Se a pergunta disser lancamento, movimento ou transacao sem restringir tipo, use todos os event_type publicos relevantes.',
         '- Se faltar periodo/criterio essencial, retorne clarify.',
         '',
         'Formato:',
@@ -160,6 +179,7 @@ module.exports = {
     normalizePlannerPlan,
     planWithGemini,
     __test__: {
+        formatReferenceDate,
         normalizeEventTypes,
         truthy
     }

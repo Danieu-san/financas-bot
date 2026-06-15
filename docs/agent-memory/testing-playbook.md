@@ -156,6 +156,8 @@ Validar:
 - O verificador deve bloquear percentuais inventados, relacao percentual invalida, contagens sem suporte, "ultimo" fora da primeira linha ordenada e tendencias/rankings fora da ordem retornada pela ferramenta.
 - `npm run test:financial-agent:novel` roda em `dry-run`, valida planos amostrais livres e deve consumir 0 chamadas Gemini.
 - A bateria live do planner livre deve ser rodada somente com decisao explicita e comando com teto, por exemplo `node scripts/runFinancialAgentNovelPlannerBattery.js --live --max-calls 5`. Nunca rodar live sem `--max-calls`; o hard limit do script e 40 chamadas.
+- Para revalidar um gap especifico sem gastar chamadas desnecessarias, use `node scripts/runFinancialAgentNovelPlannerBattery.js --live --max-calls 1 --case NOVEL-003`.
+- O prompt do planner deve receber data de referencia em `America/Sao_Paulo` para interpretar `hoje`, `ontem`, `este mes` e `do mes`; UTC pode apontar para o dia seguinte durante a noite brasileira.
 - Nao ativar `answer` antes de uma bateria live curta do planner Gemini, auditoria dos gaps e revisao humana dos casos livres.
 
 ## Scheduler e Calendar

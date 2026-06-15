@@ -28,11 +28,12 @@ test('novel planner battery refuses live mode without an explicit bounded call c
     assert.deepStrictEqual(validateOptions({ live: false }), { ok: true, mode: 'dry-run' });
     assert.strictEqual(validateOptions({ live: true, maxCalls: 0 }).ok, false);
     assert.strictEqual(validateOptions({ live: true, maxCalls: MAX_LIVE_CALLS_HARD_LIMIT + 1 }).reason, 'max_calls_exceeds_hard_limit');
-    assert.deepStrictEqual(parseArgs(['--live', '--max-calls', '3', '--limit=2']), {
+    assert.deepStrictEqual(parseArgs(['--live', '--max-calls', '3', '--limit=2', '--case', 'NOVEL-003']), {
         live: true,
         maxCalls: 3,
         limit: 2,
-        reportDir: null
+        reportDir: null,
+        caseId: 'NOVEL-003'
     });
 });
 
@@ -53,6 +54,14 @@ test('novel planner dry-run validates sample plans without Gemini calls', async 
     assert.strictEqual(report.summary.accepted, 4);
     assert.strictEqual(report.summary.geminiCalls, 0);
     assert.ok(fs.existsSync(path.join(reportDir, 'financial-agent-novel-planner-report.json')));
+
+    const targeted = await runFinancialAgentNovelPlannerBattery({
+        reportDir: tempDir,
+        runId: 'FAGENT_NOVEL_TARGETED_TEST',
+        caseId: 'NOVEL-003'
+    });
+    assert.strictEqual(targeted.report.summary.total, 1);
+    assert.strictEqual(targeted.report.results[0].id, 'NOVEL-003');
 });
 
 test('novel planner live path stops at the call cap and records each planned call', async () => {

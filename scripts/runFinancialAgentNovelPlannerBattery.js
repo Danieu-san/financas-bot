@@ -197,7 +197,8 @@ function parseArgs(argv = process.argv.slice(2)) {
         live: false,
         maxCalls: 0,
         limit: null,
-        reportDir: null
+        reportDir: null,
+        caseId: null
     };
     for (let index = 0; index < argv.length; index += 1) {
         const arg = argv[index];
@@ -208,6 +209,8 @@ function parseArgs(argv = process.argv.slice(2)) {
         else if (arg.startsWith('--limit=')) options.limit = Number.parseInt(arg.split('=')[1], 10);
         else if (arg === '--report-dir') options.reportDir = argv[++index];
         else if (arg.startsWith('--report-dir=')) options.reportDir = arg.split('=').slice(1).join('=');
+        else if (arg === '--case') options.caseId = argv[++index];
+        else if (arg.startsWith('--case=')) options.caseId = arg.split('=').slice(1).join('=');
     }
     return options;
 }
@@ -331,7 +334,11 @@ async function runFinancialAgentNovelPlannerBattery(options = {}) {
     const startedAt = new Date();
     const runId = options.runId || buildRunId(startedAt);
     const reportDir = path.resolve(options.reportDir || path.join('data', 'qa-runs', runId));
-    const cases = Number.isInteger(options.limit) ? NOVEL_CASES.slice(0, options.limit) : NOVEL_CASES;
+    const candidateCases = options.caseId
+        ? NOVEL_CASES.filter(testCase => testCase.id === options.caseId)
+        : NOVEL_CASES;
+    if (options.caseId && candidateCases.length === 0) throw new Error('case_not_found');
+    const cases = Number.isInteger(options.limit) ? candidateCases.slice(0, options.limit) : candidateCases;
     const results = [];
     let usedCalls = 0;
 
