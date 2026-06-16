@@ -6,9 +6,10 @@ function formatCurrency(value) {
 }
 
 function getMonthLabel(details = {}) {
+    const safeDetails = details && typeof details === 'object' ? details : {};
     const monthNames = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-    const month = Number(details.mes);
-    const year = Number(details.ano) || new Date().getFullYear();
+    const month = Number(safeDetails.mes);
+    const year = Number(safeDetails.ano) || new Date().getFullYear();
     return month >= 0 && month <= 11 ? `${monthNames[month]} de ${year}` : 'o período solicitado';
 }
 
@@ -21,27 +22,28 @@ function formatListRows(rows = []) {
 
 async function generate(args = {}) {
     const { intent, rawResults, details = {} } = args;
-    const period = getMonthLabel(details);
+    const safeDetails = details && typeof details === 'object' ? details : {};
+    const period = getMonthLabel(safeDetails);
 
     switch (intent) {
         case 'total_gastos_mes': {
             const total = formatCurrency(rawResults);
             const parts = [`Total de gastos em ${period}: ${total}.`];
-            if (details.totalSaidas !== undefined || details.totalCartoes !== undefined) {
-                parts.push(`Saídas: ${formatCurrency(details.totalSaidas)}. Cartões: ${formatCurrency(details.totalCartoes)}.`);
+            if (safeDetails.totalSaidas !== undefined || safeDetails.totalCartoes !== undefined) {
+                parts.push(`Saídas: ${formatCurrency(safeDetails.totalSaidas)}. Cartões: ${formatCurrency(safeDetails.totalCartoes)}.`);
             }
             return parts.join('\n');
         }
 
         case 'total_gastos_categoria_mes': {
-            const categoria = details.categoria || 'categoria solicitada';
+            const categoria = safeDetails.categoria || 'categoria solicitada';
             return `Em ${period}, seus gastos com ${categoria} totalizaram ${formatCurrency(rawResults)}.`;
         }
 
         case 'saldo_do_mes':
             return [
                 `Saldo de ${period}: ${formatCurrency(rawResults)}.`,
-                `Entradas: ${formatCurrency(details.totalEntradas)}. Saídas: ${formatCurrency(details.totalSaidas)}.`
+                `Entradas: ${formatCurrency(safeDetails.totalEntradas)}. Saídas: ${formatCurrency(safeDetails.totalSaidas)}.`
             ].join('\n');
 
         case 'maior_menor_gasto': {
@@ -52,7 +54,7 @@ async function generate(args = {}) {
         }
 
         case 'listagem_gastos_categoria': {
-            const categoria = details.categoria || 'categoria solicitada';
+            const categoria = safeDetails.categoria || 'categoria solicitada';
             if (!Array.isArray(rawResults) || rawResults.length === 0) {
                 return `Não encontrei gastos com ${categoria} em ${period}.`;
             }

@@ -756,3 +756,30 @@ test('legacy response generator does not send raw analytical rows to Gemini', as
     assert.match(reply, /resposta segura/i);
     assert.doesNotMatch(reply, /mercado privado/);
 });
+
+test('legacy response generator handles null details without crashing or calling Gemini', async () => {
+    const geminiClientPath = require.resolve('../src/ai/geminiClient');
+    const responseGeneratorPath = require.resolve('../src/ai/responseGenerator');
+    delete require.cache[responseGeneratorPath];
+    require.cache[geminiClientPath] = {
+        id: geminiClientPath,
+        filename: geminiClientPath,
+        loaded: true,
+        exports: {
+            askLLM: async () => {
+                throw new Error('Gemini should not be called for legacy analytical formatting');
+            }
+        }
+    };
+
+    const { generate } = require('../src/ai/responseGenerator');
+    const reply = await generate({
+        intent: 'pergunta_geral',
+        rawResults: 'Pergunta genérica',
+        details: null,
+        userQuestion: 'teste'
+    });
+
+    assert.match(reply, /resposta segura/i);
+    assert.doesNotMatch(reply, /Pergunta genérica/);
+});
