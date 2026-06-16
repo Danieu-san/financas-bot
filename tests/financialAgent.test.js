@@ -178,6 +178,36 @@ test('financial agent dashboard and explain tools expose deterministic public sn
     assert.match(explanation.criteria, /disponível estimado/i);
 });
 
+test('financial agent dashboard tools require family owner inside authorized scope', async () => {
+    syncAgentSnapshot();
+
+    const missingOwner = await getDashboardSnapshotTool({
+        userIds: ['agent-daniel', 'agent-thais'],
+        month: 5,
+        year: 2026
+    });
+    assert.strictEqual(missingOwner.ok, false);
+    assert.strictEqual(missingOwner.reason, 'family_dashboard_requires_owner_context');
+
+    const outsideOwner = await getDashboardSnapshotTool({
+        userIds: ['agent-daniel', 'agent-thais'],
+        ownerUserId: 'agent-outsider',
+        month: 5,
+        year: 2026
+    });
+    assert.strictEqual(outsideOwner.ok, false);
+    assert.strictEqual(outsideOwner.reason, 'family_dashboard_requires_owner_context');
+
+    const authorizedOwner = await getDashboardSnapshotTool({
+        userIds: ['agent-daniel', 'agent-thais'],
+        ownerUserId: 'agent-daniel',
+        month: 5,
+        year: 2026
+    });
+    assert.strictEqual(authorizedOwner.ok, true);
+    assert.doesNotMatch(JSON.stringify(authorizedOwner), /agent-daniel|agent-thais|agent-outsider|user_id|owner_hash/);
+});
+
 test('financial agent dashboard sanitizer removes nested internal identifiers', () => {
     const sanitized = require('../src/agent/financialAgentTools').__test__.sanitizeDashboardSnapshot({
         kpis: { saldo: 10, user_id: 'internal-user' },
@@ -376,6 +406,22 @@ test('LangGraph financial agent clarifies dashboard navigation instead of treati
     assert.strictEqual(result.plan.action, 'clarify');
     assert.notStrictEqual(result.toolResult?.ok, true);
     assert.match(result.answer, /abrir o dashboard|consultar algum indicador/i);
+});
+
+test('LangGraph financial agent treats negated dashboard navigation as metric explanation', async () => {
+    syncAgentSnapshot();
+
+    const result = await invokeFinancialAgent({
+        message: 'explique meu disponível sem abrir o dashboard',
+        userIds: ['agent-daniel', 'agent-thais'],
+        ownerUserId: 'agent-daniel',
+        personByUserId: { 'agent-daniel': 'Daniel', 'agent-thais': 'Thais' },
+        mode: 'shadow'
+    });
+
+    assert.strictEqual(result.action, 'answer');
+    assert.strictEqual(result.plan.tool, 'explain_metric');
+    assert.strictEqual(result.verified.ok, true);
 });
 
 test('financial agent activation defaults to off and accepts enforce as answer alias', () => {

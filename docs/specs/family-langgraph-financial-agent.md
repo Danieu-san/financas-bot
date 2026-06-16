@@ -187,17 +187,19 @@ Implemented:
 - Query Engine tool fed only by an already validated `FinancialQueryPlan`.
 - Dashboard snapshot and metric explanation tools.
 - Result verifier.
-- Strong verifier checks for percentages, row-count claims, latest ordering and trend/ranking label order.
+- Strong verifier checks for percentages, row-count claims, latest ordering, trend/ranking label order and negative currency amounts in Portuguese output.
 - WhatsApp integration behind `FINANCIAL_AGENT_MODE`.
 - Official Financial Query Acceptance battery executed through the agent with 265/265 accepted, 23 security blocks, 238 verified answers and zero Gemini calls.
-- Novel planner dry-run battery with safe sample plans and live mode gated by explicit `--live --max-calls N`.
-- Novel planner live battery supports `--case <ID>` for targeted gap revalidation with minimal Gemini calls.
+- Novel planner dry-run battery expanded to 255 free-form cases with safe sample plans and live mode gated by explicit `--live --max-calls N`.
+- Novel planner live battery supports `--case <ID>` for targeted gap revalidation with minimal Gemini calls and `--stratified` for small representative samples.
+- Dashboard metric explanation distinguishes negated navigation ("sem abrir o dashboard") from positive dashboard navigation/link requests.
+- Dashboard/explain tools can use a family owner only when `ownerUserId` belongs to the already authorized scope.
 - Tests for public rows, SQL sandbox, tools, verifier, runtime and activation gate.
 
 Not yet implemented:
 
 - Production activation of the Gemini planner; the adapter exists but remains disabled.
-- A broad live novel free-form battery focused specifically on Gemini-planned SQL/tool calls. The first short live check used 6 calls total and only validates the initial gate, not production `answer`.
+- A broad live novel free-form battery focused specifically on Gemini-planned SQL/tool calls. Current live evidence is still intentionally small: 6-call stratified sample plus 1 targeted revalidation, not enough for production `answer`.
 - Production deployment of the expanded tool set in this slice.
 - Deactivation workflow for non-family users.
 

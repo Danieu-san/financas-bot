@@ -155,9 +155,12 @@ Validar:
 - `FINANCIAL_AGENT_MODE=shadow` nunca muda a resposta enviada ao usuario.
 - O verificador deve bloquear percentuais inventados, relacao percentual invalida, contagens sem suporte, "ultimo" fora da primeira linha ordenada e tendencias/rankings fora da ordem retornada pela ferramenta.
 - `npm run test:financial-agent:novel` roda em `dry-run`, valida planos amostrais livres e deve consumir 0 chamadas Gemini.
-- A bateria live do planner livre deve ser rodada somente com decisao explicita e comando com teto, por exemplo `node scripts/runFinancialAgentNovelPlannerBattery.js --live --max-calls 5`. Nunca rodar live sem `--max-calls`; o hard limit do script e 40 chamadas.
+- A bateria novel deve conter pelo menos 200 perguntas livres. Em 2026-06-16 ela cobre 255 casos e passou offline com `255/255`, `0` gaps e `0` chamadas Gemini.
+- Para amostras pequenas e representativas, use `--stratified`; isso seleciona casos de recentes, SQL, dashboard, periodos relativos, clarificacao e seguranca antes de repetir capacidades.
+- A bateria live do planner livre deve ser rodada somente com decisao explicita e comando com teto, por exemplo `node scripts/runFinancialAgentNovelPlannerBattery.js --live --max-calls 6 --limit 6 --stratified`. Nunca rodar live sem `--max-calls`; o hard limit do script e 40 chamadas.
 - Para revalidar um gap especifico sem gastar chamadas desnecessarias, use `node scripts/runFinancialAgentNovelPlannerBattery.js --live --max-calls 1 --case NOVEL-003`.
 - O prompt do planner deve receber data de referencia em `America/Sao_Paulo` para interpretar `hoje`, `ontem`, `este mes` e `do mes`; UTC pode apontar para o dia seguinte durante a noite brasileira.
+- Pedidos como "explique meu disponivel sem abrir o dashboard" devem usar `explain_metric`; apenas pedidos positivos de abrir/gerar/enviar link devem ser tratados como navegacao.
 - Nao ativar `answer` antes de uma bateria live curta do planner Gemini, auditoria dos gaps e revisao humana dos casos livres.
 
 ## Scheduler e Calendar

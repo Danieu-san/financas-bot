@@ -9,18 +9,25 @@ const {
     NOVEL_CASES,
     parseArgs,
     validateOptions,
+    selectCases,
     dryRunCase,
     liveRunCase,
     runFinancialAgentNovelPlannerBattery
 } = require('../scripts/runFinancialAgentNovelPlannerBattery');
 
 test('novel planner battery has safe free-form cases across allowed tools', () => {
-    assert.ok(NOVEL_CASES.length >= 15);
+    assert.ok(NOVEL_CASES.length >= 200);
+    assert.strictEqual(new Set(NOVEL_CASES.map(testCase => testCase.id)).size, NOVEL_CASES.length);
+    assert.strictEqual(new Set(NOVEL_CASES.map(testCase => testCase.question)).size, NOVEL_CASES.length);
     const tools = new Set(NOVEL_CASES.flatMap(testCase => testCase.expectedTools));
+    const tags = new Set(NOVEL_CASES.flatMap(testCase => testCase.tags || []));
     assert.ok(tools.has('run_safe_readonly_sql'));
     assert.ok(tools.has('list_recent_transactions'));
     assert.ok(tools.has('get_dashboard_snapshot'));
     assert.ok(tools.has('explain_metric'));
+    for (const tag of ['recent', 'sql', 'dashboard', 'relative', 'clarify', 'security']) {
+        assert.ok(tags.has(tag), `missing tag ${tag}`);
+    }
     assert.ok(NOVEL_CASES.some(testCase => testCase.expectedAction === 'block'));
 });
 
@@ -28,13 +35,25 @@ test('novel planner battery refuses live mode without an explicit bounded call c
     assert.deepStrictEqual(validateOptions({ live: false }), { ok: true, mode: 'dry-run' });
     assert.strictEqual(validateOptions({ live: true, maxCalls: 0 }).ok, false);
     assert.strictEqual(validateOptions({ live: true, maxCalls: MAX_LIVE_CALLS_HARD_LIMIT + 1 }).reason, 'max_calls_exceeds_hard_limit');
-    assert.deepStrictEqual(parseArgs(['--live', '--max-calls', '3', '--limit=2', '--case', 'NOVEL-003']), {
+    assert.deepStrictEqual(parseArgs(['--live', '--max-calls', '3', '--limit=2', '--case', 'NOVEL-003', '--tag', 'sql', '--stratified']), {
         live: true,
         maxCalls: 3,
         limit: 2,
         reportDir: null,
-        caseId: 'NOVEL-003'
+        caseId: 'NOVEL-003',
+        tag: 'sql',
+        stratified: true
     });
+});
+
+test('novel planner stratified selection covers distinct capabilities before repeating', () => {
+    const selected = selectCases(NOVEL_CASES, { stratified: true, limit: 6 });
+    const selectedTags = new Set(selected.flatMap(testCase => testCase.tags || []));
+
+    assert.strictEqual(selected.length, 6);
+    for (const tag of ['recent', 'sql', 'dashboard', 'relative', 'clarify', 'security']) {
+        assert.ok(selectedTags.has(tag), `stratified sample missing ${tag}`);
+    }
 });
 
 test('novel planner dry-run validates sample plans without Gemini calls', async () => {
@@ -62,6 +81,15 @@ test('novel planner dry-run validates sample plans without Gemini calls', async 
     });
     assert.strictEqual(targeted.report.summary.total, 1);
     assert.strictEqual(targeted.report.results[0].id, 'NOVEL-003');
+
+    const tagged = await runFinancialAgentNovelPlannerBattery({
+        reportDir: tempDir,
+        runId: 'FAGENT_NOVEL_TAGGED_TEST',
+        tag: 'security',
+        limit: 3
+    });
+    assert.strictEqual(tagged.report.summary.total, 3);
+    assert.ok(tagged.report.results.every(result => result.id.startsWith('SEC-')));
 });
 
 test('novel planner live path stops at the call cap and records each planned call', async () => {

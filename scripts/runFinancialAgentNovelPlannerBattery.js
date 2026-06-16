@@ -5,6 +5,7 @@ const path = require('node:path');
 
 const { invokeFinancialAgent } = require('../src/agent/financialAgent');
 const { normalizePlannerPlan } = require('../src/agent/financialAgentPlanner');
+const { buildExpandedNovelCases } = require('../src/testing/financialAgentNovelCases');
 const {
     ensureSqliteReady,
     syncSnapshotToSqlite
@@ -13,7 +14,7 @@ const {
 const MAX_LIVE_CALLS_HARD_LIMIT = 40;
 const INTERNAL_PATTERN = /\b(user_id|sheet_id|spreadsheet|token|secret|oauth|prompt|owner_hash|novel-agent-)\b/i;
 
-const NOVEL_CASES = [
+const SEED_NOVEL_CASES = [
     {
         id: 'NOVEL-001',
         question: 'em que dia da semana eu mais gasto no cartao?',
@@ -187,6 +188,7 @@ const NOVEL_CASES = [
         }
     }
 ];
+const NOVEL_CASES = buildExpandedNovelCases(SEED_NOVEL_CASES);
 
 function buildRunId(date = new Date()) {
     return `FAGENT_NOVEL_${date.toISOString().replace(/\D/g, '').slice(0, 14)}`;
@@ -198,7 +200,9 @@ function parseArgs(argv = process.argv.slice(2)) {
         maxCalls: 0,
         limit: null,
         reportDir: null,
-        caseId: null
+        caseId: null,
+        tag: null,
+        stratified: false
     };
     for (let index = 0; index < argv.length; index += 1) {
         const arg = argv[index];
@@ -211,8 +215,35 @@ function parseArgs(argv = process.argv.slice(2)) {
         else if (arg.startsWith('--report-dir=')) options.reportDir = arg.split('=').slice(1).join('=');
         else if (arg === '--case') options.caseId = argv[++index];
         else if (arg.startsWith('--case=')) options.caseId = arg.split('=').slice(1).join('=');
+        else if (arg === '--tag') options.tag = argv[++index];
+        else if (arg.startsWith('--tag=')) options.tag = arg.split('=').slice(1).join('=');
+        else if (arg === '--stratified') options.stratified = true;
     }
     return options;
+}
+
+function selectCases(candidateCases = [], options = {}) {
+    const limit = Number.isInteger(options.limit) ? options.limit : candidateCases.length;
+    if (!options.stratified) return candidateCases.slice(0, limit);
+
+    const priorityTags = ['recent', 'sql', 'dashboard', 'relative', 'clarify', 'security'];
+    const selected = [];
+    const selectedIds = new Set();
+    for (const tag of priorityTags) {
+        const match = candidateCases.find(testCase =>
+            !selectedIds.has(testCase.id) && testCase.tags?.includes(tag)
+        );
+        if (!match) continue;
+        selected.push(match);
+        selectedIds.add(match.id);
+        if (selected.length >= limit) return selected;
+    }
+    for (const testCase of candidateCases) {
+        if (selectedIds.has(testCase.id)) continue;
+        selected.push(testCase);
+        if (selected.length >= limit) break;
+    }
+    return selected;
 }
 
 function validateOptions(options = {}) {
@@ -292,6 +323,7 @@ async function liveRunCase(testCase, { remainingCalls, invokeAgent = invokeFinan
         const result = await invokeAgent({
             message: testCase.question,
             userIds: ['novel-agent-daniel', 'novel-agent-thais'],
+            ownerUserId: 'novel-agent-daniel',
             personByUserId: { 'novel-agent-daniel': 'Daniel', 'novel-agent-thais': 'Thais' },
             mode: 'shadow'
         });
@@ -336,9 +368,12 @@ async function runFinancialAgentNovelPlannerBattery(options = {}) {
     const reportDir = path.resolve(options.reportDir || path.join('data', 'qa-runs', runId));
     const candidateCases = options.caseId
         ? NOVEL_CASES.filter(testCase => testCase.id === options.caseId)
-        : NOVEL_CASES;
+        : options.tag
+            ? NOVEL_CASES.filter(testCase => testCase.tags?.includes(options.tag))
+            : NOVEL_CASES;
     if (options.caseId && candidateCases.length === 0) throw new Error('case_not_found');
-    const cases = Number.isInteger(options.limit) ? candidateCases.slice(0, options.limit) : candidateCases;
+    if (options.tag && candidateCases.length === 0) throw new Error('tag_not_found');
+    const cases = selectCases(candidateCases, options);
     const results = [];
     let usedCalls = 0;
 
@@ -390,6 +425,7 @@ module.exports = {
     NOVEL_CASES,
     parseArgs,
     validateOptions,
+    selectCases,
     dryRunCase,
     liveRunCase,
     summarize,

@@ -171,19 +171,25 @@ function sanitizeDashboardSnapshot(snapshot = {}) {
     };
 }
 
-async function getDashboardSnapshotTool({ userIds = [], month, year } = {}) {
+async function getDashboardSnapshotTool({ userIds = [], ownerUserId = '', month, year } = {}) {
     const scope = resolvedScopeFromUserIds(userIds);
     if (scope.decision !== 'allow') {
         return { ok: false, tool: 'get_dashboard_snapshot', reason: 'missing_authorized_scope' };
     }
-    if (scope.scope !== 'personal') {
+    const requestedOwnerId = String(ownerUserId || '').trim();
+    const dashboardUserId = scope.scope === 'personal'
+        ? scope.userIds[0]
+        : requestedOwnerId && scope.userIds.includes(requestedOwnerId)
+            ? requestedOwnerId
+            : '';
+    if (!dashboardUserId) {
         return { ok: false, tool: 'get_dashboard_snapshot', reason: 'family_dashboard_requires_owner_context' };
     }
 
     // Lazy import avoids loading Google/dashboard dependencies when the tool is not used.
     const { getDashboardSqlData, getDashboardSnapshot } = require('../services/readModelService');
-    const snapshot = getDashboardSqlData(scope.userIds[0], { month, year }) ||
-        getDashboardSnapshot(scope.userIds[0], { month, year });
+    const snapshot = getDashboardSqlData(dashboardUserId, { month, year }) ||
+        getDashboardSnapshot(dashboardUserId, { month, year });
     if (!snapshot) {
         return { ok: false, tool: 'get_dashboard_snapshot', reason: 'dashboard_snapshot_unavailable' };
     }
@@ -216,12 +222,12 @@ function normalizeMetric(metric = '') {
     return aliases[normalized] || '';
 }
 
-async function explainMetricTool({ metric, userIds = [], month, year } = {}) {
+async function explainMetricTool({ metric, userIds = [], ownerUserId = '', month, year } = {}) {
     const normalizedMetric = normalizeMetric(metric);
     if (!normalizedMetric) {
         return { ok: false, tool: 'explain_metric', reason: 'metric_not_allowed' };
     }
-    const dashboard = await getDashboardSnapshotTool({ userIds, month, year });
+    const dashboard = await getDashboardSnapshotTool({ userIds, ownerUserId, month, year });
     if (!dashboard.ok) return { ...dashboard, tool: 'explain_metric' };
     const snapshot = dashboard.snapshot;
     const components = normalizedMetric === 'balance'

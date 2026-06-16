@@ -259,10 +259,15 @@ function validateCountContract(answer, toolResult = {}) {
 
 function extractCurrencyAmounts(answer) {
     const text = String(answer || '');
-    const matches = text.match(/(?:R\$\s*)?\d{1,3}(?:\.\d{3})*(?:,\d{2})|\b\d+(?:,\d{2})\b/g) || [];
+    const matches = text.match(/-?\s*(?:R\$\s*)?-?\d{1,3}(?:\.\d{3})*(?:,\d{2})|-?\s*\b\d+(?:,\d{2})\b/g) || [];
     return matches
         .filter(match => /R\$|,/.test(match))
-        .map(match => Math.round((parseValue(match) + Number.EPSILON) * 100) / 100)
+        .map((match) => {
+            const normalized = String(match || '');
+            const isNegative = /^-\s*/.test(normalized) || /R\$\s*-/.test(normalized);
+            const amount = parseValue(normalized.replace(/-/g, ''));
+            return Math.round(((isNegative ? -amount : amount) + Number.EPSILON) * 100) / 100;
+        })
         .filter(Number.isFinite);
 }
 

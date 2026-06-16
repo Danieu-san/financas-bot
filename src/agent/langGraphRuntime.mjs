@@ -16,6 +16,7 @@ const { planWithGemini } = require('./financialAgentPlanner');
 const AgentState = Annotation.Root({
     message: Annotation(),
     userIds: Annotation(),
+    ownerUserId: Annotation(),
     personByUserId: Annotation(),
     financialQueryPlan: Annotation(),
     mode: Annotation(),
@@ -72,6 +73,9 @@ function inferDashboardMetric(normalized) {
 
 function isDashboardNavigationRequest(normalized) {
     if (!normalized.includes('dashboard')) return false;
+    if (/\b(?:sem|nao|não)\s+(?:quero\s+)?(?:abrir|alterar|enviar|gerar|mudar|trocar)\b/.test(normalized)) {
+        return false;
+    }
     return /\b(abra|abrir|altere|alterar|envia|enviar|envie|gere|gerar|link|mude|mudar|troque|trocar)\b/.test(normalized);
 }
 
@@ -220,6 +224,7 @@ async function runTool(state) {
     if (plan.action !== 'tool') return { toolResult: null };
     const common = {
         userIds: state.userIds || [],
+        ownerUserId: state.ownerUserId || state.userIds?.[0] || '',
         personByUserId: state.personByUserId || {}
     };
     if (plan.tool === 'list_recent_transactions') {
@@ -430,6 +435,7 @@ export async function invokeFinancialAgentRuntime(input = {}) {
     const result = await graph.invoke({
         message: input.message || '',
         userIds: input.userIds || [],
+        ownerUserId: input.ownerUserId || input.userIds?.[0] || '',
         personByUserId: input.personByUserId || {},
         financialQueryPlan: input.financialQueryPlan || null,
         mode: input.mode || 'shadow'
