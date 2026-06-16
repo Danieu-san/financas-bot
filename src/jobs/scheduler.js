@@ -8,6 +8,7 @@ const logger = require('../utils/logger');
 const metrics = require('../utils/metrics');
 const { buildNextRecurringDueDate, isRecurringDueOnDate } = require('../utils/recurringDueDate');
 const { sendInterpretationReadinessAlert } = require('../reliability/enforceReadinessNotifier');
+const { sendDailyOpsCheckReport } = require('../services/dailyOpsCheckService');
 
 let client;
 let isInitialized = false;
@@ -526,6 +527,22 @@ async function sendInterpretationReadinessAdminAlert() {
     }
 }
 
+async function sendDailyOpsCheckAdminReport() {
+    try {
+        const result = await sendDailyOpsCheckReport({
+            client,
+            adminIds: getAdminIds()
+        });
+        if (result.sent) {
+            logger.info(`[scheduler] daily_ops_check_sent status=${result.status}`);
+        }
+        return result;
+    } catch (error) {
+        logger.error(`Erro no check diario operacional: ${error.message}`);
+        return { sent: false, reason: 'daily_ops_check_failed' };
+    }
+}
+
 function initializeScheduler(wppClient) {
     if (isInitialized) {
         console.log('⚠️ Agendador já estava inicializado. Ignorando...');
@@ -573,6 +590,10 @@ function initializeScheduler(wppClient) {
         await sendOperationalHeartbeat();
     }, { scheduled: true, timezone: 'America/Sao_Paulo' });
 
+    cron.schedule('5 9 * * *', async () => {
+        await sendDailyOpsCheckAdminReport();
+    }, { scheduled: true, timezone: 'America/Sao_Paulo' });
+
     cron.schedule('15 9 * * *', async () => {
         await sendInterpretationReadinessAdminAlert();
     }, { scheduled: true, timezone: 'America/Sao_Paulo' });
@@ -615,6 +636,7 @@ module.exports = {
         sendWeeklyCheckIn,
         sendMonthlyReports,
         sendOperationalHeartbeat,
+        sendDailyOpsCheckAdminReport,
         sendInterpretationReadinessAdminAlert,
         collectPaymentsDueOnDate,
         addDaysForSchedule,

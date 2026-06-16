@@ -5,6 +5,7 @@ const schedulerPath = require.resolve('../src/jobs/scheduler');
 const googlePath = require.resolve('../src/services/google');
 const userServicePath = require.resolve('../src/services/userService');
 const readinessNotifierPath = require.resolve('../src/reliability/enforceReadinessNotifier');
+const dailyOpsCheckServicePath = require.resolve('../src/services/dailyOpsCheckService');
 
 function formatDateBR(date) {
     return [
@@ -14,11 +15,12 @@ function formatDateBR(date) {
     ].join('/');
 }
 
-function installSchedulerMocks({ users, settingsByUser, sheetsByRange = {}, eventsByUser = {}, readinessAlertSender = null }) {
+function installSchedulerMocks({ users, settingsByUser, sheetsByRange = {}, eventsByUser = {}, readinessAlertSender = null, dailyOpsSender = null }) {
     delete require.cache[schedulerPath];
     delete require.cache[googlePath];
     delete require.cache[userServicePath];
     delete require.cache[readinessNotifierPath];
+    delete require.cache[dailyOpsCheckServicePath];
 
     require.cache[googlePath] = {
         id: googlePath,
@@ -48,6 +50,17 @@ function installSchedulerMocks({ users, settingsByUser, sheetsByRange = {}, even
             loaded: true,
             exports: {
                 sendInterpretationReadinessAlert: readinessAlertSender
+            }
+        };
+    }
+
+    if (dailyOpsSender) {
+        require.cache[dailyOpsCheckServicePath] = {
+            id: dailyOpsCheckServicePath,
+            filename: dailyOpsCheckServicePath,
+            loaded: true,
+            exports: {
+                sendDailyOpsCheckReport: dailyOpsSender
             }
         };
     }
@@ -306,6 +319,33 @@ test('scheduler sends interpretation readiness alerts only through the admin not
         scheduler.__test__.setClientForTest(client);
 
         const result = await scheduler.__test__.sendInterpretationReadinessAdminAlert();
+
+        assert.strictEqual(result.sent, true);
+        assert.strictEqual(calls.length, 1);
+        assert.strictEqual(calls[0].client, client);
+        assert.deepStrictEqual(Array.from(calls[0].adminIds), ['5511999999999@c.us']);
+    } finally {
+        process.env.ADMIN_IDS = previousAdminIds;
+    }
+});
+
+test('scheduler sends daily ops check only through the admin ops notifier', async () => {
+    const previousAdminIds = process.env.ADMIN_IDS;
+    process.env.ADMIN_IDS = '5511999999999@c.us';
+    const calls = [];
+    try {
+        const scheduler = installSchedulerMocks({
+            users: [],
+            settingsByUser: {},
+            dailyOpsSender: async (options) => {
+                calls.push(options);
+                return { sent: true, status: 'ok' };
+            }
+        });
+        const client = { sendMessage: async () => {} };
+        scheduler.__test__.setClientForTest(client);
+
+        const result = await scheduler.__test__.sendDailyOpsCheckAdminReport();
 
         assert.strictEqual(result.sent, true);
         assert.strictEqual(calls.length, 1);
