@@ -129,6 +129,7 @@ Validar:
 - Prontidao exige alinhamento de auto-save >= 99,5%, zero caso ambiguo auto-gravado, zero chamada Gemini adicional, latencia p95 local <= 50 ms e evidencia completa dessas metricas.
 - O alinhamento de auto-save e apenas proxy operacional; confirmar bateria offline e revisar amostra humana antes de ativar `enforce`.
 - Divergencia critica envia alerta `NAO ative enforce` e so repete quando a contagem aumenta.
+- No check diario operacional, divergencia critica do shadow deve aparecer como `ATENCAO`/rollout bloqueado. Ela nao deve transformar o status geral em `CRITICO` se WhatsApp, SQLite/read-model e flags estiverem saudaveis.
 - Em teste com `INTERPRETATION_RELIABILITY_MODE=enforce`, gasto/entrada unitarios com campo critico LLM-only devem pedir confirmacao; mensagens deterministicas completas devem continuar diretas.
 - JSON do LLM nao pode fornecer `reliabilityConfirmed`, escopo ou identidade internos.
 - Frases com multiplos numeros sem marcador monetario inequivoco nao podem fazer auto-save.

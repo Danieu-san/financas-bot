@@ -1,6 +1,6 @@
 # Estado atual do FinancasBot
 
-Atualizado em: 2026-06-14
+Atualizado em: 2026-06-16
 
 ## Produto
 
@@ -25,6 +25,24 @@ Atualizado em: 2026-06-14
 - Backup pre-deploy: `/home/ubuntu/financas-bot-backups/release-20260614-family-langgraph-shadow-5615915`. Rollback de codigo: `192acb7`.
 - Pos-deploy validado: PM2 online, WhatsApp pronto, health publico `{"ok":true,"sqlite":true}`, worktree remoto limpo e read-model com `financialEventsPublic=45`. Nenhum novo registro foi gravado no error log apos o restart.
 - Proximos gates: observar telemetria sanitizada do shadow, implementar ferramentas agentic restantes, executar bateria livre de pelo menos 200 perguntas e somente depois considerar `FINANCIAL_AGENT_MODE=answer`. Family Mode deve ser ativado apenas depois de validar a allowlist real de Daniel/Thais para evitar bloqueio acidental.
+
+## Rollout do Financial Agent answer mode - 2026-06-16
+
+- Regra atual registrada em `docs/decisions/ADR-005-financial-agent-answer-rollout-gates.md`: producao deve permanecer com `FINANCIAL_AGENT_MODE=shadow` ate os gates de evidencia passarem.
+- Runbook operacional: `docs/runbooks/financial-agent-answer-rollout.md`.
+- Incidente observado: perguntas naturais sobre "ultimo lancamento" falharam no caminho legado, enquanto o agente em shadow produziu resposta verificada com `list_recent_transactions`.
+- `FINANCIAL_AGENT_MODE=answer` chegou a ser habilitado temporariamente para validar a resposta com Daniel. Isso foi util como evidencia, mas foi cedo demais para rollout global.
+- Apenas Daniel enviou perguntas nessa janela; nenhum outro usuario gerou evidencia suficiente. Uma resposta correta do Daniel nao libera `answer` global.
+- Proximo passo correto: voltar/ficar em `shadow`, coletar telemetria sanitizada, implementar allowlist controlada se necessario e so ativar `answer` depois dos gates do ADR-005.
+- Nao confundir `FINANCIAL_AGENT_MODE=answer` (respostas analiticas read-only) com `INTERPRETATION_RELIABILITY_MODE=enforce` (escritas financeiras).
+
+## Check diario e divergencias do shadow - 2026-06-17
+
+- Alerta observado: `Shadow/enforce: shadow com 33 divergencia critica(s); decisoes=35`.
+- Causa confirmada nos registros sanitizados: o fluxo legado teria gravado enquanto a camada de confiabilidade teria pedido confirmacao por `critical_field_not_deterministic`; isso bloqueia `enforce`, mas nao significa que WhatsApp/SQLite/dashboard estejam fora do ar.
+- O check diario operacional deve classificar esse caso como `ATENCAO`/rollout bloqueado, nao como status geral `CRITICO`. Status `CRITICO` fica reservado para indisponibilidade operacional, flags perigosas ou falha real de saude.
+- O notifier separado de prontidao continua podendo enviar `Divergencia critica no shadow`; ele e um alerta de seguranca para nao ativar `enforce`.
+- Nao apagar a telemetria para "limpar" o alerta; ela e evidencia util. Corrigir o comportamento por capacidade e so avancar quando as divergencias forem explicadas ou eliminadas.
 
 ## Estado de producao conhecido
 

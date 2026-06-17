@@ -133,8 +133,8 @@ function evaluateReadiness(readinessReport = null) {
 
     if (Number(readinessReport.criticalDivergences || 0) > 0) {
         return {
-            status: 'critical',
-            detail: `shadow com ${Number(readinessReport.criticalDivergences || 0)} divergencia critica(s); decisoes=${Number(readinessReport.shadowEntries || 0)}`,
+            status: 'attention',
+            detail: `rollout bloqueado: shadow com ${Number(readinessReport.criticalDivergences || 0)} divergencia critica(s); decisoes=${Number(readinessReport.shadowEntries || 0)}`,
             issues: [`shadow com ${Number(readinessReport.criticalDivergences || 0)} divergencia critica(s)`],
             nextActions: ['Nao ativar enforce. Revisar divergencias criticas antes de avancar.']
         };

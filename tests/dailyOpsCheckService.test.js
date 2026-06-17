@@ -94,8 +94,9 @@ test('daily ops check surfaces shadow readiness and critical divergences', () =>
             blockers: ['critical_divergence_found']
         }
     }));
-    assert.strictEqual(critical.status, 'critical');
+    assert.strictEqual(critical.status, 'attention');
     assert.ok(critical.issues.some(issue => /divergencia critica/i.test(issue)));
+    assert.ok(critical.nextActions.some(action => /Nao ativar enforce/.test(action)));
 });
 
 test('daily ops check sends only when enabled and only to unique admins', async () => {
