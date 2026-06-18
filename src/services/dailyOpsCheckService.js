@@ -67,6 +67,7 @@ function evaluateFlags(env = {}) {
     const dashboardAllUsers = normalizeFlag(env.DASHBOARD_ADMIN_ALL_USERS_ENABLED || 'false');
     const financialAgentMode = normalizeFlag(env.FINANCIAL_AGENT_MODE || 'off');
     const plannerEnabled = normalizeFlag(env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED || 'false');
+    const recentAnswerEnabled = normalizeFlag(env.FINANCIAL_AGENT_SHADOW_RECENT_ANSWER_ENABLED || 'false');
     const familyMode = normalizeFlag(env.FAMILY_MODE_ENABLED || 'false');
     const interpretationMode = normalizeFlag(env.INTERPRETATION_RELIABILITY_MODE || 'off');
 
@@ -78,6 +79,7 @@ function evaluateFlags(env = {}) {
 
     details.push(`agent=${financialAgentMode || 'off'}`);
     details.push(`planner=${plannerEnabled || 'false'}`);
+    details.push(`recent_answer=${recentAnswerEnabled || 'false'}`);
     details.push(`family=${familyMode || 'false'}`);
     details.push(`interpretation=${interpretationMode || 'off'}`);
     details.push(`all_users=${dashboardAllUsers || 'false'}`);

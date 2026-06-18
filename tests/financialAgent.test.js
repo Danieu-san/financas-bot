@@ -463,6 +463,42 @@ test('financial agent answer gate uses verified answers but does not hijack plan
     }), true);
 });
 
+test('financial agent shadow mode can answer only verified recent-transaction tool results', () => {
+    assert.strictEqual(messageHandlerTest.shouldUseFinancialAgentAnswerInMode('shadow', {
+        action: 'answer',
+        plan: { tool: 'list_recent_transactions' },
+        verified: { ok: true },
+        toolResult: { tool: 'list_recent_transactions', rows: [{ date: '2026-06-18' }] }
+    }, {}), false);
+
+    assert.strictEqual(messageHandlerTest.shouldUseFinancialAgentAnswerInMode('shadow', {
+        action: 'answer',
+        plan: { tool: 'list_recent_transactions' },
+        verified: { ok: true },
+        toolResult: { tool: 'list_recent_transactions', rows: [{ date: '2026-06-18' }] }
+    }, { FINANCIAL_AGENT_SHADOW_RECENT_ANSWER_ENABLED: 'true' }), true);
+
+    assert.strictEqual(messageHandlerTest.shouldUseFinancialAgentAnswerInMode('shadow', {
+        action: 'answer',
+        plan: { tool: 'query_financial_plan' },
+        verified: { ok: true },
+        toolResult: { tool: 'query_financial_plan', result: { total: 10 } }
+    }, { FINANCIAL_AGENT_SHADOW_RECENT_ANSWER_ENABLED: 'true' }), false);
+
+    assert.strictEqual(messageHandlerTest.shouldUseFinancialAgentAnswerInMode('shadow', {
+        action: 'answer',
+        plan: { tool: 'list_recent_transactions' },
+        verified: { ok: false },
+        toolResult: { tool: 'list_recent_transactions', rows: [{ date: '2026-06-18' }] }
+    }, { FINANCIAL_AGENT_SHADOW_RECENT_ANSWER_ENABLED: 'true' }), false);
+
+    assert.strictEqual(messageHandlerTest.shouldUseFinancialAgentAnswerInMode('answer', {
+        action: 'answer',
+        plan: { tool: 'query_financial_plan' },
+        verified: { ok: true }
+    }, {}), true);
+});
+
 test('financial agent person map exposes display names instead of internal ids', () => {
     const map = messageHandlerTest.buildFinancialAgentPersonByUserId(
         ['agent-daniel', 'agent-thais'],

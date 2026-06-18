@@ -349,6 +349,14 @@ function resetState() {
     }
 }
 
+function readReliabilityTelemetryEntries() {
+    if (!fs.existsSync(RELIABILITY_TELEMETRY_PATH)) return [];
+    return fs.readFileSync(RELIABILITY_TELEMETRY_PATH, 'utf8')
+        .split(/\r?\n/)
+        .filter(Boolean)
+        .map(line => JSON.parse(line));
+}
+
 stateMachineTest('financial states: payment method writes expense with user_id and clears state', async () => {
     resetState();
     userStateManager.setState(SENDER, {
@@ -654,6 +662,125 @@ stateMachineTest('financial states: explicit PIX expense is saved without asking
     assert.strictEqual(sheets.Saídas[1][9], USER_ID);
     assert.match(getReadModelStats().source, /^dirty:/);
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
+
+stateMachineTest('financial states: shadow treats deterministic complete expense as aligned write', async () => {
+    resetState();
+    fs.rmSync(RELIABILITY_TELEMETRY_PATH, { force: true });
+    const previousMode = process.env.INTERPRETATION_RELIABILITY_MODE;
+    const previousOperations = process.env.INTERPRETATION_RELIABILITY_OPERATIONS;
+    process.env.INTERPRETATION_RELIABILITY_MODE = 'shadow';
+    process.env.INTERPRETATION_RELIABILITY_OPERATIONS = 'expense.create,income.create';
+
+    try {
+        const reply = await send('gastei 25 no mercado no pix');
+
+        assert.match(reply, /registrado como \*PIX\*/i);
+        const entries = readReliabilityTelemetryEntries();
+        const expenseEntries = entries.filter(entry => entry.operation === 'expense.create');
+        assert.ok(expenseEntries.length > 0, 'expected expense shadow telemetry');
+        for (const entry of expenseEntries) {
+            assert.strictEqual(entry.action, 'execute');
+            assert.strictEqual(entry.divergenceSeverity, 'none');
+            assert.strictEqual(entry.fields.amount.source, 'deterministic');
+            assert.strictEqual(entry.fields.amount.assurance, 'verified');
+            assert.strictEqual(entry.fields.movementType.source, 'deterministic');
+            assert.strictEqual(entry.fields.movementType.assurance, 'verified');
+        }
+    } finally {
+        if (previousMode === undefined) delete process.env.INTERPRETATION_RELIABILITY_MODE;
+        else process.env.INTERPRETATION_RELIABILITY_MODE = previousMode;
+        if (previousOperations === undefined) delete process.env.INTERPRETATION_RELIABILITY_OPERATIONS;
+        else process.env.INTERPRETATION_RELIABILITY_OPERATIONS = previousOperations;
+    }
+});
+
+stateMachineTest('financial states: shadow preserves deterministic provenance when persisting confirmed expense', async () => {
+    resetState();
+    fs.rmSync(RELIABILITY_TELEMETRY_PATH, { force: true });
+    const previousMode = process.env.INTERPRETATION_RELIABILITY_MODE;
+    const previousOperations = process.env.INTERPRETATION_RELIABILITY_OPERATIONS;
+    process.env.INTERPRETATION_RELIABILITY_MODE = 'shadow';
+    process.env.INTERPRETATION_RELIABILITY_OPERATIONS = 'expense.create,income.create';
+    userStateManager.setState(SENDER, {
+        action: 'confirming_transactions',
+        data: {
+            transactions: [
+                {
+                    type: 'Saídas',
+                    data: '10/02/2026',
+                    descricao: 'mercado confirmado',
+                    categoria: 'Alimentação',
+                    valor: 20,
+                    pagamento: 'PIX',
+                    recorrente: 'Não',
+                    interpretationSource: 'deterministic'
+                }
+            ]
+        }
+    });
+
+    try {
+        const reply = await send('sim');
+
+        assert.match(reply, /1 de 1 itens foram salvos/i);
+        const entries = readReliabilityTelemetryEntries();
+        const expenseEntry = entries.find(entry => entry.operation === 'expense.create');
+        assert.ok(expenseEntry, 'expected expense shadow telemetry');
+        assert.strictEqual(expenseEntry.fields.amount.source, 'deterministic');
+        assert.strictEqual(expenseEntry.fields.amount.assurance, 'verified');
+        assert.strictEqual(expenseEntry.fields.movementType.source, 'deterministic');
+        assert.strictEqual(expenseEntry.fields.movementType.assurance, 'verified');
+    } finally {
+        if (previousMode === undefined) delete process.env.INTERPRETATION_RELIABILITY_MODE;
+        else process.env.INTERPRETATION_RELIABILITY_MODE = previousMode;
+        if (previousOperations === undefined) delete process.env.INTERPRETATION_RELIABILITY_OPERATIONS;
+        else process.env.INTERPRETATION_RELIABILITY_OPERATIONS = previousOperations;
+    }
+});
+
+stateMachineTest('financial states: shadow preserves deterministic provenance when persisting confirmed income', async () => {
+    resetState();
+    fs.rmSync(RELIABILITY_TELEMETRY_PATH, { force: true });
+    const previousMode = process.env.INTERPRETATION_RELIABILITY_MODE;
+    const previousOperations = process.env.INTERPRETATION_RELIABILITY_OPERATIONS;
+    process.env.INTERPRETATION_RELIABILITY_MODE = 'shadow';
+    process.env.INTERPRETATION_RELIABILITY_OPERATIONS = 'expense.create,income.create';
+    userStateManager.setState(SENDER, {
+        action: 'confirming_transactions',
+        data: {
+            transactions: [
+                {
+                    type: 'Entradas',
+                    data: '10/02/2026',
+                    descricao: 'freela confirmado',
+                    categoria: 'Renda Extra',
+                    valor: 200,
+                    recebimento: 'PIX',
+                    recorrente: 'Não',
+                    interpretationSource: 'deterministic'
+                }
+            ]
+        }
+    });
+
+    try {
+        const reply = await send('sim');
+
+        assert.match(reply, /1 de 1 itens foram salvos/i);
+        const entries = readReliabilityTelemetryEntries();
+        const incomeEntry = entries.find(entry => entry.operation === 'income.create');
+        assert.ok(incomeEntry, 'expected income shadow telemetry');
+        assert.strictEqual(incomeEntry.fields.amount.source, 'deterministic');
+        assert.strictEqual(incomeEntry.fields.amount.assurance, 'verified');
+        assert.strictEqual(incomeEntry.fields.movementType.source, 'deterministic');
+        assert.strictEqual(incomeEntry.fields.movementType.assurance, 'verified');
+    } finally {
+        if (previousMode === undefined) delete process.env.INTERPRETATION_RELIABILITY_MODE;
+        else process.env.INTERPRETATION_RELIABILITY_MODE = previousMode;
+        if (previousOperations === undefined) delete process.env.INTERPRETATION_RELIABILITY_OPERATIONS;
+        else process.env.INTERPRETATION_RELIABILITY_OPERATIONS = previousOperations;
+    }
 });
 
 stateMachineTest('financial states: audio transcription enters the normal financial routing', async () => {

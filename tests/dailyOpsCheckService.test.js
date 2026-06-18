@@ -37,6 +37,7 @@ function healthyInput(overrides = {}) {
             DASHBOARD_ADMIN_ALL_USERS_ENABLED: 'false',
             FINANCIAL_AGENT_MODE: 'shadow',
             FINANCIAL_AGENT_LLM_PLANNER_ENABLED: 'false',
+            FINANCIAL_AGENT_SHADOW_RECENT_ANSWER_ENABLED: 'true',
             FAMILY_MODE_ENABLED: 'false',
             INTERPRETATION_RELIABILITY_MODE: 'shadow'
         },
@@ -53,6 +54,7 @@ test('daily ops check reports ok without Gemini calls or sensitive identifiers',
     assert.match(message, /FinancasBot - check diario/);
     assert.match(message, /Status geral: OK/);
     assert.match(message, /Sem chamada Gemini/);
+    assert.match(message, /recent_answer=true/);
 });
 
 test('daily ops check marks unsafe production flags as critical', () => {

@@ -238,6 +238,27 @@ function shouldUseFinancialAgentAnswer(result = {}) {
     return false;
 }
 
+function isFinancialAgentShadowRecentAnswerEnabled(env = process.env) {
+    return ['1', 'true', 'yes', 'sim', 'on'].includes(normalizeText(env.FINANCIAL_AGENT_SHADOW_RECENT_ANSWER_ENABLED || ''));
+}
+
+function shouldUseFinancialAgentAnswerInMode(mode = 'off', result = {}, env = process.env) {
+    const normalizedMode = normalizeText(mode || 'off');
+    if (normalizedMode === 'answer') {
+        return shouldUseFinancialAgentAnswer(result);
+    }
+
+    if (normalizedMode !== 'shadow') return false;
+    if (!isFinancialAgentShadowRecentAnswerEnabled(env)) return false;
+    if (result.action !== 'answer' || !result.verified?.ok) return false;
+
+    const tool = String(result.plan?.tool || result.toolResult?.tool || '').trim();
+    if (tool !== 'list_recent_transactions') return false;
+
+    const rows = Array.isArray(result.toolResult?.rows) ? result.toolResult.rows : [];
+    return rows.length > 0;
+}
+
 function logFinancialAgentResult({ mode = 'off', result = null, senderId = '' } = {}) {
     if (!result) return;
     const tool = result.plan?.tool || 'none';
@@ -951,12 +972,12 @@ async function saveTransactionWithoutExtraPayment(item, { person, userId, writeO
             operation: 'expense.create',
             userId,
             message: item.originalMessage || item.descricao,
-            fields: {
-                amount: reliabilityField(valorNumerico),
-                scope: verifiedField('personal', 'user_state'),
-                movementType: reliabilityField('expense'),
-                payment: verifiedField(pagamentoFinal, 'user_state')
-            },
+            fields: buildTransactionReliabilityFields({
+                ...item,
+                type: 'Saídas',
+                valor: valorNumerico,
+                pagamento: pagamentoFinal
+            }),
             currentFlowOutcome: item.reliabilityConfirmed ? 'confirmed_write_attempt' : 'write_attempt'
         });
         const rowData = [
@@ -985,12 +1006,12 @@ async function saveTransactionWithoutExtraPayment(item, { person, userId, writeO
             operation: 'income.create',
             userId,
             message: item.originalMessage || item.descricao,
-            fields: {
-                amount: reliabilityField(valorNumerico),
-                scope: verifiedField('personal', 'user_state'),
-                movementType: reliabilityField('income'),
-                receipt: verifiedField(recebimentoFinal, 'user_state')
-            },
+            fields: buildTransactionReliabilityFields({
+                ...item,
+                type: 'Entradas',
+                valor: valorNumerico,
+                recebimento: recebimentoFinal
+            }),
             currentFlowOutcome: item.reliabilityConfirmed ? 'confirmed_write_attempt' : 'write_attempt'
         });
         const rowData = [
@@ -7430,7 +7451,7 @@ async function handleMessage(msg) {
                                     perfContext
                                 );
                                 logFinancialAgentResult({ mode: financialAgentMode, result: agentResult, senderId });
-                                if (financialAgentMode === 'answer' && shouldUseFinancialAgentAnswer(agentResult)) {
+                                if (shouldUseFinancialAgentAnswerInMode(financialAgentMode, agentResult)) {
                                     cache.set(cacheKey, agentResult.answer);
                                     await msg.reply(agentResult.answer);
                                     storeAnalyticalContext(senderId, effectiveIntentClassification);
@@ -7814,8 +7835,10 @@ module.exports = {
         parseBatchInstallmentReply,
         shouldRequireConfirmationForStructuredWrite,
         getFinancialAgentMode,
+        isFinancialAgentShadowRecentAnswerEnabled,
         buildFinancialAgentPersonByUserId,
         shouldUseFinancialAgentAnswer,
+        shouldUseFinancialAgentAnswerInMode,
         markFinancialReadModelDirty,
         saveImportedTransactions,
         handleAccountLifecycleCommands,
