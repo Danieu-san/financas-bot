@@ -506,6 +506,43 @@ test('enforce readiness monitor blocks critical divergence and short observation
     assert.strictEqual(report.criticalDivergences, 1);
 });
 
+test('enforce readiness monitor can evaluate an audited post-fix window without deleting old telemetry', () => {
+    const now = new Date('2026-07-20T12:00:00.000Z');
+    const since = '2026-07-01T00:00:00.000Z';
+    const oldCritical = {
+        ts: '2026-06-16T13:20:00.000Z',
+        mode: 'shadow',
+        operation: 'expense.create',
+        action: 'confirm',
+        currentFlowOutcome: 'write_attempt',
+        divergenceSeverity: 'critical',
+        evaluationLatencyMs: 5,
+        additionalGeminiCalls: 0
+    };
+    const cleanWindow = Array.from({ length: 50 }, (_, index) => ({
+        ts: new Date(Date.parse(since) + (index * 60 * 60 * 1000)).toISOString(),
+        mode: 'shadow',
+        operation: index % 2 === 0 ? 'expense.create' : 'income.create',
+        action: 'execute',
+        currentFlowOutcome: 'write_attempt',
+        divergenceSeverity: 'none',
+        evaluationLatencyMs: 5,
+        additionalGeminiCalls: 0
+    }));
+
+    const withoutCutoff = evaluateEnforceReadiness([oldCritical, ...cleanWindow], { now });
+    assert.ok(withoutCutoff.blockers.includes('critical_divergence_found'));
+
+    const withCutoff = evaluateEnforceReadiness([oldCritical, ...cleanWindow], { now, since });
+    assert.strictEqual(withCutoff.readyForManualReview, true);
+    assert.strictEqual(withCutoff.criticalDivergences, 0);
+    assert.strictEqual(withCutoff.shadowEntries, 50);
+    assert.strictEqual(withCutoff.shadowEntriesTotal, 51);
+    assert.strictEqual(withCutoff.ignoredEntriesBeforeSince, 1);
+    assert.strictEqual(withCutoff.telemetrySince, since);
+    assert.deepStrictEqual(withCutoff.blockers, []);
+});
+
 test('enforce readiness monitor requires a meaningful sample for every operation', () => {
     const now = new Date('2026-06-30T12:00:00.000Z');
     const entries = Array.from({ length: 50 }, (_, index) => ({

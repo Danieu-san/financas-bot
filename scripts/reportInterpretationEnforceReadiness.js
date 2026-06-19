@@ -15,7 +15,8 @@ function readOption(name, fallback = '') {
 
 function buildReport() {
     return buildEnforceReadinessReport({
-        telemetryPath: readOption('--path', process.env.INTERPRETATION_RELIABILITY_TELEMETRY_PATH || DEFAULT_TELEMETRY_PATH)
+        telemetryPath: readOption('--path', process.env.INTERPRETATION_RELIABILITY_TELEMETRY_PATH || DEFAULT_TELEMETRY_PATH),
+        since: readOption('--since', process.env.INTERPRETATION_RELIABILITY_READINESS_SINCE || '')
     });
 }
 
@@ -26,6 +27,9 @@ function printHumanReport(report) {
 
     console.log(`Interpretation reliability enforce readiness: ${status}`);
     console.log(`Telemetry: ${report.telemetryPath}`);
+    if (report.telemetrySince) {
+        console.log(`Evaluating since: ${report.telemetrySince} (${report.ignoredEntriesBeforeSince} older shadow decision(s) kept in telemetry but excluded from readiness gate)`);
+    }
     console.log(`Shadow decisions: ${report.shadowEntries}/${report.thresholds.minDecisions}`);
     console.log(`Observation window: ${report.observationWindowDays}/${report.thresholds.minObservationDays} day(s)`);
     console.log(`Critical divergences: ${report.criticalDivergences}`);

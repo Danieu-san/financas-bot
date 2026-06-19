@@ -54,7 +54,16 @@ function evaluateEnforceReadiness(entries = [], options = {}) {
         ...(options.thresholds || {})
     };
     const now = options.now ? new Date(options.now) : new Date();
-    const shadowEntries = entries.filter(entry => entry?.mode === 'shadow');
+    const sinceMs = options.since ? Date.parse(options.since) : NaN;
+    const hasSince = Number.isFinite(sinceMs);
+    const shadowEntriesAll = entries.filter(entry => entry?.mode === 'shadow');
+    const shadowEntries = hasSince
+        ? shadowEntriesAll.filter(entry => {
+            const ts = Date.parse(entry.ts);
+            return Number.isFinite(ts) && ts >= sinceMs;
+        })
+        : shadowEntriesAll;
+    const ignoredEntriesBeforeSince = shadowEntriesAll.length - shadowEntries.length;
     const invalidLines = Number(options.invalidLines || 0);
     const blockers = [];
     const warnings = [];
@@ -108,6 +117,7 @@ function evaluateEnforceReadiness(entries = [], options = {}) {
         : 0;
     const evaluationLatencyP95Ms = percentile(evaluationLatencies, 0.95);
 
+    if (options.since && !hasSince) blockers.push('invalid_since_timestamp');
     if (invalidLines > 0) blockers.push('invalid_telemetry_lines');
     if (shadowEntries.length < thresholds.minDecisions) blockers.push('not_enough_decisions');
     if (observationWindowDays < thresholds.minObservationDays) blockers.push('observation_window_too_short');
@@ -126,7 +136,12 @@ function evaluateEnforceReadiness(entries = [], options = {}) {
         }
     }
 
-    const enforceEntries = entries.filter(entry => entry?.mode === 'enforce').length;
+    const enforceEntries = entries.filter(entry => {
+        if (entry?.mode !== 'enforce') return false;
+        if (!hasSince) return true;
+        const ts = Date.parse(entry.ts);
+        return Number.isFinite(ts) && ts >= sinceMs;
+    }).length;
     if (enforceEntries > 0) {
         warnings.push('enforce_entries_present_in_shadow_readiness_report');
     }
@@ -138,6 +153,9 @@ function evaluateEnforceReadiness(entries = [], options = {}) {
         warnings,
         totalEntries: entries.length,
         shadowEntries: shadowEntries.length,
+        shadowEntriesTotal: shadowEntriesAll.length,
+        ignoredEntriesBeforeSince,
+        telemetrySince: hasSince ? new Date(sinceMs).toISOString() : '',
         invalidLines,
         criticalDivergences,
         autoSaveCandidates,
@@ -169,12 +187,13 @@ function isCriticalDivergence(entry = {}) {
     return severity === 'critical';
 }
 
-function buildEnforceReadinessReport({ telemetryPath = DEFAULT_TELEMETRY_PATH, now, thresholds } = {}) {
+function buildEnforceReadinessReport({ telemetryPath = DEFAULT_TELEMETRY_PATH, now, thresholds, since } = {}) {
     const loaded = loadShadowTelemetry(telemetryPath);
     const report = evaluateEnforceReadiness(loaded.entries, {
         now,
         thresholds,
-        invalidLines: loaded.invalidLines
+        invalidLines: loaded.invalidLines,
+        since
     });
     return {
         ...report,
