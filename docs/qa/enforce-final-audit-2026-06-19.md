@@ -90,3 +90,44 @@ Rollback aprovado:
 - Voltar `INTERPRETATION_RELIABILITY_MODE=shadow`.
 - Reiniciar PM2.
 - Confirmar `state_store.json={}` e logs sem erro.
+
+## Fechamento Pos-Condicao
+
+As condicoes obrigatorias foram cumpridas depois da auditoria inicial:
+
+- correcao `IRA-AUDIT-001` commitada e implantada em `1d67069`;
+- producao confirmou PM2 online, WhatsApp pronto, health/SQLite saudaveis,
+  worktree remoto limpo e `state_store.json={}`;
+- smoke real pos-deploy com Daniel validou gasto PIX, entrada PIX, gasto no
+  credito com cartao/parcela explicitos, pergunta analitica e dashboard;
+- limpeza marker-only foi executada na planilha real de producao, repetida de
+  forma idempotente e seguida de refresh do read-model;
+- telemetria real desde `2026-06-18T00:00:00.000Z` registrou 14 decisoes
+  (`expense.create=8`, `income.create=6`) e zero divergencia critica;
+- gate acelerado pos-smoke permaneceu `READY_FOR_ALTISSIMA_AUDIT` com bateria
+  offline 350/350, gastos 80/80, entradas 70/70 e adversariais 30/30;
+- verificacao final fresca: testes focados 90/90, `npm test` 458/458,
+  `npm audit --audit-level=high` com zero vulnerabilidades e `node --check`
+  nos arquivos criticos sem erro.
+
+### Escopo Exato Da Aprovacao
+
+A aprovacao vale somente para lancamentos unitarios de `expense.create` e
+`income.create`. Lotes, importacoes, transferencias, metas, dividas, contas,
+exclusoes e demais mutacoes permanecem nos fluxos existentes e fora desta
+ativacao inicial.
+
+Veredito final: `APROVADO PARA ATIVACAO CONTROLADA`.
+
+O monitor conservador continua recomendando `KEEP_SHADOW` porque ainda aplica
+os limiares passivos de 50 decisoes e 14 dias. A aprovacao acima nao afirma que
+esses limiares foram atingidos: ela usa o gate acelerado documentado, que os
+substitui por bateria offline ampla, E2E real, rollback comprovado, logs limpos
+e revisao humana em capacidade altissima. Portanto, trata-se de um canario
+reversivel e estreito, nao de liberacao global da camada.
+
+A ativacao deve alterar somente `INTERPRETATION_RELIABILITY_MODE=enforce`,
+preservando `INTERPRETATION_RELIABILITY_OPERATIONS=expense.create,income.create`.
+Depois do restart, executar smoke unitario com marcador e manter rollback
+imediato para `shadow` se ocorrer escrita incorreta, duplicidade, falha de
+limpeza, divergencia critica ou erro novo nos logs.
