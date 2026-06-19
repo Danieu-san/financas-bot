@@ -865,7 +865,7 @@ function buildTransactionReliabilityFields(item = {}, {
 } = {}) {
     const source = interpretationSource === 'local_command' ? 'deterministic' : interpretationSource;
     const isExpense = item.type === 'Saídas';
-    return {
+    const fields = {
         amount: sourceField(parseValue(item.valor), source, 'transaction_value'),
         scope: verifiedField('personal', 'user_state', 'active_user_scope'),
         movementType: sourceField(isExpense ? 'expense' : 'income', source, 'structured_intent'),
@@ -873,6 +873,57 @@ function buildTransactionReliabilityFields(item = {}, {
             ? { payment: sourceField(normalizePaymentMethodLabel(item.pagamento), methodSource, 'payment_method') }
             : { receipt: sourceField(normalizePaymentMethodLabel(item.recebimento), methodSource, 'receipt_method') })
     };
+
+    if (isExpense && normalizeText(fields.payment?.value) === 'credito') {
+        const cardValue = item.card
+            || item.cardName
+            || item.cardInfo?.displayName
+            || item.cardInfo?.label
+            || item.cardInfo?.sheetName
+            || item.cardInfo?.cardId;
+        const installmentsValue = Number.parseInt(item.installments || item.parcelas || '', 10);
+        if (cardValue) {
+            fields.card = sourceField(cardValue, item.cardSource || 'user_state', 'credit_card');
+        }
+        if (Number.isInteger(installmentsValue) && installmentsValue >= 1) {
+            fields.installments = sourceField(installmentsValue, item.installmentsSource || 'user_state', 'installments');
+        }
+    }
+
+    return fields;
+}
+
+async function buildSingleTransactionReliabilityFields(item = {}, messageBody = '', userId = '') {
+    const fields = buildTransactionReliabilityFields(item);
+    const payment = normalizeText(item.pagamento || '');
+    const mentionsCard = normalizeText(messageBody).includes('cartao');
+    if (item.type !== 'Saídas' || (payment !== 'credito' && !mentionsCard)) {
+        return fields;
+    }
+
+    const explicitInstallments = detectInstallmentsFromMessage(messageBody);
+    if (explicitInstallments) {
+        fields.installments = verifiedField(explicitInstallments, 'deterministic', 'explicit_installments');
+    }
+
+    try {
+        const cardOptions = await buildCreditCardOptionsForUser(userId);
+        const explicitCard = findExplicitCardOption(messageBody, cardOptions);
+        const cardInfo = explicitCard ? getSelectedCardInfo(cardOptions, cardOptions.indexOf(explicitCard)) : null;
+        const cardValue = explicitCard?.label
+            || explicitCard?.key
+            || cardInfo?.displayName
+            || cardInfo?.label
+            || cardInfo?.sheetName
+            || cardInfo?.cardId;
+        if (cardValue) {
+            fields.card = verifiedField(cardValue, 'deterministic', 'explicit_credit_card');
+        }
+    } catch (error) {
+        logger.warn(`interpretation-reliability: falha ao resolver cartão explícito error=${error.message}`);
+    }
+
+    return fields;
 }
 
 async function requireReliabilityControlBeforeStateWrite({
@@ -931,6 +982,73 @@ async function requireReliabilityControlBeforeStateWrite({
 
     userStateManager.deleteState(senderId);
     await msg.reply('Não posso executar esse lançamento porque ele não passou pelas validações de segurança.');
+    return true;
+}
+
+async function requireReliabilityControlBeforeCreditCardWrite({
+    msg,
+    senderId,
+    userId,
+    gasto,
+    cardInfo,
+    installments
+}) {
+    const safeInstallments = Math.max(1, Number.parseInt(installments, 10) || 1);
+    const creditCardItem = {
+        ...gasto,
+        type: 'Saídas',
+        pagamento: 'Crédito',
+        cardInfo,
+        installments: safeInstallments
+    };
+    const startedAt = performance.now();
+    const evaluation = buildWriteInterpretationEvaluation({
+        operation: 'expense.create',
+        message: creditCardItem.originalMessage || creditCardItem.descricao || '',
+        fields: buildTransactionReliabilityFields(creditCardItem, { methodSource: 'user_state' })
+    });
+    const evaluationLatencyMs = performance.now() - startedAt;
+
+    if (!evaluation.gate.applied || evaluation.gate.proceed) {
+        return false;
+    }
+
+    const currentFlowOutcome = evaluation.gate.action === 'confirm'
+        ? 'confirmation_requested'
+        : (evaluation.gate.action === 'clarify' ? 'clarification_requested' : 'blocked');
+    recordWriteInterpretationEvaluation({
+        evaluation,
+        userId,
+        message: creditCardItem.originalMessage || creditCardItem.descricao || '',
+        currentFlowOutcome,
+        evaluationLatencyMs
+    });
+
+    if (evaluation.gate.action === 'confirm') {
+        userStateManager.setState(senderId, {
+            action: 'confirming_credit_card_expense',
+            data: {
+                gasto: { ...creditCardItem, reliabilityConfirmed: true },
+                cardInfo,
+                installments: safeInstallments
+            }
+        });
+        await msg.reply(
+            `Antes de salvar no cartão, confirme os dados interpretados:\n\n` +
+            `1. ${creditCardItem.descricao || 'Não especificado'} - *R$${parseValue(creditCardItem.valor).toFixed(2)}* - ` +
+            `${cardInfo?.displayName || cardInfo?.label || cardInfo?.sheetName || 'cartão'} - ${safeInstallments}x\n\n` +
+            `Responda *sim* para confirmar ou *não* para cancelar.`
+        );
+        return true;
+    }
+
+    if (evaluation.gate.action === 'clarify') {
+        await msg.reply('Ainda falta confirmar um dado essencial desse gasto no cartão. Envie novamente com valor, cartão e parcelas bem claros.');
+        return true;
+    }
+
+    userStateManager.deleteState(senderId);
+    await msg.reply('Não posso executar esse lançamento no cartão porque ele não passou pelas validações de segurança.');
     return true;
 }
 
@@ -1385,6 +1503,20 @@ async function saveCreditCardExpense(gasto, cardInfo, installments, userId) {
     const safeInstallments = Math.max(1, Number.parseInt(installments, 10) || 1);
     const totalValue = parseValue(gasto.valor);
     const installmentValue = totalValue / safeInstallments;
+
+    recordWriteInterpretationShadow({
+        operation: 'expense.create',
+        userId,
+        message: gasto.originalMessage || gasto.descricao,
+        fields: buildTransactionReliabilityFields({
+            ...gasto,
+            type: 'Saídas',
+            pagamento: 'Crédito',
+            cardInfo,
+            installments: safeInstallments
+        }, { methodSource: gasto.reliabilityConfirmed ? 'user_state' : (gasto.interpretationSource || 'user_state') }),
+        currentFlowOutcome: gasto.reliabilityConfirmed ? 'confirmed_write_attempt' : 'write_attempt'
+    });
 
     for (let i = 1; i <= safeInstallments; i++) {
         let billingMonth = purchaseDate.getMonth();
@@ -6244,6 +6376,16 @@ async function handleMessage(msg) {
                 if (selection >= 0 && selection < cardOptions.length) {
                     const cardInfo = getSelectedCardInfo(cardOptions, selection);
                     if (gasto.installments) {
+                        if (await requireReliabilityControlBeforeCreditCardWrite({
+                            msg,
+                            senderId,
+                            userId,
+                            gasto,
+                            cardInfo,
+                            installments: gasto.installments
+                        })) {
+                            return;
+                        }
                         try {
                             const saved = await saveCreditCardExpense(gasto, cardInfo, gasto.installments, userId);
                             if (saved.installments === 1) {
@@ -6281,6 +6423,17 @@ async function handleMessage(msg) {
                     return;
                 }
 
+                if (await requireReliabilityControlBeforeCreditCardWrite({
+                    msg,
+                    senderId,
+                    userId,
+                    gasto,
+                    cardInfo,
+                    installments
+                })) {
+                    return;
+                }
+
                 try {
                     const saved = await saveCreditCardExpense(gasto, cardInfo, installments, userId);
                     if (saved.installments === 1) {
@@ -6291,6 +6444,32 @@ async function handleMessage(msg) {
                     await safeMaybeNotifyDailyGoalAfterExpense(msg, userId, 'installment_number');
                 } catch (error) {
                     console.error("Erro ao salvar parcelamento:", error);
+                    await msg.reply("Ocorreu um erro ao salvar o gasto.");
+                } finally {
+                    userStateManager.deleteState(senderId);
+                }
+                return;
+            }
+
+            case 'confirming_credit_card_expense': {
+                const cleanReply = normalizeText(msg.body);
+                const { gasto, cardInfo, installments } = currentState.data;
+                if (cleanReply !== 'sim') {
+                    await msg.reply('Ok, lançamento no cartão cancelado.');
+                    userStateManager.deleteState(senderId);
+                    return;
+                }
+
+                try {
+                    const saved = await saveCreditCardExpense(gasto, cardInfo, installments, userId);
+                    if (saved.installments === 1) {
+                        await msg.reply(`✅ Gasto de R$${gasto.valor} lançado no *${saved.sheetName}*.`);
+                    } else {
+                        await msg.reply(`✅ Gasto de R$${gasto.valor} lançado em ${saved.installments}x de R$${saved.installmentValue.toFixed(2)} no *${saved.sheetName}*.`);
+                    }
+                    await safeMaybeNotifyDailyGoalAfterExpense(msg, userId, 'confirmed_credit_card_expense');
+                } catch (error) {
+                    console.error("Erro ao salvar gasto no cartão confirmado:", error);
                     await msg.reply("Ocorreu um erro ao salvar o gasto.");
                 } finally {
                     userStateManager.deleteState(senderId);
@@ -7171,7 +7350,7 @@ async function handleMessage(msg) {
                         singleReliabilityEvaluation = buildWriteInterpretationEvaluation({
                             operation,
                             message: messageBody,
-                            fields: buildTransactionReliabilityFields(singleItem)
+                            fields: await buildSingleTransactionReliabilityFields(singleItem, messageBody, userId)
                         });
                         singleReliabilityLatencyMs = performance.now() - startedAt;
 

@@ -540,6 +540,49 @@ stateMachineTest('financial states: enforce preserves LLM provenance across the 
     }
 });
 
+stateMachineTest('financial states: enforce requires confirmation before saving LLM-origin credit card expense', async () => {
+    resetState();
+    const previousMode = process.env.INTERPRETATION_RELIABILITY_MODE;
+    const previousOperations = process.env.INTERPRETATION_RELIABILITY_OPERATIONS;
+    process.env.INTERPRETATION_RELIABILITY_MODE = 'enforce';
+    process.env.INTERPRETATION_RELIABILITY_OPERATIONS = 'expense.create,income.create';
+    enqueueStructuredResponse({
+        intent: 'gasto',
+        gastoDetails: [
+            {
+                descricao: 'almoço',
+                valor: 80,
+                categoria: 'Alimentação',
+                recorrente: 'Não'
+            }
+        ]
+    });
+
+    try {
+        assert.match(await send('anote 80 do almoço'), /forma de pagamento/i);
+        assert.match(await send('credito'), /qual cartão/i);
+        assert.match(await send('1'), /parcelas/i);
+
+        const confirmationRequest = await send('1');
+        assert.match(confirmationRequest, /Antes de salvar no cartão, confirme/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_credit_card_expense');
+        assert.strictEqual(sheets[CARD_SHEETS[0]].length, 1);
+
+        const done = await send('sim');
+        assert.match(done, /lançado no/i);
+        assert.strictEqual(sheets[CARD_SHEETS[0]].length, 2);
+        assert.strictEqual(sheets[CARD_SHEETS[0]][1][1], 'almoço');
+        assert.strictEqual(sheets[CARD_SHEETS[0]][1][3], 80);
+        assert.strictEqual(sheets[CARD_SHEETS[0]][1][4], '1/1');
+        assert.strictEqual(userStateManager.getState(SENDER), undefined);
+    } finally {
+        if (previousMode === undefined) delete process.env.INTERPRETATION_RELIABILITY_MODE;
+        else process.env.INTERPRETATION_RELIABILITY_MODE = previousMode;
+        if (previousOperations === undefined) delete process.env.INTERPRETATION_RELIABILITY_OPERATIONS;
+        else process.env.INTERPRETATION_RELIABILITY_OPERATIONS = previousOperations;
+    }
+});
+
 stateMachineTest('financial states: strips internal reliability metadata supplied by the LLM', async () => {
     resetState();
     enqueueStructuredResponse({
@@ -1086,6 +1129,43 @@ stateMachineTest('financial states: explicit credit card and à vista expense sk
     assert.strictEqual(sheets['Cartão Nubank - Thais'][1][3], 10);
     assert.strictEqual(sheets['Cartão Nubank - Thais'][1][4], '1/1');
     assert.strictEqual(sheets['Cartão Nubank - Thais'][1].at(-1), USER_ID);
+});
+
+stateMachineTest('financial states: enforce allows deterministic complete credit card expense with explicit card and installments', async () => {
+    resetState();
+    const previousMode = process.env.INTERPRETATION_RELIABILITY_MODE;
+    const previousOperations = process.env.INTERPRETATION_RELIABILITY_OPERATIONS;
+    process.env.INTERPRETATION_RELIABILITY_MODE = 'enforce';
+    process.env.INTERPRETATION_RELIABILITY_OPERATIONS = 'expense.create,income.create';
+    enqueueStructuredResponse({
+        intent: 'gasto',
+        gastoDetails: [{
+            descricao: 'mercado',
+            valor: 10,
+            categoria: 'Alimentação',
+            subcategoria: 'SUPERMERCADO',
+            pagamento: 'Crédito',
+            recorrente: 'Não'
+        }]
+    });
+
+    try {
+        const reply = await send('gastei 10 reais no mercado no crédito no cartão nubank thais à vista');
+
+        assert.match(reply, /lançado no/i);
+        assert.match(reply, /Cartão Nubank - Thais/i);
+        assert.doesNotMatch(reply, /conflito|forma de pagamento|qual cartão|parcelas/i);
+        assert.strictEqual(userStateManager.getState(SENDER), undefined);
+        assert.strictEqual(sheets['Cartão Nubank - Thais'].length, 2);
+        assert.strictEqual(sheets['Cartão Nubank - Thais'][1][3], 10);
+        assert.strictEqual(sheets['Cartão Nubank - Thais'][1][4], '1/1');
+        assert.strictEqual(sheets['Cartão Nubank - Thais'][1].at(-1), USER_ID);
+    } finally {
+        if (previousMode === undefined) delete process.env.INTERPRETATION_RELIABILITY_MODE;
+        else process.env.INTERPRETATION_RELIABILITY_MODE = previousMode;
+        if (previousOperations === undefined) delete process.env.INTERPRETATION_RELIABILITY_OPERATIONS;
+        else process.env.INTERPRETATION_RELIABILITY_OPERATIONS = previousOperations;
+    }
 });
 
 stateMachineTest('financial states: explicit personal card name ignores separators and skips redundant questions', async () => {
