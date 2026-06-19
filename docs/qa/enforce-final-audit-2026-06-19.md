@@ -131,3 +131,26 @@ preservando `INTERPRETATION_RELIABILITY_OPERATIONS=expense.create,income.create`
 Depois do restart, executar smoke unitario com marcador e manter rollback
 imediato para `shadow` se ocorrer escrita incorreta, duplicidade, falha de
 limpeza, divergencia critica ou erro novo nos logs.
+
+## Ativacao Controlada
+
+Ativacao executada em producao em 2026-06-19:
+
+- backup restrito do `.env` criado antes da mudanca;
+- somente `INTERPRETATION_RELIABILITY_MODE` mudou de `shadow` para `enforce`;
+- allowlist preservada como `expense.create,income.create`;
+- `FINANCIAL_AGENT_MODE=shadow`, planner Gemini desligado e dashboard
+  all-users desligado permaneceram inalterados;
+- PM2, health/SQLite e WhatsApp ready ficaram saudaveis apos os restarts;
+- canario real com Daniel confirmou gasto PIX deterministico executado direto;
+- entrada sem metodo pediu esclarecimento e foi salva somente apos resposta
+  `pix`;
+- telemetria `enforce` registrou `expense.execute`, `income.clarify` e
+  `income.execute`, todos sem divergencia e sem chamada Gemini adicional;
+- exatamente duas linhas marker-only foram removidas; a segunda limpeza
+  removeu zero e o SQLite publico retornou zero marcador;
+- logs do periodo nao apresentaram WARN/ERROR/CRITICAL novos.
+
+Status final: `ENFORCE CANARIO ATIVO` somente para os lancamentos unitarios
+aprovados. O rollback continua sendo restaurar o backup do `.env`, reiniciar o
+PM2 e confirmar health, WhatsApp ready, estado limpo e logs.
