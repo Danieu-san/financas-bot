@@ -758,8 +758,8 @@ test('interpretation reliability acceptance battery executes every case without 
         securityDetector: messageHandler.__test__.detectSecuritySensitiveRequest
     });
 
-    assert.strictEqual(report.total, 340);
-    assert.strictEqual(report.matched, 340, JSON.stringify(report.mismatches.slice(0, 30)));
+    assert.strictEqual(report.total, 350);
+    assert.strictEqual(report.matched, 350, JSON.stringify(report.mismatches.slice(0, 30)));
     assert.deepStrictEqual(report.mismatches, []);
     assert.strictEqual(report.byDecision.block.matched, report.byDecision.block.total);
     assert.strictEqual(report.byDecision.execute.matched, report.byDecision.execute.total);

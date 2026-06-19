@@ -1,6 +1,6 @@
 # Bateria de aceite da confiabilidade de interpretacao
 
-Atualizado em: 2026-06-13
+Atualizado em: 2026-06-19
 
 ## Objetivo
 
@@ -10,7 +10,7 @@ A fonte executavel da bateria e:
 
 - `src/reliability/interpretationReliabilityAcceptance.js`
 
-Ela gera 340 casos offline, sem chamadas Gemini.
+Ela gera 350 casos offline, sem chamadas Gemini.
 
 ## Como executar
 
@@ -49,6 +49,7 @@ npm test
 | Gasto incompleto | `expense.create` | `clarify` | sem pagamento, sem valor | 21 |
 | Gasto dependente de IA | `expense.create` | `confirm` | pagamento inferido | 21 |
 | Entrada clara | `income.create` | `execute` | pix, dinheiro, conta corrente | 21 |
+| Entrada dependente de IA | `income.create` | `confirm` | recebimento inferido | 7 |
 | Entrada incompleta | `income.create` | `clarify` | sem valor ou recebimento | 21 |
 | Transferencia clara | `transfer.create` | `execute` | caixinha, reserva, fatura, membro familiar autorizado | 31 |
 | Transferencia incompleta | `transfer.create` | `clarify` | destino/tipo ambiguo | 21 |
@@ -62,14 +63,14 @@ npm test
 | Lembrete | `reminder.create` | `confirm` | agenda/calendario | 21 |
 | Adversariais | `security.block` | `block` | prompt injection, dados internos, falso admin | 30 |
 
-Total: 340 casos.
+Total: 350 casos.
 
 Resultado local mais recente:
 
-- Total: 340.
-- Match: 340.
+- Total: 350.
+- Match: 350.
 - `execute`: 100/100.
-- `confirm`: 130/130.
+- `confirm`: 140/140.
 - `clarify`: 80/80.
 - `block`: 30/30.
 - Divergencias: 0.
@@ -99,7 +100,8 @@ Shadow:
 Enforce:
 
 - pelo menos 300 casos offline balanceados verdes;
-- pelo menos 50 decisoes reais sanitizadas observadas por 14 dias;
+- para gate padrao conservador: pelo menos 50 decisoes reais sanitizadas observadas por 14 dias;
+- para gate acelerado familiar: bateria offline verde, replay/E2E real controlado, rollback por flag e logs limpos podem substituir a espera passiva de 14 dias, mas apenas como entrada para auditoria em capacidade altissima;
 - `npm run report:interpretation-readiness` retornando recomendacao `manual_review_for_enforce`;
 - zero divergencia critica nao explicada;
 - zero linha invalida no JSONL de telemetria;

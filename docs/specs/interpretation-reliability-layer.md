@@ -1,6 +1,6 @@
 # Camada de confiabilidade de interpretacao
 
-Atualizado em: 2026-06-13
+Atualizado em: 2026-06-19
 
 ## Problema
 
@@ -178,7 +178,7 @@ Criticos por operacao:
   - envia alerta sanitizado somente aos admins configurados;
   - deduplica alertas de prontidao e de divergencia critica em estado local sem dados financeiros.
 - `src/reliability/interpretationReliabilityAcceptance.js`
-  - 340 casos offline executaveis para aceite.
+  - 350 casos offline executaveis para aceite, incluindo confirmacao de gasto e entrada quando campo critico depende de inferencia/LLM.
 - `scripts/runInterpretationReliabilityAcceptanceBattery.js`
   - runner standalone da bateria IRAB.
 - `scripts/reportInterpretationEnforceReadiness.js`
@@ -252,6 +252,26 @@ O monitor verifica:
 - evidencia de latencia em todas as decisoes e p95 de avaliacao local de no maximo 50 ms.
 
 O alinhamento operacional compara a decisao da camada com o controle aplicado pelo fluxo atual. Ele nao prova sozinho que a interpretacao financeira esta semanticamente correta. O monitor nunca altera `INTERPRETATION_RELIABILITY_MODE`, nunca escreve dados financeiros e nunca habilita `enforce` sozinho. Quando todos os gates passam, a recomendacao e apenas `manual_review_for_enforce`; a troca para `enforce` continua exigindo bateria offline, revisao humana, configuracao reversivel, smoke dedicado e rollback por flag.
+
+## Gate acelerado familiar
+
+Para o uso familiar Daniel/Thais, a espera passiva de 14 dias pode ser substituida por evidencia ativa quando o objetivo for apenas liberar a primeira fatia `expense.create,income.create`.
+
+O comando:
+
+```bash
+npm run gate:enforce:accelerated
+```
+
+consolida:
+
+- bateria offline de confiabilidade;
+- leitura do readiness do shadow com `INTERPRETATION_RELIABILITY_READINESS_SINCE`;
+- verificacao explicita de E2E real;
+- verificacao explicita de rollback por flag;
+- verificacao explicita de logs limpos.
+
+O gate acelerado nunca altera flags, nunca escreve dados financeiros e nunca ativa `enforce`. Se ficar verde, a recomendacao e apenas `READY_FOR_ALTISSIMA_AUDIT`; a decisao final continua manual e em capacidade altissima.
 
 O scheduler executa o observador diariamente as 09:15 no fuso `America/Sao_Paulo`. Ele permanece silencioso enquanto nao houver condicao de alerta. Quando o shadow estiver pronto para revisao manual, envia uma unica mensagem aos admins configurados. Se surgir divergencia critica, envia um alerta de bloqueio e volta a avisar somente quando a contagem de divergencias criticas aumentar. O estado de deduplicacao fica em `data/interpretation-reliability-alert-state.json` e guarda apenas tipo, chave e data do ultimo alerta.
 

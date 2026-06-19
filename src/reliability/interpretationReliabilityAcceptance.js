@@ -13,6 +13,7 @@ const BASE_SCENARIOS = [
     ['income.create', 'execute', 'recebi 100 no pix'],
     ['income.create', 'execute', 'ganhei 300 em dinheiro'],
     ['income.create', 'execute', 'recebi 500 na conta corrente'],
+    ['income.create', 'confirm', 'recebi 100 na conta acho que foi pix'],
     ['income.create', 'clarify', 'recebi dinheiro'],
     ['income.create', 'clarify', 'caiu 100 na conta'],
     ['income.create', 'clarify', 'ganhei 100'],
@@ -141,6 +142,12 @@ function runInterpretationReliabilityAcceptance({ securityDetector = () => ({ bl
         total: cases.length,
         matched: cases.length - mismatches.length,
         byDecision,
+        cases: cases.map(item => ({
+            id: item.id,
+            operation: item.operation,
+            expectedDecision: item.expectedDecision,
+            risk: item.risk
+        })),
         mismatches
     };
 }
