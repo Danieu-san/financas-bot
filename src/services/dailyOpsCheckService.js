@@ -70,18 +70,34 @@ function evaluateFlags(env = {}) {
     const recentAnswerEnabled = normalizeFlag(env.FINANCIAL_AGENT_SHADOW_RECENT_ANSWER_ENABLED || 'false');
     const familyMode = normalizeFlag(env.FAMILY_MODE_ENABLED || 'false');
     const interpretationMode = normalizeFlag(env.INTERPRETATION_RELIABILITY_MODE || 'off');
+    const interpretationEnforceApproved = normalizeFlag(env.INTERPRETATION_RELIABILITY_ENFORCE_APPROVED || 'false');
+    const interpretationOperations = String(env.INTERPRETATION_RELIABILITY_OPERATIONS || '')
+        .split(',')
+        .map(operation => operation.trim())
+        .filter(Boolean);
+    const approvedInterpretationOperations = ['expense.create', 'income.create'];
+    const hasExactApprovedInterpretationAllowlist = (
+        interpretationOperations.length === approvedInterpretationOperations.length
+        && approvedInterpretationOperations.every(operation => interpretationOperations.includes(operation))
+    );
 
     if (dashboardAllUsers === 'true') issues.push('DASHBOARD_ADMIN_ALL_USERS_ENABLED=true');
     if (financialAgentMode === 'answer' || financialAgentMode === 'enforce') issues.push(`FINANCIAL_AGENT_MODE=${financialAgentMode}`);
     if (plannerEnabled === 'true') issues.push('FINANCIAL_AGENT_LLM_PLANNER_ENABLED=true');
     if (familyMode === 'true') issues.push('FAMILY_MODE_ENABLED=true');
-    if (interpretationMode === 'enforce') issues.push('INTERPRETATION_RELIABILITY_MODE=enforce');
+    if (interpretationMode === 'enforce' && interpretationEnforceApproved !== 'true') {
+        issues.push('INTERPRETATION_RELIABILITY_MODE=enforce sem aprovacao explicita');
+    }
+    if (interpretationMode === 'enforce' && !hasExactApprovedInterpretationAllowlist) {
+        issues.push('INTERPRETATION_RELIABILITY_OPERATIONS allowlist nao aprovada');
+    }
 
     details.push(`agent=${financialAgentMode || 'off'}`);
     details.push(`planner=${plannerEnabled || 'false'}`);
     details.push(`recent_answer=${recentAnswerEnabled || 'false'}`);
     details.push(`family=${familyMode || 'false'}`);
     details.push(`interpretation=${interpretationMode || 'off'}`);
+    details.push(`enforce_approved=${interpretationEnforceApproved || 'false'}`);
     details.push(`all_users=${dashboardAllUsers || 'false'}`);
 
     return {

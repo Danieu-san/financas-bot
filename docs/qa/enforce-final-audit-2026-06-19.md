@@ -154,3 +154,8 @@ Ativacao executada em producao em 2026-06-19:
 Status final: `ENFORCE CANARIO ATIVO` somente para os lancamentos unitarios
 aprovados. O rollback continua sendo restaurar o backup do `.env`, reiniciar o
 PM2 e confirmar health, WhatsApp ready, estado limpo e logs.
+
+O check diario foi endurecido para reconhecer esse canario sem gerar falso
+`CRITICO`: ele exige `INTERPRETATION_RELIABILITY_ENFORCE_APPROVED=true` e a
+allowlist exata `expense.create,income.create`. Ausencia da aprovacao ou qualquer
+operacao adicional continua sendo classificada como critica.

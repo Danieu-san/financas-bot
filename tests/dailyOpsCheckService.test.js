@@ -74,6 +74,44 @@ test('daily ops check marks unsafe production flags as critical', () => {
     assert.ok(report.issues.some(issue => issue.includes('FINANCIAL_AGENT_MODE=answer')));
 });
 
+test('daily ops check accepts explicitly approved narrow interpretation enforce canary', () => {
+    const report = buildDailyOpsCheckReport(healthyInput({
+        env: {
+            DASHBOARD_ADMIN_ALL_USERS_ENABLED: 'false',
+            FINANCIAL_AGENT_MODE: 'shadow',
+            FINANCIAL_AGENT_LLM_PLANNER_ENABLED: 'false',
+            FINANCIAL_AGENT_SHADOW_RECENT_ANSWER_ENABLED: 'true',
+            FAMILY_MODE_ENABLED: 'false',
+            INTERPRETATION_RELIABILITY_MODE: 'enforce',
+            INTERPRETATION_RELIABILITY_ENFORCE_APPROVED: 'true',
+            INTERPRETATION_RELIABILITY_OPERATIONS: 'expense.create,income.create'
+        }
+    }));
+
+    assert.strictEqual(report.status, 'ok');
+    const flags = report.checks.find(check => check.name === 'Flags seguras');
+    assert.strictEqual(flags.status, 'ok');
+    assert.match(flags.detail, /interpretation=enforce/);
+    assert.match(flags.detail, /enforce_approved=true/);
+});
+
+test('daily ops check rejects approved interpretation enforce with expanded allowlist', () => {
+    const report = buildDailyOpsCheckReport(healthyInput({
+        env: {
+            DASHBOARD_ADMIN_ALL_USERS_ENABLED: 'false',
+            FINANCIAL_AGENT_MODE: 'shadow',
+            FINANCIAL_AGENT_LLM_PLANNER_ENABLED: 'false',
+            FAMILY_MODE_ENABLED: 'false',
+            INTERPRETATION_RELIABILITY_MODE: 'enforce',
+            INTERPRETATION_RELIABILITY_ENFORCE_APPROVED: 'true',
+            INTERPRETATION_RELIABILITY_OPERATIONS: 'expense.create,income.create,transfer.create'
+        }
+    }));
+
+    assert.strictEqual(report.status, 'critical');
+    assert.ok(report.issues.some(issue => issue.includes('allowlist')));
+});
+
 test('daily ops check surfaces shadow readiness and critical divergences', () => {
     const ready = buildDailyOpsCheckReport(healthyInput({
         readinessReport: {
