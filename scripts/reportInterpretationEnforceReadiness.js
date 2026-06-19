@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const {
     buildEnforceReadinessReport,
     DEFAULT_TELEMETRY_PATH
