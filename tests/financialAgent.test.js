@@ -113,6 +113,42 @@ test('financial agent tools can answer latest transaction questions without lega
     assert.strictEqual(latest.rows[0].person, 'Thais');
 });
 
+test('financial agent latest all transactions uses public read-model insertion order as same-day tie-breaker', async () => {
+    assert.strictEqual(ensureSqliteReady(), true);
+    const synced = syncSnapshotToSqlite({
+        saidas: [
+            { user_id: 'agent-daniel', data: '19/06/2026', descricao: 'pix etapa', categoria: 'Outros', subcategoria: '', valor: 4.21, month: 5, year: 2026 }
+        ],
+        cartoes: [
+            { user_id: 'agent-daniel', source: 'Cartão Nubank - Daniel', card_id: 'nubank-daniel', cartao: 'Cartão Nubank - Daniel', data: '19/06/2026', descricao: 'cartao etapa', categoria: 'Outros', subcategoria: 'Cartão de Crédito', valor: 5.32, parcela: '1/1', month: 5, year: 2026 }
+        ],
+        entradas: [
+            { user_id: 'agent-daniel', data: '19/06/2026', descricao: 'entrada etapa', categoria: 'Outros', valor: 6.43, recebimento: 'PIX', recorrente: 'Não', month: 5, year: 2026 }
+        ],
+        transferencias: [
+            { user_id: 'agent-daniel', data: '19/06/2026', descricao: 'caixinha etapa', valor: 7.54, origem: 'Conta', destino: 'Caixinha', metodo: 'Transferência', observacoes: '', status: 'Movimentação de reserva/investimento', month: 5, year: 2026 }
+        ],
+        userSettings: [],
+        cartoesConfig: [],
+        metas: [],
+        movimentacoesMetas: [],
+        dividas: [],
+        contas: []
+    });
+    assert.strictEqual(synced, true);
+
+    const latest = await listRecentTransactions({
+        userIds: ['agent-daniel'],
+        personByUserId: { 'agent-daniel': 'Daniel' },
+        limit: 1
+    });
+
+    assert.strictEqual(latest.ok, true);
+    assert.strictEqual(latest.rows[0].event_type, 'transfer');
+    assert.strictEqual(latest.rows[0].description, 'caixinha etapa');
+    assert.strictEqual(latest.criteria.sort, 'iso_date desc, insertion_order desc');
+});
+
 test('financial agent Query Engine tool executes a validated scoped FinancialQueryPlan', async () => {
     syncAgentSnapshot();
 

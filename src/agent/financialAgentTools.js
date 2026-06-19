@@ -39,7 +39,9 @@ function getScopedPublicRows({ userIds = [], personByUserId = {} } = {}) {
 function compareRecent(a, b) {
     const aKey = `${a.iso_date || ''} ${a.date || ''}`;
     const bKey = `${b.iso_date || ''} ${b.date || ''}`;
-    return bKey.localeCompare(aKey);
+    const dateComparison = bKey.localeCompare(aKey);
+    if (dateComparison !== 0) return dateComparison;
+    return Number(b.insertion_order || 0) - Number(a.insertion_order || 0);
 }
 
 async function listRecentTransactions({
@@ -59,7 +61,7 @@ async function listRecentTransactions({
         rows,
         metrics: rows.length === 1 ? { amount: rows[0].amount } : {},
         criteria: {
-            sort: 'iso_date desc',
+            sort: 'iso_date desc, insertion_order desc',
             limit: rows.length,
             eventTypes: Array.from(allowedTypes)
         }

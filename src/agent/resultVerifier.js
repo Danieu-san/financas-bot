@@ -171,12 +171,20 @@ function sortableDateKey(row = {}) {
 }
 
 function validateLatestContract(answer, toolResult = {}) {
-    if (toolResult.tool !== 'list_recent_transactions' || toolResult.criteria?.sort !== 'iso_date desc') {
+    const sort = String(toolResult.criteria?.sort || '');
+    if (toolResult.tool !== 'list_recent_transactions' || !sort.startsWith('iso_date desc')) {
         return { ok: true };
     }
     const rows = Array.isArray(toolResult.rows) ? toolResult.rows : [];
     for (let index = 1; index < rows.length; index += 1) {
         if (sortableDateKey(rows[index - 1]) < sortableDateKey(rows[index])) {
+            return { ok: false, reason: 'invalid_tool_order' };
+        }
+        if (
+            sort.includes('insertion_order') &&
+            sortableDateKey(rows[index - 1]) === sortableDateKey(rows[index]) &&
+            Number(rows[index - 1].insertion_order || 0) < Number(rows[index].insertion_order || 0)
+        ) {
             return { ok: false, reason: 'invalid_tool_order' };
         }
     }

@@ -2245,12 +2245,13 @@ function queryFinancialEventsPublicRows({ userIds = [], personByUserId = {} } = 
     const placeholders = ownerHashes.map(() => '?').join(', ');
     const rows = db.prepare(`
         SELECT
+            rowid AS insertion_order,
             owner_hash, date_text, iso_date, year, month, weekday, event_type,
             amount, description, category, subcategory, person, payment_method,
             card, billing_month, due_date, source
         FROM financial_events_public
         WHERE owner_hash IN (${placeholders})
-        ORDER BY iso_date DESC, date_text DESC, event_type ASC
+        ORDER BY iso_date DESC, date_text DESC, insertion_order DESC
     `).all(...ownerHashes);
 
     return rows.map((row) => ({
@@ -2269,7 +2270,8 @@ function queryFinancialEventsPublicRows({ userIds = [], personByUserId = {} } = 
         card: row.card || '',
         billing_month: row.billing_month || '',
         due_date: row.due_date || '',
-        source: row.source || ''
+        source: row.source || '',
+        insertion_order: Number(row.insertion_order || 0)
     }));
 }
 
