@@ -56,22 +56,40 @@ npm run gate:enforce:accelerated -- --e2e-verified --rollback-verified --logs-ve
 
 ## Current status
 
-Initial local implementation added the gate and tests, but the local Windows
-sandbox blocked direct execution of the standalone runner before Node started.
-The module is covered by tests and should be executed operationally through
-`npm run gate:enforce:accelerated` on a shell/EC2 session that can start the
-script normally.
+Operational execution on EC2 completed on 2026-06-19.
 
-Expected status before real E2E/rollback/log evidence is marked:
+Evidence:
 
-- offline acceptance: green;
-- shadow critical divergences after cutoff: zero;
-- final gate: `KEEP_SHADOW`;
-- blockers: `real_e2e_not_verified`, `rollback_not_verified`,
-  `logs_not_verified`.
+- offline acceptance: `350/350`;
+- target `expense.create`: `80/80`;
+- target `income.create`: `70/70`;
+- adversarial blocks: `30/30`;
+- shadow cutoff: `2026-06-18T00:00:00.000Z`;
+- shadow critical divergences after cutoff: `0`;
+- real E2E with Daniel verified using marker
+  `TESTE_APAGAR_ENFORCEGATE_20260619155922`;
+- marker cleanup verified: 1 expense and 1 income removed from the personal
+  spreadsheet, second cleanup found zero leftovers and `financial_events_public`
+  returned zero marker rows;
+- rollback by flag verified on server with production still in
+  `INTERPRETATION_RELIABILITY_MODE=shadow`;
+- logs for the test window had no WARN/ERROR/CRITICAL and kept identifiers
+  redacted.
+
+Final production gate result:
+
+```text
+READY_FOR_ALTISSIMA_AUDIT
+```
+
+Report:
+
+```text
+/home/ubuntu/financas-bot/data/qa-runs/ACCEL_GATE_VERIFIED_20260619T190912Z/accelerated-enforce-gate-report.json
+```
 
 ## Next step
 
-Run the real controlled E2E and rollback check, then rerun this gate with the
-three verification flags. If the gate returns `READY_FOR_ALTISSIMA_AUDIT`, move
-to the final manual audit before changing any production flag.
+Run the final high-reasoning manual audit. If approved, activate
+`INTERPRETATION_RELIABILITY_MODE=enforce` only for `expense.create` and
+`income.create`, with immediate rollback by flag to `shadow`.
