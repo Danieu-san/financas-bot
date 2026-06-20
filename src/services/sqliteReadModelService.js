@@ -714,7 +714,20 @@ function syncSnapshotToSqlite(snapshot) {
         }
 
         for (const item of cartoes) {
-            const fingerprint = makeFingerprint(['cartao', item.user_id, item.source, item.data, item.descricao, item.categoria, item.valor, item.month, item.year, item.parcela]);
+            const fingerprint = makeFingerprint([
+                'cartao',
+                item.user_id,
+                item.source,
+                item.card_id,
+                item.cartao,
+                item.data,
+                item.descricao,
+                item.categoria,
+                item.valor,
+                item.month,
+                item.year,
+                item.parcela
+            ]);
             upsertExpense.run({
                 fingerprint,
                 user_id: item.user_id,

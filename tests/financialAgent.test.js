@@ -75,6 +75,37 @@ test('financial events public rows expose only scoped public fields', () => {
     }
 });
 
+test('sqlite read-model keeps identical purchases made on different cards', () => {
+    assert.strictEqual(ensureSqliteReady(), true);
+    assert.strictEqual(syncSnapshotToSqlite({
+        saidas: [],
+        cartoes: [
+            { user_id: 'agent-daniel', source: 'Lançamentos Cartão', card_id: 'nubank-daniel', cartao: 'Cartão Nubank - Daniel', data: '04/06/2026', descricao: 'mercado', categoria: 'Alimentação', subcategoria: 'Cartão de Crédito', valor: 2.49, parcela: '1/1', month: 5, year: 2026 },
+            { user_id: 'agent-daniel', source: 'Lançamentos Cartão', card_id: 'nubank-thais', cartao: 'Cartão Nubank - Thais', data: '04/06/2026', descricao: 'mercado', categoria: 'Alimentação', subcategoria: 'Cartão de Crédito', valor: 2.49, parcela: '1/1', month: 5, year: 2026 }
+        ],
+        entradas: [],
+        transferencias: [],
+        userSettings: [],
+        cartoesConfig: [],
+        metas: [],
+        movimentacoesMetas: [],
+        dividas: [],
+        contas: []
+    }), true);
+
+    const rows = queryFinancialEventsPublicRows({
+        userIds: ['agent-daniel'],
+        personByUserId: { 'agent-daniel': 'Daniel' },
+        eventTypes: ['card_expense']
+    });
+
+    assert.strictEqual(rows.length, 2);
+    assert.deepStrictEqual(rows.map(row => row.card).sort(), [
+        'Cartão Nubank - Daniel',
+        'Cartão Nubank - Thais'
+    ]);
+});
+
 test('safe readonly SQL allows scoped SELECT and blocks unsafe/internal access', () => {
     syncAgentSnapshot();
 
