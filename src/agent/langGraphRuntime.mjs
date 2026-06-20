@@ -72,6 +72,19 @@ function domainLabel(domain) {
     return labels[domain] || 'análise financeira';
 }
 
+function extremeItemLabel(domain) {
+    const labels = {
+        expenses: 'gasto',
+        cards: 'gasto no cartão',
+        income: 'entrada',
+        transfers: 'transferência',
+        goals: 'meta',
+        debts: 'dívida',
+        bills: 'conta'
+    };
+    return labels[domain] || 'resultado';
+}
+
 function unsafeMessage(normalized) {
     return /\b(sheet[\s_-]*id|user[\s_-]*id|token|segredo|secret|prompt|regras internas|bypass|modo admin|todos os usuarios|todos os usuários)\b/.test(normalized);
 }
@@ -329,9 +342,10 @@ function composeFinancialPlanAnswer(toolResult = {}) {
     } else if (value?.percent !== undefined) {
         body = `${title.charAt(0).toUpperCase() + title.slice(1)} representam ${Number(value.percent || 0).toLocaleString('pt-BR')}%: ${moneyBR(value.part || 0)} de ${moneyBR(value.total || 0)}.`;
     } else if (plan.operation === 'extreme' && value?.max && value?.min) {
+        const itemLabel = extremeItemLabel(plan.domain);
         body = [
-            `Maior ${title}: ${describeExtremeItem(value.max)}.`,
-            `Menor ${title}: ${describeExtremeItem(value.min)}.`
+            `Maior ${itemLabel}: ${describeExtremeItem(value.max)}.`,
+            `Menor ${itemLabel}: ${describeExtremeItem(value.min)}.`
         ].join('\n');
     } else if (Array.isArray(value?.items)) {
         const totalLine = value.total !== undefined ? `Total: ${moneyBR(value.total)}.\n` : '';
@@ -403,6 +417,13 @@ function composeAnswer(state) {
         const item = result.rows?.[0];
         if (!item) {
             return { answer: 'Não encontrei lançamentos nesse escopo.', action: 'answer' };
+        }
+        const normalizedMessage = normalizeText(state.message || '');
+        if (/\b(data|dia)\b/.test(normalizedMessage)) {
+            return {
+                answer: `A data do seu último lançamento é ${item.date}. Item: ${item.description || 'sem descrição'}, ${moneyBR(item.amount)} (${item.person}).`,
+                action: 'answer'
+            };
         }
         return {
             answer: `${latestTransactionIntro(item.event_type)} foi em ${item.date}: ${item.description || 'sem descrição'}, ${moneyBR(item.amount)} (${item.person}).`,

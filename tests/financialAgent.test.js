@@ -511,6 +511,22 @@ test('LangGraph financial agent uses grammatical labels for latest income and tr
     assert.match(income.answer, /^Sua última entrada foi/i);
 });
 
+test('LangGraph financial agent focuses latest-date questions on the date without losing verification evidence', async () => {
+    syncAgentSnapshot();
+
+    const result = await invokeFinancialAgent({
+        message: 'qual a data do meu último lançamento?',
+        userIds: ['agent-daniel'],
+        personByUserId: { 'agent-daniel': 'Daniel' },
+        mode: 'answer'
+    });
+
+    assert.strictEqual(result.action, 'answer');
+    assert.strictEqual(result.verified.ok, true);
+    assert.match(result.answer, /^A data do seu último lançamento é 04\/06\/2026/i);
+    assert.match(result.answer, /resgate caixinha/i);
+});
+
 test('LangGraph financial agent executes an existing FinancialQueryPlan as a trusted tool', async () => {
     syncAgentSnapshot();
 
@@ -555,8 +571,8 @@ test('LangGraph financial agent composes maior/menor expenses without generic fa
     assert.strictEqual(result.action, 'answer');
     assert.strictEqual(result.plan.tool, 'query_financial_plan');
     assert.strictEqual(result.verified.ok, true);
-    assert.match(result.answer, /Maior gastos:/i);
-    assert.match(result.answer, /Menor gastos:/i);
+    assert.match(result.answer, /Maior gasto:/i);
+    assert.match(result.answer, /Menor gasto:/i);
     assert.match(result.answer, /restaurante/i);
     assert.doesNotMatch(result.answer, /apresentação mais específica/i);
     assert.doesNotMatch(result.answer, /agent-|user_id|owner_hash/i);
