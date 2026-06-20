@@ -10,7 +10,7 @@ const runWithUserSheetContext = googleService.runWithUserSheetContext || ((user,
 const hasUserSpreadsheetContext = googleService.hasUserSpreadsheetContext || (async () => false);
 const shareSpreadsheetWithUserEmail = googleService.shareSpreadsheetWithUserEmail || (async () => null);
 const revokeSpreadsheetPermission = googleService.revokeSpreadsheetPermission || (async () => false);
-const { getFormattedDate, getFormattedDateOnly, normalizeText, parseSheetDate, parseAmount, parseValue } = require('../utils/helpers');
+const { getFormattedDate, getFormattedDateOnly, normalizeText, parseSheetDate, parseAmount, parseAmountLocal, parseValue } = require('../utils/helpers');
 const {
     normalizeCycleStartDay,
     getBudgetCycleForDate,
@@ -406,9 +406,21 @@ function classifyLocalDescription(description, mapping = {}, fallback = {}) {
 
 function extractLocalAmount(messageBody) {
     const text = String(messageBody || '');
+    const normalized = normalizeText(text);
+    const numberWord = '(?:zero|um|uma|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|quatorze|catorze|quinze|dezesseis|dezessete|dezoito|dezenove|vinte|trinta|quarenta|cinquenta|sessenta|setenta|oitenta|noventa|cem|cento|duzentos|trezentos|quatrocentos|quinhentos|seiscentos|setecentos|oitocentos|novecentos|mil|milhao|milhoes)';
+    const writtenPattern = new RegExp(`\\b(${numberWord}(?:\\s+(?:e\\s+)?${numberWord})*)\\s+reais?\\b`, 'gi');
+    const writtenCandidates = Array.from(normalized.matchAll(writtenPattern))
+        .map(match => ({
+            raw: match[0],
+            value: parseAmountLocal(match[0]),
+            index: match.index || 0,
+            end: (match.index || 0) + match[0].length,
+            strong: true
+        }))
+        .filter(candidate => Number.isFinite(candidate.value) && candidate.value > 0);
     const amountPattern = /(?:r\$\s*)?(?:\d{1,3}(?:\.\d{3})+|\d+)(?:[,.]\d{1,2})?/gi;
     const matches = Array.from(text.matchAll(amountPattern));
-    const candidates = [];
+    const candidates = [...writtenCandidates];
 
     for (const match of matches) {
         const raw = match[0];
@@ -416,8 +428,12 @@ function extractLocalAmount(messageBody) {
         const before = text[index - 1] || '';
         const after = text[index + raw.length] || '';
         const context = text.slice(Math.max(0, index - 8), Math.min(text.length, index + raw.length + 12)).toLowerCase();
+        const tokenLeft = text.slice(0, index).match(/\S*$/)?.[0] || '';
+        const tokenRight = text.slice(index + raw.length).match(/^\S*/)?.[0] || '';
+        const surroundingToken = normalizeText(`${tokenLeft}${raw}${tokenRight}`).replace(/^r\$/, '');
 
         if (before === '/' || after === '/') continue;
+        if (/[a-z_]/.test(surroundingToken)) continue;
         if (/^\d{1,2}$/.test(raw) && /\bdia\s*$/.test(text.slice(Math.max(0, index - 8), index).toLowerCase())) continue;
 
         const value = parseValue(raw);
@@ -438,6 +454,14 @@ function extractLocalAmount(messageBody) {
     if (strongCandidates.length === 1) return strongCandidates[0];
     if (strongCandidates.length > 1 || candidates.length !== 1) return null;
     return candidates[0];
+}
+
+function isGlobalConversationCancel(messageBody) {
+    return /^(?:cancelar|cancela|cancelar operacao|parar|desistir|sair)$/.test(normalizeText(messageBody || '').trim());
+}
+
+function isGlobalHelpCommand(messageBody) {
+    return /^(?:ajuda|help|menu|comandos)$/.test(normalizeText(messageBody || '').trim());
 }
 
 function extractLocalTransactionDate(messageBody) {
@@ -6252,6 +6276,17 @@ async function handleMessage(msg) {
     }
 
     let currentState = getConversationStateForMessage(senderId, activeUser);
+    if (currentState && isGlobalConversationCancel(messageBody)) {
+        logger.info(`[state] conversation_cancelled action=${currentState.action} sender=${logger.redactIdentifier(senderId)}`);
+        userStateManager.deleteState(senderId);
+        await sendPlainMessage(msg, 'Operação cancelada. Nenhum dado pendente foi salvo.');
+        return;
+    }
+    if (currentState && isGlobalHelpCommand(messageBody)) {
+        logger.info(`[state] conversation_interrupted_for_help action=${currentState.action} sender=${logger.redactIdentifier(senderId)}`);
+        userStateManager.deleteState(senderId);
+        currentState = null;
+    }
     if (currentState?.action === 'confirming_statement_import' && shouldInterruptStatementImportConfirmation(messageBody)) {
         logger.info(`[state] import_confirmation_interrupted sender=${senderId} msg="${sanitizeLogText(messageBody)}"`);
         userStateManager.deleteState(senderId);

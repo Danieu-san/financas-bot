@@ -707,6 +707,60 @@ stateMachineTest('financial states: explicit PIX expense is saved without asking
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
 });
 
+stateMachineTest('financial states: written amount wins over digits embedded in a reference identifier', async () => {
+    resetState();
+    const previousMode = process.env.INTERPRETATION_RELIABILITY_MODE;
+    const previousOperations = process.env.INTERPRETATION_RELIABILITY_OPERATIONS;
+    process.env.INTERPRETATION_RELIABILITY_MODE = 'enforce';
+    process.env.INTERPRETATION_RELIABILITY_OPERATIONS = 'expense.create,income.create';
+
+    try {
+        const reply = await send('gastei dez reais REFERENCIA_TESTE_20260620 no pix');
+
+        assert.match(reply, /R\$10\.00/i);
+        assert.strictEqual(sheets.Saídas.length, 2);
+        assert.strictEqual(sheets.Saídas[1][4], 10);
+        assert.match(sheets.Saídas[1][1], /REFERENCIA_TESTE_20260620/i);
+    } finally {
+        if (previousMode === undefined) delete process.env.INTERPRETATION_RELIABILITY_MODE;
+        else process.env.INTERPRETATION_RELIABILITY_MODE = previousMode;
+        if (previousOperations === undefined) delete process.env.INTERPRETATION_RELIABILITY_OPERATIONS;
+        else process.env.INTERPRETATION_RELIABILITY_OPERATIONS = previousOperations;
+    }
+});
+
+stateMachineTest('financial states: digits embedded in a reference identifier are not treated as an amount', async () => {
+    resetState();
+
+    const reply = await send('gastei no mercado REFERENCIA_TESTE_20260620 no pix');
+
+    assert.doesNotMatch(reply, /R\$20260620|registrado como/i);
+    assert.strictEqual(sheets.Saídas.length, 1);
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
+
+stateMachineTest('financial states: cancelar always exits a pending payment flow without writing', async () => {
+    resetState();
+
+    assert.match(await send('gastei 10 reais ontem no café'), /forma de pagamento/i);
+    const reply = await send('cancelar');
+
+    assert.match(reply, /cancelad/i);
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
+    assert.strictEqual(sheets.Saídas.length, 1);
+});
+
+stateMachineTest('financial states: ajuda exits a pending payment flow and opens the help menu', async () => {
+    resetState();
+
+    assert.match(await send('gastei 10 reais ontem no café'), /forma de pagamento/i);
+    const reply = await send('ajuda');
+
+    assert.match(reply, /assistente financeiro/i);
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
+    assert.strictEqual(sheets.Saídas.length, 1);
+});
+
 stateMachineTest('financial states: shadow treats deterministic complete expense as aligned write', async () => {
     resetState();
     fs.rmSync(RELIABILITY_TELEMETRY_PATH, { force: true });
