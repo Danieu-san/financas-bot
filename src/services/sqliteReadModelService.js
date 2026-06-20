@@ -1701,6 +1701,19 @@ function planNeedsFutureCardRows(plan = {}) {
     return plan.operation === 'forecast' || isInstallmentStatus || isOpenCardRanking;
 }
 
+function planNeedsPreviousPeriodRows(plan = {}) {
+    const period = plan.filters?.period || {};
+    return plan.operation === 'compare' &&
+        Number.isInteger(period.month) &&
+        Number.isInteger(period.year) &&
+        ['expenses', 'cards', 'income', 'transfers'].includes(plan.domain);
+}
+
+function previousMonthKey(year, month) {
+    const previous = new Date(year, month - 1, 1, 12, 0, 0, 0);
+    return previous.getFullYear() * 12 + previous.getMonth();
+}
+
 function buildFinancialQuerySqlWhere(plan = {}, { allUsers = false, scopeUserIds = [] } = {}) {
     const where = [];
     const params = [];
@@ -1723,7 +1736,21 @@ function buildFinancialQuerySqlWhere(plan = {}, { allUsers = false, scopeUserIds
     const needsFutureCards = planNeedsFutureCardRows(plan);
 
     if (month !== null && year !== null) {
-        if (usesTransactionDate) {
+        if (planNeedsPreviousPeriodRows(plan)) {
+            const previousKey = previousMonthKey(year, month);
+            const currentKey = year * 12 + month;
+            if (usesTransactionDate) {
+                const previousStart = new Date(Math.floor(previousKey / 12), previousKey % 12, 1, 12, 0, 0, 0);
+                const currentEnd = new Date(year, month + 1, 0, 12, 0, 0, 0);
+                where.push(`${sqlDateExpression()} >= date(?)`);
+                where.push(`${sqlDateExpression()} <= date(?)`);
+                params.push(formatIsoDate(previousStart), formatIsoDate(currentEnd));
+            } else {
+                where.push('(year * 12 + month) >= ?');
+                where.push('(year * 12 + month) <= ?');
+                params.push(previousKey, currentKey);
+            }
+        } else if (usesTransactionDate) {
             where.push(`CAST(substr(date_text, 7, 4) AS INTEGER) = ?`);
             where.push(`CAST(substr(date_text, 4, 2) AS INTEGER) = ?`);
             params.push(year, month + 1);
@@ -2141,7 +2168,9 @@ function queryFinancialQueryDataSourcesSql(plan, { userId, userIds, currentDate 
         return {
             entradas: buildEntradasDataSource(rows),
             saidas: [['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id']],
-            cartoes: [[['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Observações', 'user_id']]]
+            cartoes: [[['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Observações', 'user_id']]],
+            scopeUserIds: allUsers ? [] : scopeUserIds,
+            currentDate: currentDate || ''
         };
     }
 
@@ -2171,7 +2200,9 @@ function queryFinancialQueryDataSourcesSql(plan, { userId, userIds, currentDate 
         return {
             ...expenseSources,
             entradas: buildEntradasDataSource(entryRows),
-            transferencias: buildTransferenciasDataSource(transferRows)
+            transferencias: buildTransferenciasDataSource(transferRows),
+            scopeUserIds: allUsers ? [] : scopeUserIds,
+            currentDate: currentDate || ''
         };
     }
 
@@ -2182,7 +2213,11 @@ function queryFinancialQueryDataSourcesSql(plan, { userId, userIds, currentDate 
         ORDER BY year DESC, month DESC, date_text DESC
     `).all(...sqlFilter.params);
 
-    return buildExpensesDataSourcesFromRows(rows);
+    return {
+        ...buildExpensesDataSourcesFromRows(rows),
+        scopeUserIds: allUsers ? [] : scopeUserIds,
+        currentDate: currentDate || ''
+    };
 }
 
 function buildExpensesDataSourcesFromRows(rows = []) {

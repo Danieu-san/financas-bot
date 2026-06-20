@@ -113,6 +113,33 @@ function periodFromPlan(plan) {
     };
 }
 
+function daysConsideredForAverage(period = {}, currentDate = '') {
+    if (!Number.isInteger(period.month) || !Number.isInteger(period.year)) return 365;
+    const reference = parseSheetDate(currentDate) || new Date();
+    if (reference.getFullYear() === period.year && reference.getMonth() === period.month) {
+        return Math.max(1, reference.getDate());
+    }
+    return daysInMonth(period.year, period.month);
+}
+
+function isEssentialExpenseCategory(label = '') {
+    const normalized = normalizeText(label);
+    return /\b(moradia|aluguel|condominio|condomínio|financiamento|saude|saúde|educacao|educação|divida|dívida|dividas|dívidas|conta|contas|imposto|taxa)\b/.test(normalized);
+}
+
+function buildExpenseCutRecommendation(groups = [], total = 0) {
+    const ranked = groups.slice().sort((a, b) => Number(b.total || 0) - Number(a.total || 0));
+    const candidates = ranked.filter(item => !isEssentialExpenseCategory(item.label)).slice(0, 5);
+    const protectedGroups = ranked.filter(item => isEssentialExpenseCategory(item.label)).slice(0, 5);
+    return {
+        total,
+        candidates,
+        protectedGroups,
+        criteria: 'Critério: priorizei categorias classificadas como mais revisáveis e separei despesas essenciais para não sugerir cortes cegos.',
+        disclaimer: 'Sugestão determinística para revisão, não conselho financeiro definitivo.'
+    };
+}
+
 function dateMatchesPeriod(value, period) {
     if (period.month === null && period.year === null && !period.from && !period.to) return true;
     const date = parseSheetDate(value);
@@ -1786,6 +1813,24 @@ async function executeFinancialQuery(rawPlan, dataSources = {}) {
         return { ok: true, plan, result: { value: sortRows(rows, plan.sort).slice(0, plan.limit).map(publicItem), details: baseDetails } };
     }
     if (plan.operation === 'average') {
+        if (plan.domain === 'expenses' && Array.isArray(plan.groupBy) && plan.groupBy.includes('date')) {
+            const period = periodFromPlan(plan);
+            const days = daysConsideredForAverage(period, dataSources.currentDate || '');
+            const average = days > 0 ? total / days : 0;
+            return {
+                ok: true,
+                plan,
+                result: {
+                    value: {
+                        average: roundMoney(average),
+                        total,
+                        daysConsidered: days,
+                        count: rows.length
+                    },
+                    details: { ...baseDetails, total, daysConsidered: days, average: roundMoney(average) }
+                }
+            };
+        }
         const average = rows.length > 0 ? total / rows.length : 0;
         return { ok: true, plan, result: { value: roundMoney(average), details: baseDetails } };
     }
@@ -1898,7 +1943,20 @@ async function executeFinancialQuery(rawPlan, dataSources = {}) {
     if (plan.operation === 'search') {
         return { ok: true, plan, result: { value: sortRows(rows, plan.sort).slice(0, plan.limit).map(publicItem), details: baseDetails } };
     }
-    if (plan.operation === 'trend' || plan.operation === 'recommend') {
+    if (plan.operation === 'recommend') {
+        const groupBy = plan.groupBy.length > 0 ? plan.groupBy : ['month'];
+        const grouped = groupRows(rows, groupBy, plan.timeBasis);
+        const sortedGroups = groupBy.includes('month') ? sortMonthlyGroups(grouped) : grouped;
+        const groups = groupBy.includes('month')
+            ? sortedGroups.slice(Math.max(0, sortedGroups.length - plan.limit))
+            : sortedGroups.slice(0, plan.limit);
+        if (plan.domain === 'expenses') {
+            const recommendation = buildExpenseCutRecommendation(groups, total);
+            return { ok: true, plan, result: { value: recommendation, details: { ...baseDetails, groupBy: plan.groupBy, criteria: recommendation.criteria } } };
+        }
+        return { ok: true, plan, result: { value: groups, details: { ...baseDetails, groupBy: plan.groupBy } } };
+    }
+    if (plan.operation === 'trend') {
         const groupBy = plan.groupBy.length > 0 ? plan.groupBy : ['month'];
         const grouped = groupRows(rows, groupBy, plan.timeBasis);
         const sortedGroups = groupBy.includes('month') ? sortMonthlyGroups(grouped) : grouped;

@@ -2,7 +2,7 @@ import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { normalizeText } = require('../utils/helpers');
+const { normalizeText, parseSheetDate } = require('../utils/helpers');
 const {
     listRecentTransactions,
     runSafeReadonlySqlTool,
@@ -19,6 +19,7 @@ const AgentState = Annotation.Root({
     ownerUserId: Annotation(),
     personByUserId: Annotation(),
     financialQueryPlan: Annotation(),
+    currentDate: Annotation(),
     mode: Annotation(),
     plan: Annotation(),
     toolResult: Annotation(),
@@ -105,11 +106,19 @@ function isDashboardNavigationRequest(normalized) {
     return /\b(abra|abrir|altere|alterar|envia|enviar|envie|gere|gerar|link|mude|mudar|troque|trocar)\b/.test(normalized);
 }
 
-function buildFallbackWeekdaySql() {
+function referenceMonthFromCurrentDate(currentDate = '') {
+    const parsed = parseSheetDate(currentDate) || new Date();
+    return { year: parsed.getFullYear(), month: parsed.getMonth() };
+}
+
+function buildFallbackWeekdaySql(currentDate = '') {
+    const { year, month } = referenceMonthFromCurrentDate(currentDate);
     return `
         SELECT weekday, SUM(amount) AS total, COUNT(*) AS count
         FROM financial_events_public
         WHERE event_type IN ('expense', 'card_expense')
+          AND year = ${year}
+          AND month = ${month}
         GROUP BY weekday
         ORDER BY total DESC
         LIMIT 7
@@ -159,12 +168,12 @@ async function planTurn(state) {
         }
     }
 
-    if (/dia da semana/.test(normalized) && /(gasto|gasto|gasto|despesa|compro|compras)/.test(normalized)) {
+    if (/dia da semana/.test(normalized) && /(gasto|despesa|compra|compras|compro)/.test(normalized)) {
         return {
             plan: {
                 action: 'tool',
                 tool: 'run_safe_readonly_sql',
-                args: { sql: buildFallbackWeekdaySql(), limit: 10 }
+                args: { sql: buildFallbackWeekdaySql(state.currentDate), limit: 10 }
             },
             action: 'tool'
         };
@@ -251,7 +260,8 @@ async function runTool(state) {
     const common = {
         userIds: state.userIds || [],
         ownerUserId: state.ownerUserId || state.userIds?.[0] || '',
-        personByUserId: state.personByUserId || {}
+        personByUserId: state.personByUserId || {},
+        currentDate: state.currentDate || ''
     };
     if (plan.tool === 'list_recent_transactions') {
         return { toolResult: await listRecentTransactions({ ...common, ...(plan.args || {}) }) };
@@ -320,6 +330,44 @@ function composeBudgetAnswer(summary = {}) {
     ].filter(Boolean).join('\n');
 }
 
+function composeComparisonAnswer(title, value = {}) {
+    const difference = Number(value.difference || 0);
+    const direction = difference > 0 ? 'aumentaram' : difference < 0 ? 'diminuíram' : 'ficaram iguais';
+    return [
+        `Comparação de ${title}:`,
+        `- Período atual: ${moneyBR(value.current || 0)}`,
+        `- Período anterior: ${moneyBR(value.previous || 0)}`,
+        `- Diferença: ${moneyBR(difference)} (${Number(value.percent || 0).toLocaleString('pt-BR')}%, ${direction})`
+    ].join('\n');
+}
+
+function composeDailyAverageAnswer(value = {}) {
+    return [
+        `Média diária de gastos: ${moneyBR(value.average || 0)} por dia.`,
+        `Total considerado: ${moneyBR(value.total || 0)} em ${Number(value.daysConsidered || 0)} dia(s) considerado(s).`,
+        Number.isFinite(Number(value.count)) ? `Lançamentos considerados: ${Number(value.count)}.` : ''
+    ].filter(Boolean).join('\n');
+}
+
+function composeRecommendationAnswer(value = {}) {
+    const lines = ['Candidatos para revisar:'];
+    const candidates = Array.isArray(value.candidates) ? value.candidates : [];
+    if (candidates.length === 0) {
+        lines.push('Não encontrei uma categoria claramente revisável neste período.');
+    } else {
+        candidates.slice(0, 5).forEach((item, index) => {
+            lines.push(`${index + 1}. ${labelFromItem(item)}: ${moneyBR(valueFromItem(item) || 0)}, ${Number(item.count || 0)} lançamento(s)`);
+        });
+    }
+    const protectedGroups = Array.isArray(value.protectedGroups) ? value.protectedGroups : [];
+    if (protectedGroups.length > 0) {
+        lines.push(`Separei como despesas essenciais: ${protectedGroups.slice(0, 5).map(labelFromItem).join(', ')}.`);
+    }
+    if (value.criteria) lines.push(value.criteria);
+    if (value.disclaimer) lines.push(value.disclaimer);
+    return lines.join('\n');
+}
+
 function composeFinancialPlanAnswer(toolResult = {}) {
     const plan = toolResult.plan || {};
     const result = toolResult.result || {};
@@ -335,6 +383,12 @@ function composeFinancialPlanAnswer(toolResult = {}) {
     let body = '';
     if (plan.operation === 'count') {
         body = `Contagem de ${title}: ${Number(value || 0)}.`;
+    } else if (plan.operation === 'average' && value?.average !== undefined) {
+        body = composeDailyAverageAnswer(value);
+    } else if (plan.operation === 'compare' && value?.current !== undefined && value?.previous !== undefined) {
+        body = composeComparisonAnswer(title, value);
+    } else if (plan.operation === 'recommend' && value && typeof value === 'object' && Array.isArray(value.candidates)) {
+        body = composeRecommendationAnswer(value);
     } else if (typeof value === 'number') {
         body = `${title.charAt(0).toUpperCase() + title.slice(1)}: ${moneyBR(value)}.`;
     } else if (Array.isArray(value)) {
@@ -486,6 +540,7 @@ export async function invokeFinancialAgentRuntime(input = {}) {
         ownerUserId: input.ownerUserId || input.userIds?.[0] || '',
         personByUserId: input.personByUserId || {},
         financialQueryPlan: input.financialQueryPlan || null,
+        currentDate: input.currentDate || '',
         mode: input.mode || 'shadow'
     });
     return {

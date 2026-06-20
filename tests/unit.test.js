@@ -5308,6 +5308,19 @@ test('google message write context deduplicates delete replay without an explici
     }
 });
 
+test('local financial question classifier maps conversational expense aliases to capabilities', () => {
+    const localClassifier = require('../src/handlers/messageHandler').__test__.classifyPerguntaLocally;
+    const dailyAverage = localClassifier('qual meu gasto médio por dia neste mês?');
+    assert.strictEqual(dailyAverage.intent, 'media_diaria_gastos_mes');
+    assert.strictEqual(dailyAverage.financialQueryPlan.operation, 'average');
+    assert.deepStrictEqual(dailyAverage.financialQueryPlan.groupBy, ['date']);
+
+    const villains = localClassifier('me mostra os principais vilões do mês');
+    assert.strictEqual(villains.intent, 'ranking_maiores_gastos');
+    assert.strictEqual(villains.financialQueryPlan.operation, 'rank');
+    assert.deepStrictEqual(villains.financialQueryPlan.groupBy, ['merchant']);
+});
+
 test('google.isMissingUserSheetError detects missing user spreadsheet tabs', () => {
     const { isMissingUserSheetError } = googleService.__test__;
 

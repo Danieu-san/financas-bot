@@ -5,6 +5,7 @@ const NUMERIC_RESULT_KEYS = new Set([
     'amount',
     'value',
     'total',
+    'average',
     'part',
     'denominator',
     'balance',

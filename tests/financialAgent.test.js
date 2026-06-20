@@ -785,3 +785,165 @@ test('Gemini planner reference date follows the Sao Paulo calendar day', () => {
         '2026-06-14'
     );
 });
+
+test('LangGraph financial agent answers weekday spending for the current month by default', async () => {
+    assert.strictEqual(ensureSqliteReady(), true);
+    assert.strictEqual(syncSnapshotToSqlite({
+        saidas: [
+            { user_id: 'agent-daniel', data: '03/05/2026', descricao: 'maio grande', categoria: 'Outros', subcategoria: '', valor: 1000, month: 4, year: 2026 },
+            { user_id: 'agent-daniel', data: '20/06/2026', descricao: 'junho um', categoria: 'Outros', subcategoria: '', valor: 40, month: 5, year: 2026 },
+            { user_id: 'agent-daniel', data: '20/06/2026', descricao: 'junho dois', categoria: 'Outros', subcategoria: '', valor: 60, month: 5, year: 2026 }
+        ],
+        cartoes: [],
+        entradas: [],
+        transferencias: [],
+        userSettings: [],
+        cartoesConfig: [],
+        metas: [],
+        movimentacoesMetas: [],
+        dividas: [],
+        contas: []
+    }), true);
+
+    const result = await invokeFinancialAgent({
+        message: 'em que dia da semana eu mais gasto?',
+        userIds: ['agent-daniel'],
+        personByUserId: { 'agent-daniel': 'Daniel' },
+        currentDate: '20/06/2026',
+        mode: 'answer'
+    });
+
+    assert.strictEqual(result.action, 'answer');
+    assert.strictEqual(result.plan.tool, 'run_safe_readonly_sql');
+    assert.strictEqual(result.verified.ok, true);
+    assert.match(result.answer, /R\$\s*100,00/i);
+    assert.doesNotMatch(result.answer, /1\.000,00/);
+});
+
+test('LangGraph financial agent composes daily average from total divided by days considered', async () => {
+    assert.strictEqual(ensureSqliteReady(), true);
+    assert.strictEqual(syncSnapshotToSqlite({
+        saidas: [
+            { user_id: 'agent-daniel', data: '01/06/2026', descricao: 'mercado', categoria: 'Alimentação', subcategoria: '', valor: 40, month: 5, year: 2026 },
+            { user_id: 'agent-daniel', data: '20/06/2026', descricao: 'lanche', categoria: 'Alimentação', subcategoria: '', valor: 60, month: 5, year: 2026 }
+        ],
+        cartoes: [],
+        entradas: [],
+        transferencias: [],
+        userSettings: [],
+        cartoesConfig: [],
+        metas: [],
+        movimentacoesMetas: [],
+        dividas: [],
+        contas: []
+    }), true);
+
+    const result = await invokeFinancialAgent({
+        message: 'qual meu gasto médio por dia neste mês?',
+        userIds: ['agent-daniel'],
+        personByUserId: { 'agent-daniel': 'Daniel' },
+        currentDate: '20/06/2026',
+        financialQueryPlan: {
+            kind: 'financial_query',
+            domain: 'expenses',
+            operation: 'average',
+            filters: { period: { type: 'month', month: 5, year: 2026 }, scope: 'personal' },
+            groupBy: ['date'],
+            timeBasis: 'billing_month'
+        },
+        mode: 'answer'
+    });
+
+    assert.strictEqual(result.action, 'answer');
+    assert.strictEqual(result.verified.ok, true);
+    assert.match(result.answer, /m[eé]dia diária/i);
+    assert.match(result.answer, /R\$\s*5,00/i);
+    assert.match(result.answer, /20 dia/i);
+    assert.match(result.answer, /R\$\s*100,00/i);
+});
+
+test('LangGraph financial agent compares current month with previous month using both periods', async () => {
+    assert.strictEqual(ensureSqliteReady(), true);
+    assert.strictEqual(syncSnapshotToSqlite({
+        saidas: [
+            { user_id: 'agent-daniel', data: '10/05/2026', descricao: 'maio', categoria: 'Outros', subcategoria: '', valor: 40, month: 4, year: 2026 },
+            { user_id: 'agent-daniel', data: '10/06/2026', descricao: 'junho', categoria: 'Outros', subcategoria: '', valor: 100, month: 5, year: 2026 }
+        ],
+        cartoes: [],
+        entradas: [],
+        transferencias: [],
+        userSettings: [],
+        cartoesConfig: [],
+        metas: [],
+        movimentacoesMetas: [],
+        dividas: [],
+        contas: []
+    }), true);
+
+    const result = await invokeFinancialAgent({
+        message: 'o que mudou do mês passado para esse mês?',
+        userIds: ['agent-daniel'],
+        personByUserId: { 'agent-daniel': 'Daniel' },
+        currentDate: '20/06/2026',
+        financialQueryPlan: {
+            kind: 'financial_query',
+            domain: 'expenses',
+            operation: 'compare',
+            filters: { period: { type: 'month', month: 5, year: 2026 }, scope: 'personal' },
+            timeBasis: 'billing_month'
+        },
+        mode: 'answer'
+    });
+
+    assert.strictEqual(result.action, 'answer');
+    assert.strictEqual(result.verified.ok, true);
+    assert.match(result.answer, /R\$\s*100,00/i);
+    assert.match(result.answer, /R\$\s*40,00/i);
+    assert.match(result.answer, /R\$\s*60,00/i);
+    assert.match(result.answer, /150/i);
+    assert.doesNotMatch(result.answer, /R\$\s*0,00 de R\$\s*0,00/i);
+});
+
+test('LangGraph financial agent gives deterministic cut recommendations instead of a raw ranking', async () => {
+    assert.strictEqual(ensureSqliteReady(), true);
+    assert.strictEqual(syncSnapshotToSqlite({
+        saidas: [
+            { user_id: 'agent-daniel', data: '05/06/2026', descricao: 'aluguel', categoria: 'Moradia', subcategoria: '', valor: 1000, month: 5, year: 2026 },
+            { user_id: 'agent-daniel', data: '10/06/2026', descricao: 'restaurante', categoria: 'Alimentação', subcategoria: '', valor: 200, month: 5, year: 2026 },
+            { user_id: 'agent-daniel', data: '12/06/2026', descricao: 'streaming', categoria: 'Assinaturas', subcategoria: '', valor: 50, month: 5, year: 2026 }
+        ],
+        cartoes: [],
+        entradas: [],
+        transferencias: [],
+        userSettings: [],
+        cartoesConfig: [],
+        metas: [],
+        movimentacoesMetas: [],
+        dividas: [],
+        contas: []
+    }), true);
+
+    const result = await invokeFinancialAgent({
+        message: 'onde posso cortar gastos olhando este mês?',
+        userIds: ['agent-daniel'],
+        personByUserId: { 'agent-daniel': 'Daniel' },
+        currentDate: '20/06/2026',
+        financialQueryPlan: {
+            kind: 'financial_query',
+            domain: 'expenses',
+            operation: 'recommend',
+            filters: { period: { type: 'month', month: 5, year: 2026 }, scope: 'personal' },
+            groupBy: ['category'],
+            timeBasis: 'billing_month'
+        },
+        mode: 'answer'
+    });
+
+    assert.strictEqual(result.action, 'answer');
+    assert.strictEqual(result.verified.ok, true);
+    assert.match(result.answer, /candidatos para revisar/i);
+    assert.match(result.answer, /Alimentação/i);
+    assert.match(result.answer, /Assinaturas/i);
+    assert.match(result.answer, /Moradia/i);
+    assert.doesNotMatch(result.answer, /1\. Moradia: R\$\s*1\.000,00/i);
+});

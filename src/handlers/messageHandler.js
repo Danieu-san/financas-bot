@@ -3427,6 +3427,12 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
         return { metric: 'expense_recommendation', intent: 'recomendacao_corte_gastos', parameters: expenseParams({ advice: true }) };
     }
     if (
+        /\b(vilao|viloes|responsavel|responsaveis|puxou|puxaram|pesou|pesaram|pesa)\b/.test(text) &&
+        (hasExpenseSignal || text.includes('mes') || text.includes('mês'))
+    ) {
+        return { metric: 'expense_biggest_drivers', intent: 'ranking_maiores_gastos', parameters: expenseParams() };
+    }
+    if (
         comparisonCategories.length === 2 &&
         (
             hasExpenseSignal ||
@@ -3461,10 +3467,10 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
     if (text.includes('vezes') || text.includes('ocorrencia') || text.includes('ocorrencias')) {
         return { metric: 'count', intent: 'contagem_ocorrencias', parameters: expenseParams({ categoria: singleCategory }) };
     }
-    if ((text.includes('media') || text.includes('média')) && (/\bpor\s+dia\b/.test(text) || text.includes('diaria') || text.includes('diária'))) {
+    if ((text.includes('media') || text.includes('média') || text.includes('medio') || text.includes('médio')) && (/\bpor\s+dia\b/.test(text) || text.includes('diaria') || text.includes('diária'))) {
         return { metric: 'daily_average', intent: 'media_diaria_gastos_mes', parameters: expenseParams() };
     }
-    if ((text.includes('media') || text.includes('média')) && hasExpenseSignal) {
+    if ((text.includes('media') || text.includes('média') || text.includes('medio') || text.includes('médio')) && hasExpenseSignal) {
         return { metric: 'average', intent: 'media_gastos_categoria_mes', parameters: expenseParams({ categoria: singleCategory }) };
     }
     if (text.includes('liste') || text.includes('listar') || text.includes('mostre') || text.includes('mostrar')) {
@@ -7838,6 +7844,7 @@ async function handleMessage(msg) {
                                         userIds: analyticalUserIds,
                                         personByUserId: buildFinancialAgentPersonByUserId(analyticalUserIds, usersForScope, activeUser),
                                         financialQueryPlan: effectiveIntentClassification.financialQueryPlan || null,
+                                        currentDate: getFormattedDateOnly(),
                                         mode: financialAgentMode
                                     }),
                                     perfContext
