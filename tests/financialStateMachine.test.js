@@ -1131,6 +1131,39 @@ stateMachineTest('financial states: explicit credit card and à vista expense sk
     assert.strictEqual(sheets['Cartão Nubank - Thais'][1].at(-1), USER_ID);
 });
 
+stateMachineTest('financial states: enforce guides a credit expense through missing card and installments', async () => {
+    resetState();
+    const previousMode = process.env.INTERPRETATION_RELIABILITY_MODE;
+    const previousOperations = process.env.INTERPRETATION_RELIABILITY_OPERATIONS;
+    process.env.INTERPRETATION_RELIABILITY_MODE = 'enforce';
+    process.env.INTERPRETATION_RELIABILITY_OPERATIONS = 'expense.create,income.create';
+    enqueueStructuredResponse({
+        intent: 'gasto',
+        gastoDetails: [{
+            descricao: 'roupa',
+            valor: 7.77,
+            categoria: 'Vestuário',
+            subcategoria: 'ROUPA',
+            pagamento: 'Crédito',
+            recorrente: 'Não'
+        }]
+    });
+
+    try {
+        const reply = await send('gastei 7,77 comprando roupa no crédito');
+
+        assert.match(reply, /qual cartão/i);
+        assert.doesNotMatch(reply, /conflito/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_credit_card_selection');
+        assert.ok(CARD_SHEETS.every(sheetName => sheets[sheetName].length === 1));
+    } finally {
+        if (previousMode === undefined) delete process.env.INTERPRETATION_RELIABILITY_MODE;
+        else process.env.INTERPRETATION_RELIABILITY_MODE = previousMode;
+        if (previousOperations === undefined) delete process.env.INTERPRETATION_RELIABILITY_OPERATIONS;
+        else process.env.INTERPRETATION_RELIABILITY_OPERATIONS = previousOperations;
+    }
+});
+
 stateMachineTest('financial states: enforce allows deterministic complete credit card expense with explicit card and installments', async () => {
     resetState();
     const previousMode = process.env.INTERPRETATION_RELIABILITY_MODE;

@@ -7343,6 +7343,7 @@ async function handleMessage(msg) {
                     let singleReliabilityEvaluation = null;
                     let singleReliabilityLatencyMs = 0;
                     let singleCanUseMethodClarification = false;
+                    let singleCanUseCreditClarification = false;
                     if (allTransactions.length === 1) {
                         const singleItem = allTransactions[0];
                         const operation = singleItem.type === 'Saídas' ? 'expense.create' : 'income.create';
@@ -7381,12 +7382,22 @@ async function handleMessage(msg) {
                             && clarificationFields.length > 0
                             && clarificationFields.every(field => field === expectedMethodField)
                         );
+                        const clarificationReasons = singleReliabilityEvaluation.decision.reasons || [];
+                        singleCanUseCreditClarification = (
+                            singleReliabilityEvaluation.gate.action === 'clarify'
+                            && normalizeText(singleItem.pagamento || '') === 'credito'
+                            && clarificationReasons.length === 1
+                            && clarificationReasons[0] === 'missing_critical_field'
+                            && clarificationFields.length > 0
+                            && clarificationFields.every(field => ['card', 'installments'].includes(field))
+                        );
 
                         if (
                             singleReliabilityEvaluation.gate.mode === 'enforce'
                             && singleReliabilityEvaluation.gate.applied
                             && singleReliabilityEvaluation.gate.action === 'clarify'
                             && !singleCanUseMethodClarification
+                            && !singleCanUseCreditClarification
                         ) {
                             recordWriteInterpretationEvaluation({
                                 evaluation: singleReliabilityEvaluation,
@@ -7408,6 +7419,7 @@ async function handleMessage(msg) {
                             ? (
                                 singleReliabilityEvaluation.gate.action === 'execute'
                                 || singleCanUseMethodClarification
+                                || singleCanUseCreditClarification
                             )
                             : !legacyRequiresConfirmation
                     );
