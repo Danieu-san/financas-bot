@@ -159,6 +159,40 @@ test('read-model falls back to legacy card sheets only when canonical card sheet
     assert.strictEqual(entries[0].source, 'Cartão Nubank - Daniel');
 });
 
+test('read-model does not reuse a fresh snapshot from another sheet context', () => {
+    const now = Date.parse('2026-06-20T18:00:00.000Z');
+    const freshMeta = {
+        lastSyncedAt: '2026-06-20T17:59:50.000Z',
+        source: 'sheets_full_refresh',
+        contextKey: 'central'
+    };
+
+    assert.strictEqual(readModelTest.shouldReuseReadModelSnapshot(freshMeta, {
+        now,
+        intervalMs: 300000,
+        currentContextKey: 'central'
+    }), true);
+    assert.strictEqual(readModelTest.shouldReuseReadModelSnapshot(freshMeta, {
+        now,
+        intervalMs: 300000,
+        currentContextKey: 'user:agent-daniel'
+    }), false);
+    assert.strictEqual(readModelTest.shouldReuseReadModelSnapshot({
+        lastSyncedAt: '2026-06-20T17:59:50.000Z',
+        source: 'sheets_full_refresh'
+    }, {
+        now,
+        intervalMs: 300000,
+        currentContextKey: 'user:agent-daniel'
+    }), false);
+    assert.strictEqual(readModelTest.shouldReuseReadModelSnapshot(freshMeta, {
+        force: true,
+        now,
+        intervalMs: 300000,
+        currentContextKey: 'central'
+    }), false);
+});
+
 test('financial agent latest all transactions uses public read-model insertion order as same-day tie-breaker', async () => {
     assert.strictEqual(ensureSqliteReady(), true);
     const synced = syncSnapshotToSqlite({

@@ -2006,6 +2006,7 @@ module.exports = {
     deleteRowsByIndices,
     ensureSpreadsheetStructure,
     runWithUserSheetContext,
+    getCurrentSheetContext,
     hasUserSpreadsheetContext,
     shareSpreadsheetWithUserEmail,
     revokeSpreadsheetPermission,

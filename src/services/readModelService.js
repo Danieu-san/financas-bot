@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
-const { readDataFromSheet, renderVisualDashboard } = require('./google');
+const googleService = require('./google');
+const { readDataFromSheet, renderVisualDashboard } = googleService;
 const analysisService = require('./analysisService');
 const { parseSheetDate, parseValue, normalizeText } = require('../utils/helpers');
 const { matchesAnyField } = require('../utils/textMatcher');
@@ -65,6 +66,27 @@ let readModel = {
 };
 
 let syncInFlight = null;
+
+function getReadModelContextKey() {
+    const currentContext = typeof googleService.getCurrentSheetContext === 'function'
+        ? googleService.getCurrentSheetContext()
+        : {};
+    const contextUserId = String(currentContext?.userId || '').trim();
+    return contextUserId ? `user:${contextUserId}` : 'central';
+}
+
+function shouldReuseReadModelSnapshot(meta = {}, {
+    force = false,
+    now = Date.now(),
+    intervalMs = SYNC_INTERVAL_MS,
+    currentContextKey = getReadModelContextKey()
+} = {}) {
+    if (force) return false;
+    if (!meta?.contextKey || meta.contextKey !== currentContextKey) return false;
+    const last = meta.lastSyncedAt ? new Date(meta.lastSyncedAt).getTime() : 0;
+    const age = now - last;
+    return last > 0 && age < intervalMs;
+}
 
 function ensureDataDir() {
     if (!fs.existsSync(DATA_DIR)) {
@@ -509,7 +531,8 @@ async function rebuildReadModelFromSheets() {
     readModel = {
         meta: {
             lastSyncedAt: new Date().toISOString(),
-            source: 'sheets_full_refresh'
+            source: 'sheets_full_refresh',
+            contextKey: getReadModelContextKey()
         },
         saidas: mapSaidasRows(saidasRows),
         entradas: mapEntradasRows(entradasRows),
@@ -532,9 +555,7 @@ async function rebuildReadModelFromSheets() {
 async function syncReadModelIfNeeded({ force = false } = {}) {
     if (syncInFlight) return syncInFlight;
 
-    const last = readModel.meta?.lastSyncedAt ? new Date(readModel.meta.lastSyncedAt).getTime() : 0;
-    const age = Date.now() - last;
-    if (!force && last > 0 && age < SYNC_INTERVAL_MS) {
+    if (shouldReuseReadModelSnapshot(readModel.meta, { force })) {
         return readModel.meta;
     }
 
@@ -554,7 +575,8 @@ function markReadModelDirty(reason = 'write') {
     readModel.meta = {
         ...(readModel.meta || {}),
         lastSyncedAt: '',
-        source: `dirty:${reason}`
+        source: `dirty:${reason}`,
+        contextKey: getReadModelContextKey()
     };
     saveReadModelToDisk();
 }
@@ -1297,6 +1319,8 @@ module.exports = {
     __test__: {
         mapLegacyCardRows,
         mapUnifiedCardRows,
-        buildCanonicalCardEntries
+        buildCanonicalCardEntries,
+        getReadModelContextKey,
+        shouldReuseReadModelSnapshot
     }
 };
