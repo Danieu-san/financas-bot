@@ -44,6 +44,19 @@ function eventTypeLabel(type) {
     return labels[type] || 'lançamento';
 }
 
+function latestTransactionIntro(type) {
+    const labels = {
+        expense: 'Sua última saída',
+        card_expense: 'Seu último gasto no cartão',
+        income: 'Sua última entrada',
+        transfer: 'Sua última transferência',
+        goal: 'Sua última meta',
+        debt: 'Sua última dívida',
+        bill: 'Sua última conta'
+    };
+    return labels[type] || `Seu último ${eventTypeLabel(type)}`;
+}
+
 function domainLabel(domain) {
     const labels = {
         expenses: 'gastos',
@@ -268,6 +281,15 @@ function composeList(items = [], title = 'Resultados') {
     return `${title}:\n${lines.join('\n')}`;
 }
 
+function describeExtremeItem(item = {}) {
+    const description = item.description || item.label || 'sem descrição';
+    const value = moneyBR(item.value ?? item.total ?? item.amount ?? 0);
+    const date = item.date ? ` em ${item.date}` : '';
+    const category = item.category ? ` · ${item.category}` : '';
+    const source = item.card || item.source ? ` · ${item.card || item.source}` : '';
+    return `${description}: ${value}${date}${category}${source}`;
+}
+
 function composeBudgetAnswer(summary = {}) {
     if (!summary.active) {
         return summary.criteria || 'Nenhum orçamento mensal livre está ativo neste escopo.';
@@ -306,6 +328,11 @@ function composeFinancialPlanAnswer(toolResult = {}) {
         body = composeList(value, title.charAt(0).toUpperCase() + title.slice(1));
     } else if (value?.percent !== undefined) {
         body = `${title.charAt(0).toUpperCase() + title.slice(1)} representam ${Number(value.percent || 0).toLocaleString('pt-BR')}%: ${moneyBR(value.part || 0)} de ${moneyBR(value.total || 0)}.`;
+    } else if (plan.operation === 'extreme' && value?.max && value?.min) {
+        body = [
+            `Maior ${title}: ${describeExtremeItem(value.max)}.`,
+            `Menor ${title}: ${describeExtremeItem(value.min)}.`
+        ].join('\n');
     } else if (Array.isArray(value?.items)) {
         const totalLine = value.total !== undefined ? `Total: ${moneyBR(value.total)}.\n` : '';
         body = `${totalLine}${composeList(value.items, title.charAt(0).toUpperCase() + title.slice(1))}`;
@@ -378,7 +405,7 @@ function composeAnswer(state) {
             return { answer: 'Não encontrei lançamentos nesse escopo.', action: 'answer' };
         }
         return {
-            answer: `Seu último ${eventTypeLabel(item.event_type)} foi em ${item.date}: ${item.description || 'sem descrição'}, ${moneyBR(item.amount)} (${item.person}).`,
+            answer: `${latestTransactionIntro(item.event_type)} foi em ${item.date}: ${item.description || 'sem descrição'}, ${moneyBR(item.amount)} (${item.person}).`,
             action: 'answer'
         };
     }

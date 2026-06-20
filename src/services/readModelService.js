@@ -232,7 +232,17 @@ function mapTransferenciasRows(rows) {
     return result;
 }
 
-function mapCardRows(rows, sheetName) {
+function cardIdFromSheetName(sheetName = '') {
+    return String(sheetName || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/^cartao\s+/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || '';
+}
+
+function mapLegacyCardRows(rows, sheetName) {
     if (!rows || rows.length <= 1) return [];
     const result = [];
     rows.slice(1).forEach((row) => {
@@ -248,11 +258,49 @@ function mapCardRows(rows, sheetName) {
             categoria: row[2] || '',
             subcategoria: 'Cartão de Crédito',
             valor: parseValue(row[3]),
+            parcela: row[4] || '',
             month: billing.month,
-            year: billing.year
+            year: billing.year,
+            card_id: cardIdFromSheetName(sheetName),
+            cartao: sheetName
         });
     });
     return result;
+}
+
+function mapUnifiedCardRows(rows) {
+    if (!rows || rows.length <= 1) return [];
+    const result = [];
+    rows.slice(1).forEach((row) => {
+        const user_id = String(row[9] || '').trim();
+        if (!user_id) return;
+        const billing = parseBillingMonth(row[5]);
+        if (!billing) return;
+        result.push({
+            user_id,
+            source: 'Lançamentos Cartão',
+            data: row[0] || '',
+            descricao: row[1] || '',
+            categoria: row[2] || '',
+            subcategoria: 'Cartão de Crédito',
+            valor: parseValue(row[3]),
+            parcela: row[4] || '',
+            month: billing.month,
+            year: billing.year,
+            card_id: row[6] || '',
+            cartao: row[7] || row[6] || 'Cartão'
+        });
+    });
+    return result;
+}
+
+function buildCanonicalCardEntries({ unifiedRows = [], legacyRowsBySheet = [] } = {}) {
+    const unifiedEntries = mapUnifiedCardRows(unifiedRows);
+    if (unifiedEntries.length > 0) {
+        return unifiedEntries;
+    }
+
+    return legacyRowsBySheet.flatMap(({ rows, sheetName }) => mapLegacyCardRows(rows, sheetName));
 }
 
 function mapUserSettingsRows(rows) {
@@ -446,16 +494,16 @@ async function rebuildReadModelFromSheets() {
         readDataFromSheet('Contas!A:I'),
         readDataFromSheet('UserSettings!A:S'),
         readDataFromSheet('Cartões!A:G', { suppressMissingSheetError: true }),
+        readDataFromSheet('Lançamentos Cartão!A:J', { suppressMissingSheetError: true }),
         ...cardSheetNames.map((sheetName) => readDataFromSheet(`${sheetName}!A:G`))
     ];
 
     const allData = await Promise.all(sheetReads);
-    const [saidasRows, entradasRows, transferenciasRows, metasRows, movimentacoesMetasRows, dividasRows, contasRows, userSettingsRows, cartoesConfigRows] = allData;
-    const cardRowsList = allData.slice(9);
-
-    const cartoes = [];
-    cardRowsList.forEach((rows, idx) => {
-        cartoes.push(...mapCardRows(rows, cardSheetNames[idx]));
+    const [saidasRows, entradasRows, transferenciasRows, metasRows, movimentacoesMetasRows, dividasRows, contasRows, userSettingsRows, cartoesConfigRows, unifiedCardRows] = allData;
+    const cardRowsList = allData.slice(10);
+    const cartoes = buildCanonicalCardEntries({
+        unifiedRows: unifiedCardRows,
+        legacyRowsBySheet: cardRowsList.map((rows, idx) => ({ rows, sheetName: cardSheetNames[idx] }))
     });
 
     readModel = {
@@ -1245,5 +1293,10 @@ module.exports = {
     getReadModelStats,
     getDashboardSnapshot,
     getDashboardSqlData,
-    isSqliteReady
+    isSqliteReady,
+    __test__: {
+        mapLegacyCardRows,
+        mapUnifiedCardRows,
+        buildCanonicalCardEntries
+    }
 };

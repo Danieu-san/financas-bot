@@ -59,6 +59,7 @@ Mitigacao atual:
 - Em escopo familiar, mensagens como `transferi 1269,74 para a thais` devem entrar em `Transferências` com status `Provável transferência interna`.
 - Isso evita inflar `Saídas`, orçamento mensal livre e alertas diarios.
 - A deteccao depende de o membro estar no escopo financeiro familiar ativo; sem vinculo, o bot pode tratar como gasto comum.
+- Achado em 2026-06-20: transferencias em lote com caixinha/reserva e transferencia familiar foram salvas corretamente em `Transferências`, mas nao apareceram em `data/interpretation-reliability-shadow.jsonl`. Isso e uma lacuna de observabilidade: nao bloqueia `enforce` limitado a `expense.create`/`income.create` unitarios, mas bloqueia ampliar `enforce` para transferencias, caixinha/reserva ou lotes ate instrumentar esse caminho.
 
 ## Horarios do Google Calendar
 

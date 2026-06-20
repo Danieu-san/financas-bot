@@ -15,6 +15,7 @@ const {
 } = require('../src/agent/financialAgentTools');
 const { verifyAgentAnswer } = require('../src/agent/resultVerifier');
 const { invokeFinancialAgent } = require('../src/agent/financialAgent');
+const { __test__: readModelTest } = require('../src/services/readModelService');
 const {
     buildPlannerPrompt,
     isLlmPlannerEnabled,
@@ -111,6 +112,51 @@ test('financial agent tools can answer latest transaction questions without lega
     assert.strictEqual(latest.ok, true);
     assert.strictEqual(latest.rows[0].description, 'restaurante');
     assert.strictEqual(latest.rows[0].person, 'Thais');
+});
+
+test('read-model uses Lançamentos Cartão as canonical source and ignores remapped legacy duplicates', () => {
+    const headers = ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Observações', 'user_id'];
+    const canonicalRows = [
+        headers,
+        ['20/06/2026', 'farmácia teste', 'Saúde', '3,33', '1/2', 'Junho de 2026', 'nubank-thais', 'Cartão Nubank - Thais', '', 'agent-daniel']
+    ];
+    const legacyRows = [
+        ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'user_id'],
+        ['20/06/2026', 'farmácia teste', 'Saúde', '3,33', '1/2', 'Junho de 2026', 'agent-daniel']
+    ];
+
+    const entries = readModelTest.buildCanonicalCardEntries({
+        unifiedRows: canonicalRows,
+        legacyRowsBySheet: [
+            { rows: legacyRows, sheetName: 'Cartão Nubank - Daniel' },
+            { rows: legacyRows, sheetName: 'Cartão Nubank - Thais' },
+            { rows: legacyRows, sheetName: 'Cartão Nubank - Cristina' },
+            { rows: legacyRows, sheetName: 'Cartão Atacadão' }
+        ]
+    });
+
+    assert.strictEqual(entries.length, 1);
+    assert.strictEqual(entries[0].cartao, 'Cartão Nubank - Thais');
+    assert.strictEqual(entries[0].card_id, 'nubank-thais');
+    assert.strictEqual(entries[0].source, 'Lançamentos Cartão');
+    assert.strictEqual(entries[0].valor, 3.33);
+});
+
+test('read-model falls back to legacy card sheets only when canonical card sheet is empty', () => {
+    const legacyRows = [
+        ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'user_id'],
+        ['20/06/2026', 'mercado legado', 'Alimentação', '5,55', '1/1', 'Julho de 2026', 'agent-daniel']
+    ];
+
+    const entries = readModelTest.buildCanonicalCardEntries({
+        unifiedRows: [['Data', 'Descrição']],
+        legacyRowsBySheet: [{ rows: legacyRows, sheetName: 'Cartão Nubank - Daniel' }]
+    });
+
+    assert.strictEqual(entries.length, 1);
+    assert.strictEqual(entries[0].cartao, 'Cartão Nubank - Daniel');
+    assert.strictEqual(entries[0].card_id, 'nubank-daniel');
+    assert.strictEqual(entries[0].source, 'Cartão Nubank - Daniel');
 });
 
 test('financial agent latest all transactions uses public read-model insertion order as same-day tie-breaker', async () => {
@@ -407,6 +453,30 @@ test('LangGraph financial agent answers read-only latest expense with verified r
     assert.doesNotMatch(result.answer, /agent-daniel|user_id|sheet/i);
 });
 
+test('LangGraph financial agent uses grammatical labels for latest income and transfer answers', async () => {
+    syncAgentSnapshot();
+
+    const transfer = await invokeFinancialAgent({
+        message: 'qual foi meu último lançamento?',
+        userIds: ['agent-daniel'],
+        personByUserId: { 'agent-daniel': 'Daniel' },
+        mode: 'answer'
+    });
+    assert.strictEqual(transfer.action, 'answer');
+    assert.strictEqual(transfer.verified.ok, true);
+    assert.match(transfer.answer, /^Sua última transferência foi/i);
+
+    const income = await invokeFinancialAgent({
+        message: 'qual foi minha última entrada?',
+        userIds: ['agent-daniel'],
+        personByUserId: { 'agent-daniel': 'Daniel' },
+        mode: 'answer'
+    });
+    assert.strictEqual(income.action, 'answer');
+    assert.strictEqual(income.verified.ok, true);
+    assert.match(income.answer, /^Sua última entrada foi/i);
+});
+
 test('LangGraph financial agent executes an existing FinancialQueryPlan as a trusted tool', async () => {
     syncAgentSnapshot();
 
@@ -428,6 +498,33 @@ test('LangGraph financial agent executes an existing FinancialQueryPlan as a tru
     assert.strictEqual(result.plan.tool, 'query_financial_plan');
     assert.strictEqual(result.verified.ok, true);
     assert.match(result.answer, /R\$\s*105,00/i);
+    assert.doesNotMatch(result.answer, /agent-|user_id|owner_hash/i);
+});
+
+test('LangGraph financial agent composes maior/menor expenses without generic fallback', async () => {
+    syncAgentSnapshot();
+
+    const result = await invokeFinancialAgent({
+        message: 'qual foi meu maior gasto esse mês?',
+        userIds: ['agent-daniel', 'agent-thais'],
+        personByUserId: { 'agent-daniel': 'Daniel', 'agent-thais': 'Thais' },
+        financialQueryPlan: {
+            kind: 'financial_query',
+            domain: 'expenses',
+            operation: 'extreme',
+            filters: { period: { type: 'month', month: 5, year: 2026 }, scope: 'family' },
+            timeBasis: 'billing_month'
+        },
+        mode: 'answer'
+    });
+
+    assert.strictEqual(result.action, 'answer');
+    assert.strictEqual(result.plan.tool, 'query_financial_plan');
+    assert.strictEqual(result.verified.ok, true);
+    assert.match(result.answer, /Maior gastos:/i);
+    assert.match(result.answer, /Menor gastos:/i);
+    assert.match(result.answer, /restaurante/i);
+    assert.doesNotMatch(result.answer, /apresentação mais específica/i);
     assert.doesNotMatch(result.answer, /agent-|user_id|owner_hash/i);
 });
 
