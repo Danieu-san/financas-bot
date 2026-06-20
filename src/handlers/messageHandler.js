@@ -595,9 +595,142 @@ function cleanLocalTransactionDescription(messageBody, amountInfo) {
     return description || 'Não especificado';
 }
 
+function cleanupLocalTransferDescription(value = '') {
+    return String(value || '')
+        .replace(/\b(?:hoje|ontem)\b/gi, ' ')
+        .replace(/\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function extractLocalTransferTarget(messageBody = '') {
+    const raw = String(messageBody || '');
+    const match = raw.match(/\b(?:para|pra|pro|p\/)\s+(.+)$/i);
+    if (!match || !match[1]) return '';
+
+    const target = cleanupLocalTransferDescription(match[1])
+        .replace(/^(?:a|o|os|as|uma|um|minha|meu)\s+/i, '')
+        .trim();
+    return target;
+}
+
+function formatLocalTransferTarget(target = '') {
+    return String(target || '')
+        .split(/\s+/)
+        .filter(Boolean)
+        .map(part => (/^[a-zA-ZÀ-ÿ]+$/.test(part) && part === part.toLowerCase())
+            ? `${part.charAt(0).toUpperCase()}${part.slice(1)}`
+            : part)
+        .join(' ');
+}
+
+function removeLocalAmountFromLine(messageBody = '', amountInfo = null) {
+    const raw = String(messageBody || '');
+    if (!amountInfo) return raw;
+    return `${raw.slice(0, amountInfo.index)} ${raw.slice(amountInfo.end)}`.replace(/\s+/g, ' ').trim();
+}
+
+function buildLocalTransferExpense(line, amountInfo) {
+    const target = extractLocalTransferTarget(line);
+    if (!target) return null;
+
+    return {
+        descricao: `Transferência para ${formatLocalTransferTarget(target)}`,
+        valor: amountInfo.value,
+        categoria: 'Transferência',
+        subcategoria: '',
+        pagamento: 'PIX',
+        recorrente: 'Não',
+        observacoes: 'Classificado por fallback local sem IA',
+        data: extractLocalTransactionDate(line),
+        requiresConfirmation: true
+    };
+}
+
+function buildLocalReserveRedemption(line, amountInfo) {
+    const withoutAmount = removeLocalAmountFromLine(line, amountInfo);
+    const text = normalizeText(withoutAmount);
+    let account = 'caixinha';
+    const accountMatch = withoutAmount.match(/\b(?:da|de|do)\s+(?:minha\s+|meu\s+)?([a-zA-ZÀ-ÿ0-9 _-]*(?:caixinha|reserva|poupan[çc]a|investimento|rdb|tesouro)[a-zA-ZÀ-ÿ0-9 _-]*)/i);
+    if (accountMatch?.[1]) {
+        account = cleanupLocalTransferDescription(accountMatch[1])
+            .replace(/^(?:minha|meu)\s+/i, '')
+            .trim() || account;
+    } else if (text.includes('reserva')) {
+        account = 'reserva';
+    }
+
+    return {
+        descricao: `resgate da ${account}`,
+        valor: amountInfo.value,
+        categoria: 'Outros',
+        recebimento: 'PIX',
+        recorrente: 'Não',
+        observacoes: 'Classificado por fallback local sem IA',
+        data: extractLocalTransactionDate(line),
+        requiresConfirmation: true
+    };
+}
+
+function detectLocalTransferLine(line) {
+    const raw = String(line || '').trim();
+    const text = normalizeText(raw);
+    if (!raw || text.includes('?')) return null;
+
+    const amount = extractLocalAmount(raw);
+    if (!amount) return null;
+
+    const isTransferOut = /^(?:transferi|enviei|mandei|passei|fiz\s+pix)\b/.test(text)
+        && /\b(?:para|pra|pro|p\/)\b/.test(text);
+    if (isTransferOut) {
+        const gasto = buildLocalTransferExpense(raw, amount);
+        return gasto ? { type: 'gasto', item: gasto } : null;
+    }
+
+    const isReserveRedemption = /^(?:resgatei|resgate|resgatar|retirei|saquei|tirei)\b/.test(text)
+        && /\b(?:caixinha|reserva|poupanca|investimento|rdb|tesouro)\b/.test(text);
+    if (isReserveRedemption) {
+        return { type: 'entrada', item: buildLocalReserveRedemption(raw, amount) };
+    }
+
+    return null;
+}
+
+function splitLocalFinancialLines(messageBody = '') {
+    return String(messageBody || '')
+        .split(/\r?\n|;/)
+        .map(line => line.trim())
+        .filter(Boolean);
+}
+
+function detectLocalTransferIntent(messageBody) {
+    const lines = splitLocalFinancialLines(messageBody);
+    if (!lines.length) return null;
+
+    const parsedLines = lines.map(detectLocalTransferLine);
+    if (parsedLines.some(item => !item)) return null;
+
+    const gastoDetails = parsedLines
+        .filter(item => item.type === 'gasto')
+        .map(item => item.item);
+    const entradaDetails = parsedLines
+        .filter(item => item.type === 'entrada')
+        .map(item => item.item);
+
+    if (!gastoDetails.length && !entradaDetails.length) return null;
+    return {
+        intent: gastoDetails.length ? 'gasto' : 'entrada',
+        ...(gastoDetails.length ? { gastoDetails } : {}),
+        ...(entradaDetails.length ? { entradaDetails } : {})
+    };
+}
+
 function detectLocalTransactionIntent(messageBody) {
     const text = normalizeText(String(messageBody || '').trim());
     if (!text || text.includes('?')) return null;
+
+    const transferIntent = detectLocalTransferIntent(messageBody);
+    if (transferIntent) return transferIntent;
 
     const isExpense = /^(?:gastei|gasto|comprei)\b/.test(text);
     const isIncome = /^(?:recebi|ganhei)\b/.test(text);
@@ -7464,7 +7597,9 @@ async function handleMessage(msg) {
                     const legacyRequiresConfirmation = shouldRequireConfirmationForStructuredWrite(structuredResponseSource);
                     const enforceApplied = singleReliabilityEvaluation?.gate?.mode === 'enforce'
                         && singleReliabilityEvaluation?.gate?.applied;
-                    const canUseDirectSingleFlow = allTransactions.length === 1 && (
+                    const canUseDirectSingleFlow = allTransactions.length === 1
+                        && !allTransactions[0]?.requiresConfirmation
+                        && (
                         enforceApplied
                             ? (
                                 singleReliabilityEvaluation.gate.action === 'execute'

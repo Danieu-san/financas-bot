@@ -1433,6 +1433,39 @@ stateMachineTest('financial states: transfer to family member is saved as intern
     assert.strictEqual(sheets.Transferências[1][8], USER_ID);
 });
 
+stateMachineTest('financial states: multiline reserve and family transfers are parsed locally before Gemini', async () => {
+    resetState();
+    sheets.Users.push(partnerUserRow());
+    financialScopeUserIds = [USER_ID, PARTNER_ID];
+
+    const message = [
+        'transferi 11,11 para a caixinha TESTE_APAGAR_SHADOW_TRANSFER_FIX_20260620',
+        'resgatei 12,12 da caixinha TESTE_APAGAR_SHADOW_TRANSFER_FIX_20260620',
+        'transferi 13,13 para a thais TESTE_APAGAR_SHADOW_TRANSFER_FIX_20260620'
+    ].join('\n');
+
+    const preview = await send(message);
+
+    assert.match(preview, /Encontrei 3 transaç/);
+    assert.match(preview, /\[Transferência\].*caixinha/i);
+    assert.match(preview, /\[Transferência\].*resgate/i);
+    assert.match(preview, /\[Transferência\].*Thais/i);
+    assert.strictEqual(structuredResponses.length, 0);
+    assert.strictEqual(sheets.Entradas.length, 1);
+    assert.strictEqual(sheets.Saídas.length, 1);
+    assert.strictEqual(sheets.Transferências.length, 1);
+
+    const confirmationReply = await send('sim');
+
+    assert.match(confirmationReply, /3 de 3 itens foram salvos/i);
+    assert.strictEqual(sheets.Entradas.length, 1);
+    assert.strictEqual(sheets.Saídas.length, 1);
+    assert.strictEqual(sheets.Transferências.length, 4);
+    const rows = sheets.Transferências.slice(1);
+    assert.strictEqual(rows.filter(row => row[7] === 'Movimentação de reserva/investimento').length, 2);
+    assert.strictEqual(rows.filter(row => row[7] === 'Provável transferência interna').length, 1);
+});
+
 stateMachineTest('financial states: monthly budget alert counts explicit credit card spending in legacy card sheets', async () => {
     resetState();
     sheets.UserSettings[1][13] = 'SIM';
