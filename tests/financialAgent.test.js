@@ -535,6 +535,27 @@ test('financial agent shadow mode can answer only verified recent-transaction to
     }, {}), true);
 });
 
+test('financial agent full debug log is controlled by a simple env flag', () => {
+    assert.strictEqual(messageHandlerTest.isFinancialAgentFullLogEnabled({}), false);
+    assert.strictEqual(messageHandlerTest.isFinancialAgentFullLogEnabled({ FINANCIAL_AGENT_LOG_FULL: 'false' }), false);
+    assert.strictEqual(messageHandlerTest.isFinancialAgentFullLogEnabled({ FINANCIAL_AGENT_LOG_FULL: 'true' }), true);
+    assert.strictEqual(messageHandlerTest.isFinancialAgentFullLogEnabled({ FINANCIAL_AGENT_LOG_FULL: 'sim' }), true);
+
+    const payload = messageHandlerTest.buildFinancialAgentFullLogPayload({
+        answer: 'Seu último gasto foi mercado, R$ 10,00.',
+        plan: { action: 'tool', tool: 'list_recent_transactions' },
+        toolResult: {
+            ok: true,
+            rows: [{ date: '2026-06-20', description: 'mercado', amount: 10 }]
+        },
+        verified: { ok: true }
+    });
+
+    assert.match(payload, /Seu último gasto foi mercado/);
+    assert.match(payload, /list_recent_transactions/);
+    assert.match(payload, /2026-06-20/);
+});
+
 test('financial agent person map exposes display names instead of internal ids', () => {
     const map = messageHandlerTest.buildFinancialAgentPersonByUserId(
         ['agent-daniel', 'agent-thais'],

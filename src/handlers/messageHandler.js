@@ -242,6 +242,19 @@ function isFinancialAgentShadowRecentAnswerEnabled(env = process.env) {
     return ['1', 'true', 'yes', 'sim', 'on'].includes(normalizeText(env.FINANCIAL_AGENT_SHADOW_RECENT_ANSWER_ENABLED || ''));
 }
 
+function isFinancialAgentFullLogEnabled(env = process.env) {
+    return ['1', 'true', 'yes', 'sim', 'on'].includes(normalizeText(env.FINANCIAL_AGENT_LOG_FULL || ''));
+}
+
+function buildFinancialAgentFullLogPayload(result = {}) {
+    return JSON.stringify({
+        answer: result.answer || '',
+        plan: result.plan || null,
+        toolResult: result.toolResult || null,
+        verified: result.verified || null
+    });
+}
+
 function shouldUseFinancialAgentAnswerInMode(mode = 'off', result = {}, env = process.env) {
     const normalizedMode = normalizeText(mode || 'off');
     if (normalizedMode === 'answer') {
@@ -266,6 +279,9 @@ function logFinancialAgentResult({ mode = 'off', result = null, senderId = '' } 
     const rows = Array.isArray(result.toolResult?.rows) ? result.toolResult.rows.length : 0;
     metrics.increment(`message.financial_agent.${normalizeMetricLabel(mode)}.${normalizeMetricLabel(result.action || 'unknown')}`);
     logger.info(`[financial-agent] mode=${mode} action=${result.action || 'unknown'} tool=${tool} verified=${Boolean(result.verified?.ok)} rows=${rows} reason=${normalizeMetricLabel(reason)} sender=${logger.redactIdentifier(senderId)}`);
+    if (isFinancialAgentFullLogEnabled()) {
+        logger.info(`[financial-agent-debug] sender=${logger.redactIdentifier(senderId)} full=${buildFinancialAgentFullLogPayload(result)}`);
+    }
 }
 
 function sanitizeLogText(value, maxLength = 220) {
@@ -8212,6 +8228,8 @@ module.exports = {
         shouldRequireConfirmationForStructuredWrite,
         getFinancialAgentMode,
         isFinancialAgentShadowRecentAnswerEnabled,
+        isFinancialAgentFullLogEnabled,
+        buildFinancialAgentFullLogPayload,
         buildFinancialAgentPersonByUserId,
         shouldUseFinancialAgentAnswer,
         shouldUseFinancialAgentAnswerInMode,
