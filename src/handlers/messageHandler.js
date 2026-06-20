@@ -683,12 +683,23 @@ function messageLooksLikeReserveMovement(item = {}, messageBody = '') {
     ].filter(Boolean).join(' '));
 
     const hasReserveDestination = /\b(caixinha|reserva|poupanca|investimento|investi|rdb|tesouro|aplicacao|aplicado|apliquei)\b/.test(text);
-    const hasApplicationVerb = /\b(guardei|guardar|reservei|reservar|apliquei|aplicar|investi|investir|transferi|enviei|mandei|coloquei|poupei)\b/.test(text);
+    const hasApplicationVerb = /\b(guardei|guardar|reservei|reservar|apliquei|aplicar|investi|investir|transferi|transferencia|enviei|mandei|coloquei|poupei)\b/.test(text);
     const hasRedemptionVerb = /\b(resgate|resgatei|resgatar|retirei|retirar|saque|saquei|sacar|tirei|tirar)\b/.test(text);
     const hasReserveSourcePattern = /\b(recebi|ganhei|entrou|caiu)\b.*\b(?:da|de|do)\s+(?:minha\s+|meu\s+)?(?:caixinha|reserva|poupanca|investimento|rdb|tesouro)\b/.test(text);
-    const hasIncomeCategorySignal = /\b(salario|decimo|13|renda\s+extra|bonus|bonificacao|pagamento recebido|reembolso|venda|freela|freelance)\b/.test(text);
+    const hasIncomeCategorySignal = /\b(salario|decimo|d[eé]cimo|13(?:o|º)?\s*salario|renda\s+extra|bonus|bonificacao|pagamento recebido|reembolso|venda|freela|freelance)\b/.test(text);
 
     return hasReserveDestination && (hasApplicationVerb || hasRedemptionVerb || hasReserveSourcePattern) && !hasIncomeCategorySignal;
+}
+
+function buildManualTransferItemText(item = {}) {
+    return [
+        item.descricao,
+        item.categoria,
+        item.subcategoria,
+        item.recebimento,
+        item.pagamento,
+        item.observacoes
+    ].filter(Boolean).join(' ');
 }
 
 function buildReserveTransfer(item = {}, messageBody = '') {
@@ -773,9 +784,13 @@ async function buildFamilyTransfer(item = {}, messageBody = '', currentUserId = 
 
 async function buildManualTransferFromMessage(item = {}, messageBody = '', currentUserId = '') {
     const originalMessage = [item.originalMessage, messageBody].filter(Boolean).join(' ');
-    const reserveTransfer = buildReserveTransfer(item, originalMessage);
+    const itemText = buildManualTransferItemText(item);
+    const reserveTransfer = buildReserveTransfer(item, itemText);
     if (reserveTransfer) return reserveTransfer;
-    return buildFamilyTransfer(item, originalMessage, currentUserId);
+    const familyTransfer = await buildFamilyTransfer(item, itemText, currentUserId);
+    if (familyTransfer) return familyTransfer;
+    return buildReserveTransfer(item, originalMessage) ||
+        buildFamilyTransfer(item, originalMessage, currentUserId);
 }
 
 function reliabilityField(value, source = 'inferred', assurance = 'supported', evidence = '') {

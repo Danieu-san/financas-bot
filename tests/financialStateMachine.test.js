@@ -1694,6 +1694,79 @@ stateMachineTest('financial states: batch confirmation saves mixed entries with 
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
 });
 
+stateMachineTest('financial states: batch reserve movements stay transfers and are not contaminated by family transfer text', async () => {
+    resetState();
+    sheets.Users.push(partnerUserRow());
+    financialScopeUserIds = [USER_ID, PARTNER_ID];
+    const originalMessage = [
+        'transferi 11,11 para a caixinha TESTE_APAGAR_SHADOW_20260620',
+        'resgatei 12,12 da caixinha TESTE_APAGAR_SHADOW_20260620',
+        'transferi 13,13 para a thais TESTE_APAGAR_SHADOW_20260620'
+    ].join('\n');
+
+    userStateManager.setState(SENDER, {
+        action: 'confirming_transactions',
+        data: {
+            person: 'Usuario Estado',
+            transactions: [
+                {
+                    type: 'Saídas',
+                    data: '20/06/2026',
+                    descricao: 'transferência para caixinha TESTE_APAGAR_SHADOW_20260620',
+                    categoria: 'Transferência',
+                    valor: 11.11,
+                    pagamento: 'PIX',
+                    recorrente: 'Não',
+                    originalMessage
+                },
+                {
+                    type: 'Saídas',
+                    data: '20/06/2026',
+                    descricao: 'transferência para Thais TESTE_APAGAR_SHADOW_20260620',
+                    categoria: 'Transferência',
+                    valor: 13.13,
+                    pagamento: 'PIX',
+                    recorrente: 'Não',
+                    originalMessage
+                },
+                {
+                    type: 'Entradas',
+                    data: '20/06/2026',
+                    descricao: 'resgate da caixinha TESTE_APAGAR_SHADOW_20260620',
+                    categoria: 'Outros',
+                    valor: 12.12,
+                    recebimento: 'PIX',
+                    recorrente: 'Não',
+                    originalMessage
+                }
+            ]
+        }
+    });
+
+    const reply = await send('sim');
+
+    assert.match(reply, /3 de 3 itens foram salvos/i);
+    assert.strictEqual(sheets.Entradas.length, 1);
+    assert.strictEqual(sheets.Saídas.length, 1);
+    assert.strictEqual(sheets.Transferências.length, 4);
+    const transferRows = sheets.Transferências.slice(1);
+    const reserveApplied = transferRows.find(row => row[1] === 'transferência para caixinha TESTE_APAGAR_SHADOW_20260620');
+    const familyTransfer = transferRows.find(row => row[1] === 'transferência para Thais TESTE_APAGAR_SHADOW_20260620');
+    const reserveRedeemed = transferRows.find(row => row[1] === 'resgate da caixinha TESTE_APAGAR_SHADOW_20260620');
+
+    assert.ok(reserveApplied);
+    assert.strictEqual(reserveApplied[2], 11.11);
+    assert.strictEqual(reserveApplied[4], 'Reserva/Caixinha');
+    assert.strictEqual(reserveApplied[7], 'Movimentação de reserva/investimento');
+    assert.ok(familyTransfer);
+    assert.strictEqual(familyTransfer[4], 'Thais');
+    assert.strictEqual(familyTransfer[7], 'Provável transferência interna');
+    assert.ok(reserveRedeemed);
+    assert.strictEqual(reserveRedeemed[2], 12.12);
+    assert.strictEqual(reserveRedeemed[3], 'Reserva/Caixinha');
+    assert.strictEqual(reserveRedeemed[7], 'Movimentação de reserva/investimento');
+});
+
 stateMachineTest('financial states: batch asks one payment method when missing and writes every item', async () => {
     resetState();
     userStateManager.setState(SENDER, {
