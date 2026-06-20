@@ -947,3 +947,90 @@ test('LangGraph financial agent gives deterministic cut recommendations instead 
     assert.match(result.answer, /Moradia/i);
     assert.doesNotMatch(result.answer, /1\. Moradia: R\$\s*1\.000,00/i);
 });
+
+test('LangGraph financial agent overrides legacy merchant ranking when the user asks where to cut expenses', async () => {
+    assert.strictEqual(ensureSqliteReady(), true);
+    assert.strictEqual(syncSnapshotToSqlite({
+        saidas: [
+            { user_id: 'agent-daniel', data: '05/06/2026', descricao: 'aluguel', categoria: 'Moradia', subcategoria: '', valor: 1000, month: 5, year: 2026 },
+            { user_id: 'agent-daniel', data: '10/06/2026', descricao: 'restaurante', categoria: 'Alimentação', subcategoria: '', valor: 200, month: 5, year: 2026 },
+            { user_id: 'agent-daniel', data: '12/06/2026', descricao: 'streaming', categoria: 'Assinaturas', subcategoria: '', valor: 50, month: 5, year: 2026 }
+        ],
+        cartoes: [],
+        entradas: [],
+        transferencias: [],
+        userSettings: [],
+        cartoesConfig: [],
+        metas: [],
+        movimentacoesMetas: [],
+        dividas: [],
+        contas: []
+    }), true);
+
+    const result = await invokeFinancialAgent({
+        message: 'onde posso cortar gastos olhando este mês?',
+        userIds: ['agent-daniel'],
+        personByUserId: { 'agent-daniel': 'Daniel' },
+        currentDate: '20/06/2026',
+        financialQueryPlan: {
+            kind: 'financial_query',
+            domain: 'expenses',
+            operation: 'rank',
+            filters: { period: { type: 'month', month: 5, year: 2026 }, scope: 'personal' },
+            groupBy: ['merchant'],
+            timeBasis: 'billing_month'
+        },
+        mode: 'answer'
+    });
+
+    assert.strictEqual(result.action, 'answer');
+    assert.strictEqual(result.plan.args.plan.operation, 'recommend');
+    assert.deepStrictEqual(result.plan.args.plan.groupBy, ['category']);
+    assert.strictEqual(result.verified.ok, true);
+    assert.match(result.answer, /candidatos para revisar/i);
+    assert.match(result.answer, /Alimentação/i);
+    assert.match(result.answer, /Assinaturas/i);
+    assert.match(result.answer, /despesas essenciais/i);
+});
+
+test('LangGraph financial agent overrides legacy list plans for biggest spending drivers', async () => {
+    assert.strictEqual(ensureSqliteReady(), true);
+    assert.strictEqual(syncSnapshotToSqlite({
+        saidas: [
+            { user_id: 'agent-daniel', data: '05/06/2026', descricao: 'restaurante', categoria: 'Alimentação', subcategoria: '', valor: 200, month: 5, year: 2026 },
+            { user_id: 'agent-daniel', data: '12/06/2026', descricao: 'mercado', categoria: 'Alimentação', subcategoria: '', valor: 80, month: 5, year: 2026 }
+        ],
+        cartoes: [],
+        entradas: [],
+        transferencias: [],
+        userSettings: [],
+        cartoesConfig: [],
+        metas: [],
+        movimentacoesMetas: [],
+        dividas: [],
+        contas: []
+    }), true);
+
+    const result = await invokeFinancialAgent({
+        message: 'me mostra os principais vilões do mês',
+        userIds: ['agent-daniel'],
+        personByUserId: { 'agent-daniel': 'Daniel' },
+        currentDate: '20/06/2026',
+        financialQueryPlan: {
+            kind: 'financial_query',
+            domain: 'expenses',
+            operation: 'list',
+            filters: { period: { type: 'month', month: 5, year: 2026 }, scope: 'personal' },
+            timeBasis: 'context'
+        },
+        mode: 'answer'
+    });
+
+    assert.strictEqual(result.action, 'answer');
+    assert.strictEqual(result.plan.args.plan.operation, 'rank');
+    assert.deepStrictEqual(result.plan.args.plan.groupBy, ['merchant']);
+    assert.strictEqual(result.verified.ok, true);
+    assert.match(result.answer, /restaurante/i);
+    assert.match(result.answer, /mercado/i);
+    assert.doesNotMatch(result.answer, /05\/06\/2026/);
+});

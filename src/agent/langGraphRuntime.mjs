@@ -111,6 +111,11 @@ function referenceMonthFromCurrentDate(currentDate = '') {
     return { year: parsed.getFullYear(), month: parsed.getMonth() };
 }
 
+function currentMonthPeriod(currentDate = '') {
+    const { year, month } = referenceMonthFromCurrentDate(currentDate);
+    return { type: 'month', month, year };
+}
+
 function buildFallbackWeekdaySql(currentDate = '') {
     const { year, month } = referenceMonthFromCurrentDate(currentDate);
     return `
@@ -123,6 +128,63 @@ function buildFallbackWeekdaySql(currentDate = '') {
         ORDER BY total DESC
         LIMIT 7
     `.trim();
+}
+
+function asksForExpenseCutRecommendation(normalized = '') {
+    const wantsCut =
+        /\b(cortar|economizar|reduzir|diminuir|poupar|enxugar|rever|revisar)\b/.test(normalized) ||
+        /\bonde\s+(?:posso|da|daria|vale)\b/.test(normalized) ||
+        /\bdesperdicio|desperdicios\b/.test(normalized);
+    const talksAboutSpending = /\b(gasto|gastos|despesa|despesas|custo|custos|mes|mensal)\b/.test(normalized);
+    return wantsCut && talksAboutSpending;
+}
+
+function asksForExpenseDrivers(normalized = '') {
+    const wantsDrivers =
+        /\b(vilao|viloes|responsavel|responsaveis|driver|drivers)\b/.test(normalized) ||
+        /\b(puxou|puxaram|pesou|pesaram|pesa|pesando)\b/.test(normalized) ||
+        /\bprincipais\s+(?:gastos|despesas|custos)\b/.test(normalized);
+    const talksAboutSpending = /\b(gasto|gastos|despesa|despesas|mes|mensal)\b/.test(normalized);
+    return wantsDrivers && talksAboutSpending;
+}
+
+function expensePlanFromSemanticOverride(state, normalized = '') {
+    const incoming = state.financialQueryPlan || {};
+    const filters = {
+        ...(incoming.filters || {}),
+        period: incoming.filters?.period || currentMonthPeriod(state.currentDate)
+    };
+    const base = {
+        kind: 'financial_query',
+        domain: 'expenses',
+        filters,
+        sort: { by: 'value', direction: 'desc' },
+        limit: incoming.limit || 10,
+        needsContext: false,
+        timeBasis: incoming.timeBasis || 'billing_month'
+    };
+
+    if (asksForExpenseCutRecommendation(normalized)) {
+        return {
+            ...base,
+            operation: 'recommend',
+            groupBy: ['category'],
+            answerStyle: 'audit',
+            timeBasis: 'billing_month'
+        };
+    }
+
+    if (asksForExpenseDrivers(normalized)) {
+        return {
+            ...base,
+            operation: 'rank',
+            groupBy: ['merchant'],
+            answerStyle: 'short',
+            timeBasis: 'billing_month'
+        };
+    }
+
+    return null;
 }
 
 async function planTurn(state) {
@@ -180,6 +242,17 @@ async function planTurn(state) {
     }
 
     if (state.financialQueryPlan) {
+        const semanticOverride = expensePlanFromSemanticOverride(state, normalized);
+        if (semanticOverride) {
+            return {
+                plan: {
+                    action: 'tool',
+                    tool: 'query_financial_plan',
+                    args: { plan: semanticOverride }
+                },
+                action: 'tool'
+            };
+        }
         if (state.financialQueryPlan.domain === 'dashboard') {
             if (state.financialQueryPlan.operation === 'explain') {
                 return {
@@ -212,6 +285,18 @@ async function planTurn(state) {
                 action: 'tool',
                 tool: 'query_financial_plan',
                 args: { plan: state.financialQueryPlan }
+            },
+            action: 'tool'
+        };
+    }
+
+    const semanticPlan = expensePlanFromSemanticOverride(state, normalized);
+    if (semanticPlan) {
+        return {
+            plan: {
+                action: 'tool',
+                tool: 'query_financial_plan',
+                args: { plan: semanticPlan }
             },
             action: 'tool'
         };
