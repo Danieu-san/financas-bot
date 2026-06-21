@@ -334,7 +334,7 @@ function detectSecuritySensitiveRequest(messageBody) {
     const secretPatterns = [
         /\b(?:refresh token|access token|client secret|client_secret|chave secreta|chave de criptografia|encryption key|segredo oauth|oauth secret|api key|apikey|token de acesso|token secreto)\b/,
         /\b(?:token|segredo|secret|credencial|chave)\s+(?:privado|privada|interno|interna)\b/,
-        /\b(?:mostre|mostrar|revele|revelar|diga|exiba|vaze|vazar|qual|quais).{0,50}\b(?:token|segredo|secret|senha|credencial|credenciais|oauth|chave de criptografia)\b/
+        /\b(?:mostre|mostrar|revele|revelar|diga|exiba|envie|enviar|mande|mandar|manda|passe|passar|compartilhe|compartilhar|vaze|vazar|qual|quais).{0,50}\b(?:token|segredo|secret|senha|credencial|credenciais|oauth|chave de criptografia)\b/
     ];
     if (hasSecurityPattern(text, secretPatterns)) {
         return { blocked: true, category: 'secret_extraction' };
@@ -2668,7 +2668,7 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
             .trim()
         : (/\b(aportei|retirei)\b/.test(text) && /\breserva\b/.test(text) ? 'reserva' : '');
     const hasDetailSignal = (
-        /\b(detalh|detalhe|detalhar|detale|explique|explica|explicar|esplica|compoe|compõe|composicao|composição|discrimine|abra|abrir|quebra|quebre)\b/.test(text) ||
+        /\b(detalh|detalhe|detalhar|detale|explique|explica|explicar|esplica|mostre|mostrar|mostra|liste|listar|compoe|compõe|composicao|composição|discrimine|abra|abrir|quebra|quebre)\b/.test(text) ||
         text.includes('de onde veio') ||
         text.includes('como foi gasto') ||
         text.includes('como foram gastos') ||
@@ -3524,10 +3524,10 @@ function detectFastPerguntaIntent(messageBody) {
     const text = normalizeText(String(messageBody || '').trim());
     if (!text) return null;
 
-    const isQuestionShape = /^(?:e\s+)?(?:qual|quais|quanto|quantos|quantas|conte|contar|media|média|liste|listar|mostre|mostrar|mostra|me mostre|me mostra|me diga|me explique|me explica|como ficou|como esta|como estão|detalhe|detalhar|explique|explica|onde|o que mudou)/.test(text) || text.includes('?');
+    const isQuestionShape = /^(?:e\s+)?(?:qual|quais|quanto|quantos|quantas|conte|contar|media|média|liste|listar|mostre|mostrar|mostra|me mostre|me mostra|me diga|me explique|me explica|como ficou|como esta|como estão|detalhe|detalhar|explique|explica|onde|o que\b)/.test(text) || text.includes('?');
     if (!isQuestionShape) return null;
 
-    const looksAnalytical = /(saldo|gastei|gasto|gastos|entrada|entradas|divida|dividas|categoria|mes|ano|vezes|ocorrencia|ocorrencias|duplicad|maior|menor|onibus|ônibus|uber|transporte|cartao|cartão|credito|crédito|fatura|parcelamento|parcelas|aberto|conta|contas|recorrente|recorrentes|nubank|itau|itaú|atacadao|atacadão|detalh|explica|explique|evolu|tendencia|tendência|estabelecimento|estabelecimentos|loja|lojas|comercio|comércio|comercios|comércios|total|cortar|economizar|vilao|viloes|responsavel|responsaveis|puxou|puxaram|pesou|pesaram|pesa|janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/.test(text);
+    const looksAnalytical = /(saldo|gastei|gasto|gastos|entrada|entradas|divida|dividas|categoria|mes|ano|vezes|ocorrencia|ocorrencias|duplicad|maior|menor|onibus|ônibus|uber|transporte|cartao|cartão|credito|crédito|fatura|parcelamento|parcelas|aberto|conta|contas|recorrente|recorrentes|vencimento|vencimentos|vence|vencem|vencendo|amanha|amanhã|hoje|nubank|itau|itaú|atacadao|atacadão|detalh|explica|explique|evolu|tendencia|tendência|estabelecimento|estabelecimentos|loja|lojas|comercio|comércio|comercios|comércios|total|cortar|economizar|vilao|viloes|responsavel|responsaveis|puxou|puxaram|pesou|pesaram|pesa|janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/.test(text);
     if (!looksAnalytical) return null;
 
     return {
