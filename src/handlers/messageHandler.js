@@ -3524,10 +3524,10 @@ function detectFastPerguntaIntent(messageBody) {
     const text = normalizeText(String(messageBody || '').trim());
     if (!text) return null;
 
-    const isQuestionShape = /^(qual|quais|quanto|quantos|quantas|conte|contar|media|média|liste|listar|mostre|mostrar|me mostre|me mostra|me diga|me explique|me explica|como ficou|como esta|como estão|detalhe|detalhar|explique|explica)/.test(text) || text.includes('?');
+    const isQuestionShape = /^(?:e\s+)?(?:qual|quais|quanto|quantos|quantas|conte|contar|media|média|liste|listar|mostre|mostrar|mostra|me mostre|me mostra|me diga|me explique|me explica|como ficou|como esta|como estão|detalhe|detalhar|explique|explica|onde|o que mudou)/.test(text) || text.includes('?');
     if (!isQuestionShape) return null;
 
-    const looksAnalytical = /(saldo|gastei|gasto|gastos|entrada|entradas|divida|dividas|categoria|mes|ano|vezes|ocorrencia|ocorrencias|duplicad|maior|menor|onibus|ônibus|uber|transporte|cartao|cartão|credito|crédito|fatura|parcelamento|parcelas|aberto|conta|contas|recorrente|recorrentes|nubank|itau|itaú|atacadao|atacadão|detalh|explica|explique|evolu|tendencia|tendência|estabelecimento|estabelecimentos|loja|lojas|comercio|comércio|comercios|comércios|total|janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/.test(text);
+    const looksAnalytical = /(saldo|gastei|gasto|gastos|entrada|entradas|divida|dividas|categoria|mes|ano|vezes|ocorrencia|ocorrencias|duplicad|maior|menor|onibus|ônibus|uber|transporte|cartao|cartão|credito|crédito|fatura|parcelamento|parcelas|aberto|conta|contas|recorrente|recorrentes|nubank|itau|itaú|atacadao|atacadão|detalh|explica|explique|evolu|tendencia|tendência|estabelecimento|estabelecimentos|loja|lojas|comercio|comércio|comercios|comércios|total|cortar|economizar|vilao|viloes|responsavel|responsaveis|puxou|puxaram|pesou|pesaram|pesa|janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/.test(text);
     if (!looksAnalytical) return null;
 
     return {

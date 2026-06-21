@@ -945,6 +945,7 @@ test('LangGraph financial agent gives deterministic cut recommendations instead 
     assert.match(result.answer, /Alimentação/i);
     assert.match(result.answer, /Assinaturas/i);
     assert.match(result.answer, /Moradia/i);
+    assert.strictEqual((result.answer.match(/Critério:/g) || []).length, 1);
     assert.doesNotMatch(result.answer, /1\. Moradia: R\$\s*1\.000,00/i);
 });
 

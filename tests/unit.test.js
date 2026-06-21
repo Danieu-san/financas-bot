@@ -3121,6 +3121,14 @@ test('messageHandler local command routing avoids AI for common commands and low
         intent: 'pergunta',
         question: 'me explica de onde veio esse total'
     });
+    assert.deepStrictEqual(detectFastPerguntaIntent('e mostra os principais vilões do mês'), {
+        intent: 'pergunta',
+        question: 'e mostra os principais vilões do mês'
+    });
+    assert.deepStrictEqual(detectFastPerguntaIntent('onde posso cortar gastos olhando este mês?'), {
+        intent: 'pergunta',
+        question: 'onde posso cortar gastos olhando este mês?'
+    });
     assert.strictEqual(shouldSkipAiForUnknownMessage('teste'), true);
     assert.strictEqual(shouldSkipAiForUnknownMessage('valeu'), true);
     assert.strictEqual(shouldSkipAiForUnknownMessage('Uber 20'), false);

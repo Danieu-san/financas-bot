@@ -459,7 +459,7 @@ function composeFinancialPlanAnswer(toolResult = {}) {
     const value = result.value;
     const details = result.details || {};
     const title = domainLabel(plan.domain);
-    const criteria = details.criteria || value?.criteria || '';
+    const criteria = plan.operation === 'recommend' ? '' : (details.criteria || value?.criteria || '');
 
     if (plan.domain === 'budget' && value && typeof value === 'object' && !Array.isArray(value)) {
         return composeBudgetAnswer(value);
