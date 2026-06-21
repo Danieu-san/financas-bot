@@ -398,8 +398,21 @@ function toDebt(row = [], headers = []) {
     };
 }
 
-function currentDateFromDataSources(dataSources = {}) {
-    return parseSheetDate(dataSources.currentDate) || new Date();
+function saoPauloCalendarDate(now = new Date()) {
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).formatToParts(now).reduce((acc, part) => {
+        if (part.type !== 'literal') acc[part.type] = Number(part.value);
+        return acc;
+    }, {});
+    return new Date(parts.year, parts.month - 1, parts.day, 12, 0, 0, 0);
+}
+
+function currentDateFromDataSources(dataSources = {}, now = new Date()) {
+    return parseSheetDate(dataSources.currentDate) || saoPauloCalendarDate(now);
 }
 
 function addDays(date, days) {
@@ -1478,7 +1491,10 @@ function executeBillsQuery(plan, dataSources = {}) {
         if (!status) return true;
         if (status.includes('paid') || status.includes('paga') || status.includes('pago')) return item.status === 'paid';
         if (status.includes('pending') || status.includes('pendente')) return item.status === 'pending';
-        if (status.includes('upcoming') || status.includes('vence') || status.includes('vencendo')) return parseSheetDate(item.date) >= bounds.reference;
+        if (status.includes('upcoming') || status.includes('vence') || status.includes('vencendo')) {
+            const dueDate = parseSheetDate(item.date);
+            return Boolean(dueDate && addDays(dueDate, 0) >= addDays(bounds.reference, 0));
+        }
         return containsFilter(item.status, status);
     });
     const selected = applyFilters(filtered, { ...plan.filters, period: undefined, status: undefined });
@@ -1977,6 +1993,7 @@ module.exports = {
         getRowsForDomain,
         applyFilters,
         groupRows,
-        buildDashboardSummary
+        buildDashboardSummary,
+        currentDateFromDataSources
     }
 };

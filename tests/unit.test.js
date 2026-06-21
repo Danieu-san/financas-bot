@@ -5324,6 +5324,44 @@ test('google message write context deduplicates delete replay without an explici
     }
 });
 
+test('Packet 08 implicit reference date follows the Sao Paulo calendar day on UTC servers', () => {
+    const reference = financialQueryEngine.__test__.currentDateFromDataSources(
+        {},
+        new Date('2026-06-21T00:30:00.000Z')
+    );
+
+    assert.strictEqual(reference.getFullYear(), 2026);
+    assert.strictEqual(reference.getMonth(), 5);
+    assert.strictEqual(reference.getDate(), 20);
+});
+
+test('Packet 08 upcoming bills include an account due on the reference day', async () => {
+    const execution = await financialQueryEngine.executeFinancialQuery({
+        kind: 'financial_query',
+        domain: 'bills',
+        operation: 'list',
+        filters: {
+            period: { type: 'relative', days: 7 },
+            status: 'upcoming'
+        },
+        sort: { by: 'due_date', direction: 'asc' },
+        timeBasis: 'due_date'
+    }, {
+        currentDate: '21/06/2026',
+        contas: [
+            ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa'],
+            ['CONTA-HOJE', 21, 'teste', 'user-1', 'Conta hoje', 'Moradia', 'TESTE', '123,45', 'SIM']
+        ],
+        saidas: [
+            ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id']
+        ]
+    });
+
+    assert.strictEqual(execution.ok, true);
+    assert.strictEqual(execution.result.value.length, 1);
+    assert.strictEqual(execution.result.value[0].description, 'Conta hoje');
+});
+
 test('local financial question classifier maps conversational expense aliases to capabilities', () => {
     const localClassifier = require('../src/handlers/messageHandler').__test__.classifyPerguntaLocally;
     const dailyAverage = localClassifier('qual meu gasto médio por dia neste mês?');
