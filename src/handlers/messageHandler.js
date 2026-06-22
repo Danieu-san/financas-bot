@@ -593,6 +593,7 @@ function cleanLocalTransactionDescription(messageBody, amountInfo) {
     let description = raw.slice(amountInfo.end);
 
     description = description
+        .replace(/\b(?:no|na|num|numa|em)\s+(?:(?:credito|crédito)\s+)?(?:(?:no|na|em)\s+)?(?:cartao|cartão)\s+.+?(?=\s+(?:em\s+)?\d{1,2}\s*x\b|\s+\d{1,2}\s+parcelas?\b|\s+(?:hoje|ontem)\b|$)/gi, ' ')
         .replace(/\b(?:reais|real|r\$)\b/gi, ' ')
         .replace(/\b(?:hoje|ontem)\b/gi, ' ')
         .replace(/\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/g, ' ')
@@ -607,6 +608,7 @@ function cleanLocalTransactionDescription(messageBody, amountInfo) {
     description = description
         .replace(/^(?:no|na|num|numa|em|de|do|da|com|por|para|pra)\s+/i, '')
         .replace(/^(?:um|uma|o|a|os|as)\s+/i, '')
+        .replace(/\b(?:em|no|na|de|do|da)\s*$/i, '')
         .trim();
     return description || 'Não especificado';
 }
@@ -1473,6 +1475,29 @@ function normalizeMonthlyBudgetScope(value) {
 
 function getMonthlyBudgetScopeLabel(scope) {
     return scope === 'family' ? 'familiar' : 'pessoal';
+}
+
+function resolveConfiguredBudgetQueryScope({
+    question = '',
+    settings = {},
+    authorizedUserIds = [],
+    currentUserId = '',
+    baseDecision = 'allow'
+} = {}) {
+    if (baseDecision !== 'allow') return '';
+    const text = normalizeText(question);
+    if (/\b(pessoal|individual|so meu|somente meu|apenas meu)\b/.test(text)) return 'personal';
+    if (/\b(familiar|familia|casal|nosso|nossa)\b/.test(text)) return 'family';
+    if (normalizeText(settings?.monthly_budget_enabled || '') !== 'sim') return '';
+
+    const configuredScope = normalizeText(settings?.monthly_budget_scope || '') === 'family'
+        ? 'family'
+        : 'personal';
+    if (configuredScope !== 'family') return configuredScope;
+
+    const allowed = new Set((authorizedUserIds || []).map(value => String(value || '').trim()).filter(Boolean));
+    if (currentUserId) allowed.add(String(currentUserId).trim());
+    return allowed.size > 1 ? 'family' : 'personal';
 }
 
 function getMonthlyBudgetCycleStartDay(settings = {}) {
@@ -7801,7 +7826,7 @@ async function handleMessage(msg) {
                         const financialScopeUserIds = usePersonalSpreadsheet ? getFinancialScopeUserIds(userId) : [userId];
                         const usersForScope = financialScopeUserIds.length > 1 ? await getAllUsers() : [];
                         const preserveTransferTarget = isTransferTargetQuestionForScopePreservation(userQuestion, intentClassification);
-                        const resolvedScope = resolveFinancialQueryScope({
+                        let resolvedScope = resolveFinancialQueryScope({
                             currentUserId: userId,
                             question: userQuestion,
                             requestedScope: preserveTransferTarget ? '' : getAnalyticalRequestedScope(intentClassification),
@@ -7813,6 +7838,39 @@ async function handleMessage(msg) {
                             users: usersForScope,
                             isAdmin: isAdminWithContext(senderId, activeUser)
                         });
+                        if (intentClassification?.financialQueryPlan?.domain === 'budget') {
+                            const budgetConfig = await resolveMonthlyBudgetSettingsForUser(userId);
+                            const configuredBudgetScope = resolveConfiguredBudgetQueryScope({
+                                question: userQuestion,
+                                settings: budgetConfig?.settings,
+                                authorizedUserIds: financialScopeUserIds,
+                                currentUserId: userId,
+                                baseDecision: resolvedScope.decision
+                            });
+                            if (configuredBudgetScope === 'family' && financialScopeUserIds.length > 1) {
+                                resolvedScope = {
+                                    decision: 'allow',
+                                    scope: 'family',
+                                    userIds: Array.from(new Set(financialScopeUserIds)),
+                                    reason: 'configured_budget_scope',
+                                    explicit: false,
+                                    memberLabel: '',
+                                    matchedUser: null,
+                                    matchedAliases: []
+                                };
+                            } else if (configuredBudgetScope === 'personal') {
+                                resolvedScope = {
+                                    decision: 'allow',
+                                    scope: 'personal',
+                                    userIds: [userId],
+                                    reason: 'configured_budget_scope',
+                                    explicit: /\b(pessoal|individual|so meu|somente meu|apenas meu)\b/.test(normalizeText(userQuestion)),
+                                    memberLabel: '',
+                                    matchedUser: null,
+                                    matchedAliases: []
+                                };
+                            }
+                        }
                         if (resolvedScope.decision === 'block') {
                             metrics.increment('message.pergunta.scope.blocked');
                             logger.warn(`[routing] financial_scope_blocked reason=${resolvedScope.reason}`);
@@ -8245,7 +8303,9 @@ module.exports = {
         handleAccountLifecycleCommands,
         handleAdminCommandBeforeAccess,
         buildLegalCommandLogContext,
-        buildDashboardWhatsAppSummary
+        buildDashboardWhatsAppSummary,
+        resolveConfiguredBudgetQueryScope,
+        cleanLocalTransactionDescription
     }
 };
 

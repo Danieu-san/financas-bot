@@ -12,6 +12,8 @@ const {
 } = require('./financialAgentTools');
 const { verifyAgentAnswer } = require('./resultVerifier');
 const { planWithGemini } = require('./financialAgentPlanner');
+const stringSimilarity = require('string-similarity');
+const { isSmallTypo } = require('../utils/textMatcher');
 
 const AgentState = Annotation.Root({
     message: Annotation(),
@@ -88,6 +90,15 @@ function extremeItemLabel(domain) {
 
 function unsafeMessage(normalized) {
     return /\b(sheet[\s_-]*id|user[\s_-]*id|token|segredo|secret|prompt|regras internas|bypass|modo admin|todos os usuarios|todos os usuários)\b/.test(normalized);
+}
+
+function hasApproximateConcept(normalized = '', concepts = [], threshold = 0.78) {
+    const tokens = String(normalized || '').split(/[^a-z0-9]+/).filter(token => token.length >= 4);
+    return concepts.some(concept => (
+        tokens.includes(concept) ||
+        tokens.some(token => isSmallTypo(token, concept)) ||
+        tokens.some(token => stringSimilarity.compareTwoStrings(token, concept) >= threshold)
+    ));
 }
 
 function inferDashboardMetric(normalized) {
@@ -197,8 +208,8 @@ async function planTurn(state) {
         };
     }
 
-    if (/ultimo|ultima|último|última/.test(message) || /\bultimo\b|\bultima\b/.test(normalized)) {
-        if (/gasto|compra|saida|saída|despesa/.test(normalized)) {
+    if (hasApproximateConcept(normalized, ['ultimo', 'ultima'])) {
+        if (hasApproximateConcept(normalized, ['gasto', 'compra', 'saida', 'despesa'])) {
             return {
                 plan: {
                     action: 'tool',
@@ -208,7 +219,7 @@ async function planTurn(state) {
                 action: 'tool'
             };
         }
-        if (/entrada|recebimento|renda|salario|salário/.test(normalized)) {
+        if (hasApproximateConcept(normalized, ['entrada', 'recebimento', 'renda', 'salario'])) {
             return {
                 plan: {
                     action: 'tool',
@@ -218,7 +229,7 @@ async function planTurn(state) {
                 action: 'tool'
             };
         }
-        if (/lancamento|lançamento|movimento|transacao|transação/.test(normalized)) {
+        if (hasApproximateConcept(normalized, ['lancamento', 'movimento', 'transacao'])) {
             return {
                 plan: {
                     action: 'tool',
@@ -463,6 +474,29 @@ function composeFinancialPlanAnswer(toolResult = {}) {
 
     if (plan.domain === 'budget' && value && typeof value === 'object' && !Array.isArray(value)) {
         return composeBudgetAnswer(value);
+    }
+
+    if (plan.domain === 'bills' && plan.operation === 'detect' && Array.isArray(value?.items)) {
+        const matched = value.items[0];
+        if (!matched) {
+            return [
+                'Não encontrei essa conta cadastrada ou um pagamento correspondente neste período.',
+                details.criteria || value.criteria || '',
+                plan.timeBasis ? `Critério temporal: ${plan.timeBasis}.` : ''
+            ].filter(Boolean).join('\n');
+        }
+        const paid = matched.status === 'paid' || Number(matched.realizedValue || 0) > 0;
+        const amount = paid
+            ? Number(matched.realizedValue || 0)
+            : Number(matched.pendingValue ?? matched.expectedValue ?? 0);
+        const statement = paid
+            ? `Sim. ${matched.description || 'A conta'} foi identificada como paga neste período por ${moneyBR(amount)}.`
+            : `Ainda não. ${matched.description || 'A conta'} aparece como pendente por ${moneyBR(amount)}.`;
+        return [
+            statement,
+            details.criteria || value.criteria || '',
+            plan.timeBasis ? `Critério temporal: ${plan.timeBasis}.` : ''
+        ].filter(Boolean).join('\n');
     }
 
     let body = '';

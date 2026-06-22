@@ -35,6 +35,44 @@ const financialQueryEngine = require('../src/query/financialQueryEngine');
 const financialScopeResolver = require('../src/services/financialScopeResolver');
 const logger = require('../src/utils/logger');
 
+test('budget query inherits the active configured family scope unless the user explicitly asks for personal', () => {
+    const resolveConfiguredBudgetQueryScope = messageHandler.__test__.resolveConfiguredBudgetQueryScope;
+
+    assert.strictEqual(resolveConfiguredBudgetQueryScope({
+        question: 'como está meu orçamento do ciclo?',
+        settings: { monthly_budget_enabled: 'SIM', monthly_budget_scope: 'family' },
+        authorizedUserIds: ['daniel-id', 'thais-id'],
+        currentUserId: 'daniel-id'
+    }), 'family');
+    assert.strictEqual(resolveConfiguredBudgetQueryScope({
+        question: 'como está meu orçamento pessoal?',
+        settings: { monthly_budget_enabled: 'SIM', monthly_budget_scope: 'family' },
+        authorizedUserIds: ['daniel-id', 'thais-id'],
+        currentUserId: 'daniel-id'
+    }), 'personal');
+    assert.strictEqual(resolveConfiguredBudgetQueryScope({
+        question: 'qual é o orçamento de uma pessoa não autorizada?',
+        settings: { monthly_budget_enabled: 'SIM', monthly_budget_scope: 'family' },
+        authorizedUserIds: ['daniel-id', 'thais-id'],
+        currentUserId: 'daniel-id',
+        baseDecision: 'block'
+    }), '');
+});
+
+test('local transaction description removes arbitrary credit card routing suffixes', () => {
+    const clean = messageHandler.__test__.cleanLocalTransactionDescription;
+    const cases = [
+        ['gastei 24,24 na farmácia TESTE_APAGAR no cartão nubank thais em 2x hoje', 'farmácia TESTE_APAGAR'],
+        ['gastei 18,18 no remédio TESTE_APAGAR no crédito no cartão banco azul família em 3x', 'remédio TESTE_APAGAR']
+    ];
+
+    for (const [message, expected] of cases) {
+        const amountText = message.match(/\d+[,.]\d+/)[0];
+        const index = message.indexOf(amountText);
+        assert.strictEqual(clean(message, { index, end: index + amountText.length }), expected);
+    }
+});
+
 // --- Helpers Tests ---
 test('helpers.parseValue', (t) => {
     assert.strictEqual(helpers.parseValue("1.800,50"), 1800.5, 'BR format should work');
@@ -5669,7 +5707,7 @@ test('Packet 10 WhatsApp dashboard summary formats the same dashboard KPIs and c
 
 test('financial question scope resolver uses activeUser instead of undefined user variable', () => {
     const source = fs.readFileSync(path.join(__dirname, '..', 'src', 'handlers', 'messageHandler.js'), 'utf8');
-    const start = source.indexOf('const resolvedScope = resolveFinancialQueryScope({');
+    const start = source.search(/(?:const|let) resolvedScope = resolveFinancialQueryScope\(\{/);
     assert.notStrictEqual(start, -1, 'bloco de resolveFinancialQueryScope deve existir');
     const snippet = source.slice(start, start + 1200);
 

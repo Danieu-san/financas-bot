@@ -24,6 +24,116 @@ const {
 } = require('../src/agent/financialAgentPlanner');
 const { __test__: messageHandlerTest } = require('../src/handlers/messageHandler');
 
+test('LangGraph financial agent tolerates small typos in recent transaction concepts', async () => {
+    syncAgentSnapshot();
+    for (const message of [
+        'qual foi meu ultim lancameto?',
+        'qual foi minha ultma transacao?',
+        'detalhe meu ultmo movimento'
+    ]) {
+        const result = await invokeFinancialAgent({
+            message,
+            userIds: ['agent-daniel'],
+            personByUserId: { 'agent-daniel': 'Daniel' },
+            currentDate: '20/06/2026',
+            mode: 'answer'
+        });
+
+        assert.strictEqual(result.action, 'answer', JSON.stringify(result));
+        assert.strictEqual(result.plan.tool, 'list_recent_transactions');
+        assert.strictEqual(result.verified.ok, true);
+    }
+});
+
+test('LangGraph financial agent lists goals from the scoped read model', async () => {
+    syncAgentSnapshot();
+    const result = await invokeFinancialAgent({
+        message: 'liste minhas metas',
+        userIds: ['agent-daniel', 'agent-thais'],
+        personByUserId: { 'agent-daniel': 'Daniel', 'agent-thais': 'Thais' },
+        currentDate: '20/06/2026',
+        financialQueryPlan: {
+            kind: 'financial_query',
+            domain: 'goals',
+            operation: 'list',
+            filters: { period: { type: 'all_time' }, scope: 'family' },
+            timeBasis: 'transaction_date'
+        },
+        mode: 'answer'
+    });
+
+    assert.strictEqual(result.action, 'answer', JSON.stringify(result));
+    assert.strictEqual(result.verified.ok, true);
+    assert.match(result.answer, /Reserva/i);
+    assert.match(result.answer, /R\$\s*1\.200,00/i);
+});
+
+test('LangGraph financial agent uses the authorized family budget configuration', async () => {
+    assert.strictEqual(ensureSqliteReady(), true);
+    assert.strictEqual(syncSnapshotToSqlite({
+        saidas: [
+            { user_id: 'agent-daniel', data: '10/06/2026', descricao: 'mercado', categoria: 'Alimentação', subcategoria: '', valor: 100, month: 5, year: 2026 },
+            { user_id: 'agent-thais', data: '12/06/2026', descricao: 'farmácia', categoria: 'Saúde', subcategoria: '', valor: 50, month: 5, year: 2026 }
+        ],
+        cartoes: [], entradas: [], transferencias: [], cartoesConfig: [], metas: [], movimentacoesMetas: [], dividas: [], contas: [],
+        userSettings: [
+            { user_id: 'agent-daniel', monthly_budget_enabled: 'SIM', monthly_budget_amount: '1000', monthly_budget_scope: 'family', monthly_budget_cycle_start_day: '1' }
+        ]
+    }), true);
+    const result = await invokeFinancialAgent({
+        message: 'como está meu orçamento do ciclo?',
+        userIds: ['agent-daniel', 'agent-thais'],
+        personByUserId: { 'agent-daniel': 'Daniel', 'agent-thais': 'Thais' },
+        currentDate: '20/06/2026',
+        financialQueryPlan: {
+            kind: 'financial_query',
+            domain: 'budget',
+            operation: 'detail',
+            filters: { period: { type: 'month', month: 5, year: 2026 }, scope: 'family' },
+            timeBasis: 'budget_cycle'
+        },
+        mode: 'answer'
+    });
+
+    assert.strictEqual(result.action, 'answer', JSON.stringify(result));
+    assert.strictEqual(result.verified.ok, true);
+    assert.doesNotMatch(result.answer, /desativado/i);
+    assert.match(result.answer, /R\$\s*150,00/i);
+});
+
+test('LangGraph financial agent answers paid bill detection with status and realized value', async () => {
+    assert.strictEqual(ensureSqliteReady(), true);
+    assert.strictEqual(syncSnapshotToSqlite({
+        saidas: [
+            { user_id: 'agent-daniel', data: '07/06/2026', descricao: 'Pagamento aluguel', categoria: 'Moradia', subcategoria: 'ALUGUEL', valor: 932.97, month: 5, year: 2026 }
+        ],
+        cartoes: [], entradas: [], transferencias: [], userSettings: [], cartoesConfig: [], metas: [], movimentacoesMetas: [], dividas: [],
+        contas: [
+            { user_id: 'agent-daniel', headers: ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa'], row: ['ALUGUEL-REAL', '7', '', 'agent-daniel', 'Aluguel', 'Moradia', 'ALUGUEL', '', 'SIM'] }
+        ]
+    }), true);
+    const result = await invokeFinancialAgent({
+        message: 'já paguei aluguel esse mês?',
+        userIds: ['agent-daniel'],
+        personByUserId: { 'agent-daniel': 'Daniel' },
+        currentDate: '20/06/2026',
+        financialQueryPlan: {
+            kind: 'financial_query',
+            domain: 'bills',
+            operation: 'detect',
+            filters: { period: { type: 'month', month: 5, year: 2026 }, scope: 'personal', merchant: 'aluguel' },
+            timeBasis: 'due_date'
+        },
+        mode: 'answer'
+    });
+
+    assert.strictEqual(result.action, 'answer', JSON.stringify(result));
+    assert.strictEqual(result.verified.ok, true);
+    assert.match(result.answer, /^Sim\./i);
+    assert.match(result.answer, /R\$\s*932,97/i);
+    assert.doesNotMatch(result.answer, /R\$\s*0,00/i);
+});
+
 function syncAgentSnapshot() {
     assert.strictEqual(ensureSqliteReady(), true);
     const synced = syncSnapshotToSqlite({
