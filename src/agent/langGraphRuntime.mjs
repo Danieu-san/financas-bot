@@ -12,6 +12,10 @@ const {
 } = require('./financialAgentTools');
 const { verifyAgentAnswer } = require('./resultVerifier');
 const { planWithGemini } = require('./financialAgentPlanner');
+const {
+    composeContextualFinancialAnswer,
+    selectVerifiedContextualAnswer
+} = require('./contextualFinancialAnalyst');
 const stringSimilarity = require('string-similarity');
 const { isSmallTypo } = require('../utils/textMatcher');
 
@@ -639,7 +643,7 @@ function composeMetricExplanation(result = {}) {
     return lines.join('\n');
 }
 
-function composeAnswer(state) {
+function composeDeterministicAnswer(state) {
     const plan = state.plan || {};
     if (plan.action === 'block') {
         return {
@@ -697,6 +701,29 @@ function composeAnswer(state) {
         return { answer: composeMetricExplanation(result), action: 'answer' };
     }
     return { answer: 'Não consegui compor uma resposta segura para essa análise.', action: 'error' };
+}
+
+async function composeAnswer(state) {
+    const deterministic = composeDeterministicAnswer(state);
+    if (deterministic.action !== 'answer') return deterministic;
+
+    const contextual = await composeContextualFinancialAnswer({
+        message: state.message,
+        plan: state.plan,
+        toolResult: state.toolResult,
+        deterministicAnswer: deterministic.answer
+    });
+    if (!contextual.ok) return deterministic;
+
+    const selected = selectVerifiedContextualAnswer({
+        contextualAnswer: contextual.answer,
+        deterministicAnswer: deterministic.answer,
+        toolResult: state.toolResult
+    });
+    return {
+        answer: selected.answer,
+        action: 'answer'
+    };
 }
 
 function verifyAnswerNode(state) {

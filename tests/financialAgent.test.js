@@ -15,6 +15,13 @@ const {
 } = require('../src/agent/financialAgentTools');
 const { verifyAgentAnswer } = require('../src/agent/resultVerifier');
 const { invokeFinancialAgent } = require('../src/agent/financialAgent');
+const {
+    buildContextPacket,
+    composeContextualFinancialAnswer,
+    selectVerifiedContextualAnswer,
+    isContextualAnalystEnabled,
+    __test__: contextualAnalystTest
+} = require('../src/agent/contextualFinancialAnalyst');
 const { __test__: readModelTest } = require('../src/services/readModelService');
 const {
     buildPlannerPrompt,
@@ -1253,4 +1260,186 @@ test('LangGraph financial agent overrides legacy list plans for biggest spending
     assert.match(result.answer, /restaurante/i);
     assert.match(result.answer, /mercado/i);
     assert.doesNotMatch(result.answer, /05\/06\/2026/);
+});
+
+test('contextual financial analyst is explicitly switchable and sanitizes its context packet', () => {
+    assert.strictEqual(isContextualAnalystEnabled({}), false);
+    assert.strictEqual(isContextualAnalystEnabled({
+        FINANCIAL_CONTEXTUAL_ANALYST_MODE: 'answer'
+    }), true);
+
+    const packet = buildContextPacket({
+        message: 'quais contas ainda não foram pagas?',
+        plan: {
+            action: 'tool',
+            tool: 'query_financial_plan',
+            args: {
+                user_id: 'internal-user',
+                ownerUserId: 'internal-owner',
+                plan: {
+                    domain: 'bills',
+                    operation: 'list',
+                    filters: { status: 'pending' },
+                    sheet_id: 'internal-sheet'
+                }
+            }
+        },
+        toolResult: {
+            ok: true,
+            tool: 'query_financial_plan',
+            result: {
+                value: [{
+                    name: 'Claro',
+                    status: 'pending',
+                    pendingValue: 120,
+                    user_id: 'internal-user',
+                    token: 'secret'
+                }]
+            },
+            criteria: 'Contas pendentes no período.'
+        },
+        deterministicAnswer: 'Claro está pendente por R$ 120,00.'
+    });
+
+    const serialized = JSON.stringify(packet);
+    assert.match(serialized, /Claro/);
+    assert.doesNotMatch(serialized, /internal-user|internal-owner|internal-sheet|secret|user_id|sheet_id|ownerUserId|token/i);
+});
+
+test('contextual financial analyst uses Gemini only to compose a verified read-only answer', async () => {
+    contextualAnalystTest.setAskLLMOverride(async () =>
+        'A conta da Claro ainda está pendente, no valor de R$ 120,00.'
+    );
+    try {
+        const toolResult = {
+            ok: true,
+            tool: 'query_financial_plan',
+            result: {
+                value: [{
+                    name: 'Claro',
+                    status: 'pending',
+                    pendingValue: 120
+                }]
+            },
+            criteria: 'Contas pendentes no período.'
+        };
+        const contextual = await composeContextualFinancialAnswer({
+            message: 'quais contas ainda não foram pagas?',
+            plan: {
+                action: 'tool',
+                tool: 'query_financial_plan',
+                args: { plan: { domain: 'bills', operation: 'list' } }
+            },
+            toolResult,
+            deterministicAnswer: 'Claro está pendente por R$ 120,00.',
+            env: { FINANCIAL_CONTEXTUAL_ANALYST_MODE: 'answer' }
+        });
+
+        assert.strictEqual(contextual.ok, true);
+        const selected = selectVerifiedContextualAnswer({
+            contextualAnswer: contextual.answer,
+            deterministicAnswer: 'Claro está pendente por R$ 120,00.',
+            toolResult
+        });
+        assert.strictEqual(selected.usedContextual, true);
+        assert.match(selected.answer, /ainda está pendente/i);
+    } finally {
+        contextualAnalystTest.setAskLLMOverride(null);
+    }
+});
+
+test('contextual financial analyst falls back when Gemini invents values or exposes internals', () => {
+    const toolResult = {
+        ok: true,
+        tool: 'query_financial_plan',
+        result: {
+            value: [{
+                name: 'Claro',
+                status: 'pending',
+                pendingValue: 120
+            }]
+        }
+    };
+    const deterministicAnswer = 'Claro está pendente por R$ 120,00.';
+
+    const invented = selectVerifiedContextualAnswer({
+        contextualAnswer: 'Claro está pendente por R$ 999,00.',
+        deterministicAnswer,
+        toolResult
+    });
+    assert.strictEqual(invented.usedContextual, false);
+    assert.strictEqual(invented.answer, deterministicAnswer);
+    assert.strictEqual(invented.reason, 'invented_amount');
+
+    const leaked = selectVerifiedContextualAnswer({
+        contextualAnswer: 'Consultei seu user_id e a Claro está pendente por R$ 120,00.',
+        deterministicAnswer,
+        toolResult
+    });
+    assert.strictEqual(leaked.usedContextual, false);
+    assert.strictEqual(leaked.answer, deterministicAnswer);
+    assert.strictEqual(leaked.reason, 'internal_data_leak');
+});
+
+test('LangGraph applies the contextual analyst to verified read-only answers when enabled', async () => {
+    syncAgentSnapshot();
+    const previousMode = process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE;
+    process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE = 'answer';
+    contextualAnalystTest.setAskLLMOverride(async () =>
+        'Seu gasto mais recente foi no restaurante, em 05/06/2026, no valor de R$ 75,00, feito por Thais.'
+    );
+
+    try {
+        const result = await invokeFinancialAgent({
+            message: 'consegue me contar qual foi meu último gasto?',
+            userIds: ['agent-daniel', 'agent-thais'],
+            personByUserId: { 'agent-daniel': 'Daniel', 'agent-thais': 'Thais' },
+            currentDate: '20/06/2026',
+            mode: 'answer'
+        });
+
+        assert.strictEqual(result.action, 'answer', JSON.stringify(result));
+        assert.strictEqual(result.verified.ok, true);
+        assert.match(result.answer, /gasto mais recente/i);
+        assert.match(result.answer, /restaurante/i);
+    } finally {
+        contextualAnalystTest.setAskLLMOverride(null);
+        if (previousMode === undefined) {
+            delete process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE;
+        } else {
+            process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE = previousMode;
+        }
+    }
+});
+
+test('LangGraph keeps the deterministic answer when contextual composition is unsafe', async () => {
+    syncAgentSnapshot();
+    const previousMode = process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE;
+    process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE = 'answer';
+    contextualAnalystTest.setAskLLMOverride(async () =>
+        'Seu último gasto foi de R$ 999,00 e consultei o user_id interno.'
+    );
+
+    try {
+        const result = await invokeFinancialAgent({
+            message: 'qual foi meu último gasto?',
+            userIds: ['agent-daniel', 'agent-thais'],
+            personByUserId: { 'agent-daniel': 'Daniel', 'agent-thais': 'Thais' },
+            currentDate: '20/06/2026',
+            mode: 'answer'
+        });
+
+        assert.strictEqual(result.action, 'answer', JSON.stringify(result));
+        assert.strictEqual(result.verified.ok, true);
+        assert.doesNotMatch(result.answer, /999|user_id/i);
+        assert.match(result.answer, /restaurante/i);
+        assert.match(result.answer, /R\$\s*75,00/i);
+    } finally {
+        contextualAnalystTest.setAskLLMOverride(null);
+        if (previousMode === undefined) {
+            delete process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE;
+        } else {
+            process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE = previousMode;
+        }
+    }
 });
