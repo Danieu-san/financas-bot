@@ -36,7 +36,9 @@ function healthyInput(overrides = {}) {
         env: {
             DASHBOARD_ADMIN_ALL_USERS_ENABLED: 'false',
             FINANCIAL_AGENT_MODE: 'shadow',
+            FINANCIAL_AGENT_ANSWER_APPROVED: 'false',
             FINANCIAL_AGENT_LLM_PLANNER_ENABLED: 'false',
+            FINANCIAL_AGENT_LLM_PLANNER_APPROVED: 'false',
             FINANCIAL_AGENT_SHADOW_RECENT_ANSWER_ENABLED: 'true',
             FAMILY_MODE_ENABLED: 'false',
             INTERPRETATION_RELIABILITY_MODE: 'shadow'
@@ -72,6 +74,28 @@ test('daily ops check marks unsafe production flags as critical', () => {
     assert.ok(report.checks.some(check => check.name === 'Flags seguras' && check.status === 'critical'));
     assert.ok(report.issues.some(issue => issue.includes('DASHBOARD_ADMIN_ALL_USERS_ENABLED=true')));
     assert.ok(report.issues.some(issue => issue.includes('FINANCIAL_AGENT_MODE=answer')));
+});
+
+test('daily ops check accepts explicitly approved financial agent answer and LLM planner rollout', () => {
+    const report = buildDailyOpsCheckReport(healthyInput({
+        env: {
+            DASHBOARD_ADMIN_ALL_USERS_ENABLED: 'false',
+            FINANCIAL_AGENT_MODE: 'answer',
+            FINANCIAL_AGENT_ANSWER_APPROVED: 'true',
+            FINANCIAL_AGENT_LLM_PLANNER_ENABLED: 'true',
+            FINANCIAL_AGENT_LLM_PLANNER_APPROVED: 'true',
+            FAMILY_MODE_ENABLED: 'false',
+            INTERPRETATION_RELIABILITY_MODE: 'shadow'
+        }
+    }));
+
+    assert.strictEqual(report.status, 'ok');
+    const flags = report.checks.find(check => check.name === 'Flags seguras');
+    assert.strictEqual(flags.status, 'ok');
+    assert.match(flags.detail, /agent=answer/);
+    assert.match(flags.detail, /agent_answer_approved=true/);
+    assert.match(flags.detail, /planner=true/);
+    assert.match(flags.detail, /planner_approved=true/);
 });
 
 test('daily ops check accepts explicitly approved narrow interpretation enforce canary', () => {

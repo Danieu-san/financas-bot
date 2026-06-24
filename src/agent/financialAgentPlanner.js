@@ -2,6 +2,7 @@ const { normalizeText } = require('../utils/helpers');
 const { getStructuredResponseFromLLM } = require('../services/gemini');
 const { validateSafeReadonlySql } = require('./safeReadonlySql');
 const { DEFAULT_EVENT_TYPES } = require('./financialAgentTools');
+const { normalizeFinancialQueryPlan } = require('../query/financialQueryPlan');
 
 const ALLOWED_AGENT_TOOLS = new Set([
     'query_financial_plan',
@@ -11,6 +12,7 @@ const ALLOWED_AGENT_TOOLS = new Set([
     'explain_metric'
 ]);
 const FINANCIAL_REFERENCE_TIME_ZONE = 'America/Sao_Paulo';
+let structuredResponseOverrideForTest = null;
 
 function truthy(value) {
     return ['1', 'true', 'sim', 'yes', 'on', 'enabled', 'ativo'].includes(normalizeText(value));
@@ -36,12 +38,14 @@ function formatReferenceDate(referenceDate = new Date()) {
 function buildPlannerPrompt(message = '', { referenceDate = new Date() } = {}) {
     const referenceDateIso = formatReferenceDate(referenceDate);
     const [referenceYear, referenceMonth] = referenceDateIso.split('-').map(Number);
+    const referenceMonthIndex = referenceMonth - 1;
     return [
         'Voce e um planner de ferramenta para um assistente financeiro familiar.',
         'Retorne APENAS JSON valido. Nao calcule valores. Nao escreva resposta final.',
-        `Data de referencia: ${referenceDateIso}. Mes atual: ${referenceMonth}. Ano atual: ${referenceYear}.`,
+        `Data de referencia: ${referenceDateIso}. Mes atual humano: ${referenceMonth}. Indice de mes para FinancialQueryPlan: ${referenceMonthIndex}. Ano atual: ${referenceYear}.`,
         '',
         'Ferramentas permitidas:',
+        '- query_financial_plan: para perguntas sobre domínios já conhecidos. Args: plan.',
         '- list_recent_transactions: para ultimo/ultimos lancamentos. Args: eventTypes, limit.',
         '- run_safe_readonly_sql: para consultas read-only flexiveis.',
         '- get_dashboard_snapshot: para resumo deterministico do dashboard. Args: month, year.',
@@ -53,13 +57,16 @@ function buildPlannerPrompt(message = '', { referenceDate = new Date() } = {}) {
         '',
         'Regras obrigatorias:',
         '- Nunca use user_id, sheet_id, spreadsheet_id, token, oauth, prompt, owner_hash ou dados internos.',
+        '- Prefira query_financial_plan para gastos, cartoes, entradas, transferencias, orcamento, metas, dividas e contas.',
         '- SQL deve ser somente SELECT, usar somente financial_events_public e conter LIMIT.',
         '- Se a pergunta pedir escrita, admin, OAuth, dados internos ou bypass, retorne block.',
         '- Interprete hoje, ontem, esta semana, este mes e do mes usando a data de referencia.',
+        '- Em FinancialQueryPlan, period.month e zero-based: janeiro=0, fevereiro=1, ..., junho=5, dezembro=11.',
         '- Se a pergunta disser lancamento, movimento ou transacao sem restringir tipo, use todos os event_type publicos relevantes.',
         '- Se faltar periodo/criterio essencial, retorne clarify.',
         '',
         'Formato:',
+        '{"action":"tool","tool":"query_financial_plan","args":{"plan":{"kind":"financial_query","domain":"bills","operation":"list","filters":{"period":{"type":"month","month":5,"year":2026},"status":"pending"},"sort":{"by":"due_date","direction":"asc"},"timeBasis":"due_date"}}}',
         '{"action":"tool","tool":"run_safe_readonly_sql","args":{"sql":"SELECT ... LIMIT 20"}}',
         '{"action":"tool","tool":"list_recent_transactions","args":{"eventTypes":["expense"],"limit":1}}',
         '{"action":"tool","tool":"get_dashboard_snapshot","args":{"month":5,"year":2026}}',
@@ -137,9 +144,22 @@ function normalizePlannerPlan(rawPlan = {}) {
         };
     }
 
-    // The LLM planner cannot construct FinancialQueryPlan yet. This tool is fed
-    // only by the already validated local planner in messageHandler.
-    if (tool === 'query_financial_plan') return null;
+    if (tool === 'query_financial_plan') {
+        const normalized = normalizeFinancialQueryPlan(args.plan || {});
+        if (!normalized.ok) {
+            return {
+                action: 'clarify',
+                reason: 'invalid_financial_query_plan',
+                question: 'Consigo analisar seus dados, mas preciso que você reformule essa pergunta financeira com mais contexto.'
+            };
+        }
+        return {
+            action: 'tool',
+            tool,
+            args: { plan: normalized.plan },
+            source: 'llm_planner'
+        };
+    }
 
     if (tool === 'run_safe_readonly_sql') {
         const sql = String(args.sql || '').trim();
@@ -165,9 +185,10 @@ function normalizePlannerPlan(rawPlan = {}) {
     return null;
 }
 
-async function planWithGemini({ message = '', env = process.env } = {}) {
+async function planWithGemini({ message = '', env = process.env, referenceDate = new Date() } = {}) {
     if (!isLlmPlannerEnabled(env)) return null;
-    const response = await getStructuredResponseFromLLM(buildPlannerPrompt(message));
+    const planner = structuredResponseOverrideForTest || getStructuredResponseFromLLM;
+    const response = await planner(buildPlannerPrompt(message, { referenceDate }));
     if (!response || response.error) return null;
     return normalizePlannerPlan(response);
 }
@@ -181,6 +202,9 @@ module.exports = {
     __test__: {
         formatReferenceDate,
         normalizeEventTypes,
+        setStructuredResponseOverrideForTest: (override) => {
+            structuredResponseOverrideForTest = override;
+        },
         truthy
     }
 };

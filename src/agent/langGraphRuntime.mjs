@@ -335,7 +335,10 @@ async function planTurn(state) {
         };
     }
 
-    const llmPlan = await planWithGemini({ message });
+    const llmPlan = await planWithGemini({
+        message,
+        referenceDate: parseSheetDate(state.currentDate) || new Date()
+    });
     if (llmPlan) {
         return { plan: llmPlan, action: llmPlan.action };
     }
@@ -464,6 +467,62 @@ function composeRecommendationAnswer(value = {}) {
     return lines.join('\n');
 }
 
+function composeBillsListAnswer(plan = {}, result = {}) {
+    const details = result.details || {};
+    const value = result.value;
+    const items = Array.isArray(value)
+        ? value
+        : Array.isArray(value?.items)
+            ? value.items
+            : [];
+    const status = normalizeText(plan.filters?.status || '');
+    const pendingMode = status.includes('pending') || status.includes('pendente');
+    const paidMode = status.includes('paid') || status.includes('pago') || status.includes('paga');
+    const title = pendingMode
+        ? 'Contas pendentes/em aberto'
+        : paidMode
+            ? 'Contas pagas'
+            : 'Contas';
+
+    if (items.length === 0) {
+        return [
+            `${title}: não encontrei itens nesse recorte.`,
+            details.criteria || value?.criteria || '',
+            plan.timeBasis ? `Critério temporal: ${plan.timeBasis}.` : ''
+        ].filter(Boolean).join('\n');
+    }
+
+    const lines = items.slice(0, 10).map((item, index) => {
+        const due = item.date || item.dueDate || item.due_date || '';
+        const pendingValue = Number(item.pendingValue ?? item.value ?? item.expectedValue ?? 0);
+        const realizedValue = Number(item.realizedValue || 0);
+        const expectedValue = Number(item.expectedValue ?? item.value ?? 0);
+        const amountLabel = expectedValue > 0
+            ? `pendente ${moneyBR(pendingValue)}`
+            : realizedValue > 0
+                ? `realizado ${moneyBR(realizedValue)}`
+                : 'valor esperado não cadastrado';
+        const statusLabel = item.status ? ` · ${item.status}` : '';
+        return `${index + 1}. ${item.description || item.name || 'Conta'}${due ? ` · vence em ${due}` : ''} · ${amountLabel}${statusLabel}`;
+    });
+    const totals = details.totals || value?.totals || {};
+    const totalLine = Number.isFinite(Number(totals.pending))
+        ? `Total pendente: ${moneyBR(totals.pending)}.`
+        : Number.isFinite(Number(details.total))
+            ? `Total esperado: ${moneyBR(details.total)}.`
+            : '';
+    const truncated = items.length > 10 ? `... e mais ${items.length - 10} conta(s).` : '';
+
+    return [
+        `${title}:`,
+        ...lines,
+        truncated,
+        totalLine,
+        details.criteria || value?.criteria || '',
+        plan.timeBasis ? `Critério temporal: ${plan.timeBasis}.` : ''
+    ].filter(Boolean).join('\n');
+}
+
 function composeFinancialPlanAnswer(toolResult = {}) {
     const plan = toolResult.plan || {};
     const result = toolResult.result || {};
@@ -497,6 +556,10 @@ function composeFinancialPlanAnswer(toolResult = {}) {
             details.criteria || value.criteria || '',
             plan.timeBasis ? `Critério temporal: ${plan.timeBasis}.` : ''
         ].filter(Boolean).join('\n');
+    }
+
+    if (plan.domain === 'bills' && plan.operation === 'list') {
+        return composeBillsListAnswer(plan, result);
     }
 
     let body = '';

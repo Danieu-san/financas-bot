@@ -867,6 +867,8 @@ test('Gemini planner is disabled by default and can only produce safe tool plans
     assert.match(prompt, /financial_events_public/);
     assert.match(prompt, /Nao calcule valores|Não calcule valores/i);
     assert.match(prompt, /Data de referencia: 2026-06-15/);
+    assert.match(prompt, /Indice de mes para FinancialQueryPlan: 5/);
+    assert.match(prompt, /junho=5/);
     assert.match(prompt, /este mes|do mes/i);
     assert.doesNotMatch(prompt, /user_id.*permitido/i);
 
@@ -887,6 +889,46 @@ test('Gemini planner is disabled by default and can only produce safe tool plans
     });
     assert.strictEqual(unsafePlan.action, 'clarify');
     assert.match(unsafePlan.reason, /unsafe_sql/);
+
+    const queryPlan = normalizePlannerPlan({
+        action: 'tool',
+        tool: 'query_financial_plan',
+        args: {
+            plan: {
+                kind: 'financial_query',
+                domain: 'bills',
+                operation: 'list',
+                filters: {
+                    period: { type: 'month', month: 5, year: 2026 },
+                    status: 'pending'
+                },
+                sort: { by: 'due_date', direction: 'asc' },
+                timeBasis: 'due_date'
+            }
+        }
+    });
+    assert.strictEqual(queryPlan.action, 'tool');
+    assert.strictEqual(queryPlan.tool, 'query_financial_plan');
+    assert.strictEqual(queryPlan.args.plan.domain, 'bills');
+
+    const unsafeQueryPlan = normalizePlannerPlan({
+        action: 'tool',
+        tool: 'query_financial_plan',
+        args: {
+            plan: {
+                kind: 'financial_query',
+                domain: 'expenses',
+                operation: 'sum',
+                filters: {
+                    period: { type: 'month', month: 5, year: 2026 },
+                    user_id: 'agent-daniel'
+                },
+                timeBasis: 'billing_month'
+            }
+        }
+    });
+    assert.strictEqual(unsafeQueryPlan.action, 'clarify');
+    assert.strictEqual(unsafeQueryPlan.reason, 'invalid_financial_query_plan');
 });
 
 test('Gemini planner reference date follows the Sao Paulo calendar day', () => {
@@ -894,6 +936,71 @@ test('Gemini planner reference date follows the Sao Paulo calendar day', () => {
         plannerTest.formatReferenceDate(new Date('2026-06-15T00:30:00.000Z')),
         '2026-06-14'
     );
+});
+
+test('LangGraph financial agent uses Gemini planner fallback for free-form pending bill questions', async () => {
+    assert.strictEqual(ensureSqliteReady(), true);
+    assert.strictEqual(syncSnapshotToSqlite({
+        saidas: [
+            { user_id: 'agent-daniel', data: '07/06/2026', descricao: 'Pagamento aluguel', categoria: 'Moradia', subcategoria: 'ALUGUEL', valor: 932.97, month: 5, year: 2026 }
+        ],
+        cartoes: [],
+        entradas: [],
+        transferencias: [],
+        userSettings: [],
+        cartoesConfig: [],
+        metas: [],
+        movimentacoesMetas: [],
+        dividas: [],
+        contas: [
+            { user_id: 'agent-daniel', headers: ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa'], row: ['ALUGUEL', '7', '', 'agent-daniel', 'Aluguel', 'Moradia', 'ALUGUEL', '932,97', 'SIM'] },
+            { user_id: 'agent-daniel', headers: ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa'], row: ['NET', '15', '', 'agent-daniel', 'Internet', 'Moradia', 'INTERNET / TELEFONE', '120,00', 'SIM'] }
+        ]
+    }), true);
+
+    const originalFlag = process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED;
+    process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED = 'true';
+    plannerTest.setStructuredResponseOverrideForTest(() => ({
+        action: 'tool',
+        tool: 'query_financial_plan',
+        args: {
+            plan: {
+                kind: 'financial_query',
+                domain: 'bills',
+                operation: 'list',
+                filters: {
+                    period: { type: 'month', month: 5, year: 2026 },
+                    status: 'pending'
+                },
+                sort: { by: 'due_date', direction: 'asc' },
+                timeBasis: 'due_date'
+            }
+        }
+    }));
+    try {
+        const result = await invokeFinancialAgent({
+            message: 'me diga as obrigações domésticas que ainda estão abertas',
+            userIds: ['agent-daniel'],
+            personByUserId: { 'agent-daniel': 'Daniel' },
+            currentDate: '20/06/2026',
+            mode: 'answer'
+        });
+
+        assert.strictEqual(result.action, 'answer', JSON.stringify(result));
+        assert.strictEqual(result.plan.tool, 'query_financial_plan');
+        assert.strictEqual(result.plan.source, 'llm_planner');
+        assert.strictEqual(result.toolResult.plan.domain, 'bills');
+        assert.strictEqual(result.toolResult.plan.operation, 'list');
+        assert.strictEqual(result.verified.ok, true);
+        assert.match(result.answer, /pendentes|em aberto/i);
+        assert.match(result.answer, /Internet/i);
+        assert.match(result.answer, /R\$\s*120,00/i);
+        assert.doesNotMatch(result.answer, /Contagem de gastos|categoria conta/i);
+    } finally {
+        plannerTest.setStructuredResponseOverrideForTest(null);
+        if (originalFlag === undefined) delete process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED;
+        else process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED = originalFlag;
+    }
 });
 
 test('LangGraph financial agent answers weekday spending for the current month by default', async () => {

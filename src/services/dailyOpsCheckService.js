@@ -66,7 +66,9 @@ function evaluateFlags(env = {}) {
 
     const dashboardAllUsers = normalizeFlag(env.DASHBOARD_ADMIN_ALL_USERS_ENABLED || 'false');
     const financialAgentMode = normalizeFlag(env.FINANCIAL_AGENT_MODE || 'off');
+    const financialAgentAnswerApproved = normalizeFlag(env.FINANCIAL_AGENT_ANSWER_APPROVED || 'false');
     const plannerEnabled = normalizeFlag(env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED || 'false');
+    const plannerApproved = normalizeFlag(env.FINANCIAL_AGENT_LLM_PLANNER_APPROVED || 'false');
     const recentAnswerEnabled = normalizeFlag(env.FINANCIAL_AGENT_SHADOW_RECENT_ANSWER_ENABLED || 'false');
     const familyMode = normalizeFlag(env.FAMILY_MODE_ENABLED || 'false');
     const interpretationMode = normalizeFlag(env.INTERPRETATION_RELIABILITY_MODE || 'off');
@@ -82,8 +84,12 @@ function evaluateFlags(env = {}) {
     );
 
     if (dashboardAllUsers === 'true') issues.push('DASHBOARD_ADMIN_ALL_USERS_ENABLED=true');
-    if (financialAgentMode === 'answer' || financialAgentMode === 'enforce') issues.push(`FINANCIAL_AGENT_MODE=${financialAgentMode}`);
-    if (plannerEnabled === 'true') issues.push('FINANCIAL_AGENT_LLM_PLANNER_ENABLED=true');
+    if ((financialAgentMode === 'answer' || financialAgentMode === 'enforce') && financialAgentAnswerApproved !== 'true') {
+        issues.push(`FINANCIAL_AGENT_MODE=${financialAgentMode} sem aprovacao explicita`);
+    }
+    if (plannerEnabled === 'true' && plannerApproved !== 'true') {
+        issues.push('FINANCIAL_AGENT_LLM_PLANNER_ENABLED=true sem aprovacao explicita');
+    }
     if (familyMode === 'true') issues.push('FAMILY_MODE_ENABLED=true');
     if (interpretationMode === 'enforce' && interpretationEnforceApproved !== 'true') {
         issues.push('INTERPRETATION_RELIABILITY_MODE=enforce sem aprovacao explicita');
@@ -93,7 +99,9 @@ function evaluateFlags(env = {}) {
     }
 
     details.push(`agent=${financialAgentMode || 'off'}`);
+    details.push(`agent_answer_approved=${financialAgentAnswerApproved || 'false'}`);
     details.push(`planner=${plannerEnabled || 'false'}`);
+    details.push(`planner_approved=${plannerApproved || 'false'}`);
     details.push(`recent_answer=${recentAnswerEnabled || 'false'}`);
     details.push(`family=${familyMode || 'false'}`);
     details.push(`interpretation=${interpretationMode || 'off'}`);
