@@ -995,6 +995,8 @@ test('LangGraph financial agent uses Gemini planner fallback for free-form pendi
         assert.match(result.answer, /pendentes|em aberto/i);
         assert.match(result.answer, /Internet/i);
         assert.match(result.answer, /R\$\s*120,00/i);
+        assert.doesNotMatch(result.answer, /Aluguel/i);
+        assert.doesNotMatch(result.answer, / · (paid|pending)\b/i);
         assert.doesNotMatch(result.answer, /Contagem de gastos|categoria conta/i);
     } finally {
         plannerTest.setStructuredResponseOverrideForTest(null);

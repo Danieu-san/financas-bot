@@ -483,6 +483,12 @@ function composeBillsListAnswer(plan = {}, result = {}) {
         : paidMode
             ? 'Contas pagas'
             : 'Contas';
+    const statusLabels = {
+        paid: 'paga',
+        pending: 'pendente',
+        scheduled: 'agendada',
+        overdue: 'atrasada'
+    };
 
     if (items.length === 0) {
         return [
@@ -502,7 +508,9 @@ function composeBillsListAnswer(plan = {}, result = {}) {
             : realizedValue > 0
                 ? `realizado ${moneyBR(realizedValue)}`
                 : 'valor esperado não cadastrado';
-        const statusLabel = item.status ? ` · ${item.status}` : '';
+        const normalizedStatus = normalizeText(item.status || '');
+        const humanStatus = statusLabels[normalizedStatus] || '';
+        const statusLabel = humanStatus && !pendingMode && !paidMode ? ` · ${humanStatus}` : '';
         return `${index + 1}. ${item.description || item.name || 'Conta'}${due ? ` · vence em ${due}` : ''} · ${amountLabel}${statusLabel}`;
     });
     const totals = details.totals || value?.totals || {};

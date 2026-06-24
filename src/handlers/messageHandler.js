@@ -2923,7 +2923,7 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
         if (/\b(esperado|realizado)\b/.test(text)) {
             return { metric: 'bill_expected_vs_realized', intent: 'comparacao_contas_realizado', parameters: { ...parameters, mes, ano } };
         }
-        if (/\b(pendente|pendentes|falta pagar|ainda falta)\b/.test(text)) {
+        if (/\b(pendente|pendentes|falta pagar|ainda falta|em aberto|aberta|abertas|aberto|abertos|nao foi paga|nao foram pagas|nao esta paga|nao estao pagas|não foi paga|não foram pagas|não está paga|não estão pagas)\b/.test(text)) {
             return { metric: 'bill_pending', intent: 'contas_pendentes', parameters: { ...parameters, mes, ano } };
         }
         if (/\b(atrasada|atrasadas|atrasado|atrasados)\b/.test(text)) {

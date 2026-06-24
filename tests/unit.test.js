@@ -739,6 +739,8 @@ test('Packet 08 planner routes composable bills questions to due_date FinancialQ
         ['quanto tenho de contas fixas este mês?', 'total_contas_recorrentes', 'sum'],
         ['quanto era esperado e quanto foi realizado?', 'comparacao_contas_realizado', 'compare'],
         ['o que ainda está pendente?', 'contas_pendentes', 'list'],
+        ['quais contas ainda não foram pagas?', 'contas_pendentes', 'list'],
+        ['quais contas estão em aberto este mês?', 'contas_pendentes', 'list'],
         ['por que essa conta aparece como pendente?', 'explicacao_conta_recorrente', 'explain']
     ];
 
