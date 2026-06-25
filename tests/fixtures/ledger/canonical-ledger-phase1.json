@@ -1,0 +1,204 @@
+{
+  "householdId": "household-alpha",
+  "projectionContext": {
+    "competenceMonth": "2026-06"
+  },
+  "people": [
+    {
+      "person_id": "person-daniel",
+      "display_name": "Daniel"
+    },
+    {
+      "person_id": "person-thais",
+      "display_name": "Thais"
+    }
+  ],
+  "legacyRows": {
+    "contas": [
+      {
+        "source_row_id": "contas-001",
+        "user_id": "person-daniel",
+        "nome": "NET Fibra",
+        "nome_amigavel": "Internet Fibra",
+        "categoria": "Moradia",
+        "subcategoria": "Internet",
+        "dia_vencimento": "10",
+        "valor_esperado": "120,00",
+        "regra_ativa": "SIM"
+      }
+    ],
+    "saidas": [
+      {
+        "source_row_id": "saidas-001",
+        "user_id": "person-daniel",
+        "data": "05/06/2026",
+        "descricao": "Mercado Extra",
+        "categoria": "Alimentacao",
+        "subcategoria": "Supermercado",
+        "valor": "150,75",
+        "pagamento": "Debito",
+        "recorrente": "Nao",
+        "obs": ""
+      },
+      {
+        "source_row_id": "saidas-002",
+        "user_id": "person-daniel",
+        "data": "10/06/2026",
+        "descricao": "Internet Fibra",
+        "categoria": "Moradia",
+        "subcategoria": "Internet",
+        "valor": "120,00",
+        "pagamento": "PIX",
+        "recorrente": "Sim",
+        "obs": "pagamento da conta mensal"
+      },
+      {
+        "source_row_id": "saidas-003",
+        "user_id": "person-thais",
+        "data": "11/06/2026",
+        "descricao": "Compra sem categoria clara",
+        "categoria": "Outros",
+        "subcategoria": "",
+        "valor": "33,33",
+        "pagamento": "PIX",
+        "recorrente": "Nao",
+        "obs": "aguardando classificacao"
+      }
+    ],
+    "entradas": [
+      {
+        "source_row_id": "entradas-001",
+        "user_id": "person-daniel",
+        "data": "01/06/2026",
+        "descricao": "Salario",
+        "categoria": "Salario",
+        "valor": "5000,00",
+        "recebimento": "Conta corrente",
+        "recorrente": "Sim"
+      },
+      {
+        "source_row_id": "entradas-002",
+        "user_id": "person-daniel",
+        "data": "18/06/2026",
+        "descricao": "Reembolso Mercado Extra",
+        "categoria": "Reembolso",
+        "valor": "50,00",
+        "recebimento": "PIX",
+        "recorrente": "Nao",
+        "related_source_row_id": "saidas-001"
+      }
+    ],
+    "transferencias": [
+      {
+        "source_row_id": "transferencias-001",
+        "user_id": "person-daniel",
+        "data": "12/06/2026",
+        "descricao": "Aporte caixinha reserva",
+        "valor": "300,00",
+        "origem": "Conta corrente",
+        "destino": "Caixinha Nubank",
+        "metodo": "PIX",
+        "status": "Movimentacao de reserva/investimento"
+      },
+      {
+        "source_row_id": "transferencias-002",
+        "user_id": "person-daniel",
+        "data": "15/06/2026",
+        "descricao": "Pagamento fatura Nubank",
+        "valor": "500,00",
+        "origem": "Conta corrente",
+        "destino": "Cartao Nubank Daniel",
+        "metodo": "PIX",
+        "status": "Pagamento de fatura"
+      },
+      {
+        "source_row_id": "transferencias-003",
+        "user_id": "person-daniel",
+        "data": "16/06/2026",
+        "descricao": "PIX para Thais",
+        "valor": "200,00",
+        "origem": "Conta corrente",
+        "destino": "Thais",
+        "metodo": "PIX",
+        "status": "Provavel transferencia interna"
+      }
+    ],
+    "lancamentosCartao": [
+      {
+        "source_row_id": "cartao-001",
+        "user_id": "person-daniel",
+        "card_id": "nubank-daniel",
+        "cartao": "Cartao Nubank Daniel",
+        "data": "20/05/2026",
+        "descricao": "Notebook",
+        "categoria": "Eletronicos",
+        "subcategoria": "Computador",
+        "valor_parcela": "500,00",
+        "parcela": "1/2",
+        "mes_cobranca": "2026-06"
+      }
+    ],
+    "dividas": [
+      {
+        "source_row_id": "dividas-001",
+        "user_id": "person-daniel",
+        "nome": "Emprestimo Familiar",
+        "credor": "Banco Exemplo",
+        "tipo": "Emprestimo",
+        "valor_original": "2000,00",
+        "saldo_atual": "1700,00",
+        "parcela": "320,00",
+        "status": "Ativa",
+        "vencimento": "25/06/2026"
+      }
+    ],
+    "pagamentosDividas": [
+      {
+        "source_row_id": "pagdiv-001",
+        "user_id": "person-daniel",
+        "data": "25/06/2026",
+        "divida_nome": "Emprestimo Familiar",
+        "descricao": "Parcela emprestimo familiar",
+        "valor_total": "320,00",
+        "principal": "300,00",
+        "juros": "20,00",
+        "pagamento": "PIX",
+        "related_source_row_id": "dividas-001"
+      }
+    ],
+    "metas": [
+      {
+        "source_row_id": "metas-001",
+        "user_id": "person-daniel",
+        "nome": "Reserva de emergencia",
+        "valor_alvo": "10000,00",
+        "valor_atual": "2500,00",
+        "status": "Em andamento",
+        "escopo": "family"
+      }
+    ],
+    "movimentacoesMetas": [
+      {
+        "source_row_id": "movmeta-001",
+        "user_id": "person-daniel",
+        "data": "22/06/2026",
+        "meta_nome": "Reserva de emergencia",
+        "tipo": "Retirada",
+        "valor": "200,00",
+        "descricao": "Resgate parcial da reserva",
+        "related_source_row_id": "metas-001"
+      }
+    ],
+    "importedTransactions": [
+      {
+        "source_row_id": "import-001",
+        "user_id": "person-daniel",
+        "data": "05/06/2026",
+        "descricao": "Mercado Extra",
+        "valor": "-150,75",
+        "source_file_hash": "fixture-file-hash",
+        "matched_source_row_id": "saidas-001"
+      }
+    ]
+  }
+}

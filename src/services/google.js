@@ -754,12 +754,19 @@ async function appendRowToSheet(sheetName, row, options = {}) {
     if (writeLedger && operationKey) {
         const existing = writeLedger.getOperation(operationKey);
         if (existing?.status === 'committed') {
+            await projectCanonicalLedgerShadowAfterAppend({
+                sheetName,
+                row: mappedRow,
+                operationKey,
+                result: existing,
+                source: options.source
+            });
             return existing;
         }
         if (existing?.status === 'pending' || existing?.status === 'uncertain') {
             const reconciled = await reconcileUncertainAppend(target, mappedSheetName, mappedRow);
             if (reconciled) {
-                return writeLedger.commitOperation(operationKey, {
+                const committed = writeLedger.commitOperation(operationKey, {
                     receipt: {
                         sheetName,
                         mappedSheetName,
@@ -767,6 +774,14 @@ async function appendRowToSheet(sheetName, row, options = {}) {
                         rowFingerprint: buildRowFingerprintForLedger(mappedRow)
                     }
                 });
+                await projectCanonicalLedgerShadowAfterAppend({
+                    sheetName,
+                    row: mappedRow,
+                    operationKey,
+                    result: committed,
+                    source: options.source
+                });
+                return committed;
             }
 
             const uncertainError = new Error('Operação anterior com resultado incerto; repetição automática bloqueada.');
@@ -802,7 +817,7 @@ async function appendRowToSheet(sheetName, row, options = {}) {
         }), { retry: Boolean(options.allowNonIdempotentRetry) });
         invalidateSheetsReadCache(target);
         if (writeLedger && operationKey) {
-            return writeLedger.commitOperation(operationKey, {
+            const committed = writeLedger.commitOperation(operationKey, {
                 receipt: {
                     sheetName,
                     mappedSheetName,
@@ -810,8 +825,16 @@ async function appendRowToSheet(sheetName, row, options = {}) {
                     rowFingerprint: buildRowFingerprintForLedger(mappedRow)
                 }
             });
+            await projectCanonicalLedgerShadowAfterAppend({
+                sheetName,
+                row: mappedRow,
+                operationKey,
+                result: committed,
+                source: options.source
+            });
+            return committed;
         }
-        return {
+        const committed = {
             status: 'committed',
             receipt: {
                 sheetName,
@@ -819,6 +842,14 @@ async function appendRowToSheet(sheetName, row, options = {}) {
                 updatedRange: response?.data?.updates?.updatedRange || ''
             }
         };
+        await projectCanonicalLedgerShadowAfterAppend({
+            sheetName,
+            row: mappedRow,
+            operationKey,
+            result: committed,
+            source: options.source
+        });
+        return committed;
     } catch (error) {
         if (writeLedger && operationKey) {
             if (isGoogleRetriableError(error)) {
@@ -833,6 +864,49 @@ async function appendRowToSheet(sheetName, row, options = {}) {
         }
         console.error(`❌ Erro ao adicionar linha em ${sheetName}:`, error.message);
         throw new Error('Erro ao salvar na planilha.');
+    }
+}
+
+async function projectCanonicalLedgerShadowAfterAppend({
+    sheetName,
+    row,
+    operationKey,
+    result,
+    source
+} = {}) {
+    const {
+        safelyProjectCommittedAppendToCanonicalShadow
+    } = require('../ledger/canonicalLedgerReceiptProjector');
+    const {
+        buildCanonicalLedgerRolloutPolicy
+    } = require('../ledger/canonicalLedgerRolloutPolicy');
+    const policy = buildCanonicalLedgerRolloutPolicy(process.env);
+    const accountRows = policy.shadowWritesAllowed && sheetName === 'Saídas'
+        ? await readCanonicalLedgerAccountRowsForShadow(row)
+        : [];
+    return safelyProjectCommittedAppendToCanonicalShadow({
+        sheetName,
+        row,
+        operationKey,
+        status: result?.status,
+        receipt: result?.receipt || {},
+        source,
+        accountRows,
+        onWarning(warning) {
+            logger.warn(
+                `[canonical-ledger] shadow_projection_failed code=${warning.code} sheet=${warning.sheetName} error=${warning.error}`
+            );
+        }
+    });
+}
+
+async function readCanonicalLedgerAccountRowsForShadow(row = []) {
+    try {
+        const userId = row[9] ? String(row[9]) : '';
+        return await readDataFromSheet('Contas!A:I', userId ? { userId } : {});
+    } catch (error) {
+        logger.warn(`[canonical-ledger] account_rows_unavailable error=${error?.message || error}`);
+        return [];
     }
 }
 

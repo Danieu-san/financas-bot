@@ -1359,6 +1359,34 @@ test('financialQueryEngine calculates Packet 05 budget cycle with dashboard-comp
     assert.ok(!JSON.stringify(budget.result.value.groups.member).includes('user-a'));
 });
 
+
+test('financialQueryEngine excludes registered bill payments from free budget spending', async () => {
+    const dataSources = buildPacket05BudgetDataSources();
+    dataSources.saidas = [
+        dataSources.saidas[0],
+        ...dataSources.saidas.slice(1),
+        ['15/06/2026', 'Claro internet casa', 'Moradia', 'INTERNET', '90,00', '', 'PIX', 'Não', '', 'user-a']
+    ];
+    dataSources.contas = [
+        ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa'],
+        ['Claro internet casa', '4', '', 'user-a', 'Claro', 'Moradia', 'INTERNET', '90,00', 'SIM']
+    ];
+
+    const budget = await financialQueryEngine.executeFinancialQuery({
+        kind: 'financial_query',
+        domain: 'budget',
+        operation: 'forecast',
+        filters: { period: { type: 'cycle', label: 'ciclo atual' }, scope: 'family' },
+        timeBasis: 'budget_cycle',
+        answerStyle: 'detailed'
+    }, dataSources);
+
+    assert.strictEqual(budget.ok, true);
+    assert.strictEqual(budget.result.value.cycleSpent, 280);
+    assert.strictEqual(budget.result.value.todaySpent, 150);
+    assert.ok(!budget.result.value.cycleItems.some(item => /Claro internet/i.test(item.description)));
+});
+
 test('financialQueryEngine keeps Packet 05 budget scopes isolated', async () => {
     const dataSources = buildPacket05BudgetDataSources();
     const mixedScopeSettings = [
@@ -3083,6 +3111,22 @@ test('messageHandler.classifyPerguntaLocally covers complex analytical questions
     const expenseDetails = classifyPerguntaLocally('detalhe os gastos pra mim');
     assert.strictEqual(expenseDetails.intent, 'detalhamento_gastos_mes');
 
+    const expenseListAboveAmount = classifyPerguntaLocally('liste gastos acima de 100 reais esse mes');
+    assert.strictEqual(expenseListAboveAmount.intent, 'listagem_gastos_mes');
+    assert.strictEqual(expenseListAboveAmount.financialQueryPlan.operation, 'list');
+
+    const personalExpenseList = classifyPerguntaLocally('mostre so meus gastos');
+    assert.strictEqual(personalExpenseList.intent, 'listagem_gastos_mes');
+    assert.strictEqual(personalExpenseList.financialQueryPlan.operation, 'list');
+
+    const familyExpenseDetail = classifyPerguntaLocally('mostre os gastos da familia');
+    assert.strictEqual(familyExpenseDetail.intent, 'detalhamento_gastos_mes');
+    assert.strictEqual(familyExpenseDetail.financialQueryPlan.operation, 'detail');
+
+    const incomeListAboveAmount = classifyPerguntaLocally('liste entradas acima de 1000 reais');
+    assert.strictEqual(incomeListAboveAmount.intent, 'listagem_entradas_mes');
+    assert.strictEqual(incomeListAboveAmount.financialQueryPlan.operation, 'list');
+
     const expenseComposition = classifyPerguntaLocally('me explica de onde veio esse total de gastos');
     assert.strictEqual(expenseComposition.intent, 'explicacao_gastos');
 
@@ -3106,6 +3150,50 @@ test('messageHandler.classifyPerguntaLocally covers complex analytical questions
 
     const goalsProgress = classifyPerguntaLocally('quanto falta para eu bater minhas metas?');
     assert.strictEqual(goalsProgress.intent, 'progresso_metas');
+});
+
+test('messageHandler asks for category clarification before saving an uncategorized expense', () => {
+    const {
+        expenseCategoryNeedsClarification,
+        parseExpenseCategoryReply
+    } = messageHandler.__test__;
+
+    assert.strictEqual(expenseCategoryNeedsClarification({
+        type: 'Saídas',
+        descricao: 'pet shop banho',
+        categoria: 'Outros',
+        subcategoria: ''
+    }), true);
+    assert.strictEqual(expenseCategoryNeedsClarification({
+        type: 'Saídas',
+        descricao: 'mercado',
+        categoria: 'Alimentação',
+        subcategoria: 'SUPERMERCADO'
+    }), false);
+    assert.strictEqual(expenseCategoryNeedsClarification({
+        type: 'Saídas',
+        descricao: 'pet shop banho',
+        categoria: 'Pets',
+        subcategoria: ''
+    }), true);
+    assert.strictEqual(expenseCategoryNeedsClarification({
+        type: 'Saídas',
+        descricao: 'REFERENCIA_TESTE_20260620',
+        categoria: 'Outros',
+        subcategoria: ''
+    }), false);
+
+    assert.deepStrictEqual(parseExpenseCategoryReply('Pets / Banho e tosa'), {
+        ok: true,
+        categoria: 'Pets',
+        subcategoria: 'Banho e tosa'
+    });
+    assert.deepStrictEqual(parseExpenseCategoryReply('outros'), {
+        ok: true,
+        categoria: 'Outros',
+        subcategoria: ''
+    });
+    assert.strictEqual(parseExpenseCategoryReply('   ').ok, false);
 });
 
 test('messageHandler analytical follow-ups inherit safe context without raw spreadsheet data', () => {
@@ -5662,6 +5750,40 @@ test('userSheetAnalytics monthly budget summary combines free debit and card ins
             end: cycle.endLabel
         }
     });
+});
+
+
+test('userSheetAnalytics excludes registered bill payments from daily budget summary', () => {
+    const { buildDailyGoalSummary } = userSheetAnalyticsService.__test__;
+    const today = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    const [day, monthPart, yearPart] = today.split('/').map(Number);
+    const month = monthPart - 1;
+    const year = yearPart;
+
+    const summary = buildDailyGoalSummary({
+        settings: {
+            monthly_budget_enabled: 'SIM',
+            monthly_budget_amount: '1000',
+            monthly_budget_scope: 'personal',
+            monthly_budget_cycle_start_day: '1'
+        },
+        saidasRows: [
+            ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id'],
+            [today, 'Mercado livre', 'Alimentação', 'SUPERMERCADO', 10, '', 'PIX', 'Não', '', 'user-1'],
+            [today, 'Claro internet casa', 'Moradia', 'INTERNET', 90, '', 'PIX', 'Não', '', 'user-1']
+        ],
+        cartaoRows: [['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Observações', 'user_id']],
+        cardConfigRows: [],
+        accountRows: [
+            ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa'],
+            ['Claro internet casa', String(day), '', 'user-1', 'Claro', 'Moradia', 'INTERNET', '90', 'SIM']
+        ],
+        userIds: ['user-1'],
+        period: { month, year }
+    });
+
+    assert.strictEqual(summary.spent, 10);
+    assert.strictEqual(summary.monthSpent, 10);
 });
 
 test('Packet 10 WhatsApp dashboard summary formats the same dashboard KPIs and criteria without recalculating', () => {

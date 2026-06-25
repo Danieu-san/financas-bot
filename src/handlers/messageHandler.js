@@ -106,6 +106,7 @@ const {
 } = require('../reliability/interpretationReliabilityGate');
 const { recordInterpretationReliabilityShadow } = require('../reliability/reliabilityTelemetry');
 const { evaluateFamilyModeAccess } = require('../services/familyModeService');
+const { isRegisteredBillPayment } = require('../utils/recurringBillMatcher');
 
 // Base de Conhecimento para Gastos
 const mapeamentoGastos = {
@@ -145,6 +146,21 @@ const expenseComparisonTerms = new Set([
     ...Object.values(mapeamentoGastos).flatMap(item => [item.categoria, item.subcategoria]),
     'alimentacao', 'assinaturas', 'compras', 'educacao', 'lazer', 'moradia', 'outros',
     'saude', 'servicos pessoais', 'transporte', 'vestuario'
+].map(normalizeText));
+const knownExpenseCategories = new Set([
+    ...Object.values(mapeamentoGastos).map(item => item.categoria),
+    'Alimentação',
+    'Assinaturas',
+    'Compras',
+    'Cuidados Pessoais',
+    'Educação',
+    'Lazer',
+    'Moradia',
+    'Saúde',
+    'Serviços Pessoais',
+    'Taxas e Juros',
+    'Transporte',
+    'Vestuário'
 ].map(normalizeText));
 
 // Schema Unificado Completo
@@ -840,6 +856,61 @@ function messageLooksLikeReserveMovement(item = {}, messageBody = '') {
     const hasIncomeCategorySignal = /\b(salario|decimo|d[eé]cimo|13(?:o|º)?\s*salario|renda\s+extra|bonus|bonificacao|pagamento recebido|reembolso|venda|freela|freelance)\b/.test(text);
 
     return hasReserveDestination && (hasApplicationVerb || hasRedemptionVerb || hasReserveSourcePattern) && !hasIncomeCategorySignal;
+}
+
+function descriptionLooksLikeReferenceIdentifier(description = '') {
+    const raw = String(description || '').trim();
+    if (!raw || raw.length < 8) return false;
+    const compact = raw.replace(/\s+/g, '');
+    const hasReferenceShape = /[_-]/.test(compact) || /\d{4,}/.test(compact);
+    if (!hasReferenceShape) return false;
+    const letters = compact.match(/[A-Za-zÀ-ÿ]/g) || [];
+    if (!letters.length) return true;
+    const uppercaseLetters = letters.filter(letter => letter === letter.toUpperCase()).length;
+    return uppercaseLetters / letters.length >= 0.8 && /^[A-Za-zÀ-ÿ0-9_-]+$/.test(compact);
+}
+
+function expenseCategoryNeedsClarification(item = {}) {
+    if (item.type !== 'Saídas' || item.categoryConfirmed) return false;
+    if (descriptionLooksLikeReferenceIdentifier(item.descricao || item.description)) return false;
+    const category = normalizeText(item.categoria || item.category || '');
+    if (!category || category === 'outros') return true;
+    return !knownExpenseCategories.has(category);
+}
+
+function parseExpenseCategoryReply(messageBody = '') {
+    const raw = String(messageBody || '').trim().replace(/\s+/g, ' ');
+    if (!raw) return { ok: false, reason: 'empty' };
+    const normalized = normalizeText(raw);
+    if (['outro', 'outros', 'sem categoria'].includes(normalized)) {
+        return { ok: true, categoria: 'Outros', subcategoria: '' };
+    }
+
+    const withoutPrefix = raw
+        .replace(/^categoria\s*[:=-]?\s*/i, '')
+        .replace(/\s+subcategoria\s+/i, ' / ')
+        .trim();
+    const [categoryPart, ...subcategoryParts] = withoutPrefix.split(/[/>|]/);
+    const categoria = String(categoryPart || '').trim().slice(0, 60);
+    const subcategoria = subcategoryParts.join(' / ').trim().slice(0, 80);
+    if (!categoria) return { ok: false, reason: 'missing_category' };
+    return { ok: true, categoria, subcategoria };
+}
+
+async function askExpenseCategoryClarification({ msg, senderId, item, messageBody }) {
+    userStateManager.setState(senderId, {
+        action: 'awaiting_expense_category',
+        data: {
+            gasto: {
+                ...item,
+                originalMessage: item.originalMessage || messageBody
+            }
+        }
+    });
+    await msg.reply(
+        `Não reconheci com segurança a categoria de "${item.descricao || 'esse gasto'}".\n` +
+        'Responda no formato `Categoria / Subcategoria`, por exemplo `Pets / Banho e tosa`, ou responda `Outros`.'
+    );
 }
 
 function buildManualTransferItemText(item = {}) {
@@ -1581,16 +1652,27 @@ async function calculateMonthlyBudgetSpend(userId, today = getTodaySaoPauloDateS
             return [];
         }
     };
-    const [saidasRows, cardRows] = await Promise.all([
+    const [saidasRows, cardRows, accountRows] = await Promise.all([
         safeReadRows('Saídas!A:J'),
-        safeReadRows('Lançamentos Cartão!A:J')
+        safeReadRows('Lançamentos Cartão!A:J'),
+        safeReadRows('Contas!A:I')
     ]);
     const allowedUserIds = new Set((Array.isArray(userIds) ? userIds : [userId]).map(id => String(id || '').trim()).filter(Boolean));
     const matchesUser = (row, index) => allowedUserIds.has(String(row?.[index] || '').trim());
     const todayParts = getSaoPauloDateParts();
     const cycle = getBudgetCycleForDate(todayParts, cycleStartDay);
     const sumRows = (rows, userIndex, amountIndex) => rows
-        .filter(row => matchesUser(row, userIndex) && isFreeSpendingRow(row))
+        .filter(row => {
+            if (!matchesUser(row, userIndex) || !isFreeSpendingRow(row)) return false;
+            return !isRegisteredBillPayment({
+                date: row[0] || '',
+                description: row[1] || '',
+                category: row[2] || '',
+                subcategory: row[3] || '',
+                value: parseValue(row[amountIndex]),
+                userId: row[userIndex] || ''
+            }, accountRows, { userIds: Array.from(allowedUserIds), allowFamilyPayment: allowedUserIds.size > 1 });
+        })
         .reduce((acc, row) => {
             const amount = parseValue(row[amountIndex]);
             const parsedDate = parseSheetDate(row[0]);
@@ -2700,6 +2782,11 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
         text.includes('foram gastos como') ||
         text.includes('o que entrou nesse total')
     );
+    const hasExplicitListSignal = (
+        /\b(liste|listar|lista|listagem)\b/.test(text) ||
+        (/\b(quais)\b/.test(text) && /\b(entrada|entradas|recebimentos?|gasto|gastos|despesas?|saidas?|saídas?)\b/.test(text) && !/\b(categoria|categorias|fonte|fontes|forma|formas|maior|maiores|menor|menores)\b/.test(text)) ||
+        (/\b(mostre|mostrar|mostra)\b/.test(text) && /\b(so|só|meus|minhas|todos?|todas?|acima|abaixo|maior(?:es)? que|menor(?:es)? que|lancamentos?|lançamentos?|itens?)\b/.test(text))
+    );
     const hasEstablishmentSignal = (
         /\b(estabelecimento|estabelecimentos|estabalecimento|estabalecimentos|loja|lojas|local|locais|lugar|lugares|comercio|comércio|comercios|comércios|fornecedor|fornecedores)\b/.test(text) ||
         text.includes('onde foi gasto') ||
@@ -3206,6 +3293,13 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
                 parameters: incomeParams()
             };
         }
+        if (hasExplicitListSignal && /\b(entrada|entradas|recebimentos?)\b/.test(text)) {
+            return {
+                metric: 'income_list',
+                intent: 'listagem_entradas_mes',
+                parameters: incomeParams()
+            };
+        }
         if (hasDetailSignal || /\b(detalhe|detalhar|explica|explique)\b/.test(text)) {
             return {
                 metric: 'income_detail',
@@ -3311,6 +3405,14 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
             metric: 'expense_explanation',
             intent: 'explicacao_gastos',
             parameters: expenseParams({ timeBasis: /\bcontexto|esse|essa|isso\b/.test(text) ? 'context' : 'billing_month' })
+        };
+    }
+
+    if (!hasCardSignal && hasExpenseSignal && hasExplicitListSignal) {
+        return {
+            metric: 'expense_list',
+            intent: 'listagem_gastos_mes',
+            parameters: expenseParams()
         };
     }
 
@@ -6708,6 +6810,72 @@ async function handleMessage(msg) {
             }
 
             // Outros estados de conversa que você já tinha
+            case 'awaiting_expense_category': {
+                const parsedCategory = parseExpenseCategoryReply(messageBody);
+                if (!parsedCategory.ok) {
+                    await msg.reply('Não consegui entender a categoria. Responda no formato `Categoria / Subcategoria` ou `Outros`.');
+                    return;
+                }
+
+                const gasto = {
+                    ...(currentState.data?.gasto || {}),
+                    categoria: parsedCategory.categoria,
+                    subcategoria: parsedCategory.subcategoria,
+                    categoryConfirmed: true,
+                    interpretationSource: 'user_state'
+                };
+                const pagamentoCorrigido = gasto.pagamento ? normalizePaymentReply(gasto.pagamento) : '';
+
+                if (!pagamentoCorrigido) {
+                    userStateManager.setState(senderId, {
+                        action: 'awaiting_payment_method',
+                        data: {
+                            gasto,
+                            dataFinal: gasto.data || getFormattedDateOnly()
+                        }
+                    });
+                    await msg.reply('Categoria anotada. E qual foi a forma de pagamento? (Crédito, Débito, PIX ou Dinheiro)');
+                    return;
+                }
+
+                if (pagamentoCorrigido === 'Crédito') {
+                    const cardOptions = await buildCreditCardOptionsForUser(userId);
+                    if (!cardOptions.length) {
+                        await replyNoCreditCardsConfigured(msg);
+                        return;
+                    }
+                    userStateManager.setState(senderId, {
+                        action: 'awaiting_credit_card_selection',
+                        data: { gasto: { ...gasto, pagamento: 'Crédito' }, cardOptions }
+                    });
+                    await msg.reply(formatCreditCardOptionsQuestion('Categoria anotada. Em qual cartão? Responda com o número:', cardOptions));
+                    return;
+                }
+
+                const completedExpense = {
+                    ...gasto,
+                    type: 'Saídas',
+                    pagamento: pagamentoCorrigido,
+                    originalMessage: gasto.originalMessage || gasto.descricao
+                };
+                if (await requireReliabilityControlBeforeStateWrite({
+                    msg,
+                    senderId,
+                    userId,
+                    item: completedExpense,
+                    person: pessoa,
+                    methodSource: 'user_state'
+                })) {
+                    return;
+                }
+
+                const saved = await saveTransactionWithoutExtraPayment(completedExpense, { person: pessoa, userId });
+                await msg.reply(`✅ Gasto de R$${saved.value.toFixed(2)} (${gasto.descricao || 'Não especificado'}) registrado como *${saved.method}* para a data de *${saved.date}*!`);
+                await safeMaybeNotifyDailyGoalAfterExpense(msg, userId, 'expense_category_clarification');
+                userStateManager.deleteState(senderId);
+                return;
+            }
+
             case 'awaiting_payment_method': {
                 const { gasto } = currentState.data; // A data já está dentro do objeto 'gasto'
                 const respostaPagamento = messageBody;
@@ -6744,6 +6912,16 @@ async function handleMessage(msg) {
                     const saved = await saveManualTransfer(manualTransfer, userId);
                     await msg.reply(`✅ Transferência de ${formatCurrencyBR(saved.valor)} (${saved.descricao}) registrada como *${saved.status}* para a data de *${saved.data}*.`);
                     userStateManager.deleteState(senderId);
+                    return;
+                }
+
+                if (expenseCategoryNeedsClarification({ ...gasto, type: 'Saídas' })) {
+                    await askExpenseCategoryClarification({
+                        msg,
+                        senderId,
+                        item: { ...gasto, type: 'Saídas', pagamento: pagamentoCorrigido },
+                        messageBody: gasto.originalMessage || gasto.descricao
+                    });
                     return;
                 }
 
@@ -7713,6 +7891,15 @@ async function handleMessage(msg) {
                             }
                         }
                         if (canSaveTransactionWithoutExtraPayment(item)) {
+                            if (expenseCategoryNeedsClarification(item)) {
+                                await askExpenseCategoryClarification({
+                                    msg,
+                                    senderId,
+                                    item,
+                                    messageBody
+                                });
+                                return;
+                            }
                             const saved = await saveTransactionWithoutExtraPayment(item, { person: pessoa, userId });
                             const typeLabel = item.type === 'Saídas' ? 'Gasto' : 'Entrada';
                             await msg.reply(`✅ ${typeLabel} de R$${saved.value.toFixed(2)} (${item.descricao || 'Não especificado'}) registrado como *${saved.method}* para a data de *${saved.date}*!`);
@@ -8273,6 +8460,8 @@ module.exports = {
         buildPersonalCreditCardOptionsFromRows,
         extractMultipleCategoriesFromQuestion,
         extractComparisonCategoriesFromQuestion,
+        expenseCategoryNeedsClarification,
+        parseExpenseCategoryReply,
         normalizeInvitePhoneToWhatsAppId,
         normalizeMetricLabel,
         normalizeSettingsCommandText,

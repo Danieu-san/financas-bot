@@ -146,6 +146,13 @@ Validar:
 
 Validar:
 
+- Para qualquer teste manual ou real usado como evidência de rollout, separar obrigatoriamente:
+  - resposta visível/legada enviada no WhatsApp;
+  - resultado do `FINANCIAL_AGENT_MODE=shadow` ou da exceção `FINANCIAL_AGENT_SHADOW_RECENT_ANSWER_ENABLED`;
+  - decisão de rollout (`conta para answer`, `não conta`, `bloqueador`);
+  - classe da divergência (`legado`, `agent/planner`, `query engine`, `read-model/escopo`, `composer`, `segurança`).
+- Se o relatório não tiver a coluna do shadow/agente, o teste não pode ser usado para liberar `answer`/`enforce`, mesmo que a resposta visível pareça boa ou ruim.
+- `verified=true` no log do agente prova que o verificador aprovou a ferramenta, mas não prova sozinho que a fonte/escopo estavam semanticamente corretos. Quando houver dúvida, fazer replay read-only/sanitizado da pergunta com o mesmo plano local antes de concluir.
 - `npm run test:financial-agent` executa todos os casos oficiais pela rota LangGraph e termina sem gaps.
 - O relatorio deve registrar `gemini_calls=0` enquanto `FINANCIAL_AGENT_LLM_PLANNER_ENABLED=false`.
 - Pedidos adversariais devem ser bloqueados antes do agente.
@@ -163,6 +170,21 @@ Validar:
 - O prompt do planner deve receber data de referencia em `America/Sao_Paulo` para interpretar `hoje`, `ontem`, `este mes` e `do mes`; UTC pode apontar para o dia seguinte durante a noite brasileira.
 - Pedidos como "explique meu disponivel sem abrir o dashboard" devem usar `explain_metric`; apenas pedidos positivos de abrir/gerar/enviar link devem ser tratados como navegacao.
 - Nao ativar `answer` antes de uma bateria live curta do planner Gemini, auditoria dos gaps e revisao humana dos casos livres.
+
+## Canonical Ledger
+
+Validar:
+
+- `node --test tests\canonicalLedgerProjector.test.js tests\canonicalLedgerParityReport.test.js tests\canonicalLedgerShadowStore.test.js tests\canonicalLedgerRolloutPolicy.test.js tests\canonicalLedgerReceiptProjector.test.js tests\canonicalLedgerCanaryRouter.test.js`.
+- `node scripts\runCanonicalLedgerDryRun.js --run-id LEDGER_DRY_RUN_PHASE1_YYYYMMDD` deve gerar JSON com diferencas explicadas e `privacy_ok=true`.
+- SQLite shadow deve permanecer sem escrita por padrao. Persistencia local so com opt-in explicito: `--write-shadow --shadow-db <caminho-local>`.
+- O receipt adapter deve projetar apenas recibos `committed` com `operationKey`; writes sem identidade, imports e abas fora de `Saídas`/`Entradas`/`Transferências` devem ficar inelegiveis.
+- Leituras canario de `transactions`, `accounts` e `transfers` devem cair para legado quando flags, dominio ou SQLite falharem.
+- Backup/restore local deve continuar coberto por `tests\canonicalLedgerShadowStore.test.js` antes de qualquer proposta de dual projection.
+- A projecao publica do ledger nao pode conter `user_id`, telefones, `spreadsheet`, tokens, prompts, hashes internos de linha ou linhas cruas.
+- A politica de rollout deve falhar fechada: modo invalido vira `off`; escrita shadow em producao exige aprovacao separada; leitura canario exige aprovacao e allowlist de dominio.
+- O rollback deve desligar projecao e leituras por flag sem apagar o banco shadow.
+- A Fase 1 terminou com `NO-GO` para shadow em producao. Reavaliar somente depois do adapter de recibos verificados e da telemetria de paridade da Fase 2.
 
 ## Scheduler e Calendar
 

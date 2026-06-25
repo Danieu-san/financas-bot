@@ -1,6 +1,7 @@
 const { normalizeFinancialQueryPlan } = require('./financialQueryPlan');
 const { parseSheetDate, parseValue, normalizeText, getFormattedDateOnly } = require('../utils/helpers');
 const { matchesAnyField } = require('../utils/textMatcher');
+const { isRegisteredBillPayment, recurringBillPaymentScore } = require('../utils/recurringBillMatcher');
 const {
     normalizeCycleStartDay,
     getBudgetCycleForDate,
@@ -615,10 +616,14 @@ function getBudgetRows(dataSources = {}, plan = {}, cycle = {}, referenceDate = 
         ? new Set(dataSources.scopeUserIds.map(id => String(id || '').trim()).filter(Boolean))
         : null;
     const allowed = (item) => !allowedUserIds || allowedUserIds.has(String(item.userId || '').trim());
+    const scopeUserIds = dataSources.scopeUserIds || [];
+    const allowFamilyPayment = normalizeText(plan.filters?.scope || '') === 'family' && scopeUserIds.length > 1;
+    const accountRows = dataSources.contas || dataSources.accountRows || [];
     if (Array.isArray(dataSources.saidas)) {
         dataSources.saidas.slice(1).forEach((row) => {
             const item = toExpenseFromOutput(row);
             if (!allowed(item) || !isBudgetFreeSpendingItem(item)) return;
+            if (isRegisteredBillPayment(item, accountRows, { userIds: scopeUserIds, allowFamilyPayment })) return;
             const impactDate = parseSheetDate(item.date);
             if (!dateIsWithinCycle(impactDate, cycle)) return;
             rows.push({
@@ -1354,38 +1359,7 @@ function monthsBetween(from, to) {
 }
 
 function billPaymentScore(bill, expense, { allowFamilyPayment = false } = {}) {
-    const sameOwner = String(bill.userId || '') === String(expense.userId || '');
-    if (!sameOwner && !allowFamilyPayment) return 0;
-    const billText = normalizeText(`${bill.description} ${bill.accountName}`);
-    const expenseText = normalizeText(expense.description);
-    let score = 0;
-    const directTextMatch = Boolean(
-        billText.length >= 3 &&
-        expenseText.length >= 3 &&
-        (billText.includes(expenseText) || expenseText.includes(billText))
-    );
-    const fuzzyTextMatch = expenseText.length >= 3 && matchesAnyField(
-        [bill.description, bill.accountName],
-        expense.description,
-        { minWordLength: 3, wordThreshold: 0.66, phraseThreshold: 0.72 }
-    );
-    const sameSubcategory = Boolean(bill.subcategory) &&
-        normalizeText(bill.subcategory) === normalizeText(expense.subcategory);
-    const sameCategory = Boolean(bill.category) &&
-        normalizeText(bill.category) === normalizeText(expense.category);
-    const expectedValue = Number(bill.expectedValue || 0);
-    const expenseValue = Number(expense.value || 0);
-    const amountTolerance = Math.max(5, expectedValue * 0.25);
-    const compatibleAmount = expectedValue > 0 && Math.abs(expectedValue - expenseValue) <= amountTolerance;
-    if (!directTextMatch && !fuzzyTextMatch && !(sameCategory && sameSubcategory && compatibleAmount)) return 0;
-
-    if (directTextMatch) score += 6;
-    else if (fuzzyTextMatch) score += 4;
-    if (sameSubcategory) score += 2;
-    if (sameCategory) score += 1;
-    if (compatibleAmount) score += 2;
-    if (sameOwner) score += 1;
-    return score;
+    return recurringBillPaymentScore(bill, expense, { allowFamilyPayment });
 }
 
 function materializeBills(plan = {}, dataSources = {}) {

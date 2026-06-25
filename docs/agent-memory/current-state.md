@@ -1,15 +1,19 @@
 # Estado atual do FinancasBot
 
-Atualizado em: 2026-06-19
+Atualizado em: 2026-06-24
 
 ## Produto
 
 - Bot de WhatsApp para controle financeiro pessoal e familiar.
 - Stack: Node.js, whatsapp-web.js/Puppeteer, Gemini 2.5 Flash, Google Sheets, Google Calendar, SQLite read model e dashboard web.
 - Producao atual em EC2 com dominio `https://financasbot.duckdns.org`.
+- Baseline operacional mais recente registrado no handoff: producao em `853bdc3` com `FINANCIAL_AGENT_MODE=answer`, `FINANCIAL_AGENT_LLM_PLANNER_ENABLED=true` e `FINANCIAL_CONTEXTUAL_ANALYST_MODE=answer`. Revalidar EC2/PM2/logs antes de afirmar saude atual.
 - Multiusuario existe, mas ainda exige cuidado juridico/privacidade antes de beta amplo.
+- Roadmap final de evolucao familiar esta em `docs/plans/family-financial-platform-evolution-roadmap.md`. Ele preserva o baseline atual com Financial Agent em `answer`, Gemini Planner ativo e contextual analyst em `answer`; abre o ledger canonico antes de contas/conciliacao, orcamento por categoria, dashboard v2, planos, Open Finance, comprovantes e investimentos. A Fase 1 foi iniciada por ADR/spec/plan, sem schema real ou mudanca de producao.
+- Auditoria profunda de produto/UX do Meu Planner Financeiro registrada em `docs/audits/meu-planner-deep-product-study.md` em 2026-06-20. Conclusao: o concorrente e forte em web app, ledger, datas/status, pendencias, planejamento, faturas, planos, investimentos e dashboard; o FinancasBot deve incorporar os conceitos de dominio, mas manter o diferencial conversacional com LangGraph, ferramentas verificadas e WhatsApp como interface principal.
+- Pesquisa de produto do Meu Assessor registrada em `docs/audits/meu-assessor-product-research.md` em 2026-06-20. Conclusao: Open Finance, conta compartilhada, onboarding e painel sao referencias relevantes; projetos, tarefas, reunioes e Drive generico ficam fora do foco atual. Calendar ja existe no FinancasBot e deve ser lapidado, nao reconstruido.
 
-## Arquitetura familiar com LangGraphJS - shadow em producao
+## Arquitetura familiar com LangGraphJS - historico do shadow inicial
 
 - Decisao arquitetural registrada em `docs/decisions/ADR-004-family-langgraph-financial-agent.md`: LangGraphJS passa a ser o runtime final de orquestracao para analises financeiras read-only do assistente familiar Daniel/Thais.
 - Spec criada em `docs/specs/family-langgraph-financial-agent.md`. A Query Engine vira ferramenta confiavel; SQL sandbox read-only cobre perguntas novas; Gemini pode planejar/redigir, mas nao calcular valores finais.
@@ -57,11 +61,13 @@ Atualizado em: 2026-06-19
 
 ## Estado de producao conhecido
 
-- Ultimo deploy validado: commit local/GitHub `1ba4932` (`feat: add trackable goal movements`). Em producao, o mesmo patch foi aplicado por `git am` como `b38f7e1`.
-- Health check em producao respondeu `{"ok":true,"sqlite":true}` e PM2 confirmou `Bot pronto para receber mensagens`.
-- Dashboard passou a mostrar `Saldo` economico e `Disponivel estimado` apos caixinha/reserva.
-- O bot estava online no PM2 e WhatsApp chegou em `Bot pronto para receber mensagens` apos o deploy.
-- Health check esperado: `/dashboard/health` retornando `ok`.
+- Registro mais recente vindo do handoff em 2026-06-24: producao esta no commit `853bdc3`.
+- Flags recentes registradas: `FINANCIAL_AGENT_MODE=answer`, `FINANCIAL_AGENT_LLM_PLANNER_ENABLED=true` e `FINANCIAL_CONTEXTUAL_ANALYST_MODE=answer`.
+- `INTERPRETATION_RELIABILITY_MODE=shadow` segue como decisao intencional para acompanhar divergencias de escrita; nao confundir com o agente read-only.
+- O pacote local de orcamento livre/categorias novas ainda precisa release e smoke antes de ser tratado como deployado em producao.
+- Fase 0 revisada executada localmente em 2026-06-24: `npm test` 500/500, Financial Query Acceptance 265/265, Financial Agent 265/265, Novel Planner dry-run 255/255, Interpretation Reliability 350/350, planner live curto 6/6 e audit high com 0 vulnerabilidades. A auditoria SSH foi destravada com a chave local informada e confirmou producao em `853bdc3`, branch `main`, worktree remoto limpo, `FINANCIAL_AGENT_MODE=answer`, planner Gemini ligado, contextual analyst em `answer`, PM2/health/read-model/WhatsApp saudaveis e `state_store.json` remoto com 2 bytes. Decisao de Daniel: `INTERPRETATION_RELIABILITY_MODE` permanece `shadow`; vamos acompanhar divergencias de escrita e ajustar ate maturar. Readiness remoto recomendou `keep_shadow` com 96 entradas totais, 0 divergencias criticas, precisao 1.0 em candidatos a auto-save, p95 6 ms e blockers esperados de volume/janela. Decisao da Fase 0: `APROVADO PARA FASE 1 COM RESTRICOES`. Restricoes: nao ativar Family Mode sem allowlist Daniel/Thais, nao considerar orcamento/categorias como baseline de producao sem release/smoke/rollback proprio, e nao ampliar answer/planner/contextual sem bateria e rollback por flag.
+- Fase 1 do ledger canonico concluida localmente em 2026-06-24: ADR/spec/fixtures, projetor puro, relatorio dry-run, SQLite shadow versionado, backup/restore e politica de rollout coberta por TDD. `src/ledger/canonicalLedgerRolloutPolicy.js` exige flags separadas para modo, consentimento de escrita, aprovacao de producao e leituras canario; valores invalidos falham fechados. Runbook: `docs/runbooks/canonical-ledger-dual-projection-gate.md`. Decisao de saida: `NO-GO` para shadow em producao nesta fase; o codigo nao foi conectado ao fluxo produtivo. Primeiro corte da Fase 2: projetar recibos unitarios ja verificados no dominio `transactions`, medir paridade e repetir gate altissima. O Gemini Planner permanece ativo no baseline (`FINANCIAL_AGENT_LLM_PLANNER_ENABLED=true`) e `INTERPRETATION_RELIABILITY_MODE` permanece `shadow`.
+- Fase 2 do ledger canonico iniciada em 2026-06-25: adapter local de recibos comprometidos para `Saídas`, `Entradas` e `Transferências`, hook shadow pos-append em `appendRowToSheet`, persistencia idempotente por `operationKey`, dominios canario `transactions`, `accounts` e `transfers`, e fallback legado em `src/ledger/canonicalLedgerCanaryRouter.js`. Tudo permanece falhando fechado por flags; producao ainda nao deve habilitar canonical projection/canary sem repetir gates completos. Plano: `docs/plans/phase-2-canonical-ledger-implementation-plan.md`.
 
 Sempre revalidar EC2/PM2/logs antes de afirmar que producao esta saudavel.
 
@@ -531,6 +537,24 @@ Inicio local do Packet 05 - Budget/Orcamento em 2026-06-06:
 - A bateria livre ampliada passou offline com `255/255`, `0` gaps e `0` chamadas Gemini. A amostra live estratificada inicial usou 6 chamadas, encontrou 1 gap em dashboard (`NOVEL-008`) e foi corrigida sistemicamente: negacoes como "sem abrir o dashboard" nao sao mais tratadas como pedido de navegacao; dashboard familiar exige `ownerUserId` dentro do escopo autorizado; e o verificador passou a preservar moeda negativa (`-R$ ...`) para nao bloquear respostas legitimas de reserva/disponivel. Revalidacao focada de `NOVEL-008`: `1/1`, `0` gaps, `1` chamada Gemini. Producao ainda nao recebeu esta fatia.
 - Evolucao local em 2026-06-16: adicionado check diario operacional em `src/services/dailyOpsCheckService.js`, chamado pelo scheduler as 09:05 quando `DAILY_OPS_CHECK_ENABLED=true`. O check envia aos admins um resumo sanitizado sem Gemini, cobrindo cliente WhatsApp disponivel para envio, SQLite/read-model, flags perigosas (`DASHBOARD_ADMIN_ALL_USERS_ENABLED`, `FINANCIAL_AGENT_MODE=answer`, planner Gemini ligado, Family Mode e `INTERPRETATION_RELIABILITY_MODE=enforce`), readiness do shadow e metricas locais. O notifier de readiness as 09:15 continua separado e nunca ativa `enforce`.
 - Auditoria final local em 2026-06-19 para ativacao parcial de `INTERPRETATION_RELIABILITY_MODE=enforce` encontrou e corrigiu um achado `HIGH`: gastos no credito completos podiam ser bloqueados porque o gate de `expense.create` nao recebia `card`/`installments` antes de decidir. A correcao local faz o gate enxergar cartao/parcelas explicitos ou selecionados, adiciona confirmacao antes de salvar credito quando campo critico veio do Gemini, e registra telemetria sanitizada para gravacoes em cartao. Validacao local: `node --check src\handlers\messageHandler.js`, testes focados 88/88, `npm test` 458/458, `npm audit --audit-level=high` 0 vulnerabilidades, gate acelerado `READY_FOR_ALTISSIMA_AUDIT` com cutoff `2026-06-18T00:00:00.000Z`. Producao ainda estava em `df58504` no momento da auditoria; nao ativar `enforce` antes de commitar/deployar esta correcao e repetir smoke/gate. Relatorio: `docs/qa/enforce-final-audit-2026-06-19.md`.
+
+## Financial Agent answer + Gemini Planner - 2026-06-23
+
+- Produto atual esta em transicao para uso familiar/conversacional. O Financial Agent pode responder perguntas read-only verificadas em `FINANCIAL_AGENT_MODE=answer`; escritas financeiras continuam fora do agente read-only e seguem pela camada de confiabilidade/estado.
+- Baseline operacional registrado no handoff de 2026-06-24: producao em `853bdc3` com `FINANCIAL_AGENT_MODE=answer`, `FINANCIAL_AGENT_LLM_PLANNER_ENABLED=true` e `FINANCIAL_CONTEXTUAL_ANALYST_MODE=answer`. Isso torna a Fase 0 antiga do roadmap defasada como texto: ela nao e mais decisao de ativar `answer`/planner, e sim estabilizacao e auditoria do baseline ja ativo.
+- O Gemini Planner foi expandido para poder criar `FinancialQueryPlan` validado quando o roteamento local nao cobre uma pergunta. Isso e fallback de planejamento, nao calculadora: valores, percentuais, rankings, orcamento, contas, metas e dividas continuam calculados por Query Engine, SQL sandbox read-only ou snapshot deterministico.
+- `query_financial_plan` vindo do Gemini so e aceito depois de `normalizeFinancialQueryPlan`; campos internos como `user_id`, `sheet_id`, tokens, OAuth, prompts e raw rows continuam bloqueados. SQL livre segue restrito a `SELECT` em `financial_events_public`, com `LIMIT` e allowlist de colunas/tabela.
+- O prompt do planner agora explicita que `period.month` no `FinancialQueryPlan` e zero-based (`janeiro=0`, `junho=5`) para evitar consultas no mes errado.
+- Perguntas livres sobre contas pendentes/em aberto podem ser planejadas pelo Gemini para `domain=bills`, `operation=list`, `status=pending`, evitando a regressao em que "conta" podia virar categoria de gastos. A resposta de contas pendentes ganhou UX propria com vencimento, status e valor pendente/esperado.
+- O check diario operacional aceita `FINANCIAL_AGENT_MODE=answer` e `FINANCIAL_AGENT_LLM_PLANNER_ENABLED=true` somente quando houver flags explicitas `FINANCIAL_AGENT_ANSWER_APPROVED=true` e `FINANCIAL_AGENT_LLM_PLANNER_APPROVED=true`. Sem essas aprovacoes, continua alertando como flag perigosa.
+- Revisao de roadmap em 2026-06-24: `docs/plans/family-financial-platform-evolution-roadmap.md` agora define a Fase 0 como estabilizacao de `answer + planner + contextual analyst + enforce parcial`, incluindo auditoria de logs, custo/chamadas Gemini, fallbacks, replay sanitizado, live curta controlada e rollback separado por flag.
+- O planner Gemini read-only ajuda consultas; ele nao deve salvar, apagar, criar categoria, criar conta ou reclassificar gasto sem passar pela camada de confiabilidade/confirmacao.
+
+## Orcamento livre e categorias novas - 2026-06-24
+
+- Correcao local: pagamentos que batem com `Contas` cadastradas deixam de entrar no gasto livre do orcamento na Query Engine, no dashboard pessoal e no alerta diario de orcamento do `messageHandler`. O matching fica em `src/utils/recurringBillMatcher.js`, preserva escopo por `user_id` e reutiliza criterio de descricao/nome amigavel ou categoria+subcategoria+valor compativel.
+- Escrita de gasto unitario com categoria ausente, `Outros` ou categoria desconhecida agora pede classificacao antes de salvar. O usuario responde `Categoria / Subcategoria` ou `Outros`; depois o fluxo continua para forma de pagamento/cartao/salvamento com a camada de confiabilidade. Lotes e importacoes continuam fora desta fatia.
+- Este pacote local fecha a pendencia imediata que estava separada do planner, mas ainda precisa release/smoke/rollback antes de virar baseline de producao. A Fase 0 revisada exige validar esse pacote ou declarar explicitamente que ele fica fora do baseline antes de abrir a Fase 1 do ledger.
 
 Em 2026-05-26, `git status --short` ainda mostrava arquivos nao rastreados antigos:
 

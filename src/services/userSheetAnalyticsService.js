@@ -9,6 +9,7 @@ const {
 } = require('../utils/budgetCycle');
 const { goalRowToObject } = require('./goalService');
 const { decorateDashboardSummary } = require('./dashboardSummaryService');
+const { isRegisteredBillPayment } = require('../utils/recurringBillMatcher');
 
 const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
@@ -428,7 +429,7 @@ function buildGoalDashboardRows(metasRows = [], userIds = []) {
         .sort((a, b) => Number(b.current || 0) - Number(a.current || 0));
 }
 
-function buildDailyGoalSummary({ settings, saidasRows, cartaoRows, cardConfigRows = [], userIds, period }) {
+function buildDailyGoalSummary({ settings, saidasRows, cartaoRows, cardConfigRows = [], accountRows = [], userIds, period }) {
     if (normalizeText(settings?.monthly_budget_enabled || '') !== 'sim') return null;
     const monthlyAmount = parseValue(settings?.monthly_budget_amount);
     if (!monthlyAmount || monthlyAmount <= 0) return null;
@@ -445,7 +446,17 @@ function buildDailyGoalSummary({ settings, saidasRows, cartaoRows, cardConfigRow
         return parsed ? `${String(parsed.getDate()).padStart(2, '0')}/${String(parsed.getMonth() + 1).padStart(2, '0')}/${parsed.getFullYear()}` === today : String(value || '').trim() === today;
     };
     const saidasEligible = saidasRows.slice(1)
-        .filter(row => rowBelongsToAnyUser(row, 9, userIds) && isFreeSpendingRow(row));
+        .filter(row => {
+            if (!rowBelongsToAnyUser(row, 9, userIds) || !isFreeSpendingRow(row)) return false;
+            return !isRegisteredBillPayment({
+                date: row[0] || '',
+                description: row[1] || '',
+                category: row[2] || '',
+                subcategory: row[3] || '',
+                value: parseValue(row[4]),
+                userId: row[9] || ''
+            }, accountRows, { userIds });
+        });
     const cartoesEligible = cartaoRows.slice(1)
         .filter(row => rowBelongsToAnyUser(row, 9, userIds));
     const cardDueDayMap = buildCardDueDayMap(cardConfigRows);
@@ -523,14 +534,15 @@ async function getUserSheetDashboardData(userId, { month, year } = {}) {
         const financialScopeUserIds = getFinancialScopeUserIds(safeUserId);
         const period = normalizePeriod({ month, year });
         const dailyGoalConfig = await getDailyGoalDashboardSettings(safeUserId);
-        const [saidasRows, entradasRows, cartaoRows, cardConfigRows, transferRows, metasRows, dividasRows] = await Promise.all([
+        const [saidasRows, entradasRows, cartaoRows, cardConfigRows, transferRows, metasRows, dividasRows, accountRows] = await Promise.all([
             readDataFromSheet('Saídas!A:J'),
             readDataFromSheet('Entradas!A:I'),
             readDataFromSheet('Lançamentos Cartão!A:J'),
             readDataFromSheet('Cartões!A:G'),
             readDataFromSheet('Transferências!A:I'),
             readDataFromSheet('Metas!A:I'),
-            readDataFromSheet('Dívidas!A:R')
+            readDataFromSheet('Dívidas!A:R'),
+            readDataFromSheet('Contas!A:I')
         ]);
 
         const saidas = saidasRows.slice(1)
@@ -590,6 +602,7 @@ async function getUserSheetDashboardData(userId, { month, year } = {}) {
                 saidasRows,
                 cartaoRows,
                 cardConfigRows,
+                accountRows,
                 userIds: dailyGoalConfig.settings?.monthly_budget_scope === 'family' ? financialScopeUserIds : [safeUserId],
                 period
             }),
