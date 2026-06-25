@@ -1,7 +1,7 @@
 # Plano mestre: evolucao do FinancasBot familiar
 
 Data: 2026-06-20
-Status: Fase 1 concluida localmente em 2026-06-24; Fase 2 ainda nao iniciada
+Status: Fase 1 concluida; Fase 2 em shadow com gate corretivo 2A iniciado em 2026-06-25
 
 ## 1. Norte do produto
 
@@ -378,6 +378,19 @@ inexplicada.
 - espelho nas abas atuais.
 
 **Rollout:** shadow -> dual projection -> leitura canario -> escrita canonica.
+
+**Gate corretivo 2A - planner financeiro unificado:**
+
+O incidente real de pagamento de conta de telefone mostrou que a projecao
+canonica pode estar correta e ainda assim nao receber um recibo, porque a
+mensagem foi classificada antes como pagamento de divida ou gasto comum. Antes
+de ativar leitura canario, a Fase 2 deve consolidar a interpretacao inicial em
+um `FinancialCommandPlan` validado, mantendo calculo, escopo, confirmacao e
+escrita sob controle deterministico. O plano detalhado esta em
+`docs/plans/phase-2a-unified-financial-command-planner-plan.md`.
+
+Esse gate nao antecipa a modelagem completa de recorrencias da Fase 3 nem o
+orcamento por categoria da Fase 4.
 
 **Gate de saida:** saldos e movimentos batem entre ledger, Sheets, read-model e
 dashboard; E2E marker-only limpo e idempotente.

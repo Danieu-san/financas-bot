@@ -579,3 +579,21 @@ Decisao recomendada registrada em `docs/audits/bot-complete-coverage-checklist.m
 - `.claude/settings.local.json`: manter fora do Git se ainda for usado pela ferramenta, ou apagar se estiver obsoleto.
 
 Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
+## Unified Financial Command Planner - Fase 2A
+
+- Gate corretivo iniciado em 2026-06-25 para impedir que pagamentos de contas,
+  dividas, faturas e novos gastos sejam colapsados antes da execucao.
+- Etapa 1 registrou ADR-007, spec, plano e fixtures, incluindo as frases reais de
+  pagamento da conta de telefone.
+- Etapa 2 concluiu o contrato puro em
+  `src/planning/financialCommandPlanContract.js`: allowlists de operacoes e
+  ferramentas, normalizacao, rejeicao recursiva de escopo interno/dados crus,
+  protecao contra chaves de prototype pollution e confirmacao obrigatoria para
+  escritas.
+- Testes da Etapa 2: contrato `9/9` e suite completa `542/542`. Foram feitas zero
+  chamadas Gemini e nenhum acesso a Sheets, banco ou rede.
+- Nenhum roteamento produtivo ou flag foi alterado. O Gemini Planner analitico
+  existente permanece ativo no baseline; o novo planner de comandos ainda nao
+  existe no runtime.
+- Proxima etapa: prompt compacto e runner offline do novo planner, mantendo
+  `FINANCIAL_COMMAND_PLANNER_MODE` ausente/desligado ate a etapa de shadow.

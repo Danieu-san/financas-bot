@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "financial-command-fixtures-v1",
+  "cases": [
+    {
+      "id": "PAY-BILL-001",
+      "message": "Paguei 469,09 da conta de telefone",
+      "expectedOperation": "bill.pay",
+      "expectedContextTool": "match_recurring_bill",
+      "expectedAmount": 469.09
+    },
+    {
+      "id": "PAY-BILL-002",
+      "message": "Gastei 469,09 pagando a conta de telefone",
+      "expectedOperation": "bill.pay",
+      "expectedContextTool": "match_recurring_bill",
+      "expectedAmount": 469.09
+    },
+    {
+      "id": "PAY-DEBT-001",
+      "message": "Paguei 300 da divida do banco",
+      "expectedOperation": "debt.pay",
+      "expectedContextTool": "match_debt",
+      "expectedAmount": 300
+    },
+    {
+      "id": "PAY-INVOICE-001",
+      "message": "Paguei 850 da fatura do Nubank",
+      "expectedOperation": "invoice.pay",
+      "expectedContextTool": "match_card_invoice",
+      "expectedAmount": 850
+    },
+    {
+      "id": "EXPENSE-001",
+      "message": "Paguei 42 no almoco no pix",
+      "expectedOperation": "expense.create",
+      "expectedContextTool": "resolve_category",
+      "expectedAmount": 42
+    },
+    {
+      "id": "PAY-BILL-AMBIGUOUS-001",
+      "message": "Paguei 120 da conta de telefone",
+      "expectedOperation": "bill.pay",
+      "expectedContextTool": "match_recurring_bill",
+      "expectedResolution": "clarify_bill_selection"
+    },
+    {
+      "id": "PAY-BILL-MISSING-001",
+      "message": "Paguei 99 da conta de streaming",
+      "expectedOperation": "bill.pay",
+      "expectedContextTool": "match_recurring_bill",
+      "expectedResolution": "clarify_bill_not_found"
+    }
+  ]
+}
