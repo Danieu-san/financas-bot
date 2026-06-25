@@ -90,3 +90,18 @@ CANONICAL_LEDGER_CANARY_READ_ENABLED=false
 CANONICAL_LEDGER_CANARY_READ_APPROVED=false
 CANONICAL_LEDGER_CANARY_READ_DOMAINS=
 ```
+## Production Rollout - 2026-06-25
+
+- Joint Phase 1+2 code deployed inert at commit `30b1bf4`.
+- Inert verification passed: PM2 online, WhatsApp ready, health `{"ok":true,"sqlite":true}`, empty state and no new error-log writes.
+- Production shadow path: `/home/ubuntu/financas-bot/data/canonical_ledger_shadow.sqlite`.
+- Pre-shadow empty backup: `/home/ubuntu/financas-bot-backups/canonical-ledger/pre-shadow-empty-20260625-180241.sqlite`.
+- Backup/restore preflight passed with 1 migration and 8 tables; the restore check used no real financial data.
+- Rollback policy drill passed: shadow writes changed from allowed to denied and canary reads remained denied when the rollback environment was applied.
+- Altissima review verdict: `GO` for controlled shadow writes after the inert deploy gates passed.
+- Shadow activated at `2026-06-25 18:04 UTC` with projection/write/production approval enabled.
+- Canary reads remain disabled with an empty domain allowlist.
+- Baseline preserved: Financial Agent `answer`, Gemini Planner enabled, contextual analyst `answer`, interpretation reliability `shadow`.
+- Immediate post-activation verification passed: no policy blockers, PM2 online, WhatsApp ready, health healthy, no new error-log writes and zero shadow rows before the first eligible committed write.
+
+Rollback remains flag-only: set projection to `off`, both shadow approvals to `false`, keep canary flags `false`, restart PM2 and preserve the shadow database for audit.
