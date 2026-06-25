@@ -1,6 +1,6 @@
 # Phase 2A Plan: Unified Financial Command Planner
 
-Status: Step 2 complete; no production routing change authorized.
+Status: Step 3 complete; no production routing change authorized.
 Date: 2026-06-25
 
 ## Position In The Existing Roadmap
@@ -57,6 +57,22 @@ Completed on 2026-06-25:
 
 Gate: all fixture cases produce an acceptable normalized plan offline; live
 sample has documented cost and gaps.
+
+Completed on 2026-06-25:
+
+- `src/planning/financialCommandPlanner.js` builds a compact prompt using only
+  the current message, Sao Paulo reference date and the public V1 contract.
+- Deterministic extraction runs beside Gemini for amount, date, payment method,
+  operation and required context tool; conflicts block the plan.
+- Dates and ambiguous multiple numbers are not accepted as monetary values.
+- `scripts/runFinancialCommandPlannerBattery.js` defaults to offline mode and
+  requires `--live --max-calls N`; the hard live limit is 12.
+- Offline fixture battery passed `7/7`, with `0` gaps and `0` Gemini calls.
+- Controlled live sample passed `4/4`, with `0` gaps and exactly `4` Gemini
+  calls, covering two bill wordings, debt payment and invoice payment.
+- Reports contain case IDs and sanitized decisions, never the message text.
+- No handler, production flag, Sheets read, database read or financial write was
+  added in this step.
 
 ## Step 4 - Scoped Context Tools
 

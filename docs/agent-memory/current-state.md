@@ -1,6 +1,6 @@
 # Estado atual do FinancasBot
 
-Atualizado em: 2026-06-24
+Atualizado em: 2026-06-25
 
 ## Produto
 
@@ -595,5 +595,13 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Nenhum roteamento produtivo ou flag foi alterado. O Gemini Planner analitico
   existente permanece ativo no baseline; o novo planner de comandos ainda nao
   existe no runtime.
-- Proxima etapa: prompt compacto e runner offline do novo planner, mantendo
-  `FINANCIAL_COMMAND_PLANNER_MODE` ausente/desligado ate a etapa de shadow.
+- Etapa 3 concluiu o prompt compacto, extracao deterministica paralela,
+  reconciliacao segura e runner offline/live limitado.
+- Bateria offline: `7/7`, zero gaps e zero chamadas Gemini. Amostra live
+  controlada: `4/4`, zero gaps e quatro chamadas, cobrindo conta recorrente,
+  divida e fatura.
+- Relatorios registram apenas IDs de caso e decisoes sanitizadas. O novo planner
+  ainda nao recebe Sheets, banco, escopo interno ou historico financeiro.
+- Proxima etapa: ferramentas de contexto escopadas, iniciando por
+  `match_recurring_bill`. `FINANCIAL_COMMAND_PLANNER_MODE` continua
+  ausente/desligado ate a futura etapa de shadow.

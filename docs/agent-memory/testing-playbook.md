@@ -171,6 +171,23 @@ Validar:
 - Pedidos como "explique meu disponivel sem abrir o dashboard" devem usar `explain_metric`; apenas pedidos positivos de abrir/gerar/enviar link devem ser tratados como navegacao.
 - Nao ativar `answer` antes de uma bateria live curta do planner Gemini, auditoria dos gaps e revisao humana dos casos livres.
 
+## Unified financial command planner
+
+Validar:
+
+- `npm run test:financial-command-planner` executa os fixtures em modo offline e
+  deve terminar com `7/7`, zero gaps e `gemini_calls=0`.
+- Modo live exige limite explicito, por exemplo
+  `node scripts/runFinancialCommandPlannerBattery.js --live --max-calls 4 --limit 4`.
+- O hard limit live e 12; nunca executar live sem `--max-calls` positivo.
+- Prompt recebe somente mensagem atual, data de referencia e contrato publico;
+  nunca Sheets, linhas cruas, IDs internos, tokens ou historico amplo.
+- Conflito entre Gemini e extracao deterministica de operacao, valor ou
+  ferramenta deve bloquear o plano.
+- Datas e multiplos numeros ambiguos nao podem virar valor financeiro.
+- Relatorios nao podem conter a mensagem financeira bruta.
+- Esta bateria nao autoriza roteamento; `FINANCIAL_COMMAND_PLANNER_MODE` deve
+  permanecer ausente/desligado ate a etapa de shadow.
 ## Canonical Ledger
 
 Validar:

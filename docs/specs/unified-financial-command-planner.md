@@ -147,7 +147,8 @@ The normalizer must:
 ## Commands
 
 ```text
-node --test tests/financialCommandPlanContract.test.js
+node --test tests/financialCommandPlanContract.test.js tests/financialCommandPlanner.test.js tests/financialCommandPlannerRunner.test.js
+npm run test:financial-command-planner
 npm test
 npm audit --audit-level=high
 git diff --check
