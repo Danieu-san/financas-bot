@@ -197,6 +197,7 @@ Validar:
 - `tests\financialStateMachine.test.js` tambem deve provar que cancelamento de `bill.pay` nao grava linha e que replay de confirmacao antiga usa `operationKey` estavel para nao duplicar a linha.
 - `tests\interpretationReliability.test.js` deve manter `bill.pay` como operacao conhecida e confirm-only; nao liberar autosave de pagamento de conta pelo LLM.
 - Antes de qualquer `route`/canary de `bill.pay` em producao, rodar `npm run test:whatsapp:e2e:bill-pay` com `WHATSAPP_E2E_ENABLED=true`. O bot deve estar em `route` ou em `canary` com o `userId` resolvido do usuario E2E presente em `FINANCIAL_COMMAND_PLANNER_CANARY_USER_IDS`; o smoke generico de onboarding/gasto/pergunta/dashboard nao basta para esse gate.
+- Se o usuario E2E conversa por identificador WhatsApp `@lid` e o telefone publico nao resolve na aba `Users`, configurar `WHATSAPP_E2E_TEST_USER_LOOKUP` com um nome/lookup explicito e unico de usuario `ACTIVE`; nao usar lookup ambiguo nem usuario nao ativo.
 ## Canonical Ledger
 
 Validar:

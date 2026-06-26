@@ -234,3 +234,36 @@ test('whatsapp bill pay e2e builds marker-only plan and requires an authorized r
     assert.deepStrictEqual(plan.expected.saved, ['Pagamento da conta recorrente', 'registrado']);
     assert.strictEqual(testUserWhatsAppId({ testUserPhone: '+55 (21) 88888-8888' }), '5521888888888@c.us');
 });
+test('whatsapp bill pay e2e resolves active lid users by explicit safe lookup', async () => {
+    const userServicePath = require.resolve('../src/services/userService');
+    const originalUserService = require.cache[userServicePath];
+    require.cache[userServicePath] = {
+        id: userServicePath,
+        filename: userServicePath,
+        loaded: true,
+        exports: {
+            getUserByWhatsAppId: async () => null,
+            getAllUsers: async () => [
+                {
+                    user_id: 'user-thais',
+                    whatsapp_id: '123456789@lid',
+                    phone_e164: '+123456789',
+                    display_name: 'Thaís',
+                    status: 'ACTIVE'
+                }
+            ]
+        }
+    };
+
+    try {
+        const { resolveE2EUserId } = require('../scripts/runWhatsappBillPayE2E');
+        const userId = await resolveE2EUserId(
+            { testUserPhone: '+55 (21) 96427-0368' },
+            { env: { WHATSAPP_E2E_TEST_USER_LOOKUP: 'Thais' } }
+        );
+        assert.strictEqual(userId, 'user-thais');
+    } finally {
+        if (originalUserService) require.cache[userServicePath] = originalUserService;
+        else delete require.cache[userServicePath];
+    }
+});

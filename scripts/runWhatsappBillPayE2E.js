@@ -78,6 +78,36 @@ function testUserWhatsAppId(config = {}) {
     return digits ? `${digits}@c.us` : '';
 }
 
+function normalizeLookupText(value) {
+    return String(value || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
+}
+
+function resolveUserByExplicitLookup(users = [], lookup = '') {
+    const normalizedLookup = normalizeLookupText(lookup);
+    const lookupDigits = String(lookup || '').replace(/\D/g, '');
+    if (!normalizedLookup && !lookupDigits) return null;
+
+    const matches = users.filter(user => {
+        const displayNameMatches = normalizedLookup && normalizeLookupText(user.display_name) === normalizedLookup;
+        const phoneMatches = lookupDigits && String(user.phone_e164 || '').replace(/\D/g, '') === lookupDigits;
+        const whatsappMatches = lookupDigits && String(user.whatsapp_id || '').replace(/\D/g, '') === lookupDigits;
+        return displayNameMatches || phoneMatches || whatsappMatches;
+    });
+    const activeMatches = matches.filter(user => user.status === 'ACTIVE');
+    if (activeMatches.length === 1) return activeMatches[0];
+    if (activeMatches.length > 1) {
+        throw new Error('WHATSAPP_E2E_TEST_USER_LOOKUP encontrou mais de um usuario ativo. Use um lookup mais especifico.');
+    }
+    if (matches.length > 0) {
+        throw new Error('WHATSAPP_E2E_TEST_USER_LOOKUP encontrou usuario, mas ele nao esta ACTIVE.');
+    }
+    return null;
+}
+
 function getGoogleService() {
     return require('../src/services/google');
 }
@@ -93,7 +123,7 @@ function getWhatsAppRuntime() {
     };
 }
 
-async function resolveE2EUserId(config = {}) {
+async function resolveE2EUserId(config = {}, options = {}) {
     const whatsappId = testUserWhatsAppId(config);
     if (!whatsappId) {
         throw new Error('WHATSAPP_E2E_TEST_USER_PHONE invalido para resolver user_id.');
@@ -107,6 +137,13 @@ async function resolveE2EUserId(config = {}) {
     const users = await getAllUsers();
     const byPhone = users.find(user => String(user.phone_e164 || user.whatsapp_id || '').replace(/\D/g, '') === testDigits);
     if (byPhone?.user_id) return byPhone.user_id;
+
+    const env = options.env || process.env;
+    const explicitLookup = String(env.WHATSAPP_E2E_TEST_USER_LOOKUP || '').trim();
+    if (explicitLookup) {
+        const byLookup = resolveUserByExplicitLookup(users, explicitLookup);
+        if (byLookup?.user_id) return byLookup.user_id;
+    }
 
     throw new Error(`Usuario E2E nao encontrado para ${whatsappId}. Cadastre/aprove/conecte o usuario de teste antes de rodar bill.pay E2E.`);
 }
