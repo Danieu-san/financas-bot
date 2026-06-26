@@ -196,7 +196,7 @@ Validar:
 - Para a vertical `bill.pay`, `tests\financialStateMachine.test.js` deve provar que uma conta recorrente cadastrada passa por `awaiting_bill_payment_method` -> `confirming_bill_payment` -> grava `Saídas` sem pedir categoria e com `Recorrente=SIM`.
 - `tests\financialStateMachine.test.js` tambem deve provar que cancelamento de `bill.pay` nao grava linha e que replay de confirmacao antiga usa `operationKey` estavel para nao duplicar a linha.
 - `tests\interpretationReliability.test.js` deve manter `bill.pay` como operacao conhecida e confirm-only; nao liberar autosave de pagamento de conta pelo LLM.
-- Antes de qualquer `route`/canary de `bill.pay` em producao, rodar um E2E WhatsApp marker-only especifico de conta recorrente; o smoke generico de onboarding/gasto/pergunta/dashboard nao basta para esse gate.
+- Antes de qualquer `route`/canary de `bill.pay` em producao, rodar `npm run test:whatsapp:e2e:bill-pay` com `WHATSAPP_E2E_ENABLED=true` e `FINANCIAL_COMMAND_PLANNER_MODE=route`; o smoke generico de onboarding/gasto/pergunta/dashboard nao basta para esse gate.
 ## Canonical Ledger
 
 Validar:

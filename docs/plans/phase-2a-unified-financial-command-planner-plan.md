@@ -158,7 +158,7 @@ Additional progress on 2026-06-26 (Step 6 local hardening):
 
 Gate decision on 2026-06-26:
 - Canonical ledger dry-run `LEDGER_DRY_RUN_PHASE2A_BILLPAY_20260626` passed with 15 events, 0 unexplained differences and `privacy_ok=true`; `bill_payment` remains neutral for free-budget impact.
-- `NO-GO` for production `route`/canary activation: the WhatsApp marker-only E2E available today is generic and does not cover `bill.pay`, so a bill-payment-specific marker-only E2E still has to be created/run before any production activation.
+- `NO-GO` for production `route`/canary activation: `npm run test:whatsapp:e2e:bill-pay` now exists as the bill-payment-specific marker-only E2E, but it still has to be run successfully against the real WhatsApp/bot environment before any production activation.
 
 Gate: offline, state-machine and marker-only E2E pass; cancellation writes
 nothing; replay is idempotent.

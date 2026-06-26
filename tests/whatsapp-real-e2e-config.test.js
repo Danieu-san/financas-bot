@@ -183,3 +183,44 @@ test('whatsapp import e2e owner choice is configurable for family imports', () =
         /IMPORT_E2E_OWNER_CHOICE/
     );
 });
+test('whatsapp bill pay e2e builds marker-only plan and requires route mode', () => {
+    const {
+        buildBillPayE2EPlan,
+        requireBillPayRouteMode,
+        testUserWhatsAppId
+    } = require('../scripts/runWhatsappBillPayE2E');
+
+    assert.throws(
+        () => requireBillPayRouteMode({ FINANCIAL_COMMAND_PLANNER_MODE: 'shadow' }),
+        /FINANCIAL_COMMAND_PLANNER_MODE=route/
+    );
+    assert.doesNotThrow(
+        () => requireBillPayRouteMode({ FINANCIAL_COMMAND_PLANNER_MODE: 'route' })
+    );
+
+    const plan = buildBillPayE2EPlan({
+        runId: 'TESTE_APAGAR_BILLPAY_20260626',
+        amount: '12,34',
+        dueDay: '25',
+        userId: 'user-e2e'
+    });
+
+    assert.match(plan.marker, /^TESTE_APAGAR_BILLPAY_20260626$/);
+    assert.match(plan.billLabel, /TESTE_APAGAR_BILLPAY_20260626/);
+    assert.deepStrictEqual(plan.accountRow.slice(0, 9), [
+        'TESTE_APAGAR_BILLPAY_20260626',
+        '25',
+        'Criado por E2E marker-only de bill.pay',
+        'user-e2e',
+        'Conta telefone TESTE_APAGAR_BILLPAY_20260626',
+        'Moradia',
+        'INTERNET / TELEFONE',
+        '12,34',
+        'SIM'
+    ]);
+    assert.strictEqual(plan.messages.initial, 'Paguei 12,34 da Conta telefone TESTE_APAGAR_BILLPAY_20260626');
+    assert.deepStrictEqual(plan.expected.initial, ['conta recorrente', 'forma de pagamento']);
+    assert.deepStrictEqual(plan.expected.confirmation, ['Confirma', 'Conta telefone TESTE_APAGAR_BILLPAY_20260626']);
+    assert.deepStrictEqual(plan.expected.saved, ['Pagamento da conta recorrente', 'registrado']);
+    assert.strictEqual(testUserWhatsAppId({ testUserPhone: '+55 (21) 88888-8888' }), '5521888888888@c.us');
+});
