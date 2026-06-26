@@ -612,8 +612,13 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   aba `Dívidas`, filtra apenas dividas ativas do escopo confiavel e retorna
   rotulos/credor/tipo/saldo/parcela/vencimento/status/restricao de valor, sem
   `user_id`, observacoes, indices ou linhas cruas.
-- Teste focado da Etapa 4: `node --test tests\financialCommandPlanContract.test.js tests\financialCommandPlanner.test.js tests\financialCommandPlannerRunner.test.js tests\financialCommandContextTools.test.js` passou `23/23`.
+- `match_card_invoice` foi implementado localmente a partir de
+  `Lançamentos Cartão`, nao da aba-resumo `Faturas`, para preservar escopo por
+  `user_id` antes de somar faturas. A saida publica traz rotulo, cartao, mes de
+  cobranca, total, quantidade de parcelas e compatibilidade do valor, sem
+  compras, observacoes, `user_id`, indices ou linhas cruas.
+- Teste focado da Etapa 4: `node --test tests\financialCommandPlanContract.test.js tests\financialCommandPlanner.test.js tests\financialCommandPlannerRunner.test.js tests\financialCommandContextTools.test.js` passou `25/25`.
 - Proxima etapa: continuar ferramentas de contexto escopadas com
-  `match_card_invoice`.
+  `resolve_category`.
   `FINANCIAL_COMMAND_PLANNER_MODE` continua ausente/desligado ate a futura etapa
   de shadow.

@@ -99,6 +99,9 @@ Progress on 2026-06-26:
   `Dívidas` rows by trusted app scope and returns only public labels,
   outstanding balance/installment constraints and classification.
 - Focused command-planner tests after `match_debt` passed `23/23`.
+- `match_card_invoice` was added from scoped `Lançamentos Cartão` rows instead
+  of the unscoped summary tab `Faturas`, returning only invoice labels/status.
+- Focused command-planner tests after `match_card_invoice` passed `25/25`.
 - No handler routing, production flag or financial write path changed.
 
 ## Step 5 - Shadow Comparison

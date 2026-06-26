@@ -4,6 +4,7 @@ const { normalizeText, parseValue } = require('../utils/helpers');
 const DEFAULT_CANDIDATE_LIMIT = 3;
 const MATCH_RECURRING_BILL_TOOL = 'match_recurring_bill';
 const MATCH_DEBT_TOOL = 'match_debt';
+const MATCH_CARD_INVOICE_TOOL = 'match_card_invoice';
 
 function toTrustedUserIds(trustedScope = {}) {
     const raw = Array.isArray(trustedScope.userIds)
@@ -193,6 +194,114 @@ function matchDebt({
         candidates
     };
 }
+function roundMoney(value) {
+    return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
+}
+
+function normalizeCardLaunchRow(row = [], headers = []) {
+    const idx = {
+        value: findHeaderIndex(headers, ['Valor Parcela', 'Valor'], 3),
+        billingMonth: findHeaderIndex(headers, ['Mês de Cobrança', 'Mes de Cobranca', 'Fatura'], 5),
+        cardId: findHeaderIndex(headers, ['card_id', 'card id'], 6),
+        card: findHeaderIndex(headers, ['Cartão', 'Cartao'], 7),
+        userId: findHeaderIndex(headers, ['user_id', 'user id'], 9)
+    };
+    return {
+        value: parseValue(row[idx.value]),
+        billingMonth: row[idx.billingMonth] || '',
+        cardId: row[idx.cardId] || '',
+        card: row[idx.card] || row[idx.cardId] || '',
+        userId: row[idx.userId] || ''
+    };
+}
+
+function cardLaunchRowsToInvoices(cardLaunchRows = [], trustedUserIds = []) {
+    if (!Array.isArray(cardLaunchRows) || cardLaunchRows.length === 0) return [];
+    const allowedUserIds = new Set(trustedUserIds);
+    const headers = cardLaunchRows[0] || [];
+    const grouped = new Map();
+    for (const row of cardLaunchRows.slice(1)) {
+        const launch = normalizeCardLaunchRow(row, headers);
+        if (!allowedUserIds.has(String(launch.userId || '').trim())) continue;
+        if (!launch.card || !launch.billingMonth || Number(launch.value || 0) <= 0) continue;
+        const key = `${normalizeText(launch.cardId || launch.card)}|${normalizeText(launch.card)}|${normalizeText(launch.billingMonth)}`;
+        const current = grouped.get(key) || {
+            card: launch.card,
+            cardId: launch.cardId,
+            billingMonth: launch.billingMonth,
+            invoiceAmount: 0,
+            installmentCount: 0
+        };
+        current.invoiceAmount = roundMoney(current.invoiceAmount + Number(launch.value || 0));
+        current.installmentCount += 1;
+        grouped.set(key, current);
+    }
+    return [...grouped.values()];
+}
+
+function invoiceMatchScore(invoice = {}, request = {}) {
+    const terms = significantTerms(request.query);
+    if (terms.length === 0) return 0;
+    const invoiceText = normalizeText(`${invoice.card || ''} ${invoice.cardId || ''} ${invoice.billingMonth || ''}`);
+    const matchedTerms = terms.filter(term => invoiceText.includes(term));
+    if (matchedTerms.length === 0) return 0;
+
+    let score = matchedTerms.length * 3;
+    if (valuesAreCompatible(invoice.invoiceAmount, request.amount)) score += 4;
+    return score;
+}
+
+function publicInvoiceCandidate(invoice = {}, request = {}) {
+    return {
+        label: sanitizeLabel(`${invoice.card || 'Cartão'} - ${invoice.billingMonth || 'Fatura'}`, 'Fatura'),
+        card: sanitizeLabel(invoice.card || '', ''),
+        billingMonth: sanitizeLabel(invoice.billingMonth || '', ''),
+        invoiceAmount: Number(invoice.invoiceAmount || 0),
+        installmentCount: Number(invoice.installmentCount || 0),
+        amountCompatible: valuesAreCompatible(invoice.invoiceAmount, request.amount),
+        status: 'open_or_expected'
+    };
+}
+
+function matchCardInvoice({
+    request = {},
+    cardLaunchRows = [],
+    trustedScope = {},
+    limit = DEFAULT_CANDIDATE_LIMIT,
+    minScore = 3
+} = {}) {
+    const trustedUserIds = toTrustedUserIds(trustedScope);
+    if (trustedUserIds.length === 0) {
+        return {
+            ok: false,
+            tool: MATCH_CARD_INVOICE_TOOL,
+            classification: 'scope_required',
+            candidates: [],
+            errors: ['trusted_scope_required']
+        };
+    }
+
+    const normalizedRequest = normalizeContextToolRequest(request);
+    const safeLimit = Math.max(1, Math.min(Number.parseInt(limit, 10) || DEFAULT_CANDIDATE_LIMIT, 5));
+    const candidates = cardLaunchRowsToInvoices(cardLaunchRows, trustedUserIds)
+        .map(invoice => ({ invoice, score: invoiceMatchScore(invoice, normalizedRequest) }))
+        .filter(item => item.score >= minScore)
+        .filter(item => normalizedRequest.amount <= 0 || valuesAreCompatible(item.invoice.invoiceAmount, normalizedRequest.amount))
+        .sort((left, right) => right.score - left.score || normalizeText(left.invoice.card || '').localeCompare(normalizeText(right.invoice.card || '')))
+        .slice(0, safeLimit)
+        .map(item => publicInvoiceCandidate(item.invoice, normalizedRequest));
+
+    return {
+        ok: true,
+        tool: MATCH_CARD_INVOICE_TOOL,
+        classification: candidates.length === 0
+            ? 'no_match'
+            : candidates.length === 1
+                ? 'single_match'
+                : 'multiple_matches',
+        candidates
+    };
+}
 function matchRecurringBill({
     request = {},
     accountRows = [],
@@ -252,8 +361,10 @@ function matchRecurringBill({
 module.exports = {
     MATCH_RECURRING_BILL_TOOL,
     MATCH_DEBT_TOOL,
+    MATCH_CARD_INVOICE_TOOL,
     matchRecurringBill,
     matchDebt,
+    matchCardInvoice,
     __test__: {
         normalizeContextToolRequest,
         valuesAreCompatible,
@@ -262,6 +373,9 @@ module.exports = {
         normalizeDebtRow,
         debtRowsToDebts,
         debtIsActive,
-        debtMatchScore
+        debtMatchScore,
+        normalizeCardLaunchRow,
+        cardLaunchRowsToInvoices,
+        invoiceMatchScore
     }
 };

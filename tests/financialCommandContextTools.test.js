@@ -3,7 +3,8 @@ const assert = require('node:assert');
 
 const {
     matchRecurringBill,
-    matchDebt
+    matchDebt,
+    matchCardInvoice
 } = require('../src/planning/financialCommandContextTools');
 
 const accountRows = [
@@ -112,6 +113,64 @@ test('matchDebt does not return paid debts as payment candidates', () => {
             amount: 100
         },
         debtRows,
+        trustedScope: {
+            userIds: ['daniel-user']
+        }
+    });
+
+    assert.strictEqual(result.ok, true);
+    assert.strictEqual(result.classification, 'no_match');
+    assert.deepStrictEqual(result.candidates, []);
+});
+const cardLaunchRows = [
+    ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Observações', 'user_id'],
+    ['01/06/2026', 'Mercado', 'Casa', '500,00', '1/1', 'Junho de 2026', 'nubank-daniel', 'Nubank Daniel', 'compra privada', 'daniel-user'],
+    ['05/06/2026', 'Farmácia', 'Saúde', '350,00', '1/1', 'Junho de 2026', 'nubank-daniel', 'Nubank Daniel', 'outra compra', 'daniel-user'],
+    ['06/06/2026', 'Compra outro usuário', 'Casa', '120,00', '1/1', 'Junho de 2026', 'nubank-outro', 'Nubank Outro', 'fora do escopo', 'other-user'],
+    ['10/06/2026', 'Supermercado', 'Casa', '220,00', '1/1', 'Junho de 2026', 'itau-daniel', 'Itaú Daniel', 'nao vazar', 'daniel-user']
+];
+
+test('matchCardInvoice builds scoped invoice candidates from card launches', () => {
+    const result = matchCardInvoice({
+        request: {
+            query: 'Paguei 850 da fatura do Nubank',
+            amount: 850,
+            userId: 'other-user',
+            rawRows: [['should not be honored']]
+        },
+        cardLaunchRows,
+        trustedScope: {
+            userIds: ['daniel-user']
+        }
+    });
+
+    assert.strictEqual(result.ok, true);
+    assert.strictEqual(result.tool, 'match_card_invoice');
+    assert.strictEqual(result.classification, 'single_match');
+    assert.deepStrictEqual(result.candidates, [{
+        label: 'Nubank Daniel - Junho de 2026',
+        card: 'Nubank Daniel',
+        billingMonth: 'Junho de 2026',
+        invoiceAmount: 850,
+        installmentCount: 2,
+        amountCompatible: true,
+        status: 'open_or_expected'
+    }]);
+
+    const serialized = JSON.stringify(result);
+    assert.ok(!serialized.includes('daniel-user'));
+    assert.ok(!serialized.includes('other-user'));
+    assert.ok(!serialized.includes('compra privada'));
+    assert.ok(!serialized.includes('rawRows'));
+});
+
+test('matchCardInvoice does not leak another user invoice with the same card brand', () => {
+    const result = matchCardInvoice({
+        request: {
+            query: 'Paguei 120 da fatura do Nubank',
+            amount: 120
+        },
+        cardLaunchRows,
         trustedScope: {
             userIds: ['daniel-user']
         }
