@@ -6443,7 +6443,7 @@ function buildBillPaymentDate(rawDate) {
     }
 }
 
-function buildBillPaymentFromPlan(plan = {}, billCandidate = {}, { originalMessage = '' } = {}) {
+function buildBillPaymentFromPlan(plan = {}, billCandidate = {}, { originalMessage = '', originalMessageId = '' } = {}) {
     const entities = plan.entities || {};
     const amount = parseValue(entities.amount ?? billCandidate.expectedAmount);
     if (!Number.isFinite(amount) || amount <= 0) return null;
@@ -6460,11 +6460,30 @@ function buildBillPaymentFromPlan(plan = {}, billCandidate = {}, { originalMessa
         recorrente: 'SIM',
         observacoes: 'Conta recorrente registrada pelo command planner.',
         originalMessage,
+        originalMessageId,
         interpretationSource: 'command_planner',
         billCandidate
     };
 }
 
+function buildBillPaymentOperationKey(billPayment = {}, userId = '') {
+    const { createOperationKey } = require('../reliability/financialWriteLedger');
+    const fingerprint = {
+        data: billPayment.data || '',
+        descricao: normalizeText(billPayment.descricao || ''),
+        categoria: normalizeText(billPayment.categoria || ''),
+        subcategoria: normalizeText(billPayment.subcategoria || ''),
+        valor: parseValue(billPayment.valor),
+        pagamento: normalizeText(billPayment.pagamento || ''),
+        conta: normalizeText(billPayment.billCandidate?.accountName || billPayment.billCandidate?.label || '')
+    };
+    return createOperationKey({
+        userId,
+        messageId: billPayment.originalMessageId || normalizeText(billPayment.originalMessage || billPayment.descricao || ''),
+        operation: 'bill.pay',
+        itemFingerprint: JSON.stringify(fingerprint)
+    });
+}
 function buildBillPaymentConfirmationMessage(billPayment = {}) {
     return [
         `Identifiquei o pagamento da conta recorrente *${billPayment.descricao || 'Conta recorrente'}*.`,
@@ -6512,7 +6531,12 @@ async function saveBillPayment(billPayment = {}, { person, userId } = {}) {
         billPayment.observacoes || 'Conta recorrente registrada pelo command planner.',
         userId
     ];
-    await appendRowToSheet('Saídas', rowData);
+    await appendRowToSheet('Saídas', rowData, {
+        operationKey: buildBillPaymentOperationKey(billPayment, userId),
+        userId,
+        messageId: billPayment.originalMessageId || '',
+        source: 'financial_command_planner.bill_pay'
+    });
     markFinancialReadModelDirty('bill_payment_write');
     return { date: rowData[0], description: rowData[1], value, method };
 }
@@ -6545,7 +6569,10 @@ async function handlePlannedBillPayment({ msg, senderId, messageBody, userId, pe
         return true;
     }
 
-    const billPayment = buildBillPaymentFromPlan(plan, match.candidates[0], { originalMessage: messageBody });
+    const billPayment = buildBillPaymentFromPlan(plan, match.candidates[0], {
+        originalMessage: messageBody,
+        originalMessageId: msg?.id?.id || ''
+    });
     if (!billPayment) {
         await msg.reply('Identifiquei a conta recorrente, mas faltou o valor pago. Envie novamente com o valor, por exemplo: `paguei 120 da conta de telefone`.');
         return true;

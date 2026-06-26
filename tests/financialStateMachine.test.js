@@ -37,6 +37,8 @@ const USER_SETTINGS_HEADER = [
 
 const sheets = {};
 const deletedRows = [];
+const appendedRows = [];
+const seenAppendOperationKeys = new Set();
 const createdCalendarEvents = [];
 const structuredResponses = [];
 let stateMachineFailed = false;
@@ -106,6 +108,8 @@ function resetSheets() {
         sheets[sheetName] = [['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'user_id']];
     }
     deletedRows.length = 0;
+    appendedRows.length = 0;
+    seenAppendOperationKeys.clear();
     createdCalendarEvents.length = 0;
     structuredResponses.length = 0;
     financialScopeUserIds = [USER_ID];
@@ -172,10 +176,17 @@ function installMocks() {
         loaded: true,
         exports: {
             readDataFromSheet: async (range) => sheets[getSheetName(range)] || [],
-            appendRowToSheet: async (sheetName, row) => {
+            appendRowToSheet: async (sheetName, row, options = {}) => {
                 const name = getSheetName(sheetName);
                 if (!sheets[name]) sheets[name] = [[]];
+                if (options.operationKey) {
+                    if (seenAppendOperationKeys.has(options.operationKey)) {
+                        return { status: 'committed', receipt: { replayed: true } };
+                    }
+                    seenAppendOperationKeys.add(options.operationKey);
+                }
                 sheets[name].push(row);
+                appendedRows.push({ sheetName: name, row, options });
             },
             createCalendarEvent: async (title, startDateTime, recurrenceRule, options = {}) => {
                 const event = { title, startDateTime, recurrenceRule, options };
@@ -452,6 +463,112 @@ stateMachineTest('financial states: command planner route registers recurring bi
     }
 });
 
+stateMachineTest('financial states: command planner route can cancel recurring bill payment without writing', async () => {
+    resetState();
+    const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
+    sheets.Contas.push([
+        'Claro Residencial',
+        '10',
+        '',
+        USER_ID,
+        'Conta de telefone',
+        'Moradia',
+        'INTERNET / TELEFONE',
+        '469,09',
+        'SIM'
+    ]);
+    enqueueStructuredResponse({
+        schemaVersion: 'financial-command-plan-v1',
+        operation: 'bill.pay',
+        entities: {
+            description: 'conta de telefone',
+            amount: 469.09,
+            date: '25/06/2026',
+            paymentMethod: null
+        },
+        fieldEvidence: {
+            description: 'explicit',
+            amount: 'explicit',
+            date: 'explicit',
+            paymentMethod: 'missing'
+        },
+        contextRequests: [{ tool: 'match_recurring_bill', query: 'conta de telefone' }],
+        missingFields: ['paymentMethod'],
+        requiresConfirmation: true
+    });
+
+    try {
+        assert.match(await send('Paguei 469,09 da conta de telefone'), /forma de pagamento/i);
+        assert.match(await send('Pix'), /confirma/i);
+
+        const reply = await send('não');
+
+        assert.match(reply, /cancelad/i);
+        assert.strictEqual(sheets.Saídas.length, 1);
+        assert.strictEqual(appendedRows.length, 0);
+        assert.strictEqual(userStateManager.getState(SENDER), undefined);
+    } finally {
+        if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+        else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+    }
+});
+
+stateMachineTest('financial states: command planner route uses stable write key for recurring bill payment replay', async () => {
+    resetState();
+    const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
+    sheets.Contas.push([
+        'Claro Residencial',
+        '10',
+        '',
+        USER_ID,
+        'Conta de telefone',
+        'Moradia',
+        'INTERNET / TELEFONE',
+        '469,09',
+        'SIM'
+    ]);
+    enqueueStructuredResponse({
+        schemaVersion: 'financial-command-plan-v1',
+        operation: 'bill.pay',
+        entities: {
+            description: 'conta de telefone',
+            amount: 469.09,
+            date: '25/06/2026',
+            paymentMethod: null
+        },
+        fieldEvidence: {
+            description: 'explicit',
+            amount: 'explicit',
+            date: 'explicit',
+            paymentMethod: 'missing'
+        },
+        contextRequests: [{ tool: 'match_recurring_bill', query: 'conta de telefone' }],
+        missingFields: ['paymentMethod'],
+        requiresConfirmation: true
+    });
+
+    try {
+        assert.match(await send('Paguei 469,09 da conta de telefone'), /forma de pagamento/i);
+        assert.match(await send('Pix'), /confirma/i);
+        const staleConfirmationState = userStateManager.getState(SENDER);
+
+        assert.match(await send('sim'), /registrado/i);
+        assert.strictEqual(sheets.Saídas.length, 2);
+        assert.strictEqual(appendedRows.length, 1);
+        assert.ok(appendedRows[0].options.operationKey, 'expected bill payment writes to carry an operation key');
+
+        userStateManager.setState(SENDER, staleConfirmationState);
+        assert.match(await send('sim'), /registrado/i);
+
+        assert.strictEqual(sheets.Saídas.length, 2);
+        assert.strictEqual(appendedRows.length, 1);
+    } finally {
+        if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+        else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+    }
+});
 stateMachineTest('financial states: unknown payment method asks again instead of defaulting to PIX', async () => {
     resetState();
     userStateManager.setState(SENDER, {
