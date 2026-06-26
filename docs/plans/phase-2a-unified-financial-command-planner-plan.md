@@ -1,6 +1,6 @@
 # Phase 2A Plan: Unified Financial Command Planner
 
-Status: Step 3 complete; no production routing change authorized.
+Status: Step 5 local shadow implementation added; production shadow evidence pending; no routing change authorized.
 Date: 2026-06-25
 
 ## Position In The Existing Roadmap
@@ -117,6 +117,15 @@ Progress on 2026-06-26:
 - In `shadow`, evaluate only eligible initial messages.
 - Keep current visible response unchanged.
 - Record sanitized operation/action/divergence metadata.
+
+Progress on 2026-06-26 (Step 5 local implementation):
+
+- `src/planning/financialCommandPlannerShadow.js` adds fail-closed mode parsing for `FINANCIAL_COMMAND_PLANNER_MODE=off|shadow|canary|route`, defaulting invalid or missing values to `off`.
+- In `shadow`, only initial messages without active conversation state are observed; visible legacy routing remains unchanged.
+- Shadow telemetry is written to sanitized JSONL metadata only, with sender/message fingerprints and operation/divergence fields, never raw message text or internal scope.
+- Telephone bill misroutes such as legacy `expense.create`/`debt.pay` versus planner `bill.pay` are marked as critical divergence for observation.
+- `messageHandler` calls the runner after legacy classification and before routing, but only the legacy `structuredResponse` drives the user-visible flow.
+- Focused command-planner tests passed `33/33`.
 
 Gate:
 

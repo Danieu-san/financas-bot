@@ -190,8 +190,9 @@ Validar:
   `tests\financialCommandContextTools.test.js`, cobrindo escopo confiavel,
   saida minima e ausencia de `user_id`, notas, linhas cruas ou argumentos do
   modelo usados como escopo.
-- Esta bateria nao autoriza roteamento; `FINANCIAL_COMMAND_PLANNER_MODE` deve
-  permanecer ausente/desligado ate a etapa de shadow.
+- Testes de shadow devem incluir `tests\financialCommandPlannerShadow.test.js`; o modo invalido deve falhar para `off`, mensagens com estado ativo nao podem chamar planner, e o resultado visivel deve continuar sendo o `structuredResponse` legado.
+- A telemetria de shadow do command planner nao pode conter mensagem financeira crua, telefone, `user_id`, `spreadsheet`, raw rows ou argumentos de escopo vindos do modelo.
+- Esta bateria nao autoriza roteamento/canary; `FINANCIAL_COMMAND_PLANNER_MODE` deve ficar ausente/desligado em producao ate aprovacao explicita de shadow controlado, e `canary`/`route` continuam proibidos sem novo gate.
 ## Canonical Ledger
 
 Validar:

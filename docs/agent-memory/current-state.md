@@ -627,8 +627,7 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   publicas conhecidas, sem descricoes de movimentos, observacoes, `user_id`,
   indices ou linhas cruas.
 - Teste focado da Etapa 4 completa: `node --test tests\financialCommandPlanContract.test.js tests\financialCommandPlanner.test.js tests\financialCommandPlannerRunner.test.js tests\financialCommandContextTools.test.js` passou `28/28`.
-- Proxima etapa: Etapa 5, adicionar `FINANCIAL_COMMAND_PLANNER_MODE` em
-  `off|shadow|canary|route`, com padrao `off`, avaliando mensagens iniciais em
-  shadow sem alterar resposta visivel.
-  `FINANCIAL_COMMAND_PLANNER_MODE` continua ausente/desligado ate a futura etapa
-  de shadow.
+- Etapa 5 recebeu implementacao local de shadow comparison em 2026-06-26: `FINANCIAL_COMMAND_PLANNER_MODE=off|shadow|canary|route` falha fechado para `off`; em `shadow`, apenas mensagens iniciais sem estado ativo sao observadas; a resposta visivel continua 100% pelo legado.
+- Telemetria local do command planner fica em JSONL sanitizado (`data/financial-command-planner-shadow.jsonl` por padrao), com fingerprints e operacoes/divergencias, sem texto cru, telefone, `user_id`, linhas cruas, planilha ou escopo interno.
+- O caso real da conta de telefone agora aparece como divergencia critica em shadow quando o legado classifica como `expense.create`/`debt.pay` e o planner classifica `bill.pay`. Isso ainda nao corrige o fluxo produtivo; a correcao de execucao fica para a vertical slice `bill.pay` da Etapa 6.
+- Teste focado atualizado: `node --test tests\financialCommandPlanContract.test.js tests\financialCommandPlanner.test.js tests\financialCommandPlannerRunner.test.js tests\financialCommandContextTools.test.js tests\financialCommandPlannerShadow.test.js` passou `33/33`. Gate de producao ainda pendente: 50 decisoes/14 dias, cobertura por operacao, zero divergencia critica e zero vazamento.

@@ -66,6 +66,7 @@ const { buildDashboardAccessLink } = require('../utils/dashboardAuth');
 const { buildGoogleConnectLink } = require('../services/googleOAuthService');
 const { sendWhatsAppMessage } = require('../services/whatsapp');
 const { invokeFinancialAgent } = require('../agent/financialAgent');
+const { runFinancialCommandPlannerShadow } = require('../planning/financialCommandPlannerShadow');
 const {
     GOAL_STATUS,
     applyGoalMovement,
@@ -7684,6 +7685,23 @@ async function handleMessage(msg) {
                 }
             }
 
+
+            const plannerShadow = await runFinancialCommandPlannerShadow({
+                message: messageBody,
+                senderId,
+                legacyStructuredResponse: structuredResponse,
+                structuredResponseSource,
+                currentState: null
+            });
+            if (plannerShadow.observed) {
+                const telemetry = plannerShadow.record?.telemetry || {};
+                logger.info(
+                    `[financial-command-planner] shadow_observed legacy=${telemetry.legacyOperation || 'unknown'} ` +
+                    `planner=${telemetry.plannerOperation || 'unknown'} divergence=${telemetry.divergenceSeverity || 'none'}`
+                );
+            } else if (plannerShadow.reason === 'planner_failed') {
+                logger.warn(`[financial-command-planner] shadow_failed error=${plannerShadow.error || 'unknown'}`);
+            }
             switch (structuredResponse.intent) {
                 case 'resumo': {
                     await msg.reply('Gerando seu resumo pelo mesmo critério do dashboard...');

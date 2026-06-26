@@ -134,6 +134,7 @@ The normalizer must:
   non-sensitive attributes needed for disambiguation.
 - Each initial message has a bounded planner-call budget.
 - Active multi-step state replies do not trigger a new planner call.
+- Runtime observation is gated by `FINANCIAL_COMMAND_PLANNER_MODE=off|shadow|canary|route`, default `off`; `shadow` records sanitized metadata only and cannot alter the user-visible response.
 
 ## Testing Strategy
 
@@ -147,7 +148,7 @@ The normalizer must:
 ## Commands
 
 ```text
-node --test tests/financialCommandPlanContract.test.js tests/financialCommandPlanner.test.js tests/financialCommandPlannerRunner.test.js
+node --test tests/financialCommandPlanContract.test.js tests/financialCommandPlanner.test.js tests/financialCommandPlannerRunner.test.js tests/financialCommandContextTools.test.js tests/financialCommandPlannerShadow.test.js
 npm run test:financial-command-planner
 npm test
 npm audit --audit-level=high
