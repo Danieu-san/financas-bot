@@ -105,6 +105,10 @@ Progress on 2026-06-26:
 - `resolve_category` was added from scoped history, recurring bill rules and
   public known categories, returning only category/subcategory/source.
 - Focused command-planner tests after `resolve_category` passed `27/27`.
+- `list_user_accounts` completed the scoped context-tool set, returning account
+  labels and supported roles from scoped transfers, active cards and public known
+  accounts.
+- Focused command-planner tests after Step 4 completion passed `28/28`.
 - No handler routing, production flag or financial write path changed.
 
 ## Step 5 - Shadow Comparison

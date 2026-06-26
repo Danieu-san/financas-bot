@@ -622,8 +622,13 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   lista publica conhecida, mas retorna apenas categoria/subcategoria/fonte; as
   descricoes historicas sao usadas so para pontuacao local e nao saem da
   ferramenta.
-- Teste focado da Etapa 4: `node --test tests\financialCommandPlanContract.test.js tests\financialCommandPlanner.test.js tests\financialCommandPlannerRunner.test.js tests\financialCommandContextTools.test.js` passou `27/27`.
-- Proxima etapa: concluir ferramentas de contexto escopadas com
-  `list_user_accounts`.
+- `list_user_accounts` concluiu a Etapa 4 localmente. A ferramenta lista rotulos
+  de contas/roles a partir de transferencias escopadas, cartoes ativos e contas
+  publicas conhecidas, sem descricoes de movimentos, observacoes, `user_id`,
+  indices ou linhas cruas.
+- Teste focado da Etapa 4 completa: `node --test tests\financialCommandPlanContract.test.js tests\financialCommandPlanner.test.js tests\financialCommandPlannerRunner.test.js tests\financialCommandContextTools.test.js` passou `28/28`.
+- Proxima etapa: Etapa 5, adicionar `FINANCIAL_COMMAND_PLANNER_MODE` em
+  `off|shadow|canary|route`, com padrao `off`, avaliando mensagens iniciais em
+  shadow sem alterar resposta visivel.
   `FINANCIAL_COMMAND_PLANNER_MODE` continua ausente/desligado ate a futura etapa
   de shadow.

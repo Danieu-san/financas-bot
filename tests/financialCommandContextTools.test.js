@@ -5,7 +5,8 @@ const {
     matchRecurringBill,
     matchDebt,
     matchCardInvoice,
-    resolveCategory
+    resolveCategory,
+    listUserAccounts
 } = require('../src/planning/financialCommandContextTools');
 
 const accountRows = [
@@ -244,4 +245,51 @@ test('resolveCategory can return public known categories when scoped history has
         subcategory: 'Banho e tosa',
         source: 'known'
     }]);
+});
+const transferRows = [
+    ['Data', 'Descrição', 'Valor', 'Conta Origem', 'Conta Destino', 'Método', 'Observações', 'Status', 'user_id'],
+    ['01/06/2026', 'Pagamento fatura', '850,00', 'Conta Corrente', 'Nubank Cartão', 'PIX', 'privado', 'Pagamento de fatura', 'daniel-user'],
+    ['02/06/2026', 'Outro usuário', '10,00', 'Conta Secreta', 'Outra Conta', 'PIX', 'fora do escopo', 'Transferência', 'other-user']
+];
+
+const cardConfigRows = [
+    ['card_id', 'Nome', 'Banco', 'Dia de Fechamento', 'Dia de Vencimento', 'Ativo', 'Observações'],
+    ['nubank-daniel', 'Nubank Daniel', 'Nubank', '8', '15', 'SIM', 'cartao privado'],
+    ['itau-inativo', 'Itaú Inativo', 'Itaú', '10', '20', 'NÃO', 'nao listar']
+];
+
+test('listUserAccounts returns scoped account labels and roles without transfer details', () => {
+    const result = listUserAccounts({
+        request: {
+            query: 'de qual conta paguei a fatura?',
+            userId: 'other-user',
+            rawRows: [['should not be honored']]
+        },
+        transferRows,
+        cardConfigRows,
+        knownAccounts: [
+            { label: 'Carteira', roles: ['cash_source'] }
+        ],
+        trustedScope: {
+            userIds: ['daniel-user']
+        }
+    });
+
+    assert.strictEqual(result.ok, true);
+    assert.strictEqual(result.tool, 'list_user_accounts');
+    assert.strictEqual(result.classification, 'available');
+    assert.deepStrictEqual(result.accounts, [
+        { label: 'Carteira', roles: ['cash_source'] },
+        { label: 'Conta Corrente', roles: ['cash_source'] },
+        { label: 'Nubank Cartão', roles: ['cash_destination'] },
+        { label: 'Nubank Daniel', roles: ['credit_card'], bank: 'Nubank' }
+    ]);
+
+    const serialized = JSON.stringify(result);
+    assert.ok(!serialized.includes('daniel-user'));
+    assert.ok(!serialized.includes('other-user'));
+    assert.ok(!serialized.includes('Pagamento fatura'));
+    assert.ok(!serialized.includes('Conta Secreta'));
+    assert.ok(!serialized.includes('privado'));
+    assert.ok(!serialized.includes('rawRows'));
 });

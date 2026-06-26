@@ -6,6 +6,7 @@ const MATCH_RECURRING_BILL_TOOL = 'match_recurring_bill';
 const MATCH_DEBT_TOOL = 'match_debt';
 const MATCH_CARD_INVOICE_TOOL = 'match_card_invoice';
 const RESOLVE_CATEGORY_TOOL = 'resolve_category';
+const LIST_USER_ACCOUNTS_TOOL = 'list_user_accounts';
 
 function toTrustedUserIds(trustedScope = {}) {
     const raw = Array.isArray(trustedScope.userIds)
@@ -455,6 +456,106 @@ function resolveCategory({
         candidates
     };
 }
+function normalizeRole(role = '') {
+    const normalized = normalizeText(role || '');
+    if (['cash_source', 'origem', 'source'].includes(normalized)) return 'cash_source';
+    if (['cash_destination', 'destino', 'destination'].includes(normalized)) return 'cash_destination';
+    if (['credit_card', 'cartao', 'cartão', 'card'].includes(normalized)) return 'credit_card';
+    return '';
+}
+
+function addAccountRole(accounts, label, role, extra = {}) {
+    const safeLabel = sanitizeLabel(label || '', '');
+    const safeRole = normalizeRole(role);
+    if (!safeLabel || !safeRole) return;
+    const key = normalizeText(safeLabel);
+    const current = accounts.get(key) || { label: safeLabel, roles: [] };
+    if (!current.roles.includes(safeRole)) current.roles.push(safeRole);
+    if (extra.bank && !current.bank) current.bank = sanitizeLabel(extra.bank, '');
+    accounts.set(key, current);
+}
+
+function collectUserAccounts({
+    transferRows = [],
+    cardConfigRows = [],
+    knownAccounts = [],
+    trustedUserIds = []
+} = {}) {
+    const allowedUserIds = new Set(trustedUserIds);
+    const accounts = new Map();
+
+    for (const item of Array.isArray(knownAccounts) ? knownAccounts : []) {
+        const roles = Array.isArray(item.roles) ? item.roles : [item.role];
+        for (const role of roles) addAccountRole(accounts, item.label, role, { bank: item.bank });
+    }
+
+    if (Array.isArray(transferRows) && transferRows.length > 0) {
+        const headers = transferRows[0] || [];
+        const idx = {
+            origin: findHeaderIndex(headers, ['Conta Origem', 'Origem'], 3),
+            destination: findHeaderIndex(headers, ['Conta Destino', 'Destino'], 4),
+            userId: findHeaderIndex(headers, ['user_id', 'user id'], 8)
+        };
+        for (const row of transferRows.slice(1)) {
+            if (!allowedUserIds.has(String(row[idx.userId] || '').trim())) continue;
+            addAccountRole(accounts, row[idx.origin], 'cash_source');
+            addAccountRole(accounts, row[idx.destination], 'cash_destination');
+        }
+    }
+
+    if (Array.isArray(cardConfigRows) && cardConfigRows.length > 0) {
+        const headers = cardConfigRows[0] || [];
+        const idx = {
+            name: findHeaderIndex(headers, ['Nome', 'Cartão', 'Cartao'], 1),
+            bank: findHeaderIndex(headers, ['Banco'], 2),
+            active: findHeaderIndex(headers, ['Ativo', 'Status'], 5)
+        };
+        for (const row of cardConfigRows.slice(1)) {
+            const active = normalizeText(row[idx.active] || 'sim');
+            if (['nao', 'não', 'n', 'false', 'inativo', 'cancelado'].includes(active)) continue;
+            addAccountRole(accounts, row[idx.name], 'credit_card', { bank: row[idx.bank] });
+        }
+    }
+
+    return [...accounts.values()]
+        .map(account => ({
+            ...account,
+            roles: account.roles.sort()
+        }))
+        .sort((left, right) => normalizeText(left.label).localeCompare(normalizeText(right.label)));
+}
+
+function listUserAccounts({
+    transferRows = [],
+    cardConfigRows = [],
+    knownAccounts = [],
+    trustedScope = {}
+} = {}) {
+    const trustedUserIds = toTrustedUserIds(trustedScope);
+    if (trustedUserIds.length === 0) {
+        return {
+            ok: false,
+            tool: LIST_USER_ACCOUNTS_TOOL,
+            classification: 'scope_required',
+            accounts: [],
+            errors: ['trusted_scope_required']
+        };
+    }
+
+    const accounts = collectUserAccounts({
+        transferRows,
+        cardConfigRows,
+        knownAccounts,
+        trustedUserIds
+    });
+
+    return {
+        ok: true,
+        tool: LIST_USER_ACCOUNTS_TOOL,
+        classification: accounts.length > 0 ? 'available' : 'no_accounts',
+        accounts
+    };
+}
 function matchRecurringBill({
     request = {},
     accountRows = [],
@@ -516,10 +617,12 @@ module.exports = {
     MATCH_DEBT_TOOL,
     MATCH_CARD_INVOICE_TOOL,
     RESOLVE_CATEGORY_TOOL,
+    LIST_USER_ACCOUNTS_TOOL,
     matchRecurringBill,
     matchDebt,
     matchCardInvoice,
     resolveCategory,
+    listUserAccounts,
     __test__: {
         normalizeContextToolRequest,
         valuesAreCompatible,
@@ -533,6 +636,7 @@ module.exports = {
         cardLaunchRowsToInvoices,
         invoiceMatchScore,
         collectCategoryCandidates,
-        categoryMatchScore
+        categoryMatchScore,
+        collectUserAccounts
     }
 };
