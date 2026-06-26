@@ -82,7 +82,7 @@ Tools receive scope from trusted application context, never from the model.
 | `match_recurring_bill` | zero or more bill candidate labels and classification; no `user_id`, notes, row index or raw row |
 | `match_debt` | zero or more debt candidate labels and payment constraints; no `user_id`, notes, row index or raw row |
 | `match_card_invoice` | zero or more card/invoice candidate labels and status; built from scoped card launches, not raw invoice rows |
-| `resolve_category` | known category candidates only |
+| `resolve_category` | known category candidates only; no historical descriptions, row ids or scoped identities |
 | `list_user_accounts` | display labels and supported payment roles |
 
 No tool returns an entire sheet or raw source rows.

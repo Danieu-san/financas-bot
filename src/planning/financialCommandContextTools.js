@@ -5,6 +5,7 @@ const DEFAULT_CANDIDATE_LIMIT = 3;
 const MATCH_RECURRING_BILL_TOOL = 'match_recurring_bill';
 const MATCH_DEBT_TOOL = 'match_debt';
 const MATCH_CARD_INVOICE_TOOL = 'match_card_invoice';
+const RESOLVE_CATEGORY_TOOL = 'resolve_category';
 
 function toTrustedUserIds(trustedScope = {}) {
     const raw = Array.isArray(trustedScope.userIds)
@@ -302,6 +303,158 @@ function matchCardInvoice({
         candidates
     };
 }
+function normalizeCategoryCandidate(category = '', subcategory = '', source = 'history', matchText = '') {
+    const safeCategory = sanitizeLabel(category || '', '');
+    const safeSubcategory = sanitizeLabel(subcategory || '', '');
+    if (!safeCategory && !safeSubcategory) return null;
+    return {
+        category: safeCategory || 'Outros',
+        subcategory: safeSubcategory,
+        source,
+        matchText: sanitizeLabel(matchText || `${safeCategory} ${safeSubcategory}`, '')
+    };
+}
+
+function addCategoryCandidate(target, candidate) {
+    if (!candidate) return;
+    const key = `${normalizeText(candidate.category)}|${normalizeText(candidate.subcategory)}|${candidate.source}`;
+    if (!target.has(key)) target.set(key, candidate);
+}
+
+function collectCategoryCandidates({
+    expenseRows = [],
+    cardLaunchRows = [],
+    accountRows = [],
+    knownCategories = [],
+    trustedUserIds = []
+} = {}) {
+    const allowedUserIds = new Set(trustedUserIds);
+    const candidates = new Map();
+
+    if (Array.isArray(expenseRows) && expenseRows.length > 0) {
+        const headers = expenseRows[0] || [];
+        const idx = {
+            description: findHeaderIndex(headers, ['Descrição', 'Descricao'], 1),
+            category: findHeaderIndex(headers, ['Categoria'], 2),
+            subcategory: findHeaderIndex(headers, ['Subcategoria'], 3),
+            userId: findHeaderIndex(headers, ['user_id', 'user id'], 9)
+        };
+        for (const row of expenseRows.slice(1)) {
+            if (!allowedUserIds.has(String(row[idx.userId] || '').trim())) continue;
+            addCategoryCandidate(candidates, normalizeCategoryCandidate(
+                row[idx.category],
+                row[idx.subcategory],
+                'history',
+                `${row[idx.description] || ''} ${row[idx.category] || ''} ${row[idx.subcategory] || ''}`
+            ));
+        }
+    }
+
+    if (Array.isArray(cardLaunchRows) && cardLaunchRows.length > 0) {
+        const headers = cardLaunchRows[0] || [];
+        const idx = {
+            description: findHeaderIndex(headers, ['Descrição', 'Descricao'], 1),
+            category: findHeaderIndex(headers, ['Categoria'], 2),
+            userId: findHeaderIndex(headers, ['user_id', 'user id'], 9)
+        };
+        for (const row of cardLaunchRows.slice(1)) {
+            if (!allowedUserIds.has(String(row[idx.userId] || '').trim())) continue;
+            addCategoryCandidate(candidates, normalizeCategoryCandidate(
+                row[idx.category],
+                'Cartão de Crédito',
+                'history',
+                `${row[idx.description] || ''} ${row[idx.category] || ''}`
+            ));
+        }
+    }
+
+    for (const bill of recurringBillRowsToBills(accountRows)) {
+        if (!allowedUserIds.has(String(bill.userId || '').trim())) continue;
+        addCategoryCandidate(candidates, normalizeCategoryCandidate(
+            bill.category,
+            bill.subcategory,
+            'recurring_bill',
+            `${bill.description || ''} ${bill.accountName || ''} ${bill.category || ''} ${bill.subcategory || ''}`
+        ));
+    }
+
+    for (const item of Array.isArray(knownCategories) ? knownCategories : []) {
+        addCategoryCandidate(candidates, normalizeCategoryCandidate(
+            item.category,
+            item.subcategory,
+            'known',
+            `${item.category || ''} ${item.subcategory || ''}`
+        ));
+    }
+
+    return [...candidates.values()];
+}
+
+function categoryMatchScore(candidate = {}, request = {}) {
+    const terms = significantTerms(request.query);
+    if (terms.length === 0) return 0;
+    const text = normalizeText(`${candidate.matchText || ''} ${candidate.category || ''} ${candidate.subcategory || ''}`);
+    const matchedTerms = terms.filter(term => text.includes(term));
+    if (matchedTerms.length === 0) return 0;
+    const sourceBonus = candidate.source === 'history' ? 2 : candidate.source === 'recurring_bill' ? 1 : 0;
+    return matchedTerms.length * 3 + sourceBonus;
+}
+
+function publicCategoryCandidate(candidate = {}) {
+    return {
+        category: sanitizeLabel(candidate.category || 'Outros', 'Outros'),
+        subcategory: sanitizeLabel(candidate.subcategory || '', ''),
+        source: candidate.source === 'recurring_bill' ? 'recurring_bill' : candidate.source === 'known' ? 'known' : 'history'
+    };
+}
+
+function resolveCategory({
+    request = {},
+    expenseRows = [],
+    cardLaunchRows = [],
+    accountRows = [],
+    knownCategories = [],
+    trustedScope = {},
+    limit = DEFAULT_CANDIDATE_LIMIT,
+    minScore = 3
+} = {}) {
+    const trustedUserIds = toTrustedUserIds(trustedScope);
+    if (trustedUserIds.length === 0) {
+        return {
+            ok: false,
+            tool: RESOLVE_CATEGORY_TOOL,
+            classification: 'scope_required',
+            candidates: [],
+            errors: ['trusted_scope_required']
+        };
+    }
+
+    const normalizedRequest = normalizeContextToolRequest(request);
+    const safeLimit = Math.max(1, Math.min(Number.parseInt(limit, 10) || DEFAULT_CANDIDATE_LIMIT, 5));
+    const candidates = collectCategoryCandidates({
+        expenseRows,
+        cardLaunchRows,
+        accountRows,
+        knownCategories,
+        trustedUserIds
+    })
+        .map(candidate => ({ candidate, score: categoryMatchScore(candidate, normalizedRequest) }))
+        .filter(item => item.score >= minScore)
+        .sort((left, right) => right.score - left.score || normalizeText(left.candidate.category || '').localeCompare(normalizeText(right.candidate.category || '')))
+        .slice(0, safeLimit)
+        .map(item => publicCategoryCandidate(item.candidate));
+
+    return {
+        ok: true,
+        tool: RESOLVE_CATEGORY_TOOL,
+        classification: candidates.length === 0
+            ? 'no_match'
+            : candidates.length === 1
+                ? 'single_match'
+                : 'multiple_matches',
+        candidates
+    };
+}
 function matchRecurringBill({
     request = {},
     accountRows = [],
@@ -362,9 +515,11 @@ module.exports = {
     MATCH_RECURRING_BILL_TOOL,
     MATCH_DEBT_TOOL,
     MATCH_CARD_INVOICE_TOOL,
+    RESOLVE_CATEGORY_TOOL,
     matchRecurringBill,
     matchDebt,
     matchCardInvoice,
+    resolveCategory,
     __test__: {
         normalizeContextToolRequest,
         valuesAreCompatible,
@@ -376,6 +531,8 @@ module.exports = {
         debtMatchScore,
         normalizeCardLaunchRow,
         cardLaunchRowsToInvoices,
-        invoiceMatchScore
+        invoiceMatchScore,
+        collectCategoryCandidates,
+        categoryMatchScore
     }
 };

@@ -617,8 +617,13 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   `user_id` antes de somar faturas. A saida publica traz rotulo, cartao, mes de
   cobranca, total, quantidade de parcelas e compatibilidade do valor, sem
   compras, observacoes, `user_id`, indices ou linhas cruas.
-- Teste focado da Etapa 4: `node --test tests\financialCommandPlanContract.test.js tests\financialCommandPlanner.test.js tests\financialCommandPlannerRunner.test.js tests\financialCommandContextTools.test.js` passou `25/25`.
-- Proxima etapa: continuar ferramentas de contexto escopadas com
-  `resolve_category`.
+- `resolve_category` foi implementado localmente. Ele monta candidatos a partir
+  de historico escopado de `Saídas`, `Lançamentos Cartão`, regras de `Contas` e
+  lista publica conhecida, mas retorna apenas categoria/subcategoria/fonte; as
+  descricoes historicas sao usadas so para pontuacao local e nao saem da
+  ferramenta.
+- Teste focado da Etapa 4: `node --test tests\financialCommandPlanContract.test.js tests\financialCommandPlanner.test.js tests\financialCommandPlannerRunner.test.js tests\financialCommandContextTools.test.js` passou `27/27`.
+- Proxima etapa: concluir ferramentas de contexto escopadas com
+  `list_user_accounts`.
   `FINANCIAL_COMMAND_PLANNER_MODE` continua ausente/desligado ate a futura etapa
   de shadow.

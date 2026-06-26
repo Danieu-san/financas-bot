@@ -4,7 +4,8 @@ const assert = require('node:assert');
 const {
     matchRecurringBill,
     matchDebt,
-    matchCardInvoice
+    matchCardInvoice,
+    resolveCategory
 } = require('../src/planning/financialCommandContextTools');
 
 const accountRows = [
@@ -179,4 +180,68 @@ test('matchCardInvoice does not leak another user invoice with the same card bra
     assert.strictEqual(result.ok, true);
     assert.strictEqual(result.classification, 'no_match');
     assert.deepStrictEqual(result.candidates, []);
+});
+const expenseRows = [
+    ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Observações', 'user_id'],
+    ['01/06/2026', 'Restaurante Malz', 'Alimentação', 'Restaurante', '120,00', 'Daniel', 'PIX', 'Não', 'mesa privada', 'daniel-user'],
+    ['02/06/2026', 'Curso secreto', 'Educação', 'Curso', '999,00', 'Outro', 'PIX', 'Não', 'fora do escopo', 'other-user']
+];
+
+test('resolveCategory returns known category candidates without historical descriptions', () => {
+    const result = resolveCategory({
+        request: {
+            query: 'gastei 120 no restaurante malz',
+            userId: 'other-user',
+            rawRows: [['should not be honored']]
+        },
+        expenseRows,
+        cardLaunchRows,
+        accountRows,
+        knownCategories: [
+            { category: 'Pets', subcategory: 'Banho e tosa' }
+        ],
+        trustedScope: {
+            userIds: ['daniel-user']
+        }
+    });
+
+    assert.strictEqual(result.ok, true);
+    assert.strictEqual(result.tool, 'resolve_category');
+    assert.strictEqual(result.classification, 'single_match');
+    assert.deepStrictEqual(result.candidates, [{
+        category: 'Alimentação',
+        subcategory: 'Restaurante',
+        source: 'history'
+    }]);
+
+    const serialized = JSON.stringify(result);
+    assert.ok(!serialized.includes('daniel-user'));
+    assert.ok(!serialized.includes('other-user'));
+    assert.ok(!serialized.includes('Restaurante Malz'));
+    assert.ok(!serialized.includes('mesa privada'));
+    assert.ok(!serialized.includes('Curso secreto'));
+    assert.ok(!serialized.includes('rawRows'));
+});
+
+test('resolveCategory can return public known categories when scoped history has no match', () => {
+    const result = resolveCategory({
+        request: {
+            query: 'banho e tosa'
+        },
+        expenseRows,
+        knownCategories: [
+            { category: 'Pets', subcategory: 'Banho e tosa' }
+        ],
+        trustedScope: {
+            userIds: ['daniel-user']
+        }
+    });
+
+    assert.strictEqual(result.ok, true);
+    assert.strictEqual(result.classification, 'single_match');
+    assert.deepStrictEqual(result.candidates, [{
+        category: 'Pets',
+        subcategory: 'Banho e tosa',
+        source: 'known'
+    }]);
 });

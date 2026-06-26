@@ -102,6 +102,9 @@ Progress on 2026-06-26:
 - `match_card_invoice` was added from scoped `Lançamentos Cartão` rows instead
   of the unscoped summary tab `Faturas`, returning only invoice labels/status.
 - Focused command-planner tests after `match_card_invoice` passed `25/25`.
+- `resolve_category` was added from scoped history, recurring bill rules and
+  public known categories, returning only category/subcategory/source.
+- Focused command-planner tests after `resolve_category` passed `27/27`.
 - No handler routing, production flag or financial write path changed.
 
 ## Step 5 - Shadow Comparison
