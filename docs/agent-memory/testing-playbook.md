@@ -186,6 +186,10 @@ Validar:
   ferramenta deve bloquear o plano.
 - Datas e multiplos numeros ambiguos nao podem virar valor financeiro.
 - Relatorios nao podem conter a mensagem financeira bruta.
+- Ferramentas de contexto devem ter testes proprios, por exemplo
+  `tests\financialCommandContextTools.test.js`, cobrindo escopo confiavel,
+  saida minima e ausencia de `user_id`, notas, linhas cruas ou argumentos do
+  modelo usados como escopo.
 - Esta bateria nao autoriza roteamento; `FINANCIAL_COMMAND_PLANNER_MODE` deve
   permanecer ausente/desligado ate a etapa de shadow.
 ## Canonical Ledger

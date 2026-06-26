@@ -87,6 +87,16 @@ Implement one tool at a time:
 Gate for each tool: user scope is injected by trusted code, output is minimal,
 and no raw row/internal identifier escapes.
 
+Progress on 2026-06-26:
+
+- `match_recurring_bill` implemented locally as a pure scoped context tool.
+- It reuses the recurring bill matcher, filters `Contas` by trusted app scope and
+  returns only public candidate labels/classification.
+- It deliberately ignores model-provided scope fields and does not return
+  `user_id`, notes, row indices or raw rows.
+- Focused command-planner tests passed `21/21`.
+- No handler routing, production flag or financial write path changed.
+
 ## Step 5 - Shadow Comparison
 
 - Add `FINANCIAL_COMMAND_PLANNER_MODE=off|shadow|canary|route`, default `off`.

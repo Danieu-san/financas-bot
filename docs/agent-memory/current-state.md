@@ -602,6 +602,13 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   divida e fatura.
 - Relatorios registram apenas IDs de caso e decisoes sanitizadas. O novo planner
   ainda nao recebe Sheets, banco, escopo interno ou historico financeiro.
-- Proxima etapa: ferramentas de contexto escopadas, iniciando por
-  `match_recurring_bill`. `FINANCIAL_COMMAND_PLANNER_MODE` continua
-  ausente/desligado ate a futura etapa de shadow.
+- Etapa 4 iniciou com `match_recurring_bill` local em
+  `src/planning/financialCommandContextTools.js`. A ferramenta recebe escopo
+  confiavel do app, filtra `Contas` por usuarios permitidos, retorna apenas
+  rotulos/categoria/subcategoria/valor esperado/vencimento e classifica
+  `single_match`, `multiple_matches` ou `no_match`; nao devolve `user_id`, notas,
+  indices, linhas cruas ou escopo interno.
+- Teste focado da Etapa 4: `node --test tests\financialCommandPlanContract.test.js tests\financialCommandPlanner.test.js tests\financialCommandPlannerRunner.test.js tests\financialCommandContextTools.test.js` passou `21/21`.
+- Proxima etapa: continuar ferramentas de contexto escopadas com `match_debt`.
+  `FINANCIAL_COMMAND_PLANNER_MODE` continua ausente/desligado ate a futura etapa
+  de shadow.
