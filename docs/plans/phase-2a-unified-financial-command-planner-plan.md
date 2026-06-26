@@ -95,6 +95,10 @@ Progress on 2026-06-26:
 - It deliberately ignores model-provided scope fields and does not return
   `user_id`, notes, row indices or raw rows.
 - Focused command-planner tests passed `21/21`.
+- `match_debt` was added next as a pure scoped context tool. It filters active
+  `Dívidas` rows by trusted app scope and returns only public labels,
+  outstanding balance/installment constraints and classification.
+- Focused command-planner tests after `match_debt` passed `23/23`.
 - No handler routing, production flag or financial write path changed.
 
 ## Step 5 - Shadow Comparison

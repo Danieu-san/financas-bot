@@ -608,7 +608,12 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   rotulos/categoria/subcategoria/valor esperado/vencimento e classifica
   `single_match`, `multiple_matches` ou `no_match`; nao devolve `user_id`, notas,
   indices, linhas cruas ou escopo interno.
-- Teste focado da Etapa 4: `node --test tests\financialCommandPlanContract.test.js tests\financialCommandPlanner.test.js tests\financialCommandPlannerRunner.test.js tests\financialCommandContextTools.test.js` passou `21/21`.
-- Proxima etapa: continuar ferramentas de contexto escopadas com `match_debt`.
+- `match_debt` tambem foi implementado localmente na Etapa 4. Ele normaliza a
+  aba `Dívidas`, filtra apenas dividas ativas do escopo confiavel e retorna
+  rotulos/credor/tipo/saldo/parcela/vencimento/status/restricao de valor, sem
+  `user_id`, observacoes, indices ou linhas cruas.
+- Teste focado da Etapa 4: `node --test tests\financialCommandPlanContract.test.js tests\financialCommandPlanner.test.js tests\financialCommandPlannerRunner.test.js tests\financialCommandContextTools.test.js` passou `23/23`.
+- Proxima etapa: continuar ferramentas de contexto escopadas com
+  `match_card_invoice`.
   `FINANCIAL_COMMAND_PLANNER_MODE` continua ausente/desligado ate a futura etapa
   de shadow.
