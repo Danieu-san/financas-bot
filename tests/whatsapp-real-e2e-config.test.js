@@ -183,7 +183,7 @@ test('whatsapp import e2e owner choice is configurable for family imports', () =
         /IMPORT_E2E_OWNER_CHOICE/
     );
 });
-test('whatsapp bill pay e2e builds marker-only plan and requires route mode', () => {
+test('whatsapp bill pay e2e builds marker-only plan and requires an authorized route mode', () => {
     const {
         buildBillPayE2EPlan,
         requireBillPayRouteMode,
@@ -191,11 +191,21 @@ test('whatsapp bill pay e2e builds marker-only plan and requires route mode', ()
     } = require('../scripts/runWhatsappBillPayE2E');
 
     assert.throws(
-        () => requireBillPayRouteMode({ FINANCIAL_COMMAND_PLANNER_MODE: 'shadow' }),
-        /FINANCIAL_COMMAND_PLANNER_MODE=route/
+        () => requireBillPayRouteMode({ FINANCIAL_COMMAND_PLANNER_MODE: 'shadow' }, 'user-e2e'),
+        /route ou canary autorizado/
+    );
+    assert.throws(
+        () => requireBillPayRouteMode({ FINANCIAL_COMMAND_PLANNER_MODE: 'canary' }, 'user-e2e'),
+        /route ou canary autorizado/
     );
     assert.doesNotThrow(
-        () => requireBillPayRouteMode({ FINANCIAL_COMMAND_PLANNER_MODE: 'route' })
+        () => requireBillPayRouteMode({
+            FINANCIAL_COMMAND_PLANNER_MODE: 'canary',
+            FINANCIAL_COMMAND_PLANNER_CANARY_USER_IDS: 'user-e2e'
+        }, 'user-e2e')
+    );
+    assert.doesNotThrow(
+        () => requireBillPayRouteMode({ FINANCIAL_COMMAND_PLANNER_MODE: 'route' }, 'user-e2e')
     );
 
     const plan = buildBillPayE2EPlan({

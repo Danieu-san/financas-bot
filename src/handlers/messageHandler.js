@@ -68,7 +68,7 @@ const { sendWhatsAppMessage } = require('../services/whatsapp');
 const { invokeFinancialAgent } = require('../agent/financialAgent');
 const { planFinancialCommandWithGemini } = require('../planning/financialCommandPlanner');
 const { matchRecurringBill } = require('../planning/financialCommandContextTools');
-const { normalizeFinancialCommandPlannerMode, runFinancialCommandPlannerShadow } = require('../planning/financialCommandPlannerShadow');
+const { runFinancialCommandPlannerShadow, shouldRouteFinancialCommandPlanner } = require('../planning/financialCommandPlannerShadow');
 const {
     GOAL_STATUS,
     applyGoalMovement,
@@ -6592,7 +6592,7 @@ async function handlePlannedBillPayment({ msg, senderId, messageBody, userId, pe
 }
 
 async function tryHandleFinancialCommandPlannerRoute({ msg, senderId, messageBody, userId, pessoa, perfContext }) {
-    if (normalizeFinancialCommandPlannerMode() !== 'route') return false;
+    if (!shouldRouteFinancialCommandPlanner({ userId })) return false;
     try {
         const plannerResult = await timeStep(
             'financialCommandPlanner.route',
@@ -7906,6 +7906,7 @@ async function handleMessage(msg) {
             const plannerShadow = await runFinancialCommandPlannerShadow({
                 message: messageBody,
                 senderId,
+                userId,
                 legacyStructuredResponse: structuredResponse,
                 structuredResponseSource,
                 currentState: null

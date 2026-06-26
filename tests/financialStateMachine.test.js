@@ -392,10 +392,12 @@ stateMachineTest('financial states: payment method writes expense with user_id a
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
 });
 
-stateMachineTest('financial states: command planner route registers recurring bill payment without category clarification', async () => {
+stateMachineTest('financial states: command planner canary registers recurring bill payment only for an allowlisted user', async () => {
     resetState();
     const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
-    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
+    const previousCanaryUserIds = process.env.FINANCIAL_COMMAND_PLANNER_CANARY_USER_IDS;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'canary';
+    process.env.FINANCIAL_COMMAND_PLANNER_CANARY_USER_IDS = USER_ID;
     sheets.Contas.push([
         'Claro Residencial',
         '10',
@@ -460,6 +462,8 @@ stateMachineTest('financial states: command planner route registers recurring bi
     } finally {
         if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
         else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+        if (previousCanaryUserIds === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_CANARY_USER_IDS;
+        else process.env.FINANCIAL_COMMAND_PLANNER_CANARY_USER_IDS = previousCanaryUserIds;
     }
 });
 

@@ -1,6 +1,7 @@
 require('dotenv').config();
 
 const { loadWhatsAppE2EConfig } = require('../src/testing/whatsappE2EConfig');
+const { shouldRouteFinancialCommandPlanner } = require('../src/planning/financialCommandPlannerShadow');
 
 function sanitizeMarker(value) {
     const marker = String(value || '')
@@ -26,9 +27,9 @@ function normalizeAmountText(value = '12,34') {
     return text;
 }
 
-function requireBillPayRouteMode(env = process.env) {
-    if (String(env.FINANCIAL_COMMAND_PLANNER_MODE || '').trim().toLowerCase() !== 'route') {
-        throw new Error('Bill pay E2E exige FINANCIAL_COMMAND_PLANNER_MODE=route para validar o novo roteamento.');
+function requireBillPayRouteMode(env = process.env, userId = '') {
+    if (!shouldRouteFinancialCommandPlanner({ env, userId })) {
+        throw new Error('Bill pay E2E exige FINANCIAL_COMMAND_PLANNER_MODE=route ou canary autorizado para o usuario de teste.');
     }
 }
 
@@ -151,9 +152,9 @@ async function runBillPayConversation(driver, plan) {
 }
 
 async function main() {
-    requireBillPayRouteMode(process.env);
     const config = loadWhatsAppE2EConfig(process.env);
     const userId = await resolveE2EUserId(config);
+    requireBillPayRouteMode(process.env, userId);
     const plan = buildBillPayE2EPlan({ userId });
     const { launchWhatsAppWebDriver } = getWhatsAppRuntime();
     const driver = await launchWhatsAppWebDriver(config);

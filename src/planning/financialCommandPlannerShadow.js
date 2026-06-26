@@ -21,12 +21,31 @@ function normalizeFinancialCommandPlannerMode(env = process.env) {
     return VALID_MODES.has(mode) ? mode : 'off';
 }
 
+function shouldRouteFinancialCommandPlanner({ env = process.env, userId = '' } = {}) {
+    const mode = normalizeFinancialCommandPlannerMode(env);
+    if (mode === 'route') return true;
+    if (mode !== 'canary') return false;
+
+    const trustedUserId = String(userId || '').trim();
+    if (!trustedUserId) return false;
+    const allowlistedUserIds = new Set(
+        String(env.FINANCIAL_COMMAND_PLANNER_CANARY_USER_IDS || '')
+            .split(',')
+            .map(value => value.trim())
+            .filter(Boolean)
+    );
+    return allowlistedUserIds.has(trustedUserId);
+}
+
 function shouldEvaluateFinancialCommandPlannerShadow({
     env = process.env,
     message = '',
-    currentState = null
+    currentState = null,
+    userId = ''
 } = {}) {
-    if (normalizeFinancialCommandPlannerMode(env) !== 'shadow') return false;
+    const mode = normalizeFinancialCommandPlannerMode(env);
+    if (mode !== 'shadow' && mode !== 'canary') return false;
+    if (mode === 'canary' && shouldRouteFinancialCommandPlanner({ env, userId })) return false;
     if (currentState) return false;
     return String(message || '').trim().length > 0;
 }
@@ -99,7 +118,7 @@ function sanitizeFinancialCommandPlannerShadowRecord(input = {}, options = {}) {
 function recordFinancialCommandPlannerShadow(input = {}, options = {}) {
     const env = options.env || process.env;
     const mode = normalizeFinancialCommandPlannerMode(env);
-    if (mode !== 'shadow') {
+    if (mode !== 'shadow' && mode !== 'canary') {
         return { recorded: false, reason: 'disabled' };
     }
 
@@ -120,7 +139,8 @@ async function runFinancialCommandPlannerShadow(input = {}, options = {}) {
     if (!shouldEvaluateFinancialCommandPlannerShadow({
         env,
         message: input.message,
-        currentState: input.currentState
+        currentState: input.currentState,
+        userId: input.userId
     })) {
         return {
             observed: false,
@@ -182,6 +202,7 @@ module.exports = {
     runFinancialCommandPlannerShadow,
     sanitizeFinancialCommandPlannerShadowRecord,
     shouldEvaluateFinancialCommandPlannerShadow,
+    shouldRouteFinancialCommandPlanner,
     __test__: {
         fingerprint,
         mapLegacyIntentToOperation

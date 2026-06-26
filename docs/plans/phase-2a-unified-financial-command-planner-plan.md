@@ -1,6 +1,6 @@
 # Phase 2A Plan: Unified Financial Command Planner
 
-Status: Step 5 local shadow implementation added; production shadow evidence pending; no routing change authorized.
+Status: production shadow active; scoped canary implemented locally; real bill.pay E2E still pending; no production routing change authorized.
 Date: 2026-06-25
 
 ## Position In The Existing Roadmap
@@ -159,6 +159,7 @@ Additional progress on 2026-06-26 (Step 6 local hardening):
 Gate decision on 2026-06-26:
 - Canonical ledger dry-run `LEDGER_DRY_RUN_PHASE2A_BILLPAY_20260626` passed with 15 events, 0 unexplained differences and `privacy_ok=true`; `bill_payment` remains neutral for free-budget impact.
 - `NO-GO` for production `route`/canary activation: `npm run test:whatsapp:e2e:bill-pay` now exists as the bill-payment-specific marker-only E2E, but it still has to be run successfully against the real WhatsApp/bot environment before any production activation.
+- A controlled canary policy is now implemented locally: `route` remains global for explicit tests, while `canary` routes only exact trusted `userId` values from `FINANCIAL_COMMAND_PLANNER_CANARY_USER_IDS`. Missing users/allowlists fail closed; non-allowlisted users stay on legacy routing with sanitized shadow observation; and the marker-only E2E accepts canary only when its resolved test user is allowlisted.
 
 Gate: offline, state-machine and marker-only E2E pass; cancellation writes
 nothing; replay is idempotent.
