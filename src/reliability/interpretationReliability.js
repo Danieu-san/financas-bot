@@ -18,6 +18,7 @@ const ALLOWLISTED_OPERATIONS = new Set([
     'debt.create',
     'debt.payment',
     'bill.create',
+    'bill.pay',
     'reminder.create'
 ]);
 
@@ -32,6 +33,7 @@ const SENSITIVE_CONFIRM_OPERATIONS = new Set([
     'debt.create',
     'debt.payment',
     'bill.create',
+    'bill.pay',
     'reminder.create'
 ]);
 
@@ -49,6 +51,7 @@ const CRITICAL_FIELDS_BY_OPERATION = {
     'debt.create': ['amount', 'scope', 'target'],
     'debt.payment': ['amount', 'scope', 'target'],
     'bill.create': ['amount', 'scope', 'target'],
+    'bill.pay': ['amount', 'scope', 'target', 'payment'],
     'reminder.create': ['scope', 'target']
 };
 

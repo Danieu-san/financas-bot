@@ -381,6 +381,77 @@ stateMachineTest('financial states: payment method writes expense with user_id a
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
 });
 
+stateMachineTest('financial states: command planner route registers recurring bill payment without category clarification', async () => {
+    resetState();
+    const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
+    sheets.Contas.push([
+        'Claro Residencial',
+        '10',
+        '',
+        USER_ID,
+        'Conta de telefone',
+        'Moradia',
+        'INTERNET / TELEFONE',
+        '469,09',
+        'SIM'
+    ]);
+    enqueueStructuredResponse({
+        schemaVersion: 'financial-command-plan-v1',
+        operation: 'bill.pay',
+        entities: {
+            description: 'conta de telefone',
+            amount: 469.09,
+            date: '25/06/2026',
+            paymentMethod: null
+        },
+        fieldEvidence: {
+            description: 'explicit',
+            amount: 'explicit',
+            date: 'explicit',
+            paymentMethod: 'missing'
+        },
+        contextRequests: [{ tool: 'match_recurring_bill', query: 'conta de telefone' }],
+        missingFields: ['paymentMethod'],
+        requiresConfirmation: true
+    });
+
+    try {
+        const methodQuestion = await send('Paguei 469,09 da conta de telefone');
+        assert.match(methodQuestion, /conta recorrente/i);
+        assert.match(methodQuestion, /forma de pagamento/i);
+        assert.doesNotMatch(methodQuestion, /categoria/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_bill_payment_method');
+
+        const confirmationQuestion = await send('Pix');
+        assert.match(confirmationQuestion, /confirma/i);
+        assert.match(confirmationQuestion, /Conta de telefone/i);
+        assert.doesNotMatch(confirmationQuestion, /categoria/i);
+        assert.strictEqual(sheets.Saídas.length, 1);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_bill_payment');
+
+        const savedReply = await send('sim');
+        assert.match(savedReply, /conta recorrente/i);
+        assert.strictEqual(sheets.Saídas.length, 2);
+        assert.deepStrictEqual(sheets.Saídas[1], [
+            '25/06/2026',
+            'Conta de telefone',
+            'Moradia',
+            'INTERNET / TELEFONE',
+            469.09,
+            'Usuario Estado',
+            'PIX',
+            'SIM',
+            'Conta recorrente registrada pelo command planner.',
+            USER_ID
+        ]);
+        assert.strictEqual(userStateManager.getState(SENDER), undefined);
+    } finally {
+        if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+        else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+    }
+});
+
 stateMachineTest('financial states: unknown payment method asks again instead of defaulting to PIX', async () => {
     resetState();
     userStateManager.setState(SENDER, {

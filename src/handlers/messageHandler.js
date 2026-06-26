@@ -66,7 +66,9 @@ const { buildDashboardAccessLink } = require('../utils/dashboardAuth');
 const { buildGoogleConnectLink } = require('../services/googleOAuthService');
 const { sendWhatsAppMessage } = require('../services/whatsapp');
 const { invokeFinancialAgent } = require('../agent/financialAgent');
-const { runFinancialCommandPlannerShadow } = require('../planning/financialCommandPlannerShadow');
+const { planFinancialCommandWithGemini } = require('../planning/financialCommandPlanner');
+const { matchRecurringBill } = require('../planning/financialCommandContextTools');
+const { normalizeFinancialCommandPlannerMode, runFinancialCommandPlannerShadow } = require('../planning/financialCommandPlannerShadow');
 const {
     GOAL_STATUS,
     applyGoalMovement,
@@ -6432,6 +6434,150 @@ async function handleAdminCommandBeforeAccess(msg, senderId, access, options = {
     return handleAdminCommands(msg, senderId, access?.user, options);
 }
 
+function buildBillPaymentDate(rawDate) {
+    if (!rawDate) return getFormattedDateOnly();
+    try {
+        return getFormattedDateOnly(parseSheetDate(rawDate));
+    } catch (_) {
+        return getFormattedDateOnly();
+    }
+}
+
+function buildBillPaymentFromPlan(plan = {}, billCandidate = {}, { originalMessage = '' } = {}) {
+    const entities = plan.entities || {};
+    const amount = parseValue(entities.amount ?? billCandidate.expectedAmount);
+    if (!Number.isFinite(amount) || amount <= 0) return null;
+    const paymentMethod = normalizePaymentReply(entities.paymentMethod);
+    return {
+        type: 'Saídas',
+        operation: 'bill.pay',
+        data: buildBillPaymentDate(entities.date),
+        descricao: billCandidate.label || entities.description || 'Conta recorrente',
+        categoria: billCandidate.category || 'Outros',
+        subcategoria: billCandidate.subcategory || '',
+        valor: amount,
+        pagamento: paymentMethod && paymentMethod !== 'Crédito' ? paymentMethod : '',
+        recorrente: 'SIM',
+        observacoes: 'Conta recorrente registrada pelo command planner.',
+        originalMessage,
+        interpretationSource: 'command_planner',
+        billCandidate
+    };
+}
+
+function buildBillPaymentConfirmationMessage(billPayment = {}) {
+    return [
+        `Identifiquei o pagamento da conta recorrente *${billPayment.descricao || 'Conta recorrente'}*.`,
+        `Valor: *${formatCurrencyBR(billPayment.valor)}*`,
+        `Forma: *${billPayment.pagamento || 'não informada'}*`,
+        `Data: *${billPayment.data || getFormattedDateOnly()}*`,
+        '',
+        'Confirma o registro? Responda *sim* ou *não*.'
+    ].join('\n');
+}
+
+async function askBillPaymentConfirmation({ msg, senderId, billPayment }) {
+    userStateManager.setState(senderId, {
+        action: 'confirming_bill_payment',
+        data: { billPayment }
+    });
+    await msg.reply(buildBillPaymentConfirmationMessage(billPayment));
+}
+
+async function saveBillPayment(billPayment = {}, { person, userId } = {}) {
+    const value = parseValue(billPayment.valor);
+    const method = normalizePaymentMethodLabel(billPayment.pagamento);
+    recordWriteInterpretationShadow({
+        operation: 'bill.pay',
+        userId,
+        message: billPayment.originalMessage || billPayment.descricao,
+        fields: {
+            amount: verifiedField(value, 'user_state', 'confirmed_bill_payment_amount'),
+            scope: verifiedField('personal', 'user_state', 'active_user_scope'),
+            target: verifiedField(billPayment.descricao || '', 'user_state', 'matched_recurring_bill'),
+            payment: verifiedField(method, 'user_state', 'payment_method'),
+            movementType: verifiedField('bill_payment', 'user_state', 'financial_domain')
+        },
+        currentFlowOutcome: 'confirmed_write_attempt'
+    });
+    const rowData = [
+        billPayment.data || getFormattedDateOnly(),
+        billPayment.descricao || 'Conta recorrente',
+        billPayment.categoria || 'Outros',
+        billPayment.subcategoria || '',
+        value,
+        person,
+        method,
+        'SIM',
+        billPayment.observacoes || 'Conta recorrente registrada pelo command planner.',
+        userId
+    ];
+    await appendRowToSheet('Saídas', rowData);
+    markFinancialReadModelDirty('bill_payment_write');
+    return { date: rowData[0], description: rowData[1], value, method };
+}
+
+async function handlePlannedBillPayment({ msg, senderId, messageBody, userId, pessoa, plannerResult }) {
+    const plan = plannerResult?.plan;
+    if (!plannerResult?.ok || plan?.operation !== 'bill.pay') return false;
+
+    const entities = plan.entities || {};
+    const accountRows = await readDataFromSheet('Contas!A:I', { userId });
+    const scopeUserIds = getFinancialScopeUserIds(userId);
+    const match = matchRecurringBill({
+        request: {
+            query: entities.description || messageBody,
+            amount: entities.amount,
+            category: entities.category,
+            subcategory: entities.subcategory
+        },
+        accountRows,
+        trustedScope: { userIds: scopeUserIds },
+        limit: 2
+    });
+
+    if (match.classification === 'no_match') {
+        await msg.reply('Identifiquei um pagamento de conta recorrente, mas não encontrei uma conta cadastrada compatível na aba Contas. Cadastre a conta recorrente antes de registrar esse pagamento por este fluxo.');
+        return true;
+    }
+    if (match.classification === 'multiple_matches') {
+        await msg.reply('Encontrei mais de uma conta recorrente compatível. Por enquanto, envie o nome da conta de forma mais específica para eu registrar com segurança.');
+        return true;
+    }
+
+    const billPayment = buildBillPaymentFromPlan(plan, match.candidates[0], { originalMessage: messageBody });
+    if (!billPayment) {
+        await msg.reply('Identifiquei a conta recorrente, mas faltou o valor pago. Envie novamente com o valor, por exemplo: `paguei 120 da conta de telefone`.');
+        return true;
+    }
+
+    if (!billPayment.pagamento) {
+        userStateManager.setState(senderId, {
+            action: 'awaiting_bill_payment_method',
+            data: { billPayment }
+        });
+        await msg.reply(`Identifiquei o pagamento da conta recorrente *${billPayment.descricao}* no valor de *${formatCurrencyBR(billPayment.valor)}*. Qual foi a forma de pagamento? (Débito, PIX ou Dinheiro)`);
+        return true;
+    }
+
+    await askBillPaymentConfirmation({ msg, senderId, billPayment });
+    return true;
+}
+
+async function tryHandleFinancialCommandPlannerRoute({ msg, senderId, messageBody, userId, pessoa, perfContext }) {
+    if (normalizeFinancialCommandPlannerMode() !== 'route') return false;
+    try {
+        const plannerResult = await timeStep(
+            'financialCommandPlanner.route',
+            () => planFinancialCommandWithGemini({ message: messageBody }),
+            perfContext
+        );
+        return handlePlannedBillPayment({ msg, senderId, messageBody, userId, pessoa, plannerResult });
+    } catch (error) {
+        logger.warn(`[financial-command-planner] route_failed error=${error.message}`);
+        return false;
+    }
+}
 async function handleMessage(msg) {
     metrics.increment('message.received');
     const messageId = msg.id.id;
@@ -6877,6 +7023,38 @@ async function handleMessage(msg) {
                 return;
             }
 
+            case 'awaiting_bill_payment_method': {
+                const billPayment = currentState.data?.billPayment || {};
+                const paymentMethod = normalizePaymentReply(messageBody);
+                if (!paymentMethod || !['Débito', 'PIX', 'Dinheiro'].includes(paymentMethod)) {
+                    await msg.reply('Não consegui entender a forma de pagamento dessa conta. Responda com Débito, PIX ou Dinheiro.');
+                    return;
+                }
+                await askBillPaymentConfirmation({
+                    msg,
+                    senderId,
+                    billPayment: { ...billPayment, pagamento: paymentMethod }
+                });
+                return;
+            }
+
+            case 'confirming_bill_payment': {
+                const cleanReply = normalizeText(msg.body);
+                const billPayment = currentState.data?.billPayment || {};
+                if (['nao', 'não', 'n', 'cancelar', 'cancela'].includes(cleanReply)) {
+                    userStateManager.deleteState(senderId);
+                    await msg.reply('Pagamento de conta recorrente cancelado. Nenhum dado foi salvo.');
+                    return;
+                }
+                if (!['sim', 's', 'ss', 'confirmo'].includes(cleanReply)) {
+                    await msg.reply('Responda `sim` para confirmar o pagamento da conta recorrente ou `não` para cancelar.');
+                    return;
+                }
+                const saved = await saveBillPayment(billPayment, { person: pessoa, userId });
+                userStateManager.deleteState(senderId);
+                await msg.reply(`✅ Pagamento da conta recorrente *${saved.description}* registrado como *${saved.method}* em *${saved.date}* no valor de *${formatCurrencyBR(saved.value)}*.`);
+                return;
+            }
             case 'awaiting_payment_method': {
                 const { gasto } = currentState.data; // A data já está dentro do objeto 'gasto'
                 const respostaPagamento = messageBody;
@@ -7605,6 +7783,18 @@ async function handleMessage(msg) {
                     metrics.increment('message.command.fast_path');
                     logger.info(`[routing] fast_path intent=${structuredResponse.intent} sender=${senderId}`);
                 }
+            }
+
+            if (!structuredResponse && !wasAudioMessage) {
+                const handledFinancialCommandRoute = await tryHandleFinancialCommandPlannerRoute({
+                    msg,
+                    senderId,
+                    messageBody,
+                    userId,
+                    pessoa,
+                    perfContext
+                });
+                if (handledFinancialCommandRoute) return;
             }
 
             if (!structuredResponse && !wasAudioMessage) {

@@ -193,6 +193,8 @@ Validar:
 - Testes de shadow devem incluir `tests\financialCommandPlannerShadow.test.js`; o modo invalido deve falhar para `off`, mensagens com estado ativo nao podem chamar planner, e o resultado visivel deve continuar sendo o `structuredResponse` legado.
 - A telemetria de shadow do command planner nao pode conter mensagem financeira crua, telefone, `user_id`, `spreadsheet`, raw rows ou argumentos de escopo vindos do modelo.
 - Esta bateria nao autoriza roteamento/canary; `FINANCIAL_COMMAND_PLANNER_MODE` deve ficar ausente/desligado em producao ate aprovacao explicita de shadow controlado, e `canary`/`route` continuam proibidos sem novo gate.
+- Para a vertical `bill.pay`, `tests\financialStateMachine.test.js` deve provar que uma conta recorrente cadastrada passa por `awaiting_bill_payment_method` -> `confirming_bill_payment` -> grava `Saídas` sem pedir categoria e com `Recorrente=SIM`.
+- `tests\interpretationReliability.test.js` deve manter `bill.pay` como operacao conhecida e confirm-only; nao liberar autosave de pagamento de conta pelo LLM.
 ## Canonical Ledger
 
 Validar:

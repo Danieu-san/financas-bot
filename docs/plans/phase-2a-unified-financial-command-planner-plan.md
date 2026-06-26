@@ -145,6 +145,14 @@ Gate:
 - Project the receipt as canonical `bill_payment`.
 - Keep it outside free-budget spending.
 
+Progress on 2026-06-26 (Step 6 first local slice):
+
+- `FINANCIAL_COMMAND_PLANNER_MODE=route` can now route a validated `bill.pay` plan before the local expense fallback.
+- The first slice handles a single registered recurring bill match from trusted `Contas` scope, asks the missing payment method, asks final confirmation, then writes a `Saídas` row with `Recorrente=SIM` and the bill category/subcategory.
+- The flow deliberately skips expense category clarification and does not trigger free-budget alerts for the bill payment path.
+- `bill.pay` is allowlisted in Interpretation Reliability as a confirm-only/sensitive write operation.
+- Still local only: production must keep the flag absent/off until shadow evidence, marker-only E2E, rollback and replay/idempotency gates pass.
+
 Gate: offline, state-machine and marker-only E2E pass; cancellation writes
 nothing; replay is idempotent.
 

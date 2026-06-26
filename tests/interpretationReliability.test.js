@@ -101,6 +101,24 @@ test('interpretation reliability confirms when a critical field depends on LLM',
     assert.ok(decision.reasons.includes('critical_field_not_deterministic'));
 });
 
+test('interpretation reliability recognizes bill.pay as a confirm-only write operation', () => {
+    const candidate = canonicalizeInterpretation(buildInterpretationCandidate({
+        operation: 'bill.pay',
+        fields: {
+            amount: { value: 469.09, source: 'user_state', assurance: 'verified' },
+            payment: { value: 'PIX', source: 'user_state', assurance: 'verified' },
+            scope: { value: 'personal', source: 'user_state', assurance: 'verified' },
+            target: { value: 'Conta de telefone', source: 'user_state', assurance: 'verified' }
+        }
+    }));
+
+    const decision = decideInterpretationRisk(candidate);
+
+    assert.strictEqual(decision.action, 'confirm');
+    assert.ok(decision.reasons.includes('sensitive_or_multi_item_operation'));
+    assert.ok(!decision.reasons.includes('operation_not_allowlisted'));
+});
+
 test('interpretation reliability clarifies missing or conflicting critical fields', () => {
     const missing = canonicalizeInterpretation(buildInterpretationCandidate({
         operation: 'expense.create',
