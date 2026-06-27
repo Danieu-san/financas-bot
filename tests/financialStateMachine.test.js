@@ -467,6 +467,101 @@ stateMachineTest('financial states: command planner canary registers recurring b
     }
 });
 
+stateMachineTest('financial states: command planner promotes a strong payment verb to a matched recurring bill', async () => {
+    resetState();
+    const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
+    sheets.Contas.push([
+        'Gás', '10', '', USER_ID, 'Gás', 'Moradia', 'GÁS', '100,00', 'SIM'
+    ]);
+    enqueueStructuredResponse({
+        schemaVersion: 'financial-command-plan-v1',
+        operation: 'expense.create',
+        entities: {
+            description: 'gás',
+            amount: 12.41,
+            date: '27/06/2026',
+            paymentMethod: 'Débito'
+        },
+        fieldEvidence: {
+            description: 'explicit',
+            amount: 'explicit',
+            date: 'explicit',
+            paymentMethod: 'explicit'
+        },
+        contextRequests: [],
+        missingFields: [],
+        requiresConfirmation: true
+    });
+
+    try {
+        const reply = await send('Paguei 12,41 do gás no débito');
+
+        assert.match(reply, /conta recorrente.*Gás/is);
+        assert.match(reply, /confirma/i);
+        assert.doesNotMatch(reply, /\[Gasto\]/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_bill_payment');
+        assert.strictEqual(sheets.Saídas.length, 1);
+
+        assert.match(await send('não'), /cancelad/i);
+        assert.strictEqual(sheets.Saídas.length, 1);
+    } finally {
+        if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+        else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+    }
+});
+
+stateMachineTest('financial states: ambiguous recurring bill lists candidates and accepts a numbered choice', async () => {
+    resetState();
+    const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
+    sheets.Contas.push(
+        ['Mensal do ap', '10', '', USER_ID, 'Mensal do ap', 'Moradia', 'PARCELA', '100,00', 'SIM'],
+        ['Taxa de obra do ap', '15', '', USER_ID, 'Taxa de obra do ap', 'Moradia', 'TAXA', '200,00', 'SIM']
+    );
+    enqueueStructuredResponse({
+        schemaVersion: 'financial-command-plan-v1',
+        operation: 'bill.pay',
+        entities: {
+            description: 'conta do ap',
+            amount: 12.47,
+            date: '27/06/2026',
+            paymentMethod: null
+        },
+        fieldEvidence: {
+            description: 'explicit',
+            amount: 'explicit',
+            date: 'explicit',
+            paymentMethod: 'missing'
+        },
+        contextRequests: [{ tool: 'match_recurring_bill', query: 'conta do ap' }],
+        missingFields: ['paymentMethod'],
+        requiresConfirmation: true
+    });
+
+    try {
+        const choiceQuestion = await send('Paguei 12,47 da conta do ap');
+
+        assert.match(choiceQuestion, /1\..*Mensal do ap/is);
+        assert.match(choiceQuestion, /2\..*Taxa de obra do ap/is);
+        assert.match(choiceQuestion, /número/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_bill_payment_selection');
+        assert.strictEqual(sheets.Saídas.length, 1);
+
+        const methodQuestion = await send('2');
+        assert.match(methodQuestion, /Taxa de obra do ap/i);
+        assert.match(methodQuestion, /forma de pagamento/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_bill_payment_method');
+
+        assert.match(await send('Pix'), /confirma/i);
+        assert.match(await send('não'), /cancelad/i);
+        assert.strictEqual(sheets.Saídas.length, 1);
+    } finally {
+        if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+        else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+    }
+});
+
 stateMachineTest('financial states: command planner route can cancel recurring bill payment without writing', async () => {
     resetState();
     const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;

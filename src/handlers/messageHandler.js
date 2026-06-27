@@ -6541,37 +6541,45 @@ async function saveBillPayment(billPayment = {}, { person, userId } = {}) {
     return { date: rowData[0], description: rowData[1], value, method };
 }
 
-async function handlePlannedBillPayment({ msg, senderId, messageBody, userId, pessoa, plannerResult }) {
-    const plan = plannerResult?.plan;
-    if (!plannerResult?.ok || plan?.operation !== 'bill.pay') return false;
+function shouldProbeMatchedRecurringBill(plan = {}, messageBody = '') {
+    if (plan.operation === 'bill.pay') return true;
+    if (plan.operation !== 'expense.create') return false;
+    return /\b(paguei|pagando|pago|quitei|quitando)\b/.test(normalizeText(messageBody));
+}
 
-    const entities = plan.entities || {};
-    const accountRows = await readDataFromSheet('Contas!A:I', { userId });
-    const scopeUserIds = getFinancialScopeUserIds(userId);
-    const match = matchRecurringBill({
-        request: {
-            query: entities.description || messageBody,
-            amount: entities.amount,
-            category: entities.category,
-            subcategory: entities.subcategory
-        },
-        accountRows,
-        trustedScope: { userIds: scopeUserIds },
-        limit: 2
-    });
+function buildBillPaymentSelectionQuestion(candidates = [], invalid = false) {
+    const lines = candidates.map((candidate, index) => `${index + 1}. ${candidate.label}`);
+    return [
+        invalid
+            ? 'Não consegui identificar a opção. Escolha uma das contas:'
+            : 'Encontrei mais de uma conta recorrente compatível. Qual delas você pagou?',
+        '',
+        ...lines,
+        '',
+        'Responda com o número da conta.'
+    ].join('\n');
+}
 
-    if (match.classification === 'no_match') {
-        await msg.reply('Identifiquei um pagamento de conta recorrente, mas não encontrei uma conta cadastrada compatível na aba Contas. Cadastre a conta recorrente antes de registrar esse pagamento por este fluxo.');
-        return true;
+function parseBillPaymentSelection(text = '', candidates = []) {
+    const normalized = normalizeText(text);
+    if (/^\d+$/.test(normalized)) {
+        const index = Number.parseInt(normalized, 10) - 1;
+        return candidates[index] || null;
     }
-    if (match.classification === 'multiple_matches') {
-        await msg.reply('Encontrei mais de uma conta recorrente compatível. Por enquanto, envie o nome da conta de forma mais específica para eu registrar com segurança.');
-        return true;
-    }
+    return candidates.find(candidate => normalizeText(candidate.label) === normalized) || null;
+}
 
-    const billPayment = buildBillPaymentFromPlan(plan, match.candidates[0], {
-        originalMessage: messageBody,
-        originalMessageId: msg?.id?.id || ''
+async function continuePlannedBillPayment({
+    msg,
+    senderId,
+    plan,
+    candidate,
+    originalMessage,
+    originalMessageId
+}) {
+    const billPayment = buildBillPaymentFromPlan(plan, candidate, {
+        originalMessage,
+        originalMessageId
     });
     if (!billPayment) {
         await msg.reply('Identifiquei a conta recorrente, mas faltou o valor pago. Envie novamente com o valor, por exemplo: `paguei 120 da conta de telefone`.');
@@ -6591,6 +6599,54 @@ async function handlePlannedBillPayment({ msg, senderId, messageBody, userId, pe
     return true;
 }
 
+async function handlePlannedBillPayment({ msg, senderId, messageBody, userId, pessoa, plannerResult }) {
+    const plan = plannerResult?.plan;
+    if (!plannerResult?.ok || !shouldProbeMatchedRecurringBill(plan, messageBody)) return false;
+    const explicitBillPlan = plan.operation === 'bill.pay';
+
+    const entities = plan.entities || {};
+    const accountRows = await readDataFromSheet('Contas!A:I', { userId });
+    const scopeUserIds = getFinancialScopeUserIds(userId);
+    const match = matchRecurringBill({
+        request: {
+            query: entities.description || messageBody,
+            amount: entities.amount,
+            category: entities.category,
+            subcategory: entities.subcategory
+        },
+        accountRows,
+        trustedScope: { userIds: scopeUserIds },
+        limit: 2
+    });
+
+    if (match.classification === 'no_match') {
+        if (!explicitBillPlan) return false;
+        await msg.reply('Identifiquei um pagamento de conta recorrente, mas não encontrei uma conta cadastrada compatível na aba Contas. Cadastre a conta recorrente antes de registrar esse pagamento por este fluxo.');
+        return true;
+    }
+    if (match.classification === 'multiple_matches') {
+        userStateManager.setState(senderId, {
+            action: 'awaiting_bill_payment_selection',
+            data: {
+                plan,
+                candidates: match.candidates,
+                originalMessage: messageBody,
+                originalMessageId: msg?.id?.id || ''
+            }
+        });
+        await msg.reply(buildBillPaymentSelectionQuestion(match.candidates));
+        return true;
+    }
+
+    return continuePlannedBillPayment({
+        msg,
+        senderId,
+        plan,
+        candidate: match.candidates[0],
+        originalMessage: messageBody,
+        originalMessageId: msg?.id?.id || ''
+    });
+}
 async function tryHandleFinancialCommandPlannerRoute({ msg, senderId, messageBody, userId, pessoa, perfContext }) {
     if (!shouldRouteFinancialCommandPlanner({ userId })) return false;
     try {
@@ -7050,6 +7106,24 @@ async function handleMessage(msg) {
                 return;
             }
 
+            case 'awaiting_bill_payment_selection': {
+                const data = currentState.data || {};
+                const candidates = Array.isArray(data.candidates) ? data.candidates : [];
+                const candidate = parseBillPaymentSelection(messageBody, candidates);
+                if (!candidate) {
+                    await msg.reply(buildBillPaymentSelectionQuestion(candidates, true));
+                    return;
+                }
+                await continuePlannedBillPayment({
+                    msg,
+                    senderId,
+                    plan: data.plan || {},
+                    candidate,
+                    originalMessage: data.originalMessage || '',
+                    originalMessageId: data.originalMessageId || ''
+                });
+                return;
+            }
             case 'awaiting_bill_payment_method': {
                 const billPayment = currentState.data?.billPayment || {};
                 const paymentMethod = normalizePaymentReply(messageBody);
