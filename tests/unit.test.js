@@ -3155,7 +3155,8 @@ test('messageHandler.classifyPerguntaLocally covers complex analytical questions
 test('messageHandler asks for category clarification before saving an uncategorized expense', () => {
     const {
         expenseCategoryNeedsClarification,
-        parseExpenseCategoryReply
+        buildExpenseCategoryOptions,
+        parseExpenseCategorySelectionReply
     } = messageHandler.__test__;
 
     assert.strictEqual(expenseCategoryNeedsClarification({
@@ -3183,17 +3184,34 @@ test('messageHandler asks for category clarification before saving an uncategori
         subcategoria: ''
     }), false);
 
-    assert.deepStrictEqual(parseExpenseCategoryReply('Pets / Banho e tosa'), {
+    const options = buildExpenseCategoryOptions({
+        candidates: [
+            { category: 'Alimentação', subcategory: 'SUPERMERCADO' },
+            { category: 'Pets', subcategory: 'Banho e tosa' }
+        ],
+        registeredCategories: [
+            { categoria: 'Hobbies', subcategoria: 'Colecionáveis' }
+        ]
+    });
+
+    assert.deepStrictEqual(parseExpenseCategorySelectionReply('2', options), {
         ok: true,
         categoria: 'Pets',
         subcategoria: 'Banho e tosa'
     });
-    assert.deepStrictEqual(parseExpenseCategoryReply('outros'), {
+    assert.deepStrictEqual(parseExpenseCategorySelectionReply('outros', options), {
         ok: true,
         categoria: 'Outros',
         subcategoria: ''
     });
-    assert.strictEqual(parseExpenseCategoryReply('   ').ok, false);
+    assert.deepStrictEqual(parseExpenseCategorySelectionReply('criar nova', options), {
+        ok: true,
+        createNew: true
+    });
+    assert.ok(options.some(option => option.categoria === 'Hobbies' && option.subcategoria === 'Colecionáveis'));
+    assert.strictEqual(parseExpenseCategorySelectionReply('Pets / Banho e tosa', options).ok, false);
+    assert.strictEqual(parseExpenseCategorySelectionReply('banana espacial', options).ok, false);
+    assert.strictEqual(parseExpenseCategorySelectionReply('   ', options).ok, false);
 });
 
 test('messageHandler analytical follow-ups inherit safe context without raw spreadsheet data', () => {

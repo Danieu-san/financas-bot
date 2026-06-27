@@ -72,6 +72,11 @@ const USER_SPREADSHEET_TABS = Object.freeze([
         type: 'summary'
     },
     {
+        title: 'Categorias',
+        headers: ['Categoria', 'Subcategoria', 'Ativa', 'Criada em', 'user_id'],
+        color: { red: 0.21, green: 0.50, blue: 0.47 }
+    },
+    {
         title: 'Contas',
         headers: ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa'],
         color: { red: 0.78, green: 0.54, blue: 0.17 }
@@ -231,6 +236,7 @@ function buildManualRows({ user = {} } = {}) {
         ['Lançamentos Cartão', 'Aqui ficam compras no crédito, compras parceladas e parcelas futuras. O nome do cartão deve existir na aba Cartões.', 'Exemplo: compra de R$ 300 em 3x vira parcelas mensais.'],
         ['Faturas', 'Resumo automático das faturas por cartão e mês de cobrança. Use para ver quanto cada cartão tem previsto em cada mês.', 'Não edite as fórmulas; confira os detalhes em Lançamentos Cartão.'],
         ['Parcelamentos', 'Resumo automático das compras parceladas, agrupando parcelas por descrição, cartão e categoria.', 'Use para ver total previsto, quantidade de parcelas lançadas e primeira/última parcela.'],
+        ['Categorias', 'Aqui ficam categorias e subcategorias criadas pelo fluxo assistido do WhatsApp. O bot usa esta aba como cadastro permanente para próximos gastos.', 'Campos principais: categoria, subcategoria, ativa e data de criação.'],
         ['Dívidas', 'Use para empréstimos, financiamentos, acordos, parcelas em aberto e qualquer valor que você quer acompanhar até quitar.', 'Campos úteis: valor original, saldo atual, parcela, juros, vencimento, parcelas pagas e status.'],
         ['Metas', 'Use para objetivos como reserva de emergência, viagem, quitar dívida, entrada de imóvel ou compra planejada. O bot atualiza valor atual, progresso, sugestão mensal, escopo e status.', 'criar meta; guardei 500 na meta reserva; retirei 200 da meta viagem'],
         ['Movimentações Metas', 'Histórico de aportes, retiradas, ajustes e mudanças de status das metas. Use para auditar por que o valor atual mudou.', 'Não edite manualmente; confira aportes e retiradas aqui.'],
@@ -280,6 +286,7 @@ const USER_INPUT_EXAMPLE_ROWS = Object.freeze({
     'Movimentações Metas': ['01/01/2026', 'Exemplo: reserva de emergência', 'Aporte', '1500,00', '0,00', '1500,00', 'Exemplo de histórico; pode apagar.', 'Seu nome', '', ''],
     'Cartões': ['nubank-principal', 'Nubank Principal', 'Nubank', '8', '15', 'SIM', 'Exemplo de cartão; edite ou apague.'],
     'Lançamentos Cartão': ['01/01/2026', 'Exemplo: compra parcelada', 'Casa', '100,00', '1/3', 'Janeiro de 2026', 'nubank-principal', 'Nubank Principal', 'Exemplo gerado para orientar; pode apagar.', ''],
+    'Categorias': ['Exemplo: Educação', 'Cursos', 'SIM', '01/01/2026', ''],
     'Contas': ['Exemplo: internet', '15', 'Conta recorrente que vence todo mês.', '', 'Internet', 'Moradia', 'INTERNET / TELEFONE', '120,00', 'SIM']
 });
 

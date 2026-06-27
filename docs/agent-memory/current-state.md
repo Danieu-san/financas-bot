@@ -681,3 +681,13 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   semear e limpar na EC2 enquanto o navegador local executa somente a conversa,
   sem misturar vínculos OAuth. Ledger shadow e read-model continuam exigindo
   verificação/limpeza marker-only separada antes do GO.
+- Criação assistida de categorias permanente iniciada em 2026-06-27: gastos sem
+  categoria segura agora listam opções existentes por número, com candidatos
+  vindos de histórico escopado, cartões, contas recorrentes, categorias
+  conhecidas do bot e cadastro persistido na aba `Categorias`. Texto livre
+  deixou de ser aceito como categoria final; se nenhuma opção servir, o usuário
+  escolhe criar nova categoria/subcategoria, informa os nomes em passos guiados
+  e o bot salva o cadastro com `user_id` antes da confirmação do gasto. Novas
+  planilhas e reparos de template passam a criar a aba `Categorias`; a estrutura
+  central também passa a garantir essa aba. Cobertura local: `tests/unit.test.js`,
+  `tests/financialStateMachine.test.js` e `tests/userSpreadsheetService.test.js`.

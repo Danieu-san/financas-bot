@@ -32,6 +32,7 @@ const USER_SHEET_NAMES = new Set([
     'Lançamentos Cartão',
     'Faturas',
     'Parcelamentos',
+    'Categorias',
     'Contas'
 ]);
 
@@ -327,6 +328,7 @@ const USER_SCOPED_APPEND_USER_ID_INDEX = Object.freeze({
     'Contas': 3,
     'Dashboard': 3,
     'DashboardData': 3,
+    'Categorias': 4,
     'Users': 0,
     'UserProfile': 0,
     'UserSettings': 0,
@@ -1775,6 +1777,7 @@ async function ensureSpreadsheetStructure() {
         { title: 'Metas', headers: ['Nome', 'Valor Alvo', 'Valor Atual', '% Progresso', 'Valor Mensal', 'Data Fim', 'Status', 'Prioridade', 'user_id', 'Escopo', 'Última Movimentação'], color: { red: 0.2, green: 0.6, blue: 0.8 } },
         { title: 'Movimentações Metas', headers: ['Data', 'Meta', 'Tipo', 'Valor', 'Valor Antes', 'Valor Depois', 'Observação', 'Responsável', 'user_id', 'goal_user_id'], color: { red: 0.16, green: 0.5, blue: 0.62 } },
         { title: 'Contas', headers: ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa'], color: { red: 0.9, green: 0.7, blue: 0.3 } },
+        { title: 'Categorias', headers: ['Categoria', 'Subcategoria', 'Ativa', 'Criada em', 'user_id'], color: { red: 0.2, green: 0.5, blue: 0.45 } },
         { title: 'Dashboard', headers: ['Painel Visual', 'Valor', 'Período', 'user_id', 'updated_at'], color: { red: 0.5, green: 0.5, blue: 0.5 } },
         { title: 'DashboardData', headers: ['Resumo Financeiro', 'Valor', 'Período', 'user_id', 'updated_at'], color: { red: 0.4, green: 0.4, blue: 0.6 } },
         { title: 'Cartão Nubank - Daniel', headers: ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'user_id'], color: { red: 0.6, green: 0.3, blue: 0.7 } },

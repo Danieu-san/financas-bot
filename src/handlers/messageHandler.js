@@ -67,7 +67,7 @@ const { buildGoogleConnectLink } = require('../services/googleOAuthService');
 const { sendWhatsAppMessage } = require('../services/whatsapp');
 const { invokeFinancialAgent } = require('../agent/financialAgent');
 const { planFinancialCommandWithGemini } = require('../planning/financialCommandPlanner');
-const { matchRecurringBill, matchDebt, matchCardInvoice } = require('../planning/financialCommandContextTools');
+const { matchRecurringBill, matchDebt, matchCardInvoice, resolveCategory } = require('../planning/financialCommandContextTools');
 const { runFinancialCommandPlannerShadow, shouldRouteFinancialCommandPlanner } = require('../planning/financialCommandPlannerShadow');
 const { shouldRouteFinancialCommandOperation } = require('../config/financialCommandPlannerRuntimeConfig');
 const {
@@ -882,41 +882,325 @@ function expenseCategoryNeedsClarification(item = {}) {
     return !knownExpenseCategories.has(category);
 }
 
-function parseExpenseCategoryReply(messageBody = '') {
+function normalizeExpenseCategoryOption(option = {}) {
+    const categoria = String(option.category || option.categoria || '').trim().slice(0, 60);
+    const subcategoria = String(option.subcategory || option.subcategoria || '').trim().slice(0, 80);
+    if (!categoria) return null;
+    return { categoria, subcategoria, createNew: option.createNew === true };
+}
+
+function getKnownExpenseCategoryOptions() {
+    const options = Object.values(mapeamentoGastos)
+        .map(item => normalizeExpenseCategoryOption(item))
+        .filter(Boolean);
+    for (const categoria of knownExpenseCategories) {
+        const original = [...Object.values(mapeamentoGastos).map(item => item.categoria), 'Outros']
+            .find(item => normalizeText(item) === categoria);
+        if (original) options.push({ categoria: original, subcategoria: '' });
+    }
+    return options;
+}
+
+function buildExpenseCategoryOptions({ candidates = [], registeredCategories = [], limit = 8 } = {}) {
+    const options = [];
+    const seen = new Set();
+    const add = (option) => {
+        const normalized = normalizeExpenseCategoryOption(option);
+        if (!normalized) return;
+        const key = `${normalizeText(normalized.categoria)}|${normalizeText(normalized.subcategoria)}|${normalized.createNew ? 'create' : 'existing'}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        options.push(normalized);
+    };
+
+    for (const candidate of candidates) add(candidate);
+    for (const candidate of registeredCategories) {
+        if (options.filter(option => !option.createNew && normalizeText(option.categoria) !== 'outros').length >= limit) break;
+        add(candidate);
+    }
+    for (const candidate of getKnownExpenseCategoryOptions()) {
+        if (options.filter(option => !option.createNew && normalizeText(option.categoria) !== 'outros').length >= limit) break;
+        add(candidate);
+    }
+    add({ categoria: 'Outros', subcategoria: '' });
+    options.push({ categoria: 'Criar nova categoria/subcategoria', subcategoria: '', createNew: true });
+    return options;
+}
+
+function formatExpenseCategoryOption(option = {}) {
+    if (option.createNew) return 'Criar nova categoria/subcategoria';
+    if (!option.subcategoria) return option.categoria || 'Outros';
+    return `${option.categoria} / ${option.subcategoria}`;
+}
+
+function buildExpenseCategorySelectionQuestion({ item = {}, options = [] } = {}) {
+    const lines = [
+        `Não reconheci com segurança a categoria de "${item.descricao || item.description || 'esse gasto'}".`,
+        'Escolha uma categoria existente ou crie uma nova:',
+        '',
+        ...options.map((option, index) => `${index + 1}. ${formatExpenseCategoryOption(option)}`),
+        '',
+        'Responda com o número da opção.'
+    ];
+    return lines.join('\n');
+}
+
+function parseExpenseCategorySelectionReply(messageBody = '', options = []) {
     const raw = String(messageBody || '').trim().replace(/\s+/g, ' ');
     if (!raw) return { ok: false, reason: 'empty' };
     const normalized = normalizeText(raw);
+    const numericChoice = raw.match(/^\d+$/) ? Number.parseInt(raw, 10) : null;
+    if (numericChoice !== null) {
+        const option = options[numericChoice - 1];
+        if (!option) return { ok: false, reason: 'invalid_option' };
+        if (option.createNew) return { ok: true, createNew: true };
+        return { ok: true, categoria: option.categoria, subcategoria: option.subcategoria || '' };
+    }
     if (['outro', 'outros', 'sem categoria'].includes(normalized)) {
         return { ok: true, categoria: 'Outros', subcategoria: '' };
     }
-
-    const withoutPrefix = raw
-        .replace(/^categoria\s*[:=-]?\s*/i, '')
-        .replace(/\s+subcategoria\s+/i, ' / ')
-        .trim();
-    const [categoryPart, ...subcategoryParts] = withoutPrefix.split(/[/>|]/);
-    const categoria = String(categoryPart || '').trim().slice(0, 60);
-    const subcategoria = subcategoryParts.join(' / ').trim().slice(0, 80);
-    if (!categoria) return { ok: false, reason: 'missing_category' };
-    return { ok: true, categoria, subcategoria };
+    if (/\b(criar|nova|novo)\b/.test(normalized)) {
+        return { ok: true, createNew: true };
+    }
+    return { ok: false, reason: 'choose_number' };
 }
 
-async function askExpenseCategoryClarification({ msg, senderId, item, messageBody }) {
+function parseNewExpenseCategoryLabel(messageBody = '', { allowEmpty = false } = {}) {
+    const raw = String(messageBody || '').trim().replace(/\s+/g, ' ');
+    const normalized = normalizeText(raw);
+    if (allowEmpty && ['sem subcategoria', 'sem sub', 'nenhuma', 'nao tem', 'não tem'].includes(normalized)) return { ok: true, label: '' };
+    if (!raw) return { ok: false, reason: 'empty' };
+    if (/^\d+$/.test(raw)) return { ok: false, reason: 'numeric_only' };
+    return { ok: true, label: raw.slice(0, allowEmpty ? 80 : 60) };
+}
+
+function findCategoryRegistryHeaderIndex(headers = [], names = [], fallback = -1) {
+    const normalizedNames = names.map(name => normalizeText(name));
+    const index = headers.findIndex(header => normalizedNames.includes(normalizeText(header)));
+    return index >= 0 ? index : fallback;
+}
+
+function categoryRegistryRowsToOptions(rows = [], trustedUserIds = []) {
+    if (!Array.isArray(rows) || rows.length === 0) return [];
+    const headers = Array.isArray(rows[0]) ? rows[0] : [];
+    const hasHeader = headers.some(header => normalizeText(header) === 'categoria');
+    const categoryIndex = findCategoryRegistryHeaderIndex(headers, ['Categoria'], 0);
+    const subcategoryIndex = findCategoryRegistryHeaderIndex(headers, ['Subcategoria'], 1);
+    const activeIndex = findCategoryRegistryHeaderIndex(headers, ['Ativa', 'Ativo', 'Regra Ativa'], 2);
+    const userIdIndex = findCategoryRegistryHeaderIndex(headers, ['user_id', 'user id'], 4);
+    const allowedUserIds = new Set((trustedUserIds || []).map(item => String(item || '').trim()).filter(Boolean));
+    const dataRows = hasHeader ? rows.slice(1) : rows;
+    const inactiveValues = new Set(['0', 'nao', 'não', 'n', 'false', 'falso', 'inativa', 'inativo']);
+
+    return dataRows
+        .map((row) => {
+            const categoria = String(row?.[categoryIndex] || '').trim();
+            const subcategoria = String(row?.[subcategoryIndex] || '').trim();
+            const rowUserId = String(row?.[userIdIndex] || '').trim();
+            const active = normalizeText(row?.[activeIndex] ?? 'SIM');
+            if (!categoria || normalizeText(categoria) === 'outros') return null;
+            if (allowedUserIds.size > 0 && rowUserId && !allowedUserIds.has(rowUserId)) return null;
+            if (inactiveValues.has(active)) return null;
+            return { categoria, subcategoria };
+        })
+        .filter(Boolean);
+}
+
+async function readRegisteredExpenseCategoriesForUser(userId) {
+    const scopeUserIds = userId ? getFinancialScopeUserIds(userId) : [];
+    if (!scopeUserIds.length) return [];
+    try {
+        const rows = await readDataFromSheet('Categorias!A:E', { userId, suppressMissingSheetError: true });
+        return categoryRegistryRowsToOptions(rows, scopeUserIds);
+    } catch (error) {
+        logger.warn(`[category-assist] registered_categories_unavailable error="${error?.message || error}"`);
+        return [];
+    }
+}
+
+function buildExpenseCategoryOperationKey({ userId, categoria, subcategoria }) {
+    return [
+        'expense-category',
+        String(userId || '').trim(),
+        normalizeText(categoria),
+        normalizeText(subcategoria)
+    ].join(':');
+}
+
+async function ensureExpenseCategoryRegistered({ userId, categoria, subcategoria = '' } = {}) {
+    const safeUserId = String(userId || '').trim();
+    const safeCategoria = String(categoria || '').trim();
+    const safeSubcategoria = String(subcategoria || '').trim();
+    if (!safeUserId || !safeCategoria || normalizeText(safeCategoria) === 'outros') return false;
+
+    const existing = await readRegisteredExpenseCategoriesForUser(safeUserId);
+    const exists = existing.some(option =>
+        normalizeText(option.categoria) === normalizeText(safeCategoria) &&
+        normalizeText(option.subcategoria) === normalizeText(safeSubcategoria)
+    );
+    if (exists) return false;
+
+    await appendRowToSheet('Categorias', [
+        safeCategoria,
+        safeSubcategoria,
+        'SIM',
+        new Date().toISOString(),
+        safeUserId
+    ], {
+        userId: safeUserId,
+        operationKey: buildExpenseCategoryOperationKey({ userId: safeUserId, categoria: safeCategoria, subcategoria: safeSubcategoria }),
+        source: 'expense.category_assist'
+    });
+    return true;
+}
+
+async function buildExpenseCategoryOptionsForUser({ userId, item = {}, messageBody = '' } = {}) {
+    try {
+        const scopeUserIds = userId ? getFinancialScopeUserIds(userId) : [];
+        if (!scopeUserIds.length) return buildExpenseCategoryOptions();
+        const [expenseRows, cardLaunchRows, accountRows, registeredCategories] = await Promise.all([
+            readDataFromSheet('Saídas!A:J', { userId }),
+            readDataFromSheet('Lançamentos Cartão!A:J', { userId }),
+            readDataFromSheet('Contas!A:I', { userId }),
+            readRegisteredExpenseCategoriesForUser(userId)
+        ]);
+        const resolved = resolveCategory({
+            request: {
+                query: item.descricao || item.description || messageBody,
+                category: item.categoria || item.category,
+                subcategory: item.subcategoria || item.subcategory
+            },
+            expenseRows,
+            cardLaunchRows,
+            accountRows,
+            knownCategories: [...registeredCategories, ...getKnownExpenseCategoryOptions()],
+            trustedScope: { userIds: scopeUserIds },
+            limit: 5,
+            minScore: 2
+        });
+        return buildExpenseCategoryOptions({ candidates: resolved.candidates || [], registeredCategories });
+    } catch (error) {
+        logger.warn(`[category-assist] fallback_to_known_options error="${error?.message || error}"`);
+        return buildExpenseCategoryOptions();
+    }
+}
+
+async function askExpenseCategoryClarification({ msg, senderId, item, messageBody, userId }) {
+    const categoryOptions = await buildExpenseCategoryOptionsForUser({ userId, item, messageBody });
     userStateManager.setState(senderId, {
         action: 'awaiting_expense_category',
         data: {
             gasto: {
                 ...item,
                 originalMessage: item.originalMessage || messageBody
-            }
+            },
+            categoryOptions
         }
     });
-    await msg.reply(
-        `Não reconheci com segurança a categoria de "${item.descricao || 'esse gasto'}".\n` +
-        'Responda no formato `Categoria / Subcategoria`, por exemplo `Pets / Banho e tosa`, ou responda `Outros`.'
-    );
+    await msg.reply(buildExpenseCategorySelectionQuestion({ item, options: categoryOptions }));
+}
+async function continueLegacyExpenseAfterCategorySelection({ msg, senderId, userId, pessoa, gasto }) {
+    const pagamentoCorrigido = gasto.pagamento ? normalizePaymentReply(gasto.pagamento) : '';
+
+    if (!pagamentoCorrigido) {
+        userStateManager.setState(senderId, {
+            action: 'awaiting_payment_method',
+            data: {
+                gasto,
+                dataFinal: gasto.data || getFormattedDateOnly()
+            }
+        });
+        await msg.reply('Categoria anotada. E qual foi a forma de pagamento? (Crédito, Débito, PIX ou Dinheiro)');
+        return;
+    }
+
+    if (pagamentoCorrigido === 'Crédito') {
+        const cardOptions = await buildCreditCardOptionsForUser(userId);
+        if (!cardOptions.length) {
+            await replyNoCreditCardsConfigured(msg);
+            return;
+        }
+        userStateManager.setState(senderId, {
+            action: 'awaiting_credit_card_selection',
+            data: { gasto: { ...gasto, pagamento: 'Crédito' }, cardOptions }
+        });
+        await msg.reply(formatCreditCardOptionsQuestion('Categoria anotada. Em qual cartão? Responda com o número:', cardOptions));
+        return;
+    }
+
+    const completedExpense = {
+        ...gasto,
+        type: 'Saídas',
+        pagamento: pagamentoCorrigido,
+        originalMessage: gasto.originalMessage || gasto.descricao
+    };
+    if (await requireReliabilityControlBeforeStateWrite({
+        msg,
+        senderId,
+        userId,
+        item: completedExpense,
+        person: pessoa,
+        methodSource: 'user_state'
+    })) {
+        return;
+    }
+
+    const saved = await saveTransactionWithoutExtraPayment(completedExpense, { person: pessoa, userId });
+    await msg.reply(`Gasto de R$${saved.value.toFixed(2)} (${gasto.descricao || 'Não especificado'}) registrado como *${saved.method}* para a data de *${saved.date}*!`);
+    await safeMaybeNotifyDailyGoalAfterExpense(msg, userId, 'expense_category_clarification');
+    userStateManager.deleteState(senderId);
 }
 
+async function startExpenseNewCategoryFlow({ msg, senderId, currentState, flow }) {
+    userStateManager.setState(senderId, {
+        action: 'awaiting_expense_new_category_name',
+        data: {
+            flow,
+            gasto: currentState.data?.gasto,
+            expense: currentState.data?.expense
+        }
+    });
+    await msg.reply('Qual é o nome da nova categoria?');
+}
+
+async function continueAfterNewExpenseCategory({ msg, senderId, userId, pessoa, currentState, categoria, subcategoria }) {
+    try {
+        await ensureExpenseCategoryRegistered({ userId, categoria, subcategoria });
+    } catch (error) {
+        logger.warn(`[category-assist] category_registration_failed user_id=${logger.redactIdentifier(userId)} error="${error?.message || error}"`);
+        await msg.reply('Não consegui salvar essa categoria agora. Tente responder a subcategoria novamente ou cancele a operação.');
+        return;
+    }
+
+    if (currentState.data?.flow === 'planned') {
+        await continuePlannedExpense({
+            msg,
+            senderId,
+            userId,
+            expense: {
+                ...(currentState.data?.expense || {}),
+                categoria,
+                subcategoria,
+                categoryConfirmed: true
+            }
+        });
+        return;
+    }
+
+    await continueLegacyExpenseAfterCategorySelection({
+        msg,
+        senderId,
+        userId,
+        pessoa,
+        gasto: {
+            ...(currentState.data?.gasto || {}),
+            categoria,
+            subcategoria,
+            categoryConfirmed: true,
+            interpretationSource: 'user_state'
+        }
+    });
+}
 function buildManualTransferItemText(item = {}) {
     return [
         item.descricao,
@@ -7054,16 +7338,14 @@ function buildPlannedExpenseOperationKey(expense = {}, userId = '') {
     });
 }
 
-async function continuePlannedExpense({ msg, senderId, expense }) {
+async function continuePlannedExpense({ msg, senderId, userId, expense }) {
     if (expenseCategoryNeedsClarification(expense)) {
+        const categoryOptions = await buildExpenseCategoryOptionsForUser({ userId, item: expense, messageBody: expense.originalMessage });
         userStateManager.setState(senderId, {
             action: 'awaiting_planned_expense_category',
-            data: { expense }
+            data: { expense, categoryOptions }
         });
-        await msg.reply(
-            `Não reconheci com segurança a categoria de "${expense.descricao || 'esse gasto'}".\n` +
-            'Responda no formato `Categoria / Subcategoria` ou responda `Outros`.'
-        );
+        await msg.reply(buildExpenseCategorySelectionQuestion({ item: expense, options: categoryOptions }));
         return true;
     }
     if (!expense.pagamento) {
@@ -7082,7 +7364,7 @@ async function continuePlannedExpense({ msg, senderId, expense }) {
     return true;
 }
 
-async function handlePlannedExpense({ msg, senderId, messageBody, plannerResult }) {
+async function handlePlannedExpense({ msg, senderId, messageBody, userId, plannerResult }) {
     const plan = plannerResult?.plan;
     if (!plannerResult?.ok || plan?.operation !== 'expense.create') return false;
     if (normalizePaymentReply(plan.entities?.paymentMethod) === 'Crédito') return false;
@@ -7094,7 +7376,7 @@ async function handlePlannedExpense({ msg, senderId, messageBody, plannerResult 
         await msg.reply('Identifiquei um gasto, mas faltou um valor positivo válido.');
         return true;
     }
-    return continuePlannedExpense({ msg, senderId, expense });
+    return continuePlannedExpense({ msg, senderId, userId, expense });
 }
 async function tryHandleFinancialCommandPlannerRoute({ msg, senderId, messageBody, userId, pessoa, perfContext }) {
     if (!shouldRouteFinancialCommandPlanner({ userId })) return false;
@@ -7117,7 +7399,7 @@ async function tryHandleFinancialCommandPlannerRoute({ msg, senderId, messageBod
             if (invoiceHandled) return true;
         }
         if (shouldRouteFinancialCommandOperation('expense.create')) {
-            return handlePlannedExpense({ msg, senderId, messageBody, plannerResult });
+            return handlePlannedExpense({ msg, senderId, messageBody, userId, plannerResult });
         }
         return false;
     } catch (error) {
@@ -7505,81 +7787,50 @@ async function handleMessage(msg) {
 
             // Outros estados de conversa que você já tinha
             case 'awaiting_expense_category': {
-                const parsedCategory = parseExpenseCategoryReply(messageBody);
+                const gasto = currentState.data?.gasto || {};
+                const categoryOptions = currentState.data?.categoryOptions || buildExpenseCategoryOptions();
+                const parsedCategory = parseExpenseCategorySelectionReply(messageBody, categoryOptions);
                 if (!parsedCategory.ok) {
-                    await msg.reply('Não consegui entender a categoria. Responda no formato `Categoria / Subcategoria` ou `Outros`.');
+                    await msg.reply('Não consegui entender a opção. Responda com o número da categoria ou escolha a opção de criar nova categoria.\n\n' + buildExpenseCategorySelectionQuestion({ item: gasto, options: categoryOptions }));
+                    return;
+                }
+                if (parsedCategory.createNew) {
+                    await startExpenseNewCategoryFlow({ msg, senderId, currentState, flow: 'legacy' });
                     return;
                 }
 
-                const gasto = {
-                    ...(currentState.data?.gasto || {}),
-                    categoria: parsedCategory.categoria,
-                    subcategoria: parsedCategory.subcategoria,
-                    categoryConfirmed: true,
-                    interpretationSource: 'user_state'
-                };
-                const pagamentoCorrigido = gasto.pagamento ? normalizePaymentReply(gasto.pagamento) : '';
-
-                if (!pagamentoCorrigido) {
-                    userStateManager.setState(senderId, {
-                        action: 'awaiting_payment_method',
-                        data: {
-                            gasto,
-                            dataFinal: gasto.data || getFormattedDateOnly()
-                        }
-                    });
-                    await msg.reply('Categoria anotada. E qual foi a forma de pagamento? (Crédito, Débito, PIX ou Dinheiro)');
-                    return;
-                }
-
-                if (pagamentoCorrigido === 'Crédito') {
-                    const cardOptions = await buildCreditCardOptionsForUser(userId);
-                    if (!cardOptions.length) {
-                        await replyNoCreditCardsConfigured(msg);
-                        return;
-                    }
-                    userStateManager.setState(senderId, {
-                        action: 'awaiting_credit_card_selection',
-                        data: { gasto: { ...gasto, pagamento: 'Crédito' }, cardOptions }
-                    });
-                    await msg.reply(formatCreditCardOptionsQuestion('Categoria anotada. Em qual cartão? Responda com o número:', cardOptions));
-                    return;
-                }
-
-                const completedExpense = {
-                    ...gasto,
-                    type: 'Saídas',
-                    pagamento: pagamentoCorrigido,
-                    originalMessage: gasto.originalMessage || gasto.descricao
-                };
-                if (await requireReliabilityControlBeforeStateWrite({
+                await continueLegacyExpenseAfterCategorySelection({
                     msg,
                     senderId,
                     userId,
-                    item: completedExpense,
-                    person: pessoa,
-                    methodSource: 'user_state'
-                })) {
-                    return;
-                }
-
-                const saved = await saveTransactionWithoutExtraPayment(completedExpense, { person: pessoa, userId });
-                await msg.reply(`✅ Gasto de R$${saved.value.toFixed(2)} (${gasto.descricao || 'Não especificado'}) registrado como *${saved.method}* para a data de *${saved.date}*!`);
-                await safeMaybeNotifyDailyGoalAfterExpense(msg, userId, 'expense_category_clarification');
-                userStateManager.deleteState(senderId);
+                    pessoa,
+                    gasto: {
+                        ...gasto,
+                        categoria: parsedCategory.categoria,
+                        subcategoria: parsedCategory.subcategoria,
+                        categoryConfirmed: true,
+                        interpretationSource: 'user_state'
+                    }
+                });
                 return;
             }
 
             case 'awaiting_planned_expense_category': {
                 const expense = currentState.data?.expense || {};
-                const parsedCategory = parseExpenseCategoryReply(messageBody);
+                const categoryOptions = currentState.data?.categoryOptions || buildExpenseCategoryOptions();
+                const parsedCategory = parseExpenseCategorySelectionReply(messageBody, categoryOptions);
                 if (!parsedCategory.ok) {
-                    await msg.reply('Não consegui entender a categoria. Responda no formato `Categoria / Subcategoria` ou `Outros`.');
+                    await msg.reply('Não consegui entender a opção. Responda com o número da categoria ou escolha a opção de criar nova categoria.\n\n' + buildExpenseCategorySelectionQuestion({ item: expense, options: categoryOptions }));
+                    return;
+                }
+                if (parsedCategory.createNew) {
+                    await startExpenseNewCategoryFlow({ msg, senderId, currentState, flow: 'planned' });
                     return;
                 }
                 await continuePlannedExpense({
                     msg,
                     senderId,
+                    userId,
                     expense: {
                         ...expense,
                         categoria: parsedCategory.categoria,
@@ -7590,6 +7841,40 @@ async function handleMessage(msg) {
                 return;
             }
 
+            case 'awaiting_expense_new_category_name': {
+                const parsed = parseNewExpenseCategoryLabel(messageBody);
+                if (!parsed.ok) {
+                    await msg.reply('Não consegui entender o nome da categoria. Envie um nome curto, por exemplo Alimentação, Pets ou Moradia.');
+                    return;
+                }
+                userStateManager.setState(senderId, {
+                    action: 'awaiting_expense_new_subcategory_name',
+                    data: {
+                        ...currentState.data,
+                        newCategoryName: parsed.label
+                    }
+                });
+                await msg.reply(`Qual é a subcategoria dentro de "${parsed.label}"? Se não tiver, responda "sem subcategoria".`);
+                return;
+            }
+
+            case 'awaiting_expense_new_subcategory_name': {
+                const parsed = parseNewExpenseCategoryLabel(messageBody, { allowEmpty: true });
+                if (!parsed.ok) {
+                    await msg.reply('Não consegui entender a subcategoria. Envie um nome curto ou responda "sem subcategoria".');
+                    return;
+                }
+                await continueAfterNewExpenseCategory({
+                    msg,
+                    senderId,
+                    userId,
+                    pessoa,
+                    currentState,
+                    categoria: currentState.data?.newCategoryName,
+                    subcategoria: parsed.label
+                });
+                return;
+            }
             case 'awaiting_planned_expense_payment_method': {
                 const expense = currentState.data?.expense || {};
                 const paymentMethod = normalizePaymentReply(messageBody);
@@ -7844,7 +8129,8 @@ async function handleMessage(msg) {
                         msg,
                         senderId,
                         item: { ...gasto, type: 'Saídas', pagamento: pagamentoCorrigido },
-                        messageBody: gasto.originalMessage || gasto.descricao
+                        messageBody: gasto.originalMessage || gasto.descricao,
+                        userId
                     });
                     return;
                 }
@@ -8850,7 +9136,8 @@ async function handleMessage(msg) {
                                     msg,
                                     senderId,
                                     item,
-                                    messageBody
+                                    messageBody,
+                                    userId
                                 });
                                 return;
                             }
@@ -9415,7 +9702,8 @@ module.exports = {
         extractMultipleCategoriesFromQuestion,
         extractComparisonCategoriesFromQuestion,
         expenseCategoryNeedsClarification,
-        parseExpenseCategoryReply,
+        buildExpenseCategoryOptions,
+        parseExpenseCategorySelectionReply,
         normalizeInvitePhoneToWhatsAppId,
         normalizeMetricLabel,
         normalizeSettingsCommandText,
@@ -9451,6 +9739,3 @@ module.exports = {
         cleanLocalTransactionDescription
     }
 };
-
-
-

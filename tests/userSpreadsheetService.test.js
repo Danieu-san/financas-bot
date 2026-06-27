@@ -28,6 +28,7 @@ test('user spreadsheet template includes required multiuser financial tabs', () 
         'Lançamentos Cartão',
         'Faturas',
         'Parcelamentos',
+        'Categorias',
         'Contas'
     ]);
     assert.strictEqual(titles.includes('Importações'), false);
@@ -57,6 +58,9 @@ test('user spreadsheet template includes required multiuser financial tabs', () 
         'user_id',
         'goal_user_id'
     ]);
+
+    const categories = USER_SPREADSHEET_TABS.find(tab => tab.title === 'Categorias');
+    assert.deepStrictEqual(categories.headers, ['Categoria', 'Subcategoria', 'Ativa', 'Criada em', 'user_id']);
 });
 
 test('buildUserSpreadsheetResource creates a user-specific title without financial data', () => {

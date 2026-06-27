@@ -102,6 +102,7 @@ function resetSheets() {
     sheets.Entradas = [['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Observações', 'user_id']];
     sheets.Transferências = [['Data', 'Descrição', 'Valor', 'Origem', 'Destino', 'Método', 'Observações', 'Status', 'user_id']];
     sheets['Lançamentos Cartão'] = [['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Status', 'user_id']];
+    sheets.Categorias = [['Categoria', 'Subcategoria', 'Ativa', 'Criada em', 'user_id']];
     sheets.Contas = [['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa']];
     sheets.Dívidas = [DEBTS_HEADER];
     sheets.Metas = [['Nome da Meta', 'Valor Alvo', 'Valor Atual', '% Progresso', 'Valor Mensal Necessário', 'Data Fim', 'Status', 'Prioridade', 'user_id', 'Escopo', 'Última Movimentação']];
@@ -1060,6 +1061,138 @@ stateMachineTest('financial states: command planner keeps an ordinary purchase o
 
         assert.match(await send('não'), /cancelad/i);
         assert.strictEqual(sheets.Saídas.length, 1);
+    } finally {
+        if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+        else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+    }
+});
+stateMachineTest('financial states: planned expense category clarification requires numbered existing option', async () => {
+    resetState();
+    const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
+    enqueueStructuredResponse({
+        schemaVersion: 'financial-command-plan-v1',
+        operation: 'expense.create',
+        entities: {
+            description: 'mercado teste categoria',
+            amount: 45,
+            date: '27/06/2026',
+            paymentMethod: 'PIX',
+            category: 'Outros',
+            subcategory: ''
+        },
+        fieldEvidence: {
+            description: 'explicit',
+            amount: 'explicit',
+            date: 'explicit',
+            paymentMethod: 'explicit'
+        },
+        contextRequests: [{ tool: 'resolve_category', query: 'mercado teste categoria' }],
+        missingFields: [],
+        requiresConfirmation: true
+    });
+
+    try {
+        const categoryQuestion = await send('Gastei 45 no mercado teste categoria via Pix');
+        assert.match(categoryQuestion, /Escolha uma categoria existente/i);
+        const mercadoOption = categoryQuestion.match(/(^|\n)(\d+)\.\s*Alimentação\s*\/\s*SUPERMERCADO/im);
+        assert.ok(mercadoOption, categoryQuestion);
+        assert.match(categoryQuestion, /Criar nova categoria\/subcategoria/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_planned_expense_category');
+        assert.strictEqual(sheets.Saídas.length, 1);
+
+        const rejectedFreeText = await send('banana espacial');
+        assert.match(rejectedFreeText, /Responda com o número/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_planned_expense_category');
+        assert.strictEqual(sheets.Saídas.length, 1);
+
+        const confirmation = await send(mercadoOption[2]);
+        assert.match(confirmation, /Categoria: \*Alimentação \/ SUPERMERCADO\*/i);
+        assert.match(confirmation, /Confirma/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_planned_expense');
+        assert.strictEqual(sheets.Saídas.length, 1);
+
+        assert.match(await send('não'), /cancelad/i);
+        assert.strictEqual(sheets.Saídas.length, 1);
+    } finally {
+        if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+        else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+    }
+});
+
+stateMachineTest('financial states: planned expense can create category through guided category and subcategory prompts', async () => {
+    resetState();
+    const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
+    enqueueStructuredResponse({
+        schemaVersion: 'financial-command-plan-v1',
+        operation: 'expense.create',
+        entities: {
+            description: 'brecho raro teste',
+            amount: 46,
+            date: '27/06/2026',
+            paymentMethod: 'PIX',
+            category: 'Outros',
+            subcategory: ''
+        },
+        fieldEvidence: {
+            description: 'explicit',
+            amount: 'explicit',
+            date: 'explicit',
+            paymentMethod: 'explicit'
+        },
+        contextRequests: [{ tool: 'resolve_category', query: 'brecho raro teste' }],
+        missingFields: [],
+        requiresConfirmation: true
+    });
+
+    try {
+        const categoryQuestion = await send('Gastei 46 no brecho raro teste via Pix');
+        assert.match(categoryQuestion, /Criar nova categoria\/subcategoria/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_planned_expense_category');
+
+        assert.match(await send('criar nova'), /nome da nova categoria/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_expense_new_category_name');
+
+        assert.match(await send('Hobbies'), /subcategoria dentro de "Hobbies"/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_expense_new_subcategory_name');
+
+        const confirmation = await send('Colecionáveis');
+        assert.match(confirmation, /Categoria: \*Hobbies \/ Colecionáveis\*/i);
+        assert.match(confirmation, /Confirma/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_planned_expense');
+        assert.strictEqual(sheets.Saídas.length, 1);
+        assert.strictEqual(sheets.Categorias.length, 2);
+        assert.deepStrictEqual(sheets.Categorias[1].slice(0, 3), ['Hobbies', 'Colecionáveis', 'SIM']);
+        assert.strictEqual(sheets.Categorias[1][4], USER_ID);
+
+        assert.match(await send('não'), /cancelad/i);
+        assert.strictEqual(sheets.Saídas.length, 1);
+
+        enqueueStructuredResponse({
+            schemaVersion: 'financial-command-plan-v1',
+            operation: 'expense.create',
+            entities: {
+                description: 'brecho raro teste dois',
+                amount: 47,
+                date: '27/06/2026',
+                paymentMethod: 'PIX',
+                category: 'Outros',
+                subcategory: ''
+            },
+            fieldEvidence: {
+                description: 'explicit',
+                amount: 'explicit',
+                date: 'explicit',
+                paymentMethod: 'explicit'
+            },
+            contextRequests: [{ tool: 'resolve_category', query: 'brecho raro teste dois' }],
+            missingFields: [],
+            requiresConfirmation: true
+        });
+
+        const persistedCategoryQuestion = await send('Gastei 47 no brecho raro teste dois via Pix');
+        assert.match(persistedCategoryQuestion, /\d+\.\s*Hobbies\s*\/\s*Colecionáveis/i);
     } finally {
         if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
         else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
