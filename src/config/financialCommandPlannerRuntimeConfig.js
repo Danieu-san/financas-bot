@@ -3,6 +3,8 @@ const path = require('node:path');
 const dotenv = require('dotenv');
 
 const RUNTIME_MODES = new Set(['off', 'shadow', 'canary']);
+const ROUTABLE_OPERATIONS = new Set(['bill.pay', 'debt.pay', 'invoice.pay', 'expense.create', 'income.create']);
+const DEFAULT_ROUTE_OPERATIONS = ['bill.pay'];
 const registeredProcesses = new WeakSet();
 
 function parseAllowlistedUserIds(value) {
@@ -14,6 +16,24 @@ function parseAllowlistedUserIds(value) {
     )];
 }
 
+function parseRouteOperations(value) {
+    const requested = String(value || '').trim()
+        ? parseAllowlistedUserIds(value)
+        : DEFAULT_ROUTE_OPERATIONS;
+    const unknown = requested.filter(operation => !ROUTABLE_OPERATIONS.has(operation));
+    return {
+        operations: unknown.length > 0 ? [] : requested,
+        unknown
+    };
+}
+
+function shouldRouteFinancialCommandOperation(operation, { env = process.env } = {}) {
+    if (String(env.FINANCIAL_COMMAND_PLANNER_MODE || '').trim().toLowerCase() === 'route') {
+        return ROUTABLE_OPERATIONS.has(operation);
+    }
+    const parsed = parseRouteOperations(env.FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS);
+    return parsed.unknown.length === 0 && parsed.operations.includes(operation);
+}
 function applyFinancialCommandPlannerRuntimeConfig({ env = process.env, config = {} } = {}) {
     const mode = String(config.FINANCIAL_COMMAND_PLANNER_MODE || '').trim().toLowerCase();
     if (!RUNTIME_MODES.has(mode)) {
@@ -26,11 +46,16 @@ function applyFinancialCommandPlannerRuntimeConfig({ env = process.env, config =
     if (mode === 'canary' && allowlistedUserIds.length === 0) {
         return { applied: false, reason: 'canary_allowlist_required' };
     }
+    const routeOperations = parseRouteOperations(config.FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS);
+    if (routeOperations.unknown.length > 0) {
+        return { applied: false, reason: 'unsupported_route_operation' };
+    }
 
     env.FINANCIAL_COMMAND_PLANNER_MODE = mode;
     env.FINANCIAL_COMMAND_PLANNER_CANARY_USER_IDS = mode === 'canary'
         ? allowlistedUserIds.join(',')
         : '';
+    env.FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS = routeOperations.operations.join(',');
 
     return {
         applied: true,
@@ -46,7 +71,8 @@ function readFinancialCommandPlannerRuntimeConfig({
     const parsed = dotenv.parse(readFileSync(envFilePath));
     return {
         FINANCIAL_COMMAND_PLANNER_MODE: parsed.FINANCIAL_COMMAND_PLANNER_MODE,
-        FINANCIAL_COMMAND_PLANNER_CANARY_USER_IDS: parsed.FINANCIAL_COMMAND_PLANNER_CANARY_USER_IDS
+        FINANCIAL_COMMAND_PLANNER_CANARY_USER_IDS: parsed.FINANCIAL_COMMAND_PLANNER_CANARY_USER_IDS,
+        FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS: parsed.FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS
     };
 }
 
@@ -83,7 +109,9 @@ module.exports = {
     applyFinancialCommandPlannerRuntimeConfig,
     readFinancialCommandPlannerRuntimeConfig,
     registerFinancialCommandPlannerRuntimeReload,
+    shouldRouteFinancialCommandOperation,
     __test__: {
-        parseAllowlistedUserIds
+        parseAllowlistedUserIds,
+        parseRouteOperations
     }
 };

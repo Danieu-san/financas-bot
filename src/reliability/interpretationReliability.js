@@ -17,8 +17,10 @@ const ALLOWLISTED_OPERATIONS = new Set([
     'goal.withdraw',
     'debt.create',
     'debt.payment',
+    'debt.pay',
     'bill.create',
     'bill.pay',
+    'invoice.pay',
     'reminder.create'
 ]);
 
@@ -32,8 +34,10 @@ const SENSITIVE_CONFIRM_OPERATIONS = new Set([
     'goal.withdraw',
     'debt.create',
     'debt.payment',
+    'debt.pay',
     'bill.create',
     'bill.pay',
+    'invoice.pay',
     'reminder.create'
 ]);
 
@@ -50,8 +54,10 @@ const CRITICAL_FIELDS_BY_OPERATION = {
     'goal.withdraw': ['amount', 'scope', 'target'],
     'debt.create': ['amount', 'scope', 'target'],
     'debt.payment': ['amount', 'scope', 'target'],
+    'debt.pay': ['amount', 'scope', 'target'],
     'bill.create': ['amount', 'scope', 'target'],
     'bill.pay': ['amount', 'scope', 'target', 'payment'],
+    'invoice.pay': ['amount', 'scope', 'target', 'payment', 'movementType'],
     'reminder.create': ['scope', 'target']
 };
 

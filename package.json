@@ -23,6 +23,7 @@
     "test:whatsapp:e2e:invite": "node scripts/runWhatsappPreOnboardingInviteE2E.js",
     "test:whatsapp:e2e:import": "node scripts/runWhatsappImportE2E.js",
     "test:whatsapp:e2e:bill-pay": "node scripts/runWhatsappBillPayE2E.js",
+    "test:whatsapp:e2e:planner-writes": "node scripts/runWhatsappPlannerWritesE2E.js",
     "pm2:start": "pm2 start ecosystem.config.js",
     "pm2:stop": "pm2 stop all",
     "pm2:logs": "pm2 logs",

@@ -5,7 +5,7 @@ const deletionHandler = require('./deletionHandler');
 const debtHandler = require('./debtHandler');
 const { getStructuredResponseFromLLM } = require('../services/gemini');
 const googleService = require('../services/google');
-const { appendRowToSheet, readDataFromSheet, createCalendarEvent } = googleService;
+const { appendRowToSheet, readDataFromSheet, updateRowInSheet, createCalendarEvent } = googleService;
 const runWithUserSheetContext = googleService.runWithUserSheetContext || ((user, fn) => fn());
 const hasUserSpreadsheetContext = googleService.hasUserSpreadsheetContext || (async () => false);
 const shareSpreadsheetWithUserEmail = googleService.shareSpreadsheetWithUserEmail || (async () => null);
@@ -67,8 +67,9 @@ const { buildGoogleConnectLink } = require('../services/googleOAuthService');
 const { sendWhatsAppMessage } = require('../services/whatsapp');
 const { invokeFinancialAgent } = require('../agent/financialAgent');
 const { planFinancialCommandWithGemini } = require('../planning/financialCommandPlanner');
-const { matchRecurringBill } = require('../planning/financialCommandContextTools');
+const { matchRecurringBill, matchDebt, matchCardInvoice } = require('../planning/financialCommandContextTools');
 const { runFinancialCommandPlannerShadow, shouldRouteFinancialCommandPlanner } = require('../planning/financialCommandPlannerShadow');
+const { shouldRouteFinancialCommandOperation } = require('../config/financialCommandPlannerRuntimeConfig');
 const {
     GOAL_STATUS,
     applyGoalMovement,
@@ -6647,6 +6648,454 @@ async function handlePlannedBillPayment({ msg, senderId, messageBody, userId, pe
         originalMessageId: msg?.id?.id || ''
     });
 }
+function buildDebtPaymentFromPlan(plan = {}, candidate = {}, { originalMessage = '', originalMessageId = '' } = {}) {
+    const amount = parseValue(plan.entities?.amount);
+    if (!Number.isFinite(amount) || amount <= 0 || amount > Number(candidate.balanceAmount || 0)) return null;
+    return {
+        operation: 'debt.pay',
+        description: candidate.label || plan.entities?.description || 'Dívida',
+        amount,
+        candidate,
+        originalMessage,
+        originalMessageId
+    };
+}
+
+function buildDebtPaymentConfirmationMessage(debtPayment = {}) {
+    return [
+        `Identifiquei o pagamento da dívida *${debtPayment.description || 'Dívida'}*.`,
+        `Valor: *${formatCurrencyBR(debtPayment.amount)}*`,
+        `Saldo atual: *${formatCurrencyBR(debtPayment.candidate?.balanceAmount)}*`,
+        '',
+        'Confirma o registro? Responda *sim* ou *não*.'
+    ].join('\n');
+}
+
+function findScopedDebtRow(debtRows = [], candidate = {}, trustedUserIds = []) {
+    const allowedUserIds = new Set(trustedUserIds.map(item => String(item || '').trim()).filter(Boolean));
+    const targetLabel = normalizeText(candidate.label || '');
+    if (!targetLabel || allowedUserIds.size === 0) return null;
+    const matches = debtRows
+        .map((row, index) => ({ row, index }))
+        .filter(item => item.index > 0)
+        .filter(item => allowedUserIds.has(String(item.row?.[17] || '').trim()))
+        .filter(item => normalizeText(item.row?.[0] || '') === targetLabel)
+        .filter(item => Number(parseValue(item.row?.[4])) > 0);
+    return matches.length === 1 ? matches[0] : null;
+}
+
+function buildDebtPaymentOperationKey(debtPayment = {}, userId = '') {
+    const { createOperationKey } = require('../reliability/financialWriteLedger');
+    return createOperationKey({
+        userId,
+        messageId: debtPayment.originalMessageId || normalizeText(debtPayment.originalMessage || debtPayment.description || ''),
+        operation: 'debt.pay',
+        itemFingerprint: JSON.stringify({
+            target: normalizeText(debtPayment.description || ''),
+            amount: parseValue(debtPayment.amount)
+        })
+    });
+}
+
+async function saveDebtPayment(debtPayment = {}, { userId } = {}) {
+    const amount = parseValue(debtPayment.amount);
+    const debtRows = await readDataFromSheet('Dívidas');
+    const scopeUserIds = getFinancialScopeUserIds(userId);
+    const match = findScopedDebtRow(debtRows, debtPayment.candidate, scopeUserIds);
+    if (!match) throw new Error('Não consegui revalidar uma única dívida compatível no seu escopo.');
+
+    const currentBalance = parseValue(match.row[4]);
+    if (!Number.isFinite(amount) || amount <= 0 || amount > currentBalance) {
+        throw new Error('O valor do pagamento precisa ser positivo e não pode superar o saldo atual.');
+    }
+
+    const updatedRow = [...match.row];
+    const newBalance = Math.max(0, currentBalance - amount);
+    updatedRow[4] = newBalance;
+    const originalAmount = parseValue(updatedRow[3]);
+    if (Number.isFinite(originalAmount) && originalAmount > 0) {
+        updatedRow[13] = `${((1 - (newBalance / originalAmount)) * 100).toFixed(2)}%`;
+    }
+
+    recordWriteInterpretationShadow({
+        operation: 'debt.pay',
+        userId,
+        message: debtPayment.originalMessage || debtPayment.description,
+        fields: {
+            amount: verifiedField(amount, 'user_state', 'confirmed_debt_payment_amount'),
+            scope: verifiedField('personal', 'user_state', 'active_user_scope'),
+            target: verifiedField(debtPayment.description || '', 'user_state', 'matched_debt')
+        },
+        currentFlowOutcome: 'confirmed_write_attempt'
+    });
+
+    const lastColumn = String.fromCharCode(65 + updatedRow.length - 1);
+    const result = await updateRowInSheet(
+        `Dívidas!A${match.index + 1}:${lastColumn}${match.index + 1}`,
+        updatedRow,
+        {
+            operationKey: buildDebtPaymentOperationKey(debtPayment, userId),
+            userId,
+            messageId: debtPayment.originalMessageId || '',
+            source: 'financial_command_planner.debt_pay'
+        }
+    );
+    markFinancialReadModelDirty('debt_payment_write');
+    return {
+        amount,
+        description: debtPayment.description,
+        newBalance: result?.receipt?.replayed ? currentBalance : newBalance,
+        replayed: result?.receipt?.replayed === true
+    };
+}
+
+function buildDebtPaymentSelectionQuestion(candidates = [], invalid = false) {
+    const lines = candidates.map((candidate, index) => `${index + 1}. ${candidate.label}`);
+    return [
+        invalid
+            ? 'Não consegui identificar a opção. Escolha uma das dívidas:'
+            : 'Encontrei mais de uma dívida compatível. Qual delas você pagou?',
+        '',
+        ...lines,
+        '',
+        'Responda com o número da dívida.'
+    ].join('\n');
+}
+
+async function continuePlannedDebtPayment({
+    msg,
+    senderId,
+    plan,
+    candidate,
+    originalMessage,
+    originalMessageId
+}) {
+    const plannedAmount = parseValue(plan.entities?.amount);
+    if (!Number.isFinite(plannedAmount) || plannedAmount <= 0) {
+        userStateManager.setState(senderId, {
+            action: 'awaiting_debt_payment_amount',
+            data: {
+                debtPayment: {
+                    operation: 'debt.pay',
+                    description: candidate.label,
+                    amount: null,
+                    candidate,
+                    originalMessage,
+                    originalMessageId
+                }
+            }
+        });
+        await msg.reply(`Identifiquei a dívida *${candidate.label}*. Qual foi o valor pago?`);
+        return true;
+    }
+
+    const debtPayment = buildDebtPaymentFromPlan(plan, candidate, {
+        originalMessage,
+        originalMessageId
+    });
+    if (!debtPayment) {
+        await msg.reply('Identifiquei a dívida, mas o valor é inválido ou está acima do saldo atual.');
+        return true;
+    }
+
+    userStateManager.setState(senderId, { action: 'confirming_debt_payment', data: { debtPayment } });
+    await msg.reply(buildDebtPaymentConfirmationMessage(debtPayment));
+    return true;
+}
+async function handlePlannedDebtPayment({ msg, senderId, messageBody, userId, plannerResult }) {
+    const plan = plannerResult?.plan;
+    if (!plannerResult?.ok || plan?.operation !== 'debt.pay') return false;
+
+    const debtRows = await readDataFromSheet('Dívidas');
+    const scopeUserIds = getFinancialScopeUserIds(userId);
+    const match = matchDebt({
+        request: { query: plan.entities?.description || messageBody, amount: plan.entities?.amount },
+        debtRows,
+        trustedScope: { userIds: scopeUserIds },
+        limit: 2
+    });
+
+    if (match.classification === 'no_match') {
+        await msg.reply('Identifiquei um pagamento de dívida, mas não encontrei uma dívida registrada compatível no seu escopo.');
+        return true;
+    }
+    if (match.classification === 'multiple_matches') {
+        userStateManager.setState(senderId, {
+            action: 'awaiting_debt_payment_selection',
+            data: {
+                plan,
+                candidates: match.candidates,
+                originalMessage: messageBody,
+                originalMessageId: msg?.id?.id || ''
+            }
+        });
+        await msg.reply(buildDebtPaymentSelectionQuestion(match.candidates));
+        return true;
+    }
+
+    return continuePlannedDebtPayment({
+        msg,
+        senderId,
+        plan,
+        candidate: match.candidates[0],
+        originalMessage: messageBody,
+        originalMessageId: msg?.id?.id || ''
+    });
+}
+function buildInvoicePaymentFromPlan(plan = {}, candidate = {}, { originalMessage = '', originalMessageId = '' } = {}) {
+    const amount = parseValue(plan.entities?.amount);
+    const paymentMethod = normalizePaymentReply(plan.entities?.paymentMethod);
+    if (!Number.isFinite(amount) || amount <= 0) return null;
+    return {
+        operation: 'invoice.pay',
+        date: buildBillPaymentDate(plan.entities?.date),
+        description: `Pagamento de fatura ${candidate.card || candidate.label || 'Cartão'} - ${candidate.billingMonth || 'período atual'}`,
+        amount,
+        paymentMethod: paymentMethod && paymentMethod !== 'Crédito' ? paymentMethod : '',
+        candidate,
+        originalMessage,
+        originalMessageId
+    };
+}
+
+function buildInvoicePaymentConfirmationMessage(invoicePayment = {}) {
+    return [
+        `Identifiquei o pagamento da fatura *${invoicePayment.candidate?.label || invoicePayment.candidate?.card || 'Cartão'}*.`,
+        `Valor: *${formatCurrencyBR(invoicePayment.amount)}*`,
+        `Forma: *${invoicePayment.paymentMethod || 'não informada'}*`,
+        `Data: *${invoicePayment.date}*`,
+        '',
+        'Confirma o registro? Responda *sim* ou *não*.'
+    ].join('\n');
+}
+
+function buildInvoicePaymentOperationKey(invoicePayment = {}, userId = '') {
+    const { createOperationKey } = require('../reliability/financialWriteLedger');
+    return createOperationKey({
+        userId,
+        messageId: invoicePayment.originalMessageId || normalizeText(invoicePayment.originalMessage || invoicePayment.description || ''),
+        operation: 'invoice.pay',
+        itemFingerprint: JSON.stringify({
+            card: normalizeText(invoicePayment.candidate?.card || ''),
+            billingMonth: normalizeText(invoicePayment.candidate?.billingMonth || ''),
+            amount: parseValue(invoicePayment.amount),
+            date: invoicePayment.date || ''
+        })
+    });
+}
+
+async function saveInvoicePayment(invoicePayment = {}, { userId } = {}) {
+    const amount = parseValue(invoicePayment.amount);
+    recordWriteInterpretationShadow({
+        operation: 'invoice.pay',
+        userId,
+        message: invoicePayment.originalMessage || invoicePayment.description,
+        fields: {
+            amount: verifiedField(amount, 'user_state', 'confirmed_invoice_payment_amount'),
+            scope: verifiedField('personal', 'user_state', 'active_user_scope'),
+            target: verifiedField(invoicePayment.candidate?.label || '', 'user_state', 'matched_card_invoice'),
+            payment: verifiedField(invoicePayment.paymentMethod, 'user_state', 'payment_method'),
+            movementType: verifiedField('invoice_payment', 'user_state', 'financial_domain')
+        },
+        currentFlowOutcome: 'confirmed_write_attempt'
+    });
+    const result = await appendRowToSheet('Transferências', [
+        invoicePayment.date,
+        invoicePayment.description,
+        amount,
+        '',
+        invoicePayment.candidate?.card || '',
+        invoicePayment.paymentMethod,
+        'Fatura identificada pelo command planner.',
+        'Pagamento de fatura',
+        userId
+    ], {
+        operationKey: buildInvoicePaymentOperationKey(invoicePayment, userId),
+        userId,
+        messageId: invoicePayment.originalMessageId || '',
+        source: 'financial_command_planner.invoice_pay'
+    });
+    markFinancialReadModelDirty('invoice_payment_write');
+    return { ...invoicePayment, amount, replayed: result?.receipt?.replayed === true };
+}
+
+function buildInvoicePaymentSelectionQuestion(candidates = [], invalid = false) {
+    const lines = candidates.map((candidate, index) => `${index + 1}. ${candidate.label}`);
+    return [
+        invalid
+            ? 'Não consegui identificar a opção. Escolha uma das faturas:'
+            : 'Encontrei mais de uma fatura compatível. Qual delas você pagou?',
+        '',
+        ...lines,
+        '',
+        'Responda com o número da fatura.'
+    ].join('\n');
+}
+
+async function continuePlannedInvoicePayment({
+    msg,
+    senderId,
+    plan,
+    candidate,
+    originalMessage,
+    originalMessageId
+}) {
+    const invoicePayment = buildInvoicePaymentFromPlan(plan, candidate, {
+        originalMessage,
+        originalMessageId
+    });
+    if (!invoicePayment) {
+        await msg.reply('Identifiquei a fatura, mas o valor do pagamento está ausente ou inválido.');
+        return true;
+    }
+    if (!invoicePayment.paymentMethod) {
+        userStateManager.setState(senderId, {
+            action: 'awaiting_invoice_payment_method',
+            data: { invoicePayment }
+        });
+        await msg.reply(`Identifiquei a fatura *${invoicePayment.candidate?.label}*. Qual foi a forma de pagamento? (Débito, PIX ou Dinheiro)`);
+        return true;
+    }
+
+    userStateManager.setState(senderId, {
+        action: 'confirming_invoice_payment',
+        data: { invoicePayment }
+    });
+    await msg.reply(buildInvoicePaymentConfirmationMessage(invoicePayment));
+    return true;
+}
+async function handlePlannedInvoicePayment({ msg, senderId, messageBody, userId, plannerResult }) {
+    const plan = plannerResult?.plan;
+    if (!plannerResult?.ok || plan?.operation !== 'invoice.pay') return false;
+
+    const cardLaunchRows = await readDataFromSheet('Lançamentos Cartão!A:J', { userId });
+    const scopeUserIds = getFinancialScopeUserIds(userId);
+    const match = matchCardInvoice({
+        request: { query: plan.entities?.description || messageBody, amount: plan.entities?.amount },
+        cardLaunchRows,
+        trustedScope: { userIds: scopeUserIds },
+        limit: 2
+    });
+    if (match.classification === 'no_match') {
+        await msg.reply('Identifiquei um pagamento de fatura, mas não encontrei uma fatura de cartão conhecida e compatível no seu escopo.');
+        return true;
+    }
+    if (match.classification === 'multiple_matches') {
+        userStateManager.setState(senderId, {
+            action: 'awaiting_invoice_payment_selection',
+            data: {
+                plan,
+                candidates: match.candidates,
+                originalMessage: messageBody,
+                originalMessageId: msg?.id?.id || ''
+            }
+        });
+        await msg.reply(buildInvoicePaymentSelectionQuestion(match.candidates));
+        return true;
+    }
+
+    return continuePlannedInvoicePayment({
+        msg,
+        senderId,
+        plan,
+        candidate: match.candidates[0],
+        originalMessage: messageBody,
+        originalMessageId: msg?.id?.id || ''
+    });
+}
+function buildPlannedExpense(plan = {}, { originalMessage = '', originalMessageId = '' } = {}) {
+    const entities = plan.entities || {};
+    const amount = parseValue(entities.amount);
+    const paymentMethod = normalizePaymentReply(entities.paymentMethod);
+    if (!Number.isFinite(amount) || amount <= 0 || paymentMethod === 'Crédito') return null;
+    return {
+        type: 'Saídas',
+        data: buildBillPaymentDate(entities.date),
+        descricao: String(entities.description || 'Gasto').trim().slice(0, 180),
+        categoria: String(entities.category || 'Outros').trim().slice(0, 60),
+        subcategoria: String(entities.subcategory || '').trim().slice(0, 80),
+        valor: amount,
+        pagamento: paymentMethod || '',
+        recorrente: 'Não',
+        observacoes: 'Gasto interpretado pelo command planner.',
+        originalMessage,
+        originalMessageId,
+        interpretationSource: 'command_planner',
+        plannerRequiresFinalConfirmation: true
+    };
+}
+
+function buildPlannedExpenseConfirmationMessage(expense = {}) {
+    return [
+        `Identifiquei o gasto *${expense.descricao || 'Gasto'}*.`,
+        `Valor: *${formatCurrencyBR(expense.valor)}*`,
+        `Categoria: *${expense.categoria || 'Outros'}${expense.subcategoria ? ` / ${expense.subcategoria}` : ''}*`,
+        `Forma: *${expense.pagamento || 'não informada'}*`,
+        `Data: *${expense.data || getFormattedDateOnly()}*`,
+        '',
+        'Confirma o registro? Responda *sim* ou *não*.'
+    ].join('\n');
+}
+
+function buildPlannedExpenseOperationKey(expense = {}, userId = '') {
+    const { createOperationKey } = require('../reliability/financialWriteLedger');
+    return createOperationKey({
+        userId,
+        messageId: expense.originalMessageId || normalizeText(expense.originalMessage || expense.descricao || ''),
+        operation: 'expense.create',
+        itemFingerprint: JSON.stringify({
+            date: expense.data || '',
+            description: normalizeText(expense.descricao || ''),
+            category: normalizeText(expense.categoria || ''),
+            subcategory: normalizeText(expense.subcategoria || ''),
+            amount: parseValue(expense.valor),
+            payment: normalizeText(expense.pagamento || '')
+        })
+    });
+}
+
+async function continuePlannedExpense({ msg, senderId, expense }) {
+    if (expenseCategoryNeedsClarification(expense)) {
+        userStateManager.setState(senderId, {
+            action: 'awaiting_planned_expense_category',
+            data: { expense }
+        });
+        await msg.reply(
+            `Não reconheci com segurança a categoria de "${expense.descricao || 'esse gasto'}".\n` +
+            'Responda no formato `Categoria / Subcategoria` ou responda `Outros`.'
+        );
+        return true;
+    }
+    if (!expense.pagamento) {
+        userStateManager.setState(senderId, {
+            action: 'awaiting_planned_expense_payment_method',
+            data: { expense }
+        });
+        await msg.reply('Qual foi a forma de pagamento? (Débito, PIX ou Dinheiro)');
+        return true;
+    }
+    userStateManager.setState(senderId, {
+        action: 'confirming_planned_expense',
+        data: { expense }
+    });
+    await msg.reply(buildPlannedExpenseConfirmationMessage(expense));
+    return true;
+}
+
+async function handlePlannedExpense({ msg, senderId, messageBody, plannerResult }) {
+    const plan = plannerResult?.plan;
+    if (!plannerResult?.ok || plan?.operation !== 'expense.create') return false;
+    if (normalizePaymentReply(plan.entities?.paymentMethod) === 'Crédito') return false;
+    const expense = buildPlannedExpense(plan, {
+        originalMessage: messageBody,
+        originalMessageId: msg?.id?.id || ''
+    });
+    if (!expense) {
+        await msg.reply('Identifiquei um gasto, mas faltou um valor positivo válido.');
+        return true;
+    }
+    return continuePlannedExpense({ msg, senderId, expense });
+}
 async function tryHandleFinancialCommandPlannerRoute({ msg, senderId, messageBody, userId, pessoa, perfContext }) {
     if (!shouldRouteFinancialCommandPlanner({ userId })) return false;
     try {
@@ -6655,7 +7104,22 @@ async function tryHandleFinancialCommandPlannerRoute({ msg, senderId, messageBod
             () => planFinancialCommandWithGemini({ message: messageBody }),
             perfContext
         );
-        return handlePlannedBillPayment({ msg, senderId, messageBody, userId, pessoa, plannerResult });
+        if (shouldRouteFinancialCommandOperation('bill.pay')) {
+            const billHandled = await handlePlannedBillPayment({ msg, senderId, messageBody, userId, pessoa, plannerResult });
+            if (billHandled) return true;
+        }
+        if (shouldRouteFinancialCommandOperation('debt.pay')) {
+            const debtHandled = await handlePlannedDebtPayment({ msg, senderId, messageBody, userId, plannerResult });
+            if (debtHandled) return true;
+        }
+        if (shouldRouteFinancialCommandOperation('invoice.pay')) {
+            const invoiceHandled = await handlePlannedInvoicePayment({ msg, senderId, messageBody, userId, plannerResult });
+            if (invoiceHandled) return true;
+        }
+        if (shouldRouteFinancialCommandOperation('expense.create')) {
+            return handlePlannedExpense({ msg, senderId, messageBody, plannerResult });
+        }
+        return false;
     } catch (error) {
         logger.warn(`[financial-command-planner] route_failed error=${error.message}`);
         return false;
@@ -7106,6 +7570,186 @@ async function handleMessage(msg) {
                 return;
             }
 
+            case 'awaiting_planned_expense_category': {
+                const expense = currentState.data?.expense || {};
+                const parsedCategory = parseExpenseCategoryReply(messageBody);
+                if (!parsedCategory.ok) {
+                    await msg.reply('Não consegui entender a categoria. Responda no formato `Categoria / Subcategoria` ou `Outros`.');
+                    return;
+                }
+                await continuePlannedExpense({
+                    msg,
+                    senderId,
+                    expense: {
+                        ...expense,
+                        categoria: parsedCategory.categoria,
+                        subcategoria: parsedCategory.subcategoria,
+                        categoryConfirmed: true
+                    }
+                });
+                return;
+            }
+
+            case 'awaiting_planned_expense_payment_method': {
+                const expense = currentState.data?.expense || {};
+                const paymentMethod = normalizePaymentReply(messageBody);
+                if (!paymentMethod || !['Débito', 'PIX', 'Dinheiro'].includes(paymentMethod)) {
+                    await msg.reply('Não consegui entender a forma de pagamento. Responda com Débito, PIX ou Dinheiro.');
+                    return;
+                }
+                await continuePlannedExpense({
+                    msg,
+                    senderId,
+                    expense: { ...expense, pagamento: paymentMethod }
+                });
+                return;
+            }
+
+            case 'confirming_planned_expense': {
+                const cleanReply = normalizeText(msg.body);
+                const expense = currentState.data?.expense || {};
+                if (['nao', 'não', 'n', 'cancelar', 'cancela'].includes(cleanReply)) {
+                    userStateManager.deleteState(senderId);
+                    await msg.reply('Gasto cancelado. Nenhum dado foi salvo.');
+                    return;
+                }
+                if (!['sim', 's', 'ss', 'confirmo'].includes(cleanReply)) {
+                    await msg.reply('Responda `sim` para confirmar o gasto ou `não` para cancelar.');
+                    return;
+                }
+                const saved = await saveTransactionWithoutExtraPayment(
+                    { ...expense, reliabilityConfirmed: true },
+                    {
+                        person: pessoa,
+                        userId,
+                        writeOptions: {
+                            operationKey: buildPlannedExpenseOperationKey(expense, userId),
+                            userId,
+                            messageId: expense.originalMessageId || '',
+                            source: 'financial_command_planner.expense_create'
+                        }
+                    }
+                );
+                userStateManager.deleteState(senderId);
+                await msg.reply(`✅ Gasto de ${formatCurrencyBR(saved.value)} (${expense.descricao}) registrado como *${saved.method}*.`);
+                await safeMaybeNotifyDailyGoalAfterExpense(msg, userId, 'planned_expense');
+                return;
+            }
+            case 'awaiting_invoice_payment_selection': {
+                const data = currentState.data || {};
+                const candidates = Array.isArray(data.candidates) ? data.candidates : [];
+                const candidate = parseBillPaymentSelection(messageBody, candidates);
+                if (!candidate) {
+                    await msg.reply(buildInvoicePaymentSelectionQuestion(candidates, true));
+                    return;
+                }
+                await continuePlannedInvoicePayment({
+                    msg,
+                    senderId,
+                    plan: data.plan || {},
+                    candidate,
+                    originalMessage: data.originalMessage || '',
+                    originalMessageId: data.originalMessageId || ''
+                });
+                return;
+            }
+            case 'awaiting_invoice_payment_method': {
+                const invoicePayment = currentState.data?.invoicePayment || {};
+                const paymentMethod = normalizePaymentReply(messageBody);
+                if (!paymentMethod || !['Débito', 'PIX', 'Dinheiro'].includes(paymentMethod)) {
+                    await msg.reply('Não consegui entender a forma de pagamento da fatura. Responda com Débito, PIX ou Dinheiro.');
+                    return;
+                }
+                const completedInvoicePayment = { ...invoicePayment, paymentMethod };
+                userStateManager.setState(senderId, {
+                    action: 'confirming_invoice_payment',
+                    data: { invoicePayment: completedInvoicePayment }
+                });
+                await msg.reply(buildInvoicePaymentConfirmationMessage(completedInvoicePayment));
+                return;
+            }
+            case 'confirming_invoice_payment': {
+                const cleanReply = normalizeText(msg.body);
+                const invoicePayment = currentState.data?.invoicePayment || {};
+                if (['nao', 'não', 'n', 'cancelar', 'cancela'].includes(cleanReply)) {
+                    userStateManager.deleteState(senderId);
+                    await msg.reply('Pagamento de fatura cancelado. Nenhum dado foi salvo.');
+                    return;
+                }
+                if (!['sim', 's', 'ss', 'confirmo'].includes(cleanReply)) {
+                    await msg.reply('Responda `sim` para confirmar o pagamento da fatura ou `não` para cancelar.');
+                    return;
+                }
+                const saved = await saveInvoicePayment(invoicePayment, { userId });
+                userStateManager.deleteState(senderId);
+                if (saved.replayed) {
+                    await msg.reply(`Esse pagamento da fatura *${saved.candidate?.label || saved.candidate?.card}* já havia sido registrado.`);
+                    return;
+                }
+                await msg.reply(`✅ Pagamento da fatura *${saved.candidate?.label || saved.candidate?.card}* registrado como movimentação financeira, sem duplicar o gasto.`);
+                return;
+            }
+            case 'awaiting_debt_payment_selection': {
+                const data = currentState.data || {};
+                const candidates = Array.isArray(data.candidates) ? data.candidates : [];
+                const candidate = parseBillPaymentSelection(messageBody, candidates);
+                if (!candidate) {
+                    await msg.reply(buildDebtPaymentSelectionQuestion(candidates, true));
+                    return;
+                }
+                await continuePlannedDebtPayment({
+                    msg,
+                    senderId,
+                    plan: data.plan || {},
+                    candidate,
+                    originalMessage: data.originalMessage || '',
+                    originalMessageId: data.originalMessageId || ''
+                });
+                return;
+            }
+            case 'awaiting_debt_payment_amount': {
+                const debtPayment = currentState.data?.debtPayment || {};
+                const amount = parseValue(messageBody);
+                const balance = Number(debtPayment.candidate?.balanceAmount || 0);
+                if (!Number.isFinite(amount) || amount <= 0 || amount > balance) {
+                    await msg.reply(`Informe um valor positivo de até *${formatCurrencyBR(balance)}* para essa dívida.`);
+                    return;
+                }
+                const completedDebtPayment = { ...debtPayment, amount };
+                userStateManager.setState(senderId, {
+                    action: 'confirming_debt_payment',
+                    data: { debtPayment: completedDebtPayment }
+                });
+                await msg.reply(buildDebtPaymentConfirmationMessage(completedDebtPayment));
+                return;
+            }
+            case 'confirming_debt_payment': {
+                const cleanReply = normalizeText(msg.body);
+                const debtPayment = currentState.data?.debtPayment || {};
+                if (['nao', 'não', 'n', 'cancelar', 'cancela'].includes(cleanReply)) {
+                    userStateManager.deleteState(senderId);
+                    await msg.reply('Pagamento de dívida cancelado. Nenhum dado foi alterado.');
+                    return;
+                }
+                if (!['sim', 's', 'ss', 'confirmo'].includes(cleanReply)) {
+                    await msg.reply('Responda `sim` para confirmar o pagamento da dívida ou `não` para cancelar.');
+                    return;
+                }
+                try {
+                    const saved = await saveDebtPayment(debtPayment, { userId });
+                    userStateManager.deleteState(senderId);
+                    if (saved.replayed) {
+                        await msg.reply(`Esse pagamento da dívida *${saved.description}* já havia sido registrado. O saldo devedor permanece em *${formatCurrencyBR(saved.newBalance)}*.`);
+                        return;
+                    }
+                    await msg.reply(`✅ Pagamento da dívida *${saved.description}* registrado no valor de *${formatCurrencyBR(saved.amount)}*. Novo saldo devedor: *${formatCurrencyBR(saved.newBalance)}*.`);
+                } catch (error) {
+                    userStateManager.deleteState(senderId);
+                    logger.warn(`[financial-command-planner] debt_pay_failed error=${error.message}`);
+                    await msg.reply(`Não consegui registrar o pagamento da dívida com segurança. ${error.message}`);
+                }
+                return;
+            }
             case 'awaiting_bill_payment_selection': {
                 const data = currentState.data || {};
                 const candidates = Array.isArray(data.candidates) ? data.candidates : [];

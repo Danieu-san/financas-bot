@@ -39,6 +39,7 @@ const sheets = {};
 const deletedRows = [];
 const appendedRows = [];
 const seenAppendOperationKeys = new Set();
+const seenUpdateOperationKeys = new Set();
 const createdCalendarEvents = [];
 const structuredResponses = [];
 let stateMachineFailed = false;
@@ -100,6 +101,7 @@ function resetSheets() {
     sheets.Saídas = [['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Observações', 'user_id']];
     sheets.Entradas = [['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Observações', 'user_id']];
     sheets.Transferências = [['Data', 'Descrição', 'Valor', 'Origem', 'Destino', 'Método', 'Observações', 'Status', 'user_id']];
+    sheets['Lançamentos Cartão'] = [['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Status', 'user_id']];
     sheets.Contas = [['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa']];
     sheets.Dívidas = [DEBTS_HEADER];
     sheets.Metas = [['Nome da Meta', 'Valor Alvo', 'Valor Atual', '% Progresso', 'Valor Mensal Necessário', 'Data Fim', 'Status', 'Prioridade', 'user_id', 'Escopo', 'Última Movimentação']];
@@ -110,6 +112,7 @@ function resetSheets() {
     deletedRows.length = 0;
     appendedRows.length = 0;
     seenAppendOperationKeys.clear();
+    seenUpdateOperationKeys.clear();
     createdCalendarEvents.length = 0;
     structuredResponses.length = 0;
     financialScopeUserIds = [USER_ID];
@@ -193,7 +196,7 @@ function installMocks() {
                 createdCalendarEvents.push(event);
                 return event;
             },
-            updateRowInSheet: async (range, row) => {
+            updateRowInSheet: async (range, row, options = {}) => {
                 const name = getSheetName(range);
                 const rowMatch = String(range).match(/![A-Z]+(\d+):/);
                 const rangeMatch = String(range).match(/!([A-Z]+)\d+:([A-Z]+)\d+/);
@@ -204,7 +207,14 @@ function installMocks() {
                     }
                 }
                 const rowNumber = Number(rowMatch?.[1] || 0);
+                if (options.operationKey) {
+                    if (seenUpdateOperationKeys.has(options.operationKey)) {
+                        return { success: true, status: 'committed', receipt: { replayed: true } };
+                    }
+                    seenUpdateOperationKeys.add(options.operationKey);
+                }
                 sheets[name][rowNumber - 1] = row;
+                return { success: true, status: 'committed', receipt: { replayed: false } };
             },
             deleteRowsByIndices: async (sheetName, indices) => {
                 deletedRows.push({ sheetName, indices });
@@ -663,6 +673,393 @@ stateMachineTest('financial states: command planner route uses stable write key 
 
         assert.strictEqual(sheets.Saídas.length, 2);
         assert.strictEqual(appendedRows.length, 1);
+    } finally {
+        if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+        else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+    }
+});
+stateMachineTest('financial states: command planner debt.pay confirms before updating the scoped debt', async () => {
+    resetState();
+    const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
+    const debtRow = [
+        'Financiamento Teste', 'Banco Teste', 'Financiamento', 1000, 1000, 200,
+        '2% a.m.', 10, '01/01/2026', 5, 0, 'Ativa', '', '0%', '', '', '', USER_ID
+    ];
+    sheets.Dívidas.push(debtRow);
+    enqueueStructuredResponse({
+        schemaVersion: 'financial-command-plan-v1',
+        operation: 'debt.pay',
+        entities: {
+            description: 'Financiamento Teste',
+            amount: 200,
+            date: '27/06/2026',
+            paymentMethod: 'PIX'
+        },
+        fieldEvidence: {
+            description: 'explicit',
+            amount: 'explicit',
+            date: 'explicit',
+            paymentMethod: 'explicit'
+        },
+        contextRequests: [{ tool: 'match_debt', query: 'Financiamento Teste' }],
+        missingFields: [],
+        requiresConfirmation: true
+    });
+
+    try {
+        const confirmationQuestion = await send('Paguei 200 da dívida Financiamento Teste');
+
+        assert.match(confirmationQuestion, /dívida.*Financiamento Teste/is);
+        assert.match(confirmationQuestion, /R\$ ?200,00/i);
+        assert.match(confirmationQuestion, /confirma/i);
+        assert.strictEqual(Number(sheets.Dívidas[1][4]), 1000);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_debt_payment');
+
+        const savedReply = await send('sim');
+
+        assert.match(savedReply, /pagamento.*dívida/i);
+        assert.match(savedReply, /saldo devedor.*R\$ ?800,00/i);
+        assert.strictEqual(Number(sheets.Dívidas[1][4]), 800);
+        assert.strictEqual(sheets.Dívidas[1][13], '20.00%');
+        assert.strictEqual(userStateManager.getState(SENDER), undefined);
+    } finally {
+        if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+        else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+    }
+});
+stateMachineTest('financial states: command planner debt.pay cancellation and stale replay do not reduce the debt twice', async () => {
+    resetState();
+    const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
+    const debtRow = [
+        'Empréstimo Teste', 'Banco Teste', 'Empréstimo', 1000, 1000, 100,
+        '1% a.m.', 10, '01/01/2026', 10, 0, 'Ativa', '', '0%', '', '', '', USER_ID
+    ];
+    sheets.Dívidas.push(debtRow);
+    const debtPlan = {
+        schemaVersion: 'financial-command-plan-v1',
+        operation: 'debt.pay',
+        entities: {
+            description: 'Empréstimo Teste',
+            amount: 100,
+            date: '27/06/2026',
+            paymentMethod: 'PIX'
+        },
+        fieldEvidence: {
+            description: 'explicit',
+            amount: 'explicit',
+            date: 'explicit',
+            paymentMethod: 'explicit'
+        },
+        contextRequests: [{ tool: 'match_debt', query: 'Empréstimo Teste' }],
+        missingFields: [],
+        requiresConfirmation: true
+    };
+
+    try {
+        enqueueStructuredResponse(debtPlan);
+        assert.match(await send('Paguei 100 da dívida Empréstimo Teste'), /confirma/i);
+        assert.match(await send('não'), /cancelad/i);
+        assert.strictEqual(Number(sheets.Dívidas[1][4]), 1000);
+        assert.strictEqual(seenUpdateOperationKeys.size, 0);
+
+        enqueueStructuredResponse(debtPlan);
+        assert.match(await send('Paguei 100 da dívida Empréstimo Teste'), /confirma/i);
+        const staleConfirmationState = userStateManager.getState(SENDER);
+        assert.match(await send('sim'), /saldo devedor.*R\$ ?900,00/i);
+        assert.strictEqual(Number(sheets.Dívidas[1][4]), 900);
+
+        userStateManager.setState(SENDER, staleConfirmationState);
+        assert.match(await send('sim'), /já havia sido registrado/i);
+        assert.strictEqual(Number(sheets.Dívidas[1][4]), 900);
+        assert.strictEqual(seenUpdateOperationKeys.size, 1);
+    } finally {
+        if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+        else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+    }
+});
+stateMachineTest('financial states: command planner debt.pay asks for a missing amount and keeps the matched debt', async () => {
+    resetState();
+    const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
+    sheets.Dívidas.push([
+        'Financiamento Teste', 'Banco Teste', 'Financiamento', 1000, 1000, 200,
+        '2% a.m.', 10, '01/01/2026', 5, 0, 'Ativa', '', '0%', '', '', '', USER_ID
+    ]);
+    enqueueStructuredResponse({
+        schemaVersion: 'financial-command-plan-v1',
+        operation: 'debt.pay',
+        entities: {
+            description: 'Financiamento Teste',
+            amount: null,
+            date: '27/06/2026',
+            paymentMethod: null
+        },
+        fieldEvidence: {
+            description: 'explicit',
+            amount: 'missing',
+            date: 'explicit',
+            paymentMethod: 'missing'
+        },
+        contextRequests: [{ tool: 'match_debt', query: 'Financiamento Teste' }],
+        missingFields: ['amount'],
+        requiresConfirmation: true
+    });
+
+    try {
+        const amountQuestion = await send('Paguei a dívida Financiamento Teste');
+        assert.match(amountQuestion, /qual.*valor/i);
+        assert.match(amountQuestion, /Financiamento Teste/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_debt_payment_amount');
+        assert.strictEqual(Number(sheets.Dívidas[1][4]), 1000);
+
+        assert.match(await send('200'), /confirma/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_debt_payment');
+        assert.match(await send('não'), /cancelad/i);
+        assert.strictEqual(Number(sheets.Dívidas[1][4]), 1000);
+    } finally {
+        if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+        else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+    }
+});
+stateMachineTest('financial states: command planner debt.pay lists ambiguous debts and accepts a numbered choice', async () => {
+    resetState();
+    const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
+    sheets.Dívidas.push(
+        ['Empréstimo Casa', 'Banco A', 'Empréstimo', 1000, 900, 100, '', 10, '', 10, 1, 'Ativa', '', '10%', '', '', '', USER_ID],
+        ['Empréstimo Carro', 'Banco B', 'Empréstimo', 2000, 1800, 200, '', 15, '', 10, 1, 'Ativa', '', '10%', '', '', '', USER_ID]
+    );
+    enqueueStructuredResponse({
+        schemaVersion: 'financial-command-plan-v1',
+        operation: 'debt.pay',
+        entities: {
+            description: 'empréstimo',
+            amount: 100,
+            date: '27/06/2026',
+            paymentMethod: null
+        },
+        fieldEvidence: {
+            description: 'explicit',
+            amount: 'explicit',
+            date: 'explicit',
+            paymentMethod: 'missing'
+        },
+        contextRequests: [{ tool: 'match_debt', query: 'empréstimo' }],
+        missingFields: [],
+        requiresConfirmation: true
+    });
+
+    try {
+        const choiceQuestion = await send('Paguei 100 do empréstimo');
+        assert.match(choiceQuestion, /1\..*Empréstimo Casa/is);
+        assert.match(choiceQuestion, /2\..*Empréstimo Carro/is);
+        assert.match(choiceQuestion, /número/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_debt_payment_selection');
+
+        const confirmationQuestion = await send('2');
+        assert.match(confirmationQuestion, /Empréstimo Carro/i);
+        assert.match(confirmationQuestion, /confirma/i);
+        assert.match(await send('não'), /cancelad/i);
+        assert.strictEqual(Number(sheets.Dívidas[1][4]), 900);
+        assert.strictEqual(Number(sheets.Dívidas[2][4]), 1800);
+    } finally {
+        if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+        else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+    }
+});
+stateMachineTest('financial states: command planner invoice.pay records a transfer without duplicating expense', async () => {
+    resetState();
+    const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
+    sheets['Lançamentos Cartão'] = [
+        ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Status', 'user_id'],
+        ['10/06/2026', 'Compra Teste', 'Outros', 850, '1/1', '06/2026', 'nubank-daniel', 'Nubank Daniel', 'Aberta', USER_ID]
+    ];
+    enqueueStructuredResponse({
+        schemaVersion: 'financial-command-plan-v1',
+        operation: 'invoice.pay',
+        entities: {
+            description: 'fatura do Nubank Daniel',
+            amount: 850,
+            date: '27/06/2026',
+            paymentMethod: 'PIX'
+        },
+        fieldEvidence: {
+            description: 'explicit',
+            amount: 'explicit',
+            date: 'explicit',
+            paymentMethod: 'explicit'
+        },
+        contextRequests: [{ tool: 'match_card_invoice', query: 'fatura do Nubank Daniel' }],
+        missingFields: [],
+        requiresConfirmation: true
+    });
+
+    try {
+        const confirmationQuestion = await send('Paguei 850 da fatura do Nubank Daniel via Pix');
+        assert.match(confirmationQuestion, /fatura.*Nubank Daniel/is);
+        assert.match(confirmationQuestion, /R\$ ?850,00/i);
+        assert.match(confirmationQuestion, /confirma/i);
+        assert.strictEqual(sheets.Saídas.length, 1);
+        assert.strictEqual(sheets.Transferências.length, 1);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_invoice_payment');
+
+        const savedReply = await send('sim');
+        assert.match(savedReply, /pagamento.*fatura/i);
+        assert.strictEqual(sheets.Saídas.length, 1);
+        assert.strictEqual(sheets.Transferências.length, 2);
+        assert.deepStrictEqual(sheets.Transferências[1], [
+            '27/06/2026',
+            'Pagamento de fatura Nubank Daniel - 06/2026',
+            850,
+            '',
+            'Nubank Daniel',
+            'PIX',
+            'Fatura identificada pelo command planner.',
+            'Pagamento de fatura',
+            USER_ID
+        ]);
+        assert.strictEqual(userStateManager.getState(SENDER), undefined);
+    } finally {
+        if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+        else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+    }
+});
+stateMachineTest('financial states: command planner invoice.pay asks for a missing payment method', async () => {
+    resetState();
+    const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
+    sheets['Lançamentos Cartão'] = [
+        ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Status', 'user_id'],
+        ['10/06/2026', 'Compra Teste', 'Outros', 500, '1/1', '06/2026', 'nubank-daniel', 'Nubank Daniel', 'Aberta', USER_ID]
+    ];
+    enqueueStructuredResponse({
+        schemaVersion: 'financial-command-plan-v1',
+        operation: 'invoice.pay',
+        entities: {
+            description: 'fatura do Nubank Daniel',
+            amount: 500,
+            date: '27/06/2026',
+            paymentMethod: null
+        },
+        fieldEvidence: {
+            description: 'explicit',
+            amount: 'explicit',
+            date: 'explicit',
+            paymentMethod: 'missing'
+        },
+        contextRequests: [{ tool: 'match_card_invoice', query: 'fatura do Nubank Daniel' }],
+        missingFields: ['paymentMethod'],
+        requiresConfirmation: true
+    });
+
+    try {
+        const methodQuestion = await send('Paguei 500 da fatura do Nubank Daniel');
+        assert.match(methodQuestion, /forma de pagamento/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_invoice_payment_method');
+        assert.strictEqual(sheets.Transferências.length, 1);
+
+        assert.match(await send('Pix'), /confirma/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_invoice_payment');
+        assert.match(await send('não'), /cancelad/i);
+        assert.strictEqual(sheets.Transferências.length, 1);
+    } finally {
+        if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+        else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+    }
+});
+stateMachineTest('financial states: command planner invoice.pay lists ambiguous invoices and accepts a numbered choice', async () => {
+    resetState();
+    const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
+    sheets['Lançamentos Cartão'] = [
+        ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Status', 'user_id'],
+        ['10/06/2026', 'Compra Junho', 'Outros', 300, '1/1', '06/2026', 'nubank-daniel', 'Nubank Daniel', 'Aberta', USER_ID],
+        ['10/07/2026', 'Compra Julho', 'Outros', 300, '1/1', '07/2026', 'nubank-daniel', 'Nubank Daniel', 'Aberta', USER_ID]
+    ];
+    enqueueStructuredResponse({
+        schemaVersion: 'financial-command-plan-v1',
+        operation: 'invoice.pay',
+        entities: {
+            description: 'fatura do Nubank Daniel',
+            amount: 300,
+            date: '27/06/2026',
+            paymentMethod: 'PIX'
+        },
+        fieldEvidence: {
+            description: 'explicit',
+            amount: 'explicit',
+            date: 'explicit',
+            paymentMethod: 'explicit'
+        },
+        contextRequests: [{ tool: 'match_card_invoice', query: 'fatura do Nubank Daniel' }],
+        missingFields: [],
+        requiresConfirmation: true
+    });
+
+    try {
+        const choiceQuestion = await send('Paguei 300 da fatura do Nubank Daniel via Pix');
+        assert.match(choiceQuestion, /1\..*Nubank Daniel.*06\/2026/is);
+        assert.match(choiceQuestion, /2\..*Nubank Daniel.*07\/2026/is);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_invoice_payment_selection');
+
+        const confirmationQuestion = await send('2');
+        assert.match(confirmationQuestion, /Nubank Daniel.*07\/2026/i);
+        assert.match(confirmationQuestion, /confirma/i);
+        assert.match(await send('não'), /cancelad/i);
+        assert.strictEqual(sheets.Transferências.length, 1);
+    } finally {
+        if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+        else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+    }
+});
+stateMachineTest('financial states: command planner keeps an ordinary purchase out of debt and invoice payment flows', async () => {
+    resetState();
+    const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
+    sheets.Dívidas.push([
+        'Mercado Financiado', 'Banco Teste', 'Empréstimo', 1000, 1000, 100,
+        '', 10, '', 10, 0, 'Ativa', '', '0%', '', '', '', USER_ID
+    ]);
+    sheets['Lançamentos Cartão'] = [
+        ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Status', 'user_id'],
+        ['10/06/2026', 'Compra Antiga', 'Outros', 50, '1/1', '06/2026', 'nubank-daniel', 'Nubank Daniel', 'Aberta', USER_ID]
+    ];
+    enqueueStructuredResponse({
+        schemaVersion: 'financial-command-plan-v1',
+        operation: 'expense.create',
+        entities: {
+            description: 'mercado',
+            amount: 50,
+            date: '27/06/2026',
+            paymentMethod: 'PIX',
+            category: 'Alimentação',
+            subcategory: 'MERCADO'
+        },
+        fieldEvidence: {
+            description: 'explicit',
+            amount: 'explicit',
+            date: 'explicit',
+            paymentMethod: 'explicit'
+        },
+        contextRequests: [{ tool: 'resolve_category', query: 'mercado' }],
+        missingFields: [],
+        requiresConfirmation: true
+    });
+
+    try {
+        const reply = await send('Gastei 50 no mercado no Pix');
+        assert.match(reply, /confirma/i);
+        assert.doesNotMatch(reply, /pagamento da dívida|pagamento da fatura/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_planned_expense');
+        assert.strictEqual(sheets.Saídas.length, 1);
+        assert.strictEqual(Number(sheets.Dívidas[1][4]), 1000);
+        assert.strictEqual(sheets.Transferências.length, 1);
+
+        assert.match(await send('não'), /cancelad/i);
+        assert.strictEqual(sheets.Saídas.length, 1);
     } finally {
         if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
         else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;

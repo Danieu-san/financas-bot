@@ -1,6 +1,6 @@
 # Phase 2A Plan: Unified Financial Command Planner
 
-Status: production shadow active; scoped canary and restart-free SIGHUP reload implemented locally; real bill.pay E2E still pending; no production routing change authorized.
+Status: bill.pay canary stabilized; Step 7 implemented locally behind an operation allowlist; no new production routing authorized.
 Date: 2026-06-25
 
 ## Position In The Existing Roadmap
@@ -171,6 +171,38 @@ nothing; replay is idempotent.
 - Route ordinary purchases to `expense.create`.
 - Run category resolution only after payment-kind resolution.
 
+Progress on 2026-06-27:
+
+- `debt.pay` now matches only active scoped debts, supports numbered selection,
+  asks for a missing amount, requires final confirmation and updates the debt
+  with an idempotent `operationKey`.
+- `invoice.pay` now matches only scoped known invoices, supports numbered
+  selection and missing payment method, requires final confirmation and writes
+  `Transferências` with status `Pagamento de fatura`; it never writes `Saídas`.
+- Non-credit `expense.create` plans now remain distinct from debt/invoice
+  payments, collect missing category/payment data and require final confirmation
+  before using the existing expense executor.
+- Interpretation Reliability recognizes `debt.pay` and `invoice.pay` as
+  sensitive confirm-only operations. The production mode remains `shadow`.
+- `FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS` defaults to `bill.pay`. Canary
+  deploys therefore do not activate the new Step 7 routes unless each operation
+  is explicitly allowlisted and reloaded through SIGHUP.
+- Local evidence: state machine `77/77`, focused planner/reliability `70/70`,
+  full suite `597/597`, planner offline `7/7`, audit high with zero
+  vulnerabilities, ledger dry-run with 15 events, zero differences and
+  `privacy_ok=true`.
+
+Current gate:
+
+- `NO-GO` for enabling Step 7 operations in production until marker-only E2E
+  coverage exists for debt, invoice and ordinary expense, followed by Daniel
+  canary and cleanup/parity review.
+- The local marker-only runner is now available through
+  `npm run test:whatsapp:e2e:planner-writes`. It seeds isolated debt and invoice
+  fixtures, exercises all three confirmed writes, verifies domain-specific
+  Sheets effects and removes only the exact marker. A real canary run is still
+  required before this gate can move to GO.- Credit-card `expense.create` and `income.create` remain on the existing legacy
+  write flow in this slice.
 Gate: no fixture crosses domains and no payment is double-counted.
 
 ## Step 8 - Canary And Phase 2 Resumption

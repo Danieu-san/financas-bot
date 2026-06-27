@@ -632,6 +632,22 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - O caso real da conta de telefone agora aparece como divergencia critica em shadow quando o legado classifica como `expense.create`/`debt.pay` e o planner classifica `bill.pay`. Isso ainda nao corrige o fluxo produtivo; a correcao de execucao fica para a vertical slice `bill.pay` da Etapa 6.
 - Teste focado atualizado: `node --test tests\financialCommandPlanContract.test.js tests\financialCommandPlanner.test.js tests\financialCommandPlannerRunner.test.js tests\financialCommandContextTools.test.js tests\financialCommandPlannerShadow.test.js` passou `33/33`. Gate de producao ainda pendente: 50 decisoes/14 dias, cobertura por operacao, zero divergencia critica e zero vazamento.
 - Etapa 6 teve a primeira vertical slice local em 2026-06-26: em `FINANCIAL_COMMAND_PLANNER_MODE=route`, um plano `bill.pay` validado entra antes do fallback local de gasto, resolve uma conta unica em `Contas` por escopo confiavel, pergunta forma de pagamento se faltar, pede confirmacao final e grava `Saídas` com `Recorrente=SIM`, categoria/subcategoria da conta e telemetria `bill.pay` confirm-only.
+- Etapa 7 do Unified Financial Command Planner concluida localmente em
+  2026-06-27: `debt.pay` resolve divida ativa escopada, permite selecao
+  numerada/valor ausente, confirma e atualiza com idempotencia; `invoice.pay`
+  resolve fatura conhecida escopada, permite selecao/metodo ausente e grava
+  somente `Transferências` com status `Pagamento de fatura`; e
+  `expense.create` nao credito usa confirmacao final propria sem cruzar os
+  dominios. `debt.pay` e `invoice.pay` entraram na Interpretation Reliability
+  como confirm-only, mantendo `INTERPRETATION_RELIABILITY_MODE=shadow`.
+- Protecao de rollout adicionada:
+  `FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS` assume somente `bill.pay` quando
+  ausente/vazia. Assim, publicar o codigo enquanto producao esta em `canary`
+  nao ativa automaticamente as novas verticais. Ativacao de
+  `debt.pay,invoice.pay,expense.create` permanece `NO-GO` ate E2E marker-only,
+  canario Daniel e limpeza/paridade. Evidencia local: maquina de estados 77/77,
+  focados planner/reliability 70/70, suite 597/597, planner offline 7/7, audit
+  high 0 vulnerabilidades e ledger dry-run 15 eventos/0 diferencas/privacy ok.
 - Essa fatia cobre o bug da conta de telefone em teste local. Em 2026-06-26, a etapa local tambem passou a cobrir cancelamento sem escrita e replay idempotente via `operationKey` estavel para `bill.pay`. Ainda nao autoriza producao: faltam E2E marker-only, dry-run/paridade do ledger e decisao GO/NO-GO. `route` deve permanecer desligado fora de teste controlado.
 - Gate local adicional da Etapa 6 em 2026-06-26: `node scripts\runCanonicalLedgerDryRun.js --run-id LEDGER_DRY_RUN_PHASE2A_BILLPAY_20260626` gerou relatorio em `data/qa-runs/LEDGER_DRY_RUN_PHASE2A_BILLPAY_20260626/canonical-ledger-dry-run-report.json` com 15 eventos, 0 diferencas inexplicadas e `privacy_ok=true`; `bill_payment` permaneceu com impacto liquido zero no orcamento livre. Decisao: `NO-GO` para ativar roteamento produtivo porque o E2E WhatsApp marker-only especifico de `bill.pay` ainda nao foi executado de ponta a ponta. Proximo passo: rodar `npm run test:whatsapp:e2e:bill-pay` com `WHATSAPP_E2E_ENABLED=true` contra o ambiente real em `route` controlado ou `canary` com o usuario E2E allowlisted antes de qualquer ampliacao.
 - Rollout do command planner em 2026-06-26: codigo ate `eebb49f` foi deployado, producao permanece em `FINANCIAL_COMMAND_PLANNER_MODE=shadow`, Gemini planner continua ativo e health/PM2/WhatsApp ficaram saudaveis. A telemetria command-planner ainda estava ausente no primeiro check porque nenhuma mensagem inicial elegivel havia passado apos a ativacao. Localmente, o proximo incremento adiciona canary fail-closed por `FINANCIAL_COMMAND_PLANNER_CANARY_USER_IDS`, preserva shadow sanitizado para usuarios nao allowlisted e adapta o E2E marker-only; ainda falta commit/deploy e execucao real antes de qualquer GO.
@@ -649,3 +665,14 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Estabilização iniciada em 2026-06-27: `FINANCIAL_COMMAND_PLANNER_MODE=canary` foi ativado para os dois usuários beta ativos (Daniel e Thaís) por `SIGHUP`, sem restart. `INTERPRETATION_RELIABILITY_MODE=shadow` e o Gemini planner permaneceram ativos; `ADMIN_IDS` continuou com apenas Daniel. Backup protegido do `.env` foi criado, PID permaneceu `2910914`, health ficou verde e o log confirmou `allowlisted_users=2`. O próximo gate depende de uso real de `bill.pay`; qualquer duplicidade, escrita fora da conta recorrente, impacto no orçamento livre ou aumento de falhas exige rollback para `shadow` com allowlist vazia.
 - Testes reais posteriores encontraram dois gaps: `Gás` caiu no fluxo legado de gasto quando o planner variou para `expense.create`, e a referência ambígua `conta do ap` não oferecia escolha. O canário foi imediatamente revertido por `SIGHUP` para `shadow` com allowlist vazia. A correção TDD promove pagamentos com verbo forte somente quando há conta recorrente escopada compatível e cria seleção numerada para múltiplas contas, ainda exigindo confirmação final. Gates locais: `584/584`, planner offline `7/7`, ledger 15 eventos/0 diferenças/`privacy_ok=true`, audit high zero, NUL zero e estado vazio. Produção deve permanecer em `shadow` até novo reteste real de `Gás` e da seleção ambígua.
 - Fechamento de `bill.pay` em 2026-06-27: os retestes reais passaram. `Gás` foi reconhecido como conta recorrente mesmo após variação do planner para gasto; `conta do ap` listou `Mensal do ap` e `Taxa de obra do ap`, aceitou escolha numerada, pediu método e confirmação. Ambos foram cancelados sem escrita; verificação escopada confirmou zero resíduo e zero estado pendente. Produção ficou em `FINANCIAL_COMMAND_PLANNER_MODE=canary` para Daniel e Thaís, `INTERPRETATION_RELIABILITY_MODE=shadow`, Gemini planner ativo, apenas Daniel admin, PID inalterado e health verde. GO para a vertical `bill.pay`; `route` global continua NO-GO.
+- Etapa 7 ganhou o runner local marker-only
+  `npm run test:whatsapp:e2e:planner-writes` para `debt.pay`, `invoice.pay` e
+  `expense.create`. Ele cria fixtures isoladas, verifica os efeitos específicos
+  em `Dívidas`, `Transferências` e `Saídas` e limpa somente o marcador exato.
+  O gate permanece `NO-GO` até execução real em canário, limpeza no ambiente
+  alvo e revisão de paridade; produção deve manter essas operações fora de
+  `FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS` até essa aprovação.
+  Gates frescos após o runner: suíte `597/597`, planner offline `7/7` com zero
+  chamadas Gemini, audit high com zero vulnerabilidades, ledger dry-run com 15
+  eventos/zero diferenças/`privacy_ok=true`, `git diff --check` sem erros e
+  scan de NUL sem ocorrências.

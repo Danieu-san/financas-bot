@@ -7,7 +7,8 @@ const test = require('node:test');
 const {
     applyFinancialCommandPlannerRuntimeConfig,
     readFinancialCommandPlannerRuntimeConfig,
-    registerFinancialCommandPlannerRuntimeReload
+    registerFinancialCommandPlannerRuntimeReload,
+    shouldRouteFinancialCommandOperation
 } = require('../src/config/financialCommandPlannerRuntimeConfig');
 
 test('financial command planner runtime reload applies a complete canary config atomically', () => {
@@ -31,8 +32,36 @@ test('financial command planner runtime reload applies a complete canary config 
     });
     assert.equal(env.FINANCIAL_COMMAND_PLANNER_MODE, 'canary');
     assert.equal(env.FINANCIAL_COMMAND_PLANNER_CANARY_USER_IDS, 'user-a,user-b');
+    assert.equal(env.FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS, 'bill.pay');
 });
 
+test('financial command planner routes only bill.pay by default in canary', () => {
+    const env = {
+        FINANCIAL_COMMAND_PLANNER_MODE: 'canary',
+        FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS: ''
+    };
+
+    assert.equal(shouldRouteFinancialCommandOperation('bill.pay', { env }), true);
+    assert.equal(shouldRouteFinancialCommandOperation('debt.pay', { env }), false);
+    assert.equal(shouldRouteFinancialCommandOperation('invoice.pay', { env }), false);
+    assert.equal(shouldRouteFinancialCommandOperation('expense.create', { env }), false);
+});
+
+test('financial command planner routes explicit operations and keeps route mode test-only', () => {
+    const canaryEnv = {
+        FINANCIAL_COMMAND_PLANNER_MODE: 'canary',
+        FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS: 'bill.pay,debt.pay,invoice.pay,expense.create'
+    };
+    const routeEnv = {
+        FINANCIAL_COMMAND_PLANNER_MODE: 'route',
+        FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS: ''
+    };
+
+    assert.equal(shouldRouteFinancialCommandOperation('debt.pay', { env: canaryEnv }), true);
+    assert.equal(shouldRouteFinancialCommandOperation('invoice.pay', { env: canaryEnv }), true);
+    assert.equal(shouldRouteFinancialCommandOperation('expense.create', { env: canaryEnv }), true);
+    assert.equal(shouldRouteFinancialCommandOperation('debt.pay', { env: routeEnv }), true);
+});
 test('financial command planner runtime reload rejects global route and preserves current config', () => {
     const env = {
         FINANCIAL_COMMAND_PLANNER_MODE: 'shadow',
@@ -83,6 +112,7 @@ test('financial command planner runtime config reader exposes only selected oper
         envFilePath,
         'FINANCIAL_COMMAND_PLANNER_MODE=canary\n' +
         'FINANCIAL_COMMAND_PLANNER_CANARY_USER_IDS=user-a\n' +
+        'FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS=bill.pay,debt.pay\n' +
         'GEMINI_API_KEY=must-not-leak\n',
         'utf8'
     );
@@ -91,7 +121,8 @@ test('financial command planner runtime config reader exposes only selected oper
 
     assert.deepEqual(config, {
         FINANCIAL_COMMAND_PLANNER_MODE: 'canary',
-        FINANCIAL_COMMAND_PLANNER_CANARY_USER_IDS: 'user-a'
+        FINANCIAL_COMMAND_PLANNER_CANARY_USER_IDS: 'user-a',
+        FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS: 'bill.pay,debt.pay'
     });
     assert.equal(Object.hasOwn(config, 'GEMINI_API_KEY'), false);
 });

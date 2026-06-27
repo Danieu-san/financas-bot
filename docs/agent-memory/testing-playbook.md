@@ -197,10 +197,23 @@ Validar:
 - Depois de editar somente as duas flags no `.env`, usar `pm2 sendSignal SIGHUP financas-bot`; confirmar PID inalterado, log sanitizado `recarga SIGHUP aplicada`, PM2 online, WhatsApp ainda ready e `/dashboard/health` saudavel.
 - Rollback do canario: restaurar `FINANCIAL_COMMAND_PLANNER_MODE=shadow`, esvaziar `FINANCIAL_COMMAND_PLANNER_CANARY_USER_IDS` e enviar novo `SIGHUP`; nao reiniciar o WhatsApp apenas para trocar essas flags.
 - Para a vertical `bill.pay`, `tests\financialStateMachine.test.js` deve provar que uma conta recorrente cadastrada passa por `awaiting_bill_payment_method` -> `confirming_bill_payment` -> grava `Saídas` sem pedir categoria e com `Recorrente=SIM`.
+- Para a Etapa 7 do command planner, a mesma bateria deve provar:
+  `debt.pay` com match escopado, valor/seleção/confirmação e replay idempotente;
+  `invoice.pay` gravando somente `Transferências` como `Pagamento de fatura`;
+  e `expense.create` comum sem cruzar dívida/fatura e sem salvar antes da
+  confirmação final.
+- Em canário, confirme também que
+  `FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS` ausente/vazio preserva somente
+  `bill.pay`; novas operações exigem allowlist explícita e SIGHUP.
 - `tests\financialStateMachine.test.js` tambem deve provar que cancelamento de `bill.pay` nao grava linha e que replay de confirmacao antiga usa `operationKey` estavel para nao duplicar a linha.
 - `tests\interpretationReliability.test.js` deve manter `bill.pay` como operacao conhecida e confirm-only; nao liberar autosave de pagamento de conta pelo LLM.
 - Antes de qualquer `route`/canary de `bill.pay` em producao, rodar `npm run test:whatsapp:e2e:bill-pay` com `WHATSAPP_E2E_ENABLED=true`. O bot deve estar em `route` ou em `canary` com o `userId` resolvido do usuario E2E presente em `FINANCIAL_COMMAND_PLANNER_CANARY_USER_IDS`; o smoke generico de onboarding/gasto/pergunta/dashboard nao basta para esse gate.
-- Se o usuario E2E conversa por identificador WhatsApp `@lid` e o telefone publico nao resolve na aba `Users`, configurar `WHATSAPP_E2E_TEST_USER_LOOKUP` com um nome/lookup explicito e unico de usuario `ACTIVE`; nao usar lookup ambiguo nem usuario nao ativo.
+- Antes de liberar `debt.pay`, `invoice.pay` ou `expense.create`, rodar
+  `npm run test:whatsapp:e2e:planner-writes` com as três operações explicitamente
+  presentes em `FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS`. O marcador único
+  deve resultar em uma dívida atualizada, uma transferência de pagamento de
+  fatura, uma saída comum e nenhuma escrita cruzada. Em fixture `external`,
+  seed, verificação e limpeza pertencem ao ambiente da planilha alvo.- Se o usuario E2E conversa por identificador WhatsApp `@lid` e o telefone publico nao resolve na aba `Users`, configurar `WHATSAPP_E2E_TEST_USER_LOOKUP` com um nome/lookup explicito e unico de usuario `ACTIVE`; nao usar lookup ambiguo nem usuario nao ativo.
 ## Canonical Ledger
 
 Validar:

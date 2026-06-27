@@ -275,3 +275,77 @@ test('whatsapp bill pay e2e resolves active lid users by explicit safe lookup', 
         else delete require.cache[userServicePath];
     }
 });
+
+test('whatsapp planner writes e2e builds isolated marker fixtures and requires every step 7 route', () => {
+    const {
+        buildPlannerWritesE2EPlan,
+        requirePlannerWritesRouteMode,
+        resolvePlannerWritesFixtureMode,
+        rowContainsMarker
+    } = require('../scripts/runWhatsappPlannerWritesE2E');
+
+    assert.throws(
+        () => requirePlannerWritesRouteMode({
+            FINANCIAL_COMMAND_PLANNER_MODE: 'shadow'
+        }, 'user-e2e'),
+        /route ou canary/
+    );
+    assert.throws(
+        () => requirePlannerWritesRouteMode({
+            FINANCIAL_COMMAND_PLANNER_MODE: 'canary',
+            FINANCIAL_COMMAND_PLANNER_CANARY_USER_IDS: 'user-e2e',
+            FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS: 'bill.pay,debt.pay'
+        }, 'user-e2e'),
+        /invoice\.pay/
+    );
+    assert.doesNotThrow(
+        () => requirePlannerWritesRouteMode({
+            FINANCIAL_COMMAND_PLANNER_MODE: 'canary',
+            FINANCIAL_COMMAND_PLANNER_CANARY_USER_IDS: 'user-e2e',
+            FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS: 'bill.pay,debt.pay,invoice.pay,expense.create'
+        }, 'user-e2e')
+    );
+
+    const plan = buildPlannerWritesE2EPlan({
+        runId: 'TESTE_APAGAR_PLANNER_WRITES_20260627',
+        userId: 'user-e2e',
+        debtAmount: '12,31',
+        invoiceAmount: '12,32',
+        expenseAmount: '12,33',
+        billingMonth: '06/2026'
+    });
+
+    assert.strictEqual(plan.marker, 'TESTE_APAGAR_PLANNER_WRITES_20260627');
+    assert.match(plan.debt.label, /TESTE_APAGAR_PLANNER_WRITES_20260627/);
+    assert.strictEqual(plan.debt.row.length, 18);
+    assert.strictEqual(plan.debt.row[4], '100,00');
+    assert.strictEqual(plan.debt.row[10], 'Ativa');
+    assert.strictEqual(plan.debt.row[17], 'user-e2e');
+    assert.match(plan.invoice.cardLabel, /TESTE_APAGAR_PLANNER_WRITES_20260627/);
+    assert.strictEqual(plan.invoice.row[3], '12,32');
+    assert.strictEqual(plan.invoice.row[5], '06/2026');
+    assert.strictEqual(plan.invoice.row[9], 'user-e2e');
+    assert.match(plan.messages.debt.initial, /Paguei 12,31 da dívida/);
+    assert.deepStrictEqual(plan.messages.debt.expectedConfirmation, ['dívida', 'Confirma']);
+    assert.match(plan.messages.invoice.initial, /Paguei 12,32 da fatura/);
+    assert.deepStrictEqual(plan.messages.invoice.expectedSaved, ['Pagamento da fatura', 'registrado']);
+    assert.match(plan.messages.expense.initial, /Gastei 12,33 no mercado/);
+    assert.deepStrictEqual(plan.messages.expense.expectedSaved, ['Gasto de', '12,33', 'registrado']);
+    assert.strictEqual(resolvePlannerWritesFixtureMode({}), 'local');
+    assert.strictEqual(
+        resolvePlannerWritesFixtureMode({ PLANNER_WRITES_E2E_FIXTURE_MODE: 'external' }),
+        'external'
+    );
+    assert.throws(
+        () => resolvePlannerWritesFixtureMode({ PLANNER_WRITES_E2E_FIXTURE_MODE: 'remote-ish' }),
+        /local ou external/
+    );
+    assert.strictEqual(
+        rowContainsMarker(['Compra TESTE_APAGAR_PLANNER_WRITES_20260627'], plan.marker),
+        true
+    );
+    assert.strictEqual(
+        rowContainsMarker(['Compra TESTE_APAGAR_PLANNER_WRITES_20260627_OUTRO'], plan.marker),
+        false
+    );
+});
