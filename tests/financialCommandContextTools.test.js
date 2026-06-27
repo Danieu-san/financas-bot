@@ -66,6 +66,50 @@ test('matchRecurringBill classifies no match without leaking scoped rows', () =>
     assert.strictEqual(result.classification, 'no_match');
     assert.deepStrictEqual(result.candidates, []);
 });
+test('matchRecurringBill matches short utility names as exact scoped words', () => {
+    const shortNameRows = [
+        accountRows[0],
+        ['Gás', '10', '', 'daniel-user', 'Gás', 'Moradia', 'Gás', '100,00', 'SIM'],
+        ['Luz', '15', '', 'daniel-user', 'Luz', 'Moradia', 'Energia', '200,00', 'SIM']
+    ];
+
+    const gas = matchRecurringBill({
+        request: { query: 'Paguei 12,41 do gás no débito', amount: 12.41 },
+        accountRows: shortNameRows,
+        trustedScope: { userIds: ['daniel-user'] }
+    });
+    const light = matchRecurringBill({
+        request: { query: 'Acabei de pagar 12,43 da luz em dinheiro', amount: 12.43 },
+        accountRows: shortNameRows,
+        trustedScope: { userIds: ['daniel-user'] }
+    });
+
+    assert.strictEqual(gas.classification, 'single_match');
+    assert.strictEqual(gas.candidates[0].label, 'Gás');
+    assert.strictEqual(light.classification, 'single_match');
+    assert.strictEqual(light.candidates[0].label, 'Luz');
+});
+
+test('matchRecurringBill treats a short exact account word as ambiguous without substring matches', () => {
+    const apartmentRows = [
+        accountRows[0],
+        ['Mensal do ap', '10', '', 'daniel-user', 'Mensal do ap', 'Moradia', 'Financiamento', '100,00', 'SIM'],
+        ['Taxa de obra do ap', '15', '', 'daniel-user', 'Taxa de obra do ap', 'Moradia', 'Taxa', '200,00', 'SIM'],
+        ['Aplicativo premium', '20', '', 'daniel-user', 'Aplicativo premium', 'Assinaturas', 'Aplicativo', '30,00', 'SIM']
+    ];
+
+    const result = matchRecurringBill({
+        request: { query: 'Paguei 12,47 da conta do ap', amount: 12.47 },
+        accountRows: apartmentRows,
+        trustedScope: { userIds: ['daniel-user'] }
+    });
+
+    assert.strictEqual(result.classification, 'multiple_matches');
+    assert.deepStrictEqual(
+        result.candidates.map(candidate => candidate.label).sort(),
+        ['Mensal do ap', 'Taxa de obra do ap']
+    );
+});
 const debtRows = [
     ['Nome', 'Credor', 'Tipo', 'Valor Original', 'Saldo Atual', 'Parcela', 'Juros', 'Vencimento', 'Início', 'Total Parcelas', 'Status', 'Responsável', 'Observações', '% Quitado', 'Próximo Vencimento', 'Atraso (Dias)', 'Data Prevista para Quitação', 'user_id'],
     ['Financiamento carro', 'Banco XP', 'Financiamento', '10000,00', '8000,00', '500,00', '1,5%', '10', '01/01/2026', '24', 'Ativa', 'Daniel', 'contrato privado', '20%', '10/07/2026', '0', '', 'daniel-user'],

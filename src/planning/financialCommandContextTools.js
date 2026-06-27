@@ -37,19 +37,33 @@ function significantTerms(value) {
         'paguei', 'pagando', 'pagar', 'pago', 'quitei', 'quitando',
         'conta', 'boleto', 'fatura', 'valor', 'reais', 'real', 'pix',
         'dinheiro', 'debito', 'credito', 'cartao', 'cartão', 'para',
-        'pela', 'pelo', 'com', 'uma', 'meu', 'minha', 'dia', 'divida'
+        'pela', 'pelo', 'com', 'uma', 'meu', 'minha', 'dia', 'divida',
+        'da', 'de', 'do', 'das', 'dos', 'na', 'no', 'nas', 'nos',
+        'em', 'via', 'foi', 'ja', 'ao', 'aos', 'que'
     ]);
     return normalizeText(value)
         .split(/[^a-z0-9]+/i)
         .map(term => term.trim())
-        .filter(term => term.length >= 4 && !stopWords.has(term) && !/^\d+$/.test(term));
+        .filter(term => term.length >= 2 && !stopWords.has(term) && !/^\d+$/.test(term));
 }
 
 function hasSpecificBillTextMatch(bill = {}, request = {}) {
     const queryTerms = significantTerms(request.query);
     if (queryTerms.length === 0) return false;
     const billText = normalizeText(`${bill.description || ''} ${bill.accountName || ''}`);
-    return queryTerms.some(term => billText.includes(term));
+    const billTerms = new Set(billText.split(/[^a-z0-9]+/i).filter(Boolean));
+    return queryTerms.some(term => term.length >= 4 ? billText.includes(term) : billTerms.has(term));
+}
+
+function hasShortExactBillTextMatch(bill = {}, request = {}) {
+    const shortTerms = significantTerms(request.query).filter(term => term.length < 4);
+    if (shortTerms.length === 0) return false;
+    const billTerms = new Set(
+        normalizeText(`${bill.description || ''} ${bill.accountName || ''}`)
+            .split(/[^a-z0-9]+/i)
+            .filter(Boolean)
+    );
+    return shortTerms.some(term => billTerms.has(term));
 }
 
 function hasCategoryAmountMatch(bill = {}, request = {}) {
@@ -588,12 +602,17 @@ function matchRecurringBill({
 
     const candidates = recurringBillRowsToBills(accountRows)
         .filter(bill => allowedUserIds.has(String(bill.userId || '').trim()))
-        .map(bill => ({
-            bill,
-            score: recurringBillPaymentScore(bill, expense, { allowFamilyPayment })
-        }))
+        .map(bill => {
+            const baseScore = recurringBillPaymentScore(bill, expense, { allowFamilyPayment });
+            const shortExactTextMatch = hasShortExactBillTextMatch(bill, normalizedRequest);
+            return {
+                bill,
+                score: shortExactTextMatch ? Math.max(baseScore, minScore) : baseScore,
+                specificTextMatch: hasSpecificBillTextMatch(bill, normalizedRequest)
+            };
+        })
         .filter(item => item.score >= minScore && (
-            hasSpecificBillTextMatch(item.bill, normalizedRequest) ||
+            item.specificTextMatch ||
             hasCategoryAmountMatch(item.bill, normalizedRequest)
         ))
         .sort((left, right) => right.score - left.score || normalizeText(left.bill.description || '').localeCompare(normalizeText(right.bill.description || '')))
