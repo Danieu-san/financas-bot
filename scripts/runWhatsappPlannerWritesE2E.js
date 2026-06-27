@@ -10,6 +10,7 @@ const {
 const { resolveE2EUserId } = require('./runWhatsappBillPayE2E');
 
 const REQUIRED_OPERATIONS = ['debt.pay', 'invoice.pay', 'expense.create'];
+const ALLOWED_ACTIONS = new Set(['all', 'conversation', 'seed', 'verify-cleanup', 'cleanup']);
 
 function sanitizeMarker(value) {
     const marker = String(value || '')
@@ -43,6 +44,51 @@ function resolvePlannerWritesFixtureMode(env = process.env) {
     return mode;
 }
 
+function resolvePlannerWritesAction(env = process.env) {
+    const action = String(env.PLANNER_WRITES_E2E_ACTION || 'all').trim().toLowerCase();
+    if (!ALLOWED_ACTIONS.has(action)) {
+        throw new Error('PLANNER_WRITES_E2E_ACTION deve ser all, conversation, seed, verify-cleanup ou cleanup.');
+    }
+    return action;
+}
+
+function normalizeLookupText(value) {
+    return String(value || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
+}
+
+function resolvePlannerWritesUserFromRows(users = [], lookup = '') {
+    const normalizedLookup = normalizeLookupText(lookup);
+    const lookupDigits = String(lookup || '').replace(/\D/g, '');
+    if (!normalizedLookup && !lookupDigits) {
+        throw new Error('Fixture remota exige lookup explícito em PLANNER_WRITES_E2E_USER_LOOKUP.');
+    }
+
+    const matches = users.filter(user => {
+        if (user.status !== 'ACTIVE') return false;
+        const displayNameMatches = normalizedLookup &&
+            normalizeLookupText(user.display_name) === normalizedLookup;
+        const phoneMatches = lookupDigits &&
+            String(user.phone_e164 || user.whatsapp_id || '').replace(/\D/g, '') === lookupDigits;
+        return displayNameMatches || phoneMatches;
+    });
+    if (matches.length !== 1 || !matches[0]?.user_id) {
+        throw new Error('PLANNER_WRITES_E2E_USER_LOOKUP deve identificar um único usuário ACTIVE.');
+    }
+    return matches[0];
+}
+
+async function resolvePlannerWritesFixtureUserId(env = process.env) {
+    const { getAllUsers } = require('../src/services/userService');
+    const users = await getAllUsers();
+    return resolvePlannerWritesUserFromRows(
+        users,
+        env.PLANNER_WRITES_E2E_USER_LOOKUP
+    ).user_id;
+}
 function requirePlannerWritesRouteMode(env = process.env, userId = '') {
     if (!shouldRouteFinancialCommandPlanner({ env, userId })) {
         throw new Error('Planner writes E2E exige FINANCIAL_COMMAND_PLANNER_MODE=route ou canary autorizado.');
@@ -234,6 +280,44 @@ async function verifyPlannerWritesResults(plan, { userId } = {}) {
     }
 }
 
+async function assertPlannerWritesMarkerRemoved(plan, { userId } = {}) {
+    const remaining = await readMarkerRows(plan.marker, { userId });
+    assertMarkerCounts(remaining, {
+        'Dívidas': 0,
+        'Lançamentos Cartão': 0,
+        'Transferências': 0,
+        'Saídas': 0
+    });
+}
+
+async function runFixtureAction(action, plan, { userId } = {}) {
+    if (action === 'seed') {
+        await seedPlannerWritesFixtures(plan, { userId });
+        console.log('[planner-writes-e2e] fixture remota criada com marcador sanitizado');
+        return;
+    }
+    if (action === 'cleanup') {
+        await cleanupPlannerWritesMarker(plan.marker, { userId });
+        await assertPlannerWritesMarkerRemoved(plan, { userId });
+        console.log('[planner-writes-e2e] cleanup remoto confirmado com zero linhas');
+        return;
+    }
+    if (action === 'verify-cleanup') {
+        let verificationError = null;
+        try {
+            await verifyPlannerWritesResults(plan, { userId });
+        } catch (error) {
+            verificationError = error;
+        } finally {
+            await cleanupPlannerWritesMarker(plan.marker, { userId });
+            await assertPlannerWritesMarkerRemoved(plan, { userId });
+        }
+        if (verificationError) throw verificationError;
+        console.log('[planner-writes-e2e] verificação remota passou e cleanup ficou em zero');
+        return;
+    }
+    throw new Error(`Ação de fixture não suportada: ${action}.`);
+}
 async function runConversation(driver, plan) {
     const { sendAndWaitForAllReply } = getWhatsAppRuntime();
     for (const flow of [plan.messages.debt, plan.messages.invoice, plan.messages.expense]) {
@@ -243,6 +327,14 @@ async function runConversation(driver, plan) {
 }
 
 async function main() {
+    const action = resolvePlannerWritesAction(process.env);
+    if (['seed', 'verify-cleanup', 'cleanup'].includes(action)) {
+        const userId = await resolvePlannerWritesFixtureUserId(process.env);
+        const plan = buildPlannerWritesE2EPlan({ userId });
+        await runFixtureAction(action, plan, { userId });
+        return;
+    }
+
     const config = loadWhatsAppE2EConfig(process.env);
     const userId = await resolveE2EUserId(config);
     requirePlannerWritesRouteMode(process.env, userId);
@@ -252,21 +344,21 @@ async function main() {
     const driver = await launchWhatsAppWebDriver(config);
 
     try {
-        if (fixtureMode === 'local') {
+        if (action === 'all' && fixtureMode === 'local') {
             await seedPlannerWritesFixtures(plan, { userId });
-        } else {
+        } else if (fixtureMode === 'external') {
             console.log('[planner-writes-e2e] fixture externo: seed, verificação e cleanup pertencem ao ambiente alvo');
         }
         await driver.gotoHome();
         await driver.assertLoggedIn();
         await driver.openChat(config.botPhone);
         await runConversation(driver, plan);
-        if (fixtureMode === 'local') {
+        if (action === 'all' && fixtureMode === 'local') {
             await verifyPlannerWritesResults(plan, { userId });
         }
     } finally {
         await driver.close().catch(() => {});
-        if (fixtureMode === 'local') {
+        if (action === 'all' && fixtureMode === 'local') {
             await cleanupPlannerWritesMarker(plan.marker, { userId }).catch(error => {
                 console.error(`[planner-writes-e2e] cleanup_failed marker=${plan.marker} error=${error.message}`);
             });
@@ -286,8 +378,11 @@ module.exports = {
     cleanupPlannerWritesMarker,
     readMarkerRows,
     requirePlannerWritesRouteMode,
+    resolvePlannerWritesAction,
     resolvePlannerWritesFixtureMode,
+    resolvePlannerWritesUserFromRows,
     rowContainsMarker,
+    runFixtureAction,
     seedPlannerWritesFixtures,
     verifyPlannerWritesResults
 };

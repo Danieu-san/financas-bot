@@ -91,6 +91,21 @@ Quando navegador e bot usam ambientes diferentes, defina
 ser executados no ambiente da planilha alvo. Mesmo após sucesso, restaure
 imediatamente `FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS=bill.pay` e
 `FINANCIAL_COMMAND_PLANNER_MODE=shadow` até a decisão formal de GO.
+No ambiente remoto da planilha alvo, use o mesmo
+`PLANNER_WRITES_E2E_RUN_ID` nas três etapas:
+
+```text
+PLANNER_WRITES_E2E_ACTION=seed
+PLANNER_WRITES_E2E_ACTION=verify-cleanup
+PLANNER_WRITES_E2E_ACTION=cleanup
+```
+
+As ações remotas exigem `PLANNER_WRITES_E2E_USER_LOOKUP` identificando um
+único usuário `ACTIVE`. `cleanup` é a recuperação segura quando a conversa
+falha antes da verificação. `verify-cleanup` comprova os efeitos esperados e
+depois confirma zero linhas nas quatro abas. O ledger shadow e
+`financial_events_public` não são apagados por esse runner: verifique e limpe
+separadamente apenas os runs/linhas do marcador antes do GO.
 ## Fixture em ambiente externo
 
 Quando o navegador E2E roda localmente e o bot roda na EC2, o seed local pode usar outro vínculo OAuth/planilha. Nesse cenário:

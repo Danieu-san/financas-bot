@@ -213,7 +213,12 @@ Validar:
   presentes em `FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS`. O marcador único
   deve resultar em uma dívida atualizada, uma transferência de pagamento de
   fatura, uma saída comum e nenhuma escrita cruzada. Em fixture `external`,
-  seed, verificação e limpeza pertencem ao ambiente da planilha alvo.- Se o usuario E2E conversa por identificador WhatsApp `@lid` e o telefone publico nao resolve na aba `Users`, configurar `WHATSAPP_E2E_TEST_USER_LOOKUP` com um nome/lookup explicito e unico de usuario `ACTIVE`; nao usar lookup ambiguo nem usuario nao ativo.
+  seed, verificação e limpeza pertencem ao ambiente da planilha alvo.- Para topologia navegador local + bot EC2, reutilize o mesmo
+  `PLANNER_WRITES_E2E_RUN_ID`: rode `PLANNER_WRITES_E2E_ACTION=seed` na EC2,
+  `PLANNER_WRITES_E2E_ACTION=conversation` local com fixture `external`, e
+  `PLANNER_WRITES_E2E_ACTION=verify-cleanup` na EC2. Em falha intermediária,
+  use `PLANNER_WRITES_E2E_ACTION=cleanup`. Depois, confira separadamente ledger
+  shadow, `financial_events_public` e `state_store.json`.- Se o usuario E2E conversa por identificador WhatsApp `@lid` e o telefone publico nao resolve na aba `Users`, configurar `WHATSAPP_E2E_TEST_USER_LOOKUP` com um nome/lookup explicito e unico de usuario `ACTIVE`; nao usar lookup ambiguo nem usuario nao ativo.
 ## Canonical Ledger
 
 Validar:

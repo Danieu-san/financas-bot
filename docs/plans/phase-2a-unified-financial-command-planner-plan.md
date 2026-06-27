@@ -188,7 +188,7 @@ Progress on 2026-06-27:
   deploys therefore do not activate the new Step 7 routes unless each operation
   is explicitly allowlisted and reloaded through SIGHUP.
 - Local evidence: state machine `77/77`, focused planner/reliability `70/70`,
-  full suite `597/597`, planner offline `7/7`, audit high with zero
+  full suite `598/598`, planner offline `7/7`, audit high with zero
   vulnerabilities, ledger dry-run with 15 events, zero differences and
   `privacy_ok=true`.
 

@@ -646,7 +646,7 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   nao ativa automaticamente as novas verticais. Ativacao de
   `debt.pay,invoice.pay,expense.create` permanece `NO-GO` ate E2E marker-only,
   canario Daniel e limpeza/paridade. Evidencia local: maquina de estados 77/77,
-  focados planner/reliability 70/70, suite 597/597, planner offline 7/7, audit
+  focados planner/reliability 70/70, suite 598/598, planner offline 7/7, audit
   high 0 vulnerabilidades e ledger dry-run 15 eventos/0 diferencas/privacy ok.
 - Essa fatia cobre o bug da conta de telefone em teste local. Em 2026-06-26, a etapa local tambem passou a cobrir cancelamento sem escrita e replay idempotente via `operationKey` estavel para `bill.pay`. Ainda nao autoriza producao: faltam E2E marker-only, dry-run/paridade do ledger e decisao GO/NO-GO. `route` deve permanecer desligado fora de teste controlado.
 - Gate local adicional da Etapa 6 em 2026-06-26: `node scripts\runCanonicalLedgerDryRun.js --run-id LEDGER_DRY_RUN_PHASE2A_BILLPAY_20260626` gerou relatorio em `data/qa-runs/LEDGER_DRY_RUN_PHASE2A_BILLPAY_20260626/canonical-ledger-dry-run-report.json` com 15 eventos, 0 diferencas inexplicadas e `privacy_ok=true`; `bill_payment` permaneceu com impacto liquido zero no orcamento livre. Decisao: `NO-GO` para ativar roteamento produtivo porque o E2E WhatsApp marker-only especifico de `bill.pay` ainda nao foi executado de ponta a ponta. Proximo passo: rodar `npm run test:whatsapp:e2e:bill-pay` com `WHATSAPP_E2E_ENABLED=true` contra o ambiente real em `route` controlado ou `canary` com o usuario E2E allowlisted antes de qualquer ampliacao.
@@ -672,7 +672,12 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   O gate permanece `NO-GO` até execução real em canário, limpeza no ambiente
   alvo e revisão de paridade; produção deve manter essas operações fora de
   `FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS` até essa aprovação.
-  Gates frescos após o runner: suíte `597/597`, planner offline `7/7` com zero
+  Gates frescos após o runner: suíte `598/598`, planner offline `7/7` com zero
   chamadas Gemini, audit high com zero vulnerabilidades, ledger dry-run com 15
   eventos/zero diferenças/`privacy_ok=true`, `git diff --check` sem erros e
   scan de NUL sem ocorrências.
+- O runner ganhou ações remotas fail-closed `seed`, `verify-cleanup` e
+  `cleanup`, com lookup explícito de um único usuário `ACTIVE`. Isso permite
+  semear e limpar na EC2 enquanto o navegador local executa somente a conversa,
+  sem misturar vínculos OAuth. Ledger shadow e read-model continuam exigindo
+  verificação/limpeza marker-only separada antes do GO.

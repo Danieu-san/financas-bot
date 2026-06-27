@@ -349,3 +349,42 @@ test('whatsapp planner writes e2e builds isolated marker fixtures and requires e
         false
     );
 });
+test('whatsapp planner writes e2e supports explicit remote fixture actions and safe user lookup', () => {
+    const {
+        resolvePlannerWritesAction,
+        resolvePlannerWritesUserFromRows
+    } = require('../scripts/runWhatsappPlannerWritesE2E');
+
+    assert.strictEqual(resolvePlannerWritesAction({}), 'all');
+    for (const action of ['all', 'conversation', 'seed', 'verify-cleanup', 'cleanup']) {
+        assert.strictEqual(
+            resolvePlannerWritesAction({ PLANNER_WRITES_E2E_ACTION: action }),
+            action
+        );
+    }
+    assert.throws(
+        () => resolvePlannerWritesAction({ PLANNER_WRITES_E2E_ACTION: 'delete-all' }),
+        /PLANNER_WRITES_E2E_ACTION/
+    );
+
+    const users = [
+        { user_id: 'user-daniel', display_name: 'Daniel', status: 'ACTIVE' },
+        { user_id: 'user-thais', display_name: 'Thaís', status: 'ACTIVE' },
+        { user_id: 'user-old', display_name: 'Daniel', status: 'BLOCKED' }
+    ];
+    assert.strictEqual(
+        resolvePlannerWritesUserFromRows(users, 'Daniel').user_id,
+        'user-daniel'
+    );
+    assert.throws(
+        () => resolvePlannerWritesUserFromRows(users, ''),
+        /lookup explícito/
+    );
+    assert.throws(
+        () => resolvePlannerWritesUserFromRows(
+            [...users, { user_id: 'user-daniel-2', display_name: 'Daniel', status: 'ACTIVE' }],
+            'Daniel'
+        ),
+        /único usuário ACTIVE/
+    );
+});
