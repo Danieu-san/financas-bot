@@ -10,6 +10,9 @@ const { validateUserIdIntegrity, backfillMissingUserIds } = require('./src/servi
 const { initializeReadModel, syncReadModelIfNeeded, getReadModelStats } = require('./src/services/readModelService');
 const { startDashboardServer } = require('./src/services/dashboardServer');
 const logger = require('./src/utils/logger');
+const { registerFinancialCommandPlannerRuntimeReload } = require('./src/config/financialCommandPlannerRuntimeConfig');
+
+registerFinancialCommandPlannerRuntimeReload({ logger });
 
 async function startBot() {
     console.log('🚀 Iniciando o bot...');

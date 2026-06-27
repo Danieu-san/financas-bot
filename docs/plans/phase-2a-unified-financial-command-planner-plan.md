@@ -1,6 +1,6 @@
 # Phase 2A Plan: Unified Financial Command Planner
 
-Status: production shadow active; scoped canary implemented locally; real bill.pay E2E still pending; no production routing change authorized.
+Status: production shadow active; scoped canary and restart-free SIGHUP reload implemented locally; real bill.pay E2E still pending; no production routing change authorized.
 Date: 2026-06-25
 
 ## Position In The Existing Roadmap

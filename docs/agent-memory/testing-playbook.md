@@ -192,7 +192,10 @@ Validar:
   modelo usados como escopo.
 - Testes de shadow devem incluir `tests\financialCommandPlannerShadow.test.js`; o modo invalido deve falhar para `off`, mensagens com estado ativo nao podem chamar planner, e o resultado visivel deve continuar sendo o `structuredResponse` legado.
 - A telemetria de shadow do command planner nao pode conter mensagem financeira crua, telefone, `user_id`, `spreadsheet`, raw rows ou argumentos de escopo vindos do modelo.
-- Esta bateria nao autoriza roteamento/canary; `FINANCIAL_COMMAND_PLANNER_MODE` deve ficar ausente/desligado em producao ate aprovacao explicita de shadow controlado, e `canary`/`route` continuam proibidos sem novo gate.
+- Producao pode permanecer em `FINANCIAL_COMMAND_PLANNER_MODE=shadow`; isso observa mensagens elegiveis sem substituir a resposta legada. `canary` exige gate explicito, usuario exato allowlisted e E2E marker-only; `route` global continua proibido.
+- A recarga operacional sem restart deve ser validada por `tests\financialCommandPlannerRuntimeConfig.test.js`: somente `off|shadow|canary` podem ser aplicados por `SIGHUP`, `canary` sem allowlist deve ser rejeitado e logs nao podem conter IDs.
+- Depois de editar somente as duas flags no `.env`, usar `pm2 sendSignal SIGHUP financas-bot`; confirmar PID inalterado, log sanitizado `recarga SIGHUP aplicada`, PM2 online, WhatsApp ainda ready e `/dashboard/health` saudavel.
+- Rollback do canario: restaurar `FINANCIAL_COMMAND_PLANNER_MODE=shadow`, esvaziar `FINANCIAL_COMMAND_PLANNER_CANARY_USER_IDS` e enviar novo `SIGHUP`; nao reiniciar o WhatsApp apenas para trocar essas flags.
 - Para a vertical `bill.pay`, `tests\financialStateMachine.test.js` deve provar que uma conta recorrente cadastrada passa por `awaiting_bill_payment_method` -> `confirming_bill_payment` -> grava `Saídas` sem pedir categoria e com `Recorrente=SIM`.
 - `tests\financialStateMachine.test.js` tambem deve provar que cancelamento de `bill.pay` nao grava linha e que replay de confirmacao antiga usa `operationKey` estavel para nao duplicar a linha.
 - `tests\interpretationReliability.test.js` deve manter `bill.pay` como operacao conhecida e confirm-only; nao liberar autosave de pagamento de conta pelo LLM.
