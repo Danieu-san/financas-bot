@@ -254,3 +254,10 @@ Validar:
 - `ADMIN_IDS` somente Daniel no beta atual.
 - Backup antes de limpar usuarios/dados reais.
 - PM2 online e WhatsApp pronto apos deploy.
+
+### Bill pay E2E entre ambientes
+
+- Se navegador e bot usam ambientes OAuth diferentes, não semear `Contas` pelo processo local. Use fixture remoto marker-only e `BILL_PAY_E2E_FIXTURE_MODE=external`.
+- Reutilize exatamente o mesmo `BILL_PAY_E2E_RUN_ID` no seed remoto, conversa e cleanup remoto.
+- Aguarde cada nova resposta por fingerprint de mensagem recebida; contagem de texto histórico não prova resposta nova.
+- O cleanup final deve ser idempotente e verificar zero em Sheets, canonical ledger shadow, `financial_events_public` e estado conversacional.

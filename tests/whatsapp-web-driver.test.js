@@ -9,6 +9,7 @@ const {
     WHATSAPP_WEB_URL,
     buildChatUrl,
     countOccurrences,
+    isIncomingMessageMetadata,
     isNewExpectedReply,
     resolveWhatsAppLoadTimeout
 } = require('../src/testing/whatsappWebDriver');
@@ -36,6 +37,14 @@ test('whatsappWebDriver.countOccurrences counts repeated reply text', () => {
     assert.strictEqual(countOccurrences('', 'abc'), 0);
 });
 
+test('whatsappWebDriver recognizes grouped incoming bubbles without tail-in', () => {
+    assert.strictEqual(isIncomingMessageMetadata({ hasDataId: true }), true);
+    assert.strictEqual(isIncomingMessageMetadata({ hasDataId: true, hasTailIn: true }), true);
+    assert.strictEqual(isIncomingMessageMetadata({ hasDataId: true, hasTailOut: true }), false);
+    assert.strictEqual(isIncomingMessageMetadata({ hasDataId: true, hasOutgoingStatus: true }), false);
+    assert.strictEqual(isIncomingMessageMetadata({ hasDataId: true, matchesOutgoing: true }), false);
+});
+
 test('whatsappWebDriver recognizes a repeated analytical answer as new when the latest incoming message changes', () => {
     assert.strictEqual(
         isNewExpectedReply(
@@ -55,6 +64,32 @@ test('whatsappWebDriver recognizes a repeated analytical answer as new when the 
         ),
         null
     );
+});
+
+test('whatsapp E2E assertions require every token in a newly received message', async () => {
+    const { sendAndWaitForAllReply } = require('../src/testing/e2eAssertions');
+    const calls = [];
+    const driver = {
+        config: { timeoutMs: 1000 },
+        getIncomingMessageFingerprints: async () => ['old-a', 'old-b'],
+        sendMessage: async text => calls.push(['send', text]),
+        waitForNewIncomingMessageContainingAll: async options => calls.push(['wait-new', options])
+    };
+
+    const found = await sendAndWaitForAllReply(
+        driver,
+        'Pix',
+        ['Confirma', 'Conta telefone'],
+        { settleMs: 0 }
+    );
+
+    assert.deepStrictEqual(found, ['Confirma', 'Conta telefone']);
+    assert.deepStrictEqual(calls[0], ['send', 'Pix']);
+    assert.deepStrictEqual(calls[1], ['wait-new', {
+        containsAll: ['Confirma', 'Conta telefone'],
+        previousFingerprints: ['old-a', 'old-b'],
+        timeoutMs: 1000
+    }]);
 });
 
 test('whatsapp E2E assertions count only incoming replies before sending a message', async () => {

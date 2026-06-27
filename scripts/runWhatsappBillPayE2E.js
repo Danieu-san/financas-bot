@@ -3,6 +3,9 @@ require('dotenv').config();
 const { loadWhatsAppE2EConfig } = require('../src/testing/whatsappE2EConfig');
 const { shouldRouteFinancialCommandPlanner } = require('../src/planning/financialCommandPlannerShadow');
 
+const DEFAULT_SEED_SETTLE_MS = 25000;
+const MAX_SEED_SETTLE_MS = 120000;
+
 function sanitizeMarker(value) {
     const marker = String(value || '')
         .trim()
@@ -17,6 +20,24 @@ function sanitizeMarker(value) {
 
 function defaultRunId(date = new Date()) {
     return `TESTE_APAGAR_BILLPAY_${date.toISOString().replace(/\D/g, '').slice(0, 14)}`;
+}
+
+function resolveBillPayFixtureMode(env = process.env) {
+    const mode = String(env.BILL_PAY_E2E_FIXTURE_MODE || 'local').trim().toLowerCase();
+    if (!['local', 'external'].includes(mode)) {
+        throw new Error('BILL_PAY_E2E_FIXTURE_MODE deve ser local ou external.');
+    }
+    return mode;
+}
+
+function resolveBillPaySeedSettleMs(env = process.env) {
+    const raw = env.BILL_PAY_E2E_SEED_SETTLE_MS;
+    if (raw === undefined || raw === null || raw === '') return DEFAULT_SEED_SETTLE_MS;
+    const value = Number(raw);
+    if (!Number.isInteger(value) || value <= 0 || value > MAX_SEED_SETTLE_MS) {
+        throw new Error(`BILL_PAY_E2E_SEED_SETTLE_MS deve ser um inteiro positivo de ate ${MAX_SEED_SETTLE_MS}ms.`);
+    }
+    return value;
 }
 
 function normalizeAmountText(value = '12,34') {
@@ -119,7 +140,7 @@ function getUserService() {
 function getWhatsAppRuntime() {
     return {
         launchWhatsAppWebDriver: require('../src/testing/whatsappWebDriver').launchWhatsAppWebDriver,
-        sendAndWaitForAnyReply: require('../src/testing/e2eAssertions').sendAndWaitForAnyReply
+        sendAndWaitForAllReply: require('../src/testing/e2eAssertions').sendAndWaitForAllReply
     };
 }
 
@@ -179,13 +200,10 @@ async function seedRecurringBill(plan, options = {}) {
 }
 
 async function runBillPayConversation(driver, plan) {
-    const { sendAndWaitForAnyReply } = getWhatsAppRuntime();
-    const initial = await sendAndWaitForAnyReply(driver, plan.messages.initial, plan.expected.initial);
-    if (!plan.expected.initial.some(expected => initial.includes(expected))) {
-        throw new Error(`Resposta inicial inesperada: ${initial}`);
-    }
-    await sendAndWaitForAnyReply(driver, plan.messages.paymentMethod, plan.expected.confirmation);
-    await sendAndWaitForAnyReply(driver, plan.messages.confirm, plan.expected.saved);
+    const { sendAndWaitForAllReply } = getWhatsAppRuntime();
+    await sendAndWaitForAllReply(driver, plan.messages.initial, plan.expected.initial);
+    await sendAndWaitForAllReply(driver, plan.messages.paymentMethod, plan.expected.confirmation);
+    await sendAndWaitForAllReply(driver, plan.messages.confirm, plan.expected.saved);
 }
 
 async function main() {
@@ -193,20 +211,30 @@ async function main() {
     const userId = await resolveE2EUserId(config);
     requireBillPayRouteMode(process.env, userId);
     const plan = buildBillPayE2EPlan({ userId });
+    const fixtureMode = resolveBillPayFixtureMode(process.env);
     const { launchWhatsAppWebDriver } = getWhatsAppRuntime();
     const driver = await launchWhatsAppWebDriver(config);
 
     try {
-        await seedRecurringBill(plan, { userId });
+        if (fixtureMode === 'local') {
+            await seedRecurringBill(plan, { userId });
+            const seedSettleMs = resolveBillPaySeedSettleMs(process.env);
+            console.log(`[bill-pay-e2e] aguardando propagacao do seed por ${seedSettleMs}ms`);
+            await new Promise(resolve => setTimeout(resolve, seedSettleMs));
+        } else {
+            console.log('[bill-pay-e2e] fixture externo: seed e cleanup gerenciados pelo ambiente alvo');
+        }
         await driver.gotoHome();
         await driver.assertLoggedIn();
         await driver.openChat(config.botPhone);
         await runBillPayConversation(driver, plan);
     } finally {
         await driver.close().catch(() => {});
-        await cleanupMarkerRows(plan.marker, { userId }).catch(error => {
-            console.error(`[bill-pay-e2e] cleanup_failed marker=${plan.marker} error=${error.message}`);
-        });
+        if (fixtureMode === 'local') {
+            await cleanupMarkerRows(plan.marker, { userId }).catch(error => {
+                console.error(`[bill-pay-e2e] cleanup_failed marker=${plan.marker} error=${error.message}`);
+            });
+        }
     }
 }
 
@@ -221,6 +249,8 @@ module.exports = {
     buildBillPayE2EPlan,
     cleanupMarkerRows,
     requireBillPayRouteMode,
+    resolveBillPayFixtureMode,
+    resolveBillPaySeedSettleMs,
     resolveE2EUserId,
     rowContainsMarker,
     sanitizeMarker,

@@ -57,3 +57,14 @@ Enviar novo `SIGHUP` e confirmar log sanitizado `mode=shadow allowlisted_users=0
 ## GO/NO-GO
 
 `GO` apenas se o E2E e a limpeza passarem, nao houver duplicidade/escrita fora do marcador, a telemetria estiver sanitizada e o bot permanecer operacional. Qualquer falha exige rollback imediato para `shadow` e decisao `NO-GO`.
+
+## Fixture em ambiente externo
+
+Quando o navegador E2E roda localmente e o bot roda na EC2, o seed local pode usar outro vínculo OAuth/planilha. Nesse cenário:
+
+1. Use o mesmo `BILL_PAY_E2E_RUN_ID` no seed remoto e na conversa local.
+2. Faça seed e cleanup marker-only no ambiente alvo (EC2).
+3. Execute o runner local com `BILL_PAY_E2E_FIXTURE_MODE=external`.
+4. Após sucesso ou falha, reverta para `shadow` e confirme zero marcador em `Contas`, `Saídas`, ledger shadow e read-model.
+
+O runner exige uma nova mensagem recebida, identificada por fingerprint/`data-id` ainda não visto, contendo todos os textos esperados. Histórico antigo não pode liberar a próxima etapa.

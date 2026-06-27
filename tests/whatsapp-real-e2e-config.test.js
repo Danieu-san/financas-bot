@@ -187,6 +187,8 @@ test('whatsapp bill pay e2e builds marker-only plan and requires an authorized r
     const {
         buildBillPayE2EPlan,
         requireBillPayRouteMode,
+        resolveBillPayFixtureMode,
+        resolveBillPaySeedSettleMs,
         testUserWhatsAppId
     } = require('../scripts/runWhatsappBillPayE2E');
 
@@ -233,6 +235,12 @@ test('whatsapp bill pay e2e builds marker-only plan and requires an authorized r
     assert.deepStrictEqual(plan.expected.confirmation, ['Confirma', 'Conta telefone TESTE_APAGAR_BILLPAY_20260626']);
     assert.deepStrictEqual(plan.expected.saved, ['Pagamento da conta recorrente', 'registrado']);
     assert.strictEqual(testUserWhatsAppId({ testUserPhone: '+55 (21) 88888-8888' }), '5521888888888@c.us');
+    assert.strictEqual(resolveBillPaySeedSettleMs({}), 25000);
+    assert.strictEqual(resolveBillPaySeedSettleMs({ BILL_PAY_E2E_SEED_SETTLE_MS: '30000' }), 30000);
+    assert.throws(() => resolveBillPaySeedSettleMs({ BILL_PAY_E2E_SEED_SETTLE_MS: 'agora' }), /inteiro positivo/);
+    assert.strictEqual(resolveBillPayFixtureMode({}), 'local');
+    assert.strictEqual(resolveBillPayFixtureMode({ BILL_PAY_E2E_FIXTURE_MODE: 'external' }), 'external');
+    assert.throws(() => resolveBillPayFixtureMode({ BILL_PAY_E2E_FIXTURE_MODE: 'remote-ish' }), /local ou external/);
 });
 test('whatsapp bill pay e2e resolves active lid users by explicit safe lookup', async () => {
     const userServicePath = require.resolve('../src/services/userService');

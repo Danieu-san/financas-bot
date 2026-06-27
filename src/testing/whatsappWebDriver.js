@@ -71,6 +71,18 @@ function isNewExpectedReply(text, fingerprint, previousFingerprint, expectedAny 
     return expectedAny.find(expected => String(text || '').includes(expected)) || null;
 }
 
+function isIncomingMessageMetadata({
+    hasDataId = false,
+    matchesIncoming = false,
+    matchesOutgoing = false,
+    hasTailIn = false,
+    hasTailOut = false,
+    hasOutgoingStatus = false
+} = {}) {
+    if (matchesOutgoing || hasTailOut || hasOutgoingStatus) return false;
+    return Boolean(matchesIncoming || hasTailIn || hasDataId);
+}
+
 function resolveWhatsAppLoadTimeout(config) {
     return Number(config?.timeoutMs) || 60000;
 }
@@ -226,7 +238,15 @@ class WhatsAppWebDriver {
     async countIncomingTextOccurrences(search) {
         return this.page.evaluate(text => {
             return Array.from(document.querySelectorAll('.message-in, [data-id]'))
-                .filter(message => message.matches('.message-in') || message.querySelector('[data-icon="tail-in"]'))
+                .filter(message => {
+                    const matchesOutgoing = message.matches('.message-out');
+                    const hasTailOut = Boolean(message.querySelector('[data-icon="tail-out"]'));
+                    const hasOutgoingStatus = Boolean(message.querySelector('[data-icon^="msg-"]'));
+                    if (matchesOutgoing || hasTailOut || hasOutgoingStatus) return false;
+                    return message.matches('.message-in') ||
+                        Boolean(message.querySelector('[data-icon="tail-in"]')) ||
+                        message.hasAttribute('data-id');
+                })
                 .reduce((total, message) => total + (String(message.innerText || '').split(text).length - 1), 0);
         }, search);
     }
@@ -234,7 +254,15 @@ class WhatsAppWebDriver {
     async getLatestIncomingFingerprint() {
         return this.page.evaluate(() => {
             const messages = Array.from(document.querySelectorAll('.message-in, [data-id]'))
-                .filter(message => message.matches('.message-in') || message.querySelector('[data-icon="tail-in"]'));
+                .filter(message => {
+                    const matchesOutgoing = message.matches('.message-out');
+                    const hasTailOut = Boolean(message.querySelector('[data-icon="tail-out"]'));
+                    const hasOutgoingStatus = Boolean(message.querySelector('[data-icon^="msg-"]'));
+                    if (matchesOutgoing || hasTailOut || hasOutgoingStatus) return false;
+                    return message.matches('.message-in') ||
+                        Boolean(message.querySelector('[data-icon="tail-in"]')) ||
+                        message.hasAttribute('data-id');
+                });
             const latest = messages[messages.length - 1];
             if (!latest) return '';
             const container = latest.closest('[data-id]') || latest;
@@ -243,6 +271,68 @@ class WhatsAppWebDriver {
                 latest.querySelector('[data-pre-plain-text]')?.getAttribute('data-pre-plain-text') ||
                 latest.outerHTML;
         });
+    }
+
+    async getIncomingMessageFingerprints() {
+        return this.page.evaluate(() => Array.from(document.querySelectorAll('.message-in, [data-id]'))
+            .filter(message => {
+                const matchesOutgoing = message.matches('.message-out');
+                const hasTailOut = Boolean(message.querySelector('[data-icon="tail-out"]'));
+                const hasOutgoingStatus = Boolean(message.querySelector('[data-icon^="msg-"]'));
+                if (matchesOutgoing || hasTailOut || hasOutgoingStatus) return false;
+                return message.matches('.message-in') ||
+                    Boolean(message.querySelector('[data-icon="tail-in"]')) ||
+                    message.hasAttribute('data-id');
+            })
+            .map(message => {
+                const container = message.closest('[data-id]') || message;
+                return container.getAttribute('data-id') ||
+                    container.getAttribute('id') ||
+                    message.querySelector('[data-pre-plain-text]')?.getAttribute('data-pre-plain-text') ||
+                    '';
+            })
+            .filter(Boolean));
+    }
+
+    async waitForNewIncomingMessageContainingAll({
+        containsAll,
+        previousFingerprints = [],
+        timeoutMs = this.config.timeoutMs
+    }) {
+        const handle = await this.page.waitForFunction(
+            ({ texts, oldFingerprints }) => {
+                const old = new Set(oldFingerprints);
+                const messages = Array.from(document.querySelectorAll('.message-in, [data-id]'))
+                    .filter(message => {
+                        const matchesOutgoing = message.matches('.message-out');
+                        const hasTailOut = Boolean(message.querySelector('[data-icon="tail-out"]'));
+                        const hasOutgoingStatus = Boolean(message.querySelector('[data-icon^="msg-"]'));
+                        if (matchesOutgoing || hasTailOut || hasOutgoingStatus) return false;
+                        return message.matches('.message-in') ||
+                            Boolean(message.querySelector('[data-icon="tail-in"]')) ||
+                            message.hasAttribute('data-id');
+                    });
+                const found = messages.find(message => {
+                    const container = message.closest('[data-id]') || message;
+                    const fingerprint = container.getAttribute('data-id') ||
+                        container.getAttribute('id') ||
+                        message.querySelector('[data-pre-plain-text]')?.getAttribute('data-pre-plain-text') ||
+                        '';
+                    if (!fingerprint || old.has(fingerprint)) return false;
+                    const text = String(message.innerText || '');
+                    return texts.every(expected => text.includes(expected));
+                });
+                if (!found) return null;
+                const container = found.closest('[data-id]') || found;
+                return container.getAttribute('data-id') ||
+                    container.getAttribute('id') ||
+                    found.querySelector('[data-pre-plain-text]')?.getAttribute('data-pre-plain-text') ||
+                    null;
+            },
+            { texts: containsAll, oldFingerprints: previousFingerprints },
+            { timeout: timeoutMs }
+        );
+        return handle.jsonValue();
     }
 
     async sendMessage(text) {
@@ -261,7 +351,15 @@ class WhatsAppWebDriver {
         await this.page.waitForFunction(
             ({ text, minCount, oldFingerprint }) => {
                 const messages = Array.from(document.querySelectorAll('.message-in, [data-id]'))
-                    .filter(message => message.matches('.message-in') || message.querySelector('[data-icon="tail-in"]'));
+                    .filter(message => {
+                        const matchesOutgoing = message.matches('.message-out');
+                        const hasTailOut = Boolean(message.querySelector('[data-icon="tail-out"]'));
+                        const hasOutgoingStatus = Boolean(message.querySelector('[data-icon^="msg-"]'));
+                        if (matchesOutgoing || hasTailOut || hasOutgoingStatus) return false;
+                        return message.matches('.message-in') ||
+                            Boolean(message.querySelector('[data-icon="tail-in"]')) ||
+                            message.hasAttribute('data-id');
+                    });
                 const incomingCount = messages.reduce(
                     (total, message) => total + (String(message.innerText || '').split(text).length - 1),
                     0
@@ -293,7 +391,15 @@ class WhatsAppWebDriver {
         const found = await this.page.waitForFunction(
             ({ texts, counts, oldFingerprint }) => {
                 const messages = Array.from(document.querySelectorAll('.message-in, [data-id]'))
-                    .filter(message => message.matches('.message-in') || message.querySelector('[data-icon="tail-in"]'));
+                    .filter(message => {
+                        const matchesOutgoing = message.matches('.message-out');
+                        const hasTailOut = Boolean(message.querySelector('[data-icon="tail-out"]'));
+                        const hasOutgoingStatus = Boolean(message.querySelector('[data-icon^="msg-"]'));
+                        if (matchesOutgoing || hasTailOut || hasOutgoingStatus) return false;
+                        return message.matches('.message-in') ||
+                            Boolean(message.querySelector('[data-icon="tail-in"]')) ||
+                            message.hasAttribute('data-id');
+                    });
                 const countMatch = texts.find(text => {
                     const incomingCount = messages.reduce(
                         (total, message) => total + (String(message.innerText || '').split(text).length - 1),
@@ -336,6 +442,7 @@ module.exports = {
     countOccurrences,
     describeContentEditableFields,
     describeClickableCandidates,
+    isIncomingMessageMetadata,
     isNewExpectedReply,
     launchWhatsAppWebDriver,
     resolveWhatsAppLoadTimeout
