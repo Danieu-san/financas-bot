@@ -1,6 +1,6 @@
 # Estado atual do FinancasBot
 
-Atualizado em: 2026-06-25
+Atualizado em: 2026-06-28
 
 ## Produto
 
@@ -687,7 +687,7 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   conhecidas do bot e cadastro persistido na aba `Categorias`. Texto livre
   deixou de ser aceito como categoria final; se nenhuma opção servir, o usuário
   escolhe criar nova categoria/subcategoria, informa os nomes em passos guiados
-  e o bot salva o cadastro com `user_id` antes da confirmação do gasto. Novas
+  e o bot mantém o cadastro pendente para salvar com `user_id` somente após a confirmação final do gasto. Novas
   planilhas e reparos de template passam a criar a aba `Categorias`; a estrutura
   central também passa a garantir essa aba. Cobertura local: `tests/unit.test.js`,
   `tests/financialStateMachine.test.js` e `tests/userSpreadsheetService.test.js`.
@@ -697,3 +697,9 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   confirmação final; `sim` grava uma vez e `não` cancela sem linha em `Saídas`.
   Regressão coberta em `tests/financialStateMachine.test.js` pelo caso real
   `TESTE_APAGAR_CATPERM_20260627_173500`.
+- Correção local complementar em 2026-06-28: a criação assistida de categoria/
+  subcategoria também deixou de persistir a linha em `Categorias` antes da
+  confirmação final do gasto. O cadastro novo fica pendente no estado da
+  conversa; `não` cancela sem salvar nada e `sim` registra a categoria antes do
+  lançamento. Regressão cobre o fluxo planejado (`FINANCIAL_COMMAND_PLANNER_MODE=route`)
+  e o legado.

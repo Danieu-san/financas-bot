@@ -1176,13 +1176,7 @@ async function startExpenseNewCategoryFlow({ msg, senderId, currentState, flow }
 }
 
 async function continueAfterNewExpenseCategory({ msg, senderId, userId, pessoa, currentState, categoria, subcategoria }) {
-    try {
-        await ensureExpenseCategoryRegistered({ userId, categoria, subcategoria });
-    } catch (error) {
-        logger.warn(`[category-assist] category_registration_failed user_id=${logger.redactIdentifier(userId)} error="${error?.message || error}"`);
-        await msg.reply('Não consegui salvar essa categoria agora. Tente responder a subcategoria novamente ou cancele a operação.');
-        return;
-    }
+    const pendingCategoryRegistration = { categoria, subcategoria };
 
     if (currentState.data?.flow === 'planned') {
         await continuePlannedExpense({
@@ -1193,7 +1187,8 @@ async function continueAfterNewExpenseCategory({ msg, senderId, userId, pessoa, 
                 ...(currentState.data?.expense || {}),
                 categoria,
                 subcategoria,
-                categoryConfirmed: true
+                categoryConfirmed: true,
+                pendingCategoryRegistration
             }
         });
         return;
@@ -1211,10 +1206,12 @@ async function continueAfterNewExpenseCategory({ msg, senderId, userId, pessoa, 
             categoryConfirmed: true,
             requiresFinalConfirmation: true,
             confirmationSource: 'legacy_category_assist',
-            interpretationSource: 'user_state'
+            interpretationSource: 'user_state',
+            pendingCategoryRegistration
         }
     });
 }
+
 function buildManualTransferItemText(item = {}) {
     return [
         item.descricao,
@@ -7933,16 +7930,31 @@ async function handleMessage(msg) {
                     await msg.reply('Responda `sim` para confirmar o gasto ou `não` para cancelar.');
                     return;
                 }
+                const { pendingCategoryRegistration, ...expenseWithoutInternalMetadata } = expense;
+                if (pendingCategoryRegistration?.categoria) {
+                    try {
+                        await ensureExpenseCategoryRegistered({
+                            userId,
+                            categoria: pendingCategoryRegistration.categoria,
+                            subcategoria: pendingCategoryRegistration.subcategoria
+                        });
+                    } catch (error) {
+                        logger.warn(`[category-assist] category_registration_failed user_id=${logger.redactIdentifier(userId)} error="${error?.message || error}"`);
+                        await msg.reply('Não consegui salvar essa categoria agora. Tente confirmar novamente em instantes ou responda não para cancelar.');
+                        return;
+                    }
+                }
+                const confirmedExpense = { ...expenseWithoutInternalMetadata, reliabilityConfirmed: true };
                 const saved = await saveTransactionWithoutExtraPayment(
-                    { ...expense, reliabilityConfirmed: true },
+                    confirmedExpense,
                     {
                         person: pessoa,
                         userId,
                         writeOptions: {
-                            operationKey: buildPlannedExpenseOperationKey(expense, userId),
+                            operationKey: buildPlannedExpenseOperationKey(confirmedExpense, userId),
                             userId,
-                            messageId: expense.originalMessageId || '',
-                            source: getConfirmedExpenseWriteSource(expense)
+                            messageId: confirmedExpense.originalMessageId || '',
+                            source: getConfirmedExpenseWriteSource(confirmedExpense)
                         }
                     }
                 );

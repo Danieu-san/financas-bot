@@ -1120,7 +1120,7 @@ stateMachineTest('financial states: planned expense category clarification requi
     }
 });
 
-stateMachineTest('financial states: planned expense can create category through guided category and subcategory prompts', async () => {
+stateMachineTest('financial states: planned expense registers newly created category only after final confirmation', async () => {
     resetState();
     const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
     process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
@@ -1162,12 +1162,11 @@ stateMachineTest('financial states: planned expense can create category through 
         assert.match(confirmation, /Confirma/i);
         assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_planned_expense');
         assert.strictEqual(sheets.Saídas.length, 1);
-        assert.strictEqual(sheets.Categorias.length, 2);
-        assert.deepStrictEqual(sheets.Categorias[1].slice(0, 3), ['Hobbies', 'Colecionáveis', 'SIM']);
-        assert.strictEqual(sheets.Categorias[1][4], USER_ID);
+        assert.strictEqual(sheets.Categorias.length, 1);
 
         assert.match(await send('não'), /cancelad/i);
         assert.strictEqual(sheets.Saídas.length, 1);
+        assert.strictEqual(sheets.Categorias.length, 1);
 
         enqueueStructuredResponse({
             schemaVersion: 'financial-command-plan-v1',
@@ -1192,7 +1191,22 @@ stateMachineTest('financial states: planned expense can create category through 
         });
 
         const persistedCategoryQuestion = await send('Gastei 47 no brecho raro teste dois via Pix');
-        assert.match(persistedCategoryQuestion, /\d+\.\s*Hobbies\s*\/\s*Colecionáveis/i);
+        assert.doesNotMatch(persistedCategoryQuestion, /\d+\.\s*Hobbies\s*\/\s*Colecionáveis/i);
+        assert.match(persistedCategoryQuestion, /Criar nova categoria\/subcategoria/i);
+
+        assert.match(await send('criar nova'), /nome da nova categoria/i);
+        assert.match(await send('Hobbies'), /subcategoria dentro de "Hobbies"/i);
+
+        const secondConfirmation = await send('Colecionáveis');
+        assert.match(secondConfirmation, /Categoria: \*Hobbies \/ Colecionáveis\*/i);
+        assert.strictEqual(sheets.Categorias.length, 1);
+
+        const savedReply = await send('sim');
+        assert.match(savedReply, /registrado/i);
+        assert.strictEqual(sheets.Saídas.length, 2);
+        assert.strictEqual(sheets.Categorias.length, 2);
+        assert.deepStrictEqual(sheets.Categorias[1].slice(0, 3), ['Hobbies', 'Colecionáveis', 'SIM']);
+        assert.strictEqual(sheets.Categorias[1][4], USER_ID);
     } finally {
         if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
         else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
@@ -1229,10 +1243,11 @@ stateMachineTest('financial states: legacy category creation asks confirmation b
         assert.match(confirmation, /Confirma/i);
         assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_planned_expense');
         assert.strictEqual(sheets.Saídas.length, 1);
-        assert.strictEqual(sheets.Categorias.length, 2);
+        assert.strictEqual(sheets.Categorias.length, 1);
 
         assert.match(await send('não'), /cancelad/i);
         assert.strictEqual(sheets.Saídas.length, 1);
+        assert.strictEqual(sheets.Categorias.length, 1);
     } finally {
         if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
         else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
