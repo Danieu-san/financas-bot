@@ -1198,6 +1198,46 @@ stateMachineTest('financial states: planned expense can create category through 
         else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
     }
 });
+stateMachineTest('financial states: legacy category creation asks confirmation before saving expense with known payment', async () => {
+    resetState();
+    const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'off';
+    enqueueStructuredResponse({
+        intent: 'gasto',
+        data: '28/06/2026',
+        descricao: 'item TESTE_APAGAR_CATPERM_20260627_173500 via',
+        categoria: 'Outros',
+        subcategoria: '',
+        valor: 12.61,
+        pagamento: 'PIX',
+        recorrente: 'Não'
+    });
+
+    try {
+        const categoryQuestion = await send('Gastei 12,61 no item TESTE_APAGAR_CATPERM_20260627_173500 via Pix');
+        assert.match(categoryQuestion, /Criar nova categoria\/subcategoria/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_expense_category');
+
+        assert.match(await send('criar nova'), /nome da nova categoria/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_expense_new_category_name');
+
+        assert.match(await send('Teste apagar 173500'), /subcategoria dentro de "Teste apagar 173500"/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_expense_new_subcategory_name');
+
+        const confirmation = await send('Catperm 173500');
+        assert.match(confirmation, /Categoria: \*Teste apagar 173500 \/ Catperm 173500\*/i);
+        assert.match(confirmation, /Confirma/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_planned_expense');
+        assert.strictEqual(sheets.Saídas.length, 1);
+        assert.strictEqual(sheets.Categorias.length, 2);
+
+        assert.match(await send('não'), /cancelad/i);
+        assert.strictEqual(sheets.Saídas.length, 1);
+    } finally {
+        if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+        else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+    }
+});
 stateMachineTest('financial states: unknown payment method asks again instead of defaulting to PIX', async () => {
     resetState();
     userStateManager.setState(SENDER, {

@@ -1145,6 +1145,18 @@ async function continueLegacyExpenseAfterCategorySelection({ msg, senderId, user
         return;
     }
 
+    if (completedExpense.requiresFinalConfirmation || completedExpense.categoryConfirmed) {
+        await askExpenseFinalConfirmation({
+            msg,
+            senderId,
+            expense: {
+                ...completedExpense,
+                confirmationSource: completedExpense.confirmationSource || 'legacy_category_assist'
+            }
+        });
+        return;
+    }
+
     const saved = await saveTransactionWithoutExtraPayment(completedExpense, { person: pessoa, userId });
     await msg.reply(`Gasto de R$${saved.value.toFixed(2)} (${gasto.descricao || 'Não especificado'}) registrado como *${saved.method}* para a data de *${saved.date}*!`);
     await safeMaybeNotifyDailyGoalAfterExpense(msg, userId, 'expense_category_clarification');
@@ -1197,6 +1209,8 @@ async function continueAfterNewExpenseCategory({ msg, senderId, userId, pessoa, 
             categoria,
             subcategoria,
             categoryConfirmed: true,
+            requiresFinalConfirmation: true,
+            confirmationSource: 'legacy_category_assist',
             interpretationSource: 'user_state'
         }
     });
@@ -7321,6 +7335,21 @@ function buildPlannedExpenseConfirmationMessage(expense = {}) {
     ].join('\n');
 }
 
+async function askExpenseFinalConfirmation({ msg, senderId, expense }) {
+    userStateManager.setState(senderId, {
+        action: 'confirming_planned_expense',
+        data: { expense }
+    });
+    await msg.reply(buildPlannedExpenseConfirmationMessage(expense));
+}
+
+function getConfirmedExpenseWriteSource(expense = {}) {
+    if (expense.confirmationSource === 'legacy_category_assist') {
+        return 'legacy_category_assist.expense_create';
+    }
+    return 'financial_command_planner.expense_create';
+}
+
 function buildPlannedExpenseOperationKey(expense = {}, userId = '') {
     const { createOperationKey } = require('../reliability/financialWriteLedger');
     return createOperationKey({
@@ -7809,6 +7838,8 @@ async function handleMessage(msg) {
                         categoria: parsedCategory.categoria,
                         subcategoria: parsedCategory.subcategoria,
                         categoryConfirmed: true,
+                                    requiresFinalConfirmation: true,
+                        confirmationSource: 'legacy_category_assist',
                         interpretationSource: 'user_state'
                     }
                 });
@@ -7911,7 +7942,7 @@ async function handleMessage(msg) {
                             operationKey: buildPlannedExpenseOperationKey(expense, userId),
                             userId,
                             messageId: expense.originalMessageId || '',
-                            source: 'financial_command_planner.expense_create'
+                            source: getConfirmedExpenseWriteSource(expense)
                         }
                     }
                 );
@@ -8148,6 +8179,18 @@ async function handleMessage(msg) {
                     item: completedExpense,
                     person: pessoa
                 })) {
+                    return;
+                }
+
+                if (completedExpense.requiresFinalConfirmation || completedExpense.categoryConfirmed) {
+                    await askExpenseFinalConfirmation({
+                        msg,
+                        senderId,
+                        expense: {
+                            ...completedExpense,
+                            confirmationSource: completedExpense.confirmationSource || 'legacy_category_assist'
+                        }
+                    });
                     return;
                 }
 

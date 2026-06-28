@@ -691,3 +691,9 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   planilhas e reparos de template passam a criar a aba `Categorias`; a estrutura
   central também passa a garantir essa aba. Cobertura local: `tests/unit.test.js`,
   `tests/financialStateMachine.test.js` e `tests/userSpreadsheetService.test.js`.
+- Correção local em 2026-06-28: o caminho legado de categoria assistida não grava
+  mais o gasto imediatamente quando a mensagem original já contém Pix/Débito/
+  Dinheiro. Depois de escolher ou criar categoria/subcategoria, o bot entra em
+  confirmação final; `sim` grava uma vez e `não` cancela sem linha em `Saídas`.
+  Regressão coberta em `tests/financialStateMachine.test.js` pelo caso real
+  `TESTE_APAGAR_CATPERM_20260627_173500`.
