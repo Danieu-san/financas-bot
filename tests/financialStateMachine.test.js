@@ -1074,7 +1074,7 @@ stateMachineTest('financial states: command planner auto-confirms a uniquely res
         schemaVersion: 'financial-command-plan-v1',
         operation: 'expense.create',
         entities: {
-            description: 'mercado',
+            description: 'mercado TESTE_APAGAR_PLANNER_WRITES_20260629_184200',
             amount: 12.33,
             date: '29/06/2026',
             paymentMethod: 'PIX',
@@ -1087,13 +1087,13 @@ stateMachineTest('financial states: command planner auto-confirms a uniquely res
             date: 'explicit',
             paymentMethod: 'explicit'
         },
-        contextRequests: [{ tool: 'resolve_category', query: 'mercado' }],
+        contextRequests: [{ tool: 'resolve_category', query: 'mercado TESTE_APAGAR_PLANNER_WRITES_20260629_184200' }],
         missingFields: [],
         requiresConfirmation: true
     });
 
     try {
-        const reply = await send('Gastei 12,33 no mercado TESTE_APAGAR_PLANNER_WRITES_20260629_181900 via Pix');
+        const reply = await send('Gastei 12,33 no mercado TESTE_APAGAR_PLANNER_WRITES_20260629_184200 via Pix');
         assert.doesNotMatch(reply, /Escolha uma categoria existente/i);
         assert.match(reply, /Categoria: \*Alimentação \/ SUPERMERCADO\*/i);
         assert.match(reply, /Confirma/i);

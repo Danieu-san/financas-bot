@@ -945,14 +945,23 @@ function buildExpenseCategorySelectionQuestion({ item = {}, options = [] } = {})
     return lines.join('\n');
 }
 
+function looksLikeAutoResolveReferenceTerm(term = '') {
+    const normalized = normalizeText(String(term || '').trim());
+    if (!normalized) return false;
+    if (/^teste_apagar_/.test(normalized)) return true;
+    if (/_/.test(normalized) && /\d{4,}/.test(normalized)) return true;
+    if (normalized.length >= 12 && /\d{4,}/.test(normalized)) return true;
+    return false;
+}
+
 function getExpenseAutoResolveTerms(expense = {}) {
     const raw = String(expense.descricao || expense.description || '').trim();
     if (!raw || descriptionLooksLikeReferenceIdentifier(raw)) return [];
     const stopWords = new Set(['a', 'o', 'as', 'os', 'um', 'uma', 'uns', 'umas', 'de', 'do', 'da', 'dos', 'das', 'no', 'na', 'nos', 'nas', 'com', 'para', 'por', 'via', 'em', 'ao', 'aos', 'item', 'gasto', 'compra', 'pagamento', 'paguei', 'gastei']);
-    return normalizeText(raw)
+    return raw
         .split(/\s+/)
-        .map(term => term.trim())
-        .filter(term => term.length >= 3 && !stopWords.has(term) && !/^\d+$/.test(term));
+        .map(term => normalizeText(term.trim()))
+        .filter(term => term.length >= 3 && !stopWords.has(term) && !/^\d+$/.test(term) && !looksLikeAutoResolveReferenceTerm(term));
 }
 
 function selectAutoResolvedExpenseCategoryOption(expense = {}, options = []) {
