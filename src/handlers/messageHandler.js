@@ -945,6 +945,27 @@ function buildExpenseCategorySelectionQuestion({ item = {}, options = [] } = {})
     return lines.join('\n');
 }
 
+function getExpenseAutoResolveTerms(expense = {}) {
+    const raw = String(expense.descricao || expense.description || '').trim();
+    if (!raw || descriptionLooksLikeReferenceIdentifier(raw)) return [];
+    const stopWords = new Set(['a', 'o', 'as', 'os', 'um', 'uma', 'uns', 'umas', 'de', 'do', 'da', 'dos', 'das', 'no', 'na', 'nos', 'nas', 'com', 'para', 'por', 'via', 'em', 'ao', 'aos', 'item', 'gasto', 'compra', 'pagamento', 'paguei', 'gastei']);
+    return normalizeText(raw)
+        .split(/\s+/)
+        .map(term => term.trim())
+        .filter(term => term.length >= 3 && !stopWords.has(term) && !/^\d+$/.test(term));
+}
+
+function selectAutoResolvedExpenseCategoryOption(expense = {}, options = []) {
+    const terms = getExpenseAutoResolveTerms(expense);
+    if (!terms.length || terms.length > 2) return null;
+    const matches = options.filter(option => {
+        if (!option || option.createNew || normalizeText(option.categoria) === 'outros') return false;
+        const candidateText = normalizeText(`${option.categoria || ''} ${option.subcategoria || ''}`);
+        if (!candidateText) return false;
+        return terms.every(term => candidateText.includes(term) || candidateText.includes(term.replace(/s$/, '')));
+    });
+    return matches.length === 1 ? matches[0] : null;
+}
 function parseExpenseCategorySelectionReply(messageBody = '', options = []) {
     const raw = String(messageBody || '').trim().replace(/\s+/g, ' ');
     if (!raw) return { ok: false, reason: 'empty' };
@@ -7367,6 +7388,20 @@ function buildPlannedExpenseOperationKey(expense = {}, userId = '') {
 async function continuePlannedExpense({ msg, senderId, userId, expense }) {
     if (expenseCategoryNeedsClarification(expense)) {
         const categoryOptions = await buildExpenseCategoryOptionsForUser({ userId, item: expense, messageBody: expense.originalMessage });
+        const autoResolvedCategory = selectAutoResolvedExpenseCategoryOption(expense, categoryOptions);
+        if (autoResolvedCategory) {
+            return continuePlannedExpense({
+                msg,
+                senderId,
+                userId,
+                expense: {
+                    ...expense,
+                    categoria: autoResolvedCategory.categoria,
+                    subcategoria: autoResolvedCategory.subcategoria || '',
+                    categoryConfirmed: true
+                }
+            });
+        }
         userStateManager.setState(senderId, {
             action: 'awaiting_planned_expense_category',
             data: { expense, categoryOptions }

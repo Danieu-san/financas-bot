@@ -1,6 +1,6 @@
 # Estado atual do FinancasBot
 
-Atualizado em: 2026-06-28
+Atualizado em: 2026-06-29
 
 ## Produto
 
@@ -703,3 +703,4 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   conversa; `não` cancela sem salvar nada e `sim` registra a categoria antes do
   lançamento. Regressão cobre o fluxo planejado (`FINANCIAL_COMMAND_PLANNER_MODE=route`)
   e o legado.
+- Correção local em 2026-06-29: `expense.create` do command planner passou a auto-confirmar categoria existente quando a descrição simples resolve para exatamente uma opção compatível, como `mercado` -> `Alimentação / SUPERMERCADO`. A lista numerada permanece para textos ambíguos ou com termos extras, preservando o fluxo permanente de criação assistida quando nenhuma opção servir. Regressão em `tests/financialStateMachine.test.js` cobre auto-resolução e mantém o caso ambíguo perguntando.

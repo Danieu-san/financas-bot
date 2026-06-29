@@ -1066,6 +1066,48 @@ stateMachineTest('financial states: command planner keeps an ordinary purchase o
         else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
     }
 });
+stateMachineTest('financial states: command planner auto-confirms a uniquely resolved common expense category', async () => {
+    resetState();
+    const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
+    enqueueStructuredResponse({
+        schemaVersion: 'financial-command-plan-v1',
+        operation: 'expense.create',
+        entities: {
+            description: 'mercado',
+            amount: 12.33,
+            date: '29/06/2026',
+            paymentMethod: 'PIX',
+            category: 'Outros',
+            subcategory: ''
+        },
+        fieldEvidence: {
+            description: 'explicit',
+            amount: 'explicit',
+            date: 'explicit',
+            paymentMethod: 'explicit'
+        },
+        contextRequests: [{ tool: 'resolve_category', query: 'mercado' }],
+        missingFields: [],
+        requiresConfirmation: true
+    });
+
+    try {
+        const reply = await send('Gastei 12,33 no mercado TESTE_APAGAR_PLANNER_WRITES_20260629_181900 via Pix');
+        assert.doesNotMatch(reply, /Escolha uma categoria existente/i);
+        assert.match(reply, /Categoria: \*Alimentação \/ SUPERMERCADO\*/i);
+        assert.match(reply, /Confirma/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_planned_expense');
+        assert.strictEqual(sheets.Saídas.length, 1);
+
+        assert.match(await send('não'), /cancelad/i);
+        assert.strictEqual(sheets.Saídas.length, 1);
+    } finally {
+        if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+        else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+    }
+});
+
 stateMachineTest('financial states: planned expense category clarification requires numbered existing option', async () => {
     resetState();
     const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
