@@ -1,6 +1,6 @@
 # Phase 2A Plan: Unified Financial Command Planner
 
-Status: bill.pay canary stabilized; Step 7 implemented locally behind an operation allowlist; no new production routing authorized.
+Status: bill.pay and Step 7 canary stabilized for Daniel/Thais; no global route or new operation authorized.
 Date: 2026-06-25
 
 ## Position In The Existing Roadmap
@@ -207,11 +207,18 @@ Progress on 2026-06-30:
   expected final state, including a cleaned `Saídas` row, and removed all test
   rows. Local evidence: focused E2E config test 21/21, full suite 609/609,
   `git diff --check`, syntax check and `state_store.json` OK.
+- Follow-up adversarial production retest on 2026-06-30 caught and closed two
+  rollout gaps: `bill.pay` was restored to the production route-operation
+  allowlist, and `match_card_invoice` now rejects candidates that do not contain
+  explicit card terms from the user message before considering amount
+  compatibility. Manual retest confirmed no-match bill payments do not become
+  debt/expense, `Nubank Daniel` no longer crosses to `Thais`, and ambiguous
+  apartment bills list numbered candidates.
 
 Current gate:
 
-- `GO` for controlled canary observation of `debt.pay`, `invoice.pay` and
-  non-credit `expense.create` for Daniel/Thaís, with
+- `GO` for controlled canary observation of `bill.pay`, `debt.pay`,
+  `invoice.pay` and non-credit `expense.create` for Daniel/Thaís, with
   `INTERPRETATION_RELIABILITY_MODE=shadow` and Gemini planner active.
 - `NO-GO` for global `route` or for adding credit-card `expense.create`,
   `income.create` or other write operations without their own gates.

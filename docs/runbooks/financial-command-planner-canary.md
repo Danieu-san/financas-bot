@@ -119,11 +119,12 @@ O runner exige uma nova mensagem recebida, identificada por fingerprint/`data-id
 
 ## Status do gate Step 7 - 2026-06-30
 
-`GO` para manter `debt.pay`, `invoice.pay` e `expense.create` não-crédito em canário controlado para Daniel/Thaís. Evidência aprovada:
+`GO` para manter `bill.pay`, `debt.pay`, `invoice.pay` e `expense.create` não-crédito em canário controlado para Daniel/Thaís. Evidência aprovada:
 
 - conversa real com marcador `TESTE_APAGAR_PLANNER_WRITES_20260630_001` confirmou dívida, fatura e gasto comum com efeitos corretos;
 - runner `planner-writes` corrigido em `849e9fc` para verificar/limpar `Saídas` quando o bot remove o marcador técnico e salva a descrição limpa, como `mercado`;
 - prova remota `verify-cleanup` passou no ambiente alvo e confirmou zero resíduo;
 - PM2 permaneceu online sem restart do WhatsApp, `INTERPRETATION_RELIABILITY_MODE=shadow` e Gemini planner ativo.
+- reteste adversarial em produção após `dd6d054` confirmou que conta recorrente sem match não cai em dívida/gasto, fatura explícita `Nubank Daniel` não cruza para Thaís e conta ambígua lista opções numeradas.
 
 Continua `NO-GO` para `route` global ou novas operações sem gate próprio. Rollback: remover as operações de `FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS` ou voltar `FINANCIAL_COMMAND_PLANNER_MODE=shadow` por `SIGHUP`.
