@@ -192,16 +192,30 @@ Progress on 2026-06-27:
   vulnerabilities, ledger dry-run with 15 events, zero differences and
   `privacy_ok=true`.
 
+Progress on 2026-06-30:
+
+- Real canary evidence passed for `debt.pay`, `invoice.pay` and non-credit
+  `expense.create` with marker `TESTE_APAGAR_PLANNER_WRITES_20260630_001`.
+  Debt reduced only the scoped debt balance, invoice payment wrote only a
+  `Transferências` payment movement, and ordinary `mercado` expense resolved to
+  `Alimentação / SUPERMERCADO` before confirmation.
+- The marker-only runner was hardened in `849e9fc` to verify and clean expenses
+  whose final persisted description intentionally drops the technical marker.
+  It fails closed if more than one cleaned expense matches the exact
+  description/category/subcategory/value/payment/recurrence tuple.
+- Remote proof on the target spreadsheet passed: `verify-cleanup` verified the
+  expected final state, including a cleaned `Saídas` row, and removed all test
+  rows. Local evidence: focused E2E config test 21/21, full suite 609/609,
+  `git diff --check`, syntax check and `state_store.json` OK.
+
 Current gate:
 
-- `NO-GO` for enabling Step 7 operations in production until marker-only E2E
-  coverage exists for debt, invoice and ordinary expense, followed by Daniel
-  canary and cleanup/parity review.
-- The local marker-only runner is now available through
-  `npm run test:whatsapp:e2e:planner-writes`. It seeds isolated debt and invoice
-  fixtures, exercises all three confirmed writes, verifies domain-specific
-  Sheets effects and removes only the exact marker. A real canary run is still
-  required before this gate can move to GO.- Credit-card `expense.create` and `income.create` remain on the existing legacy
+- `GO` for controlled canary observation of `debt.pay`, `invoice.pay` and
+  non-credit `expense.create` for Daniel/Thaís, with
+  `INTERPRETATION_RELIABILITY_MODE=shadow` and Gemini planner active.
+- `NO-GO` for global `route` or for adding credit-card `expense.create`,
+  `income.create` or other write operations without their own gates.
+- Credit-card `expense.create` and `income.create` remain on the existing legacy
   write flow in this slice.
 Gate: no fixture crosses domains and no payment is double-counted.
 

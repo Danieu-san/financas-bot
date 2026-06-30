@@ -116,3 +116,14 @@ Quando o navegador E2E roda localmente e o bot roda na EC2, o seed local pode us
 4. Após sucesso ou falha, reverta para `shadow` e confirme zero marcador em `Contas`, `Saídas`, ledger shadow e read-model.
 
 O runner exige uma nova mensagem recebida, identificada por fingerprint/`data-id` ainda não visto, contendo todos os textos esperados. Histórico antigo não pode liberar a próxima etapa.
+
+## Status do gate Step 7 - 2026-06-30
+
+`GO` para manter `debt.pay`, `invoice.pay` e `expense.create` não-crédito em canário controlado para Daniel/Thaís. Evidência aprovada:
+
+- conversa real com marcador `TESTE_APAGAR_PLANNER_WRITES_20260630_001` confirmou dívida, fatura e gasto comum com efeitos corretos;
+- runner `planner-writes` corrigido em `849e9fc` para verificar/limpar `Saídas` quando o bot remove o marcador técnico e salva a descrição limpa, como `mercado`;
+- prova remota `verify-cleanup` passou no ambiente alvo e confirmou zero resíduo;
+- PM2 permaneceu online sem restart do WhatsApp, `INTERPRETATION_RELIABILITY_MODE=shadow` e Gemini planner ativo.
+
+Continua `NO-GO` para `route` global ou novas operações sem gate próprio. Rollback: remover as operações de `FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS` ou voltar `FINANCIAL_COMMAND_PLANNER_MODE=shadow` por `SIGHUP`.
