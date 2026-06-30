@@ -30,11 +30,39 @@
       "expectedAmount": 850
     },
     {
+      "id": "PAY-DEBT-OVER-BALANCE-001",
+      "message": "Paguei 80 da dívida Empréstimo Baixo via Pix",
+      "expectedOperation": "debt.pay",
+      "expectedContextTool": "match_debt",
+      "expectedAmount": 80
+    },
+    {
+      "id": "PAY-INVOICE-CREDIT-001",
+      "message": "Paguei 400 da fatura do Nubank Daniel no crédito",
+      "expectedOperation": "invoice.pay",
+      "expectedContextTool": "match_card_invoice",
+      "expectedAmount": 400
+    },
+    {
       "id": "EXPENSE-001",
       "message": "Paguei 42 no almoco no pix",
       "expectedOperation": "expense.create",
       "expectedContextTool": "resolve_category",
       "expectedAmount": 42
+    },
+    {
+      "id": "EXPENSE-MARKET-001",
+      "message": "Gastei 12,33 no mercado via Pix",
+      "expectedOperation": "expense.create",
+      "expectedContextTool": "resolve_category",
+      "expectedAmount": 12.33
+    },
+    {
+      "id": "EXPENSE-UNKNOWN-CATEGORY-001",
+      "message": "Gastei 19,99 num item esquisito via Pix",
+      "expectedOperation": "expense.create",
+      "expectedContextTool": "resolve_category",
+      "expectedAmount": 19.99
     },
     {
       "id": "PAY-BILL-AMBIGUOUS-001",

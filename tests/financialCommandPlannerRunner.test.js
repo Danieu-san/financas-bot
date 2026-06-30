@@ -10,6 +10,7 @@ const {
     validateOptions,
     runFinancialCommandPlannerBattery
 } = require('../scripts/runFinancialCommandPlannerBattery');
+const fixture = require('./fixtures/planner/unified-financial-command-cases.json');
 
 test('financial command planner runner refuses unbounded live mode', () => {
     assert.deepStrictEqual(
@@ -49,8 +50,8 @@ test('financial command planner offline runner accepts all fixtures with zero Ge
     });
 
     assert.strictEqual(report.mode, 'offline');
-    assert.strictEqual(report.summary.total, 7);
-    assert.strictEqual(report.summary.accepted, 7);
+    assert.strictEqual(report.summary.total, fixture.cases.length);
+    assert.strictEqual(report.summary.accepted, fixture.cases.length);
     assert.strictEqual(report.summary.gaps, 0);
     assert.strictEqual(report.summary.geminiCalls, 0);
     assert.ok(report.duration_ms >= 0);
