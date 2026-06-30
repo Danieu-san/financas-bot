@@ -388,3 +388,86 @@ test('whatsapp planner writes e2e supports explicit remote fixture actions and s
         /único usuário ACTIVE/
     );
 });
+test('whatsapp planner writes e2e can match cleaned expense rows without the technical marker', () => {
+    const {
+        buildPlannerWritesE2EPlan,
+        findPlannerWritesExpenseRows
+    } = require('../scripts/runWhatsappPlannerWritesE2E');
+
+    const plan = buildPlannerWritesE2EPlan({
+        runId: 'TESTE_APAGAR_PLANNER_WRITES_20260630_001',
+        userId: 'user-e2e',
+        expenseAmount: '12,33'
+    });
+
+    const rows = [
+        ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente'],
+        ['30/06/2026', 'mercado', 'Alimentação', 'SUPERMERCADO', 'R$12,33', 'Daniel', 'PIX', 'Não'],
+        ['30/06/2026', 'mercado TESTE_APAGAR_PLANNER_WRITES_20260630_001', 'Alimentação', 'SUPERMERCADO', 'R$12,33', 'Daniel', 'PIX', 'Não'],
+        ['30/06/2026', 'mercado', 'Alimentação', 'SUPERMERCADO', 'R$12,34', 'Daniel', 'PIX', 'Não']
+    ];
+
+    assert.deepStrictEqual(
+        findPlannerWritesExpenseRows(rows, plan).map(item => item.index),
+        [1]
+    );
+});
+test('whatsapp planner writes e2e verifies cleaned expense rows when the marker was stripped', async () => {
+    const googleServicePath = require.resolve('../src/services/google');
+    const originalGoogleService = require.cache[googleServicePath];
+    const marker = 'TESTE_APAGAR_PLANNER_WRITES_20260630_002';
+
+    require.cache[googleServicePath] = {
+        id: googleServicePath,
+        filename: googleServicePath,
+        loaded: true,
+        exports: {
+            readDataFromSheet: async range => {
+                if (range.startsWith('Dívidas!')) {
+                    return [
+                        ['Nome', 'Credor', 'Tipo', 'Valor Original', 'Saldo Atual'],
+                        [`Empréstimo ${marker}`, 'Credor E2E', 'Empréstimo', '100,00', '87,69']
+                    ];
+                }
+                if (range.startsWith('Lançamentos Cartão!')) {
+                    return [
+                        ['Data', 'Descrição'],
+                        ['27/06/2026', `Compra fixture ${marker}`]
+                    ];
+                }
+                if (range.startsWith('Transferências!')) {
+                    return [
+                        ['Data', 'Descrição', 'Origem', 'Destino', 'Valor', 'Responsável', 'Método', 'Status'],
+                        ['30/06/2026', `Pagamento fatura ${marker}`, '', '', '12,32', 'Daniel', 'PIX', 'Pagamento de fatura']
+                    ];
+                }
+                if (range.startsWith('Saídas!')) {
+                    return [
+                        ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente'],
+                        ['30/06/2026', 'mercado', 'Alimentação', 'SUPERMERCADO', 'R$12,33', 'Daniel', 'PIX', 'Não']
+                    ];
+                }
+                return [];
+            }
+        }
+    };
+
+    try {
+        const {
+            buildPlannerWritesE2EPlan,
+            verifyPlannerWritesResults
+        } = require('../scripts/runWhatsappPlannerWritesE2E');
+        const plan = buildPlannerWritesE2EPlan({
+            runId: marker,
+            userId: 'user-e2e',
+            debtAmount: '12,31',
+            invoiceAmount: '12,32',
+            expenseAmount: '12,33'
+        });
+
+        await assert.doesNotReject(() => verifyPlannerWritesResults(plan, { userId: 'user-e2e' }));
+    } finally {
+        if (originalGoogleService) require.cache[googleServicePath] = originalGoogleService;
+        else delete require.cache[googleServicePath];
+    }
+});

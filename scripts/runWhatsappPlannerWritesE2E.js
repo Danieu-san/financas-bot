@@ -170,6 +170,15 @@ function buildPlannerWritesE2EPlan(options = {}) {
                 userId
             ]
         },
+        expense: {
+            description: 'mercado',
+            category: 'Alimentação',
+            subcategory: 'SUPERMERCADO',
+            amount: Number(expenseAmount.replace(',', '.')),
+            amountText: expenseAmount,
+            payment: 'PIX',
+            recurring: 'Não'
+        },
         messages: {
             debt: {
                 initial: `Paguei ${debtAmount} da dívida ${debtLabel} via Pix`,
@@ -196,6 +205,47 @@ function rowContainsMarker(row = [], marker = '') {
     if (!escapedMarker) return false;
     const exactMarker = new RegExp(`(^|[^A-Za-z0-9_])${escapedMarker}(?=$|[^A-Za-z0-9_])`);
     return row.some(cell => exactMarker.test(String(cell || '')));
+}
+
+function normalizePlannerWritesText(value) {
+    return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .toLowerCase();
+}
+
+function normalizePlannerWritesAmount(value) {
+    if (typeof value === 'number') {
+        return Number.isFinite(value) ? Number(value.toFixed(2)) : null;
+    }
+    let normalized = String(value || '')
+        .replace(/R\$/gi, '')
+        .replace(/\s/g, '')
+        .trim();
+    if (!normalized) return null;
+    if (normalized.includes(',')) {
+        normalized = normalized.replace(/\./g, '').replace(',', '.');
+    }
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? Number(parsed.toFixed(2)) : null;
+}
+
+function findPlannerWritesExpenseRows(rows = [], plan = {}) {
+    const expected = plan.expense || {};
+    return rows
+        .map((row, index) => ({ row, index }))
+        .filter(item => {
+            if (item.index === 0) return false;
+            if (rowContainsMarker(item.row, plan.marker)) return false;
+            const amount = normalizePlannerWritesAmount(item.row[4]);
+            return normalizePlannerWritesText(item.row[1]) === normalizePlannerWritesText(expected.description) &&
+                normalizePlannerWritesText(item.row[2]) === normalizePlannerWritesText(expected.category) &&
+                normalizePlannerWritesText(item.row[3]) === normalizePlannerWritesText(expected.subcategory) &&
+                amount === expected.amount &&
+                normalizePlannerWritesText(item.row[6]) === normalizePlannerWritesText(expected.payment) &&
+                normalizePlannerWritesText(item.row[7]) === normalizePlannerWritesText(expected.recurring);
+        });
 }
 
 function getGoogleService() {
@@ -235,10 +285,38 @@ async function cleanupPlannerWritesMarker(marker, { userId } = {}) {
     }
 }
 
+async function readPlannerWritesResultRows(plan, { userId } = {}) {
+    const matches = await readMarkerRows(plan.marker, { userId });
+    if ((matches['Saídas'] || []).length === 0) {
+        const { readDataFromSheet } = getGoogleService();
+        const readOptions = userId ? { userId } : {};
+        const rows = await readDataFromSheet('Saídas!A:Z', readOptions);
+        matches['Saídas'] = findPlannerWritesExpenseRows(rows, plan);
+    }
+    return matches;
+}
+
+async function cleanupPlannerWritesPlan(plan, { userId } = {}) {
+    await cleanupPlannerWritesMarker(plan.marker, { userId });
+    const { deleteRowsByIndices, readDataFromSheet } = getGoogleService();
+    const readOptions = userId ? { userId } : {};
+    const rows = await readDataFromSheet('Saídas!A:Z', readOptions);
+    const expenseRows = findPlannerWritesExpenseRows(rows, plan);
+    if (expenseRows.length > 1) {
+        throw new Error(`Cleanup inseguro em Saídas: esperado no máximo 1 gasto limpo, atual=${expenseRows.length}.`);
+    }
+    if (expenseRows.length === 1) {
+        await deleteRowsByIndices('Saídas', [expenseRows[0].index], {
+            ...readOptions,
+            source: 'whatsapp_planner_writes_e2e_expense_cleanup'
+        });
+    }
+}
+
 async function seedPlannerWritesFixtures(plan, { userId } = {}) {
     const { appendRowToSheet } = getGoogleService();
     const writeOptions = userId ? { userId } : {};
-    await cleanupPlannerWritesMarker(plan.marker, writeOptions);
+    await cleanupPlannerWritesPlan(plan, writeOptions);
     await appendRowToSheet('Dívidas', plan.debt.row, {
         ...writeOptions,
         source: 'whatsapp_planner_writes_e2e_seed_debt'
@@ -259,7 +337,7 @@ function assertMarkerCounts(matches, expected) {
 }
 
 async function verifyPlannerWritesResults(plan, { userId } = {}) {
-    const matches = await readMarkerRows(plan.marker, { userId });
+    const matches = await readPlannerWritesResultRows(plan, { userId });
     assertMarkerCounts(matches, {
         'Dívidas': 1,
         'Lançamentos Cartão': 1,
@@ -288,6 +366,12 @@ async function assertPlannerWritesMarkerRemoved(plan, { userId } = {}) {
         'Transferências': 0,
         'Saídas': 0
     });
+    const { readDataFromSheet } = getGoogleService();
+    const rows = await readDataFromSheet('Saídas!A:Z', userId ? { userId } : {});
+    const expenseRows = findPlannerWritesExpenseRows(rows, plan);
+    if (expenseRows.length !== 0) {
+        throw new Error(`Cleanup incompleto em Saídas: restante=${expenseRows.length}.`);
+    }
 }
 
 async function runFixtureAction(action, plan, { userId } = {}) {
@@ -297,7 +381,7 @@ async function runFixtureAction(action, plan, { userId } = {}) {
         return;
     }
     if (action === 'cleanup') {
-        await cleanupPlannerWritesMarker(plan.marker, { userId });
+        await cleanupPlannerWritesPlan(plan, { userId });
         await assertPlannerWritesMarkerRemoved(plan, { userId });
         console.log('[planner-writes-e2e] cleanup remoto confirmado com zero linhas');
         return;
@@ -309,7 +393,7 @@ async function runFixtureAction(action, plan, { userId } = {}) {
         } catch (error) {
             verificationError = error;
         } finally {
-            await cleanupPlannerWritesMarker(plan.marker, { userId });
+            await cleanupPlannerWritesPlan(plan, { userId });
             await assertPlannerWritesMarkerRemoved(plan, { userId });
         }
         if (verificationError) throw verificationError;
@@ -359,7 +443,7 @@ async function main() {
     } finally {
         await driver.close().catch(() => {});
         if (action === 'all' && fixtureMode === 'local') {
-            await cleanupPlannerWritesMarker(plan.marker, { userId }).catch(error => {
+            await cleanupPlannerWritesPlan(plan, { userId }).catch(error => {
                 console.error(`[planner-writes-e2e] cleanup_failed marker=${plan.marker} error=${error.message}`);
             });
         }
@@ -376,6 +460,8 @@ if (require.main === module) {
 module.exports = {
     buildPlannerWritesE2EPlan,
     cleanupPlannerWritesMarker,
+    cleanupPlannerWritesPlan,
+    findPlannerWritesExpenseRows,
     readMarkerRows,
     requirePlannerWritesRouteMode,
     resolvePlannerWritesAction,
