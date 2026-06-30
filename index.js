@@ -9,12 +9,15 @@ const { initializeScheduler } = require('./src/jobs/scheduler');
 const { validateUserIdIntegrity, backfillMissingUserIds } = require('./src/services/userIdMaintenanceService');
 const { initializeReadModel, syncReadModelIfNeeded, getReadModelStats } = require('./src/services/readModelService');
 const { startDashboardServer } = require('./src/services/dashboardServer');
+const { backfillUnreadMessages } = require('./src/services/whatsappUnreadBackfillService');
 const logger = require('./src/utils/logger');
 const { registerFinancialCommandPlannerRuntimeReload } = require('./src/config/financialCommandPlannerRuntimeConfig');
 
 registerFinancialCommandPlannerRuntimeReload({ logger });
 
 async function startBot() {
+    const startupUnixSeconds = Math.floor(Date.now() / 1000);
+    const unreadBackfillLookbackSeconds = Number(process.env.WHATSAPP_UNREAD_BACKFILL_LOOKBACK_SECONDS || 60);
     console.log('🚀 Iniciando o bot...');
 
     // Validação de variáveis de ambiente
@@ -67,6 +70,15 @@ async function startBot() {
             console.log('✅ Bot pronto para receber mensagens!');
             // Inicia o agendador apenas quando o bot estiver pronto pela primeira vez
             initializeScheduler(client);
+            void backfillUnreadMessages(client, handleMessage, {
+                logger,
+                enabled: String(process.env.WHATSAPP_UNREAD_BACKFILL_ON_READY || 'true').toLowerCase() !== 'false',
+                delayMs: Number(process.env.WHATSAPP_UNREAD_BACKFILL_DELAY_MS || 3000),
+                maxPerChat: Number(process.env.WHATSAPP_UNREAD_BACKFILL_MAX_PER_CHAT || 20),
+                notBeforeTimestamp: Math.max(0, startupUnixSeconds - unreadBackfillLookbackSeconds)
+            }).catch(error => {
+                logger.warn('[whatsapp] unread backfill falhou: ' + error.message);
+            });
         });
 
         client.on('message', handleMessage);

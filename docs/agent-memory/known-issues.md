@@ -90,6 +90,7 @@ Ja houve divergencia entre horario exibido no WhatsApp e Google Calendar. Ao mex
 Sintoma:
 
 - Logs param em `WhatsApp carregando: 100%` ou `Autenticado com sucesso! Carregando chats...`.
+- Tambem pode acontecer de o WhatsApp Web ficar logado e visualmente pronto, mas mensagens recebidas durante a inicializacao ficarem como nao lidas na pagina sem disparar `client.on('message')` no Node.
 
 Mitigacoes usadas:
 
@@ -97,6 +98,8 @@ Mitigacoes usadas:
 - Reiniciar PM2 com cuidado.
 - Evitar apagar `.wwebjs_auth` sem necessidade, pois forca novo QR.
 - Limpar cache `.wwebjs_cache` pode ajudar, mas nao deve ser primeira acao destrutiva.
+- Producao passou a usar `WWEB_CACHE_TYPE=local` com `WWEB_VERSION=2.3000.1017054665` apos incidente de 2026-06-29 em que `none/live` travou no 100%.
+- O startup agora reprocessa mensagens nao lidas apos `ready`, via backfill deduplicado, para cobrir mensagens que chegaram antes dos listeners de `Msg.on('add')` ficarem plenamente ativos.
 
 ## `.env` de producao e sensivel
 
