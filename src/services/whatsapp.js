@@ -1,5 +1,6 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
+const { scheduleReadyRescue } = require('./whatsappReadyRescueService');
 
 let clientInstance = null;
 let isAuthenticated = false;
@@ -11,6 +12,7 @@ const DEFAULT_USER_AGENT = process.env.WWEB_USER_AGENT || 'Mozilla/5.0 (X11; Lin
 const READY_TIMEOUT_MS = Number(process.env.WWEB_READY_TIMEOUT_MS || 420000);
 const AUTH_TIMEOUT_MS = Number(process.env.WWEB_AUTH_TIMEOUT_MS || 180000);
 const PROTOCOL_TIMEOUT_MS = Number(process.env.PUPPETEER_PROTOCOL_TIMEOUT_MS || 180000);
+const READY_RESCUE_DELAY_MS = Number(process.env.WWEB_READY_RESCUE_DELAY_MS || 15000);
 
 function exitForSupervisor(reason, delayMs = 1500) {
     console.error(`❌ WhatsApp indisponível: ${reason}. Encerrando para o PM2 reiniciar.`);
@@ -29,7 +31,7 @@ function initializeWhatsAppClient() {
 
     isInitializing = true;
     console.log('🔄 Inicializando cliente WhatsApp...');
-    
+
     const clientOptions = {
         authStrategy: new LocalAuth({
             clientId: 'bot-financeiro'
@@ -79,6 +81,7 @@ function initializeWhatsAppClient() {
 
     const client = new Client(clientOptions);
     let readyWatchdog = null;
+    let readyRescueTimer = null;
 
     function armReadyWatchdog(label) {
         clearReadyWatchdog();
@@ -97,11 +100,28 @@ function initializeWhatsAppClient() {
         }
     }
 
+    function armReadyRescue() {
+        if (readyRescueTimer || READY_RESCUE_DELAY_MS <= 0) return;
+        readyRescueTimer = scheduleReadyRescue(client, {
+            delayMs: READY_RESCUE_DELAY_MS,
+            isStillPending: () => isInitializing && isAuthenticated,
+            logger: console
+        });
+    }
+
+    function clearReadyRescue() {
+        if (readyRescueTimer) {
+            clearTimeout(readyRescueTimer);
+            readyRescueTimer = null;
+        }
+    }
+
     armReadyWatchdog('inicialização');
 
     client.on('qr', qr => {
         isAuthenticated = false;
         clearReadyWatchdog();
+        clearReadyRescue();
         console.log('⏸️ Aguardando leitura do QR Code. PM2 não será reiniciado enquanto a autenticação estiver pendente.');
         console.log('🔑 Novo QR Code gerado. Escaneie para conectar:');
         qrcode.generate(qr, { small: true });
@@ -109,6 +129,9 @@ function initializeWhatsAppClient() {
 
     client.on('loading_screen', (percent, message) => {
         console.log(`⏳ WhatsApp carregando: ${percent}% - ${message}`);
+        if (Number(percent) >= 100 && isAuthenticated && isInitializing) {
+            armReadyRescue();
+        }
     });
 
     client.on('change_state', state => {
@@ -121,17 +144,20 @@ function initializeWhatsAppClient() {
             isAuthenticated = true;
             isInitializing = true;
             armReadyWatchdog('autenticação');
+            armReadyRescue();
         }
     });
 
     client.on('ready', () => {
         clearReadyWatchdog();
+        clearReadyRescue();
         isInitializing = false;
         console.log('🚀 Conexão estabelecida! WhatsApp pronto.');
     });
 
     client.on('auth_failure', msg => {
         clearReadyWatchdog();
+        clearReadyRescue();
         console.error('❌ Falha na autenticação:', msg);
         isAuthenticated = false;
         isInitializing = false;
@@ -140,10 +166,11 @@ function initializeWhatsAppClient() {
 
     client.on('disconnected', async (reason) => {
         clearReadyWatchdog();
+        clearReadyRescue();
         console.log('⚠️ Cliente desconectado:', reason);
         isAuthenticated = false;
         isInitializing = false;
-        
+
         if (reason === 'LOGOUT') {
             console.error('🚪 Sessão encerrada (LOGOUT).');
             try {
@@ -158,6 +185,7 @@ function initializeWhatsAppClient() {
     // Inicia o processo de conexão
     client.initialize().catch(err => {
         clearReadyWatchdog();
+        clearReadyRescue();
         console.error('❌ Erro na inicialização:', err.message);
         isInitializing = false;
         exitForSupervisor(err.message);
