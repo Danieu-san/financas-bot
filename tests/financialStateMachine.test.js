@@ -1066,6 +1066,172 @@ stateMachineTest('financial states: command planner keeps an ordinary purchase o
         else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
     }
 });
+stateMachineTest('financial states: adversarial command planner keeps unmatched bill payment out of ordinary expense writes', async () => {
+    resetState();
+    const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
+    enqueueStructuredResponse({
+        schemaVersion: 'financial-command-plan-v1',
+        operation: 'bill.pay',
+        entities: {
+            description: 'conta fantasma teste',
+            amount: 77.77,
+            date: '30/06/2026',
+            paymentMethod: 'PIX',
+            category: 'Alimentação',
+            subcategory: 'SUPERMERCADO'
+        },
+        fieldEvidence: {
+            description: 'explicit',
+            amount: 'explicit',
+            date: 'explicit',
+            paymentMethod: 'explicit'
+        },
+        contextRequests: [{ tool: 'match_recurring_bill', query: 'conta fantasma teste' }],
+        missingFields: [],
+        requiresConfirmation: true
+    });
+
+    try {
+        const reply = await send('Paguei 77,77 da conta fantasma teste via Pix');
+        assert.match(reply, /conta recorrente/i);
+        assert.match(reply, /não encontrei|nao encontrei/i);
+        assert.strictEqual(sheets.Saídas.length, 1);
+        assert.strictEqual(sheets.Transferências.length, 1);
+        assert.strictEqual(userStateManager.getState(SENDER), undefined);
+    } finally {
+        if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+        else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+    }
+});
+
+stateMachineTest('financial states: adversarial command planner rejects debt payments above the current balance', async () => {
+    resetState();
+    const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
+    sheets.Dívidas.push([
+        'Empréstimo Baixo', 'Banco Teste', 'Empréstimo', 100, 50, 10,
+        '', 10, '', 10, 1, 'Ativa', '', '50%', '', '', '', USER_ID
+    ]);
+    enqueueStructuredResponse({
+        schemaVersion: 'financial-command-plan-v1',
+        operation: 'debt.pay',
+        entities: {
+            description: 'Empréstimo Baixo',
+            amount: 80,
+            date: '30/06/2026',
+            paymentMethod: 'PIX'
+        },
+        fieldEvidence: {
+            description: 'explicit',
+            amount: 'explicit',
+            date: 'explicit',
+            paymentMethod: 'explicit'
+        },
+        contextRequests: [{ tool: 'match_debt', query: 'Empréstimo Baixo' }],
+        missingFields: [],
+        requiresConfirmation: true
+    });
+
+    try {
+        const reply = await send('Paguei 80 da dívida Empréstimo Baixo via Pix');
+        assert.match(reply, /valor.*inválido|acima do saldo/i);
+        assert.strictEqual(Number(sheets.Dívidas[1][4]), 50);
+        assert.strictEqual(seenUpdateOperationKeys.size, 0);
+        assert.strictEqual(userStateManager.getState(SENDER), undefined);
+    } finally {
+        if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+        else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+    }
+});
+
+stateMachineTest('financial states: adversarial command planner does not save invoice payment with credit as cash movement', async () => {
+    resetState();
+    const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
+    sheets['Lançamentos Cartão'] = [
+        ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Status', 'user_id'],
+        ['10/06/2026', 'Compra Teste', 'Outros', 400, '1/1', '06/2026', 'nubank-daniel', 'Nubank Daniel', 'Aberta', USER_ID]
+    ];
+    enqueueStructuredResponse({
+        schemaVersion: 'financial-command-plan-v1',
+        operation: 'invoice.pay',
+        entities: {
+            description: 'fatura do Nubank Daniel',
+            amount: 400,
+            date: '30/06/2026',
+            paymentMethod: 'Crédito'
+        },
+        fieldEvidence: {
+            description: 'explicit',
+            amount: 'explicit',
+            date: 'explicit',
+            paymentMethod: 'explicit'
+        },
+        contextRequests: [{ tool: 'match_card_invoice', query: 'fatura do Nubank Daniel' }],
+        missingFields: [],
+        requiresConfirmation: true
+    });
+
+    try {
+        const methodQuestion = await send('Paguei 400 da fatura do Nubank Daniel no crédito');
+        assert.match(methodQuestion, /forma de pagamento/i);
+        assert.match(methodQuestion, /Débito, PIX ou Dinheiro/i);
+        assert.strictEqual(sheets.Transferências.length, 1);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_invoice_payment_method');
+
+        assert.match(await send('não'), /forma de pagamento/i);
+        assert.strictEqual(sheets.Transferências.length, 1);
+    } finally {
+        userStateManager.deleteState(SENDER);
+        if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+        else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+    }
+});
+
+stateMachineTest('financial states: adversarial command planner requires category choice before saving invented expense categories', async () => {
+    resetState();
+    const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
+    enqueueStructuredResponse({
+        schemaVersion: 'financial-command-plan-v1',
+        operation: 'expense.create',
+        entities: {
+            description: 'assinatura secreta teste',
+            amount: 19.99,
+            date: '30/06/2026',
+            paymentMethod: 'PIX',
+            category: 'Categoria Inventada Pelo Modelo',
+            subcategory: 'Subcategoria Inventada'
+        },
+        fieldEvidence: {
+            description: 'explicit',
+            amount: 'explicit',
+            date: 'explicit',
+            paymentMethod: 'explicit'
+        },
+        contextRequests: [{ tool: 'resolve_category', query: 'assinatura secreta teste' }],
+        missingFields: [],
+        requiresConfirmation: true
+    });
+
+    try {
+        const categoryQuestion = await send('Gastei 19,99 na assinatura secreta teste via Pix');
+        assert.match(categoryQuestion, /Escolha uma categoria existente/i);
+        assert.match(categoryQuestion, /Criar nova categoria\/subcategoria/i);
+        assert.strictEqual(sheets.Saídas.length, 1);
+        assert.ok(
+            ['awaiting_planned_expense_category', 'awaiting_expense_category'].includes(userStateManager.getState(SENDER).action),
+            'should wait for an explicit category choice before saving'
+        );
+
+        assert.match(await send('sim'), /Responda com o número/i);
+        assert.strictEqual(sheets.Saídas.length, 1);
+    } finally {
+        if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+        else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+    }
+});
 stateMachineTest('financial states: command planner auto-confirms a uniquely resolved common expense category', async () => {
     resetState();
     const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
