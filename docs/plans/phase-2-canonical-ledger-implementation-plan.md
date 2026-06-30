@@ -1,7 +1,7 @@
 # Phase 2 Canonical Ledger Implementation Plan
 
-Status: local implementation ready for verification, production canary not enabled.
-Date: 2026-06-25
+Status: production shadow writes enabled; production read canary not enabled.
+Date: 2026-06-30
 
 ## Baseline To Preserve
 
@@ -63,3 +63,35 @@ Before any production enablement:
 7. Confirm EC2 baseline still preserves answer mode, Gemini planner and contextual analyst flags.
 
 If any gate fails, keep production canonical ledger flags off.
+
+## Production Shadow Audit - 2026-06-30
+
+Production already has the shadow writer enabled behind the approved flags, but
+read canaries remain disabled.
+
+The Step 8 resumption audit found that the shadow database only contained
+marker-only planner-write test residue. A backup was created before cleanup, and
+the marker-only runs were removed without touching Sheets, read-model, `.env` or
+PM2. The post-cleanup shadow state is:
+
+- `canonical_ledger_events=0`;
+- `canonical_ledger_public_projection=0`;
+- marker counts in events and public projection: `0`;
+- remote `state_store.json`: `{}`.
+
+Decision: `NO-GO` for enabling `CANONICAL_LEDGER_CANARY_READ_ENABLED=true` until
+there is a real non-marker parity window. The next gate is to observe eligible
+real receipts in shadow and compare Sheets, canonical ledger, read-model and
+dashboard before opening the first read canary for `transactions`.
+
+## Transactions Read Canary Integration - 2026-06-30
+
+Financial Agent `list_recent_transactions` now has a real `transactions` read
+canary integration behind the canonical ledger flags. When the canary domain is
+approved and populated, the tool can read sanitized canonical rows. It falls back
+to the legacy read-model when canonical reads are disabled, fail, return no rows,
+or return no rows matching the requested event type.
+
+This is deployment-safe while production keeps `CANONICAL_LEDGER_CANARY_READ_ENABLED=false`.
+It still does not authorize enabling production read canary before the real
+non-marker parity window described above.

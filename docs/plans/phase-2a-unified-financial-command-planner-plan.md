@@ -245,6 +245,12 @@ After routing parity:
 - then `accounts`;
 - then `transfers`.
 
+Status on 2026-06-30: routing parity is `GO` only for controlled Daniel/Thais
+canary, but canonical read canary is still `NO-GO`. The production shadow DB was
+cleaned of marker-only test residue and now has no non-marker receipts to compare.
+Keep `CANONICAL_LEDGER_CANARY_READ_ENABLED=false` until new real eligible writes
+produce a complete parity window.
+
 ## Stop Rules
 
 Return to `off` or `shadow` immediately for:

@@ -1,5 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
+const os = require('node:os');
+const path = require('node:path');
 
 const {
     ensureSqliteReady,
@@ -30,6 +32,9 @@ const {
     __test__: plannerTest
 } = require('../src/agent/financialAgentPlanner');
 const { __test__: messageHandlerTest } = require('../src/handlers/messageHandler');
+const {
+    CanonicalLedgerShadowStore
+} = require('../src/ledger/canonicalLedgerShadowStore');
 
 test('LangGraph financial agent tolerates small typos in recent transaction concepts', async () => {
     syncAgentSnapshot();
@@ -341,6 +346,201 @@ test('read-model does not reuse a fresh snapshot from another sheet context', ()
     }), false);
 });
 
+test('financial agent recent transactions can read canonical transaction canary rows', async () => {
+    syncAgentSnapshot();
+    const dbPath = path.join(os.tmpdir(), `canonical-agent-canary-${Date.now()}-${Math.random()}.sqlite`);
+    const store = new CanonicalLedgerShadowStore({ dbPath, writesEnabled: true });
+    store.persistProjection({
+        runId: 'agent-canary-run',
+        projected: {
+            events: [{
+                event_id: 'evt_agent_canary_1',
+                owner_person_id: 'agent-daniel',
+                actor_person_id: 'agent-daniel',
+                kind: 'expense',
+                status: 'settled',
+                description: 'gasto canonico',
+                amount_cents: 4321,
+                currency: 'BRL',
+                occurred_on: '2026-06-21',
+                effective_on: '2026-06-21',
+                competence_month: '2026-06',
+                category: 'Alimentação',
+                subcategory: 'SUPERMERCADO',
+                category_status: 'resolved',
+                free_budget_eligible: true,
+                net_income_expense_impact: 4321,
+                source_type: 'sheet.saidas',
+                source_row_ref: 'row-1',
+                source_id_hash: 'source-hash-1',
+                source_row_hash: 'row-hash-1',
+                idempotency_key: 'idem-1',
+                created_at: '2026-06-21T12:00:00.000Z',
+                updated_at: '2026-06-21T12:00:00.000Z'
+            }]
+        },
+        publicProjection: [],
+        report: {
+            report_type: 'canonical_ledger_receipt_shadow',
+            schema_version: 'canonical-ledger-v1',
+            synthetic_fixture_only: false
+        }
+    });
+
+    const latest = await listRecentTransactions({
+        userIds: ['agent-daniel'],
+        personByUserId: { 'agent-daniel': 'Daniel' },
+        eventTypes: ['expense'],
+        limit: 1,
+        env: {
+            NODE_ENV: 'production',
+            CANONICAL_LEDGER_PROJECTION_MODE: 'shadow',
+            CANONICAL_LEDGER_SHADOW_WRITE_ENABLED: 'true',
+            CANONICAL_LEDGER_PRODUCTION_SHADOW_APPROVED: 'true',
+            CANONICAL_LEDGER_CANARY_READ_ENABLED: 'true',
+            CANONICAL_LEDGER_CANARY_READ_APPROVED: 'true',
+            CANONICAL_LEDGER_CANARY_READ_DOMAINS: 'transactions'
+        },
+        canonicalLedgerDbPath: dbPath
+    });
+
+    assert.strictEqual(latest.ok, true);
+    assert.strictEqual(latest.source, 'canonical');
+    assert.strictEqual(latest.rows[0].event_type, 'expense');
+    assert.strictEqual(latest.rows[0].description, 'gasto canonico');
+    assert.strictEqual(latest.rows[0].amount, 43.21);
+    assert.strictEqual(latest.rows[0].person, 'Daniel');
+    assert.doesNotMatch(JSON.stringify(latest), /agent-daniel|owner_person_id|source_row_hash|idempotency_key/i);
+});
+
+test('financial agent recent transactions falls back when canonical canary has no rows', async () => {
+    const synced = syncSnapshotToSqlite({
+        saidas: [
+            { user_id: 'agent-daniel', data: '21/06/2026', descricao: 'legado recente', categoria: 'Outros', subcategoria: '', valor: 9.87, month: 5, year: 2026 }
+        ],
+        cartoes: [],
+        entradas: [],
+        transferencias: [],
+        userSettings: [],
+        cartoesConfig: [],
+        metas: [],
+        movimentacoesMetas: [],
+        dividas: [],
+        contas: []
+    });
+    assert.strictEqual(synced, true);
+
+    const dbPath = path.join(os.tmpdir(), `canonical-agent-empty-${Date.now()}-${Math.random()}.sqlite`);
+    const store = new CanonicalLedgerShadowStore({ dbPath, writesEnabled: true });
+    store.persistProjection({
+        runId: 'agent-empty-run',
+        projected: { events: [] },
+        publicProjection: [],
+        report: {
+            report_type: 'canonical_ledger_receipt_shadow',
+            schema_version: 'canonical-ledger-v1',
+            synthetic_fixture_only: false
+        }
+    });
+
+    const latest = await listRecentTransactions({
+        userIds: ['agent-daniel'],
+        personByUserId: { 'agent-daniel': 'Daniel' },
+        eventTypes: ['expense'],
+        limit: 1,
+        env: {
+            NODE_ENV: 'production',
+            CANONICAL_LEDGER_PROJECTION_MODE: 'shadow',
+            CANONICAL_LEDGER_SHADOW_WRITE_ENABLED: 'true',
+            CANONICAL_LEDGER_PRODUCTION_SHADOW_APPROVED: 'true',
+            CANONICAL_LEDGER_CANARY_READ_ENABLED: 'true',
+            CANONICAL_LEDGER_CANARY_READ_APPROVED: 'true',
+            CANONICAL_LEDGER_CANARY_READ_DOMAINS: 'transactions'
+        },
+        canonicalLedgerDbPath: dbPath
+    });
+
+    assert.strictEqual(latest.ok, true);
+    assert.strictEqual(latest.source, 'legacy');
+    assert.strictEqual(latest.fallbackReason, 'canonical_empty');
+    assert.strictEqual(latest.rows[0].description, 'legado recente');
+});
+test('financial agent recent transactions falls back when canonical canary has no matching event type', async () => {
+    const synced = syncSnapshotToSqlite({
+        saidas: [
+            { user_id: 'agent-daniel', data: '22/06/2026', descricao: 'legado por tipo', categoria: 'Outros', subcategoria: '', valor: 8.76, month: 5, year: 2026 }
+        ],
+        cartoes: [],
+        entradas: [],
+        transferencias: [],
+        userSettings: [],
+        cartoesConfig: [],
+        metas: [],
+        movimentacoesMetas: [],
+        dividas: [],
+        contas: []
+    });
+    assert.strictEqual(synced, true);
+
+    const dbPath = path.join(os.tmpdir(), `canonical-agent-wrong-type-${Date.now()}-${Math.random()}.sqlite`);
+    const store = new CanonicalLedgerShadowStore({ dbPath, writesEnabled: true });
+    store.persistProjection({
+        runId: 'agent-wrong-type-run',
+        projected: {
+            events: [{
+                event_id: 'evt_agent_wrong_type_1',
+                owner_person_id: 'agent-daniel',
+                actor_person_id: 'agent-daniel',
+                kind: 'invoice_payment',
+                status: 'settled',
+                description: 'pagamento fatura canonico',
+                amount_cents: 1234,
+                currency: 'BRL',
+                occurred_on: '2026-06-22',
+                effective_on: '2026-06-22',
+                competence_month: '2026-06',
+                category_status: 'resolved',
+                free_budget_eligible: false,
+                net_income_expense_impact: 0,
+                source_type: 'sheet.transferencias',
+                source_row_ref: 'row-transfer-1',
+                source_id_hash: 'source-hash-transfer-1',
+                source_row_hash: 'row-hash-transfer-1',
+                idempotency_key: 'idem-transfer-1',
+                created_at: '2026-06-22T12:00:00.000Z',
+                updated_at: '2026-06-22T12:00:00.000Z'
+            }]
+        },
+        publicProjection: [],
+        report: {
+            report_type: 'canonical_ledger_receipt_shadow',
+            schema_version: 'canonical-ledger-v1',
+            synthetic_fixture_only: false
+        }
+    });
+
+    const latest = await listRecentTransactions({
+        userIds: ['agent-daniel'],
+        personByUserId: { 'agent-daniel': 'Daniel' },
+        eventTypes: ['expense'],
+        limit: 1,
+        env: {
+            NODE_ENV: 'production',
+            CANONICAL_LEDGER_PROJECTION_MODE: 'shadow',
+            CANONICAL_LEDGER_SHADOW_WRITE_ENABLED: 'true',
+            CANONICAL_LEDGER_PRODUCTION_SHADOW_APPROVED: 'true',
+            CANONICAL_LEDGER_CANARY_READ_ENABLED: 'true',
+            CANONICAL_LEDGER_CANARY_READ_APPROVED: 'true',
+            CANONICAL_LEDGER_CANARY_READ_DOMAINS: 'transactions'
+        },
+        canonicalLedgerDbPath: dbPath
+    });
+
+    assert.strictEqual(latest.ok, true);
+    assert.strictEqual(latest.source, 'legacy');
+    assert.strictEqual(latest.fallbackReason, 'canonical_no_matching_rows');
+    assert.strictEqual(latest.rows[0].description, 'legado por tipo');
+});
 test('financial agent latest all transactions uses public read-model insertion order as same-day tie-breaker', async () => {
     assert.strictEqual(ensureSqliteReady(), true);
     const synced = syncSnapshotToSqlite({

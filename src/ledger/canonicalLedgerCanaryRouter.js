@@ -13,6 +13,13 @@ async function readCanonicalLedgerCanaryWithFallback({
     try {
         const canonical = readCanonicalLedgerCanaryDomain(input);
         if (canonical.enabled) {
+            if (!Array.isArray(canonical.rows) || canonical.rows.length === 0) {
+                return {
+                    source: 'legacy',
+                    rows: await legacyReader(),
+                    fallbackReason: 'canonical_empty'
+                };
+            }
             return {
                 source: 'canonical',
                 rows: canonical.rows,

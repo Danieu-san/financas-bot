@@ -7,6 +7,9 @@ const { normalizeFinancialQueryPlan } = require('../query/financialQueryPlan');
 const { executeFinancialQuery } = require('../query/financialQueryEngine');
 const { buildDashboardCriteria } = require('../services/dashboardSummaryService');
 const { runSafeReadonlySql } = require('./safeReadonlySql');
+const {
+    readCanonicalLedgerCanaryWithFallback
+} = require('../ledger/canonicalLedgerCanaryRouter');
 
 const DEFAULT_EVENT_TYPES = [
     'expense',
@@ -44,20 +47,94 @@ function compareRecent(a, b) {
     return Number(b.insertion_order || 0) - Number(a.insertion_order || 0);
 }
 
+function canonicalKindToPublicEventType(kind = '') {
+    const normalized = String(kind || '').trim();
+    const aliases = {
+        bill_payment: 'bill',
+        bill_expected: 'bill',
+        debt_opening: 'debt',
+        debt_payment: 'debt',
+        goal_opening: 'goal',
+        goal_contribution: 'goal',
+        goal_withdrawal: 'goal',
+        invoice_payment: 'transfer',
+        transfer: 'transfer',
+        income: 'income',
+        expense: 'expense'
+    };
+    return aliases[normalized] || normalized;
+}
+
+function canonicalDateToDisplay(date = '') {
+    const match = String(date || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return match ? `${match[3]}/${match[2]}/${match[1]}` : String(date || '');
+}
+
+function normalizeCanonicalRecentRow(row = {}, index = 0) {
+    const isoDate = String(row.date || row.effective_on || '').trim();
+    return {
+        date: canonicalDateToDisplay(isoDate),
+        iso_date: isoDate,
+        event_type: canonicalKindToPublicEventType(row.kind),
+        amount: Number(row.amount_cents || 0) / 100,
+        description: String(row.description || ''),
+        category: String(row.category || ''),
+        subcategory: String(row.subcategory || ''),
+        person: String(row.responsible || 'Usuario'),
+        payment_method: '',
+        card: '',
+        billing_month: String(row.competence_month || ''),
+        due_date: String(row.due_on || ''),
+        source: String(row.source || 'canonical'),
+        insertion_order: index + 1
+    };
+}
+
+function filterRecentRows(rows = [], allowedTypes = new Set(), limit = 5) {
+    return rows
+        .filter(row => allowedTypes.has(row.event_type))
+        .sort(compareRecent)
+        .slice(0, Math.max(1, Math.min(20, Number.parseInt(limit, 10) || 5)));
+}
+
 async function listRecentTransactions({
     userIds = [],
     personByUserId = {},
     eventTypes = DEFAULT_EVENT_TYPES,
-    limit = 5
+    limit = 5,
+    env = process.env,
+    canonicalLedgerDbPath
 } = {}) {
     const allowedTypes = new Set((eventTypes || DEFAULT_EVENT_TYPES).map(String));
-    const rows = getScopedPublicRows({ userIds, personByUserId })
-        .filter(row => allowedTypes.has(row.event_type))
-        .sort(compareRecent)
-        .slice(0, Math.max(1, Math.min(20, Number.parseInt(limit, 10) || 5)));
+    const legacyReader = () => filterRecentRows(
+        getScopedPublicRows({ userIds, personByUserId }),
+        allowedTypes,
+        limit
+    );
+    const canary = await readCanonicalLedgerCanaryWithFallback({
+        env,
+        dbPath: canonicalLedgerDbPath,
+        domain: 'transactions',
+        ownerPersonIds: userIds,
+        personByUserId,
+        legacyReader
+    });
+    const sourceRows = canary.source === 'canonical'
+        ? canary.rows.map(normalizeCanonicalRecentRow)
+        : canary.rows;
+    let rows = filterRecentRows(sourceRows, allowedTypes, limit);
+    let source = canary.source;
+    let fallbackReason = canary.fallbackReason;
+    if (canary.source === 'canonical' && rows.length === 0) {
+        rows = legacyReader();
+        source = 'legacy';
+        fallbackReason = 'canonical_no_matching_rows';
+    }
     return {
         ok: true,
         tool: 'list_recent_transactions',
+        source,
+        fallbackReason,
         rows,
         metrics: rows.length === 1 ? { amount: rows[0].amount } : {},
         criteria: {
