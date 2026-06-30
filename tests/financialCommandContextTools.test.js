@@ -210,6 +210,28 @@ test('matchCardInvoice builds scoped invoice candidates from card launches', () 
     assert.ok(!serialized.includes('rawRows'));
 });
 
+test('matchCardInvoice does not let amount override an explicit different card owner', () => {
+    const mixedOwnerRows = [
+        cardLaunchRows[0],
+        ['01/06/2026', 'Compra Daniel', 'Casa', '250,00', '1/1', 'Junho de 2026', 'nubank-daniel', 'Cartão Nubank - Daniel', '', 'daniel-user'],
+        ['02/06/2026', 'Compra Thais', 'Casa', '400,00', '1/1', 'Junho de 2026', 'nubank-thais', 'Cartão Nubank - Thais', '', 'daniel-user']
+    ];
+
+    const result = matchCardInvoice({
+        request: {
+            query: 'Paguei 400 da fatura do Nubank Daniel no crédito',
+            amount: 400
+        },
+        cardLaunchRows: mixedOwnerRows,
+        trustedScope: {
+            userIds: ['daniel-user']
+        }
+    });
+
+    assert.strictEqual(result.ok, true);
+    assert.strictEqual(result.classification, 'no_match');
+    assert.deepStrictEqual(result.candidates, []);
+});
 test('matchCardInvoice does not leak another user invoice with the same card brand', () => {
     const result = matchCardInvoice({
         request: {

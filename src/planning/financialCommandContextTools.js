@@ -267,6 +267,12 @@ function invoiceMatchScore(invoice = {}, request = {}) {
     return score;
 }
 
+function invoiceMatchesRequestTerms(invoice = {}, request = {}) {
+    const terms = significantTerms(request.query);
+    if (terms.length === 0) return true;
+    const invoiceText = normalizeText(`${invoice.card || ''} ${invoice.cardId || ''} ${invoice.billingMonth || ''}`);
+    return terms.every(term => invoiceText.includes(term));
+}
 function publicInvoiceCandidate(invoice = {}, request = {}) {
     return {
         label: sanitizeLabel(`${invoice.card || 'Cartão'} - ${invoice.billingMonth || 'Fatura'}`, 'Fatura'),
@@ -301,6 +307,7 @@ function matchCardInvoice({
     const safeLimit = Math.max(1, Math.min(Number.parseInt(limit, 10) || DEFAULT_CANDIDATE_LIMIT, 5));
     const candidates = cardLaunchRowsToInvoices(cardLaunchRows, trustedUserIds)
         .map(invoice => ({ invoice, score: invoiceMatchScore(invoice, normalizedRequest) }))
+        .filter(item => invoiceMatchesRequestTerms(item.invoice, normalizedRequest))
         .filter(item => item.score >= minScore)
         .filter(item => normalizedRequest.amount <= 0 || valuesAreCompatible(item.invoice.invoiceAmount, normalizedRequest.amount))
         .sort((left, right) => right.score - left.score || normalizeText(left.invoice.card || '').localeCompare(normalizeText(right.invoice.card || '')))
