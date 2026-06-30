@@ -13,6 +13,10 @@ async function triggerReadyRescue(client, options = {}) {
         return { skipped: true, reason: 'page_unavailable' };
     }
 
+    if (typeof client.attachEventListeners === 'function') {
+        await client.attachEventListeners();
+    }
+
     const result = await page.evaluate(() => {
         const status = {
             href: typeof location !== 'undefined' ? location.href : '',

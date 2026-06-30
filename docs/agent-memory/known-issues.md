@@ -100,6 +100,7 @@ Mitigacoes usadas:
 - Limpar cache `.wwebjs_cache` pode ajudar, mas nao deve ser primeira acao destrutiva.
 - Producao passou a usar `WWEB_CACHE_TYPE=local` com `WWEB_VERSION=2.3000.1017054665` apos incidente de 2026-06-29 em que `none/live` travou no 100%.
 - O startup agora reprocessa mensagens nao lidas apos `ready`, via backfill deduplicado, para cobrir mensagens que chegaram antes dos listeners de `Msg.on('add')` ficarem plenamente ativos.
+- Armadilha corrigida em 2026-06-30: se o ready rescue chamar apenas `onAppStateHasSyncedEvent()` quando `window.WWebJS` ja existe, o WhatsApp pode emitir `ready` sem anexar novamente os listeners de mensagem. Sintoma: PM2/health/WhatsApp prontos, mensagens ficam nao lidas na pagina e nao aparece `[message] received` no log. O rescue agora chama `client.attachEventListeners()` antes de forcar o `ready`.
 
 ## `.env` de producao e sensivel
 
