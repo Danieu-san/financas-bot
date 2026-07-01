@@ -212,6 +212,20 @@ async function planTurn(state) {
         };
     }
 
+    const recentTransactionRequest = hasApproximateConcept(normalized, ['ultimo', 'ultima']) && (
+        hasApproximateConcept(normalized, ['gasto', 'compra', 'saida', 'despesa']) ||
+        hasApproximateConcept(normalized, ['entrada', 'recebimento', 'renda', 'salario']) ||
+        hasApproximateConcept(normalized, ['lancamento', 'movimento', 'transacao'])
+    );
+    if (recentTransactionRequest) {
+        const llmPlan = await planWithGemini({
+            message,
+            referenceDate: parseSheetDate(state.currentDate) || new Date()
+        });
+        if (llmPlan) {
+            return { plan: llmPlan, action: llmPlan.action };
+        }
+    }
     if (hasApproximateConcept(normalized, ['ultimo', 'ultima'])) {
         if (hasApproximateConcept(normalized, ['gasto', 'compra', 'saida', 'despesa'])) {
             return {
@@ -665,6 +679,21 @@ function composeDeterministicAnswer(state) {
         const item = result.rows?.[0];
         if (!item) {
             return { answer: 'Não encontrei lançamentos nesse escopo.', action: 'answer' };
+        }
+        const rows = Array.isArray(result.rows) ? result.rows : [];
+        if (rows.length > 1) {
+            const allCardExpenses = rows.every(row => row.event_type === 'card_expense');
+            const title = allCardExpenses
+                ? `Últimos ${rows.length} gastos no cartão:`
+                : `Últimos ${rows.length} lançamentos:`;
+            const lines = rows.map((row, index) => {
+                const card = row.card ? ` · ${row.card}` : '';
+                return `${index + 1}. ${row.date}: ${row.description || 'sem descrição'} · ${moneyBR(row.amount)} · ${row.person}${card}`;
+            });
+            return {
+                answer: `${title}\n${lines.join('\n')}`,
+                action: 'answer'
+            };
         }
         const normalizedMessage = normalizeText(state.message || '');
         if (/\b(data|dia)\b/.test(normalizedMessage)) {

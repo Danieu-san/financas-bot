@@ -283,3 +283,10 @@ Validar:
 - Reutilize exatamente o mesmo `BILL_PAY_E2E_RUN_ID` no seed remoto, conversa e cleanup remoto.
 - Aguarde cada nova resposta por fingerprint de mensagem recebida; contagem de texto histórico não prova resposta nova.
 - O cleanup final deve ser idempotente e verificar zero em Sheets, canonical ledger shadow, `financial_events_public` e estado conversacional.
+### Consultas plurais de lancamentos recentes
+
+- Caso minimo: `Quais foram os ultimos 4 gastos no cartao Nubank - Thais?`.
+- Com o planner ativo, confirme `source=llm_planner`, `eventTypes=[card_expense]`, `limit=4` e `card` preservado.
+- A ferramenta deve retornar somente o cartao solicitado, em ordem de data e insercao decrescente, limitada a 20 itens.
+- A resposta deve listar todas as linhas retornadas; uma resposta contendo apenas o primeiro item deve falhar com `missing_recent_item`.
+- No smoke real, compare os itens com `Lancamentos Cartao` e confirme ausencia de itens de outros cartoes.

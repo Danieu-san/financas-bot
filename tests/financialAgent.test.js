@@ -840,14 +840,15 @@ test('result verifier rejects unsupported row-count claims', () => {
 });
 
 test('result verifier requires latest answers to reference the first correctly ordered row', () => {
+    const recentRows = [
+        { description: 'restaurante', amount: 75, date: '05/06/2026', iso_date: '2026-06-05', person: 'Thais' },
+        { description: 'mercado', amount: 30, date: '01/06/2026', iso_date: '2026-06-01', person: 'Daniel' }
+    ];
     const toolResult = {
         ok: true,
         tool: 'list_recent_transactions',
-        rows: [
-            { description: 'restaurante', amount: 75, date: '05/06/2026', iso_date: '2026-06-05', person: 'Thais' },
-            { description: 'mercado', amount: 30, date: '01/06/2026', iso_date: '2026-06-01', person: 'Daniel' }
-        ],
-        criteria: { sort: 'iso_date desc', limit: 2 }
+        rows: recentRows.slice(0, 1),
+        criteria: { sort: 'iso_date desc', limit: 1 }
     };
 
     assert.strictEqual(
@@ -859,12 +860,29 @@ test('result verifier requires latest answers to reference the first correctly o
         'wrong_latest_item'
     );
 
-    const incorrectlyOrdered = { ...toolResult, rows: [...toolResult.rows].reverse() };
+    const incorrectlyOrdered = { ...toolResult, rows: [...recentRows].reverse(), criteria: { sort: 'iso_date desc', limit: 2 } };
     assert.strictEqual(
         verifyAgentAnswer('Seu último gasto foi em 01/06/2026: mercado, R$ 30,00 (Daniel).', { toolResult: incorrectlyOrdered }).reason,
         'invalid_tool_order'
     );
 });
+test('result verifier rejects recent-transaction lists that omit requested rows', () => {
+    const toolResult = {
+        ok: true,
+        tool: 'list_recent_transactions',
+        rows: [
+            { description: 'hortifruti', amount: 50.44, date: '01/07/2026', iso_date: '2026-07-01', person: 'Daniel', insertion_order: 2 },
+            { description: 'guaracamp', amount: 4, date: '30/06/2026', iso_date: '2026-06-30', person: 'Daniel', insertion_order: 1 }
+        ],
+        criteria: { sort: 'iso_date desc, insertion_order desc', limit: 2 }
+    };
+
+    assert.strictEqual(
+        verifyAgentAnswer('Seu último gasto foi hortifruti em 01/07/2026.', { toolResult }).reason,
+        'missing_recent_item'
+    );
+});
+
 
 test('result verifier preserves the ordered labels returned for trends', () => {
     const toolResult = {
@@ -912,6 +930,63 @@ test('LangGraph financial agent answers read-only latest expense with verified r
     assert.match(result.answer, /05\/06\/2026/);
     assert.doesNotMatch(result.answer, /agent-daniel|user_id|sheet/i);
 });
+test('LangGraph financial agent lets Gemini preserve count and card in plural recent queries', async () => {
+    assert.strictEqual(ensureSqliteReady(), true);
+    assert.strictEqual(syncSnapshotToSqlite({
+        saidas: [],
+        cartoes: [
+            { user_id: 'agent-daniel', source: 'Lançamentos Cartão', card_id: 'nubank-thais', cartao: 'Cartão Nubank - Thais', data: '01/07/2026', descricao: 'hortifruti', categoria: 'Alimentação', subcategoria: 'SUPERMERCADO', valor: 50.44, parcela: '1/1', month: 6, year: 2026 },
+            { user_id: 'agent-daniel', source: 'Lançamentos Cartão', card_id: 'nubank-thais', cartao: 'Cartão Nubank - Thais', data: '30/06/2026', descricao: 'abastecendo o carro', categoria: 'Transporte', subcategoria: 'COMBUSTÍVEL', valor: 59.59, parcela: '1/1', month: 5, year: 2026 },
+            { user_id: 'agent-daniel', source: 'Lançamentos Cartão', card_id: 'nubank-thais', cartao: 'Cartão Nubank - Thais', data: '30/06/2026', descricao: 'sorvete no Burger King', categoria: 'Alimentação', subcategoria: 'PADARIA / LANCHE', valor: 15.8, parcela: '1/1', month: 5, year: 2026 },
+            { user_id: 'agent-daniel', source: 'Lançamentos Cartão', card_id: 'nubank-thais', cartao: 'Cartão Nubank - Thais', data: '30/06/2026', descricao: 'guaracamp', categoria: 'Alimentação', subcategoria: 'PADARIA / LANCHE', valor: 4, parcela: '1/1', month: 5, year: 2026 },
+            { user_id: 'agent-daniel', source: 'Lançamentos Cartão', card_id: 'nubank-daniel', cartao: 'Cartão Nubank - Daniel', data: '02/07/2026', descricao: 'compra de outro cartão', categoria: 'Outros', subcategoria: '', valor: 999, parcela: '1/1', month: 6, year: 2026 }
+        ],
+        entradas: [], transferencias: [], userSettings: [], cartoesConfig: [], metas: [], movimentacoesMetas: [], dividas: [], contas: []
+    }), true);
+
+    const originalPlannerFlag = process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED;
+    const originalAnalystMode = process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE;
+    process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED = 'true';
+    process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE = 'off';
+    plannerTest.setStructuredResponseOverrideForTest(() => ({
+        action: 'tool',
+        tool: 'list_recent_transactions',
+        args: {
+            eventTypes: ['card_expense'],
+            limit: 4,
+            card: 'Nubank - Thais'
+        }
+    }));
+
+    try {
+        const result = await invokeFinancialAgent({
+            message: 'Quais foram os últimos 4 gastos no cartão Nubank - Thais?',
+            userIds: ['agent-daniel'],
+            personByUserId: { 'agent-daniel': 'Daniel' },
+            currentDate: '01/07/2026',
+            mode: 'answer'
+        });
+
+        assert.strictEqual(result.action, 'answer', JSON.stringify(result));
+        assert.strictEqual(result.plan.source, 'llm_planner');
+        assert.strictEqual(result.plan.args.limit, 4);
+        assert.strictEqual(result.plan.args.card, 'Nubank - Thais');
+        assert.strictEqual(result.toolResult.rows.length, 4);
+        assert.ok(result.toolResult.rows.every(row => /nubank - thais/i.test(row.card)));
+        for (const description of ['hortifruti', 'abastecendo o carro', 'sorvete no Burger King', 'guaracamp']) {
+            assert.match(result.answer, new RegExp(description, 'i'));
+        }
+        assert.doesNotMatch(result.answer, /compra de outro cartão/i);
+        assert.strictEqual(result.verified.ok, true);
+    } finally {
+        plannerTest.setStructuredResponseOverrideForTest(null);
+        if (originalPlannerFlag === undefined) delete process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED;
+        else process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED = originalPlannerFlag;
+        if (originalAnalystMode === undefined) delete process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE;
+        else process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE = originalAnalystMode;
+    }
+});
+
 
 test('LangGraph financial agent uses grammatical labels for latest income and transfer answers', async () => {
     syncAgentSnapshot();
@@ -1155,6 +1230,8 @@ test('Gemini planner is disabled by default and can only produce safe tool plans
     assert.match(prompt, /Indice de mes para FinancialQueryPlan: 5/);
     assert.match(prompt, /junho=5/);
     assert.match(prompt, /este mes|do mes/i);
+    assert.match(prompt, /preserve.*quantidade|quantidade.*solicitada/i);
+    assert.match(prompt, /cart[aã]o.*card/i);
     assert.doesNotMatch(prompt, /user_id.*permitido/i);
 
     const safePlan = normalizePlannerPlan({

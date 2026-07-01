@@ -4,6 +4,7 @@ const {
     queryFinancialQueryDataSourcesSql
 } = require('../services/sqliteReadModelService');
 const { normalizeFinancialQueryPlan } = require('../query/financialQueryPlan');
+const { normalizeText } = require('../utils/helpers');
 const { executeFinancialQuery } = require('../query/financialQueryEngine');
 const { buildDashboardCriteria } = require('../services/dashboardSummaryService');
 const { runSafeReadonlySql } = require('./safeReadonlySql');
@@ -100,18 +101,30 @@ function filterRecentRows(rows = [], allowedTypes = new Set(), limit = 5) {
         .sort(compareRecent)
         .slice(0, normalizeRecentLimit(limit));
 }
+function matchesRecentCard(row = {}, card = '') {
+    const normalizeCard = value => normalizeText(String(value || '').slice(0, 120))
+        .replace(/\bcartao\b/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    const requested = normalizeCard(card);
+    if (!requested) return true;
+    const actual = normalizeCard(row.card);
+    return actual.includes(requested) || requested.split(' ').every(token => actual.includes(token));
+}
 
 async function listRecentTransactions({
     userIds = [],
     personByUserId = {},
     eventTypes = DEFAULT_EVENT_TYPES,
     limit = 5,
+    card = '',
     env = process.env,
     canonicalLedgerDbPath
 } = {}) {
     const allowedTypes = new Set((eventTypes || DEFAULT_EVENT_TYPES).map(String));
     const legacyReader = () => filterRecentRows(
-        getScopedPublicRows({ userIds, personByUserId }),
+        getScopedPublicRows({ userIds, personByUserId })
+            .filter(row => matchesRecentCard(row, card)),
         allowedTypes,
         limit
     );
@@ -127,7 +140,7 @@ async function listRecentTransactions({
         ? canary.rows.map(normalizeCanonicalRecentRow)
         : canary.rows;
     const requestedLimit = normalizeRecentLimit(limit);
-    let rows = filterRecentRows(sourceRows, allowedTypes, requestedLimit);
+    let rows = filterRecentRows(sourceRows.filter(row => matchesRecentCard(row, card)), allowedTypes, requestedLimit);
     let source = canary.source;
     let fallbackReason = canary.fallbackReason;
     if (canary.source === 'canonical' && rows.length === 0) {
@@ -152,7 +165,8 @@ async function listRecentTransactions({
         criteria: {
             sort: 'iso_date desc, insertion_order desc',
             limit: rows.length,
-            eventTypes: Array.from(allowedTypes)
+            eventTypes: Array.from(allowedTypes),
+            card: String(card || '').trim()
         }
     };
 }

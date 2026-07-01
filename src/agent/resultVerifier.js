@@ -192,6 +192,18 @@ function validateLatestContract(answer, toolResult = {}) {
             return { ok: false, reason: 'invalid_tool_order' };
         }
     }
+    if (rows.length > 1) {
+        const normalizedListAnswer = normalizeText(String(answer || ''));
+        let cursor = -1;
+        for (const row of rows) {
+            const description = normalizeText(String(row.description || '').trim());
+            if (!description) continue;
+            const index = normalizedListAnswer.indexOf(description, cursor + 1);
+            if (index < 0) return { ok: false, reason: 'missing_recent_item' };
+            if (index < cursor) return { ok: false, reason: 'wrong_recent_order' };
+            cursor = index;
+        }
+    }
     const first = rows[0];
     if (!first) return { ok: true };
     const normalizedAnswer = normalizeText(String(answer || ''));

@@ -46,7 +46,7 @@ function buildPlannerPrompt(message = '', { referenceDate = new Date() } = {}) {
         '',
         'Ferramentas permitidas:',
         '- query_financial_plan: para perguntas sobre domínios já conhecidos. Args: plan.',
-        '- list_recent_transactions: para ultimo/ultimos lancamentos. Args: eventTypes, limit.',
+        '- list_recent_transactions: para ultimo/ultimos lancamentos. Args: eventTypes, limit, card opcional.',
         '- run_safe_readonly_sql: para consultas read-only flexiveis.',
         '- get_dashboard_snapshot: para resumo deterministico do dashboard. Args: month, year.',
         '- explain_metric: explica saldo, disponivel, categorias, orcamento ou lancamentos recentes. Args: metric, month, year.',
@@ -63,12 +63,13 @@ function buildPlannerPrompt(message = '', { referenceDate = new Date() } = {}) {
         '- Interprete hoje, ontem, esta semana, este mes e do mes usando a data de referencia.',
         '- Em FinancialQueryPlan, period.month e zero-based: janeiro=0, fevereiro=1, ..., junho=5, dezembro=11.',
         '- Se a pergunta disser lancamento, movimento ou transacao sem restringir tipo, use todos os event_type publicos relevantes.',
+        '- Preserve a quantidade solicitada em limit e, quando o usuario nomear um cartao, preserve esse nome em card.',
         '- Se faltar periodo/criterio essencial, retorne clarify.',
         '',
         'Formato:',
         '{"action":"tool","tool":"query_financial_plan","args":{"plan":{"kind":"financial_query","domain":"bills","operation":"list","filters":{"period":{"type":"month","month":5,"year":2026},"status":"pending"},"sort":{"by":"due_date","direction":"asc"},"timeBasis":"due_date"}}}',
         '{"action":"tool","tool":"run_safe_readonly_sql","args":{"sql":"SELECT ... LIMIT 20"}}',
-        '{"action":"tool","tool":"list_recent_transactions","args":{"eventTypes":["expense"],"limit":1}}',
+        '{"action":"tool","tool":"list_recent_transactions","args":{"eventTypes":["card_expense"],"limit":4,"card":"Nubank - Thais"}}',
         '{"action":"tool","tool":"get_dashboard_snapshot","args":{"month":5,"year":2026}}',
         '{"action":"tool","tool":"explain_metric","args":{"metric":"available","month":5,"year":2026}}',
         '{"action":"clarify","question":"..."}',
@@ -111,7 +112,8 @@ function normalizePlannerPlan(rawPlan = {}) {
             tool,
             args: {
                 eventTypes: normalizeEventTypes(args.eventTypes),
-                limit: Math.max(1, Math.min(20, Number.parseInt(args.limit, 10) || 5))
+                limit: Math.max(1, Math.min(20, Number.parseInt(args.limit, 10) || 5)),
+                card: String(args.card || '').trim().slice(0, 120) || undefined,
             },
             source: 'llm_planner'
         };
