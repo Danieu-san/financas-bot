@@ -202,6 +202,16 @@ function expensePlanFromSemanticOverride(state, normalized = '') {
     return null;
 }
 
+async function planWithGeminiForState(state, message) {
+    return await planWithGemini({
+        message,
+        referenceDate: parseSheetDate(state.currentDate) || new Date()
+    });
+}
+
+function shouldUseLlmPlanOverLegacy(llmPlan) {
+    return Boolean(llmPlan && (llmPlan.action === 'tool' || llmPlan.action === 'block'));
+}
 async function planTurn(state) {
     const message = String(state.message || '');
     const normalized = normalizeText(message);
@@ -218,10 +228,7 @@ async function planTurn(state) {
         hasApproximateConcept(normalized, ['lancamento', 'movimento', 'transacao'])
     );
     if (recentTransactionRequest) {
-        const llmPlan = await planWithGemini({
-            message,
-            referenceDate: parseSheetDate(state.currentDate) || new Date()
-        });
+        const llmPlan = await planWithGeminiForState(state, message);
         if (llmPlan) {
             return { plan: llmPlan, action: llmPlan.action };
         }
@@ -271,6 +278,11 @@ async function planTurn(state) {
     }
 
     if (state.financialQueryPlan) {
+        const llmPlan = await planWithGeminiForState(state, message);
+        if (shouldUseLlmPlanOverLegacy(llmPlan)) {
+            return { plan: llmPlan, action: llmPlan.action };
+        }
+
         const semanticOverride = expensePlanFromSemanticOverride(state, normalized);
         if (semanticOverride) {
             return {
@@ -353,10 +365,7 @@ async function planTurn(state) {
         };
     }
 
-    const llmPlan = await planWithGemini({
-        message,
-        referenceDate: parseSheetDate(state.currentDate) || new Date()
-    });
+    const llmPlan = await planWithGeminiForState(state, message);
     if (llmPlan) {
         return { plan: llmPlan, action: llmPlan.action };
     }

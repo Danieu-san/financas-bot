@@ -988,6 +988,77 @@ test('LangGraph financial agent lets Gemini preserve count and card in plural re
 });
 
 
+test('LangGraph financial agent lets Gemini override stale legacy card totals for explicit purchase-date ranges', async () => {
+    assert.strictEqual(ensureSqliteReady(), true);
+    assert.strictEqual(syncSnapshotToSqlite({
+        saidas: [],
+        cartoes: [
+            { user_id: 'agent-daniel', source: 'Lançamentos Cartão', card_id: 'nubank-thais', cartao: 'Cartão Nubank - Thais', data: '01/07/2026', descricao: 'hortifruti', categoria: 'Alimentação', subcategoria: 'SUPERMERCADO', valor: 50.44, parcela: '1/1', month: 6, year: 2026 },
+            { user_id: 'agent-daniel', source: 'Lançamentos Cartão', card_id: 'nubank-thais', cartao: 'Cartão Nubank - Thais', data: '01/07/2026', descricao: 'almoço no dia 28 de junho', categoria: 'Alimentação', subcategoria: 'RESTAURANTE', valor: 90.97, parcela: '1/1', month: 6, year: 2026 },
+            { user_id: 'agent-daniel', source: 'Lançamentos Cartão', card_id: 'nubank-thais', cartao: 'Cartão Nubank - Thais', data: '30/06/2026', descricao: 'abastecendo o carro', categoria: 'Transporte', subcategoria: 'COMBUSTÍVEL', valor: 59.59, parcela: '1/1', month: 5, year: 2026 },
+            { user_id: 'agent-daniel', source: 'Lançamentos Cartão', card_id: 'nubank-thais', cartao: 'Cartão Nubank - Thais', data: '30/06/2026', descricao: 'sorvete no Burger King', categoria: 'Alimentação', subcategoria: 'PADARIA / LANCHE', valor: 15.8, parcela: '1/1', month: 5, year: 2026 },
+            { user_id: 'agent-daniel', source: 'Lançamentos Cartão', card_id: 'nubank-daniel', cartao: 'Cartão Nubank - Daniel', data: '01/07/2026', descricao: 'outro cartão', categoria: 'Outros', subcategoria: '', valor: 999, parcela: '1/1', month: 6, year: 2026 },
+            { user_id: 'agent-daniel', source: 'Lançamentos Cartão', card_id: 'nubank-thais', cartao: 'Cartão Nubank - Thais', data: '29/06/2026', descricao: 'fora do período', categoria: 'Outros', subcategoria: '', valor: 777, parcela: '1/1', month: 5, year: 2026 }
+        ],
+        entradas: [], transferencias: [], userSettings: [], cartoesConfig: [], metas: [], movimentacoesMetas: [], dividas: [], contas: []
+    }), true);
+
+    const originalPlannerFlag = process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED;
+    const originalAnalystMode = process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE;
+    process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED = 'true';
+    process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE = 'off';
+    plannerTest.setStructuredResponseOverrideForTest(() => ({
+        action: 'tool',
+        tool: 'query_financial_plan',
+        args: {
+            plan: {
+                kind: 'financial_query',
+                domain: 'cards',
+                operation: 'sum',
+                filters: {
+                    period: { type: 'date_range', from: '2026-06-30', to: '2026-07-01' },
+                    card: 'Nubank - Thais'
+                },
+                timeBasis: 'transaction_date',
+                answerStyle: 'short'
+            }
+        }
+    }));
+
+    try {
+        const result = await invokeFinancialAgent({
+            message: 'Quanto gastei no cartão Nubank - Thais entre 30 de junho e 1 de julho de 2026?',
+            userIds: ['agent-daniel'],
+            personByUserId: { 'agent-daniel': 'Daniel' },
+            currentDate: '01/07/2026',
+            financialQueryPlan: {
+                kind: 'financial_query',
+                domain: 'cards',
+                operation: 'sum',
+                filters: { period: { type: 'month', month: 5, year: 2026 }, card: 'nubank', scope: 'personal' },
+                timeBasis: 'billing_month'
+            },
+            mode: 'answer'
+        });
+
+        assert.strictEqual(result.action, 'answer', JSON.stringify(result));
+        assert.strictEqual(result.plan.source, 'llm_planner');
+        assert.strictEqual(result.toolResult.plan.timeBasis, 'transaction_date');
+        assert.deepStrictEqual(result.toolResult.plan.filters.period, { type: 'date_range', from: '2026-06-30', to: '2026-07-01' });
+        assert.strictEqual(result.toolResult.plan.filters.card, 'Nubank - Thais');
+        assert.strictEqual(result.toolResult.result.value, 216.8);
+        assert.strictEqual(result.toolResult.result.details.count, 4);
+        assert.match(result.answer, /R\$\s*216,80/i);
+        assert.strictEqual(result.verified.ok, true);
+    } finally {
+        plannerTest.setStructuredResponseOverrideForTest(null);
+        if (originalPlannerFlag === undefined) delete process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED;
+        else process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED = originalPlannerFlag;
+        if (originalAnalystMode === undefined) delete process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE;
+        else process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE = originalAnalystMode;
+    }
+});
+
 test('LangGraph financial agent uses grammatical labels for latest income and transfer answers', async () => {
     syncAgentSnapshot();
 
@@ -1232,6 +1303,9 @@ test('Gemini planner is disabled by default and can only produce safe tool plans
     assert.match(prompt, /este mes|do mes/i);
     assert.match(prompt, /preserve.*quantidade|quantidade.*solicitada/i);
     assert.match(prompt, /cart[aã]o.*card/i);
+    assert.match(prompt, /gastei.*transaction_date|transaction_date.*gastei/i);
+    assert.match(prompt, /fatura.*billing_month|billing_month.*fatura/i);
+    assert.match(prompt, /operation.*sum|sum.*quanto/i);
     assert.doesNotMatch(prompt, /user_id.*permitido/i);
 
     const safePlan = normalizePlannerPlan({
@@ -1273,6 +1347,27 @@ test('Gemini planner is disabled by default and can only produce safe tool plans
     assert.strictEqual(queryPlan.tool, 'query_financial_plan');
     assert.strictEqual(queryPlan.args.plan.domain, 'bills');
 
+    const cardFilteredExpensePlan = normalizePlannerPlan({
+        action: 'tool',
+        tool: 'query_financial_plan',
+        args: {
+            plan: {
+                kind: 'financial_query',
+                domain: 'expenses',
+                operation: 'summary',
+                filters: {
+                    period: { type: 'date_range', from: '2026-06-30', to: '2026-07-01' },
+                    card: 'Nubank - Thais'
+                },
+                timeBasis: 'transaction_date'
+            }
+        }
+    });
+    assert.strictEqual(cardFilteredExpensePlan.action, 'tool');
+    assert.strictEqual(cardFilteredExpensePlan.args.plan.domain, 'cards');
+    assert.strictEqual(cardFilteredExpensePlan.args.plan.operation, 'sum');
+    assert.strictEqual(cardFilteredExpensePlan.args.plan.filters.card, 'Nubank - Thais');
+    assert.strictEqual(cardFilteredExpensePlan.args.plan.timeBasis, 'transaction_date');
     const unsafeQueryPlan = normalizePlannerPlan({
         action: 'tool',
         tool: 'query_financial_plan',

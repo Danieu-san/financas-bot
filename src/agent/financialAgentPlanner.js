@@ -64,6 +64,8 @@ function buildPlannerPrompt(message = '', { referenceDate = new Date() } = {}) {
         '- Em FinancialQueryPlan, period.month e zero-based: janeiro=0, fevereiro=1, ..., junho=5, dezembro=11.',
         '- Se a pergunta disser lancamento, movimento ou transacao sem restringir tipo, use todos os event_type publicos relevantes.',
         '- Preserve a quantidade solicitada em limit e, quando o usuario nomear um cartao, preserve esse nome em card.',
+        '- Para cartoes: se o usuario disser gastei, comprei, compras ou informar intervalo de datas, use timeBasis transaction_date e period {type:"date_range", from:"YYYY-MM-DD", to:"YYYY-MM-DD"}; use billing_month apenas para fatura, vencimento ou mes de cobranca.',
+        '- Para perguntas de total ou quanto gastei, use operation sum. Nao use operation summary.',
         '- Se faltar periodo/criterio essencial, retorne clarify.',
         '',
         'Formato:',
@@ -87,6 +89,27 @@ function normalizeEventTypes(eventTypes = []) {
     return normalized.length ? normalized : DEFAULT_EVENT_TYPES;
 }
 
+function repairPlannerFinancialQueryPlan(plan = {}) {
+    if (!plan || typeof plan !== 'object' || Array.isArray(plan)) return plan;
+    const filters = plan.filters && typeof plan.filters === 'object' && !Array.isArray(plan.filters)
+        ? { ...plan.filters }
+        : plan.filters;
+    const repaired = { ...plan, ...(filters ? { filters } : {}) };
+    const domain = String(repaired.domain || '').trim().toLowerCase();
+    const operation = String(repaired.operation || '').trim().toLowerCase();
+    const periodType = String(filters?.period?.type || '').trim().toLowerCase();
+    const hasCardFilter = Boolean(filters?.card);
+    if (operation === 'summary' && hasCardFilter && (domain === 'cards' || domain === 'expenses') && periodType === 'date_range') {
+        repaired.operation = 'sum';
+    }
+    if (domain === 'expenses' && hasCardFilter) {
+        repaired.domain = 'cards';
+        if (!repaired.timeBasis && String(filters.period?.type || '').trim().toLowerCase() === 'date_range') {
+            repaired.timeBasis = 'transaction_date';
+        }
+    }
+    return repaired;
+}
 function normalizePlannerPlan(rawPlan = {}) {
     const action = String(rawPlan?.action || '').trim();
     if (action === 'block') {
@@ -147,7 +170,7 @@ function normalizePlannerPlan(rawPlan = {}) {
     }
 
     if (tool === 'query_financial_plan') {
-        const normalized = normalizeFinancialQueryPlan(args.plan || {});
+        const normalized = normalizeFinancialQueryPlan(repairPlannerFinancialQueryPlan(args.plan || {}));
         if (!normalized.ok) {
             return {
                 action: 'clarify',

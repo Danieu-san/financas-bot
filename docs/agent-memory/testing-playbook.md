@@ -290,3 +290,6 @@ Validar:
 - A ferramenta deve retornar somente o cartao solicitado, em ordem de data e insercao decrescente, limitada a 20 itens.
 - A resposta deve listar todas as linhas retornadas; uma resposta contendo apenas o primeiro item deve falhar com `missing_recent_item`.
 - No smoke real, compare os itens com `Lancamentos Cartao` e confirme ausencia de itens de outros cartoes.
+- Consulta de total por intervalo de compra no cartao: `Quanto gastei no cartao Nubank - Thais entre 30 de junho e 1 de julho de 2026?`.
+- Com Gemini planner ativo, confirme `source=llm_planner`, `domain=cards`, `operation=sum`, `timeBasis=transaction_date`, `period={type:date_range, from:2026-06-30, to:2026-07-01}` e `card=Nubank - Thais` preservado.
+- A resposta nao pode cair em fatura/`billing_month`, mes de maio, cartao generico `nubank` ou dizer que nao conseguiu consultar quando ha linhas no periodo.
