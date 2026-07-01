@@ -180,31 +180,81 @@ function parseAmountLocal(text) {
     return byWords;
 }
 
+const DATE_MONTHS_PT = {
+    janeiro: 1, fevereiro: 2, marco: 3, abril: 4, maio: 5, junho: 6,
+    julho: 7, agosto: 8, setembro: 9, outubro: 10, novembro: 11, dezembro: 12
+};
+
+function normalizeReferenceDate(now = new Date()) {
+    const date = now instanceof Date ? now : new Date(now);
+    return Number.isNaN(date.getTime()) ? new Date() : date;
+}
+
+function buildDateCandidate(day, month, year, now = new Date()) {
+    const reference = normalizeReferenceDate(now);
+    const parsedDay = Number.parseInt(day, 10);
+    const parsedMonth = Number.parseInt(month, 10);
+    if (!Number.isInteger(parsedDay) || !Number.isInteger(parsedMonth)) return null;
+
+    let parsedYear = year ? String(year).trim() : String(reference.getFullYear());
+    if (parsedYear.length === 2) parsedYear = `20${parsedYear}`;
+    let candidateYear = Number.parseInt(parsedYear, 10);
+    if (!Number.isInteger(candidateYear)) return null;
+
+    let candidateDate = new Date(candidateYear, parsedMonth - 1, parsedDay);
+    if (!year) {
+        const futureLimit = new Date(reference.getFullYear(), reference.getMonth(), reference.getDate() + 31);
+        if (candidateDate > futureLimit) {
+            candidateYear -= 1;
+            candidateDate = new Date(candidateYear, parsedMonth - 1, parsedDay);
+        }
+    }
+
+    const candidate = `${String(parsedDay).padStart(2, '0')}/${String(parsedMonth).padStart(2, '0')}/${String(candidateYear)}`;
+    return isDate(candidate) ? candidate : null;
+}
+
 function parseDateLocal(text, now = new Date()) {
     const raw = String(text || '').trim();
     if (!raw) return null;
 
+    const reference = normalizeReferenceDate(now);
     const normalized = normalizeText(raw).replace(/\s+/g, ' ').trim();
     const relativeDays = { ontem: -1, hoje: 0, amanha: 1 };
     if (Object.prototype.hasOwnProperty.call(relativeDays, normalized)) {
-        const relative = new Date(now.getFullYear(), now.getMonth(), now.getDate() + relativeDays[normalized]);
+        const relative = new Date(reference.getFullYear(), reference.getMonth(), reference.getDate() + relativeDays[normalized]);
         return getFormattedDateOnly(relative);
     }
 
-    const numericDate = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+    const numericDate = normalized.match(/^(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?$/);
     if (numericDate) {
-        const candidate = `${numericDate[1].padStart(2, '0')}/${numericDate[2].padStart(2, '0')}/${numericDate[3]}`;
-        return isDate(candidate) ? candidate : null;
+        return buildDateCandidate(numericDate[1], numericDate[2], numericDate[3], reference);
     }
 
-    const months = {
-        janeiro: 1, fevereiro: 2, marco: 3, abril: 4, maio: 5, junho: 6,
-        julho: 7, agosto: 8, setembro: 9, outubro: 10, novembro: 11, dezembro: 12
-    };
-    const writtenDate = normalized.match(/^(?:dia\s+)?(\d{1,2})\s+de\s+([a-z]+)\s+de\s+(\d{4})$/);
-    if (!writtenDate || !months[writtenDate[2]]) return null;
-    const candidate = `${writtenDate[1].padStart(2, '0')}/${String(months[writtenDate[2]]).padStart(2, '0')}/${writtenDate[3]}`;
-    return isDate(candidate) ? candidate : null;
+    const writtenDate = normalized.match(/^(?:no\s+|na\s+)?(?:dia\s+)?(\d{1,2})\s+de\s+([a-z]+)(?:\s+de\s+(\d{2,4}))?$/);
+    if (!writtenDate || !DATE_MONTHS_PT[writtenDate[2]]) return null;
+    return buildDateCandidate(writtenDate[1], DATE_MONTHS_PT[writtenDate[2]], writtenDate[3], reference);
+}
+
+function extractDateFromTextLocal(text, now = new Date()) {
+    const raw = String(text || '').trim();
+    if (!raw) return null;
+
+    const exact = parseDateLocal(raw, now);
+    if (exact) return exact;
+
+    const normalized = normalizeText(raw).replace(/\s+/g, ' ').trim();
+    const relativeMatch = normalized.match(/\b(ontem|hoje|amanha)\b/);
+    if (relativeMatch) return parseDateLocal(relativeMatch[1], now);
+
+    const numericMatch = normalized.match(/\b(\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?)\b/);
+    if (numericMatch) return parseDateLocal(numericMatch[1], now);
+
+    const monthPattern = Object.keys(DATE_MONTHS_PT).join('|');
+    const writtenMatch = normalized.match(new RegExp(`\\b((?:no\\s+|na\\s+)?(?:dia\\s+)?\\d{1,2}\\s+de\\s+(?:${monthPattern})(?:\\s+de\\s+\\d{2,4})?)\\b`));
+    if (writtenMatch) return parseDateLocal(writtenMatch[1], now);
+
+    return null;
 }
 
 async function parseAmount(text) {
@@ -224,6 +274,7 @@ module.exports = {
     parseValue,
     parseAmountLocal,
     parseDateLocal,
+    extractDateFromTextLocal,
     convertToIsoDateTime,
     parseAmount,
     parseDate

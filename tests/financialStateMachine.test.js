@@ -1420,6 +1420,84 @@ stateMachineTest('financial states: planned expense registers newly created cate
         else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
     }
 });
+stateMachineTest('financial states: planned category assist can continue with credit and preserve retroactive date', async () => {
+    resetState();
+    const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
+    enqueueStructuredResponse({
+        schemaVersion: 'financial-command-plan-v1',
+        operation: 'expense.create',
+        entities: {
+            description: 'item catcredit',
+            amount: 90.97,
+            date: null,
+            paymentMethod: null,
+            category: 'Outros',
+            subcategory: ''
+        },
+        fieldEvidence: {
+            description: 'explicit',
+            amount: 'explicit',
+            date: 'missing',
+            paymentMethod: 'missing'
+        },
+        contextRequests: [{ tool: 'resolve_category', query: 'item catcredit' }],
+        missingFields: ['date', 'paymentMethod'],
+        requiresConfirmation: true
+    });
+
+    try {
+        const categoryQuestion = await send('Gastei 90,97 no item catcredit no dia 28 de junho');
+        assert.match(categoryQuestion, /Criar nova categoria\/subcategoria/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_planned_expense_category');
+
+        assert.match(await send('criar nova'), /nome da nova categoria/i);
+        assert.match(await send('Hobbies'), /subcategoria dentro de "Hobbies"/i);
+
+        const paymentQuestion = await send('Passeios');
+        assert.match(paymentQuestion, /forma de pagamento/i);
+        assert.match(paymentQuestion, /Crédito/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_planned_expense_payment_method');
+        assert.strictEqual(sheets.Categorias.length, 1);
+        assert.strictEqual(sheets['Cartão Nubank - Thais'].length, 1);
+
+        const cardQuestion = await send('crédito');
+        assert.match(cardQuestion, /qual cartão/i);
+        assert.match(cardQuestion, /Nubank Thais|nubank thais/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_planned_expense_credit_card_selection');
+
+        const installmentsQuestion = await send('2');
+        assert.match(installmentsQuestion, /parcelas/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_planned_expense_credit_installments');
+
+        const confirmation = await send('1');
+        assert.match(confirmation, /Confirma/i);
+        assert.match(confirmation, /28\/06\/2026/);
+        assert.match(confirmation, /Hobbies \/ Passeios/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_planned_credit_card_expense');
+        assert.strictEqual(sheets.Categorias.length, 1);
+        assert.strictEqual(sheets['Cartão Nubank - Thais'].length, 1);
+
+        assert.match(await send('sim'), /lançado/i);
+        assert.strictEqual(sheets.Saídas.length, 1);
+        assert.strictEqual(sheets.Categorias.length, 2);
+        assert.deepStrictEqual(sheets.Categorias[1].slice(0, 3), ['Hobbies', 'Passeios', 'SIM']);
+        assert.strictEqual(sheets['Cartão Nubank - Thais'].length, 2);
+        assert.deepStrictEqual(sheets['Cartão Nubank - Thais'][1], [
+            '28/06/2026',
+            'item catcredit',
+            'Hobbies',
+            90.97,
+            '1/1',
+            'Junho de 2026',
+            USER_ID
+        ]);
+        assert.strictEqual(userStateManager.getState(SENDER), undefined);
+    } finally {
+        if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+        else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+    }
+});
 stateMachineTest('financial states: legacy category creation asks confirmation before saving expense with known payment', async () => {
     resetState();
     const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;

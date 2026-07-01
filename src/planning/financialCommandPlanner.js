@@ -7,7 +7,7 @@ const {
 const {
     normalizeText,
     parseAmountLocal,
-    parseDateLocal
+    extractDateFromTextLocal
 } = require('../utils/helpers');
 const { getStructuredResponseFromLLM } = require('../services/gemini');
 
@@ -181,12 +181,7 @@ function extractDeterministicFinancialSignals(
     const paymentMethod = extractPaymentMethod(normalizedMessage);
     const contextTool = OPERATION_CONTEXT_TOOL[inferred.operation] || null;
     const description = extractDescription(safeMessage, inferred.operation);
-    const dateMatch = safeMessage.match(
-        /\b(hoje|ontem|amanh[ãa]|\d{1,2}[/-]\d{1,2}[/-]\d{4})\b/i
-    );
-    const date = dateMatch
-        ? parseDateLocal(dateMatch[1], new Date(referenceDate))
-        : null;
+    const date = extractDateFromTextLocal(safeMessage, new Date(referenceDate));
 
     return {
         operation: inferred.operation,
@@ -250,7 +245,24 @@ function reconcileFinancialCommandPlan({ message, rawPlan, referenceDate } = {})
     const signals = extractDeterministicFinancialSignals(message, {
         referenceDate
     });
-    const plan = validation.normalizedPlan;
+    const plan = {
+        ...validation.normalizedPlan,
+        entities: { ...(validation.normalizedPlan.entities || {}) },
+        fieldEvidence: { ...(validation.normalizedPlan.fieldEvidence || {}) },
+        missingFields: Array.isArray(validation.normalizedPlan.missingFields)
+            ? [...validation.normalizedPlan.missingFields]
+            : []
+    };
+    for (const field of ['amount', 'date', 'paymentMethod']) {
+        const deterministicValue = signals[field];
+        const currentValue = plan.entities[field];
+        if ((currentValue === null || currentValue === undefined || currentValue === '')
+            && deterministicValue !== null && deterministicValue !== undefined && deterministicValue !== '') {
+            plan.entities[field] = deterministicValue;
+            plan.fieldEvidence[field] = field === 'paymentMethod' ? 'explicit' : 'deterministic';
+            plan.missingFields = plan.missingFields.filter(item => item !== field);
+        }
+    }
     const errors = [];
 
     if (signals.operationConfidence === 'high'

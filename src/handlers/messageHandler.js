@@ -10,7 +10,7 @@ const runWithUserSheetContext = googleService.runWithUserSheetContext || ((user,
 const hasUserSpreadsheetContext = googleService.hasUserSpreadsheetContext || (async () => false);
 const shareSpreadsheetWithUserEmail = googleService.shareSpreadsheetWithUserEmail || (async () => null);
 const revokeSpreadsheetPermission = googleService.revokeSpreadsheetPermission || (async () => false);
-const { getFormattedDate, getFormattedDateOnly, normalizeText, parseSheetDate, parseAmount, parseAmountLocal, parseValue } = require('../utils/helpers');
+const { getFormattedDate, getFormattedDateOnly, normalizeText, parseSheetDate, parseAmount, parseAmountLocal, parseValue, extractDateFromTextLocal } = require('../utils/helpers');
 const {
     normalizeCycleStartDay,
     getBudgetCycleForDate,
@@ -501,29 +501,7 @@ function isGlobalHelpCommand(messageBody) {
 }
 
 function extractLocalTransactionDate(messageBody) {
-    const raw = String(messageBody || '');
-    const text = normalizeText(raw);
-    const explicitDate = raw.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/);
-    if (explicitDate) {
-        const day = String(explicitDate[1]).padStart(2, '0');
-        const month = String(explicitDate[2]).padStart(2, '0');
-        let year = explicitDate[3];
-        if (!year) year = String(new Date().getFullYear());
-        if (year.length === 2) year = `20${year}`;
-        return `${day}/${month}/${year}`;
-    }
-
-    if (/\bontem\b/.test(text)) {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        return getFormattedDateOnly(yesterday);
-    }
-
-    if (/\bhoje\b/.test(text)) {
-        return getFormattedDateOnly(new Date());
-    }
-
-    return '';
+    return extractDateFromTextLocal(messageBody) || '';
 }
 
 function extractLocalPaymentMethod(messageBody, type) {
@@ -7332,7 +7310,7 @@ function buildPlannedExpense(plan = {}, { originalMessage = '', originalMessageI
     const entities = plan.entities || {};
     const amount = parseValue(entities.amount);
     const paymentMethod = normalizePaymentReply(entities.paymentMethod);
-    if (!Number.isFinite(amount) || amount <= 0 || paymentMethod === 'Crédito') return null;
+    if (!Number.isFinite(amount) || amount <= 0) return null;
     return {
         type: 'Saídas',
         data: buildBillPaymentDate(entities.date),
@@ -7362,6 +7340,94 @@ function buildPlannedExpenseConfirmationMessage(expense = {}) {
     ].join('\n');
 }
 
+function getCreditCardDisplayName(cardInfo = {}) {
+    return cardInfo.label || cardInfo.sheetName || cardInfo.cardId || cardInfo.key || 'cartão';
+}
+
+function buildPlannedCreditCardExpenseConfirmationMessage({ expense = {}, cardInfo = {}, installments = 1 } = {}) {
+    const safeInstallments = Math.max(1, Number.parseInt(installments, 10) || 1);
+    return [
+        `Identifiquei o gasto *${expense.descricao || 'Gasto'}*.`,
+        `Valor: *${formatCurrencyBR(expense.valor)}*`,
+        `Categoria: *${expense.categoria || 'Outros'}${expense.subcategoria ? ` / ${expense.subcategoria}` : ''}*`,
+        'Forma: *Crédito*',
+        `Cartão: *${getCreditCardDisplayName(cardInfo)}*`,
+        `Parcelas: *${safeInstallments}x*`,
+        `Data: *${expense.data || getFormattedDateOnly()}*`,
+        '',
+        'Confirma o registro? Responda *sim* ou *não*.'
+    ].join('\n');
+}
+
+async function askPlannedCreditCardExpenseFinalConfirmation({ msg, senderId, expense, cardInfo, installments }) {
+    const safeInstallments = Math.max(1, Number.parseInt(installments, 10) || 1);
+    userStateManager.setState(senderId, {
+        action: 'confirming_planned_credit_card_expense',
+        data: { expense, cardInfo, installments: safeInstallments }
+    });
+    await msg.reply(buildPlannedCreditCardExpenseConfirmationMessage({
+        expense,
+        cardInfo,
+        installments: safeInstallments
+    }));
+}
+
+async function ensurePendingExpenseCategoryRegistrationForWrite({ msg, userId, pendingCategoryRegistration }) {
+    if (!pendingCategoryRegistration?.categoria) return true;
+    try {
+        await ensureExpenseCategoryRegistered({
+            userId,
+            categoria: pendingCategoryRegistration.categoria,
+            subcategoria: pendingCategoryRegistration.subcategoria
+        });
+        return true;
+    } catch (error) {
+        logger.warn(`[category-assist] category_registration_failed user_id=${logger.redactIdentifier(userId)} error="${error?.message || error}"`);
+        await msg.reply('Não consegui salvar essa categoria agora. Tente confirmar novamente em instantes ou responda não para cancelar.');
+        return false;
+    }
+}
+
+async function continuePlannedCreditCardExpense({ msg, senderId, userId, expense }) {
+    const cardOptions = await buildCreditCardOptionsForUser(userId);
+    if (!cardOptions.length) {
+        await replyNoCreditCardsConfigured(msg);
+        return true;
+    }
+
+    const explicitCard = findExplicitCardOption(expense.originalMessage || '', cardOptions);
+    const explicitInstallments = detectInstallmentsFromMessage(expense.originalMessage || '');
+    const creditExpense = { ...expense, pagamento: 'Crédito' };
+
+    if (explicitCard && explicitInstallments) {
+        const cardInfo = getSelectedCardInfo(cardOptions, cardOptions.indexOf(explicitCard));
+        await askPlannedCreditCardExpenseFinalConfirmation({
+            msg,
+            senderId,
+            expense: creditExpense,
+            cardInfo,
+            installments: explicitInstallments
+        });
+        return true;
+    }
+
+    if (explicitCard) {
+        const cardInfo = getSelectedCardInfo(cardOptions, cardOptions.indexOf(explicitCard));
+        userStateManager.setState(senderId, {
+            action: 'awaiting_planned_expense_credit_installments',
+            data: { expense: creditExpense, cardInfo }
+        });
+        await msg.reply(`Entendi, o gasto foi no *${getCreditCardDisplayName(cardInfo)}*. Em quantas parcelas? (digite \`1\` se for à vista)`);
+        return true;
+    }
+
+    userStateManager.setState(senderId, {
+        action: 'awaiting_planned_expense_credit_card_selection',
+        data: { expense: creditExpense, cardOptions }
+    });
+    await msg.reply(formatCreditCardOptionsQuestion('Entendi, o gasto foi no crédito. Em qual cartão? Responda com o número:', cardOptions));
+    return true;
+}
 async function askExpenseFinalConfirmation({ msg, senderId, expense }) {
     userStateManager.setState(senderId, {
         action: 'confirming_planned_expense',
@@ -7423,8 +7489,16 @@ async function continuePlannedExpense({ msg, senderId, userId, expense }) {
             action: 'awaiting_planned_expense_payment_method',
             data: { expense }
         });
-        await msg.reply('Qual foi a forma de pagamento? (Débito, PIX ou Dinheiro)');
+        await msg.reply('Qual foi a forma de pagamento? (Crédito, Débito, PIX ou Dinheiro)');
         return true;
+    }
+    if (normalizePaymentReply(expense.pagamento) === 'Crédito') {
+        return continuePlannedCreditCardExpense({
+            msg,
+            senderId,
+            userId,
+            expense: { ...expense, pagamento: 'Crédito' }
+        });
     }
     userStateManager.setState(senderId, {
         action: 'confirming_planned_expense',
@@ -7437,7 +7511,6 @@ async function continuePlannedExpense({ msg, senderId, userId, expense }) {
 async function handlePlannedExpense({ msg, senderId, messageBody, userId, plannerResult }) {
     const plan = plannerResult?.plan;
     if (!plannerResult?.ok || plan?.operation !== 'expense.create') return false;
-    if (normalizePaymentReply(plan.entities?.paymentMethod) === 'Crédito') return false;
     const expense = buildPlannedExpense(plan, {
         originalMessage: messageBody,
         originalMessageId: msg?.id?.id || ''
@@ -7950,14 +8023,48 @@ async function handleMessage(msg) {
             case 'awaiting_planned_expense_payment_method': {
                 const expense = currentState.data?.expense || {};
                 const paymentMethod = normalizePaymentReply(messageBody);
-                if (!paymentMethod || !['Débito', 'PIX', 'Dinheiro'].includes(paymentMethod)) {
-                    await msg.reply('Não consegui entender a forma de pagamento. Responda com Débito, PIX ou Dinheiro.');
+                if (!paymentMethod || !['Débito', 'Crédito', 'PIX', 'Dinheiro'].includes(paymentMethod)) {
+                    await msg.reply('Não consegui entender a forma de pagamento. Responda com Crédito, Débito, PIX ou Dinheiro.');
                     return;
                 }
                 await continuePlannedExpense({
                     msg,
                     senderId,
+                    userId,
                     expense: { ...expense, pagamento: paymentMethod }
+                });
+                return;
+            }
+
+            case 'awaiting_planned_expense_credit_card_selection': {
+                const { expense, cardOptions = [] } = currentState.data || {};
+                const selection = Number.parseInt(messageBody.trim(), 10) - 1;
+                const cardInfo = getSelectedCardInfo(cardOptions, selection);
+                if (!cardInfo) {
+                    await msg.reply('Opção inválida. Por favor, responda apenas com um dos números da lista.');
+                    return;
+                }
+                userStateManager.setState(senderId, {
+                    action: 'awaiting_planned_expense_credit_installments',
+                    data: { expense, cardInfo }
+                });
+                await msg.reply(`Entendido, no cartão *${getCreditCardDisplayName(cardInfo)}*. Em quantas parcelas? (digite \`1\` se for à vista)`);
+                return;
+            }
+
+            case 'awaiting_planned_expense_credit_installments': {
+                const { expense, cardInfo } = currentState.data || {};
+                const installments = await parseAmount(messageBody.trim());
+                if (!Number.isFinite(installments) || installments < 1) {
+                    await msg.reply('Número inválido. Digite um número de parcelas maior ou igual a 1.');
+                    return;
+                }
+                await askPlannedCreditCardExpenseFinalConfirmation({
+                    msg,
+                    senderId,
+                    expense,
+                    cardInfo,
+                    installments
                 });
                 return;
             }
@@ -8005,6 +8112,42 @@ async function handleMessage(msg) {
                 userStateManager.deleteState(senderId);
                 await msg.reply(`✅ Gasto de ${formatCurrencyBR(saved.value)} (${expense.descricao}) registrado como *${saved.method}*.`);
                 await safeMaybeNotifyDailyGoalAfterExpense(msg, userId, 'planned_expense');
+                return;
+            }
+            case 'confirming_planned_credit_card_expense': {
+                const cleanReply = normalizeText(msg.body);
+                const { expense = {}, cardInfo, installments = 1 } = currentState.data || {};
+                if (['nao', 'não', 'n', 'cancelar', 'cancela'].includes(cleanReply)) {
+                    userStateManager.deleteState(senderId);
+                    await msg.reply('Gasto no cartão cancelado. Nenhum dado foi salvo.');
+                    return;
+                }
+                if (!['sim', 's', 'ss', 'confirmo'].includes(cleanReply)) {
+                    await msg.reply('Responda `sim` para confirmar o gasto no cartão ou `não` para cancelar.');
+                    return;
+                }
+                const { pendingCategoryRegistration, ...expenseWithoutInternalMetadata } = expense;
+                if (!await ensurePendingExpenseCategoryRegistrationForWrite({ msg, userId, pendingCategoryRegistration })) return;
+                const confirmedExpense = {
+                    ...expenseWithoutInternalMetadata,
+                    type: 'Saídas',
+                    pagamento: 'Crédito',
+                    reliabilityConfirmed: true
+                };
+                try {
+                    const saved = await saveCreditCardExpense(confirmedExpense, cardInfo, installments, userId);
+                    if (saved.installments === 1) {
+                        await msg.reply(`✅ Gasto de R$${confirmedExpense.valor} lançado no *${saved.sheetName}*.`);
+                    } else {
+                        await msg.reply(`✅ Gasto de R$${confirmedExpense.valor} lançado em ${saved.installments}x de R$${saved.installmentValue.toFixed(2)} no *${saved.sheetName}*.`);
+                    }
+                    await safeMaybeNotifyDailyGoalAfterExpense(msg, userId, 'planned_credit_card_expense');
+                } catch (error) {
+                    logger.error(`[financial-write] planned_credit_card_expense_save_failed error=${error.message}`);
+                    await msg.reply('Ocorreu um erro ao salvar o gasto no cartão.');
+                } finally {
+                    userStateManager.deleteState(senderId);
+                }
                 return;
             }
             case 'awaiting_invoice_payment_selection': {
@@ -9059,6 +9202,7 @@ async function handleMessage(msg) {
                     const gastos = structuredResponse.gastoDetails || [];
                     const entradas = structuredResponse.entradaDetails || [];
                     const allTransactions = [];
+                    const deterministicMessageDate = extractDateFromTextLocal(messageBody);
 
                     // --- NOVA BARREIRA DE VALIDAÇÃO ---
                     for (const item of [...gastos, ...entradas]) {
@@ -9071,12 +9215,14 @@ async function handleMessage(msg) {
 
                     if (gastos.length > 0) gastos.forEach(g => allTransactions.push({
                         ...sanitizeStructuredTransaction(g),
+                        data: g.data || deterministicMessageDate || '',
                         type: 'Saídas',
                         originalMessage: messageBody,
                         interpretationSource: structuredResponseSource
                     }));
                     if (entradas.length > 0) entradas.forEach(e => allTransactions.push({
                         ...sanitizeStructuredTransaction(e),
+                        data: e.data || deterministicMessageDate || '',
                         type: 'Entradas',
                         originalMessage: messageBody,
                         interpretationSource: structuredResponseSource

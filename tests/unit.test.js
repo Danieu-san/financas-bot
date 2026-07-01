@@ -101,6 +101,22 @@ test('helpers critical amount and date parsing never depends on Gemini output', 
     assert.strictEqual(await helpers.parseDate('15/07/2026'), '15/07/2026');
     assert.strictEqual(await helpers.parseDate('31/02/2026'), null);
 });
+test('helpers parse natural day-month dates from transaction text without Gemini', () => {
+    const reference = new Date('2026-07-01T12:00:00-03:00');
+
+    assert.strictEqual(
+        helpers.extractDateFromTextLocal('Gastei 90,97 no almoço no dia 28 de junho', reference),
+        '28/06/2026'
+    );
+    assert.strictEqual(
+        helpers.parseDateLocal('no dia 28 de junho', reference),
+        '28/06/2026'
+    );
+    assert.strictEqual(
+        helpers.extractDateFromTextLocal('Gastei 10 em 05/06 no pix', reference),
+        '05/06/2026'
+    );
+});
 
 test('goalService.parseGoalCommand keeps four-digit BR amounts intact', () => {
     const parsed = goalService.parseGoalCommand('guardei 1500,00 na meta reserva');

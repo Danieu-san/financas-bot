@@ -219,6 +219,8 @@ Validar:
   `PLANNER_WRITES_E2E_ACTION=verify-cleanup` na EC2. Em falha intermediária,
   use `PLANNER_WRITES_E2E_ACTION=cleanup`. Depois, confira separadamente ledger
   shadow, `financial_events_public` e `state_store.json`.- Se o usuario E2E conversa por identificador WhatsApp `@lid` e o telefone publico nao resolve na aba `Users`, configurar `WHATSAPP_E2E_TEST_USER_LOOKUP` com um nome/lookup explicito e unico de usuario `ACTIVE`; nao usar lookup ambiguo nem usuario nao ativo.
+- Para `expense.create` planejado, cobrir tambem data natural sem ano (`no dia 28 de junho`) e o caminho categoria assistida -> `Credito` -> cartao -> parcelas -> confirmacao. Esperado: nenhuma linha em `Saidas`, linha no cartao com a data retroativa preservada e categoria/subcategoria nova persistida somente depois do `sim` final.
+
 ## Canonical Ledger
 
 Validar:

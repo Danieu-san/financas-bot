@@ -75,6 +75,45 @@ test('deterministic extraction does not mistake dates or ambiguous numbers for m
     assert.strictEqual(ambiguous.amount, null);
     assert.strictEqual(explicitMoney.amount, 300);
 });
+test('deterministic extraction captures written transaction dates without a year', () => {
+    const signals = extractDeterministicFinancialSignals(
+        'Gastei 90,97 no almoço no dia 28 de junho',
+        { referenceDate: new Date('2026-07-01T12:00:00-03:00') }
+    );
+
+    assert.strictEqual(signals.date, '28/06/2026');
+});
+
+test('planner reconciliation fills a missing deterministic date before routing', () => {
+    const result = reconcileFinancialCommandPlan({
+        message: 'Gastei 90,97 no almoço no dia 28 de junho',
+        referenceDate: new Date('2026-07-01T12:00:00-03:00'),
+        rawPlan: {
+            schemaVersion: 'financial-command-plan-v1',
+            operation: 'expense.create',
+            entities: {
+                description: 'almoço',
+                amount: 90.97,
+                paymentMethod: null,
+                date: null
+            },
+            fieldEvidence: {
+                description: 'explicit',
+                amount: 'explicit',
+                paymentMethod: 'missing',
+                date: 'missing'
+            },
+            contextRequests: [{ tool: 'resolve_category', query: 'almoço' }],
+            missingFields: ['paymentMethod', 'date'],
+            requiresConfirmation: true
+        }
+    });
+
+    assert.strictEqual(result.ok, true);
+    assert.strictEqual(result.plan.entities.date, '28/06/2026');
+    assert.strictEqual(result.plan.fieldEvidence.date, 'deterministic');
+    assert.deepStrictEqual(result.plan.missingFields, ['paymentMethod']);
+});
 
 test('planner reconciliation rejects model conflicts with deterministic critical fields', () => {
     const result = reconcileFinancialCommandPlan({
