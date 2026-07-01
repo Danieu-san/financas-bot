@@ -109,3 +109,9 @@ as recent transactions while Phase 2 is still accumulating coverage.
 A marker-only parity run found a false canonical classification: an ordinary market expense could become `bill_payment` when a registered bill had a similar category/value. The projector now treats `Saidas` rows as bill payments only when the committed legacy row is explicitly marked recurring (`Recorrente=SIM` or equivalent). Non-recurring expenses remain `expense`, keep `free_budget_eligible=true`, and keep their normal net expense impact even when a `Contas` rule matches.
 
 This keeps the production writer contract aligned with `bill.pay`, which writes recurring account payments with `Recorrente=SIM`. After deploy, repeat cleanup/parity before enabling any production read canary.
+
+## Production Marker-Only Post-Fix Evidence - 2026-07-01
+
+Commit `fd20b49` was deployed with canonical read canary still disabled. A production marker-only run validated the corrected receipt projection: ordinary market expense was projected as `expense` with `free_budget_eligible=true`, while the recurring phone bill row marked `Recorrente=SIM` was projected as `bill_payment` with `free_budget_eligible=false`. Invoice payment, reimbursement and Uber expense also projected to the expected kinds.
+
+All marker-only Sheets rows and the five corresponding shadow runs were cleaned after verification, with SQLite backups created before deleting runs. This is a GO for the recurring marker fix itself, but still not a GO to enable production canary reads without the separate parity-window decision.
