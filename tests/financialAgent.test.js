@@ -465,6 +465,84 @@ test('financial agent recent transactions falls back when canonical canary has n
     assert.strictEqual(latest.fallbackReason, 'canonical_empty');
     assert.strictEqual(latest.rows[0].description, 'legado recente');
 });
+test('financial agent recent transactions falls back when canonical canary window is partial', async () => {
+    const synced = syncSnapshotToSqlite({
+        saidas: [
+            { user_id: 'agent-daniel', data: '23/06/2026', descricao: 'legado mais recente', categoria: 'Outros', subcategoria: '', valor: 10.01, month: 5, year: 2026 },
+            { user_id: 'agent-daniel', data: '22/06/2026', descricao: 'legado anterior', categoria: 'Outros', subcategoria: '', valor: 10.02, month: 5, year: 2026 }
+        ],
+        cartoes: [],
+        entradas: [],
+        transferencias: [],
+        userSettings: [],
+        cartoesConfig: [],
+        metas: [],
+        movimentacoesMetas: [],
+        dividas: [],
+        contas: []
+    });
+    assert.strictEqual(synced, true);
+
+    const dbPath = path.join(os.tmpdir(), `canonical-agent-partial-${Date.now()}-${Math.random()}.sqlite`);
+    const store = new CanonicalLedgerShadowStore({ dbPath, writesEnabled: true });
+    store.persistProjection({
+        runId: 'agent-partial-run',
+        projected: {
+            events: [{
+                event_id: 'evt_agent_partial_1',
+                owner_person_id: 'agent-daniel',
+                actor_person_id: 'agent-daniel',
+                kind: 'expense',
+                status: 'settled',
+                description: 'gasto canonico unico',
+                amount_cents: 1001,
+                currency: 'BRL',
+                occurred_on: '2026-06-23',
+                effective_on: '2026-06-23',
+                competence_month: '2026-06',
+                category: 'Outros',
+                category_status: 'resolved',
+                free_budget_eligible: true,
+                net_income_expense_impact: 1001,
+                source_type: 'sheet.saidas',
+                source_row_ref: 'row-partial-1',
+                source_id_hash: 'source-partial-1',
+                source_row_hash: 'row-partial-hash-1',
+                idempotency_key: 'idem-partial-1',
+                created_at: '2026-06-23T12:00:00.000Z',
+                updated_at: '2026-06-23T12:00:00.000Z'
+            }]
+        },
+        publicProjection: [],
+        report: {
+            report_type: 'canonical_ledger_receipt_shadow',
+            schema_version: 'canonical-ledger-v1',
+            synthetic_fixture_only: false
+        }
+    });
+
+    const latest = await listRecentTransactions({
+        userIds: ['agent-daniel'],
+        personByUserId: { 'agent-daniel': 'Daniel' },
+        eventTypes: ['expense'],
+        limit: 2,
+        env: {
+            NODE_ENV: 'production',
+            CANONICAL_LEDGER_PROJECTION_MODE: 'shadow',
+            CANONICAL_LEDGER_SHADOW_WRITE_ENABLED: 'true',
+            CANONICAL_LEDGER_PRODUCTION_SHADOW_APPROVED: 'true',
+            CANONICAL_LEDGER_CANARY_READ_ENABLED: 'true',
+            CANONICAL_LEDGER_CANARY_READ_APPROVED: 'true',
+            CANONICAL_LEDGER_CANARY_READ_DOMAINS: 'transactions'
+        },
+        canonicalLedgerDbPath: dbPath
+    });
+
+    assert.strictEqual(latest.ok, true);
+    assert.strictEqual(latest.source, 'legacy');
+    assert.strictEqual(latest.fallbackReason, 'canonical_partial_window');
+    assert.deepStrictEqual(latest.rows.map(row => row.description), ['legado mais recente', 'legado anterior']);
+});
 test('financial agent recent transactions falls back when canonical canary has no matching event type', async () => {
     const synced = syncSnapshotToSqlite({
         saidas: [

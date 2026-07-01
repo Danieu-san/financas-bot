@@ -90,11 +90,15 @@ function normalizeCanonicalRecentRow(row = {}, index = 0) {
     };
 }
 
+function normalizeRecentLimit(limit = 5) {
+    return Math.max(1, Math.min(20, Number.parseInt(limit, 10) || 5));
+}
+
 function filterRecentRows(rows = [], allowedTypes = new Set(), limit = 5) {
     return rows
         .filter(row => allowedTypes.has(row.event_type))
         .sort(compareRecent)
-        .slice(0, Math.max(1, Math.min(20, Number.parseInt(limit, 10) || 5)));
+        .slice(0, normalizeRecentLimit(limit));
 }
 
 async function listRecentTransactions({
@@ -122,13 +126,21 @@ async function listRecentTransactions({
     const sourceRows = canary.source === 'canonical'
         ? canary.rows.map(normalizeCanonicalRecentRow)
         : canary.rows;
-    let rows = filterRecentRows(sourceRows, allowedTypes, limit);
+    const requestedLimit = normalizeRecentLimit(limit);
+    let rows = filterRecentRows(sourceRows, allowedTypes, requestedLimit);
     let source = canary.source;
     let fallbackReason = canary.fallbackReason;
     if (canary.source === 'canonical' && rows.length === 0) {
-        rows = legacyReader();
+        rows = await legacyReader();
         source = 'legacy';
         fallbackReason = 'canonical_no_matching_rows';
+    } else if (canary.source === 'canonical' && rows.length < requestedLimit) {
+        const legacyRows = await legacyReader();
+        if (legacyRows.length > rows.length) {
+            rows = legacyRows;
+            source = 'legacy';
+            fallbackReason = 'canonical_partial_window';
+        }
     }
     return {
         ok: true,

@@ -95,3 +95,11 @@ or return no rows matching the requested event type.
 This is deployment-safe while production keeps `CANONICAL_LEDGER_CANARY_READ_ENABLED=false`.
 It still does not authorize enabling production read canary before the real
 non-marker parity window described above.
+
+## Partial Window Guard - 2026-07-01
+
+The `transactions` canary reader now also falls back to the legacy read-model
+when canonical rows are present but the filtered canonical window is smaller
+than the requested `limit` and the legacy read-model has more matching rows.
+This prevents a partially populated shadow ledger from truncating answers such
+as recent transactions while Phase 2 is still accumulating coverage.
