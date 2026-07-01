@@ -1430,7 +1430,7 @@ stateMachineTest('financial states: planned category assist can continue with cr
         entities: {
             description: 'item catcredit',
             amount: 90.97,
-            date: null,
+            date: '01/07/2026',
             paymentMethod: null,
             category: 'Outros',
             subcategory: ''
@@ -1438,11 +1438,11 @@ stateMachineTest('financial states: planned category assist can continue with cr
         fieldEvidence: {
             description: 'explicit',
             amount: 'explicit',
-            date: 'missing',
+            date: 'explicit',
             paymentMethod: 'missing'
         },
         contextRequests: [{ tool: 'resolve_category', query: 'item catcredit' }],
-        missingFields: ['date', 'paymentMethod'],
+        missingFields: ['paymentMethod'],
         requiresConfirmation: true
     });
 

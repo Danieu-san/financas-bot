@@ -256,8 +256,17 @@ function reconcileFinancialCommandPlan({ message, rawPlan, referenceDate } = {})
     for (const field of ['amount', 'date', 'paymentMethod']) {
         const deterministicValue = signals[field];
         const currentValue = plan.entities[field];
-        if ((currentValue === null || currentValue === undefined || currentValue === '')
-            && deterministicValue !== null && deterministicValue !== undefined && deterministicValue !== '') {
+        const hasDeterministicValue = deterministicValue !== null
+            && deterministicValue !== undefined
+            && deterministicValue !== '';
+        const hasCurrentValue = currentValue !== null
+            && currentValue !== undefined
+            && currentValue !== '';
+        const shouldPreferDeterministicDate = field === 'date'
+            && hasDeterministicValue
+            && hasCurrentValue
+            && String(currentValue) !== String(deterministicValue);
+        if ((!hasCurrentValue && hasDeterministicValue) || shouldPreferDeterministicDate) {
             plan.entities[field] = deterministicValue;
             plan.fieldEvidence[field] = field === 'paymentMethod' ? 'explicit' : 'deterministic';
             plan.missingFields = plan.missingFields.filter(item => item !== field);

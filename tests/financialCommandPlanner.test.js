@@ -114,6 +114,36 @@ test('planner reconciliation fills a missing deterministic date before routing',
     assert.strictEqual(result.plan.fieldEvidence.date, 'deterministic');
     assert.deepStrictEqual(result.plan.missingFields, ['paymentMethod']);
 });
+test('planner reconciliation lets deterministic written date override model default date', () => {
+    const result = reconcileFinancialCommandPlan({
+        message: 'Gastei 25 reais lanchando em petropolis no dia 28 de junho',
+        referenceDate: new Date('2026-07-01T12:00:00-03:00'),
+        rawPlan: {
+            schemaVersion: 'financial-command-plan-v1',
+            operation: 'expense.create',
+            entities: {
+                description: 'lanchando em petropolis',
+                amount: 25,
+                paymentMethod: null,
+                date: '01/07/2026'
+            },
+            fieldEvidence: {
+                description: 'explicit',
+                amount: 'explicit',
+                paymentMethod: 'missing',
+                date: 'explicit'
+            },
+            contextRequests: [{ tool: 'resolve_category', query: 'lanchando em petropolis' }],
+            missingFields: ['paymentMethod'],
+            requiresConfirmation: true
+        }
+    });
+
+    assert.strictEqual(result.ok, true);
+    assert.strictEqual(result.plan.entities.date, '28/06/2026');
+    assert.strictEqual(result.plan.fieldEvidence.date, 'deterministic');
+    assert.deepStrictEqual(result.plan.missingFields, ['paymentMethod']);
+});
 
 test('planner reconciliation rejects model conflicts with deterministic critical fields', () => {
     const result = reconcileFinancialCommandPlan({
