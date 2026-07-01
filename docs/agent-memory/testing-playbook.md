@@ -293,3 +293,4 @@ Validar:
 - Consulta de total por intervalo de compra no cartao: `Quanto gastei no cartao Nubank - Thais entre 30 de junho e 1 de julho de 2026?`.
 - Com Gemini planner ativo, confirme `source=llm_planner`, `domain=cards`, `operation=sum`, `timeBasis=transaction_date`, `period={type:date_range, from:2026-06-30, to:2026-07-01}` e `card=Nubank - Thais` preservado.
 - A resposta nao pode cair em fatura/`billing_month`, mes de maio, cartao generico `nubank`, `domain=card_expenses` rejeitado pelo contrato, ou dizer que nao conseguiu consultar quando ha linhas no periodo.
+- Datas relativas em cartao: em 01/07/2026, `quanto gastei no cartao nubank thais ontem?` deve usar `period={from:2026-06-30,to:2026-06-30}`; `anteontem` deve usar `2026-06-29`. Nunca aceitar deslocamento para 29/06 e 28/06 por conversao de timezone.

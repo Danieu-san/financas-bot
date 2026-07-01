@@ -1415,6 +1415,48 @@ test('Gemini planner reference date follows the Sao Paulo calendar day', () => {
         plannerTest.formatReferenceDate(new Date('2026-06-15T00:30:00.000Z')),
         '2026-06-14'
     );
+    assert.strictEqual(plannerTest.formatReferenceDate('01/07/2026'), '2026-07-01');
+});
+
+test('Gemini planner repairs explicit relative dates from the bot civil reference date', () => {
+    const rawPlan = normalizePlannerPlan({
+        action: 'tool',
+        tool: 'query_financial_plan',
+        args: {
+            plan: {
+                kind: 'financial_query',
+                domain: 'cards',
+                operation: 'sum',
+                filters: {
+                    period: { type: 'date_range', from: '2026-06-29', to: '2026-06-29' },
+                    card: 'Nubank - Thais'
+                },
+                timeBasis: 'transaction_date'
+            }
+        }
+    });
+
+    const yesterdayPlan = plannerTest.repairPlannerPlanForExplicitRelativeDate(rawPlan, {
+        message: 'quanto gastei no cartão nubank thais ontem?',
+        referenceDate: '01/07/2026'
+    });
+    assert.deepStrictEqual(yesterdayPlan.args.plan.filters.period, {
+        type: 'date_range',
+        from: '2026-06-30',
+        to: '2026-06-30',
+        label: 'ontem'
+    });
+
+    const dayBeforePlan = plannerTest.repairPlannerPlanForExplicitRelativeDate(rawPlan, {
+        message: 'quanto gastei no cartão nubank thais anteontem?',
+        referenceDate: '01/07/2026'
+    });
+    assert.deepStrictEqual(dayBeforePlan.args.plan.filters.period, {
+        type: 'date_range',
+        from: '2026-06-29',
+        to: '2026-06-29',
+        label: 'anteontem'
+    });
 });
 
 test('LangGraph financial agent uses Gemini planner fallback for free-form pending bill questions', async () => {

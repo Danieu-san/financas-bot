@@ -23,6 +23,16 @@ function isLlmPlannerEnabled(env = process.env) {
 }
 
 function formatReferenceDate(referenceDate = new Date()) {
+    if (typeof referenceDate === 'string') {
+        const raw = referenceDate.trim();
+        const brDate = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (brDate) {
+            const [, day, month, year] = brDate;
+            return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        }
+        const isoDate = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (isoDate) return raw;
+    }
     const date = referenceDate instanceof Date ? referenceDate : new Date(referenceDate);
     if (Number.isNaN(date.getTime())) return formatReferenceDate(new Date());
     const parts = new Intl.DateTimeFormat('en-US', {
@@ -33,6 +43,53 @@ function formatReferenceDate(referenceDate = new Date()) {
     }).formatToParts(date);
     const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
     return `${values.year}-${values.month}-${values.day}`;
+}
+
+function offsetIsoDate(isoDate, offsetDays) {
+    const match = String(isoDate || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return '';
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const date = new Date(Date.UTC(year, month - 1, day + offsetDays, 12, 0, 0, 0));
+    return date.toISOString().slice(0, 10);
+}
+
+function explicitRelativeDateFromMessage(message = '', referenceDate = new Date()) {
+    const normalized = normalizeText(message).replace(/\s+/g, ' ').trim();
+    const referenceIso = formatReferenceDate(referenceDate);
+    if (/\banteontem\b/.test(normalized)) {
+        return { label: 'anteontem', date: offsetIsoDate(referenceIso, -2) };
+    }
+    if (/\bontem\b/.test(normalized)) {
+        return { label: 'ontem', date: offsetIsoDate(referenceIso, -1) };
+    }
+    if (/\bhoje\b/.test(normalized)) {
+        return { label: 'hoje', date: referenceIso };
+    }
+    return null;
+}
+
+function repairPlannerPlanForExplicitRelativeDate(plan, { message = '', referenceDate = new Date() } = {}) {
+    const relative = explicitRelativeDateFromMessage(message, referenceDate);
+    if (!relative?.date || plan?.action !== 'tool' || plan?.tool !== 'query_financial_plan') return plan;
+    const queryPlan = plan.args?.plan;
+    const domain = String(queryPlan?.domain || '').trim();
+    if (!['expenses', 'cards', 'income', 'transfers'].includes(domain)) return plan;
+    return {
+        ...plan,
+        args: {
+            ...plan.args,
+            plan: {
+                ...queryPlan,
+                timeBasis: queryPlan.timeBasis === 'billing_month' ? 'transaction_date' : (queryPlan.timeBasis || 'transaction_date'),
+                filters: {
+                    ...(queryPlan.filters || {}),
+                    period: { type: 'date_range', from: relative.date, to: relative.date, label: relative.label }
+                }
+            }
+        }
+    };
 }
 
 function buildPlannerPrompt(message = '', { referenceDate = new Date() } = {}) {
@@ -217,7 +274,7 @@ async function planWithGemini({ message = '', env = process.env, referenceDate =
     const planner = structuredResponseOverrideForTest || getStructuredResponseFromLLM;
     const response = await planner(buildPlannerPrompt(message, { referenceDate }));
     if (!response || response.error) return null;
-    return normalizePlannerPlan(response);
+    return repairPlannerPlanForExplicitRelativeDate(normalizePlannerPlan(response), { message, referenceDate });
 }
 
 module.exports = {
@@ -227,8 +284,10 @@ module.exports = {
     normalizePlannerPlan,
     planWithGemini,
     __test__: {
+        explicitRelativeDateFromMessage,
         formatReferenceDate,
         normalizeEventTypes,
+        repairPlannerPlanForExplicitRelativeDate,
         setStructuredResponseOverrideForTest: (override) => {
             structuredResponseOverrideForTest = override;
         },
