@@ -64,6 +64,7 @@ function buildPlannerPrompt(message = '', { referenceDate = new Date() } = {}) {
         '- Em FinancialQueryPlan, period.month e zero-based: janeiro=0, fevereiro=1, ..., junho=5, dezembro=11.',
         '- Se a pergunta disser lancamento, movimento ou transacao sem restringir tipo, use todos os event_type publicos relevantes.',
         '- Preserve a quantidade solicitada em limit e, quando o usuario nomear um cartao, preserve esse nome em card.',
+        '- Dominios validos do FinancialQueryPlan: expenses, cards, income, transfers, budget, goals, debts, bills. Para gastos de cartao, use domain cards; nao use card_expense ou card_expenses como domain.',
         '- Para cartoes: se o usuario disser gastei, comprei, compras ou informar intervalo de datas, use timeBasis transaction_date e period {type:"date_range", from:"YYYY-MM-DD", to:"YYYY-MM-DD"}; use billing_month apenas para fatura, vencimento ou mes de cobranca.',
         '- Para perguntas de total ou quanto gastei, use operation sum. Nao use operation summary.',
         '- Se faltar periodo/criterio essencial, retorne clarify.',
@@ -96,13 +97,14 @@ function repairPlannerFinancialQueryPlan(plan = {}) {
         : plan.filters;
     const repaired = { ...plan, ...(filters ? { filters } : {}) };
     const domain = String(repaired.domain || '').trim().toLowerCase();
+    const cardDomainAliases = new Set(['card_expense', 'card_expenses', 'credit_card', 'credit_cards']);
     const operation = String(repaired.operation || '').trim().toLowerCase();
     const periodType = String(filters?.period?.type || '').trim().toLowerCase();
     const hasCardFilter = Boolean(filters?.card);
-    if (operation === 'summary' && hasCardFilter && (domain === 'cards' || domain === 'expenses') && periodType === 'date_range') {
+    if (operation === 'summary' && hasCardFilter && (domain === 'cards' || domain === 'expenses' || cardDomainAliases.has(domain)) && periodType === 'date_range') {
         repaired.operation = 'sum';
     }
-    if (domain === 'expenses' && hasCardFilter) {
+    if (cardDomainAliases.has(domain) || (domain === 'expenses' && hasCardFilter)) {
         repaired.domain = 'cards';
         if (!repaired.timeBasis && String(filters.period?.type || '').trim().toLowerCase() === 'date_range') {
             repaired.timeBasis = 'transaction_date';

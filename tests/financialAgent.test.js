@@ -1368,6 +1368,28 @@ test('Gemini planner is disabled by default and can only produce safe tool plans
     assert.strictEqual(cardFilteredExpensePlan.args.plan.operation, 'sum');
     assert.strictEqual(cardFilteredExpensePlan.args.plan.filters.card, 'Nubank - Thais');
     assert.strictEqual(cardFilteredExpensePlan.args.plan.timeBasis, 'transaction_date');
+
+    const cardExpenseAliasPlan = normalizePlannerPlan({
+        action: 'tool',
+        tool: 'query_financial_plan',
+        args: {
+            plan: {
+                kind: 'financial_query',
+                domain: 'card_expenses',
+                operation: 'sum',
+                filters: {
+                    period: { type: 'date_range', from: '2026-06-30', to: '2026-07-01' },
+                    card: 'Nubank - Thais'
+                },
+                timeBasis: 'transaction_date'
+            }
+        }
+    });
+    assert.strictEqual(cardExpenseAliasPlan.action, 'tool');
+    assert.strictEqual(cardExpenseAliasPlan.args.plan.domain, 'cards');
+    assert.strictEqual(cardExpenseAliasPlan.args.plan.operation, 'sum');
+    assert.strictEqual(cardExpenseAliasPlan.args.plan.filters.card, 'Nubank - Thais');
+    assert.strictEqual(cardExpenseAliasPlan.args.plan.timeBasis, 'transaction_date');
     const unsafeQueryPlan = normalizePlannerPlan({
         action: 'tool',
         tool: 'query_financial_plan',
