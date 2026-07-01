@@ -161,6 +161,11 @@ function findMatchingBill(row, bills) {
     }) >= 4) || null;
 }
 
+function isMarkedRecurringExpense(row = {}) {
+    const recurring = normalizeText(row.recorrente || row.recorrencia || row.recurring || '');
+    return ['sim', 's', 'true', '1'].includes(recurring);
+}
+
 function isUnknownCategory(row) {
     const category = normalizeText(row.categoria || '');
     return !category || category === 'outros' || category === 'outro' || category === 'sem categoria';
@@ -223,7 +228,7 @@ function projectBills(input, collection) {
 function projectExpenses(input, collection, bills) {
     for (const row of input.legacyRows?.saidas || []) {
         const ref = sourceRef(row, `saidas-${hash(row, 8)}`);
-        const matchingBill = findMatchingBill(row, bills);
+        const matchingBill = isMarkedRecurringExpense(row) ? findMatchingBill(row, bills) : null;
         const expectedEvent = matchingBill ? collection.events.find(event => event.source_row_ref === matchingBill.sourceRowRef) : null;
         const unknownCategory = isUnknownCategory(row);
         const dueOn = matchingBill ? billDueDate(input.projectionContext?.competenceMonth, matchingBill.dueDay) : null;

@@ -59,7 +59,7 @@ test('canonical receipt projector maps committed expense, income and transfer ro
 test('canonical receipt projector excludes registered phone bill payments from free budget', () => {
     const projection = buildCanonicalLedgerReceiptProjection({
         sheetName: 'Saídas',
-        row: ['25/06/2026', 'Claro telefone', 'Moradia', 'INTERNET / TELEFONE', 120, 'Daniel', 'PIX', 'Não', '', 'user-a'],
+        row: ['25/06/2026', 'Claro telefone', 'Moradia', 'INTERNET / TELEFONE', 120, 'Daniel', 'PIX', 'SIM', '', 'user-a'],
         operationKey: 'phone-bill-payment-op',
         receipt: { updatedRange: 'Saídas!A12:J12' },
         accountRows: [
@@ -73,6 +73,25 @@ test('canonical receipt projector excludes registered phone bill payments from f
     assert.strictEqual(event.free_budget_eligible, false);
     assert.strictEqual(event.net_income_expense_impact, 0);
     assert.strictEqual(projection.publicProjection[0].free_budget_eligible, false);
+});
+test('canonical receipt projector keeps non-recurring expenses in free budget even when category matches a registered bill', () => {
+    const projection = buildCanonicalLedgerReceiptProjection({
+        sheetName: 'Saídas',
+        row: ['01/07/2026', 'mercado TESTE_APAGAR_LEDGER_CMD', 'Alimentação', 'SUPERMERCADO', 18.03, 'Daniel', 'PIX', 'Não', 'Gasto interpretado pelo command planner.', 'user-a'],
+        operationKey: 'ordinary-market-expense-op',
+        receipt: { updatedRange: 'Saídas!A20:J20' },
+        accountRows: [
+            ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa'],
+            ['MERCADO', '5', '', 'user-a', 'Mercado recorrente', 'Alimentação', 'SUPERMERCADO', '18,03', 'SIM']
+        ]
+    });
+
+    const event = projection.projected.events[0];
+    assert.strictEqual(event.kind, 'expense');
+    assert.strictEqual(event.free_budget_eligible, true);
+    assert.strictEqual(event.net_income_expense_impact, 1803);
+    assert.strictEqual(projection.publicProjection[0].kind, 'expense');
+    assert.strictEqual(projection.publicProjection[0].free_budget_eligible, true);
 });
 test('canonical receipt projector preserves pending transfer status', () => {
     const projection = buildCanonicalLedgerReceiptProjection({

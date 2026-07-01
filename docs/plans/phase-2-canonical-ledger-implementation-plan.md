@@ -103,3 +103,9 @@ when canonical rows are present but the filtered canonical window is smaller
 than the requested `limit` and the legacy read-model has more matching rows.
 This prevents a partially populated shadow ledger from truncating answers such
 as recent transactions while Phase 2 is still accumulating coverage.
+
+## Recurring Marker Guard - 2026-07-01
+
+A marker-only parity run found a false canonical classification: an ordinary market expense could become `bill_payment` when a registered bill had a similar category/value. The projector now treats `Saidas` rows as bill payments only when the committed legacy row is explicitly marked recurring (`Recorrente=SIM` or equivalent). Non-recurring expenses remain `expense`, keep `free_budget_eligible=true`, and keep their normal net expense impact even when a `Contas` rule matches.
+
+This keeps the production writer contract aligned with `bill.pay`, which writes recurring account payments with `Recorrente=SIM`. After deploy, repeat cleanup/parity before enabling any production read canary.
