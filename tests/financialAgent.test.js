@@ -1299,6 +1299,7 @@ test('Gemini planner is disabled by default and can only produce safe tool plans
     assert.match(prompt, /Nao calcule valores|Não calcule valores/i);
     assert.match(prompt, /Data de referencia: 2026-06-15/);
     assert.match(prompt, /Indice de mes para FinancialQueryPlan: 5/);
+    assert.match(prompt, /hoje=2026-06-15, ontem=2026-06-14, anteontem=2026-06-13/);
     assert.match(prompt, /junho=5/);
     assert.match(prompt, /este mes|do mes/i);
     assert.match(prompt, /preserve.*quantidade|quantidade.*solicitada/i);

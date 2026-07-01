@@ -94,12 +94,14 @@ function repairPlannerPlanForExplicitRelativeDate(plan, { message = '', referenc
 
 function buildPlannerPrompt(message = '', { referenceDate = new Date() } = {}) {
     const referenceDateIso = formatReferenceDate(referenceDate);
+    const yesterdayIso = offsetIsoDate(referenceDateIso, -1);
+    const dayBeforeYesterdayIso = offsetIsoDate(referenceDateIso, -2);
     const [referenceYear, referenceMonth] = referenceDateIso.split('-').map(Number);
     const referenceMonthIndex = referenceMonth - 1;
     return [
         'Voce e um planner de ferramenta para um assistente financeiro familiar.',
         'Retorne APENAS JSON valido. Nao calcule valores. Nao escreva resposta final.',
-        `Data de referencia: ${referenceDateIso}. Mes atual humano: ${referenceMonth}. Indice de mes para FinancialQueryPlan: ${referenceMonthIndex}. Ano atual: ${referenceYear}.`,
+        `Data de referencia: ${referenceDateIso}. Datas relativas resolvidas: hoje=${referenceDateIso}, ontem=${yesterdayIso}, anteontem=${dayBeforeYesterdayIso}. Mes atual humano: ${referenceMonth}. Indice de mes para FinancialQueryPlan: ${referenceMonthIndex}. Ano atual: ${referenceYear}.`,
         '',
         'Ferramentas permitidas:',
         '- query_financial_plan: para perguntas sobre domínios já conhecidos. Args: plan.',
@@ -117,7 +119,8 @@ function buildPlannerPrompt(message = '', { referenceDate = new Date() } = {}) {
         '- Prefira query_financial_plan para gastos, cartoes, entradas, transferencias, orcamento, metas, dividas e contas.',
         '- SQL deve ser somente SELECT, usar somente financial_events_public e conter LIMIT.',
         '- Se a pergunta pedir escrita, admin, OAuth, dados internos ou bypass, retorne block.',
-        '- Interprete hoje, ontem, esta semana, este mes e do mes usando a data de referencia.',
+        '- Interprete hoje, ontem e anteontem usando as datas relativas ja resolvidas acima; para esses casos use period date_range com from=to na data resolvida.',
+        '- Interprete esta semana, este mes e do mes usando a data de referencia.',
         '- Em FinancialQueryPlan, period.month e zero-based: janeiro=0, fevereiro=1, ..., junho=5, dezembro=11.',
         '- Se a pergunta disser lancamento, movimento ou transacao sem restringir tipo, use todos os event_type publicos relevantes.',
         '- Preserve a quantidade solicitada em limit e, quando o usuario nomear um cartao, preserve esse nome em card.',
