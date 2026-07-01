@@ -3171,6 +3171,7 @@ test('messageHandler.classifyPerguntaLocally covers complex analytical questions
 test('messageHandler asks for category clarification before saving an uncategorized expense', () => {
     const {
         expenseCategoryNeedsClarification,
+        resolveExpenseCategoryFocus,
         buildExpenseCategoryOptions,
         parseExpenseCategorySelectionReply
     } = messageHandler.__test__;
@@ -3228,7 +3229,22 @@ test('messageHandler asks for category clarification before saving an uncategori
     assert.strictEqual(parseExpenseCategorySelectionReply('Pets / Banho e tosa', options).ok, false);
     assert.strictEqual(parseExpenseCategorySelectionReply('banana espacial', options).ok, false);
     assert.strictEqual(parseExpenseCategorySelectionReply('   ', options).ok, false);
-});
+    assert.strictEqual(resolveExpenseCategoryFocus({
+        item: { categoria: 'Alimentação', subcategoria: '' },
+        registeredCategories: []
+    }), 'Alimentação');
+    assert.strictEqual(resolveExpenseCategoryFocus({
+        item: { categoria: 'Hobbies', subcategoria: '' },
+        registeredCategories: [{ categoria: 'Hobbies', subcategoria: 'Colecionáveis' }]
+    }), 'Hobbies');
+    assert.strictEqual(resolveExpenseCategoryFocus({
+        item: { categoria: 'Outros', subcategoria: '', descricao: 'lanchando em petropolis' },
+        registeredCategories: []
+    }), 'Alimentação');
+    assert.strictEqual(resolveExpenseCategoryFocus({
+        item: { categoria: 'Categoria Inventada Pelo Modelo', subcategoria: '', descricao: 'assinatura secreta teste' },
+        registeredCategories: []
+    }), '');});
 
 test('messageHandler analytical follow-ups inherit safe context without raw spreadsheet data', () => {
     const {

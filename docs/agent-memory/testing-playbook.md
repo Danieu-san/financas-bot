@@ -221,6 +221,8 @@ Validar:
   shadow, `financial_events_public` e `state_store.json`.- Se o usuario E2E conversa por identificador WhatsApp `@lid` e o telefone publico nao resolve na aba `Users`, configurar `WHATSAPP_E2E_TEST_USER_LOOKUP` com um nome/lookup explicito e unico de usuario `ACTIVE`; nao usar lookup ambiguo nem usuario nao ativo.
 - Para `expense.create` planejado, cobrir tambem data natural sem ano (`no dia 28 de junho`) e o caminho categoria assistida -> `Credito` -> cartao -> parcelas -> confirmacao. Incluir caso em que o modelo/plano traz data de hoje por engano: a data deterministica escrita na mensagem deve sobrescrever o default divergente. Esperado: nenhuma linha em `Saidas`, linha no cartao com a data retroativa preservada e categoria/subcategoria nova persistida somente depois do `sim` final.
 
+- Para categoria assistida de `expense.create`, cobrir dois casos: o Gemini devolve uma categoria ampla sem subcategoria e o Gemini devolve `Outros`, mas a descricao permite foco conservador. O bot deve listar todas as subcategorias existentes do grupo focado, nao misturar categorias globais e oferecer `Criar nova subcategoria em <categoria>`. A criacao focada nao pergunta a categoria novamente; cadastro e gasto so persistem depois do `sim` final. Em modo `enforce`, escolher a subcategoria nao pode apagar a proveniencia LLM dos demais campos.
+
 ## Canonical Ledger
 
 Validar:

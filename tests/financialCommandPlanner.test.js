@@ -18,6 +18,7 @@ test('financial command planner prompt is compact, public and isolates user inpu
     assert.ok(prompt.includes('financial-command-plan-v1'));
     assert.ok(prompt.includes('bill.pay'));
     assert.ok(prompt.includes('match_recurring_bill'));
+    assert.match(prompt, /categoria ampla semantica/i);
     assert.ok(prompt.includes('2026-06-25'));
     assert.ok(prompt.includes('[MENSAGEM_NAO_CONFIAVEL]'));
     assert.ok(prompt.includes('Paguei 469,09 da conta de telefone'));

@@ -852,19 +852,30 @@ function descriptionLooksLikeReferenceIdentifier(description = '') {
     return uppercaseLetters / letters.length >= 0.8 && /^[A-Za-zÀ-ÿ0-9_-]+$/.test(compact);
 }
 
+function knownExpenseCategoryHasSubcategories(category = '') {
+    const normalizedCategory = normalizeText(category);
+    if (!normalizedCategory || normalizedCategory === 'outros') return false;
+    return getKnownExpenseCategoryOptions().some(option =>
+        normalizeText(option.categoria) === normalizedCategory &&
+        Boolean(String(option.subcategoria || '').trim())
+    );
+}
+
 function expenseCategoryNeedsClarification(item = {}) {
     if (item.type !== 'Saídas' || item.categoryConfirmed) return false;
     if (descriptionLooksLikeReferenceIdentifier(item.descricao || item.description)) return false;
     const category = normalizeText(item.categoria || item.category || '');
+    const subcategory = normalizeText(item.subcategoria || item.subcategory || '');
     if (!category || category === 'outros') return true;
+    if (knownExpenseCategories.has(category) && !subcategory && knownExpenseCategoryHasSubcategories(category)) return true;
     return !knownExpenseCategories.has(category);
 }
-
 function normalizeExpenseCategoryOption(option = {}) {
     const categoria = String(option.category || option.categoria || '').trim().slice(0, 60);
     const subcategoria = String(option.subcategory || option.subcategoria || '').trim().slice(0, 80);
+    const categoryFocus = String(option.categoryFocus || '').trim().slice(0, 60);
     if (!categoria) return null;
-    return { categoria, subcategoria, createNew: option.createNew === true };
+    return { categoria, subcategoria, createNew: option.createNew === true, categoryFocus };
 }
 
 function getKnownExpenseCategoryOptions() {
@@ -879,17 +890,96 @@ function getKnownExpenseCategoryOptions() {
     return options;
 }
 
-function buildExpenseCategoryOptions({ candidates = [], registeredCategories = [], limit = 8 } = {}) {
+function expenseCategoryOptionMatchesFocus(option = {}, categoryFocus = '') {
+    const normalizedFocus = normalizeText(categoryFocus);
+    return normalizedFocus && normalizeText(option.categoria || option.category || '') === normalizedFocus;
+}
+
+const EXPENSE_CATEGORY_FOCUS_HINTS = [
+    {
+        categoria: 'Alimentação',
+        terms: [
+            'alimentacao', 'comida', 'restaurante', 'ifood', 'delivery', 'padaria',
+            'mercado', 'supermercado', 'guanabara', 'assai', 'lanche', 'lanches',
+            'lanchando', 'lanchonete', 'almoco', 'almocando', 'jantar', 'jantando'
+        ],
+        prefixes: []
+    },
+    {
+        categoria: 'Transporte',
+        terms: ['transporte', 'uber', '99', 'trem', 'metro', 'onibus', 'gasolina', 'combustivel'],
+        prefixes: []
+    },
+    {
+        categoria: 'Moradia',
+        terms: ['moradia', 'aluguel', 'condominio', 'iptu', 'luz', 'agua', 'internet'],
+        prefixes: []
+    },
+    {
+        categoria: 'Saúde',
+        terms: ['saude', 'farmacia', 'remedio', 'consulta', 'exame'],
+        prefixes: []
+    }
+];
+
+function inferExpenseCategoryFocusFromText(text = '') {
+    const normalized = normalizeText(text).replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!normalized) return '';
+    const words = normalized.split(' ').filter(Boolean);
+    for (const hint of EXPENSE_CATEGORY_FOCUS_HINTS) {
+        if (hint.terms.some(term => words.includes(term))) return hint.categoria;
+        if (hint.prefixes.some(prefix => words.some(word => word.startsWith(prefix)))) return hint.categoria;
+    }
+    return '';
+}
+
+function resolveExpenseCategoryFocus({ item = {}, messageBody = '', registeredCategories = [] } = {}) {
+    const category = String(item.categoria || item.category || '').trim();
+    const subcategory = String(item.subcategoria || item.subcategory || '').trim();
+    const normalizedCategory = normalizeText(category);
+    const categoryExists = knownExpenseCategories.has(normalizedCategory) || registeredCategories.some(option =>
+        normalizeText(option?.categoria || option?.category || '') === normalizedCategory
+    );
+    if (category && normalizedCategory !== 'outros' && !subcategory && categoryExists) return category;
+    return inferExpenseCategoryFocusFromText([
+        item.descricao,
+        item.description,
+        item.originalMessage,
+        messageBody
+    ].filter(Boolean).join(' '));
+}
+
+function buildExpenseCategoryOptions({ candidates = [], registeredCategories = [], limit = 8, categoryFocus = '' } = {}) {
     const options = [];
     const seen = new Set();
     const add = (option) => {
         const normalized = normalizeExpenseCategoryOption(option);
         if (!normalized) return;
-        const key = `${normalizeText(normalized.categoria)}|${normalizeText(normalized.subcategoria)}|${normalized.createNew ? 'create' : 'existing'}`;
+        const key = `${normalizeText(normalized.categoria)}|${normalizeText(normalized.subcategoria)}|${normalized.createNew ? 'create' : 'existing'}|${normalizeText(normalized.categoryFocus)}`;
         if (seen.has(key)) return;
         seen.add(key);
         options.push(normalized);
     };
+
+    const safeCategoryFocus = String(categoryFocus || '').trim();
+    if (safeCategoryFocus) {
+        for (const candidate of registeredCategories) {
+            if (expenseCategoryOptionMatchesFocus(candidate, safeCategoryFocus)) add(candidate);
+        }
+        for (const candidate of candidates) {
+            if (expenseCategoryOptionMatchesFocus(candidate, safeCategoryFocus)) add(candidate);
+        }
+        for (const candidate of getKnownExpenseCategoryOptions()) {
+            if (expenseCategoryOptionMatchesFocus(candidate, safeCategoryFocus) && String(candidate.subcategoria || '').trim()) add(candidate);
+        }
+        options.push({
+            categoria: `Criar nova subcategoria em ${safeCategoryFocus}`,
+            subcategoria: '',
+            createNew: true,
+            categoryFocus: safeCategoryFocus
+        });
+        return options;
+    }
 
     for (const candidate of candidates) add(candidate);
     for (const candidate of registeredCategories) {
@@ -901,20 +991,44 @@ function buildExpenseCategoryOptions({ candidates = [], registeredCategories = [
         add(candidate);
     }
     add({ categoria: 'Outros', subcategoria: '' });
-    options.push({ categoria: 'Criar nova categoria/subcategoria', subcategoria: '', createNew: true });
+    options.push({ categoria: 'Criar nova categoria/subcategoria', subcategoria: '', createNew: true, categoryFocus: '' });
     return options;
 }
 
+function getExpenseCategoryQuestionFocus(options = [], categoryFocus = '') {
+    const explicitFocus = String(categoryFocus || '').trim();
+    if (explicitFocus) return explicitFocus;
+    const focusedCreateOption = options.find(option => option?.createNew && option.categoryFocus);
+    if (focusedCreateOption?.categoryFocus) return focusedCreateOption.categoryFocus;
+    const existingOptions = options.filter(option => option && !option.createNew && normalizeText(option.categoria) !== 'outros');
+    if (!existingOptions.length) return '';
+    const firstCategory = normalizeText(existingOptions[0].categoria || '');
+    if (!firstCategory) return '';
+    return existingOptions.every(option => normalizeText(option.categoria || '') === firstCategory)
+        ? existingOptions[0].categoria
+        : '';
+}
+
 function formatExpenseCategoryOption(option = {}) {
+    if (option.createNew && option.categoryFocus) return `Criar nova subcategoria em ${option.categoryFocus}`;
     if (option.createNew) return 'Criar nova categoria/subcategoria';
     if (!option.subcategoria) return option.categoria || 'Outros';
     return `${option.categoria} / ${option.subcategoria}`;
 }
 
-function buildExpenseCategorySelectionQuestion({ item = {}, options = [] } = {}) {
+function buildExpenseCategorySelectionQuestion({ item = {}, options = [], categoryFocus = '' } = {}) {
+    const focus = getExpenseCategoryQuestionFocus(options, categoryFocus);
+    const headerLines = focus
+        ? [
+            `Identifiquei que isso parece ser ${focus}. Qual subcategoria?`,
+            'Escolha uma subcategoria existente ou crie uma nova:'
+        ]
+        : [
+            `Não reconheci com segurança a categoria de "${item.descricao || item.description || 'esse gasto'}".`,
+            'Escolha uma categoria existente ou crie uma nova:'
+        ];
     const lines = [
-        `Não reconheci com segurança a categoria de "${item.descricao || item.description || 'esse gasto'}".`,
-        'Escolha uma categoria existente ou crie uma nova:',
+        ...headerLines,
         '',
         ...options.map((option, index) => `${index + 1}. ${formatExpenseCategoryOption(option)}`),
         '',
@@ -953,6 +1067,7 @@ function selectAutoResolvedExpenseCategoryOption(expense = {}, options = []) {
     });
     return matches.length === 1 ? matches[0] : null;
 }
+
 function parseExpenseCategorySelectionReply(messageBody = '', options = []) {
     const raw = String(messageBody || '').trim().replace(/\s+/g, ' ');
     if (!raw) return { ok: false, reason: 'empty' };
@@ -961,7 +1076,7 @@ function parseExpenseCategorySelectionReply(messageBody = '', options = []) {
     if (numericChoice !== null) {
         const option = options[numericChoice - 1];
         if (!option) return { ok: false, reason: 'invalid_option' };
-        if (option.createNew) return { ok: true, createNew: true };
+        if (option.createNew) return { ok: true, createNew: true, categoryFocus: option.categoryFocus || '' };
         return { ok: true, categoria: option.categoria, subcategoria: option.subcategoria || '' };
     }
     if (['outro', 'outros', 'sem categoria'].includes(normalized)) {
@@ -1086,13 +1201,13 @@ async function buildExpenseCategoryOptionsForUser({ userId, item = {}, messageBo
             limit: 5,
             minScore: 2
         });
-        return buildExpenseCategoryOptions({ candidates: resolved.candidates || [], registeredCategories });
+        const categoryFocus = resolveExpenseCategoryFocus({ item, messageBody, registeredCategories });
+        return buildExpenseCategoryOptions({ candidates: resolved.candidates || [], registeredCategories, categoryFocus });
     } catch (error) {
         logger.warn(`[category-assist] fallback_to_known_options error="${error?.message || error}"`);
-        return buildExpenseCategoryOptions();
+        return buildExpenseCategoryOptions({ categoryFocus: resolveExpenseCategoryFocus({ item, messageBody }) });
     }
 }
-
 async function askExpenseCategoryClarification({ msg, senderId, item, messageBody, userId }) {
     const categoryOptions = await buildExpenseCategoryOptionsForUser({ userId, item, messageBody });
     userStateManager.setState(senderId, {
@@ -1171,7 +1286,22 @@ async function continueLegacyExpenseAfterCategorySelection({ msg, senderId, user
     userStateManager.deleteState(senderId);
 }
 
-async function startExpenseNewCategoryFlow({ msg, senderId, currentState, flow }) {
+async function startExpenseNewCategoryFlow({ msg, senderId, currentState, flow, categoryFocus = '' }) {
+    const focusedCategory = String(categoryFocus || currentState.data?.categoryFocus || '').trim();
+    if (focusedCategory) {
+        userStateManager.setState(senderId, {
+            action: 'awaiting_expense_new_subcategory_name',
+            data: {
+                flow,
+                gasto: currentState.data?.gasto,
+                expense: currentState.data?.expense,
+                newCategoryName: focusedCategory
+            }
+        });
+        await msg.reply(`Qual é a nova subcategoria dentro de "${focusedCategory}"? Se não tiver, responda "sem subcategoria".`);
+        return;
+    }
+
     userStateManager.setState(senderId, {
         action: 'awaiting_expense_new_category_name',
         data: {
@@ -1182,7 +1312,6 @@ async function startExpenseNewCategoryFlow({ msg, senderId, currentState, flow }
     });
     await msg.reply('Qual é o nome da nova categoria?');
 }
-
 async function continueAfterNewExpenseCategory({ msg, senderId, userId, pessoa, currentState, categoria, subcategoria }) {
     const pendingCategoryRegistration = { categoria, subcategoria };
 
@@ -1214,7 +1343,7 @@ async function continueAfterNewExpenseCategory({ msg, senderId, userId, pessoa, 
             categoryConfirmed: true,
             requiresFinalConfirmation: true,
             confirmationSource: 'legacy_category_assist',
-            interpretationSource: 'user_state',
+            interpretationSource: currentState.data?.gasto?.interpretationSource || 'user_state',
             pendingCategoryRegistration
         }
     });
@@ -7938,7 +8067,7 @@ async function handleMessage(msg) {
                     return;
                 }
                 if (parsedCategory.createNew) {
-                    await startExpenseNewCategoryFlow({ msg, senderId, currentState, flow: 'legacy' });
+                    await startExpenseNewCategoryFlow({ msg, senderId, currentState, flow: 'legacy', categoryFocus: parsedCategory.categoryFocus });
                     return;
                 }
 
@@ -7952,9 +8081,9 @@ async function handleMessage(msg) {
                         categoria: parsedCategory.categoria,
                         subcategoria: parsedCategory.subcategoria,
                         categoryConfirmed: true,
-                                    requiresFinalConfirmation: true,
+                        requiresFinalConfirmation: true,
                         confirmationSource: 'legacy_category_assist',
-                        interpretationSource: 'user_state'
+                        interpretationSource: gasto.interpretationSource || 'user_state'
                     }
                 });
                 return;
@@ -7969,7 +8098,7 @@ async function handleMessage(msg) {
                     return;
                 }
                 if (parsedCategory.createNew) {
-                    await startExpenseNewCategoryFlow({ msg, senderId, currentState, flow: 'planned' });
+                    await startExpenseNewCategoryFlow({ msg, senderId, currentState, flow: 'planned', categoryFocus: parsedCategory.categoryFocus });
                     return;
                 }
                 await continuePlannedExpense({
@@ -9947,6 +10076,7 @@ module.exports = {
         extractMultipleCategoriesFromQuestion,
         extractComparisonCategoriesFromQuestion,
         expenseCategoryNeedsClarification,
+        resolveExpenseCategoryFocus,
         buildExpenseCategoryOptions,
         parseExpenseCategorySelectionReply,
         normalizeInvitePhoneToWhatsAppId,

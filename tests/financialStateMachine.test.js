@@ -1202,7 +1202,7 @@ stateMachineTest('financial states: adversarial command planner requires categor
             date: '30/06/2026',
             paymentMethod: 'PIX',
             category: 'Categoria Inventada Pelo Modelo',
-            subcategory: 'Subcategoria Inventada'
+            subcategory: ''
         },
         fieldEvidence: {
             description: 'explicit',
@@ -1217,8 +1217,9 @@ stateMachineTest('financial states: adversarial command planner requires categor
 
     try {
         const categoryQuestion = await send('Gastei 19,99 na assinatura secreta teste via Pix');
-        assert.match(categoryQuestion, /Escolha uma categoria existente/i);
-        assert.match(categoryQuestion, /Criar nova categoria\/subcategoria/i);
+        assert.match(categoryQuestion, /Escolha uma (?:categoria|subcategoria) existente/i);
+        assert.match(categoryQuestion, /Criar nova (?:categoria\/subcategoria|subcategoria em)/i);
+        assert.doesNotMatch(categoryQuestion, /Categoria Inventada Pelo Modelo/i);
         assert.strictEqual(sheets.Saídas.length, 1);
         assert.ok(
             ['awaiting_planned_expense_category', 'awaiting_expense_category'].includes(userStateManager.getState(SENDER).action),
@@ -1302,10 +1303,11 @@ stateMachineTest('financial states: planned expense category clarification requi
 
     try {
         const categoryQuestion = await send('Gastei 45 no mercado teste categoria via Pix');
-        assert.match(categoryQuestion, /Escolha uma categoria existente/i);
+        assert.match(categoryQuestion, /parece ser Alimentação/i);
+        assert.match(categoryQuestion, /Escolha uma subcategoria existente/i);
         const mercadoOption = categoryQuestion.match(/(^|\n)(\d+)\.\s*Alimentação\s*\/\s*SUPERMERCADO/im);
         assert.ok(mercadoOption, categoryQuestion);
-        assert.match(categoryQuestion, /Criar nova categoria\/subcategoria/i);
+        assert.match(categoryQuestion, /Criar nova subcategoria em Alimentação/i);
         assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_planned_expense_category');
         assert.strictEqual(sheets.Saídas.length, 1);
 
@@ -1328,6 +1330,109 @@ stateMachineTest('financial states: planned expense category clarification requi
     }
 });
 
+stateMachineTest('financial states: planned expense category clarification focuses inferred broad category subcategories', async () => {
+    resetState();
+    const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
+    sheets.Categorias.push(['Alimentação', 'Comida na rua', 'SIM', '2026-07-01T00:00:00.000Z', USER_ID]);
+    enqueueStructuredResponse({
+        schemaVersion: 'financial-command-plan-v1',
+        operation: 'expense.create',
+        entities: {
+            description: 'lanchando em petropolis',
+            amount: 25,
+            date: '28/06/2026',
+            paymentMethod: 'PIX',
+            category: 'Alimentação',
+            subcategory: ''
+        },
+        fieldEvidence: {
+            description: 'explicit',
+            amount: 'explicit',
+            date: 'explicit',
+            paymentMethod: 'explicit'
+        },
+        contextRequests: [{ tool: 'resolve_category', query: 'lanchando em petropolis' }],
+        missingFields: [],
+        requiresConfirmation: true
+    });
+
+    try {
+        const categoryQuestion = await send('Gastei 25 reais lanchando em petropolis no dia 28 de junho via Pix');
+        assert.match(categoryQuestion, /parece ser Alimentação/i);
+        assert.match(categoryQuestion, /Qual subcategoria/i);
+        assert.match(categoryQuestion, /\d+\.\s*Alimentação\s*\/\s*Comida na rua/i);
+        assert.match(categoryQuestion, /\d+\.\s*Alimentação\s*\/\s*SUPERMERCADO/i);
+        assert.match(categoryQuestion, /\d+\.\s*Alimentação\s*\/\s*RESTAURANTE/i);
+        assert.match(categoryQuestion, /\d+\.\s*Alimentação\s*\/\s*PADARIA \/ LANCHE/i);
+        assert.doesNotMatch(categoryQuestion, /Transporte\s*\/\s*UBER/i);
+        assert.doesNotMatch(categoryQuestion, /Moradia\s*\/\s*ALUGUEL/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_planned_expense_category');
+
+        const comidaOption = categoryQuestion.match(/(^|\n)(\d+)\.\s*Alimentação\s*\/\s*Comida na rua/im);
+        assert.ok(comidaOption, categoryQuestion);
+        const confirmation = await send(comidaOption[2]);
+        assert.match(confirmation, /Categoria: \*Alimentação \/ Comida na rua\*/i);
+        assert.match(confirmation, /Data: \*28\/06\/2026\*/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_planned_expense');
+        assert.strictEqual(sheets.Saídas.length, 1);
+
+        assert.match(await send('não'), /cancelad/i);
+        assert.strictEqual(sheets.Saídas.length, 1);
+    } finally {
+        if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+        else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+    }
+});
+
+stateMachineTest('financial states: planned focused category creation asks only for new subcategory', async () => {
+    resetState();
+    const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
+    enqueueStructuredResponse({
+        schemaVersion: 'financial-command-plan-v1',
+        operation: 'expense.create',
+        entities: {
+            description: 'lanchando em petropolis',
+            amount: 25,
+            date: '28/06/2026',
+            paymentMethod: 'PIX',
+            category: 'Outros',
+            subcategory: ''
+        },
+        fieldEvidence: {
+            description: 'explicit',
+            amount: 'explicit',
+            date: 'explicit',
+            paymentMethod: 'explicit'
+        },
+        contextRequests: [{ tool: 'resolve_category', query: 'lanchando em petropolis' }],
+        missingFields: [],
+        requiresConfirmation: true
+    });
+
+    try {
+        const categoryQuestion = await send('Gastei 25 reais lanchando em petropolis no dia 28 de junho via Pix');
+        const createOption = categoryQuestion.match(/(^|\n)(\d+)\.\s*Criar nova subcategoria em Alimentação/im);
+        assert.ok(createOption, categoryQuestion);
+
+        const subcategoryQuestion = await send(createOption[2]);
+        assert.match(subcategoryQuestion, /nova subcategoria dentro de "Alimentação"/i);
+        assert.doesNotMatch(subcategoryQuestion, /nome da nova categoria/i);
+
+        const confirmation = await send('Comida na rua');
+        assert.match(confirmation, /Categoria: \*Alimentação \/ Comida na rua\*/i);
+        assert.match(confirmation, /Confirma/i);
+        assert.strictEqual(sheets.Categorias.length, 1);
+
+        assert.match(await send('sim'), /registrado/i);
+        assert.strictEqual(sheets.Categorias.length, 2);
+        assert.deepStrictEqual(sheets.Categorias[1].slice(0, 3), ['Alimentação', 'Comida na rua', 'SIM']);
+    } finally {
+        if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+        else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+    }
+});
 stateMachineTest('financial states: planned expense registers newly created category only after final confirmation', async () => {
     resetState();
     const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
@@ -1604,8 +1709,12 @@ stateMachineTest('financial states: enforce requires final confirmation when exp
     });
 
     try {
-        const confirmationRequest = await send('pix');
+        const categoryQuestion = await send('pix');
+        assert.match(categoryQuestion, /parece ser Alimentação/i);
+        const restaurantOption = categoryQuestion.match(/(^|\n)(\d+)\.\s*Alimentação\s*\/\s*RESTAURANTE/im);
+        assert.ok(restaurantOption, categoryQuestion);
 
+        const confirmationRequest = await send(restaurantOption[2]);
         assert.match(confirmationRequest, /confirma/i);
         assert.strictEqual(sheets.Saídas.length, 1);
         assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_transactions');
@@ -1684,7 +1793,12 @@ stateMachineTest('financial states: enforce preserves LLM provenance across the 
         assert.strictEqual(userStateManager.getState(SENDER).data.gasto.interpretationSource, 'llm');
         assert.strictEqual(sheets.Saídas.length, 1);
 
-        const confirmationRequest = await send('pix');
+        const categoryQuestion = await send('pix');
+        assert.match(categoryQuestion, /parece ser Alimentação/i);
+        const restaurantOption = categoryQuestion.match(/(^|\n)(\d+)\.\s*Alimentação\s*\/\s*RESTAURANTE/im);
+        assert.ok(restaurantOption, categoryQuestion);
+
+        const confirmationRequest = await send(restaurantOption[2]);
         assert.match(confirmationRequest, /confirme os dados interpretados/i);
         assert.strictEqual(userStateManager.getState(SENDER).data.transactions[0].reliabilityConfirmed, true);
 

@@ -86,6 +86,7 @@ function buildFinancialCommandPlannerPrompt(
         '- pagamento de fatura de cartao -> invoice.pay;',
         '- nova compra ou consumo -> expense.create;',
         '- categoria so e resolvida depois de conta, divida e fatura;',
+        '- para expense.create, infira uma categoria ampla semantica quando estiver clara (ex.: lanchando, restaurante ou mercado -> Alimentacao; Uber ou onibus -> Transporte); nao invente subcategoria e use resolve_category para validar opcoes existentes;',
         '- nunca inclua identidade, telefone, user_id, sheet_id, spreadsheetId, tokens ou linhas cruas;',
         '- toda operacao de escrita exige requiresConfirmation=true;',
         '- use no maximo uma solicitacao de contexto por dominio identificado;',
