@@ -115,3 +115,9 @@ This keeps the production writer contract aligned with `bill.pay`, which writes 
 Commit `fd20b49` was deployed with canonical read canary still disabled. A production marker-only run validated the corrected receipt projection: ordinary market expense was projected as `expense` with `free_budget_eligible=true`, while the recurring phone bill row marked `Recorrente=SIM` was projected as `bill_payment` with `free_budget_eligible=false`. Invoice payment, reimbursement and Uber expense also projected to the expected kinds.
 
 All marker-only Sheets rows and the five corresponding shadow runs were cleaned after verification, with SQLite backups created before deleting runs. This is a GO for the recurring marker fix itself, but still not a GO to enable production canary reads without the separate parity-window decision.
+
+## Controlled Transactions Read Canary Activation - 2026-07-01
+
+By explicit operator decision, production enabled the first canonical read canary only for the `transactions` domain. The activation changed `CANONICAL_LEDGER_CANARY_READ_ENABLED=true`, `CANONICAL_LEDGER_CANARY_READ_APPROVED=true`, and `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transactions`, preserving answer mode, the Gemini planner, contextual analyst, command planner canary, and interpretation reliability shadow.
+
+Because the marker-only evidence was cleaned, the initial smoke verified the safety fallback rather than canonical replacement: `list_recent_transactions` returned `source=legacy`, `fallbackReason=canonical_empty`, and five legacy rows while the canonical shadow had `events=0` and `publicRows=0`. The next gate is to observe real non-marker receipts in shadow and confirm they either improve canary coverage or continue to fall back without truncating answers.
