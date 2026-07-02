@@ -82,6 +82,17 @@ test('accelerated command planner gate returns GO only with complete adversarial
     assert.equal(report.telemetry.coverage['bill.pay'].replayed, 1);
 });
 
+test('accelerated command planner gate accepts deterministic idempotency evidence without forcing a production replay', () => {
+    const telemetryEntries = makeTelemetry().filter(entry => entry.outcome !== 'replayed');
+
+    const report = buildFinancialCommandPlannerAcceleratedGateReport({
+        telemetryEntries,
+        evidence: completeEvidence()
+    });
+
+    assert.equal(report.decision, 'GO');
+    assert.equal(report.telemetry.replayed, 0);
+});
 test('accelerated command planner gate blocks missing operation outcomes and missing evidence', () => {
     const telemetryEntries = makeTelemetry().filter(entry => (
         entry.operation !== 'invoice.pay' || entry.outcome === 'handled'

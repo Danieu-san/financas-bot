@@ -171,7 +171,9 @@ function buildCanonicalLedgerReceiptProjection({
     status = 'committed',
     source = '',
     receipt = {},
-    accountRows = []
+    accountRows = [],
+    committedAt = '',
+    now = () => new Date()
 } = {}) {
     if (!SUPPORTED_SHEETS.has(sheetName)) return null;
     if (!Array.isArray(row) || !String(operationKey || '').trim()) return null;
@@ -187,9 +189,18 @@ function buildCanonicalLedgerReceiptProjection({
     });
     const projected = projectLegacyRowsToCanonicalLedger(input);
     keepOnlyReceiptSourceEvents(projected, sheetName);
+    const timestampValue = committedAt || now();
+    const timestampDate = timestampValue instanceof Date
+        ? timestampValue
+        : new Date(timestampValue);
+    const projectedAt = Number.isFinite(timestampDate.getTime())
+        ? timestampDate.toISOString()
+        : new Date().toISOString();
     for (const event of projected.events) {
         event.idempotency_key = operationKey;
         event.source_id_hash = hash(operationKey, 32);
+        event.created_at = projectedAt;
+        event.updated_at = projectedAt;
     }
     decorateReceiptProjection(projected, { sheetName, row });
     const publicProjection = buildCanonicalPublicProjection(projected, input);

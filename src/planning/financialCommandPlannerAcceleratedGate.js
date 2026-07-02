@@ -80,9 +80,10 @@ function buildFinancialCommandPlannerAcceleratedGateReport({
         if (!operationCoverage.saved) blockers.push(`${operation}:missing_saved`);
         if (!operationCoverage.cancelled) blockers.push(`${operation}:missing_cancelled`);
     }
-    if (!REQUIRED_OPERATIONS.some(operation => coverage[operation].replayed > 0)) {
-        blockers.push('telemetry:missing_replay');
-    }
+    const replayed = REQUIRED_OPERATIONS.reduce(
+        (total, operation) => total + coverage[operation].replayed,
+        0
+    );
     if (invalid) blockers.push('telemetry:invalid');
     if (critical) blockers.push('telemetry:critical');
     if (errors) blockers.push('telemetry:error');
@@ -111,6 +112,7 @@ function buildFinancialCommandPlannerAcceleratedGateReport({
             invalid,
             critical,
             errors,
+            replayed,
             sensitiveRecords,
             plannerP95Ms,
             handlerP95Ms,

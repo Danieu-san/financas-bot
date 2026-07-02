@@ -892,6 +892,7 @@ async function projectCanonicalLedgerShadowAfterAppend({
         operationKey,
         status: result?.status,
         receipt: result?.receipt || {},
+        committedAt: result?.updatedAt || result?.createdAt || '',
         source,
         accountRows,
         onWarning(warning) {

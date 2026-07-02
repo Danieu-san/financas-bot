@@ -56,6 +56,20 @@ test('canonical receipt projector maps committed expense, income and transfer ro
 });
 
 
+test('canonical receipt projector timestamps real receipts with the injected projection clock', () => {
+    const timestamp = '2026-07-02T11:42:39.570Z';
+    const projection = buildCanonicalLedgerReceiptProjection({
+        sheetName: 'Saídas',
+        row: ['02/07/2026', 'Mercado', 'Alimentação', 'SUPERMERCADO', 12.33, 'Daniel', 'PIX', 'Não', '', 'user-a'],
+        operationKey: 'timestamped-expense-op',
+        receipt: { updatedRange: 'Saídas!A21:J21' },
+        committedAt: timestamp,
+        now: () => new Date('2026-07-03T00:00:00.000Z')
+    });
+
+    assert.strictEqual(projection.projected.events[0].created_at, timestamp);
+    assert.strictEqual(projection.projected.events[0].updated_at, timestamp);
+});
 test('canonical receipt projector excludes registered phone bill payments from free budget', () => {
     const projection = buildCanonicalLedgerReceiptProjection({
         sheetName: 'Saídas',
