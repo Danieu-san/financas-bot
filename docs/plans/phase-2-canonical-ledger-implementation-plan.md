@@ -155,3 +155,18 @@ telemetry divergence, no duplicate write, safe fallback in every degraded case,
 and complete cleanup. A real-time waiting period is not required when this
 matrix passes; failures become focused regression tests and keep the affected
 surface at `NO-GO`.
+
+## Accelerated Evidence Result - 2026-07-02
+
+The generated offline, live Gemini and production marker-only batteries passed
+for `bill.pay`, `debt.pay`, `invoice.pay` and `expense.create`, including save,
+cancel, classification, free-budget impact, parity, privacy and cleanup. The
+battery found and corrected a real audit defect where receipt projections kept
+the dry-run timestamp `1970-01-01`; commit `6377747` now uses the stable commit
+timestamp from the Financial Write Ledger. A post-fix production smoke recorded
+the correct 2026 timestamp and was cleaned with backup.
+
+Decision: `GO` for this accelerated evidence gate. Keep Command Planner in
+`canary`, Interpretation Reliability in `shadow`, and canonical reads limited to
+`transactions` while proceeding to the next planned migration slice. Evidence:
+`docs/qa/accelerated-command-planner-ledger-gate-2026-07-02.md`.

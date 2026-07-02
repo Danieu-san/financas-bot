@@ -283,6 +283,12 @@ Validar:
 - Reutilize exatamente o mesmo `BILL_PAY_E2E_RUN_ID` no seed remoto, conversa e cleanup remoto.
 - Aguarde cada nova resposta por fingerprint de mensagem recebida; contagem de texto histórico não prova resposta nova.
 - O cleanup final deve ser idempotente e verificar zero em Sheets, canonical ledger shadow, `financial_events_public` e estado conversacional.
+- Para seed/verificacao remotos sem abrir navegador, use o mesmo
+  `BILL_PAY_E2E_RUN_ID`, `BILL_PAY_E2E_USER_LOOKUP` com um unico usuario
+  `ACTIVE` e `BILL_PAY_E2E_ACTION=seed|verify-cleanup|cleanup`. A acao
+  `verify-cleanup` verifica uma conta e uma saida recorrente antes de limpar;
+  `cleanup` repetido deve confirmar zero linhas. O matcher exige fronteira exata
+  do marcador e nao pode remover outro run com o mesmo prefixo.
 ### Consultas plurais de lancamentos recentes
 
 - Caso minimo: `Quais foram os ultimos 4 gastos no cartao Nubank - Thais?`.
