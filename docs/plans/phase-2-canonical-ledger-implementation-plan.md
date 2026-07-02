@@ -1,6 +1,6 @@
 # Phase 2 Canonical Ledger Implementation Plan
 
-Status: production shadow writes enabled; production read canary not enabled.
+Status: production shadow writes and the `transactions` read canary are enabled.
 Date: 2026-06-30
 
 ## Baseline To Preserve
@@ -120,4 +120,38 @@ All marker-only Sheets rows and the five corresponding shadow runs were cleaned 
 
 By explicit operator decision, production enabled the first canonical read canary only for the `transactions` domain. The activation changed `CANONICAL_LEDGER_CANARY_READ_ENABLED=true`, `CANONICAL_LEDGER_CANARY_READ_APPROVED=true`, and `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transactions`, preserving answer mode, the Gemini planner, contextual analyst, command planner canary, and interpretation reliability shadow.
 
-Because the marker-only evidence was cleaned, the initial smoke verified the safety fallback rather than canonical replacement: `list_recent_transactions` returned `source=legacy`, `fallbackReason=canonical_empty`, and five legacy rows while the canonical shadow had `events=0` and `publicRows=0`. The next gate is to observe real non-marker receipts in shadow and confirm they either improve canary coverage or continue to fall back without truncating answers.
+Because the marker-only evidence was cleaned, the initial smoke verified the safety fallback rather than canonical replacement: `list_recent_transactions` returned `source=legacy`, `fallbackReason=canonical_empty`, and five legacy rows while the canonical shadow had `events=0` and `publicRows=0`.
+
+## Accelerated Evidence Gate - 2026-07-02
+
+The former passive observation window is replaced by a generated adversarial
+battery. It must create controlled receipts for every currently routed command
+(`bill.pay`, `debt.pay`, `invoice.pay`, `expense.create`) plus income,
+reimbursement and transfer projections, then verify all affected sources before
+cleaning the markers.
+
+Required blocks:
+
+1. correct committed receipt, cancellation and invalid confirmation for every
+   routed operation;
+2. unknown, ambiguous and contradictory bill/debt/invoice/card/category cases;
+3. ordinary expense versus recurring bill classification and free-budget impact;
+4. duplicate message, duplicate confirmation, replayed receipt and idempotent
+   `operationKey`;
+5. retroactive/relative dates, month boundary and `America/Sao_Paulo` rollover;
+6. Gemini timeout/invalid plan, context-tool failure and deterministic fallback;
+7. SQLite/read-model empty, partial, stale and unavailable scenarios, proving
+   canonical read or safe legacy fallback without truncation;
+8. parity of count, cents, kind, status, date, category, responsible person and
+   budget eligibility across Sheets, canonical ledger, read-model and answers;
+9. restart between planning/confirmation and safe recovery without double write;
+10. sanitized command-planner telemetry for route, confirmation, save, cancel,
+    replay and error, including latency thresholds and secret/PII scan;
+11. flag rollback for command routing and canonical reads;
+12. marker cleanup and post-cleanup audit of Sheets, ledger, state and backups.
+
+The gate is `GO` only with zero unexplained parity differences, zero critical
+telemetry divergence, no duplicate write, safe fallback in every degraded case,
+and complete cleanup. A real-time waiting period is not required when this
+matrix passes; failures become focused regression tests and keep the affected
+surface at `NO-GO`.

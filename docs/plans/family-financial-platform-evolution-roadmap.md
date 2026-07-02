@@ -76,6 +76,46 @@ Durante a abertura da Fase 1:
 Especificacao e fixtures podem avancar em paralelo, mas sem alterar fonte de
 verdade, schema real ou superficie de escrita canonica.
 
+## 3.1. Protocolo permanente de evidencia acelerada
+
+Nenhuma fase deve ficar parada apenas para "esperar e observar" volume natural.
+Quando um gate pedir janela, amostra, observacao ou uso real, o trabalho padrao e
+gerar imediatamente uma bateria que produza a evidencia necessaria de forma
+controlada, adversarial, repetivel e limpavel.
+
+Para cada superficie implementada, a bateria deve cobrir:
+
+1. caminho feliz e todas as operacoes liberadas;
+2. ambiguidades, campos ausentes, texto contraditorio e entidades inexistentes;
+3. cancelamento em cada estado, resposta invalida e retomada de conversa;
+4. duplicidade, replay, mensagens repetidas, ordem inesperada e idempotencia;
+5. datas absolutas/relativas, virada de dia/mes/ano e fuso do bot;
+6. falha e timeout de Gemini, Sheets, SQLite/read-model e WhatsApp, verificando
+   fallback e ausencia de escrita parcial;
+7. reinicio entre etapas, concorrencia plausivel e recuperacao por recibo;
+8. paridade entre Sheets, ledger, read-model, dashboard e resposta do WhatsApp;
+9. classificacao contabil, impacto no orcamento livre e ausencia de duplicacao;
+10. telemetria sanitizada, severidade, latencia, custo e ausencia de dados
+    sensiveis nos artefatos;
+11. rollback por flag e retorno ao baseline sem perda ou corrupcao;
+12. limpeza marker-only comprovada nas fontes tocadas.
+
+A execucao deve combinar testes unitarios/contratuais, maquina de estados, replay
+sanitizado, bateria live do Gemini com teto de chamadas e E2E de producao
+marker-only. Se a automacao do WhatsApp tiver dificuldade, Daniel envia as
+mensagens manualmente e devolve as respostas; nao manter espera ativa.
+
+Um gate acelerado so recebe `GO` quando a matriz de operacoes e invariantes esta
+completa, nao ha divergencia critica, os fallbacks sao seguros, a paridade foi
+demonstrada e a limpeza passou. Qualquer falha gera `NO-GO`, teste de regressao e
+correcao da causa raiz antes de repetir apenas o bloco afetado.
+
+Espera cronologica real fica reservada a riscos que nao possam ser simulados,
+como mudanca externa do protocolo do WhatsApp ou indisponibilidade do provedor.
+Nesse caso, o documento do gate deve justificar por que relogio falso, replay,
+injecao de falha, reinicio e carga sintetica nao bastam. Nao existe espera
+passiva generica nem repeticao integral de testes ja aprovados sem nova causa.
+
 ## 4. O que o FinancasBot ja faz melhor e sera mantido
 
 ### Arquitetura conversacional
