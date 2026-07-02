@@ -198,3 +198,11 @@ Decision: local infrastructure is `GREEN`; production activation of `accounts` r
 A local executable gate now exists for the `accounts` domain: `npm run ledger:accounts-gate -- --confirm-marker-only --marker TESTE_APAGAR_...`. It seeds a marker-only canonical receipt-shadow projection with two explicit account opening balances, validates the `accounts` canary reader, scans the public response for internal identifiers, deletes only the marker run, and writes `canonical-ledger-accounts-canary-gate.json` under the selected report directory.
 
 The runner uses process-local canary env values to exercise the reader; it does not edit `.env` and does not authorize production `CANONICAL_LEDGER_CANARY_READ_DOMAINS=accounts`. Production `accounts` remains `NO-GO` until this runner is deployed/executed against the EC2 shadow DB, the report is clean, and a separate operator decision enables the domain.
+
+## Explicit Financial Accounts Source - 2026-07-02
+
+A local TDD slice added the real input surface needed before any `accounts` activation: a separate `Contas Financeiras` sheet, distinct from recurring-bill `Contas`. The user and central spreadsheet templates include the tab with `Nome da Conta`, `Tipo`, `Saldo Inicial`, `Data de Abertura`, `Status`, `Moeda`, `Responsavel`, `user_id` and `Observacoes`.
+
+Receipt shadow projection now reads this tab and builds `projected.accounts` only from rows that have both `user_id` and an explicit monetary opening balance. Rows without opening balance, including starter examples with blank `user_id`, are ignored so the account canary keeps failing closed unless real source data exists.
+
+Decision: local source wiring is `GREEN`, but production `CANONICAL_LEDGER_CANARY_READ_DOMAINS=accounts` stays `NO-GO` until the full verification suite passes, the change is deployed inertly, real account rows are filled/seeded under marker-only rules, and an accounts-specific gate validates balances, privacy, rollback and cleanup.

@@ -29,7 +29,8 @@ test('user spreadsheet template includes required multiuser financial tabs', () 
         'Faturas',
         'Parcelamentos',
         'Categorias',
-        'Contas'
+        'Contas',
+        'Contas Financeiras'
     ]);
     assert.strictEqual(titles.includes('Importações'), false);
     assert.strictEqual(titles.includes('Configurações'), false);
@@ -61,6 +62,19 @@ test('user spreadsheet template includes required multiuser financial tabs', () 
 
     const categories = USER_SPREADSHEET_TABS.find(tab => tab.title === 'Categorias');
     assert.deepStrictEqual(categories.headers, ['Categoria', 'Subcategoria', 'Ativa', 'Criada em', 'user_id']);
+
+    const financialAccounts = USER_SPREADSHEET_TABS.find(tab => tab.title === 'Contas Financeiras');
+    assert.deepStrictEqual(financialAccounts.headers, [
+        'Nome da Conta',
+        'Tipo',
+        'Saldo Inicial',
+        'Data de Abertura',
+        'Status',
+        'Moeda',
+        'Responsável',
+        'user_id',
+        'Observações'
+    ]);
 });
 
 test('buildUserSpreadsheetResource creates a user-specific title without financial data', () => {
@@ -126,6 +140,7 @@ test('createUserSpreadsheetForUser creates spreadsheet and writes headers to eve
     assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Parcelamentos'!A1:G1"));
     assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Saídas'!A2:J2"));
     assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Cartões'!A2:G2"));
+    assert.ok(starterContent.payload.resource.data.some(item => item.range === "'Contas Financeiras'!A2:I2"));
     const dashboard = starterContent.payload.resource.data.find(item => item.range === "'Dashboard'!A1:E19");
     const faturas = starterContent.payload.resource.data.find(item => item.range === "'Faturas'!A1:F1");
     assert.ok(JSON.stringify(dashboard.values).includes("SUMIF('Saídas'!J2:J"));
@@ -227,7 +242,7 @@ test('user spreadsheet manual explains user-owned cards and sheet purpose', () =
     assert.match(text, /Dashboard/i);
     assert.match(text, /WhatsApp/i);
     assert.doesNotMatch(text, /Daniel|Thaís|Hash|Linhas Detectadas|Importações|user_id|CSV|OFX/i);
-    for (const required of ['Primeiros passos', 'Comandos do WhatsApp', 'Saídas', 'Entradas', 'Cartões', 'Lançamentos Cartão', 'Faturas', 'Parcelamentos', 'Dívidas', 'Metas', 'Contas', 'Dashboard web', 'Correções']) {
+    for (const required of ['Primeiros passos', 'Comandos do WhatsApp', 'Saídas', 'Entradas', 'Cartões', 'Lançamentos Cartão', 'Faturas', 'Parcelamentos', 'Dívidas', 'Metas', 'Contas', 'Contas Financeiras', 'Dashboard web', 'Correções']) {
         assert.ok(sections.includes(required), `Manual deve explicar: ${required}`);
     }
 });

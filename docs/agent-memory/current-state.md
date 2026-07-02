@@ -753,3 +753,10 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - O gate cria uma projecao marker-only com duas contas e `opening_balance_cents` explicito, valida a leitura canary `accounts`, verifica saldo esperado, varre vazamento de identificadores internos e limpa o run marker-only.
 - O runner usa env canary apenas no processo de teste; nao altera `.env` e nao liga `accounts` em producao.
 - Evidencia local: teste TDD em `tests/canonicalLedgerParityReport.test.js` cobre seed, leitura canonica, privacidade, cleanup e fail-closed pos-cleanup.
+
+## Canonical ledger financial accounts source - 2026-07-02
+
+- Incremento local adicionou a aba explicita `Contas Financeiras` aos templates de planilha central/usuario, com campos `Nome da Conta`, `Tipo`, `Saldo Inicial`, `Data de Abertura`, `Status`, `Moeda`, `Responsavel`, `user_id` e `Observacoes`.
+- O receipt projector agora aceita `financialAccountRows`, cria `projected.accounts` somente para linhas com `user_id` e saldo inicial monetario explicito, e ignora exemplos/linhas sem saldo para preservar fail-closed.
+- O hook shadow pos-append passa a ler `'Contas Financeiras'!A:I` quando shadow write esta habilitado, mas a leitura canary `accounts` segue desligada em producao ate gate proprio com dados reais.
+- Evidencia local: RED/GREEN em `tests/canonicalLedgerReceiptProjector.test.js`, `tests/userSpreadsheetService.test.js` e `tests/unit.test.js`; focados passaram `202/202`. Proximo passo: suite completa, audit e depois decidir deploy inerte da fonte/aba sem ativar `accounts`.

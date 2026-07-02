@@ -33,7 +33,8 @@ const USER_SHEET_NAMES = new Set([
     'Faturas',
     'Parcelamentos',
     'Categorias',
-    'Contas'
+    'Contas',
+    'Contas Financeiras'
 ]);
 
 function runWithUserSheetContext(userOrContext, fn) {
@@ -329,6 +330,7 @@ const USER_SCOPED_APPEND_USER_ID_INDEX = Object.freeze({
     'Dashboard': 3,
     'DashboardData': 3,
     'Categorias': 4,
+    'Contas Financeiras': 7,
     'Users': 0,
     'UserProfile': 0,
     'UserSettings': 0,
@@ -886,6 +888,9 @@ async function projectCanonicalLedgerShadowAfterAppend({
     const accountRows = policy.shadowWritesAllowed && sheetName === 'Saídas'
         ? await readCanonicalLedgerAccountRowsForShadow(row)
         : [];
+    const financialAccountRows = policy.shadowWritesAllowed
+        ? await readCanonicalLedgerFinancialAccountRowsForShadow(sheetName, row)
+        : [];
     return safelyProjectCommittedAppendToCanonicalShadow({
         sheetName,
         row,
@@ -895,6 +900,7 @@ async function projectCanonicalLedgerShadowAfterAppend({
         committedAt: result?.updatedAt || result?.createdAt || '',
         source,
         accountRows,
+        financialAccountRows,
         onWarning(warning) {
             logger.warn(
                 `[canonical-ledger] shadow_projection_failed code=${warning.code} sheet=${warning.sheetName} error=${warning.error}`
@@ -909,6 +915,24 @@ async function readCanonicalLedgerAccountRowsForShadow(row = []) {
         return await readDataFromSheet('Contas!A:I', userId ? { userId } : {});
     } catch (error) {
         logger.warn(`[canonical-ledger] account_rows_unavailable error=${error?.message || error}`);
+        return [];
+    }
+}
+
+function userIdFromLedgerReceiptRow(sheetName, row = []) {
+    const index = getUserIdIndexForAppend(sheetName);
+    return Number.isInteger(index) ? String(row[index] || '').trim() : '';
+}
+
+async function readCanonicalLedgerFinancialAccountRowsForShadow(sheetName, row = []) {
+    try {
+        const userId = userIdFromLedgerReceiptRow(sheetName, row);
+        return await readDataFromSheet("'Contas Financeiras'!A:I", {
+            ...(userId ? { userId } : {}),
+            suppressMissingSheetError: true
+        });
+    } catch (error) {
+        logger.warn(`[canonical-ledger] financial_account_rows_unavailable error=${error?.message || error}`);
         return [];
     }
 }
@@ -1778,6 +1802,7 @@ async function ensureSpreadsheetStructure() {
         { title: 'Metas', headers: ['Nome', 'Valor Alvo', 'Valor Atual', '% Progresso', 'Valor Mensal', 'Data Fim', 'Status', 'Prioridade', 'user_id', 'Escopo', 'Última Movimentação'], color: { red: 0.2, green: 0.6, blue: 0.8 } },
         { title: 'Movimentações Metas', headers: ['Data', 'Meta', 'Tipo', 'Valor', 'Valor Antes', 'Valor Depois', 'Observação', 'Responsável', 'user_id', 'goal_user_id'], color: { red: 0.16, green: 0.5, blue: 0.62 } },
         { title: 'Contas', headers: ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa'], color: { red: 0.9, green: 0.7, blue: 0.3 } },
+        { title: 'Contas Financeiras', headers: ['Nome da Conta', 'Tipo', 'Saldo Inicial', 'Data de Abertura', 'Status', 'Moeda', 'Responsável', 'user_id', 'Observações'], color: { red: 0.2, green: 0.42, blue: 0.36 } },
         { title: 'Categorias', headers: ['Categoria', 'Subcategoria', 'Ativa', 'Criada em', 'user_id'], color: { red: 0.2, green: 0.5, blue: 0.45 } },
         { title: 'Dashboard', headers: ['Painel Visual', 'Valor', 'Período', 'user_id', 'updated_at'], color: { red: 0.5, green: 0.5, blue: 0.5 } },
         { title: 'DashboardData', headers: ['Resumo Financeiro', 'Valor', 'Período', 'user_id', 'updated_at'], color: { red: 0.4, green: 0.4, blue: 0.6 } },

@@ -4498,6 +4498,7 @@ test('google.validateUserScopedWrite blocks user scoped rows without user_id', (
         validateUserScopedWrite('Dívidas', ['financiamento', 'banco', 'Financiamento', 1000, 900, 100, '2%', 10, '01/01/2026', 10, 'Ativa', 'Daniel', '', '10%', '', '', '', 'user-1']);
         validateUserScopedWrite('Metas', ['Reserva', 1000, 100, '10%', 100, '31/12/2026', 'Ativa', 'Alta', 'user-1']);
         validateUserScopedWrite('DashboardData', ['Saldo', 'R$ 100', 'Maio/2026', 'user-1', '2026-05-15T00:00:00.000Z']);
+        validateUserScopedWrite('Contas Financeiras', ['Conta Corrente', 'bank', '1000,00', '01/01/2026', 'active', 'BRL', 'Daniel', 'user-1', '']);
         validateUserScopedWrite('Cartão Nubank - Daniel', ['10/02/2026', 'mercado', 'Alimentação', 50, '1/1', 'Fevereiro de 2026', 'user-1']);
     });
 });
@@ -4517,6 +4518,8 @@ test('google user spreadsheet mapping keeps legacy card flows compatible', (t) =
     assert.strictEqual(mapRangeForUserSpreadsheet('Cartão Nubank - Daniel!A:G'), 'Lançamentos Cartão!A:J');
     assert.strictEqual(shouldUseUserSpreadsheetForSheet('Faturas'), true);
     assert.strictEqual(shouldUseUserSpreadsheetForSheet('Parcelamentos'), true);
+    assert.strictEqual(shouldUseUserSpreadsheetForSheet('Contas Financeiras'), true);
+    assert.strictEqual(mapRangeForUserSpreadsheet("'Contas Financeiras'!A:I"), 'Contas Financeiras!A:I');
 
     assert.deepStrictEqual(
         mapRowForUserSpreadsheet('Cartão Nubank - Daniel', ['10/02/2026', 'mercado', 'Alimentação', 50, '1/1', 'Fevereiro de 2026', 'user-1']),

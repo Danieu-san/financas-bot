@@ -1,6 +1,7 @@
 const crypto = require('node:crypto');
 const Database = require('better-sqlite3');
 const { normalizeRecurringBillRow } = require('../utils/recurringBillMatcher');
+const { parseAmountLocal, normalizeText } = require('../utils/helpers');
 
 const {
     projectLegacyRowsToCanonicalLedger,
@@ -40,6 +41,83 @@ function ledgerBillRowsFromAccountRows(accountRows = []) {
             };
         })
         .filter(bill => bill.nome || bill.nome_amigavel || bill.categoria || bill.subcategoria);
+}
+
+function findHeaderIndex(headers = [], candidates = [], fallback = -1) {
+    const normalizedCandidates = candidates.map(candidate => normalizeText(candidate));
+    const index = headers.findIndex(header => normalizedCandidates.includes(normalizeText(header)));
+    return index >= 0 ? index : fallback;
+}
+
+function parseExplicitMoneyCents(value) {
+    const raw = String(value ?? '').trim();
+    if (!raw || !/\d/.test(raw)) return null;
+    const parsed = parseAmountLocal(raw);
+    if (!Number.isFinite(parsed)) return null;
+    return Math.round(parsed * 100);
+}
+
+function normalizeAccountType(value) {
+    const normalized = normalizeText(value || '').replace(/[^a-z0-9_\s]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (['cash', 'dinheiro', 'carteira'].includes(normalized)) return 'cash';
+    if (['wallet', 'carteira digital'].includes(normalized)) return 'wallet';
+    if (['reserve', 'reserva', 'caixinha', 'investimento'].includes(normalized)) return 'reserve';
+    if (['credit_liability', 'cartao', 'cartao de credito', 'cartão', 'cartão de crédito'].includes(normalized)) return 'credit_liability';
+    if (['debt', 'divida', 'dívida'].includes(normalized)) return 'debt';
+    if (['goal', 'meta'].includes(normalized)) return 'goal';
+    if (['adjustment', 'ajuste'].includes(normalized)) return 'adjustment';
+    return 'bank';
+}
+
+function normalizeAccountStatus(value) {
+    const normalized = normalizeText(value || '').trim();
+    if (['inativo', 'inativa', 'closed', 'fechada', 'fechado', 'nao', 'não', 'false', '0'].includes(normalized)) return 'inactive';
+    return 'active';
+}
+
+function normalizeOpenedOn(value) {
+    const raw = String(value || '').trim();
+    const match = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (match) {
+        return `${match[3]}-${String(match[2]).padStart(2, '0')}-${String(match[1]).padStart(2, '0')}`;
+    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    return '1970-01-01';
+}
+
+function ledgerAccountsFromFinancialAccountRows(financialAccountRows = []) {
+    if (!Array.isArray(financialAccountRows) || financialAccountRows.length < 2) return [];
+    const headers = financialAccountRows[0] || [];
+    const idx = {
+        name: findHeaderIndex(headers, ['Nome da Conta', 'Conta', 'Nome'], 0),
+        type: findHeaderIndex(headers, ['Tipo', 'Tipo da Conta', 'account_type', 'type'], 1),
+        opening: findHeaderIndex(headers, ['Saldo Inicial', 'Saldo de Abertura', 'opening_balance'], 2),
+        openedOn: findHeaderIndex(headers, ['Data de Abertura', 'Aberta em', 'opened_on'], 3),
+        status: findHeaderIndex(headers, ['Status', 'Ativa', 'Ativo'], 4),
+        currency: findHeaderIndex(headers, ['Moeda', 'currency'], 5),
+        userId: findHeaderIndex(headers, ['user_id', 'user id'], 7)
+    };
+
+    const accountsById = new Map();
+    for (const row of financialAccountRows.slice(1)) {
+        const name = String(row[idx.name] || '').trim();
+        const ownerPersonId = String(row[idx.userId] || '').trim();
+        const openingBalanceCents = parseExplicitMoneyCents(row[idx.opening]);
+        if (!name || !ownerPersonId || !Number.isInteger(openingBalanceCents)) continue;
+        const identity = accountIdentity(ownerPersonId, name);
+        accountsById.set(identity.account_id, {
+            account_id: identity.account_id,
+            household_id: 'household_shadow',
+            owner_person_id: ownerPersonId,
+            account_type: normalizeAccountType(row[idx.type]),
+            name: identity.account_name,
+            currency: String(row[idx.currency] || 'BRL').trim().toUpperCase() || 'BRL',
+            opening_balance_cents: openingBalanceCents,
+            opened_on: normalizeOpenedOn(row[idx.openedOn]),
+            status: normalizeAccountStatus(row[idx.status])
+        });
+    }
+    return [...accountsById.values()].sort((left, right) => left.name.localeCompare(right.name));
 }
 function accountIdentity(ownerPersonId, name) {
     const accountName = String(name || '').trim() || 'Conta não informada';
@@ -172,6 +250,7 @@ function buildCanonicalLedgerReceiptProjection({
     source = '',
     receipt = {},
     accountRows = [],
+    financialAccountRows = [],
     committedAt = '',
     now = () => new Date()
 } = {}) {
@@ -203,6 +282,7 @@ function buildCanonicalLedgerReceiptProjection({
         event.updated_at = projectedAt;
     }
     decorateReceiptProjection(projected, { sheetName, row });
+    projected.accounts = ledgerAccountsFromFinancialAccountRows(financialAccountRows);
     const publicProjection = buildCanonicalPublicProjection(projected, input);
     const runId = `receipt_${hash(operationKey)}`;
 

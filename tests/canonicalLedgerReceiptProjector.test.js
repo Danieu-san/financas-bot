@@ -337,6 +337,67 @@ test('canonical canary accounts read computes balances only with explicit openin
     assert.doesNotMatch(JSON.stringify(accounts), /user-a|acct-a|acct-b|source_row_hash|idempotency_key/i);
 });
 
+
+test('canonical receipt projector builds accounts from explicit financial account rows', () => {
+    const projection = buildCanonicalLedgerReceiptProjection({
+        sheetName: 'Transferências',
+        row: ['02/07/2026', 'Entre contas', 250, 'Conta Corrente', 'Carteira', 'PIX', '', 'Conferida', 'user-a'],
+        operationKey: 'financial-account-source-op',
+        receipt: { updatedRange: 'Transferências!A9:I9' },
+        financialAccountRows: [
+            ['Nome da Conta', 'Tipo', 'Saldo Inicial', 'Data de Abertura', 'Status', 'Moeda', 'Responsável', 'user_id', 'Observações'],
+            ['Conta Corrente', 'bank', '1.000,00', '01/01/2026', 'active', 'BRL', 'Daniel', 'user-a', 'Conta principal'],
+            ['Carteira', 'cash', '50,00', '01/01/2026', 'active', 'BRL', 'Daniel', 'user-a', 'Dinheiro'],
+            ['Conta sem saldo', 'bank', '', '01/01/2026', 'active', 'BRL', 'Daniel', 'user-a', 'Ignorar sem saldo explícito']
+        ]
+    });
+
+    assert.deepStrictEqual(
+        projection.projected.accounts.map(account => [
+            account.name,
+            account.account_type,
+            account.opening_balance_cents,
+            account.owner_person_id
+        ]),
+        [
+            ['Carteira', 'cash', 5000, 'user-a'],
+            ['Conta Corrente', 'bank', 100000, 'user-a']
+        ]
+    );
+    assert.deepStrictEqual(
+        projection.projected.lines.map(line => [line.account_name, line.account_id, line.direction]),
+        [
+            ['Conta Corrente', projection.projected.accounts.find(account => account.name === 'Conta Corrente').account_id, 'outflow'],
+            ['Carteira', projection.projected.accounts.find(account => account.name === 'Carteira').account_id, 'inflow']
+        ]
+    );
+
+    const dbPath = tempDbPath();
+    const store = new CanonicalLedgerShadowStore({ dbPath, writesEnabled: true });
+    store.persistProjection(projection);
+    store.close();
+
+    const accounts = readCanonicalLedgerCanaryDomain({
+        env: {
+            NODE_ENV: 'test',
+            CANONICAL_LEDGER_PROJECTION_MODE: 'shadow',
+            CANONICAL_LEDGER_SHADOW_WRITE_ENABLED: 'true',
+            CANONICAL_LEDGER_CANARY_READ_ENABLED: 'true',
+            CANONICAL_LEDGER_CANARY_READ_DOMAINS: 'accounts'
+        },
+        dbPath,
+        domain: 'accounts',
+        ownerPersonIds: ['user-a'],
+        personByUserId: { 'user-a': 'Daniel' }
+    });
+
+    assert.strictEqual(accounts.enabled, true);
+    assert.deepStrictEqual(
+        accounts.rows.map(row => [row.name, row.opening_balance_cents, row.balance_cents]),
+        [['Carteira', 5000, 30000], ['Conta Corrente', 100000, 75000]]
+    );
+    assert.doesNotMatch(JSON.stringify(accounts), /user-a|source_row_hash|idempotency_key/i);
+});
 test('canonical canary accounts read fails closed when the account schema is unavailable', () => {
     const dbPath = tempDbPath();
     const db = require('better-sqlite3')(dbPath);

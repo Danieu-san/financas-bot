@@ -80,6 +80,11 @@ const USER_SPREADSHEET_TABS = Object.freeze([
         title: 'Contas',
         headers: ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa'],
         color: { red: 0.78, green: 0.54, blue: 0.17 }
+    },
+    {
+        title: 'Contas Financeiras',
+        headers: ['Nome da Conta', 'Tipo', 'Saldo Inicial', 'Data de Abertura', 'Status', 'Moeda', 'Responsável', 'user_id', 'Observações'],
+        color: { red: 0.20, green: 0.42, blue: 0.36 }
     }
 ]);
 
@@ -241,6 +246,7 @@ function buildManualRows({ user = {} } = {}) {
         ['Metas', 'Use para objetivos como reserva de emergência, viagem, quitar dívida, entrada de imóvel ou compra planejada. O bot atualiza valor atual, progresso, sugestão mensal, escopo e status.', 'criar meta; guardei 500 na meta reserva; retirei 200 da meta viagem'],
         ['Movimentações Metas', 'Histórico de aportes, retiradas, ajustes e mudanças de status das metas. Use para auditar por que o valor atual mudou.', 'Não edite manualmente; confira aportes e retiradas aqui.'],
         ['Contas', 'Use para despesas recorrentes e vencimentos que não podem ser esquecidos. Se categoria, subcategoria e regra ativa estiverem preenchidas, o bot usa a linha para classificar futuros lançamentos parecidos.', 'Exemplo: GRPLQ dia 10, nome Aluguel, categoria Moradia, subcategoria ALUGUEL, regra ativa SIM.'],
+        ['Contas Financeiras', 'Use para cadastrar contas, carteiras e reservas com saldo inicial explícito. Esses saldos serão usados apenas em conferências de saldo quando o ledger canônico for liberado.', 'Exemplo: Conta corrente, tipo bank, saldo inicial 1500,00, data 01/01/2026, status active, moeda BRL.'],
         ['Dashboard', 'Mostra um resumo visual da planilha: entradas, saídas, cartões, saldo estimado, dívidas e gráfico. As fórmulas desta aba são automáticas.', 'Use para conferir se o mês está saudável. Evite editar fórmulas.'],
         ['Dashboard web', 'No WhatsApp, envie "dashboard" para receber um link seguro com gráficos no navegador.', 'Não compartilhe esse link com outras pessoas.'],
         ['Perguntas que o bot responde', 'Você pode perguntar totais, saldos, categorias, listas e maiores/menores gastos em linguagem natural.', 'qual meu saldo do mês?; quanto gastei com mercado?; liste gastos com transporte'],
@@ -287,7 +293,8 @@ const USER_INPUT_EXAMPLE_ROWS = Object.freeze({
     'Cartões': ['nubank-principal', 'Nubank Principal', 'Nubank', '8', '15', 'SIM', 'Exemplo de cartão; edite ou apague.'],
     'Lançamentos Cartão': ['01/01/2026', 'Exemplo: compra parcelada', 'Casa', '100,00', '1/3', 'Janeiro de 2026', 'nubank-principal', 'Nubank Principal', 'Exemplo gerado para orientar; pode apagar.', ''],
     'Categorias': ['Exemplo: Educação', 'Cursos', 'SIM', '01/01/2026', ''],
-    'Contas': ['Exemplo: internet', '15', 'Conta recorrente que vence todo mês.', '', 'Internet', 'Moradia', 'INTERNET / TELEFONE', '120,00', 'SIM']
+    'Contas': ['Exemplo: internet', '15', 'Conta recorrente que vence todo mês.', '', 'Internet', 'Moradia', 'INTERNET / TELEFONE', '120,00', 'SIM'],
+    'Contas Financeiras': ['Exemplo: conta corrente', 'bank', '1500,00', '01/01/2026', 'active', 'BRL', 'Seu nome', '', 'Exemplo de conta financeira; preencha user_id apenas em dados reais.']
 });
 
 function buildInputExampleRanges() {
