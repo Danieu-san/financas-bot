@@ -1,6 +1,6 @@
 # Phase 2 Canonical Ledger Implementation Plan
 
-Status: production shadow writes and the `transactions` read canary are enabled.
+Status: production shadow writes and the `transactions,transfers` read canary domains are enabled.
 Date: 2026-06-30
 
 ## Baseline To Preserve
@@ -122,6 +122,20 @@ By explicit operator decision, production enabled the first canonical read canar
 
 Because the marker-only evidence was cleaned, the initial smoke verified the safety fallback rather than canonical replacement: `list_recent_transactions` returned `source=legacy`, `fallbackReason=canonical_empty`, and five legacy rows while the canonical shadow had `events=0` and `publicRows=0`.
 
+## Controlled Transfers Read Canary Activation - 2026-07-02
+
+Production now also allows the `transfers` canonical read domain. The activation preserved the existing baseline and changed only `CANONICAL_LEDGER_CANARY_READ_DOMAINS` from `transactions` to `transactions,transfers`.
+
+The gate used a temporary marker-only transfer receipt created through `appendRowToSheet('Transferências')`, so it exercised the same post-commit receipt projection used by the bot. The Financial Agent tool `list_recent_transactions` was then called with `eventTypes=['transfer']` and returned:
+
+- `source=canonical`;
+- no fallback reason;
+- one `transfer` row;
+- amount `12.81`;
+- source `transferencias`.
+
+The marker was removed from Sheets and from the canonical shadow projection in the same run: `remainingSheetRows=0` and `remainingCanonicalRows=0`. `accounts` remains disabled/fail-closed because true account balances are not available yet.
+
 ## Accelerated Evidence Gate - 2026-07-02
 
 The former passive observation window is replaced by a generated adversarial
@@ -168,5 +182,19 @@ the correct 2026 timestamp and was cleaned with backup.
 
 Decision: `GO` for this accelerated evidence gate. Keep Command Planner in
 `canary`, Interpretation Reliability in `shadow`, and canonical reads limited to
-`transactions` while proceeding to the next planned migration slice. Evidence:
+`transactions,transfers` while proceeding to the next planned migration slice. Evidence:
 `docs/qa/accelerated-command-planner-ledger-gate-2026-07-02.md`.
+
+## Local Accounts Opening-Balance Infrastructure - 2026-07-02
+
+Local TDD added the first real `accounts` infrastructure without changing production flags. Migration `002_canonical_ledger_accounts.sql` creates `canonical_ledger_accounts` with mandatory `opening_balance_cents`; the shadow store now rejects projected accounts that do not provide an explicit integer opening balance.
+
+The canary reader for domain `accounts` can now compute public balances as opening balance plus scoped event-line movement, but only when account rows exist with explicit opening balances. The public response omits internal account IDs, user IDs, source row hashes and idempotency keys. If the table is missing, empty, or lacks valid opening balances, the domain still fails closed with `canonical_accounts_opening_balances_unavailable`.
+
+Decision: local infrastructure is `GREEN`; production activation of `accounts` remains `NO-GO` until a separate marker-only gate seeds/validates real account identities and opening balances, proves parity with Sheets/read-model answers, and cleans all fixtures.
+
+## Accounts Marker-Only Gate Runner - 2026-07-02
+
+A local executable gate now exists for the `accounts` domain: `npm run ledger:accounts-gate -- --confirm-marker-only --marker TESTE_APAGAR_...`. It seeds a marker-only canonical receipt-shadow projection with two explicit account opening balances, validates the `accounts` canary reader, scans the public response for internal identifiers, deletes only the marker run, and writes `canonical-ledger-accounts-canary-gate.json` under the selected report directory.
+
+The runner uses process-local canary env values to exercise the reader; it does not edit `.env` and does not authorize production `CANONICAL_LEDGER_CANARY_READ_DOMAINS=accounts`. Production `accounts` remains `NO-GO` until this runner is deployed/executed against the EC2 shadow DB, the report is clean, and a separate operator decision enables the domain.

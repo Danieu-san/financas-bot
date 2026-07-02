@@ -49,7 +49,7 @@ test('canonical ledger shadow store applies versioned schema and keeps writes di
     const store = new CanonicalLedgerShadowStore({ dbPath });
 
     const migrations = store.applyMigrations();
-    assert.deepStrictEqual(migrations.map(migration => migration.version), [1]);
+    assert.deepStrictEqual(migrations.map(migration => migration.version), [1, 2]);
     assert.strictEqual(DEFAULT_MIGRATIONS_DIR.endsWith(path.join('src', 'ledger', 'migrations')), true);
 
     const tables = store.listTables();
@@ -58,6 +58,7 @@ test('canonical ledger shadow store applies versioned schema and keeps writes di
     assert.ok(tables.includes('canonical_ledger_schedules'));
     assert.ok(tables.includes('canonical_ledger_reconciliation_links'));
     assert.ok(tables.includes('canonical_ledger_public_projection'));
+    assert.ok(tables.includes('canonical_ledger_accounts'));
     assert.ok(tables.includes('canonical_ledger_projection_runs'));
     assert.ok(tables.includes('canonical_ledger_audit_log'));
 
@@ -82,6 +83,40 @@ test('canonical ledger shadow store applies versioned schema and keeps writes di
     store.close();
 });
 
+test('canonical ledger shadow store rejects accounts without explicit opening balance', () => {
+    const { dbPath } = tempDbPath();
+    const store = new CanonicalLedgerShadowStore({ dbPath, writesEnabled: true });
+
+    assert.throws(() => {
+        store.persistProjection({
+            runId: 'LEDGER_SHADOW_ACCOUNT_WITHOUT_OPENING_TEST',
+            projected: {
+                accounts: [{
+                    account_id: 'acct-missing-opening',
+                    household_id: 'household-test',
+                    owner_person_id: 'person-test',
+                    account_type: 'bank',
+                    name: 'Conta sem saldo inicial',
+                    currency: 'BRL',
+                    opened_on: '2026-01-01',
+                    status: 'active'
+                }],
+                events: [],
+                lines: [],
+                schedules: [],
+                reconciliationLinks: []
+            },
+            publicProjection: [],
+            report: {
+                report_type: 'canonical_ledger_receipt_shadow',
+                schema_version: 'canonical-ledger-v1',
+                synthetic_fixture_only: false
+            }
+        });
+    }, /opening_balance_cents/);
+
+    store.close();
+});
 test('canonical ledger shadow store persists projection only when enabled and restores from backup', () => {
     const { dir, dbPath } = tempDbPath();
     const runId = 'LEDGER_SHADOW_BACKUP_TEST';

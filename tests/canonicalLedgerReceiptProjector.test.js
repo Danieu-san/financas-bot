@@ -227,6 +227,146 @@ test('canonical receipt shadow failures never fail the committed legacy write', 
     }]);
 });
 
+test('canonical canary accounts read computes balances only with explicit opening balances', () => {
+    const dbPath = tempDbPath();
+    const store = new CanonicalLedgerShadowStore({ dbPath, writesEnabled: true });
+    const projected = {
+        accounts: [
+            {
+                account_id: 'acct-a',
+                household_id: 'household-test',
+                owner_person_id: 'user-a',
+                account_type: 'bank',
+                name: 'Conta A',
+                currency: 'BRL',
+                opening_balance_cents: 100000,
+                opened_on: '2026-01-01',
+                status: 'active'
+            },
+            {
+                account_id: 'acct-b',
+                household_id: 'household-test',
+                owner_person_id: 'user-a',
+                account_type: 'wallet',
+                name: 'Conta B',
+                currency: 'BRL',
+                opening_balance_cents: 0,
+                opened_on: '2026-01-01',
+                status: 'active'
+            }
+        ],
+        events: [{
+            event_id: 'transfer-event-1',
+            household_id: 'household-test',
+            owner_person_id: 'user-a',
+            actor_person_id: 'user-a',
+            kind: 'transfer',
+            status: 'settled',
+            description: 'Transferencia entre contas',
+            amount_cents: 25000,
+            currency: 'BRL',
+            occurred_on: '2026-07-02',
+            effective_on: '2026-07-02',
+            source_type: 'sheet.transferencias',
+            source_id_hash: 'source-hash',
+            source_row_hash: 'row-hash',
+            idempotency_key: 'transfer-op',
+            free_budget_eligible: false,
+            net_income_expense_impact: 0,
+            created_at: '2026-07-02T12:00:00.000Z',
+            updated_at: '2026-07-02T12:00:00.000Z'
+        }],
+        lines: [
+            {
+                line_id: 'line-a',
+                event_id: 'transfer-event-1',
+                line_type: 'cash',
+                account_id: 'acct-a',
+                direction: 'outflow',
+                amount_cents: 25000,
+                currency: 'BRL',
+                metadata_hash: 'meta-a'
+            },
+            {
+                line_id: 'line-b',
+                event_id: 'transfer-event-1',
+                line_type: 'clearing',
+                account_id: 'acct-b',
+                direction: 'inflow',
+                amount_cents: 25000,
+                currency: 'BRL',
+                metadata_hash: 'meta-b'
+            }
+        ],
+        schedules: [],
+        reconciliationLinks: []
+    };
+    store.persistProjection({
+        runId: 'ACCOUNTS_CANARY_BALANCE_TEST',
+        projected,
+        publicProjection: [],
+        report: {
+            report_type: 'canonical_ledger_receipt_shadow',
+            schema_version: 'canonical-ledger-v1',
+            synthetic_fixture_only: false
+        }
+    });
+    store.close();
+
+    const readEnv = {
+        NODE_ENV: 'test',
+        CANONICAL_LEDGER_PROJECTION_MODE: 'shadow',
+        CANONICAL_LEDGER_SHADOW_WRITE_ENABLED: 'true',
+        CANONICAL_LEDGER_CANARY_READ_ENABLED: 'true',
+        CANONICAL_LEDGER_CANARY_READ_DOMAINS: 'accounts'
+    };
+    const accounts = readCanonicalLedgerCanaryDomain({
+        env: readEnv,
+        dbPath,
+        domain: 'accounts',
+        ownerPersonIds: ['user-a'],
+        personByUserId: { 'user-a': 'Daniel' }
+    });
+
+    assert.strictEqual(accounts.enabled, true);
+    assert.strictEqual(accounts.domain, 'accounts');
+    assert.deepStrictEqual(
+        accounts.rows.map(row => [row.name, row.opening_balance_cents, row.balance_cents]),
+        [['Conta A', 100000, 75000], ['Conta B', 0, 25000]]
+    );
+    assert.doesNotMatch(JSON.stringify(accounts), /user-a|acct-a|acct-b|source_row_hash|idempotency_key/i);
+});
+
+test('canonical canary accounts read fails closed when the account schema is unavailable', () => {
+    const dbPath = tempDbPath();
+    const db = require('better-sqlite3')(dbPath);
+    db.exec([
+        'CREATE TABLE canonical_ledger_projection_runs (',
+        'run_id TEXT PRIMARY KEY,',
+        'report_type TEXT NOT NULL,',
+        'created_at TEXT NOT NULL',
+        ');'
+    ].join('\n'));
+    db.close();
+
+    const accounts = readCanonicalLedgerCanaryDomain({
+        env: {
+            NODE_ENV: 'test',
+            CANONICAL_LEDGER_PROJECTION_MODE: 'shadow',
+            CANONICAL_LEDGER_SHADOW_WRITE_ENABLED: 'true',
+            CANONICAL_LEDGER_CANARY_READ_ENABLED: 'true',
+            CANONICAL_LEDGER_CANARY_READ_DOMAINS: 'accounts'
+        },
+        dbPath,
+        domain: 'accounts'
+    });
+
+    assert.deepStrictEqual(accounts, {
+        enabled: false,
+        reason: 'canonical_accounts_opening_balances_unavailable',
+        rows: []
+    });
+});
 test('canonical canary reads expose transactions and transfers only when domain is allowed', () => {
     const dbPath = tempDbPath();
     const writeEnv = {

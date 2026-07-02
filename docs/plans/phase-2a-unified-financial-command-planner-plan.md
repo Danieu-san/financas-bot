@@ -266,6 +266,17 @@ mixed/all recent-transaction queries keep using `transactions`. The same legacy
 fallback rules remain in place for disabled domains, empty canonical windows,
 partial windows and mismatched rows.
 
+Update on 2026-07-02: `transfers` also passed a production marker-only canary
+read gate and was added to `CANONICAL_LEDGER_CANARY_READ_DOMAINS`, making the
+active domain set `transactions,transfers`. The gate created one temporary
+`Transferências` receipt through the real append/projection path, verified that
+`list_recent_transactions` for transfer-only queries returned `source=canonical`
+with the marker amount, and cleaned both Sheets and the canonical shadow run to
+zero. `accounts` remains disabled and must not be activated until true account
+balances/opening balances exist.
+
+Update on 2026-07-02: the local `accounts` infrastructure slice now exists behind the same fail-closed canary policy. The shadow schema has `canonical_ledger_accounts` with mandatory `opening_balance_cents`, and the canary reader returns account balances only when explicit opening balances are present. This does not authorize production `accounts`; the active production read domains remain `transactions,transfers` until a dedicated account-balance gate passes.
+
 ## Stop Rules
 
 Return to `off` or `shadow` immediately for:

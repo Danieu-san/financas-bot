@@ -60,3 +60,23 @@ Smoke marker-only posterior comprovou:
 - flags preservadas: Gemini Planner ativo, Command Planner em `canary`,
   Interpretation Reliability em `shadow` e leitura canonica somente em
   `transactions`.
+
+## Gate adicional: transfers read canary
+
+Apos o GO principal, foi executado um gate marker-only adicional para liberar o
+dominio canonico `transfers` em leitura controlada.
+
+Resultado:
+
+- `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transactions,transfers` em producao;
+- `list_recent_transactions` com `eventTypes=["transfer"]` retornou
+  `source=canonical`, sem fallback;
+- primeira linha retornada: `event_type=transfer`, valor `12.81`, fonte
+  `transferencias`;
+- `accounts` permaneceu fail-closed/desligado;
+- cleanup do marcador confirmou `remainingSheetRows=0` e
+  `remainingCanonicalRows=0`;
+- PM2 continuou online e `state_store.json` permaneceu `{}`.
+
+Decisao: `GO` para manter `transactions,transfers` como dominios canonicos de
+leitura canario. `accounts` segue `NO-GO` ate existir projecao de saldos reais.

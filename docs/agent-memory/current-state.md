@@ -1,6 +1,6 @@
 # Estado atual do FinancasBot
 
-Atualizado em: 2026-06-30
+Atualizado em: 2026-07-02
 
 ## Produto
 
@@ -731,3 +731,25 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Deploy do guard `accounts` fail-closed em 2026-07-02: commit `2d7eaed` aplicado na EC2 por fast-forward, teste remoto `node --test tests/canonicalLedgerReceiptProjector.test.js` passou `10/10`, PM2 reiniciado com health `{"ok":true,"sqlite":true}`, WhatsApp pronto e `state_store.json` `{}`. Flags preservadas: `FINANCIAL_AGENT_MODE=answer`, Gemini planner ativo, contextual analyst em `answer`, `INTERPRETATION_RELIABILITY_MODE=shadow`, `FINANCIAL_COMMAND_PLANNER_MODE=canary`, rotas `bill.pay,debt.pay,invoice.pay,expense.create` e canonical read somente `transactions`. Deploy usou IP direto `56.125.165.13` porque o DNS `financasbot.duckdns.org` nao resolveu localmente naquele momento.
 - Integracao local do dominio canonical read `transfers` em 2026-07-02: `list_recent_transactions` agora escolhe `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transfers` quando o filtro publico pede somente `transfer`; consultas mistas continuam em `transactions`. O fallback legado permanece para dominio desativado, janela vazia/parcial ou tipo sem match. RED/GREEN em `tests/financialAgent.test.js`; focado `57/57`. Ainda falta verificacao completa/deploy antes de incluir `transfers` nas flags de producao.
 - Deploy e ativacao controlada do dominio canonical read `transfers` em 2026-07-02: commit `9612bb3` aplicado na EC2 por fast-forward, focados remotos `financialAgent` + `canonicalLedgerReceiptProjector` + `canonicalLedgerCanaryRouter` passaram `68/68`; `.env` recebeu `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transactions,transfers` com backup `/home/ubuntu/financas-bot-backups/.env.pre-canonical-transfers-canary-20260702T123729Z`; PM2 reiniciado, health `{"ok":true,"sqlite":true}`, WhatsApp pronto e `state_store.json` `{}`. Escopo ativado: apenas consultas recentes cujo filtro publico pede somente `transfer`; consultas mistas continuam usando `transactions` e todas mantem fallback legado.
+## Canonical ledger transfers canary - 2026-07-02
+
+- A leitura canario canonica de `transfers` foi ativada em producao junto com `transactions`: `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transactions,transfers`.
+- O gate marker-only criou uma transferencia temporaria via `appendRowToSheet('Transferências')`, portanto exercitou o mesmo hook de projecao pos-commit do bot.
+- `list_recent_transactions` com `eventTypes=['transfer']` retornou `source=canonical`, sem fallback, com uma linha `event_type=transfer`, valor `12.81` e fonte `transferencias`.
+- Cleanup confirmou zero marcador restante na planilha e zero linha restante no canonical shadow; `state_store.json` permaneceu `{}` e PM2 continuou online.
+- `accounts` continua `NO-GO`: nao ativar ate existir projecao de identidades de conta e saldos de abertura/reais. O motivo operacional atual pode ser dominio desligado; se o dominio for ligado no futuro, deve falhar fechado por ausencia de balances reais ate a proxima fatia implementar isso.
+- Proximo passo do roadmap: continuar a Fase 2 pela proxima fatia planejada apos `transactions/transfers`, sem remover o legado e sem ativar `route` global. Antes de nova ativacao, gerar bateria adversarial marker-only em vez de espera passiva.
+
+## Canonical ledger accounts infrastructure - 2026-07-02
+
+- Implementacao local, sem deploy/ativacao de producao: migration `002_canonical_ledger_accounts.sql` adiciona `canonical_ledger_accounts`; o shadow store persiste `projected.accounts` e rejeita qualquer conta sem `opening_balance_cents` inteiro explicito.
+- O leitor canary `accounts` agora calcula saldo publico apenas como `opening_balance_cents + movimentos canonicos escopados`; nao expoe `account_id`, `user_id`, `source_row_hash` ou `idempotency_key`.
+- Fail-closed preservado: se a tabela nao existir, estiver vazia ou nao tiver saldos de abertura validos, retorna `canonical_accounts_opening_balances_unavailable`.
+- Veredito: infraestrutura local GREEN; `accounts` continua NO-GO em producao ate gate marker-only proprio com identidades de conta e saldos reais.
+
+## Canonical ledger accounts gate runner - 2026-07-02
+
+- Novo runner local: `scripts/runCanonicalLedgerAccountsCanaryGate.js`, com atalho `npm run ledger:accounts-gate -- --confirm-marker-only --marker TESTE_APAGAR_...`.
+- O gate cria uma projecao marker-only com duas contas e `opening_balance_cents` explicito, valida a leitura canary `accounts`, verifica saldo esperado, varre vazamento de identificadores internos e limpa o run marker-only.
+- O runner usa env canary apenas no processo de teste; nao altera `.env` e nao liga `accounts` em producao.
+- Evidencia local: teste TDD em `tests/canonicalLedgerParityReport.test.js` cobre seed, leitura canonica, privacidade, cleanup e fail-closed pos-cleanup.

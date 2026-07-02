@@ -121,6 +121,7 @@ class CanonicalLedgerShadowStore {
                 now
             );
 
+            for (const account of projected.accounts || []) this.insertAccount(runId, account);
             for (const event of projected.events || []) this.insertEvent(runId, event);
             for (const line of projected.lines || []) this.insertLine(runId, line);
             for (const schedule of projected.schedules || []) this.insertSchedule(runId, schedule);
@@ -151,6 +152,7 @@ class CanonicalLedgerShadowStore {
         for (const table of [
             'canonical_ledger_audit_log',
             'canonical_ledger_public_projection',
+            'canonical_ledger_accounts',
             'canonical_ledger_reconciliation_links',
             'canonical_ledger_schedules',
             'canonical_ledger_event_lines',
@@ -161,6 +163,35 @@ class CanonicalLedgerShadowStore {
         }
     }
 
+    insertAccount(runId, account) {
+        if (!account || !Object.prototype.hasOwnProperty.call(account, 'opening_balance_cents')) {
+            throw new Error('canonical ledger account requires explicit opening_balance_cents');
+        }
+        const openingBalanceCents = Number(account.opening_balance_cents);
+        if (!Number.isInteger(openingBalanceCents)) {
+            throw new Error('canonical ledger account opening_balance_cents must be an integer');
+        }
+
+        this.db.prepare(`
+            INSERT INTO canonical_ledger_accounts (
+                run_id, account_id, household_id, owner_person_id, account_type,
+                name, currency, opening_balance_cents, opened_on, status,
+                account_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+            runId,
+            account.account_id,
+            account.household_id || null,
+            account.owner_person_id || null,
+            account.account_type || account.type || 'bank',
+            account.name,
+            account.currency || 'BRL',
+            openingBalanceCents,
+            account.opened_on || null,
+            account.status || 'active',
+            JSON.stringify(account)
+        );
+    }
     insertEvent(runId, event) {
         this.db.prepare(`
             INSERT INTO canonical_ledger_events (

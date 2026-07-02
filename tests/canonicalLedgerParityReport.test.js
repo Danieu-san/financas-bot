@@ -12,6 +12,9 @@ const {
 const {
     runCanonicalLedgerDryRun
 } = require('../scripts/runCanonicalLedgerDryRun');
+const {
+    runCanonicalLedgerAccountsCanaryGate
+} = require('../scripts/runCanonicalLedgerAccountsCanaryGate');
 
 test('canonical ledger parity report summarizes fixture projection without unexplained differences', () => {
     const report = buildCanonicalLedgerParityReport(fixture, {
@@ -90,4 +93,36 @@ test('canonical ledger dry-run runner writes report artifact for local review', 
     assert.ok(publicProjection.some(row => row.kind === 'debt_payment'));
     assert.ok(publicProjection.some(row => row.kind === 'reimbursement'));
     assert.doesNotMatch(JSON.stringify(publicProjection), /person-daniel|user_id|source_row_hash|idempotency_key/i);
+});
+test('canonical ledger accounts canary gate seeds, validates and cleans marker accounts', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-ledger-accounts-gate-'));
+    const dbPath = path.join(tempDir, 'canonical-ledger-shadow.sqlite');
+    const reportDir = path.join(tempDir, 'report');
+
+    const result = runCanonicalLedgerAccountsCanaryGate({
+        dbPath,
+        reportDir,
+        marker: 'TESTE_APAGAR_ACCOUNTS_GATE_UNIT',
+        confirmMarkerOnly: true
+    });
+
+    assert.strictEqual(result.decision, 'GO');
+    assert.strictEqual(result.read.source, 'canonical');
+    assert.deepStrictEqual(
+        result.read.rows.map(row => [row.name, row.opening_balance_cents, row.balance_cents]),
+        [
+            ['Carteira TESTE_APAGAR_ACCOUNTS_GATE_UNIT', 1000, 13345],
+            ['Conta principal TESTE_APAGAR_ACCOUNTS_GATE_UNIT', 100000, 85655]
+        ]
+    );
+    assert.strictEqual(result.privacy.ok, true);
+    assert.deepStrictEqual(result.cleanup.remainingMarkerRows, {
+        accounts: 0,
+        events: 0,
+        lines: 0,
+        projectionRuns: 0
+    });
+    assert.strictEqual(result.postCleanup.reason, 'canonical_accounts_opening_balances_unavailable');
+    assert.strictEqual(fs.existsSync(result.reportPath), true);
+    assert.doesNotMatch(JSON.stringify(result), /user-a|acct-|source_row_hash|idempotency_key/i);
 });
