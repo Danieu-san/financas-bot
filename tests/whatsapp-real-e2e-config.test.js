@@ -189,6 +189,7 @@ test('whatsapp bill pay e2e builds marker-only plan and requires an authorized r
         requireBillPayRouteMode,
         resolveBillPayFixtureMode,
         resolveBillPaySeedSettleMs,
+        rowContainsMarker,
         testUserWhatsAppId
     } = require('../scripts/runWhatsappBillPayE2E');
 
@@ -241,6 +242,8 @@ test('whatsapp bill pay e2e builds marker-only plan and requires an authorized r
     assert.strictEqual(resolveBillPayFixtureMode({}), 'local');
     assert.strictEqual(resolveBillPayFixtureMode({ BILL_PAY_E2E_FIXTURE_MODE: 'external' }), 'external');
     assert.throws(() => resolveBillPayFixtureMode({ BILL_PAY_E2E_FIXTURE_MODE: 'remote-ish' }), /local ou external/);
+    assert.strictEqual(rowContainsMarker([`Conta ${plan.marker}`], plan.marker), true);
+    assert.strictEqual(rowContainsMarker([`Conta ${plan.marker}_OUTRO`], plan.marker), false);
 });
 test('whatsapp bill pay e2e resolves active lid users by explicit safe lookup', async () => {
     const userServicePath = require.resolve('../src/services/userService');
@@ -276,6 +279,38 @@ test('whatsapp bill pay e2e resolves active lid users by explicit safe lookup', 
     }
 });
 
+test('whatsapp bill pay e2e supports explicit remote fixture actions and safe user lookup', () => {
+    const {
+        resolveBillPayAction,
+        resolveBillPayFixtureUserFromRows
+    } = require('../scripts/runWhatsappBillPayE2E');
+
+    assert.strictEqual(resolveBillPayAction({}), 'all');
+    for (const action of ['all', 'conversation', 'seed', 'verify-cleanup', 'cleanup']) {
+        assert.strictEqual(resolveBillPayAction({ BILL_PAY_E2E_ACTION: action }), action);
+    }
+    assert.throws(
+        () => resolveBillPayAction({ BILL_PAY_E2E_ACTION: 'unsafe' }),
+        /BILL_PAY_E2E_ACTION/
+    );
+
+    const users = [
+        { user_id: 'user-daniel', display_name: 'Daniel', phone_e164: '+5521000000000', status: 'ACTIVE' },
+        { user_id: 'user-inactive', display_name: 'Daniel Antigo', phone_e164: '+5521111111111', status: 'INACTIVE' }
+    ];
+    assert.strictEqual(
+        resolveBillPayFixtureUserFromRows(users, 'Daniel').user_id,
+        'user-daniel'
+    );
+    assert.throws(
+        () => resolveBillPayFixtureUserFromRows(users, ''),
+        /lookup explicito/
+    );
+    assert.throws(
+        () => resolveBillPayFixtureUserFromRows(users, 'Daniel Antigo'),
+        /ACTIVE/
+    );
+});
 test('whatsapp planner writes e2e builds isolated marker fixtures and requires every step 7 route', () => {
     const {
         buildPlannerWritesE2EPlan,

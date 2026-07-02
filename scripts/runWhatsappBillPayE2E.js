@@ -5,6 +5,7 @@ const { shouldRouteFinancialCommandPlanner } = require('../src/planning/financia
 
 const DEFAULT_SEED_SETTLE_MS = 25000;
 const MAX_SEED_SETTLE_MS = 120000;
+const ALLOWED_ACTIONS = new Set(['all', 'conversation', 'seed', 'verify-cleanup', 'cleanup']);
 
 function sanitizeMarker(value) {
     const marker = String(value || '')
@@ -28,6 +29,14 @@ function resolveBillPayFixtureMode(env = process.env) {
         throw new Error('BILL_PAY_E2E_FIXTURE_MODE deve ser local ou external.');
     }
     return mode;
+}
+
+function resolveBillPayAction(env = process.env) {
+    const action = String(env.BILL_PAY_E2E_ACTION || 'all').trim().toLowerCase();
+    if (!ALLOWED_ACTIONS.has(action)) {
+        throw new Error('BILL_PAY_E2E_ACTION deve ser all, conversation, seed, verify-cleanup ou cleanup.');
+    }
+    return action;
 }
 
 function resolveBillPaySeedSettleMs(env = process.env) {
@@ -91,7 +100,10 @@ function buildBillPayE2EPlan(options = {}) {
 }
 
 function rowContainsMarker(row = [], marker = '') {
-    return row.some(cell => String(cell || '').includes(marker));
+    const escapedMarker = String(marker || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (!escapedMarker) return false;
+    const exactMarker = new RegExp(`(^|[^A-Za-z0-9_])${escapedMarker}(?=$|[^A-Za-z0-9_])`);
+    return row.some(cell => exactMarker.test(String(cell || '')));
 }
 
 function testUserWhatsAppId(config = {}) {
@@ -127,6 +139,23 @@ function resolveUserByExplicitLookup(users = [], lookup = '') {
         throw new Error('WHATSAPP_E2E_TEST_USER_LOOKUP encontrou usuario, mas ele nao esta ACTIVE.');
     }
     return null;
+}
+
+function resolveBillPayFixtureUserFromRows(users = [], lookup = '') {
+    if (!String(lookup || '').trim()) {
+        throw new Error('Fixture remota exige lookup explicito em BILL_PAY_E2E_USER_LOOKUP.');
+    }
+    const user = resolveUserByExplicitLookup(users, lookup);
+    if (!user?.user_id) {
+        throw new Error('BILL_PAY_E2E_USER_LOOKUP deve identificar um unico usuario ACTIVE.');
+    }
+    return user;
+}
+
+async function resolveBillPayFixtureUserId(env = process.env) {
+    const { getAllUsers } = getUserService();
+    const users = await getAllUsers();
+    return resolveBillPayFixtureUserFromRows(users, env.BILL_PAY_E2E_USER_LOOKUP).user_id;
 }
 
 function getGoogleService() {
@@ -199,6 +228,63 @@ async function seedRecurringBill(plan, options = {}) {
     });
 }
 
+async function readBillPayMarkerRows(plan, options = {}) {
+    const { readDataFromSheet } = getGoogleService();
+    const readOptions = options.userId ? { userId: options.userId } : {};
+    const result = {};
+    for (const sheetName of ['Contas', 'Saídas']) {
+        const rows = await readDataFromSheet(`${sheetName}!A:Z`, readOptions);
+        result[sheetName] = rows.filter((row, index) => index > 0 && rowContainsMarker(row, plan.marker));
+    }
+    return result;
+}
+
+async function assertBillPayMarkerRemoved(plan, options = {}) {
+    const rows = await readBillPayMarkerRows(plan, options);
+    if (rows.Contas.length || rows['Saídas'].length) {
+        throw new Error(`Cleanup incompleto de bill.pay: contas=${rows.Contas.length} saidas=${rows['Saídas'].length}.`);
+    }
+}
+
+async function verifyBillPayResult(plan, options = {}) {
+    const rows = await readBillPayMarkerRows(plan, options);
+    if (rows.Contas.length !== 1 || rows['Saídas'].length !== 1) {
+        throw new Error(`Resultado bill.pay divergente: contas=${rows.Contas.length} saidas=${rows['Saídas'].length}.`);
+    }
+    if (String(rows['Saídas'][0][7] || '').trim().toLowerCase() !== 'sim') {
+        throw new Error('Pagamento de conta recorrente nao foi marcado como Recorrente=SIM.');
+    }
+}
+
+async function runBillPayFixtureAction(action, plan, options = {}) {
+    if (action === 'seed') {
+        await seedRecurringBill(plan, options);
+        console.log('[bill-pay-e2e] fixture remota criada com marcador sanitizado');
+        return;
+    }
+    if (action === 'cleanup') {
+        await cleanupMarkerRows(plan.marker, options);
+        await assertBillPayMarkerRemoved(plan, options);
+        console.log('[bill-pay-e2e] cleanup remoto confirmado com zero linhas');
+        return;
+    }
+    if (action === 'verify-cleanup') {
+        let verificationError = null;
+        try {
+            await verifyBillPayResult(plan, options);
+        } catch (error) {
+            verificationError = error;
+        } finally {
+            await cleanupMarkerRows(plan.marker, options);
+            await assertBillPayMarkerRemoved(plan, options);
+        }
+        if (verificationError) throw verificationError;
+        console.log('[bill-pay-e2e] verificacao remota passou e cleanup ficou em zero');
+        return;
+    }
+    throw new Error(`Acao de fixture bill.pay nao suportada: ${action}.`);
+}
+
 async function runBillPayConversation(driver, plan) {
     const { sendAndWaitForAllReply } = getWhatsAppRuntime();
     await sendAndWaitForAllReply(driver, plan.messages.initial, plan.expected.initial);
@@ -207,6 +293,13 @@ async function runBillPayConversation(driver, plan) {
 }
 
 async function main() {
+    const action = resolveBillPayAction(process.env);
+    if (['seed', 'verify-cleanup', 'cleanup'].includes(action)) {
+        const userId = await resolveBillPayFixtureUserId(process.env);
+        const plan = buildBillPayE2EPlan({ userId });
+        await runBillPayFixtureAction(action, plan, { userId });
+        return;
+    }
     const config = loadWhatsAppE2EConfig(process.env);
     const userId = await resolveE2EUserId(config);
     requireBillPayRouteMode(process.env, userId);
@@ -247,12 +340,17 @@ if (require.main === module) {
 
 module.exports = {
     buildBillPayE2EPlan,
+    assertBillPayMarkerRemoved,
     cleanupMarkerRows,
+    readBillPayMarkerRows,
     requireBillPayRouteMode,
+    resolveBillPayAction,
+    resolveBillPayFixtureUserFromRows,
     resolveBillPayFixtureMode,
     resolveBillPaySeedSettleMs,
     resolveE2EUserId,
     rowContainsMarker,
     sanitizeMarker,
+    seedRecurringBill,
     testUserWhatsAppId
 };
