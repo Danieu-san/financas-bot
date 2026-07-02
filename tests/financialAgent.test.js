@@ -413,6 +413,85 @@ test('financial agent recent transactions can read canonical transaction canary 
     assert.doesNotMatch(JSON.stringify(latest), /agent-daniel|owner_person_id|source_row_hash|idempotency_key/i);
 });
 
+test('financial agent recent transfer queries use the canonical transfers canary domain', async () => {
+    const synced = syncSnapshotToSqlite({
+        saidas: [],
+        cartoes: [],
+        entradas: [],
+        transferencias: [
+            { user_id: 'agent-daniel', data: '20/06/2026', descricao: 'transferencia legada', valor: 10, origem: 'Conta A', destino: 'Conta B', metodo: 'PIX', status: 'Transferência interna', month: 5, year: 2026 }
+        ],
+        userSettings: [],
+        cartoesConfig: [],
+        metas: [],
+        movimentacoesMetas: [],
+        dividas: [],
+        contas: []
+    });
+    assert.strictEqual(synced, true);
+
+    const dbPath = path.join(os.tmpdir(), `canonical-agent-transfer-canary-${Date.now()}-${Math.random()}.sqlite`);
+    const store = new CanonicalLedgerShadowStore({ dbPath, writesEnabled: true });
+    store.persistProjection({
+        runId: 'agent-transfer-canary-run',
+        projected: {
+            events: [{
+                event_id: 'evt_agent_transfer_canary_1',
+                owner_person_id: 'agent-daniel',
+                actor_person_id: 'agent-daniel',
+                kind: 'transfer',
+                status: 'settled',
+                description: 'transferencia canonica',
+                amount_cents: 5432,
+                currency: 'BRL',
+                occurred_on: '2026-06-22',
+                effective_on: '2026-06-22',
+                competence_month: '2026-06',
+                category_status: 'not_applicable',
+                free_budget_eligible: false,
+                net_income_expense_impact: 0,
+                source_type: 'sheet.transferencias',
+                source_row_ref: 'row-transfer-canary-1',
+                source_id_hash: 'source-hash-transfer-canary-1',
+                source_row_hash: 'row-hash-transfer-canary-1',
+                idempotency_key: 'idem-transfer-canary-1',
+                created_at: '2026-06-22T12:00:00.000Z',
+                updated_at: '2026-06-22T12:00:00.000Z'
+            }]
+        },
+        publicProjection: [],
+        report: {
+            report_type: 'canonical_ledger_receipt_shadow',
+            schema_version: 'canonical-ledger-v1',
+            synthetic_fixture_only: false
+        }
+    });
+
+    const latest = await listRecentTransactions({
+        userIds: ['agent-daniel'],
+        personByUserId: { 'agent-daniel': 'Daniel' },
+        eventTypes: ['transfer'],
+        limit: 1,
+        env: {
+            NODE_ENV: 'production',
+            CANONICAL_LEDGER_PROJECTION_MODE: 'shadow',
+            CANONICAL_LEDGER_SHADOW_WRITE_ENABLED: 'true',
+            CANONICAL_LEDGER_PRODUCTION_SHADOW_APPROVED: 'true',
+            CANONICAL_LEDGER_CANARY_READ_ENABLED: 'true',
+            CANONICAL_LEDGER_CANARY_READ_APPROVED: 'true',
+            CANONICAL_LEDGER_CANARY_READ_DOMAINS: 'transfers'
+        },
+        canonicalLedgerDbPath: dbPath
+    });
+
+    assert.strictEqual(latest.ok, true);
+    assert.strictEqual(latest.source, 'canonical');
+    assert.strictEqual(latest.fallbackReason, null);
+    assert.strictEqual(latest.rows[0].event_type, 'transfer');
+    assert.strictEqual(latest.rows[0].description, 'transferencia canonica');
+    assert.strictEqual(latest.rows[0].amount, 54.32);
+    assert.doesNotMatch(JSON.stringify(latest), /agent-daniel|owner_person_id|source_row_hash|idempotency_key/i);
+});
 test('financial agent recent transactions falls back when canonical canary has no rows', async () => {
     const synced = syncSnapshotToSqlite({
         saidas: [

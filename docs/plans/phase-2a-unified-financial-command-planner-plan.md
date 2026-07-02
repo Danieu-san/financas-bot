@@ -259,6 +259,13 @@ canonical ledger spec. `accounts` must remain fail-closed with reason
 `canonical_accounts_opening_balances_unavailable` until the ledger projects
 account identities and opening balances.
 
+Update on 2026-07-02: the `transfers` read slice was implemented locally for
+`list_recent_transactions` only. When the requested public event types are only
+`transfer`, the tool now asks the canonical canary router for domain `transfers`;
+mixed/all recent-transaction queries keep using `transactions`. The same legacy
+fallback rules remain in place for disabled domains, empty canonical windows,
+partial windows and mismatched rows.
+
 ## Stop Rules
 
 Return to `off` or `shadow` immediately for:

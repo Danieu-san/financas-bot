@@ -112,6 +112,14 @@ function matchesRecentCard(row = {}, card = '') {
     return actual.includes(requested) || requested.split(' ').every(token => actual.includes(token));
 }
 
+function chooseCanonicalRecentDomain(eventTypes = []) {
+    const types = new Set((eventTypes || []).map(type => String(type || '').trim()).filter(Boolean));
+    if (types.size > 0 && Array.from(types).every(type => type === 'transfer')) {
+        return 'transfers';
+    }
+    return 'transactions';
+}
+
 async function listRecentTransactions({
     userIds = [],
     personByUserId = {},
@@ -128,10 +136,11 @@ async function listRecentTransactions({
         allowedTypes,
         limit
     );
+    const canonicalDomain = chooseCanonicalRecentDomain(eventTypes);
     const canary = await readCanonicalLedgerCanaryWithFallback({
         env,
         dbPath: canonicalLedgerDbPath,
-        domain: 'transactions',
+        domain: canonicalDomain,
         ownerPersonIds: userIds,
         personByUserId,
         legacyReader
