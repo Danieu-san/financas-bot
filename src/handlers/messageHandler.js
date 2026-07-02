@@ -70,6 +70,7 @@ const { planFinancialCommandWithGemini } = require('../planning/financialCommand
 const { matchRecurringBill, matchDebt, matchCardInvoice, resolveCategory } = require('../planning/financialCommandContextTools');
 const { runFinancialCommandPlannerShadow, shouldRouteFinancialCommandPlanner } = require('../planning/financialCommandPlannerShadow');
 const { shouldRouteFinancialCommandOperation } = require('../config/financialCommandPlannerRuntimeConfig');
+const { recordFinancialCommandPlannerCanary } = require('../planning/financialCommandPlannerCanaryTelemetry');
 const {
     GOAL_STATUS,
     applyGoalMovement,
@@ -1749,6 +1750,91 @@ async function requireReliabilityControlBeforeCreditCardWrite({
     return true;
 }
 
+function getFinancialCommandPlannerRouteOperationsForTelemetry() {
+    return String(process.env.FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS || '')
+        .split(',')
+        .map(item => item.trim())
+        .filter(Boolean);
+}
+
+function recordFinancialCommandPlannerCanarySafe(input = {}) {
+    try {
+        recordFinancialCommandPlannerCanary({
+            mode: process.env.FINANCIAL_COMMAND_PLANNER_MODE || '',
+            routeOperations: getFinancialCommandPlannerRouteOperationsForTelemetry(),
+            ...input
+        });
+    } catch (error) {
+        logger.warn(`[financial-command-planner] canary_telemetry_failed error=${error.message}`);
+    }
+}
+
+function recordFinancialCommandPlannerRouteTelemetry({
+    senderId,
+    userId,
+    messageBody,
+    plannerResult,
+    stage = 'route',
+    outcome = 'handled',
+    confirmation,
+    severity = 'none',
+    plannerLatencyMs = 0,
+    handlerLatencyMs = 0,
+    operationKey = ''
+} = {}) {
+    const plan = plannerResult?.plan || {};
+    const contextRequests = Array.isArray(plan.contextRequests) ? plan.contextRequests : [];
+    recordFinancialCommandPlannerCanarySafe({
+        senderId,
+        userId,
+        message: messageBody,
+        operation: plan.operation || 'unknown',
+        stage,
+        outcome,
+        confirmation: confirmation || (plan.requiresConfirmation ? 'pending' : 'none'),
+        severity,
+        plannerOk: plannerResult?.ok,
+        requiresConfirmation: plan.requiresConfirmation,
+        missingFields: plan.missingFields,
+        contextTools: contextRequests.map(request => request?.tool).filter(Boolean),
+        plannerLatencyMs,
+        handlerLatencyMs,
+        operationKey
+    });
+}
+
+function recordFinancialCommandPlannerConfirmationTelemetry({
+    senderId,
+    userId,
+    message,
+    operation,
+    confirmation,
+    outcome,
+    severity = 'none',
+    operationKey = '',
+    missingFields = [],
+    contextTools = []
+} = {}) {
+    recordFinancialCommandPlannerCanarySafe({
+        senderId,
+        userId,
+        message,
+        operation,
+        stage: 'confirmation',
+        outcome,
+        confirmation,
+        severity,
+        plannerOk: true,
+        requiresConfirmation: true,
+        missingFields,
+        contextTools,
+        operationKey
+    });
+}
+
+function isFinancialCommandPlannerExpense(expense = {}) {
+    return expense.interpretationSource === 'command_planner';
+}
 async function saveManualTransfer(transfer, userId) {
     const value = parseValue(transfer.valor);
     recordWriteInterpretationShadow({
@@ -7652,29 +7738,62 @@ async function handlePlannedExpense({ msg, senderId, messageBody, userId, planne
 }
 async function tryHandleFinancialCommandPlannerRoute({ msg, senderId, messageBody, userId, pessoa, perfContext }) {
     if (!shouldRouteFinancialCommandPlanner({ userId })) return false;
+    const plannerStartedAt = Date.now();
     try {
         const plannerResult = await timeStep(
             'financialCommandPlanner.route',
             () => planFinancialCommandWithGemini({ message: messageBody }),
             perfContext
         );
-        if (shouldRouteFinancialCommandOperation('bill.pay')) {
-            const billHandled = await handlePlannedBillPayment({ msg, senderId, messageBody, userId, pessoa, plannerResult });
-            if (billHandled) return true;
-        }
-        if (shouldRouteFinancialCommandOperation('debt.pay')) {
-            const debtHandled = await handlePlannedDebtPayment({ msg, senderId, messageBody, userId, plannerResult });
-            if (debtHandled) return true;
-        }
-        if (shouldRouteFinancialCommandOperation('invoice.pay')) {
-            const invoiceHandled = await handlePlannedInvoicePayment({ msg, senderId, messageBody, userId, plannerResult });
-            if (invoiceHandled) return true;
-        }
-        if (shouldRouteFinancialCommandOperation('expense.create')) {
-            return handlePlannedExpense({ msg, senderId, messageBody, userId, plannerResult });
+        const plannerLatencyMs = Date.now() - plannerStartedAt;
+        const tryRouteOperation = async (operation, handler) => {
+            if (!shouldRouteFinancialCommandOperation(operation)) return false;
+            const handlerStartedAt = Date.now();
+            const handled = await handler();
+            if (handled) {
+                recordFinancialCommandPlannerRouteTelemetry({
+                    senderId,
+                    userId,
+                    messageBody,
+                    plannerResult,
+                    outcome: 'handled',
+                    plannerLatencyMs,
+                    handlerLatencyMs: Date.now() - handlerStartedAt
+                });
+            }
+            return handled;
+        };
+
+        if (await tryRouteOperation('bill.pay', () => handlePlannedBillPayment({ msg, senderId, messageBody, userId, pessoa, plannerResult }))) return true;
+        if (await tryRouteOperation('debt.pay', () => handlePlannedDebtPayment({ msg, senderId, messageBody, userId, plannerResult }))) return true;
+        if (await tryRouteOperation('invoice.pay', () => handlePlannedInvoicePayment({ msg, senderId, messageBody, userId, plannerResult }))) return true;
+        if (await tryRouteOperation('expense.create', () => handlePlannedExpense({ msg, senderId, messageBody, userId, plannerResult }))) return true;
+
+        if (plannerResult?.ok) {
+            recordFinancialCommandPlannerRouteTelemetry({
+                senderId,
+                userId,
+                messageBody,
+                plannerResult,
+                outcome: 'not_handled',
+                confirmation: 'none',
+                severity: 'warning',
+                plannerLatencyMs
+            });
         }
         return false;
     } catch (error) {
+        recordFinancialCommandPlannerCanarySafe({
+            senderId,
+            userId,
+            message: messageBody,
+            operation: 'unknown',
+            stage: 'route',
+            outcome: 'planner_failed',
+            confirmation: 'none',
+            severity: 'warning',
+            plannerLatencyMs: Date.now() - plannerStartedAt
+        });
         logger.warn(`[financial-command-planner] route_failed error=${error.message}`);
         return false;
     }
@@ -8202,6 +8321,17 @@ async function handleMessage(msg) {
                 const cleanReply = normalizeText(msg.body);
                 const expense = currentState.data?.expense || {};
                 if (['nao', 'não', 'n', 'cancelar', 'cancela'].includes(cleanReply)) {
+                    if (isFinancialCommandPlannerExpense(expense)) {
+                        recordFinancialCommandPlannerConfirmationTelemetry({
+                            senderId,
+                            userId,
+                            message: expense.originalMessage || msg.body,
+                            operation: 'expense.create',
+                            confirmation: 'cancelled',
+                            outcome: 'cancelled',
+                            operationKey: buildPlannedExpenseOperationKey(expense, userId)
+                        });
+                    }
                     userStateManager.deleteState(senderId);
                     await msg.reply('Gasto cancelado. Nenhum dado foi salvo.');
                     return;
@@ -8225,19 +8355,32 @@ async function handleMessage(msg) {
                     }
                 }
                 const confirmedExpense = { ...expenseWithoutInternalMetadata, reliabilityConfirmed: true };
+                const operationKey = buildPlannedExpenseOperationKey(confirmedExpense, userId);
+                const writeSource = getConfirmedExpenseWriteSource(confirmedExpense);
                 const saved = await saveTransactionWithoutExtraPayment(
                     confirmedExpense,
                     {
                         person: pessoa,
                         userId,
                         writeOptions: {
-                            operationKey: buildPlannedExpenseOperationKey(confirmedExpense, userId),
+                            operationKey,
                             userId,
                             messageId: confirmedExpense.originalMessageId || '',
-                            source: getConfirmedExpenseWriteSource(confirmedExpense)
+                            source: writeSource
                         }
                     }
                 );
+                if (isFinancialCommandPlannerExpense(confirmedExpense)) {
+                    recordFinancialCommandPlannerConfirmationTelemetry({
+                        senderId,
+                        userId,
+                        message: confirmedExpense.originalMessage || msg.body,
+                        operation: 'expense.create',
+                        confirmation: 'confirmed',
+                        outcome: 'saved',
+                        operationKey
+                    });
+                }
                 userStateManager.deleteState(senderId);
                 await msg.reply(`✅ Gasto de ${formatCurrencyBR(saved.value)} (${expense.descricao}) registrado como *${saved.method}*.`);
                 await safeMaybeNotifyDailyGoalAfterExpense(msg, userId, 'planned_expense');
@@ -8247,6 +8390,17 @@ async function handleMessage(msg) {
                 const cleanReply = normalizeText(msg.body);
                 const { expense = {}, cardInfo, installments = 1 } = currentState.data || {};
                 if (['nao', 'não', 'n', 'cancelar', 'cancela'].includes(cleanReply)) {
+                    if (isFinancialCommandPlannerExpense(expense)) {
+                        recordFinancialCommandPlannerConfirmationTelemetry({
+                            senderId,
+                            userId,
+                            message: expense.originalMessage || msg.body,
+                            operation: 'expense.create',
+                            confirmation: 'cancelled',
+                            outcome: 'cancelled',
+                            operationKey: buildPlannedExpenseOperationKey({ ...expense, pagamento: 'Crédito' }, userId)
+                        });
+                    }
                     userStateManager.deleteState(senderId);
                     await msg.reply('Gasto no cartão cancelado. Nenhum dado foi salvo.');
                     return;
@@ -8263,8 +8417,20 @@ async function handleMessage(msg) {
                     pagamento: 'Crédito',
                     reliabilityConfirmed: true
                 };
+                const operationKey = buildPlannedExpenseOperationKey(confirmedExpense, userId);
                 try {
                     const saved = await saveCreditCardExpense(confirmedExpense, cardInfo, installments, userId);
+                    if (isFinancialCommandPlannerExpense(confirmedExpense)) {
+                        recordFinancialCommandPlannerConfirmationTelemetry({
+                            senderId,
+                            userId,
+                            message: confirmedExpense.originalMessage || msg.body,
+                            operation: 'expense.create',
+                            confirmation: 'confirmed',
+                            outcome: 'saved',
+                            operationKey
+                        });
+                    }
                     if (saved.installments === 1) {
                         await msg.reply(`✅ Gasto de R$${confirmedExpense.valor} lançado no *${saved.sheetName}*.`);
                     } else {
@@ -8272,6 +8438,18 @@ async function handleMessage(msg) {
                     }
                     await safeMaybeNotifyDailyGoalAfterExpense(msg, userId, 'planned_credit_card_expense');
                 } catch (error) {
+                    if (isFinancialCommandPlannerExpense(confirmedExpense)) {
+                        recordFinancialCommandPlannerConfirmationTelemetry({
+                            senderId,
+                            userId,
+                            message: confirmedExpense.originalMessage || msg.body,
+                            operation: 'expense.create',
+                            confirmation: 'confirmed',
+                            outcome: 'error',
+                            severity: 'warning',
+                            operationKey
+                        });
+                    }
                     logger.error(`[financial-write] planned_credit_card_expense_save_failed error=${error.message}`);
                     await msg.reply('Ocorreu um erro ao salvar o gasto no cartão.');
                 } finally {
@@ -8316,6 +8494,15 @@ async function handleMessage(msg) {
                 const cleanReply = normalizeText(msg.body);
                 const invoicePayment = currentState.data?.invoicePayment || {};
                 if (['nao', 'não', 'n', 'cancelar', 'cancela'].includes(cleanReply)) {
+                    recordFinancialCommandPlannerConfirmationTelemetry({
+                        senderId,
+                        userId,
+                        message: invoicePayment.originalMessage || msg.body,
+                        operation: 'invoice.pay',
+                        confirmation: 'cancelled',
+                        outcome: 'cancelled',
+                        operationKey: buildInvoicePaymentOperationKey(invoicePayment, userId)
+                    });
                     userStateManager.deleteState(senderId);
                     await msg.reply('Pagamento de fatura cancelado. Nenhum dado foi salvo.');
                     return;
@@ -8324,13 +8511,38 @@ async function handleMessage(msg) {
                     await msg.reply('Responda `sim` para confirmar o pagamento da fatura ou `não` para cancelar.');
                     return;
                 }
-                const saved = await saveInvoicePayment(invoicePayment, { userId });
-                userStateManager.deleteState(senderId);
-                if (saved.replayed) {
-                    await msg.reply(`Esse pagamento da fatura *${saved.candidate?.label || saved.candidate?.card}* já havia sido registrado.`);
-                    return;
+                const operationKey = buildInvoicePaymentOperationKey(invoicePayment, userId);
+                try {
+                    const saved = await saveInvoicePayment(invoicePayment, { userId });
+                    recordFinancialCommandPlannerConfirmationTelemetry({
+                        senderId,
+                        userId,
+                        message: invoicePayment.originalMessage || msg.body,
+                        operation: 'invoice.pay',
+                        confirmation: 'confirmed',
+                        outcome: saved.replayed ? 'replayed' : 'saved',
+                        operationKey
+                    });
+                    userStateManager.deleteState(senderId);
+                    if (saved.replayed) {
+                        await msg.reply(`Esse pagamento da fatura *${saved.candidate?.label || saved.candidate?.card}* já havia sido registrado.`);
+                        return;
+                    }
+                    await msg.reply(`✅ Pagamento da fatura *${saved.candidate?.label || saved.candidate?.card}* registrado como movimentação financeira, sem duplicar o gasto.`);
+                } catch (error) {
+                    recordFinancialCommandPlannerConfirmationTelemetry({
+                        senderId,
+                        userId,
+                        message: invoicePayment.originalMessage || msg.body,
+                        operation: 'invoice.pay',
+                        confirmation: 'confirmed',
+                        outcome: 'error',
+                        severity: 'warning',
+                        operationKey
+                    });
+                    userStateManager.deleteState(senderId);
+                    throw error;
                 }
-                await msg.reply(`✅ Pagamento da fatura *${saved.candidate?.label || saved.candidate?.card}* registrado como movimentação financeira, sem duplicar o gasto.`);
                 return;
             }
             case 'awaiting_debt_payment_selection': {
@@ -8371,6 +8583,15 @@ async function handleMessage(msg) {
                 const cleanReply = normalizeText(msg.body);
                 const debtPayment = currentState.data?.debtPayment || {};
                 if (['nao', 'não', 'n', 'cancelar', 'cancela'].includes(cleanReply)) {
+                    recordFinancialCommandPlannerConfirmationTelemetry({
+                        senderId,
+                        userId,
+                        message: debtPayment.originalMessage || msg.body,
+                        operation: 'debt.pay',
+                        confirmation: 'cancelled',
+                        outcome: 'cancelled',
+                        operationKey: buildDebtPaymentOperationKey(debtPayment, userId)
+                    });
                     userStateManager.deleteState(senderId);
                     await msg.reply('Pagamento de dívida cancelado. Nenhum dado foi alterado.');
                     return;
@@ -8379,8 +8600,18 @@ async function handleMessage(msg) {
                     await msg.reply('Responda `sim` para confirmar o pagamento da dívida ou `não` para cancelar.');
                     return;
                 }
+                const operationKey = buildDebtPaymentOperationKey(debtPayment, userId);
                 try {
                     const saved = await saveDebtPayment(debtPayment, { userId });
+                    recordFinancialCommandPlannerConfirmationTelemetry({
+                        senderId,
+                        userId,
+                        message: debtPayment.originalMessage || msg.body,
+                        operation: 'debt.pay',
+                        confirmation: 'confirmed',
+                        outcome: saved.replayed ? 'replayed' : 'saved',
+                        operationKey
+                    });
                     userStateManager.deleteState(senderId);
                     if (saved.replayed) {
                         await msg.reply(`Esse pagamento da dívida *${saved.description}* já havia sido registrado. O saldo devedor permanece em *${formatCurrencyBR(saved.newBalance)}*.`);
@@ -8388,6 +8619,16 @@ async function handleMessage(msg) {
                     }
                     await msg.reply(`✅ Pagamento da dívida *${saved.description}* registrado no valor de *${formatCurrencyBR(saved.amount)}*. Novo saldo devedor: *${formatCurrencyBR(saved.newBalance)}*.`);
                 } catch (error) {
+                    recordFinancialCommandPlannerConfirmationTelemetry({
+                        senderId,
+                        userId,
+                        message: debtPayment.originalMessage || msg.body,
+                        operation: 'debt.pay',
+                        confirmation: 'confirmed',
+                        outcome: 'error',
+                        severity: 'warning',
+                        operationKey
+                    });
                     userStateManager.deleteState(senderId);
                     logger.warn(`[financial-command-planner] debt_pay_failed error=${error.message}`);
                     await msg.reply(`Não consegui registrar o pagamento da dívida com segurança. ${error.message}`);
@@ -8431,6 +8672,15 @@ async function handleMessage(msg) {
                 const cleanReply = normalizeText(msg.body);
                 const billPayment = currentState.data?.billPayment || {};
                 if (['nao', 'não', 'n', 'cancelar', 'cancela'].includes(cleanReply)) {
+                    recordFinancialCommandPlannerConfirmationTelemetry({
+                        senderId,
+                        userId,
+                        message: billPayment.originalMessage || msg.body,
+                        operation: 'bill.pay',
+                        confirmation: 'cancelled',
+                        outcome: 'cancelled',
+                        operationKey: buildBillPaymentOperationKey(billPayment, userId)
+                    });
                     userStateManager.deleteState(senderId);
                     await msg.reply('Pagamento de conta recorrente cancelado. Nenhum dado foi salvo.');
                     return;
@@ -8439,9 +8689,34 @@ async function handleMessage(msg) {
                     await msg.reply('Responda `sim` para confirmar o pagamento da conta recorrente ou `não` para cancelar.');
                     return;
                 }
-                const saved = await saveBillPayment(billPayment, { person: pessoa, userId });
-                userStateManager.deleteState(senderId);
-                await msg.reply(`✅ Pagamento da conta recorrente *${saved.description}* registrado como *${saved.method}* em *${saved.date}* no valor de *${formatCurrencyBR(saved.value)}*.`);
+                const operationKey = buildBillPaymentOperationKey(billPayment, userId);
+                try {
+                    const saved = await saveBillPayment(billPayment, { person: pessoa, userId });
+                    recordFinancialCommandPlannerConfirmationTelemetry({
+                        senderId,
+                        userId,
+                        message: billPayment.originalMessage || msg.body,
+                        operation: 'bill.pay',
+                        confirmation: 'confirmed',
+                        outcome: saved.replayed ? 'replayed' : 'saved',
+                        operationKey
+                    });
+                    userStateManager.deleteState(senderId);
+                    await msg.reply(`✅ Pagamento da conta recorrente *${saved.description}* registrado como *${saved.method}* em *${saved.date}* no valor de *${formatCurrencyBR(saved.value)}*.`);
+                } catch (error) {
+                    recordFinancialCommandPlannerConfirmationTelemetry({
+                        senderId,
+                        userId,
+                        message: billPayment.originalMessage || msg.body,
+                        operation: 'bill.pay',
+                        confirmation: 'confirmed',
+                        outcome: 'error',
+                        severity: 'warning',
+                        operationKey
+                    });
+                    userStateManager.deleteState(senderId);
+                    throw error;
+                }
                 return;
             }
             case 'awaiting_payment_method': {

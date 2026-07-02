@@ -7,8 +7,11 @@ const path = require('node:path');
 process.env.NODE_ENV = 'test';
 process.env.ADMIN_IDS = process.env.ADMIN_IDS || '5599990000001@c.us';
 const RELIABILITY_TELEMETRY_PATH = path.join(os.tmpdir(), `financas-bot-reliability-${process.pid}.jsonl`);
+const COMMAND_CANARY_TELEMETRY_PATH = path.join(os.tmpdir(), `financas-bot-command-canary-${process.pid}.jsonl`);
 process.env.INTERPRETATION_RELIABILITY_TELEMETRY_PATH = RELIABILITY_TELEMETRY_PATH;
+process.env.FINANCIAL_COMMAND_PLANNER_CANARY_TELEMETRY_PATH = COMMAND_CANARY_TELEMETRY_PATH;
 test.after(() => fs.rmSync(RELIABILITY_TELEMETRY_PATH, { force: true }));
+test.after(() => fs.rmSync(COMMAND_CANARY_TELEMETRY_PATH, { force: true }));
 
 const SENDER = '5599993000001@c.us';
 const USER_ID = 'state-machine-user';
@@ -379,6 +382,13 @@ function readReliabilityTelemetryEntries() {
         .map(line => JSON.parse(line));
 }
 
+function readCommandCanaryTelemetryEntries() {
+    if (!fs.existsSync(COMMAND_CANARY_TELEMETRY_PATH)) return [];
+    return fs.readFileSync(COMMAND_CANARY_TELEMETRY_PATH, 'utf8')
+        .split(/\r?\n/)
+        .filter(Boolean)
+        .map(line => JSON.parse(line));
+}
 stateMachineTest('financial states: payment method writes expense with user_id and clears state', async () => {
     resetState();
     userStateManager.setState(SENDER, {
@@ -3493,4 +3503,58 @@ test.after(() => {
         cache.close();
     }
     setTimeout(() => process.exit(stateMachineFailed ? 1 : 0), 100);
+});
+
+stateMachineTest('financial states: command planner canary telemetry records routed bill payment cancellation', async () => {
+    resetState();
+    fs.rmSync(COMMAND_CANARY_TELEMETRY_PATH, { force: true });
+    const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
+    sheets.Contas.push([
+        'Claro Residencial',
+        '10',
+        '',
+        USER_ID,
+        'Conta de telefone',
+        'Moradia',
+        'INTERNET / TELEFONE',
+        '469,09',
+        'SIM'
+    ]);
+    enqueueStructuredResponse({
+        schemaVersion: 'financial-command-plan-v1',
+        operation: 'bill.pay',
+        entities: {
+            description: 'conta de telefone',
+            amount: 469.09,
+            date: '25/06/2026',
+            paymentMethod: null
+        },
+        fieldEvidence: {
+            description: 'explicit',
+            amount: 'explicit',
+            date: 'explicit',
+            paymentMethod: 'missing'
+        },
+        contextRequests: [{ tool: 'match_recurring_bill', query: 'conta de telefone' }],
+        missingFields: ['paymentMethod'],
+        requiresConfirmation: true
+    });
+
+    try {
+        assert.match(await send('Paguei 469,09 da conta de telefone'), /forma de pagamento/i);
+        assert.match(await send('Pix'), /confirma/i);
+        assert.match(await send('não'), /cancelad/i);
+
+        const payload = fs.existsSync(COMMAND_CANARY_TELEMETRY_PATH)
+            ? fs.readFileSync(COMMAND_CANARY_TELEMETRY_PATH, 'utf8')
+            : '';
+        assert.doesNotMatch(payload, /Paguei|telefone|469,09|5599993000001|state-machine-user/i);
+        const entries = readCommandCanaryTelemetryEntries();
+        assert.ok(entries.some(entry => entry.operation === 'bill.pay' && entry.stage === 'route' && entry.outcome === 'handled'));
+        assert.ok(entries.some(entry => entry.operation === 'bill.pay' && entry.stage === 'confirmation' && entry.confirmation === 'cancelled'));
+    } finally {
+        if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+        else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+    }
 });
