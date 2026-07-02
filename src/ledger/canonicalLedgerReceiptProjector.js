@@ -320,36 +320,6 @@ function readReceiptPublicRows(db, ownerPersonIds = [], personByUserId = {}) {
     });
 }
 
-function readReceiptAccountRows(db, ownerPersonIds = []) {
-    const totals = new Map();
-    const filter = ownerFilter(ownerPersonIds);
-    const rows = db.prepare(`
-        SELECT l.line_json
-        FROM canonical_ledger_event_lines l
-        JOIN canonical_ledger_projection_runs r ON r.run_id = l.run_id
-        JOIN canonical_ledger_events e ON e.run_id = l.run_id AND e.event_id = l.event_id
-        WHERE r.report_type = ?
-        ${filter.clause}
-        ORDER BY r.created_at, l.line_id
-    `).all('canonical_ledger_receipt_shadow', ...filter.ids);
-
-    for (const row of rows) {
-        const line = JSON.parse(row.line_json);
-        if (!line.account_name) continue;
-        const direction = line.direction === 'inflow' ? 1 : line.direction === 'outflow' ? -1 : 0;
-        const current = totals.get(line.account_name) || 0;
-        totals.set(line.account_name, current + (direction * Number(line.amount_cents || 0)));
-    }
-
-    return [...totals.entries()]
-        .map(([account, balanceCents]) => ({
-            account,
-            balance_cents: balanceCents,
-            currency: 'BRL'
-        }))
-        .sort((a, b) => a.account.localeCompare(b.account));
-}
-
 function readCanonicalLedgerCanaryDomain({
     env = process.env,
     dbPath = env.CANONICAL_LEDGER_SHADOW_DB_PATH || DEFAULT_DB_PATH,
@@ -366,16 +336,20 @@ function readCanonicalLedgerCanaryDomain({
         };
     }
 
+    if (String(domain || '').trim().toLowerCase() === 'accounts') {
+        return {
+            enabled: false,
+            reason: 'canonical_accounts_opening_balances_unavailable',
+            rows: []
+        };
+    }
+
     const db = new Database(dbPath, { readonly: true });
     try {
-        const publicRows = domain === 'accounts'
-            ? null
-            : readReceiptPublicRows(db, ownerPersonIds, personByUserId);
-        const rows = domain === 'accounts'
-            ? readReceiptAccountRows(db, ownerPersonIds)
-            : domain === 'transfers'
-                ? publicRows.filter(row => ['transfer', 'goal_contribution', 'goal_withdrawal', 'invoice_payment'].includes(row.kind))
-                : publicRows;
+        const publicRows = readReceiptPublicRows(db, ownerPersonIds, personByUserId);
+        const rows = domain === 'transfers'
+            ? publicRows.filter(row => ['transfer', 'goal_contribution', 'goal_withdrawal', 'invoice_payment'].includes(row.kind))
+            : publicRows;
         return {
             enabled: true,
             domain,

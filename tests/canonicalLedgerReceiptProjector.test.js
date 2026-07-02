@@ -227,7 +227,7 @@ test('canonical receipt shadow failures never fail the committed legacy write', 
     }]);
 });
 
-test('canonical canary reads expose transactions, accounts and transfers only when domain is allowed', () => {
+test('canonical canary reads expose transactions and transfers only when domain is allowed', () => {
     const dbPath = tempDbPath();
     const writeEnv = {
         NODE_ENV: 'test',
@@ -269,10 +269,11 @@ test('canonical canary reads expose transactions, accounts and transfers only wh
 
     assert.strictEqual(transactions.enabled, true);
     assert.strictEqual(transactions.rows.length, 2);
-    assert.deepStrictEqual(accounts.rows, [
-        { account: 'Conta A', balance_cents: 75000, currency: 'BRL' },
-        { account: 'Conta B', balance_cents: 25000, currency: 'BRL' }
-    ]);
+    assert.deepStrictEqual(accounts, {
+        enabled: false,
+        reason: 'canonical_accounts_opening_balances_unavailable',
+        rows: []
+    });
     assert.strictEqual(transfers.rows.length, 1);
     assert.strictEqual(transfers.rows[0].kind, 'transfer');
     assert.deepStrictEqual(blocked, {

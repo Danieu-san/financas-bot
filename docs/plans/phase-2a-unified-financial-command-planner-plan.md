@@ -242,14 +242,22 @@ After routing parity:
 - observe real canonical shadow receipts;
 - compare Sheets, ledger, read-model and dashboard;
 - enable canonical read canary for `transactions`;
-- then `accounts`;
-- then `transfers`.
+- keep `accounts` disabled until `ledger_accounts`/opening balances are projected;
+- then evaluate the next eligible domain (`transfers` or true account balances) with its own gate.
 
 Status on 2026-06-30: routing parity is `GO` only for controlled Daniel/Thais
 canary, but canonical read canary is still `NO-GO`. The production shadow DB was
 cleaned of marker-only test residue and now has no non-marker receipts to compare.
 Keep `CANONICAL_LEDGER_CANARY_READ_ENABLED=false` until new real eligible writes
 produce a complete parity window.
+
+Update on 2026-07-02: `transactions` is active in controlled canary with legacy
+fallback. The previously planned `accounts` slice is explicitly blocked because
+the receipt shadow can only derive movement deltas from event lines, not true
+current balances; exposing those deltas as `balance_cents` would violate the
+canonical ledger spec. `accounts` must remain fail-closed with reason
+`canonical_accounts_opening_balances_unavailable` until the ledger projects
+account identities and opening balances.
 
 ## Stop Rules
 
