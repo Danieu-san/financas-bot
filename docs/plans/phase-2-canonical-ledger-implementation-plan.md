@@ -205,4 +205,6 @@ A local TDD slice added the real input surface needed before any `accounts` acti
 
 Receipt shadow projection now reads this tab and builds `projected.accounts` only from rows that have both `user_id` and an explicit monetary opening balance. Rows without opening balance, including starter examples with blank `user_id`, are ignored so the account canary keeps failing closed unless real source data exists.
 
-Decision: local source wiring is `GREEN`, but production `CANONICAL_LEDGER_CANARY_READ_DOMAINS=accounts` stays `NO-GO` until the full verification suite passes, the change is deployed inertly, real account rows are filled/seeded under marker-only rules, and an accounts-specific gate validates balances, privacy, rollback and cleanup.
+Decision: source wiring and inert deploy are `GREEN`. Local verification passed (`202/202` focused, `646/646` full suite, audit high 0), EC2 focused tests passed (`202/202`), health is OK, and the remote marker-only `accounts` gate returned `GO` with privacy OK, cleanup zerada and post-cleanup fail-closed.
+
+Production `CANONICAL_LEDGER_CANARY_READ_DOMAINS=accounts` stays `NO-GO` because the live `Contas Financeiras` source still needs real Daniel/Thais account rows with explicit opening balances. Next step is to fill/seed those rows deliberately, run a source-backed accounts gate/parity check against the real sheet data, then decide controlled activation.
