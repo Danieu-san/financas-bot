@@ -811,3 +811,11 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Contrato Gemini/deterministico: explain_metric e get_dashboard_snapshot nao podem substituir um FinancialQueryPlan de dominio financeiro nao-dashboard. O Gemini Planner permanece ativo e pode fornecer planos compativeis; para valor, uso, restante, ritmo e detalhes de orcamento, o prompt orienta query_financial_plan com dominio budget.
 - Evidencia local: focados RED/GREEN, tests/unit.test.js 175/175, tests/readModelSqlite.test.js 18/18, tests/financialAgent.test.js 61/61, npm test 658/658, audit high zero, diff check e scan NUL limpos.
 - Roadmap permanece na Fase 2. Depois do deploy/smoke deste fix, retomar evidencia de movimentos/status/datas por conta; nao avancar para Fase 3 nem remover legado amplo.
+
+## Fase 2 budget semantic override guard - 2026-07-03
+
+- Correcao residual do budget query parity fix: o Gemini Planner podia substituir um plano local valido budget/detail/cycle por budget/list/month, fazendo a pergunta com typo "Qual o mei orcamento familiar?" responder um mes incorreto.
+- TDD no commit a32164f: o teste RED reproduziu list no lugar de detail; o GREEN passou a aceitar override do Gemini para budget somente quando dominio, operacao, time basis e tipo de periodo forem compativeis com o plano de entrada. O Gemini Planner permanece ativo e continua livre para melhorar planos compativeis.
+- Evidencia: teste focado RED/GREEN, financialAgent.test.js 61/61 local e remoto, suite completa 658/658, sintaxe valida, audit high com zero vulnerabilidades, diff check e NUL tracked limpos, state_store.json valido.
+- Deploy EC2 em a32164f: PM2 online, health ok/sqlite true, WhatsApp pronto sem novo QR e flags preservadas. Smoke real do runtime confirmou detail/cycle para "Qual o mei orcamento familiar?" e forecast/cycle para "Quanto falta do orcamento familiar?", ambos com orcamento ativo e restante de R$ 119,38 no ciclo 28/06/2026 a 27/07/2026.
+- Veredito: GO para encerrar esta correcao lateral. Roadmap continua na Fase 2; proximo passo e retomar evidencia marker-only de movimentos, status e datas por conta antes de ampliar saldos canonicos ou avancar para a Fase 3.
