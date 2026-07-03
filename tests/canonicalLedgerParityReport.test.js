@@ -18,6 +18,9 @@ const {
 const {
     runCanonicalLedgerAccountsSourceGate
 } = require('../scripts/runCanonicalLedgerAccountsSourceGate');
+const {
+    runCanonicalLedgerAccountMovementsGate
+} = require('../scripts/runCanonicalLedgerAccountMovementsGate');
 
 test('canonical ledger parity report summarizes fixture projection without unexplained differences', () => {
     const report = buildCanonicalLedgerParityReport(fixture, {
@@ -170,4 +173,76 @@ test('canonical ledger accounts source gate persists real opening balances when 
     assert.strictEqual(result.privacy.ok, true);
     assert.strictEqual(fs.existsSync(result.reportPath), true);
     assert.doesNotMatch(JSON.stringify(result), /user-daniel|user-thais|acct_|source_row_hash|idempotency_key/i);
+});
+test('canonical ledger account movements gate proves dated settled and pending receipt parity', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-ledger-account-movements-'));
+    const dbPath = path.join(tempDir, 'canonical-ledger-shadow.sqlite');
+    const reportDir = path.join(tempDir, 'report');
+
+    const result = runCanonicalLedgerAccountMovementsGate({
+        dbPath,
+        reportDir,
+        marker: 'TESTE_APAGAR_ACCOUNT_MOVEMENTS_UNIT',
+        confirmMarkerOnly: true
+    });
+
+    assert.strictEqual(result.decision, 'GO');
+    assert.deepStrictEqual(result.parity.accountBalances, [
+        {
+            name: 'Conta destino TESTE_APAGAR_ACCOUNT_MOVEMENTS_UNIT',
+            opening_balance_cents: 5000,
+            expected_balance_cents: 18000,
+            canonical_balance_cents: 18000
+        },
+        {
+            name: 'Conta origem TESTE_APAGAR_ACCOUNT_MOVEMENTS_UNIT',
+            opening_balance_cents: 100000,
+            expected_balance_cents: 88000,
+            canonical_balance_cents: 88000
+        }
+    ]);
+    assert.deepStrictEqual(result.parity.events, [
+        { kind: 'expense', date: '2026-07-04', effective_on: '2026-07-04', status: 'settled' },
+        { kind: 'income', date: '2026-07-05', effective_on: '2026-07-05', status: 'settled' },
+        { kind: 'transfer', date: '2026-07-06', effective_on: '2026-07-06', status: 'settled' },
+        { kind: 'transfer', date: '2026-07-07', effective_on: '2026-07-07', status: 'pending' }
+    ]);
+    assert.strictEqual(result.parity.transferNetImpactCents, 0);
+    assert.strictEqual(result.idempotency.ok, true);
+    assert.strictEqual(result.privacy.ok, true);
+    assert.deepStrictEqual(result.cleanup.remainingMarkerRows, {
+        accounts: 0,
+        events: 0,
+        lines: 0,
+        projectionRuns: 0
+    });
+    assert.strictEqual(fs.existsSync(result.reportPath), true);
+    assert.doesNotMatch(
+        JSON.stringify(result),
+        /user-account-movements|acct_|source_row_hash|idempotency_key|operationKey/i
+    );
+});
+test('canonical ledger account movements gate fails closed and cleans marker rows when canary read fails', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-ledger-account-movements-failure-'));
+    const dbPath = path.join(tempDir, 'canonical-ledger-shadow.sqlite');
+
+    const result = runCanonicalLedgerAccountMovementsGate({
+        dbPath,
+        reportDir: path.join(tempDir, 'report'),
+        marker: 'TESTE_APAGAR_ACCOUNT_MOVEMENTS_FAILURE',
+        confirmMarkerOnly: true,
+        readDomain: () => {
+            throw new Error('forced canary read failure');
+        }
+    });
+
+    assert.strictEqual(result.decision, 'NO-GO');
+    assert.deepStrictEqual(result.validation.problems, ['canonical_read_failed']);
+    assert.deepStrictEqual(result.cleanup.remainingMarkerRows, {
+        accounts: 0,
+        events: 0,
+        lines: 0,
+        projectionRuns: 0
+    });
+    assert.doesNotMatch(JSON.stringify(result), /forced canary read failure/i);
 });
