@@ -73,6 +73,17 @@ function validateReadRows(readRows = [], expectedRows = []) {
     return problems;
 }
 
+function validateConversationSourceRows(conversationFinancialAccountRows = [], expectedRows = []) {
+    if (!Array.isArray(conversationFinancialAccountRows) || conversationFinancialAccountRows.length < 2) {
+        return ['conversation_source_empty'];
+    }
+    const projection = buildCanonicalLedgerAccountsSourceProjection({
+        financialAccountRows: conversationFinancialAccountRows,
+        runId: 'conversation_source_validation'
+    });
+    return validateReadRows(expectedAccountRowsFromProjection(projection), expectedRows)
+        .map(problem => `conversation_${problem}`);
+}
 function privacyScan(value) {
     const serialized = JSON.stringify(value);
     const leakPattern = /acct_|owner_person_id|user_id|source_row_hash|idempotency_key|oauth|token|spreadsheet|prompt/i;
@@ -87,6 +98,7 @@ function runCanonicalLedgerAccountsSourceGate({
     dbPath = DEFAULT_DB_PATH,
     reportDir,
     financialAccountRows = [],
+    conversationFinancialAccountRows = [],
     runId = defaultRunId(),
     confirmRealSource = false,
     persistSource = false,
@@ -107,6 +119,10 @@ function runCanonicalLedgerAccountsSourceGate({
         runId: safeRunId
     });
     const expectedRows = expectedAccountRowsFromProjection(projection);
+    const conversationValidationProblems = validateConversationSourceRows(
+        conversationFinancialAccountRows,
+        expectedRows
+    );
     const ownerPersonIds = ownerPersonIdsFromFinancialAccountRows(financialAccountRows);
 
     const store = new CanonicalLedgerShadowStore({ dbPath, writesEnabled: true });
@@ -127,6 +143,7 @@ function runCanonicalLedgerAccountsSourceGate({
     const validationProblems = read.enabled
         ? validateReadRows(read.rows, expectedRows)
         : [read.reason || 'accounts_read_disabled'];
+    validationProblems.push(...conversationValidationProblems);
 
     let cleanup = { executed: false, persistentRun: Boolean(persistSource) };
     if (!persistSource) {
@@ -186,6 +203,7 @@ function main() {
         dbPath: argValue('--shadow-db') || DEFAULT_DB_PATH,
         reportDir: argValue('--report-dir'),
         financialAccountRows: readRowsJson(argValue('--rows-json')),
+        conversationFinancialAccountRows: readRowsJson(argValue('--conversation-rows-json')),
         runId: argValue('--run-id') || defaultRunId(),
         confirmRealSource: argFlag('--confirm-real-source'),
         persistSource: argFlag('--persist-source')

@@ -862,3 +862,12 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Focados remotos `tests/financialStateMachine.test.js` + `tests/canonicalLedgerReceiptProjector.test.js` passaram `107/107`.
 - Pos-deploy: PM2 `financas-bot` online, dashboard health `{"ok":true,"sqlite":true}`, `state_store.json` remoto valido e WhatsApp autenticado/pronto sem novo QR.
 - Proximo passo: smoke manual produtivo de gasto PIX/Debito/Dinheiro e entrada PIX escolhendo conta financeira; credito deve continuar sem pergunta de conta financeira. So depois disso decidir GO/NO-GO para seguir para transferencia conversacional/status/datas restantes da Fase 2 accounts.
+
+## Fase 2 financial account conversational source repair - 2026-07-03
+
+- O primeiro smoke produtivo encontrou NO-GO: gasto PIX e entrada PIX foram gravados sem perguntar conta financeira, enquanto credito seguiu corretamente sem a pergunta.
+- Causa raiz confirmada por leitura sanitizada na EC2: as quatro contas reais existiam apenas em `Contas Financeiras` da planilha central; a planilha familiar usada pelo fluxo conversacional retornava zero contas nos contextos de Daniel e Thais.
+- As quatro linhas reais foram copiadas de forma idempotente para `Contas Financeiras` da planilha familiar. A verificacao posterior retornou as mesmas quatro contas nos dois contextos, sem reinicio do WhatsApp.
+- O gate `ledger:accounts-source-gate` agora exige tambem `--conversation-rows-json` e devolve NO-GO quando a fonte conversacional esta vazia ou nao contem as contas projetadas. Regressao RED/GREEN em `tests/canonicalLedgerParityReport.test.js`.
+- Evidencia local: focados `100/100`, suite completa `665/665`, audit high zero, diff check sem erros, NUL rastreado limpo e `state_store.json` valido.
+- Veredito da fatia permanece NO-GO ate repetir somente os smokes produtivos de gasto PIX e entrada PIX e confirmar que ambos pedem conta financeira e gravam a coluna `Conta Financeira`. Credito ja passou e nao precisa ser repetido.

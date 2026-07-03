@@ -149,6 +149,7 @@ test('canonical ledger accounts source gate persists real opening balances when 
         dbPath,
         reportDir,
         financialAccountRows,
+        conversationFinancialAccountRows: financialAccountRows,
         runId: 'ACCOUNTS_SOURCE_UNIT_REAL',
         confirmRealSource: true,
         persistSource: true,
@@ -173,6 +174,25 @@ test('canonical ledger accounts source gate persists real opening balances when 
     assert.strictEqual(result.privacy.ok, true);
     assert.strictEqual(fs.existsSync(result.reportPath), true);
     assert.doesNotMatch(JSON.stringify(result), /user-daniel|user-thais|acct_|source_row_hash|idempotency_key/i);
+});
+test('canonical ledger accounts source gate rejects accounts absent from the conversational spreadsheet', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-ledger-accounts-conversation-source-'));
+    const financialAccountRows = [
+        ['Nome da Conta', 'Tipo', 'Saldo Inicial', 'Data de Abertura', 'Status', 'Moeda', 'Responsavel', 'user_id', 'Observacoes'],
+        ['Daniel - Nubank', 'bank', '262,85', '03/07/2026', 'active', 'BRL', 'Daniel', 'user-daniel', 'Saldo real']
+    ];
+
+    const result = runCanonicalLedgerAccountsSourceGate({
+        dbPath: path.join(tempDir, 'canonical-ledger-shadow.sqlite'),
+        reportDir: path.join(tempDir, 'report'),
+        financialAccountRows,
+        conversationFinancialAccountRows: [financialAccountRows[0]],
+        runId: 'ACCOUNTS_SOURCE_UNIT_CONVERSATION_EMPTY',
+        confirmRealSource: true
+    });
+
+    assert.strictEqual(result.decision, 'NO-GO');
+    assert.deepStrictEqual(result.validation.problems, ['conversation_source_empty']);
 });
 test('canonical ledger account movements gate proves dated settled and pending receipt parity', () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-ledger-account-movements-'));
