@@ -275,7 +275,50 @@ function buildFinancialAgentFullLogPayload(result = {}) {
         verified: result.verified || null
     });
 }
+const FINANCIAL_AGENT_MIGRATION_GAP_TAGS = new Set([
+    'engine_gap',
+    'unsafe_request',
+    'ambiguous_period',
+    'ambiguous_scope',
+    'unsupported_filter',
+    'response_gap'
+]);
+const FINANCIAL_AGENT_MIGRATION_GAP_BLOCKED_PATTERN = /(^|[^a-z0-9])(user_id|agent-[a-z0-9_-]+|sheet|spreadsheet|token|secret|raw|oauth|refresh|access|prompt|url|phone|telefone|whatsapp)([^a-z0-9]|$)/i;
 
+function sanitizeFinancialAgentMigrationGapToken(value, fallback = null, maxLength = 48) {
+    const original = String(value || '').trim();
+    if (!original) return fallback;
+    if (FINANCIAL_AGENT_MIGRATION_GAP_BLOCKED_PATTERN.test(original)) return fallback;
+    const normalized = original
+        .toLowerCase()
+        .replace(/[^a-z0-9_.:-]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .slice(0, maxLength);
+    if (!normalized || FINANCIAL_AGENT_MIGRATION_GAP_BLOCKED_PATTERN.test(normalized)) return fallback;
+    return normalized;
+}
+
+function sanitizeFinancialAgentMigrationGapReason(value) {
+    const original = String(value || '').trim();
+    if (!original) return 'unknown';
+    if (FINANCIAL_AGENT_MIGRATION_GAP_BLOCKED_PATTERN.test(original)) return 'redacted_gap_reason';
+    return sanitizeFinancialAgentMigrationGapToken(original, 'unknown', 80) || 'unknown';
+}
+
+function buildFinancialAgentMigrationGapTelemetry(result = {}) {
+    const gap = result?.migrationGap;
+    if (!gap || typeof gap !== 'object') return null;
+    const tagCandidate = sanitizeFinancialAgentMigrationGapToken(gap.tag, 'engine_gap');
+    const tag = FINANCIAL_AGENT_MIGRATION_GAP_TAGS.has(tagCandidate) ? tagCandidate : 'engine_gap';
+    return {
+        tag,
+        reason: sanitizeFinancialAgentMigrationGapReason(gap.reason),
+        surface: 'financial_agent',
+        tool: sanitizeFinancialAgentMigrationGapToken(gap.tool, null),
+        domain: sanitizeFinancialAgentMigrationGapToken(gap.domain, null),
+        action: sanitizeFinancialAgentMigrationGapToken(result.action, 'unknown')
+    };
+}
 function shouldUseFinancialAgentAnswerInMode(mode = 'off', result = {}, env = process.env) {
     const normalizedMode = normalizeText(mode || 'off');
     if (normalizedMode === 'answer') {
@@ -300,6 +343,11 @@ function logFinancialAgentResult({ mode = 'off', result = null, senderId = '' } 
     const rows = Array.isArray(result.toolResult?.rows) ? result.toolResult.rows.length : 0;
     metrics.increment(`message.financial_agent.${normalizeMetricLabel(mode)}.${normalizeMetricLabel(result.action || 'unknown')}`);
     logger.info(`[financial-agent] mode=${mode} action=${result.action || 'unknown'} tool=${tool} verified=${Boolean(result.verified?.ok)} rows=${rows} reason=${normalizeMetricLabel(reason)} sender=${logger.redactIdentifier(senderId)}`);
+    const migrationGapTelemetry = buildFinancialAgentMigrationGapTelemetry(result);
+    if (migrationGapTelemetry) {
+        metrics.increment(`message.financial_agent.migration_gap.${normalizeMetricLabel(migrationGapTelemetry.tag)}`);
+        logger.warn(`[financial-agent] migration_gap tag=${migrationGapTelemetry.tag} reason=${migrationGapTelemetry.reason} tool=${migrationGapTelemetry.tool || 'none'} domain=${migrationGapTelemetry.domain || 'none'} action=${migrationGapTelemetry.action}`);
+    }
     if (isFinancialAgentFullLogEnabled()) {
         logger.info(`[financial-agent-debug] sender=${logger.redactIdentifier(senderId)} full=${buildFinancialAgentFullLogPayload(result)}`);
     }
@@ -10376,6 +10424,7 @@ module.exports = {
         isFinancialAgentShadowRecentAnswerEnabled,
         isFinancialAgentFullLogEnabled,
         buildFinancialAgentFullLogPayload,
+        buildFinancialAgentMigrationGapTelemetry,
         buildFinancialAgentPersonByUserId,
         shouldUseFinancialAgentAnswer,
         shouldUseFinancialAgentAnswerInMode,

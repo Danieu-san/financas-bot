@@ -1323,6 +1323,47 @@ test('LangGraph tags analytical planner gaps for controlled legacy reduction', a
         else process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED = originalPlannerFlag;
     }
 });
+
+test('message handler builds sanitized analytical migration-gap telemetry', () => {
+    const telemetry = messageHandlerTest.buildFinancialAgentMigrationGapTelemetry({
+        action: 'clarify',
+        migrationGap: {
+            tag: 'unsupported_filter',
+            reason: 'planner_gap user_id=agent-daniel raw sheet token',
+            surface: 'financial_agent',
+            tool: 'query_financial_plan',
+            domain: 'card'
+        }
+    });
+
+    assert.deepStrictEqual(telemetry, {
+        tag: 'unsupported_filter',
+        reason: 'redacted_gap_reason',
+        surface: 'financial_agent',
+        tool: 'query_financial_plan',
+        domain: 'card',
+        action: 'clarify'
+    });
+    assert.doesNotMatch(JSON.stringify(telemetry), /user_id|agent-daniel|sheet|token|raw/i);
+
+    const unsafe = messageHandlerTest.buildFinancialAgentMigrationGapTelemetry({
+        action: 'answer',
+        migrationGap: {
+            tag: 'anything',
+            reason: '',
+            tool: 'raw_rows',
+            domain: 'spreadsheet_id'
+        }
+    });
+    assert.deepStrictEqual(unsafe, {
+        tag: 'engine_gap',
+        reason: 'unknown',
+        surface: 'financial_agent',
+        tool: null,
+        domain: null,
+        action: 'answer'
+    });
+});
 test('financial agent shadow mode can answer only verified recent-transaction tool results', () => {
     assert.strictEqual(messageHandlerTest.shouldUseFinancialAgentAnswerInMode('shadow', {
         action: 'answer',
