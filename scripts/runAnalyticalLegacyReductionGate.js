@@ -35,41 +35,49 @@ async function runAnalyticalLegacyReductionGate(options = {}) {
     const reportDir = path.resolve(options.reportDir || path.join('data', 'qa-runs', runId));
     fs.mkdirSync(reportDir, { recursive: true });
 
-    const acceptance = await runFinancialAgentAcceptanceBattery({
-        runId: `${runId}_ACCEPTANCE`,
-        reportDir: path.join(reportDir, 'financial-agent-acceptance'),
-        limit: options.acceptanceLimit
-    });
-    const migrationGaps = await runFinancialAgentMigrationGapBattery({
-        runId: `${runId}_MIGRATION_GAPS`,
-        reportDir: path.join(reportDir, 'financial-agent-migration-gaps'),
-        limit: options.migrationGapLimit
-    });
+    const originalPlannerFlag = process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED;
+    process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED = 'false';
+    try {
+        const acceptance = await runFinancialAgentAcceptanceBattery({
+            runId: `${runId}_ACCEPTANCE`,
+            reportDir: path.join(reportDir, 'financial-agent-acceptance'),
+            limit: options.acceptanceLimit
+        });
+        const migrationGaps = await runFinancialAgentMigrationGapBattery({
+            runId: `${runId}_MIGRATION_GAPS`,
+            reportDir: path.join(reportDir, 'financial-agent-migration-gaps'),
+            limit: options.migrationGapLimit
+        });
 
-    const decision = buildAnalyticalLegacyReductionDecision({
-        acceptanceSummary: acceptance.report.summary,
-        migrationGapSummary: migrationGaps.report.summary
-    });
+        const decision = buildAnalyticalLegacyReductionDecision({
+            acceptanceSummary: acceptance.report.summary,
+            migrationGapSummary: migrationGaps.report.summary
+        });
 
-    const report = {
-        run_id: runId,
-        started_at: startedAt.toISOString(),
-        finished_at: new Date().toISOString(),
-        synthetic_user_only: true,
-        gemini_calls: (acceptance.report.gemini_calls || 0) + (migrationGaps.report.gemini_calls || 0),
-        decision,
-        acceptance: {
-            report_dir: acceptance.reportDir,
-            summary: acceptance.report.summary
-        },
-        migration_gaps: {
-            report_dir: migrationGaps.reportDir,
-            summary: migrationGaps.report.summary
-        }
-    };
+        const report = {
+            run_id: runId,
+            started_at: startedAt.toISOString(),
+            finished_at: new Date().toISOString(),
+            synthetic_user_only: true,
+            llm_planner_enabled: false,
+            gemini_calls: (acceptance.report.gemini_calls || 0) + (migrationGaps.report.gemini_calls || 0),
+            decision,
+            acceptance: {
+                report_dir: acceptance.reportDir,
+                summary: acceptance.report.summary
+            },
+            migration_gaps: {
+                report_dir: migrationGaps.reportDir,
+                summary: migrationGaps.report.summary
+            }
+        };
 
-    fs.writeFileSync(path.join(reportDir, 'analytical-legacy-reduction-gate-report.json'), JSON.stringify(report, null, 2));
-    return { report, reportDir };
+        fs.writeFileSync(path.join(reportDir, 'analytical-legacy-reduction-gate-report.json'), JSON.stringify(report, null, 2));
+        return { report, reportDir };
+    } finally {
+        if (originalPlannerFlag === undefined) delete process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED;
+        else process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED = originalPlannerFlag;
+    }
 }
 
 async function main() {
