@@ -801,3 +801,13 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Evidencia local: focused ledger/canary `24/24`, `npm test` `656/656`, audit high zero, `git diff --check` limpo e scan NUL rastreado limpo. O `state_store.json` local estava JSON valido, mas continha estado antigo nao rastreado e nao foi apagado.
 - Deploy aplicado na EC2 no commit `5290612`; teste remoto `tests/canonicalLedgerReceiptProjector.test.js` passou `14/14`, PM2 online, health `{"ok":true,"sqlite":true}`, WhatsApp ready e `state_store.json` remoto `{}`. Smoke read-only `accounts` preservou os quatro saldos reais.
 - Proximo passo do roadmap geral: ainda Fase 2; criar evidencia marker-only de movimentos datados/concluidos por conta e paridade com Sheets/read-model antes de usar saldos de conta como fonte primaria ampla.
+
+## Fase 2 budget query parity fix - 2026-07-03
+
+- Evidencia real de 02/07: o alerta pos-lancamento calculou orcamento familiar ativo, mas "Qual o mei orçamento familiar?" respondeu desativado e "Quanto falta do orçamento familiar?" retornou apenas o criterio sem valor.
+- Causa raiz confirmada em producao: UserSettings tinha duas linhas para Daniel; a primeira continha SIM, R$ 938,11, escopo family e ciclo dia 28, enquanto a segunda estava vazia. O alerta lia a configuracao canonica por usuario, mas o read-model processava ambas e o upsert SQLite da linha vazia sobrescrevia a configuracao ativa.
+- Correcao TDD: mapUserSettingsRows agora deduplica por user_id, preserva a primeira configuracao explicita e somente substitui uma linha vazia quando encontra configuracao explicita posterior. O teste cobre o caminho completo UserSettings duplicado -> SQLite -> Query Engine.
+- Correcao de interpretacao: perguntas de restante agora tem prioridade sobre mencoes a familiar; perguntas de valor/detalhe (qual, valor, quanto e) viram orcamento_detalhe; orcamento_escopo fica reservado a contraste explicito pessoal/familiar ou escopo.
+- Contrato Gemini/deterministico: explain_metric e get_dashboard_snapshot nao podem substituir um FinancialQueryPlan de dominio financeiro nao-dashboard. O Gemini Planner permanece ativo e pode fornecer planos compativeis; para valor, uso, restante, ritmo e detalhes de orcamento, o prompt orienta query_financial_plan com dominio budget.
+- Evidencia local: focados RED/GREEN, tests/unit.test.js 175/175, tests/readModelSqlite.test.js 18/18, tests/financialAgent.test.js 61/61, npm test 658/658, audit high zero, diff check e scan NUL limpos.
+- Roadmap permanece na Fase 2. Depois do deploy/smoke deste fix, retomar evidencia de movimentos/status/datas por conta; nao avancar para Fase 3 nem remover legado amplo.

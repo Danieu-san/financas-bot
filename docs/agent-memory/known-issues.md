@@ -147,3 +147,9 @@ Arquivos nao rastreados antigos podem existir. Nao remover sem pedido explicito:
 - Armadilha corrigida em 2026-05-31: o gráfico financeiro tinha cinco barras, mas o SVG foi dimensionado como se coubessem quatro e a barra `Disponível` podia aparecer cortada. Manter espaçamento calculado dinamicamente se novas barras forem adicionadas.
 - Armadilha corrigida em 2026-05-31: `Lançamentos Recentes` do dashboard podia exibir datas serializadas (`46173`), nao indicar se o valor era entrada/saida/cartao e mostrar cada parcela como se fosse uma compra separada. A lista recente agora formata datas, mostra etiqueta de tipo e agrupa parcelas visualmente pelo total da compra.
 - Armadilha corrigida em 2026-05-31: `UserSettings` cresceu para 19 colunas (`A:S`), mas processo antigo ainda tentou atualizar `A:M` e falhou com `tried writing to column [N]`. O range agora e derivado do schema `SETTINGS_HEADERS`, e novas linhas default ja nascem com todas as colunas.
+
+## Duplicidade em UserSettings e consultas de orcamento
+
+- Armadilha corrigida em 2026-07-03: linhas duplicadas do mesmo user_id em UserSettings podem fazer uma linha vazia sobrescrever no SQLite uma configuracao de orcamento familiar valida. A normalizacao do read-model deve deduplicar por usuario e preservar configuracao explicita.
+- Perguntas quantitativas como "quanto falta do orcamento familiar?" nao sao perguntas de escopo. Familiar define o filtro; falta/restante define a operacao de forecast.
+- Ferramentas de dashboard (explain_metric, get_dashboard_snapshot) nao devem substituir um FinancialQueryPlan de dominio budget, pois podem expor apenas criterio sem o valor calculado.

@@ -3672,7 +3672,15 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
         if (/\b(o que entrou|calculo|cálculo|criterio|critério|por que|porque|mudou|entra no orcamento|entra no orçamento|cartao entra|cartão entra|transferencia entra|transferência entra)\b/.test(text)) {
             return { metric: 'budget_explain', intent: 'orcamento_explicacao', parameters: budgetParams() };
         }
-        if (/\b(pessoal|familiar|familia|família|escopo)\b/.test(text) && /\b(orcamento|orçamento)\b/.test(text)) {
+        if (/\b(falta|sobrou|restante|resta|fim do ciclo|ate o fim|até o fim)\b/.test(text)) {
+            return { metric: 'budget_remaining_cycle', intent: 'orcamento_restante_ciclo', parameters: budgetParams() };
+        }
+        if (/\b(qual|valor|quanto e|quanto é)\b/.test(text) && /\b(orcamento|orçamento)\b/.test(text)) {
+            return { metric: 'budget_detail', intent: 'orcamento_detalhe', parameters: budgetParams() };
+        }
+        const asksBudgetScope = /\bescopo\b/.test(text) ||
+            (/\b(pessoal|individual)\b/.test(text) && /\b(familiar|familia|família)\b/.test(text));
+        if (asksBudgetScope && /\b(orcamento|orçamento)\b/.test(text)) {
             return { metric: 'budget_scope', intent: 'orcamento_escopo', parameters: budgetParams() };
         }
         if (/\bciclo\b/.test(text) && /\b(qual|quais|periodo|período|inicio|início)\b/.test(text) && !/\b(falta|sobrou|restante|resta)\b/.test(text)) {
@@ -3680,9 +3688,6 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
         }
         if (/\b(ritmo|diario|diário)\b/.test(text)) {
             return { metric: 'budget_daily_pace', intent: 'orcamento_ritmo_diario', parameters: budgetParams() };
-        }
-        if (/\b(falta|sobrou|restante|resta|fim do ciclo|ate o fim|até o fim)\b/.test(text)) {
-            return { metric: 'budget_remaining_cycle', intent: 'orcamento_restante_ciclo', parameters: budgetParams() };
         }
         if (/\b(usei|usou|usamos|gastei|gastou|gasto do orcamento|gasto do orçamento|acima|abaixo)\b/.test(text)) {
             return { metric: 'budget_used_cycle', intent: 'orcamento_usado_ciclo', parameters: budgetParams() };

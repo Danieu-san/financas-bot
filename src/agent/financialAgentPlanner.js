@@ -117,6 +117,7 @@ function buildPlannerPrompt(message = '', { referenceDate = new Date() } = {}) {
         'Regras obrigatorias:',
         '- Nunca use user_id, sheet_id, spreadsheet_id, token, oauth, prompt, owner_hash ou dados internos.',
         '- Prefira query_financial_plan para gastos, cartoes, entradas, transferencias, orcamento, metas, dividas e contas.',
+        '- Para consultar valor, uso, restante, ritmo ou detalhes do orcamento, use query_financial_plan com domain budget; explain_metric e exclusivo para explicar indicadores do dashboard.',
         '- SQL deve ser somente SELECT, usar somente financial_events_public e conter LIMIT.',
         '- Se a pergunta pedir escrita, admin, OAuth, dados internos ou bypass, retorne block.',
         '- Interprete hoje, ontem e anteontem usando as datas relativas ja resolvidas acima; para esses casos use period date_range com from=to na data resolvida.',

@@ -13,12 +13,67 @@ const {
     queryAlerts,
     ALL_USERS_ID
 } = require('../src/services/sqliteReadModelService');
-const { executeAnalyticalIntent, executeFinancialQueryPlanFromReadModel, getDashboardSqlData } = require('../src/services/readModelService');
+const {
+    executeAnalyticalIntent,
+    executeFinancialQueryPlanFromReadModel,
+    getDashboardSqlData,
+    __test__: readModelTestHelpers
+} = require('../src/services/readModelService');
 const metrics = require('../src/utils/metrics');
 
 function resolvedScope(scope, userIds) {
     return { decision: 'allow', scope, userIds };
 }
+
+test('read-model preserves the configured budget when a duplicate blank UserSettings row follows it', async () => {
+    const header = Array.from({ length: 19 }, (_, index) => `column_${index}`);
+    const configured = Array(19).fill('');
+    configured[0] = 'user-budget-owner';
+    configured[13] = 'SIM';
+    configured[14] = '938.11';
+    configured[17] = 'family';
+    configured[18] = '28';
+    const duplicateBlank = Array(19).fill('');
+    duplicateBlank[0] = 'user-budget-owner';
+
+    const rows = readModelTestHelpers.mapUserSettingsRows([header, configured, duplicateBlank]);
+
+    assert.deepStrictEqual(rows, [{
+        user_id: 'user-budget-owner',
+        monthly_budget_enabled: 'SIM',
+        monthly_budget_amount: '938.11',
+        monthly_budget_scope: 'family',
+        monthly_budget_cycle_start_day: '28'
+    }]);
+
+    assert.strictEqual(ensureSqliteReady(), true);
+    assert.strictEqual(syncSnapshotToSqlite({
+        saidas: [],
+        cartoes: [],
+        entradas: [],
+        transferencias: [],
+        userSettings: rows,
+        cartoesConfig: [],
+        metas: [],
+        movimentacoesMetas: [],
+        dividas: [],
+        contas: []
+    }), true);
+    const result = await executeFinancialQueryPlanFromReadModel({
+        kind: 'financial_query',
+        domain: 'budget',
+        operation: 'forecast',
+        filters: { period: { type: 'cycle', label: 'ciclo atual' }, scope: 'family' },
+        timeBasis: 'budget_cycle'
+    }, 'orcamento_restante_ciclo', { currentDate: '02/07/2026' }, {
+        userId: 'user-budget-owner',
+        resolvedScope: resolvedScope('family', ['user-budget-owner', 'user-budget-member'])
+    });
+
+    assert.strictEqual(result.results.active, true);
+    assert.strictEqual(result.results.monthlyAmount, 938.11);
+    assert.strictEqual(result.results.scope, 'family');
+});
 
 function syncControlledSnapshot() {
     assert.strictEqual(ensureSqliteReady(), true, 'SQLite should be available for read-model tests');

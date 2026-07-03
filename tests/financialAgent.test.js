@@ -113,6 +113,60 @@ test('LangGraph financial agent uses the authorized family budget configuration'
     assert.match(result.answer, /R\$\s*150,00/i);
 });
 
+test('LangGraph financial agent keeps the budget query engine when Gemini selects a dashboard explanation tool', async () => {
+    assert.strictEqual(ensureSqliteReady(), true);
+    assert.strictEqual(syncSnapshotToSqlite({
+        saidas: [],
+        cartoes: [],
+        entradas: [],
+        transferencias: [],
+        cartoesConfig: [],
+        metas: [],
+        movimentacoesMetas: [],
+        dividas: [],
+        contas: [],
+        userSettings: [{
+            user_id: 'agent-daniel',
+            monthly_budget_enabled: 'SIM',
+            monthly_budget_amount: '938.11',
+            monthly_budget_scope: 'family',
+            monthly_budget_cycle_start_day: '28'
+        }]
+    }), true);
+
+    const originalPlannerFlag = process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED;
+    process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED = 'true';
+    plannerTest.setStructuredResponseOverrideForTest(() => ({
+        action: 'tool',
+        tool: 'explain_metric',
+        args: { metric: 'budget', month: 6, year: 2026 }
+    }));
+    try {
+        const result = await invokeFinancialAgent({
+            message: 'Quanto falta do orçamento familiar?',
+            userIds: ['agent-daniel', 'agent-thais'],
+            personByUserId: { 'agent-daniel': 'Daniel', 'agent-thais': 'Thais' },
+            currentDate: '02/07/2026',
+            financialQueryPlan: {
+                kind: 'financial_query',
+                domain: 'budget',
+                operation: 'forecast',
+                filters: { period: { type: 'cycle', label: 'ciclo atual' }, scope: 'family' },
+                timeBasis: 'budget_cycle'
+            },
+            mode: 'answer'
+        });
+
+        assert.strictEqual(result.action, 'answer');
+        assert.strictEqual(result.plan.tool, 'query_financial_plan');
+        assert.strictEqual(result.toolResult.result.value.active, true);
+        assert.strictEqual(result.toolResult.result.value.monthlyAmount, 938.11);
+    } finally {
+        plannerTest.setStructuredResponseOverrideForTest(null);
+        if (originalPlannerFlag === undefined) delete process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED;
+        else process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED = originalPlannerFlag;
+    }
+});
 test('LangGraph financial agent answers paid bill detection with status and realized value', async () => {
     assert.strictEqual(ensureSqliteReady(), true);
     assert.strictEqual(syncSnapshotToSqlite({

@@ -209,8 +209,17 @@ async function planWithGeminiForState(state, message) {
     });
 }
 
-function shouldUseLlmPlanOverLegacy(llmPlan) {
-    return Boolean(llmPlan && (llmPlan.action === 'tool' || llmPlan.action === 'block'));
+function shouldUseLlmPlanOverLegacy(llmPlan, incomingQueryPlan = null) {
+    if (!llmPlan) return false;
+    if (llmPlan.action === 'block') return true;
+    if (llmPlan.action !== 'tool') return false;
+
+    const incomingDomain = String(incomingQueryPlan?.domain || '').trim();
+    const dashboardTools = new Set(['get_dashboard_snapshot', 'explain_metric']);
+    if (incomingDomain && incomingDomain !== 'dashboard' && dashboardTools.has(llmPlan.tool)) {
+        return false;
+    }
+    return true;
 }
 async function planTurn(state) {
     const message = String(state.message || '');
@@ -279,7 +288,7 @@ async function planTurn(state) {
 
     if (state.financialQueryPlan) {
         const llmPlan = await planWithGeminiForState(state, message);
-        if (shouldUseLlmPlanOverLegacy(llmPlan)) {
+        if (shouldUseLlmPlanOverLegacy(llmPlan, state.financialQueryPlan)) {
             return { plan: llmPlan, action: llmPlan.action };
         }
 

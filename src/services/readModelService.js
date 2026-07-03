@@ -327,15 +327,30 @@ function buildCanonicalCardEntries({ unifiedRows = [], legacyRowsBySheet = [] } 
 
 function mapUserSettingsRows(rows) {
     if (!rows || rows.length <= 1) return [];
-    return rows.slice(1)
-        .map(row => ({
-            user_id: String(row[0] || '').trim(),
-            monthly_budget_enabled: row[13] || '',
-            monthly_budget_amount: row[14] || '',
-            monthly_budget_scope: row[17] || 'personal',
-            monthly_budget_cycle_start_day: row[18] || '1'
-        }))
-        .filter(item => item.user_id);
+
+    const settingsByUserId = new Map();
+    rows.slice(1).forEach((row) => {
+        const userId = String(row[0] || '').trim();
+        if (!userId) return;
+
+        const hasExplicitSettings = [row[13], row[14], row[17], row[18]]
+            .some(value => String(value || '').trim());
+        const current = settingsByUserId.get(userId);
+        if (current && (current.hasExplicitSettings || !hasExplicitSettings)) return;
+
+        settingsByUserId.set(userId, {
+            hasExplicitSettings,
+            settings: {
+                user_id: userId,
+                monthly_budget_enabled: row[13] || '',
+                monthly_budget_amount: row[14] || '',
+                monthly_budget_scope: row[17] || 'personal',
+                monthly_budget_cycle_start_day: row[18] || '1'
+            }
+        });
+    });
+
+    return Array.from(settingsByUserId.values(), item => item.settings);
 }
 
 function mapCartoesConfigRows(rows) {
@@ -1320,6 +1335,7 @@ module.exports = {
         mapLegacyCardRows,
         mapUnifiedCardRows,
         buildCanonicalCardEntries,
+        mapUserSettingsRows,
         getReadModelContextKey,
         shouldReuseReadModelSnapshot
     }

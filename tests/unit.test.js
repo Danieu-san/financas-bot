@@ -2992,6 +2992,18 @@ test('messageHandler.classifyPerguntaLocally covers complex analytical questions
     const budgetRemaining = classifyPerguntaLocally('quanto falta até o fim do ciclo?');
     assert.strictEqual(budgetRemaining.intent, 'orcamento_restante_ciclo');
 
+    const familyBudgetRemaining = classifyPerguntaLocally('Quanto falta do orçamento familiar?');
+    assert.strictEqual(familyBudgetRemaining.intent, 'orcamento_restante_ciclo');
+    assert.strictEqual(familyBudgetRemaining.financialQueryPlan.domain, 'budget');
+    assert.strictEqual(familyBudgetRemaining.financialQueryPlan.operation, 'forecast');
+    assert.strictEqual(familyBudgetRemaining.financialQueryPlan.filters.scope, 'family');
+
+    const familyBudgetAmount = classifyPerguntaLocally('Qual o mei orçamento familiar?');
+    assert.strictEqual(familyBudgetAmount.intent, 'orcamento_detalhe');
+    assert.strictEqual(familyBudgetAmount.financialQueryPlan.domain, 'budget');
+    assert.strictEqual(familyBudgetAmount.financialQueryPlan.operation, 'detail');
+    assert.strictEqual(familyBudgetAmount.financialQueryPlan.filters.scope, 'family');
+
     const budgetWeeklyRemaining = classifyPerguntaLocally('quanto sobrou para essa semana no orçamento?');
     assert.strictEqual(budgetWeeklyRemaining.intent, 'orcamento_disponivel_hoje');
     assert.strictEqual(budgetWeeklyRemaining.financialQueryPlan.domain, 'budget');
