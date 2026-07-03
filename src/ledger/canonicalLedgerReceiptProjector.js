@@ -145,7 +145,29 @@ function keepOnlyReceiptSourceEvents(projected, sheetName) {
     );
     projected.warnings = projected.warnings.filter(warning => keptEventIds.has(warning.event_id));
 }
-function decorateReceiptProjection(projected, { sheetName, row }) {
+function resolveRegisteredAccountName(financialAccountRows, ownerPersonId, candidates = []) {
+    const accounts = ledgerAccountsFromFinancialAccountRows(financialAccountRows)
+        .filter(account => account.owner_person_id === ownerPersonId);
+    for (const candidate of candidates) {
+        const normalizedCandidate = normalizeText(candidate || '').trim();
+        if (!normalizedCandidate) continue;
+        const matched = accounts.find(account => normalizeText(account.name).trim() === normalizedCandidate);
+        if (matched) return matched.name;
+    }
+    return '';
+}
+
+function assignRegisteredAccount(line, ownerPersonId, accountName) {
+    if (!line) return;
+    if (!accountName) {
+        delete line.account_id;
+        delete line.account_name;
+        return;
+    }
+    Object.assign(line, accountIdentity(ownerPersonId, accountName));
+}
+
+function decorateReceiptProjection(projected, { sheetName, row, financialAccountRows = [] }) {
     const event = projected.events[0];
     if (!event) return;
 
@@ -154,14 +176,16 @@ function decorateReceiptProjection(projected, { sheetName, row }) {
     }
 
     if (sheetName === 'Saídas') {
-        Object.assign(
-            projected.lines.find(line => line.line_type === 'cash') || {},
-            accountIdentity(event.owner_person_id, row[6])
+        assignRegisteredAccount(
+            projected.lines.find(line => line.line_type === 'cash'),
+            event.owner_person_id,
+            resolveRegisteredAccountName(financialAccountRows, event.owner_person_id, [row[10], row[6]])
         );
     } else if (sheetName === 'Entradas') {
-        Object.assign(
-            projected.lines.find(line => line.line_type === 'cash') || {},
-            accountIdentity(event.owner_person_id, row[5])
+        assignRegisteredAccount(
+            projected.lines.find(line => line.line_type === 'cash'),
+            event.owner_person_id,
+            resolveRegisteredAccountName(financialAccountRows, event.owner_person_id, [row[9], row[5]])
         );
     } else if (sheetName === 'Transferências') {
         Object.assign(
@@ -308,7 +332,7 @@ function buildCanonicalLedgerReceiptProjection({
         event.created_at = projectedAt;
         event.updated_at = projectedAt;
     }
-    decorateReceiptProjection(projected, { sheetName, row });
+    decorateReceiptProjection(projected, { sheetName, row, financialAccountRows });
     projected.accounts = ledgerAccountsFromFinancialAccountRows(financialAccountRows);
     const publicProjection = buildCanonicalPublicProjection(projected, input);
     const runId = `receipt_${hash(operationKey)}`;

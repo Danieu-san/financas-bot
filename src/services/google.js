@@ -1795,8 +1795,8 @@ async function ensureSpreadsheetStructure() {
     console.log('--- Verificando Estrutura da Planilha ---');
     const FORMATTED_ROW_LIMIT = 5000;
     const structure = [
-        { title: 'Saídas', headers: ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Observações', 'user_id'], color: { red: 0.9, green: 0.4, blue: 0.4 } },
-        { title: 'Entradas', headers: ['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Observações', 'user_id'], color: { red: 0.4, green: 0.8, blue: 0.4 } },
+        { title: 'Saídas', headers: ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Observações', 'user_id', 'Conta Financeira'], color: { red: 0.9, green: 0.4, blue: 0.4 } },
+        { title: 'Entradas', headers: ['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Observações', 'user_id', 'Conta Financeira'], color: { red: 0.4, green: 0.8, blue: 0.4 } },
         { title: 'Transferências', headers: ['Data', 'Descrição', 'Valor', 'Conta Origem', 'Conta Destino', 'Método', 'Observações', 'Status', 'user_id'], color: { red: 0.42, green: 0.58, blue: 0.74 } },
         { title: 'Dívidas', headers: ['Nome', 'Credor', 'Tipo', 'Valor Original', 'Saldo Atual', 'Parcela', 'Juros', 'Vencimento', 'Início', 'Total Parcelas', 'Status', 'Responsável', 'Observações', '% Quitado', 'Próximo Vencimento', 'Atraso (Dias)', 'Data Prevista para Quitação', 'user_id'], color: { red: 0.8, green: 0.5, blue: 0.2 } },
         { title: 'Metas', headers: ['Nome', 'Valor Alvo', 'Valor Atual', '% Progresso', 'Valor Mensal', 'Data Fim', 'Status', 'Prioridade', 'user_id', 'Escopo', 'Última Movimentação'], color: { red: 0.2, green: 0.6, blue: 0.8 } },

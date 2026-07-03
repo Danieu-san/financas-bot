@@ -63,6 +63,12 @@ test('user spreadsheet template includes required multiuser financial tabs', () 
     const categories = USER_SPREADSHEET_TABS.find(tab => tab.title === 'Categorias');
     assert.deepStrictEqual(categories.headers, ['Categoria', 'Subcategoria', 'Ativa', 'Criada em', 'user_id']);
 
+    const expenses = USER_SPREADSHEET_TABS.find(tab => tab.title === 'Saídas');
+    assert.deepStrictEqual(expenses.headers.slice(-2), ['user_id', 'Conta Financeira']);
+
+    const incomes = USER_SPREADSHEET_TABS.find(tab => tab.title === 'Entradas');
+    assert.deepStrictEqual(incomes.headers.slice(-2), ['user_id', 'Conta Financeira']);
+
     const financialAccounts = USER_SPREADSHEET_TABS.find(tab => tab.title === 'Contas Financeiras');
     assert.deepStrictEqual(financialAccounts.headers, [
         'Nome da Conta',
@@ -129,7 +135,8 @@ test('createUserSpreadsheetForUser creates spreadsheet and writes headers to eve
     const headerWrites = calls.filter(call => call.type === 'values.update');
     assert.strictEqual(headerWrites.length, USER_SPREADSHEET_TABS.length);
     assert.ok(headerWrites.every(call => call.payload.spreadsheetId === 'spreadsheet-user-1'));
-    assert.ok(headerWrites.some(call => call.payload.range === "'Saídas'!A1:J1"));
+    assert.ok(headerWrites.some(call => call.payload.range === "'Saídas'!A1:K1"));
+    assert.ok(headerWrites.some(call => call.payload.range === "'Entradas'!A1:J1"));
     assert.ok(headerWrites.some(call => call.payload.range === "'Lançamentos Cartão'!A1:J1"));
     assert.ok(headerWrites.some(call => call.payload.range === "'Faturas'!A1:F1"));
     assert.ok(headerWrites.some(call => call.payload.range === "'Parcelamentos'!A1:G1"));

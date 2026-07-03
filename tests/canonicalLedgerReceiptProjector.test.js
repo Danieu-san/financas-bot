@@ -42,10 +42,10 @@ test('canonical receipt projector maps committed expense, income and transfer ro
     assert.strictEqual(expense.projected.events[0].kind, 'expense');
     assert.strictEqual(expense.projected.events[0].amount_cents, 12345);
     assert.strictEqual(expense.projected.events[0].idempotency_key, 'expense-op');
-    assert.strictEqual(expense.projected.lines.find(line => line.line_type === 'cash').account_name, 'PIX');
+    assert.strictEqual(expense.projected.lines.find(line => line.line_type === 'cash').account_name, undefined);
     assert.strictEqual(income.projected.events[0].kind, 'income');
     assert.strictEqual(income.projected.events[0].amount_cents, 500000);
-    assert.strictEqual(income.projected.lines.find(line => line.line_type === 'cash').account_name, 'Conta Corrente');
+    assert.strictEqual(income.projected.lines.find(line => line.line_type === 'cash').account_name, undefined);
     assert.strictEqual(transfer.projected.events[0].kind, 'transfer');
     assert.strictEqual(transfer.projected.events[0].net_income_expense_impact, 0);
     assert.strictEqual(transfer.projected.events[0].free_budget_eligible, false);
@@ -55,6 +55,36 @@ test('canonical receipt projector maps committed expense, income and transfer ro
     );
 });
 
+test('canonical receipt projector links explicit financial account columns without treating payment methods as accounts', () => {
+    const financialAccountRows = [
+        ['Nome da Conta', 'Tipo', 'Saldo Inicial', 'Data de Abertura', 'Status', 'Moeda', 'Responsável', 'user_id', 'Observações'],
+        ['Daniel - Nubank', 'bank', '1000,00', '03/07/2026', 'active', 'BRL', 'Daniel', 'user-a', 'Principal'],
+        ['Daniel - Carteira', 'cash', '50,00', '03/07/2026', 'active', 'BRL', 'Daniel', 'user-a', 'Dinheiro']
+    ];
+    const expense = buildCanonicalLedgerReceiptProjection({
+        sheetName: 'Saídas',
+        row: ['04/07/2026', 'Mercado', 'Alimentação', 'Supermercado', 20, 'Daniel', 'PIX', 'Não', '', 'user-a', 'Daniel - Nubank'],
+        operationKey: 'explicit-expense-account',
+        receipt: { updatedRange: 'Saídas!A10:K10' },
+        financialAccountRows
+    });
+    const income = buildCanonicalLedgerReceiptProjection({
+        sheetName: 'Entradas',
+        row: ['05/07/2026', 'Reembolso', 'Outros', 30, 'Daniel', 'PIX', 'Não', '', 'user-a', 'Daniel - Carteira'],
+        operationKey: 'explicit-income-account',
+        receipt: { updatedRange: 'Entradas!A8:J8' },
+        financialAccountRows
+    });
+
+    assert.strictEqual(
+        expense.projected.lines.find(line => line.line_type === 'cash').account_name,
+        'Daniel - Nubank'
+    );
+    assert.strictEqual(
+        income.projected.lines.find(line => line.line_type === 'cash').account_name,
+        'Daniel - Carteira'
+    );
+});
 
 test('canonical receipt projector timestamps real receipts with the injected projection clock', () => {
     const timestamp = '2026-07-02T11:42:39.570Z';

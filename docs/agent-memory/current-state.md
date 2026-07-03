@@ -829,3 +829,12 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Evidencia EC2: backup data/backups/canonical_ledger_shadow.pre-account-movements-20260703T1800Z.sqlite; focados remotos 21/21; gate TESTE_APAGAR_ACCOUNT_MOVEMENTS_REMOTE_20260703 GO; replay idempotente; privacy OK; cleanup zero. As quatro contas reais permaneceram nos saldos de abertura.
 - Veredito: GO para o mecanismo marker-only de movimentos/status/datas e NO-GO para tratar saldo canonico como saldo real primario. O fluxo produtivo ainda grava metodo de pagamento (PIX/Debito/Dinheiro) onde o projector busca identidade da conta, portanto nao distingue as contas financeiras reais.
 - Flags preservadas: accounts continua somente em leitura canario junto de transactions/transfers; Gemini Planner ativo; INTERPRETATION_RELIABILITY_MODE=shadow. Proximo corte da Fase 2: contrato explicito de conta origem/destino nos recibos e planilhas, seguido de captura conversacional sem inferencia silenciosa.
+
+## Canonical ledger explicit financial account contract - 2026-07-03
+
+- Fase 2/accounts: contrato aditivo criado para separar forma de pagamento/recebimento de identidade de conta financeira.
+- Templates central e por usuario ganharam a coluna final `Conta Financeira` em `Saidas` e `Entradas`, sem deslocar as colunas antigas nem mudar os fluxos de escrita existentes.
+- O receipt projector agora usa `Conta Financeira` como fonte preferencial e so aceita fallback legado de `Pagamento`/`Recebimento` quando o valor bate exatamente com uma conta cadastrada em `Contas Financeiras` para o mesmo responsavel. `PIX`, `Debito`, `Credito` e `Dinheiro` deixam de virar conta canonica por acidente.
+- Evidencia TDD: teste RED/GREEN em `tests/canonicalLedgerReceiptProjector.test.js` provou que metodos de pagamento nao viram conta e que nomes explicitos de conta sao vinculados; `tests/userSpreadsheetService.test.js` cobre os novos headers.
+- Evidencia local: focado receipt/template `29/29`; focado unit/ledger/template `211/211`; `node --check` nos tres JS alterados; `npm test` `661/661`; `npm audit --audit-level=high` zero vulnerabilidades; `git diff --check` limpo; scan NUL rastreado limpo; `state_store.json` valido.
+- Veredito local: GO para commitar/deployar o contrato inerte e NO-GO para saldo real primario. Linhas produtivas antigas ficam com `Conta Financeira` vazia e nao movimentam conta; o proximo corte precisa fazer os fluxos conversacionais de gastos/entradas perguntarem ou capturarem a conta financeira explicitamente antes de preencher a coluna.

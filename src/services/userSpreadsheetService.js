@@ -17,12 +17,12 @@ const USER_SPREADSHEET_TABS = Object.freeze([
     },
     {
         title: 'Saídas',
-        headers: ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Observações', 'user_id'],
+        headers: ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Observações', 'user_id', 'Conta Financeira'],
         color: { red: 0.74, green: 0.22, blue: 0.20 }
     },
     {
         title: 'Entradas',
-        headers: ['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Observações', 'user_id'],
+        headers: ['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Observações', 'user_id', 'Conta Financeira'],
         color: { red: 0.13, green: 0.55, blue: 0.36 }
     },
     {
