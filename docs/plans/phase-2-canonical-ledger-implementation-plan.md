@@ -229,3 +229,27 @@ source gate is deployed, run against the real EC2 sheet data with
 `--persist-source`, and followed by a controlled flag change to include
 `accounts` in `CANONICAL_LEDGER_CANARY_READ_DOMAINS` with rollback by `.env`
 backup.
+
+## Controlled Accounts Read Canary Activation - 2026-07-03
+
+Production persisted the real `Contas Financeiras` source into the canonical
+shadow ledger with `ACCOUNTS_SOURCE_REAL_20260703` before enabling the read
+domain. The source gate returned `GO`, `privacy.ok=true`, four public account
+rows and `persistentRun=true`.
+
+The controlled activation changed only
+`CANONICAL_LEDGER_CANARY_READ_DOMAINS` from `transactions,transfers` to
+`transactions,transfers,accounts`. Backup files:
+
+- SQLite shadow: `data/backups/canonical_ledger_shadow.pre-accounts-source-20260703T1220Z.sqlite`.
+- `.env`: `/home/ubuntu/financas-bot-backups/.env.pre-canonical-accounts-canary-20260703T1225Z`.
+
+Post-activation smoke with the process env returned `enabled=true` for domain
+`accounts` and these opening/current balances: Daniel - Nubank R$ 262,85;
+Daniel - Nubank Caixinha R$ 1.264,91; Thais - Nubank R$ 0,00; Thais - Itaú
+R$ 133,46. PM2, dashboard health, WhatsApp ready and `state_store.json` were
+healthy.
+
+Decision: `accounts` read canary is `GO` for this opening-balance surface. It is
+not a full account reconciliation cutover; future movements still need their own
+parity evidence before account balances become the primary user-facing source.
