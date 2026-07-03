@@ -15,6 +15,9 @@ const {
 const {
     runCanonicalLedgerAccountsCanaryGate
 } = require('../scripts/runCanonicalLedgerAccountsCanaryGate');
+const {
+    runCanonicalLedgerAccountsSourceGate
+} = require('../scripts/runCanonicalLedgerAccountsSourceGate');
 
 test('canonical ledger parity report summarizes fixture projection without unexplained differences', () => {
     const report = buildCanonicalLedgerParityReport(fixture, {
@@ -125,4 +128,46 @@ test('canonical ledger accounts canary gate seeds, validates and cleans marker a
     assert.strictEqual(result.postCleanup.reason, 'canonical_accounts_opening_balances_unavailable');
     assert.strictEqual(fs.existsSync(result.reportPath), true);
     assert.doesNotMatch(JSON.stringify(result), /user-a|acct-|source_row_hash|idempotency_key/i);
+});
+
+test('canonical ledger accounts source gate persists real opening balances when explicitly requested', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-ledger-accounts-source-'));
+    const dbPath = path.join(tempDir, 'canonical-ledger-shadow.sqlite');
+    const reportDir = path.join(tempDir, 'report');
+    const financialAccountRows = [
+        ['Nome da Conta', 'Tipo', 'Saldo Inicial', 'Data de Abertura', 'Status', 'Moeda', 'Responsavel', 'user_id', 'Observacoes'],
+        ['Daniel - Nubank', 'bank', '262,85', '03/07/2026', 'active', 'BRL', 'Daniel', 'user-daniel', 'Saldo real'],
+        ['Daniel - Nubank Caixinha', 'reserve', '1264,91', '03/07/2026', 'active', 'BRL', 'Daniel', 'user-daniel', 'Saldo real'],
+        ['Thais - Nubank', 'bank', '0,00', '03/07/2026', 'active', 'BRL', 'Thais', 'user-thais', 'Saldo real'],
+        ['Thais - Itau', 'bank', '133,46', '03/07/2026', 'active', 'BRL', 'Thais', 'user-thais', 'Saldo real']
+    ];
+
+    const result = runCanonicalLedgerAccountsSourceGate({
+        dbPath,
+        reportDir,
+        financialAccountRows,
+        runId: 'ACCOUNTS_SOURCE_UNIT_REAL',
+        confirmRealSource: true,
+        persistSource: true,
+        personByUserId: {
+            'user-daniel': 'Daniel',
+            'user-thais': 'Thais'
+        }
+    });
+
+    assert.strictEqual(result.decision, 'GO');
+    assert.strictEqual(result.cleanup.executed, false);
+    assert.strictEqual(result.cleanup.persistentRun, true);
+    assert.deepStrictEqual(
+        result.read.rows.map(row => [row.name, row.account_type, row.opening_balance_cents, row.balance_cents]).sort((left, right) => left[0].localeCompare(right[0])),
+        [
+            ['Daniel - Nubank', 'bank', 26285, 26285],
+            ['Daniel - Nubank Caixinha', 'reserve', 126491, 126491],
+            ['Thais - Itau', 'bank', 13346, 13346],
+            ['Thais - Nubank', 'bank', 0, 0]
+        ]
+    );
+    assert.strictEqual(result.privacy.ok, true);
+    assert.strictEqual(fs.existsSync(result.reportPath), true);
+    assert.doesNotMatch(JSON.stringify(result), /user-daniel|user-thais|acct_|source_row_hash|idempotency_key/i);
 });

@@ -242,6 +242,33 @@ function legacyInputFromAppend({ sheetName, row, operationKey, receipt, accountR
     return base;
 }
 
+function buildCanonicalLedgerAccountsSourceProjection({
+    financialAccountRows = [],
+    runId = `accounts_source_${hash(JSON.stringify(financialAccountRows), 24)}`
+} = {}) {
+    const accounts = ledgerAccountsFromFinancialAccountRows(financialAccountRows);
+    return {
+        runId,
+        projected: {
+            accounts,
+            events: [],
+            lines: [],
+            schedules: [],
+            reconciliationLinks: []
+        },
+        publicProjection: [],
+        report: {
+            report_type: 'canonical_ledger_receipt_shadow',
+            schema_version: 'canonical-ledger-v1',
+            synthetic_fixture_only: false,
+            source_sheet: 'Contas Financeiras',
+            source: 'financial_accounts_source',
+            account_count: accounts.length,
+            unexplained_differences: []
+        }
+    };
+}
+
 function buildCanonicalLedgerReceiptProjection({
     sheetName,
     row,
@@ -518,6 +545,7 @@ function readCanonicalLedgerCanaryDomain({
 
 module.exports = {
     SUPPORTED_SHEETS,
+    buildCanonicalLedgerAccountsSourceProjection,
     buildCanonicalLedgerReceiptProjection,
     projectCommittedAppendToCanonicalShadow,
     safelyProjectCommittedAppendToCanonicalShadow,

@@ -208,3 +208,24 @@ Receipt shadow projection now reads this tab and builds `projected.accounts` onl
 Decision: source wiring and inert deploy are `GREEN`. Local verification passed (`202/202` focused, `646/646` full suite, audit high 0), EC2 focused tests passed (`202/202`), health is OK, and the remote marker-only `accounts` gate returned `GO` with privacy OK, cleanup zerada and post-cleanup fail-closed.
 
 Production `CANONICAL_LEDGER_CANARY_READ_DOMAINS=accounts` stays `NO-GO` because the live `Contas Financeiras` source still needs real Daniel/Thais account rows with explicit opening balances. Next step is to fill/seed those rows deliberately, run a source-backed accounts gate/parity check against the real sheet data, then decide controlled activation.
+
+## Real Accounts Source Persistence - 2026-07-03
+
+Daniel supplied the real family account opening balances and the central
+`Contas Financeiras` sheet was cleaned of marker-only fictional rows. A temporary
+source-backed gate proved the transformation, but that run was intentionally
+cleaned and therefore did not leave account identities available for a production
+`accounts` read canary.
+
+A dedicated source gate now exists for this transition:
+`npm run ledger:accounts-source-gate -- --confirm-real-source --persist-source --rows-json <file>`.
+It projects only the explicit rows from `Contas Financeiras` into
+`canonical_ledger_accounts`, validates the `accounts` canary reader, scans the
+public response for internal identifiers and, with `--persist-source`, keeps the
+source projection as the account opening-balance baseline.
+
+Decision: `accounts` remains `NO-GO` for production read activation until this
+source gate is deployed, run against the real EC2 sheet data with
+`--persist-source`, and followed by a controlled flag change to include
+`accounts` in `CANONICAL_LEDGER_CANARY_READ_DOMAINS` with rollback by `.env`
+backup.
