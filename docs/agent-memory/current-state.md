@@ -890,3 +890,11 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - TDD RED/GREEN em `tests/financialStateMachine.test.js`: origem/destino numerados, origem invalida, destino igual a origem, bloqueio seguro com apenas uma conta, transferencia de caixinha concluida, transferencia familiar pendente com data retroativa/futura e cancelamento sem escrita.
 - Evidencia local: caso RED de uma conta falhou e depois passou; conversa + ledger/paridade `119/119`; suite completa `669/669`; audit high zero; sintaxe, diff check, NUL rastreado e `state_store.json` verdes.
 - Veredito: GO local para commit/deploy controlado e NO-GO para encerrar a subfatia ate foco remoto e smoke marker-only real comprovarem Sheets, ledger, neutralidade, status/data e limpeza. Gemini Planner e `INTERPRETATION_RELIABILITY_MODE=shadow` devem permanecer como estao.
+
+## Fase 2 explicit transfer account capture deploy - 2026-07-03
+
+- Commit `d1cfcb0` deployado na EC2 por fast-forward, sem alterar `.env` nem flags.
+- Focados remotos `tests/financialStateMachine.test.js`, `tests/canonicalLedgerReceiptProjector.test.js` e `tests/canonicalLedgerParityReport.test.js` passaram `119/119`.
+- Pos-deploy: PM2 `financas-bot` online, dashboard health `{"ok":true,"sqlite":true}`, WhatsApp autenticado/pronto sem novo QR e `state_store.json` remoto valido.
+- Flags preservadas: `FINANCIAL_AGENT_MODE=answer`, Gemini Planner ativo, contextual analyst em `answer`, `FINANCIAL_COMMAND_PLANNER_MODE=canary`, `INTERPRETATION_RELIABILITY_MODE=shadow` e `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transactions,transfers,accounts`.
+- Proximo gate da subfatia: smoke marker-only real de transferencia de caixinha concluida e transferencia familiar pendente/cancelada, com conferencia Sheets + ledger shadow + neutralidade + limpeza antes de encerrar transferencias na Fase 2.
