@@ -437,6 +437,7 @@ function readReceiptAccountRows(db, ownerPersonIds = [], personByUserId = {}) {
         JOIN canonical_ledger_events e ON e.run_id = l.run_id AND e.event_id = l.event_id
         JOIN canonical_ledger_projection_runs r ON r.run_id = l.run_id
         WHERE r.report_type = ?
+        AND e.status = 'settled'
         AND l.account_id IN (${placeholders})
         ${lineFilter.clause}
     `).all('canonical_ledger_receipt_shadow', ...accountIds, ...lineFilter.ids);

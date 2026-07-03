@@ -398,6 +398,148 @@ test('canonical receipt projector builds accounts from explicit financial accoun
     );
     assert.doesNotMatch(JSON.stringify(accounts), /user-a|source_row_hash|idempotency_key/i);
 });
+test('canonical canary accounts read excludes pending account movements from current balance', () => {
+    const dbPath = tempDbPath();
+    const store = new CanonicalLedgerShadowStore({ dbPath, writesEnabled: true });
+    const projected = {
+        accounts: [
+            {
+                account_id: 'acct-status-a',
+                household_id: 'household-test',
+                owner_person_id: 'user-a',
+                account_type: 'bank',
+                name: 'Conta Status A',
+                currency: 'BRL',
+                opening_balance_cents: 100000,
+                opened_on: '2026-01-01',
+                status: 'active'
+            },
+            {
+                account_id: 'acct-status-b',
+                household_id: 'household-test',
+                owner_person_id: 'user-a',
+                account_type: 'bank',
+                name: 'Conta Status B',
+                currency: 'BRL',
+                opening_balance_cents: 50000,
+                opened_on: '2026-01-01',
+                status: 'active'
+            }
+        ],
+        events: [
+            {
+                event_id: 'pending-transfer-event',
+                household_id: 'household-test',
+                owner_person_id: 'user-a',
+                actor_person_id: 'user-a',
+                kind: 'transfer',
+                status: 'pending',
+                description: 'Transferencia pendente',
+                amount_cents: 20000,
+                currency: 'BRL',
+                occurred_on: '2026-07-03',
+                effective_on: '2026-07-05',
+                source_type: 'sheet.transferencias',
+                source_id_hash: 'source-pending',
+                source_row_hash: 'row-pending',
+                idempotency_key: 'pending-op',
+                free_budget_eligible: false,
+                net_income_expense_impact: 0,
+                created_at: '2026-07-03T12:00:00.000Z',
+                updated_at: '2026-07-03T12:00:00.000Z'
+            },
+            {
+                event_id: 'settled-expense-event',
+                household_id: 'household-test',
+                owner_person_id: 'user-a',
+                actor_person_id: 'user-a',
+                kind: 'expense',
+                status: 'settled',
+                description: 'Despesa concluida',
+                amount_cents: 7000,
+                currency: 'BRL',
+                occurred_on: '2026-07-03',
+                effective_on: '2026-07-03',
+                source_type: 'sheet.saidas',
+                source_id_hash: 'source-settled',
+                source_row_hash: 'row-settled',
+                idempotency_key: 'settled-op',
+                free_budget_eligible: true,
+                net_income_expense_impact: 7000,
+                created_at: '2026-07-03T12:01:00.000Z',
+                updated_at: '2026-07-03T12:01:00.000Z'
+            }
+        ],
+        lines: [
+            {
+                line_id: 'pending-a-out',
+                event_id: 'pending-transfer-event',
+                line_type: 'cash',
+                account_id: 'acct-status-a',
+                direction: 'outflow',
+                amount_cents: 20000,
+                currency: 'BRL',
+                metadata_hash: 'meta-pending-a'
+            },
+            {
+                line_id: 'pending-b-in',
+                event_id: 'pending-transfer-event',
+                line_type: 'clearing',
+                account_id: 'acct-status-b',
+                direction: 'inflow',
+                amount_cents: 20000,
+                currency: 'BRL',
+                metadata_hash: 'meta-pending-b'
+            },
+            {
+                line_id: 'settled-a-out',
+                event_id: 'settled-expense-event',
+                line_type: 'cash',
+                account_id: 'acct-status-a',
+                direction: 'outflow',
+                amount_cents: 7000,
+                currency: 'BRL',
+                metadata_hash: 'meta-settled-a'
+            }
+        ],
+        schedules: [],
+        reconciliationLinks: []
+    };
+    store.persistProjection({
+        runId: 'ACCOUNTS_STATUS_BALANCE_TEST',
+        projected,
+        publicProjection: [],
+        report: {
+            report_type: 'canonical_ledger_receipt_shadow',
+            schema_version: 'canonical-ledger-v1',
+            synthetic_fixture_only: false
+        }
+    });
+    store.close();
+
+    const accounts = readCanonicalLedgerCanaryDomain({
+        env: {
+            NODE_ENV: 'test',
+            CANONICAL_LEDGER_PROJECTION_MODE: 'shadow',
+            CANONICAL_LEDGER_SHADOW_WRITE_ENABLED: 'true',
+            CANONICAL_LEDGER_CANARY_READ_ENABLED: 'true',
+            CANONICAL_LEDGER_CANARY_READ_DOMAINS: 'accounts'
+        },
+        dbPath,
+        domain: 'accounts',
+        ownerPersonIds: ['user-a'],
+        personByUserId: { 'user-a': 'Daniel' }
+    });
+
+    assert.strictEqual(accounts.enabled, true);
+    assert.deepStrictEqual(
+        accounts.rows.map(row => [row.name, row.opening_balance_cents, row.balance_cents]),
+        [['Conta Status A', 100000, 93000], ['Conta Status B', 50000, 50000]]
+    );
+    assert.doesNotMatch(JSON.stringify(accounts), /user-a|acct-status|source_row_hash|idempotency_key/i);
+});
+
+
 test('canonical canary accounts read fails closed when the account schema is unavailable', () => {
     const dbPath = tempDbPath();
     const db = require('better-sqlite3')(dbPath);
