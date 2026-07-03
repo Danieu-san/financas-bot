@@ -101,12 +101,13 @@ function resetSheets() {
         USER_SETTINGS_HEADER,
         [USER_ID, 'America/Sao_Paulo', 'NÃO', 'SIM', 'pt-BR', '2026-01-01T00:00:00.000Z', 'NÃO', '10', 'NÃO', '', '', '', 'personal', 'NÃO', '', '', '', 'personal', '1']
     ];
-    sheets.Saídas = [['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Observações', 'user_id']];
-    sheets.Entradas = [['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Observações', 'user_id']];
+    sheets.Saídas = [['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Observações', 'user_id', 'Conta Financeira']];
+    sheets.Entradas = [['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Observações', 'user_id', 'Conta Financeira']];
     sheets.Transferências = [['Data', 'Descrição', 'Valor', 'Origem', 'Destino', 'Método', 'Observações', 'Status', 'user_id']];
     sheets['Lançamentos Cartão'] = [['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Status', 'user_id']];
     sheets.Categorias = [['Categoria', 'Subcategoria', 'Ativa', 'Criada em', 'user_id']];
     sheets.Contas = [['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa']];
+    sheets['Contas Financeiras'] = [['Nome da Conta', 'Tipo', 'Saldo Inicial', 'Data de Abertura', 'Status', 'Moeda', 'Responsável', 'user_id', 'Observações']];
     sheets.Dívidas = [DEBTS_HEADER];
     sheets.Metas = [['Nome da Meta', 'Valor Alvo', 'Valor Atual', '% Progresso', 'Valor Mensal Necessário', 'Data Fim', 'Status', 'Prioridade', 'user_id', 'Escopo', 'Última Movimentação']];
     sheets['Movimentações Metas'] = [['Data', 'Meta', 'Tipo', 'Valor', 'Valor Antes', 'Valor Depois', 'Observação', 'Responsável', 'user_id', 'goal_user_id']];
@@ -413,6 +414,43 @@ stateMachineTest('financial states: payment method writes expense with user_id a
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
 });
 
+stateMachineTest('financial states: payment method asks explicit financial account when accounts exist', async () => {
+    resetState();
+    sheets['Contas Financeiras'].push(
+        ['Daniel - Nubank', 'bank', '1000,00', '03/07/2026', 'active', 'BRL', 'Usuario Estado', USER_ID, 'Principal'],
+        ['Daniel - Carteira', 'cash', '50,00', '03/07/2026', 'active', 'BRL', 'Usuario Estado', USER_ID, 'Dinheiro']
+    );
+    userStateManager.setState(SENDER, {
+        action: 'awaiting_payment_method',
+        data: {
+            gasto: {
+                data: '10/02/2026',
+                descricao: 'lanche',
+                categoria: 'Alimentação',
+                subcategoria: 'PADARIA / LANCHE',
+                valor: 80,
+                recorrente: 'Não'
+            }
+        }
+    });
+
+    const accountQuestion = await send('pix');
+
+    assert.match(accountQuestion, /conta financeira/i);
+    assert.match(accountQuestion, /1\. Daniel - Nubank/i);
+    assert.match(accountQuestion, /2\. Daniel - Carteira/i);
+    assert.strictEqual(sheets.Saídas.length, 1);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_expense_financial_account');
+
+    const savedReply = await send('2');
+
+    assert.match(savedReply, /registrado/i);
+    assert.strictEqual(sheets.Saídas.length, 2);
+    assert.strictEqual(sheets.Saídas[1][6], 'PIX');
+    assert.strictEqual(sheets.Saídas[1][9], USER_ID);
+    assert.strictEqual(sheets.Saídas[1][10], 'Daniel - Carteira');
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
 stateMachineTest('financial states: command planner canary registers recurring bill payment only for an allowlisted user', async () => {
     resetState();
     const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
@@ -1076,6 +1114,60 @@ stateMachineTest('financial states: command planner keeps an ordinary purchase o
         else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
     }
 });
+stateMachineTest('financial states: planned debit expense asks explicit financial account before confirmation', async () => {
+    resetState();
+    const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
+    sheets['Contas Financeiras'].push(
+        ['Daniel - Nubank', 'bank', '1000,00', '03/07/2026', 'active', 'BRL', 'Usuario Estado', USER_ID, 'Principal'],
+        ['Thais - Itaú', 'bank', '133,46', '03/07/2026', 'active', 'BRL', 'Thais', PARTNER_ID, 'Conta familiar']
+    );
+    financialScopeUserIds = [USER_ID, PARTNER_ID];
+    enqueueStructuredResponse({
+        schemaVersion: 'financial-command-plan-v1',
+        operation: 'expense.create',
+        entities: {
+            description: 'mercado',
+            amount: 50,
+            date: '27/06/2026',
+            paymentMethod: 'PIX',
+            category: 'Alimentação',
+            subcategory: 'SUPERMERCADO'
+        },
+        fieldEvidence: {
+            description: 'explicit',
+            amount: 'explicit',
+            date: 'explicit',
+            paymentMethod: 'explicit'
+        },
+        contextRequests: [{ tool: 'resolve_category', query: 'mercado' }],
+        missingFields: [],
+        requiresConfirmation: true
+    });
+
+    try {
+        const accountQuestion = await send('Gastei 50 no mercado no Pix');
+        assert.match(accountQuestion, /conta financeira/i);
+        assert.match(accountQuestion, /1\. Daniel - Nubank/i);
+        assert.match(accountQuestion, /2\. Thais - Itaú/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_planned_expense_financial_account');
+        assert.strictEqual(sheets.Saídas.length, 1);
+
+        const confirmation = await send('2');
+        assert.match(confirmation, /Confirma/i);
+        assert.match(confirmation, /Conta: \*Thais - Itaú\*/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_planned_expense');
+
+        const savedReply = await send('sim');
+        assert.match(savedReply, /registrado/i);
+        assert.strictEqual(sheets.Saídas.length, 2);
+        assert.strictEqual(sheets.Saídas[1][10], 'Thais - Itaú');
+    } finally {
+        if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+        else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+        financialScopeUserIds = [USER_ID];
+    }
+});
 stateMachineTest('financial states: adversarial command planner keeps unmatched bill payment out of ordinary expense writes', async () => {
     resetState();
     const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
@@ -1697,6 +1789,40 @@ stateMachineTest('financial states: unknown receipt method asks again instead of
     assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_receipt_method');
 });
 
+stateMachineTest('financial states: receipt method asks explicit destination account when accounts exist', async () => {
+    resetState();
+    sheets['Contas Financeiras'].push(
+        ['Daniel - Nubank', 'bank', '1000,00', '03/07/2026', 'active', 'BRL', 'Usuario Estado', USER_ID, 'Principal'],
+        ['Daniel - Carteira', 'cash', '50,00', '03/07/2026', 'active', 'BRL', 'Usuario Estado', USER_ID, 'Dinheiro']
+    );
+    userStateManager.setState(SENDER, {
+        action: 'awaiting_receipt_method',
+        data: {
+            data: '10/02/2026',
+            descricao: 'freela',
+            categoria: 'Renda Extra',
+            valor: 300,
+            recorrente: 'Não'
+        }
+    });
+
+    const accountQuestion = await send('pix');
+
+    assert.match(accountQuestion, /conta financeira/i);
+    assert.match(accountQuestion, /1\. Daniel - Nubank/i);
+    assert.match(accountQuestion, /2\. Daniel - Carteira/i);
+    assert.strictEqual(sheets.Entradas.length, 1);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_income_financial_account');
+
+    const savedReply = await send('1');
+
+    assert.match(savedReply, /registrada/i);
+    assert.strictEqual(sheets.Entradas.length, 2);
+    assert.strictEqual(sheets.Entradas[1][5], 'PIX');
+    assert.strictEqual(sheets.Entradas[1][8], USER_ID);
+    assert.strictEqual(sheets.Entradas[1][9], 'Daniel - Nubank');
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
 stateMachineTest('financial states: enforce requires final confirmation when expense amount came only from LLM', async () => {
     resetState();
     const previousMode = process.env.INTERPRETATION_RELIABILITY_MODE;

@@ -874,6 +874,10 @@ function markFinancialReadModelDirty(reason = 'financial_write') {
     }
 }
 
+function getTransactionFinancialAccount(item = {}) {
+    return String(item.contaFinanceira || item.financialAccount || item.conta || '').trim();
+}
+
 function canSaveTransactionWithoutExtraPayment(item) {
     if (!item || !item.type) return false;
     if (item.type === 'Saídas') {
@@ -884,6 +888,138 @@ function canSaveTransactionWithoutExtraPayment(item) {
         return Boolean(normalizePaymentMethodLabel(item.recebimento));
     }
     return false;
+}
+
+function parseFinancialAccountRows(rows = [], trustedUserIds = []) {
+    if (!Array.isArray(rows) || rows.length <= 1) return [];
+    const trusted = new Set((trustedUserIds || []).map(id => String(id || '').trim()).filter(Boolean));
+    const seen = new Set();
+    const options = [];
+    for (const row of rows.slice(1)) {
+        const label = String(row?.[0] || '').trim();
+        if (!label) continue;
+        const status = normalizeText(row?.[4] || 'active');
+        if (['inativo', 'inactive', 'cancelado', 'cancelada', 'fechado', 'fechada', 'false', 'nao', 'não'].includes(status)) continue;
+        const rowUserId = String(row?.[7] || '').trim();
+        if (trusted.size && rowUserId && !trusted.has(rowUserId)) continue;
+        const key = normalizeText(label);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        options.push({ label, userId: rowUserId, type: String(row?.[1] || '').trim() });
+    }
+    return options;
+}
+
+async function buildFinancialAccountOptionsForUser(userId) {
+    try {
+        const scopeUserIds = userId ? getFinancialScopeUserIds(userId) : [];
+        const trustedUserIds = scopeUserIds.length ? scopeUserIds : [userId].filter(Boolean);
+        const rows = await readDataFromSheet('Contas Financeiras!A:I', {
+            userId,
+            suppressMissingSheetError: true
+        });
+        return parseFinancialAccountRows(rows || [], trustedUserIds);
+    } catch (error) {
+        logger.warn(`[financial-accounts] options_fallback_empty user_id=${logger.redactIdentifier(userId)} error="${error?.message || error}"`);
+        return [];
+    }
+}
+
+function buildFinancialAccountSelectionQuestion({ kind = 'expense', options = [], invalid = false } = {}) {
+    const header = invalid
+        ? 'Não consegui identificar a conta financeira. Escolha uma das opções:'
+        : kind === 'income'
+            ? 'Em qual conta financeira esse valor entrou?'
+            : 'De qual conta financeira saiu esse valor?';
+    return [
+        header,
+        '',
+        ...options.map((option, index) => `${index + 1}. ${option.label}`),
+        '',
+        'Responda com o número da conta.'
+    ].join('\n');
+}
+
+function parseFinancialAccountSelectionReply(messageBody = '', options = []) {
+    const raw = String(messageBody || '').trim();
+    const index = Number.parseInt(raw, 10);
+    if (Number.isInteger(index) && index >= 1 && index <= options.length) {
+        return options[index - 1];
+    }
+    const normalized = normalizeText(raw);
+    if (!normalized) return null;
+    return options.find(option => normalizeText(option.label) === normalized) || null;
+}
+
+async function askFinancialAccountIfNeeded({ msg, senderId, userId, item, kind = 'expense', action }) {
+    if (getTransactionFinancialAccount(item)) return false;
+    if (item?.type === 'Saídas' && normalizePaymentMethodLabel(item.pagamento) === 'Crédito') return false;
+    const options = await buildFinancialAccountOptionsForUser(userId);
+    if (!options.length) return false;
+    userStateManager.setState(senderId, {
+        action,
+        data: kind === 'income'
+            ? { income: item, financialAccountOptions: options }
+            : { expense: item, financialAccountOptions: options }
+    });
+    await msg.reply(buildFinancialAccountSelectionQuestion({ kind, options }));
+    return true;
+}
+
+async function handleExpenseFinancialAccountSelection({ msg, senderId, userId, pessoa, currentState, planned = false }) {
+    const options = currentState.data?.financialAccountOptions || [];
+    const selected = parseFinancialAccountSelectionReply(msg.body, options);
+    if (!selected) {
+        await msg.reply(buildFinancialAccountSelectionQuestion({ kind: 'expense', options, invalid: true }));
+        return;
+    }
+    const expense = {
+        ...(currentState.data?.expense || {}),
+        type: 'Saídas',
+        contaFinanceira: selected.label
+    };
+    if (planned) {
+        await continuePlannedExpense({ msg, senderId, userId, expense });
+        return;
+    }
+    if (expense.requiresFinalConfirmation || expense.categoryConfirmed) {
+        await askExpenseFinalConfirmation({
+            msg,
+            senderId,
+            expense: {
+                ...expense,
+                confirmationSource: expense.confirmationSource || 'legacy_category_assist'
+            }
+        });
+        return;
+    }
+    const saved = await saveTransactionWithoutExtraPayment(expense, { person: pessoa, userId });
+    await msg.reply(`✅ Gasto de ${formatCurrencyBR(saved.value)} (${expense.descricao || 'Não especificado'}) registrado como *${saved.method}*.`);
+    await safeMaybeNotifyDailyGoalAfterExpense(msg, userId, 'financial_account_selection');
+    userStateManager.deleteState(senderId);
+}
+
+async function handleIncomeFinancialAccountSelection({ msg, senderId, userId, pessoa, currentState }) {
+    const options = currentState.data?.financialAccountOptions || [];
+    const selected = parseFinancialAccountSelectionReply(msg.body, options);
+    if (!selected) {
+        await msg.reply(buildFinancialAccountSelectionQuestion({ kind: 'income', options, invalid: true }));
+        return;
+    }
+    const income = {
+        ...(currentState.data?.income || {}),
+        type: 'Entradas',
+        contaFinanceira: selected.label
+    };
+    const saved = await saveTransactionWithoutExtraPayment(income, { person: pessoa, userId });
+    await msg.reply(`✅ Entrada de ${formatCurrencyBR(saved.value)} (${income.descricao || 'Não especificado'}) registrada como *${saved.method}* para a data de *${saved.date}*!`);
+    const settings = await getUserSettingsByUserId(userId);
+    if (settings && normalizeText(settings.defaults_enabled) === 'sim') {
+        const percent = Math.max(1, Math.min(50, parseInt(settings.default_reserve_percent, 10) || 10));
+        const reserveSuggestion = (saved.value * percent) / 100;
+        await msg.reply(`Sugestão automática: separar ${formatCurrencyBR(reserveSuggestion)} (${percent}%) para sua reserva.`);
+    }
+    userStateManager.deleteState(senderId);
 }
 
 function shouldRequireConfirmationForStructuredWrite(source = '') {
@@ -1334,6 +1470,17 @@ async function continueLegacyExpenseAfterCategorySelection({ msg, senderId, user
         item: completedExpense,
         person: pessoa,
         methodSource: 'user_state'
+    })) {
+        return;
+    }
+
+    if (await askFinancialAccountIfNeeded({
+        msg,
+        senderId,
+        userId,
+        item: completedExpense,
+        kind: 'expense',
+        action: 'awaiting_expense_financial_account'
     })) {
         return;
     }
@@ -1960,7 +2107,8 @@ async function saveTransactionWithoutExtraPayment(item, { person, userId, writeO
             pagamentoFinal,
             item.recorrente || 'Não',
             item.observacoes || '',
-            userId
+            userId,
+            getTransactionFinancialAccount(item)
         ];
         await appendRowToSheet('Saídas', rowData, writeOptions);
         markFinancialReadModelDirty('saida_write');
@@ -1993,7 +2141,8 @@ async function saveTransactionWithoutExtraPayment(item, { person, userId, writeO
             recebimentoFinal,
             item.recorrente || 'Não',
             item.observacoes || '',
-            userId
+            userId,
+            getTransactionFinancialAccount(item)
         ];
         await appendRowToSheet('Entradas', rowData, writeOptions);
         markFinancialReadModelDirty('entrada_write');
@@ -7618,15 +7767,20 @@ function buildPlannedExpense(plan = {}, { originalMessage = '', originalMessageI
 }
 
 function buildPlannedExpenseConfirmationMessage(expense = {}) {
-    return [
+    const lines = [
         `Identifiquei o gasto *${expense.descricao || 'Gasto'}*.`,
         `Valor: *${formatCurrencyBR(expense.valor)}*`,
         `Categoria: *${expense.categoria || 'Outros'}${expense.subcategoria ? ` / ${expense.subcategoria}` : ''}*`,
-        `Forma: *${expense.pagamento || 'não informada'}*`,
+        `Forma: *${expense.pagamento || 'não informada'}*`
+    ];
+    const account = getTransactionFinancialAccount(expense);
+    if (account) lines.push(`Conta: *${account}*`);
+    lines.push(
         `Data: *${expense.data || getFormattedDateOnly()}*`,
         '',
         'Confirma o registro? Responda *sim* ou *não*.'
-    ].join('\n');
+    );
+    return lines.join('\n');
 }
 
 function getCreditCardDisplayName(cardInfo = {}) {
@@ -7744,7 +7898,8 @@ function buildPlannedExpenseOperationKey(expense = {}, userId = '') {
             category: normalizeText(expense.categoria || ''),
             subcategory: normalizeText(expense.subcategoria || ''),
             amount: parseValue(expense.valor),
-            payment: normalizeText(expense.pagamento || '')
+            payment: normalizeText(expense.pagamento || ''),
+            financialAccount: normalizeText(getTransactionFinancialAccount(expense))
         })
     });
 }
@@ -7788,6 +7943,16 @@ async function continuePlannedExpense({ msg, senderId, userId, expense }) {
             userId,
             expense: { ...expense, pagamento: 'Crédito' }
         });
+    }
+    if (await askFinancialAccountIfNeeded({
+        msg,
+        senderId,
+        userId,
+        item: { ...expense, type: 'Saídas' },
+        kind: 'expense',
+        action: 'awaiting_planned_expense_financial_account'
+    })) {
+        return true;
     }
     userStateManager.setState(senderId, {
         action: 'confirming_planned_expense',
@@ -8358,6 +8523,20 @@ async function handleMessage(msg) {
                 return;
             }
 
+            case 'awaiting_planned_expense_financial_account': {
+                await handleExpenseFinancialAccountSelection({ msg, senderId, userId, pessoa, currentState, planned: true });
+                return;
+            }
+
+            case 'awaiting_expense_financial_account': {
+                await handleExpenseFinancialAccountSelection({ msg, senderId, userId, pessoa, currentState });
+                return;
+            }
+
+            case 'awaiting_income_financial_account': {
+                await handleIncomeFinancialAccountSelection({ msg, senderId, userId, pessoa, currentState });
+                return;
+            }
             case 'awaiting_planned_expense_credit_card_selection': {
                 const { expense, cardOptions = [] } = currentState.data || {};
                 const selection = Number.parseInt(messageBody.trim(), 10) - 1;
@@ -8859,6 +9038,18 @@ async function handleMessage(msg) {
                     return;
                 }
 
+                if (await askFinancialAccountIfNeeded({
+                    msg,
+                    senderId,
+                    userId,
+                    item: completedExpense,
+                    kind: 'expense',
+                    action: 'awaiting_expense_financial_account'
+                })) {
+                    return;
+                }
+
+
                 if (completedExpense.requiresFinalConfirmation || completedExpense.categoryConfirmed) {
                     await askExpenseFinalConfirmation({
                         msg,
@@ -8881,7 +9072,7 @@ async function handleMessage(msg) {
                 const rowData = [
                     dataFinal, gasto.descricao || 'Não especificado', gasto.categoria || 'Outros',
                     gasto.subcategoria || '', valorNumerico, pessoa, gasto.pagamento,
-                    gasto.recorrente || 'Não', gasto.observacoes || '', userId
+                    gasto.recorrente || 'Não', gasto.observacoes || '', userId, getTransactionFinancialAccount(completedExpense)
                 ];
                 await appendRowToSheet('Saídas', rowData);
                 markFinancialReadModelDirty('saida_write');
@@ -8930,6 +9121,16 @@ async function handleMessage(msg) {
                     return;
                 }
 
+                if (await askFinancialAccountIfNeeded({
+                    msg,
+                    senderId,
+                    userId,
+                    item: completedIncome,
+                    kind: 'income',
+                    action: 'awaiting_income_financial_account'
+                })) {
+                    return;
+                }
                 recordWriteInterpretationShadow({
                     operation: 'income.create',
                     userId,
@@ -8941,7 +9142,7 @@ async function handleMessage(msg) {
                 const rowData = [
                     dataDaEntrada, entrada.descricao || 'Não especificado',
                     entrada.categoria || 'Outros', valorNumerico, pessoa,
-                    entrada.recebimento, entrada.recorrente || 'Não', entrada.observacoes || '', userId
+                    entrada.recebimento, entrada.recorrente || 'Não', entrada.observacoes || '', userId, getTransactionFinancialAccount(completedIncome)
                 ];
 
                 await appendRowToSheet('Entradas', rowData);
@@ -9862,6 +10063,16 @@ async function handleMessage(msg) {
                                     messageBody,
                                     userId
                                 });
+                                return;
+                            }
+                            if (await askFinancialAccountIfNeeded({
+                                msg,
+                                senderId,
+                                userId,
+                                item,
+                                kind: item.type === 'Entradas' ? 'income' : 'expense',
+                                action: item.type === 'Entradas' ? 'awaiting_income_financial_account' : 'awaiting_expense_financial_account'
+                            })) {
                                 return;
                             }
                             const saved = await saveTransactionWithoutExtraPayment(item, { person: pessoa, userId });
