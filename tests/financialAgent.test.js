@@ -113,7 +113,7 @@ test('LangGraph financial agent uses the authorized family budget configuration'
     assert.match(result.answer, /R\$\s*150,00/i);
 });
 
-test('LangGraph financial agent keeps the budget query engine when Gemini selects a dashboard explanation tool', async () => {
+test('LangGraph financial agent keeps deterministic budget semantics when Gemini selects an incompatible plan', async () => {
     assert.strictEqual(ensureSqliteReady(), true);
     assert.strictEqual(syncSnapshotToSqlite({
         saidas: [],
@@ -161,6 +161,39 @@ test('LangGraph financial agent keeps the budget query engine when Gemini select
         assert.strictEqual(result.plan.tool, 'query_financial_plan');
         assert.strictEqual(result.toolResult.result.value.active, true);
         assert.strictEqual(result.toolResult.result.value.monthlyAmount, 938.11);
+
+        plannerTest.setStructuredResponseOverrideForTest(() => ({
+            action: 'tool',
+            tool: 'query_financial_plan',
+            args: {
+                plan: {
+                    kind: 'financial_query',
+                    domain: 'budget',
+                    operation: 'list',
+                    filters: { period: { type: 'month', month: 6, year: 2026 } },
+                    timeBasis: 'budget_cycle'
+                }
+            }
+        }));
+        const detailResult = await invokeFinancialAgent({
+            message: 'Qual o mei orçamento familiar?',
+            userIds: ['agent-daniel', 'agent-thais'],
+            personByUserId: { 'agent-daniel': 'Daniel', 'agent-thais': 'Thais' },
+            currentDate: '03/07/2026',
+            financialQueryPlan: {
+                kind: 'financial_query',
+                domain: 'budget',
+                operation: 'detail',
+                filters: { period: { type: 'cycle', label: 'ciclo atual' }, scope: 'family' },
+                timeBasis: 'budget_cycle'
+            },
+            mode: 'answer'
+        });
+
+        assert.strictEqual(detailResult.plan.tool, 'query_financial_plan');
+        assert.strictEqual(detailResult.plan.args.plan.operation, 'detail');
+        assert.strictEqual(detailResult.plan.args.plan.filters.period.type, 'cycle');
+        assert.doesNotMatch(detailResult.answer, /junho de 2026/i);
     } finally {
         plannerTest.setStructuredResponseOverrideForTest(null);
         if (originalPlannerFlag === undefined) delete process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED;

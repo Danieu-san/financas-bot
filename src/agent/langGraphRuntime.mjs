@@ -219,6 +219,21 @@ function shouldUseLlmPlanOverLegacy(llmPlan, incomingQueryPlan = null) {
     if (incomingDomain && incomingDomain !== 'dashboard' && dashboardTools.has(llmPlan.tool)) {
         return false;
     }
+
+    if (incomingDomain === 'budget' && llmPlan.tool === 'query_financial_plan') {
+        const llmQueryPlan = llmPlan.args?.plan || {};
+        const incomingOperation = String(incomingQueryPlan.operation || '').trim();
+        const incomingTimeBasis = String(incomingQueryPlan.timeBasis || '').trim();
+        const incomingPeriodType = String(incomingQueryPlan.filters?.period?.type || '').trim();
+
+        if (String(llmQueryPlan.domain || '').trim() !== incomingDomain) return false;
+        if (String(llmQueryPlan.operation || '').trim() !== incomingOperation) return false;
+        if (incomingTimeBasis && String(llmQueryPlan.timeBasis || '').trim() !== incomingTimeBasis) return false;
+        if (
+            incomingPeriodType &&
+            String(llmQueryPlan.filters?.period?.type || '').trim() !== incomingPeriodType
+        ) return false;
+    }
     return true;
 }
 async function planTurn(state) {
