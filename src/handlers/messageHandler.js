@@ -336,6 +336,27 @@ function shouldUseFinancialAgentAnswerInMode(mode = 'off', result = {}, env = pr
     return rows.length > 0;
 }
 
+function parseAnalyticalLegacyFallbackDisabledDomains(env = process.env) {
+    return String(env.FINANCIAL_AGENT_ANALYTICAL_LEGACY_FALLBACK_DISABLED_DOMAINS || '')
+        .split(/[\s,;]+/)
+        .map(item => String(item || '').trim() === '*' ? '*' : sanitizeFinancialAgentMigrationGapToken(item, null, 48))
+        .filter(Boolean);
+}
+
+function shouldUseAnalyticalLegacyFallback({ financialAgentMode = 'off', agentResult = null, env = process.env } = {}) {
+    if (normalizeText(financialAgentMode || 'off') !== 'answer') return true;
+    const gap = agentResult?.migrationGap;
+    if (!gap) return true;
+    const disabledDomains = parseAnalyticalLegacyFallbackDisabledDomains(env);
+    if (disabledDomains.length === 0) return true;
+    if (disabledDomains.includes('*')) return false;
+    const domain = sanitizeFinancialAgentMigrationGapToken(gap.domain, null, 48);
+    return !domain || !disabledDomains.includes(domain);
+}
+
+function buildAnalyticalLegacyFallbackDisabledReply() {
+    return 'Não consegui responder essa análise com segurança pelo motor novo ainda. Reformule a pergunta com período e escopo, ou tente uma consulta mais específica.';
+}
 function logFinancialAgentResult({ mode = 'off', result = null, senderId = '' } = {}) {
     if (!result) return;
     const tool = result.plan?.tool || 'none';
@@ -10012,6 +10033,7 @@ async function handleMessage(msg) {
                         const scopeNormalizedIntent = normalizeIntentForQuestionUserScope(intentClassification, resolvedScope);
                         const effectiveIntentClassification = applyResolvedScopeToClassification(scopeNormalizedIntent, resolvedScope);
                         logger.info(`[routing] financial_scope_resolved scope=${resolvedScope.scope} selected=${analyticalUserIds.length}`);
+                        let financialAgentResultForFallback = null;
                         const financialAgentMode = getFinancialAgentMode();
                         if (financialAgentMode !== 'off') {
                             try {
@@ -10032,6 +10054,7 @@ async function handleMessage(msg) {
                                     }),
                                     perfContext
                                 );
+                                financialAgentResultForFallback = agentResult;
                                 logFinancialAgentResult({ mode: financialAgentMode, result: agentResult, senderId });
                                 if (shouldUseFinancialAgentAnswerInMode(financialAgentMode, agentResult)) {
                                     cache.set(cacheKey, agentResult.answer);
@@ -10043,6 +10066,19 @@ async function handleMessage(msg) {
                                 metrics.increment('message.financial_agent.error');
                                 logger.warn(`[financial-agent] fallback legacy reason=${sanitizeLogText(agentError.message, 120)} sender=${logger.redactIdentifier(senderId)}`);
                             }
+                        }
+                        if (!shouldUseAnalyticalLegacyFallback({
+                            financialAgentMode,
+                            agentResult: financialAgentResultForFallback
+                        })) {
+                            metrics.increment('message.financial_agent.analytical_legacy_fallback_disabled');
+                            const fallbackDisabledTelemetry = buildFinancialAgentMigrationGapTelemetry(financialAgentResultForFallback);
+                            logger.warn(`[financial-agent] analytical_legacy_fallback_disabled domain=${fallbackDisabledTelemetry?.domain || 'unknown'} sender=${logger.redactIdentifier(senderId)}`);
+                            const fallbackDisabledReply = buildAnalyticalLegacyFallbackDisabledReply(financialAgentResultForFallback);
+                            cache.set(cacheKey, fallbackDisabledReply);
+                            await msg.reply(fallbackDisabledReply);
+                            storeAnalyticalContext(senderId, effectiveIntentClassification);
+                            return;
                         }
                         const sheetOnlyIntents = new Set();
                         if (!usePersonalSpreadsheet && !sheetOnlyIntents.has(effectiveIntentClassification.intent)) {
@@ -10428,6 +10464,9 @@ module.exports = {
         buildFinancialAgentPersonByUserId,
         shouldUseFinancialAgentAnswer,
         shouldUseFinancialAgentAnswerInMode,
+        shouldUseAnalyticalLegacyFallback,
+        buildAnalyticalLegacyFallbackDisabledReply,
+        parseAnalyticalLegacyFallbackDisabledDomains,
         markFinancialReadModelDirty,
         saveImportedTransactions,
         handleAccountLifecycleCommands,

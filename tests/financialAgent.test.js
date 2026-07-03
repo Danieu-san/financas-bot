@@ -1297,6 +1297,46 @@ test('financial agent answer gate uses verified answers but does not hijack plan
     }), true);
 });
 
+test('financial agent analytical legacy fallback can be disabled by domain after parity gates', () => {
+    const gapResult = {
+        action: 'clarify',
+        migrationGap: {
+            tag: 'engine_gap',
+            reason: 'planner_gap',
+            domain: 'expenses',
+            tool: 'query_financial_plan'
+        }
+    };
+
+    assert.strictEqual(messageHandlerTest.shouldUseAnalyticalLegacyFallback({
+        financialAgentMode: 'answer',
+        agentResult: gapResult,
+        env: {}
+    }), true);
+    assert.strictEqual(messageHandlerTest.shouldUseAnalyticalLegacyFallback({
+        financialAgentMode: 'answer',
+        agentResult: gapResult,
+        env: { FINANCIAL_AGENT_ANALYTICAL_LEGACY_FALLBACK_DISABLED_DOMAINS: 'cards,expenses' }
+    }), false);
+    assert.strictEqual(messageHandlerTest.shouldUseAnalyticalLegacyFallback({
+        financialAgentMode: 'answer',
+        agentResult: gapResult,
+        env: { FINANCIAL_AGENT_ANALYTICAL_LEGACY_FALLBACK_DISABLED_DOMAINS: '*' }
+    }), false);
+    assert.strictEqual(messageHandlerTest.shouldUseAnalyticalLegacyFallback({
+        financialAgentMode: 'shadow',
+        agentResult: gapResult,
+        env: { FINANCIAL_AGENT_ANALYTICAL_LEGACY_FALLBACK_DISABLED_DOMAINS: '*' }
+    }), true);
+    assert.match(
+        messageHandlerTest.buildAnalyticalLegacyFallbackDisabledReply(gapResult),
+        /não consegui responder essa análise com segurança/i
+    );
+    assert.doesNotMatch(
+        messageHandlerTest.buildAnalyticalLegacyFallbackDisabledReply(gapResult),
+        /user_id|sheet|spreadsheet|token|raw|agent-daniel/i
+    );
+});
 test('LangGraph tags analytical planner gaps for controlled legacy reduction', async () => {
     const originalPlannerFlag = process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED;
     process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED = 'false';
