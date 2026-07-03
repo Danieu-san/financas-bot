@@ -819,3 +819,13 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Evidencia: teste focado RED/GREEN, financialAgent.test.js 61/61 local e remoto, suite completa 658/658, sintaxe valida, audit high com zero vulnerabilidades, diff check e NUL tracked limpos, state_store.json valido.
 - Deploy EC2 em a32164f: PM2 online, health ok/sqlite true, WhatsApp pronto sem novo QR e flags preservadas. Smoke real do runtime confirmou detail/cycle para "Qual o mei orcamento familiar?" e forecast/cycle para "Quanto falta do orcamento familiar?", ambos com orcamento ativo e restante de R$ 119,38 no ciclo 28/06/2026 a 27/07/2026.
 - Veredito: GO para encerrar esta correcao lateral. Roadmap continua na Fase 2; proximo passo e retomar evidencia marker-only de movimentos, status e datas por conta antes de ampliar saldos canonicos ou avancar para a Fase 3.
+
+## Canonical ledger account movements receipt gate - 2026-07-03
+
+- Fase 2/accounts: criado o runner marker-only scripts/runCanonicalLedgerAccountMovementsGate.js para provar o caminho linha estilo Sheets -> receipt projector -> SQLite shadow -> leituras canario de accounts/transactions/transfers.
+- A matriz cobre gasto settled em 04/07, entrada settled em 05/07, transferencia settled e neutra em 06/07 e transferencia pending em 07/07. O saldo esperado/canonico ficou R$ 880,00 na origem e R$ 180,00 no destino; a pendencia nao alterou saldo.
+- O runner repete os mesmos cinco run_ids e exige contagens identicas, privacidade sem identificadores internos, fail-closed em erro de leitura e cleanup com accounts/events/lines/projectionRuns zerados.
+- Evidencia local: RED/GREEN, focados ledger 34/34, gate local GO, suite completa 660/660, audit high zero, diff check e NUL tracked limpos, state_store.json valido. Commit 2241b4e.
+- Evidencia EC2: backup data/backups/canonical_ledger_shadow.pre-account-movements-20260703T1800Z.sqlite; focados remotos 21/21; gate TESTE_APAGAR_ACCOUNT_MOVEMENTS_REMOTE_20260703 GO; replay idempotente; privacy OK; cleanup zero. As quatro contas reais permaneceram nos saldos de abertura.
+- Veredito: GO para o mecanismo marker-only de movimentos/status/datas e NO-GO para tratar saldo canonico como saldo real primario. O fluxo produtivo ainda grava metodo de pagamento (PIX/Debito/Dinheiro) onde o projector busca identidade da conta, portanto nao distingue as contas financeiras reais.
+- Flags preservadas: accounts continua somente em leitura canario junto de transactions/transfers; Gemini Planner ativo; INTERPRETATION_RELIABILITY_MODE=shadow. Proximo corte da Fase 2: contrato explicito de conta origem/destino nos recibos e planilhas, seguido de captura conversacional sem inferencia silenciosa.

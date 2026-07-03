@@ -153,3 +153,9 @@ Arquivos nao rastreados antigos podem existir. Nao remover sem pedido explicito:
 - Armadilha corrigida em 2026-07-03: linhas duplicadas do mesmo user_id em UserSettings podem fazer uma linha vazia sobrescrever no SQLite uma configuracao de orcamento familiar valida. A normalizacao do read-model deve deduplicar por usuario e preservar configuracao explicita.
 - Perguntas quantitativas como "quanto falta do orcamento familiar?" nao sao perguntas de escopo. Familiar define o filtro; falta/restante define a operacao de forecast.
 - Ferramentas de dashboard (explain_metric, get_dashboard_snapshot) nao devem substituir um FinancialQueryPlan de dominio budget, pois podem expor apenas criterio sem o valor calculado.
+
+## Identidade de conta nos movimentos canonicos
+
+- Lacuna confirmada em 2026-07-03: Saidas e Entradas registram forma de pagamento/recebimento (PIX, Debito, Dinheiro), mas o ledger de contas precisa da identidade da conta financeira (por exemplo Daniel - Nubank ou Thais - Itau).
+- Nao tratar PIX, Debito ou Dinheiro como se fossem contas reais e nao escolher uma conta silenciosamente quando houver mais de uma candidata.
+- Ate existir campo/contrato explicito de conta origem/destino e captura conversacional correspondente, o canario accounts serve para saldos de abertura e testes marker-only; nao deve ser promovido a fonte primaria de saldo atual.
