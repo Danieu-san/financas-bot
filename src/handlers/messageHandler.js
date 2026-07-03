@@ -1022,6 +1022,160 @@ async function handleIncomeFinancialAccountSelection({ msg, senderId, userId, pe
     userStateManager.deleteState(senderId);
 }
 
+function normalizeManualTransferStatus(transfer = {}) {
+    const text = normalizeText([
+        transfer.status,
+        transfer.originalMessage,
+        transfer.descricao,
+        transfer.observacoes
+    ].filter(Boolean).join(' '));
+    return /\b(pendente|agendad[ao]|programad[ao]|a concluir)\b/.test(text)
+        ? 'Pendente'
+        : 'Concluída';
+}
+
+function findExactFinancialAccountOption(value = '', options = []) {
+    const normalized = normalizeText(value);
+    if (!normalized) return null;
+    return options.find(option => normalizeText(option.label) === normalized) || null;
+}
+
+function buildTransferAccountSelectionQuestion({ kind = 'origin', options = [], invalid = false } = {}) {
+    const header = invalid
+        ? kind === 'destination'
+            ? 'Não consegui identificar a conta financeira de destino. Escolha uma das opções:'
+            : 'Não consegui identificar a conta financeira de origem. Escolha uma das opções:'
+        : kind === 'destination'
+            ? 'Para qual conta financeira entrou esse valor?'
+            : 'De qual conta financeira saiu esse valor?';
+    return [
+        header,
+        '',
+        ...options.map((option, index) => `${index + 1}. ${option.label}`),
+        '',
+        'Responda com o número da conta.'
+    ].join('\n');
+}
+
+function buildManualTransferConfirmationMessage(transfer = {}) {
+    return [
+        `Identifiquei a transferência *${transfer.descricao || 'Transferência'}*.`,
+        `Valor: *${formatCurrencyBR(transfer.valor)}*`,
+        `Origem: *${transfer.origem}*`,
+        `Destino: *${transfer.destino}*`,
+        `Forma: *${transfer.metodo || 'Transferência'}*`,
+        `Data: *${transfer.data || getFormattedDateOnly()}*`,
+        `Status: *${transfer.status || 'Concluída'}*`,
+        '',
+        'Confirma o registro? Responda *sim* ou *não*.'
+    ].join('\n');
+}
+
+async function askManualTransferFinalConfirmation({ msg, senderId, transfer }) {
+    userStateManager.setState(senderId, {
+        action: 'confirming_manual_transfer',
+        data: { transfer }
+    });
+    await msg.reply(buildManualTransferConfirmationMessage(transfer));
+}
+
+async function beginManualTransferAccountCapture({ msg, senderId, userId, transfer }) {
+    const options = await buildFinancialAccountOptionsForUser(userId);
+    if (!options.length) return false;
+    if (options.length < 2) {
+        userStateManager.deleteState(senderId);
+        await msg.reply('Cadastre pelo menos duas contas financeiras ativas antes de registrar uma transferência entre contas.');
+        return true;
+    }
+
+    const prepared = {
+        ...transfer,
+        status: normalizeManualTransferStatus(transfer)
+    };
+    const explicitOrigin = findExactFinancialAccountOption(prepared.origem, options);
+    if (!explicitOrigin) {
+        userStateManager.setState(senderId, {
+            action: 'awaiting_transfer_origin_account',
+            data: { transfer: prepared, financialAccountOptions: options }
+        });
+        await msg.reply(buildTransferAccountSelectionQuestion({ kind: 'origin', options }));
+        return true;
+    }
+
+    prepared.origem = explicitOrigin.label;
+    const destinationOptions = options.filter(option => normalizeText(option.label) !== normalizeText(prepared.origem));
+    const explicitDestination = findExactFinancialAccountOption(prepared.destino, destinationOptions);
+    if (!explicitDestination) {
+        userStateManager.setState(senderId, {
+            action: 'awaiting_transfer_destination_account',
+            data: { transfer: prepared, financialAccountOptions: destinationOptions }
+        });
+        await msg.reply(buildTransferAccountSelectionQuestion({ kind: 'destination', options: destinationOptions }));
+        return true;
+    }
+
+    prepared.destino = explicitDestination.label;
+    await askManualTransferFinalConfirmation({ msg, senderId, transfer: prepared });
+    return true;
+}
+
+async function handleManualTransferOriginSelection({ msg, senderId, currentState }) {
+    const options = currentState.data?.financialAccountOptions || [];
+    const selected = parseFinancialAccountSelectionReply(msg.body, options);
+    if (!selected) {
+        await msg.reply(buildTransferAccountSelectionQuestion({ kind: 'origin', options, invalid: true }));
+        return;
+    }
+
+    const transfer = {
+        ...(currentState.data?.transfer || {}),
+        origem: selected.label
+    };
+    const destinationOptions = options.filter(option => normalizeText(option.label) !== normalizeText(selected.label));
+    const explicitDestination = findExactFinancialAccountOption(transfer.destino, destinationOptions);
+    if (explicitDestination) {
+        transfer.destino = explicitDestination.label;
+        await askManualTransferFinalConfirmation({ msg, senderId, transfer });
+        return;
+    }
+
+    userStateManager.setState(senderId, {
+        action: 'awaiting_transfer_destination_account',
+        data: { transfer, financialAccountOptions: destinationOptions }
+    });
+    await msg.reply(buildTransferAccountSelectionQuestion({ kind: 'destination', options: destinationOptions }));
+}
+
+async function handleManualTransferDestinationSelection({ msg, senderId, currentState }) {
+    const options = currentState.data?.financialAccountOptions || [];
+    const selected = parseFinancialAccountSelectionReply(msg.body, options);
+    if (!selected) {
+        await msg.reply(buildTransferAccountSelectionQuestion({ kind: 'destination', options, invalid: true }));
+        return;
+    }
+    const transfer = {
+        ...(currentState.data?.transfer || {}),
+        destino: selected.label
+    };
+    await askManualTransferFinalConfirmation({ msg, senderId, transfer });
+}
+
+async function handleManualTransferConfirmation({ msg, senderId, userId, currentState }) {
+    const reply = normalizeText(msg.body);
+    if (['nao', 'não', 'n'].includes(reply)) {
+        userStateManager.deleteState(senderId);
+        await msg.reply('Transferência cancelada. Nenhum dado foi salvo.');
+        return;
+    }
+    if (!['sim', 's'].includes(reply)) {
+        await msg.reply('Responda *sim* para registrar a transferência ou *não* para cancelar.');
+        return;
+    }
+
+    const saved = await saveManualTransfer(currentState.data?.transfer || {}, userId);
+    userStateManager.deleteState(senderId);
+    await msg.reply(`✅ Transferência de ${formatCurrencyBR(saved.valor)} (${saved.descricao}) registrada como *${saved.status}* para a data de *${saved.data}*.`);
+}
 function shouldRequireConfirmationForStructuredWrite(source = '') {
     return String(source || '').trim().toLowerCase() === 'llm';
 }
@@ -1660,12 +1814,13 @@ async function buildFamilyTransfer(item = {}, messageBody = '', currentUserId = 
 async function buildManualTransferFromMessage(item = {}, messageBody = '', currentUserId = '') {
     const originalMessage = [item.originalMessage, messageBody].filter(Boolean).join(' ');
     const itemText = buildManualTransferItemText(item);
-    const reserveTransfer = buildReserveTransfer(item, itemText);
-    if (reserveTransfer) return reserveTransfer;
-    const familyTransfer = await buildFamilyTransfer(item, itemText, currentUserId);
-    if (familyTransfer) return familyTransfer;
-    return buildReserveTransfer(item, originalMessage) ||
-        buildFamilyTransfer(item, originalMessage, currentUserId);
+    let transfer = buildReserveTransfer(item, itemText);
+    if (!transfer) transfer = await buildFamilyTransfer(item, itemText, currentUserId);
+    if (!transfer) transfer = buildReserveTransfer(item, originalMessage);
+    if (!transfer) transfer = await buildFamilyTransfer(item, originalMessage, currentUserId);
+    return transfer
+        ? { ...transfer, originalMessage: originalMessage || itemText }
+        : null;
 }
 
 function reliabilityField(value, source = 'inferred', assurance = 'supported', evidence = '') {
@@ -8537,6 +8692,20 @@ async function handleMessage(msg) {
                 await handleIncomeFinancialAccountSelection({ msg, senderId, userId, pessoa, currentState });
                 return;
             }
+            case 'awaiting_transfer_origin_account': {
+                await handleManualTransferOriginSelection({ msg, senderId, currentState });
+                return;
+            }
+
+            case 'awaiting_transfer_destination_account': {
+                await handleManualTransferDestinationSelection({ msg, senderId, currentState });
+                return;
+            }
+
+            case 'confirming_manual_transfer': {
+                await handleManualTransferConfirmation({ msg, senderId, userId, currentState });
+                return;
+            }
             case 'awaiting_planned_expense_credit_card_selection': {
                 const { expense, cardOptions = [] } = currentState.data || {};
                 const selection = Number.parseInt(messageBody.trim(), 10) - 1;
@@ -9005,6 +9174,9 @@ async function handleMessage(msg) {
 
                 const manualTransfer = await buildManualTransferFromMessage(gasto, `${gasto.descricao || ''} ${gasto.observacoes || ''}`, userId);
                 if (manualTransfer) {
+                    if (await beginManualTransferAccountCapture({ msg, senderId, userId, transfer: manualTransfer })) {
+                        return;
+                    }
                     const saved = await saveManualTransfer(manualTransfer, userId);
                     await msg.reply(`✅ Transferência de ${formatCurrencyBR(saved.valor)} (${saved.descricao}) registrada como *${saved.status}* para a data de *${saved.data}*.`);
                     userStateManager.deleteState(senderId);
@@ -9099,6 +9271,9 @@ async function handleMessage(msg) {
                 const dataDaEntrada = entrada.data || getFormattedDateOnly();
                 const manualTransfer = await buildManualTransferFromMessage(entrada, `${entrada.descricao || ''} ${entrada.observacoes || ''}`, userId);
                 if (manualTransfer) {
+                    if (await beginManualTransferAccountCapture({ msg, senderId, userId, transfer: manualTransfer })) {
+                        return;
+                    }
                     const saved = await saveManualTransfer(manualTransfer, userId);
                     await msg.reply(`✅ Transferência de ${formatCurrencyBR(saved.valor)} (${saved.descricao}) registrada como *${saved.status}* para a data de *${saved.data}*.`);
                     userStateManager.deleteState(senderId);
@@ -9503,6 +9678,13 @@ async function handleMessage(msg) {
                     const canSaveNow = transactions.every(canSaveTransactionWithoutExtraPayment);
 
                     if (canSaveNow) {
+                        if (transactions.length === 1) {
+                            const confirmedItem = { ...transactions[0], reliabilityConfirmed: true };
+                            const manualTransfer = await buildManualTransferFromMessage(confirmedItem, messageBody, userId);
+                            if (manualTransfer && await beginManualTransferAccountCapture({ msg, senderId, userId, transfer: manualTransfer })) {
+                                return;
+                            }
+                        }
                         let successCount = 0;
                         for (const item of transactions) {
                             try {
@@ -9567,6 +9749,17 @@ async function handleMessage(msg) {
                     return;
                 }
 
+                if (transactions.length === 1) {
+                    const preparedItem = {
+                        ...transactions[0],
+                        pagamento: pagamentoFinal,
+                        recebimento: pagamentoFinal
+                    };
+                    const manualTransfer = await buildManualTransferFromMessage(preparedItem, `${preparedItem.descricao || ''} ${preparedItem.observacoes || ''}`, userId);
+                    if (manualTransfer && await beginManualTransferAccountCapture({ msg, senderId, userId, transfer: manualTransfer })) {
+                        return;
+                    }
+                }
                 await msg.reply(`✅ Entendido, ${pagamentoFinal}! Registrando ${transactions.length} itens...`);
                 let successCount = 0;
                 for (const item of transactions) {
@@ -10002,6 +10195,9 @@ async function handleMessage(msg) {
                         const item = allTransactions[0];
                         const manualTransfer = await buildManualTransferFromMessage(item, messageBody, userId);
                         if (manualTransfer) {
+                            if (await beginManualTransferAccountCapture({ msg, senderId, userId, transfer: manualTransfer })) {
+                                return;
+                            }
                             const saved = await saveManualTransfer(manualTransfer, userId);
                             await msg.reply(`✅ Transferência de ${formatCurrencyBR(saved.valor)} (${saved.descricao}) registrada como *${saved.status}* para a data de *${saved.data}*.`);
                             return;

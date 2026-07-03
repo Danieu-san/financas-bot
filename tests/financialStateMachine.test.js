@@ -2841,6 +2841,124 @@ stateMachineTest('financial states: transfer to family member is saved as intern
     assert.strictEqual(sheets.Transferências[1][8], USER_ID);
 });
 
+stateMachineTest('financial states: reserve transfer asks explicit origin and destination accounts before saving', async () => {
+    resetState();
+    sheets['Contas Financeiras'].push(
+        ['Daniel - Nubank', 'bank', '262,85', '03/07/2026', 'active', 'BRL', 'Daniel', USER_ID, ''],
+        ['Daniel - Nubank Caixinha', 'reserve', '1264,91', '03/07/2026', 'active', 'BRL', 'Daniel', USER_ID, '']
+    );
+
+    const originQuestion = await send('recebi 90 da caixinha do nubank no dia 30 de junho');
+    assert.match(originQuestion, /De qual conta financeira saiu/i);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_transfer_origin_account');
+    assert.strictEqual(sheets.Transferências.length, 1);
+
+    const invalidOrigin = await send('9');
+    assert.match(invalidOrigin, /Não consegui identificar a conta financeira de origem/i);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_transfer_origin_account');
+
+    const destinationQuestion = await send('2');
+    assert.match(destinationQuestion, /Para qual conta financeira entrou/i);
+    assert.doesNotMatch(destinationQuestion, /Daniel - Nubank Caixinha/);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_transfer_destination_account');
+
+    const confirmation = await send('1');
+    assert.match(confirmation, /Daniel - Nubank Caixinha.*Daniel - Nubank/is);
+    assert.match(confirmation, /30\/06\/2026/);
+    assert.match(confirmation, /Concluída/i);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_manual_transfer');
+
+    const saved = await send('sim');
+    assert.match(saved, /Transferência.*registrada/i);
+    assert.deepStrictEqual(sheets.Transferências[1].slice(0, 9), [
+        '30/06/2026',
+        'caixinha do nubank no dia 30 de junho',
+        90,
+        'Daniel - Nubank Caixinha',
+        'Daniel - Nubank',
+        'Transferência',
+        'Movimentação de reserva/investimento registrada pelo WhatsApp; não conta como gasto nem renda.',
+        'Concluída',
+        USER_ID
+    ]);
+});
+
+stateMachineTest('financial states: transfer destination cannot reuse the selected origin account', async () => {
+    resetState();
+    sheets['Contas Financeiras'].push(
+        ['Daniel - Nubank', 'bank', '262,85', '03/07/2026', 'active', 'BRL', 'Daniel', USER_ID, ''],
+        ['Daniel - Nubank Caixinha', 'reserve', '1264,91', '03/07/2026', 'active', 'BRL', 'Daniel', USER_ID, '']
+    );
+
+    assert.match(await send('recebi 91 da caixinha do nubank'), /De qual conta financeira saiu/i);
+    assert.match(await send('2'), /Para qual conta financeira entrou/i);
+    const invalid = await send('Daniel - Nubank Caixinha');
+
+    assert.match(invalid, /Não consegui identificar a conta financeira de destino/i);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_transfer_destination_account');
+    assert.strictEqual(sheets.Transferências.length, 1);
+});
+
+stateMachineTest('financial states: transfer with only one account blocks safely and clears intermediate state', async () => {
+    resetState();
+    sheets['Contas Financeiras'].push(
+        ['Daniel - Nubank', 'bank', '262,85', '03/07/2026', 'active', 'BRL', 'Daniel', USER_ID, '']
+    );
+    userStateManager.setState(SENDER, {
+        action: 'awaiting_receipt_method',
+        data: {
+            type: 'Entradas',
+            descricao: 'caixinha do nubank',
+            valor: 50,
+            categoria: 'Outros',
+            recorrente: 'Não',
+            originalMessage: 'guardei 50 na caixinha do nubank'
+        }
+    });
+
+    const blocked = await send('Poupança');
+
+    assert.match(blocked, /Cadastre pelo menos duas contas financeiras ativas/i);
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
+    assert.strictEqual(sheets.Transferências.length, 1);
+});
+
+stateMachineTest('financial states: pending family transfer preserves date and cancels after explicit accounts', async () => {
+    resetState();
+    sheets.Users.push(partnerUserRow());
+    financialScopeUserIds = [USER_ID, PARTNER_ID];
+    sheets['Contas Financeiras'].push(
+        ['Daniel - Nubank', 'bank', '262,85', '03/07/2026', 'active', 'BRL', 'Daniel', USER_ID, ''],
+        ['Daniel - Nubank Caixinha', 'reserve', '1264,91', '03/07/2026', 'active', 'BRL', 'Daniel', USER_ID, ''],
+        ['Thais - Nubank', 'bank', '0,00', '03/07/2026', 'active', 'BRL', 'Thais', PARTNER_ID, ''],
+        ['Thais - Itau', 'bank', '133,46', '03/07/2026', 'active', 'BRL', 'Thais', PARTNER_ID, '']
+    );
+    enqueueStructuredResponse({
+        intent: 'gasto',
+        gastoDetails: [{
+            data: '10/07/2026',
+            descricao: 'Transferência pendente para Thais',
+            categoria: 'Outros',
+            subcategoria: 'Outros',
+            valor: 25,
+            pagamento: 'PIX',
+            recorrente: 'Não'
+        }]
+    });
+
+    assert.match(await send('transferi 25 para a thais no dia 10 de julho e ficou pendente'), /\[Transferência\]/i);
+    assert.match(await send('sim'), /De qual conta financeira saiu/i);
+    assert.match(await send('1'), /Para qual conta financeira entrou/i);
+    const confirmation = await send('2');
+    assert.match(confirmation, /Daniel - Nubank.*Thais - Nubank/is);
+    assert.match(confirmation, /10\/07\/2026/);
+    assert.match(confirmation, /Pendente/i);
+
+    const cancelled = await send('não');
+    assert.match(cancelled, /cancelada/i);
+    assert.strictEqual(sheets.Transferências.length, 1);
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
 stateMachineTest('financial states: multiline reserve and family transfers are parsed locally before Gemini', async () => {
     resetState();
     sheets.Users.push(partnerUserRow());

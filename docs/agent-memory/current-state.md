@@ -880,3 +880,13 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Saldos canonicos retornaram ao baseline: Daniel - Nubank R$ 262,85; Daniel - Nubank Caixinha R$ 1.264,91; Thais - Nubank R$ 0,00; Thais - Itau R$ 133,46. Health e SQLite verdes; `state_store.json` valido.
 - Veredito: GO para encerrar a captura explicita de conta em gastos/entradas unitarios fora do credito. Flags preservadas, incluindo Gemini Planner ativo e `INTERPRETATION_RELIABILITY_MODE=shadow`.
 - Proximo corte da Fase 2: captura conversacional explicita de conta origem/destino em transferencias, seguida de evidencia de status e datas antes de ampliar saldo canonico como fonte primaria.
+
+## Fase 2 explicit transfer account capture - 2026-07-03
+
+- Fase 2/accounts: implementada captura conversacional explicita de conta origem e destino para transferencias unitarias quando existem pelo menos duas contas financeiras ativas.
+- O fluxo comum cobre transferencias de reserva/caixinha, transferencias familiares e os caminhos unitarios que antes salvavam direto ou apos confirmacao generica. Origem e destino usam a lista familiar real, nunca podem ser a mesma conta e passam por confirmacao final.
+- O status gravado foi normalizado para `Concluída` ou `Pendente`; data, valor, metodo e observacoes existentes sao preservados. Transferencias sem contas cadastradas mantem o comportamento legado; com apenas uma conta, a escrita e bloqueada e o estado intermediario e limpo ate existir uma segunda conta ativa.
+- Fora deste corte: lotes, importacoes, pagamentos de fatura/conta, remocao de legado e ampliacao de flags.
+- TDD RED/GREEN em `tests/financialStateMachine.test.js`: origem/destino numerados, origem invalida, destino igual a origem, bloqueio seguro com apenas uma conta, transferencia de caixinha concluida, transferencia familiar pendente com data retroativa/futura e cancelamento sem escrita.
+- Evidencia local: caso RED de uma conta falhou e depois passou; conversa + ledger/paridade `119/119`; suite completa `669/669`; audit high zero; sintaxe, diff check, NUL rastreado e `state_store.json` verdes.
+- Veredito: GO local para commit/deploy controlado e NO-GO para encerrar a subfatia ate foco remoto e smoke marker-only real comprovarem Sheets, ledger, neutralidade, status/data e limpeza. Gemini Planner e `INTERPRETATION_RELIABILITY_MODE=shadow` devem permanecer como estao.
