@@ -29,6 +29,11 @@ function parseIntegerOption(args = [], name) {
     return Number.isInteger(value) ? value : undefined;
 }
 
+function restoreEnvFlag(name, value) {
+    if (value === undefined) delete process.env[name];
+    else process.env[name] = value;
+}
+
 async function runAnalyticalLegacyReductionGate(options = {}) {
     const startedAt = new Date();
     const runId = options.runId || buildRunId(startedAt);
@@ -36,7 +41,10 @@ async function runAnalyticalLegacyReductionGate(options = {}) {
     fs.mkdirSync(reportDir, { recursive: true });
 
     const originalPlannerFlag = process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED;
+    const originalContextualFlag = process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE;
     process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED = 'false';
+    process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE = 'off';
+
     try {
         const acceptance = await runFinancialAgentAcceptanceBattery({
             runId: `${runId}_ACCEPTANCE`,
@@ -60,6 +68,7 @@ async function runAnalyticalLegacyReductionGate(options = {}) {
             finished_at: new Date().toISOString(),
             synthetic_user_only: true,
             llm_planner_enabled: false,
+            contextual_analyst_enabled: false,
             gemini_calls: (acceptance.report.gemini_calls || 0) + (migrationGaps.report.gemini_calls || 0),
             decision,
             acceptance: {
@@ -75,8 +84,8 @@ async function runAnalyticalLegacyReductionGate(options = {}) {
         fs.writeFileSync(path.join(reportDir, 'analytical-legacy-reduction-gate-report.json'), JSON.stringify(report, null, 2));
         return { report, reportDir };
     } finally {
-        if (originalPlannerFlag === undefined) delete process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED;
-        else process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED = originalPlannerFlag;
+        restoreEnvFlag('FINANCIAL_AGENT_LLM_PLANNER_ENABLED', originalPlannerFlag);
+        restoreEnvFlag('FINANCIAL_CONTEXTUAL_ANALYST_MODE', originalContextualFlag);
     }
 }
 

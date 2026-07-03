@@ -8,6 +8,7 @@ const {
     buildAnalyticalLegacyReductionDecision,
     runAnalyticalLegacyReductionGate
 } = require('../scripts/runAnalyticalLegacyReductionGate');
+const { __test__: contextualFinancialAnalystTest } = require('../src/agent/contextualFinancialAnalyst');
 
 test('analytical legacy reduction gate blocks when acceptance or migration telemetry has gaps', () => {
     const decision = buildAnalyticalLegacyReductionDecision({
@@ -26,7 +27,15 @@ test('analytical legacy reduction gate blocks when acceptance or migration telem
 test('analytical legacy reduction gate writes a sanitized zero-Gemini GO report for sampled batteries', async () => {
     const reportDir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-analytical-gate-'));
     const originalPlannerFlag = process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED;
+    const originalContextualFlag = process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE;
+    let contextualCalls = 0;
+
     process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED = 'true';
+    process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE = 'answer';
+    contextualFinancialAnalystTest.setAskLLMOverride(async () => {
+        contextualCalls += 1;
+        throw new Error('contextual analyst should stay disabled during offline gate');
+    });
 
     try {
         const { report } = await runAnalyticalLegacyReductionGate({
@@ -37,8 +46,11 @@ test('analytical legacy reduction gate writes a sanitized zero-Gemini GO report 
         });
 
         assert.strictEqual(process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED, 'true');
+        assert.strictEqual(process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE, 'answer');
+        assert.strictEqual(contextualCalls, 0);
         assert.strictEqual(report.decision.status, 'GO');
         assert.strictEqual(report.llm_planner_enabled, false);
+        assert.strictEqual(report.contextual_analyst_enabled, false);
         assert.deepStrictEqual(report.decision.blockers, []);
         assert.strictEqual(report.gemini_calls, 0);
         assert.strictEqual(report.synthetic_user_only, true);
@@ -49,5 +61,8 @@ test('analytical legacy reduction gate writes a sanitized zero-Gemini GO report 
     } finally {
         if (originalPlannerFlag === undefined) delete process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED;
         else process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED = originalPlannerFlag;
+        if (originalContextualFlag === undefined) delete process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE;
+        else process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE = originalContextualFlag;
+        contextualFinancialAnalystTest.setAskLLMOverride(null);
     }
 });
