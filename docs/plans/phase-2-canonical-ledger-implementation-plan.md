@@ -253,3 +253,27 @@ healthy.
 Decision: `accounts` read canary is `GO` for this opening-balance surface. It is
 not a full account reconciliation cutover; future movements still need their own
 parity evidence before account balances become the primary user-facing source.
+
+## Account Balance Status Guard - 2026-07-03
+
+The `accounts` canary now treats current balance as settled cash only. Event
+lines linked to pending movements are ignored until the event status becomes
+`settled`, so a future or pending transfer does not move either account balance
+prematurely.
+
+RED/GREEN evidence reproduced the bug: a pending transfer was reducing the
+origin account and increasing the destination account. The fix filters account
+movement aggregation by `e.status = 'settled'` while preserving the public
+privacy contract.
+
+Local evidence: focused ledger/canary tests passed `24/24`, full suite passed
+`656/656`, audit high had zero vulnerabilities, `git diff --check` passed and
+tracked NUL scan was clean. Production evidence on EC2 commit `5290612`: focused
+receipt projector tests passed `14/14`, PM2/health/state were healthy, WhatsApp
+was ready, and a read-only `accounts` smoke still returned the four real opening
+balances.
+
+Decision: status handling for current account balances is `GO` for the canary.
+Next Phase 2 work should cover dated/settled account movements with marker-only
+receipts and parity against Sheets/read-model before account balances are used
+as a broad primary user-facing source.

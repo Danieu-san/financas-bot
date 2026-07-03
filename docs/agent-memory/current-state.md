@@ -794,3 +794,10 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Producao agora esta com `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transactions,transfers,accounts`, preservando `FINANCIAL_AGENT_MODE=answer`, Gemini Planner ativo, contextual analyst em `answer`, Command Planner em `canary` e `INTERPRETATION_RELIABILITY_MODE=shadow`.
 - Smoke read-only direto do canary `accounts` retornou `enabled=true` e os saldos publicos: `Daniel - Nubank` R$ 262,85; `Daniel - Nubank Caixinha` R$ 1.264,91; `Thais - Nubank` R$ 0,00; `Thais - Itaú` R$ 133,46. PM2 online, health `{"ok":true,"sqlite":true}`, WhatsApp ready e `state_store.json` remoto `{}`.
 - Veredito: `accounts` canary GO para saldos iniciais reais. Proximo passo do roadmap geral ainda e Fase 2: ampliar evidencia de movimentos/status/datas sobre contas antes de tratar saldos como fonte primaria ampla ou avancar para Fase 3.
+
+## Canonical ledger account balance status guard - 2026-07-03
+
+- Fase 2/accounts: corrigido o saldo canary para somar apenas movimentos de eventos `settled`. Um teste RED mostrou que transferencia `pending` reduzia a origem e aumentava o destino antes da efetivacao; o GREEN filtra agregacao por `e.status = 'settled'`.
+- Evidencia local: focused ledger/canary `24/24`, `npm test` `656/656`, audit high zero, `git diff --check` limpo e scan NUL rastreado limpo. O `state_store.json` local estava JSON valido, mas continha estado antigo nao rastreado e nao foi apagado.
+- Deploy aplicado na EC2 no commit `5290612`; teste remoto `tests/canonicalLedgerReceiptProjector.test.js` passou `14/14`, PM2 online, health `{"ok":true,"sqlite":true}`, WhatsApp ready e `state_store.json` remoto `{}`. Smoke read-only `accounts` preservou os quatro saldos reais.
+- Proximo passo do roadmap geral: ainda Fase 2; criar evidencia marker-only de movimentos datados/concluidos por conta e paridade com Sheets/read-model antes de usar saldos de conta como fonte primaria ampla.
