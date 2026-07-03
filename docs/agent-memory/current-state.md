@@ -871,3 +871,12 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - O gate `ledger:accounts-source-gate` agora exige tambem `--conversation-rows-json` e devolve NO-GO quando a fonte conversacional esta vazia ou nao contem as contas projetadas. Regressao RED/GREEN em `tests/canonicalLedgerParityReport.test.js`.
 - Evidencia local: focados `100/100`, suite completa `665/665`, audit high zero, diff check sem erros, NUL rastreado limpo e `state_store.json` valido.
 - Veredito da fatia permanece NO-GO ate repetir somente os smokes produtivos de gasto PIX e entrada PIX e confirmar que ambos pedem conta financeira e gravam a coluna `Conta Financeira`. Credito ja passou e nao precisa ser repetido.
+
+## Fase 2 explicit financial account capture GO - 2026-07-03
+
+- Smoke produtivo repetido apos reparar a fonte familiar: gasto PIX de R$ 7,41 pediu conta de origem, exibiu `Daniel - Nubank` na confirmacao e gravou a coluna `Conta Financeira`; entrada PIX de R$ 7,42 pediu conta de destino e gravou a mesma conta. O fluxo de credito ja havia passado sem pergunta de conta financeira.
+- Sheets e ledger shadow foram conferidos antes da limpeza. Os dois eventos estavam `settled`, com direcoes `outflow`/`inflow` e linhas vinculadas a `Daniel - Nubank`.
+- Limpeza marker-only/estrita removeu uma saida, uma entrada e os dois runs canonicos, com backup previo do SQLite shadow. Verificacao final: zero linhas do smoke em Sheets, zero eventos canonicos, zero marcador na projecao publica.
+- Saldos canonicos retornaram ao baseline: Daniel - Nubank R$ 262,85; Daniel - Nubank Caixinha R$ 1.264,91; Thais - Nubank R$ 0,00; Thais - Itau R$ 133,46. Health e SQLite verdes; `state_store.json` valido.
+- Veredito: GO para encerrar a captura explicita de conta em gastos/entradas unitarios fora do credito. Flags preservadas, incluindo Gemini Planner ativo e `INTERPRETATION_RELIABILITY_MODE=shadow`.
+- Proximo corte da Fase 2: captura conversacional explicita de conta origem/destino em transferencias, seguida de evidencia de status e datas antes de ampliar saldo canonico como fonte primaria.
