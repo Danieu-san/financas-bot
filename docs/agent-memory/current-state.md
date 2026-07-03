@@ -855,3 +855,10 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Evidencia local: `node --check src\handlers\messageHandler.js` OK; `node --test tests\canonicalLedgerReceiptProjector.test.js tests\financialStateMachine.test.js` passou `107/107`; `npm test` passou `664/664`; `npm audit --audit-level=high` zero vulnerabilidades; `git diff --check` sem erro (apenas aviso LF/CRLF do Windows); scan NUL rastreado sem achados; `state_store.json` valido.
 - Flags preservadas localmente/planejadas para deploy: Gemini Planner continua ativo, `INTERPRETATION_RELIABILITY_MODE=shadow`, `FINANCIAL_COMMAND_PLANNER_MODE=canary` e `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transactions,transfers,accounts` sem ampliacao.
 - Veredito local: GO para commit/deploy desta captura explicita; ainda NO-GO para saldo canonico como fonte primaria ampla. Proximo passo do roadmap: deployar esta fatia, rodar foco remoto e smoke marker-only/manual de gasto/entrada escolhendo conta; depois decidir se faltam status/datas/transferencias conversacionais antes de encerrar Fase 2 accounts.
+
+## Fase 2 explicit financial account capture deploy - 2026-07-03
+
+- Commit `da17429` deployado na EC2 por fast-forward, preservando `.env` e flags: `FINANCIAL_AGENT_MODE=answer`, Gemini Planner ativo, contextual analyst em `answer`, `FINANCIAL_COMMAND_PLANNER_MODE=canary`, `INTERPRETATION_RELIABILITY_MODE=shadow` e `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transactions,transfers,accounts`.
+- Focados remotos `tests/financialStateMachine.test.js` + `tests/canonicalLedgerReceiptProjector.test.js` passaram `107/107`.
+- Pos-deploy: PM2 `financas-bot` online, dashboard health `{"ok":true,"sqlite":true}`, `state_store.json` remoto valido e WhatsApp autenticado/pronto sem novo QR.
+- Proximo passo: smoke manual produtivo de gasto PIX/Debito/Dinheiro e entrada PIX escolhendo conta financeira; credito deve continuar sem pergunta de conta financeira. So depois disso decidir GO/NO-GO para seguir para transferencia conversacional/status/datas restantes da Fase 2 accounts.
