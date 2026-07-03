@@ -1297,6 +1297,32 @@ test('financial agent answer gate uses verified answers but does not hijack plan
     }), true);
 });
 
+test('LangGraph tags analytical planner gaps for controlled legacy reduction', async () => {
+    const originalPlannerFlag = process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED;
+    process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED = 'false';
+    try {
+        const result = await invokeFinancialAgent({
+            message: 'quanto economizei com promoções este mês?',
+            userIds: ['agent-daniel'],
+            personByUserId: { 'agent-daniel': 'Daniel' },
+            currentDate: '20/06/2026',
+            mode: 'answer'
+        });
+
+        assert.strictEqual(result.action, 'clarify');
+        assert.deepStrictEqual(result.migrationGap, {
+            tag: 'engine_gap',
+            reason: 'planner_gap',
+            surface: 'financial_agent',
+            tool: null,
+            domain: null
+        });
+        assert.doesNotMatch(JSON.stringify(result.migrationGap), /user_id|agent-daniel|sheet|token|raw/i);
+    } finally {
+        if (originalPlannerFlag === undefined) delete process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED;
+        else process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED = originalPlannerFlag;
+    }
+});
 test('financial agent shadow mode can answer only verified recent-transaction tool results', () => {
     assert.strictEqual(messageHandlerTest.shouldUseFinancialAgentAnswerInMode('shadow', {
         action: 'answer',

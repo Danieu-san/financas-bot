@@ -776,6 +776,45 @@ function verifyAnswerNode(state) {
     return { verified };
 }
 
+function migrationGapTagForReason(reason = '') {
+    const normalized = String(reason || '').trim();
+    if (/unsafe|security|bypass/i.test(normalized)) return 'unsafe_request';
+    if (/ambiguous.*period|period/i.test(normalized)) return 'ambiguous_period';
+    if (/ambiguous.*scope|scope/i.test(normalized)) return 'ambiguous_scope';
+    if (/invalid_financial_query_plan|unsupported_filter|filter/i.test(normalized)) return 'unsupported_filter';
+    if (/response/i.test(normalized)) return 'response_gap';
+    return 'engine_gap';
+}
+
+function publicPlanDomain(plan = {}, toolResult = {}) {
+    return plan?.args?.plan?.domain || toolResult?.plan?.domain || null;
+}
+
+function buildMigrationGap({ plan = null, toolResult = null } = {}) {
+    const safePlan = plan || {};
+    const safeToolResult = toolResult || null;
+    if (safePlan.action === 'clarify') {
+        const reason = String(safePlan.reason || 'planner_gap').trim();
+        return {
+            tag: migrationGapTagForReason(reason),
+            reason,
+            surface: 'financial_agent',
+            tool: safePlan.tool || null,
+            domain: publicPlanDomain(safePlan, safeToolResult)
+        };
+    }
+    if (safeToolResult && safeToolResult.ok === false) {
+        const reason = String(safeToolResult.reason || 'tool_gap').trim();
+        return {
+            tag: migrationGapTagForReason(reason),
+            reason,
+            surface: 'financial_agent',
+            tool: safeToolResult.tool || safePlan.tool || null,
+            domain: publicPlanDomain(safePlan, safeToolResult)
+        };
+    }
+    return null;
+}
 const graph = new StateGraph(AgentState)
     .addNode('planner_node', planTurn)
     .addNode('tool_node', runTool)
@@ -803,6 +842,7 @@ export async function invokeFinancialAgentRuntime(input = {}) {
         plan: result.plan || null,
         toolResult: result.toolResult || null,
         answer: result.answer || '',
-        verified: result.verified || { ok: false, reason: 'missing_verification' }
+        verified: result.verified || { ok: false, reason: 'missing_verification' },
+        migrationGap: buildMigrationGap({ plan: result.plan || null, toolResult: result.toolResult || null })
     };
 }

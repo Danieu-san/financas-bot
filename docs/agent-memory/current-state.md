@@ -763,3 +763,10 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Deploy inerte EC2 feito no commit `66daef6` sem alterar flags: `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transactions,transfers`, `INTERPRETATION_RELIABILITY_MODE=shadow`, planner Gemini ativo. Health `/dashboard/health` OK, WhatsApp pronto, e a aba central `Contas Financeiras` foi criada por auto-reparo.
 - Gate remoto marker-only `ledger:accounts-gate` com marcador `TESTE_APAGAR_ACCOUNTS_CANARY_REMOTE_20260702_1605` retornou `GO`, privacidade OK, limpeza zerada e pos-limpeza fail-closed. `accounts` continua NO-GO ate preencher/validar linhas reais de `Contas Financeiras` para o casal.
 - Seed ficticia de teste na aba central `Contas Financeiras`: 4 linhas com marcador `TESTE_APAGAR_ACCOUNTS_SOURCE_20260702` para contas ficticias Daniel/Thais/casal. Gate source-backed one-off no EC2 leu a aba real, projetou transferencia ficticia, retornou `GO`, privacidade OK e cleanup SQLite zerado. As linhas seguem na planilha para testes e devem ser removidas antes de dados reais/ativacao permanente.
+- Decisao de Daniel em 2026-07-02: pausar `accounts` aqui e voltar ao dominio somente depois que ele cadastrar as contas reais e saldos iniciais/data de corte. Ate la, nao incluir `accounts` em `CANONICAL_LEDGER_CANARY_READ_DOMAINS`; seguir para a proxima etapa do plano.
+
+## Analytical legacy reduction kickoff - 2026-07-02
+
+- Proxima etapa iniciada apos pausar `accounts`: reducao controlada do legado analitico, sem remover fallback de uma vez.
+- Primeira fatia local adiciona `migrationGap` sanitizado ao resultado do Financial Agent quando uma pergunta analitica cai em lacuna de planner/engine/tool. Tags publicas seguem a taxonomia do roadmap (`engine_gap`, `unsupported_filter`, `ambiguous_period`, `ambiguous_scope`, `response_gap`, `unsafe_request`) e nao incluem mensagem bruta, `user_id`, planilha, token ou raw rows.
+- Evidencia TDD: teste RED/GREEN em `tests/financialAgent.test.js` para `planner_gap`; `node --check src\agent\langGraphRuntime.mjs` OK e `node --test tests\financialAgent.test.js` passou `58/58`.
