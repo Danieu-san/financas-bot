@@ -7799,14 +7799,18 @@ function buildInvoicePaymentFromPlan(plan = {}, candidate = {}, { originalMessag
 }
 
 function buildInvoicePaymentConfirmationMessage(invoicePayment = {}) {
-    return [
+    const lines = [
         `Identifiquei o pagamento da fatura *${invoicePayment.candidate?.label || invoicePayment.candidate?.card || 'Cartão'}*.`,
         `Valor: *${formatCurrencyBR(invoicePayment.amount)}*`,
-        `Forma: *${invoicePayment.paymentMethod || 'não informada'}*`,
+        `Forma: *${invoicePayment.paymentMethod || 'não informada'}*`
+    ];
+    if (invoicePayment.financialAccount) lines.push(`Conta: *${invoicePayment.financialAccount}*`);
+    lines.push(
         `Data: *${invoicePayment.date}*`,
         '',
         'Confirma o registro? Responda *sim* ou *não*.'
-    ].join('\n');
+    );
+    return lines.join('\n');
 }
 
 function buildInvoicePaymentOperationKey(invoicePayment = {}, userId = '') {
@@ -7819,7 +7823,8 @@ function buildInvoicePaymentOperationKey(invoicePayment = {}, userId = '') {
             card: normalizeText(invoicePayment.candidate?.card || ''),
             billingMonth: normalizeText(invoicePayment.candidate?.billingMonth || ''),
             amount: parseValue(invoicePayment.amount),
-            date: invoicePayment.date || ''
+            date: invoicePayment.date || '',
+            financialAccount: normalizeText(invoicePayment.financialAccount || '')
         })
     });
 }
@@ -7835,6 +7840,7 @@ async function saveInvoicePayment(invoicePayment = {}, { userId } = {}) {
             scope: verifiedField('personal', 'user_state', 'active_user_scope'),
             target: verifiedField(invoicePayment.candidate?.label || '', 'user_state', 'matched_card_invoice'),
             payment: verifiedField(invoicePayment.paymentMethod, 'user_state', 'payment_method'),
+            financialAccount: verifiedField(invoicePayment.financialAccount || '', invoicePayment.financialAccount ? 'user_state' : 'missing', 'paying_financial_account'),
             movementType: verifiedField('invoice_payment', 'user_state', 'financial_domain')
         },
         currentFlowOutcome: 'confirmed_write_attempt'
@@ -7843,7 +7849,7 @@ async function saveInvoicePayment(invoicePayment = {}, { userId } = {}) {
         invoicePayment.date,
         invoicePayment.description,
         amount,
-        '',
+        invoicePayment.financialAccount || '',
         invoicePayment.candidate?.card || '',
         invoicePayment.paymentMethod,
         'Fatura identificada pelo command planner.',
@@ -7859,6 +7865,35 @@ async function saveInvoicePayment(invoicePayment = {}, { userId } = {}) {
     return { ...invoicePayment, amount, replayed: result?.receipt?.replayed === true };
 }
 
+async function askInvoicePaymentFinancialAccountIfNeeded({ msg, senderId, userId, invoicePayment }) {
+    if (invoicePayment?.financialAccount) return false;
+    const options = await buildFinancialAccountOptionsForUser(userId);
+    if (!options.length) return false;
+    userStateManager.setState(senderId, {
+        action: 'awaiting_invoice_payment_financial_account',
+        data: { invoicePayment, financialAccountOptions: options }
+    });
+    await msg.reply(buildFinancialAccountSelectionQuestion({ kind: 'expense', options }));
+    return true;
+}
+
+async function handleInvoicePaymentFinancialAccountSelection({ msg, senderId, currentState }) {
+    const options = currentState.data?.financialAccountOptions || [];
+    const selected = parseFinancialAccountSelectionReply(msg.body, options);
+    if (!selected) {
+        await msg.reply(buildFinancialAccountSelectionQuestion({ kind: 'expense', options, invalid: true }));
+        return;
+    }
+    const invoicePayment = {
+        ...(currentState.data?.invoicePayment || {}),
+        financialAccount: selected.label
+    };
+    userStateManager.setState(senderId, {
+        action: 'confirming_invoice_payment',
+        data: { invoicePayment }
+    });
+    await msg.reply(buildInvoicePaymentConfirmationMessage(invoicePayment));
+}
 function buildInvoicePaymentSelectionQuestion(candidates = [], invalid = false) {
     const lines = candidates.map((candidate, index) => `${index + 1}. ${candidate.label}`);
     return [
@@ -7875,6 +7910,7 @@ function buildInvoicePaymentSelectionQuestion(candidates = [], invalid = false) 
 async function continuePlannedInvoicePayment({
     msg,
     senderId,
+    userId,
     plan,
     candidate,
     originalMessage,
@@ -7894,6 +7930,10 @@ async function continuePlannedInvoicePayment({
             data: { invoicePayment }
         });
         await msg.reply(`Identifiquei a fatura *${invoicePayment.candidate?.label}*. Qual foi a forma de pagamento? (Débito, PIX ou Dinheiro)`);
+        return true;
+    }
+
+    if (await askInvoicePaymentFinancialAccountIfNeeded({ msg, senderId, userId, invoicePayment })) {
         return true;
     }
 
@@ -7940,7 +7980,8 @@ async function handlePlannedInvoicePayment({ msg, senderId, messageBody, userId,
         plan,
         candidate: match.candidates[0],
         originalMessage: messageBody,
-        originalMessageId: msg?.id?.id || ''
+        originalMessageId: msg?.id?.id || '',
+        userId
     });
 }
 function buildPlannedExpense(plan = {}, { originalMessage = '', originalMessageId = '' } = {}) {
@@ -8937,7 +8978,8 @@ async function handleMessage(msg) {
                     plan: data.plan || {},
                     candidate,
                     originalMessage: data.originalMessage || '',
-                    originalMessageId: data.originalMessageId || ''
+                    originalMessageId: data.originalMessageId || '',
+                    userId
                 });
                 return;
             }
@@ -8949,6 +8991,9 @@ async function handleMessage(msg) {
                     return;
                 }
                 const completedInvoicePayment = { ...invoicePayment, paymentMethod };
+                if (await askInvoicePaymentFinancialAccountIfNeeded({ msg, senderId, userId, invoicePayment: completedInvoicePayment })) {
+                    return;
+                }
                 userStateManager.setState(senderId, {
                     action: 'confirming_invoice_payment',
                     data: { invoicePayment: completedInvoicePayment }
@@ -8956,6 +9001,11 @@ async function handleMessage(msg) {
                 await msg.reply(buildInvoicePaymentConfirmationMessage(completedInvoicePayment));
                 return;
             }
+            case 'awaiting_invoice_payment_financial_account': {
+                await handleInvoicePaymentFinancialAccountSelection({ msg, senderId, currentState });
+                return;
+            }
+
             case 'confirming_invoice_payment': {
                 const cleanReply = normalizeText(msg.body);
                 const invoicePayment = currentState.data?.invoicePayment || {};

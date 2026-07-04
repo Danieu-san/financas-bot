@@ -966,3 +966,12 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Remote marker-only account-movement gate returned `GO` for `TESTE_APAGAR_ACCOUNT_MOVEMENTS_202607041656`, with privacy OK and cleanup zero.
 - Remote dashboard/read-model validation rebuilt from the production `.env` and returned 4 sanitized financial accounts, total balance R$ 1.661,22, names `Daniel - Nubank`, `Daniel - Nubank Caixinha`, `Thais - Itaú`, `Thais - Nubank`, and `leaks=false`.
 - Decision: production `GO` for cross-surface account/movement parity in Phase 2. This still does not authorize legacy removal, Phase 3, or making every balance surface canonical-primary outside the gated routes.
+
+## Phase 2 exit GO and Phase 3 kickoff - 2026-07-04
+
+- Roadmap reconciliation completed: Phase 2 exit gate is `GO` because balances and movements now match across canonical ledger, Sheets/read-model and dashboard with clean marker-only evidence. Report: `docs/qa/phase-2-exit-gate-2026-07-04.md`.
+- Phase 3 was opened under `docs/plans/phase-3-recurring-invoices-installments-plan.md`; legacy removal remains Phase 8 and flags remain preserved.
+- First Phase 3 slice selected: `3A - invoice payoff with paying account`, because `invoice.pay` should debit an explicit financial account now that Phase 2 accounts are available.
+- Local RED/GREEN: `invoice.pay` with active `Contas Financeiras` now asks which account paid, shows `Conta` in confirmation, includes the account in the operation key/telemetry and writes it as `Conta Origem` in `Transferências`. Focused state-machine test passed 97/97.
+- Local verification after the 3A RED/GREEN: focused state-machine 97/97, full suite 674/674,
+pm audit --audit-level=high zero vulnerabilities, git diff --check clean, tracked NUL scan clean, state_store.json valid with the pre-existing synthetic onboarding state unchanged. Still pending before production GO: commit/deploy and production marker-only/manual smoke.

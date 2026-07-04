@@ -976,6 +976,71 @@ stateMachineTest('financial states: command planner invoice.pay records a transf
         else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
     }
 });
+stateMachineTest('financial states: command planner invoice.pay asks explicit paying account before confirmation', async () => {
+    resetState();
+    const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+    process.env.FINANCIAL_COMMAND_PLANNER_MODE = 'route';
+    sheets['Contas Financeiras'].push(
+        ['Daniel - Nubank', 'bank', '1000,00', '03/07/2026', 'active', 'BRL', 'Usuario Estado', USER_ID, 'Principal'],
+        ['Daniel - Carteira', 'cash', '50,00', '03/07/2026', 'active', 'BRL', 'Usuario Estado', USER_ID, 'Dinheiro']
+    );
+    sheets['Lançamentos Cartão'] = [
+        ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Status', 'user_id'],
+        ['10/06/2026', 'Compra Teste', 'Outros', 620, '1/1', '06/2026', 'nubank-daniel', 'Nubank Daniel', 'Aberta', USER_ID]
+    ];
+    enqueueStructuredResponse({
+        schemaVersion: 'financial-command-plan-v1',
+        operation: 'invoice.pay',
+        entities: {
+            description: 'fatura do Nubank Daniel',
+            amount: 620,
+            date: '27/06/2026',
+            paymentMethod: 'PIX'
+        },
+        fieldEvidence: {
+            description: 'explicit',
+            amount: 'explicit',
+            date: 'explicit',
+            paymentMethod: 'explicit'
+        },
+        contextRequests: [{ tool: 'match_card_invoice', query: 'fatura do Nubank Daniel' }],
+        missingFields: [],
+        requiresConfirmation: true
+    });
+
+    try {
+        const accountQuestion = await send('Paguei 620 da fatura do Nubank Daniel via Pix');
+        assert.match(accountQuestion, /De qual conta financeira saiu/i);
+        assert.match(accountQuestion, /1\. Daniel - Nubank/i);
+        assert.match(accountQuestion, /2\. Daniel - Carteira/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_invoice_payment_financial_account');
+        assert.strictEqual(sheets.Transferências.length, 1);
+
+        const confirmation = await send('1');
+        assert.match(confirmation, /Conta: \*Daniel - Nubank\*/i);
+        assert.match(confirmation, /confirma/i);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'confirming_invoice_payment');
+
+        const savedReply = await send('sim');
+        assert.match(savedReply, /pagamento.*fatura/i);
+        assert.strictEqual(sheets.Transferências.length, 2);
+        assert.deepStrictEqual(sheets.Transferências[1], [
+            '27/06/2026',
+            'Pagamento de fatura Nubank Daniel - 06/2026',
+            620,
+            'Daniel - Nubank',
+            'Nubank Daniel',
+            'PIX',
+            'Fatura identificada pelo command planner.',
+            'Pagamento de fatura',
+            USER_ID
+        ]);
+        assert.strictEqual(userStateManager.getState(SENDER), undefined);
+    } finally {
+        if (previousMode === undefined) delete process.env.FINANCIAL_COMMAND_PLANNER_MODE;
+        else process.env.FINANCIAL_COMMAND_PLANNER_MODE = previousMode;
+    }
+});
 stateMachineTest('financial states: command planner invoice.pay asks for a missing payment method', async () => {
     resetState();
     const previousMode = process.env.FINANCIAL_COMMAND_PLANNER_MODE;
