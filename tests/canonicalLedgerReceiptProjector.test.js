@@ -55,6 +55,65 @@ test('canonical receipt projector maps committed expense, income and transfer ro
     );
 });
 
+test('canonical receipt projector links card purchase and payoff across idempotent receipt runs', () => {
+    const dbPath = tempDbPath();
+    const cardPurchase = buildCanonicalLedgerReceiptProjection({
+        sheetName: 'Lançamentos Cartão',
+        row: ['04/07/2026', 'Mercado', 'Alimentação', 737.12, '1/1', 'Julho de 2026', 'nubank-thais', 'Nubank - Thais', '', 'user-a'],
+        operationKey: 'invoice-item-op',
+        receipt: { updatedRange: 'Lançamentos Cartão!A10:J10' }
+    });
+    const invoicePayment = buildCanonicalLedgerReceiptProjection({
+        sheetName: 'Transferências',
+        row: ['04/07/2026', 'Pagamento de fatura Nubank - Thais - Julho de 2026', 737.12, 'Daniel - Nubank', 'Nubank - Thais', 'PIX', '', 'Pagamento de fatura', 'user-a'],
+        operationKey: 'invoice-payment-op',
+        receipt: { updatedRange: 'Transferências!A10:I10' }
+    });
+
+    assert.strictEqual(cardPurchase.projected.events[0].kind, 'card_purchase');
+    assert.strictEqual(cardPurchase.projected.invoiceItems.length, 1);
+    assert.strictEqual(invoicePayment.projected.events[0].kind, 'invoice_payment');
+    assert.strictEqual(invoicePayment.projected.invoicePayments.length, 1);
+    assert.strictEqual(
+        cardPurchase.projected.invoices[0].invoice_id,
+        invoicePayment.projected.invoices[0].invoice_id
+    );
+
+    const store = new CanonicalLedgerShadowStore({ dbPath, writesEnabled: true });
+    store.persistProjection(cardPurchase);
+    store.persistProjection(cardPurchase);
+    store.persistProjection(invoicePayment);
+
+    const invoices = store.listInvoiceAggregates({ reportType: 'canonical_ledger_receipt_shadow' });
+    assert.deepStrictEqual(
+        invoices.map(invoice => [
+            invoice.card_key,
+            invoice.competence_month,
+            invoice.item_total_cents,
+            invoice.payment_total_cents,
+            invoice.status,
+            invoice.item_count,
+            invoice.payment_count
+        ]),
+        [['nubank thais', '2026-07', 73712, 73712, 'paid', 1, 1]]
+    );
+    store.close();
+});
+test('canonical receipt projector normalizes legacy card sheet names into stable card ids', () => {
+    const projection = buildCanonicalLedgerReceiptProjection({
+        sheetName: 'Cartão Nubank - Thais',
+        row: ['04/07/2026', 'Mercado', 'Alimentação', 10, '1/1', 'Julho de 2026', 'user-a'],
+        operationKey: 'legacy-card-sheet-op',
+        receipt: { updatedRange: 'Cartão Nubank - Thais!A10:G10' }
+    });
+
+    assert.strictEqual(projection.projected.events[0].kind, 'card_purchase');
+    assert.strictEqual(
+        projection.projected.lines.find(line => line.line_type === 'card_liability').account_id,
+        'nubank-thais'
+    );
+    assert.strictEqual(projection.projected.invoices[0].card_key, 'nubank thais');
+});
 test('canonical receipt projector links explicit financial account columns without treating payment methods as accounts', () => {
     const financialAccountRows = [
         ['Nome da Conta', 'Tipo', 'Saldo Inicial', 'Data de Abertura', 'Status', 'Moeda', 'Responsável', 'user_id', 'Observações'],

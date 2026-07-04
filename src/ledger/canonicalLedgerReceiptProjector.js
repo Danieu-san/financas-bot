@@ -15,7 +15,23 @@ const {
     buildCanonicalLedgerRolloutPolicy
 } = require('./canonicalLedgerRolloutPolicy');
 
-const SUPPORTED_SHEETS = new Set(['Saídas', 'Entradas', 'Transferências']);
+const SUPPORTED_SHEETS = new Set(['Saídas', 'Entradas', 'Transferências', 'Lançamentos Cartão']);
+
+function isCreditCardSheet(sheetName) {
+    const normalized = String(sheetName || '').trim();
+    return normalized === 'Lançamentos Cartão' || normalized.startsWith('Cartão ');
+}
+
+function isSupportedSheet(sheetName) {
+    return SUPPORTED_SHEETS.has(sheetName) || isCreditCardSheet(sheetName);
+}
+
+function cardIdFromSheetName(sheetName) {
+    return normalizeText(String(sheetName || ''))
+        .replace(/^cartao\s+/, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'cartao';
+}
 
 function hash(value, length = 24) {
     return crypto.createHash('sha256').update(String(value || '')).digest('hex').slice(0, length);
@@ -131,14 +147,24 @@ function keepOnlyReceiptSourceEvents(projected, sheetName) {
     const sourceTypeBySheet = {
         'Saídas': 'sheet.saidas',
         'Entradas': 'sheet.entradas',
-        'Transferências': 'sheet.transferencias'
+        'Transferências': 'sheet.transferencias',
+        'Lançamentos Cartão': 'sheet.lancamentos_cartao'
     };
-    const sourceType = sourceTypeBySheet[sheetName];
+    const sourceType = isCreditCardSheet(sheetName)
+        ? sourceTypeBySheet['Lançamentos Cartão']
+        : sourceTypeBySheet[sheetName];
     if (!sourceType) return;
     const keptEvents = projected.events.filter(event => event.source_type === sourceType);
     const keptEventIds = new Set(keptEvents.map(event => event.event_id));
     projected.events = keptEvents;
     projected.lines = projected.lines.filter(line => keptEventIds.has(line.event_id));
+    projected.invoiceItems = (projected.invoiceItems || []).filter(item => keptEventIds.has(item.event_id));
+    projected.invoicePayments = (projected.invoicePayments || []).filter(payment => keptEventIds.has(payment.event_id));
+    const keptInvoiceIds = new Set([
+        ...projected.invoiceItems.map(item => item.invoice_id),
+        ...projected.invoicePayments.map(payment => payment.invoice_id)
+    ]);
+    projected.invoices = (projected.invoices || []).filter(invoice => keptInvoiceIds.has(invoice.invoice_id));
     projected.schedules = [];
     projected.reconciliationLinks = projected.reconciliationLinks.filter(link =>
         keptEventIds.has(link.event_id) && keptEventIds.has(link.related_event_id)
@@ -261,6 +287,21 @@ function legacyInputFromAppend({ sheetName, row, operationKey, receipt, accountR
             status: row[7],
             user_id: row[8]
         });
+    } else if (isCreditCardSheet(sheetName)) {
+        const unifiedRow = row.length >= 10;
+        base.legacyRows.lancamentosCartao.push({
+            source_row_id: sourceRowId,
+            data: row[0],
+            descricao: row[1],
+            categoria: row[2],
+            valor_parcela: row[3],
+            parcela: row[4],
+            mes_cobranca: row[5],
+            card_id: unifiedRow ? row[6] : cardIdFromSheetName(sheetName),
+            cartao: unifiedRow ? row[7] : sheetName,
+            observacoes: unifiedRow ? row[8] : '',
+            user_id: unifiedRow ? row[9] : row[6]
+        });
     }
 
     return base;
@@ -305,7 +346,7 @@ function buildCanonicalLedgerReceiptProjection({
     committedAt = '',
     now = () => new Date()
 } = {}) {
-    if (!SUPPORTED_SHEETS.has(sheetName)) return null;
+    if (!isSupportedSheet(sheetName)) return null;
     if (!Array.isArray(row) || !String(operationKey || '').trim()) return null;
     if (status !== 'committed') return null;
     if (source === 'statement_import') return null;
