@@ -6,6 +6,7 @@ const {
     syncSnapshotToSqlite,
     queryAnalyticalIntentSql,
     queryKpis,
+    queryFinancialAccounts,
     queryDebts,
     queryGoals,
     queryCashflow,
@@ -944,6 +945,73 @@ test('sqlite read-model powers dashboard data without cross-user leakage', () =>
     assert.match(dashboard.criteria.recentTransactions, /Transferência/i);
 });
 
+test('sqlite read-model exposes current financial account balances to dashboard snapshots', () => {
+    assert.strictEqual(ensureSqliteReady(), true, 'SQLite should be available for financial account tests');
+    assert.strictEqual(syncSnapshotToSqlite({
+        financialAccounts: [
+            {
+                user_id: 'user-account-a',
+                nome: 'Daniel - Nubank',
+                tipo: 'bank',
+                saldoInicial: 262.85,
+                dataAbertura: '03/07/2026',
+                status: 'active',
+                moeda: 'BRL',
+                responsavel: 'Daniel'
+            },
+            {
+                user_id: 'user-account-a',
+                nome: 'Daniel - Nubank Caixinha',
+                tipo: 'reserve',
+                saldoInicial: 1264.91,
+                dataAbertura: '03/07/2026',
+                status: 'active',
+                moeda: 'BRL',
+                responsavel: 'Daniel'
+            },
+            {
+                user_id: 'user-account-b',
+                nome: 'Thais - Itau',
+                tipo: 'bank',
+                saldoInicial: 133.46,
+                dataAbertura: '03/07/2026',
+                status: 'active',
+                moeda: 'BRL',
+                responsavel: 'Thais'
+            }
+        ],
+        saidas: [
+            { user_id: 'user-account-a', data: '04/07/2026', descricao: 'mercado', categoria: 'Alimentação', subcategoria: 'SUPERMERCADO', valor: 7.41, month: 6, year: 2026, contaFinanceira: 'Daniel - Nubank' }
+        ],
+        entradas: [
+            { user_id: 'user-account-a', data: '05/07/2026', descricao: 'reembolso', categoria: 'Reembolso', valor: 7.42, recebimento: 'PIX', month: 6, year: 2026, contaFinanceira: 'Daniel - Nubank' }
+        ],
+        transferencias: [
+            { user_id: 'user-account-a', data: '06/07/2026', descricao: 'resgate caixinha', valor: 8.31, origem: 'Daniel - Nubank Caixinha', destino: 'Daniel - Nubank', metodo: 'PIX', status: 'Concluída', month: 6, year: 2026 },
+            { user_id: 'user-account-a', data: '07/07/2026', descricao: 'pix pendente', valor: 8.32, origem: 'Daniel - Nubank', destino: 'Thais - Itau', metodo: 'PIX', status: 'Pendente', month: 6, year: 2026 }
+        ],
+        cartoes: []
+    }), true);
+
+    const personal = queryFinancialAccounts('user-account-a');
+    assert.deepStrictEqual(personal.map(item => [item.name, item.balance]), [
+        ['Daniel - Nubank', 271.17],
+        ['Daniel - Nubank Caixinha', 1256.6]
+    ]);
+    assert.strictEqual(personal.totalBalance, 1527.77);
+
+    const allUsers = queryFinancialAccounts(ALL_USERS_ID);
+    assert.strictEqual(allUsers.totalBalance, 1661.23);
+    assert.ok(allUsers.some(item => item.name === 'Thais - Itau'));
+
+    const dashboard = getDashboardSqlData('user-account-a', { month: 6, year: 2026 });
+    assert.strictEqual(dashboard.financialAccounts.totalBalance, 1527.77);
+    assert.deepStrictEqual(dashboard.financialAccounts.items.map(item => item.name), [
+        'Daniel - Nubank',
+        'Daniel - Nubank Caixinha'
+    ]);
+    assert.doesNotMatch(JSON.stringify(dashboard.financialAccounts), /user-account-a|user-account-b|acct_|source_row_hash|idempotency_key/i);
+});
 test('sqlite dashboard orders cashflow and recent transactions by real dates', () => {
     assert.strictEqual(ensureSqliteReady(), true, 'SQLite should be available for dashboard ordering tests');
     syncSnapshotToSqlite({

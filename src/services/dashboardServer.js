@@ -301,6 +301,14 @@ function dashboardHtml() {
 
     <div id="scopeCard" class="section card scope-summary" style="display:none"></div>
 
+    <div id="financialAccountsCard" class="section card" style="display:none">
+      <div class="chart-head">
+        <h2>Saldos por Conta</h2>
+        <div id="financialAccountsTotal" class="chart-note"></div>
+      </div>
+      <div id="financialAccounts" class="list"></div>
+    </div>
+
     <div class="section card chart-card">
       <div class="chart-head">
         <h2>Visão Gráfica</h2>
@@ -474,6 +482,7 @@ function dashboardHtml() {
       document.getElementById('periodBadge').textContent = monthNames[Number(period.month ?? monthEl.value)] + ' de ' + (period.year || yearEl.value) + userSuffix;
       renderFinanceChart(k);
       renderScopeSummary(data.scope);
+      renderFinancialAccounts(data.financialAccounts);
       renderDailyGoal(data.dailyGoal);
 
       const cats = data.topCategories || [];
@@ -519,6 +528,25 @@ function dashboardHtml() {
         ].filter(Boolean).join(' · ');
         return '<div class="line"><span>' + esc(g.name) + '<span class="muted"> ' + esc(meta) + '</span></span><strong>' + brl(g.current) + ' / ' + brl(g.target) + '</strong></div>';
       }).join('') : '<div class="empty">Sem metas cadastradas. Uma boa primeira meta é reserva de emergência.</div>';
+    }
+
+    function renderFinancialAccounts(financialAccounts) {
+      const card = document.getElementById('financialAccountsCard');
+      const list = document.getElementById('financialAccounts');
+      const total = document.getElementById('financialAccountsTotal');
+      const items = Array.isArray(financialAccounts?.items) ? financialAccounts.items : [];
+      if (!items.length) {
+        card.style.display = 'none';
+        list.innerHTML = '';
+        total.textContent = '';
+        return;
+      }
+      card.style.display = '';
+      total.textContent = 'Total: ' + brl(financialAccounts.totalBalance || items.reduce((sum, item) => sum + Number(item.balance || 0), 0));
+      list.innerHTML = items.map(item => {
+        const meta = [item.accountType, item.responsible, item.status].filter(Boolean).join(' · ');
+        return '<div class="line"><span>' + esc(item.name || 'Conta') + (meta ? '<span class="muted"> · ' + esc(meta) + '</span>' : '') + '</span><strong>' + brl(item.balance) + '</strong></div>';
+      }).join('');
     }
 
     function renderScopeSummary(scope) {

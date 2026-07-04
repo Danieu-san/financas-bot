@@ -36,6 +36,13 @@ function installReadModelMock(calls) {
                     recentTransactions: [{ date: '10/05/2026', description: 'mercado', category: 'Alimentação', value: 300, type: 'saida' }],
                     goals: [{ name: 'Reserva', target: 3000, current: 600, progressPct: 20 }],
                     debts: [{ name: 'Cartão', creditor: 'Banco', saldoAtual: 1200, jurosPct: 8, status: 'Ativa' }],
+                    financialAccounts: {
+                        totalBalance: 1527.77,
+                        items: [
+                            { name: 'Daniel - Nubank', accountType: 'Conta corrente', openingBalance: 262.85, balance: 271.17, status: 'Ativa', responsible: 'Daniel' },
+                            { name: 'Daniel - Nubank Caixinha', accountType: 'Caixinha', openingBalance: 1264.91, balance: 1256.60, status: 'Ativa', responsible: 'Daniel' }
+                        ]
+                    },
                     alerts: [{ level: 'low', code: 'OK', message: 'Sem alerta crítico.' }],
                     sync: { lastSyncedAt: '2026-05-15T00:00:00.000Z' }
                 };
@@ -141,6 +148,12 @@ test('dashboard API endpoints expose stable user-scoped contracts', async () => 
         assert.strictEqual(summary.response.status, 200);
         assert.ok(summary.json.recentTransactions);
         assert.ok(summary.json.sync);
+        assert.ok(summary.json.financialAccounts);
+        assert.strictEqual(summary.json.financialAccounts.totalBalance, 1527.77);
+        assert.strictEqual(summary.json.financialAccounts.items[0].name, 'Daniel - Nubank');
+        assert.strictEqual(summary.json.financialAccounts.items[0].balance, 271.17);
+        const serializedFinancialAccounts = JSON.stringify(summary.json.financialAccounts);
+        assert.doesNotMatch(serializedFinancialAccounts, /user[_-]?dash|user_id|owner_hash|source_row_hash|idempotency_key|acct_/i);
         assert.ok(summary.json.criteria);
         assert.match(summary.json.criteria.balance, /data da compra/i);
         assert.match(summary.json.criteria.budget, /ciclo/i);
@@ -219,6 +232,9 @@ test('dashboard page reloads data when month or year filters change', async () =
         assert.match(html, /renderDailyGoal\(data\.dailyGoal\)/);
         assert.match(html, /Escopo:/);
         assert.match(html, /renderScopeSummary\(data\.scope\)/);
+        assert.match(html, /renderFinancialAccounts\(data\.financialAccounts\)/);
+        assert.match(html, /financialAccountsCard/);
+        assert.match(html, /Saldos por Conta/);
         assert.match(html, /criteriaBalance/);
         assert.match(html, /criteriaCategories/);
         assert.match(html, /criteriaRecent/);

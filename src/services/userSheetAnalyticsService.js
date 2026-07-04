@@ -126,7 +126,8 @@ function toTransaction(row, type) {
         value: parseValue(row[type === 'entrada' ? 3 : 4]),
         type,
         typeLabel: type === 'entrada' ? 'Entrada' : 'Saída',
-        timestamp: transactionTimestamp(row[0])
+        timestamp: transactionTimestamp(row[0]),
+        financialAccount: type === 'entrada' ? (row[9] || '') : (row[10] || '')
     };
 }
 
@@ -156,6 +157,8 @@ function toTransfer(row) {
         typeLabel: 'Transferência',
         observations: row[6] || '',
         status: row[7] || '',
+        origin: row[3] || '',
+        destination: row[4] || '',
         timestamp: transactionTimestamp(row[0])
     };
 }
@@ -253,7 +256,46 @@ function buildReserveSummary(transfers = []) {
         movementCount: transfers.filter(item => isReserveApplication(item) || isReserveRedemption(item)).length
     };
 }
-
+function buildFinancialAccountsSummary(rows = [], userIds = [], movements = {}) {
+    const allowed = new Set((Array.isArray(userIds) ? userIds : [userIds]).map(id => String(id || '').trim()).filter(Boolean));
+    const items = (Array.isArray(rows) ? rows.slice(1) : [])
+        .filter(row => allowed.has(String(row?.[7] || '').trim()))
+        .map(row => ({
+            name: row?.[0] || '',
+            accountType: row?.[1] || '',
+            openingBalance: roundMoney(parseValue(row?.[2] || 0)),
+            balance: roundMoney(parseValue(row?.[2] || 0)),
+            openedOn: row?.[3] || '',
+            status: row?.[4] || '',
+            currency: row?.[5] || 'BRL',
+            responsible: row?.[6] || ''
+        }))
+        .filter(item => item.name);
+    const balanceByName = new Map(items.map(item => [normalizeText(item.name), Number(item.balance || 0)]));
+    const applyMovement = (accountName, amount) => {
+        const key = normalizeText(accountName || '');
+        if (!key || !balanceByName.has(key)) return;
+        balanceByName.set(key, roundMoney(Number(balanceByName.get(key) || 0) + Number(amount || 0)));
+    };
+    (movements.saidas || []).forEach(item => applyMovement(item.financialAccount, -Number(item.value || 0)));
+    (movements.entradas || []).forEach(item => applyMovement(item.financialAccount, Number(item.value || 0)));
+    (movements.transfers || movements.transferencias || [])
+        .filter(item => {
+            const status = normalizeText(item.status || '');
+            return !status.includes('pendent') && !status.includes('cancel');
+        })
+        .forEach((item) => {
+            applyMovement(item.origin, -Number(item.value || 0));
+            applyMovement(item.destination, Number(item.value || 0));
+        });
+    items.forEach((item) => {
+        item.balance = roundMoney(balanceByName.get(normalizeText(item.name)));
+    });
+    return {
+        totalBalance: roundMoney(items.reduce((sum, item) => sum + Number(item.balance || 0), 0)),
+        items
+    };
+}
 function buildTopCategories(transactions) {
     const totals = new Map();
     transactions.forEach((item) => {
@@ -534,15 +576,16 @@ async function getUserSheetDashboardData(userId, { month, year } = {}) {
         const financialScopeUserIds = getFinancialScopeUserIds(safeUserId);
         const period = normalizePeriod({ month, year });
         const dailyGoalConfig = await getDailyGoalDashboardSettings(safeUserId);
-        const [saidasRows, entradasRows, cartaoRows, cardConfigRows, transferRows, metasRows, dividasRows, accountRows] = await Promise.all([
-            readDataFromSheet('Saídas!A:J'),
-            readDataFromSheet('Entradas!A:I'),
+        const [saidasRows, entradasRows, cartaoRows, cardConfigRows, transferRows, metasRows, dividasRows, accountRows, financialAccountRows] = await Promise.all([
+            readDataFromSheet('Saídas!A:K'),
+            readDataFromSheet('Entradas!A:J'),
             readDataFromSheet('Lançamentos Cartão!A:J'),
             readDataFromSheet('Cartões!A:G'),
             readDataFromSheet('Transferências!A:I'),
             readDataFromSheet('Metas!A:I'),
             readDataFromSheet('Dívidas!A:R'),
-            readDataFromSheet('Contas!A:I')
+            readDataFromSheet('Contas!A:I'),
+            readDataFromSheet('Contas Financeiras!A:I', { suppressMissingSheetError: true })
         ]);
 
         const saidas = saidasRows.slice(1)
@@ -607,6 +650,7 @@ async function getUserSheetDashboardData(userId, { month, year } = {}) {
                 period
             }),
             recentTransactions: buildRecentTransactions({ entradas, saidas, cartoes, transferencias: transfers }),
+            financialAccounts: buildFinancialAccountsSummary(financialAccountRows, financialScopeUserIds, { saidas, entradas, transfers }),
             goals: buildGoalDashboardRows(metasRows, financialScopeUserIds),
             debts: dividasRows.slice(1).filter(row => rowBelongsToAnyUser(row, 17, financialScopeUserIds)),
             alerts: [],
@@ -627,6 +671,7 @@ module.exports = {
         buildRecentTransactions,
         rowBelongsToAnyUser,
         buildReserveSummary,
+        buildFinancialAccountsSummary,
         buildMemberBreakdown,
         buildGoalDashboardRows,
         isReserveApplication,

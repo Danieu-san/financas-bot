@@ -178,6 +178,20 @@ function initSchema() {
         );
         CREATE INDEX IF NOT EXISTS idx_recurring_bills_user_due ON recurring_bills(user_id, due_day);
 
+        CREATE TABLE IF NOT EXISTS financial_accounts (
+            fingerprint TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            account_type TEXT,
+            opening_balance REAL NOT NULL,
+            opened_on TEXT,
+            status TEXT,
+            currency TEXT,
+            responsible TEXT,
+            last_seen_sync INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_financial_accounts_user ON financial_accounts(user_id);
+
         CREATE TABLE IF NOT EXISTS financial_events_public (
             fingerprint TEXT PRIMARY KEY,
             owner_hash TEXT NOT NULL,
@@ -409,7 +423,8 @@ function ensureExpenseSchemaColumns() {
     const additions = [
         ['card_id', 'TEXT'],
         ['card_name', 'TEXT'],
-        ['installment_text', 'TEXT']
+        ['installment_text', 'TEXT'],
+        ['financial_account', 'TEXT']
     ];
     additions.forEach(([name, type]) => {
         if (!columns.has(name)) {
@@ -422,7 +437,8 @@ function ensureEntrySchemaColumns() {
     const columns = new Set(db.pragma('table_info(entries)').map((column) => column.name));
     const additions = [
         ['payment_method', 'TEXT'],
-        ['recurrence', 'TEXT']
+        ['recurrence', 'TEXT'],
+        ['financial_account', 'TEXT']
     ];
     additions.forEach(([name, type]) => {
         if (!columns.has(name)) {
@@ -525,12 +541,13 @@ function syncSnapshotToSqlite(snapshot) {
     const movimentacoesMetas = Array.isArray(snapshot?.movimentacoesMetas) ? snapshot.movimentacoesMetas : [];
     const dividas = Array.isArray(snapshot?.dividas) ? snapshot.dividas : [];
     const contas = Array.isArray(snapshot?.contas) ? snapshot.contas : [];
+    const financialAccounts = Array.isArray(snapshot?.financialAccounts) ? snapshot.financialAccounts : [];
 
     currentSyncId = Date.now();
 
     const upsertExpense = db.prepare(`
-        INSERT INTO expenses(fingerprint, user_id, source_type, source_name, date_text, year, month, description, category, subcategory, value, card_id, card_name, installment_text, last_seen_sync)
-        VALUES(@fingerprint, @user_id, @source_type, @source_name, @date_text, @year, @month, @description, @category, @subcategory, @value, @card_id, @card_name, @installment_text, @last_seen_sync)
+        INSERT INTO expenses(fingerprint, user_id, source_type, source_name, date_text, year, month, description, category, subcategory, value, card_id, card_name, installment_text, financial_account, last_seen_sync)
+        VALUES(@fingerprint, @user_id, @source_type, @source_name, @date_text, @year, @month, @description, @category, @subcategory, @value, @card_id, @card_name, @installment_text, @financial_account, @last_seen_sync)
         ON CONFLICT(fingerprint) DO UPDATE SET
             user_id = excluded.user_id,
             source_type = excluded.source_type,
@@ -545,12 +562,13 @@ function syncSnapshotToSqlite(snapshot) {
             card_id = excluded.card_id,
             card_name = excluded.card_name,
             installment_text = excluded.installment_text,
+            financial_account = excluded.financial_account,
             last_seen_sync = excluded.last_seen_sync
     `);
 
     const upsertEntry = db.prepare(`
-        INSERT INTO entries(fingerprint, user_id, date_text, year, month, description, category, value, payment_method, recurrence, last_seen_sync)
-        VALUES(@fingerprint, @user_id, @date_text, @year, @month, @description, @category, @value, @payment_method, @recurrence, @last_seen_sync)
+        INSERT INTO entries(fingerprint, user_id, date_text, year, month, description, category, value, payment_method, recurrence, financial_account, last_seen_sync)
+        VALUES(@fingerprint, @user_id, @date_text, @year, @month, @description, @category, @value, @payment_method, @recurrence, @financial_account, @last_seen_sync)
         ON CONFLICT(fingerprint) DO UPDATE SET
             user_id = excluded.user_id,
             date_text = excluded.date_text,
@@ -561,6 +579,7 @@ function syncSnapshotToSqlite(snapshot) {
             value = excluded.value,
             payment_method = excluded.payment_method,
             recurrence = excluded.recurrence,
+            financial_account = excluded.financial_account,
             last_seen_sync = excluded.last_seen_sync
     `);
 
@@ -690,6 +709,27 @@ function syncSnapshotToSqlite(snapshot) {
             rule_active = excluded.rule_active,
             last_seen_sync = excluded.last_seen_sync
     `);
+    const upsertFinancialAccount = db.prepare(`
+        INSERT INTO financial_accounts(
+            fingerprint, user_id, name, account_type, opening_balance,
+            opened_on, status, currency, responsible, last_seen_sync
+        )
+        VALUES(
+            @fingerprint, @user_id, @name, @account_type, @opening_balance,
+            @opened_on, @status, @currency, @responsible, @last_seen_sync
+        )
+        ON CONFLICT(fingerprint) DO UPDATE SET
+            user_id = excluded.user_id,
+            name = excluded.name,
+            account_type = excluded.account_type,
+            opening_balance = excluded.opening_balance,
+            opened_on = excluded.opened_on,
+            status = excluded.status,
+            currency = excluded.currency,
+            responsible = excluded.responsible,
+            last_seen_sync = excluded.last_seen_sync
+    `);
+
 
     const tx = db.transaction(() => {
         for (const item of saidas) {
@@ -709,6 +749,7 @@ function syncSnapshotToSqlite(snapshot) {
                 card_id: '',
                 card_name: '',
                 installment_text: '',
+                financial_account: item.contaFinanceira || item.financialAccount || '',
                 last_seen_sync: currentSyncId
             });
         }
@@ -743,6 +784,7 @@ function syncSnapshotToSqlite(snapshot) {
                 card_id: item.card_id || item.cardId || item.source || '',
                 card_name: item.cartao || item.cardName || item.source || '',
                 installment_text: item.parcela || item.installment || '',
+                financial_account: item.contaFinanceira || item.financialAccount || '',
                 last_seen_sync: currentSyncId
             });
         }
@@ -760,6 +802,7 @@ function syncSnapshotToSqlite(snapshot) {
                 value: Number(item.valor || 0),
                 payment_method: item.recebimento || item.paymentMethod || '',
                 recurrence: item.recorrente || item.recurrence || '',
+                financial_account: item.contaFinanceira || item.financialAccount || '',
                 last_seen_sync: currentSyncId
             });
         }
@@ -904,6 +947,24 @@ function syncSnapshotToSqlite(snapshot) {
                 last_seen_sync: currentSyncId
             });
         }
+        for (const item of financialAccounts) {
+            const userId = String(item.user_id || item.userId || '').trim();
+            const name = snapshotRowValue(item, ['Nome da Conta', 'Nome'], 0) || item.nome || item.name || '';
+            if (!userId || !String(name || '').trim()) continue;
+            const fingerprint = makeFingerprint(['financial-account', userId, name]);
+            upsertFinancialAccount.run({
+                fingerprint,
+                user_id: userId,
+                name: String(name || '').trim(),
+                account_type: snapshotRowValue(item, ['Tipo'], 1) || item.tipo || item.accountType || '',
+                opening_balance: parseValue(snapshotRowValue(item, ['Saldo Inicial'], 2) || item.saldoInicial || item.openingBalance || 0),
+                opened_on: snapshotRowValue(item, ['Data de Abertura'], 3) || item.dataAbertura || item.openedOn || '',
+                status: snapshotRowValue(item, ['Status'], 4) || item.status || '',
+                currency: snapshotRowValue(item, ['Moeda'], 5) || item.moeda || item.currency || 'BRL',
+                responsible: snapshotRowValue(item, ['Responsavel', 'Responsável'], 6) || item.responsavel || item.responsible || '',
+                last_seen_sync: currentSyncId
+            });
+        }
 
         db.prepare('DELETE FROM expenses WHERE last_seen_sync < ?').run(currentSyncId);
         db.prepare('DELETE FROM entries WHERE last_seen_sync < ?').run(currentSyncId);
@@ -914,6 +975,7 @@ function syncSnapshotToSqlite(snapshot) {
         db.prepare('DELETE FROM goal_movements WHERE last_seen_sync < ?').run(currentSyncId);
         db.prepare('DELETE FROM debts WHERE last_seen_sync < ?').run(currentSyncId);
         db.prepare('DELETE FROM recurring_bills WHERE last_seen_sync < ?').run(currentSyncId);
+        db.prepare('DELETE FROM financial_accounts WHERE last_seen_sync < ?').run(currentSyncId);
         rebuildFinancialEventsPublic(currentSyncId);
     });
 
@@ -1170,6 +1232,66 @@ function queryCashflow(userId, { month, year } = {}) {
         .slice(-31);
 }
 
+function roundAccountMoney(value) {
+    return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
+}
+
+function queryFinancialAccounts(userId) {
+    if (!sqliteReady || !db) return null;
+    const allUsers = isAllUsersScope(userId) ? 1 : 0;
+    const accountRows = db.prepare(`
+        SELECT name, account_type, opening_balance, opened_on, status, currency, responsible
+        FROM financial_accounts
+        WHERE (? = 1 OR user_id = ?)
+        ORDER BY responsible ASC, name ASC
+    `).all(allUsers, userId);
+    const balanceByName = new Map();
+    const keyFor = value => normalizeText(String(value || '').trim());
+    accountRows.forEach((row) => {
+        balanceByName.set(keyFor(row.name), roundAccountMoney(row.opening_balance));
+    });
+    const addMovement = (accountName, amount) => {
+        const key = keyFor(accountName);
+        if (!key || !balanceByName.has(key)) return;
+        balanceByName.set(key, roundAccountMoney(Number(balanceByName.get(key) || 0) + Number(amount || 0)));
+    };
+    db.prepare(`
+        SELECT value, financial_account
+        FROM expenses
+        WHERE (? = 1 OR user_id = ?) AND source_type = 'saida' AND COALESCE(financial_account, '') <> ''
+    `).all(allUsers, userId).forEach(row => addMovement(row.financial_account, -Number(row.value || 0)));
+    db.prepare(`
+        SELECT value, financial_account
+        FROM entries
+        WHERE (? = 1 OR user_id = ?) AND COALESCE(financial_account, '') <> ''
+    `).all(allUsers, userId).forEach(row => addMovement(row.financial_account, Number(row.value || 0)));
+    db.prepare(`
+        SELECT value, origin, destination, status
+        FROM transfers
+        WHERE (? = 1 OR user_id = ?)
+    `).all(allUsers, userId)
+        .filter(row => {
+            const status = normalizeText(row.status || '');
+            return !status.includes('pendent') && !status.includes('cancel');
+        })
+        .forEach((row) => {
+            addMovement(row.origin, -Number(row.value || 0));
+            addMovement(row.destination, Number(row.value || 0));
+        });
+
+    const rows = accountRows.map(row => ({
+        name: row.name || '',
+        accountType: row.account_type || '',
+        openingBalance: roundAccountMoney(row.opening_balance),
+        balance: roundAccountMoney(balanceByName.get(keyFor(row.name))),
+        openedOn: row.opened_on || '',
+        status: row.status || '',
+        currency: row.currency || 'BRL',
+        responsible: row.responsible || ''
+    }));
+    rows.totalBalance = roundAccountMoney(rows.reduce((sum, row) => sum + Number(row.balance || 0), 0));
+    return rows;
+}
 function queryDebts(userId) {
     if (!sqliteReady || !db) return null;
     const allUsers = isAllUsersScope(userId) ? 1 : 0;
@@ -2279,9 +2401,10 @@ function getSqliteStats() {
     const goalMovements = db.prepare('SELECT COUNT(*) AS c FROM goal_movements').get()?.c || 0;
     const debts = db.prepare('SELECT COUNT(*) AS c FROM debts').get()?.c || 0;
     const recurringBills = db.prepare('SELECT COUNT(*) AS c FROM recurring_bills').get()?.c || 0;
+    const financialAccounts = db.prepare('SELECT COUNT(*) AS c FROM financial_accounts').get()?.c || 0;
     const financialEventsPublic = db.prepare('SELECT COUNT(*) AS c FROM financial_events_public').get()?.c || 0;
     const syncAt = db.prepare("SELECT value FROM sync_meta WHERE key = 'last_sync_at'").get()?.value || '';
-    return { ready: true, expenses, entries, transfers, budgetSettings, cardConfigs, goals, goalMovements, debts, recurringBills, financialEventsPublic, lastSyncAt: syncAt };
+    return { ready: true, expenses, entries, transfers, budgetSettings, cardConfigs, goals, goalMovements, debts, recurringBills, financialAccounts, financialEventsPublic, lastSyncAt: syncAt };
 }
 
 function queryFinancialEventsPublicRows({ userIds = [], personByUserId = {} } = {}) {
@@ -2328,6 +2451,7 @@ module.exports = {
     ensureSqliteReady,
     syncSnapshotToSqlite,
     queryFinancialEventsPublicRows,
+    queryFinancialAccounts,
     queryAnalyticalIntentSql,
     queryFinancialQueryDataSourcesSql,
     queryKpis,

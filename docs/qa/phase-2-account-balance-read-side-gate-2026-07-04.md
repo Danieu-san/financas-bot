@@ -107,3 +107,20 @@ The five-question WhatsApp smoke passed:
 Sanitized production logs confirmed `source=canonical` and `verified=true` for all four account queries, with no legacy fallback. The card guard remained `domain=cards` and verified.
 
 Decision: `GO` in production for the WhatsApp account-balance read-side slice. The next Phase 2 slice is cross-surface parity for account balances and settled/pending movements across canonical ledger, Sheets, read-model and dashboard. Legacy removal remains Phase 8.
+## Cross-surface parity extension - local GO
+
+The next Phase 2 slice was started locally and extends the read-side gate from WhatsApp-only answers to dashboard/read-model parity for financial-account balances.
+
+Added coverage:
+
+- SQLite read-model stores `financial_accounts` and movement account names from `Saídas`/`Entradas`.
+- Current account balance equals opening balance plus settled cash movements: expenses subtract, income adds, settled transfers move funds, pending transfers do not move current balance.
+- `/dashboard/api/summary` includes sanitized `financialAccounts`, and the dashboard HTML renders `Saldos por Conta`.
+- Personal-sheet dashboard fallback reads the widened account columns and computes the same summary.
+
+Evidence:
+
+- Focused tests: `node --test tests\unit.test.js tests\readModelSqlite.test.js tests\dashboardApiContracts.test.js` passed 203/203.
+- Canonical marker-only runner: `TESTE_APAGAR_ACCOUNT_MOVEMENTS_202607041647` returned `decision=GO`, expected/canonical balances matched, transfer net income/expense impact was zero, replay was idempotent, privacy was OK and cleanup left zero marker rows.
+
+Decision: local `GO` for the cross-surface parity implementation. Production `GO` still requires full release checks, commit/deploy, remote focused tests and EC2 marker-only/dashboard validation with flags preserved.

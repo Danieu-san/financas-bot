@@ -949,3 +949,11 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Decision: production `GO` for the WhatsApp account-balance read-side slice.
 - Flags were preserved: Financial Agent answer, Gemini Planner active, contextual analyst answer, command planner canary, Interpretation Reliability shadow, canonical domains transactions/transfers/accounts.
 - Roadmap remains Phase 2. Next slice: cross-surface parity for balances and settled/pending movements across ledger, Sheets, read-model and dashboard. Phase 3 and legacy removal remain out of scope.
+## Phase 2 cross-surface account/movement parity local GO - 2026-07-04
+
+- Roadmap position remains Phase 2: accounts, dates and status. This slice closes local parity for balances and settled/pending account movements across canonical ledger, SQLite read-model, personal-sheet dashboard summary and dashboard API/page.
+- Implemented read-model support for `Contas Financeiras`, `Conta Financeira` in `Saídas`/`Entradas`, and current account balances from opening balance plus settled expenses, income and transfers. Pending/cancelled transfers do not affect current balance.
+- Dashboard `/dashboard/api/summary` now exposes sanitized `financialAccounts`, and the web page renders `Saldos por Conta` without internal ids.
+- Personal-sheet dashboard fallback reads `Saídas!A:K`, `Entradas!A:J` and optional `Contas Financeiras!A:I`, so account movements are visible outside the central SQLite path too.
+- Local TDD evidence: `node --test tests\unit.test.js tests\readModelSqlite.test.js tests\dashboardApiContracts.test.js` passed 203/203; `runCanonicalLedgerAccountMovementsGate.js --confirm-marker-only` returned GO for marker `TESTE_APAGAR_ACCOUNT_MOVEMENTS_202607041647`, with idempotency true, privacy OK and cleanup zero.
+- Still pending before production GO: full suite/audit/diff/NUL/state checks, commit/deploy, remote focused tests and EC2 marker-only/dashboard verification. No flags changed; Gemini Planner remains active, `INTERPRETATION_RELIABILITY_MODE=shadow`, and legacy removal stays Phase 8.

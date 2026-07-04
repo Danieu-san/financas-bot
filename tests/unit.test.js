@@ -5629,6 +5629,33 @@ test('userSheetAnalytics reserve summary separates economic balance from availab
     });
 });
 
+test('userSheetAnalytics summarizes financial accounts without leaking user ids', () => {
+    const { buildFinancialAccountsSummary } = userSheetAnalyticsService.__test__;
+    const rows = [
+        ['Nome da Conta', 'Tipo', 'Saldo Inicial', 'Data de Abertura', 'Status', 'Moeda', 'Responsavel', 'user_id', 'Observacoes'],
+        ['Daniel - Nubank', 'bank', '262,85', '03/07/2026', 'active', 'BRL', 'Daniel', 'user-sheet-a', ''],
+        ['Daniel - Nubank Caixinha', 'reserve', '1264,91', '03/07/2026', 'active', 'BRL', 'Daniel', 'user-sheet-a', ''],
+        ['Thais - Itau', 'bank', '133,46', '03/07/2026', 'active', 'BRL', 'Thais', 'user-sheet-b', ''],
+        ['Conta fora', 'bank', '9999', '03/07/2026', 'active', 'BRL', 'Outro', 'user-sheet-c', '']
+    ];
+
+    const summary = buildFinancialAccountsSummary(rows, ['user-sheet-a', 'user-sheet-b'], {
+        saidas: [{ financialAccount: 'Daniel - Nubank', value: 7.41 }],
+        entradas: [{ financialAccount: 'Daniel - Nubank', value: 7.42 }],
+        transfers: [
+            { origin: 'Daniel - Nubank Caixinha', destination: 'Daniel - Nubank', value: 8.31, status: 'Concluída' },
+            { origin: 'Daniel - Nubank', destination: 'Thais - Itau', value: 8.32, status: 'Pendente' }
+        ]
+    });
+
+    assert.strictEqual(summary.totalBalance, 1661.23);
+    assert.deepStrictEqual(summary.items.map(item => [item.name, item.balance]), [
+        ['Daniel - Nubank', 271.17],
+        ['Daniel - Nubank Caixinha', 1256.6],
+        ['Thais - Itau', 133.46]
+    ]);
+    assert.doesNotMatch(JSON.stringify(summary), /user-sheet-a|user-sheet-b|user-sheet-c|9999/);
+});
 test('userSheetAnalytics member breakdown explains family dashboard totals', () => {
     const { buildMemberBreakdown } = userSheetAnalyticsService.__test__;
     const userNames = new Map([

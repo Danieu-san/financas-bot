@@ -339,3 +339,10 @@ The second WhatsApp smoke proved upstream routing was fixed but exposed an envir
 After deploy `3b5e0f0`, the five-question WhatsApp smoke passed with exact expected values. Production logs confirmed canonical, verified account reads for total, caixinha, Daniel - Nubank and Thais - Itau, while the Nubank Thais card question remained on the card domain. No legacy fallback occurred and no rollout flag changed.
 
 Decision: `GO` for the WhatsApp account-balance read-side slice. Phase 2 remains active. The next slice must close the formal Phase 2 gate by comparing account balances and settled/pending movements across ledger, Sheets, read-model and dashboard. This does not authorize legacy removal or progression to Phase 3 yet.
+## Cross-Surface Account Movement Parity - 2026-07-04
+
+The Phase 2 account surface now has a local parity layer beyond WhatsApp answers. The read-model stores financial accounts from `Contas Financeiras`, carries `Conta Financeira` from cash expenses and income, and computes current balances from opening balances plus settled movements. Expenses subtract, income adds, settled transfers move balance between accounts, and pending/cancelled transfers are ignored for current cash balance.
+
+The personal-sheet dashboard fallback reads the widened ranges (`Saídas!A:K`, `Entradas!A:J`) and optional `Contas Financeiras!A:I`, while the dashboard API/page exposes a sanitized `financialAccounts` section. Public responses contain account names, type, responsible, status and balances, but not user ids, canonical account ids, row hashes or idempotency keys.
+
+Local evidence passed: focused unit/read-model/dashboard contracts 203/203 and the marker-only canonical account movements runner returned `GO` for `TESTE_APAGAR_ACCOUNT_MOVEMENTS_202607041647`, including idempotency, privacy and cleanup. Production remains pending full release checks, deploy and EC2 parity validation. This does not change flags, does not cut over all balance reads, and does not authorize legacy removal.

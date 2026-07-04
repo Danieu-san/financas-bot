@@ -12,6 +12,7 @@ const {
     queryAnalyticalIntentSql,
     queryFinancialQueryDataSourcesSql,
     queryKpis,
+    queryFinancialAccounts,
     queryTopCategories,
     queryCashflow,
     queryDebts,
@@ -62,7 +63,8 @@ let readModel = {
     metas: [],
     movimentacoesMetas: [],
     dividas: [],
-    contas: []
+    contas: [],
+    financialAccounts: []
 };
 
 let syncInFlight = null;
@@ -122,7 +124,8 @@ function loadReadModelFromDisk() {
             metas: Array.isArray(parsed.metas) ? parsed.metas : [],
             movimentacoesMetas: Array.isArray(parsed.movimentacoesMetas) ? parsed.movimentacoesMetas : [],
             dividas: Array.isArray(parsed.dividas) ? parsed.dividas : [],
-            contas: Array.isArray(parsed.contas) ? parsed.contas : []
+            contas: Array.isArray(parsed.contas) ? parsed.contas : [],
+            financialAccounts: Array.isArray(parsed.financialAccounts) ? parsed.financialAccounts : []
         };
         logger.info(`read-model: carregado do disco (saidas=${readModel.saidas.length}, entradas=${readModel.entradas.length}, cartoes=${readModel.cartoes.length})`);
     } catch (error) {
@@ -199,6 +202,7 @@ function mapSaidasRows(rows) {
             categoria: row[2] || '',
             subcategoria: row[3] || '',
             valor: parseValue(row[4]),
+            contaFinanceira: row[10] || '',
             month: dateObj.getMonth(),
             year: dateObj.getFullYear()
         });
@@ -222,6 +226,7 @@ function mapEntradasRows(rows) {
             valor: parseValue(row[3]),
             recebimento: row[5] || '',
             recorrente: row[6] || '',
+            contaFinanceira: row[9] || '',
             month: dateObj.getMonth(),
             year: dateObj.getFullYear()
         });
@@ -373,6 +378,25 @@ function mapGenericRows(rows, userIndex) {
         .filter((entry) => entry.user_id);
 }
 
+function mapFinancialAccountRows(rows) {
+    if (!rows || rows.length <= 1) return [];
+    const headers = Array.isArray(rows[0]) ? rows[0] : [];
+    return rows.slice(1)
+        .map((row) => ({
+            row,
+            headers,
+            user_id: String(row[7] || '').trim(),
+            nome: row[0] || '',
+            tipo: row[1] || '',
+            saldoInicial: row[2] || '',
+            dataAbertura: row[3] || '',
+            status: row[4] || '',
+            moeda: row[5] || 'BRL',
+            responsavel: row[6] || ''
+        }))
+        .filter((entry) => entry.user_id && String(entry.nome || '').trim());
+}
+
 function genericRowValue(entry = {}, aliases = [], fallbackIndex = -1) {
     const row = Array.isArray(entry.row) ? entry.row : [];
     const headers = Array.isArray(entry.headers) ? entry.headers : [];
@@ -522,13 +546,14 @@ async function refreshVisualDashboardFromReadModel() {
 async function rebuildReadModelFromSheets() {
     const cardSheetNames = Object.values(creditCardConfig).map(card => card.sheetName);
     const sheetReads = [
-        readDataFromSheet('Saídas!A:J'),
-        readDataFromSheet('Entradas!A:I'),
+        readDataFromSheet('Saídas!A:K'),
+        readDataFromSheet('Entradas!A:J'),
         readDataFromSheet('Transferências!A:I'),
         readDataFromSheet('Metas!A:K'),
         readDataFromSheet('Movimentações Metas!A:J'),
         readDataFromSheet('Dívidas!A:R'),
         readDataFromSheet('Contas!A:I'),
+        readDataFromSheet('Contas Financeiras!A:I', { suppressMissingSheetError: true }),
         readDataFromSheet('UserSettings!A:S'),
         readDataFromSheet('Cartões!A:G', { suppressMissingSheetError: true }),
         readDataFromSheet('Lançamentos Cartão!A:J', { suppressMissingSheetError: true }),
@@ -536,8 +561,8 @@ async function rebuildReadModelFromSheets() {
     ];
 
     const allData = await Promise.all(sheetReads);
-    const [saidasRows, entradasRows, transferenciasRows, metasRows, movimentacoesMetasRows, dividasRows, contasRows, userSettingsRows, cartoesConfigRows, unifiedCardRows] = allData;
-    const cardRowsList = allData.slice(10);
+    const [saidasRows, entradasRows, transferenciasRows, metasRows, movimentacoesMetasRows, dividasRows, contasRows, financialAccountRows, userSettingsRows, cartoesConfigRows, unifiedCardRows] = allData;
+    const cardRowsList = allData.slice(11);
     const cartoes = buildCanonicalCardEntries({
         unifiedRows: unifiedCardRows,
         legacyRowsBySheet: cardRowsList.map((rows, idx) => ({ rows, sheetName: cardSheetNames[idx] }))
@@ -558,7 +583,8 @@ async function rebuildReadModelFromSheets() {
         metas: mapGenericRows(metasRows, 8),
         movimentacoesMetas: mapGenericRows(movimentacoesMetasRows, 8),
         dividas: mapGenericRows(dividasRows, 17),
-        contas: mapGenericRows(contasRows, 3)
+        contas: mapGenericRows(contasRows, 3),
+        financialAccounts: mapFinancialAccountRows(financialAccountRows)
     };
 
     syncSnapshotToSqlite(readModel);
@@ -1286,6 +1312,24 @@ function getDashboardSnapshot(userId, { month, year } = {}) {
         recentTransactions,
         goals,
         debts: activeDebts.slice(0, 10),
+        financialAccounts: (() => {
+            const accounts = readModel.financialAccounts
+                .filter((entry) => entry.user_id === userId)
+                .map((entry) => ({
+                    name: entry.nome || '',
+                    accountType: entry.tipo || '',
+                    openingBalance: parseValue(entry.saldoInicial || 0),
+                    balance: parseValue(entry.saldoInicial || 0),
+                    openedOn: entry.dataAbertura || '',
+                    status: entry.status || '',
+                    currency: entry.moeda || 'BRL',
+                    responsible: entry.responsavel || ''
+                }));
+            return {
+                totalBalance: roundDashboardMoney(accounts.reduce((sum, item) => sum + Number(item.balance || 0), 0)),
+                items: accounts
+            };
+        })(),
         sync: readModel.meta
     });
 }
@@ -1313,6 +1357,10 @@ function getDashboardSqlData(userId, { month, year } = {}) {
         goals: queryGoals(userId) || [],
         debts: queryDebts(userId) || [],
         alerts: queryAlerts(userId, { month, year }) || [],
+        financialAccounts: (() => {
+            const accounts = queryFinancialAccounts(userId) || [];
+            return { totalBalance: accounts.totalBalance || 0, items: accounts };
+        })(),
         sync: {
             ...readModel.meta,
             sqlite: getSqliteStats()
@@ -1337,6 +1385,7 @@ module.exports = {
         buildCanonicalCardEntries,
         mapUserSettingsRows,
         getReadModelContextKey,
-        shouldReuseReadModelSnapshot
+        shouldReuseReadModelSnapshot,
+        mapFinancialAccountRows
     }
 };
