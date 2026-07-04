@@ -1,7 +1,7 @@
 # Phase 3 Plan - Recurrences, Installments, Bills and Invoices
 
 Date: 2026-07-04
-Status: started after Phase 2 exit GO; slice 3A deployed, awaiting manual no-write production smoke
+Status: started after Phase 2 exit GO; slice 3A production GO, slice 3B next
 
 ## Roadmap position
 
@@ -56,6 +56,23 @@ Evidence:
 - Commit `251ff0f` deployed to EC2; health is OK, WhatsApp is ready, flags remain stable and remote state is valid/empty.
 - Remote isolated regression for `invoice.pay asks explicit paying account` passed 1/1.
 
-Next gate for this slice:
+Production gate:
 
-- Run marker-only/manual invoice payoff smoke in production without saving: payment message, account selection, confirmation shows account, answer `nao`, and verify no write is created.
+- Manual no-write smoke passed on 2026-07-04 with the real `Nubank Thais` invoice: the bot asked for the paying financial account, accepted `Daniel - Nubank`, showed it in the final confirmation and cancelled after `nao` with `Nenhum dado foi salvo`.
+- Decision: production `GO` for slice 3A. No rollout flags changed; Gemini Planner remains active and `INTERPRETATION_RELIABILITY_MODE=shadow`.
+
+## Slice 3B - Linked invoices and items
+
+Reason: invoice payoff now records the cash movement from an explicit account, but Phase 3 still needs a native, auditable link between each invoice, its card items and its payoff. Completing this contract next avoids building recurrence and installment behavior on top of an invoice aggregate that cannot yet prove its composition.
+
+Initial contract:
+
+- Represent an invoice as a stable aggregate for card, billing period and due date.
+- Link each card purchase/installment to exactly one invoice competence without duplicating the consumption expense.
+- Link `invoice.pay` to the invoice aggregate and paying-account transfer.
+- Preserve existing Sheets and WhatsApp behavior through adapters; legacy removal remains Phase 8.
+- Prove idempotency for rebuild, retry and restart, including a paid invoice.
+
+Next gate:
+
+- Audit the current card/invoice projection and tests, then write the RED contract for stable invoice/item/payment linkage before changing production code.

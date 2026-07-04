@@ -983,3 +983,10 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Local RED/GREEN: `invoice.pay` with active `Contas Financeiras` now asks which account paid, shows `Conta` in confirmation, includes the account in the operation key/telemetry and writes it as `Conta Origem` in `Transferências`. Focused state-machine test passed 97/97.
 - Local verification after the 3A RED/GREEN: focused state-machine 97/97, full suite 674/674, npm audit --audit-level=high zero vulnerabilities, git diff --check clean, tracked NUL scan clean, state_store.json valid with the pre-existing synthetic onboarding state unchanged.
 - Deploy of slice 3A completed at commit `251ff0f`; EC2 health/WhatsApp/flags/state are green. Still pending before production GO for the slice: manual no-write invoice payoff smoke.
+
+## Phase 3 slice 3A invoice payoff production GO - 2026-07-04
+
+- Manual production smoke used the real `Nubank Thais` invoice for R$ 737,12 via PIX. The bot required a paying financial account, accepted `Daniel - Nubank` and displayed that account in the final invoice-payment confirmation.
+- Daniel answered `nao`; the bot returned `Pagamento de fatura cancelado. Nenhum dado foi salvo.` No production write or cleanup was required.
+- Decision: production `GO` for Phase 3 slice 3A. Gemini Planner remains active, `INTERPRETATION_RELIABILITY_MODE=shadow`, and no rollout flag changed.
+- Roadmap next slice: `3B - linked invoices and items`, completing the auditable invoice aggregate and its links to card items and payoff before recurrence and installment expansion. Legacy removal remains Phase 8.
