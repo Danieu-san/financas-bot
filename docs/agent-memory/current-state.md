@@ -957,3 +957,12 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Personal-sheet dashboard fallback reads `Saídas!A:K`, `Entradas!A:J` and optional `Contas Financeiras!A:I`, so account movements are visible outside the central SQLite path too.
 - Local TDD evidence: `node --test tests\unit.test.js tests\readModelSqlite.test.js tests\dashboardApiContracts.test.js` passed 203/203; `runCanonicalLedgerAccountMovementsGate.js --confirm-marker-only` returned GO for marker `TESTE_APAGAR_ACCOUNT_MOVEMENTS_202607041647`, with idempotency true, privacy OK and cleanup zero.
 - Still pending before production GO: full suite/audit/diff/NUL/state checks, commit/deploy, remote focused tests and EC2 marker-only/dashboard verification. No flags changed; Gemini Planner remains active, `INTERPRETATION_RELIABILITY_MODE=shadow`, and legacy removal stays Phase 8.
+
+## Phase 2 cross-surface account/movement parity production GO - 2026-07-04
+
+- Commit `ee8fe2d` was deployed to EC2 by fast-forward and PM2 was restarted without changing `.env` or rollout flags.
+- Remote focused tests passed: `node --test tests/unit.test.js tests/readModelSqlite.test.js tests/dashboardApiContracts.test.js` returned 203/203.
+- Production health was green: PM2 online, WhatsApp ready, dashboard health `{"ok":true,"sqlite":true}`, remote `state_store.json` valid/empty and flags preserved, including Gemini Planner active and `INTERPRETATION_RELIABILITY_MODE=shadow`.
+- Remote marker-only account-movement gate returned `GO` for `TESTE_APAGAR_ACCOUNT_MOVEMENTS_202607041656`, with privacy OK and cleanup zero.
+- Remote dashboard/read-model validation rebuilt from the production `.env` and returned 4 sanitized financial accounts, total balance R$ 1.661,22, names `Daniel - Nubank`, `Daniel - Nubank Caixinha`, `Thais - Itaú`, `Thais - Nubank`, and `leaks=false`.
+- Decision: production `GO` for cross-surface account/movement parity in Phase 2. This still does not authorize legacy removal, Phase 3, or making every balance surface canonical-primary outside the gated routes.

@@ -346,3 +346,11 @@ The Phase 2 account surface now has a local parity layer beyond WhatsApp answers
 The personal-sheet dashboard fallback reads the widened ranges (`Saídas!A:K`, `Entradas!A:J`) and optional `Contas Financeiras!A:I`, while the dashboard API/page exposes a sanitized `financialAccounts` section. Public responses contain account names, type, responsible, status and balances, but not user ids, canonical account ids, row hashes or idempotency keys.
 
 Local evidence passed: focused unit/read-model/dashboard contracts 203/203 and the marker-only canonical account movements runner returned `GO` for `TESTE_APAGAR_ACCOUNT_MOVEMENTS_202607041647`, including idempotency, privacy and cleanup. Production remains pending full release checks, deploy and EC2 parity validation. This does not change flags, does not cut over all balance reads, and does not authorize legacy removal.
+
+### Cross-Surface Account Movement Parity Production GO - 2026-07-04
+
+Commit `ee8fe2d` was deployed to production with all rollout flags preserved. Remote focused tests for unit/read-model/dashboard contracts passed 203/203, PM2 and WhatsApp were healthy, dashboard health returned `{"ok":true,"sqlite":true}`, and `state_store.json` remained valid/empty.
+
+The EC2 marker-only account-movement gate returned `GO` for `TESTE_APAGAR_ACCOUNT_MOVEMENTS_202607041656`, preserving idempotency, privacy and cleanup guarantees. A production dashboard/read-model validation rebuilt the SQLite read-model with the production `.env` and exposed four sanitized financial accounts with total balance R$ 1.661,22 and no internal identifier leaks.
+
+Decision: production `GO` for the Phase 2 cross-surface parity slice. The next roadmap step remains inside Phase 2: decide whether any remaining account/date/status read or dashboard edge case is still needed before declaring Phase 2 complete. Legacy removal remains Phase 8 and is not authorized by this gate.

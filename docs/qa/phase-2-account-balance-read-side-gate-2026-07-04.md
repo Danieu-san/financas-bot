@@ -124,3 +124,23 @@ Evidence:
 - Canonical marker-only runner: `TESTE_APAGAR_ACCOUNT_MOVEMENTS_202607041647` returned `decision=GO`, expected/canonical balances matched, transfer net income/expense impact was zero, replay was idempotent, privacy was OK and cleanup left zero marker rows.
 
 Decision: local `GO` for the cross-surface parity implementation. Production `GO` still requires full release checks, commit/deploy, remote focused tests and EC2 marker-only/dashboard validation with flags preserved.
+
+## Cross-surface parity extension - production GO
+
+Commit `ee8fe2d` was deployed by fast-forward to EC2 and PM2 was restarted with the existing flags preserved:
+
+- `FINANCIAL_AGENT_MODE=answer`
+- `FINANCIAL_AGENT_LLM_PLANNER_ENABLED=true`
+- `FINANCIAL_CONTEXTUAL_ANALYST_MODE=answer`
+- `FINANCIAL_COMMAND_PLANNER_MODE=canary`
+- `INTERPRETATION_RELIABILITY_MODE=shadow`
+- `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transactions,transfers,accounts`
+
+Remote evidence:
+
+- Focused tests: `node --test tests/unit.test.js tests/readModelSqlite.test.js tests/dashboardApiContracts.test.js` passed 203/203.
+- PM2/WhatsApp/health/state: online, ready, `{"ok":true,"sqlite":true}`, and valid empty `state_store.json`.
+- Marker-only gate: `TESTE_APAGAR_ACCOUNT_MOVEMENTS_202607041656` returned `decision=GO`, privacy OK and cleanup zero.
+- Dashboard/read-model production validation: after loading production `.env` and rebuilding the read-model, `/dashboard` data exposed 4 sanitized financial accounts, total R$ 1.661,22, and no `user_id`, account id, source hash or idempotency leak.
+
+Decision: production `GO` for the cross-surface account/movement parity extension. This closes the planned evidence gap between canonical ledger, Sheets-derived read-model and dashboard surfaces for current Phase 2 account movements. It does not authorize legacy removal, Phase 3, or broader ungated canonical-primary answers.
