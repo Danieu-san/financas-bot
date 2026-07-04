@@ -589,6 +589,7 @@ Decisao recomendada registrada em `docs/audits/bot-complete-coverage-checklist.m
 - `.claude/settings.local.json`: manter fora do Git se ainda for usado pela ferramenta, ou apagar se estiver obsoleto.
 
 Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
+
 ## Unified Financial Command Planner - Fase 2A
 
 - Gate corretivo iniciado em 2026-06-25 para impedir que pagamentos de contas,
@@ -741,6 +742,7 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Deploy do guard `accounts` fail-closed em 2026-07-02: commit `2d7eaed` aplicado na EC2 por fast-forward, teste remoto `node --test tests/canonicalLedgerReceiptProjector.test.js` passou `10/10`, PM2 reiniciado com health `{"ok":true,"sqlite":true}`, WhatsApp pronto e `state_store.json` `{}`. Flags preservadas: `FINANCIAL_AGENT_MODE=answer`, Gemini planner ativo, contextual analyst em `answer`, `INTERPRETATION_RELIABILITY_MODE=shadow`, `FINANCIAL_COMMAND_PLANNER_MODE=canary`, rotas `bill.pay,debt.pay,invoice.pay,expense.create` e canonical read somente `transactions`. Deploy usou IP direto `56.125.165.13` porque o DNS `financasbot.duckdns.org` nao resolveu localmente naquele momento.
 - Integracao local do dominio canonical read `transfers` em 2026-07-02: `list_recent_transactions` agora escolhe `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transfers` quando o filtro publico pede somente `transfer`; consultas mistas continuam em `transactions`. O fallback legado permanece para dominio desativado, janela vazia/parcial ou tipo sem match. RED/GREEN em `tests/financialAgent.test.js`; focado `57/57`. Ainda falta verificacao completa/deploy antes de incluir `transfers` nas flags de producao.
 - Deploy e ativacao controlada do dominio canonical read `transfers` em 2026-07-02: commit `9612bb3` aplicado na EC2 por fast-forward, focados remotos `financialAgent` + `canonicalLedgerReceiptProjector` + `canonicalLedgerCanaryRouter` passaram `68/68`; `.env` recebeu `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transactions,transfers` com backup `/home/ubuntu/financas-bot-backups/.env.pre-canonical-transfers-canary-20260702T123729Z`; PM2 reiniciado, health `{"ok":true,"sqlite":true}`, WhatsApp pronto e `state_store.json` `{}`. Escopo ativado: apenas consultas recentes cujo filtro publico pede somente `transfer`; consultas mistas continuam usando `transactions` e todas mantem fallback legado.
+
 ## Canonical ledger transfers canary - 2026-07-02
 
 - A leitura canario canonica de `transfers` foi ativada em producao junto com `transactions`: `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transactions,transfers`.
@@ -855,6 +857,7 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - PM2 foi reiniciado para carregar o projector/template novo. Pos-deploy: `pm2` online, health `{"ok":true,"sqlite":true}`, WhatsApp pronto, `state_store.json` remoto com 2 bytes e flags preservadas: `FINANCIAL_AGENT_MODE=answer`, Gemini Planner ativo, contextual analyst em `answer`, `FINANCIAL_COMMAND_PLANNER_MODE=canary`, `INTERPRETATION_RELIABILITY_MODE=shadow` e `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transactions,transfers,accounts`.
 - Gate remoto marker-only `TESTE_APAGAR_ACCOUNT_CONTRACT_REMOTE_20260703` em `scripts/runCanonicalLedgerAccountMovementsGate.js` retornou `GO`, confirmando que o contrato novo nao quebrou leituras canary de `accounts`, `transactions` e `transfers`.
 - Proximo corte da Fase 2: captura conversacional explicita da conta financeira em gastos/entradas (debito/PIX/dinheiro e recebimentos), preenchendo `Conta Financeira` sem inferencia silenciosa. Ate la, saldo canonico continua canary/diagnostico, nao fonte primaria ampla.
+
 ## Fase 2 explicit financial account capture - 2026-07-03
 
 - Fase 2/accounts: implementado o primeiro corte conversacional do contrato `Conta Financeira` para gastos e entradas unitarios fora do credito. Quando houver contas ativas em `Contas Financeiras`, o bot pergunta explicitamente de qual conta saiu o gasto ou em qual conta entrou a receita antes de gravar.
@@ -937,3 +940,12 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Evidencia local: TDD RED/GREEN, focados agente/read-model 80/80, `npm test` 670/670, audit high 0, sintaxe valida, diff check limpo, scan NUL sem achados e `state_store.json` JSON valido. Estado sintetico antigo nao rastreado foi preservado.
 - Relatorio: `docs/qa/phase-2-account-balance-read-side-gate-2026-07-04.md`.
 - Veredito local: GO para commit/deploy. GO de producao depende de foco remoto, PM2/health/state/logs e smoke manual WhatsApp. Flags devem permanecer exatamente como estao, incluindo Gemini Planner ativo e `INTERPRETATION_RELIABILITY_MODE=shadow`.
+
+## Phase 2 account-balance read-side production GO - 2026-07-04
+
+- Deploy `3b5e0f0` passed remote focused tests 334/334; PM2, WhatsApp, health and state were healthy.
+- Manual smoke passed with exact values: Daniel total R$ 1.527,76; caixinha R$ 1.264,91; Daniel - Nubank R$ 262,85; Thais - Itau R$ 133,46; Nubank Thais card R$ 737,12.
+- Sanitized logs confirmed canonical verified reads for all account questions, no legacy fallback, and the card question preserved on `domain=cards`.
+- Decision: production `GO` for the WhatsApp account-balance read-side slice.
+- Flags were preserved: Financial Agent answer, Gemini Planner active, contextual analyst answer, command planner canary, Interpretation Reliability shadow, canonical domains transactions/transfers/accounts.
+- Roadmap remains Phase 2. Next slice: cross-surface parity for balances and settled/pending movements across ledger, Sheets, read-model and dashboard. Phase 3 and legacy removal remain out of scope.

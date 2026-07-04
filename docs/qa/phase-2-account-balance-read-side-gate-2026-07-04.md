@@ -83,6 +83,7 @@ TDD evidence for the corrective change:
 - syntax, diff check, NUL scan and JSON state validation: clean.
 
 Decision remains `NO-GO` in production until the corrective commit is deployed and the same five WhatsApp questions are repeated successfully. No rollout flag is changed by this correction.
+
 ## Second production smoke and SQLite path correction
 
 After commit `943b38f`, all four account questions reached `saldo_contas_financeiras`, while the card guard remained correct. The Financial Agent still fell back because LangGraph converted an omitted canonical database path to an empty string. Better SQLite treated that value as a temporary database and rejected `readonly` mode.
@@ -90,3 +91,19 @@ After commit `943b38f`, all four account questions reached `saldo_contas_finance
 The regression test now follows the production contract: `CANONICAL_LEDGER_SHADOW_DB_PATH` is supplied through the environment and no explicit runtime path is injected. RED reproduced `In-memory/temporary databases cannot be readonly`; GREEN preserves `undefined` in LangGraph so the canonical reader resolves the configured environment path.
 
 Corrective evidence: focused tests 334/334 and full suite 671/671. Production remains `NO-GO` until this correction is deployed and the same five-question smoke passes.
+
+## Final production smoke and GO
+
+Commit `3b5e0f0` was deployed with all preserved flags unchanged. Remote focused tests passed 334/334; PM2, WhatsApp readiness, dashboard health and `state_store.json` were healthy.
+
+The five-question WhatsApp smoke passed:
+
+1. Daniel account total: R$ 1.527,76, with both accounts itemized;
+2. Nubank Caixinha: R$ 1.264,91;
+3. Daniel - Nubank: R$ 262,85, without including the caixinha;
+4. Thais - Itau: R$ 133,46 under family scope;
+5. Nubank Thais card: R$ 737,12 and still routed to `cards`.
+
+Sanitized production logs confirmed `source=canonical` and `verified=true` for all four account queries, with no legacy fallback. The card guard remained `domain=cards` and verified.
+
+Decision: `GO` in production for the WhatsApp account-balance read-side slice. The next Phase 2 slice is cross-surface parity for account balances and settled/pending movements across canonical ledger, Sheets, read-model and dashboard. Legacy removal remains Phase 8.

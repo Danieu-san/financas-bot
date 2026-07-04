@@ -329,6 +329,13 @@ paths are changed by this slice.
 The first production smoke after `f928094` was `NO-GO`: legacy local analytical classification intercepted account-balance wording before LangGraph received the canonical `accounts` plan. The correction moves account-balance recognition to that upstream boundary and keeps explicit card/invoice and recurring-bill guards.
 
 Local corrective evidence passed 334/334 focused tests and 671/671 in the full suite, with audit, syntax, diff, NUL and state checks clean. Production remains `NO-GO` until redeploy plus repetition of the five-question smoke. This remains inside Phase 2; it does not remove legacy code or change the preserved flags.
+
 ### Canonical SQLite Path Correction - 2026-07-04
 
 The second WhatsApp smoke proved upstream routing was fixed but exposed an environment-path integration gap: LangGraph replaced an omitted canonical database path with an empty string, causing a temporary SQLite database to be opened in `readonly` mode. TDD now covers the real environment-only path contract; focused tests passed 334/334 and the full suite 671/671. Production remains `NO-GO` pending redeploy and repeated smoke.
+
+### Account Balance Read-Side Production GO - 2026-07-04
+
+After deploy `3b5e0f0`, the five-question WhatsApp smoke passed with exact expected values. Production logs confirmed canonical, verified account reads for total, caixinha, Daniel - Nubank and Thais - Itau, while the Nubank Thais card question remained on the card domain. No legacy fallback occurred and no rollout flag changed.
+
+Decision: `GO` for the WhatsApp account-balance read-side slice. Phase 2 remains active. The next slice must close the formal Phase 2 gate by comparing account balances and settled/pending movements across ledger, Sheets, read-model and dashboard. This does not authorize legacy removal or progression to Phase 3 yet.
