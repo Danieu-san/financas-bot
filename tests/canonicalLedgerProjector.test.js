@@ -79,6 +79,33 @@ test('canonical ledger separates card purchase competence from invoice payment c
     assert.deepStrictEqual(lineTypesFor(projected, invoicePayment.event_id), ['card_liability', 'cash']);
 });
 
+test('canonical ledger links card items and payoff to one stable invoice aggregate', () => {
+    const first = projectLegacyRowsToCanonicalLedger(fixture);
+    const second = projectLegacyRowsToCanonicalLedger(fixture);
+    const cardPurchase = bySource(first, 'cartao-001');
+    const invoicePayment = bySource(first, 'transferencias-002');
+
+    assert.strictEqual(first.invoices.length, 1);
+    assert.deepStrictEqual(first.invoices, second.invoices);
+    assert.deepStrictEqual(first.invoiceItems, second.invoiceItems);
+    assert.deepStrictEqual(first.invoicePayments, second.invoicePayments);
+
+    const invoice = first.invoices[0];
+    assert.match(invoice.invoice_id, /^inv_[a-f0-9]{16}$/);
+    assert.strictEqual(invoice.card_key, 'nubank daniel');
+    assert.strictEqual(invoice.competence_month, '2026-06');
+    assert.strictEqual(invoice.observed_item_total_cents, 50000);
+    assert.strictEqual(invoice.observed_payment_total_cents, 50000);
+    assert.strictEqual(invoice.status, 'paid');
+
+    assert.deepStrictEqual(first.invoiceItems.map(item => [item.invoice_id, item.event_id, item.amount_cents]), [
+        [invoice.invoice_id, cardPurchase.event_id, 50000]
+    ]);
+    assert.deepStrictEqual(first.invoicePayments.map(payment => [payment.invoice_id, payment.event_id, payment.amount_cents]), [
+        [invoice.invoice_id, invoicePayment.event_id, 50000]
+    ]);
+});
+
 test('canonical ledger keeps transfers and reserves neutral for income and expense', () => {
     const projected = projectLegacyRowsToCanonicalLedger(fixture);
 

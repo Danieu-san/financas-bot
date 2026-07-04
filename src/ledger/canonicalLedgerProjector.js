@@ -42,6 +42,108 @@ function normalizeCompetenceMonth(value, fallbackDate) {
     return competenceFromDate(fallbackDate);
 }
 
+const INVOICE_MONTHS = {
+    janeiro: 1,
+    fevereiro: 2,
+    marco: 3,
+    abril: 4,
+    maio: 5,
+    junho: 6,
+    julho: 7,
+    agosto: 8,
+    setembro: 9,
+    outubro: 10,
+    novembro: 11,
+    dezembro: 12
+};
+
+function normalizeInvoiceCardKey(value) {
+    return normalizeText(String(value || ''))
+        .replace(/\bcartao\b/g, ' ')
+        .replace(/[^a-z0-9]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function invoiceCompetenceFromRow(row = {}, fallbackDate = null) {
+    const direct = normalizeCompetenceMonth(row.mes_cobranca || row.mesCobranca, fallbackDate);
+    if (row.mes_cobranca || row.mesCobranca) return direct;
+
+    const description = normalizeText(row.descricao || '');
+    const numeric = description.match(/\b(0?[1-9]|1[0-2])\/(\d{4})\b/);
+    if (numeric) return `${numeric[2]}-${numeric[1].padStart(2, '0')}`;
+
+    const written = description.match(/\b(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+de\s+(\d{4})\b/);
+    if (written) return `${written[2]}-${String(INVOICE_MONTHS[written[1]]).padStart(2, '0')}`;
+
+    return direct;
+}
+
+function invoiceStatus(itemTotalCents, paymentTotalCents) {
+    if (itemTotalCents > 0 && paymentTotalCents >= itemTotalCents) return 'paid';
+    if (itemTotalCents > 0 && paymentTotalCents > 0) return 'partially_paid';
+    if (itemTotalCents > 0) return 'open';
+    return paymentTotalCents > 0 ? 'payment_observed' : 'empty';
+}
+
+function registerInvoiceObservation(collection, event, {
+    cardId = '',
+    cardName = '',
+    competenceMonth = '',
+    type
+} = {}) {
+    const cardKey = normalizeInvoiceCardKey(cardId || cardName);
+    if (!cardKey || !competenceMonth || !event?.event_id) return;
+
+    const invoiceId = `inv_${hash({
+        householdId: event.household_id || '',
+        ownerPersonId: event.owner_person_id || '',
+        cardKey,
+        competenceMonth
+    })}`;
+    let invoice = collection.invoices.find(item => item.invoice_id === invoiceId);
+    if (!invoice) {
+        invoice = {
+            invoice_id: invoiceId,
+            household_id: event.household_id || null,
+            owner_person_id: event.owner_person_id || null,
+            card_key: cardKey,
+            card_name: String(cardName || cardId || '').trim(),
+            competence_month: competenceMonth,
+            due_on: null,
+            currency: event.currency || 'BRL',
+            observed_item_total_cents: 0,
+            observed_payment_total_cents: 0,
+            status: 'empty'
+        };
+        collection.invoices.push(invoice);
+    }
+
+    if (type === 'item') {
+        collection.invoiceItems.push({
+            invoice_item_id: `invitem_${hash({ invoiceId, eventId: event.event_id })}`,
+            invoice_id: invoiceId,
+            event_id: event.event_id,
+            amount_cents: event.amount_cents,
+            currency: event.currency || 'BRL'
+        });
+        invoice.observed_item_total_cents += event.amount_cents;
+    } else if (type === 'payment') {
+        collection.invoicePayments.push({
+            invoice_payment_id: `invpay_${hash({ invoiceId, eventId: event.event_id })}`,
+            invoice_id: invoiceId,
+            event_id: event.event_id,
+            amount_cents: event.amount_cents,
+            currency: event.currency || 'BRL'
+        });
+        invoice.observed_payment_total_cents += event.amount_cents;
+    }
+
+    invoice.status = invoiceStatus(
+        invoice.observed_item_total_cents,
+        invoice.observed_payment_total_cents
+    );
+}
 function cents(value) {
     const amount = typeof value === 'number' ? value : parseValue(value);
     if (!Number.isFinite(amount)) return 0;
@@ -405,6 +507,13 @@ function projectTransfers(input, collection) {
                     makeLine(event, 'clearing', { direction: 'inflow' })
                 ];
         addEvent(collection, event, lines);
+        if (kind === 'invoice_payment') {
+            registerInvoiceObservation(collection, event, {
+                cardName: row.destino || row.cartao || '',
+                competenceMonth: invoiceCompetenceFromRow(row, event.occurred_on),
+                type: 'payment'
+            });
+        }
     }
 }
 
@@ -431,6 +540,12 @@ function projectCardPurchases(input, collection) {
             makeLine(event, 'card_liability', { direction: 'outflow', account_id: row.card_id || null }),
             makeLine(event, 'category', { direction: 'outflow' })
         ]);
+        registerInvoiceObservation(collection, event, {
+            cardId: row.card_id || '',
+            cardName: row.cartao || row.card || row.card_id || '',
+            competenceMonth,
+            type: 'item'
+        });
     }
 }
 
@@ -527,6 +642,9 @@ function projectLegacyRowsToCanonicalLedger(input = {}) {
         events: [],
         lines: [],
         schedules: [],
+        invoices: [],
+        invoiceItems: [],
+        invoicePayments: [],
         reconciliationLinks: [],
         warnings: []
     };
@@ -545,6 +663,9 @@ function projectLegacyRowsToCanonicalLedger(input = {}) {
     collection.events.sort((a, b) => a.event_id.localeCompare(b.event_id));
     collection.lines.sort((a, b) => a.line_id.localeCompare(b.line_id));
     collection.schedules.sort((a, b) => a.schedule_id.localeCompare(b.schedule_id));
+    collection.invoices.sort((a, b) => a.invoice_id.localeCompare(b.invoice_id));
+    collection.invoiceItems.sort((a, b) => a.invoice_item_id.localeCompare(b.invoice_item_id));
+    collection.invoicePayments.sort((a, b) => a.invoice_payment_id.localeCompare(b.invoice_payment_id));
     collection.reconciliationLinks.sort((a, b) => a.link_id.localeCompare(b.link_id));
     collection.warnings.sort((a, b) => `${a.code}:${a.event_id}`.localeCompare(`${b.code}:${b.event_id}`));
 
