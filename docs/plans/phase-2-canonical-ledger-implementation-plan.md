@@ -302,3 +302,24 @@ status. `NO-GO` to promote canonical account balances as the broad primary sourc
 for WhatsApp/dashboard answers. The next Phase 2 slice is a read-side
 saldo/contas gate comparing WhatsApp, read-model, canary `accounts`, Sheets and
 dashboard before any cutover or legacy removal.
+
+## Account Balance Read-Side Gate - 2026-07-04
+
+The Phase 2 read-side slice now routes financial-account balance questions through
+FinancialQueryPlan and LangGraph to the canonical `accounts` canary. It supports
+total balances, caixinha and exact household account names while excluding
+card/invoice wording.
+
+The tool fails closed when the canary is disabled or when a requested account is
+not found. It does not fall back to the legacy read model for account balances and
+does not expose internal canonical identifiers. Exact normalized account matches
+take precedence over broad token matches, preventing `Daniel Nubank` from also
+summing `Daniel Nubank Caixinha`.
+
+Local evidence passed: focused agent/read-model 80/80, full suite 670/670, audit
+high 0, syntax, diff check, NUL scan and JSON state validation. Detailed evidence:
+`docs/qa/phase-2-account-balance-read-side-gate-2026-07-04.md`.
+
+Decision: local GO for commit/deploy. Production remains pending remote focused
+tests and a WhatsApp read-only smoke. No flags, writes, dashboard source or legacy
+paths are changed by this slice.

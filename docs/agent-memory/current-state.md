@@ -1,6 +1,6 @@
 # Estado atual do FinancasBot
 
-Atualizado em: 2026-07-02
+Atualizado em: 2026-07-04
 
 ## Produto
 
@@ -915,3 +915,15 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Decisao: GO para encerrar a subfatia de captura/projecao de contas, datas e status da Fase 2; NO-GO para promover saldos canonicos como fonte primaria ampla.
 - Flags permanecem inalteradas: Gemini Planner ativo, Command Planner em canary, `INTERPRETATION_RELIABILITY_MODE=shadow` e `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transactions,transfers,accounts`.
 - Proximo passo do roadmap: ainda Fase 2, gate de leitura de saldos/contas comparando WhatsApp, read-model atual, canary `accounts`, Sheets e dashboard antes de qualquer cutover de respostas.
+
+## Fase 2 account balance read-side local gate - 2026-07-04
+
+- Roadmap conferido: continuamos na Fase 2 - Contas, datas e status. Esta fatia promove somente perguntas de saldo/contas no Financial Agent; nao altera escritas, flags, dashboard nem remove legado.
+- `FinancialQueryPlan`, prompt do Gemini Planner, LangGraph e a ferramenta verificada agora suportam o dominio `accounts` com `current_state`.
+- A leitura usa exclusivamente o canary canonico `accounts`, com escopo autorizado e falha fechada. Conta inexistente nao vira saldo zero e indisponibilidade do canary nao cai silenciosamente no legado.
+- Filtros por titular/conta preferem correspondencia exata: `Daniel Nubank` retorna R$ 262,85 sem somar a Caixinha; `Thais Itau` retorna R$ 133,46. Consultas amplas como `caixinha` continuam validas.
+- Perguntas de cartao/fatura permanecem fora da rota de contas. Respostas publicas nao expoem IDs canonicos ou campos internos.
+- A suite completa revelou e a mesma fatia corrigiu dependencia do relogio real na formatacao de proximo vencimento de dividas; todas as saidas de divida agora usam a data injetada pelo read-model.
+- Evidencia local: TDD RED/GREEN, focados agente/read-model 80/80, `npm test` 670/670, audit high 0, sintaxe valida, diff check limpo, scan NUL sem achados e `state_store.json` JSON valido. Estado sintetico antigo nao rastreado foi preservado.
+- Relatorio: `docs/qa/phase-2-account-balance-read-side-gate-2026-07-04.md`.
+- Veredito local: GO para commit/deploy. GO de producao depende de foco remoto, PM2/health/state/logs e smoke manual WhatsApp. Flags devem permanecer exatamente como estao, incluindo Gemini Planner ativo e `INTERPRETATION_RELIABILITY_MODE=shadow`.

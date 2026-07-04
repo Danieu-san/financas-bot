@@ -26,6 +26,7 @@ const AgentState = Annotation.Root({
     personByUserId: Annotation(),
     financialQueryPlan: Annotation(),
     currentDate: Annotation(),
+    canonicalLedgerDbPath: Annotation(),
     mode: Annotation(),
     plan: Annotation(),
     toolResult: Annotation(),
@@ -74,7 +75,8 @@ function domainLabel(domain) {
         goals: 'metas',
         debts: 'dívidas',
         bills: 'contas',
-        dashboard: 'dashboard'
+        dashboard: 'dashboard',
+        accounts: 'contas financeiras'
     };
     return labels[domain] || 'análise financeira';
 }
@@ -202,6 +204,38 @@ function expensePlanFromSemanticOverride(state, normalized = '') {
     return null;
 }
 
+function accountPlanFromSemanticOverride(state, normalized = '') {
+    const talksAboutAccount = /\b(conta|contas|caixinha|nubank|itau|itaú|banco|saldo)\b/.test(normalized);
+    const asksBalance = /\b(saldo|quanto|tenho|temos|valor|disponivel|disponível)\b/.test(normalized);
+    if (!talksAboutAccount || !asksBalance) return null;
+    if (/\b(cartao|cartão|credito|crédito|fatura)\b/.test(normalized)) return null;
+
+    const accountTerms = [];
+    const knownPeople = Object.values(state.personByUserId || {})
+        .map(person => normalizeText(String(person || '')).trim())
+        .filter(Boolean);
+    for (const person of knownPeople) {
+        if (normalized.includes(person)) accountTerms.push(person);
+    }
+    if (/\bcaixinha\b/.test(normalized)) accountTerms.push('caixinha');
+    if (/\bnubank\b/.test(normalized)) accountTerms.push('nubank');
+    if (/\bitau|itaú\b/.test(normalized)) accountTerms.push('itau');
+    const account = [...new Set(accountTerms)].join(' ').trim();
+    return {
+        kind: 'financial_query',
+        domain: 'accounts',
+        operation: account ? 'sum' : 'detail',
+        filters: {
+            ...(state.financialQueryPlan?.filters || {}),
+            ...(account ? { account } : {})
+        },
+        sort: { by: 'name', direction: 'asc' },
+        limit: 10,
+        needsContext: false,
+        timeBasis: 'current_state',
+        answerStyle: 'detailed'
+    };
+}
 async function planWithGeminiForState(state, message) {
     return await planWithGemini({
         message,
@@ -301,6 +335,17 @@ async function planTurn(state) {
         };
     }
 
+    const accountPlan = accountPlanFromSemanticOverride(state, normalized);
+    if (accountPlan) {
+        return {
+            plan: {
+                action: 'tool',
+                tool: 'query_financial_plan',
+                args: { plan: accountPlan }
+            },
+            action: 'tool'
+        };
+    }
     if (state.financialQueryPlan) {
         const llmPlan = await planWithGeminiForState(state, message);
         if (shouldUseLlmPlanOverLegacy(llmPlan, state.financialQueryPlan)) {
@@ -411,7 +456,8 @@ async function runTool(state) {
         userIds: state.userIds || [],
         ownerUserId: state.ownerUserId || state.userIds?.[0] || '',
         personByUserId: state.personByUserId || {},
-        currentDate: state.currentDate || ''
+        currentDate: state.currentDate || '',
+        canonicalLedgerDbPath: state.canonicalLedgerDbPath
     };
     if (plan.tool === 'list_recent_transactions') {
         return { toolResult: await listRecentTransactions({ ...common, ...(plan.args || {}) }) };
@@ -463,6 +509,23 @@ function describeExtremeItem(item = {}) {
     return `${description}: ${value}${date}${category}${source}`;
 }
 
+function composeAccountsAnswer(plan = {}, result = {}) {
+    const value = result.value;
+    const details = result.details || {};
+    if (typeof value === 'number') {
+        const account = plan.filters?.account ? ` para ${plan.filters.account}` : '';
+        return [`Saldo${account}: ${moneyBR(value)}.`, details.criteria || ''].filter(Boolean).join('\n');
+    }
+    const items = Array.isArray(value?.items) ? value.items : [];
+    const lines = items.slice(0, 10).map((item, index) => (
+        `${index + 1}. ${item.name || item.label || 'Conta'}: ${moneyBR(item.balance ?? item.value ?? 0)}`
+    ));
+    return [
+        `Saldo total das contas: ${moneyBR(value?.total ?? details.total ?? 0)}.`,
+        ...lines,
+        details.criteria || value?.criteria || ''
+    ].filter(Boolean).join('\n');
+}
 function composeBudgetAnswer(summary = {}) {
     if (!summary.active) {
         return summary.criteria || 'Nenhum orçamento mensal livre está ativo neste escopo.';
@@ -589,6 +652,10 @@ function composeFinancialPlanAnswer(toolResult = {}) {
     const details = result.details || {};
     const title = domainLabel(plan.domain);
     const criteria = plan.operation === 'recommend' ? '' : (details.criteria || value?.criteria || '');
+
+    if (plan.domain === 'accounts') {
+        return composeAccountsAnswer(plan, result);
+    }
 
     if (plan.domain === 'budget' && value && typeof value === 'object' && !Array.isArray(value)) {
         return composeBudgetAnswer(value);
@@ -859,6 +926,7 @@ export async function invokeFinancialAgentRuntime(input = {}) {
         personByUserId: input.personByUserId || {},
         financialQueryPlan: input.financialQueryPlan || null,
         currentDate: input.currentDate || '',
+        canonicalLedgerDbPath: input.canonicalLedgerDbPath || '',
         mode: input.mode || 'shadow'
     });
     return {

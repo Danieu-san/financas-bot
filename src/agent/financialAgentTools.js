@@ -9,6 +9,9 @@ const { executeFinancialQuery } = require('../query/financialQueryEngine');
 const { buildDashboardCriteria } = require('../services/dashboardSummaryService');
 const { runSafeReadonlySql } = require('./safeReadonlySql');
 const {
+    readCanonicalLedgerCanaryDomain
+} = require('../ledger/canonicalLedgerReceiptProjector');
+const {
     readCanonicalLedgerCanaryWithFallback
 } = require('../ledger/canonicalLedgerCanaryRouter');
 
@@ -198,10 +201,128 @@ function resolvedScopeFromUserIds(userIds = []) {
     };
 }
 
-async function queryFinancialPlanTool({ plan, userIds = [], currentDate = '' } = {}) {
-    if (!ensureSqliteReady()) {
-        return { ok: false, tool: 'query_financial_plan', reason: 'read_model_unavailable' };
+function roundMoney(value) {
+    return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
+}
+
+function canonicalAccountToPublicItem(row = {}) {
+    const balance = roundMoney(Number(row.balance_cents || 0) / 100);
+    return {
+        name: String(row.name || ''),
+        label: String(row.name || ''),
+        accountType: String(row.account_type || ''),
+        status: String(row.status || ''),
+        currency: String(row.currency || 'BRL'),
+        responsible: String(row.responsible || ''),
+        openedOn: String(row.opened_on || ''),
+        openingBalance: roundMoney(Number(row.opening_balance_cents || 0) / 100),
+        balance,
+        value: balance
+    };
+}
+
+function accountMatchesFilter(item = {}, accountFilter = '') {
+    const requested = normalizeText(String(accountFilter || '').trim());
+    if (!requested) return true;
+    const haystack = normalizeText(`${item.name || ''} ${item.accountType || ''} ${item.responsible || ''}`);
+    return requested.split(/[^a-z0-9]+/).filter(Boolean).every(token => haystack.includes(token));
+}
+
+async function queryCanonicalAccountsPlanTool({
+    plan,
+    userIds = [],
+    personByUserId = {},
+    env = process.env,
+    canonicalLedgerDbPath
+} = {}) {
+    const canary = readCanonicalLedgerCanaryDomain({
+        env,
+        dbPath: canonicalLedgerDbPath,
+        domain: 'accounts',
+        ownerPersonIds: userIds,
+        personByUserId
+    });
+    if (!canary.enabled) {
+        return {
+            ok: false,
+            tool: 'query_financial_plan',
+            source: 'canonical',
+            reason: canary.reason || 'canonical_accounts_unavailable'
+        };
     }
+
+    const requestedAccount = plan.filters?.account || '';
+    const publicRows = (canary.rows || []).map(canonicalAccountToPublicItem);
+    const matchingRows = publicRows.filter(item => accountMatchesFilter(item, requestedAccount));
+    const normalizedRequestedAccount = normalizeText(String(requestedAccount || '').trim()).replace(/[^a-z0-9]+/g, ' ').trim();
+    const exactRows = normalizedRequestedAccount
+        ? matchingRows.filter(item => normalizeText(String(item.name || '').trim()).replace(/[^a-z0-9]+/g, ' ').trim() === normalizedRequestedAccount)
+        : [];
+    const rows = exactRows.length > 0 ? exactRows : matchingRows;
+    if (String(requestedAccount || '').trim() && rows.length === 0) {
+        return {
+            ok: false,
+            tool: 'query_financial_plan',
+            source: 'canonical',
+            reason: 'account_not_found'
+        };
+    }
+    const sortBy = String(plan.sort?.by || 'name');
+    const direction = String(plan.sort?.direction || 'asc');
+    const sortedRows = rows.slice().sort((left, right) => {
+        const multiplier = direction === 'desc' ? -1 : 1;
+        if (sortBy === 'balance' || sortBy === 'value') {
+            return multiplier * (Number(left.balance || 0) - Number(right.balance || 0));
+        }
+        return multiplier * String(left.name || '').localeCompare(String(right.name || ''), 'pt-BR');
+    });
+    const limitedRows = sortedRows.slice(0, plan.limit || 50);
+    const total = roundMoney(rows.reduce((sum, item) => sum + Number(item.balance || 0), 0));
+    const details = {
+        domain: 'accounts',
+        operation: plan.operation,
+        count: rows.length,
+        total,
+        timeBasis: plan.timeBasis,
+        filters: plan.filters,
+        criteria: 'Saldos lidos do canary accounts do ledger canonico; movimentos pendentes nao entram no saldo atual.'
+    };
+
+    if (plan.operation === 'count') {
+        return { ok: true, tool: 'query_financial_plan', source: 'canonical', plan, result: { value: rows.length, details }, criteria: details };
+    }
+    if (plan.operation === 'sum') {
+        return { ok: true, tool: 'query_financial_plan', source: 'canonical', plan, result: { value: total, details }, criteria: details };
+    }
+    if (['detail', 'list', 'explain'].includes(plan.operation)) {
+        return {
+            ok: true,
+            tool: 'query_financial_plan',
+            source: 'canonical',
+            plan,
+            result: {
+                value: {
+                    total,
+                    count: rows.length,
+                    items: limitedRows,
+                    criteria: details.criteria
+                },
+                details
+            },
+            criteria: details
+        };
+    }
+
+    return {
+        ok: false,
+        tool: 'query_financial_plan',
+        source: 'canonical',
+        reason: 'unsupported_accounts_operation',
+        errors: [`operacao de contas ainda nao implementada: ${plan.operation}`]
+    };
+}
+
+async function queryFinancialPlanTool({ plan, userIds = [], personByUserId = {}, currentDate = '', env = process.env, canonicalLedgerDbPath } = {}) {
     const normalized = normalizeFinancialQueryPlan(plan);
     if (!normalized.ok) {
         return { ok: false, tool: 'query_financial_plan', reason: 'invalid_financial_query_plan', errors: normalized.errors };
@@ -222,6 +343,20 @@ async function queryFinancialPlanTool({ plan, userIds = [], currentDate = '' } =
         }
     };
     delete scopedPlan.filters.member;
+
+    if (scopedPlan.domain === 'accounts') {
+        return await queryCanonicalAccountsPlanTool({
+            plan: scopedPlan,
+            userIds: resolvedScope.userIds,
+            personByUserId,
+            env,
+            canonicalLedgerDbPath
+        });
+    }
+
+    if (!ensureSqliteReady()) {
+        return { ok: false, tool: 'query_financial_plan', reason: 'read_model_unavailable' };
+    }
 
     const dataSources = queryFinancialQueryDataSourcesSql(scopedPlan, {
         userId: resolvedScope.userIds[0],

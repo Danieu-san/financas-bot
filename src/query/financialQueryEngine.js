@@ -965,7 +965,8 @@ function sortRows(rows, sort = {}) {
     });
 }
 
-function publicItem(item) {
+function publicItem(item, referenceDate = new Date()) {
+    const safeReferenceDate = referenceDate instanceof Date && !Number.isNaN(referenceDate.getTime()) ? referenceDate : new Date();
     const output = {
         date: item.date,
         description: item.description,
@@ -986,7 +987,7 @@ function publicItem(item) {
         output.installmentValue = roundMoney(item.installmentValue);
         output.interestRatePct = roundMoney(item.interestRatePct);
         output.dueDay = item.dueDay;
-        output.nextDueDate = getFormattedDateOnly(debtDueDate(item)) || item.nextDueDate || '';
+        output.nextDueDate = getFormattedDateOnly(debtDueDate(item, safeReferenceDate)) || item.nextDueDate || '';
         output.overdueDays = Number(item.overdueDays || 0);
         output.payoffDate = item.payoffDate || '';
     }
@@ -1285,7 +1286,7 @@ function buildDebtsDetail(rows = [], allRows = [], dataSources = {}) {
         paidCount: paidRows.length,
         overdueCount: overdueRows.length,
         upcomingCount: upcomingRows.length,
-        items: sortRows(rows, { by: 'value', direction: 'desc' }).map(publicItem),
+        items: sortRows(rows, { by: 'value', direction: 'desc' }).map(item => publicItem(item, referenceDate)),
         criteria: 'Saldo atual vem da aba Dívidas. Pagamentos registrados são inferidos como Valor Original menos Saldo Atual. Vencimentos usam Próximo Vencimento quando preenchido; caso contrário, usam o dia de vencimento cadastrado.',
         historyGap: 'Não há trilha individual de pagamentos na aba atual; este pacote não altera schema real.'
     };
@@ -1304,14 +1305,14 @@ function buildDebtRecommendation(rows = [], dataSources = {}) {
             if (dueDiff) return dueDiff;
             return Number(b.value || 0) - Number(a.value || 0);
         });
-    const item = ranked[0] ? publicItem(ranked[0]) : null;
+    const item = ranked[0] ? publicItem(ranked[0], referenceDate) : null;
     return {
         item,
         criteria: item
             ? 'Critério read-only: priorizei dívidas ativas com atraso, depois maior juros, vencimento mais próximo e maior saldo.'
             : 'Critério read-only: não encontrei dívida ativa para priorizar.',
         disclaimer: 'Isso não é garantia financeira nem recomendação absoluta; é uma ordenação objetiva pelos dados cadastrados.',
-        ranking: ranked.slice(0, 10).map(publicItem)
+        ranking: ranked.slice(0, 10).map(item => publicItem(item, referenceDate))
     };
 }
 
@@ -1512,6 +1513,7 @@ function executeBillsQuery(plan, dataSources = {}) {
 }
 
 function executeDebtsQuery(plan, dataSources = {}) {
+    const referenceDate = currentDateFromDataSources(dataSources);
     const allRows = getRowsForDomain(dataSources, { ...plan, filters: { ...plan.filters, period: undefined } });
     const visibleRows = filterDebtsByPlan(allRows, { ...plan, operation: 'list', filters: {} }, dataSources);
     const rows = filterDebtsByPlan(allRows, plan, dataSources);
@@ -1536,10 +1538,10 @@ function executeDebtsQuery(plan, dataSources = {}) {
     if (plan.operation === 'count') return { ok: true, plan, result: { value: rows.length, details } };
     if (plan.operation === 'list') {
         const sort = plan.filters?.status === 'paid' ? { by: 'name', direction: 'asc' } : (plan.sort || { by: 'due_date', direction: 'asc' });
-        return { ok: true, plan, result: { value: sortRows(rows, sort).slice(0, plan.limit).map(publicItem), details } };
+        return { ok: true, plan, result: { value: sortRows(rows, sort).slice(0, plan.limit).map(item => publicItem(item, referenceDate)), details } };
     }
     if (plan.operation === 'rank') {
-        return { ok: true, plan, result: { value: sortRows(activeRows, plan.sort).slice(0, plan.limit).map(publicItem), details: { ...details, rankingCriterion: plan.sort?.by || 'value' } } };
+        return { ok: true, plan, result: { value: sortRows(activeRows, plan.sort).slice(0, plan.limit).map(item => publicItem(item, referenceDate)), details: { ...details, rankingCriterion: plan.sort?.by || 'value' } } };
     }
     if (plan.operation === 'average') {
         const avg = activeRows.length ? total / activeRows.length : 0;
@@ -1555,7 +1557,7 @@ function executeDebtsQuery(plan, dataSources = {}) {
     }
     if (plan.operation === 'extreme') {
         const sorted = sortRows(activeRows, { by: 'value', direction: 'asc' });
-        return { ok: true, plan, result: { value: { min: sorted[0] ? publicItem(sorted[0]) : null, max: sorted[sorted.length - 1] ? publicItem(sorted[sorted.length - 1]) : null }, details } };
+        return { ok: true, plan, result: { value: { min: sorted[0] ? publicItem(sorted[0], referenceDate) : null, max: sorted[sorted.length - 1] ? publicItem(sorted[sorted.length - 1], referenceDate) : null }, details } };
     }
     if (plan.operation === 'explain' || plan.operation === 'detail') {
         return { ok: true, plan, result: { value: detail, details: { ...details, ...detail } } };

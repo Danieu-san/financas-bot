@@ -500,6 +500,212 @@ test('financial agent recent transactions can read canonical transaction canary 
     assert.doesNotMatch(JSON.stringify(latest), /agent-daniel|owner_person_id|source_row_hash|idempotency_key/i);
 });
 
+test('financial agent answers account balance questions from the canonical accounts canary', async () => {
+    syncAgentSnapshot();
+    const dbPath = path.join(os.tmpdir(), `canonical-agent-accounts-canary-${Date.now()}-${Math.random()}.sqlite`);
+    const store = new CanonicalLedgerShadowStore({ dbPath, writesEnabled: true });
+    store.persistProjection({
+        runId: 'agent-accounts-canary-run',
+        projected: {
+            accounts: [
+                {
+                    account_id: 'acct_agent_nubank',
+                    household_id: 'household-agent',
+                    owner_person_id: 'agent-daniel',
+                    account_type: 'bank',
+                    name: 'Daniel - Nubank',
+                    currency: 'BRL',
+                    opening_balance_cents: 26285,
+                    opened_on: '2026-07-03',
+                    status: 'active'
+                },
+                {
+                    account_id: 'acct_agent_caixinha',
+                    household_id: 'household-agent',
+                    owner_person_id: 'agent-daniel',
+                    account_type: 'wallet',
+                    name: 'Daniel - Nubank Caixinha',
+                    currency: 'BRL',
+                    opening_balance_cents: 126491,
+                    opened_on: '2026-07-03',
+                    status: 'active'
+                },
+                {
+                    account_id: 'acct_agent_thais_nubank',
+                    household_id: 'household-agent',
+                    owner_person_id: 'agent-thais',
+                    account_type: 'bank',
+                    name: 'Thais - Nubank',
+                    currency: 'BRL',
+                    opening_balance_cents: 0,
+                    opened_on: '2026-07-03',
+                    status: 'active'
+                },
+                {
+                    account_id: 'acct_agent_thais_itau',
+                    household_id: 'household-agent',
+                    owner_person_id: 'agent-thais',
+                    account_type: 'bank',
+                    name: 'Thais - Itaú',
+                    currency: 'BRL',
+                    opening_balance_cents: 13346,
+                    opened_on: '2026-07-03',
+                    status: 'active'
+                }
+            ]
+        },
+        publicProjection: [],
+        report: {
+            report_type: 'canonical_ledger_receipt_shadow',
+            schema_version: 'canonical-ledger-v1',
+            synthetic_fixture_only: false
+        }
+    });
+
+    const env = {
+        NODE_ENV: 'production',
+        CANONICAL_LEDGER_PROJECTION_MODE: 'shadow',
+        CANONICAL_LEDGER_SHADOW_WRITE_ENABLED: 'true',
+        CANONICAL_LEDGER_PRODUCTION_SHADOW_APPROVED: 'true',
+        CANONICAL_LEDGER_CANARY_READ_ENABLED: 'true',
+        CANONICAL_LEDGER_CANARY_READ_APPROVED: 'true',
+        CANONICAL_LEDGER_CANARY_READ_DOMAINS: 'accounts'
+    };
+    const originalEnv = {};
+    for (const [key, value] of Object.entries(env)) {
+        originalEnv[key] = process.env[key];
+        process.env[key] = value;
+    }
+    try {
+        const totalResult = await invokeFinancialAgent({
+            message: 'Qual o saldo das minhas contas?',
+            userIds: ['agent-daniel'],
+            personByUserId: { 'agent-daniel': 'Daniel' },
+            currentDate: '04/07/2026',
+            financialQueryPlan: {
+                kind: 'financial_query',
+                domain: 'accounts',
+                operation: 'detail',
+                filters: { scope: 'personal' },
+                timeBasis: 'current_state'
+            },
+            mode: 'answer',
+            canonicalLedgerDbPath: dbPath
+        });
+
+        assert.strictEqual(totalResult.action, 'answer', JSON.stringify(totalResult));
+        assert.strictEqual(totalResult.verified.ok, true, JSON.stringify(totalResult));
+        assert.match(totalResult.answer, /Saldo total das contas/i);
+        assert.strictEqual(totalResult.plan.tool, 'query_financial_plan');
+        assert.strictEqual(totalResult.toolResult.source, 'canonical');
+        assert.match(totalResult.answer, /Daniel - Nubank/i);
+        assert.match(totalResult.answer, /Daniel - Nubank Caixinha/i);
+        assert.match(totalResult.answer, /R\$\s*1\.527,76/i);
+        assert.doesNotMatch(JSON.stringify(totalResult), /acct_agent|owner_person_id|source_row_hash|idempotency_key/i);
+
+        const caixinhaResult = await invokeFinancialAgent({
+            message: 'Quanto tenho na caixinha?',
+            userIds: ['agent-daniel'],
+            personByUserId: { 'agent-daniel': 'Daniel' },
+            currentDate: '04/07/2026',
+            financialQueryPlan: {
+                kind: 'financial_query',
+                domain: 'accounts',
+                operation: 'sum',
+                filters: { scope: 'personal', account: 'caixinha' },
+                timeBasis: 'current_state'
+            },
+            mode: 'answer',
+            canonicalLedgerDbPath: dbPath
+        });
+
+        assert.strictEqual(caixinhaResult.action, 'answer', JSON.stringify(caixinhaResult));
+        assert.strictEqual(caixinhaResult.verified.ok, true, JSON.stringify(caixinhaResult));
+        assert.match(caixinhaResult.answer, /R\$\s*1\.264,91/i);
+        assert.doesNotMatch(caixinhaResult.answer, /R\$\s*262,85/i);
+
+        const namedAccountResult = await invokeFinancialAgent({
+            message: 'Quanto tenho na conta Daniel Nubank?',
+            userIds: ['agent-daniel'],
+            personByUserId: { 'agent-daniel': 'Daniel' },
+            currentDate: '04/07/2026',
+            financialQueryPlan: {
+                kind: 'financial_query',
+                domain: 'accounts',
+                operation: 'sum',
+                filters: { scope: 'personal' },
+                timeBasis: 'current_state'
+            },
+            mode: 'answer',
+            canonicalLedgerDbPath: dbPath
+        });
+
+        assert.strictEqual(namedAccountResult.action, 'answer', JSON.stringify(namedAccountResult));
+        assert.strictEqual(namedAccountResult.verified.ok, true, JSON.stringify(namedAccountResult));
+        assert.match(namedAccountResult.answer, /R\$\s*262,85/i);
+        assert.doesNotMatch(namedAccountResult.answer, /R\$\s*1\.527,76/i);
+
+        const thaisAccountResult = await invokeFinancialAgent({
+            message: 'Quanto temos na conta Thais Itau?',
+            userIds: ['agent-daniel', 'agent-thais'],
+            personByUserId: { 'agent-daniel': 'Daniel', 'agent-thais': 'Thais' },
+            currentDate: '04/07/2026',
+            financialQueryPlan: {
+                kind: 'financial_query',
+                domain: 'accounts',
+                operation: 'sum',
+                filters: { scope: 'family' },
+                timeBasis: 'current_state'
+            },
+            mode: 'answer',
+            canonicalLedgerDbPath: dbPath
+        });
+
+        assert.strictEqual(thaisAccountResult.action, 'answer', JSON.stringify(thaisAccountResult));
+        assert.strictEqual(thaisAccountResult.verified.ok, true, JSON.stringify(thaisAccountResult));
+        assert.match(thaisAccountResult.answer, /R\$\s*133,46/i);
+        assert.doesNotMatch(thaisAccountResult.answer, /R\$\s*1\.527,76/i);
+
+        const missingAccountResult = await queryFinancialPlanTool({
+            plan: {
+                kind: 'financial_query',
+                domain: 'accounts',
+                operation: 'sum',
+                filters: { scope: 'personal', account: 'conta fantasma' },
+                timeBasis: 'current_state'
+            },
+            userIds: ['agent-daniel'],
+            personByUserId: { 'agent-daniel': 'Daniel' },
+            env,
+            canonicalLedgerDbPath: dbPath
+        });
+        assert.strictEqual(missingAccountResult.ok, false);
+        assert.strictEqual(missingAccountResult.source, 'canonical');
+        assert.strictEqual(missingAccountResult.reason, 'account_not_found');
+
+        const disabledCanaryResult = await queryFinancialPlanTool({
+            plan: {
+                kind: 'financial_query',
+                domain: 'accounts',
+                operation: 'sum',
+                filters: { scope: 'personal' },
+                timeBasis: 'current_state'
+            },
+            userIds: ['agent-daniel'],
+            personByUserId: { 'agent-daniel': 'Daniel' },
+            env: { ...env, CANONICAL_LEDGER_CANARY_READ_DOMAINS: 'transactions' },
+            canonicalLedgerDbPath: dbPath
+        });
+        assert.strictEqual(disabledCanaryResult.ok, false);
+        assert.strictEqual(disabledCanaryResult.source, 'canonical');
+        assert.notStrictEqual(disabledCanaryResult.reason, 'read_model_unavailable');
+    } finally {
+        for (const [key, value] of Object.entries(originalEnv)) {
+            if (value === undefined) delete process.env[key];
+            else process.env[key] = value;
+        }
+    }
+});
 test('financial agent recent transfer queries use the canonical transfers canary domain', async () => {
     const synced = syncSnapshotToSqlite({
         saidas: [],

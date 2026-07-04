@@ -9,6 +9,7 @@ const ALLOWED_DOMAINS = new Set([
     'goals',
     'debts',
     'bills',
+    'accounts',
     'imports',
     'dashboard',
     'calendar',
@@ -48,9 +49,10 @@ const ALLOWED_GROUP_BY = new Set([
     'date',
     'month',
     'status',
-    'source'
+    'source',
+    'account'
 ]);
-const ALLOWED_SORT_FIELDS = new Set(['value', 'date', 'count', 'name', 'interest', 'due_date', 'overdue']);
+const ALLOWED_SORT_FIELDS = new Set(['value', 'date', 'count', 'name', 'interest', 'due_date', 'overdue', 'balance']);
 const GROUP_BY_CANONICAL = {
     paymentmethod: 'paymentMethod'
 };
@@ -68,6 +70,7 @@ const ALLOWED_FILTER_KEYS = new Set([
     'debt',
     'status',
     'source',
+    'account',
     'recurrence',
     'value'
 ]);
@@ -103,7 +106,8 @@ const DEFAULT_TIME_BASIS_BY_DOMAIN = {
     budget: 'budget_cycle',
     bills: 'due_date',
     debts: 'due_date',
-    calendar: 'due_date'
+    calendar: 'due_date',
+    accounts: 'current_state'
 };
 
 function normalizeEnum(value) {
@@ -190,7 +194,8 @@ function normalizeFilters(filters = {}) {
         'debt',
         'status',
         'source',
-        'recurrence'
+        'recurrence',
+        'account'
     ].forEach((key) => {
         if (filters[key] !== undefined) normalized[key] = String(filters[key]).trim();
     });
