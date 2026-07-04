@@ -97,7 +97,6 @@ function registerInvoiceObservation(collection, event, {
 
     const invoiceId = `inv_${hash({
         householdId: event.household_id || '',
-        ownerPersonId: event.owner_person_id || '',
         cardKey,
         competenceMonth
     })}`;
@@ -106,7 +105,7 @@ function registerInvoiceObservation(collection, event, {
         invoice = {
             invoice_id: invoiceId,
             household_id: event.household_id || null,
-            owner_person_id: event.owner_person_id || null,
+            owner_person_id: null,
             card_key: cardKey,
             card_name: String(cardName || cardId || '').trim(),
             competence_month: competenceMonth,

@@ -106,6 +106,30 @@ test('canonical ledger links card items and payoff to one stable invoice aggrega
     ]);
 });
 
+test('canonical ledger keeps one family invoice when both partners use the same card', () => {
+    const familyFixture = structuredClone(fixture);
+    familyFixture.legacyRows.lancamentosCartao.push({
+        source_row_id: 'cartao-002',
+        user_id: 'person-thais',
+        card_id: 'nubank-daniel',
+        cartao: 'Cartao Nubank Daniel',
+        data: '21/05/2026',
+        descricao: 'Mercado',
+        categoria: 'Alimentacao',
+        subcategoria: 'Supermercado',
+        valor_parcela: '100,00',
+        parcela: '1/1',
+        mes_cobranca: '2026-06'
+    });
+
+    const projected = projectLegacyRowsToCanonicalLedger(familyFixture);
+
+    assert.strictEqual(projected.invoices.length, 1);
+    assert.strictEqual(projected.invoiceItems.length, 2);
+    assert.strictEqual(projected.invoices[0].observed_item_total_cents, 60000);
+    assert.strictEqual(projected.invoices[0].observed_payment_total_cents, 50000);
+    assert.strictEqual(projected.invoices[0].status, 'partially_paid');
+});
 test('canonical ledger keeps transfers and reserves neutral for income and expense', () => {
     const projected = projectLegacyRowsToCanonicalLedger(fixture);
 
