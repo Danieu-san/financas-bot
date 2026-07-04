@@ -265,10 +265,8 @@ class CanonicalLedgerShadowStore {
         this.db.prepare(`
             INSERT INTO canonical_ledger_invoices (
                 run_id, invoice_id, household_id, owner_person_id, card_key,
-                card_name, competence_month, due_on, currency,
-                observed_item_total_cents, observed_payment_total_cents, status,
-                invoice_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                card_name, competence_month, due_on, currency, invoice_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
             runId,
             invoice.invoice_id,
@@ -279,9 +277,6 @@ class CanonicalLedgerShadowStore {
             invoice.competence_month,
             invoice.due_on || null,
             invoice.currency || 'BRL',
-            invoice.observed_item_total_cents || 0,
-            invoice.observed_payment_total_cents || 0,
-            invoice.status || 'empty',
             JSON.stringify(invoice)
         );
     }

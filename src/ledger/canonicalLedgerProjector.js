@@ -92,7 +92,7 @@ function registerInvoiceObservation(collection, event, {
     competenceMonth = '',
     type
 } = {}) {
-    const cardKey = normalizeInvoiceCardKey(cardId || cardName);
+    const cardKey = normalizeInvoiceCardKey(cardName || cardId);
     if (!cardKey || !competenceMonth || !event?.event_id) return;
 
     const invoiceId = `inv_${hash({
@@ -119,8 +119,10 @@ function registerInvoiceObservation(collection, event, {
     }
 
     if (type === 'item') {
+        const invoiceItemId = `invitem_${hash({ invoiceId, eventId: event.event_id })}`;
+        if (collection.invoiceItems.some(item => item.invoice_item_id === invoiceItemId)) return;
         collection.invoiceItems.push({
-            invoice_item_id: `invitem_${hash({ invoiceId, eventId: event.event_id })}`,
+            invoice_item_id: invoiceItemId,
             invoice_id: invoiceId,
             event_id: event.event_id,
             amount_cents: event.amount_cents,
@@ -128,8 +130,10 @@ function registerInvoiceObservation(collection, event, {
         });
         invoice.observed_item_total_cents += event.amount_cents;
     } else if (type === 'payment') {
+        const invoicePaymentId = `invpay_${hash({ invoiceId, eventId: event.event_id })}`;
+        if (collection.invoicePayments.some(payment => payment.invoice_payment_id === invoicePaymentId)) return;
         collection.invoicePayments.push({
-            invoice_payment_id: `invpay_${hash({ invoiceId, eventId: event.event_id })}`,
+            invoice_payment_id: invoicePaymentId,
             invoice_id: invoiceId,
             event_id: event.event_id,
             amount_cents: event.amount_cents,

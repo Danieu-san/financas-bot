@@ -62,6 +62,10 @@ test('canonical ledger shadow store applies versioned schema and keeps writes di
     assert.ok(tables.includes('canonical_ledger_invoices'));
     assert.ok(tables.includes('canonical_ledger_invoice_items'));
     assert.ok(tables.includes('canonical_ledger_invoice_payments'));
+    const invoiceColumns = store.db.prepare('PRAGMA table_info(canonical_ledger_invoices)').all().map(column => column.name);
+    assert.ok(!invoiceColumns.includes('observed_item_total_cents'));
+    assert.ok(!invoiceColumns.includes('observed_payment_total_cents'));
+    assert.ok(!invoiceColumns.includes('status'));
     assert.ok(tables.includes('canonical_ledger_projection_runs'));
     assert.ok(tables.includes('canonical_ledger_audit_log'));
 

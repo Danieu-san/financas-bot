@@ -130,6 +130,32 @@ test('canonical ledger keeps one family invoice when both partners use the same 
     assert.strictEqual(projected.invoices[0].observed_payment_total_cents, 50000);
     assert.strictEqual(projected.invoices[0].status, 'partially_paid');
 });
+
+test('canonical ledger matches invoice payoff by canonical card name when card id is opaque', () => {
+    const opaqueIdFixture = structuredClone(fixture);
+    opaqueIdFixture.legacyRows.lancamentosCartao[0].card_id = 'card-uuid-1234';
+
+    const projected = projectLegacyRowsToCanonicalLedger(opaqueIdFixture);
+
+    assert.strictEqual(projected.invoices.length, 1);
+    assert.strictEqual(projected.invoices[0].card_key, 'nubank daniel');
+    assert.strictEqual(projected.invoices[0].status, 'paid');
+});
+
+test('canonical ledger ignores a repeated invoice link inside the same projection run', () => {
+    const repeatedFixture = structuredClone(fixture);
+    repeatedFixture.legacyRows.lancamentosCartao.push(
+        structuredClone(repeatedFixture.legacyRows.lancamentosCartao[0])
+    );
+
+    const projected = projectLegacyRowsToCanonicalLedger(repeatedFixture);
+    const invoice = projected.invoices[0];
+
+    assert.strictEqual(projected.invoiceItems.length, 1);
+    assert.strictEqual(invoice.observed_item_total_cents, 50000);
+    assert.strictEqual(invoice.status, 'paid');
+});
+
 test('canonical ledger keeps transfers and reserves neutral for income and expense', () => {
     const projected = projectLegacyRowsToCanonicalLedger(fixture);
 

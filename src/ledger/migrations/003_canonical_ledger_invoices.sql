@@ -8,9 +8,6 @@ CREATE TABLE IF NOT EXISTS canonical_ledger_invoices (
     competence_month TEXT NOT NULL,
     due_on TEXT,
     currency TEXT NOT NULL,
-    observed_item_total_cents INTEGER NOT NULL,
-    observed_payment_total_cents INTEGER NOT NULL,
-    status TEXT NOT NULL,
     invoice_json TEXT NOT NULL,
     PRIMARY KEY (run_id, invoice_id),
     FOREIGN KEY (run_id) REFERENCES canonical_ledger_projection_runs(run_id) ON DELETE CASCADE
