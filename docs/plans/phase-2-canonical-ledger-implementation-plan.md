@@ -323,3 +323,9 @@ high 0, syntax, diff check, NUL scan and JSON state validation. Detailed evidenc
 Decision: local GO for commit/deploy. Production remains pending remote focused
 tests and a WhatsApp read-only smoke. No flags, writes, dashboard source or legacy
 paths are changed by this slice.
+
+### Account Balance Upstream Routing Correction - 2026-07-04
+
+The first production smoke after `f928094` was `NO-GO`: legacy local analytical classification intercepted account-balance wording before LangGraph received the canonical `accounts` plan. The correction moves account-balance recognition to that upstream boundary and keeps explicit card/invoice and recurring-bill guards.
+
+Local corrective evidence passed 334/334 focused tests and 671/671 in the full suite, with audit, syntax, diff, NUL and state checks clean. Production remains `NO-GO` until redeploy plus repetition of the five-question smoke. This remains inside Phase 2; it does not remove legacy code or change the preserved flags.

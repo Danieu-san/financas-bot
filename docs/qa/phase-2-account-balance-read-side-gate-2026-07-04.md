@@ -61,3 +61,25 @@ Flags must remain unchanged:
 - `FINANCIAL_COMMAND_PLANNER_MODE=canary`
 - `INTERPRETATION_RELIABILITY_MODE=shadow`
 - `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transactions,transfers,accounts`
+
+## First production smoke and corrective gate
+
+Commit `f928094` passed the remote focused tests and was deployed with the existing production flags preserved. PM2, dashboard health, WhatsApp readiness and remote state were healthy, but the manual WhatsApp smoke was `NO-GO`:
+
+- total account balance fell into the legacy monthly balance response;
+- caixinha fell into the legacy reserve-transfer response;
+- Daniel - Nubank and Thais - Itau were interpreted as card invoices;
+- the explicit Nubank Thais card question correctly remained on the card route.
+
+Root cause: `classifyPerguntaLocally` ran the legacy analytical inference before the request reached the Financial Agent, so a valid canonical `accounts` plan was never produced. The corrective change creates that plan at the upstream classification boundary for current financial-account balance questions, while explicitly excluding card, credit and invoice wording.
+
+TDD evidence for the corrective change:
+
+- RED reproduced the production failure as `saldo_do_mes` instead of `saldo_contas_financeiras`;
+- GREEN covers the four account questions and negative controls for cards and recurring bills;
+- focused message/agent/state-machine tests: 334/334;
+- full suite: 671/671;
+- audit high: zero vulnerabilities;
+- syntax, diff check, NUL scan and JSON state validation: clean.
+
+Decision remains `NO-GO` in production until the corrective commit is deployed and the same five WhatsApp questions are repeated successfully. No rollout flag is changed by this correction.

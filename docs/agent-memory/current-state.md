@@ -2,6 +2,15 @@
 
 Atualizado em: 2026-07-04
 
+## Phase 2 account-balance read-side corrective gate - 2026-07-04
+
+- Roadmap position remains Phase 2, accounts/dates/status. Active slice: route current financial-account balance questions through the canonical `accounts` canary. Legacy removal, dashboard cutover and canonical writes are out of scope.
+- Commit `f928094` was deployed and infrastructure was healthy, but the first WhatsApp smoke was `NO-GO`: the upstream local classifier intercepted total, caixinha and named-account questions as legacy balance/reserve/card queries.
+- Root correction: build the `accounts/current_state` FinancialQueryPlan before legacy analytical inference, with explicit guards preserving card/invoice and recurring-bill routes.
+- Corrective TDD evidence: RED reproduced `saldo_do_mes`; GREEN passed 334/334 focused tests and 671/671 full tests. Audit high found zero vulnerabilities; syntax, diff, NUL and JSON state checks are clean.
+- Flags remain unchanged, including Gemini planner active and `INTERPRETATION_RELIABILITY_MODE=shadow`.
+- Gate: deploy the corrective commit and repeat the five-question WhatsApp smoke. Only then decide production GO and advance to the next Phase 2 slice.
+
 ## Produto
 
 - Bot de WhatsApp para controle financeiro pessoal e familiar.

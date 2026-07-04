@@ -4626,7 +4626,51 @@ function shouldInterruptStatementImportConfirmation(messageBody) {
     return /^(gastei|gasto|paguei|comprei|recebi|ganhei|entrada|quanto|qual|quais|liste|listar|mostre|mostrar|dashboard|painel|ajuda|criar|apagar|registrar|me lembre|lembre|resumo)\b/.test(text);
 }
 
+function buildFinancialAccountBalanceQueryPlan(userQuestion = '') {
+    const text = normalizeText(String(userQuestion || '').trim());
+    if (!text) return null;
+    if (/\b(cartao|cartoes|credito|fatura|faturas)\b/.test(text)) return null;
+
+    const asksCurrentBalance = (
+        /\bsaldo\b/.test(text) ||
+        /\bquanto\s+(?:eu\s+)?(?:tenho|temos|ha)\b/.test(text) ||
+        /\bqual\s+(?:e\s+)?o\s+valor\s+disponivel\b/.test(text)
+    );
+    const namesFinancialAccount = (
+        /\b(caixinha|poupanca|conta corrente|nubank|itau)\b/.test(text) ||
+        /\b(minha|minhas|nossa|nossas)\s+contas?\b/.test(text) ||
+        /\bcontas?\s+(financeira|financeiras|bancaria|bancarias)\b/.test(text)
+    );
+    if (!asksCurrentBalance || !namesFinancialAccount) return null;
+
+    const scope = /\b(temos|nossa|nossas|familia|familiar|casal|thais)\b/.test(text)
+        ? 'family'
+        : 'personal';
+    const normalized = normalizeFinancialQueryPlan({
+        kind: 'financial_query',
+        domain: 'accounts',
+        operation: 'detail',
+        filters: { scope },
+        groupBy: [],
+        sort: { by: 'name', direction: 'asc' },
+        limit: 10,
+        needsContext: false,
+        timeBasis: 'current_state',
+        answerStyle: 'detailed'
+    });
+    return normalized.ok ? normalized.plan : null;
+}
+
 function classifyPerguntaLocally(userQuestion, previousContext = null) {
+    const accountPlan = buildFinancialAccountBalanceQueryPlan(userQuestion);
+    if (accountPlan) {
+        return {
+            intent: 'saldo_contas_financeiras',
+            parameters: { scope: accountPlan.filters.scope },
+            financialQueryPlan: accountPlan
+        };
+    }
+
     const plan = inferAnalyticalQueryPlan(userQuestion, previousContext);
     if (!plan) return null;
     const financialQueryPlan = buildFinancialQueryPlanForLocalClassification(plan, userQuestion);

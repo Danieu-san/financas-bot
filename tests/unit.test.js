@@ -773,6 +773,34 @@ test('Packet 08 planner routes composable bills questions to due_date FinancialQ
     assert.strictEqual(named.financialQueryPlan.filters.merchant, 'aluguel');
 });
 
+test('local planner routes financial account balances to canonical accounts without stealing cards or bills', () => {
+    const classify = messageHandler.__test__.classifyPerguntaLocally;
+    const accountCases = [
+        ['Qual o saldo das minhas contas?', 'personal'],
+        ['Quanto tenho na caixinha?', 'personal'],
+        ['Quanto tenho na conta Daniel Nubank?', 'personal'],
+        ['Quanto temos na conta Thais Itau?', 'family']
+    ];
+
+    for (const [question, scope] of accountCases) {
+        const classification = classify(question);
+        assert.ok(classification, question);
+        assert.strictEqual(classification.intent, 'saldo_contas_financeiras', question);
+        assert.strictEqual(classification.financialQueryPlan.domain, 'accounts', question);
+        assert.strictEqual(classification.financialQueryPlan.timeBasis, 'current_state', question);
+        assert.strictEqual(classification.financialQueryPlan.filters.scope, scope, question);
+    }
+
+    assert.strictEqual(
+        classify('Quanto tenho no cartao Nubank Thais?').financialQueryPlan.domain,
+        'cards'
+    );
+    assert.strictEqual(
+        classify('Quanto tenho de contas fixas este mes?').financialQueryPlan.domain,
+        'bills'
+    );
+});
+
 test('Packet 08 planner keeps bill writes out and preserves family scope outside the LLM', () => {
     assert.strictEqual(messageHandler.__test__.classifyPerguntaLocally('criar conta de internet'), null);
     const family = messageHandler.__test__.classifyPerguntaLocally('quais contas da família vencem esta semana?');
