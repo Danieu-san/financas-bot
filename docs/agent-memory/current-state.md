@@ -898,3 +898,12 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Pos-deploy: PM2 `financas-bot` online, dashboard health `{"ok":true,"sqlite":true}`, WhatsApp autenticado/pronto sem novo QR e `state_store.json` remoto valido.
 - Flags preservadas: `FINANCIAL_AGENT_MODE=answer`, Gemini Planner ativo, contextual analyst em `answer`, `FINANCIAL_COMMAND_PLANNER_MODE=canary`, `INTERPRETATION_RELIABILITY_MODE=shadow` e `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transactions,transfers,accounts`.
 - Proximo gate da subfatia: smoke marker-only real de transferencia de caixinha concluida e transferencia familiar pendente/cancelada, com conferencia Sheets + ledger shadow + neutralidade + limpeza antes de encerrar transferencias na Fase 2.
+
+## Fase 2 explicit transfer account capture GO - 2026-07-04
+
+- Smoke produtivo manual com `TESTE_APAGAR_TRANSFER_ACC_20260703`: o bot perguntou conta origem e destino, impediu destino igual a origem pela lista filtrada, confirmou `Daniel - Nubank Caixinha -> Daniel - Nubank`, data `04/07/2026`, status `Concluída` e gravou a transferencia.
+- Smoke produtivo manual com `TESTE_APAGAR_TRANSFER_PEND_20260703`: a transferencia familiar pendente passou pela previa, preservou data `10/07/2026`, origem `Daniel - Nubank`, destino `Thais - Nubank`, status `Pendente` e o cancelamento final nao gravou nada.
+- Conferencia EC2 antes da limpeza: 1 linha em `Transferências` para o marcador concluido, 0 linhas para o marcador cancelado, 1 evento canonico `transfer` `settled`, 2 linhas contabeis, impacto renda/gasto `0`; saldos canary refletiram apenas a transferencia neutra temporaria.
+- Limpeza marker-only fez backup do SQLite shadow em `data/backups/canonical_ledger_shadow.pre-transfer-smoke-cleanup-2026-07-04T04-10-15-899Z.sqlite`, removeu 1 linha de `Transferências` e 1 run canonico. Pos-limpeza: zero linhas/eventos/projecoes dos dois marcadores e saldos voltaram ao baseline das quatro contas reais.
+- Pos-check: dashboard health `{"ok":true,"sqlite":true}`, `state_store.json` remoto valido, PM2/WhatsApp ativos. Logs recentes continham apenas avisos de performance Gemini durante o smoke, sem erro operacional novo.
+- Veredito: GO para encerrar a captura explicita de contas em transferencias unitarias da Fase 2. Ainda NO-GO para saldo canonico como fonte primaria ampla; proximo passo do roadmap e consolidar gate da Fase 2 accounts/datas/status e decidir a proxima fatia sem avancar para Fase 3 nem remover legado.
