@@ -277,3 +277,28 @@ Decision: status handling for current account balances is `GO` for the canary.
 Next Phase 2 work should cover dated/settled account movements with marker-only
 receipts and parity against Sheets/read-model before account balances are used
 as a broad primary user-facing source.
+
+## Accounts, Dates and Status Consolidation - 2026-07-04
+
+The Phase 2 accounts slice now has accumulated evidence for the pieces requested
+by the previous status guard:
+
+- real `Contas Financeiras` opening balances persisted into the shadow ledger;
+- `accounts` enabled only as canary read domain together with `transactions` and
+  `transfers`;
+- current balances limited to `settled` movements;
+- marker-only dated movements covering expense, income, settled transfer and
+  pending transfer;
+- explicit `Conta Financeira` contract for `Saidas` and `Entradas`;
+- conversational account capture for unit expense/income outside credit;
+- conversational origin/destination capture for unit transfers;
+- production marker cleanup with baseline balances restored.
+
+Evidence report:
+`docs/qa/phase-2-accounts-dates-status-consolidation-2026-07-04.md`.
+
+Decision: `GO` to close the capture/projection sub-slice for accounts, dates and
+status. `NO-GO` to promote canonical account balances as the broad primary source
+for WhatsApp/dashboard answers. The next Phase 2 slice is a read-side
+saldo/contas gate comparing WhatsApp, read-model, canary `accounts`, Sheets and
+dashboard before any cutover or legacy removal.

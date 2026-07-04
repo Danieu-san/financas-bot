@@ -907,3 +907,11 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Limpeza marker-only fez backup do SQLite shadow em `data/backups/canonical_ledger_shadow.pre-transfer-smoke-cleanup-2026-07-04T04-10-15-899Z.sqlite`, removeu 1 linha de `Transferências` e 1 run canonico. Pos-limpeza: zero linhas/eventos/projecoes dos dois marcadores e saldos voltaram ao baseline das quatro contas reais.
 - Pos-check: dashboard health `{"ok":true,"sqlite":true}`, `state_store.json` remoto valido, PM2/WhatsApp ativos. Logs recentes continham apenas avisos de performance Gemini durante o smoke, sem erro operacional novo.
 - Veredito: GO para encerrar a captura explicita de contas em transferencias unitarias da Fase 2. Ainda NO-GO para saldo canonico como fonte primaria ampla; proximo passo do roadmap e consolidar gate da Fase 2 accounts/datas/status e decidir a proxima fatia sem avancar para Fase 3 nem remover legado.
+
+## Fase 2 accounts/dates/status consolidation gate - 2026-07-04
+
+- Gate consolidado registrado em `docs/qa/phase-2-accounts-dates-status-consolidation-2026-07-04.md`.
+- A evidencia acumulada cobre fonte real de contas, canary `accounts`, status `settled` para saldo atual, movimentos marker-only datados, contrato explicito `Conta Financeira`, captura de gasto/entrada por conta e captura de transferencias com origem/destino.
+- Decisao: GO para encerrar a subfatia de captura/projecao de contas, datas e status da Fase 2; NO-GO para promover saldos canonicos como fonte primaria ampla.
+- Flags permanecem inalteradas: Gemini Planner ativo, Command Planner em canary, `INTERPRETATION_RELIABILITY_MODE=shadow` e `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transactions,transfers,accounts`.
+- Proximo passo do roadmap: ainda Fase 2, gate de leitura de saldos/contas comparando WhatsApp, read-model atual, canary `accounts`, Sheets e dashboard antes de qualquer cutover de respostas.
