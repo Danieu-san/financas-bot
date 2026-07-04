@@ -123,6 +123,9 @@ class CanonicalLedgerShadowStore {
 
             for (const account of projected.accounts || []) this.insertAccount(runId, account);
             for (const event of projected.events || []) this.insertEvent(runId, event);
+            for (const invoice of projected.invoices || []) this.insertInvoice(runId, invoice);
+            for (const item of projected.invoiceItems || []) this.insertInvoiceItem(runId, item);
+            for (const payment of projected.invoicePayments || []) this.insertInvoicePayment(runId, payment);
             for (const line of projected.lines || []) this.insertLine(runId, line);
             for (const schedule of projected.schedules || []) this.insertSchedule(runId, schedule);
             for (const link of projected.reconciliationLinks || []) this.insertReconciliationLink(runId, link);
@@ -155,6 +158,9 @@ class CanonicalLedgerShadowStore {
             'canonical_ledger_accounts',
             'canonical_ledger_reconciliation_links',
             'canonical_ledger_schedules',
+            'canonical_ledger_invoice_payments',
+            'canonical_ledger_invoice_items',
+            'canonical_ledger_invoices',
             'canonical_ledger_event_lines',
             'canonical_ledger_events',
             'canonical_ledger_projection_runs'
@@ -255,6 +261,64 @@ class CanonicalLedgerShadowStore {
         );
     }
 
+    insertInvoice(runId, invoice) {
+        this.db.prepare(`
+            INSERT INTO canonical_ledger_invoices (
+                run_id, invoice_id, household_id, owner_person_id, card_key,
+                card_name, competence_month, due_on, currency,
+                observed_item_total_cents, observed_payment_total_cents, status,
+                invoice_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+            runId,
+            invoice.invoice_id,
+            invoice.household_id || null,
+            invoice.owner_person_id || null,
+            invoice.card_key,
+            invoice.card_name || null,
+            invoice.competence_month,
+            invoice.due_on || null,
+            invoice.currency || 'BRL',
+            invoice.observed_item_total_cents || 0,
+            invoice.observed_payment_total_cents || 0,
+            invoice.status || 'empty',
+            JSON.stringify(invoice)
+        );
+    }
+
+    insertInvoiceItem(runId, item) {
+        this.db.prepare(`
+            INSERT INTO canonical_ledger_invoice_items (
+                run_id, invoice_item_id, invoice_id, event_id, amount_cents,
+                currency, item_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).run(
+            runId,
+            item.invoice_item_id,
+            item.invoice_id,
+            item.event_id,
+            item.amount_cents,
+            item.currency || 'BRL',
+            JSON.stringify(item)
+        );
+    }
+
+    insertInvoicePayment(runId, payment) {
+        this.db.prepare(`
+            INSERT INTO canonical_ledger_invoice_payments (
+                run_id, invoice_payment_id, invoice_id, event_id, amount_cents,
+                currency, payment_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).run(
+            runId,
+            payment.invoice_payment_id,
+            payment.invoice_id,
+            payment.event_id,
+            payment.amount_cents,
+            payment.currency || 'BRL',
+            JSON.stringify(payment)
+        );
+    }
     insertSchedule(runId, schedule) {
         this.db.prepare(`
             INSERT INTO canonical_ledger_schedules (
@@ -353,6 +417,72 @@ class CanonicalLedgerShadowStore {
         `).all(runId);
     }
 
+    listInvoiceAggregates({ reportType = '' } = {}) {
+        return this.db.prepare(`
+            WITH ranked_invoices AS (
+                SELECT i.*,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY i.invoice_id
+                        ORDER BY r.created_at DESC, i.run_id DESC
+                    ) AS row_rank
+                FROM canonical_ledger_invoices i
+                JOIN canonical_ledger_projection_runs r ON r.run_id = i.run_id
+                WHERE (? = '' OR r.report_type = ?)
+            ),
+            ranked_items AS (
+                SELECT i.*,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY i.invoice_item_id
+                        ORDER BY r.created_at DESC, i.run_id DESC
+                    ) AS row_rank
+                FROM canonical_ledger_invoice_items i
+                JOIN canonical_ledger_projection_runs r ON r.run_id = i.run_id
+                WHERE (? = '' OR r.report_type = ?)
+            ),
+            ranked_payments AS (
+                SELECT p.*,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY p.invoice_payment_id
+                        ORDER BY r.created_at DESC, p.run_id DESC
+                    ) AS row_rank
+                FROM canonical_ledger_invoice_payments p
+                JOIN canonical_ledger_projection_runs r ON r.run_id = p.run_id
+                WHERE (? = '' OR r.report_type = ?)
+            ),
+            item_totals AS (
+                SELECT invoice_id, SUM(amount_cents) AS total_cents, COUNT(*) AS item_count
+                FROM ranked_items
+                WHERE row_rank = 1
+                GROUP BY invoice_id
+            ),
+            payment_totals AS (
+                SELECT invoice_id, SUM(amount_cents) AS total_cents, COUNT(*) AS payment_count
+                FROM ranked_payments
+                WHERE row_rank = 1
+                GROUP BY invoice_id
+            )
+            SELECT i.invoice_id, i.household_id, i.owner_person_id, i.card_key,
+                i.card_name, i.competence_month, i.due_on, i.currency,
+                COALESCE(items.total_cents, 0) AS item_total_cents,
+                COALESCE(payments.total_cents, 0) AS payment_total_cents,
+                COALESCE(items.item_count, 0) AS item_count,
+                COALESCE(payments.payment_count, 0) AS payment_count,
+                CASE
+                    WHEN COALESCE(items.total_cents, 0) > 0
+                        AND COALESCE(payments.total_cents, 0) >= items.total_cents THEN 'paid'
+                    WHEN COALESCE(items.total_cents, 0) > 0
+                        AND COALESCE(payments.total_cents, 0) > 0 THEN 'partially_paid'
+                    WHEN COALESCE(items.total_cents, 0) > 0 THEN 'open'
+                    WHEN COALESCE(payments.total_cents, 0) > 0 THEN 'payment_observed'
+                    ELSE 'empty'
+                END AS status
+            FROM ranked_invoices i
+            LEFT JOIN item_totals items ON items.invoice_id = i.invoice_id
+            LEFT JOIN payment_totals payments ON payments.invoice_id = i.invoice_id
+            WHERE i.row_rank = 1
+            ORDER BY i.competence_month, i.card_key, i.invoice_id
+        `).all(reportType, reportType, reportType, reportType, reportType, reportType);
+    }
     backupTo(backupPath) {
         fs.mkdirSync(path.dirname(backupPath), { recursive: true });
         if (fs.existsSync(backupPath)) fs.unlinkSync(backupPath);

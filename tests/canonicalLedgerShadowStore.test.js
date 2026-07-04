@@ -49,7 +49,7 @@ test('canonical ledger shadow store applies versioned schema and keeps writes di
     const store = new CanonicalLedgerShadowStore({ dbPath });
 
     const migrations = store.applyMigrations();
-    assert.deepStrictEqual(migrations.map(migration => migration.version), [1, 2]);
+    assert.deepStrictEqual(migrations.map(migration => migration.version), [1, 2, 3]);
     assert.strictEqual(DEFAULT_MIGRATIONS_DIR.endsWith(path.join('src', 'ledger', 'migrations')), true);
 
     const tables = store.listTables();
@@ -59,6 +59,9 @@ test('canonical ledger shadow store applies versioned schema and keeps writes di
     assert.ok(tables.includes('canonical_ledger_reconciliation_links'));
     assert.ok(tables.includes('canonical_ledger_public_projection'));
     assert.ok(tables.includes('canonical_ledger_accounts'));
+    assert.ok(tables.includes('canonical_ledger_invoices'));
+    assert.ok(tables.includes('canonical_ledger_invoice_items'));
+    assert.ok(tables.includes('canonical_ledger_invoice_payments'));
     assert.ok(tables.includes('canonical_ledger_projection_runs'));
     assert.ok(tables.includes('canonical_ledger_audit_log'));
 
@@ -140,6 +143,19 @@ test('canonical ledger shadow store persists projection only when enabled and re
         auditRows: 1
     });
 
+    const invoices = store.listInvoiceAggregates();
+    assert.deepStrictEqual(
+        invoices.map(invoice => [
+            invoice.card_key,
+            invoice.competence_month,
+            invoice.item_total_cents,
+            invoice.payment_total_cents,
+            invoice.status,
+            invoice.item_count,
+            invoice.payment_count
+        ]),
+        [['nubank daniel', '2026-06', 50000, 50000, 'paid', 1, 1]]
+    );
     const publicRows = store.listPublicProjection(runId);
     assert.strictEqual(publicRows.length, 15);
     assert.ok(publicRows.some(row => row.kind === 'bill_payment' && row.free_budget_eligible === 0));
@@ -163,6 +179,16 @@ test('canonical ledger shadow store persists projection only when enabled and re
         projectionRuns: 1,
         auditRows: 1
     });
+    assert.deepStrictEqual(
+        restored.listInvoiceAggregates().map(invoice => [
+            invoice.card_key,
+            invoice.competence_month,
+            invoice.item_total_cents,
+            invoice.payment_total_cents,
+            invoice.status
+        ]),
+        [['nubank daniel', '2026-06', 50000, 50000, 'paid']]
+    );
 
     restored.close();
 });
