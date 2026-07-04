@@ -1,7 +1,7 @@
 # Phase 3 Plan - Recurrences, Installments, Bills and Invoices
 
 Date: 2026-07-04
-Status: started after Phase 2 exit GO
+Status: started after Phase 2 exit GO; slice 3A deployed, awaiting manual no-write production smoke
 
 ## Roadmap position
 
@@ -46,14 +46,16 @@ Implementation contract:
 - Credit remains rejected as a payment method for invoice payoff.
 - Operation key includes the paying account to avoid replaying a payment under a different account.
 
-Initial local evidence:
+Evidence:
 
 - RED reproduced the missing account question.
 - GREEN in `tests/financialStateMachine.test.js` confirms account selection, final confirmation and `Transferências` origin for `invoice.pay`.
+- Local focused state-machine tests passed 97/97.
+- Local full suite passed 674/674.
+- Local `npm audit --audit-level=high`, `git diff --check`, tracked NUL scan and JSON state validation passed.
+- Commit `251ff0f` deployed to EC2; health is OK, WhatsApp is ready, flags remain stable and remote state is valid/empty.
+- Remote isolated regression for `invoice.pay asks explicit paying account` passed 1/1.
 
 Next gate for this slice:
 
-- Run focused state-machine tests.
-- Run full suite, audit, diff check, tracked NUL scan and state validation.
-- Deploy only after local GO, then run a marker-only/manual invoice payoff smoke in production and clean it.
-
+- Run marker-only/manual invoice payoff smoke in production without saving: payment message, account selection, confirmation shows account, answer `nao`, and verify no write is created.

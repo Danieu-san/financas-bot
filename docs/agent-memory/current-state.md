@@ -2,6 +2,14 @@
 
 Atualizado em: 2026-07-04
 
+## Phase 3 invoice payoff paying account slice - 2026-07-04
+
+- Roadmap position: Phase 3, recurrences/installments/bills/invoices. Active slice: `invoice.pay` must ask which financial account paid the invoice before final confirmation.
+- Code commit `251ff0f` was deployed to EC2 and production is on `main...origin/main` at that commit. WhatsApp is ready, dashboard health is `{"ok":true,"sqlite":true}`, remote `state_store.json` is valid and empty, and flags remain: `FINANCIAL_AGENT_MODE=answer`, `FINANCIAL_AGENT_LLM_PLANNER_ENABLED=true`, `FINANCIAL_CONTEXTUAL_ANALYST_MODE=answer`, `FINANCIAL_COMMAND_PLANNER_MODE=canary`, `INTERPRETATION_RELIABILITY_MODE=shadow`, `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transactions,transfers,accounts`.
+- Local evidence: RED reproduced that `invoice.pay` skipped financial-account selection; GREEN made `invoice.pay` ask the paying account, show it in confirmation, write it as `Conta Origem` in `Transferências`, and include it in the operation key. Focused state-machine tests passed 97/97, full `npm test` passed 674/674, `npm audit --audit-level=high` found 0 vulnerabilities, `git diff --check` passed with only LF/CRLF warnings, tracked NUL scan was clean, and local `state_store.json` was valid JSON with unchanged pre-existing synthetic onboarding state.
+- Remote evidence: isolated production checkout test for `invoice.pay asks explicit paying account` passed 1/1 after deploy. Full remote focused file output was inconsistent in count, so the local full suite plus isolated remote regression are the recorded evidence.
+- Remaining gate for this slice: manual WhatsApp smoke without saving, using an existing card invoice, must show the financial-account question, then final confirmation with `Conta: ...`, then cancellation with no write.
+
 ## Phase 2 account-balance read-side corrective gate - 2026-07-04
 
 - Roadmap position remains Phase 2, accounts/dates/status. Active slice: route current financial-account balance questions through the canonical `accounts` canary. Legacy removal, dashboard cutover and canonical writes are out of scope.
@@ -973,5 +981,5 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Phase 3 was opened under `docs/plans/phase-3-recurring-invoices-installments-plan.md`; legacy removal remains Phase 8 and flags remain preserved.
 - First Phase 3 slice selected: `3A - invoice payoff with paying account`, because `invoice.pay` should debit an explicit financial account now that Phase 2 accounts are available.
 - Local RED/GREEN: `invoice.pay` with active `Contas Financeiras` now asks which account paid, shows `Conta` in confirmation, includes the account in the operation key/telemetry and writes it as `Conta Origem` in `Transferências`. Focused state-machine test passed 97/97.
-- Local verification after the 3A RED/GREEN: focused state-machine 97/97, full suite 674/674,
-pm audit --audit-level=high zero vulnerabilities, git diff --check clean, tracked NUL scan clean, state_store.json valid with the pre-existing synthetic onboarding state unchanged. Still pending before production GO: commit/deploy and production marker-only/manual smoke.
+- Local verification after the 3A RED/GREEN: focused state-machine 97/97, full suite 674/674, npm audit --audit-level=high zero vulnerabilities, git diff --check clean, tracked NUL scan clean, state_store.json valid with the pre-existing synthetic onboarding state unchanged.
+- Deploy of slice 3A completed at commit `251ff0f`; EC2 health/WhatsApp/flags/state are green. Still pending before production GO for the slice: manual no-write invoice payoff smoke.
