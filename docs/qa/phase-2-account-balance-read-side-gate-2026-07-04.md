@@ -83,3 +83,10 @@ TDD evidence for the corrective change:
 - syntax, diff check, NUL scan and JSON state validation: clean.
 
 Decision remains `NO-GO` in production until the corrective commit is deployed and the same five WhatsApp questions are repeated successfully. No rollout flag is changed by this correction.
+## Second production smoke and SQLite path correction
+
+After commit `943b38f`, all four account questions reached `saldo_contas_financeiras`, while the card guard remained correct. The Financial Agent still fell back because LangGraph converted an omitted canonical database path to an empty string. Better SQLite treated that value as a temporary database and rejected `readonly` mode.
+
+The regression test now follows the production contract: `CANONICAL_LEDGER_SHADOW_DB_PATH` is supplied through the environment and no explicit runtime path is injected. RED reproduced `In-memory/temporary databases cannot be readonly`; GREEN preserves `undefined` in LangGraph so the canonical reader resolves the configured environment path.
+
+Corrective evidence: focused tests 334/334 and full suite 671/671. Production remains `NO-GO` until this correction is deployed and the same five-question smoke passes.

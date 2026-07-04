@@ -926,7 +926,7 @@ export async function invokeFinancialAgentRuntime(input = {}) {
         personByUserId: input.personByUserId || {},
         financialQueryPlan: input.financialQueryPlan || null,
         currentDate: input.currentDate || '',
-        canonicalLedgerDbPath: input.canonicalLedgerDbPath || '',
+        canonicalLedgerDbPath: input.canonicalLedgerDbPath || undefined,
         mode: input.mode || 'shadow'
     });
     return {

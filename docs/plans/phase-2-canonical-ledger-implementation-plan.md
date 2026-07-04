@@ -329,3 +329,6 @@ paths are changed by this slice.
 The first production smoke after `f928094` was `NO-GO`: legacy local analytical classification intercepted account-balance wording before LangGraph received the canonical `accounts` plan. The correction moves account-balance recognition to that upstream boundary and keeps explicit card/invoice and recurring-bill guards.
 
 Local corrective evidence passed 334/334 focused tests and 671/671 in the full suite, with audit, syntax, diff, NUL and state checks clean. Production remains `NO-GO` until redeploy plus repetition of the five-question smoke. This remains inside Phase 2; it does not remove legacy code or change the preserved flags.
+### Canonical SQLite Path Correction - 2026-07-04
+
+The second WhatsApp smoke proved upstream routing was fixed but exposed an environment-path integration gap: LangGraph replaced an omitted canonical database path with an empty string, causing a temporary SQLite database to be opened in `readonly` mode. TDD now covers the real environment-only path contract; focused tests passed 334/334 and the full suite 671/671. Production remains `NO-GO` pending redeploy and repeated smoke.

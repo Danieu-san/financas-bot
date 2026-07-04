@@ -569,7 +569,8 @@ test('financial agent answers account balance questions from the canonical accou
         CANONICAL_LEDGER_PRODUCTION_SHADOW_APPROVED: 'true',
         CANONICAL_LEDGER_CANARY_READ_ENABLED: 'true',
         CANONICAL_LEDGER_CANARY_READ_APPROVED: 'true',
-        CANONICAL_LEDGER_CANARY_READ_DOMAINS: 'accounts'
+        CANONICAL_LEDGER_CANARY_READ_DOMAINS: 'accounts',
+        CANONICAL_LEDGER_SHADOW_DB_PATH: dbPath
     };
     const originalEnv = {};
     for (const [key, value] of Object.entries(env)) {
@@ -590,7 +591,6 @@ test('financial agent answers account balance questions from the canonical accou
                 timeBasis: 'current_state'
             },
             mode: 'answer',
-            canonicalLedgerDbPath: dbPath
         });
 
         assert.strictEqual(totalResult.action, 'answer', JSON.stringify(totalResult));

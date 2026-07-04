@@ -10,6 +10,7 @@ Atualizado em: 2026-07-04
 - Corrective TDD evidence: RED reproduced `saldo_do_mes`; GREEN passed 334/334 focused tests and 671/671 full tests. Audit high found zero vulnerabilities; syntax, diff, NUL and JSON state checks are clean.
 - Flags remain unchanged, including Gemini planner active and `INTERPRETATION_RELIABILITY_MODE=shadow`.
 - Gate: deploy the corrective commit and repeat the five-question WhatsApp smoke. Only then decide production GO and advance to the next Phase 2 slice.
+- Second smoke: routing was correct, but LangGraph forced an empty canonical SQLite path; Better SQLite rejected the temporary database in readonly mode. The environment-only path regression is now RED/GREEN, with 334/334 focused and 671/671 full tests. Redeploy and the same smoke remain the gate.
 
 ## Produto
 
