@@ -192,6 +192,8 @@ function makeEvent(sourceType, sourceRowRef, row, overrides) {
         category: overrides.category !== undefined ? overrides.category : row.categoria || null,
         subcategory: overrides.subcategory !== undefined ? overrides.subcategory : row.subcategoria || null,
         category_status: overrides.category_status || 'resolved',
+        recurrence_rule_id: overrides.recurrence_rule_id || null,
+        recurrence_occurrence_id: overrides.recurrence_occurrence_id || null,
         free_budget_eligible: overrides.free_budget_eligible !== undefined ? overrides.free_budget_eligible : true,
         net_income_expense_impact: overrides.net_income_expense_impact !== undefined
             ? overrides.net_income_expense_impact
@@ -233,10 +235,14 @@ function makeLink(event, linkType, relatedEventId, externalHashSeed = {}) {
 }
 
 function billDueDate(competenceMonth, dueDay) {
-    const day = String(Number(dueDay || 1)).padStart(2, '0');
-    return `${competenceMonth}-${day}`;
+    if (!/^\d{4}-\d{2}$/.test(String(competenceMonth || ''))) return null;
+    const [year, month] = String(competenceMonth).split('-').map(Number);
+    const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    const parsedDay = Number(dueDay || 1);
+    const nominalDay = Number.isFinite(parsedDay) ? parsedDay : 1;
+    const normalizedDay = Math.min(Math.max(nominalDay, 1), lastDay);
+    return competenceMonth + '-' + String(normalizedDay).padStart(2, '0');
 }
-
 function normalizeBill(row) {
     return {
         sourceRowRef: sourceRef(row, `contas-${hash(row, 8)}`),
@@ -244,7 +250,7 @@ function normalizeBill(row) {
         name: row.nome_amigavel || row.nome || '',
         category: row.categoria || '',
         subcategory: row.subcategoria || '',
-        dueDay: row.dia_vencimento || row.due_day || 1,
+        dueDay: Number(row.dia_vencimento || row.due_day || 1),
         expectedAmountCents: cents(row.valor_esperado || row.valor)
     };
 }
@@ -271,6 +277,64 @@ function isMarkedRecurringExpense(row = {}) {
     return ['sim', 's', 'true', '1'].includes(recurring);
 }
 
+function materializeCompetenceMonths(input = {}) {
+    const explicit = input.projectionContext?.materializeCompetenceMonths;
+    const months = Array.isArray(explicit) && explicit.length > 0
+        ? explicit
+        : [input.projectionContext?.competenceMonth];
+    return [...new Set(months.filter(month => /^\d{4}-\d{2}$/.test(String(month || ''))))].sort();
+}
+
+function recurrenceRuleId(input, bill) {
+    return `rr_${hash({
+        householdId: input.householdId || '',
+        sourceType: 'sheet.contas',
+        sourceRowRef: bill.sourceRowRef
+    })}`;
+}
+
+function makeRecurrenceRule(input, bill) {
+    return {
+        recurrence_rule_id: recurrenceRuleId(input, bill),
+        household_id: input.householdId || null,
+        owner_person_id: bill.ownerPersonId,
+        source_type: 'sheet.contas',
+        source_row_ref: bill.sourceRowRef,
+        rule_type: 'bill',
+        status: 'active',
+        description: String(bill.name || '').trim(),
+        frequency: 'monthly',
+        start_on: null,
+        end_on: null,
+        due_day: Number(bill.dueDay || 1),
+        amount_cents: bill.expectedAmountCents,
+        currency: 'BRL',
+        category: bill.category || null,
+        subcategory: bill.subcategory || null
+    };
+}
+
+function makeRecurrenceOccurrence(rule, competenceMonth) {
+    return {
+        recurrence_occurrence_id: `occ_${hash({
+            recurrenceRuleId: rule.recurrence_rule_id,
+            competenceMonth
+        })}`,
+        recurrence_rule_id: rule.recurrence_rule_id,
+        occurrence_event_id: null,
+        settled_event_id: null,
+        source_type: rule.source_type,
+        source_row_ref: rule.source_row_ref,
+        competence_month: competenceMonth,
+        due_on: billDueDate(competenceMonth, rule.due_day),
+        status: 'pending',
+        amount_cents: rule.amount_cents,
+        currency: rule.currency,
+        description: rule.description,
+        category: rule.category,
+        subcategory: rule.subcategory
+    };
+}
 function isUnknownCategory(row) {
     const category = normalizeText(row.categoria || '');
     return !category || category === 'outros' || category === 'outro' || category === 'sem categoria';
@@ -284,13 +348,25 @@ function addEvent(collection, event, lines) {
 function projectBills(input, collection) {
     const rows = input.legacyRows?.contas || [];
     const competenceMonth = input.projectionContext?.competenceMonth;
+    const materializedMonths = materializeCompetenceMonths(input);
     const bills = rows
         .filter(row => normalizeText(row.regra_ativa || 'SIM') !== 'nao')
         .map(normalizeBill);
 
     for (const bill of bills) {
         const row = rows.find(item => sourceRef(item, '') === bill.sourceRowRef) || {};
+        const rule = makeRecurrenceRule(input, bill);
+        collection.recurrenceRules.push(rule);
+
+        for (const month of materializedMonths) {
+            collection.recurrenceOccurrences.push(makeRecurrenceOccurrence(rule, month));
+        }
+
         const dueOn = billDueDate(competenceMonth, bill.dueDay);
+        const currentOccurrence = collection.recurrenceOccurrences.find(occurrence =>
+            occurrence.recurrence_rule_id === rule.recurrence_rule_id &&
+            occurrence.competence_month === competenceMonth
+        );
         const event = makeEvent('sheet.contas', bill.sourceRowRef, row, {
             household_id: input.householdId,
             owner_person_id: bill.ownerPersonId,
@@ -304,9 +380,12 @@ function projectBills(input, collection) {
             due_on: dueOn,
             category: bill.category,
             subcategory: bill.subcategory,
+            recurrence_rule_id: rule.recurrence_rule_id,
+            recurrence_occurrence_id: currentOccurrence?.recurrence_occurrence_id || null,
             free_budget_eligible: false,
             net_income_expense_impact: 0
         });
+        if (currentOccurrence) currentOccurrence.occurrence_event_id = event.event_id;
         collection.schedules.push({
             schedule_id: `sch_${hash({ bill, competenceMonth })}`,
             household_id: input.householdId,
@@ -353,6 +432,18 @@ function projectExpenses(input, collection, bills) {
         ]);
         if (expectedEvent) {
             collection.reconciliationLinks.push(makeLink(event, 'payment', expectedEvent.event_id, { ref, matchingBill }));
+            const occurrence = collection.recurrenceOccurrences.find(item =>
+                item.recurrence_rule_id === expectedEvent.recurrence_rule_id &&
+                item.competence_month === event.competence_month
+            );
+            if (occurrence) {
+                occurrence.status = 'settled';
+                occurrence.settled_event_id = event.event_id;
+                collection.reconciliationLinks.push(makeLink(event, 'recurrence_occurrence_payment', occurrence.occurrence_event_id, {
+                    ref,
+                    recurrenceOccurrenceId: occurrence.recurrence_occurrence_id
+                }));
+            }
         }
         if (unknownCategory) {
             collection.warnings.push({
@@ -648,6 +739,8 @@ function projectLegacyRowsToCanonicalLedger(input = {}) {
         invoices: [],
         invoiceItems: [],
         invoicePayments: [],
+        recurrenceRules: [],
+        recurrenceOccurrences: [],
         reconciliationLinks: [],
         warnings: []
     };
@@ -669,6 +762,10 @@ function projectLegacyRowsToCanonicalLedger(input = {}) {
     collection.invoices.sort((a, b) => a.invoice_id.localeCompare(b.invoice_id));
     collection.invoiceItems.sort((a, b) => a.invoice_item_id.localeCompare(b.invoice_item_id));
     collection.invoicePayments.sort((a, b) => a.invoice_payment_id.localeCompare(b.invoice_payment_id));
+    collection.recurrenceRules.sort((a, b) => a.recurrence_rule_id.localeCompare(b.recurrence_rule_id));
+    collection.recurrenceOccurrences.sort((a, b) =>
+        (a.competence_month + ':' + a.recurrence_occurrence_id).localeCompare(b.competence_month + ':' + b.recurrence_occurrence_id)
+    );
     collection.reconciliationLinks.sort((a, b) => a.link_id.localeCompare(b.link_id));
     collection.warnings.sort((a, b) => `${a.code}:${a.event_id}`.localeCompare(`${b.code}:${b.event_id}`));
 

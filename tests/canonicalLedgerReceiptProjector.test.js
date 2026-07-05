@@ -282,6 +282,8 @@ test('canonical receipt shadow persistence is idempotent by operation key', () =
         lines: 2,
         schedules: 0,
         reconciliationLinks: 0,
+        recurrenceRules: 0,
+        recurrenceOccurrences: 0,
         publicProjectionRows: 1,
         projectionRuns: 1,
         auditRows: 1

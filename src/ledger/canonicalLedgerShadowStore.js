@@ -126,6 +126,8 @@ class CanonicalLedgerShadowStore {
             for (const invoice of projected.invoices || []) this.insertInvoice(runId, invoice);
             for (const item of projected.invoiceItems || []) this.insertInvoiceItem(runId, item);
             for (const payment of projected.invoicePayments || []) this.insertInvoicePayment(runId, payment);
+            for (const rule of projected.recurrenceRules || []) this.insertRecurrenceRule(runId, rule);
+            for (const occurrence of projected.recurrenceOccurrences || []) this.insertRecurrenceOccurrence(runId, occurrence);
             for (const line of projected.lines || []) this.insertLine(runId, line);
             for (const schedule of projected.schedules || []) this.insertSchedule(runId, schedule);
             for (const link of projected.reconciliationLinks || []) this.insertReconciliationLink(runId, link);
@@ -157,6 +159,8 @@ class CanonicalLedgerShadowStore {
             'canonical_ledger_public_projection',
             'canonical_ledger_accounts',
             'canonical_ledger_reconciliation_links',
+            'canonical_ledger_recurrence_occurrences',
+            'canonical_ledger_recurrence_rules',
             'canonical_ledger_schedules',
             'canonical_ledger_invoice_payments',
             'canonical_ledger_invoice_items',
@@ -314,6 +318,64 @@ class CanonicalLedgerShadowStore {
             JSON.stringify(payment)
         );
     }
+
+    insertRecurrenceRule(runId, rule) {
+        this.db.prepare(`
+            INSERT INTO canonical_ledger_recurrence_rules (
+                run_id, recurrence_rule_id, household_id, owner_person_id,
+                source_type, source_row_ref, rule_type, status, description,
+                frequency, start_on, end_on, due_day, amount_cents, currency,
+                category, subcategory, rule_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+            runId,
+            rule.recurrence_rule_id,
+            rule.household_id || null,
+            rule.owner_person_id || null,
+            rule.source_type,
+            rule.source_row_ref || null,
+            rule.rule_type,
+            rule.status,
+            rule.description || null,
+            rule.frequency,
+            rule.start_on || null,
+            rule.end_on || null,
+            rule.due_day || null,
+            rule.amount_cents,
+            rule.currency || 'BRL',
+            rule.category || null,
+            rule.subcategory || null,
+            JSON.stringify(rule)
+        );
+    }
+
+    insertRecurrenceOccurrence(runId, occurrence) {
+        this.db.prepare(`
+            INSERT INTO canonical_ledger_recurrence_occurrences (
+                run_id, recurrence_occurrence_id, recurrence_rule_id,
+                occurrence_event_id, settled_event_id, source_type, source_row_ref,
+                competence_month, due_on, status, amount_cents, currency,
+                description, category, subcategory, occurrence_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+            runId,
+            occurrence.recurrence_occurrence_id,
+            occurrence.recurrence_rule_id,
+            occurrence.occurrence_event_id || null,
+            occurrence.settled_event_id || null,
+            occurrence.source_type,
+            occurrence.source_row_ref || null,
+            occurrence.competence_month,
+            occurrence.due_on || null,
+            occurrence.status,
+            occurrence.amount_cents,
+            occurrence.currency || 'BRL',
+            occurrence.description || null,
+            occurrence.category || null,
+            occurrence.subcategory || null,
+            JSON.stringify(occurrence)
+        );
+    }
     insertSchedule(runId, schedule) {
         this.db.prepare(`
             INSERT INTO canonical_ledger_schedules (
@@ -395,6 +457,8 @@ class CanonicalLedgerShadowStore {
             lines: count('canonical_ledger_event_lines'),
             schedules: count('canonical_ledger_schedules'),
             reconciliationLinks: count('canonical_ledger_reconciliation_links'),
+            recurrenceRules: count('canonical_ledger_recurrence_rules'),
+            recurrenceOccurrences: count('canonical_ledger_recurrence_occurrences'),
             publicProjectionRows: count('canonical_ledger_public_projection'),
             projectionRuns: count('canonical_ledger_projection_runs'),
             auditRows: count('canonical_ledger_audit_log')

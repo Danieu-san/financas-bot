@@ -202,6 +202,60 @@ Required fields:
 The sum of lines is not required to model a full accounting journal in v1, but
 line semantics must be enough to avoid double counting.
 
+### `recurrence_rules`
+
+Versioned rules for recurring bills and, later, recurring receivables. A rule is
+not a cash movement and must not affect free budget by itself.
+
+Required fields for v1:
+
+- `recurrence_rule_id`
+- `household_id`
+- `owner_person_id`
+- `source_type` and `source_row_ref`
+- `rule_type`: `bill` initially
+- `status`: `active`, `inactive`, `cancelled`
+- `description`
+- `frequency`: `monthly` initially
+- `start_on` and `end_on`
+- `due_day`: nominal day in the month; materialization clamps it to the last real
+  day when the month is shorter
+- `amount_cents`
+- `currency`
+- `category` and `subcategory`
+
+Editing a rule creates a new effective version in a later slice; settled
+occurrences keep the rule snapshot that generated them.
+
+### `recurrence_occurrences`
+
+Deterministic expected items materialized for a projection window. An occurrence
+is the audit bridge between a recurrence rule and a settled payment, but it is
+not precreated as definitive future spend.
+
+Required fields for v1:
+
+- `recurrence_occurrence_id`
+- `recurrence_rule_id`
+- `occurrence_event_id`: expected ledger event for the current projected
+  competence when one is emitted
+- `settled_event_id`: payment event when settled
+- `source_type` and `source_row_ref`
+- `competence_month`
+- `due_on`
+- `status`: `pending`, `settled`, `cancelled`, `uncertain`
+- `amount_cents`
+- `currency`
+- `description`
+- `category` and `subcategory`
+
+Invariants:
+
+- One active rule materializes at most one occurrence per competence.
+- Paying a bill links the payment to the expected occurrence and keeps the
+  payment out of free budget consumption.
+- Re-materializing the same window is idempotent.
+- Pending occurrences do not change current cash balance or consumption totals.
 ### `ledger_schedules`
 
 Rules and expected future items.

@@ -1,6 +1,17 @@
 # Estado atual do FinancasBot
 
-Atualizado em: 2026-07-04
+Atualizado em: 2026-07-05
+
+## Phase 3 slice 3C recurrence rules local GO - 2026-07-05
+
+- Roadmap position: Phase 3, slice `3C - Regras de recorrencia e ocorrencias materializadas`; legacy removal remains Phase 8 and no production flags were changed locally.
+- Implemented canonical `recurrenceRules` and `recurrenceOccurrences` projection from active `Contas` rows, with deterministic monthly materialization windows, due-day clamping for short months, inactive-rule exclusion and idempotent duplicate-month handling.
+- Linked recurring bill payments to the expected occurrence via `recurrence_occurrence_payment`, preserving `bill_payment` as a cash movement with `free_budget_eligible=false` and `net_income_expense_impact=0`, so paying a recurring bill does not become free daily spending.
+- Added migration `004_canonical_ledger_recurrences.sql` and shadow-store persistence/counting for recurrence rules and occurrences; parity reports now expose recurrence counts.
+- Spec updated in `docs/specs/canonical-financial-ledger.md` with v1 recurrence rule/occurrence fields and invariants.
+- Evidence: RED projector tests were added for day 31 clamping, year turn/idempotent materialization, inactive rules and payment-to-occurrence settlement. Focused ledger suite passed `47/47`; full `npm test` passed `684/684`; `npm audit --audit-level=high` found 0 vulnerabilities; `git diff --check` passed; NUL/backspace scan found no matches; `state_store.json` parsed as valid JSON.
+- Decision: local `GO` for the schema/projection part of 3C. Production deploy still requires commit/push, EC2 fast-forward, schema migration visibility, remote focused tests, health/state/flag verification and a marker-only/manual smoke for a paid and unpaid recurring bill occurrence.
+- Next roadmap step: expose/read canary upcoming recurrence occurrences only behind allowed domain, then deploy with flags preserved and decide production GO/NO-GO for 3C.
 
 ## Roadmap step-by-step breakdown - 2026-07-05
 

@@ -49,7 +49,7 @@ test('canonical ledger shadow store applies versioned schema and keeps writes di
     const store = new CanonicalLedgerShadowStore({ dbPath });
 
     const migrations = store.applyMigrations();
-    assert.deepStrictEqual(migrations.map(migration => migration.version), [1, 2, 3]);
+    assert.deepStrictEqual(migrations.map(migration => migration.version), [1, 2, 3, 4]);
     assert.strictEqual(DEFAULT_MIGRATIONS_DIR.endsWith(path.join('src', 'ledger', 'migrations')), true);
 
     const tables = store.listTables();
@@ -62,6 +62,8 @@ test('canonical ledger shadow store applies versioned schema and keeps writes di
     assert.ok(tables.includes('canonical_ledger_invoices'));
     assert.ok(tables.includes('canonical_ledger_invoice_items'));
     assert.ok(tables.includes('canonical_ledger_invoice_payments'));
+    assert.ok(tables.includes('canonical_ledger_recurrence_rules'));
+    assert.ok(tables.includes('canonical_ledger_recurrence_occurrences'));
     const invoiceColumns = store.db.prepare('PRAGMA table_info(canonical_ledger_invoices)').all().map(column => column.name);
     assert.ok(!invoiceColumns.includes('observed_item_total_cents'));
     assert.ok(!invoiceColumns.includes('observed_payment_total_cents'));
@@ -82,6 +84,8 @@ test('canonical ledger shadow store applies versioned schema and keeps writes di
         lines: 0,
         schedules: 0,
         reconciliationLinks: 0,
+        recurrenceRules: 0,
+        recurrenceOccurrences: 0,
         publicProjectionRows: 0,
         projectionRuns: 0,
         auditRows: 0
@@ -141,7 +145,9 @@ test('canonical ledger shadow store persists projection only when enabled and re
         events: 15,
         lines: projection.projected.lines.length,
         schedules: 2,
-        reconciliationLinks: 5,
+        reconciliationLinks: 6,
+        recurrenceRules: 1,
+        recurrenceOccurrences: 1,
         publicProjectionRows: 15,
         projectionRuns: 1,
         auditRows: 1
@@ -178,7 +184,9 @@ test('canonical ledger shadow store persists projection only when enabled and re
         events: 15,
         lines: projection.projected.lines.length,
         schedules: 2,
-        reconciliationLinks: 5,
+        reconciliationLinks: 6,
+        recurrenceRules: 1,
+        recurrenceOccurrences: 1,
         publicProjectionRows: 15,
         projectionRuns: 1,
         auditRows: 1
@@ -226,5 +234,7 @@ test('canonical ledger dry-run writes SQLite shadow only with explicit opt-in', 
     const store = new CanonicalLedgerShadowStore({ dbPath });
     store.applyMigrations();
     assert.strictEqual(store.countRows(runId).events, 15);
+    assert.strictEqual(store.countRows(runId).recurrenceRules, 1);
+    assert.strictEqual(store.countRows(runId).recurrenceOccurrences, 1);
     store.close();
 });

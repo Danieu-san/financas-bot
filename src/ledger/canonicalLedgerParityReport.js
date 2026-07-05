@@ -124,6 +124,8 @@ function buildCanonicalLedgerParityReport(input = {}, options = {}) {
             events: projected.events.length,
             lines: projected.lines.length,
             schedules: projected.schedules.length,
+            recurrence_rules: (projected.recurrenceRules || []).length,
+            recurrence_occurrences: (projected.recurrenceOccurrences || []).length,
             reconciliation_links: projected.reconciliationLinks.length,
             warnings: projected.warnings.length,
             public_projection_rows: publicProjection.length

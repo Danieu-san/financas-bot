@@ -60,6 +60,133 @@ test('canonical ledger links a paid recurring bill to its expected bill without 
     ));
 });
 
+test('canonical ledger materializes monthly recurring bill occurrences without precreating ledger spend', () => {
+    const recurringFixture = structuredClone(fixture);
+    recurringFixture.projectionContext = {
+        competenceMonth: '2026-02',
+        materializeCompetenceMonths: ['2026-02', '2026-03']
+    };
+    recurringFixture.legacyRows.contas[0] = {
+        ...recurringFixture.legacyRows.contas[0],
+        source_row_id: 'contas-dia-31',
+        nome: 'Condominio',
+        nome_amigavel: 'Condominio',
+        dia_vencimento: '31',
+        valor_esperado: '456,78'
+    };
+    recurringFixture.legacyRows.saidas = [];
+
+    const projected = projectLegacyRowsToCanonicalLedger(recurringFixture);
+
+    assert.strictEqual(projected.recurrenceRules.length, 1);
+    assert.match(projected.recurrenceRules[0].recurrence_rule_id, /^rr_[a-f0-9]{16}$/);
+    assert.strictEqual(projected.recurrenceRules[0].source_row_ref, 'contas-dia-31');
+    assert.strictEqual(projected.recurrenceRules[0].frequency, 'monthly');
+    assert.strictEqual(projected.recurrenceRules[0].due_day, 31);
+    assert.strictEqual(projected.recurrenceRules[0].amount_cents, 45678);
+
+    assert.deepStrictEqual(projected.recurrenceOccurrences.map(occurrence => ({
+        competence_month: occurrence.competence_month,
+        due_on: occurrence.due_on,
+        status: occurrence.status,
+        amount_cents: occurrence.amount_cents
+    })), [
+        {
+            competence_month: '2026-02',
+            due_on: '2026-02-28',
+            status: 'pending',
+            amount_cents: 45678
+        },
+        {
+            competence_month: '2026-03',
+            due_on: '2026-03-31',
+            status: 'pending',
+            amount_cents: 45678
+        }
+    ]);
+
+    const expectedBill = bySource(projected, 'contas-dia-31');
+    assert.strictEqual(expectedBill.kind, 'bill_expected');
+    assert.strictEqual(expectedBill.due_on, '2026-02-28');
+    assert.strictEqual(expectedBill.free_budget_eligible, false);
+    assert.strictEqual(expectedBill.net_income_expense_impact, 0);
+    assert.strictEqual(projected.events.filter(event => event.kind === 'bill_expected').length, 1);
+    assert.strictEqual(projected.events.some(event => event.kind === 'expense'), false);
+});
+
+test('canonical ledger materializes recurring bill occurrences across year turn idempotently', () => {
+    const recurringFixture = structuredClone(fixture);
+    recurringFixture.projectionContext = {
+        competenceMonth: '2026-12',
+        materializeCompetenceMonths: ['2026-12', '2027-01', '2026-12']
+    };
+    recurringFixture.legacyRows.contas[0] = {
+        ...recurringFixture.legacyRows.contas[0],
+        source_row_id: 'contas-virada-ano',
+        nome: 'Internet',
+        nome_amigavel: 'Internet',
+        dia_vencimento: '30',
+        valor_esperado: '99,90'
+    };
+    recurringFixture.legacyRows.saidas = [];
+
+    const projected = projectLegacyRowsToCanonicalLedger(recurringFixture);
+
+    assert.deepStrictEqual(projected.recurrenceOccurrences.map(occurrence => ({
+        competence_month: occurrence.competence_month,
+        due_on: occurrence.due_on,
+        amount_cents: occurrence.amount_cents
+    })), [
+        {
+            competence_month: '2026-12',
+            due_on: '2026-12-30',
+            amount_cents: 9990
+        },
+        {
+            competence_month: '2027-01',
+            due_on: '2027-01-30',
+            amount_cents: 9990
+        }
+    ]);
+    assert.strictEqual(projected.recurrenceOccurrences.length, 2);
+});
+
+test('canonical ledger does not materialize inactive recurring bill rules', () => {
+    const recurringFixture = structuredClone(fixture);
+    recurringFixture.projectionContext = {
+        competenceMonth: '2026-07',
+        materializeCompetenceMonths: ['2026-07']
+    };
+    recurringFixture.legacyRows.contas[0] = {
+        ...recurringFixture.legacyRows.contas[0],
+        source_row_id: 'contas-inativa',
+        nome: 'Conta inativa',
+        nome_amigavel: 'Conta inativa',
+        regra_ativa: 'nao'
+    };
+    recurringFixture.legacyRows.saidas = [];
+
+    const projected = projectLegacyRowsToCanonicalLedger(recurringFixture);
+
+    assert.strictEqual(projected.recurrenceRules.length, 0);
+    assert.strictEqual(projected.recurrenceOccurrences.length, 0);
+    assert.strictEqual(projected.events.some(event => event.source_row_ref === 'contas-inativa'), false);
+});
+
+test('canonical ledger links recurring bill payments to the materialized occurrence', () => {
+    const projected = projectLegacyRowsToCanonicalLedger(fixture);
+    const payment = bySource(projected, 'saidas-002');
+    const occurrence = projected.recurrenceOccurrences.find(item => item.source_row_ref === 'contas-001');
+
+    assert.ok(occurrence);
+    assert.strictEqual(occurrence.status, 'settled');
+    assert.strictEqual(occurrence.settled_event_id, payment.event_id);
+    assert.ok(projected.reconciliationLinks.some(link =>
+        link.link_type === 'recurrence_occurrence_payment' &&
+        link.event_id === payment.event_id &&
+        link.related_event_id === occurrence.occurrence_event_id
+    ));
+});
 test('canonical ledger separates card purchase competence from invoice payment cash movement', () => {
     const projected = projectLegacyRowsToCanonicalLedger(fixture);
 

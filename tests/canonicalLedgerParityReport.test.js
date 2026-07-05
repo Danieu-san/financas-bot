@@ -47,7 +47,9 @@ test('canonical ledger parity report summarizes fixture projection without unexp
     });
     assert.strictEqual(report.canonical_counts.events, 15);
     assert.strictEqual(report.canonical_counts.schedules, 2);
-    assert.strictEqual(report.canonical_counts.reconciliation_links, 5);
+    assert.strictEqual(report.canonical_counts.recurrence_rules, 1);
+    assert.strictEqual(report.canonical_counts.recurrence_occurrences, 1);
+    assert.strictEqual(report.canonical_counts.reconciliation_links, 6);
     assert.strictEqual(report.canonical_counts.warnings, 1);
     assert.strictEqual(report.totals_by_kind.bill_payment.amount_cents, 12000);
     assert.strictEqual(report.totals_by_kind.invoice_payment.amount_cents, 50000);

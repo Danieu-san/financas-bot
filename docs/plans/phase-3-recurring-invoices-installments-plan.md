@@ -35,6 +35,38 @@ No duplication when importing, paying invoice, restarting or editing recurrence 
 
 Detailed next slices after 3B are tracked in `docs/plans/family-financial-platform-step-by-step-roadmap.md`, starting with `3C - Regras de recorrencia e ocorrencias materializadas`.
 
+## Slice 3C - Recurrence rules and materialized occurrences
+
+Local status on 2026-07-05: `GO` for schema/projection, not yet deployed.
+
+Implemented locally:
+
+- Canonical recurrence rules projected from active `Contas` rows.
+- Materialized recurrence occurrences by explicit competence window.
+- Due-day clamping for short months and year-turn materialization.
+- Inactive rules excluded from projection.
+- Recurring bill payment linked to the expected occurrence while remaining out of free budget spend.
+- SQLite shadow migration `004_canonical_ledger_recurrences.sql` and store persistence for rules/occurrences.
+- Parity report recurrence counts and canonical ledger spec update.
+
+Evidence:
+
+- Focused ledger suite passed `47/47`.
+- Full `npm test` passed `684/684`.
+- `npm audit --audit-level=high` found 0 vulnerabilities.
+- `git diff --check` passed.
+- Control-character scan found no NUL/backspace matches.
+- `state_store.json` parsed as valid JSON.
+
+Remaining before production GO:
+
+- Commit/push and deploy to EC2.
+- Apply migration 004 in production shadow DB and verify table visibility.
+- Run remote focused tests for projector/store/receipt/parity.
+- Verify health, flags and `state_store.json` remotely.
+- Run marker-only/manual smoke for paid and unpaid recurring bill occurrence.
+- Decide production GO/NO-GO and record read-only canary scope for upcoming occurrences.
+
 ## Slice 3A - Invoice payoff with paying account
 
 Reason: after Phase 2, cash movements know financial accounts, but `invoice.pay` still could register a payment transfer without asking which account paid the invoice. That prevents account balances from reflecting invoice payoff cash movement.
