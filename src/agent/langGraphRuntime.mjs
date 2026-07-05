@@ -76,7 +76,8 @@ function domainLabel(domain) {
         debts: 'dívidas',
         bills: 'contas',
         dashboard: 'dashboard',
-        accounts: 'contas financeiras'
+        accounts: 'contas financeiras',
+        forecast: 'previsões'
     };
     return labels[domain] || 'análise financeira';
 }
@@ -645,6 +646,33 @@ function composeBillsListAnswer(plan = {}, result = {}) {
     ].filter(Boolean).join('\n');
 }
 
+function composeForecastAnswer(plan = {}, result = {}) {
+    const value = result.value || {};
+    const details = result.details || {};
+    const items = Array.isArray(value.items) ? value.items : [];
+    const payable = Number(value.payable ?? details.totals?.payable ?? details.total ?? 0);
+    const receivable = Number(value.receivable ?? details.totals?.receivable ?? 0);
+    const net = Number(value.netExpectedCash ?? details.totals?.netExpectedCash ?? receivable - payable);
+    const currentImpact = Number(value.currentCashImpact ?? details.totals?.currentCashImpact ?? 0);
+    const lines = items.slice(0, 10).map((item, index) => {
+        const direction = item.type === 'receivable' ? 'a receber' : 'a pagar';
+        const due = item.date || item.dueDate || '';
+        return `${index + 1}. ${item.description || item.domain || 'Previsão'}${due ? ` · ${due}` : ''} · ${direction} ${moneyBR(valueFromItem(item) || 0)}`;
+    });
+    const header = plan.filters?.type === 'receivable'
+        ? `Total previsto a receber: ${moneyBR(receivable)}.`
+        : plan.filters?.type === 'payable'
+            ? `Total previsto a pagar: ${moneyBR(payable)}.`
+            : `Previsão do período: a pagar ${moneyBR(payable)}, a receber ${moneyBR(receivable)}, líquido ${moneyBR(net)}.`;
+    return [
+        header,
+        currentImpact === 0 ? 'Esses itens são previsão: não alteram o saldo atual enquanto não forem liquidados.' : '',
+        lines.length ? 'Itens:' : '',
+        ...lines,
+        details.criteria || value.criteria || '',
+        plan.timeBasis ? `Critério temporal: ${plan.timeBasis}.` : ''
+    ].filter(Boolean).join('\n');
+}
 function composeFinancialPlanAnswer(toolResult = {}) {
     const plan = toolResult.plan || {};
     const result = toolResult.result || {};

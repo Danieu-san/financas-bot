@@ -4,7 +4,7 @@ const {
     queryFinancialQueryDataSourcesSql
 } = require('../services/sqliteReadModelService');
 const { normalizeFinancialQueryPlan } = require('../query/financialQueryPlan');
-const { normalizeText } = require('../utils/helpers');
+const { normalizeText, parseSheetDate } = require('../utils/helpers');
 const { executeFinancialQuery } = require('../query/financialQueryEngine');
 const { buildDashboardCriteria } = require('../services/dashboardSummaryService');
 const { runSafeReadonlySql } = require('./safeReadonlySql');
@@ -322,6 +322,178 @@ async function queryCanonicalAccountsPlanTool({
     };
 }
 
+function isoDateFromInput(value) {
+    const raw = String(value || '').trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    const parsed = parseSheetDate(raw);
+    if (!parsed) return '';
+    const year = parsed.getFullYear();
+    const month = String(parsed.getMonth() + 1).padStart(2, '0');
+    const day = String(parsed.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function isoDateFromParts(year, month, day) {
+    if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return '';
+    const date = new Date(Date.UTC(year, month, day, 12, 0, 0, 0));
+    return date.toISOString().slice(0, 10);
+}
+
+function forecastWindowFromPlan(plan = {}, currentDate = '') {
+    const period = plan.filters?.period || {};
+    const currentIso = isoDateFromInput(currentDate) || isoDateFromInput(new Date().toISOString().slice(0, 10));
+    if (period.type === 'date_range') {
+        return { from: isoDateFromInput(period.from), to: isoDateFromInput(period.to) };
+    }
+    if (Number.isInteger(period.month) && Number.isInteger(period.year)) {
+        const from = isoDateFromParts(period.year, period.month, 1);
+        const lastDay = new Date(Date.UTC(period.year, period.month + 1, 0, 12, 0, 0, 0)).getUTCDate();
+        return { from, to: isoDateFromParts(period.year, period.month, lastDay) };
+    }
+    if (period.type === 'today') return { from: currentIso, to: currentIso };
+    if (period.type === 'relative') {
+        const base = new Date(`${currentIso}T12:00:00.000Z`);
+        const offset = period.label === 'tomorrow' ? 1 : 0;
+        const days = Math.max(1, Number.parseInt(period.days || '7', 10) || 7);
+        const start = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate() + offset, 12, 0, 0, 0));
+        const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate() + days - 1, 12, 0, 0, 0));
+        return { from: start.toISOString().slice(0, 10), to: end.toISOString().slice(0, 10) };
+    }
+    const current = new Date(`${currentIso}T12:00:00.000Z`);
+    const from = isoDateFromParts(current.getUTCFullYear(), current.getUTCMonth(), 1);
+    const lastDay = new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth() + 1, 0, 12, 0, 0, 0)).getUTCDate();
+    return { from, to: isoDateFromParts(current.getUTCFullYear(), current.getUTCMonth(), lastDay) };
+}
+
+function forecastItemToPublicItem(row = {}) {
+    const value = roundMoney(Number(row.amount_cents || 0) / 100);
+    return {
+        date: canonicalDateToDisplay(row.date),
+        isoDate: String(row.date || ''),
+        description: String(row.description || ''),
+        value,
+        amount: value,
+        type: String(row.type || ''),
+        domain: String(row.domain || ''),
+        status: String(row.status || ''),
+        expectedCashDirection: String(row.expected_cash_direction || ''),
+        affectsCurrentCash: row.affects_current_cash === true
+    };
+}
+
+function forecastItemMatchesPlan(item = {}, plan = {}) {
+    const filters = plan.filters || {};
+    if (plan.domain === 'bills' && item.domain !== 'bill') return false;
+    if (filters.type && normalizeText(item.type) !== normalizeText(filters.type)) return false;
+    if (filters.status && normalizeText(item.status) !== normalizeText(filters.status)) return false;
+    if (filters.source && normalizeText(item.domain) !== normalizeText(filters.source)) return false;
+    if (filters.category && !normalizeText(`${item.domain} ${item.description}`).includes(normalizeText(filters.category))) return false;
+    if (filters.merchant && !normalizeText(item.description).includes(normalizeText(filters.merchant))) return false;
+    return true;
+}
+
+function forecastSortRows(rows = [], sort = {}) {
+    const direction = sort.direction === 'desc' ? -1 : 1;
+    const by = sort.by || 'due_date';
+    return rows.slice().sort((left, right) => {
+        if (by === 'value') return (Number(left.value || 0) - Number(right.value || 0)) * direction;
+        if (by === 'name') return String(left.description || '').localeCompare(String(right.description || ''), 'pt-BR') * direction;
+        return String(left.isoDate || '').localeCompare(String(right.isoDate || '')) * direction;
+    });
+}
+
+async function queryCanonicalForecastPlanTool({
+    plan,
+    userIds = [],
+    personByUserId = {},
+    currentDate = '',
+    env = process.env,
+    canonicalLedgerDbPath
+} = {}) {
+    const window = forecastWindowFromPlan(plan, currentDate);
+    const canary = readCanonicalLedgerCanaryDomain({
+        env,
+        dbPath: canonicalLedgerDbPath,
+        domain: 'forecast',
+        ownerPersonIds: userIds,
+        personByUserId,
+        forecastWindow: window
+    });
+    if (!canary.enabled) {
+        return {
+            ok: false,
+            tool: 'query_financial_plan',
+            source: 'canonical',
+            reason: canary.reason || 'canonical_forecast_unavailable'
+        };
+    }
+
+    const rows = forecastSortRows(
+        (canary.rows || []).map(forecastItemToPublicItem).filter(item => forecastItemMatchesPlan(item, plan)),
+        plan.sort || { by: 'due_date', direction: 'asc' }
+    );
+    const limitedRows = rows.slice(0, plan.limit || 50);
+    const payable = roundMoney(rows.filter(item => item.type !== 'receivable').reduce((sum, item) => sum + Number(item.value || 0), 0));
+    const receivable = roundMoney(rows.filter(item => item.type === 'receivable').reduce((sum, item) => sum + Number(item.value || 0), 0));
+    const total = plan.filters?.type === 'receivable' ? receivable : payable;
+    const criteriaText = 'Previsões lidas do canary forecast do ledger canonico; criterio de data: vencimento previsto quando existir, ou data efetiva para transferencias pendentes. Pendencias nao alteram saldo atual.';
+    const details = {
+        domain: plan.domain,
+        operation: plan.operation,
+        count: rows.length,
+        total,
+        timeBasis: plan.timeBasis || 'due_date',
+        filters: plan.filters,
+        criteria: criteriaText,
+        window,
+        totals: {
+            payable,
+            receivable,
+            netExpectedCash: roundMoney(receivable - payable),
+            currentCashImpact: 0
+        }
+    };
+
+    if (plan.operation === 'count') {
+        return { ok: true, tool: 'query_financial_plan', source: 'canonical', plan, result: { value: rows.length, details }, criteria: details };
+    }
+    if (plan.operation === 'sum') {
+        return { ok: true, tool: 'query_financial_plan', source: 'canonical', plan, result: { value: total, details }, criteria: details };
+    }
+    if (plan.domain === 'bills' && plan.operation === 'list') {
+        return { ok: true, tool: 'query_financial_plan', source: 'canonical', plan, result: { value: limitedRows, details }, criteria: details };
+    }
+    if (['list', 'forecast', 'detail', 'explain'].includes(plan.operation)) {
+        return {
+            ok: true,
+            tool: 'query_financial_plan',
+            source: 'canonical',
+            plan,
+            result: {
+                value: {
+                    total,
+                    payable,
+                    receivable,
+                    netExpectedCash: roundMoney(receivable - payable),
+                    currentCashImpact: 0,
+                    count: rows.length,
+                    items: limitedRows,
+                    criteria: criteriaText
+                },
+                details
+            },
+            criteria: details
+        };
+    }
+
+    return {
+        ok: false,
+        tool: 'query_financial_plan',
+        source: 'canonical',
+        reason: 'unsupported_forecast_operation',
+        errors: [`operacao de previsao ainda nao implementada: ${plan.operation}`]
+    };
+}
 async function queryFinancialPlanTool({ plan, userIds = [], personByUserId = {}, currentDate = '', env = process.env, canonicalLedgerDbPath } = {}) {
     const normalized = normalizeFinancialQueryPlan(plan);
     if (!normalized.ok) {
@@ -352,6 +524,29 @@ async function queryFinancialPlanTool({ plan, userIds = [], personByUserId = {},
             env,
             canonicalLedgerDbPath
         });
+    }
+
+    if (scopedPlan.domain === 'forecast') {
+        return await queryCanonicalForecastPlanTool({
+            plan: scopedPlan,
+            userIds: resolvedScope.userIds,
+            personByUserId,
+            currentDate,
+            env,
+            canonicalLedgerDbPath
+        });
+    }
+
+    if (scopedPlan.domain === 'bills' && ['list', 'sum', 'count', 'forecast', 'detail', 'explain'].includes(scopedPlan.operation)) {
+        const forecastResult = await queryCanonicalForecastPlanTool({
+            plan: scopedPlan,
+            userIds: resolvedScope.userIds,
+            personByUserId,
+            currentDate,
+            env,
+            canonicalLedgerDbPath
+        });
+        if (forecastResult.ok) return forecastResult;
     }
 
     if (!ensureSqliteReady()) {

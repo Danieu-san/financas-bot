@@ -747,3 +747,152 @@ test('canonical canary reads expose transactions and transfers only when domain 
     });
     assert.doesNotMatch(JSON.stringify({ transactions, accounts, transfers }), /user-a|operationKey|source_row_hash/i);
 });
+
+test('canonical canary forecast read exposes future items only when forecast domain is allowed', () => {
+    const dbPath = tempDbPath();
+    const store = new CanonicalLedgerShadowStore({ dbPath, writesEnabled: true });
+    store.persistProjection({
+        runId: 'FORECAST_CANARY_TEST',
+        projected: {
+            events: [
+                {
+                    event_id: 'evt-debt-future',
+                    household_id: 'household-test',
+                    owner_person_id: 'user-a',
+                    actor_person_id: 'user-a',
+                    kind: 'debt_opening',
+                    status: 'pending',
+                    description: 'Emprestimo futuro',
+                    amount_cents: 200000,
+                    currency: 'BRL',
+                    occurred_on: '2026-07-25',
+                    effective_on: '2026-07-25',
+                    due_on: '2026-07-25',
+                    source_type: 'sheet.dividas',
+                    source_row_ref: 'divida-futura',
+                    source_id_hash: 'source-debt-future',
+                    source_row_hash: 'row-debt-future',
+                    idempotency_key: 'debt-future-op',
+                    free_budget_eligible: false,
+                    net_income_expense_impact: 0,
+                    created_at: '2026-07-05T00:00:00.000Z',
+                    updated_at: '2026-07-05T00:00:00.000Z'
+                },
+                {
+                    event_id: 'evt-income-future',
+                    household_id: 'household-test',
+                    owner_person_id: 'user-a',
+                    actor_person_id: 'user-a',
+                    kind: 'income',
+                    status: 'pending',
+                    description: 'Receita futura',
+                    amount_cents: 50000,
+                    currency: 'BRL',
+                    occurred_on: '2026-07-30',
+                    effective_on: '2026-07-30',
+                    due_on: '2026-07-30',
+                    source_type: 'sheet.entradas',
+                    source_row_ref: 'entrada-futura',
+                    source_id_hash: 'source-income-future',
+                    source_row_hash: 'row-income-future',
+                    idempotency_key: 'income-future-op',
+                    free_budget_eligible: false,
+                    net_income_expense_impact: 0,
+                    created_at: '2026-07-05T00:00:00.000Z',
+                    updated_at: '2026-07-05T00:00:00.000Z'
+                }
+            ],
+            lines: [],
+            schedules: [
+                {
+                    schedule_id: 'schedule-debt-future',
+                    household_id: 'household-test',
+                    owner_person_id: 'user-a',
+                    schedule_type: 'debt',
+                    status: 'active',
+                    start_on: '2026-07-25',
+                    frequency: 'monthly',
+                    amount_cents: 32000,
+                    currency: 'BRL',
+                    next_due_on: '2026-07-25',
+                    source_id_hash: 'source-debt-future'
+                }
+            ],
+            recurrenceRules: [
+                {
+                    recurrence_rule_id: 'rr-phone-future',
+                    household_id: 'household-test',
+                    owner_person_id: 'user-a',
+                    source_type: 'sheet.contas',
+                    source_row_ref: 'conta-futura',
+                    rule_type: 'bill',
+                    status: 'active',
+                    description: 'Telefone futuro',
+                    frequency: 'monthly',
+                    due_day: 20,
+                    amount_cents: 12000,
+                    currency: 'BRL'
+                }
+            ],
+            recurrenceOccurrences: [
+                {
+                    recurrence_occurrence_id: 'occ-phone-future',
+                    recurrence_rule_id: 'rr-phone-future',
+                    source_type: 'sheet.contas',
+                    source_row_ref: 'conta-futura',
+                    competence_month: '2026-07',
+                    due_on: '2026-07-20',
+                    status: 'pending',
+                    amount_cents: 12000,
+                    currency: 'BRL',
+                    description: 'Telefone futuro'
+                }
+            ],
+            reconciliationLinks: []
+        },
+        publicProjection: [],
+        report: {
+            report_type: 'canonical_ledger_receipt_shadow',
+            schema_version: 'canonical-ledger-v1',
+            synthetic_fixture_only: false
+        }
+    });
+    store.close();
+
+    const readEnv = {
+        NODE_ENV: 'test',
+        CANONICAL_LEDGER_PROJECTION_MODE: 'shadow',
+        CANONICAL_LEDGER_SHADOW_WRITE_ENABLED: 'true',
+        CANONICAL_LEDGER_CANARY_READ_ENABLED: 'true',
+        CANONICAL_LEDGER_CANARY_READ_DOMAINS: 'forecast'
+    };
+    const forecast = readCanonicalLedgerCanaryDomain({
+        env: readEnv,
+        dbPath,
+        domain: 'forecast',
+        ownerPersonIds: ['user-a'],
+        forecastWindow: { from: '2026-07-01', to: '2026-07-31' }
+    });
+    const blocked = readCanonicalLedgerCanaryDomain({
+        env: { ...readEnv, CANONICAL_LEDGER_CANARY_READ_DOMAINS: 'transactions' },
+        dbPath,
+        domain: 'forecast',
+        ownerPersonIds: ['user-a'],
+        forecastWindow: { from: '2026-07-01', to: '2026-07-31' }
+    });
+
+    assert.strictEqual(forecast.enabled, true);
+    assert.strictEqual(forecast.domain, 'forecast');
+    assert.strictEqual(forecast.totals.current_cash_impact_cents, 0);
+    assert.deepStrictEqual(forecast.rows.map(row => [row.type, row.domain, row.date, row.amount_cents]), [
+        ['payable', 'bill', '2026-07-20', 12000],
+        ['payable', 'debt', '2026-07-25', 32000],
+        ['receivable', 'income', '2026-07-30', 50000]
+    ]);
+    assert.deepStrictEqual(blocked, {
+        enabled: false,
+        reason: 'canary_domain_disabled',
+        rows: []
+    });
+    assert.doesNotMatch(JSON.stringify(forecast), /user-a|source_id_hash|source_row_hash|source_row_ref|idempotency_key/i);
+});

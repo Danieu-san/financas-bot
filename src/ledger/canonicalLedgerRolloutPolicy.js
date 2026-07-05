@@ -3,6 +3,7 @@ const VALID_CANARY_READ_DOMAINS = new Set([
     'transactions',
     'accounts',
     'transfers',
+    'forecast',
     'bills',
     'cards',
     'debts',

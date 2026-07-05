@@ -1786,6 +1786,7 @@ test('Gemini planner is disabled by default and can only produce safe tool plans
     assert.match(prompt, /gastei.*transaction_date|transaction_date.*gastei/i);
     assert.match(prompt, /fatura.*billing_month|billing_month.*fatura/i);
     assert.match(prompt, /operation.*sum|sum.*quanto/i);
+    assert.doesNotMatch(prompt, /`n/);
     assert.doesNotMatch(prompt, /user_id.*permitido/i);
 
     const safePlan = normalizePlannerPlan({
@@ -2436,4 +2437,416 @@ test('LangGraph keeps the deterministic answer when contextual composition is un
             process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE = previousMode;
         }
     }
+});
+
+test('financial agent forecast queries use the canonical forecast canary without changing current cash', async () => {
+    syncAgentSnapshot();
+    const dbPath = path.join(os.tmpdir(), `canonical-agent-forecast-canary-${Date.now()}-${Math.random()}.sqlite`);
+    const store = new CanonicalLedgerShadowStore({ dbPath, writesEnabled: true });
+    store.persistProjection({
+        runId: 'agent-forecast-canary-run',
+        projected: {
+            events: [
+                {
+                    event_id: 'evt_agent_future_income',
+                    household_id: 'household-agent',
+                    owner_person_id: 'agent-daniel',
+                    actor_person_id: 'agent-daniel',
+                    kind: 'income',
+                    status: 'pending',
+                    description: 'reembolso futuro',
+                    amount_cents: 5000,
+                    currency: 'BRL',
+                    occurred_on: '2026-07-30',
+                    effective_on: '2026-07-30',
+                    due_on: '2026-07-30',
+                    source_type: 'sheet.entradas',
+                    source_row_ref: 'row-income-future',
+                    source_id_hash: 'source-income-future',
+                    source_row_hash: 'hash-income-future',
+                    idempotency_key: 'idem-income-future'
+                },
+                {
+                    event_id: 'evt_agent_pending_transfer',
+                    household_id: 'household-agent',
+                    owner_person_id: 'agent-daniel',
+                    actor_person_id: 'agent-daniel',
+                    kind: 'transfer',
+                    status: 'pending',
+                    description: 'pix pendente para Thais',
+                    amount_cents: 1234,
+                    currency: 'BRL',
+                    occurred_on: '2026-07-10',
+                    effective_on: '2026-07-10',
+                    due_on: null,
+                    source_type: 'sheet.transferencias',
+                    source_row_ref: 'row-transfer-future',
+                    source_id_hash: 'source-transfer-future',
+                    source_row_hash: 'hash-transfer-future',
+                    idempotency_key: 'idem-transfer-future'
+                }
+            ],
+            lines: [
+                {
+                    line_id: 'line_agent_pending_transfer_cash',
+                    event_id: 'evt_agent_pending_transfer',
+                    line_type: 'cash',
+                    direction: 'outflow',
+                    amount_cents: 1234,
+                    currency: 'BRL',
+                    metadata_hash: 'meta-agent-pending-transfer-cash'
+                }
+            ],
+            recurrenceRules: [
+                {
+                    recurrence_rule_id: 'rr_agent_phone',
+                    household_id: 'household-agent',
+                    owner_person_id: 'agent-daniel',
+                    source_type: 'sheet.contas',
+                    source_row_ref: 'row-phone-rule',
+                    rule_type: 'bill',
+                    status: 'active',
+                    description: 'Conta telefone futura',
+                    frequency: 'monthly',
+                    due_day: 20,
+                    amount_cents: 12000,
+                    currency: 'BRL'
+                }
+            ],
+            recurrenceOccurrences: [
+                {
+                    recurrence_occurrence_id: 'occ_agent_phone_2026_07',
+                    recurrence_rule_id: 'rr_agent_phone',
+                    source_type: 'sheet.contas',
+                    source_row_ref: 'row-phone-rule',
+                    competence_month: '2026-07',
+                    due_on: '2026-07-20',
+                    status: 'pending',
+                    amount_cents: 12000,
+                    currency: 'BRL',
+                    description: 'Conta telefone futura'
+                }
+            ],
+            reconciliationLinks: []
+        },
+        publicProjection: [],
+        report: {
+            report_type: 'canonical_ledger_receipt_shadow',
+            schema_version: 'canonical-ledger-v1',
+            synthetic_fixture_only: false
+        }
+    });
+    store.close();
+
+    const env = {
+        NODE_ENV: 'production',
+        CANONICAL_LEDGER_PROJECTION_MODE: 'shadow',
+        CANONICAL_LEDGER_SHADOW_WRITE_ENABLED: 'true',
+        CANONICAL_LEDGER_PRODUCTION_SHADOW_APPROVED: 'true',
+        CANONICAL_LEDGER_CANARY_READ_ENABLED: 'true',
+        CANONICAL_LEDGER_CANARY_READ_APPROVED: 'true',
+        CANONICAL_LEDGER_CANARY_READ_DOMAINS: 'forecast'
+    };
+
+    const payableForecast = await queryFinancialPlanTool({
+        plan: {
+            kind: 'financial_query',
+            domain: 'forecast',
+            operation: 'forecast',
+            filters: { period: { type: 'date_range', from: '2026-07-01', to: '2026-07-31' }, type: 'payable' },
+            sort: { by: 'due_date', direction: 'asc' },
+            limit: 10,
+            timeBasis: 'due_date'
+        },
+        userIds: ['agent-daniel', 'agent-thais'],
+        personByUserId: { 'agent-daniel': 'Daniel', 'agent-thais': 'Thais' },
+        currentDate: '05/07/2026',
+        env,
+        canonicalLedgerDbPath: dbPath
+    });
+
+    assert.strictEqual(payableForecast.ok, true, JSON.stringify(payableForecast));
+    assert.strictEqual(payableForecast.source, 'canonical');
+    assert.strictEqual(payableForecast.result.value.payable, 132.34);
+    assert.strictEqual(payableForecast.result.value.receivable, 0);
+    assert.strictEqual(payableForecast.result.value.currentCashImpact, 0);
+    assert.deepStrictEqual(payableForecast.result.value.items.map(item => [item.domain, item.date, item.value, item.affectsCurrentCash]), [
+        ['transfer', '10/07/2026', 12.34, false],
+        ['bill', '20/07/2026', 120, false]
+    ]);
+    assert.match(payableForecast.result.value.criteria, /Pendencias nao alteram saldo atual/i);
+    assert.doesNotMatch(JSON.stringify(payableForecast), /agent-daniel|owner_person_id|source_row_hash|idempotency_key/i);
+
+    const bills = await queryFinancialPlanTool({
+        plan: {
+            kind: 'financial_query',
+            domain: 'bills',
+            operation: 'list',
+            filters: { period: { type: 'date_range', from: '2026-07-01', to: '2026-07-31' }, status: 'pending' },
+            sort: { by: 'due_date', direction: 'asc' },
+            limit: 10,
+            timeBasis: 'due_date'
+        },
+        userIds: ['agent-daniel'],
+        personByUserId: { 'agent-daniel': 'Daniel' },
+        currentDate: '05/07/2026',
+        env,
+        canonicalLedgerDbPath: dbPath
+    });
+    assert.strictEqual(bills.ok, true, JSON.stringify(bills));
+    assert.strictEqual(bills.source, 'canonical');
+    assert.deepStrictEqual(bills.result.value.map(item => [item.description, item.value]), [
+        ['Conta telefone futura', 120]
+    ]);
+
+    const blocked = await queryFinancialPlanTool({
+        plan: {
+            kind: 'financial_query',
+            domain: 'forecast',
+            operation: 'sum',
+            filters: { period: { type: 'date_range', from: '2026-07-01', to: '2026-07-31' }, type: 'payable' },
+            timeBasis: 'due_date'
+        },
+        userIds: ['agent-daniel'],
+        env: { ...env, CANONICAL_LEDGER_CANARY_READ_DOMAINS: 'accounts' },
+        canonicalLedgerDbPath: dbPath
+    });
+    assert.strictEqual(blocked.ok, false);
+    assert.strictEqual(blocked.reason, 'canary_domain_disabled');
+});
+test('financial agent forecast relative windows exclude cancelled and out-of-window items', async () => {
+    syncAgentSnapshot();
+    const dbPath = path.join(os.tmpdir(), 'canonical-agent-forecast-adversarial-' + Date.now() + '-' + Math.random() + '.sqlite');
+    const store = new CanonicalLedgerShadowStore({ dbPath, writesEnabled: true });
+    store.persistProjection({
+        runId: 'agent-forecast-adversarial-run',
+        projected: {
+            events: [
+                {
+                    event_id: 'evt_agent_income_relative',
+                    household_id: 'household-agent',
+                    owner_person_id: 'agent-daniel',
+                    actor_person_id: 'agent-daniel',
+                    kind: 'income',
+                    status: 'pending',
+                    description: 'reembolso nos proximos dias',
+                    amount_cents: 4300,
+                    currency: 'BRL',
+                    occurred_on: '2026-07-06',
+                    effective_on: '2026-07-06',
+                    due_on: '2026-07-06',
+                    source_type: 'sheet.entradas',
+                    source_row_ref: 'row-income-relative',
+                    source_id_hash: 'source-income-relative',
+                    source_row_hash: 'hash-income-relative',
+                    idempotency_key: 'idem-income-relative'
+                },
+                {
+                    event_id: 'evt_agent_transfer_relative',
+                    household_id: 'household-agent',
+                    owner_person_id: 'agent-daniel',
+                    actor_person_id: 'agent-daniel',
+                    kind: 'transfer',
+                    status: 'pending',
+                    description: 'pix pendente dentro da semana',
+                    amount_cents: 1234,
+                    currency: 'BRL',
+                    occurred_on: '2026-07-10',
+                    effective_on: '2026-07-10',
+                    due_on: null,
+                    source_type: 'sheet.transferencias',
+                    source_row_ref: 'row-transfer-relative',
+                    source_id_hash: 'source-transfer-relative',
+                    source_row_hash: 'hash-transfer-relative',
+                    idempotency_key: 'idem-transfer-relative'
+                }
+            ],
+            lines: [
+                {
+                    line_id: 'line_agent_transfer_relative_cash',
+                    event_id: 'evt_agent_transfer_relative',
+                    line_type: 'cash',
+                    direction: 'outflow',
+                    amount_cents: 1234,
+                    currency: 'BRL',
+                    metadata_hash: 'meta-agent-transfer-relative-cash'
+                }
+            ],
+            recurrenceOccurrences: [
+                {
+                    recurrence_occurrence_id: 'occ_agent_uncertain_2026_07_06',
+                    recurrence_rule_id: 'rr_agent_uncertain',
+                    source_type: 'sheet.contas',
+                    source_row_ref: 'row-uncertain-rule',
+                    competence_month: '2026-07',
+                    due_on: '2026-07-06',
+                    status: 'uncertain',
+                    amount_cents: 777,
+                    currency: 'BRL',
+                    description: 'Conta incerta da semana'
+                },
+                {
+                    recurrence_occurrence_id: 'occ_agent_bill_2026_07_11',
+                    recurrence_rule_id: 'rr_agent_bill',
+                    source_type: 'sheet.contas',
+                    source_row_ref: 'row-bill-rule',
+                    competence_month: '2026-07',
+                    due_on: '2026-07-11',
+                    status: 'pending',
+                    amount_cents: 1100,
+                    currency: 'BRL',
+                    description: 'Conta dentro da semana'
+                },
+                {
+                    recurrence_occurrence_id: 'occ_agent_cancelled_2026_07_07',
+                    recurrence_rule_id: 'rr_agent_cancelled',
+                    source_type: 'sheet.contas',
+                    source_row_ref: 'row-cancelled-rule',
+                    competence_month: '2026-07',
+                    due_on: '2026-07-07',
+                    status: 'cancelled',
+                    amount_cents: 99999,
+                    currency: 'BRL',
+                    description: 'Conta cancelada da semana'
+                },
+                {
+                    recurrence_occurrence_id: 'occ_agent_outside_2026_07_12',
+                    recurrence_rule_id: 'rr_agent_outside',
+                    source_type: 'sheet.contas',
+                    source_row_ref: 'row-outside-rule',
+                    competence_month: '2026-07',
+                    due_on: '2026-07-12',
+                    status: 'pending',
+                    amount_cents: 88888,
+                    currency: 'BRL',
+                    description: 'Conta fora da semana'
+                }
+            ],
+            invoices: [],
+            recurrenceRules: [
+                {
+                    recurrence_rule_id: 'rr_agent_uncertain',
+                    household_id: 'household-agent',
+                    owner_person_id: 'agent-daniel',
+                    source_type: 'sheet.contas',
+                    source_row_ref: 'row-uncertain-rule',
+                    rule_type: 'bill',
+                    status: 'active',
+                    description: 'Conta incerta da semana',
+                    frequency: 'monthly',
+                    due_day: 6,
+                    amount_cents: 777,
+                    currency: 'BRL'
+                },
+                {
+                    recurrence_rule_id: 'rr_agent_bill',
+                    household_id: 'household-agent',
+                    owner_person_id: 'agent-daniel',
+                    source_type: 'sheet.contas',
+                    source_row_ref: 'row-bill-rule',
+                    rule_type: 'bill',
+                    status: 'active',
+                    description: 'Conta dentro da semana',
+                    frequency: 'monthly',
+                    due_day: 11,
+                    amount_cents: 1100,
+                    currency: 'BRL'
+                },
+                {
+                    recurrence_rule_id: 'rr_agent_cancelled',
+                    household_id: 'household-agent',
+                    owner_person_id: 'agent-daniel',
+                    source_type: 'sheet.contas',
+                    source_row_ref: 'row-cancelled-rule',
+                    rule_type: 'bill',
+                    status: 'active',
+                    description: 'Conta cancelada da semana',
+                    frequency: 'monthly',
+                    due_day: 7,
+                    amount_cents: 99999,
+                    currency: 'BRL'
+                },
+                {
+                    recurrence_rule_id: 'rr_agent_outside',
+                    household_id: 'household-agent',
+                    owner_person_id: 'agent-daniel',
+                    source_type: 'sheet.contas',
+                    source_row_ref: 'row-outside-rule',
+                    rule_type: 'bill',
+                    status: 'active',
+                    description: 'Conta fora da semana',
+                    frequency: 'monthly',
+                    due_day: 12,
+                    amount_cents: 88888,
+                    currency: 'BRL'
+                }
+            ],
+            reconciliationLinks: []
+        },
+        publicProjection: [],
+        report: {
+            report_type: 'canonical_ledger_receipt_shadow',
+            schema_version: 'canonical-ledger-v1',
+            synthetic_fixture_only: false
+        }
+    });
+    store.close();
+
+    const env = {
+        NODE_ENV: 'production',
+        CANONICAL_LEDGER_PROJECTION_MODE: 'shadow',
+        CANONICAL_LEDGER_SHADOW_WRITE_ENABLED: 'true',
+        CANONICAL_LEDGER_PRODUCTION_SHADOW_APPROVED: 'true',
+        CANONICAL_LEDGER_CANARY_READ_ENABLED: 'true',
+        CANONICAL_LEDGER_CANARY_READ_APPROVED: 'true',
+        CANONICAL_LEDGER_CANARY_READ_DOMAINS: 'forecast'
+    };
+
+    const payable = await queryFinancialPlanTool({
+        plan: {
+            kind: 'financial_query',
+            domain: 'forecast',
+            operation: 'forecast',
+            filters: { period: { type: 'relative', days: 7 }, type: 'payable' },
+            sort: { by: 'due_date', direction: 'asc' },
+            limit: 10,
+            timeBasis: 'due_date'
+        },
+        userIds: ['agent-daniel', 'agent-thais'],
+        personByUserId: { 'agent-daniel': 'Daniel', 'agent-thais': 'Thais' },
+        currentDate: '05/07/2026',
+        env,
+        canonicalLedgerDbPath: dbPath
+    });
+
+    assert.strictEqual(payable.ok, true, JSON.stringify(payable));
+    assert.strictEqual(payable.result.details.window.from, '2026-07-05');
+    assert.strictEqual(payable.result.details.window.to, '2026-07-11');
+    assert.strictEqual(payable.result.value.payable, 31.11);
+    assert.strictEqual(payable.result.value.currentCashImpact, 0);
+    assert.deepStrictEqual(payable.result.value.items.map(item => [item.description, item.status, item.date, item.value]), [
+        ['Conta incerta da semana', 'uncertain', '06/07/2026', 7.77],
+        ['pix pendente dentro da semana', 'pending', '10/07/2026', 12.34],
+        ['Conta dentro da semana', 'pending', '11/07/2026', 11]
+    ]);
+    assert.doesNotMatch(JSON.stringify(payable), /cancelada|fora da semana|owner_person_id|source_row_hash|idempotency_key/i);
+
+    const receivable = await queryFinancialPlanTool({
+        plan: {
+            kind: 'financial_query',
+            domain: 'forecast',
+            operation: 'sum',
+            filters: { period: { type: 'relative', days: 2 }, type: 'receivable' },
+            timeBasis: 'due_date'
+        },
+        userIds: ['agent-daniel'],
+        personByUserId: { 'agent-daniel': 'Daniel' },
+        currentDate: '05/07/2026',
+        env,
+        canonicalLedgerDbPath: dbPath
+    });
+
+    assert.strictEqual(receivable.ok, true, JSON.stringify(receivable));
+    assert.strictEqual(receivable.result.value, 43);
+    assert.strictEqual(receivable.result.details.totals.currentCashImpact, 0);
 });

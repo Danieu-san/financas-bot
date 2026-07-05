@@ -57,10 +57,10 @@ test('canonical ledger canary reads accept only known domains and require explic
         CANONICAL_LEDGER_PRODUCTION_SHADOW_APPROVED: 'true',
         CANONICAL_LEDGER_CANARY_READ_ENABLED: 'true',
         CANONICAL_LEDGER_CANARY_READ_APPROVED: 'true',
-        CANONICAL_LEDGER_CANARY_READ_DOMAINS: 'transactions, accounts, transfers, unknown, transactions'
+        CANONICAL_LEDGER_CANARY_READ_DOMAINS: 'transactions, accounts, transfers, forecast, unknown, transactions'
     });
 
-    assert.deepStrictEqual(policy.canaryReadDomains, ['transactions', 'accounts', 'transfers']);
+    assert.deepStrictEqual(policy.canaryReadDomains, ['transactions', 'accounts', 'transfers', 'forecast']);
     assert.strictEqual(policy.canaryReadsAllowed, true);
     assert.strictEqual(policy.canReadDomain('transactions'), true);
     assert.strictEqual(policy.canReadDomain('accounts'), true);

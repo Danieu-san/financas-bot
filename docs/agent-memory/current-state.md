@@ -2,6 +2,16 @@
 
 Atualizado em: 2026-07-05
 
+## Phase 3 slice 3D future payables/receivables local increment - 2026-07-05
+
+- Roadmap position: Phase 3, slice `3D - Contas a pagar e receber futuras`; legacy removal remains Phase 8 and no production flags were changed.
+- Implemented a canonical forecast aggregator for future payables/receivables from recurrence occurrences, invoices and pending events/transfers. Forecast items are read-only expectations and report `current_cash_impact_cents=0`, so pending items do not alter current cash.
+- Added `forecast` as a gated canonical canary read domain. Receipt-canary reads fail closed unless the domain is explicitly allowed, and public forecast rows expose date, description, value, type/status and expected cash direction without source hashes or internal ids.
+- Integrated `forecast` into `FinancialQueryPlan` and the Financial Agent tool layer. Questions about upcoming bills, future amounts to pay/receive and bills lists can use the canonical forecast canary, with fallback to legacy only when the canary domain is unavailable for `bills`.
+- Gemini Planner remains active in the baseline and was taught the new `forecast` domain contract, but Gemini still plans only; deterministic tools calculate totals and lists.
+- Evidence: syntax checks passed for the touched agent/query/ledger files; focused forecast/receipt/policy/agent tests passed `96/96`; broader focused suite with unit, financial agent and ledger tests passed `288/288`; full `npm test` passed `693/693`, now including the six canonical forecast tests; `npm audit --audit-level=high` found 0 vulnerabilities; `git diff --check` passed; control-character scan found no NUL/backspace/form-feed matches; local `state_store.json` parsed as valid JSON.
+- Decision: local `GO` for steps 1-8 of 3D as a read-only increment, including adversarial date/status coverage and deterministic parity with the legacy Query Engine where equivalent data exists. This is not production GO. Remaining 3D gate: deploy with `CANONICAL_LEDGER_CANARY_READ_DOMAINS` adding `forecast`, WhatsApp read-only smoke, and final GO/NO-GO.
+
 ## Phase 3 slice 3C recurrence rules production GO - 2026-07-05
 
 - Roadmap position: Phase 3, slice `3C - Regras de recorrencia e ocorrencias materializadas`. Legacy removal remains Phase 8; next roadmap slice is `3D - Contas a pagar e receber futuras`.

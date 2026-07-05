@@ -9,6 +9,7 @@ const ALLOWED_DOMAINS = new Set([
     'goals',
     'debts',
     'bills',
+    'forecast',
     'accounts',
     'imports',
     'dashboard',
@@ -49,6 +50,7 @@ const ALLOWED_GROUP_BY = new Set([
     'date',
     'month',
     'status',
+    'type',
     'source',
     'account'
 ]);
@@ -69,6 +71,7 @@ const ALLOWED_FILTER_KEYS = new Set([
     'goal',
     'debt',
     'status',
+    'type',
     'source',
     'account',
     'recurrence',
@@ -193,6 +196,7 @@ function normalizeFilters(filters = {}) {
         'goal',
         'debt',
         'status',
+        'type',
         'source',
         'recurrence',
         'account'

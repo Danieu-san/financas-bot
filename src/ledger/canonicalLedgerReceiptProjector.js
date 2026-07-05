@@ -14,6 +14,9 @@ const {
 const {
     buildCanonicalLedgerRolloutPolicy
 } = require('./canonicalLedgerRolloutPolicy');
+const {
+    buildCanonicalForecast
+} = require('./canonicalLedgerForecast');
 
 const SUPPORTED_SHEETS = new Set(['Saídas', 'Entradas', 'Transferências', 'Lançamentos Cartão']);
 
@@ -560,6 +563,148 @@ function readReceiptAccountRows(db, ownerPersonIds = [], personByUserId = {}) {
         };
     });
 }
+function parseJsonRows(rows = [], column) {
+    return rows.map(row => {
+        try {
+            return JSON.parse(row[column]);
+        } catch (_) {
+            return null;
+        }
+    }).filter(Boolean);
+}
+
+function readReceiptEventRows(db, ownerPersonIds = []) {
+    const filter = ownerFilter(ownerPersonIds);
+    return parseJsonRows(db.prepare(`
+        SELECT e.event_json
+        FROM canonical_ledger_events e
+        JOIN canonical_ledger_projection_runs r ON r.run_id = e.run_id
+        WHERE r.report_type = ?
+        ${filter.clause}
+        ORDER BY r.created_at, e.event_id
+    `).all('canonical_ledger_receipt_shadow', ...filter.ids), 'event_json');
+}
+
+function readReceiptLineRows(db, ownerPersonIds = []) {
+    const filter = ownerFilter(ownerPersonIds, 'e.owner_person_id');
+    return parseJsonRows(db.prepare(`
+        SELECT l.line_json
+        FROM canonical_ledger_event_lines l
+        JOIN canonical_ledger_events e ON e.run_id = l.run_id AND e.event_id = l.event_id
+        JOIN canonical_ledger_projection_runs r ON r.run_id = l.run_id
+        WHERE r.report_type = ?
+        ${filter.clause}
+        ORDER BY r.created_at, l.line_id
+    `).all('canonical_ledger_receipt_shadow', ...filter.ids), 'line_json');
+}
+
+function readReceiptScheduleRows(db, ownerPersonIds = []) {
+    if (!tableExists(db, 'canonical_ledger_schedules')) return [];
+    const filter = ownerFilter(ownerPersonIds, 's.owner_person_id');
+    return parseJsonRows(db.prepare(`
+        SELECT s.schedule_json
+        FROM canonical_ledger_schedules s
+        JOIN canonical_ledger_projection_runs r ON r.run_id = s.run_id
+        WHERE r.report_type = ?
+        ${filter.clause}
+        ORDER BY r.created_at, s.schedule_id
+    `).all('canonical_ledger_receipt_shadow', ...filter.ids), 'schedule_json');
+}
+
+function readReceiptRecurrenceOccurrenceRows(db, ownerPersonIds = []) {
+    if (!tableExists(db, 'canonical_ledger_recurrence_occurrences')) return [];
+    const filter = ownerFilter(ownerPersonIds, 'rr.owner_person_id');
+    return parseJsonRows(db.prepare(`
+        SELECT o.occurrence_json
+        FROM canonical_ledger_recurrence_occurrences o
+        JOIN canonical_ledger_recurrence_rules rr
+            ON rr.run_id = o.run_id AND rr.recurrence_rule_id = o.recurrence_rule_id
+        JOIN canonical_ledger_projection_runs r ON r.run_id = o.run_id
+        WHERE r.report_type = ?
+        ${filter.clause}
+        ORDER BY r.created_at, o.due_on, o.recurrence_occurrence_id
+    `).all('canonical_ledger_receipt_shadow', ...filter.ids), 'occurrence_json');
+}
+
+function readReceiptInvoiceRows(db, ownerPersonIds = []) {
+    if (!tableExists(db, 'canonical_ledger_invoices')) return [];
+    const filter = ownerFilter(ownerPersonIds, 'i.owner_person_id');
+    return db.prepare(`
+        WITH ranked_invoices AS (
+            SELECT i.*,
+                ROW_NUMBER() OVER (
+                    PARTITION BY i.invoice_id
+                    ORDER BY r.created_at DESC, i.run_id DESC
+                ) AS row_rank
+            FROM canonical_ledger_invoices i
+            JOIN canonical_ledger_projection_runs r ON r.run_id = i.run_id
+            WHERE r.report_type = ?
+            ${filter.clause}
+        ),
+        ranked_items AS (
+            SELECT i.*,
+                ROW_NUMBER() OVER (
+                    PARTITION BY i.invoice_item_id
+                    ORDER BY r.created_at DESC, i.run_id DESC
+                ) AS row_rank
+            FROM canonical_ledger_invoice_items i
+            JOIN canonical_ledger_projection_runs r ON r.run_id = i.run_id
+            WHERE r.report_type = ?
+        ),
+        ranked_payments AS (
+            SELECT p.*,
+                ROW_NUMBER() OVER (
+                    PARTITION BY p.invoice_payment_id
+                    ORDER BY r.created_at DESC, p.run_id DESC
+                ) AS row_rank
+            FROM canonical_ledger_invoice_payments p
+            JOIN canonical_ledger_projection_runs r ON r.run_id = p.run_id
+            WHERE r.report_type = ?
+        ),
+        item_totals AS (
+            SELECT invoice_id, SUM(amount_cents) AS total_cents
+            FROM ranked_items
+            WHERE row_rank = 1
+            GROUP BY invoice_id
+        ),
+        payment_totals AS (
+            SELECT invoice_id, SUM(amount_cents) AS total_cents
+            FROM ranked_payments
+            WHERE row_rank = 1
+            GROUP BY invoice_id
+        )
+        SELECT i.invoice_id, i.household_id, i.owner_person_id, i.card_key,
+            i.card_name, i.competence_month, i.due_on, i.currency,
+            COALESCE(items.total_cents, 0) AS observed_item_total_cents,
+            COALESCE(payments.total_cents, 0) AS observed_payment_total_cents,
+            CASE
+                WHEN COALESCE(items.total_cents, 0) > 0
+                    AND COALESCE(payments.total_cents, 0) >= items.total_cents THEN 'paid'
+                WHEN COALESCE(items.total_cents, 0) > 0
+                    AND COALESCE(payments.total_cents, 0) > 0 THEN 'partially_paid'
+                WHEN COALESCE(items.total_cents, 0) > 0 THEN 'open'
+                WHEN COALESCE(payments.total_cents, 0) > 0 THEN 'payment_observed'
+                ELSE 'empty'
+            END AS status
+        FROM ranked_invoices i
+        LEFT JOIN item_totals items ON items.invoice_id = i.invoice_id
+        LEFT JOIN payment_totals payments ON payments.invoice_id = i.invoice_id
+        WHERE i.row_rank = 1
+        ORDER BY i.competence_month, i.card_key, i.invoice_id
+    `).all('canonical_ledger_receipt_shadow', ...filter.ids, 'canonical_ledger_receipt_shadow', 'canonical_ledger_receipt_shadow');
+}
+
+function readReceiptForecastRows(db, ownerPersonIds = [], forecastWindow = {}) {
+    if (!tableExists(db, 'canonical_ledger_events')) return null;
+    const projected = {
+        events: readReceiptEventRows(db, ownerPersonIds),
+        lines: readReceiptLineRows(db, ownerPersonIds),
+        schedules: readReceiptScheduleRows(db, ownerPersonIds),
+        recurrenceOccurrences: readReceiptRecurrenceOccurrenceRows(db, ownerPersonIds),
+        invoices: readReceiptInvoiceRows(db, ownerPersonIds)
+    };
+    return buildCanonicalForecast(projected, forecastWindow);
+}
 function readReceiptPublicRows(db, ownerPersonIds = [], personByUserId = {}) {
     const filter = ownerFilter(ownerPersonIds);
     return db.prepare(`
@@ -596,7 +741,8 @@ function readCanonicalLedgerCanaryDomain({
     dbPath = env.CANONICAL_LEDGER_SHADOW_DB_PATH || DEFAULT_DB_PATH,
     domain,
     ownerPersonIds = [],
-    personByUserId = {}
+    personByUserId = {},
+    forecastWindow = {}
 } = {}) {
     const policy = buildCanonicalLedgerRolloutPolicy(env);
     if (!policy.canReadDomain(domain)) {
@@ -622,6 +768,24 @@ function readCanonicalLedgerCanaryDomain({
                 enabled: true,
                 domain: 'accounts',
                 rows: accountRows
+            };
+        }
+
+        if (String(domain || '').trim().toLowerCase() === 'forecast') {
+            const forecast = readReceiptForecastRows(db, ownerPersonIds, forecastWindow);
+            if (!forecast) {
+                return {
+                    enabled: false,
+                    reason: 'canonical_forecast_unavailable',
+                    rows: []
+                };
+            }
+            return {
+                enabled: true,
+                domain: 'forecast',
+                criteria: forecast.criteria,
+                totals: forecast.totals,
+                rows: forecast.items
             };
         }
 

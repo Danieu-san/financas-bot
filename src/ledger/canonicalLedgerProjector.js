@@ -560,6 +560,12 @@ function projectDebtPayments(input, collection) {
     }
 }
 
+function transferStatus(row) {
+    const status = normalizeText(row.status || '');
+    if (status.includes('cancel')) return 'cancelled';
+    if (status.includes('pendente') || status.includes('agend') || status.includes('futur')) return 'pending';
+    return 'settled';
+}
 function transferKind(row) {
     const status = normalizeText(row.status || '');
     const destination = normalizeText(row.destino || '');
@@ -580,6 +586,7 @@ function projectTransfers(input, collection) {
         const event = makeEvent('sheet.transferencias', ref, row, {
             household_id: input.householdId,
             kind,
+            status: transferStatus(row),
             amount: row.valor,
             category: null,
             subcategory: null,

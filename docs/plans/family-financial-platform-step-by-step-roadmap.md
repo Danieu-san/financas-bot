@@ -74,6 +74,8 @@ Gate de saida:
 
 ### 3D - Contas a pagar e receber futuras
 
+Status em 2026-07-05: em andamento. Passos 1-8 concluidos localmente para leitura canonica `forecast`, incluindo bateria adversarial de datas/status e paridade deterministica onde ha dados equivalentes; faltam deploy canary, smoke WhatsApp read-only e GO/NO-GO de producao.
+
 Objetivo: tratar compromissos futuros como previsao auditavel, separando expectativa de movimento liquidado.
 
 Dentro do escopo:
