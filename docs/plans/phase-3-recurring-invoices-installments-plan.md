@@ -1,7 +1,7 @@
 # Phase 3 Plan - Recurrences, Installments, Bills and Invoices
 
 Date: 2026-07-04
-Status: started after Phase 2 exit GO; slice 3A production GO, slice 3B local GO and pending deploy
+Status: started after Phase 2 exit GO; slices 3A and 3B production GO
 
 ## Roadmap position
 
@@ -94,4 +94,4 @@ Local gate:
 Decision:
 
 - Local `GO` for deploying slice 3B behind the existing canonical shadow/canary surfaces.
-- Production `GO` still requires remote focused tests, migration/health verification and confirmation that rollout flags remain unchanged.
+- Production `GO` was reached on 2026-07-05: EC2 fast-forwarded to `6a668bf`, remote focused ledger tests passed 43/43, PM2 and dashboard health were green, `state_store.json` remained valid, rollout flags were unchanged, and the production SQLite shadow schema contains `canonical_ledger_invoices`, `canonical_ledger_invoice_items` and `canonical_ledger_invoice_payments`.

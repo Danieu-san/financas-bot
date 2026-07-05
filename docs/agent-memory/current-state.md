@@ -2,6 +2,15 @@
 
 Atualizado em: 2026-07-04
 
+## Phase 3 slice 3B linked invoices/items production GO - 2026-07-05
+
+- Commit `6a668bf` was pushed to `origin/main` and deployed to EC2 by fast-forward. Remote tracked worktree is clean except for pre-existing untracked `.env.pre-ready-timeout-20260628-2026-06-28T03-52-45-896Z`.
+- Remote focused tests passed `43/43`: `canonicalLedgerProjector`, `canonicalLedgerShadowStore`, `canonicalLedgerReceiptProjector` and `canonicalLedgerParityReport`.
+- Pre-restart SQLite backup was created at `data/backups/canonical_ledger_shadow.pre-phase3b-20260705T003027Z.sqlite`. An earlier mistyped backup filename `data/backups/canonical_ledger_shadow.pre-phase3b-.sqlite` also exists and was left untouched rather than deleting backup data during deploy.
+- PM2 restarted `financas-bot`; dashboard health returned `{"ok":true,"sqlite":true}`; logs showed WhatsApp authenticated and ready; remote `state_store.json` parsed as valid JSON.
+- Rollout flags were preserved: `FINANCIAL_AGENT_MODE=answer`, `FINANCIAL_AGENT_LLM_PLANNER_ENABLED=true`, `FINANCIAL_CONTEXTUAL_ANALYST_MODE=answer`, `FINANCIAL_COMMAND_PLANNER_MODE=canary`, `INTERPRETATION_RELIABILITY_MODE=shadow`, `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transactions,transfers,accounts`.
+- Production schema was explicitly migrated schema-only with `CanonicalLedgerShadowStore.applyMigrations()`. The real shadow DB now contains `canonical_ledger_invoices`, `canonical_ledger_invoice_items` and `canonical_ledger_invoice_payments`.
+- Decision: production `GO` for Phase 3 slice 3B linked invoices/items. Next roadmap slice remains Phase 3: choose the next vertical cut for recurrence/materialized occurrences, installments, or import reconciliation without removing legacy paths.
 ## Phase 3 slice 3B linked invoices/items local GO - 2026-07-04
 
 - Roadmap position: Phase 3, recurrences/installments/bills/invoices. Active slice: `3B - linked invoices and items`; broad legacy removal remains Phase 8 and recurrence/installment rule expansion is not part of this slice.
