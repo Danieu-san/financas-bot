@@ -33,6 +33,8 @@ Turn forecasting and reconciliation into native, audited capabilities without re
 
 No duplication when importing, paying invoice, restarting or editing recurrence rules. Evidence must include adversarial, repeatable and cleanable tests instead of passive waiting.
 
+Detailed next slices after 3B are tracked in `docs/plans/family-financial-platform-step-by-step-roadmap.md`, starting with `3C - Regras de recorrencia e ocorrencias materializadas`.
+
 ## Slice 3A - Invoice payoff with paying account
 
 Reason: after Phase 2, cash movements know financial accounts, but `invoice.pay` still could register a payment transfer without asking which account paid the invoice. That prevents account balances from reflecting invoice payoff cash movement.

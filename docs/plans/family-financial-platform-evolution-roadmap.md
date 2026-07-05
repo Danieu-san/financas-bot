@@ -306,6 +306,8 @@ Rollback em qualquer fase deve ser troca de flag, nunca reversao destrutiva de d
 
 ## 9. Fases de execucao
 
+O detalhamento operacional do restante do roadmap esta em `docs/plans/family-financial-platform-step-by-step-roadmap.md`. Use esse documento como fila passo a passo apos a Fase 3B; este arquivo continua sendo o macroplano e a fonte de escopo/gates gerais.
+
 ### Fase 0 - Estabilizar o baseline answer/planner atual
 
 **Objetivo:** provar que o baseline atual de producao e estavel antes do novo
