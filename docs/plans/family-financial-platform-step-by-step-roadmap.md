@@ -1,7 +1,7 @@
 # Roadmap passo a passo - FinancasBot familiar
 
 Data: 2026-07-05
-Status: plano detalhado do restante do roadmap, apos Fase 3D em GO de producao
+Status: Fase 3E implementada e verificada localmente; deploy/smoke remoto pendentes
 
 ## Principios de execucao
 
@@ -28,8 +28,9 @@ Concluido:
 - Fase 3B: faturas vinculadas a itens e pagamentos.
 - Fase 3C: regras de recorrencia e ocorrencias materializadas, com smoke pago/nao pago limpo.
 - Fase 3D: contas a pagar e receber futuras, com forecast canary e smoke read-only limpo.
+- Fase 3E: cronograma canonico de parcelas implementado e verificado localmente; deploy e smoke remoto ainda pendentes.
 
-Proximo trabalho: Fase 3E.
+Proximo trabalho: concluir deploy/smoke/GO da Fase 3E.
 
 ## Fase 3 - Recorrencias, parcelas, contas e faturas
 
@@ -112,6 +113,8 @@ Gate de saida:
 - Perguntas read-only declaram criterio de data usado.
 
 ### 3E - Cronograma de parcelas
+
+Status em 2026-07-05: passos 1-8 concluidos localmente. Passos 9-10 pendentes: deploy sem mudar fluxo de escrita de cartao, smoke remoto read-only e GO/NO-GO de producao.
 
 Objetivo: modelar compra parcelada como evento de compra unico com cronograma de competencias, evitando contar cada parcela como compra nova.
 

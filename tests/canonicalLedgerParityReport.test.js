@@ -46,7 +46,7 @@ test('canonical ledger parity report summarizes fixture projection without unexp
         total_rows: 15
     });
     assert.strictEqual(report.canonical_counts.events, 15);
-    assert.strictEqual(report.canonical_counts.schedules, 2);
+    assert.strictEqual(report.canonical_counts.schedules, 3);
     assert.strictEqual(report.canonical_counts.recurrence_rules, 1);
     assert.strictEqual(report.canonical_counts.recurrence_occurrences, 1);
     assert.strictEqual(report.canonical_counts.reconciliation_links, 6);

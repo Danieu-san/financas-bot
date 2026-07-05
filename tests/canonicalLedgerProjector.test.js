@@ -197,13 +197,75 @@ test('canonical ledger separates card purchase competence from invoice payment c
     assert.strictEqual(cardPurchase.occurred_on, '2026-05-20');
     assert.strictEqual(cardPurchase.effective_on, '2026-06-01');
     assert.strictEqual(cardPurchase.competence_month, '2026-06');
-    assert.strictEqual(cardPurchase.amount_cents, 50000);
+    assert.strictEqual(cardPurchase.amount_cents, 100000);
+    const installmentSchedule = projected.schedules.find(schedule => schedule.purchase_event_id === cardPurchase.event_id);
+    assert.strictEqual(installmentSchedule.status, 'uncertain');
+    assert.strictEqual(installmentSchedule.total_purchase_cents, 100000);
+    assert.strictEqual(installmentSchedule.observed_installment_total_cents, 50000);
+    assert.deepStrictEqual(installmentSchedule.missing_installments, [2]);
+    assert.strictEqual(projected.invoices.find(invoice => invoice.competence_month === '2026-06').observed_item_total_cents, 50000);
     assert.deepStrictEqual(lineTypesFor(projected, cardPurchase.event_id), ['card_liability', 'category']);
 
     assert.strictEqual(invoicePayment.kind, 'invoice_payment');
     assert.strictEqual(invoicePayment.amount_cents, 50000);
     assert.strictEqual(invoicePayment.free_budget_eligible, false);
     assert.deepStrictEqual(lineTypesFor(projected, invoicePayment.event_id), ['card_liability', 'cash']);
+});
+
+test('canonical ledger models one installment purchase event with a schedule linked to monthly invoices', () => {
+    const installmentFixture = structuredClone(fixture);
+    installmentFixture.legacyRows.transferencias = [];
+    installmentFixture.legacyRows.lancamentosCartao = [
+        {
+            source_row_id: 'notebook-1-2',
+            user_id: 'person-daniel',
+            card_id: 'nubank-daniel',
+            cartao: 'Cartao Nubank Daniel',
+            data: '20/05/2026',
+            descricao: 'Notebook',
+            categoria: 'Eletronicos',
+            subcategoria: 'Computador',
+            valor_parcela: '500,00',
+            parcela: '1/2',
+            mes_cobranca: '2026-06'
+        },
+        {
+            source_row_id: 'notebook-2-2',
+            user_id: 'person-daniel',
+            card_id: 'nubank-daniel',
+            cartao: 'Cartao Nubank Daniel',
+            data: '20/05/2026',
+            descricao: 'Notebook',
+            categoria: 'Eletronicos',
+            subcategoria: 'Computador',
+            valor_parcela: '500,00',
+            parcela: '2/2',
+            mes_cobranca: '2026-07'
+        }
+    ];
+
+    const projected = projectLegacyRowsToCanonicalLedger(installmentFixture);
+    const purchases = projected.events.filter(event => event.kind === 'card_purchase');
+    const schedules = projected.schedules.filter(schedule => schedule.schedule_type === 'card_installment');
+
+    assert.strictEqual(purchases.length, 1);
+    assert.strictEqual(purchases[0].amount_cents, 100000);
+    assert.strictEqual(purchases[0].net_income_expense_impact, 100000);
+    assert.strictEqual(schedules.length, 1);
+    assert.strictEqual(schedules[0].purchase_event_id, purchases[0].event_id);
+    assert.strictEqual(schedules[0].total_purchase_cents, 100000);
+    assert.deepStrictEqual(
+        schedules[0].installments.map(item => [item.index, item.competence_month, item.amount_cents, item.invoice_id]),
+        [
+            [1, '2026-06', 50000, projected.invoices.find(invoice => invoice.competence_month === '2026-06').invoice_id],
+            [2, '2026-07', 50000, projected.invoices.find(invoice => invoice.competence_month === '2026-07').invoice_id]
+        ]
+    );
+    assert.deepStrictEqual(projected.invoices.map(invoice => [invoice.competence_month, invoice.observed_item_total_cents]), [
+        ['2026-06', 50000],
+        ['2026-07', 50000]
+    ]);
+    assert.strictEqual(projected.invoiceItems.reduce((sum, item) => sum + item.amount_cents, 0), 100000);
 });
 
 test('canonical ledger links card items and payoff to one stable invoice aggregate', () => {

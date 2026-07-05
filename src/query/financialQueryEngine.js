@@ -9,6 +9,7 @@ const {
     dateIsWithinCycle
 } = require('../utils/budgetCycle');
 const { validDueDay, buildRecurringDueDate } = require('../utils/recurringDueDate');
+const { buildCanonicalInstallmentSchedules } = require('../ledger/canonicalInstallmentSchedule');
 
 const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
@@ -827,15 +828,18 @@ function containsFilter(haystack, needle) {
 }
 
 function cardMatchesFilter(item = {}, query = '') {
+    const genericWords = new Set(['cartao', 'credito', 'de', 'da', 'do', 'das', 'dos']);
     const words = normalizeText(query || '')
         .split(/[^a-z0-9]+/i)
         .map(word => word.trim())
-        .filter(word => word.length >= 3);
+        .filter(word => word && !genericWords.has(word));
     if (words.length === 0) return true;
-    const haystack = normalizeText(`${item.cardId || ''} ${item.card || ''}`);
-    return words.every(word => haystack.includes(word));
+    const haystackWords = new Set(normalizeText(`${item.cardId || ''} ${item.card || ''}`)
+        .split(/[^a-z0-9]+/i)
+        .map(word => word.trim())
+        .filter(Boolean));
+    return words.every(word => haystackWords.has(word));
 }
-
 function planStatusIsInstallment(status = '') {
     const normalized = normalizeText(status);
     return normalized.includes('installment') ||
@@ -1022,56 +1026,71 @@ function publicItem(item, referenceDate = new Date()) {
     return output;
 }
 
-function cardPurchaseKey(item = {}) {
-    return [
-        normalizeText(item.description || ''),
-        normalizeText(item.card || item.cardId || ''),
-        normalizeText(item.category || ''),
-        getFormattedDateOnly(parseSheetDate(item.date)) || normalizeText(item.date || ''),
-        roundMoney(item.value || 0),
-        Number(item.installmentTotal || 1)
-    ].join('|');
+function toIsoDate(value) {
+    const parsed = parseSheetDate(value);
+    if (!parsed) return null;
+    return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`;
+}
+
+function toIsoCompetence(value) {
+    const parsed = parseBillingMonth(value);
+    if (!parsed) return null;
+    return `${parsed.year}-${String(parsed.month + 1).padStart(2, '0')}`;
 }
 
 function buildInstallmentPurchaseSummaries(rows = [], plan = {}) {
-    const grouped = new Map();
-    rows.forEach((item) => {
-        if (!item.isInstallment) return;
-        const key = cardPurchaseKey(item);
-        const existing = grouped.get(key) || {
-            date: item.date,
-            description: item.description || 'sem descrição',
-            category: item.category || 'Cartão',
-            subcategory: item.subcategory || 'Cartão de Crédito',
-            value: 0,
-            source: item.source,
-            sourceType: 'card',
-            paymentMethod: item.paymentMethod,
-            card: item.card || item.cardId || '',
-            cardId: item.cardId || '',
+    const rowsByRef = new Map();
+    const scheduleInputs = rows.flatMap((item, index) => {
+        if (!item.isInstallment) return [];
+        const sourceRowRef = `query-card-row-${index}`;
+        rowsByRef.set(sourceRowRef, item);
+        return [{
+            source_row_ref: sourceRowRef,
+            owner_person_id: item.userId || '',
+            card_id: item.cardId || '',
+            card_name: item.card || item.cardId || '',
+            purchase_on: toIsoDate(item.date),
+            description: item.description || '',
+            category: item.category || '',
+            subcategory: item.subcategory || '',
             installment: item.installment || '',
-            billingMonth: item.billingMonth || '',
-            installmentValue: Number(item.value || 0),
-            paidOrScheduledInstallments: 0,
-            remainingInstallments: 0,
-            totalPlanned: 0,
-            remainingTotal: 0,
-            firstPurchaseDate: item.date || '',
-            lastBillingMonth: item.billingMonth || ''
-        };
-        existing.paidOrScheduledInstallments += 1;
-        existing.installmentValue = Number(item.value || existing.installmentValue || 0);
-        existing.totalPlanned = Math.max(existing.totalPlanned, Number(item.value || 0) * Number(item.installmentTotal || 1));
-        existing.remainingInstallments = Math.max(0, Number(item.installmentTotal || 1) - existing.paidOrScheduledInstallments);
-        existing.remainingTotal = existing.remainingInstallments * existing.installmentValue;
-        existing.value = existing.totalPlanned;
-        if (parseSheetDate(item.date) && (!parseSheetDate(existing.firstPurchaseDate) || parseSheetDate(item.date) < parseSheetDate(existing.firstPurchaseDate))) {
-            existing.firstPurchaseDate = item.date;
-        }
-        if (item.billingMonth) existing.lastBillingMonth = item.billingMonth;
-        grouped.set(key, existing);
+            competence_month: toIsoCompetence(item.billingMonth),
+            amount_cents: Math.round(Number(item.value || 0) * 100),
+            currency: 'BRL',
+            status: item.status || 'scheduled'
+        }];
     });
-    return Array.from(grouped.values())
+
+    return buildCanonicalInstallmentSchedules(scheduleInputs)
+        .map((schedule) => {
+            const firstItem = rowsByRef.get(schedule.installments[0]?.source_row_ref) || {};
+            const lastItem = rowsByRef.get(schedule.installments.at(-1)?.source_row_ref) || firstItem;
+            const installmentValue = schedule.installment_value_cents / 100;
+            const totalPlanned = installmentValue * schedule.installment_total;
+            const remainingInstallments = Math.max(0, schedule.installment_total - schedule.observed_installments);
+            return {
+                date: firstItem.date || '',
+                description: schedule.description || 'sem descricao',
+                category: schedule.category || 'Cartao',
+                subcategory: schedule.subcategory || 'Cartao de Credito',
+                value: totalPlanned,
+                source: firstItem.source,
+                sourceType: 'card',
+                paymentMethod: firstItem.paymentMethod,
+                status: schedule.status,
+                card: schedule.card_name || schedule.card_id || '',
+                cardId: schedule.card_id || '',
+                installment: firstItem.installment || '',
+                billingMonth: firstItem.billingMonth || '',
+                installmentValue,
+                paidOrScheduledInstallments: schedule.observed_installments,
+                remainingInstallments,
+                totalPlanned,
+                remainingTotal: remainingInstallments * installmentValue,
+                firstPurchaseDate: firstItem.date || '',
+                lastBillingMonth: lastItem.billingMonth || ''
+            };
+        })
         .filter(item => item.paidOrScheduledInstallments > 0)
         .sort((a, b) => {
             const direction = plan.sort?.direction === 'asc' ? 1 : -1;
@@ -1080,7 +1099,6 @@ function buildInstallmentPurchaseSummaries(rows = [], plan = {}) {
         .slice(0, plan.limit)
         .map(publicItem);
 }
-
 function buildDetail(rows, plan) {
     const totalOutputs = rows
         .filter(item => item.sourceType === 'expense')

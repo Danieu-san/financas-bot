@@ -256,17 +256,32 @@ Invariants:
   payment out of free budget consumption.
 - Re-materializing the same window is idempotent.
 - Pending occurrences do not change current cash balance or consumption totals.
+
 ### `ledger_schedules`
 
-Rules and expected future items.
+Rules, expected future items and card installment schedules. In Phase 3E,
+card installment schedules model one original purchase with monthly installment
+competences; they do not replace the readable card rows in Sheets.
 
 Required fields:
 
 - `schedule_id`
 - `household_id`
 - `owner_person_id`
-- `schedule_type`: `recurrence`, `installment`, `bill`, `receivable`
-- `status`
+- `schedule_type`: `recurrence`, `card_installment`, `bill`, `receivable`
+- `status`: `scheduled`, `pending`, `settled`, `cancelled`, `uncertain`
+- `purchase_event_id` for card installments when the original purchase event is
+  known
+- `purchase_on`: original purchase date for card installments
+- `description`, `category` and `subcategory`
+- `card_id` and `card_name` for card installments
+- `installment_total`
+- `observed_installments`
+- `missing_installments`
+- `installment_value_cents`
+- `total_purchase_cents`: expected full purchase value
+- `observed_installment_total_cents`: sum of observed source installments
+- `first_competence_month` and `last_competence_month`
 - `start_on`
 - `end_on`
 - `frequency`
@@ -274,6 +289,21 @@ Required fields:
 - `currency`
 - `next_due_on`
 - `source_id_hash`
+- `installments[]`: `index`, `total`, `competence_month`, `amount_cents`,
+  `status`, `invoice_id`, `invoice_item_id`, `event_id` and `source_row_ref`
+
+Card installment invariants:
+
+- `1/1` card rows are one-time purchases and must not create a schedule.
+- Full projections group `N/M` rows into one purchase schedule even when source
+  rows arrive newest-first.
+- Truly identical purchases remain separate schedules when their installment
+  sequences are distinct.
+- Each observed installment links to exactly one invoice item for its competence.
+- Missing rows, partial cancellations or uncertain rows make the schedule
+  `uncertain`; fully cancelled sequences become `cancelled`.
+- Receipt projections for a single newly written installment keep the observed
+  value only and do not multiply it by the installment count.
 
 ### `ledger_reconciliation_links`
 

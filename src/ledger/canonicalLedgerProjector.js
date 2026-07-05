@@ -1,6 +1,7 @@
 const crypto = require('node:crypto');
 const { normalizeText, parseValue } = require('../utils/helpers');
 const { recurringBillPaymentScore } = require('../utils/recurringBillMatcher');
+const { buildCanonicalInstallmentSchedules } = require('./canonicalInstallmentSchedule');
 
 function stableStringify(value) {
     if (Array.isArray(value)) {
@@ -39,6 +40,9 @@ function normalizeCompetenceMonth(value, fallbackDate) {
     if (/^\d{4}-\d{2}$/.test(raw)) return raw;
     const pt = raw.match(/^(\d{1,2})\/(\d{4})$/);
     if (pt) return `${pt[2]}-${pt[1].padStart(2, '0')}`;
+    const named = normalizeText(raw).match(/^([a-z]+)\s+de\s+(\d{4})$/);
+    const namedMonth = named ? INVOICE_MONTHS[named[1]] : null;
+    if (namedMonth) return `${named[2]}-${String(namedMonth).padStart(2, '0')}`;
     return competenceFromDate(fallbackDate);
 }
 
@@ -90,10 +94,12 @@ function registerInvoiceObservation(collection, event, {
     cardId = '',
     cardName = '',
     competenceMonth = '',
-    type
+    type,
+    amountCents = event?.amount_cents,
+    itemIdentity = ''
 } = {}) {
     const cardKey = normalizeInvoiceCardKey(cardName || cardId);
-    if (!cardKey || !competenceMonth || !event?.event_id) return;
+    if (!cardKey || !competenceMonth || !event?.event_id) return null;
 
     const invoiceId = `inv_${hash({
         householdId: event.household_id || '',
@@ -119,33 +125,44 @@ function registerInvoiceObservation(collection, event, {
     }
 
     if (type === 'item') {
-        const invoiceItemId = `invitem_${hash({ invoiceId, eventId: event.event_id })}`;
-        if (collection.invoiceItems.some(item => item.invoice_item_id === invoiceItemId)) return;
-        collection.invoiceItems.push({
+        const invoiceItemId = `invitem_${hash({ invoiceId, eventId: event.event_id, itemIdentity })}`;
+        const existingItem = collection.invoiceItems.find(item => item.invoice_item_id === invoiceItemId);
+        if (existingItem) return { invoice, item: existingItem };
+        const item = {
             invoice_item_id: invoiceItemId,
             invoice_id: invoiceId,
             event_id: event.event_id,
-            amount_cents: event.amount_cents,
+            amount_cents: amountCents,
             currency: event.currency || 'BRL'
-        });
-        invoice.observed_item_total_cents += event.amount_cents;
-    } else if (type === 'payment') {
+        };
+        collection.invoiceItems.push(item);
+        invoice.observed_item_total_cents += amountCents;
+        invoice.status = invoiceStatus(
+            invoice.observed_item_total_cents,
+            invoice.observed_payment_total_cents
+        );
+        return { invoice, item };
+    }
+    if (type === 'payment') {
         const invoicePaymentId = `invpay_${hash({ invoiceId, eventId: event.event_id })}`;
-        if (collection.invoicePayments.some(payment => payment.invoice_payment_id === invoicePaymentId)) return;
-        collection.invoicePayments.push({
+        const existingPayment = collection.invoicePayments.find(payment => payment.invoice_payment_id === invoicePaymentId);
+        if (existingPayment) return { invoice, payment: existingPayment };
+        const payment = {
             invoice_payment_id: invoicePaymentId,
             invoice_id: invoiceId,
             event_id: event.event_id,
-            amount_cents: event.amount_cents,
+            amount_cents: amountCents,
             currency: event.currency || 'BRL'
-        });
-        invoice.observed_payment_total_cents += event.amount_cents;
+        };
+        collection.invoicePayments.push(payment);
+        invoice.observed_payment_total_cents += amountCents;
+        invoice.status = invoiceStatus(
+            invoice.observed_item_total_cents,
+            invoice.observed_payment_total_cents
+        );
+        return { invoice, payment };
     }
-
-    invoice.status = invoiceStatus(
-        invoice.observed_item_total_cents,
-        invoice.observed_payment_total_cents
-    );
+    return { invoice };
 }
 function cents(value) {
     const amount = typeof value === 'number' ? value : parseValue(value);
@@ -623,8 +640,84 @@ function firstDayOfCompetence(competenceMonth) {
 }
 
 function projectCardPurchases(input, collection) {
+    const rows = [];
+    const seenSourceRefs = new Set();
     for (const row of input.legacyRows?.lancamentosCartao || []) {
         const ref = sourceRef(row, `cartao-${hash(row, 8)}`);
+        if (seenSourceRefs.has(ref)) continue;
+        seenSourceRefs.add(ref);
+        rows.push({ row, ref });
+    }
+
+    const scheduleInputs = rows.map(({ row, ref }) => ({
+        source_row_ref: ref,
+        owner_person_id: row.user_id || null,
+        card_id: row.card_id || '',
+        card_name: row.cartao || row.card || row.card_id || '',
+        purchase_on: normalizeDate(row.data),
+        description: row.descricao || '',
+        category: row.categoria || '',
+        subcategory: row.subcategoria || '',
+        installment: row.parcela || '',
+        competence_month: normalizeCompetenceMonth(row.mes_cobranca, normalizeDate(row.data)),
+        amount_cents: cents(row.valor_parcela),
+        currency: 'BRL',
+        status: row.status || 'scheduled'
+    }));
+    const schedules = input.includeInstallmentSchedules === false
+        ? []
+        : buildCanonicalInstallmentSchedules(scheduleInputs);
+    const scheduledSourceRefs = new Set();
+    const rowBySourceRef = new Map(rows.map(item => [item.ref, item.row]));
+
+    for (const schedule of schedules) {
+        const firstInstallment = schedule.installments[0];
+        const firstRow = rowBySourceRef.get(firstInstallment.source_row_ref);
+        if (!firstRow) continue;
+        const ref = firstInstallment.source_row_ref;
+        const occurredOn = normalizeDate(firstRow.data);
+        const competenceMonth = schedule.first_competence_month || normalizeCompetenceMonth(firstRow.mes_cobranca, occurredOn);
+        const event = makeEvent('sheet.lancamentos_cartao', ref, firstRow, {
+            household_id: input.householdId,
+            kind: 'card_purchase',
+            amount: schedule.total_purchase_cents / 100,
+            occurred_on: occurredOn,
+            effective_on: firstDayOfCompetence(competenceMonth),
+            competence_month: competenceMonth,
+            free_budget_eligible: true,
+            net_income_expense_impact: schedule.total_purchase_cents
+        });
+        addEvent(collection, event, [
+            makeLine(event, 'card_liability', { direction: 'outflow', account_id: firstRow.card_id || null }),
+            makeLine(event, 'category', { direction: 'outflow' })
+        ]);
+
+        schedule.household_id = input.householdId || null;
+        schedule.owner_person_id = event.owner_person_id;
+        schedule.purchase_event_id = event.event_id;
+        schedule.installments = schedule.installments.map((installment) => {
+            scheduledSourceRefs.add(installment.source_row_ref);
+            const row = rowBySourceRef.get(installment.source_row_ref) || firstRow;
+            const observation = registerInvoiceObservation(collection, event, {
+                cardId: row.card_id || '',
+                cardName: row.cartao || row.card || row.card_id || '',
+                competenceMonth: installment.competence_month,
+                type: 'item',
+                amountCents: installment.amount_cents,
+                itemIdentity: installment.source_row_ref || `${installment.index}/${installment.total}`
+            });
+            return {
+                ...installment,
+                event_id: event.event_id,
+                invoice_id: observation?.invoice?.invoice_id || null,
+                invoice_item_id: observation?.item?.invoice_item_id || null
+            };
+        });
+        collection.schedules.push(schedule);
+    }
+
+    for (const { row, ref } of rows) {
+        if (scheduledSourceRefs.has(ref)) continue;
         const occurredOn = normalizeDate(row.data);
         const competenceMonth = normalizeCompetenceMonth(row.mes_cobranca, occurredOn);
         const event = makeEvent('sheet.lancamentos_cartao', ref, row, {
@@ -649,7 +742,6 @@ function projectCardPurchases(input, collection) {
         });
     }
 }
-
 function projectGoals(input, collection) {
     for (const row of input.legacyRows?.metas || []) {
         const ref = sourceRef(row, `metas-${hash(row, 8)}`);

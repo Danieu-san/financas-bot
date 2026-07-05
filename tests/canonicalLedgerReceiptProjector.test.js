@@ -99,7 +99,20 @@ test('canonical receipt projector links card purchase and payoff across idempote
     );
     store.close();
 });
-test('canonical receipt projector normalizes legacy card sheet names into stable card ids', () => {
+
+test('canonical receipt projector keeps one isolated installment at its observed value', () => {
+    const projection = buildCanonicalLedgerReceiptProjection({
+        sheetName: 'Lançamentos Cartão',
+        row: ['04/07/2026', 'Notebook', 'Eletrônicos', 500, '1/3', 'Julho de 2026', 'nubank-thais', 'Nubank - Thais', '', 'user-a'],
+        operationKey: 'isolated-installment-op',
+        receipt: { updatedRange: 'Lançamentos Cartão!A11:J11' }
+    });
+
+    assert.strictEqual(projection.projected.events[0].amount_cents, 50000);
+    assert.strictEqual(projection.projected.events[0].net_income_expense_impact, 50000);
+    assert.strictEqual(projection.projected.invoiceItems[0].amount_cents, 50000);
+    assert.strictEqual(projection.projected.schedules.length, 0);
+});test('canonical receipt projector normalizes legacy card sheet names into stable card ids', () => {
     const projection = buildCanonicalLedgerReceiptProjection({
         sheetName: 'Cartão Nubank - Thais',
         row: ['04/07/2026', 'Mercado', 'Alimentação', 10, '1/1', 'Julho de 2026', 'user-a'],

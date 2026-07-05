@@ -1701,6 +1701,81 @@ test('Packet 02 planner routes invoice, card purchase and installment capabiliti
     }
 });
 
+
+test('Packet 02 card filter ignores Portuguese prepositions but preserves short identifiers', async () => {
+    const sources = {
+        cartoes: [[
+            ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Obs', 'user_id'],
+            ['10/06/2026', 'Compra Thais', 'Compras', '100,00', '1/1', 'Junho de 2026', 'nubank-thais', 'Nubank - Thais', '', 'thais']
+        ]]
+    };
+    const result = await financialQueryEngine.executeFinancialQuery(
+        packetPlan('cards', 'sum', { period: { type: 'month', month: 5, year: 2026 }, card: 'Nubank da Thais' }),
+        sources
+    );
+
+    assert.strictEqual(result.result.value, 100);
+});test('Packet 02 legacy plans preserve category and member filters for installment reads', () => {
+    const active = financialQueryPlan.legacyIntentToQueryPlan('resumo_parcelamentos_cartao', {
+        cartao: 'Cartão A',
+        categoria: 'Eletrônicos',
+        member: 'daniel'
+    });
+    const committed = financialQueryPlan.legacyIntentToQueryPlan('total_cartoes_em_aberto', {
+        categoria: 'Eletrônicos',
+        member: 'daniel'
+    });
+
+    assert.deepStrictEqual(active.plan.filters, {
+        member: 'daniel',
+        card: 'Cartão A',
+        category: 'Eletrônicos',
+        status: 'active_installments'
+    });
+    assert.deepStrictEqual(committed.plan.filters, {
+        member: 'daniel',
+        category: 'Eletrônicos'
+    });
+});
+test('Packet 02 filters installment schedules by card, member and category with monthly totals', async () => {
+    const sources = {
+        cartoes: [[
+            ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Obs', 'user_id'],
+            ['10/01/2026', 'Notebook Daniel', 'Eletrônicos', '100,00', '1/2', 'Janeiro de 2026', 'card-a', 'Cartão A', '', 'daniel'],
+            ['10/01/2026', 'Notebook Daniel', 'Eletrônicos', '100,00', '2/2', 'Fevereiro de 2026', 'card-a', 'Cartão A', '', 'daniel'],
+            ['11/01/2026', 'Notebook Thais', 'Eletrônicos', '50,00', '1/2', 'Janeiro de 2026', 'card-a', 'Cartão A', '', 'thais'],
+            ['11/01/2026', 'Notebook Thais', 'Eletrônicos', '50,00', '2/2', 'Fevereiro de 2026', 'card-a', 'Cartão A', '', 'thais'],
+            ['12/01/2026', 'Mercado Daniel', 'Alimentação', '75,00', '1/2', 'Janeiro de 2026', 'card-a', 'Cartão A', '', 'daniel'],
+            ['12/01/2026', 'Mercado Daniel', 'Alimentação', '75,00', '2/2', 'Fevereiro de 2026', 'card-a', 'Cartão A', '', 'daniel'],
+            ['13/01/2026', 'Celular Daniel', 'Eletrônicos', '200,00', '1/2', 'Janeiro de 2026', 'card-b', 'Cartão B', '', 'daniel'],
+            ['13/01/2026', 'Celular Daniel', 'Eletrônicos', '200,00', '2/2', 'Fevereiro de 2026', 'card-b', 'Cartão B', '', 'daniel']
+        ]]
+    };
+    const filters = {
+        period: { type: 'month', month: 0, year: 2026 },
+        card: 'Cartão A',
+        member: 'daniel',
+        category: 'Eletrônicos'
+    };
+
+    const active = await financialQueryEngine.executeFinancialQuery(
+        packetPlan('cards', 'list', { ...filters, status: 'active_installments' }),
+        sources
+    );
+    const forecast = await financialQueryEngine.executeFinancialQuery(
+        packetPlan('cards', 'forecast', filters, { groupBy: ['month'] }),
+        sources
+    );
+
+    assert.deepStrictEqual(active.result.value.map(item => [item.description, item.totalPlanned]), [
+        ['Notebook Daniel', 200]
+    ]);
+    assert.strictEqual(forecast.result.value.total, 200);
+    assert.deepStrictEqual(forecast.result.value.groups.map(item => [item.label, item.total]), [
+        ['Janeiro de 2026', 100],
+        ['Fevereiro de 2026', 100]
+    ]);
+});
 test('Packet 02 Query Engine filters invoices and ranks multiple cards by open value', async () => {
     const sources = buildPackets01To04RegressionDataSources();
     const invoice = await financialQueryEngine.executeFinancialQuery(
@@ -1764,6 +1839,48 @@ test('Packet 02 keeps separate installment purchases with the same merchant and 
     assert.deepStrictEqual(result.result.value.map(item => item.totalPlanned), [300, 200]);
 });
 
+test('Packet 02 keeps truly identical installment purchases as separate schedules', async () => {
+    const sources = {
+        cartoes: [[
+            ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Obs', 'user_id'],
+            ['10/01/2026', 'Compra idêntica', 'Compras', '100,00', '1/2', 'Janeiro de 2026', 'card-a', 'Cartão A', '', 'user-a'],
+            ['10/01/2026', 'Compra idêntica', 'Compras', '100,00', '2/2', 'Fevereiro de 2026', 'card-a', 'Cartão A', '', 'user-a'],
+            ['10/01/2026', 'Compra idêntica', 'Compras', '100,00', '1/2', 'Janeiro de 2026', 'card-a', 'Cartão A', '', 'user-a'],
+            ['10/01/2026', 'Compra idêntica', 'Compras', '100,00', '2/2', 'Fevereiro de 2026', 'card-a', 'Cartão A', '', 'user-a']
+        ]]
+    };
+
+    const result = await financialQueryEngine.executeFinancialQuery(
+        packetPlan('cards', 'list', { status: 'active_installments' }),
+        sources
+    );
+
+    assert.strictEqual(result.result.value.length, 2);
+    assert.deepStrictEqual(
+        result.result.value.map(item => [item.totalPlanned, item.paidOrScheduledInstallments]),
+        [[200, 2], [200, 2]]
+    );
+});
+test('Packet 02 marks an incomplete installment sequence as uncertain without hiding the planned total', async () => {
+    const sources = {
+        cartoes: [[
+            ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Obs', 'user_id'],
+            ['10/01/2026', 'Curso incompleto', 'Educação', '500,00', '1/3', 'Janeiro de 2026', 'card-a', 'Cartão A', '', 'user-a'],
+            ['10/01/2026', 'Curso incompleto', 'Educação', '500,00', '3/3', 'Março de 2026', 'card-a', 'Cartão A', '', 'user-a']
+        ]]
+    };
+
+    const result = await financialQueryEngine.executeFinancialQuery(
+        packetPlan('cards', 'list', { status: 'active_installments' }),
+        sources
+    );
+
+    assert.strictEqual(result.result.value.length, 1);
+    assert.strictEqual(result.result.value[0].status, 'uncertain');
+    assert.strictEqual(result.result.value[0].totalPlanned, 1500);
+    assert.strictEqual(result.result.value[0].paidOrScheduledInstallments, 2);
+    assert.strictEqual(result.result.value[0].remainingInstallments, 1);
+});
 test('Packet 02 Response Composer distinguishes invoice month from purchase date', () => {
     const invoiceReply = messageHandler.__test__.buildLocalPerguntaResponse({
         userQuestion: 'quanto está a fatura?',

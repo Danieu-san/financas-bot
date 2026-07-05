@@ -261,6 +261,7 @@ function legacyInputFromAppend({ sheetName, row, operationKey, receipt, accountR
     const competenceMonth = competenceMonthFromReceiptDate(row?.[0]);
     const base = {
         householdId: 'household_shadow',
+        includeInstallmentSchedules: false,
         projectionContext: {
             competenceMonth,
             materializeCompetenceMonths: competenceMonth ? [competenceMonth] : []

@@ -2,6 +2,17 @@
 
 Atualizado em: 2026-07-05
 
+
+## Phase 3 slice 3E installment schedules local GO - 2026-07-05
+
+- Roadmap position: Phase 3, slice `3E - Cronograma de parcelas`; legacy removal remains Phase 8 and no production flags were changed locally.
+- Implemented canonical `card_installment` schedules from existing card rows, with one purchase-level `card_purchase` event and monthly installment links to invoice aggregates from 3B.
+- `1/1` card rows remain one-time purchases; `N/M` rows are grouped into one schedule even when source rows arrive newest-first; truly identical purchases remain separate when their installment sequences are distinct.
+- The Query Engine/read-model path now uses the same canonical grouping semantics for active installment questions, preserving card/member/category filters and avoiding duplicate purchase totals.
+- Receipt projection intentionally keeps isolated newly written installment rows at their observed value and disables schedule aggregation for append receipts, so a single `1/3` write does not multiply the amount by three.
+- Local evidence: focused installment/read-model tests passed `26/26`; full `npm test` passed `709/709`; `npm audit --audit-level=high` found 0 vulnerabilities; `git diff --check` passed with only LF/CRLF warnings; control-character scan found no NUL/backspace/form-feed matches; `state_store.json` parsed as valid JSON.
+- Local real spreadsheet smoke command exists as `npm run ledger:installments-read-smoke`; previous local execution failed closed because this workstation has no active OAuth spreadsheet context. Run it on EC2 after deploy, where the production sheet context exists.
+- Decision: local `GO` for steps 1-8 of 3E. Remaining gate: commit/push, EC2 fast-forward, remote focused tests, read-only installment smoke, health/state/flag verification, then production GO/NO-GO.
 ## Phase 3 slice 3D future payables/receivables production GO - 2026-07-05
 
 - Commit `b1be94b` was pushed to `origin/main` and deployed to EC2 by fast-forward from `631870b`, first with `forecast` disabled and then enabled only in `CANONICAL_LEDGER_CANARY_READ_DOMAINS`.

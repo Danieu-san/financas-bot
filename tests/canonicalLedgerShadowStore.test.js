@@ -144,7 +144,7 @@ test('canonical ledger shadow store persists projection only when enabled and re
     assert.deepStrictEqual(store.countRows(runId), {
         events: 15,
         lines: projection.projected.lines.length,
-        schedules: 2,
+        schedules: 3,
         reconciliationLinks: 6,
         recurrenceRules: 1,
         recurrenceOccurrences: 1,
@@ -183,7 +183,7 @@ test('canonical ledger shadow store persists projection only when enabled and re
     assert.deepStrictEqual(restored.countRows(runId), {
         events: 15,
         lines: projection.projected.lines.length,
-        schedules: 2,
+        schedules: 3,
         reconciliationLinks: 6,
         recurrenceRules: 1,
         recurrenceOccurrences: 1,
