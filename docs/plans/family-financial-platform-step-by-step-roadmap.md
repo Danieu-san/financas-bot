@@ -1,7 +1,7 @@
 # Roadmap passo a passo - FinancasBot familiar
 
 Data: 2026-07-05
-Status: Fase 3E implementada e verificada localmente; deploy/smoke remoto pendentes
+Status: Fase 3E concluida com GO de producao; proxima fatia: 3F
 
 ## Principios de execucao
 
@@ -28,9 +28,9 @@ Concluido:
 - Fase 3B: faturas vinculadas a itens e pagamentos.
 - Fase 3C: regras de recorrencia e ocorrencias materializadas, com smoke pago/nao pago limpo.
 - Fase 3D: contas a pagar e receber futuras, com forecast canary e smoke read-only limpo.
-- Fase 3E: cronograma canonico de parcelas implementado e verificado localmente; deploy e smoke remoto ainda pendentes.
+- Fase 3E: cronograma canonico de parcelas concluido com GO de producao, smoke remoto read-only aprovado e flags preservadas.
 
-Proximo trabalho: concluir deploy/smoke/GO da Fase 3E.
+Proximo trabalho: iniciar Fase 3F - Reembolso e estorno vinculados.
 
 ## Fase 3 - Recorrencias, parcelas, contas e faturas
 
@@ -114,7 +114,7 @@ Gate de saida:
 
 ### 3E - Cronograma de parcelas
 
-Status em 2026-07-05: passos 1-8 concluidos localmente. Passos 9-10 pendentes: deploy sem mudar fluxo de escrita de cartao, smoke remoto read-only e GO/NO-GO de producao.
+Status em 2026-07-05: concluida com `GO` de producao. Passos 1-10 executados; cronograma canonico de parcelas ativo em leitura/projecao, smoke remoto read-only aprovado e fluxo de escrita de cartao preservado.
 
 Objetivo: modelar compra parcelada como evento de compra unico com cronograma de competencias, evitando contar cada parcela como compra nova.
 
@@ -605,4 +605,4 @@ Passo a passo:
 4. Executar 3G.
 5. Rodar 3H e so entao abrir Fase 4.
 
-A proxima fatia implementavel e `3E - Cronograma de parcelas`.
+A proxima fatia implementavel e `3F - Reembolso e estorno vinculados`.

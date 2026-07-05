@@ -3,6 +3,15 @@
 Atualizado em: 2026-07-05
 
 
+## Phase 3 slice 3E installment schedules production GO - 2026-07-05
+
+- Commit `a513a59` was pushed to `origin/main` and deployed to EC2 by fast-forward/reset to `origin/main`.
+- Roadmap position: Phase 3, slice `3E - Cronograma de parcelas`; legacy removal remains Phase 8, the credit-card write flow was not changed, and Gemini Planner remains active.
+- Remote focused verification passed `66/66`: installment schedule, canonical parity, ledger projector, receipt projector and read-model SQLite tests.
+- Remote read-only spreadsheet smoke `npm run ledger:installments-read-smoke` passed against production context: `sourceRowCount=27`, `installmentRows=5`, `scheduleCount=2`, `uncertainCount=0`, `invalidCompetenceRows=0`, and `mismatchCount=0`; month totals matched for `2026-06`, `2026-07` and `2026-08`.
+- Production health after PM2 restart: `financas-bot` online, dashboard health `{"ok":true,"sqlite":true}`, `state_store.json` parsed as valid JSON, read-model startup/scheduled syncs were OK, and WhatsApp authenticated/ready without QR.
+- Flags preserved: `FINANCIAL_AGENT_MODE=answer`, `FINANCIAL_AGENT_LLM_PLANNER_ENABLED=true`, `FINANCIAL_CONTEXTUAL_ANALYST_MODE=answer`, `FINANCIAL_COMMAND_PLANNER_MODE=canary`, `INTERPRETATION_RELIABILITY_MODE=shadow`, `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transactions,transfers,accounts,forecast`, `FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS=bill.pay,debt.pay,invoice.pay,expense.create`.
+- Decision: production `GO` for Phase 3 slice 3E as a canonical installment schedule source. Next roadmap slice: `3F - Reembolso e estorno vinculados`.
 ## Phase 3 slice 3E installment schedules local GO - 2026-07-05
 
 - Roadmap position: Phase 3, slice `3E - Cronograma de parcelas`; legacy removal remains Phase 8 and no production flags were changed locally.
