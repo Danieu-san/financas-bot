@@ -1,7 +1,7 @@
 # Roadmap passo a passo - FinancasBot familiar
 
 Data: 2026-07-05
-Status: plano detalhado do restante do roadmap, apos Fase 3C em GO de producao
+Status: plano detalhado do restante do roadmap, apos Fase 3D em GO de producao
 
 ## Principios de execucao
 
@@ -27,8 +27,9 @@ Concluido:
 - Fase 3A: pagamento de fatura com conta pagadora.
 - Fase 3B: faturas vinculadas a itens e pagamentos.
 - Fase 3C: regras de recorrencia e ocorrencias materializadas, com smoke pago/nao pago limpo.
+- Fase 3D: contas a pagar e receber futuras, com forecast canary e smoke read-only limpo.
 
-Proximo trabalho: Fase 3D.
+Proximo trabalho: Fase 3E.
 
 ## Fase 3 - Recorrencias, parcelas, contas e faturas
 
@@ -74,7 +75,7 @@ Gate de saida:
 
 ### 3D - Contas a pagar e receber futuras
 
-Status em 2026-07-05: em andamento. Passos 1-8 concluidos localmente para leitura canonica `forecast`, incluindo bateria adversarial de datas/status e paridade deterministica onde ha dados equivalentes; faltam deploy canary, smoke WhatsApp read-only e GO/NO-GO de producao.
+Status em 2026-07-05: concluida com `GO` de producao. Passos 1-10 executados; leitura canonica `forecast` ativa no canary, smoke WhatsApp read-only aprovado e fixture marker-only removida sem residuos.
 
 Objetivo: tratar compromissos futuros como previsao auditavel, separando expectativa de movimento liquidado.
 
@@ -595,10 +596,10 @@ Passo a passo:
 
 ## Ordem recomendada imediata
 
-1. Executar 3D.
+1. 3D concluida com GO de producao.
 2. Executar 3E.
 3. Executar 3F.
 4. Executar 3G.
 5. Rodar 3H e so entao abrir Fase 4.
 
-A proxima fatia implementavel e `3D - Contas a pagar e receber futuras`.
+A proxima fatia implementavel e `3E - Cronograma de parcelas`.

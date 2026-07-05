@@ -2,6 +2,16 @@
 
 Atualizado em: 2026-07-05
 
+## Phase 3 slice 3D future payables/receivables production GO - 2026-07-05
+
+- Commit `b1be94b` was pushed to `origin/main` and deployed to EC2 by fast-forward from `631870b`, first with `forecast` disabled and then enabled only in `CANONICAL_LEDGER_CANARY_READ_DOMAINS`.
+- Local final verification passed `693/693`; remote focused forecast/receipt/policy/agent tests passed `96/96`; `npm audit --audit-level=high` found 0 vulnerabilities. Code review also removed a malformed planner prompt separator and stripped `source_row_ref` from public forecast rows with RED/GREEN regressions.
+- Production remained healthy through both restarts: PM2 online, dashboard health `{"ok":true,"sqlite":true}`, Google/Sheets/read-model/user-id startup green, and WhatsApp ready without QR.
+- Flags after rollout: `FINANCIAL_AGENT_MODE=answer`, `FINANCIAL_AGENT_LLM_PLANNER_ENABLED=true`, `FINANCIAL_CONTEXTUAL_ANALYST_MODE=answer`, `FINANCIAL_COMMAND_PLANNER_MODE=canary`, `INTERPRETATION_RELIABILITY_MODE=shadow`, `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transactions,transfers,accounts,forecast`, `FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS=bill.pay,debt.pay,invoice.pay,expense.create`.
+- Marker-only smoke `TESTE_APAGAR_PHASE3D_20260705_1310` proved: two payables listed at `R$ 12,34` and `R$ 34,56`; payable total `R$ 46,90`; one receivable at `R$ 23,45`; the relative next-15-days query also returned `R$ 46,90`; pending items did not alter the current account balance.
+- Cleanup deleted the complete marker run with zero remaining events, lines, schedules, recurrence rules/occurrences, projection/audit rows and public rows. The canary window returned `count=0` after cleanup, and local/remote temporary fixture scripts were removed. Backup retained at `data/backups/canonical_ledger_shadow.pre-phase3d-smoke-b1be94b.sqlite`.
+- Decision: production `GO` for Phase 3 slice 3D as a canonical read-only forecast source. Legacy removal remains Phase 8. Next roadmap slice: `3E - Cronograma de parcelas`.
+
 ## Phase 3 slice 3D future payables/receivables local increment - 2026-07-05
 
 - Roadmap position: Phase 3, slice `3D - Contas a pagar e receber futuras`; legacy removal remains Phase 8 and no production flags were changed.
