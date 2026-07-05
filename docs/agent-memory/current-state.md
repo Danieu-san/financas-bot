@@ -2,6 +2,15 @@
 
 Atualizado em: 2026-07-04
 
+## Phase 3 slice 3B linked invoices/items local GO - 2026-07-04
+
+- Roadmap position: Phase 3, recurrences/installments/bills/invoices. Active slice: `3B - linked invoices and items`; broad legacy removal remains Phase 8 and recurrence/installment rule expansion is not part of this slice.
+- Implemented stable canonical invoice aggregates for family card + competence, linked card purchases/installments as invoice items, and linked `invoice.pay` payments to the same aggregate without duplicating consumption expense.
+- Persistence now uses migration `003_canonical_ledger_invoices.sql` for invoices, invoice items and invoice payments. Aggregate totals/status are derived when reading instead of stored redundantly.
+- Second review: Gemini CLI was blocked by `IneligibleTierError`, so the configured Gemini API reviewed the diff. Accepted fixes: prefer canonical card names over opaque ids, deduplicate repeated invoice observations within one run and remove redundant aggregate columns from the store.
+- Evidence: focused ledger tests passed during development; full `npm test` passed 680/680; `npm audit --audit-level=high` found 0 vulnerabilities; syntax checks passed for the three touched ledger modules; `git diff --check` passed; control-character scan found no NUL/backspace matches; `state_store.json` parsed as valid JSON.
+- Flags must remain unchanged for deploy: `FINANCIAL_AGENT_MODE=answer`, Gemini Planner active, contextual analyst in `answer`, `FINANCIAL_COMMAND_PLANNER_MODE=canary`, `INTERPRETATION_RELIABILITY_MODE=shadow`, and `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transactions,transfers,accounts`.
+- Decision: local `GO` for deploying 3B behind the existing canonical shadow/canary surfaces. Production `GO` still requires push, EC2 fast-forward, remote focused tests, health/state/flag verification and migration visibility.
 ## Phase 3 invoice payoff paying account slice - 2026-07-04
 
 - Roadmap position: Phase 3, recurrences/installments/bills/invoices. Active slice: `invoice.pay` must ask which financial account paid the invoice before final confirmation.
