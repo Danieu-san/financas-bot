@@ -2,6 +2,17 @@
 
 Atualizado em: 2026-07-05
 
+## Phase 3 slice 3C recurrence rules production GO - 2026-07-05
+
+- Roadmap position: Phase 3, slice `3C - Regras de recorrencia e ocorrencias materializadas`. Legacy removal remains Phase 8; next roadmap slice is `3D - Contas a pagar e receber futuras`.
+- Corrective gate: the first paid marker-only smoke (`TESTE_APAGAR_PHASE3C_SMOKE_20260705_001`) registered the WhatsApp bill payment correctly as `bill_payment` with `free_budget_eligible=0` and `net_income_expense_impact=0`, but the receipt shadow did not create/link the recurrence rule/occurrence. Decision at that point: `NO-GO` for 3C production GO.
+- Fix commit `c0b8f94` links receipt-projected bill payments to recurrence rules/occurrences and preserves only the real receipt event while keeping the settled occurrence. It was pushed to `origin/main`, fast-forwarded on EC2, remote focused ledger tests passed `47/47`, PM2 restarted, dashboard health returned `{"ok":true,"sqlite":true}` and WhatsApp was ready without QR.
+- Local verification before deploy: focused receipt projector tests passed `17/17`, focused ledger suite passed `47/47`, full `npm test` passed `684/684`, `npm audit --audit-level=high` found 0 vulnerabilities, `git diff --check` passed, NUL/backspace scan was clean, and `state_store.json` parsed as valid JSON.
+- Flags preserved in production: `FINANCIAL_AGENT_MODE=answer`, `FINANCIAL_AGENT_LLM_PLANNER_ENABLED=true`, `FINANCIAL_CONTEXTUAL_ANALYST_MODE=answer`, `FINANCIAL_COMMAND_PLANNER_MODE=canary`, `INTERPRETATION_RELIABILITY_MODE=shadow`, `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transactions,transfers,accounts`, `FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS=bill.pay,debt.pay,invoice.pay,expense.create`.
+- Paid smoke after the fix: `TESTE_APAGAR_PHASE3C_FIX_20260705_002` registered a recurring phone bill payment by WhatsApp, created one active monthly recurrence rule, one settled `2026-07` occurrence due `2026-07-25`, one `bill_payment` event with `free_budget_eligible=0` and `net_income_expense_impact=0`, and one `recurrence_occurrence_payment` link. Cleanup removed the Sheets marker and backed up/deleted the ledger run; remaining marker counts were zero.
+- Unpaid/upcoming smoke: `TESTE_APAGAR_PHASE3C_UNPAID_20260705_003` projected one active account row into one recurrence rule and one pending `2026-07` occurrence due `2026-07-25`, with no `Saidas` row, `bill_expected.free_budget_eligible=false` and `bill_expected.net_income_expense_impact=0`. Cleanup confirmed zero marker rows and zero remote ledger residue.
+- Decision: production `GO` for Phase 3 slice 3C. Recurring bill rules/occurrences may feed read-only canary questions about upcoming bills behind the existing canonical read domains; broad forecast aggregation remains the next slice, 3D.
+
 ## Phase 3 slice 3C recurrence rules EC2 deploy verified - 2026-07-05
 
 - Roadmap position: Phase 3, slice `3C - Regras de recorrencia e ocorrencias materializadas`; legacy removal remains Phase 8 and no rollout flags were changed.
@@ -11,7 +22,8 @@ Atualizado em: 2026-07-05
 - Remote focused ledger tests passed `47/47`: projector, shadow store, receipt projector and parity report.
 - Production health after PM2 restart: dashboard health returned `{"ok":true,"sqlite":true}`, PM2 showed `financas-bot` online, WhatsApp authenticated and ready without QR, read-model startup/scheduled syncs were OK, user_id integrity had no pending issues, and remote `state_store.json` parsed as valid JSON.
 - Flags preserved: `FINANCIAL_AGENT_MODE=answer`, `FINANCIAL_AGENT_LLM_PLANNER_ENABLED=true`, `FINANCIAL_CONTEXTUAL_ANALYST_MODE=answer`, `FINANCIAL_COMMAND_PLANNER_MODE=canary`, `INTERPRETATION_RELIABILITY_MODE=shadow`, `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transactions,transfers,accounts`, `FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS=bill.pay,debt.pay,invoice.pay,expense.create`.
-- Decision: deployment verification is `GO`; final production GO for 3C still requires the planned marker-only/manual smoke for one paid recurring bill occurrence and one unpaid/upcoming occurrence read, with cleanup/evidence. Do not advance to 3D until that gate is recorded.
+- Decision: deployment verification was `GO`; the final paid/unpaid marker-only smoke later passed after corrective commit `c0b8f94`, so 3C is now production `GO` and the roadmap can advance to 3D.
+
 ## Phase 3 slice 3C recurrence rules local GO - 2026-07-05
 
 - Roadmap position: Phase 3, slice `3C - Regras de recorrencia e ocorrencias materializadas`; legacy removal remains Phase 8 and no production flags were changed locally.
@@ -27,7 +39,7 @@ Atualizado em: 2026-07-05
 
 - The remaining macro-roadmap was broken into executable slices in `docs/plans/family-financial-platform-step-by-step-roadmap.md`.
 - The document covers Phase 3C through 3H and Phases 4 through 9, with objective, scope, ordered steps and exit gates for each slice.
-- Immediate next implementable slice: `3C - Regras de recorrencia e ocorrencias materializadas`.
+- Immediate next implementable slice at the time was `3C - Regras de recorrencia e ocorrencias materializadas`; after the 2026-07-05 production GO above, the active next slice is `3D - Contas a pagar e receber futuras`.
 - This is documentation/planning only: no code, production flags, EC2 state or deploy behavior changed.
 
 ## Phase 3 slice 3B linked invoices/items production GO - 2026-07-05

@@ -1,7 +1,7 @@
 # Phase 3 Plan - Recurrences, Installments, Bills and Invoices
 
 Date: 2026-07-04
-Status: started after Phase 2 exit GO; slices 3A and 3B production GO; slice 3C deployed with final smoke pending
+Status: started after Phase 2 exit GO; slices 3A, 3B and 3C production GO
 
 ## Roadmap position
 
@@ -33,11 +33,11 @@ Turn forecasting and reconciliation into native, audited capabilities without re
 
 No duplication when importing, paying invoice, restarting or editing recurrence rules. Evidence must include adversarial, repeatable and cleanable tests instead of passive waiting.
 
-Detailed next slices after 3B are tracked in `docs/plans/family-financial-platform-step-by-step-roadmap.md`, starting with `3C - Regras de recorrencia e ocorrencias materializadas`.
+Detailed next slices after 3C are tracked in `docs/plans/family-financial-platform-step-by-step-roadmap.md`, starting with `3D - Contas a pagar e receber futuras`.
 
 ## Slice 3C - Recurrence rules and materialized occurrences
 
-Status on 2026-07-05: `GO` for local schema/projection and EC2 deploy verification; final production GO still pending marker-only/manual smoke.
+Status on 2026-07-05: production `GO` after corrective paid/unpaid marker-only smoke.
 
 Implemented locally:
 
@@ -67,12 +67,13 @@ Deploy evidence:
 - PM2/WhatsApp/dashboard health verified after restart: `financas-bot` online, WhatsApp ready without QR, dashboard health `{"ok":true,"sqlite":true}`, remote `state_store.json` valid.
 - Flags preserved, including Gemini Planner active and `INTERPRETATION_RELIABILITY_MODE=shadow`.
 
-Remaining before production GO:
+Production GO evidence:
 
-- Run marker-only/manual smoke for paid recurring bill occurrence.
-- Run marker-only/manual smoke or read-only query for unpaid/upcoming recurring occurrence.
-- Verify no free-budget/daily-spend impact for the bill payment and no duplicate occurrence/event.
-- Clean marker-only data and record GO/NO-GO plus read-only canary scope for upcoming occurrences.
+- First paid smoke (`TESTE_APAGAR_PHASE3C_SMOKE_20260705_001`) found a real receipt-projection gap: the bill payment was excluded from free budget, but no recurrence occurrence/link was created. Decision: `NO-GO` until corrected.
+- Corrective commit `c0b8f94` was deployed to EC2 with flags preserved; remote focused ledger tests passed `47/47`, PM2/dashboard/WhatsApp health were green.
+- Paid smoke after the fix (`TESTE_APAGAR_PHASE3C_FIX_20260705_002`) created exactly one active recurrence rule, one settled July 2026 occurrence, one `bill_payment` event outside free budget and one occurrence-payment link. Marker cleanup left zero residue.
+- Unpaid/upcoming smoke (`TESTE_APAGAR_PHASE3C_UNPAID_20260705_003`) projected exactly one active rule and one pending July 2026 occurrence with no `Saidas` row and no free-budget/net expense impact. Marker cleanup left zero remote ledger residue.
+- Decision: production `GO` for 3C. Recurrence rules/occurrences may feed read-only canary questions for upcoming bills; broad payables/receivables aggregation starts in 3D.
 
 ## Slice 3A - Invoice payoff with paying account
 

@@ -1,7 +1,7 @@
 # Roadmap passo a passo - FinancasBot familiar
 
 Data: 2026-07-05
-Status: plano detalhado do restante do roadmap, apos Fase 3B em GO de producao
+Status: plano detalhado do restante do roadmap, apos Fase 3C em GO de producao
 
 ## Principios de execucao
 
@@ -26,8 +26,9 @@ Concluido:
 - Fase 2: contas, datas, status, saldos e movimentos com GO de producao.
 - Fase 3A: pagamento de fatura com conta pagadora.
 - Fase 3B: faturas vinculadas a itens e pagamentos.
+- Fase 3C: regras de recorrencia e ocorrencias materializadas, com smoke pago/nao pago limpo.
 
-Proximo trabalho: Fase 3C.
+Proximo trabalho: Fase 3D.
 
 ## Fase 3 - Recorrencias, parcelas, contas e faturas
 
@@ -592,11 +593,10 @@ Passo a passo:
 
 ## Ordem recomendada imediata
 
-1. Executar Fase 3C.
-2. Executar 3D.
-3. Executar 3E.
-4. Executar 3F.
-5. Executar 3G.
-6. Rodar 3H e so entao abrir Fase 4.
+1. Executar 3D.
+2. Executar 3E.
+3. Executar 3F.
+4. Executar 3G.
+5. Rodar 3H e so entao abrir Fase 4.
 
-A proxima fatia implementavel e `3C - Regras de recorrencia e ocorrencias materializadas`.
+A proxima fatia implementavel e `3D - Contas a pagar e receber futuras`.
