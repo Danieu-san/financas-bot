@@ -20,7 +20,8 @@ Esta pasta guarda o contexto curto que um agente deve ler antes de trabalhar no 
 ## Rotina obrigatoria de alinhamento ao roadmap
 
 Antes de iniciar qualquer fatia nao trivial, confira o roadmap geral em
-`docs/plans/family-financial-platform-evolution-roadmap.md` e responda
+`docs/plans/family-financial-platform-evolution-roadmap.md` e a fila operacional em
+`docs/plans/family-financial-platform-step-by-step-roadmap.md`; use o segundo para saber a proxima fatia e nao pular etapas. Responda
 explicitamente:
 
 1. fase atual do roadmap geral;
@@ -47,3 +48,4 @@ adversarial repetivel e limpavel, salvo risco externo impossivel de simular.
 - `docs/security/threat-model.md` - riscos de seguranca.
 - `docs/legal/privacy-security-research.md` - pesquisa legal/privacidade.
 - `docs/qa/diario-de-falhas.md` - falhas reais e aprendizados.
+- `docs/plans/family-financial-platform-step-by-step-roadmap.md` - fila operacional detalhada do roadmap restante; conferir antes de iniciar ou encerrar fatias.
