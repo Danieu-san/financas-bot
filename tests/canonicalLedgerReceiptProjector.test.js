@@ -175,7 +175,37 @@ test('canonical receipt projector excludes registered phone bill payments from f
     assert.strictEqual(event.kind, 'bill_payment');
     assert.strictEqual(event.free_budget_eligible, false);
     assert.strictEqual(event.net_income_expense_impact, 0);
+    assert.strictEqual(projection.projected.recurrenceRules.length, 1);
+    assert.strictEqual(projection.projected.recurrenceOccurrences.length, 1);
+    const occurrence = projection.projected.recurrenceOccurrences[0];
+    assert.strictEqual(occurrence.status, 'settled');
+    assert.strictEqual(occurrence.settled_event_id, event.event_id);
+    assert.strictEqual(occurrence.occurrence_event_id, null);
+    assert.strictEqual(occurrence.due_on, '2026-06-25');
+    assert.strictEqual(event.recurrence_rule_id, occurrence.recurrence_rule_id);
+    assert.strictEqual(event.recurrence_occurrence_id, occurrence.recurrence_occurrence_id);
+    assert.ok(projection.projected.reconciliationLinks.some(link =>
+        link.event_id === event.event_id &&
+        link.link_type === 'recurrence_occurrence_payment' &&
+        link.status === 'active'
+    ));
     assert.strictEqual(projection.publicProjection[0].free_budget_eligible, false);
+
+    const dbPath = tempDbPath();
+    const store = new CanonicalLedgerShadowStore({ dbPath, writesEnabled: true });
+    store.persistProjection(projection);
+    assert.deepStrictEqual(store.countRows(projection.runId), {
+        events: 1,
+        lines: 2,
+        schedules: 0,
+        reconciliationLinks: 1,
+        recurrenceRules: 1,
+        recurrenceOccurrences: 1,
+        publicProjectionRows: 1,
+        projectionRuns: 1,
+        auditRows: 1
+    });
+    store.close();
 });
 test('canonical receipt projector keeps non-recurring expenses in free budget even when category matches a registered bill', () => {
     const projection = buildCanonicalLedgerReceiptProjection({

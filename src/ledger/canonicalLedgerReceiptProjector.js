@@ -101,6 +101,14 @@ function normalizeOpenedOn(value) {
     return '1970-01-01';
 }
 
+function competenceMonthFromReceiptDate(value) {
+    const raw = String(value || '').trim();
+    const iso = raw.match(/^(\d{4})-(\d{2})-\d{2}$/);
+    if (iso) return `${iso[1]}-${iso[2]}`;
+    const pt = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (pt) return `${pt[3]}-${String(pt[2]).padStart(2, '0')}`;
+    return null;
+}
 function ledgerAccountsFromFinancialAccountRows(financialAccountRows = []) {
     if (!Array.isArray(financialAccountRows) || financialAccountRows.length < 2) return [];
     const headers = financialAccountRows[0] || [];
@@ -154,8 +162,23 @@ function keepOnlyReceiptSourceEvents(projected, sheetName) {
         ? sourceTypeBySheet['Lançamentos Cartão']
         : sourceTypeBySheet[sheetName];
     if (!sourceType) return;
+
     const keptEvents = projected.events.filter(event => event.source_type === sourceType);
     const keptEventIds = new Set(keptEvents.map(event => event.event_id));
+    const keptOccurrences = (projected.recurrenceOccurrences || [])
+        .filter(occurrence => occurrence.settled_event_id && keptEventIds.has(occurrence.settled_event_id))
+        .map(occurrence => ({
+            ...occurrence,
+            occurrence_event_id: keptEventIds.has(occurrence.occurrence_event_id) ? occurrence.occurrence_event_id : null
+        }));
+    const occurrenceBySettledEventId = new Map(keptOccurrences.map(occurrence => [occurrence.settled_event_id, occurrence]));
+    for (const event of keptEvents) {
+        const occurrence = occurrenceBySettledEventId.get(event.event_id);
+        if (!occurrence) continue;
+        event.recurrence_rule_id = occurrence.recurrence_rule_id;
+        event.recurrence_occurrence_id = occurrence.recurrence_occurrence_id;
+    }
+
     projected.events = keptEvents;
     projected.lines = projected.lines.filter(line => keptEventIds.has(line.event_id));
     projected.invoiceItems = (projected.invoiceItems || []).filter(item => keptEventIds.has(item.event_id));
@@ -166,9 +189,14 @@ function keepOnlyReceiptSourceEvents(projected, sheetName) {
     ]);
     projected.invoices = (projected.invoices || []).filter(invoice => keptInvoiceIds.has(invoice.invoice_id));
     projected.schedules = [];
-    projected.reconciliationLinks = projected.reconciliationLinks.filter(link =>
-        keptEventIds.has(link.event_id) && keptEventIds.has(link.related_event_id)
-    );
+    const keptRuleIds = new Set(keptOccurrences.map(occurrence => occurrence.recurrence_rule_id));
+    projected.recurrenceOccurrences = keptOccurrences;
+    projected.recurrenceRules = (projected.recurrenceRules || []).filter(rule => keptRuleIds.has(rule.recurrence_rule_id));
+    projected.reconciliationLinks = projected.reconciliationLinks.filter(link => {
+        if (!keptEventIds.has(link.event_id)) return false;
+        if (keptEventIds.has(link.related_event_id)) return true;
+        return link.link_type === 'recurrence_occurrence_payment' && occurrenceBySettledEventId.has(link.event_id);
+    });
     projected.warnings = projected.warnings.filter(warning => keptEventIds.has(warning.event_id));
 }
 function resolveRegisteredAccountName(financialAccountRows, ownerPersonId, candidates = []) {
@@ -227,10 +255,12 @@ function decorateReceiptProjection(projected, { sheetName, row, financialAccount
 
 function legacyInputFromAppend({ sheetName, row, operationKey, receipt, accountRows = [] }) {
     const sourceRowId = String(receipt?.updatedRange || operationKey);
+    const competenceMonth = competenceMonthFromReceiptDate(row?.[0]);
     const base = {
         householdId: 'household_shadow',
         projectionContext: {
-            competenceMonth: null
+            competenceMonth,
+            materializeCompetenceMonths: competenceMonth ? [competenceMonth] : []
         },
         legacyRows: {
             contas: ledgerBillRowsFromAccountRows(accountRows),
