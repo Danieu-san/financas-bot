@@ -2,6 +2,16 @@
 
 Atualizado em: 2026-07-05
 
+## Phase 3 slice 3C recurrence rules EC2 deploy verified - 2026-07-05
+
+- Roadmap position: Phase 3, slice `3C - Regras de recorrencia e ocorrencias materializadas`; legacy removal remains Phase 8 and no rollout flags were changed.
+- Commit `b3e65cd` was pushed to `origin/main` and deployed to EC2 by fast-forward. Remote worktree is clean except for the pre-existing untracked `.env.pre-ready-timeout-20260628-2026-06-28T03-52-45-896Z`.
+- Production shadow schema was migrated with `CanonicalLedgerShadowStore.applyMigrations()` and now reports migrations `[1,2,3,4]` plus recurrence tables `canonical_ledger_recurrence_rules` and `canonical_ledger_recurrence_occurrences`.
+- Backup before migration: `data/backups/canonical_ledger_shadow.pre-phase3c-20260705T015250Z.sqlite`.
+- Remote focused ledger tests passed `47/47`: projector, shadow store, receipt projector and parity report.
+- Production health after PM2 restart: dashboard health returned `{"ok":true,"sqlite":true}`, PM2 showed `financas-bot` online, WhatsApp authenticated and ready without QR, read-model startup/scheduled syncs were OK, user_id integrity had no pending issues, and remote `state_store.json` parsed as valid JSON.
+- Flags preserved: `FINANCIAL_AGENT_MODE=answer`, `FINANCIAL_AGENT_LLM_PLANNER_ENABLED=true`, `FINANCIAL_CONTEXTUAL_ANALYST_MODE=answer`, `FINANCIAL_COMMAND_PLANNER_MODE=canary`, `INTERPRETATION_RELIABILITY_MODE=shadow`, `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transactions,transfers,accounts`, `FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS=bill.pay,debt.pay,invoice.pay,expense.create`.
+- Decision: deployment verification is `GO`; final production GO for 3C still requires the planned marker-only/manual smoke for one paid recurring bill occurrence and one unpaid/upcoming occurrence read, with cleanup/evidence. Do not advance to 3D until that gate is recorded.
 ## Phase 3 slice 3C recurrence rules local GO - 2026-07-05
 
 - Roadmap position: Phase 3, slice `3C - Regras de recorrencia e ocorrencias materializadas`; legacy removal remains Phase 8 and no production flags were changed locally.

@@ -1,7 +1,7 @@
 # Phase 3 Plan - Recurrences, Installments, Bills and Invoices
 
 Date: 2026-07-04
-Status: started after Phase 2 exit GO; slices 3A and 3B production GO
+Status: started after Phase 2 exit GO; slices 3A and 3B production GO; slice 3C deployed with final smoke pending
 
 ## Roadmap position
 
@@ -37,7 +37,7 @@ Detailed next slices after 3B are tracked in `docs/plans/family-financial-platfo
 
 ## Slice 3C - Recurrence rules and materialized occurrences
 
-Local status on 2026-07-05: `GO` for schema/projection, not yet deployed.
+Status on 2026-07-05: `GO` for local schema/projection and EC2 deploy verification; final production GO still pending marker-only/manual smoke.
 
 Implemented locally:
 
@@ -58,14 +58,21 @@ Evidence:
 - Control-character scan found no NUL/backspace matches.
 - `state_store.json` parsed as valid JSON.
 
+Deploy evidence:
+
+- Commit `b3e65cd` pushed to `origin/main` and deployed to EC2 by fast-forward.
+- Production shadow DB backed up at `data/backups/canonical_ledger_shadow.pre-phase3c-20260705T015250Z.sqlite` before migration.
+- Migration 004 applied in production shadow DB; `applyMigrations()` reports `[1,2,3,4]` and recurrence tables are visible.
+- Remote focused tests passed `47/47` for projector, shadow store, receipt projector and parity report.
+- PM2/WhatsApp/dashboard health verified after restart: `financas-bot` online, WhatsApp ready without QR, dashboard health `{"ok":true,"sqlite":true}`, remote `state_store.json` valid.
+- Flags preserved, including Gemini Planner active and `INTERPRETATION_RELIABILITY_MODE=shadow`.
+
 Remaining before production GO:
 
-- Commit/push and deploy to EC2.
-- Apply migration 004 in production shadow DB and verify table visibility.
-- Run remote focused tests for projector/store/receipt/parity.
-- Verify health, flags and `state_store.json` remotely.
-- Run marker-only/manual smoke for paid and unpaid recurring bill occurrence.
-- Decide production GO/NO-GO and record read-only canary scope for upcoming occurrences.
+- Run marker-only/manual smoke for paid recurring bill occurrence.
+- Run marker-only/manual smoke or read-only query for unpaid/upcoming recurring occurrence.
+- Verify no free-budget/daily-spend impact for the bill payment and no duplicate occurrence/event.
+- Clean marker-only data and record GO/NO-GO plus read-only canary scope for upcoming occurrences.
 
 ## Slice 3A - Invoice payoff with paying account
 
