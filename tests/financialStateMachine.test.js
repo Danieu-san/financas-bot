@@ -1888,6 +1888,36 @@ stateMachineTest('financial states: receipt method asks explicit destination acc
     assert.strictEqual(sheets.Entradas[1][9], 'Daniel - Nubank');
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
 });
+stateMachineTest('financial states: reimbursement receipt is not presented as ordinary income', async () => {
+    resetState();
+    sheets['Contas Financeiras'].push(
+        ['Daniel - Nubank', 'bank', '1000,00', '03/07/2026', 'active', 'BRL', 'Usuario Estado', USER_ID, 'Principal']
+    );
+    userStateManager.setState(SENDER, {
+        action: 'awaiting_receipt_method',
+        data: {
+            data: '10/02/2026',
+            descricao: 'reembolso mercado TESTE_APAGAR_3F_E2E',
+            categoria: 'Reembolso',
+            valor: 4.56,
+            recorrente: 'Nao'
+        }
+    });
+
+    const accountQuestion = await send('pix');
+
+    assert.match(accountQuestion, /conta financeira/i);
+    assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_income_financial_account');
+
+    const savedReply = await send('1');
+
+    assert.match(savedReply, /Reembolso de R\$ 4,56/i);
+    assert.doesNotMatch(savedReply, /Entrada de/i);
+    assert.strictEqual(sheets.Entradas.length, 2);
+    assert.strictEqual(sheets.Entradas[1][2], 'Reembolso');
+    assert.strictEqual(sheets.Entradas[1][9], 'Daniel - Nubank');
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
 stateMachineTest('financial states: enforce requires final confirmation when expense amount came only from LLM', async () => {
     resetState();
     const previousMode = process.env.INTERPRETATION_RELIABILITY_MODE;

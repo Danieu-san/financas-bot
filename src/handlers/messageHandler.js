@@ -878,6 +878,33 @@ function getTransactionFinancialAccount(item = {}) {
     return String(item.contaFinanceira || item.financialAccount || item.conta || '').trim();
 }
 
+function isCompensationIncome(item = {}) {
+    const text = normalizeText([
+        item.tipo,
+        item.categoria,
+        item.category,
+        item.descricao,
+        item.description,
+        item.observacoes,
+        item.originalMessage
+    ].filter(Boolean).join(' '));
+    return /\b(reembolso|estorno|refund|chargeback|devolucao|devolucoes)\b/.test(text);
+}
+
+function incomeWritePublicLabel(item = {}) {
+    return isCompensationIncome(item) ? 'Reembolso' : 'Entrada';
+}
+
+function routedIntentPublicLabel(structuredResponse = {}) {
+    if (
+        structuredResponse.intent === 'entrada' &&
+        (structuredResponse.entradaDetails || []).some(isCompensationIncome)
+    ) {
+        return 'reimbursement';
+    }
+    return structuredResponse.intent;
+}
+
 function canSaveTransactionWithoutExtraPayment(item) {
     if (!item || !item.type) return false;
     if (item.type === 'Saídas') {
@@ -1012,6 +1039,11 @@ async function handleIncomeFinancialAccountSelection({ msg, senderId, userId, pe
         contaFinanceira: selected.label
     };
     const saved = await saveTransactionWithoutExtraPayment(income, { person: pessoa, userId });
+    if (isCompensationIncome(income)) {
+        await msg.reply(`✅ ${incomeWritePublicLabel(income)} de ${formatCurrencyBR(saved.value)} (${income.descricao || 'Nao especificado'}) registrado como *${saved.method}* para a data de *${saved.date}*!`);
+        userStateManager.deleteState(senderId);
+        return;
+    }
     await msg.reply(`✅ Entrada de ${formatCurrencyBR(saved.value)} (${income.descricao || 'Não especificado'}) registrada como *${saved.method}* para a data de *${saved.date}*!`);
     const settings = await getUserSettingsByUserId(userId);
     if (settings && normalizeText(settings.defaults_enabled) === 'sim') {
@@ -9416,6 +9448,11 @@ async function handleMessage(msg) {
 
                 await appendRowToSheet('Entradas', rowData);
                 markFinancialReadModelDirty('entrada_write');
+                if (isCompensationIncome(completedIncome)) {
+                    await msg.reply(`✅ ${incomeWritePublicLabel(completedIncome)} de R$${valorNumerico.toFixed(2)} (${entrada.descricao}) registrado como *${entrada.recebimento}* para a data de *${dataDaEntrada}*!`);
+                    userStateManager.deleteState(senderId);
+                    return;
+                }
                 await msg.reply(`✅ Entrada de R$${valorNumerico.toFixed(2)} (${entrada.descricao}) registrada como *${entrada.recebimento}* para a data de *${dataDaEntrada}*!`);
 
                 const settings = await getUserSettingsByUserId(userId);
@@ -10020,7 +10057,7 @@ async function handleMessage(msg) {
                 if (structuredResponse) {
                     structuredResponseSource = 'local_command';
                     metrics.increment('message.command.fast_path');
-                    logger.info(`[routing] fast_path intent=${structuredResponse.intent} sender=${senderId}`);
+                    logger.info(`[routing] fast_path intent=${routedIntentPublicLabel(structuredResponse)} sender=${senderId}`);
                 }
             }
 
@@ -10041,7 +10078,7 @@ async function handleMessage(msg) {
                 if (structuredResponse) {
                     structuredResponseSource = 'deterministic';
                     metrics.increment('message.transaction.fast_path');
-                    logger.info(`[routing] fast_path intent=${structuredResponse.intent} sender=${senderId}`);
+                    logger.info(`[routing] fast_path intent=${routedIntentPublicLabel(structuredResponse)} sender=${senderId}`);
                 }
             }
 
