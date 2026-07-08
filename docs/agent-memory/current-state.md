@@ -2,6 +2,17 @@
 
 Atualizado em: 2026-07-08
 
+## Phase 3 slice 3F refunds and chargebacks production GO - 2026-07-08
+
+- Commit `65d818b` was pushed to `origin/main` and deployed to EC2 by fast-forward from `0a8992c`.
+- Roadmap position: Phase 3, slice `3F - Reembolso e estorno vinculados`; legacy removal remains Phase 8 and no production rollout flags were changed.
+- Backup before deploy: `/home/ubuntu/financas-bot/data/backups/canonical_ledger_shadow.pre-phase3f-20260708T1325Z.sqlite`.
+- Remote focused ledger verification passed `55/55`: projector, shadow store, receipt projector, parity report and refunds gate tests.
+- Remote marker-only smoke `TESTE_APAGAR_REFUNDS_EC2_20260708` returned `decision=GO` using `data/canonical_ledger_shadow.sqlite`; report persisted at `/home/ubuntu/financas-bot/data/qa-runs/REFUNDS_GATE_20260708/canonical-ledger-refunds-gate.json`. The gate verified gross/compensation/net category totals, idempotency, public privacy scan and full marker cleanup.
+- Production health after PM2 restart: `financas-bot` online, dashboard health `{"ok":true,"sqlite":true}`, `state_store.json` parsed as `{}`, read-model startup OK with `financialEventsPublic=45`, and WhatsApp authenticated/ready without QR.
+- Flags preserved: `FINANCIAL_AGENT_MODE=answer`, `FINANCIAL_AGENT_LLM_PLANNER_ENABLED=true`, `FINANCIAL_CONTEXTUAL_ANALYST_MODE=answer`, `FINANCIAL_COMMAND_PLANNER_MODE=canary`, `INTERPRETATION_RELIABILITY_MODE=shadow`, `CANONICAL_LEDGER_PROJECTION_MODE=shadow`, `CANONICAL_LEDGER_SHADOW_WRITE_ENABLED=true`, `CANONICAL_LEDGER_PRODUCTION_SHADOW_APPROVED=true`, `CANONICAL_LEDGER_CANARY_READ_ENABLED=true`, `CANONICAL_LEDGER_CANARY_READ_APPROVED=true`, `CANONICAL_LEDGER_CANARY_READ_DOMAINS=transactions,transfers,accounts,forecast`, `FINANCIAL_COMMAND_PLANNER_ROUTE_OPERATIONS=bill.pay,debt.pay,invoice.pay,expense.create`.
+- Decision: production `GO` for Phase 3 slice 3F as canonical linked reimbursement/refund/chargeback net-spend handling. Next roadmap slice remains to be chosen after reviewing the Phase 3 plan.
+
 
 ## Phase 3 slice 3F refunds and chargebacks local GO - 2026-07-08
 
