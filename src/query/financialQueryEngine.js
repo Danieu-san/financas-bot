@@ -224,6 +224,77 @@ function toIncome(row = []) {
     };
 }
 
+function canonicalDateToSheetDate(value) {
+    const raw = String(value || '').trim();
+    const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!iso) return raw;
+    return `${iso[3]}/${iso[2]}/${iso[1]}`;
+}
+
+function canonicalCompetenceToBillingMonth(value) {
+    const raw = String(value || '').trim();
+    const match = raw.match(/^(\d{4})-(\d{2})$/);
+    if (!match) return raw;
+    const monthIndex = Number.parseInt(match[2], 10) - 1;
+    if (monthIndex < 0 || monthIndex > 11) return raw;
+    return `${MONTH_NAMES[monthIndex]} de ${match[1]}`;
+}
+
+function canonicalPublicRows(dataSources = {}) {
+    const rows = dataSources.canonicalPublicProjection ||
+        dataSources.canonicalLedgerPublicProjection ||
+        dataSources.publicProjection;
+    return Array.isArray(rows) ? rows : [];
+}
+
+function toRowFromCanonicalPublic(row = {}) {
+    const amount = Number(row.amount_cents || 0) / 100;
+    const netImpact = Number.isFinite(Number(row.net_income_expense_impact))
+        ? Number(row.net_income_expense_impact) / 100
+        : null;
+    const kind = String(row.kind || '').trim();
+    const sourceType = kind === 'card_purchase' || kind === 'chargeback' ? 'card' : kind;
+    return {
+        date: canonicalDateToSheetDate(row.date || row.effective_on),
+        description: row.description || '',
+        category: row.category || 'Outros',
+        subcategory: row.subcategory || '',
+        value: amount,
+        source: row.source || 'canonical',
+        sourceType,
+        paymentMethod: '',
+        card: '',
+        installment: '',
+        billingMonth: canonicalCompetenceToBillingMonth(row.competence_month),
+        status: row.status || '',
+        kind,
+        freeBudgetEligible: Boolean(row.free_budget_eligible),
+        netExpenseImpact: netImpact
+    };
+}
+
+function canonicalRowsForDomain(dataSources = {}, plan = {}) {
+    const rows = canonicalPublicRows(dataSources);
+    if (rows.length === 0) return null;
+    const acceptedKinds = {
+        expenses: new Set(['expense', 'card_purchase', 'reimbursement', 'refund', 'chargeback']),
+        cards: new Set(['card_purchase', 'chargeback']),
+        income: new Set(['income']),
+        transfers: new Set(['transfer', 'goal_contribution', 'goal_withdrawal', 'invoice_payment'])
+    }[plan.domain];
+    if (!acceptedKinds) return null;
+    const period = periodFromPlan(plan);
+    return rows
+        .filter(row => acceptedKinds.has(String(row.kind || '').trim()))
+        .map(toRowFromCanonicalPublic)
+        .filter((item) => {
+            const matches = plan.timeBasis === 'billing_month' && item.billingMonth
+                ? billingMatchesPeriod(item.billingMonth, period)
+                : dateMatchesPeriod(item.date, period);
+            return matches && (Number(item.value || 0) > 0 || Number(item.netExpenseImpact || 0) !== 0);
+        });
+}
+
 function classifyTransferType(item = {}) {
     const text = normalizeText(`${item.description || ''} ${item.status || ''} ${item.notes || ''}`);
     const origin = normalizeText(item.from || '');
@@ -734,6 +805,9 @@ function buildBudgetSummary(dataSources = {}, plan = {}) {
 }
 
 function getRowsForDomain(dataSources = {}, plan = {}) {
+    const canonicalRows = canonicalRowsForDomain(dataSources, plan);
+    if (canonicalRows) return canonicalRows;
+
     const period = periodFromPlan(plan);
     const rows = [];
     const includeOutputs = plan.domain === 'expenses';
@@ -922,19 +996,60 @@ function getGroupValue(item, groupBy, timeBasis = '') {
     return normalizeLabel(map[groupBy], 'Outros');
 }
 
+function rowAggregateValue(item = {}) {
+    if (item.netExpenseImpact !== null && item.netExpenseImpact !== undefined && Number.isFinite(Number(item.netExpenseImpact))) {
+        return Number(item.netExpenseImpact);
+    }
+    return Number(item.value || 0);
+}
+
+function summarizeFinancialImpact(rows = []) {
+    if (!rows.some(item => item.netExpenseImpact !== null && item.netExpenseImpact !== undefined)) return null;
+    const summary = rows.reduce((acc, item) => {
+        const value = rowAggregateValue(item);
+        if (value >= 0) acc.gross += value;
+        else acc.compensations += Math.abs(value);
+        acc.net += value;
+        return acc;
+    }, { gross: 0, compensations: 0, net: 0 });
+    return {
+        gross: roundMoney(summary.gross),
+        compensations: roundMoney(summary.compensations),
+        net: roundMoney(summary.net)
+    };
+}
+
 function groupRows(rows, groupBy = [], timeBasis = '') {
     const selected = groupBy.length > 0 ? groupBy : ['category'];
     const grouped = new Map();
     rows.forEach((item) => {
         const label = selected.map(key => getGroupValue(item, key, timeBasis)).join(' / ');
         const key = normalizeText(label) || label;
-        const existing = grouped.get(key) || { label, total: 0, count: 0 };
-        existing.total += Number(item.value || 0);
+        const existing = grouped.get(key) || { label, total: 0, count: 0, grossTotal: 0, compensationTotal: 0, hasNetImpact: false };
+        const value = rowAggregateValue(item);
+        existing.total += value;
+        if (item.netExpenseImpact !== null && item.netExpenseImpact !== undefined) {
+            existing.hasNetImpact = true;
+            if (value >= 0) existing.grossTotal += value;
+            else existing.compensationTotal += Math.abs(value);
+        }
         existing.count += 1;
         grouped.set(key, existing);
     });
     return Array.from(grouped.values())
-        .map(item => ({ ...item, total: roundMoney(item.total) }))
+        .map((item) => {
+            const output = { ...item, total: roundMoney(item.total) };
+            if (item.hasNetImpact) {
+                output.grossTotal = roundMoney(item.grossTotal);
+                output.compensationTotal = roundMoney(item.compensationTotal);
+                output.netTotal = output.total;
+            } else {
+                delete output.grossTotal;
+                delete output.compensationTotal;
+            }
+            delete output.hasNetImpact;
+            return output;
+        })
         .sort((a, b) => b.total - a.total || b.count - a.count || String(a.label).localeCompare(String(b.label), 'pt-BR'));
 }
 
@@ -1102,16 +1217,18 @@ function buildInstallmentPurchaseSummaries(rows = [], plan = {}) {
 function buildDetail(rows, plan) {
     const totalOutputs = rows
         .filter(item => item.sourceType === 'expense')
-        .reduce((sum, item) => sum + Number(item.value || 0), 0);
+        .reduce((sum, item) => sum + rowAggregateValue(item), 0);
     const totalCards = rows
         .filter(item => item.sourceType === 'card')
-        .reduce((sum, item) => sum + Number(item.value || 0), 0);
+        .reduce((sum, item) => sum + rowAggregateValue(item), 0);
+    const financialImpact = summarizeFinancialImpact(rows);
     return {
-        total: roundMoney(rows.reduce((sum, item) => sum + Number(item.value || 0), 0)),
+        total: roundMoney(rows.reduce((sum, item) => sum + rowAggregateValue(item), 0)),
         totals: {
             outputs: roundMoney(totalOutputs),
             cards: roundMoney(totalCards)
         },
+        financialImpact,
         count: rows.length,
         groups: {
             category: groupRows(rows, ['category']).slice(0, plan.limit),
@@ -1632,7 +1749,7 @@ function buildDashboardSummary(dataSources = {}, plan = {}) {
     const income = applyFilters(getRowsForDomain(dataSources, { domain: 'income', filters }), plan.filters)
         .reduce((sum, item) => sum + Number(item.value || 0), 0);
     const expenses = applyFilters(getRowsForDomain(dataSources, { domain: 'expenses', filters, timeBasis: 'billing_month' }), plan.filters)
-        .reduce((sum, item) => sum + Number(item.value || 0), 0);
+        .reduce((sum, item) => sum + rowAggregateValue(item), 0);
     const transfers = applyFilters(getRowsForDomain(dataSources, { domain: 'transfers', filters }), plan.filters);
     const reserveApplied = transfers
         .filter(item => /reserva|investimento|aplicacao|aplicação|caixinha/i.test(normalizeText(`${item.description} ${item.status} ${item.to}`)))
@@ -1659,7 +1776,7 @@ function buildTransferAvailabilitySummary(dataSources = {}, plan = {}) {
     const income = applyFilters(getRowsForDomain(dataSources, { domain: 'income', filters }), filters)
         .reduce((sum, item) => sum + Number(item.value || 0), 0);
     const expenses = applyFilters(getRowsForDomain(dataSources, { domain: 'expenses', filters, timeBasis: 'billing_month' }), filters)
-        .reduce((sum, item) => sum + Number(item.value || 0), 0);
+        .reduce((sum, item) => sum + rowAggregateValue(item), 0);
     const transfers = applyFilters(getRowsForDomain(dataSources, { domain: 'transfers', filters }), { period: plan.filters?.period });
     const reserveApplied = transfers
         .filter(item => item.transferType === 'reserve_applied')
@@ -1763,21 +1880,23 @@ async function executeFinancialQuery(rawPlan, dataSources = {}) {
         ? getRowsForForecast(dataSources, plan)
         : getRowsForDomain(dataSources, plan);
     const rows = applyFilters(sourceRows, plan.filters);
-    const total = roundMoney(rows.reduce((sum, item) => sum + Number(item.value || 0), 0));
+    const total = roundMoney(rows.reduce((sum, item) => sum + rowAggregateValue(item), 0));
     const totals = {
         outputs: roundMoney(rows
             .filter(item => item.sourceType === 'expense')
-            .reduce((sum, item) => sum + Number(item.value || 0), 0)),
+            .reduce((sum, item) => sum + rowAggregateValue(item), 0)),
         cards: roundMoney(rows
             .filter(item => item.sourceType === 'card')
-            .reduce((sum, item) => sum + Number(item.value || 0), 0))
+            .reduce((sum, item) => sum + rowAggregateValue(item), 0))
     };
+    const financialImpact = summarizeFinancialImpact(rows);
     const baseDetails = {
         domain: plan.domain,
         operation: plan.operation,
         count: rows.length,
         total,
         totals,
+        financialImpact,
         timeBasis: plan.timeBasis,
         filters: plan.filters
     };
@@ -1847,7 +1966,7 @@ async function executeFinancialQuery(rawPlan, dataSources = {}) {
     if (plan.operation === 'percentage') {
         const denominatorPlan = { ...plan, filters: denominatorFiltersForPercentage(plan.filters) };
         const denominatorRows = applyFilters(getRowsForDomain(dataSources, denominatorPlan), denominatorPlan.filters);
-        const denominator = roundMoney(denominatorRows.reduce((sum, item) => sum + Number(item.value || 0), 0));
+        const denominator = roundMoney(denominatorRows.reduce((sum, item) => sum + rowAggregateValue(item), 0));
         const percent = denominator > 0 ? (total / denominator) * 100 : 0;
         return {
             ok: true,
@@ -1897,7 +2016,7 @@ async function executeFinancialQuery(rawPlan, dataSources = {}) {
         if (previous) {
             const previousPlan = { ...plan, operation: 'sum', filters: { ...plan.filters, period: { type: 'month', ...previous } } };
             const previousRows = applyFilters(getRowsForDomain(dataSources, previousPlan), previousPlan.filters);
-            const previousTotal = roundMoney(previousRows.reduce((sum, item) => sum + Number(item.value || 0), 0));
+            const previousTotal = roundMoney(previousRows.reduce((sum, item) => sum + rowAggregateValue(item), 0));
             const diff = roundMoney(total - previousTotal);
             const percent = previousTotal > 0 ? roundMoney((diff / previousTotal) * 100) : 0;
             return {

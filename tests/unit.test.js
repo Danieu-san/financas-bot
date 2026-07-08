@@ -1631,6 +1631,137 @@ test('Packet 01 Query Engine supports fuzzy category filtering and deterministic
     assert.strictEqual(merchants.result.value[0].label, 'Notebook');
 });
 
+test('Phase 3F Query Engine reports gross compensation and net canonical spend by category', async () => {
+    const period = { type: 'month', month: 4, year: 2026 };
+    const sources = {
+        canonicalPublicProjection: [
+            {
+                date: '2026-05-02',
+                competence_month: '2026-05',
+                kind: 'expense',
+                status: 'settled',
+                description: 'Mercado',
+                amount_cents: 10000,
+                category: 'Alimentacao',
+                free_budget_eligible: true,
+                net_income_expense_impact: 10000
+            },
+            {
+                date: '2026-05-04',
+                competence_month: '2026-05',
+                kind: 'reimbursement',
+                status: 'settled',
+                description: 'Reembolso Mercado',
+                amount_cents: 4000,
+                category: 'Alimentacao',
+                free_budget_eligible: false,
+                net_income_expense_impact: -4000
+            },
+            {
+                date: '2026-05-05',
+                competence_month: '2026-05',
+                kind: 'card_purchase',
+                status: 'settled',
+                description: 'Notebook',
+                amount_cents: 20000,
+                category: 'Eletronicos',
+                free_budget_eligible: true,
+                net_income_expense_impact: 20000
+            },
+            {
+                date: '2026-05-10',
+                competence_month: '2026-05',
+                kind: 'chargeback',
+                status: 'settled',
+                description: 'Estorno Notebook',
+                amount_cents: 5000,
+                category: 'Eletronicos',
+                free_budget_eligible: false,
+                net_income_expense_impact: -5000
+            },
+            {
+                date: '2026-05-01',
+                competence_month: '2026-05',
+                kind: 'income',
+                status: 'settled',
+                description: 'Salario',
+                amount_cents: 100000,
+                category: 'Salario',
+                free_budget_eligible: true,
+                net_income_expense_impact: 100000
+            },
+            {
+                date: '2026-04-02',
+                competence_month: '2026-04',
+                kind: 'expense',
+                status: 'settled',
+                description: 'Mercado anterior',
+                amount_cents: 8000,
+                category: 'Alimentacao',
+                free_budget_eligible: true,
+                net_income_expense_impact: 8000
+            },
+            {
+                date: '2026-04-04',
+                competence_month: '2026-04',
+                kind: 'reimbursement',
+                status: 'settled',
+                description: 'Reembolso anterior',
+                amount_cents: 3000,
+                category: 'Alimentacao',
+                free_budget_eligible: false,
+                net_income_expense_impact: -3000
+            }
+        ]
+    };
+
+    const total = await financialQueryEngine.executeFinancialQuery(
+        packetPlan('expenses', 'sum', { period }, { timeBasis: 'billing_month' }),
+        sources
+    );
+    const rank = await financialQueryEngine.executeFinancialQuery(
+        packetPlan('expenses', 'rank', { period }, { groupBy: ['category'], timeBasis: 'billing_month' }),
+        sources
+    );
+    const income = await financialQueryEngine.executeFinancialQuery(
+        packetPlan('income', 'sum', { period }, { timeBasis: 'transaction_date' }),
+        sources
+    );
+    const comparison = await financialQueryEngine.executeFinancialQuery(
+        packetPlan('expenses', 'compare', { period }, { timeBasis: 'billing_month' }),
+        sources
+    );
+    const dashboard = await financialQueryEngine.executeFinancialQuery(
+        packetPlan('dashboard', 'explain', { period }, { timeBasis: 'billing_month' }),
+        sources
+    );
+
+    assert.strictEqual(total.result.value, 210);
+    assert.deepStrictEqual(total.result.details.financialImpact, {
+        gross: 300,
+        compensations: 90,
+        net: 210
+    });
+    assert.deepStrictEqual(rank.result.value.map(item => [
+        item.label,
+        item.grossTotal,
+        item.compensationTotal,
+        item.netTotal
+    ]), [
+        ['Eletronicos', 200, 50, 150],
+        ['Alimentacao', 100, 40, 60]
+    ]);
+    assert.strictEqual(income.result.value, 1000);
+    assert.deepStrictEqual(comparison.result.value, {
+        current: 210,
+        previous: 50,
+        difference: 160,
+        percent: 320
+    });
+    assert.strictEqual(dashboard.result.value.spending, 210);
+    assert.strictEqual(dashboard.result.value.balance, 790);
+});
+
 test('Packet 01 Query Engine calculates percentage, extremes and monthly trend coherently', async () => {
     const sources = buildPackets01To04RegressionDataSources();
     const percentage = await financialQueryEngine.executeFinancialQuery(

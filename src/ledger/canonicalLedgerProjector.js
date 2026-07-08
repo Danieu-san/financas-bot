@@ -472,6 +472,49 @@ function projectExpenses(input, collection, bills) {
     }
 }
 
+function compensationKind(row = {}, fallback = 'reimbursement') {
+    const text = normalizeText(`${row.tipo || ''} ${row.categoria || ''} ${row.descricao || ''} ${row.obs || ''}`);
+    if (text.includes('chargeback')) return 'chargeback';
+    if (text.includes('estorno')) return 'chargeback';
+    if (text.includes('reembolso')) return 'reimbursement';
+    if (text.includes('refund')) return 'refund';
+    if (text.includes('devolucao') || text.includes('devolucoes')) return 'refund';
+    return fallback;
+}
+
+function compensationImpactCents(row = {}, relatedEvent = null) {
+    const amountCents = Math.abs(cents(row.valor_parcela !== undefined ? row.valor_parcela : row.valor));
+    if (!relatedEvent) {
+        return {
+            amountCents,
+            netImpactCents: 0,
+            status: 'uncertain',
+            warnings: ['compensation_original_unresolved']
+        };
+    }
+    const relatedImpact = Math.abs(Number(relatedEvent.net_income_expense_impact || relatedEvent.amount_cents || 0));
+    const cappedImpact = relatedImpact > 0 ? Math.min(amountCents, relatedImpact) : amountCents;
+    const warnings = amountCents > relatedImpact && relatedImpact > 0
+        ? ['compensation_exceeds_original']
+        : [];
+    return {
+        amountCents,
+        netImpactCents: -cappedImpact,
+        status: warnings.length > 0 ? 'uncertain' : 'settled',
+        warnings
+    };
+}
+
+function addCompensationWarnings(collection, event, sourceRowRef, warnings = []) {
+    for (const code of warnings) {
+        collection.warnings.push({
+            code,
+            event_id: event.event_id,
+            source_row_ref: sourceRowRef
+        });
+    }
+}
+
 function projectIncome(input, collection) {
     for (const row of input.legacyRows?.entradas || []) {
         const ref = sourceRef(row, `entradas-${hash(row, 8)}`);
@@ -480,12 +523,16 @@ function projectIncome(input, collection) {
             : null;
         const isReimbursement = relatedEvent || normalizeText(row.categoria || '').includes('reembolso');
         if (isReimbursement) {
+            const impact = compensationImpactCents(row, relatedEvent);
             const event = makeEvent('sheet.entradas', ref, row, {
                 household_id: input.householdId,
-                kind: 'reimbursement',
-                amount: row.valor,
+                kind: compensationKind(row, 'reimbursement'),
+                status: impact.status,
+                amount: impact.amountCents / 100,
+                category: relatedEvent?.category || row.categoria || null,
+                subcategory: relatedEvent?.subcategory || row.subcategoria || null,
                 free_budget_eligible: false,
-                net_income_expense_impact: -cents(row.valor)
+                net_income_expense_impact: impact.netImpactCents
             });
             addEvent(collection, event, [
                 makeLine(event, 'cash', { direction: 'inflow' }),
@@ -494,6 +541,7 @@ function projectIncome(input, collection) {
             if (relatedEvent) {
                 collection.reconciliationLinks.push(makeLink(event, 'refund_pair', relatedEvent.event_id, { ref, related: row.related_source_row_id }));
             }
+            addCompensationWarnings(collection, event, ref, impact.warnings);
             continue;
         }
         const event = makeEvent('sheet.entradas', ref, row, {
@@ -640,16 +688,23 @@ function firstDayOfCompetence(competenceMonth) {
 }
 
 function projectCardPurchases(input, collection) {
-    const rows = [];
+    const purchaseRows = [];
+    const compensationRows = [];
     const seenSourceRefs = new Set();
     for (const row of input.legacyRows?.lancamentosCartao || []) {
         const ref = sourceRef(row, `cartao-${hash(row, 8)}`);
         if (seenSourceRefs.has(ref)) continue;
         seenSourceRefs.add(ref);
-        rows.push({ row, ref });
+        const text = normalizeText(`${row.tipo || ''} ${row.categoria || ''} ${row.descricao || ''} ${row.obs || ''}`);
+        const isCompensation = cents(row.valor_parcela) < 0 || /\b(estorno|reembolso|refund|chargeback|devolucao|devolucoes)\b/.test(text);
+        if (isCompensation) {
+            compensationRows.push({ row, ref });
+        } else {
+            purchaseRows.push({ row, ref });
+        }
     }
 
-    const scheduleInputs = rows.map(({ row, ref }) => ({
+    const scheduleInputs = purchaseRows.map(({ row, ref }) => ({
         source_row_ref: ref,
         owner_person_id: row.user_id || null,
         card_id: row.card_id || '',
@@ -668,7 +723,7 @@ function projectCardPurchases(input, collection) {
         ? []
         : buildCanonicalInstallmentSchedules(scheduleInputs);
     const scheduledSourceRefs = new Set();
-    const rowBySourceRef = new Map(rows.map(item => [item.ref, item.row]));
+    const rowBySourceRef = new Map(purchaseRows.map(item => [item.ref, item.row]));
 
     for (const schedule of schedules) {
         const firstInstallment = schedule.installments[0];
@@ -716,7 +771,7 @@ function projectCardPurchases(input, collection) {
         collection.schedules.push(schedule);
     }
 
-    for (const { row, ref } of rows) {
+    for (const { row, ref } of purchaseRows) {
         if (scheduledSourceRefs.has(ref)) continue;
         const occurredOn = normalizeDate(row.data);
         const competenceMonth = normalizeCompetenceMonth(row.mes_cobranca, occurredOn);
@@ -740,6 +795,39 @@ function projectCardPurchases(input, collection) {
             competenceMonth,
             type: 'item'
         });
+    }
+
+    for (const { row, ref } of compensationRows) {
+        const relatedEvent = row.related_source_row_id
+            ? collection.events.find(event => event.source_row_ref === row.related_source_row_id)
+            : null;
+        const impact = compensationImpactCents(row, relatedEvent);
+        const occurredOn = normalizeDate(row.data);
+        const competenceMonth = normalizeCompetenceMonth(row.mes_cobranca, occurredOn);
+        const event = makeEvent('sheet.lancamentos_cartao', ref, row, {
+            household_id: input.householdId,
+            kind: compensationKind(row, 'chargeback'),
+            status: impact.status,
+            amount: impact.amountCents / 100,
+            occurred_on: occurredOn,
+            effective_on: firstDayOfCompetence(competenceMonth),
+            competence_month: competenceMonth,
+            category: relatedEvent?.category || row.categoria || null,
+            subcategory: relatedEvent?.subcategory || row.subcategoria || null,
+            free_budget_eligible: false,
+            net_income_expense_impact: impact.netImpactCents
+        });
+        addEvent(collection, event, [
+            makeLine(event, 'card_liability', { direction: 'inflow', account_id: row.card_id || null }),
+            makeLine(event, 'category', { direction: 'inflow' })
+        ]);
+        if (relatedEvent) {
+            collection.reconciliationLinks.push(makeLink(event, 'refund_pair', relatedEvent.event_id, {
+                ref,
+                related: row.related_source_row_id
+            }));
+        }
+        addCompensationWarnings(collection, event, ref, impact.warnings);
     }
 }
 function projectGoals(input, collection) {
@@ -892,7 +980,8 @@ function buildCanonicalPublicProjection(projected = {}, input = {}) {
         category_status: event.category_status,
         responsible: people.get(event.owner_person_id) || 'Pessoa',
         source: event.source_type.replace(/^sheet\./, ''),
-        free_budget_eligible: event.free_budget_eligible
+        free_budget_eligible: event.free_budget_eligible,
+        net_income_expense_impact: event.net_income_expense_impact
     }));
 }
 

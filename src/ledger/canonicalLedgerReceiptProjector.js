@@ -732,7 +732,8 @@ function readReceiptPublicRows(db, ownerPersonIds = [], personByUserId = {}) {
             category_status: event.category_status,
             responsible: personByUserId[event.owner_person_id] || 'Pessoa',
             source: String(event.source_type || '').replace(/^sheet\./, ''),
-            free_budget_eligible: event.free_budget_eligible
+            free_budget_eligible: event.free_budget_eligible,
+            net_income_expense_impact: event.net_income_expense_impact
         };
     });
 }

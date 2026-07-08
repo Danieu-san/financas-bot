@@ -455,6 +455,117 @@ test('canonical ledger links reimbursements to the original expense and reduces 
     ));
 });
 
+test('canonical ledger keeps linked reimbursements from reducing spend below the original expense', () => {
+    const localFixture = structuredClone(fixture);
+    localFixture.legacyRows.entradas = [
+        {
+            source_row_id: 'entradas-reembolso-total',
+            user_id: 'person-daniel',
+            data: '18/06/2026',
+            descricao: 'Reembolso total Mercado Extra',
+            categoria: 'Reembolso',
+            valor: '150,75',
+            recebimento: 'PIX',
+            recorrente: 'Nao',
+            related_source_row_id: 'saidas-001'
+        },
+        {
+            source_row_id: 'entradas-reembolso-maior',
+            user_id: 'person-daniel',
+            data: '19/06/2026',
+            descricao: 'Reembolso superior Mercado Extra',
+            categoria: 'Reembolso',
+            valor: '200,00',
+            recebimento: 'PIX',
+            recorrente: 'Nao',
+            related_source_row_id: 'saidas-001'
+        }
+    ];
+
+    const projected = projectLegacyRowsToCanonicalLedger(localFixture);
+    const total = bySource(projected, 'entradas-reembolso-total');
+    const excessive = bySource(projected, 'entradas-reembolso-maior');
+
+    assert.strictEqual(total.kind, 'reimbursement');
+    assert.strictEqual(total.status, 'settled');
+    assert.strictEqual(total.amount_cents, 15075);
+    assert.strictEqual(total.net_income_expense_impact, -15075);
+
+    assert.strictEqual(excessive.kind, 'reimbursement');
+    assert.strictEqual(excessive.status, 'uncertain');
+    assert.strictEqual(excessive.amount_cents, 20000);
+    assert.strictEqual(excessive.net_income_expense_impact, -15075);
+    assert.ok(projected.warnings.some(warning =>
+        warning.code === 'compensation_exceeds_original' &&
+        warning.source_row_ref === 'entradas-reembolso-maior'
+    ));
+});
+
+test('canonical ledger marks reimbursements without an original event as uncertain neutral compensations', () => {
+    const localFixture = structuredClone(fixture);
+    localFixture.legacyRows.entradas = [
+        {
+            source_row_id: 'entradas-reembolso-sem-original',
+            user_id: 'person-daniel',
+            data: '20/06/2026',
+            descricao: 'Reembolso sem compra vinculada',
+            categoria: 'Reembolso',
+            valor: '70,00',
+            recebimento: 'PIX',
+            recorrente: 'Nao'
+        }
+    ];
+
+    const projected = projectLegacyRowsToCanonicalLedger(localFixture);
+    const reimbursement = bySource(projected, 'entradas-reembolso-sem-original');
+
+    assert.strictEqual(reimbursement.kind, 'reimbursement');
+    assert.strictEqual(reimbursement.status, 'uncertain');
+    assert.strictEqual(reimbursement.amount_cents, 7000);
+    assert.strictEqual(reimbursement.net_income_expense_impact, 0);
+    assert.ok(projected.warnings.some(warning =>
+        warning.code === 'compensation_original_unresolved' &&
+        warning.source_row_ref === 'entradas-reembolso-sem-original'
+    ));
+});
+
+test('canonical ledger projects linked card chargebacks without creating installment schedules', () => {
+    const localFixture = structuredClone(fixture);
+    localFixture.legacyRows.lancamentosCartao.push({
+        source_row_id: 'cartao-estorno-001',
+        user_id: 'person-daniel',
+        card_id: 'nubank-daniel',
+        cartao: 'Cartao Nubank Daniel',
+        data: '25/06/2026',
+        descricao: 'Estorno parcial Notebook',
+        categoria: 'Estorno',
+        subcategoria: 'Estorno',
+        valor_parcela: '-40,00',
+        parcela: '1/1',
+        mes_cobranca: '2026-06',
+        related_source_row_id: 'cartao-001'
+    });
+
+    const projected = projectLegacyRowsToCanonicalLedger(localFixture);
+    const original = bySource(projected, 'cartao-001');
+    const chargeback = bySource(projected, 'cartao-estorno-001');
+
+    assert.strictEqual(chargeback.kind, 'chargeback');
+    assert.strictEqual(chargeback.status, 'settled');
+    assert.strictEqual(chargeback.amount_cents, 4000);
+    assert.strictEqual(chargeback.net_income_expense_impact, -4000);
+    assert.deepStrictEqual(lineTypesFor(projected, chargeback.event_id), ['card_liability', 'category'].sort());
+    assert.ok(projected.reconciliationLinks.some(link =>
+        link.link_type === 'refund_pair' &&
+        link.event_id === chargeback.event_id &&
+        link.related_event_id === original.event_id
+    ));
+    assert.strictEqual(projected.schedules.some(schedule =>
+        Array.isArray(schedule.installments) &&
+        schedule.installments.some(installment => installment.source_row_ref === 'cartao-estorno-001')
+    ), false);
+});
+
 test('canonical ledger reconciles imported items to manual launches without duplicating spend', () => {
     const projected = projectLegacyRowsToCanonicalLedger(fixture);
 

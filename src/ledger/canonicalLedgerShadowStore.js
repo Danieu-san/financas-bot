@@ -426,8 +426,9 @@ class CanonicalLedgerShadowStore {
             INSERT INTO canonical_ledger_public_projection (
                 run_id, row_index, date, effective_on, competence_month, due_on, kind,
                 status, description, amount_cents, currency, category, subcategory,
-                category_status, responsible, source, free_budget_eligible, row_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                category_status, responsible, source, free_budget_eligible,
+                net_income_expense_impact, row_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
             runId,
             index,
@@ -446,6 +447,7 @@ class CanonicalLedgerShadowStore {
             row.responsible || null,
             row.source || null,
             row.free_budget_eligible ? 1 : 0,
+            row.net_income_expense_impact || 0,
             JSON.stringify(row)
         );
     }
@@ -469,7 +471,8 @@ class CanonicalLedgerShadowStore {
         return this.db.prepare(`
             SELECT date, effective_on, competence_month, due_on, kind, status,
                 description, amount_cents, currency, category, subcategory,
-                category_status, responsible, source, free_budget_eligible
+                category_status, responsible, source, free_budget_eligible,
+                net_income_expense_impact
             FROM canonical_ledger_public_projection
             WHERE run_id = ?
             ORDER BY row_index

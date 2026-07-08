@@ -13,6 +13,7 @@
     "ledger:accounts-gate": "node scripts/runCanonicalLedgerAccountsCanaryGate.js",
     "ledger:accounts-source-gate": "node scripts/runCanonicalLedgerAccountsSourceGate.js",
     "ledger:account-movements-gate": "node scripts/runCanonicalLedgerAccountMovementsGate.js",
+    "ledger:refunds-gate": "node scripts/runCanonicalLedgerRefundsGate.js",
     "test:financial-agent": "node scripts/runFinancialAgentAcceptanceBattery.js",
     "test:financial-agent:migration-gaps": "node scripts/runFinancialAgentMigrationGapBattery.js",
     "test:financial-agent:novel": "node scripts/runFinancialAgentNovelPlannerBattery.js",

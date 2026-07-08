@@ -71,6 +71,7 @@ Initial v1 kinds:
 - `goal_withdrawal`
 - `reimbursement`
 - `refund`
+- `chargeback`
 - `adjustment`
 
 The kind describes the economic event. Line effects describe which account,

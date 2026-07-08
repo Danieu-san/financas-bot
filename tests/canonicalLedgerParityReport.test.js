@@ -21,6 +21,9 @@ const {
 const {
     runCanonicalLedgerAccountMovementsGate
 } = require('../scripts/runCanonicalLedgerAccountMovementsGate');
+const {
+    runCanonicalLedgerRefundsGate
+} = require('../scripts/runCanonicalLedgerRefundsGate');
 
 test('canonical ledger parity report summarizes fixture projection without unexplained differences', () => {
     const report = buildCanonicalLedgerParityReport(fixture, {
@@ -267,4 +270,68 @@ test('canonical ledger account movements gate fails closed and cleans marker row
         projectionRuns: 0
     });
     assert.doesNotMatch(JSON.stringify(result), /forced canary read failure/i);
+});
+
+test('canonical ledger refunds gate proves net category spend and cleanup', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-ledger-refunds-gate-'));
+    const dbPath = path.join(tempDir, 'canonical-ledger-shadow.sqlite');
+
+    const result = runCanonicalLedgerRefundsGate({
+        dbPath,
+        reportDir: path.join(tempDir, 'report'),
+        marker: 'TESTE_APAGAR_REFUNDS_UNIT',
+        confirmMarkerOnly: true
+    });
+
+    assert.strictEqual(result.decision, 'GO');
+    assert.deepStrictEqual(result.summary.byCategory, [
+        { category: 'Alimentacao', gross_cents: 12000, compensation_cents: 4500, net_cents: 7500 },
+        { category: 'Eletronicos', gross_cents: 20000, compensation_cents: 5000, net_cents: 15000 }
+    ]);
+    assert.deepStrictEqual(result.summary.rows.map(row => row.kind).sort(), [
+        'card_purchase',
+        'chargeback',
+        'expense',
+        'reimbursement'
+    ]);
+    assert.strictEqual(result.idempotency.ok, true);
+    assert.strictEqual(result.privacy.ok, true);
+    assert.deepStrictEqual(result.cleanup.remainingMarkerRows, {
+        events: 0,
+        lines: 0,
+        links: 0,
+        publicProjectionRows: 0,
+        projectionRuns: 0
+    });
+    assert.strictEqual(fs.existsSync(result.reportPath), true);
+    assert.doesNotMatch(
+        JSON.stringify(result),
+        /user-refunds-gate|source_row_hash|idempotency_key|operationKey/i
+    );
+});
+
+test('canonical ledger refunds gate fails closed and cleans marker rows when canary read fails', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-ledger-refunds-gate-failure-'));
+    const dbPath = path.join(tempDir, 'canonical-ledger-shadow.sqlite');
+
+    const result = runCanonicalLedgerRefundsGate({
+        dbPath,
+        reportDir: path.join(tempDir, 'report'),
+        marker: 'TESTE_APAGAR_REFUNDS_FAILURE',
+        confirmMarkerOnly: true,
+        readDomain: () => {
+            throw new Error('forced refunds canary read failure');
+        }
+    });
+
+    assert.strictEqual(result.decision, 'NO-GO');
+    assert.deepStrictEqual(result.validation.problems, ['canonical_read_failed']);
+    assert.deepStrictEqual(result.cleanup.remainingMarkerRows, {
+        events: 0,
+        lines: 0,
+        links: 0,
+        publicProjectionRows: 0,
+        projectionRuns: 0
+    });
+    assert.doesNotMatch(JSON.stringify(result), /forced refunds canary read failure/i);
 });

@@ -1,7 +1,19 @@
 # Estado atual do FinancasBot
 
-Atualizado em: 2026-07-05
+Atualizado em: 2026-07-08
 
+
+## Phase 3 slice 3F refunds and chargebacks local GO - 2026-07-08
+
+- Roadmap position: Phase 3, slice `3F - Reembolso e estorno vinculados`; legacy removal remains Phase 8 and no production flags were changed locally.
+- Implemented canonical compensation handling for `reimbursement`, `refund` and `chargeback`: linked compensation events point to the original event with `refund_pair`, inherit the original category/subcategory, are excluded from common family income/free budget income, and reduce spend through `net_income_expense_impact`.
+- Total/partial compensations reduce the correct spend; compensation greater than the original is capped at the original amount and marked `uncertain` with `compensation_exceeds_original`; compensation without an original is marked `uncertain`, has neutral net impact, and emits `compensation_original_unresolved`.
+- Card chargebacks are projected as compensation events with `card_liability`/`category` inflow lines and do not create installment schedules.
+- Public canonical projection, receipt canary reads and shadow persistence now expose `net_income_expense_impact`; schema migration `005_canonical_ledger_public_net_impact.sql` adds this public net-impact column without changing older migration checksums.
+- Query Engine accepts canonical public projection rows for expenses/cards/income/transfers. For canonical expense questions it reports gross spend, compensations and net spend by category; reimbursements/chargebacks are not counted as ordinary income.
+- Added local marker-only gate script `ledger:refunds-gate` / `scripts/runCanonicalLedgerRefundsGate.js`: it creates synthetic `TESTE_APAGAR` expense + reimbursement + card purchase + chargeback rows, proves category gross/compensation/net totals through the canonical canary read, verifies idempotency, scans the public report for private identifiers, and deletes the full marker run.
+- Local evidence: `better-sqlite3` was repaired for the current Codex Node by installing the `node-v137-win32-x64` prebuild. Focused tests passed: canonical projector `22/22`, canonical shadow/receipt/parity `33/33`, refunds gate `2/2`, Packet 01/Phase 3F Query Engine `7/7`, and `tests/unit.test.js` `183/183` with elevated filesystem permission for local temp-file writes. Manual local refunds gate returned `decision=GO` with report at `%TEMP%\phase3f-refunds-gate-report\canonical-ledger-refunds-gate.json`; `git diff --check` passed with only LF/CRLF warnings.
+- Decision: local `GO` for 3F, including canonical types, linked/capped/uncertain compensation, Query Engine net spend and marker-only cleanup. This is not production GO. Remaining gate: commit/push, deploy/remote focused tests, remote marker-only smoke, health/state/flag verification and final production GO/NO-GO.
 
 ## Phase 3 slice 3E installment schedules production GO - 2026-07-05
 
