@@ -33,6 +33,9 @@ const {
 } = require('../src/agent/financialAgentPlanner');
 const { __test__: messageHandlerTest } = require('../src/handlers/messageHandler');
 const {
+    selectRelevantFinancialAgentTools
+} = require('../src/agent/financialAgentToolCatalog');
+const {
     CanonicalLedgerShadowStore
 } = require('../src/ledger/canonicalLedgerShadowStore');
 
@@ -334,6 +337,10 @@ test('safe readonly SQL allows scoped SELECT and blocks unsafe/internal access',
     assert.strictEqual(validateSafeReadonlySql('UPDATE financial_events_public SET amount = 0').ok, false);
     assert.strictEqual(validateSafeReadonlySql('SELECT user_id FROM financial_events_public LIMIT 1').ok, false);
     assert.strictEqual(validateSafeReadonlySql('SELECT * FROM expenses LIMIT 1').ok, false);
+    assert.strictEqual(validateSafeReadonlySql('SELECT * FROM financial_events_public LIMIT 1').ok, false);
+    assert.strictEqual(validateSafeReadonlySql('SELECT insertion_order FROM financial_events_public LIMIT 1').ok, false);
+    assert.strictEqual(validateSafeReadonlySql('SELECT amount, source_row_ref FROM financial_events_public LIMIT 1').ok, false);
+    assert.strictEqual(validateSafeReadonlySql('SELECT amount FROM financial_events_public WHERE source_row_ref IS NULL LIMIT 1').ok, false);
     assert.strictEqual(validateSafeReadonlySql('SELECT a.amount FROM financial_events_public a JOIN financial_events_public b ON 1=1 LIMIT 5').ok, false);
     assert.strictEqual(validateSafeReadonlySql('SELECT amount FROM financial_events_public LIMIT 100000').ok, false);
     assert.strictEqual(runSafeReadonlySql('SELECT amount FROM financial_events_public LIMIT 100', { rows, maxRows: 5 }).ok, false);
@@ -1786,8 +1793,35 @@ test('Gemini planner is disabled by default and can only produce safe tool plans
     assert.match(prompt, /gastei.*transaction_date|transaction_date.*gastei/i);
     assert.match(prompt, /fatura.*billing_month|billing_month.*fatura/i);
     assert.match(prompt, /operation.*sum|sum.*quanto/i);
+    assert.match(prompt, /Ferramentas selecionadas/);
+    assert.match(prompt, /run_safe_readonly_sql/);
+    assert.match(prompt, /query_financial_plan/);
+    assert.doesNotMatch(prompt, /- get_dashboard_snapshot|"tool":"get_dashboard_snapshot"/);
+    assert.doesNotMatch(prompt, /- explain_metric|"tool":"explain_metric"/);
+    assert.doesNotMatch(prompt, /- list_recent_transactions|"tool":"list_recent_transactions"/);
+    assert.match(prompt, /Escopo.*injetad[oa]s? pela aplicacao|escopo.*injetad[oa]s? pela aplicacao/i);
     assert.doesNotMatch(prompt, /`n/);
     assert.doesNotMatch(prompt, /user_id.*permitido/i);
+
+    const recentPrompt = buildPlannerPrompt('Quais foram meus ultimos 4 gastos no cartao Nubank - Thais?', {
+        referenceDate: new Date('2026-06-15T12:00:00.000Z')
+    });
+    assert.match(recentPrompt, /list_recent_transactions/);
+    assert.match(recentPrompt, /query_financial_plan/);
+    assert.doesNotMatch(recentPrompt, /- run_safe_readonly_sql|"tool":"run_safe_readonly_sql"/);
+    assert.doesNotMatch(recentPrompt, /- get_dashboard_snapshot|"tool":"get_dashboard_snapshot"/);
+
+    const dashboardPrompt = buildPlannerPrompt('Explique o indicador disponivel do dashboard', {
+        referenceDate: new Date('2026-06-15T12:00:00.000Z')
+    });
+    assert.match(dashboardPrompt, /get_dashboard_snapshot/);
+    assert.match(dashboardPrompt, /explain_metric/);
+    assert.doesNotMatch(dashboardPrompt, /- run_safe_readonly_sql|"tool":"run_safe_readonly_sql"/);
+
+    assert.deepStrictEqual(
+        selectRelevantFinancialAgentTools('Explique o indicador disponivel do dashboard').map(tool => tool.id),
+        ['query_financial_plan', 'get_dashboard_snapshot', 'explain_metric']
+    );
 
     const safePlan = normalizePlannerPlan({
         action: 'tool',
@@ -1798,6 +1832,15 @@ test('Gemini planner is disabled by default and can only produce safe tool plans
     });
     assert.strictEqual(safePlan.action, 'tool');
     assert.strictEqual(safePlan.tool, 'run_safe_readonly_sql');
+
+    const unselectedToolPlan = normalizePlannerPlan({
+        action: 'tool',
+        tool: 'get_dashboard_snapshot',
+        args: { month: 5, year: 2026 }
+    }, {
+        allowedToolIds: new Set(['query_financial_plan'])
+    });
+    assert.strictEqual(unselectedToolPlan, null);
 
     const unsafePlan = normalizePlannerPlan({
         action: 'tool',

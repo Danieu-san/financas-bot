@@ -45,11 +45,96 @@ const PUBLIC_COLUMNS = [
     'due_date',
     'source'
 ];
-
+const ALLOWED_SQL_KEYWORDS = new Set([
+    'select',
+    'from',
+    'where',
+    'and',
+    'or',
+    'not',
+    'in',
+    'is',
+    'null',
+    'between',
+    'like',
+    'glob',
+    'group',
+    'by',
+    'order',
+    'asc',
+    'desc',
+    'limit',
+    'as',
+    'distinct',
+    'case',
+    'when',
+    'then',
+    'else',
+    'end',
+    'collate',
+    'nocase'
+]);
+const ALLOWED_SQL_FUNCTIONS = new Set([
+    'sum',
+    'count',
+    'avg',
+    'min',
+    'max',
+    'round',
+    'abs',
+    'lower',
+    'upper',
+    'coalesce',
+    'ifnull'
+]);
 function normalizeIdentifier(value) {
     return String(value || '').toLowerCase().replace(/[^a-z0-9_]+/g, '');
 }
 
+function stripSqlStringLiterals(sql = '') {
+    return String(sql || '').replace(/'([^']|'')*'/g, ' ');
+}
+
+function extractSelectSegment(sql = '') {
+    const match = String(sql || '').match(/^select\s+([\s\S]+?)\s+from\b/i);
+    return match ? match[1] : '';
+}
+
+function validatePublicColumns(sql) {
+    const selectSegment = extractSelectSegment(sql);
+    if (!selectSegment) return { ok: false, reason: 'missing_select_list' };
+    const selectWithoutCountStar = selectSegment.replace(/\bcount\s*\(\s*\*\s*\)/gi, 'count_all');
+    if (/(^|,)\s*\*/.test(selectWithoutCountStar)) {
+        return { ok: false, reason: 'public_column_not_allowed' };
+    }
+
+    const withoutStrings = stripSqlStringLiterals(sql).replace(/\bcount\s*\(\s*\*\s*\)/gi, 'count');
+    const aliases = new Set();
+    const aliasPattern = /\bas\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi;
+    let aliasMatch;
+    while ((aliasMatch = aliasPattern.exec(withoutStrings)) !== null) {
+        aliases.add(normalizeIdentifier(aliasMatch[1]));
+    }
+
+    const allowedIdentifiers = new Set([
+        ...PUBLIC_COLUMNS,
+        ...ALLOWED_SQL_KEYWORDS,
+        ...ALLOWED_SQL_FUNCTIONS,
+        ...aliases,
+        'financial_events_public',
+        'main',
+        'temp'
+    ].map(normalizeIdentifier));
+
+    const tokens = withoutStrings.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) || [];
+    for (const token of tokens) {
+        const identifier = normalizeIdentifier(token);
+        if (!allowedIdentifiers.has(identifier)) {
+            return { ok: false, reason: 'public_column_not_allowed', identifier };
+        }
+    }
+    return { ok: true };
+}
 function validateSafeReadonlySql(sql, { maxLimit = 100 } = {}) {
     const text = String(sql || '').trim();
     if (!text) return { ok: false, reason: 'empty_sql' };
@@ -71,6 +156,8 @@ function validateSafeReadonlySql(sql, { maxLimit = 100 } = {}) {
     if (referencedTables.length > 1) return { ok: false, reason: 'single_public_table_only' };
     const invalidTable = referencedTables.find(table => !ALLOWED_TABLES.has(normalizeIdentifier(table)));
     if (invalidTable) return { ok: false, reason: 'table_not_allowed' };
+    const publicColumns = validatePublicColumns(text);
+    if (!publicColumns.ok) return publicColumns;
     const limitMatch = text.match(/\blimit\s+(\d+)\b/i);
     if (!limitMatch) return { ok: false, reason: 'limit_required' };
     const requestedLimit = Number.parseInt(limitMatch[1], 10);
@@ -139,9 +226,11 @@ function runSafeReadonlySql(sql, { rows = [], maxRows = 50 } = {}) {
 }
 
 module.exports = {
+    PUBLIC_COLUMNS,
     validateSafeReadonlySql,
     runSafeReadonlySql,
     __test__: {
-        PUBLIC_COLUMNS
+        PUBLIC_COLUMNS,
+        validatePublicColumns
     }
 };

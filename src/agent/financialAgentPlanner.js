@@ -3,14 +3,14 @@ const { getStructuredResponseFromLLM } = require('../services/gemini');
 const { validateSafeReadonlySql } = require('./safeReadonlySql');
 const { DEFAULT_EVENT_TYPES } = require('./financialAgentTools');
 const { normalizeFinancialQueryPlan } = require('../query/financialQueryPlan');
-
-const ALLOWED_AGENT_TOOLS = new Set([
-    'query_financial_plan',
-    'list_recent_transactions',
-    'run_safe_readonly_sql',
-    'get_dashboard_snapshot',
-    'explain_metric'
-]);
+const {
+    ALLOWED_AGENT_TOOLS,
+    buildSqlCatalogLines,
+    buildToolExampleLines,
+    buildToolPromptLines,
+    selectRelevantFinancialAgentTools,
+    selectedToolIds
+} = require('./financialAgentToolCatalog');
 const FINANCIAL_REFERENCE_TIME_ZONE = 'America/Sao_Paulo';
 let structuredResponseOverrideForTest = null;
 
@@ -98,24 +98,23 @@ function buildPlannerPrompt(message = '', { referenceDate = new Date() } = {}) {
     const dayBeforeYesterdayIso = offsetIsoDate(referenceDateIso, -2);
     const [referenceYear, referenceMonth] = referenceDateIso.split('-').map(Number);
     const referenceMonthIndex = referenceMonth - 1;
+    const tools = selectRelevantFinancialAgentTools(message);
+    const toolIds = selectedToolIds(tools);
     return [
         'Voce e um planner de ferramenta para um assistente financeiro familiar.',
         'Retorne APENAS JSON valido. Nao calcule valores. Nao escreva resposta final.',
         `Data de referencia: ${referenceDateIso}. Datas relativas resolvidas: hoje=${referenceDateIso}, ontem=${yesterdayIso}, anteontem=${dayBeforeYesterdayIso}. Mes atual humano: ${referenceMonth}. Indice de mes para FinancialQueryPlan: ${referenceMonthIndex}. Ano atual: ${referenceYear}.`,
         '',
-        'Ferramentas permitidas:',
-        '- query_financial_plan: para perguntas sobre domínios já conhecidos. Args: plan.',
-        '- list_recent_transactions: para ultimo/ultimos lancamentos. Args: eventTypes, limit, card opcional.',
-        '- run_safe_readonly_sql: para consultas read-only flexiveis.',
-        '- get_dashboard_snapshot: para resumo deterministico do dashboard. Args: month, year.',
-        '- explain_metric: explica saldo, disponivel, categorias, orcamento ou lancamentos recentes. Args: metric, month, year.',
+        'Ferramentas selecionadas para esta pergunta:',
+        ...buildToolPromptLines(tools),
         '',
-        'Tabela SQL publica allowlisted: financial_events_public.',
-        'Colunas publicas: date, iso_date, year, month, weekday, event_type, amount, description, category, subcategory, person, payment_method, card, billing_month, due_date, source.',
-        'Tipos de evento: expense, card_expense, income, transfer, goal, debt, bill.',
+        ...buildSqlCatalogLines(toolIds),
+        toolIds.has('run_safe_readonly_sql') ? '' : null,
         '',
         'Regras obrigatorias:',
         '- Nunca use user_id, sheet_id, spreadsheet_id, token, oauth, prompt, owner_hash ou dados internos.',
+        '- Escopo, usuarios autorizados e owner do dashboard sao injetados pela aplicacao; nao inclua userIds, ownerUserId, personByUserId nem escopo interno nos args.',
+        '- Use somente as ferramentas selecionadas acima; se nenhuma servir com seguranca, retorne clarify.',
         '- Prefira query_financial_plan para gastos, cartoes, entradas, transferencias, orcamento, metas, dividas, contas e previsoes futuras.',
         '- Para consultar valor, uso, restante, ritmo ou detalhes do orcamento, use query_financial_plan com domain budget; explain_metric e exclusivo para explicar indicadores do dashboard.',
         '- SQL deve ser somente SELECT, usar somente financial_events_public e conter LIMIT.',
@@ -131,19 +130,13 @@ function buildPlannerPrompt(message = '', { referenceDate = new Date() } = {}) {
         '- Se faltar periodo/criterio essencial, retorne clarify.',
         '',
         'Formato:',
-        '{"action":"tool","tool":"query_financial_plan","args":{"plan":{"kind":"financial_query","domain":"bills","operation":"list","filters":{"period":{"type":"month","month":5,"year":2026},"status":"pending"},"sort":{"by":"due_date","direction":"asc"},"timeBasis":"due_date"}}}',
-        '{"action":"tool","tool":"query_financial_plan","args":{"plan":{"kind":"financial_query","domain":"forecast","operation":"forecast","filters":{"period":{"type":"date_range","from":"2026-07-01","to":"2026-07-31"},"type":"payable"},"sort":{"by":"due_date","direction":"asc"},"timeBasis":"due_date"}}}',
-        '{"action":"tool","tool":"run_safe_readonly_sql","args":{"sql":"SELECT ... LIMIT 20"}}',
-        '{"action":"tool","tool":"list_recent_transactions","args":{"eventTypes":["card_expense"],"limit":4,"card":"Nubank - Thais"}}',
-        '{"action":"tool","tool":"get_dashboard_snapshot","args":{"month":5,"year":2026}}',
-        '{"action":"tool","tool":"explain_metric","args":{"metric":"available","month":5,"year":2026}}',
+        ...buildToolExampleLines(tools),
         '{"action":"clarify","question":"..."}',
         '{"action":"block","reason":"unsafe_request"}',
         '',
         `Pergunta do usuario: ${JSON.stringify(String(message || '').slice(0, 500))}`
-    ].join('\n');
+    ].filter(line => line !== null).join('\n');
 }
-
 function normalizeEventTypes(eventTypes = []) {
     const allowed = new Set(DEFAULT_EVENT_TYPES);
     const normalized = (Array.isArray(eventTypes) ? eventTypes : [])
@@ -174,7 +167,7 @@ function repairPlannerFinancialQueryPlan(plan = {}) {
     }
     return repaired;
 }
-function normalizePlannerPlan(rawPlan = {}) {
+function normalizePlannerPlan(rawPlan = {}, { allowedToolIds = ALLOWED_AGENT_TOOLS } = {}) {
     const action = String(rawPlan?.action || '').trim();
     if (action === 'block') {
         return { action: 'block', reason: rawPlan.reason || 'unsafe_request' };
@@ -190,7 +183,9 @@ function normalizePlannerPlan(rawPlan = {}) {
     if (action !== 'tool') return null;
 
     const tool = String(rawPlan.tool || '').trim();
+    const selectedAllowedTools = allowedToolIds instanceof Set ? allowedToolIds : new Set(allowedToolIds || []);
     if (!ALLOWED_AGENT_TOOLS.has(tool)) return null;
+    if (!selectedAllowedTools.has(tool)) return null;
 
     const args = rawPlan.args || {};
     if (tool === 'list_recent_transactions') {
@@ -279,7 +274,8 @@ async function planWithGemini({ message = '', env = process.env, referenceDate =
     const planner = structuredResponseOverrideForTest || getStructuredResponseFromLLM;
     const response = await planner(buildPlannerPrompt(message, { referenceDate }));
     if (!response || response.error) return null;
-    return repairPlannerPlanForExplicitRelativeDate(normalizePlannerPlan(response), { message, referenceDate });
+    const allowedToolIds = selectedToolIds(selectRelevantFinancialAgentTools(message));
+    return repairPlannerPlanForExplicitRelativeDate(normalizePlannerPlan(response, { allowedToolIds }), { message, referenceDate });
 }
 
 module.exports = {
@@ -293,6 +289,7 @@ module.exports = {
         formatReferenceDate,
         normalizeEventTypes,
         repairPlannerPlanForExplicitRelativeDate,
+        selectRelevantFinancialAgentTools,
         setStructuredResponseOverrideForTest: (override) => {
             structuredResponseOverrideForTest = override;
         },
