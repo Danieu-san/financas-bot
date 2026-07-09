@@ -1,7 +1,7 @@
 # Roadmap passo a passo - FinancasBot familiar
 
-Data: 2026-07-05
-Status: Fase 3E concluida com GO de producao; proxima fatia: 3F
+Data: 2026-07-08
+Status: Fase 3F concluida com GO de producao; proximo portao: 3F.1
 
 ## Principios de execucao
 
@@ -9,7 +9,12 @@ Este documento quebra o restante do roadmap mestre em fatias pequenas, ordenadas
 
 Regras permanentes:
 
-- Manter o Gemini Planner ativo no baseline atual, mas sem permitir que Gemini calcule valor final ou execute escrita.
+- Manter o baseline atual disponivel para comparacao e rollback enquanto o
+  nucleo analitico candidato evolui em shadow.
+- Dar ao Gemini liberdade para interpretar, decompor e escolher ferramentas, sem
+  permitir que calcule valor final, resolva permissao ou execute escrita.
+- Centralizar significado financeiro em catalogo semantico e
+  `FinancialQuerySpec`; evitar novas manutencoes baseadas apenas em frases/intents.
 - Manter `INTERPRETATION_RELIABILITY_MODE=shadow` ate novo gate especifico de escrita.
 - Nao remover legado antes da Fase 8.
 - Cada fatia deve ter TDD, bateria adversarial repetivel, rollback por flag quando houver rollout e limpeza marker-only quando tocar dados reais.
@@ -29,8 +34,10 @@ Concluido:
 - Fase 3C: regras de recorrencia e ocorrencias materializadas, com smoke pago/nao pago limpo.
 - Fase 3D: contas a pagar e receber futuras, com forecast canary e smoke read-only limpo.
 - Fase 3E: cronograma canonico de parcelas concluido com GO de producao, smoke remoto read-only aprovado e flags preservadas.
+- Fase 3F: reembolso e estorno vinculados concluidos com GO de producao, E2E
+  completo pelo WhatsApp e classificacao publica corrigida.
 
-Proximo trabalho: iniciar Fase 3F - Reembolso e estorno vinculados.
+Proximo trabalho: executar o portao 3F.1 - Nucleo analitico agentic governado.
 
 ## Fase 3 - Recorrencias, parcelas, contas e faturas
 
@@ -183,6 +190,167 @@ Gate de saida:
 - Entrada de reembolso nao vira receita familiar comum por padrao.
 - Sem original, o bot pede escolha ou marca como incerto.
 
+### 3F.1 - Nucleo analitico agentic governado
+
+Objetivo: substituir a evolucao por frases e excecoes por um nucleo em que Gemini
+interpreta perguntas com liberdade, ferramentas leem apenas o necessario,
+codigo calcula e valida, e a resposta permanece auditavel e barata.
+
+Este e um portao tecnico dentro da Fase 3. Ele nao cria uma decima fase, nao
+remove o caminho atual, nao migra escritas financeiras e nao muda o dashboard em
+producao. 3G e 3H aguardam seu `GO`.
+
+Problemas que obrigatoriamente entram no corpus de regressao:
+
+- pergunta de progresso/resumo de metas replanejada como listagem de outro mes;
+- resposta semanticamente errada aprovada pelo verificador;
+- fonte de metas indisponivel apresentada como ausencia de metas;
+- estado perdido durante criacao de meta;
+- orcamento familiar, datas relativas e follow-ups com escopo/periodo incorretos;
+- pergunta nova respondida por fallback ou frase parecida sem atender o pedido.
+
+#### 3F.1A - Baseline e conjunto ouro
+
+1. Extrair de 50 a 100 perguntas reais sanitizadas, priorizando os ultimos 10
+   dias, e complementar com o benchmark do Meu Planner e casos adversariais.
+2. Incluir metas, orcamento, gastos, entradas, contas, cartoes, faturas,
+   recorrencias, parcelas, reembolsos, previsoes, familia, comparacoes, datas
+   relativas, follow-ups e perguntas nao previstas literalmente.
+3. Rotular pergunta, resposta esperada, dominio, metrica, operacao, dimensoes,
+   filtros, entidade, periodo, base temporal, escopo autorizado, saude da fonte e
+   necessidade de esclarecimento.
+4. Separar conjunto de desenvolvimento e conjunto cego de aprovacao.
+5. Executar o baseline atual e guardar plano, ferramentas, resposta, chamadas,
+   tokens, custo estimado, latencia e falha, sempre sanitizados.
+6. Transformar cada erro confirmado em teste de regressao permanente.
+
+Gate A: conjunto ouro revisado, sem dado pessoal nos artefatos e com resultados
+financeiros calculados por fixtures/SQLite controlado, nao por texto do LLM.
+
+#### 3F.1B - Contrato semantico governado
+
+1. Definir `FinancialQuerySpec` versionado com objetivo, dominio, metrica,
+   operacao, dimensoes, filtros, entidade, periodo, base temporal, evidencias e
+   motivo de esclarecimento.
+2. Criar catalogo de metricas, dimensoes, sinonimos e regras para caixa,
+   competencia, evento e vencimento.
+3. Resolver escopo pessoal, familiar ou de membro fora do Gemini; o modelo pode
+   pedir escopo, nunca conceder acesso ou escolher IDs.
+4. Modelar `available`, `partial`, `stale` e `unavailable` para cada fonte. Zero e
+   vazio continuam sendo resultados de dados, nao estados de infraestrutura.
+5. Proibir filtros inventados. Ambiguidade material pede esclarecimento; defaults
+   permitidos devem ser explicitos, versionados e visiveis na resposta.
+6. Ligar cada capacidade do benchmark a metrica, ferramenta, resposta WhatsApp,
+   API/tela futura e teste na matriz de rastreabilidade.
+
+Gate B: schemas recusam planos sem dominio/periodo/escopo coerentes e todos os
+conceitos financeiros usados pelo conjunto ouro possuem definicao unica.
+
+#### 3F.1C - Ferramentas componiveis e SQL seguro
+
+1. Oferecer um catalogo pequeno de ferramentas read-only para consultar metrica,
+   listar/agrupar, comparar periodos, explicar/drill-down e verificar saude da
+   fonte.
+2. Selecionar para o prompt apenas as ferramentas relevantes para a pergunta.
+3. Executar contas no Query Engine sobre SQLite/read-model e retornar agregados
+   ou poucas linhas; nunca enviar a planilha inteira ao Gemini.
+4. Criar fallback SQL somente sobre views curadas, com parser de AST,
+   exclusivamente `SELECT`, colunas allowlisted, escopo injetado pela aplicacao,
+   limite de linhas/tempo e bloqueio de schemas/IDs internos.
+5. Registrar consulta e ferramenta de forma sanitizada e reproduzivel.
+6. Manter comandos de escrita na rota existente com validacao, confirmacao,
+   idempotencia e recibo; o agente read-only apenas entrega o comando a essa rota.
+
+Gate C: nenhuma ferramenta amplia escopo, grava dados ou expoe tabela interna; os
+totais do conjunto ouro batem exatamente com o motor deterministico.
+
+#### 3F.1D - Orquestracao e estado
+
+1. Usar o LangGraph atual para planejar, executar ferramenta, verificar e compor;
+   nao migrar para outro framework sem lacuna comprovada.
+2. Persistir checkpoint por conversa para reinicio, cancelamento, retomada e
+   follow-up.
+3. Limitar o caminho normal a duas rodadas de ferramenta; permitir terceira
+   apenas com motivo de escalonamento registrado.
+4. Usar Gemini Flash no caminho normal e modelo mais forte somente quando houver
+   ambiguidade real ou falha de verificacao.
+5. Testar handoff para fluxos deterministas existentes, inclusive criacao de
+   meta, em shadow sem commit financeiro.
+6. Garantir que cancelamento limpe somente o estado da operacao correta.
+
+Gate D: restart entre mensagens nao perde nem mistura estado; uma conversa nunca
+herda contexto financeiro ou permissao de outra.
+
+#### 3F.1E - Verificador de trajetoria e resultado
+
+1. Comparar pergunta original, `FinancialQuerySpec`, ferramentas escolhidas,
+   argumentos, resultado e texto final.
+2. Validar dominio, metrica, entidade, periodo, base temporal, escopo, saude da
+   fonte e atendimento integral do pedido.
+3. Recalcular invariantes matematicas e impedir que Gemini produza numero ausente
+   do resultado verificado.
+4. Remover aprovacao automatica de respostas apenas porque nao contem dinheiro.
+5. Distinguir resposta correta vazia, necessidade de esclarecimento, dado parcial
+   e falha de infraestrutura.
+6. Emitir fallback honesto e rastreavel quando a verificacao falhar.
+
+Gate E: nenhum erro critico conhecido recebe `verified=true`; resposta errada
+falha fechada ou pede esclarecimento sem inventar ausencia/zero.
+
+#### 3F.1F - Orcamento de custo
+
+1. Medir tokens de entrada/saida, chamadas, rodadas, latencia e custo estimado por
+   etapa, pergunta, dia e mes.
+2. Reusar cache de instrucoes estaticas, catalogo e esqueletos de plano; nao
+   reutilizar resposta financeira entre usuarios ou periodos.
+3. Definir tetos por pergunta e mensais antes do canario, com fallback
+   deterministico ao atingir o limite.
+4. Enviar somente schema/ferramentas relevantes e resultados minimizados.
+5. Comparar custo e latencia com o baseline para cada grupo do conjunto ouro.
+
+Gate F: envelope de custo documentado e aprovado; nenhuma pergunta comum depende
+de planilha inteira, ferramentas completas ou rodadas abertas.
+
+#### 3F.1G - Shadow e decisao offline
+
+1. Rodar arquitetura atual e candidata sobre os mesmos casos sem efeito no
+   WhatsApp, Sheets ou ledger.
+2. Usar chamadas live limitadas do Gemini para medir variacao e repetir casos
+   criticos; calculos continuam em fixtures deterministicas.
+3. Fazer revisao cega das divergencias sem favorecer a resposta nova.
+4. Exigir 100% de isolamento de escopo, ausencia de escrita, contas exatas nos
+   casos respondiveis, distincao entre fonte indisponivel e zero e aprovacao dos
+   casos criticos de metas/orcamento/datas.
+5. Exigir pelo menos 95% de correcao semantica no conjunto cego e resultado
+   claramente superior ao baseline; todo erro restante deve ser nao critico,
+   catalogado e ter fallback seguro.
+6. Exigir custo e latencia dentro do envelope aprovado.
+
+Gate G: `GO` somente com relatorio reproduzivel. Falha gera ajuste de contrato,
+catalogo, ferramenta ou verificador, nao remendo de frase isolada.
+
+#### 3F.1H - Canario Daniel e E2E
+
+1. Colocar a rota candidata atras de flag read-only com rollback por uma
+   alteracao, sem reiniciar ou migrar dados.
+2. Liberar somente Daniel e manter Thais/baseline fora do canario.
+3. Executar pelo WhatsApp o caminho completo: pergunta real, bot no EC2,
+   planejamento, ferramenta, SQLite/read-model, verificacao e resposta.
+4. Para perguntas representadas no dashboard atual, comparar o mesmo usuario,
+   periodo, criterio e numero.
+5. Testar fonte indisponivel, timeout, restart, follow-up, cancelamento e limite
+   de custo.
+6. Auditar logs sanitizados, PM2, saude do dashboard, tokens/chamadas e rollback.
+7. Registrar `GO/NO-GO`, residuos e evidencia; nao promover escrita.
+
+Gate final 3F.1:
+
+- Todos os gates A-H aprovados.
+- Casos reais criticos passam E2E, nao apenas testes internos.
+- Gemini interpreta e planeja; codigo resolve escopo, calcula, grava e valida.
+- Nenhuma regressao de privacidade, idempotencia ou custo.
+- Baseline permanece disponivel ate 3H e a promocao e reversivel.
+
 ### 3G - Reconciliacao de importacao contra lancamento manual
 
 Objetivo: impedir duplicidade quando extratos importados encontram lancamentos manuais ja existentes.
@@ -221,7 +389,8 @@ Gate de saida:
 
 ### 3H - Gate de saida da Fase 3
 
-Objetivo: provar que recorrencias, parcelas, faturas, previsoes, reembolsos e importacao convivem sem duplicacao.
+Objetivo: provar que o nucleo analitico, recorrencias, parcelas, faturas,
+previsoes, reembolsos e importacao convivem sem erro semantico ou duplicacao.
 
 Passo a passo:
 
@@ -229,18 +398,35 @@ Passo a passo:
 2. Rodar replay local com restart entre etapas.
 3. Rodar smoke marker-only em producao para pelo menos um caminho de escrita e varios caminhos read-only.
 4. Comparar Sheets, ledger, read-model, dashboard e respostas do WhatsApp.
-5. Verificar rollback por flag para superficies novas.
-6. Documentar residuos e limpar marcadores.
-7. Decidir GO/NO-GO para abrir Fase 4.
+5. Reexecutar o conjunto cego 3F.1 e validar custo, trajetoria e falhas de fonte.
+6. Verificar rollback por flag para superficies novas.
+7. Documentar residuos e limpar marcadores.
+8. Decidir GO/NO-GO para abrir Fase 4.
 
 Gate de saida:
 
 - Nenhuma duplicacao ao importar, pagar fatura, reiniciar ou editar regra recorrente.
 - Todas as respostas financeiras declaram criterio de data/competencia quando relevante.
+- Perguntas criticas de metas, orcamento, familia, datas e follow-up permanecem
+  semanticamente corretas no E2E pelo WhatsApp.
 
 ## Fase 4 - Orcamento por categoria e Dashboard Familiar v2
 
 Objetivo da fase: transformar o ledger confiavel em decisao visual e conversacional clara.
+
+Rastreabilidade obrigatoria:
+
+1. Converter o mapa de navegacao e o inventario funcional de
+   `docs/audits/meu-planner-deep-product-study.md` e
+   `docs/audits/meu-planner-feature-benchmark.md` em matriz de cobertura.
+2. Para cada capacidade adotada, ligar pergunta de negocio, metrica semantica,
+   ferramenta, resposta WhatsApp, endpoint, bloco visual e teste.
+3. Preservar cockpit mensal, planejado versus realizado, pendencias,
+   contas/faturas, planos, comparacoes, drill-down e qualidade dos dados.
+4. Usar identidade, textos e layout proprios; nao copiar a estrutura literal do
+   produto estudado.
+5. Nao considerar uma capacidade concluida se existir apenas na conversa ou
+   apenas no dashboard.
 
 ### 4A - Contrato de orcamento por categoria
 
@@ -249,9 +435,11 @@ Passo a passo:
 1. Definir modelo de `budget_allocations`: ciclo, categoria, subcategoria, pessoa/familia, valor e status.
 2. Criar invariantes: fatura nao duplica consumo; conta recorrente paga nao entra como gasto livre; reembolso reduz categoria correta.
 3. Escrever testes RED para categorias sem orcamento, categoria nova e subcategoria criada pelo assistente.
-4. Implementar calculo deterministico por categoria/ciclo.
-5. Adicionar perguntas read-only: restante por categoria, categorias estouradas e ritmo diario.
-6. Validar contra orcamento familiar global atual.
+4. Registrar metricas, dimensoes, sinonimos e criterio temporal de orcamento no
+   catalogo semantico aprovado em 3F.1.
+5. Implementar calculo deterministico por categoria/ciclo.
+6. Adicionar perguntas read-only: restante por categoria, categorias estouradas e ritmo diario.
+7. Validar contra orcamento familiar global atual.
 
 Gate: total por categoria bate com total familiar explicavel e nao duplica cartao/fatura/conta.
 
@@ -261,7 +449,8 @@ Passo a passo:
 
 1. Especificar contrato `/dashboard/api/v2/summary` com dados sanitizados.
 2. Criar testes de contrato para caixa, competencia, reserva, contas, faturas, previsoes e qualidade dos dados.
-3. Implementar endpoint usando Query Engine/read-model, sem calculo paralelo novo.
+3. Implementar endpoint usando o mesmo catalogo semantico, Query Engine e
+   read-model do WhatsApp, sem calculo paralelo novo.
 4. Garantir que ids internos, tokens e dados crus nao vazem.
 5. Adicionar fallback seguro quando parte do ledger estiver indisponivel.
 
@@ -271,7 +460,9 @@ Gate: API responde todos os blocos com criterios explicaveis e sem vazamento.
 
 Passo a passo:
 
-1. Definir hierarquia de tela: hoje, ciclo, contas, categorias, faturas, proximos vencimentos e qualidade dos dados.
+1. Definir hierarquia de tela a partir da matriz do benchmark: hoje, ciclo,
+   contas, categorias, faturas, proximos vencimentos, metas/dividas e qualidade
+   dos dados.
 2. Implementar primeiro painel sem trocar o dashboard atual por padrao.
 3. Adicionar drill-down por bloco usando o mesmo contrato da API.
 4. Testar desktop/mobile e contraste/leitura.
@@ -299,7 +490,9 @@ Passo a passo:
 2. Testes de orcamento por categoria com cartao, fatura, recorrencia, reembolso e transferencia.
 3. QA visual mobile/desktop.
 4. Rollback por flag para dashboard v2.
-5. Decidir GO/NO-GO para Fase 5.
+5. Auditar a matriz do benchmark e justificar cada item adotado, adiado ou
+   descartado.
+6. Decidir GO/NO-GO para Fase 5.
 
 ## Fase 5 - Planos projetados
 
@@ -599,10 +792,14 @@ Passo a passo:
 
 ## Ordem recomendada imediata
 
-1. 3D concluida com GO de producao.
-2. Executar 3E.
-3. Executar 3F.
-4. Executar 3G.
-5. Rodar 3H e so entao abrir Fase 4.
+1. 3D, 3E e 3F concluidas com GO de producao.
+2. Executar 3F.1A-B: conjunto ouro e contrato semantico.
+3. Executar 3F.1C-F: ferramentas, estado, verificador e custo.
+4. Rodar 3F.1G-H: shadow comparativo e canario read-only de Daniel.
+5. Somente com `GO` executar 3G.
+6. Rodar 3H e so entao abrir Fase 4.
+7. Na Fase 4, implementar a matriz visual/funcional do benchmark sobre o mesmo
+   nucleo semantico.
 
-A proxima fatia implementavel e `3F - Reembolso e estorno vinculados`.
+A proxima fatia implementavel e
+`3F.1A - Baseline e conjunto ouro`, sem alterar producao.

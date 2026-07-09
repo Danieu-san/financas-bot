@@ -1,7 +1,7 @@
 # Plano mestre: evolucao do FinancasBot familiar
 
-Data: 2026-06-20
-Status: Fase 1 concluida; Fase 2 em shadow com gate corretivo 2A iniciado em 2026-06-25
+Data: 2026-07-08
+Status: Fases 1 e 2 concluidas; Fase 3F concluida com GO de producao; proximo gate: 3F.1
 
 ## 1. Norte do produto
 
@@ -202,6 +202,30 @@ alteracao estrutural do roadmap. Antes de existir ledger canonico, contas, fatur
 reconciliacao forte e remocao do legado, ele aumenta volume de dados sem aumentar
 confiabilidade.
 
+### Rastreabilidade obrigatoria do benchmark
+
+Os estudos `meu-planner-feature-benchmark.md` e
+`meu-planner-deep-product-study.md`, inclusive seu mapa de navegacao, continuam
+como entrada obrigatoria do produto. Eles nao ficam adiados como inspiracao
+visual: cada capacidade aproveitada deve aparecer em uma matriz versionada com:
+
+1. conceito financeiro e pergunta de negocio;
+2. metrica, dimensoes e regra temporal no catalogo semantico;
+3. ferramenta read-only ou comando deterministico que atende a capacidade;
+4. resposta equivalente no WhatsApp;
+5. contrato de API e bloco correspondente do dashboard, quando visual;
+6. fixture, pergunta real sanitizada e teste de paridade.
+
+A matriz deve cobrir inicialmente cockpit do mes/ciclo, planejado versus
+realizado, pendencias, contas e faturas, recorrencias e parcelas, metas/dividas,
+comparacoes historicas, drill-down e qualidade dos dados. Patrimonio e
+investimentos entram na mesma matriz apenas nas fases previstas.
+
+Uma capacidade nao esta concluida se existir somente na tela ou somente na
+conversa. WhatsApp, Query Engine, API e dashboard devem compartilhar significado,
+criterio temporal e numero. A identidade visual, os textos e o layout literal do
+produto estudado nao serao copiados.
+
 ## 6. O que deliberadamente nao incorporar
 
 - Nao copiar identidade visual, textos, navegacao ou layout do concorrente.
@@ -215,7 +239,10 @@ confiabilidade.
   confianca dos dados.
 - Nao priorizar lembrete por email; o canal principal continua WhatsApp/Calendar.
 - Nao construir modulo de investimento antes de contas e conciliacao.
-- Nao trocar Gemini, LangGraph, Query Engine ou provedor de WhatsApp nesta rodada.
+- Nao trocar Gemini, LangGraph ou provedor de WhatsApp por modismo. A arquitetura
+  interna do agente e da Query Engine pode ser redesenhada por contrato e
+  evidencia; migracao de framework exige ganho medido que o LangGraph atual nao
+  consiga entregar.
 - Nao virar assistente geral de projetos, tarefas, atas, reunioes ou notificacoes
   para terceiros.
 - Nao criar um "Drive inteligente" generico; anexos devem ser financeiros e
@@ -231,23 +258,77 @@ WhatsApp                         Dashboard familiar
     |                                   |
     +---------- Security/Scope ---------+
                        |
-          +------------+-------------+
-          |                          |
-  Interpretation Reliability    LangGraph Agent
-  (writes/commands)              (read-only)
-          |                          |
-  Idempotent Write Executor      Safe tools/verifier
-          |                          |
-          +------- Domain Services --+
-                       |
-             Canonical Family Ledger
-                    SQLite
+          Conversation Orchestrator / LangGraph
                        |
           +------------+-------------+
-          |            |             |
-       Read model   Dashboard      Sheets mirror
-       / Queries    snapshots      / export
+          |                          |
+  Command route                 Gemini Planner
+  (writes)                      (read-only)
+          |                          |
+  Validated command       Validated FinancialQuerySpec
+  + confirmation                     |
+          |                 Semantic tool catalog
+  Idempotent executor        + curated safe SQL
+          |                          |
+          +------ Deterministic Domain Services ------+
+                                  |
+                    Canonical Ledger / Read Model
+                              SQLite
+                                  |
+                    Trajectory + Result Verifier
+                                  |
+                         Response Composer
+                                  |
+             Dashboard snapshots / Sheets mirror
 ```
+
+### Liberdade interpretativa com limites deterministas
+
+O Gemini recebe liberdade para compreender linguagem natural, contexto,
+parafrases e perguntas nao previstas, decompor a pergunta e escolher ferramentas.
+Ele nao recebe liberdade para decidir permissao, inventar dados, calcular o valor
+final, executar escrita ou transformar indisponibilidade em zero.
+
+Toda consulta deve produzir um `FinancialQuerySpec` validado com, no minimo:
+
+- objetivo, dominio, metrica e operacao;
+- dimensoes, filtros, entidade e periodo;
+- base temporal (`caixa`, `competencia`, `evento` ou `vencimento`);
+- pedido de escopo, resolvido e autorizado fora do LLM;
+- evidencias necessarias e motivo de esclarecimento, quando houver ambiguidade.
+
+O catalogo semantico e a fonte governada de metricas, dimensoes, sinonimos,
+criterios temporais e relacionamentos. O Gemini recebe apenas as ferramentas
+relevantes para a pergunta. O Query Engine calcula sobre SQLite/read-model e
+devolve agregados ou poucas linhas, nunca a planilha inteira.
+
+Perguntas novas que sejam respondiveis pelos dados podem usar SQL somente leitura
+sobre views curadas. Esse caminho exige parser de AST, apenas `SELECT`, injecao de
+escopo pela aplicacao, allowlist de colunas, limite de linhas/tempo e bloqueio de
+schemas internos, IDs e qualquer escrita.
+
+O verificador cruza pergunta original, plano, trajetoria, resultado e resposta.
+Ele valida dominio, periodo, escopo, entidade, saude da fonte, atendimento do
+pedido e invariantes matematicas. Resultado vazio, fonte indisponivel e zero real
+sao estados diferentes. Respostas sem dinheiro nao passam automaticamente.
+
+Escritas continuam em rota separada, com plano de comando validado, confirmacao,
+idempotencia e recibo. A orquestracao deve persistir estado por conversa para
+reinicio, cancelamento e retomada sem perder fluxos como criacao de meta.
+
+### Controle de custo e complexidade
+
+- Gemini Flash atende o caminho normal; modelo mais forte so entra por ambiguidade
+  real ou falha de verificacao.
+- O caminho normal usa no maximo duas rodadas de ferramentas; uma terceira exige
+  escalonamento registrado.
+- Instrucoes estaticas, catalogo semantico e esqueletos de plano podem usar cache;
+  respostas financeiras do usuario nao.
+- Apenas agregados e linhas estritamente necessarias entram no contexto.
+- Tokens, chamadas, latencia, falhas e custo estimado sao medidos por pergunta,
+  por dia e por mes, com tetos e fallback deterministico.
+- Novas ferramentas nascem de lacunas demonstradas no corpus de avaliacao, nao de
+  uma lista crescente de frases especiais.
 
 ### Fonte de verdade recomendada
 
@@ -459,6 +540,18 @@ regra recorrente.
 
 **Capacidade:** alta; altissima para auditoria de reconciliacao.
 
+**Portao arquitetural 3F.1, antes de 3G:** rebasear o nucleo analitico
+read-only sobre `FinancialQuerySpec`, catalogo semantico, ferramentas
+componiveis, calculo deterministico e verificacao de trajetoria. Esse portao nao
+cria uma decima fase nem autoriza reescrita: ele corrige a rota tecnica dentro da
+Fase 3 antes de ampliar reconciliacao e dashboard.
+
+A aprovacao exige corpus de perguntas reais sanitizadas, comparacao entre
+baseline e arquitetura candidata, zero vazamento/escrita, numeros exatos, falha
+de fonte distinta de zero, custo limitado, E2E completo pelo WhatsApp e canario
+read-only reversivel de Daniel. O detalhamento e os limiares estao no roadmap
+passo a passo.
+
 ### Fase 4 - Orcamento por categoria e Dashboard Familiar v2
 
 **Objetivo:** oferecer a clareza visual apreciada no benchmark, com identidade e
@@ -477,6 +570,11 @@ criterios proprios.
 
 Cada numero deve permitir drill-down e responder `de onde veio esse valor?` pelo
 mesmo motor usado no WhatsApp.
+
+O mapa de navegacao e o inventario funcional dos estudos do Meu Planner devem ser
+convertidos na matriz de rastreabilidade definida neste plano. A Fase 4
+implementa essa hierarquia com identidade propria e sobre o mesmo catalogo
+semantico aprovado no portao 3F.1; nao cria calculos paralelos para a interface.
 
 **Principios visuais:** hierarquia clara, poucos graficos por decisao, mobile-first,
 sem elementos cortados, sem misturar caixa, competencia e patrimonio.
@@ -620,6 +718,14 @@ isolada.
 - Importacao reconhece lancamento manual correspondente.
 - Daniel e Thais enxergam o escopo familiar autorizado e o responsavel correto.
 - Query Engine, SQL sandbox, dashboard e WhatsApp devolvem o mesmo numero.
+- Pergunta, `FinancialQuerySpec`, ferramenta, resultado e resposta concordam em
+  dominio, metrica, periodo, entidade e escopo.
+- Fonte indisponivel, resultado vazio e zero real nunca sao tratados como o mesmo
+  estado.
+- Corpus real sanitizado cobre metas, orcamento familiar, datas relativas,
+  follow-ups, comparacoes e perguntas fora das frases catalogadas.
+- Avaliacao mede a trajetoria de ferramentas, nao apenas o texto final.
+- Matriz do benchmark liga funcionalidade, pergunta, metrica, API, tela e teste.
 - Gemini nunca calcula valor final nem grava campo critico sem gate.
 - Restart, timeout e retry nao duplicam escrita.
 - Backup restaura ledger, configuracao e projecoes.
@@ -690,16 +796,17 @@ Nao acumular todas as fases para um unico deploy.
 
 ## 13. Proximo passo imediato
 
-Iniciar a Fase 2 com TDD em um corte pequeno:
+Executar o portao `3F.1 - Nucleo analitico agentic governado` antes de 3G:
 
-1. Definir o contrato de recibo verificado para gasto/entrada unitarios.
-2. Projetar o recibo no ledger shadow depois do commit legado, sem afetar a
-   resposta nem transformar falha shadow em falha do lancamento.
-3. Preservar idempotencia pela chave original do executor.
-4. Emitir paridade sanitizada para `transactions`.
-5. Manter todas as flags canonicas desligadas por padrao e nao ativar producao
-   antes de novo gate altissima.
-6. Manter o Gemini Planner ativo no baseline read-only, sem acesso a escrita ou
-   calculo final.
-7. Manter `INTERPRETATION_RELIABILITY_MODE=shadow`, Family Mode desligado e o
-   pacote orcamento/categorias fora do baseline ate seus gates proprios.
+1. Congelar o baseline atual e montar corpus de 50 a 100 perguntas reais
+   sanitizadas, incluindo os erros recentes de metas, orcamento, periodo e estado
+   conversacional.
+2. Rotular respostas esperadas, escopo, criterio temporal, fonte e necessidade
+   de esclarecimento.
+3. Prototipar `FinancialQuerySpec`, catalogo semantico e ferramentas read-only
+   sobre SQLite, sem alterar respostas ou escritas de producao.
+4. Implementar verificador da pergunta ate a resposta e controles de custo.
+5. Comparar arquitetura atual e candidata offline, com Gemini live limitado.
+6. Liberar apenas se os criterios objetivos do roadmap passo a passo passarem.
+7. Rodar canario read-only para Daniel com rollback por uma flag.
+8. Somente depois executar 3G, 3H e abrir a Fase 4.

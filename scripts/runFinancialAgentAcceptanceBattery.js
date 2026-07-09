@@ -63,6 +63,8 @@ async function evaluateAgenticCase(testCase) {
         tool: result.plan?.tool || '',
         verified: Boolean(result.verified?.ok),
         toolResultSafe: !toolLeaksInternalData,
+        answer: String(result.answer || ''),
+        safePlan: routed.safePlanShape,
         reason: result.plan?.reason || result.verified?.reason || '',
         expectedTool,
         routedDomain: routed.actual.domain,
