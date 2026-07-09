@@ -1,4 +1,5 @@
 const { userMap, sheetCategoryMap, creditCardConfig, getAdminIds } = require('../config/constants');
+const crypto = require('crypto');
 const userStateManager = require('../state/userStateManager');
 const creationHandler = require('./creationHandler');
 const deletionHandler = require('./deletionHandler');
@@ -208,8 +209,9 @@ const MASTER_SCHEMA = {
 };
 
 const processedMessages = new Set();
-const ANALYTICAL_CONTEXT_TTL_MS = 5 * 60 * 1000;
-const analyticalContextBySender = new Map();
+const ANALYTICAL_CONTEXT_TTL_SECONDS = 5 * 60;
+const ANALYTICAL_CONTEXT_STATE_PREFIX = 'analytical_followup_v1:';
+const analyticalContextKeysForTests = new Set();
 const monthNamesLower = ["janeiro", "fevereiro", "marco", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 const monthNamesCapitalized = ["Janeiro", "Fevereiro", "Mar�o", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 const PERF_WARN_MS = Number.parseInt(process.env.MESSAGE_SLOW_LOG_MS || '4000', 10);
@@ -3403,41 +3405,54 @@ function isInvoiceByCardQuestion(text) {
 
 function sanitizeAnalyticalParametersForContext(parameters = {}) {
     const safe = {};
-    ['mes', 'ano', 'categoria', 'cartao', 'origem', 'scope', 'member', 'meta', 'status', 'source'].forEach((key) => {
+    ['mes', 'ano', 'categoria', 'cartao', 'origem', 'scope', 'member', 'status', 'source'].forEach((key) => {
         if (parameters[key] !== undefined) safe[key] = parameters[key];
     });
     if (Array.isArray(parameters.categorias)) safe.categorias = parameters.categorias.slice(0, 5);
     return safe;
 }
 
+function analyticalContextStateKey(senderId) {
+    const sender = String(senderId || '').trim();
+    if (!sender) return '';
+    const digest = crypto.createHash('sha256').update(sender).digest('hex').slice(0, 24);
+    return `${ANALYTICAL_CONTEXT_STATE_PREFIX}${digest}`;
+}
+
+function sanitizeAnalyticalMetric(metric) {
+    return String(metric || '').replace(/[^a-zA-Z0-9_:-]/g, '').slice(0, 80);
+}
+
 function storeAnalyticalContext(senderId, intentClassification = {}, meta = {}) {
-    const key = String(senderId || '').trim();
+    const key = analyticalContextStateKey(senderId);
     const intent = String(intentClassification.intent || '').trim();
     if (!key || !intent || intent === 'pergunta_geral') return;
 
-    analyticalContextBySender.set(key, {
+    const requestedTtlSeconds = Number(meta.ttlSeconds);
+    const ttlSeconds = Number.isFinite(requestedTtlSeconds) && requestedTtlSeconds > 0
+        ? Math.min(requestedTtlSeconds, ANALYTICAL_CONTEXT_TTL_SECONDS)
+        : ANALYTICAL_CONTEXT_TTL_SECONDS;
+    userStateManager.setState(key, {
+        checkpointType: 'analytical_followup_v1',
         intent,
         parameters: sanitizeAnalyticalParametersForContext(intentClassification.parameters || {}),
-        metric: meta.metric || '',
-        storedAt: Date.now(),
-        expiresAt: Date.now() + ANALYTICAL_CONTEXT_TTL_MS
-    });
+        metric: sanitizeAnalyticalMetric(meta.metric)
+    }, ttlSeconds);
+    analyticalContextKeysForTests.add(key);
 }
 
 function getAnalyticalContext(senderId) {
-    const key = String(senderId || '').trim();
+    const key = analyticalContextStateKey(senderId);
     if (!key) return null;
-    const context = analyticalContextBySender.get(key);
-    if (!context) return null;
-    if (Date.now() > Number(context.expiresAt || 0)) {
-        analyticalContextBySender.delete(key);
-        return null;
-    }
-    return context;
+    const context = userStateManager.getState(key);
+    return context?.checkpointType === 'analytical_followup_v1' ? context : null;
 }
 
 function clearAnalyticalContextForTests() {
-    analyticalContextBySender.clear();
+    for (const key of analyticalContextKeysForTests) {
+        userStateManager.deleteState(key);
+    }
+    analyticalContextKeysForTests.clear();
 }
 
 function hasExplicitMonthSignal(text) {

@@ -3582,6 +3582,51 @@ test('messageHandler analytical follow-ups inherit safe context without raw spre
     clearAnalyticalContextForTests();
 });
 
+test('messageHandler analytical checkpoints persist safely without replacing a write flow', async () => {
+    const {
+        storeAnalyticalContext,
+        getAnalyticalContext,
+        clearAnalyticalContextForTests
+    } = messageHandler.__test__;
+    const { serializeState } = userStateManager.__test__;
+
+    clearAnalyticalContextForTests();
+    userStateManager.setState('write-flow-sender', { action: 'awaiting_payment_method' });
+    storeAnalyticalContext('analytical-sender', {
+        intent: 'total_gastos_mes',
+        parameters: {
+            mes: 4,
+            ano: 2026,
+            categoria: 'alimentacao',
+            description: 'texto financeiro privado',
+            user_id: 'never-persisted'
+        }
+    }, { metric: 'expense_total' });
+
+    assert.deepStrictEqual(userStateManager.getState('write-flow-sender'), { action: 'awaiting_payment_method' });
+    assert.deepStrictEqual(getAnalyticalContext('other-sender'), null);
+    assert.deepStrictEqual(getAnalyticalContext('analytical-sender'), {
+        checkpointType: 'analytical_followup_v1',
+        intent: 'total_gastos_mes',
+        parameters: { mes: 4, ano: 2026, categoria: 'alimentacao' },
+        metric: 'expense_total'
+    });
+
+    const serialized = serializeState();
+    assert.match(serialized, /analytical_followup_v1/);
+    assert.doesNotMatch(serialized, /analytical-sender|texto financeiro privado|never-persisted/);
+
+    storeAnalyticalContext('expired-analytical-sender', {
+        intent: 'total_gastos_mes',
+        parameters: { mes: 4, ano: 2026 }
+    }, { ttlSeconds: 0.01 });
+    await new Promise(resolve => setTimeout(resolve, 25));
+    assert.strictEqual(getAnalyticalContext('expired-analytical-sender'), null);
+
+    clearAnalyticalContextForTests();
+    userStateManager.deleteState('write-flow-sender');
+});
+
 test('messageHandler local command routing avoids AI for common commands and low-signal text', (t) => {
     const { detectFastPerguntaIntent, detectLocalCommandIntent, shouldSkipAiForUnknownMessage } = messageHandler.__test__;
 
