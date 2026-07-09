@@ -785,6 +785,17 @@ function composeMetricExplanation(result = {}) {
     return lines.join('\n');
 }
 
+function composeToolFailureAnswer(result = {}) {
+    const reason = String(result.reason || '').toLowerCase();
+    if (/(unavailable|not_ready|missing|disabled)/.test(reason)) {
+        return 'A fonte necessaria para esta analise esta indisponivel agora. Nao vou tratar isso como ausencia de dados ou valor zero. Tente novamente em instantes.';
+    }
+    if (/partial/.test(reason)) {
+        return 'Os dados disponiveis estao parciais para esta analise. Nao vou apresentar um total como se estivesse completo.';
+    }
+    return 'Nao consegui executar essa analise com seguranca. Tente reformular a pergunta.';
+}
+
 function composeDeterministicAnswer(state) {
     const plan = state.plan || {};
     if (plan.action === 'block') {
@@ -799,7 +810,7 @@ function composeDeterministicAnswer(state) {
     const result = state.toolResult || {};
     if (!result.ok) {
         return {
-            answer: 'Não consegui executar essa análise com segurança. Tente reformular a pergunta.',
+            answer: composeToolFailureAnswer(result),
             action: 'error'
         };
     }
@@ -891,6 +902,9 @@ function verifyAnswerNode(state) {
         answer: state.answer
     });
     if (!verified.ok) {
+        if (String(verified.reason || '').startsWith('tool_unavailable:')) {
+            return { verified, answer: state.answer, action: 'error' };
+        }
         return {
             verified,
             answer: 'Eu consegui consultar os dados, mas bloqueei a resposta porque a verificação encontrou inconsistência.',
@@ -971,3 +985,7 @@ export async function invokeFinancialAgentRuntime(input = {}) {
         migrationGap: buildMigrationGap({ plan: result.plan || null, toolResult: result.toolResult || null })
     };
 }
+
+export const __test__ = {
+    composeToolFailureAnswer
+};

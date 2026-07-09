@@ -2968,3 +2968,12 @@ test('result verifier rejects incoherent agent trajectories and generic label-fr
         'tool_unavailable:read_model_unavailable'
     );
 });
+
+test('LangGraph makes unavailable data explicit instead of claiming empty or zero', async () => {
+    const runtime = await import('../src/agent/langGraphRuntime.mjs');
+    const answer = runtime.__test__.composeToolFailureAnswer({ reason: 'read_model_unavailable' });
+
+    assert.match(answer, /fonte necessaria.*indisponivel/i);
+    assert.match(answer, /nao vou tratar.*ausencia.*dados.*valor zero/i);
+    assert.doesNotMatch(answer, /nao encontrei lancamentos/i);
+});
