@@ -21,6 +21,18 @@ function expectedAgentTool(plan = {}) {
     return 'query_financial_plan';
 }
 
+function publicTelemetry(telemetry = {}) {
+    const numberOr = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
+    const estimatedCostUsd = Number(telemetry.estimatedCostUsd);
+    return {
+        modelCalls: numberOr(telemetry.modelCalls),
+        inputTokens: numberOr(telemetry.inputTokens),
+        outputTokens: numberOr(telemetry.outputTokens),
+        estimatedCostUsd: Number.isFinite(estimatedCostUsd) ? estimatedCostUsd : null,
+        latencyMs: numberOr(telemetry.latencyMs)
+    };
+}
+
 async function evaluateAgenticCase(testCase) {
     if (!ensureSqliteReady()) throw new Error('SQLite read-model indisponivel para caso agentic');
     const routed = evaluateAcceptanceCase(testCase);
@@ -68,12 +80,27 @@ async function evaluateAgenticCase(testCase) {
         reason: result.plan?.reason || result.verified?.reason || '',
         expectedTool,
         routedDomain: routed.actual.domain,
-        routedOperation: routed.actual.operation
+        routedOperation: routed.actual.operation,
+        telemetry: publicTelemetry(result.telemetry)
     };
 }
 
 function summarize(results = []) {
     const gaps = results.filter(item => !item.accepted);
+    const hasUnpricedModelCall = results.some(item => {
+        const telemetry = publicTelemetry(item.telemetry);
+        return telemetry.modelCalls > 0 && telemetry.estimatedCostUsd === null;
+    });
+    const telemetry = results.reduce((acc, item) => {
+        const itemTelemetry = publicTelemetry(item.telemetry);
+        acc.modelCalls += itemTelemetry.modelCalls;
+        acc.inputTokens += itemTelemetry.inputTokens;
+        acc.outputTokens += itemTelemetry.outputTokens;
+        if (itemTelemetry.estimatedCostUsd !== null) acc.estimatedCostUsd += itemTelemetry.estimatedCostUsd;
+        return acc;
+    }, { modelCalls: 0, inputTokens: 0, outputTokens: 0, estimatedCostUsd: 0 });
+    if (hasUnpricedModelCall) telemetry.estimatedCostUsd = null;
+
     return {
         total: results.length,
         accepted: results.length - gaps.length,
@@ -81,6 +108,7 @@ function summarize(results = []) {
         securityBlocked: results.filter(item => item.stage === 'security_gate').length,
         verifiedAnswers: results.filter(item => item.action === 'answer' && item.verified).length,
         clarifications: results.filter(item => item.action === 'clarify').length,
+        telemetry,
         byTool: results.reduce((acc, item) => {
             const key = item.tool || item.stage || 'none';
             acc[key] = (acc[key] || 0) + 1;
@@ -101,13 +129,14 @@ async function runFinancialAgentAcceptanceBattery(options = {}) {
     for (const testCase of cases) {
         results.push(await evaluateAgenticCase(testCase));
     }
+    const summary = summarize(results);
     const report = {
         run_id: runId,
         started_at: startedAt.toISOString(),
         finished_at: new Date().toISOString(),
-        gemini_calls: 0,
+        gemini_calls: summary.telemetry.modelCalls,
         synthetic_user_only: true,
-        summary: summarize(results),
+        summary,
         results
     };
     fs.mkdirSync(reportDir, { recursive: true });

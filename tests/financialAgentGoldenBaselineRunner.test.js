@@ -47,7 +47,13 @@ test('phase 3F.1A summary keeps deferred fault injection separate from baseline 
             baselineAccepted: true,
             route: { matches: { all: true } },
             agent: { execution: 'executed', accepted: true },
-            telemetry: { latency_ms: 10 }
+            telemetry: {
+                gemini_calls: 1,
+                input_tokens: 12,
+                output_tokens: 4,
+                estimated_cost: 0.0001,
+                latency_ms: 10
+            }
         },
         {
             id: '3F1A-060',
@@ -61,6 +67,8 @@ test('phase 3F.1A summary keeps deferred fault injection separate from baseline 
     assert.strictEqual(summary.executed, 1);
     assert.strictEqual(summary.deferredFaultInjection, 1);
     assert.deepStrictEqual(summary.baselineGaps, []);
-    assert.strictEqual(summary.geminiCalls, 0);
-    assert.strictEqual(summary.estimatedCost, 0);
+    assert.strictEqual(summary.geminiCalls, 1);
+    assert.strictEqual(summary.inputTokens, 12);
+    assert.strictEqual(summary.outputTokens, 4);
+    assert.strictEqual(summary.estimatedCost, 0.0001);
 });

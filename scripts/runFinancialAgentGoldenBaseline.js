@@ -156,9 +156,25 @@ function percentile(values, ratio) {
     return ordered[Math.min(ordered.length - 1, Math.ceil(ordered.length * ratio) - 1)];
 }
 
+function reportTelemetry(agent = {}, fallbackLatencyMs = 0) {
+    const telemetry = agent.telemetry || {};
+    const numeric = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
+    const estimatedCost = Number(telemetry.estimatedCostUsd);
+    return {
+        gemini_calls: numeric(telemetry.modelCalls),
+        input_tokens: numeric(telemetry.inputTokens),
+        output_tokens: numeric(telemetry.outputTokens),
+        estimated_cost: Number.isFinite(estimatedCost) ? estimatedCost : null,
+        latency_ms: numeric(telemetry.latencyMs, fallbackLatencyMs)
+    };
+}
+
 function summarize(results, corpusStats) {
     const executed = results.filter(item => item.agent.execution === 'executed');
     const latencies = executed.map(item => item.telemetry.latency_ms);
+    const hasUnpricedModelCall = executed.some(item =>
+        item.telemetry.gemini_calls > 0 && item.telemetry.estimated_cost === null
+    );
     return {
         ...corpusStats,
         executed: executed.length,
@@ -166,10 +182,13 @@ function summarize(results, corpusStats) {
         routeMatches: results.filter(item => item.route.matches.all).length,
         agentAccepted: executed.filter(item => item.agent.accepted).length,
         baselineGaps: results.filter(item => !item.baselineAccepted).map(item => item.id),
-        geminiCalls: 0,
-        inputTokens: 0,
-        outputTokens: 0,
-        estimatedCost: 0,
+        geminiCalls: executed.reduce((total, item) => total + item.telemetry.gemini_calls, 0),
+        inputTokens: executed.reduce((total, item) => total + item.telemetry.input_tokens, 0),
+        outputTokens: executed.reduce((total, item) => total + item.telemetry.output_tokens, 0),
+        estimatedCost: hasUnpricedModelCall ? null : executed.reduce(
+            (total, item) => total + (item.telemetry.estimated_cost || 0),
+            0
+        ),
         latencyP50Ms: percentile(latencies, 0.5),
         latencyP95Ms: percentile(latencies, 0.95)
     };
@@ -252,7 +271,7 @@ async function runGoldenBaseline(options = {}) {
                     safePlan: agent.safePlan,
                     reason: agent.reason
                 },
-                telemetry: { gemini_calls: 0, input_tokens: 0, output_tokens: 0, estimated_cost: 0, latency_ms: latencyMs },
+                telemetry: reportTelemetry(agent, latencyMs),
                 baselineAccepted: routed.matches.all && agent.accepted
             });
         }
@@ -265,6 +284,7 @@ async function runGoldenBaseline(options = {}) {
                 critical: cases.filter(item => item.critical).length
             }
             : corpusStats;
+        const summary = summarize(results, effectiveStats);
         const report = {
             run_id: options.runId || 'PHASE3F1A_BASELINE_20260708',
             schema_version: corpus.schema_version,
@@ -274,8 +294,8 @@ async function runGoldenBaseline(options = {}) {
             writes_real_data: false,
             reads_real_financial_rows: false,
             synthetic_fixture_only: true,
-            calls_gemini: false,
-            summary: summarize(results, effectiveStats),
+            calls_gemini: summary.geminiCalls > 0,
+            summary,
             results
         };
         if (SENSITIVE_PATTERN.test(JSON.stringify(report))) throw new Error('sensitive_data_in_report');
@@ -305,7 +325,7 @@ async function main() {
     const { report, reportDir } = await runGoldenBaseline();
     console.log(`[phase-3f1a] report=${reportDir}`);
     console.log(`[phase-3f1a] total=${report.summary.total} executed=${report.summary.executed} gaps=${report.summary.baselineGaps.length}`);
-    console.log(`[phase-3f1a] gemini_calls=0 real_writes=false`);
+    console.log(`[phase-3f1a] gemini_calls=${report.summary.geminiCalls} real_writes=false`);
 }
 
 if (require.main === module) {
@@ -320,6 +340,7 @@ module.exports = {
     readCorpus,
     validateCorpus,
     materializeCases,
+    reportTelemetry,
     summarize,
     runGoldenBaseline
 };
