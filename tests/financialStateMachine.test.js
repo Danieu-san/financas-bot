@@ -300,7 +300,7 @@ function installMocks() {
 
 installMocks();
 
-const { handleMessage } = require('../src/handlers/messageHandler');
+const { handleMessage, __test__: messageHandlerTest } = require('../src/handlers/messageHandler');
 const userStateManager = require('../src/state/userStateManager');
 const userService = require('../src/services/userService');
 const { getReadModelStats } = require('../src/services/readModelService');
@@ -2251,6 +2251,38 @@ stateMachineTest('financial states: cancelar always exits a pending payment flow
     assert.match(reply, /cancelad/i);
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
     assert.strictEqual(sheets.Saídas.length, 1);
+});
+
+stateMachineTest('financial states: cancelar clears only the pending write when an analytical checkpoint exists', async () => {
+    const {
+        storeAnalyticalContext,
+        getAnalyticalContext,
+        clearAnalyticalContextForTests
+    } = messageHandlerTest;
+
+    resetState();
+    clearAnalyticalContextForTests();
+    try {
+        storeAnalyticalContext(SENDER, {
+            intent: 'total_gastos_mes',
+            parameters: { mes: 4, ano: 2026, categoria: 'alimentacao' }
+        }, { metric: 'expense_total' });
+
+        assert.match(await send('gastei 10 reais ontem no cafe'), /forma de pagamento/i);
+        const reply = await send('cancelar');
+
+        assert.match(reply, /cancelad/i);
+        assert.strictEqual(userStateManager.getState(SENDER), undefined);
+        assert.strictEqual(sheets[Object.keys(sheets).find(name => name.startsWith('Sa'))].length, 1);
+        assert.deepStrictEqual(getAnalyticalContext(SENDER), {
+            checkpointType: 'analytical_followup_v1',
+            intent: 'total_gastos_mes',
+            parameters: { mes: 4, ano: 2026, categoria: 'alimentacao' },
+            metric: 'expense_total'
+        });
+    } finally {
+        clearAnalyticalContextForTests();
+    }
 });
 
 stateMachineTest('financial states: ajuda exits a pending payment flow and opens the help menu', async () => {
