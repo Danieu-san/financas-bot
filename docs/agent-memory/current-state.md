@@ -1,7 +1,15 @@
 # Estado atual do FinancasBot
 
-Atualizado em: 2026-07-08
+Atualizado em: 2026-07-09
 
+## Phase 3F.1C financial agent read-only catalog production GO - 2026-07-09
+
+- Commit `1c0be77` was pushed to `origin/main` and deployed to EC2 by fast-forward from `3a8eec4`.
+- Scope: read-only Financial Agent tool catalog, prompt selection limited to relevant tools, public-column enforcement in `safeReadonlySql.js`, and application-injected scope preserved. No production flags, Google Sheets structure, EC2 secrets or real financial data were intentionally changed by the slice.
+- Remote verification on EC2 after deploy: `npm install` was up to date and reported `0 vulnerabilities`; focused Financial Agent tests passed `69/69` with `node --test tests/financialAgent.test.js tests/financialAgentNovelPlannerRunner.test.js`.
+- Production health after PM2 restart: `financas-bot` online at commit `1c0be77`, dashboard health local and public returned `{"ok":true,"sqlite":true}`, Google APIs authorized, spreadsheet sync succeeded, read-model startup OK, user-id integrity had no pending issues, dashboard server was active and WhatsApp reached `Bot pronto para receber mensagens!` without QR renewal.
+- Manual WhatsApp E2E after deploy on 2026-07-09 passed the three read-only prompts: recent Nubank - Thais card expenses returned the expected four latest rows; weekday spending returned quinta-feira with `R$ 422,99`; dashboard `Disponivel` explanation returned June 2026 value `-R$ 1.083,86` with saldo `-R$ 1.083,86`, reserva liquida `R$ 0,00` and no internal ID/token leak.
+- Decision: production `GO` for 3F.1C as a read-only planner/catalog/SQL-safety hardening increment. Next roadmap step remains to be chosen explicitly before implementation.
 ## Phase 3 slice 3F refunds and chargebacks production GO - 2026-07-08
 
 - Commit `65d818b` was pushed to `origin/main` and deployed to EC2 by fast-forward from `0a8992c`.
