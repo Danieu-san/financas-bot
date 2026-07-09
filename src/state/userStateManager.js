@@ -253,6 +253,11 @@ module.exports = {
         cleanupExpired,
         flushStateToDisk,
         serializeState,
+        replaceStateFromJsonForTests: (raw) => {
+            stateMap.clear();
+            dirty = false;
+            loadStateFromJsonString(raw);
+        },
         getStateFilePaths: () => ({ stateFile: STATE_FILE, tempFile: TEMP_FILE }),
         isDirty: () => dirty
     }
