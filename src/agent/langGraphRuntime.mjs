@@ -16,6 +16,7 @@ const {
     composeContextualFinancialAnswer,
     selectVerifiedContextualAnswer
 } = require('./contextualFinancialAnalyst');
+const metrics = require('../utils/metrics');
 const stringSimilarity = require('string-similarity');
 const { isSmallTypo } = require('../utils/textMatcher');
 
@@ -34,6 +35,41 @@ const AgentState = Annotation.Root({
     verified: Annotation(),
     action: Annotation()
 });
+
+function counterValue(snapshot = {}, key = '') {
+    const value = Number(snapshot?.counters?.[key] || 0);
+    return Number.isFinite(value) && value >= 0 ? value : 0;
+}
+
+function boundedNumber(value, fallback, { min = 0, max = Number.MAX_SAFE_INTEGER } = {}) {
+    const number = Number(value);
+    if (!Number.isFinite(number) || number < min || number > max) return fallback;
+    return number;
+}
+
+function buildAgentCostTelemetry({ before = {}, after = {}, latencyMs = 0, env = process.env } = {}) {
+    const modelCalls = Math.max(0, counterValue(after, 'gemini.call.total') - counterValue(before, 'gemini.call.total'));
+    const inputChars = Math.max(0, counterValue(after, 'gemini.prompt_chars.total') - counterValue(before, 'gemini.prompt_chars.total'));
+    const outputChars = Math.max(0, counterValue(after, 'gemini.response_chars.total') - counterValue(before, 'gemini.response_chars.total'));
+    const charsPerToken = boundedNumber(env.FINANCIAL_AGENT_CHARS_PER_TOKEN, 4, { min: 1, max: 16 });
+    const inputTokens = Math.ceil(inputChars / charsPerToken);
+    const outputTokens = Math.ceil(outputChars / charsPerToken);
+    const inputRate = Number(env.FINANCIAL_AGENT_INPUT_USD_PER_MILLION_TOKENS);
+    const outputRate = Number(env.FINANCIAL_AGENT_OUTPUT_USD_PER_MILLION_TOKENS);
+    const hasCostRates = Number.isFinite(inputRate) && inputRate >= 0 && Number.isFinite(outputRate) && outputRate >= 0;
+    const estimatedCostUsd = hasCostRates
+        ? Number((((inputTokens * inputRate) + (outputTokens * outputRate)) / 1000000).toFixed(8))
+        : null;
+    return {
+        modelCalls,
+        inputChars,
+        outputChars,
+        inputTokens,
+        outputTokens,
+        estimatedCostUsd,
+        latencyMs: Math.max(0, Math.round(Number(latencyMs) || 0))
+    };
+}
 
 function moneyBR(value) {
     return Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -966,6 +1002,8 @@ const graph = new StateGraph(AgentState)
     .compile();
 
 export async function invokeFinancialAgentRuntime(input = {}) {
+    const metricsBefore = metrics.getSnapshot();
+    const startedAt = Date.now();
     const result = await graph.invoke({
         message: input.message || '',
         userIds: input.userIds || [],
@@ -976,16 +1014,28 @@ export async function invokeFinancialAgentRuntime(input = {}) {
         canonicalLedgerDbPath: input.canonicalLedgerDbPath || undefined,
         mode: input.mode || 'shadow'
     });
+    const telemetry = buildAgentCostTelemetry({
+        before: metricsBefore,
+        after: metrics.getSnapshot(),
+        latencyMs: Date.now() - startedAt
+    });
+    metrics.increment('financial_agent.run.total');
+    metrics.increment('financial_agent.run.model_calls', telemetry.modelCalls);
+    metrics.increment('financial_agent.run.input_tokens_approx', telemetry.inputTokens);
+    metrics.increment('financial_agent.run.output_tokens_approx', telemetry.outputTokens);
+    metrics.observeDuration('financial_agent.run.ms', telemetry.latencyMs);
     return {
         action: result.action || 'error',
         plan: result.plan || null,
         toolResult: result.toolResult || null,
         answer: result.answer || '',
         verified: result.verified || { ok: false, reason: 'missing_verification' },
+        telemetry,
         migrationGap: buildMigrationGap({ plan: result.plan || null, toolResult: result.toolResult || null })
     };
 }
 
 export const __test__ = {
-    composeToolFailureAnswer
+    composeToolFailureAnswer,
+    buildAgentCostTelemetry
 };

@@ -2977,3 +2977,27 @@ test('LangGraph makes unavailable data explicit instead of claiming empty or zer
     assert.match(answer, /nao vou tratar.*ausencia.*dados.*valor zero/i);
     assert.doesNotMatch(answer, /nao encontrei lancamentos/i);
 });
+
+test('LangGraph cost telemetry reports bounded calls, approximate tokens and configured estimate', async () => {
+    const runtime = await import('../src/agent/langGraphRuntime.mjs');
+    const telemetry = runtime.__test__.buildAgentCostTelemetry({
+        before: { counters: { 'gemini.call.total': 4, 'gemini.prompt_chars.total': 100, 'gemini.response_chars.total': 20 } },
+        after: { counters: { 'gemini.call.total': 5, 'gemini.prompt_chars.total': 140, 'gemini.response_chars.total': 36 } },
+        latencyMs: 123.8,
+        env: {
+            FINANCIAL_AGENT_CHARS_PER_TOKEN: '4',
+            FINANCIAL_AGENT_INPUT_USD_PER_MILLION_TOKENS: '1.5',
+            FINANCIAL_AGENT_OUTPUT_USD_PER_MILLION_TOKENS: '6'
+        }
+    });
+
+    assert.deepStrictEqual(telemetry, {
+        modelCalls: 1,
+        inputChars: 40,
+        outputChars: 16,
+        inputTokens: 10,
+        outputTokens: 4,
+        estimatedCostUsd: 0.000039,
+        latencyMs: 124
+    });
+});
