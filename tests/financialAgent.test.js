@@ -15,7 +15,7 @@ const {
     getDashboardSnapshotTool,
     explainMetricTool
 } = require('../src/agent/financialAgentTools');
-const { verifyAgentAnswer } = require('../src/agent/resultVerifier');
+const { verifyAgentAnswer, verifyAgentResult } = require('../src/agent/resultVerifier');
 const { invokeFinancialAgent } = require('../src/agent/financialAgent');
 const {
     buildContextPacket,
@@ -2892,4 +2892,79 @@ test('financial agent forecast relative windows exclude cancelled and out-of-win
     assert.strictEqual(receivable.ok, true, JSON.stringify(receivable));
     assert.strictEqual(receivable.result.value, 43);
     assert.strictEqual(receivable.result.details.totals.currentCashImpact, 0);
+});
+
+test('result verifier rejects incoherent agent trajectories and generic label-free answers', () => {
+    const plannedQuery = {
+        action: 'tool',
+        tool: 'query_financial_plan',
+        args: {
+            plan: {
+                domain: 'expenses',
+                operation: 'list',
+                timeBasis: 'transaction_date'
+            }
+        }
+    };
+    const toolResult = {
+        ok: true,
+        tool: 'query_financial_plan',
+        plan: {
+            domain: 'expenses',
+            operation: 'list',
+            timeBasis: 'transaction_date'
+        },
+        result: {
+            value: [{ description: 'Mercado', amount: 42 }]
+        }
+    };
+
+    assert.strictEqual(
+        verifyAgentResult({
+            message: 'liste meus gastos',
+            plan: plannedQuery,
+            toolResult: { ...toolResult, tool: 'get_dashboard_snapshot' },
+            answer: 'Mercado.'
+        }).reason,
+        'tool_mismatch'
+    );
+    assert.strictEqual(
+        verifyAgentResult({
+            message: 'liste meus gastos',
+            plan: plannedQuery,
+            toolResult: {
+                ...toolResult,
+                plan: { ...toolResult.plan, domain: 'income' }
+            },
+            answer: 'Mercado.'
+        }).reason,
+        'query_plan_domain_mismatch'
+    );
+    assert.strictEqual(
+        verifyAgentResult({
+            message: 'liste meus gastos',
+            plan: plannedQuery,
+            toolResult,
+            answer: 'Aqui esta o resultado solicitado.'
+        }).reason,
+        'missing_result_reference'
+    );
+    assert.strictEqual(
+        verifyAgentResult({
+            message: 'liste meus gastos',
+            plan: plannedQuery,
+            toolResult,
+            answer: 'Mercado.'
+        }).ok,
+        true
+    );
+    assert.strictEqual(
+        verifyAgentResult({
+            message: 'liste meus gastos',
+            plan: plannedQuery,
+            toolResult: { ok: false, tool: 'query_financial_plan', reason: 'read_model_unavailable' },
+            answer: 'Nao consegui consultar agora.'
+        }).reason,
+        'tool_unavailable:read_model_unavailable'
+    );
 });

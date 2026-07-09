@@ -10,7 +10,7 @@ const {
     getDashboardSnapshotTool,
     explainMetricTool
 } = require('./financialAgentTools');
-const { verifyAgentAnswer } = require('./resultVerifier');
+const { verifyAgentResult } = require('./resultVerifier');
 const { planWithGemini } = require('./financialAgentPlanner');
 const {
     composeContextualFinancialAnswer,
@@ -884,7 +884,12 @@ async function composeAnswer(state) {
 }
 
 function verifyAnswerNode(state) {
-    const verified = verifyAgentAnswer(state.answer, { toolResult: state.toolResult });
+    const verified = verifyAgentResult({
+        message: state.message,
+        plan: state.plan,
+        toolResult: state.toolResult,
+        answer: state.answer
+    });
     if (!verified.ok) {
         return {
             verified,

@@ -295,6 +295,76 @@ function extractCurrencyAmounts(answer) {
         .filter(Number.isFinite);
 }
 
+function comparable(value) {
+    return normalizeText(String(value || '').trim());
+}
+
+function validateFinancialQueryTrajectory(plan = {}, toolResult = {}) {
+    const expected = plan?.args?.plan || {};
+    const actual = toolResult?.plan || {};
+    if (!expected || Object.keys(expected).length === 0) return { ok: false, reason: 'missing_query_plan' };
+    if (!actual || Object.keys(actual).length === 0) return { ok: false, reason: 'missing_executed_query_plan' };
+    for (const field of ['domain', 'operation', 'timeBasis']) {
+        if (expected[field] && comparable(expected[field]) !== comparable(actual[field])) {
+            return { ok: false, reason: `query_plan_${field}_mismatch` };
+        }
+    }
+    return { ok: true };
+}
+
+function validateAgentTrajectory({ message, plan, toolResult } = {}) {
+    if (message !== undefined && !String(message || '').trim()) {
+        return { ok: false, reason: 'empty_question' };
+    }
+    const action = String(plan?.action || '').trim();
+    if (!action) return { ok: false, reason: 'missing_plan_action' };
+    if (action === 'tool') {
+        const tool = String(plan?.tool || '').trim();
+        if (!tool) return { ok: false, reason: 'missing_planned_tool' };
+        if (!toolResult) return { ok: false, reason: 'missing_tool_result' };
+        if (String(toolResult.tool || '').trim() !== tool) return { ok: false, reason: 'tool_mismatch' };
+        if (toolResult.ok !== true) return { ok: false, reason: `tool_unavailable:${toolResult.reason || 'unknown'}` };
+        if (tool === 'query_financial_plan') {
+            return validateFinancialQueryTrajectory(plan, toolResult);
+        }
+        return { ok: true };
+    }
+    if (action === 'clarify' || action === 'block') {
+        return toolResult ? { ok: false, reason: 'unexpected_tool_result' } : { ok: true };
+    }
+    return { ok: false, reason: 'invalid_plan_action' };
+}
+
+function publicResultLabels(toolResult = {}) {
+    const labels = [];
+    const collect = (item = {}) => {
+        const value = labelFromResultItem(item);
+        if (value) labels.push(String(value));
+    };
+    (toolResult.rows || []).slice(0, 10).forEach(collect);
+    const value = toolResult?.result?.value;
+    if (Array.isArray(value)) value.slice(0, 10).forEach(collect);
+    return labels;
+}
+
+function validateAnswerCoverage(answer, toolResult = {}) {
+    const text = String(answer || '');
+    if (
+        extractCurrencyAmounts(text).length > 0 ||
+        extractPercentages(text).length > 0 ||
+        extractCountClaims(text).length > 0
+    ) {
+        return { ok: true };
+    }
+    const labels = publicResultLabels(toolResult);
+    if (labels.length === 0) return { ok: true };
+    const normalizedAnswer = normalizeText(text);
+    if (!labels.some(label => normalizedAnswer.includes(normalizeText(label)))) {
+        return { ok: false, reason: 'missing_result_reference' };
+    }
+    return { ok: true };
+}
+
 function verifyAgentAnswer(answer, { toolResult } = {}) {
     const text = String(answer || '');
     const safeToolResult = toolResult || {};
@@ -305,7 +375,8 @@ function verifyAgentAnswer(answer, { toolResult } = {}) {
         validatePercentageContract(text, safeToolResult),
         validateCountContract(text, safeToolResult),
         validateLatestContract(text, safeToolResult),
-        validateOrderedLabels(text, safeToolResult)
+        validateOrderedLabels(text, safeToolResult),
+        validateAnswerCoverage(text, safeToolResult)
     ]) {
         if (!validation.ok) return validation;
     }
@@ -322,8 +393,15 @@ function verifyAgentAnswer(answer, { toolResult } = {}) {
     return { ok: true };
 }
 
+function verifyAgentResult({ message, plan, toolResult, answer } = {}) {
+    const trajectory = validateAgentTrajectory({ message, plan, toolResult });
+    if (!trajectory.ok) return trajectory;
+    return verifyAgentAnswer(answer, { toolResult });
+}
+
 module.exports = {
     verifyAgentAnswer,
+    verifyAgentResult,
     __test__: {
         extractCurrencyAmounts,
         collectAllowedAmounts,
@@ -332,6 +410,8 @@ module.exports = {
         extractPercentages,
         extractCountClaims,
         extractAmountRelations,
-        expectedOrderedLabels
+        expectedOrderedLabels,
+        validateAgentTrajectory,
+        validateAnswerCoverage
     }
 };
