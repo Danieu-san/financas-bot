@@ -112,11 +112,20 @@ test('novel planner live path stops at the call cap and records each planned cal
     assert.strictEqual(result.accepted, true);
     assert.strictEqual(result.geminiCalls, 1);
 
+    const deterministic = await liveRunCase(NOVEL_CASES[0], {
+        remainingCalls: 1,
+        invokeAgent: async () => ({
+            ...await fakeInvokeAgent(),
+            telemetry: { modelCalls: 0 }
+        })
+    });
+    assert.strictEqual(deterministic.geminiCalls, 0);
+
     const skipped = await liveRunCase(NOVEL_CASES[0], {
         remainingCalls: 0,
         invokeAgent: fakeInvokeAgent
     });
     assert.strictEqual(skipped.reason, 'call_cap_reached');
     assert.strictEqual(skipped.geminiCalls, 0);
-    assert.strictEqual(invocations, 1);
+    assert.strictEqual(invocations, 2);
 });

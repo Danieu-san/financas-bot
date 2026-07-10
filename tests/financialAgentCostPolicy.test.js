@@ -72,20 +72,23 @@ test('financial agent cost guard resets its aggregate budget in the Sao Paulo mo
     assert.strictEqual(__test__.readUsage(statePath).month, '2026-08');
 });
 
-test('financial agent skips optional Gemini steps when the cost guard denies a reservation', async () => {
-    plannerTest.setStructuredResponseOverrideForTest(async () => {
-        throw new Error('planner should not be called');
-    });
-    contextualTest.setAskLLMOverride(async () => {
-        throw new Error('contextual analyst should not be called');
-    });
-    const deny = () => ({ allowed: false, reason: 'per_question_limit' });
+test('financial agent test overrides do not consume a real-model reservation', async () => {
+    let reservations = 0;
+    plannerTest.setStructuredResponseOverrideForTest(async () => ({
+        action: 'clarify',
+        question: 'Qual periodo voce quer analisar?'
+    }));
+    contextualTest.setAskLLMOverride(async () => 'Resposta sintética verificada.');
+    const reserveModelCall = () => {
+        reservations += 1;
+        return { allowed: false, reason: 'per_question_limit' };
+    };
 
     try {
         const plan = await planWithGemini({
             message: 'qual foi meu ultimo gasto?',
             env: { FINANCIAL_AGENT_LLM_PLANNER_ENABLED: 'true' },
-            reserveModelCall: deny
+            reserveModelCall
         });
         const contextual = await composeContextualFinancialAnswer({
             message: 'qual foi meu ultimo gasto?',
@@ -93,11 +96,12 @@ test('financial agent skips optional Gemini steps when the cost guard denies a r
             toolResult: { ok: true, tool: 'list_recent_transactions', transactions: [] },
             deterministicAnswer: 'Nao houve gasto no periodo.',
             env: { FINANCIAL_CONTEXTUAL_ANALYST_MODE: 'answer' },
-            reserveModelCall: deny
+            reserveModelCall
         });
 
-        assert.strictEqual(plan, null);
-        assert.deepStrictEqual(contextual, { ok: false, reason: 'cost_limit_per_question_limit' });
+        assert.strictEqual(plan.action, 'clarify');
+        assert.strictEqual(contextual.ok, true);
+        assert.strictEqual(reservations, 0);
     } finally {
         plannerTest.setStructuredResponseOverrideForTest(null);
         contextualTest.setAskLLMOverride(null);

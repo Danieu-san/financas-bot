@@ -110,7 +110,8 @@ async function composeContextualFinancialAnswer({
     if (!toolResult?.ok || plan?.action !== 'tool') {
         return { ok: false, reason: 'ineligible_result' };
     }
-    const reservation = typeof reserveModelCall === 'function'
+    const call = askLLMOverride || askLLM;
+    const reservation = !askLLMOverride && typeof reserveModelCall === 'function'
         ? reserveModelCall('contextual')
         : { allowed: true };
     if (!reservation?.allowed) {
@@ -119,7 +120,6 @@ async function composeContextualFinancialAnswer({
 
     const packet = buildContextPacket({ message, plan, toolResult, deterministicAnswer });
     const prompt = buildContextualPrompt(packet, env);
-    const call = askLLMOverride || askLLM;
     metrics.increment('financial_contextual_analyst.call');
 
     try {

@@ -318,7 +318,9 @@ async function liveRunCase(testCase, { remainingCalls, invokeAgent = invokeFinan
     }
 
     const previousFlag = process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED;
+    const previousAnalystMode = process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE;
     process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED = 'true';
+    process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE = 'off';
     try {
         const result = await invokeAgent({
             message: testCase.question,
@@ -333,6 +335,7 @@ async function liveRunCase(testCase, { remainingCalls, invokeAgent = invokeFinan
             testCase.expectedTools.includes(result.plan?.tool || '');
         const actionMatches = result.action === testCase.expectedAction;
         const verified = result.action === 'answer' ? Boolean(result.verified?.ok) : true;
+        const modelCalls = Number(result.telemetry?.modelCalls);
         return {
             id: testCase.id,
             question: testCase.question,
@@ -342,11 +345,13 @@ async function liveRunCase(testCase, { remainingCalls, invokeAgent = invokeFinan
             tool: result.plan?.tool || '',
             verified,
             reason: result.plan?.reason || result.verified?.reason || '',
-            geminiCalls: 1
+            geminiCalls: Number.isFinite(modelCalls) && modelCalls >= 0 ? modelCalls : 1
         };
     } finally {
         if (previousFlag === undefined) delete process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED;
         else process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED = previousFlag;
+        if (previousAnalystMode === undefined) delete process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE;
+        else process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE = previousAnalystMode;
     }
 }
 

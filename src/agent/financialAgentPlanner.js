@@ -271,8 +271,8 @@ function normalizePlannerPlan(rawPlan = {}, { allowedToolIds = ALLOWED_AGENT_TOO
 
 async function planWithGemini({ message = '', env = process.env, referenceDate = new Date(), reserveModelCall = null } = {}) {
     if (!isLlmPlannerEnabled(env)) return null;
-    if (typeof reserveModelCall === 'function' && !reserveModelCall('planner')?.allowed) return null;
     const planner = structuredResponseOverrideForTest || getStructuredResponseFromLLM;
+    if (!structuredResponseOverrideForTest && typeof reserveModelCall === 'function' && !reserveModelCall('planner')?.allowed) return null;
     const response = await planner(buildPlannerPrompt(message, { referenceDate }));
     if (!response || response.error) return null;
     const allowedToolIds = selectedToolIds(selectRelevantFinancialAgentTools(message));
