@@ -204,6 +204,26 @@ const SEED_NOVEL_CASES = [
                 sql: "SELECT description, COUNT(*) AS count FROM financial_events_public WHERE event_type IN ('expense','card_expense') GROUP BY description HAVING COUNT(*) > 1 ORDER BY count DESC LIMIT 20"
             }
         }
+    },
+    {
+        id: 'NOVEL-016',
+        question: 'como esta a meta Reserva?',
+        expectedAction: 'answer',
+        expectedTools: ['query_financial_plan'],
+        samplePlan: {
+            action: 'tool',
+            tool: 'query_financial_plan',
+            args: {
+                plan: {
+                    kind: 'financial_query',
+                    domain: 'goals',
+                    operation: 'detail',
+                    filters: {},
+                    timeBasis: 'transaction_date'
+                }
+            }
+        },
+        tags: ['goals']
     }
 ];
 const NOVEL_CASES = buildExpandedNovelCases(SEED_NOVEL_CASES);
@@ -292,9 +312,13 @@ function seedNovelSnapshot() {
         transferencias: [
             { user_id: 'novel-agent-daniel', data: '06/06/2026', descricao: 'resgate caixinha', valor: 100, origem: 'Caixinha', destino: 'Conta', metodo: 'PIX', observacoes: '', status: 'Movimentação de reserva/investimento', month: 6, year: 2026 }
         ],
-        userSettings: [],
+        userSettings: [
+            { user_id: 'novel-agent-daniel', monthly_budget_enabled: 'SIM', monthly_budget_amount: '1000', monthly_budget_scope: 'family', monthly_budget_cycle_start_day: '1' }
+        ],
         cartoesConfig: [],
-        metas: [],
+        metas: [
+            { user_id: 'novel-agent-daniel', row: ['Reserva', '10000', '1200', '12%', '', '31/12/2026', 'Em andamento', 'Alta', 'novel-agent-daniel', 'family', ''] }
+        ],
         movimentacoesMetas: [],
         dividas: [],
         contas: []

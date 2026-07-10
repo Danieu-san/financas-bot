@@ -25,7 +25,7 @@ test('novel planner battery has safe free-form cases across allowed tools', () =
     assert.ok(tools.has('list_recent_transactions'));
     assert.ok(tools.has('get_dashboard_snapshot'));
     assert.ok(tools.has('explain_metric'));
-    for (const tag of ['recent', 'sql', 'dashboard', 'relative', 'clarify', 'security']) {
+    for (const tag of ['recent', 'sql', 'dashboard', 'relative', 'goals', 'clarify', 'security']) {
         assert.ok(tags.has(tag), `missing tag ${tag}`);
     }
     assert.ok(NOVEL_CASES.some(testCase => testCase.expectedAction === 'block'));
