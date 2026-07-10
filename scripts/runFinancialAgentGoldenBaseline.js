@@ -104,9 +104,18 @@ function materializeCases(corpus, acceptanceCases) {
             expected,
             split: approvalIds.has(item.id) ? 'approval' : 'development',
             critical: criticalIds.has(item.id),
-            provenance: provenance.get(item.id)
+            provenance: provenance.get(item.id),
+            followUpContext: item.follow_up_context || null
         };
     });
+}
+
+function resolveFollowUpFinancialQueryPlan(testCase = {}, classifyQuestion) {
+    if (!testCase.followUpContext) return null;
+    const classification = classifyQuestion(testCase.question, testCase.followUpContext);
+    const plan = classification?.financialQueryPlan || null;
+    if (!plan) throw new Error(`follow_up_plan_missing:${testCase.id}`);
+    return plan;
 }
 
 function seedSyntheticSnapshot(syncSnapshotToSqlite) {
@@ -211,6 +220,7 @@ async function runGoldenBaseline(options = {}) {
             evaluateAcceptanceCase
         } = require('./runFinancialQueryAcceptanceBattery');
         const { evaluateAgenticCase } = require('./runFinancialAgentAcceptanceBattery');
+        const { __test__: messageHandlerTest } = require('../src/handlers/messageHandler');
         const {
             ensureSqliteReady,
             syncSnapshotToSqlite
@@ -227,7 +237,13 @@ async function runGoldenBaseline(options = {}) {
 
         const results = [];
         for (const testCase of cases) {
-            const routed = evaluateAcceptanceCase(testCase);
+            const followUpPlan = resolveFollowUpFinancialQueryPlan(
+                testCase,
+                messageHandlerTest.classifyPerguntaLocally
+            );
+            const routed = evaluateAcceptanceCase(testCase, {
+                previousContext: testCase.followUpContext || undefined
+            });
             const sourceUnavailable = testCase.expected.sourceHealth === 'unavailable';
             if (sourceUnavailable) {
                 results.push({
@@ -252,7 +268,10 @@ async function runGoldenBaseline(options = {}) {
             }
 
             const started = performance.now();
-            const agent = await evaluateAgenticCase(testCase);
+            const agent = await evaluateAgenticCase(testCase, {
+                routed,
+                financialQueryPlan: followUpPlan || undefined
+            });
             const latencyMs = Math.round((performance.now() - started) * 100) / 100;
             results.push({
                 ...testCase,
@@ -340,6 +359,7 @@ module.exports = {
     readCorpus,
     validateCorpus,
     materializeCases,
+    resolveFollowUpFinancialQueryPlan,
     reportTelemetry,
     summarize,
     runGoldenBaseline

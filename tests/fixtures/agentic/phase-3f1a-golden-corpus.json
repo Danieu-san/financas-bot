@@ -61,7 +61,7 @@
     {"id":"3F1A-022","source_case_id":"FAM-019","metric":"expenses_comparison","scope":"family","dimensions":["person"],"entity":"current_member_and_family"},
     {"id":"3F1A-023","source_case_id":"FUP-001","metric":"card_expenses_detail","scope":"context","dimensions":["card"],"entity":"context_result"},
     {"id":"3F1A-024","source_case_id":"FUP-002","metric":"expenses_total","scope":"context","dimensions":["category"],"entity":"context_result"},
-    {"id":"3F1A-025","source_case_id":"FUP-005","metric":"expenses_comparison","scope":"context","dimensions":["period"],"entity":"context_result"},
+    {"id":"3F1A-025","source_case_id":"FUP-005","metric":"expenses_comparison","scope":"context","dimensions":["period"],"entity":"context_result","follow_up_context":{"intent":"total_gastos_mes","parameters":{"mes":6,"ano":2026,"scope":"personal"},"metric":"expenses_total"}},
     {"id":"3F1A-026","source_case_id":"FUP-008","metric":"expenses_total","scope":"family","dimensions":["person"],"entity":"context_result"},
     {"id":"3F1A-027","source_case_id":"FUP-015","metric":"available_balance","scope":"context","dimensions":[],"entity":"context_result"},
     {"id":"3F1A-028","source_case_id":"FUP-020","metric":"goals_overview","scope":"personal","dimensions":["goal"],"entity":"all_goals"},

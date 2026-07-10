@@ -1558,6 +1558,53 @@ test('LangGraph financial agent treats negated dashboard navigation as metric ex
     assert.strictEqual(result.verified.ok, true);
 });
 
+test('LangGraph keeps a trusted dashboard plan ahead of account keyword heuristics', async () => {
+    syncAgentSnapshot();
+
+    const result = await invokeFinancialAgent({
+        message: 'por que meu disponível é diferente do saldo?',
+        userIds: ['agent-daniel', 'agent-thais'],
+        ownerUserId: 'agent-daniel',
+        personByUserId: { 'agent-daniel': 'Daniel', 'agent-thais': 'Thais' },
+        currentDate: '20/06/2026',
+        financialQueryPlan: {
+            kind: 'financial_query',
+            domain: 'dashboard',
+            operation: 'explain',
+            filters: { period: { type: 'month', month: 5, year: 2026 } },
+            timeBasis: 'transaction_date'
+        },
+        mode: 'answer'
+    });
+
+    assert.strictEqual(result.action, 'answer', JSON.stringify(result));
+    assert.strictEqual(result.plan.tool, 'explain_metric');
+    assert.strictEqual(result.verified.ok, true);
+});
+
+test('LangGraph keeps a trusted goals plan ahead of account keyword heuristics', async () => {
+    syncAgentSnapshot();
+
+    const result = await invokeFinancialAgent({
+        message: 'explique o saldo da meta',
+        userIds: ['agent-daniel'],
+        personByUserId: { 'agent-daniel': 'Daniel' },
+        currentDate: '20/06/2026',
+        financialQueryPlan: {
+            kind: 'financial_query',
+            domain: 'goals',
+            operation: 'explain',
+            filters: { scope: 'personal' },
+            timeBasis: 'current_state'
+        },
+        mode: 'answer'
+    });
+
+    assert.strictEqual(result.action, 'answer', JSON.stringify(result));
+    assert.strictEqual(result.plan.tool, 'query_financial_plan');
+    assert.strictEqual(result.verified.ok, true);
+});
+
 test('financial agent activation defaults to off and accepts enforce as answer alias', () => {
     const original = process.env.FINANCIAL_AGENT_MODE;
     try {

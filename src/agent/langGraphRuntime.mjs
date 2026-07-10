@@ -375,7 +375,9 @@ async function planTurn(state) {
         };
     }
 
-    const accountPlan = accountPlanFromSemanticOverride(state, normalized);
+    const accountPlan = state.financialQueryPlan && state.financialQueryPlan.domain !== 'accounts'
+        ? null
+        : accountPlanFromSemanticOverride(state, normalized);
     if (accountPlan) {
         return {
             plan: {

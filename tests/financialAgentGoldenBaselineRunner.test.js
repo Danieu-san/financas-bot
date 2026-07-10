@@ -6,6 +6,7 @@ const {
     readCorpus,
     validateCorpus,
     materializeCases,
+    resolveFollowUpFinancialQueryPlan,
     summarize
 } = require('../scripts/runFinancialAgentGoldenBaseline');
 
@@ -38,6 +39,32 @@ test('phase 3F.1A golden corpus materializes complete semantic labels', () => {
     ));
     assert.strictEqual(unavailable.expected.sourceHealth, 'unavailable');
     assert.strictEqual(unavailable.expected.responseMode, 'source_unavailable');
+});
+
+test('phase 3F.1A materializes a follow-up with its sanitized analytical checkpoint', () => {
+    const followUp = materializeCases(readCorpus(), parseAcceptanceBattery())
+        .find(item => item.id === '3F1A-025');
+    const plan = resolveFollowUpFinancialQueryPlan(followUp, (question, context) => {
+        assert.strictEqual(question, 'e no mes passado?');
+        assert.deepStrictEqual(context, {
+            intent: 'total_gastos_mes',
+            parameters: { mes: 6, ano: 2026, scope: 'personal' },
+            metric: 'expenses_total'
+        });
+        return {
+            financialQueryPlan: {
+                kind: 'financial_query',
+                domain: 'expenses',
+                operation: 'compare',
+                filters: { period: { type: 'month', month: 6, year: 2026 }, scope: 'personal' },
+                timeBasis: 'billing_month'
+            }
+        };
+    });
+
+    assert.strictEqual(plan.domain, 'expenses');
+    assert.strictEqual(plan.operation, 'compare');
+    assert.strictEqual(plan.timeBasis, 'billing_month');
 });
 
 test('phase 3F.1A summary keeps deferred fault injection separate from baseline gaps', () => {

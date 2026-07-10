@@ -33,9 +33,9 @@ function publicTelemetry(telemetry = {}) {
     };
 }
 
-async function evaluateAgenticCase(testCase) {
+async function evaluateAgenticCase(testCase, options = {}) {
     if (!ensureSqliteReady()) throw new Error('SQLite read-model indisponivel para caso agentic');
-    const routed = evaluateAcceptanceCase(testCase);
+    const routed = options.routed || evaluateAcceptanceCase(testCase);
     if (routed.blockedBeforePlan) {
         return {
             id: testCase.id,
@@ -49,19 +49,21 @@ async function evaluateAgenticCase(testCase) {
         };
     }
 
+    const financialQueryPlan = options.financialQueryPlan || routed.safePlanShape;
     const result = await invokeFinancialAgent({
         message: testCase.question,
         userIds: ['agentic-battery-user'],
         personByUserId: { 'agentic-battery-user': 'Usuario de teste' },
-        financialQueryPlan: routed.safePlanShape,
+        financialQueryPlan,
         mode: 'shadow'
     });
     const answerLeaksInternalData = INTERNAL_PATTERN.test(String(result.answer || ''));
     const toolLeaksInternalData = INTERNAL_PATTERN.test(JSON.stringify(result.toolResult || {}));
-    const expectedTool = routed.hasFinancialQueryPlan ? expectedAgentTool(routed.safePlanShape) : '';
+    const hasFinancialQueryPlan = Boolean(financialQueryPlan);
+    const expectedTool = hasFinancialQueryPlan ? expectedAgentTool(financialQueryPlan) : '';
     const toolMatches = !expectedTool || result.plan?.tool === expectedTool ||
         ['list_recent_transactions', 'run_safe_readonly_sql'].includes(result.plan?.tool);
-    const expectedClarification = !routed.hasFinancialQueryPlan;
+    const expectedClarification = !hasFinancialQueryPlan;
     const accepted = expectedClarification
         ? result.action === 'clarify' && !answerLeaksInternalData && !toolLeaksInternalData
         : result.action === 'answer' && Boolean(result.verified?.ok) && toolMatches && !answerLeaksInternalData && !toolLeaksInternalData;
@@ -76,7 +78,7 @@ async function evaluateAgenticCase(testCase) {
         verified: Boolean(result.verified?.ok),
         toolResultSafe: !toolLeaksInternalData,
         answer: String(result.answer || ''),
-        safePlan: routed.safePlanShape,
+        safePlan: financialQueryPlan,
         reason: result.plan?.reason || result.verified?.reason || '',
         expectedTool,
         routedDomain: routed.actual.domain,
