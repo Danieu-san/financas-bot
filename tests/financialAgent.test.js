@@ -334,6 +334,20 @@ test('safe readonly SQL allows scoped SELECT and blocks unsafe/internal access',
     assert.strictEqual(result.ok, true);
     assert.deepStrictEqual(result.rows.map(row => row.event_type).sort(), ['card_expense', 'expense']);
 
+    const duplicateDescriptions = runSafeReadonlySql(
+        "SELECT description, COUNT(*) AS count FROM financial_events_public WHERE event_type IN ('expense', 'card_expense') GROUP BY description HAVING COUNT(*) > 1 ORDER BY count DESC LIMIT 5",
+        {
+            rows: [
+                { description: 'Mercado', event_type: 'expense' },
+                { description: 'Mercado', event_type: 'card_expense' },
+                { description: 'Uber', event_type: 'expense' }
+            ]
+        }
+    );
+
+    assert.strictEqual(duplicateDescriptions.ok, true);
+    assert.deepStrictEqual(duplicateDescriptions.rows, [{ description: 'Mercado', count: 2 }]);
+
     assert.strictEqual(validateSafeReadonlySql('UPDATE financial_events_public SET amount = 0').ok, false);
     assert.strictEqual(validateSafeReadonlySql('SELECT user_id FROM financial_events_public LIMIT 1').ok, false);
     assert.strictEqual(validateSafeReadonlySql('SELECT * FROM expenses LIMIT 1').ok, false);

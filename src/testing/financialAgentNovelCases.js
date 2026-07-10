@@ -203,7 +203,7 @@ function buildRelativePeriodCases() {
             cases.push(makeCase({
                 id: `REL-${String(index++).padStart(3, '0')}`,
                 question: `como ficaram os ${group.label} ${period.label}?`,
-                expectedTools: ['run_safe_readonly_sql'],
+                expectedTools: ['query_financial_plan', 'run_safe_readonly_sql'],
                 samplePlan: {
                     action: 'tool',
                     tool: 'run_safe_readonly_sql',

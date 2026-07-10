@@ -60,6 +60,7 @@ const ALLOWED_SQL_KEYWORDS = new Set([
     'glob',
     'group',
     'by',
+    'having',
     'order',
     'asc',
     'desc',

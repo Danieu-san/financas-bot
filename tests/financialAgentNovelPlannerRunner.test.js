@@ -31,6 +31,30 @@ test('novel planner battery has safe free-form cases across allowed tools', () =
     assert.ok(NOVEL_CASES.some(testCase => testCase.expectedAction === 'block'));
 });
 
+test('relative expense cases accept the structured query route or safe SQL', async () => {
+    const relativeExpenseCase = NOVEL_CASES.find(testCase => testCase.id === 'REL-001');
+
+    assert.deepStrictEqual(relativeExpenseCase.expectedTools, [
+        'query_financial_plan',
+        'run_safe_readonly_sql'
+    ]);
+
+    const result = await liveRunCase(relativeExpenseCase, {
+        remainingCalls: 1,
+        invokeAgent: async () => ({
+            action: 'answer',
+            plan: { tool: 'query_financial_plan', source: 'llm_planner' },
+            verified: { ok: true },
+            answer: 'Resposta sintética verificada.',
+            toolResult: { ok: true },
+            telemetry: { modelCalls: 0 }
+        })
+    });
+
+    assert.strictEqual(result.accepted, true);
+    assert.strictEqual(result.geminiCalls, 0);
+});
+
 test('novel planner battery refuses live mode without an explicit bounded call cap', () => {
     assert.deepStrictEqual(validateOptions({ live: false }), { ok: true, mode: 'dry-run' });
     assert.strictEqual(validateOptions({ live: true, maxCalls: 0 }).ok, false);

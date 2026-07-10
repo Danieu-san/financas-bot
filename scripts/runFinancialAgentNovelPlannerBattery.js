@@ -183,7 +183,7 @@ const SEED_NOVEL_CASES = [
             action: 'tool',
             tool: 'run_safe_readonly_sql',
             args: {
-                sql: "SELECT description, COUNT(*) AS count FROM financial_events_public WHERE event_type IN ('expense','card_expense') GROUP BY description HAVING count > 1 ORDER BY count DESC LIMIT 20"
+                sql: "SELECT description, COUNT(*) AS count FROM financial_events_public WHERE event_type IN ('expense','card_expense') GROUP BY description HAVING COUNT(*) > 1 ORDER BY count DESC LIMIT 20"
             }
         }
     }
