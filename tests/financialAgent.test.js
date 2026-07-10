@@ -88,6 +88,17 @@ test('runtime preserves a supplied Sao Paulo calendar date for relative planner 
     assert.strictEqual(runtime.__test__.plannerReferenceDateFromState('10/07/2026'), '10/07/2026');
 });
 
+test('runtime keeps execution time basis out of WhatsApp answers', async () => {
+    const runtime = await import('../src/agent/langGraphRuntime.mjs');
+    const answer = runtime.__test__.composeFinancialPlanAnswer({
+        plan: { domain: 'expenses', operation: 'sum', timeBasis: 'transaction_date' },
+        result: { value: 0, details: {} }
+    });
+
+    assert.match(answer, /Gastos: R\$\s*0,00\./);
+    assert.doesNotMatch(answer, /transaction_date|Crit.rio temporal/i);
+});
+
 test('credit card attribution stays with the sender unless an authorized member is explicitly named', () => {
     const users = [
         { user_id: 'agent-daniel', display_name: 'Daniel' },

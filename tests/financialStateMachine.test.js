@@ -2695,27 +2695,15 @@ stateMachineTest('financial states: credit card selection validates input and in
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
 });
 
-stateMachineTest('financial states: explicit credit card and à vista expense skips card and installment questions', async () => {
+stateMachineTest('financial states: complete credit-card expense uses the deterministic card route', async () => {
     resetState();
-    enqueueStructuredResponse({
-        intent: 'gasto',
-        gastoDetails: [{
-            descricao: 'mercado',
-            valor: 10,
-            categoria: 'Alimentação',
-            subcategoria: 'SUPERMERCADO',
-            pagamento: 'Crédito',
-            recorrente: 'Não'
-        }]
-    });
-
-    const reply = await send('gastei 10 reais no mercado no crédito no cartão nubank thais à vista');
+    const reply = await send('Gastei R$ 4,58 no Mercado TESTE_APAGAR_ATOR_CARTAO_20260710 hoje, na categoria Alimentação, no crédito, no cartão Nubank - Thais, em 1x');
 
     assert.match(reply, /lançado no/i);
     assert.match(reply, /Cartão Nubank - Thais/i);
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
     assert.strictEqual(sheets['Cartão Nubank - Thais'].length, 2);
-    assert.strictEqual(sheets['Cartão Nubank - Thais'][1][3], 10);
+    assert.strictEqual(sheets['Cartão Nubank - Thais'][1][3], 4.58);
     assert.strictEqual(sheets['Cartão Nubank - Thais'][1][4], '1/1');
     assert.strictEqual(sheets['Cartão Nubank - Thais'][1].at(-1), USER_ID);
 });

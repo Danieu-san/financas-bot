@@ -879,6 +879,13 @@ function detectLocalTransactionIntent(messageBody) {
     };
 }
 
+function shouldPrioritizeExplicitCreditCardTransaction(messageBody) {
+    const text = normalizeText(String(messageBody || '').trim());
+    return /^(?:gastei|gasto|comprei)\b/.test(text)
+        && /\bcredito\b/.test(text)
+        && /\bcartao\b\s+[a-z0-9]/.test(text);
+}
+
 function markFinancialReadModelDirty(reason = 'financial_write') {
     try {
         markReadModelDirty(reason);
@@ -10158,6 +10165,15 @@ async function handleMessage(msg) {
                 }
             }
 
+            if (!structuredResponse && !wasAudioMessage && shouldPrioritizeExplicitCreditCardTransaction(messageBody)) {
+                structuredResponse = detectLocalTransactionIntent(messageBody);
+                if (structuredResponse) {
+                    structuredResponseSource = 'deterministic';
+                    metrics.increment('message.transaction.fast_path');
+                    logger.info(`[routing] fast_path intent=${routedIntentPublicLabel(structuredResponse)} sender=${senderId}`);
+                }
+            }
+
             if (!structuredResponse && !wasAudioMessage) {
                 const handledFinancialCommandRoute = await tryHandleFinancialCommandPlannerRoute({
                     msg,
@@ -10168,15 +10184,6 @@ async function handleMessage(msg) {
                     perfContext
                 });
                 if (handledFinancialCommandRoute) return;
-            }
-
-            if (!structuredResponse && !wasAudioMessage) {
-                structuredResponse = detectLocalTransactionIntent(messageBody);
-                if (structuredResponse) {
-                    structuredResponseSource = 'deterministic';
-                    metrics.increment('message.transaction.fast_path');
-                    logger.info(`[routing] fast_path intent=${routedIntentPublicLabel(structuredResponse)} sender=${senderId}`);
-                }
             }
 
             if (!structuredResponse && shouldSkipAiForUnknownMessage(messageBody)) {

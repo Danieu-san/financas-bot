@@ -693,8 +693,7 @@ function composeBillsListAnswer(plan = {}, result = {}) {
     if (items.length === 0) {
         return [
             `${title}: não encontrei itens nesse recorte.`,
-            details.criteria || value?.criteria || '',
-            plan.timeBasis ? `Critério temporal: ${plan.timeBasis}.` : ''
+            details.criteria || value?.criteria || ''
         ].filter(Boolean).join('\n');
     }
 
@@ -726,8 +725,7 @@ function composeBillsListAnswer(plan = {}, result = {}) {
         ...lines,
         truncated,
         totalLine,
-        details.criteria || value?.criteria || '',
-        plan.timeBasis ? `Critério temporal: ${plan.timeBasis}.` : ''
+        details.criteria || value?.criteria || ''
     ].filter(Boolean).join('\n');
 }
 
@@ -754,8 +752,7 @@ function composeForecastAnswer(plan = {}, result = {}) {
         currentImpact === 0 ? 'Esses itens são previsão: não alteram o saldo atual enquanto não forem liquidados.' : '',
         lines.length ? 'Itens:' : '',
         ...lines,
-        details.criteria || value.criteria || '',
-        plan.timeBasis ? `Critério temporal: ${plan.timeBasis}.` : ''
+        details.criteria || value.criteria || ''
     ].filter(Boolean).join('\n');
 }
 function composeFinancialPlanAnswer(toolResult = {}) {
@@ -779,8 +776,7 @@ function composeFinancialPlanAnswer(toolResult = {}) {
         if (!matched) {
             return [
                 'Não encontrei essa conta cadastrada ou um pagamento correspondente neste período.',
-                details.criteria || value.criteria || '',
-                plan.timeBasis ? `Critério temporal: ${plan.timeBasis}.` : ''
+                details.criteria || value.criteria || ''
             ].filter(Boolean).join('\n');
         }
         const paid = matched.status === 'paid' || Number(matched.realizedValue || 0) > 0;
@@ -792,8 +788,7 @@ function composeFinancialPlanAnswer(toolResult = {}) {
             : `Ainda não. ${matched.description || 'A conta'} aparece como pendente por ${moneyBR(amount)}.`;
         return [
             statement,
-            details.criteria || value.criteria || '',
-            plan.timeBasis ? `Critério temporal: ${plan.timeBasis}.` : ''
+            details.criteria || value.criteria || ''
         ].filter(Boolean).join('\n');
     }
 
@@ -839,8 +834,7 @@ function composeFinancialPlanAnswer(toolResult = {}) {
     if (!body) {
         body = `Consegui analisar ${title}, mas o resultado precisa de uma apresentação mais específica.`;
     }
-    const basis = plan.timeBasis ? `Critério temporal: ${plan.timeBasis}.` : '';
-    return [body, criteria, basis].filter(Boolean).join('\n');
+    return [body, criteria].filter(Boolean).join('\n');
 }
 
 function composeDashboardAnswer(snapshot = {}) {
@@ -1089,6 +1083,7 @@ export async function invokeFinancialAgentRuntime(input = {}) {
 
 export const __test__ = {
     composeToolFailureAnswer,
+    composeFinancialPlanAnswer,
     buildAgentCostTelemetry,
     plannerReferenceDateFromState
 };
