@@ -8,6 +8,13 @@ Antes de trabalhos não triviais, leia primeiro `docs/agent-memory/README.md`.
 
 Essa pasta é a memória curta e atualizável do projeto. Ela evita reler o histórico inteiro e aponta quais documentos/códigos consultar por tarefa. Não substitui validação em código, testes, logs ou EC2 quando a tarefa envolver produção.
 
+## Controle de Esforco
+Antes de iniciar cada nova tarefa de implementacao, diagnostico, teste, deploy ou revisao substancial, informar a proxima acao e o nivel de esforco recomendado. Parar e aguardar a confirmacao explicita do usuario para que ele possa trocar modelo ou nivel, quando desejar.
+
+Durante uma tarefa, reavaliar o esforco em cada ponto de decisao relevante. Se o nivel atual se mostrar insuficiente ou excessivo, parar antes da proxima acao material, explicar brevemente o motivo e solicitar a troca. Nao elevar, reduzir ou trocar modelo/esforco automaticamente.
+
+Excecao: somente continuar sem pausa quando o usuario tiver autorizado expressamente uma sequencia de acoes com o mesmo nivel de esforco, ou em incidente urgente cuja continuidade tenha sido autorizada de forma explicita.
+
 ## Diretriz Legal/Privacidade Crítica
 **Antes de escalar para multiusuário real, remover o acesso admin a gastos de todos os usuários.**
 
