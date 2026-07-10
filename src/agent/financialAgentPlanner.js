@@ -159,6 +159,9 @@ function repairPlannerFinancialQueryPlan(plan = {}) {
     if (operation === 'summary' && hasCardFilter && (domain === 'cards' || domain === 'expenses' || cardDomainAliases.has(domain)) && periodType === 'date_range') {
         repaired.operation = 'sum';
     }
+    if (operation === 'summary' && domain === 'goals') {
+        repaired.operation = 'detail';
+    }
     if (cardDomainAliases.has(domain) || (domain === 'expenses' && hasCardFilter)) {
         repaired.domain = 'cards';
         if (!repaired.timeBasis && String(filters.period?.type || '').trim().toLowerCase() === 'date_range') {

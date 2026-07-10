@@ -7,7 +7,8 @@ const TOOL_DEFINITIONS = [
         promptLine: '- query_financial_plan: para perguntas sobre dominios financeiros conhecidos. Args: plan.',
         examples: [
             '{"action":"tool","tool":"query_financial_plan","args":{"plan":{"kind":"financial_query","domain":"bills","operation":"list","filters":{"period":{"type":"month","month":5,"year":2026},"status":"pending"},"sort":{"by":"due_date","direction":"asc"},"timeBasis":"due_date"}}}',
-            '{"action":"tool","tool":"query_financial_plan","args":{"plan":{"kind":"financial_query","domain":"forecast","operation":"forecast","filters":{"period":{"type":"date_range","from":"2026-07-01","to":"2026-07-31"},"type":"payable"},"sort":{"by":"due_date","direction":"asc"},"timeBasis":"due_date"}}}'
+            '{"action":"tool","tool":"query_financial_plan","args":{"plan":{"kind":"financial_query","domain":"forecast","operation":"forecast","filters":{"period":{"type":"date_range","from":"2026-07-01","to":"2026-07-31"},"type":"payable"},"sort":{"by":"due_date","direction":"asc"},"timeBasis":"due_date"}}}',
+            '{"action":"tool","tool":"query_financial_plan","args":{"plan":{"kind":"financial_query","domain":"goals","operation":"detail","filters":{},"timeBasis":"transaction_date"}}}'
         ]
     },
     {

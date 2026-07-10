@@ -1954,6 +1954,23 @@ test('Gemini planner is disabled by default and can only produce safe tool plans
     assert.strictEqual(cardFilteredExpensePlan.args.plan.filters.card, 'Nubank - Thais');
     assert.strictEqual(cardFilteredExpensePlan.args.plan.timeBasis, 'transaction_date');
 
+    const goalSummaryPlan = normalizePlannerPlan({
+        action: 'tool',
+        tool: 'query_financial_plan',
+        args: {
+            plan: {
+                kind: 'financial_query',
+                domain: 'goals',
+                operation: 'summary',
+                filters: {},
+                timeBasis: 'transaction_date'
+            }
+        }
+    });
+    assert.strictEqual(goalSummaryPlan.action, 'tool');
+    assert.strictEqual(goalSummaryPlan.args.plan.domain, 'goals');
+    assert.strictEqual(goalSummaryPlan.args.plan.operation, 'detail');
+
     const cardExpenseAliasPlan = normalizePlannerPlan({
         action: 'tool',
         tool: 'query_financial_plan',
