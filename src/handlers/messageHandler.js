@@ -678,6 +678,7 @@ function cleanLocalTransactionDescription(messageBody, amountInfo) {
 
     description = description
         .replace(/\b(?:no|na|num|numa|em)\s+(?:(?:credito|crédito)\s+)?(?:(?:no|na|em)\s+)?(?:cartao|cartão)\s+.+?(?=\s+(?:em\s+)?\d{1,2}\s*x\b|\s+\d{1,2}\s+parcelas?\b|\s+(?:hoje|ontem)\b|$)/gi, ' ')
+        .replace(/\s*,?\s*\bna\s+categoria\s+[^,]+,\s*(?=(?:no|na)\s+(?:credito|crédito|cartao|cartão)\b)/gi, ' ')
         .replace(/\b(?:reais|real|r\$)\b/gi, ' ')
         .replace(/\b(?:hoje|ontem)\b/gi, ' ')
         .replace(/\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/g, ' ')
@@ -686,6 +687,7 @@ function cleanLocalTransactionDescription(messageBody, amountInfo) {
         .replace(/\b(?:pix|debito|débito|credito|crédito|cartao|cartão|dinheiro|conta corrente|corrente|cc|poupanca|poupança)\b/gi, ' ')
         .replace(/\b\d{1,2}\s*x\b/gi, ' ')
         .replace(/\b\d{1,2}\s+parcelas?\b/gi, ' ')
+        .replace(/[,\s]+$/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
 
@@ -693,6 +695,7 @@ function cleanLocalTransactionDescription(messageBody, amountInfo) {
         .replace(/^(?:no|na|num|numa|em|de|do|da|com|por|para|pra)\s+/i, '')
         .replace(/^(?:um|uma|o|a|os|as)\s+/i, '')
         .replace(/\b(?:em|no|na|de|do|da)\s*$/i, '')
+        .replace(/\s*,+\s*$/, '')
         .trim();
     return description || 'Não especificado';
 }
