@@ -101,13 +101,20 @@ async function composeContextualFinancialAnswer({
     plan,
     toolResult,
     deterministicAnswer,
-    env = process.env
+    env = process.env,
+    reserveModelCall = null
 } = {}) {
     if (!isContextualAnalystEnabled(env)) {
         return { ok: false, reason: 'disabled' };
     }
     if (!toolResult?.ok || plan?.action !== 'tool') {
         return { ok: false, reason: 'ineligible_result' };
+    }
+    const reservation = typeof reserveModelCall === 'function'
+        ? reserveModelCall('contextual')
+        : { allowed: true };
+    if (!reservation?.allowed) {
+        return { ok: false, reason: `cost_limit_${reservation?.reason || 'reached'}` };
     }
 
     const packet = buildContextPacket({ message, plan, toolResult, deterministicAnswer });

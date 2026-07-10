@@ -16,6 +16,7 @@ const {
     composeContextualFinancialAnswer,
     selectVerifiedContextualAnswer
 } = require('./contextualFinancialAnalyst');
+const { createFinancialAgentCostGuard } = require('./financialAgentCostPolicy');
 const metrics = require('../utils/metrics');
 const stringSimilarity = require('string-similarity');
 const { isSmallTypo } = require('../utils/textMatcher');
@@ -29,6 +30,7 @@ const AgentState = Annotation.Root({
     currentDate: Annotation(),
     canonicalLedgerDbPath: Annotation(),
     mode: Annotation(),
+    reserveModelCall: Annotation(),
     plan: Annotation(),
     toolResult: Annotation(),
     answer: Annotation(),
@@ -276,7 +278,8 @@ function accountPlanFromSemanticOverride(state, normalized = '') {
 async function planWithGeminiForState(state, message) {
     return await planWithGemini({
         message,
-        referenceDate: parseSheetDate(state.currentDate) || new Date()
+        referenceDate: parseSheetDate(state.currentDate) || new Date(),
+        reserveModelCall: state.reserveModelCall
     });
 }
 
@@ -915,7 +918,8 @@ async function composeAnswer(state) {
         message: state.message,
         plan: state.plan,
         toolResult: state.toolResult,
-        deterministicAnswer: deterministic.answer
+        deterministicAnswer: deterministic.answer,
+        reserveModelCall: state.reserveModelCall
     });
     if (!contextual.ok) return deterministic;
 
@@ -1004,6 +1008,7 @@ const graph = new StateGraph(AgentState)
 export async function invokeFinancialAgentRuntime(input = {}) {
     const metricsBefore = metrics.getSnapshot();
     const startedAt = Date.now();
+    const costGuard = input.costGuard || createFinancialAgentCostGuard();
     const result = await graph.invoke({
         message: input.message || '',
         userIds: input.userIds || [],
@@ -1012,7 +1017,8 @@ export async function invokeFinancialAgentRuntime(input = {}) {
         financialQueryPlan: input.financialQueryPlan || null,
         currentDate: input.currentDate || '',
         canonicalLedgerDbPath: input.canonicalLedgerDbPath || undefined,
-        mode: input.mode || 'shadow'
+        mode: input.mode || 'shadow',
+        reserveModelCall: costGuard.reserveModelCall
     });
     const telemetry = buildAgentCostTelemetry({
         before: metricsBefore,

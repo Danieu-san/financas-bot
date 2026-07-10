@@ -308,6 +308,13 @@ falha fechada ou pede esclarecimento sem inventar ausencia/zero.
 4. Enviar somente schema/ferramentas relevantes e resultados minimizados.
 5. Comparar custo e latencia com o baseline para cada grupo do conjunto ouro.
 
+Envelope inicial para validacao antes do canario: no maximo duas chamadas Gemini
+por pergunta e 240 por mes do bot. Os limites podem ser reduzidos por
+`FINANCIAL_AGENT_MAX_MODEL_CALLS_PER_QUESTION` e
+`FINANCIAL_AGENT_MAX_MODEL_CALLS_PER_MONTH`; o contador mensal persiste somente
+mes e total reservado, sem pergunta, usuario ou dado financeiro. Ao atingir um
+limite, planner e composicao contextual voltam ao resultado deterministico.
+
 Gate F: envelope de custo documentado e aprovado; nenhuma pergunta comum depende
 de planilha inteira, ferramentas completas ou rodadas abertas.
 
