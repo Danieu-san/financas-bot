@@ -6,7 +6,8 @@ const path = require('node:path');
 
 const {
     buildAnalyticalLegacyReductionDecision,
-    runAnalyticalLegacyReductionGate
+    runAnalyticalLegacyReductionGate,
+    sanitizeAcceptanceSummaryForGate
 } = require('../scripts/runAnalyticalLegacyReductionGate');
 const { __test__: contextualFinancialAnalystTest } = require('../src/agent/contextualFinancialAnalyst');
 
@@ -22,6 +23,26 @@ test('analytical legacy reduction gate blocks when acceptance or migration telem
         'missing_migration_gap_telemetry',
         'unsafe_migration_gap_telemetry'
     ]);
+});
+
+test('analytical legacy reduction gate keeps cost units in its sanitized report', () => {
+    assert.deepStrictEqual(sanitizeAcceptanceSummaryForGate({
+        total: 1,
+        telemetry: {
+            modelCalls: 1,
+            inputTokens: 10,
+            outputTokens: 4,
+            estimatedCostUsd: 0.000039
+        }
+    }), {
+        total: 1,
+        telemetry: {
+            modelCalls: 1,
+            inputUnitsApprox: 10,
+            outputUnitsApprox: 4,
+            estimatedCostUsd: 0.000039
+        }
+    });
 });
 
 test('analytical legacy reduction gate writes a sanitized zero-Gemini GO report for sampled batteries', async () => {
@@ -55,6 +76,7 @@ test('analytical legacy reduction gate writes a sanitized zero-Gemini GO report 
         assert.strictEqual(report.gemini_calls, 0);
         assert.strictEqual(report.synthetic_user_only, true);
         assert.strictEqual(report.acceptance.summary.total, 5);
+        assert.strictEqual(report.acceptance.summary.telemetry.inputUnitsApprox, 0);
         assert.strictEqual(report.migration_gaps.summary.total, 3);
         assert.strictEqual(fs.existsSync(path.join(reportDir, 'analytical-legacy-reduction-gate-report.json')), true);
         assert.doesNotMatch(JSON.stringify(report), /user_id|agent-daniel|sheet|spreadsheet|token|secret|raw/i);

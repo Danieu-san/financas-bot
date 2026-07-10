@@ -34,6 +34,22 @@ function restoreEnvFlag(name, value) {
     else process.env[name] = value;
 }
 
+function sanitizeAcceptanceSummaryForGate(summary = {}) {
+    const telemetry = summary.telemetry || {};
+    const numberOrZero = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
+    return {
+        ...summary,
+        telemetry: {
+            modelCalls: numberOrZero(telemetry.modelCalls),
+            inputUnitsApprox: numberOrZero(telemetry.inputTokens),
+            outputUnitsApprox: numberOrZero(telemetry.outputTokens),
+            estimatedCostUsd: Number.isFinite(Number(telemetry.estimatedCostUsd))
+                ? Number(telemetry.estimatedCostUsd)
+                : null
+        }
+    };
+}
+
 async function runAnalyticalLegacyReductionGate(options = {}) {
     const startedAt = new Date();
     const runId = options.runId || buildRunId(startedAt);
@@ -73,7 +89,7 @@ async function runAnalyticalLegacyReductionGate(options = {}) {
             decision,
             acceptance: {
                 report_dir: acceptance.reportDir,
-                summary: acceptance.report.summary
+                summary: sanitizeAcceptanceSummaryForGate(acceptance.report.summary)
             },
             migration_gaps: {
                 report_dir: migrationGaps.reportDir,
@@ -113,5 +129,6 @@ if (require.main === module) {
 
 module.exports = {
     buildAnalyticalLegacyReductionDecision,
-    runAnalyticalLegacyReductionGate
+    runAnalyticalLegacyReductionGate,
+    sanitizeAcceptanceSummaryForGate
 };
