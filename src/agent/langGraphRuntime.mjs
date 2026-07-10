@@ -303,9 +303,15 @@ function goalPlanFromSemanticOverride(state, normalized = '') {
 async function planWithGeminiForState(state, message) {
     return await planWithGemini({
         message,
-        referenceDate: parseSheetDate(state.currentDate) || new Date(),
+        referenceDate: plannerReferenceDateFromState(state.currentDate),
         reserveModelCall: state.reserveModelCall
     });
+}
+
+function plannerReferenceDateFromState(currentDate = '') {
+    if (typeof currentDate === 'string' && currentDate.trim()) return currentDate.trim();
+    if (currentDate instanceof Date && !Number.isNaN(currentDate.getTime())) return currentDate;
+    return new Date();
 }
 
 function shouldUseLlmPlanOverLegacy(llmPlan, incomingQueryPlan = null) {
@@ -1083,5 +1089,6 @@ export async function invokeFinancialAgentRuntime(input = {}) {
 
 export const __test__ = {
     composeToolFailureAnswer,
-    buildAgentCostTelemetry
+    buildAgentCostTelemetry,
+    plannerReferenceDateFromState
 };

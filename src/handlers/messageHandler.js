@@ -1819,6 +1819,71 @@ function buildFamilyMemberAliases(user = {}) {
         .filter(value => value && value.length >= 3);
 }
 
+function expenseActorNameAliases(user = {}) {
+    return Array.from(new Set(
+        [user.display_name, user.preferred_name, user.full_name, user.name]
+            .filter(Boolean)
+            .flatMap((value) => {
+                const normalized = normalizeText(String(value)).replace(/\s+/g, ' ').trim();
+                const firstName = normalized.split(' ')[0] || '';
+                return [normalized, firstName];
+            })
+            .filter(value => value && value.length >= 3)
+    ));
+}
+
+function escapeRegex(value = '') {
+    return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function hasExplicitExpenseActorMention(messageBody = '', aliases = []) {
+    const text = normalizeText(messageBody).replace(/\s+/g, ' ').trim();
+    return aliases.some((alias) => {
+        const escapedAlias = escapeRegex(alias);
+        if (!escapedAlias) return false;
+        const article = '(?:a|o)?\\s*';
+        return [
+            new RegExp(`\\b${article}${escapedAlias}\\s+(?:que\\s+)?(?:gastou|comprou|pagou)\\b`),
+            new RegExp(`\\bfoi\\s+${article}${escapedAlias}\\s+(?:que\\s+)?(?:gastou|comprou|pagou)\\b`),
+            new RegExp(`\\b(?:gasto|compra|despesa)\\s+(?:da|do|de)\\s+${escapedAlias}\\b`)
+        ].some(pattern => pattern.test(text));
+    });
+}
+
+function resolveExplicitExpenseActorUserId({ messageBody = '', currentUserId = '', scopeUserIds = [], users = [] } = {}) {
+    const safeCurrentUserId = String(currentUserId || '').trim();
+    const allowedUserIds = new Set((scopeUserIds || []).map(value => String(value || '').trim()).filter(Boolean));
+    if (!safeCurrentUserId || allowedUserIds.size <= 1) return safeCurrentUserId;
+
+    const matches = (users || []).filter((user) => {
+        const candidateId = String(user?.user_id || '').trim();
+        return candidateId && candidateId !== safeCurrentUserId && allowedUserIds.has(candidateId) &&
+            hasExplicitExpenseActorMention(messageBody, expenseActorNameAliases(user));
+    });
+
+    return matches.length === 1 ? String(matches[0].user_id).trim() : safeCurrentUserId;
+}
+
+async function resolveCreditCardExpenseActorUserId(gasto = {}, currentUserId = '') {
+    const safeCurrentUserId = String(currentUserId || '').trim();
+    if (!safeCurrentUserId) return '';
+
+    try {
+        const scopeUserIds = getFinancialScopeUserIds(safeCurrentUserId);
+        if (scopeUserIds.length <= 1) return safeCurrentUserId;
+        const users = await getAllUsers();
+        return resolveExplicitExpenseActorUserId({
+            messageBody: gasto.originalMessage || '',
+            currentUserId: safeCurrentUserId,
+            scopeUserIds,
+            users
+        });
+    } catch (error) {
+        logger.warn(`[expense-actor] fallback_to_sender error=${error.message}`);
+        return safeCurrentUserId;
+    }
+}
+
 async function findMentionedFinancialScopeMember(messageBody = '', currentUserId = '') {
     const text = normalizeText(messageBody);
     if (!/\b(transferi|transferencia|enviei|mandei|passei|pix)\b/.test(text)) return null;
@@ -2736,7 +2801,9 @@ async function maybeNotifyLegacyDailyGoalAfterExpense() {
     return null;
 }
 
-async function saveCreditCardExpense(gasto, cardInfo, installments, userId) {
+async function saveCreditCardExpense(gasto, cardInfo, installments, userId, writeOptions = {}) {
+    const expenseActorUserId = await resolveCreditCardExpenseActorUserId(gasto, userId);
+    const effectiveWriteOptions = { ...writeOptions, userId: expenseActorUserId };
     const purchaseDate = gasto.data ? parseSheetDate(gasto.data) : new Date();
     const safeInstallments = Math.max(1, Number.parseInt(installments, 10) || 1);
     const totalValue = parseValue(gasto.valor);
@@ -2744,7 +2811,7 @@ async function saveCreditCardExpense(gasto, cardInfo, installments, userId) {
 
     recordWriteInterpretationShadow({
         operation: 'expense.create',
-        userId,
+        userId: expenseActorUserId,
         message: gasto.originalMessage || gasto.descricao,
         fields: buildTransactionReliabilityFields({
             ...gasto,
@@ -2780,8 +2847,8 @@ async function saveCreditCardExpense(gasto, cardInfo, installments, userId) {
             Math.round((value + Number.EPSILON) * 100) / 100,
             `${i}/${safeInstallments}`,
             billingMonthName,
-            userId
-        ]);
+            expenseActorUserId
+        ], effectiveWriteOptions);
     }
 
     markFinancialReadModelDirty('card_write');
@@ -2789,7 +2856,8 @@ async function saveCreditCardExpense(gasto, cardInfo, installments, userId) {
         installments: safeInstallments,
         installmentValue,
         totalValue,
-        sheetName: cardInfo.sheetName
+        sheetName: cardInfo.sheetName,
+        userId: expenseActorUserId
     };
 }
 
@@ -11039,6 +11107,8 @@ module.exports = {
         buildFinancialAgentFullLogPayload,
         buildFinancialAgentMigrationGapTelemetry,
         buildFinancialAgentPersonByUserId,
+        resolveExplicitExpenseActorUserId,
+        hasExplicitExpenseActorMention,
         shouldUseFinancialAgentAnswer,
         shouldUseFinancialAgentAnswerInMode,
         shouldUseAnalyticalLegacyFallback,

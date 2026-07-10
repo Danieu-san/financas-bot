@@ -83,6 +83,37 @@ test('LangGraph financial agent lists goals from the scoped read model', async (
     assert.match(result.answer, /R\$\s*1\.200,00/i);
 });
 
+test('runtime preserves a supplied Sao Paulo calendar date for relative planner repairs', async () => {
+    const runtime = await import('../src/agent/langGraphRuntime.mjs');
+    assert.strictEqual(runtime.__test__.plannerReferenceDateFromState('10/07/2026'), '10/07/2026');
+});
+
+test('credit card attribution stays with the sender unless an authorized member is explicitly named', () => {
+    const users = [
+        { user_id: 'agent-daniel', display_name: 'Daniel' },
+        { user_id: 'agent-thais', display_name: 'Thaís Cristina' },
+        { user_id: 'agent-outsider', display_name: 'Outra Pessoa' }
+    ];
+    const base = {
+        currentUserId: 'agent-daniel',
+        scopeUserIds: ['agent-daniel', 'agent-thais'],
+        users
+    };
+
+    assert.strictEqual(messageHandlerTest.resolveExplicitExpenseActorUserId({
+        ...base,
+        messageBody: 'Gastei R$ 50 no cartao Nubank - Thais.'
+    }), 'agent-daniel');
+    assert.strictEqual(messageHandlerTest.resolveExplicitExpenseActorUserId({
+        ...base,
+        messageBody: 'Foi a Thais que gastou R$ 50 no cartao.'
+    }), 'agent-thais');
+    assert.strictEqual(messageHandlerTest.resolveExplicitExpenseActorUserId({
+        ...base,
+        messageBody: 'Foi a Outra Pessoa que gastou R$ 50 no cartao.'
+    }), 'agent-daniel');
+});
+
 test('LangGraph financial agent handles a named goal status without Gemini', async () => {
     syncAgentSnapshot();
     const result = await invokeFinancialAgent({
