@@ -125,7 +125,14 @@ test('novel planner live path stops at the call cap and records each planned cal
             plan: { tool: 'run_safe_readonly_sql', source: 'llm_planner' },
             verified: { ok: true },
             answer: 'Resposta sintética verificada.',
-            toolResult: { ok: true, rows: [], rowCount: 0 }
+            toolResult: { ok: true, rows: [], rowCount: 0 },
+            telemetry: {
+                modelCalls: 1,
+                inputTokens: 12,
+                outputTokens: 3,
+                estimatedCostUsd: 0.00004,
+                latencyMs: 123
+            }
         };
     };
 
@@ -135,6 +142,13 @@ test('novel planner live path stops at the call cap and records each planned cal
     });
     assert.strictEqual(result.accepted, true);
     assert.strictEqual(result.geminiCalls, 1);
+    assert.deepStrictEqual(result.telemetry, {
+        modelCalls: 1,
+        inputTokens: 12,
+        outputTokens: 3,
+        estimatedCostUsd: 0.00004,
+        latencyMs: 123
+    });
 
     const deterministic = await liveRunCase(NOVEL_CASES[0], {
         remainingCalls: 1,
@@ -145,11 +159,28 @@ test('novel planner live path stops at the call cap and records each planned cal
     });
     assert.strictEqual(deterministic.geminiCalls, 0);
 
+    const reportDir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-novel-telemetry-'));
+    const sampled = await runFinancialAgentNovelPlannerBattery({
+        live: true,
+        maxCalls: 1,
+        caseId: 'NOVEL-001',
+        reportDir,
+        invokeAgent: fakeInvokeAgent
+    });
+    assert.deepStrictEqual(sampled.report.summary.telemetry, {
+        modelCalls: 1,
+        inputTokens: 12,
+        outputTokens: 3,
+        estimatedCostUsd: 0.00004
+    });
+    assert.strictEqual(sampled.report.summary.latencyP50Ms, 123);
+    assert.strictEqual(sampled.report.summary.latencyP95Ms, 123);
+
     const skipped = await liveRunCase(NOVEL_CASES[0], {
         remainingCalls: 0,
         invokeAgent: fakeInvokeAgent
     });
     assert.strictEqual(skipped.reason, 'call_cap_reached');
     assert.strictEqual(skipped.geminiCalls, 0);
-    assert.strictEqual(invocations, 2);
+    assert.strictEqual(invocations, 3);
 });

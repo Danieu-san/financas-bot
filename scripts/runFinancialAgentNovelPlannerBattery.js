@@ -14,6 +14,24 @@ const {
 const MAX_LIVE_CALLS_HARD_LIMIT = 40;
 const INTERNAL_PATTERN = /\b(user_id|sheet_id|spreadsheet|token|secret|oauth|prompt|owner_hash|novel-agent-)\b/i;
 
+function publicTelemetry(telemetry = {}, fallbackModelCalls = 0) {
+    const numberOr = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
+    const estimatedCostUsd = Number(telemetry.estimatedCostUsd);
+    return {
+        modelCalls: numberOr(telemetry.modelCalls, fallbackModelCalls),
+        inputTokens: numberOr(telemetry.inputTokens),
+        outputTokens: numberOr(telemetry.outputTokens),
+        estimatedCostUsd: Number.isFinite(estimatedCostUsd) ? estimatedCostUsd : null,
+        latencyMs: numberOr(telemetry.latencyMs)
+    };
+}
+
+function percentile(values = [], ratio = 0.95) {
+    const ordered = values.filter(Number.isFinite).sort((left, right) => left - right);
+    if (ordered.length === 0) return 0;
+    return ordered[Math.min(ordered.length - 1, Math.ceil(ordered.length * ratio) - 1)];
+}
+
 const SEED_NOVEL_CASES = [
     {
         id: 'NOVEL-001',
@@ -298,7 +316,8 @@ function dryRunCase(testCase) {
         tool: normalized?.tool || '',
         verified: normalized?.action !== 'tool' || toolMatches,
         reason: normalized ? '' : 'sample_plan_rejected',
-        geminiCalls: 0
+        geminiCalls: 0,
+        telemetry: publicTelemetry()
     };
 }
 
@@ -313,7 +332,8 @@ async function liveRunCase(testCase, { remainingCalls, invokeAgent = invokeFinan
             tool: '',
             verified: false,
             reason: 'call_cap_reached',
-            geminiCalls: 0
+            geminiCalls: 0,
+            telemetry: publicTelemetry()
         };
     }
 
@@ -336,6 +356,7 @@ async function liveRunCase(testCase, { remainingCalls, invokeAgent = invokeFinan
         const actionMatches = result.action === testCase.expectedAction;
         const verified = result.action === 'answer' ? Boolean(result.verified?.ok) : true;
         const modelCalls = Number(result.telemetry?.modelCalls);
+        const geminiCalls = Number.isFinite(modelCalls) && modelCalls >= 0 ? modelCalls : 1;
         return {
             id: testCase.id,
             question: testCase.question,
@@ -345,7 +366,8 @@ async function liveRunCase(testCase, { remainingCalls, invokeAgent = invokeFinan
             tool: result.plan?.tool || '',
             verified,
             reason: result.plan?.reason || result.verified?.reason || '',
-            geminiCalls: Number.isFinite(modelCalls) && modelCalls >= 0 ? modelCalls : 1
+            geminiCalls,
+            telemetry: publicTelemetry(result.telemetry, geminiCalls)
         };
     } finally {
         if (previousFlag === undefined) delete process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED;
@@ -356,12 +378,41 @@ async function liveRunCase(testCase, { remainingCalls, invokeAgent = invokeFinan
 }
 
 function summarize(results = []) {
+    const telemetry = results.reduce((accumulator, item) => {
+        const itemTelemetry = publicTelemetry(item.telemetry, item.geminiCalls);
+        accumulator.modelCalls += itemTelemetry.modelCalls;
+        accumulator.inputTokens += itemTelemetry.inputTokens;
+        accumulator.outputTokens += itemTelemetry.outputTokens;
+        accumulator.latencies.push(itemTelemetry.latencyMs);
+        if (itemTelemetry.modelCalls > 0 && itemTelemetry.estimatedCostUsd === null) {
+            accumulator.hasUnpricedModelCall = true;
+        } else if (itemTelemetry.estimatedCostUsd !== null) {
+            accumulator.estimatedCostUsd += itemTelemetry.estimatedCostUsd;
+        }
+        return accumulator;
+    }, {
+        modelCalls: 0,
+        inputTokens: 0,
+        outputTokens: 0,
+        estimatedCostUsd: 0,
+        hasUnpricedModelCall: false,
+        latencies: []
+    });
+    const summaryTelemetry = {
+        modelCalls: telemetry.modelCalls,
+        inputTokens: telemetry.inputTokens,
+        outputTokens: telemetry.outputTokens,
+        estimatedCostUsd: telemetry.hasUnpricedModelCall ? null : telemetry.estimatedCostUsd
+    };
     return {
         total: results.length,
         accepted: results.filter(item => item.accepted).length,
         gaps: results.filter(item => !item.accepted).length,
-        geminiCalls: results.reduce((sum, item) => sum + Number(item.geminiCalls || 0), 0),
-        gapIds: results.filter(item => !item.accepted).map(item => item.id)
+        geminiCalls: summaryTelemetry.modelCalls,
+        gapIds: results.filter(item => !item.accepted).map(item => item.id),
+        telemetry: summaryTelemetry,
+        latencyP50Ms: percentile(telemetry.latencies, 0.5),
+        latencyP95Ms: percentile(telemetry.latencies, 0.95)
     };
 }
 
