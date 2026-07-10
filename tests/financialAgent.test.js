@@ -83,6 +83,25 @@ test('LangGraph financial agent lists goals from the scoped read model', async (
     assert.match(result.answer, /R\$\s*1\.200,00/i);
 });
 
+test('LangGraph financial agent handles a named goal status without Gemini', async () => {
+    syncAgentSnapshot();
+    const result = await invokeFinancialAgent({
+        message: 'como esta a meta Reserva?',
+        userIds: ['agent-daniel', 'agent-thais'],
+        personByUserId: { 'agent-daniel': 'Daniel', 'agent-thais': 'Thais' },
+        currentDate: '20/06/2026',
+        mode: 'answer'
+    });
+
+    assert.strictEqual(result.action, 'answer', JSON.stringify(result));
+    assert.strictEqual(result.plan.tool, 'query_financial_plan');
+    assert.strictEqual(result.plan.args.plan.domain, 'goals');
+    assert.strictEqual(result.plan.args.plan.operation, 'explain');
+    assert.strictEqual(result.plan.args.plan.filters.goal, 'reserva');
+    assert.strictEqual(result.verified.ok, true);
+    assert.strictEqual(result.telemetry.modelCalls, 0);
+});
+
 test('LangGraph financial agent uses the authorized family budget configuration', async () => {
     assert.strictEqual(ensureSqliteReady(), true);
     assert.strictEqual(syncSnapshotToSqlite({

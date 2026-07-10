@@ -275,6 +275,31 @@ function accountPlanFromSemanticOverride(state, normalized = '') {
         answerStyle: 'detailed'
     };
 }
+
+function goalPlanFromSemanticOverride(state, normalized = '') {
+    const asksGoalStatus = /\b(como\s+esta|progresso|falta|faltam|detalhe|explique)\b/.test(normalized);
+    if (!/\bmetas?\b/.test(normalized) || !asksGoalStatus) return null;
+    const trailingGoal = normalized.match(/\bmetas?\s+([a-z0-9][a-z0-9\s-]{0,80})[?!.]*$/);
+    const goal = trailingGoal?.[1]
+        ?.replace(/^(?:a|o|da|de|do)\s+/, '')
+        .trim() || '';
+    const genericGoalTerms = new Set(['minha', 'minhas', 'a', 'as']);
+    return {
+        kind: 'financial_query',
+        domain: 'goals',
+        operation: 'explain',
+        filters: {
+            ...(state.financialQueryPlan?.filters || {}),
+            ...(goal && !genericGoalTerms.has(goal) ? { goal } : {})
+        },
+        sort: { by: 'value', direction: 'desc' },
+        limit: 10,
+        needsContext: false,
+        timeBasis: 'transaction_date',
+        answerStyle: 'detailed'
+    };
+}
+
 async function planWithGeminiForState(state, message) {
     return await planWithGemini({
         message,
@@ -384,6 +409,19 @@ async function planTurn(state) {
                 action: 'tool',
                 tool: 'query_financial_plan',
                 args: { plan: accountPlan }
+            },
+            action: 'tool'
+        };
+    }
+    const goalPlan = state.financialQueryPlan && state.financialQueryPlan.domain !== 'goals'
+        ? null
+        : goalPlanFromSemanticOverride(state, normalized);
+    if (goalPlan) {
+        return {
+            plan: {
+                action: 'tool',
+                tool: 'query_financial_plan',
+                args: { plan: goalPlan }
             },
             action: 'tool'
         };
