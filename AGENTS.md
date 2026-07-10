@@ -15,6 +15,11 @@ Durante uma tarefa, reavaliar o esforco em cada ponto de decisao relevante. Se o
 
 Excecao: somente continuar sem pausa quando o usuario tiver autorizado expressamente uma sequencia de acoes com o mesmo nivel de esforco, ou em incidente urgente cuja continuidade tenha sido autorizada de forma explicita.
 
+## Delegacao para Chat
+Sempre que uma tarefa puder ser executada no Chat comum sem acesso ao repositorio, terminal, arquivos locais, testes, GitHub ou producao, recomendar o esforco adequado, fornecer um prompt pronto para uso e parar para aguardar a resposta do usuario. Isso inclui analise, pesquisa, revisao logica, brainstorming, comparacao de alternativas, auditoria documental e redacao.
+
+Usar Codex diretamente somente quando a proxima acao exigir inspecao ou alteracao do repositorio, execucao de comandos/testes, leitura de logs privados, GitHub, EC2, WhatsApp, Google Sheets ou outra ferramenta local/externa. Depois que o usuario trouxer a resposta do Chat, reavaliar o esforco antes de continuar.
+
 ## Diretriz Legal/Privacidade Crítica
 **Antes de escalar para multiusuário real, remover o acesso admin a gastos de todos os usuários.**
 
