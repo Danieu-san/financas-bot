@@ -1650,6 +1650,9 @@ test('financial agent activation defaults to off and accepts enforce as answer a
         process.env.FINANCIAL_AGENT_MODE = 'enforce';
         assert.strictEqual(messageHandlerTest.getFinancialAgentMode(), 'answer');
 
+        process.env.FINANCIAL_AGENT_MODE = 'canary';
+        assert.strictEqual(messageHandlerTest.getFinancialAgentMode(), 'canary');
+
         process.env.FINANCIAL_AGENT_MODE = 'unsafe';
         assert.strictEqual(messageHandlerTest.getFinancialAgentMode(), 'off');
     } finally {
@@ -2989,6 +2992,21 @@ test('financial agent forecast relative windows exclude cancelled and out-of-win
     assert.strictEqual(receivable.ok, true, JSON.stringify(receivable));
     assert.strictEqual(receivable.result.value, 43);
     assert.strictEqual(receivable.result.details.totals.currentCashImpact, 0);
+});
+
+test('financial agent canary requires an explicitly allowlisted user and preserves verified answers', () => {
+    const env = { FINANCIAL_AGENT_CANARY_USER_IDS: 'agent-daniel, agent-thais' };
+
+    assert.strictEqual(messageHandlerTest.isFinancialAgentCanaryUserAllowed('agent-daniel', env), true);
+    assert.strictEqual(messageHandlerTest.isFinancialAgentCanaryUserAllowed('agent-outsider', env), false);
+    assert.strictEqual(messageHandlerTest.isFinancialAgentCanaryUserAllowed('agent-daniel', {}), false);
+    assert.strictEqual(
+        messageHandlerTest.shouldUseFinancialAgentAnswerInMode('canary', {
+            action: 'answer',
+            verified: { ok: true }
+        }),
+        true
+    );
 });
 
 test('result verifier rejects incoherent agent trajectories and generic label-free answers', () => {

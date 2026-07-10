@@ -223,7 +223,21 @@ const SECURITY_BLOCK_REPLY = [
 function getFinancialAgentMode() {
     const mode = normalizeText(process.env.FINANCIAL_AGENT_MODE || 'off');
     if (mode === 'enforce') return 'answer';
-    return ['off', 'shadow', 'answer'].includes(mode) ? mode : 'off';
+    return ['off', 'shadow', 'answer', 'canary'].includes(mode) ? mode : 'off';
+}
+
+function financialAgentCanaryUserIds(env = process.env) {
+    return new Set(
+        String(env.FINANCIAL_AGENT_CANARY_USER_IDS || '')
+            .split(/[\s,;]+/)
+            .map(value => String(value || '').trim())
+            .filter(Boolean)
+    );
+}
+
+function isFinancialAgentCanaryUserAllowed(userId = '', env = process.env) {
+    const normalizedUserId = String(userId || '').trim();
+    return Boolean(normalizedUserId) && financialAgentCanaryUserIds(env).has(normalizedUserId);
 }
 
 function buildFinancialAgentPersonByUserId(userIds = [], users = [], activeUser = {}) {
@@ -323,7 +337,7 @@ function buildFinancialAgentMigrationGapTelemetry(result = {}) {
 }
 function shouldUseFinancialAgentAnswerInMode(mode = 'off', result = {}, env = process.env) {
     const normalizedMode = normalizeText(mode || 'off');
-    if (normalizedMode === 'answer') {
+    if (normalizedMode === 'answer' || normalizedMode === 'canary') {
         return shouldUseFinancialAgentAnswer(result);
     }
 
@@ -10593,7 +10607,10 @@ async function handleMessage(msg) {
                         logger.info(`[routing] financial_scope_resolved scope=${resolvedScope.scope} selected=${analyticalUserIds.length}`);
                         let financialAgentResultForFallback = null;
                         const financialAgentMode = getFinancialAgentMode();
-                        if (financialAgentMode !== 'off') {
+                        const financialAgentCanaryAllowed = financialAgentMode !== 'canary' ||
+                            isFinancialAgentCanaryUserAllowed(activeUser?.user_id);
+                        const financialAgentExecutionMode = financialAgentMode === 'canary' ? 'answer' : financialAgentMode;
+                        if (financialAgentMode !== 'off' && financialAgentCanaryAllowed) {
                             try {
                                 await timeStep(
                                     'financialAgent.syncReadModel',
@@ -10608,7 +10625,7 @@ async function handleMessage(msg) {
                                         personByUserId: buildFinancialAgentPersonByUserId(analyticalUserIds, usersForScope, activeUser),
                                         financialQueryPlan: effectiveIntentClassification.financialQueryPlan || null,
                                         currentDate: getFormattedDateOnly(),
-                                        mode: financialAgentMode
+                                        mode: financialAgentExecutionMode
                                     }),
                                     perfContext
                                 );
@@ -11015,6 +11032,8 @@ module.exports = {
         parseBatchInstallmentReply,
         shouldRequireConfirmationForStructuredWrite,
         getFinancialAgentMode,
+        financialAgentCanaryUserIds,
+        isFinancialAgentCanaryUserAllowed,
         isFinancialAgentShadowRecentAnswerEnabled,
         isFinancialAgentFullLogEnabled,
         buildFinancialAgentFullLogPayload,
