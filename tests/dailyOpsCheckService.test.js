@@ -98,6 +98,46 @@ test('daily ops check accepts explicitly approved financial agent answer and LLM
     assert.match(flags.detail, /planner_approved=true/);
 });
 
+test('daily ops check rejects financial agent canary without approval or the authorized couple', () => {
+    const report = buildDailyOpsCheckReport(healthyInput({
+        env: {
+            DASHBOARD_ADMIN_ALL_USERS_ENABLED: 'false',
+            FINANCIAL_AGENT_MODE: 'canary',
+            FINANCIAL_AGENT_ANSWER_APPROVED: 'false',
+            FINANCIAL_AGENT_CANARY_USER_IDS: 'member-a',
+            FINANCIAL_AGENT_LLM_PLANNER_ENABLED: 'true',
+            FINANCIAL_AGENT_LLM_PLANNER_APPROVED: 'true',
+            FAMILY_MODE_ENABLED: 'false',
+            INTERPRETATION_RELIABILITY_MODE: 'shadow'
+        }
+    }));
+
+    assert.strictEqual(report.status, 'critical');
+    assert.ok(report.issues.some(issue => issue.includes('sem aprovacao explicita')));
+    assert.ok(report.issues.some(issue => issue.includes('exatamente 2 usuarios autorizados')));
+});
+
+test('daily ops check accepts approved financial agent canary for two users without logging ids', () => {
+    const report = buildDailyOpsCheckReport(healthyInput({
+        env: {
+            DASHBOARD_ADMIN_ALL_USERS_ENABLED: 'false',
+            FINANCIAL_AGENT_MODE: 'canary',
+            FINANCIAL_AGENT_ANSWER_APPROVED: 'true',
+            FINANCIAL_AGENT_CANARY_USER_IDS: 'private-member-a,private-member-b',
+            FINANCIAL_AGENT_LLM_PLANNER_ENABLED: 'true',
+            FINANCIAL_AGENT_LLM_PLANNER_APPROVED: 'true',
+            FAMILY_MODE_ENABLED: 'false',
+            INTERPRETATION_RELIABILITY_MODE: 'shadow'
+        }
+    }));
+
+    assert.strictEqual(report.status, 'ok');
+    const flags = report.checks.find(check => check.name === 'Flags seguras');
+    assert.match(flags.detail, /agent=canary/);
+    assert.match(flags.detail, /agent_canary_users=2/);
+    assert.doesNotMatch(flags.detail, /private-member/);
+});
+
 test('daily ops check accepts explicitly approved narrow interpretation enforce canary', () => {
     const report = buildDailyOpsCheckReport(healthyInput({
         env: {

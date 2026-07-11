@@ -29,6 +29,7 @@ const {
     buildPlannerPrompt,
     isLlmPlannerEnabled,
     normalizePlannerPlan,
+    planWithGemini,
     __test__: plannerTest
 } = require('../src/agent/financialAgentPlanner');
 const { __test__: messageHandlerTest } = require('../src/handlers/messageHandler');
@@ -3049,6 +3050,135 @@ test('financial agent canary requires an explicitly allowlisted user and preserv
         }),
         true
     );
+    assert.strictEqual(
+        messageHandlerTest.shouldUseFinancialAgentAnswerInMode('canary', {
+            action: 'answer',
+            verified: { ok: false }
+        }),
+        false
+    );
+    assert.strictEqual(messageHandlerTest.shouldUseAnalyticalLegacyFallback({
+        financialAgentMode: 'canary',
+        agentResult: null
+    }), true);
+});
+
+test('financial agent planner treats model timeout as a safe planner miss', async () => {
+    plannerTest.setStructuredResponseOverrideForTest(async () => {
+        const error = new Error('simulated planner timeout');
+        error.code = 'TIMEOUT';
+        throw error;
+    });
+    try {
+        const result = await planWithGemini({
+            message: 'quanto gastei este mes?',
+            env: { FINANCIAL_AGENT_LLM_PLANNER_ENABLED: 'true' },
+            referenceDate: '2026-07-11'
+        });
+        assert.strictEqual(result, null);
+    } finally {
+        plannerTest.setStructuredResponseOverrideForTest(null);
+    }
+});
+
+test('financial agent runtime reload applies and rolls back canary config atomically', () => {
+    const {
+        applyFinancialAgentRuntimeConfig,
+        readFinancialAgentRuntimeConfig,
+        registerFinancialAgentRuntimeReload
+    } = require('../src/config/financialAgentRuntimeConfig');
+    const env = {
+        FINANCIAL_AGENT_MODE: 'answer',
+        FINANCIAL_AGENT_CANARY_USER_IDS: ''
+    };
+
+    const applied = applyFinancialAgentRuntimeConfig({
+        env,
+        config: {
+            FINANCIAL_AGENT_MODE: 'canary',
+            FINANCIAL_AGENT_CANARY_USER_IDS: ' member-a; member-b;member-a '
+        }
+    });
+    assert.deepStrictEqual(applied, {
+        applied: true,
+        mode: 'canary',
+        allowlistedUserCount: 2
+    });
+    assert.strictEqual(env.FINANCIAL_AGENT_MODE, 'canary');
+    assert.strictEqual(env.FINANCIAL_AGENT_CANARY_USER_IDS, 'member-a,member-b');
+
+    const rejected = applyFinancialAgentRuntimeConfig({
+        env,
+        config: {
+            FINANCIAL_AGENT_MODE: 'canary',
+            FINANCIAL_AGENT_CANARY_USER_IDS: 'member-a'
+        }
+    });
+    assert.deepStrictEqual(rejected, {
+        applied: false,
+        reason: 'authorized_couple_required'
+    });
+    assert.strictEqual(env.FINANCIAL_AGENT_MODE, 'canary');
+    assert.strictEqual(env.FINANCIAL_AGENT_CANARY_USER_IDS, 'member-a,member-b');
+
+    const rolledBack = applyFinancialAgentRuntimeConfig({
+        env,
+        config: { FINANCIAL_AGENT_MODE: 'answer' }
+    });
+    assert.deepStrictEqual(rolledBack, {
+        applied: true,
+        mode: 'answer',
+        allowlistedUserCount: 0
+    });
+    assert.strictEqual(env.FINANCIAL_AGENT_MODE, 'answer');
+    assert.strictEqual(env.FINANCIAL_AGENT_CANARY_USER_IDS, '');
+
+    const parsed = readFinancialAgentRuntimeConfig({
+        readFileSync: () => Buffer.from('FINANCIAL_AGENT_MODE=canary\nFINANCIAL_AGENT_CANARY_USER_IDS=member-a,member-b\nGEMINI_API_KEY=private')
+    });
+    assert.deepStrictEqual(parsed, {
+        FINANCIAL_AGENT_MODE: 'canary',
+        FINANCIAL_AGENT_CANARY_USER_IDS: 'member-a,member-b'
+    });
+
+    const handlers = [];
+    const info = [];
+    const processRef = {
+        env: { FINANCIAL_AGENT_MODE: 'answer', FINANCIAL_AGENT_CANARY_USER_IDS: '' },
+        on: (signal, handler) => handlers.push({ signal, handler })
+    };
+    assert.strictEqual(registerFinancialAgentRuntimeReload({
+        processRef,
+        logger: { info: message => info.push(message), warn: () => {} },
+        readRuntimeConfig: () => ({
+            FINANCIAL_AGENT_MODE: 'canary',
+            FINANCIAL_AGENT_CANARY_USER_IDS: 'private-member-a,private-member-b'
+        })
+    }), true);
+    handlers[0].handler();
+    assert.strictEqual(processRef.env.FINANCIAL_AGENT_MODE, 'canary');
+    assert.match(info[0], /allowlisted_users=2/);
+    assert.doesNotMatch(info[0], /private-member/);
+
+    const failedHandlers = [];
+    const warnings = [];
+    const failedProcessRef = {
+        env: {
+            FINANCIAL_AGENT_MODE: 'canary',
+            FINANCIAL_AGENT_CANARY_USER_IDS: 'member-a,member-b'
+        },
+        on: (signal, handler) => failedHandlers.push({ signal, handler })
+    };
+    registerFinancialAgentRuntimeReload({
+        processRef: failedProcessRef,
+        logger: { info: () => {}, warn: message => warnings.push(message) },
+        readRuntimeConfig: () => { throw new Error('simulated read failure'); }
+    });
+    failedHandlers[0].handler();
+    assert.strictEqual(failedProcessRef.env.FINANCIAL_AGENT_MODE, 'canary');
+    assert.strictEqual(failedProcessRef.env.FINANCIAL_AGENT_CANARY_USER_IDS, 'member-a,member-b');
+    assert.strictEqual(warnings.length, 1);
+    assert.doesNotMatch(warnings[0], /member-a|member-b/);
 });
 
 test('result verifier rejects incoherent agent trajectories and generic label-free answers', () => {

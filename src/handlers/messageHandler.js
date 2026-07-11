@@ -10189,6 +10189,15 @@ async function handleMessage(msg) {
                 if (handledFinancialCommandRoute) return;
             }
 
+            if (!structuredResponse && !wasAudioMessage) {
+                structuredResponse = detectLocalTransactionIntent(messageBody);
+                if (structuredResponse) {
+                    structuredResponseSource = 'deterministic';
+                    metrics.increment('message.transaction.fast_path');
+                    logger.info(`[routing] fast_path intent=${routedIntentPublicLabel(structuredResponse)} sender=${senderId}`);
+                }
+            }
+
             if (!structuredResponse && shouldSkipAiForUnknownMessage(messageBody)) {
                 structuredResponse = { intent: 'desconhecido' };
                 structuredResponseSource = 'deterministic';

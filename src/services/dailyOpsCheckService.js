@@ -67,6 +67,12 @@ function evaluateFlags(env = {}) {
     const dashboardAllUsers = normalizeFlag(env.DASHBOARD_ADMIN_ALL_USERS_ENABLED || 'false');
     const financialAgentMode = normalizeFlag(env.FINANCIAL_AGENT_MODE || 'off');
     const financialAgentAnswerApproved = normalizeFlag(env.FINANCIAL_AGENT_ANSWER_APPROVED || 'false');
+    const financialAgentCanaryUserIds = [...new Set(
+        String(env.FINANCIAL_AGENT_CANARY_USER_IDS || '')
+            .split(/[\s,;]+/)
+            .map(userId => userId.trim())
+            .filter(Boolean)
+    )];
     const plannerEnabled = normalizeFlag(env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED || 'false');
     const plannerApproved = normalizeFlag(env.FINANCIAL_AGENT_LLM_PLANNER_APPROVED || 'false');
     const recentAnswerEnabled = normalizeFlag(env.FINANCIAL_AGENT_SHADOW_RECENT_ANSWER_ENABLED || 'false');
@@ -84,8 +90,11 @@ function evaluateFlags(env = {}) {
     );
 
     if (dashboardAllUsers === 'true') issues.push('DASHBOARD_ADMIN_ALL_USERS_ENABLED=true');
-    if ((financialAgentMode === 'answer' || financialAgentMode === 'enforce') && financialAgentAnswerApproved !== 'true') {
+    if (['answer', 'enforce', 'canary'].includes(financialAgentMode) && financialAgentAnswerApproved !== 'true') {
         issues.push(`FINANCIAL_AGENT_MODE=${financialAgentMode} sem aprovacao explicita`);
+    }
+    if (financialAgentMode === 'canary' && financialAgentCanaryUserIds.length !== 2) {
+        issues.push(`FINANCIAL_AGENT_MODE=canary requer exatamente 2 usuarios autorizados (atual=${financialAgentCanaryUserIds.length})`);
     }
     if (plannerEnabled === 'true' && plannerApproved !== 'true') {
         issues.push('FINANCIAL_AGENT_LLM_PLANNER_ENABLED=true sem aprovacao explicita');
@@ -100,6 +109,7 @@ function evaluateFlags(env = {}) {
 
     details.push(`agent=${financialAgentMode || 'off'}`);
     details.push(`agent_answer_approved=${financialAgentAnswerApproved || 'false'}`);
+    details.push(`agent_canary_users=${financialAgentCanaryUserIds.length}`);
     details.push(`planner=${plannerEnabled || 'false'}`);
     details.push(`planner_approved=${plannerApproved || 'false'}`);
     details.push(`recent_answer=${recentAnswerEnabled || 'false'}`);

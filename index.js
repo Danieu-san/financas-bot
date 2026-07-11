@@ -12,8 +12,10 @@ const { startDashboardServer } = require('./src/services/dashboardServer');
 const { backfillUnreadMessages } = require('./src/services/whatsappUnreadBackfillService');
 const logger = require('./src/utils/logger');
 const { registerFinancialCommandPlannerRuntimeReload } = require('./src/config/financialCommandPlannerRuntimeConfig');
+const { registerFinancialAgentRuntimeReload } = require('./src/config/financialAgentRuntimeConfig');
 
 registerFinancialCommandPlannerRuntimeReload({ logger });
+registerFinancialAgentRuntimeReload({ logger });
 
 async function startBot() {
     const startupUnixSeconds = Math.floor(Date.now() / 1000);

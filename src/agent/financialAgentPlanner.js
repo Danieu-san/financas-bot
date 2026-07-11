@@ -276,7 +276,12 @@ async function planWithGemini({ message = '', env = process.env, referenceDate =
     if (!isLlmPlannerEnabled(env)) return null;
     const planner = structuredResponseOverrideForTest || getStructuredResponseFromLLM;
     if (!structuredResponseOverrideForTest && typeof reserveModelCall === 'function' && !reserveModelCall('planner')?.allowed) return null;
-    const response = await planner(buildPlannerPrompt(message, { referenceDate }));
+    let response;
+    try {
+        response = await planner(buildPlannerPrompt(message, { referenceDate }));
+    } catch (error) {
+        return null;
+    }
     if (!response || response.error) return null;
     const allowedToolIds = selectedToolIds(selectRelevantFinancialAgentTools(message));
     return repairPlannerPlanForExplicitRelativeDate(normalizePlannerPlan(response, { allowedToolIds }), { message, referenceDate });

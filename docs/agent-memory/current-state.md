@@ -1,6 +1,24 @@
 # Estado atual do FinancasBot
 
-Atualizado em: 2026-07-10
+Atualizado em: 2026-07-11
+
+## 3F.1H - prontidao local do canario familiar - 2026-07-11
+
+- O canario read-only agora aceita exatamente os dois membros autorizados do
+  casal. Configuracao invalida e falha de leitura preservam atomicamente a
+  configuracao anterior, sem expor identificadores em logs.
+- `SIGHUP` recarrega modo e allowlist sem reiniciar o processo; o mesmo caminho
+  permite rollback para `answer` sem migracao de dados.
+- Timeout/erro do planejador retorna ao caminho seguro. O fallback deterministico
+  geral de transacoes foi restaurado depois do Command Planner, preservando a
+  prioridade da rota explicita de cartao e evitando regressao em PIX, reserva,
+  transferencia e demais escritas existentes.
+- Evidencia local: maquina de estados `99/99`, testes focados finais `85/85`,
+  suite completa `741/741`, auditoria high sem vulnerabilidades e diff check
+  limpo.
+- Decisao atual: `NO-GO` para concluir 3F.1H. Faltam publicar, implantar, provar
+  troca/rollback por `SIGHUP` no EC2 e executar o E2E real pelo WhatsApp com
+  paridade do dashboard, follow-up, cancelamento, saude, logs e custo.
 
 ## Correcao de status da Fase 3 - 2026-07-10
 
