@@ -48,7 +48,7 @@ execucao e nao podem ser marcados como verdes com esta evidencia.
 | 44. Faltante das metas | `goals/explain`, verificado, nenhum item | Inconclusivo | fonte/dados |
 | 45. Dividas proximas | `debts/list`, verificado, nenhum item | Verde se base estiver vazia | fonte/dados |
 | 46. Vence amanha | `bills/list`, verificado, nenhum item | Verde se nao houver vencimento | fonte/dados |
-| 47. Aluguel pago | Detectou aluguel pago e realizado de R$ 932,97, mas respondeu `Aluguel: R$ 0,00` | Vermelho | composer |
+| 47. Aluguel pago | Detectou aluguel pago e realizado de R$ [redigido], mas respondeu `Aluguel: R$ [redigido]` | Vermelho | composer |
 
 Achado `SB9-001`: metas vazias nao provam que a capacidade funciona com metas
 reais. A capacidade foi fechada com fixture controlada: meta familiar visivel
@@ -67,10 +67,10 @@ inventados.
 
 | Caso | Resultado shadow | Status | Classe |
 | --- | --- | --- | --- |
-| 48. Alimentacao | `expenses/sum`, verificado, R$ 154,73 | Verde com ressalva temporal | planner/engine |
+| 48. Alimentacao | `expenses/sum`, verificado, R$ [redigido] | Verde com ressalva temporal | planner/engine |
 | 49. Ultimo lancamento | Caiu em `clarify/planner_gap` | Vermelho | robustez do planner |
-| 50. Entradas do mes | `income/sum`, verificado, R$ 14.171,38 | Verde com ressalva temporal | planner/engine |
-| 51. Gastos do cartao | `cards/detail`, verificado, R$ 229,34 | Verde com ressalva de dados | planner/engine |
+| 50. Entradas do mes | `income/sum`, verificado, R$ [redigido] | Verde com ressalva temporal | planner/engine |
+| 51. Gastos do cartao | `cards/detail`, verificado, R$ [redigido] | Verde com ressalva de dados | planner/engine |
 
 Achado `SB10-001`: `ultim lancameto` nao foi reconhecido como consulta de
 transacao recente. Correcao implementada com tolerancia generica por token,
@@ -78,7 +78,7 @@ distancia de edicao e similaridade. Tres variacoes independentes passaram sem
 Gemini e sem cadastrar frases completas.
 
 Achado `SB10-002`: um item de cartao ainda possui descricao contaminada com
-texto de roteamento (`nubank thais em`). O agente apenas refletiu o dado; a
+texto de roteamento (`cartao do membro B em`). O agente apenas refletiu o dado; a
 origem estava no parser local de escrita. A limpeza agora remove genericamente
 o sufixo de roteamento de cartao e parcelas para novas escritas, inclusive com
 nomes arbitrarios de cartao. A linha antiga de teste nao foi reescrita; deve ser

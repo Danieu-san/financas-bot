@@ -336,11 +336,13 @@ de planilha inteira, ferramentas completas ou rodadas abertas.
 Gate G: `GO` somente com relatorio reproduzivel. Falha gera ajuste de contrato,
 catalogo, ferramenta ou verificador, nao remendo de frase isolada.
 
-#### 3F.1H - Canario Daniel e E2E
+#### 3F.1H - Canario familiar restrito e E2E
 
 1. Colocar a rota candidata atras de flag read-only com rollback por uma
    alteracao, sem reiniciar ou migrar dados.
-2. Liberar somente Daniel e manter Thais/baseline fora do canario.
+2. Liberar somente os dois membros autorizados do casal e manter qualquer
+   usuario externo no baseline/fluxo fechado. Esta variacao do canario
+   individual foi aprovada porque o produto sera restrito ao casal.
 3. Executar pelo WhatsApp o caminho completo: pergunta real, bot no EC2,
    planejamento, ferramenta, SQLite/read-model, verificacao e resposta.
 4. Para perguntas representadas no dashboard atual, comparar o mesmo usuario,

@@ -2,8 +2,8 @@
 
 ## Decision
 
-Gate G is `GO` locally. Gate H remains `NO-GO`: it still requires an explicit
-read-only deployment decision, Daniel-only canary allowlist, and manual
+Gate G is `GO` locally. Gate 3F.1H remains `NO-GO`: it still requires an explicit
+read-only deployment decision, authorized-couple canary allowlist, and manual
 WhatsApp E2E.
 
 ## Scope and Safety
@@ -60,7 +60,7 @@ WhatsApp E2E.
 - Cost telemetry remains measured while the legacy-reduction gate emits only
   sanitized unit names in its public report.
 
-## Next Gate
+## Next Gate 3F.1H 3F.1H
 
-Gate H requires an explicit read-only deployment decision, Daniel-only canary
+Gate 3F.1H requires an explicit read-only deployment decision, authorized-couple canary
 allowlist, and manual WhatsApp E2E. None of those actions were performed here.

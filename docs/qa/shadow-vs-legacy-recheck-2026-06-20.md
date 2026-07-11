@@ -103,10 +103,10 @@ Na bateria manual com `FINANCIAL_AGENT_LOG_FULL=true`, os logs do agente em shad
 
 Entretanto, as perguntas analiticas do bloco 6 revelaram um bloqueador para ativar `FINANCIAL_AGENT_MODE=answer` em dominios de gastos/cartoes:
 
-- O agente em shadow respondeu `quanto gastei hoje?` com `R$ 91,03`, mas os cartões do dia foram contados como se os mesmos lançamentos existissem em varios cartões.
-- O agente em shadow respondeu `quanto gastei esse mes?` com `R$ 13.485,23`, usando `cards=R$ 907,40`, enquanto a resposta visivel/legado mostrava `cards=R$ 229,34`.
-- Em `e no cartão?`, o agente agrupou os mesmos itens em `Cartão Atacadão`, `Cartão Nubank - Cristina`, `Cartão Nubank - Daniel` e `Cartão Nubank - Thais`, todos com o mesmo total, sinal de duplicacao na fonte/read-model do agente.
-- Em `qual foi meu último gasto?`, a resposta visivel foi aceitavel, mas o `toolResult` interno marcou o item como `Cartão Atacadão` apesar de o teste ter sido lançado no Nubank Daniel. Isso confirma que a fonte usada por `list_recent_transactions` tambem sofre com alias/remapeamento indevido de cartões.
+- O agente em shadow respondeu `quanto gastei hoje?` com `R$ [redigido]`, mas os cartões do dia foram contados como se os mesmos lançamentos existissem em varios cartões.
+- O agente em shadow respondeu `quanto gastei esse mes?` com `R$ [redigido]`, usando `cards=R$ [redigido]`, enquanto a resposta visivel/legado mostrava `cards=R$ [redigido]`.
+- Em `e no cartão?`, o agente agrupou os mesmos itens em `cartao legado A`, `cartao legado C`, `cartao do membro A` e `cartao do membro B`, todos com o mesmo total, sinal de duplicacao na fonte/read-model do agente.
+- Em `qual foi meu último gasto?`, a resposta visivel foi aceitavel, mas o `toolResult` interno marcou o item como `cartao legado A` apesar de o teste ter sido lançado no cartao do membro A. Isso confirma que a fonte usada por `list_recent_transactions` tambem sofre com alias/remapeamento indevido de cartões.
 
 Causa provável:
 
@@ -129,9 +129,9 @@ Status da correcao local:
 Evidencia concluida apos deploy:
 
 - Commit final da correcao: `19ce78c`.
-- `quanto gastei hoje?`: shadow/agente `R$ 31,09`, `transaction_date`, `verified=true`.
-- `quanto gastei esse mes?`: shadow/agente `R$ 12.807,17`, com `Saidas=R$ 12.577,83` e `Cartoes=R$ 229,34`, `verified=true`.
-- `e no cartao?`: shadow/agente `R$ 229,34`, 9 lancamentos, sem multiplicacao por abas legadas e com os dois gastos identicos de `R$ 2,49` preservados em cartoes distintos.
+- `quanto gastei hoje?`: shadow/agente `R$ [redigido]`, `transaction_date`, `verified=true`.
+- `quanto gastei esse mes?`: shadow/agente `R$ [redigido]`, com `Saidas=R$ [redigido]` e `Cartoes=R$ [redigido]`, `verified=true`.
+- `e no cartao?`: shadow/agente `R$ [redigido]`, 9 lancamentos, sem multiplicacao por abas legadas e com os dois gastos identicos de `R$ [redigido]` preservados em cartoes distintos.
 - `maior/menor gasto`: composer especifico ativo, sem fallback generico, `verified=true`.
 - `ultimo gasto` e `data do ultimo lancamento`: fonte canonica, cartao correto e resposta focada na data.
 

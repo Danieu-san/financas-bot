@@ -28,10 +28,10 @@ RED cases reproduced:
 
 GREEN coverage verifies:
 
-- Daniel - Nubank: R$ 262,85;
-- Daniel - Nubank Caixinha: R$ 1.264,91;
-- Thais - Nubank: R$ 0,00;
-- Thais - Itau: R$ 133,46;
+- conta corrente do membro A: R$ [redigido];
+- conta-reserva do membro A: R$ [redigido];
+- conta corrente do membro B: R$ [redigido];
+- segunda conta do membro B: R$ [redigido];
 - total and named-account responses;
 - disabled canary and unknown-account fail-closed behavior;
 - card queries remain outside the account route;
@@ -68,8 +68,8 @@ Commit `f928094` passed the remote focused tests and was deployed with the exist
 
 - total account balance fell into the legacy monthly balance response;
 - caixinha fell into the legacy reserve-transfer response;
-- Daniel - Nubank and Thais - Itau were interpreted as card invoices;
-- the explicit Nubank Thais card question correctly remained on the card route.
+- conta corrente do membro A and segunda conta do membro B were interpreted as card invoices;
+- the explicit member B card question correctly remained on the card route.
 
 Root cause: `classifyPerguntaLocally` ran the legacy analytical inference before the request reached the Financial Agent, so a valid canonical `accounts` plan was never produced. The corrective change creates that plan at the upstream classification boundary for current financial-account balance questions, while explicitly excluding card, credit and invoice wording.
 
@@ -98,11 +98,11 @@ Commit `3b5e0f0` was deployed with all preserved flags unchanged. Remote focused
 
 The five-question WhatsApp smoke passed:
 
-1. Daniel account total: R$ 1.527,76, with both accounts itemized;
-2. Nubank Caixinha: R$ 1.264,91;
-3. Daniel - Nubank: R$ 262,85, without including the caixinha;
-4. Thais - Itau: R$ 133,46 under family scope;
-5. Nubank Thais card: R$ 737,12 and still routed to `cards`.
+1. Daniel account total: R$ [redigido], with both accounts itemized;
+2. Nubank Caixinha: R$ [redigido];
+3. conta corrente do membro A: R$ [redigido], without including the caixinha;
+4. segunda conta do membro B: R$ [redigido] under family scope;
+5. member B card: R$ [redigido] and still routed to `cards`.
 
 Sanitized production logs confirmed `source=canonical` and `verified=true` for all four account queries, with no legacy fallback. The card guard remained `domain=cards` and verified.
 
@@ -141,6 +141,6 @@ Remote evidence:
 - Focused tests: `node --test tests/unit.test.js tests/readModelSqlite.test.js tests/dashboardApiContracts.test.js` passed 203/203.
 - PM2/WhatsApp/health/state: online, ready, `{"ok":true,"sqlite":true}`, and valid empty `state_store.json`.
 - Marker-only gate: `TESTE_APAGAR_ACCOUNT_MOVEMENTS_202607041656` returned `decision=GO`, privacy OK and cleanup zero.
-- Dashboard/read-model production validation: after loading production `.env` and rebuilding the read-model, `/dashboard` data exposed 4 sanitized financial accounts, total R$ 1.661,22, and no `user_id`, account id, source hash or idempotency leak.
+- Dashboard/read-model production validation: after loading production `.env` and rebuilding the read-model, `/dashboard` data exposed 4 sanitized financial accounts, total R$ [redigido], and no `user_id`, account id, source hash or idempotency leak.
 
 Decision: production `GO` for the cross-surface account/movement parity extension. This closes the planned evidence gap between canonical ledger, Sheets-derived read-model and dashboard surfaces for current Phase 2 account movements. It does not authorize legacy removal, Phase 3, or broader ungated canonical-primary answers.

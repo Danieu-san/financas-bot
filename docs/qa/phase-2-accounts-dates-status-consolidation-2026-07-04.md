@@ -36,7 +36,7 @@ Nao entram neste gate:
 | Status de saldo | Teste RED/GREEN impediu transferencia `pending` de mover saldo atual | GO |
 | Movimentos marker-only | Runner `runCanonicalLedgerAccountMovementsGate.js` cobriu gasto, entrada, transferencia settled e transferencia pending, com cleanup | GO |
 | Contrato `Conta Financeira` | Headers aditivos em `Saidas`/`Entradas`; projector usa conta explicita e nao confunde `PIX`/`Debito`/`Dinheiro` com conta | GO |
-| Captura gasto/entrada | Smoke produtivo R$ 7,41/R$ 7,42 pediu conta, gravou coluna, projetou no ledger e foi limpo | GO |
+| Captura gasto/entrada | Smoke produtivo R$ [redigido]/R$ [redigido] pediu conta, gravou coluna, projetou no ledger e foi limpo | GO |
 | Captura transferencia | Smoke produtivo de caixinha concluida e transferencia familiar pendente/cancelada preservou origem, destino, data, status, neutralidade e cleanup | GO |
 
 ## Baseline apos limpeza
@@ -44,10 +44,10 @@ Nao entram neste gate:
 Depois da limpeza dos marcadores de gasto/entrada/transferencia, os saldos
 canario voltaram ao baseline:
 
-- Daniel - Nubank: R$ 262,85
-- Daniel - Nubank Caixinha: R$ 1.264,91
-- Thais - Nubank: R$ 0,00
-- Thais - Itau: R$ 133,46
+- conta corrente do membro A: R$ [redigido]
+- conta-reserva do membro A: R$ [redigido]
+- conta corrente do membro B: R$ [redigido]
+- segunda conta do membro B: R$ [redigido]
 
 Backups relevantes:
 
