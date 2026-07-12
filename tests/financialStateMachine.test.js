@@ -3640,6 +3640,15 @@ stateMachineTest('financial states: statement import asks account type before sa
     assert.strictEqual(sheets.Saídas.length, 2);
     assert.strictEqual(sheets.Saídas[1][1], 'Mercado Guanabara');
     assert.strictEqual(sheets[CARD_SHEETS[0]].length, 1);
+
+    await sendMedia(csv);
+    const repeatedPreview = await send('1');
+    assert.match(repeatedPreview, /\[Duplicado\]/);
+    assert.match(repeatedPreview, /será ignorado/);
+
+    const repeatedDone = await send('sim');
+    assert.match(repeatedDone, /0 lançamento\(s\) foram salvos/);
+    assert.strictEqual(sheets.Saídas.length, 2);
 });
 
 stateMachineTest('financial states: family statement import asks owner and stores rows under selected member', async () => {

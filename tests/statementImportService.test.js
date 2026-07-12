@@ -362,9 +362,12 @@ test('statement import marks duplicates already in the sheet or repeated in the 
     });
 
     assert.strictEqual(annotated[0].duplicate, true);
+    assert.strictEqual(annotated[0].reconciliationStatus, 'matched');
     assert.strictEqual(annotated[0].duplicateReason, 'já existe na planilha');
     assert.strictEqual(annotated[1].duplicate, undefined);
+    assert.strictEqual(annotated[1].reconciliationStatus, 'new');
     assert.strictEqual(annotated[2].duplicate, true);
+    assert.strictEqual(annotated[2].reconciliationStatus, 'matched');
     assert.strictEqual(annotated[2].duplicateReason, 'repetido no arquivo');
 
     const preview = buildImportPreviewMessage(annotated);
@@ -393,8 +396,8 @@ test('statement import rejects exact duplicate purchases across family users and
             cartao: 'Cartão Nubank - Daniel'
         }
     ], existingRowsByType);
-    assert.strictEqual(danielCard[0].duplicate, true);
-    assert.strictEqual(danielCard[0].duplicateReason, 'já existe na planilha');
+    assert.strictEqual(danielCard[0].duplicate, undefined);
+    assert.strictEqual(danielCard[0].reconciliationStatus, 'possible_duplicate');
 
     const thaisDifferentCard = annotateImportDuplicates([
         {
@@ -404,8 +407,8 @@ test('statement import rejects exact duplicate purchases across family users and
             cartao: 'Cartão Itaú - Thais'
         }
     ], existingRowsByType);
-    assert.strictEqual(thaisDifferentCard[0].duplicate, true);
-    assert.strictEqual(thaisDifferentCard[0].duplicateReason, 'já existe na planilha');
+    assert.strictEqual(thaisDifferentCard[0].duplicate, undefined);
+    assert.strictEqual(thaisDifferentCard[0].reconciliationStatus, 'possible_duplicate');
 
     const thaisSameCard = annotateImportDuplicates([
         {
@@ -416,6 +419,7 @@ test('statement import rejects exact duplicate purchases across family users and
         }
     ], existingRowsByType);
     assert.strictEqual(thaisSameCard[0].duplicate, true);
+    assert.strictEqual(thaisSameCard[0].reconciliationStatus, 'matched');
     assert.strictEqual(thaisSameCard[0].duplicateReason, 'já existe na planilha');
 });
 
@@ -433,10 +437,12 @@ test('statement import rejects exact checking-account duplicates across family u
 
     const danielImport = annotateImportDuplicates([{ ...transaction, userId: 'user-daniel' }], existingRowsByType);
     assert.strictEqual(danielImport[0].duplicate, true);
+    assert.strictEqual(danielImport[0].reconciliationStatus, 'matched');
     assert.strictEqual(danielImport[0].duplicateReason, 'já existe na planilha');
 
     const thaisImport = annotateImportDuplicates([{ ...transaction, userId: 'user-thais' }], existingRowsByType);
     assert.strictEqual(thaisImport[0].duplicate, true);
+    assert.strictEqual(thaisImport[0].reconciliationStatus, 'matched');
     assert.strictEqual(thaisImport[0].duplicateReason, 'já existe na planilha');
 });
 
@@ -456,12 +462,34 @@ test('statement import warns about possible duplicates by same type date and val
 
     assert.strictEqual(annotated[0].duplicate, undefined);
     assert.strictEqual(annotated[0].possibleDuplicate, true);
+    assert.strictEqual(annotated[0].reconciliationStatus, 'possible_duplicate');
     assert.match(annotated[0].possibleDuplicateReason, /material para reforma da casa/i);
 
     const preview = buildImportPreviewMessage(annotated);
     assert.match(preview, /Novos que serão importados: 1/);
     assert.match(preview, /Alertas de possível duplicidade: 1/);
     assert.match(preview, /será importado se você confirmar/);
+});
+
+test('statement reconciliation classifies new and incomplete rows explicitly', () => {
+    const [newTransaction] = parseCsvTransactions([
+        'Data;Descrição;Valor;Tipo',
+        '25/05/2026;Farmácia Central;-18,90;Débito'
+    ].join('\n'));
+
+    const [classifiedNew, classifiedUncertain] = annotateImportDuplicates([
+        newTransaction,
+        { ...newTransaction, data: '' }
+    ]);
+
+    assert.strictEqual(classifiedNew.reconciliationStatus, 'new');
+    assert.strictEqual(classifiedNew.reconciliationRule, 'no_candidate');
+    assert.strictEqual(classifiedUncertain.reconciliationStatus, 'uncertain');
+    assert.strictEqual(classifiedUncertain.reconciliationRule, 'missing_required_field');
+    const preview = buildImportPreviewMessage([classifiedNew, classifiedUncertain]);
+    assert.match(preview, /\[Incerto\]/);
+    assert.match(preview, /Itens incertos: 1/);
+    assert.match(preview, /somente se você confirmar/);
 });
 
 test('statement import detects repeated incoming transfer and can classify it as salary', () => {

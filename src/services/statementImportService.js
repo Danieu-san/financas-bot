@@ -664,12 +664,24 @@ function normalizeDescriptionKey(value = '') {
         .slice(0, 140);
 }
 
+function normalizeFinancialScopeKey(item = {}) {
+    if (item.type === 'Cartão') {
+        return normalizeDescriptionKey(
+            item.cardInfo?.sheetName || item.cartao || item.cardId || ''
+        );
+    }
+    return normalizeDescriptionKey(
+        item.contaFinanceira || item.financialAccount || item.conta || ''
+    );
+}
+
 function buildImportDuplicateKey(item = {}) {
     return [
         item.type || '',
         normalizeDateKey(item.data),
         valueToCents(item.valor),
-        normalizeDescriptionKey(item.descricao)
+        normalizeDescriptionKey(item.descricao),
+        normalizeFinancialScopeKey(item)
     ].join('|');
 }
 
@@ -743,12 +755,32 @@ function buildExistingPossibleDuplicateIndex(existingRowsByType = {}) {
     return index;
 }
 
+function hasRequiredReconciliationFields(item = {}) {
+    const value = typeof item.valor === 'number' ? item.valor : parseValue(item.valor);
+    return Boolean(
+        item.type &&
+        normalizeDateKey(item.data) &&
+        normalizeDescriptionKey(item.descricao) &&
+        Number.isFinite(Number(value)) &&
+        Number(value) !== 0
+    );
+}
+
 function annotateImportDuplicates(transactions = [], existingRowsByType = {}) {
     const existingKeys = buildExistingDuplicateKeys(existingRowsByType);
     const existingPossibleDuplicates = buildExistingPossibleDuplicateIndex(existingRowsByType);
     const batchKeys = new Set();
 
     return transactions.map((item) => {
+        if (!hasRequiredReconciliationFields(item)) {
+            return {
+                ...item,
+                reconciliationStatus: 'uncertain',
+                reconciliationRule: 'missing_required_field',
+                reconciliationReason: 'faltam dados para comparação determinística'
+            };
+        }
+
         const key = buildImportDuplicateKey(item);
         const duplicateInSpreadsheet = existingKeys.has(key);
         const duplicateInFile = batchKeys.has(key);
@@ -760,17 +792,33 @@ function annotateImportDuplicates(transactions = [], existingRowsByType = {}) {
                 duplicate: true,
                 duplicateReason: duplicateInSpreadsheet
                     ? 'já existe na planilha'
-                    : 'repetido no arquivo'
+                    : 'repetido no arquivo',
+                reconciliationStatus: 'matched',
+                reconciliationRule: duplicateInSpreadsheet
+                    ? 'exact_existing'
+                    : 'exact_batch',
+                reconciliationReason: duplicateInSpreadsheet
+                    ? 'data, valor, tipo, descrição e conta/cartão coincidem'
+                    : 'linha idêntica repetida no mesmo arquivo'
             };
         }
 
         const possibleDuplicate = existingPossibleDuplicates.get(buildImportPossibleDuplicateKey(item));
-        if (!possibleDuplicate) return item;
+        if (!possibleDuplicate) {
+            return {
+                ...item,
+                reconciliationStatus: 'new',
+                reconciliationRule: 'no_candidate'
+            };
+        }
 
         return {
             ...item,
             possibleDuplicate: true,
-            possibleDuplicateReason: `mesma data e valor de "${possibleDuplicate.descricao}"`
+            possibleDuplicateReason: `mesma data e valor de "${possibleDuplicate.descricao}"`,
+            reconciliationStatus: 'possible_duplicate',
+            reconciliationRule: 'same_type_date_value',
+            reconciliationReason: 'há candidato com o mesmo tipo, data e valor, mas sem correspondência exata'
         };
     });
 }
@@ -964,6 +1012,7 @@ function buildRecurringBillSuggestionMessage(candidate = {}) {
 function transactionLabel(item) {
     if (item.duplicate) return 'Duplicado';
     if (item.possibleDuplicate) return 'Possível duplicado';
+    if (item.reconciliationStatus === 'uncertain') return 'Incerto';
     if (item.type === 'Entradas') return 'Entrada';
     if (item.type === 'Transferências') return 'Transferência';
     if (item.type === 'Cartão') return 'Cartão';
@@ -975,9 +1024,12 @@ function formatPreviewLine(item, index) {
     const possibleDuplicateSuffix = !item.duplicate && item.possibleDuplicate
         ? ` | atenção: ${item.possibleDuplicateReason}; será importado se você confirmar`
         : '';
+    const uncertainSuffix = item.reconciliationStatus === 'uncertain'
+        ? ` | atenção: ${item.reconciliationReason}; será importado somente se você confirmar`
+        : '';
     const dateLabel = item.data || 'data pendente';
     const billingSuffix = item.type === 'Cartão' && item.mesCobranca ? ` | Fatura: ${item.mesCobranca}` : '';
-    return `${index + 1}. [${transactionLabel(item)}] ${dateLabel} | ${item.descricao} | R$ ${formatMoney(item.valor)} | ${item.categoria || item.status || 'Outros'}${billingSuffix}${duplicateSuffix}${possibleDuplicateSuffix}`;
+    return `${index + 1}. [${transactionLabel(item)}] ${dateLabel} | ${item.descricao} | R$ ${formatMoney(item.valor)} | ${item.categoria || item.status || 'Outros'}${billingSuffix}${duplicateSuffix}${possibleDuplicateSuffix}${uncertainSuffix}`;
 }
 
 function buildImportSummary(transactions = []) {
@@ -987,6 +1039,7 @@ function buildImportSummary(transactions = []) {
     const transferencias = transactions.filter(item => item.type === 'Transferências');
     const duplicados = transactions.filter(item => item.duplicate);
     const possiveisDuplicados = transactions.filter(item => item.possibleDuplicate && !item.duplicate);
+    const incertos = transactions.filter(item => item.reconciliationStatus === 'uncertain');
     const importaveis = transactions.filter(item => !item.duplicate);
     const totalEntradas = entradas.reduce((sum, item) => sum + Number(item.valor || 0), 0);
     const totalSaidas = saidas.reduce((sum, item) => sum + Number(item.valor || 0), 0);
@@ -1006,6 +1059,9 @@ function buildImportSummary(transactions = []) {
     }
     if (possiveisDuplicados.length > 0) {
         summary.push(`Alertas de possível duplicidade: ${possiveisDuplicados.length} (confira; serão importados se você confirmar)`);
+    }
+    if (incertos.length > 0) {
+        summary.push(`Itens incertos: ${incertos.length} (só serão importados após sua confirmação)`);
     }
     return summary;
 }

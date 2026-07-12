@@ -2,6 +2,20 @@
 
 Atualizado em: 2026-07-11
 
+## 3G - primeira fatia local - 2026-07-11
+
+- O reconciliador offline agora classifica cada linha como `matched`, `new`,
+  `possible_duplicate` ou `uncertain`, com regra e motivo auditáveis no objeto
+  de preview.
+- Matching exato considera tipo, data, valor, descrição normalizada e, quando
+  aplicável, o cartão. Mesmo lançamento em cartão diferente gera alerta, não
+  descarte automático.
+- O preview destaca itens incertos e mantém a confirmação obrigatória.
+- Evidência local: serviço de importação `28/28`; fluxo completo filtrado provou
+  que reimportar o mesmo CSV salva zero novas linhas e não duplica a planilha.
+- 3G permanece em andamento. Próxima fatia: persistir links de reconciliação no
+  ledger shadow e executar a bateria adversarial antes de qualquer deploy.
+
 ## 3F.1H - GO de producao - 2026-07-11
 
 - O commit `67c8197` foi publicado, implantado e carregado no EC2 com o canario
