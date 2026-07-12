@@ -98,3 +98,35 @@ Failed:
 2. Repeat the real WhatsApp questions for both members.
 3. Compare dashboard-backed answers using the same member, period, criterion and
    value; audit sanitized logs and record the final `GO/NO-GO`.
+
+## Final Production Retest GO
+
+Commit `67c8197` was pushed, deployed and loaded with the restricted couple
+canary preserved and full financial debug logging disabled.
+
+### Evidence
+
+- Remote remediation tests: `265/265`.
+- PM2 online; dashboard/SQLite health passed; WhatsApp authenticated and ready.
+- Daniel dashboard explanation preserved June 2026 and the verified dashboard
+  components/criterion.
+- Daniel follow-up preserved the `available` metric and changed only the period
+  to May 2026.
+- Thais recent-expense route searched both `expense` and `card_expense`; the
+  three available latest rows happened to be card expenses.
+- Family food spending for June matched the independently executed public
+  read-model aggregate.
+- All four replies logged `verified=true`; personal/family scopes resolved to
+  one/two authorized members.
+- Retest log audit found no full debug payload, unredacted identifier or error.
+
+A standalone diagnostic lacked the PM2 spreadsheet context and temporarily
+refreshed the local read cache with empty rows. It did not write any source data.
+The official process was restarted immediately and rebuilt the read-model with
+data; integrity, health and WhatsApp readiness passed afterward.
+
+### Decision
+
+`GO` for 3F.1H and the final 3F.1 gate. No write promotion was performed.
+Next roadmap slice: `3G - Import reconciliation against manual entries`.
+Phase 3H remains pending and Phase 4 has not started.

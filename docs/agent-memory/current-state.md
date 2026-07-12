@@ -2,6 +2,25 @@
 
 Atualizado em: 2026-07-11
 
+## 3F.1H - GO de producao - 2026-07-11
+
+- O commit `67c8197` foi publicado, implantado e carregado no EC2 com o canario
+  restrito aos dois membros e `FINANCIAL_AGENT_LOG_FULL=false`.
+- Testes remotos da correcao: `265/265`. Evidencia local preservada: focados
+  `265/265`, suite completa `746/746`, audit high `0 vulnerabilities`.
+- O segundo E2E real passou: dashboard de junho manteve periodo, criterio e
+  componentes; follow-up de maio preservou a metrica de disponivel; gastos
+  recentes consultaram saidas e cartao; alimentacao familiar de junho retornou
+  o mesmo agregado verificado no read-model.
+- Logs do reteste: `verified=true` nas quatro respostas, escopos pessoal/familiar
+  corretos e nenhum debug completo, ID sem redacao ou erro operacional.
+- Um diagnostico isolado sem contexto de planilha atualizou o cache local vazio;
+  nenhuma fonte foi escrita. O processo oficial foi reiniciado, reconstruiu o
+  read-model com dados, passou integridade, saude e prontidao do WhatsApp.
+- Decisao: `GO` para 3F.1H e para o gate final 3F.1. Escrita permanece fora do
+  escopo. Proxima fatia: `3G - Reconciliacao de importacao contra lancamento
+  manual`; 3H continua pendente e a Fase 4 nao foi iniciada.
+
 ## 3F.1H - primeiro canario e correcao local - 2026-07-11
 
 - O commit `41e4b39` foi publicado e implantado. No EC2, canario para o casal,
