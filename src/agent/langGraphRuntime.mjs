@@ -838,9 +838,12 @@ function composeFinancialPlanAnswer(toolResult = {}) {
     return [periodLine, body, criteria].filter(Boolean).join('\n');
 }
 
-function composeDashboardAnswer(snapshot = {}) {
+function composeDashboardAnswer(snapshot = {}, queryPlan = {}) {
     const kpis = snapshot.kpis || {};
     return [
+        queryPlan.operation === 'compare'
+            ? 'Comparação WhatsApp x dashboard: os valores usam o mesmo snapshot financeiro e os mesmos critérios; não há diferença de cálculo esperada para este período. A apresentação pode mudar, mas os totais devem coincidir.'
+            : '',
         snapshot.period?.label ? `Periodo: ${snapshot.period.label}.` : '',
         'Resumo financeiro:',
         `- Entradas: ${moneyBR(kpis.entradas || 0)}`,
@@ -946,7 +949,10 @@ function composeDeterministicAnswer(state) {
         return { answer: composeFinancialPlanAnswer(result), action: 'answer' };
     }
     if (plan.tool === 'get_dashboard_snapshot') {
-        return { answer: composeDashboardAnswer(result.snapshot || {}), action: 'answer' };
+        return {
+            answer: composeDashboardAnswer(result.snapshot || {}, state.financialQueryPlan || {}),
+            action: 'answer'
+        };
     }
     if (plan.tool === 'explain_metric') {
         return { answer: composeMetricExplanation(result), action: 'answer' };

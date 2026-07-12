@@ -1634,6 +1634,28 @@ test('LangGraph financial agent treats negated dashboard navigation as metric ex
     assert.strictEqual(result.verified.ok, true);
 });
 
+test('LangGraph financial agent compares WhatsApp summary with dashboard using shared criteria', async () => {
+    syncAgentSnapshot();
+    const result = await invokeFinancialAgent({
+        message: 'o resumo do whatsapp bate com o dashboard?',
+        userIds: ['agent-daniel'],
+        currentDate: '20/06/2026',
+        financialQueryPlan: {
+            kind: 'financial_query',
+            domain: 'dashboard',
+            operation: 'compare',
+            filters: { period: { type: 'month', month: 5, year: 2026 } },
+            timeBasis: 'billing_month'
+        },
+        mode: 'answer'
+    });
+
+    assert.strictEqual(result.action, 'answer');
+    assert.strictEqual(result.plan.tool, 'get_dashboard_snapshot');
+    assert.strictEqual(result.verified.ok, true);
+    assert.match(result.answer, /mesmo snapshot financeiro.*mesmos critérios/i);
+});
+
 test('LangGraph keeps a trusted dashboard plan ahead of account keyword heuristics', async () => {
     syncAgentSnapshot();
 

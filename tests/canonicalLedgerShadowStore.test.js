@@ -231,6 +231,100 @@ test('canonical ledger shadow store persists projection only when enabled and re
     restored.close();
 });
 
+test('phase 3H combined replay preserves settled recurrence history and avoids duplicate financial effects', () => {
+    const { dbPath } = tempDbPath();
+    const runId = 'PHASE3H_COMBINED_REPLAY';
+    const initialInput = structuredClone(fixture);
+    initialInput.projectionContext = {
+        competenceMonth: '2026-06',
+        materializeCompetenceMonths: ['2026-06', '2026-07']
+    };
+
+    const buildCombinedProjection = input => {
+        const projected = projectLegacyRowsToCanonicalLedger(input);
+        return {
+            runId,
+            projected,
+            publicProjection: buildCanonicalPublicProjection(projected, input),
+            report: {
+                report_type: 'phase_3h_combined_gate',
+                schema_version: 'canonical-ledger-v1',
+                synthetic_fixture_only: true
+            }
+        };
+    };
+    const occurrence = (store, month) => {
+        const row = store.db.prepare(`
+            SELECT occurrence_json
+            FROM canonical_ledger_recurrence_occurrences
+            WHERE run_id = ? AND competence_month = ?
+        `).get(runId, month);
+        return row ? JSON.parse(row.occurrence_json) : null;
+    };
+
+    const initialProjection = buildCombinedProjection(initialInput);
+    const store = new CanonicalLedgerShadowStore({ dbPath, writesEnabled: true });
+    store.persistProjection(initialProjection);
+    const initialCounts = store.countRows(runId);
+    const settledBefore = occurrence(store, '2026-06');
+    assert.deepStrictEqual({
+        status: settledBefore.status,
+        dueOn: settledBefore.due_on,
+        amountCents: settledBefore.amount_cents
+    }, {
+        status: 'settled',
+        dueOn: '2026-06-10',
+        amountCents: 12000
+    });
+    store.close();
+
+    const replayStore = new CanonicalLedgerShadowStore({ dbPath, writesEnabled: true });
+    replayStore.persistProjection(initialProjection);
+    assert.deepStrictEqual(replayStore.countRows(runId), initialCounts);
+    replayStore.close();
+
+    const editedInput = structuredClone(initialInput);
+    editedInput.legacyRows.contas[0].dia_vencimento = '20';
+    editedInput.legacyRows.contas[0].valor_esperado = '180,00';
+    const editedProjection = buildCombinedProjection(editedInput);
+    const editedStore = new CanonicalLedgerShadowStore({ dbPath, writesEnabled: true });
+    editedStore.persistProjection(editedProjection);
+
+    const settledAfter = occurrence(editedStore, '2026-06');
+    const futureAfter = occurrence(editedStore, '2026-07');
+    assert.deepStrictEqual({
+        status: settledAfter.status,
+        dueOn: settledAfter.due_on,
+        amountCents: settledAfter.amount_cents
+    }, {
+        status: 'settled',
+        dueOn: '2026-06-10',
+        amountCents: 12000
+    });
+    assert.deepStrictEqual({
+        status: futureAfter.status,
+        dueOn: futureAfter.due_on,
+        amountCents: futureAfter.amount_cents
+    }, {
+        status: 'pending',
+        dueOn: '2026-07-20',
+        amountCents: 18000
+    });
+
+    const invoices = editedStore.listInvoiceAggregates({ reportType: 'phase_3h_combined_gate' });
+    assert.strictEqual(invoices.length, 1);
+    assert.strictEqual(invoices[0].payment_count, 1);
+    assert.strictEqual(invoices[0].status, 'paid');
+    const importLinks = editedStore.db.prepare(`
+        SELECT COUNT(1) AS count
+        FROM canonical_ledger_reconciliation_links
+        WHERE run_id = ? AND link_type = 'import_match'
+    `).get(runId).count;
+    assert.strictEqual(importLinks, 1);
+    assert.deepStrictEqual(editedStore.countRows(runId), initialCounts);
+    editedStore.close();
+});
+
 test('canonical ledger dry-run writes SQLite shadow only with explicit opt-in', () => {
     const { dir, dbPath } = tempDbPath();
     const reportDir = path.join(dir, 'dry-run-report');

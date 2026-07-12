@@ -6325,5 +6325,11 @@ test('dashboard follow-up preserves available metric and changes only the reques
     assert.strictEqual(comparison.intent, 'dashboard_comparacao');
     assert.strictEqual(comparison.metric, 'dashboard_compare');
 
+    const crossSurfaceParity = classifyPerguntaLocally('o resumo do whatsapp bate com o dashboard?');
+    assert.strictEqual(crossSurfaceParity.intent, 'dashboard_comparacao');
+    assert.strictEqual(crossSurfaceParity.financialQueryPlan.domain, 'dashboard');
+    assert.strictEqual(crossSurfaceParity.financialQueryPlan.operation, 'compare');
+    assert.strictEqual(crossSurfaceParity.financialQueryPlan.timeBasis, 'billing_month');
+
     clearAnalyticalContextForTests();
 });

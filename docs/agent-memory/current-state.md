@@ -1241,3 +1241,18 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Daniel answered `nao`; the bot returned `Pagamento de fatura cancelado. Nenhum dado foi salvo.` No production write or cleanup was required.
 - Decision: production `GO` for Phase 3 slice 3A. Gemini Planner remains active, `INTERPRETATION_RELIABILITY_MODE=shadow`, and no rollout flag changed.
 - Roadmap next slice: `3B - linked invoices and items`, completing the auditable invoice aggregate and its links to card items and payoff before recurrence and installment expansion. Legacy removal remains Phase 8.
+
+## Regra operacional permanente de custo Chat/Codex - 2026-07-12
+
+- Antes de iniciar tarefa nova, classificar explicitamente
+  `superficie -> modelo -> esforco -> proxima tarefa` e lembrar a ultima
+  configuracao indicada.
+- Enviar primeiro ao Chat auditorias, comparacoes de planos, pesquisas,
+  revisoes documentais e analises que nao dependam de editar o repositorio.
+- Informar ao usuario o prompt completo, o modelo e o esforco do Chat; aguardar
+  a resposta antes de continuar no Codex.
+- Usar Codex para leitura critica do repositorio, implementacao, testes, GitHub
+  e producao. Escolher o menor esforco suficiente e interromper para troca se
+  a tarefa mudar de nivel, inclusive durante a execucao.
+- Nao usar Extra alto ou Ultra por padrao. Esses niveis exigem justificativa
+  concreta depois de esgotar Chat e esforcos menores.

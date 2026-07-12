@@ -105,6 +105,12 @@ class CanonicalLedgerShadowStore {
         if (!runId) throw new Error('runId is required to persist canonical ledger shadow projection.');
         this.applyMigrations();
 
+        const settledRecurrenceHistory = new Map(this.db.prepare(`
+            SELECT recurrence_occurrence_id, occurrence_json
+            FROM canonical_ledger_recurrence_occurrences
+            WHERE run_id = ? AND status = 'settled'
+        `).all(runId).map(row => [row.recurrence_occurrence_id, JSON.parse(row.occurrence_json)]));
+
         const now = new Date().toISOString();
         const write = this.db.transaction(() => {
             this.deleteRun(runId);
@@ -127,7 +133,28 @@ class CanonicalLedgerShadowStore {
             for (const item of projected.invoiceItems || []) this.insertInvoiceItem(runId, item);
             for (const payment of projected.invoicePayments || []) this.insertInvoicePayment(runId, payment);
             for (const rule of projected.recurrenceRules || []) this.insertRecurrenceRule(runId, rule);
-            for (const occurrence of projected.recurrenceOccurrences || []) this.insertRecurrenceOccurrence(runId, occurrence);
+
+            const projectedEventIds = new Set((projected.events || []).map(event => event.event_id));
+            const projectedRuleIds = new Set((projected.recurrenceRules || []).map(rule => rule.recurrence_rule_id));
+            const occurrencesById = new Map((projected.recurrenceOccurrences || []).map(occurrence => [
+                occurrence.recurrence_occurrence_id,
+                occurrence
+            ]));
+            for (const [occurrenceId, historical] of settledRecurrenceHistory) {
+                if (!projectedRuleIds.has(historical.recurrence_rule_id)) continue;
+                occurrencesById.set(occurrenceId, {
+                    ...historical,
+                    occurrence_event_id: projectedEventIds.has(historical.occurrence_event_id)
+                        ? historical.occurrence_event_id
+                        : null,
+                    settled_event_id: projectedEventIds.has(historical.settled_event_id)
+                        ? historical.settled_event_id
+                        : null
+                });
+            }
+            for (const occurrence of occurrencesById.values()) {
+                this.insertRecurrenceOccurrence(runId, occurrence);
+            }
             for (const line of projected.lines || []) this.insertLine(runId, line);
             for (const schedule of projected.schedules || []) this.insertSchedule(runId, schedule);
             for (const link of projected.reconciliationLinks || []) this.insertReconciliationLink(runId, link);

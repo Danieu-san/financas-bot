@@ -3922,8 +3922,11 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
             ...((hasCardSignal || hasInvoiceSignal || /\b(categoria|categorias|grafico|gráfico|mes|mês|mensal|familia|família|familiar)\b/.test(text)) ? { timeBasis: 'billing_month' } : {}),
             ...extra
         });
+        const asksCrossSurfaceParity = /\b(whatsapp|resumo|resposta)\b/.test(text) &&
+            /\b(bate|batem|confere|conferem|igual|iguais|diverge|divergem|diferente|diferença|diferenca)\b/.test(text);
         const wantsDashboardComparison = /\b(compare|comparar|comparacao|comparação)\b/.test(text) ||
             explicitDashboardMonthCount >= 2 ||
+            asksCrossSurfaceParity ||
             (explicitDashboardMonthCount >= 1 && /\b(bate|diferente|diferentes|diferença|diferenca)\b/.test(text));
         if (wantsDashboardComparison) {
             return { metric: 'dashboard_compare', intent: 'dashboard_comparacao', parameters: dashboardParams({ timeBasis: 'billing_month' }) };
