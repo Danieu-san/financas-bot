@@ -799,7 +799,8 @@ function annotateImportDuplicates(transactions = [], existingRowsByType = {}) {
                     : 'exact_batch',
                 reconciliationReason: duplicateInSpreadsheet
                     ? 'data, valor, tipo, descrição e conta/cartão coincidem'
-                    : 'linha idêntica repetida no mesmo arquivo'
+                    : 'linha idêntica repetida no mesmo arquivo',
+                reconciliationMatchKey: key
             };
         }
 
@@ -818,7 +819,8 @@ function annotateImportDuplicates(transactions = [], existingRowsByType = {}) {
             possibleDuplicateReason: `mesma data e valor de "${possibleDuplicate.descricao}"`,
             reconciliationStatus: 'possible_duplicate',
             reconciliationRule: 'same_type_date_value',
-            reconciliationReason: 'há candidato com o mesmo tipo, data e valor, mas sem correspondência exata'
+            reconciliationReason: 'há candidato com o mesmo tipo, data e valor, mas sem correspondência exata',
+            reconciliationMatchKey: buildImportPossibleDuplicateKey(item)
         };
     });
 }

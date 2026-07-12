@@ -597,3 +597,31 @@ test('statement import parses recurring bill classification replies', () => {
     const reminderOnly = parseRecurringBillClassificationReply('só lembrar');
     assert.strictEqual(reminderOnly.ruleActive, 'NÃO');
 });
+
+test('statement reconciliation shadow hashes private import data before persistence', () => {
+    const {
+        buildStatementReconciliationLinks
+    } = require('../src/ledger/statementReconciliationShadow');
+    const [link] = buildStatementReconciliationLinks({
+        userId: 'usuario-privado',
+        filename: 'extrato-privado.csv',
+        confirmedAt: '2026-07-12T10:00:00.000Z',
+        transactions: [{
+            type: 'Saídas',
+            data: '12/07/2026',
+            descricao: 'Mercado privado',
+            valor: 45.67,
+            reconciliationStatus: 'matched',
+            reconciliationRule: 'exact_existing',
+            reconciliationMatchKey: 'chave-privada-do-lançamento'
+        }]
+    });
+
+    assert.strictEqual(link.decisionStatus, 'matched');
+    assert.strictEqual(link.decisionRule, 'exact_existing');
+    assert.ok(link.matchedSourceHash);
+    assert.doesNotMatch(
+        JSON.stringify(link),
+        /usuario-privado|extrato-privado|Mercado privado|45\.67|chave-privada/i
+    );
+});

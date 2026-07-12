@@ -49,7 +49,7 @@ test('canonical ledger shadow store applies versioned schema and keeps writes di
     const store = new CanonicalLedgerShadowStore({ dbPath });
 
     const migrations = store.applyMigrations();
-    assert.deepStrictEqual(migrations.map(migration => migration.version), [1, 2, 3, 4, 5]);
+    assert.deepStrictEqual(migrations.map(migration => migration.version), [1, 2, 3, 4, 5, 6]);
     assert.strictEqual(DEFAULT_MIGRATIONS_DIR.endsWith(path.join('src', 'ledger', 'migrations')), true);
 
     const tables = store.listTables();
@@ -57,6 +57,7 @@ test('canonical ledger shadow store applies versioned schema and keeps writes di
     assert.ok(tables.includes('canonical_ledger_event_lines'));
     assert.ok(tables.includes('canonical_ledger_schedules'));
     assert.ok(tables.includes('canonical_ledger_reconciliation_links'));
+    assert.ok(tables.includes('canonical_ledger_statement_reconciliation_links'));
     assert.ok(tables.includes('canonical_ledger_public_projection'));
     assert.ok(tables.includes('canonical_ledger_accounts'));
     assert.ok(tables.includes('canonical_ledger_invoices'));
@@ -91,6 +92,31 @@ test('canonical ledger shadow store applies versioned schema and keeps writes di
         auditRows: 0
     });
 
+    store.close();
+});
+
+test('canonical ledger shadow stores statement reconciliation links idempotently', () => {
+    const { dbPath } = tempDbPath();
+    const store = new CanonicalLedgerShadowStore({ dbPath, writesEnabled: true });
+    const links = [{
+        linkId: 'stmtrec-test',
+        operationKeyHash: 'operation-hash',
+        actorHash: 'actor-hash',
+        sourceFileHash: 'file-hash',
+        transactionHash: 'transaction-hash',
+        matchedSourceHash: 'matched-hash',
+        decisionStatus: 'matched',
+        decisionRule: 'exact_existing',
+        confirmedAt: '2026-07-12T10:00:00.000Z'
+    }];
+
+    assert.strictEqual(store.persistStatementReconciliationLinks(links), 1);
+    assert.strictEqual(store.persistStatementReconciliationLinks(links), 1);
+    const stored = store.listStatementReconciliationLinks();
+    assert.strictEqual(stored.length, 1);
+    assert.strictEqual(stored[0].decision_status, 'matched');
+    assert.strictEqual(stored[0].matched_source_hash, 'matched-hash');
+    assert.deepStrictEqual(JSON.parse(stored[0].link_json), links[0]);
     store.close();
 });
 

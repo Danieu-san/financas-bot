@@ -63,6 +63,9 @@ const {
     transactionsNeedDateInput,
     unsupportedImportMessage
 } = require('../services/statementImportService');
+const {
+    safelyPersistConfirmedStatementReconciliations
+} = require('../ledger/statementReconciliationShadow');
 const { buildDashboardAccessLink } = require('../utils/dashboardAuth');
 const { buildGoogleConnectLink } = require('../services/googleOAuthService');
 const { sendWhatsAppMessage } = require('../services/whatsapp');
@@ -2457,7 +2460,7 @@ function buildImportedTransactionOperationKey(item = {}, index = 0, userId = '')
     });
 }
 
-async function saveImportedTransactions(transactions = [], { person, userId }) {
+async function saveImportedTransactions(transactions = [], { person, userId, filename = '' }) {
     let successCount = 0;
     for (const [index, item] of transactions.entries()) {
         if (item.duplicate) continue;
@@ -2490,6 +2493,14 @@ async function saveImportedTransactions(transactions = [], { person, userId }) {
         }
         successCount += 1;
     }
+    safelyPersistConfirmedStatementReconciliations({
+        transactions,
+        userId,
+        filename,
+        onWarning: warning => logger.warn(
+            `importacao: falha no shadow de conciliacao code=${warning.code}`
+        )
+    });
     return successCount;
 }
 
@@ -9910,12 +9921,14 @@ async function handleMessage(msg) {
                         person: importPerson,
                         userId: importUserId,
                         importKind,
-                        recurringBillCandidate
+                        recurringBillCandidate,
+                        filename
                     } = currentState.data || {};
                     try {
                         const successCount = await saveImportedTransactions(transactions || [], {
                             person: importPerson || pessoa,
-                            userId: importUserId || userId
+                            userId: importUserId || userId,
+                            filename
                         });
                         const doneMessage = `Importação concluída. ${successCount} lançamento(s) foram salvos na sua planilha.`;
                         if (successCount > 0 && importKind === 'checking' && recurringBillCandidate) {

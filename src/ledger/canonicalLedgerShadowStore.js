@@ -545,6 +545,56 @@ class CanonicalLedgerShadowStore {
             ORDER BY i.competence_month, i.card_key, i.invoice_id
         `).all(reportType, reportType, reportType, reportType, reportType, reportType);
     }
+
+    persistStatementReconciliationLinks(links = []) {
+        if (!this.writesEnabled) {
+            throw new Error('Canonical ledger shadow writes are disabled by default.');
+        }
+        this.applyMigrations();
+        const insert = this.db.prepare(`
+            INSERT INTO canonical_ledger_statement_reconciliation_links (
+                link_id, operation_key_hash, actor_hash, source_file_hash,
+                transaction_hash, matched_source_hash, decision_status,
+                decision_rule, confirmed_at, link_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(link_id) DO UPDATE SET
+                matched_source_hash = excluded.matched_source_hash,
+                decision_status = excluded.decision_status,
+                decision_rule = excluded.decision_rule,
+                confirmed_at = excluded.confirmed_at,
+                link_json = excluded.link_json
+        `);
+        const persist = this.db.transaction(() => {
+            for (const link of links) {
+                insert.run(
+                    link.linkId,
+                    link.operationKeyHash,
+                    link.actorHash,
+                    link.sourceFileHash,
+                    link.transactionHash,
+                    link.matchedSourceHash || null,
+                    link.decisionStatus,
+                    link.decisionRule,
+                    link.confirmedAt,
+                    JSON.stringify(link)
+                );
+            }
+        });
+        persist();
+        return links.length;
+    }
+
+    listStatementReconciliationLinks() {
+        this.applyMigrations();
+        return this.db.prepare(`
+            SELECT link_id, operation_key_hash, actor_hash, source_file_hash,
+                transaction_hash, matched_source_hash, decision_status,
+                decision_rule, confirmed_at, link_json
+            FROM canonical_ledger_statement_reconciliation_links
+            ORDER BY confirmed_at, link_id
+        `).all();
+    }
+
     backupTo(backupPath) {
         fs.mkdirSync(path.dirname(backupPath), { recursive: true });
         if (fs.existsSync(backupPath)) fs.unlinkSync(backupPath);
