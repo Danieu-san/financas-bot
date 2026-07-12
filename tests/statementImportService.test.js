@@ -471,6 +471,52 @@ test('statement import warns about possible duplicates by same type date and val
     assert.match(preview, /será importado se você confirmar/);
 });
 
+test('statement reconciliation applies conservative date description and amount tolerances', () => {
+    const existingRowsByType = {
+        'Saídas': [
+            ['10/07/2026', 'Mercado São José', 'Alimentação', 'SUPERMERCADO', '100,00']
+        ]
+    };
+    const base = {
+        type: 'Saídas',
+        data: '11/07/2026',
+        descricao: 'Mercado Sao Jose compra',
+        valor: 100
+    };
+
+    const [nearSimilar, tooFar, unrelated, differentAmount] = annotateImportDuplicates([
+        base,
+        { ...base, data: '13/07/2026' },
+        { ...base, descricao: 'Posto Avenida combustível' },
+        { ...base, valor: 100.01 }
+    ], existingRowsByType);
+
+    assert.strictEqual(nearSimilar.reconciliationStatus, 'possible_duplicate');
+    assert.strictEqual(
+        nearSimilar.reconciliationRule,
+        'near_date_same_value_similar_description'
+    );
+    assert.match(nearSimilar.possibleDuplicateReason, /data próxima/i);
+    assert.ok(nearSimilar.reconciliationMatchKey);
+
+    assert.strictEqual(tooFar.reconciliationStatus, 'new');
+    assert.strictEqual(unrelated.reconciliationStatus, 'new');
+    assert.strictEqual(differentAmount.reconciliationStatus, 'new');
+});
+
+test('statement reconciliation keeps same-day same-value candidates visible despite different descriptions', () => {
+    const [annotated] = annotateImportDuplicates([{
+        type: 'Saídas', data: '10/07/2026', descricao: 'Loja diferente', valor: 100
+    }], {
+        'Saídas': [
+            ['10/07/2026', 'Mercado São José', 'Alimentação', 'SUPERMERCADO', '100,00']
+        ]
+    });
+
+    assert.strictEqual(annotated.reconciliationStatus, 'possible_duplicate');
+    assert.strictEqual(annotated.reconciliationRule, 'same_type_date_value');
+});
+
 test('statement reconciliation classifies new and incomplete rows explicitly', () => {
     const [newTransaction] = parseCsvTransactions([
         'Data;Descrição;Valor;Tipo',

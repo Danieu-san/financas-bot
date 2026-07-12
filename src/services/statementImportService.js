@@ -693,6 +693,48 @@ function buildImportPossibleDuplicateKey(item = {}) {
     ].join('|');
 }
 
+const RECONCILIATION_TOLERANCES = Object.freeze({
+    amountCents: 0,
+    nearbyDateDays: 2,
+    descriptionSimilarity: 0.6
+});
+
+function buildImportPossibleCandidateKey(item = {}) {
+    return [item.type || '', valueToCents(item.valor)].join('|');
+}
+
+function dateDistanceDays(left, right) {
+    const leftDate = parseSheetDate(left);
+    const rightDate = parseSheetDate(right);
+    if (!leftDate || !rightDate) return Number.POSITIVE_INFINITY;
+    const leftUtc = Date.UTC(leftDate.getFullYear(), leftDate.getMonth(), leftDate.getDate());
+    const rightUtc = Date.UTC(rightDate.getFullYear(), rightDate.getMonth(), rightDate.getDate());
+    return Math.abs(leftUtc - rightUtc) / 86400000;
+}
+
+function descriptionSimilarity(left, right) {
+    const leftTokens = new Set(normalizeDescriptionKey(left).split(' ').filter(Boolean));
+    const rightTokens = new Set(normalizeDescriptionKey(right).split(' ').filter(Boolean));
+    if (!leftTokens.size || !rightTokens.size) return 0;
+    const intersection = [...leftTokens].filter(token => rightTokens.has(token)).length;
+    const union = new Set([...leftTokens, ...rightTokens]).size;
+    return union ? intersection / union : 0;
+}
+
+function findPossibleDuplicate(item, candidates = []) {
+    return candidates
+        .map(candidate => ({
+            candidate,
+            dateDistance: dateDistanceDays(item.data, candidate.data),
+            similarity: descriptionSimilarity(item.descricao, candidate.descricao)
+        }))
+        .filter(match => match.dateDistance === 0 || (
+            match.dateDistance <= RECONCILIATION_TOLERANCES.nearbyDateDays &&
+            match.similarity >= RECONCILIATION_TOLERANCES.descriptionSimilarity
+        ))
+        .sort((left, right) => left.dateDistance - right.dateDistance || right.similarity - left.similarity)[0] || null;
+}
+
 function existingRowToTransaction(sheetName, row = []) {
     if (sheetName === 'Entradas') {
         return { type: 'Entradas', data: row[0], descricao: row[1], valor: row[3], userId: row[8] };
@@ -742,14 +784,16 @@ function buildExistingPossibleDuplicateIndex(existingRowsByType = {}) {
     for (const [sheetName, rows] of Object.entries(existingRowsByType || {})) {
         for (const row of rows || []) {
             const item = existingRowToTransaction(sheetName, row);
-            const key = buildImportPossibleDuplicateKey(item);
-            if (key && !index.has(key)) {
-                index.set(key, {
-                    descricao: item.descricao || 'lançamento existente',
-                    data: normalizeDateKey(item.data),
-                    valor: item.valor
-                });
-            }
+            const key = buildImportPossibleCandidateKey(item);
+            if (!key) continue;
+            const candidates = index.get(key) || [];
+            candidates.push({
+                ...item,
+                descricao: item.descricao || 'lançamento existente',
+                data: normalizeDateKey(item.data),
+                matchKey: buildImportDuplicateKey(item)
+            });
+            index.set(key, candidates);
         }
     }
     return index;
@@ -804,8 +848,11 @@ function annotateImportDuplicates(transactions = [], existingRowsByType = {}) {
             };
         }
 
-        const possibleDuplicate = existingPossibleDuplicates.get(buildImportPossibleDuplicateKey(item));
-        if (!possibleDuplicate) {
+        const possibleMatch = findPossibleDuplicate(
+            item,
+            existingPossibleDuplicates.get(buildImportPossibleCandidateKey(item)) || []
+        );
+        if (!possibleMatch) {
             return {
                 ...item,
                 reconciliationStatus: 'new',
@@ -813,14 +860,20 @@ function annotateImportDuplicates(transactions = [], existingRowsByType = {}) {
             };
         }
 
+        const { candidate: possibleDuplicate, dateDistance } = possibleMatch;
+        const nearbyDate = dateDistance > 0;
         return {
             ...item,
             possibleDuplicate: true,
-            possibleDuplicateReason: `mesma data e valor de "${possibleDuplicate.descricao}"`,
+            possibleDuplicateReason: nearbyDate
+                ? `data próxima, mesmo valor e descrição semelhante a "${possibleDuplicate.descricao}"`
+                : `mesma data e valor de "${possibleDuplicate.descricao}"`,
             reconciliationStatus: 'possible_duplicate',
-            reconciliationRule: 'same_type_date_value',
-            reconciliationReason: 'há candidato com o mesmo tipo, data e valor, mas sem correspondência exata',
-            reconciliationMatchKey: buildImportPossibleDuplicateKey(item)
+            reconciliationRule: nearbyDate
+                ? 'near_date_same_value_similar_description'
+                : 'same_type_date_value',
+            reconciliationReason: 'há candidato dentro das tolerâncias explícitas, mas sem correspondência exata',
+            reconciliationMatchKey: possibleDuplicate.matchKey
         };
     });
 }

@@ -1,6 +1,22 @@
 # Estado atual do FinancasBot
 
-Atualizado em: 2026-07-11
+Atualizado em: 2026-07-12
+
+## 3G - GO local - 2026-07-12
+
+- O reconciliador classifica `matched`, `new`, `possible_duplicate` e
+  `uncertain`, com preview obrigatório e descarte automático apenas de matches
+  exatos.
+- Matching exato usa tipo, data, centavos, descrição normalizada e conta/cartão.
+  Possível duplicidade aceita valor exato e até dois dias de diferença somente
+  com similaridade de descrição de pelo menos 60%.
+- Links confirmados são persistidos no ledger shadow apenas como hashes pela
+  migração `006`; falha do shadow não bloqueia a planilha.
+- Reimportação não duplica e o E2E existente já oferece confirmação, segunda
+  importação e limpeza marker-only.
+- Evidência local: reconciliador `31/31`, store + matching `33/33`, fluxo completo
+  filtrado `1/1`, privacidade verde, suíte completa `751/751` e diff check limpo.
+- Decisão: `GO` local. Faltam deploy, E2E real marker-only e GO/NO-GO de produção.
 
 ## 3G - primeira fatia local - 2026-07-11
 
