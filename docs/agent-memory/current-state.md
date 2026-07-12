@@ -2,6 +2,26 @@
 
 Atualizado em: 2026-07-12
 
+## 3G - GO de producao - 2026-07-12
+
+- Os commits `01605e1`, `f191172` e `7f5b820` foram publicados e implantados no
+  EC2. O hotfix `14b1fb7` encerra o estado de exclusao antes da resposta final,
+  removendo a corrida observada durante a limpeza manual.
+- Evidencia local: reconciliador `31/31`, maquina de estados `100/100`, suite
+  completa `751/751`, privacidade e diff check verdes.
+- Evidencia remota: reconciliador + store `36/36`; hotfix de exclusao `2/2`;
+  PM2 online, WhatsApp pronto e health `{"ok":true,"sqlite":true}`.
+- E2E manual marker-only pelo WhatsApp com
+  `TESTE_APAGAR_3G_MANUAL_20260712`: primeira importacao salvou uma saida e uma
+  entrada; segunda importacao exibiu zero novos e dois duplicados; confirmacao
+  salvou zero; ambos os registros foram removidos seletivamente.
+- Auditoria agregada do ledger shadow confirmou `new=2` e `matched=2`, sem ler
+  descricoes, valores ou identificadores. Flags de shadow permanecem aprovadas
+  e ativas; nenhuma flag de leitura, Gemini ou escrita principal foi ampliada.
+- Decisao: `GO` para 3G. A Fase 3 permanece aberta apenas para `3H - Gate de
+  saida da Fase 3`; a Fase 4 nao foi iniciada.
+
+
 ## 3G - GO local - 2026-07-12
 
 - O reconciliador classifica `matched`, `new`, `possible_duplicate` e
