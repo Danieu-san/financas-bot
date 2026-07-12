@@ -1,6 +1,10 @@
 const { normalizeText, parseValue } = require('../utils/helpers');
 
 const INTERNAL_PATTERN = /\b(user_id|sheet_id|spreadsheet|token|secret|oauth|prompt|raw rows?|owner_hash|agent-[a-z0-9_-]+)\b/i;
+const MONTH_INDEX = new Map([
+    'janeiro', 'fevereiro', 'marco', 'abril', 'maio', 'junho',
+    'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+].map((month, index) => [month, index]));
 const NUMERIC_RESULT_KEYS = new Set([
     'amount',
     'value',
@@ -281,6 +285,43 @@ function validateCountContract(answer, toolResult = {}) {
     return { ok: true };
 }
 
+function collectExpectedMonthlyPeriods(toolResult = {}) {
+    const periods = new Set();
+    visitResult(toolResult, (value) => {
+        if (!value || Array.isArray(value) || typeof value !== 'object') return;
+        const month = Number(value.month);
+        const year = Number(value.year);
+        if (Number.isInteger(month) && month >= 0 && month <= 11 && Number.isInteger(year)) {
+            periods.add(`${year}-${month}`);
+        }
+    });
+    return periods;
+}
+
+function extractMonthlyPeriodClaims(answer = '') {
+    const normalized = normalizeText(answer);
+    const pattern = /\b(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+de\s+(20\d{2})\b/g;
+    const claims = [];
+    let match;
+    while ((match = pattern.exec(normalized)) !== null) {
+        claims.push(`${Number(match[2])}-${MONTH_INDEX.get(match[1])}`);
+    }
+    return claims;
+}
+
+function validatePeriodLabelContract(answer, toolResult = {}) {
+    if (toolResult?.plan?.operation === 'compare' || toolResult?.plan?.operation === 'trend') {
+        return { ok: true };
+    }
+    const expected = collectExpectedMonthlyPeriods(toolResult);
+    const claims = extractMonthlyPeriodClaims(answer);
+    if (expected.size === 0 || claims.length === 0) return { ok: true };
+    if (claims.some(claim => !expected.has(claim))) {
+        return { ok: false, reason: 'period_label_mismatch' };
+    }
+    return { ok: true };
+}
+
 function extractCurrencyAmounts(answer) {
     const text = String(answer || '');
     const matches = text.match(/-?\s*(?:R\$\s*)?-?\d{1,3}(?:\.\d{3})*(?:,\d{2})|-?\s*\b\d+(?:,\d{2})\b/g) || [];
@@ -374,6 +415,7 @@ function verifyAgentAnswer(answer, { toolResult } = {}) {
     for (const validation of [
         validatePercentageContract(text, safeToolResult),
         validateCountContract(text, safeToolResult),
+        validatePeriodLabelContract(text, safeToolResult),
         validateLatestContract(text, safeToolResult),
         validateOrderedLabels(text, safeToolResult),
         validateAnswerCoverage(text, safeToolResult)
@@ -410,6 +452,9 @@ module.exports = {
         extractPercentages,
         extractCountClaims,
         extractAmountRelations,
+        extractMonthlyPeriodClaims,
+        collectExpectedMonthlyPeriods,
+        validatePeriodLabelContract,
         expectedOrderedLabels,
         validateAgentTrajectory,
         validateAnswerCoverage

@@ -2,6 +2,26 @@
 
 Atualizado em: 2026-07-11
 
+## 3F.1H - primeiro canario e correcao local - 2026-07-11
+
+- O commit `41e4b39` foi publicado e implantado. No EC2, canario para o casal,
+  rollback `canary -> answer -> canary` por `SIGHUP`, restart, saude, timeout,
+  follow-up sintetico, cancelamento e custo passaram; baterias remotas `85/85`
+  e `106/106`.
+- O primeiro E2E real encontrou quatro falhas analiticas sistemicas: ausencia de
+  rotulo humano para mes zero-based na composicao contextual, perda da metrica
+  no checkpoint, filtro estruturado convertido em `[object Object]` e gastos
+  recentes indevidamente restritos a cartao. O cancelamento sem escrita e o
+  acesso dos dois membros passaram.
+- A correcao local cobre contratos de periodo, follow-up, filtros escalares e
+  fontes de gastos recentes, sem remendo por frase.
+- Evidencia local atualizada: testes focados `265/265`, suite completa `746/746`,
+  auditoria high `0 vulnerabilities` e diff check limpo.
+- O debug financeiro detalhado foi desativado em producao; bot, dashboard e
+  SQLite permaneceram saudaveis.
+- Decisao atual: `NO-GO`. Falta publicar/implantar a correcao e repetir o E2E
+  real com paridade de dashboard e logs sanitizados.
+
 ## 3F.1H - prontidao local do canario familiar - 2026-07-11
 
 - O canario read-only agora aceita exatamente os dois membros autorizados do

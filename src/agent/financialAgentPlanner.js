@@ -123,6 +123,7 @@ function buildPlannerPrompt(message = '', { referenceDate = new Date() } = {}) {
         '- Interprete esta semana, este mes e do mes usando a data de referencia.',
         '- Em FinancialQueryPlan, period.month e zero-based: janeiro=0, fevereiro=1, ..., junho=5, dezembro=11.',
         '- Se a pergunta disser lancamento, movimento ou transacao sem restringir tipo, use todos os event_type publicos relevantes.',
+        '- Para ultimos gastos sem restricao explicita a cartao, use eventTypes expense e card_expense; conta ou cartao nao significa somente cartao.',
         '- Preserve a quantidade solicitada em limit e, quando o usuario nomear um cartao, preserve esse nome em card.',
         '- Dominios validos do FinancialQueryPlan: expenses, cards, income, transfers, budget, goals, debts, bills, forecast, accounts. Para gastos de cartao, use domain cards; para saldo de contas financeiras, caixinha ou reserva em conta, use domain accounts com timeBasis current_state. Para quanto ainda vai sair, receber, vencer ou compromissos futuros, use domain forecast com operation forecast/list/sum, timeBasis due_date e filters.type payable ou receivable quando aplicavel.',
         '- Para cartoes: se o usuario disser gastei, comprei, compras ou informar intervalo de datas, use timeBasis transaction_date e period {type:"date_range", from:"YYYY-MM-DD", to:"YYYY-MM-DD"}; use billing_month apenas para fatura, vencimento ou mes de cobranca.',
@@ -145,11 +146,31 @@ function normalizeEventTypes(eventTypes = []) {
     return normalized.length ? normalized : DEFAULT_EVENT_TYPES;
 }
 
+function unwrapPlannerFilterValue(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+    for (const key of ['value', 'name', 'label', 'category', 'text']) {
+        const candidate = value[key];
+        if (candidate !== undefined && candidate !== null && typeof candidate !== 'object') {
+            const normalized = String(candidate).trim();
+            if (normalized) return normalized;
+        }
+    }
+    return value;
+}
+
 function repairPlannerFinancialQueryPlan(plan = {}) {
     if (!plan || typeof plan !== 'object' || Array.isArray(plan)) return plan;
     const filters = plan.filters && typeof plan.filters === 'object' && !Array.isArray(plan.filters)
         ? { ...plan.filters }
         : plan.filters;
+    if (filters && typeof filters === 'object') {
+        for (const key of [
+            'member', 'category', 'subcategory', 'merchant', 'paymentMethod',
+            'card', 'goal', 'debt', 'status', 'type', 'source', 'recurrence', 'account'
+        ]) {
+            if (filters[key] !== undefined) filters[key] = unwrapPlannerFilterValue(filters[key]);
+        }
+    }
     const repaired = { ...plan, ...(filters ? { filters } : {}) };
     const domain = String(repaired.domain || '').trim().toLowerCase();
     const cardDomainAliases = new Set(['card_expense', 'card_expenses', 'credit_card', 'credit_cards']);
@@ -169,6 +190,22 @@ function repairPlannerFinancialQueryPlan(plan = {}) {
         }
     }
     return repaired;
+}
+
+function repairRecentExpenseTypes(plan, message = '') {
+    if (plan?.action !== 'tool' || plan?.tool !== 'list_recent_transactions') return plan;
+    const normalized = normalizeText(message);
+    const asksExpenses = /\b(gasto|gastos|compra|compras|saida|saidas|despesa|despesas)\b/.test(normalized);
+    if (!asksExpenses) return plan;
+    const explicitlyUnrestricted = /\b(independentemente|qualquer|todos os tipos|todas as formas|sem restringir)\b/.test(normalized) ||
+        /\b(conta|debito|pix|dinheiro)\b.*\b(cartao|credito)\b|\b(cartao|credito)\b.*\b(conta|debito|pix|dinheiro)\b/.test(normalized);
+    const explicitlyCardOnly = /\b(no|do|pelo|via)\s+(cartao|credito|fatura)\b/.test(normalized) && !explicitlyUnrestricted;
+    if (plan.args?.card && !explicitlyUnrestricted) return plan;
+    if (explicitlyCardOnly) return plan;
+    return {
+        ...plan,
+        args: { ...plan.args, eventTypes: ['expense', 'card_expense'] }
+    };
 }
 function normalizePlannerPlan(rawPlan = {}, { allowedToolIds = ALLOWED_AGENT_TOOLS } = {}) {
     const action = String(rawPlan?.action || '').trim();
@@ -284,7 +321,9 @@ async function planWithGemini({ message = '', env = process.env, referenceDate =
     }
     if (!response || response.error) return null;
     const allowedToolIds = selectedToolIds(selectRelevantFinancialAgentTools(message));
-    return repairPlannerPlanForExplicitRelativeDate(normalizePlannerPlan(response, { allowedToolIds }), { message, referenceDate });
+    const normalized = normalizePlannerPlan(response, { allowedToolIds });
+    const dateRepaired = repairPlannerPlanForExplicitRelativeDate(normalized, { message, referenceDate });
+    return repairRecentExpenseTypes(dateRepaired, message);
 }
 
 module.exports = {
@@ -297,6 +336,7 @@ module.exports = {
         explicitRelativeDateFromMessage,
         formatReferenceDate,
         normalizeEventTypes,
+        repairRecentExpenseTypes,
         repairPlannerPlanForExplicitRelativeDate,
         selectRelevantFinancialAgentTools,
         setStructuredResponseOverrideForTest: (override) => {

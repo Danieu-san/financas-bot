@@ -3288,3 +3288,93 @@ test('LangGraph cost telemetry reports bounded calls, approximate tokens and con
         latencyMs: 124
     });
 });
+
+test('planner repairs structured category filters and labels zero-based monthly periods', () => {
+    const plan = normalizePlannerPlan({
+        action: 'tool',
+        tool: 'query_financial_plan',
+        args: {
+            plan: {
+                kind: 'financial_query',
+                domain: 'expenses',
+                operation: 'sum',
+                filters: {
+                    period: { type: 'month', month: 5, year: 2026 },
+                    category: { value: 'Alimentação' }
+                },
+                timeBasis: 'transaction_date'
+            }
+        }
+    });
+
+    assert.strictEqual(plan.action, 'tool', JSON.stringify(plan));
+    assert.strictEqual(plan.args.plan.filters.category, 'Alimentação');
+    assert.strictEqual(plan.args.plan.filters.period.month, 5);
+    assert.strictEqual(plan.args.plan.filters.period.label, 'Junho de 2026');
+    assert.doesNotMatch(JSON.stringify(plan), /\[object Object\]/);
+});
+
+test('planner keeps unrestricted recent expenses across debit and card sources', async () => {
+    plannerTest.setStructuredResponseOverrideForTest(async () => ({
+        action: 'tool',
+        tool: 'list_recent_transactions',
+        args: { eventTypes: ['card_expense'], limit: 3 }
+    }));
+    try {
+        const plan = await planWithGemini({
+            message: 'Quais foram meus últimos 3 gastos, independentemente da conta ou cartão?',
+            env: { FINANCIAL_AGENT_LLM_PLANNER_ENABLED: 'true' },
+            referenceDate: '2026-07-11'
+        });
+
+        assert.strictEqual(plan.tool, 'list_recent_transactions');
+        assert.deepStrictEqual(plan.args.eventTypes, ['expense', 'card_expense']);
+        assert.strictEqual(plan.args.limit, 3);
+    } finally {
+        plannerTest.setStructuredResponseOverrideForTest(null);
+    }
+});
+
+test('result verifier rejects a human month that conflicts with the executed zero-based period', () => {
+    const toolResult = {
+        ok: true,
+        tool: 'query_financial_plan',
+        plan: {
+            domain: 'expenses',
+            operation: 'sum',
+            filters: {
+                period: { type: 'month', month: 4, year: 2026, label: 'Maio de 2026' }
+            },
+            timeBasis: 'transaction_date'
+        },
+        result: { value: 0, details: {} }
+    };
+
+    assert.deepStrictEqual(
+        verifyAgentAnswer('Os gastos para abril de 2026 foram zero.', { toolResult }),
+        { ok: false, reason: 'period_label_mismatch' }
+    );
+    assert.strictEqual(
+        verifyAgentAnswer('Em maio de 2026, não houve gastos.', { toolResult }).ok,
+        true
+    );
+});
+
+test('dashboard metric tool exposes a human period label to deterministic and contextual answers', async () => {
+    syncAgentSnapshot();
+    const result = await explainMetricTool({
+        metric: 'available',
+        userIds: ['agent-daniel'],
+        ownerUserId: 'agent-daniel',
+        month: 5,
+        year: 2026
+    });
+
+    assert.strictEqual(result.ok, true, JSON.stringify(result));
+    assert.deepStrictEqual(result.period, {
+        type: 'month',
+        month: 5,
+        year: 2026,
+        label: 'Junho de 2026'
+    });
+});

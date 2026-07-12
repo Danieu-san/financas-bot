@@ -112,6 +112,17 @@ const DEFAULT_TIME_BASIS_BY_DOMAIN = {
     calendar: 'due_date',
     accounts: 'current_state'
 };
+const MONTH_NAMES = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
+
+function labelMonthlyPeriod(period = {}) {
+    const month = Number(period.month);
+    const year = Number(period.year);
+    if (!Number.isInteger(month) || month < 0 || month > 11 || !Number.isInteger(year)) return { ...period };
+    return { ...period, type: period.type || 'month', label: `${MONTH_NAMES[month]} de ${year}` };
+}
 
 function normalizeEnum(value) {
     return normalizeText(String(value || '')).replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
@@ -159,7 +170,7 @@ function normalizePeriod(period) {
         }
         normalized.days = days;
     }
-    return normalized;
+    return labelMonthlyPeriod(normalized);
 }
 
 function normalizeFilters(filters = {}) {
@@ -188,7 +199,6 @@ function normalizeFilters(filters = {}) {
     [
         'member',
         'category',
-        'categories',
         'subcategory',
         'merchant',
         'paymentMethod',
@@ -201,7 +211,12 @@ function normalizeFilters(filters = {}) {
         'recurrence',
         'account'
     ].forEach((key) => {
-        if (filters[key] !== undefined) normalized[key] = String(filters[key]).trim();
+        if (filters[key] === undefined) return;
+        if (filters[key] !== null && typeof filters[key] === 'object') {
+            errors.push(`filters.${key} deve ser um valor simples`);
+            return;
+        }
+        normalized[key] = String(filters[key] ?? '').trim();
     });
 
     if (filters.categories !== undefined) {
@@ -382,6 +397,7 @@ function legacyIntentToQueryPlan(intent, parameters = {}) {
     };
     const dashboardFilters = {
         ...baseFilters,
+        ...(parameters.metric ? { type: parameters.metric } : {}),
         ...(parameters.timeBasis === 'budget_cycle' ? { period: { type: 'cycle', label: 'ciclo atual' } } : {})
     };
     const dashboardTimeBasis = parameters.timeBasis || 'transaction_date';
@@ -547,6 +563,7 @@ function legacyIntentToQueryPlan(intent, parameters = {}) {
 
 module.exports = {
     normalizeFinancialQueryPlan,
+    labelMonthlyPeriod,
     legacyIntentToQueryPlan,
     __test__: {
         ALLOWED_DOMAINS,

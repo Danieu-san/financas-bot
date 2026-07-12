@@ -3,7 +3,7 @@ const {
     queryFinancialEventsPublicRows,
     queryFinancialQueryDataSourcesSql
 } = require('../services/sqliteReadModelService');
-const { normalizeFinancialQueryPlan } = require('../query/financialQueryPlan');
+const { normalizeFinancialQueryPlan, labelMonthlyPeriod } = require('../query/financialQueryPlan');
 const { normalizeText, parseSheetDate } = require('../utils/helpers');
 const { executeFinancialQuery } = require('../query/financialQueryEngine');
 const { buildDashboardCriteria } = require('../services/dashboardSummaryService');
@@ -599,7 +599,7 @@ function sanitizePublicValue(value, depth = 0) {
 
 function sanitizeDashboardSnapshot(snapshot = {}) {
     return {
-        period: sanitizePublicValue(snapshot.period || {}),
+        period: sanitizePublicValue(labelMonthlyPeriod(snapshot.period || {})),
         kpis: sanitizePublicValue(snapshot.kpis || {}),
         topCategories: sanitizePublicValue(Array.isArray(snapshot.topCategories) ? snapshot.topCategories.slice(0, 10) : []),
         dailyFlow: sanitizePublicValue(Array.isArray(snapshot.dailyFlow) ? snapshot.dailyFlow.slice(-31) : []),
@@ -697,6 +697,7 @@ async function explainMetricTool({ metric, userIds = [], ownerUserId = '', month
         ok: true,
         tool: 'explain_metric',
         metric: normalizedMetric,
+        period: snapshot.period,
         components,
         criteria: snapshot.criteria?.[normalizedMetric] || buildDashboardCriteria()[normalizedMetric] || ''
     };

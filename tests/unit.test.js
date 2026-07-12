@@ -6280,3 +6280,50 @@ test('gemini classifies monthly spending cap as resource exhausted', () => {
 
     assert.strictEqual(parsed.code, 'RESOURCE_EXHAUSTED');
 });
+
+test('dashboard follow-up preserves available metric and changes only the requested month', () => {
+    const {
+        classifyPerguntaLocally,
+        storeAnalyticalContext,
+        getAnalyticalContext,
+        clearAnalyticalContextForTests
+    } = messageHandler.__test__;
+
+    clearAnalyticalContextForTests();
+    const initial = classifyPerguntaLocally(
+        'No dashboard, qual foi o valor disponível em junho de 2026 e como ele foi calculado?'
+    );
+    assert.strictEqual(initial.intent, 'dashboard_explicacao');
+    assert.strictEqual(initial.metric, 'dashboard_available_explain');
+    assert.strictEqual(initial.parameters.mes, 5);
+
+    storeAnalyticalContext('dashboard-follow-up', initial);
+    const context = getAnalyticalContext('dashboard-follow-up');
+    assert.strictEqual(context.metric, 'dashboard_available_explain');
+
+    const followUp = classifyPerguntaLocally('E em maio de 2026?', context);
+    assert.strictEqual(followUp.intent, 'dashboard_explicacao');
+    assert.strictEqual(followUp.parameters.mes, 4);
+    assert.strictEqual(followUp.parameters.ano, 2026);
+    assert.strictEqual(followUp.parameters.metric, 'available');
+    assert.strictEqual(followUp.financialQueryPlan.domain, 'dashboard');
+    assert.strictEqual(followUp.financialQueryPlan.operation, 'explain');
+    assert.strictEqual(followUp.financialQueryPlan.filters.type, 'available');
+    assert.strictEqual(followUp.financialQueryPlan.filters.period.month, 4);
+
+    const changedMetric = classifyPerguntaLocally('E por categoria?', context);
+    assert.strictEqual(changedMetric.intent, 'dashboard_explicacao');
+    assert.strictEqual(changedMetric.parameters.metric, 'categories');
+    assert.strictEqual(changedMetric.financialQueryPlan.filters.type, 'categories');
+
+    const balance = classifyPerguntaLocally('Qual foi o saldo no dashboard em junho de 2026?');
+    assert.strictEqual(balance.intent, 'dashboard_explicacao');
+    assert.strictEqual(balance.metric, 'dashboard_explain');
+    assert.strictEqual(balance.parameters.mes, 5);
+
+    const comparison = classifyPerguntaLocally('Compare o disponível de maio e junho de 2026 no dashboard');
+    assert.strictEqual(comparison.intent, 'dashboard_comparacao');
+    assert.strictEqual(comparison.metric, 'dashboard_compare');
+
+    clearAnalyticalContextForTests();
+});

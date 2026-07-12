@@ -456,7 +456,7 @@ async function planTurn(state) {
                         action: 'tool',
                         tool: 'explain_metric',
                         args: {
-                            metric: inferDashboardMetric(normalized),
+                            metric: state.financialQueryPlan.filters?.type || inferDashboardMetric(normalized),
                             month: state.financialQueryPlan.filters?.period?.month,
                             year: state.financialQueryPlan.filters?.period?.year
                         }
@@ -761,6 +761,7 @@ function composeFinancialPlanAnswer(toolResult = {}) {
     const value = result.value;
     const details = result.details || {};
     const title = domainLabel(plan.domain);
+    const periodLine = plan.filters?.period?.label ? `Periodo: ${plan.filters.period.label}.` : '';
     const criteria = plan.operation === 'recommend' ? '' : (details.criteria || value?.criteria || '');
 
     if (plan.domain === 'accounts') {
@@ -834,12 +835,13 @@ function composeFinancialPlanAnswer(toolResult = {}) {
     if (!body) {
         body = `Consegui analisar ${title}, mas o resultado precisa de uma apresentação mais específica.`;
     }
-    return [body, criteria].filter(Boolean).join('\n');
+    return [periodLine, body, criteria].filter(Boolean).join('\n');
 }
 
 function composeDashboardAnswer(snapshot = {}) {
     const kpis = snapshot.kpis || {};
     return [
+        snapshot.period?.label ? `Periodo: ${snapshot.period.label}.` : '',
         'Resumo financeiro:',
         `- Entradas: ${moneyBR(kpis.entradas || 0)}`,
         `- Saídas: ${moneyBR(kpis.saidas || 0)}`,
@@ -852,7 +854,9 @@ function composeDashboardAnswer(snapshot = {}) {
 }
 
 function composeMetricExplanation(result = {}) {
-    const lines = [`Explicação de ${result.metric || 'métrica'}:`];
+    const lines = [];
+    if (result.period?.label) lines.push(`Periodo: ${result.period.label}.`);
+    lines.push(`Explicação de ${result.metric || 'métrica'}:`);
     if (Array.isArray(result.components)) {
         lines.push(composeList(result.components, 'Componentes'));
     } else {

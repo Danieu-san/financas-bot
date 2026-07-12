@@ -3497,7 +3497,7 @@ function isInvoiceByCardQuestion(text) {
 
 function sanitizeAnalyticalParametersForContext(parameters = {}) {
     const safe = {};
-    ['mes', 'ano', 'categoria', 'cartao', 'origem', 'scope', 'member', 'status', 'source'].forEach((key) => {
+    ['mes', 'ano', 'categoria', 'cartao', 'origem', 'scope', 'member', 'status', 'source', 'metric'].forEach((key) => {
         if (parameters[key] !== undefined) safe[key] = parameters[key];
     });
     if (Array.isArray(parameters.categorias)) safe.categorias = parameters.categorias.slice(0, 5);
@@ -3528,7 +3528,7 @@ function storeAnalyticalContext(senderId, intentClassification = {}, meta = {}) 
         checkpointType: 'analytical_followup_v1',
         intent,
         parameters: sanitizeAnalyticalParametersForContext(intentClassification.parameters || {}),
-        metric: sanitizeAnalyticalMetric(meta.metric)
+        metric: sanitizeAnalyticalMetric(meta.metric || intentClassification.metric)
     }, ttlSeconds);
     analyticalContextKeysForTests.add(key);
 }
@@ -3587,6 +3587,33 @@ function deriveFollowUpAnalyticalQueryPlan(text, context) {
 
     const isIncomeContext = /entradas?|income/.test(normalizeText(context.intent));
     const isGoalContext = /\bmeta|metas|goal/.test(normalizeText(context.intent));
+    const isDashboardContext = /dashboard/.test(normalizeText(context.intent));
+    if (isDashboardContext) {
+        const explicitMetric = /\b(disponivel|caixinha|reserva)\b/.test(text)
+            ? 'available'
+            : /\b(categoria|categorias)\b/.test(text)
+                ? 'categories'
+                : /\b(orcamento|ritmo)\b/.test(text)
+                    ? 'budget'
+                    : /\b(recente|ultimo|lancamento|lancamentos)\b/.test(text)
+                        ? 'recentTransactions'
+                        : '';
+        const previousMetric = normalizeText(explicitMetric || context.metric || previousParams.metric || '');
+        const metric = previousMetric.includes('available') || previousMetric.includes('disponivel')
+            ? 'available'
+            : previousMetric.includes('categor')
+                ? 'categories'
+                : previousMetric.includes('budget') || previousMetric.includes('orcamento')
+                    ? 'budget'
+                    : previousMetric.includes('recent') || previousMetric.includes('lancamento')
+                        ? 'recentTransactions'
+                        : 'balance';
+        return {
+            metric: context.metric || 'dashboard_followup',
+            intent: 'dashboard_explicacao',
+            parameters: { ...inheritedParams, metric, timeBasis: previousParams.timeBasis || 'transaction_date' }
+        };
+    }
     if (isGoalContext && !hasCardSignal) {
         if (/\b(historico|histórico|movimentacao|movimentação|movimentacoes|movimentações)\b/.test(text)) {
             return { metric: 'goal_history_followup', intent: 'historico_meta', parameters: inheritedParams };
@@ -3838,6 +3865,9 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
         text.includes('depois do pagamento') ||
         text.includes('em aberto depois')
     );
+    const explicitDashboardMonthCount = (text.match(
+        /\b(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b/g
+    ) || []).length;
 
     if (
         hasDashboardSignal &&
@@ -3881,11 +3911,17 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
             ...((hasCardSignal || hasInvoiceSignal || /\b(categoria|categorias|grafico|gráfico|mes|mês|mensal|familia|família|familiar)\b/.test(text)) ? { timeBasis: 'billing_month' } : {}),
             ...extra
         });
-        if (hasAvailabilitySignal && /\b(disponivel|disponível|saldo|reserva|caixinha|caxinha)\b/.test(text)) {
+        const wantsDashboardComparison = /\b(compare|comparar|comparacao|comparação)\b/.test(text) ||
+            explicitDashboardMonthCount >= 2 ||
+            (explicitDashboardMonthCount >= 1 && /\b(bate|diferente|diferentes|diferença|diferenca)\b/.test(text));
+        if (wantsDashboardComparison) {
+            return { metric: 'dashboard_compare', intent: 'dashboard_comparacao', parameters: dashboardParams({ timeBasis: 'billing_month' }) };
+        }
+        if (hasDashboardSignal && /\bdisponivel\b/.test(text)) {
             return { metric: 'dashboard_available_explain', intent: 'dashboard_explicacao', parameters: dashboardParams() };
         }
-        if (/\b(compare|comparar|comparacao|comparação|bate|diferente|diferentes|diferença|diferenca)\b/.test(text) || (/\b(maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|janeiro|fevereiro|marco|março|abril)\b/.test(text) && /\be\b/.test(text))) {
-            return { metric: 'dashboard_compare', intent: 'dashboard_comparacao', parameters: dashboardParams({ timeBasis: 'billing_month' }) };
+        if (hasAvailabilitySignal && /\b(disponivel|disponível|saldo|reserva|caixinha|caxinha)\b/.test(text)) {
+            return { metric: 'dashboard_available_explain', intent: 'dashboard_explicacao', parameters: dashboardParams() };
         }
         if (/\b(maior|mais|ranking|pesa|pesou)\b/.test(text) && /\b(kpi|indicador|categoria|categorias)\b/.test(text)) {
             return { metric: 'dashboard_rank', intent: 'dashboard_ranking', parameters: dashboardParams({ timeBasis: 'billing_month' }) };
@@ -4813,7 +4849,12 @@ function classifyPerguntaLocally(userQuestion, previousContext = null) {
     const plan = inferAnalyticalQueryPlan(userQuestion, previousContext);
     if (!plan) return null;
     const financialQueryPlan = buildFinancialQueryPlanForLocalClassification(plan, userQuestion);
-    return { intent: plan.intent, parameters: plan.parameters, financialQueryPlan };
+    return {
+        intent: plan.intent,
+        parameters: plan.parameters,
+        metric: plan.metric,
+        financialQueryPlan
+    };
 }
 
 function buildFinancialQueryPlanForLocalClassification(classification = {}, userQuestion = '') {
