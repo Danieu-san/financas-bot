@@ -468,8 +468,8 @@ async function confirmDeletion(msg) {
     const isNo = noWords.some(w => stringSimilarity.compareTwoStrings(userReply, w) > 0.78);
 
     if (isNo) {
-    await msg.reply('Ok, a exclusão foi cancelada.');
     userStateManager.clearState(senderId);
+    await msg.reply('Ok, a exclusão foi cancelada.');
     return;
     }
   let finalRowsToDelete = [];
@@ -488,8 +488,8 @@ async function confirmDeletion(msg) {
     if (validItems.length > 0) {
       finalItemsToDelete = validItems;
     } else {
-      await msg.reply("Não entendi sua seleção. A exclusão foi cancelada.");
       userStateManager.clearState(senderId);
+      await msg.reply("Não entendi sua seleção. A exclusão foi cancelada.");
       return;
     }
   }
@@ -512,16 +512,16 @@ async function confirmDeletion(msg) {
       results.push(await deleteRowsByIndices(sheetName, finalRowsToDelete));
     }
 
+    userStateManager.clearState(senderId);
     if (results.every(result => result.success)) {
       await msg.reply(`✅ Item(ns) apagado(s) com sucesso!`);
     } else {
       await msg.reply(results.find(result => !result.success)?.message || "Ocorreu um erro ao apagar.");
     }
   } else {
+    userStateManager.clearState(senderId);
     await msg.reply("Nenhum item selecionado. A exclusão foi cancelada.");
   }
-
-  userStateManager.clearState(senderId);
 }
 
 module.exports = {

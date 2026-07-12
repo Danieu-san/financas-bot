@@ -3587,6 +3587,33 @@ stateMachineTest('financial states: deletion confirmation supports cancel and se
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
 });
 
+stateMachineTest('financial states: deletion clears pending state before sending final success', async () => {
+    resetState();
+    const deletionHandler = require('../src/handlers/deletionHandler');
+    userStateManager.setState(SENDER, {
+        action: 'confirming_delete',
+        sheetName: 'Saídas',
+        foundItems: [
+            { index: 3, data: ['10/02/2026', 'lanche', 'Alimentação', '', 80, 'Ambos', 'PIX', 'Não', '', USER_ID] }
+        ]
+    });
+
+    const msg = createMockMessage('sim');
+    let stateDuringSuccess = 'not-observed';
+    msg.reply = async (text) => {
+        msg.replies.push(String(text));
+        if (/apagado\(s\) com sucesso/i.test(String(text))) {
+            stateDuringSuccess = userStateManager.getState(SENDER);
+        }
+    };
+
+    await deletionHandler.confirmDeletion(msg);
+
+    assert.strictEqual(stateDuringSuccess, undefined);
+    assert.deepStrictEqual(deletedRows, [{ sheetName: 'Saídas', indices: [3] }]);
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
+
 stateMachineTest('financial states: apagar ultimo gasto targets latest expense regardless of sheet', async () => {
     resetState();
     sheets[CARD_SHEETS[0]].push([
