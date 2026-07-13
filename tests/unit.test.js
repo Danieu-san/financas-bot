@@ -73,6 +73,34 @@ test('local transaction description removes arbitrary credit card routing suffix
     }
 });
 
+test('dashboard v2 command issues an opt-in link while dashboard keeps the current route', async () => {
+    const previousBaseUrl = process.env.DASHBOARD_BASE_URL;
+    const previousSecret = process.env.DASHBOARD_TOKEN_SECRET;
+    const previousAccessLog = process.env.DASHBOARD_ACCESS_LOG_ENABLED;
+    const replies = [];
+    try {
+        process.env.DASHBOARD_BASE_URL = 'https://financasbot.example.test';
+        process.env.DASHBOARD_TOKEN_SECRET = 'unit-test-dashboard-v2-secret';
+        process.env.DASHBOARD_ACCESS_LOG_ENABLED = 'false';
+        const user = { user_id: 'dashboard-v2-test-user', display_name: 'Daniel' };
+        const msg = { body: 'dashboard v2', reply: async text => replies.push(String(text || '')) };
+
+        const handled = await messageHandler.__test__.handleDashboardCommand(msg, user, '5599990000001@c.us');
+
+        assert.strictEqual(handled, true);
+        assert.strictEqual(replies.length, 1);
+        assert.match(replies[0], /\/dashboard\/v2#token=/);
+        assert.doesNotMatch(replies[0], /\/dashboard\?token=/);
+    } finally {
+        if (previousBaseUrl === undefined) delete process.env.DASHBOARD_BASE_URL;
+        else process.env.DASHBOARD_BASE_URL = previousBaseUrl;
+        if (previousSecret === undefined) delete process.env.DASHBOARD_TOKEN_SECRET;
+        else process.env.DASHBOARD_TOKEN_SECRET = previousSecret;
+        if (previousAccessLog === undefined) delete process.env.DASHBOARD_ACCESS_LOG_ENABLED;
+        else process.env.DASHBOARD_ACCESS_LOG_ENABLED = previousAccessLog;
+    }
+});
+
 // --- Helpers Tests ---
 test('helpers.parseValue', (t) => {
     assert.strictEqual(helpers.parseValue("1.800,50"), 1800.5, 'BR format should work');

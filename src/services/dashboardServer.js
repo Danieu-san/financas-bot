@@ -4,6 +4,7 @@ const { syncReadModelIfNeeded, getDashboardSnapshot, getDashboardSqlData, isSqli
 const { getUserSheetDashboardData } = require('./userSheetAnalyticsService');
 const { decorateDashboardSummary } = require('./dashboardSummaryService');
 const { buildDashboardV2Summary } = require('./dashboardV2SummaryService');
+const { DASHBOARD_V2_ROUTE, dashboardV2Html } = require('./dashboardV2Page');
 const { verifyDashboardToken } = require('../utils/dashboardAuth');
 const { getAllUsers, getUserProfileByUserId } = require('./userService');
 const { getFinancialScopeUserIds } = require('./oauthTokenStore');
@@ -895,6 +896,11 @@ function startDashboardServer() {
         if (req.method === 'GET' && reqUrl.pathname === '/dashboard') {
             metrics.increment('dashboard.page.view');
             sendHtml(res, dashboardHtml());
+            return;
+        }
+        if (req.method === 'GET' && reqUrl.pathname === DASHBOARD_V2_ROUTE) {
+            metrics.increment('dashboard.v2.page.view');
+            sendHtml(res, dashboardV2Html());
             return;
         }
         if (req.method === 'GET' && reqUrl.pathname === '/oauth/google/start') {

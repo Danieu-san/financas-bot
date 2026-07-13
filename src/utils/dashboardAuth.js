@@ -109,13 +109,14 @@ function verifyDashboardToken(token) {
     }
 }
 
-function buildDashboardAccessLink({ userId, ttlSeconds = DEFAULT_TTL_SECONDS, isAdmin = false }) {
+function buildDashboardAccessLink({ userId, ttlSeconds = DEFAULT_TTL_SECONDS, isAdmin = false, version = 'current' }) {
     const baseUrl = getDashboardBaseUrl();
     if (!baseUrl) return null;
     const effectiveTtlSeconds = resolveDashboardTtl(ttlSeconds);
     const token = generateDashboardToken({ userId, ttlSeconds: effectiveTtlSeconds, isAdmin });
+    const path = version === 'v2' ? '/dashboard/v2' : '/dashboard';
     return {
-        url: `${baseUrl}/dashboard#token=${encodeURIComponent(token)}`,
+        url: `${baseUrl}${path}#token=${encodeURIComponent(token)}`,
         ttlSeconds: effectiveTtlSeconds,
         tokenRef: hashDashboardToken(token)
     };

@@ -157,3 +157,23 @@ test('dashboard access link keeps token out of query string', () => {
         restore();
     }
 });
+
+test('dashboard v2 access link is opt-in and keeps the current dashboard as default', () => {
+    const { auth, restore } = loadDashboardAuthWithEnv({
+        DASHBOARD_BASE_URL: 'https://finance.example.com',
+        DASHBOARD_TOKEN_SECRET: 'test-secret-v2-link'
+    });
+    try {
+        const current = new URL(auth.buildDashboardAccessLink({ userId: 'user-a' }).url);
+        const v2 = new URL(auth.buildDashboardAccessLink({ userId: 'user-a', version: 'v2' }).url);
+        const unknown = new URL(auth.buildDashboardAccessLink({ userId: 'user-a', version: 'future' }).url);
+
+        assert.strictEqual(current.pathname, '/dashboard');
+        assert.strictEqual(v2.pathname, '/dashboard/v2');
+        assert.strictEqual(unknown.pathname, '/dashboard');
+        assert.strictEqual(v2.search, '');
+        assert.match(v2.hash, /^#token=/);
+    } finally {
+        restore();
+    }
+});

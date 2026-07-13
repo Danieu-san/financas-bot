@@ -6487,13 +6487,16 @@ async function handleSettingsCommands(msg, user) {
 async function handleDashboardCommand(msg, user, senderId) {
     const body = normalizeText(String(msg.body || '').trim());
     if (!body) return false;
-    if (!['dashboard', 'painel', 'painel financeiro'].includes(body)) return false;
+    const v2Commands = ['dashboard v2', 'painel v2', 'painel novo', 'novo painel'];
+    const wantsV2 = v2Commands.includes(body);
+    if (!wantsV2 && !['dashboard', 'painel', 'painel financeiro'].includes(body)) return false;
 
     let linkData = null;
     try {
         linkData = buildDashboardAccessLink({
             userId: user.user_id,
-            isAdmin: isAdminWithContext(senderId, user)
+            isAdmin: isAdminWithContext(senderId, user),
+            version: wantsV2 ? 'v2' : 'current'
         });
     } catch (error) {
         await sendPlainMessage(msg, 'Dashboard indisponível no momento. O administrador precisa configurar DASHBOARD_TOKEN_SECRET.');
@@ -6521,8 +6524,8 @@ async function handleDashboardCommand(msg, user, senderId) {
         dataUserId: user.user_id,
         isAdmin: isAdminWithContext(senderId, user),
         scope: 'own',
-        path: '/dashboard',
-        metadata: { ttl_seconds: linkData.ttlSeconds }
+        path: wantsV2 ? '/dashboard/v2' : '/dashboard',
+        metadata: { ttl_seconds: linkData.ttlSeconds, version: wantsV2 ? 'v2' : 'current' }
     });
     logger.info(`[dashboard] link_emitido sender=${senderId} user_id=${user.user_id}`);
     return true;
@@ -11237,6 +11240,7 @@ module.exports = {
         saveImportedTransactions,
         handleAccountLifecycleCommands,
         handleAdminCommandBeforeAccess,
+        handleDashboardCommand,
         buildLegalCommandLogContext,
         buildDashboardWhatsAppSummary,
         resolveConfiguredBudgetQueryScope,

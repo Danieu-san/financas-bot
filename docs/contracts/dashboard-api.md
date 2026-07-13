@@ -136,6 +136,14 @@ unknown numeric values. Missing data must never be represented as zero. No raw
 rows, internal ids, owner hashes, idempotency keys, sheet ids, OAuth data, or
 tokens may appear at any depth.
 
+## `GET /dashboard/v2`
+
+Serves the mobile-first, read-only interface backed exclusively by
+`/dashboard/api/v2/summary`. It is an opt-in route: `/dashboard` remains the
+default interface and the WhatsApp command `dashboard v2` (also `painel v2` or
+`painel novo`) issues a short-lived link to the new route. The page does not
+offer a user selector and cannot send a user id to the API.
+
 ## Safety Rules
 
 - Token payload decides the user scope.

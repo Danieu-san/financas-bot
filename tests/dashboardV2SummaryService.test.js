@@ -233,3 +233,75 @@ test('dashboard v2 exposes trusted quality indicators only when the snapshot pro
     });
     assert.doesNotMatch(JSON.stringify(result.blocks.quality), /owner_hash|hidden-owner/i);
 });
+
+test('dashboard v2 keeps key KPIs equal to the same verified tool values used by WhatsApp', async () => {
+    const whatsappToolAnswers = {
+        realizedExpenses: 430,
+        budgetRemaining: 570,
+        accountBalance: 1527.77,
+        forecastPayable: 250
+    };
+    const queryTool = async ({ plan }) => {
+        if (plan.domain === 'expenses' && plan.operation === 'sum') {
+            return { ok: true, source: 'sqlite_query_engine', result: { value: whatsappToolAnswers.realizedExpenses } };
+        }
+        if (plan.domain === 'expenses' && plan.operation === 'rank') {
+            return { ok: true, source: 'sqlite_query_engine', result: { value: [] } };
+        }
+        if (plan.domain === 'budget') {
+            return {
+                ok: true,
+                source: 'sqlite_query_engine',
+                result: { value: { categoryBudget: {
+                    status: 'available',
+                    globalBudget: 1000,
+                    allocatedBudget: 700,
+                    unallocatedBudget: 300,
+                    overallocatedBudget: 0,
+                    actualBudget: 430,
+                    remainingBudget: whatsappToolAnswers.budgetRemaining,
+                    dailyPace: 31.67,
+                    categories: []
+                } } }
+            };
+        }
+        if (plan.domain === 'accounts') {
+            return {
+                ok: true,
+                source: 'canonical',
+                result: { value: { total: whatsappToolAnswers.accountBalance, count: 1, items: [], criteria: 'Saldo atual canônico.' } }
+            };
+        }
+        if (plan.domain === 'forecast') {
+            return {
+                ok: true,
+                source: 'canonical',
+                result: { value: {
+                    payable: whatsappToolAnswers.forecastPayable,
+                    receivable: 50,
+                    netExpectedCash: -200,
+                    currentCashImpact: 0,
+                    count: 1,
+                    items: []
+                } }
+            };
+        }
+        return { ok: false, reason: 'source_unavailable' };
+    };
+
+    const result = await buildDashboardV2Summary({
+        snapshot: snapshotFixture(),
+        userIds: ['user-owner'],
+        ownerUserId: 'user-owner',
+        month: 6,
+        year: 2026,
+        currentDate: '2026-07-13',
+        queryTool
+    });
+
+    assert.strictEqual(result.blocks.competence.realizedExpenses, whatsappToolAnswers.realizedExpenses);
+    assert.strictEqual(result.blocks.budget.remainingBudget, whatsappToolAnswers.budgetRemaining);
+    assert.strictEqual(result.blocks.accounts.totalBalance, whatsappToolAnswers.accountBalance);
+    assert.strictEqual(result.blocks.cash.currentBalance, whatsappToolAnswers.accountBalance);
+    assert.strictEqual(result.blocks.forecast.payable, whatsappToolAnswers.forecastPayable);
+});

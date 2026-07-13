@@ -146,6 +146,37 @@ async function fetchJson(url) {
     return { response, json };
 }
 
+async function fetchText(url) {
+    const response = await fetch(url);
+    const text = await response.text();
+    return { response, text };
+}
+
+test('dashboard v2 page is opt-in, mobile-first and consumes only the sanitized v2 contract', async () => {
+    const calls = [];
+    const { server, baseUrl } = await startTestServer(calls);
+    try {
+        const current = await fetchText(`${baseUrl}/dashboard`);
+        const next = await fetchText(`${baseUrl}/dashboard/v2`);
+
+        assert.strictEqual(current.response.status, 200);
+        assert.strictEqual(next.response.status, 200);
+        assert.match(current.text, /Painel Financeiro/);
+        assert.doesNotMatch(current.text, /Casa em foco/);
+        assert.match(next.text, /Casa em foco/);
+        assert.match(next.text, /dashboard\/api\/v2\/summary/);
+        assert.doesNotMatch(next.text, /dashboard\/api\/users/);
+        assert.match(next.text, /viewport/);
+        assert.match(next.text, /Pular para os números/);
+        assert.match(next.text, /De onde vêm estes números/);
+        assert.match(next.text, /Fonte indisponível não é tratada como valor zero/);
+        assert.match(next.text, /@media \(min-width: 640px\)/);
+        assert.match(next.response.headers.get('content-security-policy') || '', /default-src 'self'/);
+    } finally {
+        await new Promise(resolve => server.close(resolve));
+    }
+});
+
 test('dashboard API endpoints expose stable user-scoped contracts', async () => {
     const calls = [];
     const { server, baseUrl, token } = await startTestServer(calls);

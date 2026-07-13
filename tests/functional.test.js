@@ -75,6 +75,7 @@ functionalTest('functional: consent, onboarding, settings and dashboard', { conc
         assert.ok(last(await send('ativar checkin semanal')).includes('Check-in semanal ativado'));
         assert.ok(last(await send('definir reserva 12%')).includes('12%'));
         assert.match(last(await send('dashboard')), /\/dashboard#token=/, 'Dashboard deve gerar link autenticado sem token no querystring');
+        assert.match(last(await send('dashboard v2')), /\/dashboard\/v2#token=/, 'Dashboard v2 deve ser opt-in e manter token no fragmento');
         assert.strictEqual(userStateManager.getState(user.whatsapp_id), undefined, 'Onboarding não deve deixar estado pendente');
     });
 });
