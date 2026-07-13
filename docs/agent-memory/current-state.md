@@ -2,6 +2,41 @@
 
 Atualizado em: 2026-07-13
 
+## Fase 4D - Qualidade dos dados e pendencias - GO de producao - 2026-07-13
+
+- O dominio read-only `quality` foi integrado ao `FinancialQueryPlan`, Query
+  Engine, agente financeiro, WhatsApp e Dashboard v2. A leitura usa eventos do
+  ledger canonico e decisoes sanitizadas de importacao, sempre depois de
+  aplicar o escopo autorizado.
+- A cobertura inclui os seis indicadores oficiais: sem categoria, incerto,
+  status pendente, nao conciliado, sem conta financeira e sem comprovante
+  quando obrigatorio. O ultimo permanece `not_applicable` enquanto nenhum
+  evento observado declarar a exigencia; ausencia nao vira zero.
+- Consultas aceitam periodo, origem e tipo de pendencia. Itens publicos contem
+  apenas data, descricao, tipo, status, categoria, origem, responsavel e sinais
+  de qualidade; ids, hashes, contas internas e linhas cruas nao saem da camada.
+- Pendencia e uma projecao read-only: o item continua presente nos totais
+  financeiros confiaveis. Dashboard e WhatsApp consomem a mesma ferramenta,
+  sem segundo motor de calculo e sem bloquear outros blocos do produto.
+- Evidencia local: testes focados finais `109/109`, suite completa `788/788`,
+  auditoria high com zero vulnerabilidades, sintaxe e diff check verdes. O
+  teste ponta a ponta prova isolamento entre usuarios, resposta verificada e
+  zero chamada Gemini para planos deterministas de qualidade.
+- O commit principal `c4d7735` foi publicado e implantado por fast-forward,
+  com testes remotos `27/27`, PM2/WhatsApp prontos e health
+  `{"ok":true,"sqlite":true}`. Preflight manteve um unico admin, acesso amplo
+  desligado e canario de transacoes autorizado.
+- O primeiro smoke manual foi `NO-GO`: o planner Gemini substituiu o resumo por
+  listagem e adicionou filtro de status a pergunta geral de pendencias. O
+  hotfix `0d6af01` faz o plano `quality` fornecido localmente executar antes do
+  planner, com zero chamadas Gemini. Testes remotos do hotfix passaram `8/8`.
+- O reteste manual final confirmou coerencia entre o resumo e a listagem, os
+  seis indicadores, a cobertura por origem e o estado nao aplicavel de
+  comprovantes, sem valor monetario ou identificador interno. Decisao: `GO de
+  producao` e encerramento da 4D.
+- O proximo passo oficial e `4E - Gate de saida da Fase 4`. Ele ainda nao foi
+  iniciado e exige nova configuracao/capacidade antes de qualquer acao.
+
 ## Fase 4C - Dashboard familiar v2 mobile-first - GO de producao - 2026-07-13
 
 - A interface opt-in `/dashboard/v2` foi implementada sobre o contrato
