@@ -2,6 +2,25 @@
 
 Atualizado em: 2026-07-13
 
+## Fase 4A.1 - GO de producao - 2026-07-13
+
+- O commit `fe34c21` foi enviado ao GitHub e implantado na EC2 por fast-forward
+  de `ac0add4`, preservando os tres backups `.env` nao rastreados do servidor.
+- Antes da atualizacao foi criado o backup
+  `data/backups/canonical_ledger_shadow.pre-phase4a1-fe34c21.sqlite`.
+- `npm install` permaneceu atualizado e reportou zero vulnerabilidades; os
+  testes remotos focados de orcamento e shadow store passaram `18/18`.
+- A migration canonica `007_budget_allocations.sql` foi aplicada ao SQLite
+  respaldado: versao mais recente `7`, sete migrations registradas e tabela de
+  alocacoes presente, sem leitura ou escrita de dados financeiros reais.
+- Pos-restart: commit remoto `fe34c21`, PM2 `financas-bot` online, Google
+  autorizado, planilha sincronizada, read-model pronto, integridade de
+  `user_id` sem pendencias, dashboard ativo, WhatsApp pronto e health
+  `{"ok":true,"sqlite":true}`.
+- Nenhuma flag, `.env`, planilha real, pergunta WhatsApp, endpoint ou interface
+  foi alterada. Nao houve smoke manual porque 4A.1 expoe somente contrato
+  interno. Decisao: `GO de producao` para 4A.1; 4A.2 continua nao iniciada.
+
 ## Fase 4A.1 - contrato de orcamento por categoria - GO local - 2026-07-13
 
 - A Fase 4 foi aberta somente para a fatia 4A.1. Dashboard v2, endpoint v2,
