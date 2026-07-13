@@ -42,8 +42,11 @@ Use este mapa para escolher rapidamente quais arquivos abrir por tarefa.
 ## Dashboard
 
 - `src/services/dashboardServer.js` - servidor web, HTML, API, auth por token.
+- `src/services/dashboardV2SummaryService.js` - contrato sanitizado da API v2;
+  combina snapshot e ferramentas financeiras sem recalcular em paralelo.
 - Contrato: `docs/contracts/dashboard-api.md`.
-- Testes: `tests/dashboardApiContracts.test.js`, `tests/dashboardAuthSecurity.test.js`.
+- Testes: `tests/dashboardApiContracts.test.js`,
+  `tests/dashboardV2SummaryService.test.js`, `tests/dashboardAuthSecurity.test.js`.
 
 ## Onboarding, usuarios e OAuth
 

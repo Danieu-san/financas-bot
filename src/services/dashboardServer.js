@@ -3,8 +3,10 @@ const { URL } = require('url');
 const { syncReadModelIfNeeded, getDashboardSnapshot, getDashboardSqlData, isSqliteReady, ALL_USERS_ID } = require('./readModelService');
 const { getUserSheetDashboardData } = require('./userSheetAnalyticsService');
 const { decorateDashboardSummary } = require('./dashboardSummaryService');
+const { buildDashboardV2Summary } = require('./dashboardV2SummaryService');
 const { verifyDashboardToken } = require('../utils/dashboardAuth');
 const { getAllUsers, getUserProfileByUserId } = require('./userService');
+const { getFinancialScopeUserIds } = require('./oauthTokenStore');
 const { buildGoogleAuthorizationUrl, completeGoogleOAuthCallback } = require('./googleOAuthService');
 const { sendWhatsAppMessage } = require('./whatsapp');
 const { prepareOnboardingState } = require('../handlers/onboardingHandler');
@@ -793,6 +795,52 @@ async function handleApiSummary(reqUrl, res) {
     }
 }
 
+async function handleApiV2Summary(reqUrl, res) {
+    try {
+        const token = reqUrl.searchParams.get('token') || '';
+        const payload = verifyDashboardToken(token);
+        if (!payload) {
+            metrics.increment('dashboard.api.v2.auth_failed');
+            await recordDashboardApiAccess({
+                event: 'api_v2_auth_failed',
+                result: 'denied',
+                token,
+                reqUrl
+            });
+            sendJson(res, 401, { error: 'Token inválido ou expirado.' });
+            return;
+        }
+
+        if (reqUrl.searchParams.has('user')) {
+            await dashboardAuthFailedForScope(null, res, { token, payload, reqUrl });
+            return;
+        }
+
+        const dataUserId = payload.uid;
+        await recordDashboardApiAccess({ event: 'api_v2_access', token, payload, dataUserId, reqUrl });
+        const month = reqUrl.searchParams.get('month');
+        const year = reqUrl.searchParams.get('year');
+        const personal = await getUserSheetDashboardData(dataUserId, { month, year });
+        if (!personal) await syncReadModelIfNeeded();
+        const snapshot = personal || getDashboardSqlData(dataUserId, { month, year }) || getDashboardSnapshot(dataUserId, { month, year }) || {};
+        const configuredScope = getFinancialScopeUserIds(dataUserId);
+        const userIds = Array.isArray(configuredScope) && configuredScope.length > 0 ? configuredScope : [dataUserId];
+        const summary = await buildDashboardV2Summary({
+            snapshot,
+            userIds,
+            ownerUserId: dataUserId,
+            month,
+            year
+        });
+        metrics.increment('dashboard.api.v2.summary.success');
+        sendJson(res, 200, summary);
+    } catch (error) {
+        metrics.increment('dashboard.api.v2.error');
+        logger.error(`dashboard api v2 error: ${error.message}`);
+        sendJson(res, 500, { error: 'Falha ao carregar dados do dashboard.' });
+    }
+}
+
 async function withAuth(reqUrl, res, cb) {
     try {
         const token = reqUrl.searchParams.get('token') || '';
@@ -891,6 +939,10 @@ function startDashboardServer() {
         }
         if (req.method === 'GET' && reqUrl.pathname === '/dashboard/api/summary') {
             await handleApiSummary(reqUrl, res);
+            return;
+        }
+        if (req.method === 'GET' && reqUrl.pathname === '/dashboard/api/v2/summary') {
+            await handleApiV2Summary(reqUrl, res);
             return;
         }
         if (req.method === 'GET' && reqUrl.pathname === '/dashboard/api/users') {

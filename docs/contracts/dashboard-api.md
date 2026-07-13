@@ -77,6 +77,65 @@ Returns:
 
 Returns the complete user-scoped dashboard snapshot: `period`, `kpis`, `topCategories`, `dailyFlow`, `recentTransactions`, `goals`, `debts`, `alerts`, and `sync`.
 
+## `GET /dashboard/api/v2/summary`
+
+Returns the sanitized, read-only contract that will feed Dashboard v2. The
+token is the only authority for the user scope. This route never accepts an
+admin support scope, `user=all`, or another user id, even when the legacy beta
+support flag is enabled. An authorized shared family spreadsheet may expand
+the financial scope only through the existing family membership store.
+
+Top-level shape:
+
+```json
+{
+  "version": "dashboard-summary-v2",
+  "period": { "month": 6, "year": 2026, "label": "Julho de 2026" },
+  "scope": { "mode": "family", "label": "Família", "members": [] },
+  "blocks": {
+    "cash": {},
+    "competence": {},
+    "reserve": {},
+    "budget": {},
+    "accounts": {},
+    "invoices": {},
+    "forecast": {},
+    "goals": {},
+    "debts": {},
+    "quality": {},
+    "recentTransactions": {}
+  }
+}
+```
+
+Every block has `status`, `timeBasis` when applicable, `criteria`, and its
+public values. Allowed status values are `available`, `fallback`, `partial`,
+and `unavailable`.
+
+- `cash`: current account balance plus period inflows, direct outflows and card
+  commitments in separate fields. The period context uses transaction date and
+  must not be presented as bank cash or billing competence.
+- `competence`: realized expenses and categories by billing competence,
+  calculated through the Query Engine.
+- `reserve`: applied, redeemed, net reserve and estimated available balance.
+- `budget`: the category/cycle contract from Phase 4A.
+- `accounts`: current balances from the canonical accounts reader, with the
+  existing sanitized dashboard snapshot as fallback.
+- `invoices`: invoice items extracted from the canonical forecast.
+- `forecast`: payable, receivable and net expected cash without changing
+  current cash.
+- `goals` and `debts`: current read-only rows already exposed by the dashboard.
+- `quality`: classification, pending and reconciliation indicators only when a
+  trustworthy source provides them.
+- `recentTransactions`: the sanitized recent activity already used by the
+  dashboard.
+
+Partial failure is block-scoped. An unavailable source returns
+`status: "unavailable"`, public reason `source_unavailable`, and `null` for
+unknown numeric values. Missing data must never be represented as zero. No raw
+rows, internal ids, owner hashes, idempotency keys, sheet ids, OAuth data, or
+tokens may appear at any depth.
+
 ## Safety Rules
 
 - Token payload decides the user scope.

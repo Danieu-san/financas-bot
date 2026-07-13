@@ -105,6 +105,13 @@ Validar:
 
 - `/dashboard/health`.
 - `/dashboard/api/summary?month=<m>&year=<y>` muda entre meses.
+- `/dashboard/api/v2/summary?month=<m>&year=<y>` devolve os onze blocos do
+  contrato, separa caixa atual de competencia e usa `null` quando uma fonte
+  estiver indisponivel.
+- A API v2 rejeita qualquer parametro `user`, inclusive para admin e mesmo se o
+  modo legado de suporte a todos os usuarios estiver explicitamente ligado.
+- Respostas v2 nao podem conter `user_id`, ids de pessoa/familia/conta/evento,
+  hashes, chaves de idempotencia, ids de planilha, OAuth, tokens ou dados crus.
 - Filtro de usuario nao mostra inativos.
 - Admin nao deve depender de `Todos os usuarios` para uso normal.
 - KPIs de `Saldo` e `Disponivel estimado` aparecem quando houver reserva/caixinha.

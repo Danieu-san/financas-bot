@@ -7,12 +7,16 @@ const readModelPath = require.resolve('../src/services/readModelService');
 const userSheetAnalyticsPath = require.resolve('../src/services/userSheetAnalyticsService');
 const userServicePath = require.resolve('../src/services/userService');
 const dashboardAuthPath = require.resolve('../src/utils/dashboardAuth');
+const dashboardV2SummaryPath = require.resolve('../src/services/dashboardV2SummaryService');
+const oauthTokenStorePath = require.resolve('../src/services/oauthTokenStore');
 
 function installReadModelMock(calls) {
     delete require.cache[dashboardServerPath];
     delete require.cache[readModelPath];
     delete require.cache[userSheetAnalyticsPath];
     delete require.cache[userServicePath];
+    delete require.cache[dashboardV2SummaryPath];
+    delete require.cache[oauthTokenStorePath];
     require.cache[readModelPath] = {
         id: readModelPath,
         filename: readModelPath,
@@ -74,6 +78,39 @@ function installReadModelMock(calls) {
                 { user_id: 'deleted-user', display_name: 'Deletado', phone_e164: '5577777777777', status: 'DELETED', deleted_at: '2026-05-01T00:00:00.000Z' }
             ],
             getUserProfileByUserId: async () => null
+        }
+    };
+    require.cache[dashboardV2SummaryPath] = {
+        id: dashboardV2SummaryPath,
+        filename: dashboardV2SummaryPath,
+        loaded: true,
+        exports: {
+            buildDashboardV2Summary: async ({ snapshot }) => ({
+                version: 'dashboard-summary-v2',
+                period: snapshot.period,
+                scope: { mode: 'personal', label: 'Pessoal', members: [] },
+                blocks: {
+                    cash: { status: 'available', balance: 600 },
+                    competence: { status: 'available', realizedExpenses: 400 },
+                    reserve: { status: 'available', net: 0 },
+                    budget: { status: 'unavailable', globalBudget: null },
+                    accounts: snapshot.financialAccounts,
+                    invoices: { status: 'unavailable', total: null },
+                    forecast: { status: 'unavailable', payable: null },
+                    goals: { status: 'available', items: snapshot.goals },
+                    debts: { status: 'available', items: snapshot.debts },
+                    quality: { status: 'unavailable', classifiedCount: null, pendingCount: null, unreconciledCount: null },
+                    recentTransactions: { status: 'available', items: snapshot.recentTransactions }
+                }
+            })
+        }
+    };
+    require.cache[oauthTokenStorePath] = {
+        id: oauthTokenStorePath,
+        filename: oauthTokenStorePath,
+        loaded: true,
+        exports: {
+            getFinancialScopeUserIds: userId => [userId]
         }
     };
 }
@@ -162,6 +199,30 @@ test('dashboard API endpoints expose stable user-scoped contracts', async () => 
         assert.ok(calls.length >= 6);
         assert.ok(calls.every(call => call.userId === 'user-dash-a'));
     } finally {
+        await new Promise(resolve => server.close(resolve));
+    }
+});
+
+test('dashboard API v2 exposes the stable block contract and never accepts a client-selected user', async () => {
+    const calls = [];
+    const { server, baseUrl, token } = await startTestServer(calls, { adminAllUsersEnabled: true });
+    const { generateDashboardToken } = require('../src/utils/dashboardAuth');
+    const adminToken = generateDashboardToken({ userId: 'admin-user', ttlSeconds: 600, isAdmin: true });
+    try {
+        const result = await fetchJson(`${baseUrl}/dashboard/api/v2/summary?token=${token}&month=6&year=2026`);
+        assert.strictEqual(result.response.status, 200);
+        assert.strictEqual(result.json.version, 'dashboard-summary-v2');
+        assert.deepStrictEqual(Object.keys(result.json.blocks), [
+            'cash', 'competence', 'reserve', 'budget', 'accounts', 'invoices',
+            'forecast', 'goals', 'debts', 'quality', 'recentTransactions'
+        ]);
+
+        const allUsers = await fetchJson(`${baseUrl}/dashboard/api/v2/summary?token=${adminToken}&user=all`);
+        assert.strictEqual(allUsers.response.status, 403);
+        const otherUser = await fetchJson(`${baseUrl}/dashboard/api/v2/summary?token=${adminToken}&user=user-dash-a`);
+        assert.strictEqual(otherUser.response.status, 403);
+    } finally {
+        delete process.env.DASHBOARD_ADMIN_ALL_USERS_ENABLED;
         await new Promise(resolve => server.close(resolve));
     }
 });

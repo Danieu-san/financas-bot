@@ -2,6 +2,37 @@
 
 Atualizado em: 2026-07-13
 
+## Fase 4B - API de dashboard v2 - GO local - 2026-07-13
+
+- A rota read-only `/dashboard/api/v2/summary` foi implementada sem iniciar a
+  interface visual da 4C. O contrato versionado entrega blocos independentes
+  para caixa, competencia, reserva, orcamento, contas, faturas, previsoes,
+  metas, dividas, qualidade e lancamentos recentes.
+- A composicao reutiliza o snapshot atual e as ferramentas financeiras do
+  WhatsApp/Query Engine. Caixa atual vem do saldo das contas; entradas, saidas
+  diretas e compromissos de cartao ficam separados do realizado por competencia.
+  Orcamento consome o contrato da 4A e previsoes/faturas consomem o leitor
+  canonico existente. Nao foi criado um segundo motor de calculo.
+- Falha parcial e isolada por bloco. Fonte ausente retorna `unavailable`, motivo
+  publico `source_unavailable` e valores desconhecidos como `null`, nunca zero.
+  Contas podem usar o snapshot sanitizado como fallback explicito. O bloco de
+  qualidade aceita indicadores confiaveis quando fornecidos; o detalhamento de
+  classificados, pendentes e nao conciliados continua pertencendo a 4D.
+- A rota v2 usa somente o usuario do token e rejeita qualquer parametro `user`,
+  inclusive `user=all` ou outro usuario quando a excecao administrativa antiga
+  estiver ligada. O escopo familiar so expande pelos membros ja autorizados da
+  planilha compartilhada. Sanitizacao recursiva remove ids internos, hashes,
+  chaves de idempotencia, referencias de planilha, OAuth, tokens e dados crus.
+- Evidencia: TDD RED/GREEN; bateria especifica `19/19`; componentes compartilhados
+  `123/123`; suite completa `770/770`; auditoria high `0 vulnerabilities`;
+  sintaxe e `git diff --check` verdes. Contrato:
+  `docs/contracts/dashboard-api.md`. Relatorio:
+  `docs/qa/phase-4b-dashboard-api-v2-gate-2026-07-13.md`.
+- Nenhuma flag, `.env`, planilha real, dado financeiro real ou interface visual
+  foi alterado. Decisao: `GO local` da 4B. Faltam commit/push, deploy, testes
+  remotos e smoke estrutural read-only para decidir o GO de producao. O proximo
+  passo oficial depois do fechamento e `4C - Dashboard familiar v2 mobile-first`.
+
 ## Fase 4A - contrato de orcamento por categoria - GO de producao - 2026-07-13
 
 - A unidade oficial do roadmap e `4A - Contrato de orcamento por categoria`;
