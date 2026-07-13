@@ -24,6 +24,10 @@ Use este mapa para escolher rapidamente quais arquivos abrir por tarefa.
   identidade persistente/rebind, versoes imutaveis, idempotencia de movimentos,
   snapshots, readiness e backup/restore; writes ficam desativados por padrao e
   o modulo nao esta ligado ao runtime.
+- `src/plans/projectedPlansParityReport.js` e
+  `scripts/runProjectedPlansReadOnlyGate.js` - gate 5A sanitizado, restrito ao
+  unico admin configurado; compara views em centavos, usa identidade tecnica
+  persistente e nao escreve no Google Sheets.
 
 ## Importacao de extratos
 

@@ -104,16 +104,16 @@ Ajustes após inspeção do repositório:
 
 ### Trabalho restante dentro da 5A
 
-1. Fazer dry-run read-only sobre uma fotografia real sanitizada de metas,
-   dívidas e movimentos e registrar conflitos.
-2. Provar que metas e dívidas atuais aparecem como views equivalentes, sem
-   mudar os comandos existentes.
-3. Registrar a decisão final da 5A somente depois dessas provas; o shadow local
-   ainda não autoriza persistência em produção nem dual-write.
+Nenhum. O dry-run real sanitizado passou em paridade, privacidade e restore. O
+registro técnico persistente removeu a identidade provisória observada e o
+replay não criou novo vínculo. Nenhum comando ou dado Google foi alterado.
 
 Gate final da 5A: nenhuma identidade ambígua é promovida; valores equivalentes
 são idênticos em centavos; restore recompõe contrato e histórico; comandos
 atuais permanecem inalterados.
+
+Decisão final: `GO para encerramento da 5A` e autorização para iniciar 5B.
+Dual-write e persistência de fatos financeiros permanecem fora deste gate.
 
 ## 5B - Cronograma e simulação mensal
 

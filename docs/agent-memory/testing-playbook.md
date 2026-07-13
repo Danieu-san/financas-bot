@@ -285,6 +285,12 @@ Validar:
   original; nao editar nem apagar o fato confirmado.
 - Readiness deve permanecer falso com identidade provisoria, plano orfao ou
   issue de projecao.
+- Gate real: `npm run plans:read-gate`; deve resolver exatamente um admin,
+  registrar apenas contagens e retornar `writes=0`/`privacy=true`.
+- Bootstrap inicial usa `--bootstrap-identities` uma unica vez; o replay sem a
+  flag deve criar zero vinculos. Linha movida exige rebind explicito.
+- Em todo deploy, comparar e registrar o commit esperado com o `HEAD` final da
+  EC2 antes de executar o gate.
 
 ## Scheduler e Calendar
 

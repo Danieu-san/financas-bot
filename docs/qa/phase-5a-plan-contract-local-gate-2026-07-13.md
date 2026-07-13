@@ -4,12 +4,11 @@ Data: 2026-07-13
 
 ## Decisão
 
-`GO local` para as duas primeiras fatias da 5A: contrato/adapters read-only e
-armazenamento shadow versionado, ainda isolado e desativado por padrão.
+`GO para encerramento da 5A`: contrato, armazenamento shadow, identidade
+persistente e dry-run real sanitizado foram aprovados.
 
-`NO-GO` para encerrar a 5A, criar dual-write, mudar comandos, persistir shadow
-em produção ou iniciar a 5B. Ainda faltam dry-run sobre fotografia real
-sanitizada e prova de equivalência das views legadas.
+`NO-GO` permanece para dual-write, mudança dos comandos atuais ou escrita de
+fatos financeiros no shadow. A 5B pode iniciar conforme o roadmap.
 
 ## Entregas
 
@@ -42,15 +41,17 @@ sanitizada e prova de equivalência das views legadas.
 - o dashboard e o WhatsApp continuam usando os caminhos anteriores;
 - o caminho novo de `debt.pay` permanece intacto e o caminho legado continua
   existente para adaptação posterior na 5C.
-- o banco shadow existe apenas nos testes locais; nenhum arquivo foi criado ou
-  habilitado na EC2.
+- a EC2 contém apenas um registro técnico de identidade, sem nome, usuário ou
+  valor financeiro; fatos/projeções financeiras não foram persistidos;
+- nenhuma escrita foi feita nas planilhas Google e o runtime não importa o
+  módulo novo.
 
 ## Evidência
 
 - TDD RED: falha por ausência de `projectedPlansContract`.
-- Baterias 5A combinadas: `16/16`.
+- Baterias 5A combinadas: `23/23`.
 - Bateria contrato + fluxos legados + ledger: `128/128`.
-- Suíte completa com Node 22/ABI SQLite correta: `808/808`.
+- Suíte completa com Node 22/ABI SQLite correta: `815/815`.
 - `npm audit --audit-level=high`: zero vulnerabilidades.
 - `git diff --check`: limpo.
 - `package-lock.json`: inalterado; nenhuma dependência adicionada.
@@ -62,11 +63,13 @@ Node 22 do projeto, compatível com o binário local do SQLite.
 
 ## Resíduos e próximo gate
 
-- referências baseadas somente em número de linha continuam provisórias e
-  bloqueiam readiness até rebind explícito;
-- fotografia real sanitizada e paridade das views legadas ainda não foram
-  executadas;
-- persistência shadow em produção e dual-write continuam proibidos.
+- gate real no escopo próprio do único admin: 1 meta, 0 dívidas e 0 movimentos;
+- paridade `GO`, zero divergências, privacidade aprovada e zero escrita Google;
+- bootstrap criou 1 vínculo; replay seguinte criou 0 e permaneceu `GO`;
+- dívida com formato atual foi coberta por teste sanitizado, pois não havia
+  dívida real no escopo autorizado;
+- mover a linha vinculada exige rebind explícito e falha fechado;
+- persistência de fatos financeiros e dual-write continuam proibidos até 5C.
 
-Próximo passo dentro da 5A: executar dry-run read-only sanitizado e provar
-equivalência das views, ainda sem alterar comandos ou produção.
+EC2 validada em `2f88a83`, PM2 online e health
+`{"ok":true,"sqlite":true}`. Próximo passo: iniciar 5B.

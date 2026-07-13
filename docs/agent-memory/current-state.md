@@ -1543,3 +1543,18 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   encerrar 5A, persistir shadow em producao, dual-write ou iniciar 5B.
 - Proximo passo dentro da 5A: dry-run real sanitizado e paridade das views
   legadas, sem alterar comandos ou producao.
+
+## Phase 5A final GO - 2026-07-13
+
+- Gate real restrito ao unico admin leu a planilha propria: 1 meta, 0 dividas e
+  0 movimentos; paridade GO, zero divergencias, privacidade true e writes 0.
+- A primeira execucao persistiu 1 vinculo tecnico de identidade no shadow da
+  EC2; o replay seguinte criou 0. Nenhum nome, usuario ou valor financeiro foi
+  persistido e nenhuma planilha Google foi alterada.
+- Cabecalho atual de dividas nao usa mais fallback posicional para campos
+  ausentes. Divida populada ficou coberta por fixture sanitizada de formato
+  real, pois o escopo autorizado nao possuia dividas.
+- Evidencia: bateria 5A `23/23`, suite completa `815/815`, EC2 em `2f88a83`,
+  PM2 online e health `{"ok":true,"sqlite":true}`.
+- Decisao: GO para encerrar 5A e iniciar 5B. Dual-write, alteracao de comandos
+  e persistencia de fatos financeiros continuam proibidos ate 5C.
