@@ -1517,3 +1517,23 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   completa entre clientes.
 - Decisão formal: `GO para encerramento da Fase 4`. A Fase 5 está autorizada a
   seguir exatamente o roadmap já decidido; não redefinir fases pelo chat.
+
+## Phase 5A projected-plan contract local GO - 2026-07-13
+
+- A Fase 5 iniciou exatamente em 5A, sem promover o dashboard nem alterar
+  comandos/escritas atuais.
+- Criado contrato puro `projected-plan-v1`/`projected-plan-movement-v1` com
+  adapters de `Metas`, `Dívidas` e `Movimentações Metas`, centavos inteiros,
+  tipos goal/debt/financing/consortium, identidade por referencia legada e
+  fallback de linha explicitamente `provisional`.
+- Renomear com a mesma referencia preserva `plan_id`; metas homonimas nao sao
+  associadas automaticamente. `plan_movements` rejeita estados simulados ou
+  projetados e a visao publica remove identidades internas.
+- Backup/restore portatil usa checksum. Nenhuma aba, flag, rota, comando ou dado
+  real foi alterado.
+- Evidencia: nova bateria `7/7`, focados contrato/legado/ledger `128/128`, suite
+  completa `799/799`, audit high zero e diff check limpo.
+- Decisao: GO apenas para a primeira fatia read-only da 5A; NO-GO para encerrar
+  5A, persistir shadow em producao, dual-write ou iniciar 5B.
+- Proximo passo dentro da 5A: armazenamento shadow versionado e referencia
+  legada persistente, seguidos de dry-run real sanitizado e restore.

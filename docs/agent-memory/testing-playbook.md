@@ -261,6 +261,21 @@ Validar:
 - O rollback deve desligar projecao e leituras por flag sem apagar o banco shadow.
 - A Fase 1 terminou com `NO-GO` para shadow em producao. Reavaliar somente depois do adapter de recibos verificados e da telemetria de paridade da Fase 2.
 
+## Planos projetados - Fase 5A
+
+- Bateria minima do contrato: `node --test tests\projectedPlansContract.test.js`.
+- Rodar junto com `tests\financialStateMachine.test.js` e
+  `tests\canonicalLedgerProjector.test.js` para provar compatibilidade com
+  comandos legados e neutralidade contabil.
+- Dinheiro deve permanecer em centavos inteiros; ausencia de fonte vira
+  `null`/`partial`, nunca zero.
+- Identidade por numero de linha e `provisional`; nao autoriza cutover/escrita.
+- Meta homonima/ambigua nao pode receber movimento por aproximacao.
+- `plan_movements` aceita apenas fatos `realized`; simulacao/projecao deve ser
+  rejeitada pelo contrato.
+- Backup deve falhar em checksum divergente e a visao publica nao pode expor
+  usuario, domicilio, referencia legada ou `operation_key`.
+
 ## Scheduler e Calendar
 
 Validar:

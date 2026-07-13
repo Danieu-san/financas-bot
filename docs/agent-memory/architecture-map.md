@@ -17,6 +17,9 @@ Use este mapa para escolher rapidamente quais arquivos abrir por tarefa.
 - `src/handlers/deletionHandler.js` - exclusao de itens.
 - `src/handlers/debtHandler.js` e `src/handlers/debtUpdateHandler.js` - pagamentos/atualizacao de dividas.
 - `src/services/goalService.js` - movimentacoes de metas/cofrinho, ajuste de valor atual, status e auditoria.
+- `src/plans/projectedPlansContract.js` - contrato puro da Fase 5A para
+  `plans`/`plan_movements`, adapters read-only de metas/dividas legadas,
+  identidade, centavos, visao publica e backup/restore portatil.
 
 ## Importacao de extratos
 
