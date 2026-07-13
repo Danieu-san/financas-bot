@@ -58,4 +58,3 @@ Node 22 do projeto, compatível com o binário local do SQLite.
 
 Próximo passo dentro da 5A: desenhar e testar o armazenamento shadow versionado
 e a referência legada persistente, ainda sem alterar comandos ou produção.
-

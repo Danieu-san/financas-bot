@@ -134,4 +134,3 @@ GO exige:
 - retry, restart, concorrência, reversão, fonte parcial e restore cobertos;
 - rollback separa leitura e escrita e nunca apaga fatos válidos;
 - marcador produtivo removido sem resíduos.
-
