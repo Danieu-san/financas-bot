@@ -2,7 +2,7 @@
 
 Atualizado em: 2026-07-13
 
-## Fase 4A - contrato de orcamento por categoria - GO local - 2026-07-13
+## Fase 4A - contrato de orcamento por categoria - GO de producao - 2026-07-13
 
 - A unidade oficial do roadmap e `4A - Contrato de orcamento por categoria`;
   nao existe uma fatia oficial `4A.2`. Os sete passos da 4A estao implementados
@@ -29,15 +29,22 @@ Atualizado em: 2026-07-13
 - O primeiro smoke WhatsApp apos o commit `4336da1` deu `NO-GO`: o plano do
   Gemini descartou o filtro de categoria na pergunta de restante e o contexto
   anterior capturou as perguntas de categorias estouradas e ritmo diario como
-  ranking de gastos. O hotfix preserva integralmente o plano deterministico de
-  orcamento, prioriza sinal explicito de orcamento sobre follow-up generico e
-  impede composicao contextual nas respostas categoricas da 4A. Regressao
-  focada `284/284` e suite completa isolada `769/769` verdes; falta redeploy e
-  repeticao do smoke para converter o NO-GO em GO de producao.
-- Nenhuma flag, `.env`, planilha real, dado financeiro real, dashboard ou API
-  foi alterado. Decisao: `GO local` da 4A. Falta publicar, implantar e executar
-  o smoke read-only em producao para decidir o GO final; o proximo passo depois
-  disso e `4B - API de dashboard v2`.
+  ranking de gastos. O hotfix `c38d4b2` preserva integralmente o plano
+  deterministico de orcamento, prioriza sinal explicito de orcamento sobre
+  follow-up generico e impede composicao contextual nas respostas categoricas
+  da 4A. Regressao focada `284/284` e suite completa isolada `769/769` verdes.
+- O segundo smoke confirmou as tres rotas corretas. Restante de Alimentacao
+  distinguiu ausencia de alocacao de teto zero; categorias estouradas informou
+  corretamente que nenhuma categoria alocada estourou; Moradia chegou ao
+  calculo de ritmo, mas a mensagem ainda dizia que a categoria nao estava no
+  catalogo. O ajuste `2e22af7` passou `82/82` no teste remoto e tornou explicito
+  que Moradia existe, mas nao tem alocacao, restante ou ritmo diario definidos.
+- O reteste manual final no WhatsApp respondeu exatamente esse contrato para
+  Moradia. Producao ficou no commit `2e22af7`, PM2 online, WhatsApp pronto e
+  health `{"ok":true,"sqlite":true}`. Nenhuma flag, `.env`, planilha real,
+  dado financeiro real, dashboard ou API foi alterado. Decisao: `GO de
+  producao` e encerramento da 4A; o proximo passo oficial e `4B - API de
+  dashboard v2`, ainda nao iniciado.
 
 ## Fase 4A - fundacao canonica em producao - 2026-07-13
 

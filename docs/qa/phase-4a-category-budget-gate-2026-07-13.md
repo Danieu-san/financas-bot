@@ -51,13 +51,12 @@ familia e linhas internas.
 - Verificacao de sintaxe: aprovada.
 - `git diff --check`: aprovado, apenas avisos esperados de LF/CRLF.
 
-## Decisao
+## Decisao local inicial
 
 `GO local` para a Fase 4A. Nenhuma flag, variavel de ambiente, planilha real,
-dado financeiro real, dashboard ou API foi alterado. O GO de producao depende
+dado financeiro real, dashboard ou API foi alterado. O GO de producao dependia
 de commit/push, deploy por fast-forward, testes remotos, saude do processo e
-smoke read-only das tres perguntas. Depois disso, o proximo passo oficial e
-`4B - API de dashboard v2`.
+smoke read-only das tres perguntas.
 
 ## Primeiro smoke de producao e hotfix
 
@@ -72,5 +71,35 @@ para o dominio de orcamento, ignora follow-up generico quando a nova mensagem
 traz sinal explicito de orcamento e desativa a composicao contextual para
 categoria, subcategoria, status ou deteccao de estouro. Testes reproduzem a
 sequencia real e uma resposta contextual adversarial. Evidencia apos o hotfix:
-bateria focada isolada `284/284` e suite completa isolada `769/769`. O status de
-producao permanece `NO-GO` ate novo deploy e repeticao das tres perguntas.
+bateria focada isolada `284/284` e suite completa isolada `769/769`.
+
+## Repeticao do smoke e fechamento
+
+O hotfix `c38d4b2` foi publicado e implantado. Na segunda execucao manual pelo
+WhatsApp, as tres perguntas chegaram aos intents corretos:
+
+1. `Quanto resta do orcamento de alimentacao?` informou realizado de
+   `R$ 458,58` e ausencia de alocacao, sem assumir orcamento zero.
+2. `Quais categorias estouraram o orcamento?` informou corretamente que nenhuma
+   categoria alocada estourou no ciclo.
+3. `Qual o ritmo diario da categoria moradia no orcamento?` nao caiu em ranking,
+   mas a mensagem ainda confundia categoria existente sem alocacao com categoria
+   ausente do catalogo.
+
+O ajuste final `2e22af7` separou esses casos na composicao deterministica. A
+regressao exata passou localmente dentro da bateria focada `284/284`; no servidor,
+`tests/financialAgent.test.js` passou `82/82`. O deploy por fast-forward terminou
+com PM2 online, commit remoto `2e22af7`, WhatsApp pronto e health
+`{"ok":true,"sqlite":true}`.
+
+No reteste manual final, a pergunta de ritmo de Moradia respondeu que a categoria
+nao tem alocacao definida no ciclo e, por isso, nao possui restante nem ritmo
+diario definidos, sem trata-la como orcamento zero. Nenhuma pergunta escreveu
+dados financeiros e nenhuma flag, `.env`, planilha, dashboard ou API foi
+alterado.
+
+## Decisao final
+
+`GO de producao` para encerrar os sete passos oficiais da Fase 4A. O primeiro
+`NO-GO`, o hotfix e o reteste ficam preservados como evidencia do gate. O proximo
+passo oficial e `4B - API de dashboard v2`, ainda nao iniciado.
