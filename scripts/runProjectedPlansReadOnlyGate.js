@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { authorizeGoogle, readDataFromSheet, runWithUserSheetContext } = require('../src/services/google');
-const { getUserByWhatsAppId } = require('../src/services/userService');
+const { getUserByLookup } = require('../src/services/userService');
 const { buildProjectedPlansParityReport } = require('../src/plans/projectedPlansParityReport');
 
 function buildRunId(date = new Date()) {
@@ -30,7 +30,7 @@ async function runProjectedPlansReadOnlyGate({
 } = {}) {
     if (!confirmRealRead) throw new Error('projected_plans_real_read_confirmation_required');
     await authorizeGoogle();
-    const admin = await getUserByWhatsAppId(onlyConfiguredAdminId());
+    const admin = await getUserByLookup(onlyConfiguredAdminId());
     if (!admin?.user_id) throw new Error('projected_plans_admin_user_not_found');
     const [metasData, dividasData, movimentacoesMetasData] = await runWithUserSheetContext(admin, () => Promise.all([
         readDataFromSheet('Metas!A:K'),
