@@ -1,9 +1,12 @@
 const test = require('node:test');
 const assert = require('node:assert');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 
-const { adaptLegacyDebtRow } = require('../src/plans/projectedPlansContract');
+const { adaptLegacyDebtRow, projectLegacyPlanSheets } = require('../src/plans/projectedPlansContract');
 const { buildProjectedPlansParityReport } = require('../src/plans/projectedPlansParityReport');
-const { __test__: { onlyConfiguredAdminId } } = require('../scripts/runProjectedPlansReadOnlyGate');
+const { __test__: { onlyConfiguredAdminId, resolveIdentityBindings } } = require('../scripts/runProjectedPlansReadOnlyGate');
 
 const CURRENT_GOAL_HEADERS = [
     'Nome', 'Valor Alvo', 'Valor Atual', '% Progresso', 'Valor Mensal',
@@ -100,4 +103,40 @@ test('5A real read gate requires exactly one configured admin and never broadens
     assert.strictEqual(onlyConfiguredAdminId({ ADMIN_IDS: 'admin-one' }), 'admin-one');
     assert.throws(() => onlyConfiguredAdminId({ ADMIN_IDS: '' }), /scope_must_be_unique/);
     assert.throws(() => onlyConfiguredAdminId({ ADMIN_IDS: 'admin-one,admin-two' }), /scope_must_be_unique/);
+});
+
+test('5A explicit durable identity bindings remove the provisional cutover blocker', () => {
+    const fixture = realShapeFixture();
+    const provisional = projectLegacyPlanSheets(fixture);
+    const bindings = new Map(provisional.plans.map(plan => [plan.source.legacy_ref, { planId: plan.plan_id }]));
+    const report = buildProjectedPlansParityReport(fixture, {
+        runId: 'PHASE5A_STABLE_IDENTITIES',
+        identityBindings: bindings
+    });
+
+    assert.strictEqual(report.projection.provisional_identity_count, 0);
+    assert.strictEqual(report.storage.cutover_ready, true);
+    assert.strictEqual(report.decision, 'GO');
+    assert.deepStrictEqual(report.blockers, []);
+});
+
+test('5A identity bootstrap persists only explicit bindings and refuses silent row movement', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-plan-identities-'));
+    const dbPath = path.join(dir, 'identities.sqlite');
+    try {
+        const fixture = realShapeFixture();
+        const created = resolveIdentityBindings({ sheets: fixture, dbPath, bootstrap: true });
+        const replay = resolveIdentityBindings({ sheets: fixture, dbPath, bootstrap: false });
+        assert.deepStrictEqual({ created: created.created, active: created.active }, { created: 2, active: 2 });
+        assert.deepStrictEqual({ created: replay.created, active: replay.active }, { created: 0, active: 2 });
+
+        const moved = realShapeFixture();
+        moved.metasData.splice(1, 0, []);
+        assert.throws(
+            () => resolveIdentityBindings({ sheets: moved, dbPath, bootstrap: true }),
+            /identity_rebind_required/
+        );
+    } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+    }
 });

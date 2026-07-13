@@ -119,6 +119,13 @@ class ProjectedPlansStore {
         return row || null;
     }
 
+    countIdentityBindings({ state = '' } = {}) {
+        if (state && !['active', 'superseded'].includes(state)) throw new Error('invalid_projected_plan_identity_state');
+        return Number(state
+            ? this.db.prepare('SELECT COUNT(*) FROM projected_plan_identities WHERE state = ?').pluck().get(state)
+            : this.db.prepare('SELECT COUNT(*) FROM projected_plan_identities').pluck().get());
+    }
+
     bindLegacyIdentity({ sourceType, legacyRef, planId, identityStatus = 'stable' }) {
         this.assertWriteEnabled();
         return this.db.transaction(() => this.bindLegacyIdentityInternal({ sourceType, legacyRef, planId, identityStatus }))();

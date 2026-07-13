@@ -205,12 +205,13 @@ function privacyScan(report, sheets) {
 function buildProjectedPlansParityReport(sheets = {}, {
     runId = 'PHASE5A_READ_ONLY',
     generatedAt = new Date().toISOString(),
-    sourceMode = 'google_sheets_read_only'
+    sourceMode = 'google_sheets_read_only',
+    identityBindings = new Map()
 } = {}) {
     const metasData = sheets.metasData || [];
     const dividasData = sheets.dividasData || [];
     const movimentacoesMetasData = sheets.movimentacoesMetasData || [];
-    const projection = projectLegacyPlanSheets({ metasData, dividasData, movimentacoesMetasData });
+    const projection = projectLegacyPlanSheets({ metasData, dividasData, movimentacoesMetasData, identityBindings });
     const plansByRef = new Map(projection.plans.map(plan => [plan.source.legacy_ref, plan]));
     const movementsByRef = new Map(projection.plan_movements.map(movement => [movement.source.legacy_ref, movement]));
     const goalComparison = compareGoalViews(metasData, plansByRef);

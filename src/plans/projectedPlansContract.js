@@ -399,20 +399,31 @@ function projectLegacyPlans({ householdId = '', goals = [], debts = [], goalMove
     };
 }
 
-function sheetEntries(rows, headers, rowType) {
+function sheetEntries(rows, headers, rowType, sourceType = '', identityBindings = new Map()) {
     if (!Array.isArray(rows) || rows.length <= 1) return [];
     const effectiveHeaders = Array.isArray(rows[0]) && rows[0].length ? rows[0] : headers;
     return rows.slice(1)
-        .map((row, offset) => ({ row, headers: effectiveHeaders, rowIndex: offset + 2, rowType }))
+        .map((row, offset) => {
+            const rowIndex = offset + 2;
+            const ref = `${sourceType}:row:${rowIndex}`;
+            const binding = identityBindings instanceof Map ? identityBindings.get(ref) : identityBindings?.[ref];
+            return {
+                row,
+                headers: effectiveHeaders,
+                rowIndex,
+                rowType,
+                ...(binding?.planId ? { legacyRef: ref, planId: binding.planId } : {})
+            };
+        })
         .filter(entry => Array.isArray(entry.row) && entry.row.some(value => String(value ?? '').trim() !== ''));
 }
 
-function projectLegacyPlanSheets({ householdId = '', metasData = [], dividasData = [], movimentacoesMetasData = [] } = {}) {
+function projectLegacyPlanSheets({ householdId = '', metasData = [], dividasData = [], movimentacoesMetasData = [], identityBindings = new Map() } = {}) {
     return projectLegacyPlans({
         householdId,
-        goals: sheetEntries(metasData, GOAL_HEADERS, 'goal'),
-        debts: sheetEntries(dividasData, DEBT_HEADERS, 'debt'),
-        goalMovements: sheetEntries(movimentacoesMetasData, GOAL_MOVEMENT_HEADERS, 'goal_movement')
+        goals: sheetEntries(metasData, GOAL_HEADERS, 'goal', 'sheet.metas', identityBindings),
+        debts: sheetEntries(dividasData, DEBT_HEADERS, 'debt', 'sheet.dividas', identityBindings),
+        goalMovements: sheetEntries(movimentacoesMetasData, GOAL_MOVEMENT_HEADERS, 'goal_movement', 'sheet.movimentacoes_metas')
     });
 }
 
