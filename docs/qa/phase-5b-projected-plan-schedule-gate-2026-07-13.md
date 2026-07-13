@@ -2,14 +2,13 @@
 
 Data: 2026-07-13
 
-## Veredito local
+## Veredito
 
-`GO local` para implantar a leitura e a simulacao deterministicas da 5B.
+`GO tecnico de producao` para a leitura e a simulacao deterministicas da 5B.
 
 Este gate nao autoriza a 5C, dual-write, alteracao de fatos financeiros ou
-persistencia de simulacoes. O GO de producao depende do deploy por
-fast-forward, verificacao do commit exato na EC2, saude do processo e smoke
-read-only no WhatsApp.
+persistencia de simulacoes. O encerramento funcional da 5B depende somente do
+smoke read-only no WhatsApp operado pelo usuario.
 
 ## Escopo entregue
 
@@ -63,9 +62,25 @@ O rollback de codigo e um `git revert` do commit da 5B, seguido de restart do
 PM2 e verificacao do health. Nao ha dado novo para migrar ou apagar, pois a
 fatia nao persiste simulacoes nem fatos.
 
-## Pendencia para GO de producao
+## Evidencia de deploy
 
-- publicar e implantar o commit exato;
-- confirmar PM2, Google, read-model, dashboard health e WhatsApp pronto;
-- executar smoke read-only das novas perguntas sem criar divida/meta de teste
-  em producao.
+- commit publicado e implantado: `8b0f7f6`;
+- `HEAD` da EC2 antes: `2de67b04236882b7d5cd8f78512c545d18781986`;
+- `HEAD` da EC2 depois: `8b0f7f6780c7363d38d103c638b4c89775a51eae`;
+- atualizacao por `git pull --ff-only`, com worktree rastreado limpo antes e
+  depois;
+- backup: `.env.pre-5b-8b0f7f6-20260713T230155Z`;
+- `ADMIN_IDS` com um unico admin e
+  `DASHBOARD_ADMIN_ALL_USERS_ENABLED=false`;
+- `npm install`: atualizado e zero vulnerabilidades;
+- testes remotos: planos `42/42` e read-model `20/20`;
+- PM2 online com novo PID, Google autorizado, planilha sincronizada,
+  read-model pronto, integridade de usuario verde, dashboard ativo e WhatsApp
+  pronto;
+- health remoto: `{"ok":true,"sqlite":true}`.
+
+## Pendencia para encerramento funcional da 5B
+
+- executar smoke read-only das novas perguntas no WhatsApp sem criar
+  divida/meta de teste em producao;
+- registrar GO/NO-GO das respostas antes de iniciar 5C.

@@ -1575,6 +1575,12 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   sem expor identidade interna e sem fallback generico.
 - Evidencia local: planos `42/42`, read-model `20/20`, suite completa `835/835`,
   audit high zero, sintaxe e diff check verdes.
-- Decisao: GO local para deploy da 5B; NO-GO para iniciar 5C antes de registrar
-  commit exato, saude remota e smoke read-only de producao.
+- Commit `8b0f7f6` publicado e implantado por fast-forward na EC2 a partir de
+  `2de67b0`, com backup `.env.pre-5b-8b0f7f6-20260713T230155Z`.
+- Testes remotos passaram planos `42/42` e read-model `20/20`. PM2 reiniciou,
+  Google/planilha/read-model/integridade/dashboard/WhatsApp ficaram prontos e
+  health retornou `{"ok":true,"sqlite":true}`; worktree rastreado terminou
+  limpo no hash exato `8b0f7f6780c7363d38d103c638b4c89775a51eae`.
+- Decisao: GO tecnico de producao da 5B; NO-GO para iniciar 5C antes do smoke
+  read-only de WhatsApp operado pelo usuario e do registro do GO/NO-GO final.
 - Relatorio: `docs/qa/phase-5b-projected-plan-schedule-gate-2026-07-13.md`.

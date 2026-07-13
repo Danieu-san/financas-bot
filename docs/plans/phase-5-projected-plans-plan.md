@@ -144,8 +144,10 @@ Gate: simulação e histórico real permanecem separados e reproduzíveis.
 - evidência local: planos `42/42`, read-model `20/20`, suíte completa
   `835/835`, audit high com zero vulnerabilidades e diff check verde.
 
-Decisão local: `GO para deploy da 5B`. A 5C continua bloqueada até o deploy,
-saúde remota e smoke read-only desta fatia serem registrados.
+Decisão técnica: `GO de produção da 5B`. O commit `8b0f7f6` foi implantado por
+fast-forward de `2de67b0`; testes remotos passaram `42/42` e `20/20`, PM2,
+Google, read-model, dashboard health e WhatsApp ficaram verdes. A 5C continua
+bloqueada até o smoke read-only desta fatia ser registrado.
 
 Relatório: `docs/qa/phase-5b-projected-plan-schedule-gate-2026-07-13.md`.
 
