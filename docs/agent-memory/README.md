@@ -14,6 +14,17 @@ da decisao, capacidade recomendada na mesma estrutura e proximo passo concreto.
 Se um desses campos faltar, nao enviar a resposta. A omissao ja ocorreu duas
 vezes durante a Fase 4 e deve ser tratada como regressao operacional.
 
+Sempre que uma tarefa for delegada ao Chat comum, informar no mesmo envio duas
+configuracoes completas e distintas:
+
+1. `Chat -> Modelo -> Esforco -> tarefa delegada`, para executar o prompt;
+2. `Codex -> Modelo -> Esforco -> validacao de retorno`, para o usuario saber
+   qual capacidade selecionar antes de colar a resposta de volta.
+
+Nao considerar a delegacao completa sem a capacidade de retorno ao Codex. Ao
+receber a resposta do Chat, confrontar os achados com as fontes que exigem
+repositorio, testes ou producao antes de aceitar conclusoes ou alterar o plano.
+
 ## Ordem recomendada de leitura
 
 1. `AGENTS.md` - regras permanentes, contrato de capacidade, seguranca, privacidade e mapa base.
