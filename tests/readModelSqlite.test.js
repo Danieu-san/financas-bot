@@ -854,6 +854,35 @@ test('sqlite read-model feeds Packet 07 debt plans into Query Engine with scoped
     assert.strictEqual(allUsers, null);
 });
 
+test('5B sqlite read-model preserves missing debt interest as partial instead of zero', async () => {
+    assert.strictEqual(ensureSqliteReady(), true);
+    assert.strictEqual(syncSnapshotToSqlite({
+        saidas: [], cartoes: [], entradas: [], transferencias: [], userSettings: [], cartoesConfig: [],
+        metas: [], movimentacoesMetas: [], contas: [],
+        dividas: [{
+            user_id: 'user-debt-missing-rate',
+            row: ['Banco sem taxa', 'Banco', 'Empréstimo', 'R$2.000,00', 'R$1.200,00', 'R$300,00', '', 20, '01/01/2026', 10, 'Ativa', 'Daniel', '', '40%', '20/07/2026', 0, '']
+        }]
+    }), true);
+
+    const result = await executeFinancialQueryPlanFromReadModel({
+        kind: 'financial_query',
+        domain: 'debts',
+        operation: 'forecast',
+        filters: { debt: 'banco sem taxa', scope: 'personal' },
+        timeBasis: 'due_date',
+        answerStyle: 'audit'
+    }, 'simulacao_pagamento_divida', { currentDate: '13/07/2026', divida: 'banco sem taxa' }, {
+        userId: 'user-debt-missing-rate',
+        resolvedScope: resolvedScope('personal', ['user-debt-missing-rate'])
+    });
+
+    assert.strictEqual(result.results.kind, 'plan_schedule_forecast');
+    assert.strictEqual(result.results.status, 'partial');
+    assert.strictEqual(result.results.baseline.totalInterest, null);
+    assert.ok(result.results.baseline.missingAssumptions.includes('interest_rate_basis_points'));
+});
+
 test('sqlite Packet 07 reads current debt headers and keeps relative due windows across months', async () => {
     assert.strictEqual(ensureSqliteReady(), true, 'SQLite should be available for debt header tests');
     const currentHeaders = [

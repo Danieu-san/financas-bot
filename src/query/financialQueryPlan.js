@@ -76,6 +76,7 @@ const ALLOWED_FILTER_KEYS = new Set([
     'source',
     'account',
     'recurrence',
+    'scenario',
     'value'
 ]);
 const BLOCKED_KEYS = new Set([
@@ -229,6 +230,40 @@ function normalizeFilters(filters = {}) {
         }
     }
 
+    if (filters.scenario !== undefined) {
+        const scenario = filters.scenario;
+        if (!scenario || typeof scenario !== 'object' || Array.isArray(scenario)) {
+            errors.push('filters.scenario deve ser um objeto');
+        } else {
+            const allowedScenarioKeys = new Set(['type', 'amount', 'frequency', 'effectiveOn']);
+            const unknownScenarioKeys = Object.keys(scenario).filter(key => !allowedScenarioKeys.has(key));
+            if (unknownScenarioKeys.length > 0) {
+                errors.push(`filters.scenario contem campos nao permitidos: ${unknownScenarioKeys.join(', ')}`);
+            }
+            const type = normalizeEnum(scenario.type);
+            const frequency = normalizeEnum(scenario.frequency || 'one_time');
+            const amount = Number(scenario.amount);
+            const allowedTypes = new Set(['extra_payment', 'monthly_contribution', 'additional_monthly_contribution', 'withdrawal']);
+            if (!allowedTypes.has(type)) errors.push(`filters.scenario.type invalido: ${scenario.type}`);
+            if (!['one_time', 'monthly'].includes(frequency)) errors.push(`filters.scenario.frequency invalido: ${scenario.frequency}`);
+            if (!Number.isFinite(amount) || amount <= 0 || amount > 1_000_000_000) {
+                errors.push('filters.scenario.amount deve ser positivo e finito');
+            }
+            const effectiveOn = scenario.effectiveOn === undefined ? '' : String(scenario.effectiveOn).trim();
+            if (effectiveOn && !/^\d{4}-\d{2}-\d{2}$/.test(effectiveOn)) {
+                errors.push('filters.scenario.effectiveOn deve usar YYYY-MM-DD');
+            }
+            if (allowedTypes.has(type) && ['one_time', 'monthly'].includes(frequency) && Number.isFinite(amount) && amount > 0 && amount <= 1_000_000_000 && (!effectiveOn || /^\d{4}-\d{2}-\d{2}$/.test(effectiveOn))) {
+                normalized.scenario = {
+                    type,
+                    amount,
+                    frequency,
+                    ...(effectiveOn ? { effectiveOn } : {})
+                };
+            }
+        }
+    }
+
     if (filters.value !== undefined) {
         if (!filters.value || typeof filters.value !== 'object' || Array.isArray(filters.value)) {
             errors.push('filters.value deve ser um objeto');
@@ -379,7 +414,11 @@ function legacyIntentToQueryPlan(intent, parameters = {}) {
     const merchant = parameters.merchant || parameters.estabelecimento || parameters.descricao;
     const merchantFilters = merchant ? { ...cardFilters, merchant } : cardFilters;
     const debtTerm = parameters.divida || parameters.dividaNome || parameters.debt || parameters.credor || merchant;
-    const debtFilters = debtTerm ? { ...baseFilters, debt: debtTerm } : baseFilters;
+    const debtFilters = {
+        ...baseFilters,
+        ...(debtTerm ? { debt: debtTerm } : {}),
+        ...(parameters.scenario ? { scenario: parameters.scenario } : {})
+    };
     const debtUpcomingFilters = parameters.dias
         ? {
             ...Object.fromEntries(Object.entries(baseFilters).filter(([key]) => key !== 'period')),
@@ -416,7 +455,8 @@ function legacyIntentToQueryPlan(intent, parameters = {}) {
         ...(baseFilters.member ? { member: baseFilters.member } : {}),
         ...(parameters.meta || parameters.goal ? { goal: parameters.meta || parameters.goal } : {}),
         ...(parameters.status ? { status: parameters.status } : {}),
-        ...(parameters.source ? { source: parameters.source } : {})
+        ...(parameters.source ? { source: parameters.source } : {}),
+        ...(parameters.scenario ? { scenario: parameters.scenario } : {})
     };
     const billTerm = parameters.conta || parameters.bill || parameters.descricao || '';
     const billFilters = {
@@ -543,6 +583,8 @@ function legacyIntentToQueryPlan(intent, parameters = {}) {
         percentual_meta: { domain: 'goals', operation: 'percentage', filters: goalFilters, answerStyle: 'detailed' },
         comparacao_metas: { domain: 'goals', operation: 'compare', filters: goalFilters, answerStyle: 'detailed' },
         explicacao_meta: { domain: 'goals', operation: 'explain', filters: goalFilters, answerStyle: 'audit' },
+        previsao_meta: { domain: 'goals', operation: 'forecast', filters: goalFilters, answerStyle: 'audit', timeBasis: 'current_state' },
+        simulacao_meta: { domain: 'goals', operation: 'forecast', filters: goalFilters, answerStyle: 'audit', timeBasis: 'current_state' },
         total_dividas: { domain: 'debts', operation: 'sum', filters: baseFilters, answerStyle: 'detailed' },
         listagem_dividas: { domain: 'debts', operation: 'list', filters: baseFilters, answerStyle: 'detailed' },
         saldo_divida: { domain: 'debts', operation: 'sum', filters: debtFilters, answerStyle: 'detailed' },

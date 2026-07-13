@@ -74,8 +74,12 @@ const FINANCIAL_QUERY_ENGINE_PRIMARY_INTENTS = new Set([
     'percentual_meta',
     'comparacao_metas',
     'explicacao_meta',
+    'previsao_meta',
+    'simulacao_meta',
     'total_dividas',
+    'listagem_dividas',
     'saldo_divida',
+    'detalhamento_divida',
     'parcelas_dividas_mes',
     'dividas_vencendo',
     'dividas_atrasadas',
@@ -85,6 +89,7 @@ const FINANCIAL_QUERY_ENGINE_PRIMARY_INTENTS = new Set([
     'ranking_dividas_saldo',
     'prioridade_dividas',
     'explicacao_dividas',
+    'simulacao_pagamento_divida',
     'resumo_contas_recorrentes',
     'contas_vencendo',
     'status_conta_recorrente',
@@ -455,7 +460,9 @@ async function executeLegacyExpenseQueryIntent(intent, params = {}, dataSources 
         'media_progresso_metas',
         'percentual_meta',
         'comparacao_metas',
-        'explicacao_meta'
+        'explicacao_meta',
+        'previsao_meta',
+        'simulacao_meta'
     ]);
     if (goalIntents.has(intent)) {
         const publicGoal = (item = {}) => ({
@@ -501,7 +508,9 @@ async function executeLegacyExpenseQueryIntent(intent, params = {}, dataSources 
 
     const debtIntents = new Set([
         'total_dividas',
+        'listagem_dividas',
         'saldo_divida',
+        'detalhamento_divida',
         'parcelas_dividas_mes',
         'dividas_vencendo',
         'dividas_atrasadas',
@@ -510,7 +519,8 @@ async function executeLegacyExpenseQueryIntent(intent, params = {}, dataSources 
         'ranking_dividas_vencimento',
         'ranking_dividas_saldo',
         'prioridade_dividas',
-        'explicacao_dividas'
+        'explicacao_dividas',
+        'simulacao_pagamento_divida'
     ]);
     if (debtIntents.has(intent)) {
         const publicDebt = (item = {}) => ({

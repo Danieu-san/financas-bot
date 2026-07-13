@@ -219,6 +219,7 @@ function adaptLegacyGoalRow({ row = [], headers = GOAL_HEADERS, rowIndex = 0, le
         amounts: {
             target_cents: moneyToCents(cell(row, headers, ['Valor Alvo', 'Alvo'], 1)),
             current_cents: moneyToCents(cell(row, headers, ['Valor Atual', 'Atual'], 2)),
+            scheduled_contribution_cents: moneyToCents(cell(row, headers, ['Valor Mensal Sugerido', 'Valor Mensal', 'Valor Mensal Necessário'], 4)),
             principal_cents: null,
             outstanding_cents: null,
             installment_cents: null
@@ -262,6 +263,7 @@ function adaptLegacyDebtRow({ row = [], headers = DEBT_HEADERS, rowIndex = 0, le
         amounts: {
             target_cents: null,
             current_cents: null,
+            scheduled_contribution_cents: null,
             principal_cents: moneyToCents(cell(row, headers, ['Valor Original'], 3)),
             outstanding_cents: moneyToCents(cell(row, headers, ['Saldo Atual', 'Saldo Devedor'], 4)),
             installment_cents: moneyToCents(cell(row, headers, ['Valor da Parcela', 'Parcela'], 5))

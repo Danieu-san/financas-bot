@@ -900,6 +900,7 @@ function syncSnapshotToSqlite(snapshot) {
             const originalValue = parseValue(snapshotRowValue(item, ['Valor Original'], 3) || 0);
             const saldoAtual = parseValue(snapshotRowValue(item, ['Saldo Atual'], 4) || 0);
             const status = snapshotRowValue(item, ['Status'], 10);
+            const rawInterest = snapshotRowValue(item, ['Juros', 'Taxa de Juros', 'Taxa'], 6);
             const fingerprint = makeFingerprint(['divida', item.user_id, name, creditor, saldoAtual, status]);
             const progressPct = originalValue > 0
                 ? Math.min(100, Math.max(0, ((originalValue - saldoAtual) / originalValue) * 100))
@@ -914,7 +915,7 @@ function syncSnapshotToSqlite(snapshot) {
                 status: status || '',
                 saldo_atual: saldoAtual,
                 installment_value: parseValue(snapshotRowValue(item, ['Parcela', 'Valor da Parcela'], 5) || 0),
-                juros_pct: parseValue(snapshotRowValue(item, ['Juros', 'Taxa de Juros', 'Taxa'], 6) || 0),
+                juros_pct: String(rawInterest ?? '').trim() === '' ? null : parseValue(rawInterest),
                 due_day: snapshotRowValue(item, ['Vencimento', 'Dia de Vencimento'], 7) || '',
                 start_date: snapshotRowValue(item, ['Início', 'Inicio', 'Data de Início', 'Data de Inicio'], 8) || '',
                 total_installments: parseValue(snapshotRowValue(item, ['Total Parcelas', 'Total de Parcelas'], 9) || 0),
@@ -2015,7 +2016,7 @@ function buildDividasDataSource(rows = []) {
             Number(row.original_value || 0),
             Number(row.saldo_atual || 0),
             Number(row.installment_value || 0),
-            Number(row.juros_pct || 0),
+            row.juros_pct === null || row.juros_pct === undefined ? '' : Number(row.juros_pct),
             row.due_day || '',
             row.start_date || '',
             Number(row.total_installments || 0),

@@ -497,7 +497,10 @@ function formatDashboardTtlForReply(ttlSeconds) {
 
 function formatCurrencyBR(value) {
     const numericValue = typeof value === 'number' ? value : parseValue(value);
-    return 'R$ ' + Number(numericValue || 0).toFixed(2).replace('.', ',');
+    return 'R$ ' + Number(numericValue || 0).toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
 }
 
 function formatSheetDateForReply(value) {
@@ -3400,11 +3403,20 @@ function buildDebtParameters(text, extra = {}) {
     const normalized = normalizeText(String(text || ''));
     const hasExplicitMonth = hasExplicitMonthSignal(normalized);
     const hasExplicitYear = /\b20\d{2}\b/.test(normalized);
+    const scenarioSignal = /\b(se eu pagar|simule|simular|simulacao|o que muda|antecipar|antecipacao|pagamento extra|pagar mais)\b/.test(normalized);
+    const scenarioAmount = scenarioSignal ? extractLocalAmount(text) : null;
     return {
         ...(hasExplicitMonth ? { mes: parseMonthFromText(text), ano: parseYearFromText(text) } : {}),
         ...(!hasExplicitMonth && hasExplicitYear ? { ano: parseYearFromText(text) } : {}),
         ...(scope ? { scope } : {}),
         ...(divida ? { divida } : {}),
+        ...(scenarioAmount ? {
+            scenario: {
+                type: 'extra_payment',
+                amount: scenarioAmount.value,
+                frequency: 'one_time'
+            }
+        } : {}),
         ...extra
     };
 }
@@ -3863,7 +3875,7 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
     const hasBudgetOverrideSignal = /\b(orcamento|orçamento)\b/.test(text) &&
         /\b(cortar|economizar|fechar|categoria|categorias|consumiu|consumiram|semana|ciclo)\b/.test(text);
     const hasDebtSignal = !hasBudgetOverrideSignal && (
-        /\b(divida|dívida|dividas|dívidas|divdas|emprestimo|empréstimo|financiamento|financiamentos|credor|credores|devo|quitar|quitação|quitacao|juros)\b/.test(text) ||
+        /\b(divida|dívida|dividas|dívidas|divdas|emprestimo|empréstimo|financiamento|financiamentos|credor|credores|devo|quitar|quito|quitação|quitacao|juros)\b/.test(text) ||
         (/\b(parcela|parcelas)\b/.test(text) && /\b(vence|vencem|vencimento|proxima|próxima|proximas|próximas|mes|mês|falta|faltam)\b/.test(text))
     );
     const mentionsBankAccount = /\b(conta corrente|corrente|\bcc\b|conta poupanca|conta poupança|poupanca|poupança)\b/.test(text);
@@ -3874,7 +3886,7 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
     const debtWriteSignal = /\b(criar|cadastrar|cadastre|nova|novo|paguei|pagar|pago|registre|registrar|atualizar|alterar|mudar|ajustar)\b/.test(text) &&
         /\b(divida|dívida|emprestimo|empréstimo|financiamento|parcela|parcelas)\b/.test(text) &&
         !/\b(se eu pagar|simule|simular|simulacao|simulação|o que muda|quanto paguei|quanto foi pago|total pago|pagamentos?)\b/.test(text);
-    const goalNameMatch = text.match(/\bmeta\s+(.+?)(?:\?|$)/);
+    const goalNameMatch = text.match(/\bmeta\s+(.+?)(?:,|\s+quando\b|\?|$)/);
     const goalName = goalNameMatch
         ? goalNameMatch[1]
             .replace(/\b(reserva|familiar|pessoal|pausada|pausadas|cancelada|canceladas|concluida|concluídas|concluidas)\b.*$/i, match => match.split(/\s+/)[0])
@@ -4036,6 +4048,34 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
         return { metric: 'dashboard_explain', intent: 'dashboard_explicacao', parameters: dashboardParams() };
     }
 
+    const goalScenarioSignal = /\b(se eu|simule|simular|simulacao|simulação|o que muda|impacto)\b/.test(text) &&
+        /\b(aportar|aporte|guardar|contribuir|retirar|retirada|resgatar)\b/.test(text);
+    const goalForecastSignal = /\b(quando|previsao|previsão)\b/.test(text) &&
+        /\b(alcanco|alcanço|atinjo|atingir|bato|completo|concluo)\b/.test(text);
+    if (hasGoalSignal && (goalScenarioSignal || goalForecastSignal)) {
+        const amount = goalScenarioSignal ? extractLocalAmount(userQuestion) : null;
+        let scenario = null;
+        if (amount) {
+            if (/\b(retirar|retirada|resgatar)\b/.test(text)) {
+                scenario = { type: 'withdrawal', amount: amount.value, frequency: 'one_time' };
+            } else if (/\bmais\b/.test(text)) {
+                scenario = { type: 'additional_monthly_contribution', amount: amount.value, frequency: 'monthly' };
+            } else {
+                scenario = { type: 'monthly_contribution', amount: amount.value, frequency: 'monthly' };
+            }
+        }
+        const parameters = {
+            ...(goalName ? { meta: goalName } : {}),
+            ...(/\b(familiar(?:es)?|familia|família)\b/.test(text) ? { scope: 'family' } : {}),
+            ...(scenario ? { scenario } : {})
+        };
+        return {
+            metric: scenario ? 'goal_simulation' : 'goal_payoff_forecast',
+            intent: scenario ? 'simulacao_meta' : 'previsao_meta',
+            parameters
+        };
+    }
+
     if (hasGoalSignal && (/\b(liste|listar|mostre|mostrar|quais|qual|quem|quanto|progresso|falta|faltam|historico|histórico|explique|explica|media|média|ranking|percentual|porcentagem|compare|comparar|aportei|retirei|contribuiu|contribuiram|contribuíram|tendencia|tendência|precisa|precisam)\b/.test(text) || /\bevolu/.test(text))) {
         const parameters = {
             ...(goalName ? { meta: goalName } : {}),
@@ -4089,9 +4129,9 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
         return { metric: 'goals_summary', intent: 'resumo_metas', parameters };
     }
 
-    if (hasDebtSignal && !debtWriteSignal && /\b(liste|listar|mostre|mostrar|quais|qual|quanto|saldo|devo|falta|faltam|quitar|vencem|vence|vencimento|parcela|parcelas|atrasada|atrasadas|quitei|quitada|quitadas|juros|priorizar|prioridade|explica|explique|calculou|ranking|maior|evolu\w*|tendencia|tendência|historico|histórico|se eu pagar|simule|simular|simulacao|simulação|o que muda)\b/.test(text)) {
-        const debtParams = (extra = {}) => buildDebtParameters(text, extra);
-        if (/\b(se eu pagar|simule|simular|simulacao|simulação|o que muda)\b/.test(text)) {
+    if (hasDebtSignal && !debtWriteSignal && /\b(liste|listar|mostre|mostrar|quais|qual|quando|quanto|saldo|devo|falta|faltam|quitar|quito|vencem|vence|vencimento|parcela|parcelas|atrasada|atrasadas|quitei|quitada|quitadas|juros|priorizar|prioridade|explica|explique|calculou|ranking|maior|evolu\w*|tendencia|tendência|historico|histórico|se eu pagar|simule|simular|simulacao|simulação|o que muda|antecipar|antecipacao|antecipação|extra)\b/.test(text)) {
+        const debtParams = (extra = {}) => buildDebtParameters(userQuestion, extra);
+        if (/\b(se eu pagar|simule|simular|simulacao|simulação|o que muda|antecipar|antecipacao|antecipação|pagamento extra|pagar mais)\b/.test(text) || (/\b(quando|quanto|falta|faltam)\b/.test(text) && /\b(quito|quitar|quitacao|quitação)\b/.test(text))) {
             return { metric: 'debt_payment_forecast', intent: 'simulacao_pagamento_divida', parameters: debtParams() };
         }
         if (/\bevolu\w*|\b(evolucao|evolução|historico|histórico|tendencia|tendência)\b/.test(text)) {
@@ -5454,9 +5494,82 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
         return lines.filter(Boolean).join('\n');
     }
 
+    if (['previsao_meta', 'simulacao_meta', 'simulacao_pagamento_divida'].includes(intent)) {
+        const forecast = results || {};
+        if (forecast.status === 'clarification_required') {
+            const candidates = Array.isArray(forecast.candidates) ? forecast.candidates : [];
+            return [
+                'Preciso saber qual plano você quer simular; não distribuí o valor automaticamente.',
+                candidates.length ? `Opções: ${candidates.join(', ')}.` : '',
+                'Diga o nome da meta ou dívida junto com o valor do cenário.',
+                'Nenhuma simulação foi gravada.'
+            ].filter(Boolean).join('\n');
+        }
+        if (Array.isArray(forecast.items) && forecast.items.length > 0) {
+            const lines = forecast.items.map((item, index) => {
+                const completion = item.baseline?.completionOn ? formatSheetDateForReply(item.baseline.completionOn) : 'indefinida';
+                return `${index + 1}. ${item.plan?.name || 'Plano'}: conclusão projetada ${completion}; faltam ${item.baseline?.monthsToCompletion ?? '-'} mês(es).`;
+            });
+            return `Cronogramas projetados separadamente:\n${lines.join('\n')}\nProjeção não altera histórico nem grava movimentos.`;
+        }
+        if (!forecast.baseline) {
+            return 'Não encontrei um plano ativo e autorizado com dados suficientes para projetar. Nenhum valor ausente foi tratado como zero.';
+        }
+
+        const baseline = forecast.baseline || {};
+        const simulated = forecast.simulated || null;
+        const planLabel = forecast.plan?.type === 'goal' ? 'Meta' : 'Dívida';
+        const lines = [
+            `${planLabel}: ${forecast.plan?.name || 'plano selecionado'}`,
+            forecast.plan?.remaining !== null && forecast.plan?.remaining !== undefined
+                ? `Quanto falta hoje: ${formatCurrencyBR(forecast.plan.remaining)}`
+                : 'Quanto falta hoje: fonte indisponível.',
+            baseline.completionOn
+                ? `Conclusão projetada: ${formatSheetDateForReply(baseline.completionOn)} (${baseline.monthsToCompletion} mês(es)).`
+                : 'Conclusão projetada: não calculada com segurança.',
+            baseline.totalInterest !== null && baseline.totalInterest !== undefined
+                ? `Juros projetados no cenário-base: ${formatCurrencyBR(baseline.totalInterest)}`
+                : '',
+            baseline.totalCost !== null && Number(baseline.totalCost) > 0
+                ? `Custos separados projetados: ${formatCurrencyBR(baseline.totalCost)}`
+                : ''
+        ].filter(Boolean);
+
+        if (simulated) {
+            const scenario = forecast.scenario || {};
+            const scenarioLabel = scenario.type === 'extra_payment'
+                ? `pagamento extra de ${formatCurrencyBR(scenario.amount || 0)}`
+                : scenario.type === 'withdrawal'
+                    ? `retirada de ${formatCurrencyBR(scenario.amount || 0)}`
+                    : `aporte mensal de ${formatCurrencyBR(scenario.amount || 0)}`;
+            lines.push(`Simulação: ${scenarioLabel}.`);
+            lines.push(simulated.completionOn
+                ? `Conclusão simulada: ${formatSheetDateForReply(simulated.completionOn)} (${simulated.monthsToCompletion} mês(es)).`
+                : 'Conclusão simulada: não calculada com segurança.');
+            if (forecast.impact?.monthsSaved !== null && forecast.impact?.monthsSaved !== undefined) {
+                lines.push(`Impacto no prazo: ${forecast.impact.monthsSaved} mês(es) antecipado(s).`);
+            }
+            if (forecast.impact?.interestSaved !== null && forecast.impact?.interestSaved !== undefined) {
+                lines.push(`Juros evitados na simulação: ${formatCurrencyBR(forecast.impact.interestSaved)}.`);
+            }
+        }
+
+        const missing = Array.from(new Set([
+            ...(baseline.missingAssumptions || []),
+            ...(simulated?.missingAssumptions || [])
+        ]));
+        if (missing.length > 0) lines.push(`Premissas ausentes: ${missing.join(', ')}.`);
+        const criteria = Array.isArray(forecast.criteria) ? forecast.criteria : [];
+        if (criteria.length > 0) lines.push(`Critério: ${criteria.join(' ')}`);
+        lines.push('Projeção e simulação ficam separadas do histórico realizado; este cálculo não altera nem grava planilha, ledger ou movimentos do plano.');
+        return lines.join('\n');
+    }
+
     const debtIntents = new Set([
         'total_dividas',
+        'listagem_dividas',
         'saldo_divida',
+        'detalhamento_divida',
         'parcelas_dividas_mes',
         'dividas_vencendo',
         'dividas_atrasadas',

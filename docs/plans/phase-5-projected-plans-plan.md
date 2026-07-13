@@ -127,6 +127,28 @@ Dual-write e persistência de fatos financeiros permanecem fora deste gate.
 
 Gate: simulação e histórico real permanecem separados e reproduzíveis.
 
+### Implementação e gate local concluídos em 2026-07-13
+
+- motor puro `projected-plan-schedule-v1` com centavos inteiros, cronograma
+  mensal e suporte a meta, dívida, financiamento e consórcio;
+- PRICE, SAC, parcela observada, taxa mensal/anual/diária, custos separados e
+  ordem de arredondamento documentada;
+- aporte mensal, aporte adicional, retirada e pagamento extra comparados com o
+  cenário-base sem gravar movimentos;
+- datas de fato, efeito, competência e vencimento preservadas separadamente;
+- integração read-only com `FinancialQueryPlan`, Query Engine, SQLite,
+  WhatsApp e agente financeiro;
+- ausência de saldo, taxa ou contribuição permanece parcial/indisponível;
+- resposta pública sanitizada e determinística, inclusive para `quando quito`,
+  `quanto falta quitar` e `impacto de antecipar`;
+- evidência local: planos `42/42`, read-model `20/20`, suíte completa
+  `835/835`, audit high com zero vulnerabilidades e diff check verde.
+
+Decisão local: `GO para deploy da 5B`. A 5C continua bloqueada até o deploy,
+saúde remota e smoke read-only desta fatia serem registrados.
+
+Relatório: `docs/qa/phase-5b-projected-plan-schedule-gate-2026-07-13.md`.
+
 ## 5C - Movimentos com escrita confiável
 
 - adaptar todos os comandos atuais de meta e dívida, inclusive caminhos

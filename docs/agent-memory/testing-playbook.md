@@ -292,6 +292,28 @@ Validar:
 - Em todo deploy, comparar e registrar o commit esperado com o `HEAD` final da
   EC2 antes de executar o gate.
 
+## Cronogramas e simulacoes - Fase 5B
+
+- Bateria minima: `npm run test:plans` e
+  `node --test tests/readModelSqlite.test.js`.
+- Cobrir meta, divida, financiamento e consorcio; PRICE, SAC e parcela
+  observada; taxa mensal/anual e zero explicito.
+- Repetir a mesma entrada/data deve gerar o mesmo cronograma em centavos.
+- Validar cenarios de aporte mensal, retirada e pagamento extra, inclusive
+  ambiguidade entre varios planos e pagamento que nao amortiza.
+- `occurred_on` deve ser nulo; efeito, competencia e vencimento devem permanecer
+  distintos. O efeito do cenario nao pode ser reescrito para o vencimento.
+- Fonte ausente deve produzir `partial`/`unavailable` e listar a premissa; taxa
+  ausente no SQLite nao pode virar zero.
+- Toda simulacao deve declarar `writes_performed=0`, nao conter
+  `plan_movements` e nao chamar escrita de Sheets/ledger/store.
+- A resposta publica/WhatsApp nao pode expor identidade, referencia legada,
+  operation key ou fingerprint e nao deve ser recalculada pelo modelo.
+- Perguntas minimas: `quando quito`, `quanto falta quitar`, `se eu pagar mais`,
+  `quando alcanço a meta`, `se eu aportar por mês` e `se eu retirar`.
+- Antes do GO de producao, comparar o commit local/GitHub com o `HEAD` da EC2,
+  rodar testes remotos, health e smoke read-only sem criar dados financeiros.
+
 ## Scheduler e Calendar
 
 Validar:

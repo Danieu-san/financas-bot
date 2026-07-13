@@ -1054,8 +1054,8 @@ test('Packet 08 Response Composer formats Query Engine bill results without expo
         }
     });
 
-    assert.match(reply, /Esperado: R\$ 1320,00/);
-    assert.match(reply, /Realizado: R\$ 1300,00/);
+    assert.match(reply, /Esperado: R\$ 1\.320,00/);
+    assert.match(reply, /Realizado: R\$ 1\.300,00/);
     assert.match(reply, /Pendente: R\$ 20,00/);
     assert.match(reply, /Critério: data de vencimento/i);
     assert.doesNotMatch(reply, /user_id|sheet_id|token/i);
@@ -1124,7 +1124,7 @@ test('Packet 07 planner maps debt analytical capabilities to safe FinancialQuery
     const cases = [
         ['quanto devo no total?', 'total_dividas', 'sum'],
         ['quais dívidas vencem nos próximos dias?', 'dividas_vencendo', 'list'],
-        ['quanto falta quitar da dívida do banco?', 'detalhamento_divida', 'detail'],
+        ['quanto falta quitar da dívida do banco?', 'simulacao_pagamento_divida', 'forecast'],
         ['qual dívida eu deveria priorizar?', 'prioridade_dividas', 'recommend'],
         ['qual parcela vence este mês?', 'parcelas_dividas_mes', 'list'],
         ['quais dívidas estão atrasadas?', 'dividas_atrasadas', 'detect'],
@@ -1402,7 +1402,7 @@ test('Packet 06 Response Composer declares goal criteria without recalculating',
             }
         }
     });
-    assert.match(reply, /R\$ 250,00 de R\$ 1000,00/);
+    assert.match(reply, /R\$ 250,00 de R\$ 1\.000,00/);
     assert.match(reply, /sem dupla contagem/i);
 });
 
@@ -3474,8 +3474,8 @@ test('messageHandler.classifyPerguntaLocally covers complex analytical questions
     assert.strictEqual(debtDueRank.financialQueryPlan.operation, 'rank');
 
     const debtDetail = classifyPerguntaLocally('quanto falta quitar da dívida do banco?');
-    assert.strictEqual(debtDetail.intent, 'detalhamento_divida');
-    assert.strictEqual(debtDetail.financialQueryPlan.operation, 'detail');
+    assert.strictEqual(debtDetail.intent, 'simulacao_pagamento_divida');
+    assert.strictEqual(debtDetail.financialQueryPlan.operation, 'forecast');
 
     const debtPayments = classifyPerguntaLocally('quanto paguei de dívida esse mês?');
     assert.strictEqual(debtPayments.intent, 'total_pagamentos_dividas_mes');
@@ -3936,7 +3936,7 @@ test('messageHandler local replies cover richer spreadsheet calculations', () =>
                 details: { mes: 4, ano: 2026, pagamentos: 1 }
             }
         }),
-        /Pagamentos de fatura.*maio\/2026.*R\$ 1234,56.*1 pagamento/s
+        /Pagamentos de fatura.*maio\/2026.*R\$ 1\.234,56.*1 pagamento/s
     );
 
     assert.match(
@@ -3974,7 +3974,7 @@ test('messageHandler local replies cover richer spreadsheet calculations', () =>
                 details: { cartao: '', mes: 4, ano: 2026 }
             }
         }),
-        /Parcelamentos.*notebook.*Nubank.*R\$ 3000,00/s
+        /Parcelamentos.*notebook.*Nubank.*R\$ 3\.000,00/s
     );
 
     assert.match(
@@ -3988,7 +3988,7 @@ test('messageHandler local replies cover richer spreadsheet calculations', () =>
                 details: { mes: 4, ano: 2026, totalGastos: 2500 }
             }
         }),
-        /Categorias que mais consumiram.*Moradia: R\$ 2000,00.*Alimentação: R\$ 500,00/s
+        /Categorias que mais consumiram.*Moradia: R\$ 2\.000,00.*Alimentação: R\$ 500,00/s
     );
 
     assert.match(
@@ -4078,7 +4078,7 @@ test('messageHandler local replies cover richer spreadsheet calculations', () =>
                 details: { mes: 4, ano: 2026, saldo: 1000, reservaAplicada: 500, reservaResgatada: 200, reservaLiquida: 300 }
             }
         }),
-        /Disponível estimado.*R\$ 700,00.*Saldo econômico: R\$ 1000,00.*Reserva\/caixinha líquida: R\$ 300,00/s
+        /Disponível estimado.*R\$ 700,00.*Saldo econômico: R\$ 1\.000,00.*Reserva\/caixinha líquida: R\$ 300,00/s
     );
 
     assert.match(
@@ -4102,7 +4102,7 @@ test('messageHandler local replies cover richer spreadsheet calculations', () =>
                 details: { mes: 4, ano: 2026, mesAnterior: 3, anoAnterior: 2026 }
             }
         }),
-        /maio\/2026.*abril\/2026.*R\$ 9500,00.*R\$ 8000,00.*aumentaram 18,75%/s
+        /maio\/2026.*abril\/2026.*R\$ 9\.500,00.*R\$ 8\.000,00.*aumentaram 18,75%/s
     );
 
     assert.match(
@@ -4129,7 +4129,7 @@ test('messageHandler local replies cover richer spreadsheet calculations', () =>
                 details: { total: 1, ativas: 1, totalAlvo: 5000, totalAtual: 1250, totalFalta: 3750 }
             }
         }),
-        /1 meta.*Reserva.*R\$ 1250,00 \/ R\$ 5000,00.*25,0%.*Falta total: R\$ 3750,00/s
+        /1 meta.*Reserva.*R\$ 1\.250,00 \/ R\$ 5\.000,00.*25,0%.*Falta total: R\$ 3\.750,00/s
     );
 
     assert.match(
@@ -4142,7 +4142,7 @@ test('messageHandler local replies cover richer spreadsheet calculations', () =>
                 details: { total: 1, totalFalta: 3750, totalValorMensal: 625 }
             }
         }),
-        /Falta para suas metas.*R\$ 3750,00.*Reserva.*faltam R\$ 3750,00.*mensal sugerido: R\$ 625,00/s
+        /Falta para suas metas.*R\$ 3\.750,00.*Reserva.*faltam R\$ 3\.750,00.*mensal sugerido: R\$ 625,00/s
     );
 });
 

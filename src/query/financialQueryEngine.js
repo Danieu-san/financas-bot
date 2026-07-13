@@ -12,6 +12,8 @@ const { validDueDay, buildRecurringDueDate } = require('../utils/recurringDueDat
 const { buildCanonicalInstallmentSchedules } = require('../ledger/canonicalInstallmentSchedule');
 const { calculateCategoryBudget } = require('../budget/categoryBudgetService');
 const { executeDataQualityQuery } = require('../quality/dataQualityService');
+const { adaptLegacyGoalRow, adaptLegacyDebtRow } = require('../plans/projectedPlansContract');
+const { buildProjectedPlanSchedule, compareProjectedPlanScenario } = require('../plans/projectedPlansSchedule');
 
 const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
@@ -351,7 +353,7 @@ function isInactiveStatus(status) {
     return /(cancelad|concluid|finalizad|pausad|inativ|nao|não)/.test(normalizeText(status || ''));
 }
 
-function toGoal(row = [], headers = []) {
+function toGoal(row = [], headers = [], rowIndex = 0) {
     const idx = {
         name: findHeaderIndex(headers, ['Nome', 'Nome da Meta'], 0),
         target: findHeaderIndex(headers, ['Valor Alvo', 'Alvo'], 1),
@@ -367,6 +369,7 @@ function toGoal(row = [], headers = []) {
     const current = parseValue(row[idx.current]);
     const missing = Math.max(0, target - current);
     const status = row[idx.status] || '';
+    const projectedPlan = adaptLegacyGoalRow({ row, headers, rowIndex });
     return {
         date: row[idx.dueDate] || '',
         description: row[idx.name] || '',
@@ -384,7 +387,8 @@ function toGoal(row = [], headers = []) {
         active: !isInactiveStatus(status) && missing > 0,
         scope: row[idx.scope] || 'personal',
         progressPercent: target > 0 ? Math.min(100, (current / target) * 100) : 0,
-        userId: row[idx.userId] || ''
+        userId: row[idx.userId] || '',
+        projectedPlan
     };
 }
 
@@ -419,7 +423,7 @@ function toGoalMovement(row = [], headers = []) {
     };
 }
 
-function toDebt(row = [], headers = []) {
+function toDebt(row = [], headers = [], rowIndex = 0) {
     const idx = {
         name: findHeaderIndex(headers, ['Nome', 'Nome da Dívida'], 0),
         creditor: findHeaderIndex(headers, ['Credor'], 1),
@@ -447,6 +451,7 @@ function toDebt(row = [], headers = []) {
     const nextDueDate = row[idx.nextDue] || '';
     const dueDay = row[idx.dueDay] || '';
     const date = nextDueDate;
+    const projectedPlan = adaptLegacyDebtRow({ row, headers, rowIndex });
     return {
         date,
         description: row[idx.name] || '',
@@ -469,7 +474,8 @@ function toDebt(row = [], headers = []) {
         payoffDate: row[idx.payoffDate] || '',
         responsible: row[idx.responsible] || '',
         notes: row[idx.notes] || '',
-        userId: row[idx.userId] || ''
+        userId: row[idx.userId] || '',
+        projectedPlan
     };
 }
 
@@ -945,8 +951,8 @@ function getRowsForDomain(dataSources = {}, plan = {}) {
 
     if (plan.domain === 'goals' && Array.isArray(dataSources.metas)) {
         const headers = dataSources.metas[0] || [];
-        dataSources.metas.slice(1).forEach((row) => {
-            const item = toGoal(row, headers);
+        dataSources.metas.slice(1).forEach((row, index) => {
+            const item = toGoal(row, headers, index + 2);
             if (item.description) rows.push(item);
         });
     }
@@ -961,8 +967,8 @@ function getRowsForDomain(dataSources = {}, plan = {}) {
 
     if (plan.domain === 'debts' && Array.isArray(dataSources.dividas)) {
         const headers = dataSources.dividas[0] || [];
-        dataSources.dividas.slice(1).forEach((row) => {
-            const item = toDebt(row, headers);
+        dataSources.dividas.slice(1).forEach((row, index) => {
+            const item = toDebt(row, headers, index + 2);
             if (item.description) rows.push(item);
         });
     }
@@ -1372,6 +1378,172 @@ function goalMovementMatchesSource(item, source = '') {
     return containsFilter(`${item.source} ${item.sourceType} ${item.movementType}`, source);
 }
 
+function centsToPublicMoney(value) {
+    return Number.isSafeInteger(value) ? roundMoney(value / 100) : null;
+}
+
+function publicPlanSchedule(schedule = {}) {
+    return {
+        mode: schedule.mode || 'projected',
+        sourceStatus: schedule.source_status || 'unavailable',
+        asOf: schedule.as_of || null,
+        completionOn: schedule.completion_on || null,
+        monthsToCompletion: Number.isSafeInteger(schedule.months_to_completion) ? schedule.months_to_completion : null,
+        remaining: centsToPublicMoney(schedule.remaining_cents),
+        totalInterest: centsToPublicMoney(schedule.total_interest_cents),
+        totalCost: centsToPublicMoney(schedule.total_cost_cents),
+        totalPayment: centsToPublicMoney(schedule.total_payment_cents),
+        assumptions: Array.isArray(schedule.assumptions) ? schedule.assumptions.map(item => ({ ...item })) : [],
+        missingAssumptions: Array.isArray(schedule.missing_assumptions) ? [...schedule.missing_assumptions] : [],
+        issues: Array.isArray(schedule.issues) ? [...schedule.issues] : [],
+        criteria: Array.isArray(schedule.criteria) ? [...schedule.criteria] : [],
+        schedule: Array.isArray(schedule.schedule) ? schedule.schedule.map(item => ({
+            sequence: item.sequence,
+            state: item.state,
+            occurredOn: item.occurred_on,
+            effectiveOn: item.effective_on,
+            competenceMonth: item.competence_month,
+            dueOn: item.due_on,
+            openingBalance: centsToPublicMoney(item.opening_balance_cents),
+            interest: centsToPublicMoney(item.interest_cents),
+            cost: centsToPublicMoney(item.cost_cents),
+            scheduledAmount: centsToPublicMoney(item.scheduled_amount_cents),
+            scenarioAmount: centsToPublicMoney(item.scenario_amount_cents),
+            totalPayment: centsToPublicMoney(item.total_payment_cents),
+            principalChange: centsToPublicMoney(item.principal_change_cents),
+            closingBalance: centsToPublicMoney(item.closing_balance_cents),
+            scenarioEffects: Array.isArray(item.scenario_effects) ? item.scenario_effects.map(effect => ({
+                type: effect.type,
+                amount: centsToPublicMoney(effect.amount_cents),
+                effectiveOn: effect.effective_on
+            })) : []
+        })) : [],
+        writesPerformed: 0
+    };
+}
+
+function coreScenarioFromFilter(filter = {}, asOf) {
+    if (!filter || typeof filter !== 'object' || !filter.type) return null;
+    const amountCents = Math.round(Number(filter.amount) * 100);
+    const effectiveOn = filter.effectiveOn || asOf;
+    if (filter.type === 'monthly_contribution') return { monthly_amount_cents: amountCents };
+    if (filter.type === 'additional_monthly_contribution') return { additional_monthly_cents: amountCents };
+    if (filter.type === 'withdrawal') {
+        return { one_time_movements: [{ type: 'withdrawal', amount_cents: amountCents, effective_on: effectiveOn }] };
+    }
+    if (filter.type === 'extra_payment') {
+        return { one_time_movements: [{ type: 'extra_payment', amount_cents: amountCents, effective_on: effectiveOn }] };
+    }
+    return null;
+}
+
+function combinedSourceStatus(...statuses) {
+    if (statuses.includes('unavailable')) return 'unavailable';
+    if (statuses.includes('partial')) return 'partial';
+    return 'available';
+}
+
+function planRemainingMoney(item = {}) {
+    const plan = item.projectedPlan || {};
+    if (plan.type === 'goal') {
+        const target = plan.amounts?.target_cents;
+        const current = plan.amounts?.current_cents;
+        return Number.isSafeInteger(target) && Number.isSafeInteger(current)
+            ? centsToPublicMoney(Math.max(0, target - current))
+            : null;
+    }
+    return centsToPublicMoney(plan.amounts?.outstanding_cents);
+}
+
+function buildPlanScheduleForecast(rows = [], plan = {}, dataSources = {}) {
+    const candidates = rows.filter((item) => {
+        if (!item.projectedPlan) return false;
+        return !['completed', 'cancelled', 'paused'].includes(item.projectedPlan.status);
+    });
+    const scenarioFilter = plan.filters?.scenario || null;
+    const separation = {
+        historyState: 'realized',
+        baselineState: 'projected',
+        scenarioState: 'simulated',
+        persisted: false,
+        writesPerformed: 0
+    };
+    if (candidates.length === 0) {
+        return {
+            kind: 'plan_schedule_forecast',
+            status: 'unavailable',
+            candidates: [],
+            baseline: null,
+            simulated: null,
+            impact: null,
+            separation,
+            criteria: ['Não encontrei plano ativo e autorizado para calcular.']
+        };
+    }
+    if (scenarioFilter && candidates.length !== 1) {
+        return {
+            kind: 'plan_schedule_forecast',
+            status: 'clarification_required',
+            candidates: candidates.map(item => item.description).filter(Boolean).sort((a, b) => a.localeCompare(b, 'pt-BR')),
+            baseline: null,
+            simulated: null,
+            impact: null,
+            separation,
+            criteria: ['Um cenário monetário precisa apontar exatamente uma meta ou dívida; não distribuí o valor entre planos.']
+        };
+    }
+    if (!scenarioFilter && candidates.length > 1) {
+        const items = candidates.slice(0, plan.limit).map(item => buildPlanScheduleForecast([item], plan, dataSources));
+        return {
+            kind: 'plan_schedule_forecast',
+            status: combinedSourceStatus(...items.map(item => item.status)),
+            candidates: candidates.map(item => item.description).filter(Boolean),
+            items,
+            baseline: null,
+            simulated: null,
+            impact: null,
+            separation,
+            criteria: ['Cada plano foi projetado separadamente; saldos e cronogramas não foram combinados.']
+        };
+    }
+
+    const item = candidates[0];
+    const referenceDate = currentDateFromDataSources(dataSources);
+    const asOf = formatIsoDate(referenceDate);
+    const baselineCore = buildProjectedPlanSchedule({ plan: item.projectedPlan, asOf });
+    const coreScenario = coreScenarioFromFilter(scenarioFilter, asOf);
+    let simulatedCore = null;
+    let impact = null;
+    if (coreScenario) {
+        const comparison = compareProjectedPlanScenario({ plan: item.projectedPlan, asOf, scenario: coreScenario });
+        simulatedCore = comparison.simulated;
+        impact = {
+            monthsSaved: comparison.impact.months_saved,
+            interestSaved: centsToPublicMoney(comparison.impact.interest_saved_cents),
+            costSaved: centsToPublicMoney(comparison.impact.cost_saved_cents),
+            completionAdvanceDays: comparison.impact.completion_advance_days
+        };
+    }
+    const baseline = publicPlanSchedule(baselineCore);
+    const simulated = simulatedCore ? publicPlanSchedule(simulatedCore) : null;
+    return {
+        kind: 'plan_schedule_forecast',
+        status: combinedSourceStatus(baseline.sourceStatus, simulated?.sourceStatus),
+        plan: {
+            name: item.description || '',
+            type: item.projectedPlan.type,
+            currency: item.projectedPlan.currency || 'BRL',
+            remaining: planRemainingMoney(item)
+        },
+        scenario: scenarioFilter ? { ...scenarioFilter } : null,
+        baseline,
+        simulated,
+        impact,
+        separation,
+        criteria: Array.from(new Set([...(baseline.criteria || []), ...(simulated?.criteria || [])]))
+    };
+}
+
 function executeGoalsQuery(plan, dataSources = {}) {
     const allRows = getRowsForDomain(dataSources, plan);
     const goalScopeByOwnerAndName = new Map(
@@ -1403,6 +1575,10 @@ function executeGoalsQuery(plan, dataSources = {}) {
             : 'Valor atual e status vêm de Metas; movimentações não são somadas novamente.'
     };
 
+    if (plan.operation === 'forecast') {
+        const forecast = buildPlanScheduleForecast(rows, plan, dataSources);
+        return { ok: true, plan, result: { value: forecast, details: { ...details, criteria: forecast.criteria } } };
+    }
     if (plan.operation === 'list') {
         const sort = wantsMovements ? { by: 'date', direction: 'desc' } : plan.sort;
         return { ok: true, plan, result: { value: sortRows(rows, sort).slice(0, plan.limit).map(publicItem), details } };
@@ -1794,8 +1970,8 @@ function executeDebtsQuery(plan, dataSources = {}) {
         return { ok: true, plan, result: { value: detail, details: { ...details, ...detail } } };
     }
     if (plan.operation === 'forecast') {
-        const recommendation = buildDebtRecommendation(rows, dataSources);
-        return { ok: true, plan, result: { value: recommendation, details: { ...details, criteria: recommendation.criteria } } };
+        const forecast = buildPlanScheduleForecast(rows, plan, dataSources);
+        return { ok: true, plan, result: { value: forecast, details: { ...details, criteria: forecast.criteria } } };
     }
     if (plan.operation === 'trend') {
         return { ok: true, plan, result: { value: sortMonthlyGroups(groupRows(rows, ['month'], 'transaction_date')).slice(0, plan.limit), details: { ...details, groupBy: ['month'] } } };

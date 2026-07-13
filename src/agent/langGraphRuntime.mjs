@@ -932,6 +932,68 @@ function composeFinancialPlanAnswer(toolResult = {}) {
         return composeBudgetAnswer(plan, value);
     }
 
+    if (plan.operation === 'forecast' && value?.kind === 'plan_schedule_forecast') {
+        if (value.status === 'clarification_required') {
+            const candidates = Array.isArray(value.candidates) ? value.candidates : [];
+            return [
+                'Preciso saber qual plano você quer simular; não distribuí o valor automaticamente.',
+                candidates.length ? `Opções: ${candidates.join(', ')}.` : '',
+                'Diga o nome da meta ou dívida junto com o valor do cenário.',
+                'Nenhuma simulação foi gravada.'
+            ].filter(Boolean).join('\n');
+        }
+        if (Array.isArray(value.items) && value.items.length > 0) {
+            return [
+                'Cronogramas projetados separadamente:',
+                ...value.items.map((item, index) => `${index + 1}. ${item.plan?.name || 'Plano'}: conclusão projetada ${item.baseline?.completionOn || 'indefinida'}; ${item.baseline?.monthsToCompletion ?? '-'} mês(es).`),
+                'Projeção não altera histórico nem grava movimentos.'
+            ].join('\n');
+        }
+        const baseline = value.baseline;
+        if (!baseline) {
+            return 'Não encontrei plano ativo e autorizado com dados suficientes. Ausência de fonte não foi tratada como zero.';
+        }
+        const lines = [
+            `${value.plan?.type === 'goal' ? 'Meta' : 'Dívida'}: ${value.plan?.name || 'plano selecionado'}`,
+            value.plan?.remaining !== null && value.plan?.remaining !== undefined
+                ? `Quanto falta hoje: ${moneyBR(value.plan.remaining)}`
+                : 'Quanto falta hoje: fonte indisponível.',
+            baseline.completionOn
+                ? `Conclusão projetada: ${baseline.completionOn} (${baseline.monthsToCompletion} mês(es)).`
+                : 'Conclusão projetada: não calculada com segurança.',
+            baseline.totalInterest !== null && baseline.totalInterest !== undefined
+                ? `Juros projetados no cenário-base: ${moneyBR(baseline.totalInterest)}`
+                : ''
+        ].filter(Boolean);
+        if (value.simulated) {
+            const scenario = value.scenario || {};
+            const scenarioLabel = scenario.type === 'extra_payment'
+                ? `pagamento extra de ${moneyBR(scenario.amount || 0)}`
+                : scenario.type === 'withdrawal'
+                    ? `retirada de ${moneyBR(scenario.amount || 0)}`
+                    : `aporte mensal de ${moneyBR(scenario.amount || 0)}`;
+            lines.push(`Simulação: ${scenarioLabel}.`);
+            lines.push(value.simulated.completionOn
+                ? `Conclusão simulada: ${value.simulated.completionOn} (${value.simulated.monthsToCompletion} mês(es)).`
+                : 'Conclusão simulada: não calculada com segurança.');
+            if (value.impact?.monthsSaved !== null && value.impact?.monthsSaved !== undefined) {
+                lines.push(`Impacto no prazo: ${value.impact.monthsSaved} mês(es) antecipado(s).`);
+            }
+            if (value.impact?.interestSaved !== null && value.impact?.interestSaved !== undefined) {
+                lines.push(`Juros evitados na simulação: ${moneyBR(value.impact.interestSaved)}.`);
+            }
+        }
+        const missing = Array.from(new Set([
+            ...(baseline.missingAssumptions || []),
+            ...(value.simulated?.missingAssumptions || [])
+        ]));
+        if (missing.length > 0) lines.push(`Premissas ausentes: ${missing.join(', ')}.`);
+        const forecastCriteria = Array.isArray(value.criteria) ? value.criteria : [];
+        if (forecastCriteria.length > 0) lines.push(`Critério: ${forecastCriteria.join(' ')}`);
+        lines.push('Projeção e simulação ficam separadas do histórico realizado; este cálculo não altera nem grava planilha, ledger ou movimentos do plano.');
+        return lines.join('\n');
+    }
+
     if (plan.domain === 'bills' && plan.operation === 'detect' && Array.isArray(value?.items)) {
         const matched = value.items[0];
         if (!matched) {
@@ -1131,7 +1193,10 @@ async function composeAnswer(state) {
         Boolean(queryPlan.filters?.subcategory) ||
         Boolean(queryPlan.filters?.status)
     );
-    if (requiresDeterministicCategoryBudget || queryPlan.domain === 'quality') return deterministic;
+    const requiresDeterministicPlanForecast = queryPlan.operation === 'forecast' &&
+        ['goals', 'debts'].includes(queryPlan.domain) &&
+        state.toolResult?.result?.value?.kind === 'plan_schedule_forecast';
+    if (requiresDeterministicCategoryBudget || queryPlan.domain === 'quality' || requiresDeterministicPlanForecast) return deterministic;
 
     const contextual = await composeContextualFinancialAnswer({
         message: state.message,

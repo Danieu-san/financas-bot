@@ -2529,7 +2529,7 @@ stateMachineTest('financial states: monthly budget settings command stores the m
     const reply = await send('definir orçamento mensal 3000 dia 5');
 
     assert.match(reply, /orçamento mensal livre/i);
-    assert.match(reply, /R\$ 3000,00/);
+    assert.match(reply, /R\$ 3\.000,00/);
     assert.match(reply, /Ciclo/i);
     assert.strictEqual(sheets.UserSettings[1][13], 'SIM');
     assert.strictEqual(String(sheets.UserSettings[1][14]), '3000');

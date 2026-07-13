@@ -28,6 +28,12 @@ Use este mapa para escolher rapidamente quais arquivos abrir por tarefa.
   `scripts/runProjectedPlansReadOnlyGate.js` - gate 5A sanitizado, restrito ao
   unico admin configurado; compara views em centavos, usa identidade tecnica
   persistente e nao escreve no Google Sheets.
+- `src/plans/projectedPlansSchedule.js` - motor puro da Fase 5B; gera
+  cronogramas mensais e compara cenarios de metas/dividas em centavos, mantendo
+  fato, efeito, competencia e vencimento separados e sem qualquer escrita.
+- `src/query/financialQueryPlan.js`, `src/query/financialQueryEngine.js` e
+  `src/services/calculationOrchestrator.js` - validam cenarios publicos e
+  executam as previsoes 5B sobre adapters 5A/read-model autorizados.
 
 ## Importacao de extratos
 

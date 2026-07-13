@@ -1558,3 +1558,23 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   PM2 online e health `{"ok":true,"sqlite":true}`.
 - Decisao: GO para encerrar 5A e iniciar 5B. Dual-write, alteracao de comandos
   e persistencia de fatos financeiros continuam proibidos ate 5C.
+
+## Phase 5B projected schedules local GO - 2026-07-13
+
+- Criado motor puro `projected-plan-schedule-v1` para meta, divida,
+  financiamento e consorcio, com dinheiro em centavos e cronograma mensal
+  deterministico.
+- PRICE, SAC, parcela observada, juros por periodo, custos e principal possuem
+  ordem e arredondamento explicitos. Fonte ausente permanece
+  `partial`/`unavailable`, inclusive taxa nula preservada no SQLite.
+- Cenarios de aporte, retirada e pagamento extra ficam somente em memoria. A
+  data do efeito fica separada da competencia e do vencimento; data de fato
+  permanece nula e `writes_performed=0`.
+- `FinancialQueryPlan`, Query Engine, WhatsApp e agente agora respondem de forma
+  deterministica quando conclui/quita, quanto falta e impacto de antecipar,
+  sem expor identidade interna e sem fallback generico.
+- Evidencia local: planos `42/42`, read-model `20/20`, suite completa `835/835`,
+  audit high zero, sintaxe e diff check verdes.
+- Decisao: GO local para deploy da 5B; NO-GO para iniciar 5C antes de registrar
+  commit exato, saude remota e smoke read-only de producao.
+- Relatorio: `docs/qa/phase-5b-projected-plan-schedule-gate-2026-07-13.md`.
