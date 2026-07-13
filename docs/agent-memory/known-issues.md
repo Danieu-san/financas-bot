@@ -23,6 +23,15 @@ Atualizado em: 2026-07-13
 - Antes de beta amplo, manter removido o acesso admin amplo a dados financeiros individuais.
 - Sempre consultar `docs/decisions/ADR-002-admin-financial-data-access.md` em mudancas de admin, dashboard, familia ou launch.
 
+## Rollback do dashboard v2
+
+- `DASHBOARD_V2_ENABLED` ausente preserva compatibilidade e equivale a `true`.
+- Para rollback operacional, definir `DASHBOARD_V2_ENABLED=false` e reiniciar o
+  PM2 com `--update-env`. A pagina/API v2 respondem `404`, o dashboard atual
+  continua ativo e o comando `dashboard v2` entrega a versao atual com aviso.
+- Nao usar `DASHBOARD_ENABLED=false` para rollback exclusivo da v2, pois essa
+  chave derruba tambem o dashboard atual e o health server.
+
 ## Convites e mensagens diretas de admin
 
 - Armadilha corrigida em 2026-06-03: `admin convidar <telefone>` e `admin mensagem <telefone> <texto>` nao podem depender apenas de `msg.client.sendMessage`.

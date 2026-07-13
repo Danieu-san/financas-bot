@@ -12,6 +12,8 @@ Use this before deploying `main` to the EC2 PM2 process.
 - [ ] Multiuser OAuth releases have `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_STATE_SECRET`, and `OAUTH_TOKEN_ENCRYPTION_KEY` configured.
 - [ ] `AUTH_GATE_REPLY_COOLDOWN_MS` is configured or intentionally left at the default to prevent bot-to-bot consent loops.
 - [ ] `DASHBOARD_TOKEN_SECRET` is configured before deploying dashboard changes.
+- [ ] `DASHBOARD_V2_ENABLED=true` is explicit when releasing v2; rollback is prepared by setting it to `false` and restarting PM2 with `--update-env`.
+- [ ] Dashboard v2 rollback was tested: current `/dashboard` remains `200`, v2 page/API return `404`, and the WhatsApp `dashboard v2` command falls back visibly to the current dashboard.
 - [ ] `DASHBOARD_ADMIN_ALL_USERS_ENABLED` is unset/false for beta or production unless a temporary support/test mode was explicitly approved.
 - [ ] Dashboard admin cross-user scopes are rejected by default (`user=all` or another user returns `403`).
 - [ ] Risky admin commands still require a second WhatsApp message `confirmar admin` and log `confirmacao_pendente`/`confirmacao_recebida`.

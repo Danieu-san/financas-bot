@@ -10,6 +10,7 @@ function loadDashboardAuthWithEnv(overrides = {}) {
         'DASHBOARD_REQUIRE_STRONG_SECRET',
         'DASHBOARD_TOKEN_TTL_SECONDS',
         'DASHBOARD_TOKEN_MAX_TTL_SECONDS',
+        'DASHBOARD_V2_ENABLED',
         'NODE_ENV',
         'GEMINI_API_KEY'
     ];
@@ -173,6 +174,26 @@ test('dashboard v2 access link is opt-in and keeps the current dashboard as defa
         assert.strictEqual(unknown.pathname, '/dashboard');
         assert.strictEqual(v2.search, '');
         assert.match(v2.hash, /^#token=/);
+    } finally {
+        restore();
+    }
+});
+
+test('dashboard v2 access link falls back to the current dashboard when rollback flag is disabled', () => {
+    const { auth, restore } = loadDashboardAuthWithEnv({
+        DASHBOARD_BASE_URL: 'https://finance.example.com',
+        DASHBOARD_TOKEN_SECRET: 'test-secret-v2-rollback',
+        DASHBOARD_V2_ENABLED: 'false'
+    });
+    try {
+        const link = auth.buildDashboardAccessLink({ userId: 'user-a', version: 'v2' });
+        const url = new URL(link.url);
+
+        assert.strictEqual(auth.isDashboardV2Enabled(), false);
+        assert.strictEqual(url.pathname, '/dashboard');
+        assert.strictEqual(link.version, 'current');
+        assert.strictEqual(link.path, '/dashboard');
+        assert.strictEqual(link.rolledBackFrom, 'v2');
     } finally {
         restore();
     }

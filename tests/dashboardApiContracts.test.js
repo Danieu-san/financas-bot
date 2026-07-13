@@ -120,6 +120,11 @@ async function startTestServer(calls, options = {}) {
     process.env.DASHBOARD_HOST = '127.0.0.1';
     process.env.DASHBOARD_PORT = '0';
     process.env.DASHBOARD_TOKEN_SECRET = 'dashboard-contract-secret';
+    if (Object.prototype.hasOwnProperty.call(options, 'dashboardV2Enabled')) {
+        process.env.DASHBOARD_V2_ENABLED = String(options.dashboardV2Enabled);
+    } else {
+        delete process.env.DASHBOARD_V2_ENABLED;
+    }
     if (options.adminAllUsersEnabled) {
         process.env.DASHBOARD_ADMIN_ALL_USERS_ENABLED = 'true';
     } else {
@@ -176,6 +181,27 @@ test('dashboard v2 page is opt-in, mobile-first and consumes only the sanitized 
         assert.match(next.text, /@media \(min-width: 640px\)/);
         assert.match(next.response.headers.get('content-security-policy') || '', /default-src 'self'/);
     } finally {
+        await new Promise(resolve => server.close(resolve));
+    }
+});
+
+test('dashboard v2 rollback flag disables only the v2 page and API', async () => {
+    const calls = [];
+    const { server, baseUrl, token } = await startTestServer(calls, { dashboardV2Enabled: false });
+    try {
+        const current = await fetchText(`${baseUrl}/dashboard`);
+        const next = await fetchJson(`${baseUrl}/dashboard/v2`);
+        const summary = await fetchJson(`${baseUrl}/dashboard/api/v2/summary?token=${token}`);
+
+        assert.strictEqual(current.response.status, 200);
+        assert.match(current.text, /Painel Financeiro/);
+        assert.strictEqual(next.response.status, 404);
+        assert.strictEqual(summary.response.status, 404);
+        assert.match(next.json.error, /desabilitado/i);
+        assert.match(summary.json.error, /desabilitado/i);
+        assert.strictEqual(calls.length, 0);
+    } finally {
+        delete process.env.DASHBOARD_V2_ENABLED;
         await new Promise(resolve => server.close(resolve));
     }
 });

@@ -2,6 +2,28 @@
 
 Atualizado em: 2026-07-13
 
+## Fase 4E - Gate de saida da Fase 4 - GO local - 2026-07-13
+
+- A 4E executou a paridade entre Sheets, ledger/Query Engine, dashboard atual,
+  dashboard v2 e formatacao WhatsApp com uma unica fotografia compartilhada.
+- Invariantes de orcamento cobrem cartao contado uma vez, fatura neutra,
+  recorrencia liquidada sem duplicacao, reembolso liquido, transferencia neutra
+  e importacao reconciliada.
+- `DASHBOARD_V2_ENABLED=false` agora desabilita somente pagina/API v2 e faz o
+  comando WhatsApp cair visivelmente para o dashboard atual. Ausencia da flag
+  preserva compatibilidade e equivale a `true`.
+- QA visual passou em desktop 1440x900 e celular 390x844, sem overflow
+  horizontal. A matriz do benchmark registra itens adotados, adiados e
+  descartados.
+- Evidencia local: rollback/contratos/paridade final `208/208`, paridade/orcamento/v2 `20/20`,
+  privacidade/seguranca `79/79` e suite padrao completa `792/792`.
+  `package-lock.json` permanece inalterado e `npm audit --audit-level=high`
+  encontrou `0` vulnerabilidades.
+- Decisao atual: `GO local`, mas `NO-GO de producao` ate commitar/enviar,
+  implantar e concluir smoke remoto.
+  A Fase 5 ainda nao esta autorizada. Relatorio:
+  `docs/qa/phase-4e-exit-gate-2026-07-13.md`.
+
 ## Fase 4D - Qualidade dos dados e pendencias - GO de producao - 2026-07-13
 
 - O dominio read-only `quality` foi integrado ao `FinancialQueryPlan`, Query

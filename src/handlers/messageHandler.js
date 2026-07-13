@@ -6558,8 +6558,12 @@ async function handleDashboardCommand(msg, user, senderId) {
         return true;
     }
 
+    const rollbackNotice = wantsV2 && linkData.version !== 'v2'
+        ? `O painel novo está temporariamente desabilitado; enviei a versão atual.\n\n`
+        : '';
     await sendPlainMessage(
         msg,
+        rollbackNotice +
         `Seu painel financeiro está pronto.\n\n` +
         `Link válido por ${formatDashboardTtlForReply(linkData.ttlSeconds)}:\n${linkData.url}\n\n` +
         `Não compartilhe esse link: ele dá acesso ao seu painel.`
@@ -6572,8 +6576,12 @@ async function handleDashboardCommand(msg, user, senderId) {
         dataUserId: user.user_id,
         isAdmin: isAdminWithContext(senderId, user),
         scope: 'own',
-        path: wantsV2 ? '/dashboard/v2' : '/dashboard',
-        metadata: { ttl_seconds: linkData.ttlSeconds, version: wantsV2 ? 'v2' : 'current' }
+        path: linkData.path,
+        metadata: {
+            ttl_seconds: linkData.ttlSeconds,
+            version: linkData.version,
+            ...(linkData.rolledBackFrom ? { rolled_back_from: linkData.rolledBackFrom } : {})
+        }
     });
     logger.info(`[dashboard] link_emitido sender=${senderId} user_id=${user.user_id}`);
     return true;

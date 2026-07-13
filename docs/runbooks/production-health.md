@@ -40,6 +40,9 @@ Required production env:
 - `DASHBOARD_BASE_URL` points to the public domain/IP.
 - `DASHBOARD_TOKEN_SECRET` is set to a long random value.
 - `DASHBOARD_REQUIRE_STRONG_SECRET=true` is recommended on EC2.
+- `DASHBOARD_V2_ENABLED=true` keeps the opt-in v2 surface available. Set it to
+  `false` and restart PM2 with `--update-env` to roll back only v2; the current
+  dashboard and `/dashboard/health` remain available.
 
 ```bash
 curl http://localhost:8787/dashboard/health

@@ -5,7 +5,7 @@ const { getUserSheetDashboardData } = require('./userSheetAnalyticsService');
 const { decorateDashboardSummary } = require('./dashboardSummaryService');
 const { buildDashboardV2Summary } = require('./dashboardV2SummaryService');
 const { DASHBOARD_V2_ROUTE, dashboardV2Html } = require('./dashboardV2Page');
-const { verifyDashboardToken } = require('../utils/dashboardAuth');
+const { verifyDashboardToken, isDashboardV2Enabled } = require('../utils/dashboardAuth');
 const { getAllUsers, getUserProfileByUserId } = require('./userService');
 const { getFinancialScopeUserIds } = require('./oauthTokenStore');
 const { buildGoogleAuthorizationUrl, completeGoogleOAuthCallback } = require('./googleOAuthService');
@@ -899,6 +899,10 @@ function startDashboardServer() {
             return;
         }
         if (req.method === 'GET' && reqUrl.pathname === DASHBOARD_V2_ROUTE) {
+            if (!isDashboardV2Enabled()) {
+                sendJson(res, 404, { error: 'Dashboard v2 desabilitado.' });
+                return;
+            }
             metrics.increment('dashboard.v2.page.view');
             sendHtml(res, dashboardV2Html());
             return;
@@ -948,6 +952,10 @@ function startDashboardServer() {
             return;
         }
         if (req.method === 'GET' && reqUrl.pathname === '/dashboard/api/v2/summary') {
+            if (!isDashboardV2Enabled()) {
+                sendJson(res, 404, { error: 'Dashboard v2 desabilitado.' });
+                return;
+            }
             await handleApiV2Summary(reqUrl, res);
             return;
         }

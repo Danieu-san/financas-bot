@@ -38,7 +38,65 @@ não existe seletor de usuário na v2.
 - upload, OCR, armazenamento e exigência ampla de comprovantes pertencem à
   Fase 6; na 4D o indicador só é aplicável a eventos que já declarem essa
   exigência de forma explícita;
-- comparações históricas, auditoria final contra Sheets e rollback por flag
-  pertencem ao gate 4E;
+- comparações históricas continuam disponíveis no Query Engine, mas um bloco
+  visual dedicado fica adiado até haver pergunta de decisão e contrato de
+  paridade aprovados; a auditoria contra Sheets e o rollback por flag foram
+  concluídos no gate 4E;
 - projeções avançadas de planos pertencem à Fase 5;
 - investimentos e patrimônio permanecem nas fases posteriores do roadmap.
+
+## Auditoria final do benchmark no gate 4E
+
+As duas fontes obrigatórias, `meu-planner-feature-benchmark.md` e
+`meu-planner-deep-product-study.md`, foram reconciliadas com o roadmap e com as
+evidências do produto. Itens equivalentes foram consolidados para evitar que o
+mesmo conceito apareça duas vezes com nomes diferentes.
+
+### Adotado
+
+| Item do benchmark | Decisão e evidência |
+| --- | --- |
+| Livro financeiro familiar unificado | Adotado como ledger canônico, independente da interface e projetado de forma determinística. |
+| Evento, efetivação, competência, vencimento e status | Adotado no modelo canônico e no catálogo temporal; `pending`, `settled`, `cancelled` e `uncertain` não são inferidos como a mesma coisa. |
+| Contas/partições e saldo por conta | Adotado na Fase 2; dashboard e WhatsApp leem a mesma posição canônica. |
+| Transferências internas pareadas e neutras | Adotado; não viram renda nem gasto e exigem origem/destino coerentes. |
+| Planejado versus realizado por categoria | Adotado na 4A com orçamento global preservado, alocação explícita e ausência de alocação diferente de zero. |
+| Faturas, itens, conta pagadora e pagamento | Adotado nas Fases 3A/3B; pagamento não duplica a compra no orçamento. |
+| Recorrências e parcelas projetadas | Adotado nas Fases 3C/3E como regras e cronogramas materializados sob demanda; compromissos aparecem em faturas/forecast. |
+| Reembolso/estorno vinculado | Adotado na 3F; reduz o consumo original sem virar renda comum nem tornar o gasto líquido negativo. |
+| Cockpit de decisão mobile-first | Adotado no dashboard v2: caixa, disponível, competência, ciclo, estrutura, planos/histórico e confiança em hierarquia explícita. |
+| Pendências e qualidade visíveis | Adotado na 4D sem bloquear os demais totais; fonte ausente permanece indisponível e não vira zero. |
+| Drill-down e critério temporal | Adotado como explicação textual `criteria` em todos os blocos; não há cálculo paralelo na interface. |
+| Escopo Daniel, Thaís e família | Adotado pelo vínculo autorizado e pelo token, sem limitar o modelo a dois dispositivos e sem seletor de outro usuário na v2. |
+| Perguntas livres, verificação e idempotência | Mantidos como vantagem do FinançasBot: Query Engine/agente verificado, escrita confiável e limpeza marker-only. |
+
+### Adiado para a fase decidida
+
+| Item do benchmark | Destino e justificativa |
+| --- | --- |
+| Planos projetados para metas, dívidas, financiamentos e consórcios | Fase 5; exige contrato comum e simulação separada do histórico real. |
+| Correção/categorização em massa com trilha | Fase 6; deve ter seleção, preview, confirmação e auditoria antes de gravar. |
+| Importação XLS/XLSX | Fase 6; CSV/OFX permanecem o MVP até o fluxo em lote estar confiável. |
+| PDF, imagem, OCR e comprovantes | Fase 6; somente com preview, confirmação, vínculo financeiro e indicador de obrigatoriedade aplicável. |
+| Exportação XLSX filtrada | Fase 6; conveniência posterior ao núcleo financeiro e à manutenção confiável. |
+| Tour/manual contextual | Fase 6/backlog de conveniência; não altera a semântica financeira da Fase 4. |
+| Carteira patrimonial e investimentos | Fase 7; depende de planos, contas e conciliação já consolidados. |
+| Comparações históricas em bloco visual | Adiado até existir contrato visual/paridade próprio; a consulta read-only já existe, mas não foi duplicada no dashboard v2. |
+| Open Finance/Meu Pluggy somente leitura | Última fase; mais volume sem conciliação madura aumentaria risco antes de aumentar confiança. |
+
+### Descartado deliberadamente
+
+| Item/prática observada | Motivo do descarte |
+| --- | --- |
+| Copiar marca, cores, textos, navegação ou layout literal | Propriedade e identidade visual próprias; somente a lógica de decisão foi incorporada. |
+| Forçar uso da web para tarefas seguras | WhatsApp continua sendo a superfície principal quando a conversa resolve a tarefa com segurança. |
+| Limitar a família a dois dispositivos | Restrição de interface não deve contaminar o modelo de pessoas e vínculos. |
+| Usar `float` para dinheiro | Valores financeiros permanecem em centavos inteiros ou decimal exato. |
+| Precriar doze transações recorrentes | Regras versionadas e materialização sob demanda evitam duplicidade e facilitam edição futura. |
+| Aceitar transferência de uma ponta só | Viola neutralidade e reconciliação entre contas. |
+| Permitir OCR/IA gravar sem preview | Viola o gate de confiabilidade e confirmação de campos críticos. |
+| Bloquear o dashboard inteiro por item sem categoria | Cobertura e pendências devem ser explícitas sem apagar totais confirmados. |
+| Esconder ações principais apenas em ícones | Ações precisam de rótulo compreensível e alvo acessível. |
+| Priorizar lembretes por e-mail | WhatsApp/Calendar continuam os canais aprovados. |
+| Trocar Gemini, LangGraph ou WhatsApp por modismo | Migração de fornecedor/framework exige ganho medido, não paridade presumida. |
+| Virar assistente geral ou Drive inteligente genérico | O escopo permanece financeiro; anexos futuros devem estar vinculados a eventos financeiros. |

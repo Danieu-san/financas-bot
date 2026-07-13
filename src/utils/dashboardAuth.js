@@ -9,6 +9,11 @@ function getDashboardBaseUrl() {
     return String(process.env.DASHBOARD_BASE_URL || '').trim().replace(/\/+$/g, '');
 }
 
+function isDashboardV2Enabled(env = process.env) {
+    const value = String(env.DASHBOARD_V2_ENABLED ?? 'true').trim().toLowerCase();
+    return !['false', '0', 'no', 'nao', 'off'].includes(value);
+}
+
 function isProductionLikeDashboard() {
     const nodeEnv = String(process.env.NODE_ENV || '').trim().toLowerCase();
     return nodeEnv === 'production' ||
@@ -114,11 +119,16 @@ function buildDashboardAccessLink({ userId, ttlSeconds = DEFAULT_TTL_SECONDS, is
     if (!baseUrl) return null;
     const effectiveTtlSeconds = resolveDashboardTtl(ttlSeconds);
     const token = generateDashboardToken({ userId, ttlSeconds: effectiveTtlSeconds, isAdmin });
-    const path = version === 'v2' ? '/dashboard/v2' : '/dashboard';
+    const requestedVersion = version === 'v2' ? 'v2' : 'current';
+    const effectiveVersion = requestedVersion === 'v2' && isDashboardV2Enabled() ? 'v2' : 'current';
+    const path = effectiveVersion === 'v2' ? '/dashboard/v2' : '/dashboard';
     return {
         url: `${baseUrl}${path}#token=${encodeURIComponent(token)}`,
         ttlSeconds: effectiveTtlSeconds,
-        tokenRef: hashDashboardToken(token)
+        tokenRef: hashDashboardToken(token),
+        version: effectiveVersion,
+        path,
+        ...(requestedVersion !== effectiveVersion ? { rolledBackFrom: requestedVersion } : {})
     };
 }
 
@@ -126,6 +136,7 @@ module.exports = {
     generateDashboardToken,
     verifyDashboardToken,
     buildDashboardAccessLink,
+    isDashboardV2Enabled,
     getDashboardBaseUrl,
     getDashboardTokenSecret
 };
