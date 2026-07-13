@@ -263,7 +263,7 @@ Validar:
 
 ## Planos projetados - Fase 5A
 
-- Bateria minima do contrato: `node --test tests\projectedPlansContract.test.js`.
+- Bateria minima da 5A: `node --test tests\projectedPlansContract.test.js tests\projectedPlansStore.test.js`.
 - Rodar junto com `tests\financialStateMachine.test.js` e
   `tests\canonicalLedgerProjector.test.js` para provar compatibilidade com
   comandos legados e neutralidade contabil.
@@ -275,6 +275,16 @@ Validar:
   rejeitada pelo contrato.
 - Backup deve falhar em checksum divergente e a visao publica nao pode expor
   usuario, domicilio, referencia legada ou `operation_key`.
+- Store shadow deve iniciar com writes desligados, repetir snapshot sem
+  duplicar e preservar identidade/idempotencia depois de reinicio.
+- Mover uma linha exige rebind explicito e deve manter `plan_id`; versao
+  repetida divergente, salto de versao e conflito de `operation_key` falham.
+- Falha de movimento depois de inserir nova versao deve fazer rollback da
+  transacao inteira.
+- Correcao deve acrescentar um unico estorno compensatorio ligado ao movimento
+  original; nao editar nem apagar o fato confirmado.
+- Readiness deve permanecer falso com identidade provisoria, plano orfao ou
+  issue de projecao.
 
 ## Scheduler e Calendar
 

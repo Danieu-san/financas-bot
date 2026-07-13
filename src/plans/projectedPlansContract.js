@@ -125,11 +125,11 @@ function cell(row, headers, aliases, fallback = -1) {
     return index >= 0 ? row?.[index] : undefined;
 }
 
-function legacyIdentity({ sourceType, legacyRef, rowIndex, householdId, ownerUserId }) {
+function legacyIdentity({ sourceType, legacyRef, rowIndex, householdId, ownerUserId, planId }) {
     const explicitRef = String(legacyRef || '').trim();
     const effectiveRef = explicitRef || `${sourceType}:row:${Number(rowIndex || 0) || 'unknown'}`;
     return {
-        id: `plan_${hash({ sourceType, legacyRef: effectiveRef, householdId, ownerUserId })}`,
+        id: String(planId || '').trim() || `plan_${hash({ sourceType, legacyRef: effectiveRef, householdId, ownerUserId })}`,
         ref: effectiveRef,
         status: explicitRef ? 'stable' : 'provisional'
     };
@@ -172,11 +172,11 @@ function amortizationMethod(value) {
     return null;
 }
 
-function basePlan({ identity, householdId, ownerUserId, name, type, scope, status, amounts, terms, sourceType, sourceStatus, metadata }) {
+function basePlan({ identity, version, householdId, ownerUserId, name, type, scope, status, amounts, terms, sourceType, sourceStatus, metadata }) {
     return {
         schema_version: PLAN_SCHEMA_VERSION,
         plan_id: identity.id,
-        version: 1,
+        version: Number(version || 1),
         type,
         scope,
         status,
@@ -201,13 +201,14 @@ function basePlan({ identity, householdId, ownerUserId, name, type, scope, statu
     };
 }
 
-function adaptLegacyGoalRow({ row = [], headers = GOAL_HEADERS, rowIndex = 0, legacyRef = '', householdId = '' } = {}) {
+function adaptLegacyGoalRow({ row = [], headers = GOAL_HEADERS, rowIndex = 0, legacyRef = '', householdId = '', planId = '', version = 1 } = {}) {
     const name = cell(row, headers, ['Nome da Meta', 'Nome'], 0);
     const ownerUserId = cell(row, headers, ['user_id'], 8);
-    const identity = legacyIdentity({ sourceType: 'sheet.metas', legacyRef, rowIndex, householdId, ownerUserId });
+    const identity = legacyIdentity({ sourceType: 'sheet.metas', legacyRef, rowIndex, householdId, ownerUserId, planId });
     const sourceStatus = String(name || '').trim() && String(ownerUserId || '').trim() ? 'available' : 'partial';
     return basePlan({
         identity,
+        version,
         householdId,
         ownerUserId,
         name,
@@ -240,16 +241,17 @@ function adaptLegacyGoalRow({ row = [], headers = GOAL_HEADERS, rowIndex = 0, le
     });
 }
 
-function adaptLegacyDebtRow({ row = [], headers = DEBT_HEADERS, rowIndex = 0, legacyRef = '', householdId = '' } = {}) {
+function adaptLegacyDebtRow({ row = [], headers = DEBT_HEADERS, rowIndex = 0, legacyRef = '', householdId = '', planId = '', version = 1 } = {}) {
     const name = cell(row, headers, ['Nome da Dívida', 'Nome'], 0);
     const ownerUserId = cell(row, headers, ['user_id'], 17);
     const type = normalizeDebtType(cell(row, headers, ['Tipo', 'Tipo de Dívida'], 2));
-    const identity = legacyIdentity({ sourceType: 'sheet.dividas', legacyRef, rowIndex, householdId, ownerUserId });
+    const identity = legacyIdentity({ sourceType: 'sheet.dividas', legacyRef, rowIndex, householdId, ownerUserId, planId });
     const sourceStatus = String(name || '').trim() && String(ownerUserId || '').trim() ? 'available' : 'partial';
     const rawInterest = cell(row, headers, ['Taxa de Juros', 'Juros', 'Taxa'], 6);
     const strategy = cell(row, headers, ['Estratégia', 'Estrategia'], 16);
     return basePlan({
         identity,
+        version,
         householdId,
         ownerUserId,
         name,
@@ -286,6 +288,7 @@ function adaptLegacyDebtRow({ row = [], headers = DEBT_HEADERS, rowIndex = 0, le
 
 function movementType(value) {
     const type = normalizeText(value);
+    if (type.includes('estorno') || type.includes('revers')) return 'reversal';
     if (type.includes('retirada') || type.includes('resgate')) return 'withdrawal';
     if (type.includes('ajuste')) return 'adjustment';
     if (type.includes('status')) return 'status_change';
@@ -425,10 +428,12 @@ function assertProjectedPlans(projection) {
     const planIds = new Set();
     for (const plan of projection.plans) {
         if (plan?.schema_version !== PLAN_SCHEMA_VERSION || !plan.plan_id || planIds.has(plan.plan_id)) throw new Error('invalid_or_duplicate_plan_id');
+        if (!Number.isSafeInteger(plan.version) || plan.version < 1) throw new Error('invalid_plan_version');
         planIds.add(plan.plan_id);
         for (const [field, value] of Object.entries(plan.amounts || {})) assertCents(value, field);
     }
     const movementIds = new Set();
+    const movementsById = new Map();
     for (const movement of projection.plan_movements) {
         if (movement?.schema_version !== PLAN_MOVEMENT_SCHEMA_VERSION || !movement.movement_id || movementIds.has(movement.movement_id)) throw new Error('invalid_or_duplicate_movement_id');
         if (!planIds.has(movement.plan_id)) throw new Error('movement_without_plan');
@@ -437,6 +442,19 @@ function assertProjectedPlans(projection) {
         assertCents(movement.balance_before_cents, 'movement.balance_before_cents');
         assertCents(movement.balance_after_cents, 'movement.balance_after_cents');
         movementIds.add(movement.movement_id);
+        movementsById.set(movement.movement_id, movement);
+    }
+    const reversedIds = new Set();
+    for (const movement of projection.plan_movements) {
+        const targetId = String(movement.reverses_movement_id || '').trim();
+        if (movement.type === 'reversal' && !targetId) throw new Error('reversal_target_required');
+        if (movement.type !== 'reversal' && targetId) throw new Error('reversal_target_for_non_reversal');
+        if (!targetId) continue;
+        const target = movementsById.get(targetId);
+        if (!target || target.plan_id !== movement.plan_id || target.type === 'reversal') throw new Error('invalid_reversal_target');
+        if (reversedIds.has(targetId)) throw new Error('movement_already_reversed');
+        if (movement.amount_cents !== -target.amount_cents) throw new Error('reversal_amount_mismatch');
+        reversedIds.add(targetId);
     }
     return true;
 }

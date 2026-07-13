@@ -1531,9 +1531,15 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   projetados e a visao publica remove identidades internas.
 - Backup/restore portatil usa checksum. Nenhuma aba, flag, rota, comando ou dado
   real foi alterado.
-- Evidencia: nova bateria `7/7`, focados contrato/legado/ledger `128/128`, suite
-  completa `799/799`, audit high zero e diff check limpo.
-- Decisao: GO apenas para a primeira fatia read-only da 5A; NO-GO para encerrar
-  5A, persistir shadow em producao, dual-write ou iniciar 5B.
-- Proximo passo dentro da 5A: armazenamento shadow versionado e referencia
-  legada persistente, seguidos de dry-run real sanitizado e restore.
+- Segunda fatia criou `projectedPlansStore`: SQLite shadow com writes desligados
+  por padrao, identidade persistente/rebind, versoes imutaveis, snapshots,
+  backup/restore, readiness e idempotencia por movimento/operacao.
+- Rebind explicito preserva `plan_id` depois de mover linha/renomear;
+  idempotencia sobrevive a reinicio, falha parcial faz rollback integral e
+  correcao usa estorno compensatorio append-only.
+- Evidencia atual: baterias 5A `16/16`, suite completa `808/808`; contrato/legado
+  anterior `128/128`, audit high zero e diff check limpo nesta fatia.
+- Decisao: GO local para as duas primeiras fatias isoladas da 5A; NO-GO para
+  encerrar 5A, persistir shadow em producao, dual-write ou iniciar 5B.
+- Proximo passo dentro da 5A: dry-run real sanitizado e paridade das views
+  legadas, sem alterar comandos ou producao.

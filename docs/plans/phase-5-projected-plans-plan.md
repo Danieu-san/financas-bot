@@ -82,16 +82,34 @@ Ajustes após inspeção do repositório:
 - backup/restore portátil com checksum;
 - nenhuma alteração de comando, Sheets, SQLite, dashboard ou produção.
 
+### Segunda fatia concluída localmente
+
+- armazenamento SQLite shadow versionado, isolado e com escrita desativada por
+  padrão;
+- registro persistente de identidade legada com rebind explícito: mover linha
+  ou renomear não troca `plan_id`;
+- histórico imutável de versões, rejeição de versão repetida divergente e de
+  salto de versão;
+- idempotência durável de movimentos por `movement_id` e `operation_key`,
+  inclusive depois de reinício;
+- transação atômica: conflito tardio de movimento também desfaz a nova versão
+  do plano;
+- correção append-only por estorno compensatório único, sem editar o fato
+  original;
+- snapshot atual, backup/restore do armazenamento, checksum e preservação do
+  histórico de identidades e versões;
+- readiness bloqueia cutover diante de identidade provisória, plano órfão ou
+  conflito observado;
+- nenhuma integração com handlers, planilhas, WhatsApp, dashboard ou produção.
+
 ### Trabalho restante dentro da 5A
 
-1. Definir a persistência de `plans`, `plan_movements` e versões no shadow.
-2. Criar uma referência legada persistente para substituir identidade por
-   número de linha; identidade provisória não autoriza cutover nem escrita.
-3. Fazer dry-run read-only sobre uma fotografia real sanitizada de metas,
+1. Fazer dry-run read-only sobre uma fotografia real sanitizada de metas,
    dívidas e movimentos e registrar conflitos.
-4. Validar backup/restore do armazenamento persistente junto dos dados legados.
-5. Provar que metas e dívidas atuais aparecem como views equivalentes, sem
+2. Provar que metas e dívidas atuais aparecem como views equivalentes, sem
    mudar os comandos existentes.
+3. Registrar a decisão final da 5A somente depois dessas provas; o shadow local
+   ainda não autoriza persistência em produção nem dual-write.
 
 Gate final da 5A: nenhuma identidade ambígua é promovida; valores equivalentes
 são idênticos em centavos; restore recompõe contrato e histórico; comandos

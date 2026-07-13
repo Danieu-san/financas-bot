@@ -187,6 +187,48 @@ test('5A contract rejects projected or simulated rows inside plan_movements', ()
     assert.throws(() => createProjectedPlansBackup(projection), /non_realized_movement_forbidden/);
 });
 
+test('5A contract keeps corrections append-only through one compensating reversal', () => {
+    const projection = projectLegacyPlans({
+        householdId: 'household-a',
+        goals: [{
+            headers: GOAL_HEADERS,
+            legacyRef: 'goal-reversal',
+            row: ['Reserva', 1000, 100, '', '', '', 'Em andamento', '', 'user-a', 'personal', '']
+        }],
+        goalMovements: [{
+            headers: GOAL_MOVEMENT_HEADERS,
+            legacyRef: 'movement-original',
+            row: ['10/07/2026', 'Reserva', 'Aporte', 100, 0, 100, '', '', 'user-a', 'user-a']
+        }]
+    });
+    const original = projection.plan_movements[0];
+    const reversal = {
+        ...JSON.parse(JSON.stringify(original)),
+        movement_id: 'movement_reversal_1',
+        operation_key: 'operation_reversal_1',
+        type: 'reversal',
+        amount_cents: -original.amount_cents,
+        balance_before_cents: original.balance_after_cents,
+        balance_after_cents: original.balance_before_cents,
+        reverses_movement_id: original.movement_id
+    };
+    projection.plan_movements.push(reversal);
+
+    assert.strictEqual(assertProjectedPlans(projection), true);
+
+    const mutatedOriginal = JSON.parse(JSON.stringify(projection));
+    mutatedOriginal.plan_movements[0].amount_cents += 1;
+    assert.throws(() => assertProjectedPlans(mutatedOriginal), /reversal_amount_mismatch/);
+
+    const duplicateReversal = JSON.parse(JSON.stringify(projection));
+    duplicateReversal.plan_movements.push({
+        ...duplicateReversal.plan_movements[1],
+        movement_id: 'movement_reversal_2',
+        operation_key: 'operation_reversal_2'
+    });
+    assert.throws(() => assertProjectedPlans(duplicateReversal), /already_reversed/);
+});
+
 test('5A sheet adapter exposes legacy goals and debts as compatible views without writing or inventing stable ids', () => {
     const projection = projectLegacyPlanSheets({
         householdId: 'household-a',

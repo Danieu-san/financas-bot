@@ -20,6 +20,10 @@ Use este mapa para escolher rapidamente quais arquivos abrir por tarefa.
 - `src/plans/projectedPlansContract.js` - contrato puro da Fase 5A para
   `plans`/`plan_movements`, adapters read-only de metas/dividas legadas,
   identidade, centavos, visao publica e backup/restore portatil.
+- `src/plans/projectedPlansStore.js` - SQLite shadow local da Fase 5A com
+  identidade persistente/rebind, versoes imutaveis, idempotencia de movimentos,
+  snapshots, readiness e backup/restore; writes ficam desativados por padrao e
+  o modulo nao esta ligado ao runtime.
 
 ## Importacao de extratos
 

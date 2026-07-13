@@ -4,12 +4,12 @@ Data: 2026-07-13
 
 ## Decisão
 
-`GO local` somente para a primeira fatia da 5A: contrato, adapters e projetor
-puro read-only.
+`GO local` para as duas primeiras fatias da 5A: contrato/adapters read-only e
+armazenamento shadow versionado, ainda isolado e desativado por padrão.
 
 `NO-GO` para encerrar a 5A, criar dual-write, mudar comandos, persistir shadow
-em produção ou iniciar a 5B. Ainda faltam identidade legada persistente,
-armazenamento versionado e dry-run sobre fotografia real sanitizada.
+em produção ou iniciar a 5B. Ainda faltam dry-run sobre fotografia real
+sanitizada e prova de equivalência das views legadas.
 
 ## Entregas
 
@@ -24,6 +24,15 @@ armazenamento versionado e dry-run sobre fotografia real sanitizada.
 - proibição de movimento projetado/simulado no histórico realizado;
 - visão pública sem usuário, domicílio, referência legada ou chave de operação;
 - backup/restore portátil com checksum e detecção de adulteração.
+- SQLite shadow com escrita desativada por padrão e sem import em runtime;
+- identidade persistente e rebind explícito que preserva `plan_id` após mover
+  linha e renomear;
+- versões imutáveis, conflito otimista, idempotência por movimento/operação e
+  sobrevivência a reinício;
+- rollback transacional diante de falha parcial;
+- correção por estorno compensatório único e append-only;
+- backup/restore persistente de snapshot, identidades, versões e movimentos;
+- readiness falha fechado para identidade provisória, plano órfão ou issue.
 
 ## Compatibilidade
 
@@ -33,13 +42,15 @@ armazenamento versionado e dry-run sobre fotografia real sanitizada.
 - o dashboard e o WhatsApp continuam usando os caminhos anteriores;
 - o caminho novo de `debt.pay` permanece intacto e o caminho legado continua
   existente para adaptação posterior na 5C.
+- o banco shadow existe apenas nos testes locais; nenhum arquivo foi criado ou
+  habilitado na EC2.
 
 ## Evidência
 
 - TDD RED: falha por ausência de `projectedPlansContract`.
-- Bateria nova: `7/7`.
+- Baterias 5A combinadas: `16/16`.
 - Bateria contrato + fluxos legados + ledger: `128/128`.
-- Suíte completa com Node 22/ABI SQLite correta: `799/799`.
+- Suíte completa com Node 22/ABI SQLite correta: `808/808`.
 - `npm audit --audit-level=high`: zero vulnerabilidades.
 - `git diff --check`: limpo.
 - `package-lock.json`: inalterado; nenhuma dependência adicionada.
@@ -51,10 +62,11 @@ Node 22 do projeto, compatível com o binário local do SQLite.
 
 ## Resíduos e próximo gate
 
-- referências baseadas somente em número de linha continuam provisórias;
-- não existem ainda tabelas persistentes `plans`/`plan_movements`;
-- versionamento histórico ainda é apenas parte do contrato, não armazenamento;
-- restore persistente e fotografia real ainda não foram executados.
+- referências baseadas somente em número de linha continuam provisórias e
+  bloqueiam readiness até rebind explícito;
+- fotografia real sanitizada e paridade das views legadas ainda não foram
+  executadas;
+- persistência shadow em produção e dual-write continuam proibidos.
 
-Próximo passo dentro da 5A: desenhar e testar o armazenamento shadow versionado
-e a referência legada persistente, ainda sem alterar comandos ou produção.
+Próximo passo dentro da 5A: executar dry-run read-only sanitizado e provar
+equivalência das views, ainda sem alterar comandos ou produção.
