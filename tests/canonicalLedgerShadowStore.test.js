@@ -49,7 +49,7 @@ test('canonical ledger shadow store applies versioned schema and keeps writes di
     const store = new CanonicalLedgerShadowStore({ dbPath });
 
     const migrations = store.applyMigrations();
-    assert.deepStrictEqual(migrations.map(migration => migration.version), [1, 2, 3, 4, 5, 6]);
+    assert.deepStrictEqual(migrations.map(migration => migration.version), [1, 2, 3, 4, 5, 6, 7]);
     assert.strictEqual(DEFAULT_MIGRATIONS_DIR.endsWith(path.join('src', 'ledger', 'migrations')), true);
 
     const tables = store.listTables();
@@ -58,6 +58,7 @@ test('canonical ledger shadow store applies versioned schema and keeps writes di
     assert.ok(tables.includes('canonical_ledger_schedules'));
     assert.ok(tables.includes('canonical_ledger_reconciliation_links'));
     assert.ok(tables.includes('canonical_ledger_statement_reconciliation_links'));
+    assert.ok(tables.includes('canonical_budget_allocations'));
     assert.ok(tables.includes('canonical_ledger_public_projection'));
     assert.ok(tables.includes('canonical_ledger_accounts'));
     assert.ok(tables.includes('canonical_ledger_invoices'));

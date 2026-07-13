@@ -10,6 +10,7 @@ const {
 } = require('../utils/budgetCycle');
 const { validDueDay, buildRecurringDueDate } = require('../utils/recurringDueDate');
 const { buildCanonicalInstallmentSchedules } = require('../ledger/canonicalInstallmentSchedule');
+const { calculateCategoryBudget } = require('../budget/categoryBudgetService');
 
 const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
@@ -641,6 +642,10 @@ function datePartsFromDate(date) {
     return { year: date.getFullYear(), month: date.getMonth(), day: date.getDate() };
 }
 
+function formatIsoDate(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
 function budgetCycleFromPlan(plan = {}, cycleStartDay = 1, referenceDate = new Date()) {
     const period = plan.filters?.period || {};
     const referenceParts = datePartsFromDate(referenceDate);
@@ -728,9 +733,34 @@ function getBudgetRows(dataSources = {}, plan = {}, cycle = {}, referenceDate = 
     return applyFilters(rows, plan.filters || {});
 }
 
+function buildCategoryBudgetContract(dataSources = {}, settings = null, referenceDate = new Date(), cycleStartDay = 1) {
+    const hasContract = Array.isArray(dataSources.budgetAllocations) &&
+        Array.isArray(dataSources.budgetCategories) &&
+        dataSources.resolvedBudgetScope &&
+        typeof dataSources.resolvedBudgetScope === 'object';
+    if (!hasContract) return null;
+    return calculateCategoryBudget({
+        globalBudget: {
+            amountCents: settings ? Math.round(Number(settings.value || 0) * 100) : null,
+            active: Boolean(settings),
+            sourceHealth: dataSources.budgetSourceHealth || (settings ? 'available' : 'unavailable')
+        },
+        referenceDate: formatIsoDate(referenceDate),
+        cycleStartDay,
+        scope: dataSources.resolvedBudgetScope,
+        categories: dataSources.budgetCategories,
+        allocations: dataSources.budgetAllocations,
+        events: Array.isArray(dataSources.canonicalBudgetEvents)
+            ? dataSources.canonicalBudgetEvents
+            : canonicalPublicRows(dataSources)
+    });
+}
+
 function buildBudgetSummary(dataSources = {}, plan = {}) {
     const settings = budgetSettingsFromDataSources(dataSources, plan);
     if (!settings) {
+        const referenceDate = parseReferenceDate(dataSources.currentDate || dataSources.today || dataSources.referenceDate);
+        const cycleStartDay = normalizeCycleStartDay(dataSources.budgetCycleStartDay || 1);
         return {
             active: false,
             monthlyAmount: 0,
@@ -747,7 +777,8 @@ function buildBudgetSummary(dataSources = {}, plan = {}) {
             items: [],
             cycleItems: [],
             criteria: 'Orçamento mensal livre desativado.',
-            explanation: 'Orçamento mensal livre desativado.'
+            explanation: 'Orçamento mensal livre desativado.',
+            categoryBudget: buildCategoryBudgetContract(dataSources, null, referenceDate, cycleStartDay)
         };
     }
     const referenceDate = parseReferenceDate(dataSources.currentDate || dataSources.today || dataSources.referenceDate);
@@ -771,6 +802,7 @@ function buildBudgetSummary(dataSources = {}, plan = {}) {
         cards: roundMoney(rows.filter(item => item.sourceType === 'card').reduce((sum, item) => sum + Number(item.value || 0), 0))
     };
     const expectedByToday = cycle.isCurrent ? roundMoney(monthlyAmount - (dailyRecommendedAmount * daysRemaining) + dailyRecommendedAmount) : 0;
+    const categoryBudget = buildCategoryBudgetContract(dataSources, settings, referenceDate, cycleStartDay);
     return {
         active: true,
         total: monthlyAmount,
@@ -800,7 +832,8 @@ function buildBudgetSummary(dataSources = {}, plan = {}) {
             category: groupRows(rows, ['category']).slice(0, plan.limit),
             member: groupBudgetRowsByPublicMember(rows, plan.limit),
             source: groupRows(rows, ['source']).slice(0, plan.limit)
-        }
+        },
+        categoryBudget
     };
 }
 

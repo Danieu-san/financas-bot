@@ -1,6 +1,32 @@
 # Estado atual do FinancasBot
 
-Atualizado em: 2026-07-12
+Atualizado em: 2026-07-13
+
+## Fase 4A.1 - contrato de orcamento por categoria - GO local - 2026-07-13
+
+- A Fase 4 foi aberta somente para a fatia 4A.1. Dashboard v2, endpoint v2,
+  novas perguntas no WhatsApp, configuracao por Gemini e producao permanecem
+  fora do escopo; 4A.2 nao foi iniciada.
+- `budget_allocations` tem autoridade no SQLite canonico/shadow por migration
+  versionada, identidade estavel, valores em centavos, status ativo/inativo e
+  vigencia por ciclo. Replay, rebuild e restart nao duplicam alocacoes, e ciclos
+  encerrados rejeitam inclusao ou alteracao retroativa.
+- O servico deterministico calcula planejado, realizado e restante por
+  categoria/subcategoria, alem de alocado, nao alocado e excesso contra o
+  orcamento familiar global. Categoria sem alocacao permanece distinta de teto
+  zero; fonte ausente ou indisponivel permanece indisponivel.
+- O Query Engine consome o contrato somente quando recebe alocacoes, catalogo,
+  escopo resolvido e eventos canonicos internos. Gemini nao calcula, resolve
+  escopo, cria categorias nem persiste alocacoes.
+- Invariantes cobertas: ciclos cruzando meses e dias 28/30/31, familia versus
+  pessoal, cartao uma vez por competencia, fatura e transferencia neutras,
+  recorrencia paga sem nova contagem, reembolso liquido e importacao conciliada
+  sem duplicacao.
+- Evidencia: testes focados ampliados `223/223`; suite padrao atualizada e verde
+  `767/767`; sintaxe dos modulos alterados valida. Nenhuma planilha real, flag,
+  dado produtivo ou superficie publica foi alterada.
+- Decisao: `GO local` para encerrar exclusivamente 4A.1. Proximo passo do
+  roadmap exige nova classificacao de esforco antes de qualquer 4A.2.
 
 ## 3G - GO de producao - 2026-07-12
 

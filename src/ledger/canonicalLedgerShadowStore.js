@@ -573,6 +573,158 @@ class CanonicalLedgerShadowStore {
         `).all(reportType, reportType, reportType, reportType, reportType, reportType);
     }
 
+    persistBudgetAllocations(allocations = [], { referenceDate = '' } = {}) {
+        if (!this.writesEnabled) {
+            throw new Error('Canonical ledger shadow writes are disabled by default.');
+        }
+        this.applyMigrations();
+        const rows = Array.isArray(allocations) ? allocations : [];
+        const reference = String(referenceDate || new Date().toISOString()).slice(0, 10);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(reference)) {
+            throw new Error('budget_allocation_reference_date_invalid');
+        }
+        const findById = this.db.prepare(`
+            SELECT * FROM canonical_budget_allocations WHERE allocation_id = ?
+        `);
+        const findByIdentity = this.db.prepare(`
+            SELECT * FROM canonical_budget_allocations
+            WHERE household_id = ? AND scope_type = ? AND scope_id = ?
+              AND cycle_start = ? AND category_key = ? AND subcategory_key = ?
+        `);
+        const upsert = this.db.prepare(`
+            INSERT INTO canonical_budget_allocations (
+                allocation_id, household_id, scope_type, scope_id, cycle_start,
+                cycle_end, category_key, category, subcategory_key, subcategory,
+                planned_amount_cents, status, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(allocation_id) DO UPDATE SET
+                cycle_end = excluded.cycle_end,
+                category = excluded.category,
+                subcategory = excluded.subcategory,
+                planned_amount_cents = excluded.planned_amount_cents,
+                status = excluded.status,
+                updated_at = excluded.updated_at
+        `);
+        const persist = this.db.transaction(() => {
+            for (const allocation of rows) {
+                const values = {
+                    allocationId: String(allocation?.allocationId || '').trim(),
+                    householdId: String(allocation?.householdId || '').trim(),
+                    scopeType: String(allocation?.scopeType || '').trim(),
+                    scopeId: String(allocation?.scopeId || '').trim(),
+                    cycleStart: String(allocation?.cycleStart || '').trim(),
+                    cycleEnd: String(allocation?.cycleEnd || '').trim(),
+                    categoryKey: String(allocation?.categoryKey || '').trim(),
+                    category: String(allocation?.category || '').trim(),
+                    subcategoryKey: String(allocation?.subcategoryKey || '').trim(),
+                    subcategory: String(allocation?.subcategory || '').trim(),
+                    plannedAmountCents: Number(allocation?.plannedAmountCents),
+                    status: String(allocation?.status || '').trim()
+                };
+                if (!values.allocationId || !values.householdId || !values.scopeId || !values.categoryKey || !values.category) {
+                    throw new Error('budget_allocation_required_field_missing');
+                }
+                if (!['family', 'personal'].includes(values.scopeType)) throw new Error('budget_allocation_scope_invalid');
+                if (!['active', 'inactive'].includes(values.status)) throw new Error('budget_allocation_status_invalid');
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(values.cycleStart) || !/^\d{4}-\d{2}-\d{2}$/.test(values.cycleEnd)) {
+                    throw new Error('budget_allocation_cycle_invalid');
+                }
+                if (!Number.isInteger(values.plannedAmountCents) || values.plannedAmountCents < 0) {
+                    throw new Error('budget_allocation_amount_invalid');
+                }
+                const identityRow = findByIdentity.get(
+                    values.householdId,
+                    values.scopeType,
+                    values.scopeId,
+                    values.cycleStart,
+                    values.categoryKey,
+                    values.subcategoryKey
+                );
+                if (identityRow && identityRow.allocation_id !== values.allocationId) {
+                    throw new Error('budget_allocation_identity_mismatch');
+                }
+                const existing = findById.get(values.allocationId);
+                if (!existing && values.cycleEnd < reference) {
+                    throw new Error('closed_budget_cycle_immutable');
+                }
+                if (existing && existing.cycle_end < reference) {
+                    const unchanged = existing.household_id === values.householdId &&
+                        existing.scope_type === values.scopeType &&
+                        existing.scope_id === values.scopeId &&
+                        existing.cycle_start === values.cycleStart &&
+                        existing.cycle_end === values.cycleEnd &&
+                        existing.category_key === values.categoryKey &&
+                        existing.category === values.category &&
+                        existing.subcategory_key === values.subcategoryKey &&
+                        existing.subcategory === values.subcategory &&
+                        existing.planned_amount_cents === values.plannedAmountCents &&
+                        existing.status === values.status;
+                    if (!unchanged) throw new Error('closed_budget_cycle_immutable');
+                }
+                const now = new Date().toISOString();
+                upsert.run(
+                    values.allocationId,
+                    values.householdId,
+                    values.scopeType,
+                    values.scopeId,
+                    values.cycleStart,
+                    values.cycleEnd,
+                    values.categoryKey,
+                    values.category,
+                    values.subcategoryKey,
+                    values.subcategory,
+                    values.plannedAmountCents,
+                    values.status,
+                    existing?.created_at || now,
+                    now
+                );
+            }
+        });
+        persist();
+        return rows.length;
+    }
+
+    listBudgetAllocations({ householdId = '', scopeType = '', scopeId = '', cycleStart = '', status = '' } = {}) {
+        this.applyMigrations();
+        const clauses = [];
+        const params = [];
+        for (const [column, value] of [
+            ['household_id', householdId],
+            ['scope_type', scopeType],
+            ['scope_id', scopeId],
+            ['cycle_start', cycleStart],
+            ['status', status]
+        ]) {
+            if (!String(value || '').trim()) continue;
+            clauses.push(`${column} = ?`);
+            params.push(String(value).trim());
+        }
+        const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
+        return this.db.prepare(`
+            SELECT allocation_id, household_id, scope_type, scope_id, cycle_start,
+                cycle_end, category_key, category, subcategory_key, subcategory,
+                planned_amount_cents, status, created_at, updated_at
+            FROM canonical_budget_allocations
+            ${where}
+            ORDER BY cycle_start, category_key, subcategory_key, allocation_id
+        `).all(...params).map(row => ({
+            allocationId: row.allocation_id,
+            householdId: row.household_id,
+            scopeType: row.scope_type,
+            scopeId: row.scope_id,
+            cycleStart: row.cycle_start,
+            cycleEnd: row.cycle_end,
+            categoryKey: row.category_key,
+            category: row.category,
+            subcategoryKey: row.subcategory_key,
+            subcategory: row.subcategory,
+            plannedAmountCents: row.planned_amount_cents,
+            status: row.status,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at
+        }));
+    }
+
     persistStatementReconciliationLinks(links = []) {
         if (!this.writesEnabled) {
             throw new Error('Canonical ledger shadow writes are disabled by default.');
