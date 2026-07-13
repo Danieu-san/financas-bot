@@ -252,7 +252,7 @@ function buildBudgetBlock(result) {
 function snapshotAccountsFallback(snapshot = {}) {
     const accounts = snapshot.financialAccounts;
     const totalBalance = roundMoney(accounts?.totalBalance);
-    if (!accounts || totalBalance === null || !Array.isArray(accounts.items)) return null;
+    if (!accounts || totalBalance === null || !Array.isArray(accounts.items) || accounts.items.length === 0) return null;
     return {
         status: 'fallback',
         timeBasis: 'current_state',

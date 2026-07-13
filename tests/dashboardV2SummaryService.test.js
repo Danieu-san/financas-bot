@@ -184,7 +184,7 @@ test('dashboard v2 keeps partial source failures scoped and never turns unknown 
 
 test('dashboard v2 preserves null when neither canonical nor snapshot account balance exists', async () => {
     const snapshot = snapshotFixture();
-    delete snapshot.financialAccounts;
+    snapshot.financialAccounts = { totalBalance: 0, items: [] };
     const result = await buildDashboardV2Summary({
         snapshot,
         userIds: ['user-owner'],
