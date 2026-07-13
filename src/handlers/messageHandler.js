@@ -3777,6 +3777,19 @@ function deriveFollowUpAnalyticalQueryPlan(text, context) {
             parameters: inheritedParams
         };
     }
+    const isExpenseContext = /gasto|gastos|expense/.test(normalizeText(context.intent));
+    const changesOnlyPeriod = (hasExplicitMonthSignal(text) || /\b20\d{2}\b/.test(text)) &&
+        /^(e|mas|agora|tambem|também)?\s*(em|no|na)?\s*(janeiro|fevereiro|marco|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|20\d{2})/.test(text);
+    if (isExpenseContext && changesOnlyPeriod) {
+        return {
+            metric: context.metric || 'expense_period_followup',
+            intent: context.intent,
+            parameters: {
+                ...inheritedParams,
+                timeBasis: previousParams.timeBasis || 'transaction_date'
+            }
+        };
+    }
 
     return null;
 }

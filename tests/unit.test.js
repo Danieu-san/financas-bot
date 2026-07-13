@@ -6333,3 +6333,32 @@ test('dashboard follow-up preserves available metric and changes only the reques
 
     clearAnalyticalContextForTests();
 });
+
+test('expense follow-up changes only the month while preserving family category scope', () => {
+    const {
+        classifyPerguntaLocally,
+        storeAnalyticalContext,
+        getAnalyticalContext,
+        clearAnalyticalContextForTests
+    } = messageHandler.__test__;
+
+    clearAnalyticalContextForTests();
+    const initial = classifyPerguntaLocally('Quanto nós gastamos com alimentação em junho de 2026?');
+    assert.strictEqual(initial.intent, 'total_gastos_categoria_mes');
+    assert.strictEqual(initial.parameters.categoria, 'alimentacao');
+    assert.strictEqual(initial.parameters.scope, 'family');
+
+    storeAnalyticalContext('family-category-follow-up', initial);
+    const followUp = classifyPerguntaLocally(
+        'E em maio de 2026?',
+        getAnalyticalContext('family-category-follow-up')
+    );
+    assert.strictEqual(followUp.intent, 'total_gastos_categoria_mes');
+    assert.strictEqual(followUp.parameters.categoria, 'alimentacao');
+    assert.strictEqual(followUp.parameters.scope, 'family');
+    assert.strictEqual(followUp.parameters.mes, 4);
+    assert.strictEqual(followUp.parameters.ano, 2026);
+    assert.strictEqual(followUp.financialQueryPlan.filters.scope, 'family');
+
+    clearAnalyticalContextForTests();
+});
