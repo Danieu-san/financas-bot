@@ -170,6 +170,9 @@ test('dashboard v2 page is opt-in, mobile-first and consumes only the sanitized 
         assert.match(next.text, /Pular para os números/);
         assert.match(next.text, /De onde vêm estes números/);
         assert.match(next.text, /Fonte indisponível não é tratada como valor zero/);
+        assert.match(next.text, /Sem conta financeira/);
+        assert.match(next.text, /Comprovante obrigatório/);
+        assert.match(next.text, /Cobertura por origem/);
         assert.match(next.text, /@media \(min-width: 640px\)/);
         assert.match(next.response.headers.get('content-security-policy') || '', /default-src 'self'/);
     } finally {

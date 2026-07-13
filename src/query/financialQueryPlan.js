@@ -11,6 +11,7 @@ const ALLOWED_DOMAINS = new Set([
     'bills',
     'forecast',
     'accounts',
+    'quality',
     'imports',
     'dashboard',
     'calendar',
@@ -110,7 +111,8 @@ const DEFAULT_TIME_BASIS_BY_DOMAIN = {
     bills: 'due_date',
     debts: 'due_date',
     calendar: 'due_date',
-    accounts: 'current_state'
+    accounts: 'current_state',
+    quality: 'transaction_date'
 };
 const MONTH_NAMES = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -404,6 +406,11 @@ function legacyIntentToQueryPlan(intent, parameters = {}) {
         ...(parameters.timeBasis === 'budget_cycle' ? { period: { type: 'cycle', label: 'ciclo atual' } } : {})
     };
     const dashboardTimeBasis = parameters.timeBasis || 'transaction_date';
+    const qualityFilters = {
+        ...baseFilters,
+        ...(parameters.status ? { status: parameters.status } : {}),
+        ...(parameters.source || parameters.origem ? { source: parameters.source || parameters.origem } : {})
+    };
     const goalFilters = {
         ...(baseFilters.scope ? { scope: baseFilters.scope } : {}),
         ...(baseFilters.member ? { member: baseFilters.member } : {}),
@@ -514,6 +521,15 @@ function legacyIntentToQueryPlan(intent, parameters = {}) {
         orcamento_ranking_membros: { domain: 'budget', operation: 'rank', filters: { ...budgetFilters, scope: 'family' }, groupBy: ['member'], answerStyle: 'detailed', timeBasis: 'budget_cycle' },
         orcamento_recomendacao: { domain: 'budget', operation: 'recommend', filters: budgetFilters, groupBy: ['category'], answerStyle: 'audit', timeBasis: 'budget_cycle' },
         orcamento_comparacao: { domain: 'budget', operation: 'compare', filters: budgetFilters, answerStyle: 'detailed', timeBasis: 'budget_cycle' },
+        qualidade_dados_resumo: { domain: 'quality', operation: 'detail', filters: qualityFilters, groupBy: ['source'], answerStyle: 'detailed', timeBasis: 'transaction_date' },
+        pendencias_dados_listagem: { domain: 'quality', operation: 'list', filters: qualityFilters, answerStyle: 'detailed', timeBasis: 'transaction_date' },
+        qualidade_sem_categoria: { domain: 'quality', operation: 'list', filters: { ...qualityFilters, status: 'missing_category' }, answerStyle: 'detailed', timeBasis: 'transaction_date' },
+        qualidade_incertos: { domain: 'quality', operation: 'list', filters: { ...qualityFilters, status: 'uncertain' }, answerStyle: 'detailed', timeBasis: 'transaction_date' },
+        qualidade_pendentes: { domain: 'quality', operation: 'list', filters: { ...qualityFilters, status: 'pending' }, answerStyle: 'detailed', timeBasis: 'transaction_date' },
+        qualidade_nao_conciliados: { domain: 'quality', operation: 'list', filters: { ...qualityFilters, status: 'unreconciled' }, answerStyle: 'detailed', timeBasis: 'transaction_date' },
+        qualidade_sem_conta_financeira: { domain: 'quality', operation: 'list', filters: { ...qualityFilters, status: 'missing_financial_account' }, answerStyle: 'detailed', timeBasis: 'transaction_date' },
+        qualidade_sem_comprovante: { domain: 'quality', operation: 'list', filters: { ...qualityFilters, status: 'missing_required_receipt' }, answerStyle: 'detailed', timeBasis: 'transaction_date' },
+        qualidade_por_origem: { domain: 'quality', operation: 'group', filters: qualityFilters, groupBy: ['source'], answerStyle: 'detailed', timeBasis: 'transaction_date' },
         resumo_metas: { domain: 'goals', operation: 'list', filters: goalFilters, answerStyle: 'detailed' },
         progresso_metas: { domain: 'goals', operation: 'explain', filters: goalFilters, answerStyle: 'detailed' },
         historico_meta: { domain: 'goals', operation: 'list', filters: { ...goalFilters, source: 'movements' }, answerStyle: 'audit', timeBasis: 'transaction_date' },

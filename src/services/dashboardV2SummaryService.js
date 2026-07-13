@@ -350,7 +350,39 @@ function buildCollectionBlock(items, criteria) {
     return { status: 'available', count: items.length, items: sanitizePublicValue(items), criteria };
 }
 
-function buildQualityBlock(snapshot = {}) {
+function buildQualityBlock(result, snapshot = {}) {
+    const canonical = result?.ok && result.result?.value && typeof result.result.value === 'object'
+        ? result.result.value
+        : null;
+    if (canonical) {
+        const requestedStatus = String(canonical.status || 'partial').toLowerCase();
+        return sanitizePublicValue({
+            status: BLOCK_STATUS.has(requestedStatus) ? requestedStatus : 'partial',
+            timeBasis: 'transaction_date',
+            totalCount: finiteNumber(canonical.totalCount),
+            cleanCount: finiteNumber(canonical.cleanCount),
+            classificationApplicableCount: finiteNumber(canonical.classificationApplicableCount),
+            classifiedCount: finiteNumber(canonical.classifiedCount),
+            missingCategoryCount: finiteNumber(canonical.missingCategoryCount),
+            uncertainCount: finiteNumber(canonical.uncertainCount),
+            pendingStatusCount: finiteNumber(canonical.pendingStatusCount),
+            pendingCount: finiteNumber(canonical.pendingCount),
+            unreconciledCount: finiteNumber(canonical.unreconciledCount),
+            missingFinancialAccountCount: finiteNumber(canonical.missingFinancialAccountCount),
+            receiptRequiredCount: finiteNumber(canonical.receiptRequiredCount),
+            missingRequiredReceiptCount: finiteNumber(canonical.missingRequiredReceiptCount),
+            receiptIndicatorStatus: canonical.receiptIndicatorStatus === 'applicable' ? 'applicable' : 'not_applicable',
+            coveragePct: finiteNumber(canonical.coveragePct),
+            qualityCoveragePct: finiteNumber(canonical.qualityCoveragePct),
+            bySource: Array.isArray(canonical.bySource) ? canonical.bySource : [],
+            items: Array.isArray(canonical.items) ? canonical.items : [],
+            source: publicSource(result.source),
+            criteria: typeof canonical.criteria === 'string' && canonical.criteria.trim()
+                ? canonical.criteria
+                : 'Indicadores calculados sobre eventos canônicos observados no período.'
+        });
+    }
+
     const quality = snapshot.dataQuality;
     if (!quality || typeof quality !== 'object') {
         return {
@@ -402,9 +434,10 @@ async function buildDashboardV2Summary({
         { kind: 'financial_query', domain: 'expenses', operation: 'rank', filters: { period: planPeriod }, groupBy: ['category'], sort: { by: 'value', direction: 'desc' }, limit: 10, timeBasis: 'billing_month' },
         { kind: 'financial_query', domain: 'budget', operation: 'detail', filters: { period: planPeriod }, timeBasis: 'budget_cycle' },
         { kind: 'financial_query', domain: 'accounts', operation: 'explain', filters: {}, timeBasis: 'current_state' },
-        { kind: 'financial_query', domain: 'forecast', operation: 'forecast', filters: { period: planPeriod }, sort: { by: 'due_date', direction: 'asc' }, limit: 50, timeBasis: 'due_date' }
+        { kind: 'financial_query', domain: 'forecast', operation: 'forecast', filters: { period: planPeriod }, sort: { by: 'due_date', direction: 'asc' }, limit: 50, timeBasis: 'due_date' },
+        { kind: 'financial_query', domain: 'quality', operation: 'detail', filters: { period: planPeriod }, groupBy: ['source'], limit: 12, timeBasis: 'transaction_date' }
     ];
-    const [competenceTotal, competenceCategories, budget, accounts, forecast] = await Promise.all(
+    const [competenceTotal, competenceCategories, budget, accounts, forecast, quality] = await Promise.all(
         plans.map(plan => safeQuery(queryTool, { ...common, plan }))
     );
     const criteria = { ...buildDashboardCriteria(), ...(snapshot.criteria || {}) };
@@ -425,7 +458,7 @@ async function buildDashboardV2Summary({
             forecast: forecastBlocks.forecast,
             goals: buildCollectionBlock(snapshot.goals, 'Metas atuais do snapshot read-only.'),
             debts: buildCollectionBlock(snapshot.debts, 'Dívidas atuais do snapshot read-only.'),
-            quality: buildQualityBlock(snapshot),
+            quality: buildQualityBlock(quality, snapshot),
             recentTransactions: buildCollectionBlock(snapshot.recentTransactions, criteria.recentTransactions)
         }
     });

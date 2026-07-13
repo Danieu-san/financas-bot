@@ -11,6 +11,7 @@ const {
 const { validDueDay, buildRecurringDueDate } = require('../utils/recurringDueDate');
 const { buildCanonicalInstallmentSchedules } = require('../ledger/canonicalInstallmentSchedule');
 const { calculateCategoryBudget } = require('../budget/categoryBudgetService');
+const { executeDataQualityQuery } = require('../quality/dataQualityService');
 
 const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
@@ -1907,9 +1908,16 @@ async function executeFinancialQuery(rawPlan, dataSources = {}) {
         return { ok: false, errors: normalized.errors, plan: null, result: null };
     }
     const plan = normalized.plan;
-    const supportedDomains = ['expenses', 'cards', 'income', 'transfers', 'goals', 'debts', 'bills', 'budget', 'dashboard'];
+    const supportedDomains = ['expenses', 'cards', 'income', 'transfers', 'goals', 'debts', 'bills', 'budget', 'dashboard', 'quality'];
     if (!supportedDomains.includes(plan.domain)) {
         return { ok: false, errors: [`dominio ainda nao implementado na Query Engine: ${plan.domain}`], plan, result: null };
+    }
+
+    if (plan.domain === 'quality') {
+        return executeDataQualityQuery(plan, dataSources.dataQualitySource || {}, {
+            currentDate: dataSources.currentDate || '',
+            personByUserId: dataSources.personByUserId || {}
+        });
     }
 
     if (plan.domain === 'dashboard') {

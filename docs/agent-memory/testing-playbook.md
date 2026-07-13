@@ -86,6 +86,22 @@ Perguntas livres que devem continuar cobertas:
 - follow-ups apos uma pergunta financeira, herdando periodo/escopo seguro: `e no cartão?`, `foram em quais estabelecimentos?`, `e por categoria?`, `detalha esse total`.
 - o contexto de follow-up nao pode guardar ou devolver `spreadsheetId`, `user_id`, `sheet id`, token, prompt interno nem linhas cruas da planilha.
 
+## Qualidade dos dados
+
+Validar:
+
+- `Como está a qualidade dos meus dados este mês?` retorna os seis indicadores
+  da 4D sem recalcular valores financeiros;
+- `Quais pendências de dados tenho este mês?` lista somente campos públicos;
+- filtros por origem e por pendência respeitam o período solicitado;
+- usuário A não lê eventos, linhas nem decisões de importação do usuário B;
+- item ruim aparece como pendência, mas continua presente nos totais
+  financeiros confiáveis;
+- comprovante obrigatório fica `não aplicável` quando nenhum evento observado
+  declara essa exigência; não converter esse estado em zero;
+- painel e WhatsApp usam a mesma consulta do domínio `quality`;
+- bateria mínima: `node --test tests/dataQualityService.test.js tests/canonicalLedgerDataQualityReader.test.js tests/financialQuerySpec.test.js tests/dashboardV2SummaryService.test.js tests/dashboardApiContracts.test.js`.
+
 ## Metas
 
 Validar:

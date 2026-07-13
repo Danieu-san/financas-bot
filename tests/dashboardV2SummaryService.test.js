@@ -136,7 +136,8 @@ test('dashboard v2 composes every block from the snapshot and existing financial
         ['expenses', 'billing_month'],
         ['budget', 'budget_cycle'],
         ['accounts', 'current_state'],
-        ['forecast', 'due_date']
+        ['forecast', 'due_date'],
+        ['quality', 'transaction_date']
     ]);
     assert.strictEqual(result.blocks.cash.currentBalance, 1527.77);
     assert.strictEqual(result.blocks.cash.periodDirectOutflows, 300);
@@ -232,6 +233,58 @@ test('dashboard v2 exposes trusted quality indicators only when the snapshot pro
         criteria: 'Cobertura medida pela fonte confiável.'
     });
     assert.doesNotMatch(JSON.stringify(result.blocks.quality), /owner_hash|hidden-owner/i);
+});
+
+test('dashboard v2 exposes the six canonical quality indicators without internal identifiers', async () => {
+    const snapshot = snapshotFixture();
+    snapshot.dataQuality = { status: 'available', pendingCount: 999, criteria: 'fallback antigo' };
+    const result = await buildDashboardV2Summary({
+        snapshot,
+        userIds: ['user-owner'],
+        ownerUserId: 'user-owner',
+        month: 6,
+        year: 2026,
+        currentDate: '2026-07-13',
+        queryTool: async ({ plan }) => {
+            if (plan.domain !== 'quality') return { ok: false, reason: 'source_unavailable' };
+            return {
+                ok: true,
+                source: 'canonical',
+                result: { value: {
+                    status: 'partial',
+                    totalCount: 10,
+                    cleanCount: 4,
+                    classificationApplicableCount: 8,
+                    classifiedCount: 6,
+                    missingCategoryCount: 2,
+                    uncertainCount: 1,
+                    pendingStatusCount: 1,
+                    pendingCount: 6,
+                    unreconciledCount: 2,
+                    missingFinancialAccountCount: 3,
+                    receiptRequiredCount: 0,
+                    missingRequiredReceiptCount: 0,
+                    receiptIndicatorStatus: 'not_applicable',
+                    coveragePct: 75,
+                    qualityCoveragePct: 40,
+                    bySource: [{ source: 'WhatsApp', totalCount: 8, pendingCount: 4, coveragePct: 75, owner_hash: 'hidden' }],
+                    items: [{ date: '2026-07-10', description: 'Item para revisar', source: 'WhatsApp', issues: ['missing_category'], event_id: 'hidden-event' }],
+                    criteria: 'Qualidade canônica por data da transação.'
+                } }
+            };
+        }
+    });
+
+    assert.strictEqual(result.blocks.quality.status, 'partial');
+    assert.strictEqual(result.blocks.quality.missingCategoryCount, 2);
+    assert.strictEqual(result.blocks.quality.uncertainCount, 1);
+    assert.strictEqual(result.blocks.quality.pendingStatusCount, 1);
+    assert.strictEqual(result.blocks.quality.unreconciledCount, 2);
+    assert.strictEqual(result.blocks.quality.missingFinancialAccountCount, 3);
+    assert.strictEqual(result.blocks.quality.receiptIndicatorStatus, 'not_applicable');
+    assert.strictEqual(result.blocks.quality.pendingCount, 6);
+    assert.strictEqual(result.blocks.quality.criteria, 'Qualidade canônica por data da transação.');
+    assert.doesNotMatch(JSON.stringify(result.blocks.quality), /hidden|owner_hash|event_id/i);
 });
 
 test('dashboard v2 keeps key KPIs equal to the same verified tool values used by WhatsApp', async () => {

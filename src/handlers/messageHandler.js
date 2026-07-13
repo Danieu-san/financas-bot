@@ -3916,6 +3916,54 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
         /\b(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b/g
     ) || []).length;
 
+    const hasExplicitDataQualitySignal = (
+        /\b(qualidade|cobertura)\b/.test(text) && /\b(dado|dados|lancamento|lancamentos|origem|origens|classificacao|classificados)\b/.test(text)
+    ) || (
+        /\b(sem categoria|categoria vazia|incerto|incertos|incerta|incertas|nao conciliado|nao conciliados|nao conciliada|nao conciliadas|nao (?:foi|foram|esta|estao) conciliad[oa]s?|sem conta financeira|sem comprovante|comprovante obrigatorio|comprovantes obrigatorios)\b/.test(text)
+    ) || (
+        /\b(pendencia|pendencias|pendente|pendentes)\b/.test(text) && /\b(dado|dados|lancamento|lancamentos|classificacao|conciliacao|conta financeira|comprovante)\b/.test(text)
+    );
+
+    if (hasExplicitDataQualitySignal) {
+        const source = /\b(importacao|importacoes|extrato|extratos)\b/.test(text)
+            ? 'importacao'
+            : /\b(cartao|cartoes)\b/.test(text)
+                ? 'cartao'
+                : /\b(transferencia|transferencias)\b/.test(text)
+                    ? 'transferencias'
+                    : /\b(entrada|entradas)\b/.test(text)
+                        ? 'entradas'
+                        : /\b(saida|saidas|gasto|gastos|despesa|despesas)\b/.test(text)
+                            ? 'saidas'
+                            : '';
+        const parameters = { mes, ano, ...(source ? { source } : {}) };
+        if (/\b(sem categoria|categoria vazia)\b/.test(text)) {
+            return { metric: 'data_quality_missing_category', intent: 'qualidade_sem_categoria', parameters };
+        }
+        if (/\b(nao conciliado|nao conciliados|nao conciliada|nao conciliadas|nao (?:foi|foram|esta|estao) conciliad[oa]s?|sem conciliacao)\b/.test(text)) {
+            return { metric: 'data_quality_unreconciled', intent: 'qualidade_nao_conciliados', parameters };
+        }
+        if (/\b(sem conta financeira)\b/.test(text)) {
+            return { metric: 'data_quality_missing_account', intent: 'qualidade_sem_conta_financeira', parameters };
+        }
+        if (/\b(sem comprovante|comprovante obrigatorio|comprovantes obrigatorios)\b/.test(text)) {
+            return { metric: 'data_quality_missing_receipt', intent: 'qualidade_sem_comprovante', parameters };
+        }
+        if (/\b(incerto|incertos|incerta|incertas)\b/.test(text)) {
+            return { metric: 'data_quality_uncertain', intent: 'qualidade_incertos', parameters };
+        }
+        if (/\b(cobertura)\b/.test(text) && /\b(origem|origens)\b/.test(text)) {
+            return { metric: 'data_quality_by_source', intent: 'qualidade_por_origem', parameters };
+        }
+        if (/\b(pendente|pendentes)\b/.test(text) && !/\b(pendencia|pendencias)\b/.test(text)) {
+            return { metric: 'data_quality_pending_status', intent: 'qualidade_pendentes', parameters };
+        }
+        if (/\b(pendencia|pendencias)\b/.test(text)) {
+            return { metric: 'data_quality_pending', intent: 'pendencias_dados_listagem', parameters };
+        }
+        return { metric: 'data_quality_coverage', intent: 'qualidade_dados_resumo', parameters };
+    }
+
     if (
         hasDashboardSignal &&
         (

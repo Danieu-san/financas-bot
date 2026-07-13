@@ -115,7 +115,8 @@ function domainLabel(domain) {
         bills: 'contas',
         dashboard: 'dashboard',
         accounts: 'contas financeiras',
-        forecast: 'previsões'
+        forecast: 'previsões',
+        quality: 'qualidade dos dados'
     };
     return labels[domain] || 'análise financeira';
 }
@@ -821,6 +822,84 @@ function composeForecastAnswer(plan = {}, result = {}) {
         details.criteria || value.criteria || ''
     ].filter(Boolean).join('\n');
 }
+function qualityIssueLabel(issue = '') {
+    const labels = {
+        missing_category: 'sem categoria',
+        uncertain: 'incerto',
+        pending: 'pendente',
+        unreconciled: 'não conciliado',
+        missing_financial_account: 'sem conta financeira',
+        missing_required_receipt: 'sem comprovante obrigatório'
+    };
+    return labels[String(issue || '')] || String(issue || 'pendência');
+}
+
+function composeQualityAnswer(plan = {}, result = {}) {
+    const value = result.value;
+    const details = result.details || {};
+    const periodLine = plan.filters?.period?.label ? `Período: ${plan.filters.period.label}.` : '';
+    const criteria = value?.criteria || details.criteria || '';
+
+    if (plan.operation === 'group' && Array.isArray(value)) {
+        if (value.length === 0) {
+            return [periodLine, 'Não há itens observados para agrupar por origem neste recorte.', criteria].filter(Boolean).join('\n');
+        }
+        return [
+            periodLine,
+            'Cobertura de qualidade por origem:',
+            ...value.slice(0, 10).map((item, index) => {
+                const coverage = item.coveragePct === null || item.coveragePct === undefined
+                    ? 'classificação não aplicável'
+                    : `${Number(item.coveragePct).toLocaleString('pt-BR')}% classificados`;
+                return `${index + 1}. ${item.source}: ${coverage}; ${Number(item.pendingCount || 0)} pendência(s).`;
+            }),
+            criteria
+        ].filter(Boolean).join('\n');
+    }
+
+    const payload = value && typeof value === 'object' ? value : details;
+    const items = Array.isArray(payload.items) ? payload.items : [];
+    if (plan.operation === 'list') {
+        if (items.length === 0) {
+            return [
+                periodLine,
+                'Não encontrei pendências desse tipo no recorte observado.',
+                payload.receiptIndicatorStatus === 'not_applicable' && plan.filters?.status === 'missing_required_receipt'
+                    ? 'Comprovante obrigatório: não aplicável, pois nenhum item observado está marcado como exigindo comprovante.'
+                    : '',
+                criteria
+            ].filter(Boolean).join('\n');
+        }
+        return [
+            periodLine,
+            `Pendências de qualidade (${items.length}):`,
+            ...items.slice(0, 10).map((item, index) => {
+                const meta = [item.date, item.source, item.category].filter(Boolean).join(' · ');
+                const issues = (item.issues || []).map(qualityIssueLabel).join(', ');
+                return `${index + 1}. ${item.description || 'Item para revisar'}${meta ? ` · ${meta}` : ''} — ${issues}.`;
+            }),
+            criteria
+        ].filter(Boolean).join('\n');
+    }
+
+    return [
+        periodLine,
+        'Qualidade dos dados:',
+        `- Itens observados: ${Number(payload.totalCount || 0)}`,
+        `- Classificados: ${Number(payload.classifiedCount || 0)} de ${Number(payload.classificationApplicableCount || 0)} (${payload.coveragePct === null || payload.coveragePct === undefined ? 'não aplicável' : `${Number(payload.coveragePct).toLocaleString('pt-BR')}%`})`,
+        `- Pendências: ${Number(payload.pendingCount || 0)}`,
+        `- Sem categoria: ${Number(payload.missingCategoryCount || 0)}`,
+        `- Incertos: ${Number(payload.uncertainCount || 0)}`,
+        `- Com status pendente: ${Number(payload.pendingStatusCount || 0)}`,
+        `- Não conciliados: ${Number(payload.unreconciledCount || 0)}`,
+        `- Sem conta financeira: ${Number(payload.missingFinancialAccountCount || 0)}`,
+        payload.receiptIndicatorStatus === 'not_applicable'
+            ? '- Comprovante obrigatório: não aplicável neste recorte'
+            : `- Sem comprovante obrigatório: ${Number(payload.missingRequiredReceiptCount || 0)} de ${Number(payload.receiptRequiredCount || 0)}`,
+        criteria
+    ].filter(Boolean).join('\n');
+}
+
 function composeFinancialPlanAnswer(toolResult = {}) {
     const plan = toolResult.plan || {};
     const result = toolResult.result || {};
@@ -832,6 +911,10 @@ function composeFinancialPlanAnswer(toolResult = {}) {
 
     if (plan.domain === 'accounts') {
         return composeAccountsAnswer(plan, result);
+    }
+
+    if (plan.domain === 'quality') {
+        return composeQualityAnswer(plan, result);
     }
 
     if (plan.domain === 'budget' && value && typeof value === 'object' && !Array.isArray(value)) {
@@ -1037,7 +1120,7 @@ async function composeAnswer(state) {
         Boolean(queryPlan.filters?.subcategory) ||
         Boolean(queryPlan.filters?.status)
     );
-    if (requiresDeterministicCategoryBudget) return deterministic;
+    if (requiresDeterministicCategoryBudget || queryPlan.domain === 'quality') return deterministic;
 
     const contextual = await composeContextualFinancialAnswer({
         message: state.message,

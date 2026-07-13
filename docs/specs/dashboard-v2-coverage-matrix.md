@@ -18,7 +18,7 @@ valores vêm do contrato sanitizado `/dashboard/api/v2/summary`.
 | Próximos vencimentos | O que entra e sai depois? | a pagar, a receber e líquido, data de vencimento | domínio `forecast` | `O que vence nos próximos dias?` | Próximos vencimentos | `dashboardV2SummaryService.test.js` |
 | Metas e dívidas | Como estão os compromissos de longo prazo? | posição atual read-only | snapshot autorizado | `Como estão minhas metas?` / `Quais dívidas estão ativas?` | Metas e Dívidas | `dashboardApiContracts.test.js` |
 | Conferência | Quais itens ajudam a explicar os totais? | lançamentos recentes por tipo | snapshot sanitizado | `Quais foram meus últimos lançamentos?` | Atividade recente | `dashboardApiContracts.test.js` |
-| Qualidade | Posso confiar na cobertura apresentada? | classificados, pendentes, não conciliados e cobertura | somente fonte confiável; ausência é indisponível | Perguntas específicas entram na 4D | Qualidade dos dados | `dashboardV2SummaryService.test.js` |
+| Qualidade | Posso confiar na cobertura apresentada? | sem categoria, incertos, status pendente, não conciliados, sem conta financeira, comprovante obrigatório, cobertura por categoria e origem; data da transação | ledger canônico read-only + decisões sanitizadas de importação | `Como está a qualidade dos meus dados este mês?`, `Quais pendências de dados tenho este mês?`, `Mostre a cobertura dos dados por origem` | Qualidade dos dados | `dataQualityService.test.js`, `canonicalLedgerDataQualityReader.test.js`, `dashboardV2SummaryService.test.js` |
 
 ## Decisões de hierarquia
 
@@ -35,8 +35,9 @@ não existe seletor de usuário na v2.
 
 ## Adiado sem pular fase
 
-- consultas conversacionais específicas sobre pendências e indicadores de
-  qualidade pertencem à 4D;
+- upload, OCR, armazenamento e exigência ampla de comprovantes pertencem à
+  Fase 6; na 4D o indicador só é aplicável a eventos que já declarem essa
+  exigência de forma explícita;
 - comparações históricas, auditoria final contra Sheets e rollback por flag
   pertencem ao gate 4E;
 - projeções avançadas de planos pertencem à Fase 5;

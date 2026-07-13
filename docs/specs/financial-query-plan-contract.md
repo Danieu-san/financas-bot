@@ -1,6 +1,6 @@
 # Financial Query Plan Contract
 
-Atualizado em: 2026-06-05
+Atualizado em: 2026-07-13
 
 ## Objetivo
 
@@ -126,6 +126,7 @@ Qualquer outro campo no topo deve invalidar o plano.
 | `goals` | Metas e cofrinhos. | Core |
 | `debts` | Dividas, parcelas e vencimentos. | Core |
 | `bills` | Contas recorrentes e vencimentos. | Core |
+| `quality` | Cobertura, pendências e conciliação dos dados por período/origem. | Core read-only |
 | `imports` | Qualidade e resultado de importacoes. | Planejado |
 | `dashboard` | KPIs e explicacoes de indicadores. | Core |
 | `calendar` | Agenda e compromissos read-only. | Planejado |
@@ -176,6 +177,14 @@ calcular.
 | `value` | object | Valor minimo, maximo ou exato. |
 
 Qualquer filtro fora dessa lista deve invalidar o plano.
+
+Para o domínio `quality`, `status` aceita os códigos públicos
+`missing_category`, `uncertain`, `pending`, `unreconciled`,
+`missing_financial_account` e `missing_required_receipt`. A base temporal é
+`transaction_date`; decisões de importação sem uma data financeira pública
+usam a data de confirmação e permanecem identificadas pela origem. O executor
+aplica o escopo real fora do LLM e retorna somente descrições e agregados
+sanitizados, nunca ids, hashes ou linhas cruas.
 
 ## Periodo
 

@@ -448,10 +448,44 @@ function dashboardV2Html() {
       }).join('') : empty(kind === 'goal' ? 'Nenhuma meta cadastrada.' : kind === 'debt' ? 'Nenhuma dívida cadastrada.' : 'Nenhum lançamento recente neste período.', false)) + '</div>';
       return panel(title, kicker, block.status, content, details(block));
     }
+    function qualityIssueLabel(issue) {
+      return ({
+        missing_category: 'Sem categoria',
+        uncertain: 'Incerto',
+        pending: 'Pendente',
+        unreconciled: 'Não conciliado',
+        missing_financial_account: 'Sem conta financeira',
+        missing_required_receipt: 'Sem comprovante obrigatório'
+      })[String(issue || '')] || String(issue || 'Pendência');
+    }
     function renderQuality(block) {
       var unavailable = blockUnavailable(block);
+      var sources = Array.isArray(block.bySource) ? block.bySource : [];
+      var items = Array.isArray(block.items) ? block.items : [];
+      var receiptValue = block.receiptIndicatorStatus === 'not_applicable'
+        ? 'Não aplicável'
+        : plainNumber(block.missingRequiredReceiptCount);
       var content = unavailable ? empty('A fonte ainda não fornece indicadores confiáveis de qualidade. A ausência não foi transformada em cobertura zero.', true) :
-        '<div class="mini-grid">' + miniStat('Classificados', plainNumber(block.classifiedCount)) + miniStat('Pendentes', plainNumber(block.pendingCount)) + miniStat('Não conciliados', plainNumber(block.unreconciledCount)) + miniStat('Cobertura', plainNumber(block.coveragePct, '%')) + '</div>';
+        '<div class="mini-grid">' +
+          miniStat('Sem categoria', plainNumber(block.missingCategoryCount)) +
+          miniStat('Incertos', plainNumber(block.uncertainCount)) +
+          miniStat('Status pendente', plainNumber(block.pendingStatusCount)) +
+          miniStat('Não conciliados', plainNumber(block.unreconciledCount)) +
+          miniStat('Sem conta financeira', plainNumber(block.missingFinancialAccountCount)) +
+          miniStat('Comprovante obrigatório', receiptValue) +
+          miniStat('Itens para revisar', plainNumber(block.pendingCount)) +
+          miniStat('Cobertura de categoria', plainNumber(block.coveragePct, '%')) +
+        '</div>' +
+        '<div style="height:16px"></div><h3 style="margin:0 0 8px">Cobertura por origem</h3><div class="list">' +
+          (sources.length ? sources.map(function (source) {
+            return row(source.source || 'Origem não informada', 'Itens para revisar: ' + plainNumber(source.pendingCount), plainNumber(source.coveragePct, '%'));
+          }).join('') : empty('Nenhuma origem observada neste período.', false)) +
+        '</div><div style="height:16px"></div><h3 style="margin:0 0 8px">Pendências encontradas</h3><div class="list">' +
+          (items.length ? items.map(function (item) {
+            var issues = Array.isArray(item.issues) ? item.issues.map(qualityIssueLabel).join(' · ') : 'Revisão necessária';
+            return row(item.description || 'Item sem descrição', [item.date, item.source, item.category].filter(Boolean).join(' · '), issues);
+          }).join('') : empty('Nenhuma pendência observada neste período.', false)) +
+        '</div>';
       document.getElementById('qualityPanel').innerHTML = panel('Confiança desta leitura', unavailable ? 'Indicadores aguardando fonte confiável' : 'Cobertura e pendências', block.status, content, details(block), 'quality-card ' + (block.status || 'available'));
     }
     function render(data) {

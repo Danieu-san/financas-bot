@@ -93,7 +93,7 @@ function visitResult(value, visitor, key = '', depth = 0) {
 function collectAllowedPercentages(toolResult = {}) {
     const values = [];
     visitResult(toolResult, (value, key) => {
-        if (!/(?:percent|percentage|progresspercent)$/i.test(key)) return;
+        if (!/(?:percent|percentage|progresspercent|pct)$/i.test(key)) return;
         const rounded = roundNumber(value);
         if (rounded !== null) values.push(rounded);
     });

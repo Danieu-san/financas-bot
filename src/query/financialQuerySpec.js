@@ -42,6 +42,8 @@ const ALLOWED_DIMENSIONS = new Set([
     'period',
     'person',
     'surface',
+    'source',
+    'status',
     'transaction'
 ]);
 const BLOCKED_KEYS = new Set([
@@ -127,6 +129,16 @@ const METRIC_CATALOG = {
         'goals_remaining'
     ],
     income: ['income_comparison', 'income_total', 'income_trend'],
+    quality: [
+        'data_quality_coverage',
+        'data_quality_pending',
+        'missing_category',
+        'missing_financial_account',
+        'missing_required_receipt',
+        'pending_status',
+        'uncertain_status',
+        'unreconciled_status'
+    ],
     security: ['none'],
     transfers: ['available_balance', 'reserve_net_flow', 'transfer_classification', 'transfers_total']
 };
@@ -141,6 +153,7 @@ const OPERATION_CATALOG = {
     expenses: ['compare', 'detail', 'list', 'rank', 'sum', 'trend'],
     goals: ['detail', 'explain', 'forecast', 'list', 'rank', 'sum'],
     income: ['compare', 'sum', 'trend'],
+    quality: ['count', 'detail', 'detect', 'explain', 'group', 'list'],
     security: ['block'],
     transfers: ['explain', 'sum']
 };
@@ -155,6 +168,7 @@ const TIME_BASIS_BY_DOMAIN = {
     expenses: ['billing_month', 'transaction_date', 'context'],
     goals: ['current_state', 'transaction_date'],
     income: ['transaction_date'],
+    quality: ['transaction_date'],
     security: ['none'],
     transfers: ['transaction_date']
 };
@@ -167,6 +181,8 @@ const DOMAIN_SYNONYMS = {
     gastos: 'expenses',
     metas: 'goals',
     orcamento: 'budget',
+    pendencias: 'quality',
+    qualidade: 'quality',
     saldo: 'dashboard',
     transferencias: 'transfers'
 };

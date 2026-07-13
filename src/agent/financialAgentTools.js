@@ -15,6 +15,9 @@ const {
 const {
     readCanonicalLedgerCanaryWithFallback
 } = require('../ledger/canonicalLedgerCanaryRouter');
+const {
+    readCanonicalDataQualitySource
+} = require('../ledger/canonicalLedgerDataQualityReader');
 
 const DEFAULT_EVENT_TYPES = [
     'expense',
@@ -573,6 +576,44 @@ async function queryFinancialPlanTool({ plan, userIds = [], personByUserId = {},
             canonicalLedgerDbPath
         });
         if (forecastResult.ok) return forecastResult;
+    }
+
+    if (scopedPlan.domain === 'quality') {
+        const qualitySource = readCanonicalDataQualitySource({
+            env,
+            dbPath: canonicalLedgerDbPath,
+            ownerPersonIds: resolvedScope.userIds
+        });
+        if (!qualitySource.enabled) {
+            return {
+                ok: false,
+                tool: 'query_financial_plan',
+                source: 'canonical',
+                reason: qualitySource.reason || 'canonical_quality_unavailable'
+            };
+        }
+        const execution = await executeFinancialQuery(scopedPlan, {
+            dataQualitySource: qualitySource,
+            currentDate,
+            personByUserId
+        });
+        if (!execution.ok) {
+            return {
+                ok: false,
+                tool: 'query_financial_plan',
+                source: 'canonical',
+                reason: 'query_engine_rejected_plan',
+                errors: execution.errors || []
+            };
+        }
+        return {
+            ok: true,
+            tool: 'query_financial_plan',
+            source: 'canonical',
+            plan: execution.plan,
+            result: execution.result,
+            criteria: execution.result?.details || execution.result?.value || {}
+        };
     }
 
     if (!ensureSqliteReady()) {

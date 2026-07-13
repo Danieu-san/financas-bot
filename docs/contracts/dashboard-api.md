@@ -125,8 +125,13 @@ and `unavailable`.
 - `forecast`: payable, receivable and net expected cash without changing
   current cash.
 - `goals` and `debts`: current read-only rows already exposed by the dashboard.
-- `quality`: classification, pending and reconciliation indicators only when a
-  trustworthy source provides them.
+- `quality`: read-only indicators for missing category, uncertainty, pending
+  status, unreconciled items, missing financial account and missing required
+  receipt. It also returns category coverage, actionable pending items and
+  coverage grouped by public source for the requested transaction-date period.
+  The receipt indicator is `not_applicable` until at least one observed event
+  explicitly requires a receipt; this state is not represented as zero
+  coverage. Quality items never remove or alter events used by reliable totals.
 - `recentTransactions`: the sanitized recent activity already used by the
   dashboard.
 
