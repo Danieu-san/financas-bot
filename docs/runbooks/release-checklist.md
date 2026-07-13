@@ -25,6 +25,8 @@ Use this before deploying `main` to the EC2 PM2 process.
 - [ ] If this release moves toward real multiuser scale, ADR-002 and ADR-003 have been reviewed; admin access to all users' transaction-level financial data remains removed or replaced with consented/audited support mode.
 - [ ] If cron/payment reminders changed, a real validation marker was created and cleaned up (`TESTE_APAGAR Cron` or equivalent).
 - [ ] Rollback command is ready before restart.
+- [ ] O `HEAD` da EC2 depois do pull corresponde exatamente ao commit esperado
+      no GitHub/local; registrar o hash na entrega do deploy.
 
 ## EC2 Deploy
 

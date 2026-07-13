@@ -117,7 +117,8 @@ function competenceMonth(date) {
 function headerIndex(headers, aliases, fallback = -1) {
     const accepted = new Set(aliases.map(normalizeText));
     const found = (headers || []).findIndex(item => accepted.has(normalizeText(item)));
-    return found >= 0 ? found : fallback;
+    if (found >= 0) return found;
+    return Array.isArray(headers) && headers.length > 0 ? -1 : fallback;
 }
 
 function cell(row, headers, aliases, fallback = -1) {
@@ -301,6 +302,7 @@ function adaptLegacyGoalMovementRow({ row = [], headers = GOAL_MOVEMENT_HEADERS,
     const effectiveRef = explicitRef || `sheet.movimentacoes_metas:row:${Number(rowIndex || 0) || 'unknown'}`;
     const date = normalizeDate(cell(row, headers, ['Data'], 0));
     const type = movementType(cell(row, headers, ['Tipo'], 2));
+    const amountCents = moneyToCents(cell(row, headers, ['Valor'], 3));
     const movementId = `movement_${hash({ planId: plan.plan_id, legacyRef: effectiveRef, sourceType: 'sheet.movimentacoes_metas' })}`;
     return {
         schema_version: PLAN_MOVEMENT_SCHEMA_VERSION,
@@ -310,7 +312,7 @@ function adaptLegacyGoalMovementRow({ row = [], headers = GOAL_MOVEMENT_HEADERS,
         type,
         state: 'realized',
         status: 'committed',
-        amount_cents: moneyToCents(cell(row, headers, ['Valor'], 3)) ?? 0,
+        amount_cents: amountCents,
         balance_before_cents: moneyToCents(cell(row, headers, ['Valor Antes'], 4)),
         balance_after_cents: moneyToCents(cell(row, headers, ['Valor Depois'], 5)),
         occurred_on: date,
@@ -322,7 +324,7 @@ function adaptLegacyGoalMovementRow({ row = [], headers = GOAL_MOVEMENT_HEADERS,
             type: 'sheet.movimentacoes_metas',
             legacy_ref: effectiveRef,
             identity_status: explicitRef ? 'stable' : 'provisional',
-            data_status: date ? 'available' : 'partial'
+            data_status: date && (amountCents !== null || type === 'status_change') ? 'available' : 'partial'
         },
         metadata: {
             note: String(cell(row, headers, ['Observação', 'Observacao'], 6) || '').trim() || null,
@@ -400,12 +402,9 @@ function projectLegacyPlans({ householdId = '', goals = [], debts = [], goalMove
 function sheetEntries(rows, headers, rowType) {
     if (!Array.isArray(rows) || rows.length <= 1) return [];
     const effectiveHeaders = Array.isArray(rows[0]) && rows[0].length ? rows[0] : headers;
-    return rows.slice(1).map((row, offset) => ({
-        row,
-        headers: effectiveHeaders,
-        rowIndex: offset + 2,
-        rowType
-    }));
+    return rows.slice(1)
+        .map((row, offset) => ({ row, headers: effectiveHeaders, rowIndex: offset + 2, rowType }))
+        .filter(entry => Array.isArray(entry.row) && entry.row.some(value => String(value ?? '').trim() !== ''));
 }
 
 function projectLegacyPlanSheets({ householdId = '', metasData = [], dividasData = [], movimentacoesMetasData = [] } = {}) {
@@ -438,7 +437,8 @@ function assertProjectedPlans(projection) {
         if (movement?.schema_version !== PLAN_MOVEMENT_SCHEMA_VERSION || !movement.movement_id || movementIds.has(movement.movement_id)) throw new Error('invalid_or_duplicate_movement_id');
         if (!planIds.has(movement.plan_id)) throw new Error('movement_without_plan');
         if (movement.state !== 'realized') throw new Error('non_realized_movement_forbidden');
-        assertCents(movement.amount_cents, 'movement.amount_cents', { nullable: false });
+        if (movement.amount_cents === null && movement.source?.data_status !== 'partial') throw new Error('missing_movement_amount_without_partial_source');
+        assertCents(movement.amount_cents, 'movement.amount_cents');
         assertCents(movement.balance_before_cents, 'movement.balance_before_cents');
         assertCents(movement.balance_after_cents, 'movement.balance_after_cents');
         movementIds.add(movement.movement_id);
@@ -453,6 +453,7 @@ function assertProjectedPlans(projection) {
         const target = movementsById.get(targetId);
         if (!target || target.plan_id !== movement.plan_id || target.type === 'reversal') throw new Error('invalid_reversal_target');
         if (reversedIds.has(targetId)) throw new Error('movement_already_reversed');
+        if (target.amount_cents === null || movement.amount_cents === null) throw new Error('reversal_amount_required');
         if (movement.amount_cents !== -target.amount_cents) throw new Error('reversal_amount_mismatch');
         reversedIds.add(targetId);
     }
