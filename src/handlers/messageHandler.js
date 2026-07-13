@@ -3817,7 +3817,10 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
     const text = normalizeText(String(userQuestion || '').trim());
     if (!text) return null;
 
-    const followUpPlan = deriveFollowUpAnalyticalQueryPlan(text, previousContext);
+    const hasExplicitBudgetSignal = /\b(orcamento|orcmento|ritmo|gasto livre|posso gastar|usei do orcamento|falta ate o fim)\b/.test(text);
+    const followUpPlan = hasExplicitBudgetSignal
+        ? null
+        : deriveFollowUpAnalyticalQueryPlan(text, previousContext);
     if (followUpPlan) return followUpPlan;
 
     const mes = parseMonthFromText(text);
@@ -3841,7 +3844,8 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
     const hasInvoiceSignal = text.includes('fatura') || text.includes('faturas') || text.includes('fatra');
     const hasBudgetContext = Boolean(previousContext?.intent && String(previousContext.intent).startsWith('orcamento_'));
     const hasBudgetSignal = (
-        /\b(orcamento|orçamento|orcmento|ritmo|ciclo|gasto livre|posso gastar|usei do orcamento|usei do orçamento|falta ate o fim|falta até o fim)\b/.test(text) ||
+        hasExplicitBudgetSignal ||
+        /\b(ciclo)\b/.test(text) ||
         /\b(se eu gastar|essa semana|para essa semana|o que entrou nesse calculo|o que entrou nesse cálculo)\b/.test(text) ||
         (hasBudgetContext && /\b(o que entrou|calculo|cálculo|criterio|critério|por que|porque|mudou|ritmo|falta|restante|resta|hoje|pessoal|familiar|familia|família)\b/.test(text))
     );

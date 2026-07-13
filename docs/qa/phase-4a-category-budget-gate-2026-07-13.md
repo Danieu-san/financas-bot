@@ -58,3 +58,19 @@ dado financeiro real, dashboard ou API foi alterado. O GO de producao depende
 de commit/push, deploy por fast-forward, testes remotos, saude do processo e
 smoke read-only das tres perguntas. Depois disso, o proximo passo oficial e
 `4B - API de dashboard v2`.
+
+## Primeiro smoke de producao e hotfix
+
+O primeiro smoke no WhatsApp, ja no commit `4336da1`, deu `NO-GO` nas tres
+perguntas. A pergunta de restante manteve dominio e operacao, mas o plano do
+Gemini removeu o filtro de categoria e a composicao contextual descreveu o
+orcamento global como se fosse de Alimentacao. As perguntas seguintes foram
+capturadas como follow-ups genericos e responderam ranking de gastos.
+
+O hotfix torna o plano deterministico recebido do classificador autoritativo
+para o dominio de orcamento, ignora follow-up generico quando a nova mensagem
+traz sinal explicito de orcamento e desativa a composicao contextual para
+categoria, subcategoria, status ou deteccao de estouro. Testes reproduzem a
+sequencia real e uma resposta contextual adversarial. Evidencia apos o hotfix:
+bateria focada isolada `284/284` e suite completa isolada `769/769`. O status de
+producao permanece `NO-GO` ate novo deploy e repeticao das tres perguntas.

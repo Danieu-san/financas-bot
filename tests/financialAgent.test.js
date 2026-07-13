@@ -320,6 +320,7 @@ test('LangGraph financial agent keeps deterministic budget semantics when Gemini
     }), true);
 
     const originalPlannerFlag = process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED;
+    const originalAnalystMode = process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE;
     process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED = 'true';
     plannerTest.setStructuredResponseOverrideForTest(() => ({
         action: 'tool',
@@ -379,10 +380,46 @@ test('LangGraph financial agent keeps deterministic budget semantics when Gemini
         assert.strictEqual(detailResult.plan.args.plan.operation, 'detail');
         assert.strictEqual(detailResult.plan.args.plan.filters.period.type, 'cycle');
         assert.doesNotMatch(detailResult.answer, /junho de 2026/i);
+
+        process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE = 'answer';
+        contextualAnalystTest.setAskLLMOverride(async () => 'COMPOSICAO CONTEXTUAL INDEVIDA');
+        plannerTest.setStructuredResponseOverrideForTest(() => ({
+            action: 'tool',
+            tool: 'query_financial_plan',
+            args: {
+                plan: {
+                    kind: 'financial_query',
+                    domain: 'budget',
+                    operation: 'forecast',
+                    filters: { period: { type: 'cycle', label: 'ciclo atual' }, scope: 'family' },
+                    timeBasis: 'budget_cycle'
+                }
+            }
+        }));
+        const categoryResult = await invokeFinancialAgent({
+            message: 'Quanto resta do orçamento de alimentação?',
+            userIds: ['agent-daniel', 'agent-thais'],
+            personByUserId: { 'agent-daniel': 'Daniel', 'agent-thais': 'Thais' },
+            currentDate: '13/07/2026',
+            financialQueryPlan: {
+                kind: 'financial_query',
+                domain: 'budget',
+                operation: 'forecast',
+                filters: { period: { type: 'cycle', label: 'ciclo atual' }, scope: 'family', category: 'alimentacao' },
+                timeBasis: 'budget_cycle'
+            },
+            mode: 'answer'
+        });
+
+        assert.strictEqual(categoryResult.plan.args.plan.filters.category, 'alimentacao');
+        assert.doesNotMatch(categoryResult.answer, /COMPOSICAO CONTEXTUAL INDEVIDA/i);
     } finally {
         plannerTest.setStructuredResponseOverrideForTest(null);
+        contextualAnalystTest.setAskLLMOverride(null);
         if (originalPlannerFlag === undefined) delete process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED;
         else process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED = originalPlannerFlag;
+        if (originalAnalystMode === undefined) delete process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE;
+        else process.env.FINANCIAL_CONTEXTUAL_ANALYST_MODE = originalAnalystMode;
     }
 });
 test('LangGraph financial agent answers paid bill detection with status and realized value', async () => {

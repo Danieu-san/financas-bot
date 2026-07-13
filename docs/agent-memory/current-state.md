@@ -26,6 +26,14 @@ Atualizado em: 2026-07-13
 - Evidencia: teste integrado da 4A verde; testes focados `284/284`; suite
   completa `769/769`; auditoria high `0 vulnerabilities`; sintaxe e diff check
   verdes. Relatorio: `docs/qa/phase-4a-category-budget-gate-2026-07-13.md`.
+- O primeiro smoke WhatsApp apos o commit `4336da1` deu `NO-GO`: o plano do
+  Gemini descartou o filtro de categoria na pergunta de restante e o contexto
+  anterior capturou as perguntas de categorias estouradas e ritmo diario como
+  ranking de gastos. O hotfix preserva integralmente o plano deterministico de
+  orcamento, prioriza sinal explicito de orcamento sobre follow-up generico e
+  impede composicao contextual nas respostas categoricas da 4A. Regressao
+  focada `284/284` e suite completa isolada `769/769` verdes; falta redeploy e
+  repeticao do smoke para converter o NO-GO em GO de producao.
 - Nenhuma flag, `.env`, planilha real, dado financeiro real, dashboard ou API
   foi alterado. Decisao: `GO local` da 4A. Falta publicar, implantar e executar
   o smoke read-only em producao para decidir o GO final; o proximo passo depois

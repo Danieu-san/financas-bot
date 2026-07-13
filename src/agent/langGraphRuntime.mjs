@@ -320,25 +320,12 @@ function shouldUseLlmPlanOverLegacy(llmPlan, incomingQueryPlan = null) {
     if (llmPlan.action !== 'tool') return false;
 
     const incomingDomain = String(incomingQueryPlan?.domain || '').trim();
+    if (incomingDomain === 'budget') return false;
     const dashboardTools = new Set(['get_dashboard_snapshot', 'explain_metric']);
     if (incomingDomain && incomingDomain !== 'dashboard' && dashboardTools.has(llmPlan.tool)) {
         return false;
     }
 
-    if (incomingDomain === 'budget' && llmPlan.tool === 'query_financial_plan') {
-        const llmQueryPlan = llmPlan.args?.plan || {};
-        const incomingOperation = String(incomingQueryPlan.operation || '').trim();
-        const incomingTimeBasis = String(incomingQueryPlan.timeBasis || '').trim();
-        const incomingPeriodType = String(incomingQueryPlan.filters?.period?.type || '').trim();
-
-        if (String(llmQueryPlan.domain || '').trim() !== incomingDomain) return false;
-        if (String(llmQueryPlan.operation || '').trim() !== incomingOperation) return false;
-        if (incomingTimeBasis && String(llmQueryPlan.timeBasis || '').trim() !== incomingTimeBasis) return false;
-        if (
-            incomingPeriodType &&
-            String(llmQueryPlan.filters?.period?.type || '').trim() !== incomingPeriodType
-        ) return false;
-    }
     return true;
 }
 async function planTurn(state) {
@@ -1035,6 +1022,15 @@ function composeDeterministicAnswer(state) {
 async function composeAnswer(state) {
     const deterministic = composeDeterministicAnswer(state);
     if (deterministic.action !== 'answer') return deterministic;
+
+    const queryPlan = state.plan?.args?.plan || {};
+    const requiresDeterministicCategoryBudget = queryPlan.domain === 'budget' && (
+        queryPlan.operation === 'detect' ||
+        Boolean(queryPlan.filters?.category) ||
+        Boolean(queryPlan.filters?.subcategory) ||
+        Boolean(queryPlan.filters?.status)
+    );
+    if (requiresDeterministicCategoryBudget) return deterministic;
 
     const contextual = await composeContextualFinancialAnswer({
         message: state.message,

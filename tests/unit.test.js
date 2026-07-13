@@ -3298,6 +3298,31 @@ test('messageHandler.classifyPerguntaLocally covers complex analytical questions
     const categoryDailyPace = classifyPerguntaLocally('qual o ritmo diário da categoria moradia no orçamento?');
     assert.strictEqual(categoryDailyPace.intent, 'orcamento_ritmo_diario');
     assert.strictEqual(categoryDailyPace.parameters.categoria, 'moradia');
+
+    const budgetFollowUpContext = {
+        checkpointType: 'analytical_followup_v1',
+        intent: budgetCategoryRemaining.intent,
+        parameters: budgetCategoryRemaining.parameters,
+        metric: budgetCategoryRemaining.metric
+    };
+    const overBudgetAfterRemaining = classifyPerguntaLocally(
+        'quais categorias estouraram o orçamento?',
+        budgetFollowUpContext
+    );
+    assert.strictEqual(overBudgetAfterRemaining.intent, 'orcamento_categorias_estouradas');
+
+    const expenseRankingContext = {
+        checkpointType: 'analytical_followup_v1',
+        intent: 'ranking_categorias_gastos',
+        parameters: { scope: 'family' },
+        metric: 'top_expense_categories'
+    };
+    const paceAfterExpenseRanking = classifyPerguntaLocally(
+        'qual o ritmo diário da categoria moradia no orçamento?',
+        expenseRankingContext
+    );
+    assert.strictEqual(paceAfterExpenseRanking.intent, 'orcamento_ritmo_diario');
+    assert.strictEqual(paceAfterExpenseRanking.parameters.categoria, 'moradia');
     assert.strictEqual(budgetCategoryRank.financialQueryPlan.domain, 'budget');
     assert.strictEqual(budgetCategoryRank.financialQueryPlan.operation, 'rank');
 
