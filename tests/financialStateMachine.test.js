@@ -39,6 +39,8 @@ const USER_SETTINGS_HEADER = [
 ];
 
 const sheets = {};
+const personalSheetOverrides = {};
+const sheetReadCalls = [];
 const deletedRows = [];
 const appendedRows = [];
 const seenAppendOperationKeys = new Set();
@@ -120,6 +122,8 @@ function resetSheets() {
     seenUpdateOperationKeys.clear();
     createdCalendarEvents.length = 0;
     structuredResponses.length = 0;
+    Object.keys(personalSheetOverrides).forEach(key => delete personalSheetOverrides[key]);
+    sheetReadCalls.length = 0;
     financialScopeUserIds = [USER_ID];
     failNextPlainMessage = false;
     usesPersonalSpreadsheet = false;
@@ -183,7 +187,14 @@ function installMocks() {
         filename: googlePath,
         loaded: true,
         exports: {
-            readDataFromSheet: async (range) => sheets[getSheetName(range)] || [],
+            readDataFromSheet: async (range, options = {}) => {
+                const sheetName = getSheetName(range);
+                sheetReadCalls.push({ sheetName, options: { ...options } });
+                if (usesPersonalSpreadsheet && options.userId && personalSheetOverrides[sheetName]) {
+                    return personalSheetOverrides[sheetName];
+                }
+                return sheets[sheetName] || [];
+            },
             appendRowToSheet: async (sheetName, row, options = {}) => {
                 const name = getSheetName(sheetName);
                 if (!sheets[name]) sheets[name] = [[]];
@@ -2776,6 +2787,61 @@ stateMachineTest('financial states: enforce allows deterministic complete credit
         else process.env.INTERPRETATION_RELIABILITY_MODE = previousMode;
         if (previousOperations === undefined) delete process.env.INTERPRETATION_RELIABILITY_OPERATIONS;
         else process.env.INTERPRETATION_RELIABILITY_OPERATIONS = previousOperations;
+    }
+});
+
+stateMachineTest('5B personal spreadsheet forecasts bypass the central agent source and read the scoped goal', async () => {
+    resetState();
+    usesPersonalSpreadsheet = true;
+    personalSheetOverrides.Metas = [
+        ['Nome da Meta', 'Valor Alvo', 'Valor Atual', '% Progresso', 'Valor Mensal Necessário', 'Data Fim', 'Status', 'Prioridade', 'user_id', 'Escopo', 'Última Movimentação'],
+        ['Reserva', '2.000,00', '500,00', '25%', '200,00', '31/12/2030', 'Ativa', 'Alta', USER_ID, 'personal', '10/07/2026']
+    ];
+    const previousMode = process.env.FINANCIAL_AGENT_MODE;
+    const previousCanaryUsers = process.env.FINANCIAL_AGENT_CANARY_USER_IDS;
+    process.env.FINANCIAL_AGENT_MODE = 'canary';
+    process.env.FINANCIAL_AGENT_CANARY_USER_IDS = USER_ID;
+    cache.flushAll();
+
+    try {
+        const baseline = await send('Quando alcanço minha meta?');
+        const contribution = await send('Se eu aportar R$ 300 por mês na meta, quando alcanço?');
+        const withdrawal = await send('Se eu retirar R$ 200 da meta, quando alcanço?');
+        const missingDebt = await send('Quanto falta quitar da dívida do banco?');
+
+        assert.match(baseline, /Meta: Reserva/);
+        assert.match(baseline, /Quanto falta hoje: R\$ 1\.500,00/);
+        assert.match(baseline, /Conclusão projetada/);
+        assert.match(contribution, /Simulação: aporte mensal de R\$ 300,00/);
+        assert.match(contribution, /Conclusão simulada/);
+        assert.match(withdrawal, /Simulação: retirada de R\$ 200,00/);
+        assert.match(withdrawal, /Conclusão simulada/);
+        assert.match(missingDebt, /Não encontrei um plano ativo e autorizado/);
+        assert.match(missingDebt, /Nenhum valor ausente foi tratado como zero/);
+        assert.doesNotMatch(
+            [baseline, contribution, withdrawal, missingDebt].join('\n'),
+            /Desculpe, não entendi|configure suas metas|nenhuma meta financeira cadastrada/i
+        );
+        assert.ok(
+            sheetReadCalls
+                .filter(call => call.sheetName === 'Metas')
+                .every(call => call.options.userId === USER_ID),
+            'toda leitura de Metas deve usar o contexto da planilha pessoal'
+        );
+        assert.ok(
+            sheetReadCalls
+                .filter(call => call.sheetName === 'Dívidas')
+                .every(call => call.options.userId === USER_ID),
+            'toda leitura de Dívidas deve usar o contexto da planilha pessoal'
+        );
+        assert.strictEqual(appendedRows.length, 0);
+        assert.strictEqual(deletedRows.length, 0);
+    } finally {
+        if (previousMode === undefined) delete process.env.FINANCIAL_AGENT_MODE;
+        else process.env.FINANCIAL_AGENT_MODE = previousMode;
+        if (previousCanaryUsers === undefined) delete process.env.FINANCIAL_AGENT_CANARY_USER_IDS;
+        else process.env.FINANCIAL_AGENT_CANARY_USER_IDS = previousCanaryUsers;
+        cache.flushAll();
     }
 });
 

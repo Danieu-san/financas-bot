@@ -4874,7 +4874,7 @@ function detectFastPerguntaIntent(messageBody) {
     const isQuestionShape = /^(?:e\s+)?(?:qual|quais|quanto|quantos|quantas|conte|contar|media|média|liste|listar|mostre|mostrar|mostra|me mostre|me mostra|me diga|me explique|me explica|como ficou|como esta|como estão|detalhe|detalhar|explique|explica|onde|o que\b)/.test(text) || text.includes('?');
     if (!isQuestionShape) return null;
 
-    const looksAnalytical = /(saldo|gastei|gasto|gastos|entrada|entradas|divida|dividas|categoria|mes|ano|vezes|ocorrencia|ocorrencias|duplicad|maior|menor|onibus|ônibus|uber|transporte|cartao|cartão|credito|crédito|fatura|parcelamento|parcelas|aberto|conta|contas|recorrente|recorrentes|vencimento|vencimentos|vence|vencem|vencendo|amanha|amanhã|hoje|nubank|itau|itaú|atacadao|atacadão|detalh|explica|explique|evolu|tendencia|tendência|estabelecimento|estabelecimentos|loja|lojas|comercio|comércio|comercios|comércios|total|cortar|economizar|vilao|viloes|responsavel|responsaveis|puxou|puxaram|pesou|pesaram|pesa|janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/.test(text);
+    const looksAnalytical = /(saldo|gastei|gasto|gastos|entrada|entradas|divida|dividas|meta|metas|aporte|aportar|retirar|retirada|resgatar|alcanco|alcanço|atingir|categoria|mes|ano|vezes|ocorrencia|ocorrencias|duplicad|maior|menor|onibus|ônibus|uber|transporte|cartao|cartão|credito|crédito|fatura|parcelamento|parcelas|aberto|conta|contas|recorrente|recorrentes|vencimento|vencimentos|vence|vencem|vencendo|amanha|amanhã|hoje|nubank|itau|itaú|atacadao|atacadão|detalh|explica|explique|evolu|tendencia|tendência|estabelecimento|estabelecimentos|loja|lojas|comercio|comércio|comercios|comércios|total|cortar|economizar|vilao|viloes|responsavel|responsaveis|puxou|puxaram|pesou|pesaram|pesa|janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/.test(text);
     if (!looksAnalytical) return null;
 
     return {
@@ -10969,7 +10969,8 @@ async function handleMessage(msg) {
                         const financialAgentCanaryAllowed = financialAgentMode !== 'canary' ||
                             isFinancialAgentCanaryUserAllowed(activeUser?.user_id);
                         const financialAgentExecutionMode = financialAgentMode === 'canary' ? 'answer' : financialAgentMode;
-                        if (financialAgentMode !== 'off' && financialAgentCanaryAllowed) {
+                        const financialAgentSourceCompatible = !usePersonalSpreadsheet;
+                        if (financialAgentMode !== 'off' && financialAgentCanaryAllowed && financialAgentSourceCompatible) {
                             try {
                                 await timeStep(
                                     'financialAgent.syncReadModel',
@@ -11000,6 +11001,9 @@ async function handleMessage(msg) {
                                 metrics.increment('message.financial_agent.error');
                                 logger.warn(`[financial-agent] fallback legacy reason=${sanitizeLogText(agentError.message, 120)} sender=${logger.redactIdentifier(senderId)}`);
                             }
+                        } else if (financialAgentMode !== 'off' && financialAgentCanaryAllowed && !financialAgentSourceCompatible) {
+                            metrics.increment('message.financial_agent.skipped.personal_sheet_source');
+                            logger.info(`[financial-agent] skipped reason=personal_sheet_source sender=${logger.redactIdentifier(senderId)}`);
                         }
                         if (!shouldUseAnalyticalLegacyFallback({
                             financialAgentMode,
@@ -11073,11 +11077,12 @@ async function handleMessage(msg) {
                             metrics.increment('message.pergunta.analysis.sheets_fallback');
                             analysisSource = 'sheets_fallback';
                             logger.info(`[routing] analysis_source=${analysisSource} intent=${effectiveIntentClassification.intent} sender=${senderId}`);
+                            const sheetReadOptions = usePersonalSpreadsheet ? { userId } : {};
                             const sheetReads = [
-                                readDataFromSheet('Saídas!A:J'),
-                                readDataFromSheet('Entradas!A:I'),
-                                readDataFromSheet('Metas!A:K'),
-                                readDataFromSheet('Dívidas!A:R')
+                                readDataFromSheet('Saídas!A:J', sheetReadOptions),
+                                readDataFromSheet('Entradas!A:I', sheetReadOptions),
+                                readDataFromSheet('Metas!A:K', sheetReadOptions),
+                                readDataFromSheet('Dívidas!A:R', sheetReadOptions)
                             ];
                             const transferIntents = new Set([
                                 'total_transferencias_mes',
@@ -11124,19 +11129,19 @@ async function handleMessage(msg) {
                                 'contas_pendentes',
                                 'explicacao_conta_recorrente'
                             ]).has(effectiveIntentClassification.intent);
-                            if (needsTransfers) sheetReads.push(readDataFromSheet('Transferências!A:I'));
-                            if (needsAccounts) sheetReads.push(readDataFromSheet('Contas!A:I'));
-                            if (needsGoalMovements) sheetReads.push(readDataFromSheet('Movimentações Metas!A:J'));
+                            if (needsTransfers) sheetReads.push(readDataFromSheet('Transferências!A:I', sheetReadOptions));
+                            if (needsAccounts) sheetReads.push(readDataFromSheet('Contas!A:I', sheetReadOptions));
+                            if (needsGoalMovements) sheetReads.push(readDataFromSheet('Movimentações Metas!A:J', sheetReadOptions));
                             if (needsBudget) {
-                                sheetReads.push(readDataFromSheet('UserSettings!A:S'));
-                                sheetReads.push(readDataFromSheet('Cartões!A:G'));
+                                sheetReads.push(readDataFromSheet('UserSettings!A:S', sheetReadOptions));
+                                sheetReads.push(readDataFromSheet('Cartões!A:G', sheetReadOptions));
                             }
                             if (usePersonalSpreadsheet) {
-                                sheetReads.push(readDataFromSheet('Lançamentos Cartão!A:J'));
+                                sheetReads.push(readDataFromSheet('Lançamentos Cartão!A:J', sheetReadOptions));
                             } else {
                                 const cardSheetNames = Object.values(creditCardConfig).map(card => card.sheetName);
                                 cardSheetNames.forEach(sheetName => {
-                                    sheetReads.push(readDataFromSheet(`${sheetName}!A:G`));
+                                    sheetReads.push(readDataFromSheet(`${sheetName}!A:G`, sheetReadOptions));
                                 });
                             }
                             const allSheetData = await timeStep(

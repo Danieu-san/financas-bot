@@ -313,6 +313,10 @@ Validar:
   `quando alcanço a meta`, `se eu aportar por mês` e `se eu retirar`.
 - Antes do GO de producao, comparar o commit local/GitHub com o `HEAD` da EC2,
   rodar testes remotos, health e smoke read-only sem criar dados financeiros.
+- Para usuario com planilha pessoal, testar read-model central vazio e meta
+  presente somente na planilha do usuario: toda leitura deve receber `userId`,
+  o agente central deve ser ignorado e as respostas nao podem variar entre
+  compositores genericos.
 
 ## Scheduler e Calendar
 

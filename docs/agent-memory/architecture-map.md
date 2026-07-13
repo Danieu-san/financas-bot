@@ -34,6 +34,10 @@ Use este mapa para escolher rapidamente quais arquivos abrir por tarefa.
 - `src/query/financialQueryPlan.js`, `src/query/financialQueryEngine.js` e
   `src/services/calculationOrchestrator.js` - validam cenarios publicos e
   executam as previsoes 5B sobre adapters 5A/read-model autorizados.
+- Quando `hasUserSpreadsheetContext` for verdadeiro, `messageHandler` deve ler
+  Sheets com `userId` e nao aceitar resposta do Financial Agent baseada no
+  read-model central. O agente so pode voltar a responder nesse caminho quando
+  possuir uma fonte pessoal explicitamente escopada.
 
 ## Importacao de extratos
 

@@ -84,3 +84,39 @@ fatia nao persiste simulacoes nem fatos.
 - executar smoke read-only das novas perguntas no WhatsApp sem criar
   divida/meta de teste em producao;
 - registrar GO/NO-GO das respostas antes de iniciar 5C.
+
+## Primeiro smoke WhatsApp - NO-GO
+
+As quatro perguntas chegaram aos intents corretos da 5B, mas o agente canario
+respondeu com zero linhas. As perguntas de meta alternaram entre mensagens
+genericas e a resposta deterministica de fonte ausente. A pergunta de divida
+falhou com seguranca, sem inventar saldo, mas nao validou calculo porque nao ha
+divida cadastrada.
+
+O gate real repetido depois do smoke confirmou que a planilha pessoal ainda
+possuia 1 meta, 0 dividas e 0 movimentos, com paridade GO, privacidade true e
+zero escritas. Portanto o problema era a fonte usada no WhatsApp, nao ausencia
+do dado.
+
+### Causa raiz
+
+- o Financial Agent consultava primeiro o read-model central e encerrava a
+  resposta mesmo quando a autoridade do usuario era uma planilha pessoal;
+- o fallback de Sheets detectava a planilha pessoal, mas nao passava `userId`
+  para as leituras, voltando ao spreadsheet central;
+- duas frases do smoke dependiam do Gemini para serem promovidas a pergunta,
+  pois o fast path ainda nao catalogava meta, aporte, retirada e alcance.
+
+### Hotfix local
+
+- todas as quatro frases entram no fast path deterministico;
+- o agente central e ignorado quando a fonte autorizada e uma planilha pessoal;
+- todas as leituras do fallback pessoal recebem `userId`, inclusive Metas e
+  Dividas;
+- teste de estado reproduz fonte central vazia e planilha pessoal com meta,
+  valida as quatro respostas e prova zero append/delete;
+- regressao afetada `371/371`, planos `42/42`, suite completa `836/836`, audit
+  high zero e diff check verde.
+
+Decisao do hotfix: `GO local para redeploy`; a 5B permanece funcionalmente
+`NO-GO` ate repetir o mesmo smoke no WhatsApp.

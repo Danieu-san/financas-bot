@@ -149,6 +149,13 @@ fast-forward de `2de67b0`; testes remotos passaram `42/42` e `20/20`, PM2,
 Google, read-model, dashboard health e WhatsApp ficaram verdes. A 5C continua
 bloqueada até o smoke read-only desta fatia ser registrado.
 
+O primeiro smoke foi `NO-GO`: o canario do agente respondeu pelo read-model
+central vazio embora a planilha pessoal ainda tivesse uma meta, e o fallback
+de Sheets nao carregava `userId`. O hotfix local faz as frases da 5B entrarem
+no fast path, impede o agente central de responder por fonte pessoal e propaga
+o contexto pessoal a todas as leituras. Suite completa `836/836`; falta
+redeploy e repeticao do smoke antes de encerrar 5B.
+
 Relatório: `docs/qa/phase-5b-projected-plan-schedule-gate-2026-07-13.md`.
 
 ## 5C - Movimentos com escrita confiável

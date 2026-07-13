@@ -1583,4 +1583,17 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   limpo no hash exato `8b0f7f6780c7363d38d103c638b4c89775a51eae`.
 - Decisao: GO tecnico de producao da 5B; NO-GO para iniciar 5C antes do smoke
   read-only de WhatsApp operado pelo usuario e do registro do GO/NO-GO final.
+- Primeiro smoke WhatsApp da 5B foi NO-GO: as quatro intents estavam corretas,
+  mas o agente canario leu o read-model central com zero linhas. O gate real
+  repetido confirmou 1 meta e 0 dividas na planilha pessoal, privacidade true e
+  writes 0.
+- Causa raiz: agente central encerrava a resposta antes do fallback pessoal;
+  as leituras de Sheets do fallback nao recebiam `userId`; meta/aporte/retirada
+  ainda nao estavam completos no fast path.
+- Hotfix local: fonte pessoal ignora agente central, todas as leituras recebem
+  contexto do usuario e as quatro frases sao deterministicas. Teste novo prova
+  meta pessoal visivel, cenarios, divida ausente sem zero e nenhuma escrita.
+  Regressao `371/371`, planos `42/42`, suite `836/836`, audit high zero.
+- Estado atual: GO local para redeploy do hotfix; 5B e 5C permanecem bloqueadas
+  ate o mesmo smoke ser repetido no WhatsApp.
 - Relatorio: `docs/qa/phase-5b-projected-plan-schedule-gate-2026-07-13.md`.
