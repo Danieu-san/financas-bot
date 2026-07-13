@@ -2,6 +2,43 @@
 
 Atualizado em: 2026-07-13
 
+## Fase 4C - Dashboard familiar v2 mobile-first - GO de producao - 2026-07-13
+
+- A interface opt-in `/dashboard/v2` foi implementada sobre o contrato
+  `/dashboard/api/v2/summary`. O dashboard atual continua sendo o padrao em
+  `/dashboard`; o novo painel pode ser solicitado por `dashboard v2`,
+  `painel v2`, `painel novo` ou `novo painel`.
+- A hierarquia aprovada mostra: decisao de hoje, ciclo/orcamento, categorias por
+  competencia, contas, faturas, proximos vencimentos, metas, dividas,
+  atividade recente e qualidade. Cada bloco possui drill-down do `criteria` e
+  fonte indisponivel permanece distinta de zero.
+- A v2 nao possui seletor de usuario nem chama `/dashboard/api/users`. O token
+  continua no fragmento da URL, o escopo vem exclusivamente da autorizacao ja
+  existente e a API rejeita qualquer `user=all` ou outro usuario com `403`.
+- A matriz funcional foi versionada em
+  `docs/specs/dashboard-v2-coverage-matrix.md`; o gate detalhado esta em
+  `docs/qa/phase-4c-dashboard-v2-gate-2026-07-13.md`. A interface usa identidade
+  propria e nao copia cores, textos ou layout do produto estudado.
+- Evidencia local: contratos/seguranca/paridade `22/22`, unidade + contratos
+  `209/209`, suite completa final `778/778`, auditoria high com zero
+  vulnerabilidades e sintaxe/diff verdes. O teste de paridade compara os KPIs
+  da v2 com os mesmos resultados verificados usados pela ferramenta do WhatsApp.
+- QA visual com fixture sintetica: desktop `1280x720` e mobile `390x844` sem
+  estouro horizontal, alvos de toque de `44-46px`, drill-down funcional, zero
+  erro de console e contraste minimo medido de `5,69:1` nos textos avaliados.
+- O commit `a852613` foi publicado e implantado por fast-forward. Antes do
+  restart foi salvo `.env.pre-4c-a852613-20260713`; nenhuma configuracao foi
+  alterada. Testes remotos passaram `22/22`. PM2 esta online, Google/read-model
+  saudaveis, WhatsApp pronto e health `{"ok":true,"sqlite":true}`.
+- Smoke estrutural de producao sem imprimir valores financeiros: pagina v2
+  `200`, API v2 `200`, onze blocos presentes, nenhum identificador interno,
+  `user=all` rejeitado com `403` e token invalido com `401`. `ADMIN_IDS` tem um
+  unico admin, `DASHBOARD_ADMIN_ALL_USERS_ENABLED=false` e o secret do dashboard
+  esta presente.
+- Decisao: `GO de producao` e encerramento da 4C. O proximo passo oficial e
+  `4D - Qualidade dos dados e pendencias`, ainda nao iniciado. A 4D deve criar
+  queries e perguntas de pendencias; nao deve antecipar o gate completo da 4E.
+
 ## Fase 4B - API de dashboard v2 - GO de producao - 2026-07-13
 
 - A rota read-only `/dashboard/api/v2/summary` foi implementada sem iniciar a

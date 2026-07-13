@@ -2,9 +2,9 @@
 
 Data: 2026-07-13
 
-## Decisão local
+## Decisão
 
-`GO local` para commit e implantação opt-in. A rota atual `/dashboard` permanece
+`GO de produção` para a implantação opt-in. A rota atual `/dashboard` permanece
 como padrão; a nova interface entra somente em `/dashboard/v2` e pelo comando
 WhatsApp `dashboard v2`/`painel v2`/`painel novo`.
 
@@ -57,6 +57,18 @@ restrita a `127.0.0.1`.
 
 ## Produção
 
-Pendente do commit/deploy desta mesma entrega. Após implantar: validar PM2,
-WhatsApp pronto, health, HTML `/dashboard/v2`, API v2 autorizada com token
-técnico sem imprimir valores, rejeição cross-user e comando opt-in.
+- commit `a852613` implantado por fast-forward;
+- backup `.env.pre-4c-a852613-20260713` criado antes do restart;
+- nenhuma variável de ambiente foi alterada;
+- testes focados remotos: `22/22`;
+- PM2 `online`, Google e read-model prontos, WhatsApp pronto e health
+  `{"ok":true,"sqlite":true}`;
+- preflight sanitizado: um único admin, acesso amplo desligado e secret do
+  dashboard presente;
+- smoke estrutural sem imprimir valores financeiros: página v2 `200`, API v2
+  `200`, onze blocos, nenhum identificador interno, `user=all` em `403` e token
+  inválido em `401`.
+
+Decisão final da fatia: `GO de produção`. O próximo passo oficial é
+`4D - Qualidade dos dados e pendências`; o gate agregado da Fase 4 permanece na
+4E e não foi antecipado.
