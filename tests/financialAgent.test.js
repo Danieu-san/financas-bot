@@ -39,6 +39,10 @@ const {
 const {
     CanonicalLedgerShadowStore
 } = require('../src/ledger/canonicalLedgerShadowStore');
+const { buildBudgetAllocation } = require('../src/budget/categoryBudgetService');
+const { readCanonicalCategoryBudgetSource } = require('../src/ledger/canonicalLedgerReceiptProjector');
+const { __test__: financialQueryEngineTest } = require('../src/query/financialQueryEngine');
+const { getBudgetCycleForDate } = require('../src/utils/budgetCycle');
 
 test('LangGraph financial agent tolerates small typos in recent transaction concepts', async () => {
     syncAgentSnapshot();
@@ -176,6 +180,122 @@ test('LangGraph financial agent uses the authorized family budget configuration'
     assert.strictEqual(result.verified.ok, true);
     assert.doesNotMatch(result.answer, /desativado/i);
     assert.match(result.answer, /R\$\s*150,00/i);
+});
+
+test('phase 4A answers category remaining, over-budget categories and daily pace from canonical allocations', async () => {
+    assert.strictEqual(ensureSqliteReady(), true);
+    assert.strictEqual(syncSnapshotToSqlite({
+        saidas: [
+            { user_id: 'agent-daniel', data: '10/06/2026', descricao: 'mercado', categoria: 'Alimentação', subcategoria: 'Mercado', valor: 500, month: 5, year: 2026 },
+            { user_id: 'agent-thais', data: '12/06/2026', descricao: 'aluguel', categoria: 'Moradia', subcategoria: 'Aluguel', valor: 100, month: 5, year: 2026 }
+        ], cartoes: [], entradas: [], transferencias: [], cartoesConfig: [], metas: [], movimentacoesMetas: [], dividas: [], contas: [],
+        userSettings: [{
+            user_id: 'agent-daniel',
+            monthly_budget_enabled: 'SIM',
+            monthly_budget_amount: '1000',
+            monthly_budget_scope: 'family',
+            monthly_budget_cycle_start_day: '1'
+        }]
+    }), true);
+
+    const dbPath = path.join(os.tmpdir(), `canonical-agent-budget-${Date.now()}-${Math.random()}.sqlite`);
+    const store = new CanonicalLedgerShadowStore({ dbPath, writesEnabled: true });
+    const categories = [
+        { category: 'Alimentação', subcategories: ['Mercado'] },
+        { category: 'Moradia', subcategories: ['Aluguel'] }
+    ];
+    store.persistProjection({
+        runId: 'agent-budget-run',
+        projected: {
+            events: [
+                {
+                    event_id: 'evt_budget_food', household_id: 'household-agent', owner_person_id: 'agent-daniel', actor_person_id: 'agent-daniel',
+                    kind: 'expense', status: 'settled', description: 'mercado', amount_cents: 50000, currency: 'BRL',
+                    occurred_on: '2026-06-10', effective_on: '2026-06-10', competence_month: '2026-06', category: 'Alimentação',
+                    subcategory: 'Mercado', category_status: 'resolved', free_budget_eligible: true, net_income_expense_impact: 50000,
+                    source_type: 'sheet.saidas', source_row_ref: 'row-budget-food', source_id_hash: 'source-budget-food',
+                    source_row_hash: 'hash-budget-food', idempotency_key: 'idem-budget-food'
+                },
+                {
+                    event_id: 'evt_budget_home', household_id: 'household-agent', owner_person_id: 'agent-thais', actor_person_id: 'agent-thais',
+                    kind: 'expense', status: 'settled', description: 'aluguel', amount_cents: 10000, currency: 'BRL',
+                    occurred_on: '2026-06-12', effective_on: '2026-06-12', competence_month: '2026-06', category: 'Moradia',
+                    subcategory: 'Aluguel', category_status: 'resolved', free_budget_eligible: true, net_income_expense_impact: 10000,
+                    source_type: 'sheet.saidas', source_row_ref: 'row-budget-home', source_id_hash: 'source-budget-home',
+                    source_row_hash: 'hash-budget-home', idempotency_key: 'idem-budget-home'
+                },
+                {
+                    event_id: 'evt_budget_refund', household_id: 'household-agent', owner_person_id: 'agent-daniel', actor_person_id: 'agent-daniel',
+                    kind: 'reimbursement', status: 'settled', description: 'reembolso mercado', amount_cents: 5000, currency: 'BRL',
+                    occurred_on: '2026-06-15', effective_on: '2026-06-15', competence_month: '2026-06', category: 'Alimentação',
+                    subcategory: 'Mercado', category_status: 'resolved', free_budget_eligible: true, net_income_expense_impact: -5000,
+                    source_type: 'sheet.entradas', source_row_ref: 'row-budget-refund', source_id_hash: 'source-budget-refund',
+                    source_row_hash: 'hash-budget-refund', idempotency_key: 'idem-budget-refund'
+                }
+            ]
+        },
+        publicProjection: [],
+        report: { report_type: 'canonical_ledger_receipt_shadow', schema_version: 'canonical-ledger-v1', synthetic_fixture_only: false }
+    });
+    store.persistBudgetAllocations([
+        buildBudgetAllocation({
+            householdId: 'household-agent', scopeType: 'family', scopeId: 'household-agent', cycleStart: '2026-06-01', cycleEnd: '2026-06-30',
+            category: 'Alimentação', plannedAmountCents: 40000, status: 'active'
+        }, { categories }),
+        buildBudgetAllocation({
+            householdId: 'household-agent', scopeType: 'family', scopeId: 'household-agent', cycleStart: '2026-06-01', cycleEnd: '2026-06-30',
+            category: 'Moradia', plannedAmountCents: 30000, status: 'active'
+        }, { categories }),
+        buildBudgetAllocation({
+            householdId: 'household-outsider', scopeType: 'family', scopeId: 'household-outsider', cycleStart: '2026-06-01', cycleEnd: '2026-06-30',
+            category: 'Alimentação', plannedAmountCents: 999999, status: 'active'
+        }, { categories })
+    ], { referenceDate: '2026-06-20' });
+    store.close();
+
+    const env = {
+        NODE_ENV: 'production',
+        CANONICAL_LEDGER_PROJECTION_MODE: 'shadow',
+        CANONICAL_LEDGER_SHADOW_WRITE_ENABLED: 'true',
+        CANONICAL_LEDGER_PRODUCTION_SHADOW_APPROVED: 'true',
+        CANONICAL_LEDGER_CANARY_READ_ENABLED: 'true',
+        CANONICAL_LEDGER_CANARY_READ_APPROVED: 'true',
+        CANONICAL_LEDGER_CANARY_READ_DOMAINS: 'transactions'
+    };
+    const common = {
+        userIds: ['agent-daniel', 'agent-thais'],
+        personByUserId: { 'agent-daniel': 'Daniel', 'agent-thais': 'Thais' },
+        currentDate: '20/06/2026', env, canonicalLedgerDbPath: dbPath
+    };
+    const canonicalBudgetSource = readCanonicalCategoryBudgetSource({
+        env,
+        dbPath,
+        ownerPersonIds: common.userIds
+    });
+    assert.strictEqual(canonicalBudgetSource.enabled, true, JSON.stringify(canonicalBudgetSource));
+    assert.strictEqual(canonicalBudgetSource.allocations.length, 2);
+    assert.deepStrictEqual(canonicalBudgetSource.events.map(item => item.kind).sort(), ['expense', 'expense', 'reimbursement']);
+    assert.strictEqual(financialQueryEngineTest.canonicalCompensationBudgetRows(
+        { canonicalBudgetEvents: canonicalBudgetSource.events },
+        getBudgetCycleForDate({ year: 2026, month: 5, day: 20 }, 1)
+    ).length, 1);
+    const plans = {
+        remaining: { kind: 'financial_query', domain: 'budget', operation: 'forecast', filters: { period: { type: 'cycle' }, scope: 'family', category: 'alimentacao' }, timeBasis: 'budget_cycle' },
+        exceeded: { kind: 'financial_query', domain: 'budget', operation: 'detect', filters: { period: { type: 'cycle' }, scope: 'family', status: 'over_budget' }, timeBasis: 'budget_cycle' },
+        pace: { kind: 'financial_query', domain: 'budget', operation: 'forecast', filters: { period: { type: 'cycle' }, scope: 'family', category: 'moradia' }, timeBasis: 'budget_cycle' }
+    };
+    const remaining = await queryFinancialPlanTool({ ...common, plan: plans.remaining });
+    const exceeded = await queryFinancialPlanTool({ ...common, plan: plans.exceeded });
+    const pace = await queryFinancialPlanTool({ ...common, plan: plans.pace });
+    const runtime = await import('../src/agent/langGraphRuntime.mjs');
+
+    assert.strictEqual(remaining.ok, true, JSON.stringify(remaining));
+    assert.strictEqual(remaining.result.value.categoryBudget.reconciliation.actualMatchesCategoryTotal, true);
+    assert.strictEqual(remaining.result.value.categoryBudget.actualBudget, 550);
+    assert.match(runtime.__test__.composeFinancialPlanAnswer(remaining), /Alimentação[\s\S]*estourou em R\$\s*50,00/i);
+    assert.match(runtime.__test__.composeFinancialPlanAnswer(exceeded), /Alimentação[\s\S]*R\$\s*50,00/i);
+    assert.match(runtime.__test__.composeFinancialPlanAnswer(pace), /Moradia[\s\S]*Ritmo diário[\s\S]*R\$\s*18,18/i);
+    assert.doesNotMatch(JSON.stringify({ remaining, exceeded, pace }), /agent-daniel|agent-thais|household-agent|owner_person_id|household_id/i);
 });
 
 test('LangGraph financial agent keeps deterministic budget semantics when Gemini selects an incompatible plan', async () => {

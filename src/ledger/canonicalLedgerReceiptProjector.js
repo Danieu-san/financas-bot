@@ -738,6 +738,137 @@ function readReceiptPublicRows(db, ownerPersonIds = [], personByUserId = {}) {
     });
 }
 
+function budgetAllocationFromRow(row = {}) {
+    return {
+        allocationId: row.allocation_id,
+        householdId: row.household_id,
+        scopeType: row.scope_type,
+        scopeId: row.scope_id,
+        cycleStart: row.cycle_start,
+        cycleEnd: row.cycle_end,
+        categoryKey: row.category_key,
+        category: row.category,
+        subcategoryKey: row.subcategory_key,
+        subcategory: row.subcategory,
+        plannedAmountCents: row.planned_amount_cents,
+        status: row.status
+    };
+}
+
+function buildBudgetCategoryCatalog(allocations = [], events = []) {
+    const byCategory = new Map();
+    for (const item of [...allocations, ...events]) {
+        const category = String(item.category || '').trim();
+        const categoryKey = normalizeText(category).replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+        if (!categoryKey) continue;
+        const entry = byCategory.get(categoryKey) || { category, subcategories: [] };
+        const subcategory = String(item.subcategory || '').trim();
+        if (subcategory && !entry.subcategories.some(value => normalizeText(value) === normalizeText(subcategory))) {
+            entry.subcategories.push(subcategory);
+        }
+        byCategory.set(categoryKey, entry);
+    }
+    return Array.from(byCategory.values()).sort((left, right) => left.category.localeCompare(right.category, 'pt-BR'));
+}
+
+function readCanonicalCategoryBudgetSource({
+    env = process.env,
+    dbPath = env.CANONICAL_LEDGER_SHADOW_DB_PATH || DEFAULT_DB_PATH,
+    ownerPersonIds = []
+} = {}) {
+    const policy = buildCanonicalLedgerRolloutPolicy(env);
+    if (!policy.canReadDomain('transactions')) {
+        return { enabled: false, reason: 'canonical_transactions_unavailable' };
+    }
+
+    const ids = [...new Set((ownerPersonIds || []).map(value => String(value || '').trim()).filter(Boolean))];
+    if (ids.length === 0) return { enabled: false, reason: 'missing_authorized_scope' };
+
+    let db;
+    try {
+        db = new Database(dbPath, { readonly: true, fileMustExist: true });
+        if (!tableExists(db, 'canonical_ledger_events') || !tableExists(db, 'canonical_budget_allocations')) {
+            return { enabled: false, reason: 'canonical_budget_tables_unavailable' };
+        }
+        const filter = ownerFilter(ids);
+        const events = db.prepare(`
+            SELECT e.event_json
+            FROM canonical_ledger_events e
+            JOIN canonical_ledger_projection_runs r ON r.run_id = e.run_id
+            WHERE r.report_type = ?
+            ${filter.clause}
+            ORDER BY r.created_at, e.event_id
+        `).all('canonical_ledger_receipt_shadow', ...filter.ids).map(row => {
+            const event = JSON.parse(row.event_json);
+            return {
+                household_id: event.household_id || '',
+                owner_person_id: event.owner_person_id || '',
+                kind: event.kind,
+                status: event.status,
+                date: event.occurred_on,
+                effective_on: event.effective_on,
+                competence_month: event.competence_month,
+                due_on: event.due_on,
+                category: event.category,
+                subcategory: event.subcategory,
+                amount_cents: event.amount_cents,
+                source_type: event.source_type,
+                reconciliation_status: event.reconciliation_status,
+                free_budget_eligible: event.free_budget_eligible,
+                net_income_expense_impact: event.net_income_expense_impact
+            };
+        });
+
+        const scopeType = ids.length > 1 ? 'family' : 'personal';
+        const eventHouseholdIds = new Set(events.map(item => item.household_id).filter(Boolean));
+        if (eventHouseholdIds.size > 1) {
+            return { enabled: false, reason: 'canonical_household_ambiguous' };
+        }
+        let householdId = Array.from(eventHouseholdIds)[0] || '';
+        if (!householdId && scopeType === 'personal') {
+            const personalHouseholds = db.prepare(`
+                SELECT DISTINCT household_id
+                FROM canonical_budget_allocations
+                WHERE scope_type = 'personal' AND scope_id = ? AND status = 'active'
+            `).all(ids[0]).map(row => String(row.household_id || '').trim()).filter(Boolean);
+            if (personalHouseholds.length > 1) {
+                return { enabled: false, reason: 'canonical_household_ambiguous' };
+            }
+            householdId = personalHouseholds[0] || '';
+        }
+        if (!householdId) {
+            return { enabled: false, reason: 'canonical_household_unavailable' };
+        }
+        const scopeId = scopeType === 'family' ? householdId : ids[0];
+        const allocations = db.prepare(`
+            SELECT allocation_id, household_id, scope_type, scope_id, cycle_start,
+                cycle_end, category_key, category, subcategory_key, subcategory,
+                planned_amount_cents, status
+            FROM canonical_budget_allocations
+            WHERE household_id = ? AND scope_type = ? AND scope_id = ? AND status = 'active'
+            ORDER BY cycle_start, category_key, subcategory_key, allocation_id
+        `).all(householdId, scopeType, scopeId).map(budgetAllocationFromRow);
+        const scopedEvents = events.filter(item => item.household_id === householdId);
+        return {
+            enabled: true,
+            sourceHealth: 'available',
+            scope: {
+                type: scopeType,
+                householdId,
+                ...(scopeType === 'personal' ? { personId: ids[0] } : {}),
+                memberIds: ids
+            },
+            allocations,
+            categories: buildBudgetCategoryCatalog(allocations, scopedEvents),
+            events: scopedEvents
+        };
+    } catch (error) {
+        return { enabled: false, reason: 'canonical_budget_read_failed' };
+    } finally {
+        if (db) db.close();
+    }
+}
+
 function readCanonicalLedgerCanaryDomain({
     env = process.env,
     dbPath = env.CANONICAL_LEDGER_SHADOW_DB_PATH || DEFAULT_DB_PATH,
@@ -811,5 +942,6 @@ module.exports = {
     buildCanonicalLedgerReceiptProjection,
     projectCommittedAppendToCanonicalShadow,
     safelyProjectCommittedAppendToCanonicalShadow,
-    readCanonicalLedgerCanaryDomain
+    readCanonicalLedgerCanaryDomain,
+    readCanonicalCategoryBudgetSource
 };

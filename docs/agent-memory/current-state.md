@@ -2,7 +2,36 @@
 
 Atualizado em: 2026-07-13
 
-## Fase 4A.1 - GO de producao - 2026-07-13
+## Fase 4A - contrato de orcamento por categoria - GO local - 2026-07-13
+
+- A unidade oficial do roadmap e `4A - Contrato de orcamento por categoria`;
+  nao existe uma fatia oficial `4A.2`. Os sete passos da 4A estao implementados
+  localmente, sem iniciar a API de dashboard v2 da 4B.
+- `budget_allocations` permanece como autoridade de alocacao no SQLite
+  canonico. O Query Engine/read-model continua como autoridade do realizado e
+  recebe somente compensacoes canonicas negativas, evitando duplicar gastos
+  ordinarios ja presentes na planilha/read-model.
+- O catalogo semantico registra restante por categoria, categorias estouradas e
+  ritmo diario. As tres perguntas read-only usam plano deterministico; Gemini
+  nao calcula valores, cria categorias nem resolve o escopo autorizado.
+- A reconciliacao prova que a soma do realizado por categoria bate com o total
+  familiar explicavel e que alocado, nao alocado e excesso fecham contra o
+  orcamento global. Cartao entra uma vez por competencia; fatura,
+  transferencia e conta recorrente paga nao duplicam gasto livre; reembolso
+  reduz a categoria correta.
+- Categoria sem alocacao permanece distinta de teto zero e fonte canonica
+  ausente falha fechada, sem apresentar zero. A leitura resolve primeiro o
+  domicilio pelos usuarios autorizados e nunca varre alocacoes de outra
+  familia; ids internos nao chegam ao contrato publico.
+- Evidencia: teste integrado da 4A verde; testes focados `284/284`; suite
+  completa `769/769`; auditoria high `0 vulnerabilities`; sintaxe e diff check
+  verdes. Relatorio: `docs/qa/phase-4a-category-budget-gate-2026-07-13.md`.
+- Nenhuma flag, `.env`, planilha real, dado financeiro real, dashboard ou API
+  foi alterado. Decisao: `GO local` da 4A. Falta publicar, implantar e executar
+  o smoke read-only em producao para decidir o GO final; o proximo passo depois
+  disso e `4B - API de dashboard v2`.
+
+## Fase 4A - fundacao canonica em producao - 2026-07-13
 
 - O commit `fe34c21` foi enviado ao GitHub e implantado na EC2 por fast-forward
   de `ac0add4`, preservando os tres backups `.env` nao rastreados do servidor.
@@ -18,14 +47,15 @@ Atualizado em: 2026-07-13
   `user_id` sem pendencias, dashboard ativo, WhatsApp pronto e health
   `{"ok":true,"sqlite":true}`.
 - Nenhuma flag, `.env`, planilha real, pergunta WhatsApp, endpoint ou interface
-  foi alterada. Nao houve smoke manual porque 4A.1 expoe somente contrato
-  interno. Decisao: `GO de producao` para 4A.1; 4A.2 continua nao iniciada.
+  foi alterada. Nao houve smoke manual porque essa primeira entrega expunha
+  somente o contrato interno. Decisao naquele ponto: `GO de producao` para a
+  fundacao da 4A; os demais passos oficiais da propria 4A continuavam pendentes.
 
-## Fase 4A.1 - contrato de orcamento por categoria - GO local - 2026-07-13
+## Fase 4A - primeira entrega do contrato - GO local - 2026-07-13
 
-- A Fase 4 foi aberta somente para a fatia 4A.1. Dashboard v2, endpoint v2,
-  novas perguntas no WhatsApp, configuracao por Gemini e producao permanecem
-  fora do escopo; 4A.2 nao foi iniciada.
+- A Fase 4 foi aberta pela primeira entrega tecnica da 4A. Dashboard v2,
+  endpoint v2, novas perguntas no WhatsApp, configuracao por Gemini e producao
+  permaneciam fora do escopo daquele incremento.
 - `budget_allocations` tem autoridade no SQLite canonico/shadow por migration
   versionada, identidade estavel, valores em centavos, status ativo/inativo e
   vigencia por ciclo. Replay, rebuild e restart nao duplicam alocacoes, e ciclos
@@ -44,8 +74,8 @@ Atualizado em: 2026-07-13
 - Evidencia: testes focados ampliados `223/223`; suite padrao atualizada e verde
   `767/767`; sintaxe dos modulos alterados valida. Nenhuma planilha real, flag,
   dado produtivo ou superficie publica foi alterada.
-- Decisao: `GO local` para encerrar exclusivamente 4A.1. Proximo passo do
-  roadmap exige nova classificacao de esforco antes de qualquer 4A.2.
+- Decisao naquele ponto: `GO local` para a fundacao da 4A. Os passos seguintes
+  continuavam pertencendo a mesma unidade oficial `4A` do roadmap.
 
 ## 3G - GO de producao - 2026-07-12
 

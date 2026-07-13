@@ -160,19 +160,36 @@ function eventCountsInBudget(event = {}, cycle = {}, scope = {}) {
     return Boolean(date && dateIsWithinCycle(date, cycle));
 }
 
-function unavailableResult({ sourceHealth, cycle, scope }) {
+function remainingCycleDays(reference, cycle) {
+    return Math.max(1, Math.floor((cycle.end.getTime() - reference.getTime()) / 86400000) + 1);
+}
+
+function publicScope(scope = {}) {
+    return { type: scope.type };
+}
+
+function unavailableResult({ sourceHealth, cycle, scope, reference }) {
     return {
         status: sourceHealth === 'unavailable' ? 'unavailable' : 'partial',
         sourceHealth,
-        scope: { ...scope },
+        scope: publicScope(scope),
         cycle: { start: formatIsoDate(cycle.start), end: formatIsoDate(cycle.end) },
+        daysRemaining: remainingCycleDays(reference, cycle),
+        dailyPaceCents: null,
         globalBudgetCents: null,
         allocatedBudgetCents: null,
         unallocatedBudgetCents: null,
         overallocatedBudgetCents: null,
         actualBudgetCents: null,
         remainingBudgetCents: null,
-        categories: []
+        categories: [],
+        reconciliation: {
+            categoryActualBudgetCents: null,
+            categoryAllocatedBudgetCents: null,
+            actualMatchesCategoryTotal: null,
+            allocationMatchesCategoryTotal: null,
+            allocationMatchesGlobalBalance: null
+        }
     };
 }
 
@@ -196,7 +213,7 @@ function calculateCategoryBudget({
     }, cycleStartDay);
     const sourceHealth = String(globalBudget.sourceHealth || 'unavailable');
     if (!globalBudget.active || !Number.isInteger(globalBudget.amountCents) || !['available', 'partial'].includes(sourceHealth)) {
-        return unavailableResult({ sourceHealth, cycle, scope });
+        return unavailableResult({ sourceHealth, cycle, scope, reference });
     }
 
     const catalog = categoryCatalog(categories);
@@ -257,20 +274,42 @@ function calculateCategoryBudget({
     const allocatedBudgetCents = activeAllocations.reduce((sum, item) => sum + item.plannedAmountCents, 0);
     const actualBudgetCents = countedEvents.reduce((sum, item) => sum + eventBudgetImpactCents(item), 0);
     const globalBudgetCents = globalBudget.amountCents;
+    const unallocatedBudgetCents = Math.max(0, globalBudgetCents - allocatedBudgetCents);
+    const overallocatedBudgetCents = Math.max(0, allocatedBudgetCents - globalBudgetCents);
+    const remainingBudgetCents = globalBudgetCents - actualBudgetCents;
+    const daysRemaining = remainingCycleDays(reference, cycle);
+    const categoryRows = Array.from(rowsByKey.values()).map(row => ({
+        ...row,
+        dailyPaceCents: row.remainingAmountCents === null
+            ? null
+            : Math.floor(Math.max(0, row.remainingAmountCents) / daysRemaining)
+    })).sort((left, right) =>
+        left.category.localeCompare(right.category, 'pt-BR') || left.subcategory.localeCompare(right.subcategory, 'pt-BR')
+    );
+    const categoryActualBudgetCents = categoryRows.reduce((sum, item) => sum + item.actualAmountCents, 0);
+    const categoryAllocatedBudgetCents = categoryRows.reduce((sum, item) =>
+        sum + (item.plannedAmountCents === null ? 0 : item.plannedAmountCents), 0);
     return {
         status: sourceHealth,
         sourceHealth,
-        scope: { ...scope },
+        scope: publicScope(scope),
         cycle: { start: cycleStart, end: cycleEnd },
+        daysRemaining,
+        dailyPaceCents: Math.floor(Math.max(0, remainingBudgetCents) / daysRemaining),
         globalBudgetCents,
         allocatedBudgetCents,
-        unallocatedBudgetCents: Math.max(0, globalBudgetCents - allocatedBudgetCents),
-        overallocatedBudgetCents: Math.max(0, allocatedBudgetCents - globalBudgetCents),
+        unallocatedBudgetCents,
+        overallocatedBudgetCents,
         actualBudgetCents,
-        remainingBudgetCents: globalBudgetCents - actualBudgetCents,
-        categories: Array.from(rowsByKey.values()).sort((left, right) =>
-            left.category.localeCompare(right.category, 'pt-BR') || left.subcategory.localeCompare(right.subcategory, 'pt-BR')
-        )
+        remainingBudgetCents,
+        categories: categoryRows,
+        reconciliation: {
+            categoryActualBudgetCents,
+            categoryAllocatedBudgetCents,
+            actualMatchesCategoryTotal: categoryActualBudgetCents === actualBudgetCents,
+            allocationMatchesCategoryTotal: categoryAllocatedBudgetCents === allocatedBudgetCents,
+            allocationMatchesGlobalBalance: allocatedBudgetCents + unallocatedBudgetCents - overallocatedBudgetCents === globalBudgetCents
+        }
     };
 }
 

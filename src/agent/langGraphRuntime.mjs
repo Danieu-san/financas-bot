@@ -612,9 +612,78 @@ function composeAccountsAnswer(plan = {}, result = {}) {
         details.criteria || value?.criteria || ''
     ].filter(Boolean).join('\n');
 }
-function composeBudgetAnswer(summary = {}) {
+function aggregateCategoryBudgetRows(rows = []) {
+    const grouped = new Map();
+    for (const row of rows) {
+        const key = normalizeText(row.category || 'sem categoria');
+        const current = grouped.get(key) || {
+            category: row.category || 'Sem categoria',
+            plannedAmount: 0,
+            actualAmount: 0,
+            hasAllocation: false
+        };
+        if (row.plannedAmount !== null && row.plannedAmount !== undefined) {
+            current.plannedAmount += Number(row.plannedAmount || 0);
+            current.hasAllocation = true;
+        }
+        current.actualAmount += Number(row.actualAmount || 0);
+        grouped.set(key, current);
+    }
+    return Array.from(grouped.values()).map(item => ({
+        ...item,
+        remainingAmount: item.hasAllocation ? item.plannedAmount - item.actualAmount : null
+    }));
+}
+
+function composeBudgetAnswer(plan = {}, summary = {}) {
     if (!summary.active) {
         return summary.criteria || 'Nenhum orçamento mensal livre está ativo neste escopo.';
+    }
+    const contract = summary.categoryBudget;
+    const requestedCategory = normalizeText(plan.filters?.category || '');
+    const needsCategoryContract = Boolean(requestedCategory) || plan.filters?.status === 'over_budget' || plan.operation === 'detect';
+    if (needsCategoryContract && (!contract || contract.status === 'unavailable')) {
+        return 'Os dados canônicos do orçamento por categoria estão indisponíveis agora; não tratei essa ausência como valor zero.';
+    }
+    if (contract && contract.status !== 'unavailable') {
+        const grouped = aggregateCategoryBudgetRows(contract.categories || []);
+        if (requestedCategory) {
+            const matching = grouped.find(item => {
+                const category = normalizeText(item.category || '');
+                return category === requestedCategory || category.includes(requestedCategory) || requestedCategory.includes(category);
+            });
+            if (!matching) {
+                return `Não encontrei a categoria “${plan.filters.category}” no catálogo do orçamento deste ciclo.`;
+            }
+            if (!matching.hasAllocation) {
+                return [
+                    `${matching.category}: realizado ${moneyBR(matching.actualAmount)}.`,
+                    'Essa categoria não tem alocação definida; não a tratei como orçamento zero.'
+                ].join('\n');
+            }
+            const remaining = Number(matching.remainingAmount || 0);
+            const daysRemaining = Math.max(1, Number(contract.daysRemaining || 1));
+            const pace = Math.floor(Math.max(0, remaining) * 100 / daysRemaining) / 100;
+            return [
+                `${matching.category}:`,
+                `- Planejado: ${moneyBR(matching.plannedAmount)}`,
+                `- Realizado: ${moneyBR(matching.actualAmount)}`,
+                remaining >= 0
+                    ? `- Restante: ${moneyBR(remaining)}`
+                    : `- A categoria estourou em ${moneyBR(Math.abs(remaining))}`,
+                `- Ritmo diário para os ${daysRemaining} dia(s) restantes: ${moneyBR(pace)}`,
+                'Critério: ciclo de orçamento configurado; compras entram uma vez pela competência e fatura/transferência não duplicam gasto.'
+            ].join('\n');
+        }
+        if (plan.filters?.status === 'over_budget' || plan.operation === 'detect') {
+            const exceeded = grouped.filter(item => item.hasAllocation && Number(item.remainingAmount) < 0);
+            if (exceeded.length === 0) return 'Nenhuma categoria alocada estourou o orçamento neste ciclo.';
+            return [
+                'Categorias que estouraram o orçamento:',
+                ...exceeded.map((item, index) => `${index + 1}. ${item.category}: ${moneyBR(Math.abs(item.remainingAmount))} acima do planejado.`),
+                'Critério: realizado por categoria reconciliado com o total familiar do ciclo.'
+            ].join('\n');
+        }
     }
     return [
         'Orçamento do ciclo:',
@@ -624,6 +693,9 @@ function composeBudgetAnswer(summary = {}) {
         `- Gasto hoje: ${moneyBR(summary.todaySpent || 0)}`,
         `- Ritmo recomendado hoje: ${moneyBR(summary.dailyRecommendedAmount || 0)}`,
         `- Dias restantes: ${Number(summary.daysRemaining || 0)}`,
+        contract && contract.status !== 'unavailable' ? `- Alocado por categoria: ${moneyBR(contract.allocatedBudget || 0)}` : '',
+        contract && contract.status !== 'unavailable' ? `- Ainda não alocado: ${moneyBR(contract.unallocatedBudget || 0)}` : '',
+        Number(contract?.overallocatedBudget || 0) > 0 ? `- Excesso de alocação: ${moneyBR(contract.overallocatedBudget)}` : '',
         summary.period?.label ? `- Ciclo: ${summary.period.label}` : '',
         summary.criteria
     ].filter(Boolean).join('\n');
@@ -769,7 +841,7 @@ function composeFinancialPlanAnswer(toolResult = {}) {
     }
 
     if (plan.domain === 'budget' && value && typeof value === 'object' && !Array.isArray(value)) {
-        return composeBudgetAnswer(value);
+        return composeBudgetAnswer(plan, value);
     }
 
     if (plan.domain === 'bills' && plan.operation === 'detect' && Array.isArray(value?.items)) {

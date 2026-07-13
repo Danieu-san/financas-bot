@@ -30,6 +30,9 @@ test('phase 3F.1B keeps benchmark metrics explicitly cataloged by domain', () =>
 
     assert.strictEqual(catalog.goals.includes('goals_overview'), true);
     assert.strictEqual(catalog.budget.includes('budget_daily_available'), true);
+    assert.strictEqual(catalog.budget.includes('budget_category_remaining'), true);
+    assert.strictEqual(catalog.budget.includes('budget_categories_over_limit'), true);
+    assert.strictEqual(catalog.budget.includes('budget_category_daily_pace'), true);
     assert.strictEqual(catalog.dashboard.includes('cross_surface_parity'), true);
     assert.strictEqual(catalog.transfers.includes('transfer_classification'), true);
 });

@@ -84,6 +84,9 @@ const METRIC_CATALOG = {
     bills: ['bills_due', 'bills_expected_vs_actual'],
     budget: [
         'budget_composition',
+        'budget_categories_over_limit',
+        'budget_category_daily_pace',
+        'budget_category_remaining',
         'budget_cycle_comparison',
         'budget_daily_available',
         'budget_pace_variance',
@@ -131,7 +134,7 @@ const METRIC_CATALOG = {
 const OPERATION_CATALOG = {
     accounts: ['sum', 'explain'],
     bills: ['compare', 'list', 'sum'],
-    budget: ['compare', 'detail', 'explain', 'forecast', 'rank', 'recommend', 'sum'],
+    budget: ['compare', 'detail', 'detect', 'explain', 'forecast', 'rank', 'recommend', 'sum'],
     cards: ['detail', 'forecast', 'list', 'sum'],
     dashboard: ['compare', 'detect', 'detail', 'explain'],
     debts: ['forecast', 'list', 'sum'],

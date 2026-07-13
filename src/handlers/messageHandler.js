@@ -3350,10 +3350,29 @@ function detectBudgetScopeFromQuestion(text) {
     return '';
 }
 
+function extractBudgetCategoryFromQuestion(text) {
+    const normalized = normalizeText(String(text || ''));
+    const patterns = [
+        /\borcamento(?:\s+(?:da\s+)?categoria)?\s+(?:de|da|do)\s+([a-z0-9\s]+?)(?:\s+(?:no|neste|nesse|do)\s+ciclo|$|\?)/,
+        /\bcategoria\s+([a-z0-9\s]+?)(?:\s+(?:no|do|dentro do)\s+orcamento|\s+(?:estourou|ultrapassou|excedeu)|$|\?)/,
+        /\b(?:ritmo diario|restante|resta|falta)\s+(?:da|de|do)\s+(?:categoria\s+)?([a-z0-9\s]+?)(?:\s+(?:no|do)\s+orcamento|$|\?)/
+    ];
+    for (const pattern of patterns) {
+        const match = normalized.match(pattern);
+        const category = cleanAnalyticalCategory(match?.[1] || '');
+        if (!category) continue;
+        if (['ciclo', 'atual', 'familia', 'familiar', 'pessoal', 'mensal', 'livre', 'categoria', 'categorias'].includes(category)) continue;
+        return category;
+    }
+    return '';
+}
+
 function buildBudgetParameters(text, extra = {}) {
     const scope = detectBudgetScopeFromQuestion(text);
+    const categoria = extractBudgetCategoryFromQuestion(text);
     return {
         ...(scope ? { scope } : {}),
+        ...(categoria ? { categoria } : {}),
         ...extra
     };
 }
@@ -4166,6 +4185,13 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
         if (/\b(categoria|categorias)\b/.test(text) && /\b(consumiu|consumiram|mais|maior|ranking|pesou|pesaram)\b/.test(text)) {
             return { metric: 'budget_category_ranking', intent: 'orcamento_ranking_categorias', parameters: budgetParams() };
         }
+        if (/\b(categoria|categorias)\b/.test(text) && /\b(estourou|estouraram|estourada|estouradas|ultrapassou|ultrapassaram|excedeu|excederam|acima do orcamento)\b/.test(text)) {
+            return {
+                metric: 'budget_categories_over_limit',
+                intent: 'orcamento_categorias_estouradas',
+                parameters: budgetParams({ status: 'over_budget' })
+            };
+        }
         if (/\b(compare|comparar|comparacao|comparação)\b/.test(text) || text.includes('ciclo anterior')) {
             return { metric: 'budget_cycle_comparison', intent: 'orcamento_comparacao', parameters: budgetParams() };
         }
@@ -4181,7 +4207,7 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
         if (/\b(falta|sobrou|restante|resta|fim do ciclo|ate o fim|até o fim)\b/.test(text)) {
             return { metric: 'budget_remaining_cycle', intent: 'orcamento_restante_ciclo', parameters: budgetParams() };
         }
-        if (/\b(qual|valor|quanto e|quanto é)\b/.test(text) && /\b(orcamento|orçamento)\b/.test(text)) {
+        if (/\b(qual|valor|quanto e|quanto é)\b/.test(text) && /\b(orcamento|orçamento)\b/.test(text) && !/\b(ritmo|diario|diário)\b/.test(text)) {
             return { metric: 'budget_detail', intent: 'orcamento_detalhe', parameters: budgetParams() };
         }
         const asksBudgetScope = /\bescopo\b/.test(text) ||

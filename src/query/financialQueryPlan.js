@@ -393,7 +393,10 @@ function legacyIntentToQueryPlan(intent, parameters = {}) {
     const budgetFilters = {
         period: { type: 'cycle', label: 'ciclo atual' },
         ...(baseFilters.scope ? { scope: baseFilters.scope } : {}),
-        ...(baseFilters.member ? { member: baseFilters.member } : {})
+        ...(baseFilters.member ? { member: baseFilters.member } : {}),
+        ...(parameters.categoria ? { category: parameters.categoria } : {}),
+        ...(parameters.subcategoria ? { subcategory: parameters.subcategoria } : {}),
+        ...(parameters.status ? { status: parameters.status } : {})
     };
     const dashboardFilters = {
         ...baseFilters,
@@ -507,6 +510,7 @@ function legacyIntentToQueryPlan(intent, parameters = {}) {
         orcamento_restante_ciclo: { domain: 'budget', operation: 'forecast', filters: budgetFilters, answerStyle: 'detailed', timeBasis: 'budget_cycle' },
         orcamento_escopo: { domain: 'budget', operation: 'explain', filters: budgetFilters, answerStyle: 'audit', timeBasis: 'budget_cycle' },
         orcamento_ranking_categorias: { domain: 'budget', operation: 'rank', filters: budgetFilters, groupBy: ['category'], answerStyle: 'detailed', timeBasis: 'budget_cycle' },
+        orcamento_categorias_estouradas: { domain: 'budget', operation: 'detect', filters: { ...budgetFilters, status: 'over_budget' }, groupBy: ['category'], answerStyle: 'detailed', timeBasis: 'budget_cycle' },
         orcamento_ranking_membros: { domain: 'budget', operation: 'rank', filters: { ...budgetFilters, scope: 'family' }, groupBy: ['member'], answerStyle: 'detailed', timeBasis: 'budget_cycle' },
         orcamento_recomendacao: { domain: 'budget', operation: 'recommend', filters: budgetFilters, groupBy: ['category'], answerStyle: 'audit', timeBasis: 'budget_cycle' },
         orcamento_comparacao: { domain: 'budget', operation: 'compare', filters: budgetFilters, answerStyle: 'detailed', timeBasis: 'budget_cycle' },

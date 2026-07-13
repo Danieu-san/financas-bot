@@ -3287,6 +3287,17 @@ test('messageHandler.classifyPerguntaLocally covers complex analytical questions
 
     const budgetCategoryRank = classifyPerguntaLocally('qual categoria mais consumiu o orçamento?');
     assert.strictEqual(budgetCategoryRank.intent, 'orcamento_ranking_categorias');
+
+    const budgetCategoryRemaining = classifyPerguntaLocally('quanto resta do orçamento de alimentação?');
+    assert.strictEqual(budgetCategoryRemaining.intent, 'orcamento_restante_ciclo');
+    assert.strictEqual(budgetCategoryRemaining.parameters.categoria, 'alimentacao');
+
+    const overBudgetCategories = classifyPerguntaLocally('quais categorias estouraram o orçamento?');
+    assert.strictEqual(overBudgetCategories.intent, 'orcamento_categorias_estouradas');
+
+    const categoryDailyPace = classifyPerguntaLocally('qual o ritmo diário da categoria moradia no orçamento?');
+    assert.strictEqual(categoryDailyPace.intent, 'orcamento_ritmo_diario');
+    assert.strictEqual(categoryDailyPace.parameters.categoria, 'moradia');
     assert.strictEqual(budgetCategoryRank.financialQueryPlan.domain, 'budget');
     assert.strictEqual(budgetCategoryRank.financialQueryPlan.operation, 'rank');
 

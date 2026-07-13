@@ -733,7 +733,59 @@ function getBudgetRows(dataSources = {}, plan = {}, cycle = {}, referenceDate = 
     return applyFilters(rows, plan.filters || {});
 }
 
-function buildCategoryBudgetContract(dataSources = {}, settings = null, referenceDate = new Date(), cycleStartDay = 1) {
+function budgetRowsToCategoryEvents(rows = [], scope = {}) {
+    return rows.map((row, index) => ({
+        event_id: `budget_query_row_${index + 1}`,
+        household_id: scope.householdId,
+        owner_person_id: scope.type === 'personal' ? scope.personId : '',
+        kind: Number(row.value || 0) < 0 ? 'reimbursement' : (row.sourceType === 'card' ? 'card_purchase' : 'expense'),
+        category: row.category || 'Sem categoria',
+        subcategory: row.subcategory || '',
+        amount_cents: Math.abs(Math.round(Number(row.value || 0) * 100)),
+        net_income_expense_impact: Math.round(Number(row.value || 0) * 100),
+        free_budget_eligible: true,
+        budget_impact_on: formatIsoDate(row.budgetImpactDate || parseReferenceDate(row.date))
+    }));
+}
+
+function parseBudgetImpactDate(value) {
+    const raw = String(value || '').trim();
+    const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (iso) {
+        const parsed = new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]), 12, 0, 0, 0);
+        if (
+            parsed.getFullYear() === Number(iso[1]) &&
+            parsed.getMonth() === Number(iso[2]) - 1 &&
+            parsed.getDate() === Number(iso[3])
+        ) return parsed;
+    }
+    return parseSheetDate(raw);
+}
+
+function canonicalCompensationBudgetRows(dataSources = {}, cycle = {}) {
+    const compensationKinds = new Set(['reimbursement', 'refund', 'chargeback']);
+    return (dataSources.canonicalBudgetEvents || []).filter((event) => {
+        if (!compensationKinds.has(String(event.kind || ''))) return false;
+        const impactDate = parseBudgetImpactDate(event.due_on || event.effective_on || event.date);
+        return dateIsWithinCycle(impactDate, cycle);
+    }).map(event => {
+        const cents = Number(event.net_income_expense_impact ?? -Math.abs(Number(event.amount_cents || 0)));
+        const impactDate = parseBudgetImpactDate(event.due_on || event.effective_on || event.date);
+        return {
+            date: getFormattedDateOnly(impactDate),
+            budgetImpactDate: impactDate,
+            budgetImpactDateLabel: getFormattedDateOnly(impactDate),
+            description: event.description || 'Compensação',
+            category: event.category || 'Sem categoria',
+            subcategory: event.subcategory || '',
+            sourceType: 'canonical_compensation',
+            value: roundMoney(cents / 100),
+            isToday: false
+        };
+    });
+}
+
+function buildCategoryBudgetContract(dataSources = {}, settings = null, referenceDate = new Date(), cycleStartDay = 1, budgetRows = null) {
     const hasContract = Array.isArray(dataSources.budgetAllocations) &&
         Array.isArray(dataSources.budgetCategories) &&
         dataSources.resolvedBudgetScope &&
@@ -750,9 +802,11 @@ function buildCategoryBudgetContract(dataSources = {}, settings = null, referenc
         scope: dataSources.resolvedBudgetScope,
         categories: dataSources.budgetCategories,
         allocations: dataSources.budgetAllocations,
-        events: Array.isArray(dataSources.canonicalBudgetEvents)
-            ? dataSources.canonicalBudgetEvents
-            : canonicalPublicRows(dataSources)
+        events: dataSources.budgetActualSource === 'query_engine' && Array.isArray(budgetRows)
+            ? budgetRowsToCategoryEvents(budgetRows, dataSources.resolvedBudgetScope)
+            : Array.isArray(dataSources.canonicalBudgetEvents)
+                ? dataSources.canonicalBudgetEvents
+                : canonicalPublicRows(dataSources)
     });
 }
 
@@ -784,7 +838,15 @@ function buildBudgetSummary(dataSources = {}, plan = {}) {
     const referenceDate = parseReferenceDate(dataSources.currentDate || dataSources.today || dataSources.referenceDate);
     const cycleStartDay = normalizeCycleStartDay(settings.date || 1);
     const cycle = budgetCycleFromPlan(plan, cycleStartDay, referenceDate);
-    const rows = getBudgetRows(dataSources, plan, cycle, referenceDate);
+    const categoryContractPlan = {
+        ...plan,
+        filters: Object.fromEntries(Object.entries(plan.filters || {}).filter(([key]) => !['category', 'subcategory', 'status'].includes(key)))
+    };
+    const allRows = [
+        ...getBudgetRows(dataSources, categoryContractPlan, cycle, referenceDate),
+        ...(dataSources.budgetActualSource === 'query_engine' ? canonicalCompensationBudgetRows(dataSources, cycle) : [])
+    ];
+    const rows = applyFilters(allRows, plan.filters || {});
     const todayRows = rows.filter(item => item.isToday);
     const hasSpendingSources = Array.isArray(dataSources.saidas) || Array.isArray(dataSources.cartoes);
     const settingsItem = publicItem(settings);
@@ -802,7 +864,7 @@ function buildBudgetSummary(dataSources = {}, plan = {}) {
         cards: roundMoney(rows.filter(item => item.sourceType === 'card').reduce((sum, item) => sum + Number(item.value || 0), 0))
     };
     const expectedByToday = cycle.isCurrent ? roundMoney(monthlyAmount - (dailyRecommendedAmount * daysRemaining) + dailyRecommendedAmount) : 0;
-    const categoryBudget = buildCategoryBudgetContract(dataSources, settings, referenceDate, cycleStartDay);
+    const categoryBudget = buildCategoryBudgetContract(dataSources, settings, referenceDate, cycleStartDay, allRows);
     return {
         active: true,
         total: monthlyAmount,
@@ -1880,7 +1942,7 @@ async function executeFinancialQuery(rawPlan, dataSources = {}) {
             timeBasis: plan.timeBasis,
             filters: plan.filters
         };
-        if (['sum', 'forecast', 'recommend', 'detail', 'explain'].includes(plan.operation)) {
+        if (['sum', 'forecast', 'recommend', 'detail', 'explain', 'detect'].includes(plan.operation)) {
             return { ok: true, plan, result: { value: summary, details: budgetDetails } };
         }
         if (['group', 'rank'].includes(plan.operation)) {
@@ -2140,6 +2202,7 @@ module.exports = {
         applyFilters,
         groupRows,
         buildDashboardSummary,
-        currentDateFromDataSources
+        currentDateFromDataSources,
+        canonicalCompensationBudgetRows
     }
 };

@@ -92,6 +92,24 @@ test('category budget distinguishes partial, total and excess allocation', () =>
         unallocated: excess.unallocatedBudgetCents,
         excess: excess.overallocatedBudgetCents
     }, { allocated: 130000, unallocated: 0, excess: 30000 });
+
+    assert.deepStrictEqual(partial.reconciliation, {
+        categoryActualBudgetCents: 10000,
+        categoryAllocatedBudgetCents: 40000,
+        actualMatchesCategoryTotal: true,
+        allocationMatchesCategoryTotal: true,
+        allocationMatchesGlobalBalance: true
+    });
+});
+
+test('category budget exposes deterministic remaining daily pace for the current cycle', () => {
+    const result = calculate();
+    const food = result.categories.find(item => item.category === 'Alimentação');
+
+    assert.strictEqual(result.daysRemaining, 23);
+    assert.strictEqual(result.dailyPaceCents, 3913);
+    assert.strictEqual(food.remainingAmountCents, 30000);
+    assert.strictEqual(food.dailyPaceCents, 1304);
 });
 
 test('category without allocation is not treated as zero budget', () => {

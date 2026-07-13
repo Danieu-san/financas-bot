@@ -9,7 +9,8 @@ const { executeFinancialQuery } = require('../query/financialQueryEngine');
 const { buildDashboardCriteria } = require('../services/dashboardSummaryService');
 const { runSafeReadonlySql } = require('./safeReadonlySql');
 const {
-    readCanonicalLedgerCanaryDomain
+    readCanonicalLedgerCanaryDomain,
+    readCanonicalCategoryBudgetSource
 } = require('../ledger/canonicalLedgerReceiptProjector');
 const {
     readCanonicalLedgerCanaryWithFallback
@@ -203,6 +204,31 @@ function resolvedScopeFromUserIds(userIds = []) {
 
 function roundMoney(value) {
     return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
+}
+
+function moneyFromCents(value) {
+    return value === null || value === undefined ? null : roundMoney(Number(value) / 100);
+}
+
+function publicCategoryBudgetContract(contract = null) {
+    if (!contract || typeof contract !== 'object') return contract;
+    return {
+        ...contract,
+        globalBudget: moneyFromCents(contract.globalBudgetCents),
+        allocatedBudget: moneyFromCents(contract.allocatedBudgetCents),
+        unallocatedBudget: moneyFromCents(contract.unallocatedBudgetCents),
+        overallocatedBudget: moneyFromCents(contract.overallocatedBudgetCents),
+        actualBudget: moneyFromCents(contract.actualBudgetCents),
+        remainingBudget: moneyFromCents(contract.remainingBudgetCents),
+        dailyPace: moneyFromCents(contract.dailyPaceCents),
+        categories: (contract.categories || []).map(item => ({
+            ...item,
+            plannedAmount: moneyFromCents(item.plannedAmountCents),
+            actualAmount: moneyFromCents(item.actualAmountCents),
+            remainingAmount: moneyFromCents(item.remainingAmountCents),
+            dailyPace: moneyFromCents(item.dailyPaceCents)
+        }))
+    };
 }
 
 function canonicalAccountToPublicItem(row = {}) {
@@ -562,6 +588,24 @@ async function queryFinancialPlanTool({ plan, userIds = [], personByUserId = {},
         return { ok: false, tool: 'query_financial_plan', reason: 'read_model_unavailable' };
     }
 
+    if (scopedPlan.domain === 'budget') {
+        const canonicalBudget = readCanonicalCategoryBudgetSource({
+            env,
+            dbPath: canonicalLedgerDbPath,
+            ownerPersonIds: resolvedScope.userIds
+        });
+        if (canonicalBudget.enabled) {
+            Object.assign(dataSources, {
+                resolvedBudgetScope: canonicalBudget.scope,
+                budgetCategories: canonicalBudget.categories,
+                budgetAllocations: canonicalBudget.allocations,
+                canonicalBudgetEvents: canonicalBudget.events,
+                budgetActualSource: 'query_engine',
+                budgetSourceHealth: canonicalBudget.sourceHealth
+            });
+        }
+    }
+
     const execution = await executeFinancialQuery(scopedPlan, dataSources);
     if (!execution.ok) {
         return {
@@ -570,6 +614,9 @@ async function queryFinancialPlanTool({ plan, userIds = [], personByUserId = {},
             reason: 'query_engine_rejected_plan',
             errors: execution.errors || []
         };
+    }
+    if (scopedPlan.domain === 'budget' && execution.result?.value?.categoryBudget) {
+        execution.result.value.categoryBudget = publicCategoryBudgetContract(execution.result.value.categoryBudget);
     }
 
     return {
