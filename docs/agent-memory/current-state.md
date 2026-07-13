@@ -2,7 +2,7 @@
 
 Atualizado em: 2026-07-13
 
-## Fase 4B - API de dashboard v2 - GO local - 2026-07-13
+## Fase 4B - API de dashboard v2 - GO de producao - 2026-07-13
 
 - A rota read-only `/dashboard/api/v2/summary` foi implementada sem iniciar a
   interface visual da 4C. O contrato versionado entrega blocos independentes
@@ -28,10 +28,18 @@ Atualizado em: 2026-07-13
   sintaxe e `git diff --check` verdes. Contrato:
   `docs/contracts/dashboard-api.md`. Relatorio:
   `docs/qa/phase-4b-dashboard-api-v2-gate-2026-07-13.md`.
+- O commit principal `2157527` e o hotfix `8451144` foram publicados e
+  implantados por fast-forward. O hotfix impede que snapshot sem nenhuma conta
+  cadastrada transforme ausencia de saldo em zero; o teste remoto passou `4/4`.
+  No deploy principal, os contratos remotos passaram `19/19`.
+- Smoke estrutural read-only com usuario tecnico inexistente: endpoint `200`,
+  onze blocos presentes, falhas parciais isoladas, nenhum campo interno
+  detectado, `user=all` rejeitado com `403` e token invalido com `401`. Nenhum
+  valor financeiro real foi lido ou impresso. PM2 online, WhatsApp pronto e
+  health `{"ok":true,"sqlite":true}` no commit `8451144`.
 - Nenhuma flag, `.env`, planilha real, dado financeiro real ou interface visual
-  foi alterado. Decisao: `GO local` da 4B. Faltam commit/push, deploy, testes
-  remotos e smoke estrutural read-only para decidir o GO de producao. O proximo
-  passo oficial depois do fechamento e `4C - Dashboard familiar v2 mobile-first`.
+  foi alterado. Decisao: `GO de producao` e encerramento da 4B. O proximo passo
+  oficial e `4C - Dashboard familiar v2 mobile-first`, ainda nao iniciado.
 
 ## Fase 4A - contrato de orcamento por categoria - GO de producao - 2026-07-13
 

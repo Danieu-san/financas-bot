@@ -67,11 +67,33 @@ crus em qualquer profundidade.
 - Sintaxe dos modulos alterados: aprovada.
 - `git diff --check`: aprovado, com apenas avisos esperados de LF/CRLF.
 
-## Decisao
+## Deploy e smoke de producao
 
-`GO local` para a Fase 4B. Nenhuma flag, `.env`, planilha real, dado financeiro
-real ou interface visual foi alterado. O GO de producao depende de commit/push,
-deploy por fast-forward, testes remotos, saude do processo, bloqueio de token e
-escopo, e smoke estrutural read-only do endpoint sem imprimir valores
-financeiros. Depois do fechamento, o proximo passo oficial e `4C - Dashboard
-familiar v2 mobile-first`.
+O commit principal `2157527` foi publicado e implantado por fast-forward. Os
+testes remotos de composicao, rota e autenticacao passaram `19/19`. PM2 voltou
+online, read-model e integridade de `user_id` ficaram prontos, dashboard subiu,
+WhatsApp ficou pronto e health respondeu `{"ok":true,"sqlite":true}`.
+
+Antes do smoke, a integracao revelou que o snapshot SQLite vazio oferece
+`totalBalance=0` com lista de contas vazia. O hotfix `8451144` passou `4/4`
+local e remotamente e exige ao menos uma conta para aceitar esse fallback;
+ausencia permanece `unavailable` e `null`.
+
+O smoke final usou um usuario tecnico inexistente e nao acessou nem imprimiu
+valores financeiros reais. Evidencia agregada:
+
+- `/dashboard/api/v2/summary`: `200`;
+- todos os onze blocos presentes;
+- fontes ausentes isoladas como `partial` ou `unavailable`;
+- nenhum id interno, hash, token, OAuth ou referencia de planilha detectado;
+- tentativa `user=all`: `403`;
+- token invalido: `401`;
+- commit remoto `8451144`, PM2 online, WhatsApp pronto e health verde.
+
+Nenhuma flag, `.env`, planilha real, dado financeiro real ou interface visual
+foi alterado.
+
+## Decisao final
+
+`GO de producao` para encerrar a Fase 4B. O proximo passo oficial e `4C -
+Dashboard familiar v2 mobile-first`, ainda nao iniciado.
