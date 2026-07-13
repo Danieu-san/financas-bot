@@ -120,3 +120,21 @@ do dado.
 
 Decisao do hotfix: `GO local para redeploy`; a 5B permanece funcionalmente
 `NO-GO` ate repetir o mesmo smoke no WhatsApp.
+
+### Redeploy do hotfix
+
+- commit do hotfix publicado e implantado: `e7359d237deb301a09fe5c6a2ae0574a2d05ef8d`;
+- `HEAD` da EC2 confirmado antes em
+  `863f1013e6616f531f5554e8ed3215f26a1eafe3` e depois exatamente no commit do
+  hotfix;
+- backup: `.env.pre-5b-hotfix-e7359d2-20260713T233513Z`;
+- `npm install`: dependencias atualizadas, audit com zero vulnerabilidades;
+- testes remotos: planos `42/42` e maquina de estados financeira `41/41`;
+- PM2 reiniciado do PID `3187768` para `3188958`, WhatsApp pronto e health
+  `{"ok":true,"sqlite":true}`;
+- worktree rastreado limpo, `ADMIN_IDS` com um unico admin e
+  `DASHBOARD_ADMIN_ALL_USERS_ENABLED=false` ao final.
+
+Decisao apos redeploy: `GO tecnico do hotfix em producao`; a 5B continua
+funcionalmente `NO-GO` somente ate o usuario repetir as quatro perguntas no
+WhatsApp. A 5C permanece bloqueada ate esse registro.

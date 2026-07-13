@@ -1596,4 +1596,13 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   Regressao `371/371`, planos `42/42`, suite `836/836`, audit high zero.
 - Estado atual: GO local para redeploy do hotfix; 5B e 5C permanecem bloqueadas
   ate o mesmo smoke ser repetido no WhatsApp.
+- Hotfix `e7359d237deb301a09fe5c6a2ae0574a2d05ef8d` publicado e implantado na EC2
+  sobre `863f1013e6616f531f5554e8ed3215f26a1eafe3`, com backup
+  `.env.pre-5b-hotfix-e7359d2-20260713T233513Z`.
+- Validacao remota: planos `42/42`, maquina de estados `41/41`, zero
+  vulnerabilidades, PM2 do PID `3187768` para `3188958`, WhatsApp pronto,
+  health `{"ok":true,"sqlite":true}`, worktree limpo, um admin e all-users
+  desativado.
+- Estado atual: GO tecnico do hotfix em producao; repetir as quatro perguntas
+  no WhatsApp para decidir o GO funcional da 5B. Nao iniciar 5C antes disso.
 - Relatorio: `docs/qa/phase-5b-projected-plan-schedule-gate-2026-07-13.md`.

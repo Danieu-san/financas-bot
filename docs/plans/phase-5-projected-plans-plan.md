@@ -153,8 +153,16 @@ O primeiro smoke foi `NO-GO`: o canario do agente respondeu pelo read-model
 central vazio embora a planilha pessoal ainda tivesse uma meta, e o fallback
 de Sheets nao carregava `userId`. O hotfix local faz as frases da 5B entrarem
 no fast path, impede o agente central de responder por fonte pessoal e propaga
-o contexto pessoal a todas as leituras. Suite completa `836/836`; falta
-redeploy e repeticao do smoke antes de encerrar 5B.
+o contexto pessoal a todas as leituras. Suite completa `836/836` antes do
+redeploy.
+
+O hotfix `e7359d237deb301a09fe5c6a2ae0574a2d05ef8d` foi publicado e implantado
+sobre o hash confirmado `863f1013e6616f531f5554e8ed3215f26a1eafe3`.
+Testes remotos passaram planos `42/42` e maquina de estados `41/41`; PM2
+reiniciou com novo PID, WhatsApp ficou pronto, health retornou
+`{"ok":true,"sqlite":true}` e os controles de privacidade permaneceram
+verdes. Falta somente repetir o mesmo smoke no WhatsApp para o GO funcional
+da 5B; a 5C continua bloqueada.
 
 Relatório: `docs/qa/phase-5b-projected-plan-schedule-gate-2026-07-13.md`.
 
