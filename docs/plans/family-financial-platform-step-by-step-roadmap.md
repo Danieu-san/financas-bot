@@ -401,6 +401,9 @@ Gate de saida:
 Objetivo: provar que o nucleo analitico, recorrencias, parcelas, faturas,
 previsoes, reembolsos e importacao convivem sem erro semantico ou duplicacao.
 
+Status em 2026-07-13: `GO para encerramento da Fase 3`. A Fase 4 permanece nao
+iniciada e depende de autorizacao explicita.
+
 Passo a passo:
 
 1. Montar bateria combinada com recorrencia paga, fatura paga, compra parcelada, reembolso e importacao.

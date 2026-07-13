@@ -1256,3 +1256,24 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   a tarefa mudar de nivel, inclusive durante a execucao.
 - Nao usar Extra alto ou Ultra por padrao. Esses niveis exigem justificativa
   concreta depois de esgotar Chat e esforcos menores.
+
+## Phase 3 exit gate production GO - 2026-07-13
+
+- Commits `f137e9d` e `f165a33` foram enviados ao GitHub e implantados na EC2
+  por fast-forward. PM2 ficou online, WhatsApp pronto e health retornou
+  `{"ok":true,"sqlite":true}`.
+- A bateria combinada 3H cobriu replay com restart, fatura paga, compra
+  parcelada, reembolso, importacao reconciliada e edicao futura de recorrencia.
+  Ocorrencias liquidadas permaneceram imutaveis e as contagens nao duplicaram.
+- A suite completa passou `754/754`. O conjunto cego final cobriu 60 rotas, com
+  59 casos executaveis aceitos, uma injecao de falha adiada pelo protocolo,
+  nenhuma lacuna, zero chamadas Gemini, zero tokens e custo estimado zero.
+- O E2E read-only pelo WhatsApp passou para metas, orcamento familiar, categoria
+  familiar, datas e follow-up. O primeiro follow-up de categoria perdeu a
+  metrica; o hotfix geral `f165a33` preserva intencao, categoria, escopo e base
+  temporal ao trocar apenas o periodo. O reteste junho -> maio passou.
+- O smoke de escrita e reimportacao idempotente de 3G foi reutilizado; seus
+  marcadores ja haviam sido removidos. Nenhuma nova escrita ou marcador foi
+  criado no fechamento do 3H.
+- Decisao formal: `GO para encerramento da Fase 3`. A Fase 4 permanece nao
+  iniciada e nao esta autorizada por este gate.

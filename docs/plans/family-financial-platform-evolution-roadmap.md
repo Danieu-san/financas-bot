@@ -1,7 +1,8 @@
 # Plano mestre: evolucao do FinancasBot familiar
 
 Data: 2026-07-08
-Status: Fases 1 e 2 concluidas; Fase 3F concluida com GO de producao; proximo gate: 3F.1
+Status: Fases 1, 2 e 3 concluidas com GO de producao; Fase 4 nao iniciada e
+depende de autorizacao explicita.
 
 ## 1. Norte do produto
 
