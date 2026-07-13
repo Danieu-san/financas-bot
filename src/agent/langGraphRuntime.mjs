@@ -321,7 +321,7 @@ function shouldUseLlmPlanOverLegacy(llmPlan, incomingQueryPlan = null) {
     if (llmPlan.action !== 'tool') return false;
 
     const incomingDomain = String(incomingQueryPlan?.domain || '').trim();
-    if (incomingDomain === 'budget') return false;
+    if (incomingDomain === 'budget' || incomingDomain === 'quality') return false;
     const dashboardTools = new Set(['get_dashboard_snapshot', 'explain_metric']);
     if (incomingDomain && incomingDomain !== 'dashboard' && dashboardTools.has(llmPlan.tool)) {
         return false;
@@ -336,6 +336,17 @@ async function planTurn(state) {
         return {
             plan: { action: 'block', reason: 'unsafe_request' },
             action: 'block'
+        };
+    }
+
+    if (state.financialQueryPlan?.domain === 'quality') {
+        return {
+            plan: {
+                action: 'tool',
+                tool: 'query_financial_plan',
+                args: { plan: state.financialQueryPlan }
+            },
+            action: 'tool'
         };
     }
 

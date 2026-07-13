@@ -17,6 +17,7 @@ const {
     readCanonicalDataQualitySource
 } = require('../src/ledger/canonicalLedgerDataQualityReader');
 const { queryFinancialPlanTool } = require('../src/agent/financialAgentTools');
+const { __test__: plannerTest } = require('../src/agent/financialAgentPlanner');
 
 function tempDbPath() {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-quality-reader-'));
@@ -99,8 +100,30 @@ test('phase 4D canonical quality reader scopes events, lines and import decision
     assert.strictEqual(toolResult.result.value.totalCount, 2);
     assert.doesNotMatch(JSON.stringify(toolResult.result), /user-a|user-b|owner_person_id|event_id|actor_hash|transaction_hash/i);
 
-    const previousEnv = Object.fromEntries(Object.keys(readEnv).map(key => [key, process.env[key]]));
+    const envKeys = [...Object.keys(readEnv), 'FINANCIAL_AGENT_LLM_PLANNER_ENABLED'];
+    const previousEnv = Object.fromEntries(envKeys.map(key => [key, process.env[key]]));
     Object.assign(process.env, readEnv);
+    process.env.FINANCIAL_AGENT_LLM_PLANNER_ENABLED = 'true';
+    let llmPlannerCalls = 0;
+    plannerTest.setStructuredResponseOverrideForTest(() => {
+        llmPlannerCalls += 1;
+        return {
+            action: 'tool',
+            tool: 'query_financial_plan',
+            args: {
+                plan: {
+                    kind: 'financial_query',
+                    domain: 'quality',
+                    operation: 'list',
+                    filters: {
+                        period: { type: 'month', month: 6, year: 2026 },
+                        status: 'pending'
+                    },
+                    timeBasis: 'transaction_date'
+                }
+            }
+        };
+    });
     try {
         const runtime = await import('../src/agent/langGraphRuntime.mjs');
         const agentResult = await runtime.invokeFinancialAgentRuntime({
@@ -121,9 +144,35 @@ test('phase 4D canonical quality reader scopes events, lines and import decision
         });
         assert.strictEqual(agentResult.action, 'answer', JSON.stringify(agentResult));
         assert.strictEqual(agentResult.verified.ok, true, JSON.stringify(agentResult));
+        assert.strictEqual(agentResult.plan.args.plan.operation, 'detail');
         assert.match(agentResult.answer, /Qualidade dos dados/i);
+        assert.doesNotMatch(agentResult.answer, /Pendências de qualidade \(/i);
         assert.doesNotMatch(agentResult.answer, /user-a|user-b|owner_person_id|event_id|R\$/i);
+
+        const pendingResult = await runtime.invokeFinancialAgentRuntime({
+            message: 'Quais pendências de dados tenho este mês?',
+            userIds: ['user-a'],
+            personByUserId: { 'user-a': 'Pessoa A' },
+            currentDate: '2026-07-13',
+            canonicalLedgerDbPath: dbPath,
+            mode: 'answer',
+            financialQueryPlan: {
+                kind: 'financial_query',
+                domain: 'quality',
+                operation: 'list',
+                filters: { period: { type: 'month', month: 6, year: 2026 } },
+                timeBasis: 'transaction_date'
+            }
+        });
+        assert.strictEqual(pendingResult.action, 'answer', JSON.stringify(pendingResult));
+        assert.strictEqual(pendingResult.verified.ok, true, JSON.stringify(pendingResult));
+        assert.strictEqual(pendingResult.plan.args.plan.operation, 'list');
+        assert.strictEqual(pendingResult.plan.args.plan.filters.status, undefined);
+        assert.match(pendingResult.answer, /Pendências de qualidade \(2\)/i);
+        assert.doesNotMatch(pendingResult.answer, /Não encontrei pendências desse tipo/i);
+        assert.strictEqual(llmPlannerCalls, 0, 'quality plans must not call or accept the LLM planner');
     } finally {
+        plannerTest.setStructuredResponseOverrideForTest(null);
         for (const [key, value] of Object.entries(previousEnv)) {
             if (value === undefined) delete process.env[key];
             else process.env[key] = value;
