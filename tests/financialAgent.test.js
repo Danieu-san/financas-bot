@@ -296,6 +296,26 @@ test('phase 4A answers category remaining, over-budget categories and daily pace
     assert.match(runtime.__test__.composeFinancialPlanAnswer(exceeded), /Alimentação[\s\S]*R\$\s*50,00/i);
     assert.match(runtime.__test__.composeFinancialPlanAnswer(pace), /Moradia[\s\S]*Ritmo diário[\s\S]*R\$\s*18,18/i);
     assert.doesNotMatch(JSON.stringify({ remaining, exceeded, pace }), /agent-daniel|agent-thais|household-agent|owner_person_id|household_id/i);
+
+    const missingAllocationAnswer = runtime.__test__.composeFinancialPlanAnswer({
+        plan: {
+            domain: 'budget',
+            operation: 'forecast',
+            filters: { category: 'moradia' }
+        },
+        result: {
+            value: {
+                active: true,
+                categoryBudget: {
+                    status: 'available',
+                    categories: [{ category: 'Alimentação', plannedAmount: null, actualAmount: 10 }]
+                }
+            }
+        }
+    });
+    assert.match(missingAllocationAnswer, /moradia.*não tem alocação definida/i);
+    assert.match(missingAllocationAnswer, /não há restante nem ritmo diário definidos/i);
+    assert.doesNotMatch(missingAllocationAnswer, /não encontrei a categoria/i);
 });
 
 test('LangGraph financial agent keeps deterministic budget semantics when Gemini selects an incompatible plan', async () => {

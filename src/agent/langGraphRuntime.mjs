@@ -640,6 +640,13 @@ function composeBudgetAnswer(plan = {}, summary = {}) {
                 return category === requestedCategory || category.includes(requestedCategory) || requestedCategory.includes(category);
             });
             if (!matching) {
+                const hasAnyAllocation = grouped.some(item => item.hasAllocation);
+                if (!hasAnyAllocation) {
+                    return [
+                        `A categoria “${plan.filters.category}” não tem alocação definida neste ciclo.`,
+                        'Por isso, não há restante nem ritmo diário definidos para ela; não a tratei como orçamento zero.'
+                    ].join('\n');
+                }
                 return `Não encontrei a categoria “${plan.filters.category}” no catálogo do orçamento deste ciclo.`;
             }
             if (!matching.hasAllocation) {
