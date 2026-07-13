@@ -1500,3 +1500,20 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   criado no fechamento do 3H.
 - Decisao formal: `GO para encerramento da Fase 3`. A Fase 4 permanece nao
   iniciada e nao esta autorizada por este gate.
+
+## Phase 4 exit gate production GO - 2026-07-13
+
+- Commit `da49858` enviado ao GitHub e implantado por fast-forward na EC2;
+  testes remotos focados `208/208`, audit high zero, PM2/WhatsApp/SQLite/health
+  verdes e `DASHBOARD_V2_ENABLED=true` explícito.
+- Daniel abriu pelo WhatsApp os links do dashboard atual e do dashboard v2.
+- A leitura sanitizada das APIs reais confirmou paridade de período, entradas,
+  saídas, cartões, saldo econômico, reservas, contas, metas, dívidas e
+  transações recentes. O v2 entregou os onze blocos previstos; qualidade ficou
+  `partial`, coerente com as pendências reais já exibidas pelo bot.
+- O navegador isolado recusou o certificado público com
+  `ERR_CERT_AUTHORITY_INVALID`; nenhuma proteção foi contornada. Registrar como
+  pendência operacional de TLS antes de considerar compatibilidade pública
+  completa entre clientes.
+- Decisão formal: `GO para encerramento da Fase 4`. A Fase 5 está autorizada a
+  seguir exatamente o roadmap já decidido; não redefinir fases pelo chat.

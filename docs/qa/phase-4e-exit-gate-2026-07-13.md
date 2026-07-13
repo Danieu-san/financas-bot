@@ -2,12 +2,13 @@
 
 Data: 2026-07-13
 
-## Decisão atual
+## Decisão final
 
-`GO local` para a implementação e a bateria da 4E.
+`GO de produção` para encerrar a Fase 4 e autorizar o planejamento da Fase 5.
 
-`NO-GO de produção` até concluir commit/push, deploy EC2 e smoke remoto. Esse estado provisório não
-autoriza iniciar a Fase 5.
+O gate foi concluído no commit `da49858`, implantado por fast-forward na EC2.
+Testes remotos, health, PM2, WhatsApp, rotas, abertura manual dos dois links e
+comparação sanitizada do conteúdo real ficaram verdes.
 
 ## Escopo executado
 
@@ -77,6 +78,36 @@ Prévia local validada no navegador em:
 O DOM confirmou todas as regiões, critérios de origem, qualidade e aviso de
 versão experimental. A prévia temporária foi encerrada e o viewport restaurado.
 
+## Evidência de produção
+
+- Commit `da49858` enviado ao GitHub e implantado por fast-forward na EC2.
+- Bateria remota focada: `208/208`; audit `high`: `0` vulnerabilidades.
+- PM2 online, WhatsApp autenticado/pronto, SQLite/read-model ativos e health
+  `{"ok":true,"sqlite":true}`.
+- `/dashboard` e `/dashboard/v2` responderam `200`; a API v2 sem token respondeu
+  `401`, confirmando a proteção de autenticação.
+- `DASHBOARD_V2_ENABLED=true` ficou explícito em produção e as demais flags de
+  rollout foram preservadas.
+- Daniel abriu manualmente os dois links recebidos pelo WhatsApp.
+- Com autorização explícita, as duas APIs reais de julho de 2026 foram lidas em
+  modo somente leitura pela interface interna da produção. Entradas, saídas,
+  compromissos de cartão, saldo econômico, reserva aplicada/resgatada/líquida,
+  período, quantidade e saldo total de contas, metas, dívidas e transações
+  recentes apresentaram paridade sem expor valores no relatório.
+- O v2 entregou os onze blocos previstos: caixa, competência, reserva,
+  orçamento, contas, faturas, projeção, metas, dívidas, qualidade e transações
+  recentes. Todos ficaram disponíveis, exceto qualidade em estado `partial`,
+  coerente com as três pendências reais já demonstradas no WhatsApp.
+- O HTML interno das duas páginas respondeu `200`; o v2 continha o cabeçalho e
+  a ligação esperada com sua API.
+
+O navegador isolado de auditoria recusou o certificado público com
+`ERR_CERT_AUTHORITY_INVALID`. Nenhuma proteção foi contornada. Como os links
+abriram normalmente para Daniel e toda a aplicação foi validada pela interface
+interna, isso não invalida a paridade funcional, mas permanece uma pendência
+operacional de TLS a diagnosticar antes de tratar o acesso público como
+integralmente saudável em todos os clientes.
+
 ## Rollback
 
 Com `DASHBOARD_V2_ENABLED=false`:
@@ -114,11 +145,9 @@ auditorias obrigatórias:
 - O arquivo do roadmap já alterado pelo usuário e os arquivos antigos não
   rastreados não pertencem à 4E e devem permanecer fora do commit.
 
-## Gate restante para produção
+## Encerramento
 
-1. Commitar apenas os arquivos da 4E e enviar ao GitHub.
-2. Fazer backup e deploy fast-forward na EC2, com
-   `DASHBOARD_V2_ENABLED=true` explícito.
-3. Rodar testes remotos focados, audit `high`, health, estado, PM2/WhatsApp e smoke das rotas.
-4. Confirmar `dashboard` e `dashboard v2` pelo WhatsApp e então decidir GO final
-   para abrir a Fase 5.
+Os quatro gates de produção foram concluídos. A Fase 4 está encerrada com
+`GO`. A Fase 5 pode ser iniciada conforme as fases já definidas no roadmap,
+sem redefinir seu conteúdo pelo chat. A pendência de TLS deve entrar como
+correção operacional prioritária, sem alterar o escopo funcional aprovado.
