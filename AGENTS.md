@@ -8,6 +8,35 @@ Antes de trabalhos não triviais, leia primeiro `docs/agent-memory/README.md`.
 
 Essa pasta é a memória curta e atualizável do projeto. Ela evita reler o histórico inteiro e aponta quais documentos/códigos consultar por tarefa. Não substitui validação em código, testes, logs ou EC2 quando a tarefa envolver produção.
 
+## Contrato Obrigatório de Comunicação e Capacidade
+
+Antes de iniciar ou retomar qualquer tarefa, a primeira atualização visível ao
+usuário deve conter exatamente esta estrutura:
+
+`Superfície → Modelo → Esforço → Próxima tarefa`
+
+Exemplo: `Codex → Sol → Alto → corrigir e revalidar o gate 4D.`
+
+Essa linha deve ser repetida quando uma resposta do usuário abrir a próxima
+ação material, mesmo que modelo e esforço não tenham mudado. Não basta informar
+apenas o próximo passo.
+
+Antes de enviar toda resposta final ou handoff, executar esta conferência:
+
+1. **Resultado:** o que foi concluído, falhou ou permanece aguardando validação.
+2. **Inteligência da decisão:** o que a evidência significa e por que o próximo
+   passo é o correto, sem apenas despejar contagens de testes.
+3. **Capacidade recomendada:** repetir `Superfície → Modelo → Esforço → Próxima
+   tarefa` para a ação seguinte.
+4. **Próximo passo:** fornecer a ação concreta, as perguntas exatas ou o gate
+   que precisa ser satisfeito.
+
+Se qualquer um dos quatro itens estiver ausente, a resposta ainda não está
+pronta para ser enviada. Em testes manuais de WhatsApp, informar também o que
+cada pergunta valida e qual resultado é esperado. Esta trava é obrigatória
+mesmo em respostas curtas e mesmo quando a única ação seguinte depende de
+Daniel.
+
 ## Controle de Esforco
 Antes de iniciar cada nova tarefa de implementacao, diagnostico, teste, deploy ou revisao substancial, informar a proxima acao e o nivel de esforco recomendado. Parar e aguardar a confirmacao explicita do usuario para que ele possa trocar modelo ou nivel, quando desejar.
 

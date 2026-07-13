@@ -2,9 +2,21 @@
 
 Esta pasta guarda o contexto curto que um agente deve ler antes de trabalhar no projeto. O objetivo e reduzir uso de contexto e evitar redescobrir decisoes ja tomadas.
 
+## Trava de comunicacao antes de agir ou responder
+
+O contrato de capacidade em `AGENTS.md` e parte do gate operacional, nao uma
+preferencia de estilo. Antes de agir, sempre publicar:
+
+`Superficie -> Modelo -> Esforco -> Proxima tarefa`
+
+Antes de toda resposta final, confirmar a presenca de: resultado, inteligencia
+da decisao, capacidade recomendada na mesma estrutura e proximo passo concreto.
+Se um desses campos faltar, nao enviar a resposta. A omissao ja ocorreu duas
+vezes durante a Fase 4 e deve ser tratada como regressao operacional.
+
 ## Ordem recomendada de leitura
 
-1. `AGENTS.md` - regras permanentes, seguranca, privacidade e mapa base.
+1. `AGENTS.md` - regras permanentes, contrato de capacidade, seguranca, privacidade e mapa base.
 2. `docs/agent-memory/current-state.md` - estado atual do produto, deploy e pendencias.
 3. `docs/agent-memory/architecture-map.md` - onde ficam as partes importantes do codigo.
 4. `docs/agent-memory/known-issues.md` - bugs, riscos e armadilhas conhecidas.

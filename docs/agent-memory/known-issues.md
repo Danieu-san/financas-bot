@@ -1,6 +1,19 @@
 # Problemas conhecidos e armadilhas
 
-Atualizado em: 2026-06-03
+Atualizado em: 2026-07-13
+
+## Omissao da configuracao/capacidade no handoff
+
+- Regressao operacional observada duas vezes na Fase 4: a resposta informou o
+  proximo passo, mas omitiu a linha obrigatoria
+  `Superficie -> Modelo -> Esforco -> Proxima tarefa` e/ou a inteligencia que
+  explica por que aquele passo era o correto.
+- Mitigacao permanente: `AGENTS.md` agora exige essa linha ao iniciar ou retomar
+  tarefas e exige quatro campos antes de toda resposta final: resultado,
+  inteligencia da decisao, capacidade recomendada e proximo passo.
+- `docs/agent-memory/README.md` coloca a conferencia antes da ordem de leitura.
+- Se a configuracao nao mudou, ela ainda deve ser repetida. Nao presumir que o
+  usuario lembrara uma mensagem anterior.
 
 ## Privacidade/admin
 
