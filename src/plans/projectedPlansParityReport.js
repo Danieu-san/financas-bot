@@ -202,7 +202,11 @@ function privacyScan(report, sheets) {
     return { ok: leaks.length === 0, leaks };
 }
 
-function buildProjectedPlansParityReport(sheets = {}, { runId = 'PHASE5A_READ_ONLY', generatedAt = new Date().toISOString() } = {}) {
+function buildProjectedPlansParityReport(sheets = {}, {
+    runId = 'PHASE5A_READ_ONLY',
+    generatedAt = new Date().toISOString(),
+    sourceMode = 'google_sheets_read_only'
+} = {}) {
     const metasData = sheets.metasData || [];
     const dividasData = sheets.dividasData || [];
     const movimentacoesMetasData = sheets.movimentacoesMetasData || [];
@@ -231,7 +235,7 @@ function buildProjectedPlansParityReport(sheets = {}, { runId = 'PHASE5A_READ_ON
         run_id: String(runId).replace(/[^A-Za-z0-9_:-]/g, '_').slice(0, 96),
         generated_at: String(generatedAt),
         source: {
-            mode: 'google_sheets_read_only',
+            mode: String(sourceMode).replace(/[^a-z0-9_:-]/gi, '_').slice(0, 80),
             writes_performed: 0,
             observed_rows: { goals: goalRows, debts: debtRows, goal_movements: movementRows }
         },

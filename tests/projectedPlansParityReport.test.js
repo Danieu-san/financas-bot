@@ -3,6 +3,7 @@ const assert = require('node:assert');
 
 const { adaptLegacyDebtRow } = require('../src/plans/projectedPlansContract');
 const { buildProjectedPlansParityReport } = require('../src/plans/projectedPlansParityReport');
+const { __test__: { onlyConfiguredAdminId } } = require('../scripts/runProjectedPlansReadOnlyGate');
 
 const CURRENT_GOAL_HEADERS = [
     'Nome', 'Valor Alvo', 'Valor Atual', '% Progresso', 'Valor Mensal',
@@ -93,4 +94,10 @@ test('5A empty intermediary rows are ignored instead of becoming invented plans'
     assert.strictEqual(report.source.observed_rows.debts, 1);
     assert.strictEqual(report.source.observed_rows.goal_movements, 1);
     assert.strictEqual(report.parity.decision, 'GO');
+});
+
+test('5A real read gate requires exactly one configured admin and never broadens scope', () => {
+    assert.strictEqual(onlyConfiguredAdminId({ ADMIN_IDS: 'admin-one' }), 'admin-one');
+    assert.throws(() => onlyConfiguredAdminId({ ADMIN_IDS: '' }), /scope_must_be_unique/);
+    assert.throws(() => onlyConfiguredAdminId({ ADMIN_IDS: 'admin-one,admin-two' }), /scope_must_be_unique/);
 });

@@ -3,7 +3,8 @@ require('dotenv').config();
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { authorizeGoogle, readDataFromSheet } = require('../src/services/google');
+const { authorizeGoogle, readDataFromSheet, runWithUserSheetContext } = require('../src/services/google');
+const { getUserByWhatsAppId } = require('../src/services/userService');
 const { buildProjectedPlansParityReport } = require('../src/plans/projectedPlansParityReport');
 
 function buildRunId(date = new Date()) {
@@ -15,6 +16,12 @@ function writeJson(filePath, value) {
     fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
 }
 
+function onlyConfiguredAdminId(env = process.env) {
+    const adminIds = String(env.ADMIN_IDS || '').split(',').map(value => value.trim()).filter(Boolean);
+    if (adminIds.length !== 1) throw new Error('projected_plans_admin_scope_must_be_unique');
+    return adminIds[0];
+}
+
 async function runProjectedPlansReadOnlyGate({
     confirmRealRead = false,
     runId = buildRunId(),
@@ -23,14 +30,16 @@ async function runProjectedPlansReadOnlyGate({
 } = {}) {
     if (!confirmRealRead) throw new Error('projected_plans_real_read_confirmation_required');
     await authorizeGoogle();
-    const [metasData, dividasData, movimentacoesMetasData] = await Promise.all([
+    const admin = await getUserByWhatsAppId(onlyConfiguredAdminId());
+    if (!admin?.user_id) throw new Error('projected_plans_admin_user_not_found');
+    const [metasData, dividasData, movimentacoesMetasData] = await runWithUserSheetContext(admin, () => Promise.all([
         readDataFromSheet('Metas!A:K'),
         readDataFromSheet('Dívidas!A:R'),
         readDataFromSheet('Movimentações Metas!A:J')
-    ]);
+    ]));
     const report = buildProjectedPlansParityReport(
         { metasData, dividasData, movimentacoesMetasData },
-        { runId, generatedAt }
+        { runId, generatedAt, sourceMode: 'authorized_owner_sheet_read_only' }
     );
     const reportPath = path.resolve(reportDir, 'projected-plans-read-only-gate.json');
     writeJson(reportPath, report);
@@ -60,5 +69,6 @@ if (require.main === module) {
 
 module.exports = {
     buildRunId,
-    runProjectedPlansReadOnlyGate
+    runProjectedPlansReadOnlyGate,
+    __test__: { onlyConfiguredAdminId }
 };
