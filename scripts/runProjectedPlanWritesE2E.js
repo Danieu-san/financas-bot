@@ -17,7 +17,7 @@ const {
     buildUpdatedGoalRow,
     goalRowToObject
 } = require('../src/services/goalService');
-const { getFormattedDate, normalizeText } = require('../src/utils/helpers');
+const { getFormattedDate, normalizeText, parseValue } = require('../src/utils/helpers');
 const {
     closeProjectedPlanWriteRuntime,
     getProjectedPlanWriteContext
@@ -175,8 +175,12 @@ async function runWrites(marker, user) {
     const movementResult = await markerRows(GOAL_MOVEMENTS_SHEET, marker);
     const expenses = await markerRows('Saídas', marker);
     const incomes = await markerRows('Entradas', marker);
-    if (goalResult.matches.length !== 1 || Number(goalResult.matches[0].row[2]) !== goalAfter) throw new Error('Saldo final da meta divergiu.');
-    if (debtResult.matches.length !== 1 || Number(debtResult.matches[0].row[4]) !== debtInitial - debtPayment) throw new Error('Saldo final da dívida divergiu.');
+    if (goalResult.matches.length !== 1 || Math.round(parseValue(goalResult.matches[0].row[2]) * 100) !== Math.round(goalAfter * 100)) {
+        throw new Error('Saldo final da meta divergiu.');
+    }
+    if (debtResult.matches.length !== 1 || Math.round(parseValue(debtResult.matches[0].row[4]) * 100) !== Math.round((debtInitial - debtPayment) * 100)) {
+        throw new Error('Saldo final da dívida divergiu.');
+    }
     if (movementResult.matches.length !== 2) throw new Error('Movimento de meta duplicado ou ausente.');
     if (expenses.matches.length !== 0 || incomes.matches.length !== 0) throw new Error('Movimento de plano contaminou Entradas ou Saídas.');
 
