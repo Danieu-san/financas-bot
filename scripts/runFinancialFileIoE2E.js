@@ -98,7 +98,6 @@ async function main() {
                 body: `exportar finanças de ${String(period.month).padStart(2, '0')}/${period.year}`,
                 reply: async (...args) => replies.push(args)
             }, user, {
-                getPolicy: () => ({ mode: 'canary', allowed: true }),
                 createMessageMedia: exported => exported
             });
             const exported = replies.find(reply => Buffer.isBuffer(reply?.[0]?.buffer))?.[0];
