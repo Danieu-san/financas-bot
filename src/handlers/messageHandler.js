@@ -6257,6 +6257,33 @@ function normalizeIntentForQuestionUserScope(intentClassification, userScopeMatc
     };
 }
 
+function shouldKeepOwnedGoalForecastAcrossScopes(intentClassification = {}, resolvedScope = {}, userQuestion = '') {
+    const plan = intentClassification?.financialQueryPlan;
+    if (plan?.domain !== 'goals' || plan?.operation !== 'forecast') return false;
+    if (resolvedScope?.decision !== 'allow' || resolvedScope?.scope !== 'personal') return false;
+    if (!Array.isArray(resolvedScope.userIds) || resolvedScope.userIds.length !== 1) return false;
+    if (getAnalyticalRequestedScope(intentClassification)) return false;
+
+    const text = normalizeText(String(userQuestion || ''));
+    if (!/\bmetas?\b/.test(text)) return false;
+    const explicitPersonalScope = /\b(pessoal|individual)\b/.test(text) ||
+        /\b(so|somente|apenas)\s+(?:a\s+)?(?:minha|minhas|meu|meus)\b/.test(text);
+    return !explicitPersonalScope;
+}
+
+function applyResolvedScopeToAnalyticalClassification(intentClassification = {}, resolvedScope = {}, userQuestion = '') {
+    const scoped = applyResolvedScopeToClassification(intentClassification, resolvedScope);
+    if (!shouldKeepOwnedGoalForecastAcrossScopes(intentClassification, resolvedScope, userQuestion)) return scoped;
+
+    const parameters = { ...(scoped.parameters || {}) };
+    delete parameters.scope;
+    const plan = scoped.financialQueryPlan
+        ? { ...scoped.financialQueryPlan, filters: { ...(scoped.financialQueryPlan.filters || {}) } }
+        : null;
+    if (plan?.filters) delete plan.filters.scope;
+    return { ...scoped, parameters, ...(plan ? { financialQueryPlan: plan } : {}) };
+}
+
 function shouldRouteResumoToPergunta(messageBody) {
     const text = normalizeText(String(messageBody || '').trim());
     if (!text) return false;
@@ -10962,7 +10989,11 @@ async function handleMessage(msg) {
                         }
                         const analyticalUserIds = resolvedScope.userIds;
                         const scopeNormalizedIntent = normalizeIntentForQuestionUserScope(intentClassification, resolvedScope);
-                        const effectiveIntentClassification = applyResolvedScopeToClassification(scopeNormalizedIntent, resolvedScope);
+                        const effectiveIntentClassification = applyResolvedScopeToAnalyticalClassification(
+                            scopeNormalizedIntent,
+                            resolvedScope,
+                            userQuestion
+                        );
                         logger.info(`[routing] financial_scope_resolved scope=${resolvedScope.scope} selected=${analyticalUserIds.length}`);
                         let financialAgentResultForFallback = null;
                         const financialAgentMode = getFinancialAgentMode();

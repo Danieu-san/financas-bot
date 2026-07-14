@@ -38,6 +38,11 @@ Use este mapa para escolher rapidamente quais arquivos abrir por tarefa.
   Sheets com `userId` e nao aceitar resposta do Financial Agent baseada no
   read-model central. O agente so pode voltar a responder nesse caminho quando
   possuir uma fonte pessoal explicitamente escopada.
+- Em forecast de meta, um pronome generico como `minha meta` nao deve eliminar
+  uma meta `family` pertencente ao mesmo userId autorizado. O conjunto de
+  usuarios continua restrito; somente pedidos sem escopo explicito podem
+  consultar metas do proprio usuario entre escopos. `Pessoal`, `individual`,
+  `somente minha` e equivalentes mantem o filtro estrito.
 
 ## Importacao de extratos
 

@@ -164,6 +164,16 @@ reiniciou com novo PID, WhatsApp ficou pronto, health retornou
 verdes. Falta somente repetir o mesmo smoke no WhatsApp para o GO funcional
 da 5B; a 5C continua bloqueada.
 
+O segundo smoke ainda foi NO-GO porque `minha meta` recebeu filtro
+`scope=personal`, enquanto a meta real e familiar, ativa, autorizada e
+pertencente ao usuario. A fonte e o cronograma estavam validos; o filtro a
+removia antes do calculo. A segunda correcao mantem o userId atual como limite
+de autorizacao e abre somente o escopo de previsoes de meta sem pedido
+explicito. Pedidos de meta pessoal continuam estritos. A fixture agora replica
+valor atual zero, data-alvo ausente e linha familiar real. Evidencia local:
+planos `42/42`, direcionada `371/371`, suite `836/836` e audit zero. Falta o
+segundo redeploy e o novo smoke; a 5C permanece bloqueada.
+
 Relatório: `docs/qa/phase-5b-projected-plan-schedule-gate-2026-07-13.md`.
 
 ## 5C - Movimentos com escrita confiável

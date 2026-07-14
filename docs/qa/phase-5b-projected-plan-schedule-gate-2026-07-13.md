@@ -138,3 +138,39 @@ Decisao do hotfix: `GO local para redeploy`; a 5B permanece funcionalmente
 Decisao apos redeploy: `GO tecnico do hotfix em producao`; a 5B continua
 funcionalmente `NO-GO` somente ate o usuario repetir as quatro perguntas no
 WhatsApp. A 5C permanece bloqueada ate esse registro.
+
+## Segundo smoke WhatsApp - NO-GO
+
+As duas primeiras perguntas repetidas depois do hotfix ainda responderam que
+nao havia plano ativo com dados suficientes. Os logs de `23:54` confirmaram o
+caminho correto: fast path, intents `previsao_meta`/`simulacao_meta`, agente
+central ignorado, planilha pessoal e fallback de Sheets com resposta local.
+
+Uma leitura real sanitizada da mesma fonte encontrou uma meta com:
+
+- escopo `family`, status ativo e dono igual ao usuario do contexto;
+- alvo positivo, valor atual zero e aporte mensal positivo;
+- data-alvo ausente, mas cronograma `available`, conclusao calculavel, nenhuma
+  premissa ausente, nenhum issue e zero escritas.
+
+### Segunda causa raiz e correcao local
+
+O resolvedor interpretava o pronome de `minha meta` como pedido explicito de
+escopo pessoal e injetava `scope=personal` no Query Plan. Isso eliminava a
+unica meta, embora ela fosse familiar, autorizada e pertencente ao proprio
+usuario.
+
+A correcao mantem o conjunto autorizado restrito ao usuario atual e remove
+somente o filtro de escopo em previsoes de meta sem pedido de escopo no plano.
+Pedidos explicitos como `minha meta pessoal`, `somente minha` ou `individual`
+continuam isolados. Nenhum outro dominio ou operacao foi ampliado.
+
+O teste RED/GREEN agora replica o formato real sanitizado: planilha pessoal,
+meta familiar do usuario, valor atual zero, data-alvo ausente e linha sem a
+ultima coluna opcional. Ele valida as quatro frases, a protecao de escopo
+pessoal explicito, `userId` em todas as leituras e zero append/delete.
+
+Evidencia local: teste focal `1/1`, planos `42/42`, regressao direcionada
+`371/371`, suite completa `836/836`, audit com zero vulnerabilidades e diff
+check verde. Decisao: `GO local para segundo redeploy`; a 5B permanece
+funcionalmente `NO-GO` ate o smoke produtivo.

@@ -2790,12 +2790,12 @@ stateMachineTest('financial states: enforce allows deterministic complete credit
     }
 });
 
-stateMachineTest('5B personal spreadsheet forecasts bypass the central agent source and read the scoped goal', async () => {
+stateMachineTest('5B personal spreadsheet forecasts bypass the central agent source and read an owned family goal', async () => {
     resetState();
     usesPersonalSpreadsheet = true;
     personalSheetOverrides.Metas = [
         ['Nome da Meta', 'Valor Alvo', 'Valor Atual', '% Progresso', 'Valor Mensal Necessário', 'Data Fim', 'Status', 'Prioridade', 'user_id', 'Escopo', 'Última Movimentação'],
-        ['Reserva', '2.000,00', '500,00', '25%', '200,00', '31/12/2030', 'Ativa', 'Alta', USER_ID, 'personal', '10/07/2026']
+        ['Reserva', '2.000,00', '0,00', '0%', '200,00', '', 'Ativa', 'Alta', USER_ID, 'family']
     ];
     const previousMode = process.env.FINANCIAL_AGENT_MODE;
     const previousCanaryUsers = process.env.FINANCIAL_AGENT_CANARY_USER_IDS;
@@ -2807,15 +2807,18 @@ stateMachineTest('5B personal spreadsheet forecasts bypass the central agent sou
         const baseline = await send('Quando alcanço minha meta?');
         const contribution = await send('Se eu aportar R$ 300 por mês na meta, quando alcanço?');
         const withdrawal = await send('Se eu retirar R$ 200 da meta, quando alcanço?');
+        const explicitPersonal = await send('Quando alcanço minha meta pessoal?');
         const missingDebt = await send('Quanto falta quitar da dívida do banco?');
 
         assert.match(baseline, /Meta: Reserva/);
-        assert.match(baseline, /Quanto falta hoje: R\$ 1\.500,00/);
+        assert.match(baseline, /Quanto falta hoje: R\$ 2\.000,00/);
         assert.match(baseline, /Conclusão projetada/);
         assert.match(contribution, /Simulação: aporte mensal de R\$ 300,00/);
         assert.match(contribution, /Conclusão simulada/);
         assert.match(withdrawal, /Simulação: retirada de R\$ 200,00/);
         assert.match(withdrawal, /Conclusão simulada/);
+        assert.match(explicitPersonal, /Não encontrei um plano ativo e autorizado/);
+        assert.match(explicitPersonal, /Nenhum valor ausente foi tratado como zero/);
         assert.match(missingDebt, /Não encontrei um plano ativo e autorizado/);
         assert.match(missingDebt, /Nenhum valor ausente foi tratado como zero/);
         assert.doesNotMatch(

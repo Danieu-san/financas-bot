@@ -1605,4 +1605,15 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   desativado.
 - Estado atual: GO tecnico do hotfix em producao; repetir as quatro perguntas
   no WhatsApp para decidir o GO funcional da 5B. Nao iniciar 5C antes disso.
+- Segundo smoke foi NO-GO nas duas primeiras frases. Logs provaram que a fonte
+  pessoal e o roteamento estavam corretos. Diagnostico real sanitizado mostrou
+  uma meta `family`, ativa, do proprio usuario, com alvo/aporte validos, valor
+  atual zero, data-alvo ausente e cronograma disponivel sem issues/escritas.
+- Segunda causa raiz: `minha meta` virava `scope=personal` e eliminava a meta
+  familiar pertencente ao usuario. A correcao local preserva o unico userId
+  autorizado e deixa o escopo aberto somente para forecast de meta sem pedido
+  explicito; `meta pessoal` e equivalentes continuam isolados.
+- Cobertura com formato real sanitizado passou focal `1/1`, planos `42/42`,
+  direcionada `371/371`, completa `836/836` e audit zero. Estado atual: GO
+  local para segundo redeploy; 5B e 5C seguem bloqueadas ate novo smoke.
 - Relatorio: `docs/qa/phase-5b-projected-plan-schedule-gate-2026-07-13.md`.

@@ -317,6 +317,10 @@ Validar:
   presente somente na planilha do usuario: toda leitura deve receber `userId`,
   o agente central deve ser ignorado e as respostas nao podem variar entre
   compositores genericos.
+- Reproduzir tambem meta `family` pertencente ao usuario, com valor atual zero,
+  data-alvo ausente e ultima coluna opcional ausente. `Minha meta` deve
+  projetar sem ampliar userIds; `minha meta pessoal` deve continuar excluindo
+  a meta familiar.
 
 ## Scheduler e Calendar
 
