@@ -2,6 +2,28 @@
 
 Atualizado em: 2026-07-14
 
+## Fase 8B.0 - telemetria duravel de legado - GO de producao - 2026-07-14
+
+- Parecer adversarial independente confirmou `GO COM CONDICOES` para 8B e
+  `NO-GO` para remocao. Foram incorporados heartbeat, janela minima, quarentena
+  estatica e preservacao dos fallbacks necessarios ao cutover 8D.
+- Novo `legacyUsageTelemetry` e opt-in, append-only, allowlisted, limitado por
+  tamanho/backups e falha sem impacto no produto. Ator/sessao usam HMAC exclusivo
+  com rotacao diaria; sem segredo valido, a referencia fica vazia.
+- Primeiros pontos instrumentados: Financial Agent -> legado, SQLite -> memoria,
+  canary canonico -> legado e heartbeat horario. Nenhum fluxo financeiro mudou.
+- Evidencia local: isolado 6/6, integracoes 41/41, agente 89/89, suite 861/861,
+  pretest 6A-6E verde e audit high zero.
+- Gate analitico permaneceu corretamente `NO_GO`, 265 casos com uma lacuna em
+  `BILL-015`; migration gaps 6/6 sem missing/unsafe.
+- Producao no commit `0619f1c2cba4b861aa0e77f8d457cfa2b182f5dd`:
+  remoto 6/6, heartbeat schema 1, arquivo 600, smoke read-only com HMAC de 16
+  caracteres sem ator bruto, zero write failure, PM2/WhatsApp/cron/health verdes.
+- Janela de observacao iniciou em 2026-07-14: minimo 45 dias + ciclo completo;
+  cartoes exigem dois fechamentos ou 60 dias. Isso cria candidatos, nao autoriza
+  remocao. Proximo passo: 8B.1, corrigir `BILL-015`. Relatorio:
+  `docs/qa/phase-8b0-durable-legacy-telemetry-gate-2026-07-14.md`.
+
 ## Fase 8A - inventario e telemetria de legado - NO-GO para remocao - 2026-07-14
 
 - Fase 7 de patrimonio/investimentos foi adiada, nao cancelada: nao ha ativo real

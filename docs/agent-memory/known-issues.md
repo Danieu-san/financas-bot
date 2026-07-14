@@ -12,6 +12,9 @@ Atualizado em: 2026-07-14
   remover v1 sem migrar os consumidores e observar uso zero de forma duravel.
 - Zero ocorrencias em busca textual de log nao equivale a uso zero. Exigir
   contador sanitizado e janela de observacao por consumidor.
+- A janela duravel iniciou em 2026-07-14. Nao antecipar conclusao antes de 45
+  dias + ciclo completo; cartoes exigem dois fechamentos ou pelo menos 60 dias.
+  Mesmo depois, o item vira candidato a 8C, nao remocao automatica.
 
 ## Canario 6E sem consumidor no WhatsApp
 

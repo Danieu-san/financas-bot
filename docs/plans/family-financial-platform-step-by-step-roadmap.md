@@ -871,6 +871,18 @@ Passo a passo:
 Gate: testes de privacidade, restart, rotacao, heartbeat e falha de escrita
 passam; suite completa permanece verde; producao gera heartbeat sanitizado.
 
+Resultado em 2026-07-14:
+
+- `GO de producao` para observabilidade; nenhuma remocao autorizada;
+- contrato isolado `6/6`, integracoes `41/41`, agente `89/89`, suite `861/861`,
+  pretest 6A-6E verde e audit high zero;
+- producao no commit `0619f1c`, heartbeat schema 1, arquivo 600, HMAC rotativo
+  sem ator bruto e zero erro de escrita;
+- gate analitico segue `NO_GO` em `BILL-015`, como esperado;
+- proximo passo: 8B.1, corrigir a lacuna e exigir 265/265 antes de qualquer
+  desativacao por dominio;
+- relatorio: `docs/qa/phase-8b0-durable-legacy-telemetry-gate-2026-07-14.md`.
+
 Politica para uso zero: no minimo 45 dias e um ciclo orcamentario completo com
 todos os pontos de entrada instrumentados. Cartoes exigem dois fechamentos ou
 pelo menos 60 dias. O fim da janela torna o item apenas candidato a 8C.

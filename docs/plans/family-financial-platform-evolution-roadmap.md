@@ -805,13 +805,13 @@ Nao acumular todas as fases para um unico deploy.
 
 ## 13. Proximo passo imediato
 
-Executar a Fase `8B.0 - telemetria duravel de legado` apos o inventario 8A:
+Executar a Fase `8B.1 - correcao e gate analitico por dominio`:
 
-1. Instrumentar fonte/fallback analitico por dominio, rotas do dashboard, abas
-   antigas de cartao e handlers 6A-6E sem dados financeiros brutos.
-2. Definir janela minima de observacao para uso zero.
-3. Corrigir a lacuna `BILL-015` e rerodar o gate analitico.
-4. Migrar um consumidor por vez com fallback e rollback por flag.
-5. Nao remover codigo ou schema antes da 8C e sem evidencia duravel de uso zero.
+1. Diagnosticar e corrigir `BILL-015` sem inventar zero quando a fonte estiver
+   indisponivel.
+2. Completar a telemetria da trajetoria analitica por dominio.
+3. Rerodar o gate deterministico e exigir 265/265.
+4. Manter fallback e rollback por flag; nenhuma remocao durante a janela.
+5. Depois do GO, preparar a caracterizacao reversivel do dashboard em 8B.2.
 
-Auditoria: `docs/qa/phase-8a-legacy-inventory-audit-2026-07-14.md`.
+Gate 8B.0: `docs/qa/phase-8b0-durable-legacy-telemetry-gate-2026-07-14.md`.
