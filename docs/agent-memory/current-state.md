@@ -2,6 +2,32 @@
 
 Atualizado em: 2026-07-14
 
+## Fase 6B - importacao XLS/XLSX e exportacao filtrada - GO de producao - 2026-07-14
+
+- XLS e XLSX agora sao normalizados para o mesmo contrato de preview,
+  duplicidade e conciliacao de CSV/OFX; nenhuma escrita ocorre no parser.
+- Limites padrao sao 1 MiB e 1.000 linhas. Formulas, arquivo malformado,
+  excesso de linhas e mais de uma aba financeira falham fechados; abas
+  auxiliares podem ser ignoradas.
+- Exportacao XLSX exige periodo e aceita conta, categoria e origem. O arquivo
+  possui somente Data, Tipo, Descricao, Categoria, Subcategoria, Valor, Conta
+  e Origem; texto semelhante a formula e neutralizado.
+- Todas as leituras usam escopo exato de usuario. Identidade, card id,
+  referencia de linha, chave de operacao e id de planilha nao saem no arquivo.
+- Rollout `FINANCIAL_FILE_IO_MODE=off|canary|on`, padrao `off`; producao ficou
+  em `canary` para exatamente um usuario. CSV/OFX permanecem independentes.
+- Evidencia local: 6B `41/41`, suite integral `851/851`, audit high zero e E2E
+  `imports=2`, `export_rows=9`, `writes=zero`, `cleanup=zero`, `privacy=true`.
+- Commits `8e69094e588b43d9a6c4b714e458a8f0b2c8f627` e
+  `f7a286848e094524fd6e93bb57313b5a06751a80` publicados e implantados por
+  fast-forward. Backup `.env.pre-6b-8e69094-20260714T061500Z`.
+- Gate remoto `41/41`; PM2 online, WhatsApp pronto, health verde, worktree
+  rastreado limpo e E2E final `imports=2`, `export_rows=17`, `writes=zero`,
+  `cleanup=zero`, `privacy=true` usando a politica canario real.
+- Decisao: `GO de producao`, encerramento da 6B e autorizacao para iniciar 6C.
+  Promocao global continua proibida. Relatorio:
+  `docs/qa/phase-6b-financial-file-io-gate-2026-07-14.md`.
+
 ## Fase 6A - correcao e categorizacao em lote - GO de producao - 2026-07-14
 
 - Nova operacao deterministica permite recategorizar gastos e corrigir apenas

@@ -1,7 +1,7 @@
 # Roadmap passo a passo - FinancasBot familiar
 
 Data: 2026-07-14
-Status: Fase 6A concluida com GO de producao; proxima fatia autorizada: 6B
+Status: Fase 6B concluida com GO de producao; proxima fatia autorizada: 6C
 
 ## Principios de execucao
 
@@ -47,8 +47,11 @@ Concluido:
   producao e canario restrito.
 - Fase 5D: gate de saida concluido com GO de producao no commit
   `1e25c9a90bc89e31c6fef6551adbcb3b5ac161ba`.
+- Fase 6A: manutencao em lote concluida com GO de producao e canario restrito.
+- Fase 6B: importacao XLS/XLSX e exportacao filtrada concluidas com GO de
+  producao no commit `f7a286848e094524fd6e93bb57313b5a06751a80`.
 
-Proximo trabalho: iniciar 6B - Importacao XLS/XLSX e exportacao filtrada.
+Proximo trabalho: iniciar 6C - Comprovantes financeiros vinculados.
 
 ## Fase 3 - Recorrencias, parcelas, contas e faturas
 
@@ -648,6 +651,18 @@ Passo a passo:
 5. Smoke com arquivo sintetico e limpeza.
 
 Gate: arquivo importado nao grava nada sem preview; exportacao nao vaza campos internos.
+
+Resultado em 2026-07-14:
+
+- XLS/XLSX normalizados para o mesmo preview e reconciliador de CSV/OFX;
+- limite de tamanho/linhas e rejeicao de formulas, ambiguidades e malformados;
+- exportacao por periodo, conta, categoria e origem com oito colunas publicas;
+- rollout `off` por padrao e canario por allowlist exata;
+- gate local `41/41`, baseline integral `851/851` e audit high zero;
+- remoto `41/41`, PM2/WhatsApp/health verdes e canario para um usuario;
+- E2E final `imports=2`, `export_rows=17`, `writes=zero`, `cleanup=zero`,
+  `privacy=true`, sem smoke manual;
+- decisao: `GO de producao`; 6B encerrada e 6C autorizada.
 
 ### 6C - Comprovantes financeiros vinculados
 
