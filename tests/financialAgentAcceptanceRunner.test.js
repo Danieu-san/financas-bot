@@ -4,7 +4,10 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const { parseAcceptanceBattery } = require('../scripts/runFinancialQueryAcceptanceBattery');
+const {
+    parseAcceptanceBattery,
+    evaluateAcceptanceCase
+} = require('../scripts/runFinancialQueryAcceptanceBattery');
 const {
     evaluateAgenticCase,
     runFinancialAgentAcceptanceBattery
@@ -28,6 +31,36 @@ test('financial agent acceptance runner executes a planned query through a verif
     assert.strictEqual(result.tool, 'query_financial_plan');
     assert.strictEqual(result.verified, true);
     assert.strictEqual(result.toolResultSafe, true);
+});
+
+test('BILL-015 keeps recurring bill missing-category detection out of transaction quality', async () => {
+    const testCase = parseAcceptanceBattery().find(item => item.id === 'BILL-015');
+    const result = await evaluateAgenticCase(testCase);
+
+    assert.strictEqual(result.routedDomain, 'bills');
+    assert.strictEqual(result.routedOperation, 'detect');
+    assert.strictEqual(result.safePlan.timeBasis, 'current_state');
+    assert.strictEqual(result.accepted, true, JSON.stringify(result));
+    assert.strictEqual(result.action, 'answer');
+    assert.strictEqual(result.verified, true);
+    assert.doesNotMatch(result.answer, /indisponivel|ausencia de dados|valor zero/i);
+});
+
+test('transaction missing-category questions remain in the quality domain', () => {
+    const result = evaluateAcceptanceCase({
+        id: 'QUALITY-MISSING-CATEGORY',
+        question: 'tem lancamento sem categoria?',
+        expected: {
+            domain: 'quality',
+            operation: 'list',
+            timeBasis: 'transaction_date'
+        }
+    });
+
+    assert.strictEqual(result.actual.domain, 'quality');
+    assert.strictEqual(result.actual.operation, 'list');
+    assert.strictEqual(result.actual.timeBasis, 'transaction_date');
+    assert.strictEqual(result.matches.all, true);
 });
 
 test('financial agent acceptance runner requires clarification for unsupported dashboard commands', async () => {

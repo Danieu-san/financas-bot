@@ -4034,10 +4034,15 @@ function inferAnalyticalQueryPlan(userQuestion, previousContext = null) {
         /\b(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b/g
     ) || []).length;
 
+    const hasMissingCategorySignal = /\b(sem categoria|categoria vazia)\b/.test(text);
+    const hasTransactionalQualitySubject = /\b(dado|dados|lancamento|lancamentos|transacao|transacoes|movimento|movimentos|gasto|gastos|despesa|despesas|saida|saidas|entrada|entradas|transferencia|transferencias|importacao|importacoes|extrato|extratos|cartao|cartoes|conta financeira)\b/.test(text);
+    const hasOtherExplicitQualityIssue = /\b(incerto|incertos|incerta|incertas|nao conciliado|nao conciliados|nao conciliada|nao conciliadas|nao (?:foi|foram|esta|estao) conciliad[oa]s?|sem conta financeira|sem comprovante|comprovante obrigatorio|comprovantes obrigatorios)\b/.test(text);
     const hasExplicitDataQualitySignal = (
         /\b(qualidade|cobertura)\b/.test(text) && /\b(dado|dados|lancamento|lancamentos|origem|origens|classificacao|classificados)\b/.test(text)
     ) || (
-        /\b(sem categoria|categoria vazia|incerto|incertos|incerta|incertas|nao conciliado|nao conciliados|nao conciliada|nao conciliadas|nao (?:foi|foram|esta|estao) conciliad[oa]s?|sem conta financeira|sem comprovante|comprovante obrigatorio|comprovantes obrigatorios)\b/.test(text)
+        hasMissingCategorySignal && (!hasBillSignal || hasTransactionalQualitySubject)
+    ) || (
+        hasOtherExplicitQualityIssue
     ) || (
         /\b(pendencia|pendencias|pendente|pendentes)\b/.test(text) && /\b(dado|dados|lancamento|lancamentos|classificacao|conciliacao|conta financeira|comprovante)\b/.test(text)
     );
