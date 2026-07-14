@@ -2,7 +2,7 @@
 
 Atualizado em: 2026-07-14
 
-## Fase 5D - gate de saida da Fase 5 - GO local - 2026-07-14
+## Fase 5D - gate de saida da Fase 5 - GO de producao - 2026-07-14
 
 - Criado `tests/phase5ExitGate.test.js` com tres verticais repetiveis: paridade
   apos aporte/pagamento, simulacao read-only com cronograma deterministico e
@@ -17,8 +17,15 @@ Atualizado em: 2026-07-14
 - O E2E real marker-only da 5C ja provou imediatamente antes deste gate as
   escritas e o cleanup. Como a 5D adiciona somente teste/documentacao, a etapa
   remota repete o gate sem nova mutacao desnecessaria da planilha real.
-- Decisao: `GO local`; publicar e executar na EC2 antes do GO final da Fase 5.
-  Relatorio: `docs/qa/phase-5d-phase-5-exit-gate-2026-07-14.md`.
+- Commit `1e25c9a90bc89e31c6fef6551adbcb3b5ac161ba` publicado e implantado
+  por fast-forward. O gate remoto passou `3/3`, worktree rastreado ficou limpo,
+  PM2 online e health `{"ok":true,"sqlite":true}`.
+- A configuracao permaneceu em `shadow` para exatamente um usuario. Nenhum
+  restart ou nova mutacao real foi necessario, pois a 5D altera apenas teste,
+  scripts npm e documentacao.
+- Decisao: `GO de producao`, encerramento da Fase 5 e autorizacao para iniciar
+  6A - correcao e categorizacao em lote. Relatorio:
+  `docs/qa/phase-5d-phase-5-exit-gate-2026-07-14.md`.
 
 ## Fase 5C - movimentos de plano com escrita confiavel - GO de producao - 2026-07-14
 

@@ -1,7 +1,7 @@
 # Roadmap passo a passo - FinancasBot familiar
 
 Data: 2026-07-14
-Status: Fase 5D em GO local; gate remoto pendente para encerrar a Fase 5
+Status: Fase 5 concluida com GO de producao; proxima fatia autorizada: 6A
 
 ## Principios de execucao
 
@@ -43,8 +43,12 @@ Concluido:
 - Fase 5A: contrato comum de planos concluido com GO de producao.
 - Fase 5B: cronograma e simulacao mensal concluidos com GO funcional de
   producao no commit `369c7026dccde5c0e1b1b73201fa1e968e4298b8`.
+- Fase 5C: movimentos de plano com escrita confiavel concluidos com GO de
+  producao e canario restrito.
+- Fase 5D: gate de saida concluido com GO de producao no commit
+  `1e25c9a90bc89e31c6fef6551adbcb3b5ac161ba`.
 
-Proximo trabalho: publicar e validar remotamente 5D - Gate de saida da Fase 5.
+Proximo trabalho: iniciar 6A - Correcao e categorizacao em lote.
 
 ## Fase 3 - Recorrencias, parcelas, contas e faturas
 
@@ -594,7 +598,9 @@ Evidencia local em 2026-07-14:
 - politica de rollback falha fechada para modo ausente/invalido e usuario fora
   da allowlist;
 - audit high zero e diff check limpo;
-- decisao: `GO local`; producao aguarda publicacao e gate remoto.
+- remoto `3/3`, hash exato `1e25c9a90bc89e31c6fef6551adbcb3b5ac161ba`,
+  worktree rastreado limpo, PM2 online e health verde;
+- decisao: `GO de producao`; Fase 5 encerrada e 6A autorizada.
 
 ## Fase 6 - Manutencao, formatos e comprovantes
 

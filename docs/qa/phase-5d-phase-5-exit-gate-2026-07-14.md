@@ -56,7 +56,21 @@ atualizado. A politica rejeita modo invalido e exige correspondencia exata da
 allowlist. O SQLite de recibos nao deve ser apagado, pois ele e evidencia de
 auditoria.
 
-## Decisao antes do deploy
+## Evidencia de deploy
 
-`GO local`. O encerramento de producao depende de publicar o gate, executa-lo
-na EC2, confirmar o hash remoto, o health e a preservacao do canario restrito.
+- commit publicado e implantado por fast-forward:
+  `1e25c9a90bc89e31c6fef6551adbcb3b5ac161ba`;
+- gate 5D remoto: `3/3`;
+- worktree rastreado da EC2: limpo;
+- PM2: `online`;
+- health: `{"ok":true,"sqlite":true}`;
+- rollout preservado em `shadow` para exatamente um usuario;
+- nenhum restart foi necessario porque a fatia altera somente teste,
+  package scripts e documentacao.
+
+## Decisao final
+
+`GO de producao`. A Fase 5 esta encerrada e a Fase 6A - correcao e
+categorizacao em lote - esta autorizada a iniciar. Sheets continua como
+autoridade legivel e o rollout de escrita projetada permanece restrito ao
+canario existente.
