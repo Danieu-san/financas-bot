@@ -2,7 +2,7 @@
 
 Atualizado em: 2026-07-14
 
-## Fase 5C - movimentos de plano com escrita confiavel - GO local - 2026-07-14
+## Fase 5C - movimentos de plano com escrita confiavel - GO de producao - 2026-07-14
 
 - Movimentos de meta, mudancas de status de meta e pagamentos de divida agora
   podem usar um recibo duravel `prepared -> legacy_committed ->
@@ -27,9 +27,25 @@ Atualizado em: 2026-07-14
 - Evidencia local final: gate 5C `8/8`, store/recibos `14/14`, suite completa
   `845/845`, `npm audit --audit-level=high` com zero vulnerabilidades, sintaxe
   e `git diff --check` verdes.
-- Decisao: `GO local`. Producao permanece na 5B ate commit/push, backup,
-  ativacao canary de um unico usuario, deploy e E2E remoto com cleanup zero.
-  Relatorio: `docs/qa/phase-5c-reliable-plan-writes-gate-2026-07-14.md`.
+- O commit principal `14a1f6b` e o hotfix do verificador localizado `4771d79`
+  foram publicados e implantados. Producao esta no hash completo
+  `4771d79d9f0bac2ee2521faa45f6b9b852b2106a`.
+- Testes remotos passaram `14/14` para store/recibos e `2/2` para os E2E da
+  maquina de estados. PM2, Google, Sheets, read-model, integridade de usuario,
+  dashboard, WhatsApp e health ficaram saudaveis.
+- O primeiro E2E remoto deu `NO_GO` apenas no verificador: Google retornou
+  saldo decimal localizado com virgula e `Number(...)` recusou o formato. O
+  cleanup executou e o rollback automatico deixou a flag em `off`.
+- O hotfix passou a usar o parser financeiro oficial em centavos. O E2E final
+  confirmou `plans=2`, `movements=3`, `cleanup=zero` e `privacy=true`, sem
+  contaminar Entradas ou Saidas.
+- Postflight: modo `shadow`, allowlist com um usuario, schema 2, zero recibo de
+  teste no banco normal, zero artefato SQLite temporario e acesso amplo admin
+  desligado. Backups finais: `.env.pre-5c-4771d79-20260714T041934Z` e
+  `data/projected-plans-identity.pre-5c-4771d79-20260714T041934Z.sqlite`.
+- Decisao: `GO de producao` e encerramento da 5C. Proximo passo oficial: 5D -
+  gate de saida da Fase 5. Relatorio:
+  `docs/qa/phase-5c-reliable-plan-writes-gate-2026-07-14.md`.
 
 ## Fase 4E - Gate de saida da Fase 4 - GO local - 2026-07-13
 

@@ -1,7 +1,7 @@
 # Roadmap passo a passo - FinancasBot familiar
 
 Data: 2026-07-14
-Status: Fase 5C com GO local; deploy e E2E remoto marker-only pendentes
+Status: Fase 5C concluida com GO de producao; proxima fatia autorizada: 5D
 
 ## Principios de execucao
 
@@ -44,8 +44,7 @@ Concluido:
 - Fase 5B: cronograma e simulacao mensal concluidos com GO funcional de
   producao no commit `369c7026dccde5c0e1b1b73201fa1e968e4298b8`.
 
-Proximo trabalho: publicar e implantar 5C, executar E2E automatico marker-only
-e decidir GO/NO-GO de producao antes de abrir 5D.
+Proximo trabalho: iniciar 5D - Gate de saida da Fase 5.
 
 ## Fase 3 - Recorrencias, parcelas, contas e faturas
 
@@ -548,7 +547,7 @@ Gate: simulacao e historico real permanecem separados.
 
 ### 5C - Movimentos de plano com escrita confiavel
 
-Status em 2026-07-14: implementada com GO local; deploy e E2E remoto pendentes.
+Status em 2026-07-14: concluida com GO de producao no commit `4771d79`.
 
 Passo a passo:
 
@@ -570,6 +569,11 @@ Evidencia local:
 - flags falham fechadas e restringem shadow a allowlist exata;
 - E2E automatico usa marcador exato, SQLite temporario e cleanup verificavel;
 - gate 5C `8/8`, store/recibos `14/14`, suite `845/845` e audit high zero.
+- deploy preservou um admin, acesso amplo desligado, schema 2 e allowlist de
+  um usuario; testes remotos passaram `14/14` e `2/2`;
+- E2E real final confirmou dois planos, tres movimentos, replay, zero
+  contaminacao contabil, `cleanup=zero` e `privacy=true`;
+- decisao: `GO de producao`; 5D autorizada a iniciar.
 
 ### 5D - Gate de saida da Fase 5
 

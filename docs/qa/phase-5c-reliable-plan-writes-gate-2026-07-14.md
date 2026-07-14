@@ -2,13 +2,12 @@
 
 Data: 2026-07-14
 
-## Veredito local
+## Veredito final
 
-`GO local` para publicar e implantar o canario shadow da 5C.
+`GO de producao` para o canario shadow da 5C.
 
-O GO de producao depende de deploy com allowlist de um unico usuario, saude do
-runtime e E2E automatico marker-only com limpeza zero. A Fase 5D ainda nao esta
-aberta.
+O deploy manteve a allowlist em um unico usuario e o E2E automatico marker-only
+terminou com limpeza zero. A Fase 5C esta encerrada e a 5D esta autorizada.
 
 ## Escopo entregue
 
@@ -109,11 +108,52 @@ PM2 com `--update-env`. Isso devolve imediatamente metas e dividas aos fluxos
 legados. Nao apagar o SQLite: recibos e projecoes existentes sao evidencia de
 auditoria. Rollback de codigo usa `git revert`, nunca `git reset --hard`.
 
-## Pendencia de producao
+## Evidencia de deploy
 
-- publicar commit e confirmar o mesmo hash na EC2;
-- salvar backup da `.env` e do SQLite projetado, se existir;
-- ativar `shadow` somente para o usuario canario;
-- executar testes remotos focados, restart, logs e health;
-- executar o E2E automatico e registrar `cleanup=zero privacy=true`;
-- decidir GO/NO-GO da 5C e, somente em GO, abrir 5D.
+- commit principal: `14a1f6b`;
+- hotfix do parser localizado do verificador: `4771d79`;
+- `HEAD` final da EC2:
+  `4771d79d9f0bac2ee2521faa45f6b9b852b2106a`;
+- backup final da configuracao:
+  `.env.pre-5c-4771d79-20260714T041934Z`;
+- backup final do store:
+  `data/projected-plans-identity.pre-5c-4771d79-20260714T041934Z.sqlite`;
+- dependencias atualizadas e auditadas com zero vulnerabilidades;
+- store/recibos remotos `14/14` e maquina de estados 5C `2/2`;
+- PM2 online, Google autorizado, Sheets sincronizada, read-model pronto,
+  integridade `user_id` verde, dashboard ativo, WhatsApp pronto e health
+  `{"ok":true,"sqlite":true}`;
+- um unico admin, acesso amplo desligado, modo `shadow` e allowlist com um
+  usuario;
+- schema normal em versao 2 e tabela de recibos presente.
+
+## Primeiro E2E remoto - NO-GO do verificador
+
+As escritas e o cleanup foram executados, mas a assercao do saldo da meta usou
+`Number(...)`. A API do Google retornou o decimal no formato localizado com
+virgula, portanto o verificador recusou um valor valido. O rollback automatico
+colocou a flag em `off` e reiniciou o bot; health recuperou normalmente.
+
+O hotfix `4771d79` usa `parseValue` e compara centavos inteiros tanto para meta
+quanto para divida. Nenhuma regra de negocio ou escrita produtiva mudou.
+
+## E2E remoto final - GO
+
+Marcador: `TESTE_APAGAR_PLAN_WRITES_20260714_0421`.
+
+Resultado sanitizado:
+
+- `plans=2`;
+- `movements=3`;
+- aporte, status de meta e pagamento de divida projetados;
+- replay sem nova linha;
+- zero linha marcada em `Entradas` e `Saidas`;
+- `cleanup=zero`;
+- `privacy=true`;
+- zero artefato SQLite temporario no postflight;
+- zero recibo de teste no banco normal;
+- health permaneceu saudavel e o canario continuou em `shadow` para um
+  usuario.
+
+Decisao final: `GO de producao`, encerramento da 5C e abertura autorizada da
+5D - Gate de saida da Fase 5.
