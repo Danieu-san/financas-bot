@@ -174,3 +174,21 @@ Evidencia local: teste focal `1/1`, planos `42/42`, regressao direcionada
 `371/371`, suite completa `836/836`, audit com zero vulnerabilidades e diff
 check verde. Decisao: `GO local para segundo redeploy`; a 5B permanece
 funcionalmente `NO-GO` ate o smoke produtivo.
+
+### Segundo redeploy
+
+- commit publicado e implantado: `4a880399c08f2075a48000abfd6799df62b37f98`;
+- `HEAD` da EC2 antes: `fb12c74246b8b16ff891c21267cf8e2a087c4195`;
+- backup: `.env.pre-5b-scope-hotfix-4a88039-20260714T002401Z`;
+- dependencias atualizadas com zero vulnerabilidades e planos remotos `42/42`;
+- a primeira execucao ampla de estados cruzou a virada UTC e falhou em tres
+  assercoes temporais de alerta de orcamento. Sem reiniciar o runtime, o teste
+  focal passou `1/1` e a mesma suite no fuso oficial
+  `America/Sao_Paulo` passou `101/101`, confirmando ausencia de regressao;
+- PM2 reiniciado do PID `3188958` para `3190204`, WhatsApp pronto e health
+  `{"ok":true,"sqlite":true}`;
+- `HEAD` final exato no commit, worktree rastreado limpo, um admin e
+  `DASHBOARD_ADMIN_ALL_USERS_ENABLED=false`.
+
+Decisao: `GO tecnico do segundo hotfix em producao`; 5B permanece
+funcionalmente `NO-GO` apenas ate repetir o smoke. A 5C segue bloqueada.

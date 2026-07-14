@@ -1616,4 +1616,14 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Cobertura com formato real sanitizado passou focal `1/1`, planos `42/42`,
   direcionada `371/371`, completa `836/836` e audit zero. Estado atual: GO
   local para segundo redeploy; 5B e 5C seguem bloqueadas ate novo smoke.
+- Segundo hotfix `4a880399c08f2075a48000abfd6799df62b37f98`
+  implantado sobre `fb12c74246b8b16ff891c21267cf8e2a087c4195`, com backup
+  `.env.pre-5b-scope-hotfix-4a88039-20260714T002401Z`.
+- Remoto: planos `42/42`; teste focal `1/1` e estados `101/101` no fuso
+  `America/Sao_Paulo`. A execucao inicial apos meia-noite UTC encontrou tres
+  falhas temporais de alertas de orcamento, resolvidas ao usar o fuso oficial,
+  sem mudanca de codigo nem restart intermediario.
+- PM2 passou de `3188958` para `3190204`; WhatsApp pronto, health
+  `{"ok":true,"sqlite":true}`, hash exato, worktree limpo, um admin e
+  all-users desligado. Estado: GO tecnico em producao; smoke ainda pendente.
 - Relatorio: `docs/qa/phase-5b-projected-plan-schedule-gate-2026-07-13.md`.

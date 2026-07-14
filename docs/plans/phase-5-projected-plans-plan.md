@@ -174,6 +174,14 @@ valor atual zero, data-alvo ausente e linha familiar real. Evidencia local:
 planos `42/42`, direcionada `371/371`, suite `836/836` e audit zero. Falta o
 segundo redeploy e o novo smoke; a 5C permanece bloqueada.
 
+O segundo hotfix `4a880399c08f2075a48000abfd6799df62b37f98` foi implantado
+por fast-forward a partir de `fb12c74246b8b16ff891c21267cf8e2a087c4195`.
+Planos remotos passaram `42/42`; o caso focal passou `1/1` e a suite de estados
+passou `101/101` no fuso oficial do produto. PM2 reiniciou com novo PID,
+WhatsApp e health ficaram verdes e os controles de privacidade foram
+preservados. Falta somente o novo smoke para o GO funcional da 5B; a 5C segue
+bloqueada.
+
 Relatório: `docs/qa/phase-5b-projected-plan-schedule-gate-2026-07-13.md`.
 
 ## 5C - Movimentos com escrita confiável
