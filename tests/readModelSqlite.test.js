@@ -1,5 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert');
+const fs = require('node:fs/promises');
+const os = require('node:os');
+const path = require('node:path');
 
 const {
     ensureSqliteReady,
@@ -1103,4 +1106,51 @@ test('analytical read-model reports sqlite source and hit metric', async () => {
     assert.strictEqual(snapshot.counters['read_model.sqlite.hit'], 1);
     assert.strictEqual(snapshot.counters['read_model.sqlite.miss'] || 0, 0);
     metrics.reset();
+});
+
+test('analytical read-model records sqlite and memory fallback sources without raw actor id', async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'read-model-legacy-telemetry-'));
+    const telemetryPath = path.join(tempDir, 'events.jsonl');
+    const keys = [
+        'LEGACY_USAGE_TELEMETRY_ENABLED',
+        'LEGACY_USAGE_TELEMETRY_PATH',
+        'LEGACY_USAGE_TELEMETRY_HMAC_SECRET'
+    ];
+    const previous = Object.fromEntries(keys.map(key => [key, process.env[key]]));
+    Object.assign(process.env, {
+        LEGACY_USAGE_TELEMETRY_ENABLED: 'true',
+        LEGACY_USAGE_TELEMETRY_PATH: telemetryPath,
+        LEGACY_USAGE_TELEMETRY_HMAC_SECRET: 'test-only-read-model-telemetry-secret'
+    });
+
+    try {
+        syncControlledSnapshot();
+        const sqlite = await executeAnalyticalIntent(
+            'total_gastos_mes',
+            { mes: 1, ano: 2026 },
+            { userId: 'raw-user-read-a' }
+        );
+        const fallback = await executeAnalyticalIntent(
+            'intent_sem_implementacao',
+            { mes: 1, ano: 2026 },
+            { userId: 'raw-user-read-a' }
+        );
+
+        assert.strictEqual(sqlite.source, 'sqlite');
+        assert.strictEqual(fallback.source, 'memory_fallback');
+        const events = (await fs.readFile(telemetryPath, 'utf8')).trim().split('\n').map(JSON.parse);
+        assert.strictEqual(events.length, 2);
+        assert.strictEqual(events[0].source, 'sqlite');
+        assert.strictEqual(events[0].operation, 'read');
+        assert.strictEqual(events[1].source, 'memory_fallback');
+        assert.strictEqual(events[1].operation, 'fallback');
+        assert.strictEqual(events[1].reason_code, 'sqlite_miss');
+        assert.ok(events.every(event => /^[a-f0-9]{16}$/.test(event.actor_ref)));
+        assert.ok(!JSON.stringify(events).includes('raw-user-read-a'));
+    } finally {
+        for (const key of keys) {
+            if (previous[key] === undefined) delete process.env[key];
+            else process.env[key] = previous[key];
+        }
+    }
 });

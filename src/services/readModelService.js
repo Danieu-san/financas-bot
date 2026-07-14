@@ -27,6 +27,7 @@ const { executeFinancialQueryPlanForLegacyIntent } = require('./calculationOrche
 const { decorateDashboardSummary } = require('./dashboardSummaryService');
 const logger = require('../utils/logger');
 const metrics = require('../utils/metrics');
+const { recordLegacyUsageEvent } = require('../telemetry/legacyUsageTelemetry');
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 const STORE_FILE = path.join(DATA_DIR, 'read_model.json');
@@ -803,14 +804,61 @@ function summarizeReadModelGoals(userId, { onlyActive = false } = {}) {
     };
 }
 
+function legacyTelemetryDomainForIntent(intent) {
+    const normalized = String(intent || '').toLowerCase();
+    if (/cartao|fatura|parcelamento/.test(normalized)) return 'cards';
+    if (/meta/.test(normalized)) return 'goals';
+    if (/divida/.test(normalized)) return 'debts';
+    if (/orcamento/.test(normalized)) return 'budget';
+    if (/entrada|renda/.test(normalized)) return 'income';
+    if (/transferencia|reserva/.test(normalized)) return 'transfers';
+    if (/conta|saldo/.test(normalized)) return 'accounts';
+    if (/gasto|despesa/.test(normalized)) return 'expenses';
+    return 'analytics';
+}
+
 async function executeAnalyticalIntent(intent, parameters, { userId }) {
     const sqlResult = queryAnalyticalIntentSql(intent, parameters, { userId });
     if (sqlResult) {
         metrics.increment('read_model.sqlite.hit');
+        await recordLegacyUsageEvent({
+            event: 'usage',
+            surface: 'read_model',
+            consumer: 'read_model_service',
+            handler: 'read_model_service',
+            route: 'analytical_intent',
+            domain: legacyTelemetryDomainForIntent(intent),
+            operation: 'read',
+            source: 'sqlite',
+            mode: 'answer',
+            result: 'success',
+            reasonCode: 'none',
+            writeAttempted: false,
+            writeResult: 'not_attempted',
+            actorId: userId
+        });
         return withResultSource(sqlResult, 'sqlite');
     }
     metrics.increment('read_model.sqlite.miss');
     metrics.increment('read_model.memory_fallback.started');
+    await recordLegacyUsageEvent({
+        event: 'usage',
+        surface: 'read_model',
+        consumer: 'read_model_service',
+        handler: 'read_model_service',
+        route: 'analytical_intent',
+        domain: legacyTelemetryDomainForIntent(intent),
+        operation: 'fallback',
+        source: 'memory_fallback',
+        fallbackFrom: 'sqlite',
+        fallbackTo: 'memory_fallback',
+        mode: 'answer',
+        result: 'success',
+        reasonCode: 'sqlite_miss',
+        writeAttempted: false,
+        writeResult: 'not_attempted',
+        actorId: userId
+    });
 
     const month = normalizeMonthParam(parameters?.mes);
     const year = normalizeYearParam(parameters?.ano);

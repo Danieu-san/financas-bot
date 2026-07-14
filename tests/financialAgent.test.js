@@ -2029,6 +2029,31 @@ test('message handler builds sanitized analytical migration-gap telemetry', () =
         action: 'answer'
     });
 });
+test('message handler builds an allowlisted legacy fallback usage event by domain', () => {
+    const event = messageHandlerTest.buildFinancialAgentLegacyUsageEvent({
+        financialAgentMode: 'answer',
+        actorId: 'raw-user-id',
+        sessionId: '5511999999999@c.us',
+        agentResult: {
+            action: 'clarify',
+            migrationGap: {
+                tag: 'unsupported_filter',
+                reason: 'filter_gap',
+                domain: 'card'
+            }
+        },
+        intentClassification: { financialQueryPlan: { domain: 'expenses' } }
+    });
+
+    assert.strictEqual(event.surface, 'analytics');
+    assert.strictEqual(event.domain, 'cards');
+    assert.strictEqual(event.operation, 'fallback');
+    assert.strictEqual(event.source, 'legacy');
+    assert.strictEqual(event.fallbackFrom, 'financial_agent');
+    assert.strictEqual(event.fallbackTo, 'legacy');
+    assert.strictEqual(event.reasonCode, 'unsupported_filter');
+    assert.strictEqual(event.writeAttempted, false);
+});
 test('financial agent shadow mode can answer only verified recent-transaction tool results', () => {
     assert.strictEqual(messageHandlerTest.shouldUseFinancialAgentAnswerInMode('shadow', {
         action: 'answer',

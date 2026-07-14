@@ -20,6 +20,9 @@ Use this before deploying `main` to the EC2 PM2 process.
 - [ ] AdminActionLog is enabled or intentionally disabled; risky admin actions append sanitized entries to `data/admin-actions.jsonl` or `ADMIN_ACTION_LOG_PATH`.
 - [ ] Prompt-injection/security gate tests still block internal IDs, prompt/system instructions, secrets, cross-user data, and bypass attempts.
 - [ ] Interpretation reliability rollout uses `shadow` before `enforce`; initial allowlist is limited to `expense.create,income.create`, alerts are enabled, and no automated path changes the mode to `enforce`.
+- [ ] Se `LEGACY_USAGE_TELEMETRY_ENABLED=true`, o segredo HMAC exclusivo possui
+      pelo menos 16 caracteres, o caminho e gravavel, a rotacao esta limitada e
+      um heartbeat sanitizado foi persistido sem identificadores brutos.
 - [ ] If the approved narrow canary is in `enforce`, `INTERPRETATION_RELIABILITY_ENFORCE_APPROVED=true` is set and `INTERPRETATION_RELIABILITY_OPERATIONS` remains exactly `expense.create,income.create`; any broader allowlist must make the daily check critical.
 - [ ] Financial Agent rollout follows ADR-005: production stays `FINANCIAL_AGENT_MODE=shadow` until evidence gates pass; `answer` is not enabled globally from a single manual success.
 - [ ] If this release moves toward real multiuser scale, ADR-002 and ADR-003 have been reviewed; admin access to all users' transaction-level financial data remains removed or replaced with consented/audited support mode.
@@ -55,6 +58,8 @@ Expected health:
 - [ ] Logs show `dashboard: servidor web ativo`.
 - [ ] WhatsApp reaches ready state or shows a QR that can be scanned.
 - [ ] If an admin command was tested, AdminActionLog did not store raw phone numbers, message bodies, tokens or Google document IDs.
+- [ ] Se a telemetria 8B.0 estiver ativa, `data/legacy-usage-telemetry.jsonl`
+      existe com permissao `600` e o ultimo `heartbeat` tem `reason_code=self_check`.
 
 ## WhatsApp Smoke
 

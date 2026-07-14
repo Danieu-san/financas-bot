@@ -1,5 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert');
+const fs = require('node:fs/promises');
+const os = require('node:os');
+const path = require('node:path');
 
 const schedulerPath = require.resolve('../src/jobs/scheduler');
 const googlePath = require.resolve('../src/services/google');
@@ -353,5 +356,38 @@ test('scheduler sends daily ops check only through the admin ops notifier', asyn
         assert.deepStrictEqual(Array.from(calls[0].adminIds), ['5511999999999@c.us']);
     } finally {
         process.env.ADMIN_IDS = previousAdminIds;
+    }
+});
+
+test('scheduler operational heartbeat persists telemetry self-check without financial data', async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'scheduler-legacy-telemetry-'));
+    const telemetryPath = path.join(tempDir, 'events.jsonl');
+    const keys = [
+        'LEGACY_USAGE_TELEMETRY_ENABLED',
+        'LEGACY_USAGE_TELEMETRY_PATH',
+        'LEGACY_USAGE_TELEMETRY_HMAC_SECRET',
+        'OPERATIONAL_ALERTS_ENABLED'
+    ];
+    const previous = Object.fromEntries(keys.map(key => [key, process.env[key]]));
+    Object.assign(process.env, {
+        LEGACY_USAGE_TELEMETRY_ENABLED: 'true',
+        LEGACY_USAGE_TELEMETRY_PATH: telemetryPath,
+        LEGACY_USAGE_TELEMETRY_HMAC_SECRET: 'test-only-scheduler-telemetry-secret',
+        OPERATIONAL_ALERTS_ENABLED: 'false'
+    });
+
+    try {
+        const scheduler = installSchedulerMocks({ users: [], settingsByUser: {} });
+        await scheduler.__test__.sendOperationalHeartbeat();
+        const events = (await fs.readFile(telemetryPath, 'utf8')).trim().split('\n').map(JSON.parse);
+        assert.strictEqual(events.length, 1);
+        assert.strictEqual(events[0].event, 'heartbeat');
+        assert.strictEqual(events[0].surface, 'telemetry');
+        assert.strictEqual(events[0].reason_code, 'self_check');
+    } finally {
+        for (const key of keys) {
+            if (previous[key] === undefined) delete process.env[key];
+            else process.env[key] = previous[key];
+        }
     }
 });

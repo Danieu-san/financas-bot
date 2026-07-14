@@ -110,6 +110,7 @@ const { sendPlainMessage } = require('../utils/whatsappMessaging');
 const { recordQaFailure } = require('../services/qaFailureLogService');
 const { recordAdminAction, hashRef, sanitizeValue } = require('../services/adminActionLogService');
 const { recordDashboardAccessEvent } = require('../services/dashboardAccessLogService');
+const { recordLegacyUsageEvent } = require('../telemetry/legacyUsageTelemetry');
 const {
     buildAdminBotStatusReply,
     scheduleAdminProcessRestart,
@@ -510,6 +511,55 @@ function formatCurrencyBR(value) {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     });
+}
+
+function normalizeLegacyUsageDomain(value) {
+    const normalized = sanitizeFinancialAgentMigrationGapToken(value, 'analytics', 48) || 'analytics';
+    const aliases = {
+        bill: 'bills',
+        card: 'cards',
+        invoice: 'cards',
+        invoices: 'cards',
+        debt: 'debts',
+        goal: 'goals',
+        account: 'accounts',
+        transaction: 'transactions',
+        transfer: 'transfers',
+        expense: 'expenses'
+    };
+    return aliases[normalized] || normalized;
+}
+
+function buildFinancialAgentLegacyUsageEvent({
+    financialAgentMode = 'off',
+    agentResult = null,
+    intentClassification = null,
+    fallbackReason = 'answer_not_selected',
+    actorId = '',
+    sessionId = ''
+} = {}) {
+    const gap = buildFinancialAgentMigrationGapTelemetry(agentResult);
+    return {
+        event: 'usage',
+        surface: 'analytics',
+        consumer: 'message_handler',
+        handler: 'message_handler',
+        route: 'analytical_intent',
+        domain: normalizeLegacyUsageDomain(
+            gap?.domain || intentClassification?.financialQueryPlan?.domain || 'analytics'
+        ),
+        operation: 'fallback',
+        source: 'legacy',
+        fallbackFrom: 'financial_agent',
+        fallbackTo: 'legacy',
+        mode: financialAgentMode,
+        result: 'success',
+        reasonCode: gap?.tag || fallbackReason,
+        writeAttempted: false,
+        writeResult: 'not_attempted',
+        actorId,
+        sessionId
+    };
 }
 
 function formatSheetDateForReply(value) {
@@ -11248,6 +11298,11 @@ async function handleMessage(msg) {
                         const financialAgentMode = getFinancialAgentMode();
                         const financialAgentCanaryAllowed = financialAgentMode !== 'canary' ||
                             isFinancialAgentCanaryUserAllowed(activeUser?.user_id);
+                        let financialAgentFallbackReason = financialAgentMode === 'off'
+                            ? 'agent_disabled'
+                            : financialAgentCanaryAllowed
+                                ? 'answer_not_selected'
+                                : 'canary_user_not_allowed';
                         const financialAgentExecutionMode = financialAgentMode === 'canary' ? 'answer' : financialAgentMode;
                         const financialAgentSourceCompatible = !usePersonalSpreadsheet;
                         if (financialAgentMode !== 'off' && financialAgentCanaryAllowed && financialAgentSourceCompatible) {
@@ -11278,10 +11333,12 @@ async function handleMessage(msg) {
                                     return;
                                 }
                             } catch (agentError) {
+                                financialAgentFallbackReason = 'agent_error';
                                 metrics.increment('message.financial_agent.error');
                                 logger.warn(`[financial-agent] fallback legacy reason=${sanitizeLogText(agentError.message, 120)} sender=${logger.redactIdentifier(senderId)}`);
                             }
                         } else if (financialAgentMode !== 'off' && financialAgentCanaryAllowed && !financialAgentSourceCompatible) {
+                            financialAgentFallbackReason = 'personal_sheet_source';
                             metrics.increment('message.financial_agent.skipped.personal_sheet_source');
                             logger.info(`[financial-agent] skipped reason=personal_sheet_source sender=${logger.redactIdentifier(senderId)}`);
                         }
@@ -11298,6 +11355,14 @@ async function handleMessage(msg) {
                             storeAnalyticalContext(senderId, effectiveIntentClassification);
                             return;
                         }
+                        await recordLegacyUsageEvent(buildFinancialAgentLegacyUsageEvent({
+                            financialAgentMode,
+                            agentResult: financialAgentResultForFallback,
+                            intentClassification: effectiveIntentClassification,
+                            fallbackReason: financialAgentFallbackReason,
+                            actorId: userId,
+                            sessionId: senderId
+                        }));
                         const sheetOnlyIntents = new Set();
                         if (!usePersonalSpreadsheet && !sheetOnlyIntents.has(effectiveIntentClassification.intent)) {
                             try {
@@ -11682,6 +11747,7 @@ module.exports = {
         isFinancialAgentFullLogEnabled,
         buildFinancialAgentFullLogPayload,
         buildFinancialAgentMigrationGapTelemetry,
+        buildFinancialAgentLegacyUsageEvent,
         buildFinancialAgentPersonByUserId,
         resolveExplicitExpenseActorUserId,
         hasExplicitExpenseActorMention,

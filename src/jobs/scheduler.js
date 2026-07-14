@@ -9,6 +9,7 @@ const metrics = require('../utils/metrics');
 const { buildNextRecurringDueDate, isRecurringDueOnDate } = require('../utils/recurringDueDate');
 const { sendInterpretationReadinessAlert } = require('../reliability/enforceReadinessNotifier');
 const { sendDailyOpsCheckReport } = require('../services/dailyOpsCheckService');
+const { recordLegacyUsageHeartbeat } = require('../telemetry/legacyUsageTelemetry');
 
 let client;
 let isInitialized = false;
@@ -483,6 +484,7 @@ async function sendMonthlyReports() {
 
 async function sendOperationalHeartbeat() {
     try {
+        await recordLegacyUsageHeartbeat();
         const snapshot = metrics.flushToLogs('[metrics-hourly]');
         const shouldSendAlerts = String(process.env.OPERATIONAL_ALERTS_ENABLED || 'false').toLowerCase() === 'true';
         if (!shouldSendAlerts) return;

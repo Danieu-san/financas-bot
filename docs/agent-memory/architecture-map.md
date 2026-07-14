@@ -111,6 +111,16 @@ Use este mapa para escolher rapidamente quais arquivos abrir por tarefa.
 - `docs/security/threat-model.md` - riscos e mitigacoes.
 - Nunca registrar segredos em docs ou logs.
 
+## Telemetria de consolidacao
+
+- `src/telemetry/legacyUsageTelemetry.js` - contrato 8B.0 append-only,
+  allowlisted e opt-in para uso/fallback de legado; refs HMAC rotativas, rotacao
+  de arquivo, heartbeat e falha sem impacto no produto.
+- Primeiros consumidores: fallback Financial Agent -> legado no
+  `messageHandler`, fonte SQLite/memoria no `readModelService`, router canary do
+  ledger e heartbeat horario do scheduler.
+- A telemetria nao autoriza remocao sozinha. Aplicar janela e gates da Fase 8.
+
 ## Comandos uteis
 
 - `npm test` - suite principal.

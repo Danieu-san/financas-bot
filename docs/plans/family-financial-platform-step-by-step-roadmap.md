@@ -854,6 +854,27 @@ Passo a passo:
 
 Gate: consumidor migrado tem paridade comprovada e rollback simples.
 
+#### 8B.0 - Telemetria duravel antes de migrar
+
+Passo a passo:
+
+1. Criar contrato allowlisted sem texto, valor, telefone, token, ID de planilha
+   ou payload financeiro.
+2. Persistir eventos append-only com rotacao, retencao e falha sem impacto no
+   produto.
+3. Pseudonimizar ator/sessao com HMAC e rotacao temporal; sem segredo explicito,
+   nao persistir referencia.
+4. Emitir heartbeat horario para distinguir uso zero de instrumentacao quebrada.
+5. Instrumentar primeiro fallback do Financial Agent, fonte do read-model e
+   router canary canonico, sem alterar respostas/escritas.
+
+Gate: testes de privacidade, restart, rotacao, heartbeat e falha de escrita
+passam; suite completa permanece verde; producao gera heartbeat sanitizado.
+
+Politica para uso zero: no minimo 45 dias e um ciclo orcamentario completo com
+todos os pontos de entrada instrumentados. Cartoes exigem dois fechamentos ou
+pelo menos 60 dias. O fim da janela torna o item apenas candidato a 8C.
+
 ### 8C - Remover calculos e schemas obsoletos
 
 Passo a passo:
@@ -862,6 +883,7 @@ Passo a passo:
 2. Remover codigo morto com testes provando consumidores migrados.
 3. Preservar exportacao legivel para Daniel/Thais.
 4. Atualizar docs, runbooks e memoria operacional.
+5. Nao remover fallback de fonte necessario ao cutover ou rollback da 8D.
 
 Gate: suite completa e bateria de regressao passam sem fallback legado.
 
@@ -874,6 +896,8 @@ Passo a passo:
 3. Manter Sheets como espelho/exportacao.
 4. Rodar dry-run de rollback.
 5. Fazer canario Daniel/Thais antes de GO final.
+6. Retirar fallback de fonte somente depois do cutover verde e da janela de
+   estabilidade; 8C anterior nao autoriza desmontar o rollback desta etapa.
 
 Gate: rollback testado e zero divergencia inexplicada.
 
