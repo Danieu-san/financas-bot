@@ -5,6 +5,7 @@ const creationHandler = require('./creationHandler');
 const deletionHandler = require('./deletionHandler');
 const batchMaintenanceHandler = require('./batchMaintenanceHandler');
 const financialExportHandler = require('./financialExportHandler');
+const financialReceiptHandler = require('./financialReceiptHandler');
 const debtHandler = require('./debtHandler');
 const { getStructuredResponseFromLLM } = require('../services/gemini');
 const googleService = require('../services/google');
@@ -8946,6 +8947,12 @@ async function handleMessage(msg) {
 
     const handledAdmin = await handleAdminCommands(msg, senderId, activeUser);
     if (handledAdmin) {
+        return;
+    }
+
+    const handledReceipt = await financialReceiptHandler.handleFinancialReceiptMessage(msg, activeUser);
+    if (handledReceipt) {
+        metrics.increment('message.financial_receipt.handled');
         return;
     }
 
