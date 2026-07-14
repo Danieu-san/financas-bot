@@ -4,6 +4,7 @@ const userStateManager = require('../state/userStateManager');
 const creationHandler = require('./creationHandler');
 const deletionHandler = require('./deletionHandler');
 const batchMaintenanceHandler = require('./batchMaintenanceHandler');
+const financialExportHandler = require('./financialExportHandler');
 const debtHandler = require('./debtHandler');
 const { getStructuredResponseFromLLM } = require('../services/gemini');
 const googleService = require('../services/google');
@@ -58,6 +59,7 @@ const {
     convertTransactionsForCreditCardStatement,
     detectRecurringBillCandidates,
     detectRecurringIncomeCandidates,
+    detectImportFileType,
     parseImportMedia,
     parseRecurringBillClassificationReply,
     parseRecurringIncomeClassificationReply,
@@ -3096,6 +3098,14 @@ async function handleStatementImportMessage(msg, { senderId, person, userId }) {
     if (msg.type === 'ptt' || msg.type === 'audio') return false;
 
     const media = await msg.downloadMedia();
+    const detected = detectImportFileType(media, msg);
+    if (['xls', 'xlsx'].includes(detected.type)) {
+        const policy = financialExportHandler.buildFinancialFileIoPolicy(process.env, userId);
+        if (!policy.allowed) {
+            await sendPlainMessage(msg, 'A importação XLS/XLSX ainda não está liberada para este usuário. CSV e OFX continuam disponíveis.');
+            return true;
+        }
+    }
     const familyContext = await buildStatementImportFamilyContext({ userId, person });
     const parsed = parseImportMedia(media, msg, {
         ownerAliases: familyContext.ownerAliases.length ? familyContext.ownerAliases : [person].filter(Boolean)
@@ -8936,6 +8946,12 @@ async function handleMessage(msg) {
 
     const handledAdmin = await handleAdminCommands(msg, senderId, activeUser);
     if (handledAdmin) {
+        return;
+    }
+
+    const handledExport = await financialExportHandler.handleFinancialExportCommand(msg, activeUser);
+    if (handledExport) {
+        metrics.increment('message.financial_export.handled');
         return;
     }
 

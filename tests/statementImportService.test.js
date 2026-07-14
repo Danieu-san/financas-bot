@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
+const XLSX = require('xlsx');
 
 const {
     annotateImportDuplicates,
@@ -15,6 +16,7 @@ const {
     parseCsvTransactions,
     parseImportMedia,
     parseOfxTransactions,
+    parseSpreadsheetBuffer,
     parseRecurringBillClassificationReply,
     parseRecurringIncomeClassificationReply,
     unsupportedImportMessage
@@ -27,6 +29,104 @@ function mediaFromText(text, { filename = 'extrato.csv', mimetype = 'text/csv' }
         data: Buffer.from(text, 'utf8').toString('base64')
     };
 }
+
+function mediaFromWorkbook(rows, { filename = 'extrato.xlsx', bookType = 'xlsx', extraSheets = [] } = {}) {
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(rows), 'Extrato');
+    for (const extra of extraSheets) {
+        XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(extra.rows), extra.name);
+    }
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType });
+    return {
+        filename,
+        mimetype: bookType === 'xls'
+            ? 'application/vnd.ms-excel'
+            : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        data: buffer.toString('base64')
+    };
+}
+
+test('6B detects and parses XLSX and legacy XLS through the existing normalized preview contract', () => {
+    const rows = [
+        ['Data', 'Descrição', 'Valor', 'Tipo'],
+        ['17/05/2026', 'Mercado XLS', -35.35, 'Débito'],
+        ['18/05/2026', 'Salário XLS', 2000, 'Crédito']
+    ];
+    for (const variant of [
+        { filename: 'extrato.xlsx', bookType: 'xlsx', type: 'xlsx' },
+        { filename: 'extrato.xls', bookType: 'xls', type: 'xls' }
+    ]) {
+        const media = mediaFromWorkbook(rows, variant);
+        assert.deepStrictEqual(detectImportFileType(media), {
+            supported: true, type: variant.type, filename: variant.filename
+        });
+        const parsed = parseImportMedia(media);
+        assert.strictEqual(parsed.supported, true);
+        assert.strictEqual(parsed.type, variant.type);
+        assert.strictEqual(parsed.transactions.length, 2);
+        assert.strictEqual(parsed.transactions[0].descricao, 'Mercado XLS');
+        assert.match(parsed.preview, /Responda `sim`/);
+        assert.strictEqual(parsed.spreadsheet.sheetName, 'Extrato');
+    }
+});
+
+test('6B spreadsheet parser ignores non-financial helper sheets but rejects two candidate sheets', () => {
+    const baseRows = [
+        ['Data', 'Descrição', 'Valor'],
+        ['17/05/2026', 'Mercado', -10]
+    ];
+    const helper = mediaFromWorkbook(baseRows, {
+        extraSheets: [{ name: 'Leia-me', rows: [['Ajuda'], ['Sem dados financeiros']] }]
+    });
+    const helperResult = parseImportMedia(helper);
+    assert.strictEqual(helperResult.supported, true);
+    assert.deepStrictEqual(helperResult.spreadsheet.ignoredSheets, ['Leia-me']);
+
+    const ambiguous = mediaFromWorkbook(baseRows, {
+        extraSheets: [{ name: 'Outra conta', rows: baseRows }]
+    });
+    const ambiguousResult = parseImportMedia(ambiguous);
+    assert.strictEqual(ambiguousResult.supported, false);
+    assert.strictEqual(ambiguousResult.reason, 'ambiguous_sheets');
+    assert.strictEqual(ambiguousResult.transactions.length, 0);
+});
+
+test('6B spreadsheet parser rejects formulas, malformed workbooks and row overflow before preview', () => {
+    const workbook = XLSX.utils.book_new();
+    const sheet = XLSX.utils.aoa_to_sheet([
+        ['Data', 'Descrição', 'Valor'],
+        ['17/05/2026', 'Fórmula', 10]
+    ]);
+    sheet.C2 = { t: 'n', f: '1+9', v: 10 };
+    XLSX.utils.book_append_sheet(workbook, sheet, 'Extrato');
+    const formulaMedia = {
+        filename: 'formula.xlsx',
+        mimetype: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        data: XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }).toString('base64')
+    };
+    assert.strictEqual(parseImportMedia(formulaMedia).reason, 'formula_cells');
+
+    const malformed = {
+        filename: 'quebrado.xlsx',
+        mimetype: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        data: Buffer.from('não é uma planilha').toString('base64')
+    };
+    assert.strictEqual(parseImportMedia(malformed).supported, false);
+
+    const original = process.env.IMPORT_MAX_ROWS;
+    process.env.IMPORT_MAX_ROWS = '1';
+    try {
+        const overflow = mediaFromWorkbook([
+            ['Data', 'Descrição', 'Valor'],
+            ['17/05/2026', 'Um', -1],
+            ['18/05/2026', 'Dois', -2]
+        ]);
+        assert.strictEqual(parseImportMedia(overflow).reason, 'too_many_rows');
+    } finally {
+        if (original === undefined) delete process.env.IMPORT_MAX_ROWS;
+        else process.env.IMPORT_MAX_ROWS = original;
+    }
+});
 
 test('statement import parses CSV expenses and income into proposed transactions', () => {
     const csv = [
@@ -77,7 +177,7 @@ test('statement import rejects PDF and image files with clear MVP message', () =
         detectImportFileType({ filename: 'extrato.pdf', mimetype: 'application/pdf' }),
         { supported: false, type: 'pdf', reason: 'unsupported_binary' }
     );
-    assert.match(unsupportedImportMessage('unsupported_binary'), /CSV ou OFX/);
+    assert.match(unsupportedImportMessage('unsupported_binary'), /CSV, OFX, XLS ou XLSX/);
 });
 
 test('statement import builds preview and parseImportMedia result', () => {

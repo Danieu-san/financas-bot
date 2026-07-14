@@ -1,12 +1,14 @@
 const { getFormattedDateOnly, normalizeText, parseSheetDate, parseValue } = require('../utils/helpers');
+const XLSX = require('xlsx');
 
-const SUPPORTED_EXTENSIONS = new Set(['csv', 'ofx']);
+const SUPPORTED_EXTENSIONS = new Set(['csv', 'ofx', 'xls', 'xlsx']);
 const SUPPORTED_MIME_HINTS = [
     'text/csv',
     'application/csv',
     'application/ofx',
     'application/x-ofx',
     'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'text/plain'
 ];
 const DEFAULT_MAX_IMPORT_FILE_BYTES = 1024 * 1024;
@@ -53,6 +55,8 @@ function detectImportFileType(media = {}, msg = {}) {
 
     if (SUPPORTED_MIME_HINTS.some(hint => mimetype.includes(hint))) {
         if (mimetype.includes('ofx')) return { supported: true, type: 'ofx', filename };
+        if (mimetype.includes('spreadsheetml')) return { supported: true, type: 'xlsx', filename };
+        if (mimetype === 'application/vnd.ms-excel') return { supported: true, type: 'xls', filename };
         return { supported: true, type: 'csv', filename };
     }
 
@@ -63,6 +67,20 @@ function decodeMediaText(media = {}) {
     const data = String(media.data || '');
     if (!data) return '';
     return Buffer.from(data, 'base64').toString('utf8').replace(/^\uFEFF/, '');
+}
+
+function decodeMediaBuffer(media = {}) {
+    const data = String(media.data || '');
+    return data ? Buffer.from(data, 'base64') : Buffer.alloc(0);
+}
+
+function validateImportBuffer(buffer) {
+    const { maxFileBytes, maxRows } = getImportLimits();
+    const byteLength = Buffer.isBuffer(buffer) ? buffer.length : 0;
+    if (byteLength > maxFileBytes) {
+        return { valid: false, reason: 'file_too_large', maxFileBytes, byteLength };
+    }
+    return { valid: true, maxFileBytes, maxRows, byteLength };
 }
 
 function validateImportText(text) {
@@ -144,6 +162,24 @@ function findHeaderLineIndex(lines = [], delimiter) {
         if (hasDate && hasDescription && hasAmount) return index;
     }
     return 0;
+}
+
+function rowLooksLikeFinancialHeader(row = []) {
+    const headers = (row || []).map(normalizeHeader);
+    const hasDate = headerHasAny(headers, ['data', 'date', 'dt', 'dtpost', 'data lançamento', 'data lancamento', 'data movimento']);
+    const hasDescription = headerHasAny(headers, [
+        'descricao', 'descrição', 'historico', 'histórico', 'memo', 'name',
+        'descricao lancamento', 'lançamentos', 'lancamentos', 'title', 'titulo'
+    ]);
+    const hasAmount = headerHasAny(headers, [
+        'valor', 'amount', 'valor lancamento', 'valor lançamento', 'quantia',
+        'valor (r$)', 'debito', 'débito', 'credito', 'crédito'
+    ]);
+    return hasDate && hasDescription && hasAmount;
+}
+
+function findSpreadsheetHeaderIndex(rows = []) {
+    return rows.findIndex(rowLooksLikeFinancialHeader);
 }
 
 function parseDelimited(text) {
@@ -591,7 +627,11 @@ function applyFallbackDateToTransactions(transactions = [], fallbackDate) {
 }
 
 function parseCsvTransactions(text, options = {}) {
-    return parseDelimited(text)
+    return parseImportedRowObjects(parseDelimited(text), options);
+}
+
+function parseImportedRowObjects(rows = [], options = {}) {
+    return rows
         .map(row => {
             const date = pick(row, ['data', 'date', 'dt', 'dtpost', 'data lançamento', 'data lancamento', 'data movimento']);
             const description = pick(row, [
@@ -603,6 +643,87 @@ function parseCsvTransactions(text, options = {}) {
             return buildTransaction({ date, description, amount, explicitType, ownerAliases: options.ownerAliases });
         })
         .filter(Boolean);
+}
+
+function worksheetHasFormula(sheet = {}) {
+    return Object.entries(sheet).some(([address, cell]) => {
+        if (address.startsWith('!')) return false;
+        return Boolean(cell && typeof cell === 'object' && String(cell.f || '').trim());
+    });
+}
+
+function spreadsheetRowsToObjects(rows, headerIndex) {
+    const headers = (rows[headerIndex] || []).map(normalizeHeader);
+    return rows.slice(headerIndex + 1)
+        .filter(row => Array.isArray(row) && row.some(cell => String(cell ?? '').trim()))
+        .map(row => Object.fromEntries(headers.map((header, index) => [header, row[index] ?? ''])));
+}
+
+function spreadsheetError(code, message, details = {}) {
+    const error = new Error(message);
+    error.code = code;
+    error.details = details;
+    return error;
+}
+
+function parseSpreadsheetBuffer(buffer, options = {}) {
+    const validation = validateImportBuffer(buffer);
+    if (!validation.valid) throw spreadsheetError(validation.reason, 'Arquivo acima do limite seguro.', validation);
+    let workbook;
+    try {
+        workbook = XLSX.read(buffer, {
+            type: 'buffer',
+            cellFormula: true,
+            cellHTML: false,
+            cellNF: false,
+            cellStyles: false,
+            dense: false
+        });
+    } catch (error) {
+        throw spreadsheetError('malformed_spreadsheet', 'Planilha XLS/XLSX malformada.');
+    }
+
+    const candidates = [];
+    const ignoredSheets = [];
+    for (const sheetName of workbook.SheetNames || []) {
+        const sheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(sheet, {
+            header: 1,
+            raw: false,
+            defval: '',
+            blankrows: false,
+            dateNF: 'dd/mm/yyyy'
+        });
+        const headerIndex = findSpreadsheetHeaderIndex(rows);
+        if (headerIndex < 0) {
+            ignoredSheets.push(sheetName);
+            continue;
+        }
+        candidates.push({ sheetName, sheet, rows, headerIndex });
+    }
+    if (candidates.length === 0) throw spreadsheetError('no_candidate_sheet', 'Nenhuma aba financeira reconhecida.');
+    if (candidates.length > 1) {
+        throw spreadsheetError('ambiguous_sheets', 'Mais de uma aba financeira foi encontrada.', { count: candidates.length });
+    }
+
+    const selected = candidates[0];
+    if (worksheetHasFormula(selected.sheet)) {
+        throw spreadsheetError('formula_cells', 'A aba financeira contém fórmulas e foi rejeitada.');
+    }
+    const rowObjects = spreadsheetRowsToObjects(selected.rows, selected.headerIndex);
+    const { maxRows } = getImportLimits();
+    if (rowObjects.length > maxRows) {
+        throw spreadsheetError('too_many_rows', 'A planilha excede o limite de linhas.', {
+            maxRows,
+            lineCount: rowObjects.length
+        });
+    }
+    return {
+        transactions: parseImportedRowObjects(rowObjects, options),
+        sheetName: selected.sheetName,
+        ignoredSheets,
+        rowCount: rowObjects.length
+    };
 }
 
 function extractCsvAmount(row = {}) {
@@ -1170,6 +1291,34 @@ function parseImportMedia(media = {}, msg = {}, options = {}) {
     if (!detected.supported) {
         return { supported: false, reason: detected.reason, type: detected.type, transactions: [] };
     }
+    if (detected.type === 'xls' || detected.type === 'xlsx') {
+        try {
+            const spreadsheet = parseSpreadsheetBuffer(decodeMediaBuffer(media), options);
+            const previewMessages = buildImportPreviewMessages(spreadsheet.transactions);
+            return {
+                supported: true,
+                type: detected.type,
+                filename: detected.filename,
+                transactions: spreadsheet.transactions,
+                preview: previewMessages.join('\n\n'),
+                previewMessages,
+                spreadsheet: {
+                    sheetName: spreadsheet.sheetName,
+                    ignoredSheets: spreadsheet.ignoredSheets,
+                    rowCount: spreadsheet.rowCount
+                }
+            };
+        } catch (error) {
+            return {
+                supported: false,
+                reason: error.code || 'malformed_spreadsheet',
+                type: detected.type,
+                filename: detected.filename,
+                transactions: [],
+                limits: error.details || undefined
+            };
+        }
+    }
     const text = decodeMediaText(media);
     const validation = validateImportText(text);
     if (!validation.valid) {
@@ -1196,15 +1345,18 @@ function parseImportMedia(media = {}, msg = {}, options = {}) {
 
 function unsupportedImportMessage(reason) {
     if (reason === 'unsupported_binary') {
-        return 'Por enquanto eu só importo extratos em CSV ou OFX. PDF e imagens ficam fora deste MVP.';
+        return 'Eu importo extratos em CSV, OFX, XLS ou XLSX. PDF e imagens ficam fora desta fase.';
     }
     if (reason === 'file_too_large') {
-        return 'Esse arquivo está grande demais para importação segura. Envie um CSV/OFX menor ou divida o extrato em partes.';
+        return 'Esse arquivo está grande demais para importação segura. Envie um CSV, OFX, XLS ou XLSX menor, ou divida o extrato em partes.';
     }
     if (reason === 'too_many_rows') {
-        return 'Esse arquivo tem linhas demais para uma conferência segura. Envie um CSV/OFX menor ou divida o extrato em partes.';
+        return 'Esse arquivo tem linhas demais para uma conferência segura. Divida o extrato em partes menores.';
     }
-    return 'Não reconheci esse arquivo para importação. Envie um extrato em CSV ou OFX.';
+    if (reason === 'formula_cells') return 'A aba financeira contém fórmulas. Exporte os valores como dados fixos antes de importar.';
+    if (reason === 'ambiguous_sheets') return 'Encontrei mais de uma aba com lançamentos. Envie um arquivo com apenas uma aba financeira.';
+    if (reason === 'no_candidate_sheet' || reason === 'malformed_spreadsheet') return 'Não encontrei uma aba válida com data, descrição e valor nesse XLS/XLSX.';
+    return 'Não reconheci esse arquivo. Envie um extrato em CSV, OFX, XLS ou XLSX.';
 }
 
 module.exports = {
@@ -1225,6 +1377,7 @@ module.exports = {
     parseCsvTransactions,
     parseImportMedia,
     parseOfxTransactions,
+    parseSpreadsheetBuffer,
     parseRecurringBillClassificationReply,
     parseRecurringIncomeClassificationReply,
     parseStatementText,
