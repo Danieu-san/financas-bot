@@ -1,6 +1,26 @@
 # Problemas conhecidos e armadilhas
 
-Atualizado em: 2026-07-13
+Atualizado em: 2026-07-14
+
+## Fase 8A: remocao de legado bloqueada
+
+- O gate `gate:analytical-legacy` retornou `NO_GO` em 2026-07-14 por uma lacuna
+  em `BILL-015` (`canonical_transactions_unavailable`). O fallback analitico
+  tambem teve uso real nos logs. Nao desabilitar por `*` nem remover o trio
+  `intentClassifier`/`calculationOrchestrator`/`responseGenerator`.
+- Dashboard v1 continua com trafego significativamente maior que a API v2. Nao
+  remover v1 sem migrar os consumidores e observar uso zero de forma duravel.
+- Zero ocorrencias em busca textual de log nao equivale a uso zero. Exigir
+  contador sanitizado e janela de observacao por consumidor.
+
+## Canario 6E sem consumidor no WhatsApp
+
+- `FINANCIAL_UNDO_MODE=canary` esta configurada, mas
+  `src/undo/financialUndoService.js` e consumido apenas por testes e scripts E2E;
+  nao ha ligacao atual no `messageHandler`.
+- Tratar 6E como infraestrutura validada, nao como funcao disponivel ao usuario.
+  Antes de ampliar, decidir entre integrar com gate proprio ou desligar e
+  documentar a flag como test-only.
 
 ## Omissao da configuracao/capacidade no handoff
 

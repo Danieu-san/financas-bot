@@ -759,8 +759,10 @@ Resultado em 2026-07-14:
 - todos os runners confirmaram `cleanup=zero` e `privacy=true`; nenhum smoke
   manual foi necessario;
 - PM2, WhatsApp, health e worktree rastreado permaneceram verdes;
-- decisao: `GO de producao`; Fase 6 encerrada e 7A autorizada apos troca para
-  capacidade Altissimo.
+- decisao original: `GO de producao`; Fase 6 encerrada.
+- decisao de produto em 2026-07-14: Fase 7 adiada porque nao ha investimento real
+  a modelar hoje; a Fase 8A foi antecipada para auditar e consolidar o nucleo
+  existente antes de ampliar o dominio.
 
 ## Fase 7 - Patrimonio e investimentos
 
@@ -810,6 +812,11 @@ Passo a passo:
 3. Verificar ausencia de mistura entre patrimonio e renda.
 4. Decidir GO para consolidacao e remocao de legado.
 
+Status em 2026-07-14: fase adiada, nao cancelada. Reabrir quando existir ativo
+real, necessidade de separar rendimento de caixa/reserva ou demanda patrimonial
+concreta. Altissimo sera necessario na modelagem/gate patrimonial, nao durante a
+consolidacao documental atual.
+
 ## Fase 8 - Consolidacao e remocao do legado
 
 Objetivo da fase: eliminar caminhos duplicados somente depois de uso zero comprovado.
@@ -824,6 +831,17 @@ Passo a passo:
 4. Rodar bateria para provar quais caminhos ainda recebem trafego.
 
 Gate: nenhum caminho e removido sem medicao.
+
+Resultado da auditoria em 2026-07-14:
+
+- `NO-GO` para remocao de legado e `GO` para medicao/migracao controlada;
+- fallback analitico teve uso real e o gate falhou em `BILL-015`;
+- dashboard v1 teve 4.510 acessos registrados contra 43 na API v2;
+- planos projetados passaram o gate remoto read-only com paridade e zero escrita;
+- 6E undo esta coberta por testes/scripts, mas ainda nao esta ligada ao fluxo do
+  WhatsApp;
+- candidatos sem consumidor estatico foram colocados em quarentena, sem exclusao;
+- relatorio: `docs/qa/phase-8a-legacy-inventory-audit-2026-07-14.md`.
 
 ### 8B - Migrar consumidores restantes
 

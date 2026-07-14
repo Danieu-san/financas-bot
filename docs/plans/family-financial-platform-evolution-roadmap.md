@@ -630,6 +630,11 @@ limites, timeouts, duplicidade e limpeza estao testados.
 
 ### Fase 7 - Patrimonio e investimentos
 
+**Status em 2026-07-14:** adiada por decisao de produto, nao cancelada. O produto
+nao possui ativo real para modelar hoje; consolidar o nucleo existente reduz mais
+risco. Reabrir quando houver ativo real, necessidade de separar rendimento de
+caixa/reserva ou demanda patrimonial concreta.
+
 **Objetivo:** responder quanto a familia possui, onde esta e como evoluiu.
 
 **Escopo inicial:**
@@ -800,17 +805,13 @@ Nao acumular todas as fases para um unico deploy.
 
 ## 13. Proximo passo imediato
 
-Executar o portao `3F.1 - Nucleo analitico agentic governado` antes de 3G:
+Executar a Fase `8B.0 - telemetria duravel de legado` apos o inventario 8A:
 
-1. Congelar o baseline atual e montar corpus de 50 a 100 perguntas reais
-   sanitizadas, incluindo os erros recentes de metas, orcamento, periodo e estado
-   conversacional.
-2. Rotular respostas esperadas, escopo, criterio temporal, fonte e necessidade
-   de esclarecimento.
-3. Prototipar `FinancialQuerySpec`, catalogo semantico e ferramentas read-only
-   sobre SQLite, sem alterar respostas ou escritas de producao.
-4. Implementar verificador da pergunta ate a resposta e controles de custo.
-5. Comparar arquitetura atual e candidata offline, com Gemini live limitado.
-6. Liberar apenas se os criterios objetivos do roadmap passo a passo passarem.
-7. Rodar canario read-only para Daniel com rollback por uma flag.
-8. Somente depois executar 3G, 3H e abrir a Fase 4.
+1. Instrumentar fonte/fallback analitico por dominio, rotas do dashboard, abas
+   antigas de cartao e handlers 6A-6E sem dados financeiros brutos.
+2. Definir janela minima de observacao para uso zero.
+3. Corrigir a lacuna `BILL-015` e rerodar o gate analitico.
+4. Migrar um consumidor por vez com fallback e rollback por flag.
+5. Nao remover codigo ou schema antes da 8C e sem evidencia duravel de uso zero.
+
+Auditoria: `docs/qa/phase-8a-legacy-inventory-audit-2026-07-14.md`.

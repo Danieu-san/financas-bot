@@ -2,6 +2,29 @@
 
 Atualizado em: 2026-07-14
 
+## Fase 8A - inventario e telemetria de legado - NO-GO para remocao - 2026-07-14
+
+- Fase 7 de patrimonio/investimentos foi adiada, nao cancelada: nao ha ativo real
+  para modelar hoje e consolidar o nucleo reduz mais risco de manutencao.
+- Auditoria estatica e de producao provou consumidores ativos do legado. O
+  Financial Agent registrou 181 respostas e 8 fallbacks analiticos na janela de
+  logs; nenhum desses caminhos pode ser removido.
+- `npm run gate:analytical-legacy` retornou `NO_GO`: 264/265 casos passaram e
+  `BILL-015` falhou com `canonical_transactions_unavailable`. A bateria de
+  migration gaps permaneceu 6/6, sanitizada.
+- Dashboard registrou 5.869 eventos duraveis: 4.510 `api_access`, 43
+  `api_v2_access`, 906 bloqueios de escopo e 410 falhas de autenticacao. V1 deve
+  permanecer ate migracao e janela de uso zero.
+- Gate remoto read-only de planos retornou `GO`, paridade `GO`, privacidade
+  `true` e `writes=0`; adapters/store de planos permanecem ativos.
+- 6E undo esta em canario na configuracao, mas o service so possui consumidores
+  em testes/scripts e nao esta ligado ao handler do WhatsApp. Decidir integrar
+  ou desligar/documentar o canario antes de chamar a capacidade de ativa.
+- Nenhum codigo, schema, dado, flag ou planilha foi removido. Proximo passo:
+  8B.0, telemetria duravel por consumidor/fallback, seguido da correcao de
+  `BILL-015`. Relatorio:
+  `docs/qa/phase-8a-legacy-inventory-audit-2026-07-14.md`.
+
 ## Fase 6F - gate de saida da Fase 6 - GO de producao - 2026-07-14
 
 - Bateria combinada de lote, XLS/XLSX, comprovante, OCR e undo passou `76/76`;
@@ -16,9 +39,9 @@ Atualizado em: 2026-07-14
   ficaram cobertos. Smoke manual foi substituido pelo E2E automatico real.
 - Producao no codigo `f349ddbe7ac4eb03dddab03da26ae54533115dd3`,
   PM2/WhatsApp/health verdes e worktree rastreado limpo.
-- Decisao: `GO de producao` e encerramento da Fase 6. A Fase 7A esta autorizada,
-  mas deve iniciar somente apos trocar para `Codex -> Sol -> Altissimo`, conforme
-  capacidade obrigatoria do roadmap. Relatorio:
+- Decisao no fechamento: `GO de producao` e encerramento da Fase 6. A autorizacao
+  para 7A foi posteriormente substituida pela decisao de adiar a Fase 7 e iniciar
+  a auditoria 8A. Relatorio:
   `docs/qa/phase-6f-exit-gate-2026-07-14.md`.
 
 ## Fase 6E - undo por recibo/auditoria - GO de producao - 2026-07-14

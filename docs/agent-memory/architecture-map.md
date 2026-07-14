@@ -15,15 +15,19 @@ Use este mapa para escolher rapidamente quais arquivos abrir por tarefa.
 - `src/handlers/audioHandler.js` - transcricao de audio via Gemini e reentrada no fluxo textual.
 - `src/handlers/creationHandler.js` - criacao de metas e dividas.
 - `src/handlers/deletionHandler.js` - exclusao de itens.
-- `src/handlers/debtHandler.js` e `src/handlers/debtUpdateHandler.js` - pagamentos/atualizacao de dividas.
+- `src/handlers/debtHandler.js` - pagamentos/atualizacao de dividas no runtime.
+- `src/handlers/debtUpdateHandler.js` - implementacao antiga sem consumidor de
+  producao encontrado na auditoria 8A; manter em quarentena ate caracterizacao
+  e eventual fatia 8C.
 - `src/services/goalService.js` - movimentacoes de metas/cofrinho, ajuste de valor atual, status e auditoria.
 - `src/plans/projectedPlansContract.js` - contrato puro da Fase 5A para
   `plans`/`plan_movements`, adapters read-only de metas/dividas legadas,
   identidade, centavos, visao publica e backup/restore portatil.
 - `src/plans/projectedPlansStore.js` - SQLite shadow local da Fase 5A com
   identidade persistente/rebind, versoes imutaveis, idempotencia de movimentos,
-  snapshots, readiness e backup/restore; writes ficam desativados por padrao e
-  o modulo nao esta ligado ao runtime.
+  snapshots, readiness e backup/restore; ligado ao runtime por
+  `src/plans/projectedPlanWriteRuntime.js`, com writes governados por flag e
+  modo `shadow` em producao na auditoria de 2026-07-14.
 - `src/plans/projectedPlansParityReport.js` e
   `scripts/runProjectedPlansReadOnlyGate.js` - gate 5A sanitizado, restrito ao
   unico admin configurado; compara views em centavos, usa identidade tecnica
@@ -67,7 +71,9 @@ Use este mapa para escolher rapidamente quais arquivos abrir por tarefa.
 - `src/services/calculationOrchestrator.js` - executa intents em dados carregados.
 - `src/ai/responseGenerator.js` - gera resposta final.
 - `src/services/readModelService.js` e `src/services/sqliteReadModelService.js` - read model e consultas otimizadas.
-- `src/services/financialHealthService.js` - resumo de saude financeira, alertas e vencimentos.
+- `src/services/financialHealthService.js` - resumo de saude financeira coberto
+  por teste, mas sem consumidor de producao encontrado na auditoria 8A; nao
+  remover nem tratar como ativo antes da caracterizacao.
 
 ## Dashboard
 
