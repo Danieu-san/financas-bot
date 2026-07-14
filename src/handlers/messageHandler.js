@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const userStateManager = require('../state/userStateManager');
 const creationHandler = require('./creationHandler');
 const deletionHandler = require('./deletionHandler');
+const batchMaintenanceHandler = require('./batchMaintenanceHandler');
 const debtHandler = require('./debtHandler');
 const { getStructuredResponseFromLLM } = require('../services/gemini');
 const googleService = require('../services/google');
@@ -10056,6 +10057,11 @@ async function handleMessage(msg) {
                 return;
             }
 
+            case 'confirming_batch_maintenance': {
+                await batchMaintenanceHandler.confirmBatchMaintenance(msg, activeUser);
+                return;
+            }
+
             case 'confirming_recurring_bill_suggestion': {
                 const cleanReply = normalizeText(msg.body);
                 const { recurringBillCandidate, userId: importUserId } = currentState.data || {};
@@ -10615,6 +10621,13 @@ async function handleMessage(msg) {
                 metrics.increment('message.pergunta.income_internal_movement_clarification');
                 logger.info(`[routing] income_internal_movement_clarification sender=${senderId}`);
                 await msg.reply(buildIncomeInternalMovementClarificationMessage());
+                return;
+            }
+
+            const handledBatchMaintenance = await batchMaintenanceHandler.startBatchMaintenance(msg, activeUser);
+            if (handledBatchMaintenance) {
+                metrics.increment('message.batch_maintenance.handled');
+                logger.info(`[routing] batch_maintenance sender=${logger.redactIdentifier(senderId)}`);
                 return;
             }
 

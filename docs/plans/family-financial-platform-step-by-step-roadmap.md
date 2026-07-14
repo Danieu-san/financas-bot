@@ -1,7 +1,7 @@
 # Roadmap passo a passo - FinancasBot familiar
 
 Data: 2026-07-14
-Status: Fase 5 concluida com GO de producao; proxima fatia autorizada: 6A
+Status: Fase 6A em GO local; deploy e E2E real pendentes
 
 ## Principios de execucao
 
@@ -48,7 +48,7 @@ Concluido:
 - Fase 5D: gate de saida concluido com GO de producao no commit
   `1e25c9a90bc89e31c6fef6551adbcb3b5ac161ba`.
 
-Proximo trabalho: iniciar 6A - Correcao e categorizacao em lote.
+Proximo trabalho: publicar, implantar e executar o E2E marker-only da 6A.
 
 ## Fase 3 - Recorrencias, parcelas, contas e faturas
 
@@ -617,6 +617,21 @@ Passo a passo:
 5. Testar cancelamento, item inexistente, lote vazio e rollback logico.
 
 Gate: IA nunca altera categoria em massa sem preview e confirmacao.
+
+Evidencia local em 2026-07-14:
+
+- operacoes permitidas limitadas a categoria/subcategoria e
+  descricao/observacoes;
+- campos financeiros criticos permanecem proibidos em lote;
+- filtro explicito, escopo exato por usuario, limite 25 sem truncamento,
+  preview obrigatorio e confirmacao final;
+- revalidacao contra mudanca concorrente, recibos idempotentes e rollback
+  logico de falha parcial;
+- estado persistente contem somente chave opaca e contagem;
+- rollout `off` por padrao e canario por allowlist exata;
+- gate `17/17`, regressao de estado `291/291`, baseline `848/848` e audit high
+  zero;
+- decisao: `GO local`; deploy e E2E real pendentes.
 
 ### 6B - Importacao XLS/XLSX e exportacao filtrada
 

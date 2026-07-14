@@ -2,6 +2,28 @@
 
 Atualizado em: 2026-07-14
 
+## Fase 6A - correcao e categorizacao em lote - GO local - 2026-07-14
+
+- Nova operacao deterministica permite recategorizar gastos e corrigir apenas
+  descricao/observacoes em `Saidas` e `Lancamentos Cartao`.
+- Valor, data, responsavel, pagamento, conta, cartao, parcela, recorrencia,
+  status e identidade sao proibidos em lote e permanecem individuais.
+- Selecao exige filtro explicito, escopo exato de usuario e no maximo 25 itens;
+  excesso falha fechado sem truncar.
+- Preview e confirmacao sao obrigatorios. Detalhes ficam somente em memoria por
+  15 minutos; `state_store` persiste apenas chave opaca e contagem.
+- Linhas sao revalidadas antes da escrita, operacoes filhas sao idempotentes e
+  falha parcial restaura as linhas anteriores. Rollback incompleto vira
+  `uncertain` e nunca informa sucesso.
+- Rollout fica `off` por padrao; `canary` exige allowlist exata. Utilitario
+  seguro configura ou desliga o canario sem imprimir `user_id`.
+- E2E real marker-only semeia uma saida e um cartao, passa pelo handler real,
+  verifica as duas abas e faz cleanup exato com SQLite temporario.
+- Evidencia local: 6A `17/17`, regressao de estado `291/291`, baseline integral
+  `848/848`, audit high zero, sintaxe e diff check verdes.
+- Decisao: `GO local`; commit/deploy, canario de um usuario e E2E real ainda
+  pendentes. Relatorio: `docs/qa/phase-6a-batch-maintenance-gate-2026-07-14.md`.
+
 ## Fase 5D - gate de saida da Fase 5 - GO de producao - 2026-07-14
 
 - Criado `tests/phase5ExitGate.test.js` com tres verticais repetiveis: paridade
