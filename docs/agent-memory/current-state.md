@@ -2,6 +2,27 @@
 
 Atualizado em: 2026-07-14
 
+## Fase 6E - undo por recibo/auditoria - GO de producao - 2026-07-14
+
+- Contrato v1 reverte somente `sheet.append.marker_only` com recibo explicito;
+  nenhum lancamento financeiro comum ganhou undo retroativo.
+- O recibo usa escopo de usuario hasheado, chave da operacao hasheada, aba,
+  marcador exato e fingerprint da linha relida depois do commit no Sheets.
+- Undo exige uma unica linha com marcador + fingerprint e bloqueia item ausente,
+  alterado, duplicado ou ja conciliado sem executar delete.
+- Replay e undo duplo sao idempotentes; conflito de chave falha fechado.
+- Auditoria append-only e publica somente ids opacos, tipo, resultado, motivo e
+  horario; usuario, mensagem, marcador, valor e linha nao saem no historico.
+- Evidencia local: gate `5/5`, baseline `851/851`, audit high zero e E2E
+  `receipts=1`, `deletes=1`, `replays=1`, `audit=3`, `cleanup=zero`,
+  `privacy=true`.
+- Commit `f349ddbe7ac4eb03dddab03da26ae54533115dd3` implantado; backup
+  `.env.pre-phase6e-20260714T052736Z`.
+- Remoto `5/5`, canario para um usuario, mesmo E2E verde, PM2 PID `3199710`,
+  WhatsApp pronto e health `{"ok":true,"sqlite":true}`.
+- Decisao: `GO de producao`, encerramento da 6E e autorizacao da 6F. Relatorio:
+  `docs/qa/phase-6e-receipt-undo-audit-gate-2026-07-14.md`.
+
 ## Fase 6D - OCR PDF/imagem em staging - GO de producao - 2026-07-14
 
 - OCR exige mídia e comando explícito; conteúdo visual é dado não confiável.

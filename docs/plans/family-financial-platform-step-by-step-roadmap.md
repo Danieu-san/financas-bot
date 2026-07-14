@@ -1,7 +1,7 @@
 # Roadmap passo a passo - FinancasBot familiar
 
 Data: 2026-07-14
-Status: Fase 6D concluida com GO de producao; proxima fatia autorizada: 6E
+Status: Fase 6E concluida com GO de producao; proxima fatia autorizada: 6F
 
 ## Principios de execucao
 
@@ -54,8 +54,10 @@ Concluido:
   canario restrito no commit `cbb7065799001c63d04ddbf19d0a0a263ab15f0d`.
 - Fase 6D: OCR PDF/imagem em staging concluido com GO de producao e canario
   restrito no commit `6099a35f7dd1e923b6eae67d35441d27bde28f90`.
+- Fase 6E: undo marker-only por recibo e auditoria concluido com GO de producao
+  e canario restrito no commit `f349ddbe7ac4eb03dddab03da26ae54533115dd3`.
 
-Proximo trabalho: iniciar 6E - Undo por recibo/auditoria.
+Proximo trabalho: iniciar 6F - Gate de saida da Fase 6.
 
 ## Fase 3 - Recorrencias, parcelas, contas e faturas
 
@@ -724,6 +726,18 @@ Passo a passo:
 5. Expor historico de auditoria sanitizado.
 
 Gate: undo nao apaga coisa errada e preserva trilha auditavel.
+
+Resultado em 2026-07-14:
+
+- matriz v1 limita reversibilidade a append explicitamente marker-only;
+- recibo escopado e idempotente exige marcador e fingerprint exatos da linha
+  confirmada no Sheets;
+- item ausente, alterado, ambiguo ou conciliado bloqueia sem delete;
+- undo duplo vira replay e auditoria append-only permanece sanitizada;
+- gate local/remoto `5/5`, baseline `851/851` e audit high zero;
+- E2E local/remoto `receipts=1`, `deletes=1`, `replays=1`, `audit=3`,
+  `cleanup=zero`, `privacy=true`;
+- decisao: `GO de producao`; 6E encerrada e 6F autorizada.
 
 ### 6F - Gate de saida da Fase 6
 
