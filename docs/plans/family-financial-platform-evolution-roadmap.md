@@ -607,6 +607,9 @@ preservado; comandos atuais continuam funcionando via adaptador.
 
 ### Fase 6 - Manutencao, formatos e comprovantes
 
+**Status em 2026-07-14:** encerrada com `GO de producao`; bateria combinada
+`76/76`, cinco E2Es reais verdes e cleanup zero.
+
 **Objetivo:** reduzir trabalho manual sem reduzir confiabilidade.
 
 **Escopo:**

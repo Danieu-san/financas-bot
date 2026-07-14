@@ -2,6 +2,25 @@
 
 Atualizado em: 2026-07-14
 
+## Fase 6F - gate de saida da Fase 6 - GO de producao - 2026-07-14
+
+- Bateria combinada de lote, XLS/XLSX, comprovante, OCR e undo passou `76/76`;
+  baseline do mesmo codigo permaneceu `851/851` e audit high ficou zero.
+- E2E real sequencial passou nas cinco superficies: 6A `items=2/sheets=2`, 6B
+  `imports=2/export_rows=17`, 6C `uploads=1/downloads=1`, 6D
+  `documents=1/rows=1` e 6E `receipts=1/deletes=1/replays=1/audit=3`.
+- Todos os runners retornaram `cleanup=zero` e `privacy=true`; importacao,
+  exportacao, comprovante e OCR mantiveram `writes=zero` onde aplicavel.
+- Limites, validade de preview, formulas, assinatura, baixa confianca, prompt
+  injection, duplicidade, replay, conflito, conciliacao, escopo e privacidade
+  ficaram cobertos. Smoke manual foi substituido pelo E2E automatico real.
+- Producao no codigo `f349ddbe7ac4eb03dddab03da26ae54533115dd3`,
+  PM2/WhatsApp/health verdes e worktree rastreado limpo.
+- Decisao: `GO de producao` e encerramento da Fase 6. A Fase 7A esta autorizada,
+  mas deve iniciar somente apos trocar para `Codex -> Sol -> Altissimo`, conforme
+  capacidade obrigatoria do roadmap. Relatorio:
+  `docs/qa/phase-6f-exit-gate-2026-07-14.md`.
+
 ## Fase 6E - undo por recibo/auditoria - GO de producao - 2026-07-14
 
 - Contrato v1 reverte somente `sheet.append.marker_only` com recibo explicito;

@@ -1,7 +1,7 @@
 # Roadmap passo a passo - FinancasBot familiar
 
 Data: 2026-07-14
-Status: Fase 6E concluida com GO de producao; proxima fatia autorizada: 6F
+Status: Fase 6 encerrada com GO de producao; proxima fatia autorizada: 7A apos trocar capacidade para Altissimo
 
 ## Principios de execucao
 
@@ -56,8 +56,11 @@ Concluido:
   restrito no commit `6099a35f7dd1e923b6eae67d35441d27bde28f90`.
 - Fase 6E: undo marker-only por recibo e auditoria concluido com GO de producao
   e canario restrito no commit `f349ddbe7ac4eb03dddab03da26ae54533115dd3`.
+- Fase 6F: gate combinado concluido com `76/76`, cinco E2Es reais verdes e
+  cleanup zero; Fase 6 encerrada com GO de producao.
 
-Proximo trabalho: iniciar 6F - Gate de saida da Fase 6.
+Proximo trabalho: trocar para `Codex -> Sol -> Altissimo` e iniciar 7A - ADR e
+modelo patrimonial.
 
 ## Fase 3 - Recorrencias, parcelas, contas e faturas
 
@@ -747,6 +750,17 @@ Passo a passo:
 2. Verificar limites, timeouts, duplicidades e privacidade.
 3. Smoke manual se arquivo real for necessario.
 4. Decidir GO para patrimonio/investimentos.
+
+Resultado em 2026-07-14:
+
+- bateria combinada local `76/76`, baseline `851/851` e audit high zero;
+- cinco E2Es reais sequenciais passaram para lote, arquivo, comprovante, OCR e
+  undo;
+- todos os runners confirmaram `cleanup=zero` e `privacy=true`; nenhum smoke
+  manual foi necessario;
+- PM2, WhatsApp, health e worktree rastreado permaneceram verdes;
+- decisao: `GO de producao`; Fase 6 encerrada e 7A autorizada apos troca para
+  capacidade Altissimo.
 
 ## Fase 7 - Patrimonio e investimentos
 
