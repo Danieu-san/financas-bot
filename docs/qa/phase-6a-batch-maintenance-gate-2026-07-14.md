@@ -91,8 +91,33 @@ um usuario `ACTIVE`, grava apenas modo/allowlist, preserva permissao `0600` da
 - `npm audit --audit-level=high`: zero vulnerabilidades;
 - sintaxe e `git diff --check`: verdes.
 
-## Decisao antes do deploy
+## Evidencia de deploy
 
-`GO local`. O GO de producao depende de publicar o codigo, habilitar canario
-para exatamente um usuario, executar testes remotos, reiniciar com health
-verde, rodar o E2E real marker-only e confirmar limpeza total.
+- commit publicado e implantado por fast-forward:
+  `02aa44f9b9bb5292f59c87e701c5617df841e339`;
+- backup da configuracao:
+  `.env.pre-6a-02aa44f-20260714T050104Z`;
+- gate remoto: `17/17`;
+- rollout: `canary` para exatamente um usuario;
+- PM2 online, WhatsApp pronto e health `{"ok":true,"sqlite":true}`;
+- worktree rastreado remoto limpo.
+
+## E2E real final
+
+Resultado sanitizado:
+
+- `items=2`;
+- `sheets=2` (`Saidas` e `Lancamentos Cartao`);
+- preview obrigatorio e confirmacao executados pelo handler real;
+- categoria validada nas duas abas e subcategoria validada em `Saidas`;
+- `cleanup=zero`;
+- `privacy=true`;
+- zero estado `confirming_batch_maintenance` pendente;
+- zero SQLite temporario;
+- zero recibo de teste no banco normal.
+
+## Decisao final
+
+`GO de producao`. A Fase 6A esta encerrada e a Fase 6B - importacao XLS/XLSX
+e exportacao filtrada - esta autorizada a iniciar. A capacidade permanece em
+canario para um usuario; promocao global continua sem autorizacao.

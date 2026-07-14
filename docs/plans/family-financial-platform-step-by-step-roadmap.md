@@ -1,7 +1,7 @@
 # Roadmap passo a passo - FinancasBot familiar
 
 Data: 2026-07-14
-Status: Fase 6A em GO local; deploy e E2E real pendentes
+Status: Fase 6A concluida com GO de producao; proxima fatia autorizada: 6B
 
 ## Principios de execucao
 
@@ -48,7 +48,7 @@ Concluido:
 - Fase 5D: gate de saida concluido com GO de producao no commit
   `1e25c9a90bc89e31c6fef6551adbcb3b5ac161ba`.
 
-Proximo trabalho: publicar, implantar e executar o E2E marker-only da 6A.
+Proximo trabalho: iniciar 6B - Importacao XLS/XLSX e exportacao filtrada.
 
 ## Fase 3 - Recorrencias, parcelas, contas e faturas
 
@@ -631,7 +631,11 @@ Evidencia local em 2026-07-14:
 - rollout `off` por padrao e canario por allowlist exata;
 - gate `17/17`, regressao de estado `291/291`, baseline `848/848` e audit high
   zero;
-- decisao: `GO local`; deploy e E2E real pendentes.
+- commit `02aa44f9b9bb5292f59c87e701c5617df841e339`, remoto `17/17`,
+  canario para um usuario, PM2/WhatsApp/health verdes;
+- E2E real `items=2`, `sheets=2`, `cleanup=zero`, `privacy=true`, sem estado,
+  SQLite temporario ou recibo residual;
+- decisao: `GO de producao`; 6A encerrada e 6B autorizada.
 
 ### 6B - Importacao XLS/XLSX e exportacao filtrada
 

@@ -2,7 +2,7 @@
 
 Atualizado em: 2026-07-14
 
-## Fase 6A - correcao e categorizacao em lote - GO local - 2026-07-14
+## Fase 6A - correcao e categorizacao em lote - GO de producao - 2026-07-14
 
 - Nova operacao deterministica permite recategorizar gastos e corrigir apenas
   descricao/observacoes em `Saidas` e `Lancamentos Cartao`.
@@ -21,8 +21,18 @@ Atualizado em: 2026-07-14
   verifica as duas abas e faz cleanup exato com SQLite temporario.
 - Evidencia local: 6A `17/17`, regressao de estado `291/291`, baseline integral
   `848/848`, audit high zero, sintaxe e diff check verdes.
-- Decisao: `GO local`; commit/deploy, canario de um usuario e E2E real ainda
-  pendentes. Relatorio: `docs/qa/phase-6a-batch-maintenance-gate-2026-07-14.md`.
+- Commit `02aa44f9b9bb5292f59c87e701c5617df841e339` publicado e
+  implantado por fast-forward. Backup:
+  `.env.pre-6a-02aa44f-20260714T050104Z`.
+- Gate remoto `17/17`; canario para exatamente um usuario; PM2 online,
+  WhatsApp pronto, worktree rastreado limpo e health
+  `{"ok":true,"sqlite":true}`.
+- E2E real confirmou dois itens em duas abas pelo handler, com
+  `cleanup=zero` e `privacy=true`. Postflight encontrou zero estado pendente,
+  zero SQLite temporario e zero recibo no banco normal.
+- Decisao: `GO de producao`, encerramento da 6A e autorizacao para iniciar 6B.
+  Promocao global continua proibida. Relatorio:
+  `docs/qa/phase-6a-batch-maintenance-gate-2026-07-14.md`.
 
 ## Fase 5D - gate de saida da Fase 5 - GO de producao - 2026-07-14
 
