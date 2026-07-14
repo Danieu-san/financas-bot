@@ -1376,6 +1376,7 @@ module.exports = {
     detectImportFileType,
     parseCsvTransactions,
     parseImportMedia,
+    parseImportedRowObjects,
     parseOfxTransactions,
     parseSpreadsheetBuffer,
     parseRecurringBillClassificationReply,

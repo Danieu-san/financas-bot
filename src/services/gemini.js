@@ -205,11 +205,51 @@ async function transcribeAudio(filePath) {
     }
 }
 
+function buildFinancialDocumentPayload({ buffer, mimeType, prompt }) {
+    if (!Buffer.isBuffer(buffer) || !buffer.length) throw new Error('Documento financeiro vazio.');
+    return {
+        contents: [{ parts: [
+            { text: String(prompt || '') },
+            { inlineData: { mimeType: String(mimeType || ''), data: buffer.toString('base64') } }
+        ] }],
+        generationConfig: {
+            responseMimeType: 'application/json',
+            temperature: 0
+        }
+    };
+}
+
+async function extractFinancialDocument(input = {}) {
+    metrics.increment('gemini.document_ocr.total');
+    const startedAt = Date.now();
+    try {
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+        const response = await fetchWithTimeout(apiUrl, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(buildFinancialDocumentPayload(input))
+        }, GEMINI_TIMEOUT_MS);
+        if (!response.ok) throw new Error(`Gemini OCR HTTP ${response.status}`);
+        const result = await response.json();
+        const text = String(result.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+        if (!text || text.length > 100000) throw new Error('Gemini OCR response invalid');
+        const parsed = JSON.parse(text.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim());
+        metrics.observeDuration('gemini.document_ocr.ms', Date.now() - startedAt);
+        return parsed;
+    } catch (error) {
+        metrics.increment('gemini.document_ocr.error');
+        const httpStatus = String(error?.message || '').match(/HTTP\s+(\d{3})/)?.[1] || 'none';
+        logger.warn(`[ai] gemini_document_ocr_failed code=${parseGeminiError(error, GEMINI_TIMEOUT_MS).code} http_status=${httpStatus} duration_ms=${Date.now() - startedAt}`);
+        return { error: true, code: 'OCR_FAILED' };
+    }
+}
+
 module.exports = { 
     askLLM,
+    extractFinancialDocument,
     getStructuredResponseFromLLM,
     transcribeAudio,
     __test__: {
+        buildFinancialDocumentPayload,
         parseGeminiError
     }
 };

@@ -6,6 +6,7 @@ const deletionHandler = require('./deletionHandler');
 const batchMaintenanceHandler = require('./batchMaintenanceHandler');
 const financialExportHandler = require('./financialExportHandler');
 const financialReceiptHandler = require('./financialReceiptHandler');
+const { buildDocumentOcrPolicy, stageFinancialDocumentImport } = require('../services/documentOcrImportService');
 const debtHandler = require('./debtHandler');
 const { getStructuredResponseFromLLM } = require('../services/gemini');
 const googleService = require('../services/google');
@@ -3367,6 +3368,45 @@ function detectBudgetScopeFromQuestion(text) {
     if (/\b(eu|meu|minha|meus|minhas|pessoal|so meus|só meus)\b/.test(normalized)) return 'personal';
     if (/\b(nos|nós|nosso|nossa|nossos|nossas|familia|família|familiar|casal)\b/.test(normalized)) return 'family';
     return '';
+}
+
+function messageRequestsDocumentOcr(msg = {}) {
+    if (!msg.hasMedia) return false;
+    const text = normalizeText(String(msg.body || ''));
+    return /\b(importar|importe|ler|leia|extrair|extraia)\b/.test(text) && /\b(extrato|lancamentos|movimentacoes)\b/.test(text);
+}
+
+async function handleDocumentOcrImportMessage(msg, { senderId, person, userId }) {
+    if (!messageRequestsDocumentOcr(msg) || typeof msg.downloadMedia !== 'function') return false;
+    const policy = buildDocumentOcrPolicy(process.env, userId);
+    if (!policy.allowed) {
+        await sendPlainMessage(msg, 'OCR de extratos ainda não está liberado para este usuário.');
+        return true;
+    }
+    let staged;
+    try {
+        staged = await stageFinancialDocumentImport(await msg.downloadMedia(), { ownerAliases: [person].filter(Boolean) });
+    } catch (error) {
+        const message = error.code === 'OCR_LOW_CONFIDENCE' || error.code === 'OCR_NO_ROWS'
+            ? 'Não consegui extrair linhas com confiança suficiente. Nenhum dado foi salvo.'
+            : 'Não consegui preparar esse PDF/imagem com segurança. Nenhum dado foi salvo.';
+        await sendPlainMessage(msg, message);
+        return true;
+    }
+    const familyContext = await buildStatementImportFamilyContext({ userId, person });
+    const baseStateData = {
+        parsedTransactions: staged.transactions,
+        filename: String(msg?._data?.filename || 'documento-ocr').slice(0, 120),
+        type: 'document_ocr_staging', person, userId,
+        importOwnerCandidates: familyContext.candidates
+    };
+    if (familyContext.candidates.length > 1) {
+        userStateManager.setState(senderId, { action: 'awaiting_statement_import_owner', data: baseStateData });
+        await sendPlainMessage(msg, buildStatementImportOwnerQuestion(baseStateData.filename, familyContext.candidates));
+        return true;
+    }
+    await askNextStatementImportQuestion(msg, senderId, baseStateData);
+    return true;
 }
 
 function extractBudgetCategoryFromQuestion(text) {
@@ -8956,6 +8996,12 @@ async function handleMessage(msg) {
         return;
     }
 
+    const handledOcrImport = await handleDocumentOcrImportMessage(msg, { senderId, person: pessoa, userId });
+    if (handledOcrImport) {
+        metrics.increment('message.document_ocr_import.handled');
+        return;
+    }
+
     const handledExport = await financialExportHandler.handleFinancialExportCommand(msg, activeUser);
     if (handledExport) {
         metrics.increment('message.financial_export.handled');
@@ -11652,6 +11698,7 @@ module.exports = {
         buildLegalCommandLogContext,
         buildDashboardWhatsAppSummary,
         resolveConfiguredBudgetQueryScope,
-        cleanLocalTransactionDescription
+        cleanLocalTransactionDescription,
+        messageRequestsDocumentOcr
     }
 };

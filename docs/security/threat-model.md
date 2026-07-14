@@ -23,7 +23,7 @@ This document covers the current FinancasBot production shape: WhatsApp bot, Goo
 | Dashboard URL -> API | Public HTTP query params. | Signed short-lived token, no accepted `user_id` param, security headers, safe errors. |
 | Admin chat -> privileged actions | Admin text commands. | Admin check, audit logs, in-memory confirmation for high-risk commands. |
 | Bot -> Gemini | User data summarized into prompts. | Prefer deterministic SQL first, send summarized context only for common questions. |
-| Uploaded statements -> importer | User-controlled CSV/OFX. | Type allowlist, binary/PDF/image rejection, configurable file-size and row-count limits before parsing, no raw file sent to LLM. |
+| Uploaded statements -> importer | User-controlled CSV/OFX/XLS/XLSX/PDF/image. | Type/signature/size/row limits, preview and confirmation; PDF/image OCR is canary-only staging and treats embedded instructions as untrusted data. |
 
 ## Key Risks And Mitigations
 
@@ -36,6 +36,7 @@ This document covers the current FinancasBot production shape: WhatsApp bot, Goo
 | Admin typo changes wrong user | High | Target logs, append-only AdminActionLog JSONL, soft statuses, and second-message confirmation with `confirmar admin` for risky commands. | Move admin audit to a managed append-only store before multiple admins if JSONL is not enough operationally. |
 | Logs expose sensitive content | Medium | Admin manual messages log length, not body. | Periodically grep logs for token/secret patterns. |
 | Prompt injection / prompt probing | High | Security gate blocks internal IDs, system instructions, secrets, cross-user data and bypass attempts before LLM routing; logs are sanitized. | Keep adding real adversarial phrases from beta as regression tests. |
+| Prompt injection inside financial document | High | OCR prompt marks document text as untrusted; structured output is allowlisted, bounded and normalized locally; no OCR result writes before reconciliation, preview and confirmation. | Maintain adversarial synthetic documents in the 6D gate. |
 | Oversized/malicious statement upload | Medium | Importer limits decoded file size (`IMPORT_MAX_FILE_BYTES`, default 1 MiB) and non-empty lines (`IMPORT_MAX_ROWS`, default 1000) before parsing. | Add MIME magic-byte validation if binary formats are added later. |
 | Google auth/token failure | Medium | Runbook and auth recovery path. | Alert on repeated `deleted_client`, `401`, or sync errors. |
 | WhatsApp Web protocol/session instability | Medium | PM2 logs, QR renewal runbook, dependency update note. | Real E2E smoke before releases with dedicated test number. |
