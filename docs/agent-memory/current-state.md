@@ -1637,3 +1637,21 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   `371/371`, completa `837/837`, audit zero. Estado: GO local para terceiro
   redeploy; 5B/5C bloqueadas ate novo smoke.
 - Relatorio: `docs/qa/phase-5b-projected-plan-schedule-gate-2026-07-13.md`.
+
+## Phase 5B final production GO - 2026-07-14
+
+- O commit `369c7026dccde5c0e1b1b73201fa1e968e4298b8` foi publicado e
+  implantado. Producao permaneceu saudavel e os controles de privacidade foram
+  preservados.
+- O smoke final passou nas quatro validacoes: previsao da meta real, aporte
+  mensal total descrito corretamente como `29 meses mais tarde`, retirada
+  simulada sem escrita e divida ausente sem saldo zero inventado.
+- Logs confirmaram intents corretos, planilha pessoal escopada ao usuario e
+  respostas locais deterministicas. Nenhuma simulacao alterou planilha,
+  ledger ou movimentos.
+- `Sem alteracao` na retirada significa que o efeito simulado nao atravessou
+  uma fronteira mensal; nao significa que a retirada foi ignorada.
+- Decisao: `GO funcional de producao` e encerramento da 5B. A 5C esta
+  autorizada a iniciar pelo roadmap, mas ainda nao foi implementada. O proximo
+  passo e abrir a primeira fatia de movimentos de plano com escrita confiavel,
+  sem promover dual-write ou alterar fatos antes dos gates especificos.

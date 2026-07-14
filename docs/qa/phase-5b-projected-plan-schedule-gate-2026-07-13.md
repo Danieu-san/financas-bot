@@ -4,11 +4,12 @@ Data: 2026-07-13
 
 ## Veredito
 
-`GO tecnico de producao` para a leitura e a simulacao deterministicas da 5B.
+`GO funcional de producao` para a leitura e a simulacao deterministicas da 5B.
 
-Este gate nao autoriza a 5C, dual-write, alteracao de fatos financeiros ou
-persistencia de simulacoes. O encerramento funcional da 5B depende somente do
-smoke read-only no WhatsApp operado pelo usuario.
+A Fase 5B esta encerrada e a 5C esta autorizada a iniciar pelo roadmap. Este
+gate nao autoriza por si so dual-write, alteracao de fatos financeiros ou
+persistencia de simulacoes; essas mudancas pertencem aos passos e gates
+especificos da 5C.
 
 ## Escopo entregue
 
@@ -220,3 +221,31 @@ Evidencia TDD: RED reproduziu `6 -> 35` e `-29 antecipados` nas duas
 superficies; GREEN `9/9`. Regressao final: planos `43/43`, direcionada
 `371/371`, suite completa `837/837`, audit zero e diff check verde. Decisao:
 `GO local para terceiro redeploy`; 5B ainda requer o smoke produtivo.
+
+## Terceiro redeploy
+
+- commit publicado e implantado:
+  `369c7026dccde5c0e1b1b73201fa1e968e4298b8`;
+- producao permaneceu saudavel depois do deploy;
+- os controles de privacidade permaneceram preservados;
+- nenhuma simulacao escreveu em planilha, ledger ou movimentos de plano.
+
+## Smoke WhatsApp final - GO funcional
+
+As quatro validacoes finais passaram:
+
+- a previsao encontrou a meta real na planilha pessoal autorizada;
+- a simulacao com aporte mensal total calculou `29 meses mais tarde` e exibiu
+  o sinal com o texto correto;
+- a retirada foi simulada sem escrita e nao alterou o mes de conclusao;
+- a ausencia de divida permaneceu ausencia e nao virou saldo zero inventado.
+
+Os logs confirmaram os intents esperados, a planilha pessoal escopada ao
+usuario autorizado e respostas locais deterministicas. O resultado `sem
+alteracao` da retirada significa que o efeito do valor simulado nao atravessou
+uma fronteira mensal; nao significa que a retirada foi ignorada.
+
+Decisao final: `GO funcional de producao` e encerramento da Fase 5B. A Fase 5C
+esta autorizada a iniciar exatamente pelo roadmap, com escrita confiavel em
+shadow, confirmacao de campos criticos, idempotencia/retry/restart e smoke
+marker-only antes de qualquer promocao.

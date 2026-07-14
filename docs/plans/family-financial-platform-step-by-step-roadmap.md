@@ -1,7 +1,7 @@
 # Roadmap passo a passo - FinancasBot familiar
 
-Data: 2026-07-08
-Status: Fase 3F concluida com GO de producao; proximo portao: 3F.1
+Data: 2026-07-14
+Status: Fase 5B concluida com GO funcional de producao; proxima fatia autorizada: 5C
 
 ## Principios de execucao
 
@@ -36,8 +36,15 @@ Concluido:
 - Fase 3E: cronograma canonico de parcelas concluido com GO de producao, smoke remoto read-only aprovado e flags preservadas.
 - Fase 3F: reembolso e estorno vinculados concluidos com GO de producao, E2E
   completo pelo WhatsApp e classificacao publica corrigida.
+- Fases 3G e 3H: reconciliacao de importacao e gate de saida concluidos com GO
+  de producao.
+- Fase 4: orcamento, dashboard v2, qualidade e gate de saida concluidos com GO
+  de producao.
+- Fase 5A: contrato comum de planos concluido com GO de producao.
+- Fase 5B: cronograma e simulacao mensal concluidos com GO funcional de
+  producao no commit `369c7026dccde5c0e1b1b73201fa1e968e4298b8`.
 
-Proximo trabalho: executar o portao 3F.1 - Nucleo analitico agentic governado.
+Proximo trabalho: iniciar 5C - Movimentos de plano com escrita confiavel.
 
 ## Fase 3 - Recorrencias, parcelas, contas e faturas
 
@@ -524,6 +531,10 @@ Gate: metas e dividas antigas aparecem como views compativeis do contrato novo.
 
 ### 5B - Cronograma e simulacao mensal
 
+Status em 2026-07-14: concluida com `GO funcional de producao`. As quatro
+validacoes WhatsApp passaram, as simulacoes permaneceram sem escrita e o
+commit produtivo final e `369c7026dccde5c0e1b1b73201fa1e968e4298b8`.
+
 Passo a passo:
 
 1. Criar calculo deterministico de cronograma mensal.
@@ -535,6 +546,8 @@ Passo a passo:
 Gate: simulacao e historico real permanecem separados.
 
 ### 5C - Movimentos de plano com escrita confiavel
+
+Status em 2026-07-14: autorizada pelo encerramento da 5B, ainda nao iniciada.
 
 Passo a passo:
 
