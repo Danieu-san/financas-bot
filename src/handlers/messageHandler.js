@@ -5541,13 +5541,18 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
                 ? `pagamento extra de ${formatCurrencyBR(scenario.amount || 0)}`
                 : scenario.type === 'withdrawal'
                     ? `retirada de ${formatCurrencyBR(scenario.amount || 0)}`
-                    : `aporte mensal de ${formatCurrencyBR(scenario.amount || 0)}`;
+                    : scenario.type === 'additional_monthly_contribution'
+                        ? `aporte mensal adicional de ${formatCurrencyBR(scenario.amount || 0)}`
+                        : `aporte mensal total de ${formatCurrencyBR(scenario.amount || 0)}`;
             lines.push(`Simulação: ${scenarioLabel}.`);
             lines.push(simulated.completionOn
                 ? `Conclusão simulada: ${formatSheetDateForReply(simulated.completionOn)} (${simulated.monthsToCompletion} mês(es)).`
                 : 'Conclusão simulada: não calculada com segurança.');
             if (forecast.impact?.monthsSaved !== null && forecast.impact?.monthsSaved !== undefined) {
-                lines.push(`Impacto no prazo: ${forecast.impact.monthsSaved} mês(es) antecipado(s).`);
+                const monthsSaved = Number(forecast.impact.monthsSaved);
+                if (monthsSaved > 0) lines.push(`Impacto no prazo: ${monthsSaved} mês(es) antecipado(s).`);
+                else if (monthsSaved < 0) lines.push(`Impacto no prazo: ${Math.abs(monthsSaved)} mês(es) mais tarde.`);
+                else lines.push('Impacto no prazo: sem alteração.');
             }
             if (forecast.impact?.interestSaved !== null && forecast.impact?.interestSaved !== undefined) {
                 lines.push(`Juros evitados na simulação: ${formatCurrencyBR(forecast.impact.interestSaved)}.`);

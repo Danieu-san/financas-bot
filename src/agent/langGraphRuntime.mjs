@@ -971,13 +971,18 @@ function composeFinancialPlanAnswer(toolResult = {}) {
                 ? `pagamento extra de ${moneyBR(scenario.amount || 0)}`
                 : scenario.type === 'withdrawal'
                     ? `retirada de ${moneyBR(scenario.amount || 0)}`
-                    : `aporte mensal de ${moneyBR(scenario.amount || 0)}`;
+                    : scenario.type === 'additional_monthly_contribution'
+                        ? `aporte mensal adicional de ${moneyBR(scenario.amount || 0)}`
+                        : `aporte mensal total de ${moneyBR(scenario.amount || 0)}`;
             lines.push(`Simulação: ${scenarioLabel}.`);
             lines.push(value.simulated.completionOn
                 ? `Conclusão simulada: ${value.simulated.completionOn} (${value.simulated.monthsToCompletion} mês(es)).`
                 : 'Conclusão simulada: não calculada com segurança.');
             if (value.impact?.monthsSaved !== null && value.impact?.monthsSaved !== undefined) {
-                lines.push(`Impacto no prazo: ${value.impact.monthsSaved} mês(es) antecipado(s).`);
+                const monthsSaved = Number(value.impact.monthsSaved);
+                if (monthsSaved > 0) lines.push(`Impacto no prazo: ${monthsSaved} mês(es) antecipado(s).`);
+                else if (monthsSaved < 0) lines.push(`Impacto no prazo: ${Math.abs(monthsSaved)} mês(es) mais tarde.`);
+                else lines.push('Impacto no prazo: sem alteração.');
             }
             if (value.impact?.interestSaved !== null && value.impact?.interestSaved !== undefined) {
                 lines.push(`Juros evitados na simulação: ${moneyBR(value.impact.interestSaved)}.`);

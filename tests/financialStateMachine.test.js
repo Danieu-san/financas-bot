@@ -2813,7 +2813,7 @@ stateMachineTest('5B personal spreadsheet forecasts bypass the central agent sou
         assert.match(baseline, /Meta: Reserva/);
         assert.match(baseline, /Quanto falta hoje: R\$ 2\.000,00/);
         assert.match(baseline, /Conclusão projetada/);
-        assert.match(contribution, /Simulação: aporte mensal de R\$ 300,00/);
+        assert.match(contribution, /Simulação: aporte mensal total de R\$ 300,00/);
         assert.match(contribution, /Conclusão simulada/);
         assert.match(withdrawal, /Simulação: retirada de R\$ 200,00/);
         assert.match(withdrawal, /Conclusão simulada/);

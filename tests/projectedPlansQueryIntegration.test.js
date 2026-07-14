@@ -57,6 +57,13 @@ test('5B local planner maps payoff, extra payment, changed contribution and with
         frequency: 'monthly'
     });
 
+    const additionalContribution = classifyPerguntaLocally('se eu aportar mais R$ 300 por mês na meta reserva, quando alcanço?');
+    assert.deepStrictEqual(additionalContribution.financialQueryPlan.filters.scenario, {
+        type: 'additional_monthly_contribution',
+        amount: 300,
+        frequency: 'monthly'
+    });
+
     const withdrawal = classifyPerguntaLocally('se eu retirar R$ 200 da meta reserva, quando alcanço?');
     assert.strictEqual(withdrawal.intent, 'simulacao_meta');
     assert.deepStrictEqual(withdrawal.financialQueryPlan.filters.scenario, {
@@ -201,6 +208,34 @@ test('5B WhatsApp formatter explains payoff criteria, impact and zero-write sepa
     assert.doesNotMatch(response, /user_id|plan_id|legacy_ref|operation_key|fingerprint/i);
 });
 
+test('5B WhatsApp formatter describes a slower monthly contribution as delay and distinguishes total from additional', () => {
+    const buildResponse = (scenario) => messageHandler.__test__.buildLocalPerguntaResponse({
+        userQuestion: 'quando alcanço?',
+        intent: 'simulacao_meta',
+        analyzedData: {
+            results: {
+                kind: 'plan_schedule_forecast',
+                status: 'available',
+                plan: { name: 'Anual', type: 'goal', remaining: 10310.26 },
+                scenario,
+                baseline: { completionOn: '2026-12-13', monthsToCompletion: 6, totalInterest: 0, missingAssumptions: [] },
+                simulated: { completionOn: '2029-05-13', monthsToCompletion: 35, totalInterest: 0, missingAssumptions: [] },
+                impact: { monthsSaved: -29, interestSaved: 0 },
+                criteria: [],
+                separation: { persisted: false, writesPerformed: 0 }
+            }
+        }
+    });
+
+    const total = buildResponse({ type: 'monthly_contribution', amount: 300, frequency: 'monthly' });
+    const additional = buildResponse({ type: 'additional_monthly_contribution', amount: 300, frequency: 'monthly' });
+
+    assert.match(total, /aporte mensal total de R\$\s*300,00/i);
+    assert.match(total, /29 mês\(es\) mais tarde/i);
+    assert.doesNotMatch(total, /-29|29 mês\(es\) antecipado/i);
+    assert.match(additional, /aporte mensal adicional de R\$\s*300,00/i);
+});
+
 test('5B financial agent composer keeps the plan forecast deterministic and sanitized', async () => {
     const runtime = await import('../src/agent/langGraphRuntime.mjs');
     const answer = runtime.__test__.composeFinancialPlanAnswer({
@@ -225,4 +260,25 @@ test('5B financial agent composer keeps the plan forecast deterministic and sani
     assert.match(answer, /2 mês\(es\) antecipado/i);
     assert.match(answer, /não altera nem grava/i);
     assert.doesNotMatch(answer, /plan_id|user_id|fingerprint|\[object Object\]/i);
+
+    const delayed = runtime.__test__.composeFinancialPlanAnswer({
+        plan: { domain: 'goals', operation: 'forecast', filters: {} },
+        result: {
+            value: {
+                kind: 'plan_schedule_forecast',
+                status: 'available',
+                plan: { name: 'Anual', type: 'goal', remaining: 10310.26 },
+                scenario: { type: 'monthly_contribution', amount: 300, frequency: 'monthly' },
+                baseline: { completionOn: '2026-12-13', monthsToCompletion: 6, totalInterest: 0, missingAssumptions: [] },
+                simulated: { completionOn: '2029-05-13', monthsToCompletion: 35, totalInterest: 0, missingAssumptions: [] },
+                impact: { monthsSaved: -29, interestSaved: 0 },
+                criteria: [],
+                separation: { persisted: false, writesPerformed: 0 }
+            },
+            details: {}
+        }
+    });
+    assert.match(delayed, /aporte mensal total de R\$\s*300,00/i);
+    assert.match(delayed, /29 mês\(es\) mais tarde/i);
+    assert.doesNotMatch(delayed, /-29|29 mês\(es\) antecipado/i);
 });

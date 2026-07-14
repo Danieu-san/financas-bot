@@ -43,6 +43,10 @@ Use este mapa para escolher rapidamente quais arquivos abrir por tarefa.
   usuarios continua restrito; somente pedidos sem escopo explicito podem
   consultar metas do proprio usuario entre escopos. `Pessoal`, `individual`,
   `somente minha` e equivalentes mantem o filtro estrito.
+- Formatadores de forecast devem interpretar `monthsSaved`: valor positivo e
+  antecipacao, negativo e atraso com valor absoluto e zero e prazo inalterado.
+  `monthly_contribution` e aporte mensal total; somente
+  `additional_monthly_contribution` pode ser chamado de aporte adicional.
 
 ## Importacao de extratos
 

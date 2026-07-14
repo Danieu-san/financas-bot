@@ -321,6 +321,10 @@ Validar:
   data-alvo ausente e ultima coluna opcional ausente. `Minha meta` deve
   projetar sem ampliar userIds; `minha meta pessoal` deve continuar excluindo
   a meta familiar.
+- Cobrir `monthsSaved` positivo, negativo e zero em todos os formatadores.
+  Resultado negativo nunca pode ser rotulado como antecipacao nem mostrar
+  sinal negativo ao usuario. Validar ainda `aporte R$ X por mes` como total e
+  `aporte mais R$ X por mes` como adicional.
 
 ## Scheduler e Calendar
 

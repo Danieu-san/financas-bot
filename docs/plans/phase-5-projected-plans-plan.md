@@ -182,6 +182,14 @@ WhatsApp e health ficaram verdes e os controles de privacidade foram
 preservados. Falta somente o novo smoke para o GO funcional da 5B; a 5C segue
 bloqueada.
 
+O terceiro smoke encontrou a meta e calculou a simulacao, mas exibiu
+`-29 meses antecipados` para uma conclusao 29 meses posterior. O motor estava
+correto; os dois formatadores nao interpretavam o sinal de `monthsSaved`.
+A correcao local descreve antecipacao, atraso e prazo inalterado separadamente
+e explicita aporte mensal total versus adicional. TDD passou `9/9`; regressao
+final passou planos `43/43`, direcionada `371/371`, suite `837/837` e audit
+zero. Falta o terceiro redeploy e novo smoke; a 5C continua bloqueada.
+
 Relatório: `docs/qa/phase-5b-projected-plan-schedule-gate-2026-07-13.md`.
 
 ## 5C - Movimentos com escrita confiável

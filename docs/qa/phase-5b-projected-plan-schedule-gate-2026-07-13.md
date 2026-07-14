@@ -192,3 +192,31 @@ funcionalmente `NO-GO` ate o smoke produtivo.
 
 Decisao: `GO tecnico do segundo hotfix em producao`; 5B permanece
 funcionalmente `NO-GO` apenas ate repetir o smoke. A 5C segue bloqueada.
+
+## Terceiro smoke WhatsApp - NO-GO parcial
+
+A previsao-base passou e encontrou a meta real. A simulacao com aporte mensal
+de R$ 300 tambem calculou datas coerentes: o baseline terminava em 6 meses e o
+cenario em 35 meses. Entretanto, a resposta exibiu `-29 meses antecipados`,
+embora a data simulada fosse 29 meses posterior.
+
+### Terceira causa raiz e correcao local
+
+O motor preservava corretamente `months_saved=-29`, mas os dois formatadores
+publicos sempre acrescentavam `antecipado(s)`, sem interpretar o sinal.
+
+A resposta agora possui tres estados:
+
+- positivo: `N mes(es) antecipado(s)`;
+- negativo: `N mes(es) mais tarde`, usando valor absoluto;
+- zero: `sem alteracao`.
+
+O texto tambem distingue `aporte mensal total` de `aporte mensal adicional`.
+A frase `aportar R$ 300 por mes` substitui o valor mensal do cenario; `aportar
+mais R$ 300 por mes` adiciona ao aporte-base. A regra foi aplicada tanto na
+resposta local do WhatsApp quanto no compositor do agente.
+
+Evidencia TDD: RED reproduziu `6 -> 35` e `-29 antecipados` nas duas
+superficies; GREEN `9/9`. Regressao final: planos `43/43`, direcionada
+`371/371`, suite completa `837/837`, audit zero e diff check verde. Decisao:
+`GO local para terceiro redeploy`; 5B ainda requer o smoke produtivo.

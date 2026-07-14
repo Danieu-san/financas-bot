@@ -1626,4 +1626,14 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - PM2 passou de `3188958` para `3190204`; WhatsApp pronto, health
   `{"ok":true,"sqlite":true}`, hash exato, worktree limpo, um admin e
   all-users desligado. Estado: GO tecnico em producao; smoke ainda pendente.
+- Terceiro smoke: previsao-base passou; simulacao calculou baseline 6 meses e
+  cenario 35 meses, mas formatou `-29 meses antecipados`. Causa: formatadores
+  ignoravam o sinal de `monthsSaved`; o motor estava correto.
+- Correcao local nas respostas WhatsApp e agente: positivo vira antecipacao,
+  negativo vira valor absoluto `mais tarde`, zero vira `sem alteracao`.
+  `Aporte mensal total` e `aporte mensal adicional` agora sao explicitos e a
+  classificacao de `mais R$` permanece separada.
+- Evidencia: RED nas duas superficies, GREEN `9/9`, planos `43/43`, direcionada
+  `371/371`, completa `837/837`, audit zero. Estado: GO local para terceiro
+  redeploy; 5B/5C bloqueadas ate novo smoke.
 - Relatorio: `docs/qa/phase-5b-projected-plan-schedule-gate-2026-07-13.md`.
