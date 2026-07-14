@@ -1,7 +1,7 @@
 # Roadmap passo a passo - FinancasBot familiar
 
 Data: 2026-07-14
-Status: Fase 6B concluida com GO de producao; proxima fatia autorizada: 6C
+Status: Fase 6C concluida com GO de producao; proxima fatia autorizada: 6D
 
 ## Principios de execucao
 
@@ -50,8 +50,10 @@ Concluido:
 - Fase 6A: manutencao em lote concluida com GO de producao e canario restrito.
 - Fase 6B: importacao XLS/XLSX e exportacao filtrada concluidas com GO de
   producao no commit `f7a286848e094524fd6e93bb57313b5a06751a80`.
+- Fase 6C: comprovantes financeiros vinculados concluidos com GO de producao e
+  canario restrito no commit `cbb7065799001c63d04ddbf19d0a0a263ab15f0d`.
 
-Proximo trabalho: iniciar 6C - Comprovantes financeiros vinculados.
+Proximo trabalho: iniciar 6D - OCR/PDF/imagem com preview.
 
 ## Fase 3 - Recorrencias, parcelas, contas e faturas
 
@@ -675,6 +677,17 @@ Passo a passo:
 5. Testar privacidade, arquivo grande, tipo invalido e limpeza.
 
 Gate: comprovante nunca vira transacao automaticamente.
+
+Resultado em 2026-07-14:
+
+- vinculo explicito ao ultimo gasto, entrada ou compra no cartao existente;
+- revalidacao concorrente, tipo/assinatura/tamanho, hash e rollback de upload;
+- arquivo privado no Drive do dono e metadado escopado em SQLite;
+- busca pelo WhatsApp sem expor identificadores internos;
+- gate local/remoto `8/8`, baseline `851/851` e audit high zero;
+- E2E Drive `uploads=1`, `downloads=1`, `writes=zero`, `cleanup=zero`,
+  `privacy=true`;
+- decisao: `GO de producao`; 6C encerrada e 6D autorizada.
 
 ### 6D - OCR/PDF/imagem com preview
 

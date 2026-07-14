@@ -2,6 +2,27 @@
 
 Atualizado em: 2026-07-14
 
+## Fase 6C - comprovantes financeiros vinculados - GO de producao - 2026-07-14
+
+- PDF, JPEG, PNG e WebP podem ser anexados somente ao ultimo gasto, entrada ou
+  compra no cartao ja existente e pertencente ao usuario autorizado.
+- O estado persistente guarda apenas chave opaca; o evento e revalidado antes
+  do upload. Mudanca concorrente cancela o fluxo sem vinculo incorreto.
+- MIME, assinatura binaria e limite de 5 MiB sao validados. Hash por
+  evento/conteudo evita duplicidade; falha de metadado apaga upload parcial.
+- Arquivos ficam privados no Drive do dono via `drive.file`; metadados ficam em
+  SQLite fora do Git. Busca pelo WhatsApp nao expoe Drive id, hash ou event key.
+- Midia nunca cria ou altera transacao. OCR permanece fora da 6C.
+- Evidencia local: 6C `8/8`, suite integral `851/851`, audit high zero. O E2E
+  local falhou fechado antes do upload por ausencia de OAuth individual neste
+  PC e limpou os temporarios.
+- Commit `cbb7065799001c63d04ddbf19d0a0a263ab15f0d` publicado e
+  implantado; backup `.env.pre-6c-cbb7065-20260714T064500Z`.
+- Remoto `8/8`, canario para um usuario, PM2/WhatsApp/health verdes e E2E Drive
+  `uploads=1`, `downloads=1`, `writes=zero`, `cleanup=zero`, `privacy=true`.
+- Decisao: `GO de producao`, encerramento da 6C e autorizacao da 6D. Relatorio:
+  `docs/qa/phase-6c-linked-financial-receipts-gate-2026-07-14.md`.
+
 ## Fase 6B - importacao XLS/XLSX e exportacao filtrada - GO de producao - 2026-07-14
 
 - XLS e XLSX agora sao normalizados para o mesmo contrato de preview,
