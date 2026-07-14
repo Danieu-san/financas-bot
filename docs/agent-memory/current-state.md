@@ -2,6 +2,24 @@
 
 Atualizado em: 2026-07-14
 
+## Fase 8B.1 - correcao BILL-015 e gate analitico - GO de producao - 2026-07-14
+
+- Causa raiz confirmada: `sem categoria` tinha precedencia generica sobre
+  `conta` e desviava `BILL-015` de `bills/detect/current_state` para
+  `quality/list/transaction_date`.
+- A precedencia foi corrigida sem forcar flags nem inventar zero. `conta sem
+  categoria` usa faturas; `lancamento sem categoria` permanece em qualidade.
+- Evidencia local: teste focado 6/6, gate analitico 265/265, migration gaps 6/6,
+  suite 863/863, pretest 6A-6E verde e audit zero.
+- Producao no commit `f2e2210853264fa15dbef6361fc32c7041aaadfd`:
+  teste focado 6/6, gate remoto 265/265 + 6/6 e smoke read-only de `BILL-015`
+  aceito/verificado em `bills/detect`, sem indisponibilidade.
+- PM2/WhatsApp/cron/health verdes; heartbeat schema 1 registrou `f2e2210` e o
+  arquivo de telemetria permaneceu 600.
+- Nenhum fallback foi desligado e nenhuma remocao foi autorizada. Proximo passo:
+  8B.2, caracterizacao reversivel do Dashboard v1/v2. Relatorio:
+  `docs/qa/phase-8b1-bill015-analytical-gate-2026-07-14.md`.
+
 ## Fase 8B.0 - telemetria duravel de legado - GO de producao - 2026-07-14
 
 - Parecer adversarial independente confirmou `GO COM CONDICOES` para 8B e

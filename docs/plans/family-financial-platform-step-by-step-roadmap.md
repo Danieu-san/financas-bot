@@ -883,6 +883,32 @@ Resultado em 2026-07-14:
   desativacao por dominio;
 - relatorio: `docs/qa/phase-8b0-durable-legacy-telemetry-gate-2026-07-14.md`.
 
+#### 8B.1 - Correcao e gate analitico por dominio
+
+Passo a passo:
+
+1. Reproduzir `BILL-015` sem alterar flags de fonte.
+2. Corrigir a precedencia semantica entre contas e qualidade transacional.
+3. Preservar o caso `lancamento sem categoria` no dominio de qualidade.
+4. Exigir 265/265 local e remoto, com migration gaps 6/6.
+5. Fazer smoke read-only e manter fallback/rollback ativos.
+
+Gate: corpus completo, suite, pretest e producao verdes; fonte indisponivel nao
+vira zero e nenhuma escrita e produzida pelo smoke.
+
+Resultado em 2026-07-14:
+
+- `GO de producao`; `BILL-015` agora usa `bills/detect/current_state`;
+- local: focado 6/6, gate 265/265, migration 6/6, suite 863/863, pretest verde
+  e audit zero;
+- remoto: focado 6/6, gate 265/265 + 6/6 e smoke aceito/verificado, sem
+  indisponibilidade;
+- producao no commit `f2e2210`, PM2/WhatsApp/cron/health verdes e heartbeat
+  duravel no commit correto;
+- fallback permanece ligado; nenhuma remocao autorizada;
+- proximo passo: 8B.2, caracterizacao reversivel do Dashboard v1/v2;
+- relatorio: `docs/qa/phase-8b1-bill015-analytical-gate-2026-07-14.md`.
+
 Politica para uso zero: no minimo 45 dias e um ciclo orcamentario completo com
 todos os pontos de entrada instrumentados. Cartoes exigem dois fechamentos ou
 pelo menos 60 dias. O fim da janela torna o item apenas candidato a 8C.

@@ -805,13 +805,14 @@ Nao acumular todas as fases para um unico deploy.
 
 ## 13. Proximo passo imediato
 
-Executar a Fase `8B.1 - correcao e gate analitico por dominio`:
+Executar a Fase `8B.2 - caracterizacao reversivel do Dashboard v1/v2`:
 
-1. Diagnosticar e corrigir `BILL-015` sem inventar zero quando a fonte estiver
-   indisponivel.
-2. Completar a telemetria da trajetoria analitica por dominio.
-3. Rerodar o gate deterministico e exigir 265/265.
-4. Manter fallback e rollback por flag; nenhuma remocao durante a janela.
-5. Depois do GO, preparar a caracterizacao reversivel do dashboard em 8B.2.
+1. Distinguir link emitido, abertura/sessao humana, refresh, chamada interna e
+   health check sem persistir token, telefone ou dado financeiro.
+2. Mapear consumidores das APIs v1/v2 e separar trafego tecnico de adocao.
+3. Confirmar paridade e compatibilidade HTTPS antes de qualquer promocao.
+4. Se seguro, promover v2 por flag de forma reversivel, mantendo v1 como
+   rollback.
+5. Iniciar a janela especifica de observacao; nenhum endpoint v1 sera removido.
 
-Gate 8B.0: `docs/qa/phase-8b0-durable-legacy-telemetry-gate-2026-07-14.md`.
+Gate 8B.1: `docs/qa/phase-8b1-bill015-analytical-gate-2026-07-14.md`.

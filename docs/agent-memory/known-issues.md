@@ -4,10 +4,11 @@ Atualizado em: 2026-07-14
 
 ## Fase 8A: remocao de legado bloqueada
 
-- O gate `gate:analytical-legacy` retornou `NO_GO` em 2026-07-14 por uma lacuna
-  em `BILL-015` (`canonical_transactions_unavailable`). O fallback analitico
-  tambem teve uso real nos logs. Nao desabilitar por `*` nem remover o trio
-  `intentClassifier`/`calculationOrchestrator`/`responseGenerator`.
+- A lacuna de `BILL-015` foi corrigida na 8B.1 e o gate passou `265/265` local e
+  remotamente. Isso resolve o bloqueio funcional do corpus, mas nao prova uso
+  zero: o fallback analitico teve uso real nos logs. Nao desabilitar por `*` nem
+  remover o trio `intentClassifier`/`calculationOrchestrator`/
+  `responseGenerator` durante a janela.
 - Dashboard v1 continua com trafego significativamente maior que a API v2. Nao
   remover v1 sem migrar os consumidores e observar uso zero de forma duravel.
 - Zero ocorrencias em busca textual de log nao equivale a uso zero. Exigir
