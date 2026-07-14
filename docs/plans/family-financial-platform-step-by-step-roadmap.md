@@ -1,7 +1,7 @@
 # Roadmap passo a passo - FinancasBot familiar
 
 Data: 2026-07-14
-Status: Fase 5C concluida com GO de producao; proxima fatia autorizada: 5D
+Status: Fase 5D em GO local; gate remoto pendente para encerrar a Fase 5
 
 ## Principios de execucao
 
@@ -44,7 +44,7 @@ Concluido:
 - Fase 5B: cronograma e simulacao mensal concluidos com GO funcional de
   producao no commit `369c7026dccde5c0e1b1b73201fa1e968e4298b8`.
 
-Proximo trabalho: iniciar 5D - Gate de saida da Fase 5.
+Proximo trabalho: publicar e validar remotamente 5D - Gate de saida da Fase 5.
 
 ## Fase 3 - Recorrencias, parcelas, contas e faturas
 
@@ -583,6 +583,18 @@ Passo a passo:
 2. Paridade Sheets/ledger/dashboard/WhatsApp.
 3. Rollback por flag.
 4. Decidir GO para manutencao e comprovantes.
+
+Evidencia local em 2026-07-14:
+
+- gate isolado `3/3` e suite completa `848/848`;
+- aporte de meta e pagamento de financiamento coerentes em Sheets, ledger,
+  dashboard v2 e resposta WhatsApp;
+- retirada simulada sem escrita, cronograma repetivel e zero contaminacao de
+  Entradas/Saidas;
+- politica de rollback falha fechada para modo ausente/invalido e usuario fora
+  da allowlist;
+- audit high zero e diff check limpo;
+- decisao: `GO local`; producao aguarda publicacao e gate remoto.
 
 ## Fase 6 - Manutencao, formatos e comprovantes
 

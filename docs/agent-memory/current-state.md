@@ -2,6 +2,24 @@
 
 Atualizado em: 2026-07-14
 
+## Fase 5D - gate de saida da Fase 5 - GO local - 2026-07-14
+
+- Criado `tests/phase5ExitGate.test.js` com tres verticais repetiveis: paridade
+  apos aporte/pagamento, simulacao read-only com cronograma deterministico e
+  rollback fail-closed por flag/allowlist.
+- A mesma fotografia prova saldos coerentes entre linhas legadas de Sheets,
+  projecao de planos, Query Engine/resposta WhatsApp e dashboard v2.
+- O gate confirma zero fato novo em Entradas/Saidas e ausencia de identidade,
+  referencias, chaves de operacao e checksums na saida publica.
+- Evidencia local: gate 5D `3/3`, suite completa `848/848`, zero falha, skip ou
+  cancelamento, audit high com zero vulnerabilidades e `git diff --check`
+  limpo.
+- O E2E real marker-only da 5C ja provou imediatamente antes deste gate as
+  escritas e o cleanup. Como a 5D adiciona somente teste/documentacao, a etapa
+  remota repete o gate sem nova mutacao desnecessaria da planilha real.
+- Decisao: `GO local`; publicar e executar na EC2 antes do GO final da Fase 5.
+  Relatorio: `docs/qa/phase-5d-phase-5-exit-gate-2026-07-14.md`.
+
 ## Fase 5C - movimentos de plano com escrita confiavel - GO de producao - 2026-07-14
 
 - Movimentos de meta, mudancas de status de meta e pagamentos de divida agora
