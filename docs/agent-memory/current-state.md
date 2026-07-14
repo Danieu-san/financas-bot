@@ -1,6 +1,35 @@
 # Estado atual do FinancasBot
 
-Atualizado em: 2026-07-13
+Atualizado em: 2026-07-14
+
+## Fase 5C - movimentos de plano com escrita confiavel - GO local - 2026-07-14
+
+- Movimentos de meta, mudancas de status de meta e pagamentos de divida agora
+  podem usar um recibo duravel `prepared -> legacy_committed ->
+  shadow_committed`, sempre atras de flag e allowlist de usuario.
+- Campos criticos sao apresentados antes da escrita. Cancelamento nao altera
+  Sheets, store projetado, Entradas ou Saidas.
+- Cada escrita filha no Google recebe uma chave estavel. Retry, replay e
+  reinicio reutilizam o payload preparado; falha entre atualizar a meta e
+  anexar seu movimento nao duplica nenhuma das duas operacoes.
+- Sheets continua autoridade legivel. A projecao SQLite ocorre somente depois
+  do commit legado. Se apenas o shadow falhar, o recibo fica
+  `legacy_committed` e a resposta nao apresenta falso fracasso que induziria
+  uma segunda gravacao.
+- O schema do store passou a 2 com migracao automatica do schema 1. Backups de
+  schema 1 continuam restauraveis e backups novos incluem os recibos.
+- Rollout falha fechado: `PROJECTED_PLAN_WRITES_MODE=off` e o padrao;
+  `shadow` exige `PROJECTED_PLAN_WRITES_USER_IDS` com correspondencia exata.
+- E2E automatico marker-only foi criado em
+  `scripts/runProjectedPlanWritesE2E.js`: usa planilha pessoal real, banco
+  SQLite temporario isolado, prova replay e neutralidade contabil e remove
+  exatamente as linhas marcadas.
+- Evidencia local final: gate 5C `8/8`, store/recibos `14/14`, suite completa
+  `845/845`, `npm audit --audit-level=high` com zero vulnerabilidades, sintaxe
+  e `git diff --check` verdes.
+- Decisao: `GO local`. Producao permanece na 5B ate commit/push, backup,
+  ativacao canary de um unico usuario, deploy e E2E remoto com cleanup zero.
+  Relatorio: `docs/qa/phase-5c-reliable-plan-writes-gate-2026-07-14.md`.
 
 ## Fase 4E - Gate de saida da Fase 4 - GO local - 2026-07-13
 

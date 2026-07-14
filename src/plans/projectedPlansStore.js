@@ -7,7 +7,7 @@ const {
     __test__: { stableStringify }
 } = require('./projectedPlansContract');
 
-const PROJECTED_PLANS_STORE_SCHEMA_VERSION = 1;
+const PROJECTED_PLANS_STORE_SCHEMA_VERSION = 2;
 const PROJECTED_PLANS_STORE_BACKUP_VERSION = 'projected-plans-store-backup-v1';
 
 function checksum(value) {
@@ -91,13 +91,26 @@ class ProjectedPlansStore {
                 updated_at TEXT NOT NULL,
                 FOREIGN KEY (snapshot_checksum) REFERENCES projected_plan_snapshots(snapshot_checksum)
             );
+            CREATE TABLE IF NOT EXISTS projected_plan_write_receipts (
+                operation_key TEXT PRIMARY KEY,
+                status TEXT NOT NULL CHECK (status IN ('prepared', 'legacy_committed', 'shadow_committed', 'failed')),
+                payload_json TEXT NOT NULL,
+                payload_checksum TEXT NOT NULL,
+                result_json TEXT NOT NULL DEFAULT '{}',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
         `);
         this.db.prepare(`
             INSERT INTO projected_plan_store_metadata (key, value)
             VALUES ('schema_version', ?)
             ON CONFLICT(key) DO NOTHING
         `).run(String(PROJECTED_PLANS_STORE_SCHEMA_VERSION));
-        const version = Number(this.db.prepare("SELECT value FROM projected_plan_store_metadata WHERE key = 'schema_version'").pluck().get());
+        let version = Number(this.db.prepare("SELECT value FROM projected_plan_store_metadata WHERE key = 'schema_version'").pluck().get());
+        if (version === 1) {
+            this.db.prepare("UPDATE projected_plan_store_metadata SET value = ? WHERE key = 'schema_version'").run(String(PROJECTED_PLANS_STORE_SCHEMA_VERSION));
+            version = PROJECTED_PLANS_STORE_SCHEMA_VERSION;
+        }
         if (version !== PROJECTED_PLANS_STORE_SCHEMA_VERSION) throw new Error(`unsupported_projected_plans_store_schema:${version}`);
         return version;
     }
@@ -124,6 +137,141 @@ class ProjectedPlansStore {
         return Number(state
             ? this.db.prepare('SELECT COUNT(*) FROM projected_plan_identities WHERE state = ?').pluck().get(state)
             : this.db.prepare('SELECT COUNT(*) FROM projected_plan_identities').pluck().get());
+    }
+
+    getCurrentPlan(planId) {
+        const row = this.db.prepare('SELECT payload_json FROM projected_plans WHERE plan_id = ?').get(String(planId || '').trim());
+        return row ? parseJson(row.payload_json) : null;
+    }
+
+    getMovementByOperationKey(operationKey) {
+        const row = this.db.prepare('SELECT payload_json FROM projected_plan_movements WHERE operation_key = ?').get(String(operationKey || '').trim());
+        return row ? parseJson(row.payload_json) : null;
+    }
+
+    getWriteReceipt(operationKey) {
+        const row = this.db.prepare('SELECT * FROM projected_plan_write_receipts WHERE operation_key = ?').get(String(operationKey || '').trim());
+        if (!row) return null;
+        return {
+            operation_key: row.operation_key,
+            status: row.status,
+            payload: parseJson(row.payload_json),
+            result: parseJson(row.result_json || '{}'),
+            created_at: row.created_at,
+            updated_at: row.updated_at
+        };
+    }
+
+    prepareWriteReceipt({ operationKey, payload }) {
+        this.assertWriteEnabled();
+        const key = String(operationKey || '').trim();
+        if (!key || !payload || typeof payload !== 'object') throw new Error('projected_plan_write_receipt_fields_required');
+        const payloadJson = stableStringify(payload);
+        const digest = checksum(payload);
+        return this.db.transaction(() => {
+            const existing = this.db.prepare('SELECT payload_checksum FROM projected_plan_write_receipts WHERE operation_key = ?').get(key);
+            if (existing) {
+                if (existing.payload_checksum !== digest) throw new Error('projected_plan_write_receipt_conflict');
+                return { ...this.getWriteReceipt(key), replayed: true };
+            }
+            const at = nowIso(this.clock);
+            this.db.prepare(`
+                INSERT INTO projected_plan_write_receipts
+                    (operation_key, status, payload_json, payload_checksum, result_json, created_at, updated_at)
+                VALUES (?, 'prepared', ?, ?, '{}', ?, ?)
+            `).run(key, payloadJson, digest, at, at);
+            return { ...this.getWriteReceipt(key), replayed: false };
+        })();
+    }
+
+    markLegacyWriteCommitted(operationKey, result = {}) {
+        this.assertWriteEnabled();
+        const key = String(operationKey || '').trim();
+        const existing = this.getWriteReceipt(key);
+        if (!existing) throw new Error('projected_plan_write_receipt_not_found');
+        if (existing.status === 'shadow_committed') return { ...existing, replayed: true };
+        const at = nowIso(this.clock);
+        this.db.prepare(`
+            UPDATE projected_plan_write_receipts
+            SET status = 'legacy_committed', result_json = ?, updated_at = ?
+            WHERE operation_key = ?
+        `).run(stableStringify(result || {}), at, key);
+        return { ...this.getWriteReceipt(key), replayed: existing.status === 'legacy_committed' };
+    }
+
+    persistCommittedWrite({ operationKey, plan, movement }) {
+        this.assertWriteEnabled();
+        const key = String(operationKey || '').trim();
+        assertProjectedPlans({
+            schema_version: PROJECTED_PLANS_SCHEMA_VERSION,
+            plans: [plan],
+            plan_movements: [movement],
+            issues: [],
+            stats: { plan_count: 1, movement_count: 1, issue_count: 0 }
+        });
+        if (movement.operation_key !== key) throw new Error('projected_plan_write_operation_key_mismatch');
+        return this.db.transaction(() => {
+            const receipt = this.getWriteReceipt(key);
+            if (!receipt) throw new Error('projected_plan_write_receipt_not_found');
+            const existingMovement = this.getMovementByOperationKey(key);
+            if (existingMovement) {
+                if (checksum(existingMovement) !== checksum(movement)) throw new Error('projected_plan_movement_idempotency_conflict');
+                this.updateWriteReceiptStatusInternal(key, 'shadow_committed', { replayed: true });
+                return { replayed: true, plan_written: 0, movement_written: 0, projection: this.readProjection() };
+            }
+            if (receipt.status !== 'legacy_committed') throw new Error('legacy_plan_write_not_committed');
+            const planWritten = this.persistPlanInternal(plan);
+            const movementWritten = this.persistMovementInternal(movement);
+            const projection = this.rebuildCurrentProjectionInternal();
+            this.updateWriteReceiptStatusInternal(key, 'shadow_committed', {
+                replayed: false,
+                plan_written: planWritten,
+                movement_written: movementWritten
+            });
+            return { replayed: false, plan_written: planWritten, movement_written: movementWritten, projection };
+        })();
+    }
+
+    updateWriteReceiptStatusInternal(operationKey, status, result = {}) {
+        const at = nowIso(this.clock);
+        this.db.prepare(`
+            UPDATE projected_plan_write_receipts
+            SET status = ?, result_json = ?, updated_at = ?
+            WHERE operation_key = ?
+        `).run(status, stableStringify(result || {}), at, operationKey);
+    }
+
+    rebuildCurrentProjectionInternal() {
+        const previous = this.readProjection();
+        const plans = this.db.prepare('SELECT payload_json FROM projected_plans ORDER BY plan_id').all().map(row => parseJson(row.payload_json));
+        const planMovements = this.db.prepare('SELECT payload_json FROM projected_plan_movements ORDER BY movement_id').all().map(row => parseJson(row.payload_json));
+        const issues = Array.isArray(previous?.issues) ? previous.issues : [];
+        const projection = {
+            schema_version: PROJECTED_PLANS_SCHEMA_VERSION,
+            plans,
+            plan_movements: planMovements,
+            issues,
+            stats: {
+                plan_count: plans.length,
+                movement_count: planMovements.length,
+                issue_count: issues.length
+            }
+        };
+        assertProjectedPlans(projection);
+        const payload = stableStringify(projection);
+        const digest = checksum(projection);
+        const at = nowIso(this.clock);
+        this.db.prepare(`
+            INSERT INTO projected_plan_snapshots (snapshot_checksum, payload_json, created_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(snapshot_checksum) DO NOTHING
+        `).run(digest, payload, at);
+        this.db.prepare(`
+            INSERT INTO projected_plan_projection_state (singleton, snapshot_checksum, updated_at)
+            VALUES (1, ?, ?)
+            ON CONFLICT(singleton) DO UPDATE SET snapshot_checksum = excluded.snapshot_checksum, updated_at = excluded.updated_at
+        `).run(digest, at);
+        return projection;
     }
 
     bindLegacyIdentity({ sourceType, legacyRef, planId, identityStatus = 'stable' }) {
@@ -314,7 +462,8 @@ class ProjectedPlansStore {
             identities: this.db.prepare('SELECT * FROM projected_plan_identities ORDER BY source_type, legacy_ref').all(),
             plans: this.db.prepare('SELECT * FROM projected_plans ORDER BY plan_id').all(),
             versions: this.db.prepare('SELECT * FROM projected_plan_versions ORDER BY plan_id, version').all(),
-            movements: this.db.prepare('SELECT * FROM projected_plan_movements ORDER BY movement_id').all()
+            movements: this.db.prepare('SELECT * FROM projected_plan_movements ORDER BY movement_id').all(),
+            write_receipts: this.db.prepare('SELECT * FROM projected_plan_write_receipts ORDER BY operation_key').all()
         };
         return {
             backup_version: PROJECTED_PLANS_STORE_BACKUP_VERSION,
@@ -328,10 +477,12 @@ class ProjectedPlansStore {
         this.assertWriteEnabled();
         if (backup?.backup_version !== PROJECTED_PLANS_STORE_BACKUP_VERSION || !backup.payload) throw new Error('invalid_projected_plans_store_backup');
         if (checksum(backup.payload) !== backup.checksum) throw new Error('projected_plans_store_backup_checksum_mismatch');
-        if (backup.payload.schema_version !== PROJECTED_PLANS_STORE_SCHEMA_VERSION) throw new Error('unsupported_projected_plans_store_backup_schema');
+        if (![1, PROJECTED_PLANS_STORE_SCHEMA_VERSION].includes(backup.payload.schema_version)) {
+            throw new Error('unsupported_projected_plans_store_backup_schema');
+        }
         if (backup.payload.current_projection) assertProjectedPlans(backup.payload.current_projection);
         return this.db.transaction(() => {
-            for (const table of ['projected_plan_projection_state', 'projected_plan_snapshots', 'projected_plan_movements', 'projected_plans', 'projected_plan_versions', 'projected_plan_identities']) {
+            for (const table of ['projected_plan_projection_state', 'projected_plan_snapshots', 'projected_plan_write_receipts', 'projected_plan_movements', 'projected_plans', 'projected_plan_versions', 'projected_plan_identities']) {
                 this.db.prepare(`DELETE FROM ${table}`).run();
             }
             for (const row of backup.payload.identities || []) {
@@ -357,6 +508,13 @@ class ProjectedPlansStore {
                 this.db.prepare(`
                     INSERT INTO projected_plan_movements (movement_id, plan_id, operation_key, payload_json, payload_checksum, created_at)
                     VALUES (@movement_id, @plan_id, @operation_key, @payload_json, @payload_checksum, @created_at)
+                `).run(row);
+            }
+            for (const row of backup.payload.write_receipts || []) {
+                this.db.prepare(`
+                    INSERT INTO projected_plan_write_receipts
+                        (operation_key, status, payload_json, payload_checksum, result_json, created_at, updated_at)
+                    VALUES (@operation_key, @status, @payload_json, @payload_checksum, @result_json, @created_at, @updated_at)
                 `).run(row);
             }
             if (backup.payload.current_projection) {

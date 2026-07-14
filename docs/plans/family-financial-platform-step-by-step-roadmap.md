@@ -1,7 +1,7 @@
 # Roadmap passo a passo - FinancasBot familiar
 
 Data: 2026-07-14
-Status: Fase 5B concluida com GO funcional de producao; proxima fatia autorizada: 5C
+Status: Fase 5C com GO local; deploy e E2E remoto marker-only pendentes
 
 ## Principios de execucao
 
@@ -44,7 +44,8 @@ Concluido:
 - Fase 5B: cronograma e simulacao mensal concluidos com GO funcional de
   producao no commit `369c7026dccde5c0e1b1b73201fa1e968e4298b8`.
 
-Proximo trabalho: iniciar 5C - Movimentos de plano com escrita confiavel.
+Proximo trabalho: publicar e implantar 5C, executar E2E automatico marker-only
+e decidir GO/NO-GO de producao antes de abrir 5D.
 
 ## Fase 3 - Recorrencias, parcelas, contas e faturas
 
@@ -547,7 +548,7 @@ Gate: simulacao e historico real permanecem separados.
 
 ### 5C - Movimentos de plano com escrita confiavel
 
-Status em 2026-07-14: autorizada pelo encerramento da 5B, ainda nao iniciada.
+Status em 2026-07-14: implementada com GO local; deploy e E2E remoto pendentes.
 
 Passo a passo:
 
@@ -558,6 +559,17 @@ Passo a passo:
 5. Smoke marker-only e limpeza.
 
 Gate: nenhum movimento de plano vira despesa/renda duplicada.
+
+Evidencia local:
+
+- comandos de meta, status de meta e pagamento de divida confirmam os campos
+  criticos antes da gravacao quando o canario esta habilitado;
+- recibo duravel coordena legado e shadow sem apresentar atomicidade falsa;
+- retry, replay, falha parcial e reinicio nao duplicam fatos;
+- schema 2 migra schema 1 e restaura backups antigos;
+- flags falham fechadas e restringem shadow a allowlist exata;
+- E2E automatico usa marcador exato, SQLite temporario e cleanup verificavel;
+- gate 5C `8/8`, store/recibos `14/14`, suite `845/845` e audit high zero.
 
 ### 5D - Gate de saida da Fase 5
 

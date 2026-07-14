@@ -316,6 +316,10 @@ const userStateManager = require('../src/state/userStateManager');
 const userService = require('../src/services/userService');
 const { getReadModelStats } = require('../src/services/readModelService');
 const cache = require('../src/utils/cache');
+const {
+    getProjectedPlanWriteContext,
+    __test__: { resetProjectedPlanWriteRuntimeForTests }
+} = require('../src/plans/projectedPlanWriteRuntime');
 
 function createMockMessage(body) {
     const replies = [];
@@ -3284,6 +3288,56 @@ stateMachineTest('financial states: debt payment validates amount, updates owned
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
 });
 
+stateMachineTest('5C legacy debt payment confirms and projects one accounting-neutral shadow movement', async () => {
+    resetState();
+    const dbPath = path.join(os.tmpdir(), `financas-bot-5c-debt-${process.pid}-${Date.now()}.sqlite`);
+    const previousMode = process.env.PROJECTED_PLAN_WRITES_MODE;
+    const previousUsers = process.env.PROJECTED_PLAN_WRITES_USER_IDS;
+    const previousDbPath = process.env.PROJECTED_PLANS_DB_PATH;
+    process.env.PROJECTED_PLAN_WRITES_MODE = 'shadow';
+    process.env.PROJECTED_PLAN_WRITES_USER_IDS = USER_ID;
+    process.env.PROJECTED_PLANS_DB_PATH = dbPath;
+    resetProjectedPlanWriteRuntimeForTests();
+    const debtRow = [
+        'Financiamento 5C', 'Banco', 'Financiamento', 1000, 1000, 100,
+        '2% a.m.', 10, '01/01/2026', 10, 0, 'Ativa', '', '0%', '', '', '', USER_ID
+    ];
+    sheets.Dívidas.push(debtRow);
+    userStateManager.setState(SENDER, {
+        action: 'awaiting_payment_amount',
+        data: { row: debtRow, index: 1, user_id: USER_ID }
+    });
+
+    try {
+        assert.match(await send('100'), /confirma/i);
+        assert.strictEqual(Number(sheets.Dívidas[1][4]), 1000);
+        const staleConfirmationState = userStateManager.getState(SENDER);
+        assert.strictEqual(staleConfirmationState.action, 'confirming_legacy_debt_payment');
+
+        assert.match(await send('sim'), /novo saldo devedor/i);
+        assert.strictEqual(Number(sheets.Dívidas[1][4]), 900);
+        assert.strictEqual(sheets.Saídas.length, 1);
+        assert.strictEqual(sheets.Entradas.length, 1);
+        const store = getProjectedPlanWriteContext(USER_ID).store;
+        assert.strictEqual(store.readProjection().plan_movements.length, 1);
+        assert.strictEqual(store.readProjection().plan_movements[0].type, 'payment');
+
+        userStateManager.setState(SENDER, staleConfirmationState);
+        assert.match(await send('sim'), /já havia sido registrado/i);
+        assert.strictEqual(Number(sheets.Dívidas[1][4]), 900);
+        assert.strictEqual(store.readProjection().plan_movements.length, 1);
+    } finally {
+        resetProjectedPlanWriteRuntimeForTests();
+        for (const suffix of ['', '-wal', '-shm']) fs.rmSync(`${dbPath}${suffix}`, { force: true });
+        if (previousMode === undefined) delete process.env.PROJECTED_PLAN_WRITES_MODE;
+        else process.env.PROJECTED_PLAN_WRITES_MODE = previousMode;
+        if (previousUsers === undefined) delete process.env.PROJECTED_PLAN_WRITES_USER_IDS;
+        else process.env.PROJECTED_PLAN_WRITES_USER_IDS = previousUsers;
+        if (previousDbPath === undefined) delete process.env.PROJECTED_PLANS_DB_PATH;
+        else process.env.PROJECTED_PLANS_DB_PATH = previousDbPath;
+    }
+});
+
 stateMachineTest('financial states: goal creation writes Metas row with user_id and clears state', async () => {
     resetState();
     enqueueStructuredResponse({ intent: 'criar_meta' });
@@ -3333,6 +3387,65 @@ stateMachineTest('financial states: goal movements update current value and appe
     assert.strictEqual(Number(sheets['Movimentações Metas'][1][4]), 1500);
     assert.strictEqual(Number(sheets['Movimentações Metas'][1][5]), 2000);
     assert.strictEqual(sheets['Movimentações Metas'][1][8], USER_ID);
+});
+
+stateMachineTest('5C goal movement confirms, writes legacy plus shadow once, and replays after restart-safe receipt', async () => {
+    resetState();
+    const dbPath = path.join(os.tmpdir(), `financas-bot-5c-state-${process.pid}-${Date.now()}.sqlite`);
+    const previousMode = process.env.PROJECTED_PLAN_WRITES_MODE;
+    const previousUsers = process.env.PROJECTED_PLAN_WRITES_USER_IDS;
+    const previousDbPath = process.env.PROJECTED_PLANS_DB_PATH;
+    process.env.PROJECTED_PLAN_WRITES_MODE = 'shadow';
+    process.env.PROJECTED_PLAN_WRITES_USER_IDS = USER_ID;
+    process.env.PROJECTED_PLANS_DB_PATH = dbPath;
+    resetProjectedPlanWriteRuntimeForTests();
+    sheets.Metas.push(['Reserva 5C', 10000, 1500, '', '', '31/12/2026', 'Em andamento', 'Alta', USER_ID, 'personal', '']);
+
+    try {
+        const confirmation = await send('guardei 500 na meta reserva 5C');
+        assert.match(confirmation, /confirma/i);
+        assert.strictEqual(Number(sheets.Metas[1][2]), 1500);
+        assert.strictEqual(sheets['Movimentações Metas'].length, 1);
+        const staleConfirmationState = userStateManager.getState(SENDER);
+        assert.strictEqual(staleConfirmationState.action, 'confirming_goal_movement');
+
+        assert.match(await send('sim'), /Aporte registrado/i);
+        assert.strictEqual(Number(sheets.Metas[1][2]), 2000);
+        assert.strictEqual(sheets['Movimentações Metas'].length, 2);
+        assert.strictEqual(sheets.Saídas.length, 1);
+        assert.strictEqual(sheets.Entradas.length, 1);
+
+        const store = getProjectedPlanWriteContext(USER_ID).store;
+        const projection = store.readProjection();
+        assert.strictEqual(projection.plans.length, 1);
+        assert.strictEqual(projection.plan_movements.length, 1);
+        assert.strictEqual(projection.plan_movements[0].type, 'contribution');
+
+        userStateManager.setState(SENDER, staleConfirmationState);
+        assert.match(await send('sim'), /já havia sido registrada/i);
+        assert.strictEqual(Number(sheets.Metas[1][2]), 2000);
+        assert.strictEqual(sheets['Movimentações Metas'].length, 2);
+        assert.strictEqual(store.readProjection().plan_movements.length, 1);
+
+        assert.match(await send('pausar meta reserva 5C'), /confirma/i);
+        assert.strictEqual(sheets.Metas[1][6], 'Em andamento');
+        assert.match(await send('sim'), /marcada como Pausada/i);
+        assert.strictEqual(sheets.Metas[1][6], 'Pausada');
+        assert.strictEqual(sheets['Movimentações Metas'].length, 3);
+        const statusProjection = store.readProjection();
+        assert.strictEqual(statusProjection.plan_movements.length, 2);
+        assert.ok(statusProjection.plan_movements.some(item => item.type === 'status_change'));
+        assert.strictEqual(store.listPlanVersions(statusProjection.plans[0].plan_id).length, 2);
+    } finally {
+        resetProjectedPlanWriteRuntimeForTests();
+        for (const suffix of ['', '-wal', '-shm']) fs.rmSync(`${dbPath}${suffix}`, { force: true });
+        if (previousMode === undefined) delete process.env.PROJECTED_PLAN_WRITES_MODE;
+        else process.env.PROJECTED_PLAN_WRITES_MODE = previousMode;
+        if (previousUsers === undefined) delete process.env.PROJECTED_PLAN_WRITES_USER_IDS;
+        else process.env.PROJECTED_PLAN_WRITES_USER_IDS = previousUsers;
+        if (previousDbPath === undefined) delete process.env.PROJECTED_PLANS_DB_PATH;
+        else process.env.PROJECTED_PLANS_DB_PATH = previousDbPath;
+    }
 });
 
 stateMachineTest('financial states: goal withdrawals cannot make the goal negative', async () => {

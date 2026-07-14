@@ -101,7 +101,7 @@ function normalizeDate(value) {
     if (match) {
         [, year, month, day] = match;
     } else {
-        match = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+        match = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})(?:$|\s)/);
         if (!match) return null;
         [, day, month, year] = match;
     }
@@ -335,6 +335,57 @@ function adaptLegacyGoalMovementRow({ row = [], headers = GOAL_MOVEMENT_HEADERS,
     };
 }
 
+function buildCommittedPlanMovement({
+    plan,
+    operationKey,
+    type,
+    amountCents,
+    balanceBeforeCents,
+    balanceAfterCents,
+    occurredOn,
+    actorUserId = '',
+    sourceType = 'receipt.plan_write',
+    note = ''
+} = {}) {
+    if (!plan?.plan_id) throw new Error('plan_required_for_committed_movement');
+    const key = String(operationKey || '').trim();
+    if (!key) throw new Error('operation_key_required_for_committed_movement');
+    const occurred = normalizeDate(occurredOn);
+    if (!occurred) throw new Error('occurred_on_required_for_committed_movement');
+    for (const [field, value] of Object.entries({ amountCents, balanceBeforeCents, balanceAfterCents })) {
+        if (!Number.isSafeInteger(value)) throw new Error(`invalid_cents:${field}`);
+    }
+    const movementTypeValue = String(type || '').trim();
+    if (!movementTypeValue) throw new Error('movement_type_required');
+    return {
+        schema_version: PLAN_MOVEMENT_SCHEMA_VERSION,
+        movement_id: `movement_${hash({ planId: plan.plan_id, operationKey: key })}`,
+        plan_id: plan.plan_id,
+        operation_key: key,
+        type: movementTypeValue,
+        state: 'realized',
+        status: 'committed',
+        amount_cents: amountCents,
+        balance_before_cents: balanceBeforeCents,
+        balance_after_cents: balanceAfterCents,
+        occurred_on: occurred,
+        effective_on: occurred,
+        competence_month: competenceMonth(occurred),
+        actor_user_id: String(actorUserId || '').trim() || null,
+        reverses_movement_id: null,
+        source: {
+            type: String(sourceType || 'receipt.plan_write'),
+            legacy_ref: `write:${hash(key, 32)}`,
+            identity_status: 'stable',
+            data_status: 'available'
+        },
+        metadata: {
+            note: String(note || '').trim() || null,
+            responsible: null
+        }
+    };
+}
+
 function goalMovementMatchKey(name, ownerUserId) {
     return `${normalizeText(ownerUserId)}::${normalizeText(name)}`;
 }
@@ -548,6 +599,7 @@ module.exports = {
     adaptLegacyGoalRow,
     adaptLegacyDebtRow,
     adaptLegacyGoalMovementRow,
+    buildCommittedPlanMovement,
     projectLegacyPlans,
     projectLegacyPlanSheets,
     assertProjectedPlans,

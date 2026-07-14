@@ -79,8 +79,12 @@ const {
     GOAL_STATUS,
     applyGoalMovement,
     parseGoalCommand,
+    previewGoalMovement,
+    previewGoalStatus,
     updateGoalStatus
 } = require('../services/goalService');
+const { getProjectedPlanWriteContext } = require('../plans/projectedPlanWriteRuntime');
+const { executeDebtPaymentWrite } = require('../plans/projectedPlanWriteService');
 const {
     getOAuthConnection,
     getFinancialScopeUserIds,
@@ -6733,6 +6737,7 @@ async function handleDashboardCommand(msg, user, senderId) {
 }
 
 async function handleGoalManagementCommand(msg, user, senderId, person) {
+    if (userStateManager.getState(senderId)) return false;
     const parsed = parseGoalCommand(msg.body || '');
     if (!parsed) return false;
 
@@ -6745,6 +6750,35 @@ async function handleGoalManagementCommand(msg, user, senderId, person) {
 
     let result = null;
     if (parsed.action === 'movement') {
+        const projectedPlanContext = getProjectedPlanWriteContext(user.user_id);
+        if (projectedPlanContext.policy.shadowWritesAllowed) {
+            result = await previewGoalMovement({
+                ...base,
+                goalQuery: parsed.goalQuery,
+                type: parsed.type,
+                amount: parsed.amount
+            });
+            if (!result.ok) {
+                await msg.reply(result.message);
+                return true;
+            }
+            userStateManager.setState(senderId, {
+                action: 'confirming_goal_movement',
+                data: {
+                    parsed,
+                    originalMessage: msg.body || '',
+                    originalMessageId: msg?.id?.id || ''
+                }
+            });
+            await msg.reply([
+                `Identifiquei um *${result.movementLabel.toLowerCase()}* na meta *${result.goal.name}*.`,
+                `Valor: *${formatCurrencyBR(result.movementAmount)}*`,
+                `Saldo: *${formatCurrencyBR(result.before)}* → *${formatCurrencyBR(result.after)}*`,
+                '',
+                'Confirma o registro? Responda *sim* ou *não*.'
+            ].join('\n'));
+            return true;
+        }
         result = await applyGoalMovement({
             ...base,
             goalQuery: parsed.goalQuery,
@@ -6753,6 +6787,33 @@ async function handleGoalManagementCommand(msg, user, senderId, person) {
             note: msg.body || ''
         });
     } else if (parsed.action === 'status') {
+        const projectedPlanContext = getProjectedPlanWriteContext(user.user_id);
+        if (projectedPlanContext.policy.shadowWritesAllowed) {
+            result = await previewGoalStatus({
+                ...base,
+                goalQuery: parsed.goalQuery,
+                status: parsed.status || GOAL_STATUS.ACTIVE
+            });
+            if (!result.ok) {
+                await msg.reply(result.message);
+                return true;
+            }
+            userStateManager.setState(senderId, {
+                action: 'confirming_goal_movement',
+                data: {
+                    parsed,
+                    originalMessage: msg.body || '',
+                    originalMessageId: msg?.id?.id || ''
+                }
+            });
+            await msg.reply([
+                `Identifiquei uma alteração na meta *${result.goal.name}*.`,
+                `Status: *${result.goal.status}* → *${result.normalizedStatus}*`,
+                '',
+                'Confirma o registro? Responda *sim* ou *não*.'
+            ].join('\n'));
+            return true;
+        }
         result = await updateGoalStatus({
             ...base,
             goalQuery: parsed.goalQuery,
@@ -6767,6 +6828,20 @@ async function handleGoalManagementCommand(msg, user, senderId, person) {
         markFinancialReadModelDirty('goal_write');
     }
     return true;
+}
+
+function buildGoalMovementOperationKey(goalMovement = {}, userId = '') {
+    const { createOperationKey } = require('../reliability/financialWriteLedger');
+    return createOperationKey({
+        userId,
+        messageId: goalMovement.originalMessageId || normalizeText(goalMovement.originalMessage || ''),
+        operation: goalMovement.parsed?.action === 'status' ? 'goal.status' : 'goal.move',
+        itemFingerprint: JSON.stringify({
+            target: normalizeText(goalMovement.parsed?.goalQuery || ''),
+            type: goalMovement.parsed?.type || goalMovement.parsed?.status || '',
+            amount: parseValue(goalMovement.parsed?.amount)
+        })
+    });
 }
 
 function buildGoogleConnectReply(user) {
@@ -8080,6 +8155,18 @@ function buildDebtPaymentOperationKey(debtPayment = {}, userId = '') {
 
 async function saveDebtPayment(debtPayment = {}, { userId } = {}) {
     const amount = parseValue(debtPayment.amount);
+    const operationKey = buildDebtPaymentOperationKey(debtPayment, userId);
+    const projectedPlanContext = getProjectedPlanWriteContext(userId);
+    const existingReceipt = projectedPlanContext.store?.getWriteReceipt(operationKey);
+    if (existingReceipt?.status === 'shadow_committed') {
+        const movement = existingReceipt.payload?.movement || {};
+        return {
+            amount: Number(movement.amount_cents || 0) / 100,
+            description: existingReceipt.payload?.plan?.name || debtPayment.description,
+            newBalance: Number(movement.balance_after_cents || 0) / 100,
+            replayed: true
+        };
+    }
     const debtRows = await readDataFromSheet('Dívidas');
     const scopeUserIds = getFinancialScopeUserIds(userId);
     const match = findScopedDebtRow(debtRows, debtPayment.candidate, scopeUserIds);
@@ -8110,23 +8197,47 @@ async function saveDebtPayment(debtPayment = {}, { userId } = {}) {
         currentFlowOutcome: 'confirmed_write_attempt'
     });
 
-    const lastColumn = String.fromCharCode(65 + updatedRow.length - 1);
-    const result = await updateRowInSheet(
-        `Dívidas!A${match.index + 1}:${lastColumn}${match.index + 1}`,
-        updatedRow,
-        {
-            operationKey: buildDebtPaymentOperationKey(debtPayment, userId),
+    let replayed = false;
+    let shadowPending = false;
+    if (projectedPlanContext.policy.shadowWritesAllowed) {
+        const writeResult = await executeDebtPaymentWrite({
+            store: projectedPlanContext.store,
+            operationKey,
             userId,
             messageId: debtPayment.originalMessageId || '',
-            source: 'financial_command_planner.debt_pay'
-        }
-    );
+            debt: {
+                row: match.row,
+                rowIndex: match.index + 1,
+                headers: debtRows[0] || []
+            },
+            updatedRow,
+            amount,
+            occurredOn: getFormattedDate(),
+            updateDebtRow: ({ range, row, ...options }) => updateRowInSheet(range, row, options)
+        });
+        replayed = writeResult.replayed === true;
+        shadowPending = writeResult.shadowPending === true;
+    } else {
+        const lastColumn = String.fromCharCode(65 + updatedRow.length - 1);
+        const result = await updateRowInSheet(
+            `Dívidas!A${match.index + 1}:${lastColumn}${match.index + 1}`,
+            updatedRow,
+            {
+                operationKey,
+                userId,
+                messageId: debtPayment.originalMessageId || '',
+                source: 'financial_command_planner.debt_pay'
+            }
+        );
+        replayed = result?.receipt?.replayed === true;
+    }
     markFinancialReadModelDirty('debt_payment_write');
+    if (shadowPending) logger.warn('[projected-plan-write] debt_payment_shadow_pending');
     return {
         amount,
         description: debtPayment.description,
-        newBalance: result?.receipt?.replayed ? currentBalance : newBalance,
-        replayed: result?.receipt?.replayed === true
+        newBalance: replayed ? currentBalance : newBalance,
+        replayed
     };
 }
 
@@ -9502,6 +9613,52 @@ async function handleMessage(msg) {
                 }
                 return;
             }
+            case 'confirming_goal_movement': {
+                const cleanReply = normalizeText(msg.body);
+                const goalMovement = currentState.data || {};
+                if (['nao', 'não', 'n', 'cancelar', 'cancela'].includes(cleanReply)) {
+                    userStateManager.deleteState(senderId);
+                    await msg.reply('Movimentação da meta cancelada. Nenhum dado foi alterado.');
+                    return;
+                }
+                if (!['sim', 's', 'ss', 'confirmo'].includes(cleanReply)) {
+                    await msg.reply('Responda `sim` para confirmar a movimentação da meta ou `não` para cancelar.');
+                    return;
+                }
+                try {
+                    const projectedPlanContext = getProjectedPlanWriteContext(userId);
+                    if (!projectedPlanContext.policy.shadowWritesAllowed) {
+                        throw new Error('A gravação segura de planos não está habilitada para este usuário.');
+                    }
+                    const parsed = goalMovement.parsed || {};
+                    const common = {
+                        actorUserId: userId,
+                        actorName: pessoa,
+                        financialScopeUserIds: getFinancialScopeUserIds(userId),
+                        goalQuery: parsed.goalQuery,
+                        note: goalMovement.originalMessage || '',
+                        projectedPlanStore: projectedPlanContext.store,
+                        operationKey: buildGoalMovementOperationKey(goalMovement, userId),
+                        messageId: goalMovement.originalMessageId || ''
+                    };
+                    const result = parsed.action === 'status'
+                        ? await updateGoalStatus({ ...common, status: parsed.status || GOAL_STATUS.ACTIVE })
+                        : await applyGoalMovement({ ...common, type: parsed.type, amount: parsed.amount });
+                    userStateManager.deleteState(senderId);
+                    if (result.ok) {
+                        markFinancialReadModelDirty('goal_write');
+                    }
+                    if (result.shadowPending) {
+                        logger.warn('[projected-plan-write] goal_movement_shadow_pending');
+                    }
+                    await msg.reply(result.message);
+                } catch (error) {
+                    userStateManager.deleteState(senderId);
+                    logger.warn(`[projected-plan-write] goal_movement_failed error=${error.message}`);
+                    await msg.reply(`Não consegui registrar a movimentação da meta com segurança. ${error.message}`);
+                }
+                return;
+            }
             case 'awaiting_debt_payment_selection': {
                 const data = currentState.data || {};
                 const candidates = Array.isArray(data.candidates) ? data.candidates : [];
@@ -9886,6 +10043,11 @@ async function handleMessage(msg) {
 
             case 'awaiting_payment_amount': {
                 await debtHandler.finalizePaymentRegistration(msg);
+                return;
+            }
+
+            case 'confirming_legacy_debt_payment': {
+                await debtHandler.confirmPaymentRegistration(msg);
                 return;
             }
 

@@ -3,10 +3,12 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const crypto = require('node:crypto');
 
 const {
     adaptLegacyGoalRow,
-    projectLegacyPlans
+    projectLegacyPlans,
+    __test__: { stableStringify }
 } = require('../src/plans/projectedPlansContract');
 const {
     ProjectedPlansStore,
@@ -217,6 +219,25 @@ test('5A shadow store backup restores identity history, versions and exact curre
         const tampered = JSON.parse(JSON.stringify(backup));
         tampered.payload.plans[0].payload_checksum = 'tampered';
         assert.throws(() => target.store.restoreBackup(tampered), /checksum_mismatch/);
+    } finally {
+        source.cleanup();
+        target.cleanup();
+    }
+});
+
+test('5C store restores a schema-1 backup without write receipts', () => {
+    const source = tempStore();
+    const target = tempStore();
+    try {
+        source.store.persistProjection(buildProjection({ legacyRef: 'sheet:metas:legacy-backup' }));
+        const backup = source.store.createBackup({ createdAt: '2026-07-13T21:06:00.000Z' });
+        backup.payload.schema_version = 1;
+        delete backup.payload.write_receipts;
+        backup.checksum = crypto.createHash('sha256').update(stableStringify(backup.payload)).digest('hex');
+
+        const result = target.store.restoreBackup(backup);
+        assert.deepStrictEqual(result, { restored: true, plan_count: 1, movement_count: 1 });
+        assert.deepStrictEqual(target.store.readProjection(), source.store.readProjection());
     } finally {
         source.cleanup();
         target.cleanup();

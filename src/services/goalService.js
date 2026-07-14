@@ -96,6 +96,7 @@ function goalRowToObject(row, rowIndex, headers = []) {
     return {
         row,
         rowIndex,
+        headers,
         name: String(row[idx.name] || '').trim(),
         target,
         current,
@@ -169,22 +170,7 @@ function buildUpdatedGoalRow(goal, updates = {}) {
     return GOAL_HEADERS.map((_, index) => row[index] ?? '');
 }
 
-async function appendGoalMovement({ goal, type, amount, before, after, note = '', actorName = '', actorUserId = '' }) {
-    await appendRowToSheet(GOAL_MOVEMENTS_SHEET, [
-        getFormattedDate(),
-        goal.name,
-        type,
-        Number(amount || 0),
-        Number(before || 0),
-        Number(after || 0),
-        note,
-        actorName || 'Usuário',
-        actorUserId,
-        goal.userId
-    ]);
-}
-
-async function applyGoalMovement({ actorUserId, actorName = '', financialScopeUserIds = [actorUserId], goalQuery, type, amount, note = '' }) {
+async function previewGoalMovement({ actorUserId, financialScopeUserIds = [actorUserId], goalQuery, type, amount }) {
     const safeAmount = Number(amount || 0);
     if (!goalQuery || !String(goalQuery).trim()) {
         return { ok: false, reason: 'missing_goal', message: 'Diga o nome da meta. Ex.: `guardei 500 na meta reserva`.' };
@@ -226,20 +212,90 @@ async function applyGoalMovement({ actorUserId, actorName = '', financialScopeUs
         current: after,
         lastMovement: getFormattedDate()
     });
-    await updateRowInSheet(`${GOALS_SHEET}!A${goal.rowIndex}:K${goal.rowIndex}`, updatedRow);
-    await appendGoalMovement({
-        goal,
-        type: movementLabel,
-        amount: type === 'ajuste' ? Math.abs(after - before) : safeAmount,
-        before,
-        after,
-        note,
-        actorName,
-        actorUserId
-    });
 
     return {
         ok: true,
+        goal,
+        before,
+        after,
+        safeAmount,
+        movementAmount: type === 'ajuste' ? Math.abs(after - before) : safeAmount,
+        movementLabel,
+        updatedRow
+    };
+}
+
+async function applyGoalMovement({
+    actorUserId,
+    actorName = '',
+    financialScopeUserIds = [actorUserId],
+    goalQuery,
+    type,
+    amount,
+    note = '',
+    projectedPlanStore = null,
+    operationKey = '',
+    messageId = ''
+}) {
+    if (projectedPlanStore && operationKey) {
+        const existing = projectedPlanStore.getWriteReceipt(operationKey);
+        if (existing?.status === 'shadow_committed') {
+            const movement = existing.payload?.movement || {};
+            const plan = existing.payload?.plan || {};
+            return {
+                ok: true,
+                replayed: true,
+                goal: { name: plan.name, current: Number(movement.balance_after_cents || 0) / 100 },
+                before: Number(movement.balance_before_cents || 0) / 100,
+                after: Number(movement.balance_after_cents || 0) / 100,
+                type: movement.type,
+                message: `Essa movimentação da meta "${plan.name}" já havia sido registrada. Saldo: ${formatCurrencyBR(Number(movement.balance_after_cents || 0) / 100)}.`
+            };
+        }
+    }
+
+    const preview = await previewGoalMovement({ actorUserId, financialScopeUserIds, goalQuery, type, amount });
+    if (!preview.ok) return preview;
+    const { goal, before, after, movementAmount, movementLabel, updatedRow } = preview;
+    const movementRow = [
+        getFormattedDate(),
+        goal.name,
+        movementLabel,
+        Number(movementAmount || 0),
+        Number(before || 0),
+        Number(after || 0),
+        note,
+        actorName || 'Usuário',
+        actorUserId,
+        goal.userId
+    ];
+
+    let replayed = false;
+    let shadowPending = false;
+    if (projectedPlanStore && operationKey) {
+        const { executeGoalMovementWrite } = require('../plans/projectedPlanWriteService');
+        const writeResult = await executeGoalMovementWrite({
+            store: projectedPlanStore,
+            operationKey,
+            userId: actorUserId,
+            messageId,
+            goal,
+            updatedRow,
+            movementRow,
+            updateGoalRow: ({ range, row, ...options }) => updateRowInSheet(range, row, options),
+            appendGoalMovement: ({ sheetName, row, ...options }) => appendRowToSheet(sheetName, row, options)
+        });
+        replayed = writeResult.replayed === true;
+        shadowPending = writeResult.shadowPending === true;
+    } else {
+        await updateRowInSheet(`${GOALS_SHEET}!A${goal.rowIndex}:K${goal.rowIndex}`, updatedRow);
+        await appendRowToSheet(GOAL_MOVEMENTS_SHEET, movementRow);
+    }
+
+    return {
+        ok: true,
+        replayed,
+        shadowPending,
         goal: { ...goal, current: after, status: normalizeGoalStatus(updatedRow[6]) },
         before,
         after,
@@ -248,7 +304,7 @@ async function applyGoalMovement({ actorUserId, actorName = '', financialScopeUs
     };
 }
 
-async function updateGoalStatus({ actorUserId, actorName = '', financialScopeUserIds = [actorUserId], goalQuery, status, note = '' }) {
+async function previewGoalStatus({ actorUserId, financialScopeUserIds = [actorUserId], goalQuery, status }) {
     const goals = await listGoals({ actorUserId, financialScopeUserIds });
     const goal = findGoalMatch(goals, goalQuery);
     if (!goal) {
@@ -265,19 +321,67 @@ async function updateGoalStatus({ actorUserId, actorName = '', financialScopeUse
         status: normalizedStatus,
         lastMovement: getFormattedDate()
     });
-    await updateRowInSheet(`${GOALS_SHEET}!A${goal.rowIndex}:K${goal.rowIndex}`, updatedRow);
-    await appendGoalMovement({
-        goal,
-        type: `Status: ${normalizedStatus}`,
-        amount: 0,
-        before: goal.current,
-        after: goal.current,
+    return { ok: true, goal, normalizedStatus, updatedRow };
+}
+
+async function updateGoalStatus({
+    actorUserId,
+    actorName = '',
+    financialScopeUserIds = [actorUserId],
+    goalQuery,
+    status,
+    note = '',
+    projectedPlanStore = null,
+    operationKey = '',
+    messageId = ''
+}) {
+    if (projectedPlanStore && operationKey) {
+        const existing = projectedPlanStore.getWriteReceipt(operationKey);
+        if (existing?.status === 'shadow_committed') {
+            const plan = existing.payload?.plan || {};
+            return { ok: true, replayed: true, goal: plan, message: `Essa alteração da meta "${plan.name}" já havia sido registrada.` };
+        }
+    }
+    const preview = await previewGoalStatus({ actorUserId, financialScopeUserIds, goalQuery, status });
+    if (!preview.ok) return preview;
+    const { goal, normalizedStatus, updatedRow } = preview;
+    const movementRow = [
+        getFormattedDate(),
+        goal.name,
+        `Status: ${normalizedStatus}`,
+        0,
+        goal.current,
+        goal.current,
         note,
-        actorName,
-        actorUserId
-    });
+        actorName || 'Usuário',
+        actorUserId,
+        goal.userId
+    ];
+    let replayed = false;
+    let shadowPending = false;
+    if (projectedPlanStore && operationKey) {
+        const { executeGoalMovementWrite } = require('../plans/projectedPlanWriteService');
+        const result = await executeGoalMovementWrite({
+            store: projectedPlanStore,
+            operationKey,
+            userId: actorUserId,
+            messageId,
+            goal,
+            updatedRow,
+            movementRow,
+            updateGoalRow: ({ range, row, ...options }) => updateRowInSheet(range, row, options),
+            appendGoalMovement: ({ sheetName, row, ...options }) => appendRowToSheet(sheetName, row, options)
+        });
+        replayed = result.replayed === true;
+        shadowPending = result.shadowPending === true;
+    } else {
+        await updateRowInSheet(`${GOALS_SHEET}!A${goal.rowIndex}:K${goal.rowIndex}`, updatedRow);
+        await appendRowToSheet(GOAL_MOVEMENTS_SHEET, movementRow);
+    }
     return {
         ok: true,
+        replayed,
+        shadowPending,
         goal: { ...goal, status: normalizedStatus },
         message: `✅ Meta "${goal.name}" marcada como ${normalizedStatus}.`
     };
@@ -358,6 +462,8 @@ module.exports = {
     listGoals,
     normalizeGoalStatus,
     parseGoalCommand,
+    previewGoalMovement,
+    previewGoalStatus,
     updateGoalStatus,
     __test__: {
         cleanupGoalQuery,

@@ -2,8 +2,11 @@
 
 const { readDataFromSheet, updateRowInSheet } = require('../services/google');
 const userStateManager = require('../state/userStateManager');
-const { normalizeText, parseAmount } = require('../utils/helpers');
+const { getFormattedDate, normalizeText, parseAmount, parseValue } = require('../utils/helpers');
 const { getUserByWhatsAppId } = require('../services/userService');
+const { createOperationKey } = require('../reliability/financialWriteLedger');
+const { getProjectedPlanWriteContext } = require('../plans/projectedPlanWriteRuntime');
+const { executeDebtPaymentWrite } = require('../plans/projectedPlanWriteService');
 
 const DEBT_USER_ID_INDEX = 17;
 
@@ -84,8 +87,7 @@ async function finalizePaymentRegistration(msg) {
     }
 
     const debtToUpdate = state.data;
-    let rowData = debtToUpdate.row;
-    const rowIndex = debtToUpdate.index;
+    const rowData = [...debtToUpdate.row];
 
     if (String(rowData?.[DEBT_USER_ID_INDEX] || '').trim() !== String(debtToUpdate.user_id || '').trim()) {
         await msg.reply('Não consegui validar que essa dívida pertence ao seu usuário. A operação foi cancelada por segurança.');
@@ -96,21 +98,141 @@ async function finalizePaymentRegistration(msg) {
     const saldoDevedorAtual = parseFloat(rowData[4]);
     const novoSaldo = Math.max(0, saldoDevedorAtual - valorPago);
 
-    rowData[4] = novoSaldo;
-
-    const valorOriginal = parseFloat(rowData[3]);
-    if (valorOriginal > 0) {
-        const percentualQuitado = (1 - (novoSaldo / valorOriginal)) * 100;
-        rowData[13] = `${percentualQuitado.toFixed(2)}%`;
+    const projectedPlanContext = getProjectedPlanWriteContext(debtToUpdate.user_id);
+    if (projectedPlanContext.policy.shadowWritesAllowed) {
+        userStateManager.setState(senderId, {
+            action: 'confirming_legacy_debt_payment',
+            data: {
+                debtName: rowData[0],
+                rowIndex: debtToUpdate.index,
+                user_id: debtToUpdate.user_id,
+                amount: valorPago,
+                originalMessageId: msg?.id?.id || ''
+            }
+        });
+        await msg.reply([
+            `Identifiquei o pagamento da dívida *${rowData[0]}*.`,
+            `Valor: *R$${valorPago.toFixed(2)}*`,
+            `Saldo: *R$${saldoDevedorAtual.toFixed(2)}* → *R$${novoSaldo.toFixed(2)}*`,
+            '',
+            'Confirma o registro? Responda *sim* ou *não*.'
+        ].join('\n'));
+        return;
     }
 
-    const range = `Dívidas!A${rowIndex + 1}:${String.fromCharCode(65 + rowData.length - 1)}${rowIndex + 1}`;
-
     try {
-        await updateRowInSheet(range, rowData);
-        await msg.reply(`✅ Pagamento de R$${valorPago.toFixed(2)} registrado! O novo saldo devedor da dívida "${rowData[0]}" é R$${novoSaldo.toFixed(2)}.`);
+        const saved = await saveLegacyDebtPayment({
+            debtName: rowData[0],
+            rowIndex: debtToUpdate.index,
+            userId: debtToUpdate.user_id,
+            amount: valorPago,
+            originalMessageId: msg?.id?.id || ''
+        });
+        await msg.reply(`✅ Pagamento de R$${valorPago.toFixed(2)} registrado! O novo saldo devedor da dívida "${saved.debtName}" é R$${saved.newBalance.toFixed(2)}.`);
     } catch (error) {
         await msg.reply("Ocorreu um erro ao tentar atualizar a dívida na planilha.");
+    } finally {
+        userStateManager.deleteState(senderId);
+    }
+}
+
+function buildLegacyDebtPaymentOperationKey({ userId, originalMessageId, debtName, amount }) {
+    return createOperationKey({
+        userId,
+        messageId: originalMessageId || normalizeText(debtName || ''),
+        operation: 'debt.pay.legacy',
+        itemFingerprint: JSON.stringify({ target: normalizeText(debtName || ''), amount: parseValue(amount) })
+    });
+}
+
+async function saveLegacyDebtPayment({ debtName, rowIndex, userId, amount, originalMessageId }) {
+    const operationKey = buildLegacyDebtPaymentOperationKey({ userId, originalMessageId, debtName, amount });
+    const projectedPlanContext = getProjectedPlanWriteContext(userId);
+    const existingReceipt = projectedPlanContext.store?.getWriteReceipt(operationKey);
+    if (existingReceipt?.status === 'shadow_committed') {
+        return {
+            debtName: existingReceipt.payload?.plan?.name || debtName,
+            newBalance: Number(existingReceipt.payload?.movement?.balance_after_cents || 0) / 100,
+            replayed: true
+        };
+    }
+
+    const debtRows = await readDataFromSheet('Dívidas');
+    const currentRow = debtRows?.[rowIndex];
+    if (!currentRow
+        || String(currentRow[DEBT_USER_ID_INDEX] || '').trim() !== String(userId || '').trim()
+        || normalizeText(currentRow[0] || '') !== normalizeText(debtName || '')) {
+        throw new Error('Não consegui revalidar a dívida no seu escopo.');
+    }
+    const currentBalance = parseValue(currentRow[4]);
+    const safeAmount = parseValue(amount);
+    if (!Number.isFinite(safeAmount) || safeAmount <= 0 || safeAmount > currentBalance) {
+        throw new Error('O valor precisa ser positivo e não pode superar o saldo atual.');
+    }
+    const updatedRow = [...currentRow];
+    const newBalance = Math.max(0, currentBalance - safeAmount);
+    updatedRow[4] = newBalance;
+    const originalAmount = parseValue(updatedRow[3]);
+    if (originalAmount > 0) updatedRow[13] = `${((1 - (newBalance / originalAmount)) * 100).toFixed(2)}%`;
+
+    let replayed = false;
+    let shadowPending = false;
+    if (projectedPlanContext.policy.shadowWritesAllowed) {
+        const result = await executeDebtPaymentWrite({
+            store: projectedPlanContext.store,
+            operationKey,
+            userId,
+            messageId: originalMessageId || '',
+            debt: { row: currentRow, rowIndex: rowIndex + 1, headers: debtRows[0] || [] },
+            updatedRow,
+            amount: safeAmount,
+            occurredOn: getFormattedDate(),
+            updateDebtRow: ({ range, row, ...options }) => updateRowInSheet(range, row, options)
+        });
+        replayed = result.replayed === true;
+        shadowPending = result.shadowPending === true;
+    } else {
+        const range = `Dívidas!A${rowIndex + 1}:${String.fromCharCode(65 + updatedRow.length - 1)}${rowIndex + 1}`;
+        const result = await updateRowInSheet(range, updatedRow, {
+            operationKey,
+            userId,
+            messageId: originalMessageId || '',
+            source: 'legacy.debt_payment'
+        });
+        replayed = result?.receipt?.replayed === true;
+    }
+    return { debtName: currentRow[0], newBalance: replayed ? currentBalance : newBalance, replayed, shadowPending };
+}
+
+async function confirmPaymentRegistration(msg) {
+    const senderId = msg.author || msg.from;
+    const state = userStateManager.getState(senderId);
+    if (!state || state.action !== 'confirming_legacy_debt_payment') return;
+    const reply = normalizeText(msg.body || '');
+    if (['nao', 'não', 'n', 'cancelar', 'cancela'].includes(reply)) {
+        userStateManager.deleteState(senderId);
+        await msg.reply('Pagamento de dívida cancelado. Nenhum dado foi alterado.');
+        return;
+    }
+    if (!['sim', 's', 'ss', 'confirmo'].includes(reply)) {
+        await msg.reply('Responda `sim` para confirmar o pagamento da dívida ou `não` para cancelar.');
+        return;
+    }
+    try {
+        const saved = await saveLegacyDebtPayment({
+            debtName: state.data.debtName,
+            rowIndex: state.data.rowIndex,
+            userId: state.data.user_id,
+            amount: state.data.amount,
+            originalMessageId: state.data.originalMessageId
+        });
+        if (saved.replayed) {
+            await msg.reply(`Esse pagamento da dívida "${saved.debtName}" já havia sido registrado. O saldo permanece em R$${saved.newBalance.toFixed(2)}.`);
+        } else {
+            await msg.reply(`✅ Pagamento de R$${Number(state.data.amount).toFixed(2)} registrado! O novo saldo devedor da dívida "${saved.debtName}" é R$${saved.newBalance.toFixed(2)}.`);
+        }
+    } catch (error) {
+        await msg.reply(`Não consegui registrar o pagamento da dívida com segurança. ${error.message}`);
     } finally {
         userStateManager.deleteState(senderId);
     }
@@ -120,6 +242,7 @@ async function finalizePaymentRegistration(msg) {
 module.exports = {
     startPaymentRegistration,
     finalizePaymentRegistration,
+    confirmPaymentRegistration,
     __test__: {
         filterDebtsByUserId
     }
