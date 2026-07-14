@@ -2,6 +2,23 @@
 
 Atualizado em: 2026-07-14
 
+## Fase 6D - OCR PDF/imagem em staging - GO de producao - 2026-07-14
+
+- OCR exige mídia e comando explícito; conteúdo visual é dado não confiável.
+- Tipo, assinatura, 5 MiB, confiança, fórmulas, schema e 100 linhas são
+  validados antes de produzir transações propostas.
+- Saída reutiliza normalizador, reconciliador, escolha conta/cartão, preview e
+  confirmação de CSV/OFX; Gemini não recebe autoridade de escrita.
+- Arquivo e resposta bruta não são persistidos nem registrados.
+- Evidência local: gate `5/5`, suite integral `851/851`, audit high zero e E2E
+  `documents=1`, `rows=1`, `writes=zero`, `cleanup=zero`, `privacy=true`.
+- Commit `6099a35f7dd1e923b6eae67d35441d27bde28f90` implantado; backup
+  `.env.pre-6d-6099a35-20260714T071500Z`.
+- Remoto `5/5`, canário para um usuário, PM2/WhatsApp/health verdes e E2E
+  Gemini real com uma linha, zero escrita e cleanup zero.
+- Decisão: `GO de producao`, encerramento da 6D e autorização da 6E. Relatório:
+  `docs/qa/phase-6d-document-ocr-staging-gate-2026-07-14.md`.
+
 ## Fase 6C - comprovantes financeiros vinculados - GO de producao - 2026-07-14
 
 - PDF, JPEG, PNG e WebP podem ser anexados somente ao ultimo gasto, entrada ou

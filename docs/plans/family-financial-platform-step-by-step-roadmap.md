@@ -1,7 +1,7 @@
 # Roadmap passo a passo - FinancasBot familiar
 
 Data: 2026-07-14
-Status: Fase 6C concluida com GO de producao; proxima fatia autorizada: 6D
+Status: Fase 6D concluida com GO de producao; proxima fatia autorizada: 6E
 
 ## Principios de execucao
 
@@ -52,8 +52,10 @@ Concluido:
   producao no commit `f7a286848e094524fd6e93bb57313b5a06751a80`.
 - Fase 6C: comprovantes financeiros vinculados concluidos com GO de producao e
   canario restrito no commit `cbb7065799001c63d04ddbf19d0a0a263ab15f0d`.
+- Fase 6D: OCR PDF/imagem em staging concluido com GO de producao e canario
+  restrito no commit `6099a35f7dd1e923b6eae67d35441d27bde28f90`.
 
-Proximo trabalho: iniciar 6D - OCR/PDF/imagem com preview.
+Proximo trabalho: iniciar 6E - Undo por recibo/auditoria.
 
 ## Fase 3 - Recorrencias, parcelas, contas e faturas
 
@@ -700,6 +702,16 @@ Passo a passo:
 5. Testar prompt injection visual/textual, baixa confianca e duplicidade.
 
 Gate: OCR nao grava sem preview, reconciliacao e confirmacao.
+
+Resultado em 2026-07-14:
+
+- ADR de riscos, conteúdo não confiável e staging sem autoridade de escrita;
+- validação local de tipo, assinatura, tamanho, confiança, schema e 100 linhas;
+- reutilização integral do fluxo de reconciliação/preview/confirmação;
+- gate local/remoto `5/5`, baseline `851/851` e audit high zero;
+- E2E Gemini `documents=1`, `rows=1`, `writes=zero`, `cleanup=zero`,
+  `privacy=true`;
+- decisão: `GO de produção`; 6D encerrada e 6E autorizada.
 
 ### 6E - Undo por recibo/auditoria
 
