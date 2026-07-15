@@ -1,4 +1,9 @@
-const { readDataFromSheet, updateRowInSheet, batchUpdateRowsInSheet } = require('./google');
+const {
+    readDataFromSheet,
+    updateRowInSheet,
+    batchUpdateRowsInSheet,
+    hasUserSpreadsheetContext
+} = require('./google');
 const { getAllUsers } = require('./userService');
 const { creditCardConfig, userMap } = require('../config/constants');
 const logger = require('../utils/logger');
@@ -100,6 +105,15 @@ function getTrackedSheets() {
     ];
 }
 
+function getCardUserIdValidationMode(env = process.env) {
+    const mode = String(env.CARD_USER_ID_VALIDATION_UNIFIED_FIRST_MODE || 'off').trim().toLowerCase();
+    return ['off', 'canary', 'on'].includes(mode) ? mode : 'off';
+}
+
+function isLegacyCardConfig(config = {}) {
+    return Object.values(creditCardConfig).some(card => card.sheetName === config.sheetName);
+}
+
 function isMeaningfulTrackedRow(row, userIndex) {
     if (!Array.isArray(row)) return false;
     return row.some((cell, index) => {
@@ -108,37 +122,102 @@ function isMeaningfulTrackedRow(row, userIndex) {
     });
 }
 
-async function validateUserIdIntegrity() {
+function addValidationRows(report, config, rows, reportName = config.sheetName) {
+    let sheetMissing = 0;
+    let sheetRows = 0;
+    if (rows && rows.length > 1) {
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (!isMeaningfulTrackedRow(row, config.userIndex)) continue;
+            sheetRows += 1;
+            const userId = String(row[config.userIndex] || '').trim();
+            if (!userId) sheetMissing += 1;
+        }
+    }
+
+    report.totalRows += sheetRows;
+    report.missingUserId += sheetMissing;
+    const current = report.bySheet[reportName] || { rows: 0, missingUserId: 0 };
+    report.bySheet[reportName] = {
+        rows: current.rows + sheetRows,
+        missingUserId: current.missingUserId + sheetMissing
+    };
+}
+
+async function validateUserIdIntegrity({
+    env = process.env,
+    read = readDataFromSheet,
+    getUsers = getAllUsers,
+    hasSpreadsheetContext = hasUserSpreadsheetContext
+} = {}) {
     const tracked = getTrackedSheets();
+    const cardMode = getCardUserIdValidationMode(env);
     const report = {
         generatedAt: new Date().toISOString(),
         totalRows: 0,
         missingUserId: 0,
-        bySheet: {}
+        bySheet: {},
+        cardRoute: cardMode === 'off' ? 'legacy_central' : 'unified_personal',
+        cardScopes: { active: 0, available: 0, unavailable: 0 }
     };
 
-    for (const config of tracked) {
-        const rows = await readDataFromSheet(`${config.sheetName}!${config.range}`, {
+    const nonCardConfigs = tracked.filter(config => !isLegacyCardConfig(config));
+    const legacyCardConfigs = tracked.filter(isLegacyCardConfig);
+    for (const config of nonCardConfigs) {
+        const rows = await read(`${config.sheetName}!${config.range}`, {
             telemetryConsumer: 'maintenance_service'
         });
-        let sheetMissing = 0;
-        let sheetRows = 0;
-        if (rows && rows.length > 1) {
-            for (let i = 1; i < rows.length; i++) {
-                const row = rows[i];
-                if (!isMeaningfulTrackedRow(row, config.userIndex)) continue;
-                sheetRows += 1;
-                const userId = String(row[config.userIndex] || '').trim();
-                if (!userId) sheetMissing += 1;
-            }
-        }
+        addValidationRows(report, config, rows);
+    }
 
-        report.totalRows += sheetRows;
-        report.missingUserId += sheetMissing;
-        report.bySheet[config.sheetName] = {
-            rows: sheetRows,
-            missingUserId: sheetMissing
-        };
+    const validateLegacyCards = async () => {
+        for (const config of legacyCardConfigs) {
+            const rows = await read(`${config.sheetName}!${config.range}`, {
+                telemetryConsumer: 'maintenance_service'
+            });
+            addValidationRows(report, config, rows);
+        }
+    };
+
+    if (cardMode === 'off') {
+        await validateLegacyCards();
+        return report;
+    }
+
+    let users = [];
+    try {
+        users = (await getUsers()).filter(user => user.status === 'ACTIVE' && !user.deleted_at);
+    } catch (_) {
+        report.cardRoute = 'legacy_fallback';
+        await validateLegacyCards();
+        return report;
+    }
+    report.cardScopes.active = users.length;
+    const unifiedConfig = {
+        sheetName: 'Lan\u00e7amentos Cart\u00e3o',
+        range: 'A:J',
+        userIndex: 9,
+        ownerIndex: -1
+    };
+    for (const user of users) {
+        const userId = String(user.user_id || '').trim();
+        if (!userId || !(await hasSpreadsheetContext({ userId }))) continue;
+        report.cardScopes.available += 1;
+        const rows = await read('Lan\u00e7amentos Cart\u00e3o!A:J', {
+            userId,
+            suppressMissingSheetError: true,
+            telemetryConsumer: 'maintenance_service'
+        });
+        addValidationRows(report, unifiedConfig, rows, 'Lan\u00e7amentos Cart\u00e3o (pessoal)');
+    }
+    report.cardScopes.unavailable = Math.max(report.cardScopes.active - report.cardScopes.available, 0);
+
+    if (report.cardScopes.available === 0) {
+        report.cardRoute = 'legacy_fallback';
+        await validateLegacyCards();
+    } else if (report.cardScopes.unavailable > 0) {
+        report.cardRoute = 'unified_with_legacy_fallback';
+        await validateLegacyCards();
     }
 
     return report;
@@ -224,6 +303,9 @@ module.exports = {
     validateUserIdIntegrity,
     backfillMissingUserIds,
     __test__: {
-        isMeaningfulTrackedRow
+        isMeaningfulTrackedRow,
+        getTrackedSheets,
+        getCardUserIdValidationMode,
+        addValidationRows
     }
 };

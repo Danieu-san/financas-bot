@@ -224,6 +224,83 @@ test('userIdMaintenance ignores blank legacy spreadsheet rows', () => {
     assert.strictEqual(isMeaningfulTrackedRow(['20/05/2026', 'Aluguel', '', '', '900', '', '', '', '', ''], 9), true);
 });
 
+test('userIdMaintenance card validation policy fails closed and preserves legacy backfill targets', () => {
+    const maintenanceTest = userIdMaintenanceService.__test__;
+    assert.strictEqual(maintenanceTest.getCardUserIdValidationMode({}), 'off');
+    assert.strictEqual(maintenanceTest.getCardUserIdValidationMode({ CARD_USER_ID_VALIDATION_UNIFIED_FIRST_MODE: 'invalid' }), 'off');
+    assert.strictEqual(maintenanceTest.getCardUserIdValidationMode({ CARD_USER_ID_VALIDATION_UNIFIED_FIRST_MODE: ' CANARY ' }), 'canary');
+
+    const tracked = maintenanceTest.getTrackedSheets();
+    assert.strictEqual(tracked.filter(config => config.sheetName.startsWith('Cart\u00e3o ')).length, 4);
+    assert.strictEqual(tracked.some(config => config.sheetName === 'Lan\u00e7amentos Cart\u00e3o'), false);
+});
+
+test('userIdMaintenance off validation keeps the four central legacy card reads', async () => {
+    const calls = [];
+    const report = await userIdMaintenanceService.validateUserIdIntegrity({
+        env: {},
+        read: async (range, options) => {
+            calls.push({ range, options });
+            return [['header']];
+        },
+        getUsers: async () => { throw new Error('off mode must not load users'); },
+        hasSpreadsheetContext: async () => { throw new Error('off mode must not inspect personal scopes'); }
+    });
+
+    assert.strictEqual(report.cardRoute, 'legacy_central');
+    assert.strictEqual(calls.length, 8);
+    assert.strictEqual(calls.filter(call => call.range.startsWith('Cart\u00e3o ')).length, 4);
+    assert.strictEqual(calls.filter(call => call.range.startsWith('Lan\u00e7amentos Cart\u00e3o')).length, 0);
+    assert.ok(calls.every(call => call.options.telemetryConsumer === 'maintenance_service'));
+});
+
+test('userIdMaintenance canary aggregates personal unified cards without legacy reads', async () => {
+    const calls = [];
+    const unifiedHeader = ['Data', 'Descri\u00e7\u00e3o', 'Categoria', 'Valor Parcela', 'Parcela', 'M\u00eas de Cobran\u00e7a', 'card_id', 'Cart\u00e3o', 'Observa\u00e7\u00f5es', 'user_id'];
+    const report = await userIdMaintenanceService.validateUserIdIntegrity({
+        env: { CARD_USER_ID_VALIDATION_UNIFIED_FIRST_MODE: 'canary' },
+        getUsers: async () => [
+            { user_id: 'user-a', status: 'ACTIVE', deleted_at: '' },
+            { user_id: 'user-b', status: 'ACTIVE', deleted_at: '' }
+        ],
+        hasSpreadsheetContext: async () => true,
+        read: async (range, options) => {
+            calls.push({ range, options });
+            if (range === 'Lan\u00e7amentos Cart\u00e3o!A:J') {
+                return [unifiedHeader, ['01/06/2026', 'item', 'Casa', '1,00', '1/1', 'Junho de 2026', 'card-a', 'Cart\u00e3o A', '', options.userId === 'user-a' ? 'user-a' : '']];
+            }
+            return [['header']];
+        }
+    });
+
+    assert.strictEqual(report.cardRoute, 'unified_personal');
+    assert.deepStrictEqual(report.cardScopes, { active: 2, available: 2, unavailable: 0 });
+    assert.deepStrictEqual(report.bySheet['Lan\u00e7amentos Cart\u00e3o (pessoal)'], { rows: 2, missingUserId: 1 });
+    assert.strictEqual(calls.filter(call => call.range === 'Lan\u00e7amentos Cart\u00e3o!A:J').length, 2);
+    assert.strictEqual(calls.filter(call => call.range.startsWith('Cart\u00e3o ')).length, 0);
+});
+
+test('userIdMaintenance canary preserves legacy fallback for unavailable personal scopes', async () => {
+    const calls = [];
+    const report = await userIdMaintenanceService.validateUserIdIntegrity({
+        env: { CARD_USER_ID_VALIDATION_UNIFIED_FIRST_MODE: 'canary' },
+        getUsers: async () => [
+            { user_id: 'user-a', status: 'ACTIVE', deleted_at: '' },
+            { user_id: 'user-b', status: 'ACTIVE', deleted_at: '' }
+        ],
+        hasSpreadsheetContext: async ({ userId }) => userId === 'user-a',
+        read: async (range, options) => {
+            calls.push({ range, options });
+            return [['header']];
+        }
+    });
+
+    assert.strictEqual(report.cardRoute, 'unified_with_legacy_fallback');
+    assert.deepStrictEqual(report.cardScopes, { active: 2, available: 1, unavailable: 1 });
+    assert.strictEqual(calls.filter(call => call.range === 'Lan\u00e7amentos Cart\u00e3o!A:J').length, 1);
+    assert.strictEqual(calls.filter(call => call.range.startsWith('Cart\u00e3o ')).length, 4);
+});
+
 test('textMatcher.fuzzyIncludes tolerates common finance typos', () => {
     const { fuzzyIncludes, matchesAnyField } = require('../src/utils/textMatcher');
 
