@@ -73,3 +73,7 @@ test('staging falha fechado sem segredo HMAC', () => {
     const databasePath = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-open-finance-')), 'staging.sqlite');
     assert.throws(() => new OpenFinanceStagingStore({ databasePath }), /open_finance_hmac_secret_required/);
 });
+
+// Keep the isolated Open Finance gate in the repository-wide explicit test list
+// without expanding the already long package.json command for each sandbox slice.
+require('./openFinanceSandboxWebhook.test');
