@@ -77,3 +77,4 @@ test('staging falha fechado sem segredo HMAC', () => {
 // Keep the isolated Open Finance gate in the repository-wide explicit test list
 // without expanding the already long package.json command for each sandbox slice.
 require('./openFinanceSandboxWebhook.test');
+require('./openFinanceSandboxWebhookInbox.test');

@@ -61,11 +61,44 @@ class OpenFinanceStagingStore {
                 revoked_at TEXT NOT NULL,
                 reason_code TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS staging_webhook_inbox (
+                event_ref TEXT PRIMARY KEY,
+                item_ref TEXT NOT NULL,
+                event_type TEXT NOT NULL,
+                encrypted_job TEXT,
+                status TEXT NOT NULL,
+                attempts INTEGER NOT NULL DEFAULT 0,
+                available_at TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                completed_at TEXT,
+                failure_code TEXT
+            );
         `);
+        this.db.prepare("UPDATE staging_webhook_inbox SET status = 'pending' WHERE status = 'processing'").run();
     }
 
     #ref(kind, value) {
         return crypto.createHmac('sha256', this.secret).update(`${kind}:${value}`).digest('hex');
+    }
+
+    #encryptionKey() {
+        return crypto.createHash('sha256').update(`open-finance-inbox:${this.secret}`).digest();
+    }
+
+    #encryptJob(job) {
+        const iv = crypto.randomBytes(12);
+        const cipher = crypto.createCipheriv('aes-256-gcm', this.#encryptionKey(), iv);
+        const encrypted = Buffer.concat([cipher.update(JSON.stringify(job), 'utf8'), cipher.final()]);
+        return [iv.toString('base64'), cipher.getAuthTag().toString('base64'), encrypted.toString('base64')].join('.');
+    }
+
+    #decryptJob(value) {
+        const [ivText, tagText, encryptedText] = String(value || '').split('.');
+        if (!ivText || !tagText || !encryptedText) throw new Error('invalid_encrypted_webhook_job');
+        const decipher = crypto.createDecipheriv('aes-256-gcm', this.#encryptionKey(), Buffer.from(ivText, 'base64'));
+        decipher.setAuthTag(Buffer.from(tagText, 'base64'));
+        const clear = Buffer.concat([decipher.update(Buffer.from(encryptedText, 'base64')), decipher.final()]);
+        return JSON.parse(clear.toString('utf8'));
     }
 
     ingestSnapshot(snapshot) {
@@ -163,6 +196,78 @@ class OpenFinanceStagingStore {
         });
         transaction();
         return { revoked: true, item_ref: itemRef };
+    }
+
+    enqueueWebhookJob(job, options = {}) {
+        if (!job || !job.event_id || !job.item_id || !job.event || !job.action) throw new Error('invalid_webhook_job');
+        const now = options.now || new Date().toISOString();
+        const eventRef = this.#ref('webhook_event', job.event_id);
+        const result = this.db.prepare(`
+            INSERT OR IGNORE INTO staging_webhook_inbox
+                (event_ref, item_ref, event_type, encrypted_job, status, attempts, available_at, created_at)
+            VALUES (?, ?, ?, ?, 'pending', 0, ?, ?)
+        `).run(eventRef, this.#ref('item', job.item_id), String(job.event), this.#encryptJob(job), now, now);
+        return { queued: result.changes === 1, replay: result.changes === 0, event_ref: eventRef };
+    }
+
+    claimNextWebhookJob(options = {}) {
+        const now = options.now || new Date().toISOString();
+        const claim = this.db.transaction(() => {
+            const row = this.db.prepare(`
+                SELECT event_ref, encrypted_job, attempts
+                FROM staging_webhook_inbox
+                WHERE status = 'pending' AND available_at <= ?
+                ORDER BY created_at, event_ref
+                LIMIT 1
+            `).get(now);
+            if (!row) return null;
+            const updated = this.db.prepare(`
+                UPDATE staging_webhook_inbox
+                SET status = 'processing', attempts = attempts + 1
+                WHERE event_ref = ? AND status = 'pending'
+            `).run(row.event_ref);
+            if (updated.changes !== 1) return null;
+            return { event_ref: row.event_ref, attempts: row.attempts + 1, job: this.#decryptJob(row.encrypted_job) };
+        });
+        return claim();
+    }
+
+    completeWebhookJob(eventRef, options = {}) {
+        const completedAt = options.completedAt || new Date().toISOString();
+        const result = this.db.prepare(`
+            UPDATE staging_webhook_inbox
+            SET status = 'completed', encrypted_job = NULL, completed_at = ?, failure_code = NULL
+            WHERE event_ref = ? AND status = 'processing'
+        `).run(completedAt, eventRef);
+        return result.changes === 1;
+    }
+
+    retryWebhookJob(eventRef, retryAfterSeconds, options = {}) {
+        const seconds = Math.min(3600, Math.max(1, Number(retryAfterSeconds) || 60));
+        const base = new Date(options.now || new Date().toISOString());
+        const availableAt = new Date(base.getTime() + (seconds * 1000)).toISOString();
+        const result = this.db.prepare(`
+            UPDATE staging_webhook_inbox
+            SET status = 'pending', available_at = ?, failure_code = 'retry_scheduled'
+            WHERE event_ref = ? AND status = 'processing'
+        `).run(availableAt, eventRef);
+        return { scheduled: result.changes === 1, available_at: availableAt };
+    }
+
+    failWebhookJob(eventRef, failureCode = 'processing_failed') {
+        const result = this.db.prepare(`
+            UPDATE staging_webhook_inbox
+            SET status = 'failed', encrypted_job = NULL, failure_code = ?
+            WHERE event_ref = ? AND status = 'processing'
+        `).run(String(failureCode).slice(0, 64), eventRef);
+        return result.changes === 1;
+    }
+
+    webhookInboxStats() {
+        const rows = this.db.prepare('SELECT status, COUNT(*) AS total FROM staging_webhook_inbox GROUP BY status').all();
+        const stats = { pending: 0, processing: 0, completed: 0, failed: 0 };
+        for (const row of rows) if (Object.hasOwn(stats, row.status)) stats[row.status] = row.total;
+        return Object.freeze(stats);
     }
 
     stats() {

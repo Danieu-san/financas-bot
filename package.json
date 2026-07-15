@@ -22,6 +22,8 @@
     "e2e:open-finance-sandbox": "node scripts/runPluggySandboxStagingE2E.js",
     "test:open-finance-webhook": "node --test tests/openFinanceSandboxWebhook.test.js",
     "e2e:open-finance-webhook": "node scripts/runPluggySandboxWebhookE2E.js",
+    "test:open-finance-inbox": "node --test tests/openFinanceSandboxWebhookInbox.test.js",
+    "e2e:open-finance-inbox": "node scripts/runPluggySandboxWebhookInboxE2E.js",
     "e2e:card-read-model-unified-first": "node scripts/runCardReadModelUnifiedFirstE2E.js",
     "e2e:card-scheduler-unified-first": "node scripts/runCardSchedulerUnifiedFirstE2E.js",
     "e2e:card-user-id-validation-unified-first": "node scripts/runCardUserIdValidationUnifiedFirstE2E.js",
