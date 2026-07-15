@@ -1,0 +1,155 @@
+{
+  "evidence_as_of": "2026-07-15T17:48:13Z",
+  "candidates": [
+    {
+      "candidate": "financial_undo_test_only",
+      "riskClass": "test_only",
+      "evidence": {
+        "telemetryActive": true,
+        "invalidTelemetryLines": 0,
+        "entrypointsCovered": true,
+        "staticDynamicAuditComplete": true,
+        "activePathTestsPassed": true,
+        "shadowParityPassed": true,
+        "rollbackTested": true,
+        "unexplainedDivergences": 0,
+        "criticalFallbackEvents": 0,
+        "observationDays": 0,
+        "productionFlagOff": true,
+        "runtimeConsumers": 0,
+        "softDisabled": true,
+        "softDisabledDays": 0,
+        "realLegacyUsageEvents": 0,
+        "rollbackInvocations": 0
+      }
+    },
+    {
+      "candidate": "dashboard_v1",
+      "riskClass": "read_only",
+      "evidence": {
+        "telemetryActive": true,
+        "invalidTelemetryLines": 0,
+        "entrypointsCovered": true,
+        "staticDynamicAuditComplete": true,
+        "activePathTestsPassed": true,
+        "shadowParityPassed": true,
+        "rollbackTested": true,
+        "unexplainedDivergences": 0,
+        "criticalFallbackEvents": 0,
+        "observationDays": 1,
+        "softDisabled": false,
+        "softDisabledDays": 0,
+        "realLegacyUsageEvents": 0,
+        "rollbackInvocations": 0
+      }
+    },
+    {
+      "candidate": "analytical_legacy_fallback",
+      "riskClass": "read_only",
+      "evidence": {
+        "telemetryActive": true,
+        "invalidTelemetryLines": 0,
+        "entrypointsCovered": true,
+        "staticDynamicAuditComplete": true,
+        "activePathTestsPassed": true,
+        "shadowParityPassed": true,
+        "rollbackTested": true,
+        "unexplainedDivergences": 0,
+        "criticalFallbackEvents": 8,
+        "observationDays": 1,
+        "softDisabled": false,
+        "softDisabledDays": 0,
+        "realLegacyUsageEvents": 0,
+        "rollbackInvocations": 0
+      }
+    },
+    {
+      "candidate": "legacy_card_routes",
+      "riskClass": "periodic_read_only",
+      "evidence": {
+        "telemetryActive": true,
+        "invalidTelemetryLines": 0,
+        "entrypointsCovered": true,
+        "staticDynamicAuditComplete": true,
+        "activePathTestsPassed": true,
+        "shadowParityPassed": true,
+        "rollbackTested": true,
+        "unexplainedDivergences": 0,
+        "criticalFallbackEvents": 124,
+        "observationDays": 1,
+        "simulatedCycles": 2,
+        "softDisabled": false,
+        "softDisabledDays": 0,
+        "realLegacyUsageEvents": 0,
+        "rollbackInvocations": 0
+      }
+    },
+    {
+      "candidate": "whatsapp_import_dedup",
+      "riskClass": "mutating",
+      "evidence": {
+        "telemetryActive": true,
+        "invalidTelemetryLines": 0,
+        "entrypointsCovered": true,
+        "staticDynamicAuditComplete": true,
+        "activePathTestsPassed": true,
+        "shadowParityPassed": false,
+        "rollbackTested": false,
+        "unexplainedDivergences": 0,
+        "criticalFallbackEvents": 0,
+        "observationDays": 1,
+        "isolatedFixturePassed": false,
+        "cleanupProved": false,
+        "writeIdempotencyPassed": true,
+        "softDisabled": false,
+        "softDisabledDays": 0,
+        "realLegacyUsageEvents": 0,
+        "rollbackInvocations": 0
+      }
+    },
+    {
+      "candidate": "whatsapp_deletion",
+      "riskClass": "mutating",
+      "evidence": {
+        "telemetryActive": true,
+        "invalidTelemetryLines": 0,
+        "entrypointsCovered": true,
+        "staticDynamicAuditComplete": true,
+        "activePathTestsPassed": true,
+        "shadowParityPassed": false,
+        "rollbackTested": false,
+        "unexplainedDivergences": 0,
+        "criticalFallbackEvents": 0,
+        "observationDays": 1,
+        "isolatedFixturePassed": false,
+        "cleanupProved": false,
+        "writeIdempotencyPassed": false,
+        "softDisabled": false,
+        "softDisabledDays": 0,
+        "realLegacyUsageEvents": 0,
+        "rollbackInvocations": 0
+      }
+    },
+    {
+      "candidate": "sheets_source_rollback",
+      "riskClass": "source_rollback",
+      "evidence": {
+        "telemetryActive": true,
+        "invalidTelemetryLines": 0,
+        "entrypointsCovered": true,
+        "staticDynamicAuditComplete": true,
+        "activePathTestsPassed": true,
+        "shadowParityPassed": true,
+        "rollbackTested": true,
+        "unexplainedDivergences": 0,
+        "criticalFallbackEvents": 0,
+        "observationDays": 1,
+        "softDisabled": false,
+        "softDisabledDays": 0,
+        "realLegacyUsageEvents": 0,
+        "rollbackInvocations": 0,
+        "cutoverStable": false
+      }
+    }
+  ]
+}

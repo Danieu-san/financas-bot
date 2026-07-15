@@ -55,6 +55,12 @@ Atualizado em: 2026-07-15
   com esses fluxos mutaveis. O evento `whatsapp_budget` do gate foi um probe
   controlado, nao evidencia de adocao real. 8C segue bloqueada ate pelo menos
   2026-09-12 com instrumentacao continua.
+- ADR-008 permite soft-disable antes da janela longa, mas nao transforma
+  ausencia curta em uso zero. Nao confundir flag desligada com codigo removivel.
+  Mutacao e fallback necessario ao cutover permanecem no baseline de 60 dias.
+- A API comercial Pluggy Dados custa a partir de R$ 2.500/mes e esta bloqueada.
+  O caminho gratuito candidato e Meu Pluggy + Conector 200, sem SLA, webhooks
+  ou portabilidade. Daniel e Thais exigem contas/consentimentos separados.
 
 ## 6E classificada como capacidade test-only
 

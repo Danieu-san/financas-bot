@@ -11,6 +11,8 @@ This document covers the current FinancasBot production shape: WhatsApp bot, Goo
 | Dashboard tokens | Temporary access to user financial view. | Signed short-lived token with `uid` and expiry, WhatsApp link uses URL fragment (`#token=`), browser stores it in `sessionStorage` and removes it from the address bar, no client-provided `user_id`, sanitized access audit. |
 | Google refresh token and API keys | Full integration access. | `.env` and `credentials.json` ignored by Git. |
 | WhatsApp session | Controls bot identity. | `.wwebjs_auth/` ignored by Git, QR renewal runbook. |
+| Pluggy Item/consent references | Can expose or prolong access to external financial data. | Phase 9 sandbox only; future references encrypted/secret-scoped, per-user and revocable. |
+| Pluggy API credentials | Can access provider APIs within the contracted scope. | Never committed or logged; absent from production until a separately approved real-data gate. |
 | Admin commands | Can grant/block access and message users. | Admin check, structured logs, append-only AdminActionLog JSONL, soft lifecycle changes, two-step confirmation for risky commands. |
 
 ## Trust Boundaries
@@ -24,6 +26,8 @@ This document covers the current FinancasBot production shape: WhatsApp bot, Goo
 | Admin chat -> privileged actions | Admin text commands. | Admin check, audit logs, in-memory confirmation for high-risk commands. |
 | Bot -> Gemini | User data summarized into prompts. | Prefer deterministic SQL first, send summarized context only for common questions. |
 | Uploaded statements -> importer | User-controlled CSV/OFX/XLS/XLSX/PDF/image. | Type/signature/size/row limits, preview and confirmation; PDF/image OCR is canary-only staging and treats embedded instructions as untrusted data. |
+| Pluggy/sandbox -> staging | External, delayed, duplicated or mutable financial records. | Provider adapter, idempotent staging, no direct ledger/Sheets write, explicit reconciliation. |
+| Consent link -> browser/WhatsApp | One-use URL may be opened by a preview bot or wrong actor. | Never send the raw one-use URL through WhatsApp; use a user-initiated controlled page when real consent is authorized. |
 
 ## Key Risks And Mitigations
 
@@ -41,6 +45,10 @@ This document covers the current FinancasBot production shape: WhatsApp bot, Goo
 | Google auth/token failure | Medium | Runbook and auth recovery path. | Alert on repeated `deleted_client`, `401`, or sync errors. |
 | WhatsApp Web protocol/session instability | Medium | PM2 logs, QR renewal runbook, dependency update note. | Real E2E smoke before releases with dedicated test number. |
 | Dependency vulnerability | Medium | `npm audit --audit-level=high` in release checklist. | Keep dependency updates scheduled. |
+| Cross-user Pluggy consent | High | ADR-009 requires separate Meu Pluggy accounts/items for Daniel and Thais. | Prove revocation and scope isolation before any real connection. |
+| Provider data creates financial facts | High | Phase 9 data is staging-only and read-only. | Require preview/reconciliation and a later explicit write gate. |
+| Revoked consent still appears available | High | Treat empty/revoked/expired as unavailable, never as financial zero; delete local Item reference. | E2E revocation and retention cleanup before real use. |
+| Duplicate/out-of-order provider updates | Medium | Stable provider IDs plus idempotent staging and event ordering metadata. | Test create/update/delete and replay before enabling webhooks or polling. |
 
 ## Security Decisions
 

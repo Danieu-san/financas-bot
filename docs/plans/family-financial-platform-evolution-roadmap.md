@@ -805,14 +805,13 @@ Nao acumular todas as fases para um unico deploy.
 
 ## 13. Proximo passo imediato
 
-Manter a Fase `8B.9 - consumidores WhatsApp de cartao` em observacao duravel:
+Executar em paralelo a observacao da 8B.9:
 
-1. Confirmar heartbeat, retencao e zero linha invalida.
-2. Medir uso real por consumidor sem confundir probes controlados.
-3. Preservar importacao, exclusao, fallbacks e abas antigas.
-4. Aguardar dois fechamentos ou pelo menos 60 dias desde 2026-07-14.
-5. Somente entao classificar itens como candidatos a 8C; nao remover
-   automaticamente.
+1. Aplicar ADR-008 para soft-disable por risco, sem exclusao fisica prematura.
+2. Confirmar heartbeat, retencao, paridade e rollback por candidato.
+3. Iniciar 9B.0 somente com adapter, fixtures e staging sandbox.
+4. Manter API Pluggy paga, contas reais e escrita financeira bloqueadas.
+5. Preservar importacao, exclusao, fallbacks e abas necessarias ao cutover.
 
-Gate 8B.9:
-`docs/qa/phase-8b9-whatsapp-card-consumer-characterization-gate-2026-07-15.md`.
+Gate atual:
+`docs/qa/phase-8-accelerated-retirement-and-9a-gate-2026-07-15.md`.

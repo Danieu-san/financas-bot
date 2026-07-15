@@ -1106,6 +1106,11 @@ Politica para uso zero: no minimo 45 dias e um ciclo orcamentario completo com
 todos os pontos de entrada instrumentados. Cartoes exigem dois fechamentos ou
 pelo menos 60 dias. O fim da janela torna o item apenas candidato a 8C.
 
+Politica acelerada aceita em 2026-07-15 pelo ADR-008: a janela acima governa
+exclusao fisica. Soft-disable reversivel pode ocorrer antes por perfil: 7 dias
+para read-only, 14 dias + dois ciclos simulados para periodico, sempre com
+telemetria, paridade, prova ativa e rollback. Mutacao/fonte nao recebe atalho.
+
 ### 8C - Remover calculos e schemas obsoletos
 
 Passo a passo:
@@ -1143,7 +1148,9 @@ Passo a passo:
 
 ## Fase 9 - Meu Pluggy/Open Finance somente leitura
 
-Objetivo da fase: reduzir importacao manual somente depois do nucleo estar estavel, auditavel e sem caminhos legados relevantes.
+Objetivo da fase: reduzir importacao manual. Pesquisa e sandbox podem ocorrer em
+paralelo a observacao da Fase 8; consentimento/dado real continuam bloqueados
+ate o gate final da consolidacao.
 
 ### 9A - Pesquisa atualizada e ADR
 
@@ -1155,6 +1162,14 @@ Passo a passo:
 4. Definir criterio de GO/NO-GO comercial e tecnico.
 
 Gate: ADR aprovado antes de conectar qualquer banco real.
+
+Resultado em 2026-07-15:
+
+- ADR-009 aprovado para custo zero e somente leitura;
+- API Dados paga (a partir de R$ 2.500/mes) rejeitada;
+- Meu Pluggy + Conector 200 mantido como candidato gratuito;
+- contas/consentimentos separados para Daniel e Thais;
+- 9B autorizada somente em sandbox/staging, sem chave ou banco real.
 
 ### 9B - POC sandbox somente leitura
 

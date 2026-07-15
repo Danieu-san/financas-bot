@@ -2,6 +2,19 @@
 
 Atualizado em: 2026-07-15
 
+## Fase 8 acelerada e Fase 9A - GO controlado - 2026-07-15
+
+- ADR-008 separa soft-disable reversivel de exclusao fisica. Read-only pode
+  candidatar-se apos 7 dias de provas; periodico apos 14 dias + 2 ciclos.
+- Mutacao e fallback de fonte continuam sem atalho; exclusao read-only em 30
+  dias exige auditoria adversarial independente.
+- Gate executavel criado e snapshot atual mantem zero candidato fisico imediato.
+- 9A confirmou API paga a partir de R$ 2.500/mes como NO-GO e Meu Pluggy +
+  Conector 200 como candidato gratuito, com contas separadas Daniel/Thais.
+- ADR-009 autoriza somente 9B sandbox/staging, sem chave ou conta real, sem
+  escrita e sem compra. Relatorio:
+  `docs/qa/phase-8-accelerated-retirement-and-9a-gate-2026-07-15.md`.
+
 ## Fase 8B.9 - consumidores WhatsApp de cartao - GO de observacao - 2026-07-15
 
 - Orcamento, exportacao, analitico pessoal, importacao, exclusao e manutencao
