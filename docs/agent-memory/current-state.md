@@ -2088,3 +2088,17 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Decisao: `GO local da 9B.0`; `NO-GO` para credencial, conta externa,
   consentimento bancario, plano pago, ledger/Sheets ou rollout WhatsApp.
 - Gate: `docs/qa/phase-9b0-pluggy-sandbox-staging-gate-2026-07-15.md`.
+
+## Phase 9B.1 mocked webhook GO - 2026-07-15
+
+- Eventos oficiais de dados de item/transacao foram modelados em allowlist;
+  eventos de pagamento ou desconhecidos falham fechados.
+- O receptor isolado autentica header secreto proprio em tempo constante,
+  devolve ACK antes do processamento e converte `429` em retry limitado.
+- Transporte continua inteiramente mockado: nenhuma funcao HTTP/fetch existe.
+- Atualizacao alimenta somente staging; exclusao de item revoga em cascata e
+  evento atrasado continua bloqueado.
+- Evidencia: Open Finance `10/10`, webhook `5/5`, E2E `GO`, suite `903/903`,
+  rede/credenciais/contas reais/escritas financeiras `0`.
+- Limitacao explicita: ainda nao ha endpoint publico nem inbox/fila duravel.
+- Gate: `docs/qa/phase-9b1-pluggy-mocked-webhook-gate-2026-07-15.md`.

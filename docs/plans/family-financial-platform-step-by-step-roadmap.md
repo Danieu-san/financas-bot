@@ -1196,6 +1196,19 @@ Resultado 9B.0 em 2026-07-15:
 Gate:
 `docs/qa/phase-9b0-pluggy-sandbox-staging-gate-2026-07-15.md`.
 
+Resultado 9B.1 em 2026-07-15:
+
+- lifecycle mockado de webhooks de dados com ACK separado do processamento;
+- eventos de pagamento rejeitados e header secreto proprio validado;
+- retry controlado de rate limit, replay idempotente e revogacao preservada;
+- Open Finance `10/10`, webhook `5/5`, E2E `GO`, suite `903/903`;
+- sem endpoint publico, rede, chave Pluggy, banco real ou escrita financeira;
+- proxima fatia segura: inbox duravel local com worker deterministico, ainda
+  desconectada do runtime e da internet.
+
+Gate:
+`docs/qa/phase-9b1-pluggy-mocked-webhook-gate-2026-07-15.md`.
+
 ### 9C - Consentimento real limitado
 
 Passo a passo:

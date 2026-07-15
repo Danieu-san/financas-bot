@@ -818,5 +818,10 @@ Executar em paralelo a observacao da 8B.9:
 mockados; credencial/conta real continuam bloqueadas ate confirmacao explicita
 de gratuidade e suficiencia do Conector 200.
 
+9B.1 concluida no mesmo dia: eventos de dados mockados, ACK rapido, retry de
+rate limit, revogacao e replay tardio passaram; suite `903/903`. Nao ha endpoint
+publico nem fila duravel. 9B.2 pode criar somente o inbox/worker local; conta ou
+chave externa continuam fora do escopo.
+
 Gate atual:
-`docs/qa/phase-9b0-pluggy-sandbox-staging-gate-2026-07-15.md`.
+`docs/qa/phase-9b1-pluggy-mocked-webhook-gate-2026-07-15.md`.
