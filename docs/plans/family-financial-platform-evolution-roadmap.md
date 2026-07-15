@@ -805,13 +805,15 @@ Nao acumular todas as fases para um unico deploy.
 
 ## 13. Proximo passo imediato
 
-Executar a Fase `8B.3 - decisao de produto sobre undo 6E`:
+Executar a Fase `8B.4 - cartoes e modulos em quarentena`:
 
-1. Confirmar novamente que nao existe consumidor WhatsApp produtivo.
-2. Verificar scripts, jobs, imports dinamicos e runbooks.
-3. Na ausencia de requisito explicito, desligar o canario de producao e
-   classificar a capacidade como test-only.
-4. Preservar servico, testes, E2E e conhecimento; nenhuma exclusao.
-5. Provar que a mudanca de flag nao altera WhatsApp, dados ou recibos.
+1. Mapear abas logicas de cartao em runtime, templates, formulas, jobs,
+   importacao, exportacao e recuperacao.
+2. Instrumentar leitura/escrita sem persistir planilha, cartao ou valor.
+3. Auditar imports dinamicos e scripts dos modulos em quarentena.
+4. Classificar cada item como runtime, QA, operacao, recuperacao, manter,
+   migrar, quarentena ou candidato futuro.
+5. Iniciar a janela; nenhuma aba ou modulo sera removido nesta fatia.
 
-Gate 8B.2: `docs/qa/phase-8b2-dashboard-adoption-telemetry-gate-2026-07-15.md`.
+Gate 8B.3:
+`docs/qa/phase-8b3-financial-undo-product-decision-gate-2026-07-15.md`.

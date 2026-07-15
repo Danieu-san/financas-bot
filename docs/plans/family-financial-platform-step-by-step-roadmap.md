@@ -934,6 +934,29 @@ Resultado em 2026-07-15:
 - proximo passo: 8B.3, decisao de produto sobre undo 6E;
 - relatorio: `docs/qa/phase-8b2-dashboard-adoption-telemetry-gate-2026-07-15.md`.
 
+#### 8B.3 - Decisao de produto sobre undo 6E
+
+Passo a passo:
+
+1. Buscar consumidores estaticos e dinamicos.
+2. Conferir WhatsApp, jobs, PM2, cron, systemd, logs, runbooks e stores.
+3. Desligar o canario se a capacidade nao estiver integrada ao produto.
+4. Preservar servico, testes, E2E e configurador.
+5. Validar restart sem efeito colateral.
+
+Gate: status tecnico e status de produto coerentes, flag fail-closed, bot
+saudavel e nenhuma exclusao.
+
+Resultado em 2026-07-15:
+
+- `GO test-only`; unico consumo encontrado em teste/E2E/configurador;
+- producao alterada para `FINANCIAL_UNDO_MODE=off`, allowlist vazia;
+- remoto 5/5, PM2/WhatsApp/cron/health verdes e store de undo ausente;
+- servico/ADR/testes/E2E preservados;
+- proximo passo: 8B.4, caracterizar cartoes e modulos em quarentena;
+- relatorio:
+  `docs/qa/phase-8b3-financial-undo-product-decision-gate-2026-07-15.md`.
+
 Politica para uso zero: no minimo 45 dias e um ciclo orcamentario completo com
 todos os pontos de entrada instrumentados. Cartoes exigem dois fechamentos ou
 pelo menos 60 dias. O fim da janela torna o item apenas candidato a 8C.

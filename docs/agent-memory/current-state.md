@@ -2,6 +2,21 @@
 
 Atualizado em: 2026-07-15
 
+## Fase 8B.3 - decisao de produto sobre undo 6E - GO test-only - 2026-07-15
+
+- Auditoria encontrou `financialUndoService` somente em teste, E2E e
+  configurador; nenhum handler WhatsApp, runtime, cron, systemd, import dinamico,
+  log produtivo, runbook ou store o consome.
+- Producao foi alterada pelo configurador oficial para
+  `FINANCIAL_UNDO_MODE=off`, com allowlist vazia e backup previo do `.env`.
+- Teste remoto 5/5, PM2/WhatsApp/cron/health verdes e banco de undo ausente apos
+  restart.
+- Servico, ADR, testes e E2E permanecem. Classificacao correta: infraestrutura
+  validada, capacidade test-only, nao funcionalidade disponivel no WhatsApp.
+- Proximo passo: 8B.4, caracterizacao de abas de cartao e modulos em quarentena,
+  sem remocao. Relatorio:
+  `docs/qa/phase-8b3-financial-undo-product-decision-gate-2026-07-15.md`.
+
 ## Fase 8B.2 - telemetria de adocao do Dashboard - GO de observacao - 2026-07-15
 
 - A metrica anterior media requests e nao sessoes. V1/v2 agora enviam um ID

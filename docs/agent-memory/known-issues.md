@@ -20,14 +20,13 @@ Atualizado em: 2026-07-14
   dias + ciclo completo; cartoes exigem dois fechamentos ou pelo menos 60 dias.
   Mesmo depois, o item vira candidato a 8C, nao remocao automatica.
 
-## Canario 6E sem consumidor no WhatsApp
+## 6E classificada como capacidade test-only
 
-- `FINANCIAL_UNDO_MODE=canary` esta configurada, mas
-  `src/undo/financialUndoService.js` e consumido apenas por testes e scripts E2E;
-  nao ha ligacao atual no `messageHandler`.
-- Tratar 6E como infraestrutura validada, nao como funcao disponivel ao usuario.
-  Antes de ampliar, decidir entre integrar com gate proprio ou desligar e
-  documentar a flag como test-only.
+- A 8B.3 confirmou que `src/undo/financialUndoService.js` e consumido apenas por
+  testes/scripts. Producao esta em `FINANCIAL_UNDO_MODE=off`, allowlist vazia.
+- Tratar 6E como infraestrutura validada/test-only. Reativacao futura exige
+  requisito de produto, integracao WhatsApp e novo gate; nao inferir que o
+  canario ainda esta disponivel.
 
 ## Omissao da configuracao/capacidade no handoff
 
