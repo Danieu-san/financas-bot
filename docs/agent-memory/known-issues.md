@@ -38,6 +38,13 @@ Atualizado em: 2026-07-15
   central, scheduler e manutencao continuam legados. Nao ativar `on`, remover
   fallback ou interpretar as leituras restantes como regressao. Rollback:
   `CARD_READ_MODEL_UNIFIED_FIRST_MODE=off` + restart com `--update-env`.
+- A 8B.7 migrou o scheduler mensal para fonte pessoal em `canary`, mas nao houve
+  envio real do relatorio no E2E: o teste foi deliberadamente read-only/sem
+  mensagem. O job antigo central retornava zero linha de cartao; nao usar esse
+  zero como baseline financeiro. Rollback do scheduler:
+  `CARD_SCHEDULER_UNIFIED_FIRST_MODE=off` + restart com `--update-env`.
+- A manutencao ainda registrou quatro leituras legadas no recorte 8B.7. Nao
+  alterar sua selecao junto com escrita/confirmacao sem gate proprio.
 
 ## 6E classificada como capacidade test-only
 

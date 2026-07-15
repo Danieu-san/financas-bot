@@ -1045,6 +1045,30 @@ Passo a passo:
 Gate: scheduler produz a mesma saida, evita a projecao legada quando a fonte
 unificada e valida, preserva fallback e executa zero escrita financeira.
 
+Resultado em 2026-07-15:
+
+- `GO de producao em canario`; `NO-GO` para modo global/remocao;
+- fonte central de rollback: quatro leituras e zero linha;
+- fontes pessoais: 3 escopos, 2 unified-first, 1 fallback e 76 entradas;
+- semantica mensal preservada; zero mensagem/escrita no E2E;
+- codigo `6e12db5`, local 883/883, remoto 103/103 e producao saudavel;
+- proximo passo: 8B.8, manutencao de cartao unified-first;
+- relatorio:
+  `docs/qa/phase-8b7-card-scheduler-unified-first-gate-2026-07-15.md`.
+
+#### 8B.8 - Manutencao de cartao unified-first
+
+Passo a passo:
+
+1. Separar selecao read-only de qualquer mutacao de manutencao.
+2. Caracterizar comandos, preview, confirmacao e escopo atuais.
+3. Migrar somente a descoberta da fonte por flag fail-closed.
+4. Preservar fallback, rollback e identidade exata da linha.
+5. Usar E2E sem mutacao ou fixture isolada com limpeza comprovada.
+
+Gate: a manutencao encontra exatamente os mesmos itens autorizados na fonte
+unificada, nao amplia escrita e retorna ao caminho anterior por flag.
+
 Politica para uso zero: no minimo 45 dias e um ciclo orcamentario completo com
 todos os pontos de entrada instrumentados. Cartoes exigem dois fechamentos ou
 pelo menos 60 dias. O fim da janela torna o item apenas candidato a 8C.

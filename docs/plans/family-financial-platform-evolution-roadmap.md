@@ -805,13 +805,13 @@ Nao acumular todas as fases para um unico deploy.
 
 ## 13. Proximo passo imediato
 
-Executar a Fase `8B.7 - scheduler de cartao unified-first`:
+Executar a Fase `8B.8 - manutencao de cartao unified-first`:
 
-1. Caracterizar ciclo mensal, filtros e saida do scheduler atual.
-2. Ler estrutura unificada por escopo, sem alterar formulas ou escrita.
-3. Preservar fallback fail-closed e rollback por flag.
-4. Provar mesma saida em fixtures e E2E read-only.
-5. Nao alterar manutencao, WhatsApp ou estrutura nesta fatia.
+1. Separar selecao read-only de qualquer mutacao de manutencao.
+2. Caracterizar comandos, preview, confirmacao e escopo atuais.
+3. Migrar somente a descoberta da fonte por flag fail-closed.
+4. Preservar fallback, rollback e identidade exata da linha.
+5. Nao remover estrutura nem ampliar escrita nesta fatia.
 
-Gate 8B.6:
-`docs/qa/phase-8b6-card-read-model-unified-first-gate-2026-07-15.md`.
+Gate 8B.7:
+`docs/qa/phase-8b7-card-scheduler-unified-first-gate-2026-07-15.md`.

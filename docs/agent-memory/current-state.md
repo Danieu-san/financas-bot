@@ -2,6 +2,23 @@
 
 Atualizado em: 2026-07-15
 
+## Fase 8B.7 - scheduler de cartao unified-first - GO canario - 2026-07-15
+
+- Job mensal (dia 1, 08:00) lia quatro abas centrais. E2E confirmou zero linha
+  central e 76 entradas em planilhas pessoais; o zero antigo era fonte errada,
+  nao paridade financeira.
+- Flag fail-closed `off|canary|on`; producao usa `canary`. `off` restaura quatro
+  leituras centrais; unificada vazia preserva quatro leituras de fallback.
+- Mes anterior, competencia, ano, usuario, opt-in e formula foram mantidos.
+- Evidencia: scheduler 16/16, integrados 112/112, suite 883/883, remoto 103/103.
+- E2E pos-restart: 3 escopos, 2 unified-first, 1 fallback, 76 entradas, zero
+  erro/mensagem/escrita e saida sanitizada.
+- Producao `6e12db5`: ambos os canarios em `canary`, PM2/WhatsApp/bot/cron/health
+  verdes e telemetria `OBSERVING` com heartbeat ativo.
+- Nenhuma remocao autorizada. Proximo passo: 8B.8, caracterizar/migrar somente a
+  selecao de cartoes da manutencao. Relatorio:
+  `docs/qa/phase-8b7-card-scheduler-unified-first-gate-2026-07-15.md`.
+
 ## Fase 8B.6 - read-model de cartao unified-first - GO canario - 2026-07-15
 
 - Flag fail-closed `off|canary|on`; producao usa `canary` somente em contextos
