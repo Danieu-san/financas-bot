@@ -2066,3 +2066,25 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   autorizada a iniciar pelo roadmap, mas ainda nao foi implementada. O proximo
   passo e abrir a primeira fatia de movimentos de plano com escrita confiavel,
   sem promover dual-write ou alterar fatos antes dos gates especificos.
+
+## Phase 8 observation and Phase 9B.0 sandbox GO - 2026-07-15
+
+- A Fase 8 permanece em observacao duravel. ADR-008 separa soft-disable
+  reversivel de exclusao fisica: o relogio acelerado nao autoriza fingir uso
+  zero nem remover fallbacks necessarios ao cutover.
+- Snapshot atual: sete candidatos observados, um candidato test-only a
+  soft-disable e zero candidatos a exclusao fisica.
+- ADR-009 rejeitou a API Pluggy paga e permitiu somente pesquisa/POC local. Meu
+  Pluggy + Conector 200 continua candidato apenas se permanecer gratuito e
+  suficiente para uso familiar com consentimentos separados.
+- A 9B.0 criou contrato Pluggy estritamente sandbox, adapter de fixture e
+  SQLite de staging isolado. Nenhum modulo foi conectado ao runtime.
+- Identificadores do provedor ficam pseudonimizados por HMAC; replay e exclusao
+  sao idempotentes. Revogacao apaga os dados staged e uma lapide sanitizada
+  bloqueia eventos atrasados.
+- Evidencia final: testes focados `5/5`, E2E descartavel `GO`, suite completa
+  `898/898`, rede `0`, contas reais `0`, escritas financeiras `0` e segredos
+  persistidos `0`.
+- Decisao: `GO local da 9B.0`; `NO-GO` para credencial, conta externa,
+  consentimento bancario, plano pago, ledger/Sheets ou rollout WhatsApp.
+- Gate: `docs/qa/phase-9b0-pluggy-sandbox-staging-gate-2026-07-15.md`.

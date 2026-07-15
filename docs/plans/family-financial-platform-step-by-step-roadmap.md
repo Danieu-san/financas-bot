@@ -1182,6 +1182,20 @@ Passo a passo:
 
 Gate: POC nao altera dados reais finais.
 
+Resultado 9B.0 em 2026-07-15:
+
+- contrato Pluggy sandbox e adapter de fixture implementados sem HTTP;
+- SQLite de staging isolado com referencias HMAC, replay idempotente e
+  revogacao em cascata;
+- replay atrasado de item revogado bloqueado por lapide sanitizada;
+- testes focados `5/5`, E2E local `GO` e suite completa `898/898`;
+- zero rede, conta real, segredo persistido ou escrita financeira;
+- 9B.1 pode prosseguir apenas com transporte mockado. Conta/chave real exige
+  decisao explicita e nova confirmacao de gratuidade do Conector 200.
+
+Gate:
+`docs/qa/phase-9b0-pluggy-sandbox-staging-gate-2026-07-15.md`.
+
 ### 9C - Consentimento real limitado
 
 Passo a passo:

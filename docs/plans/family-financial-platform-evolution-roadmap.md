@@ -813,5 +813,10 @@ Executar em paralelo a observacao da 8B.9:
 4. Manter API Pluggy paga, contas reais e escrita financeira bloqueadas.
 5. Preservar importacao, exclusao, fallbacks e abas necessarias ao cutover.
 
+9B.0 concluida em 2026-07-15 com staging local, testes `5/5`, E2E descartavel
+`GO` e suite `898/898`. A proxima fatia segura e 9B.1 com transporte e webhook
+mockados; credencial/conta real continuam bloqueadas ate confirmacao explicita
+de gratuidade e suficiencia do Conector 200.
+
 Gate atual:
-`docs/qa/phase-8-accelerated-retirement-and-9a-gate-2026-07-15.md`.
+`docs/qa/phase-9b0-pluggy-sandbox-staging-gate-2026-07-15.md`.
