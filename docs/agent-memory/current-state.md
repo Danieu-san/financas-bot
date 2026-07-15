@@ -2,6 +2,21 @@
 
 Atualizado em: 2026-07-15
 
+## Fase 8B.6 - read-model de cartao unified-first - GO canario - 2026-07-15
+
+- Flag fail-closed `off|canary|on`; producao usa `canary` somente em contextos
+  pessoais. Central, scheduler, manutencao e WhatsApp nao foram migrados.
+- Fonte unificada populada pula quatro leituras legadas; fonte vazia/invalida
+  conserva fallback; `off` restaura o caminho anterior por uma unica flag.
+- E2E real: 3 escopos, 2 `unified_first`, 1 `legacy_fallback`, 76 entradas,
+  snapshots identicos, zero erro, zero escrita e saida sanitizada.
+- Evidencia: focado 87/87, contratos 115/115, suite 879/879; remoto 108/108.
+- Producao no commit `632e48c`, PM2/WhatsApp/bot/cron/health verdes. Telemetria
+  isolada: `OBSERVING`, heartbeat 1, 32 eventos, zero invalido/escrita.
+- Nenhuma remocao autorizada; `on` global continua bloqueado. Proximo passo:
+  8B.7, migrar o scheduler de cartao de forma read-only e reversivel. Relatorio:
+  `docs/qa/phase-8b6-card-read-model-unified-first-gate-2026-07-15.md`.
+
 ## Fase 8B.5 - paridade/plano de cartoes - GO de caracterizacao - 2026-07-15
 
 - Telemetria v2 atribui rotas de cartao a read-model, scheduler, WhatsApp,

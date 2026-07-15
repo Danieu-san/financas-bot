@@ -1021,6 +1021,30 @@ Gate: read-model produz a mesma fotografia financeira, reduz suas leituras
 legadas de quatro para zero quando a unificada esta populada e retorna ao caminho
 anterior por uma unica flag.
 
+Resultado em 2026-07-15:
+
+- `GO de producao em canario pessoal`; `NO-GO` para modo global/remocao;
+- 3 escopos reais: 2 `unified_first`, 1 `legacy_fallback`, 76 entradas;
+- snapshots `off`/`canary` identicos, zero erro/escrita e rollback provado;
+- codigo `632e48c`, local 879/879, remoto 108/108 e producao saudavel;
+- telemetria isolada `OBSERVING`, heartbeat ativo e zero escrita;
+- proximo passo: 8B.7, scheduler de cartao unified-first read-only;
+- relatorio:
+  `docs/qa/phase-8b6-card-read-model-unified-first-gate-2026-07-15.md`.
+
+#### 8B.7 - Scheduler de cartao unified-first
+
+Passo a passo:
+
+1. Caracterizar ciclo mensal, filtros e saida do scheduler atual.
+2. Ler a estrutura unificada por escopo sem alterar formulas ou escrita.
+3. Preservar fallback fail-closed e rollback por flag.
+4. Provar mesma saida em fixtures e E2E read-only.
+5. Nao migrar manutencao ou WhatsApp nesta fatia.
+
+Gate: scheduler produz a mesma saida, evita a projecao legada quando a fonte
+unificada e valida, preserva fallback e executa zero escrita financeira.
+
 Politica para uso zero: no minimo 45 dias e um ciclo orcamentario completo com
 todos os pontos de entrada instrumentados. Cartoes exigem dois fechamentos ou
 pelo menos 60 dias. O fim da janela torna o item apenas candidato a 8C.

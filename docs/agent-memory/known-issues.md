@@ -33,6 +33,11 @@ Atualizado em: 2026-07-15
   aba unificada, sem filtrar o cartao solicitado e sem devolver sua identidade.
   Consumidores nao podem tratar essa projecao como conjunto por cartao. Migrar
   para leitura unificada escopada antes de remover qualquer fallback.
+- A 8B.6 migrou somente o read-model pessoal em `canary`. Um de tres escopos
+  reais ainda precisou de `legacy_fallback` por nao ter entrada unificada valida;
+  central, scheduler e manutencao continuam legados. Nao ativar `on`, remover
+  fallback ou interpretar as leituras restantes como regressao. Rollback:
+  `CARD_READ_MODEL_UNIFIED_FIRST_MODE=off` + restart com `--update-env`.
 
 ## 6E classificada como capacidade test-only
 
