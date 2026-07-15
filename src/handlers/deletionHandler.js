@@ -153,10 +153,15 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function readSheetWithRetry(range, { minRows = 1, retries = 3, delayMs = 500 } = {}) {
+async function readSheetWithRetry(range, {
+  minRows = 1,
+  retries = 3,
+  delayMs = 500,
+  telemetryConsumer = 'whatsapp_deletion'
+} = {}) {
   let rows = [];
   for (let attempt = 0; attempt < retries; attempt += 1) {
-    rows = await readDataFromSheet(range);
+    rows = await readDataFromSheet(range, { telemetryConsumer });
     if (rows && rows.length >= minRows) return rows;
     if (attempt < retries - 1) await sleep(delayMs);
   }

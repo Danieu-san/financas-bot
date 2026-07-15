@@ -73,6 +73,7 @@ test('6B WhatsApp handler reads user-scoped sheets and sends XLSX as a document'
     assert.strictEqual(handled, true);
     assert.strictEqual(calls.length, 3);
     assert.ok(calls.every(call => call.options.userId === 'u1'));
+    assert.ok(calls.every(call => call.options.telemetryConsumer === 'whatsapp_export'));
     assert.deepStrictEqual(replies[0][0], { safeMedia: true, filename: 'financas-2026-07.xlsx' });
     assert.strictEqual(replies[0][2].sendMediaAsDocument, true);
 });

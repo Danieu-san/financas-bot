@@ -2737,7 +2737,7 @@ function isFreeSpendingRow(row) {
 async function calculateMonthlyBudgetSpend(userId, today = getTodaySaoPauloDateString(), userIds = [userId], cycleStartDay = 1) {
     const safeReadRows = async (range) => {
         try {
-            return await readDataFromSheet(range) || [];
+            return await readDataFromSheet(range, { telemetryConsumer: 'whatsapp_budget' }) || [];
         } catch (error) {
             logger.warn(`[monthly-budget] leitura_ignorada range="${range}" error="${error?.message || error}"`);
             return [];
@@ -3085,7 +3085,10 @@ async function askNextStatementImportQuestion(msg, senderId, stateData) {
 }
 
 async function loadExistingImportRows({ userId, includeCards = false } = {}) {
-    const options = userId ? { userId } : {};
+    const options = {
+        ...(userId ? { userId } : {}),
+        telemetryConsumer: 'whatsapp_import_dedup'
+    };
     const scopeUserIds = userId ? getFinancialScopeUserIds(userId) : [];
     const allowedUserIds = new Set(scopeUserIds.map(id => String(id || '').trim()).filter(Boolean));
     const cardSheetNames = includeCards ? Object.values(creditCardConfig).map(card => card.sheetName) : [];

@@ -6,7 +6,9 @@ function emptyRouteSummary() {
 
 const RUNTIME_CONSUMERS = new Set([
     'sheets_runtime', 'read_model_service', 'scheduler', 'message_handler',
-    'dashboard_v1', 'dashboard_v2', 'phase6_handler', 'maintenance_service'
+    'dashboard_v1', 'dashboard_v2', 'phase6_handler', 'maintenance_service',
+    'whatsapp_budget', 'whatsapp_export', 'whatsapp_import_dedup',
+    'whatsapp_deletion'
 ]);
 
 function validSince(value) {
