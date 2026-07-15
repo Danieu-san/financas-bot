@@ -3,7 +3,12 @@ const { readDataFromSheet, getCalendarEventsForToday } = require('../services/go
 const { expireOldPendingUsers, getActiveUsers, getUserSettingsByUserId } = require('../services/userService');
 const { parseSheetDate, normalizeText, getFormattedDateOnly, parseValue } = require('../utils/helpers');
 const { creditCardConfig, getAdminIds } = require('../config/constants');
-const { syncReadModelIfNeeded, getReadModelStats } = require('../services/readModelService');
+const {
+    syncReadModelIfNeeded,
+    getReadModelStats,
+    buildCanonicalCardEntries,
+    loadCardRowsForReadModel
+} = require('../services/readModelService');
 const logger = require('../utils/logger');
 const metrics = require('../utils/metrics');
 const { buildNextRecurringDueDate, isRecurringDueOnDate } = require('../utils/recurringDueDate');
@@ -418,6 +423,66 @@ function belongsToUser(row, userIdIndex, userId) {
     return String(row[userIdIndex] || '').trim() === String(userId);
 }
 
+function getCardSchedulerRouteMode(env = process.env) {
+    const mode = String(env.CARD_SCHEDULER_UNIFIED_FIRST_MODE || 'off').trim().toLowerCase();
+    return ['off', 'canary', 'on'].includes(mode) ? mode : 'off';
+}
+
+function shouldUseSchedulerCardUnifiedFirst({ mode = getCardSchedulerRouteMode(), userId = '' } = {}) {
+    if (mode === 'on') return true;
+    return mode === 'canary' && Boolean(String(userId || '').trim());
+}
+
+async function loadSchedulerScopedCardEntries({
+    userId,
+    read = readDataFromSheet,
+    mode = getCardSchedulerRouteMode()
+} = {}) {
+    const safeUserId = String(userId || '').trim();
+    if (!safeUserId || !shouldUseSchedulerCardUnifiedFirst({ mode, userId: safeUserId })) {
+        return { route: 'legacy_central', entries: [] };
+    }
+
+    const loaded = await loadCardRowsForReadModel({
+        read: (range, options = {}) => read(range, {
+            ...options,
+            userId: safeUserId,
+            telemetryConsumer: 'scheduler'
+        }),
+        mode: 'on',
+        contextKey: `user:${safeUserId}`,
+        telemetryConsumer: 'scheduler'
+    });
+    return {
+        route: loaded.route,
+        entries: buildCanonicalCardEntries({
+            unifiedRows: loaded.unifiedCardRows,
+            legacyRowsBySheet: loaded.legacyRowsBySheet
+        })
+    };
+}
+
+function sumSchedulerCanonicalCards({ entries = [], userId, month, year } = {}) {
+    return entries
+        .filter(entry => String(entry.user_id || '').trim() === String(userId || '').trim())
+        .filter(entry => entry.month === month && entry.year === year)
+        .reduce((sum, entry) => sum + Number(entry.valor || 0), 0);
+}
+
+function sumSchedulerLegacyCards({ cardData = [], userId, billingLabel, year } = {}) {
+    let total = 0;
+    cardData.forEach(sheet => {
+        (sheet.slice(1) || []).forEach(row => {
+            if (!belongsToUser(row, 6, userId)) return;
+            const bill = normalizeText(row[5] || '');
+            if (bill.includes(normalizeText(billingLabel)) && bill.includes(String(year))) {
+                total += parseValue(row[3]);
+            }
+        });
+    });
+    return total;
+}
+
 async function sendMonthlyReports() {
     try {
         const users = await getScheduledActiveUsers();
@@ -425,10 +490,13 @@ async function sendMonthlyReports() {
 
         const saidasData = await readDataFromSheet('Saídas!A:J');
         const entradasData = await readDataFromSheet('Entradas!A:I');
+        const cardMode = getCardSchedulerRouteMode();
         const cardSheetNames = Object.values(creditCardConfig).map(c => c.sheetName);
-        const cardData = await Promise.all(cardSheetNames.map(n => readDataFromSheet(`${n}!A:G`, {
-            telemetryConsumer: 'scheduler'
-        })));
+        const legacyCardData = cardMode === 'off'
+            ? await Promise.all(cardSheetNames.map(n => readDataFromSheet(`${n}!A:G`, {
+                telemetryConsumer: 'scheduler'
+            })))
+            : [];
 
         const now = getNow();
         const reportDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -457,16 +525,30 @@ async function sendMonthlyReports() {
                 })
                 .reduce((s, r) => s + parseValue(r[4]), 0);
 
-            let cartoes = 0;
-            cardData.forEach(sheet => {
-                (sheet.slice(1) || []).forEach(r => {
-                    if (!belongsToUser(r, 6, user.user_id)) return;
-                    const bill = normalizeText(r[5] || '');
-                    if (bill.includes(normalizeText(billingLabel)) && bill.includes(String(year))) {
-                        cartoes += parseValue(r[3]);
-                    }
-                });
+            const useUnifiedFirst = shouldUseSchedulerCardUnifiedFirst({
+                mode: cardMode,
+                userId: user.user_id
             });
+            let cartoes;
+            if (useUnifiedFirst) {
+                const scopedCards = await loadSchedulerScopedCardEntries({
+                    userId: user.user_id,
+                    mode: cardMode
+                });
+                cartoes = sumSchedulerCanonicalCards({
+                    entries: scopedCards.entries,
+                    userId: user.user_id,
+                    month,
+                    year
+                });
+            } else {
+                cartoes = sumSchedulerLegacyCards({
+                    cardData: legacyCardData,
+                    userId: user.user_id,
+                    billingLabel,
+                    year
+                });
+            }
 
             const saldo = entradas - (saidas + cartoes);
             const message = [
@@ -639,6 +721,11 @@ module.exports = {
         sendEveningSummary,
         sendWeeklyCheckIn,
         sendMonthlyReports,
+        getCardSchedulerRouteMode,
+        shouldUseSchedulerCardUnifiedFirst,
+        loadSchedulerScopedCardEntries,
+        sumSchedulerCanonicalCards,
+        sumSchedulerLegacyCards,
         sendOperationalHeartbeat,
         sendDailyOpsCheckAdminReport,
         sendInterpretationReadinessAdminAlert,

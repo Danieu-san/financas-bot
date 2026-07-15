@@ -346,21 +346,22 @@ async function loadCardRowsForReadModel({
     read = readDataFromSheet,
     mode = getCardReadModelRouteMode(),
     contextKey = getReadModelContextKey(),
-    cardSheetNames = Object.values(creditCardConfig).map(card => card.sheetName)
+    cardSheetNames = Object.values(creditCardConfig).map(card => card.sheetName),
+    telemetryConsumer = 'read_model_service'
 } = {}) {
     const unifiedOptions = {
         suppressMissingSheetError: true,
-        telemetryConsumer: 'read_model_service'
+        telemetryConsumer
     };
     const legacyReads = () => Promise.all(cardSheetNames.map((sheetName) => read(`${sheetName}!A:G`, {
-        telemetryConsumer: 'read_model_service'
+        telemetryConsumer
     })));
 
     if (!shouldUseCardUnifiedFirst({ mode, contextKey })) {
         const [unifiedCardRows, ...legacyRows] = await Promise.all([
             read('Lançamentos Cartão!A:J', unifiedOptions),
             ...cardSheetNames.map((sheetName) => read(`${sheetName}!A:G`, {
-                telemetryConsumer: 'read_model_service'
+                telemetryConsumer
             }))
         ]);
         return {
@@ -1477,6 +1478,8 @@ module.exports = {
     getDashboardSnapshot,
     getDashboardSqlData,
     isSqliteReady,
+    buildCanonicalCardEntries,
+    loadCardRowsForReadModel,
     __test__: {
         mapLegacyCardRows,
         mapUnifiedCardRows,

@@ -18,7 +18,7 @@ function formatDateBR(date) {
     ].join('/');
 }
 
-function installSchedulerMocks({ users, settingsByUser, sheetsByRange = {}, eventsByUser = {}, readinessAlertSender = null, dailyOpsSender = null }) {
+function installSchedulerMocks({ users, settingsByUser, sheetsByRange = {}, eventsByUser = {}, readinessAlertSender = null, dailyOpsSender = null, readCalls = null }) {
     delete require.cache[schedulerPath];
     delete require.cache[googlePath];
     delete require.cache[userServicePath];
@@ -30,7 +30,14 @@ function installSchedulerMocks({ users, settingsByUser, sheetsByRange = {}, even
         filename: googlePath,
         loaded: true,
         exports: {
-            readDataFromSheet: async (range) => sheetsByRange[range] || [],
+            readDataFromSheet: async (range, options = {}) => {
+                if (Array.isArray(readCalls)) readCalls.push({ range, options });
+                const scopedKey = options.userId ? `${options.userId}:${range}` : '';
+                if (scopedKey && Object.prototype.hasOwnProperty.call(sheetsByRange, scopedKey)) {
+                    return sheetsByRange[scopedKey];
+                }
+                return sheetsByRange[range] || [];
+            },
             getCalendarEventsForToday: async (_date, options = {}) => eventsByUser[options.userId] || []
         }
     };
@@ -92,6 +99,140 @@ test('scheduler weekly check-in only sends to opted-in active users', async () =
 
     assert.deepStrictEqual(sent.map(item => item.to), ['5511000000001@c.us']);
     assert.match(sent[0].message, /Check-in da semana/);
+});
+
+test('scheduler card policy fails closed and canary requires a scoped user', () => {
+    const scheduler = installSchedulerMocks({ users: [], settingsByUser: {} });
+
+    assert.strictEqual(scheduler.__test__.getCardSchedulerRouteMode({}), 'off');
+    assert.strictEqual(scheduler.__test__.getCardSchedulerRouteMode({ CARD_SCHEDULER_UNIFIED_FIRST_MODE: 'invalid' }), 'off');
+    assert.strictEqual(scheduler.__test__.getCardSchedulerRouteMode({ CARD_SCHEDULER_UNIFIED_FIRST_MODE: ' ON ' }), 'on');
+    assert.strictEqual(scheduler.__test__.shouldUseSchedulerCardUnifiedFirst({ mode: 'off', userId: 'user-a' }), false);
+    assert.strictEqual(scheduler.__test__.shouldUseSchedulerCardUnifiedFirst({ mode: 'canary', userId: '' }), false);
+    assert.strictEqual(scheduler.__test__.shouldUseSchedulerCardUnifiedFirst({ mode: 'canary', userId: 'user-a' }), true);
+});
+
+test('scheduler monthly canary reads populated personal unified cards and skips legacy routes', async () => {
+    const previousMode = process.env.CARD_SCHEDULER_UNIFIED_FIRST_MODE;
+    process.env.CARD_SCHEDULER_UNIFIED_FIRST_MODE = 'canary';
+    const sent = [];
+    const readCalls = [];
+    try {
+        const scheduler = installSchedulerMocks({
+            users: [{ user_id: 'user-a', whatsapp_id: '5511000000001@c.us' }],
+            settingsByUser: { 'user-a': { monthly_report_opt_in: 'SIM' } },
+            readCalls,
+            sheetsByRange: {
+                'Sa\u00eddas!A:J': [['Data', 'Descri\u00e7\u00e3o', 'Categoria', 'Subcategoria', 'Valor', 'Respons\u00e1vel', 'Pagamento', 'Recorrente', 'Obs', 'user_id']],
+                'Entradas!A:I': [['Data', 'Descri\u00e7\u00e3o', 'Categoria', 'Valor', 'Respons\u00e1vel', 'Recebimento', 'Recorrente', 'Obs', 'user_id']],
+                'user-a:Lan\u00e7amentos Cart\u00e3o!A:J': [
+                    ['Data', 'Descri\u00e7\u00e3o', 'Categoria', 'Valor Parcela', 'Parcela', 'M\u00eas de Cobran\u00e7a', 'card_id', 'Cart\u00e3o', 'Observa\u00e7\u00f5es', 'user_id'],
+                    ['10/05/2026', 'Compra junho', 'Casa', '25,00', '1/1', 'Junho de 2026', 'card-a', 'Cart\u00e3o A', '', 'user-a'],
+                    ['10/04/2026', 'Compra maio', 'Casa', '99,00', '1/1', 'Maio de 2026', 'card-a', 'Cart\u00e3o A', '', 'user-a']
+                ]
+            }
+        });
+        scheduler.__test__.setClientForTest({
+            sendMessage: async (to, message) => sent.push({ to, message })
+        });
+        scheduler.__test__.setNowForTest(new Date('2026-07-15T15:00:00.000Z'));
+
+        await scheduler.__test__.sendMonthlyReports();
+
+        assert.strictEqual(sent.length, 1);
+        assert.match(sent[0].message, /Cart\u00f5es: R\$ 25,00/);
+        const cardCalls = readCalls.filter(call => /Cart/.test(call.range));
+        assert.strictEqual(cardCalls.length, 1);
+        assert.strictEqual(cardCalls[0].range, 'Lan\u00e7amentos Cart\u00e3o!A:J');
+        assert.strictEqual(cardCalls[0].options.userId, 'user-a');
+        assert.strictEqual(cardCalls[0].options.telemetryConsumer, 'scheduler');
+    } finally {
+        if (previousMode === undefined) delete process.env.CARD_SCHEDULER_UNIFIED_FIRST_MODE;
+        else process.env.CARD_SCHEDULER_UNIFIED_FIRST_MODE = previousMode;
+    }
+});
+
+test('scheduler monthly canary falls back to personal legacy routes when unified is empty', async () => {
+    const previousMode = process.env.CARD_SCHEDULER_UNIFIED_FIRST_MODE;
+    process.env.CARD_SCHEDULER_UNIFIED_FIRST_MODE = 'canary';
+    const sent = [];
+    const readCalls = [];
+    try {
+        const legacyHeader = ['Data', 'Descri\u00e7\u00e3o', 'Categoria', 'Valor Parcela', 'Parcela', 'M\u00eas de Cobran\u00e7a', 'user_id'];
+        const scheduler = installSchedulerMocks({
+            users: [{ user_id: 'user-a', whatsapp_id: '5511000000001@c.us' }],
+            settingsByUser: {},
+            readCalls,
+            sheetsByRange: {
+                'Sa\u00eddas!A:J': [['Data']],
+                'Entradas!A:I': [['Data']],
+                'user-a:Lan\u00e7amentos Cart\u00e3o!A:J': [['Data', 'Descri\u00e7\u00e3o']],
+                'user-a:Cart\u00e3o Nubank - Daniel!A:G': [
+                    legacyHeader,
+                    ['10/05/2026', 'Compra legado', 'Casa', '12,50', '1/1', 'Junho de 2026', 'user-a']
+                ],
+                'user-a:Cart\u00e3o Nubank - Thais!A:G': [legacyHeader],
+                'user-a:Cart\u00e3o Nubank - Cristina!A:G': [legacyHeader],
+                'user-a:Cart\u00e3o Atacad\u00e3o!A:G': [legacyHeader]
+            }
+        });
+        scheduler.__test__.setClientForTest({
+            sendMessage: async (to, message) => sent.push({ to, message })
+        });
+        scheduler.__test__.setNowForTest(new Date('2026-07-15T15:00:00.000Z'));
+
+        await scheduler.__test__.sendMonthlyReports();
+
+        assert.match(sent[0].message, /Cart\u00f5es: R\$ 12,50/);
+        const cardCalls = readCalls.filter(call => /Cart/.test(call.range));
+        assert.strictEqual(cardCalls.length, 5);
+        assert.strictEqual(cardCalls.filter(call => call.range !== 'Lan\u00e7amentos Cart\u00e3o!A:J').length, 4);
+        assert.ok(cardCalls.every(call => call.options.userId === 'user-a'));
+    } finally {
+        if (previousMode === undefined) delete process.env.CARD_SCHEDULER_UNIFIED_FIRST_MODE;
+        else process.env.CARD_SCHEDULER_UNIFIED_FIRST_MODE = previousMode;
+    }
+});
+
+test('scheduler monthly off mode restores the central legacy route', async () => {
+    const previousMode = process.env.CARD_SCHEDULER_UNIFIED_FIRST_MODE;
+    process.env.CARD_SCHEDULER_UNIFIED_FIRST_MODE = 'off';
+    const sent = [];
+    const readCalls = [];
+    try {
+        const legacyHeader = ['Data', 'Descri\u00e7\u00e3o', 'Categoria', 'Valor Parcela', 'Parcela', 'M\u00eas de Cobran\u00e7a', 'user_id'];
+        const scheduler = installSchedulerMocks({
+            users: [{ user_id: 'user-a', whatsapp_id: '5511000000001@c.us' }],
+            settingsByUser: {},
+            readCalls,
+            sheetsByRange: {
+                'Sa\u00eddas!A:J': [['Data']],
+                'Entradas!A:I': [['Data']],
+                'Cart\u00e3o Nubank - Daniel!A:G': [
+                    legacyHeader,
+                    ['10/05/2026', 'Compra central', 'Casa', '8,75', '1/1', 'Junho de 2026', 'user-a']
+                ],
+                'Cart\u00e3o Nubank - Thais!A:G': [legacyHeader],
+                'Cart\u00e3o Nubank - Cristina!A:G': [legacyHeader],
+                'Cart\u00e3o Atacad\u00e3o!A:G': [legacyHeader]
+            }
+        });
+        scheduler.__test__.setClientForTest({
+            sendMessage: async (to, message) => sent.push({ to, message })
+        });
+        scheduler.__test__.setNowForTest(new Date('2026-07-15T15:00:00.000Z'));
+
+        await scheduler.__test__.sendMonthlyReports();
+
+        assert.match(sent[0].message, /Cart\u00f5es: R\$ 8,75/);
+        const cardCalls = readCalls.filter(call => /Cart/.test(call.range));
+        assert.strictEqual(cardCalls.length, 4);
+        assert.ok(cardCalls.every(call => !call.options.userId));
+        assert.ok(cardCalls.every(call => call.options.telemetryConsumer === 'scheduler'));
+    } finally {
+        if (previousMode === undefined) delete process.env.CARD_SCHEDULER_UNIFIED_FIRST_MODE;
+        else process.env.CARD_SCHEDULER_UNIFIED_FIRST_MODE = previousMode;
+    }
 });
 
 test('scheduler skips synthetic active test users outside test mode', async () => {
