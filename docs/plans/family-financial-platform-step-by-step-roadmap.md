@@ -1245,6 +1245,20 @@ Passo a passo:
 
 Gate: consentimento pode ser revogado e dados ficam em staging.
 
+Estado em 2026-07-15:
+
+- o usuario conectou quatro itens reais pelo fluxo gratuito Meu Pluggy ->
+  Conector 200 -> Dashboard: Thais Nubank, Cristina Nubank sob o escopo familiar
+  de Thais, Thais Itau e Daniel Nubank;
+- os quatro itens aparecem ativos e separados no Dashboard, com contas,
+  cartoes, transacoes e investimentos visiveis;
+- a caracterizacao confirmou caixinhas em Investments e mostrou que `balance`
+  de cartao pode ser limite utilizado, nao fatura corrente;
+- nenhuma credencial foi transferida ao runtime, nenhuma chamada real foi
+  persistida em staging e nenhuma reconciliacao/escrita foi ativada;
+- o gate 9C permanece aberto ate importacao read-only em staging, teste de
+  revogacao/renovacao e prova automatica de separacao dos quatro itens.
+
 ### 9D - Conciliacao Open Finance em shadow
 
 Passo a passo:

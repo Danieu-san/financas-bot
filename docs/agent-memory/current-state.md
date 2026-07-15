@@ -2,6 +2,39 @@
 
 Atualizado em: 2026-07-15
 
+## Handoff Codex e Fase 9C iniciada - 2026-07-15
+
+- O checkout canonico para qualquer nova thread e
+  `E:\Users\horus\Documents\FinancasBot\financas-bot`. Nao abrir a pasta pai,
+  pois ela contem chaves, backups e credenciais fora do repositorio.
+- O contexto de continuidade esta em
+  `docs/agent-memory/handoff-2026-07-15.md`. A conversa bruta do Codex nao foi
+  copiada para o Git porque contem saidas de ferramentas e dados financeiros.
+- O usuario concluiu externamente o fluxo gratuito oficial Meu Pluggy ->
+  Conector 200 -> Dashboard. Quatro itens aparecem ativos e separados: Thais
+  Nubank, Cristina Nubank (alias de produto pertencente ao escopo familiar de
+  Thais), Thais Itau e Daniel Nubank.
+- A pagina oficial informa que o acesso pessoal via Meu Pluggy/Conector 200 e
+  gratuito por tempo indeterminado e que o trial do Dashboard vale para
+  recursos comerciais. Conexao bancaria direta no Dashboard continua fora do
+  escopo por exigir plano pago apos o trial.
+- A verificacao visual confirmou contas, cartoes, transacoes e investimentos.
+  Caixinhas Nubank aparecem como investimentos/CDB, nao no saldo disponivel da
+  conta corrente.
+- Em cartao Open Finance, `account.balance` pode representar limite utilizado.
+  O caso real confirmou `creditLimit - availableCreditLimit = balance`, embora
+  o aplicativo bancario mostrasse outra fatura corrente. Nunca rotular esse
+  campo como fatura sem entidade Bill/evidencia equivalente.
+- O caminho gratuito nao oferece webhooks nem categorizacao. Polling minimo de
+  seis horas e categorizacao local do FinancasBot permanecem as decisoes.
+- Nenhuma credencial Pluggy foi persistida no repositorio ou na EC2; nenhuma
+  leitura API real alimentou staging; ledger, Sheets, WhatsApp e runtime nao
+  foram alterados por essa caracterizacao.
+- Estado: 9C iniciada por consentimento/conexao externa, mas gate ainda aberto.
+  Proxima fatia: configurar credenciais sem expo-las no chat, importar os quatro
+  itens somente para staging read-only e provar separacao, revogacao, atraso e
+  semantica de saldo/fatura antes de qualquer reconciliacao.
+
 ## Fase 8 acelerada e Fase 9A - GO controlado - 2026-07-15
 
 - ADR-008 separa soft-disable reversivel de exclusao fisica. Read-only pode

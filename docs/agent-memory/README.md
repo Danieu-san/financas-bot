@@ -29,9 +29,10 @@ repositorio, testes ou producao antes de aceitar conclusoes ou alterar o plano.
 
 1. `AGENTS.md` - regras permanentes, contrato de capacidade, seguranca, privacidade e mapa base.
 2. `docs/agent-memory/current-state.md` - estado atual do produto, deploy e pendencias.
-3. `docs/agent-memory/architecture-map.md` - onde ficam as partes importantes do codigo.
-4. `docs/agent-memory/known-issues.md` - bugs, riscos e armadilhas conhecidas.
-5. `docs/agent-memory/testing-playbook.md` - como validar cada area.
+3. `docs/agent-memory/handoff-2026-07-15.md` - continuidade entre threads/contas Codex e contexto da Fase 9.
+4. `docs/agent-memory/architecture-map.md` - onde ficam as partes importantes do codigo.
+5. `docs/agent-memory/known-issues.md` - bugs, riscos e armadilhas conhecidas.
+6. `docs/agent-memory/testing-playbook.md` - como validar cada area.
 
 ## Regras de uso
 
