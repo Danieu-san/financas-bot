@@ -73,6 +73,15 @@ class OpenFinanceStagingStore {
                 completed_at TEXT,
                 failure_code TEXT
             );
+            CREATE TABLE IF NOT EXISTS staging_poll_state (
+                item_ref TEXT PRIMARY KEY,
+                lease_ref TEXT,
+                lease_until TEXT,
+                last_started_at TEXT,
+                last_success_at TEXT,
+                next_allowed_at TEXT,
+                consecutive_failures INTEGER NOT NULL DEFAULT 0
+            );
         `);
         this.db.prepare("UPDATE staging_webhook_inbox SET status = 'pending' WHERE status = 'processing'").run();
     }
@@ -268,6 +277,72 @@ class OpenFinanceStagingStore {
         const stats = { pending: 0, processing: 0, completed: 0, failed: 0 };
         for (const row of rows) if (Object.hasOwn(stats, row.status)) stats[row.status] = row.total;
         return Object.freeze(stats);
+    }
+
+    acquirePollingLease(itemId, options = {}) {
+        const now = new Date(options.now || new Date().toISOString());
+        if (Number.isNaN(now.getTime())) throw new Error('invalid_poll_time');
+        const leaseSeconds = Math.min(3600, Math.max(30, Number(options.leaseSeconds) || 300));
+        const itemRef = this.#ref('item', itemId);
+        const leaseToken = crypto.randomUUID();
+        const leaseRef = this.#ref('poll_lease', leaseToken);
+        const leaseUntil = new Date(now.getTime() + (leaseSeconds * 1000)).toISOString();
+        const acquire = this.db.transaction(() => {
+            const current = this.db.prepare('SELECT lease_until, next_allowed_at FROM staging_poll_state WHERE item_ref = ?').get(itemRef);
+            if (current?.lease_until && current.lease_until > now.toISOString()) {
+                return { acquired: false, reason: 'overlap', retry_at: current.lease_until };
+            }
+            if (current?.next_allowed_at && current.next_allowed_at > now.toISOString()) {
+                return { acquired: false, reason: 'interval', retry_at: current.next_allowed_at };
+            }
+            this.db.prepare(`
+                INSERT INTO staging_poll_state (item_ref, lease_ref, lease_until, last_started_at)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(item_ref) DO UPDATE SET
+                    lease_ref = excluded.lease_ref,
+                    lease_until = excluded.lease_until,
+                    last_started_at = excluded.last_started_at
+            `).run(itemRef, leaseRef, leaseUntil, now.toISOString());
+            return { acquired: true, lease_token: leaseToken, lease_until: leaseUntil };
+        });
+        return acquire();
+    }
+
+    completePollingLease(itemId, leaseToken, options = {}) {
+        const now = new Date(options.now || new Date().toISOString());
+        const intervalSeconds = Math.max(21600, Number(options.intervalSeconds) || 21600);
+        const nextAllowedAt = new Date(now.getTime() + (intervalSeconds * 1000)).toISOString();
+        const result = this.db.prepare(`
+            UPDATE staging_poll_state
+            SET lease_ref = NULL, lease_until = NULL, last_success_at = ?, next_allowed_at = ?, consecutive_failures = 0
+            WHERE item_ref = ? AND lease_ref = ?
+        `).run(now.toISOString(), nextAllowedAt, this.#ref('item', itemId), this.#ref('poll_lease', leaseToken));
+        return { completed: result.changes === 1, next_allowed_at: nextAllowedAt };
+    }
+
+    failPollingLease(itemId, leaseToken, options = {}) {
+        const now = new Date(options.now || new Date().toISOString());
+        const requestedBackoff = Math.max(60, Number(options.retryAfterSeconds) || 60);
+        const row = this.db.prepare('SELECT consecutive_failures FROM staging_poll_state WHERE item_ref = ?').get(this.#ref('item', itemId));
+        const failures = (row?.consecutive_failures || 0) + 1;
+        const backoffSeconds = Math.min(21600, requestedBackoff * (2 ** Math.min(5, failures - 1)));
+        const nextAllowedAt = new Date(now.getTime() + (backoffSeconds * 1000)).toISOString();
+        const result = this.db.prepare(`
+            UPDATE staging_poll_state
+            SET lease_ref = NULL, lease_until = NULL, next_allowed_at = ?, consecutive_failures = ?
+            WHERE item_ref = ? AND lease_ref = ?
+        `).run(nextAllowedAt, failures, this.#ref('item', itemId), this.#ref('poll_lease', leaseToken));
+        return { failed: result.changes === 1, next_allowed_at: nextAllowedAt, consecutive_failures: failures };
+    }
+
+    pollingStats() {
+        const row = this.db.prepare(`
+            SELECT COUNT(*) AS items,
+                   SUM(CASE WHEN lease_ref IS NOT NULL THEN 1 ELSE 0 END) AS leased,
+                   SUM(CASE WHEN consecutive_failures > 0 THEN 1 ELSE 0 END) AS failing
+            FROM staging_poll_state
+        `).get();
+        return Object.freeze({ items: row.items || 0, leased: row.leased || 0, failing: row.failing || 0 });
     }
 
     stats() {
