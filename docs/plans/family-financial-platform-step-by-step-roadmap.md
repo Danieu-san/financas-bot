@@ -1089,6 +1089,19 @@ Resultado em 2026-07-15:
 
 Gate: inventario dinamico e ordem de migracao comprovados sem ampliar escrita.
 
+Resultado em 2026-07-15:
+
+- orcamento ja era unified-first; exportacao, analitico pessoal e 6A ja usavam
+  a fonte unificada;
+- consumidores ganharam rotulos duraveis separados sem mudar comportamento;
+- importacao/deduplicacao e exclusao foram caracterizadas e permaneceram
+  intocadas por governarem escrita posterior ou indice de linha;
+- codigo final `6b449d8`, local 887/887, remoto 14/14, health/PM2 verdes;
+- probe sanitizado confirmou `OBSERVING`, heartbeat e zero escrita;
+- 8C bloqueada ate dois fechamentos ou 60 dias, nao antes de 2026-09-12;
+- relatorio:
+  `docs/qa/phase-8b9-whatsapp-card-consumer-characterization-gate-2026-07-15.md`.
+
 Politica para uso zero: no minimo 45 dias e um ciclo orcamentario completo com
 todos os pontos de entrada instrumentados. Cartoes exigem dois fechamentos ou
 pelo menos 60 dias. O fim da janela torna o item apenas candidato a 8C.

@@ -805,13 +805,14 @@ Nao acumular todas as fases para um unico deploy.
 
 ## 13. Proximo passo imediato
 
-Executar a Fase `8B.9 - consumidores WhatsApp de cartao`:
+Manter a Fase `8B.9 - consumidores WhatsApp de cartao` em observacao duravel:
 
-1. Separar analitico, importacao, exclusao e manutencao em lote.
-2. Mapear identidade de aba/linha e gates de confirmacao.
-3. Confirmar quais caminhos ja usam a fonte unificada pessoal.
-4. Migrar primeiro somente um consumidor read-only.
-5. Nao mudar exclusao/escrita sem fixture, limpeza e rollback.
+1. Confirmar heartbeat, retencao e zero linha invalida.
+2. Medir uso real por consumidor sem confundir probes controlados.
+3. Preservar importacao, exclusao, fallbacks e abas antigas.
+4. Aguardar dois fechamentos ou pelo menos 60 dias desde 2026-07-14.
+5. Somente entao classificar itens como candidatos a 8C; nao remover
+   automaticamente.
 
-Gate 8B.8:
-`docs/qa/phase-8b8-card-user-id-validation-unified-first-gate-2026-07-15.md`.
+Gate 8B.9:
+`docs/qa/phase-8b9-whatsapp-card-consumer-characterization-gate-2026-07-15.md`.

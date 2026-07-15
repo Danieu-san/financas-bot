@@ -49,6 +49,12 @@ Atualizado em: 2026-07-15
   legado e desativado no startup; nao reaproveitar a flag read-only para mudar
   ranges de escrita. Rollback: `CARD_USER_ID_VALIDATION_UNIFIED_FIRST_MODE=off`
   + restart com `--update-env`.
+- A 8B.9 apenas separou a telemetria dos consumidores WhatsApp. Importacao le a
+  unificada e quatro nomes legados para deduplicacao; exclusao usa aba e indice
+  para escrever. Nao retirar essas leituras nem compartilhar uma flag read-only
+  com esses fluxos mutaveis. O evento `whatsapp_budget` do gate foi um probe
+  controlado, nao evidencia de adocao real. 8C segue bloqueada ate pelo menos
+  2026-09-12 com instrumentacao continua.
 
 ## 6E classificada como capacidade test-only
 

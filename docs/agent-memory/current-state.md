@@ -2,6 +2,21 @@
 
 Atualizado em: 2026-07-15
 
+## Fase 8B.9 - consumidores WhatsApp de cartao - GO de observacao - 2026-07-15
+
+- Orcamento, exportacao, analitico pessoal, importacao, exclusao e manutencao
+  em lote foram separados por risco e fonte.
+- Orcamento ja era unified-first; exportacao/analitico pessoal/6A ja eram
+  unificados. Nenhuma rota de produto precisou mudar.
+- Importacao governa deduplicacao antes de escrever; exclusao depende de indice.
+  Ambos ganharam atribuicao duravel, mas continuam sem migracao.
+- Codigo final `6b449d8`; suite 887/887, remoto 14/14, probe sanitizado
+  `OBSERVING`, heartbeat 1, zero dado financeiro lido e zero escrita.
+- PM2/WhatsApp/bot/cron/health verdes; health `ok=true`, `sqlite=true`.
+- 8C bloqueada ate dois fechamentos ou 60 dias de observacao continua, nao antes
+  de 2026-09-12. Relatorio:
+  `docs/qa/phase-8b9-whatsapp-card-consumer-characterization-gate-2026-07-15.md`.
+
 ## Fase 8B.8 - validacao user_id de cartao - GO canario - 2026-07-15
 
 - As quatro leituras de manutencao eram do validador read-only de startup, nao
