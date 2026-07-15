@@ -994,6 +994,33 @@ Passo a passo:
 Gate: cada consumidor possui destino, paridade ou lacuna explicita, bateria de
 caracterizacao e rollback executavel antes do primeiro canario.
 
+Resultado em 2026-07-15:
+
+- `GO de caracterizacao`; `NO-GO` para canario amplo/remocao;
+- central `EMPTY_SAMPLE`; 3 escopos pessoais acessiveis, 2 populados, 76 linhas
+  unificadas validas, zero invalida/erro/escrita;
+- projecao legada pessoal nao filtra cartao nem preserva identidade;
+- codigo `39441f5`, local 864/864, remoto 15/15 e producao saudavel;
+- telemetria atribuiu read-model 5 reads e manutencao 4 reads;
+- proximo passo: 8B.6, read-model unified-first por flag;
+- relatorio:
+  `docs/qa/phase-8b5-card-consumer-parity-and-migration-plan-gate-2026-07-15.md`.
+
+#### 8B.6 - Read-model de cartao unified-first
+
+Passo a passo:
+
+1. Criar flag fail-closed somente para o consumidor read-model.
+2. Ler a aba unificada primeiro.
+3. Se houver linhas validas, nao consultar as quatro rotas legadas.
+4. Se unificada estiver ausente/vazia, preservar fallback legado.
+5. Provar mesmas entradas canonicas, zero escrita e rollback.
+6. Fazer canario reversivel sem alterar scheduler/WhatsApp/manutencao.
+
+Gate: read-model produz a mesma fotografia financeira, reduz suas leituras
+legadas de quatro para zero quando a unificada esta populada e retorna ao caminho
+anterior por uma unica flag.
+
 Politica para uso zero: no minimo 45 dias e um ciclo orcamentario completo com
 todos os pontos de entrada instrumentados. Cartoes exigem dois fechamentos ou
 pelo menos 60 dias. O fim da janela torna o item apenas candidato a 8C.

@@ -805,13 +805,13 @@ Nao acumular todas as fases para um unico deploy.
 
 ## 13. Proximo passo imediato
 
-Executar a Fase `8B.5 - paridade e plano de migracao dos consumidores de cartao`:
+Executar a Fase `8B.6 - read-model de cartao unified-first`:
 
-1. Atribuir cada leitura legada ao consumidor abstrato sem identidade/dados.
-2. Comparar snapshots normalizados unificado/legado somente em leitura.
-3. Registrar lacunas de cobertura, formulas, historico e recuperacao.
-4. Definir ordem de migracao e rollback por consumidor.
-5. Nao migrar escrita nem remover estrutura nesta fatia.
+1. Criar flag fail-closed somente para o read-model.
+2. Ler unificada primeiro e pular as quatro rotas legadas quando populada.
+3. Preservar fallback legado quando unificada estiver ausente/vazia.
+4. Provar fotografia identica, zero escrita e rollback.
+5. Nao alterar scheduler, WhatsApp, manutencao ou estrutura nesta fatia.
 
-Gate 8B.4:
-`docs/qa/phase-8b4-card-sheet-and-quarantine-characterization-gate-2026-07-15.md`.
+Gate 8B.5:
+`docs/qa/phase-8b5-card-consumer-parity-and-migration-plan-gate-2026-07-15.md`.

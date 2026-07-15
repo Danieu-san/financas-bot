@@ -26,6 +26,13 @@ Atualizado em: 2026-07-15
 - `debtUpdateHandler`, `debtAvalancheService` e `financialHealthService` nao tem
   consumidor produtivo estatico confirmado, mas sustentam testes/capacidades.
   Permanecem em quarentena/QA; ausencia de import runtime nao autoriza exclusao.
+- A 8B.5 provou que a fonte central de cartoes esta vazia e os dados observados
+  estao em planilhas pessoais unificadas: 76 linhas validas em 2 de 3 escopos.
+  Nunca aceitar `0 == 0` como paridade nem concluir que nao ha dados.
+- No escopo pessoal, uma leitura por nome de aba legado e mapeada para toda a
+  aba unificada, sem filtrar o cartao solicitado e sem devolver sua identidade.
+  Consumidores nao podem tratar essa projecao como conjunto por cartao. Migrar
+  para leitura unificada escopada antes de remover qualquer fallback.
 
 ## 6E classificada como capacidade test-only
 

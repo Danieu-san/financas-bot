@@ -2,6 +2,24 @@
 
 Atualizado em: 2026-07-15
 
+## Fase 8B.5 - paridade/plano de cartoes - GO de caracterizacao - 2026-07-15
+
+- Telemetria v2 atribui rotas de cartao a read-model, scheduler, WhatsApp,
+  dashboards, Fases 6A-6C e manutencao. O auditor read-only e excluido do uso
+  real.
+- Gate rejeita paridade vazia. Producao encontrou central vazia, 3 escopos
+  pessoais acessiveis, 2 com dados, 76 linhas unificadas validas, zero invalida,
+  zero erro e zero escrita.
+- Projecao legada pessoal nao filtra o cartao solicitado nem preserva identidade;
+  veredito `GAP_DOCUMENTED`, sem autorizacao de remocao.
+- Evidencia local: contratos 15/15, consumidores 85/85, pretests 6A-6E verdes e
+  baseline 864/864.
+- Producao no commit `39441f5`: remoto 15/15, PM2/WhatsApp/cron/health verdes,
+  heartbeat ativo. Uso real pos-deploy: read-model 5 reads e manutencao 4 reads.
+- Proximo passo: 8B.6, read-model unified-first por flag, com fallback legado e
+  zero escrita. Relatorio:
+  `docs/qa/phase-8b5-card-consumer-parity-and-migration-plan-gate-2026-07-15.md`.
+
 ## Fase 8B.4 - cartoes e modulos em quarentena - GO de observacao - 2026-07-15
 
 - Acesso central a Google Sheets agora mede rotas logicas unificada/legada de
