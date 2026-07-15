@@ -77,11 +77,18 @@ test('dashboard v2 command issues an opt-in link while dashboard keeps the curre
     const previousBaseUrl = process.env.DASHBOARD_BASE_URL;
     const previousSecret = process.env.DASHBOARD_TOKEN_SECRET;
     const previousAccessLog = process.env.DASHBOARD_ACCESS_LOG_ENABLED;
+    const previousTelemetryEnabled = process.env.LEGACY_USAGE_TELEMETRY_ENABLED;
+    const previousTelemetryPath = process.env.LEGACY_USAGE_TELEMETRY_PATH;
+    const previousTelemetrySecret = process.env.LEGACY_USAGE_TELEMETRY_HMAC_SECRET;
     const replies = [];
+    const telemetryPath = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'dashboard-link-telemetry-')), 'events.jsonl');
     try {
         process.env.DASHBOARD_BASE_URL = 'https://financasbot.example.test';
         process.env.DASHBOARD_TOKEN_SECRET = 'unit-test-dashboard-v2-secret';
         process.env.DASHBOARD_ACCESS_LOG_ENABLED = 'false';
+        process.env.LEGACY_USAGE_TELEMETRY_ENABLED = 'true';
+        process.env.LEGACY_USAGE_TELEMETRY_PATH = telemetryPath;
+        process.env.LEGACY_USAGE_TELEMETRY_HMAC_SECRET = 'dashboard-link-test-hmac-secret';
         const user = { user_id: 'dashboard-v2-test-user', display_name: 'Daniel' };
         const msg = { body: 'dashboard v2', reply: async text => replies.push(String(text || '')) };
 
@@ -91,6 +98,13 @@ test('dashboard v2 command issues an opt-in link while dashboard keeps the curre
         assert.strictEqual(replies.length, 1);
         assert.match(replies[0], /\/dashboard\/v2#token=/);
         assert.doesNotMatch(replies[0], /\/dashboard\?token=/);
+        const telemetry = JSON.parse(fs.readFileSync(telemetryPath, 'utf8').trim());
+        assert.strictEqual(telemetry.consumer, 'dashboard_v2');
+        assert.strictEqual(telemetry.operation, 'issue');
+        assert.strictEqual(telemetry.reason_code, 'dashboard_link_issued');
+        assert.match(telemetry.actor_ref, /^[a-f0-9]{16}$/);
+        assert.strictEqual(telemetry.session_ref, '');
+        assert.ok(!JSON.stringify(telemetry).includes(user.user_id));
     } finally {
         if (previousBaseUrl === undefined) delete process.env.DASHBOARD_BASE_URL;
         else process.env.DASHBOARD_BASE_URL = previousBaseUrl;
@@ -98,6 +112,12 @@ test('dashboard v2 command issues an opt-in link while dashboard keeps the curre
         else process.env.DASHBOARD_TOKEN_SECRET = previousSecret;
         if (previousAccessLog === undefined) delete process.env.DASHBOARD_ACCESS_LOG_ENABLED;
         else process.env.DASHBOARD_ACCESS_LOG_ENABLED = previousAccessLog;
+        if (previousTelemetryEnabled === undefined) delete process.env.LEGACY_USAGE_TELEMETRY_ENABLED;
+        else process.env.LEGACY_USAGE_TELEMETRY_ENABLED = previousTelemetryEnabled;
+        if (previousTelemetryPath === undefined) delete process.env.LEGACY_USAGE_TELEMETRY_PATH;
+        else process.env.LEGACY_USAGE_TELEMETRY_PATH = previousTelemetryPath;
+        if (previousTelemetrySecret === undefined) delete process.env.LEGACY_USAGE_TELEMETRY_HMAC_SECRET;
+        else process.env.LEGACY_USAGE_TELEMETRY_HMAC_SECRET = previousTelemetrySecret;
     }
 });
 

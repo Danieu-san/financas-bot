@@ -285,6 +285,7 @@ function dashboardV2Html() {
   <script>
     var monthNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
     var token = readDashboardToken();
+    var dashboardSessionId = readDashboardSessionId('v2');
     var monthEl = document.getElementById('month');
     var yearEl = document.getElementById('year');
     var refreshEl = document.getElementById('refresh');
@@ -349,6 +350,29 @@ function dashboardV2Html() {
         return fromUrl;
       }
       try { return sessionStorage.getItem('financasbot_dashboard_token') || ''; } catch (_error) { return ''; }
+    }
+    function readDashboardSessionId(version) {
+      var key = 'financasbot_dashboard_session_' + version;
+      try {
+        var current = sessionStorage.getItem(key) || '';
+        if (/^[A-Za-z0-9-]{8,64}$/.test(current)) return current;
+        var created = window.crypto && typeof window.crypto.randomUUID === 'function'
+          ? window.crypto.randomUUID()
+          : 'session-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 14);
+        sessionStorage.setItem(key, created);
+        return created;
+      } catch (_error) {
+        return '';
+      }
+    }
+    function dashboardRequestOptions(trigger) {
+      return {
+        headers: {
+          'Accept': 'application/json',
+          'X-FinancasBot-Dashboard-Session': dashboardSessionId,
+          'X-FinancasBot-Dashboard-Trigger': trigger
+        }
+      };
     }
     function setupFilters() {
       var now = new Date();
@@ -500,7 +524,7 @@ function dashboardV2Html() {
       document.getElementById('plansGrid').innerHTML = renderCollection('Metas', 'Progresso acumulado', blocks.goals || {}, 'goal') + renderCollection('Dívidas', 'Saldos atuais', blocks.debts || {}, 'debt') + renderCollection('Atividade recente', 'Itens que ajudam a conferir os totais', blocks.recentTransactions || {}, 'recent');
       renderQuality(blocks.quality || {});
     }
-    async function loadData() {
+    async function loadData(trigger) {
       noticeEl.style.display = 'none';
       noticeEl.textContent = '';
       if (!token) {
@@ -515,7 +539,7 @@ function dashboardV2Html() {
       document.getElementById('loading').style.display = '';
       try {
         var url = '/dashboard/api/v2/summary?token=' + encodeURIComponent(token) + '&month=' + encodeURIComponent(monthEl.value) + '&year=' + encodeURIComponent(yearEl.value);
-        var response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        var response = await fetch(url, dashboardRequestOptions(trigger || 'initial'));
         var data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Não foi possível carregar o painel.');
         render(data);
@@ -529,10 +553,10 @@ function dashboardV2Html() {
       }
     }
     setupFilters();
-    refreshEl.addEventListener('click', loadData);
-    monthEl.addEventListener('change', loadData);
-    yearEl.addEventListener('change', loadData);
-    loadData();
+    refreshEl.addEventListener('click', function () { loadData('refresh'); });
+    monthEl.addEventListener('change', function () { loadData('filter'); });
+    yearEl.addEventListener('change', function () { loadData('filter'); });
+    loadData('initial');
   </script>
 </body>
 </html>`;

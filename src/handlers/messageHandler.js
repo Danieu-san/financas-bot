@@ -6839,6 +6839,22 @@ async function handleDashboardCommand(msg, user, senderId) {
             ...(linkData.rolledBackFrom ? { rolled_back_from: linkData.rolledBackFrom } : {})
         }
     });
+    await recordLegacyUsageEvent({
+        event: 'usage',
+        surface: 'dashboard',
+        consumer: linkData.version === 'v2' ? 'dashboard_v2' : 'dashboard_v1',
+        handler: 'message_handler',
+        route: linkData.version === 'v2' ? 'dashboard_api_v2' : 'dashboard_api_v1',
+        domain: 'dashboard',
+        operation: 'issue',
+        source: 'runtime',
+        mode: 'answer',
+        result: 'success',
+        reasonCode: 'dashboard_link_issued',
+        writeAttempted: false,
+        writeResult: 'not_attempted',
+        actorId: user.user_id
+    });
     logger.info(`[dashboard] link_emitido sender=${senderId} user_id=${user.user_id}`);
     return true;
 }

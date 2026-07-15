@@ -30,9 +30,13 @@ const ALLOWED = Object.freeze({
     ]),
     domain: new Set([
         'none', 'analytics', 'transactions', 'transfers', 'accounts', 'forecast',
-        'bills', 'debts', 'goals', 'cards', 'budget', 'income', 'expenses'
+        'bills', 'debts', 'goals', 'cards', 'budget', 'income', 'expenses',
+        'dashboard'
     ]),
-    operation: new Set(['heartbeat', 'read', 'fallback', 'answer', 'query', 'route', 'write']),
+    operation: new Set([
+        'heartbeat', 'read', 'fallback', 'answer', 'query', 'route', 'write',
+        'issue', 'open', 'refresh', 'filter'
+    ]),
     source: new Set([
         'none', 'runtime', 'canonical', 'sqlite', 'memory_fallback', 'sheets',
         'legacy', 'financial_agent', 'query_engine'
@@ -50,7 +54,10 @@ const ALLOWED = Object.freeze({
         'source_unavailable', 'not_applicable', 'engine_gap', 'unsafe_request',
         'ambiguous_period', 'ambiguous_scope', 'unsupported_filter', 'response_gap',
         'agent_disabled', 'agent_error', 'answer_not_selected',
-        'canary_user_not_allowed', 'personal_sheet_source'
+        'canary_user_not_allowed', 'personal_sheet_source',
+        'dashboard_link_issued', 'dashboard_session_started',
+        'dashboard_refresh', 'dashboard_filter_change', 'dashboard_api_request',
+        'dashboard_auth_failed', 'dashboard_v2_disabled'
     ]),
     writeResult: new Set(['not_attempted', 'success', 'blocked', 'error'])
 });

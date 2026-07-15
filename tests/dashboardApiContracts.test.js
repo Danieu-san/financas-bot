@@ -1,6 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const { once } = require('node:events');
+const fs = require('node:fs/promises');
+const os = require('node:os');
+const path = require('node:path');
 
 const dashboardServerPath = require.resolve('../src/services/dashboardServer');
 const readModelPath = require.resolve('../src/services/readModelService');
@@ -145,8 +148,8 @@ async function startTestServer(calls, options = {}) {
     return { server, baseUrl, token };
 }
 
-async function fetchJson(url) {
-    const response = await fetch(url);
+async function fetchJson(url, options) {
+    const response = await fetch(url, options);
     const json = await response.json();
     return { response, json };
 }
@@ -339,8 +342,8 @@ test('dashboard page reloads data when month or year filters change', async () =
         const page = await fetch(`${baseUrl}/dashboard?token=${token}`);
         assert.strictEqual(page.status, 200);
         const html = await page.text();
-        assert.match(html, /monthEl\.addEventListener\('change', loadData\)/);
-        assert.match(html, /yearEl\.addEventListener\('change', loadData\)/);
+        assert.match(html, /monthEl\.addEventListener\('change', \(\) => loadData\('filter'\)\)/);
+        assert.match(html, /yearEl\.addEventListener\('change', \(\) => loadData\('filter'\)\)/);
         assert.match(html, /sessionStorage\.setItem\('financasbot_dashboard_token'/);
         assert.match(html, /history\.replaceState\(null, '', window\.location\.pathname\)/);
         assert.match(html, /fetch\(base \+ '\/summary\?token='/);
@@ -363,6 +366,88 @@ test('dashboard page reloads data when month or year filters change', async () =
         assert.match(html, /type-badge/);
     } finally {
         await new Promise(resolve => server.close(resolve));
+    }
+});
+
+test('dashboard v1 and v2 emit durable private session telemetry distinct from refresh and raw API traffic', async () => {
+    const calls = [];
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'dashboard-usage-telemetry-'));
+    const telemetryPath = path.join(tempDir, 'events.jsonl');
+    const previousEnv = {
+        enabled: process.env.LEGACY_USAGE_TELEMETRY_ENABLED,
+        path: process.env.LEGACY_USAGE_TELEMETRY_PATH,
+        secret: process.env.LEGACY_USAGE_TELEMETRY_HMAC_SECRET,
+        commit: process.env.APP_COMMIT_SHA
+    };
+    process.env.LEGACY_USAGE_TELEMETRY_ENABLED = 'true';
+    process.env.LEGACY_USAGE_TELEMETRY_PATH = telemetryPath;
+    process.env.LEGACY_USAGE_TELEMETRY_HMAC_SECRET = 'dashboard-test-only-hmac-secret';
+    process.env.APP_COMMIT_SHA = 'f2e2210853264fa15dbef6361fc32c7041aaadfd';
+
+    const { server, baseUrl, token } = await startTestServer(calls);
+    try {
+        const v1Page = await fetchText(`${baseUrl}/dashboard`);
+        const v2Page = await fetchText(`${baseUrl}/dashboard/v2`);
+        for (const html of [v1Page.text, v2Page.text]) {
+            assert.match(html, /financasbot_dashboard_session/);
+            assert.match(html, /X-FinancasBot-Dashboard-Session/);
+            assert.match(html, /X-FinancasBot-Dashboard-Trigger/);
+        }
+        assert.match(v1Page.text, /loadData\('refresh'\)/);
+        assert.match(v1Page.text, /loadData\('filter'\)/);
+        assert.match(v2Page.text, /loadData\('refresh'\)/);
+        assert.match(v2Page.text, /loadData\('filter'\)/);
+
+        const v1Session = 'v1-session-test-123';
+        const v2Session = 'v2-session-test-456';
+        const request = (url, sessionId, trigger) => fetchJson(url, {
+            headers: {
+                'X-FinancasBot-Dashboard-Session': sessionId,
+                'X-FinancasBot-Dashboard-Trigger': trigger
+            }
+        });
+        await request(`${baseUrl}/dashboard/api/summary?token=${token}`, v1Session, 'initial');
+        await request(`${baseUrl}/dashboard/api/summary?token=${token}`, v1Session, 'refresh');
+        await request(`${baseUrl}/dashboard/api/v2/summary?token=${token}`, v2Session, 'initial');
+        await fetchJson(`${baseUrl}/dashboard/api/summary?token=${token}`);
+        await fetchJson(`${baseUrl}/dashboard/api/summary?token=invalid`);
+        process.env.DASHBOARD_V2_ENABLED = 'false';
+        await fetchJson(`${baseUrl}/dashboard/api/v2/summary?token=${token}`);
+        delete process.env.DASHBOARD_V2_ENABLED;
+
+        const entries = (await fs.readFile(telemetryPath, 'utf8')).trim().split(/\r?\n/).map(JSON.parse);
+        assert.strictEqual(entries.length, 6);
+        assert.deepStrictEqual(entries.map(entry => entry.consumer), [
+            'dashboard_v1', 'dashboard_v1', 'dashboard_v2', 'dashboard_v1',
+            'dashboard_v1', 'dashboard_v2'
+        ]);
+        assert.deepStrictEqual(entries.map(entry => entry.reason_code), [
+            'dashboard_session_started', 'dashboard_refresh',
+            'dashboard_session_started', 'dashboard_api_request',
+            'dashboard_auth_failed', 'dashboard_v2_disabled'
+        ]);
+        assert.deepStrictEqual(entries.map(entry => entry.operation), [
+            'open', 'refresh', 'open', 'read', 'read', 'read'
+        ]);
+        assert.deepStrictEqual(entries.map(entry => entry.result), [
+            'success', 'success', 'success', 'success', 'blocked', 'blocked'
+        ]);
+        assert.match(entries[0].actor_ref, /^[a-f0-9]{16}$/);
+        assert.match(entries[0].session_ref, /^[a-f0-9]{16}$/);
+        assert.strictEqual(entries[0].session_ref, entries[1].session_ref);
+        assert.notStrictEqual(entries[0].session_ref, entries[2].session_ref);
+        assert.strictEqual(entries[3].session_ref, '');
+        const serialized = JSON.stringify(entries);
+        assert.ok(!serialized.includes(v1Session));
+        assert.ok(!serialized.includes(v2Session));
+        assert.ok(!serialized.includes(token));
+    } finally {
+        await new Promise(resolve => server.close(resolve));
+        const restore = (name, value) => value === undefined ? delete process.env[name] : process.env[name] = value;
+        restore('LEGACY_USAGE_TELEMETRY_ENABLED', previousEnv.enabled);
+        restore('LEGACY_USAGE_TELEMETRY_PATH', previousEnv.path);
+        restore('LEGACY_USAGE_TELEMETRY_HMAC_SECRET', previousEnv.secret);
+        restore('APP_COMMIT_SHA', previousEnv.commit);
     }
 });
 

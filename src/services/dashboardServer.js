@@ -12,6 +12,7 @@ const { buildGoogleAuthorizationUrl, completeGoogleOAuthCallback } = require('./
 const { sendWhatsAppMessage } = require('./whatsapp');
 const { prepareOnboardingState } = require('../handlers/onboardingHandler');
 const { recordDashboardAccessEvent } = require('./dashboardAccessLogService');
+const { recordLegacyUsageEvent } = require('../telemetry/legacyUsageTelemetry');
 const logger = require('../utils/logger');
 const metrics = require('../utils/metrics');
 
@@ -368,6 +369,7 @@ function dashboardHtml() {
   <script>
     const monthNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
     const token = readDashboardToken();
+    const dashboardSessionId = readDashboardSessionId('v1');
     const userEl = document.getElementById('user');
     const monthEl = document.getElementById('month');
     const yearEl = document.getElementById('year');
@@ -400,6 +402,30 @@ function dashboardHtml() {
       }
     }
 
+    function readDashboardSessionId(version) {
+      const key = 'financasbot_dashboard_session_' + version;
+      try {
+        const current = sessionStorage.getItem(key) || '';
+        if (/^[A-Za-z0-9-]{8,64}$/.test(current)) return current;
+        const created = window.crypto && typeof window.crypto.randomUUID === 'function'
+          ? window.crypto.randomUUID()
+          : 'session-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 14);
+        sessionStorage.setItem(key, created);
+        return created;
+      } catch (e) {
+        return '';
+      }
+    }
+
+    function dashboardRequestOptions(trigger) {
+      return {
+        headers: {
+          'X-FinancasBot-Dashboard-Session': dashboardSessionId,
+          'X-FinancasBot-Dashboard-Trigger': trigger
+        }
+      };
+    }
+
     function setupFilters() {
       for (let i = 0; i < 12; i++) {
         const opt = document.createElement('option');
@@ -418,7 +444,7 @@ function dashboardHtml() {
     async function setupUsers() {
       if (!token) return;
       try {
-        const res = await fetch('/dashboard/api/users?token=' + encodeURIComponent(token));
+        const res = await fetch('/dashboard/api/users?token=' + encodeURIComponent(token), dashboardRequestOptions('internal'));
         const data = await res.json();
         if (!res.ok) return;
         const users = data.users || [];
@@ -431,7 +457,7 @@ function dashboardHtml() {
       }
     }
 
-    async function loadData() {
+    async function loadData(trigger = 'initial') {
       errorEl.style.display = 'none';
       if (!token) {
         errorEl.textContent = 'Token ausente. Abra pelo link enviado no WhatsApp.';
@@ -443,7 +469,7 @@ function dashboardHtml() {
       const userParam = userEl.value ? '&user=' + encodeURIComponent(userEl.value) : '';
       const base = '/dashboard/api';
       try {
-        const summaryRes = await fetch(base + '/summary?token=' + encodeURIComponent(token) + userParam + '&month=' + encodeURIComponent(month) + '&year=' + encodeURIComponent(year));
+        const summaryRes = await fetch(base + '/summary?token=' + encodeURIComponent(token) + userParam + '&month=' + encodeURIComponent(month) + '&year=' + encodeURIComponent(year), dashboardRequestOptions(trigger));
         const summaryData = await summaryRes.json();
         if (!summaryRes.ok) throw new Error(summaryData.error || 'Erro ao carregar dashboard');
 
@@ -662,11 +688,11 @@ function dashboardHtml() {
     }
 
     setupFilters();
-    document.getElementById('refresh').addEventListener('click', loadData);
-    monthEl.addEventListener('change', loadData);
-    yearEl.addEventListener('change', loadData);
-    userEl.addEventListener('change', loadData);
-    setupUsers().finally(loadData);
+    document.getElementById('refresh').addEventListener('click', () => loadData('refresh'));
+    monthEl.addEventListener('change', () => loadData('filter'));
+    yearEl.addEventListener('change', () => loadData('filter'));
+    userEl.addEventListener('change', () => loadData('filter'));
+    setupUsers().finally(() => loadData('initial'));
   </script>
 </body>
 </html>`;
@@ -695,6 +721,54 @@ function getDashboardAuditScope(payload, dataUserId) {
     if (dataUserId === payload.uid) return 'own';
     if (dataUserId === ALL_USERS_ID) return 'all_users';
     return 'support_user';
+}
+
+function normalizeDashboardSessionId(req) {
+    const value = String(req?.headers?.['x-financasbot-dashboard-session'] || '').trim();
+    return /^[A-Za-z0-9-]{8,64}$/.test(value) ? value : '';
+}
+
+function getDashboardRequestClassification(req) {
+    const trigger = String(req?.headers?.['x-financasbot-dashboard-trigger'] || '').trim().toLowerCase();
+    if (!normalizeDashboardSessionId(req)) {
+        return { operation: 'read', reasonCode: 'dashboard_api_request' };
+    }
+    if (trigger === 'initial') return { operation: 'open', reasonCode: 'dashboard_session_started' };
+    if (trigger === 'refresh') return { operation: 'refresh', reasonCode: 'dashboard_refresh' };
+    if (trigger === 'filter') return { operation: 'filter', reasonCode: 'dashboard_filter_change' };
+    return { operation: 'read', reasonCode: 'dashboard_api_request' };
+}
+
+async function recordDashboardDurableRequest(req, reqUrl) {
+    const isV2 = reqUrl.pathname.startsWith('/dashboard/api/v2/');
+    const token = reqUrl.searchParams.get('token') || '';
+    const payload = verifyDashboardToken(token);
+    let classification = getDashboardRequestClassification(req);
+    let result = 'success';
+    if (!payload) {
+        classification = { operation: 'read', reasonCode: 'dashboard_auth_failed' };
+        result = 'blocked';
+    } else if (isV2 && !isDashboardV2Enabled()) {
+        classification = { operation: 'read', reasonCode: 'dashboard_v2_disabled' };
+        result = 'blocked';
+    }
+    return recordLegacyUsageEvent({
+        event: 'usage',
+        surface: 'dashboard',
+        consumer: isV2 ? 'dashboard_v2' : 'dashboard_v1',
+        handler: 'dashboard_server',
+        route: isV2 ? 'dashboard_api_v2' : 'dashboard_api_v1',
+        domain: 'dashboard',
+        operation: classification.operation,
+        source: 'runtime',
+        mode: 'answer',
+        result,
+        reasonCode: classification.reasonCode,
+        writeAttempted: false,
+        writeResult: 'not_attempted',
+        actorId: payload?.uid || '',
+        sessionId: normalizeDashboardSessionId(req)
+    });
 }
 
 async function recordDashboardApiAccess({ event = 'api_access', result = 'success', token = '', payload = {}, dataUserId = '', reqUrl, metadata = {} }) {
@@ -893,6 +967,9 @@ function startDashboardServer() {
 
     server = http.createServer(async (req, res) => {
         const reqUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+        if (req.method === 'GET' && reqUrl.pathname.startsWith('/dashboard/api/')) {
+            await recordDashboardDurableRequest(req, reqUrl);
+        }
         if (req.method === 'GET' && reqUrl.pathname === '/dashboard') {
             metrics.increment('dashboard.page.view');
             sendHtml(res, dashboardHtml());
