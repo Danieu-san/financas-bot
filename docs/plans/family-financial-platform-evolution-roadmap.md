@@ -823,5 +823,10 @@ rate limit, revogacao e replay tardio passaram; suite `903/903`. Nao ha endpoint
 publico nem fila duravel. 9B.2 pode criar somente o inbox/worker local; conta ou
 chave externa continuam fora do escopo.
 
+9B.2 concluiu inbox criptografada e restart com suite `907/907`. Como a pagina
+oficial informa que o Conector 200 gratuito nao fornece webhooks, essa trilha
+fica apenas como caracterizacao sandbox. O caminho de custo zero segue para
+polling read-only mockado em 9B.3.
+
 Gate atual:
-`docs/qa/phase-9b1-pluggy-mocked-webhook-gate-2026-07-15.md`.
+`docs/qa/phase-9b2-durable-encrypted-webhook-inbox-gate-2026-07-15.md`.

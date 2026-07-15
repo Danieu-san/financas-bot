@@ -2102,3 +2102,18 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   rede/credenciais/contas reais/escritas financeiras `0`.
 - Limitacao explicita: ainda nao ha endpoint publico nem inbox/fila duravel.
 - Gate: `docs/qa/phase-9b1-pluggy-mocked-webhook-gate-2026-07-15.md`.
+
+## Phase 9B.2 durable inbox GO and free-route correction - 2026-07-15
+
+- Inbox SQLite de webhook agora e duravel, deduplicada e criptografada com
+  AES-256-GCM; referencias ficam em HMAC e payload concluido e apagado.
+- Retry respeita disponibilidade futura e job interrompido volta a pending no
+  restart. O modelo e somente single-worker e continua sem endpoint publico.
+- Evidencia: inbox `4/4`, Open Finance `14/14`, E2E restart `GO`, suite
+  `907/907`; rede, credenciais, contas reais e escrita financeira `0`.
+- Correcao de produto: a pagina oficial confirma que Conector 200 gratuito nao
+  oferece webhooks. Logo 9B.1/9B.2 sao caracterizacao sandbox/futura, nao
+  dependencia do caminho gratuito.
+- Proximo caminho gratuito: polling read-only controlado, nunca endpoint de
+  webhook como requisito.
+- Gate: `docs/qa/phase-9b2-durable-encrypted-webhook-inbox-gate-2026-07-15.md`.

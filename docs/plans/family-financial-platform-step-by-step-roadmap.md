@@ -1209,6 +1209,19 @@ Resultado 9B.1 em 2026-07-15:
 Gate:
 `docs/qa/phase-9b1-pluggy-mocked-webhook-gate-2026-07-15.md`.
 
+Resultado 9B.2 em 2026-07-15:
+
+- inbox SQLite criptografada e deduplicada sobrevive a restart;
+- retry limitado e payload concluido/falho e descartado;
+- inbox `4/4`, Open Finance `14/14`, E2E `GO`, suite `907/907`;
+- restricao single-worker e ausencia de endpoint publico documentadas;
+- Conector 200 gratuito nao possui webhooks: producao gratuita deve usar
+  polling read-only controlado;
+- proxima fatia: contrato mockado de polling, sem chave ou rede real.
+
+Gate:
+`docs/qa/phase-9b2-durable-encrypted-webhook-inbox-gate-2026-07-15.md`.
+
 ### 9C - Consentimento real limitado
 
 Passo a passo:
