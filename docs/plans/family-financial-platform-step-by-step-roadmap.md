@@ -1222,6 +1222,18 @@ Resultado 9B.2 em 2026-07-15:
 Gate:
 `docs/qa/phase-9b2-durable-encrypted-webhook-inbox-gate-2026-07-15.md`.
 
+Resultado 9B.3 em 2026-07-15:
+
+- politica gratuita de polling mockado com intervalo minimo de seis horas;
+- lease impede sobreposicao e backoff limita falhas/rate limit;
+- polling `4/4`, Open Finance `18/18`, E2E `GO`, suite `911/911`;
+- scheduler nao foi ligado ao runtime e rede/credenciais/contas reais ficaram 0;
+- preparacao local da 9B concluida; proximo passo requer decisao explicita para
+  criar/usar conta externa gratuita e consentimento separado.
+
+Gate:
+`docs/qa/phase-9b3-free-route-controlled-polling-gate-2026-07-15.md`.
+
 ### 9C - Consentimento real limitado
 
 Passo a passo:

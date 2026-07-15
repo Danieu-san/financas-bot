@@ -2117,3 +2117,16 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Proximo caminho gratuito: polling read-only controlado, nunca endpoint de
   webhook como requisito.
 - Gate: `docs/qa/phase-9b2-durable-encrypted-webhook-inbox-gate-2026-07-15.md`.
+
+## Phase 9B.3 free-route polling local GO - 2026-07-15
+
+- Polling mockado substitui webhook como desenho do caminho Conector 200
+  gratuito: intervalo minimo de seis horas, lease por item e backoff limitado.
+- Token de lease incorreto nao libera execucao alheia; polling revogado nao
+  repovoa staging; nenhuma agenda foi ligada ao cron/runtime.
+- Evidencia: polling `4/4`, Open Finance `18/18`, E2E `GO`, suite `911/911`,
+  rede/credenciais/contas reais/escritas financeiras `0`.
+- Toda preparacao local util da 9B esta concluida. O proximo passo muda estado
+  externo: criar/usar conta Meu Pluggy/Dashboard e confirmar o Conector 200.
+- Nao iniciar teste produtivo de 14 dias nem plano pago automaticamente.
+- Gate: `docs/qa/phase-9b3-free-route-controlled-polling-gate-2026-07-15.md`.

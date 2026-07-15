@@ -828,5 +828,10 @@ oficial informa que o Conector 200 gratuito nao fornece webhooks, essa trilha
 fica apenas como caracterizacao sandbox. O caminho de custo zero segue para
 polling read-only mockado em 9B.3.
 
+9B.3 concluiu a preparacao local gratuita: polling de seis em seis horas,
+controle de overlap, backoff e revogacao passaram com suite `911/911`. Nenhum
+cron/runtime foi ativado. O proximo passo exige conta externa e consentimento,
+portanto aguarda aprovacao explicita e reconfirmacao de custo zero.
+
 Gate atual:
-`docs/qa/phase-9b2-durable-encrypted-webhook-inbox-gate-2026-07-15.md`.
+`docs/qa/phase-9b3-free-route-controlled-polling-gate-2026-07-15.md`.
