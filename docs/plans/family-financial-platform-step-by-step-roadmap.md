@@ -909,6 +909,31 @@ Resultado em 2026-07-14:
 - proximo passo: 8B.2, caracterizacao reversivel do Dashboard v1/v2;
 - relatorio: `docs/qa/phase-8b1-bill015-analytical-gate-2026-07-14.md`.
 
+#### 8B.2 - Caracterizacao reversivel do Dashboard v1/v2
+
+Passo a passo:
+
+1. Separar link, sessao, refresh, filtro e API tecnica.
+2. Pseudonimizar ator/sessao com HMAC rotativo.
+3. Agregar adocao sem expor referencias ou dados financeiros.
+4. Manter v1 como padrao e v2 opt-in durante a observacao.
+5. Bloquear promocao/remocao enquanto a janela nao estiver completa.
+
+Gate: instrumentacao viva por heartbeat, zero linha invalida, API tecnica nao
+conta como sessao e rollback v2 permanece operacional.
+
+Resultado em 2026-07-15:
+
+- `GO de producao` para observacao e `NO-GO` para promocao/remocao;
+- local: gate focado 205/205, sumarizador 2/2, pretests 17+41+8+5+5 e suite
+  principal 858/858;
+- remoto no commit `a28f9f8`: 13/13 e zero vulnerabilidades;
+- producao: PM2/WhatsApp/cron/health verdes, relatorio `OBSERVING`, 16
+  heartbeats, zero linha invalida e zero sessao na amostra inicial;
+- v1 continua padrao e rollback; v2 continua opt-in;
+- proximo passo: 8B.3, decisao de produto sobre undo 6E;
+- relatorio: `docs/qa/phase-8b2-dashboard-adoption-telemetry-gate-2026-07-15.md`.
+
 Politica para uso zero: no minimo 45 dias e um ciclo orcamentario completo com
 todos os pontos de entrada instrumentados. Cartoes exigem dois fechamentos ou
 pelo menos 60 dias. O fim da janela torna o item apenas candidato a 8C.

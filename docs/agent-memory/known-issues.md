@@ -11,6 +11,9 @@ Atualizado em: 2026-07-14
   `responseGenerator` durante a janela.
 - Dashboard v1 continua com trafego significativamente maior que a API v2. Nao
   remover v1 sem migrar os consumidores e observar uso zero de forma duravel.
+- Desde a 8B.2, requests com sessao sao separados de API tecnica. O zero inicial
+  apos o deploy ocorreu numa amostra curta e nao e prova de desuso. Referencias
+  HMAC giram diariamente e nao equivalem a usuarios unicos de toda a janela.
 - Zero ocorrencias em busca textual de log nao equivale a uso zero. Exigir
   contador sanitizado e janela de observacao por consumidor.
 - A janela duravel iniciou em 2026-07-14. Nao antecipar conclusao antes de 45

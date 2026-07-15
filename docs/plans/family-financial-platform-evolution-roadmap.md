@@ -805,14 +805,13 @@ Nao acumular todas as fases para um unico deploy.
 
 ## 13. Proximo passo imediato
 
-Executar a Fase `8B.2 - caracterizacao reversivel do Dashboard v1/v2`:
+Executar a Fase `8B.3 - decisao de produto sobre undo 6E`:
 
-1. Distinguir link emitido, abertura/sessao humana, refresh, chamada interna e
-   health check sem persistir token, telefone ou dado financeiro.
-2. Mapear consumidores das APIs v1/v2 e separar trafego tecnico de adocao.
-3. Confirmar paridade e compatibilidade HTTPS antes de qualquer promocao.
-4. Se seguro, promover v2 por flag de forma reversivel, mantendo v1 como
-   rollback.
-5. Iniciar a janela especifica de observacao; nenhum endpoint v1 sera removido.
+1. Confirmar novamente que nao existe consumidor WhatsApp produtivo.
+2. Verificar scripts, jobs, imports dinamicos e runbooks.
+3. Na ausencia de requisito explicito, desligar o canario de producao e
+   classificar a capacidade como test-only.
+4. Preservar servico, testes, E2E e conhecimento; nenhuma exclusao.
+5. Provar que a mudanca de flag nao altera WhatsApp, dados ou recibos.
 
-Gate 8B.1: `docs/qa/phase-8b1-bill015-analytical-gate-2026-07-14.md`.
+Gate 8B.2: `docs/qa/phase-8b2-dashboard-adoption-telemetry-gate-2026-07-15.md`.

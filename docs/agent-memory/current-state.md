@@ -1,6 +1,22 @@
 # Estado atual do FinancasBot
 
-Atualizado em: 2026-07-14
+Atualizado em: 2026-07-15
+
+## Fase 8B.2 - telemetria de adocao do Dashboard - GO de observacao - 2026-07-15
+
+- A metrica anterior media requests e nao sessoes. V1/v2 agora enviam um ID
+  efemero por aba e gatilhos `initial`, `refresh`, `filter` ou API tecnica.
+- Somente HMAC diario e persistido. O relatorio agrega links, sessoes, refreshes,
+  filtros e bloqueios sem expor refs; chamadas tecnicas nao inflam adocao.
+- Evidencia local: dashboard/telemetria/WhatsApp 205/205, sumarizador 2/2,
+  pretests 6A=17, 6B=41, 6C=8, 6D=5, 6E=5 e suite principal 858/858.
+- Producao no commit `a28f9f8`: remoto 13/13, npm install com zero
+  vulnerabilidades, PM2/WhatsApp/cron/health verdes e paginas v1/v2 marcadas.
+- Relatorio inicial: `OBSERVING`, 16 heartbeats, zero linhas invalidas e zero
+  sessoes na amostra curta. Isso nao prova desuso; v1 permanece padrao/rollback.
+- Nenhuma promocao ou remocao foi feita. Proximo passo: 8B.3, decisao explicita
+  sobre undo 6E, sem excluir codigo. Relatorio:
+  `docs/qa/phase-8b2-dashboard-adoption-telemetry-gate-2026-07-15.md`.
 
 ## Fase 8B.1 - correcao BILL-015 e gate analitico - GO de producao - 2026-07-14
 
