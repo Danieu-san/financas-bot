@@ -331,6 +331,57 @@ function buildCanonicalCardEntries({ unifiedRows = [], legacyRowsBySheet = [] } 
     return legacyRowsBySheet.flatMap(({ rows, sheetName }) => mapLegacyCardRows(rows, sheetName));
 }
 
+function getCardReadModelRouteMode(env = process.env) {
+    const mode = String(env.CARD_READ_MODEL_UNIFIED_FIRST_MODE || 'off').trim().toLowerCase();
+    return ['off', 'canary', 'on'].includes(mode) ? mode : 'off';
+}
+
+function shouldUseCardUnifiedFirst({ mode = getCardReadModelRouteMode(), contextKey = getReadModelContextKey() } = {}) {
+    if (mode === 'on') return true;
+    if (mode === 'canary') return String(contextKey || '').startsWith('user:');
+    return false;
+}
+
+async function loadCardRowsForReadModel({
+    read = readDataFromSheet,
+    mode = getCardReadModelRouteMode(),
+    contextKey = getReadModelContextKey(),
+    cardSheetNames = Object.values(creditCardConfig).map(card => card.sheetName)
+} = {}) {
+    const unifiedOptions = {
+        suppressMissingSheetError: true,
+        telemetryConsumer: 'read_model_service'
+    };
+    const legacyReads = () => Promise.all(cardSheetNames.map((sheetName) => read(`${sheetName}!A:G`, {
+        telemetryConsumer: 'read_model_service'
+    })));
+
+    if (!shouldUseCardUnifiedFirst({ mode, contextKey })) {
+        const [unifiedCardRows, ...legacyRows] = await Promise.all([
+            read('Lançamentos Cartão!A:J', unifiedOptions),
+            ...cardSheetNames.map((sheetName) => read(`${sheetName}!A:G`, {
+                telemetryConsumer: 'read_model_service'
+            }))
+        ]);
+        return {
+            unifiedCardRows,
+            legacyRowsBySheet: legacyRows.map((rows, index) => ({ rows, sheetName: cardSheetNames[index] })),
+            route: 'legacy_compatible'
+        };
+    }
+
+    const unifiedCardRows = await read('Lançamentos Cartão!A:J', unifiedOptions);
+    if (mapUnifiedCardRows(unifiedCardRows).length > 0) {
+        return { unifiedCardRows, legacyRowsBySheet: [], route: 'unified_first' };
+    }
+    const legacyRows = await legacyReads();
+    return {
+        unifiedCardRows,
+        legacyRowsBySheet: legacyRows.map((rows, index) => ({ rows, sheetName: cardSheetNames[index] })),
+        route: 'legacy_fallback'
+    };
+}
+
 function mapUserSettingsRows(rows) {
     if (!rows || rows.length <= 1) return [];
 
@@ -545,7 +596,7 @@ async function refreshVisualDashboardFromReadModel() {
 }
 
 async function rebuildReadModelFromSheets() {
-    const cardSheetNames = Object.values(creditCardConfig).map(card => card.sheetName);
+    const cardLoadPromise = loadCardRowsForReadModel();
     const sheetReads = [
         readDataFromSheet('Saídas!A:K'),
         readDataFromSheet('Entradas!A:J'),
@@ -556,29 +607,23 @@ async function rebuildReadModelFromSheets() {
         readDataFromSheet('Contas!A:I'),
         readDataFromSheet('Contas Financeiras!A:I', { suppressMissingSheetError: true }),
         readDataFromSheet('UserSettings!A:S'),
-        readDataFromSheet('Cartões!A:G', { suppressMissingSheetError: true }),
-        readDataFromSheet('Lançamentos Cartão!A:J', {
-            suppressMissingSheetError: true,
-            telemetryConsumer: 'read_model_service'
-        }),
-        ...cardSheetNames.map((sheetName) => readDataFromSheet(`${sheetName}!A:G`, {
-            telemetryConsumer: 'read_model_service'
-        }))
+        readDataFromSheet('Cartões!A:G', { suppressMissingSheetError: true })
     ];
 
-    const allData = await Promise.all(sheetReads);
-    const [saidasRows, entradasRows, transferenciasRows, metasRows, movimentacoesMetasRows, dividasRows, contasRows, financialAccountRows, userSettingsRows, cartoesConfigRows, unifiedCardRows] = allData;
-    const cardRowsList = allData.slice(11);
+    const [allData, cardLoad] = await Promise.all([Promise.all(sheetReads), cardLoadPromise]);
+    const [saidasRows, entradasRows, transferenciasRows, metasRows, movimentacoesMetasRows, dividasRows, contasRows, financialAccountRows, userSettingsRows, cartoesConfigRows] = allData;
     const cartoes = buildCanonicalCardEntries({
-        unifiedRows: unifiedCardRows,
-        legacyRowsBySheet: cardRowsList.map((rows, idx) => ({ rows, sheetName: cardSheetNames[idx] }))
+        unifiedRows: cardLoad.unifiedCardRows,
+        legacyRowsBySheet: cardLoad.legacyRowsBySheet
     });
 
     readModel = {
         meta: {
             lastSyncedAt: new Date().toISOString(),
             source: 'sheets_full_refresh',
-            contextKey: getReadModelContextKey()
+            contextKey: getReadModelContextKey(),
+            cardRoute: cardLoad.route,
+            cardRouteMode: getCardReadModelRouteMode()
         },
         saidas: mapSaidasRows(saidasRows),
         entradas: mapEntradasRows(entradasRows),
@@ -1436,6 +1481,9 @@ module.exports = {
         mapLegacyCardRows,
         mapUnifiedCardRows,
         buildCanonicalCardEntries,
+        getCardReadModelRouteMode,
+        shouldUseCardUnifiedFirst,
+        loadCardRowsForReadModel,
         mapUserSettingsRows,
         getReadModelContextKey,
         shouldReuseReadModelSnapshot,

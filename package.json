@@ -17,6 +17,7 @@
     "report:dashboard-adoption": "node scripts/reportDashboardAdoption.js",
     "report:card-sheet-usage": "node scripts/reportCardSheetUsage.js",
     "report:card-sheet-parity": "node scripts/reportCardSheetParity.js",
+    "e2e:card-read-model-unified-first": "node scripts/runCardReadModelUnifiedFirstE2E.js",
     "test:plans": "node --test tests/projectedPlansContract.test.js tests/projectedPlansStore.test.js tests/projectedPlanWrites.test.js tests/projectedPlansParityReport.test.js tests/projectedPlansSchedule.test.js tests/projectedPlansQueryIntegration.test.js",
     "test:phase5-exit": "node --test tests/phase5ExitGate.test.js",
     "test:phase6a": "node --test tests/financialBatchMaintenance.test.js tests/batchMaintenanceHandler.test.js",

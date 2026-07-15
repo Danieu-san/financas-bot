@@ -659,6 +659,103 @@ test('read-model falls back to legacy card sheets only when canonical card sheet
     assert.strictEqual(entries[0].source, 'Cartão Nubank - Daniel');
 });
 
+test('read-model card unified-first policy fails closed and scopes canary to personal sheets', () => {
+    assert.strictEqual(readModelTest.getCardReadModelRouteMode({}), 'off');
+    assert.strictEqual(readModelTest.getCardReadModelRouteMode({ CARD_READ_MODEL_UNIFIED_FIRST_MODE: 'invalid' }), 'off');
+    assert.strictEqual(readModelTest.getCardReadModelRouteMode({ CARD_READ_MODEL_UNIFIED_FIRST_MODE: ' ON ' }), 'on');
+    assert.strictEqual(readModelTest.shouldUseCardUnifiedFirst({ mode: 'off', contextKey: 'user:one' }), false);
+    assert.strictEqual(readModelTest.shouldUseCardUnifiedFirst({ mode: 'canary', contextKey: 'central' }), false);
+    assert.strictEqual(readModelTest.shouldUseCardUnifiedFirst({ mode: 'canary', contextKey: 'user:one' }), true);
+    assert.strictEqual(readModelTest.shouldUseCardUnifiedFirst({ mode: 'on', contextKey: 'central' }), true);
+});
+
+test('read-model personal canary uses populated unified card sheet without legacy reads', async () => {
+    const calls = [];
+    const unifiedRows = [
+        ['Data', 'Descri\u00e7\u00e3o', 'Categoria', 'Valor Parcela', 'Parcela', 'M\u00eas de Cobran\u00e7a', 'card_id', 'Cart\u00e3o', 'Observa\u00e7\u00f5es', 'user_id'],
+        ['20/06/2026', 'teste unificado', 'Outros', '3,33', '1/1', 'Julho de 2026', 'card-one', 'Cart\u00e3o Um', '', 'agent-one']
+    ];
+    const read = async (range, options) => {
+        calls.push({ range, options });
+        return unifiedRows;
+    };
+
+    const result = await readModelTest.loadCardRowsForReadModel({
+        read,
+        mode: 'canary',
+        contextKey: 'user:one',
+        cardSheetNames: ['Cart\u00e3o Um', 'Cart\u00e3o Dois']
+    });
+
+    assert.strictEqual(result.route, 'unified_first');
+    assert.strictEqual(calls.length, 1);
+    assert.strictEqual(calls[0].options.telemetryConsumer, 'read_model_service');
+    assert.strictEqual(result.legacyRowsBySheet.length, 0);
+    assert.strictEqual(readModelTest.buildCanonicalCardEntries({
+        unifiedRows: result.unifiedCardRows,
+        legacyRowsBySheet: result.legacyRowsBySheet
+    }).length, 1);
+});
+
+test('read-model personal canary falls back when unified card sheet has no valid entries', async () => {
+    const calls = [];
+    const legacyHeader = ['Data', 'Descri\u00e7\u00e3o', 'Categoria', 'Valor Parcela', 'Parcela', 'M\u00eas de Cobran\u00e7a', 'user_id'];
+    const read = async (range, options) => {
+        calls.push({ range, options });
+        if (range.startsWith('Lan\u00e7amentos')) return [['Data', 'Descri\u00e7\u00e3o']];
+        return [legacyHeader, ['20/06/2026', 'teste legado', 'Outros', '5,55', '1/1', 'Julho de 2026', 'agent-one']];
+    };
+
+    const result = await readModelTest.loadCardRowsForReadModel({
+        read,
+        mode: 'canary',
+        contextKey: 'user:one',
+        cardSheetNames: ['Cart\u00e3o Um', 'Cart\u00e3o Dois']
+    });
+
+    assert.strictEqual(result.route, 'legacy_fallback');
+    assert.strictEqual(calls.length, 3);
+    assert.ok(calls.every(call => call.options.telemetryConsumer === 'read_model_service'));
+    assert.strictEqual(readModelTest.buildCanonicalCardEntries({
+        unifiedRows: result.unifiedCardRows,
+        legacyRowsBySheet: result.legacyRowsBySheet
+    }).length, 2);
+});
+
+test('read-model off mode preserves the canonical snapshot and legacy-compatible rollback reads', async () => {
+    const calls = [];
+    const unifiedRows = [
+        ['Data', 'Descri\u00e7\u00e3o', 'Categoria', 'Valor Parcela', 'Parcela', 'M\u00eas de Cobran\u00e7a', 'card_id', 'Cart\u00e3o', 'Observa\u00e7\u00f5es', 'user_id'],
+        ['20/06/2026', 'teste unificado', 'Outros', '3,33', '1/1', 'Julho de 2026', 'card-one', 'Cart\u00e3o Um', '', 'agent-one']
+    ];
+    const read = async (range, options) => {
+        calls.push({ range, options });
+        return unifiedRows;
+    };
+
+    const offResult = await readModelTest.loadCardRowsForReadModel({
+        read,
+        mode: 'off',
+        contextKey: 'user:one',
+        cardSheetNames: ['Cart\u00e3o Um', 'Cart\u00e3o Dois']
+    });
+    const unifiedResult = await readModelTest.loadCardRowsForReadModel({
+        read,
+        mode: 'canary',
+        contextKey: 'user:one',
+        cardSheetNames: ['Cart\u00e3o Um', 'Cart\u00e3o Dois']
+    });
+    const build = result => readModelTest.buildCanonicalCardEntries({
+        unifiedRows: result.unifiedCardRows,
+        legacyRowsBySheet: result.legacyRowsBySheet
+    });
+
+    assert.strictEqual(offResult.route, 'legacy_compatible');
+    assert.strictEqual(unifiedResult.route, 'unified_first');
+    assert.strictEqual(calls.length, 4);
+    assert.deepStrictEqual(build(offResult), build(unifiedResult));
+});
+
 test('read-model does not reuse a fresh snapshot from another sheet context', () => {
     const now = Date.parse('2026-06-20T18:00:00.000Z');
     const freshMeta = {
