@@ -16,12 +16,13 @@ const ALLOWED = Object.freeze({
     consumer: new Set([
         'scheduler', 'read_model_service', 'canonical_canary_router',
         'financial_agent', 'message_handler', 'query_engine', 'dashboard_v1',
-        'dashboard_v2', 'phase6_handler', 'projected_plan_runtime'
+        'dashboard_v2', 'phase6_handler', 'projected_plan_runtime',
+        'sheets_runtime'
     ]),
     handler: new Set([
         'operational_heartbeat', 'read_model_service', 'canonical_canary_router',
         'financial_agent', 'message_handler', 'dashboard_server', 'phase6_handler',
-        'projected_plan_runtime'
+        'projected_plan_runtime', 'google_sheets'
     ]),
     route: new Set([
         'operational_heartbeat', 'analytical_intent', 'financial_query_plan',
@@ -57,7 +58,8 @@ const ALLOWED = Object.freeze({
         'canary_user_not_allowed', 'personal_sheet_source',
         'dashboard_link_issued', 'dashboard_session_started',
         'dashboard_refresh', 'dashboard_filter_change', 'dashboard_api_request',
-        'dashboard_auth_failed', 'dashboard_v2_disabled'
+        'dashboard_auth_failed', 'dashboard_v2_disabled',
+        'card_sheet_unified_route', 'card_sheet_legacy_route'
     ]),
     writeResult: new Set(['not_attempted', 'success', 'blocked', 'error'])
 });

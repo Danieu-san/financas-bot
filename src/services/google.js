@@ -5,6 +5,7 @@ const fs = require('fs');
 const { convertToIsoDateTime } = require('../utils/helpers');
 const { getOAuthConnection, getSharedSpreadsheetMembership } = require('./oauthTokenStore');
 const logger = require('../utils/logger');
+const { recordCardSheetInvocation } = require('../telemetry/cardSheetUsageTelemetry');
 
 const GOOGLE_CREDENTIALS_PATH = path.resolve(process.cwd(), 'credentials.json');
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
@@ -754,6 +755,12 @@ async function appendRowToSheet(sheetName, row, options = {}) {
     const operationKey = resolveAppendOperationKey(sheetName, mappedRow, options, writeContext);
     const writeLedger = getFinancialWriteLedgerForAppend(options, writeContext, operationKey);
     const messageId = String(options.messageId || writeContext.messageId || '').trim();
+    await recordCardSheetInvocation({
+        sheetName,
+        operation: 'write',
+        actorId: target.userId || options.userId || writeContext.userId,
+        sessionId: messageId
+    });
 
     if (writeLedger && operationKey) {
         const existing = writeLedger.getOperation(operationKey);
@@ -1070,6 +1077,13 @@ async function reconcileUncertainUpdate(target, mappedRange, rowData) {
 
 async function readDataFromSheet(range, options = {}) {
     const target = await resolveSpreadsheetTarget({ ...options, range });
+    const readContext = sheetContext.getStore() || {};
+    await recordCardSheetInvocation({
+        range,
+        operation: 'read',
+        actorId: target.userId || options.userId || readContext.userId,
+        sessionId: options.messageId || readContext.messageId
+    });
     const mappedRange = target.userScoped ? mapRangeForUserSpreadsheet(range) : range;
     const cacheTtlMs = getSheetsReadCacheTtlMs();
     const cacheKey = buildSheetsReadCacheKey(target, mappedRange);
@@ -1126,6 +1140,12 @@ async function updateRowInSheet(range, rowData, options = {}) {
     const operationKey = resolveUpdateOperationKey(mappedRange, rowData, options, writeContext);
     const writeLedger = getFinancialWriteLedgerForMutation(options, writeContext, operationKey);
     const messageId = String(options.messageId || writeContext.messageId || '').trim();
+    await recordCardSheetInvocation({
+        range,
+        operation: 'write',
+        actorId: target.userId || options.userId || writeContext.userId,
+        sessionId: messageId
+    });
 
     try {
         if (writeLedger && operationKey) {
@@ -1961,6 +1981,13 @@ async function ensureSpreadsheetStructure() {
 async function deleteRowsByIndices(sheetName, rowIndices, options = {}) {
     try {
         const target = await resolveSpreadsheetTarget({ ...options, sheetName });
+        const deleteContext = sheetContext.getStore() || {};
+        await recordCardSheetInvocation({
+            sheetName,
+            operation: 'write',
+            actorId: target.userId || options.userId || deleteContext.userId,
+            sessionId: options.messageId || deleteContext.messageId
+        });
         const mappedSheetName = target.userScoped ? mapSheetNameForUserSpreadsheet(sheetName) : sheetName;
         const sheetMap = await getSheetIds({ ...options, sheetName });
         const sheetId = sheetMap[mappedSheetName];
