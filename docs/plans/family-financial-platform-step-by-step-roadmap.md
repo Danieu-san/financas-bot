@@ -1256,8 +1256,14 @@ Estado em 2026-07-15:
   de cartao pode ser limite utilizado, nao fatura corrente;
 - nenhuma credencial foi transferida ao runtime, nenhuma chamada real foi
   persistida em staging e nenhuma reconciliacao/escrita foi ativada;
+- o cliente real read-only e o vault cifrado de staging passaram `5/5`, o gate
+  Open Finance passou `23/23` e a suite completa passou `916/916`;
+- o probe exige opt-in explicito e falha fechado; ainda houve zero chamada real
+  e zero segredo persistido;
 - o gate 9C permanece aberto ate importacao read-only em staging, teste de
-  revogacao/renovacao e prova automatica de separacao dos quatro itens.
+  revogacao/renovacao e prova automatica de separacao dos quatro itens. O
+  primeiro probe tambem depende de destino seguro autorizado para o Client
+  Secret, pois o SSD E: esta sem BitLocker.
 
 ### 9D - Conciliacao Open Finance em shadow
 

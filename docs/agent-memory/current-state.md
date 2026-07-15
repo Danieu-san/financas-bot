@@ -2,6 +2,23 @@
 
 Atualizado em: 2026-07-15
 
+## Fase 9C.0 - cliente real read-only pronto, probe bloqueado por segredo - 2026-07-15
+
+- Cliente Pluggy com origem fixa e allowlist implementado: somente `/auth` usa
+  POST; Items, Accounts, Transactions v2, Investments e Bills usam GET.
+- Staging SQLite isolado cifra payloads por item, persiste apenas referencias
+  HMAC e bloqueia replay depois de revogacao.
+- Saldo do cartao, limite utilizado e fatura formal permanecem campos distintos;
+  Bills indisponivel nunca vira saldo zero.
+- Evidencia: testes focados `5/5`, Open Finance `23/23`, E2E de polling `GO`,
+  suite completa `916/916` e probe sem opt-in falhando fechado.
+- Nenhuma chamada real, credencial persistida, escrita financeira, integracao
+  ao runtime ou deploy ocorreu.
+- Gate real aguarda destino seguro explicitamente autorizado para o Client
+  Secret. O volume removivel E: esta sem BitLocker.
+- Relatorio:
+  `docs/qa/phase-9c0-pluggy-live-readonly-staging-readiness-gate-2026-07-15.md`.
+
 ## Handoff Codex e Fase 9C iniciada - 2026-07-15
 
 - O checkout canonico para qualquer nova thread e
