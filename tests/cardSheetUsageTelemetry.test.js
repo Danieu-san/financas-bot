@@ -51,6 +51,7 @@ test('card sheet telemetry classifies unified and legacy routes without exposing
     await recordCardSheetInvocation({
         sheetName: 'Lançamentos Cartão',
         operation: 'write',
+        consumer: 'whatsapp_deletion',
         actorId: 'private-user'
     }, { env });
 
@@ -59,7 +60,7 @@ test('card sheet telemetry classifies unified and legacy routes without exposing
         'card_sheet_legacy_route', 'card_sheet_unified_route'
     ]);
     assert.deepStrictEqual(entries.map(entry => entry.operation), ['read', 'write']);
-    assert.deepStrictEqual(entries.map(entry => entry.consumer), ['read_model_service', 'sheets_runtime']);
+    assert.deepStrictEqual(entries.map(entry => entry.consumer), ['read_model_service', 'whatsapp_deletion']);
     assert.deepStrictEqual(entries.map(entry => entry.write_attempted), [false, true]);
     assert.ok(entries.every(entry => entry.result === 'partial'));
     const serialized = JSON.stringify(entries);
