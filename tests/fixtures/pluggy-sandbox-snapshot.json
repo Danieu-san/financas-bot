@@ -1,0 +1,56 @@
+{
+  "mode": "sandbox",
+  "eventId": "sandbox-event-001",
+  "observedAt": "2026-07-15T12:00:00.000Z",
+  "item": {
+    "id": "sandbox-item-001",
+    "connectorId": "sandbox-connector-200",
+    "status": "UPDATED"
+  },
+  "accounts": [
+    {
+      "id": "sandbox-account-bank",
+      "type": "BANK",
+      "subtype": "CHECKING_ACCOUNT",
+      "currency": "BRL",
+      "balance": 1234.56
+    },
+    {
+      "id": "sandbox-account-card",
+      "type": "CREDIT",
+      "subtype": "CREDIT_CARD",
+      "currency": "BRL",
+      "balance": -321.09
+    }
+  ],
+  "transactions": [
+    {
+      "id": "sandbox-transaction-001",
+      "accountId": "sandbox-account-bank",
+      "description": "SANDBOX MERCADO",
+      "amount": -50.25,
+      "currency": "BRL",
+      "date": "2026-07-14T10:00:00.000Z",
+      "status": "POSTED"
+    },
+    {
+      "id": "sandbox-transaction-002",
+      "accountId": "sandbox-account-card",
+      "description": "SANDBOX ASSINATURA",
+      "amount": -19.9,
+      "currency": "BRL",
+      "date": "2026-07-14T11:00:00.000Z",
+      "status": "PENDING"
+    }
+  ],
+  "bills": [
+    {
+      "id": "sandbox-bill-001",
+      "accountId": "sandbox-account-card",
+      "dueDate": "2026-08-10T00:00:00.000Z",
+      "total": 321.09,
+      "currency": "BRL",
+      "status": "OPEN"
+    }
+  ]
+}
