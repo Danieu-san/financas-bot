@@ -805,13 +805,13 @@ Nao acumular todas as fases para um unico deploy.
 
 ## 13. Proximo passo imediato
 
-Executar a Fase `8B.8 - manutencao de cartao unified-first`:
+Executar a Fase `8B.9 - consumidores WhatsApp de cartao`:
 
-1. Separar selecao read-only de qualquer mutacao de manutencao.
-2. Caracterizar comandos, preview, confirmacao e escopo atuais.
-3. Migrar somente a descoberta da fonte por flag fail-closed.
-4. Preservar fallback, rollback e identidade exata da linha.
-5. Nao remover estrutura nem ampliar escrita nesta fatia.
+1. Separar analitico, importacao, exclusao e manutencao em lote.
+2. Mapear identidade de aba/linha e gates de confirmacao.
+3. Confirmar quais caminhos ja usam a fonte unificada pessoal.
+4. Migrar primeiro somente um consumidor read-only.
+5. Nao mudar exclusao/escrita sem fixture, limpeza e rollback.
 
-Gate 8B.7:
-`docs/qa/phase-8b7-card-scheduler-unified-first-gate-2026-07-15.md`.
+Gate 8B.8:
+`docs/qa/phase-8b8-card-user-id-validation-unified-first-gate-2026-07-15.md`.

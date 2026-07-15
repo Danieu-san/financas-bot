@@ -1069,6 +1069,26 @@ Passo a passo:
 Gate: a manutencao encontra exatamente os mesmos itens autorizados na fonte
 unificada, nao amplia escrita e retorna ao caminho anterior por flag.
 
+Resultado em 2026-07-15:
+
+- escopo corrigido para o validador read-only de startup; backfill nao migrou;
+- 3/3 escopos pessoais, 76 linhas e zero `user_id` ausente;
+- central legado vazio, fallback preservado e zero escrita;
+- codigo `1d5c55d`, local 887/887, remoto 192/192 e E2E GO;
+- proximo passo: 8B.9, caracterizacao dos consumidores WhatsApp de cartao;
+- relatorio:
+  `docs/qa/phase-8b8-card-user-id-validation-unified-first-gate-2026-07-15.md`.
+
+#### 8B.9 - Consumidores WhatsApp de cartao
+
+1. Separar analitico, importacao, exclusao e manutencao em lote.
+2. Mapear identidade de aba/linha e gates de confirmacao.
+3. Confirmar quais caminhos ja usam a fonte unificada pessoal.
+4. Migrar primeiro somente um consumidor read-only.
+5. Exigir fixture/limpeza/rollback antes de qualquer mutacao.
+
+Gate: inventario dinamico e ordem de migracao comprovados sem ampliar escrita.
+
 Politica para uso zero: no minimo 45 dias e um ciclo orcamentario completo com
 todos os pontos de entrada instrumentados. Cartoes exigem dois fechamentos ou
 pelo menos 60 dias. O fim da janela torna o item apenas candidato a 8C.

@@ -2,6 +2,20 @@
 
 Atualizado em: 2026-07-15
 
+## Fase 8B.8 - validacao user_id de cartao - GO canario - 2026-07-15
+
+- As quatro leituras de manutencao eram do validador read-only de startup, nao
+  da manutencao em lote 6A. Backfill mutavel e validacao foram separados.
+- Producao em `canary` valida 3/3 planilhas pessoais: 76 linhas de cartao e zero
+  `user_id` ausente. Central legado continua vazio.
+- Backfill manteve quatro alvos legados e `AUTO_BACKFILL...=false`; zero escrita.
+- Evidencia: unidade 192/192, suite 887/887, remoto 192/192, E2E GO.
+- Producao `1d5c55d`, PM2/WhatsApp/bot/cron/integridade/health verdes;
+  telemetria `OBSERVING`, heartbeat ativo e zero escrita.
+- Proximo passo: 8B.9, caracterizar consumidores WhatsApp de cartao antes de
+  qualquer mudanca de exclusao/importacao. Relatorio:
+  `docs/qa/phase-8b8-card-user-id-validation-unified-first-gate-2026-07-15.md`.
+
 ## Fase 8B.7 - scheduler de cartao unified-first - GO canario - 2026-07-15
 
 - Job mensal (dia 1, 08:00) lia quatro abas centrais. E2E confirmou zero linha

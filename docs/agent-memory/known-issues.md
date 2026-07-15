@@ -45,6 +45,10 @@ Atualizado em: 2026-07-15
   `CARD_SCHEDULER_UNIFIED_FIRST_MODE=off` + restart com `--update-env`.
 - A manutencao ainda registrou quatro leituras legadas no recorte 8B.7. Nao
   alterar sua selecao junto com escrita/confirmacao sem gate proprio.
+- A 8B.8 migrou somente `validateUserIdIntegrity`. O backfill mutavel continua
+  legado e desativado no startup; nao reaproveitar a flag read-only para mudar
+  ranges de escrita. Rollback: `CARD_USER_ID_VALIDATION_UNIFIED_FIRST_MODE=off`
+  + restart com `--update-env`.
 
 ## 6E classificada como capacidade test-only
 
