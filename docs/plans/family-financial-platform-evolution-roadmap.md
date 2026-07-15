@@ -805,15 +805,13 @@ Nao acumular todas as fases para um unico deploy.
 
 ## 13. Proximo passo imediato
 
-Executar a Fase `8B.4 - cartoes e modulos em quarentena`:
+Executar a Fase `8B.5 - paridade e plano de migracao dos consumidores de cartao`:
 
-1. Mapear abas logicas de cartao em runtime, templates, formulas, jobs,
-   importacao, exportacao e recuperacao.
-2. Instrumentar leitura/escrita sem persistir planilha, cartao ou valor.
-3. Auditar imports dinamicos e scripts dos modulos em quarentena.
-4. Classificar cada item como runtime, QA, operacao, recuperacao, manter,
-   migrar, quarentena ou candidato futuro.
-5. Iniciar a janela; nenhuma aba ou modulo sera removido nesta fatia.
+1. Atribuir cada leitura legada ao consumidor abstrato sem identidade/dados.
+2. Comparar snapshots normalizados unificado/legado somente em leitura.
+3. Registrar lacunas de cobertura, formulas, historico e recuperacao.
+4. Definir ordem de migracao e rollback por consumidor.
+5. Nao migrar escrita nem remover estrutura nesta fatia.
 
-Gate 8B.3:
-`docs/qa/phase-8b3-financial-undo-product-decision-gate-2026-07-15.md`.
+Gate 8B.4:
+`docs/qa/phase-8b4-card-sheet-and-quarantine-characterization-gate-2026-07-15.md`.

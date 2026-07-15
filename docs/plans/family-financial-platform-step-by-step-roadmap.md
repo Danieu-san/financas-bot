@@ -957,6 +957,43 @@ Resultado em 2026-07-15:
 - relatorio:
   `docs/qa/phase-8b3-financial-undo-product-decision-gate-2026-07-15.md`.
 
+#### 8B.4 - Caracterizacao de cartoes e modulos em quarentena
+
+Passo a passo:
+
+1. Mapear abas logicas em runtime, templates, formulas, jobs e recuperacao.
+2. Medir read/write por rota sem persistir aba, cartao ou dado financeiro.
+3. Auditar imports e scripts dos modulos em quarentena.
+4. Classificar cada item sem exclusao.
+5. Iniciar observacao especifica de dois fechamentos ou 60 dias.
+
+Gate: telemetria duravel/privada ativa, consumidores classificados, producao
+saudavel e nenhuma remocao.
+
+Resultado em 2026-07-15:
+
+- `GO de observacao` e `NO-GO para remocao`;
+- codigo `a150f55`, remoto 11/11, PM2/WhatsApp/cron/health verdes;
+- relatorio `OBSERVING`: heartbeat 1, zero linha invalida, 1 leitura unificada,
+  8 legadas e zero escrita;
+- modulos sem runtime estatico ficaram em quarentena/QA;
+- proximo passo: 8B.5, paridade read-only e plano de migracao de cartoes;
+- relatorio:
+  `docs/qa/phase-8b4-card-sheet-and-quarantine-characterization-gate-2026-07-15.md`.
+
+#### 8B.5 - Paridade e plano de migracao dos consumidores de cartao
+
+Passo a passo:
+
+1. Atribuir cada leitura legada ao consumidor abstrato, sem identidade/dados.
+2. Comparar snapshots normalizados unificado/legado em modo read-only.
+3. Registrar lacunas de cobertura, formulas, historico e recuperacao.
+4. Definir ordem de migracao e flag de rollback por consumidor.
+5. Nao migrar escrita nem remover estrutura nesta fatia.
+
+Gate: cada consumidor possui destino, paridade ou lacuna explicita, bateria de
+caracterizacao e rollback executavel antes do primeiro canario.
+
 Politica para uso zero: no minimo 45 dias e um ciclo orcamentario completo com
 todos os pontos de entrada instrumentados. Cartoes exigem dois fechamentos ou
 pelo menos 60 dias. O fim da janela torna o item apenas candidato a 8C.

@@ -2,6 +2,25 @@
 
 Atualizado em: 2026-07-15
 
+## Fase 8B.4 - cartoes e modulos em quarentena - GO de observacao - 2026-07-15
+
+- Acesso central a Google Sheets agora mede rotas logicas unificada/legada de
+  cartao para read/append/update/delete sem persistir nome de aba, cartao, pessoa
+  ou dado financeiro.
+- Relatorio agregado separa leituras/escritas e nunca publica refs. Resultado
+  inicial de producao: `OBSERVING`, heartbeat 1, zero linha invalida, 1 leitura
+  unificada, 8 legadas e zero escrita.
+- Evidencia local: telemetria/relatorios 11/11, consumidores Google 239/239,
+  pretests 6A-6E verdes e baseline 861/861.
+- Producao no commit `a150f55`: remoto 11/11, arquivo 600, PM2/WhatsApp/cron e
+  health verdes, `APP_COMMIT_SHA` correto.
+- Rotas legadas tem uso real e permanecem. `debtUpdateHandler`,
+  `debtAvalancheService` e `financialHealthService` ficam em quarentena/QA;
+  nenhum item foi removido.
+- Proximo passo: 8B.5, paridade read-only e plano de migracao por consumidor de
+  cartao, mantendo fallback. Relatorio:
+  `docs/qa/phase-8b4-card-sheet-and-quarantine-characterization-gate-2026-07-15.md`.
+
 ## Fase 8B.3 - decisao de produto sobre undo 6E - GO test-only - 2026-07-15
 
 - Auditoria encontrou `financialUndoService` somente em teste, E2E e

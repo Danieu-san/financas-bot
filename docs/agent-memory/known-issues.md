@@ -1,6 +1,6 @@
 # Problemas conhecidos e armadilhas
 
-Atualizado em: 2026-07-14
+Atualizado em: 2026-07-15
 
 ## Fase 8A: remocao de legado bloqueada
 
@@ -19,6 +19,13 @@ Atualizado em: 2026-07-14
 - A janela duravel iniciou em 2026-07-14. Nao antecipar conclusao antes de 45
   dias + ciclo completo; cartoes exigem dois fechamentos ou pelo menos 60 dias.
   Mesmo depois, o item vira candidato a 8C, nao remocao automatica.
+- A 8B.4 registrou em producao 1 leitura unificada e 8 leituras legadas logo
+  apos restart, com zero escrita. As rotas/abas antigas de cartao sao
+  dependencias ativas; nao remover, renomear ou parar de criar estrutura sem
+  migracao por consumidor, paridade e rollback.
+- `debtUpdateHandler`, `debtAvalancheService` e `financialHealthService` nao tem
+  consumidor produtivo estatico confirmado, mas sustentam testes/capacidades.
+  Permanecem em quarentena/QA; ausencia de import runtime nao autoriza exclusao.
 
 ## 6E classificada como capacidade test-only
 
