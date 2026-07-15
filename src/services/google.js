@@ -43,7 +43,8 @@ function runWithUserSheetContext(userOrContext, fn) {
     const displayName = String(userOrContext?.display_name || userOrContext?.displayName || '').trim();
     const messageId = String(userOrContext?.message_id || userOrContext?.messageId || '').trim();
     const writeLedger = userOrContext?.writeLedger || null;
-    return sheetContext.run({ userId, displayName, messageId, writeLedger, writeSequence: 0 }, fn);
+    const telemetryConsumer = String(userOrContext?.telemetryConsumer || '').trim();
+    return sheetContext.run({ userId, displayName, messageId, writeLedger, telemetryConsumer, writeSequence: 0 }, fn);
 }
 
 function getCurrentSheetContext(options = {}) {
@@ -52,7 +53,8 @@ function getCurrentSheetContext(options = {}) {
     if (explicitUserId) {
         return {
             userId: explicitUserId,
-            displayName: String(options.displayName || '').trim()
+            displayName: String(options.displayName || '').trim(),
+            telemetryConsumer: String(options.telemetryConsumer || '').trim()
         };
     }
     return sheetContext.getStore() || {};
@@ -758,6 +760,7 @@ async function appendRowToSheet(sheetName, row, options = {}) {
     await recordCardSheetInvocation({
         sheetName,
         operation: 'write',
+        consumer: options.telemetryConsumer || writeContext.telemetryConsumer,
         actorId: target.userId || options.userId || writeContext.userId,
         sessionId: messageId
     });
@@ -1081,6 +1084,7 @@ async function readDataFromSheet(range, options = {}) {
     await recordCardSheetInvocation({
         range,
         operation: 'read',
+        consumer: options.telemetryConsumer || readContext.telemetryConsumer,
         actorId: target.userId || options.userId || readContext.userId,
         sessionId: options.messageId || readContext.messageId
     });
@@ -1143,6 +1147,7 @@ async function updateRowInSheet(range, rowData, options = {}) {
     await recordCardSheetInvocation({
         range,
         operation: 'write',
+        consumer: options.telemetryConsumer || writeContext.telemetryConsumer,
         actorId: target.userId || options.userId || writeContext.userId,
         sessionId: messageId
     });
@@ -1240,6 +1245,16 @@ async function updateRowInSheet(range, rowData, options = {}) {
 
 async function batchUpdateRowsInSheet(data, options = {}) {
     const target = await resolveSpreadsheetTarget(options);
+    const batchContext = sheetContext.getStore() || {};
+    for (const item of (Array.isArray(data) ? data : [])) {
+        await recordCardSheetInvocation({
+            range: item?.range,
+            operation: 'write',
+            consumer: options.telemetryConsumer || batchContext.telemetryConsumer,
+            actorId: target.userId || options.userId || batchContext.userId,
+            sessionId: options.messageId || batchContext.messageId
+        });
+    }
     try {
         const response = await runSheetsOperation('batchUpdateRowsInSheet', target, () => target.sheetsClient.spreadsheets.values.batchUpdate({
             spreadsheetId: target.spreadsheetId,
@@ -1985,6 +2000,7 @@ async function deleteRowsByIndices(sheetName, rowIndices, options = {}) {
         await recordCardSheetInvocation({
             sheetName,
             operation: 'write',
+            consumer: options.telemetryConsumer || deleteContext.telemetryConsumer,
             actorId: target.userId || options.userId || deleteContext.userId,
             sessionId: options.messageId || deleteContext.messageId
         });

@@ -9015,7 +9015,7 @@ async function handleMessage(msg) {
         return;
     }
 
-    return runWithUserSheetContext({ ...activeUser, messageId }, async () => {
+    return runWithUserSheetContext({ ...activeUser, messageId, telemetryConsumer: 'message_handler' }, async () => {
     const userId = activeUser.user_id;
     const pessoa = activeUser.display_name || userMap[senderId] || 'Usuário';
 
@@ -10914,7 +10914,10 @@ async function handleMessage(msg) {
                         const dashboardData = usePersonalSpreadsheet
                             ? await timeStep(
                                 'resumo.getUserSheetDashboardData',
-                                () => getUserSheetDashboardData(userId, period),
+                                () => getUserSheetDashboardData(userId, {
+                                    ...period,
+                                    telemetryConsumer: 'message_handler'
+                                }),
                                 perfContext
                             )
                             : null;

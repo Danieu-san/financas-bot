@@ -17,7 +17,7 @@ const ALLOWED = Object.freeze({
         'scheduler', 'read_model_service', 'canonical_canary_router',
         'financial_agent', 'message_handler', 'query_engine', 'dashboard_v1',
         'dashboard_v2', 'phase6_handler', 'projected_plan_runtime',
-        'sheets_runtime'
+        'sheets_runtime', 'card_parity_audit', 'maintenance_service'
     ]),
     handler: new Set([
         'operational_heartbeat', 'read_model_service', 'canonical_canary_router',

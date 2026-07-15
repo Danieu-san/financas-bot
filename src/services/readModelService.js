@@ -557,8 +557,13 @@ async function rebuildReadModelFromSheets() {
         readDataFromSheet('Contas Financeiras!A:I', { suppressMissingSheetError: true }),
         readDataFromSheet('UserSettings!A:S'),
         readDataFromSheet('Cartões!A:G', { suppressMissingSheetError: true }),
-        readDataFromSheet('Lançamentos Cartão!A:J', { suppressMissingSheetError: true }),
-        ...cardSheetNames.map((sheetName) => readDataFromSheet(`${sheetName}!A:G`))
+        readDataFromSheet('Lançamentos Cartão!A:J', {
+            suppressMissingSheetError: true,
+            telemetryConsumer: 'read_model_service'
+        }),
+        ...cardSheetNames.map((sheetName) => readDataFromSheet(`${sheetName}!A:G`, {
+            telemetryConsumer: 'read_model_service'
+        }))
     ];
 
     const allData = await Promise.all(sheetReads);

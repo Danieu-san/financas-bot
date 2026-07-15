@@ -8,6 +8,25 @@ const {
     classifyCardSheetRoute,
     recordCardSheetInvocation
 } = require('../src/telemetry/cardSheetUsageTelemetry');
+const {
+    runWithUserSheetContext,
+    getCurrentSheetContext
+} = require('../src/services/google');
+
+test('google sheet context propagates only the allowlisted consumer label to nested calls', async () => {
+    await runWithUserSheetContext({
+        userId: 'private-user',
+        telemetryConsumer: 'message_handler'
+    }, async () => {
+        const context = getCurrentSheetContext();
+        assert.strictEqual(context.telemetryConsumer, 'message_handler');
+    });
+    const explicit = getCurrentSheetContext({
+        userId: 'private-user',
+        telemetryConsumer: 'read_model_service'
+    });
+    assert.strictEqual(explicit.telemetryConsumer, 'read_model_service');
+});
 
 test('card sheet telemetry classifies unified and legacy routes without exposing sheet names', async () => {
     assert.strictEqual(classifyCardSheetRoute('Lançamentos Cartão!A:J'), 'card_sheet_unified_route');
@@ -25,6 +44,7 @@ test('card sheet telemetry classifies unified and legacy routes without exposing
     await recordCardSheetInvocation({
         range: "'Cartão Banco Privado - Pessoa'!A:G",
         operation: 'read',
+        consumer: 'read_model_service',
         actorId: 'private-user',
         sessionId: 'private-session'
     }, { env });
@@ -39,6 +59,7 @@ test('card sheet telemetry classifies unified and legacy routes without exposing
         'card_sheet_legacy_route', 'card_sheet_unified_route'
     ]);
     assert.deepStrictEqual(entries.map(entry => entry.operation), ['read', 'write']);
+    assert.deepStrictEqual(entries.map(entry => entry.consumer), ['read_model_service', 'sheets_runtime']);
     assert.deepStrictEqual(entries.map(entry => entry.write_attempted), [false, true]);
     assert.ok(entries.every(entry => entry.result === 'partial'));
     const serialized = JSON.stringify(entries);

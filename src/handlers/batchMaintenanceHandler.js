@@ -188,7 +188,9 @@ async function startBatchMaintenance(msg, activeUser = {}, overrides = {}) {
     try {
         const sheetDataByName = {};
         for (const sheetName of ['Saídas', 'Lançamentos Cartão']) {
-            sheetDataByName[sheetName] = await deps.readDataFromSheet(sheetName);
+            sheetDataByName[sheetName] = await deps.readDataFromSheet(sheetName, {
+                telemetryConsumer: 'phase6_handler'
+            });
         }
         const selected = selectBatchCandidates({
             sheetDataByName,
@@ -271,7 +273,9 @@ async function confirmBatchMaintenance(msg, activeUser = {}, overrides = {}) {
     try {
         const currentSheets = {};
         for (const sheetName of Object.keys(preview.countsBySheet)) {
-            currentSheets[sheetName] = await deps.readDataFromSheet(sheetName);
+            currentSheets[sheetName] = await deps.readDataFromSheet(sheetName, {
+                telemetryConsumer: 'phase6_handler'
+            });
         }
         const writeLedger = deps.getWriteLedger();
         const result = await executeBatchMaintenance({
@@ -286,6 +290,7 @@ async function confirmBatchMaintenance(msg, activeUser = {}, overrides = {}) {
                 const rowNumber = rowIndex + 1;
                 const range = `${quoteSheetName(sheetName)}!A${rowNumber}:${columnLetter(row.length - 1)}${rowNumber}`;
                 const response = await deps.updateRowInSheet(range, row, {
+                    telemetryConsumer: 'phase6_handler',
                     operationKey,
                     userId: preview.userId,
                     messageId: preview.messageId,

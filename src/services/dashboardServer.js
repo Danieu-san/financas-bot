@@ -852,7 +852,7 @@ async function handleApiSummary(reqUrl, res) {
         if (await dashboardAuthFailedForScope(dataUserId, res, { token, payload, reqUrl })) return;
         await recordDashboardApiAccess({ token, payload, dataUserId, reqUrl });
         const personal = dataUserId === payload.uid
-            ? await getUserSheetDashboardData(dataUserId, { month, year })
+            ? await getUserSheetDashboardData(dataUserId, { month, year, telemetryConsumer: 'dashboard_v1' })
             : null;
         if (personal) {
             metrics.increment('dashboard.api.summary.success');
@@ -895,7 +895,7 @@ async function handleApiV2Summary(reqUrl, res) {
         await recordDashboardApiAccess({ event: 'api_v2_access', token, payload, dataUserId, reqUrl });
         const month = reqUrl.searchParams.get('month');
         const year = reqUrl.searchParams.get('year');
-        const personal = await getUserSheetDashboardData(dataUserId, { month, year });
+        const personal = await getUserSheetDashboardData(dataUserId, { month, year, telemetryConsumer: 'dashboard_v2' });
         if (!personal) await syncReadModelIfNeeded();
         const snapshot = personal || getDashboardSqlData(dataUserId, { month, year }) || getDashboardSnapshot(dataUserId, { month, year }) || {};
         const configuredScope = getFinancialScopeUserIds(dataUserId);
@@ -938,7 +938,8 @@ async function withAuth(reqUrl, res, cb) {
         const personal = dataUserId === payload.uid
             ? await getUserSheetDashboardData(dataUserId, {
                 month: reqUrl.searchParams.get('month'),
-                year: reqUrl.searchParams.get('year')
+                year: reqUrl.searchParams.get('year'),
+                telemetryConsumer: 'dashboard_v1'
             })
             : null;
         if (personal) {

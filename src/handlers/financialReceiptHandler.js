@@ -60,7 +60,11 @@ function senderId(msg = {}) { return String(msg.author || msg.from || '').trim()
 async function resolveEvent(userId, kind, deps) {
     const spec = EVENT_SPECS[kind];
     const end = kind === 'expense' ? 'K' : 'J';
-    const rows = await deps.readDataFromSheet(`${spec.sheetName}!A:${end}`, { userId, suppressMissingSheetError: true });
+    const rows = await deps.readDataFromSheet(`${spec.sheetName}!A:${end}`, {
+        userId,
+        suppressMissingSheetError: true,
+        telemetryConsumer: 'phase6_handler'
+    });
     return findLatestFinancialEvent({ sheetDataByName: { [spec.sheetName]: rows || [] }, userId, kind });
 }
 

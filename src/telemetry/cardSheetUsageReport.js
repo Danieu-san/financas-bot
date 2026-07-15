@@ -4,6 +4,11 @@ function emptyRouteSummary() {
     return { events: 0, reads: 0, writes: 0 };
 }
 
+const RUNTIME_CONSUMERS = new Set([
+    'sheets_runtime', 'read_model_service', 'scheduler', 'message_handler',
+    'dashboard_v1', 'dashboard_v2', 'phase6_handler', 'maintenance_service'
+]);
+
 function validSince(value) {
     if (!value) return 0;
     const timestamp = Date.parse(value);
@@ -17,6 +22,7 @@ function summarizeCardSheetUsageEntries(entries = [], options = {}) {
         unified: emptyRouteSummary(),
         legacy: emptyRouteSummary()
     };
+    const consumers = {};
     let heartbeats = 0;
     let consideredEvents = 0;
 
@@ -29,7 +35,7 @@ function summarizeCardSheetUsageEntries(entries = [], options = {}) {
             heartbeats += 1;
             continue;
         }
-        if (entry.consumer !== 'sheets_runtime' || entry.route !== 'card_sheet_access') continue;
+        if (!RUNTIME_CONSUMERS.has(entry.consumer) || entry.route !== 'card_sheet_access') continue;
         const route = entry.reason_code === 'card_sheet_unified_route'
             ? routes.unified
             : entry.reason_code === 'card_sheet_legacy_route'
@@ -39,11 +45,15 @@ function summarizeCardSheetUsageEntries(entries = [], options = {}) {
         route.events += 1;
         if (entry.operation === 'read') route.reads += 1;
         if (entry.operation === 'write') route.writes += 1;
+        if (!consumers[entry.consumer]) consumers[entry.consumer] = emptyRouteSummary();
+        consumers[entry.consumer].events += 1;
+        if (entry.operation === 'read') consumers[entry.consumer].reads += 1;
+        if (entry.operation === 'write') consumers[entry.consumer].writes += 1;
     }
 
     const active = heartbeats > 0;
     return {
-        schema_version: 1,
+        schema_version: 2,
         generated_at: now.toISOString(),
         since: sinceMs ? new Date(sinceMs).toISOString() : '',
         verdict: active ? 'OBSERVING' : 'NO_GO_INSTRUMENTATION',
@@ -53,6 +63,7 @@ function summarizeCardSheetUsageEntries(entries = [], options = {}) {
             considered_events: consideredEvents
         },
         routes,
+        consumers,
         removal_candidate: false
     };
 }

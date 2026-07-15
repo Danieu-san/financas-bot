@@ -562,7 +562,7 @@ async function getDailyGoalDashboardSettings(userId) {
     return { settings: await getUserSettingsByUserId(userId), ownerUserId: userId };
 }
 
-async function getUserSheetDashboardData(userId, { month, year } = {}) {
+async function getUserSheetDashboardData(userId, { month, year, telemetryConsumer = 'dashboard_v1' } = {}) {
     const safeUserId = String(userId || '').trim();
     if (!safeUserId || !(await hasUserSpreadsheetContext({ userId: safeUserId }))) return null;
 
@@ -572,7 +572,7 @@ async function getUserSheetDashboardData(userId, { month, year } = {}) {
         String(user.display_name || user.phone_e164 || 'Membro').trim()
     ]));
 
-    return runWithUserSheetContext({ userId: safeUserId }, async () => {
+    return runWithUserSheetContext({ userId: safeUserId, telemetryConsumer }, async () => {
         const financialScopeUserIds = getFinancialScopeUserIds(safeUserId);
         const period = normalizePeriod({ month, year });
         const dailyGoalConfig = await getDailyGoalDashboardSettings(safeUserId);

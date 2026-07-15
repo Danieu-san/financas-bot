@@ -9,6 +9,8 @@ test('card sheet report aggregates only logical routes and never exposes referen
         { logged_at: '2026-07-15T10:01:00.000Z', consumer: 'sheets_runtime', route: 'card_sheet_access', reason_code: 'card_sheet_unified_route', operation: 'read', actor_ref: 'private-actor' },
         { logged_at: '2026-07-15T10:02:00.000Z', consumer: 'sheets_runtime', route: 'card_sheet_access', reason_code: 'card_sheet_unified_route', operation: 'write', session_ref: 'private-session' },
         { logged_at: '2026-07-15T10:03:00.000Z', consumer: 'sheets_runtime', route: 'card_sheet_access', reason_code: 'card_sheet_legacy_route', operation: 'read', actor_ref: 'other-actor' },
+        { logged_at: '2026-07-15T10:03:30.000Z', consumer: 'read_model_service', route: 'card_sheet_access', reason_code: 'card_sheet_legacy_route', operation: 'read' },
+        { logged_at: '2026-07-15T10:03:40.000Z', consumer: 'card_parity_audit', route: 'card_sheet_access', reason_code: 'card_sheet_legacy_route', operation: 'read' },
         { logged_at: '2026-07-15T10:04:00.000Z', consumer: 'dashboard_v1', route: 'dashboard_api_v1', reason_code: 'dashboard_api_request', operation: 'open' }
     ];
     const report = summarizeCardSheetUsageEntries(entries, {
@@ -18,7 +20,9 @@ test('card sheet report aggregates only logical routes and never exposes referen
 
     assert.strictEqual(report.verdict, 'OBSERVING');
     assert.deepStrictEqual(report.routes.unified, { events: 2, reads: 1, writes: 1 });
-    assert.deepStrictEqual(report.routes.legacy, { events: 1, reads: 1, writes: 0 });
+    assert.deepStrictEqual(report.routes.legacy, { events: 2, reads: 2, writes: 0 });
+    assert.deepStrictEqual(report.consumers.read_model_service, { events: 1, reads: 1, writes: 0 });
+    assert.strictEqual(report.consumers.card_parity_audit, undefined);
     assert.strictEqual(report.removal_candidate, false);
     assert.doesNotMatch(JSON.stringify(report), /private|other-actor/);
 });

@@ -426,7 +426,9 @@ async function sendMonthlyReports() {
         const saidasData = await readDataFromSheet('Saídas!A:J');
         const entradasData = await readDataFromSheet('Entradas!A:I');
         const cardSheetNames = Object.values(creditCardConfig).map(c => c.sheetName);
-        const cardData = await Promise.all(cardSheetNames.map(n => readDataFromSheet(`${n}!A:G`)));
+        const cardData = await Promise.all(cardSheetNames.map(n => readDataFromSheet(`${n}!A:G`, {
+            telemetryConsumer: 'scheduler'
+        })));
 
         const now = getNow();
         const reportDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);

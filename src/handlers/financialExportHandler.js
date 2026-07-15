@@ -121,7 +121,11 @@ async function handleFinancialExportCommand(msg, user = {}, overrides = {}) {
     }
 
     try {
-        const options = { userId, suppressMissingSheetError: true };
+        const options = {
+            userId,
+            suppressMissingSheetError: true,
+            telemetryConsumer: 'phase6_handler'
+        };
         const [expenses, income, cards] = await Promise.all([
             deps.readDataFromSheet('Saídas!A:K', options),
             deps.readDataFromSheet('Entradas!A:J', options),

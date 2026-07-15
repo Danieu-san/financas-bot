@@ -118,7 +118,9 @@ async function validateUserIdIntegrity() {
     };
 
     for (const config of tracked) {
-        const rows = await readDataFromSheet(`${config.sheetName}!${config.range}`);
+        const rows = await readDataFromSheet(`${config.sheetName}!${config.range}`, {
+            telemetryConsumer: 'maintenance_service'
+        });
         let sheetMissing = 0;
         let sheetRows = 0;
         if (rows && rows.length > 1) {
@@ -155,7 +157,9 @@ async function backfillMissingUserIds({ allowSingleUserFallback = false } = {}) 
     };
 
     for (const config of tracked) {
-        const rows = await readDataFromSheet(`${config.sheetName}!${config.range}`);
+        const rows = await readDataFromSheet(`${config.sheetName}!${config.range}`, {
+            telemetryConsumer: 'maintenance_service'
+        });
         let sheetUpdated = 0;
         let sheetUnresolved = 0;
         const pendingBatch = [];
@@ -194,11 +198,15 @@ async function backfillMissingUserIds({ allowSingleUserFallback = false } = {}) 
 
         if (pendingBatch.length > 0) {
             try {
-                await batchUpdateRowsInSheet(pendingBatch);
+                await batchUpdateRowsInSheet(pendingBatch, {
+                    telemetryConsumer: 'maintenance_service'
+                });
             } catch (error) {
                 // fallback defensivo para não perder todo o lote em caso de erro transitório
                 for (const item of pendingBatch) {
-                    await updateRowInSheet(item.range, item.values[0]);
+                    await updateRowInSheet(item.range, item.values[0], {
+                        telemetryConsumer: 'maintenance_service'
+                    });
                 }
             }
         }

@@ -24,7 +24,7 @@ async function recordCardSheetInvocation(input = {}, options = {}) {
     return recordLegacyUsageEvent({
         event: 'usage',
         surface: 'cards',
-        consumer: 'sheets_runtime',
+        consumer: input.consumer || 'sheets_runtime',
         handler: 'google_sheets',
         route: 'card_sheet_access',
         domain: 'cards',
