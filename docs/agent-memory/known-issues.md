@@ -2,6 +2,22 @@
 
 ## Open Finance read-only
 
+- O rollout atual cobre quatro fontes separadas no WhatsApp, mas continua
+  estritamente read-only. `OPEN_FINANCE_WRITE_MODE=off` nao deve ser alterado.
+- O runtime nao reconcilia o evento novo com read-model, ledger ou Sheets antes
+  de alertar. A idempotencia atual evita repetir o mesmo evento do Pluggy, mas
+  uma compra ja lancada manualmente no bot ainda pode gerar alerta.
+- O reconciliador 9D existe apenas no preview shadow/offline e nao esta ligado
+  ao `openFinanceCanaryRuntime`. Nao declarar como entregue o fluxo
+  `matched -> silencio / new -> proposta / possible_duplicate -> revisao`.
+- A referencia de dez caracteres exibida no alerta identifica a entrega no
+  outbox. Ela nao confirma nem salva a movimentacao financeira.
+- Uma futura proposta de salvamento deve falhar fechada quando o read-model
+  estiver ausente/stale, revalidar duplicidade antes da escrita, usar operation
+  key estavel e exigir confirmacao explicita do destinatario autorizado.
+- Compra e estorno nao estao pareados hoje. Compra ainda nao salva seguida de
+  estorno integral normalmente deve cancelar a proposta; nao criar uma despesa
+  e uma renda artificiais. Estorno ambiguo fica para revisao.
 - A rota gratuita nao atualiza o banco quando o FinancasBot faz polling. Para
   disponibilidade imediata, o usuario ainda precisa atualizar o Item no Meu
   Pluggy; o ciclo automatico apenas le o estado ja atualizado.

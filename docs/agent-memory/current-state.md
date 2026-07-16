@@ -2,6 +2,44 @@
 
 Atualizado em: 2026-07-16
 
+## Rollout familiar completo de alertas e promocoes seguras - 2026-07-16
+
+- Alertas read-only agora cobrem as quatro fontes separadas:
+  `daniel_nubank`, `thais_nubank`, `cristina_nubank` e `thais_itau`, com cutoff
+  comum em `2026-07-16T19:24:49.904Z`. Historico anterior ao cutoff nao pode
+  ser reenviado.
+- Smoke real: uma compra nova de Cristina Nubank chegou uma unica vez a Thais,
+  com referencia `08aa505fb3` e texto explicito de zero escrita. O transporte
+  nao devolveu ID do provedor; o outbox aplicou `accepted_unconfirmed`, nao fez
+  retry e a confirmacao humana foi registrada depois como
+  `delivered_confirmed`.
+- Estado final do outbox: total 4, bloqueado 1, `legacy_sent` 2,
+  `delivered_confirmed` 1, pendente 0, in-flight 0 e
+  `accepted_unconfirmed` 0. Nenhuma escrita financeira nem reenvio foi feito
+  pela confirmacao.
+- Promovidos depois de gates separados: `FINANCIAL_AGENT_MODE=answer`,
+  `FINANCIAL_FILE_IO_MODE=on`, `FINANCIAL_RECEIPTS_MODE=on` e
+  `FINANCIAL_DOCUMENT_OCR_MODE=on`. A manutencao em lote permanece
+  `canary`, agora escopada aos dois membros.
+- Preservados por risco/gate insuficiente: Interpretation Reliability em
+  `shadow`, ledger e planos em `shadow/canary`, Command Planner em `canary`,
+  undo `off`, rotas de cartao em `canary`, Dashboard v1, fallbacks e todo o
+  legado observado na Fase 8.
+- Lacuna funcional confirmada: o runtime Open Finance deduplica apenas eventos
+  do provedor. Ele ainda nao consulta read-model/ledger/Sheets antes do alerta
+  e nao oferece salvar a movimentacao. O reconciliador 9D continua offline em
+  shadow. Fluxo alvo: `matched` silencioso, `possible_duplicate` para revisao e
+  `new` com proposta preenchida e confirmacao explicita; nenhuma escrita
+  automatica foi autorizada.
+- Evidencia: suite completa `985/985`; Open Finance local/remoto `92/92`;
+  Financial Agent remoto `87/87`; 6B `41/41`, 6C `8/8`, 6D `5/5`;
+  health `ok=true/sqlite=true`, PM2 online, WhatsApp pronto e ciclo
+  pos-restart com zero entrega/retry/escrita.
+- Runtime funcional `5f9e707e14da4af1dd913dc09221d923e17ee45b`; rollback de
+  configuracao em `.env.pre-safe-promotions-5f9e707-20260716T1955Z`.
+- Gate:
+  `docs/qa/phase-9-post-rollout-four-source-and-safe-promotions-gate-2026-07-16.md`.
+
 ## Fase 8 acelerada Dia 0 + canario Open Finance multi-fonte - 2026-07-16
 
 - Auditoria de entrypoints cobriu runtime, testes, scripts de `package.json`,

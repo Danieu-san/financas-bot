@@ -1422,5 +1422,28 @@ Resultado operacional pos-9F em 2026-07-16:
 - gate:
   `docs/qa/phase-8-day0-and-open-finance-multisource-gate-2026-07-16.md`.
 
+Resultado operacional familiar completo em 2026-07-16:
+
+- alertas read-only foram expandidos, com cutoff, para Daniel Nubank, Thais
+  Nubank, Cristina Nubank e Thais Itau;
+- compra real de Cristina chegou uma unica vez a Thais; ack ambiguo permaneceu
+  at-most-once e foi fechado pela referencia humana, sem reenvio ou escrita;
+- Financial Agent foi promovido para `answer`; importacao/exportacao,
+  comprovantes e OCR foram promovidos para `on`; manutencao em lote continuou
+  `canary` e foi ampliada somente aos dois usuarios do casal;
+- Interpretation Reliability, ledger, planos, Command Planner, cartoes,
+  dashboard v1, undo, fallbacks e legado da Fase 8 permaneceram sem promocao ou
+  remocao;
+- suite completa `985/985`, Open Finance local/remoto `92/92`, Financial Agent
+  remoto `87/87`, 6B `41/41`, 6C `8/8`, 6D `5/5`; producao saudavel e zero
+  escrita Open Finance;
+- foi confirmada uma lacuna: o alerta ainda nao consulta os lancamentos
+  internos nem oferece salvar. Isso e trabalho novo e deve ser feito em fatia
+  reversivel: reconciliacao read-only no runtime antes do outbox; depois,
+  proposta canario com preview e confirmacao. `OPEN_FINANCE_WRITE_MODE` continua
+  `off`;
+- gate:
+  `docs/qa/phase-9-post-rollout-four-source-and-safe-promotions-gate-2026-07-16.md`.
+
 Nao ha nova fase estrutural autorizada depois da 9F. O trabalho ativo volta a
 ser observacao da Fase 8 e operacao/manutencao do produto.
