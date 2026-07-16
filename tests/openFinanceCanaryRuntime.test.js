@@ -47,7 +47,8 @@ test('9E.1 runtime sends only purchase and refund and quarantines unrelated inco
         OPEN_FINANCE_LIVE_STAGING_SECRET_FILE: files.secret, OPEN_FINANCE_LIVE_STAGING_DB: files.vault,
         OPEN_FINANCE_BASELINE_DB: files.baseline, OPEN_FINANCE_OUTBOX_DB: files.outbox, OPEN_FINANCE_ALERT_MAX_PER_RUN: '3' };
     const result = await runOpenFinanceCanaryCycle({ client: { sendMessage: async (to, text) => { messages.push({ to, text }); return { id: `message-${messages.length}` }; } }, env,
-        dependencies: { PluggyReadOnlyClient: FakeApi, userMap: { 'daniel@c.us': 'Daniel' } } });
+        dependencies: { PluggyReadOnlyClient: FakeApi,
+            getActiveUsers: async () => [{ display_name: 'Daniel da Silva', whatsapp_id: 'daniel@c.us', status: 'ACTIVE' }] } });
     assert.equal(result.outcome, 'GO'); assert.equal(result.new_observations, 3);
     assert.deepEqual(result.deliveries, ['sent', 'sent', 'idle']); assert.equal(messages.length, 2);
     assert.ok(messages.every(message => message.to === 'daniel@c.us' && message.text.includes('nada foi salvo')));
@@ -55,7 +56,9 @@ test('9E.1 runtime sends only purchase and refund and quarantines unrelated inco
 });
 
 test('9E.1 recipient resolver fails closed for absent or ambiguous owner', () => {
-    assert.equal(resolveWhatsAppRecipient('daniel', { id: 'Daniel' }), 'id');
-    assert.throws(() => resolveWhatsAppRecipient('daniel', {}), /scope_unavailable/);
-    assert.throws(() => resolveWhatsAppRecipient('daniel', { one: 'Daniel', two: 'Dániel' }), /scope_unavailable/);
+    assert.equal(resolveWhatsAppRecipient('daniel', [{ display_name: 'Daniel da Silva', whatsapp_id: 'id' }]), 'id');
+    assert.throws(() => resolveWhatsAppRecipient('daniel', []), /scope_unavailable/);
+    assert.throws(() => resolveWhatsAppRecipient('daniel', [
+        { display_name: 'Daniel da Silva', whatsapp_id: 'one' }, { display_name: 'Dániel Souza', whatsapp_id: 'two' }
+    ]), /scope_unavailable/);
 });

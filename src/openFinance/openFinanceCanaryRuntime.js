@@ -7,7 +7,7 @@ const { classifyOpenFinanceLifecycle } = require('./openFinanceLifecycleClassifi
 const { OpenFinanceAlertOutbox } = require('./openFinanceAlertOutbox');
 const { buildOpenFinanceRolloutPolicy } = require('./openFinanceRolloutPolicy');
 const { deliverOneOpenFinanceCanary } = require('./openFinanceWhatsappCanaryDelivery');
-const { userMap } = require('../config/constants');
+const { getActiveUsers } = require('../services/userService');
 
 function readJson(file, reason) {
     if (!file || !fs.existsSync(file)) throw new Error(reason);
@@ -18,11 +18,11 @@ function normalizePerson(value) {
     return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 }
 
-function resolveWhatsAppRecipient(owner, map = userMap) {
+function resolveWhatsAppRecipient(owner, users = []) {
     const expected = normalizePerson(owner);
-    const matches = Object.entries(map || {}).filter(([, name]) => normalizePerson(name) === expected);
+    const matches = (users || []).filter(user => normalizePerson(user.display_name).split(' ')[0] === expected && user.whatsapp_id);
     if (matches.length !== 1) throw new Error('open_finance_recipient_scope_unavailable');
-    return matches[0][0];
+    return matches[0].whatsapp_id;
 }
 
 async function runOpenFinanceCanaryCycle({ client, env = process.env, dependencies = {} } = {}) {
@@ -57,11 +57,12 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
         const quarantined = outbox.quarantineNonAlertable();
         const deliveries = [];
         if (policy.can_send_whatsapp) {
+            const activeUsers = await (dependencies.getActiveUsers || getActiveUsers)();
             const max = Math.min(5, Math.max(1, Number(env.OPEN_FINANCE_ALERT_MAX_PER_RUN) || 2));
             for (let index = 0; index < max; index += 1) {
                 const delivery = await deliverOneOpenFinanceCanary({ policy, outbox,
                     transport: { sendMessage: (to, text) => client.sendMessage(to, text) },
-                    recipientResolver: owner => resolveWhatsAppRecipient(owner, dependencies.userMap || userMap),
+                    recipientResolver: owner => resolveWhatsAppRecipient(owner, activeUsers),
                     sourceLabels: { daniel_nubank: 'Nubank Daniel', thais_nubank: 'Nubank Thais',
                         cristina_nubank: 'Nubank Cristina', thais_itau: 'Itau Thais' } });
                 deliveries.push(delivery.outcome);
