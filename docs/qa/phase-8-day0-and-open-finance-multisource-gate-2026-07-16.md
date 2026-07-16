@@ -24,10 +24,10 @@ Update Item, Cristina Nubank ou Thais Itau no WhatsApp.
 ## Fase 8
 
 - inicio da observacao: `2026-07-16T18:34:25.000Z`;
-- schema 2: 22 eventos considerados e zero linha invalida;
+- schema 2: 29 eventos considerados, um heartbeat e zero linha invalida;
 - tripwire real/runtime: zero para todos os candidatos;
-- probe controlado: uma ocorrencia de `legacy_auth_utility`, marcada
-  `evidence_type=synthetic`;
+- probes controlados: duas ocorrencias de `legacy_auth_utility`, marcadas
+  `evidence_type=synthetic`; a segunda confirmou o heartbeat duravel;
 - `LEGACY_RETIREMENT_SOFT_DISABLED_CANDIDATES` permanece vazio;
 - nenhum legado foi removido ou desabilitado.
 

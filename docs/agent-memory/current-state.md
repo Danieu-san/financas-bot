@@ -8,10 +8,12 @@ Atualizado em: 2026-07-16
   imports literais/dinamicos, PM2, cron, systemd e runbooks. Nenhum cron ou
   service financeiro externo ao `index.js` foi encontrado.
 - Tripwires schema 2 estao ativos em `observe`; a lista de soft-disable esta
-  vazia. Desde `2026-07-16T18:34:25Z`, 22 eventos schema 2, zero linha invalida
+  vazia. Desde `2026-07-16T18:34:25Z`, 29 eventos schema 2, zero linha invalida,
+  um heartbeat controlado
   e zero chamada `runtime`/`real_user` dos sete candidatos foram observados.
-- Um unico probe de `legacy_auth_utility` foi registrado explicitamente como
-  `synthetic`; ele nao carregou rota de produto e nao conta como adocao real.
+- Dois probes de `legacy_auth_utility` foram registrados explicitamente como
+  `synthetic`; o segundo confirmou o heartbeat. Eles nao carregaram rota de
+  produto e nao contam como adocao real.
 - Nenhum codigo, fallback, aba, schema ou dado legado foi removido. O primeiro
   candidato isolado somente pode ser reavaliado para soft-disable reversivel
   depois de 72 horas e novo gate.
