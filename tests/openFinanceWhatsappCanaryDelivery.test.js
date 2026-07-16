@@ -14,7 +14,7 @@ const policies = [
 ];
 
 function setup(alias = 'daniel_nubank') {
-    const item = { id: `item-${alias}`, alias_code: alias, accounts: [{ id: 'account-1', type: 'BANK' }], transactions: [{ id: 'tx-1', account_id: 'account-1', amount_cents: -1234, description: 'Compra privada', date: '2026-07-16T10:00:00.000Z', status: 'POSTED', currency: 'BRL' }] };
+    const item = { id: `item-${alias}`, alias_code: alias, accounts: [{ id: 'account-1', type: 'CREDIT' }], transactions: [{ id: 'tx-1', account_id: 'account-1', amount_cents: 1234, description: 'Compra privada', date: '2026-07-16T10:00:00.000Z', status: 'POSTED', currency: 'BRL' }] };
     const lifecycle = classifyOpenFinanceLifecycle({ items: [item], secret });
     const candidate = { observation_ref: lifecycle.decisions[0].observation_ref, external_event_ref: 'external-event-ref', correlation_state: 'new_event' };
     const outbox = new OpenFinanceAlertOutbox({ secret });
@@ -36,7 +36,7 @@ test('9E.0 canary sends one allowed source and marks durable acknowledgement', a
             now: '2026-07-16T12:00:00.000Z' });
         assert.equal(result.outcome, 'sent'); assert.equal(calls, 1);
         assert.match(sentText, /Somente leitura: nada foi salvo automaticamente/);
-        assert.deepEqual(outbox.stats(), { total: 1, pending: 0, in_flight: 0, sent: 1, transport_calls: 0, financial_writes: 0 });
+        assert.deepEqual(outbox.stats(), { total: 1, pending: 0, in_flight: 0, blocked: 0, sent: 1, transport_calls: 0, financial_writes: 0 });
     } finally { outbox.close(); }
 });
 

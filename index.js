@@ -13,6 +13,7 @@ const { backfillUnreadMessages } = require('./src/services/whatsappUnreadBackfil
 const logger = require('./src/utils/logger');
 const { registerFinancialCommandPlannerRuntimeReload } = require('./src/config/financialCommandPlannerRuntimeConfig');
 const { registerFinancialAgentRuntimeReload } = require('./src/config/financialAgentRuntimeConfig');
+const { initializeOpenFinanceCanaryRuntime } = require('./src/openFinance/openFinanceCanaryRuntime');
 
 registerFinancialCommandPlannerRuntimeReload({ logger });
 registerFinancialAgentRuntimeReload({ logger });
@@ -72,6 +73,7 @@ async function startBot() {
             console.log('✅ Bot pronto para receber mensagens!');
             // Inicia o agendador apenas quando o bot estiver pronto pela primeira vez
             initializeScheduler(client);
+            initializeOpenFinanceCanaryRuntime({ client, logger });
             void backfillUnreadMessages(client, handleMessage, {
                 logger,
                 enabled: String(process.env.WHATSAPP_UNREAD_BACKFILL_ON_READY || 'true').toLowerCase() !== 'false',

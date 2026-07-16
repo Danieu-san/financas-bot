@@ -1,5 +1,6 @@
 const crypto = require('node:crypto');
 const Database = require('better-sqlite3');
+const ALERTABLE_CLASSIFICATIONS = new Set(['purchase', 'refund']);
 
 function requireSecret(secret) {
     const value = String(secret || '');
@@ -88,7 +89,7 @@ class OpenFinanceAlertOutbox {
                 const source = sourceByRef.get(candidate.observation_ref);
                 if (!decision || !source || candidate.correlation_state === 'possible_replacement') { blocked += 1; continue; }
                 const policy = normalizedPolicies.get(source.alias);
-                const ineligible = ['future_installment', 'uncertain'].includes(decision.classification) ||
+                const ineligible = !ALERTABLE_CLASSIFICATIONS.has(decision.classification) ||
                     (decision.provider_state === 'PENDING' && decision.lifecycle_milestone !== 'first_pending');
                 if (!policy || ineligible) { blocked += 1; continue; }
                 const milestone = decision.provider_state === 'PENDING' ? 'first_pending' : decision.lifecycle_milestone;
@@ -131,6 +132,7 @@ class OpenFinanceAlertOutbox {
             for (const row of rows) {
                 const payload = this.#decrypt(row.alert_ref, row.encrypted_payload);
                 if (String(payload.alias || '').toLowerCase() !== alias) continue;
+                if (!ALERTABLE_CLASSIFICATIONS.has(payload.classification)) continue;
                 const updated = this.db.prepare(`UPDATE finance_alert_outbox SET delivery_state='in_flight',
                     lease_token=?,lease_expires_at=?,attempts=attempts+1,last_error_code=NULL
                     WHERE alert_ref=? AND (delivery_state='pending' OR
@@ -141,6 +143,23 @@ class OpenFinanceAlertOutbox {
             }
             return null;
         })();
+    }
+    quarantineNonAlertable() {
+        let blocked = 0;
+        const apply = this.db.transaction(() => {
+            const rows = this.db.prepare(`SELECT alert_ref,encrypted_payload FROM finance_alert_outbox
+                WHERE delivery_state IN ('pending','in_flight')`).all();
+            const statement = this.db.prepare(`UPDATE finance_alert_outbox SET delivery_state='blocked',
+                lease_token=NULL,lease_expires_at=NULL,last_error_code='classification_not_alertable'
+                WHERE alert_ref=? AND delivery_state IN ('pending','in_flight')`);
+            for (const row of rows) {
+                const payload = this.#decrypt(row.alert_ref, row.encrypted_payload);
+                if (ALERTABLE_CLASSIFICATIONS.has(payload.classification)) continue;
+                blocked += statement.run(row.alert_ref).changes;
+            }
+        });
+        apply();
+        return { blocked, financial_writes: 0 };
     }
     acknowledgeSent({ alertRef, leaseToken, whatsappMessageId, sentAt = new Date().toISOString() } = {}) {
         if (!alertRef || !leaseToken || !whatsappMessageId) throw new Error('outbox_ack_fields_required');
@@ -165,11 +184,12 @@ class OpenFinanceAlertOutbox {
         const row = this.db.prepare(`SELECT COUNT(*) total,
             SUM(CASE WHEN delivery_state='pending' THEN 1 ELSE 0 END) pending,
             SUM(CASE WHEN delivery_state='in_flight' THEN 1 ELSE 0 END) in_flight,
+            SUM(CASE WHEN delivery_state='blocked' THEN 1 ELSE 0 END) blocked,
             SUM(CASE WHEN delivery_state='sent' THEN 1 ELSE 0 END) sent FROM finance_alert_outbox`).get();
         return { total: row.total, pending: row.pending || 0, in_flight: row.in_flight || 0,
-            sent: row.sent || 0, transport_calls: 0, financial_writes: 0 };
+            blocked: row.blocked || 0, sent: row.sent || 0, transport_calls: 0, financial_writes: 0 };
     }
     close() { this.db.close(); }
 }
 
-module.exports = { OpenFinanceAlertOutbox, normalizePolicies };
+module.exports = { OpenFinanceAlertOutbox, normalizePolicies, ALERTABLE_CLASSIFICATIONS };

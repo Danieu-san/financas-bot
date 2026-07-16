@@ -12,7 +12,7 @@ const policies = [
     { alias: 'cristina_nubank', source_owner: 'thais', authorized_viewers: ['thais'], whatsapp_recipient: 'thais', family_aggregation_allowed: false, write_confirmation_principal: 'thais' }
 ];
 function fixture(alias = 'daniel_nubank', status = 'POSTED') {
-    const item = { id: `item-${alias}`, alias_code: alias, accounts: [{ id: 'account-1', type: 'BANK' }], transactions: [{ id: 'tx-1', account_id: 'account-1', amount_cents: -1000, description: 'Compra privada', date: '2026-07-16T10:00:00.000Z', status, currency: 'BRL' }] };
+    const item = { id: `item-${alias}`, alias_code: alias, accounts: [{ id: 'account-1', type: 'CREDIT' }], transactions: [{ id: 'tx-1', account_id: 'account-1', amount_cents: 1000, description: 'Compra privada', date: '2026-07-16T10:00:00.000Z', status, currency: 'BRL' }] };
     const lifecycle = classifyOpenFinanceLifecycle({ items: [item], secret });
     const decision = lifecycle.decisions[0];
     return { item, lifecycle, candidate: { observation_ref: decision.observation_ref, external_event_ref: 'external-event-ref', correlation_state: 'new_event' } };
@@ -38,7 +38,7 @@ test('9D.1c outbox is idempotent across restart and performs no send', () => {
     try {
         const replay = store.enqueue({ candidates: [data.candidate], lifecycleDecisions: data.lifecycle.decisions, items: [data.item], policies, baselineComplete: true });
         assert.equal(replay.replayed, 1);
-        assert.deepEqual(store.stats(), { total: 1, pending: 1, in_flight: 0, sent: 0, transport_calls: 0, financial_writes: 0 });
+        assert.deepEqual(store.stats(), { total: 1, pending: 1, in_flight: 0, blocked: 0, sent: 0, transport_calls: 0, financial_writes: 0 });
     } finally { store.close(); }
 });
 
@@ -54,6 +54,17 @@ test('9D.1c blocks possible replacement and future installment', () => {
         assert.equal(store.enqueue({ candidates: [{ ...data.candidate, correlation_state: 'possible_replacement' }], lifecycleDecisions: data.lifecycle.decisions, items: [data.item], policies, baselineComplete: true }).blocked, 1);
         data.lifecycle.decisions[0].classification = 'future_installment';
         assert.equal(store.enqueue({ candidates: [data.candidate], lifecycleDecisions: data.lifecycle.decisions, items: [data.item], policies, baselineComplete: true }).blocked, 1);
+    } finally { store.close(); }
+});
+
+test('9D.1c alerts only purchases and refunds during the first canary', () => {
+    const data = fixture();
+    const store = new OpenFinanceAlertOutbox({ secret });
+    try {
+        data.lifecycle.decisions[0].classification = 'income_candidate';
+        assert.equal(store.enqueue({ candidates: [data.candidate], lifecycleDecisions: data.lifecycle.decisions,
+            items: [data.item], policies, baselineComplete: true }).blocked, 1);
+        assert.equal(store.stats().total, 0);
     } finally { store.close(); }
 });
 

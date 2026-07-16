@@ -1349,6 +1349,18 @@ Resultado 9E.0 em 2026-07-16:
 - gate:
   `docs/qa/phase-9e0-fail-closed-rollout-readiness-gate-2026-07-16.md`.
 
+Resultado parcial 9E.1 em 2026-07-16:
+
+- compra e estorno reais somente apareceram depois de atualizacao manual do Meu
+  Pluggy; polling do FinancasBot nao aciona Update Item;
+- baseline detectou compra, estorno e uma entrada independente em Daniel Nubank;
+- somente compra/estorno ficaram alertaveis; entrada foi bloqueada;
+- runtime local passou `2/2`, Open Finance `64/64` e suite `957/957`;
+- `GO` para deploy canario de uma fonte, ainda aguardando envio WhatsApp real e
+  replay/restart sem duplicacao;
+- gate:
+  `docs/qa/phase-9e1-live-purchase-refund-readiness-2026-07-16.md`.
+
 ### 9F - Gate final do roadmap
 
 Passo a passo:

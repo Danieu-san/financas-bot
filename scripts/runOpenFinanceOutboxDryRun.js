@@ -19,9 +19,10 @@ function main() {
         const baselineComplete = baselineStats.connections === mappings.length && baselineStats.completed_baselines === mappings.length;
         const candidates = baseline.listCandidates();
         const queued = outbox.enqueue({ candidates, lifecycleDecisions: lifecycle.decisions, items, policies, baselineComplete });
+        const quarantined = outbox.quarantineNonAlertable();
         process.stdout.write(`${JSON.stringify({
             gate: 'PHASE_9D1C_OUTBOX_NO_SEND', outcome: 'GO', baseline_complete: baselineComplete,
-            queued, outbox: outbox.stats(), transport_connected: false, financial_writes: 0
+            queued, quarantined, outbox: outbox.stats(), transport_connected: false, financial_writes: 0
         }, null, 2)}\n`);
     } finally { outbox.close(); baseline.close(); vault.close(); }
 }

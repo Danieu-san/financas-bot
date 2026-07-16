@@ -2,7 +2,24 @@
 
 Atualizado em: 2026-07-16
 
-## Fases 9D.1b, 9D.1c e 9E.0 - GO local; 9E.1 aguarda smoke - 2026-07-16
+## Fase 9E.1 - compra/estorno real prontos para canario WhatsApp - 2026-07-16
+
+- Atualizacao manual do Meu Pluggy fez a API passar de 2.205 para 2.207
+  transacoes; antes dela, polling read-only nao via a compra nova.
+- Baseline encontrou tres observacoes novas em `daniel_nubank`: compra pendente,
+  estorno pendente e uma entrada independente postada.
+- Canario foi limitado a `purchase` e `refund`; a entrada ficou bloqueada no
+  outbox. Estado real: 2 pendentes, 1 bloqueada, zero enviada.
+- Runtime por flag executa no boot e a cada no minimo seis horas, nunca chama
+  Update Item, exige estado cifrado e resolve exatamente um destinatario.
+- Evidencia: runtime `2/2`, Open Finance `64/64`, suite principal `957/957` e
+  zero escrita financeira.
+- `GO` para deploy canario de uma fonte; gate ainda aguarda dois alertas reais,
+  replay/restart sem duplicacao e health de producao.
+- Gate:
+  `docs/qa/phase-9e1-live-purchase-refund-readiness-2026-07-16.md`.
+
+## Fases 9D.1b, 9D.1c e 9E.0 - GO local; 9E.1 em smoke - 2026-07-16
 
 - Lifecycle real classificou as 2.205 observacoes sem misturar compra, estorno,
   pagamento de fatura, transferencia, tarifa ou parcela futura; 24 investimentos
