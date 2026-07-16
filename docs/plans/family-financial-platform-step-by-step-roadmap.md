@@ -1349,15 +1349,19 @@ Resultado 9E.0 em 2026-07-16:
 - gate:
   `docs/qa/phase-9e0-fail-closed-rollout-readiness-gate-2026-07-16.md`.
 
-Resultado parcial 9E.1 em 2026-07-16:
+Resultado final 9E.1 em 2026-07-16:
 
 - compra e estorno reais somente apareceram depois de atualizacao manual do Meu
   Pluggy; polling do FinancasBot nao aciona Update Item;
 - baseline detectou compra, estorno e uma entrada independente em Daniel Nubank;
 - somente compra/estorno ficaram alertaveis; entrada foi bloqueada;
-- runtime local passou `2/2`, Open Finance `64/64` e suite `957/957`;
-- `GO` para deploy canario de uma fonte, ainda aguardando envio WhatsApp real e
-  replay/restart sem duplicacao;
+- o primeiro alerta de compra duplicou porque envio resolvido sem ID do provedor
+  foi tratado como falha; confirmacao exata e hotfix impediram nova copia;
+- estorno chegou uma vez e restart/replay produziu zero nova entrega;
+- Open Finance `71/71`, suite `964/964`, remoto `7/7`, npm audit zero;
+- producao `efc4e92`, health verde, WhatsApp pronto e ciclo pos-deploy com zero
+  entrega/escrita;
+- `GO final` da 9E.1;
 - gate:
   `docs/qa/phase-9e1-live-purchase-refund-readiness-2026-07-16.md`.
 
@@ -1370,16 +1374,24 @@ Passo a passo:
 3. Validar backup/retencao/exclusao.
 4. Decidir se Open Finance permanece, recua ou fica apenas experimental.
 
+Resultado pre-auditoria 9F em 2026-07-16:
+
+- revogacao local coordenada cobre outbox, baseline e staging, bloqueia replay
+  atrasado e exige baseline silencioso em reconsentimento;
+- backup/restore consistente possui checksum, integrity check, modo 600,
+  destino vazio e expiracao confirmada;
+- nenhum consentimento real foi revogado e nenhuma escrita financeira ocorreu;
+- canario permanece Daniel-only, compra/estorno e escrita off;
+- `NO-GO` para encerrar a Fase 9 ate auditoria adversarial total;
+- gate: `docs/qa/phase-9f-pre-audit-lifecycle-gate-2026-07-16.md`.
+
 ## Ordem recomendada imediata
 
-1. 3D, 3E e 3F concluidas com GO de producao.
-2. Executar 3F.1A-B: conjunto ouro e contrato semantico.
-3. Executar 3F.1C-F: ferramentas, estado, verificador e custo.
-4. Rodar 3F.1G-H: shadow comparativo e canario read-only de Daniel.
-5. Somente com `GO` executar 3G.
-6. Rodar 3H e so entao abrir Fase 4.
-7. Na Fase 4, implementar a matriz visual/funcional do benchmark sobre o mesmo
-   nucleo semantico.
+1. Manter a Fase 8 em observacao, sem remocao antecipada.
+2. Manter o canario 9E.1 restrito a Daniel, compra/estorno e escrita off.
+3. Executar a auditoria adversarial total da 9F.
+4. Confrontar a auditoria documental com codigo, testes e producao.
+5. Decidir manter, recuar ou expandir o Open Finance read-only.
 
-A proxima fatia implementavel e
-`3F.1A - Baseline e conjunto ouro`, sem alterar producao.
+A proxima acao e a auditoria total da 9F; nenhuma nova implementacao ou expansao
+de rollout esta autorizada antes desse veredito.

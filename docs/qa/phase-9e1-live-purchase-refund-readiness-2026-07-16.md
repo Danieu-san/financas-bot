@@ -1,50 +1,54 @@
-# Phase 9E.1 - live purchase/refund canary readiness - 2026-07-16
+# Fase 9E.1 - canario real de compra e estorno - 2026-07-16
 
-## Verdict
+## Veredito
 
-`GO` for a one-source production canary deploy.
+`GO final` depois de um incidente real de duplicacao, correcao e replay sem nova
+entrega.
 
-The gate is not complete until Daniel receives the two real WhatsApp alerts and
-restart/replay proves that neither is sent twice.
+## Evidencia real
 
-## Real evidence
+- uma compra Nubank Daniel de R$ 11,93 e o estorno correspondente apareceram
+  somente depois da atualizacao manual no Meu Pluggy;
+- o baseline encontrou tres observacoes novas: compra, estorno e uma entrada
+  independente;
+- somente compra e estorno ficaram alertaveis; a entrada permaneceu bloqueada;
+- o primeiro ciclo entregou a compra duas vezes porque o transporte resolveu a
+  Promise sem retornar ID do provedor e o worker interpretou isso como falha;
+- a confirmacao do usuario fechou exatamente o alerta ambiguo pela referencia
+  interna, impedindo uma terceira copia;
+- a correcao passou a registrar aceite local deterministico quando o envio
+  resolve sem ID do provedor;
+- o estorno foi entregue uma unica vez;
+- restart/replay posterior produziu zero nova entrega;
+- estado final sanitizado: dois alertas enviados, zero pendente, um evento nao
+  alertavel bloqueado e zero escrita financeira.
 
-- Daniel created and then received a refund for one low-value Nubank credit-card
-  purchase;
-- before a manual Meu Pluggy refresh, the API remained at 2,205 transactions;
-- after the refresh, the API exposed 2,207 transactions and the baseline found
-  three new observations;
-- sanitized classification: one `purchase/PENDING`, one `refund/PENDING` and one
-  unrelated `income_candidate/POSTED`, all scoped to `daniel_nubank`;
-- the outbox kept purchase and refund pending and moved the unrelated income to
-  `blocked`;
-- staging, ledger, Sheets and financial writes remained zero.
+## Controles preservados
 
-## Runtime controls
+- runtime somente em `canary`, com uma unica fonte (`daniel_nubank`);
+- `OPEN_FINANCE_WRITE_MODE=off`;
+- polling nunca chama Pluggy Update Item;
+- apenas `purchase` e `refund` sao alertaveis;
+- destinatario precisa resolver para exatamente um usuario ativo;
+- baseline, staging e outbox permanecem cifrados;
+- toda mensagem informa que nada foi salvo automaticamente;
+- logs agora separam `delivered` do ciclo de `cumulative_sent`, evitando que um
+  replay pareca uma nova entrega.
 
-- runtime starts only with `OPEN_FINANCE_ALERT_MODE=canary`;
-- exactly one source alias is permitted;
-- polling is read-only and cannot run more often than every six hours;
-- polling never calls Pluggy Update Item and therefore cannot refresh the bank;
-- only `purchase` and `refund` are alertable in the first canary;
-- source owner resolves to exactly one WhatsApp recipient or fails closed;
-- encrypted baseline/outbox state is required before canary startup;
-- transport uses a durable lease, at-least-once retry and pseudonymous ack;
-- every message says that nothing was saved automatically.
+## Evidencia tecnica final
 
-## Evidence
-
-- runtime focused gate `2/2`;
-- combined Open Finance gate `64/64`;
-- full repository suite `957/957`;
+- Open Finance: `71/71`;
+- suite completa: `964/964`;
 - pre-gates 6A `17/17`, 6B `41/41`, 6C `8/8`, 6D `5/5`, 6E `5/5`;
-- local mock delivered exactly purchase and refund and quarantined the unrelated
-  income with zero financial writes.
+- npm audit: zero vulnerabilidades;
+- producao no commit `efc4e92db7e9035952ce50fa5832f39544f112d7`;
+- health `ok=true`, `sqlite=true`, WhatsApp pronto;
+- ciclo pos-deploy: `new=0`, `delivered=0`, `retries=0`,
+  `cumulative_sent=2`, `writes=0`.
 
-## Free-route limitation
+## Limitacao da rota gratuita
 
-Official Pluggy documentation states that new transactions appear only after an
-Item update and that Open Finance data can take up to 24 hours. Automatic update
-intervals are tied to Production applications and plans. The current personal
-free route must therefore assume a manual Meu Pluggy refresh when immediate data
-is desired. FinancasBot polling only reads already refreshed data.
+Para disponibilidade imediata, a atualizacao continua manual no Meu Pluggy. O
+polling do FinancasBot le automaticamente o que o provedor ja atualizou, mas nao
+forca sincronizacao bancaria. Nenhuma dependencia Pro, webhook pago ou meio de
+pagamento foi adicionada.

@@ -1,5 +1,23 @@
 # Problemas conhecidos e armadilhas
 
+## Open Finance read-only
+
+- A rota gratuita nao atualiza o banco quando o FinancasBot faz polling. Para
+  disponibilidade imediata, o usuario ainda precisa atualizar o Item no Meu
+  Pluggy; o ciclo automatico apenas le o estado ja atualizado.
+- O transporte WhatsApp e `at-least-once`. A duplicacao real da 9E.1 foi
+  corrigida quando `sendMessage()` resolve sem ID, mas ainda existe uma janela
+  teorica se o processo cair depois do envio e antes do ack duravel. Nao
+  expandir o canario antes da auditoria 9F decidir esse risco.
+- Log de ciclo deve usar `delivered` e `cumulative_sent` separadamente. Uma
+  contagem historica do outbox nao prova novas entregas.
+- Revogacao local nao desconecta o consentimento no provedor. A rotina apaga e
+  bloqueia dados locais; a desconexao externa continua sendo acao explicita do
+  titular.
+- Backups Open Finance usam retencao operacional provisoria de 30 dias. A
+  auditoria 9F deve decidir o prazo definitivo e o tratamento de backups
+  anteriores a uma revogacao.
+
 Atualizado em: 2026-07-15
 
 ## Fase 8A: remocao de legado bloqueada

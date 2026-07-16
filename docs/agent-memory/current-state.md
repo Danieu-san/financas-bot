@@ -2,20 +2,39 @@
 
 Atualizado em: 2026-07-16
 
-## Fase 9E.1 - compra/estorno real prontos para canario WhatsApp - 2026-07-16
+## Fase 9F pre-auditoria - lifecycle seguro em producao - 2026-07-16
+
+- 9E.1 terminou com GO depois de detectar e corrigir duplicacao real do alerta
+  de compra; estorno chegou uma vez e restart/replay nao reenviou nenhum deles.
+- Log operacional separa entregas do ciclo de contagem historica. Pos-deploy:
+  `new=0`, `delivered=0`, `retries=0`, `cumulative_sent=2`, `writes=0`.
+- Revogacao local coordenada apaga dados da fonte no outbox, baseline e staging,
+  bloqueia replay atrasado e exige baseline silencioso em reconsentimento.
+- Backup/restore dos tres stores usa copia SQLite consistente, SHA-256,
+  integrity check, arquivos 600, destino vazio e expiracao confirmada.
+- Evidencia: Open Finance `71/71`, suite `964/964`, remoto `7/7`, npm audit
+  zero, health verde e WhatsApp pronto.
+- Producao: `efc4e92db7e9035952ce50fa5832f39544f112d7`.
+- Nenhuma conta real foi revogada e nenhum backup real foi removido.
+- Fase 9 continua aberta somente para a auditoria adversarial total; ate la,
+  canario permanece Daniel-only, compra/estorno e escrita off.
+- Gate: `docs/qa/phase-9f-pre-audit-lifecycle-gate-2026-07-16.md`.
+
+## Fase 9E.1 - GO final do canario WhatsApp - 2026-07-16
 
 - Atualizacao manual do Meu Pluggy fez a API passar de 2.205 para 2.207
   transacoes; antes dela, polling read-only nao via a compra nova.
 - Baseline encontrou tres observacoes novas em `daniel_nubank`: compra pendente,
   estorno pendente e uma entrada independente postada.
-- Canario foi limitado a `purchase` e `refund`; a entrada ficou bloqueada no
-  outbox. Estado real: 2 pendentes, 1 bloqueada, zero enviada.
+- Canario foi limitado a `purchase` e `refund`; a entrada ficou bloqueada.
+- A primeira entrega da compra duplicou por ack ausente do transporte. O erro
+  foi corrigido, a confirmacao exata fechou o item ambiguo e o estorno chegou
+  uma unica vez.
 - Runtime por flag executa no boot e a cada no minimo seis horas, nunca chama
   Update Item, exige estado cifrado e resolve exatamente um destinatario.
-- Evidencia: runtime `2/2`, Open Finance `64/64`, suite principal `957/957` e
-  zero escrita financeira.
-- `GO` para deploy canario de uma fonte; gate ainda aguarda dois alertas reais,
-  replay/restart sem duplicacao e health de producao.
+- Restart/replay final manteve dois enviados, zero pendente e zero duplicacao
+  adicional. Nenhuma escrita financeira ocorreu.
+- Veredito final: `GO` da 9E.1.
 - Gate:
   `docs/qa/phase-9e1-live-purchase-refund-readiness-2026-07-16.md`.
 
