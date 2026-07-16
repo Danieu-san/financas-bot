@@ -1404,11 +1404,23 @@ Resultado final 9F em 2026-07-16:
 ## Ordem recomendada imediata
 
 1. Manter a Fase 8 em observacao, sem remocao antecipada.
-2. Operar o Open Finance no escopo final Daniel-only, compra/estorno e escrita
-   off.
+2. Operar o Open Finance no canario Daniel Nubank + Thais Nubank,
+   compra/estorno e escrita off.
 3. Atualizar manualmente no Meu Pluggy quando houver necessidade imediata.
 4. Tratar qualquer expansao para outras fontes como novo gate, nao como efeito
    automatico do encerramento da Fase 9.
+
+Resultado operacional pos-9F em 2026-07-16:
+
+- novo gate autorizou somente Daniel Nubank + Thais Nubank;
+- cutoff individual impediu replay de qualquer historico anterior a ativacao;
+- gate remoto: Fase 8 `24/24`, Open Finance `86/86`, outbox sem pendente ou
+  in-flight, primeiro ciclo `new=0/delivered=0/writes=0`;
+- Cristina Nubank e Thais Itau continuam apenas na leitura/staging, sem alerta
+  WhatsApp;
+- rollback explicito retorna para Daniel-only sem tocar dado financeiro;
+- gate:
+  `docs/qa/phase-8-day0-and-open-finance-multisource-gate-2026-07-16.md`.
 
 Nao ha nova fase estrutural autorizada depois da 9F. O trabalho ativo volta a
 ser observacao da Fase 8 e operacao/manutencao do produto.

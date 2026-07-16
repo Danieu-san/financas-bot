@@ -39,6 +39,12 @@ Atualizado em: 2026-07-15
 - A janela duravel iniciou em 2026-07-14. Nao antecipar conclusao antes de 45
   dias + ciclo completo; cartoes exigem dois fechamentos ou pelo menos 60 dias.
   Mesmo depois, o item vira candidato a 8C, nao remocao automatica.
+- A regra anterior continua valida para dashboard, cartoes, consumidores raros
+  e fallbacks de fonte. Desde a auditoria acelerada de 2026-07-16, somente
+  candidatos isolados recebem relogio proprio: `legacy_auth_utility` iniciou
+  observacao em `2026-07-16T18:34:25Z` e exige no minimo 72 horas antes de um
+  soft-disable reversivel. Probe `synthetic` nao conta como uso nem como prova
+  de desuso; exclusao fisica continua separada e exige nova auditoria.
 - A 8B.4 registrou em producao 1 leitura unificada e 8 leituras legadas logo
   apos restart, com zero escrita. As rotas/abas antigas de cartao sao
   dependencias ativas; nao remover, renomear ou parar de criar estrutura sem

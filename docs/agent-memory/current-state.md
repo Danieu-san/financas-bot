@@ -2,6 +2,31 @@
 
 Atualizado em: 2026-07-16
 
+## Fase 8 acelerada Dia 0 + canario Open Finance multi-fonte - 2026-07-16
+
+- Auditoria de entrypoints cobriu runtime, testes, scripts de `package.json`,
+  imports literais/dinamicos, PM2, cron, systemd e runbooks. Nenhum cron ou
+  service financeiro externo ao `index.js` foi encontrado.
+- Tripwires schema 2 estao ativos em `observe`; a lista de soft-disable esta
+  vazia. Desde `2026-07-16T18:34:25Z`, 22 eventos schema 2, zero linha invalida
+  e zero chamada `runtime`/`real_user` dos sete candidatos foram observados.
+- Um unico probe de `legacy_auth_utility` foi registrado explicitamente como
+  `synthetic`; ele nao carregou rota de produto e nao conta como adocao real.
+- Nenhum codigo, fallback, aba, schema ou dado legado foi removido. O primeiro
+  candidato isolado somente pode ser reavaliado para soft-disable reversivel
+  depois de 72 horas e novo gate.
+- Open Finance expandiu de Daniel Nubank para `daniel_nubank,thais_nubank` com
+  cutoff por fonte em `2026-07-16T18:41:23.693Z`; historico anterior nao pode
+  ser entregue pela nova configuracao.
+- Primeiro ciclo multi-fonte: `GO`, `new=0`, `delivered=0`,
+  `accepted_unconfirmed=0`, `writes=0`. Outbox permaneceu com zero pendente e
+  zero in-flight; os dois envios antigos seguem classificados `legacy_sent`.
+- Escrita financeira e Update Item continuam proibidos. PM2 online, WhatsApp
+  pronto e health `ok=true/sqlite=true`.
+- Runtime `47d1e593ef8f0c22fec6c9130100b78ef1cad3a7`; checkout operacional
+  `9fed52ea5a0752dfd2b270e803d5e326791ccdfa`.
+- Gate: `docs/qa/phase-8-day0-and-open-finance-multisource-gate-2026-07-16.md`.
+
 ## Pos-fechamento da Fase 9 - auto-sync gratuito comprovado - 2026-07-16
 
 - Os quatro Items reais do conector oficial MeuPluggy (200) retornaram
