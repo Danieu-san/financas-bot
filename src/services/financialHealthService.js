@@ -1,3 +1,7 @@
+require('../reliability/legacyEntrypointTripwire').observeLegacyEntrypoint(
+    'financial_health_service', { domain: 'analytics' }
+);
+
 const { parseSheetDate, parseValue, normalizeText } = require('../utils/helpers');
 
 const monthNamesLower = [

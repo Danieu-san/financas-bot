@@ -1,3 +1,7 @@
+require('../reliability/legacyEntrypointTripwire').observeLegacyEntrypoint(
+    'debt_avalanche_service', { domain: 'debts' }
+);
+
 function round2(n) {
     return Math.round((Number(n) + Number.EPSILON) * 100) / 100;
 }

@@ -19,13 +19,14 @@ function formatCanaryMessage(delivery, sourceLabel) {
 }
 
 async function deliverOneOpenFinanceCanary({ policy, outbox, transport, recipientResolver, sourceLabels = {}, now } = {}) {
-    if (!policy?.can_send_whatsapp || policy.can_write_financial !== false || !policy.canary_alias) {
+    if (!policy?.can_send_whatsapp || policy.can_write_financial !== false || !policy.canary_aliases?.length) {
         return { outcome: 'blocked', reason: 'canary_policy_not_authorized', transport_calls: 0, financial_writes: 0 };
     }
     if (!outbox || !transport || typeof transport.sendMessage !== 'function' || typeof recipientResolver !== 'function') {
         throw new Error('canary_delivery_dependencies_required');
     }
-    const delivery = outbox.claimNext({ canaryAlias: policy.canary_alias, now });
+    const delivery = outbox.claimNext({ canaryAliases: policy.canary_aliases,
+        activatedAfterByAlias: policy.canary_activations || {}, now });
     if (!delivery) return { outcome: 'idle', transport_calls: 0, financial_writes: 0 };
     let transportStarted = false;
     try {

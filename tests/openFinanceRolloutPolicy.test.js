@@ -28,7 +28,61 @@ test('9E.0 canary requires one known alias and remains write-off', () => {
     assert.equal(policy.enabled, true);
     assert.equal(policy.can_send_whatsapp, true);
     assert.equal(policy.canary_alias, 'daniel_nubank');
+    assert.deepEqual(policy.canary_aliases, ['daniel_nubank']);
     assert.equal(policy.can_write_financial, false);
+});
+
+test('post-9F canary accepts multiple known aliases only with per-source activation cutoffs', () => {
+    const activations = {
+        daniel_nubank: '2026-07-16T18:00:00.000Z',
+        thais_nubank: '2026-07-16T18:00:00.000Z'
+    };
+    const env = {
+        OPEN_FINANCE_ALERT_MODE: 'canary',
+        OPEN_FINANCE_ALERT_CANARY_ALIASES: 'daniel_nubank,thais_nubank',
+        OPEN_FINANCE_ALERT_CANARY_ACTIVATIONS_JSON: JSON.stringify(activations),
+        OPEN_FINANCE_WRITE_MODE: 'off'
+    };
+    const policy = buildOpenFinanceRolloutPolicy({ env, evidence, mappings, vaultAvailable: true });
+    assert.equal(policy.enabled, true);
+    assert.equal(policy.canary_alias, null);
+    assert.deepEqual(policy.canary_aliases, ['daniel_nubank', 'thais_nubank']);
+    assert.deepEqual(policy.canary_activations, activations);
+
+    const missingCutoff = buildOpenFinanceRolloutPolicy({
+        env: { ...env, OPEN_FINANCE_ALERT_CANARY_ACTIVATIONS_JSON: '' }, evidence, mappings, vaultAvailable: true
+    });
+    assert.equal(missingCutoff.enabled, false);
+    assert.ok(missingCutoff.blockers.includes('multi_canary_activation_required'));
+});
+
+test('post-9F canary rejects duplicate, unknown and conflicting alias configuration', () => {
+    const base = { OPEN_FINANCE_ALERT_MODE: 'canary', OPEN_FINANCE_WRITE_MODE: 'off' };
+    const duplicate = buildOpenFinanceRolloutPolicy({ env: {
+        ...base, OPEN_FINANCE_ALERT_CANARY_ALIASES: 'daniel_nubank,daniel_nubank',
+        OPEN_FINANCE_ALERT_CANARY_ACTIVATIONS_JSON: JSON.stringify({ daniel_nubank: '2026-07-16T18:00:00Z' })
+    }, evidence, mappings, vaultAvailable: true });
+    assert.equal(duplicate.enabled, false);
+    assert.ok(duplicate.blockers.includes('duplicate_canary_alias'));
+
+    const unknown = buildOpenFinanceRolloutPolicy({ env: {
+        ...base, OPEN_FINANCE_ALERT_CANARY_ALIASES: 'daniel_nubank,unknown_bank',
+        OPEN_FINANCE_ALERT_CANARY_ACTIVATIONS_JSON: JSON.stringify({
+            daniel_nubank: '2026-07-16T18:00:00Z', unknown_bank: '2026-07-16T18:00:00Z'
+        })
+    }, evidence, mappings, vaultAvailable: true });
+    assert.equal(unknown.enabled, false);
+    assert.ok(unknown.blockers.includes('known_canary_alias_required'));
+
+    const conflicting = buildOpenFinanceRolloutPolicy({ env: {
+        ...base, OPEN_FINANCE_ALERT_CANARY_ALIAS: 'daniel_nubank',
+        OPEN_FINANCE_ALERT_CANARY_ALIASES: 'daniel_nubank,thais_nubank',
+        OPEN_FINANCE_ALERT_CANARY_ACTIVATIONS_JSON: JSON.stringify({
+            daniel_nubank: '2026-07-16T18:00:00Z', thais_nubank: '2026-07-16T18:00:00Z'
+        })
+    }, evidence, mappings, vaultAvailable: true });
+    assert.equal(conflicting.enabled, false);
+    assert.ok(conflicting.blockers.includes('conflicting_canary_alias_configuration'));
 });
 
 test('9E.0 fails closed for missing vault, paid/trial ambiguity, Pro or Update Item', () => {

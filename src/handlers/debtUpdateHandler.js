@@ -1,5 +1,9 @@
 // src/handlers/debtUpdateHandler.js
 
+require('../reliability/legacyEntrypointTripwire').observeLegacyEntrypoint(
+  'debt_update_handler', { domain: 'debts' }
+);
+
 const userStateManager = require('../state/userStateManager');
 const { readDataFromSheet, updateRowInSheet } = require('../services/google');
 const { normalizeText, parseAmount } = require('../utils/helpers');

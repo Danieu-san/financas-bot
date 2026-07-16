@@ -58,6 +58,65 @@ test('9E.1 runtime sends only purchase and refund and quarantines unrelated inco
     assert.equal(result.queued.blocked, 1); assert.equal(result.outbox.blocked, 0); assert.equal(result.financial_writes, 0);
 });
 
+test('post-9F runtime expands to Thais Nubank without disabling Daniel or writing financial data', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-open-runtime-multi-'));
+    const files = Object.fromEntries(['credentials', 'mapping', 'visibility', 'evidence', 'secret', 'vault', 'baseline', 'outbox', 'journal']
+        .map(name => [name, path.join(dir, `${name}.${['vault','baseline','outbox','journal'].includes(name) ? 'sqlite' : name === 'secret' ? 'txt' : 'json'}`)]));
+    const mappings = [
+        { itemId: 'item-daniel-0001', alias: 'daniel_nubank', ownerScope: 'daniel', generation: 1 },
+        { itemId: 'item-thais-0001', alias: 'thais_nubank', ownerScope: 'thais', generation: 1 }
+    ];
+    const policies = [
+        { alias: 'daniel_nubank', source_owner: 'daniel', authorized_viewers: ['daniel'], whatsapp_recipient: 'daniel', family_aggregation_allowed: false, write_confirmation_principal: 'daniel' },
+        { alias: 'thais_nubank', source_owner: 'thais', authorized_viewers: ['thais'], whatsapp_recipient: 'thais', family_aggregation_allowed: false, write_confirmation_principal: 'thais' }
+    ];
+    fs.writeFileSync(files.credentials, JSON.stringify({ clientId: 'client', clientSecret: 'secret' }));
+    fs.writeFileSync(files.mapping, JSON.stringify(mappings));
+    fs.writeFileSync(files.visibility, JSON.stringify(policies));
+    fs.writeFileSync(files.evidence, JSON.stringify({ route: 'meu_pluggy_connector_200', connector_id: 200,
+        observed_cost_cents: 0, payment_method_registered: false, pro_features_required: false,
+        update_item_enabled: false, category_source: 'financasbot_local' }));
+    fs.writeFileSync(files.secret, secret);
+    const daniel = snapshot([transaction('daniel-old', 500, 'old')]).items[0];
+    const thais = { ...snapshot([transaction('thais-old', 600, 'old')]).items[0],
+        id: 'item-thais-0001', alias_code: 'thais_nubank', owner_scope: 'thais' };
+    const first = { ...snapshot([]), items: [daniel, thais] };
+    const vault = new OpenFinanceLiveStagingVault({ databasePath: files.vault, secret });
+    const baseline = new OpenFinanceBaselineStore({ databasePath: files.baseline, secret });
+    const outbox = new OpenFinanceAlertOutbox({ databasePath: files.outbox, secret });
+    const journal = new OpenFinanceRevocationJournal({ databasePath: files.journal, secret });
+    vault.ingestSnapshot(first); baseline.ingestSnapshot(first);
+    vault.close(); baseline.close(); outbox.close(); journal.close();
+    const changedThais = { ...thais, transactions: [
+        transaction('thais-old', 600, 'old'), transaction('thais-new', 2550, 'Mercado', 'POSTED')
+    ] };
+    const changed = { ...first, event_id: 'event-multi-changed', observed_at: '2026-07-16T13:00:00.000Z',
+        items: [daniel, changedThais] };
+    class FakeApi { async readSnapshot() { return changed; } }
+    const messages = [];
+    const activations = { daniel_nubank: '2020-01-01T00:00:00.000Z', thais_nubank: '2020-01-01T00:00:00.000Z' };
+    const env = { OPEN_FINANCE_ALERT_MODE: 'canary',
+        OPEN_FINANCE_ALERT_CANARY_ALIASES: 'daniel_nubank,thais_nubank',
+        OPEN_FINANCE_ALERT_CANARY_ACTIVATIONS_JSON: JSON.stringify(activations), OPEN_FINANCE_WRITE_MODE: 'off',
+        OPEN_FINANCE_COMMERCIAL_EVIDENCE_FILE: files.evidence, PLUGGY_ITEM_MAP_FILE: files.mapping,
+        OPEN_FINANCE_VISIBILITY_POLICY_FILE: files.visibility, PLUGGY_CREDENTIALS_FILE: files.credentials,
+        OPEN_FINANCE_LIVE_STAGING_SECRET_FILE: files.secret, OPEN_FINANCE_LIVE_STAGING_DB: files.vault,
+        OPEN_FINANCE_BASELINE_DB: files.baseline, OPEN_FINANCE_OUTBOX_DB: files.outbox,
+        OPEN_FINANCE_REVOCATION_JOURNAL_DB: files.journal, OPEN_FINANCE_ALERT_MAX_PER_RUN: '2' };
+    const result = await runOpenFinanceCanaryCycle({ client: {
+        sendMessage: async (to, text) => { messages.push({ to, text }); return { id: 'multi-message-id' }; }
+    }, env, dependencies: { PluggyReadOnlyClient: FakeApi, getActiveUsers: async () => [
+        { display_name: 'Daniel da Silva', whatsapp_id: 'daniel@c.us', status: 'ACTIVE' },
+        { display_name: 'Thais Leopoldo', whatsapp_id: 'thais@c.us', status: 'ACTIVE' }
+    ] } });
+    assert.equal(result.outcome, 'GO');
+    assert.deepEqual(result.deliveries, ['delivered_confirmed', 'idle']);
+    assert.equal(messages.length, 1);
+    assert.equal(messages[0].to, 'thais@c.us');
+    assert.match(messages[0].text, /Nubank Thais/);
+    assert.equal(result.financial_writes, 0);
+});
+
 test('9E.1 recipient resolver fails closed for absent or ambiguous owner', () => {
     assert.equal(resolveWhatsAppRecipient('daniel', [{ display_name: 'Daniel da Silva', whatsapp_id: 'id' }]), 'id');
     assert.throws(() => resolveWhatsAppRecipient('daniel', []), /scope_unavailable/);

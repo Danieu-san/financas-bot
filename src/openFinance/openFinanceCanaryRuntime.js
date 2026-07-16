@@ -60,6 +60,10 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
         const queued = outbox.enqueue({ candidates: baseline.listCandidates(), lifecycleDecisions: lifecycle.decisions,
             items, policies, baselineComplete: baseline.stats().completed_baselines === mappings.length });
         const quarantined = outbox.quarantineNonAlertable();
+        const preActivation = policy.can_send_whatsapp
+            ? outbox.quarantineBeforeActivation({ canaryAliases: policy.canary_aliases,
+                activatedAfterByAlias: policy.canary_activations })
+            : { blocked: 0, financial_writes: 0 };
         const deliveries = [];
         if (policy.can_send_whatsapp) {
             const activeUsers = await (dependencies.getActiveUsers || getActiveUsers)();
@@ -75,7 +79,7 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
             }
         }
         return { outcome: 'GO', staged_items: staged.staged_items, new_observations: observed.new_observations,
-            queued, quarantined, outbox: outbox.stats(), deliveries,
+            queued, quarantined, pre_activation: preActivation, outbox: outbox.stats(), deliveries,
             transport_calls: deliveries.filter(value => ['delivered_confirmed', 'accepted_unconfirmed', 'retry'].includes(value)).length,
             financial_writes: 0 };
     } finally { journal.close(); outbox.close(); baseline.close(); vault.close(); }

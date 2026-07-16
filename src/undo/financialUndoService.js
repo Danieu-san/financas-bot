@@ -273,3 +273,6 @@ module.exports = {
     fingerprintRow,
     __test__: { MARKER_PATTERN, hash, normalizeCell, undoError }
 };
+require('../reliability/legacyEntrypointTripwire').observeLegacyEntrypoint(
+    'financial_undo_service', { domain: 'none' }
+);

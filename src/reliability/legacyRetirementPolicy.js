@@ -1,9 +1,9 @@
 const RETIREMENT_PROFILES = Object.freeze({
     test_only: Object.freeze({ softDisableDays: 0, physicalDeleteDays: 7, acceleratedDeleteDays: 7 }),
-    read_only: Object.freeze({ softDisableDays: 7, physicalDeleteDays: 60, acceleratedDeleteDays: 30 }),
-    periodic_read_only: Object.freeze({ softDisableDays: 14, physicalDeleteDays: 60, acceleratedDeleteDays: 30, simulatedCycles: 2 }),
-    mutating: Object.freeze({ softDisableDays: 14, physicalDeleteDays: 60, acceleratedDeleteDays: 60 }),
-    source_rollback: Object.freeze({ softDisableDays: null, physicalDeleteDays: 60, acceleratedDeleteDays: 60 })
+    read_only: Object.freeze({ softDisableDays: 3, physicalDeleteDays: 30, acceleratedDeleteDays: 7 }),
+    periodic_read_only: Object.freeze({ softDisableDays: 7, physicalDeleteDays: 30, acceleratedDeleteDays: 14, simulatedCycles: 3 }),
+    mutating: Object.freeze({ softDisableDays: 14, physicalDeleteDays: 30, acceleratedDeleteDays: 30 }),
+    source_rollback: Object.freeze({ softDisableDays: null, physicalDeleteDays: 30, acceleratedDeleteDays: 30 })
 });
 
 function nonNegative(value) {
@@ -20,6 +20,7 @@ function commonBlockers(evidence = {}) {
     if (!evidence.activePathTestsPassed) blockers.push('active_path_tests_missing');
     if (!evidence.shadowParityPassed) blockers.push('shadow_parity_missing');
     if (!evidence.rollbackTested) blockers.push('rollback_not_tested');
+    if (!evidence.evidenceTypesTagged) blockers.push('evidence_type_not_tagged');
     if (nonNegative(evidence.unexplainedDivergences) > 0) blockers.push('unexplained_divergence');
     return blockers;
 }
@@ -58,6 +59,7 @@ function evaluateLegacyRetirementCandidate(input = {}) {
         if (!evidence.isolatedFixturePassed) softBlockers.push('isolated_fixture_missing');
         if (!evidence.cleanupProved) softBlockers.push('cleanup_not_proved');
         if (!evidence.writeIdempotencyPassed) softBlockers.push('write_idempotency_missing');
+        if (!evidence.realMarkerOnlyPassed) softBlockers.push('real_marker_only_missing');
     }
 
     const deleteBlockers = [...shared];
@@ -66,12 +68,15 @@ function evaluateLegacyRetirementCandidate(input = {}) {
     if (nonNegative(evidence.rollbackInvocations) > 0) deleteBlockers.push('rollback_was_needed');
     if (riskClass === 'source_rollback' && !evidence.cutoverStable) deleteBlockers.push('cutover_not_stable');
 
-    const acceleratedDeleteAllowed = riskClass === 'test_only' || evidence.independentAuditApproved === true;
+    const acceleratedDeleteAllowed = evidence.independentAuditApproved === true;
     const requiredDeleteDays = acceleratedDeleteAllowed
         ? profile.acceleratedDeleteDays
         : profile.physicalDeleteDays;
     if (nonNegative(evidence.softDisabledDays) < requiredDeleteDays) {
         deleteBlockers.push('physical_delete_observation_incomplete');
+    }
+    if (riskClass !== 'source_rollback' && evidence.sourceRecoveryRole !== false) {
+        deleteBlockers.push('source_recovery_role_not_cleared');
     }
 
     return {

@@ -39,6 +39,8 @@ test('legacy usage telemetry builds a fixed allowlisted schema and drops arbitra
         mode: 'answer',
         result: 'success',
         reasonCode: 'sqlite_miss',
+        evidenceType: 'real_user',
+        candidate: 'none',
         latencyMs: 18,
         writeAttempted: false,
         writeResult: 'not_attempted',
@@ -57,11 +59,14 @@ test('legacy usage telemetry builds a fixed allowlisted schema and drops arbitra
         'schema_version', 'event_id', 'logged_at', 'rotation_day', 'app_commit',
         'event', 'surface', 'consumer', 'handler', 'route', 'domain', 'operation',
         'source', 'fallback_from', 'fallback_to', 'mode', 'result', 'reason_code',
+        'evidence_type', 'candidate',
         'latency_bucket', 'write_attempted', 'write_result', 'actor_ref', 'session_ref'
     ]);
-    assert.strictEqual(entry.schema_version, 1);
+    assert.strictEqual(entry.schema_version, 2);
     assert.strictEqual(entry.event_id, 'fixed-event-id');
     assert.strictEqual(entry.domain, 'cards');
+    assert.strictEqual(entry.evidence_type, 'real_user');
+    assert.strictEqual(entry.candidate, 'none');
     assert.strictEqual(entry.latency_bucket, 'lt_25ms');
     assert.match(entry.actor_ref, /^[a-f0-9]{16}$/);
     assert.match(entry.session_ref, /^[a-f0-9]{16}$/);
@@ -78,6 +83,8 @@ test('legacy usage telemetry builds a fixed allowlisted schema and drops arbitra
     assert.strictEqual(rejected.event, 'unknown');
     assert.strictEqual(rejected.surface, 'unknown');
     assert.strictEqual(rejected.reason_code, 'unknown');
+    assert.strictEqual(rejected.evidence_type, 'unknown');
+    assert.strictEqual(rejected.candidate, 'none');
 });
 
 test('legacy usage telemetry rotates actor references by UTC day using HMAC', () => {

@@ -347,3 +347,6 @@ module.exports = {
         normalizeEnum
     }
 };
+require('../reliability/legacyEntrypointTripwire').observeLegacyEntrypoint(
+    'financial_query_spec', { domain: 'analytics' }
+);

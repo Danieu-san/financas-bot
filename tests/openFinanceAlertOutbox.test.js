@@ -94,3 +94,16 @@ test('9E.1 user confirmation closes exactly one ambiguous transport acknowledgem
         assert.throws(() => store.acknowledgeUserConfirmed({ internalReference: delivery.internal_reference }), /ambiguous/);
     } finally { store.close(); }
 });
+
+test('post-9F claim accepts an alias allowlist and honors per-alias activation time', () => {
+    const data = fixture('cristina_nubank');
+    const store = new OpenFinanceAlertOutbox({ secret });
+    try {
+        store.enqueue({ candidates: [data.candidate], lifecycleDecisions: data.lifecycle.decisions,
+            items: [data.item], policies, baselineComplete: true, createdAt: '2026-07-16T12:00:00.000Z' });
+        assert.equal(store.claimNext({ canaryAliases: ['daniel_nubank', 'cristina_nubank'],
+            activatedAfterByAlias: { cristina_nubank: '2026-07-16T13:00:00.000Z' } }), null);
+        assert.equal(store.quarantineBeforeActivation({ canaryAliases: ['cristina_nubank'],
+            activatedAfterByAlias: { cristina_nubank: '2026-07-16T13:00:00.000Z' } }).blocked, 1);
+    } finally { store.close(); }
+});

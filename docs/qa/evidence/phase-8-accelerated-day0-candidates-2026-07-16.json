@@ -1,0 +1,86 @@
+{
+  "evidence_as_of": "2026-07-16T18:10:00.000Z",
+  "independent_audit": "approved_with_conditions",
+  "candidates": [
+    {
+      "candidate": "legacy_auth_utility",
+      "riskClass": "test_only",
+      "riskScore": 18,
+      "decision": "observe_then_consider_removal",
+      "evidence": {
+        "telemetryActive": true,
+        "invalidTelemetryLines": 0,
+        "entrypointsCovered": true,
+        "staticDynamicAuditComplete": true,
+        "activePathTestsPassed": true,
+        "shadowParityPassed": true,
+        "rollbackTested": true,
+        "evidenceTypesTagged": false,
+        "unexplainedDivergences": 0,
+        "criticalFallbackEvents": 0,
+        "observationDays": 0,
+        "productionFlagOff": false,
+        "runtimeConsumers": 0,
+        "softDisabled": false,
+        "softDisabledDays": 0,
+        "realLegacyUsageEvents": 0,
+        "rollbackInvocations": 0,
+        "sourceRecoveryRole": false,
+        "independentAuditApproved": true
+      }
+    },
+    {
+      "candidate": "debt_update_handler",
+      "riskClass": "mutating",
+      "riskScore": 93,
+      "decision": "investigate_and_retain",
+      "evidence": {
+        "telemetryActive": true,
+        "invalidTelemetryLines": 0,
+        "entrypointsCovered": true,
+        "staticDynamicAuditComplete": true,
+        "activePathTestsPassed": false,
+        "shadowParityPassed": false,
+        "rollbackTested": false,
+        "evidenceTypesTagged": false,
+        "unexplainedDivergences": 0,
+        "criticalFallbackEvents": 0,
+        "observationDays": 0,
+        "isolatedFixturePassed": false,
+        "cleanupProved": false,
+        "writeIdempotencyPassed": false,
+        "realMarkerOnlyPassed": false,
+        "softDisabled": false,
+        "softDisabledDays": 0,
+        "realLegacyUsageEvents": 0,
+        "rollbackInvocations": 0,
+        "sourceRecoveryRole": false,
+        "independentAuditApproved": true
+      }
+    }
+  ],
+  "retained_test_support": [
+    "debt_avalanche_service",
+    "financial_health_service",
+    "date_time_normalizer",
+    "financial_query_spec",
+    "financial_undo_service"
+  ],
+  "retained_until_8d": [
+    "sheets_source_fallbacks",
+    "read_model_rebuild_paths",
+    "projected_plan_shadow",
+    "canonical_ledger_shadow",
+    "card_mutation_identity_paths",
+    "identity_stores"
+  ],
+  "retained_permanently": [
+    "csv_ofx",
+    "manual_entry",
+    "backup_restore",
+    "audit_parity_e2e",
+    "historical_migrations",
+    "readable_export",
+    "pre_cutover_release"
+  ]
+}

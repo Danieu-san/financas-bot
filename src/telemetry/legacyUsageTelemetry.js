@@ -8,10 +8,10 @@ const DEFAULT_MAX_BYTES = 5 * 1024 * 1024;
 const DEFAULT_MAX_BACKUPS = 4;
 
 const ALLOWED = Object.freeze({
-    event: new Set(['usage', 'heartbeat']),
+    event: new Set(['usage', 'heartbeat', 'tripwire']),
     surface: new Set([
         'telemetry', 'analytics', 'read_model', 'canonical_ledger', 'dashboard',
-        'cards', 'phase6', 'projected_plans', 'scheduler'
+        'cards', 'phase6', 'projected_plans', 'scheduler', 'retirement'
     ]),
     consumer: new Set([
         'scheduler', 'read_model_service', 'canonical_canary_router',
@@ -19,17 +19,18 @@ const ALLOWED = Object.freeze({
         'dashboard_v2', 'phase6_handler', 'projected_plan_runtime',
         'sheets_runtime', 'card_parity_audit', 'maintenance_service',
         'whatsapp_budget', 'whatsapp_export', 'whatsapp_import_dedup',
-        'whatsapp_deletion'
+        'whatsapp_deletion', 'legacy_tripwire'
     ]),
     handler: new Set([
         'operational_heartbeat', 'read_model_service', 'canonical_canary_router',
         'financial_agent', 'message_handler', 'dashboard_server', 'phase6_handler',
-        'projected_plan_runtime', 'google_sheets'
+        'projected_plan_runtime', 'google_sheets', 'legacy_tripwire'
     ]),
     route: new Set([
         'operational_heartbeat', 'analytical_intent', 'financial_query_plan',
         'canonical_canary_read', 'dashboard_api_v1', 'dashboard_api_v2',
-        'card_sheet_access', 'phase6_command', 'projected_plan_access'
+        'card_sheet_access', 'phase6_command', 'projected_plan_access',
+        'legacy_entrypoint'
     ]),
     domain: new Set([
         'none', 'analytics', 'transactions', 'transfers', 'accounts', 'forecast',
@@ -38,13 +39,13 @@ const ALLOWED = Object.freeze({
     ]),
     operation: new Set([
         'heartbeat', 'read', 'fallback', 'answer', 'query', 'route', 'write',
-        'issue', 'open', 'refresh', 'filter'
+        'issue', 'open', 'refresh', 'filter', 'load', 'soft_disable', 'rollback'
     ]),
     source: new Set([
         'none', 'runtime', 'canonical', 'sqlite', 'memory_fallback', 'sheets',
         'legacy', 'financial_agent', 'query_engine'
     ]),
-    mode: new Set(['off', 'shadow', 'canary', 'answer', 'enforce']),
+    mode: new Set(['off', 'shadow', 'canary', 'answer', 'enforce', 'observe', 'soft_disabled']),
     result: new Set(['success', 'partial', 'unavailable', 'blocked', 'error']),
     reasonCode: new Set([
         'none', 'self_check', 'sqlite_miss', 'canonical_empty',
@@ -61,9 +62,17 @@ const ALLOWED = Object.freeze({
         'dashboard_link_issued', 'dashboard_session_started',
         'dashboard_refresh', 'dashboard_filter_change', 'dashboard_api_request',
         'dashboard_auth_failed', 'dashboard_v2_disabled',
-        'card_sheet_unified_route', 'card_sheet_legacy_route'
+        'card_sheet_unified_route', 'card_sheet_legacy_route',
+        'controlled_probe', 'legacy_entrypoint_loaded', 'legacy_soft_disabled',
+        'rollback_invoked'
     ]),
-    writeResult: new Set(['not_attempted', 'success', 'blocked', 'error'])
+    writeResult: new Set(['not_attempted', 'success', 'blocked', 'error']),
+    evidenceType: new Set(['runtime', 'synthetic', 'production_replay', 'real_user']),
+    candidate: new Set([
+        'none', 'debt_update_handler', 'debt_avalanche_service',
+        'financial_health_service', 'legacy_auth_utility',
+        'date_time_normalizer', 'financial_query_spec', 'financial_undo_service'
+    ])
 });
 
 let writeQueue = Promise.resolve();
@@ -139,7 +148,7 @@ function buildLegacyUsageEntry(input = {}, options = {}) {
     const loggedAt = now.toISOString();
     const rotationDay = loggedAt.slice(0, 10);
     return {
-        schema_version: 1,
+        schema_version: 2,
         event_id: normalizeEventId(options.eventId),
         logged_at: loggedAt,
         rotation_day: rotationDay,
@@ -157,6 +166,8 @@ function buildLegacyUsageEntry(input = {}, options = {}) {
         mode: allowlisted(input.mode, ALLOWED.mode),
         result: allowlisted(input.result, ALLOWED.result),
         reason_code: allowlisted(input.reasonCode, ALLOWED.reasonCode),
+        evidence_type: allowlisted(input.evidenceType, ALLOWED.evidenceType),
+        candidate: allowlisted(input.candidate, ALLOWED.candidate, 'none'),
         latency_bucket: latencyBucket(input.latencyMs),
         write_attempted: Boolean(input.writeAttempted),
         write_result: allowlisted(input.writeResult, ALLOWED.writeResult, 'not_attempted'),

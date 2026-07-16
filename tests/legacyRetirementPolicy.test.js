@@ -12,6 +12,7 @@ function completeEvidence(overrides = {}) {
         activePathTestsPassed: true,
         shadowParityPassed: true,
         rollbackTested: true,
+        evidenceTypesTagged: true,
         unexplainedDivergences: 0,
         criticalFallbackEvents: 0,
         observationDays: 14,
@@ -19,26 +20,27 @@ function completeEvidence(overrides = {}) {
         softDisabledDays: 0,
         realLegacyUsageEvents: 0,
         rollbackInvocations: 0,
+        sourceRecoveryRole: false,
         ...overrides
     };
 }
 
-test('read-only path can become a reversible soft-disable candidate before physical deletion', () => {
+test('read-only path can become a reversible soft-disable candidate after 72 hours', () => {
     const report = evaluateLegacyRetirementCandidate({
         candidate: 'read-only-path',
         riskClass: 'read_only',
-        evidence: completeEvidence({ observationDays: 7 })
+        evidence: completeEvidence({ observationDays: 3 })
     });
     assert.strictEqual(report.soft_disable.verdict, 'CANDIDATE');
     assert.strictEqual(report.physical_delete.verdict, 'BLOCKED');
     assert.ok(report.physical_delete.blockers.includes('soft_disable_not_active'));
 });
 
-test('periodic route requires two simulated cycles even for reversible disablement', () => {
+test('periodic route requires three simulated cycles even for reversible disablement', () => {
     const report = evaluateLegacyRetirementCandidate({
         candidate: 'monthly-route',
         riskClass: 'periodic_read_only',
-        evidence: completeEvidence({ observationDays: 14, simulatedCycles: 1 })
+        evidence: completeEvidence({ observationDays: 7, simulatedCycles: 2 })
     });
     assert.strictEqual(report.soft_disable.verdict, 'OBSERVING');
     assert.ok(report.soft_disable.blockers.includes('simulated_cycles_incomplete'));
@@ -51,9 +53,9 @@ test('mutating path requires isolated fixture cleanup and idempotency evidence',
         evidence: completeEvidence({ observationDays: 14 })
     });
     assert.deepStrictEqual(report.soft_disable.blockers.filter(item => [
-        'isolated_fixture_missing', 'cleanup_not_proved', 'write_idempotency_missing'
+        'isolated_fixture_missing', 'cleanup_not_proved', 'write_idempotency_missing', 'real_marker_only_missing'
     ].includes(item)), [
-        'isolated_fixture_missing', 'cleanup_not_proved', 'write_idempotency_missing'
+        'isolated_fixture_missing', 'cleanup_not_proved', 'write_idempotency_missing', 'real_marker_only_missing'
     ]);
 });
 
@@ -67,25 +69,25 @@ test('source rollback cannot be soft-disabled before the cutover is stable', () 
     assert.ok(report.physical_delete.blockers.includes('cutover_not_stable'));
 });
 
-test('accelerated physical deletion of read-only code still needs independent audit and 30 disabled days', () => {
+test('accelerated physical deletion of read-only code needs independent audit and seven disabled days', () => {
     const withoutAudit = evaluateLegacyRetirementCandidate({
         candidate: 'read-only-path',
         riskClass: 'read_only',
         evidence: completeEvidence({ softDisabled: true, softDisabledDays: 30 })
     });
-    assert.strictEqual(withoutAudit.physical_delete.minimum_days_after_soft_disable, 60);
-    assert.strictEqual(withoutAudit.physical_delete.verdict, 'BLOCKED');
+    assert.strictEqual(withoutAudit.physical_delete.minimum_days_after_soft_disable, 30);
+    assert.strictEqual(withoutAudit.physical_delete.verdict, 'CANDIDATE');
 
     const withAudit = evaluateLegacyRetirementCandidate({
         candidate: 'read-only-path',
         riskClass: 'read_only',
         evidence: completeEvidence({
             softDisabled: true,
-            softDisabledDays: 30,
+            softDisabledDays: 7,
             independentAuditApproved: true
         })
     });
-    assert.strictEqual(withAudit.physical_delete.minimum_days_after_soft_disable, 30);
+    assert.strictEqual(withAudit.physical_delete.minimum_days_after_soft_disable, 7);
     assert.strictEqual(withAudit.physical_delete.verdict, 'CANDIDATE');
 });
 
@@ -98,7 +100,8 @@ test('test-only component can use the short path only when production is off and
             productionFlagOff: true,
             runtimeConsumers: 0,
             softDisabled: true,
-            softDisabledDays: 7
+            softDisabledDays: 7,
+            independentAuditApproved: true
         })
     });
     assert.strictEqual(report.soft_disable.verdict, 'CANDIDATE');

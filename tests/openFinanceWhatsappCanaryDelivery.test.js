@@ -13,13 +13,26 @@ const policies = [
     { alias: 'thais_nubank', source_owner: 'thais', authorized_viewers: ['thais'], whatsapp_recipient: 'thais', family_aggregation_allowed: false, write_confirmation_principal: 'thais' }
 ];
 
-function setup(alias = 'daniel_nubank') {
+function setup(alias = 'daniel_nubank', createdAt = '2026-07-16T10:00:00.000Z') {
     const item = { id: `item-${alias}`, alias_code: alias, accounts: [{ id: 'account-1', type: 'CREDIT' }], transactions: [{ id: 'tx-1', account_id: 'account-1', amount_cents: 1234, description: 'Compra privada', date: '2026-07-16T10:00:00.000Z', status: 'POSTED', currency: 'BRL' }] };
     const lifecycle = classifyOpenFinanceLifecycle({ items: [item], secret });
     const candidate = { observation_ref: lifecycle.decisions[0].observation_ref, external_event_ref: 'external-event-ref', correlation_state: 'new_event' };
     const outbox = new OpenFinanceAlertOutbox({ secret });
-    outbox.enqueue({ candidates: [candidate], lifecycleDecisions: lifecycle.decisions, items: [item], policies, baselineComplete: true });
+    outbox.enqueue({ candidates: [candidate], lifecycleDecisions: lifecycle.decisions, items: [item], policies, baselineComplete: true, createdAt });
     return outbox;
+}
+
+function multiCanaryPolicy() {
+    const activations = {
+        daniel_nubank: '2026-07-16T11:00:00.000Z',
+        thais_nubank: '2026-07-16T11:00:00.000Z'
+    };
+    return buildOpenFinanceRolloutPolicy({ env: {
+        OPEN_FINANCE_ALERT_MODE: 'canary',
+        OPEN_FINANCE_ALERT_CANARY_ALIASES: 'daniel_nubank,thais_nubank',
+        OPEN_FINANCE_ALERT_CANARY_ACTIVATIONS_JSON: JSON.stringify(activations),
+        OPEN_FINANCE_WRITE_MODE: 'off'
+    }, evidence, mappings, vaultAvailable: true });
 }
 
 function canaryPolicy(mode = 'canary') {
@@ -82,6 +95,40 @@ test('9E.0 canary never claims an event from another source alias', () => {
     const outbox = setup('thais_nubank');
     try { assert.equal(outbox.stats().pending, 1); assert.equal(outbox.claimNext({ canaryAlias: 'daniel_nubank' }), null); }
     finally { outbox.close(); }
+});
+
+test('post-9F multi-source canary delivers Thais source to Thais and keeps writes off', async () => {
+    const outbox = setup('thais_nubank', '2026-07-16T12:00:00.000Z');
+    let recipient;
+    try {
+        const result = await deliverOneOpenFinanceCanary({ policy: multiCanaryPolicy(), outbox,
+            recipientResolver: async owner => owner === 'thais' ? 'thais-private' : null,
+            sourceLabels: { thais_nubank: 'Nubank Thais' },
+            transport: { sendMessage: async to => { recipient = to; return { id: 'thais-message-id' }; } },
+            now: '2026-07-16T12:01:00.000Z' });
+        assert.equal(result.outcome, 'delivered_confirmed');
+        assert.equal(result.financial_writes, 0);
+        assert.equal(recipient, 'thais-private');
+    } finally { outbox.close(); }
+});
+
+test('post-9F activation cutoff blocks historical pending alert before expanding alias', async () => {
+    const outbox = setup('thais_nubank', '2026-07-16T10:00:00.000Z');
+    let calls = 0;
+    try {
+        const policy = multiCanaryPolicy();
+        const quarantined = outbox.quarantineBeforeActivation({
+            canaryAliases: policy.canary_aliases,
+            activatedAfterByAlias: policy.canary_activations
+        });
+        assert.equal(quarantined.blocked, 1);
+        const result = await deliverOneOpenFinanceCanary({ policy, outbox,
+            recipientResolver: async () => 'recipient', sourceLabels: { thais_nubank: 'Nubank Thais' },
+            transport: { sendMessage: async () => { calls += 1; } } });
+        assert.equal(result.outcome, 'idle');
+        assert.equal(calls, 0);
+        assert.equal(outbox.stats().blocked, 1);
+    } finally { outbox.close(); }
 });
 
 test('9F expired in-flight lease becomes accepted_unconfirmed and is not reclaimed', () => {

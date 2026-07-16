@@ -125,20 +125,26 @@ class OpenFinanceAlertOutbox {
         return this.db.prepare(`SELECT alert_ref, milestone, delivery_state, attempts, created_at
             FROM finance_alert_outbox WHERE delivery_state='pending' ORDER BY created_at,alert_ref`).all();
     }
-    claimNext({ canaryAlias, now = new Date().toISOString(), leaseSeconds = 120 } = {}) {
-        const alias = String(canaryAlias || '').toLowerCase();
-        if (!/^[a-z0-9_-]{2,48}$/.test(alias)) throw new Error('valid_canary_alias_required');
+    claimNext({ canaryAlias, canaryAliases, activatedAfterByAlias = {}, now = new Date().toISOString(), leaseSeconds = 120 } = {}) {
+        const aliases = [...new Set((Array.isArray(canaryAliases) && canaryAliases.length
+            ? canaryAliases : [canaryAlias]).map(value => String(value || '').toLowerCase()).filter(Boolean))];
+        if (!aliases.length || aliases.some(alias => !/^[a-z0-9_-]{2,48}$/.test(alias))) {
+            throw new Error('valid_canary_alias_required');
+        }
         if (!Number.isInteger(leaseSeconds) || leaseSeconds < 30 || leaseSeconds > 900) throw new Error('invalid_outbox_lease');
         this.recoverExpiredAmbiguous({ now });
         const leaseToken = crypto.randomBytes(24).toString('hex');
         const attemptRef = this.#ref('attempt', leaseToken);
         const leaseExpiresAt = new Date(Date.parse(now) + leaseSeconds * 1000).toISOString();
         return this.db.transaction(() => {
-            const rows = this.db.prepare(`SELECT alert_ref,encrypted_payload FROM finance_alert_outbox
+            const rows = this.db.prepare(`SELECT alert_ref,encrypted_payload,created_at FROM finance_alert_outbox
                 WHERE delivery_state='pending' ORDER BY created_at,alert_ref`).all();
             for (const row of rows) {
                 const payload = this.#decrypt(row.alert_ref, row.encrypted_payload);
-                if (String(payload.alias || '').toLowerCase() !== alias) continue;
+                const payloadAlias = String(payload.alias || '').toLowerCase();
+                if (!aliases.includes(payloadAlias)) continue;
+                const cutoff = activatedAfterByAlias[payloadAlias];
+                if (cutoff && Date.parse(row.created_at) < Date.parse(cutoff)) continue;
                 if (!ALERTABLE_CLASSIFICATIONS.has(payload.classification)) continue;
                 const updated = this.db.prepare(`UPDATE finance_alert_outbox SET delivery_state='in_flight',
                     lease_token=?,lease_expires_at=?,attempt_ref=?,attempts=attempts+1,last_error_code=NULL
@@ -149,6 +155,26 @@ class OpenFinanceAlertOutbox {
             }
             return null;
         })();
+    }
+    quarantineBeforeActivation({ canaryAliases = [], activatedAfterByAlias = {} } = {}) {
+        const aliases = new Set(canaryAliases.map(value => String(value || '').toLowerCase()));
+        let blocked = 0;
+        const apply = this.db.transaction(() => {
+            const rows = this.db.prepare(`SELECT alert_ref,encrypted_payload,created_at FROM finance_alert_outbox
+                WHERE delivery_state='pending'`).all();
+            const statement = this.db.prepare(`UPDATE finance_alert_outbox SET delivery_state='blocked',
+                last_error_code='before_canary_activation' WHERE alert_ref=? AND delivery_state='pending'`);
+            for (const row of rows) {
+                const payload = this.#decrypt(row.alert_ref, row.encrypted_payload);
+                const alias = String(payload.alias || '').toLowerCase();
+                const cutoff = activatedAfterByAlias[alias];
+                if (aliases.has(alias) && cutoff && Date.parse(row.created_at) < Date.parse(cutoff)) {
+                    blocked += statement.run(row.alert_ref).changes;
+                }
+            }
+        });
+        apply();
+        return { blocked, financial_writes: 0 };
     }
     recoverExpiredAmbiguous({ now = new Date().toISOString() } = {}) {
         const timestamp = Date.parse(now);

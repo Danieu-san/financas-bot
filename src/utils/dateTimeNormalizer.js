@@ -131,3 +131,6 @@ module.exports = {
   buildCalendarStartEnd,
   normalizeRecurrenceToRrule
 };
+require('../reliability/legacyEntrypointTripwire').observeLegacyEntrypoint(
+  'date_time_normalizer', { domain: 'none' }
+);
