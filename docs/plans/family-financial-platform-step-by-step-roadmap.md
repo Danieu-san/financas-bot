@@ -1385,13 +1385,30 @@ Resultado pre-auditoria 9F em 2026-07-16:
 - `NO-GO` para encerrar a Fase 9 ate auditoria adversarial total;
 - gate: `docs/qa/phase-9f-pre-audit-lifecycle-gate-2026-07-16.md`.
 
+Resultado final 9F em 2026-07-16:
+
+- escopo proporcional familiar adotado; separacao por fonte protege identidade,
+  sem inventar barreira entre familiares autorizados;
+- `accepted_unconfirmed` e recuperacao at-most-once eliminam retry automatico
+  depois de envio ambiguo ou crash;
+- journal append-only e geracional impede restore antigo de ressuscitar fonte
+  revogada;
+- backup/restore operacional real passou no cofre P: e na EC2;
+- 401, 403, warning, OUTDATED e indisponibilidade falham fechados;
+- Open Finance `78/78`, remoto `42/42`, suite `972/972`, npm audit zero;
+- producao `c91af84`, WhatsApp/health verdes e zero escrita;
+- decisao: `GO final` como experimento familiar read-only, inicialmente
+  Daniel-only, compra/estorno, refresh imediato manual;
+- gate: `docs/qa/phase-9f-final-family-readonly-gate-2026-07-16.md`.
+
 ## Ordem recomendada imediata
 
 1. Manter a Fase 8 em observacao, sem remocao antecipada.
-2. Manter o canario 9E.1 restrito a Daniel, compra/estorno e escrita off.
-3. Executar a auditoria adversarial total da 9F.
-4. Confrontar a auditoria documental com codigo, testes e producao.
-5. Decidir manter, recuar ou expandir o Open Finance read-only.
+2. Operar o Open Finance no escopo final Daniel-only, compra/estorno e escrita
+   off.
+3. Atualizar manualmente no Meu Pluggy quando houver necessidade imediata.
+4. Tratar qualquer expansao para outras fontes como novo gate, nao como efeito
+   automatico do encerramento da Fase 9.
 
-A proxima acao e a auditoria total da 9F; nenhuma nova implementacao ou expansao
-de rollout esta autorizada antes desse veredito.
+Nao ha nova fase estrutural autorizada depois da 9F. O trabalho ativo volta a
+ser observacao da Fase 8 e operacao/manutencao do produto.

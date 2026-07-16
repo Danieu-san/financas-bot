@@ -2,6 +2,27 @@
 
 Atualizado em: 2026-07-16
 
+## Fase 9F - GO final familiar read-only - 2026-07-16
+
+- Fase 9 encerrada como experimento familiar read-only, Daniel-only no rollout
+  inicial, somente compra/estorno e sem garantia de tempo real.
+- Entrega ambigua usa `accepted_unconfirmed`; ausencia de ID, falha ambigua e
+  lease expirado nunca geram retry automatico. Confirmacao ou retry exigem
+  acao manual explicita.
+- Journal monotonicamente append-only sobrevive fora dos snapshots e e
+  reaplicado antes de rede/restore; reconsentimento exige geracao nova e
+  baseline silencioso.
+- Backup/restore operacional real passou no cofre P: e na EC2, com paridade,
+  segredo ausente, restore temporario limpo e retencao ate 2026-08-15.
+- Fonte/custo falham fechados em 401, 403, warning e Item OUTDATED; zero
+  dependencia Pro, paga ou Update Item.
+- Evidencia: Open Finance `78/78`, remoto `42/42`, suite `972/972`, pre-gates
+  6A-6E verdes, npm audit zero.
+- Producao `c91af84c86931254436991926b7086fc6fbb9ca2`, health verde, WhatsApp
+  pronto e ciclo final com zero entrega, ambiguidade, retry ou escrita.
+- Fase 8 continua em observacao; nenhum legado foi removido.
+- Gate: `docs/qa/phase-9f-final-family-readonly-gate-2026-07-16.md`.
+
 ## Fase 9F pre-auditoria - lifecycle seguro em producao - 2026-07-16
 
 - 9E.1 terminou com GO depois de detectar e corrigir duplicacao real do alerta

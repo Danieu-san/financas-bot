@@ -5,18 +5,20 @@
 - A rota gratuita nao atualiza o banco quando o FinancasBot faz polling. Para
   disponibilidade imediata, o usuario ainda precisa atualizar o Item no Meu
   Pluggy; o ciclo automatico apenas le o estado ja atualizado.
-- O transporte WhatsApp e `at-least-once`. A duplicacao real da 9E.1 foi
-  corrigida quando `sendMessage()` resolve sem ID, mas ainda existe uma janela
-  teorica se o processo cair depois do envio e antes do ack duravel. Nao
-  expandir o canario antes da auditoria 9F decidir esse risco.
-- Log de ciclo deve usar `delivered` e `cumulative_sent` separadamente. Uma
-  contagem historica do outbox nao prova novas entregas.
+- O transporte WhatsApp nao oferece exactly-once. Desde a 9F, qualquer estado
+  ambiguo vira `accepted_unconfirmed` e segue at-most-once: nao ha retry
+  automatico; confirmacao ou reenvio exigem acao explicita.
+- Os dois alertas anteriores a essa migracao permanecem `legacy_sent`. Nao
+  trata-los como `delivered_confirmed` em relatorios.
+- Log de ciclo separa `delivered`, `accepted_unconfirmed`,
+  `cumulative_confirmed`, `cumulative_unconfirmed` e
+  `cumulative_legacy_sent`.
 - Revogacao local nao desconecta o consentimento no provedor. A rotina apaga e
   bloqueia dados locais; a desconexao externa continua sendo acao explicita do
   titular.
-- Backups Open Finance usam retencao operacional provisoria de 30 dias. A
-  auditoria 9F deve decidir o prazo definitivo e o tratamento de backups
-  anteriores a uma revogacao.
+- Backups Open Finance usam retencao operacional aceita de 30 dias. Restore
+  exige o journal monotonicamente append-only e reaplica revogacoes posteriores
+  antes de expor os stores.
 
 Atualizado em: 2026-07-15
 
