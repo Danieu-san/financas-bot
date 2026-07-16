@@ -30,6 +30,11 @@ class OpenFinanceBaselineStore {
                 correlation_state TEXT NOT NULL, encrypted_payload TEXT NOT NULL,
                 first_seen_at TEXT NOT NULL, last_seen_at TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS finance_candidate_queue (
+                observation_ref TEXT PRIMARY KEY, external_event_ref TEXT NOT NULL,
+                correlation_state TEXT NOT NULL, provider_status TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            );
         `);
     }
 
@@ -113,7 +118,11 @@ class OpenFinanceBaselineStore {
                         this.#encrypt(observationRef, { alias: item.alias_code, transaction }), observedAt, observedAt
                     );
                     if (isBaseline) result.baselined_observations += 1;
-                    else result.new_observations += 1;
+                    else {
+                        result.new_observations += 1;
+                        this.db.prepare(`INSERT OR IGNORE INTO finance_candidate_queue VALUES (?,?,?,?,?)`)
+                            .run(observationRef, externalEventRef, correlationState, transaction.status, observedAt);
+                    }
                     if (correlationState === 'possible_replacement') result.possible_replacements += 1;
                     if (transaction.status === 'PENDING') result.pending_observations += 1;
                 }
@@ -138,9 +147,14 @@ class OpenFinanceBaselineStore {
         return { generation: row.sync_generation + 1, baseline_required: true, alert_candidates: 0, financial_writes: 0 };
     }
 
+    listCandidates() {
+        return this.db.prepare(`SELECT observation_ref,external_event_ref,correlation_state,provider_status,created_at
+            FROM finance_candidate_queue ORDER BY created_at,observation_ref`).all();
+    }
+
     stats() {
         const scalar = table => this.db.prepare(`SELECT COUNT(*) AS total FROM ${table}`).get().total;
-        return { connections: scalar('finance_connections'), events: scalar('finance_external_events'), observations: scalar('finance_observations'), completed_baselines: this.db.prepare('SELECT COUNT(*) AS total FROM finance_connections WHERE baseline_completed_at IS NOT NULL').get().total, financial_writes: 0 };
+        return { connections: scalar('finance_connections'), events: scalar('finance_external_events'), observations: scalar('finance_observations'), candidates: scalar('finance_candidate_queue'), completed_baselines: this.db.prepare('SELECT COUNT(*) AS total FROM finance_connections WHERE baseline_completed_at IS NOT NULL').get().total, financial_writes: 0 };
     }
     close() { this.db.close(); }
 }

@@ -1,0 +1,14 @@
+{
+  "route": "meu_pluggy_connector_200",
+  "connector_id": 200,
+  "observed_cost_cents": 0,
+  "payment_method_registered": false,
+  "pro_features_required": false,
+  "update_item_enabled": false,
+  "category_source": "financasbot_local",
+  "verified_at": "2026-07-16",
+  "official_sources": [
+    "https://www.pluggy.ai/meu-pluggy",
+    "https://www.pluggy.ai/precos"
+  ]
+}

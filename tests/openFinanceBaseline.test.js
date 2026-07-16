@@ -29,7 +29,7 @@ test('9D.1a baseline is silent, atomic and replay safe', () => {
         assert.equal(first.baselined_observations, 2);
         assert.equal(first.alert_candidates, 0);
         assert.equal(store.ingestSnapshot(snapshot([transaction(), transaction({ id: 'tx-2', amount_cents: -7000 })])).new_observations, 0);
-        assert.deepEqual(store.stats(), { connections: 1, events: 2, observations: 2, completed_baselines: 1, financial_writes: 0 });
+        assert.deepEqual(store.stats(), { connections: 1, events: 2, observations: 2, candidates: 0, completed_baselines: 1, financial_writes: 0 });
     } finally { store.close(); }
 });
 
@@ -38,7 +38,7 @@ test('9D.1a incomplete collection and injected crash never advance baseline', ()
     try {
         assert.throws(() => store.ingestSnapshot(snapshot([transaction()], { collectionHealth: { complete: false, warning_count: 0 } })), /incomplete/);
         assert.throws(() => store.ingestSnapshot(snapshot([transaction(), transaction({ id: 'tx-2' })]), { failAfterObservations: 1 }), /injected/);
-        assert.deepEqual(store.stats(), { connections: 0, events: 0, observations: 0, completed_baselines: 0, financial_writes: 0 });
+        assert.deepEqual(store.stats(), { connections: 0, events: 0, observations: 0, candidates: 0, completed_baselines: 0, financial_writes: 0 });
     } finally { store.close(); }
 });
 
@@ -70,6 +70,18 @@ test('9D.1a changed provider ID links strong alias and quarantines weak alias', 
         assert.equal(weak.possible_replacements, 1);
         assert.equal(weak.alert_candidates, 0);
     } finally { weakStore.close(); }
+});
+
+test('9D.1a queues only post-baseline observations and replay stays unique', () => {
+    const store = new OpenFinanceBaselineStore({ secret });
+    try {
+        store.ingestSnapshot(snapshot([transaction()]));
+        store.ingestSnapshot(snapshot([transaction(), transaction({ id: 'tx-new', amount_cents: -9000 })], { observedAt: '2026-07-16T12:00:00.000Z' }));
+        assert.equal(store.listCandidates().length, 1);
+        store.ingestSnapshot(snapshot([transaction(), transaction({ id: 'tx-new', amount_cents: -9000 })], { observedAt: '2026-07-16T13:00:00.000Z' }));
+        assert.equal(store.listCandidates().length, 1);
+        assert.equal(store.stats().candidates, 1);
+    } finally { store.close(); }
 });
 
 test('9D.1a reconnection requires a generation and creates silent baseline', () => {

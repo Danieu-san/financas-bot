@@ -1,0 +1,34 @@
+[
+  {
+    "alias": "thais_nubank",
+    "source_owner": "thais",
+    "authorized_viewers": ["thais"],
+    "whatsapp_recipient": "thais",
+    "family_aggregation_allowed": false,
+    "write_confirmation_principal": "thais"
+  },
+  {
+    "alias": "cristina_nubank",
+    "source_owner": "thais",
+    "authorized_viewers": ["thais"],
+    "whatsapp_recipient": "thais",
+    "family_aggregation_allowed": false,
+    "write_confirmation_principal": "thais"
+  },
+  {
+    "alias": "thais_itau",
+    "source_owner": "thais",
+    "authorized_viewers": ["thais"],
+    "whatsapp_recipient": "thais",
+    "family_aggregation_allowed": false,
+    "write_confirmation_principal": "thais"
+  },
+  {
+    "alias": "daniel_nubank",
+    "source_owner": "daniel",
+    "authorized_viewers": ["daniel"],
+    "whatsapp_recipient": "daniel",
+    "family_aggregation_allowed": false,
+    "write_confirmation_principal": "daniel"
+  }
+]

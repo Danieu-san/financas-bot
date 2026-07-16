@@ -82,3 +82,7 @@ require('./openFinanceSandboxPolling.test');
 require('./openFinancePluggyReadOnly.test');
 require('./openFinanceShadowReconciliation.test');
 require('./openFinanceBaseline.test');
+require('./openFinanceLifecycle.test');
+require('./openFinanceAlertOutbox.test');
+require('./openFinanceRolloutPolicy.test');
+require('./openFinanceWhatsappCanaryDelivery.test');

@@ -1315,6 +1315,18 @@ Resultado 9D.1a em 2026-07-16:
   outbox sem envio;
 - gate: `docs/qa/phase-9d1a-atomic-baseline-and-identity-gate-2026-07-16.md`.
 
+Resultado 9D.1b/9D.1c em 2026-07-16:
+
+- lifecycle deterministico separou compras, estornos, faturas, transferencias,
+  tarifas e parcelas futuras; investimentos ficaram fora;
+- baseline enfileira somente observacoes realmente posteriores a sua conclusao;
+- outbox cifrado, idempotente e sem transporte aplicou visibilidade por fonte;
+- nova leitura real permaneceu em 2.205 transacoes, zero candidato novo, zero
+  alerta e zero escrita;
+- gates:
+  `docs/qa/phase-9d1b-lifecycle-shadow-gate-2026-07-16.md` e
+  `docs/qa/phase-9d1c-durable-outbox-no-send-gate-2026-07-16.md`.
+
 ### 9E - Rollout familiar somente leitura
 
 Passo a passo:
@@ -1325,6 +1337,17 @@ Passo a passo:
 4. Manter fallback manual CSV/OFX.
 
 Gate: custo familiar confirmado e rollback testado.
+
+Resultado 9E.0 em 2026-07-16:
+
+- politica fail-closed exige Meu Pluggy/Connector 200, custo zero, ausencia de
+  meio de pagamento, zero Pro/Update Item e escrita permanentemente `off`;
+- entregador canario local usa uma unica fonte, lease, retry e acknowledgement
+  pseudonimizado, sem conexao ao runtime;
+- Open Finance `61/61` e suite principal `954/954`;
+- 9E.1 continua `NO-GO` ate um evento novo permitir smoke real no WhatsApp;
+- gate:
+  `docs/qa/phase-9e0-fail-closed-rollout-readiness-gate-2026-07-16.md`.
 
 ### 9F - Gate final do roadmap
 

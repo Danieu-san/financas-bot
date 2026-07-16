@@ -2,6 +2,31 @@
 
 Atualizado em: 2026-07-16
 
+## Fases 9D.1b, 9D.1c e 9E.0 - GO local; 9E.1 aguarda smoke - 2026-07-16
+
+- Lifecycle real classificou as 2.205 observacoes sem misturar compra, estorno,
+  pagamento de fatura, transferencia, tarifa ou parcela futura; 24 investimentos
+  ficaram excluidos e nenhuma decisao ganhou elegibilidade de escrita.
+- Baseline passou a enfileirar apenas observacoes vistas pela primeira vez
+  depois de sua conclusao; replay e reconexao silenciosa nao criam candidatos.
+- Outbox cifrado e idempotente aplica visibilidade por fonte: Daniel somente
+  Daniel; Thais somente Thais, incluindo Cristina como fonte distinta.
+- Entregador canario local possui lease, retry, recuperacao apos interrupcao e
+  acknowledgement pseudonimizado, mas nao esta ligado ao WhatsApp/runtime.
+- Politica 9E.0 exige rota Meu Pluggy/Connector 200, custo zero, nenhum cartao
+  cadastrado, zero Pro/Update Item, cofre montado, escrita `off` e uma unica
+  fonte no canario.
+- Nova leitura real encontrou as mesmas 2.205 transacoes: zero evento novo,
+  zero outbox e zero envio.
+- Evidencia: Open Finance `61/61`, suite principal `954/954`, pre-gates 6A-6E
+  verdes e zero escrita financeira.
+- Producao permanece inalterada. 9E.1 exige confirmar o estado comercial e um
+  smoke real de uma nova compra em `daniel_nubank`.
+- Gates:
+  `docs/qa/phase-9d1b-lifecycle-shadow-gate-2026-07-16.md`,
+  `docs/qa/phase-9d1c-durable-outbox-no-send-gate-2026-07-16.md` e
+  `docs/qa/phase-9e0-fail-closed-rollout-readiness-gate-2026-07-16.md`.
+
 ## Fase 9D.1a - identidade e baseline atomico - GO local/real - 2026-07-16
 
 - Auditoria adversarial retornou `GO COM CONDICOES`; 9E read-only continua
