@@ -2,6 +2,9 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const Database = require('better-sqlite3');
+const { OpenFinanceLiveStagingVault } = require('./openFinanceLiveStagingVault');
+const { OpenFinanceBaselineStore } = require('./openFinanceBaselineStore');
+const { OpenFinanceAlertOutbox } = require('./openFinanceAlertOutbox');
 
 const FILES = Object.freeze({
     staging: 'live-staging.sqlite',
@@ -29,8 +32,9 @@ function verifySqlite(file) {
 }
 
 async function createOpenFinanceStateBackup({ databasePaths, destinationDirectory,
-    createdAt = new Date().toISOString(), retentionDays = 30 } = {}) {
+    revocationJournal, createdAt = new Date().toISOString(), retentionDays = 30 } = {}) {
     if (!databasePaths || !destinationDirectory) throw new Error('open_finance_backup_paths_required');
+    if (!revocationJournal?.checkpoint) throw new Error('open_finance_revocation_journal_required');
     if (!Number.isInteger(retentionDays) || retentionDays < 7 || retentionDays > 90) {
         throw new Error('open_finance_backup_retention_out_of_range');
     }
@@ -55,10 +59,12 @@ async function createOpenFinanceStateBackup({ databasePaths, destinationDirector
     }
     const retentionUntil = new Date(created.getTime() + retentionDays * 24 * 60 * 60 * 1000).toISOString();
     const manifest = {
-        schema: 'open-finance-state-backup-v1',
+        schema: 'open-finance-state-backup-v2',
         created_at: created.toISOString(),
         retention_days: retentionDays,
         retention_until: retentionUntil,
+        revocation_protection_required: true,
+        revocation_checkpoint: revocationJournal.checkpoint(),
         files
     };
     const manifestPath = path.join(destinationDirectory, 'manifest.json');
@@ -70,7 +76,9 @@ async function createOpenFinanceStateBackup({ databasePaths, destinationDirector
 function verifyOpenFinanceStateBackup(manifestPath) {
     const directory = path.dirname(path.resolve(manifestPath));
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-    if (manifest.schema !== 'open-finance-state-backup-v1' || !Array.isArray(manifest.files) || manifest.files.length !== 3) {
+    if (manifest.schema !== 'open-finance-state-backup-v2' || manifest.revocation_protection_required !== true ||
+        manifest.revocation_checkpoint?.schema !== 'open-finance-revocation-journal-v1' ||
+        !Array.isArray(manifest.files) || manifest.files.length !== 3) {
         throw new Error('invalid_open_finance_backup_manifest');
     }
     const expected = new Set(Object.values(FILES));
@@ -89,8 +97,12 @@ function verifyOpenFinanceStateBackup(manifestPath) {
     return { valid: true, retention_until: manifest.retention_until, files: manifest.files.length, financial_writes: 0 };
 }
 
-function restoreOpenFinanceStateBackup({ manifestPath, destinationDirectory } = {}) {
+function restoreOpenFinanceStateBackup({ manifestPath, destinationDirectory, revocationJournal,
+    mappings = [], secret } = {}) {
     if (!manifestPath || !destinationDirectory) throw new Error('open_finance_restore_paths_required');
+    if (!revocationJournal?.reapplyRevocations || String(secret || '').length < 32) {
+        throw new Error('open_finance_restore_revocation_protection_required');
+    }
     verifyOpenFinanceStateBackup(manifestPath);
     ensureEmptyDirectory(destinationDirectory);
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
@@ -99,10 +111,29 @@ function restoreOpenFinanceStateBackup({ manifestPath, destinationDirectory } = 
     for (const entry of manifest.files) {
         const target = path.join(destinationDirectory, entry.filename);
         fs.copyFileSync(path.join(sourceDirectory, entry.filename), target, fs.constants.COPYFILE_EXCL);
+        fs.chmodSync(target, 0o600);
         verifySqlite(target);
         restored[entry.key] = target;
     }
-    return { restored, files: manifest.files.length, financial_writes: 0 };
+    let vault; let baseline; let outbox;
+    try {
+        vault = new OpenFinanceLiveStagingVault({ databasePath: restored.staging, secret });
+        baseline = new OpenFinanceBaselineStore({ databasePath: restored.baseline, secret });
+        outbox = new OpenFinanceAlertOutbox({ databasePath: restored.outbox, secret });
+        const reapplication = revocationJournal.reapplyRevocations({ mappings, vault, baseline, outbox });
+        return { restored, files: manifest.files.length, revocations_reapplied: reapplication.reapplied,
+            financial_writes: 0 };
+    } catch (error) {
+        try { outbox?.close(); } catch {}
+        try { baseline?.close(); } catch {}
+        try { vault?.close(); } catch {}
+        fs.rmSync(destinationDirectory, { recursive: true, force: true });
+        throw error;
+    } finally {
+        try { outbox?.close(); } catch {}
+        try { baseline?.close(); } catch {}
+        try { vault?.close(); } catch {}
+    }
 }
 
 function deleteExpiredOpenFinanceBackup({ manifestPath, backupRoot, now = new Date().toISOString(), confirm = false } = {}) {

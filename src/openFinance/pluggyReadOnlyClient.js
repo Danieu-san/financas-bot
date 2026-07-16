@@ -171,7 +171,7 @@ class PluggyReadOnlyClient {
                 }
             });
         }
-        return normalizePluggyReadOnlySnapshot({
+        const snapshot = normalizePluggyReadOnlySnapshot({
             mode: 'live_readonly_staging',
             eventId: options.eventId || `live-read-${Date.now()}`,
             observedAt: options.observedAt || new Date().toISOString(),
@@ -183,6 +183,12 @@ class PluggyReadOnlyClient {
                 investmentPages
             }
         });
+        if (snapshot.items.some(item => !['UPDATED', 'SUCCESS'].includes(item.status))) {
+            const error = new Error('pluggy_item_status_unhealthy');
+            error.code = 'pluggy_item_status_unhealthy';
+            throw error;
+        }
+        return snapshot;
     }
 }
 

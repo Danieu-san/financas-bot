@@ -89,3 +89,5 @@ require('./openFinanceWhatsappCanaryDelivery.test');
 require('./openFinanceCanaryRuntime.test');
 require('./openFinanceConsentLifecycle.test');
 require('./openFinanceStateBackup.test');
+require('./openFinanceOperationalBackupGate.test');
+require('./openFinanceRevocationJournal.test');

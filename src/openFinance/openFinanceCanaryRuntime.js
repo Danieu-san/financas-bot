@@ -5,6 +5,7 @@ const { OpenFinanceLiveStagingVault } = require('./openFinanceLiveStagingVault')
 const { OpenFinanceBaselineStore } = require('./openFinanceBaselineStore');
 const { classifyOpenFinanceLifecycle } = require('./openFinanceLifecycleClassifier');
 const { OpenFinanceAlertOutbox } = require('./openFinanceAlertOutbox');
+const { OpenFinanceRevocationJournal } = require('./openFinanceRevocationJournal');
 const { buildOpenFinanceRolloutPolicy } = require('./openFinanceRolloutPolicy');
 const { deliverOneOpenFinanceCanary } = require('./openFinanceWhatsappCanaryDelivery');
 const { getActiveUsers } = require('../services/userService');
@@ -35,7 +36,8 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
         throw new Error('open_finance_secret_unavailable');
     }
     const secret = fs.readFileSync(env.OPEN_FINANCE_LIVE_STAGING_SECRET_FILE, 'utf8').trim();
-    const requiredState = [env.OPEN_FINANCE_LIVE_STAGING_DB, env.OPEN_FINANCE_BASELINE_DB, env.OPEN_FINANCE_OUTBOX_DB];
+    const requiredState = [env.OPEN_FINANCE_LIVE_STAGING_DB, env.OPEN_FINANCE_BASELINE_DB,
+        env.OPEN_FINANCE_OUTBOX_DB, env.OPEN_FINANCE_REVOCATION_JOURNAL_DB];
     const vaultAvailable = requiredState.every(file => file && fs.existsSync(file));
     const policy = buildOpenFinanceRolloutPolicy({ env, evidence, mappings, vaultAvailable });
     if (!policy.enabled) return { outcome: 'blocked', blockers: policy.blockers, transport_calls: 0, financial_writes: 0 };
@@ -45,7 +47,10 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
     const vault = new OpenFinanceLiveStagingVault({ databasePath: env.OPEN_FINANCE_LIVE_STAGING_DB, secret });
     const baseline = new OpenFinanceBaselineStore({ databasePath: env.OPEN_FINANCE_BASELINE_DB, secret });
     const outbox = new OpenFinanceAlertOutbox({ databasePath: env.OPEN_FINANCE_OUTBOX_DB, secret });
+    const journal = new OpenFinanceRevocationJournal({ databasePath: env.OPEN_FINANCE_REVOCATION_JOURNAL_DB, secret });
     try {
+        const revocations = journal.reapplyRevocations({ mappings, vault, baseline, outbox });
+        if (revocations.reapplied > 0) throw new Error('open_finance_revoked_mapping_configured');
         const api = new ApiClient({ clientId: credentials.clientId, clientSecret: credentials.clientSecret, itemMappings: mappings });
         const snapshot = await api.readSnapshot({ eventId: `runtime-${crypto.randomUUID()}` });
         const staged = vault.ingestSnapshot(snapshot);
@@ -71,8 +76,9 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
         }
         return { outcome: 'GO', staged_items: staged.staged_items, new_observations: observed.new_observations,
             queued, quarantined, outbox: outbox.stats(), deliveries,
-            transport_calls: deliveries.filter(value => value === 'sent' || value === 'retry').length, financial_writes: 0 };
-    } finally { outbox.close(); baseline.close(); vault.close(); }
+            transport_calls: deliveries.filter(value => ['delivered_confirmed', 'accepted_unconfirmed', 'retry'].includes(value)).length,
+            financial_writes: 0 };
+    } finally { journal.close(); outbox.close(); baseline.close(); vault.close(); }
 }
 
 function initializeOpenFinanceCanaryRuntime({ client, logger = console, env = process.env, runCycle = runOpenFinanceCanaryCycle } = {}) {
@@ -86,9 +92,10 @@ function initializeOpenFinanceCanaryRuntime({ client, logger = console, env = pr
         running = true;
         try {
             const result = await runCycle({ client, env });
-            const deliveredThisCycle = (result.deliveries || []).filter(value => value === 'sent').length;
+            const deliveredThisCycle = (result.deliveries || []).filter(value => value === 'delivered_confirmed').length;
+            const acceptedThisCycle = (result.deliveries || []).filter(value => value === 'accepted_unconfirmed').length;
             const retriesThisCycle = (result.deliveries || []).filter(value => value === 'retry').length;
-            logger.info(`[open-finance] cycle=${result.outcome} new=${result.new_observations || 0} delivered=${deliveredThisCycle} retries=${retriesThisCycle} cumulative_sent=${result.outbox?.sent || 0} writes=0`);
+            logger.info(`[open-finance] cycle=${result.outcome} new=${result.new_observations || 0} delivered=${deliveredThisCycle} accepted_unconfirmed=${acceptedThisCycle} retries=${retriesThisCycle} cumulative_confirmed=${result.outbox?.delivered_confirmed || 0} cumulative_unconfirmed=${result.outbox?.accepted_unconfirmed || 0} cumulative_legacy_sent=${result.outbox?.legacy_sent || 0} writes=0`);
         } catch (error) {
             logger.warn(`[open-finance] cycle=NO_GO reason=${String(error.message || 'unknown').replace(/[^a-z0-9_-]/gi, '_').slice(0, 64)} writes=0`);
         } finally { running = false; }

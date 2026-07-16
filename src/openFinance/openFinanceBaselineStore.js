@@ -71,6 +71,9 @@ class OpenFinanceBaselineStore {
         if (snapshot.items.some(item => item.availability?.accounts !== 'available' || item.availability?.transactions !== 'available')) {
             throw new Error('open_finance_source_unhealthy');
         }
+        if (snapshot.items.some(item => item.status && !['UPDATED', 'SUCCESS'].includes(String(item.status).toUpperCase()))) {
+            throw new Error('open_finance_item_status_unhealthy');
+        }
     }
 
     ingestSnapshot(snapshot, options = {}) {
@@ -194,12 +197,42 @@ class OpenFinanceBaselineStore {
             .get(this.#ref('connection', normalizedAlias)));
     }
 
-    reinstateConnection(alias) {
+    reinstateConnection(alias, { itemId, ownerScope, generation, startedAt = new Date().toISOString() } = {}) {
         const normalizedAlias = String(alias || '').toLowerCase();
         if (!/^[a-z0-9_-]{2,48}$/.test(normalizedAlias)) throw new Error('valid_connection_alias_required');
-        const changes = this.db.prepare('DELETE FROM finance_connection_revocations WHERE connection_ref=?')
-            .run(this.#ref('connection', normalizedAlias)).changes;
-        return { reinstated: changes === 1, baseline_required: true, financial_writes: 0 };
+        const normalizedOwner = String(ownerScope || '').toLowerCase();
+        const normalizedGeneration = Number(generation);
+        if (!String(itemId || '').trim() || !['daniel', 'thais'].includes(normalizedOwner) ||
+            !Number.isInteger(normalizedGeneration) || normalizedGeneration < 2) {
+            throw new Error('valid_reconsent_connection_required');
+        }
+        const connectionRef = this.#ref('connection', normalizedAlias);
+        const changes = this.db.transaction(() => {
+            const removed = this.db.prepare('DELETE FROM finance_connection_revocations WHERE connection_ref=?')
+                .run(connectionRef).changes;
+            this.db.prepare(`INSERT INTO finance_connections (
+                connection_ref,lineage_ref,owner_ref,active_item_ref,sync_generation,authorization_state,
+                baseline_started_at,baseline_completed_at,generation_reason,family_aggregation_allowed
+            ) VALUES (?,?,?,?,?,'active',?,NULL,'reconsented',0)
+            ON CONFLICT(connection_ref) DO UPDATE SET active_item_ref=excluded.active_item_ref,
+                owner_ref=excluded.owner_ref,sync_generation=excluded.sync_generation,
+                authorization_state='active',baseline_started_at=excluded.baseline_started_at,
+                baseline_completed_at=NULL,generation_reason='reconsented'`).run(
+                connectionRef, this.#ref('lineage', normalizedAlias), this.#ref('owner', normalizedOwner),
+                this.#ref('item', itemId), normalizedGeneration, startedAt
+            );
+            return removed;
+        })();
+        return { reinstated: changes === 1, generation: normalizedGeneration,
+            baseline_required: true, financial_writes: 0 };
+    }
+
+    connectionGeneration(alias) {
+        const normalizedAlias = String(alias || '').toLowerCase();
+        if (!/^[a-z0-9_-]{2,48}$/.test(normalizedAlias)) return null;
+        const row = this.db.prepare('SELECT sync_generation FROM finance_connections WHERE connection_ref=?')
+            .get(this.#ref('connection', normalizedAlias));
+        return row?.sync_generation || null;
     }
 
     listCandidates() {

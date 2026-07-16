@@ -47,7 +47,8 @@ class OpenFinanceAlertOutbox {
         `);
         const columns = new Set(this.db.prepare('PRAGMA table_info(finance_alert_outbox)').all().map(row => row.name));
         for (const [name, type] of [
-            ['lease_token', 'TEXT'], ['lease_expires_at', 'TEXT'], ['last_error_code', 'TEXT']
+            ['lease_token', 'TEXT'], ['lease_expires_at', 'TEXT'], ['last_error_code', 'TEXT'],
+            ['attempt_ref', 'TEXT'], ['accepted_at', 'TEXT'], ['confirmed_at', 'TEXT']
         ]) {
             if (!columns.has(name)) this.db.exec(`ALTER TABLE finance_alert_outbox ADD COLUMN ${name} ${type}`);
         }
@@ -128,27 +129,35 @@ class OpenFinanceAlertOutbox {
         const alias = String(canaryAlias || '').toLowerCase();
         if (!/^[a-z0-9_-]{2,48}$/.test(alias)) throw new Error('valid_canary_alias_required');
         if (!Number.isInteger(leaseSeconds) || leaseSeconds < 30 || leaseSeconds > 900) throw new Error('invalid_outbox_lease');
+        this.recoverExpiredAmbiguous({ now });
         const leaseToken = crypto.randomBytes(24).toString('hex');
+        const attemptRef = this.#ref('attempt', leaseToken);
         const leaseExpiresAt = new Date(Date.parse(now) + leaseSeconds * 1000).toISOString();
         return this.db.transaction(() => {
-            const rows = this.db.prepare(`SELECT alert_ref,encrypted_payload,delivery_state,lease_expires_at
-                FROM finance_alert_outbox
-                WHERE delivery_state='pending' OR (delivery_state='in_flight' AND lease_expires_at<=?)
-                ORDER BY created_at,alert_ref`).all(now);
+            const rows = this.db.prepare(`SELECT alert_ref,encrypted_payload FROM finance_alert_outbox
+                WHERE delivery_state='pending' ORDER BY created_at,alert_ref`).all();
             for (const row of rows) {
                 const payload = this.#decrypt(row.alert_ref, row.encrypted_payload);
                 if (String(payload.alias || '').toLowerCase() !== alias) continue;
                 if (!ALERTABLE_CLASSIFICATIONS.has(payload.classification)) continue;
                 const updated = this.db.prepare(`UPDATE finance_alert_outbox SET delivery_state='in_flight',
-                    lease_token=?,lease_expires_at=?,attempts=attempts+1,last_error_code=NULL
-                    WHERE alert_ref=? AND (delivery_state='pending' OR
-                        (delivery_state='in_flight' AND lease_expires_at<=?))`)
-                    .run(leaseToken, leaseExpiresAt, row.alert_ref, now);
+                    lease_token=?,lease_expires_at=?,attempt_ref=?,attempts=attempts+1,last_error_code=NULL
+                    WHERE alert_ref=? AND delivery_state='pending'`)
+                    .run(leaseToken, leaseExpiresAt, attemptRef, row.alert_ref);
                 if (!updated.changes) continue;
-                return { alert_ref: row.alert_ref, lease_token: leaseToken, ...payload };
+                return { alert_ref: row.alert_ref, lease_token: leaseToken, attempt_ref: attemptRef, ...payload };
             }
             return null;
         })();
+    }
+    recoverExpiredAmbiguous({ now = new Date().toISOString() } = {}) {
+        const timestamp = Date.parse(now);
+        if (!Number.isFinite(timestamp)) throw new Error('valid_outbox_recovery_time_required');
+        const result = this.db.prepare(`UPDATE finance_alert_outbox SET
+            delivery_state='accepted_unconfirmed',accepted_at=?,lease_token=NULL,lease_expires_at=NULL,
+            last_error_code='ambiguous_after_crash'
+            WHERE delivery_state='in_flight' AND lease_expires_at<=?`).run(now, now);
+        return { recovered_ambiguous: result.changes, financial_writes: 0 };
     }
     quarantineNonAlertable() {
         let blocked = 0;
@@ -167,29 +176,58 @@ class OpenFinanceAlertOutbox {
         apply();
         return { blocked, financial_writes: 0 };
     }
-    acknowledgeSent({ alertRef, leaseToken, whatsappMessageId, sentAt = new Date().toISOString() } = {}) {
+    acknowledgeDelivered({ alertRef, leaseToken, whatsappMessageId, sentAt = new Date().toISOString() } = {}) {
         if (!alertRef || !leaseToken || !whatsappMessageId) throw new Error('outbox_ack_fields_required');
-        const result = this.db.prepare(`UPDATE finance_alert_outbox SET delivery_state='sent',sent_at=?,
-            whatsapp_message_ref=?,lease_token=NULL,lease_expires_at=NULL,last_error_code=NULL
+        const result = this.db.prepare(`UPDATE finance_alert_outbox SET delivery_state='delivered_confirmed',
+            sent_at=?,confirmed_at=?,whatsapp_message_ref=?,lease_token=NULL,lease_expires_at=NULL,last_error_code=NULL
             WHERE alert_ref=? AND delivery_state='in_flight' AND lease_token=?`)
-            .run(sentAt, this.#ref('whatsapp-message', whatsappMessageId), alertRef, leaseToken);
+            .run(sentAt, sentAt, this.#ref('whatsapp-message', whatsappMessageId), alertRef, leaseToken);
         if (!result.changes) throw new Error('outbox_ack_lease_mismatch');
-        return { sent: true, financial_writes: 0 };
+        return { delivered_confirmed: true, financial_writes: 0 };
+    }
+    acknowledgeAccepted({ alertRef, leaseToken, acceptedAt = new Date().toISOString(),
+        reasonCode = 'transport_accepted_without_provider_id' } = {}) {
+        if (!alertRef || !leaseToken) throw new Error('outbox_accept_fields_required');
+        const code = String(reasonCode || '').toLowerCase();
+        if (!/^[a-z0-9_]{2,48}$/.test(code)) throw new Error('invalid_outbox_accept_reason');
+        const result = this.db.prepare(`UPDATE finance_alert_outbox SET
+            delivery_state='accepted_unconfirmed',accepted_at=?,lease_token=NULL,lease_expires_at=NULL,
+            last_error_code=? WHERE alert_ref=? AND delivery_state='in_flight' AND lease_token=?`)
+            .run(acceptedAt, code, alertRef, leaseToken);
+        if (!result.changes) throw new Error('outbox_accept_lease_mismatch');
+        return { accepted_unconfirmed: true, financial_writes: 0 };
     }
     acknowledgeUserConfirmed({ internalReference, confirmedAt = new Date().toISOString() } = {}) {
         const reference = String(internalReference || '').toLowerCase();
         if (!/^[a-f0-9]{10}$/.test(reference)) throw new Error('valid_internal_reference_required');
         const candidates = this.db.prepare(`SELECT alert_ref,encrypted_payload FROM finance_alert_outbox
-            WHERE delivery_state='pending' AND attempts>0 AND last_error_code='transport_ack_unavailable'`).all()
+            WHERE (delivery_state='accepted_unconfirmed') OR
+                (delivery_state='pending' AND attempts>0 AND last_error_code='transport_ack_unavailable')`).all()
             .filter(row => this.#decrypt(row.alert_ref, row.encrypted_payload).internal_reference === reference);
         if (candidates.length !== 1) throw new Error('ambiguous_user_confirmation');
         const row = candidates[0];
-        const result = this.db.prepare(`UPDATE finance_alert_outbox SET delivery_state='sent',sent_at=?,
-            whatsapp_message_ref=?,lease_token=NULL,lease_expires_at=NULL,last_error_code='user_confirmed_after_ambiguous_ack'
-            WHERE alert_ref=? AND delivery_state='pending' AND attempts>0 AND last_error_code='transport_ack_unavailable'`)
-            .run(confirmedAt, this.#ref('whatsapp-message', `user-confirmed:${row.alert_ref}`), row.alert_ref);
+        const result = this.db.prepare(`UPDATE finance_alert_outbox SET delivery_state='delivered_confirmed',
+            sent_at=?,confirmed_at=?,whatsapp_message_ref=?,lease_token=NULL,lease_expires_at=NULL,
+            last_error_code='user_confirmed_after_ambiguous_ack'
+            WHERE alert_ref=? AND (delivery_state='accepted_unconfirmed' OR
+                (delivery_state='pending' AND attempts>0 AND last_error_code='transport_ack_unavailable'))`)
+            .run(confirmedAt, confirmedAt, this.#ref('whatsapp-message', `user-confirmed:${row.alert_ref}`), row.alert_ref);
         if (result.changes !== 1) throw new Error('user_confirmation_state_changed');
-        return { sent: true, alert_ref: row.alert_ref, financial_writes: 0 };
+        return { delivered_confirmed: true, alert_ref: row.alert_ref, financial_writes: 0 };
+    }
+    requestManualRetry({ internalReference, confirm = false } = {}) {
+        if (confirm !== true) throw new Error('manual_retry_confirmation_required');
+        const reference = String(internalReference || '').toLowerCase();
+        if (!/^[a-f0-9]{10}$/.test(reference)) throw new Error('valid_internal_reference_required');
+        const candidates = this.db.prepare(`SELECT alert_ref,encrypted_payload FROM finance_alert_outbox
+            WHERE delivery_state='accepted_unconfirmed'`).all()
+            .filter(row => this.#decrypt(row.alert_ref, row.encrypted_payload).internal_reference === reference);
+        if (candidates.length !== 1) throw new Error('ambiguous_manual_retry');
+        const result = this.db.prepare(`UPDATE finance_alert_outbox SET delivery_state='pending',
+            accepted_at=NULL,attempt_ref=NULL,last_error_code='manual_retry_requested'
+            WHERE alert_ref=? AND delivery_state='accepted_unconfirmed'`).run(candidates[0].alert_ref);
+        if (result.changes !== 1) throw new Error('manual_retry_state_changed');
+        return { pending: true, alert_ref: candidates[0].alert_ref, financial_writes: 0 };
     }
     releaseFailed({ alertRef, leaseToken, errorCode = 'transport_error' } = {}) {
         const code = String(errorCode || '').toLowerCase();
@@ -242,9 +280,15 @@ class OpenFinanceAlertOutbox {
             SUM(CASE WHEN delivery_state='pending' THEN 1 ELSE 0 END) pending,
             SUM(CASE WHEN delivery_state='in_flight' THEN 1 ELSE 0 END) in_flight,
             SUM(CASE WHEN delivery_state='blocked' THEN 1 ELSE 0 END) blocked,
-            SUM(CASE WHEN delivery_state='sent' THEN 1 ELSE 0 END) sent FROM finance_alert_outbox`).get();
+            SUM(CASE WHEN delivery_state='accepted_unconfirmed' THEN 1 ELSE 0 END) accepted_unconfirmed,
+            SUM(CASE WHEN delivery_state='delivered_confirmed' THEN 1 ELSE 0 END) delivered_confirmed,
+            SUM(CASE WHEN delivery_state='sent' THEN 1 ELSE 0 END) legacy_sent FROM finance_alert_outbox`).get();
+        const legacySent = row.legacy_sent || 0;
+        const deliveredConfirmed = row.delivered_confirmed || 0;
         return { total: row.total, pending: row.pending || 0, in_flight: row.in_flight || 0,
-            blocked: row.blocked || 0, sent: row.sent || 0, transport_calls: 0, financial_writes: 0 };
+            blocked: row.blocked || 0, accepted_unconfirmed: row.accepted_unconfirmed || 0,
+            delivered_confirmed: deliveredConfirmed, legacy_sent: legacySent,
+            sent: legacySent + deliveredConfirmed, transport_calls: 0, financial_writes: 0 };
     }
     close() { this.db.close(); }
 }

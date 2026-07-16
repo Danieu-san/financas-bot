@@ -38,7 +38,9 @@ test('9D.1c outbox is idempotent across restart and performs no send', () => {
     try {
         const replay = store.enqueue({ candidates: [data.candidate], lifecycleDecisions: data.lifecycle.decisions, items: [data.item], policies, baselineComplete: true });
         assert.equal(replay.replayed, 1);
-        assert.deepEqual(store.stats(), { total: 1, pending: 1, in_flight: 0, blocked: 0, sent: 0, transport_calls: 0, financial_writes: 0 });
+        assert.deepEqual(store.stats(), { total: 1, pending: 1, in_flight: 0, blocked: 0,
+            accepted_unconfirmed: 0, delivered_confirmed: 0, legacy_sent: 0, sent: 0,
+            transport_calls: 0, financial_writes: 0 });
     } finally { store.close(); }
 });
 
@@ -87,7 +89,7 @@ test('9E.1 user confirmation closes exactly one ambiguous transport acknowledgem
         const delivery = store.claimNext({ canaryAlias: 'daniel_nubank' });
         store.releaseFailed({ alertRef: delivery.alert_ref, leaseToken: delivery.lease_token,
             errorCode: 'transport_ack_unavailable' });
-        assert.equal(store.acknowledgeUserConfirmed({ internalReference: delivery.internal_reference }).sent, true);
+        assert.equal(store.acknowledgeUserConfirmed({ internalReference: delivery.internal_reference }).delivered_confirmed, true);
         assert.equal(store.stats().sent, 1);
         assert.throws(() => store.acknowledgeUserConfirmed({ internalReference: delivery.internal_reference }), /ambiguous/);
     } finally { store.close(); }

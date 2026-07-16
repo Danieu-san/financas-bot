@@ -3,6 +3,7 @@ const test = require('node:test');
 const { OpenFinanceLiveStagingVault } = require('../src/openFinance/openFinanceLiveStagingVault');
 const { OpenFinanceBaselineStore } = require('../src/openFinance/openFinanceBaselineStore');
 const { OpenFinanceAlertOutbox } = require('../src/openFinance/openFinanceAlertOutbox');
+const { OpenFinanceRevocationJournal } = require('../src/openFinance/openFinanceRevocationJournal');
 const { classifyOpenFinanceLifecycle } = require('../src/openFinance/openFinanceLifecycleClassifier');
 const { revokeOpenFinanceConsent, reinstateOpenFinanceConsent } = require('../src/openFinance/openFinanceConsentLifecycle');
 
@@ -37,6 +38,7 @@ test('9F local consent revocation purges all stores and blocks delayed replay', 
     const vault = new OpenFinanceLiveStagingVault({ secret });
     const baseline = new OpenFinanceBaselineStore({ secret });
     const outbox = new OpenFinanceAlertOutbox({ secret });
+    const journal = new OpenFinanceRevocationJournal({ secret });
     try {
         const oldTransaction = transaction('old', 500, 'old private data');
         const first = snapshot('event-1', [oldTransaction]);
@@ -53,12 +55,14 @@ test('9F local consent revocation purges all stores and blocks delayed replay', 
             items: changed.items, policies: policy, baselineComplete: true }).inserted, 1);
 
         const revoked = revokeOpenFinanceConsent({
-            alias: 'daniel_nubank', itemId: 'item-daniel-1', vault, baseline, outbox,
+            alias: 'daniel_nubank', itemId: 'item-daniel-1', vault, baseline, outbox, journal, generation: 1,
             revokedAt: '2026-07-16T13:00:00.000Z'
         });
         assert.equal(revoked.revoked, true);
         assert.equal(revoked.provider_consent_revoked, false);
         assert.equal(revoked.financial_writes, 0);
+        assert.equal(revoked.journal.recorded, true);
+        assert.equal(journal.isGenerationRevoked('daniel_nubank', 1), true);
         assert.equal(vault.readItemByAlias('daniel_nubank'), null);
         assert.deepEqual(baseline.stats(), { connections: 0, events: 0, observations: 0,
             candidates: 0, completed_baselines: 0, financial_writes: 0 });
@@ -74,15 +78,17 @@ test('9F local consent revocation purges all stores and blocks delayed replay', 
         assert.equal(outbox.stats().total, 0);
 
         const replay = revokeOpenFinanceConsent({
-            alias: 'daniel_nubank', itemId: 'item-daniel-1', vault, baseline, outbox,
+            alias: 'daniel_nubank', itemId: 'item-daniel-1', vault, baseline, outbox, journal, generation: 1,
             revokedAt: '2026-07-16T13:00:00.000Z'
         });
         assert.equal(replay.alerts.removed_alerts, 0);
+        assert.equal(replay.journal.replay, true);
         assert.deepEqual(replay.history.removed, { connections: 0, events: 0, observations: 0, candidates: 0 });
     } finally {
         outbox.close();
         baseline.close();
         vault.close();
+        journal.close();
     }
 });
 
@@ -90,11 +96,17 @@ test('9F re-consent requires explicit tombstone removal and a new silent baselin
     const vault = new OpenFinanceLiveStagingVault({ secret });
     const baseline = new OpenFinanceBaselineStore({ secret });
     const outbox = new OpenFinanceAlertOutbox({ secret });
+    const journal = new OpenFinanceRevocationJournal({ secret });
     try {
-        revokeOpenFinanceConsent({ alias: 'daniel_nubank', itemId: 'item-daniel-1', vault, baseline, outbox });
-        const reinstated = reinstateOpenFinanceConsent({ alias: 'daniel_nubank', itemId: 'item-daniel-1', vault, baseline, outbox });
+        revokeOpenFinanceConsent({ alias: 'daniel_nubank', itemId: 'item-daniel-1', vault, baseline, outbox, journal, generation: 1 });
+        assert.throws(() => reinstateOpenFinanceConsent({ alias: 'daniel_nubank', itemId: 'item-daniel-1',
+            ownerScope: 'daniel', vault, baseline, outbox, journal, newGeneration: 1 }), /new_generation/);
+        const reinstated = reinstateOpenFinanceConsent({ alias: 'daniel_nubank', itemId: 'item-daniel-1',
+            ownerScope: 'daniel', vault, baseline, outbox, journal, newGeneration: 2 });
         assert.equal(reinstated.baseline_required, true);
         assert.equal(reinstated.staging.reinstated, true);
+        assert.equal(journal.isGenerationRevoked('daniel_nubank', 2), false);
+        assert.equal(baseline.connectionGeneration('daniel_nubank'), 2);
         const newSnapshot = snapshot('event-reconsent', [transaction('new-generation', 700, 'private')]);
         assert.equal(vault.ingestSnapshot(newSnapshot).staged_items, 1);
         const result = baseline.ingestSnapshot(newSnapshot);
@@ -104,5 +116,6 @@ test('9F re-consent requires explicit tombstone removal and a new silent baselin
         outbox.close();
         baseline.close();
         vault.close();
+        journal.close();
     }
 });

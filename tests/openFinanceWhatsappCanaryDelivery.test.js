@@ -26,7 +26,7 @@ function canaryPolicy(mode = 'canary') {
     return buildOpenFinanceRolloutPolicy({ env: { OPEN_FINANCE_ALERT_MODE: mode, OPEN_FINANCE_ALERT_CANARY_ALIAS: mode === 'canary' ? 'daniel_nubank' : '', OPEN_FINANCE_WRITE_MODE: 'off' }, evidence, mappings, vaultAvailable: true });
 }
 
-test('9E.0 canary sends one allowed source and marks durable acknowledgement', async () => {
+test('9F canary with provider id becomes delivered_confirmed', async () => {
     const outbox = setup(); let calls = 0; let sentText = '';
     try {
         const result = await deliverOneOpenFinanceCanary({ policy: canaryPolicy(), outbox,
@@ -34,9 +34,11 @@ test('9E.0 canary sends one allowed source and marks durable acknowledgement', a
             sourceLabels: { daniel_nubank: 'Nubank Daniel' },
             transport: { sendMessage: async (to, text) => { calls += 1; sentText = text; assert.equal(to, 'recipient-private'); return { id: { _serialized: 'message-private-id' } }; } },
             now: '2026-07-16T12:00:00.000Z' });
-        assert.equal(result.outcome, 'sent'); assert.equal(calls, 1);
+        assert.equal(result.outcome, 'delivered_confirmed'); assert.equal(calls, 1);
         assert.match(sentText, /Somente leitura: nada foi salvo automaticamente/);
-        assert.deepEqual(outbox.stats(), { total: 1, pending: 0, in_flight: 0, blocked: 0, sent: 1, transport_calls: 0, financial_writes: 0 });
+        assert.deepEqual(outbox.stats(), { total: 1, pending: 0, in_flight: 0, blocked: 0,
+            accepted_unconfirmed: 0, delivered_confirmed: 1, legacy_sent: 0, sent: 1,
+            transport_calls: 0, financial_writes: 0 });
     } finally { outbox.close(); }
 });
 
@@ -50,24 +52,25 @@ test('9E.0 shadow blocks transport before claiming the outbox', async () => {
     } finally { outbox.close(); }
 });
 
-test('9E.0 transport failure releases the lease and retry is at-least-once', async () => {
+test('9F definitive no-send failure releases the lease for an explicit retry', async () => {
     const outbox = setup(); let calls = 0;
     const common = { policy: canaryPolicy(), outbox, recipientResolver: async () => 'recipient', sourceLabels: { daniel_nubank: 'Nubank Daniel' } };
     try {
-        const failed = await deliverOneOpenFinanceCanary({ ...common, transport: { sendMessage: async () => { calls += 1; throw Object.assign(new Error('offline'), { code: 'transport_offline' }); } } });
+        const failed = await deliverOneOpenFinanceCanary({ ...common, transport: { sendMessage: async () => { calls += 1; throw Object.assign(new Error('offline'), { code: 'transport_offline', definitiveNoSend: true }); } } });
         assert.equal(failed.outcome, 'retry'); assert.equal(outbox.stats().pending, 1);
         const sent = await deliverOneOpenFinanceCanary({ ...common, transport: { sendMessage: async () => { calls += 1; return { id: 'message-id' }; } } });
-        assert.equal(sent.outcome, 'sent'); assert.equal(calls, 2); assert.equal(outbox.stats().sent, 1);
+        assert.equal(sent.outcome, 'delivered_confirmed'); assert.equal(calls, 2); assert.equal(outbox.stats().sent, 1);
     } finally { outbox.close(); }
 });
 
-test('9E.1 resolved transport without provider message id is acknowledged once', async () => {
+test('9F resolved transport without provider id becomes accepted_unconfirmed and is never retried automatically', async () => {
     const outbox = setup(); let calls = 0;
     try {
         const result = await deliverOneOpenFinanceCanary({ policy: canaryPolicy(), outbox,
             recipientResolver: async () => 'recipient', sourceLabels: { daniel_nubank: 'Nubank Daniel' },
             transport: { sendMessage: async () => { calls += 1; return undefined; } } });
-        assert.equal(result.outcome, 'sent'); assert.equal(calls, 1); assert.equal(outbox.stats().sent, 1);
+        assert.equal(result.outcome, 'accepted_unconfirmed'); assert.equal(calls, 1);
+        assert.equal(outbox.stats().accepted_unconfirmed, 1); assert.equal(outbox.stats().sent, 0);
         const replay = await deliverOneOpenFinanceCanary({ policy: canaryPolicy(), outbox,
             recipientResolver: async () => 'recipient', sourceLabels: { daniel_nubank: 'Nubank Daniel' },
             transport: { sendMessage: async () => { calls += 1; } } });
@@ -81,13 +84,49 @@ test('9E.0 canary never claims an event from another source alias', () => {
     finally { outbox.close(); }
 });
 
-test('9E.0 expired lease is reclaimed after an interrupted worker', () => {
+test('9F expired in-flight lease becomes accepted_unconfirmed and is not reclaimed', () => {
     const outbox = setup();
     try {
         const first = outbox.claimNext({ canaryAlias: 'daniel_nubank', now: '2026-07-16T12:00:00.000Z', leaseSeconds: 30 });
         assert.ok(first?.lease_token); assert.equal(outbox.stats().in_flight, 1);
         assert.equal(outbox.claimNext({ canaryAlias: 'daniel_nubank', now: '2026-07-16T12:00:29.000Z', leaseSeconds: 30 }), null);
         const recovered = outbox.claimNext({ canaryAlias: 'daniel_nubank', now: '2026-07-16T12:00:31.000Z', leaseSeconds: 30 });
-        assert.ok(recovered?.lease_token); assert.notEqual(recovered.lease_token, first.lease_token);
+        assert.equal(recovered, null); assert.equal(outbox.stats().accepted_unconfirmed, 1);
+    } finally { outbox.close(); }
+});
+
+test('9F ambiguous transport rejection is at-most-once and can be confirmed by reference', async () => {
+    const outbox = setup(); let calls = 0;
+    try {
+        const result = await deliverOneOpenFinanceCanary({ policy: canaryPolicy(), outbox,
+            recipientResolver: async () => 'recipient', sourceLabels: { daniel_nubank: 'Nubank Daniel' },
+            transport: { sendMessage: async () => { calls += 1; throw new Error('unknown delivery state'); } } });
+        assert.equal(result.outcome, 'accepted_unconfirmed'); assert.equal(calls, 1);
+        const row = outbox.db.prepare('SELECT encrypted_payload,alert_ref FROM finance_alert_outbox').get();
+        assert.equal(outbox.stats().accepted_unconfirmed, 1);
+        assert.equal((await deliverOneOpenFinanceCanary({ policy: canaryPolicy(), outbox,
+            recipientResolver: async () => 'recipient', sourceLabels: { daniel_nubank: 'Nubank Daniel' },
+            transport: { sendMessage: async () => { calls += 1; } } })).outcome, 'idle');
+        const internalReference = row.alert_ref.slice(0, 10);
+        assert.equal(outbox.acknowledgeUserConfirmed({ internalReference }).delivered_confirmed, true);
+        assert.equal(outbox.stats().delivered_confirmed, 1); assert.equal(calls, 1);
+    } finally { outbox.close(); }
+});
+
+test('9F accepted_unconfirmed can be retried only by explicit confirmed action', async () => {
+    const outbox = setup(); let calls = 0;
+    const common = { policy: canaryPolicy(), outbox, recipientResolver: async () => 'recipient',
+        sourceLabels: { daniel_nubank: 'Nubank Daniel' } };
+    try {
+        const accepted = await deliverOneOpenFinanceCanary({ ...common,
+            transport: { sendMessage: async () => { calls += 1; return undefined; } } });
+        assert.equal(accepted.outcome, 'accepted_unconfirmed');
+        const internalReference = outbox.db.prepare('SELECT alert_ref FROM finance_alert_outbox').get().alert_ref.slice(0, 10);
+        assert.throws(() => outbox.requestManualRetry({ internalReference }), /confirmation_required/);
+        assert.equal(outbox.requestManualRetry({ internalReference, confirm: true }).pending, true);
+        const confirmed = await deliverOneOpenFinanceCanary({ ...common,
+            transport: { sendMessage: async () => { calls += 1; return { id: 'manual-retry-id' }; } } });
+        assert.equal(confirmed.outcome, 'delivered_confirmed');
+        assert.equal(calls, 2); assert.equal(outbox.stats().delivered_confirmed, 1);
     } finally { outbox.close(); }
 });

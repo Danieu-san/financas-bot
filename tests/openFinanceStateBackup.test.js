@@ -6,6 +6,8 @@ const test = require('node:test');
 const { OpenFinanceLiveStagingVault } = require('../src/openFinance/openFinanceLiveStagingVault');
 const { OpenFinanceBaselineStore } = require('../src/openFinance/openFinanceBaselineStore');
 const { OpenFinanceAlertOutbox } = require('../src/openFinance/openFinanceAlertOutbox');
+const { OpenFinanceRevocationJournal } = require('../src/openFinance/openFinanceRevocationJournal');
+const { revokeOpenFinanceConsent } = require('../src/openFinance/openFinanceConsentLifecycle');
 const {
     createOpenFinanceStateBackup,
     verifyOpenFinanceStateBackup,
@@ -35,12 +37,13 @@ test('9F backup is consistent, verifiable, restorable and encrypted at rest', as
     const vault = new OpenFinanceLiveStagingVault({ databasePath: databasePaths.staging, secret });
     const baseline = new OpenFinanceBaselineStore({ databasePath: databasePaths.baseline, secret });
     const outbox = new OpenFinanceAlertOutbox({ databasePath: databasePaths.outbox, secret });
+    const journal = new OpenFinanceRevocationJournal({ secret });
     vault.ingestSnapshot(snapshot);
     baseline.ingestSnapshot(snapshot);
     vault.close(); baseline.close(); outbox.close();
 
     const backupDirectory = path.join(root, 'backups', 'backup-1');
-    const backup = await createOpenFinanceStateBackup({ databasePaths, destinationDirectory: backupDirectory,
+    const backup = await createOpenFinanceStateBackup({ databasePaths, destinationDirectory: backupDirectory, revocationJournal: journal,
         createdAt: '2026-07-01T00:00:00.000Z', retentionDays: 30 });
     assert.deepEqual(verifyOpenFinanceStateBackup(backup.manifest_path), {
         valid: true, retention_until: '2026-07-31T00:00:00.000Z', files: 3, financial_writes: 0
@@ -51,7 +54,9 @@ test('9F backup is consistent, verifiable, restorable and encrypted at rest', as
     }
 
     const restoreDirectory = path.join(root, 'restore');
-    const restored = restoreOpenFinanceStateBackup({ manifestPath: backup.manifest_path, destinationDirectory: restoreDirectory });
+    const restored = restoreOpenFinanceStateBackup({ manifestPath: backup.manifest_path,
+        destinationDirectory: restoreDirectory, revocationJournal: journal,
+        mappings: [{ alias: 'daniel_nubank', itemId: 'private-item', generation: 1 }], secret });
     const restoredVault = new OpenFinanceLiveStagingVault({ databasePath: restored.restored.staging, secret });
     const restoredBaseline = new OpenFinanceBaselineStore({ databasePath: restored.restored.baseline, secret });
     const restoredOutbox = new OpenFinanceAlertOutbox({ databasePath: restored.restored.outbox, secret });
@@ -68,6 +73,7 @@ test('9F backup is consistent, verifiable, restorable and encrypted at rest', as
     assert.equal(deleteExpiredOpenFinanceBackup({ manifestPath: backup.manifest_path,
         backupRoot: path.join(root, 'backups'), now: '2026-08-01T00:00:00.000Z', confirm: true }).deleted, true);
     assert.equal(fs.existsSync(backupDirectory), false);
+    journal.close();
 });
 
 test('9F backup verification fails closed after tampering', async () => {
@@ -76,8 +82,49 @@ test('9F backup verification fails closed after tampering', async () => {
     new OpenFinanceLiveStagingVault({ databasePath: databasePaths.staging, secret }).close();
     new OpenFinanceBaselineStore({ databasePath: databasePaths.baseline, secret }).close();
     new OpenFinanceAlertOutbox({ databasePath: databasePaths.outbox, secret }).close();
+    const journal = new OpenFinanceRevocationJournal({ secret });
     const backup = await createOpenFinanceStateBackup({ databasePaths,
-        destinationDirectory: path.join(root, 'backups', 'backup-1') });
+        destinationDirectory: path.join(root, 'backups', 'backup-1'), revocationJournal: journal });
     fs.appendFileSync(path.join(path.dirname(backup.manifest_path), 'baseline.sqlite'), 'tamper');
     assert.throws(() => verifyOpenFinanceStateBackup(backup.manifest_path), /checksum_mismatch/);
+    journal.close();
+});
+
+test('9F restore of a pre-revocation backup reapplies the monotonic journal before exposing state', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-open-backup-revoked-'));
+    const databasePaths = Object.fromEntries(['staging', 'baseline', 'outbox'].map(key => [key, path.join(root, `${key}.sqlite`)]));
+    const journal = new OpenFinanceRevocationJournal({ databasePath: path.join(root, 'revocations.sqlite'), secret });
+    const sourceSnapshot = buildSnapshot();
+    let vault = new OpenFinanceLiveStagingVault({ databasePath: databasePaths.staging, secret });
+    let baseline = new OpenFinanceBaselineStore({ databasePath: databasePaths.baseline, secret });
+    let outbox = new OpenFinanceAlertOutbox({ databasePath: databasePaths.outbox, secret });
+    vault.ingestSnapshot(sourceSnapshot); baseline.ingestSnapshot(sourceSnapshot);
+    vault.close(); baseline.close(); outbox.close();
+
+    const backup = await createOpenFinanceStateBackup({ databasePaths,
+        destinationDirectory: path.join(root, 'backup-before-revocation'), revocationJournal: journal });
+    vault = new OpenFinanceLiveStagingVault({ databasePath: databasePaths.staging, secret });
+    baseline = new OpenFinanceBaselineStore({ databasePath: databasePaths.baseline, secret });
+    outbox = new OpenFinanceAlertOutbox({ databasePath: databasePaths.outbox, secret });
+    revokeOpenFinanceConsent({ alias: 'daniel_nubank', itemId: 'private-item', generation: 1,
+        vault, baseline, outbox, journal, revokedAt: '2026-07-16T13:00:00.000Z' });
+    vault.close(); baseline.close(); outbox.close();
+
+    const restored = restoreOpenFinanceStateBackup({ manifestPath: backup.manifest_path,
+        destinationDirectory: path.join(root, 'restored-old-backup'), revocationJournal: journal,
+        mappings: [{ alias: 'daniel_nubank', itemId: 'private-item', generation: 1 }], secret });
+    assert.equal(restored.revocations_reapplied, 1);
+    vault = new OpenFinanceLiveStagingVault({ databasePath: restored.restored.staging, secret });
+    baseline = new OpenFinanceBaselineStore({ databasePath: restored.restored.baseline, secret });
+    outbox = new OpenFinanceAlertOutbox({ databasePath: restored.restored.outbox, secret });
+    try {
+        assert.equal(vault.stats().items, 0);
+        assert.equal(baseline.stats().observations, 0);
+        assert.equal(outbox.stats().total, 0);
+        assert.equal(baseline.isConnectionRevoked('daniel_nubank'), true);
+        assert.equal(outbox.isSourceRevoked('daniel_nubank'), true);
+        assert.equal(vault.ingestSnapshot({ ...sourceSnapshot, event_id: 'delayed-after-restore' }).blocked_items, 1);
+    } finally {
+        outbox.close(); baseline.close(); vault.close(); journal.close();
+    }
 });

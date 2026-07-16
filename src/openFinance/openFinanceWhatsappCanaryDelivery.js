@@ -27,20 +27,32 @@ async function deliverOneOpenFinanceCanary({ policy, outbox, transport, recipien
     }
     const delivery = outbox.claimNext({ canaryAlias: policy.canary_alias, now });
     if (!delivery) return { outcome: 'idle', transport_calls: 0, financial_writes: 0 };
+    let transportStarted = false;
     try {
         const recipient = await recipientResolver(delivery.recipient);
         if (!recipient) throw Object.assign(new Error('recipient_unavailable'), { code: 'recipient_unavailable' });
         const sourceLabel = sourceLabels[delivery.alias];
         if (!sourceLabel) throw Object.assign(new Error('source_label_unavailable'), { code: 'source_label_unavailable' });
+        transportStarted = true;
         const response = await transport.sendMessage(recipient, formatCanaryMessage(delivery, sourceLabel));
         const messageId = response?.id?._serialized || response?.id?.id || response?.id || response?.messageId ||
-            response?._data?.id?._serialized || response?._data?.id?.id || `transport-accepted:${delivery.alert_ref}`;
-        outbox.acknowledgeSent({ alertRef: delivery.alert_ref, leaseToken: delivery.lease_token, whatsappMessageId: String(messageId), sentAt: now });
-        return { outcome: 'sent', alert_ref: delivery.alert_ref, transport_calls: 1, financial_writes: 0 };
+            response?._data?.id?._serialized || response?._data?.id?.id;
+        if (messageId) {
+            outbox.acknowledgeDelivered({ alertRef: delivery.alert_ref, leaseToken: delivery.lease_token,
+                whatsappMessageId: String(messageId), sentAt: now });
+            return { outcome: 'delivered_confirmed', alert_ref: delivery.alert_ref, transport_calls: 1, financial_writes: 0 };
+        }
+        outbox.acknowledgeAccepted({ alertRef: delivery.alert_ref, leaseToken: delivery.lease_token, acceptedAt: now });
+        return { outcome: 'accepted_unconfirmed', alert_ref: delivery.alert_ref, transport_calls: 1, financial_writes: 0 };
     } catch (error) {
+        if (transportStarted && error?.definitiveNoSend !== true) {
+            outbox.acknowledgeAccepted({ alertRef: delivery.alert_ref, leaseToken: delivery.lease_token,
+                acceptedAt: now, reasonCode: 'ambiguous_transport_failure' });
+            return { outcome: 'accepted_unconfirmed', reason: 'ambiguous_delivery', transport_calls: 1, financial_writes: 0 };
+        }
         outbox.releaseFailed({ alertRef: delivery.alert_ref, leaseToken: delivery.lease_token,
             errorCode: /^[a-z0-9_]{2,48}$/.test(String(error.code || '')) ? error.code : 'transport_error' });
-        return { outcome: 'retry', reason: 'delivery_failed', transport_calls: 1, financial_writes: 0 };
+        return { outcome: 'retry', reason: 'delivery_failed', transport_calls: transportStarted ? 1 : 0, financial_writes: 0 };
     }
 }
 

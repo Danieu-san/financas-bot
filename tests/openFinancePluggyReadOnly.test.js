@@ -150,6 +150,35 @@ test('Bills indisponivel permanece indisponivel e nao vira balance ou zero', asy
     assert.equal(snapshot.items[0].accounts[0].balance_cents, 173792);
 });
 
+test('9F 401 and 403 on required sources fail closed without a snapshot', async () => {
+    const authDenied = new PluggyReadOnlyClient({ clientId: 'client-id', clientSecret: 'client-secret',
+        itemMappings: mapping(), fetchImpl: async () => response(401, {}) });
+    await assert.rejects(() => authDenied.readSnapshot({ eventId: 'event-401' }), /pluggy_http_401/);
+
+    const accountDenied = new PluggyReadOnlyClient({ clientId: 'client-id', clientSecret: 'client-secret',
+        itemMappings: mapping(), fetchImpl: async (url) => {
+            const parsed = new URL(url);
+            if (parsed.pathname === '/auth') return response(200, { apiKey: 'ephemeral-api-key' });
+            if (parsed.pathname.startsWith('/items/')) return response(200, { id: 'item-daniel-001', connectorId: '200', status: 'UPDATED' });
+            if (parsed.pathname === '/accounts') return response(403, {});
+            return response(500, {});
+        } });
+    await assert.rejects(() => accountDenied.readSnapshot({ eventId: 'event-403' }), /pluggy_http_403/);
+});
+
+test('9F OUTDATED item fails closed instead of emitting stale financial alerts', async () => {
+    const client = new PluggyReadOnlyClient({ clientId: 'client-id', clientSecret: 'client-secret',
+        itemMappings: mapping(), fetchImpl: async (url) => {
+            const parsed = new URL(url);
+            if (parsed.pathname === '/auth') return response(200, { apiKey: 'ephemeral-api-key' });
+            if (parsed.pathname.startsWith('/items/')) return response(200, { id: 'item-daniel-001', connectorId: '200', status: 'OUTDATED' });
+            if (parsed.pathname === '/accounts') return response(200, { results: rawSnapshot().items[0].accounts });
+            if (parsed.pathname === '/v2/transactions') return response(200, { results: [], next: null });
+            return response(200, { results: [] });
+        } });
+    await assert.rejects(() => client.readSnapshot({ eventId: 'event-outdated' }), /item_status_unhealthy/);
+});
+
 test('vault cifra dados financeiros e preserva itens separados por alias', () => {
     const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-pluggy-live-vault-'));
     const databasePath = path.join(temp, 'live.sqlite');

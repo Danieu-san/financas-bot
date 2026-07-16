@@ -50,6 +50,7 @@ test('9D.1a PENDING to POSTED with same observation does not duplicate', () => {
         assert.equal(result.new_observations, 0);
         assert.equal(result.alert_candidates, 0);
         assert.equal(store.stats().observations, 1);
+        assert.equal(store.listCandidates().length, 0);
     } finally { store.close(); }
 });
 
