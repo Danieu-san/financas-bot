@@ -77,3 +77,18 @@ test('9D.1c raw payload stays encrypted at rest', () => {
     const bytes = fs.readFileSync(databasePath).toString('latin1');
     for (const forbidden of ['Compra privada', 'daniel_nubank', 'account-1', 'tx-1']) assert.equal(bytes.includes(forbidden), false);
 });
+
+test('9E.1 user confirmation closes exactly one ambiguous transport acknowledgement', () => {
+    const data = fixture();
+    const store = new OpenFinanceAlertOutbox({ secret });
+    try {
+        store.enqueue({ candidates: [data.candidate], lifecycleDecisions: data.lifecycle.decisions,
+            items: [data.item], policies, baselineComplete: true });
+        const delivery = store.claimNext({ canaryAlias: 'daniel_nubank' });
+        store.releaseFailed({ alertRef: delivery.alert_ref, leaseToken: delivery.lease_token,
+            errorCode: 'transport_ack_unavailable' });
+        assert.equal(store.acknowledgeUserConfirmed({ internalReference: delivery.internal_reference }).sent, true);
+        assert.equal(store.stats().sent, 1);
+        assert.throws(() => store.acknowledgeUserConfirmed({ internalReference: delivery.internal_reference }), /ambiguous/);
+    } finally { store.close(); }
+});

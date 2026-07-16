@@ -61,6 +61,20 @@ test('9E.0 transport failure releases the lease and retry is at-least-once', asy
     } finally { outbox.close(); }
 });
 
+test('9E.1 resolved transport without provider message id is acknowledged once', async () => {
+    const outbox = setup(); let calls = 0;
+    try {
+        const result = await deliverOneOpenFinanceCanary({ policy: canaryPolicy(), outbox,
+            recipientResolver: async () => 'recipient', sourceLabels: { daniel_nubank: 'Nubank Daniel' },
+            transport: { sendMessage: async () => { calls += 1; return undefined; } } });
+        assert.equal(result.outcome, 'sent'); assert.equal(calls, 1); assert.equal(outbox.stats().sent, 1);
+        const replay = await deliverOneOpenFinanceCanary({ policy: canaryPolicy(), outbox,
+            recipientResolver: async () => 'recipient', sourceLabels: { daniel_nubank: 'Nubank Daniel' },
+            transport: { sendMessage: async () => { calls += 1; } } });
+        assert.equal(replay.outcome, 'idle'); assert.equal(calls, 1);
+    } finally { outbox.close(); }
+});
+
 test('9E.0 canary never claims an event from another source alias', () => {
     const outbox = setup('thais_nubank');
     try { assert.equal(outbox.stats().pending, 1); assert.equal(outbox.claimNext({ canaryAlias: 'daniel_nubank' }), null); }

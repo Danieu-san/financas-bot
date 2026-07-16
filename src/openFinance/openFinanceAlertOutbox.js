@@ -170,6 +170,21 @@ class OpenFinanceAlertOutbox {
         if (!result.changes) throw new Error('outbox_ack_lease_mismatch');
         return { sent: true, financial_writes: 0 };
     }
+    acknowledgeUserConfirmed({ internalReference, confirmedAt = new Date().toISOString() } = {}) {
+        const reference = String(internalReference || '').toLowerCase();
+        if (!/^[a-f0-9]{10}$/.test(reference)) throw new Error('valid_internal_reference_required');
+        const candidates = this.db.prepare(`SELECT alert_ref,encrypted_payload FROM finance_alert_outbox
+            WHERE delivery_state='pending' AND attempts>0 AND last_error_code='transport_ack_unavailable'`).all()
+            .filter(row => this.#decrypt(row.alert_ref, row.encrypted_payload).internal_reference === reference);
+        if (candidates.length !== 1) throw new Error('ambiguous_user_confirmation');
+        const row = candidates[0];
+        const result = this.db.prepare(`UPDATE finance_alert_outbox SET delivery_state='sent',sent_at=?,
+            whatsapp_message_ref=?,lease_token=NULL,lease_expires_at=NULL,last_error_code='user_confirmed_after_ambiguous_ack'
+            WHERE alert_ref=? AND delivery_state='pending' AND attempts>0 AND last_error_code='transport_ack_unavailable'`)
+            .run(confirmedAt, this.#ref('whatsapp-message', `user-confirmed:${row.alert_ref}`), row.alert_ref);
+        if (result.changes !== 1) throw new Error('user_confirmation_state_changed');
+        return { sent: true, alert_ref: row.alert_ref, financial_writes: 0 };
+    }
     releaseFailed({ alertRef, leaseToken, errorCode = 'transport_error' } = {}) {
         const code = String(errorCode || '').toLowerCase();
         if (!/^[a-z0-9_]{2,48}$/.test(code)) throw new Error('invalid_outbox_error_code');

@@ -48,3 +48,16 @@ QA_FAILURE_LOG_PATH=/caminho/customizado/qa-failures.jsonl
 ```
 
 Por padrao, o log fica ativo.
+# 2026-07-16 - Open Finance WhatsApp duplicou compra apos ack ausente
+
+- Contexto: canario 9E.1, uma compra real seguida de estorno em Daniel Nubank.
+- Sintoma: a compra foi enviada duas vezes com a mesma referencia interna.
+- Causa: `client.sendMessage()` resolveu sem ID de mensagem; o worker tratou a
+  ausencia do ID como falha, devolveu o item para `pending` e repetiu o envio.
+- Contencao: segundo evento permaneceu pendente; nenhuma escrita financeira foi
+  executada.
+- Correcao: resolucao bem-sucedida do transporte passa a gerar ack local
+  deterministico quando o provedor nao retorna ID; confirmacao humana pode
+  encerrar exatamente uma entrega ambigua pela referencia interna.
+- Gate: nenhuma terceira copia da compra, estorno enviado uma vez, replay e
+  restart sem duplicacao.
