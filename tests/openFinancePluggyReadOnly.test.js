@@ -90,6 +90,46 @@ test('cliente usa apenas auth e endpoints GET read-only com paginacao v2', async
     assert.equal(calls.some((call) => call.path.startsWith('/v2/transactions?')), true);
 });
 
+test('cliente conclui cinco paginas antes de declarar collection health completa', async () => {
+    const mockFetch = async (url) => {
+        const parsed = new URL(url);
+        if (parsed.pathname === '/auth') return response(200, { apiKey: 'ephemeral-api-key' });
+        if (parsed.pathname.startsWith('/items/')) return response(200, { id: 'item-daniel-001', connectorId: '200', status: 'UPDATED' });
+        if (parsed.pathname === '/accounts') return response(200, { results: rawSnapshot().items[0].accounts });
+        if (parsed.pathname === '/v2/transactions') {
+            const page = Number(parsed.searchParams.get('page') || 1);
+            const size = page < 5 ? 500 : 205;
+            return response(200, {
+                results: Array.from({ length: size }, (_, index) => ({ ...rawSnapshot().items[0].transactions[0], id: `tx-${page}-${index}` })),
+                next: page < 5 ? `?accountId=account-card-001&page=${page + 1}` : null
+            });
+        }
+        if (parsed.pathname === '/bills') return response(200, { results: [] });
+        if (parsed.pathname === '/investments') return response(200, { results: [] });
+        return response(500, {});
+    };
+    const client = new PluggyReadOnlyClient({ clientId: 'client-id', clientSecret: 'client-secret', itemMappings: mapping(), fetchImpl: mockFetch });
+    const snapshot = await client.readSnapshot({ eventId: 'event-five-pages', observedAt: '2026-07-16T10:00:00.000Z' });
+    assert.equal(snapshot.items[0].transactions.length, 2205);
+    assert.deepEqual(snapshot.collection_health, { complete: true, warning_count: 0, transaction_pages: 5, investment_pages: 1 });
+});
+
+test('warning bloqueador no meio da paginacao rejeita o snapshot inteiro', async () => {
+    const mockFetch = async (url) => {
+        const parsed = new URL(url);
+        if (parsed.pathname === '/auth') return response(200, { apiKey: 'ephemeral-api-key' });
+        if (parsed.pathname.startsWith('/items/')) return response(200, { id: 'item-daniel-001', connectorId: '200', status: 'UPDATED' });
+        if (parsed.pathname === '/accounts') return response(200, { results: rawSnapshot().items[0].accounts });
+        if (parsed.pathname === '/v2/transactions') {
+            if (parsed.searchParams.has('after')) return response(200, { results: [], warnings: [{ code: 'permission_partial' }] });
+            return response(200, { results: rawSnapshot().items[0].transactions, next: '?accountId=account-card-001&after=cursor-1' });
+        }
+        return response(200, { results: [] });
+    };
+    const client = new PluggyReadOnlyClient({ clientId: 'client-id', clientSecret: 'client-secret', itemMappings: mapping(), fetchImpl: mockFetch });
+    await assert.rejects(() => client.readSnapshot({ eventId: 'event-warning' }), /pluggy_blocking_warning/);
+});
+
 test('Bills indisponivel permanece indisponivel e nao vira balance ou zero', async () => {
     const mockFetch = async (url) => {
         const parsed = new URL(url);

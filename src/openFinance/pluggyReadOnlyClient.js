@@ -71,7 +71,13 @@ class PluggyReadOnlyClient {
             throw error;
         }
         if (response.status === 204) return null;
-        return response.json();
+        const payload = await response.json();
+        if (Array.isArray(payload?.warnings) && payload.warnings.length) {
+            const error = new Error('pluggy_blocking_warning');
+            error.code = 'pluggy_blocking_warning';
+            throw error;
+        }
+        return payload;
     }
 
     async #authenticate() {
@@ -98,7 +104,7 @@ class PluggyReadOnlyClient {
         for (let page = 0; page < this.maxTransactionPages; page += 1) {
             const payload = await this.#request('GET', path);
             rows.push(...extractList(payload));
-            if (!payload?.next) return rows;
+            if (!payload?.next) return { rows, pages: page + 1 };
             const next = String(payload.next);
             if (next.startsWith('?')) path = `/v2/transactions${next}`;
             else if (next.startsWith('/v2/transactions?')) path = next;
@@ -113,7 +119,7 @@ class PluggyReadOnlyClient {
             const payload = await this.#optionalList(`/investments?itemId=${encodeURIComponent(itemId)}&pageSize=500&page=${page}`);
             rows.push(...payload.rows);
             if (payload.availability === 'unavailable' || payload.rows.length < 500) {
-                return { rows, availability: payload.availability };
+                return { rows, availability: payload.availability, pages: page };
             }
         }
         throw new Error('pluggy_investment_page_limit');
@@ -122,6 +128,8 @@ class PluggyReadOnlyClient {
     async readSnapshot(options = {}) {
         await this.#authenticate();
         const entries = [];
+        let transactionPages = 0;
+        let investmentPages = 0;
         for (const mapping of this.mappings) {
             const itemPayload = await this.#request('GET', `/items/${encodeURIComponent(mapping.itemId)}`);
             const item = itemPayload?.data || itemPayload;
@@ -131,7 +139,9 @@ class PluggyReadOnlyClient {
             let transactionAvailability = 'available';
             for (const account of accounts) {
                 try {
-                    transactions.push(...await this.#transactions(account.id));
+                    const result = await this.#transactions(account.id);
+                    transactions.push(...result.rows);
+                    transactionPages += result.pages;
                 } catch (error) {
                     if ([403, 404].includes(error.status)) transactionAvailability = 'partial';
                     else throw error;
@@ -145,6 +155,7 @@ class PluggyReadOnlyClient {
                 if (result.availability === 'unavailable') billAvailability = 'unavailable';
             }
             const investments = await this.#investments(mapping.itemId);
+            investmentPages += investments.pages;
             entries.push({
                 mapping,
                 item,
@@ -164,7 +175,13 @@ class PluggyReadOnlyClient {
             mode: 'live_readonly_staging',
             eventId: options.eventId || `live-read-${Date.now()}`,
             observedAt: options.observedAt || new Date().toISOString(),
-            items: entries
+            items: entries,
+            collectionHealth: {
+                complete: true,
+                warningCount: 0,
+                transactionPages,
+                investmentPages
+            }
         });
     }
 }

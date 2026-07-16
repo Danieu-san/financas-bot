@@ -2,6 +2,20 @@
 
 Atualizado em: 2026-07-16
 
+## Fase 9D.1a - identidade e baseline atomico - GO local/real - 2026-07-16
+
+- Auditoria adversarial retornou `GO COM CONDICOES`; 9E read-only continua
+  bloqueada ate identidade, ciclo de vida, source health e outbox passarem.
+- Store separa observacao Pluggy de evento economico, mantem aliases, linhagem e
+  geracao de reconexao; troca de Item exige novo baseline silencioso.
+- Cliente somente aceita paginacao completa, zero warning bloqueador e fontes
+  de contas/transacoes saudaveis.
+- Baseline real: 4 itens, 2.205 observacoes, 179 `PENDING`, zero alerta e zero
+  escrita. Replay real imediato: zero novidade.
+- Evidencia: baseline `6/6`, cliente `7/7`, Open Finance `38/38`, suite
+  `931/931` e payloads cifrados/HMAC.
+- Gate: `docs/qa/phase-9d1a-atomic-baseline-and-identity-gate-2026-07-16.md`.
+
 ## Fase 9D.1 - preview shadow cifrado e revisavel - GO local - 2026-07-16
 
 - Store SQLite no cofre P: cifra payload privado por preview com AES-256-GCM.

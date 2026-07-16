@@ -1302,6 +1302,19 @@ Resultado 9D.1 em 2026-07-16:
 - gate:
   `docs/qa/phase-9d1-encrypted-reviewable-shadow-preview-gate-2026-07-16.md`.
 
+Resultado 9D.1a em 2026-07-16:
+
+- auditoria adversarial `GO COM CONDICOES` incorporada; identidade de observacao
+  foi separada do evento economico e reconexao exige nova geracao;
+- coleta incompleta, warning bloqueador ou fonte doente nao avanca baseline;
+- baseline real atomico registrou 2.205 observacoes, incluindo 179 `PENDING`, e
+  emitiu zero alertas/escritas; replay real trouxe zero novidade;
+- evidencias baseline `6/6`, cliente `7/7`, Open Finance `38/38`, suite
+  `931/931`;
+- 9E continua bloqueada ate 9D.1b classificar ciclo de vida e 9D.1c provar
+  outbox sem envio;
+- gate: `docs/qa/phase-9d1a-atomic-baseline-and-identity-gate-2026-07-16.md`.
+
 ### 9E - Rollout familiar somente leitura
 
 Passo a passo:

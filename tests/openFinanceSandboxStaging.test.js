@@ -81,3 +81,4 @@ require('./openFinanceSandboxWebhookInbox.test');
 require('./openFinanceSandboxPolling.test');
 require('./openFinancePluggyReadOnly.test');
 require('./openFinanceShadowReconciliation.test');
+require('./openFinanceBaseline.test');

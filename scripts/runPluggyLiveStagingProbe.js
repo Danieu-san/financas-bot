@@ -4,6 +4,7 @@ const path = require('path');
 require('dotenv').config();
 const { PluggyReadOnlyClient } = require('../src/openFinance/pluggyReadOnlyClient');
 const { OpenFinanceLiveStagingVault } = require('../src/openFinance/openFinanceLiveStagingVault');
+const { OpenFinanceBaselineStore } = require('../src/openFinance/openFinanceBaselineStore');
 
 function loadMappings() {
     if (process.env.PLUGGY_ITEM_MAP_FILE) {
@@ -49,6 +50,16 @@ async function main() {
         });
         const snapshot = await client.readSnapshot({ eventId: `live-probe-${crypto.randomUUID()}` });
         const staged = vault.ingestSnapshot(snapshot);
+        let baseline = null;
+        if (process.env.OPEN_FINANCE_BASELINE_DB) {
+            const baselineStore = new OpenFinanceBaselineStore({
+                databasePath: process.env.OPEN_FINANCE_BASELINE_DB,
+                secret: process.env.OPEN_FINANCE_LIVE_STAGING_SECRET
+            });
+            try {
+                baseline = baselineStore.ingestSnapshot(snapshot);
+            } finally { baselineStore.close(); }
+        }
         const availability = snapshot.items.map((item) => ({
             alias: item.alias_code,
             availability: item.availability
@@ -57,6 +68,7 @@ async function main() {
             gate: 'PHASE_9C_LIVE_STAGING',
             outcome: 'GO',
             staged,
+            baseline,
             stats: vault.stats(),
             availability,
             runtime_connected: false,

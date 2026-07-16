@@ -98,6 +98,11 @@ function normalizeTransaction(transaction, itemId, accountIds) {
         date: isoDate(transaction.date, 'transaction_date'),
         status,
         type: optionalText(transaction.type, 16)?.toUpperCase() || null,
+        provider_id: optionalText(transaction.providerId, 128),
+        reference_number: optionalText(transaction.paymentData?.referenceNumber, 128),
+        receiver_reference_id: optionalText(transaction.paymentData?.receiverReferenceId, 128),
+        operation_type: optionalText(transaction.operationType, 64)?.toUpperCase() || null,
+        original_date: optionalIsoDate(transaction.originalDate),
         bill_id: transaction.creditCardMetadata?.billId
             ? opaqueId(transaction.creditCardMetadata.billId, 'transaction_bill_id')
             : null,
@@ -182,12 +187,19 @@ function normalizePluggyReadOnlySnapshot(payload = {}) {
         };
     });
     if (!items.length) throw new Error('pluggy_item_mapping_required');
+    const collectionHealth = payload.collectionHealth || payload.collection_health || {};
     return {
         schema_version: 1,
         provider: 'pluggy',
         mode: 'live_readonly_staging',
         event_id: eventId,
         observed_at: observedAt,
+        collection_health: {
+            complete: collectionHealth.complete === true,
+            warning_count: Math.max(0, Number(collectionHealth.warningCount ?? collectionHealth.warning_count) || 0),
+            transaction_pages: Math.max(0, Number(collectionHealth.transactionPages ?? collectionHealth.transaction_pages) || 0),
+            investment_pages: Math.max(0, Number(collectionHealth.investmentPages ?? collectionHealth.investment_pages) || 0)
+        },
         items
     };
 }
