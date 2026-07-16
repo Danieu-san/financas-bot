@@ -141,6 +141,14 @@ class OpenFinanceLiveStagingVault {
         return { revoked: true, item_ref: itemRef, financial_writes: 0 };
     }
 
+    reinstateItem(itemId) {
+        const value = String(itemId || '').trim();
+        if (!value) throw new Error('open_finance_item_id_required');
+        const changes = this.db.prepare('DELETE FROM live_staging_revocations WHERE item_ref = ?')
+            .run(this.#ref('item', value)).changes;
+        return { reinstated: changes === 1, baseline_required: true, financial_writes: 0 };
+    }
+
     stats() {
         const totals = this.db.prepare(`
             SELECT

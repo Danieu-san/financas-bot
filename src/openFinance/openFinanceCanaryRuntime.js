@@ -86,7 +86,9 @@ function initializeOpenFinanceCanaryRuntime({ client, logger = console, env = pr
         running = true;
         try {
             const result = await runCycle({ client, env });
-            logger.info(`[open-finance] cycle=${result.outcome} new=${result.new_observations || 0} sent=${result.outbox?.sent || 0} writes=0`);
+            const deliveredThisCycle = (result.deliveries || []).filter(value => value === 'sent').length;
+            const retriesThisCycle = (result.deliveries || []).filter(value => value === 'retry').length;
+            logger.info(`[open-finance] cycle=${result.outcome} new=${result.new_observations || 0} delivered=${deliveredThisCycle} retries=${retriesThisCycle} cumulative_sent=${result.outbox?.sent || 0} writes=0`);
         } catch (error) {
             logger.warn(`[open-finance] cycle=NO_GO reason=${String(error.message || 'unknown').replace(/[^a-z0-9_-]/gi, '_').slice(0, 64)} writes=0`);
         } finally { running = false; }

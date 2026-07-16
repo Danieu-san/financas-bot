@@ -87,3 +87,5 @@ require('./openFinanceAlertOutbox.test');
 require('./openFinanceRolloutPolicy.test');
 require('./openFinanceWhatsappCanaryDelivery.test');
 require('./openFinanceCanaryRuntime.test');
+require('./openFinanceConsentLifecycle.test');
+require('./openFinanceStateBackup.test');

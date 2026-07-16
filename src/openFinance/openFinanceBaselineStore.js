@@ -35,6 +35,10 @@ class OpenFinanceBaselineStore {
                 correlation_state TEXT NOT NULL, provider_status TEXT NOT NULL,
                 created_at TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS finance_connection_revocations (
+                connection_ref TEXT PRIMARY KEY, revoked_at TEXT NOT NULL,
+                reason_code TEXT NOT NULL
+            );
         `);
     }
 
@@ -72,12 +76,16 @@ class OpenFinanceBaselineStore {
     ingestSnapshot(snapshot, options = {}) {
         this.#validateSnapshot(snapshot);
         const observedAt = snapshot.observed_at;
-        const result = { baseline_items: 0, baselined_observations: 0, new_observations: 0, possible_replacements: 0, pending_observations: 0, alert_candidates: 0, financial_writes: 0 };
+        const result = { baseline_items: 0, baselined_observations: 0, new_observations: 0, possible_replacements: 0, pending_observations: 0, alert_candidates: 0, revoked_items: 0, financial_writes: 0 };
         let processed = 0;
         const apply = this.db.transaction(() => {
             for (const item of snapshot.items) {
                 const connectionRef = this.#ref('connection', item.alias_code);
                 const itemRef = this.#ref('item', item.id);
+                if (this.db.prepare('SELECT 1 FROM finance_connection_revocations WHERE connection_ref=?').get(connectionRef)) {
+                    result.revoked_items += 1;
+                    continue;
+                }
                 let connection = this.db.prepare('SELECT * FROM finance_connections WHERE connection_ref=?').get(connectionRef);
                 if (!connection) {
                     this.db.prepare(`INSERT INTO finance_connections (
@@ -138,6 +146,9 @@ class OpenFinanceBaselineStore {
 
     startNewGeneration(alias, itemId, reason = 'reconnected', startedAt = new Date().toISOString()) {
         const connectionRef = this.#ref('connection', alias);
+        if (this.db.prepare('SELECT 1 FROM finance_connection_revocations WHERE connection_ref=?').get(connectionRef)) {
+            throw new Error('open_finance_connection_revoked');
+        }
         const row = this.db.prepare('SELECT sync_generation FROM finance_connections WHERE connection_ref=?').get(connectionRef);
         if (!row) throw new Error('open_finance_connection_not_found');
         this.db.prepare(`UPDATE finance_connections SET active_item_ref=?,sync_generation=?,baseline_started_at=?,
@@ -145,6 +156,50 @@ class OpenFinanceBaselineStore {
             this.#ref('item', itemId), row.sync_generation + 1, startedAt, String(reason).slice(0, 64), connectionRef
         );
         return { generation: row.sync_generation + 1, baseline_required: true, alert_candidates: 0, financial_writes: 0 };
+    }
+
+    revokeConnection(alias, options = {}) {
+        const normalizedAlias = String(alias || '').toLowerCase();
+        if (!/^[a-z0-9_-]{2,48}$/.test(normalizedAlias)) throw new Error('valid_connection_alias_required');
+        const connectionRef = this.#ref('connection', normalizedAlias);
+        const removed = this.db.transaction(() => {
+            const observations = this.db.prepare('SELECT observation_ref FROM finance_observations WHERE connection_ref=?')
+                .all(connectionRef).map(row => row.observation_ref);
+            const events = this.db.prepare('SELECT external_event_ref FROM finance_external_events WHERE connection_ref=?')
+                .all(connectionRef).map(row => row.external_event_ref);
+            let candidates = 0;
+            const deleteCandidate = this.db.prepare('DELETE FROM finance_candidate_queue WHERE observation_ref=?');
+            for (const observationRef of observations) candidates += deleteCandidate.run(observationRef).changes;
+            const observationCount = this.db.prepare('DELETE FROM finance_observations WHERE connection_ref=?').run(connectionRef).changes;
+            let eventCount = 0;
+            const deleteEvent = this.db.prepare('DELETE FROM finance_external_events WHERE external_event_ref=?');
+            for (const eventRef of events) eventCount += deleteEvent.run(eventRef).changes;
+            const connections = this.db.prepare('DELETE FROM finance_connections WHERE connection_ref=?').run(connectionRef).changes;
+            this.db.prepare(`INSERT INTO finance_connection_revocations (connection_ref,revoked_at,reason_code)
+                VALUES (?,?,?) ON CONFLICT(connection_ref) DO UPDATE SET
+                revoked_at=excluded.revoked_at,reason_code=excluded.reason_code`).run(
+                connectionRef,
+                options.revokedAt || new Date().toISOString(),
+                String(options.reasonCode || 'consent_revoked').slice(0, 64)
+            );
+            return { connections, events: eventCount, observations: observationCount, candidates };
+        })();
+        return { revoked: true, removed, financial_writes: 0 };
+    }
+
+    isConnectionRevoked(alias) {
+        const normalizedAlias = String(alias || '').toLowerCase();
+        if (!/^[a-z0-9_-]{2,48}$/.test(normalizedAlias)) return false;
+        return Boolean(this.db.prepare('SELECT 1 FROM finance_connection_revocations WHERE connection_ref=?')
+            .get(this.#ref('connection', normalizedAlias)));
+    }
+
+    reinstateConnection(alias) {
+        const normalizedAlias = String(alias || '').toLowerCase();
+        if (!/^[a-z0-9_-]{2,48}$/.test(normalizedAlias)) throw new Error('valid_connection_alias_required');
+        const changes = this.db.prepare('DELETE FROM finance_connection_revocations WHERE connection_ref=?')
+            .run(this.#ref('connection', normalizedAlias)).changes;
+        return { reinstated: changes === 1, baseline_required: true, financial_writes: 0 };
     }
 
     listCandidates() {

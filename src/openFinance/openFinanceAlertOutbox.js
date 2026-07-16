@@ -40,6 +40,10 @@ class OpenFinanceAlertOutbox {
                 sent_at TEXT, whatsapp_message_ref TEXT,
                 UNIQUE(external_event_ref, milestone)
             );
+            CREATE TABLE IF NOT EXISTS finance_alert_revocations (
+                alias_ref TEXT PRIMARY KEY, revoked_at TEXT NOT NULL,
+                reason_code TEXT NOT NULL
+            );
         `);
         const columns = new Set(this.db.prepare('PRAGMA table_info(finance_alert_outbox)').all().map(row => row.name));
         for (const [name, type] of [
@@ -91,7 +95,9 @@ class OpenFinanceAlertOutbox {
                 const policy = normalizedPolicies.get(source.alias);
                 const ineligible = !ALERTABLE_CLASSIFICATIONS.has(decision.classification) ||
                     (decision.provider_state === 'PENDING' && decision.lifecycle_milestone !== 'first_pending');
-                if (!policy || ineligible) { blocked += 1; continue; }
+                const revoked = this.db.prepare('SELECT 1 FROM finance_alert_revocations WHERE alias_ref=?')
+                    .get(this.#ref('alias', source.alias));
+                if (!policy || ineligible || revoked) { blocked += 1; continue; }
                 const milestone = decision.provider_state === 'PENDING' ? 'first_pending' : decision.lifecycle_milestone;
                 const alertRef = this.#ref('alert', `${candidate.external_event_ref}:${milestone}`);
                 const payload = {
@@ -194,6 +200,42 @@ class OpenFinanceAlertOutbox {
             .run(code, alertRef, leaseToken);
         if (!result.changes) throw new Error('outbox_release_lease_mismatch');
         return { released: true, financial_writes: 0 };
+    }
+    revokeSourceAlias(alias, options = {}) {
+        const normalizedAlias = String(alias || '').toLowerCase();
+        if (!/^[a-z0-9_-]{2,48}$/.test(normalizedAlias)) throw new Error('valid_source_alias_required');
+        const aliasRef = this.#ref('alias', normalizedAlias);
+        const removed = this.db.transaction(() => {
+            this.db.prepare(`INSERT INTO finance_alert_revocations (alias_ref,revoked_at,reason_code)
+                VALUES (?,?,?) ON CONFLICT(alias_ref) DO UPDATE SET
+                revoked_at=excluded.revoked_at,reason_code=excluded.reason_code`).run(
+                aliasRef,
+                options.revokedAt || new Date().toISOString(),
+                String(options.reasonCode || 'consent_revoked').slice(0, 64)
+            );
+            const rows = this.db.prepare('SELECT alert_ref,encrypted_payload FROM finance_alert_outbox').all();
+            const statement = this.db.prepare('DELETE FROM finance_alert_outbox WHERE alert_ref=?');
+            let count = 0;
+            for (const row of rows) {
+                const payload = this.#decrypt(row.alert_ref, row.encrypted_payload);
+                if (String(payload.alias || '').toLowerCase() === normalizedAlias) count += statement.run(row.alert_ref).changes;
+            }
+            return count;
+        })();
+        return { revoked: true, removed_alerts: removed, financial_writes: 0 };
+    }
+    isSourceRevoked(alias) {
+        const normalizedAlias = String(alias || '').toLowerCase();
+        if (!/^[a-z0-9_-]{2,48}$/.test(normalizedAlias)) return false;
+        return Boolean(this.db.prepare('SELECT 1 FROM finance_alert_revocations WHERE alias_ref=?')
+            .get(this.#ref('alias', normalizedAlias)));
+    }
+    reinstateSourceAlias(alias) {
+        const normalizedAlias = String(alias || '').toLowerCase();
+        if (!/^[a-z0-9_-]{2,48}$/.test(normalizedAlias)) throw new Error('valid_source_alias_required');
+        const changes = this.db.prepare('DELETE FROM finance_alert_revocations WHERE alias_ref=?')
+            .run(this.#ref('alias', normalizedAlias)).changes;
+        return { reinstated: changes === 1, financial_writes: 0 };
     }
     stats() {
         const row = this.db.prepare(`SELECT COUNT(*) total,

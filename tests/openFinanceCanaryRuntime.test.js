@@ -6,7 +6,7 @@ const test = require('node:test');
 const { OpenFinanceLiveStagingVault } = require('../src/openFinance/openFinanceLiveStagingVault');
 const { OpenFinanceBaselineStore } = require('../src/openFinance/openFinanceBaselineStore');
 const { OpenFinanceAlertOutbox } = require('../src/openFinance/openFinanceAlertOutbox');
-const { runOpenFinanceCanaryCycle, resolveWhatsAppRecipient } = require('../src/openFinance/openFinanceCanaryRuntime');
+const { runOpenFinanceCanaryCycle, initializeOpenFinanceCanaryRuntime, resolveWhatsAppRecipient } = require('../src/openFinance/openFinanceCanaryRuntime');
 
 const secret = 'open-finance-runtime-test-secret-32-bytes';
 function snapshot(transactions, observedAt = '2026-07-16T10:00:00.000Z') {
@@ -61,4 +61,30 @@ test('9E.1 recipient resolver fails closed for absent or ambiguous owner', () =>
     assert.throws(() => resolveWhatsAppRecipient('daniel', [
         { display_name: 'Daniel da Silva', whatsapp_id: 'one' }, { display_name: 'Dániel Souza', whatsapp_id: 'two' }
     ]), /scope_unavailable/);
+});
+
+test('9E.1 runtime log separates cycle deliveries from cumulative outbox state', async () => {
+    const messages = [];
+    const runtime = initializeOpenFinanceCanaryRuntime({
+        client: {},
+        env: { OPEN_FINANCE_ALERT_MODE: 'canary', OPEN_FINANCE_STARTUP_DELAY_MS: '600000' },
+        logger: { info: message => messages.push(message), warn: message => messages.push(message) },
+        runCycle: async () => ({
+            outcome: 'GO',
+            new_observations: 0,
+            deliveries: ['idle'],
+            outbox: { sent: 2 },
+            financial_writes: 0
+        })
+    });
+    try {
+        await runtime.execute();
+        assert.equal(messages.length, 1);
+        assert.match(messages[0], /delivered=0/);
+        assert.match(messages[0], /retries=0/);
+        assert.match(messages[0], /cumulative_sent=2/);
+        assert.doesNotMatch(messages[0], /\ssent=2/);
+    } finally {
+        runtime.stop();
+    }
 });
