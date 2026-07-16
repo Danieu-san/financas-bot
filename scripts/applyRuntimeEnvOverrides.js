@@ -17,8 +17,30 @@ function parseArguments(argv) {
         envFile = args[1];
         args.splice(0, 2);
     }
-    if (!envFile || !args.length) throw new Error('runtime_env_overrides_required');
     const overrides = new Map();
+    if (args[0] === '--activate-open-finance-canary') {
+        const aliases = String(args[1] || '').split(',').map(value => value.trim().toLowerCase()).filter(Boolean);
+        const timestamp = String(args[2] || '');
+        if (!aliases.length || aliases.length > 4 || new Set(aliases).size !== aliases.length ||
+            aliases.some(alias => !/^[a-z0-9_-]{2,48}$/.test(alias)) || !Number.isFinite(Date.parse(timestamp))) {
+            throw new Error('open_finance_canary_activation_invalid');
+        }
+        const activation = new Date(timestamp).toISOString();
+        overrides.set('OPEN_FINANCE_ALERT_CANARY_ALIAS', '');
+        overrides.set('OPEN_FINANCE_ALERT_CANARY_ALIASES', aliases.join(','));
+        overrides.set('OPEN_FINANCE_ALERT_CANARY_ACTIVATIONS_JSON', JSON.stringify(
+            Object.fromEntries(aliases.map(alias => [alias, activation]))
+        ));
+        args.splice(0, 3);
+    } else if (args[0] === '--single-open-finance-canary') {
+        const alias = String(args[1] || '').trim().toLowerCase();
+        if (!/^[a-z0-9_-]{2,48}$/.test(alias)) throw new Error('open_finance_single_canary_invalid');
+        overrides.set('OPEN_FINANCE_ALERT_CANARY_ALIAS', alias);
+        overrides.set('OPEN_FINANCE_ALERT_CANARY_ALIASES', '');
+        overrides.set('OPEN_FINANCE_ALERT_CANARY_ACTIVATIONS_JSON', '');
+        args.splice(0, 2);
+    }
+    if (!envFile || (!args.length && !overrides.size)) throw new Error('runtime_env_overrides_required');
     for (const argument of args) {
         const separator = argument.indexOf('=');
         const key = separator > 0 ? argument.slice(0, separator) : '';

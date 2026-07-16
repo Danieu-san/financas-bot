@@ -33,7 +33,7 @@
     "preview:open-finance-shadow": "node scripts/runOpenFinanceShadowPreview.js --confirm-shadow-read",
     "preview:open-finance-lifecycle": "node scripts/runOpenFinanceLifecycleShadow.js --confirm-shadow-read",
     "preview:open-finance-outbox": "node scripts/runOpenFinanceOutboxDryRun.js --confirm-no-send",
-    "check:open-finance-rollout": "node scripts/runOpenFinanceRolloutReadiness.js --confirm-no-runtime-change",
+    "check:open-finance-rollout": "node -r dotenv/config scripts/runOpenFinanceRolloutReadiness.js --confirm-no-runtime-change",
     "report:open-finance-outbox": "node -r dotenv/config scripts/reportOpenFinanceOutboxStats.js",
     "ops:apply-runtime-env": "node scripts/applyRuntimeEnvOverrides.js",
     "gate:open-finance-operational-backup": "node scripts/runOpenFinanceOperationalBackupGate.js --confirm-encrypted-state-read --confirm-isolated-restore",
