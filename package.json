@@ -28,6 +28,7 @@
     "e2e:open-finance-polling": "node scripts/runPluggySandboxPollingE2E.js",
     "test:open-finance-live": "node --test tests/openFinancePluggyReadOnly.test.js",
     "probe:open-finance-live-staging": "node scripts/runPluggyLiveStagingProbe.js --confirm-live-read",
+    "check:open-finance-auto-sync": "node scripts/checkPluggyAutoSyncStatus.js",
     "preview:open-finance-shadow": "node scripts/runOpenFinanceShadowPreview.js --confirm-shadow-read",
     "preview:open-finance-lifecycle": "node scripts/runOpenFinanceLifecycleShadow.js --confirm-shadow-read",
     "preview:open-finance-outbox": "node scripts/runOpenFinanceOutboxDryRun.js --confirm-no-send",

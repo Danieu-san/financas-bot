@@ -2,6 +2,25 @@
 
 Atualizado em: 2026-07-16
 
+## Pos-fechamento da Fase 9 - auto-sync gratuito comprovado - 2026-07-16
+
+- Os quatro Items reais do conector oficial MeuPluggy (200) retornaram
+  `UPDATED/SUCCESS` e `nextAutoSyncAt` futuro na API; a sincronizacao diaria
+  server-side esta ativa para Thais Nubank, Cristina Nubank, Thais Itau e
+  Daniel Nubank.
+- O clique manual executado durante o smoke apenas antecipou a coleta de
+  Daniel; ele nao e necessario para o funcionamento diario.
+- O bot continua somente GET/polling, nunca chama `PATCH /items` nem tenta
+  automatizar navegador, sessao Google ou MFA. Isso preserva custo zero e o
+  contrato read-only.
+- Diagnostico sanitizado: `npm run check:open-finance-auto-sync`; imprime
+  apenas alias, saude, timestamps de sync e conector, com zero escrita e zero
+  Item Update.
+- Limite aceito: nao existe tempo real gratuito garantido. Uma transacao pode
+  levar ate o ciclo diario do MeuPluggy e depois ate o proximo polling do bot.
+- Nenhuma expansao de alertas foi autorizada: rollout WhatsApp permanece
+  Daniel Nubank, compra/estorno.
+
 ## Fase 9F - GO final familiar read-only - 2026-07-16
 
 - Fase 9 encerrada como experimento familiar read-only, Daniel-only no rollout
