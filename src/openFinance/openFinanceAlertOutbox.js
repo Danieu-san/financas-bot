@@ -125,6 +125,21 @@ class OpenFinanceAlertOutbox {
         return this.db.prepare(`SELECT alert_ref, milestone, delivery_state, attempts, created_at
             FROM finance_alert_outbox WHERE delivery_state='pending' ORDER BY created_at,alert_ref`).all();
     }
+    listAcceptedUnconfirmedPublic() {
+        return this.db.prepare(`SELECT alert_ref,encrypted_payload,accepted_at,last_error_code
+            FROM finance_alert_outbox WHERE delivery_state='accepted_unconfirmed'
+            ORDER BY accepted_at,alert_ref`).all().map(row => {
+            const payload = this.#decrypt(row.alert_ref, row.encrypted_payload);
+            return {
+                internal_reference: payload.internal_reference,
+                source_alias: payload.alias,
+                recipient: payload.recipient,
+                classification: payload.classification,
+                accepted_at: row.accepted_at,
+                reason_code: row.last_error_code
+            };
+        });
+    }
     claimNext({ canaryAlias, canaryAliases, activatedAfterByAlias = {}, now = new Date().toISOString(), leaseSeconds = 120 } = {}) {
         const aliases = [...new Set((Array.isArray(canaryAliases) && canaryAliases.length
             ? canaryAliases : [canaryAlias]).map(value => String(value || '').toLowerCase()).filter(Boolean))];

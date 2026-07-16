@@ -37,6 +37,8 @@
     "preview:open-finance-outbox": "node scripts/runOpenFinanceOutboxDryRun.js --confirm-no-send",
     "check:open-finance-rollout": "node -r dotenv/config scripts/runOpenFinanceRolloutReadiness.js --confirm-no-runtime-change",
     "report:open-finance-outbox": "node -r dotenv/config scripts/reportOpenFinanceOutboxStats.js",
+    "report:open-finance-unconfirmed": "node -r dotenv/config scripts/reportOpenFinanceUnconfirmed.js",
+    "ack:open-finance-alert-delivery": "node scripts/acknowledgeOpenFinanceAlertDelivery.js",
     "ops:apply-runtime-env": "node scripts/applyRuntimeEnvOverrides.js",
     "gate:open-finance-operational-backup": "node scripts/runOpenFinanceOperationalBackupGate.js --confirm-encrypted-state-read --confirm-isolated-restore",
     "e2e:card-read-model-unified-first": "node scripts/runCardReadModelUnifiedFirstE2E.js",
