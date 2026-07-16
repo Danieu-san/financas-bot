@@ -1260,10 +1260,13 @@ Estado em 2026-07-15:
   Open Finance passou `23/23` e a suite completa passou `916/916`;
 - o probe exige opt-in explicito e falha fechado; ainda houve zero chamada real
   e zero segredo persistido;
-- o gate 9C permanece aberto ate importacao read-only em staging, teste de
-  revogacao/renovacao e prova automatica de separacao dos quatro itens. O
-  primeiro probe tambem depende de destino seguro autorizado para o Client
-  Secret, pois o SSD E: esta sem BitLocker.
+- o gate 9C passou para staging read-only: 4 itens, 9 contas, 2.205 transacoes,
+  40 faturas, 24 investimentos, quatro aliases distintos e zero escrita;
+- credenciais, item IDs e payload ficam somente no cofre VHDX protegido por
+  BitLocker; revogacao real do consentimento continua dependendo de autorizacao
+  externa especifica, enquanto tombstone/replay local permanecem cobertos;
+- evidencia: Open Finance `27/27`, suite `921/921` e
+  `docs/qa/phase-9c-pluggy-live-readonly-staging-gate-2026-07-15.md`.
 
 ### 9D - Conciliacao Open Finance em shadow
 
@@ -1275,6 +1278,18 @@ Passo a passo:
 4. Medir confianca, latencia e falhas do provedor.
 
 Gate: Open Finance nunca substitui conciliacao nem grava sem preview.
+
+Resultado 9D.0 em 2026-07-15:
+
+- reconciliador deterministico reutiliza o contrato de links da Fase 3G;
+- valor, data, direcao e texto forte podem produzir match; valor+data com texto
+  diferente permanece apenas `possible_duplicate`;
+- preview real comparou 2.205 operacoes com 17 candidatos locais; 135 estavam
+  na janela temporal comum, uma ficou como possivel duplicata e zero virou
+  match automatico;
+- zero escrita e zero runtime; 9D.1 deve criar preview revisavel cifrado antes
+  de qualquer importacao;
+- gate: `docs/qa/phase-9d0-open-finance-shadow-preview-gate-2026-07-15.md`.
 
 ### 9E - Rollout familiar somente leitura
 

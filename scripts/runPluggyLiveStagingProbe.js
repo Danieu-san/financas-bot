@@ -14,6 +14,21 @@ function loadMappings() {
     throw new Error('pluggy_item_mapping_required');
 }
 
+function loadCredentials() {
+    if (process.env.PLUGGY_CREDENTIALS_FILE) {
+        const resolved = path.resolve(process.env.PLUGGY_CREDENTIALS_FILE);
+        const credentials = JSON.parse(fs.readFileSync(resolved, 'utf8'));
+        return {
+            clientId: credentials.clientId,
+            clientSecret: credentials.clientSecret
+        };
+    }
+    return {
+        clientId: process.env.PLUGGY_CLIENT_ID,
+        clientSecret: process.env.PLUGGY_CLIENT_SECRET
+    };
+}
+
 async function main() {
     if (!process.argv.includes('--confirm-live-read')) throw new Error('confirm_live_read_required');
     if (process.env.PLUGGY_LIVE_READ_ENABLED !== 'true') throw new Error('pluggy_live_read_disabled');
@@ -26,9 +41,10 @@ async function main() {
         secret: process.env.OPEN_FINANCE_LIVE_STAGING_SECRET
     });
     try {
+        const credentials = loadCredentials();
         const client = new PluggyReadOnlyClient({
-            clientId: process.env.PLUGGY_CLIENT_ID,
-            clientSecret: process.env.PLUGGY_CLIENT_SECRET,
+            clientId: credentials.clientId,
+            clientSecret: credentials.clientSecret,
             itemMappings: loadMappings()
         });
         const snapshot = await client.readSnapshot({ eventId: `live-probe-${crypto.randomUUID()}` });

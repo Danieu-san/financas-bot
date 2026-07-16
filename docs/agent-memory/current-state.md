@@ -2,6 +2,24 @@
 
 Atualizado em: 2026-07-15
 
+## Fases 9C e 9D.0 - GO de staging real e shadow preview - 2026-07-15
+
+- Cofre VHDX no SSD removivel esta 100% criptografado com BitLocker; sessoes
+  privadas do Codex e segredos Pluggy ficam somente no volume montado P:.
+- Quatro itens reais foram mapeados sem fusao: Thais Nubank, Cristina Nubank,
+  Thais Itau e Daniel Nubank.
+- Probe real read-only: 4 itens, 9 contas, 2.205 transacoes, 40 faturas e 24
+  investimentos; todos os produtos disponiveis e zero escrita.
+- Reconciliador 9D reutiliza o contrato da Fase 3G e produz apenas refs HMAC e
+  contagens. Preview real: 17 candidatos locais, 135 operacoes Pluggy na janela,
+  uma `possible_duplicate`, zero match automatico e zero escrita.
+- Evidencia: cliente real `5/5`, reconciliador `5/5`, Open Finance `27/27` e
+  suite completa `921/921`.
+- Runtime, PM2, WhatsApp, ledger, Sheets e producao permanecem inalterados.
+- Gates:
+  `docs/qa/phase-9c-pluggy-live-readonly-staging-gate-2026-07-15.md` e
+  `docs/qa/phase-9d0-open-finance-shadow-preview-gate-2026-07-15.md`.
+
 ## Fase 9C.0 - cliente real read-only pronto, probe bloqueado por segredo - 2026-07-15
 
 - Cliente Pluggy com origem fixa e allowlist implementado: somente `/auth` usa
