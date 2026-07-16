@@ -3,7 +3,12 @@ const test = require('node:test');
 const { buildOpenFinanceRolloutPolicy } = require('../src/openFinance/openFinanceRolloutPolicy');
 
 const evidence = { route: 'meu_pluggy_connector_200', connector_id: 200, observed_cost_cents: 0, payment_method_registered: false, pro_features_required: false, update_item_enabled: false, category_source: 'financasbot_local' };
-const mappings = [{ alias: 'daniel_nubank' }, { alias: 'thais_nubank' }];
+const mappings = [
+    { alias: 'daniel_nubank' },
+    { alias: 'thais_nubank' },
+    { alias: 'cristina_nubank' },
+    { alias: 'thais_itau' }
+];
 
 test('9E.0 defaults off with zero capabilities', () => {
     const policy = buildOpenFinanceRolloutPolicy({ env: {}, evidence, mappings, vaultAvailable: true });
@@ -54,6 +59,20 @@ test('post-9F canary accepts multiple known aliases only with per-source activat
     });
     assert.equal(missingCutoff.enabled, false);
     assert.ok(missingCutoff.blockers.includes('multi_canary_activation_required'));
+});
+
+test('post-9F canary accepts the four separated family sources at the hard limit', () => {
+    const aliases = mappings.map(mapping => mapping.alias);
+    const activations = Object.fromEntries(aliases.map(alias => [alias, '2026-07-16T19:00:00.000Z']));
+    const policy = buildOpenFinanceRolloutPolicy({ env: {
+        OPEN_FINANCE_ALERT_MODE: 'canary',
+        OPEN_FINANCE_ALERT_CANARY_ALIASES: aliases.join(','),
+        OPEN_FINANCE_ALERT_CANARY_ACTIVATIONS_JSON: JSON.stringify(activations),
+        OPEN_FINANCE_WRITE_MODE: 'off'
+    }, evidence, mappings, vaultAvailable: true });
+    assert.equal(policy.enabled, true);
+    assert.deepEqual(policy.canary_aliases, aliases);
+    assert.equal(policy.can_write_financial, false);
 });
 
 test('post-9F canary rejects duplicate, unknown and conflicting alias configuration', () => {
