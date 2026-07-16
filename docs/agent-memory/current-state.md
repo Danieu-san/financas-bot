@@ -1,6 +1,20 @@
 # Estado atual do FinancasBot
 
-Atualizado em: 2026-07-15
+Atualizado em: 2026-07-16
+
+## Fase 9D.1 - preview shadow cifrado e revisavel - GO local - 2026-07-16
+
+- Store SQLite no cofre P: cifra payload privado por preview com AES-256-GCM.
+- Somente `possible_duplicate` e `uncertain` entram na fila; listagem publica
+  contem apenas ref, status abstrato, regra e horario.
+- Revisoes `confirm_duplicate`, `not_duplicate` e `ignore` sao idempotentes,
+  conflitantes falham fechado e nenhuma produz escrita financeira.
+- Execucao real persistiu uma suspeita revisavel; replay nao duplicou.
+- Evidencia: focado `7/7`, Open Finance `30/30`, suite `923/923`, aliases ausentes
+  dos bytes do banco, BitLocker ativo e zero runtime/escrita.
+- Alertas 9E continuam desligados ate incorporar a auditoria adversarial.
+- Gate:
+  `docs/qa/phase-9d1-encrypted-reviewable-shadow-preview-gate-2026-07-16.md`.
 
 ## Fases 9C e 9D.0 - GO de staging real e shadow preview - 2026-07-15
 

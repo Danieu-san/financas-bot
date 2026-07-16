@@ -3,6 +3,7 @@ const path = require('node:path');
 const Database = require('better-sqlite3');
 const { OpenFinanceLiveStagingVault } = require('../src/openFinance/openFinanceLiveStagingVault');
 const { reconcileOpenFinanceShadow } = require('../src/openFinance/openFinanceShadowReconciler');
+const { OpenFinanceShadowPreviewStore } = require('../src/openFinance/openFinanceShadowPreviewStore');
 
 function readCanonicalTransactions(databasePath) {
     const db = new Database(databasePath, { readonly: true, fileMustExist: true });
@@ -30,6 +31,20 @@ function main() {
         const items = map.map(mapping => vault.readItemByAlias(mapping.alias)).filter(Boolean);
         const canonical = readCanonicalTransactions(path.resolve(process.env.READ_MODEL_DB_PATH || 'data/read_model.sqlite'));
         const result = reconcileOpenFinanceShadow({ openFinanceItems: items, canonicalTransactions: canonical, secret });
+        let persistedPreview = { inserted: 0, replayed: 0, reviewable: 0, financial_writes: 0 };
+        if (process.env.OPEN_FINANCE_SHADOW_PREVIEW_DB) {
+            const previewStore = new OpenFinanceShadowPreviewStore({
+                databasePath: process.env.OPEN_FINANCE_SHADOW_PREVIEW_DB,
+                secret
+            });
+            try {
+                persistedPreview = previewStore.ingest({
+                    decisions: result.decisions,
+                    openFinanceItems: items,
+                    canonicalTransactions: canonical
+                });
+            } finally { previewStore.close(); }
+        }
         const canonicalDays = canonical.map(item => day(item.date)).filter(Number.isFinite);
         const minCanonicalDay = canonicalDays.length ? Math.min(...canonicalDays) : null;
         const maxCanonicalDay = canonicalDays.length ? Math.max(...canonicalDays) : null;
@@ -49,6 +64,7 @@ function main() {
                 canonical_days: canonicalDays.length,
                 provider_transactions_in_canonical_window: providerInCanonicalWindow
             },
+            persisted_preview: persistedPreview,
             runtime_connected: false, financial_writes: 0
         }, null, 2)}\n`);
     } finally { vault.close(); }

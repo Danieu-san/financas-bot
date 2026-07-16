@@ -1291,6 +1291,17 @@ Resultado 9D.0 em 2026-07-15:
   de qualquer importacao;
 - gate: `docs/qa/phase-9d0-open-finance-shadow-preview-gate-2026-07-15.md`.
 
+Resultado 9D.1 em 2026-07-16:
+
+- payloads de suspeitas ficam cifrados no cofre BitLocker e a fila publica
+  expoe somente referencias e estados abstratos;
+- replay nao duplica preview; revisao repetida e idempotente e conflito falha
+  fechado;
+- execucao real persistiu uma possivel duplicata e zero escrita financeira;
+- evidencias `7/7`, Open Finance `30/30` e suite `923/923`;
+- gate:
+  `docs/qa/phase-9d1-encrypted-reviewable-shadow-preview-gate-2026-07-16.md`.
+
 ### 9E - Rollout familiar somente leitura
 
 Passo a passo:
