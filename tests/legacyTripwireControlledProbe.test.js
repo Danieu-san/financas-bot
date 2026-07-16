@@ -21,11 +21,14 @@ test('controlled tripwire probe is explicitly synthetic and performs no product 
     assert.equal(result.outcome, 'GO');
     assert.equal(result.evidence_type, 'synthetic');
     assert.equal(result.product_route_invoked, false);
+    assert.equal(result.heartbeat_recorded, true);
     assert.equal(result.financial_writes, 0);
-    const entry = JSON.parse(fs.readFileSync(file, 'utf8').trim());
-    assert.equal(entry.event, 'tripwire');
-    assert.equal(entry.candidate, 'legacy_auth_utility');
-    assert.equal(entry.evidence_type, 'synthetic');
+    const entries = fs.readFileSync(file, 'utf8').trim().split('\n').map(JSON.parse);
+    assert.equal(entries.length, 2);
+    assert.equal(entries[0].event, 'tripwire');
+    assert.equal(entries[0].candidate, 'legacy_auth_utility');
+    assert.equal(entries[0].evidence_type, 'synthetic');
+    assert.equal(entries[1].event, 'heartbeat');
 });
 
 test('controlled tripwire probe requires confirmation and an empty soft-disable list', async () => {

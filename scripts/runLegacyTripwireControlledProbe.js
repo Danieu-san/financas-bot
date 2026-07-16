@@ -1,4 +1,5 @@
 const { observeLegacyEntrypoint } = require('../src/reliability/legacyEntrypointTripwire');
+const { recordLegacyUsageHeartbeat } = require('../src/telemetry/legacyUsageTelemetry');
 
 async function main({ argv = process.argv.slice(2), env = process.env } = {}) {
     if (!argv.includes('--confirm-controlled-probe')) throw new Error('controlled_probe_confirmation_required');
@@ -15,11 +16,14 @@ async function main({ argv = process.argv.slice(2), env = process.env } = {}) {
     });
     const recorded = await result.record;
     if (!recorded?.recorded) throw new Error('controlled_probe_not_recorded');
+    const heartbeat = await recordLegacyUsageHeartbeat({ env });
+    if (!heartbeat?.recorded) throw new Error('controlled_heartbeat_not_recorded');
     return {
         outcome: 'GO',
         candidate: 'legacy_auth_utility',
         evidence_type: 'synthetic',
         blocked: false,
+        heartbeat_recorded: true,
         product_route_invoked: false,
         financial_values_exposed: 0,
         financial_writes: 0
