@@ -1471,8 +1471,10 @@ Resultado do endurecimento do preview familiar em 2026-07-17:
 - backup v2/v3 possui conjunto fisico estrito e restore protegido por journal;
 - auditoria `GO COM CONDICOES` foi incorporada; testes focados `30/30` e Open
   Finance `201/201`; zero escrita financeira;
-- deploy escuro pode seguir com preview `off`; ativacao do canario depende do
-  gate operacional no EC2; `salvar <referencia>` continua em gate separado;
+- deploy escuro concluido com preview `off`, escrita `off`, testes remotos
+  `37/37`, health verde, WhatsApp pronto e outbox sem pending/in-flight;
+- ativacao do canario depende do gate operacional v3 e da prova do chamador de
+  revogacao; `salvar <referencia>` continua em gate separado;
 - gate:
   `docs/qa/phase-9-post-rollout-family-preview-hardening-gate-2026-07-17.md`.
 

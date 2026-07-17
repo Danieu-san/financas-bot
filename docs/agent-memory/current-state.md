@@ -14,8 +14,13 @@ Atualizado em: 2026-07-17
 - Backup v2 continua com tres bancos; v3 inclui preview, rejeita arquivos extras
   e reaplica revogacao/retencao antes da exposicao.
 - Evidencia local: testes focados `30/30`, Open Finance `201/201`, escrita zero.
-- Producao permanece com preview e escrita desligados ate deploy escuro, gate
-  operacional v3 e verificacao final da auditoria.
+- Deploy escuro concluido na EC2 em `3e8fc7a` + `1489f9b`: preview ausente/off,
+  escrita off, health `ok=true/sqlite=true`, WhatsApp pronto e testes remotos
+  `37/37`.
+- Primeiro ciclo pos-restart: `new=4`, `accepted_unconfirmed=4`, `writes=0`.
+  Outbox ficou sem pending/in-flight e nao fara reenvio automatico.
+- Ativacao do preview continua bloqueada ate o gate operacional v3 e a prova
+  do chamador real de revogacao.
 - Gate: `docs/qa/phase-9-post-rollout-family-preview-hardening-gate-2026-07-17.md`.
 
 ## Reconciliacao read-only no runtime pos-Fase 9 - 2026-07-17

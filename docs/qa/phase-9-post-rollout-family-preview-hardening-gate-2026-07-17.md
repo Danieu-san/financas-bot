@@ -37,11 +37,18 @@ and every Open Finance financial write remain `NO-GO`.
 
 - changed-surface tests: `30/30`;
 - complete Open Finance suite: `201/201`;
+- final focused additions: `12/12`;
+- EC2 changed-surface tests: `37/37`;
+- production commits: `3e8fc7a` and `1489f9b`;
+- health `ok=true/sqlite=true` and WhatsApp ready;
+- preview mode `off` by default, preview DB unset and write mode `off`;
+- first post-restart cycle: `new=4`, `accepted_unconfirmed=4`, `writes=0`;
+- sanitized outbox: pending `0`, in-flight `0`, payloads exposed `0`;
 - financial writes: `0`;
 - production flags changed: none.
 
 ## Next gate
 
-Deploy the code with preview off, validate health and existing reconciliation,
-then provision the private preview database and prove backup v3 before any
-canary activation.
+Provision the private preview database, prove backup v3 and exercise the real
+revocation caller with canary mode before any preview activation. No remote
+review and no financial write are enabled.
