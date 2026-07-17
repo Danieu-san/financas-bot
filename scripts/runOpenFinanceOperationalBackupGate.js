@@ -7,6 +7,7 @@ const { OpenFinanceBaselineStore } = require('../src/openFinance/openFinanceBase
 const { OpenFinanceAlertOutbox } = require('../src/openFinance/openFinanceAlertOutbox');
 const { OpenFinanceShadowPreviewStore } = require('../src/openFinance/openFinanceShadowPreviewStore');
 const { OpenFinanceRevocationJournal } = require('../src/openFinance/openFinanceRevocationJournal');
+const { openFinanceConsentRuntime } = require('../src/openFinance/openFinanceConsentRuntime');
 const {
     createOpenFinanceStateBackup,
     verifyOpenFinanceStateBackup,
@@ -93,6 +94,36 @@ async function runOperationalBackupGate({ env = process.env, argv = process.argv
             baseline: { path: restored.restored.baseline, secret }, outbox: { path: restored.restored.outbox, secret },
             preview: restored.restored.preview ? { path: restored.restored.preview, secret } : null });
         if (JSON.stringify(before) !== JSON.stringify(after)) throw new Error('open_finance_operational_restore_parity_failed');
+        let revocationIntegration = { tested: false };
+        if (previewMode === 'canary') {
+            const isolatedJournalPath = path.join(restoreDirectory, 'revocation-integration.sqlite');
+            const isolatedJournal = new OpenFinanceRevocationJournal({ databasePath: isolatedJournalPath, secret });
+            isolatedJournal.close();
+            const isolatedEnv = {
+                OPEN_FINANCE_LIVE_STAGING_SECRET_FILE: secretFile,
+                OPEN_FINANCE_LIVE_STAGING_DB: restored.restored.staging,
+                OPEN_FINANCE_BASELINE_DB: restored.restored.baseline,
+                OPEN_FINANCE_OUTBOX_DB: restored.restored.outbox,
+                OPEN_FINANCE_REVOCATION_JOURNAL_DB: isolatedJournalPath,
+                OPEN_FINANCE_SHADOW_PREVIEW_MODE: 'canary',
+                OPEN_FINANCE_SHADOW_PREVIEW_DB: restored.restored.preview
+            };
+            assertPreviewUnavailableFailsClosed({ isolatedEnv, restoreDirectory, secret });
+            const target = mappings[0];
+            if (!target?.alias || !target?.itemId) throw new Error('open_finance_revocation_gate_mapping_unavailable');
+            const consent = openFinanceConsentRuntime({ env: isolatedEnv });
+            try {
+                const revoked = consent.revoke({ alias: target.alias, itemId: target.itemId,
+                    generation: Number(target.generation) || 1, reasonCode: 'isolated_operational_gate' });
+                revocationIntegration = { tested: true, mode_forwarded: consent.previewMode === 'canary',
+                    preview_supplied: Number.isInteger(revoked.reviews?.removed_previews),
+                    journal_recorded: Boolean(revoked.journal), financial_writes: revoked.financial_writes };
+            } finally { consent.close(); }
+            if (!revocationIntegration.mode_forwarded || !revocationIntegration.preview_supplied ||
+                !revocationIntegration.journal_recorded || revocationIntegration.financial_writes !== 0) {
+                throw new Error('open_finance_revocation_integration_gate_failed');
+            }
+        }
         const secretBytes = Buffer.from(secret);
         const secretFound = backup.manifest.files.some(entry =>
             fs.readFileSync(path.join(backupDirectory, entry.filename)).includes(secretBytes));
@@ -102,12 +133,34 @@ async function runOperationalBackupGate({ env = process.env, argv = process.argv
             retention_until: verified.retention_until,
             revocations_reapplied: restored.revocations_reapplied,
             parity: true, secret_in_backup: false, restore_cleanup: true,
+            revocation_integration: revocationIntegration,
             state: before, financial_writes: 0
         };
     } finally {
         if (fs.existsSync(restoreDirectory)) fs.rmSync(restoreDirectory, { recursive: true, force: true });
         journal.close();
     }
+}
+
+function assertPreviewUnavailableFailsClosed({ isolatedEnv, restoreDirectory, secret }) {
+    const missingPreview = path.join(restoreDirectory, 'missing-preview.sqlite');
+    let reason = '';
+    let consent = null;
+    try {
+        consent = openFinanceConsentRuntime({
+            env: { ...isolatedEnv, OPEN_FINANCE_SHADOW_PREVIEW_DB: missingPreview }
+        });
+    } catch (error) { reason = error.message; }
+    finally { consent?.close(); }
+    if (reason !== 'open_finance_shadow_preview_unavailable') {
+        throw new Error('open_finance_missing_preview_did_not_fail_closed');
+    }
+    const journal = new OpenFinanceRevocationJournal({
+        databasePath: isolatedEnv.OPEN_FINANCE_REVOCATION_JOURNAL_DB, secret
+    });
+    try {
+        if (journal.listRevocations().length !== 0) throw new Error('open_finance_missing_preview_recorded_revocation');
+    } finally { journal.close(); }
 }
 
 if (require.main === module) {
