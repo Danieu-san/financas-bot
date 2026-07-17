@@ -1445,5 +1445,22 @@ Resultado operacional familiar completo em 2026-07-16:
 - gate:
   `docs/qa/phase-9-post-rollout-four-source-and-safe-promotions-gate-2026-07-16.md`.
 
+Complemento read-only pos-Fase 9 em 2026-07-17:
+
+- o reconciliador foi conectado ao runtime antes do outbox, usando a planilha
+  familiar compartilhada e sem Gemini;
+- `matched` e silenciado, somente `new` pode chegar ao alerta, e duplicidade,
+  incerteza, fonte incompleta, parcelamento ou conta ambigua falham fechados;
+- o guard de contexto impede fallback para a planilha central e limita os
+  dados aos dois usuarios autorizados;
+- testes focados locais/remotos `12/12`, Open Finance `182/182`, canario
+  shadow e ciclo real passaram com zero transporte inesperado e zero escrita;
+- producao esta em `OPEN_FINANCE_RECONCILIATION_MODE=canary`, enquanto
+  `OPEN_FINANCE_WRITE_MODE=off` permanece obrigatorio;
+- preview persistente e `salvar <referencia>` continuam bloqueados ate novo
+  gate de revogacao, backup/restore, retencao, preview e confirmacao;
+- gate:
+  `docs/qa/phase-9-post-rollout-readonly-runtime-reconciliation-gate-2026-07-17.md`.
+
 Nao ha nova fase estrutural autorizada depois da 9F. O trabalho ativo volta a
 ser observacao da Fase 8 e operacao/manutencao do produto.

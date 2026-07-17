@@ -1,6 +1,26 @@
 # Estado atual do FinancasBot
 
-Atualizado em: 2026-07-16
+Atualizado em: 2026-07-17
+
+## Reconciliacao read-only no runtime pos-Fase 9 - 2026-07-17
+
+- O runtime agora consulta a planilha familiar compartilhada antes do outbox.
+  `matched` e silenciado; somente `new` pode gerar alerta; duplicidade,
+  incerteza, fonte incompleta, parcelamento e conta ambigua falham fechados.
+- A fonte exige contexto compartilhado cobrindo os dois usuarios e proibe
+  fallback para a planilha central. Sao seis leituras de Sheets por ciclo,
+  sem Gemini e sem expor linhas fora do escopo.
+- Evidencia: testes focados locais/remotos `12/12`, Open Finance local
+  `182/182`, canario shadow real com fonte `available`, fila/transporte/escrita
+  zero e ciclo real pos-ativacao `GO` com zero entrega/retry/escrita.
+- Producao: `OPEN_FINANCE_RECONCILIATION_MODE=canary`,
+  `OPEN_FINANCE_WRITE_MODE=off`, health verde, WhatsApp pronto e outbox sem
+  pendente ou in-flight. Local `81c0486`, EC2 `f7007bf`, tree comum
+  `f8c69fe1ec89811fbc0c97e294c720c92b4237b8`.
+- Preview persistente continua desligado ate ter revogacao, backup/restore e
+  retencao. `salvar <referencia>` e qualquer escrita continuam `NO-GO`.
+- Gate:
+  `docs/qa/phase-9-post-rollout-readonly-runtime-reconciliation-gate-2026-07-17.md`.
 
 ## Rollout familiar completo de alertas e promocoes seguras - 2026-07-16
 
