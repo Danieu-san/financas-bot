@@ -1478,5 +1478,20 @@ Resultado do endurecimento do preview familiar em 2026-07-17:
 - gate:
   `docs/qa/phase-9-post-rollout-family-preview-hardening-gate-2026-07-17.md`.
 
+Resultado do canario persistente do preview familiar em 2026-07-17:
+
+- chamador operacional de revogacao passou a exigir e encaminhar o preview em
+  `canary`, com fechamento reverso/idempotente de todos os stores;
+- backup/restore v3 real e revogacao apenas no restore temporario passaram;
+  journal real ficou sem revogacoes e o restore temporario foi removido;
+- preview privado foi provisionado com diretorio `0700`, arquivo `0600` e
+  backups de configuracao `0600`;
+- primeiro ciclo persistente terminou `GO`, sem retry e com zero escrita; um
+  caso cifrado ficou pendente apenas no store privado;
+- PM2, WhatsApp e health ficaram verdes; nao foi exposta rota de leitura ou
+  revisao e `salvar <referencia>` continua `NO-GO`;
+- gate:
+  `docs/qa/phase-9-post-rollout-family-preview-canary-gate-2026-07-17.md`.
+
 Nao ha nova fase estrutural autorizada depois da 9F. O trabalho ativo volta a
 ser observacao da Fase 8 e operacao/manutencao do produto.

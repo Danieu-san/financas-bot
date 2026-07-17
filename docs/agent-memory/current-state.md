@@ -2,6 +2,35 @@
 
 Atualizado em: 2026-07-17
 
+## Canary persistente do preview familiar - 2026-07-17
+
+- O chamador operacional de revogacao agora resolve todos os stores a partir
+  do ambiente, exige preview existente em `canary`, encaminha `previewMode` e
+  fecha todos os stores em ordem reversa, uma unica vez, mesmo se um fechamento
+  falhar.
+- O gate operacional v3 executou a revogacao apenas no restore temporario, com
+  journal isolado. Preview ausente falhou antes de abrir stores ou registrar
+  revogacao; o journal real permaneceu com zero revogacoes.
+- Evidencia local e remota: sintaxe verde, teste alvo `2/2` e bateria diretamente
+  afetada `14/14`; local `c902bc5`, EC2 `a05b250`, tree comum
+  `ae101dc4aa121c631cb9ac0c54f40cf3676e588e`.
+- Na EC2, o preview privado foi provisionado com diretorio `0700`, arquivo
+  `0600` e dois backups `.env` em `0600`. Backup/restore v3 passou com quatro
+  bancos, paridade, retencao de 30 dias, segredo ausente e limpeza do restore.
+- `OPEN_FINANCE_SHADOW_PREVIEW_MODE=canary` foi ativado mantendo
+  `OPEN_FINANCE_WRITE_MODE=off` e reconciliacao em `canary`. Primeiro ciclo:
+  `GO`, `new=9`, `accepted_unconfirmed=4`, `retries=0`, `writes=0`.
+- Estado sanitizado apos o ciclo: um preview cifrado pendente, zero revisado,
+  journal real zero, outbox com tres pendentes e zero in-flight. Nenhum ciclo
+  adicional foi forcado para evitar novos envios.
+- PM2 online, WhatsApp pronto e health `ok=true/sqlite=true`. Nao existe rota
+  remota de leitura/revisao; `salvar <referencia>` e toda escrita financeira
+  continuam `NO-GO`.
+- Rollback: voltar somente `OPEN_FINANCE_SHADOW_PREVIEW_MODE=off` e reiniciar o
+  PM2; manter o banco privado e os backups para diagnostico/restore.
+- Gate:
+  `docs/qa/phase-9-post-rollout-family-preview-canary-gate-2026-07-17.md`.
+
 ## Preview familiar cifrado endurecido - 2026-07-17
 
 - O store de revisao agora usa escopo familiar compartilhado, linhagem por

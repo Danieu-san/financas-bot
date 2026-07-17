@@ -52,3 +52,6 @@ and every Open Finance financial write remain `NO-GO`.
 Provision the private preview database, prove backup v3 and exercise the real
 revocation caller with canary mode before any preview activation. No remote
 review and no financial write are enabled.
+
+Completed by
+`docs/qa/phase-9-post-rollout-family-preview-canary-gate-2026-07-17.md`.
