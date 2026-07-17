@@ -39,6 +39,19 @@ function verifySqlite(file) {
     }
 }
 
+function finalizeSqlitePackage(file) {
+    const db = new Database(file, { fileMustExist: true });
+    try {
+        db.pragma('wal_checkpoint(TRUNCATE)');
+        db.pragma('journal_mode = DELETE');
+    } finally {
+        db.close();
+    }
+    for (const sidecar of [`${file}-wal`, `${file}-shm`]) {
+        if (fs.existsSync(sidecar)) fs.rmSync(sidecar);
+    }
+}
+
 async function createOpenFinanceStateBackup({ databasePaths, destinationDirectory,
     revocationJournal, createdAt = new Date().toISOString(), retentionDays = 30 } = {}) {
     if (!databasePaths || !destinationDirectory) throw new Error('open_finance_backup_paths_required');
@@ -65,6 +78,7 @@ async function createOpenFinanceStateBackup({ databasePaths, destinationDirector
         } finally {
             source.close();
         }
+        finalizeSqlitePackage(target);
         fs.chmodSync(target, 0o600);
         verifySqlite(target);
         files.push({ key, filename, bytes: fs.statSync(target).size, sha256: checksum(target) });
@@ -113,6 +127,10 @@ function verifyOpenFinanceStateBackup(manifestPath) {
         verifySqlite(file);
     }
     if (expected.size) throw new Error('incomplete_open_finance_backup');
+    const allowedFiles = new Set(['manifest.json', ...Object.values(expectedFiles)]);
+    if (fs.readdirSync(directory).some(filename => !allowedFiles.has(filename))) {
+        throw new Error('unexpected_open_finance_backup_file');
+    }
     return { valid: true, retention_until: manifest.retention_until, files: manifest.files.length, financial_writes: 0 };
 }
 

@@ -2,6 +2,22 @@
 
 Atualizado em: 2026-07-17
 
+## Preview familiar cifrado endurecido - 2026-07-17
+
+- O store de revisao agora usa escopo familiar compartilhado, linhagem por
+  alias/geracao, retencao fixa de 30 dias e payload AES-256-GCM.
+- Daniel e Thais podem ler/revisar pelo WhatsApp autorizado; referencia sem
+  ator ou terceiro WhatsApp falham fechados. Titularidade de cartao nao define
+  autoria da compra.
+- Script manual respeita `OPEN_FINANCE_SHADOW_PREVIEW_MODE`, exige journal e
+  bloqueia geracao revogada. Revogacao em canario exige o preview disponivel.
+- Backup v2 continua com tres bancos; v3 inclui preview, rejeita arquivos extras
+  e reaplica revogacao/retencao antes da exposicao.
+- Evidencia local: testes focados `30/30`, Open Finance `201/201`, escrita zero.
+- Producao permanece com preview e escrita desligados ate deploy escuro, gate
+  operacional v3 e verificacao final da auditoria.
+- Gate: `docs/qa/phase-9-post-rollout-family-preview-hardening-gate-2026-07-17.md`.
+
 ## Reconciliacao read-only no runtime pos-Fase 9 - 2026-07-17
 
 - O runtime agora consulta a planilha familiar compartilhada antes do outbox.

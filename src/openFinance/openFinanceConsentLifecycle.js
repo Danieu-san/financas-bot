@@ -4,12 +4,17 @@ function validateAlias(alias) {
     return normalized;
 }
 
-function revokeOpenFinanceConsent({ alias, itemId, vault, baseline, outbox, journal, preview, generation = 1,
+function revokeOpenFinanceConsent({ alias, itemId, vault, baseline, outbox, journal, preview,
+    previewMode = 'off', generation = 1,
     revokedAt = new Date().toISOString(), reasonCode = 'consent_revoked' } = {}) {
     const normalizedAlias = validateAlias(alias);
     if (!String(itemId || '').trim()) throw new Error('open_finance_item_id_required');
     if (!vault?.revokeItem || !baseline?.revokeConnection || !outbox?.revokeSourceAlias || !journal?.recordRevocation) {
         throw new Error('open_finance_revocation_stores_required');
+    }
+    if (!['off', 'canary'].includes(previewMode)) throw new Error('invalid_open_finance_shadow_preview_mode');
+    if (previewMode === 'canary' && !preview?.revokeSourceAlias) {
+        throw new Error('open_finance_shadow_preview_required_for_revocation');
     }
     const options = { revokedAt, reasonCode };
     const durableJournal = journal.recordRevocation({ alias: normalizedAlias, generation, revokedAt, reasonCode });

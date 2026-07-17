@@ -7,9 +7,16 @@ const { OpenFinanceLiveStagingVault } = require('../src/openFinance/openFinanceL
 const { OpenFinanceBaselineStore } = require('../src/openFinance/openFinanceBaselineStore');
 const { OpenFinanceAlertOutbox } = require('../src/openFinance/openFinanceAlertOutbox');
 const { OpenFinanceRevocationJournal } = require('../src/openFinance/openFinanceRevocationJournal');
-const { runOpenFinanceCanaryCycle, initializeOpenFinanceCanaryRuntime, resolveWhatsAppRecipient } = require('../src/openFinance/openFinanceCanaryRuntime');
+const { runOpenFinanceCanaryCycle, initializeOpenFinanceCanaryRuntime, resolveWhatsAppRecipient,
+    shadowPreviewMode } = require('../src/openFinance/openFinanceCanaryRuntime');
 
 const secret = 'open-finance-runtime-test-secret-32-bytes';
+
+test('family preview mode defaults off and rejects unknown activation values', () => {
+    assert.equal(shadowPreviewMode({}), 'off');
+    assert.equal(shadowPreviewMode({ OPEN_FINANCE_SHADOW_PREVIEW_MODE: 'canary' }), 'canary');
+    assert.throws(() => shadowPreviewMode({ OPEN_FINANCE_SHADOW_PREVIEW_MODE: 'on' }), /invalid_open_finance/);
+});
 function snapshot(transactions, observedAt = '2026-07-16T10:00:00.000Z') {
     return { provider: 'pluggy', mode: 'live_readonly_staging', event_id: `event-${observedAt}`,
         observed_at: observedAt, collection_health: { complete: true, warning_count: 0 }, items: [{

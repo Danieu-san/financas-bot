@@ -156,9 +156,14 @@ test('post-9F runtime reconciliation silences matches, reviews uncertainty and e
     assert.equal(result.financial_writes, 0);
     assert.doesNotMatch(JSON.stringify(result), /Mercado Central|Farmacia Central|Compra Nova|Compra Parcelada/);
 
-    const preview = new OpenFinanceShadowPreviewStore({ databasePath: previewDatabasePath, secret });
+    const actorWhatsappId = '5511999999999@c.us';
+    const preview = new OpenFinanceShadowPreviewStore({
+        databasePath: previewDatabasePath,
+        secret,
+        authorizedWhatsAppIds: [actorWhatsappId]
+    });
     try {
-        assert.equal(preview.listPending().length, 2);
+        assert.equal(preview.listPending({ actorWhatsappId }).length, 2);
     } finally {
         preview.close();
     }

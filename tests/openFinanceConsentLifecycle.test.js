@@ -133,3 +133,27 @@ test('9F re-consent requires explicit tombstone removal and a new silent baselin
         journal.close();
     }
 });
+
+test('active preview canary makes the review store mandatory during revocation', () => {
+    const vault = new OpenFinanceLiveStagingVault({ secret });
+    const baseline = new OpenFinanceBaselineStore({ secret });
+    const outbox = new OpenFinanceAlertOutbox({ secret });
+    const journal = new OpenFinanceRevocationJournal({ secret });
+    try {
+        assert.throws(() => revokeOpenFinanceConsent({
+            alias: 'daniel_nubank',
+            itemId: 'item-daniel-1',
+            vault,
+            baseline,
+            outbox,
+            journal,
+            previewMode: 'canary'
+        }), /shadow_preview_required/);
+        assert.equal(journal.revokedGeneration('daniel_nubank'), 0);
+    } finally {
+        outbox.close();
+        baseline.close();
+        vault.close();
+        journal.close();
+    }
+});

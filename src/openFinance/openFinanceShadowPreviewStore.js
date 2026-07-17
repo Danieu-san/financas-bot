@@ -24,7 +24,8 @@ function validGeneration(value) {
 
 class OpenFinanceShadowPreviewStore {
     constructor({ databasePath = ':memory:', secret, retentionDays = 30,
-        familyScope = 'shared-family', revocationJournal, clock = () => new Date() } = {}) {
+        familyScope = 'shared-family', revocationJournal, authorizedWhatsAppIds = [],
+        clock = () => new Date() } = {}) {
         this.secret = requireSecret(secret);
         if (!Number.isInteger(retentionDays) || retentionDays < 7 || retentionDays > 90) {
             throw new Error('open_finance_shadow_preview_retention_out_of_range');
@@ -32,6 +33,7 @@ class OpenFinanceShadowPreviewStore {
         this.databasePath = databasePath;
         this.retentionDays = retentionDays;
         this.familyScopeRef = this.#hmac(`family:${String(familyScope || 'shared-family')}`);
+        this.authorizedActorRefs = new Set(authorizedWhatsAppIds.map(value => this.#actorRef(value)));
         this.revocationJournal = revocationJournal;
         this.clock = clock;
         this.db = new Database(databasePath);
@@ -74,6 +76,18 @@ class OpenFinanceShadowPreviewStore {
         const normalized = String(alias || '').toLowerCase();
         if (!/^[a-z0-9_-]{2,48}$/.test(normalized)) throw new Error('valid_shadow_preview_alias_required');
         return this.#hmac(`open-finance-revocation-lineage:${normalized}`);
+    }
+
+    #actorRef(whatsappId) {
+        const normalized = String(whatsappId || '').trim();
+        if (!normalized) throw new Error('valid_shadow_preview_actor_required');
+        return this.#hmac(`family-reviewer:${normalized}`);
+    }
+
+    #requireAuthorizedActor(whatsappId) {
+        if (!this.authorizedActorRefs.has(this.#actorRef(whatsappId))) {
+            throw new Error('shadow_preview_actor_unauthorized');
+        }
     }
 
     #now() {
@@ -129,9 +143,12 @@ class OpenFinanceShadowPreviewStore {
 
     ingest({ decisions = [], openFinanceItems = [], canonicalTransactions = [], observedAt = new Date().toISOString() } = {}) {
         const created = validTimestamp(observedAt, 'valid_shadow_preview_time_required');
-        const expiresAt = new Date(created.getTime() + this.retentionDays * 86400000).toISOString();
         const now = this.#now();
-        this.purgeExpired(now);
+        if (created.getTime() > Date.parse(now) + 5 * 60 * 1000) {
+            throw new Error('shadow_preview_future_observation_rejected');
+        }
+        const expiresAt = new Date(created.getTime() + this.retentionDays * 86400000).toISOString();
+        this.purgeExpired();
         const sources = new Map();
         for (const item of openFinanceItems) {
             const generation = validGeneration(item.generation || 1);
@@ -195,7 +212,8 @@ class OpenFinanceShadowPreviewStore {
                     this.#encrypt(previewRef, payload), decision.status, decision.rule,
                     created.toISOString(), now, expiresAt
                 );
-                if (!prior && result.changes) inserted += 1; else replayed += 1;
+                if (!prior && result.changes) inserted += 1;
+                else if (prior?.review_state === 'pending') replayed += 1;
             }
         });
         transaction();
@@ -204,16 +222,17 @@ class OpenFinanceShadowPreviewStore {
             ...(expired ? { expired } : {}) };
     }
 
-    purgeExpired(now = this.#now()) {
-        const timestamp = validTimestamp(now, 'valid_shadow_preview_time_required').toISOString();
+    purgeExpired() {
+        const timestamp = this.#now();
         const result = this.db.prepare('DELETE FROM shadow_preview_items WHERE expires_at<=?').run(timestamp);
         this.#hardenFiles();
         return { removed: result.changes, financial_writes: 0 };
     }
 
-    listPending({ limit = 100, now = this.#now() } = {}) {
+    listPending({ actorWhatsappId, limit = 100 } = {}) {
+        this.#requireAuthorizedActor(actorWhatsappId);
         if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw new Error('valid_shadow_preview_limit_required');
-        this.purgeExpired(now);
+        this.purgeExpired();
         return this.db.prepare(`
             SELECT preview_ref, reconciliation_status AS status, rule_code AS rule, created_at
             FROM shadow_preview_items WHERE family_scope_ref=? AND review_state='pending'
@@ -221,17 +240,19 @@ class OpenFinanceShadowPreviewStore {
         `).all(this.familyScopeRef, limit);
     }
 
-    readPrivate(previewRef, { now = this.#now() } = {}) {
-        this.purgeExpired(now);
+    readPrivate(previewRef, { actorWhatsappId } = {}) {
+        this.#requireAuthorizedActor(actorWhatsappId);
+        this.purgeExpired();
         const row = this.db.prepare(`SELECT encrypted_payload FROM shadow_preview_items
             WHERE preview_ref=? AND family_scope_ref=?`).get(previewRef, this.familyScopeRef);
         return row ? this.#decrypt(previewRef, row.encrypted_payload) : null;
     }
 
-    review(previewRef, action, reviewedAt = new Date().toISOString()) {
+    review(previewRef, action, { actorWhatsappId } = {}) {
+        this.#requireAuthorizedActor(actorWhatsappId);
         if (!['confirm_duplicate', 'not_duplicate', 'ignore'].includes(action)) throw new Error('invalid_shadow_review_action');
-        const timestamp = validTimestamp(reviewedAt, 'valid_shadow_preview_review_time_required').toISOString();
-        this.purgeExpired(timestamp);
+        const timestamp = this.#now();
+        this.purgeExpired();
         const row = this.db.prepare(`SELECT review_state,review_action FROM shadow_preview_items
             WHERE preview_ref=? AND family_scope_ref=?`).get(previewRef, this.familyScopeRef);
         if (!row) throw new Error('shadow_preview_not_found');
@@ -268,8 +289,8 @@ class OpenFinanceShadowPreviewStore {
         return { removed_previews: removed, financial_writes: 0 };
     }
 
-    stats({ now = this.#now() } = {}) {
-        this.purgeExpired(now);
+    stats() {
+        this.purgeExpired();
         const row = this.db.prepare(`SELECT COUNT(*) AS total,
             SUM(CASE WHEN review_state='pending' THEN 1 ELSE 0 END) AS pending,
             SUM(CASE WHEN review_state='reviewed' THEN 1 ELSE 0 END) AS reviewed

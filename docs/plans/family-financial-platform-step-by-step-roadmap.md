@@ -1462,5 +1462,19 @@ Complemento read-only pos-Fase 9 em 2026-07-17:
 - gate:
   `docs/qa/phase-9-post-rollout-readonly-runtime-reconciliation-gate-2026-07-17.md`.
 
+Resultado do endurecimento do preview familiar em 2026-07-17:
+
+- banco cifrado compartilhado passou a exigir um dos dois WhatsApps autorizados
+  para leitura/revisao, sem inferir autoria pela titularidade do cartao;
+- script manual, revogacao, geracoes, relogio interno e retencao de 30 dias
+  falham fechados;
+- backup v2/v3 possui conjunto fisico estrito e restore protegido por journal;
+- auditoria `GO COM CONDICOES` foi incorporada; testes focados `30/30` e Open
+  Finance `201/201`; zero escrita financeira;
+- deploy escuro pode seguir com preview `off`; ativacao do canario depende do
+  gate operacional no EC2; `salvar <referencia>` continua em gate separado;
+- gate:
+  `docs/qa/phase-9-post-rollout-family-preview-hardening-gate-2026-07-17.md`.
+
 Nao ha nova fase estrutural autorizada depois da 9F. O trabalho ativo volta a
 ser observacao da Fase 8 e operacao/manutencao do produto.

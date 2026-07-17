@@ -58,6 +58,7 @@ test('9F backup is consistent, verifiable, restorable and encrypted at rest', as
     const restored = restoreOpenFinanceStateBackup({ manifestPath: backup.manifest_path,
         destinationDirectory: restoreDirectory, revocationJournal: journal,
         mappings: [{ alias: 'daniel_nubank', itemId: 'private-item', generation: 1 }], secret });
+    assert.equal(restored.preview_state, 'absent_legacy');
     const restoredVault = new OpenFinanceLiveStagingVault({ databasePath: restored.restored.staging, secret });
     const restoredBaseline = new OpenFinanceBaselineStore({ databasePath: restored.restored.baseline, secret });
     const restoredOutbox = new OpenFinanceAlertOutbox({ databasePath: restored.restored.outbox, secret });
@@ -88,6 +89,24 @@ test('9F backup verification fails closed after tampering', async () => {
         destinationDirectory: path.join(root, 'backups', 'backup-1'), revocationJournal: journal });
     fs.appendFileSync(path.join(path.dirname(backup.manifest_path), 'baseline.sqlite'), 'tamper');
     assert.throws(() => verifyOpenFinanceStateBackup(backup.manifest_path), /checksum_mismatch/);
+    journal.close();
+});
+
+test('9F backup verification rejects undeclared files in the package directory', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-open-backup-extra-file-'));
+    const databasePaths = Object.fromEntries(['staging', 'baseline', 'outbox']
+        .map(key => [key, path.join(root, `${key}.sqlite`)]));
+    new OpenFinanceLiveStagingVault({ databasePath: databasePaths.staging, secret }).close();
+    new OpenFinanceBaselineStore({ databasePath: databasePaths.baseline, secret }).close();
+    new OpenFinanceAlertOutbox({ databasePath: databasePaths.outbox, secret }).close();
+    const journal = new OpenFinanceRevocationJournal({ secret });
+    const backup = await createOpenFinanceStateBackup({
+        databasePaths,
+        destinationDirectory: path.join(root, 'backup'),
+        revocationJournal: journal
+    });
+    fs.writeFileSync(path.join(path.dirname(backup.manifest_path), 'unexpected.txt'), 'not declared');
+    assert.throws(() => verifyOpenFinanceStateBackup(backup.manifest_path), /unexpected_open_finance_backup_file/);
     journal.close();
 });
 
@@ -157,6 +176,8 @@ test('9F v3 backup restores preview only after revocation and retention protecti
     });
     assert.equal(backup.manifest.schema, 'open-finance-state-backup-v3');
     assert.equal(verifyOpenFinanceStateBackup(backup.manifest_path).files, 4);
+    assert.equal(fs.readFileSync(path.join(path.dirname(backup.manifest_path), 'shadow-preview.sqlite'))
+        .toString('latin1').includes('PRIVATE BACKUP DESCRIPTION'), false);
     journal.recordRevocation({ alias: 'daniel_nubank', generation: 1 });
 
     const restored = restoreOpenFinanceStateBackup({
@@ -168,6 +189,60 @@ test('9F v3 backup restores preview only after revocation and retention protecti
     });
     assert.equal(restored.preview_state, 'restored');
     assert.equal(restored.preview_revocations_reapplied, 1);
+    const restoredPreview = new OpenFinanceShadowPreviewStore({
+        databasePath: restored.restored.preview,
+        secret
+    });
+    try {
+        assert.equal(restoredPreview.stats().total, 0);
+    } finally { restoredPreview.close(); journal.close(); }
+});
+
+test('9F v3 restore purges expired encrypted preview before exposure', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-open-backup-v3-expired-'));
+    const databasePaths = Object.fromEntries(['staging', 'baseline', 'outbox', 'preview']
+        .map(key => [key, path.join(root, `${key}.sqlite`)]));
+    new OpenFinanceLiveStagingVault({ databasePath: databasePaths.staging, secret }).close();
+    new OpenFinanceBaselineStore({ databasePath: databasePaths.baseline, secret }).close();
+    new OpenFinanceAlertOutbox({ databasePath: databasePaths.outbox, secret }).close();
+    const journal = new OpenFinanceRevocationJournal({ databasePath: path.join(root, 'journal.sqlite'), secret });
+    const preview = new OpenFinanceShadowPreviewStore({
+        databasePath: databasePaths.preview,
+        secret,
+        clock: () => '2026-06-01T12:00:00.000Z'
+    });
+    const source = buildSnapshot().items[0];
+    const transactionRef = require('node:crypto').createHmac('sha256', secret)
+        .update(`${source.id}:${source.transactions[0].id}`).digest('hex').slice(0, 32);
+    preview.ingest({
+        decisions: [{ transaction_ref: transactionRef, status: 'uncertain',
+            rule: 'manual_review', confidence_band: 'low' }],
+        openFinanceItems: [{ ...source, generation: 1 }],
+        canonicalTransactions: [],
+        observedAt: '2026-06-01T12:00:00.000Z'
+    });
+    for (const file of [databasePaths.preview, `${databasePaths.preview}-wal`, `${databasePaths.preview}-shm`]) {
+        if (!fs.existsSync(file)) continue;
+        const bytes = fs.readFileSync(file).toString('latin1');
+        assert.equal(bytes.includes('PRIVATE BACKUP DESCRIPTION'), false);
+        assert.equal(bytes.includes('daniel_nubank'), false);
+        assert.equal(bytes.includes('private-transaction'), false);
+    }
+    preview.close();
+
+    const backup = await createOpenFinanceStateBackup({
+        databasePaths,
+        destinationDirectory: path.join(root, 'backup-v3-expired'),
+        revocationJournal: journal,
+        createdAt: '2026-06-02T00:00:00.000Z'
+    });
+    const restored = restoreOpenFinanceStateBackup({
+        manifestPath: backup.manifest_path,
+        destinationDirectory: path.join(root, 'restore-v3-expired'),
+        revocationJournal: journal,
+        secret
+    });
+    assert.equal(restored.expired_previews_removed, 1);
     const restoredPreview = new OpenFinanceShadowPreviewStore({
         databasePath: restored.restored.preview,
         secret

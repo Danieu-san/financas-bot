@@ -4,6 +4,40 @@ const Database = require('better-sqlite3');
 const { OpenFinanceLiveStagingVault } = require('../src/openFinance/openFinanceLiveStagingVault');
 const { reconcileOpenFinanceShadow } = require('../src/openFinance/openFinanceShadowReconciler');
 const { OpenFinanceShadowPreviewStore } = require('../src/openFinance/openFinanceShadowPreviewStore');
+const { OpenFinanceRevocationJournal } = require('../src/openFinance/openFinanceRevocationJournal');
+
+function persistShadowPreview({ env = process.env, secret, decisions, items, canonicalTransactions } = {}) {
+    const mode = String(env.OPEN_FINANCE_SHADOW_PREVIEW_MODE || 'off').trim().toLowerCase();
+    if (!['off', 'canary'].includes(mode)) throw new Error('invalid_open_finance_shadow_preview_mode');
+    if (mode === 'off') return { inserted: 0, replayed: 0, reviewable: 0, financial_writes: 0 };
+    if (!env.OPEN_FINANCE_SHADOW_PREVIEW_DB || !fs.existsSync(env.OPEN_FINANCE_SHADOW_PREVIEW_DB)) {
+        throw new Error('open_finance_shadow_preview_unavailable');
+    }
+    if (!env.OPEN_FINANCE_REVOCATION_JOURNAL_DB || !fs.existsSync(env.OPEN_FINANCE_REVOCATION_JOURNAL_DB)) {
+        throw new Error('open_finance_revocation_journal_unavailable');
+    }
+    const journal = new OpenFinanceRevocationJournal({
+        databasePath: env.OPEN_FINANCE_REVOCATION_JOURNAL_DB,
+        secret
+    });
+    const previewStore = new OpenFinanceShadowPreviewStore({
+        databasePath: env.OPEN_FINANCE_SHADOW_PREVIEW_DB,
+        secret,
+        revocationJournal: journal
+    });
+    try {
+        previewStore.reapplyRevocations({ revocations: journal.listRevocations() });
+        previewStore.purgeExpired();
+        return previewStore.ingest({
+            decisions,
+            openFinanceItems: items,
+            canonicalTransactions
+        });
+    } finally {
+        previewStore.close();
+        journal.close();
+    }
+}
 
 function readCanonicalTransactions(databasePath) {
     const db = new Database(databasePath, { readonly: true, fileMustExist: true });
@@ -34,20 +68,12 @@ function main() {
         }).filter(Boolean);
         const canonical = readCanonicalTransactions(path.resolve(process.env.READ_MODEL_DB_PATH || 'data/read_model.sqlite'));
         const result = reconcileOpenFinanceShadow({ openFinanceItems: items, canonicalTransactions: canonical, secret });
-        let persistedPreview = { inserted: 0, replayed: 0, reviewable: 0, financial_writes: 0 };
-        if (process.env.OPEN_FINANCE_SHADOW_PREVIEW_DB) {
-            const previewStore = new OpenFinanceShadowPreviewStore({
-                databasePath: process.env.OPEN_FINANCE_SHADOW_PREVIEW_DB,
-                secret
-            });
-            try {
-                persistedPreview = previewStore.ingest({
-                    decisions: result.decisions,
-                    openFinanceItems: items,
-                    canonicalTransactions: canonical
-                });
-            } finally { previewStore.close(); }
-        }
+        const persistedPreview = persistShadowPreview({
+            secret,
+            decisions: result.decisions,
+            items,
+            canonicalTransactions: canonical
+        });
         const canonicalDays = canonical.map(item => day(item.date)).filter(Number.isFinite);
         const minCanonicalDay = canonicalDays.length ? Math.min(...canonicalDays) : null;
         const maxCanonicalDay = canonicalDays.length ? Math.max(...canonicalDays) : null;
@@ -73,7 +99,11 @@ function main() {
     } finally { vault.close(); }
 }
 
-try { main(); } catch (error) {
-    process.stderr.write(`${JSON.stringify({ gate: 'PHASE_9D_SHADOW_PREVIEW', outcome: 'NO_GO', reason: error.message, financial_writes: 0 })}\n`);
-    process.exitCode = 1;
+if (require.main === module) {
+    try { main(); } catch (error) {
+        process.stderr.write(`${JSON.stringify({ gate: 'PHASE_9D_SHADOW_PREVIEW', outcome: 'NO_GO', reason: error.message, financial_writes: 0 })}\n`);
+        process.exitCode = 1;
+    }
 }
+
+module.exports = { persistShadowPreview };
