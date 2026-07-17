@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const fs = require('node:fs');
 const Database = require('better-sqlite3');
 
 function requireSecret(secret) {
@@ -7,28 +8,103 @@ function requireSecret(secret) {
     return value;
 }
 
+function validTimestamp(value, reason) {
+    const timestamp = new Date(value);
+    if (Number.isNaN(timestamp.getTime())) throw new Error(reason);
+    return timestamp;
+}
+
+function validGeneration(value) {
+    const generation = Number(value || 1);
+    if (!Number.isInteger(generation) || generation < 1 || generation > 1000000) {
+        throw new Error('valid_shadow_preview_generation_required');
+    }
+    return generation;
+}
+
 class OpenFinanceShadowPreviewStore {
-    constructor({ databasePath = ':memory:', secret } = {}) {
+    constructor({ databasePath = ':memory:', secret, retentionDays = 30,
+        familyScope = 'shared-family', revocationJournal, clock = () => new Date() } = {}) {
         this.secret = requireSecret(secret);
+        if (!Number.isInteger(retentionDays) || retentionDays < 7 || retentionDays > 90) {
+            throw new Error('open_finance_shadow_preview_retention_out_of_range');
+        }
+        this.databasePath = databasePath;
+        this.retentionDays = retentionDays;
+        this.familyScopeRef = this.#hmac(`family:${String(familyScope || 'shared-family')}`);
+        this.revocationJournal = revocationJournal;
+        this.clock = clock;
         this.db = new Database(databasePath);
         this.db.pragma('journal_mode = WAL');
         this.db.exec(`
             CREATE TABLE IF NOT EXISTS shadow_preview_items (
                 preview_ref TEXT PRIMARY KEY,
                 transaction_ref TEXT NOT NULL UNIQUE,
+                family_scope_ref TEXT NOT NULL,
+                alias_ref TEXT NOT NULL,
+                generation INTEGER NOT NULL,
                 encrypted_payload TEXT NOT NULL,
+                payload_version INTEGER NOT NULL,
                 reconciliation_status TEXT NOT NULL,
                 rule_code TEXT NOT NULL,
                 review_state TEXT NOT NULL DEFAULT 'pending',
                 review_action TEXT,
                 created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                claimed_by_ref TEXT,
                 reviewed_at TEXT
             );
         `);
+        this.#migrateLegacySchema();
+        this.db.exec(`
+            CREATE INDEX IF NOT EXISTS idx_shadow_preview_pending
+                ON shadow_preview_items(family_scope_ref,review_state,expires_at,created_at);
+            CREATE INDEX IF NOT EXISTS idx_shadow_preview_alias_generation
+                ON shadow_preview_items(alias_ref,generation);
+        `);
+        this.#hardenFiles();
     }
 
     #hmac(value) {
         return crypto.createHmac('sha256', this.secret).update(String(value || '')).digest('hex').slice(0, 32);
+    }
+
+    #aliasRef(alias) {
+        const normalized = String(alias || '').toLowerCase();
+        if (!/^[a-z0-9_-]{2,48}$/.test(normalized)) throw new Error('valid_shadow_preview_alias_required');
+        return this.#hmac(`open-finance-revocation-lineage:${normalized}`);
+    }
+
+    #now() {
+        return validTimestamp(this.clock(), 'valid_shadow_preview_time_required').toISOString();
+    }
+
+    #migrateLegacySchema() {
+        const existing = new Set(this.db.pragma('table_info(shadow_preview_items)').map(column => column.name));
+        const additions = {
+            family_scope_ref: 'TEXT',
+            alias_ref: 'TEXT',
+            generation: 'INTEGER NOT NULL DEFAULT 1',
+            payload_version: 'INTEGER NOT NULL DEFAULT 1',
+            updated_at: 'TEXT',
+            expires_at: 'TEXT',
+            claimed_by_ref: 'TEXT'
+        };
+        for (const [column, definition] of Object.entries(additions)) {
+            if (!existing.has(column)) this.db.exec(`ALTER TABLE shadow_preview_items ADD COLUMN ${column} ${definition}`);
+        }
+        // Legacy previews have no revocation lineage. They are ephemeral and
+        // must be regenerated instead of being exposed under weaker metadata.
+        this.db.prepare(`DELETE FROM shadow_preview_items
+            WHERE family_scope_ref IS NULL OR alias_ref IS NULL OR updated_at IS NULL OR expires_at IS NULL`).run();
+    }
+
+    #hardenFiles() {
+        if (this.databasePath === ':memory:') return;
+        for (const file of [this.databasePath, `${this.databasePath}-wal`, `${this.databasePath}-shm`]) {
+            if (fs.existsSync(file)) fs.chmodSync(file, 0o600);
+        }
     }
 
     #key() {
@@ -52,10 +128,23 @@ class OpenFinanceShadowPreviewStore {
     }
 
     ingest({ decisions = [], openFinanceItems = [], canonicalTransactions = [], observedAt = new Date().toISOString() } = {}) {
+        const created = validTimestamp(observedAt, 'valid_shadow_preview_time_required');
+        const expiresAt = new Date(created.getTime() + this.retentionDays * 86400000).toISOString();
+        const now = this.#now();
+        this.purgeExpired(now);
         const sources = new Map();
         for (const item of openFinanceItems) {
+            const generation = validGeneration(item.generation || 1);
+            if (this.revocationJournal?.isGenerationRevoked?.(item.alias_code, generation)) {
+                throw new Error('shadow_preview_revoked_generation');
+            }
             for (const transaction of item.transactions || []) {
-                sources.set(this.#hmac(`${item.id}:${transaction.id}`), { alias: item.alias_code, transaction });
+                sources.set(this.#hmac(`${item.id}:${transaction.id}`), {
+                    alias: item.alias_code,
+                    aliasRef: this.#aliasRef(item.alias_code),
+                    generation,
+                    transaction
+                });
             }
         }
         const canonical = new Map(canonicalTransactions.map((transaction, index) => [
@@ -63,62 +152,133 @@ class OpenFinanceShadowPreviewStore {
         ]));
         let inserted = 0;
         let replayed = 0;
+        let expired = 0;
+        const existing = this.db.prepare('SELECT review_state FROM shadow_preview_items WHERE preview_ref=?');
         const statement = this.db.prepare(`
-            INSERT OR IGNORE INTO shadow_preview_items (
-                preview_ref, transaction_ref, encrypted_payload, reconciliation_status,
-                rule_code, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO shadow_preview_items (
+                preview_ref, transaction_ref, family_scope_ref, alias_ref, generation,
+                encrypted_payload, payload_version, reconciliation_status, rule_code,
+                created_at, updated_at, expires_at
+            ) VALUES (?, ?, ?, ?, ?, ?, 2, ?, ?, ?, ?, ?)
+            ON CONFLICT(preview_ref) DO UPDATE SET
+                encrypted_payload=excluded.encrypted_payload,
+                payload_version=excluded.payload_version,
+                reconciliation_status=excluded.reconciliation_status,
+                rule_code=excluded.rule_code,
+                updated_at=excluded.updated_at
+            WHERE shadow_preview_items.review_state='pending'
         `);
         const transaction = this.db.transaction(() => {
             for (const decision of decisions.filter(row => ['possible_duplicate', 'uncertain'].includes(row.status))) {
                 const source = sources.get(decision.transaction_ref);
                 if (!source) throw new Error('shadow_preview_source_unavailable');
-                const previewRef = this.#hmac(`preview:${decision.transaction_ref}`);
+                if (expiresAt <= now) {
+                    expired += 1;
+                    continue;
+                }
+                const previewRef = this.#hmac(`preview:${source.aliasRef}:${source.generation}:${decision.transaction_ref}`);
+                const transactionRef = this.#hmac(
+                    `generation:${source.aliasRef}:${source.generation}:${decision.transaction_ref}`
+                );
                 const payload = {
                     alias: source.alias,
+                    generation: source.generation,
                     source: source.transaction,
                     canonical: decision.canonical_ref ? canonical.get(decision.canonical_ref) || null : null,
                     status: decision.status,
                     rule: decision.rule,
                     confidence_band: decision.confidence_band
                 };
+                const prior = existing.get(previewRef);
                 const result = statement.run(
-                    previewRef, decision.transaction_ref, this.#encrypt(previewRef, payload),
-                    decision.status, decision.rule, observedAt
+                    previewRef, transactionRef, this.familyScopeRef, source.aliasRef, source.generation,
+                    this.#encrypt(previewRef, payload), decision.status, decision.rule,
+                    created.toISOString(), now, expiresAt
                 );
-                if (result.changes) inserted += 1; else replayed += 1;
+                if (!prior && result.changes) inserted += 1; else replayed += 1;
             }
         });
         transaction();
-        return { inserted, replayed, reviewable: inserted + replayed, financial_writes: 0 };
+        this.#hardenFiles();
+        return { inserted, replayed, reviewable: inserted + replayed, financial_writes: 0,
+            ...(expired ? { expired } : {}) };
     }
 
-    listPending() {
+    purgeExpired(now = this.#now()) {
+        const timestamp = validTimestamp(now, 'valid_shadow_preview_time_required').toISOString();
+        const result = this.db.prepare('DELETE FROM shadow_preview_items WHERE expires_at<=?').run(timestamp);
+        this.#hardenFiles();
+        return { removed: result.changes, financial_writes: 0 };
+    }
+
+    listPending({ limit = 100, now = this.#now() } = {}) {
+        if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw new Error('valid_shadow_preview_limit_required');
+        this.purgeExpired(now);
         return this.db.prepare(`
             SELECT preview_ref, reconciliation_status AS status, rule_code AS rule, created_at
-            FROM shadow_preview_items WHERE review_state = 'pending' ORDER BY created_at, preview_ref
-        `).all();
+            FROM shadow_preview_items WHERE family_scope_ref=? AND review_state='pending'
+            ORDER BY created_at, preview_ref LIMIT ?
+        `).all(this.familyScopeRef, limit);
     }
 
-    readPrivate(previewRef) {
-        const row = this.db.prepare('SELECT encrypted_payload FROM shadow_preview_items WHERE preview_ref = ?').get(previewRef);
+    readPrivate(previewRef, { now = this.#now() } = {}) {
+        this.purgeExpired(now);
+        const row = this.db.prepare(`SELECT encrypted_payload FROM shadow_preview_items
+            WHERE preview_ref=? AND family_scope_ref=?`).get(previewRef, this.familyScopeRef);
         return row ? this.#decrypt(previewRef, row.encrypted_payload) : null;
     }
 
     review(previewRef, action, reviewedAt = new Date().toISOString()) {
         if (!['confirm_duplicate', 'not_duplicate', 'ignore'].includes(action)) throw new Error('invalid_shadow_review_action');
-        const row = this.db.prepare('SELECT review_state, review_action FROM shadow_preview_items WHERE preview_ref = ?').get(previewRef);
+        const timestamp = validTimestamp(reviewedAt, 'valid_shadow_preview_review_time_required').toISOString();
+        this.purgeExpired(timestamp);
+        const row = this.db.prepare(`SELECT review_state,review_action FROM shadow_preview_items
+            WHERE preview_ref=? AND family_scope_ref=?`).get(previewRef, this.familyScopeRef);
         if (!row) throw new Error('shadow_preview_not_found');
         if (row.review_state === 'reviewed') {
             if (row.review_action === action) return { applied: false, replay: true, financial_writes: 0 };
             throw new Error('shadow_preview_review_conflict');
         }
         this.db.prepare(`UPDATE shadow_preview_items SET review_state='reviewed', review_action=?, reviewed_at=? WHERE preview_ref=?`)
-            .run(action, reviewedAt, previewRef);
+            .run(action, timestamp, previewRef);
+        this.#hardenFiles();
         return { applied: true, replay: false, financial_writes: 0 };
     }
 
-    close() { this.db.close(); }
+    revokeSourceAlias(alias, { generation = 1, revokedAt = this.#now() } = {}) {
+        validTimestamp(revokedAt, 'valid_shadow_preview_revocation_time_required');
+        const result = this.db.prepare('DELETE FROM shadow_preview_items WHERE alias_ref=? AND generation<=?')
+            .run(this.#aliasRef(alias), validGeneration(generation));
+        this.#hardenFiles();
+        return { removed_previews: result.changes, financial_writes: 0 };
+    }
+
+    reapplyRevocations({ revocations = [] } = {}) {
+        let removed = 0;
+        const statement = this.db.prepare('DELETE FROM shadow_preview_items WHERE alias_ref=? AND generation<=?');
+        this.db.transaction(() => {
+            for (const revocation of revocations) {
+                if (!/^[a-f0-9]{32}$/.test(String(revocation.alias_ref || ''))) {
+                    throw new Error('valid_shadow_preview_alias_ref_required');
+                }
+                removed += statement.run(revocation.alias_ref, validGeneration(revocation.generation)).changes;
+            }
+        })();
+        this.#hardenFiles();
+        return { removed_previews: removed, financial_writes: 0 };
+    }
+
+    stats({ now = this.#now() } = {}) {
+        this.purgeExpired(now);
+        const row = this.db.prepare(`SELECT COUNT(*) AS total,
+            SUM(CASE WHEN review_state='pending' THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN review_state='reviewed' THEN 1 ELSE 0 END) AS reviewed
+            FROM shadow_preview_items WHERE family_scope_ref=?`).get(this.familyScopeRef);
+        return { total: row.total, pending: row.pending || 0, reviewed: row.reviewed || 0,
+            retention_days: this.retentionDays, financial_writes: 0 };
+    }
+
+    close() { this.#hardenFiles(); this.db.close(); this.#hardenFiles(); }
 }
 
 module.exports = { OpenFinanceShadowPreviewStore };

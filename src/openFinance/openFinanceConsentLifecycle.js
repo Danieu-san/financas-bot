@@ -4,7 +4,7 @@ function validateAlias(alias) {
     return normalized;
 }
 
-function revokeOpenFinanceConsent({ alias, itemId, vault, baseline, outbox, journal, generation = 1,
+function revokeOpenFinanceConsent({ alias, itemId, vault, baseline, outbox, journal, preview, generation = 1,
     revokedAt = new Date().toISOString(), reasonCode = 'consent_revoked' } = {}) {
     const normalizedAlias = validateAlias(alias);
     if (!String(itemId || '').trim()) throw new Error('open_finance_item_id_required');
@@ -18,12 +18,16 @@ function revokeOpenFinanceConsent({ alias, itemId, vault, baseline, outbox, jour
     const alerts = outbox.revokeSourceAlias(normalizedAlias, options);
     const history = baseline.revokeConnection(normalizedAlias, options);
     const staging = vault.revokeItem(String(itemId), options);
+    const reviews = preview
+        ? preview.revokeSourceAlias(normalizedAlias, { ...options, generation })
+        : { configured: false, removed_previews: 0, financial_writes: 0 };
     return Object.freeze({
         revoked: true,
         alias: normalizedAlias,
         alerts,
         history,
         staging,
+        reviews,
         journal: durableJournal,
         provider_consent_revoked: false,
         financial_writes: 0

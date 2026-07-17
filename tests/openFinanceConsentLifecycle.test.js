@@ -1,9 +1,11 @@
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 const test = require('node:test');
 const { OpenFinanceLiveStagingVault } = require('../src/openFinance/openFinanceLiveStagingVault');
 const { OpenFinanceBaselineStore } = require('../src/openFinance/openFinanceBaselineStore');
 const { OpenFinanceAlertOutbox } = require('../src/openFinance/openFinanceAlertOutbox');
 const { OpenFinanceRevocationJournal } = require('../src/openFinance/openFinanceRevocationJournal');
+const { OpenFinanceShadowPreviewStore } = require('../src/openFinance/openFinanceShadowPreviewStore');
 const { classifyOpenFinanceLifecycle } = require('../src/openFinance/openFinanceLifecycleClassifier');
 const { revokeOpenFinanceConsent, reinstateOpenFinanceConsent } = require('../src/openFinance/openFinanceConsentLifecycle');
 
@@ -39,6 +41,7 @@ test('9F local consent revocation purges all stores and blocks delayed replay', 
     const baseline = new OpenFinanceBaselineStore({ secret });
     const outbox = new OpenFinanceAlertOutbox({ secret });
     const journal = new OpenFinanceRevocationJournal({ secret });
+    const preview = new OpenFinanceShadowPreviewStore({ secret, revocationJournal: journal });
     try {
         const oldTransaction = transaction('old', 500, 'old private data');
         const first = snapshot('event-1', [oldTransaction]);
@@ -53,20 +56,30 @@ test('9F local consent revocation purges all stores and blocks delayed replay', 
         const lifecycle = classifyOpenFinanceLifecycle({ items: changed.items, secret });
         assert.equal(outbox.enqueue({ candidates: staleCandidates, lifecycleDecisions: lifecycle.decisions,
             items: changed.items, policies: policy, baselineComplete: true }).inserted, 1);
+        const transactionRef = crypto.createHmac('sha256', secret)
+            .update('item-daniel-1:new').digest('hex').slice(0, 32);
+        preview.ingest({
+            decisions: [{ transaction_ref: transactionRef, status: 'uncertain',
+                rule: 'manual_review', confidence_band: 'low' }],
+            openFinanceItems: [{ ...changed.items[0], generation: 1 }],
+            canonicalTransactions: []
+        });
 
         const revoked = revokeOpenFinanceConsent({
-            alias: 'daniel_nubank', itemId: 'item-daniel-1', vault, baseline, outbox, journal, generation: 1,
+            alias: 'daniel_nubank', itemId: 'item-daniel-1', vault, baseline, outbox, journal, preview, generation: 1,
             revokedAt: '2026-07-16T13:00:00.000Z'
         });
         assert.equal(revoked.revoked, true);
         assert.equal(revoked.provider_consent_revoked, false);
         assert.equal(revoked.financial_writes, 0);
         assert.equal(revoked.journal.recorded, true);
+        assert.equal(revoked.reviews.removed_previews, 1);
         assert.equal(journal.isGenerationRevoked('daniel_nubank', 1), true);
         assert.equal(vault.readItemByAlias('daniel_nubank'), null);
         assert.deepEqual(baseline.stats(), { connections: 0, events: 0, observations: 0,
             candidates: 0, completed_baselines: 0, financial_writes: 0 });
         assert.equal(outbox.stats().total, 0);
+        assert.equal(preview.stats().total, 0);
         assert.equal(baseline.isConnectionRevoked('daniel_nubank'), true);
         assert.equal(outbox.isSourceRevoked('daniel_nubank'), true);
 
@@ -78,13 +91,14 @@ test('9F local consent revocation purges all stores and blocks delayed replay', 
         assert.equal(outbox.stats().total, 0);
 
         const replay = revokeOpenFinanceConsent({
-            alias: 'daniel_nubank', itemId: 'item-daniel-1', vault, baseline, outbox, journal, generation: 1,
+            alias: 'daniel_nubank', itemId: 'item-daniel-1', vault, baseline, outbox, journal, preview, generation: 1,
             revokedAt: '2026-07-16T13:00:00.000Z'
         });
         assert.equal(replay.alerts.removed_alerts, 0);
         assert.equal(replay.journal.replay, true);
         assert.deepEqual(replay.history.removed, { connections: 0, events: 0, observations: 0, candidates: 0 });
     } finally {
+        preview.close();
         outbox.close();
         baseline.close();
         vault.close();

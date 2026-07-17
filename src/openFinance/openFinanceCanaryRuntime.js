@@ -6,6 +6,7 @@ const { OpenFinanceBaselineStore } = require('./openFinanceBaselineStore');
 const { classifyOpenFinanceLifecycle } = require('./openFinanceLifecycleClassifier');
 const { OpenFinanceAlertOutbox } = require('./openFinanceAlertOutbox');
 const { OpenFinanceRevocationJournal } = require('./openFinanceRevocationJournal');
+const { OpenFinanceShadowPreviewStore } = require('./openFinanceShadowPreviewStore');
 const { buildOpenFinanceRolloutPolicy } = require('./openFinanceRolloutPolicy');
 const { deliverOneOpenFinanceCanary } = require('./openFinanceWhatsappCanaryDelivery');
 const {
@@ -41,6 +42,12 @@ function resolveInternalUserIds(policies = [], users = []) {
     });
 }
 
+function shadowPreviewMode(env = process.env) {
+    const mode = String(env.OPEN_FINANCE_SHADOW_PREVIEW_MODE || 'off').trim().toLowerCase();
+    if (!['off', 'canary'].includes(mode)) throw new Error('invalid_open_finance_shadow_preview_mode');
+    return mode;
+}
+
 async function runOpenFinanceCanaryCycle({ client, env = process.env, dependencies = {} } = {}) {
     if (!client || typeof client.sendMessage !== 'function') throw new Error('whatsapp_client_required');
     const evidence = readJson(env.OPEN_FINANCE_COMMERCIAL_EVIDENCE_FILE, 'commercial_evidence_unavailable');
@@ -51,8 +58,10 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
         throw new Error('open_finance_secret_unavailable');
     }
     const secret = fs.readFileSync(env.OPEN_FINANCE_LIVE_STAGING_SECRET_FILE, 'utf8').trim();
+    const previewMode = shadowPreviewMode(env);
     const requiredState = [env.OPEN_FINANCE_LIVE_STAGING_DB, env.OPEN_FINANCE_BASELINE_DB,
-        env.OPEN_FINANCE_OUTBOX_DB, env.OPEN_FINANCE_REVOCATION_JOURNAL_DB];
+        env.OPEN_FINANCE_OUTBOX_DB, env.OPEN_FINANCE_REVOCATION_JOURNAL_DB,
+        ...(previewMode === 'canary' ? [env.OPEN_FINANCE_SHADOW_PREVIEW_DB] : [])];
     const vaultAvailable = requiredState.every(file => file && fs.existsSync(file));
     const policy = buildOpenFinanceRolloutPolicy({ env, evidence, mappings, vaultAvailable });
     if (!policy.enabled) return { outcome: 'blocked', blockers: policy.blockers, transport_calls: 0, financial_writes: 0 };
@@ -66,12 +75,26 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
     const journal = new OpenFinanceRevocationJournal({ databasePath: env.OPEN_FINANCE_REVOCATION_JOURNAL_DB, secret });
     try {
         const revocations = journal.reapplyRevocations({ mappings, vault, baseline, outbox });
+        if (previewMode === 'canary') {
+            const preview = new OpenFinanceShadowPreviewStore({
+                databasePath: env.OPEN_FINANCE_SHADOW_PREVIEW_DB,
+                secret,
+                revocationJournal: journal
+            });
+            try {
+                preview.reapplyRevocations({ revocations: journal.listRevocations() });
+                preview.purgeExpired();
+            } finally { preview.close(); }
+        }
         if (revocations.reapplied > 0) throw new Error('open_finance_revoked_mapping_configured');
         const api = new ApiClient({ clientId: credentials.clientId, clientSecret: credentials.clientSecret, itemMappings: mappings });
         const snapshot = await api.readSnapshot({ eventId: `runtime-${crypto.randomUUID()}` });
         const staged = vault.ingestSnapshot(snapshot);
         const observed = baseline.ingestSnapshot(snapshot);
-        const items = mappings.map(mapping => vault.readItemByAlias(mapping.alias)).filter(Boolean);
+        const items = mappings.map(mapping => {
+            const item = vault.readItemByAlias(mapping.alias);
+            return item ? { ...item, generation: Number(mapping.generation) || 1 } : null;
+        }).filter(Boolean);
         const lifecycle = classifyOpenFinanceLifecycle({ items, secret });
         let activeUsers = null;
         let candidates = baseline.listCandidates();
@@ -109,7 +132,8 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
                 internalTransactions: internalSource.transactions,
                 scopeCoverage: internalSource.scope_coverage,
                 secret,
-                previewDatabasePath: env.OPEN_FINANCE_SHADOW_PREVIEW_DB
+                previewDatabasePath: previewMode === 'canary' ? env.OPEN_FINANCE_SHADOW_PREVIEW_DB : null,
+                revocationJournal: journal
             });
             const resolution = baseline.markCandidateResolutions(reconciled.resolutions);
             candidates = reconciled.eligibleCandidates;
@@ -186,5 +210,6 @@ module.exports = {
     runOpenFinanceCanaryCycle,
     initializeOpenFinanceCanaryRuntime,
     resolveWhatsAppRecipient,
-    resolveInternalUserIds
+    resolveInternalUserIds,
+    shadowPreviewMode
 };

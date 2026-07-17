@@ -73,6 +73,15 @@ class OpenFinanceRevocationJournal {
         return normalizeGeneration(generation) <= this.revokedGeneration(alias);
     }
 
+    aliasRef(alias) {
+        return this.#ref(alias);
+    }
+
+    listRevocations() {
+        return this.db.prepare(`SELECT alias_ref,generation,revoked_at FROM open_finance_revocation_journal
+            ORDER BY sequence`).all();
+    }
+
     checkpoint() {
         const row = this.db.prepare(`SELECT COUNT(*) AS entries,COALESCE(MAX(sequence),0) AS sequence,
             MAX(revoked_at) AS latest_revoked_at FROM open_finance_revocation_journal`).get();

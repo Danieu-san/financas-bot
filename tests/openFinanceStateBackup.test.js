@@ -7,6 +7,7 @@ const { OpenFinanceLiveStagingVault } = require('../src/openFinance/openFinanceL
 const { OpenFinanceBaselineStore } = require('../src/openFinance/openFinanceBaselineStore');
 const { OpenFinanceAlertOutbox } = require('../src/openFinance/openFinanceAlertOutbox');
 const { OpenFinanceRevocationJournal } = require('../src/openFinance/openFinanceRevocationJournal');
+const { OpenFinanceShadowPreviewStore } = require('../src/openFinance/openFinanceShadowPreviewStore');
 const { revokeOpenFinanceConsent } = require('../src/openFinance/openFinanceConsentLifecycle');
 const {
     createOpenFinanceStateBackup,
@@ -127,4 +128,51 @@ test('9F restore of a pre-revocation backup reapplies the monotonic journal befo
     } finally {
         outbox.close(); baseline.close(); vault.close(); journal.close();
     }
+});
+
+test('9F v3 backup restores preview only after revocation and retention protection', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-open-backup-v3-'));
+    const databasePaths = Object.fromEntries(['staging', 'baseline', 'outbox', 'preview']
+        .map(key => [key, path.join(root, `${key}.sqlite`)]));
+    new OpenFinanceLiveStagingVault({ databasePath: databasePaths.staging, secret }).close();
+    new OpenFinanceBaselineStore({ databasePath: databasePaths.baseline, secret }).close();
+    new OpenFinanceAlertOutbox({ databasePath: databasePaths.outbox, secret }).close();
+    const journal = new OpenFinanceRevocationJournal({ databasePath: path.join(root, 'journal.sqlite'), secret });
+    const preview = new OpenFinanceShadowPreviewStore({ databasePath: databasePaths.preview, secret });
+    const source = buildSnapshot().items[0];
+    const transactionRef = require('node:crypto').createHmac('sha256', secret)
+        .update(`${source.id}:${source.transactions[0].id}`).digest('hex').slice(0, 32);
+    preview.ingest({
+        decisions: [{ transaction_ref: transactionRef, status: 'uncertain',
+            rule: 'manual_review', confidence_band: 'low' }],
+        openFinanceItems: [{ ...source, generation: 1 }],
+        canonicalTransactions: []
+    });
+    preview.close();
+
+    const backup = await createOpenFinanceStateBackup({
+        databasePaths,
+        destinationDirectory: path.join(root, 'backup-v3'),
+        revocationJournal: journal
+    });
+    assert.equal(backup.manifest.schema, 'open-finance-state-backup-v3');
+    assert.equal(verifyOpenFinanceStateBackup(backup.manifest_path).files, 4);
+    journal.recordRevocation({ alias: 'daniel_nubank', generation: 1 });
+
+    const restored = restoreOpenFinanceStateBackup({
+        manifestPath: backup.manifest_path,
+        destinationDirectory: path.join(root, 'restore-v3'),
+        revocationJournal: journal,
+        mappings: [{ alias: 'daniel_nubank', itemId: 'private-item', generation: 1 }],
+        secret
+    });
+    assert.equal(restored.preview_state, 'restored');
+    assert.equal(restored.preview_revocations_reapplied, 1);
+    const restoredPreview = new OpenFinanceShadowPreviewStore({
+        databasePath: restored.restored.preview,
+        secret
+    });
+    try {
+        assert.equal(restoredPreview.stats().total, 0);
+    } finally { restoredPreview.close(); journal.close(); }
 });

@@ -225,7 +225,8 @@ function reconcileOpenFinanceRuntimeCandidates({
     internalTransactions = [],
     scopeCoverage = null,
     secret,
-    previewDatabasePath
+    previewDatabasePath,
+    revocationJournal
 } = {}) {
     const summary = {
         matched: 0,
@@ -299,7 +300,11 @@ function reconcileOpenFinanceRuntimeCandidates({
         } else {
             let store;
             try {
-                store = new OpenFinanceShadowPreviewStore({ databasePath: previewDatabasePath, secret });
+                store = new OpenFinanceShadowPreviewStore({
+                    databasePath: previewDatabasePath,
+                    secret,
+                    revocationJournal
+                });
                 review = { available: true, ...store.ingest({
                     decisions,
                     openFinanceItems: previewItems,

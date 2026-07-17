@@ -28,7 +28,10 @@ function main() {
     const map = JSON.parse(fs.readFileSync(process.env.PLUGGY_ITEM_MAP_FILE, 'utf8'));
     const vault = new OpenFinanceLiveStagingVault({ databasePath: process.env.OPEN_FINANCE_LIVE_STAGING_DB, secret });
     try {
-        const items = map.map(mapping => vault.readItemByAlias(mapping.alias)).filter(Boolean);
+        const items = map.map(mapping => {
+            const item = vault.readItemByAlias(mapping.alias);
+            return item ? { ...item, generation: Number(mapping.generation) || 1 } : null;
+        }).filter(Boolean);
         const canonical = readCanonicalTransactions(path.resolve(process.env.READ_MODEL_DB_PATH || 'data/read_model.sqlite'));
         const result = reconcileOpenFinanceShadow({ openFinanceItems: items, canonicalTransactions: canonical, secret });
         let persistedPreview = { inserted: 0, replayed: 0, reviewable: 0, financial_writes: 0 };

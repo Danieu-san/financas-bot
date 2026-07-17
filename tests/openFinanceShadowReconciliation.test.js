@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 const { reconcileOpenFinanceShadow } = require('../src/openFinance/openFinanceShadowReconciler');
 const { OpenFinanceShadowPreviewStore } = require('../src/openFinance/openFinanceShadowPreviewStore');
+const { OpenFinanceRevocationJournal } = require('../src/openFinance/openFinanceRevocationJournal');
 
 const secret = 'open-finance-shadow-test-secret-32-bytes';
 function item(transactions) { return { id: 'item-1', alias_code: 'daniel_nubank', transactions }; }
@@ -66,4 +67,54 @@ test('9D.1 review is idempotent and never writes financial data', () => {
         assert.deepEqual(store.review(ref, 'ignore'), { applied: false, replay: true, financial_writes: 0 });
         assert.throws(() => store.review(ref, 'not_duplicate'), /review_conflict/);
     } finally { store.close(); }
+});
+
+test('9D.1 family preview refreshes pending payload and expires after retention', () => {
+    let now = '2026-07-17T12:00:00.000Z';
+    const canonicalTransactions = [{
+        id: 'c1', date: '17/07/2026', description: 'Texto manual', amountCents: 5000, direction: 'debit'
+    }];
+    const firstItems = [item([{
+        id: 'p-refresh', date: '2026-07-17', description: 'PRIMEIRO TEXTO',
+        amount_cents: -5000, type: 'DEBIT'
+    }])];
+    const first = reconcileOpenFinanceShadow({ secret, openFinanceItems: firstItems, canonicalTransactions });
+    const store = new OpenFinanceShadowPreviewStore({ secret, clock: () => now });
+    try {
+        store.ingest({ decisions: first.decisions, openFinanceItems: firstItems, canonicalTransactions,
+            observedAt: now });
+        const previewRef = store.listPending()[0].preview_ref;
+        const refreshedItems = [item([{
+            ...firstItems[0].transactions[0],
+            description: 'TEXTO ATUALIZADO'
+        }])];
+        const refreshed = reconcileOpenFinanceShadow({
+            secret, openFinanceItems: refreshedItems, canonicalTransactions
+        });
+        assert.equal(store.ingest({ decisions: refreshed.decisions, openFinanceItems: refreshedItems,
+            canonicalTransactions, observedAt: '2026-07-18T12:00:00.000Z' }).replayed, 1);
+        assert.equal(store.readPrivate(previewRef).source.description, 'TEXTO ATUALIZADO');
+
+        now = '2026-08-16T13:00:00.000Z';
+        assert.equal(store.listPending().length, 0);
+        assert.equal(store.stats().total, 0);
+    } finally { store.close(); }
+});
+
+test('9D.1 preview rejects a revoked connection generation', () => {
+    const journal = new OpenFinanceRevocationJournal({ secret });
+    journal.recordRevocation({ alias: 'daniel_nubank', generation: 1 });
+    const openFinanceItems = [{ ...item([{
+        id: 'p-revoked', date: null, description: 'Privado', amount_cents: -100, type: 'DEBIT'
+    }]), generation: 1 }];
+    const reconciliation = reconcileOpenFinanceShadow({ secret, openFinanceItems, canonicalTransactions: [] });
+    const store = new OpenFinanceShadowPreviewStore({ secret, revocationJournal: journal });
+    try {
+        assert.throws(() => store.ingest({
+            decisions: reconciliation.decisions,
+            openFinanceItems,
+            canonicalTransactions: []
+        }), /revoked_generation/);
+        assert.equal(store.stats().total, 0);
+    } finally { store.close(); journal.close(); }
 });
