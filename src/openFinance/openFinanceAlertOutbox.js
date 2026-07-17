@@ -73,7 +73,8 @@ class OpenFinanceAlertOutbox {
         ]).toString('utf8'));
     }
 
-    enqueue({ candidates = [], lifecycleDecisions = [], items = [], policies = [], baselineComplete = false, createdAt = new Date().toISOString() } = {}) {
+    enqueue({ candidates = [], lifecycleDecisions = [], items = [], policies = [], baselineComplete = false,
+        reconciliationRequired = false, createdAt = new Date().toISOString() } = {}) {
         if (!baselineComplete) throw new Error('outbox_requires_completed_baseline');
         const normalizedPolicies = new Map(normalizePolicies(policies).map(policy => [policy.alias, policy]));
         const decisionByRef = new Map(lifecycleDecisions.map(decision => [decision.observation_ref, decision]));
@@ -92,7 +93,11 @@ class OpenFinanceAlertOutbox {
             for (const candidate of candidates) {
                 const decision = decisionByRef.get(candidate.observation_ref);
                 const source = sourceByRef.get(candidate.observation_ref);
-                if (!decision || !source || candidate.correlation_state === 'possible_replacement') { blocked += 1; continue; }
+                if (!decision || !source || candidate.correlation_state === 'possible_replacement' ||
+                    (reconciliationRequired && candidate.reconciliation_status !== 'new')) {
+                    blocked += 1;
+                    continue;
+                }
                 const policy = normalizedPolicies.get(source.alias);
                 const ineligible = !ALERTABLE_CLASSIFICATIONS.has(decision.classification) ||
                     (decision.provider_state === 'PENDING' && decision.lifecycle_milestone !== 'first_pending');
@@ -110,6 +115,7 @@ class OpenFinanceAlertOutbox {
                     amount_cents: source.transaction.amount_cents,
                     description: String(source.transaction.description || '').slice(0, 120),
                     internal_reference: alertRef.slice(0, 10),
+                    reconciliation_status: reconciliationRequired ? 'new' : 'legacy_unchecked',
                     write_enabled: false
                 };
                 const result = statement.run(alertRef, candidate.external_event_ref, milestone,
@@ -211,6 +217,23 @@ class OpenFinanceAlertOutbox {
             for (const row of rows) {
                 const payload = this.#decrypt(row.alert_ref, row.encrypted_payload);
                 if (ALERTABLE_CLASSIFICATIONS.has(payload.classification)) continue;
+                blocked += statement.run(row.alert_ref).changes;
+            }
+        });
+        apply();
+        return { blocked, financial_writes: 0 };
+    }
+    quarantineUnreconciled() {
+        let blocked = 0;
+        const apply = this.db.transaction(() => {
+            const rows = this.db.prepare(`SELECT alert_ref,encrypted_payload FROM finance_alert_outbox
+                WHERE delivery_state IN ('pending','in_flight')`).all();
+            const statement = this.db.prepare(`UPDATE finance_alert_outbox SET delivery_state='blocked',
+                lease_token=NULL,lease_expires_at=NULL,last_error_code='runtime_reconciliation_required'
+                WHERE alert_ref=? AND delivery_state IN ('pending','in_flight')`);
+            for (const row of rows) {
+                const payload = this.#decrypt(row.alert_ref, row.encrypted_payload);
+                if (payload.reconciliation_status === 'new') continue;
                 blocked += statement.run(row.alert_ref).changes;
             }
         });

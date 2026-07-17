@@ -1080,6 +1080,9 @@ async function reconcileUncertainUpdate(target, mappedRange, rowData) {
 
 async function readDataFromSheet(range, options = {}) {
     const target = await resolveSpreadsheetTarget({ ...options, range });
+    if (options.requireUserScoped && !target.userScoped) {
+        throw new Error('user_spreadsheet_required');
+    }
     const readContext = sheetContext.getStore() || {};
     await recordCardSheetInvocation({
         range,

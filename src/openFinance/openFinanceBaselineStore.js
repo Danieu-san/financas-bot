@@ -240,6 +240,26 @@ class OpenFinanceBaselineStore {
             FROM finance_candidate_queue ORDER BY created_at,observation_ref`).all();
     }
 
+    markCandidateResolutions(resolutions = []) {
+        const allowed = new Set(['internal_matched', 'internal_review', 'internal_uncertain']);
+        const normalized = resolutions.map(row => ({
+            observation_ref: String(row.observation_ref || ''),
+            correlation_state: String(row.correlation_state || '')
+        }));
+        if (normalized.some(row => !/^[a-f0-9]{32}$/.test(row.observation_ref) || !allowed.has(row.correlation_state))) {
+            throw new Error('invalid_open_finance_candidate_resolution');
+        }
+        let updated = 0;
+        const statement = this.db.prepare(`UPDATE finance_candidate_queue SET correlation_state=?
+            WHERE observation_ref=? AND correlation_state='new_event'`);
+        this.db.transaction(() => {
+            for (const row of normalized) {
+                updated += statement.run(row.correlation_state, row.observation_ref).changes;
+            }
+        })();
+        return { updated, financial_writes: 0 };
+    }
+
     stats() {
         const scalar = table => this.db.prepare(`SELECT COUNT(*) AS total FROM ${table}`).get().total;
         return { connections: scalar('finance_connections'), events: scalar('finance_external_events'), observations: scalar('finance_observations'), candidates: scalar('finance_candidate_queue'), completed_baselines: this.db.prepare('SELECT COUNT(*) AS total FROM finance_connections WHERE baseline_completed_at IS NOT NULL').get().total, financial_writes: 0 };

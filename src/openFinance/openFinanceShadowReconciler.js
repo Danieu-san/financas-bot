@@ -30,7 +30,7 @@ function similarity(left, right) {
 }
 
 function directionOf(transaction) {
-    const type = String(transaction.type || transaction.direction || '').toUpperCase();
+    const type = String(transaction.reconciliation_direction || transaction.type || transaction.direction || '').toUpperCase();
     if (['CREDIT', 'ENTRADA'].includes(type)) return 'credit';
     if (['DEBIT', 'SAIDA', 'CARTAO'].includes(type)) return 'debit';
     if (['TRANSFER', 'TRANSFERENCIA'].includes(type)) return 'transfer';
@@ -55,7 +55,8 @@ function candidateScore(source, target) {
     const targetDirection = directionOf(target);
     if (sourceDirection !== targetDirection && targetDirection !== 'transfer') return 0;
     const textScore = similarity(source.description, target.description);
-    return (dayDelta === 0 ? 0.45 : 0.25) + (textScore * 0.45) + 0.1;
+    const score = (dayDelta === 0 ? 0.45 : 0.25) + (textScore * 0.45) + 0.1;
+    return target.reconciliation_scope === 'unverified' ? Math.min(score, 0.84) : score;
 }
 
 function reconcileOpenFinanceShadow({ openFinanceItems = [], canonicalTransactions = [], secret } = {}) {
@@ -73,7 +74,10 @@ function reconcileOpenFinanceShadow({ openFinanceItems = [], canonicalTransactio
             let status = 'new';
             let rule = 'no_candidate';
             let selected = null;
-            if (amountOf(transaction) === null || dateDay(transaction.date) === null) {
+            if (transaction.reconciliation_unsupported_reason) {
+                status = 'uncertain';
+                rule = transaction.reconciliation_unsupported_reason;
+            } else if (amountOf(transaction) === null || dateDay(transaction.date) === null) {
                 status = 'uncertain';
                 rule = 'invalid_source_fields';
             } else if (candidates.length > 1 && candidates[0].score - candidates[1].score < 0.15) {
@@ -96,6 +100,9 @@ function reconcileOpenFinanceShadow({ openFinanceItems = [], canonicalTransactio
             decisions.push({
                 alias: item.alias_code,
                 transaction_ref: hmac(`${item.id}:${transaction.id}`),
+                observation_ref: crypto.createHmac('sha256', hmacSecret)
+                    .update(`observation:${item.id}:${transaction.account_id}:${transaction.id}`)
+                    .digest('hex').slice(0, 32),
                 canonical_ref: selected ? hmac(canonicalTransactions[selected.index].id || selected.index) : null,
                 status,
                 rule,

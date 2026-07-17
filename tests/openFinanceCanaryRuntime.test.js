@@ -41,9 +41,11 @@ test('9E.1 runtime sends only purchase and refund and quarantines unrelated inco
     const changed = snapshot([transaction('old', 500, 'old'), transaction('purchase', 1193, 'Uber', 'PENDING'),
         transaction('refund', -1193, 'Estorno Uber', 'PENDING'),
         transaction('income', 400, 'Credito diverso', 'POSTED', 'account-bank-1')], '2026-07-16T12:00:00.000Z');
-    class FakeApi { async readSnapshot() { return changed; } }
+    let currentSnapshot = changed;
+    class FakeApi { async readSnapshot() { return currentSnapshot; } }
     const messages = [];
-    const env = { OPEN_FINANCE_ALERT_MODE: 'canary', OPEN_FINANCE_ALERT_CANARY_ALIAS: 'daniel_nubank', OPEN_FINANCE_WRITE_MODE: 'off',
+    const env = { OPEN_FINANCE_ALERT_MODE: 'canary', OPEN_FINANCE_ALERT_CANARY_ALIAS: 'daniel_nubank',
+        OPEN_FINANCE_RECONCILIATION_MODE: 'canary', OPEN_FINANCE_WRITE_MODE: 'off',
         OPEN_FINANCE_COMMERCIAL_EVIDENCE_FILE: files.evidence, PLUGGY_ITEM_MAP_FILE: files.mapping,
         OPEN_FINANCE_VISIBILITY_POLICY_FILE: files.visibility, PLUGGY_CREDENTIALS_FILE: files.credentials,
         OPEN_FINANCE_LIVE_STAGING_SECRET_FILE: files.secret, OPEN_FINANCE_LIVE_STAGING_DB: files.vault,
@@ -51,11 +53,34 @@ test('9E.1 runtime sends only purchase and refund and quarantines unrelated inco
         OPEN_FINANCE_REVOCATION_JOURNAL_DB: files.journal, OPEN_FINANCE_ALERT_MAX_PER_RUN: '3' };
     const result = await runOpenFinanceCanaryCycle({ client: { sendMessage: async (to, text) => { messages.push({ to, text }); return { id: `message-${messages.length}` }; } }, env,
         dependencies: { PluggyReadOnlyClient: FakeApi,
-            getActiveUsers: async () => [{ display_name: 'Daniel da Silva', whatsapp_id: 'daniel@c.us', status: 'ACTIVE' }] } });
+            readOpenFinanceInternalSource: async () => ({
+                available: true, source_health: 'available', transactions: [], financial_writes: 0
+            }),
+            getActiveUsers: async () => [{ user_id: 'user-daniel', display_name: 'Daniel da Silva',
+                whatsapp_id: 'daniel@c.us', status: 'ACTIVE' }] } });
     assert.equal(result.outcome, 'GO'); assert.equal(result.new_observations, 3);
     assert.deepEqual(result.deliveries, ['delivered_confirmed', 'delivered_confirmed', 'idle']); assert.equal(messages.length, 2);
     assert.ok(messages.every(message => message.to === 'daniel@c.us' && message.text.includes('nada foi salvo')));
     assert.equal(result.queued.blocked, 1); assert.equal(result.outbox.blocked, 0); assert.equal(result.financial_writes, 0);
+    assert.deepEqual(result.reconciliation.summary, {
+        matched: 0, new: 3, possible_duplicate: 0, uncertain: 0,
+        lifecycle_replayed: 0, possible_replacement: 0, resolved_replay: 0, source_missing: 0
+    });
+
+    currentSnapshot = snapshot([...changed.items[0].transactions,
+        transaction('blocked-new', 999, 'Compra com fonte interna indisponivel')], '2026-07-16T13:00:00.000Z');
+    const blocked = await runOpenFinanceCanaryCycle({ client: {
+        sendMessage: async (to, text) => { messages.push({ to, text }); return { id: 'must-not-send' }; }
+    }, env, dependencies: { PluggyReadOnlyClient: FakeApi,
+        readOpenFinanceInternalSource: async () => ({
+            available: false, source_health: 'internal_source_stale', transactions: [], financial_writes: 0
+        }),
+        getActiveUsers: async () => [{ user_id: 'user-daniel', display_name: 'Daniel da Silva',
+            whatsapp_id: 'daniel@c.us', status: 'ACTIVE' }] } });
+    assert.equal(blocked.outcome, 'blocked');
+    assert.deepEqual(blocked.blockers, ['internal_source_stale']);
+    assert.equal(blocked.transport_calls, 0);
+    assert.equal(messages.length, 2);
 });
 
 test('post-9F runtime expands to Thais Nubank without disabling Daniel or writing financial data', async () => {
