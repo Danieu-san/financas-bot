@@ -2,6 +2,26 @@
 
 Atualizado em: 2026-07-18
 
+## Auditoria exaustiva pós-P5 — pacote técnico candidato concluído
+
+- A base de produto permaneceu congelada em
+  `0737d7ccbdd309e4c39f503ca781e89d5aac7bc3`; `main` e `origin/main` eram
+  idênticos na retomada. Nenhuma correção de produto, flag, produção, Google ou
+  WhatsApp real foi executada.
+- Os três workstreams foram concluídos em `docs/audit/workstreams/`: WhatsApp e
+  conversa; Web/Google/lifecycle; financeiro e analítico.
+- Veredito consolidado: caracterização ampla `GO COM RESSALVAS`, conformidade
+  `NO-GO`, deploy/rollout `NO-GO`.
+- Causas críticas: áudio antes dos gates; callback OAuth sem preservar
+  lifecycle; ausência de revogação OAuth individual.
+- O runner local foi corrigido para remover 98 execuções duplicadas, falhar
+  fechado, bloquear rede externa, restaurar state/logs e nomear skips. A
+  cobertura é somente dos arquivos carregados e não representa o produto todo.
+- Relatório central: `docs/audit/10-exhaustive-path-audit-2026-07-18.md`.
+- Pendente para encerrar pelo contrato: commit sanitizado imutável e revisão
+  final independente pelo Chat. Até esse gate, produto e deploy permanecem
+  congelados; não retomar `FLOW-01` automaticamente.
+
 ## Reauditoria independente Chat/Codex em handoff - 2026-07-18
 
 ### Atualização: P5 encerrado tecnicamente; consolidação final pendente
