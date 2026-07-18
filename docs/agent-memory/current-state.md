@@ -4,6 +4,22 @@ Atualizado em: 2026-07-18
 
 ## Reauditoria independente Chat/Codex em handoff - 2026-07-18
 
+### Atualização: revalidação independente no commit 2b6d1b6 concluída
+
+- O Chat confirmou e inspecionou diretamente o commit imutável
+  `2b6d1b6ba12292fc744a21bec764d3ba0f0117a1` por URLs do GitHub, em conversa
+  limpa e sem usar o histórico anterior como fonte.
+- OAuth/status, causalidade e concorrência/idempotência foram convertidos em
+  `GO` independente de caracterização; a conformidade permanece `NO-GO`.
+- Revogação/recuperação ficou `GO CONDICIONAL` somente quanto à afirmação
+  negativa tree-wide; seus cenários dinâmicos foram aceitos. Falta o mapa
+  estático completo da prova negativa.
+- P5 precisa apenas do pacote de prova negativa já especificado. Correção,
+  deploy, produção e serviços reais continuam proibidos nesta reauditoria.
+- Rotina adotada: publicar commit sanitizado, abrir conversa limpa no Chat,
+  enviar prompt defensivo curto com URLs imutáveis, exigir confirmação do
+  hash e citações. Se bloquear, usar o fallback manual já registrado.
+
 ### Atualização: GO anteriores reclassificados e GitHub obrigatório
 
 - `origin/main` e a tree local foram confirmados em

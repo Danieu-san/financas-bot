@@ -60,6 +60,47 @@ A partir deste ponto, cada gate enviado ao Chat deve referenciar um commit
 sanitizado no GitHub, com hash imutável e caminhos exatos. Resumo sem acesso
 aos arquivos deve ser identificado explicitamente como `summary-only`.
 
+## Revalidação independente pelo GitHub
+
+O pacote sanitizado foi publicado no commit
+`2b6d1b6ba12292fc744a21bec764d3ba0f0117a1` e confirmado em `origin/main`.
+O Chat, em conversa limpa, confirmou explicitamente esse hash e abriu o
+relatório, os quatro harnesses e as implementações de produto referenciadas
+por URLs imutáveis do GitHub. A revisão foi de arquivos e asserções; o Chat
+não reexecutou as baterias locais.
+
+Veredito independente por subgate:
+
+- OAuth/status: caracterização `GO`; conformidade `NO-GO`; nenhuma lacuna
+  indispensável para a caracterização local. O revisor confirmou que o
+  callback e o SQLite são reais, registrou os doubles de OAuth, user lookup e
+  conclusão e verificou a ordem equivalente na implementação real.
+- causalidade: caracterização `GO`; conformidade `NO-GO`; nenhuma lacuna
+  indispensável local. O revisor confirmou a conclusão Google real, store
+  OAuth real, lifecycle real sobre backing sintético e rota/callback reais no
+  corte HTTP.
+- concorrência/idempotência: caracterização `GO`; conformidade `NO-GO`;
+  nenhuma lacuna indispensável da aplicação. O revisor preservou fora do
+  escopo qualquer afirmação de que o Google real aceitaria o mesmo `code` em
+  replay.
+- revogação/recuperação: caracterização dinâmica `GO`, mas conclusão
+  tree-wide `GO CONDICIONAL`; conformidade predominantemente `NO-GO`. A
+  condição restante é o mapa estático completo de entry points e sinks da
+  prova negativa.
+
+Assim, os três primeiros `GO` provisórios foram convertidos em verificação
+independente dos arquivos. Revogação/recuperação permanece qualificada até
+a prova negativa. P5 precisa somente do pacote de prova negativa já definido;
+a conformidade geral continuará `NO-GO` mesmo que os controles localizados
+passem.
+
+Observação operacional: a conversa antiga conseguiu pesquisar o GitHub, mas
+teve duas respostas truncadas. Uma conversa limpa, com prompt curto e links
+imutáveis de `github.com`/`raw.githubusercontent.com`, entregou o parecer
+completo sem intersticial de segurança. Esse formato passa a ser o padrão da
+auditoria; não é garantia contra filtros futuros, portanto o fallback manual
+registrado em `AGENTS.md` permanece.
+
 ## Pacotes documentais concluídos
 
 ### P0 - capacidades e contratos
