@@ -41,6 +41,14 @@ repositorio, testes ou producao antes de aceitar conclusoes ou alterar o plano.
 - Nao usar esta memoria como fonte unica para alterar comportamento: confirme em codigo/testes antes de editar.
 - Ao terminar uma mudanca relevante, atualize `current-state.md` e, se aplicavel, `known-issues.md` ou `testing-playbook.md`.
 
+## Trava de retorno depois de auditorias paralelas
+
+Quando uma auditoria for iniciada enquanto outro gate estiver em observacao,
+registrar antes o ponto interrompido em `current-state.md` e no charter da
+auditoria. Ao concluir a auditoria, voltar e fechar esse gate antes de iniciar
+qualquer correcao encontrada. O relatorio pode priorizar correcoes, mas nao
+autoriza implementacao, deploy, mudanca de flag ou teste real automaticamente.
+
 ## Rotina obrigatoria de alinhamento ao roadmap
 
 Antes de iniciar qualquer fatia nao trivial, confira o roadmap geral em

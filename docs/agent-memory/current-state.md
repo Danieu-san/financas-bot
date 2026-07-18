@@ -2,6 +2,42 @@
 
 Atualizado em: 2026-07-17
 
+## Auditoria adversarial e polling natural concluidos - GO - 2026-07-17/18
+
+- Objeto congelado: commit local/GitHub `94c52f2`, tree
+  `363ef7fcbbeb18bbc3eb4810e0d4e9cce48755ae`; producao equivalente em
+  `0d9dc4f` antes do inicio da auditoria.
+- A auditoria percorreu promessas ponta a ponta e dados no sentido inverso.
+  Relatorio em `docs/audit/final-report.md`: zero P0 observado, dez P1 e sete
+  P2. Expansao multiusuario, review remoto e `salvar <referencia>` seguem
+  `NO-GO`.
+- Suite padrao verde com etapa principal `996/996`. Vinte e dois arquivos
+  locais omitidos tambem foram executados: `110` aprovados, `5` pulados e zero
+  falhas. O E2E WhatsApp real nao foi executado.
+- Leitura EC2 sanitizada: tree comum, PM2 online, health/WhatsApp verdes,
+  preview/reconciliacao em canary, write mode off, bancos `0600` em diretorios
+  `0700`, journal zero, preview `1/1`, nenhum expirado e zero writes.
+- Frequencia real do Pluggy: seis horas, nao diaria.
+- O primeiro heartbeat executou cedo, as 22h35 UTC, e confirmou sem mutacao que
+  ainda nao havia ciclo posterior a `2026-07-17T19:25:54.101Z`. PM2, health,
+  WhatsApp, modos, permissoes, journal, preview e outbox permaneceram estaveis.
+- O polling natural executou as 01h25 UTC de 2026-07-18 e fechou `GO`:
+  `new=0`, `accepted_unconfirmed=3`, `retries=0`, `writes=0`. As tres entregas
+  anteriormente pendentes ficaram em confirmacao ambigua at-most-once; outbox
+  passou a pendente zero, in-flight zero e unconfirmed cumulativo onze.
+- Tree continuou identica; PM2, health e WhatsApp verdes; modos canary/canary,
+  write off; bancos `0600`/diretorios `0700`; journal real zero; preview `1/1`,
+  zero revisado e zero expirado. Nenhum ciclo foi forcado.
+- Nenhuma correcao de produto, deploy, restart, mudanca de flag, polling
+  forcado, mensagem real ou escrita financeira ocorreu durante a auditoria.
+- Trava de continuidade pedida pelo usuario: ao terminar a auditoria, voltar
+  primeiro ao canario Open Finance e fechar o proximo polling natural; somente
+  depois transformar achados priorizados em pequenos gates de correcao.
+- A trava foi satisfeita. Proxima fatia futura: corrigir `AUTH-01` (admin por
+  nome controlavel) com identidade explicita para `@lid`, teste e rollback. O
+  heartbeat nao autoriza nem implementa essa correcao.
+- Charter: `docs/audit/00-charter.md`.
+
 ## Canary persistente do preview familiar - 2026-07-17
 
 - O chamador operacional de revogacao agora resolve todos os stores a partir
