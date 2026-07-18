@@ -4,6 +4,28 @@ Atualizado em: 2026-07-18
 
 ## Reauditoria independente Chat/Codex em handoff - 2026-07-18
 
+### Atualização: prova negativa local passou; revisão GitHub pendente
+
+- Criados o manifesto
+  `docs/audit/08-google-entrypoint-sink-negative-proof-2026-07-18.md` e o
+  harness `tests/auditGoogleNegativeProof.test.js`.
+- Repetição exclusiva final: sintaxe aprovada, `4/4`, falhas zero,
+  temporários `0 -> 1 -> 0`.
+- O mapa estático classificou 146 arquivos: zero writers que marquem revogação
+  OAuth individual, um writer de revogação da membership familiar e zero
+  caminhos alternativos Google/OAuth de recovery.
+- State com identidade alterada retornou HTTP `400`; todos os tripwires ficaram
+  zero e snapshots A/B permaneceram idênticos.
+- Usuário ACTIVE não admin foi resolvido pelo acesso real e rejeitado pelo
+  dispatcher real; houve apenas auditoria `denied`, com zero mutação e
+  snapshots idênticos.
+- Hash do harness:
+  `2B18F5929FF5DCDA75AC55BC59B5071A539E5E7427437B36D7DB366F4DA0C931`.
+  Hash do manifesto:
+  `947E7299BE729A17C2BEE95007D2A79867859C391DFECEF070B352A823A81902`.
+- Candidato Codex: prova negativa `GO` de caracterização; conformidade geral
+  continua `NO-GO`. P5 aguarda inspeção direta do novo commit pelo Chat limpo.
+
 ### Atualização: revalidação independente no commit 2b6d1b6 concluída
 
 - O Chat confirmou e inspecionou diretamente o commit imutável

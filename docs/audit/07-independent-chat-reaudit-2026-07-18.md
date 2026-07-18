@@ -101,6 +101,45 @@ completo sem intersticial de segurança. Esse formato passa a ser o padrão da
 auditoria; não é garantia contra filtros futuros, portanto o fallback manual
 registrado em `AGENTS.md` permanece.
 
+## Prova negativa final - execução candidata
+
+Foram criados:
+
+- `docs/audit/08-google-entrypoint-sink-negative-proof-2026-07-18.md`;
+- `tests/auditGoogleNegativeProof.test.js`.
+
+A primeira execução confirmou os dois controles dinâmicos, mas rejeitou o
+manifesto porque o texto descrevia a remoção de permissão Drive sem escrever
+literalmente o símbolo `revokeSpreadsheetPermission`. O rótulo foi corrigido,
+sem alterar produto ou asserções. O temporário sintético foi validado pelo
+prefixo e removido antes da repetição.
+
+Repetição exclusiva final:
+
+- sintaxe: aprovada;
+- bateria: `4/4`, falhas zero;
+- temporários: `0 -> 1 -> 0`;
+- manifesto: 146 arquivos JS de `src` classificados, zero writers que marquem
+  revogação OAuth individual, um writer de revogação de membership familiar
+  e zero caminhos Google/OAuth de recovery, journal, claim ou resume;
+- state com identidade alterada: rota HTTP, callback, verificação e erro
+  reais; HTTP `400`; token exchange, lookup Google, save/update OAuth,
+  conclusão, lifecycle, membership, Drive, WhatsApp e métrica de sucesso
+  permaneceram zero; snapshots A/B idênticos;
+- usuário não admin: resolução de acesso real e dispatcher real anterior ao
+  gate; auditoria `access_denied/denied`; zero auditoria de sucesso; zero
+  mutação de lifecycle, OAuth, membership, Drive ou planilha; snapshots
+  idênticos.
+
+Hashes antes do commit:
+
+- harness: `2B18F5929FF5DCDA75AC55BC59B5071A539E5E7427437B36D7DB366F4DA0C931`;
+- manifesto: `947E7299BE729A17C2BEE95007D2A79867859C391DFECEF070B352A823A81902`.
+
+Veredito Codex candidato: caracterização da prova negativa `GO` e conformidade
+geral `NO-GO`. O P5 continua aberto até o Chat inspecionar diretamente o commit
+que publicará estes artefatos.
+
 ## Pacotes documentais concluídos
 
 ### P0 - capacidades e contratos
