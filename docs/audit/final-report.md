@@ -17,11 +17,32 @@ Objeto: commit `94c52f23261ae2b9150edcdb7f3ba5ebaba35727`, tree
 - Expansão multiusuário: `NO-GO`.
 - `salvar <referência>` e pergunta proativa de gravação: `NO-GO`.
 - Revisão remota do preview Open Finance: `NO-GO`.
+- Status posterior: `AUTH-01` foi corrigida e validada em produção em
+  2026-07-18; permanecem abertos nove `P1` e sete `P2` do objeto auditado.
 
 O resultado mais importante é que as baterias verdes não cobrem algumas
 contradições entre camadas. O bot tem bons controles locais de confirmação,
 idempotência e Open Finance, mas identidade, lifecycle, leitura e scheduler
 ainda não formam um contrato global fechado.
+
+## Adendo de remediação — AUTH-01 — 2026-07-18
+
+O achado histórico permanece documentado, mas seu caminho explorável foi
+fechado. O commit `7f61aaa` eliminou a autorização por nome controlável e passou
+a reconhecer admin somente por identificadores presentes em `ADMIN_IDS`. A
+migração operacional vinculou o `@lid` real ao único alias telefônico admin já
+autorizado, sem usar nome, criou backup privado do `.env` e falhou fechado para
+qualquer cardinalidade diferente de um.
+
+Evidência: colisão de nome negada, `@lid` explícito aceito, bateria afetada
+`215/215`, suíte principal de release `997/997` mais pretestes, auditoria npm
+offline sem vulnerabilidades e teste focado remoto verde. A tree do deploy de
+produto validada em local e EC2 é
+`943fe932184e37552e908339b4523879684f7a0a`. Após um único restart,
+PM2, health, SQLite e WhatsApp ficaram verdes; não houve padrão de erro crítico,
+mensagem real, polling forçado ou escrita financeira. Open Finance permaneceu
+em canary/canary com write mode `off`, e o dashboard admin amplo permaneceu
+desligado.
 
 ## Achados prioritários
 
@@ -86,7 +107,8 @@ uma expectativa de escrita que o contrato atual corretamente proíbe.
 
 Esta sequência é uma fila, não autorização imediata:
 
-1. remover admin por nome e criar vínculo explícito seguro de `@lid`;
+1. **concluído:** remover admin por nome e criar vínculo explícito seguro de
+   `@lid`;
 2. mover dedup, acesso e rate limit antes de áudio/mídia/efeitos externos;
 3. preservar indisponibilidade de leitura até dashboard, análise e scheduler;
 4. neutralizar textos na fronteira genérica do Sheets;
@@ -104,4 +126,5 @@ A auditoria documental, estática, local e operacional está concluída. O ciclo
 natural posterior ocorreu sem ser forçado e recebeu `GO`: tree equivalente,
 PM2/health/WhatsApp verdes, `writes=0`, journal real vazio, preview estável,
 retenção válida e outbox sem itens pendentes/in-flight. A trava de retorno foi
-satisfeita. A primeira correção futura é `AUTH-01`, em nova fatia explícita.
+satisfeita. `AUTH-01` foi corrigida em fatia explícita posterior; a próxima
+correção priorizada é `FLOW-01`, ainda sem autorização automática.

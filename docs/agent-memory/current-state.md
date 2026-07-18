@@ -1,6 +1,35 @@
 # Estado atual do FinancasBot
 
-Atualizado em: 2026-07-17
+Atualizado em: 2026-07-18
+
+## AUTH-01 - identidade admin explicita - GO de producao - 2026-07-18
+
+- O commit local/GitHub `7f61aaa` removeu por completo a autorizacao admin por
+  `display_name`. `isAdminWithContext` agora delega somente para `isAdmin`, e
+  um `@lid` precisa constar explicitamente em `ADMIN_IDS`.
+- TDD provou primeiro a vulnerabilidade; depois ficaram verdes a colisao de
+  nome negada, o `@lid` explicito aceito e o bypass anterior ao onboarding
+  restrito ao identificador autorizado. Bateria diretamente afetada `215/215`,
+  suite de release principal `997/997` mais pretestes e `npm audit --offline`
+  com zero vulnerabilidades.
+- Preflight sanitizado encontrou exatamente um admin logico ativo: o alias de
+  telefone ja estava autorizado e o `@lid` correspondente ainda nao. O `.env`
+  recebeu o alias exato por migracao atomica fail-closed; original preservado
+  em `.env.rollback-auth01-20260718T031437Z`, ambos `0600`.
+- O deploy de produto recebeu os commits documental e de codigo por `git am`;
+  hash EC2 `a874e37`, tree de produto validada em local e EC2
+  `943fe932184e37552e908339b4523879684f7a0a`. Arquivos operacionais nao
+  rastreados foram preservados.
+- Validacao final sanitizada: um unico admin logico, alias real aceito,
+  `@lid` nao listado negado mesmo com nome coincidente, PM2 online, health e
+  SQLite verdes, WhatsApp pronto e zero padroes de erro critico apos o restart.
+- Open Finance permaneceu preview/reconciliacao em `canary`, write mode `off`;
+  dashboard admin amplo permaneceu desligado. Nenhuma mensagem real, polling
+  forcado ou escrita financeira foi executada.
+- Rollback disponivel: restaurar o backup privado do `.env`, reaplicar a tree
+  anterior `363ef7fcbbeb18bbc3eb4810e0d4e9cce48755ae` e reiniciar o PM2.
+- Proxima fatia priorizada: `FLOW-01`, mover acesso/rate limit/deduplicacao para
+  antes de audio e efeitos externos. Nao implementar sem uma nova autorizacao.
 
 ## Auditoria adversarial e polling natural concluidos - GO - 2026-07-17/18
 
@@ -33,9 +62,8 @@ Atualizado em: 2026-07-17
 - Trava de continuidade pedida pelo usuario: ao terminar a auditoria, voltar
   primeiro ao canario Open Finance e fechar o proximo polling natural; somente
   depois transformar achados priorizados em pequenos gates de correcao.
-- A trava foi satisfeita. Proxima fatia futura: corrigir `AUTH-01` (admin por
-  nome controlavel) com identidade explicita para `@lid`, teste e rollback. O
-  heartbeat nao autoriza nem implementa essa correcao.
+- A trava foi satisfeita. `AUTH-01` foi corrigida depois da auditoria, em fatia
+  explicitamente autorizada e registrada na secao acima.
 - Charter: `docs/audit/00-charter.md`.
 
 ## Canary persistente do preview familiar - 2026-07-17

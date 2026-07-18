@@ -56,6 +56,15 @@ um identificador autenticado.
 
 ### AUTH-01 — P1 — privilégio admin derivado de nome controlável
 
+Status posterior à auditoria: **RESOLVIDO em produção em 2026-07-18**. O commit
+`7f61aaa` removeu a decisão por `display_name`; telefone e `@lid` do mesmo e
+único admin lógico passaram a constar explicitamente em `ADMIN_IDS`. Os testes
+provam que colisão de nome é negada e que apenas o `@lid` listado atravessa o
+gate anterior ao onboarding. O deploy equivalente usa a tree
+`943fe932184e37552e908339b4523879684f7a0a`; health, SQLite, WhatsApp, flags e
+rollback do `.env` foram validados sanitizadamente. O texto abaixo preserva o
+achado no objeto congelado da auditoria.
+
 `src/utils/adminCheck.js:43-52` autoriza um remetente quando o seu
 `display_name` coincide com o nome associado a um `ADMIN_IDS`. O nome inicial
 vem de `notifyName`/`pushname` e o onboarding permite que o próprio usuário o
