@@ -2506,7 +2506,9 @@ test('userService UserSettings range follows the full settings schema', () => {
 test('adminCheck.isAdminWithContext', (t) => {
     const constants = require('../src/config/constants');
     const originalUserMap = process.env.USER_MAP;
+    const originalAdminIds = process.env.ADMIN_IDS;
     process.env.USER_MAP = '5599990000001@c.us:Daniel';
+    process.env.ADMIN_IDS = '5599990000001@c.us,111122223333444@lid';
     constants.initializeUserMap({ force: true });
     t.after(() => {
         if (originalUserMap === undefined) {
@@ -2514,18 +2516,23 @@ test('adminCheck.isAdminWithContext', (t) => {
         } else {
             process.env.USER_MAP = originalUserMap;
         }
+        if (originalAdminIds === undefined) {
+            delete process.env.ADMIN_IDS;
+        } else {
+            process.env.ADMIN_IDS = originalAdminIds;
+        }
         constants.initializeUserMap({ force: true });
     });
 
     assert.strictEqual(
-        adminCheck.isAdminWithContext('111122223333444@lid', { display_name: 'Daniel' }),
-        true,
-        'LID sender with known admin display name should be treated as admin'
+        adminCheck.isAdminWithContext('999988887777666@lid', { display_name: 'Daniel' }),
+        false,
+        'Display name collision must not grant admin access'
     );
     assert.strictEqual(
         adminCheck.isAdminWithContext('111122223333444@lid', { display_name: 'Outro Nome' }),
-        false,
-        'Unknown display name should not be admin'
+        true,
+        'Exact LID listed in ADMIN_IDS should be treated as admin'
     );
 });
 
@@ -2551,7 +2558,7 @@ test('messageHandler lets admin commands bypass access gate for admin LID', asyn
     const replies = [];
 
     try {
-        process.env.ADMIN_IDS = '5599990000001@c.us';
+        process.env.ADMIN_IDS = '5599990000001@c.us,111122223333444@lid';
         const handled = await handleAdminCommandBeforeAccess(
             {
                 body: 'admin ajuda',
@@ -2568,6 +2575,30 @@ test('messageHandler lets admin commands bypass access gate for admin LID', asyn
     }
 });
 
+test('messageHandler denies admin bypass for unlisted LID with admin display name', async () => {
+    const { handleAdminCommandBeforeAccess } = messageHandler.__test__;
+    const previousAdminIds = process.env.ADMIN_IDS;
+    const replies = [];
+
+    try {
+        process.env.ADMIN_IDS = '5599990000001@c.us';
+        const handled = await handleAdminCommandBeforeAccess(
+            {
+                body: 'admin ajuda',
+                reply: async (text) => replies.push(text)
+            },
+            '111122223333444@lid',
+            { allowed: false, user: { display_name: 'Daniel', status: userService.USER_STATUS.PENDING_APPROVAL } }
+        );
+
+        assert.strictEqual(handled, true);
+        assert.strictEqual(replies.length, 1);
+        assert.match(replies[0], /restrito a administradores/i);
+    } finally {
+        process.env.ADMIN_IDS = previousAdminIds;
+    }
+});
+
 test('messageHandler admin invite reports WhatsApp send failures without throwing', async () => {
     const { handleAdminCommandBeforeAccess, clearPendingAdminConfirmation } = messageHandler.__test__;
     const previousAdminIds = process.env.ADMIN_IDS;
@@ -2575,7 +2606,7 @@ test('messageHandler admin invite reports WhatsApp send failures without throwin
     const senderId = '111122223333444@lid';
 
     try {
-        process.env.ADMIN_IDS = '5599990000001@c.us';
+        process.env.ADMIN_IDS = '5599990000001@c.us,111122223333444@lid';
         clearPendingAdminConfirmation(senderId);
         const commandMsg = {
             body: 'admin convidar 5599990000003',
@@ -2620,7 +2651,7 @@ test('messageHandler admin invite uses fallback sender when message client is mi
     const senderId = '111122223333444@lid';
 
     try {
-        process.env.ADMIN_IDS = '5599990000001@c.us';
+        process.env.ADMIN_IDS = '5599990000001@c.us,111122223333444@lid';
         clearPendingAdminConfirmation(senderId);
         const commandMsg = {
             body: 'admin convidar 5599990000004',
@@ -2725,7 +2756,7 @@ test('messageHandler admin confirmation replies through fallback when reply is m
     const senderId = '111122223333444@lid';
 
     try {
-        process.env.ADMIN_IDS = '5599990000001@c.us';
+        process.env.ADMIN_IDS = '5599990000001@c.us,111122223333444@lid';
         clearPendingAdminConfirmation(senderId);
         const options = {
             directMessageSender: async (to, text) => {
@@ -2775,7 +2806,7 @@ test('messageHandler admin high-risk commands require confirmation before execut
     let sentMessages = 0;
 
     try {
-        process.env.ADMIN_IDS = '5599990000001@c.us';
+        process.env.ADMIN_IDS = '5599990000001@c.us,111122223333444@lid';
         clearPendingAdminConfirmation(senderId);
 
         assert.strictEqual(summarizeAdminCommandForConfirmation('admin stats').required, false);
@@ -2818,7 +2849,7 @@ test('messageHandler admin confirmation without pending command is handled safel
     const replies = [];
 
     try {
-        process.env.ADMIN_IDS = '5599990000001@c.us';
+        process.env.ADMIN_IDS = '5599990000001@c.us,111122223333444@lid';
         clearPendingAdminConfirmation(senderId);
 
         const handled = await handleAdminCommandBeforeAccess(
@@ -2845,7 +2876,7 @@ test('messageHandler admin bot status replies with sanitized operational summary
     const replies = [];
 
     try {
-        process.env.ADMIN_IDS = '5599990000001@c.us';
+        process.env.ADMIN_IDS = '5599990000001@c.us,111122223333444@lid';
 
         const handled = await handleAdminCommandBeforeAccess(
             {
@@ -2879,7 +2910,7 @@ test('messageHandler admin restart requires confirmation and schedules safe PM2 
     const restartRequests = [];
 
     try {
-        process.env.ADMIN_IDS = '5599990000001@c.us';
+        process.env.ADMIN_IDS = '5599990000001@c.us,111122223333444@lid';
         clearPendingAdminConfirmation(senderId);
         setAdminMaintenanceRestartSchedulerForTests((request) => restartRequests.push(request));
 
