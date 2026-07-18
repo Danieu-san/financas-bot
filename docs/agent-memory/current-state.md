@@ -4,6 +4,24 @@ Atualizado em: 2026-07-18
 
 ## Reauditoria independente Chat/Codex em handoff - 2026-07-18
 
+### Atualização: revisão automática da prova negativa truncada; fallback manual
+
+- O Chat abriu o commit
+  `04199b94544ffe61b2eac6458fe8e75196b8ab00` e consultou os arquivos no
+  GitHub. A automação não leu o intersticial, mas Daniel confirmou que ele
+  apareceu na interface; o gate é bloqueado.
+- Três pareceres automáticos foram truncados após o início, inclusive em
+  conversa limpa e em formato de sete linhas. Confirmação parcial do hash não
+  foi aceita como veredito.
+- P5 continua aberto. Aplicar o fallback manual registrado no `AGENTS.md`:
+  Daniel envia o prompt curto com URLs imutáveis e cola a resposta integral.
+- Candidato Codex continua: prova negativa `GO` de caracterização,
+  conformidade geral `NO-GO`; não consolidar como independente antes da
+  resposta manual.
+- Regra reajustada: no máximo uma tentativa automática por gate imutável; ao
+  primeiro bloqueio visto ou relatado, parar e fornecer prompt manual neutro de
+  revisão de testes/rastreabilidade.
+
 ### Atualização: prova negativa local passou; revisão GitHub pendente
 
 - Criados o manifesto

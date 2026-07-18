@@ -55,6 +55,8 @@ Para reduzir bloqueios e heranca indevida de contexto em auditorias de repositor
 
 Se o envio automatizado ao Chat for bloqueado por um filtro de seguranca, nao insistir nem tentar contornar o bloqueio. Informar que o bloqueio automatico nao constitui, por si so, uma conclusao sobre o usuario ou o projeto; fornecer ao Daniel um prompt pronto, estritamente defensivo e sem segredos; indicar explicitamente a capacidade `Superficie -> Modelo -> Esforco -> Proxima tarefa` que ele deve selecionar no Chat; e parar para aguardar que ele cole a resposta recebida. Para o modelo, recomendar o mais capaz e mais recente que esteja realmente disponivel no seletor da conta, verificando a oferta atual quando ela puder ter mudado, em vez de fixar uma versao antiga. Essa rotina substitui a tentativa automatica apenas naquele gate bloqueado e deve ser aplicada em todas as recorrencias.
 
+O relato de Daniel de que o intersticial apareceu vale como bloqueio confirmado, mesmo que a automacao nao consiga observa-lo no DOM. Em auditoria por GitHub, fazer no maximo uma tentativa automatica por gate imutavel; ao primeiro bloqueio observado pelo Codex ou informado por Daniel, interromper imediatamente. O prompt manual deve ser minimalista e usar linguagem de revisao de testes, consistencia e rastreabilidade, deixando detalhes tecnicos nos arquivos do commit em vez de repeti-los no texto.
+
 ## Diretriz Legal/Privacidade Crítica
 **Antes de escalar para multiusuário real, remover o acesso admin a gastos de todos os usuários.**
 

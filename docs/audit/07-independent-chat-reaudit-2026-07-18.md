@@ -140,6 +140,25 @@ Veredito Codex candidato: caracterização da prova negativa `GO` e conformidade
 geral `NO-GO`. O P5 continua aberto até o Chat inspecionar diretamente o commit
 que publicará estes artefatos.
 
+### Limitação da revisão independente deste pacote
+
+O commit `04199b94544ffe61b2eac6458fe8e75196b8ab00` foi aberto pelo Chat e os
+links do manifesto, harness e arquivos citados foram consultados. Não apareceu
+o intersticial no DOM lido pela automação; Daniel informou que ele apareceu na
+interface visível. Portanto o gate é tratado como bloqueado. Além disso, três respostas automáticas foram
+truncadas logo após o início do parecer, inclusive em conversa limpa e com
+limite de sete linhas. Apenas a confirmação parcial do hash e as citações
+foram renderizadas.
+
+Essa confirmação de acesso não equivale a veredito. P5 permanece aberto e o
+fallback manual deve ser usado: Daniel envia o prompt curto com os dois links
+imutáveis e devolve a resposta integral. Nenhum `GO` independente da prova
+negativa foi registrado a partir das saídas truncadas.
+
+Rotina reajustada: uma única tentativa automática por gate/commit; o relato do
+usuário vale como confirmação de bloqueio; depois disso, somente prompt manual
+minimalista, sem repetir no texto os detalhes técnicos que já estão nos arquivos.
+
 ## Pacotes documentais concluídos
 
 ### P0 - capacidades e contratos
