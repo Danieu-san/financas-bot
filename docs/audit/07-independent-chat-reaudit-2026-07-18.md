@@ -159,6 +159,41 @@ Rotina reajustada: uma única tentativa automática por gate/commit; o relato do
 usuário vale como confirmação de bloqueio; depois disso, somente prompt manual
 minimalista, sem repetir no texto os detalhes técnicos que já estão nos arquivos.
 
+### Fechamento independente após o fallback manual
+
+Daniel devolveu duas respostas manuais completas do Chat para os arquivos do
+commit `04199b94544ffe61b2eac6458fe8e75196b8ab00`. Ambas confirmaram o hash
+integral, reconheceram correspondência entre o manifesto e o código e
+aceitaram que o harness atravessa as decisões reais declaradas, usando os
+componentes sintéticos apenas como backing stores e tripwires.
+
+As respostas convergiram também na única lacuna residual indispensável: os
+arquivos publicados demonstravam desenho e asserções, mas não constituíam, por
+si sós, comprovante de uma execução verde dos três subtestes naquele código.
+
+O Codex resolveu exatamente essa condição, sem ampliar o escopo:
+
+- `git diff --exit-code` confirmou que manifesto e harness da execução são
+  idênticos aos do hash revisado;
+- os blob IDs também coincidiram entre o commit e a tree executada;
+- a checagem de sintaxe passou;
+- a bateria exclusiva passou `4/4`, com os três subtestes internos `3/3` e
+  falhas, cancelamentos, ignorados e pendentes iguais a zero;
+- snapshots finais permaneceram idênticos e todos os contadores proibidos
+  ficaram zerados;
+- o temporário sintético foi validado, removido e recontado com resíduo zero.
+
+O registro reproduzível está em
+`docs/audit/09-p5-negative-proof-execution-2026-07-18.md`.
+
+Veredito final do P5:
+
+- caracterização da prova negativa: `GO`;
+- conformidade geral: `NO-GO` preservado;
+- lacuna indispensável residual do P5: nenhuma;
+- próximo estado permitido: consolidação final da reauditoria;
+- correção, deploy, produção e serviços reais: não autorizados por este gate.
+
 ## Pacotes documentais concluídos
 
 ### P0 - capacidades e contratos

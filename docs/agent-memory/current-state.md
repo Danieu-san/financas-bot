@@ -4,6 +4,28 @@ Atualizado em: 2026-07-18
 
 ## Reauditoria independente Chat/Codex em handoff - 2026-07-18
 
+### Atualização: P5 encerrado tecnicamente; consolidação final pendente
+
+- Daniel devolveu duas revisões manuais completas do Chat. Ambas confirmaram o
+  hash `04199b94544ffe61b2eac6458fe8e75196b8ab00`, aceitaram o manifesto e os
+  controles e apontaram a mesma condição residual: execução verde dos três
+  subtestes no código revisado.
+- `git diff --exit-code` e os blob IDs confirmaram que manifesto e harness da
+  tree executada são idênticos aos do commit revisado. Os SHA-256 continuam
+  `947E7299BE729A17C2BEE95007D2A79867859C391DFECEF070B352A823A81902` e
+  `2B18F5929FF5DCDA75AC55BC59B5071A539E5E7427437B36D7DB366F4DA0C931`.
+- Checagem de sintaxe aprovada e bateria exclusiva verde: `4/4`, falhas zero,
+  com os três subtestes internos `3/3`. Snapshots permaneceram idênticos e os
+  contadores de mutação proibida ficaram zerados.
+- O temporário sintético foi validado por raiz e prefixo, removido depois do
+  encerramento do Node e recontado: resíduos `0`.
+- Evidência detalhada:
+  `docs/audit/09-p5-negative-proof-execution-2026-07-18.md`.
+- Veredito: caracterização da prova negativa `GO`; P5 encerrado tecnicamente;
+  conformidade geral permanece `NO-GO`.
+- Próximo estado: consolidação final da reauditoria. Correção, deploy,
+  produção, Google e WhatsApp continuam fora do escopo e não autorizados.
+
 ### Atualização: revisão automática da prova negativa truncada; fallback manual
 
 - O Chat abriu o commit
