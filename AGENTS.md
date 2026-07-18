@@ -49,6 +49,10 @@ Sempre que uma tarefa puder ser executada no Chat comum sem acesso ao repositori
 
 Usar Codex diretamente somente quando a proxima acao exigir inspecao ou alteracao do repositorio, execucao de comandos/testes, leitura de logs privados, GitHub, EC2, WhatsApp, Google Sheets ou outra ferramenta local/externa. Depois que o usuario trouxer a resposta do Chat, reavaliar o esforco antes de continuar.
 
+Quando o Chat atuar como auditor de codigo ou de evidencias do repositorio, publicar antes no GitHub um commit sanitizado com todos os arquivos necessarios e fornecer ao Chat o hash imutavel e os caminhos exatos. Nao enviar segredos, dados pessoais, arquivos locais de sessao ou alteracoes alheias ao gate. Um veredito baseado apenas em resumo deve ser rotulado como revisao logica de evidencia relatada e nao pode, sozinho, receber o rótulo de verificacao independente dos arquivos.
+
+Se o envio automatizado ao Chat for bloqueado por um filtro de seguranca, nao insistir nem tentar contornar o bloqueio. Informar que o bloqueio automatico nao constitui, por si so, uma conclusao sobre o usuario ou o projeto; fornecer ao Daniel um prompt pronto, estritamente defensivo e sem segredos; indicar explicitamente a capacidade `Superficie -> Modelo -> Esforco -> Proxima tarefa` que ele deve selecionar no Chat; e parar para aguardar que ele cole a resposta recebida. Para o modelo, recomendar o mais capaz e mais recente que esteja realmente disponivel no seletor da conta, verificando a oferta atual quando ela puder ter mudado, em vez de fixar uma versao antiga. Essa rotina substitui a tentativa automatica apenas naquele gate bloqueado e deve ser aplicada em todas as recorrencias.
+
 ## Diretriz Legal/Privacidade Crítica
 **Antes de escalar para multiusuário real, remover o acesso admin a gastos de todos os usuários.**
 

@@ -2,6 +2,131 @@
 
 Atualizado em: 2026-07-18
 
+## Reauditoria independente Chat/Codex em handoff - 2026-07-18
+
+### Atualização: GO anteriores reclassificados e GitHub obrigatório
+
+- `origin/main` e a tree local foram confirmados em
+  `3bdb6999f7819ccbf2b48ea7e9dde4498a434573`, mas os quatro harnesses e o
+  relatório da reauditoria ainda não estavam no GitHub durante os challenges
+  anteriores do Chat.
+- Nova execução local confirmou `14/14`, `5/5`, `5/5` e `5/5`, com os mesmos
+  hashes registrados e sem divergência material entre resumo e evidência.
+- Os `GO` permanecem tecnicamente sustentados, porém são provisórios como
+  auditoria independente até o Chat inspecionar um commit imutável no GitHub.
+  Os `NO-GO` de conformidade permanecem válidos.
+- Regra permanente adicionada ao `AGENTS.md`: auditoria de arquivos pelo Chat
+  exige commit sanitizado, hash imutável e caminhos exatos; resumo isolado é
+  apenas revisão lógica `summary-only`.
+- Próximo passo: publicar somente o pacote de auditoria, sem credenciais,
+  dados reais nem arquivos alheios, e revalidar todos os subgates pelo GitHub.
+
+### Atualização: fallback manual obrigatório quando o Chat bloquear uma auditoria
+
+- Regra operacional registrada em `AGENTS.md`: se o envio automatizado ao Chat for bloqueado por segurança, o Codex não insiste nem tenta contornar o filtro.
+- Nesse caso, Daniel recebe o prompt defensivo pronto, sem segredos, junto da capacidade recomendada; o fluxo aguarda a resposta manual antes de prosseguir naquele gate.
+- O modelo indicado deve ser o mais capaz e mais recente realmente disponível no seletor da conta, verificado no momento, e não uma versão antiga fixada por memória.
+- O bloqueio automático deve ser descrito como limitação do envio, não como conclusão de irregularidade do usuário ou do FinancasBot.
+
+### Atualização: revogação/recuperação encerrada; prova negativa em andamento
+
+- Não existe caminho operacional de revogação Google individual na tree
+  auditada; `oauth_connections.revoked_at` não possui writer alcançável.
+- O harness `tests/auditGoogleRevocationRecovery.test.js` passou `5/5`, hash
+  `DE21132676B00574E932A248475CA81944C695772B4D0DAECF4D04DEA3E2D742`,
+  temporários `1 -> 0`.
+- `INACTIVE`/`DELETED` preservaram OAuth e vínculos; uma conclusão pausada
+  ressuscitou `INACTIVE -> ACTIVE`; remoção de compartilhamento afetou somente
+  membership/Drive e preservou OAuth/lifecycle.
+- Chat: caracterização `GO`, conformidade `NO-GO`, severidade `MÉDIA-ALTA`,
+  nenhum microcenário residual.
+- Último pacote técnico P5 em andamento: manifesto estático e dois controles de
+  prova negativa. Correção, deploy e produção continuam proibidos.
+
+### Atualização: concorrência/idempotência encerrada; revogação em andamento
+
+- O harness `tests/auditGoogleConnectionIdempotency.test.js` passou `5/5`,
+  hash `385B84BC607081B5A8F68939DE406A8FE14996EA8428644A7B0976AA56B0EB7C`,
+  com temporários `1 -> 0`.
+- Retry de órfã criou uma segunda planilha; retry de vínculo reaplicou template;
+  duas conclusões criaram duas planilhas com last-write-wins e dois sucessos
+  divergentes; replay repetiu OAuth, template e lifecycle.
+- O Chat deu `GO` para a caracterização, `NO-GO` para conformidade e severidade
+  sistêmica `MÉDIA-ALTA`. Nenhum microcenário ficou aberto.
+- Próximo pacote em andamento: `P5 - revogação e recuperação`, começando pelo
+  mapeamento dos caminhos reais. Correção, deploy, produção e serviços reais
+  continuam proibidos.
+
+### Atualização: causalidade Google encerrada; concorrência em andamento
+
+- O harness `tests/auditGoogleConnectionCausality.test.js` atravessou a
+  conclusão Google real em quatro cortes e passou `5/5`, hash
+  `1914D9388A1A18056F3EF7231221B5640F23303366470DC57EACBFC57B13EA7F`.
+- Metadados OAuth usaram SQLite temporário real. O lifecycle usou
+  `updateUserStatus` real sobre uma aba `Users` sintética, conforme a
+  arquitetura do produto, com snapshots novos após os erros.
+- Foram confirmados planilha órfã, vínculo sem ativação e sucesso durável sem
+  confirmação HTTP, todos sem compensação observada. Temporários: `1 -> 0`.
+- O Chat deu `GO` para a caracterização causal e `NO-GO` para a conformidade do
+  comportamento. Não pediu microcenário adicional.
+- Próximo pacote em execução: `P5 - concorrência/idempotência`, com quatro
+  cenários locais. Correção, deploy, produção e serviços reais continuam
+  proibidos.
+
+### Atualização: OAuth/status encerrado; auditoria geral continua
+
+- O harness OAuth/status foi repetido limpo e depois ampliado somente com os
+  controles `APPROVED_AWAITING_GOOGLE` e `ACTIVE`: resultado final `14/14`,
+  falhas zero, hash
+  `2B41BB0E8EA3DAB2C34E8F579D9B05A43D301A79FBC3130E7BB594DC5468FA6B`.
+- Os verdes reproduzem o comportamento atual: seis status impeditivos chegam a
+  efeitos, conexões sobrevivem a usuário ausente/falha posterior, state é
+  reutilizável e concorrente, e `ACTIVE` sobrescreve a conexão existente sem
+  política explícita de reconexão.
+- O Chat independente encerrou apenas a caracterização OAuth/status, com
+  severidade `MÉDIA-ALTA` restrita ao produto familiar. Não houve prova de
+  exploração, incidente, conta real ou produção.
+- Daniel e Thaís compartilham dados financeiros e cartões por consentimento;
+  isso não é achado de privacidade. A fronteira preservada é a autoridade
+  individual sobre identidade, lifecycle, OAuth Google e revogação.
+- Temporários falsos removidos com validação de caminho: zero resíduos. Nenhuma
+  rede, Google real, WhatsApp, produção ou segredo foi usado.
+- A reauditoria geral permanece aberta. Próximo pacote permitido: `P5 -
+  causalidade`; correções, deploy e produção continuam proibidos.
+
+- A auditoria anterior está sendo revalidada pelo método alternado solicitado:
+  Chat independente define contratos/challenges e Codex coleta código, testes
+  e execuções reproduzíveis.
+- Pacotes documentais P0-P4 concluídos. O pacote técnico P5 reproduziu a
+  divergência AUTH-01 na tree original `363ef7fc...` (`2/2`) e a correção
+  localizada no HEAD `3bdb699` (`3/3`); lifecycle atual passou `11/11` e OAuth
+  feliz existente `6/6`.
+- O próximo bloco priorizado pelo Chat é precedência OAuth/status. O harness
+  `tests/auditOAuthStatusPrecedence.test.js` foi criado e passou sintaxe. A
+  primeira execução encontrou o comportamento alvo, mas terminou inválida por
+  falhas `EBUSY` apenas nos hooks de limpeza dos SQLite temporários.
+- O hook foi retirado; a repetição não chegou a executar porque a aprovação da
+  interface expirou. Dez diretórios falsos `financas-oauth-audit-*` continuam
+  no temp local e não contêm dados reais.
+- Handoff completo:
+  `docs/agent-memory/handoff-2026-07-18-independent-reaudit.md`.
+- Registro da metodologia, respostas do Chat e evidências:
+  `docs/audit/07-independent-chat-reaudit-2026-07-18.md`.
+- Próximo passo: limpar somente os temporários validados, repetir apenas o
+  harness OAuth com timeout curto e devolver a tabela de cenários ao Chat.
+  Não acessar produção nem implementar correções antes do challenge.
+- Auditoria de portabilidade adicional preservou no cofre BitLocker os oito
+  anexos do Codex (`8/8` por hash), cinco arquivos SSH (`5/5`) e o banco local
+  auxiliar ainda aberto. A cópia antiga/suja do FinançasBot em D: foi arquivada
+  separadamente em `P:\codex-private\legacy-disk-D-financasbot-20260718`, com
+  worktree, backups, documentos/manuais, bundle Git completo verificado e patch
+  binário das alterações rastreadas. Esse snapshot é histórico e nunca deve
+  substituir o workspace canônico em E:.
+- Duas rotinas pós-fechamento estão ativas. A oficial atualizará sessões e
+  bancos padrão; a extra atualizará anexos, SQLite auxiliar e SSH. Manter o
+  cofre montado até `last-after-close-sync.log` e
+  `last-extra-private-sync.log` registrarem conclusão em 18/07.
+
 ## AUTH-01 - identidade admin explicita - GO de producao - 2026-07-18
 
 - O commit local/GitHub `7f61aaa` removeu por completo a autorizacao admin por
