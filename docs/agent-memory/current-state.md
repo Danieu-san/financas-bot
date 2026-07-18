@@ -2,7 +2,7 @@
 
 Atualizado em: 2026-07-18
 
-## Auditoria exaustiva pós-P5 — pacote técnico candidato concluído
+## Auditoria exaustiva pós-P5 — fechada para iniciar correções
 
 - A base de produto permaneceu congelada em
   `0737d7ccbdd309e4c39f503ca781e89d5aac7bc3`; `main` e `origin/main` eram
@@ -14,13 +14,20 @@ Atualizado em: 2026-07-18
   `NO-GO`, deploy/rollout `NO-GO`.
 - Causas críticas: áudio antes dos gates; callback OAuth sem preservar
   lifecycle; ausência de revogação OAuth individual.
-- O runner local foi corrigido para remover 98 execuções duplicadas, falhar
-  fechado, bloquear rede externa, restaurar state/logs e nomear skips. A
-  cobertura é somente dos arquivos carregados e não representa o produto todo.
+- O runner local foi corrigido para deduplicar 98 execuções do checkpoint
+  inicial, falhar fechado, interceptar HTTP/HTTPS/fetch/sockets externos
+  instrumentados, restaurar state/logs e nomear skips. A execução final oficial
+  foi `1.114`, com `1.109` aprovadas e cinco skips. Checkpoints anteriores não
+  são aritmeticamente comparáveis porque a árvore de testes mudou durante o
+  hardening. A cobertura é somente dos arquivos carregados e o tripwire não é
+  prova universal contra todo canal de rede.
 - Relatório central: `docs/audit/10-exhaustive-path-audit-2026-07-18.md`.
-- Pendente para encerrar pelo contrato: commit sanitizado imutável e revisão
-  final independente pelo Chat. Até esse gate, produto e deploy permanecem
-  congelados; não retomar `FLOW-01` automaticamente.
+- O Chat independente confirmou o hash
+  `38fbdb19289fd858c68e00406a00e9f9809f5e01`, os arquivos obrigatórios e os três
+  blockers críticos. Gate: `GO` somente para começar correções; conformidade,
+  deploy e rollout continuam `NO-GO`. Não retomar `FLOW-01` automaticamente.
+- Parecer reconciliado:
+  `docs/audit/11-exhaustive-path-independent-review-2026-07-18.md`.
 
 ## Reauditoria independente Chat/Codex em handoff - 2026-07-18
 

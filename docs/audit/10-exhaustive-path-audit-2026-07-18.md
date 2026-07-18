@@ -13,6 +13,15 @@ roteamentos, decisões, persistências, efeitos externos, respostas, erros,
 retries, replays e caminhos administrativos estaticamente alcançáveis no
 produto. A execução é paralelizada por superfícies, sem reduzir a profundidade.
 
+## Revisão independente
+
+O Chat independente confirmou a leitura do commit imutável
+`38fbdb19289fd858c68e00406a00e9f9809f5e01` e dos nove artefatos obrigatórios.
+O parecer confirmou os três blockers críticos, a caracterização
+`GO COM RESSALVAS`, a conformidade e o deploy `NO-GO` e liberou somente o início
+das correções. As ressalvas metodológicas aceitas estão registradas em
+`docs/audit/11-exhaustive-path-independent-review-2026-07-18.md`.
+
 ## Objeto e travas
 
 - Base inicial publicada: `0737d7ccbdd309e4c39f503ca781e89d5aac7bc3`.
@@ -106,7 +115,7 @@ estaticamente o módulo. Não prova que uma asserção exercita seu comportament
 
 ## Correção metodológica da bateria integrada
 
-O primeiro resultado de `1.207` testes estava superestimado: o agregador
+O primeiro checkpoint de `1.207` testes estava superestimado: o agregador
 `openFinanceSandboxStaging.test.js` importa 18 arquivos que também eram
 executados diretamente, somando 98 execuções duplicadas. O runner foi corrigido
 com TDD para:
@@ -117,6 +126,13 @@ com TDD para:
 4. restaurar `state_store.json` e os logs locais após a bateria;
 5. bloquear HTTP, HTTPS, fetch e sockets externos, permitindo apenas loopback;
 6. listar nominalmente os testes skipados.
+
+O checkpoint inicial e a execução final não foram feitos sobre uma árvore de
+testes idêntica: testes metodológicos do próprio runner/inventário foram
+adicionados durante o hardening e os relatórios intermediários não foram
+preservados. Portanto, `1.207 - 98` não deve ser apresentado como reconciliação
+aritmética da medição final. A única contagem oficial e reproduzível deste
+pacote é a execução final abaixo.
 
 Resultado final deve ser lido como **execuções de testes**, não casos únicos:
 
@@ -139,9 +155,11 @@ Os cinco skips são os cenários funcionais que podem resetar planilha:
 - análise complexa com typos/contagens/duplicados/extremos.
 
 A cobertura do Node inclui somente arquivos carregados. Ela não pode ser usada
-como percentual de cobertura do produto inteiro. O bloqueio de rede prova que
-a repetição final não contatou serviços externos; testes loopback continuam
-permitidos para APIs locais.
+como percentual de cobertura do produto inteiro. O tripwire intercepta
+HTTP/HTTPS, `fetch` e os sockets `net` instrumentados, permitindo apenas
+loopback. Ele não prova bloqueio universal de todo protocolo, cliente ou forma
+alternativa de socket; a execução final não apresentou tentativa externa pelos
+canais cobertos.
 
 ## Veredito por workstream
 
@@ -164,9 +182,10 @@ achados como se fossem independentes.
 
 ### Críticas
 
-1. **C-01 — dados de áudio saem antes de identidade, acesso, rate limit e
-   filtro sensível** (`WCP-01`). Uma mensagem que seria descartada ainda pode
-   ser baixada/transcrita externamente.
+1. **C-01 — dados de áudio saem antes de identidade, acesso e rate limit**
+   (`WCP-01`). Uma mensagem que seria descartada ainda pode ser
+   baixada/transcrita externamente; depois da transcrição, o texto ainda pode
+   alcançar handlers especiais antes do filtro sensível genérico.
 2. **C-02 — callback OAuth não preserva lifecycle** (`WGL-01`). Pode ativar
    status impeditivo, persistir credencial para usuário inexistente e
    ressuscitar conta inativada durante o fluxo.
@@ -230,17 +249,17 @@ achados como se fossem independentes.
 | entradas/eventos/rotas/crons/timers/comandos | satisfeita por inventário central + workstreams, com lacunas explícitas |
 | guards, efeitos, erros e cobertura | satisfeita no nível de caminho material; não significa combinação infinita |
 | prova ou lacuna explícita | satisfeita; inferência não foi promovida a execução real |
-| todos os testes locais seguros juntos | satisfeita, deduplicada e com rede externa bloqueada |
+| todos os testes locais seguros juntos | satisfeita e deduplicada; canais externos cobertos pelo tripwire foram bloqueados |
 | serviços reais separados | satisfeita; nenhuma nova execução real foi feita |
-| pacote final em commit imutável revisado pelo Chat | **pendente** |
+| pacote final em commit imutável revisado pelo Chat | satisfeito no commit `38fbdb1`; gate `GO` somente para correções |
 
 ## Veredito geral
 
 - **Caracterização ampla dos caminhos:** `GO COM RESSALVAS`.
 - **Conformidade do produto aos invariantes declarados:** `NO-GO`.
 - **Autorização para deploy/rollout:** `NO-GO`.
-- **Fechamento independente da auditoria:** pendente somente do commit
-  sanitizado imutável e revisão final do Chat exigidos pelo contrato.
+- **Fechamento independente da auditoria:** `GO COM RESSALVAS` para encerrar a
+  caracterização e começar correções; não autoriza deploy nem rollout.
 
 Isto não significa que “o bot inteiro está quebrado”. Significa que a bateria
 verde comprova muitos controles locais, mas não neutraliza as causas críticas e
@@ -248,7 +267,8 @@ altas acima. Corrigir por contagem de testes seria uma conclusão errada.
 
 ## Ordem de correção após o gate independente
 
-1. `C-01`: mover descarte/acesso/rate limit/filtro antes de qualquer áudio/LLM.
+1. `C-01`: mover descarte/acesso/rate limit antes de áudio/LLM e aplicar o
+   filtro sensível ao texto transcrito antes de qualquer roteamento.
 2. `C-02/C-03`: lifecycle OAuth causal + revogação/recovery individual.
 3. `H-01`: eliminar fallback central inseguro e representar fonte indisponível.
 4. `H-05/H-06`: corrigir contrato semântico de consultas e fortalecer verifier.
@@ -260,3 +280,6 @@ O próximo ponto de implementação anterior à auditoria (`FLOW-01`) não deve 
 retomado automaticamente: a nova priorização mostra blockers anteriores mais
 graves. Após o review independente, abrir pacotes pequenos na ordem acima,
 mantendo produto e deploy congelados até cada gate.
+
+O primeiro pacote executável está em
+`docs/audit/correction-packets/2026-07-18-c01-audio-pre-gates.md`.

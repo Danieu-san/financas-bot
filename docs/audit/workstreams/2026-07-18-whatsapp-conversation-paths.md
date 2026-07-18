@@ -87,7 +87,7 @@ A ordem abaixo e material: caminhos anteriores nao recebem automaticamente as pr
 
 Consequencias comprovadas pela ordem:
 
-- audio de mensagem nao autorizada, `status` ou `fromMe` pode ser transcrito externamente antes de qualquer descarte, acesso, rate limit ou filtro sensivel;
+- audio de mensagem nao autorizada, `status` ou `fromMe` pode ser transcrito externamente antes de descarte, acesso e rate limit; depois da transcricao, o texto ainda alcanca handlers especiais antes do filtro sensivel generico;
 - comprovante, OCR, exportacao, importacao, metas, dashboard, admin, configuracoes e onboarding passam antes do rate limiter generico;
 - o `try/catch` final com resposta amigavel comeca somente na analise de novos comandos; a maior parte dos passos 6 a 27 pode rejeitar para o listener sem resposta local;
 - uma mensagem de audio que falha na transcricao nao e marcada como processada e pode ser tentada novamente; duas entregas concorrentes do mesmo audio podem atravessar o check antes de qualquer uma adicionar o ID.
@@ -282,7 +282,7 @@ Lacunas desta cadeia:
 
 ### WCP-01 — critica — audio sai do dispositivo antes dos gates
 
-`handleMessage` chama `handleAudio` antes de `isStatus`, `fromMe`, identidade, acesso, modo familiar, rate limit e filtro sensivel. Isso permite download, arquivo temporario e transmissao ao Gemini de audio que depois seria descartado/bloqueado. A bateria atual prova limpeza/log, nao a precedencia segura.
+`handleMessage` chama `handleAudio` antes de `isStatus`, `fromMe`, identidade, acesso, modo familiar e rate limit. Isso permite download, arquivo temporario e transmissao ao Gemini de audio que depois seria descartado por esses gates. Como o filtro de conteudo depende do texto, ele deve rodar imediatamente apos a transcricao e antes de qualquer handler especial. A bateria atual prova limpeza/log, nao essa precedencia segura.
 
 ### WCP-02 — alta — excecoes fora do catch conversacional
 
@@ -381,7 +381,7 @@ node --check <cada um dos 19 arquivos produtivos auditados>
 
 Para transformar o `NO-GO` de conformidade desta superficie em candidato a `GO`, a evidencia minima e:
 
-1. prova de que audio so e processado depois dos gates de mensagem/identidade/acesso e de que falha de transcricao nao reentra como texto normal;
+1. prova de que audio so e processado depois dos gates de mensagem/identidade/acesso/rate limit, de que o texto transcrito passa pelo filtro sensivel antes do roteamento e de que falha de transcricao nao reentra como texto normal;
 2. boundary unico que capture rejeicoes de todo handler e permita ao backfill continuar por mensagem;
 3. teste de restart file/Redis para cada classe de state, demonstrando retomada valida ou cancelamento fail-closed sem usar conteudo redigido como dado financeiro;
 4. crash/replay matrix para todos os writes conversacionais, com foco no lote de cartao e na borda write/reply/state cleanup;

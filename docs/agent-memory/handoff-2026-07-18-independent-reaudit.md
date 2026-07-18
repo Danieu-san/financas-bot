@@ -1,5 +1,20 @@
 # Handoff Codex - reauditoria independente - 2026-07-18
 
+## Atualização final - revisão independente concluída
+
+O Chat confirmou o commit imutável
+`38fbdb19289fd858c68e00406a00e9f9809f5e01`, leu os nove artefatos obrigatórios
+e manteve `C-01`, `C-02` e `C-03` como críticos. O gate final é `GO` somente
+para iniciar as correções; caracterização permanece `GO COM RESSALVAS` e
+conformidade/deploy permanecem `NO-GO`.
+
+As ressalvas válidas foram incorporadas: a contagem oficial é a execução final
+`1.114/1.109/5`; medições intermediárias não são diretamente comparáveis; o
+tripwire cobre canais instrumentados, não toda saída de rede possível; snapshots
+são limitados a três arquivos; descoberta/inventário permanecem estáticos e
+deliberadamente conservadores. Próximo ponto: pacote `C-01`, sem retomar
+`FLOW-01`.
+
 ## Atualização de continuidade — auditoria exaustiva pós-P5 consolidada
 
 A ampliação pós-P5 foi concluída tecnicamente sobre a base congelada

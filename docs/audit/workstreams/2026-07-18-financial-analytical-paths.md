@@ -34,9 +34,11 @@ Legenda:
 - `I`: inferência estática reproduzível pelo código e callers;
 - `GAP`: propriedade relevante sem prova dinâmica suficiente.
 
-A bateria local deduplicada executou 92 roots, carregou 18 arquivos de teste
-por agregação e produziu 1.112 execuções: 1.107 aprovadas, zero falhas e cinco
-skips funcionais protegidos. Esses números são execuções, não casos únicos.
+A execução final local deduplicada executou 92 roots, carregou 18 arquivos de
+teste por agregação e produziu 1.114 execuções: 1.109 aprovadas, zero falhas e
+cinco skips funcionais protegidos. Esses números são execuções, não casos
+únicos. Eles substituem o checkpoint anterior deste workstream; consulte a
+reconciliação metodológica no relatório central.
 
 ## 3. Mapa das escritas financeiras
 
