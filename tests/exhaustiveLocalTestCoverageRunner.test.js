@@ -16,6 +16,7 @@ const {
     parseFailures,
     findNestedTestEntries,
     validateRunnerResult,
+    buildNodeTestArgs,
     captureFileSnapshot,
     restoreFileSnapshot
 } = require('../scripts/runExhaustiveLocalTestCoverage');
@@ -78,6 +79,17 @@ test('coverage runner fails closed when TAP or coverage summary is incomplete', 
     assert.strictEqual(invalid.valid, false);
     assert.ok(invalid.reasons.includes('tap_summary_incomplete'));
     assert.ok(invalid.reasons.includes('coverage_summary_missing'));
+});
+
+test('coverage runner serializes local test files to avoid shared runtime races', () => {
+    const args = buildNodeTestArgs([
+        path.join(ROOT, 'tests', 'financialAgent.test.js'),
+        path.join(ROOT, 'tests', 'readModelSqlite.test.js')
+    ]);
+
+    assert.ok(args.includes('--test-concurrency=1'));
+    assert.ok(args.includes('--experimental-test-coverage'));
+    assert.ok(args.includes('--test'));
 });
 
 test('coverage runner restores pre-existing state and removes test-created state', () => {

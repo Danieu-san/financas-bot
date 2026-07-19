@@ -4,7 +4,7 @@
 
 - Prioridade: `CRITICAL`.
 - Base auditada: `0737d7ccbdd309e4c39f503ca781e89d5aac7bc3`.
-- Autorização atual: especificação pronta; implementação ainda não iniciada.
+- Autorização atual: implementação local concluída; revisão adversarial final em curso.
 - Produto, flags, produção, WhatsApp e Gemini real permanecem congelados.
 
 ## Problema causal
@@ -28,7 +28,7 @@ mensagem
 -> descarte de status/fromMe
 -> claim de deduplicação
 -> identidade e lifecycle
--> admin estritamente pré-acesso, sem conteúdo transcrito
+-> comandos admin por áudio não executam e não consomem confirmação pendente
 -> modo familiar
 -> rate limit pré-transcrição
 -> download/conversão/transcrição
@@ -57,10 +57,34 @@ rate limit.
 7. Um conteúdo inseguro em áudio pode precisar ser transcrito para ser
    identificado; após a transcrição, ele deve ser bloqueado sem outra chamada
    LLM, ferramenta ou mutação.
-8. Mensagens de texto não devem sofrer mudança de ordem/semântica neste pacote,
+8. O `msg.body` bruto de `ptt/audio` não pode executar `admin...` nem
+   `confirmar admin` antes da transcrição. Admin continua permitido somente por
+   texto.
+9. Mensagens de texto não devem sofrer mudança de ordem/semântica neste pacote,
    salvo helper compartilhado necessário para deduplicação segura.
-9. Não adicionar flag que permita restaurar a ordem insegura.
-10. Falha de áudio continua limpando temporários e não cria estado financeiro.
+10. Não adicionar flag que permita restaurar a ordem insegura.
+11. Falha de áudio continua limpando temporários e não cria estado financeiro.
+
+## Diferença observada entre áudio e texto
+
+A observação de que o áudio parecia classificar melhor ainda possui base
+estrutural no código, mas não prova superioridade inerente do canal. Depois da
+transcrição, consultas e comandos locais comuns continuam disponíveis; porém,
+para transações genéricas, o áudio não percorre os dois parsers locais nem o
+planner de comandos usados pelo texto. Sem uma intenção local anterior, ele cai
+no `MASTER_SCHEMA` do Gemini e a origem `llm` exige confirmação antes da escrita.
+
+Isso pode produzir linguagem mais natural e classificação aparente melhor, ao
+custo de duas chamadas Gemini e dependência do classificador legado. O C-01
+preserva deliberadamente esse comportamento autorizado e sua confirmação. Ele
+não tenta tornar o texto igual ao classificador legado nem unificar os canais
+dentro de um hotfix de segurança.
+
+A convergência correta, em pacote futuro, é tornar o pipeline de confiabilidade
+independente da modalidade: texto ou transcrição entram como texto não
+confiável, passam por extração determinística, Gemini somente para lacunas,
+validação e mesma política de confirmação. Essa decisão não faz parte do gate
+de saída do C-01.
 
 ## Arquivos prováveis
 
@@ -116,6 +140,13 @@ administrativo pós-acesso ou financeiro, com zero mutações.
 Provar que áudio autorizado e seguro ainda percorre exatamente uma transcrição
 e chega ao mesmo fluxo financeiro que o texto equivalente, sem chamada real.
 
+### RED 6 - body bruto de áudio
+
+Provar que `ptt/audio` cujo `msg.body` bruto seja `admin status bot` não executa
+admin antes da transcrição, e que `msg.body` bruto `confirmar admin` não consome
+confirmação pendente. A decisão deve se basear no texto transcrito autorizado,
+não no corpo bruto do objeto de mídia.
+
 ## Critérios de aceite
 
 - Zero efeito de áudio antes dos gates definidos.
@@ -123,10 +154,12 @@ e chega ao mesmo fluxo financeiro que o texto equivalente, sem chamada real.
   ou duplicata.
 - Uma transcrição por mensagem autorizada única.
 - Conteúdo transcrito inseguro bloqueado antes de comando/ferramenta/escrita.
+- Corpo bruto de áudio não executa admin nem confirmação pendente.
 - Nenhuma dupla cobrança do rate limiter.
 - Temporários removidos em sucesso e falha.
 - Logs sanitizados e nenhuma transcrição financeira persistida.
-- Testes focados verdes e `npm test` completo verde.
+- Testes focados verdes, `npm test` completo verde e `npm audit` sem
+  vulnerabilidade alta/crítica.
 - Runner exaustivo final verde, com snapshots restaurados e sem serviço real.
 
 ## Gate de saída

@@ -232,6 +232,7 @@ const SECURITY_BLOCK_REPLY = [
     'Não posso mostrar identificadores internos, tokens, prompts, regras internas ou dados de outros usuários.',
     'Posso ajudar com os seus próprios lançamentos, sua planilha, seu dashboard e orientações financeiras dentro do seu acesso.'
 ].join('\n');
+const AUDIO_ADMIN_BLOCK_REPLY = 'Por segurança, comandos administrativos e suas confirmações só podem ser enviados por texto.';
 
 function getFinancialAgentMode() {
     const mode = normalizeText(process.env.FINANCIAL_AGENT_MODE || 'off');
@@ -511,6 +512,22 @@ function formatCurrencyBR(value) {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     });
+}
+
+function detectAudioSecuritySensitiveRequest(messageBody) {
+    const body = normalizeText(String(messageBody || '').trim());
+    if (body.startsWith('admin') || isAdminConfirmationReply(body)) {
+        return {
+            blocked: true,
+            category: 'admin_audio_command',
+            reply: AUDIO_ADMIN_BLOCK_REPLY
+        };
+    }
+
+    const securityCheck = detectSecuritySensitiveRequest(messageBody);
+    return securityCheck.blocked
+        ? { ...securityCheck, reply: SECURITY_BLOCK_REPLY }
+        : securityCheck;
 }
 
 function normalizeLegacyUsageDomain(value) {
@@ -8958,35 +8975,26 @@ async function tryHandleFinancialCommandPlannerRoute({ msg, senderId, messageBod
 async function handleMessage(msg) {
     metrics.increment('message.received');
     const messageId = msg.id.id;
+    const wasAudioMessage = msg.type === 'ptt' || msg.type === 'audio';
+
+    if (msg.isStatus || msg.fromMe) return;
+
     if (processedMessages.has(messageId)) {
         metrics.increment('message.duplicate');
         logger.info(`[message] duplicate_ignored msg=${logger.redactIdentifier(messageId)}`);
         return;
     }
 
-    const wasAudioMessage = msg.type === 'ptt' || msg.type === 'audio';
-
-    // Se a mensagem for de áudio, processa primeiro.
-    // Se não for, o processamento normal continua com o corpo original.
-    if (wasAudioMessage) {
-        const transcribedText = await handleAudio(msg);
-        if (!transcribedText) return; // Se a transcrição falhar, para aqui.
-        
-        msg.body = transcribedText; // Atualiza o corpo da mensagem com o texto!
-    }
-
     processedMessages.add(messageId);
     setTimeout(() => processedMessages.delete(messageId), 300000); // 5 minutos
 
-    if (msg.isStatus || msg.fromMe) return;
-
-    const messageBody = msg.body.trim();
     const senderId = msg.author || msg.from;
     const perfContext = `sender=${logger.redactIdentifier(senderId)} msg=${logger.redactIdentifier(messageId)}`;
     const messageStartedAt = Date.now();
 
     const access = await timeStep('resolveUserAccess', () => resolveUserAccess(msg), perfContext);
-    const handledAdminBeforeAccess = await handleAdminCommandBeforeAccess(msg, senderId, access);
+    const handledAdminBeforeAccess = !wasAudioMessage
+        && await handleAdminCommandBeforeAccess(msg, senderId, access);
     if (handledAdminBeforeAccess) {
         return;
     }
@@ -9016,6 +9024,33 @@ async function handleMessage(msg) {
         logger.warn(`[family-mode] blocked reason=${familyModeAccess.reason} sender=${logger.redactIdentifier(senderId)}`);
         await sendPlainMessage(msg, familyModeAccess.reply || 'O FinançasBot está em modo familiar restrito.');
         return;
+    }
+
+    let audioRateLimitConsumed = false;
+    let audioSecurityCheckCompleted = false;
+    if (wasAudioMessage) {
+        if (!rateLimiter.isAllowed(senderId)) {
+            metrics.increment('message.rate_limited');
+            logger.warn(`[rate-limit] audio_blocked sender=${logger.redactIdentifier(senderId)}`);
+            return;
+        }
+        audioRateLimitConsumed = true;
+
+        const transcribedText = await handleAudio(msg);
+        if (!transcribedText) return;
+        msg.body = transcribedText;
+    }
+
+    const messageBody = String(msg.body || '').trim();
+    if (wasAudioMessage) {
+        const securityCheck = detectAudioSecuritySensitiveRequest(messageBody);
+        if (securityCheck.blocked) {
+            metrics.increment('message.security.blocked');
+            logger.warn(`[security] sensitive_audio_blocked category=${securityCheck.category} sender=${logger.redactIdentifier(senderId)}`);
+            await sendPlainMessage(msg, securityCheck.reply || SECURITY_BLOCK_REPLY);
+            return;
+        }
+        audioSecurityCheckCompleted = true;
     }
 
     return runWithUserSheetContext({ ...activeUser, messageId, telemetryConsumer: 'message_handler' }, async () => {
@@ -9092,18 +9127,20 @@ async function handleMessage(msg) {
         return;
     }
 
-    if (!rateLimiter.isAllowed(senderId)) {
+    if (!audioRateLimitConsumed && !rateLimiter.isAllowed(senderId)) {
         metrics.increment('message.rate_limited');
         logger.warn(`[rate-limit] message_blocked sender=${senderId}`);
         return;
     }
 
-    const securityCheck = detectSecuritySensitiveRequest(messageBody);
-    if (securityCheck.blocked) {
-        metrics.increment('message.security.blocked');
-        logger.warn(`[security] sensitive_request_blocked category=${securityCheck.category} sender=${senderId} msg="${sanitizeLogText(messageBody)}"`);
-        await sendPlainMessage(msg, SECURITY_BLOCK_REPLY);
-        return;
+    if (!audioSecurityCheckCompleted) {
+        const securityCheck = detectSecuritySensitiveRequest(messageBody);
+        if (securityCheck.blocked) {
+            metrics.increment('message.security.blocked');
+            logger.warn(`[security] sensitive_request_blocked category=${securityCheck.category} sender=${senderId} msg="${sanitizeLogText(messageBody)}"`);
+            await sendPlainMessage(msg, SECURITY_BLOCK_REPLY);
+            return;
+        }
     }
 
     const cacheKey = `${senderId}:${messageBody}`;
@@ -11756,6 +11793,7 @@ module.exports = {
         isReserveDisableCommand,
         sanitizeLogText,
         detectSecuritySensitiveRequest,
+        detectAudioSecuritySensitiveRequest,
         summarizeAdminCommandForConfirmation,
         isAdminConfirmationReply,
         getAdminConfirmationKey,

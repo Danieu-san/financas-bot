@@ -184,7 +184,7 @@ async function transcribeAudio(filePath) {
 
         if (!text) {
             logger.error('[ai] empty_transcription_response');
-            return "Não consegui entender o áudio.";
+            return null;
         }
 
         const elapsedMs = Date.now() - startedAt;
@@ -201,7 +201,7 @@ async function transcribeAudio(filePath) {
         const parsedError = parseGeminiError(error, GEMINI_TIMEOUT_MS);
         const elapsedMs = Date.now() - startedAt;
         logger.error(`[ai] gemini_transcription_failed code=${parsedError.code} duration_ms=${elapsedMs} error=${parsedError.message}`);
-        return "Ocorreu um erro ao processar a transcrição do áudio.";
+        return null;
     }
 }
 

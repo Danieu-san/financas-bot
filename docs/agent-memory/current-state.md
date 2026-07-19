@@ -2756,3 +2756,32 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   externo: criar/usar conta Meu Pluggy/Dashboard e confirmar o Conector 200.
 - Nao iniciar teste produtivo de 14 dias nem plano pago automaticamente.
 - Gate: `docs/qa/phase-9b3-free-route-controlled-polling-gate-2026-07-15.md`.
+
+## C-01 audio pre-gates em revisao adversarial final - 2026-07-18
+
+- O processamento de audio agora ocorre somente depois de descarte de
+  `status/fromMe`, claim atomico de deduplicacao, lifecycle, modo familiar e
+  rate limit. Audio autorizado consome a cota uma unica vez.
+- A transcricao e tratada como entrada nao confiavel e passa pelo security gate
+  antes de contexto de planilha, dashboard, admin pos-acesso, importacao,
+  comandos financeiros ou escrita.
+- Falha de transporte ou resposta vazia do Gemini retorna `null`; texto de erro
+  nao pode voltar ao roteamento como se fosse transcricao do usuario.
+- A diferenca historica entre audio e texto ainda existe: transacoes genericas
+  por audio tendem ao `MASTER_SCHEMA` do Gemini e exigem confirmacao por origem
+  `llm`, enquanto texto possui parsers/planner locais adicionais. O C-01
+  preserva isso; unificacao de modalidade pertence a pacote posterior da
+  camada de confiabilidade.
+- Audio administrativo fica restrito a texto: `ptt/audio` com `msg.body` bruto
+  `admin...` ou `confirmar admin` nao executa admin nem consome confirmacao
+  pendente; transcript administrativo tambem e bloqueado apos transcricao.
+- Evidencia local atual: maquina de estados focada `133/133`, suite principal
+  `npm test` `1009/1009`, runner hermetico local `1127` testes (`1122` pass,
+  `0` fail, `5` skips esperados), `npm audit --audit-level=high` com zero
+  vulnerabilidades, `git diff --check` apenas avisos LF/CRLF, NUL scan limpo e
+  `state_store.json` restaurado para `{}`.
+- O runner hermetico foi serializado com `--test-concurrency=1` porque arquivos
+  de teste compartilham SQLite/read-model e logs mutaveis; a execucao paralela
+  gerava falsos vermelhos em orcamento/read-model.
+- Gate pendente: revisao adversarial final do diff atual. Producao continua
+  congelada; C-02/C-03 OAuth seguem bloqueadores fora do C-01.

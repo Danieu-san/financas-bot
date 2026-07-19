@@ -94,6 +94,17 @@ function validateRunnerResult({ exitStatus, tap, coverage }) {
     return { valid: reasons.length === 0, reasons };
 }
 
+function buildNodeTestArgs(files) {
+    return [
+        '--require',
+        NETWORK_TRIPWIRE_PATH,
+        '--experimental-test-coverage',
+        '--test',
+        '--test-concurrency=1',
+        ...files
+    ];
+}
+
 function captureFileSnapshot(file) {
     if (!fs.existsSync(file)) return { exists: false, data: null };
     return { exists: true, data: fs.readFileSync(file) };
@@ -115,13 +126,7 @@ function runLocalCoverage() {
     const runtimeSnapshots = MUTABLE_RUNTIME_FILES.map(file => [file, captureFileSnapshot(file)]);
     let result;
     try {
-        result = spawnSync(process.execPath, [
-            '--require',
-            NETWORK_TRIPWIRE_PATH,
-            '--experimental-test-coverage',
-            '--test',
-            ...files
-        ], {
+        result = spawnSync(process.execPath, buildNodeTestArgs(files), {
             cwd: ROOT,
             encoding: 'utf8',
             maxBuffer: 128 * 1024 * 1024,
@@ -179,6 +184,7 @@ module.exports = {
     parseFailures,
     parseSkippedTests,
     validateRunnerResult,
+    buildNodeTestArgs,
     captureFileSnapshot,
     restoreFileSnapshot,
     runLocalCoverage

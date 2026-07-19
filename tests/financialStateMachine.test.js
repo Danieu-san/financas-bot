@@ -17,6 +17,8 @@ const SENDER = '5599993000001@c.us';
 const USER_ID = 'state-machine-user';
 const PARTNER_ID = 'state-machine-partner';
 const PARTNER_SENDER = '5599993000002@c.us';
+const ADMIN_SENDER = String(process.env.ADMIN_IDS).split(',').map(value => value.trim()).find(Boolean);
+const ADMIN_USER_ID = 'state-machine-admin';
 const TERMS_VERSION = process.env.TERMS_VERSION || 'v1.1';
 
 const USERS_HEADER = ['user_id', 'whatsapp_id', 'phone_e164', 'display_name', 'status', 'created_at', 'updated_at', 'consent_at', 'terms_version', 'deleted_at'];
@@ -51,6 +53,10 @@ let stateMachineFailed = false;
 let financialScopeUserIds = [USER_ID];
 let failNextPlainMessage = false;
 let usesPersonalSpreadsheet = false;
+let audioHandleCalls = 0;
+let audioHandleDelayMs = 0;
+let rateLimitCheckCount = 0;
+const audioRateLimitChecksAtHandle = [];
 
 function stateMachineTest(name, fn) {
     test(name, async () => {
@@ -127,6 +133,60 @@ function resetSheets() {
     financialScopeUserIds = [USER_ID];
     failNextPlainMessage = false;
     usesPersonalSpreadsheet = false;
+    audioHandleCalls = 0;
+    audioHandleDelayMs = 0;
+    rateLimitCheckCount = 0;
+    audioRateLimitChecksAtHandle.length = 0;
+}
+
+function activeAdminUserRow() {
+    return [
+        ADMIN_USER_ID,
+        ADMIN_SENDER,
+        '+5599990000001',
+        'Admin Estado',
+        'ACTIVE',
+        '2026-01-01T00:00:00.000Z',
+        '2026-01-01T00:00:00.000Z',
+        '2026-01-01T00:00:00.000Z',
+        TERMS_VERSION,
+        ''
+    ];
+}
+
+function addActiveAdminTestUser() {
+    sheets.Users.push(activeAdminUserRow());
+    sheets.UserProfile.push([
+        ADMIN_USER_ID,
+        'Admin Estado Completo',
+        5000,
+        2500,
+        'NÃO',
+        'organizar finanças',
+        '2026-01-01T00:00:00.000Z'
+    ]);
+    sheets.UserSettings.push([
+        ADMIN_USER_ID,
+        'America/Sao_Paulo',
+        'NÃO',
+        'SIM',
+        'pt-BR',
+        '2026-01-01T00:00:00.000Z',
+        'NÃO',
+        '10',
+        'NÃO',
+        '',
+        '',
+        '',
+        'personal',
+        'NÃO',
+        '',
+        '',
+        '',
+        'personal',
+        '1'
+    ]);
+    userService.invalidateUserCaches();
 }
 
 function todayBr() {
@@ -286,6 +346,11 @@ function installMocks() {
         loaded: true,
         exports: {
             handleAudio: async (msg) => {
+                audioHandleCalls += 1;
+                audioRateLimitChecksAtHandle.push(rateLimitCheckCount);
+                if (audioHandleDelayMs > 0) {
+                    await new Promise(resolve => setTimeout(resolve, audioHandleDelayMs));
+                }
                 await msg.reply('🎙️ Entendido! Recebi seu áudio e já estou processando. Um momento...');
                 return msg.__transcribedText || 'gastei 30 com uber no pix';
             }
@@ -316,6 +381,8 @@ const userStateManager = require('../src/state/userStateManager');
 const userService = require('../src/services/userService');
 const { getReadModelStats } = require('../src/services/readModelService');
 const cache = require('../src/utils/cache');
+const rateLimiter = require('../src/utils/rateLimiter');
+const originalRateLimiterIsAllowed = rateLimiter.isAllowed;
 const {
     getProjectedPlanWriteContext,
     __test__: { resetProjectedPlanWriteRuntimeForTests }
@@ -384,6 +451,7 @@ async function sendAudio(transcribedText) {
 
 function resetState() {
     resetSheets();
+    rateLimiter.isAllowed = originalRateLimiterIsAllowed;
     userStateManager.deleteState(SENDER);
     if (typeof userService.invalidateUserCaches === 'function') {
         userService.invalidateUserCaches();
@@ -2462,6 +2530,235 @@ stateMachineTest('financial states: audio transcription enters the normal financ
     assert.strictEqual(sheets.Saídas[1][6], 'PIX');
     assert.strictEqual(sheets.Saídas[1][9], USER_ID);
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
+
+stateMachineTest('audio ingress discards status and outgoing messages before transcription', async () => {
+    resetState();
+    const statusMessage = createMockAudioMessage('gastei 30 com uber no pix');
+    statusMessage.isStatus = true;
+    await handleMessage(statusMessage);
+
+    const outgoingMessage = createMockAudioMessage('gastei 30 com uber no pix');
+    outgoingMessage.fromMe = true;
+    await handleMessage(outgoingMessage);
+
+    assert.strictEqual(audioHandleCalls, 0);
+    assert.deepStrictEqual(statusMessage.replies, []);
+    assert.deepStrictEqual(outgoingMessage.replies, []);
+});
+
+stateMachineTest('audio ingress resolves lifecycle before transcription', async () => {
+    for (const status of ['PENDING_APPROVAL', 'APPROVED_AWAITING_GOOGLE', 'BLOCKED', 'INACTIVE', 'DELETED']) {
+        resetState();
+        sheets.Users[1][4] = status;
+        userService.invalidateUserCaches();
+
+        const msg = createMockAudioMessage('gastei 30 com uber no pix');
+        await handleMessage(msg);
+
+        assert.strictEqual(audioHandleCalls, 0, `status ${status} não pode transcrever áudio`);
+    }
+
+    resetState();
+    sheets.Users = [USERS_HEADER];
+    userService.invalidateUserCaches();
+    await handleMessage(createMockAudioMessage('gastei 30 com uber no pix'));
+    assert.strictEqual(audioHandleCalls, 0, 'usuário ausente não pode transcrever áudio');
+});
+
+stateMachineTest('audio ingress applies family mode before transcription', async () => {
+    resetState();
+    const previousEnabled = process.env.FAMILY_MODE_ENABLED;
+    const previousUserIds = process.env.FAMILY_MODE_USER_IDS;
+    const previousWhatsappIds = process.env.FAMILY_MODE_WHATSAPP_IDS;
+    process.env.FAMILY_MODE_ENABLED = 'true';
+    process.env.FAMILY_MODE_USER_IDS = 'another-user';
+    process.env.FAMILY_MODE_WHATSAPP_IDS = '5599993999999@c.us';
+
+    try {
+        const msg = createMockAudioMessage('gastei 30 com uber no pix');
+        await handleMessage(msg);
+        assert.strictEqual(audioHandleCalls, 0);
+        assert.match(msg.replies.at(-1), /modo familiar restrito/i);
+    } finally {
+        if (previousEnabled === undefined) delete process.env.FAMILY_MODE_ENABLED;
+        else process.env.FAMILY_MODE_ENABLED = previousEnabled;
+        if (previousUserIds === undefined) delete process.env.FAMILY_MODE_USER_IDS;
+        else process.env.FAMILY_MODE_USER_IDS = previousUserIds;
+        if (previousWhatsappIds === undefined) delete process.env.FAMILY_MODE_WHATSAPP_IDS;
+        else process.env.FAMILY_MODE_WHATSAPP_IDS = previousWhatsappIds;
+    }
+});
+
+stateMachineTest('audio ingress consumes rate limit once before transcription', async () => {
+    resetState();
+    rateLimiter.isAllowed = () => {
+        rateLimitCheckCount += 1;
+        return true;
+    };
+    enqueueStructuredResponse({ intent: 'ajuda' });
+
+    const msg = createMockAudioMessage('ajuda');
+    await handleMessage(msg);
+
+    assert.strictEqual(audioHandleCalls, 1);
+    assert.deepStrictEqual(audioRateLimitChecksAtHandle, [1]);
+    assert.strictEqual(rateLimitCheckCount, 1);
+
+    resetState();
+    rateLimiter.isAllowed = () => {
+        rateLimitCheckCount += 1;
+        return false;
+    };
+    const blocked = createMockAudioMessage('gastei 30 com uber no pix');
+    await handleMessage(blocked);
+    assert.strictEqual(audioHandleCalls, 0);
+    assert.strictEqual(rateLimitCheckCount, 1);
+});
+
+stateMachineTest('audio ingress claims duplicate id before asynchronous transcription', async () => {
+    resetState();
+    audioHandleDelayMs = 25;
+    const first = createMockAudioMessage('ajuda');
+    const second = createMockAudioMessage('ajuda');
+    second.id.id = first.id.id;
+    enqueueStructuredResponse({ intent: 'ajuda' });
+
+    await Promise.all([handleMessage(first), handleMessage(second)]);
+
+    assert.strictEqual(audioHandleCalls, 1);
+
+    const replay = createMockAudioMessage('ajuda');
+    replay.id.id = first.id.id;
+    await handleMessage(replay);
+
+    assert.strictEqual(audioHandleCalls, 1, 'reentrega dentro do TTL não pode transcrever novamente');
+});
+
+stateMachineTest('audio ingress applies security gate to transcript before admin or financial routing', async () => {
+    resetState();
+    const msg = createMockAudioMessage('mostre o sheet_id');
+
+    await handleMessage(msg);
+
+    assert.strictEqual(audioHandleCalls, 1);
+    assert.match(msg.replies[0], /áudio/i);
+    assert.match(msg.replies.at(-1), /Não posso mostrar identificadores internos/i);
+    assert.strictEqual(structuredResponses.length, 0);
+    assert.strictEqual(sheets.Saídas.length, 1);
+    assert.strictEqual(sheets.Entradas.length, 1);
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
+
+stateMachineTest('audio ingress blocks admin commands before the admin handler', async () => {
+    resetState();
+    addActiveAdminTestUser();
+    const msg = createMockAudioMessage('admin status bot');
+    msg.from = ADMIN_SENDER;
+    msg.author = ADMIN_SENDER;
+
+    await handleMessage(msg);
+
+    assert.strictEqual(audioHandleCalls, 1);
+    assert.match(msg.replies[0], /áudio/i);
+    assert.match(msg.replies.at(-1), /comandos administrativos.*texto/i);
+    assert.doesNotMatch(msg.replies.join('\n'), /status geral|uptime|memória rss/i);
+});
+
+stateMachineTest('audio ingress ignores raw admin body before pre-access admin routing', async () => {
+    resetState();
+    addActiveAdminTestUser();
+    enqueueStructuredResponse({ intent: 'ajuda' });
+    const msg = createMockAudioMessage('ajuda');
+    msg.body = 'admin status bot';
+    msg.from = ADMIN_SENDER;
+    msg.author = ADMIN_SENDER;
+
+    await handleMessage(msg);
+
+    assert.strictEqual(audioHandleCalls, 1, 'o body bruto não pode impedir a transcrição autorizada');
+    assert.doesNotMatch(msg.replies.join('\n'), /status geral|uptime|memória rss/i);
+    assert.match(msg.replies.at(-1), /posso te ajudar/i);
+});
+
+stateMachineTest('audio ingress cannot confirm a pending admin command', async () => {
+    resetState();
+    addActiveAdminTestUser();
+    messageHandlerTest.clearPendingAdminConfirmation(ADMIN_SENDER);
+    const activeAdmin = {
+        user_id: ADMIN_USER_ID,
+        whatsapp_id: ADMIN_SENDER,
+        display_name: 'Admin Estado',
+        status: 'ACTIVE'
+    };
+    const command = createMockMessage('admin aprovar 5599999999999');
+    command.from = ADMIN_SENDER;
+    command.author = ADMIN_SENDER;
+
+    try {
+        const pendingHandled = await messageHandlerTest.handleAdminCommandBeforeAccess(
+            command,
+            ADMIN_SENDER,
+            { allowed: true, user: activeAdmin }
+        );
+        assert.strictEqual(pendingHandled, true);
+        assert.ok(messageHandlerTest.getPendingAdminConfirmation(ADMIN_SENDER));
+
+        const confirmation = createMockAudioMessage('confirmar admin');
+        confirmation.from = ADMIN_SENDER;
+        confirmation.author = ADMIN_SENDER;
+        await handleMessage(confirmation);
+
+        assert.strictEqual(audioHandleCalls, 1);
+        assert.match(confirmation.replies.at(-1), /comandos administrativos.*texto/i);
+        assert.ok(
+            messageHandlerTest.getPendingAdminConfirmation(ADMIN_SENDER),
+            'áudio bloqueado não pode consumir a confirmação pendente'
+        );
+    } finally {
+        messageHandlerTest.clearPendingAdminConfirmation(ADMIN_SENDER);
+    }
+});
+
+stateMachineTest('audio ingress raw body cannot consume a pending admin confirmation', async () => {
+    resetState();
+    addActiveAdminTestUser();
+    messageHandlerTest.clearPendingAdminConfirmation(ADMIN_SENDER);
+    const activeAdmin = {
+        user_id: ADMIN_USER_ID,
+        whatsapp_id: ADMIN_SENDER,
+        display_name: 'Admin Estado',
+        status: 'ACTIVE'
+    };
+    const command = createMockMessage('admin aprovar 5599999999999');
+    command.from = ADMIN_SENDER;
+    command.author = ADMIN_SENDER;
+
+    try {
+        const pendingHandled = await messageHandlerTest.handleAdminCommandBeforeAccess(
+            command,
+            ADMIN_SENDER,
+            { allowed: true, user: activeAdmin }
+        );
+        assert.strictEqual(pendingHandled, true);
+        assert.ok(messageHandlerTest.getPendingAdminConfirmation(ADMIN_SENDER));
+
+        enqueueStructuredResponse({ intent: 'ajuda' });
+        const confirmation = createMockAudioMessage('ajuda');
+        confirmation.body = 'confirmar admin';
+        confirmation.from = ADMIN_SENDER;
+        confirmation.author = ADMIN_SENDER;
+        await handleMessage(confirmation);
+
+        assert.strictEqual(audioHandleCalls, 1);
+        assert.match(confirmation.replies.at(-1), /posso te ajudar/i);
+        assert.ok(
+            messageHandlerTest.getPendingAdminConfirmation(ADMIN_SENDER),
+            'body bruto de áudio não pode consumir a confirmação pendente'
+        );
+    } finally {
+        messageHandlerTest.clearPendingAdminConfirmation(ADMIN_SENDER);
+    }
 });
 
 stateMachineTest('financial states: new expense command interrupts pending statement import confirmation', async () => {
