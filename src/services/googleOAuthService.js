@@ -1,8 +1,12 @@
 const crypto = require('crypto');
 const { google } = require('googleapis');
 const { saveOAuthConnection } = require('./oauthTokenStore');
-const { getUserById } = require('./userService');
+const { getUserByIdFresh, executeWithFreshUserStatus } = require('./userService');
 const { completeGoogleConnectionForUser } = require('./userSpreadsheetService');
+const {
+    OAUTH_CONNECT_ALLOWED_STATUSES,
+    assertOAuthLifecycleAllowed
+} = require('./oauthLifecyclePolicy');
 
 const GOOGLE_OAUTH_SCOPES = Object.freeze([
     'openid',
@@ -139,6 +143,11 @@ async function tryFetchGoogleAccount(oauth2Client, injectedOAuth2Api) {
     }
 }
 
+async function requireOAuthEligibleUser(userId) {
+    const user = await getUserByIdFresh(userId);
+    return assertOAuthLifecycleAllowed(user);
+}
+
 async function completeGoogleOAuthCallback({ code, state, oauth2Client: injectedOAuth2Client, oauth2Api, sheetsClient } = {}) {
     const payload = verifyOAuthState(state);
     if (!payload) {
@@ -148,6 +157,10 @@ async function completeGoogleOAuthCallback({ code, state, oauth2Client: injected
     if (!safeCode) {
         throw new Error('Código OAuth ausente.');
     }
+
+    // Fail before exchanging a code when the signed identity is no longer
+    // allowed to connect Google.
+    let user = await requireOAuthEligibleUser(payload.userId);
 
     const oauth2Client = injectedOAuth2Client || getOAuthClient();
     const { tokens } = await oauth2Client.getToken(safeCode);
@@ -159,17 +172,21 @@ async function completeGoogleOAuthCallback({ code, state, oauth2Client: injected
         oauth2Client.setCredentials(tokens);
     }
 
+    user = await requireOAuthEligibleUser(payload.userId);
     const googleAccount = await tryFetchGoogleAccount(oauth2Client, oauth2Api);
-    const connection = saveOAuthConnection(payload.userId, {
+    const persistence = await executeWithFreshUserStatus(payload.userId, {
+        allowedStatuses: OAUTH_CONNECT_ALLOWED_STATUSES
+    }, currentUser => saveOAuthConnection(payload.userId, {
         scopes: GOOGLE_OAUTH_SCOPES,
         tokens,
         googleAccount
-    });
-
-    const user = await getUserById(payload.userId);
-    if (!user) {
-        throw new Error('Usuário OAuth não encontrado.');
+    }));
+    if (!persistence.executed) {
+        assertOAuthLifecycleAllowed(persistence.user);
+        throw new Error('Não foi possível confirmar o lifecycle OAuth.');
     }
+    user = persistence.user;
+    const connection = persistence.result;
 
     const completion = await completeGoogleConnectionForUser({
         user,
@@ -197,6 +214,7 @@ module.exports = {
     getOAuthClient,
     getRedirectUri,
     __test__: {
-        fetchGoogleAccount
+        fetchGoogleAccount,
+        requireOAuthEligibleUser
     }
 };

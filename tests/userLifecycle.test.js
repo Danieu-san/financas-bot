@@ -32,7 +32,7 @@ function buildUserRow({
     return [userId, whatsappId, phone, displayName, status, createdAt, updatedAt, consentAt, termsVersion, deletedAt];
 }
 
-function installUserServiceWithSheets({ users = [] } = {}) {
+function installUserServiceWithSheets({ users = [], beforeUpdateRow = null } = {}) {
     const userServicePath = require.resolve('../src/services/userService');
     const googlePath = require.resolve('../src/services/google');
     delete require.cache[userServicePath];
@@ -58,6 +58,9 @@ function installUserServiceWithSheets({ users = [] } = {}) {
                 sheets[getSheetName(sheetName)].push(row);
             },
             updateRowInSheet: async (range, row) => {
+                if (typeof beforeUpdateRow === 'function') {
+                    await beforeUpdateRow({ range, row });
+                }
                 const sheetName = getSheetName(range);
                 const rowMatch = String(range).match(/![A-Z]+(\d+):/);
                 const rowNumber = Number(rowMatch?.[1] || 0);
@@ -68,6 +71,14 @@ function installUserServiceWithSheets({ users = [] } = {}) {
 
     const userService = require('../src/services/userService');
     return { userService, sheets };
+}
+
+function deferred() {
+    let resolve;
+    const promise = new Promise((res) => {
+        resolve = res;
+    });
+    return { promise, resolve };
 }
 
 function createMessage(body, from = '5599992000001@c.us') {
@@ -187,6 +198,91 @@ test('user lifecycle: APPROVED_AWAITING_GOOGLE user must connect Google before n
     assert.strictEqual(access.allowed, false);
     assert.strictEqual(access.googleConnectRequired, true);
     assert.match(access.reply, /conectar sua conta Google/i);
+});
+
+test('user lifecycle: conditional OAuth activation cannot overtake an inactivation already in progress', async () => {
+    const userId = 'user-lifecycle-oauth-race';
+    const inactivationWriteStarted = deferred();
+    const releaseInactivationWrite = deferred();
+    let paused = false;
+    const { userService } = installUserServiceWithSheets({
+        users: [buildUserRow({ userId, status: 'APPROVED_AWAITING_GOOGLE' })],
+        beforeUpdateRow: async ({ row }) => {
+            if (row[4] !== 'INACTIVE' || paused) return;
+            paused = true;
+            inactivationWriteStarted.resolve();
+            await releaseInactivationWrite.promise;
+        }
+    });
+
+    const inactivation = userService.updateUserStatus(userId, 'INACTIVE');
+    await inactivationWriteStarted.promise;
+    const oauthActivation = userService.transitionUserStatus(userId, {
+        allowedFromStatuses: ['APPROVED_AWAITING_GOOGLE', 'ACTIVE'],
+        targetStatus: 'ACTIVE'
+    });
+
+    releaseInactivationWrite.resolve();
+    await inactivation;
+    const activationResult = await oauthActivation;
+    userService.invalidateUserCaches();
+    const finalUser = await userService.getUserById(userId);
+
+    assert.strictEqual(activationResult.transitioned, false);
+    assert.strictEqual(activationResult.reason, 'status_mismatch');
+    assert.strictEqual(activationResult.user.status, 'INACTIVE');
+    assert.strictEqual(finalUser.status, 'INACTIVE');
+});
+
+test('user lifecycle: fresh lookup bypasses a cached status changed in the backing source', async () => {
+    const userId = 'user-lifecycle-fresh-status';
+    const { userService, sheets } = installUserServiceWithSheets({
+        users: [buildUserRow({ userId, status: 'APPROVED_AWAITING_GOOGLE' })]
+    });
+
+    const cached = await userService.getUserById(userId);
+    assert.strictEqual(cached.status, 'APPROVED_AWAITING_GOOGLE');
+
+    sheets.Users[1][4] = 'INACTIVE';
+    assert.strictEqual((await userService.getUserById(userId)).status, 'APPROVED_AWAITING_GOOGLE');
+
+    const fresh = await userService.getUserByIdFresh(userId);
+    assert.strictEqual(fresh.status, 'INACTIVE');
+});
+
+test('user lifecycle: an inactivation already in progress precedes a guarded OAuth persistence', async () => {
+    const userId = 'user-lifecycle-oauth-persistence-race';
+    const inactivationWriteStarted = deferred();
+    const releaseInactivationWrite = deferred();
+    let paused = false;
+    let persistenceCalls = 0;
+    const { userService } = installUserServiceWithSheets({
+        users: [buildUserRow({ userId, status: 'APPROVED_AWAITING_GOOGLE' })],
+        beforeUpdateRow: async ({ row }) => {
+            if (row[4] !== 'INACTIVE' || paused) return;
+            paused = true;
+            inactivationWriteStarted.resolve();
+            await releaseInactivationWrite.promise;
+        }
+    });
+
+    const inactivation = userService.updateUserStatus(userId, 'INACTIVE');
+    await inactivationWriteStarted.promise;
+    const guardedPersistence = userService.executeWithFreshUserStatus(userId, {
+        allowedStatuses: ['APPROVED_AWAITING_GOOGLE', 'ACTIVE']
+    }, () => {
+        persistenceCalls += 1;
+        return 'persisted';
+    });
+
+    releaseInactivationWrite.resolve();
+    await inactivation;
+    const persistenceResult = await guardedPersistence;
+
+    assert.strictEqual(persistenceResult.executed, false);
+    assert.strictEqual(persistenceResult.reason, 'status_mismatch');
+    assert.strictEqual(persistenceResult.user.status, 'INACTIVE');
+    assert.strictEqual(persistenceCalls, 0);
 });
 
 test('user lifecycle: admin approval moves user to APPROVED_AWAITING_GOOGLE and creates defaults', async () => {

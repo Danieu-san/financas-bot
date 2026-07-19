@@ -5278,6 +5278,112 @@ test('google.readDataFromSheet caches repeated reads and invalidates after write
     }
 });
 
+test('OAuth fresh user lookup bypasses both userService and Google Sheets read caches', async () => {
+    const previousGoogleTtl = process.env.GOOGLE_SHEETS_READ_CACHE_TTL_MS;
+    process.env.GOOGLE_SHEETS_READ_CACHE_TTL_MS = '60000';
+    googleService.__test__.clearSheetsReadCache();
+    userService.invalidateUserCaches();
+
+    const userId = 'oauth-fresh-cache-user';
+    const rows = [
+        ['user_id', 'whatsapp_id', 'phone_e164', 'display_name', 'status', 'created_at', 'updated_at', 'consent_at', 'terms_version', 'deleted_at'],
+        [userId, '5511999999999@c.us', '+5511999999999', 'OAuth Cache', 'APPROVED_AWAITING_GOOGLE', '', '', '', 'v1.1', '']
+    ];
+    let getCalls = 0;
+    googleService.__test__.setGoogleClientsForTest({
+        sheetsClient: {
+            spreadsheets: {
+                values: {
+                    get: async () => {
+                        getCalls += 1;
+                        return { data: { values: rows.map(row => [...row]) } };
+                    }
+                }
+            }
+        },
+        tasksClient: {},
+        calendarClient: {},
+        oauthClient: {}
+    });
+
+    try {
+        assert.strictEqual((await userService.getUserById(userId)).status, 'APPROVED_AWAITING_GOOGLE');
+        rows[1][4] = 'INACTIVE';
+        assert.strictEqual((await userService.getUserById(userId)).status, 'APPROVED_AWAITING_GOOGLE');
+
+        const fresh = await userService.getUserByIdFresh(userId);
+        assert.strictEqual(fresh.status, 'INACTIVE');
+        assert.strictEqual(getCalls, 2);
+    } finally {
+        googleService.__test__.clearSheetsReadCache();
+        userService.invalidateUserCaches();
+        if (previousGoogleTtl === undefined) {
+            delete process.env.GOOGLE_SHEETS_READ_CACHE_TTL_MS;
+        } else {
+            process.env.GOOGLE_SHEETS_READ_CACHE_TTL_MS = previousGoogleTtl;
+        }
+    }
+});
+
+test('google strict read bypasses an older read already in flight', async () => {
+    const previousTtl = process.env.GOOGLE_SHEETS_READ_CACHE_TTL_MS;
+    process.env.GOOGLE_SHEETS_READ_CACHE_TTL_MS = '60000';
+    googleService.__test__.clearSheetsReadCache();
+
+    let getCalls = 0;
+    let resolveFirstRead;
+    const firstReadStarted = new Promise(resolve => {
+        resolveFirstRead = resolve;
+    });
+    let releaseFirstRead;
+    const firstReadRelease = new Promise(resolve => {
+        releaseFirstRead = resolve;
+    });
+    googleService.__test__.setGoogleClientsForTest({
+        sheetsClient: {
+            spreadsheets: {
+                values: {
+                    get: async () => {
+                        getCalls += 1;
+                        if (getCalls === 1) {
+                            resolveFirstRead();
+                            await firstReadRelease;
+                            return { data: { values: [['status'], ['APPROVED_AWAITING_GOOGLE']] } };
+                        }
+                        return { data: { values: [['status'], ['INACTIVE']] } };
+                    }
+                }
+            }
+        },
+        tasksClient: {},
+        calendarClient: {},
+        oauthClient: {}
+    });
+
+    try {
+        const staleRead = googleService.readDataFromSheet('Users!A:J', { forceCentral: true });
+        await firstReadStarted;
+        const freshRead = await googleService.readDataFromSheet('Users!A:J', {
+            forceCentral: true,
+            bypassReadCache: true
+        });
+
+        assert.strictEqual(getCalls, 2);
+        assert.strictEqual(freshRead[1][0], 'INACTIVE');
+
+        releaseFirstRead();
+        assert.strictEqual((await staleRead)[1][0], 'APPROVED_AWAITING_GOOGLE');
+    } finally {
+        releaseFirstRead();
+        googleService.__test__.clearSheetsReadCache();
+        if (previousTtl === undefined) {
+            delete process.env.GOOGLE_SHEETS_READ_CACHE_TTL_MS;
+        } else {
+            process.env.GOOGLE_SHEETS_READ_CACHE_TTL_MS = previousTtl;
+        }
+    }
+});
+
 test('google.updateRowInSheet can use write ledger to avoid updating twice', async () => {
     const { FinancialWriteLedger } = require('../src/reliability/financialWriteLedger');
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-google-update-ledger-'));

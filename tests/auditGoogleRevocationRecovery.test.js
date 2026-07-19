@@ -395,7 +395,7 @@ test('independent audit of Google revocation absence and lifecycle recovery', as
         });
     }
 
-    await t.test('paused Google completion resurrects lifecycle after a committed inactivation', async () => {
+    await t.test('paused Google completion cannot resurrect lifecycle after a committed inactivation', async () => {
         const scenario = setupScenario({
             name: 'inactivation-race',
             memberAStatus: 'APPROVED_AWAITING_GOOGLE'
@@ -426,16 +426,14 @@ test('independent audit of Google revocation absence and lifecycle recovery', as
         assert.strictEqual(afterInactivation.status, 'INACTIVE');
 
         releaseCreate.resolve();
-        const completion = await completionPromise;
+        await assert.rejects(completionPromise, /status.*não permite conexão Google/i);
         const finalUser = await scenario.freshUser(scenario.identities.memberA);
         const finalConnection = scenario.oauth.getOAuthConnection(userId);
 
         assert.strictEqual(inactivationReplies.length, 1);
-        assert.strictEqual(finalUser.status, 'ACTIVE');
-        assert.strictEqual(completion.user.status, 'ACTIVE');
-        assert.strictEqual(completion.spreadsheetId, 'audit-sheet-after-inactivation');
+        assert.strictEqual(finalUser.status, 'INACTIVE');
         assert.strictEqual(finalConnection.spreadsheet_id, 'audit-sheet-after-inactivation');
-        assert.deepStrictEqual(scenario.lifecycleLedger.values, ['INACTIVE', 'ACTIVE']);
+        assert.deepStrictEqual(scenario.lifecycleLedger.values, ['INACTIVE']);
         assert.strictEqual(sheets.ledger.compensations.length, 0);
 
         results.push({
@@ -445,7 +443,7 @@ test('independent audit of Google revocation absence and lifecycle recovery', as
             lifecycle_writes: scenario.lifecycleLedger.values,
             sheet_created_after_inactivation: sheets.ledger.commits.some(item => item.type === 'create'),
             metadata_written_after_inactivation: finalConnection.spreadsheet_id,
-            completion_reported_success: true,
+            completion_reported_success: false,
             rollback_or_compensation: false
         });
     });

@@ -32,17 +32,33 @@ function configureEnv(t) {
     process.env.GOOGLE_OAUTH_STATE_SECRET = 'audit-state-secret-with-sufficient-length';
 }
 
-function installLifecycleMocks({ status, completionError = null }) {
+function installLifecycleMocks({ status, statusSequence = null, completionError = null, counters = {} }) {
     const userServicePath = require.resolve('../src/services/userService');
     const spreadsheetPath = require.resolve('../src/services/userSpreadsheetService');
     const completionCalls = [];
 
+    const getUserByIdFresh = async (userId) => {
+        counters.userReads = Number(counters.userReads || 0) + 1;
+        const sequence = Array.isArray(statusSequence) && statusSequence.length
+            ? statusSequence
+            : [status];
+        const currentStatus = sequence[Math.min(counters.userReads - 1, sequence.length - 1)];
+        return currentStatus === null ? null : ({ user_id: userId, status: currentStatus });
+    };
     require.cache[userServicePath] = {
         id: userServicePath,
         filename: userServicePath,
         loaded: true,
         exports: {
-            getUserById: async (userId) => status === null ? null : ({ user_id: userId, status })
+            getUserByIdFresh,
+            executeWithFreshUserStatus: async (userId, { allowedStatuses }, operation) => {
+                const user = await getUserByIdFresh(userId);
+                if (!user) return { executed: false, reason: 'not_found', user: null, result: null };
+                if (!allowedStatuses.includes(user.status)) {
+                    return { executed: false, reason: 'status_mismatch', user, result: null };
+                }
+                return { executed: true, reason: 'executed', user, result: operation(user) };
+            }
         }
     };
     require.cache[spreadsheetPath] = {
@@ -167,36 +183,37 @@ test('audit OAuth: active user follows the generic callback and overwrites the e
     assert.strictEqual(after.google_user_id, 'audit-google-user');
 });
 
-test('audit OAuth: disallowed current statuses still reach completion and persist credentials', async (t) => {
+test('audit OAuth: disallowed current statuses fail before token exchange and persistence', async (t) => {
     for (const status of ['BLOCKED', 'INACTIVE', 'DELETED', 'PENDING', 'PENDING_APPROVAL', 'EXPIRED']) {
         await t.test(status, async (st) => {
             resetModules();
             configureEnv(st);
-            const calls = installLifecycleMocks({ status });
+            const counters = {};
+            const calls = installLifecycleMocks({ status, counters });
             const oauth = require('../src/services/googleOAuthService');
-            const state = new URL(oauth.buildGoogleConnectLink({ userId: `audit-${status}` })).searchParams.get('state');
+            const userId = `audit-${status}`;
+            const state = new URL(oauth.buildGoogleConnectLink({ userId })).searchParams.get('state');
 
-            const result = await oauth.completeGoogleOAuthCallback({
+            await assert.rejects(() => oauth.completeGoogleOAuthCallback({
                 code: `code-${status}`,
                 state,
-                oauth2Client: fakeOAuthClient(),
-                oauth2Api: fakeOAuthApi(),
+                oauth2Client: fakeOAuthClient(counters),
+                oauth2Api: fakeOAuthApi(counters),
                 sheetsClient: {}
-            });
+            }), /status.*não permite conexão Google/i);
 
-            assert.strictEqual(calls.length, 1);
-            assert.strictEqual(calls[0].user.status, status);
-            assert.strictEqual(result.userStatus, 'ACTIVE');
-            const stored = require('../src/services/oauthTokenStore').getOAuthConnection(`audit-${status}`);
-            assert.ok(stored);
+            assert.deepStrictEqual(counters, { userReads: 1 });
+            assert.strictEqual(calls.length, 0);
+            assert.strictEqual(require('../src/services/oauthTokenStore').getOAuthConnection(userId), null);
         });
     }
 });
 
-test('audit OAuth: nonexistent user leaves persisted credentials before failure', async (t) => {
+test('audit OAuth: nonexistent user fails before token exchange and persistence', async (t) => {
     resetModules();
     configureEnv(t);
-    installLifecycleMocks({ status: null });
+    const counters = {};
+    installLifecycleMocks({ status: null, counters });
     const oauth = require('../src/services/googleOAuthService');
     const userId = 'audit-missing-user';
     const state = new URL(oauth.buildGoogleConnectLink({ userId })).searchParams.get('state');
@@ -204,12 +221,63 @@ test('audit OAuth: nonexistent user leaves persisted credentials before failure'
     await assert.rejects(() => oauth.completeGoogleOAuthCallback({
         code: 'missing-user-code',
         state,
-        oauth2Client: fakeOAuthClient(),
-        oauth2Api: fakeOAuthApi(),
+        oauth2Client: fakeOAuthClient(counters),
+        oauth2Api: fakeOAuthApi(counters),
         sheetsClient: {}
     }), /Usuário OAuth não encontrado/);
 
-    assert.ok(require('../src/services/oauthTokenStore').getOAuthConnection(userId));
+    assert.deepStrictEqual(counters, { userReads: 1 });
+    assert.strictEqual(require('../src/services/oauthTokenStore').getOAuthConnection(userId), null);
+});
+
+test('audit OAuth: lifecycle change during token exchange blocks before account lookup and persistence', async (t) => {
+    resetModules();
+    configureEnv(t);
+    const counters = {};
+    const calls = installLifecycleMocks({
+        statusSequence: ['APPROVED_AWAITING_GOOGLE', 'INACTIVE'],
+        counters
+    });
+    const oauth = require('../src/services/googleOAuthService');
+    const userId = 'audit-status-change-after-token';
+    const state = new URL(oauth.buildGoogleConnectLink({ userId })).searchParams.get('state');
+
+    await assert.rejects(() => oauth.completeGoogleOAuthCallback({
+        code: 'status-change-token-code',
+        state,
+        oauth2Client: fakeOAuthClient(counters),
+        oauth2Api: fakeOAuthApi(counters),
+        sheetsClient: {}
+    }), /status.*não permite conexão Google/i);
+
+    assert.deepStrictEqual(counters, { userReads: 2, tokenExchange: 1 });
+    assert.strictEqual(calls.length, 0);
+    assert.strictEqual(require('../src/services/oauthTokenStore').getOAuthConnection(userId), null);
+});
+
+test('audit OAuth: lifecycle change during account lookup blocks before persistence', async (t) => {
+    resetModules();
+    configureEnv(t);
+    const counters = {};
+    const calls = installLifecycleMocks({
+        statusSequence: ['APPROVED_AWAITING_GOOGLE', 'APPROVED_AWAITING_GOOGLE', 'BLOCKED'],
+        counters
+    });
+    const oauth = require('../src/services/googleOAuthService');
+    const userId = 'audit-status-change-after-account';
+    const state = new URL(oauth.buildGoogleConnectLink({ userId })).searchParams.get('state');
+
+    await assert.rejects(() => oauth.completeGoogleOAuthCallback({
+        code: 'status-change-account-code',
+        state,
+        oauth2Client: fakeOAuthClient(counters),
+        oauth2Api: fakeOAuthApi(counters),
+        sheetsClient: {}
+    }), /status.*não permite conexão Google/i);
+
+    assert.deepStrictEqual(counters, { userReads: 3, tokenExchange: 1, accountLookup: 1 });
+    assert.strictEqual(calls.length, 0);
+    assert.strictEqual(require('../src/services/oauthTokenStore').getOAuthConnection(userId), null);
 });
 
 test('audit OAuth: failure after credential persistence leaves the committed connection', async (t) => {

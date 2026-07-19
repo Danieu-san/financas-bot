@@ -288,27 +288,52 @@ function setupScenario({
 
     const realUserService = require(userServicePath);
     const lifecycleLedger = { calls: [], commits: [], values_written: [] };
+    async function recordLifecycleOperation({ operationId, targetStatus, delegate }) {
+        lifecycleLedger.calls.push({
+            operationId,
+            targetStatus,
+            observedAtCall: backing.store.userRow[4]
+        });
+        trace.push('lifecycle.call', { operationId, targetStatus });
+        if (concurrency?.enabled) {
+            markArrival(concurrency.lifecycleArrivals, operationId, concurrency.bothLifecycle);
+            await concurrency.releaseLifecycle.get(operationId).promise;
+        }
+
+        const observedBeforeDelegate = backing.store.userRow[4];
+        const result = await delegate();
+        const transitioned = typeof result?.transitioned === 'boolean'
+            ? result.transitioned
+            : Boolean(result);
+        lifecycleLedger.commits.push({
+            operationId,
+            observedBeforeDelegate,
+            targetStatus,
+            transitioned,
+            reason: result?.reason || (transitioned ? 'updated' : 'not_found')
+        });
+        if (transitioned) lifecycleLedger.values_written.push(targetStatus);
+        trace.push('lifecycle.commit', { operationId, targetStatus, transitioned });
+        concurrency?.lifecycleCommitted.get(operationId)?.resolve();
+        return result;
+    }
     const userService = {
         ...realUserService,
         updateUserStatus: async (targetUserId, targetStatus) => {
             const operationId = operationContext.getStore() || 'unscoped';
-            lifecycleLedger.calls.push({
+            return recordLifecycleOperation({
                 operationId,
                 targetStatus,
-                observedAtCall: backing.store.userRow[4]
+                delegate: () => realUserService.updateUserStatus(targetUserId, targetStatus)
             });
-            trace.push('lifecycle.call', { operationId, targetStatus });
-            if (concurrency?.enabled) {
-                markArrival(concurrency.lifecycleArrivals, operationId, concurrency.bothLifecycle);
-                await concurrency.releaseLifecycle.get(operationId).promise;
-            }
-            const observedBeforeDelegate = backing.store.userRow[4];
-            const result = await realUserService.updateUserStatus(targetUserId, targetStatus);
-            lifecycleLedger.commits.push({ operationId, observedBeforeDelegate, targetStatus });
-            lifecycleLedger.values_written.push(targetStatus);
-            trace.push('lifecycle.commit', { operationId, targetStatus });
-            concurrency?.lifecycleCommitted.get(operationId)?.resolve();
-            return result;
+        },
+        transitionUserStatus: async (targetUserId, options) => {
+            const operationId = operationContext.getStore() || 'unscoped';
+            return recordLifecycleOperation({
+                operationId,
+                targetStatus: options?.targetStatus || '',
+                delegate: () => realUserService.transitionUserStatus(targetUserId, options)
+            });
         }
     };
     installModule(userServicePath, userService);
@@ -535,6 +560,7 @@ test('independent audit of Google connection concurrency and idempotency', async
         assert.strictEqual(scenario.externalLedger.compensated_operations.length, 0);
         assert.strictEqual(scenario.metadataLedger.commits.length, 1);
         assert.strictEqual(scenario.lifecycleLedger.commits.length, 1);
+        assert.deepStrictEqual(scenario.lifecycleLedger.values_written, ['ACTIVE']);
 
         results.push({
             scenario: 'retry_after_orphan',
@@ -544,6 +570,7 @@ test('independent audit of Google connection concurrency and idempotency', async
             orphan_compensated: false,
             metadata_commits: scenario.metadataLedger.commits.length,
             lifecycle_commits: scenario.lifecycleLedger.commits.length,
+            lifecycle_writes: scenario.lifecycleLedger.values_written.length,
             final_status: user.status,
             trace: scenario.trace.significant()
         });
@@ -571,6 +598,7 @@ test('independent audit of Google connection concurrency and idempotency', async
         assert.strictEqual(scenario.externalLedger.template_applications_by_sheet[linkedId], 2);
         assert.strictEqual(scenario.metadataLedger.commits.length, 0);
         assert.strictEqual(scenario.lifecycleLedger.commits.length, 1);
+        assert.deepStrictEqual(scenario.lifecycleLedger.values_written, ['ACTIVE']);
         assert.strictEqual(connection.spreadsheet_id, linkedId);
         assert.strictEqual(result.spreadsheetId, linkedId);
         assert.strictEqual(user.status, 'ACTIVE');
@@ -581,6 +609,7 @@ test('independent audit of Google connection concurrency and idempotency', async
             template_applications: scenario.externalLedger.template_applications_by_sheet[linkedId],
             metadata_commits: scenario.metadataLedger.commits.length,
             lifecycle_commits: scenario.lifecycleLedger.commits.length,
+            lifecycle_writes: scenario.lifecycleLedger.values_written.length,
             final_spreadsheet_id: connection.spreadsheet_id,
             final_status: user.status,
             trace: scenario.trace.significant()
@@ -633,6 +662,11 @@ test('independent audit of Google connection concurrency and idempotency', async
         ]);
         assert.strictEqual(connection.spreadsheet_id, 'audit-sheet-race-B');
         assert.strictEqual(scenario.lifecycleLedger.commits.length, 2);
+        assert.deepStrictEqual(scenario.lifecycleLedger.values_written, ['ACTIVE']);
+        assert.strictEqual(
+            scenario.lifecycleLedger.commits.filter(commit => commit.reason === 'already_target').length,
+            1
+        );
         assert.strictEqual(finalUser.status, 'ACTIVE');
         assert.strictEqual(resultA.spreadsheetId, 'audit-sheet-race-A');
         assert.strictEqual(resultB.spreadsheetId, 'audit-sheet-race-B');
@@ -645,6 +679,7 @@ test('independent audit of Google connection concurrency and idempotency', async
             final_spreadsheet_id: connection.spreadsheet_id,
             losing_orphan_sheet_id: 'audit-sheet-race-A',
             lifecycle_commits: scenario.lifecycleLedger.commits.length,
+            lifecycle_writes: scenario.lifecycleLedger.values_written.length,
             both_reported_success: true,
             result_A_spreadsheet_id: resultA.spreadsheetId,
             result_B_spreadsheet_id: resultB.spreadsheetId,
@@ -725,6 +760,11 @@ test('independent audit of Google connection concurrency and idempotency', async
         assert.strictEqual(scenario.externalLedger.template_applications_by_sheet[sheetId], 2);
         assert.strictEqual(scenario.metadataLedger.commits.length, 1);
         assert.strictEqual(scenario.lifecycleLedger.commits.length, 2);
+        assert.deepStrictEqual(scenario.lifecycleLedger.values_written, ['ACTIVE']);
+        assert.strictEqual(
+            scenario.lifecycleLedger.commits.filter(commit => commit.reason === 'already_target').length,
+            1
+        );
         assert.strictEqual(finalUser.status, 'ACTIVE');
         assert.strictEqual(httpLedger.ledger.delivered.length, 1);
         assert.strictEqual(httpLedger.ledger.delivered[0].statusCode, 200);
@@ -741,6 +781,7 @@ test('independent audit of Google connection concurrency and idempotency', async
             template_applications: scenario.externalLedger.template_applications_by_sheet[sheetId],
             metadata_commits: scenario.metadataLedger.commits.length,
             lifecycle_commits: scenario.lifecycleLedger.commits.length,
+            lifecycle_writes: scenario.lifecycleLedger.values_written.length,
             final_spreadsheet_id: finalConnection.spreadsheet_id,
             final_status: finalUser.status,
             http_calls: httpLedger.ledger.calls.length,

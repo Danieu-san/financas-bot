@@ -2785,3 +2785,32 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
   gerava falsos vermelhos em orcamento/read-model.
 - Gate pendente: revisao adversarial final do diff atual. Producao continua
   congelada; C-02/C-03 OAuth seguem bloqueadores fora do C-01.
+
+## C-02 precedencia de lifecycle OAuth com GO local - 2026-07-18
+
+- O callback Google agora aceita somente `APPROVED_AWAITING_GOOGLE` e `ACTIVE`
+  e faz leitura fresca de lifecycle antes da troca do code, antes do lookup da
+  conta e imediatamente antes da persistencia OAuth.
+- A leitura estrita ignora os caches de `userService` e Google Sheets, inclusive
+  leitura in-flight; indisponibilidade nao recupera snapshot antigo.
+- Usuario inexistente ou status impeditivo falha antes de token exchange e
+  persistencia. Mudanca de lifecycle durante chamadas externas tambem falha
+  antes do proximo efeito.
+- A ativacao final usa transicao condicional serializada por usuario. Uma
+  inativacao ja em andamento nao pode ser ultrapassada nem sobrescrita por uma
+  conclusao OAuth atrasada.
+- A leitura final e o `saveOAuthConnection()` sincronico usam a mesma fila de
+  lifecycle; uma inativacao ja enfileirada vence antes da persistencia.
+- O auditor de idempotencia foi adaptado ao novo contrato: replay/concorrencia
+  ainda produz duas conclusoes externas, mas somente uma escrita efetiva de
+  `ACTIVE`. Planilhas orfas e replay continuam `WGL-03`, nao foram escondidos.
+- Evidencia: suite focada OAuth/lifecycle `56/56`, caches estritos `2/2`, suite
+  principal `1014/1014`, runner hermetico `1134` testes (`1129` pass, `0` fail e `5`
+  skips esperados), audit de dependencias sem vulnerabilidades, checks de
+  integridade limpos e `state_store.json` em `{}`. Revisao adversarial ainda e
+  o gate pendente.
+- `C-03/WGL-02` continua critico e separado: lifecycle impeditivo ainda nao
+  revoga tokens, planilha ou Calendar. Nenhum deploy ou Google real foi feito.
+- Revisao adversarial independente final: nenhum `BLOCKER`, `HIGH` ou `MEDIUM`;
+  `GO local formal` para `C-02/WGL-01`. Commit, push e deploy nao autorizados.
+- Pacote: `docs/audit/correction-packets/2026-07-18-c02-oauth-lifecycle-precedence.md`.

@@ -173,7 +173,19 @@ test('completeGoogleOAuthCallback stores encrypted tokens and activates connecte
         filename: userServicePath,
         loaded: true,
         exports: {
-            getUserById: async (userId) => ({ user_id: userId, display_name: 'Usuário OAuth' })
+            getUserByIdFresh: async (userId) => ({
+                user_id: userId,
+                display_name: 'Usuário OAuth',
+                status: 'APPROVED_AWAITING_GOOGLE'
+            }),
+            executeWithFreshUserStatus: async (userId, _options, operation) => {
+                const user = {
+                    user_id: userId,
+                    display_name: 'Usuário OAuth',
+                    status: 'APPROVED_AWAITING_GOOGLE'
+                };
+                return { executed: true, reason: 'executed', user, result: operation(user) };
+            }
         }
     };
     require.cache[userSpreadsheetPath] = {

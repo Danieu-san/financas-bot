@@ -1,6 +1,7 @@
 const { google } = require('googleapis');
 const { getOAuthConnection, updateOAuthConnectionMetadata } = require('./oauthTokenStore');
-const { updateUserStatus, USER_STATUS } = require('./userService');
+const { getUserByIdFresh, transitionUserStatus, USER_STATUS } = require('./userService');
+const { assertOAuthLifecycleAllowed } = require('./oauthLifecyclePolicy');
 
 const USER_SPREADSHEET_TABS = Object.freeze([
     {
@@ -805,6 +806,8 @@ async function completeGoogleConnectionForUser({ user, oauth2Client, sheetsClien
     const safeUser = user || {};
     if (!safeUser.user_id) throw new Error('user_id é obrigatório para concluir conexão Google.');
 
+    let currentUser = assertOAuthLifecycleAllowed(await getUserByIdFresh(safeUser.user_id));
+
     const existingConnection = getOAuthConnection(safeUser.user_id);
     if (!existingConnection) {
         throw new Error('Conexão OAuth não encontrada para o usuário.');
@@ -813,16 +816,20 @@ async function completeGoogleConnectionForUser({ user, oauth2Client, sheetsClien
     let spreadsheetId = existingConnection.spreadsheet_id || '';
     let spreadsheetUrl = '';
     if (!spreadsheetId) {
-        const created = await createUserSpreadsheetForUser({ user: safeUser, oauth2Client, sheetsClient });
+        const created = await createUserSpreadsheetForUser({ user: currentUser, oauth2Client, sheetsClient });
         spreadsheetId = created.spreadsheetId;
         spreadsheetUrl = created.spreadsheetUrl || buildSpreadsheetUrl(spreadsheetId);
         await updateOAuthConnectionMetadata(safeUser.user_id, { spreadsheetId });
     } else {
-        await applyUserSpreadsheetTemplate({ user: safeUser, oauth2Client, sheetsClient, spreadsheetId });
+        await applyUserSpreadsheetTemplate({ user: currentUser, oauth2Client, sheetsClient, spreadsheetId });
         spreadsheetUrl = buildSpreadsheetUrl(spreadsheetId);
     }
 
-    const updatedUser = await updateUserStatus(safeUser.user_id, USER_STATUS.ACTIVE);
+    const transition = await transitionUserStatus(safeUser.user_id, {
+        allowedFromStatuses: [USER_STATUS.APPROVED_AWAITING_GOOGLE, USER_STATUS.ACTIVE],
+        targetStatus: USER_STATUS.ACTIVE
+    });
+    const updatedUser = assertOAuthLifecycleAllowed(transition.user);
     return {
         user: updatedUser,
         spreadsheetId,

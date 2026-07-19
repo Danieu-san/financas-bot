@@ -1093,15 +1093,16 @@ async function readDataFromSheet(range, options = {}) {
     });
     const mappedRange = target.userScoped ? mapRangeForUserSpreadsheet(range) : range;
     const cacheTtlMs = getSheetsReadCacheTtlMs();
+    const readCacheEnabled = cacheTtlMs > 0 && options.bypassReadCache !== true;
     const cacheKey = buildSheetsReadCacheKey(target, mappedRange);
     const cached = sheetsReadCache.get(cacheKey);
-    if (cacheTtlMs > 0 && cached && (Date.now() - cached.storedAt) < cacheTtlMs) {
+    if (readCacheEnabled && cached && (Date.now() - cached.storedAt) < cacheTtlMs) {
         const cachedValues = cloneSheetValues(cached.values);
         return target.userScoped
             ? mapValuesFromUserSpreadsheetRange(range, cachedValues)
             : cachedValues;
     }
-    if (cacheTtlMs > 0 && sheetsReadInFlight.has(cacheKey)) {
+    if (readCacheEnabled && sheetsReadInFlight.has(cacheKey)) {
         const inFlightValues = cloneSheetValues(await sheetsReadInFlight.get(cacheKey));
         return target.userScoped
             ? mapValuesFromUserSpreadsheetRange(range, inFlightValues)
@@ -1115,14 +1116,14 @@ async function readDataFromSheet(range, options = {}) {
             () => target.sheetsClient.spreadsheets.values.get({ spreadsheetId: target.spreadsheetId, range: mappedRange })
         );
         const values = cloneSheetValues(response.data.values || []);
-        if (cacheTtlMs > 0) {
+        if (readCacheEnabled) {
             sheetsReadCache.set(cacheKey, { storedAt: Date.now(), values: cloneSheetValues(values) });
         }
         return values;
     };
 
     const readPromise = loadValues();
-    if (cacheTtlMs > 0) {
+    if (readCacheEnabled) {
         sheetsReadInFlight.set(cacheKey, readPromise);
     }
     try {
@@ -1136,7 +1137,7 @@ async function readDataFromSheet(range, options = {}) {
         }
         return [];
     } finally {
-        sheetsReadInFlight.delete(cacheKey);
+        if (readCacheEnabled) sheetsReadInFlight.delete(cacheKey);
     }
 }
 

@@ -84,6 +84,7 @@ let settingsCache = [];
 let settingsCacheLoaded = false;
 let settingsCacheLoadedAt = 0;
 const authGateReplyHistory = new Map();
+const userStatusUpdateTails = new Map();
 
 const SHEETS_CACHE_TTL_MS = Number(process.env.USER_SERVICE_CACHE_TTL_MS || 30000);
 
@@ -95,10 +96,10 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function readCriticalSheet(range, { retries = 3, delayMs = 500 } = {}) {
+async function readCriticalSheet(range, { retries = 3, delayMs = 500, readOptions = {} } = {}) {
     let rows = [];
     for (let attempt = 0; attempt < retries; attempt += 1) {
-        rows = await readDataFromSheet(range);
+        rows = await readDataFromSheet(range, readOptions);
         if (rows && rows.length > 0) return rows;
         if (attempt < retries - 1) {
             await sleep(delayMs);
@@ -163,13 +164,16 @@ function mapUserRow(row, rowIndex) {
     };
 }
 
-async function getAllUsers() {
-    if (isCacheFresh(usersCacheLoaded, usersCacheLoadedAt)) {
+async function getAllUsers({ bypassCache = false } = {}) {
+    if (!bypassCache && isCacheFresh(usersCacheLoaded, usersCacheLoadedAt)) {
         return usersCache;
     }
 
-    const rows = await readCriticalSheet(`${USERS_SHEET}!A:J`);
+    const rows = await readCriticalSheet(`${USERS_SHEET}!A:J`, {
+        readOptions: bypassCache ? { bypassReadCache: true } : {}
+    });
     if (!rows || rows.length === 0) {
+        if (bypassCache) return [];
         return usersCacheLoaded ? usersCache : [];
     }
     if (rows.length <= 1) {
@@ -205,6 +209,14 @@ async function getUserById(userId) {
     if (!safeUserId) return null;
     const users = await getAllUsers();
     return users.find(u => u.user_id === safeUserId) || null;
+}
+
+async function getUserByIdFresh(userId) {
+    usersCacheLoaded = false;
+    const safeUserId = String(userId || '').trim();
+    if (!safeUserId) return null;
+    const users = await getAllUsers({ bypassCache: true });
+    return users.find(user => user.user_id === safeUserId) || null;
 }
 
 async function createPendingUser(whatsappId, displayName = '') {
@@ -619,7 +631,27 @@ async function refreshConsentForActiveUser(user, { message, messageId }) {
     return updated;
 }
 
-async function updateUserStatus(userId, status) {
+async function withUserStatusUpdateLock(userId, operation) {
+    const safeUserId = String(userId || '').trim();
+    const previous = userStatusUpdateTails.get(safeUserId) || Promise.resolve();
+    let release;
+    const current = new Promise(resolve => {
+        release = resolve;
+    });
+    userStatusUpdateTails.set(safeUserId, current);
+
+    await previous.catch(() => {});
+    try {
+        return await operation();
+    } finally {
+        release();
+        if (userStatusUpdateTails.get(safeUserId) === current) {
+            userStatusUpdateTails.delete(safeUserId);
+        }
+    }
+}
+
+async function updateUserStatusUnlocked(userId, status) {
     const users = await getAllUsers();
     const user = users.find(u => u.user_id === userId);
     if (!user) return null;
@@ -633,6 +665,86 @@ async function updateUserStatus(userId, status) {
     };
     await updateUserRowByIndex(user.rowIndex, updated);
     return updated;
+}
+
+async function updateUserStatus(userId, status) {
+    const safeUserId = String(userId || '').trim();
+    if (!safeUserId) return null;
+    return withUserStatusUpdateLock(safeUserId, () => updateUserStatusUnlocked(safeUserId, status));
+}
+
+async function executeWithFreshUserStatus(userId, { allowedStatuses = [] } = {}, operation) {
+    const safeUserId = String(userId || '').trim();
+    const validStatuses = new Set(Object.values(USER_STATUS));
+    const allowed = new Set(
+        (Array.isArray(allowedStatuses) ? allowedStatuses : [])
+            .map(status => String(status || '').trim().toUpperCase())
+            .filter(status => validStatuses.has(status))
+    );
+    if (!safeUserId || allowed.size === 0 || typeof operation !== 'function') {
+        throw new Error('Guarda de status inválido.');
+    }
+
+    return withUserStatusUpdateLock(safeUserId, async () => {
+        usersCacheLoaded = false;
+        const users = await getAllUsers({ bypassCache: true });
+        const user = users.find(candidate => candidate.user_id === safeUserId) || null;
+        if (!user) return { executed: false, reason: 'not_found', user: null, result: null };
+
+        const currentStatus = String(user.status || '').trim().toUpperCase();
+        if (!allowed.has(currentStatus)) {
+            return { executed: false, reason: 'status_mismatch', user, result: null };
+        }
+
+        // Keep the check and the guarded effect in one event-loop turn while
+        // the lifecycle queue is held. Async effects are forbidden here.
+        const result = operation(user);
+        if (result && typeof result.then === 'function') {
+            throw new Error('A operação protegida por status deve ser síncrona.');
+        }
+        return { executed: true, reason: 'executed', user, result };
+    });
+}
+
+async function transitionUserStatus(userId, { allowedFromStatuses = [], targetStatus } = {}) {
+    const safeUserId = String(userId || '').trim();
+    const safeTargetStatus = String(targetStatus || '').trim().toUpperCase();
+    const validStatuses = new Set(Object.values(USER_STATUS));
+    const allowed = new Set(
+        (Array.isArray(allowedFromStatuses) ? allowedFromStatuses : [])
+            .map(status => String(status || '').trim().toUpperCase())
+            .filter(status => validStatuses.has(status))
+    );
+
+    if (!safeUserId || !validStatuses.has(safeTargetStatus) || allowed.size === 0) {
+        throw new Error('Transição de status inválida.');
+    }
+
+    return withUserStatusUpdateLock(safeUserId, async () => {
+        // Observe the backing source after any earlier queued lifecycle write.
+        usersCacheLoaded = false;
+        const users = await getAllUsers({ bypassCache: true });
+        const user = users.find(candidate => candidate.user_id === safeUserId) || null;
+        if (!user) return { transitioned: false, reason: 'not_found', user: null };
+
+        const currentStatus = String(user.status || '').trim().toUpperCase();
+        if (!allowed.has(currentStatus)) {
+            return { transitioned: false, reason: 'status_mismatch', user };
+        }
+        if (currentStatus === safeTargetStatus) {
+            return { transitioned: false, reason: 'already_target', user };
+        }
+
+        const now = nowIso();
+        const updated = {
+            ...user,
+            status: safeTargetStatus,
+            updated_at: now,
+            deleted_at: safeTargetStatus === USER_STATUS.DELETED ? now : ''
+        };
+        await updateUserRowByIndex(user.rowIndex, updated);
+        return { transitioned: true, reason: 'updated', user: updated };
+    });
 }
 
 async function updateUserStatusByWhatsAppId(whatsappOrPhone, status) {
@@ -938,6 +1050,7 @@ module.exports = {
     USER_STATUS,
     getUserByWhatsAppId,
     getUserById,
+    getUserByIdFresh,
     getUserByLookup,
     normalizePhoneToWhatsappId,
     createPendingUser,
@@ -948,6 +1061,8 @@ module.exports = {
     upsertUserSettings,
     getActiveUsers,
     updateUserStatus,
+    executeWithFreshUserStatus,
+    transitionUserStatus,
     updateUserStatusByWhatsAppId,
     approveUserByWhatsAppId,
     denyUserByWhatsAppId,
