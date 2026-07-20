@@ -126,6 +126,6 @@ deploy e Google real exigem autorizacao separada.
 
 ## Veredito
 
-Implementacao local e gates amplos verdes, pronta para commit sanitizado e
-auditoria independente. Push serve apenas para publicar o hash imutavel da
-revisao; deploy continua proibido antes do `GO local` independente.
+Implementacao local e gates amplos verdes. O commit sanitizado imutavel
+`6c91074138138dc6f55e7d6271708a299c087f50` foi publicado somente para auditoria
+independente. Deploy continua proibido antes do `GO local` independente.

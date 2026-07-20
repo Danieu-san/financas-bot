@@ -2,6 +2,17 @@
 
 Atualizado em: 2026-07-20
 
+## C-03 publicada como candidata de auditoria - 2026-07-20
+
+- Commit de codigo/testes/documentacao C-03 publicado no GitHub:
+  `6c91074138138dc6f55e7d6271708a299c087f50`.
+- `origin/main` foi confirmado nesse hash logo apos o push. O push tambem
+  publicou os checkpoints locais anteriores C-01 e C-02.
+- Todos os gates locais registrados na secao C-03 permanecem verdes. A unica
+  trava antes de `GO local` e a revisao adversarial independente do commit
+  imutavel.
+- Nenhum deploy, EC2, Google real, WhatsApp real ou mudanca de flag ocorreu.
+
 ## Handoff portatil C-03 - 2026-07-19
 
 - Workspace atual confirmado em
@@ -2859,7 +2870,6 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Suite padrao fechou `1025/1025`; runner hermetico fechou `1140` aprovados,
   cinco skips esperados e zero falhas, com rede externa bloqueada; auditoria
   offline encontrou zero vulnerabilidades. `state_store.json` ficou sem diff.
-- Gate pendente: commit seletivo sanitizado e revisao adversarial independente.
-  Nenhum commit C-03, push C-03, deploy, EC2, WhatsApp ou chamada Google real
-  foi feito ate este registro.
+- Gate pendente: revisao adversarial independente do commit `6c91074`. Nenhum
+  deploy, EC2, WhatsApp ou chamada Google real foi feito.
 - Pacote: `docs/audit/correction-packets/2026-07-19-c03-oauth-revocation.md`.

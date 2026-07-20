@@ -13,7 +13,8 @@
 ## Exact C-03 state
 
 The four adversarial RED contracts were reproduced and closed locally without
-softening assertions. C-03 remains uncommitted and not yet independently
+softening assertions. C-03 was published as immutable audit candidate
+`6c91074138138dc6f55e7d6271708a299c087f50` and is not yet independently
 approved.
 
 Implemented contract:
@@ -37,9 +38,8 @@ audit found zero vulnerabilities. `state_store.json` was restored without a
 diff. Commit, independent review, push for immutable review and deploy remain
 separate gates.
 
-Next action: create a selective sanitized commit, publish its immutable hash and
-inspect that exact diff through an independent Chat review. Do not deploy C-03
-before local GO.
+Next action: inspect commit `6c91074138138dc6f55e7d6271708a299c087f50`
+through an independent Chat review. Do not deploy C-03 before local GO.
 
 ## Files intentionally involved in the unfinished package
 
