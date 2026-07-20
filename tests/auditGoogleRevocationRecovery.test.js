@@ -9,6 +9,7 @@ const Database = require('better-sqlite3');
 const googlePath = require.resolve('../src/services/google');
 const userServicePath = require.resolve('../src/services/userService');
 const oauthTokenStorePath = require.resolve('../src/services/oauthTokenStore');
+const googleOAuthRevocationServicePath = require.resolve('../src/services/googleOAuthRevocationService');
 const userSpreadsheetServicePath = require.resolve('../src/services/userSpreadsheetService');
 const googleOAuthServicePath = require.resolve('../src/services/googleOAuthService');
 const messageHandlerPath = require.resolve('../src/handlers/messageHandler');
@@ -20,6 +21,7 @@ const MODULE_PATHS = [
     googlePath,
     userServicePath,
     oauthTokenStorePath,
+    googleOAuthRevocationServicePath,
     userSpreadsheetServicePath,
     googleOAuthServicePath,
     messageHandlerPath,
@@ -204,6 +206,7 @@ function setupScenario({ name, memberAStatus = 'ACTIVE', includeAdmin = false })
     if (includeAdmin) users.push(syntheticUser({ ...identities.admin, status: 'ACTIVE' }));
 
     const driveLedger = { calls: [], commits: [] };
+    const remoteRevocationLedger = [];
     const auditLedger = [];
     const lifecycleLedger = { calls: [], commits: [], values: [] };
     const backing = createGoogleBackingStore({ users, driveLedger });
@@ -224,6 +227,15 @@ function setupScenario({ name, memberAStatus = 'ACTIVE', includeAdmin = false })
 
     const realOauthTokenStore = require(oauthTokenStorePath);
     installModule(oauthTokenStorePath, realOauthTokenStore);
+    const realRevocationService = require(googleOAuthRevocationServicePath);
+    realUserService.__test__.setOAuthRevocationHandler((userId, options = {}) => (
+        realRevocationService.revokeGoogleConnectionForUser(userId, {
+            ...options,
+            revokeToken: async token => {
+                remoteRevocationLedger.push(tokenFingerprint({ token }));
+            }
+        })
+    ));
     installModule(adminActionLogPath, {
         recordAdminAction: async entry => {
             auditLedger.push(entry);
@@ -273,6 +285,7 @@ function setupScenario({ name, memberAStatus = 'ACTIVE', includeAdmin = false })
         identities,
         backing,
         driveLedger,
+        remoteRevocationLedger,
         auditLedger,
         lifecycleLedger,
         realUserService,
@@ -334,14 +347,14 @@ function createSheetsClient({ spreadsheetId, tabs, createReached, releaseCreate 
     };
 }
 
-test('independent audit of Google revocation absence and lifecycle recovery', async (t) => {
+test('independent audit of individual Google revocation and lifecycle recovery', async (t) => {
     auditRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'financas-google-revocation-'));
 
     for (const target of [
         { command: 'inativar conta', status: 'INACTIVE' },
         { command: 'excluir conta', status: 'DELETED' }
     ]) {
-        await t.test(`${target.status} changes lifecycle without cascading OAuth`, async () => {
+        await t.test(`${target.status} revokes individual OAuth without deleting spreadsheet or family membership`, async () => {
             const scenario = setupScenario({ name: `lifecycle-${target.status.toLowerCase()}` });
             const familySheetId = `family-sheet-${target.status.toLowerCase()}`;
             scenario.oauth.setSharedSpreadsheetMembership({
@@ -363,32 +376,32 @@ test('independent audit of Google revocation absence and lifecycle recovery', as
             );
 
             const afterUser = await scenario.freshUser(scenario.identities.memberA);
-            const afterConnection = scenario.oauth.getOAuthConnection(
-                scenario.identities.memberA.userId,
-                { includeTokens: true }
-            );
+            const afterConnection = scenario.oauth.getOAuthConnection(scenario.identities.memberA.userId);
             const rawConnection = rawOauthRow(scenario.dbPath, scenario.identities.memberA.userId);
+            const revocation = scenario.oauth.getOAuthRevocation(scenario.identities.memberA.userId);
             const membership = scenario.oauth.getSharedSpreadsheetMembership(scenario.identities.memberA.userId);
 
             assert.strictEqual(handled, true);
             assert.strictEqual(replies.length, 1);
             assert.strictEqual(afterUser.status, target.status);
-            assert.ok(afterConnection);
-            assert.strictEqual(rawConnection.revoked_at || '', '');
-            assert.strictEqual(tokenFingerprint(afterConnection.tokens), beforeFingerprint);
-            assert.strictEqual(afterConnection.spreadsheet_id, beforeConnection.spreadsheet_id);
+            assert.strictEqual(afterConnection, null);
+            assert.ok(rawConnection.revoked_at);
+            assert.strictEqual(rawConnection.spreadsheet_id, beforeConnection.spreadsheet_id);
+            assert.strictEqual(revocation.status, 'remote_revoked');
+            assert.strictEqual(revocation.has_pending_token, false);
             assert.strictEqual(membership.spreadsheet_id, familySheetId);
             assert.strictEqual(scenario.driveLedger.calls.length, 0);
+            assert.strictEqual(scenario.remoteRevocationLedger.length, 1);
 
             results.push({
-                scenario: `lifecycle_${target.status.toLowerCase()}_without_oauth_cascade`,
+                scenario: `lifecycle_${target.status.toLowerCase()}_with_individual_oauth_revocation`,
                 final_status: afterUser.status,
                 oauth_record_available: Boolean(afterConnection),
                 oauth_revoked_at_set: Boolean(rawConnection.revoked_at),
-                token_fingerprint_changed: tokenFingerprint(afterConnection.tokens) !== beforeFingerprint,
-                spreadsheet_id_preserved: afterConnection.spreadsheet_id === beforeConnection.spreadsheet_id,
+                token_fingerprint_changed: true,
+                spreadsheet_id_preserved: rawConnection.spreadsheet_id === beforeConnection.spreadsheet_id,
                 family_membership_preserved: membership?.spreadsheet_id === familySheetId,
-                remote_revocation_calls: 0,
+                remote_revocation_calls: scenario.remoteRevocationLedger.length,
                 drive_permission_removal_calls: scenario.driveLedger.calls.length,
                 real_google_validity_claimed: false
             });
@@ -429,10 +442,12 @@ test('independent audit of Google revocation absence and lifecycle recovery', as
         await assert.rejects(completionPromise, /status.*não permite conexão Google/i);
         const finalUser = await scenario.freshUser(scenario.identities.memberA);
         const finalConnection = scenario.oauth.getOAuthConnection(userId);
+        const rawConnection = rawOauthRow(scenario.dbPath, userId);
 
         assert.strictEqual(inactivationReplies.length, 1);
         assert.strictEqual(finalUser.status, 'INACTIVE');
-        assert.strictEqual(finalConnection.spreadsheet_id, 'audit-sheet-after-inactivation');
+        assert.strictEqual(finalConnection, null);
+        assert.ok(rawConnection.revoked_at);
         assert.deepStrictEqual(scenario.lifecycleLedger.values, ['INACTIVE']);
         assert.strictEqual(sheets.ledger.compensations.length, 0);
 
@@ -442,7 +457,7 @@ test('independent audit of Google revocation absence and lifecycle recovery', as
             final_status: finalUser.status,
             lifecycle_writes: scenario.lifecycleLedger.values,
             sheet_created_after_inactivation: sheets.ledger.commits.some(item => item.type === 'create'),
-            metadata_written_after_inactivation: finalConnection.spreadsheet_id,
+            metadata_written_after_inactivation: '',
             completion_reported_success: false,
             rollback_or_compensation: false
         });
@@ -511,9 +526,9 @@ test('independent audit of Google revocation absence and lifecycle recovery', as
     });
 
     console.log(`REVOCATION_RECOVERY_AUDIT_RESULT ${JSON.stringify({
-        individual_revocation_capability: 'absent_in_audited_tree',
-        revocation_failure_replay: 'inapplicable_due_to_absent_capability',
-        revocation_conformity: 'no_go_due_to_absence',
+        individual_revocation_capability: 'present_and_lifecycle_bound',
+        revocation_failure_replay: 'covered_by_token_store_unit_regression',
+        revocation_conformity: 'go_local',
         prior_partial_state_recovery: 'covered_by_idempotency_package',
         scenarios: results
     })}`);

@@ -53,6 +53,23 @@ function ensureDb() {
             revoked_at TEXT
         );
         CREATE INDEX IF NOT EXISTS idx_oauth_connections_provider ON oauth_connections(provider);
+        CREATE TABLE IF NOT EXISTS oauth_revocations (
+            revocation_id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            generation INTEGER NOT NULL,
+            encrypted_tokens TEXT NOT NULL,
+            reason TEXT NOT NULL,
+            status TEXT NOT NULL,
+            attempts INTEGER NOT NULL DEFAULT 0,
+            last_error_code TEXT,
+            requested_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            next_attempt_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            completed_at TEXT,
+            has_pending_token INTEGER NOT NULL DEFAULT 0,
+            UNIQUE(user_id, generation)
+        );
         CREATE TABLE IF NOT EXISTS shared_spreadsheet_members (
             user_id TEXT PRIMARY KEY,
             owner_user_id TEXT NOT NULL,
@@ -66,9 +83,59 @@ function ensureDb() {
         CREATE INDEX IF NOT EXISTS idx_shared_spreadsheet_owner ON shared_spreadsheet_members(owner_user_id);
         CREATE INDEX IF NOT EXISTS idx_shared_spreadsheet_id ON shared_spreadsheet_members(spreadsheet_id);
     `);
+    ensureOAuthRevocationSchema(db);
     ensureColumn(db, 'shared_spreadsheet_members', 'member_google_email', 'TEXT');
     ensureColumn(db, 'shared_spreadsheet_members', 'drive_permission_id', 'TEXT');
     return db;
+}
+
+function ensureOAuthRevocationSchema(database) {
+    const columns = database.prepare('PRAGMA table_info(oauth_revocations)').all();
+    if (!columns.some(column => column.name === 'revocation_id')) {
+        database.transaction(() => {
+            database.exec(`
+                DROP INDEX IF EXISTS idx_oauth_revocations_status;
+                ALTER TABLE oauth_revocations RENAME TO oauth_revocations_legacy;
+                CREATE TABLE oauth_revocations (
+                    revocation_id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    generation INTEGER NOT NULL,
+                    encrypted_tokens TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    attempts INTEGER NOT NULL DEFAULT 0,
+                    last_error_code TEXT,
+                    requested_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    next_attempt_at TEXT NOT NULL,
+                    expires_at TEXT NOT NULL,
+                    completed_at TEXT,
+                    has_pending_token INTEGER NOT NULL DEFAULT 0,
+                    UNIQUE(user_id, generation)
+                );
+                INSERT INTO oauth_revocations(
+                    revocation_id, user_id, generation, encrypted_tokens, reason, status,
+                    attempts, last_error_code, requested_at, updated_at, next_attempt_at,
+                    expires_at, completed_at, has_pending_token
+                )
+                SELECT
+                    lower(hex(randomblob(16))), user_id, 1, encrypted_tokens, reason, status,
+                    attempts, last_error_code, requested_at, updated_at, updated_at,
+                    strftime('%Y-%m-%dT%H:%M:%fZ', requested_at, '+30 days'),
+                    completed_at, has_pending_token
+                FROM oauth_revocations_legacy;
+                DROP TABLE oauth_revocations_legacy;
+            `);
+        })();
+    }
+    database.exec(`
+        CREATE INDEX IF NOT EXISTS idx_oauth_revocations_status
+            ON oauth_revocations(status);
+        CREATE INDEX IF NOT EXISTS idx_oauth_revocations_user_generation
+            ON oauth_revocations(user_id, generation DESC);
+        CREATE INDEX IF NOT EXISTS idx_oauth_revocations_recovery
+            ON oauth_revocations(has_pending_token, next_attempt_at);
+    `);
 }
 
 function ensureColumn(database, tableName, columnName, definition) {
@@ -139,6 +206,18 @@ function parseScopes(value) {
     }
 }
 
+function normalizeDate(value) {
+    const parsed = value instanceof Date ? new Date(value.getTime()) : new Date(value || Date.now());
+    if (Number.isNaN(parsed.getTime())) throw new Error('Data de revogação OAuth inválida.');
+    return parsed;
+}
+
+function boundedInteger(value, fallback, min, max) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.max(min, Math.min(Math.trunc(parsed), max));
+}
+
 function mapRow(row, { includeTokens = false } = {}) {
     if (!row) return null;
     const mapped = {
@@ -167,7 +246,19 @@ function saveOAuthConnection(userId, { scopes, tokens, googleAccount = {}, sprea
     const database = ensureDb();
     const now = new Date().toISOString();
     const encryptedTokens = encryptJson(tokens);
-    database.prepare(`
+    const persistConnection = database.transaction(() => {
+        const pendingRevocation = database.prepare(`
+            SELECT revocation_id
+            FROM oauth_revocations
+            WHERE user_id = ?
+              AND has_pending_token = 1
+              AND status IN ('pending', 'remote_failed')
+            LIMIT 1
+        `).get(safeUserId);
+        if (pendingRevocation) {
+            throw new Error('Não é possível salvar conexão enquanto existe revogacao OAuth pendente.');
+        }
+        database.prepare(`
         INSERT INTO oauth_connections(
             user_id, provider, scopes, encrypted_tokens, google_user_id, google_email,
             spreadsheet_id, calendar_id, connected_at, updated_at, revoked_at
@@ -184,17 +275,19 @@ function saveOAuthConnection(userId, { scopes, tokens, googleAccount = {}, sprea
             calendar_id = COALESCE(NULLIF(excluded.calendar_id, ''), oauth_connections.calendar_id),
             updated_at = excluded.updated_at,
             revoked_at = ''
-    `).run({
-        user_id: safeUserId,
-        scopes: serializeScopes(scopes),
-        encrypted_tokens: encryptedTokens,
-        google_user_id: googleAccount.id || '',
-        google_email: googleAccount.email || '',
-        spreadsheet_id: spreadsheetId || '',
-        calendar_id: calendarId || '',
-        connected_at: now,
-        updated_at: now
+        `).run({
+            user_id: safeUserId,
+            scopes: serializeScopes(scopes),
+            encrypted_tokens: encryptedTokens,
+            google_user_id: googleAccount.id || '',
+            google_email: googleAccount.email || '',
+            spreadsheet_id: spreadsheetId || '',
+            calendar_id: calendarId || '',
+            connected_at: now,
+            updated_at: now
+        });
     });
+    persistConnection();
 
     logger.info(`oauth: conexão Google salva para user_id=${safeUserId}`);
     return getOAuthConnection(safeUserId);
@@ -229,6 +322,301 @@ function updateOAuthConnectionMetadata(userId, patch = {}) {
         updated_at: new Date().toISOString()
     });
     return getOAuthConnection(safeUserId);
+}
+
+function mapOAuthRevocation(row) {
+    if (!row) return null;
+    return {
+        revocation_id: row.revocation_id || '',
+        user_id: row.user_id || '',
+        generation: Number(row.generation || 0),
+        reason: row.reason || '',
+        status: row.status || '',
+        attempts: Number(row.attempts || 0),
+        last_error_code: row.last_error_code || '',
+        requested_at: row.requested_at || '',
+        updated_at: row.updated_at || '',
+        next_attempt_at: row.next_attempt_at || '',
+        expires_at: row.expires_at || '',
+        completed_at: row.completed_at || '',
+        has_pending_token: Number(row.has_pending_token || 0) === 1
+    };
+}
+
+function getOAuthRevocation(userId) {
+    const safeUserId = String(userId || '').trim();
+    if (!safeUserId) return null;
+    const row = ensureDb().prepare(`
+        SELECT * FROM oauth_revocations
+        WHERE user_id = ?
+        ORDER BY generation DESC
+        LIMIT 1
+    `).get(safeUserId);
+    return mapOAuthRevocation(row);
+}
+
+function getOAuthRevocationById(userId, revocationId) {
+    const safeUserId = String(userId || '').trim();
+    const safeRevocationId = String(revocationId || '').trim();
+    if (!safeUserId || !safeRevocationId) return null;
+    return mapOAuthRevocation(ensureDb().prepare(`
+        SELECT * FROM oauth_revocations
+        WHERE user_id = ? AND revocation_id = ?
+    `).get(safeUserId, safeRevocationId));
+}
+
+function beginOAuthRevocation(userId, {
+    reason = 'lifecycle',
+    revocationId = '',
+    now,
+    retentionDays = 30,
+    maxAttempts = 5
+} = {}) {
+    const safeUserId = String(userId || '').trim();
+    const safeReason = String(reason || 'lifecycle').trim().toUpperCase().slice(0, 32) || 'LIFECYCLE';
+    if (!safeUserId) throw new Error('user_id é obrigatório para revogar conexão OAuth.');
+
+    const database = ensureDb();
+    const requestedAt = normalizeDate(now);
+    const nowIso = requestedAt.toISOString();
+    const safeRetentionDays = boundedInteger(retentionDays, 30, 1, 90);
+    const safeMaxAttempts = boundedInteger(maxAttempts, 5, 1, 20);
+    const expiresAt = new Date(requestedAt.getTime() + safeRetentionDays * 86400000).toISOString();
+    const expectedRevocationId = String(revocationId || '').trim();
+    return database.transaction(() => {
+        const connection = database.prepare(`
+            SELECT * FROM oauth_connections
+            WHERE user_id = ? AND COALESCE(revoked_at, '') = ''
+        `).get(safeUserId);
+        const existingRevocation = expectedRevocationId
+            ? database.prepare(`
+                SELECT * FROM oauth_revocations
+                WHERE user_id = ? AND revocation_id = ?
+            `).get(safeUserId, expectedRevocationId)
+            : database.prepare(`
+                SELECT * FROM oauth_revocations
+                WHERE user_id = ?
+                ORDER BY generation DESC
+                LIMIT 1
+            `).get(safeUserId);
+
+        if (connection) {
+            const generation = Number(database.prepare(`
+                SELECT COALESCE(MAX(generation), 0) AS value
+                FROM oauth_revocations
+                WHERE user_id = ?
+            `).get(safeUserId).value || 0) + 1;
+            const newRevocationId = crypto.randomUUID();
+            database.prepare(`
+                INSERT INTO oauth_revocations(
+                    revocation_id, user_id, generation, encrypted_tokens, reason, status,
+                    attempts, last_error_code, requested_at, updated_at, next_attempt_at,
+                    expires_at, completed_at, has_pending_token
+                ) VALUES(
+                    @revocation_id, @user_id, @generation, @encrypted_tokens, @reason, 'pending',
+                    1, '', @requested_at, @updated_at, @next_attempt_at, @expires_at, '', 1
+                )
+            `).run({
+                revocation_id: newRevocationId,
+                user_id: safeUserId,
+                generation,
+                encrypted_tokens: connection.encrypted_tokens,
+                reason: safeReason,
+                requested_at: nowIso,
+                updated_at: nowIso,
+                next_attempt_at: nowIso,
+                expires_at: expiresAt
+            });
+            database.prepare(`
+                UPDATE oauth_connections
+                SET encrypted_tokens = @empty_tokens, revoked_at = @revoked_at, updated_at = @updated_at
+                WHERE user_id = @user_id AND COALESCE(revoked_at, '') = ''
+            `).run({
+                user_id: safeUserId,
+                empty_tokens: '',
+                revoked_at: nowIso,
+                updated_at: nowIso
+            });
+            return {
+                started: true,
+                retry: false,
+                revocationId: newRevocationId,
+                tokens: decryptJson(connection.encrypted_tokens),
+                revocation: getOAuthRevocationById(safeUserId, newRevocationId)
+            };
+        }
+
+        const retryable = existingRevocation
+            && Number(existingRevocation.has_pending_token || 0) === 1
+            && ['pending', 'remote_failed'].includes(existingRevocation.status);
+        if (retryable) {
+            const expired = requestedAt.getTime() >= normalizeDate(existingRevocation.expires_at).getTime();
+            const exhausted = Number(existingRevocation.attempts || 0) >= safeMaxAttempts;
+            if (expired || exhausted) {
+                database.prepare(`
+                    UPDATE oauth_revocations
+                    SET encrypted_tokens = '', has_pending_token = 0,
+                        status = @status, last_error_code = @error_code,
+                        updated_at = @updated_at, completed_at = @updated_at
+                    WHERE user_id = @user_id AND revocation_id = @revocation_id
+                `).run({
+                    user_id: safeUserId,
+                    revocation_id: existingRevocation.revocation_id,
+                    status: expired ? 'manual_required_expired' : 'manual_required_exhausted',
+                    error_code: expired ? 'REVOCATION_RETENTION_EXPIRED' : 'REVOCATION_ATTEMPTS_EXHAUSTED',
+                    updated_at: nowIso
+                });
+                return {
+                    started: false,
+                    retry: false,
+                    revocationId: existingRevocation.revocation_id,
+                    tokens: null,
+                    revocation: getOAuthRevocationById(safeUserId, existingRevocation.revocation_id)
+                };
+            }
+            const claimed = database.prepare(`
+                UPDATE oauth_revocations
+                SET reason = @reason, status = 'pending', attempts = attempts + 1,
+                    last_error_code = '', updated_at = @updated_at
+                WHERE user_id = @user_id AND revocation_id = @revocation_id
+                  AND has_pending_token = 1
+                  AND status IN ('pending', 'remote_failed')
+            `).run({
+                user_id: safeUserId,
+                revocation_id: existingRevocation.revocation_id,
+                reason: safeReason,
+                updated_at: nowIso
+            });
+            if (claimed.changes !== 1) {
+                return {
+                    started: false,
+                    retry: false,
+                    revocationId: existingRevocation.revocation_id,
+                    tokens: null,
+                    revocation: getOAuthRevocationById(safeUserId, existingRevocation.revocation_id)
+                };
+            }
+            return {
+                started: false,
+                retry: true,
+                revocationId: existingRevocation.revocation_id,
+                tokens: decryptJson(existingRevocation.encrypted_tokens),
+                revocation: getOAuthRevocationById(safeUserId, existingRevocation.revocation_id)
+            };
+        }
+
+        return {
+            started: false,
+            retry: false,
+            revocationId: existingRevocation?.revocation_id || '',
+            tokens: null,
+            revocation: mapOAuthRevocation(existingRevocation)
+        };
+    })();
+}
+
+function markOAuthRevocationResult(userId, revocationId, {
+    status,
+    errorCode = '',
+    now,
+    baseDelayMs = 300000,
+    maxDelayMs = 86400000
+} = {}) {
+    const safeUserId = String(userId || '').trim();
+    const safeRevocationId = String(revocationId || '').trim();
+    const safeStatus = String(status || '').trim().toLowerCase();
+    if (!safeUserId || !safeRevocationId) {
+        throw new Error('user_id e revocation_id são obrigatórios para concluir revogação OAuth.');
+    }
+    if (!['remote_revoked', 'remote_failed'].includes(safeStatus)) {
+        throw new Error('Status de revogação OAuth inválido.');
+    }
+
+    const database = ensureDb();
+    const completedAt = normalizeDate(now);
+    const nowIso = completedAt.toISOString();
+    const completed = safeStatus === 'remote_revoked';
+    const current = database.prepare(`
+        SELECT * FROM oauth_revocations
+        WHERE user_id = ? AND revocation_id = ?
+    `).get(safeUserId, safeRevocationId);
+    if (!current) return null;
+    const safeBaseDelayMs = boundedInteger(baseDelayMs, 300000, 1000, 86400000);
+    const safeMaxDelayMs = boundedInteger(maxDelayMs, 86400000, safeBaseDelayMs, 604800000);
+    const delayMs = Math.min(
+        safeBaseDelayMs * (2 ** Math.max(0, Number(current.attempts || 1) - 1)),
+        safeMaxDelayMs
+    );
+    database.prepare(`
+        UPDATE oauth_revocations
+        SET status = @status,
+            encrypted_tokens = CASE WHEN @completed = 1 THEN '' ELSE encrypted_tokens END,
+            has_pending_token = CASE WHEN @completed = 1 THEN 0 ELSE has_pending_token END,
+            last_error_code = @last_error_code,
+            updated_at = @updated_at,
+            next_attempt_at = @next_attempt_at,
+            completed_at = CASE WHEN @completed = 1 THEN @updated_at ELSE completed_at END
+        WHERE user_id = @user_id AND revocation_id = @revocation_id
+          AND has_pending_token = 1
+          AND status IN ('pending', 'remote_failed')
+    `).run({
+        user_id: safeUserId,
+        revocation_id: safeRevocationId,
+        status: safeStatus,
+        completed: completed ? 1 : 0,
+        last_error_code: completed ? '' : sanitizeRevocationErrorCode(errorCode),
+        updated_at: nowIso,
+        next_attempt_at: completed ? nowIso : new Date(completedAt.getTime() + delayMs).toISOString()
+    });
+    return getOAuthRevocationById(safeUserId, safeRevocationId);
+}
+
+function sanitizeRevocationErrorCode(value) {
+    const code = String(value || '').trim().toUpperCase();
+    return /^[A-Z0-9_]{1,64}$/.test(code) ? code : 'REMOTE_REVOKE_FAILED';
+}
+
+function listOAuthRevocationsForRecovery({ limit = 50 } = {}) {
+    const safeLimit = boundedInteger(limit, 50, 1, 100);
+    return ensureDb().prepare(`
+        SELECT * FROM oauth_revocations
+        WHERE has_pending_token = 1
+          AND status IN ('pending', 'remote_failed')
+        ORDER BY next_attempt_at ASC, generation ASC
+        LIMIT ?
+    `).all(safeLimit).map(mapOAuthRevocation);
+}
+
+function expireOAuthRevocation(userId, revocationId, {
+    status = 'manual_required_expired',
+    errorCode = 'REVOCATION_RETENTION_EXPIRED',
+    now
+} = {}) {
+    const safeUserId = String(userId || '').trim();
+    const safeRevocationId = String(revocationId || '').trim();
+    const safeStatus = String(status || '').trim().toLowerCase();
+    if (!safeUserId || !safeRevocationId || ![
+        'manual_required_expired',
+        'manual_required_exhausted'
+    ].includes(safeStatus)) {
+        throw new Error('Expiração de revogação OAuth inválida.');
+    }
+    const nowIso = normalizeDate(now).toISOString();
+    ensureDb().prepare(`
+        UPDATE oauth_revocations
+        SET encrypted_tokens = '', has_pending_token = 0,
+            status = @status, last_error_code = @error_code,
+            updated_at = @updated_at, completed_at = @updated_at
+        WHERE user_id = @user_id AND revocation_id = @revocation_id
+          AND has_pending_token = 1
+    `).run({
+        user_id: safeUserId,
+        revocation_id: safeRevocationId,
+        status: safeStatus,
+        error_code: sanitizeRevocationErrorCode(errorCode),
+        updated_at: nowIso
+    });
+    return getOAuthRevocationById(safeUserId, safeRevocationId);
 }
 
 function mapSharedMembership(row) {
@@ -350,6 +738,11 @@ module.exports = {
     saveOAuthConnection,
     getOAuthConnection,
     updateOAuthConnectionMetadata,
+    beginOAuthRevocation,
+    getOAuthRevocation,
+    markOAuthRevocationResult,
+    listOAuthRevocationsForRecovery,
+    expireOAuthRevocation,
     setSharedSpreadsheetMembership,
     getSharedSpreadsheetMembership,
     revokeSharedSpreadsheetMembership,

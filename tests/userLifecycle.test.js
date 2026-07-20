@@ -32,7 +32,7 @@ function buildUserRow({
     return [userId, whatsappId, phone, displayName, status, createdAt, updatedAt, consentAt, termsVersion, deletedAt];
 }
 
-function installUserServiceWithSheets({ users = [], beforeUpdateRow = null } = {}) {
+function installUserServiceWithSheets({ users = [], beforeUpdateRow = null, revokeGoogleConnection = async () => ({}) } = {}) {
     const userServicePath = require.resolve('../src/services/userService');
     const googlePath = require.resolve('../src/services/google');
     delete require.cache[userServicePath];
@@ -70,6 +70,7 @@ function installUserServiceWithSheets({ users = [], beforeUpdateRow = null } = {
     };
 
     const userService = require('../src/services/userService');
+    userService.__test__.setOAuthRevocationHandler(revokeGoogleConnection);
     return { userService, sheets };
 }
 
@@ -328,6 +329,67 @@ test('user lifecycle: admin can deny pending user by blocking access', async () 
     assert.strictEqual(updated.status, 'BLOCKED');
     assert.strictEqual(access.allowed, false);
     assert.match(access.reply, /bloqueado/i);
+});
+
+test('user lifecycle: terminal access statuses revoke individual OAuth before committing status', async () => {
+    for (const targetStatus of ['INACTIVE', 'BLOCKED', 'DELETED']) {
+        const calls = [];
+        const userId = `user-revocation-${targetStatus.toLowerCase()}`;
+        const { userService } = installUserServiceWithSheets({
+            users: [buildUserRow({ userId, status: 'ACTIVE' })],
+            revokeGoogleConnection: async (receivedUserId, options) => {
+                calls.push({ userId: receivedUserId, reason: options.reason });
+                return { localStatus: 'revoked', remoteStatus: 'revoked' };
+            }
+        });
+
+        const updated = await userService.updateUserStatus(userId, targetStatus);
+
+        assert.strictEqual(updated.status, targetStatus);
+        assert.deepStrictEqual(calls, [{ userId, reason: targetStatus }]);
+    }
+});
+
+test('user lifecycle: remote OAuth revoke failure does not preserve operational credentials or block status', async () => {
+    const userId = 'user-revocation-remote-failure';
+    const { userService } = installUserServiceWithSheets({
+        users: [buildUserRow({ userId, status: 'ACTIVE' })],
+        revokeGoogleConnection: async () => ({
+            localStatus: 'revoked',
+            remoteStatus: 'failed'
+        })
+    });
+
+    const updated = await userService.updateUserStatus(userId, 'INACTIVE');
+
+    assert.strictEqual(updated.status, 'INACTIVE');
+    assert.deepStrictEqual(updated.oauth_revocation, {
+        localStatus: 'revoked',
+        remoteStatus: 'failed'
+    });
+});
+
+test('user lifecycle: local OAuth revocation failure still commits the blocking lifecycle status', async () => {
+    const userId = 'user-revocation-local-failure';
+    const { userService } = installUserServiceWithSheets({
+        users: [buildUserRow({ userId, status: 'ACTIVE' })],
+        revokeGoogleConnection: async () => {
+            throw new Error('synthetic local token store failure');
+        }
+    });
+
+    const updated = await userService.updateUserStatus(userId, 'BLOCKED');
+    const fresh = await userService.getUserByIdFresh(userId);
+    const access = await userService.resolveUserAccess(createMessage('consulta protegida'));
+
+    assert.strictEqual(updated.status, 'BLOCKED');
+    assert.strictEqual(fresh.status, 'BLOCKED');
+    assert.strictEqual(access.allowed, false);
+    assert.deepStrictEqual(updated.oauth_revocation, {
+        localStatus: 'failed',
+        remoteStatus: 'not_attempted',
+        errorCode: 'LOCAL_REVOKE_FAILED'
+    });
 });
 
 test('user lifecycle: EXPIRED user can accept terms again and waits for admin approval', async () => {

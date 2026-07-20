@@ -1,6 +1,25 @@
 # Estado atual do FinancasBot
 
-Atualizado em: 2026-07-18
+Atualizado em: 2026-07-20
+
+## Handoff portatil C-03 - 2026-07-19
+
+- Workspace atual confirmado em
+  `C:\\Users\\horus\\Documents\\FinancasBot\\financas-bot`.
+- O pacote de continuidade em
+  `C:\\Users\\horus\\Documents\\FinancasBot\\Trabalho Codex no outro PC`
+  recebeu memoria segura atualizada, bundle Git de todos os refs, patch das
+  alteracoes rastreadas e copia dos novos arquivos C-03; todos os artefatos do
+  handoff foram verificados por SHA-256.
+- Um processo local oculto foi armado para, apos o fechamento deste Codex,
+  esperar os SQLite ativos ficarem livres e executar as sincronizacoes oficial
+  e privada. O registro operacional fica em
+  `last-final-codex-sync-armed.json` e o resultado final em
+  `last-final-codex-sync.log` dentro do pacote portatil.
+- No momento de armar a rotina, `P:\\codex-private` nao estava visivel nesta
+  sessao. A rotina espera o cofre reaparecer ate o timeout; nao considere a
+  transferencia privada concluida antes do log final registrar sucesso.
+- Handoff tecnico detalhado: `docs/agent-memory/handoff-2026-07-19-c03-oauth-revocation.md`.
 
 ## Auditoria exaustiva pós-P5 — fechada para iniciar correções
 
@@ -2814,3 +2833,33 @@ Nao ler nem imprimir conteudo de backups `.env*` em respostas/logs.
 - Revisao adversarial independente final: nenhum `BLOCKER`, `HIGH` ou `MEDIUM`;
   `GO local formal` para `C-02/WGL-01`. Commit, push e deploy nao autorizados.
 - Pacote: `docs/audit/correction-packets/2026-07-18-c02-oauth-lifecycle-precedence.md`.
+
+## C-03 revogacao OAuth individual em gate local - 2026-07-20
+
+- `INACTIVE`, `BLOCKED` e `DELETED` agora revogam a conexao OAuth individual
+  dentro da mesma fila causal de lifecycle do C-02.
+- O tombstone SQLite e aplicado antes da tentativa remota. Mesmo se o token
+  store falhar, o status terminal e persistido e o gate de acesso permanece
+  fechado; a falha retorna somente `LOCAL_REVOKE_FAILED`.
+- `oauth_revocations` agora e append-only por `revocation_id` e `generation`.
+  Updates exigem `user_id + revocation_id`, e resultado antigo nao altera a
+  geracao corrente.
+- Reconexao fica bloqueada enquanto existir job retryable. Sucesso, expiracao
+  ou exaustao apagam o material cifrado retido antes de liberar novo vinculo.
+- A tentativa remota tem timeout. Sweep horario aplica backoff exponencial
+  limitado, maximo de tentativas, retencao e lote limitado. Observabilidade
+  usa somente contagens e codigos constantes.
+- Planilha e metadata historica sao preservadas. Membership familiar/Drive
+  continuam operacao separada e nao sao removidos silenciosamente.
+- Evidencia atual: focados OAuth/lifecycle `30/30`; cinco harnesses OAuth/audit
+  diretamente afetados `35/35`; scheduler `17/17`; prova negativa repetida
+  depois do recovery path unico `4/4`.
+- `node --check` nos nove JS tocados e `git diff --check` passaram; houve apenas
+  aviso esperado de LF/CRLF.
+- Suite padrao fechou `1025/1025`; runner hermetico fechou `1140` aprovados,
+  cinco skips esperados e zero falhas, com rede externa bloqueada; auditoria
+  offline encontrou zero vulnerabilidades. `state_store.json` ficou sem diff.
+- Gate pendente: commit seletivo sanitizado e revisao adversarial independente.
+  Nenhum commit C-03, push C-03, deploy, EC2, WhatsApp ou chamada Google real
+  foi feito ate este registro.
+- Pacote: `docs/audit/correction-packets/2026-07-19-c03-oauth-revocation.md`.

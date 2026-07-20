@@ -9,6 +9,7 @@ const googlePath = require.resolve('../src/services/google');
 const userServicePath = require.resolve('../src/services/userService');
 const readinessNotifierPath = require.resolve('../src/reliability/enforceReadinessNotifier');
 const dailyOpsCheckServicePath = require.resolve('../src/services/dailyOpsCheckService');
+const googleOAuthRevocationServicePath = require.resolve('../src/services/googleOAuthRevocationService');
 
 function formatDateBR(date) {
     return [
@@ -18,12 +19,22 @@ function formatDateBR(date) {
     ].join('/');
 }
 
-function installSchedulerMocks({ users, settingsByUser, sheetsByRange = {}, eventsByUser = {}, readinessAlertSender = null, dailyOpsSender = null, readCalls = null }) {
+function installSchedulerMocks({
+    users,
+    settingsByUser,
+    sheetsByRange = {},
+    eventsByUser = {},
+    readinessAlertSender = null,
+    dailyOpsSender = null,
+    oauthRecovery = async () => ({ attempted: 0, revoked: 0, failed: 0, expired: 0 }),
+    readCalls = null
+}) {
     delete require.cache[schedulerPath];
     delete require.cache[googlePath];
     delete require.cache[userServicePath];
     delete require.cache[readinessNotifierPath];
     delete require.cache[dailyOpsCheckServicePath];
+    delete require.cache[googleOAuthRevocationServicePath];
 
     require.cache[googlePath] = {
         id: googlePath,
@@ -50,6 +61,15 @@ function installSchedulerMocks({ users, settingsByUser, sheetsByRange = {}, even
             expireOldPendingUsers: async () => 0,
             getActiveUsers: async () => users,
             getUserSettingsByUserId: async (userId) => settingsByUser[userId] || {}
+        }
+    };
+
+    require.cache[googleOAuthRevocationServicePath] = {
+        id: googleOAuthRevocationServicePath,
+        filename: googleOAuthRevocationServicePath,
+        loaded: true,
+        exports: {
+            retryPendingGoogleRevocations: oauthRecovery
         }
     };
 
@@ -531,4 +551,21 @@ test('scheduler operational heartbeat persists telemetry self-check without fina
             else process.env[key] = previous[key];
         }
     }
+});
+
+test('scheduler runs bounded OAuth revocation recovery without exposing job data', async () => {
+    const calls = [];
+    const scheduler = installSchedulerMocks({
+        users: [],
+        settingsByUser: {},
+        oauthRecovery: async () => {
+            calls.push('recovery');
+            return { attempted: 2, revoked: 1, failed: 1, expired: 0 };
+        }
+    });
+
+    const result = await scheduler.__test__.recoverPendingGoogleOAuthRevocations();
+
+    assert.deepStrictEqual(calls, ['recovery']);
+    assert.deepStrictEqual(result, { attempted: 2, revoked: 1, failed: 1, expired: 0 });
 });

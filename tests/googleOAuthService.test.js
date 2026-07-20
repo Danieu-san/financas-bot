@@ -8,6 +8,7 @@ const crypto = require('node:crypto');
 function resetModules() {
     for (const modulePath of [
         '../src/services/oauthTokenStore',
+        '../src/services/googleOAuthRevocationService',
         '../src/services/googleOAuthService',
         '../src/services/userService',
         '../src/services/userSpreadsheetService'
@@ -19,6 +20,292 @@ function resetModules() {
         }
     }
 }
+
+test('oauthTokenStore revokes local credentials while preserving public metadata', () => {
+    resetModules();
+    const { dbPath } = configureTestEnv();
+    const store = require('../src/services/oauthTokenStore');
+
+    store.saveOAuthConnection('user-revoke-local', {
+        scopes: ['scope-a'],
+        tokens: {
+            access_token: 'access-local-secret',
+            refresh_token: 'refresh-local-secret'
+        },
+        googleAccount: { id: 'google-local', email: 'local@example.com' },
+        spreadsheetId: 'spreadsheet-preserved',
+        calendarId: 'calendar-preserved'
+    });
+
+    const result = store.beginOAuthRevocation('user-revoke-local', { reason: 'INACTIVE' });
+
+    assert.strictEqual(result.started, true);
+    assert.strictEqual(result.tokens.refresh_token, 'refresh-local-secret');
+    assert.strictEqual(store.getOAuthConnection('user-revoke-local'), null);
+
+    const rawDb = require('better-sqlite3')(dbPath, { readonly: true });
+    try {
+        const connection = rawDb.prepare('SELECT * FROM oauth_connections WHERE user_id = ?')
+            .get('user-revoke-local');
+        const revocation = rawDb.prepare('SELECT * FROM oauth_revocations WHERE user_id = ?')
+            .get('user-revoke-local');
+        assert.ok(connection.revoked_at);
+        assert.strictEqual(connection.spreadsheet_id, 'spreadsheet-preserved');
+        assert.strictEqual(connection.calendar_id, 'calendar-preserved');
+        assert.strictEqual(connection.encrypted_tokens.includes('refresh-local-secret'), false);
+        assert.strictEqual(revocation.status, 'pending');
+        assert.strictEqual(revocation.reason, 'INACTIVE');
+    } finally {
+        rawDb.close();
+    }
+});
+
+test('Google revocation fails closed locally and retries the remote revoke idempotently', async () => {
+    resetModules();
+    configureTestEnv();
+    const store = require('../src/services/oauthTokenStore');
+    const service = require('../src/services/googleOAuthRevocationService');
+    const calls = [];
+
+    store.saveOAuthConnection('user-revoke-retry', {
+        scopes: ['scope-a'],
+        tokens: { refresh_token: 'refresh-retry-secret' },
+        spreadsheetId: 'spreadsheet-retry'
+    });
+
+    const failed = await service.revokeGoogleConnectionForUser('user-revoke-retry', {
+        reason: 'BLOCKED',
+        revokeToken: async token => {
+            calls.push(token);
+            throw new Error('synthetic remote outage with secret refresh-retry-secret');
+        }
+    });
+
+    assert.strictEqual(failed.localStatus, 'revoked');
+    assert.strictEqual(failed.remoteStatus, 'failed');
+    assert.strictEqual(store.getOAuthConnection('user-revoke-retry'), null);
+    const pending = store.getOAuthRevocation('user-revoke-retry');
+    assert.strictEqual(pending.status, 'remote_failed');
+    assert.strictEqual(pending.last_error_code, 'REMOTE_REVOKE_FAILED');
+    assert.strictEqual(JSON.stringify(pending).includes('refresh-retry-secret'), false);
+
+    const retried = await service.revokeGoogleConnectionForUser('user-revoke-retry', {
+        reason: 'BLOCKED',
+        revokeToken: async token => calls.push(token)
+    });
+    const completed = store.getOAuthRevocation('user-revoke-retry');
+
+    assert.strictEqual(retried.localStatus, 'already_revoked');
+    assert.strictEqual(retried.remoteStatus, 'revoked');
+    assert.deepStrictEqual(calls, ['refresh-retry-secret', 'refresh-retry-secret']);
+    assert.strictEqual(completed.status, 'remote_revoked');
+    assert.strictEqual(completed.has_pending_token, false);
+
+    const idempotent = await service.revokeGoogleConnectionForUser('user-revoke-retry', {
+        reason: 'BLOCKED',
+        revokeToken: async token => calls.push(token)
+    });
+    assert.strictEqual(idempotent.remoteStatus, 'already_revoked');
+    assert.strictEqual(calls.length, 2);
+});
+
+test('a new OAuth connection is blocked until an old remote revocation is resolved', async () => {
+    resetModules();
+    configureTestEnv();
+    const store = require('../src/services/oauthTokenStore');
+    const service = require('../src/services/googleOAuthRevocationService');
+
+    store.saveOAuthConnection('user-reconnect-after-revoke', {
+        scopes: ['scope-a'],
+        tokens: { refresh_token: 'old-refresh-secret' }
+    });
+    await service.revokeGoogleConnectionForUser('user-reconnect-after-revoke', {
+        reason: 'INACTIVE',
+        revokeToken: async () => { throw new Error('synthetic outage'); }
+    });
+    assert.strictEqual(store.getOAuthRevocation('user-reconnect-after-revoke').has_pending_token, true);
+
+    assert.throws(() => {
+        store.saveOAuthConnection('user-reconnect-after-revoke', {
+            scopes: ['scope-a'],
+            tokens: { refresh_token: 'new-refresh-secret' }
+        });
+    }, /revoga(?:ção|cao) OAuth pendente/i);
+
+    await service.revokeGoogleConnectionForUser('user-reconnect-after-revoke', {
+        reason: 'INACTIVE',
+        revokeToken: async () => {}
+    });
+    store.saveOAuthConnection('user-reconnect-after-revoke', {
+        scopes: ['scope-a'],
+        tokens: { refresh_token: 'new-refresh-secret' }
+    });
+
+    const revocation = store.getOAuthRevocation('user-reconnect-after-revoke');
+    assert.strictEqual(revocation.status, 'remote_revoked');
+    assert.strictEqual(revocation.has_pending_token, false);
+    assert.strictEqual(
+        store.getOAuthConnection('user-reconnect-after-revoke', { includeTokens: true }).tokens.refresh_token,
+        'new-refresh-secret'
+    );
+});
+
+test('late results from an old revocation cannot mutate a newer revocation generation', () => {
+    resetModules();
+    configureTestEnv();
+    const store = require('../src/services/oauthTokenStore');
+
+    store.saveOAuthConnection('user-revocation-generation', {
+        scopes: ['scope-a'],
+        tokens: { refresh_token: 'generation-one' }
+    });
+    const first = store.beginOAuthRevocation('user-revocation-generation', { reason: 'INACTIVE' });
+    store.markOAuthRevocationResult('user-revocation-generation', first.revocationId, {
+        status: 'remote_revoked'
+    });
+
+    store.saveOAuthConnection('user-revocation-generation', {
+        scopes: ['scope-a'],
+        tokens: { refresh_token: 'generation-two' }
+    });
+    const second = store.beginOAuthRevocation('user-revocation-generation', { reason: 'BLOCKED' });
+    store.markOAuthRevocationResult('user-revocation-generation', first.revocationId, {
+        status: 'remote_failed',
+        errorCode: 'LATE_OLD_RESULT'
+    });
+
+    const current = store.getOAuthRevocation('user-revocation-generation');
+    assert.notStrictEqual(first.revocationId, second.revocationId);
+    assert.strictEqual(current.revocation_id, second.revocationId);
+    assert.strictEqual(current.status, 'pending');
+    assert.strictEqual(current.has_pending_token, true);
+});
+
+test('automatic recovery retries due revocations and expires retained tokens by policy', async () => {
+    resetModules();
+    configureTestEnv();
+    const store = require('../src/services/oauthTokenStore');
+    const service = require('../src/services/googleOAuthRevocationService');
+
+    store.saveOAuthConnection('user-auto-retry', {
+        scopes: ['scope-a'],
+        tokens: { refresh_token: 'auto-retry-secret' }
+    });
+    await service.revokeGoogleConnectionForUser('user-auto-retry', {
+        reason: 'DELETED',
+        now: new Date('2026-07-01T00:00:00.000Z'),
+        revokeToken: async () => { throw new Error('synthetic outage'); }
+    });
+
+    const recovered = await service.retryPendingGoogleRevocations({
+        now: new Date('2026-07-02T00:00:00.000Z'),
+        revokeToken: async () => {},
+        limit: 10
+    });
+    assert.deepStrictEqual(recovered, { attempted: 1, revoked: 1, failed: 0, expired: 0 });
+    assert.strictEqual(store.getOAuthRevocation('user-auto-retry').status, 'remote_revoked');
+
+    store.saveOAuthConnection('user-expire-retention', {
+        scopes: ['scope-a'],
+        tokens: { refresh_token: 'expire-retention-secret' }
+    });
+    await service.revokeGoogleConnectionForUser('user-expire-retention', {
+        reason: 'BLOCKED',
+        now: new Date('2026-01-01T00:00:00.000Z'),
+        revokeToken: async () => { throw new Error('synthetic outage'); }
+    });
+    const expired = await service.retryPendingGoogleRevocations({
+        now: new Date('2026-02-01T00:00:00.000Z'),
+        revokeToken: async () => {},
+        retentionDays: 30,
+        limit: 10
+    });
+    const stale = store.getOAuthRevocation('user-expire-retention');
+    assert.strictEqual(expired.expired, 1);
+    assert.strictEqual(stale.status, 'manual_required_expired');
+    assert.strictEqual(stale.has_pending_token, false);
+});
+
+test('automatic recovery honors backoff and exhausts bounded attempts without retaining token material', async () => {
+    resetModules();
+    const { dbPath } = configureTestEnv();
+    const store = require('../src/services/oauthTokenStore');
+    const service = require('../src/services/googleOAuthRevocationService');
+
+    store.saveOAuthConnection('user-bounded-retry', {
+        scopes: ['scope-a'],
+        tokens: { refresh_token: 'bounded-retry-secret' }
+    });
+    await service.revokeGoogleConnectionForUser('user-bounded-retry', {
+        reason: 'BLOCKED',
+        now: new Date('2026-03-01T00:00:00.000Z'),
+        maxAttempts: 2,
+        baseDelayMs: 3600000,
+        revokeToken: async () => { throw new Error('synthetic outage'); }
+    });
+
+    const beforeDue = await service.retryPendingGoogleRevocations({
+        now: new Date('2026-03-01T00:30:00.000Z'),
+        maxAttempts: 2,
+        baseDelayMs: 3600000,
+        revokeToken: async () => { throw new Error('must not run before backoff'); }
+    });
+    assert.deepStrictEqual(beforeDue, { attempted: 0, revoked: 0, failed: 0, expired: 0 });
+
+    const secondFailure = await service.retryPendingGoogleRevocations({
+        now: new Date('2026-03-01T02:00:00.000Z'),
+        maxAttempts: 2,
+        baseDelayMs: 3600000,
+        revokeToken: async () => { throw new Error('synthetic outage'); }
+    });
+    assert.deepStrictEqual(secondFailure, { attempted: 1, revoked: 0, failed: 1, expired: 0 });
+
+    const exhausted = await service.retryPendingGoogleRevocations({
+        now: new Date('2026-03-01T04:00:00.000Z'),
+        maxAttempts: 2,
+        baseDelayMs: 3600000,
+        revokeToken: async () => {}
+    });
+    const finalJob = store.getOAuthRevocation('user-bounded-retry');
+    assert.strictEqual(exhausted.expired, 1);
+    assert.strictEqual(finalJob.status, 'manual_required_exhausted');
+    assert.strictEqual(finalJob.has_pending_token, false);
+
+    const rawDb = require('better-sqlite3')(dbPath, { readonly: true });
+    try {
+        const rawJob = rawDb.prepare(`
+            SELECT encrypted_tokens FROM oauth_revocations
+            WHERE user_id = ? AND revocation_id = ?
+        `).get('user-bounded-retry', finalJob.revocation_id);
+        assert.strictEqual(rawJob.encrypted_tokens, '');
+    } finally {
+        rawDb.close();
+    }
+});
+
+test('remote OAuth revocation is time-bounded while local credentials remain revoked', async () => {
+    resetModules();
+    configureTestEnv();
+    const store = require('../src/services/oauthTokenStore');
+    const service = require('../src/services/googleOAuthRevocationService');
+
+    store.saveOAuthConnection('user-revoke-timeout', {
+        scopes: ['scope-a'],
+        tokens: { refresh_token: 'timeout-refresh-secret' }
+    });
+    const startedAt = Date.now();
+    const result = await service.revokeGoogleConnectionForUser('user-revoke-timeout', {
+        reason: 'DELETED',
+        timeoutMs: 20,
+        revokeToken: async () => new Promise(() => {})
+    });
+
+    assert.ok(Date.now() - startedAt < 1000);
+    assert.strictEqual(result.localStatus, 'revoked');
+    assert.strictEqual(result.remoteStatus, 'failed');
+    assert.strictEqual(store.getOAuthConnection('user-revoke-timeout'), null);
+    assert.strictEqual(store.getOAuthRevocation('user-revoke-timeout').status, 'remote_failed');
+});
 
 function configureTestEnv() {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'financas-oauth-'));

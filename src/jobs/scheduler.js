@@ -15,6 +15,7 @@ const { buildNextRecurringDueDate, isRecurringDueOnDate } = require('../utils/re
 const { sendInterpretationReadinessAlert } = require('../reliability/enforceReadinessNotifier');
 const { sendDailyOpsCheckReport } = require('../services/dailyOpsCheckService');
 const { recordLegacyUsageHeartbeat } = require('../telemetry/legacyUsageTelemetry');
+const { retryPendingGoogleRevocations } = require('../services/googleOAuthRevocationService');
 
 let client;
 let isInitialized = false;
@@ -613,6 +614,28 @@ async function sendInterpretationReadinessAdminAlert() {
     }
 }
 
+async function recoverPendingGoogleOAuthRevocations() {
+    try {
+        const result = await retryPendingGoogleRevocations();
+        if (result.attempted > 0 || result.expired > 0) {
+            logger.info(
+                `[scheduler] oauth_revocation_recovery attempted=${result.attempted} `
+                + `revoked=${result.revoked} failed=${result.failed} expired=${result.expired}`
+            );
+        }
+        return result;
+    } catch (error) {
+        logger.warn('[scheduler] oauth_revocation_recovery_failed');
+        return {
+            attempted: 0,
+            revoked: 0,
+            failed: 0,
+            expired: 0,
+            errorCode: 'OAUTH_REVOCATION_RECOVERY_FAILED'
+        };
+    }
+}
+
 async function sendDailyOpsCheckAdminReport() {
     try {
         const result = await sendDailyOpsCheckReport({
@@ -674,6 +697,7 @@ function initializeScheduler(wppClient) {
 
     cron.schedule('0 * * * *', async () => {
         await sendOperationalHeartbeat();
+        await recoverPendingGoogleOAuthRevocations();
     }, { scheduled: true, timezone: 'America/Sao_Paulo' });
 
     cron.schedule('5 9 * * *', async () => {
@@ -727,6 +751,7 @@ module.exports = {
         sumSchedulerCanonicalCards,
         sumSchedulerLegacyCards,
         sendOperationalHeartbeat,
+        recoverPendingGoogleOAuthRevocations,
         sendDailyOpsCheckAdminReport,
         sendInterpretationReadinessAdminAlert,
         collectPaymentsDueOnDate,

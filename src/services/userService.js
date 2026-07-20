@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const { readDataFromSheet, appendRowToSheet, updateRowInSheet } = require('./google');
+const logger = require('../utils/logger');
 
 const USERS_SHEET = 'Users';
 const PROFILE_SHEET = 'UserProfile';
@@ -22,6 +23,12 @@ const USER_STATUS = Object.freeze({
     DELETED: 'DELETED',
     EXPIRED: 'EXPIRED'
 });
+const OAUTH_REVOCATION_STATUSES = new Set([
+    USER_STATUS.INACTIVE,
+    USER_STATUS.BLOCKED,
+    USER_STATUS.DELETED
+]);
+let oauthRevocationHandler = null;
 
 const USER_HEADERS = [
     'user_id',
@@ -651,11 +658,32 @@ async function withUserStatusUpdateLock(userId, operation) {
     }
 }
 
+function getOAuthRevocationHandler() {
+    if (typeof oauthRevocationHandler === 'function') return oauthRevocationHandler;
+    // Lazy loading avoids coupling normal read-only lifecycle checks to Google APIs.
+    return require('./googleOAuthRevocationService').revokeGoogleConnectionForUser;
+}
+
+async function revokeOAuthForTerminalStatus(userId, status) {
+    if (!OAUTH_REVOCATION_STATUSES.has(status)) return null;
+    try {
+        return await getOAuthRevocationHandler()(userId, { reason: status });
+    } catch (error) {
+        logger.warn('oauth: falha local ao invalidar credencial; lifecycle terminal preservado');
+        return {
+            localStatus: 'failed',
+            remoteStatus: 'not_attempted',
+            errorCode: 'LOCAL_REVOKE_FAILED'
+        };
+    }
+}
+
 async function updateUserStatusUnlocked(userId, status) {
     const users = await getAllUsers();
     const user = users.find(u => u.user_id === userId);
     if (!user) return null;
 
+    const oauthRevocation = await revokeOAuthForTerminalStatus(userId, status);
     const now = nowIso();
     const updated = {
         ...user,
@@ -664,7 +692,7 @@ async function updateUserStatusUnlocked(userId, status) {
         deleted_at: status === USER_STATUS.DELETED ? now : ''
     };
     await updateUserRowByIndex(user.rowIndex, updated);
-    return updated;
+    return oauthRevocation ? { ...updated, oauth_revocation: oauthRevocation } : updated;
 }
 
 async function updateUserStatus(userId, status) {
@@ -735,6 +763,7 @@ async function transitionUserStatus(userId, { allowedFromStatuses = [], targetSt
             return { transitioned: false, reason: 'already_target', user };
         }
 
+        const oauthRevocation = await revokeOAuthForTerminalStatus(safeUserId, safeTargetStatus);
         const now = nowIso();
         const updated = {
             ...user,
@@ -743,7 +772,11 @@ async function transitionUserStatus(userId, { allowedFromStatuses = [], targetSt
             deleted_at: safeTargetStatus === USER_STATUS.DELETED ? now : ''
         };
         await updateUserRowByIndex(user.rowIndex, updated);
-        return { transitioned: true, reason: 'updated', user: updated };
+        return {
+            transitioned: true,
+            reason: 'updated',
+            user: oauthRevocation ? { ...updated, oauth_revocation: oauthRevocation } : updated
+        };
     });
 }
 
@@ -1074,6 +1107,9 @@ module.exports = {
         SETTINGS_HEADERS,
         columnNameFromNumber,
         settingsRange,
-        buildSettingsRow
+        buildSettingsRow,
+        setOAuthRevocationHandler(handler) {
+            oauthRevocationHandler = typeof handler === 'function' ? handler : null;
+        }
     }
 };

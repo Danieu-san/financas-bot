@@ -13,6 +13,7 @@ const userServicePath = require.resolve('../src/services/userService');
 const oauthTokenStorePath = require.resolve('../src/services/oauthTokenStore');
 const userSpreadsheetServicePath = require.resolve('../src/services/userSpreadsheetService');
 const googleOAuthServicePath = require.resolve('../src/services/googleOAuthService');
+const schedulerPath = require.resolve('../src/jobs/scheduler');
 const dashboardServerPath = require.resolve('../src/services/dashboardServer');
 const readModelPath = require.resolve('../src/services/readModelService');
 const whatsappPath = require.resolve('../src/services/whatsapp');
@@ -21,6 +22,13 @@ const adminActionLogPath = require.resolve('../src/services/adminActionLogServic
 const metricsPath = require.resolve('../src/utils/metrics');
 const googleapisPath = require.resolve('googleapis');
 const manifestPath = path.join(projectRoot, 'docs', 'audit', '08-google-entrypoint-sink-negative-proof-2026-07-18.md');
+const c03ManifestPath = path.join(
+    projectRoot,
+    'docs',
+    'audit',
+    'correction-packets',
+    '2026-07-19-c03-oauth-revocation.md'
+);
 
 const USER_HEADERS = [
     'user_id', 'whatsapp_id', 'phone_e164', 'display_name', 'status',
@@ -298,18 +306,22 @@ function extractPreparedSql(source) {
 test('P5 negative proof for Google entrypoints and authorization boundaries', async (t) => {
     auditRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'financas-google-negative-'));
 
-    await t.test('static manifest covers reachable writers and confirms no individual revocation writer', () => {
+    await t.test('static manifest and C-03 delta cover the single individual revocation writer', () => {
         const manifest = fs.readFileSync(manifestPath, 'utf8');
+        const c03Manifest = fs.readFileSync(c03ManifestPath, 'utf8');
         const sourceFiles = listJavaScriptFiles(srcRoot);
         const combinedSource = sourceFiles.map(file => fs.readFileSync(file, 'utf8')).join('\n');
         const oauthStoreSource = fs.readFileSync(oauthTokenStorePath, 'utf8');
-        const googleFlowSource = [
+        const googleFlowSourceWithoutC03Recovery = [
             googleOAuthServicePath,
             userSpreadsheetServicePath,
             dashboardServerPath,
             path.join(projectRoot, 'index.js'),
-            ...sourceFiles.filter(file => file.includes(`${path.sep}jobs${path.sep}`))
+            ...sourceFiles.filter(file => (
+                file.includes(`${path.sep}jobs${path.sep}`) && file !== schedulerPath
+            ))
         ].map(file => fs.readFileSync(file, 'utf8')).join('\n');
+        const schedulerSource = fs.readFileSync(schedulerPath, 'utf8');
 
         for (const required of [
             'completeGoogleOAuthCallback',
@@ -324,7 +336,15 @@ test('P5 negative proof for Google entrypoints and authorization boundaries', as
             assert.match(combinedSource, new RegExp(required));
         }
 
-        assert.doesNotMatch(combinedSource, /\brevokeOAuthConnection\b/);
+        for (const required of [
+            'beginOAuthRevocation',
+            'revokeGoogleConnectionForUser',
+            'oauth_revocations'
+        ]) {
+            assert.match(c03Manifest, new RegExp(required));
+            assert.match(combinedSource, new RegExp(required));
+        }
+
         assert.doesNotMatch(combinedSource, /\bdeleteOAuthConnection\b/);
         assert.doesNotMatch(combinedSource, /DELETE\s+FROM\s+oauth_connections/i);
 
@@ -336,13 +356,17 @@ test('P5 negative proof for Google entrypoints and authorization boundaries', as
         const membershipRevocationWriters = preparedSql.filter(sql =>
             /UPDATE\s+shared_spreadsheet_members/i.test(sql) && /\brevoked_at\s*=\s*@revoked_at/i.test(sql)
         );
-        assert.deepStrictEqual(oauthRevocationWriters, []);
+        assert.strictEqual(oauthRevocationWriters.length, 1);
         assert.strictEqual(membershipRevocationWriters.length, 1);
         assert.match(oauthStoreSource, /revoked_at\s*=\s*''/);
         assert.match(oauthStoreSource, /COALESCE\(revoked_at,\s*''\)\s*=\s*''/);
         assert.doesNotMatch(
-            googleFlowSource,
+            googleFlowSourceWithoutC03Recovery,
             /(?:google|oauth)[\s\S]{0,40}(?:recovery|recover|reconcile|journal|claim|resume)|(?:recovery|recover|reconcile|journal|claim|resume)[\s\S]{0,40}(?:google|oauth)/i
+        );
+        assert.strictEqual(
+            [...schedulerSource.matchAll(/\bretryPendingGoogleRevocations\s*\(/g)].length,
+            1
         );
 
         results.push({
@@ -350,7 +374,7 @@ test('P5 negative proof for Google entrypoints and authorization boundaries', as
             source_files_scanned: sourceFiles.length,
             oauth_revocation_writers: oauthRevocationWriters.length,
             membership_revocation_writers: membershipRevocationWriters.length,
-            google_recovery_paths: 0
+            google_recovery_paths: 1
         });
     });
 
