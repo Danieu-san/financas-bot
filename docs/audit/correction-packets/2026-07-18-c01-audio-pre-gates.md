@@ -176,4 +176,5 @@ financeiros.
   pela nova ordem.
 - Reordenação global de todos os handlers de texto.
 - Troca do provedor de transcrição ou adoção de ASR local.
-- Correções analíticas, dashboard, read-model ou `FLOW-01`.
+- Correções analíticas, dashboard, read-model ou os demais caminhos de mídia
+  anteriores ao rate limit agregados em `FLOW-02`.

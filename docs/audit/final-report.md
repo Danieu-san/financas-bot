@@ -18,7 +18,8 @@ Objeto: commit `94c52f23261ae2b9150edcdb7f3ba5ebaba35727`, tree
 - `salvar <referência>` e pergunta proativa de gravação: `NO-GO`.
 - Revisão remota do preview Open Finance: `NO-GO`.
 - Status posterior: `AUTH-01` foi corrigida e validada em produção em
-  2026-07-18; permanecem abertos nove `P1` e sete `P2` do objeto auditado.
+  2026-07-18. Restam nove `P1` residuais — quatro parcialmente resolvidos e
+  cinco abertos — e sete `P2` abertos do objeto auditado.
 
 O resultado mais importante é que as baterias verdes não cobrem algumas
 contradições entre camadas. O bot tem bons controles locais de confirmação,
@@ -56,10 +57,39 @@ confirmou os arquivos exigidos e deu `GO` local sem `BLOCKER`, `HIGH` ou
 
 Este adendo fecha somente `C-03/WGL-02`. Ele não fecha o componente de
 compartilhamento Drive do achado agregado `AUTH-03`, nem `WGL-03/WGL-04` sobre
-replay e compensação da saga Google. A contagem consolidada de achados abertos
-deve ser reconciliada antes de selecionar a próxima correção.
+replay e compensação da saga Google.
 
-## Achados prioritários
+## Estado consolidado das remediações — 2026-07-21
+
+Esta tabela preserva a severidade e a identidade dos achados originais, mas
+separa o estado posterior das correções. `Parcial` não reduz severidade nem
+autoriza deploy: indica apenas que uma parte causal possui evidência local.
+
+| ID | Sev. | Estado posterior | Limite atual |
+| --- | --- | --- | --- |
+| AUTH-01 | P1 | Resolvido | autorização por nome removida e validação produtiva concluída |
+| FLOW-01 | P1 | Parcial | C-01 implementada e testada localmente; revisão adversarial independente pendente |
+| DATA-01 | P1 | Aberto | indisponibilidade Google ainda pode virar resultado financeiro vazio/falso |
+| DATA-02 | P1 | Aberto | fronteira genérica `USER_ENTERED` ainda não neutraliza todo texto |
+| AUTH-02 | P1 | Parcial | C-02 impede reativação por lifecycle, mas replay e planilha órfã permanecem |
+| AUTH-03 | P1 | Parcial | C-03 revoga OAuth individual; membership/permissão Drive permanece |
+| FLOW-03 | P1 | Aberto | scheduler central e writes pessoais ainda divergem |
+| STATE-01 | P1 | Aberto | não há serialização geral por remetente |
+| STATE-02 | P1 | Parcial | claim de áudio concorrente implementado na C-01; revisão independente pendente |
+| PRIV-01 | P1 | Aberto | escapes de log e identificadores crus ainda não foram fechados globalmente |
+| AUTH-04 | P2 | Aberto | token de dashboard não é invalidado imediatamente pelo bloqueio |
+| FLOW-02 | P2 | Aberto | caminhos de OCR/receipts/import/export anteriores ao rate limit não foram fechados |
+| FLOW-04 | P2 | Aberto | jobs gerais do scheduler ainda não possuem outbox/retry durável por usuário |
+| STATE-03 | P2 | Aberto | shutdown Redis ainda não prova espera do último flush |
+| STATE-04 | P2 | Aberto | snapshot e permissão produtiva ainda não foram corrigidos |
+| COV-01 | P2 | Aberto | gate padrão ainda não incorpora formalmente toda a bateria hermética |
+| OPS-01 | P2 | Aberto | runtime e `.env.example` continuam sem sincronização integral |
+
+Contagem vigente: um P1 resolvido; nove P1 residuais, sendo quatro parciais e
+cinco abertos; sete P2 abertos. As seções e tabelas anteriores continuam como
+registro do objeto original, não como quadro vigente de remediação.
+
+## Achados prioritários originais
 
 | Ordem | ID | Sev. | Síntese | Evidência |
 | --- | --- | --- | --- | --- |
@@ -124,16 +154,19 @@ Esta sequência é uma fila, não autorização imediata:
 
 1. **concluído:** remover admin por nome e criar vínculo explícito seguro de
    `@lid`;
-2. mover dedup, acesso e rate limit antes de áudio/mídia/efeitos externos;
+2. **gate imediato:** fechar a revisão adversarial independente da C-01, que
+   já moveu dedup, acesso e rate limit antes do áudio e implementou o claim de
+   `STATE-02`;
 3. preservar indisponibilidade de leitura até dashboard, análise e scheduler;
 4. neutralizar textos na fronteira genérica do Sheets;
-5. tornar OAuth state de uso único e unificar revogação de lifecycle;
-6. serializar mensagens por remetente;
-7. alinhar scheduler à planilha pessoal e adicionar outbox durável;
-8. fechar escapes de log e proteger o snapshot;
-9. transformar a bateria Open Finance local em gate padrão de release;
-10. sincronizar schema de ambiente e `.env.example`;
-11. reauditar cada fatia antes de promoção.
+5. tratar separadamente replay/uso único e compensação OAuth (`WGL-03/WGL-04`);
+6. remover membership/permissão Drive quando o lifecycle exigir;
+7. serializar mensagens por remetente;
+8. alinhar scheduler à planilha pessoal e adicionar outbox durável;
+9. fechar escapes de log e proteger o snapshot;
+10. transformar a bateria Open Finance local em gate padrão de release;
+11. sincronizar schema de ambiente e `.env.example`;
+12. reauditar cada fatia antes de promoção.
 
 ## Gate de retorno obrigatório
 
@@ -142,4 +175,6 @@ natural posterior ocorreu sem ser forçado e recebeu `GO`: tree equivalente,
 PM2/health/WhatsApp verdes, `writes=0`, journal real vazio, preview estável,
 retenção válida e outbox sem itens pendentes/in-flight. A trava de retorno foi
 satisfeita. `AUTH-01` foi corrigida em fatia explícita posterior; a próxima
-correção priorizada é `FLOW-01`, ainda sem autorização automática.
+ação priorizada é a revisão adversarial independente de `C-01/FLOW-01`,
+incluindo o contrato parcial de `STATE-02`. Nenhuma nova correção está
+automaticamente autorizada antes desse veredito.

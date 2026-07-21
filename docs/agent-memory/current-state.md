@@ -2,6 +2,31 @@
 
 Atualizado em: 2026-07-21
 
+## Quadro vigente do backlog apos C-03 - 2026-07-21
+
+- A reconciliacao documental do HEAD
+  `6032ccca082dc977d737d429b1c16fc2de5eec06` preserva os 10 achados P1 e os
+  sete P2 do objeto original, mas separa remediacao completa, parcial e aberta.
+- Estado atual dos P1: um resolvido (`AUTH-01`), quatro parcialmente resolvidos
+  (`FLOW-01`, `AUTH-02`, `AUTH-03` e `STATE-02`) e cinco abertos (`DATA-01`,
+  `DATA-02`, `FLOW-03`, `STATE-01` e `PRIV-01`). Portanto, restam nove P1
+  residuais, dos quais quatro ja possuem correcao parcial documentada.
+- Os sete P2 permanecem abertos: `AUTH-04`, `FLOW-02`, `FLOW-04`, `STATE-03`,
+  `STATE-04`, `COV-01` e `OPS-01`.
+- `C-01` implementou localmente os gates de audio de `FLOW-01` e o claim de
+  `STATE-02`, com baterias locais verdes, mas ainda nao recebeu revisao
+  adversarial independente formal. Esse e o unico gate imediato; produto e
+  producao permanecem congelados.
+- `C-02/WGL-01` possui `GO local formal`, mas nao fecha replay do mesmo state,
+  planilhas orfas ou compensacao (`WGL-03/WGL-04`). `C-03/WGL-02` possui `GO
+  local formal`, mas nao remove membership/permissao Drive familiar.
+- As secoes cronologicas abaixo preservam o estado conhecido em cada data. Em
+  caso de divergencia textual com uma secao historica, este quadro e as secoes
+  mais recentes prevalecem.
+- Proximo passo unico: publicar este acerto documental e submeter o diff atual
+  de `C-01/FLOW-01`, incluindo o contrato de `STATE-02`, a revisao adversarial
+  independente. Nao iniciar `DATA-01` antes desse veredito.
+
 ## C-03 fechamento local independente - GO - 2026-07-21
 
 - O Chat confirmou o HEAD imutavel
