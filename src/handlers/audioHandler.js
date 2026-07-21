@@ -20,6 +20,7 @@ if (!fs.existsSync(audioDir)) {
 }
 
 async function handleAudio(msg) {
+    let tempDir = '';
     let audioPath = '';
     let mp3Path = '';
     try {
@@ -33,12 +34,12 @@ async function handleAudio(msg) {
             return null; // Retorna null em caso de falha
         }
 
-        const timestamp = new Date().getTime();
-        audioPath = path.join(audioDir, `audio_${timestamp}.ogg`);
+        tempDir = fs.mkdtempSync(path.join(audioDir, 'audio-'));
+        audioPath = path.join(tempDir, 'source.ogg');
         fs.writeFileSync(audioPath, Buffer.from(media.data, 'base64'));
         logger.info('[audio] temp_file_created type=ogg');
 
-        mp3Path = audioPath.replace('.ogg', '.mp3');
+        mp3Path = path.join(tempDir, 'converted.mp3');
         logger.info('[audio] conversion_started');
 
         await new Promise((resolve, reject) => {
@@ -75,6 +76,7 @@ async function handleAudio(msg) {
     } finally {
         safeUnlink(audioPath);
         safeUnlink(mp3Path);
+        safeRemoveTempDir(tempDir);
     }
 }
 
@@ -86,6 +88,15 @@ function safeUnlink(filePath) {
         }
     } catch (error) {
         logger.warn(`[audio] temp_cleanup_failed error=${error.message}`);
+    }
+}
+
+function safeRemoveTempDir(dirPath) {
+    if (!dirPath) return;
+    try {
+        fs.rmSync(dirPath, { recursive: true, force: true });
+    } catch (error) {
+        logger.warn(`[audio] temp_directory_cleanup_failed error=${error.message}`);
     }
 }
 
