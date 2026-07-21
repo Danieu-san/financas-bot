@@ -3,6 +3,8 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
 
+const ownedAudioTempPaths = new Set();
+
 test('audioHandler does not log transcribed financial text and removes temp files on success', async () => {
     const fluentPath = require.resolve('fluent-ffmpeg');
     const geminiPath = require.resolve('../src/services/gemini');
@@ -20,6 +22,7 @@ test('audioHandler does not log transcribed financial text and removes temp file
                     return this;
                 },
                 save(outputPath) {
+                    trackOwnedAudioTempPath(inputPath);
                     fs.writeFileSync(outputPath, `converted:${inputPath}`, 'utf8');
                     setImmediate(() => this.on_end());
                     return this;
@@ -76,6 +79,7 @@ test('audioHandler removes converted temp file when transcription fails', async 
                     return this;
                 },
                 save(outputPath) {
+                    trackOwnedAudioTempPath(inputPath);
                     fs.writeFileSync(outputPath, `converted:${inputPath}`, 'utf8');
                     setImmediate(() => this.on_end());
                     return this;
@@ -131,6 +135,7 @@ test('audioHandler isolates concurrent temp files when timestamps match', async 
                     return this;
                 },
                 save(outputPath) {
+                    trackOwnedAudioTempPath(inputPath);
                     conversions.push({ inputPath, outputPath, operation: this });
                     if (conversions.length === 2) {
                         for (const conversion of conversions) {
@@ -187,15 +192,94 @@ test('audioHandler isolates concurrent temp files when timestamps match', async 
     }
 });
 
-function findAudioTempFiles() {
+test('audio test cleanup preserves unrelated audio-prefixed directories', () => {
     const audioDir = path.resolve(process.cwd(), 'audio_files');
-    if (!fs.existsSync(audioDir)) return [];
-    return fs.readdirSync(audioDir, { withFileTypes: true })
-        .filter(entry => (
-            (entry.isDirectory() && entry.name.startsWith('audio-'))
-            || /^audio_\d+\.(ogg|mp3)$/.test(entry.name)
-        ))
-        .map(entry => path.join(audioDir, entry.name));
+    const unrelatedDir = path.join(audioDir, 'audio-backup');
+    const markerPath = path.join(unrelatedDir, 'keep.txt');
+    fs.mkdirSync(unrelatedDir, { recursive: true });
+    fs.writeFileSync(markerPath, 'unrelated', 'utf8');
+
+    try {
+        cleanupAudioTempFiles();
+        assert.strictEqual(fs.readFileSync(markerPath, 'utf8'), 'unrelated');
+    } finally {
+        fs.rmSync(unrelatedDir, { recursive: true, force: true });
+    }
+});
+
+test('audioHandler does not expose a local path when temp directory cleanup fails', async () => {
+    const fluentPath = require.resolve('fluent-ffmpeg');
+    const geminiPath = require.resolve('../src/services/gemini');
+    const audioHandlerPath = require.resolve('../src/handlers/audioHandler');
+    const logger = require('../src/utils/logger');
+    delete require.cache[audioHandlerPath];
+
+    let ownedDir = '';
+    require.cache[fluentPath] = {
+        id: fluentPath,
+        filename: fluentPath,
+        loaded: true,
+        exports: Object.assign((inputPath) => ({
+            toFormat: () => ({
+                on(event, handler) {
+                    this[`on_${event}`] = handler;
+                    return this;
+                },
+                save(outputPath) {
+                    ownedDir = path.dirname(inputPath);
+                    trackOwnedAudioTempPath(inputPath);
+                    fs.writeFileSync(outputPath, 'converted', 'utf8');
+                    setImmediate(() => this.on_end());
+                    return this;
+                }
+            })
+        }), { setFfmpegPath: () => {} })
+    };
+    require.cache[geminiPath] = {
+        id: geminiPath,
+        filename: geminiPath,
+        loaded: true,
+        exports: { transcribeAudio: async () => 'texto seguro' }
+    };
+
+    const warnings = [];
+    const originalWarn = logger.warn;
+    const originalRmSync = fs.rmSync;
+    logger.warn = message => warnings.push(String(message));
+    fs.rmSync = (targetPath, options) => {
+        if (targetPath === ownedDir) {
+            throw new Error('cleanup failed at C:\\Users\\private-user\\audio-secret');
+        }
+        return originalRmSync(targetPath, options);
+    };
+
+    try {
+        const { handleAudio } = require('../src/handlers/audioHandler');
+        const result = await handleAudio({
+            reply: async () => {},
+            downloadMedia: async () => ({ data: Buffer.from('fake-audio').toString('base64') })
+        });
+
+        assert.strictEqual(result, 'texto seguro');
+        assert.deepStrictEqual(warnings, ['[audio] temp_directory_cleanup_failed']);
+        assert.doesNotMatch(warnings.join('\n'), /private-user|audio-secret|C:\\Users/i);
+    } finally {
+        fs.rmSync = originalRmSync;
+        logger.warn = originalWarn;
+        cleanupAudioTempFiles();
+    }
+});
+
+function findAudioTempFiles() {
+    return [...ownedAudioTempPaths].filter(tempPath => fs.existsSync(tempPath));
+}
+
+function trackOwnedAudioTempPath(filePath) {
+    const audioDir = path.resolve(process.cwd(), 'audio_files');
+    const tempDir = path.dirname(filePath);
+    if (path.dirname(tempDir) === audioDir) {
+        ownedAudioTempPaths.add(tempDir);
+    }
 }
 
 function cleanupAudioTempFiles() {
@@ -204,4 +288,5 @@ function cleanupAudioTempFiles() {
             fs.rmSync(file, { recursive: true, force: true });
         } catch {}
     }
+    ownedAudioTempPaths.clear();
 }

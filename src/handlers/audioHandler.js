@@ -95,8 +95,8 @@ function safeRemoveTempDir(dirPath) {
     if (!dirPath) return;
     try {
         fs.rmSync(dirPath, { recursive: true, force: true });
-    } catch (error) {
-        logger.warn(`[audio] temp_directory_cleanup_failed error=${error.message}`);
+    } catch {
+        logger.warn('[audio] temp_directory_cleanup_failed');
     }
 }
 
