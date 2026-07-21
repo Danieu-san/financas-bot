@@ -2,6 +2,28 @@
 
 Atualizado em: 2026-07-21
 
+## C-01 fechamento local independente - GO - 2026-07-21
+
+- O Chat confirmou o candidato imutavel
+  `0188570edcc96d3dd95afb4207fb08746feb80c5` e reauditou estaticamente o
+  ultimo delta de teste. O `LOW` do fixture fixo foi fechado: o teste cria um
+  diretorio exclusivo com `fs.mkdtempSync`, continua causal contra o helper
+  antigo e remove somente o caminho que ele proprio criou.
+- O `MEDIUM` de colisao/remocao cruzada de temporarios, o `LOW` do helper de
+  limpeza e o `LOW` do warning com caminho local estao fechados. Nao surgiu
+  novo `BLOCKER`, `HIGH`, `MEDIUM` ou `LOW` material.
+- Gates locais do candidato exato: focado `5/5`; bateria afetada `120/120`;
+  `npm test` `1036/1036`; runner hermetico valido com `1156` testes,
+  `1151` pass, cinco skips funcionais esperados e zero falhas, com rede externa
+  bloqueada; auditoria npm offline com zero vulnerabilidades; zero residuos e
+  estado/logs restaurados sem diff rastreado. Checks de sintaxe e diff verdes.
+- Veredito: `GO local integral da C-01`. `FLOW-01` e o contrato original
+  restrito de `STATE-02` passam a resolvidos. Deduplicacao entre restarts ou
+  multiplas instancias continua limite separado; `PRIV-01` permanece aberto.
+- Git local e `origin/main` foram confirmados no mesmo hash `0188570...` antes
+  deste registro. Deploy, producao e servicos reais nao foram avaliados nem
+  autorizados. Proxima correcao causal: `DATA-01`.
+
 ## C-01 MEDIUM de temporarios corrigido localmente - 2026-07-21
 
 - Commit imutavel de produto/teste:
@@ -48,31 +70,29 @@ Atualizado em: 2026-07-21
   Nenhum deploy, producao, Gemini/WhatsApp real ou nova frente `DATA-01` foi
   autorizado.
 
-## Quadro vigente do backlog apos C-03 - 2026-07-21
+## Quadro vigente do backlog apos C-01 - 2026-07-21
 
 - A reconciliacao documental do HEAD
   `6032ccca082dc977d737d429b1c16fc2de5eec06` preserva os 10 achados P1 e os
   sete P2 do objeto original, mas separa remediacao completa, parcial e aberta.
-- Estado atual dos P1: um resolvido (`AUTH-01`), quatro parcialmente resolvidos
-  (`FLOW-01`, `AUTH-02`, `AUTH-03` e `STATE-02`) e cinco abertos (`DATA-01`,
-  `DATA-02`, `FLOW-03`, `STATE-01` e `PRIV-01`). Portanto, restam nove P1
-  residuais, dos quais quatro ja possuem correcao parcial documentada.
+- Estado atual dos P1: tres resolvidos (`AUTH-01`, `FLOW-01` e `STATE-02`),
+  dois parcialmente resolvidos (`AUTH-02` e `AUTH-03`) e cinco abertos
+  (`DATA-01`, `DATA-02`, `FLOW-03`, `STATE-01` e `PRIV-01`). Portanto, restam
+  sete P1 residuais, dos quais dois ja possuem correcao parcial documentada.
 - Os sete P2 permanecem abertos: `AUTH-04`, `FLOW-02`, `FLOW-04`, `STATE-03`,
   `STATE-04`, `COV-01` e `OPS-01`.
-- `C-01` resolveu localmente os contratos originais de `FLOW-01` e do claim
-  restrito de `STATE-02`. O `MEDIUM` de colisao de temporarios que causou o
-  `NO-GO` possui correcao e prova locais, mas ainda aguarda nova revisao
-  independente. Esse e o unico gate imediato; produto e producao permanecem
-  congelados.
+- `C-01` possui `GO local integral`: resolveu os contratos originais de
+  `FLOW-01` e do claim restrito de `STATE-02`, incluindo o fechamento do
+  `MEDIUM` de colisao de temporarios e dos `LOW` surgidos na reauditoria.
+  Produto e producao permanecem congelados.
 - `C-02/WGL-01` possui `GO local formal`, mas nao fecha replay do mesmo state,
   planilhas orfas ou compensacao (`WGL-03/WGL-04`). `C-03/WGL-02` possui `GO
   local formal`, mas nao remove membership/permissao Drive familiar.
 - As secoes cronologicas abaixo preservam o estado conhecido em cada data. Em
   caso de divergencia textual com uma secao historica, este quadro e as secoes
   mais recentes prevalecem.
-- Proximo passo unico: submeter o intervalo imutavel da correcao de temporarios
-  a nova revisao independente da `C-01`. Nao iniciar `DATA-01` antes desse
-  veredito.
+- Proximo passo unico: iniciar `DATA-01`, impedindo que indisponibilidade de
+  leitura Google seja convertida em lista vazia ou resposta financeira falsa.
 
 ## C-03 fechamento local independente - GO - 2026-07-21
 

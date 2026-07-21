@@ -17,9 +17,10 @@ Objeto: commit `94c52f23261ae2b9150edcdb7f3ba5ebaba35727`, tree
 - Expansão multiusuário: `NO-GO`.
 - `salvar <referência>` e pergunta proativa de gravação: `NO-GO`.
 - Revisão remota do preview Open Finance: `NO-GO`.
-- Status posterior: `AUTH-01` foi corrigida e validada em produção em
-  2026-07-18. Restam nove `P1` residuais — quatro parcialmente resolvidos e
-  cinco abertos — e sete `P2` abertos do objeto auditado.
+- Status posterior: `AUTH-01` foi corrigida e validada em produção; `FLOW-01`
+  e o contrato original restrito de `STATE-02` receberam `GO local` na C-01.
+  Restam sete `P1` residuais — dois parcialmente resolvidos e cinco abertos —
+  e sete `P2` abertos do objeto auditado.
 
 O resultado mais importante é que as baterias verdes não cobrem algumas
 contradições entre camadas. O bot tem bons controles locais de confirmação,
@@ -71,7 +72,16 @@ diretório temporário atômico exclusivo criado por `fs.mkdtempSync`. O RED
 determinístico com duas conversões no mesmo milissegundo reproduziu conteúdo e
 remoção cruzados; o GREEN passou `3/3`, e a bateria C-01 diretamente afetada
 passou `118/118`, com checks de sintaxe/diff verdes e zero resíduos. O candidato
-ainda aguarda nova revisão independente e não possui `GO` integral.
+ainda aguardava nova revisão independente naquele ponto.
+
+O fechamento final ocorreu no candidato
+`0188570edcc96d3dd95afb4207fb08746feb80c5`. A revisão independente confirmou
+o último delta e fechou o risco do fixture fixo, sem novo `BLOCKER`, `HIGH`,
+`MEDIUM` ou `LOW` material. No candidato exato, os gates locais foram: `5/5`
+focados, `120/120` afetados, `npm test` `1036/1036`, runner hermético válido com
+`1156` testes e zero falhas, rede externa bloqueada, auditoria npm offline sem
+vulnerabilidades e zero resíduos. Resultado: `GO local integral da C-01`.
+Deploy e produção não foram avaliados.
 
 ## Adendo de remediação — C-03 / WGL-02 — 2026-07-21
 
@@ -96,14 +106,14 @@ autoriza deploy: indica apenas que uma parte causal possui evidência local.
 | ID | Sev. | Estado posterior | Limite atual |
 | --- | --- | --- | --- |
 | AUTH-01 | P1 | Resolvido | autorização por nome removida e validação produtiva concluída |
-| FLOW-01 | P1 | Parcial | contrato original resolvido; correção local da colisão aguarda nova revisão C-01 |
+| FLOW-01 | P1 | Resolvido | efeitos de áudio após os gates e temporários isolados por execução; C-01 com GO local integral |
 | DATA-01 | P1 | Aberto | indisponibilidade Google ainda pode virar resultado financeiro vazio/falso |
 | DATA-02 | P1 | Aberto | fronteira genérica `USER_ENTERED` ainda não neutraliza todo texto |
 | AUTH-02 | P1 | Parcial | C-02 impede reativação por lifecycle, mas replay e planilha órfã permanecem |
 | AUTH-03 | P1 | Parcial | C-03 revoga OAuth individual; membership/permissão Drive permanece |
 | FLOW-03 | P1 | Aberto | scheduler central e writes pessoais ainda divergem |
 | STATE-01 | P1 | Aberto | não há serialização geral por remetente |
-| STATE-02 | P1 | Parcial | resolvido para mesma instância/TTL; correção local da colisão aguarda nova revisão C-01 |
+| STATE-02 | P1 | Resolvido | mesmo message ID não é retranscrito na mesma instância/TTL; C-01 com GO local integral |
 | PRIV-01 | P1 | Aberto | escapes de log e identificadores crus ainda não foram fechados globalmente |
 | AUTH-04 | P2 | Aberto | token de dashboard não é invalidado imediatamente pelo bloqueio |
 | FLOW-02 | P2 | Aberto | caminhos de OCR/receipts/import/export anteriores ao rate limit não foram fechados |
@@ -113,7 +123,7 @@ autoriza deploy: indica apenas que uma parte causal possui evidência local.
 | COV-01 | P2 | Aberto | gate padrão ainda não incorpora formalmente toda a bateria hermética |
 | OPS-01 | P2 | Aberto | runtime e `.env.example` continuam sem sincronização integral |
 
-Contagem vigente: um P1 resolvido; nove P1 residuais, sendo quatro parciais e
+Contagem vigente: três P1 resolvidos; sete P1 residuais, sendo dois parciais e
 cinco abertos; sete P2 abertos. As seções e tabelas anteriores continuam como
 registro do objeto original, não como quadro vigente de remediação.
 
@@ -182,9 +192,10 @@ Esta sequência é uma fila, não autorização imediata:
 
 1. **concluído:** remover admin por nome e criar vínculo explícito seguro de
    `@lid`;
-2. **gate imediato:** publicar e revisar independentemente a correção local que
-   isolou temporários de áudio e passou a prova de timestamp idêntico;
-3. preservar indisponibilidade de leitura até dashboard, análise e scheduler;
+2. **concluído:** isolar temporários de áudio por execução e fechar a C-01 com
+   revisão independente e gates locais integrais;
+3. **gate imediato:** preservar indisponibilidade de leitura até dashboard,
+   análise e scheduler (`DATA-01`);
 4. neutralizar textos na fronteira genérica do Sheets;
 5. tratar separadamente replay/uso único e compensação OAuth (`WGL-03/WGL-04`);
 6. remover membership/permissão Drive quando o lifecycle exigir;
@@ -201,9 +212,8 @@ A auditoria documental, estática, local e operacional está concluída. O ciclo
 natural posterior ocorreu sem ser forçado e recebeu `GO`: tree equivalente,
 PM2/health/WhatsApp verdes, `writes=0`, journal real vazio, preview estável,
 retenção válida e outbox sem itens pendentes/in-flight. A trava de retorno foi
-satisfeita. `AUTH-01` foi corrigida em fatia explícita posterior. A revisão da
-C-01 aceitou localmente `FLOW-01` e o contrato restrito de `STATE-02`, mas deu
-`NO-GO` ao pacote pela colisão possível entre temporários de áudios distintos.
-A correção e a prova concorrente já estão verdes localmente; a próxima ação é
-publicar o candidato e repetir a revisão independente. Nenhuma nova frente está
-automaticamente autorizada antes desse veredito.
+satisfeita. `AUTH-01` foi corrigida em fatia explícita posterior. A C-01 recebeu
+`GO local integral`: `FLOW-01`, o contrato original restrito de `STATE-02` e a
+colisão de temporários estão fechados, com revisão independente e gates locais
+verdes no candidato `0188570...`. Deploy e produção não foram avaliados. A
+próxima correção causal é `DATA-01`.

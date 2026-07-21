@@ -222,6 +222,26 @@ Essas evidências criam um candidato para nova revisão independente. Não
 substituem a revisão, a suíte completa ou o runner hermético exigidos para o
 `GO local` integral.
 
+### Fechamento local independente — GO — 2026-07-21
+
+O candidato final imutável é
+`0188570edcc96d3dd95afb4207fb08746feb80c5`. A revisão estática independente
+confirmou que o `MEDIUM` dos temporários e os três `LOW` subsequentes estão
+fechados, sem nova severidade material: o helper rastreia apenas diretórios do
+teste; o warning não inclui caminho ou erro cru; e o fixture de preservação é
+criado atomicamente e removido somente pelo teste que comprovou sua posse.
+
+No candidato exato, a evidência local final foi: teste focado `5/5`, bateria
+afetada `120/120`, `npm test` `1036/1036`, runner hermético válido com `1156`
+testes (`1151` pass, cinco skips funcionais esperados e zero falhas), rede
+externa bloqueada, auditoria npm offline com zero vulnerabilidades, zero
+resíduos e restauração de estado/logs sem diff rastreado. Checks de sintaxe e
+diff também ficaram verdes.
+
+Veredito: `GO local integral da C-01`. Deploy, produção e serviços reais não
+foram avaliados. Deduplicação após restart ou entre instâncias e o fechamento
+global de `PRIV-01` permanecem limites separados.
+
 ## Fora do escopo
 
 - `C-02/C-03` de OAuth e revogação.
