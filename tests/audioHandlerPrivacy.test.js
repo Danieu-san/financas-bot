@@ -194,9 +194,9 @@ test('audioHandler isolates concurrent temp files when timestamps match', async 
 
 test('audio test cleanup preserves unrelated audio-prefixed directories', () => {
     const audioDir = path.resolve(process.cwd(), 'audio_files');
-    const unrelatedDir = path.join(audioDir, 'audio-backup');
+    fs.mkdirSync(audioDir, { recursive: true });
+    const unrelatedDir = fs.mkdtempSync(path.join(audioDir, 'audio-backup-'));
     const markerPath = path.join(unrelatedDir, 'keep.txt');
-    fs.mkdirSync(unrelatedDir, { recursive: true });
     fs.writeFileSync(markerPath, 'unrelated', 'utf8');
 
     try {
