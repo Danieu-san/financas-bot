@@ -2,6 +2,30 @@
 
 Atualizado em: 2026-07-21
 
+## C-01 revisao adversarial independente - NO-GO - 2026-07-21
+
+- O Chat confirmou o HEAD imutavel
+  `30cb39e17e635712e75ad5198e7c4dccbf6f6e8d`, o intervalo de produto
+  `c6103234fa344a60d6cd8dae7a141281c396d6c6..f4c160649c2f97a48d20ad7d68dd1467ceee683f`
+  e a identidade dos quatro arquivos centrais no HEAD. A revisao foi estatica
+  e nao reproduziu testes.
+- `FLOW-01` foi confirmado como resolvido localmente: nenhum download,
+  conversao ou transcricao ocorre antes dos gates definidos. O contrato
+  especifico de `STATE-02` tambem foi confirmado para o mesmo message ID, na
+  mesma instancia e dentro do TTL de cinco minutos.
+- Veredito do pacote C-01: `NO-GO`. Um `MEDIUM` novo foi confirmado no codigo:
+  `audioHandler.js` usa apenas `Date.now()` para os caminhos `.ogg` e `.mp3`.
+  Dois audios distintos no mesmo milissegundo podem compartilhar arquivos,
+  causando sobrescrita, remocao cruzada, falha ou transcricao trocada.
+- Dois `LOW` foram preservados como limites separados: o claim de deduplicacao
+  e local/volatil e nao cobre restart ou multiplas instancias; mensagens de
+  erro externas arbitrarias ainda nao sao integralmente neutralizadas, de modo
+  que `PRIV-01` permanece aberto.
+- Proximo gate unico: corrigir a colisao de temporarios com isolamento por
+  execucao e prova concorrente deterministica, repetir apenas os testes
+  diretamente afetados e submeter o patch a nova revisao independente. Nenhum
+  deploy, producao, Gemini/WhatsApp real ou nova frente `DATA-01` foi autorizado.
+
 ## Quadro vigente do backlog apos C-03 - 2026-07-21
 
 - A reconciliacao documental do HEAD
@@ -13,18 +37,18 @@ Atualizado em: 2026-07-21
   residuais, dos quais quatro ja possuem correcao parcial documentada.
 - Os sete P2 permanecem abertos: `AUTH-04`, `FLOW-02`, `FLOW-04`, `STATE-03`,
   `STATE-04`, `COV-01` e `OPS-01`.
-- `C-01` implementou localmente os gates de audio de `FLOW-01` e o claim de
-  `STATE-02`, com baterias locais verdes, mas ainda nao recebeu revisao
-  adversarial independente formal. Esse e o unico gate imediato; produto e
-  producao permanecem congelados.
+- `C-01` resolveu localmente os contratos originais de `FLOW-01` e do claim
+  restrito de `STATE-02`, mas recebeu `NO-GO` como pacote por um novo `MEDIUM`:
+  colisao possivel entre temporarios de audios distintos. Esse e o unico gate
+  imediato; produto e producao permanecem congelados.
 - `C-02/WGL-01` possui `GO local formal`, mas nao fecha replay do mesmo state,
   planilhas orfas ou compensacao (`WGL-03/WGL-04`). `C-03/WGL-02` possui `GO
   local formal`, mas nao remove membership/permissao Drive familiar.
 - As secoes cronologicas abaixo preservam o estado conhecido em cada data. Em
   caso de divergencia textual com uma secao historica, este quadro e as secoes
   mais recentes prevalecem.
-- Proximo passo unico: publicar este acerto documental e submeter o diff atual
-  de `C-01/FLOW-01`, incluindo o contrato de `STATE-02`, a revisao adversarial
+- Proximo passo unico: corrigir e testar o isolamento dos temporarios de audio
+  da `C-01`, publicar um novo candidato imutavel e repetir a revisao
   independente. Nao iniciar `DATA-01` antes desse veredito.
 
 ## C-03 fechamento local independente - GO - 2026-07-21

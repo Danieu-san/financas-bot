@@ -45,6 +45,26 @@ mensagem real, polling forçado ou escrita financeira. Open Finance permaneceu
 em canary/canary com write mode `off`, e o dashboard admin amplo permaneceu
 desligado.
 
+## Adendo de remediação — C-01 / FLOW-01 / STATE-02 — 2026-07-21
+
+A revisão independente confirmou o HEAD
+`30cb39e17e635712e75ad5198e7c4dccbf6f6e8d`, o intervalo de produto
+`c6103234fa344a60d6cd8dae7a141281c396d6c6..f4c160649c2f97a48d20ad7d68dd1467ceee683f`
+e os arquivos exigidos. A análise foi estática e não reproduziu os testes.
+
+`FLOW-01` foi aceito como resolvido localmente: os efeitos de áudio agora ficam
+depois dos gates. O contrato específico de `STATE-02` também foi aceito para o
+mesmo message ID na mesma instância e dentro do TTL. O pacote C-01, contudo,
+recebeu `NO-GO` por um novo `MEDIUM`: `.ogg` e `.mp3` usam somente o timestamp
+em milissegundos, permitindo colisão entre áudios distintos, sobrescrita,
+remoção cruzada ou transcrição trocada. Os testes atuais não exercitam essa
+concorrência.
+
+O fechamento da C-01 exige temporários isolados por execução, teste concorrente
+determinístico e nova revisão independente. Deduplicação após restart ou entre
+instâncias permanece limite `LOW`; sanitização arbitrária de erros externos
+permanece em `PRIV-01`. Deploy e produção não foram avaliados nem autorizados.
+
 ## Adendo de remediação — C-03 / WGL-02 — 2026-07-21
 
 A ausência de revogação OAuth individual foi fechada localmente no HEAD
@@ -68,14 +88,14 @@ autoriza deploy: indica apenas que uma parte causal possui evidência local.
 | ID | Sev. | Estado posterior | Limite atual |
 | --- | --- | --- | --- |
 | AUTH-01 | P1 | Resolvido | autorização por nome removida e validação produtiva concluída |
-| FLOW-01 | P1 | Parcial | C-01 implementada e testada localmente; revisão adversarial independente pendente |
+| FLOW-01 | P1 | Parcial | contrato original resolvido localmente; pacote C-01 em NO-GO por colisão de temporários |
 | DATA-01 | P1 | Aberto | indisponibilidade Google ainda pode virar resultado financeiro vazio/falso |
 | DATA-02 | P1 | Aberto | fronteira genérica `USER_ENTERED` ainda não neutraliza todo texto |
 | AUTH-02 | P1 | Parcial | C-02 impede reativação por lifecycle, mas replay e planilha órfã permanecem |
 | AUTH-03 | P1 | Parcial | C-03 revoga OAuth individual; membership/permissão Drive permanece |
 | FLOW-03 | P1 | Aberto | scheduler central e writes pessoais ainda divergem |
 | STATE-01 | P1 | Aberto | não há serialização geral por remetente |
-| STATE-02 | P1 | Parcial | claim de áudio concorrente implementado na C-01; revisão independente pendente |
+| STATE-02 | P1 | Parcial | resolvido localmente apenas para mesma instância e TTL; pacote C-01 ainda em NO-GO |
 | PRIV-01 | P1 | Aberto | escapes de log e identificadores crus ainda não foram fechados globalmente |
 | AUTH-04 | P2 | Aberto | token de dashboard não é invalidado imediatamente pelo bloqueio |
 | FLOW-02 | P2 | Aberto | caminhos de OCR/receipts/import/export anteriores ao rate limit não foram fechados |
@@ -154,9 +174,9 @@ Esta sequência é uma fila, não autorização imediata:
 
 1. **concluído:** remover admin por nome e criar vínculo explícito seguro de
    `@lid`;
-2. **gate imediato:** fechar a revisão adversarial independente da C-01, que
-   já moveu dedup, acesso e rate limit antes do áudio e implementou o claim de
-   `STATE-02`;
+2. **gate imediato:** isolar temporários de áudio por execução, provar a
+   concorrência com timestamp idêntico e repetir a revisão independente da
+   C-01;
 3. preservar indisponibilidade de leitura até dashboard, análise e scheduler;
 4. neutralizar textos na fronteira genérica do Sheets;
 5. tratar separadamente replay/uso único e compensação OAuth (`WGL-03/WGL-04`);
@@ -174,7 +194,8 @@ A auditoria documental, estática, local e operacional está concluída. O ciclo
 natural posterior ocorreu sem ser forçado e recebeu `GO`: tree equivalente,
 PM2/health/WhatsApp verdes, `writes=0`, journal real vazio, preview estável,
 retenção válida e outbox sem itens pendentes/in-flight. A trava de retorno foi
-satisfeita. `AUTH-01` foi corrigida em fatia explícita posterior; a próxima
-ação priorizada é a revisão adversarial independente de `C-01/FLOW-01`,
-incluindo o contrato parcial de `STATE-02`. Nenhuma nova correção está
-automaticamente autorizada antes desse veredito.
+satisfeita. `AUTH-01` foi corrigida em fatia explícita posterior. A revisão da
+C-01 aceitou localmente `FLOW-01` e o contrato restrito de `STATE-02`, mas deu
+`NO-GO` ao pacote pela colisão possível entre temporários de áudios distintos.
+A próxima ação priorizada é corrigir esse `MEDIUM`; nenhuma nova frente está
+automaticamente autorizada antes de novo veredito independente.
