@@ -65,6 +65,14 @@ determinístico e nova revisão independente. Deduplicação após restart ou en
 instâncias permanece limite `LOW`; sanitização arbitrária de erros externos
 permanece em `PRIV-01`. Deploy e produção não foram avaliados nem autorizados.
 
+Correção local posterior no commit
+`3d738fdc3ed65d9c767858e0377d3c2b62eabffc`: cada áudio agora recebe um
+diretório temporário atômico exclusivo criado por `fs.mkdtempSync`. O RED
+determinístico com duas conversões no mesmo milissegundo reproduziu conteúdo e
+remoção cruzados; o GREEN passou `3/3`, e a bateria C-01 diretamente afetada
+passou `118/118`, com checks de sintaxe/diff verdes e zero resíduos. O candidato
+ainda aguarda nova revisão independente e não possui `GO` integral.
+
 ## Adendo de remediação — C-03 / WGL-02 — 2026-07-21
 
 A ausência de revogação OAuth individual foi fechada localmente no HEAD
@@ -88,14 +96,14 @@ autoriza deploy: indica apenas que uma parte causal possui evidência local.
 | ID | Sev. | Estado posterior | Limite atual |
 | --- | --- | --- | --- |
 | AUTH-01 | P1 | Resolvido | autorização por nome removida e validação produtiva concluída |
-| FLOW-01 | P1 | Parcial | contrato original resolvido localmente; pacote C-01 em NO-GO por colisão de temporários |
+| FLOW-01 | P1 | Parcial | contrato original resolvido; correção local da colisão aguarda nova revisão C-01 |
 | DATA-01 | P1 | Aberto | indisponibilidade Google ainda pode virar resultado financeiro vazio/falso |
 | DATA-02 | P1 | Aberto | fronteira genérica `USER_ENTERED` ainda não neutraliza todo texto |
 | AUTH-02 | P1 | Parcial | C-02 impede reativação por lifecycle, mas replay e planilha órfã permanecem |
 | AUTH-03 | P1 | Parcial | C-03 revoga OAuth individual; membership/permissão Drive permanece |
 | FLOW-03 | P1 | Aberto | scheduler central e writes pessoais ainda divergem |
 | STATE-01 | P1 | Aberto | não há serialização geral por remetente |
-| STATE-02 | P1 | Parcial | resolvido localmente apenas para mesma instância e TTL; pacote C-01 ainda em NO-GO |
+| STATE-02 | P1 | Parcial | resolvido para mesma instância/TTL; correção local da colisão aguarda nova revisão C-01 |
 | PRIV-01 | P1 | Aberto | escapes de log e identificadores crus ainda não foram fechados globalmente |
 | AUTH-04 | P2 | Aberto | token de dashboard não é invalidado imediatamente pelo bloqueio |
 | FLOW-02 | P2 | Aberto | caminhos de OCR/receipts/import/export anteriores ao rate limit não foram fechados |
@@ -174,9 +182,8 @@ Esta sequência é uma fila, não autorização imediata:
 
 1. **concluído:** remover admin por nome e criar vínculo explícito seguro de
    `@lid`;
-2. **gate imediato:** isolar temporários de áudio por execução, provar a
-   concorrência com timestamp idêntico e repetir a revisão independente da
-   C-01;
+2. **gate imediato:** publicar e revisar independentemente a correção local que
+   isolou temporários de áudio e passou a prova de timestamp idêntico;
 3. preservar indisponibilidade de leitura até dashboard, análise e scheduler;
 4. neutralizar textos na fronteira genérica do Sheets;
 5. tratar separadamente replay/uso único e compensação OAuth (`WGL-03/WGL-04`);
@@ -197,5 +204,6 @@ retenção válida e outbox sem itens pendentes/in-flight. A trava de retorno fo
 satisfeita. `AUTH-01` foi corrigida em fatia explícita posterior. A revisão da
 C-01 aceitou localmente `FLOW-01` e o contrato restrito de `STATE-02`, mas deu
 `NO-GO` ao pacote pela colisão possível entre temporários de áudios distintos.
-A próxima ação priorizada é corrigir esse `MEDIUM`; nenhuma nova frente está
-automaticamente autorizada antes de novo veredito independente.
+A correção e a prova concorrente já estão verdes localmente; a próxima ação é
+publicar o candidato e repetir a revisão independente. Nenhuma nova frente está
+automaticamente autorizada antes desse veredito.

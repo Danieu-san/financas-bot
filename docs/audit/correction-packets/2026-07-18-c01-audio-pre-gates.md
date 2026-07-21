@@ -4,8 +4,8 @@
 
 - Prioridade: `CRITICAL`.
 - Base auditada: `0737d7ccbdd309e4c39f503ca781e89d5aac7bc3`.
-- Autorização atual: `NO-GO` após revisão adversarial independente; correção
-  dos temporários concorrentes pendente.
+- Autorização atual: correção local do `MEDIUM` concluída; novo candidato
+  aguarda revisão adversarial independente. O pacote ainda não possui `GO`.
 - Produto, flags, produção, WhatsApp e Gemini real permanecem congelados.
 
 ## Problema causal
@@ -192,6 +192,35 @@ O gate exige isolamento de temporários por execução e um teste concorrente
 determinístico que force o mesmo timestamp. Deduplicação global/durável e o
 fechamento geral de `PRIV-01` continuam resíduos separados e não devem ser
 declarados resolvidos por este pacote.
+
+### Correção local do MEDIUM
+
+O commit imutável de produto/teste é
+`3d738fdc3ed65d9c767858e0377d3c2b62eabffc`; o intervalo mínimo para a nova
+revisão é
+`5462ee7828d41da223fb387c38f7439e58155f39..3d738fdc3ed65d9c767858e0377d3c2b62eabffc`.
+
+O teste novo congela o construtor `Date`, entrega dois áudios distintos no mesmo
+milissegundo e mantém ambas as conversões simultâneas. Contra o código anterior,
+ele reproduziu conteúdo cruzado na primeira resposta e remoção cruzada do MP3 na
+segunda (`2/3`).
+
+O handler deixou de derivar nomes do relógio. Cada execução cria um diretório
+atômico exclusivo com `fs.mkdtempSync`; os arquivos `source.ogg` e
+`converted.mp3` ficam confinados nesse diretório, que também é removido no
+`finally`. O teste exige dois caminhos de entrada, dois de saída, conteúdo
+correto por mensagem e zero resíduos.
+
+Evidência local atual:
+
+- teste focado de privacidade/concorrência de áudio: `3/3`;
+- bateria diretamente afetada C-01: `118/118`;
+- `node --check` dos dois arquivos JS alterados e `git diff --check`: verdes;
+- resíduos temporários após os testes: `0`.
+
+Essas evidências criam um candidato para nova revisão independente. Não
+substituem a revisão, a suíte completa ou o runner hermético exigidos para o
+`GO local` integral.
 
 ## Fora do escopo
 

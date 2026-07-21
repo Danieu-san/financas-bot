@@ -2,6 +2,28 @@
 
 Atualizado em: 2026-07-21
 
+## C-01 MEDIUM de temporarios corrigido localmente - 2026-07-21
+
+- Commit imutavel de produto/teste:
+  `3d738fdc3ed65d9c767858e0377d3c2b62eabffc`. A nova revisao deve auditar o
+  intervalo minimo
+  `5462ee7828d41da223fb387c38f7439e58155f39..3d738fdc3ed65d9c767858e0377d3c2b62eabffc`.
+- O teste concorrente congelou o construtor `Date` no mesmo milissegundo e
+  reproduziu o defeito anterior: um audio recebeu o conteudo do outro e a
+  segunda execucao falhou depois que o `.mp3` compartilhado foi removido.
+- `audioHandler.js` agora cria, com `fs.mkdtempSync`, um diretorio atomico e
+  exclusivo por execucao. `source.ogg` e `converted.mp3` existem somente dentro
+  desse diretorio, e o `finally` remove arquivos e diretorio de forma idempotente.
+- GREEN focado: `audioHandlerPrivacy.test.js` `3/3`. Bateria diretamente
+  afetada da C-01, incluindo maquina de estados e falhas de transcricao:
+  `118/118`. `node --check` dos dois JS alterados, `git diff --check` e contagem
+  de residuos temporarios (`0`) ficaram verdes.
+- O helper de limpeza do teste aceita apenas diretorios com prefixo `audio-` e
+  arquivos legados `audio_<timestamp>.ogg/.mp3`; nao remove outros diretorios.
+- Estado: candidato local pendente de nova revisao independente. Suite
+  completa, runner hermetico, deploy, producao e servicos reais nao foram
+  executados nem autorizados; C-01 ainda nao recebeu `GO`.
+
 ## C-01 revisao adversarial independente - NO-GO - 2026-07-21
 
 - O Chat confirmou o HEAD imutavel
@@ -21,10 +43,10 @@ Atualizado em: 2026-07-21
   e local/volatil e nao cobre restart ou multiplas instancias; mensagens de
   erro externas arbitrarias ainda nao sao integralmente neutralizadas, de modo
   que `PRIV-01` permanece aberto.
-- Proximo gate unico: corrigir a colisao de temporarios com isolamento por
-  execucao e prova concorrente deterministica, repetir apenas os testes
-  diretamente afetados e submeter o patch a nova revisao independente. Nenhum
-  deploy, producao, Gemini/WhatsApp real ou nova frente `DATA-01` foi autorizado.
+- A correcao local e as provas diretamente afetadas foram concluidas na secao
+  mais recente acima. O `NO-GO` permanece vigente ate nova revisao independente.
+  Nenhum deploy, producao, Gemini/WhatsApp real ou nova frente `DATA-01` foi
+  autorizado.
 
 ## Quadro vigente do backlog apos C-03 - 2026-07-21
 
@@ -38,18 +60,19 @@ Atualizado em: 2026-07-21
 - Os sete P2 permanecem abertos: `AUTH-04`, `FLOW-02`, `FLOW-04`, `STATE-03`,
   `STATE-04`, `COV-01` e `OPS-01`.
 - `C-01` resolveu localmente os contratos originais de `FLOW-01` e do claim
-  restrito de `STATE-02`, mas recebeu `NO-GO` como pacote por um novo `MEDIUM`:
-  colisao possivel entre temporarios de audios distintos. Esse e o unico gate
-  imediato; produto e producao permanecem congelados.
+  restrito de `STATE-02`. O `MEDIUM` de colisao de temporarios que causou o
+  `NO-GO` possui correcao e prova locais, mas ainda aguarda nova revisao
+  independente. Esse e o unico gate imediato; produto e producao permanecem
+  congelados.
 - `C-02/WGL-01` possui `GO local formal`, mas nao fecha replay do mesmo state,
   planilhas orfas ou compensacao (`WGL-03/WGL-04`). `C-03/WGL-02` possui `GO
   local formal`, mas nao remove membership/permissao Drive familiar.
 - As secoes cronologicas abaixo preservam o estado conhecido em cada data. Em
   caso de divergencia textual com uma secao historica, este quadro e as secoes
   mais recentes prevalecem.
-- Proximo passo unico: corrigir e testar o isolamento dos temporarios de audio
-  da `C-01`, publicar um novo candidato imutavel e repetir a revisao
-  independente. Nao iniciar `DATA-01` antes desse veredito.
+- Proximo passo unico: submeter o intervalo imutavel da correcao de temporarios
+  a nova revisao independente da `C-01`. Nao iniciar `DATA-01` antes desse
+  veredito.
 
 ## C-03 fechamento local independente - GO - 2026-07-21
 
