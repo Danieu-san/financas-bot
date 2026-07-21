@@ -4,10 +4,10 @@
 
 - Prioridade: `CRITICAL`.
 - Achado causal: `C-03 / WGL-02`.
-- Estado atual: implementacao versionada e testes locais diretamente afetados
-  verdes; revisao adversarial independente pendente.
-- Produto, producao, Google real, WhatsApp, flags, push e deploy permanecem
-  congelados.
+- Estado atual: correcao do `NO-GO` em commit seletivo de codigo/testes
+  `606ae5b`; gates locais verdes e nova revisao independente pendente.
+- Produto, producao, Google real, WhatsApp, flags e deploy permanecem
+  congelados. Publicacao GitHub serve apenas ao gate de auditoria.
 
 ## Problema causal
 
@@ -40,14 +40,17 @@ adaptador Google e o sweep horario do scheduler.
 ## Ledger e recuperacao
 
 A tabela SQLite `oauth_revocations` e append-only por geracao. Cada job possui
-`revocation_id` unico, `user_id`, `generation`, tentativas, proximo retry e
-expiracao. Resultados atualizam somente a combinacao
-`user_id + revocation_id`; resultado atrasado de uma geracao antiga nao altera
-o job corrente.
+`revocation_id` unico, `user_id`, `generation`, tentativas, proximo retry,
+expiracao e politica maxima de tentativas persistida. Cada tentativa recebe um
+`lease_id` exclusivo e permanece `in_progress` ate concluir ou o lease vencer.
+Resultados atualizam somente a combinacao
+`user_id + revocation_id + lease_id`; resultado atrasado de geracao ou lease
+antigo nao altera o job corrente.
 
 Estados sanitizados:
 
-- `pending`: token criptografado reservado apenas para a tentativa remota;
+- `pending`: estado legado sem lease, elegivel para claim atomico;
+- `in_progress`: tentativa remota com lease exclusivo ativo;
 - `remote_failed`: falha remota, com codigo constante e retry possivel;
 - `remote_revoked`: sucesso remoto e token de retry apagado;
 - `manual_required_expired`: retencao vencida e material cifrado apagado;
@@ -62,8 +65,10 @@ material retido ja foi apagado.
 
 A revogacao remota usa `refresh_token` quando existe e `access_token` como
 fallback. A chamada possui timeout configuravel e limitado a 30 segundos. O
-sweep horario respeita backoff exponencial limitado, maximo de tentativas,
-retencao e lote limitado; logs possuem apenas contagens e codigos constantes.
+sweep horario respeita backoff exponencial limitado, `max_attempts` e
+`expires_at` persistidos e lote limitado. Claim, reconnect e migracao usam
+transacao SQLite `IMMEDIATE` com espera limitada. Logs de saida sao sanitizados
+e o sweep publica apenas contagens e codigos constantes.
 
 ## Limites preservados
 
@@ -85,6 +90,11 @@ RED confirmado:
 - lifecycle nao disparava revogacao para estados impeditivos;
 - reconexao preservava tentativa antiga;
 - chamada remota sem resposta podia bloquear indefinidamente.
+- dois workers consumiam o mesmo job e faziam duas chamadas remotas;
+- recovery podia disputar o token com a tentativa inicial ainda em voo;
+- resultado atrasado podia concluir um lease ja substituido;
+- recovery recalculava retencao pela configuracao atual;
+- os schemas legado e versionado nao tinham prova de startup concorrente.
 
 GREEN atual:
 
@@ -92,8 +102,14 @@ GREEN atual:
 - falha remota falha fechado e pode ser repetida idempotentemente;
 - sucesso remoto apaga o token pendente e replay nao chama Google novamente;
 - reconexao fica bloqueada enquanto a tentativa antiga for retryable;
-- resultados sao condicionados por `user_id + revocation_id` e nao atravessam
-  geracoes;
+- resultados sao condicionados por `user_id + revocation_id + lease_id` e nao
+  atravessam geracoes nem tentativas;
+- dois workers concorrentes produzem um unico claim, uma chamada remota e um
+  unico incremento de tentativa;
+- recovery nao disputa lease inicial ativo e expiracao nao limpa token em voo;
+- `expires_at` e `max_attempts` persistidos prevalecem sobre mudanca do runtime;
+- migracoes legado e versionada passam com dois processos concorrentes e
+  `busy_timeout` limitado;
 - sweep horario respeita backoff, exaure tentativas e apaga material cifrado
   ao vencer retencao ou limite;
 - timeout mantem o tombstone local e registra falha remota sanitizada;
@@ -113,28 +129,38 @@ GREEN atual:
 - cobertura do runner: linhas `88.64%`, branches `71.5%`, funcoes `89.14%`;
 - `npm audit --offline --audit-level=high`: zero vulnerabilidades;
 - `state_store.json` permaneceu sem diff depois do runner.
+- regressao especifica do NO-GO: RED `13/18`, com cinco falhas esperadas;
+- GREEN atual do patch de lease: OAuth/lifecycle `38/38`; cinco harnesses
+  OAuth/auditoria mais scheduler `52/52`;
+- checks atuais dos quatro JS tocados e `git diff --check`: verdes;
+- o harness publica `pending_independent_review`, sem autodeclarar `go_local`.
+- suite padrao atual: `1033/1033`;
+- runner hermetico atual: `1153` testes, `1148` aprovados, cinco skips
+  funcionais esperados, zero falhas, rede externa bloqueada e resultado valido;
+- auditoria offline atual: zero vulnerabilidades; estado e logs rastreados
+  restaurados sem diff.
 
 ## Gate de saida
 
-O diff esta pronto para auditoria independente. O `GO local` final exige:
+Os gates locais amplos foram repetidos. O `GO local` final exige:
 
 - preservar os gates locais verdes ja registrados;
 - revisao adversarial sem `BLOCKER`, `HIGH` ou `MEDIUM` criado pelo pacote.
 
-Commit local e inicio do pacote seguinte so ocorrem apos esse gate. Push,
-deploy e Google real exigem autorizacao separada.
+Depois dos gates amplos verdes, commit e push seletivos criam o SHA imutavel
+necessario a nova revisao independente. Deploy e Google real permanecem gates
+separados.
 
 ## Veredito
 
-Implementacao local e gates amplos verdes. O commit sanitizado imutavel
-`6c91074138138dc6f55e7d6271708a299c087f50` foi publicado somente para auditoria
-independente. A revisao confirmou o SHA e devolveu `NO-GO`: jobs retryable nao
-possuem claim/lease exclusivo, permitindo duas tentativas simultaneas sobre o
-mesmo material. O recovery tambem deve usar `expires_at` persistido, e a
-migracao preliminar precisa de regressao sob contencao. Deploy continua
-proibido.
+O commit sanitizado imutavel
+`6c91074138138dc6f55e7d6271708a299c087f50` recebeu `NO-GO` independente por
+falta de claim/lease exclusivo, uso de retencao recalculada e ausencia de prova
+de migracao sob contencao. Os tres achados foram corrigidos no commit
+`606ae5b` e todos os gates locais estao verdes, mas a correcao ainda nao possui
+novo parecer independente. Deploy continua proibido.
 
 O revisor nao reproduziu os testes. O apontamento de log com `user_id` e
-mitigado pelo sanitizador global do logger, mas a promessa documental fica
-restrita a saida sanitizada. O harness nao deve imprimir `go_local` antes de um
-novo parecer independente verde.
+mitigado pelo sanitizador global do logger, e a promessa documental fica
+restrita a saida sanitizada. O harness agora imprime
+`pending_independent_review` ate um novo parecer independente verde.

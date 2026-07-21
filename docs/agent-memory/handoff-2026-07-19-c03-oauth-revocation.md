@@ -2,9 +2,10 @@
 
 ## Workspace and scope
 
-- Current workspace: `C:\\Users\\horus\\Documents\\FinancasBot\\financas-bot`.
+- Current workspace: `E:\\Users\\horus\\Documents\\FinancasBot\\financas-bot`.
 - Branch: `main`.
-- Latest committed checkpoints: `f4c1606` (C-01) and `c03f7d4` (C-02).
+- Baseline before the correction: `bf7d291` (C-03 independent NO-GO record).
+- Selective code/test correction commit: `606ae5b`.
 - No push, deploy, production access, Google real access, or WhatsApp real access
   is authorized for C-03.
 - Do not touch unrelated untracked artifacts. They predate or are outside this
@@ -25,14 +26,27 @@ the runtime recomputation of retention instead of using persisted `expires_at`
 and the absence of a legacy-schema migration/concurrency regression test. The
 review was static and did not reproduce tests.
 
+The NO-GO correction is implemented in commit `606ae5b`. Each
+attempt receives an exclusive `lease_id`; the job is `in_progress` while the
+lease is active, and only the current `user_id + revocation_id + lease_id` can
+write its result. Initial revoke, retry and reconnect exclusion are serialized
+with SQLite `IMMEDIATE` transactions and bounded `busy_timeout`. Active leases
+cannot be recovered or expired, while stale results are discarded.
+
+`expires_at` and `max_attempts` are persisted policy. Recovery no longer
+recomputes them from current runtime values. Both the pre-versioned legacy
+schema and the `6c91074` versioned schema are upgraded inside the same immediate
+transaction and exercised by two concurrent Node processes.
+
 Implemented contract:
 
 - append-only jobs with unique `revocation_id` and monotonic `generation`;
-- result writes scoped by `user_id + revocation_id`;
+- result writes scoped by `user_id + revocation_id + lease_id`;
+- one atomic leased claim per attempt, including initial revoke and recovery;
 - reconnect blocked while any job remains retryable;
 - terminal lifecycle persisted and access denied even when local invalidation
   fails;
-- hourly bounded recovery with exponential backoff, attempt cap and retention;
+- hourly bounded recovery with persisted attempt cap and retention;
 - retained encrypted token material cleared on success, expiry or exhaustion;
 - sanitized logs with aggregate counts and constant error codes only.
 
@@ -46,11 +60,18 @@ audit found zero vulnerabilities. `state_store.json` was restored without a
 diff. Commit, independent review, push for immutable review and deploy remain
 separate gates.
 
-Next action: with `Codex -> Sol -> Extra Alto`, add an atomic leased claim tied
-to result writes, use persisted `expires_at`, configure bounded SQLite waiting,
-cover legacy migration and add concurrent `Promise.all`/two-worker tests. Then
-repeat the complete local gates and submit a new immutable commit to a clean
-Chat review. Do not deploy C-03 before local GO.
+Evidence for the uncommitted NO-GO correction: adversarial RED `13/18` with the
+five expected failures; focused OAuth/lifecycle GREEN `38/38`; five OAuth/audit
+harnesses plus scheduler GREEN `52/52`; `node --check` for the four touched JS
+files and `git diff --check` green. The recovery harness now reports
+`pending_independent_review`. Full suite, hermetic runner and offline audit have
+now also passed: standard suite `1033/1033`; hermetic runner `1153` total,
+`1148` pass, five expected functional skips, zero failures, valid result and
+external network blocked; offline audit found zero vulnerabilities. Tracked
+state and logs were restored without a diff.
+
+Next action: submit the final immutable audit head containing `606ae5b` and this
+handoff to a clean Chat review. Do not deploy C-03 before independent GO.
 
 ## Files intentionally involved in the unfinished package
 

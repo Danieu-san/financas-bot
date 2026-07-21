@@ -2,6 +2,35 @@
 
 Atualizado em: 2026-07-20
 
+## C-03 correcao atomica do NO-GO em validacao local - 2026-07-20
+
+- O `HIGH` do parecer independente foi corrigido no commit local de codigo e
+  testes `606ae5b`:
+  cada tentativa recebe `lease_id` unico, muda o job para `in_progress` e so o
+  lease corrente pode persistir sucesso ou falha por
+  `user_id + revocation_id + lease_id`.
+- Claim inicial, retry e bloqueio de reconexao usam transacoes SQLite
+  `IMMEDIATE`; `busy_timeout` e limitado. Lease ativo impede segundo worker,
+  recovery concorrente e limpeza do token. Resultado de lease vencido e
+  descartado sem registrar sucesso.
+- `expires_at` e `max_attempts` sao persistidos no job e prevalecem sobre
+  configuracao posterior do runtime. Sucesso, expiracao e exaustao apagam o
+  material cifrado retido.
+- Migracoes do schema legado e do schema versionado de `6c91074` revalidam e
+  adicionam colunas dentro da mesma transacao imediata; ambas foram exercitadas
+  com dois processos concorrentes.
+- RED novo reproduzido: `13/18`, com cinco falhas esperadas. GREEN atual:
+  OAuth/lifecycle `38/38`; cinco harnesses OAuth/auditoria mais scheduler
+  `52/52`; `node --check` dos quatro JS tocados e `git diff --check` verdes.
+- O harness agora imprime `pending_independent_review`, nao `go_local`.
+- Suite padrao passou `1033/1033`. Runner hermetico valido passou `1148` de
+  `1153`, com cinco skips funcionais esperados, zero falhas e rede externa
+  bloqueada. Auditoria offline encontrou zero vulnerabilidades; estado e logs
+  rastreados foram restaurados sem diff.
+- A nova revisao independente ainda esta pendente. Portanto C-03 e deploy
+  permanecem `NO-GO`; nenhum acesso a EC2, Google real, WhatsApp real, cofre ou
+  flags ocorreu.
+
 ## C-03 revisao independente - NO-GO - 2026-07-20
 
 - O Chat confirmou e leu diretamente o commit imutavel
@@ -17,12 +46,12 @@ Atualizado em: 2026-07-20
   regressao nem prova de contencao multiprocesso.
 - O `LOW` sobre `user_id` em log e mitigado pelo sanitizador global do logger,
   confirmado no codigo, mas a documentacao deve limitar a promessa aos logs
-  sanitizados de saida. O `go_local` impresso pelo harness de recovery e
-  prematuro e deve ser removido ate o gate independente ficar verde.
-- Proxima correcao autorizavel: claim/lease atomico por job, resultado vinculado
-  ao lease, uso de `expires_at` persistido, busy timeout/teste de migracao e
-  cenarios `Promise.all`/dois workers. Nao corrigir em esforco inferior a
-  `Codex -> Sol -> Extra Alto`.
+  sanitizados de saida. O `go_local` impresso pelo harness de recovery era
+  prematuro e foi substituido na correcao local descrita acima.
+- A correcao prescrita por este parecer era claim/lease atomico por job,
+  resultado vinculado ao lease, uso de politica persistida, busy timeout,
+  migracao sob contencao e cenarios concorrentes. Ela foi implementada em
+  `Codex -> Sol -> Extra Alto` e agora aguarda os gates amplos.
 - Nenhum deploy, EC2, Google real, WhatsApp real ou mudanca de flag ocorreu.
 
 ## C-03 publicada como candidata de auditoria - 2026-07-20
