@@ -10973,8 +10973,12 @@ async function handleMessage(msg) {
                         cache.set(cacheKey, summaryMessage);
                         await msg.reply(summaryMessage);
                     } catch (err) {
-                        console.error('Erro ao gerar resumo financeiro:', err);
-                        await msg.reply('Não consegui gerar o resumo do dashboard agora. Tente novamente em instantes.');
+                        const sourceUnavailable = err?.code === 'GOOGLE_SHEET_READ_UNAVAILABLE';
+                        if (sourceUnavailable) console.error('[financial-read] source_unavailable');
+                        else console.error('Erro ao gerar resumo financeiro:', err);
+                        await msg.reply(sourceUnavailable
+                            ? 'Não consegui consultar seus dados financeiros agora. A fonte está indisponível; não vou tratar isso como saldo zero. Tente novamente em instantes.'
+                            : 'Não consegui gerar o resumo do dashboard agora. Tente novamente em instantes.');
                     }
                     break;
                 }
@@ -11655,7 +11659,9 @@ async function handleMessage(msg) {
                         storeAnalyticalContext(senderId, effectiveIntentClassification);
 
                     } catch (err) {
-                        console.error("Erro no novo sistema de perguntas:", err);
+                        const sourceUnavailable = err?.code === 'GOOGLE_SHEET_READ_UNAVAILABLE';
+                        if (sourceUnavailable) console.error('[financial-read] source_unavailable');
+                        else console.error("Erro no novo sistema de perguntas:", err);
                         await recordQaFailure({
                             kind: 'question_error',
                             reason: 'pergunta_processing_error',
@@ -11665,7 +11671,9 @@ async function handleMessage(msg) {
                             intent: structuredResponse?.intent || 'pergunta',
                             error: err
                         });
-                        await msg.reply("Desculpe, não consegui processar essa análise. Tente reformular a pergunta.");
+                        await msg.reply(sourceUnavailable
+                            ? 'Não consegui consultar seus dados financeiros agora. A fonte está indisponível; não vou tratar isso como ausência de lançamentos ou valor zero. Tente novamente em instantes.'
+                            : 'Desculpe, não consegui processar essa análise. Tente reformular a pergunta.');
                     }
                     break;
                 }

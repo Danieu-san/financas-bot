@@ -1132,10 +1132,13 @@ async function readDataFromSheet(range, options = {}) {
             ? mapValuesFromUserSpreadsheetRange(range, cloneSheetValues(values))
             : cloneSheetValues(values);
     } catch (error) {
-        if (!(options.suppressMissingSheetError && isMissingUserSheetError(error))) {
-            console.error(`❌ Erro ao ler dados da planilha (${range}):`, error.message);
+        if (options.suppressMissingSheetError && isMissingUserSheetError(error)) {
+            return [];
         }
-        return [];
+        console.error('❌ Falha ao ler dados da planilha: fonte indisponível.');
+        const unavailableError = new Error('google_sheet_read_unavailable');
+        unavailableError.code = 'GOOGLE_SHEET_READ_UNAVAILABLE';
+        throw unavailableError;
     } finally {
         if (readCacheEnabled) sheetsReadInFlight.delete(cacheKey);
     }

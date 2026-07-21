@@ -27,7 +27,8 @@ function installSchedulerMocks({
     readinessAlertSender = null,
     dailyOpsSender = null,
     oauthRecovery = async () => ({ attempted: 0, revoked: 0, failed: 0, expired: 0 }),
-    readCalls = null
+    readCalls = null,
+    readErrorsByRange = {}
 }) {
     delete require.cache[schedulerPath];
     delete require.cache[googlePath];
@@ -44,6 +45,8 @@ function installSchedulerMocks({
             readDataFromSheet: async (range, options = {}) => {
                 if (Array.isArray(readCalls)) readCalls.push({ range, options });
                 const scopedKey = options.userId ? `${options.userId}:${range}` : '';
+                const readError = (scopedKey && readErrorsByRange[scopedKey]) || readErrorsByRange[range];
+                if (readError) throw readError;
                 if (scopedKey && Object.prototype.hasOwnProperty.call(sheetsByRange, scopedKey)) {
                     return sheetsByRange[scopedKey];
                 }
@@ -491,6 +494,27 @@ test('scheduler sends interpretation readiness alerts only through the admin not
     } finally {
         process.env.ADMIN_IDS = previousAdminIds;
     }
+});
+
+test('scheduler does not send a false empty morning summary when Google Sheets is unavailable', async () => {
+    const sent = [];
+    const scheduler = installSchedulerMocks({
+        users: [{ user_id: 'user-a', whatsapp_id: '5511000000001@c.us' }],
+        settingsByUser: {},
+        readErrorsByRange: {
+            'Dívidas!A:R': Object.assign(new Error('google_sheet_read_unavailable'), {
+                code: 'GOOGLE_SHEET_READ_UNAVAILABLE'
+            })
+        }
+    });
+
+    scheduler.__test__.setClientForTest({
+        sendMessage: async (to, message) => sent.push({ to, message })
+    });
+
+    await scheduler.__test__.sendMorningSummary();
+
+    assert.deepStrictEqual(sent, []);
 });
 
 test('scheduler sends daily ops check only through the admin ops notifier', async () => {

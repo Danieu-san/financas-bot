@@ -13,7 +13,7 @@ const dashboardAuthPath = require.resolve('../src/utils/dashboardAuth');
 const dashboardV2SummaryPath = require.resolve('../src/services/dashboardV2SummaryService');
 const oauthTokenStorePath = require.resolve('../src/services/oauthTokenStore');
 
-function installReadModelMock(calls) {
+function installReadModelMock(calls, { personalDashboardReader = async () => null } = {}) {
     delete require.cache[dashboardServerPath];
     delete require.cache[readModelPath];
     delete require.cache[userSheetAnalyticsPath];
@@ -66,7 +66,7 @@ function installReadModelMock(calls) {
         filename: userSheetAnalyticsPath,
         loaded: true,
         exports: {
-            getUserSheetDashboardData: async () => null
+            getUserSheetDashboardData: personalDashboardReader
         }
     };
     require.cache[userServicePath] = {
@@ -134,7 +134,7 @@ async function startTestServer(calls, options = {}) {
         delete process.env.DASHBOARD_ADMIN_ALL_USERS_ENABLED;
     }
     delete require.cache[dashboardAuthPath];
-    installReadModelMock(calls);
+    installReadModelMock(calls, options);
 
     const { generateDashboardToken } = require('../src/utils/dashboardAuth');
     const { startDashboardServer } = require('../src/services/dashboardServer');
@@ -261,6 +261,25 @@ test('dashboard API endpoints expose stable user-scoped contracts', async () => 
 
         assert.ok(calls.length >= 6);
         assert.ok(calls.every(call => call.userId === 'user-dash-a'));
+    } finally {
+        await new Promise(resolve => server.close(resolve));
+    }
+});
+
+test('dashboard API reports personal sheet unavailability without falling back to zero-valued data', async () => {
+    const calls = [];
+    const unavailable = new Error('google_sheet_read_unavailable');
+    unavailable.code = 'GOOGLE_SHEET_READ_UNAVAILABLE';
+    const { server, baseUrl, token } = await startTestServer(calls, {
+        personalDashboardReader: async () => { throw unavailable; }
+    });
+    try {
+        const summary = await fetchJson(`${baseUrl}/dashboard/api/summary?token=${token}&month=4&year=2026`);
+
+        assert.strictEqual(summary.response.status, 503);
+        assert.match(summary.json.error, /dados financeiros.*indisponíveis/i);
+        assert.strictEqual(calls.length, 0);
+        assert.doesNotMatch(JSON.stringify(summary.json), /"saldo"\s*:\s*0|"entradas"\s*:\s*0|"saidas"\s*:\s*0/i);
     } finally {
         await new Promise(resolve => server.close(resolve));
     }

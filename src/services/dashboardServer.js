@@ -829,6 +829,18 @@ function isDashboardSelectableUser(user) {
     return String(user?.status || '').trim() === 'ACTIVE' && !String(user?.deleted_at || '').trim();
 }
 
+function isFinancialSourceUnavailable(error) {
+    return error?.code === 'GOOGLE_SHEET_READ_UNAVAILABLE';
+}
+
+function sendDashboardDataError(res, error) {
+    if (isFinancialSourceUnavailable(error)) {
+        sendJson(res, 503, { error: 'Dados financeiros temporariamente indisponíveis.' });
+        return;
+    }
+    sendJson(res, 500, { error: 'Falha ao carregar dados do dashboard.' });
+}
+
 async function handleApiSummary(reqUrl, res) {
     try {
         const token = reqUrl.searchParams.get('token') || '';
@@ -866,7 +878,7 @@ async function handleApiSummary(reqUrl, res) {
     } catch (error) {
         metrics.increment('dashboard.api.error');
         logger.error(`dashboard api error: ${error.message}`);
-        sendJson(res, 500, { error: 'Falha ao carregar dados do dashboard.' });
+        sendDashboardDataError(res, error);
     }
 }
 
@@ -912,7 +924,7 @@ async function handleApiV2Summary(reqUrl, res) {
     } catch (error) {
         metrics.increment('dashboard.api.v2.error');
         logger.error(`dashboard api v2 error: ${error.message}`);
-        sendJson(res, 500, { error: 'Falha ao carregar dados do dashboard.' });
+        sendDashboardDataError(res, error);
     }
 }
 
@@ -951,7 +963,7 @@ async function withAuth(reqUrl, res, cb) {
     } catch (error) {
         metrics.increment('dashboard.api.error');
         logger.error(`dashboard api error: ${error.message}`);
-        sendJson(res, 500, { error: 'Falha ao carregar dados do dashboard.' });
+        sendDashboardDataError(res, error);
     }
 }
 

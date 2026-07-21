@@ -42,6 +42,7 @@ const USER_SETTINGS_HEADER = [
 
 const sheets = {};
 const personalSheetOverrides = {};
+const sheetReadErrors = new Map();
 const sheetReadCalls = [];
 const deletedRows = [];
 const appendedRows = [];
@@ -129,6 +130,7 @@ function resetSheets() {
     createdCalendarEvents.length = 0;
     structuredResponses.length = 0;
     Object.keys(personalSheetOverrides).forEach(key => delete personalSheetOverrides[key]);
+    sheetReadErrors.clear();
     sheetReadCalls.length = 0;
     financialScopeUserIds = [USER_ID];
     failNextPlainMessage = false;
@@ -250,6 +252,7 @@ function installMocks() {
             readDataFromSheet: async (range, options = {}) => {
                 const sheetName = getSheetName(range);
                 sheetReadCalls.push({ sheetName, options: { ...options } });
+                if (sheetReadErrors.has(sheetName)) throw sheetReadErrors.get(sheetName);
                 if (usesPersonalSpreadsheet && options.userId && personalSheetOverrides[sheetName]) {
                     return personalSheetOverrides[sheetName];
                 }
@@ -3804,6 +3807,32 @@ stateMachineTest('financial states: family goal can be moved by a family member'
     assert.strictEqual(Number(sheets.Metas[1][2]), 3700);
     assert.strictEqual(sheets['Movimentações Metas'][1][8], PARTNER_ID);
     assert.strictEqual(sheets['Movimentações Metas'][1][9], USER_ID);
+});
+
+stateMachineTest('financial questions report Google source unavailability instead of an empty or zero result', async () => {
+    resetState();
+    usesPersonalSpreadsheet = true;
+    const originalConsoleError = console.error;
+    const errors = [];
+    const unavailable = Object.assign(new Error('google_sheet_read_unavailable'), {
+        code: 'GOOGLE_SHEET_READ_UNAVAILABLE'
+    });
+    ['Saídas', 'Entradas', 'Metas', 'Dívidas'].forEach(sheetName => {
+        sheetReadErrors.set(sheetName, unavailable);
+    });
+
+    console.error = (...args) => errors.push(args);
+    let reply;
+    try {
+        reply = await send('quanto gastei este mês?');
+    } finally {
+        console.error = originalConsoleError;
+    }
+
+    assert.match(reply, /fonte está indisponível/i);
+    assert.match(reply, /não vou tratar.*ausência.*valor zero/i);
+    assert.doesNotMatch(reply, /não encontrei lançamentos|nenhum gasto/i);
+    assert.deepStrictEqual(errors, [['[financial-read] source_unavailable']]);
 });
 
 stateMachineTest('financial states: batch confirmation saves mixed entries with existing payment methods', async () => {

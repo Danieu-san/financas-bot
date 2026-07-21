@@ -5908,6 +5908,94 @@ test('google.readDataFromSheet silently tolerates an explicitly optional missing
     }
 });
 
+test('google.readDataFromSheet preserves provider unavailability instead of returning an empty result', async () => {
+    googleService.__test__.clearSheetsReadCache();
+    const originalConsoleError = console.error;
+    const errors = [];
+    const previousAttempts = process.env.GOOGLE_API_RETRY_ATTEMPTS;
+    const previousDelay = process.env.GOOGLE_API_RETRY_DELAY_MS;
+    process.env.GOOGLE_API_RETRY_ATTEMPTS = '1';
+    process.env.GOOGLE_API_RETRY_DELAY_MS = '0';
+    const fakeSheets = {
+        spreadsheets: {
+            values: {
+                get: async () => {
+                    const error = new Error('provider response with private details');
+                    error.code = 503;
+                    throw error;
+                }
+            }
+        }
+    };
+
+    googleService.__test__.setGoogleClientsForTest({
+        sheetsClient: fakeSheets,
+        tasksClient: {},
+        calendarClient: {},
+        oauthClient: {}
+    });
+    console.error = (...args) => errors.push(args);
+
+    try {
+        await assert.rejects(
+            () => googleService.readDataFromSheet('Saídas!A:J', { forceCentral: true }),
+            error => error?.code === 'GOOGLE_SHEET_READ_UNAVAILABLE'
+                && error?.message === 'google_sheet_read_unavailable'
+        );
+        assert.strictEqual(errors.length, 1);
+        assert.doesNotMatch(JSON.stringify(errors), /private details|provider response/i);
+    } finally {
+        console.error = originalConsoleError;
+        if (previousAttempts === undefined) delete process.env.GOOGLE_API_RETRY_ATTEMPTS;
+        else process.env.GOOGLE_API_RETRY_ATTEMPTS = previousAttempts;
+        if (previousDelay === undefined) delete process.env.GOOGLE_API_RETRY_DELAY_MS;
+        else process.env.GOOGLE_API_RETRY_DELAY_MS = previousDelay;
+        googleService.__test__.clearSheetsReadCache();
+    }
+});
+
+test('google.readDataFromSheet does not suppress provider failures for an optional sheet', async () => {
+    googleService.__test__.clearSheetsReadCache();
+    const originalConsoleError = console.error;
+    const errors = [];
+    const previousAttempts = process.env.GOOGLE_API_RETRY_ATTEMPTS;
+    process.env.GOOGLE_API_RETRY_ATTEMPTS = '1';
+    const fakeSheets = {
+        spreadsheets: {
+            values: {
+                get: async () => {
+                    const error = new Error('backend unavailable');
+                    error.code = 503;
+                    throw error;
+                }
+            }
+        }
+    };
+
+    googleService.__test__.setGoogleClientsForTest({
+        sheetsClient: fakeSheets,
+        tasksClient: {},
+        calendarClient: {},
+        oauthClient: {}
+    });
+    console.error = (...args) => errors.push(args);
+
+    try {
+        await assert.rejects(
+            () => googleService.readDataFromSheet('Contas Financeiras!A:I', {
+                forceCentral: true,
+                suppressMissingSheetError: true
+            }),
+            error => error?.code === 'GOOGLE_SHEET_READ_UNAVAILABLE'
+        );
+    } finally {
+        console.error = originalConsoleError;
+        if (previousAttempts === undefined) delete process.env.GOOGLE_API_RETRY_ATTEMPTS;
+        else process.env.GOOGLE_API_RETRY_ATTEMPTS = previousAttempts;
+        googleService.__test__.clearSheetsReadCache();
+    }
+});
+
 test('google share helpers create and revoke Drive permissions by email', async () => {
     const created = [];
     const deleted = [];
