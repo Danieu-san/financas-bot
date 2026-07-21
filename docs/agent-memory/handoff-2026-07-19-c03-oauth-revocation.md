@@ -6,19 +6,34 @@
 - Branch: `main`.
 - Baseline before the correction: `bf7d291` (C-03 independent NO-GO record).
 - Selective code/test correction commit: `606ae5b`.
-- No push, deploy, production access, Google real access, or WhatsApp real access
-  is authorized for C-03.
+- Final immutable audit head: `be8eb6e850b3d51a012238d78053b6602cf9cba8`.
+- GitHub publication was limited to the audit candidate. No deploy, production
+  access, real Google access, or real WhatsApp access was performed for C-03.
 - Do not touch unrelated untracked artifacts. They predate or are outside this
   correction package.
 
 ## Exact C-03 state
 
-The four adversarial RED contracts were reproduced and closed locally without
-softening assertions. C-03 was published as immutable audit candidate
-`6c91074138138dc6f55e7d6271708a299c087f50` and is not yet independently
-approved.
+Independent review of `bf7d291..be8eb6e` confirmed the exact HEAD and required
+files and returned `GO` for local C-03 closure on 2026-07-21. It found no
+`BLOCKER`, `HIGH`, or `MEDIUM`. The review was static and did not reproduce
+tests or perform Google calls.
 
-Independent review confirmed that SHA and returned `NO-GO`. The blocking HIGH
+Two `LOW` notes remain. Documentation now states precisely that an expired but
+still-current lease may complete if no later claim or cleanup won serialization;
+a result is guaranteed stale only after its `lease_id` is replaced. Functional
+worker-race tests use `Promise.all` in one process, while migration contention
+tests use separate Node processes. The reviewer accepted the latter as residual
+test hardening because the multiprocess fencing is also supported statically by
+`IMMEDIATE` transactions, conditional updates, and bounded `busy_timeout`.
+
+The four adversarial RED contracts were reproduced and closed locally without
+softening assertions. The initial C-03 candidate
+`6c91074138138dc6f55e7d6271708a299c087f50` was later superseded by the leased
+claim correction in `be8eb6e`.
+
+The first independent review confirmed `6c91074138138dc6f55e7d6271708a299c087f50`
+and returned `NO-GO`. The blocking HIGH
 is the absence of an exclusive atomic claim/lease: `pending` and
 `remote_failed` can be obtained concurrently by two workers or by recovery
 while the initial remote call is still in flight. Confirmed MEDIUM findings are
@@ -31,7 +46,8 @@ attempt receives an exclusive `lease_id`; the job is `in_progress` while the
 lease is active, and only the current `user_id + revocation_id + lease_id` can
 write its result. Initial revoke, retry and reconnect exclusion are serialized
 with SQLite `IMMEDIATE` transactions and bounded `busy_timeout`. Active leases
-cannot be recovered or expired, while stale results are discarded.
+cannot be recovered or expired, while results from replaced leases are
+discarded.
 
 `expires_at` and `max_attempts` are persisted policy. Recovery no longer
 recomputes them from current runtime values. Both the pre-versioned legacy
@@ -50,17 +66,17 @@ Implemented contract:
 - retained encrypted token material cleared on success, expiry or exhaustion;
 - sanitized logs with aggregate counts and constant error codes only.
 
-Evidence in the current worktree: focused OAuth/lifecycle `30/30`; five directly
+Evidence for the initial candidate: focused OAuth/lifecycle `30/30`; five directly
 affected OAuth/audit harnesses `35/35`; scheduler `17/17`; updated negative
 proof `4/4`. `node --check` passed for all nine touched JavaScript files and
 `git diff --check` passed with only the existing LF/CRLF warnings. The standard
 suite passed `1025/1025`; the hermetic runner passed `1140` with five expected
 skips and zero failures while blocking external network; offline dependency
 audit found zero vulnerabilities. `state_store.json` was restored without a
-diff. Commit, independent review, push for immutable review and deploy remain
-separate gates.
+diff. At that point, correction, publication and independent review were still
+separate gates; their later outcome is recorded above.
 
-Evidence for the uncommitted NO-GO correction: adversarial RED `13/18` with the
+Evidence for the NO-GO correction: adversarial RED `13/18` with the
 five expected failures; focused OAuth/lifecycle GREEN `38/38`; five OAuth/audit
 harnesses plus scheduler GREEN `52/52`; `node --check` for the four touched JS
 files and `git diff --check` green. The recovery harness now reports
@@ -70,10 +86,11 @@ now also passed: standard suite `1033/1033`; hermetic runner `1153` total,
 external network blocked; offline audit found zero vulnerabilities. Tracked
 state and logs were restored without a diff.
 
-Next action: submit the final immutable audit head containing `606ae5b` and this
-handoff to a clean Chat review. Do not deploy C-03 before independent GO.
+Next action: keep C-03 closed locally, preserve the deploy prohibition, and
+reconcile the remaining audit backlog before selecting the next correction.
+This closure does not resolve `WGL-03` or `WGL-04`.
 
-## Files intentionally involved in the unfinished package
+## Files intentionally involved in the package
 
 - `src/services/oauthTokenStore.js`
 - `src/services/googleOAuthRevocationService.js` (new)

@@ -44,6 +44,21 @@ mensagem real, polling forçado ou escrita financeira. Open Finance permaneceu
 em canary/canary com write mode `off`, e o dashboard admin amplo permaneceu
 desligado.
 
+## Adendo de remediação — C-03 / WGL-02 — 2026-07-21
+
+A ausência de revogação OAuth individual foi fechada localmente no HEAD
+`be8eb6e850b3d51a012238d78053b6602cf9cba8`. O lifecycle impeditivo aplica
+tombstone local, cria job versionado com claim/lease exclusivo, bloqueia
+reconexão enquanto houver material pendente e executa recovery limitado por
+política persistida. A revisão independente do intervalo `bf7d291..be8eb6e`
+confirmou os arquivos exigidos e deu `GO` local sem `BLOCKER`, `HIGH` ou
+`MEDIUM`; a análise foi estática e não avaliou deploy ou Google real.
+
+Este adendo fecha somente `C-03/WGL-02`. Ele não fecha o componente de
+compartilhamento Drive do achado agregado `AUTH-03`, nem `WGL-03/WGL-04` sobre
+replay e compensação da saga Google. A contagem consolidada de achados abertos
+deve ser reconciliada antes de selecionar a próxima correção.
+
 ## Achados prioritários
 
 | Ordem | ID | Sev. | Síntese | Evidência |

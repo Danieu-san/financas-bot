@@ -4,8 +4,9 @@
 
 - Prioridade: `CRITICAL`.
 - Achado causal: `C-03 / WGL-02`.
-- Estado atual: correcao do `NO-GO` em commit seletivo de codigo/testes
-  `606ae5b`; gates locais verdes e nova revisao independente pendente.
+- Estado atual: `GO local formal`. O Chat confirmou e revisou estaticamente o
+  HEAD `be8eb6e850b3d51a012238d78053b6602cf9cba8`, sem `BLOCKER`, `HIGH` ou
+  `MEDIUM`.
 - Produto, producao, Google real, WhatsApp, flags e deploy permanecem
   congelados. Publicacao GitHub serve apenas ao gate de auditoria.
 
@@ -45,7 +46,9 @@ expiracao e politica maxima de tentativas persistida. Cada tentativa recebe um
 `lease_id` exclusivo e permanece `in_progress` ate concluir ou o lease vencer.
 Resultados atualizam somente a combinacao
 `user_id + revocation_id + lease_id`; resultado atrasado de geracao ou lease
-antigo nao altera o job corrente.
+substituido nao altera o job corrente. Um lease apenas vencido ainda pode
+concluir se continua sendo o lease atual e nenhum claim ou cleanup venceu a
+serializacao.
 
 Estados sanitizados:
 
@@ -133,7 +136,9 @@ GREEN atual:
 - GREEN atual do patch de lease: OAuth/lifecycle `38/38`; cinco harnesses
   OAuth/auditoria mais scheduler `52/52`;
 - checks atuais dos quatro JS tocados e `git diff --check`: verdes;
-- o harness publica `pending_independent_review`, sem autodeclarar `go_local`.
+- o candidato auditado publica `pending_independent_review`, sem autodeclarar
+  `go_local`; o fechamento independente posterior esta registrado neste
+  documento.
 - suite padrao atual: `1033/1033`;
 - runner hermetico atual: `1153` testes, `1148` aprovados, cinco skips
   funcionais esperados, zero falhas, rede externa bloqueada e resultado valido;
@@ -147,9 +152,13 @@ Os gates locais amplos foram repetidos. O `GO local` final exige:
 - preservar os gates locais verdes ja registrados;
 - revisao adversarial sem `BLOCKER`, `HIGH` ou `MEDIUM` criado pelo pacote.
 
-Depois dos gates amplos verdes, commit e push seletivos criam o SHA imutavel
-necessario a nova revisao independente. Deploy e Google real permanecem gates
-separados.
+Ambas as condicoes foram satisfeitas. A revisao independente de 2026-07-21 deu
+`GO` local e registrou somente dois `LOW`: precisao documental sobre lease
+vencido e cobertura funcional concorrente no mesmo processo. Nenhum dos dois
+demonstrou quebra do fencing multiprocesso.
+
+O SHA imutavel foi publicado e revisado. Deploy e Google real permanecem gates
+separados e nao foram autorizados por este `GO` local.
 
 ## Veredito
 
@@ -157,10 +166,13 @@ O commit sanitizado imutavel
 `6c91074138138dc6f55e7d6271708a299c087f50` recebeu `NO-GO` independente por
 falta de claim/lease exclusivo, uso de retencao recalculada e ausencia de prova
 de migracao sob contencao. Os tres achados foram corrigidos no commit
-`606ae5b` e todos os gates locais estao verdes, mas a correcao ainda nao possui
-novo parecer independente. Deploy continua proibido.
+`606ae5b`; o HEAD documental `be8eb6e850b3d51a012238d78053b6602cf9cba8`
+recebeu `GO` independente para fechamento local. Deploy continua proibido e
+producao nao foi avaliada.
 
 O revisor nao reproduziu os testes. O apontamento de log com `user_id` e
 mitigado pelo sanitizador global do logger, e a promessa documental fica
 restrita a saida sanitizada. O harness agora imprime
-`pending_independent_review` ate um novo parecer independente verde.
+`pending_independent_review` no candidato imutavel; o parecer verde posterior
+e este registro documental encerram o gate sem alterar retroativamente o SHA
+auditado.

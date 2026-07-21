@@ -1,6 +1,27 @@
 # Estado atual do FinancasBot
 
-Atualizado em: 2026-07-20
+Atualizado em: 2026-07-21
+
+## C-03 fechamento local independente - GO - 2026-07-21
+
+- O Chat confirmou o HEAD imutavel
+  `be8eb6e850b3d51a012238d78053b6602cf9cba8`, auditou estaticamente o intervalo
+  `bf7d291..be8eb6e`, leu os sete arquivos exigidos e consultou o sanitizador
+  global de logs. A revisao foi somente leitura e nao reproduziu testes.
+- Veredito independente: `GO` para o fechamento local da C-03, sem `BLOCKER`,
+  `HIGH` ou `MEDIUM`.
+- `LOW-01` confirmou uma imprecisao documental: lease apenas vencido ainda pode
+  concluir se continua sendo o lease corrente e nenhum claim ou cleanup venceu
+  a serializacao. O descarte garantido e para resultado cujo `lease_id` ja foi
+  substituido. A descricao foi corrigida sem mudar codigo.
+- `LOW-02` registrou que os testes funcionais de dois workers usam `Promise.all`
+  no mesmo processo. A exclusividade multiprocesso continua sustentada pelo
+  `BEGIN IMMEDIATE`, pelo `UPDATE` condicionado e pelo `busy_timeout`; os testes
+  de migracao usam processos Node separados. O revisor classificou a lacuna
+  somente como hardening residual.
+- Decisao: C-03/WGL-02 tem `GO local formal`. Isso nao fecha `WGL-03/WGL-04`,
+  nao autoriza deploy e nao afirma validacao de producao ou Google real.
+- Nenhum acesso a EC2, Google, WhatsApp, cofre ou flags ocorreu neste fechamento.
 
 ## C-03 correcao atomica do NO-GO em validacao local - 2026-07-20
 
@@ -11,8 +32,8 @@ Atualizado em: 2026-07-20
   `user_id + revocation_id + lease_id`.
 - Claim inicial, retry e bloqueio de reconexao usam transacoes SQLite
   `IMMEDIATE`; `busy_timeout` e limitado. Lease ativo impede segundo worker,
-  recovery concorrente e limpeza do token. Resultado de lease vencido e
-  descartado sem registrar sucesso.
+  recovery concorrente e limpeza do token. Resultado de lease substituido por
+  claim posterior e descartado sem registrar sucesso.
 - `expires_at` e `max_attempts` sao persistidos no job e prevalecem sobre
   configuracao posterior do runtime. Sucesso, expiracao e exaustao apagam o
   material cifrado retido.
@@ -27,9 +48,8 @@ Atualizado em: 2026-07-20
   `1153`, com cinco skips funcionais esperados, zero falhas e rede externa
   bloqueada. Auditoria offline encontrou zero vulnerabilidades; estado e logs
   rastreados foram restaurados sem diff.
-- A nova revisao independente ainda esta pendente. Portanto C-03 e deploy
-  permanecem `NO-GO`; nenhum acesso a EC2, Google real, WhatsApp real, cofre ou
-  flags ocorreu.
+- A nova revisao independente foi concluida em 2026-07-21 com `GO` local.
+  Deploy permaneceu fora do escopo e continua nao autorizado.
 
 ## C-03 revisao independente - NO-GO - 2026-07-20
 
