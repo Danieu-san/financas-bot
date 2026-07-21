@@ -2,15 +2,37 @@
 
 Atualizado em: 2026-07-20
 
+## C-03 revisao independente - NO-GO - 2026-07-20
+
+- O Chat confirmou e leu diretamente o commit imutavel
+  `6c91074138138dc6f55e7d6271708a299c087f50` e todos os dez arquivos exigidos.
+  A revisao foi estatica; o Chat nao reproduziu testes nem abriu SQLite em
+  runtime.
+- Veredito independente: `NO-GO` para fechar C-03. Nao houve `BLOCKER`, mas foi
+  identificado um `HIGH`: dois workers ou uma tentativa inicial concorrente
+  podem obter o mesmo job, porque `pending` e `remote_failed` nao possuem claim
+  exclusivo, lease ou owner.
+- Dois `MEDIUM` foram confirmados: recovery recalcula retencao em vez de usar
+  `expires_at` persistido; migracao do schema preliminar nao possui teste de
+  regressao nem prova de contencao multiprocesso.
+- O `LOW` sobre `user_id` em log e mitigado pelo sanitizador global do logger,
+  confirmado no codigo, mas a documentacao deve limitar a promessa aos logs
+  sanitizados de saida. O `go_local` impresso pelo harness de recovery e
+  prematuro e deve ser removido ate o gate independente ficar verde.
+- Proxima correcao autorizavel: claim/lease atomico por job, resultado vinculado
+  ao lease, uso de `expires_at` persistido, busy timeout/teste de migracao e
+  cenarios `Promise.all`/dois workers. Nao corrigir em esforco inferior a
+  `Codex -> Sol -> Extra Alto`.
+- Nenhum deploy, EC2, Google real, WhatsApp real ou mudanca de flag ocorreu.
+
 ## C-03 publicada como candidata de auditoria - 2026-07-20
 
 - Commit de codigo/testes/documentacao C-03 publicado no GitHub:
   `6c91074138138dc6f55e7d6271708a299c087f50`.
 - `origin/main` foi confirmado nesse hash logo apos o push. O push tambem
   publicou os checkpoints locais anteriores C-01 e C-02.
-- Todos os gates locais registrados na secao C-03 permanecem verdes. A unica
-  trava antes de `GO local` e a revisao adversarial independente do commit
-  imutavel.
+- Todos os gates locais registrados na secao C-03 permanecem verdes, mas a
+  revisao independente devolveu `NO-GO` por concorrencia do claim.
 - Nenhum deploy, EC2, Google real, WhatsApp real ou mudanca de flag ocorreu.
 
 ## Handoff portatil C-03 - 2026-07-19

@@ -17,6 +17,14 @@ softening assertions. C-03 was published as immutable audit candidate
 `6c91074138138dc6f55e7d6271708a299c087f50` and is not yet independently
 approved.
 
+Independent review confirmed that SHA and returned `NO-GO`. The blocking HIGH
+is the absence of an exclusive atomic claim/lease: `pending` and
+`remote_failed` can be obtained concurrently by two workers or by recovery
+while the initial remote call is still in flight. Confirmed MEDIUM findings are
+the runtime recomputation of retention instead of using persisted `expires_at`
+and the absence of a legacy-schema migration/concurrency regression test. The
+review was static and did not reproduce tests.
+
 Implemented contract:
 
 - append-only jobs with unique `revocation_id` and monotonic `generation`;
@@ -38,8 +46,11 @@ audit found zero vulnerabilities. `state_store.json` was restored without a
 diff. Commit, independent review, push for immutable review and deploy remain
 separate gates.
 
-Next action: inspect commit `6c91074138138dc6f55e7d6271708a299c087f50`
-through an independent Chat review. Do not deploy C-03 before local GO.
+Next action: with `Codex -> Sol -> Extra Alto`, add an atomic leased claim tied
+to result writes, use persisted `expires_at`, configure bounded SQLite waiting,
+cover legacy migration and add concurrent `Promise.all`/two-worker tests. Then
+repeat the complete local gates and submit a new immutable commit to a clean
+Chat review. Do not deploy C-03 before local GO.
 
 ## Files intentionally involved in the unfinished package
 
