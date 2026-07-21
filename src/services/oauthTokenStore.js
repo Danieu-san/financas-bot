@@ -37,6 +37,13 @@ function ensureDb() {
     ensureDataDir(dbPath);
     db = new Database(dbPath);
     activeDbPath = dbPath;
+    const busyTimeoutMs = boundedInteger(
+        process.env.OAUTH_SQLITE_BUSY_TIMEOUT_MS,
+        5000,
+        100,
+        30000
+    );
+    db.pragma(`busy_timeout = ${busyTimeoutMs}`);
     db.pragma('journal_mode = WAL');
     db.exec(`
         CREATE TABLE IF NOT EXISTS oauth_connections (
@@ -66,6 +73,9 @@ function ensureDb() {
             updated_at TEXT NOT NULL,
             next_attempt_at TEXT NOT NULL,
             expires_at TEXT NOT NULL,
+            max_attempts INTEGER NOT NULL DEFAULT 5,
+            lease_id TEXT NOT NULL DEFAULT '',
+            lease_expires_at TEXT NOT NULL DEFAULT '',
             completed_at TEXT,
             has_pending_token INTEGER NOT NULL DEFAULT 0,
             UNIQUE(user_id, generation)
@@ -90,9 +100,9 @@ function ensureDb() {
 }
 
 function ensureOAuthRevocationSchema(database) {
-    const columns = database.prepare('PRAGMA table_info(oauth_revocations)').all();
-    if (!columns.some(column => column.name === 'revocation_id')) {
-        database.transaction(() => {
+    const migrateLegacySchema = database.transaction(() => {
+        const columns = database.prepare('PRAGMA table_info(oauth_revocations)').all();
+        if (!columns.some(column => column.name === 'revocation_id')) {
             database.exec(`
                 DROP INDEX IF EXISTS idx_oauth_revocations_status;
                 ALTER TABLE oauth_revocations RENAME TO oauth_revocations_legacy;
@@ -109,6 +119,9 @@ function ensureOAuthRevocationSchema(database) {
                     updated_at TEXT NOT NULL,
                     next_attempt_at TEXT NOT NULL,
                     expires_at TEXT NOT NULL,
+                    max_attempts INTEGER NOT NULL DEFAULT 5,
+                    lease_id TEXT NOT NULL DEFAULT '',
+                    lease_expires_at TEXT NOT NULL DEFAULT '',
                     completed_at TEXT,
                     has_pending_token INTEGER NOT NULL DEFAULT 0,
                     UNIQUE(user_id, generation)
@@ -116,18 +129,23 @@ function ensureOAuthRevocationSchema(database) {
                 INSERT INTO oauth_revocations(
                     revocation_id, user_id, generation, encrypted_tokens, reason, status,
                     attempts, last_error_code, requested_at, updated_at, next_attempt_at,
-                    expires_at, completed_at, has_pending_token
+                    expires_at, max_attempts, lease_id, lease_expires_at,
+                    completed_at, has_pending_token
                 )
                 SELECT
                     lower(hex(randomblob(16))), user_id, 1, encrypted_tokens, reason, status,
                     attempts, last_error_code, requested_at, updated_at, updated_at,
                     strftime('%Y-%m-%dT%H:%M:%fZ', requested_at, '+30 days'),
-                    completed_at, has_pending_token
+                    5, '', '', completed_at, has_pending_token
                 FROM oauth_revocations_legacy;
                 DROP TABLE oauth_revocations_legacy;
             `);
-        })();
-    }
+        }
+        ensureColumn(database, 'oauth_revocations', 'max_attempts', 'INTEGER NOT NULL DEFAULT 5');
+        ensureColumn(database, 'oauth_revocations', 'lease_id', "TEXT NOT NULL DEFAULT ''");
+        ensureColumn(database, 'oauth_revocations', 'lease_expires_at', "TEXT NOT NULL DEFAULT ''");
+    });
+    migrateLegacySchema.immediate();
     database.exec(`
         CREATE INDEX IF NOT EXISTS idx_oauth_revocations_status
             ON oauth_revocations(status);
@@ -252,7 +270,7 @@ function saveOAuthConnection(userId, { scopes, tokens, googleAccount = {}, sprea
             FROM oauth_revocations
             WHERE user_id = ?
               AND has_pending_token = 1
-              AND status IN ('pending', 'remote_failed')
+              AND status IN ('pending', 'in_progress', 'remote_failed')
             LIMIT 1
         `).get(safeUserId);
         if (pendingRevocation) {
@@ -287,7 +305,7 @@ function saveOAuthConnection(userId, { scopes, tokens, googleAccount = {}, sprea
             updated_at: now
         });
     });
-    persistConnection();
+    persistConnection.immediate();
 
     logger.info(`oauth: conexão Google salva para user_id=${safeUserId}`);
     return getOAuthConnection(safeUserId);
@@ -338,6 +356,8 @@ function mapOAuthRevocation(row) {
         updated_at: row.updated_at || '',
         next_attempt_at: row.next_attempt_at || '',
         expires_at: row.expires_at || '',
+        max_attempts: Number(row.max_attempts || 5),
+        lease_expires_at: row.lease_expires_at || '',
         completed_at: row.completed_at || '',
         has_pending_token: Number(row.has_pending_token || 0) === 1
     };
@@ -370,7 +390,9 @@ function beginOAuthRevocation(userId, {
     revocationId = '',
     now,
     retentionDays = 30,
-    maxAttempts = 5
+    maxAttempts = 5,
+    leaseDurationMs = 10000,
+    respectBackoff = false
 } = {}) {
     const safeUserId = String(userId || '').trim();
     const safeReason = String(reason || 'lifecycle').trim().toUpperCase().slice(0, 32) || 'LIFECYCLE';
@@ -381,9 +403,11 @@ function beginOAuthRevocation(userId, {
     const nowIso = requestedAt.toISOString();
     const safeRetentionDays = boundedInteger(retentionDays, 30, 1, 90);
     const safeMaxAttempts = boundedInteger(maxAttempts, 5, 1, 20);
+    const safeLeaseDurationMs = boundedInteger(leaseDurationMs, 10000, 1000, 60000);
     const expiresAt = new Date(requestedAt.getTime() + safeRetentionDays * 86400000).toISOString();
+    const leaseExpiresAt = new Date(requestedAt.getTime() + safeLeaseDurationMs).toISOString();
     const expectedRevocationId = String(revocationId || '').trim();
-    return database.transaction(() => {
+    const claimRevocation = database.transaction(() => {
         const connection = database.prepare(`
             SELECT * FROM oauth_connections
             WHERE user_id = ? AND COALESCE(revoked_at, '') = ''
@@ -407,14 +431,17 @@ function beginOAuthRevocation(userId, {
                 WHERE user_id = ?
             `).get(safeUserId).value || 0) + 1;
             const newRevocationId = crypto.randomUUID();
+            const newLeaseId = crypto.randomUUID();
             database.prepare(`
                 INSERT INTO oauth_revocations(
                     revocation_id, user_id, generation, encrypted_tokens, reason, status,
                     attempts, last_error_code, requested_at, updated_at, next_attempt_at,
-                    expires_at, completed_at, has_pending_token
+                    expires_at, max_attempts, lease_id, lease_expires_at,
+                    completed_at, has_pending_token
                 ) VALUES(
-                    @revocation_id, @user_id, @generation, @encrypted_tokens, @reason, 'pending',
-                    1, '', @requested_at, @updated_at, @next_attempt_at, @expires_at, '', 1
+                    @revocation_id, @user_id, @generation, @encrypted_tokens, @reason, 'in_progress',
+                    1, '', @requested_at, @updated_at, @next_attempt_at, @expires_at,
+                    @max_attempts, @lease_id, @lease_expires_at, '', 1
                 )
             `).run({
                 revocation_id: newRevocationId,
@@ -425,7 +452,10 @@ function beginOAuthRevocation(userId, {
                 requested_at: nowIso,
                 updated_at: nowIso,
                 next_attempt_at: nowIso,
-                expires_at: expiresAt
+                expires_at: expiresAt,
+                max_attempts: safeMaxAttempts,
+                lease_id: newLeaseId,
+                lease_expires_at: leaseExpiresAt
             });
             database.prepare(`
                 UPDATE oauth_connections
@@ -441,24 +471,48 @@ function beginOAuthRevocation(userId, {
                 started: true,
                 retry: false,
                 revocationId: newRevocationId,
+                leaseId: newLeaseId,
                 tokens: decryptJson(connection.encrypted_tokens),
                 revocation: getOAuthRevocationById(safeUserId, newRevocationId)
             };
         }
 
-        const retryable = existingRevocation
-            && Number(existingRevocation.has_pending_token || 0) === 1
-            && ['pending', 'remote_failed'].includes(existingRevocation.status);
+        const hasPendingToken = Number(existingRevocation?.has_pending_token || 0) === 1;
+        const activeLease = hasPendingToken
+            && existingRevocation.status === 'in_progress'
+            && String(existingRevocation.lease_id || '')
+            && String(existingRevocation.lease_expires_at || '') > nowIso;
+        if (activeLease) {
+            return {
+                started: false,
+                retry: false,
+                revocationId: existingRevocation.revocation_id,
+                leaseId: '',
+                tokens: null,
+                revocation: mapOAuthRevocation(existingRevocation)
+            };
+        }
+
+        const retryable = hasPendingToken
+            && ['pending', 'in_progress', 'remote_failed'].includes(existingRevocation.status);
         if (retryable) {
             const expired = requestedAt.getTime() >= normalizeDate(existingRevocation.expires_at).getTime();
-            const exhausted = Number(existingRevocation.attempts || 0) >= safeMaxAttempts;
+            const persistedMaxAttempts = boundedInteger(existingRevocation.max_attempts, 5, 1, 20);
+            const exhausted = Number(existingRevocation.attempts || 0) >= persistedMaxAttempts;
             if (expired || exhausted) {
                 database.prepare(`
                     UPDATE oauth_revocations
                     SET encrypted_tokens = '', has_pending_token = 0,
                         status = @status, last_error_code = @error_code,
-                        updated_at = @updated_at, completed_at = @updated_at
+                        updated_at = @updated_at, completed_at = @updated_at,
+                        lease_id = '', lease_expires_at = ''
                     WHERE user_id = @user_id AND revocation_id = @revocation_id
+                      AND has_pending_token = 1
+                      AND NOT (
+                          status = 'in_progress'
+                          AND COALESCE(lease_id, '') <> ''
+                          AND COALESCE(lease_expires_at, '') > @updated_at
+                      )
                 `).run({
                     user_id: safeUserId,
                     revocation_id: existingRevocation.revocation_id,
@@ -470,28 +524,59 @@ function beginOAuthRevocation(userId, {
                     started: false,
                     retry: false,
                     revocationId: existingRevocation.revocation_id,
+                    leaseId: '',
                     tokens: null,
                     revocation: getOAuthRevocationById(safeUserId, existingRevocation.revocation_id)
                 };
             }
+            const newLeaseId = crypto.randomUUID();
             const claimed = database.prepare(`
                 UPDATE oauth_revocations
-                SET reason = @reason, status = 'pending', attempts = attempts + 1,
-                    last_error_code = '', updated_at = @updated_at
+                SET reason = @reason, status = 'in_progress', attempts = attempts + 1,
+                    last_error_code = '', updated_at = @updated_at,
+                    lease_id = @lease_id, lease_expires_at = @lease_expires_at
                 WHERE user_id = @user_id AND revocation_id = @revocation_id
                   AND has_pending_token = 1
-                  AND status IN ('pending', 'remote_failed')
+                  AND attempts < max_attempts
+                  AND expires_at > @updated_at
+                  AND (
+                      (
+                          status = 'remote_failed'
+                          AND (@respect_backoff = 0 OR next_attempt_at <= @updated_at)
+                      )
+                      OR (
+                          status = 'pending'
+                          AND (@respect_backoff = 0 OR next_attempt_at <= @updated_at)
+                          AND (
+                              COALESCE(lease_id, '') = ''
+                              OR COALESCE(lease_expires_at, '') = ''
+                              OR lease_expires_at <= @updated_at
+                          )
+                      )
+                      OR (
+                          status = 'in_progress'
+                          AND (
+                              COALESCE(lease_id, '') = ''
+                              OR COALESCE(lease_expires_at, '') = ''
+                              OR lease_expires_at <= @updated_at
+                          )
+                      )
+                  )
             `).run({
                 user_id: safeUserId,
                 revocation_id: existingRevocation.revocation_id,
                 reason: safeReason,
-                updated_at: nowIso
+                updated_at: nowIso,
+                lease_id: newLeaseId,
+                lease_expires_at: leaseExpiresAt,
+                respect_backoff: respectBackoff ? 1 : 0
             });
             if (claimed.changes !== 1) {
                 return {
                     started: false,
                     retry: false,
                     revocationId: existingRevocation.revocation_id,
+                    leaseId: '',
                     tokens: null,
                     revocation: getOAuthRevocationById(safeUserId, existingRevocation.revocation_id)
                 };
@@ -500,6 +585,7 @@ function beginOAuthRevocation(userId, {
                 started: false,
                 retry: true,
                 revocationId: existingRevocation.revocation_id,
+                leaseId: newLeaseId,
                 tokens: decryptJson(existingRevocation.encrypted_tokens),
                 revocation: getOAuthRevocationById(safeUserId, existingRevocation.revocation_id)
             };
@@ -509,13 +595,15 @@ function beginOAuthRevocation(userId, {
             started: false,
             retry: false,
             revocationId: existingRevocation?.revocation_id || '',
+            leaseId: '',
             tokens: null,
             revocation: mapOAuthRevocation(existingRevocation)
         };
-    })();
+    });
+    return claimRevocation.immediate();
 }
 
-function markOAuthRevocationResult(userId, revocationId, {
+function markOAuthRevocationResult(userId, revocationId, leaseId, {
     status,
     errorCode = '',
     now,
@@ -524,9 +612,10 @@ function markOAuthRevocationResult(userId, revocationId, {
 } = {}) {
     const safeUserId = String(userId || '').trim();
     const safeRevocationId = String(revocationId || '').trim();
+    const safeLeaseId = String(leaseId || '').trim();
     const safeStatus = String(status || '').trim().toLowerCase();
-    if (!safeUserId || !safeRevocationId) {
-        throw new Error('user_id e revocation_id são obrigatórios para concluir revogação OAuth.');
+    if (!safeUserId || !safeRevocationId || !safeLeaseId) {
+        throw new Error('user_id, revocation_id e lease_id sao obrigatorios para concluir revogacao OAuth.');
     }
     if (!['remote_revoked', 'remote_failed'].includes(safeStatus)) {
         throw new Error('Status de revogação OAuth inválido.');
@@ -547,7 +636,7 @@ function markOAuthRevocationResult(userId, revocationId, {
         safeBaseDelayMs * (2 ** Math.max(0, Number(current.attempts || 1) - 1)),
         safeMaxDelayMs
     );
-    database.prepare(`
+    const updated = database.prepare(`
         UPDATE oauth_revocations
         SET status = @status,
             encrypted_tokens = CASE WHEN @completed = 1 THEN '' ELSE encrypted_tokens END,
@@ -555,20 +644,25 @@ function markOAuthRevocationResult(userId, revocationId, {
             last_error_code = @last_error_code,
             updated_at = @updated_at,
             next_attempt_at = @next_attempt_at,
-            completed_at = CASE WHEN @completed = 1 THEN @updated_at ELSE completed_at END
+            completed_at = CASE WHEN @completed = 1 THEN @updated_at ELSE completed_at END,
+            lease_id = '',
+            lease_expires_at = ''
         WHERE user_id = @user_id AND revocation_id = @revocation_id
           AND has_pending_token = 1
-          AND status IN ('pending', 'remote_failed')
+          AND status = 'in_progress'
+          AND lease_id = @lease_id
     `).run({
         user_id: safeUserId,
         revocation_id: safeRevocationId,
+        lease_id: safeLeaseId,
         status: safeStatus,
         completed: completed ? 1 : 0,
         last_error_code: completed ? '' : sanitizeRevocationErrorCode(errorCode),
         updated_at: nowIso,
         next_attempt_at: completed ? nowIso : new Date(completedAt.getTime() + delayMs).toISOString()
     });
-    return getOAuthRevocationById(safeUserId, safeRevocationId);
+    const revocation = getOAuthRevocationById(safeUserId, safeRevocationId);
+    return revocation ? { ...revocation, applied: updated.changes === 1 } : { applied: false };
 }
 
 function sanitizeRevocationErrorCode(value) {
@@ -576,15 +670,35 @@ function sanitizeRevocationErrorCode(value) {
     return /^[A-Z0-9_]{1,64}$/.test(code) ? code : 'REMOTE_REVOKE_FAILED';
 }
 
-function listOAuthRevocationsForRecovery({ limit = 50 } = {}) {
+function listOAuthRevocationsForRecovery({ limit = 50, now } = {}) {
     const safeLimit = boundedInteger(limit, 50, 1, 100);
+    const nowIso = normalizeDate(now).toISOString();
     return ensureDb().prepare(`
         SELECT * FROM oauth_revocations
         WHERE has_pending_token = 1
-          AND status IN ('pending', 'remote_failed')
+          AND (
+              (status = 'remote_failed' AND next_attempt_at <= ?)
+              OR (
+                  status = 'pending'
+                  AND next_attempt_at <= ?
+                  AND (
+                      COALESCE(lease_id, '') = ''
+                      OR COALESCE(lease_expires_at, '') = ''
+                      OR lease_expires_at <= ?
+                  )
+              )
+              OR (
+                  status = 'in_progress'
+                  AND (
+                      COALESCE(lease_id, '') = ''
+                      OR COALESCE(lease_expires_at, '') = ''
+                      OR lease_expires_at <= ?
+                  )
+              )
+          )
         ORDER BY next_attempt_at ASC, generation ASC
         LIMIT ?
-    `).all(safeLimit).map(mapOAuthRevocation);
+    `).all(nowIso, nowIso, nowIso, nowIso, safeLimit).map(mapOAuthRevocation);
 }
 
 function expireOAuthRevocation(userId, revocationId, {
@@ -602,13 +716,19 @@ function expireOAuthRevocation(userId, revocationId, {
         throw new Error('Expiração de revogação OAuth inválida.');
     }
     const nowIso = normalizeDate(now).toISOString();
-    ensureDb().prepare(`
+    const updated = ensureDb().prepare(`
         UPDATE oauth_revocations
         SET encrypted_tokens = '', has_pending_token = 0,
             status = @status, last_error_code = @error_code,
-            updated_at = @updated_at, completed_at = @updated_at
+            updated_at = @updated_at, completed_at = @updated_at,
+            lease_id = '', lease_expires_at = ''
         WHERE user_id = @user_id AND revocation_id = @revocation_id
           AND has_pending_token = 1
+          AND NOT (
+              status = 'in_progress'
+              AND COALESCE(lease_id, '') <> ''
+              AND COALESCE(lease_expires_at, '') > @updated_at
+          )
     `).run({
         user_id: safeUserId,
         revocation_id: safeRevocationId,
@@ -616,7 +736,8 @@ function expireOAuthRevocation(userId, revocationId, {
         error_code: sanitizeRevocationErrorCode(errorCode),
         updated_at: nowIso
     });
-    return getOAuthRevocationById(safeUserId, safeRevocationId);
+    const revocation = getOAuthRevocationById(safeUserId, safeRevocationId);
+    return revocation ? { ...revocation, applied: updated.changes === 1 } : { applied: false };
 }
 
 function mapSharedMembership(row) {

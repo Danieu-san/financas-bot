@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const { spawn } = require('node:child_process');
 
 function resetModules() {
     for (const modulePath of [
@@ -53,7 +54,7 @@ test('oauthTokenStore revokes local credentials while preserving public metadata
         assert.strictEqual(connection.spreadsheet_id, 'spreadsheet-preserved');
         assert.strictEqual(connection.calendar_id, 'calendar-preserved');
         assert.strictEqual(connection.encrypted_tokens.includes('refresh-local-secret'), false);
-        assert.strictEqual(revocation.status, 'pending');
+        assert.strictEqual(revocation.status, 'in_progress');
         assert.strictEqual(revocation.reason, 'INACTIVE');
     } finally {
         rawDb.close();
@@ -160,7 +161,7 @@ test('late results from an old revocation cannot mutate a newer revocation gener
         tokens: { refresh_token: 'generation-one' }
     });
     const first = store.beginOAuthRevocation('user-revocation-generation', { reason: 'INACTIVE' });
-    store.markOAuthRevocationResult('user-revocation-generation', first.revocationId, {
+    store.markOAuthRevocationResult('user-revocation-generation', first.revocationId, first.leaseId, {
         status: 'remote_revoked'
     });
 
@@ -169,7 +170,7 @@ test('late results from an old revocation cannot mutate a newer revocation gener
         tokens: { refresh_token: 'generation-two' }
     });
     const second = store.beginOAuthRevocation('user-revocation-generation', { reason: 'BLOCKED' });
-    store.markOAuthRevocationResult('user-revocation-generation', first.revocationId, {
+    store.markOAuthRevocationResult('user-revocation-generation', first.revocationId, first.leaseId, {
         status: 'remote_failed',
         errorCode: 'LATE_OLD_RESULT'
     });
@@ -177,7 +178,7 @@ test('late results from an old revocation cannot mutate a newer revocation gener
     const current = store.getOAuthRevocation('user-revocation-generation');
     assert.notStrictEqual(first.revocationId, second.revocationId);
     assert.strictEqual(current.revocation_id, second.revocationId);
-    assert.strictEqual(current.status, 'pending');
+    assert.strictEqual(current.status, 'in_progress');
     assert.strictEqual(current.has_pending_token, true);
 });
 
@@ -306,6 +307,372 @@ test('remote OAuth revocation is time-bounded while local credentials remain rev
     assert.strictEqual(store.getOAuthConnection('user-revoke-timeout'), null);
     assert.strictEqual(store.getOAuthRevocation('user-revoke-timeout').status, 'remote_failed');
 });
+
+test('concurrent recovery workers claim a retryable revocation only once', async () => {
+    resetModules();
+    configureTestEnv();
+    const store = require('../src/services/oauthTokenStore');
+    const service = require('../src/services/googleOAuthRevocationService');
+    const failedAt = new Date('2026-04-01T00:00:00.000Z');
+    const recoveryAt = new Date('2026-04-01T00:00:02.000Z');
+    let remoteCalls = 0;
+
+    store.saveOAuthConnection('user-concurrent-recovery', {
+        scopes: ['scope-a'],
+        tokens: { refresh_token: 'concurrent-recovery-secret' }
+    });
+    await service.revokeGoogleConnectionForUser('user-concurrent-recovery', {
+        now: failedAt,
+        baseDelayMs: 1000,
+        revokeToken: async () => { throw new Error('synthetic outage'); }
+    });
+
+    const results = await Promise.all([
+        service.retryPendingGoogleRevocations({
+            now: recoveryAt,
+            baseDelayMs: 1000,
+            revokeToken: async () => {
+                remoteCalls += 1;
+                await new Promise(resolve => setImmediate(resolve));
+            }
+        }),
+        service.retryPendingGoogleRevocations({
+            now: recoveryAt,
+            baseDelayMs: 1000,
+            revokeToken: async () => {
+                remoteCalls += 1;
+                await new Promise(resolve => setImmediate(resolve));
+            }
+        })
+    ]);
+
+    assert.strictEqual(remoteCalls, 1);
+    assert.strictEqual(results.reduce((sum, result) => sum + result.attempted, 0), 1);
+    assert.strictEqual(results.reduce((sum, result) => sum + result.revoked, 0), 1);
+    assert.strictEqual(store.getOAuthRevocation('user-concurrent-recovery').attempts, 2);
+});
+
+test('automatic recovery does not race an initial remote revocation in flight', async () => {
+    resetModules();
+    configureTestEnv();
+    const store = require('../src/services/oauthTokenStore');
+    const service = require('../src/services/googleOAuthRevocationService');
+    let releaseRemote;
+    let reportRemoteStarted;
+    let remoteCalls = 0;
+    const remoteStarted = new Promise(resolve => { reportRemoteStarted = resolve; });
+    const remoteGate = new Promise(resolve => { releaseRemote = resolve; });
+
+    store.saveOAuthConnection('user-initial-recovery-race', {
+        scopes: ['scope-a'],
+        tokens: { refresh_token: 'initial-recovery-secret' }
+    });
+    const initial = service.revokeGoogleConnectionForUser('user-initial-recovery-race', {
+        now: new Date('2026-04-02T00:00:00.000Z'),
+        timeoutMs: 5000,
+        revokeToken: async () => {
+            remoteCalls += 1;
+            reportRemoteStarted();
+            await remoteGate;
+        }
+    });
+    await remoteStarted;
+
+    let recovery;
+    try {
+        recovery = await service.retryPendingGoogleRevocations({
+            now: new Date('2026-04-02T00:00:01.000Z'),
+            revokeToken: async () => { remoteCalls += 1; }
+        });
+    } finally {
+        releaseRemote();
+    }
+    const completed = await initial;
+    assert.deepStrictEqual(recovery, { attempted: 0, revoked: 0, failed: 0, expired: 0 });
+    assert.strictEqual(remoteCalls, 1);
+    assert.strictEqual(completed.remoteStatus, 'revoked');
+    assert.strictEqual(store.getOAuthRevocation('user-initial-recovery-race').attempts, 1);
+});
+
+test('a stale lease result cannot mutate a revocation claimed by a newer worker', () => {
+    resetModules();
+    configureTestEnv();
+    const store = require('../src/services/oauthTokenStore');
+
+    store.saveOAuthConnection('user-stale-lease', {
+        scopes: ['scope-a'],
+        tokens: { refresh_token: 'stale-lease-secret' }
+    });
+    const first = store.beginOAuthRevocation('user-stale-lease', {
+        now: new Date('2026-04-03T00:00:00.000Z'),
+        leaseDurationMs: 1000
+    });
+    const second = store.beginOAuthRevocation('user-stale-lease', {
+        revocationId: first.revocationId,
+        now: new Date('2026-04-03T00:00:02.000Z'),
+        leaseDurationMs: 1000
+    });
+
+    const stale = store.markOAuthRevocationResult(
+        'user-stale-lease',
+        first.revocationId,
+        first.leaseId,
+        { status: 'remote_revoked', now: new Date('2026-04-03T00:00:02.500Z') }
+    );
+    assert.strictEqual(stale.applied, false);
+    assert.strictEqual(store.getOAuthRevocation('user-stale-lease').status, 'in_progress');
+
+    const current = store.markOAuthRevocationResult(
+        'user-stale-lease',
+        second.revocationId,
+        second.leaseId,
+        { status: 'remote_revoked', now: new Date('2026-04-03T00:00:02.500Z') }
+    );
+    assert.strictEqual(current.applied, true);
+    assert.strictEqual(current.status, 'remote_revoked');
+});
+
+test('expiry cannot clear retained token material while a lease is active', () => {
+    resetModules();
+    const { dbPath } = configureTestEnv();
+    const store = require('../src/services/oauthTokenStore');
+
+    store.saveOAuthConnection('user-active-lease-expiry', {
+        scopes: ['scope-a'],
+        tokens: { refresh_token: 'active-lease-expiry-secret' }
+    });
+    const started = store.beginOAuthRevocation('user-active-lease-expiry', {
+        now: new Date('2026-04-03T01:00:00.000Z'),
+        leaseDurationMs: 5000
+    });
+    const blocked = store.expireOAuthRevocation(
+        'user-active-lease-expiry',
+        started.revocationId,
+        { now: new Date('2026-04-03T01:00:01.000Z') }
+    );
+    assert.strictEqual(blocked.applied, false);
+    assert.strictEqual(blocked.status, 'in_progress');
+    assert.strictEqual(blocked.has_pending_token, true);
+
+    const rawDb = require('better-sqlite3')(dbPath, { readonly: true });
+    try {
+        const active = rawDb.prepare(`
+            SELECT length(encrypted_tokens) AS encrypted_length
+            FROM oauth_revocations
+            WHERE revocation_id = ?
+        `).get(started.revocationId);
+        assert.ok(active.encrypted_length > 0);
+    } finally {
+        rawDb.close();
+    }
+
+    const expired = store.expireOAuthRevocation(
+        'user-active-lease-expiry',
+        started.revocationId,
+        { now: new Date('2026-04-03T01:00:06.000Z') }
+    );
+    assert.strictEqual(expired.applied, true);
+    assert.strictEqual(expired.status, 'manual_required_expired');
+    assert.strictEqual(expired.has_pending_token, false);
+});
+
+test('recovery honors persisted retention and attempt policies after runtime changes', async () => {
+    resetModules();
+    configureTestEnv();
+    const store = require('../src/services/oauthTokenStore');
+    const service = require('../src/services/googleOAuthRevocationService');
+    let remoteCalls = 0;
+
+    store.saveOAuthConnection('user-persisted-retention', {
+        scopes: ['scope-a'],
+        tokens: { refresh_token: 'persisted-retention-secret' }
+    });
+    await service.revokeGoogleConnectionForUser('user-persisted-retention', {
+        now: new Date('2026-04-04T00:00:00.000Z'),
+        retentionDays: 1,
+        maxAttempts: 1,
+        baseDelayMs: 1000,
+        revokeToken: async () => { throw new Error('synthetic outage'); }
+    });
+
+    const recovery = await service.retryPendingGoogleRevocations({
+        now: new Date('2026-04-06T00:00:00.000Z'),
+        retentionDays: 90,
+        maxAttempts: 20,
+        revokeToken: async () => { remoteCalls += 1; }
+    });
+    const job = store.getOAuthRevocation('user-persisted-retention');
+    assert.deepStrictEqual(recovery, { attempted: 0, revoked: 0, failed: 0, expired: 1 });
+    assert.strictEqual(remoteCalls, 0);
+    assert.strictEqual(job.status, 'manual_required_expired');
+    assert.strictEqual(job.has_pending_token, false);
+});
+
+test('recovery honors the persisted attempt cap after runtime changes', async () => {
+    resetModules();
+    configureTestEnv();
+    const store = require('../src/services/oauthTokenStore');
+    const service = require('../src/services/googleOAuthRevocationService');
+    let remoteCalls = 0;
+
+    store.saveOAuthConnection('user-persisted-attempt-cap', {
+        scopes: ['scope-a'],
+        tokens: { refresh_token: 'persisted-attempt-cap-secret' }
+    });
+    await service.revokeGoogleConnectionForUser('user-persisted-attempt-cap', {
+        now: new Date('2026-04-07T00:00:00.000Z'),
+        retentionDays: 90,
+        maxAttempts: 1,
+        baseDelayMs: 1000,
+        revokeToken: async () => { throw new Error('synthetic outage'); }
+    });
+
+    const recovery = await service.retryPendingGoogleRevocations({
+        now: new Date('2026-04-07T00:00:02.000Z'),
+        maxAttempts: 20,
+        revokeToken: async () => { remoteCalls += 1; }
+    });
+    const job = store.getOAuthRevocation('user-persisted-attempt-cap');
+    assert.deepStrictEqual(recovery, { attempted: 0, revoked: 0, failed: 0, expired: 1 });
+    assert.strictEqual(remoteCalls, 0);
+    assert.strictEqual(job.status, 'manual_required_exhausted');
+    assert.strictEqual(job.has_pending_token, false);
+});
+
+test('legacy revocation schema migrates safely when two processes open it concurrently', async () => {
+    resetModules();
+    const { dbPath } = configureTestEnv();
+    const Database = require('better-sqlite3');
+    const legacyDb = new Database(dbPath);
+    legacyDb.exec(`
+        CREATE TABLE oauth_revocations (
+            user_id TEXT PRIMARY KEY,
+            encrypted_tokens TEXT NOT NULL,
+            reason TEXT NOT NULL,
+            status TEXT NOT NULL,
+            attempts INTEGER NOT NULL DEFAULT 0,
+            last_error_code TEXT,
+            requested_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            completed_at TEXT,
+            has_pending_token INTEGER NOT NULL DEFAULT 0
+        );
+        INSERT INTO oauth_revocations(
+            user_id, encrypted_tokens, reason, status, attempts, last_error_code,
+            requested_at, updated_at, completed_at, has_pending_token
+        ) VALUES(
+            'legacy-user', 'legacy-ciphertext', 'BLOCKED', 'pending', 1, '',
+            '2026-04-01T00:00:00.000Z', '2026-04-01T00:00:00.000Z', '', 1
+        );
+    `);
+    legacyDb.close();
+
+    const storePath = path.resolve(__dirname, '../src/services/oauthTokenStore.js');
+    const workerSource = "const store = require(process.argv[1]); store.getOAuthRevocation('legacy-user');";
+    const workerEnv = {
+        ...process.env,
+        OAUTH_TOKEN_DB_PATH: dbPath,
+        OAUTH_SQLITE_BUSY_TIMEOUT_MS: '5000'
+    };
+    await Promise.all([
+        runNodeWorker(workerSource, storePath, workerEnv),
+        runNodeWorker(workerSource, storePath, workerEnv)
+    ]);
+
+    const migratedDb = new Database(dbPath, { readonly: true });
+    try {
+        const columns = migratedDb.prepare('PRAGMA table_info(oauth_revocations)').all()
+            .map(column => column.name);
+        const rows = migratedDb.prepare('SELECT COUNT(*) AS value FROM oauth_revocations').get();
+        assert.ok(columns.includes('revocation_id'));
+        assert.ok(columns.includes('lease_id'));
+        assert.ok(columns.includes('lease_expires_at'));
+        assert.ok(columns.includes('max_attempts'));
+        assert.strictEqual(rows.value, 1);
+    } finally {
+        migratedDb.close();
+    }
+});
+
+test('versioned revocation schema adds lease columns safely under concurrent startup', async () => {
+    resetModules();
+    const { dbPath } = configureTestEnv();
+    const Database = require('better-sqlite3');
+    const versionedDb = new Database(dbPath);
+    versionedDb.exec(`
+        CREATE TABLE oauth_revocations (
+            revocation_id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            generation INTEGER NOT NULL,
+            encrypted_tokens TEXT NOT NULL,
+            reason TEXT NOT NULL,
+            status TEXT NOT NULL,
+            attempts INTEGER NOT NULL DEFAULT 0,
+            last_error_code TEXT,
+            requested_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            next_attempt_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            completed_at TEXT,
+            has_pending_token INTEGER NOT NULL DEFAULT 0,
+            UNIQUE(user_id, generation)
+        );
+        INSERT INTO oauth_revocations(
+            revocation_id, user_id, generation, encrypted_tokens, reason, status,
+            attempts, last_error_code, requested_at, updated_at, next_attempt_at,
+            expires_at, completed_at, has_pending_token
+        ) VALUES(
+            'versioned-job', 'versioned-user', 1, 'versioned-ciphertext', 'BLOCKED',
+            'remote_failed', 1, 'REMOTE_REVOKE_FAILED', '2026-04-01T00:00:00.000Z',
+            '2026-04-01T00:00:00.000Z', '2026-04-01T00:05:00.000Z',
+            '2026-05-01T00:00:00.000Z', '', 1
+        );
+    `);
+    versionedDb.close();
+
+    const storePath = path.resolve(__dirname, '../src/services/oauthTokenStore.js');
+    const workerSource = "const store = require(process.argv[1]); store.getOAuthRevocation('versioned-user');";
+    const workerEnv = {
+        ...process.env,
+        OAUTH_TOKEN_DB_PATH: dbPath,
+        OAUTH_SQLITE_BUSY_TIMEOUT_MS: '5000'
+    };
+    await Promise.all([
+        runNodeWorker(workerSource, storePath, workerEnv),
+        runNodeWorker(workerSource, storePath, workerEnv)
+    ]);
+
+    const migratedDb = new Database(dbPath, { readonly: true });
+    try {
+        const job = migratedDb.prepare(`
+            SELECT max_attempts, lease_id, lease_expires_at
+            FROM oauth_revocations
+            WHERE revocation_id = 'versioned-job'
+        `).get();
+        assert.strictEqual(job.max_attempts, 5);
+        assert.strictEqual(job.lease_id, '');
+        assert.strictEqual(job.lease_expires_at, '');
+    } finally {
+        migratedDb.close();
+    }
+});
+
+function runNodeWorker(source, storePath, env) {
+    return new Promise((resolve, reject) => {
+        const child = spawn(process.execPath, ['-e', source, storePath], {
+            env,
+            stdio: ['ignore', 'ignore', 'pipe']
+        });
+        let stderr = '';
+        child.stderr.setEncoding('utf8');
+        child.stderr.on('data', chunk => { stderr += chunk; });
+        child.once('error', reject);
+        child.once('exit', code => {
+            if (code === 0) resolve();
+            else reject(new Error(`migration worker exited ${code}: ${stderr.slice(0, 500)}`));
+        });
+    });
+}
 
 function configureTestEnv() {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'financas-oauth-'));

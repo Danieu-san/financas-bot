@@ -528,7 +528,7 @@ test('independent audit of individual Google revocation and lifecycle recovery',
     console.log(`REVOCATION_RECOVERY_AUDIT_RESULT ${JSON.stringify({
         individual_revocation_capability: 'present_and_lifecycle_bound',
         revocation_failure_replay: 'covered_by_token_store_unit_regression',
-        revocation_conformity: 'go_local',
+        revocation_conformity: 'pending_independent_review',
         prior_partial_state_recovery: 'covered_by_idempotency_package',
         scenarios: results
     })}`);
