@@ -17,7 +17,8 @@ Plano ativo: `docs/plans/current-gate.md`.
 - commit de partida do WGL: `94449eea355f2c0f796a2ec0bd7b3c253e595715`;
 - o HEAD de cada retomada deve ser confirmado pelo Git e pode conter um commit
   operacional posterior a essa base;
-- a árvore portátil está suja com a implementação WGL ainda não publicada;
+- a árvore portátil contém somente o segundo delta focal WGL ainda não
+  publicado, além das alterações concorrentes e arquivos do usuário fora do gate;
 - o HEAD antes do candidato WGL é
   `ecf819d7baad74f85ca4a1ba23982db894863237`;
 - arquivos não rastreados alheios já existentes pertencem ao usuário e não
@@ -82,6 +83,10 @@ usuário não pertencem ao candidato e não devem ser incluídos.
 - saga WGL: `21/21` verde no estado atual;
 - serviço de planilha junto da saga: `38/38`; callback, causalidade e
   idempotência após a correção: `31/31`;
+- a primeira reauditoria de `0b8f5bf9...` encontrou falso sucesso para
+  `trashed=true` com marcador alheio/ausente; a ordem foi corrigida e os dois
+  cruzamentos adversariais foram adicionados ao teste do serviço; saga+serviço
+  passou `38/38` e o subconjunto causal reexecutado passou `17/17`;
 - afetados finais: `62/62` verde;
 - runner hermético local: `valid=true`, `external_network_blocked=true`,
   `pass=1185`, `fail=0`, `skipped=5`;
@@ -89,11 +94,12 @@ usuário não pertencem ao candidato e não devem ser incluídos.
 
 ## Próxima ação exata
 
-1. revisar o conjunto exato de arquivos WGL e `git diff --check`;
-2. criar commit sanitizado sem arquivos da migração ou do usuário e publicar;
-3. auditar o novo hash imutável com evidência local e GitHub; o hash anterior
-   `fe369897ced1b45d886e91e19e6f2ba773e241ba` recebeu NO-GO WGL-04 por não
-   convergir após delete remoto efetivado com resposta perdida;
+1. revalidar o segundo delta focal e executar `git diff --check`;
+2. criar novo commit sanitizado sem arquivos da migração ou do usuário e publicar;
+3. auditar o novo hash imutável com evidência local e GitHub; os hashes
+   `fe369897...` e `0b8f5bf9...` receberam achados MEDIUM válidos, respectivamente
+   por não convergir após delete efetivado e por aceitar falso sucesso para
+   recurso descartado com marcador alheio/ausente;
 4. corrigir somente achado material; se não houver, consolidar o gate sem deploy.
 
 ## Capacidade para retomar

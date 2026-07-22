@@ -198,6 +198,30 @@ test('OAuth compensation treats an already absent or trashed marked sheet as con
             delete: async () => assert.fail('a foreign marker must never be deleted')
         }
     };
+    const trashedWrongMarkerDriveClient = {
+        files: {
+            get: async () => ({
+                data: {
+                    id: 'trashed-foreign-sheet',
+                    trashed: true,
+                    appProperties: { financasbot_oauth_attempt: 'another-attempt' }
+                }
+            }),
+            delete: async () => assert.fail('a trashed foreign marker must never be deleted')
+        }
+    };
+    const trashedMissingMarkerDriveClient = {
+        files: {
+            get: async () => ({
+                data: {
+                    id: 'trashed-unmarked-sheet',
+                    trashed: true,
+                    appProperties: {}
+                }
+            }),
+            delete: async () => assert.fail('a trashed unmarked file must never be deleted')
+        }
+    };
 
     assert.strictEqual(await deleteUserSpreadsheetForAttempt({
         spreadsheetId: 'missing-sheet', attemptId, driveClient: missingDriveClient
@@ -207,6 +231,12 @@ test('OAuth compensation treats an already absent or trashed marked sheet as con
     }), true);
     assert.strictEqual(await deleteUserSpreadsheetForAttempt({
         spreadsheetId: 'foreign-sheet', attemptId, driveClient: wrongMarkerDriveClient
+    }), false);
+    assert.strictEqual(await deleteUserSpreadsheetForAttempt({
+        spreadsheetId: 'trashed-foreign-sheet', attemptId, driveClient: trashedWrongMarkerDriveClient
+    }), false);
+    assert.strictEqual(await deleteUserSpreadsheetForAttempt({
+        spreadsheetId: 'trashed-unmarked-sheet', attemptId, driveClient: trashedMissingMarkerDriveClient
     }), false);
 });
 

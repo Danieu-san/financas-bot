@@ -92,8 +92,10 @@ depois de a bateria afetada ficar estável.
 Implementação local concluída: focal `21/21`, afetados finais `62/62` e runner
 hermético `1.185` passes, `0` falhas, `5` skips previstos, com rede bloqueada.
 O primeiro hash imutável recebeu achado MEDIUM válido para delete remoto
-efetivado com resposta perdida; a correção trata `404`/recurso já descartado
-como compensação convergida, preservando marcador estrangeiro como falha. A
-prova pós-correção passou `38/38` focal+planilha e `31/31` em
-callback/causalidade/idempotência. Publicar o delta sanitizado e executar nova
-auditoria independente. Deploy e produção continuam fora do escopo.
+efetivado com resposta perdida. A primeira reauditoria confirmou essa correção,
+mas encontrou novo MEDIUM: recurso `trashed=true` era aceito antes da validação
+do marcador. A decisão agora valida propriedade primeiro; marcador alheio ou
+ausente retorna `false` mesmo na lixeira, enquanto 404 e recurso descartado com
+marcador correto convergem. A prova focal+planilha passou `38/38`, incluindo os
+cruzamentos adversariais. Publicar novo delta sanitizado e executar uma única
+auditoria independente do novo hash. Deploy e produção continuam fora do escopo.
