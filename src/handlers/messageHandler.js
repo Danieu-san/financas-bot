@@ -225,6 +225,7 @@ const MASTER_SCHEMA = {
 };
 
 const processedMessages = new Set();
+const senderMessageTails = new Map();
 const ANALYTICAL_CONTEXT_TTL_SECONDS = 5 * 60;
 const ANALYTICAL_CONTEXT_STATE_PREFIX = 'analytical_followup_v1:';
 const analyticalContextKeysForTests = new Set();
@@ -236,6 +237,37 @@ const SECURITY_BLOCK_REPLY = [
     'Posso ajudar com os seus próprios lançamentos, sua planilha, seu dashboard e orientações financeiras dentro do seu acesso.'
 ].join('\n');
 const AUDIO_ADMIN_BLOCK_REPLY = 'Por segurança, comandos administrativos e suas confirmações só podem ser enviados por texto.';
+
+function resolveMessageSenderKey(msg = {}) {
+    return String(msg.author || msg.from || '').trim();
+}
+
+function runMessageTaskForSender(senderId, task) {
+    if (typeof task !== 'function') {
+        return Promise.reject(new TypeError('task must be a function'));
+    }
+
+    const key = String(senderId || '').trim();
+    if (!key) {
+        return Promise.resolve().then(task);
+    }
+
+    const previousTail = senderMessageTails.get(key) || Promise.resolve();
+    const current = previousTail.then(task);
+    const settledTail = current.then(
+        () => undefined,
+        () => undefined
+    );
+
+    senderMessageTails.set(key, settledTail);
+    settledTail.then(() => {
+        if (senderMessageTails.get(key) === settledTail) {
+            senderMessageTails.delete(key);
+        }
+    });
+
+    return current;
+}
 
 function getFinancialAgentMode() {
     const mode = normalizeText(process.env.FINANCIAL_AGENT_MODE || 'off');
@@ -9036,7 +9068,7 @@ async function tryHandleFinancialCommandPlannerRoute({ msg, senderId, messageBod
         return false;
     }
 }
-async function handleMessage(msg) {
+async function processMessage(msg) {
     metrics.increment('message.received');
     const messageId = msg.id.id;
     const wasAudioMessage = msg.type === 'ptt' || msg.type === 'audio';
@@ -11826,6 +11858,17 @@ async function handleMessage(msg) {
     });
 }
 
+function handleMessage(msg) {
+    const senderId = resolveMessageSenderKey(msg);
+    return runMessageTaskForSender(
+        senderId,
+        () => processMessage(msg)
+    ).catch((error) => {
+        metrics.increment('message.error.unhandled');
+        logger.error(`[message] unhandled_failure sender=${logger.redactIdentifier(senderId)} error=${error.message}`);
+    });
+}
+
 module.exports = {
     handleMessage,
     __test__: {
@@ -11902,6 +11945,10 @@ module.exports = {
         buildDashboardWhatsAppSummary,
         resolveConfiguredBudgetQueryScope,
         cleanLocalTransactionDescription,
-        messageRequestsDocumentOcr
+        messageRequestsDocumentOcr,
+        resolveMessageSenderKey,
+        runMessageTaskForSender,
+        getSenderMessageQueueSize: () => senderMessageTails.size,
+        clearSenderMessageQueueForTests: () => senderMessageTails.clear()
     }
 };

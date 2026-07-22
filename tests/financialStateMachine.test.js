@@ -58,6 +58,10 @@ let audioHandleCalls = 0;
 let audioHandleDelayMs = 0;
 let rateLimitCheckCount = 0;
 const audioRateLimitChecksAtHandle = [];
+let usersSheetReadDelayMs = 0;
+let activeUsersSheetReads = 0;
+let maxConcurrentUsersSheetReads = 0;
+let appendRowDelayMs = 0;
 
 function stateMachineTest(name, fn) {
     test(name, async () => {
@@ -139,6 +143,10 @@ function resetSheets() {
     audioHandleDelayMs = 0;
     rateLimitCheckCount = 0;
     audioRateLimitChecksAtHandle.length = 0;
+    usersSheetReadDelayMs = 0;
+    activeUsersSheetReads = 0;
+    maxConcurrentUsersSheetReads = 0;
+    appendRowDelayMs = 0;
 }
 
 function activeAdminUserRow() {
@@ -253,6 +261,15 @@ function installMocks() {
                 const sheetName = getSheetName(range);
                 sheetReadCalls.push({ sheetName, options: { ...options } });
                 if (sheetReadErrors.has(sheetName)) throw sheetReadErrors.get(sheetName);
+                if (sheetName === 'Users' && usersSheetReadDelayMs > 0) {
+                    activeUsersSheetReads += 1;
+                    maxConcurrentUsersSheetReads = Math.max(maxConcurrentUsersSheetReads, activeUsersSheetReads);
+                    try {
+                        await new Promise(resolve => setTimeout(resolve, usersSheetReadDelayMs));
+                    } finally {
+                        activeUsersSheetReads -= 1;
+                    }
+                }
                 if (usesPersonalSpreadsheet && options.userId && personalSheetOverrides[sheetName]) {
                     return personalSheetOverrides[sheetName];
                 }
@@ -261,6 +278,9 @@ function installMocks() {
             appendRowToSheet: async (sheetName, row, options = {}) => {
                 const name = getSheetName(sheetName);
                 if (!sheets[name]) sheets[name] = [[]];
+                if (appendRowDelayMs > 0) {
+                    await new Promise(resolve => setTimeout(resolve, appendRowDelayMs));
+                }
                 if (options.operationKey) {
                     if (seenAppendOperationKeys.has(options.operationKey)) {
                         return { status: 'committed', receipt: { replayed: true } };
@@ -409,6 +429,13 @@ function createMockMessage(body) {
     };
 }
 
+function createMockMessageFrom(body, senderId) {
+    const msg = createMockMessage(body);
+    msg.from = senderId;
+    msg.author = senderId;
+    return msg;
+}
+
 function createMockMediaMessage(text, { filename = 'extrato.csv', mimetype = 'text/csv' } = {}) {
     const msg = createMockMessage('');
     msg.hasMedia = true;
@@ -456,6 +483,8 @@ function resetState() {
     resetSheets();
     rateLimiter.isAllowed = originalRateLimiterIsAllowed;
     userStateManager.deleteState(SENDER);
+    userStateManager.deleteState(PARTNER_SENDER);
+    messageHandlerTest.clearSenderMessageQueueForTests();
     if (typeof userService.invalidateUserCaches === 'function') {
         userService.invalidateUserCaches();
     }
@@ -2636,6 +2665,105 @@ stateMachineTest('audio ingress claims duplicate id before asynchronous transcri
     await handleMessage(replay);
 
     assert.strictEqual(audioHandleCalls, 1, 'reentrega dentro do TTL não pode transcrever novamente');
+});
+
+stateMachineTest('message ingress serializes distinct messages from the same sender', async () => {
+    resetState();
+    usersSheetReadDelayMs = 30;
+    userService.invalidateUserCaches();
+    const first = createMockMessage('ajuda');
+    const second = createMockMessage('ajuda');
+
+    await Promise.all([handleMessage(first), handleMessage(second)]);
+
+    assert.strictEqual(maxConcurrentUsersSheetReads, 1);
+    assert.ok(first.replies.length > 0);
+    assert.ok(second.replies.length > 0);
+});
+
+stateMachineTest('message ingress lets different senders execute concurrently', async () => {
+    resetState();
+    sheets.Users.push(partnerUserRow());
+    usersSheetReadDelayMs = 30;
+    userService.invalidateUserCaches();
+    const first = createMockMessage('ajuda');
+    const second = createMockMessageFrom('ajuda', PARTNER_SENDER);
+
+    await Promise.all([handleMessage(first), handleMessage(second)]);
+
+    assert.strictEqual(maxConcurrentUsersSheetReads, 2);
+});
+
+stateMachineTest('message ingress consumes a confirmation state only once under concurrency', async () => {
+    resetState();
+    appendRowDelayMs = 30;
+    userStateManager.setState(SENDER, {
+        action: 'confirming_transactions',
+        data: {
+            person: 'Usuario Estado',
+            transactions: [{
+                type: 'Saídas',
+                data: '10/02/2026',
+                descricao: 'lanche concorrente',
+                categoria: 'Alimentação',
+                subcategoria: 'PADARIA / LANCHE',
+                valor: 80,
+                pagamento: 'PIX',
+                recorrente: 'Não'
+            }]
+        }
+    });
+    const first = createMockMessage('sim');
+    const second = createMockMessage('sim');
+
+    await Promise.all([handleMessage(first), handleMessage(second)]);
+
+    assert.strictEqual(appendedRows.filter(entry => entry.sheetName === 'Saídas').length, 1);
+    assert.strictEqual(sheets.Saídas.length, 2);
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
+
+stateMachineTest('sender queue preserves FIFO order, recovers after rejection, and releases idle keys', async () => {
+    resetState();
+    const events = [];
+    let releaseFirst;
+    const firstGate = new Promise(resolve => {
+        releaseFirst = resolve;
+    });
+    const first = messageHandlerTest.runMessageTaskForSender(SENDER, async () => {
+        events.push('first:start');
+        await firstGate;
+        events.push('first:error');
+        throw new Error('simulated queued failure');
+    });
+    const firstFailure = assert.rejects(first, /simulated queued failure/);
+    const second = messageHandlerTest.runMessageTaskForSender(SENDER, async () => {
+        events.push('second:run');
+    });
+
+    await Promise.resolve();
+    assert.deepStrictEqual(events, ['first:start']);
+    assert.strictEqual(messageHandlerTest.getSenderMessageQueueSize(), 1);
+    releaseFirst();
+    await firstFailure;
+    await second;
+    await Promise.resolve();
+
+    assert.deepStrictEqual(events, ['first:start', 'first:error', 'second:run']);
+    assert.strictEqual(messageHandlerTest.getSenderMessageQueueSize(), 0);
+});
+
+stateMachineTest('message ingress contains an unexpected failure and runs the next message from the same sender', async () => {
+    resetState();
+    const malformed = createMockMessage('ajuda');
+    malformed.id = null;
+    const recovery = createMockMessage('ajuda');
+
+    await Promise.all([handleMessage(malformed), handleMessage(recovery)]);
+    await Promise.resolve();
+
+    assert.ok(recovery.replies.length > 0);
+    assert.strictEqual(messageHandlerTest.getSenderMessageQueueSize(), 0);
 });
 
 stateMachineTest('audio ingress applies security gate to transcript before admin or financial routing', async () => {

@@ -4,9 +4,10 @@ Atualizado em: 2026-07-22
 
 ## Objetivo ativo
 
-Executar a fila de correções da auditoria exaustiva. O próximo gate já ordenado
-é `STATE-01`; a decisão de produto pós-Fase 9 sobre proposição de salvamento foi
-registrada no roadmap sem alterar o escopo desse gate.
+Executar a fila de correções da auditoria exaustiva. `STATE-01` possui candidato
+local testado e aguarda commit imutável mais auditoria independente obrigatória
+no Chat. A decisão de produto pós-Fase 9 sobre proposição de salvamento segue
+registrada no roadmap sem alterar o escopo deste gate.
 
 ## Último gate encerrado
 
@@ -63,18 +64,20 @@ Google/WhatsApp real, produção ou deploy.
   removidos;
 - raiz canônica: repositório `financas-bot` no SSD portátil.
 
-## Próximo gate já ordenado
+## Gate ativo
 
-`STATE-01`: serializar mensagens do mesmo remetente para que duas confirmações
-concorrentes não avancem a mesma máquina de estado nem produzam efeitos
-financeiros incoerentes.
+`STATE-01`: a entrada pública agora serializa mensagens do mesmo remetente,
+preserva paralelismo entre remetentes, libera a fila após falha e contém
+rejeições antes de entregá-las ao `EventEmitter`. O RED observou sobreposição e
+efeito duplo; o final ficou verde em `5/5` focal, `124/124` afetado e
+`1.073/1.073` no runner principal do `npm test`.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
 ## Decisões vigentes
 
-- usar `Codex → Sol → Extra Alto` no próximo gate, porque `STATE-01` é
-  concorrência crítica sobre estado e efeitos financeiros;
+- manter `Codex → Sol → Extra Alto` até a auditoria e o confronto final de
+  `STATE-01`, por ser concorrência crítica sobre estado e efeitos financeiros;
 - parar e avisar Daniel antes de reduzir ou trocar capacidade;
 - não tocar deploy, EC2/Oracle ou serviços reais sem autorização específica;
 - preservar o bot familiar privado do casal; expansão multiusuário não faz
@@ -84,19 +87,21 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Após Daniel selecionar `Extra Alto`, mapear os entrypoints e estados de
-`STATE-01`, definir a fronteira de serialização por remetente e criar testes de
-duas mensagens concorrentes antes de implementar. Não iniciar esse trabalho em
-`Alto`.
+Criar e publicar o commit sanitizado do candidato `STATE-01`, fornecer ao Chat
+URLs imutáveis do manifesto, handler, teste e `index.js`, confrontar o parecer e
+só então registrar ou negar `GO TÉCNICO LOCAL`. Não acessar produção nem fazer
+deploy.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Extra Alto → mapear e corrigir STATE-01 sem deploy.`
+`Codex → Sol → Extra Alto → publicar e auditar o candidato STATE-01 sem deploy.`
 
 ## Histórico dirigido
 
 - fechamento atual:
   `docs/audit/18-flow03-independent-close-2026-07-22.md`;
+- candidato STATE-01:
+  `docs/audit/19-state01-sender-serialization-candidate-2026-07-22.md`;
 - candidato FLOW-03:
   `docs/audit/17-flow03-scheduler-personal-source-candidate-2026-07-22.md`;
 - fechamento anterior:

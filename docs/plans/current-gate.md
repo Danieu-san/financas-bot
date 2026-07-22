@@ -2,8 +2,7 @@
 
 Atualizado em: 2026-07-22
 
-Commit de partida previsto: fechamento documental posterior ao candidato
-`4c1001338ca1ed919b55be4e9566258178a0175e`.
+Commit de partida efetivo: `083be71580292ff09d11ffb2d4c0b7b99a065bf3`.
 
 ## Estado anterior
 
@@ -54,6 +53,75 @@ gate deve começar enquanto o Codex permanecer em `Alto`.
 Os invariantes, riscos, testes causais e critérios de GO serão fixados somente
 depois do mapeamento no nível correto. O fechamento continuará exigindo commit
 sanitizado no GitHub e auditoria independente obrigatória no Chat.
+
+## Mapeamento causal concluído
+
+- `index.js` entrega o mesmo `handleMessage` exportado tanto ao listener ao vivo
+  quanto ao backfill; portanto a fronteira única correta é a entrada pública do
+  handler, antes da deduplicação, da resolução de acesso e da leitura de estado;
+- `EventEmitter` não aguarda a promessa retornada pelo listener, permitindo que
+  duas mensagens distintas do mesmo remetente avancem em paralelo;
+- `userStateManager` protege a persistência de cada operação isolada, mas não
+  torna atômica a sequência ler estado, aguardar I/O, produzir efeito e mudar ou
+  excluir estado;
+- chaves de operação e deduplicação por `messageId` não resolvem a disputa entre
+  duas mensagens distintas; cada confirmação pode ter identidade própria;
+- não existe chamada recursiva do `handleMessage` que exija reentrância da fila.
+
+## Invariantes do gate
+
+1. Duas execuções do handler para o mesmo remetente nunca se sobrepõem e
+   observam a ordem em que entraram no handler público.
+2. Remetentes distintos continuam podendo executar em paralelo; não haverá fila
+   global.
+3. A deduplicação permanece dentro da fronteira serializada e uma reentrega do
+   mesmo `messageId` continua sem repetir transcrição ou efeito.
+4. Rejeição inesperada de uma mensagem não envenena a fila: a próxima operação
+   do mesmo remetente ainda executa.
+5. A cauda de um remetente é removida quando a última operação termina, evitando
+   crescimento permanente por remetentes inativos.
+6. Nenhuma chave de operação, transição de estado ou contrato de writer muda.
+
+## Riscos e limites aceitos
+
+- uma operação lenta segura mensagens posteriores do mesmo remetente; isso é o
+  custo intencional da ordem causal, sem bloquear outros remetentes;
+- a ordem garantida é a ordem de invocação local, não uma reordenação retroativa
+  por timestamp entre mensagem ao vivo e mensagem antiga descoberta no backfill;
+- a fila é por processo. Coordenação entre múltiplas instâncias simultâneas do
+  bot e drenagem especial no shutdown ficam fora do achado causal `STATE-01`.
+
+## Provas planejadas
+
+1. RED no handler público: duas mensagens distintas do mesmo remetente entram
+   juntas e a segunda não alcança a região assíncrona enquanto a primeira está
+   ativa.
+2. Duas confirmações concorrentes não podem consumir o mesmo estado nem produzir
+   dois efeitos.
+3. Remetentes distintos alcançam a região assíncrona simultaneamente.
+4. Uma operação rejeitada libera a seguinte do mesmo remetente.
+5. Regressão existente de `messageId` duplicado continua verde.
+
+## Critérios de GO
+
+- RED causal reproduzido antes da implementação e verde depois dela;
+- testes focais e baterias afetadas verdes;
+- um único runner amplo verde, sem repetição sem causa;
+- diff sanitizado, commit imutável publicado e auditoria independente obrigatória
+  no Chat sem achado bloqueante ou lacuna causal indispensável.
+
+## Evidência local obtida
+
+- RED causal reproduzido: sobreposição `2 != 1` para o mesmo remetente e duas
+  gravações `2 != 1` para confirmações simultâneas; controle entre remetentes
+  distintos verde;
+- provas focais finais: `5/5`;
+- bateria afetada final: `124/124`;
+- `npm test` final: pretests verdes e runner principal `1.073/1.073`, sem falha,
+  skip ou cancelamento;
+- sintaxe e `git diff --check`: verdes;
+- estado: candidato local aguardando commit imutável e auditoria obrigatória no
+  Chat; ainda sem `GO`.
 
 ## Condições de parada
 
