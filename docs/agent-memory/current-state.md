@@ -2,6 +2,33 @@
 
 Atualizado em: 2026-07-21
 
+## DATA-01 fechamento local independente - GO - 2026-07-21
+
+- Candidato final imutavel:
+  `96ca43b5a82a1d6944f400cb6167fe6feb4d298f`. O delta final sanitiza os dois
+  logs de retry Google sem alterar tentativas, backoff, reautorizacao,
+  propagacao ou fallback.
+- O contrato fail-closed esta fechado: leitura vazia valida continua `[]`;
+  aba opcional realmente ausente pode ser suprimida; demais falhas viram
+  `GOOGLE_SHEET_READ_UNAVAILABLE`. Dashboard responde `503` sem fallback
+  financeiro falso; WhatsApp informa indisponibilidade; scheduler nao envia
+  resumo assertivo.
+- RED do LOW `0/2`; GREEN focado `2/2`; bateria DATA-01 `342/342`; checks de
+  sintaxe/diff verdes. Runner hermetico valido: `1162` testes, `1157` pass,
+  cinco skips funcionais esperados, zero falhas, rede externa bloqueada e
+  restauracao concluida.
+- O Chat confirmou o hash e os dois arquivos do delta. Veredito estatico:
+  `LOW-01 FECHADO`, nenhum novo achado material e `GO local integral de
+  DATA-01`.
+- Git local e `origin/main` foram confirmados no mesmo hash `96ca43b...` antes
+  deste registro. Deploy, producao, EC2, Google e WhatsApp real nao foram
+  avaliados nem autorizados.
+- Quadro vigente dos P1: quatro resolvidos (`AUTH-01`, `FLOW-01`, `STATE-02` e
+  `DATA-01`), dois parciais (`AUTH-02`, `AUTH-03`) e quatro abertos (`DATA-02`,
+  `FLOW-03`, `STATE-01`, `PRIV-01`). Restam seis P1 residuais e sete P2.
+- Proxima correcao causal unica: `DATA-02`, neutralizar texto na fronteira
+  generica `USER_ENTERED` do Google Sheets.
+
 ## C-01 fechamento local independente - GO - 2026-07-21
 
 - O Chat confirmou o candidato imutavel
