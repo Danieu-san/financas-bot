@@ -729,6 +729,30 @@ function isMissingUserSheetError(error) {
     );
 }
 
+function neutralizeUserEnteredCell(value) {
+    if (typeof value !== 'string') return value;
+    return /^[\s\u0000-\u001f]*[=+@-]/.test(value) ? `'${value}` : value;
+}
+
+function neutralizeUserEnteredRow(row) {
+    return Array.isArray(row) ? row.map(neutralizeUserEnteredCell) : row;
+}
+
+function neutralizeUserEnteredRows(rows) {
+    return Array.isArray(rows) ? rows.map(neutralizeUserEnteredRow) : rows;
+}
+
+function neutralizeUserEnteredBatch(data) {
+    return Array.isArray(data)
+        ? data.map(item => ({
+            ...item,
+            values: Array.isArray(item?.values)
+                ? neutralizeUserEnteredRows(item.values)
+                : item?.values
+        }))
+        : data;
+}
+
 async function repairUserSpreadsheetTemplate(target = {}) {
     if (!target.userScoped || !target.spreadsheetId || !target.sheetsClient) return false;
     const cacheKey = `${target.userId || ''}:${target.spreadsheetId}`;
@@ -758,6 +782,7 @@ async function appendRowToSheet(sheetName, row, options = {}) {
     const target = await resolveSpreadsheetTarget({ ...options, sheetName });
     const mappedSheetName = target.userScoped ? mapSheetNameForUserSpreadsheet(sheetName) : sheetName;
     const mappedRow = target.userScoped ? mapRowForUserSpreadsheet(sheetName, row) : row;
+    const userEnteredRow = neutralizeUserEnteredRow(mappedRow);
     const writeContext = sheetContext.getStore() || {};
     const operationKey = resolveAppendOperationKey(sheetName, mappedRow, options, writeContext);
     const writeLedger = getFinancialWriteLedgerForAppend(options, writeContext, operationKey);
@@ -832,7 +857,7 @@ async function appendRowToSheet(sheetName, row, options = {}) {
             range: `${mappedSheetName}!A:A`,
             valueInputOption: 'USER_ENTERED',
             insertDataOption: 'INSERT_ROWS',
-            resource: { values: [mappedRow] },
+            resource: { values: [userEnteredRow] },
         }), { retry: Boolean(options.allowNonIdempotentRetry) });
         invalidateSheetsReadCache(target);
         if (writeLedger && operationKey) {
@@ -1152,6 +1177,7 @@ async function readDataFromSheet(range, options = {}) {
 async function updateRowInSheet(range, rowData, options = {}) {
     const target = await resolveSpreadsheetTarget({ ...options, range });
     const mappedRange = target.userScoped ? mapRangeForUserSpreadsheet(range) : range;
+    const userEnteredRow = neutralizeUserEnteredRow(rowData);
     const writeContext = sheetContext.getStore() || {};
     const operationKey = resolveUpdateOperationKey(mappedRange, rowData, options, writeContext);
     const writeLedger = getFinancialWriteLedgerForMutation(options, writeContext, operationKey);
@@ -1215,7 +1241,7 @@ async function updateRowInSheet(range, rowData, options = {}) {
             spreadsheetId: target.spreadsheetId,
             range: mappedRange,
             valueInputOption: 'USER_ENTERED',
-            resource: { values: [rowData] },
+            resource: { values: [userEnteredRow] },
         }), { retry: writeLedger ? Boolean(options.allowIdempotentUpdateRetry) : true });
         invalidateSheetsReadCache(target);
         const committedResult = {
@@ -1257,6 +1283,7 @@ async function updateRowInSheet(range, rowData, options = {}) {
 
 async function batchUpdateRowsInSheet(data, options = {}) {
     const target = await resolveSpreadsheetTarget(options);
+    const userEnteredData = neutralizeUserEnteredBatch(data);
     const batchContext = sheetContext.getStore() || {};
     for (const item of (Array.isArray(data) ? data : [])) {
         await recordCardSheetInvocation({
@@ -1272,7 +1299,7 @@ async function batchUpdateRowsInSheet(data, options = {}) {
             spreadsheetId: target.spreadsheetId,
             resource: {
                 valueInputOption: 'USER_ENTERED',
-                data
+                data: userEnteredData
             }
         }));
         invalidateSheetsReadCache(target);
@@ -1586,7 +1613,7 @@ async function renderVisualDashboard(payload = {}) {
             spreadsheetId: SPREADSHEET_ID,
             range: 'Dashboard!A1:M45',
             valueInputOption: 'USER_ENTERED',
-            resource: { values: grid }
+            resource: { values: neutralizeUserEnteredRows(grid) }
         }));
     } catch (error) {
         console.error('❌ Detalhes do erro ao escrever Dashboard:', JSON.stringify(error?.response?.data || error.message, null, 2));
@@ -1808,7 +1835,7 @@ async function syncDashboardForUser({ userId, periodLabel, metrics }) {
         spreadsheetId: SPREADSHEET_ID,
         range: `DashboardData!A1:E${allRows.length}`,
         valueInputOption: 'USER_ENTERED',
-        resource: { values: allRows }
+        resource: { values: neutralizeUserEnteredRows(allRows) }
     }));
 }
 

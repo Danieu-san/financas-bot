@@ -5872,6 +5872,126 @@ test('google.appendRowToSheet does not reconcile against an older identical row'
     }
 });
 
+test('google generic USER_ENTERED writers neutralize formula-like strings at the final boundary', async () => {
+    const writes = {};
+    const fakeSheets = {
+        spreadsheets: {
+            values: {
+                append: async request => {
+                    writes.append = request.resource.values;
+                    return { data: { updates: { updatedRange: 'Users!A2:J2' } } };
+                },
+                update: async request => {
+                    writes.update = request.resource.values;
+                    return { data: { updatedRange: request.range } };
+                },
+                batchUpdate: async request => {
+                    writes.batch = request.resource.data;
+                    return { data: { responses: [] } };
+                }
+            }
+        }
+    };
+
+    googleService.__test__.setGoogleClientsForTest({
+        sheetsClient: fakeSheets,
+        tasksClient: {},
+        calendarClient: {},
+        oauthClient: {}
+    });
+
+    const userRow = [
+        'user-formula-boundary',
+        'sender-formula-boundary',
+        '+123',
+        '=SUM(1,1)',
+        'PENDING',
+        '2026-07-21T00:00:00.000Z',
+        '2026-07-21T00:00:00.000Z',
+        '',
+        '',
+        ''
+    ];
+
+    await googleService.appendRowToSheet('Users', userRow, { forceCentral: true });
+    await googleService.updateRowInSheet('Users!D2:F2', ['@SUM(1,1)', 12, '-1+2'], { forceCentral: true });
+    await googleService.batchUpdateRowsInSheet([{
+        range: 'Users!D2:G2',
+        values: [['ordinary text', '\t=1+1', '+CMD', '=1+1']]
+    }], { forceCentral: true });
+
+    assert.deepStrictEqual(writes.append[0], [
+        'user-formula-boundary',
+        'sender-formula-boundary',
+        "'+123",
+        "'=SUM(1,1)",
+        'PENDING',
+        '2026-07-21T00:00:00.000Z',
+        '2026-07-21T00:00:00.000Z',
+        '',
+        '',
+        ''
+    ]);
+    assert.deepStrictEqual(writes.update[0], ["'@SUM(1,1)", 12, "'-1+2"]);
+    assert.deepStrictEqual(writes.batch, [{
+        range: 'Users!D2:G2',
+        values: [['ordinary text', "'\t=1+1", "'+CMD", "'=1+1"]]
+    }]);
+    assert.strictEqual(userRow[2], '+123');
+    assert.strictEqual(userRow[3], '=SUM(1,1)');
+});
+
+test('google direct dashboard USER_ENTERED writes neutralize user-derived labels', async () => {
+    googleService.__test__.clearSheetsReadCache();
+    const updates = new Map();
+    const fakeSheets = {
+        spreadsheets: {
+            get: async () => ({
+                data: {
+                    sheets: [{ properties: { title: 'Dashboard', sheetId: 10 }, charts: [] }]
+                }
+            }),
+            batchUpdate: async () => ({ data: {} }),
+            values: {
+                get: async () => ({ data: { values: [['Resumo Financeiro', 'Valor', 'Período', 'user_id', 'updated_at']] } }),
+                clear: async () => ({ data: {} }),
+                update: async request => {
+                    updates.set(request.range, request.resource.values);
+                    return { data: { updatedRange: request.range } };
+                }
+            }
+        }
+    };
+
+    googleService.__test__.setGoogleClientsForTest({
+        sheetsClient: fakeSheets,
+        tasksClient: {},
+        calendarClient: {},
+        oauthClient: {}
+    });
+
+    await googleService.renderVisualDashboard({
+        selectedUser: '=SELECTED',
+        periodLabel: '+PERIOD',
+        topCategories: [{ category: '@CATEGORY', value: 10 }],
+        userOptions: ['-USER_OPTION']
+    });
+    await googleService.syncDashboardForUser({
+        userId: 'user-dashboard-boundary',
+        periodLabel: '-1+2',
+        metrics: [{ label: '+METRIC', value: '=1+1' }]
+    });
+
+    const dashboardRows = updates.get('Dashboard!A1:M45');
+    assert.strictEqual(dashboardRows[2][1], "'=SELECTED");
+    assert.strictEqual(dashboardRows[4][1], "'+PERIOD");
+    assert.strictEqual(dashboardRows[9][3], "'@CATEGORY");
+    assert.strictEqual(dashboardRows[2][11], "'-USER_OPTION");
+
+    const summaryRows = updates.get('DashboardData!A1:E2');
+    assert.deepStrictEqual(summaryRows[1].slice(0, 3), ["'+METRIC", "'=1+1", "'-1+2"]);
+});
+
 test('google.readDataFromSheet silently tolerates an explicitly optional missing sheet', async () => {
     googleService.__test__.clearSheetsReadCache();
     const originalConsoleError = console.error;
