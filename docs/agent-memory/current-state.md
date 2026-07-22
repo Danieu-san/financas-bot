@@ -1,6 +1,23 @@
 # Estado atual do FinancasBot
 
-Atualizado em: 2026-07-21
+Atualizado em: 2026-07-22
+
+## Handoff para outro Codex - WGL-03/WGL-04 - 2026-07-22
+
+- DATA-02 foi concluida, documentada e publicada. HEAD e `origin/main` foram
+  confirmados em `c3a2b516725a7b6b3dfc97d2a5a29311b67acfdc`; nao havia mudanca
+  rastreada pendente antes da preparacao deste handoff.
+- A proxima fatia causal e `WGL-03/WGL-04`. Somente o mapeamento foi feito;
+  nenhum codigo ou teste da saga OAuth foi alterado.
+- O escopo inclui state de uso unico duravel, callback concorrente,
+  recuperacao e compensacao entre token, planilha, metadata e lifecycle. A
+  complexidade exige `Codex -> Sol -> Extra Alto` antes de implementar.
+- O ponto exato, os arquivos centrais, os limites e o primeiro comando seguro
+  estao em
+  `docs/agent-memory/handoff-2026-07-22-wgl03-wgl04.md`.
+- Fase vigente: manutencao pos-Fase 9, com Fase 8 em observacao. Deploy, EC2,
+  Google/WhatsApp real, Drive membership, Open Finance e escrita financeira
+  permanecem fora do escopo.
 
 ## DATA-02 fechamento local independente - GO - 2026-07-21
 
