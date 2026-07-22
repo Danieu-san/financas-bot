@@ -14,7 +14,6 @@ const { appendRowToSheet, readDataFromSheet, updateRowInSheet, createCalendarEve
 const runWithUserSheetContext = googleService.runWithUserSheetContext || ((user, fn) => fn());
 const hasUserSpreadsheetContext = googleService.hasUserSpreadsheetContext || (async () => false);
 const shareSpreadsheetWithUserEmail = googleService.shareSpreadsheetWithUserEmail || (async () => null);
-const revokeSpreadsheetPermission = googleService.revokeSpreadsheetPermission || (async () => false);
 const { getFormattedDate, getFormattedDateOnly, normalizeText, parseSheetDate, parseAmount, parseAmountLocal, parseValue, extractDateFromTextLocal } = require('../utils/helpers');
 const {
     normalizeCycleStartDay,
@@ -94,9 +93,13 @@ const {
     getOAuthConnection,
     getFinancialScopeUserIds,
     getSharedSpreadsheetMembership,
-    revokeSharedSpreadsheetMembership,
+    hasUnresolvedSharedMembershipRevocationForUsers,
     setSharedSpreadsheetMembership
 } = require('../services/oauthTokenStore');
+const {
+    revokeSharedMembershipForMember,
+    compensateUnpersistedSharedPermission
+} = require('../services/googleSharedMembershipRevocationService');
 const {
     resolveFinancialQueryScope,
     applyResolvedScopeToClassification,
@@ -7574,7 +7577,7 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
             return true;
         }
 
-        const ownerConnection = getOAuthConnection(owner.user_id);
+        const ownerConnection = getOAuthConnection(owner.user_id, { includeTokens: true });
         const spreadsheetId = String(ownerConnection?.spreadsheet_id || '').trim();
         if (!spreadsheetId) {
             await auditAdminAction(adminContext, 'share_spreadsheet', {
@@ -7595,6 +7598,41 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
             });
             await msg.reply(
                 'O membro ainda não tem e-mail Google salvo no OAuth. Peça para ele reconectar o Google pelo link do bot e tente novamente.'
+            );
+            return true;
+        }
+
+        const activeMembership = getSharedSpreadsheetMembership(member.user_id);
+        const sameMembership = activeMembership
+            && activeMembership.owner_user_id === owner.user_id
+            && activeMembership.spreadsheet_id === spreadsheetId
+            && String(activeMembership.member_google_email || '').toLowerCase() === memberGoogleEmail;
+        if (!sameMembership) {
+            const previousCleanup = await revokeSharedMembershipForMember(member.user_id, {
+                reason: 'ADMIN_REASSIGN'
+            });
+            if (previousCleanup.localRevoked > 0 && previousCleanup.revoked !== previousCleanup.localRevoked) {
+                await auditAdminAction(adminContext, 'share_spreadsheet', {
+                    target: `${owner.whatsapp_id} -> ${member.whatsapp_id}`,
+                    result: 'pending',
+                    metadata: { stage: 'previous_permission_cleanup' }
+                });
+                await msg.reply(
+                    'O vínculo anterior foi desativado localmente, mas a remoção da permissão antiga no Drive '
+                    + 'ainda está pendente. Não concedi o novo acesso; o bot tentará a limpeza novamente.'
+                );
+                return true;
+            }
+        }
+        if (hasUnresolvedSharedMembershipRevocationForUsers(owner.user_id, member.user_id)) {
+            await auditAdminAction(adminContext, 'share_spreadsheet', {
+                target: `${owner.whatsapp_id} -> ${member.whatsapp_id}`,
+                result: 'pending',
+                metadata: { stage: 'unresolved_permission_cleanup' }
+            });
+            await msg.reply(
+                'Ainda existe uma remoção de permissão Drive pendente ou que exige revisão manual. '
+                + 'Não concedi um novo acesso.'
             );
             return true;
         }
@@ -7623,13 +7661,47 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
             return true;
         }
 
-        setSharedSpreadsheetMembership({
-            ownerUserId: owner.user_id,
-            memberUserId: member.user_id,
-            spreadsheetId,
-            memberGoogleEmail,
-            drivePermissionId: driveShare?.permissionId || ''
-        });
+        try {
+            setSharedSpreadsheetMembership({
+                ownerUserId: owner.user_id,
+                memberUserId: member.user_id,
+                spreadsheetId,
+                memberGoogleEmail,
+                drivePermissionId: driveShare?.permissionId || ''
+            });
+        } catch (error) {
+            let compensation = { attempted: 0, revoked: 0, failed: 0, manualRequired: 1 };
+            try {
+                compensation = await compensateUnpersistedSharedPermission({
+                    ownerUserId: owner.user_id,
+                    memberUserId: member.user_id,
+                    spreadsheetId,
+                    memberGoogleEmail,
+                    drivePermissionId: driveShare?.permissionId || '',
+                    ownerTokens: ownerConnection?.tokens || null,
+                    reason: 'MEMBERSHIP_PERSIST_FAILED'
+                });
+            } catch (cleanupError) {
+                logger.warn('[admin] compartilhar_planilha_compensacao_local_falhou');
+            }
+            await auditAdminAction(adminContext, 'share_spreadsheet', {
+                target: `${owner.whatsapp_id} -> ${member.whatsapp_id}`,
+                result: 'failed',
+                metadata: {
+                    stage: 'membership_persist',
+                    permission_cleanup_complete: compensation.revoked === 1,
+                    permission_cleanup_pending: compensation.failed === 1
+                },
+                error
+            });
+            await msg.reply(
+                'O compartilhamento não foi ativado porque o vínculo local não pôde ser salvo. '
+                + (compensation.revoked === 1
+                    ? 'A permissão recém-concedida foi removida do Drive.'
+                    : 'A limpeza da permissão foi registrada como pendente para nova tentativa.')
+            );
+            return true;
+        }
         const scopeIds = getFinancialScopeUserIds(member.user_id);
         logger.info(`[admin] compartilhar_planilha context=${JSON.stringify({
             ...adminContext,
@@ -7721,59 +7793,51 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
             await msg.reply('Esse usuário não tem vínculo ativo de planilha compartilhada.');
             return true;
         }
-        if (activeMembership.drive_permission_id) {
-            try {
-                await revokeSpreadsheetPermission({
-                    ownerUserId: activeMembership.owner_user_id,
-                    spreadsheetId: activeMembership.spreadsheet_id,
-                    permissionId: activeMembership.drive_permission_id
-                });
-            } catch (error) {
-                logger.warn(`[admin] remover_compartilhamento_drive_falhou context=${JSON.stringify({
-                    ...adminContext,
-                    member_user_id: member.user_id,
-                    owner_user_id: activeMembership.owner_user_id,
-                    drive_permission_id: activeMembership.drive_permission_id,
-                    error: error.message
-                })}`);
-                await auditAdminAction(adminContext, 'remove_spreadsheet_share', {
-                    target: member.whatsapp_id,
-                    result: 'failed',
-                    metadata: { stage: 'drive_permission_revoke' },
-                    error
-                });
-                await msg.reply(`Não consegui remover o acesso no Google Drive: ${error.message}`);
-                return true;
-            }
-        } else {
-            logger.warn(`[admin] remover_compartilhamento_sem_permission_id context=${JSON.stringify({
-                ...adminContext,
-                member_user_id: member.user_id,
-                owner_user_id: activeMembership.owner_user_id
-            })}`);
+        let cleanup;
+        try {
+            cleanup = await revokeSharedMembershipForMember(member.user_id, {
+                reason: 'ADMIN_REMOVE'
+            });
+        } catch (error) {
+            logger.warn('[admin] remover_compartilhamento_cleanup_local_falhou');
+            await auditAdminAction(adminContext, 'remove_spreadsheet_share', {
+                target: member.whatsapp_id,
+                result: 'failed',
+                metadata: { stage: 'local_membership_cleanup' },
+                error
+            });
+            await msg.reply('Não consegui desativar o vínculo local com segurança. Nenhum sucesso foi informado.');
+            return true;
         }
-
-        const revoked = revokeSharedSpreadsheetMembership(member.user_id);
+        const remoteComplete = cleanup.localRevoked === 1 && cleanup.revoked === 1;
+        const remotePending = cleanup.failed > 0;
 
         logger.info(`[admin] remover_compartilhamento context=${JSON.stringify({
             ...adminContext,
             member_user_id: member.user_id,
-            previous_owner_user_id: revoked.owner_user_id,
-            spreadsheet_id: revoked.spreadsheet_id
+            previous_owner_user_id: activeMembership.owner_user_id,
+            spreadsheet_id: activeMembership.spreadsheet_id,
+            remote_complete: remoteComplete,
+            remote_pending: remotePending
         })}`);
         await auditAdminAction(adminContext, 'remove_spreadsheet_share', {
             target: member.whatsapp_id,
-            result: 'success',
+            result: remoteComplete ? 'success' : (remotePending ? 'pending' : 'manual_required'),
             metadata: {
                 member_user_id: member.user_id,
-                previous_owner_user_id: revoked.owner_user_id,
-                drive_permission_present: Boolean(activeMembership.drive_permission_id)
+                previous_owner_user_id: activeMembership.owner_user_id,
+                drive_permission_present: Boolean(activeMembership.drive_permission_id),
+                remote_complete: remoteComplete
             }
         });
         await msg.reply(
             `Compartilhamento removido para ${member.display_name || member.whatsapp_id}.\n` +
             'Os próximos lançamentos desse usuário voltarão para a planilha própria dele, se houver Google conectado.' +
-            (!activeMembership.drive_permission_id ? '\n\nAtenção: esse vínculo não tinha permissionId salvo; se a planilha foi compartilhada manualmente no Drive, revise o acesso manualmente.' : '')
+            (remoteComplete
+                ? '\nA permissão correspondente também foi removida do Drive.'
+                : (remotePending
+                    ? '\nA remoção no Drive ficou pendente e será repetida automaticamente.'
+                    : '\nA remoção no Drive exige revisão manual; nenhum sucesso remoto foi presumido.'))
         );
         return true;
     }

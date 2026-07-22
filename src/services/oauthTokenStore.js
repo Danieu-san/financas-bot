@@ -114,6 +114,34 @@ function ensureDb() {
                 );
                 CREATE INDEX IF NOT EXISTS idx_shared_spreadsheet_owner ON shared_spreadsheet_members(owner_user_id);
                 CREATE INDEX IF NOT EXISTS idx_shared_spreadsheet_id ON shared_spreadsheet_members(spreadsheet_id);
+                CREATE TABLE IF NOT EXISTS shared_membership_revocations (
+                    revocation_id TEXT PRIMARY KEY,
+                    member_user_id TEXT NOT NULL,
+                    owner_user_id TEXT NOT NULL,
+                    generation INTEGER NOT NULL,
+                    spreadsheet_id TEXT NOT NULL,
+                    drive_permission_id TEXT NOT NULL DEFAULT '',
+                    member_google_email TEXT NOT NULL DEFAULT '',
+                    encrypted_owner_tokens TEXT NOT NULL DEFAULT '',
+                    reason TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    attempts INTEGER NOT NULL DEFAULT 0,
+                    last_error_code TEXT NOT NULL DEFAULT '',
+                    requested_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    next_attempt_at TEXT NOT NULL,
+                    expires_at TEXT NOT NULL,
+                    max_attempts INTEGER NOT NULL DEFAULT 5,
+                    lease_id TEXT NOT NULL DEFAULT '',
+                    lease_expires_at TEXT NOT NULL DEFAULT '',
+                    completed_at TEXT NOT NULL DEFAULT '',
+                    has_pending_token INTEGER NOT NULL DEFAULT 0,
+                    UNIQUE(member_user_id, generation)
+                );
+                CREATE INDEX IF NOT EXISTS idx_shared_membership_revocations_owner
+                    ON shared_membership_revocations(owner_user_id, status);
+                CREATE INDEX IF NOT EXISTS idx_shared_membership_revocations_recovery
+                    ON shared_membership_revocations(has_pending_token, next_attempt_at);
                 CREATE TABLE IF NOT EXISTS oauth_connection_attempts (
                     attempt_id TEXT PRIMARY KEY,
                     user_id TEXT NOT NULL,
@@ -1589,6 +1617,24 @@ function setSharedSpreadsheetMembership({ memberUserId, ownerUserId, spreadsheet
     const now = new Date(Date.now()).toISOString();
     const persistMembership = database.transaction(() => {
         assertSpreadsheetNotBeingCompensated(database, safeSpreadsheetId);
+        if (safeDrivePermissionId || safeMemberGoogleEmail) {
+            const activeConnection = database.prepare(`
+                SELECT 1 AS active FROM oauth_connections
+                WHERE user_id = ? AND COALESCE(revoked_at, '') = ''
+            `);
+            if (!activeConnection.get(safeOwnerUserId) || !activeConnection.get(safeMemberUserId)) {
+                throw new Error('Dono e membro precisam ter conexões OAuth ativas para compartilhar a planilha.');
+            }
+            const pendingCleanup = database.prepare(`
+                SELECT 1 AS pending FROM shared_membership_revocations
+                WHERE status <> 'remote_revoked'
+                  AND (member_user_id IN (?, ?) OR owner_user_id IN (?, ?))
+                LIMIT 1
+            `).get(safeMemberUserId, safeOwnerUserId, safeMemberUserId, safeOwnerUserId);
+            if (pendingCleanup) {
+                throw new Error('Existe remoção de compartilhamento pendente para um dos usuários.');
+            }
+        }
         database.prepare(`
             INSERT INTO shared_spreadsheet_members(
                 user_id, owner_user_id, spreadsheet_id, member_google_email,
@@ -1627,6 +1673,22 @@ function getSharedSpreadsheetMembership(userId) {
     const row = database.prepare(`
         SELECT * FROM shared_spreadsheet_members
         WHERE user_id = ? AND COALESCE(revoked_at, '') = ''
+          AND (
+              (COALESCE(drive_permission_id, '') = '' AND COALESCE(member_google_email, '') = '')
+              OR EXISTS (
+                  SELECT 1 FROM oauth_connections owner_connection
+                  WHERE owner_connection.user_id = shared_spreadsheet_members.owner_user_id
+                    AND COALESCE(owner_connection.revoked_at, '') = ''
+              )
+          )
+          AND (
+              (COALESCE(drive_permission_id, '') = '' AND COALESCE(member_google_email, '') = '')
+              OR EXISTS (
+                  SELECT 1 FROM oauth_connections member_connection
+                  WHERE member_connection.user_id = shared_spreadsheet_members.user_id
+                    AND COALESCE(member_connection.revoked_at, '') = ''
+              )
+          )
     `).get(safeUserId);
     return mapSharedMembership(row);
 }
@@ -1659,8 +1721,453 @@ function listSharedSpreadsheetMembersBySpreadsheetId(spreadsheetId) {
     return database.prepare(`
         SELECT * FROM shared_spreadsheet_members
         WHERE spreadsheet_id = ? AND COALESCE(revoked_at, '') = ''
+          AND (
+              (COALESCE(drive_permission_id, '') = '' AND COALESCE(member_google_email, '') = '')
+              OR EXISTS (
+                  SELECT 1 FROM oauth_connections owner_connection
+                  WHERE owner_connection.user_id = shared_spreadsheet_members.owner_user_id
+                    AND COALESCE(owner_connection.revoked_at, '') = ''
+              )
+          )
+          AND (
+              (COALESCE(drive_permission_id, '') = '' AND COALESCE(member_google_email, '') = '')
+              OR EXISTS (
+                  SELECT 1 FROM oauth_connections member_connection
+                  WHERE member_connection.user_id = shared_spreadsheet_members.user_id
+                    AND COALESCE(member_connection.revoked_at, '') = ''
+              )
+          )
         ORDER BY created_at ASC
     `).all(safeSpreadsheetId).map(mapSharedMembership);
+}
+
+function hasUnresolvedSharedMembershipRevocationForUsers(...userIds) {
+    const safeUserIds = [...new Set(userIds.flat().map(value => String(value || '').trim()).filter(Boolean))];
+    if (safeUserIds.length === 0) return false;
+    const placeholders = safeUserIds.map(() => '?').join(', ');
+    const row = ensureDb().prepare(`
+        SELECT 1 AS pending FROM shared_membership_revocations
+        WHERE status <> 'remote_revoked'
+          AND (
+              member_user_id IN (${placeholders})
+              OR owner_user_id IN (${placeholders})
+          )
+        LIMIT 1
+    `).get(...safeUserIds, ...safeUserIds);
+    return Boolean(row);
+}
+
+function mapSharedMembershipRevocation(row) {
+    if (!row) return null;
+    return {
+        revocation_id: row.revocation_id || '',
+        member_user_id: row.member_user_id || '',
+        owner_user_id: row.owner_user_id || '',
+        generation: Number(row.generation || 0),
+        spreadsheet_id: row.spreadsheet_id || '',
+        drive_permission_id: row.drive_permission_id || '',
+        member_google_email: row.member_google_email || '',
+        reason: row.reason || '',
+        status: row.status || '',
+        attempts: Number(row.attempts || 0),
+        last_error_code: row.last_error_code || '',
+        requested_at: row.requested_at || '',
+        updated_at: row.updated_at || '',
+        next_attempt_at: row.next_attempt_at || '',
+        expires_at: row.expires_at || '',
+        max_attempts: Number(row.max_attempts || 5),
+        lease_expires_at: row.lease_expires_at || '',
+        completed_at: row.completed_at || '',
+        has_pending_token: Number(row.has_pending_token || 0) === 1
+    };
+}
+
+function getSharedMembershipRevocation(revocationId) {
+    const safeRevocationId = String(revocationId || '').trim();
+    if (!safeRevocationId) return null;
+    return mapSharedMembershipRevocation(ensureDb().prepare(`
+        SELECT * FROM shared_membership_revocations WHERE revocation_id = ?
+    `).get(safeRevocationId));
+}
+
+function beginSharedMembershipRevocationsForLifecycle(userId, {
+    reason = 'lifecycle',
+    targetOwnerTokens = null,
+    relationshipScope = 'all',
+    now,
+    retentionDays = 30,
+    maxAttempts = 5,
+    leaseDurationMs = 10000
+} = {}) {
+    const safeUserId = String(userId || '').trim();
+    const safeReason = String(reason || 'lifecycle').trim().toUpperCase().slice(0, 32) || 'LIFECYCLE';
+    if (!safeUserId) throw new Error('user_id é obrigatório para remover compartilhamentos por lifecycle.');
+    const database = ensureDb();
+    const requestedAt = normalizeDate(now);
+    const nowIso = requestedAt.toISOString();
+    const safeRetentionDays = boundedInteger(retentionDays, 30, 1, 90);
+    const safeMaxAttempts = boundedInteger(maxAttempts, 5, 1, 20);
+    const safeLeaseDurationMs = boundedInteger(leaseDurationMs, 10000, 1000, 60000);
+    const expiresAt = new Date(requestedAt.getTime() + safeRetentionDays * 86400000).toISOString();
+    const leaseExpiresAt = new Date(requestedAt.getTime() + safeLeaseDurationMs).toISOString();
+    const suppliedOwnerTokens = targetOwnerTokens && typeof targetOwnerTokens === 'object'
+        ? targetOwnerTokens
+        : null;
+    const safeRelationshipScope = relationshipScope === 'member' ? 'member' : 'all';
+
+    const begin = database.transaction(() => {
+        const relationshipPredicate = safeRelationshipScope === 'member'
+            ? 'user_id = @user_id'
+            : '(user_id = @user_id OR owner_user_id = @user_id)';
+        const memberships = database.prepare(`
+            SELECT * FROM shared_spreadsheet_members
+            WHERE COALESCE(revoked_at, '') = ''
+              AND ${relationshipPredicate}
+            ORDER BY user_id ASC
+        `).all({ user_id: safeUserId });
+        const results = [];
+
+        for (const membership of memberships) {
+            const ownerConnection = membership.owner_user_id === safeUserId && suppliedOwnerTokens
+                ? null
+                : database.prepare(`
+                    SELECT encrypted_tokens FROM oauth_connections
+                    WHERE user_id = ? AND COALESCE(revoked_at, '') = ''
+                `).get(membership.owner_user_id);
+            let ownerTokens = suppliedOwnerTokens && membership.owner_user_id === safeUserId
+                ? suppliedOwnerTokens
+                : null;
+            if (!ownerTokens && ownerConnection?.encrypted_tokens) {
+                ownerTokens = decryptJson(ownerConnection.encrypted_tokens);
+            }
+            const hasRemoteReference = Boolean(
+                String(membership.drive_permission_id || '').trim()
+                || String(membership.member_google_email || '').trim()
+            );
+            const hasOwnerTokens = Boolean(ownerTokens && Object.keys(ownerTokens).length > 0);
+            const retryable = hasRemoteReference && hasOwnerTokens;
+            const status = !hasRemoteReference
+                ? 'manual_required_missing_permission'
+                : (hasOwnerTokens ? 'in_progress' : 'manual_required_missing_owner_credentials');
+            const generation = Number(database.prepare(`
+                SELECT COALESCE(MAX(generation), 0) AS value
+                FROM shared_membership_revocations WHERE member_user_id = ?
+            `).get(membership.user_id).value || 0) + 1;
+            const revocationId = crypto.randomUUID();
+            const leaseId = retryable ? crypto.randomUUID() : '';
+            database.prepare(`
+                INSERT INTO shared_membership_revocations(
+                    revocation_id, member_user_id, owner_user_id, generation,
+                    spreadsheet_id, drive_permission_id, member_google_email,
+                    encrypted_owner_tokens, reason, status, attempts,
+                    last_error_code, requested_at, updated_at, next_attempt_at,
+                    expires_at, max_attempts, lease_id, lease_expires_at,
+                    completed_at, has_pending_token
+                ) VALUES(
+                    @revocation_id, @member_user_id, @owner_user_id, @generation,
+                    @spreadsheet_id, @drive_permission_id, @member_google_email,
+                    @encrypted_owner_tokens, @reason, @status, @attempts,
+                    @last_error_code, @requested_at, @updated_at, @next_attempt_at,
+                    @expires_at, @max_attempts, @lease_id, @lease_expires_at,
+                    @completed_at, @has_pending_token
+                )
+            `).run({
+                revocation_id: revocationId,
+                member_user_id: membership.user_id,
+                owner_user_id: membership.owner_user_id,
+                generation,
+                spreadsheet_id: membership.spreadsheet_id,
+                drive_permission_id: String(membership.drive_permission_id || ''),
+                member_google_email: String(membership.member_google_email || ''),
+                encrypted_owner_tokens: retryable ? encryptJson(ownerTokens) : '',
+                reason: safeReason,
+                status,
+                attempts: retryable ? 1 : 0,
+                last_error_code: retryable ? '' : (hasRemoteReference
+                    ? 'OWNER_CREDENTIALS_UNAVAILABLE'
+                    : 'DRIVE_PERMISSION_REFERENCE_UNAVAILABLE'),
+                requested_at: nowIso,
+                updated_at: nowIso,
+                next_attempt_at: nowIso,
+                expires_at: expiresAt,
+                max_attempts: safeMaxAttempts,
+                lease_id: leaseId,
+                lease_expires_at: retryable ? leaseExpiresAt : '',
+                completed_at: retryable ? '' : nowIso,
+                has_pending_token: retryable ? 1 : 0
+            });
+            database.prepare(`
+                UPDATE shared_spreadsheet_members
+                SET revoked_at = @revoked_at, updated_at = @revoked_at
+                WHERE user_id = @member_user_id AND COALESCE(revoked_at, '') = ''
+            `).run({ member_user_id: membership.user_id, revoked_at: nowIso });
+            results.push({
+                ...getSharedMembershipRevocation(revocationId),
+                leaseId,
+                ownerTokens: retryable ? ownerTokens : null
+            });
+        }
+        return results;
+    });
+    return begin.immediate();
+}
+
+function beginDetachedSharedPermissionRevocation({
+    memberUserId,
+    ownerUserId,
+    spreadsheetId,
+    drivePermissionId = '',
+    memberGoogleEmail = '',
+    reason = 'membership_persist_failed',
+    ownerTokens = null,
+    now,
+    retentionDays = 30,
+    maxAttempts = 5,
+    leaseDurationMs = 10000
+} = {}) {
+    const safeMemberUserId = String(memberUserId || '').trim();
+    const safeOwnerUserId = String(ownerUserId || '').trim();
+    const safeSpreadsheetId = String(spreadsheetId || '').trim();
+    const safeDrivePermissionId = String(drivePermissionId || '').trim();
+    const safeMemberGoogleEmail = String(memberGoogleEmail || '').trim().toLowerCase();
+    const safeReason = String(reason || 'membership_persist_failed').trim().toUpperCase().slice(0, 32)
+        || 'MEMBERSHIP_PERSIST_FAILED';
+    if (!safeMemberUserId || !safeOwnerUserId || !safeSpreadsheetId) {
+        throw new Error('Membro, dono e planilha são obrigatórios para compensar compartilhamento.');
+    }
+    if (!safeDrivePermissionId && !safeMemberGoogleEmail) {
+        throw new Error('permissionId ou e-mail do membro é obrigatório para compensar compartilhamento.');
+    }
+    const database = ensureDb();
+    const requestedAt = normalizeDate(now);
+    const nowIso = requestedAt.toISOString();
+    const safeRetentionDays = boundedInteger(retentionDays, 30, 1, 90);
+    const safeMaxAttempts = boundedInteger(maxAttempts, 5, 1, 20);
+    const safeLeaseDurationMs = boundedInteger(leaseDurationMs, 10000, 1000, 60000);
+    const expiresAt = new Date(requestedAt.getTime() + safeRetentionDays * 86400000).toISOString();
+    const leaseExpiresAt = new Date(requestedAt.getTime() + safeLeaseDurationMs).toISOString();
+
+    const begin = database.transaction(() => {
+        let resolvedOwnerTokens = ownerTokens && typeof ownerTokens === 'object' ? ownerTokens : null;
+        if (!resolvedOwnerTokens) {
+            const ownerConnection = database.prepare(`
+                SELECT encrypted_tokens FROM oauth_connections
+                WHERE user_id = ? AND COALESCE(revoked_at, '') = ''
+            `).get(safeOwnerUserId);
+            if (ownerConnection?.encrypted_tokens) {
+                resolvedOwnerTokens = decryptJson(ownerConnection.encrypted_tokens);
+            }
+        }
+        const hasOwnerTokens = Boolean(resolvedOwnerTokens && Object.keys(resolvedOwnerTokens).length > 0);
+        const generation = Number(database.prepare(`
+            SELECT COALESCE(MAX(generation), 0) AS value
+            FROM shared_membership_revocations WHERE member_user_id = ?
+        `).get(safeMemberUserId).value || 0) + 1;
+        const revocationId = crypto.randomUUID();
+        const leaseId = hasOwnerTokens ? crypto.randomUUID() : '';
+        database.prepare(`
+            INSERT INTO shared_membership_revocations(
+                revocation_id, member_user_id, owner_user_id, generation,
+                spreadsheet_id, drive_permission_id, member_google_email,
+                encrypted_owner_tokens, reason, status, attempts,
+                last_error_code, requested_at, updated_at, next_attempt_at,
+                expires_at, max_attempts, lease_id, lease_expires_at,
+                completed_at, has_pending_token
+            ) VALUES(
+                @revocation_id, @member_user_id, @owner_user_id, @generation,
+                @spreadsheet_id, @drive_permission_id, @member_google_email,
+                @encrypted_owner_tokens, @reason, @status, @attempts,
+                @last_error_code, @requested_at, @updated_at, @next_attempt_at,
+                @expires_at, @max_attempts, @lease_id, @lease_expires_at,
+                @completed_at, @has_pending_token
+            )
+        `).run({
+            revocation_id: revocationId,
+            member_user_id: safeMemberUserId,
+            owner_user_id: safeOwnerUserId,
+            generation,
+            spreadsheet_id: safeSpreadsheetId,
+            drive_permission_id: safeDrivePermissionId,
+            member_google_email: safeMemberGoogleEmail,
+            encrypted_owner_tokens: hasOwnerTokens ? encryptJson(resolvedOwnerTokens) : '',
+            reason: safeReason,
+            status: hasOwnerTokens ? 'in_progress' : 'manual_required_missing_owner_credentials',
+            attempts: hasOwnerTokens ? 1 : 0,
+            last_error_code: hasOwnerTokens ? '' : 'OWNER_CREDENTIALS_UNAVAILABLE',
+            requested_at: nowIso,
+            updated_at: nowIso,
+            next_attempt_at: nowIso,
+            expires_at: expiresAt,
+            max_attempts: safeMaxAttempts,
+            lease_id: leaseId,
+            lease_expires_at: hasOwnerTokens ? leaseExpiresAt : '',
+            completed_at: hasOwnerTokens ? '' : nowIso,
+            has_pending_token: hasOwnerTokens ? 1 : 0
+        });
+        return {
+            ...getSharedMembershipRevocation(revocationId),
+            leaseId,
+            ownerTokens: hasOwnerTokens ? resolvedOwnerTokens : null
+        };
+    });
+    return begin.immediate();
+}
+
+function claimSharedMembershipRevocation(revocationId, {
+    now,
+    leaseDurationMs = 10000,
+    respectBackoff = true
+} = {}) {
+    const safeRevocationId = String(revocationId || '').trim();
+    if (!safeRevocationId) return null;
+    const database = ensureDb();
+    const claimedAt = normalizeDate(now);
+    const nowIso = claimedAt.toISOString();
+    const safeLeaseDurationMs = boundedInteger(leaseDurationMs, 10000, 1000, 60000);
+    const leaseExpiresAt = new Date(claimedAt.getTime() + safeLeaseDurationMs).toISOString();
+    const claim = database.transaction(() => {
+        const current = database.prepare(`
+            SELECT * FROM shared_membership_revocations WHERE revocation_id = ?
+        `).get(safeRevocationId);
+        if (!current || Number(current.has_pending_token || 0) !== 1) {
+            return { claimed: false, job: mapSharedMembershipRevocation(current), ownerTokens: null, leaseId: '' };
+        }
+        const activeLease = current.status === 'in_progress'
+            && String(current.lease_id || '')
+            && String(current.lease_expires_at || '') > nowIso;
+        if (activeLease) {
+            return { claimed: false, job: mapSharedMembershipRevocation(current), ownerTokens: null, leaseId: '' };
+        }
+        const expired = nowIso >= String(current.expires_at || '');
+        const exhausted = Number(current.attempts || 0) >= Number(current.max_attempts || 5);
+        if (expired || exhausted) {
+            const status = expired ? 'manual_required_expired' : 'manual_required_exhausted';
+            database.prepare(`
+                UPDATE shared_membership_revocations
+                SET encrypted_owner_tokens = '', has_pending_token = 0,
+                    status = @status, last_error_code = @error_code,
+                    updated_at = @updated_at, completed_at = @updated_at,
+                    lease_id = '', lease_expires_at = ''
+                WHERE revocation_id = @revocation_id AND has_pending_token = 1
+            `).run({
+                revocation_id: safeRevocationId,
+                status,
+                error_code: expired ? 'REVOCATION_RETENTION_EXPIRED' : 'REVOCATION_ATTEMPTS_EXHAUSTED',
+                updated_at: nowIso
+            });
+            return { claimed: false, job: getSharedMembershipRevocation(safeRevocationId), ownerTokens: null, leaseId: '' };
+        }
+        const eligible = ['remote_failed', 'in_progress'].includes(current.status)
+            && (!respectBackoff || String(current.next_attempt_at || '') <= nowIso);
+        if (!eligible) {
+            return { claimed: false, job: mapSharedMembershipRevocation(current), ownerTokens: null, leaseId: '' };
+        }
+        const leaseId = crypto.randomUUID();
+        const updated = database.prepare(`
+            UPDATE shared_membership_revocations
+            SET status = 'in_progress', attempts = attempts + 1,
+                last_error_code = '', updated_at = @updated_at,
+                lease_id = @lease_id, lease_expires_at = @lease_expires_at
+            WHERE revocation_id = @revocation_id AND has_pending_token = 1
+              AND attempts < max_attempts AND expires_at > @updated_at
+              AND NOT (
+                  status = 'in_progress' AND COALESCE(lease_id, '') <> ''
+                  AND COALESCE(lease_expires_at, '') > @updated_at
+              )
+              AND (@respect_backoff = 0 OR next_attempt_at <= @updated_at)
+        `).run({
+            revocation_id: safeRevocationId,
+            updated_at: nowIso,
+            lease_id: leaseId,
+            lease_expires_at: leaseExpiresAt,
+            respect_backoff: respectBackoff ? 1 : 0
+        });
+        if (updated.changes !== 1) {
+            return { claimed: false, job: getSharedMembershipRevocation(safeRevocationId), ownerTokens: null, leaseId: '' };
+        }
+        return {
+            claimed: true,
+            job: getSharedMembershipRevocation(safeRevocationId),
+            ownerTokens: decryptJson(current.encrypted_owner_tokens),
+            leaseId
+        };
+    });
+    return claim.immediate();
+}
+
+function markSharedMembershipRevocationResult(revocationId, leaseId, {
+    status,
+    errorCode = '',
+    now,
+    baseDelayMs = 300000,
+    maxDelayMs = 86400000
+} = {}) {
+    const safeRevocationId = String(revocationId || '').trim();
+    const safeLeaseId = String(leaseId || '').trim();
+    const safeStatus = String(status || '').trim().toLowerCase();
+    if (!safeRevocationId || !safeLeaseId || !['remote_revoked', 'remote_failed'].includes(safeStatus)) {
+        throw new Error('Resultado de revogação de compartilhamento inválido.');
+    }
+    const database = ensureDb();
+    const completedAt = normalizeDate(now);
+    const nowIso = completedAt.toISOString();
+    const current = database.prepare(`
+        SELECT * FROM shared_membership_revocations WHERE revocation_id = ?
+    `).get(safeRevocationId);
+    if (!current) return null;
+    const completed = safeStatus === 'remote_revoked';
+    const safeBaseDelayMs = boundedInteger(baseDelayMs, 300000, 1000, 86400000);
+    const safeMaxDelayMs = boundedInteger(maxDelayMs, 86400000, safeBaseDelayMs, 604800000);
+    const delayMs = Math.min(
+        safeBaseDelayMs * (2 ** Math.max(0, Number(current.attempts || 1) - 1)),
+        safeMaxDelayMs
+    );
+    const updated = database.prepare(`
+        UPDATE shared_membership_revocations
+        SET status = @status,
+            encrypted_owner_tokens = CASE WHEN @completed = 1 THEN '' ELSE encrypted_owner_tokens END,
+            has_pending_token = CASE WHEN @completed = 1 THEN 0 ELSE has_pending_token END,
+            last_error_code = @last_error_code,
+            updated_at = @updated_at,
+            next_attempt_at = @next_attempt_at,
+            completed_at = CASE WHEN @completed = 1 THEN @updated_at ELSE completed_at END,
+            lease_id = '', lease_expires_at = ''
+        WHERE revocation_id = @revocation_id AND has_pending_token = 1
+          AND status = 'in_progress' AND lease_id = @lease_id
+    `).run({
+        revocation_id: safeRevocationId,
+        lease_id: safeLeaseId,
+        status: safeStatus,
+        completed: completed ? 1 : 0,
+        last_error_code: completed ? '' : sanitizeRevocationErrorCode(errorCode),
+        updated_at: nowIso,
+        next_attempt_at: completed ? nowIso : new Date(completedAt.getTime() + delayMs).toISOString()
+    });
+    const job = getSharedMembershipRevocation(safeRevocationId);
+    return job ? { ...job, applied: updated.changes === 1 } : { applied: false };
+}
+
+function listSharedMembershipRevocationsForRecovery({ limit = 50, now } = {}) {
+    const safeLimit = boundedInteger(limit, 50, 1, 100);
+    const nowIso = normalizeDate(now).toISOString();
+    return ensureDb().prepare(`
+        SELECT * FROM shared_membership_revocations
+        WHERE has_pending_token = 1
+          AND next_attempt_at <= ?
+          AND (
+              status = 'remote_failed'
+              OR (
+                  status = 'in_progress'
+                  AND (
+                      COALESCE(lease_id, '') = ''
+                      OR COALESCE(lease_expires_at, '') = ''
+                      OR lease_expires_at <= ?
+                  )
+              )
+          )
+        ORDER BY next_attempt_at ASC, generation ASC
+        LIMIT ?
+    `).all(nowIso, nowIso, safeLimit).map(mapSharedMembershipRevocation);
 }
 
 function getFinancialScopeUserIds(userId) {
@@ -1702,6 +2209,13 @@ module.exports = {
     getSharedSpreadsheetMembership,
     revokeSharedSpreadsheetMembership,
     listSharedSpreadsheetMembersBySpreadsheetId,
+    hasUnresolvedSharedMembershipRevocationForUsers,
+    beginSharedMembershipRevocationsForLifecycle,
+    beginDetachedSharedPermissionRevocation,
+    claimSharedMembershipRevocation,
+    getSharedMembershipRevocation,
+    markSharedMembershipRevocationResult,
+    listSharedMembershipRevocationsForRecovery,
     getFinancialScopeUserIds,
     __test__: {
         encryptJson,

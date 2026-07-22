@@ -306,7 +306,7 @@ function extractPreparedSql(source) {
 test('P5 negative proof for Google entrypoints and authorization boundaries', async (t) => {
     auditRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'financas-google-negative-'));
 
-    await t.test('static manifest and C-03 delta cover the single individual revocation writer', () => {
+    await t.test('static manifest and lifecycle deltas cover the bounded OAuth and membership revocation writers', () => {
         const manifest = fs.readFileSync(manifestPath, 'utf8');
         const c03Manifest = fs.readFileSync(c03ManifestPath, 'utf8');
         const sourceFiles = listJavaScriptFiles(srcRoot);
@@ -357,7 +357,10 @@ test('P5 negative proof for Google entrypoints and authorization boundaries', as
             /UPDATE\s+shared_spreadsheet_members/i.test(sql) && /\brevoked_at\s*=\s*@revoked_at/i.test(sql)
         );
         assert.strictEqual(oauthRevocationWriters.length, 1);
-        assert.strictEqual(membershipRevocationWriters.length, 1);
+        assert.strictEqual(membershipRevocationWriters.length, 2);
+        assert.match(oauthStoreSource, /function revokeSharedSpreadsheetMembership\s*\(/);
+        assert.match(oauthStoreSource, /function beginSharedMembershipRevocationsForLifecycle\s*\(/);
+        assert.match(oauthStoreSource, /CREATE TABLE IF NOT EXISTS shared_membership_revocations/);
         assert.match(oauthStoreSource, /revoked_at\s*=\s*''/);
         assert.match(oauthStoreSource, /COALESCE\(revoked_at,\s*''\)\s*=\s*''/);
         assert.doesNotMatch(

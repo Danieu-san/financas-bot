@@ -10,6 +10,7 @@ const userServicePath = require.resolve('../src/services/userService');
 const readinessNotifierPath = require.resolve('../src/reliability/enforceReadinessNotifier');
 const dailyOpsCheckServicePath = require.resolve('../src/services/dailyOpsCheckService');
 const googleOAuthRevocationServicePath = require.resolve('../src/services/googleOAuthRevocationService');
+const googleSharedMembershipRevocationServicePath = require.resolve('../src/services/googleSharedMembershipRevocationService');
 const googleOAuthServicePath = require.resolve('../src/services/googleOAuthService');
 const oauthTokenStorePath = require.resolve('../src/services/oauthTokenStore');
 
@@ -29,6 +30,7 @@ function installSchedulerMocks({
     readinessAlertSender = null,
     dailyOpsSender = null,
     oauthRecovery = async () => ({ attempted: 0, revoked: 0, failed: 0, expired: 0 }),
+    sharedMembershipRecovery = async () => ({ attempted: 0, revoked: 0, failed: 0, manualRequired: 0 }),
     oauthCompensationRecovery = async () => ({ attempted: 0, compensated: 0, pending: 0, manualRequired: 0 }),
     oauthAttemptCleanup = () => ({ expired: 0, deleted: 0 }),
     readCalls = null,
@@ -41,6 +43,7 @@ function installSchedulerMocks({
     delete require.cache[readinessNotifierPath];
     delete require.cache[dailyOpsCheckServicePath];
     delete require.cache[googleOAuthRevocationServicePath];
+    delete require.cache[googleSharedMembershipRevocationServicePath];
     delete require.cache[googleOAuthServicePath];
 
     require.cache[googlePath] = {
@@ -79,6 +82,15 @@ function installSchedulerMocks({
         loaded: true,
         exports: {
             retryPendingGoogleRevocations: oauthRecovery
+        }
+    };
+
+    require.cache[googleSharedMembershipRevocationServicePath] = {
+        id: googleSharedMembershipRevocationServicePath,
+        filename: googleSharedMembershipRevocationServicePath,
+        loaded: true,
+        exports: {
+            retryPendingSharedMembershipRevocations: sharedMembershipRecovery
         }
     };
 
@@ -633,6 +645,23 @@ test('scheduler runs bounded OAuth connection compensation recovery with aggrega
 
     assert.deepStrictEqual(calls, [{ limit: 50 }]);
     assert.deepStrictEqual(result, { attempted: 2, compensated: 1, pending: 1, manualRequired: 0 });
+});
+
+test('scheduler runs shared-membership permission recovery with aggregate output only', async () => {
+    const calls = [];
+    const scheduler = installSchedulerMocks({
+        users: [],
+        settingsByUser: {},
+        sharedMembershipRecovery: async options => {
+            calls.push(options);
+            return { attempted: 2, revoked: 1, failed: 1, manualRequired: 0 };
+        }
+    });
+
+    const result = await scheduler.__test__.recoverPendingSharedMembershipPermissionRevocations();
+
+    assert.deepStrictEqual(calls, [{ limit: 50 }]);
+    assert.deepStrictEqual(result, { attempted: 2, revoked: 1, failed: 1, manualRequired: 0 });
 });
 
 test('scheduler removes expired OAuth attempt secrets using only bounded aggregate output', async () => {

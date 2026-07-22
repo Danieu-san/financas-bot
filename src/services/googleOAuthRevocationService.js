@@ -50,7 +50,8 @@ async function revokeGoogleConnectionForUser(userId, {
     maxAttempts = Number(process.env.OAUTH_REVOCATION_MAX_ATTEMPTS || 5),
     baseDelayMs = Number(process.env.OAUTH_REVOCATION_RETRY_BASE_MS || 300000),
     maxDelayMs = Number(process.env.OAUTH_REVOCATION_RETRY_MAX_MS || 86400000),
-    respectBackoff = false
+    respectBackoff = false,
+    afterLocalRevocation = null
 } = {}) {
     const safeTimeoutMs = Math.max(10, Math.min(Number(timeoutMs) || 5000, 30000));
     const started = beginOAuthRevocation(userId, {
@@ -62,6 +63,23 @@ async function revokeGoogleConnectionForUser(userId, {
         leaseDurationMs: safeTimeoutMs + 5000,
         respectBackoff
     });
+    let lifecycleCleanup = null;
+    if (typeof afterLocalRevocation === 'function') {
+        try {
+            lifecycleCleanup = await afterLocalRevocation({
+                userId,
+                reason,
+                tokens: started.tokens || null,
+                revocationId: started.revocationId || ''
+            });
+        } catch (error) {
+            logger.warn('oauth: limpeza complementar de lifecycle falhou localmente');
+            lifecycleCleanup = {
+                localStatus: 'failed',
+                errorCode: 'LIFECYCLE_CLEANUP_FAILED'
+            };
+        }
+    }
     if (!started.tokens) {
         const existing = started.revocation || getOAuthRevocation(userId);
         const manualRequired = String(existing?.status || '').startsWith('manual_required_');
@@ -75,7 +93,8 @@ async function revokeGoogleConnectionForUser(userId, {
                         ? 'manual_required'
                         : (existing.status === 'in_progress' ? 'in_progress' : 'pending'))),
             attempted: false,
-            attempts: Number(existing?.attempts || 0)
+            attempts: Number(existing?.attempts || 0),
+            lifecycleCleanup
         };
     }
 
@@ -89,7 +108,8 @@ async function revokeGoogleConnectionForUser(userId, {
             localStatus: started.started ? 'revoked' : 'already_revoked',
             remoteStatus: completed.applied ? 'not_required' : 'superseded',
             attempted: completed.applied,
-            attempts: completed.attempts
+            attempts: completed.attempts,
+            lifecycleCleanup
         };
     }
 
@@ -109,7 +129,8 @@ async function revokeGoogleConnectionForUser(userId, {
             localStatus: started.started ? 'revoked' : 'already_revoked',
             remoteStatus: completed.applied ? 'revoked' : 'superseded',
             attempted: true,
-            attempts: completed.attempts
+            attempts: completed.attempts,
+            lifecycleCleanup
         };
     } catch (error) {
         const failed = markOAuthRevocationResult(userId, started.revocationId, started.leaseId, {
@@ -128,7 +149,8 @@ async function revokeGoogleConnectionForUser(userId, {
             localStatus: started.started ? 'revoked' : 'already_revoked',
             remoteStatus: failed.applied ? 'failed' : 'superseded',
             attempted: true,
-            attempts: failed.attempts
+            attempts: failed.attempts,
+            lifecycleCleanup
         };
     }
 }

@@ -32,7 +32,12 @@ function buildUserRow({
     return [userId, whatsappId, phone, displayName, status, createdAt, updatedAt, consentAt, termsVersion, deletedAt];
 }
 
-function installUserServiceWithSheets({ users = [], beforeUpdateRow = null, revokeGoogleConnection = async () => ({}) } = {}) {
+function installUserServiceWithSheets({
+    users = [],
+    beforeUpdateRow = null,
+    revokeGoogleConnection = async () => ({}),
+    revokeSharedMemberships = async () => ({})
+} = {}) {
     const userServicePath = require.resolve('../src/services/userService');
     const googlePath = require.resolve('../src/services/google');
     delete require.cache[userServicePath];
@@ -71,6 +76,7 @@ function installUserServiceWithSheets({ users = [], beforeUpdateRow = null, revo
 
     const userService = require('../src/services/userService');
     userService.__test__.setOAuthRevocationHandler(revokeGoogleConnection);
+    userService.__test__.setSharedMembershipRevocationHandler(revokeSharedMemberships);
     return { userService, sheets };
 }
 
@@ -389,6 +395,34 @@ test('user lifecycle: local OAuth revocation failure still commits the blocking 
         localStatus: 'failed',
         remoteStatus: 'not_attempted',
         errorCode: 'LOCAL_REVOKE_FAILED'
+    });
+});
+
+test('user lifecycle: local shared-membership cleanup failure still commits the blocking status', async () => {
+    const userId = 'user-shared-membership-local-failure';
+    const { userService } = installUserServiceWithSheets({
+        users: [buildUserRow({ userId, status: 'ACTIVE' })],
+        revokeGoogleConnection: async (receivedUserId, options) => ({
+            localStatus: 'revoked',
+            remoteStatus: 'revoked',
+            lifecycleCleanup: await options.afterLocalRevocation({
+                userId: receivedUserId,
+                tokens: { refresh_token: 'synthetic-owner-token' }
+            })
+        }),
+        revokeSharedMemberships: async () => {
+            throw new Error('synthetic local membership store failure');
+        }
+    });
+
+    const updated = await userService.updateUserStatus(userId, 'BLOCKED');
+    const fresh = await userService.getUserByIdFresh(userId);
+
+    assert.strictEqual(updated.status, 'BLOCKED');
+    assert.strictEqual(fresh.status, 'BLOCKED');
+    assert.deepStrictEqual(updated.oauth_revocation.lifecycleCleanup, {
+        localStatus: 'failed',
+        errorCode: 'SHARED_MEMBERSHIP_REVOKE_FAILED'
     });
 });
 

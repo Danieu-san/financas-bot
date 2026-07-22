@@ -95,5 +95,7 @@ pai, leu os sete artefatos exigidos e não encontrou achado CRITICAL, HIGH ou
 MEDIUM nem lacuna indispensável. WGL-03 e WGL-04 estão tecnicamente concluídos;
 o relatório está em
 `docs/audit/14-wgl03-wgl04-independent-close-2026-07-22.md`. Deploy, produção e
-serviços reais continuam fora do escopo. A próxima fatia já ordenada é
-`AUTH-03/WGL-07`, remoção de membership/permissão Drive familiar.
+serviços reais continuam fora do escopo. A fatia já ordenada
+`AUTH-03/WGL-07`, remoção/reatribuição de membership e permissão Drive familiar,
+está implementada e localmente verde, mas ainda aguarda commit imutável e
+auditoria independente. Produção continua fora do escopo.

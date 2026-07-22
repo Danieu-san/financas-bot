@@ -29,6 +29,7 @@ const OAUTH_REVOCATION_STATUSES = new Set([
     USER_STATUS.DELETED
 ]);
 let oauthRevocationHandler = null;
+let sharedMembershipRevocationHandler = null;
 
 const USER_HEADERS = [
     'user_id',
@@ -664,10 +665,35 @@ function getOAuthRevocationHandler() {
     return require('./googleOAuthRevocationService').revokeGoogleConnectionForUser;
 }
 
+function getSharedMembershipRevocationHandler() {
+    if (typeof sharedMembershipRevocationHandler === 'function') return sharedMembershipRevocationHandler;
+    return require('./googleSharedMembershipRevocationService').revokeSharedMembershipsForLifecycle;
+}
+
+async function revokeSharedMembershipsForTerminalStatus(userId, status, targetOwnerTokens) {
+    try {
+        return await getSharedMembershipRevocationHandler()(userId, {
+            reason: status,
+            targetOwnerTokens
+        });
+    } catch (error) {
+        logger.warn('oauth: falha local ao remover compartilhamentos; lifecycle terminal preservado');
+        return {
+            localStatus: 'failed',
+            errorCode: 'SHARED_MEMBERSHIP_REVOKE_FAILED'
+        };
+    }
+}
+
 async function revokeOAuthForTerminalStatus(userId, status) {
     if (!OAUTH_REVOCATION_STATUSES.has(status)) return null;
     try {
-        return await getOAuthRevocationHandler()(userId, { reason: status });
+        return await getOAuthRevocationHandler()(userId, {
+            reason: status,
+            afterLocalRevocation: ({ tokens }) => (
+                revokeSharedMembershipsForTerminalStatus(userId, status, tokens)
+            )
+        });
     } catch (error) {
         logger.warn('oauth: falha local ao invalidar credencial; lifecycle terminal preservado');
         return {
@@ -1110,6 +1136,9 @@ module.exports = {
         buildSettingsRow,
         setOAuthRevocationHandler(handler) {
             oauthRevocationHandler = typeof handler === 'function' ? handler : null;
+        },
+        setSharedMembershipRevocationHandler(handler) {
+            sharedMembershipRevocationHandler = typeof handler === 'function' ? handler : null;
         }
     }
 };

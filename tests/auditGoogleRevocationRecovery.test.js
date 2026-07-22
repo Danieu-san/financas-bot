@@ -10,6 +10,7 @@ const googlePath = require.resolve('../src/services/google');
 const userServicePath = require.resolve('../src/services/userService');
 const oauthTokenStorePath = require.resolve('../src/services/oauthTokenStore');
 const googleOAuthRevocationServicePath = require.resolve('../src/services/googleOAuthRevocationService');
+const googleSharedMembershipRevocationServicePath = require.resolve('../src/services/googleSharedMembershipRevocationService');
 const userSpreadsheetServicePath = require.resolve('../src/services/userSpreadsheetService');
 const googleOAuthServicePath = require.resolve('../src/services/googleOAuthService');
 const messageHandlerPath = require.resolve('../src/handlers/messageHandler');
@@ -22,6 +23,7 @@ const MODULE_PATHS = [
     userServicePath,
     oauthTokenStorePath,
     googleOAuthRevocationServicePath,
+    googleSharedMembershipRevocationServicePath,
     userSpreadsheetServicePath,
     googleOAuthServicePath,
     messageHandlerPath,
@@ -133,19 +135,30 @@ function createGoogleBackingStore({ users, driveLedger }) {
             runWithUserSheetContext: async (_user, fn) => fn(),
             hasUserSpreadsheetContext: async () => false,
             revokeSpreadsheetPermission: async (payload) => {
+                driveLedger.events.push({ type: 'revoke', permissionId: payload.permissionId });
                 driveLedger.calls.push({
                     ownerUserId: payload.ownerUserId,
                     spreadsheetId: payload.spreadsheetId,
-                    permissionId: payload.permissionId
+                    permissionId: payload.permissionId,
+                    memberEmail: payload.memberEmail
                 });
+                if (typeof driveLedger.onRevoke === 'function') {
+                    await driveLedger.onRevoke(payload);
+                }
                 driveLedger.commits.push({
                     spreadsheetId: payload.spreadsheetId,
                     permissionId: payload.permissionId
                 });
                 return true;
             },
-            shareSpreadsheetWithUserEmail: async () => {
-                throw new Error('Compartilhamento novo fora do escopo do ensaio.');
+            shareSpreadsheetWithUserEmail: async payload => {
+                const permissionId = `permission-share-${driveLedger.shareCalls.length + 1}`;
+                driveLedger.events.push({ type: 'share', permissionId });
+                driveLedger.shareCalls.push({ ...payload, permissionId });
+                if (typeof driveLedger.onShare === 'function') {
+                    await driveLedger.onShare(payload);
+                }
+                return { email: payload.email, permissionId };
             }
         }
     };
@@ -205,7 +218,7 @@ function setupScenario({ name, memberAStatus = 'ACTIVE', includeAdmin = false })
     ];
     if (includeAdmin) users.push(syntheticUser({ ...identities.admin, status: 'ACTIVE' }));
 
-    const driveLedger = { calls: [], commits: [] };
+    const driveLedger = { calls: [], commits: [], shareCalls: [], events: [] };
     const remoteRevocationLedger = [];
     const auditLedger = [];
     const lifecycleLedger = { calls: [], commits: [], values: [] };
@@ -354,7 +367,7 @@ test('independent audit of individual Google revocation and lifecycle recovery',
         { command: 'inativar conta', status: 'INACTIVE' },
         { command: 'excluir conta', status: 'DELETED' }
     ]) {
-        await t.test(`${target.status} revokes individual OAuth without deleting spreadsheet or family membership`, async () => {
+        await t.test(`${target.status} revokes individual OAuth and the member's Drive permission without deleting the spreadsheet`, async () => {
             const scenario = setupScenario({ name: `lifecycle-${target.status.toLowerCase()}` });
             const familySheetId = `family-sheet-${target.status.toLowerCase()}`;
             scenario.oauth.setSharedSpreadsheetMembership({
@@ -380,6 +393,11 @@ test('independent audit of individual Google revocation and lifecycle recovery',
             const rawConnection = rawOauthRow(scenario.dbPath, scenario.identities.memberA.userId);
             const revocation = scenario.oauth.getOAuthRevocation(scenario.identities.memberA.userId);
             const membership = scenario.oauth.getSharedSpreadsheetMembership(scenario.identities.memberA.userId);
+            const rawMembership = rawMembershipRow(scenario.dbPath, scenario.identities.memberA.userId);
+            const ownerConnection = scenario.oauth.getOAuthConnection(
+                scenario.identities.memberB.userId,
+                { includeTokens: true }
+            );
 
             assert.strictEqual(handled, true);
             assert.strictEqual(replies.length, 1);
@@ -389,8 +407,13 @@ test('independent audit of individual Google revocation and lifecycle recovery',
             assert.strictEqual(rawConnection.spreadsheet_id, beforeConnection.spreadsheet_id);
             assert.strictEqual(revocation.status, 'remote_revoked');
             assert.strictEqual(revocation.has_pending_token, false);
-            assert.strictEqual(membership.spreadsheet_id, familySheetId);
-            assert.strictEqual(scenario.driveLedger.calls.length, 0);
+            assert.strictEqual(membership, null);
+            assert.ok(rawMembership.revoked_at);
+            assert.strictEqual(rawMembership.spreadsheet_id, familySheetId);
+            assert.strictEqual(scenario.driveLedger.calls.length, 1);
+            assert.strictEqual(scenario.driveLedger.commits.length, 1);
+            assert.strictEqual(scenario.driveLedger.calls[0].permissionId, `permission-${target.status.toLowerCase()}`);
+            assert.ok(ownerConnection?.tokens?.refresh_token);
             assert.strictEqual(scenario.remoteRevocationLedger.length, 1);
 
             results.push({
@@ -400,7 +423,8 @@ test('independent audit of individual Google revocation and lifecycle recovery',
                 oauth_revoked_at_set: Boolean(rawConnection.revoked_at),
                 token_fingerprint_changed: true,
                 spreadsheet_id_preserved: rawConnection.spreadsheet_id === beforeConnection.spreadsheet_id,
-                family_membership_preserved: membership?.spreadsheet_id === familySheetId,
+                family_membership_revoked_locally: Boolean(rawMembership.revoked_at),
+                owner_oauth_preserved: Boolean(ownerConnection?.tokens?.refresh_token),
                 remote_revocation_calls: scenario.remoteRevocationLedger.length,
                 drive_permission_removal_calls: scenario.driveLedger.calls.length,
                 real_google_validity_claimed: false
@@ -523,6 +547,121 @@ test('independent audit of individual Google revocation and lifecycle recovery',
             shared_sheet_deleted: false,
             audit_success_recorded: true
         });
+    });
+
+    await t.test('family share reassignment removes the previous Drive permission before granting the new one', async () => {
+        const scenario = setupScenario({ name: 'family-share-reassignment', includeAdmin: true });
+        scenario.oauth.saveOAuthConnection(scenario.identities.admin.userId, {
+            scopes: ['audit.scope'],
+            tokens: { refresh_token: 'synthetic-token-admin-reassignment' },
+            googleAccount: { id: 'google-admin-reassignment', email: 'admin-reassignment@example.invalid' },
+            spreadsheetId: 'family-sheet-new-owner'
+        });
+        scenario.oauth.setSharedSpreadsheetMembership({
+            memberUserId: scenario.identities.memberA.userId,
+            ownerUserId: scenario.identities.memberB.userId,
+            spreadsheetId: 'family-sheet-old-owner',
+            memberGoogleEmail: 'member-a-reassignment@example.invalid',
+            drivePermissionId: 'permission-old-owner'
+        });
+        const beforeOldOwner = scenario.oauth.getOAuthConnection(
+            scenario.identities.memberB.userId,
+            { includeTokens: true }
+        );
+        const replies = [];
+        const handled = await scenario.messageHandler.__test__.handleAdminCommandBeforeAccess(
+            {
+                body: `admin compartilhar planilha ${scenario.identities.admin.whatsappId} ${scenario.identities.memberA.whatsappId}`,
+                reply: async text => replies.push(String(text))
+            },
+            scenario.identities.admin.whatsappId,
+            { user: await scenario.freshUser(scenario.identities.admin) },
+            { skipConfirmation: true }
+        );
+        const membership = scenario.oauth.getSharedSpreadsheetMembership(scenario.identities.memberA.userId);
+        const afterOldOwner = scenario.oauth.getOAuthConnection(
+            scenario.identities.memberB.userId,
+            { includeTokens: true }
+        );
+
+        assert.strictEqual(handled, true);
+        assert.strictEqual(replies.length >= 1, true);
+        assert.deepStrictEqual(scenario.driveLedger.events.slice(0, 2), [
+            { type: 'revoke', permissionId: 'permission-old-owner' },
+            { type: 'share', permissionId: 'permission-share-1' }
+        ]);
+        assert.strictEqual(membership.owner_user_id, scenario.identities.admin.userId);
+        assert.strictEqual(membership.spreadsheet_id, 'family-sheet-new-owner');
+        assert.strictEqual(membership.drive_permission_id, 'permission-share-1');
+        assert.strictEqual(
+            tokenFingerprint(afterOldOwner.tokens),
+            tokenFingerprint(beforeOldOwner.tokens)
+        );
+    });
+
+    await t.test('failed cleanup of the previous permission blocks reassignment before the new Drive grant', async () => {
+        const scenario = setupScenario({ name: 'family-share-reassignment-pending', includeAdmin: true });
+        scenario.oauth.saveOAuthConnection(scenario.identities.admin.userId, {
+            scopes: ['audit.scope'],
+            tokens: { refresh_token: 'synthetic-token-admin-pending' },
+            googleAccount: { id: 'google-admin-pending', email: 'admin-pending@example.invalid' },
+            spreadsheetId: 'family-sheet-new-pending-owner'
+        });
+        scenario.oauth.setSharedSpreadsheetMembership({
+            memberUserId: scenario.identities.memberA.userId,
+            ownerUserId: scenario.identities.memberB.userId,
+            spreadsheetId: 'family-sheet-old-pending-owner',
+            memberGoogleEmail: 'member-a-pending@example.invalid',
+            drivePermissionId: 'permission-old-pending-owner'
+        });
+        scenario.driveLedger.onRevoke = async () => { throw new Error('synthetic Drive outage'); };
+        const replies = [];
+        await scenario.messageHandler.__test__.handleAdminCommandBeforeAccess(
+            {
+                body: `admin compartilhar planilha ${scenario.identities.admin.whatsappId} ${scenario.identities.memberA.whatsappId}`,
+                reply: async text => replies.push(String(text))
+            },
+            scenario.identities.admin.whatsappId,
+            { user: await scenario.freshUser(scenario.identities.admin) },
+            { skipConfirmation: true }
+        );
+
+        assert.strictEqual(scenario.oauth.getSharedSpreadsheetMembership(scenario.identities.memberA.userId), null);
+        assert.strictEqual(scenario.driveLedger.shareCalls.length, 0);
+        assert.match(replies[0], /remoção.*pendente|remoção.*antiga.*pendente/i);
+        assert.ok(scenario.auditLedger.some(entry => entry.action === 'share_spreadsheet' && entry.result === 'pending'));
+    });
+
+    await t.test('a new Drive grant is compensated when local membership persistence loses a lifecycle race', async () => {
+        const scenario = setupScenario({ name: 'family-share-persist-race', includeAdmin: true });
+        scenario.oauth.saveOAuthConnection(scenario.identities.admin.userId, {
+            scopes: ['audit.scope'],
+            tokens: { refresh_token: 'synthetic-token-admin-race' },
+            googleAccount: { id: 'google-admin-race', email: 'admin-race@example.invalid' },
+            spreadsheetId: 'family-sheet-race-owner'
+        });
+        scenario.driveLedger.onShare = async () => {
+            scenario.oauth.beginOAuthRevocation(scenario.identities.memberA.userId, {
+                reason: 'BLOCKED',
+                now: new Date('2026-07-22T12:00:00.000Z')
+            });
+        };
+        const replies = [];
+        await scenario.messageHandler.__test__.handleAdminCommandBeforeAccess(
+            {
+                body: `admin compartilhar planilha ${scenario.identities.admin.whatsappId} ${scenario.identities.memberA.whatsappId}`,
+                reply: async text => replies.push(String(text))
+            },
+            scenario.identities.admin.whatsappId,
+            { user: await scenario.freshUser(scenario.identities.admin) },
+            { skipConfirmation: true }
+        );
+
+        assert.strictEqual(scenario.driveLedger.shareCalls.length, 1);
+        assert.ok(scenario.driveLedger.calls.some(call => call.permissionId === 'permission-share-1'));
+        assert.strictEqual(scenario.oauth.getSharedSpreadsheetMembership(scenario.identities.memberA.userId), null);
+        assert.match(replies[0], /não foi ativado/i);
+        assert.ok(scenario.auditLedger.some(entry => entry.action === 'share_spreadsheet' && entry.result === 'failed'));
     });
 
     console.log(`REVOCATION_RECOVERY_AUDIT_RESULT ${JSON.stringify({

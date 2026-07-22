@@ -611,15 +611,40 @@ async function shareSpreadsheetWithUserEmail({ ownerUserId, spreadsheetId, email
     }
 }
 
-async function revokeSpreadsheetPermission({ ownerUserId, spreadsheetId, permissionId, driveClient } = {}) {
+async function revokeSpreadsheetPermission({
+    ownerUserId,
+    spreadsheetId,
+    permissionId,
+    memberEmail = '',
+    ownerTokens = null,
+    driveClient
+} = {}) {
     const safeOwnerUserId = String(ownerUserId || '').trim();
     const safeSpreadsheetId = String(spreadsheetId || '').trim();
-    const safePermissionId = String(permissionId || '').trim();
+    let safePermissionId = String(permissionId || '').trim();
+    const safeMemberEmail = normalizeGoogleEmail(memberEmail);
     if (!safeOwnerUserId) throw new Error('ownerUserId é obrigatório para remover compartilhamento.');
     if (!safeSpreadsheetId) throw new Error('spreadsheetId é obrigatório para remover compartilhamento.');
-    if (!safePermissionId) throw new Error('permissionId é obrigatório para remover compartilhamento no Drive.');
+    if (!safePermissionId && !isValidGoogleEmail(safeMemberEmail)) {
+        throw new Error('permissionId ou e-mail do membro é obrigatório para remover compartilhamento no Drive.');
+    }
 
-    const client = buildDriveClientForUser(safeOwnerUserId, driveClient);
+    let client = driveClient;
+    if (!client && ownerTokens && typeof ownerTokens === 'object') {
+        const auth = buildUserOAuthClient(ownerTokens);
+        if (!auth) throw new Error('Credenciais OAuth do dono indisponíveis para remover compartilhamento.');
+        client = google.drive({ version: 'v3', auth });
+    }
+    if (!client) client = buildDriveClientForUser(safeOwnerUserId);
+    if (!safePermissionId) {
+        try {
+            safePermissionId = await findSpreadsheetPermissionByEmail(client, safeSpreadsheetId, safeMemberEmail);
+        } catch (error) {
+            if (error?.code === 404 || error?.response?.status === 404) return true;
+            throw error;
+        }
+        if (!safePermissionId) return true;
+    }
     try {
         await runRetriableGoogleOperation('revokeSpreadsheetPermission', () => client.permissions.delete({
             fileId: safeSpreadsheetId,
@@ -628,7 +653,7 @@ async function revokeSpreadsheetPermission({ ownerUserId, spreadsheetId, permiss
         }));
         return true;
     } catch (error) {
-        if (error?.code === 404 || error?.response?.status === 404) return false;
+        if (error?.code === 404 || error?.response?.status === 404) return true;
         throw error;
     }
 }

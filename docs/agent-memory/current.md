@@ -4,11 +4,21 @@ Atualizado em: 2026-07-22
 
 ## Objetivo ativo
 
-`WGL-03/WGL-04` foram encerrados com `GO TÉCNICO LOCAL`. Preparar a próxima
-fatia já ordenada, `AUTH-03/WGL-07`, para remover membership/permissão Drive
-familiar quando o lifecycle exigir, sem tocar produção.
+`WGL-03/WGL-04` foram encerrados com `GO TÉCNICO LOCAL`. O candidato local de
+`AUTH-03/WGL-07` está implementado e focalmente verde para remover
+membership/permissão Drive familiar quando o lifecycle exigir, sem tocar
+produção.
 
-Plano ativo: `docs/plans/current-gate.md`.
+Plano ativo: `docs/plans/auth03-wgl07.md`.
+
+## Checkpoint parcial AUTH-03/WGL-07
+
+O mapa causal, a implementação e os testes adversariais locais foram concluídos.
+O candidato ainda não foi commitado: sintaxe e diff estão verdes, os ensaios
+causais dedicados + auditoria passaram `21/21`, a prova negativa passou `4/4`,
+a bateria focal ampliada passou `399/399` e o `npm test` final fechou o runner
+principal em `1.066/1.066`, além dos pretests verdes. Falta commit sanitizado,
+publicação do hash imutável e auditoria independente.
 
 ## Git e workspace
 
@@ -21,7 +31,7 @@ Plano ativo: `docs/plans/current-gate.md`.
   contém apenas a consolidação documental ainda não publicada, além das
   alterações concorrentes e arquivos do usuário fora do gate;
 - o HEAD antes do candidato WGL é
-  `ecf819d7baad74f85ca4a1ba23982db894863237`;
+  `86c7d8a9487175aa6d5d41f04e5aadd85306dee2`;
 - arquivos não rastreados alheios já existentes pertencem ao usuário e não
   devem ser adicionados, alterados ou removidos.
 
@@ -31,8 +41,8 @@ Plano ativo: `docs/plans/current-gate.md`.
 - subplano: remediação adversarial do lifecycle Google;
 - dentro: state/claim/generation, saga OAuth, planilha marcada, recovery,
   compensação, resposta HTTP repetível, scheduler de retenção e testes locais;
-- fora: deploy, EC2/Oracle, Google/WhatsApp real, mudança funcional de Drive
-  membership de `AUTH-03/WGL-07`, Open Finance, escrita financeira e flags;
+- fora: deploy, EC2/Oracle, Google/WhatsApp real, Open Finance, escrita
+  financeira e flags;
   a leitura de memberships entrou apenas como trava para impedir que uma
   compensação apague planilha familiar já referenciada.
 
@@ -95,15 +105,13 @@ rastreados do usuário permanecem fora deste gate e não foram incluídos.
 
 ## Próxima ação exata
 
-1. consolidar documentalmente o `GO` de `867be432...` sem alterar produto;
-2. mapear em leitura o escopo causal de `AUTH-03/WGL-07` a partir do relatório
-   final e do código atual;
-3. fechar contrato, testes adversariais e limites antes de implementar;
-4. manter deploy, EC2/Oracle e serviços reais fora do escopo.
+1. criar commit sanitizado sem arquivos do workstream AWS/Oracle;
+2. publicar o hash imutável e obter auditoria independente;
+3. manter deploy, EC2/Oracle e serviços reais fora do escopo.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Extra Alto → mapear e implementar AUTH-03/WGL-07 sem deploy.`
+`Codex → Sol → Extra Alto → validar amplamente e auditar AUTH-03/WGL-07 sem deploy.`
 
 ## Histórico dirigido
 

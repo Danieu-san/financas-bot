@@ -16,6 +16,7 @@ const { sendInterpretationReadinessAlert } = require('../reliability/enforceRead
 const { sendDailyOpsCheckReport } = require('../services/dailyOpsCheckService');
 const { recordLegacyUsageHeartbeat } = require('../telemetry/legacyUsageTelemetry');
 const { retryPendingGoogleRevocations } = require('../services/googleOAuthRevocationService');
+const { retryPendingSharedMembershipRevocations } = require('../services/googleSharedMembershipRevocationService');
 const { recoverPendingGoogleOAuthCompensations } = require('../services/googleOAuthService');
 const { expireOAuthConnectionAttempts } = require('../services/oauthTokenStore');
 
@@ -638,6 +639,28 @@ async function recoverPendingGoogleOAuthRevocations() {
     }
 }
 
+async function recoverPendingSharedMembershipPermissionRevocations() {
+    try {
+        const result = await retryPendingSharedMembershipRevocations({ limit: 50 });
+        if (result.attempted > 0 || result.manualRequired > 0) {
+            logger.info(
+                `[scheduler] shared_membership_revocation attempted=${result.attempted} `
+                + `revoked=${result.revoked} failed=${result.failed} manual_required=${result.manualRequired}`
+            );
+        }
+        return result;
+    } catch (error) {
+        logger.warn('[scheduler] shared_membership_revocation_failed');
+        return {
+            attempted: 0,
+            revoked: 0,
+            failed: 0,
+            manualRequired: 0,
+            errorCode: 'SHARED_MEMBERSHIP_REVOCATION_RECOVERY_FAILED'
+        };
+    }
+}
+
 async function cleanupExpiredGoogleOAuthConnectionAttempts() {
     try {
         const result = expireOAuthConnectionAttempts({ now: getNow(), limit: 100 });
@@ -738,6 +761,7 @@ function initializeScheduler(wppClient) {
     cron.schedule('0 * * * *', async () => {
         await sendOperationalHeartbeat();
         await recoverPendingGoogleOAuthRevocations();
+        await recoverPendingSharedMembershipPermissionRevocations();
         await recoverPendingGoogleOAuthConnectionCompensations();
         await cleanupExpiredGoogleOAuthConnectionAttempts();
     }, { scheduled: true, timezone: 'America/Sao_Paulo' });
@@ -794,6 +818,7 @@ module.exports = {
         sumSchedulerLegacyCards,
         sendOperationalHeartbeat,
         recoverPendingGoogleOAuthRevocations,
+        recoverPendingSharedMembershipPermissionRevocations,
         recoverPendingGoogleOAuthConnectionCompensations,
         cleanupExpiredGoogleOAuthConnectionAttempts,
         sendDailyOpsCheckAdminReport,
