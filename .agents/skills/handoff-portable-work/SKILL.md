@@ -11,9 +11,10 @@ description: Pausar e transferir com segurança um trabalho do FinancasBot entre
 2. Confirmar raiz, branch, HEAD e estado rastreado/não rastreado.
 3. Não alterar, adicionar ou remover arquivos alheios ao objetivo.
 4. Rodar apenas verificações rápidas necessárias para saber se o checkpoint é sintaticamente íntegro. Não repetir baterias caras só para pausar.
-5. Atualizar `docs/agent-memory/current.md` e `docs/plans/current-gate.md` antes de encerrar.
+5. Atualizar o checkpoint e plano do workstream correspondente antes de
+   encerrar. Usar `current.md`/`current-gate.md` somente para o gate raiz.
 
-O checkpoint deve conter objetivo/gate, commit de partida, HEAD, alterações concluídas, trabalho parcial, decisões, riscos, último teste confiável, mudanças posteriores, arquivos alheios, autorizações externas, próxima ação e capacidade recomendada.
+O checkpoint deve conter objetivo/gate, commit de partida, HEAD, alterações concluídas, trabalho parcial, decisões, riscos, último teste confiável, mudanças posteriores, arquivos alheios, autorizações externas, próxima ação e capacidade recomendada. Para servidor, registrar também provedor, host lógico, usuário, chave referenciada, diretório e processo vigentes sem copiar segredos.
 
 ## Persistência
 

@@ -34,6 +34,22 @@ O histórico cronológico anterior permanece em
 `docs/agent-memory/current-state.md` e no Git, mas não é fonte de contexto
 inicial.
 
+### Conversas e workstreams paralelos
+
+"Um objetivo por vez" significa um objetivo por conversa/worktree, não um
+único assunto para todo o repositório. Se outra conversa trabalhar em objetivo
+diferente, ela deve usar branch/worktree e checkpoint próprios registrados em
+`docs/agent-memory/workstreams/index.md`. Não sobrescrever `current.md` ou
+`current-gate.md` de outro workstream.
+
+### Infraestrutura remota variável
+
+A infraestrutura pode mudar entre AWS, Oracle ou outro provedor. Antes de
+qualquer deploy, SSH, cópia ou comando remoto, descobrir no workstream/runbook
+vigente o provedor, host, usuário, chave, diretório e processo atuais. Nunca
+reutilizar caminho EC2/AWS apenas porque aparece no histórico. Ação remota
+continua exigindo autorização explícita.
+
 ## Contrato Obrigatório de Comunicação e Capacidade
 
 Antes de iniciar ou retomar qualquer tarefa, a primeira atualização visível ao

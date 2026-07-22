@@ -22,11 +22,26 @@ antes da primeira ação material.
 - preferir contexto curto apontando fontes sob demanda, não histórico integral;
 - usar scripts para tarefas mecânicas e reservar raciocínio para decisões.
 
+## Economia de capacidade e ferramentas
+
+- usar a menor capacidade suficiente e reservar esforço máximo para
+  arquitetura, concorrência, segurança, causalidade e auditoria final;
+- não usar subagentes por padrão; exigir pedido explícito do usuário e benefício
+  claro de paralelização independente;
+- usar ferramentas, web e comandos somente quando melhorarem a resposta ou
+  forem necessários à evidência;
+- usar o Chat comum seletivamente para raciocínio, pesquisa, redação ou auditoria
+  sem dependência do workspace; não delegar quando o handoff custar mais do que
+  resolver diretamente;
+- nunca aceitar o Chat como fonte única para código, testes, Git ou produção.
+
 ## Trabalho prolongado
 
 - manter plano com objetivo, contexto, restrições e critérios de conclusão;
 - registrar checkpoints antes de pausa, compactação, troca de conversa ou PC;
 - usar branch/worktree separada quando houver escritores paralelos;
+- manter um objetivo por conversa/worktree e checkpoints separados para
+  assuntos simultâneos;
 - executar testes proporcionais e não repetir suítes verdes sem mudança causal;
 - separar implementação de auditoria e não declarar GO sem evidência factual.
 
@@ -43,3 +58,7 @@ Antes de toda resposta final, conferir:
 Instruções mais específicas do repositório prevalecem dentro de seu escopo.
 Nunca copiar segredos, autenticação, cookies, sessões ou histórico privado para
 repositórios, prompts, skills ou handoffs.
+
+Antes de ação em servidor, descobrir o provedor, host, usuário, chave,
+diretório e processo vigentes. Não presumir que caminhos históricos continuam
+válidos.

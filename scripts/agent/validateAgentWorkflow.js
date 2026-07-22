@@ -10,7 +10,10 @@ const checks = [
     ['docs/agent-memory/README.md', 12 * 1024, ['current.md', 'current-gate.md', 'validateAgentWorkflow.js']],
     ['docs/agent-memory/current.md', 16 * 1024, ['## Objetivo ativo', '## Git e workspace', '## Próxima ação exata', '## Capacidade para retomar']],
     ['docs/plans/current-gate.md', 24 * 1024, ['## Objetivo', '## Escopo', '## Não escopo', '## Critérios de GO', '## Condições de parada']],
-    ['docs/agent-workflow/global-AGENTS.md', 12 * 1024, ['Superfície → Modelo → Esforço → Próxima tarefa', 'Não trocar ou reduzir']],
+    ['docs/agent-workflow/global-AGENTS.md', 12 * 1024, ['Superfície → Modelo → Esforço → Próxima tarefa', 'Não trocar ou reduzir', 'não usar subagentes por padrão', 'Antes de ação em servidor']],
+    ['docs/agent-memory/workstreams/index.md', 8 * 1024, ['wgl-03-wgl-04', 'aws-oracle-migration']],
+    ['docs/agent-memory/workstreams/aws-oracle-migration.md', 12 * 1024, ['## Objetivo conhecido', '## Próxima ação obrigatória']],
+    ['docs/plans/workstreams/aws-oracle-migration.md', 16 * 1024, ['## Objetivo', '## Não autorizado por este stub', '## Invariantes mínimas']],
     ['.agents/skills/execute-financasbot-gate/SKILL.md', 12 * 1024, ['name: execute-financasbot-gate', '## Preparar', '## Validar e encerrar']],
     ['.agents/skills/audit-immutable-gate/SKILL.md', 12 * 1024, ['name: audit-immutable-gate', '## Fontes independentes', '## Auditoria pelo Chat']],
     ['.agents/skills/handoff-portable-work/SKILL.md', 12 * 1024, ['name: handoff-portable-work', '## Parar sem perder trabalho', '## Retomar em outro computador']]
@@ -29,7 +32,7 @@ for (const [relativePath, maxBytes, requiredFragments] of checks) {
     const bytes = Buffer.byteLength(value, 'utf8');
     loaded.set(relativePath, { value, bytes });
     if (bytes > maxBytes) errors.push(`${relativePath}: ${bytes} bytes excedem ${maxBytes}`);
-    if (/\bTODO\b|\[TODO/i.test(value)) errors.push(`${relativePath}: TODO residual`);
+    if (/\[TODO|TODO:/.test(value)) errors.push(`${relativePath}: TODO residual`);
     for (const fragment of requiredFragments) {
         if (!value.includes(fragment)) errors.push(`${relativePath}: falta ${JSON.stringify(fragment)}`);
     }

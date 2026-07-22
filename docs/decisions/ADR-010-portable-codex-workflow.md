@@ -56,3 +56,13 @@ checkpoint não acumula histórico: cada atualização substitui o estado anteri
 As regras e skills do repositório acompanham o SSD e valem para qualquer Codex
 aberto na raiz. Um template global instalável aplica o contrato básico a outras
 conversas nesta máquina, sem copiar autenticação nem alterar `config.toml`.
+
+## Adendo — múltiplas conversas e infraestrutura variável
+
+Cada conversa/worktree mantém um objetivo e checkpoint próprios. O gate raiz
+continua sendo o default, enquanto assuntos paralelos são registrados em
+`docs/agent-memory/workstreams/index.md` e não sobrescrevem o estado alheio.
+
+Tarefas remotas devem descobrir novamente o destino vigente antes de agir. A
+migração AWS→Oracle torna inseguro herdar host, chave, diretório ou comando de
+deploy de um handoff antigo.

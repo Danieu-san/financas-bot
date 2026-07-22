@@ -28,8 +28,10 @@ repositorio, testes ou producao antes de aceitar conclusoes ou alterar o plano.
 ## Ordem minima de leitura
 
 1. `AGENTS.md` - constituicao permanente, capacidade, seguranca e privacidade.
-2. `docs/agent-memory/current.md` - unico estado vigente e portatil.
-3. `docs/plans/current-gate.md` - contrato do unico objetivo ativo.
+2. Este `README.md` - roteamento de contexto.
+3. Identificar o workstream:
+   - gate raiz: `current.md` e `docs/plans/current-gate.md`;
+   - assunto paralelo: `workstreams/index.md`, checkpoint e plano proprios.
 
 Depois disso, abra somente o que esses arquivos ou a tarefa apontarem:
 
