@@ -5911,10 +5911,12 @@ test('google.readDataFromSheet silently tolerates an explicitly optional missing
 test('google.readDataFromSheet preserves provider unavailability instead of returning an empty result', async () => {
     googleService.__test__.clearSheetsReadCache();
     const originalConsoleError = console.error;
+    const originalConsoleWarn = console.warn;
     const errors = [];
+    const warnings = [];
     const previousAttempts = process.env.GOOGLE_API_RETRY_ATTEMPTS;
     const previousDelay = process.env.GOOGLE_API_RETRY_DELAY_MS;
-    process.env.GOOGLE_API_RETRY_ATTEMPTS = '1';
+    process.env.GOOGLE_API_RETRY_ATTEMPTS = '2';
     process.env.GOOGLE_API_RETRY_DELAY_MS = '0';
     const fakeSheets = {
         spreadsheets: {
@@ -5935,6 +5937,7 @@ test('google.readDataFromSheet preserves provider unavailability instead of retu
         oauthClient: {}
     });
     console.error = (...args) => errors.push(args);
+    console.warn = (...args) => warnings.push(args);
 
     try {
         await assert.rejects(
@@ -5943,14 +5946,58 @@ test('google.readDataFromSheet preserves provider unavailability instead of retu
                 && error?.message === 'google_sheet_read_unavailable'
         );
         assert.strictEqual(errors.length, 1);
-        assert.doesNotMatch(JSON.stringify(errors), /private details|provider response/i);
+        assert.strictEqual(warnings.length, 1);
+        assert.doesNotMatch(JSON.stringify([...warnings, ...errors]), /private details|provider response/i);
     } finally {
         console.error = originalConsoleError;
+        console.warn = originalConsoleWarn;
         if (previousAttempts === undefined) delete process.env.GOOGLE_API_RETRY_ATTEMPTS;
         else process.env.GOOGLE_API_RETRY_ATTEMPTS = previousAttempts;
         if (previousDelay === undefined) delete process.env.GOOGLE_API_RETRY_DELAY_MS;
         else process.env.GOOGLE_API_RETRY_DELAY_MS = previousDelay;
         googleService.__test__.clearSheetsReadCache();
+    }
+});
+
+test('google retry logs do not expose provider errors after reauthorization', async () => {
+    const originalConsoleError = console.error;
+    const originalConsoleWarn = console.warn;
+    const errors = [];
+    const warnings = [];
+    let attempts = 0;
+
+    googleService.__test__.setGoogleClientsForTest({
+        sheetsClient: {},
+        tasksClient: {},
+        calendarClient: {},
+        oauthClient: {}
+    });
+    console.error = (...args) => errors.push(args);
+    console.warn = (...args) => warnings.push(args);
+
+    try {
+        await assert.rejects(
+            () => googleService.__test__.runWithGoogleRetry(
+                'readDataFromSheet',
+                async () => {
+                    attempts += 1;
+                    const error = new Error(attempts === 1
+                        ? 'private authorization detail'
+                        : 'private provider detail after reauthorization');
+                    error.code = attempts === 1 ? 401 : 503;
+                    throw error;
+                },
+                { retry: false, reauthorize: async () => {} }
+            )
+        );
+
+        assert.strictEqual(attempts, 2);
+        assert.strictEqual(warnings.length, 1);
+        assert.strictEqual(errors.length, 1);
+        assert.doesNotMatch(JSON.stringify([...warnings, ...errors]), /private authorization|private provider/i);
+    } finally {
+        console.error = originalConsoleError;
+        console.warn = originalConsoleWarn;
     }
 });
 

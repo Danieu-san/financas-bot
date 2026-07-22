@@ -250,7 +250,7 @@ async function runRetriableGoogleOperation(operationName, fn, { retry = true } =
             lastError = error;
 
             if (retry && isGoogleRetriableError(error) && attempt < maxAttempts) {
-                console.warn(`⚠️ ${operationName}: erro transitório/quota Google (${error.message}). Tentativa ${attempt}/${maxAttempts}; aguardando ${retryConfig.delayMs}ms...`);
+                console.warn(`⚠️ ${operationName}: erro transitório/quota Google. Tentativa ${attempt}/${maxAttempts}; aguardando ${retryConfig.delayMs}ms...`);
                 await sleep(retryConfig.delayMs);
                 continue;
             }
@@ -266,18 +266,23 @@ async function runRetriableGoogleOperation(operationName, fn, { retry = true } =
     }
 }
 
-async function runWithGoogleRetry(operationName, fn, { swallowOnError = false, fallbackValue = null, retry = true } = {}) {
+async function runWithGoogleRetry(operationName, fn, {
+    swallowOnError = false,
+    fallbackValue = null,
+    retry = true,
+    reauthorize = authorizeGoogle
+} = {}) {
     await ensureGoogleAuthorized();
     try {
         return await runRetriableGoogleOperation(operationName, fn, { retry });
     } catch (error) {
         if (isGoogleAuthError(error)) {
             console.warn(`⚠️ ${operationName}: erro de autenticação Google detectado. Reautorizando e tentando novamente...`);
-            await authorizeGoogle(true);
+            await reauthorize(true);
             try {
                 return await runRetriableGoogleOperation(operationName, fn, { retry });
             } catch (retryError) {
-                console.error(`❌ ${operationName}: falhou após reautorização:`, retryError.message);
+                console.error(`❌ ${operationName}: falhou após reautorização.`);
                 if (swallowOnError) return fallbackValue;
                 throw retryError;
             }
@@ -2129,6 +2134,7 @@ module.exports = {
         validateUserScopedWrite,
         isGoogleRetriableError,
         getGoogleRetryConfig,
+        runWithGoogleRetry,
         headerToNumberFormat,
         shouldUseUserSpreadsheetForSheet,
         mapSheetNameForUserSpreadsheet,
