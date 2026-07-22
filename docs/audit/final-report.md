@@ -19,8 +19,8 @@ Objeto: commit `94c52f23261ae2b9150edcdb7f3ba5ebaba35727`, tree
 - Revisão remota do preview Open Finance: `NO-GO`.
 - Status posterior: `AUTH-01` foi corrigida e validada em produção; `FLOW-01`
   e o contrato original restrito de `STATE-02` receberam `GO local` na C-01;
-  `DATA-01`, `DATA-02`, `AUTH-02` e `AUTH-03` receberam `GO local integral` ou
-  `GO TÉCNICO LOCAL`. Restam três `P1` abertos e sete `P2` abertos do objeto
+  `DATA-01`, `DATA-02`, `AUTH-02`, `AUTH-03` e `FLOW-03` receberam `GO local
+  integral` ou `GO TÉCNICO LOCAL`. Restam dois `P1` abertos e sete `P2` abertos do objeto
   auditado.
 
 O resultado mais importante é que as baterias verdes não cobrem algumas
@@ -164,7 +164,7 @@ encontrou `CRITICAL`, `HIGH`, `MEDIUM` ou lacuna causal indispensável e emitiu
 acessou Google/WhatsApp real e não autoriza deploy. O relatório completo está
 em `docs/audit/16-auth03-wgl07-independent-close-2026-07-22.md`.
 
-## Estado consolidado das remediações — 2026-07-21
+## Estado consolidado das remediações — 2026-07-22
 
 Esta tabela preserva a severidade e a identidade dos achados originais, mas
 separa o estado posterior das correções. `Parcial` não reduz severidade nem
@@ -178,7 +178,7 @@ autoriza deploy: indica apenas que uma parte causal possui evidência local.
 | DATA-02 | P1 | Resolvido | cinco fronteiras genéricas neutralizam texto antes de `USER_ENTERED`; fórmulas internas do template preservadas; GO local integral |
 | AUTH-02 | P1 | Resolvido | lifecycle impeditivo, state de uso único, replay, recovery e compensação receberam GO técnico local |
 | AUTH-03 | P1 | Resolvido | revogação OAuth individual e remoção/reatribuição causal da permissão Drive receberam GO técnico local |
-| FLOW-03 | P1 | Aberto | scheduler central e writes pessoais ainda divergem |
+| FLOW-03 | P1 | Resolvido | todos os reads financeiros abrangidos do scheduler exigem fonte pessoal; GO técnico local no hash `4c1001338ca1ed919b55be4e9566258178a0175e` |
 | STATE-01 | P1 | Aberto | não há serialização geral por remetente |
 | STATE-02 | P1 | Resolvido | mesmo message ID não é retranscrito na mesma instância/TTL; C-01 com GO local integral |
 | PRIV-01 | P1 | Aberto | escapes de log e identificadores crus ainda não foram fechados globalmente |
@@ -190,7 +190,7 @@ autoriza deploy: indica apenas que uma parte causal possui evidência local.
 | COV-01 | P2 | Aberto | gate padrão ainda não incorpora formalmente toda a bateria hermética |
 | OPS-01 | P2 | Aberto | runtime e `.env.example` continuam sem sincronização integral |
 
-Contagem vigente: sete P1 resolvidos; três P1 abertos; sete P2 abertos. As
+Contagem vigente: oito P1 resolvidos; dois P1 abertos; sete P2 abertos. As
 seções e tabelas anteriores continuam como registro do objeto original, não
 como quadro vigente de remediação.
 
@@ -278,8 +278,8 @@ Esta sequência é uma fila, não autorização imediata:
    (`WGL-03/WGL-04`);
 6. **concluído:** remover membership/permissão Drive quando o lifecycle exigir
    (`AUTH-03/WGL-07`);
-7. **gate imediato:** alinhar scheduler à planilha pessoal (`FLOW-03`);
-8. serializar mensagens por remetente;
+7. **concluído:** alinhar scheduler à planilha pessoal (`FLOW-03`);
+8. **gate imediato:** serializar mensagens por remetente (`STATE-01`);
 9. fechar escapes de log e proteger o snapshot;
 10. transformar a bateria Open Finance local em gate padrão de release;
 11. sincronizar schema de ambiente e `.env.example`;
@@ -295,7 +295,6 @@ satisfeita. `AUTH-01` foi corrigida em fatia explícita posterior. A C-01 recebe
 `GO local integral`: `FLOW-01`, o contrato original restrito de `STATE-02` e a
 colisão de temporários estão fechados, com revisão independente e gates locais
 verdes no candidato `0188570...`. DATA-01 e DATA-02 também receberam `GO local
-integral`; WGL-03/WGL-04 e AUTH-03/WGL-07 também receberam `GO TÉCNICO LOCAL`;
-deploy e produção não foram avaliados. A próxima correção causal é `FLOW-03`,
-sobre alinhar as leituras do scheduler às planilhas pessoais usadas pelos
-writers financeiros.
+integral`; WGL-03/WGL-04, AUTH-03/WGL-07 e FLOW-03 também receberam `GO
+TÉCNICO LOCAL`; deploy e produção não foram avaliados. A próxima correção
+causal é `STATE-01`, sobre serializar mensagens do mesmo remetente.
