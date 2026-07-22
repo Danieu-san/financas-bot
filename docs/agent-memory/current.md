@@ -2,120 +2,77 @@
 
 Atualizado em: 2026-07-22
 
-## Objetivo ativo
+## Último gate encerrado
 
-`WGL-03/WGL-04` foram encerrados com `GO TÉCNICO LOCAL`. O candidato local de
-`AUTH-03/WGL-07` está implementado e focalmente verde para remover
-membership/permissão Drive familiar quando o lifecycle exigir, sem tocar
-produção.
+`AUTH-03/WGL-07` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
+`2d0092da691985bf945c35d7041b5ef4e2d2fd1d`.
 
-Plano ativo: `docs/plans/auth03-wgl07.md`.
+O gate fecha localmente a remoção e a reatribuição causal de memberships e
+permissões Drive familiares quando o lifecycle exigir. O tombstone local
+precede a rede; retry/compensação são persistentes, cercados por geração e
+lease, limitados por backoff/retenção e destroem credenciais cifradas em estados
+terminais. Reatribuição bloqueia o novo grant enquanto o acesso anterior não
+estiver resolvido, e grant remoto seguido de falha local gera compensação
+durável.
 
-## Checkpoint parcial AUTH-03/WGL-07
+## Evidência confiável
 
-O mapa causal, a implementação e os testes adversariais locais foram concluídos.
-O candidato ainda não foi commitado: sintaxe e diff estão verdes, os ensaios
-causais dedicados + auditoria passaram `21/21`, a prova negativa passou `4/4`,
-a bateria focal ampliada passou `399/399` e o `npm test` final fechou o runner
-principal em `1.066/1.066`, além dos pretests verdes. Falta commit sanitizado,
-publicação do hash imutável e auditoria independente.
+- sintaxe dos módulos e testes alterados: verde;
+- ensaios causais dedicados + lifecycle: `21/21`;
+- prova negativa: `4/4`;
+- bateria focal ampliada: `399/399`;
+- `npm test`: pretests verdes e runner principal `1.066/1.066`, sem falha ou
+  skip;
+- `git diff --check`, `package.json` e varredura de segredos: verdes;
+- auditor independente leu o hash e os dez artefatos exigidos, não encontrou
+  `CRITICAL`, `HIGH`, `MEDIUM` ou lacuna causal indispensável e emitiu `GO
+  TÉCNICO LOCAL`.
+
+O parecer independente foi estático e não executou testes. Não houve acesso a
+Google/WhatsApp real, produção ou deploy.
 
 ## Git e workspace
 
-- raiz canônica: repositório `financas-bot` no SSD portátil;
 - branch: `main`;
-- commit de partida do WGL: `94449eea355f2c0f796a2ec0bd7b3c253e595715`;
-- o HEAD de cada retomada deve ser confirmado pelo Git e pode conter um commit
-  operacional posterior a essa base;
-- o produto WGL auditado está publicado em `867be432...`; a árvore portátil
-  contém apenas a consolidação documental ainda não publicada, além das
-  alterações concorrentes e arquivos do usuário fora do gate;
-- o HEAD antes do candidato WGL é
-  `86c7d8a9487175aa6d5d41f04e5aadd85306dee2`;
-- arquivos não rastreados alheios já existentes pertencem ao usuário e não
-  devem ser adicionados, alterados ou removidos.
+- produto auditado: `2d0092da691985bf945c35d7041b5ef4e2d2fd1d`;
+- alterações concorrentes do workstream AWS/Oracle e arquivos não rastreados do
+  usuário permanecem fora do gate e não devem ser adicionados, alterados ou
+  removidos;
+- raiz canônica: repositório `financas-bot` no SSD portátil.
 
-## Fase e escopo
+## Próximo gate já ordenado
 
-- fase: manutenção/operação após a Fase 9, com Fase 8 em observação;
-- subplano: remediação adversarial do lifecycle Google;
-- dentro: state/claim/generation, saga OAuth, planilha marcada, recovery,
-  compensação, resposta HTTP repetível, scheduler de retenção e testes locais;
-- fora: deploy, EC2/Oracle, Google/WhatsApp real, Open Finance, escrita
-  financeira e flags;
-  a leitura de memberships entrou apenas como trava para impedir que uma
-  compensação apague planilha familiar já referenciada.
+`FLOW-03`: mapear e corrigir a divergência entre leituras do scheduler na
+planilha central e writers que operam em planilhas pessoais.
 
-## Concluído neste gate
-
-- persistência SQLite de tentativas, geração, lease, etapas, backoff e retenção;
-- tokens candidatos cifrados até promoção atômica;
-- criação/reconciliação de planilha por marcador e prevenção de segunda criação
-  cega;
-- replay de resposta HTTP sem repetir notificação/efeitos;
-- cobertura de concorrência multiprocesso, restart e cortes da saga;
-- mapa explícito de transições e conclusão restrita a `lifecycle_active`;
-- compensação persistida antes do efeito remoto, com lease, backoff, retenção,
-  retry pelo scheduler e destruição de tokens após conclusão/expiração;
-- geração nova não abandona compensação antiga pendente;
-- compensação não apaga planilha preexistente, conectada ou referenciada por
-  membership familiar e bloqueia novos writers enquanto a exclusão está em voo;
-- bloco legado comentado do callback foi removido do módulo de produto;
-- suíte focal final `tests/googleOAuthConnectionSaga.test.js`: `21/21` após
-  correção do corte entre delete remoto e confirmação local;
-- bateria diretamente afetada final: `62/62` após o último endurecimento;
-- prova do scheduler: `20/20`; prova negativa: `4/4`;
-- runner hermético: `1.190` testes, `1.185` aprovados, `0` falhas e `5` skips
-  funcionais previstos; rede externa bloqueada, 94 arquivos, 89,41% de linhas e
-  71,7% de branches;
-- microfix prévio confirmado no commit `94449eea...`.
-
-## Estado do candidato
-
-O commit imutável `867be43265ed363a8bf235a87a77787d013a5abb` recebeu `GO
-TÉCNICO LOCAL` independente para WGL-03 e WGL-04, sem achado material ou lacuna
-indispensável. Alterações concorrentes do workstream AWS/Oracle e arquivos não
-rastreados do usuário permanecem fora deste gate e não foram incluídos.
+Plano corrente: `docs/plans/current-gate.md`.
 
 ## Decisões vigentes
 
-- manter `Codex → Sol → Extra Alto` para WGL-03/WGL-04;
-- se reduzir capacidade, parar e avisar Daniel antes;
-- não considerar compensação “recuperável” apenas porque o erro ficou gravado:
-  o caminho de retry/limpeza deve ser demonstrável;
-- não aceitar `Set`, mutex ou nonce apenas em memória;
-- não repetir code OAuth após corte ambíguo do token exchange;
-- planilha preexistente/adotada nunca pode ser apagada por compensação;
-- auditoria final deve usar commit sanitizado e imutável, além dos testes locais.
-
-## Última evidência confiável
-
-- sintaxe dos módulos centrais e teste focal: verde;
-- saga WGL: `21/21` verde no estado atual;
-- serviço de planilha junto da saga: `38/38`; callback, causalidade e
-  idempotência após a correção: `31/31`;
-- a primeira reauditoria de `0b8f5bf9...` encontrou falso sucesso para
-  `trashed=true` com marcador alheio/ausente; a ordem foi corrigida e os dois
-  cruzamentos adversariais foram adicionados ao teste do serviço; saga+serviço
-  passou `38/38` e o subconjunto causal reexecutado passou `17/17`;
-- afetados finais: `62/62` verde;
-- runner hermético local: `valid=true`, `external_network_blocked=true`,
-  `pass=1185`, `fail=0`, `skipped=5`;
-- nenhuma evidência de produção foi produzida ou autorizada.
+- manter `Codex → Sol → Extra Alto` enquanto o gate exigir mapeamento causal;
+- parar e avisar Daniel antes de reduzir ou trocar capacidade;
+- não tocar deploy, EC2/Oracle ou serviços reais sem autorização específica;
+- preservar o bot familiar privado do casal; expansão multiusuário não faz
+  parte do escopo;
+- usar commit sanitizado e imutável em auditorias independentes e separar
+  evidência executada localmente de revisão estática externa.
 
 ## Próxima ação exata
 
-1. criar commit sanitizado sem arquivos do workstream AWS/Oracle;
-2. publicar o hash imutável e obter auditoria independente;
-3. manter deploy, EC2/Oracle e serviços reais fora do escopo.
+Mapear `FLOW-03`, definir invariantes e testes adversariais e só então iniciar a
+correção local, sem deploy.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Extra Alto → validar amplamente e auditar AUTH-03/WGL-07 sem deploy.`
+`Codex → Sol → Extra Alto → mapear e corrigir FLOW-03 sem deploy.`
 
 ## Histórico dirigido
 
-- handoff anterior: `docs/agent-memory/handoff-2026-07-22-wgl03-wgl04.md`;
-- histórico cronológico completo: `docs/agent-memory/current-state.md` no commit
-  `94449eea355f2c0f796a2ec0bd7b3c253e595715`;
-- fila de auditoria: `docs/audit/11-exhaustive-path-independent-review-2026-07-18.md`.
+- fechamento atual:
+  `docs/audit/16-auth03-wgl07-independent-close-2026-07-22.md`;
+- candidato auditado:
+  `docs/audit/15-auth03-wgl07-candidate-2026-07-22.md`;
+- fechamento anterior:
+  `docs/audit/14-wgl03-wgl04-independent-close-2026-07-22.md`;
+- fila original:
+  `docs/audit/11-exhaustive-path-independent-review-2026-07-18.md`.

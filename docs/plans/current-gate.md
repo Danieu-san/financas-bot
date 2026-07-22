@@ -1,101 +1,39 @@
-# Gate ativo — WGL-03/WGL-04
+# Próximo gate — FLOW-03
 
 Atualizado em: 2026-07-22
 
-## Objetivo
+## Estado anterior
 
-Tornar a conclusão OAuth Google idempotente, versionada e recuperável diante de
-replay, concorrência, restart e falhas entre efeitos externos e commits locais.
+`AUTH-03/WGL-07` foi encerrado com `GO TÉCNICO LOCAL` no commit imutável
+`2d0092da691985bf945c35d7041b5ef4e2d2fd1d`. A revisão independente confirmou
+o hash e os arquivos exigidos, sem achado `CRITICAL`, `HIGH` ou `MEDIUM` e sem
+lacuna causal indispensável.
 
-Commit de partida do estado atual: `94449eea355f2c0f796a2ec0bd7b3c253e595715`.
+Evidência local do executor: ensaios causais `21/21`, prova negativa `4/4`,
+bateria focal ampliada `399/399` e runner principal do `npm test` `1.066/1.066`,
+além dos pretests verdes. O parecer externo foi estático e não reproduziu esses
+testes.
 
-## Escopo
+## Próximo objetivo já ordenado
 
-- state persistido e uso único;
-- claim atômico por tentativa, geração e lease;
-- checkpoints de token, conta, planilha, template, conexão e lifecycle;
-- reconciliação de criação remota ambígua por marcador;
-- promoção atômica de credenciais candidatas;
-- resposta HTTP e notificação idempotentes;
-- compensação limitada a recurso criado pela tentativa e ainda não adotado;
-- retry/backoff/retenção limitados e observabilidade sanitizada;
-- testes locais, multiprocesso e auditoria independente.
+Tratar `FLOW-03`, item 7 do relatório exaustivo: parte do scheduler ainda lê a
+planilha central enquanto os writers financeiros usam planilhas pessoais.
 
-## Não escopo
+Antes de implementar:
 
-Deploy, EC2, serviços Google/WhatsApp reais, membership/permissão familiar,
-Open Finance, escrita financeira, flags de produção e remoção ampla de legado.
-
-## Invariantes
-
-1. O mesmo state não troca o code nem cria recursos duas vezes.
-2. Somente a geração mais recente pode avançar ou concluir.
-3. Lease vencido/substituído não grava resultado tardio.
-4. Código OAuth com resultado ambíguo não é reutilizado automaticamente.
-5. Planilha com marcador é reconciliada; nunca há segunda criação cega.
-6. Tokens candidatos permanecem cifrados e invisíveis até promoção atômica.
-7. Conexão saudável anterior não é perdida por falha da nova tentativa.
-8. Compensação nunca apaga planilha preexistente ou já referenciada.
-9. Falha de compensação possui caminho persistente e limitado de recuperação.
-10. Replay após conclusão apenas devolve recibo e não repete notificação.
-
-## Etapas
-
-- [x] caracterização de replay, corrida e cortes;
-- [x] persistência de tentativas/generation/lease/checkpoints;
-- [x] planilha marcada e reconciliação sem segunda criação;
-- [x] promoção atômica, recibo durável e resposta HTTP repetível;
-- [x] estabilizar transições estritas e conclusão somente após lifecycle;
-- [x] demonstrar recuperação de compensação falha e retenção limitada;
-- [x] rodar testes focais e baterias diretamente afetadas;
-- [x] executar uma única suíte hermética abrangente e checks estáticos;
-- [x] publicar candidato sanitizado e obter auditoria independente.
-
-## Testes obrigatórios
-
-Focal:
-
-```powershell
-node --test tests/googleOAuthConnectionSaga.test.js
-```
-
-Afetados, em série:
-
-```powershell
-node --test --test-concurrency=1 tests/auditOAuthStatusPrecedence.test.js tests/googleOAuthService.test.js tests/userSpreadsheetService.test.js tests/oauthRoutes.test.js tests/schedulerJobs.test.js tests/auditGoogleConnectionIdempotency.test.js tests/auditGoogleConnectionCausality.test.js tests/auditGoogleRevocationRecovery.test.js tests/auditGoogleNegativeProof.test.js tests/userLifecycle.test.js
-```
-
-Gate final local: `node scripts/runExhaustiveLocalTestCoverage.js`, uma vez
-depois de a bateria afetada ficar estável.
-
-## Critérios de GO
-
-- invariantes acima cobertas por testes causais verdes;
-- zero efeito externo repetido em replay/concorrência/restart;
-- nenhuma credencial candidata exposta ou retida além do limite;
-- compensação recuperável demonstrada e restrita ao recurso da tentativa;
-- testes focais, afetados e runner hermético verdes;
-- diff sanitizado e sem arquivos alheios;
-- auditor independente confirma o hash e não encontra achado material.
+1. mapear cada job, leitura, writer e resolução de planilha afetados;
+2. definir os invariantes causais e os testes adversariais do gate;
+3. preservar fora do escopo deploy, EC2/Oracle e serviços reais;
+4. consultar novamente ADR-002 e o checklist se o mapa tocar dashboard, admin,
+   permissões ou expansão multiusuário.
 
 ## Condições de parada
 
-- necessidade de reduzir/trocar capacidade;
-- necessidade de ampliar escopo ou mudar roadmap;
-- acesso a produção, cofre, EC2, Google ou WhatsApp real;
-- segredo/dado pessoal necessário à prova;
-- conflito com alterações preexistentes do usuário;
-- auditoria automática bloqueada por segurança.
+- necessidade de reduzir ou trocar capacidade;
+- ampliação de escopo ou mudança da ordem já decidida;
+- acesso a produção, cofre, EC2/Oracle, Google ou WhatsApp real;
+- conflito com alterações concorrentes do workstream AWS/Oracle.
 
-## Estado e próxima ação
+## Capacidade
 
-Gate encerrado com `GO TÉCNICO LOCAL` no commit imutável
-`867be43265ed363a8bf235a87a77787d013a5abb`. A revisão independente confirmou o
-pai, leu os sete artefatos exigidos e não encontrou achado CRITICAL, HIGH ou
-MEDIUM nem lacuna indispensável. WGL-03 e WGL-04 estão tecnicamente concluídos;
-o relatório está em
-`docs/audit/14-wgl03-wgl04-independent-close-2026-07-22.md`. Deploy, produção e
-serviços reais continuam fora do escopo. A fatia já ordenada
-`AUTH-03/WGL-07`, remoção/reatribuição de membership e permissão Drive familiar,
-está implementada e localmente verde, mas ainda aguarda commit imutável e
-auditoria independente. Produção continua fora do escopo.
+`Codex → Sol → Extra Alto → mapear e corrigir FLOW-03 sem deploy.`

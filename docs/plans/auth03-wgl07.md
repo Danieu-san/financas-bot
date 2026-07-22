@@ -35,9 +35,10 @@ fechamento de WGL-03/WGL-04. Não é uma fase escolhida pelo agente.
 11. Grant remoto seguido de falha local cria compensação durável; não deixa a
     permissão nova órfã sem estado de recovery.
 
-## Implementação local validada
+## Implementação validada e publicada
 
-Há um candidato local ainda não commitado em:
+O candidato está publicado no commit imutável
+`2d0092da691985bf945c35d7041b5ef4e2d2fd1d` e altera:
 
 - `src/services/oauthTokenStore.js`;
 - `src/services/google.js`;
@@ -72,11 +73,25 @@ Evidência local atual:
 - `git diff --check` e `package.json` válido: verdes;
 - nenhum acesso a Google/WhatsApp real, produção ou deploy.
 
+## Fechamento independente
+
+A revisão independente confirmou o hash integral e leu o manifesto, os dois
+testes focais e os sete arquivos de produto citados. Não encontrou achado
+`CRITICAL`, `HIGH` ou `MEDIUM`, nem lacuna causal indispensável, e emitiu `GO
+TÉCNICO LOCAL` para `AUTH-03/WGL-07`.
+
+O parecer foi estático: não executou a suíte, não acessou Google/WhatsApp real,
+não avaliou restart/contenção multiprocesso real e não autorizou deploy. A
+execução local permanece evidência do executor, separada do parecer.
+
+Relatório de fechamento:
+`docs/audit/16-auth03-wgl07-independent-close-2026-07-22.md`.
+
 ## Próxima ação exata
 
-1. Criar commit sanitizado somente com os arquivos do gate e publicar o hash
-   imutável no GitHub.
-2. Executar auditoria independente do hash; nenhum `GO` local autoriza deploy.
+Mapear `FLOW-03`, o item 7 já ordenado no relatório exaustivo, e fechar a
+divergência entre leituras do scheduler e escritas em planilhas pessoais, sem
+deploy.
 
 ## Fora do escopo
 
