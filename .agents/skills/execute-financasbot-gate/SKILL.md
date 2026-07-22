@@ -8,7 +8,14 @@ description: Executar ou retomar um gate, fatia, correção ou objetivo longo do
 ## Preparar
 
 1. Publicar primeiro `Superfície → Modelo → Esforço → Próxima tarefa`.
-2. Recomendar a menor capacidade suficiente, mas não trocar nem reduzir a capacidade ativa. Parar antes de uma redução e avisar Daniel.
+2. Determinar, sem delegar a decisão a Daniel, a menor capacidade suficiente
+   para a próxima ação material: Baixo para consulta/edição mecânica; Médio para
+   trabalho local delimitado; Alto para mudança transversal/causalidade/testes
+   adversariais; Extra Alto apenas para arquitetura nova, concorrência crítica,
+   segurança de alto risco, irreversibilidade ou auditoria final exaustiva. Não
+   manter esforço excessivo por inércia. Se a recomendação diferir da seleção
+   atual, informar a configuração exata e parar antes da ação para permitir o
+   ajuste; nunca perguntar ao usuário qual capacidade escolher.
 3. Confirmar raiz Git, branch, HEAD completo e `git status` sem alterar a árvore.
 4. Identificar o workstream. Para o gate raiz, ler `AGENTS.md`, `docs/agent-memory/README.md`, `docs/agent-memory/current.md` e `docs/plans/current-gate.md`. Para assunto diferente, consultar `docs/agent-memory/workstreams/index.md` e usar o checkpoint/plano próprios.
 5. Se não houver checkpoint do workstream, criar um sem sobrescrever o gate raiz; usar branch/worktree separada quando outra conversa puder escrever em paralelo.

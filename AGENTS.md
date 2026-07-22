@@ -80,7 +80,16 @@ mesmo em respostas curtas e mesmo quando a única ação seguinte depende de
 Daniel.
 
 ## Controle de Esforco
-Antes de iniciar cada nova tarefa de implementacao, diagnostico, teste, deploy ou revisao substancial, informar a proxima acao e o nivel de esforco recomendado. Parar e aguardar a confirmacao explicita do usuario para que ele possa trocar modelo ou nivel, quando desejar.
+Antes de iniciar cada nova tarefa de implementacao, diagnostico, teste, deploy ou revisao substancial, informar a proxima acao e o nivel de esforco recomendado. O Codex determina tecnicamente a recomendacao; nao pede ao usuario que escolha modelo ou esforco. O usuario apenas aplica a configuracao indicada quando ela diferir da atual.
+
+Recomendar sempre a menor capacidade que preserve eficiencia e qualidade para a proxima acao material, sem dimensionar pela extensao total do projeto:
+
+- `Baixo`: resposta, consulta, busca dirigida, edicao mecanica ou documental;
+- `Medio`: diagnostico ou implementacao local delimitada, com risco moderado;
+- `Alto`: mudanca transversal, causalidade entre modulos ou testes adversariais;
+- `Extra Alto`: arquitetura nova, concorrencia critica, seguranca de alto risco, acao irreversivel ou auditoria final exaustiva.
+
+`Extra Alto` e excecao, nao margem preventiva. Nao manter nivel excessivo apenas porque a selecao atual e maior ou porque Daniel ainda nao autorizou uma reducao. Quando a recomendacao diferir da selecao atual, informar a configuracao exata e parar antes da proxima acao material para que Daniel possa ajusta-la; nao perguntar qual nivel ele prefere.
 
 Durante uma tarefa, reavaliar o esforco em cada ponto de decisao relevante. Se o nivel atual se mostrar insuficiente ou excessivo, parar antes da proxima acao material, explicar brevemente o motivo e solicitar a troca. Nao elevar, reduzir ou trocar modelo/esforco automaticamente.
 
