@@ -7,9 +7,25 @@ Antes de iniciar ou retomar tarefa material, publicar exatamente:
 `Superfície → Modelo → Esforço → Próxima tarefa`
 
 Recomendar a menor capacidade suficiente para o risco. Não trocar ou reduzir a
-capacidade ativa automaticamente; parar e avisar o usuário antes da redução.
-Quando não houver autorização explícita para uma sequência, aguardar confirmação
-antes da primeira ação material.
+capacidade ativa automaticamente; quando a recomendação diferir da seleção
+atual, informar a configuração exata e parar antes da próxima ação material para
+que o usuário possa ajustá-la. A decisão técnica da capacidade é do Codex: não
+pedir ao usuário que escolha modelo ou esforço e não manter nível excessivo
+apenas porque ainda não houve autorização para reduzir.
+
+A recomendação deve considerar somente a próxima ação material, não o tamanho
+do projeto inteiro, e usar esta régua:
+
+- `Baixo`: resposta, consulta, busca dirigida, edição mecânica ou documentação;
+- `Médio`: diagnóstico ou implementação local delimitada, com risco moderado;
+- `Alto`: mudança transversal, causalidade entre módulos ou testes adversariais;
+- `Extra Alto`: arquitetura nova, concorrência crítica, segurança de alto risco,
+  ação irreversível ou auditoria final exaustiva.
+
+Escolher o menor nível que preserve eficiência e qualidade. `Extra Alto` é
+exceção, nunca padrão preventivo. Reavaliar quando a próxima ação material
+mudar; se o mesmo nível continuar adequado e houver sequência autorizada,
+prosseguir sem nova pausa.
 
 ## Contexto e escopo
 
