@@ -89,7 +89,11 @@ depois de a bateria afetada ficar estável.
 
 ## Estado e próxima ação
 
-Implementação local concluída: focal `20/20`, afetados finais `62/62` e runner
+Implementação local concluída: focal `21/21`, afetados finais `62/62` e runner
 hermético `1.185` passes, `0` falhas, `5` skips previstos, com rede bloqueada.
-Publicar somente o diff WGL sanitizado em hash imutável e executar a auditoria
-independente. Deploy e produção continuam fora do escopo.
+O primeiro hash imutável recebeu achado MEDIUM válido para delete remoto
+efetivado com resposta perdida; a correção trata `404`/recurso já descartado
+como compensação convergida, preservando marcador estrangeiro como falha. A
+prova pós-correção passou `38/38` focal+planilha e `31/31` em
+callback/causalidade/idempotência. Publicar o delta sanitizado e executar nova
+auditoria independente. Deploy e produção continuam fora do escopo.

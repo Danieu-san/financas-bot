@@ -883,10 +883,11 @@ async function deleteUserSpreadsheetForAttempt({ spreadsheetId, attemptId, oauth
         });
         file = response?.data || {};
     } catch (error) {
-        if (error?.code === 404 || error?.response?.status === 404) return false;
+        if (error?.code === 404 || error?.response?.status === 404) return true;
         throw error;
     }
-    if (file.trashed || file.appProperties?.[OAUTH_ATTEMPT_APP_PROPERTY] !== safeAttemptId) {
+    if (file.trashed) return true;
+    if (file.appProperties?.[OAUTH_ATTEMPT_APP_PROPERTY] !== safeAttemptId) {
         return false;
     }
     await drive.files.delete({ fileId: safeSpreadsheetId });

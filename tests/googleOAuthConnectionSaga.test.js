@@ -45,6 +45,7 @@ function installSagaDoubles({
     failPromotionGuardOnce = false,
     failLifecycleOnce = false,
     failDeleteOnce = false,
+    failDeleteAfterCommitOnce = false,
     statusSequence = null,
     beforeCreateReturn = null
 } = {}) {
@@ -68,7 +69,8 @@ function installSagaDoubles({
         templateFailureRemaining: failTemplateOnce ? 1 : 0,
         promotionFailureRemaining: failPromotionGuardOnce ? 1 : 0,
         lifecycleFailureRemaining: failLifecycleOnce ? 1 : 0,
-        deleteFailureRemaining: failDeleteOnce ? 1 : 0
+        deleteFailureRemaining: failDeleteOnce ? 1 : 0,
+        deleteAfterCommitFailureRemaining: failDeleteAfterCommitOnce ? 1 : 0
     };
     const user = userId => {
         if (Array.isArray(statusSequence) && statusSequence.length) {
@@ -138,6 +140,11 @@ function installSagaDoubles({
             if (state.deleteFailureRemaining > 0) {
                 state.deleteFailureRemaining -= 1;
                 throw new Error('AUDIT_COMPENSATION_DELETE_FAILED');
+            }
+            if (state.deleteAfterCommitFailureRemaining > 0) {
+                state.deleteAfterCommitFailureRemaining -= 1;
+                state.sheet = null;
+                throw new Error('AUDIT_COMPENSATION_DELETE_RESPONSE_LOST');
             }
             state.sheet = null;
             return true;
@@ -911,6 +918,49 @@ test('failed compensation is persisted and recovered after a newer OAuth generat
     assert.strictEqual(compensated.compensation_attempts, 2);
     assert.strictEqual(compensated.tokens, undefined);
     assert.strictEqual(store.getOAuthConnectionAttempt(newerPayload.attemptId).status, 'issued');
+});
+
+test('compensation converges when remote deletion commits but its response is lost', async (t) => {
+    resetModules();
+    const tempDir = configureEnv();
+    process.env.GOOGLE_OAUTH_ATTEMPT_RETRY_BASE_MS = '0';
+    const doubles = installSagaDoubles({
+        failDeleteAfterCommitOnce: true,
+        statusSequence: ['APPROVED_AWAITING_GOOGLE', 'APPROVED_AWAITING_GOOGLE', 'BLOCKED']
+    });
+    t.after(() => {
+        delete process.env.GOOGLE_OAUTH_ATTEMPT_RETRY_BASE_MS;
+        try { require(STORE_PATH).__test__.closeDatabaseForTests(); } catch (_) {}
+        fs.rmSync(tempDir, { recursive: true, force: true });
+    });
+    const oauth = require(OAUTH_PATH);
+    const store = require(STORE_PATH);
+    const state = oauth.createOAuthState({ userId: 'ambiguous-delete-compensation-user' });
+    const payload = oauth.verifyOAuthState(state);
+
+    await assert.rejects(() => oauth.completeGoogleOAuthCallback({
+        code: 'terminal-code-with-ambiguous-delete',
+        state,
+        oauth2Client: doubles.oauthClient,
+        oauth2Api: doubles.oauthApi,
+        sheetsClient: {}
+    }), /status.*permite conex/i);
+
+    assert.strictEqual(doubles.state.sheet, null);
+    assert.strictEqual(store.getOAuthConnectionAttempt(payload.attemptId).status, 'compensation_pending');
+    const recovery = await oauth.recoverPendingGoogleOAuthCompensations({
+        oauth2ClientFactory: () => doubles.oauthClient
+    });
+    const compensated = store.getOAuthConnectionAttempt(payload.attemptId, { includeTokens: true });
+    assert.deepStrictEqual(recovery, {
+        attempted: 1,
+        compensated: 1,
+        pending: 0,
+        manualRequired: 0
+    });
+    assert.strictEqual(doubles.counters.delete, 2);
+    assert.strictEqual(compensated.status, 'compensated');
+    assert.strictEqual(compensated.tokens, undefined);
 });
 
 test('template failure resumes from the recorded sheet without repeating token or create effects', async (t) => {

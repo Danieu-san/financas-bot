@@ -49,7 +49,8 @@ Plano ativo: `docs/plans/current-gate.md`.
 - compensação não apaga planilha preexistente, conectada ou referenciada por
   membership familiar e bloqueia novos writers enquanto a exclusão está em voo;
 - bloco legado comentado do callback foi removido do módulo de produto;
-- suíte focal final `tests/googleOAuthConnectionSaga.test.js`: `20/20`;
+- suíte focal final `tests/googleOAuthConnectionSaga.test.js`: `21/21` após
+  correção do corte entre delete remoto e confirmação local;
 - bateria diretamente afetada final: `62/62` após o último endurecimento;
 - prova do scheduler: `20/20`; prova negativa: `4/4`;
 - runner hermético: `1.190` testes, `1.185` aprovados, `0` falhas e `5` skips
@@ -78,7 +79,9 @@ usuário não pertencem ao candidato e não devem ser incluídos.
 ## Última evidência confiável
 
 - sintaxe dos módulos centrais e teste focal: verde;
-- saga WGL: `20/20` verde no estado atual;
+- saga WGL: `21/21` verde no estado atual;
+- serviço de planilha junto da saga: `38/38`; callback, causalidade e
+  idempotência após a correção: `31/31`;
 - afetados finais: `62/62` verde;
 - runner hermético local: `valid=true`, `external_network_blocked=true`,
   `pass=1185`, `fail=0`, `skipped=5`;
@@ -88,7 +91,9 @@ usuário não pertencem ao candidato e não devem ser incluídos.
 
 1. revisar o conjunto exato de arquivos WGL e `git diff --check`;
 2. criar commit sanitizado sem arquivos da migração ou do usuário e publicar;
-3. auditar o hash imutável com evidência local e GitHub;
+3. auditar o novo hash imutável com evidência local e GitHub; o hash anterior
+   `fe369897ced1b45d886e91e19e6f2ba773e241ba` recebeu NO-GO WGL-04 por não
+   convergir após delete remoto efetivado com resposta perdida;
 4. corrigir somente achado material; se não houver, consolidar o gate sem deploy.
 
 ## Capacidade para retomar

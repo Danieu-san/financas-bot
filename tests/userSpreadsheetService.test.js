@@ -162,6 +162,54 @@ test('OAuth saga creates, finds and deletes only the spreadsheet carrying its Dr
     assert.deepStrictEqual(calls.find(call => call.type === 'delete').payload, { fileId: 'drive-sheet-1' });
 });
 
+test('OAuth compensation treats an already absent or trashed marked sheet as converged', async () => {
+    const attemptId = '22345678-1234-4234-8234-123456789abc';
+    const missingDriveClient = {
+        files: {
+            get: async () => {
+                const error = new Error('not found after committed delete');
+                error.code = 404;
+                throw error;
+            },
+            delete: async () => assert.fail('an absent file must not be deleted again')
+        }
+    };
+    const trashedDriveClient = {
+        files: {
+            get: async () => ({
+                data: {
+                    id: 'trashed-sheet',
+                    trashed: true,
+                    appProperties: { financasbot_oauth_attempt: attemptId }
+                }
+            }),
+            delete: async () => assert.fail('a trashed file must not be deleted again')
+        }
+    };
+    const wrongMarkerDriveClient = {
+        files: {
+            get: async () => ({
+                data: {
+                    id: 'foreign-sheet',
+                    trashed: false,
+                    appProperties: { financasbot_oauth_attempt: 'another-attempt' }
+                }
+            }),
+            delete: async () => assert.fail('a foreign marker must never be deleted')
+        }
+    };
+
+    assert.strictEqual(await deleteUserSpreadsheetForAttempt({
+        spreadsheetId: 'missing-sheet', attemptId, driveClient: missingDriveClient
+    }), true);
+    assert.strictEqual(await deleteUserSpreadsheetForAttempt({
+        spreadsheetId: 'trashed-sheet', attemptId, driveClient: trashedDriveClient
+    }), true);
+    assert.strictEqual(await deleteUserSpreadsheetForAttempt({
+        spreadsheetId: 'foreign-sheet', attemptId, driveClient: wrongMarkerDriveClient
+    }), false);
+});
+
 test('template adopts the sole Drive-created default tab as Dashboard before adding the others', async () => {
     const calls = [];
     let metadataReads = 0;
