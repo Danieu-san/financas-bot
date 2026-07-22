@@ -19,8 +19,8 @@ Objeto: commit `94c52f23261ae2b9150edcdb7f3ba5ebaba35727`, tree
 - Revisão remota do preview Open Finance: `NO-GO`.
 - Status posterior: `AUTH-01` foi corrigida e validada em produção; `FLOW-01`
   e o contrato original restrito de `STATE-02` receberam `GO local` na C-01;
-  `DATA-01` recebeu `GO local integral`.
-  Restam seis `P1` residuais — dois parcialmente resolvidos e quatro abertos —
+  `DATA-01` e `DATA-02` receberam `GO local integral`.
+  Restam cinco `P1` residuais — dois parcialmente resolvidos e três abertos —
   e sete `P2` abertos do objeto auditado.
 
 O resultado mais importante é que as baterias verdes não cobrem algumas
@@ -103,6 +103,28 @@ O Chat confirmou o hash e os dois arquivos do delta. A revisão estática fechou
 o `LOW-01`, não encontrou nova severidade material e deu `GO local integral`
 para DATA-01. Deploy e produção não foram avaliados.
 
+## Adendo de remediação — DATA-02 — 2026-07-21
+
+O fechamento local integral ocorreu no candidato
+`d8a58c5cb0a3601555029d4582c46fa8bdd65cca`. Os cinco escritores genéricos ou
+não-template com `USER_ENTERED` agora neutralizam strings iniciadas, inclusive
+após whitespace/controles C0, por `=`, `+`, `-` ou `@`. A transformação existe
+somente no payload Google; números, texto comum, inputs do chamador e valores
+originais usados por idempotência, ledger, fingerprint, reconciliação e
+projeção permanecem inalterados. O writer de fórmulas internas do template não
+foi modificado.
+
+RED causal nos dois caminhos, GREEN focado `2/2`, bateria afetada `296/296`,
+checks de sintaxe/diff verdes e runner hermético válido com `1164` testes,
+`1159` pass, cinco skips funcionais esperados, zero falhas, rede externa
+bloqueada e restauração concluída.
+
+O Chat não conseguiu acessar o commit recém-publicado e nenhum GO foi inferido
+nessa tentativa. Após receber o patch exato, confirmou o commit exportado e os
+dois arquivos, não encontrou severidade material e deu `GO local integral` para
+DATA-02. O hash do pai não é codificado no formato anexado e permanece evidência
+Git confirmada pelo Codex. Deploy e produção não foram avaliados.
+
 ## Adendo de remediação — C-03 / WGL-02 — 2026-07-21
 
 A ausência de revogação OAuth individual foi fechada localmente no HEAD
@@ -128,7 +150,7 @@ autoriza deploy: indica apenas que uma parte causal possui evidência local.
 | AUTH-01 | P1 | Resolvido | autorização por nome removida e validação produtiva concluída |
 | FLOW-01 | P1 | Resolvido | efeitos de áudio após os gates e temporários isolados por execução; C-01 com GO local integral |
 | DATA-01 | P1 | Resolvido | indisponibilidade Google é propagada e consumidores falham fechado; GO local integral |
-| DATA-02 | P1 | Aberto | fronteira genérica `USER_ENTERED` ainda não neutraliza todo texto |
+| DATA-02 | P1 | Resolvido | cinco fronteiras genéricas neutralizam texto antes de `USER_ENTERED`; fórmulas internas do template preservadas; GO local integral |
 | AUTH-02 | P1 | Parcial | C-02 impede reativação por lifecycle, mas replay e planilha órfã permanecem |
 | AUTH-03 | P1 | Parcial | C-03 revoga OAuth individual; membership/permissão Drive permanece |
 | FLOW-03 | P1 | Aberto | scheduler central e writes pessoais ainda divergem |
@@ -216,9 +238,10 @@ Esta sequência é uma fila, não autorização imediata:
    revisão independente e gates locais integrais;
 3. **concluído:** preservar indisponibilidade de leitura até dashboard,
    análise e scheduler (`DATA-01`);
-4. **gate imediato:** neutralizar textos na fronteira genérica do Sheets
+4. **concluído:** neutralizar textos na fronteira genérica do Sheets
    (`DATA-02`);
-5. tratar separadamente replay/uso único e compensação OAuth (`WGL-03/WGL-04`);
+5. **gate imediato:** tratar separadamente replay/uso único e compensação OAuth
+   (`WGL-03/WGL-04`);
 6. remover membership/permissão Drive quando o lifecycle exigir;
 7. serializar mensagens por remetente;
 8. alinhar scheduler à planilha pessoal e adicionar outbox durável;
@@ -236,5 +259,6 @@ retenção válida e outbox sem itens pendentes/in-flight. A trava de retorno fo
 satisfeita. `AUTH-01` foi corrigida em fatia explícita posterior. A C-01 recebeu
 `GO local integral`: `FLOW-01`, o contrato original restrito de `STATE-02` e a
 colisão de temporários estão fechados, com revisão independente e gates locais
-verdes no candidato `0188570...`. Deploy e produção não foram avaliados. A
-próxima correção causal é `DATA-02`.
+verdes no candidato `0188570...`. DATA-01 e DATA-02 também receberam `GO local
+integral`; deploy e produção não foram avaliados. A próxima correção causal é
+`WGL-03/WGL-04`, sobre replay/uso único e compensação da saga Google.

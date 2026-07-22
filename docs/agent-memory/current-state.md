@@ -2,6 +2,35 @@
 
 Atualizado em: 2026-07-21
 
+## DATA-02 fechamento local independente - GO - 2026-07-21
+
+- Candidato final imutável:
+  `d8a58c5cb0a3601555029d4582c46fa8bdd65cca`. Strings cujo primeiro conteúdo,
+  inclusive após whitespace ou controles C0, começa por `=`, `+`, `-` ou `@`
+  agora são neutralizadas somente no payload final dos cinco escritores
+  genéricos/não-template com `USER_ENTERED`.
+- Números, texto comum e inputs do chamador permanecem inalterados.
+  Idempotência, ledger, fingerprints, reconciliação e projeções continuam
+  usando os valores originais. O writer do template mantém suas fórmulas
+  internas intencionalmente.
+- RED causal nos dois caminhos; GREEN focado `2/2`; bateria afetada `296/296`;
+  checks de sintaxe/diff verdes. Runner hermético válido: `1164` testes,
+  `1159` pass, cinco skips funcionais esperados, zero falhas, rede externa
+  bloqueada e restauração concluída.
+- O Chat não conseguiu abrir o commit recém-publicado e recusou inferir GO. O
+  patch exato foi anexado; a revisão estática desse artefato confirmou o
+  commit e os dois arquivos, não encontrou achado material e deu `GO local
+  integral de DATA-02`. O hash do pai foi confirmado pelo Git local, não pelo
+  formato do patch.
+- Git local e `origin/main` foram confirmados no mesmo hash `d8a58c5...` antes
+  deste registro. Deploy, produção, EC2, Google e WhatsApp real não foram
+  avaliados nem autorizados.
+- Quadro vigente dos P1: cinco resolvidos (`AUTH-01`, `FLOW-01`, `STATE-02`,
+  `DATA-01` e `DATA-02`), dois parciais (`AUTH-02`, `AUTH-03`) e três abertos
+  (`FLOW-03`, `STATE-01`, `PRIV-01`). Restam cinco P1 residuais e sete P2.
+- Próxima correção causal única: replay/uso único e compensação da saga Google
+  em `WGL-03/WGL-04`.
+
 ## DATA-01 fechamento local independente - GO - 2026-07-21
 
 - Candidato final imutavel:
