@@ -25,37 +25,47 @@ Nao considerar a delegacao completa sem a capacidade de retorno ao Codex. Ao
 receber a resposta do Chat, confrontar os achados com as fontes que exigem
 repositorio, testes ou producao antes de aceitar conclusoes ou alterar o plano.
 
-## Ordem recomendada de leitura
+## Ordem minima de leitura
 
-1. `AGENTS.md` - regras permanentes, contrato de capacidade, seguranca, privacidade e mapa base.
-2. `docs/agent-memory/current-state.md` - estado atual do produto, deploy e pendencias.
-3. `docs/audit/11-exhaustive-path-independent-review-2026-07-18.md` - parecer independente e ressalvas metodologicas finais.
-4. `docs/agent-memory/handoff-2026-07-18-independent-reaudit.md` - continuidade atual entre threads/contas Codex e ponto exato da reauditoria independente.
-5. `docs/agent-memory/handoff-2026-07-15.md` - contexto histórico da migração portátil e da Fase 9.
-6. `docs/agent-memory/architecture-map.md` - onde ficam as partes importantes do codigo.
-7. `docs/agent-memory/known-issues.md` - bugs, riscos e armadilhas conhecidas.
-8. `docs/agent-memory/testing-playbook.md` - como validar cada area.
+1. `AGENTS.md` - constituicao permanente, capacidade, seguranca e privacidade.
+2. `docs/agent-memory/current.md` - unico estado vigente e portatil.
+3. `docs/plans/current-gate.md` - contrato do unico objetivo ativo.
+
+Depois disso, abra somente o que esses arquivos ou a tarefa apontarem:
+
+- `architecture-map.md` para localizar codigo;
+- `known-issues.md` para riscos do dominio tocado;
+- `testing-playbook.md` para escolher a bateria;
+- roadmaps ao abrir/fechar fase, mudar ordem/escopo ou resolver divergencia;
+- handoffs e auditorias historicas para uma pergunta factual especifica.
+
+`current-state.md` e historico cronologico congelado. Nao o carregue por
+padrao.
 
 ## Regras de uso
 
 - Nao guardar segredos, tokens, chaves OAuth, refresh tokens ou links sensiveis aqui.
 - Nao assumir que producao esta saudavel sem validar no EC2 quando a tarefa envolver deploy, WhatsApp, dashboard ou dados reais.
 - Nao usar esta memoria como fonte unica para alterar comportamento: confirme em codigo/testes antes de editar.
-- Ao terminar uma mudanca relevante, atualize `current-state.md` e, se aplicavel, `known-issues.md` ou `testing-playbook.md`.
+- Ao terminar uma mudanca relevante, substitua o estado vigente em `current.md`
+  e, se aplicavel, atualize `current-gate.md`, `known-issues.md` ou
+  `testing-playbook.md`.
+- Execute `node scripts/agent/validateAgentWorkflow.js` antes de handoff ou
+  encerramento de gate.
 
 ## Trava de retorno depois de auditorias paralelas
 
 Quando uma auditoria for iniciada enquanto outro gate estiver em observacao,
-registrar antes o ponto interrompido em `current-state.md` e no charter da
+registrar antes o ponto interrompido em `current.md` e no charter da
 auditoria. Ao concluir a auditoria, voltar e fechar esse gate antes de iniciar
 qualquer correcao encontrada. O relatorio pode priorizar correcoes, mas nao
 autoriza implementacao, deploy, mudanca de flag ou teste real automaticamente.
 
-## Rotina obrigatoria de alinhamento ao roadmap
+## Alinhamento ao roadmap sem releitura indiscriminada
 
-Antes de iniciar qualquer fatia nao trivial, confira o roadmap geral em
-`docs/plans/family-financial-platform-evolution-roadmap.md` e a fila operacional em
-`docs/plans/family-financial-platform-step-by-step-roadmap.md`; use o segundo para saber a proxima fatia e nao pular etapas. Responda
+`current.md` e `current-gate.md` devem registrar fase, subplano, escopo e gate
+de saida. Confira os roadmaps completos somente ao iniciar/encerrar uma fase,
+alterar a fila, ampliar escopo ou resolver divergencia. Nesses pontos, responda
 explicitamente:
 
 1. fase atual do roadmap geral;
@@ -70,7 +80,7 @@ com o roadmap antes de seguir. Remocao ampla de legado pertence a Fase 8; fases
 anteriores podem criar telemetria, gates e flags desligadas, mas nao devem
 tratar remocao como objetivo final sem decisao explicita.
 
-Ao encerrar a fatia, atualize `current-state.md` com: fase/subfase, evidencia,
+Ao encerrar a fatia, atualize `current.md` com: fase/subfase, evidencia,
 GO/NO-GO, flags alteradas ou preservadas, residuos/limpeza e o proximo passo do
 roadmap. Quando o roadmap pedir observacao, substitua espera passiva por bateria
 adversarial repetivel e limpavel, salvo risco externo impossivel de simular.

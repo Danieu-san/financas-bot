@@ -1,0 +1,4 @@
+interface:
+  display_name: "Audit Immutable Gate"
+  short_description: "Audita commits por hash com evidencia independente"
+  default_prompt: "Use $audit-immutable-gate para auditar o candidato imutavel do gate ativo."

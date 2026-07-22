@@ -1,4 +1,9 @@
-# Estado atual do FinancasBot
+# Histórico cronológico do FinancasBot
+
+> Arquivo histórico congelado para consulta dirigida. Não carregar no início
+> de uma tarefa. O estado vigente e portátil está em
+> `docs/agent-memory/current.md`; decisões antigas continuam preservadas aqui
+> e no Git.
 
 Atualizado em: 2026-07-22
 

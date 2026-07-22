@@ -1,0 +1,4 @@
+interface:
+  display_name: "Execute FinancasBot Gate"
+  short_description: "Executa gates longos com escopo e checkpoint"
+  default_prompt: "Use $execute-financasbot-gate para retomar e concluir o gate ativo com checkpoints."

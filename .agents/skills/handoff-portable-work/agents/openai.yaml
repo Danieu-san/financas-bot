@@ -1,0 +1,4 @@
+interface:
+  display_name: "Portable Work Handoff"
+  short_description: "Prepara retomada segura entre Codex e computadores"
+  default_prompt: "Use $handoff-portable-work para pausar e preparar a retomada deste trabalho em outro Codex."
