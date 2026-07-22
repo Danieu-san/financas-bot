@@ -21,6 +21,19 @@ Para qualquer tarefa não trivial, usar o workflow versionado no SSD:
    encerrar;
 6. separar implementação de auditoria e nunca declarar GO sem evidência factual.
 
+### Trava obrigatória de auditoria no Chat
+
+Toda correção material do FinançasBot deve passar por auditoria independente no
+Chat antes de ser declarada pronta, encerrada ou promovida a `GO`. Testes locais,
+suíte ampla, inspeção do Codex e revisão do diff são pré-requisitos, mas não
+substituem essa auditoria. O fluxo obrigatório é: produzir um commit sanitizado,
+publicá-lo no GitHub, fornecer ao Chat o hash imutável e os arquivos exatos,
+confrontar o veredito com a evidência local e somente então fechar a correção.
+Esta trava vale para qualquer conversa, Codex ou computador que retome o
+trabalho pelo repositório. Se o Chat bloquear a solicitação, aplicar a rotina de
+fallback manual descrita em `Delegação para Chat`; sem resposta auditável, o
+estado máximo permitido é `candidato aguardando auditoria`, nunca `pronto`.
+
 Não reler roadmaps, handoffs e auditorias históricas indiscriminadamente. O
 estado curto deve apontar as referências adicionais realmente necessárias.
 

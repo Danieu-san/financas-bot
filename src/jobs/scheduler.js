@@ -91,6 +91,14 @@ async function getScheduledActiveUsers() {
     return users.filter(shouldSendScheduledMessageToUser);
 }
 
+function buildScheduledUserReadOptions(userId) {
+    return {
+        userId: String(userId || '').trim(),
+        requireUserScoped: true,
+        telemetryConsumer: 'scheduler'
+    };
+}
+
 function isSameCalendarDay(dateA, dateB) {
     return Boolean(
         dateA &&
@@ -207,10 +215,6 @@ async function checkUpcomingEvents() {
 async function checkUpcomingBills() {
     console.log('Verificando contas pendentes...');
     try {
-        const contasData = await readDataFromSheet('Contas!A:I');
-        if (!contasData || contasData.length <= 1) return;
-
-        const saidasData = await readDataFromSheet('Saídas!A:J');
         const users = await getScheduledActiveUsers();
         if (!users.length) return;
 
@@ -218,18 +222,25 @@ async function checkUpcomingBills() {
         const anoAtual = hoje.getUTCFullYear();
         const mesAtual = hoje.getUTCMonth();
 
-        const contasRows = contasData.slice(1);
-        const contasHeaders = contasData[0] || [];
-        const contaNameIndex = findHeaderIndex(contasHeaders, ['Nome da Conta', 'Nome'], 0);
-        const contaFriendlyNameIndex = findHeaderIndex(contasHeaders, ['Nome Amigável', 'Nome Amigavel'], 4);
-        const contaDueDayIndex = findHeaderIndex(contasHeaders, ['Dia do Vencimento', 'Vencimento', 'Dia'], 1);
-        const contaUserIdIndex = findHeaderIndex(contasHeaders, ['user_id', 'user id'], 3);
-        const saidasRows = saidasData.slice(1);
         const singleUserIdFallback = users.length === 1 ? String(users[0].user_id || '').trim() : '';
 
         for (const user of users) {
             const userId = String(user.user_id || '').trim();
             if (!userId) continue;
+            const readOptions = buildScheduledUserReadOptions(userId);
+            const [contasData, saidasData] = await Promise.all([
+                readDataFromSheet('Contas!A:I', readOptions),
+                readDataFromSheet('Saídas!A:J', readOptions)
+            ]);
+            if (!contasData || contasData.length <= 1) continue;
+
+            const contasRows = contasData.slice(1);
+            const contasHeaders = contasData[0] || [];
+            const contaNameIndex = findHeaderIndex(contasHeaders, ['Nome da Conta', 'Nome'], 0);
+            const contaFriendlyNameIndex = findHeaderIndex(contasHeaders, ['Nome Amigável', 'Nome Amigavel'], 4);
+            const contaDueDayIndex = findHeaderIndex(contasHeaders, ['Dia do Vencimento', 'Vencimento', 'Dia'], 1);
+            const contaUserIdIndex = findHeaderIndex(contasHeaders, ['user_id', 'user id'], 3);
+            const saidasRows = (saidasData || []).slice(1);
 
             const saidasDoMesUsuario = saidasRows
                 .filter(row => String(row[9] || '').trim() === userId)
@@ -280,7 +291,6 @@ async function checkUpcomingBills() {
 
 async function sendMorningSummary() {
     try {
-        const dividasData = await readDataFromSheet('Dívidas!A:R');
         const users = await getScheduledActiveUsers();
         if (users.length === 0) {
             logger.warn('[scheduler] resumo matinal ignorado: nenhum usuário ativo agendável.');
@@ -292,6 +302,10 @@ async function sendMorningSummary() {
         for (const user of users) {
             const userId = String(user.user_id || '').trim();
             if (!userId) continue;
+            const dividasData = await readDataFromSheet(
+                'Dívidas!A:R',
+                buildScheduledUserReadOptions(userId)
+            );
 
             const contasProximas = [];
             if (dividasData && dividasData.length > 1) {
@@ -364,10 +378,11 @@ async function sendEveningSummary() {
         for (const user of users) {
             const userId = String(user.user_id || '').trim();
             if (!userId) continue;
+            const readOptions = buildScheduledUserReadOptions(userId);
             const [eventosDeAmanha, dividasData, contasData] = await Promise.all([
                 getCalendarEventsForToday(amanha, { userId }),
-                readDataFromSheet('Dívidas!A:R', { userId }),
-                readDataFromSheet('Contas!A:I', { userId })
+                readDataFromSheet('Dívidas!A:R', readOptions),
+                readDataFromSheet('Contas!A:I', readOptions)
             ]);
             const pagamentosDeAmanha = collectPaymentsDueOnDate({
                 debtsData: dividasData,
@@ -450,8 +465,7 @@ async function loadSchedulerScopedCardEntries({
     const loaded = await loadCardRowsForReadModel({
         read: (range, options = {}) => read(range, {
             ...options,
-            userId: safeUserId,
-            telemetryConsumer: 'scheduler'
+            ...buildScheduledUserReadOptions(safeUserId)
         }),
         mode: 'on',
         contextKey: `user:${safeUserId}`,
@@ -492,15 +506,8 @@ async function sendMonthlyReports() {
         const users = await getScheduledActiveUsers();
         if (users.length === 0) return;
 
-        const saidasData = await readDataFromSheet('Saídas!A:J');
-        const entradasData = await readDataFromSheet('Entradas!A:I');
         const cardMode = getCardSchedulerRouteMode();
         const cardSheetNames = Object.values(creditCardConfig).map(c => c.sheetName);
-        const legacyCardData = cardMode === 'off'
-            ? await Promise.all(cardSheetNames.map(n => readDataFromSheet(`${n}!A:G`, {
-                telemetryConsumer: 'scheduler'
-            })))
-            : [];
 
         const now = getNow();
         const reportDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -512,9 +519,16 @@ async function sendMonthlyReports() {
         for (const user of users) {
             const settings = await getUserSettingsByUserId(user.user_id);
             if (normalizeText(settings?.monthly_report_opt_in || 'sim') !== 'sim') continue;
+            const userId = String(user.user_id || '').trim();
+            if (!userId) continue;
+            const readOptions = buildScheduledUserReadOptions(userId);
+            const [saidasData, entradasData] = await Promise.all([
+                readDataFromSheet('Saídas!A:J', readOptions),
+                readDataFromSheet('Entradas!A:I', readOptions)
+            ]);
 
             const entradas = (entradasData.slice(1) || [])
-                .filter(r => belongsToUser(r, 8, user.user_id))
+                .filter(r => belongsToUser(r, 8, userId))
                 .filter(r => {
                     const d = parseSheetDate(r[0]);
                     return d && d.getMonth() === month && d.getFullYear() === year;
@@ -522,7 +536,7 @@ async function sendMonthlyReports() {
                 .reduce((s, r) => s + parseValue(r[3]), 0);
 
             const saidas = (saidasData.slice(1) || [])
-                .filter(r => belongsToUser(r, 9, user.user_id))
+                .filter(r => belongsToUser(r, 9, userId))
                 .filter(r => {
                     const d = parseSheetDate(r[0]);
                     return d && d.getMonth() === month && d.getFullYear() === year;
@@ -531,24 +545,27 @@ async function sendMonthlyReports() {
 
             const useUnifiedFirst = shouldUseSchedulerCardUnifiedFirst({
                 mode: cardMode,
-                userId: user.user_id
+                userId
             });
             let cartoes;
             if (useUnifiedFirst) {
                 const scopedCards = await loadSchedulerScopedCardEntries({
-                    userId: user.user_id,
+                    userId,
                     mode: cardMode
                 });
                 cartoes = sumSchedulerCanonicalCards({
                     entries: scopedCards.entries,
-                    userId: user.user_id,
+                    userId,
                     month,
                     year
                 });
             } else {
+                const legacyCardData = await Promise.all(cardSheetNames.map(name => (
+                    readDataFromSheet(`${name}!A:G`, readOptions)
+                )));
                 cartoes = sumSchedulerLegacyCards({
                     cardData: legacyCardData,
-                    userId: user.user_id,
+                    userId,
                     billingLabel,
                     year
                 });
@@ -830,6 +847,7 @@ module.exports = {
         formatScheduleTime,
         isSyntheticTestWhatsAppId,
         shouldSendScheduledMessageToUser,
+        buildScheduledUserReadOptions,
         notifiedEventIds
     }
 };

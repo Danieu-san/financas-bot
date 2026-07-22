@@ -253,7 +253,7 @@ test('scheduler monthly canary falls back to personal legacy routes when unified
     }
 });
 
-test('scheduler monthly off mode restores the central legacy route', async () => {
+test('scheduler monthly off mode keeps legacy card schema but requires personal source for every financial read', async () => {
     const previousMode = process.env.CARD_SCHEDULER_UNIFIED_FIRST_MODE;
     process.env.CARD_SCHEDULER_UNIFIED_FIRST_MODE = 'off';
     const sent = [];
@@ -265,15 +265,23 @@ test('scheduler monthly off mode restores the central legacy route', async () =>
             settingsByUser: {},
             readCalls,
             sheetsByRange: {
-                'Sa\u00eddas!A:J': [['Data']],
-                'Entradas!A:I': [['Data']],
-                'Cart\u00e3o Nubank - Daniel!A:G': [
-                    legacyHeader,
-                    ['10/05/2026', 'Compra central', 'Casa', '8,75', '1/1', 'Junho de 2026', 'user-a']
+                'user-a:Sa\u00eddas!A:J': [
+                    ['Data', 'Descri\u00e7\u00e3o', 'Categoria', 'Subcategoria', 'Valor', 'Respons\u00e1vel', 'Pagamento', 'Recorrente', 'Obs', 'user_id'],
+                    ['10/06/2026', 'Sa\u00edda pessoal', 'Casa', '', '20,00', '', '', '', '', 'user-a']
                 ],
-                'Cart\u00e3o Nubank - Thais!A:G': [legacyHeader],
-                'Cart\u00e3o Nubank - Cristina!A:G': [legacyHeader],
-                'Cart\u00e3o Atacad\u00e3o!A:G': [legacyHeader]
+                'user-a:Entradas!A:I': [
+                    ['Data', 'Descri\u00e7\u00e3o', 'Categoria', 'Valor', 'Respons\u00e1vel', 'Recebimento', 'Recorrente', 'Obs', 'user_id'],
+                    ['10/06/2026', 'Entrada pessoal', 'Sal\u00e1rio', '100,00', '', '', '', '', 'user-a']
+                ],
+                'user-a:Cart\u00e3o Nubank - Daniel!A:G': [
+                    legacyHeader,
+                    ['10/05/2026', 'Compra pessoal', 'Casa', '8,75', '1/1', 'Junho de 2026', 'user-a']
+                ],
+                'user-a:Cart\u00e3o Nubank - Thais!A:G': [legacyHeader],
+                'user-a:Cart\u00e3o Nubank - Cristina!A:G': [legacyHeader],
+                'user-a:Cart\u00e3o Atacad\u00e3o!A:G': [legacyHeader],
+                'Sa\u00eddas!A:J': [['Data'], ['10/06/2026', 'Sa\u00edda central proibida', '', '', '999,00', '', '', '', '', 'user-a']],
+                'Entradas!A:I': [['Data'], ['10/06/2026', 'Entrada central proibida', '', '999,00', '', '', '', '', 'user-a']]
             }
         });
         scheduler.__test__.setClientForTest({
@@ -283,11 +291,15 @@ test('scheduler monthly off mode restores the central legacy route', async () =>
 
         await scheduler.__test__.sendMonthlyReports();
 
+        assert.match(sent[0].message, /Entradas: R\$ 100,00/);
+        assert.match(sent[0].message, /Sa\u00eddas: R\$ 20,00/);
         assert.match(sent[0].message, /Cart\u00f5es: R\$ 8,75/);
+        assert.match(sent[0].message, /Saldo: R\$ 71,25/);
         const cardCalls = readCalls.filter(call => /Cart/.test(call.range));
         assert.strictEqual(cardCalls.length, 4);
-        assert.ok(cardCalls.every(call => !call.options.userId));
-        assert.ok(cardCalls.every(call => call.options.telemetryConsumer === 'scheduler'));
+        assert.ok(readCalls.every(call => call.options.userId === 'user-a'));
+        assert.ok(readCalls.every(call => call.options.requireUserScoped === true));
+        assert.ok(readCalls.every(call => call.options.telemetryConsumer === 'scheduler'));
     } finally {
         if (previousMode === undefined) delete process.env.CARD_SCHEDULER_UNIFIED_FIRST_MODE;
         else process.env.CARD_SCHEDULER_UNIFIED_FIRST_MODE = previousMode;
@@ -368,6 +380,7 @@ test('scheduler evening summary includes tomorrow calendar events and payment da
     const fixedNow = new Date('2026-05-20T15:00:00.000Z');
     const tomorrow = new Date('2026-05-21T12:00:00.000Z');
     const sent = [];
+    const readCalls = [];
     const users = [
         { user_id: 'user-a', whatsapp_id: '5511000000001@c.us' },
         { user_id: 'user-b', whatsapp_id: '5511000000002@c.us' }
@@ -375,6 +388,7 @@ test('scheduler evening summary includes tomorrow calendar events and payment da
     const scheduler = installSchedulerMocks({
         users,
         settingsByUser: {},
+        readCalls,
         sheetsByRange: {
             'Dívidas!A:R': [
                 ['Nome', 'Credor', 'Tipo', 'Valor Original', 'Saldo Atual', 'Valor da Parcela', 'Taxa', 'Dia', 'Início', 'Total', 'Pagas', 'Status', 'Obs', '%', 'Próximo Vencimento', 'Atraso', 'Estratégia', 'user_id'],
@@ -409,6 +423,12 @@ test('scheduler evening summary includes tomorrow calendar events and payment da
     assert.match(byRecipient['5511000000002@c.us'], /Financiamento B/);
     assert.match(byRecipient['5511000000002@c.us'], /Internet B/);
     assert.doesNotMatch(byRecipient['5511000000002@c.us'], /Consulta A|Financiamento A|Internet A/);
+    assert.ok(readCalls.every(call => call.options.requireUserScoped === true));
+    assert.ok(readCalls.every(call => call.options.telemetryConsumer === 'scheduler'));
+    assert.deepStrictEqual(
+        Array.from(new Set(readCalls.map(call => call.options.userId))).sort(),
+        ['user-a', 'user-b']
+    );
 });
 
 test('scheduler summary event times are formatted in America/Sao_Paulo', async () => {
@@ -530,6 +550,81 @@ test('scheduler sends interpretation readiness alerts only through the admin not
     } finally {
         process.env.ADMIN_IDS = previousAdminIds;
     }
+});
+
+test('scheduler morning summary requires personal debt source and never reads central', async () => {
+    const fixedNow = new Date('2026-05-20T15:00:00.000Z');
+    const tomorrow = new Date('2026-05-21T12:00:00.000Z');
+    const sent = [];
+    const readCalls = [];
+    const scheduler = installSchedulerMocks({
+        users: [{ user_id: 'user-a', whatsapp_id: '5511000000001@c.us' }],
+        settingsByUser: {},
+        readCalls,
+        sheetsByRange: {
+            'user-a:Dívidas!A:R': [
+                ['Nome', 'Credor', 'Tipo', 'Valor Original', 'Saldo Atual', 'Valor da Parcela', 'Taxa', 'Dia', 'Início', 'Total', 'Pagas', 'Status', 'Obs', '%', 'Próximo Vencimento', 'Atraso', 'Estratégia', 'user_id'],
+                ['Dívida pessoal', 'Banco', 'Empréstimo', 1000, 800, 100, '', '', '', '', '', 'Ativa', '', '', formatDateBR(tomorrow), '', '', 'user-a']
+            ],
+            'Dívidas!A:R': [
+                ['Nome', 'Credor', 'Tipo', 'Valor Original', 'Saldo Atual', 'Valor da Parcela', 'Taxa', 'Dia', 'Início', 'Total', 'Pagas', 'Status', 'Obs', '%', 'Próximo Vencimento', 'Atraso', 'Estratégia', 'user_id'],
+                ['Dívida central proibida', 'Banco', 'Empréstimo', 9000, 9000, 900, '', '', '', '', '', 'Ativa', '', '', formatDateBR(tomorrow), '', '', 'user-a']
+            ]
+        }
+    });
+    scheduler.__test__.setClientForTest({
+        sendMessage: async (to, message) => sent.push({ to, message })
+    });
+    scheduler.__test__.setNowForTest(fixedNow);
+
+    await scheduler.__test__.sendMorningSummary();
+
+    assert.match(sent[0].message, /Dívida pessoal/);
+    assert.doesNotMatch(sent[0].message, /Dívida central proibida/);
+    assert.deepStrictEqual(readCalls, [{
+        range: 'Dívidas!A:R',
+        options: {
+            userId: 'user-a',
+            requireUserScoped: true,
+            telemetryConsumer: 'scheduler'
+        }
+    }]);
+});
+
+test('scheduler upcoming bills require personal accounts and expenses without central fallback', async () => {
+    const sent = [];
+    const readCalls = [];
+    const scheduler = installSchedulerMocks({
+        users: [{ user_id: 'user-a', whatsapp_id: '5511000000001@c.us' }],
+        settingsByUser: {},
+        readCalls,
+        sheetsByRange: {
+            'user-a:Contas!A:I': [
+                ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id'],
+                ['Conta pessoal', '2', '', 'user-a']
+            ],
+            'user-a:Saídas!A:J': [
+                ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id']
+            ],
+            'Contas!A:I': [
+                ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id'],
+                ['Conta central proibida', '2', '', 'user-a']
+            ]
+        }
+    });
+    scheduler.__test__.setClientForTest({
+        sendMessage: async (to, message) => sent.push({ to, message })
+    });
+    scheduler.__test__.setNowForTest(new Date(2026, 11, 28, 12, 0, 0, 0));
+
+    await scheduler.__test__.checkUpcomingBills();
+
+    assert.match(sent[0].message, /Conta pessoal/);
+    assert.doesNotMatch(sent[0].message, /Conta central proibida/);
+    assert.deepStrictEqual(readCalls.map(call => call.options), [
+        { userId: 'user-a', requireUserScoped: true, telemetryConsumer: 'scheduler' },
+        { userId: 'user-a', requireUserScoped: true, telemetryConsumer: 'scheduler' }
+    ]);
 });
 
 test('scheduler does not send a false empty morning summary when Google Sheets is unavailable', async () => {

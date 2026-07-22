@@ -2,6 +2,8 @@
 
 Atualizado em: 2026-07-22
 
+Commit de partida: `c1436b89df2d4a13d5cf26f562d42b9cfc5dc56e`.
+
 ## Estado anterior
 
 `AUTH-03/WGL-07` foi encerrado com `GO TÉCNICO LOCAL` no commit imutável
@@ -54,6 +56,45 @@ Antes de implementar:
 - testes focais e afetados passam sem tocar serviços reais;
 - diff permanece sanitizado e sem arquivos do workstream AWS/Oracle.
 
+## Invariantes
+
+1. Toda leitura financeira agendada para usuário ativo informa `userId`.
+2. A leitura exige fonte pessoal; falha de resolução nunca cai na central.
+3. Vazio real na fonte pessoal continua vazio, sem misturar usuários.
+4. Lembretes, manhã e relatório mensal usam a mesma fonte dos writers.
+5. O rollback de cartão pode escolher schema legado, mas não escopo central.
+
+## Riscos
+
+- abortar o lote inteiro quando uma fonte pessoal falhar, tratado depois por
+  `FLOW-04` e não mascarado neste gate;
+- linhas legadas sem `user_id`, preservadas apenas pelo fallback de usuário
+  único já existente;
+- confundir fallback de schema de cartão com fallback de escopo central.
+
+## Etapas e testes
+
+1. criar RED causal para manhã, contas e relatório mensal sem leitura central;
+2. aplicar escopo pessoal obrigatório em cada leitura financeira;
+3. executar `tests/schedulerJobs.test.js`;
+4. executar baterias afetadas de Google, read-model e lifecycle;
+5. executar uma única suíte ampla quando o gate estiver estável;
+6. publicar commit sanitizado e obter revisão independente antes do fechamento.
+
+## Evidência executada do candidato
+
+- RED causal: os novos cenários de manhã e contas expuseram a leitura central
+  antes da implementação;
+- scheduler focal: `23/23`;
+- bateria afetada (scheduler, Google, lifecycle, read-model e prova negativa):
+  `279/279`;
+- `npm test`: pretests verdes e runner principal `1.068/1.068`;
+- `node --check` nos dois arquivos JavaScript alterados e `git diff --check`:
+  verdes.
+
+O candidato ainda depende de commit imutável no GitHub e auditoria independente
+no Chat. Até lá, não recebe `GO` nem pode ser declarado pronto.
+
 ## Condições de parada
 
 - necessidade de reduzir ou trocar capacidade;
@@ -63,4 +104,4 @@ Antes de implementar:
 
 ## Capacidade
 
-`Codex → Sol → Extra Alto → mapear e corrigir FLOW-03 sem deploy.`
+`Codex → Sol → Alto → publicar e auditar o candidato FLOW-03 sem deploy.`

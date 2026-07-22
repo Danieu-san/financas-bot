@@ -55,7 +55,7 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Decisões vigentes
 
-- manter `Codex → Sol → Extra Alto` enquanto o gate exigir mapeamento causal;
+- manter `Codex → Sol → Alto` para o gate transversal `FLOW-03`;
 - parar e avisar Daniel antes de reduzir ou trocar capacidade;
 - não tocar deploy, EC2/Oracle ou serviços reais sem autorização específica;
 - preservar o bot familiar privado do casal; expansão multiusuário não faz
@@ -63,14 +63,32 @@ Plano corrente: `docs/plans/current-gate.md`.
 - usar commit sanitizado e imutável em auditorias independentes e separar
   evidência executada localmente de revisão estática externa.
 
+## Estado do gate ativo
+
+`FLOW-03` está implementado e validado localmente, mas ainda não está encerrado.
+Todas as leituras financeiras do scheduler agora exigem `userId`, fonte pessoal
+e telemetria `scheduler`; o fallback de cartão preserva somente o schema legado,
+nunca o escopo central.
+
+Evidência do candidato:
+
+- dois ensaios causais falharam antes da correção ao consumir fixtures centrais;
+- `tests/schedulerJobs.test.js`: `23/23`;
+- bateria afetada: `279/279`;
+- `npm test`: pretests verdes e runner principal `1.068/1.068`;
+- sintaxe e `git diff --check`: verdes.
+
+O estado máximo permitido é `candidato aguardando auditoria no Chat`. A nova
+trava de `AGENTS.md` proíbe declarar qualquer correção pronta sem esse parecer.
+
 ## Próxima ação exata
 
-Mapear `FLOW-03`, definir invariantes e testes adversariais e só então iniciar a
-correção local, sem deploy.
+Publicar o commit sanitizado do `FLOW-03`, submetê-lo ao Chat pelo hash completo
+e confrontar o parecer com a evidência local antes de encerrar o gate.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Extra Alto → mapear e corrigir FLOW-03 sem deploy.`
+`Codex → Sol → Alto → publicar e auditar o candidato FLOW-03 sem deploy.`
 
 ## Histórico dirigido
 
