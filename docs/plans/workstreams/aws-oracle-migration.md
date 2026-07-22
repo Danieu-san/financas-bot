@@ -1,6 +1,6 @@
 # Plano do workstream — migração AWS para Oracle
 
-Status: requer reconciliação pela conversa responsável.
+Status: não iniciado; requer planejamento factual pela conversa responsável.
 
 ## Objetivo
 
@@ -29,5 +29,5 @@ troca de segredo, desligamento AWS ou promoção Oracle.
 
 ## Próximo passo
 
-A conversa responsável deve substituir este stub por plano factual baseado no
-estado já executado, mantendo o workstream separado do WGL.
+A conversa responsável deve substituir este stub por plano factual quando a
+migração começar, mantendo o workstream separado do WGL.
