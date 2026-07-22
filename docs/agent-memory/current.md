@@ -5,9 +5,11 @@ Atualizado em: 2026-07-22
 ## Objetivo ativo
 
 Executar a fila de correções da auditoria exaustiva. `STATE-01` possui candidato
-local testado e aguarda commit imutável mais auditoria independente obrigatória
-no Chat. A decisão de produto pós-Fase 9 sobre proposição de salvamento segue
-registrada no roadmap sem alterar o escopo deste gate.
+local testado e publicado no hash imutável
+`facf53d8f605165375e35cc0ae6f95491c7f849f`. A tentativa automática única no
+Chat não conseguiu ler os arquivos e não produziu veredito; o gate aguarda a
+resposta da auditoria manual. A decisão pós-Fase 9 sobre proposição de salvamento
+segue registrada no roadmap sem alterar o escopo deste gate.
 
 ## Último gate encerrado
 
@@ -59,6 +61,7 @@ Google/WhatsApp real, produção ou deploy.
 
 - branch: `main`;
 - produto auditado mais recente: `4c1001338ca1ed919b55be4e9566258178a0175e`;
+- candidato publicado aguardando auditoria: `facf53d8f605165375e35cc0ae6f95491c7f849f`;
 - alterações concorrentes do workstream AWS/Oracle e arquivos não rastreados do
   usuário permanecem fora do gate e não devem ser adicionados, alterados ou
   removidos;
@@ -87,14 +90,14 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Criar e publicar o commit sanitizado do candidato `STATE-01`, fornecer ao Chat
-URLs imutáveis do manifesto, handler, teste e `index.js`, confrontar o parecer e
-só então registrar ou negar `GO TÉCNICO LOCAL`. Não acessar produção nem fazer
-deploy.
+Daniel envia manualmente o prompt defensivo de `STATE-01` numa conversa limpa do
+Chat e cola a resposta integral aqui. O Codex confere hash e arquivos, confronta
+o parecer com o candidato e só então registra ou nega `GO TÉCNICO LOCAL`. Não
+acessar produção nem fazer deploy.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Extra Alto → publicar e auditar o candidato STATE-01 sem deploy.`
+`Chat → padrão atual da conta → Alto → auditar o hash STATE-01; depois Codex → Sol → Extra Alto → validar o parecer.`
 
 ## Histórico dirigido
 
@@ -102,6 +105,8 @@ deploy.
   `docs/audit/18-flow03-independent-close-2026-07-22.md`;
 - candidato STATE-01:
   `docs/audit/19-state01-sender-serialization-candidate-2026-07-22.md`;
+- tentativa automática sem acesso:
+  `docs/audit/20-state01-chat-access-pending-2026-07-22.md`;
 - candidato FLOW-03:
   `docs/audit/17-flow03-scheduler-personal-source-candidate-2026-07-22.md`;
 - fechamento anterior:

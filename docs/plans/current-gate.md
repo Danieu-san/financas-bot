@@ -123,6 +123,14 @@ sanitizado no GitHub e auditoria independente obrigatória no Chat.
 - estado: candidato local aguardando commit imutável e auditoria obrigatória no
   Chat; ainda sem `GO`.
 
+## Auditoria externa pendente
+
+O candidato foi publicado em
+`facf53d8f605165375e35cc0ae6f95491c7f849f`. A tentativa automática única no
+Chat não conseguiu ler integralmente as URLs imutáveis e foi interrompida após
+entrar em busca sem progresso. Não houve bloqueio de segurança nem veredito.
+`STATE-01` permanece sem `GO` até Daniel trazer a resposta da auditoria manual.
+
 ## Condições de parada
 
 - necessidade de reduzir ou trocar capacidade;
