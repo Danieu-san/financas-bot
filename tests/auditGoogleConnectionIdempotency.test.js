@@ -178,6 +178,7 @@ function createExternalLedger({
         committed_operations: [],
         compensated_operations: [],
         created_sheet_ids: seededSheets.slice(),
+        sheet_markers: {},
         template_applications_by_sheet: { ...seededTemplateApplications }
     };
     let sequence = 0;
@@ -249,13 +250,67 @@ function createExternalLedger({
         }
     };
 
-    return { client, ledger };
+    const driveClient = {
+        files: {
+            create: async ({ requestBody }) => {
+                const entry = begin('create');
+                const spreadsheetId = sheetIdForOperation(entry.operationId, ledger.created_sheet_ids.length);
+                trace.push('sheet.create.call', { operationId: entry.operationId, spreadsheetId });
+                if (concurrency?.enabled) {
+                    markArrival(concurrency.createArrivals, entry.operationId, concurrency.bothCreates);
+                    await concurrency.releaseCreate.get(entry.operationId).promise;
+                }
+                ledger.created_sheet_ids.push(spreadsheetId);
+                ledger.sheet_markers[spreadsheetId] = requestBody?.appProperties?.financasbot_oauth_attempt || '';
+                commit(entry, 'create', { spreadsheetId });
+                trace.push('sheet.create.commit', { operationId: entry.operationId, spreadsheetId });
+                return {
+                    data: {
+                        id: spreadsheetId,
+                        webViewLink: `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`,
+                        appProperties: requestBody?.appProperties || {}
+                    }
+                };
+            },
+            list: async ({ q }) => {
+                const match = String(q || '').match(/value='([^']+)'/);
+                const attemptId = match?.[1] || '';
+                const spreadsheetId = Object.keys(ledger.sheet_markers)
+                    .find(id => ledger.sheet_markers[id] === attemptId);
+                return {
+                    data: {
+                        files: spreadsheetId ? [{
+                            id: spreadsheetId,
+                            webViewLink: `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`,
+                            appProperties: { financasbot_oauth_attempt: attemptId }
+                        }] : []
+                    }
+                };
+            },
+            get: async ({ fileId }) => ({
+                data: {
+                    id: fileId,
+                    trashed: false,
+                    appProperties: { financasbot_oauth_attempt: ledger.sheet_markers[fileId] || '' }
+                }
+            }),
+            delete: async ({ fileId }) => {
+                ledger.compensated_operations.push({ type: 'delete', spreadsheetId: fileId });
+                ledger.created_sheet_ids = ledger.created_sheet_ids.filter(id => id !== fileId);
+                delete ledger.sheet_markers[fileId];
+                return { data: {} };
+            }
+        }
+    };
+
+    return { client, driveClient, ledger };
 }
 
 function configureEnvironment(dbPath) {
     process.env.OAUTH_TOKEN_DB_PATH = dbPath;
     process.env.OAUTH_TOKEN_ENCRYPTION_KEY = Buffer.alloc(32, 29).toString('base64');
     process.env.GOOGLE_OAUTH_STATE_SECRET = 'idempotency-audit-state-secret-2026';
+    process.env.GOOGLE_OAUTH_ATTEMPT_RETRY_BASE_MS = '0';
     process.env.DASHBOARD_ENABLED = 'true';
     process.env.DASHBOARD_HOST = '127.0.0.1';
     process.env.DASHBOARD_PORT = '0';
@@ -340,7 +395,7 @@ function setupScenario({
 
     const realOauthTokenStore = require(oauthTokenStorePath);
     const metadataLedger = { calls: [], commits: [], values_written: [] };
-    const oauthLedger = { saves: [] };
+    const oauthLedger = { saves: [], promotions: [] };
     const oauthTokenStore = {
         ...realOauthTokenStore,
         saveOAuthConnection: (targetUserId, payload) => {
@@ -353,6 +408,14 @@ function setupScenario({
             trace.push('oauth.save.call', { operationId });
             const result = realOauthTokenStore.saveOAuthConnection(targetUserId, payload);
             trace.push('oauth.save.commit', { operationId });
+            return result;
+        },
+        promoteOAuthConnectionAttempt: (payload) => {
+            const operationId = operationContext.getStore() || 'unscoped';
+            oauthLedger.promotions.push({ operationId, attemptId: payload?.attemptId || '' });
+            trace.push('oauth.promote.call', { operationId });
+            const result = realOauthTokenStore.promoteOAuthConnectionAttempt(payload);
+            trace.push('oauth.promote.commit', { operationId });
             return result;
         },
         getOAuthConnection: (targetUserId, options) => {
@@ -388,7 +451,7 @@ function setupScenario({
         return operationContext.run(operationId, async () => {
             trace.push('complete.enter', { operationId });
             try {
-                const result = await realSpreadsheetService.completeGoogleConnectionForUser(payload);
+                const result = await realSpreadsheetService.__test__.completeGoogleConnectionForUserLegacy(payload);
                 trace.push('complete.return', { operationId, spreadsheetId: result.spreadsheetId });
                 return result;
             } catch (error) {
@@ -446,6 +509,7 @@ function setupScenario({
         realSpreadsheetService,
         googleOAuthService,
         sheetsClient: external.client,
+        driveClient: external.driveClient,
         externalLedger: external.ledger,
         runCompletion,
         freshUser
@@ -464,7 +528,8 @@ function installDashboardRoute(scenario, { oauth2Client, oauth2Api }) {
                 state,
                 oauth2Client,
                 oauth2Api,
-                sheetsClient: scenario.sheetsClient
+                sheetsClient: scenario.sheetsClient,
+                driveClient: scenario.driveClient
             }));
         }
     });
@@ -536,7 +601,7 @@ function createResponseLedger(trace) {
 test('independent audit of Google connection concurrency and idempotency', async (t) => {
     auditRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'financas-google-idempotency-'));
 
-    await t.test('retry after orphaned sheet creates a second sheet and ignores the orphan', async () => {
+    await t.test('retired test-only helper characterizes the former orphan behavior outside the callback API', async () => {
         const scenario = setupScenario({
             name: 'retry-orphan',
             seededSheets: ['audit-sheet-orphan-001'],
@@ -576,7 +641,7 @@ test('independent audit of Google connection concurrency and idempotency', async
         });
     });
 
-    await t.test('retry after linked sheet reapplies template without creating a new sheet', async () => {
+    await t.test('retired test-only helper characterizes linked-sheet replay outside the callback API', async () => {
         const linkedId = 'audit-sheet-linked-001';
         const scenario = setupScenario({
             name: 'retry-linked',
@@ -616,7 +681,7 @@ test('independent audit of Google connection concurrency and idempotency', async
         });
     });
 
-    await t.test('two simultaneous conclusions create two sheets and last metadata write wins', async () => {
+    await t.test('retired test-only helper preserves the former race proof outside the callback API', async () => {
         const scenario = setupScenario({
             name: 'concurrent-create',
             concurrent: true,
@@ -688,7 +753,7 @@ test('independent audit of Google connection concurrency and idempotency', async
         });
     });
 
-    await t.test('exact callback replay repeats OAuth save, template and lifecycle after failed delivery', async () => {
+    await t.test('exact callback replay after failed delivery returns the durable receipt without repeating effects', async () => {
         const sheetId = 'audit-sheet-http-001';
         const scenario = setupScenario({
             name: 'callback-replay',
@@ -750,31 +815,33 @@ test('independent audit of Google connection concurrency and idempotency', async
         const finalUser = await scenario.freshUser();
         const createCalls = scenario.externalLedger.calls.filter(call => call.type === 'create');
 
-        assert.strictEqual(tokenExchangeCount, 2);
-        assert.strictEqual(accountLookupCount, 2);
-        assert.strictEqual(scenario.oauthLedger.saves.length, 2);
-        assert.notStrictEqual(firstTokenFingerprint, finalTokenFingerprint);
-        assert.strictEqual(finalConnection.google_user_id, 'synthetic-google-v2');
+        assert.strictEqual(tokenExchangeCount, 1);
+        assert.strictEqual(accountLookupCount, 1);
+        assert.strictEqual(scenario.oauthLedger.saves.length, 0);
+        assert.strictEqual(scenario.oauthLedger.promotions.length, 1);
+        assert.strictEqual(firstTokenFingerprint, finalTokenFingerprint);
+        assert.strictEqual(finalConnection.google_user_id, 'synthetic-google-v1');
         assert.strictEqual(finalConnection.spreadsheet_id, sheetId);
         assert.strictEqual(createCalls.length, 1);
-        assert.strictEqual(scenario.externalLedger.template_applications_by_sheet[sheetId], 2);
-        assert.strictEqual(scenario.metadataLedger.commits.length, 1);
-        assert.strictEqual(scenario.lifecycleLedger.commits.length, 2);
+        assert.strictEqual(scenario.externalLedger.template_applications_by_sheet[sheetId], 1);
+        assert.strictEqual(scenario.metadataLedger.commits.length, 0);
+        assert.strictEqual(scenario.lifecycleLedger.commits.length, 1);
         assert.deepStrictEqual(scenario.lifecycleLedger.values_written, ['ACTIVE']);
+        assert.strictEqual(finalUser.status, 'ACTIVE');
         assert.strictEqual(
-            scenario.lifecycleLedger.commits.filter(commit => commit.reason === 'already_target').length,
+            scenario.trace.events.filter(event => event.event === 'whatsapp.return').length,
             1
         );
-        assert.strictEqual(finalUser.status, 'ACTIVE');
         assert.strictEqual(httpLedger.ledger.delivered.length, 1);
         assert.strictEqual(httpLedger.ledger.delivered[0].statusCode, 200);
 
         results.push({
             scenario: 'exact_callback_replay_after_http_failure',
-            same_state_reused: true,
+            same_state_replayed_from_receipt: true,
             token_exchanges: tokenExchangeCount,
             account_lookups: accountLookupCount,
             oauth_saves: scenario.oauthLedger.saves.length,
+            oauth_promotions: scenario.oauthLedger.promotions.length,
             token_overwritten: firstTokenFingerprint !== finalTokenFingerprint,
             final_google_user_id: finalConnection.google_user_id,
             create_calls: createCalls.length,
@@ -784,6 +851,7 @@ test('independent audit of Google connection concurrency and idempotency', async
             lifecycle_writes: scenario.lifecycleLedger.values_written.length,
             final_spreadsheet_id: finalConnection.spreadsheet_id,
             final_status: finalUser.status,
+            whatsapp_notifications: scenario.trace.events.filter(event => event.event === 'whatsapp.return').length,
             http_calls: httpLedger.ledger.calls.length,
             http_deliveries: httpLedger.ledger.delivered.length,
             trace: scenario.trace.significant()

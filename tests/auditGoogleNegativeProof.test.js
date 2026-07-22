@@ -312,7 +312,7 @@ test('P5 negative proof for Google entrypoints and authorization boundaries', as
         const sourceFiles = listJavaScriptFiles(srcRoot);
         const combinedSource = sourceFiles.map(file => fs.readFileSync(file, 'utf8')).join('\n');
         const oauthStoreSource = fs.readFileSync(oauthTokenStorePath, 'utf8');
-        const googleFlowSourceWithoutC03Recovery = [
+        const googleFlowSourceWithoutIndividualRevocationRecovery = [
             googleOAuthServicePath,
             userSpreadsheetServicePath,
             dashboardServerPath,
@@ -361,11 +361,15 @@ test('P5 negative proof for Google entrypoints and authorization boundaries', as
         assert.match(oauthStoreSource, /revoked_at\s*=\s*''/);
         assert.match(oauthStoreSource, /COALESCE\(revoked_at,\s*''\)\s*=\s*''/);
         assert.doesNotMatch(
-            googleFlowSourceWithoutC03Recovery,
-            /(?:google|oauth)[\s\S]{0,40}(?:recovery|recover|reconcile|journal|claim|resume)|(?:recovery|recover|reconcile|journal|claim|resume)[\s\S]{0,40}(?:google|oauth)/i
+            googleFlowSourceWithoutIndividualRevocationRecovery,
+            /\b(?:beginOAuthRevocation|markOAuthRevocationResult|listOAuthRevocationsForRecovery|retryPendingGoogleRevocations|revokeGoogleConnectionForUser)\b/
         );
         assert.strictEqual(
             [...schedulerSource.matchAll(/\bretryPendingGoogleRevocations\s*\(/g)].length,
+            1
+        );
+        assert.strictEqual(
+            [...schedulerSource.matchAll(/\brecoverPendingGoogleOAuthCompensations\s*\(/g)].length,
             1
         );
 
@@ -374,7 +378,8 @@ test('P5 negative proof for Google entrypoints and authorization boundaries', as
             source_files_scanned: sourceFiles.length,
             oauth_revocation_writers: oauthRevocationWriters.length,
             membership_revocation_writers: membershipRevocationWriters.length,
-            google_recovery_paths: 1
+            individual_revocation_recovery_paths: 1,
+            connection_compensation_recovery_paths: 1
         });
     });
 

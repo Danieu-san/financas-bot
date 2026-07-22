@@ -185,13 +185,57 @@ function createSheetsClient({ spreadsheetId, tabs, trace, failCreateBeforeCommit
         }
     };
 
-    return { client, ledger };
+    const driveClient = {
+        files: {
+            create: async ({ requestBody }) => {
+                const operationId = begin('create');
+                ledger.calls.push({ operationId, type: 'drive.create', spreadsheetId });
+                if (failCreateBeforeCommit) {
+                    trace.push('sheet.create.fail.before_commit');
+                    throw new Error('AUDIT_SHEET_FAIL_BEFORE_COMMIT');
+                }
+                commit(operationId, 'create', { spreadsheetId });
+                ledger.marker = requestBody?.appProperties?.financasbot_oauth_attempt || '';
+                return {
+                    data: {
+                        id: spreadsheetId,
+                        webViewLink: `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`,
+                        appProperties: requestBody?.appProperties || {}
+                    }
+                };
+            },
+            list: async ({ q }) => ({
+                data: {
+                    files: ledger.marker && String(q || '').includes(ledger.marker)
+                        ? [{
+                            id: spreadsheetId,
+                            appProperties: { financasbot_oauth_attempt: ledger.marker }
+                        }]
+                        : []
+                }
+            }),
+            get: async () => ({
+                data: {
+                    id: spreadsheetId,
+                    trashed: false,
+                    appProperties: { financasbot_oauth_attempt: ledger.marker || '' }
+                }
+            }),
+            delete: async () => {
+                ledger.compensated_operations.push({ type: 'delete', spreadsheetId });
+                return { data: {} };
+            }
+        }
+    };
+
+    return { client, driveClient, ledger };
 }
 
 function configureSyntheticEnvironment(dbPath) {
     process.env.OAUTH_TOKEN_DB_PATH = dbPath;
     process.env.OAUTH_TOKEN_ENCRYPTION_KEY = Buffer.alloc(32, 23).toString('base64');
     process.env.GOOGLE_OAUTH_STATE_SECRET = 'audit-state-secret-2026-local-only';
+    process.env.GOOGLE_OAUTH_ATTEMPT_RETRY_BASE_MS = '0';
     process.env.DASHBOARD_ENABLED = 'true';
     process.env.DASHBOARD_HOST = '127.0.0.1';
     process.env.DASHBOARD_PORT = '0';
@@ -244,6 +288,12 @@ function setupScenario({
             const result = realOauthTokenStore.updateOAuthConnectionMetadata(...args);
             trace.push('metadata.commit');
             return result;
+        },
+        promoteOAuthConnectionAttempt: (...args) => {
+            trace.push('connection.promote.call');
+            const result = realOauthTokenStore.promoteOAuthConnectionAttempt(...args);
+            trace.push('connection.promote.commit');
+            return result;
         }
     };
     installModule(oauthTokenStorePath, oauthTokenStore);
@@ -253,7 +303,7 @@ function setupScenario({
     const completionBoundary = async (payload) => {
         trace.push('complete.enter');
         try {
-            completionResult = await realSpreadsheetService.completeGoogleConnectionForUser(payload);
+            completionResult = await realSpreadsheetService.__test__.completeGoogleConnectionForUserLegacy(payload);
             trace.push('complete.return');
             return completionResult;
         } catch (error) {
@@ -300,6 +350,7 @@ function setupScenario({
         getCompletionResult: () => completionResult,
         googleOAuthService,
         sheetsClient: sheets.client,
+        driveClient: sheets.driveClient,
         sheetLedger: sheets.ledger,
         readFreshUser
     };
@@ -326,7 +377,7 @@ function summarizeScenario(scenario, error, extra = {}) {
 test('independent causal audit of Google connection completion', async (t) => {
     auditRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'financas-google-causality-'));
 
-    await t.test('sheet failure before external commit leaves metadata and status unchanged', async () => {
+    await t.test('retired test-only helper preserves the former pre-commit cut characterization', async () => {
         const scenario = setupScenario({
             name: 'sheet-before-commit',
             spreadsheetId: 'audit-sheet-fail-000',
@@ -350,7 +401,7 @@ test('independent causal audit of Google connection completion', async (t) => {
         auditResults.push(await summarizeScenario(scenario, caught));
     });
 
-    await t.test('metadata failure after sheet commit leaves an orphaned external spreadsheet', async () => {
+    await t.test('retired test-only helper preserves the former metadata-cut characterization', async () => {
         const scenario = setupScenario({
             name: 'metadata-before-commit',
             spreadsheetId: 'audit-sheet-001',
@@ -375,7 +426,7 @@ test('independent causal audit of Google connection completion', async (t) => {
         auditResults.push(await summarizeScenario(scenario, caught));
     });
 
-    await t.test('status failure occurs after external and local metadata commits', async () => {
+    await t.test('retired test-only helper preserves the former status-cut characterization', async () => {
         const scenario = setupScenario({
             name: 'status-before-commit',
             spreadsheetId: 'audit-sheet-002',
@@ -440,7 +491,8 @@ test('independent causal audit of Google connection completion', async (t) => {
                 state,
                 oauth2Client,
                 oauth2Api,
-                sheetsClient: scenario.sheetsClient
+                sheetsClient: scenario.sheetsClient,
+                driveClient: scenario.driveClient
             })
         });
         installModule(readModelPath, {
@@ -515,10 +567,14 @@ test('independent causal audit of Google connection completion', async (t) => {
         assert.ok(responseAttempts >= 1);
         assert.strictEqual(scenario.realOauthTokenStore.getOAuthConnection(scenario.userId).spreadsheet_id, 'audit-sheet-003');
         assert.strictEqual((await scenario.readFreshUser()).status, 'ACTIVE');
-        assert.strictEqual(scenario.trace.names().includes('connection.save.commit'), true);
-        assert.strictEqual(scenario.trace.names().includes('metadata.commit'), true);
+        assert.strictEqual(scenario.trace.names().includes('connection.promote.commit'), true);
+        assert.strictEqual(scenario.trace.names().includes('metadata.commit'), false);
         assert.strictEqual(scenario.trace.names().includes('status.commit'), true);
-        assert.strictEqual(scenario.trace.names().includes('complete.return'), true);
+        const callbackPayload = scenario.googleOAuthService.verifyOAuthState(state);
+        assert.strictEqual(
+            scenario.realOauthTokenStore.getOAuthConnectionAttempt(callbackPayload.attemptId).status,
+            'completed'
+        );
         assert.strictEqual(scenario.sheetLedger.compensated_operations.length, 0);
         auditResults.push(await summarizeScenario(scenario, caught, {
             response_attempts: responseAttempts,

@@ -30,6 +30,7 @@ function configureEnv(t) {
     process.env.GOOGLE_OAUTH_CLIENT_SECRET = 'audit-client-secret';
     process.env.DASHBOARD_BASE_URL = 'https://audit.invalid';
     process.env.GOOGLE_OAUTH_STATE_SECRET = 'audit-state-secret-with-sufficient-length';
+    process.env.GOOGLE_OAUTH_ATTEMPT_RETRY_BASE_MS = '0';
 }
 
 function installLifecycleMocks({ status, statusSequence = null, completionError = null, counters = {} }) {
@@ -58,6 +59,15 @@ function installLifecycleMocks({ status, statusSequence = null, completionError 
                     return { executed: false, reason: 'status_mismatch', user, result: null };
                 }
                 return { executed: true, reason: 'executed', user, result: operation(user) };
+            },
+            transitionUserStatus: async (userId) => ({
+                transitioned: true,
+                reason: 'updated',
+                user: { user_id: userId, status: 'ACTIVE' }
+            }),
+            USER_STATUS: {
+                APPROVED_AWAITING_GOOGLE: 'APPROVED_AWAITING_GOOGLE',
+                ACTIVE: 'ACTIVE'
             }
         }
     };
@@ -66,13 +76,17 @@ function installLifecycleMocks({ status, statusSequence = null, completionError 
         filename: spreadsheetPath,
         loaded: true,
         exports: {
-            completeGoogleConnectionForUser: async (payload) => {
+            createUserSpreadsheetForAttempt: async () => ({
+                spreadsheetId: 'audit-sheet',
+                spreadsheetUrl: 'https://docs.google.com/spreadsheets/d/audit-sheet/edit'
+            }),
+            findUserSpreadsheetForAttempt: async () => null,
+            deleteUserSpreadsheetForAttempt: async () => true,
+            buildSpreadsheetUrl: spreadsheetId => `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`,
+            applyUserSpreadsheetTemplate: async (payload) => {
                 completionCalls.push(payload);
                 if (completionError) throw completionError;
-                return {
-                    spreadsheetId: 'audit-sheet',
-                    user: { user_id: payload.user.user_id, status: 'ACTIVE' }
-                };
+                return { spreadsheetId: payload.spreadsheetId };
             }
         }
     };
@@ -280,7 +294,7 @@ test('audit OAuth: lifecycle change during account lookup blocks before persiste
     assert.strictEqual(require('../src/services/oauthTokenStore').getOAuthConnection(userId), null);
 });
 
-test('audit OAuth: failure after credential persistence leaves the committed connection', async (t) => {
+test('audit OAuth: template failure keeps candidate credentials staged and recoverable', async (t) => {
     resetModules();
     configureEnv(t);
     installLifecycleMocks({ status: 'APPROVED_AWAITING_GOOGLE', completionError: new Error('audit completion failure') });
@@ -296,47 +310,67 @@ test('audit OAuth: failure after credential persistence leaves the committed con
         sheetsClient: {}
     }), /audit completion failure/);
 
-    assert.ok(require('../src/services/oauthTokenStore').getOAuthConnection(userId));
+    const store = require('../src/services/oauthTokenStore');
+    const payload = oauth.verifyOAuthState(state);
+    const attempt = store.getOAuthConnectionAttempt(payload.attemptId, { includeTokens: true });
+    assert.strictEqual(store.getOAuthConnection(userId), null);
+    assert.strictEqual(attempt.status, 'retryable');
+    assert.strictEqual(attempt.stage, 'sheet_ready');
+    assert.strictEqual(attempt.candidate_spreadsheet_id, 'audit-sheet');
+    assert.strictEqual(attempt.tokens.refresh_token, 'audit-refresh-1');
 });
 
-test('audit OAuth: the same state can drive two sequential callbacks', async (t) => {
+test('audit OAuth: the same state returns one durable conclusion across sequential callbacks', async (t) => {
     resetModules();
     configureEnv(t);
     const calls = installLifecycleMocks({ status: 'APPROVED_AWAITING_GOOGLE' });
     const oauth = require('../src/services/googleOAuthService');
     const state = new URL(oauth.buildGoogleConnectLink({ userId: 'audit-reuse' })).searchParams.get('state');
-    const client = fakeOAuthClient();
 
+    const counters = {};
+    const results = [];
     for (const code of ['reuse-code-one', 'reuse-code-two']) {
-        await oauth.completeGoogleOAuthCallback({
+        results.push(await oauth.completeGoogleOAuthCallback({
             code,
             state,
-            oauth2Client: client,
-            oauth2Api: fakeOAuthApi(),
+            oauth2Client: fakeOAuthClient(counters),
+            oauth2Api: fakeOAuthApi(counters),
             sheetsClient: {}
-        });
+        }));
     }
 
-    assert.strictEqual(calls.length, 2);
+    assert.strictEqual(calls.length, 1);
+    assert.deepStrictEqual(counters, { tokenExchange: 1, accountLookup: 1 });
+    assert.strictEqual(results[0].spreadsheetId, 'audit-sheet');
+    assert.strictEqual(results[1].spreadsheetId, 'audit-sheet');
+    assert.strictEqual(results[0].replayed, false);
+    assert.strictEqual(results[1].replayed, true);
 });
 
-test('audit OAuth: concurrent callbacks with the same state both reach completion', async (t) => {
+test('audit OAuth: concurrent callbacks with the same state converge to one durable conclusion', async (t) => {
     resetModules();
     configureEnv(t);
     const calls = installLifecycleMocks({ status: 'APPROVED_AWAITING_GOOGLE' });
     const oauth = require('../src/services/googleOAuthService');
     const state = new URL(oauth.buildGoogleConnectLink({ userId: 'audit-concurrent' })).searchParams.get('state');
 
+    const counters = {};
+    const client = fakeOAuthClient(counters);
+    const api = fakeOAuthApi(counters);
     const results = await Promise.all(['concurrent-one', 'concurrent-two'].map(code =>
         oauth.completeGoogleOAuthCallback({
             code,
             state,
-            oauth2Client: fakeOAuthClient(),
-            oauth2Api: fakeOAuthApi(),
+            oauth2Client: client,
+            oauth2Api: api,
             sheetsClient: {}
         })
     ));
 
     assert.strictEqual(results.length, 2);
-    assert.strictEqual(calls.length, 2);
+    assert.strictEqual(calls.length, 1);
+    assert.deepStrictEqual(counters, { tokenExchange: 1, accountLookup: 1 });
+    assert.strictEqual(results[0].spreadsheetId, 'audit-sheet');
+    assert.strictEqual(results[1].spreadsheetId, 'audit-sheet');
+    assert.strictEqual(results.filter(result => result.replayed).length, 1);
 });

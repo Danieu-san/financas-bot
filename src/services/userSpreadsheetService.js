@@ -3,6 +3,8 @@ const { getOAuthConnection, updateOAuthConnectionMetadata } = require('./oauthTo
 const { getUserByIdFresh, transitionUserStatus, USER_STATUS } = require('./userService');
 const { assertOAuthLifecycleAllowed } = require('./oauthLifecyclePolicy');
 
+const OAUTH_ATTEMPT_APP_PROPERTY = 'financasbot_oauth_attempt';
+
 const USER_SPREADSHEET_TABS = Object.freeze([
     {
         title: 'Dashboard',
@@ -393,17 +395,35 @@ async function loadSpreadsheetMetadata({ sheetsClient, spreadsheetId }) {
 async function ensureUserSpreadsheetTabs({ sheetsClient, spreadsheetId, spreadsheet }) {
     const existingSheets = spreadsheet?.data?.sheets || spreadsheet?.sheets || [];
     const existingTitles = new Set(existingSheets.map(sheet => sheet?.properties?.title).filter(Boolean));
-    const missingTabs = USER_SPREADSHEET_TABS.filter(tab => !existingTitles.has(tab.title));
+    let missingTabs = USER_SPREADSHEET_TABS.filter(tab => !existingTitles.has(tab.title));
+    const hasCanonicalTab = USER_SPREADSHEET_TABS.some(tab => existingTitles.has(tab.title));
+    const defaultSheet = !hasCanonicalTab && existingSheets.length === 1
+        ? existingSheets[0]
+        : null;
+    const adoptedTab = defaultSheet?.properties?.sheetId !== undefined ? missingTabs[0] : null;
+    if (adoptedTab) missingTabs = missingTabs.slice(1);
+    const adoptDefaultRequest = adoptedTab ? [{
+        updateSheetProperties: {
+            properties: {
+                sheetId: defaultSheet.properties.sheetId,
+                title: adoptedTab.title,
+                gridProperties: { frozenRowCount: adoptedTab.type === 'dashboard' ? 4 : 1 }
+            },
+            fields: 'title,gridProperties.frozenRowCount'
+        }
+    }] : [];
     const obsoleteDeletes = existingSheets
         .filter(sheet => OBSOLETE_USER_SPREADSHEET_TABS.includes(sheet?.properties?.title) && sheet?.properties?.sheetId !== undefined)
         .map(sheet => ({ deleteSheet: { sheetId: sheet.properties.sheetId } }));
 
-    if ((!missingTabs.length && !obsoleteDeletes.length) || !sheetsClient?.spreadsheets?.batchUpdate) return spreadsheet;
+    if ((!adoptDefaultRequest.length && !missingTabs.length && !obsoleteDeletes.length) ||
+        !sheetsClient?.spreadsheets?.batchUpdate) return spreadsheet;
 
     await sheetsClient.spreadsheets.batchUpdate({
         spreadsheetId,
         resource: {
             requests: [
+                ...adoptDefaultRequest,
                 ...obsoleteDeletes,
                 ...missingTabs.map(tab => ({
                     addSheet: {
@@ -802,6 +822,77 @@ async function createUserSpreadsheetForUser({ user, oauth2Client, sheetsClient }
     };
 }
 
+function getDriveClient(oauth2Client, injectedDriveClient) {
+    if (injectedDriveClient) return injectedDriveClient;
+    return google.drive({ version: 'v3', auth: oauth2Client });
+}
+
+async function findUserSpreadsheetForAttempt({ attemptId, oauth2Client, driveClient } = {}) {
+    const safeAttemptId = String(attemptId || '').trim();
+    if (!safeAttemptId) throw new Error('attemptId Ã© obrigatÃ³rio para reconciliar planilha OAuth.');
+    const drive = getDriveClient(oauth2Client, driveClient);
+    const response = await drive.files.list({
+        q: `appProperties has { key='${OAUTH_ATTEMPT_APP_PROPERTY}' and value='${safeAttemptId}' } and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`,
+        spaces: 'drive',
+        fields: 'files(id,name,webViewLink,appProperties,trashed)',
+        pageSize: 2
+    });
+    const files = Array.isArray(response?.data?.files) ? response.data.files : [];
+    if (files.length > 1) throw new Error('Mais de uma planilha encontrada para a mesma tentativa OAuth.');
+    const file = files[0];
+    if (!file?.id) return null;
+    return {
+        spreadsheetId: String(file.id),
+        spreadsheetUrl: String(file.webViewLink || buildSpreadsheetUrl(file.id)),
+        marker: String(file.appProperties?.[OAUTH_ATTEMPT_APP_PROPERTY] || '')
+    };
+}
+
+async function createUserSpreadsheetForAttempt({ user, attemptId, oauth2Client, driveClient } = {}) {
+    const safeAttemptId = String(attemptId || '').trim();
+    if (!safeAttemptId) throw new Error('attemptId Ã© obrigatÃ³rio para criar planilha OAuth.');
+    const title = buildUserSpreadsheetResource({ displayName: user?.display_name }).properties.title;
+    const drive = getDriveClient(oauth2Client, driveClient);
+    const created = await drive.files.create({
+        requestBody: {
+            name: title,
+            mimeType: 'application/vnd.google-apps.spreadsheet',
+            appProperties: { [OAUTH_ATTEMPT_APP_PROPERTY]: safeAttemptId }
+        },
+        fields: 'id,name,webViewLink,appProperties'
+    });
+    const spreadsheetId = String(created?.data?.id || '').trim();
+    if (!spreadsheetId) throw new Error('Google nÃ£o retornou ID da planilha criada para a tentativa OAuth.');
+    return {
+        spreadsheetId,
+        spreadsheetUrl: String(created?.data?.webViewLink || buildSpreadsheetUrl(spreadsheetId)),
+        marker: String(created?.data?.appProperties?.[OAUTH_ATTEMPT_APP_PROPERTY] || safeAttemptId)
+    };
+}
+
+async function deleteUserSpreadsheetForAttempt({ spreadsheetId, attemptId, oauth2Client, driveClient } = {}) {
+    const safeSpreadsheetId = String(spreadsheetId || '').trim();
+    const safeAttemptId = String(attemptId || '').trim();
+    if (!safeSpreadsheetId || !safeAttemptId) return false;
+    const drive = getDriveClient(oauth2Client, driveClient);
+    let file;
+    try {
+        const response = await drive.files.get({
+            fileId: safeSpreadsheetId,
+            fields: 'id,trashed,appProperties'
+        });
+        file = response?.data || {};
+    } catch (error) {
+        if (error?.code === 404 || error?.response?.status === 404) return false;
+        throw error;
+    }
+    if (file.trashed || file.appProperties?.[OAUTH_ATTEMPT_APP_PROPERTY] !== safeAttemptId) {
+        return false;
+    }
+    await drive.files.delete({ fileId: safeSpreadsheetId });
+    return true;
+}
+
 async function completeGoogleConnectionForUser({ user, oauth2Client, sheetsClient }) {
     const safeUser = user || {};
     if (!safeUser.user_id) throw new Error('user_id é obrigatório para concluir conexão Google.');
@@ -842,13 +933,17 @@ module.exports = {
     OBSOLETE_USER_SPREADSHEET_TABS,
     buildUserSpreadsheetResource,
     createUserSpreadsheetForUser,
+    createUserSpreadsheetForAttempt,
+    findUserSpreadsheetForAttempt,
+    deleteUserSpreadsheetForAttempt,
     applyUserSpreadsheetTemplate,
-    completeGoogleConnectionForUser,
     buildSpreadsheetUrl,
     quoteSheetName,
     __test__: {
         columnLetter,
         safeDisplayName,
+        OAUTH_ATTEMPT_APP_PROPERTY,
+        completeGoogleConnectionForUserLegacy: completeGoogleConnectionForUser,
         writeHeaders,
         buildDashboardRows,
         buildManualRows,

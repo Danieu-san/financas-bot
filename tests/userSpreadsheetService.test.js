@@ -5,6 +5,9 @@ const {
     USER_SPREADSHEET_TABS,
     buildUserSpreadsheetResource,
     createUserSpreadsheetForUser,
+    createUserSpreadsheetForAttempt,
+    findUserSpreadsheetForAttempt,
+    deleteUserSpreadsheetForAttempt,
     applyUserSpreadsheetTemplate,
     buildSpreadsheetUrl,
     quoteSheetName,
@@ -89,6 +92,124 @@ test('buildUserSpreadsheetResource creates a user-specific title without financi
     assert.match(resource.properties.title, /FinançasBot - Daniel Teste/);
     assert.ok(resource.sheets.some(sheet => sheet.properties.title === 'Saídas'));
     assert.strictEqual(JSON.stringify(resource).includes('refresh_token'), false);
+});
+
+test('OAuth saga creates, finds and deletes only the spreadsheet carrying its Drive marker', async () => {
+    const calls = [];
+    const attemptId = '12345678-1234-4234-8234-123456789abc';
+    const driveClient = {
+        files: {
+            create: async (payload) => {
+                calls.push({ type: 'create', payload });
+                return {
+                    data: {
+                        id: 'drive-sheet-1',
+                        webViewLink: 'https://docs.google.com/spreadsheets/d/drive-sheet-1/edit',
+                        appProperties: { financasbot_oauth_attempt: attemptId }
+                    }
+                };
+            },
+            list: async (payload) => {
+                calls.push({ type: 'list', payload });
+                return {
+                    data: {
+                        files: [{
+                            id: 'drive-sheet-1',
+                            appProperties: { financasbot_oauth_attempt: attemptId }
+                        }]
+                    }
+                };
+            },
+            get: async (payload) => {
+                calls.push({ type: 'get', payload });
+                return {
+                    data: {
+                        id: 'drive-sheet-1',
+                        trashed: false,
+                        appProperties: { financasbot_oauth_attempt: attemptId }
+                    }
+                };
+            },
+            delete: async (payload) => {
+                calls.push({ type: 'delete', payload });
+                return { data: {} };
+            }
+        }
+    };
+
+    const created = await createUserSpreadsheetForAttempt({
+        user: { display_name: 'FamÃ­lia Teste' },
+        attemptId,
+        driveClient
+    });
+    const found = await findUserSpreadsheetForAttempt({ attemptId, driveClient });
+    const deleted = await deleteUserSpreadsheetForAttempt({
+        spreadsheetId: created.spreadsheetId,
+        attemptId,
+        driveClient
+    });
+
+    assert.strictEqual(created.spreadsheetId, 'drive-sheet-1');
+    assert.strictEqual(found.spreadsheetId, 'drive-sheet-1');
+    assert.strictEqual(deleted, true);
+    const createCall = calls.find(call => call.type === 'create');
+    assert.strictEqual(createCall.payload.requestBody.mimeType, 'application/vnd.google-apps.spreadsheet');
+    assert.deepStrictEqual(createCall.payload.requestBody.appProperties, {
+        financasbot_oauth_attempt: attemptId
+    });
+    const listCall = calls.find(call => call.type === 'list');
+    assert.match(listCall.payload.q, new RegExp(attemptId));
+    assert.deepStrictEqual(calls.find(call => call.type === 'delete').payload, { fileId: 'drive-sheet-1' });
+});
+
+test('template adopts the sole Drive-created default tab as Dashboard before adding the others', async () => {
+    const calls = [];
+    let metadataReads = 0;
+    const sheetsClient = {
+        spreadsheets: {
+            get: async () => {
+                metadataReads += 1;
+                if (metadataReads === 1) {
+                    return { data: { sheets: [{ properties: { title: 'Sheet1', sheetId: 77 } }] } };
+                }
+                return {
+                    data: {
+                        sheets: USER_SPREADSHEET_TABS.map((tab, index) => ({
+                            properties: { title: tab.title, sheetId: 77 + index },
+                            charts: []
+                        }))
+                    }
+                };
+            },
+            values: {
+                update: async () => ({ data: {} }),
+                batchUpdate: async () => ({ data: {} })
+            },
+            batchUpdate: async (payload) => {
+                calls.push(payload);
+                return { data: {} };
+            }
+        }
+    };
+
+    await applyUserSpreadsheetTemplate({
+        user: { user_id: 'drive-template-user', display_name: 'Drive Template' },
+        spreadsheetId: 'drive-template-sheet',
+        sheetsClient
+    });
+
+    const bootstrap = calls[0].resource.requests;
+    assert.deepStrictEqual(bootstrap[0], {
+        updateSheetProperties: {
+            properties: {
+                sheetId: 77,
+                title: 'Dashboard',
+                gridProperties: { frozenRowCount: 4 }
+            },
+            fields: 'title,gridProperties.frozenRowCount'
+        }
+    });
+    assert.strictEqual(bootstrap.filter(request => request.addSheet).length, USER_SPREADSHEET_TABS.length - 1);
 });
 
 test('createUserSpreadsheetForUser creates spreadsheet and writes headers to every tab', async () => {

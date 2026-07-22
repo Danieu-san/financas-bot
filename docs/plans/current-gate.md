@@ -45,10 +45,10 @@ Open Finance, escrita financeira, flags de produção e remoção ampla de legad
 - [x] persistência de tentativas/generation/lease/checkpoints;
 - [x] planilha marcada e reconciliação sem segunda criação;
 - [x] promoção atômica, recibo durável e resposta HTTP repetível;
-- [ ] estabilizar transições estritas e conclusão somente após lifecycle;
-- [ ] demonstrar recuperação de compensação falha e retenção limitada;
-- [ ] rodar testes focais e baterias diretamente afetadas;
-- [ ] executar uma única suíte hermética abrangente e checks estáticos;
+- [x] estabilizar transições estritas e conclusão somente após lifecycle;
+- [x] demonstrar recuperação de compensação falha e retenção limitada;
+- [x] rodar testes focais e baterias diretamente afetadas;
+- [x] executar uma única suíte hermética abrangente e checks estáticos;
 - [ ] publicar candidato sanitizado e obter auditoria independente.
 
 ## Testes obrigatórios
@@ -89,6 +89,7 @@ depois de a bateria afetada ficar estável.
 
 ## Estado e próxima ação
 
-Implementação pausada após endurecimento parcial de transições. Adaptar o teste
-de lease/promoção, validar sintaxe e reexecutar somente a suíte focal antes de
-qualquer nova mudança material.
+Implementação local concluída: focal `20/20`, afetados finais `62/62` e runner
+hermético `1.185` passes, `0` falhas, `5` skips previstos, com rede bloqueada.
+Publicar somente o diff WGL sanitizado em hash imutável e executar a auditoria
+independente. Deploy e produção continuam fora do escopo.

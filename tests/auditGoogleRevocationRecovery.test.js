@@ -424,7 +424,7 @@ test('independent audit of individual Google revocation and lifecycle recovery',
             releaseCreate
         });
         const initialUser = await scenario.freshUser(scenario.identities.memberA);
-        const completionPromise = scenario.spreadsheetService.completeGoogleConnectionForUser({
+        const completionPromise = scenario.spreadsheetService.__test__.completeGoogleConnectionForUserLegacy({
             user: initialUser,
             sheetsClient: sheets.client
         });

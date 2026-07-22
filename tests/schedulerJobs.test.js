@@ -10,6 +10,8 @@ const userServicePath = require.resolve('../src/services/userService');
 const readinessNotifierPath = require.resolve('../src/reliability/enforceReadinessNotifier');
 const dailyOpsCheckServicePath = require.resolve('../src/services/dailyOpsCheckService');
 const googleOAuthRevocationServicePath = require.resolve('../src/services/googleOAuthRevocationService');
+const googleOAuthServicePath = require.resolve('../src/services/googleOAuthService');
+const oauthTokenStorePath = require.resolve('../src/services/oauthTokenStore');
 
 function formatDateBR(date) {
     return [
@@ -27,15 +29,19 @@ function installSchedulerMocks({
     readinessAlertSender = null,
     dailyOpsSender = null,
     oauthRecovery = async () => ({ attempted: 0, revoked: 0, failed: 0, expired: 0 }),
+    oauthCompensationRecovery = async () => ({ attempted: 0, compensated: 0, pending: 0, manualRequired: 0 }),
+    oauthAttemptCleanup = () => ({ expired: 0, deleted: 0 }),
     readCalls = null,
     readErrorsByRange = {}
 }) {
     delete require.cache[schedulerPath];
     delete require.cache[googlePath];
     delete require.cache[userServicePath];
+    delete require.cache[oauthTokenStorePath];
     delete require.cache[readinessNotifierPath];
     delete require.cache[dailyOpsCheckServicePath];
     delete require.cache[googleOAuthRevocationServicePath];
+    delete require.cache[googleOAuthServicePath];
 
     require.cache[googlePath] = {
         id: googlePath,
@@ -73,6 +79,24 @@ function installSchedulerMocks({
         loaded: true,
         exports: {
             retryPendingGoogleRevocations: oauthRecovery
+        }
+    };
+
+    require.cache[googleOAuthServicePath] = {
+        id: googleOAuthServicePath,
+        filename: googleOAuthServicePath,
+        loaded: true,
+        exports: {
+            recoverPendingGoogleOAuthCompensations: oauthCompensationRecovery
+        }
+    };
+
+    require.cache[oauthTokenStorePath] = {
+        id: oauthTokenStorePath,
+        filename: oauthTokenStorePath,
+        loaded: true,
+        exports: {
+            expireOAuthConnectionAttempts: oauthAttemptCleanup
         }
     };
 
@@ -592,4 +616,38 @@ test('scheduler runs bounded OAuth revocation recovery without exposing job data
 
     assert.deepStrictEqual(calls, ['recovery']);
     assert.deepStrictEqual(result, { attempted: 2, revoked: 1, failed: 1, expired: 0 });
+});
+
+test('scheduler runs bounded OAuth connection compensation recovery with aggregate output', async () => {
+    const calls = [];
+    const scheduler = installSchedulerMocks({
+        users: [],
+        settingsByUser: {},
+        oauthCompensationRecovery: async options => {
+            calls.push(options);
+            return { attempted: 2, compensated: 1, pending: 1, manualRequired: 0 };
+        }
+    });
+
+    const result = await scheduler.__test__.recoverPendingGoogleOAuthConnectionCompensations();
+
+    assert.deepStrictEqual(calls, [{ limit: 50 }]);
+    assert.deepStrictEqual(result, { attempted: 2, compensated: 1, pending: 1, manualRequired: 0 });
+});
+
+test('scheduler removes expired OAuth attempt secrets using only bounded aggregate output', async () => {
+    const calls = [];
+    const scheduler = installSchedulerMocks({
+        users: [],
+        settingsByUser: {},
+        oauthAttemptCleanup: ({ limit }) => {
+            calls.push(limit);
+            return { expired: 2, deleted: 1 };
+        }
+    });
+
+    const result = await scheduler.__test__.cleanupExpiredGoogleOAuthConnectionAttempts();
+
+    assert.deepStrictEqual(calls, [100]);
+    assert.deepStrictEqual(result, { expired: 2, deleted: 1 });
 });

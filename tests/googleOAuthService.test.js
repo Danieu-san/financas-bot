@@ -839,6 +839,15 @@ test('completeGoogleOAuthCallback stores encrypted tokens and activates connecte
                     status: 'APPROVED_AWAITING_GOOGLE'
                 };
                 return { executed: true, reason: 'executed', user, result: operation(user) };
+            },
+            transitionUserStatus: async (userId) => ({
+                transitioned: true,
+                reason: 'updated',
+                user: { user_id: userId, status: 'ACTIVE' }
+            }),
+            USER_STATUS: {
+                APPROVED_AWAITING_GOOGLE: 'APPROVED_AWAITING_GOOGLE',
+                ACTIVE: 'ACTIVE'
             }
         }
     };
@@ -847,12 +856,15 @@ test('completeGoogleOAuthCallback stores encrypted tokens and activates connecte
         filename: userSpreadsheetPath,
         loaded: true,
         exports: {
-            completeGoogleConnectionForUser: async (payload) => {
+            createUserSpreadsheetForAttempt: async () => ({
+                spreadsheetId: 'spreadsheet-connected-1'
+            }),
+            findUserSpreadsheetForAttempt: async () => null,
+            deleteUserSpreadsheetForAttempt: async () => true,
+            buildSpreadsheetUrl: spreadsheetId => `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`,
+            applyUserSpreadsheetTemplate: async (payload) => {
                 completedCalls.push(payload);
-                return {
-                    spreadsheetId: 'spreadsheet-connected-1',
-                    user: { user_id: payload.user.user_id, status: 'ACTIVE' }
-                };
+                return { spreadsheetId: payload.spreadsheetId };
             }
         }
     };

@@ -16,6 +16,8 @@ const { sendInterpretationReadinessAlert } = require('../reliability/enforceRead
 const { sendDailyOpsCheckReport } = require('../services/dailyOpsCheckService');
 const { recordLegacyUsageHeartbeat } = require('../telemetry/legacyUsageTelemetry');
 const { retryPendingGoogleRevocations } = require('../services/googleOAuthRevocationService');
+const { recoverPendingGoogleOAuthCompensations } = require('../services/googleOAuthService');
+const { expireOAuthConnectionAttempts } = require('../services/oauthTokenStore');
 
 let client;
 let isInitialized = false;
@@ -636,6 +638,44 @@ async function recoverPendingGoogleOAuthRevocations() {
     }
 }
 
+async function cleanupExpiredGoogleOAuthConnectionAttempts() {
+    try {
+        const result = expireOAuthConnectionAttempts({ now: getNow(), limit: 100 });
+        if (result.expired > 0 || result.deleted > 0) {
+            logger.info(
+                `[scheduler] oauth_connection_attempt_cleanup expired=${result.expired} deleted=${result.deleted}`
+            );
+        }
+        return result;
+    } catch (error) {
+        logger.warn('[scheduler] oauth_connection_attempt_cleanup_failed');
+        return { expired: 0, deleted: 0, errorCode: 'OAUTH_CONNECTION_ATTEMPT_CLEANUP_FAILED' };
+    }
+}
+
+async function recoverPendingGoogleOAuthConnectionCompensations() {
+    try {
+        const result = await recoverPendingGoogleOAuthCompensations({ limit: 50 });
+        if (result.attempted > 0 || result.manualRequired > 0) {
+            logger.info(
+                `[scheduler] oauth_connection_compensation attempted=${result.attempted} `
+                + `compensated=${result.compensated} pending=${result.pending} `
+                + `manual_required=${result.manualRequired}`
+            );
+        }
+        return result;
+    } catch (error) {
+        logger.warn('[scheduler] oauth_connection_compensation_failed');
+        return {
+            attempted: 0,
+            compensated: 0,
+            pending: 0,
+            manualRequired: 0,
+            errorCode: 'OAUTH_CONNECTION_COMPENSATION_FAILED'
+        };
+    }
+}
+
 async function sendDailyOpsCheckAdminReport() {
     try {
         const result = await sendDailyOpsCheckReport({
@@ -698,6 +738,8 @@ function initializeScheduler(wppClient) {
     cron.schedule('0 * * * *', async () => {
         await sendOperationalHeartbeat();
         await recoverPendingGoogleOAuthRevocations();
+        await recoverPendingGoogleOAuthConnectionCompensations();
+        await cleanupExpiredGoogleOAuthConnectionAttempts();
     }, { scheduled: true, timezone: 'America/Sao_Paulo' });
 
     cron.schedule('5 9 * * *', async () => {
@@ -752,6 +794,8 @@ module.exports = {
         sumSchedulerLegacyCards,
         sendOperationalHeartbeat,
         recoverPendingGoogleOAuthRevocations,
+        recoverPendingGoogleOAuthConnectionCompensations,
+        cleanupExpiredGoogleOAuthConnectionAttempts,
         sendDailyOpsCheckAdminReport,
         sendInterpretationReadinessAdminAlert,
         collectPaymentsDueOnDate,

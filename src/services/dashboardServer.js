@@ -1020,14 +1020,26 @@ function startDashboardServer() {
                     throw new Error('Callback OAuth sem code/state.');
                 }
                 const result = await completeGoogleOAuthCallback({ code, state });
-                metrics.increment('oauth.google.callback.success');
-                logger.info(`oauth: Google conectado para user_id=${result.userId}`);
-                await notifyUserAfterGoogleConnection(result);
+                metrics.increment(result.replayed
+                    ? 'oauth.google.callback.replay'
+                    : 'oauth.google.callback.success');
+                if (!result.replayed) {
+                    logger.info(`oauth: Google conectado para user_id=${result.userId}`);
+                    await notifyUserAfterGoogleConnection(result);
+                }
                 sendHtmlStatus(res, 200, safeOAuthPage(
                     'Google conectado com sucesso',
                     'Pode voltar para o WhatsApp. O FinançasBot vai continuar a configuração por lá.'
                 ));
             } catch (error) {
+                if (error?.code === 'OAUTH_CALLBACK_IN_PROGRESS') {
+                    metrics.increment('oauth.google.callback.in_progress');
+                    sendHtmlStatus(res, 202, safeOAuthPage(
+                        'ConexÃ£o Google em andamento',
+                        'Aguarde alguns segundos e atualize esta pÃ¡gina. Nenhuma nova autorizaÃ§Ã£o Ã© necessÃ¡ria.'
+                    ));
+                    return;
+                }
                 metrics.increment('oauth.google.callback.error');
                 logger.warn(`oauth google callback rejeitado: ${error.message}`);
                 sendHtmlStatus(res, 400, safeOAuthPage(

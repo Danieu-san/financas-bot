@@ -18,6 +18,8 @@ Plano ativo: `docs/plans/current-gate.md`.
 - o HEAD de cada retomada deve ser confirmado pelo Git e pode conter um commit
   operacional posterior a essa base;
 - a árvore portátil está suja com a implementação WGL ainda não publicada;
+- o HEAD antes do candidato WGL é
+  `ecf819d7baad74f85ca4a1ba23982db894863237`;
 - arquivos não rastreados alheios já existentes pertencem ao usuário e não
   devem ser adicionados, alterados ou removidos.
 
@@ -27,8 +29,10 @@ Plano ativo: `docs/plans/current-gate.md`.
 - subplano: remediação adversarial do lifecycle Google;
 - dentro: state/claim/generation, saga OAuth, planilha marcada, recovery,
   compensação, resposta HTTP repetível, scheduler de retenção e testes locais;
-- fora: deploy, EC2, Google/WhatsApp real, Drive membership de `AUTH-03/WGL-07`,
-  Open Finance, escrita financeira e mudanças de flags.
+- fora: deploy, EC2/Oracle, Google/WhatsApp real, mudança funcional de Drive
+  membership de `AUTH-03/WGL-07`, Open Finance, escrita financeira e flags;
+  a leitura de memberships entrou apenas como trava para impedir que uma
+  compensação apague planilha familiar já referenciada.
 
 ## Concluído neste gate
 
@@ -38,21 +42,27 @@ Plano ativo: `docs/plans/current-gate.md`.
   cega;
 - replay de resposta HTTP sem repetir notificação/efeitos;
 - cobertura de concorrência multiprocesso, restart e cortes da saga;
-- suíte `tests/googleOAuthConnectionSaga.test.js` passou `17/17` antes do último
-  reforço de invariantes;
+- mapa explícito de transições e conclusão restrita a `lifecycle_active`;
+- compensação persistida antes do efeito remoto, com lease, backoff, retenção,
+  retry pelo scheduler e destruição de tokens após conclusão/expiração;
+- geração nova não abandona compensação antiga pendente;
+- compensação não apaga planilha preexistente, conectada ou referenciada por
+  membership familiar e bloqueia novos writers enquanto a exclusão está em voo;
+- bloco legado comentado do callback foi removido do módulo de produto;
+- suíte focal final `tests/googleOAuthConnectionSaga.test.js`: `20/20`;
+- bateria diretamente afetada final: `62/62` após o último endurecimento;
+- prova do scheduler: `20/20`; prova negativa: `4/4`;
+- runner hermético: `1.190` testes, `1.185` aprovados, `0` falhas e `5` skips
+  funcionais previstos; rede externa bloqueada, 94 arquivos, 89,41% de linhas e
+  71,7% de branches;
 - microfix prévio confirmado no commit `94449eea...`.
 
-## Ponto parcial preservado
+## Estado do candidato
 
-Depois do `17/17`, foi iniciado um endurecimento adicional:
-
-- `oauthTokenStore.js` agora possui mapa explícito de transições permitidas;
-- conclusão exige `stage = lifecycle_active` e geração mais recente;
-- os testes de recibo durável e retenção foram adaptados para etapas sequenciais;
-- o teste de lease/promoção ainda precisa ser adaptado completamente;
-- nenhuma suíte foi executada depois desse patch parcial.
-
-Portanto, o `17/17` anterior não valida o estado exato atual da árvore.
+Implementação e validação local estão concluídas. Falta publicar somente os
+arquivos sanitizados do WGL em commit imutável e obter auditoria independente.
+Alterações concorrentes do workstream AWS/Oracle e arquivos não rastreados do
+usuário não pertencem ao candidato e não devem ser incluídos.
 
 ## Decisões vigentes
 
@@ -67,21 +77,23 @@ Portanto, o `17/17` anterior não valida o estado exato atual da árvore.
 
 ## Última evidência confiável
 
-- sintaxe dos cinco módulos centrais: verde antes do último patch;
-- saga WGL: `17/17` verde antes do endurecimento parcial;
+- sintaxe dos módulos centrais e teste focal: verde;
+- saga WGL: `20/20` verde no estado atual;
+- afetados finais: `62/62` verde;
+- runner hermético local: `valid=true`, `external_network_blocked=true`,
+  `pass=1185`, `fail=0`, `skipped=5`;
 - nenhuma evidência de produção foi produzida ou autorizada.
 
 ## Próxima ação exata
 
-1. adaptar o teste de lease/promoção às transições sequenciais permitidas;
-2. executar `node --check` nos módulos e no teste da saga;
-3. executar somente `tests/googleOAuthConnectionSaga.test.js`;
-4. corrigir falhas causais e então rodar as baterias afetadas definidas no gate;
-5. fechar compensação recuperável antes do runner hermético e da auditoria.
+1. revisar o conjunto exato de arquivos WGL e `git diff --check`;
+2. criar commit sanitizado sem arquivos da migração ou do usuário e publicar;
+3. auditar o hash imutável com evidência local e GitHub;
+4. corrigir somente achado material; se não houver, consolidar o gate sem deploy.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Extra Alto → terminar as invariantes e revalidar WGL-03/WGL-04.`
+`Codex → Sol → Extra Alto → publicar e auditar o candidato imutável WGL-03/WGL-04.`
 
 ## Histórico dirigido
 

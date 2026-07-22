@@ -10,7 +10,7 @@ const userServicePath = require.resolve('../src/services/userService');
 
 let whatsappMessages = [];
 
-function installMocks({ callbackResult = { userId: 'user-oauth-route' } } = {}) {
+function installMocks({ callbackResult = { userId: 'user-oauth-route' }, callbackError = null } = {}) {
     whatsappMessages = [];
     delete require.cache[dashboardServerPath];
     delete require.cache[readModelPath];
@@ -42,6 +42,7 @@ function installMocks({ callbackResult = { userId: 'user-oauth-route' } } = {}) 
             },
             completeGoogleOAuthCallback: async ({ code, state }) => {
                 if (code === 'bad') throw new Error('Falha OAuth de teste.');
+                if (callbackError) throw callbackError;
                 return { ...callbackResult, code, state };
             }
         }
@@ -150,6 +151,53 @@ test('OAuth callback notifies user on WhatsApp after successful connection', asy
         assert.match(whatsappMessages[0].message, /Depois do onboarding/);
     } finally {
         delete process.env.USER_MANUAL_URL;
+        await new Promise(resolve => server.close(resolve));
+    }
+});
+
+test('OAuth callback replay returns success without sending a second WhatsApp notification', async () => {
+    installMocks({
+        callbackResult: {
+            userId: 'user-oauth-route',
+            whatsappId: '5599999999999@c.us',
+            spreadsheetUrl: 'https://docs.google.com/spreadsheets/d/sheet-id/edit',
+            replayed: true
+        }
+    });
+    const { startDashboardServer } = require('../src/services/dashboardServer');
+    const server = startDashboardServer();
+    if (!server.listening) await once(server, 'listening');
+    const address = server.address();
+    const baseUrl = `http://127.0.0.1:${address.port}`;
+
+    try {
+        const res = await fetch(`${baseUrl}/oauth/google/callback?code=replayed&state=signed-state`);
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(whatsappMessages.length, 0);
+    } finally {
+        await new Promise(resolve => server.close(resolve));
+    }
+});
+
+test('OAuth callback already in progress returns a retryable 202 page without asking for a new link', async () => {
+    const callbackError = new Error('ConexÃ£o Google jÃ¡ estÃ¡ sendo concluÃ­da.');
+    callbackError.code = 'OAUTH_CALLBACK_IN_PROGRESS';
+    installMocks({ callbackError });
+    const { startDashboardServer } = require('../src/services/dashboardServer');
+    const server = startDashboardServer();
+    if (!server.listening) await once(server, 'listening');
+    const address = server.address();
+    const baseUrl = `http://127.0.0.1:${address.port}`;
+
+    try {
+        const res = await fetch(`${baseUrl}/oauth/google/callback?code=pending&state=signed-state`);
+        const body = await res.text();
+        assert.strictEqual(res.status, 202);
+        assert.match(body, /em andamento/i);
+        assert.match(body, /atualize esta p/i);
+        assert.doesNotMatch(body, /novo link/i);
+        assert.strictEqual(whatsappMessages.length, 0);
+    } finally {
         await new Promise(resolve => server.close(resolve));
     }
 });
