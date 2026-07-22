@@ -2,6 +2,12 @@
 
 Atualizado em: 2026-07-22
 
+## Objetivo ativo
+
+Executar a fila de correções da auditoria exaustiva. O próximo gate já ordenado
+é `FLOW-03`; a decisão de produto pós-Fase 9 sobre proposição de salvamento foi
+registrada no roadmap sem alterar o escopo desse gate.
+
 ## Último gate encerrado
 
 `AUTH-03/WGL-07` recebeu `GO TÉCNICO LOCAL` independente no commit imutável

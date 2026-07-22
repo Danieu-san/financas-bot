@@ -1493,5 +1493,35 @@ Resultado do canario persistente do preview familiar em 2026-07-17:
 - gate:
   `docs/qa/phase-9-post-rollout-family-preview-canary-gate-2026-07-17.md`.
 
+### Decisao de produto - proposicao de salvamento apos reconciliacao
+
+O fluxo final aprovado nao e orientado ao comando manual `salvar <referencia>`.
+Esse comando pode existir como mecanismo tecnico de recuperacao ou atalho, mas
+nao e a experiencia principal.
+
+O contrato de produto e:
+
+1. o polling identifica uma observacao nova no provedor;
+2. o reconciliador consulta a fonte financeira familiar autorizada, inclusive
+   a planilha/ledger aplicavel, antes de qualquer proposta;
+3. observacao ja correspondida e silenciada, sem proposta de escrita;
+4. observacao duplicada, incerta, incompleta ou com conta/cartao ambiguo falha
+   fechada e nao oferece salvamento;
+5. somente uma observacao realmente nova e elegivel gera no WhatsApp um resumo
+   ja reconciliado acompanhado da pergunta explicita para salvar;
+6. Daniel ou Thais pode confirmar, corrigir ou cancelar a proposta dentro do
+   escopo familiar autorizado;
+7. apenas a confirmacao final executa a escrita idempotente e produz recibo;
+   ausencia de resposta, timeout, restart ou replay nunca salva sozinho.
+
+A referencia continua necessaria internamente para uso unico, revalidacao,
+operation key, recibo, retry/restart e revogacao, mas o usuario nao deve ter de
+descobrir nem digitar `salvar <referencia>` para iniciar o fluxo normal.
+
+Esse contrato continua `NO-GO` para ativacao ate existir gate proprio cobrindo
+revalidacao contra a fonte, confirmacao, idempotencia, recuperacao, revogacao e
+zero escrita em correspondencia/ambiguidade. Ele nao autoriza escrita automatica
+nem altera `OPEN_FINANCE_WRITE_MODE=off`.
+
 Nao ha nova fase estrutural autorizada depois da 9F. O trabalho ativo volta a
 ser observacao da Fase 8 e operacao/manutencao do produto.

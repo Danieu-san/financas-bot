@@ -245,6 +245,15 @@ referência de uso único, revalidação completa, confirmação, operation key,
 recibo, retry/restart e revogação. Até lá, uma pergunta proativa apenas criaria
 uma expectativa de escrita que o contrato atual corretamente proíbe.
 
+Decisão de produto registrada posteriormente: a experiência final será
+proativa, não command-first. Depois de identificar uma observação nova, o bot
+consulta a fonte financeira familiar e só então apresenta no WhatsApp o resumo
+já reconciliado com uma proposta explícita de salvamento. Correspondência,
+duplicidade, incerteza ou ambiguidade não oferecem escrita. `salvar
+<referência>` pode permanecer como mecanismo técnico/atalho, mas não será o
+início obrigatório do fluxo normal. A escrita continua condicionada à
+confirmação final e aos controles acima.
+
 ## Evidência de testes
 
 - suíte padrão integral verde; etapa principal `996/996`;

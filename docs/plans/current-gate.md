@@ -19,6 +19,24 @@ testes.
 Tratar `FLOW-03`, item 7 do relatório exaustivo: parte do scheduler ainda lê a
 planilha central enquanto os writers financeiros usam planilhas pessoais.
 
+## Objetivo
+
+Unificar a resolução de fonte financeira do scheduler com o escopo pessoal já
+usado pelos writers, sem introduzir fallback silencioso para a planilha central.
+
+## Escopo
+
+- mapear jobs, leitores, writers e resolução de planilha afetados;
+- corrigir somente os caminhos causais de `FLOW-03`;
+- adicionar testes adversariais de escopo, indisponibilidade e ausência real;
+- preservar a ordem da fila da auditoria.
+
+## Não escopo
+
+- deploy, EC2/Oracle, Google/WhatsApp real ou mudança de flags;
+- implementação do fluxo Pluggy de proposição de salvamento;
+- remoção ampla de legado, dashboard/admin ou expansão multiusuário.
+
 Antes de implementar:
 
 1. mapear cada job, leitura, writer e resolução de planilha afetados;
@@ -26,6 +44,15 @@ Antes de implementar:
 3. preservar fora do escopo deploy, EC2/Oracle e serviços reais;
 4. consultar novamente ADR-002 e o checklist se o mapa tocar dashboard, admin,
    permissões ou expansão multiusuário.
+
+## Critérios de GO
+
+- nenhum job financeiro lê escopo central quando o contrato exige planilha
+  pessoal;
+- indisponibilidade de uma fonte pessoal não vira zero nem fallback central;
+- scheduler e writers resolvem o mesmo usuário e a mesma fonte financeira;
+- testes focais e afetados passam sem tocar serviços reais;
+- diff permanece sanitizado e sem arquivos do workstream AWS/Oracle.
 
 ## Condições de parada
 

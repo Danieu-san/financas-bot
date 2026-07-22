@@ -698,6 +698,10 @@ familiar.
 - importacao para staging, nunca direto para lancamento final;
 - conciliacao com ledger, lancamentos manuais e importacoes CSV/OFX;
 - preview de divergencias antes de alterar qualquer status;
+- quando a conciliacao classificar uma observacao como nova e elegivel, o bot
+  deve apresentar no WhatsApp o resumo ja reconciliado e propor explicitamente
+  o salvamento; o usuario confirma, corrige ou cancela sem precisar iniciar a
+  interacao digitando `salvar <referencia>`;
 - fallback manual quando Open Finance estiver indisponivel.
 
 **O que nao fazer nesta fase:**
@@ -705,6 +709,8 @@ familiar.
 - nao usar uma conta Meu Pluggy de Daniel para autorizar contas da Thais;
 - nao conectar bancos reais antes do ADR e do threat model;
 - nao deixar Open Finance criar gasto/renda automaticamente;
+- nao propor salvamento antes de consultar a fonte financeira familiar e
+  excluir correspondencia, duplicidade ou ambiguidade;
 - nao substituir importacao CSV/OFX ate a paridade ser comprovada;
 - nao guardar credenciais bancarias; usar apenas consentimento/provedor autorizado;
 - nao pagar plano comercial da Pluggy sem nova decisao explicita.
