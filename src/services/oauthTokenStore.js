@@ -14,6 +14,26 @@ try {
 const DEFAULT_DB_PATH = path.resolve(process.cwd(), 'data', 'oauth_tokens.sqlite');
 let db = null;
 let activeDbPath = '';
+const sqliteRetryBuffer = new Int32Array(new SharedArrayBuffer(4));
+
+function isSqliteBusy(error) {
+    return error?.code === 'SQLITE_BUSY' || /database is locked/i.test(String(error?.message || ''));
+}
+
+function runWithSqliteBusyRetry(operation, timeoutMs) {
+    const deadline = Date.now() + timeoutMs;
+    let delayMs = 10;
+    while (true) {
+        try {
+            return operation();
+        } catch (error) {
+            const remainingMs = deadline - Date.now();
+            if (!isSqliteBusy(error) || remainingMs <= 0) throw error;
+            Atomics.wait(sqliteRetryBuffer, 0, 0, Math.min(delayMs, remainingMs));
+            delayMs = Math.min(delayMs * 2, 100);
+        }
+    }
+}
 
 function getDbPath() {
     return path.resolve(process.env.OAUTH_TOKEN_DB_PATH || DEFAULT_DB_PATH);
@@ -35,67 +55,75 @@ function ensureDb() {
     if (db && activeDbPath === dbPath) return db;
 
     ensureDataDir(dbPath);
-    db = new Database(dbPath);
-    activeDbPath = dbPath;
+    const candidate = new Database(dbPath);
     const busyTimeoutMs = boundedInteger(
         process.env.OAUTH_SQLITE_BUSY_TIMEOUT_MS,
         5000,
         100,
         30000
     );
-    db.pragma(`busy_timeout = ${busyTimeoutMs}`);
-    db.pragma('journal_mode = WAL');
-    db.exec(`
-        CREATE TABLE IF NOT EXISTS oauth_connections (
-            user_id TEXT PRIMARY KEY,
-            provider TEXT NOT NULL,
-            scopes TEXT NOT NULL,
-            encrypted_tokens TEXT NOT NULL,
-            google_user_id TEXT,
-            google_email TEXT,
-            spreadsheet_id TEXT,
-            calendar_id TEXT,
-            connected_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL,
-            revoked_at TEXT
-        );
-        CREATE INDEX IF NOT EXISTS idx_oauth_connections_provider ON oauth_connections(provider);
-        CREATE TABLE IF NOT EXISTS oauth_revocations (
-            revocation_id TEXT PRIMARY KEY,
-            user_id TEXT NOT NULL,
-            generation INTEGER NOT NULL,
-            encrypted_tokens TEXT NOT NULL,
-            reason TEXT NOT NULL,
-            status TEXT NOT NULL,
-            attempts INTEGER NOT NULL DEFAULT 0,
-            last_error_code TEXT,
-            requested_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL,
-            next_attempt_at TEXT NOT NULL,
-            expires_at TEXT NOT NULL,
-            max_attempts INTEGER NOT NULL DEFAULT 5,
-            lease_id TEXT NOT NULL DEFAULT '',
-            lease_expires_at TEXT NOT NULL DEFAULT '',
-            completed_at TEXT,
-            has_pending_token INTEGER NOT NULL DEFAULT 0,
-            UNIQUE(user_id, generation)
-        );
-        CREATE TABLE IF NOT EXISTS shared_spreadsheet_members (
-            user_id TEXT PRIMARY KEY,
-            owner_user_id TEXT NOT NULL,
-            spreadsheet_id TEXT NOT NULL,
-            member_google_email TEXT,
-            drive_permission_id TEXT,
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL,
-            revoked_at TEXT
-        );
-        CREATE INDEX IF NOT EXISTS idx_shared_spreadsheet_owner ON shared_spreadsheet_members(owner_user_id);
-        CREATE INDEX IF NOT EXISTS idx_shared_spreadsheet_id ON shared_spreadsheet_members(spreadsheet_id);
-    `);
-    ensureOAuthRevocationSchema(db);
-    ensureColumn(db, 'shared_spreadsheet_members', 'member_google_email', 'TEXT');
-    ensureColumn(db, 'shared_spreadsheet_members', 'drive_permission_id', 'TEXT');
+    candidate.pragma(`busy_timeout = ${busyTimeoutMs}`);
+    try {
+        runWithSqliteBusyRetry(() => {
+            candidate.pragma('journal_mode = WAL');
+            candidate.exec(`
+                CREATE TABLE IF NOT EXISTS oauth_connections (
+                    user_id TEXT PRIMARY KEY,
+                    provider TEXT NOT NULL,
+                    scopes TEXT NOT NULL,
+                    encrypted_tokens TEXT NOT NULL,
+                    google_user_id TEXT,
+                    google_email TEXT,
+                    spreadsheet_id TEXT,
+                    calendar_id TEXT,
+                    connected_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    revoked_at TEXT
+                );
+                CREATE INDEX IF NOT EXISTS idx_oauth_connections_provider ON oauth_connections(provider);
+                CREATE TABLE IF NOT EXISTS oauth_revocations (
+                    revocation_id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    generation INTEGER NOT NULL,
+                    encrypted_tokens TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    attempts INTEGER NOT NULL DEFAULT 0,
+                    last_error_code TEXT,
+                    requested_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    next_attempt_at TEXT NOT NULL,
+                    expires_at TEXT NOT NULL,
+                    max_attempts INTEGER NOT NULL DEFAULT 5,
+                    lease_id TEXT NOT NULL DEFAULT '',
+                    lease_expires_at TEXT NOT NULL DEFAULT '',
+                    completed_at TEXT,
+                    has_pending_token INTEGER NOT NULL DEFAULT 0,
+                    UNIQUE(user_id, generation)
+                );
+                CREATE TABLE IF NOT EXISTS shared_spreadsheet_members (
+                    user_id TEXT PRIMARY KEY,
+                    owner_user_id TEXT NOT NULL,
+                    spreadsheet_id TEXT NOT NULL,
+                    member_google_email TEXT,
+                    drive_permission_id TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    revoked_at TEXT
+                );
+                CREATE INDEX IF NOT EXISTS idx_shared_spreadsheet_owner ON shared_spreadsheet_members(owner_user_id);
+                CREATE INDEX IF NOT EXISTS idx_shared_spreadsheet_id ON shared_spreadsheet_members(spreadsheet_id);
+            `);
+            ensureOAuthRevocationSchema(candidate);
+            ensureColumn(candidate, 'shared_spreadsheet_members', 'member_google_email', 'TEXT');
+            ensureColumn(candidate, 'shared_spreadsheet_members', 'drive_permission_id', 'TEXT');
+        }, busyTimeoutMs);
+    } catch (error) {
+        try { candidate.close(); } catch (closeError) { /* best effort */ }
+        throw error;
+    }
+    db = candidate;
+    activeDbPath = dbPath;
     return db;
 }
 
