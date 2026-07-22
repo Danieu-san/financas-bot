@@ -49,7 +49,7 @@ Open Finance, escrita financeira, flags de produção e remoção ampla de legad
 - [x] demonstrar recuperação de compensação falha e retenção limitada;
 - [x] rodar testes focais e baterias diretamente afetadas;
 - [x] executar uma única suíte hermética abrangente e checks estáticos;
-- [ ] publicar candidato sanitizado e obter auditoria independente.
+- [x] publicar candidato sanitizado e obter auditoria independente.
 
 ## Testes obrigatórios
 
@@ -89,13 +89,11 @@ depois de a bateria afetada ficar estável.
 
 ## Estado e próxima ação
 
-Implementação local concluída: focal `21/21`, afetados finais `62/62` e runner
-hermético `1.185` passes, `0` falhas, `5` skips previstos, com rede bloqueada.
-O primeiro hash imutável recebeu achado MEDIUM válido para delete remoto
-efetivado com resposta perdida. A primeira reauditoria confirmou essa correção,
-mas encontrou novo MEDIUM: recurso `trashed=true` era aceito antes da validação
-do marcador. A decisão agora valida propriedade primeiro; marcador alheio ou
-ausente retorna `false` mesmo na lixeira, enquanto 404 e recurso descartado com
-marcador correto convergem. A prova focal+planilha passou `38/38`, incluindo os
-cruzamentos adversariais. Publicar novo delta sanitizado e executar uma única
-auditoria independente do novo hash. Deploy e produção continuam fora do escopo.
+Gate encerrado com `GO TÉCNICO LOCAL` no commit imutável
+`867be43265ed363a8bf235a87a77787d013a5abb`. A revisão independente confirmou o
+pai, leu os sete artefatos exigidos e não encontrou achado CRITICAL, HIGH ou
+MEDIUM nem lacuna indispensável. WGL-03 e WGL-04 estão tecnicamente concluídos;
+o relatório está em
+`docs/audit/14-wgl03-wgl04-independent-close-2026-07-22.md`. Deploy, produção e
+serviços reais continuam fora do escopo. A próxima fatia já ordenada é
+`AUTH-03/WGL-07`, remoção de membership/permissão Drive familiar.

@@ -4,9 +4,9 @@ Atualizado em: 2026-07-22
 
 ## Objetivo ativo
 
-Concluir localmente `WGL-03/WGL-04`: state OAuth de uso único, callback
-concorrente convergente, checkpoints duráveis e compensação segura da saga de
-conexão Google.
+`WGL-03/WGL-04` foram encerrados com `GO TÉCNICO LOCAL`. Preparar a próxima
+fatia já ordenada, `AUTH-03/WGL-07`, para remover membership/permissão Drive
+familiar quando o lifecycle exigir, sem tocar produção.
 
 Plano ativo: `docs/plans/current-gate.md`.
 
@@ -17,8 +17,9 @@ Plano ativo: `docs/plans/current-gate.md`.
 - commit de partida do WGL: `94449eea355f2c0f796a2ec0bd7b3c253e595715`;
 - o HEAD de cada retomada deve ser confirmado pelo Git e pode conter um commit
   operacional posterior a essa base;
-- a árvore portátil contém somente o segundo delta focal WGL ainda não
-  publicado, além das alterações concorrentes e arquivos do usuário fora do gate;
+- o produto WGL auditado está publicado em `867be432...`; a árvore portátil
+  contém apenas a consolidação documental ainda não publicada, além das
+  alterações concorrentes e arquivos do usuário fora do gate;
 - o HEAD antes do candidato WGL é
   `ecf819d7baad74f85ca4a1ba23982db894863237`;
 - arquivos não rastreados alheios já existentes pertencem ao usuário e não
@@ -61,10 +62,10 @@ Plano ativo: `docs/plans/current-gate.md`.
 
 ## Estado do candidato
 
-Implementação e validação local estão concluídas. Falta publicar somente os
-arquivos sanitizados do WGL em commit imutável e obter auditoria independente.
-Alterações concorrentes do workstream AWS/Oracle e arquivos não rastreados do
-usuário não pertencem ao candidato e não devem ser incluídos.
+O commit imutável `867be43265ed363a8bf235a87a77787d013a5abb` recebeu `GO
+TÉCNICO LOCAL` independente para WGL-03 e WGL-04, sem achado material ou lacuna
+indispensável. Alterações concorrentes do workstream AWS/Oracle e arquivos não
+rastreados do usuário permanecem fora deste gate e não foram incluídos.
 
 ## Decisões vigentes
 
@@ -94,17 +95,15 @@ usuário não pertencem ao candidato e não devem ser incluídos.
 
 ## Próxima ação exata
 
-1. revalidar o segundo delta focal e executar `git diff --check`;
-2. criar novo commit sanitizado sem arquivos da migração ou do usuário e publicar;
-3. auditar o novo hash imutável com evidência local e GitHub; os hashes
-   `fe369897...` e `0b8f5bf9...` receberam achados MEDIUM válidos, respectivamente
-   por não convergir após delete efetivado e por aceitar falso sucesso para
-   recurso descartado com marcador alheio/ausente;
-4. corrigir somente achado material; se não houver, consolidar o gate sem deploy.
+1. consolidar documentalmente o `GO` de `867be432...` sem alterar produto;
+2. mapear em leitura o escopo causal de `AUTH-03/WGL-07` a partir do relatório
+   final e do código atual;
+3. fechar contrato, testes adversariais e limites antes de implementar;
+4. manter deploy, EC2/Oracle e serviços reais fora do escopo.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Extra Alto → publicar e auditar o candidato imutável WGL-03/WGL-04.`
+`Codex → Sol → Extra Alto → mapear e implementar AUTH-03/WGL-07 sem deploy.`
 
 ## Histórico dirigido
 

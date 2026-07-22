@@ -19,8 +19,8 @@ Objeto: commit `94c52f23261ae2b9150edcdb7f3ba5ebaba35727`, tree
 - Revisão remota do preview Open Finance: `NO-GO`.
 - Status posterior: `AUTH-01` foi corrigida e validada em produção; `FLOW-01`
   e o contrato original restrito de `STATE-02` receberam `GO local` na C-01;
-  `DATA-01` e `DATA-02` receberam `GO local integral`.
-  Restam cinco `P1` residuais — dois parcialmente resolvidos e três abertos —
+  `DATA-01`, `DATA-02` e `AUTH-02` receberam `GO local integral`.
+  Restam quatro `P1` residuais — um parcialmente resolvido e três abertos —
   e sete `P2` abertos do objeto auditado.
 
 O resultado mais importante é que as baterias verdes não cobrem algumas
@@ -139,6 +139,18 @@ Este adendo fecha somente `C-03/WGL-02`. Ele não fecha o componente de
 compartilhamento Drive do achado agregado `AUTH-03`, nem `WGL-03/WGL-04` sobre
 replay e compensação da saga Google.
 
+## Adendo de remediação — WGL-03/WGL-04 — 2026-07-22
+
+O commit imutável `867be43265ed363a8bf235a87a77787d013a5abb` encerrou o uso
+único/replay e a compensação durável da saga OAuth. A revisão independente leu
+os sete artefatos exigidos no GitHub, confirmou o pai `0b8f5bf9...`, não
+encontrou CRITICAL/HIGH/MEDIUM nem lacuna indispensável e deu `GO TÉCNICO
+LOCAL` combinado. A prova externa foi estática e não reproduziu os testes.
+
+Esse fechamento torna `AUTH-02` resolvido no escopo local. `AUTH-03` permanece
+parcial até a remoção causal de membership/permissão Drive familiar em
+`AUTH-03/WGL-07`. Deploy e serviços reais não foram avaliados nem autorizados.
+
 ## Estado consolidado das remediações — 2026-07-21
 
 Esta tabela preserva a severidade e a identidade dos achados originais, mas
@@ -151,7 +163,7 @@ autoriza deploy: indica apenas que uma parte causal possui evidência local.
 | FLOW-01 | P1 | Resolvido | efeitos de áudio após os gates e temporários isolados por execução; C-01 com GO local integral |
 | DATA-01 | P1 | Resolvido | indisponibilidade Google é propagada e consumidores falham fechado; GO local integral |
 | DATA-02 | P1 | Resolvido | cinco fronteiras genéricas neutralizam texto antes de `USER_ENTERED`; fórmulas internas do template preservadas; GO local integral |
-| AUTH-02 | P1 | Parcial | C-02 impede reativação por lifecycle, mas replay e planilha órfã permanecem |
+| AUTH-02 | P1 | Resolvido | lifecycle impeditivo, state de uso único, replay, recovery e compensação receberam GO técnico local |
 | AUTH-03 | P1 | Parcial | C-03 revoga OAuth individual; membership/permissão Drive permanece |
 | FLOW-03 | P1 | Aberto | scheduler central e writes pessoais ainda divergem |
 | STATE-01 | P1 | Aberto | não há serialização geral por remetente |
@@ -165,8 +177,8 @@ autoriza deploy: indica apenas que uma parte causal possui evidência local.
 | COV-01 | P2 | Aberto | gate padrão ainda não incorpora formalmente toda a bateria hermética |
 | OPS-01 | P2 | Aberto | runtime e `.env.example` continuam sem sincronização integral |
 
-Contagem vigente: quatro P1 resolvidos; seis P1 residuais, sendo dois parciais e
-quatro abertos; sete P2 abertos. As seções e tabelas anteriores continuam como
+Contagem vigente: seis P1 resolvidos; quatro P1 residuais, sendo um parcial e
+três abertos; sete P2 abertos. As seções e tabelas anteriores continuam como
 registro do objeto original, não como quadro vigente de remediação.
 
 ## Achados prioritários originais
@@ -240,9 +252,10 @@ Esta sequência é uma fila, não autorização imediata:
    análise e scheduler (`DATA-01`);
 4. **concluído:** neutralizar textos na fronteira genérica do Sheets
    (`DATA-02`);
-5. **gate imediato:** tratar separadamente replay/uso único e compensação OAuth
+5. **concluído:** tratar separadamente replay/uso único e compensação OAuth
    (`WGL-03/WGL-04`);
-6. remover membership/permissão Drive quando o lifecycle exigir;
+6. **gate imediato:** remover membership/permissão Drive quando o lifecycle
+   exigir (`AUTH-03/WGL-07`);
 7. serializar mensagens por remetente;
 8. alinhar scheduler à planilha pessoal e adicionar outbox durável;
 9. fechar escapes de log e proteger o snapshot;
@@ -260,5 +273,6 @@ satisfeita. `AUTH-01` foi corrigida em fatia explícita posterior. A C-01 recebe
 `GO local integral`: `FLOW-01`, o contrato original restrito de `STATE-02` e a
 colisão de temporários estão fechados, com revisão independente e gates locais
 verdes no candidato `0188570...`. DATA-01 e DATA-02 também receberam `GO local
-integral`; deploy e produção não foram avaliados. A próxima correção causal é
-`WGL-03/WGL-04`, sobre replay/uso único e compensação da saga Google.
+integral`; WGL-03/WGL-04 também receberam `GO TÉCNICO LOCAL`; deploy e produção
+não foram avaliados. A próxima correção causal é `AUTH-03/WGL-07`, sobre remoção
+de membership/permissão Drive familiar quando o lifecycle exigir.
