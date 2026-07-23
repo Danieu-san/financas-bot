@@ -1,182 +1,97 @@
-# Gate encerrado — STATE-01; próximo gate — PRIV-01
+# Gate ativo — PRIV-01
 
 Atualizado em: 2026-07-22
 
-Commit de partida efetivo: `083be71580292ff09d11ffb2d4c0b7b99a065bf3`.
+Commit de partida: `9894d8215cec7f7b7d3add9329d3e3071f62fc58`.
 
-## Estado anterior
+## Estado
 
-`FLOW-03` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
-`4c1001338ca1ed919b55be4e9566258178a0175e`. O Chat confirmou o hash, leu os
-quatro arquivos exigidos e não encontrou achado bloqueante ou lacuna causal
-indispensável. Evidência local: scheduler `23/23`, bateria afetada `279/279` e
-runner principal do `npm test` `1.068/1.068`, além dos pretests verdes.
-
-## Próximo objetivo já ordenado
-
-Tratar `STATE-01`, item 8 do relatório exaustivo: mensagens do mesmo remetente
-podem avançar concorrentemente a máquina de estado e disputar os mesmos efeitos.
+`CANDIDATO LOCAL VALIDADO, AGUARDANDO COMMIT IMUTÁVEL E AUDITORIA
+INDEPENDENTE`. Este gate não autoriza deploy.
 
 ## Objetivo
 
-Definir e implementar serialização causal por remetente, preservando paralelismo
-entre remetentes diferentes, deduplicação e recuperação segura após falhas.
+Fechar `PRIV-01`, P1 da auditoria exaustiva: impedir que caminhos de runtime
+contornem o logger sanitizado ou enviem a logs objetos de erro/resposta, tokens,
+URLs sensíveis, conteúdo de mensagens ou identificadores crus.
 
 ## Escopo
 
-- mapear entrypoints, máquina de estado, confirmações e writers afetados;
-- corrigir somente os caminhos causais de `STATE-01`;
-- adicionar testes adversariais com duas mensagens simultâneas do mesmo remetente;
-- preservar a ordem da fila da auditoria.
+- entrypoint `index.js` e módulos JavaScript de `src/**`, exceto utilitários
+  exclusivamente de teste em `src/testing/**`;
+- logger central, sinks `console.error`/`console.warn` e payloads de erros de
+  providers;
+- testes adversariais do sanitizador e prova negativa estática do runtime;
 
 ## Não escopo
 
-- deploy, EC2/Oracle, Google/WhatsApp real ou mudança de flags;
-- implementação do fluxo Pluggy de proposição de salvamento;
-- `FLOW-04`, outbox do scheduler, logs globais e snapshot;
-- remoção ampla de legado, dashboard/admin ou expansão multiusuário.
+- mudança de regras financeiras, retries, respostas, efeitos ou ordem causal
+  do produto;
+- produção, WhatsApp/Google real, deploy ou `STATE-04`;
+- logs de dependências externas ou arquivos históricos já gravados.
 
-Antes de implementar:
+## Inventário e RED
 
-1. mapear cada job, leitura, writer e resolução de planilha afetados;
-2. definir os invariantes causais e os testes adversariais do gate;
-3. preservar fora do escopo deploy, EC2/Oracle e serviços reais;
-4. consultar novamente ADR-002 e o checklist se o mapa tocar dashboard, admin,
-   permissões ou expansão multiusuário.
+O inventário reproduzível encontrou 146 arquivos JavaScript de runtime, 34
+ocorrências de `console.error`, 9 de `console.warn` e quatro dumps explícitos de
+payload de provider. Os escapes estavam em sete módulos: `index.js`,
+`creationHandler`, `messageHandler`, `google`, `googleOAuthService`, `whatsapp`
+e `userStateManager`.
 
-## Trava antes do mapeamento
+Dois testes foram escritos antes da correção e falharam causalmente:
 
-`STATE-01` é concorrência crítica sobre estado e efeitos financeiros. O nível
-mínimo suficiente é `Extra Alto`; nenhuma inspeção ou alteração material desse
-gate deve começar enquanto o Codex permanecer em `Alto`.
+1. o sanitizador preservava um `spreadsheet_id` e conteúdo em `message`;
+2. a prova negativa localizava os sete módulos que contornavam o logger.
 
-Os invariantes, riscos, testes causais e critérios de GO serão fixados somente
-depois do mapeamento no nível correto. O fechamento continuará exigindo commit
-sanitizado no GitHub e auditoria independente obrigatória no Chat.
+## Correção candidata
 
-## Mapeamento causal concluído
+- o logger central ganhou resumo seguro de erro composto apenas por nome e
+  código/status sanitizados, sem mensagem, resposta, configuração ou stack;
+- a redação central passou a cobrir chaves ampliadas de identificador e conteúdo
+  tanto em JSON quanto em pares `chave=valor`;
+- todos os `console.error` e `console.warn` do runtime foram encaminhados ao
+  logger central com evento estável e resumo seguro;
+- os quatro dumps explícitos de `response.data` foram removidos;
+- testes que observavam os sinks antigos agora observam o logger, sem alterar a
+  decisão de produto exercitada.
 
-- `index.js` entrega o mesmo `handleMessage` exportado tanto ao listener ao vivo
-  quanto ao backfill; portanto a fronteira única correta é a entrada pública do
-  handler, antes da deduplicação, da resolução de acesso e da leitura de estado;
-- `EventEmitter` não aguarda a promessa retornada pelo listener, permitindo que
-  duas mensagens distintas do mesmo remetente avancem em paralelo;
-- `userStateManager` protege a persistência de cada operação isolada, mas não
-  torna atômica a sequência ler estado, aguardar I/O, produzir efeito e mudar ou
-  excluir estado;
-- chaves de operação e deduplicação por `messageId` não resolvem a disputa entre
-  duas mensagens distintas; cada confirmação pode ter identidade própria;
-- não existe chamada recursiva do `handleMessage` que exija reentrância da fila.
+## Evidência executada pelo Codex
 
-## Invariantes do gate
+- RED: `2/2` falharam antes da correção pelos escapes acima;
+- provas focais depois da correção: `2/2`;
+- regressões dirigidas dos antigos sinks: `5/5`;
+- recorte WhatsApp após eliminar o último motivo dinâmico: `27/27`;
+- bateria afetada de 20 arquivos: `510/510`;
+- `npm test`: pretests verdes e runner principal `1.076/1.076`, sem falha,
+  cancelamento ou skip;
+- sintaxe dos arquivos alterados e `git diff --check`: verdes;
+- busca final: zero `console.error`/`console.warn` no recorte de runtime e zero
+  dump explícito dos payloads de provider caracterizados.
 
-1. Duas execuções do handler para o mesmo remetente nunca se sobrepõem e
-   observam a ordem em que entraram no handler público.
-2. Remetentes distintos continuam podendo executar em paralelo; não haverá fila
-   global.
-3. A deduplicação permanece dentro da fronteira serializada e uma reentrega do
-   mesmo `messageId` continua sem repetir transcrição ou efeito.
-4. Rejeição inesperada de uma mensagem não envenena a fila: a próxima operação
-   do mesmo remetente ainda executa.
-5. A cauda de um remetente é removida quando a última operação termina, evitando
-   crescimento permanente por remetentes inativos.
-6. Nenhuma chave de operação, transição de estado ou contrato de writer muda.
-
-## Riscos e limites aceitos
-
-- uma operação lenta segura mensagens posteriores do mesmo remetente; isso é o
-  custo intencional da ordem causal, sem bloquear outros remetentes;
-- a ordem garantida é a ordem de invocação local, não uma reordenação retroativa
-  por timestamp entre mensagem ao vivo e mensagem antiga descoberta no backfill;
-- a fila é por processo. Coordenação entre múltiplas instâncias simultâneas do
-  bot e drenagem especial no shutdown ficam fora do achado causal `STATE-01`.
-
-## Provas planejadas
-
-1. RED no handler público: duas mensagens distintas do mesmo remetente entram
-   juntas e a segunda não alcança a região assíncrona enquanto a primeira está
-   ativa.
-2. Duas confirmações concorrentes não podem consumir o mesmo estado nem produzir
-   dois efeitos.
-3. Remetentes distintos alcançam a região assíncrona simultaneamente.
-4. Uma operação rejeitada libera a seguinte do mesmo remetente.
-5. Regressão existente de `messageId` duplicado continua verde.
+Essas execuções pertencem ao Codex. A auditoria externa será estática e não
+deve alegar que as reproduziu.
 
 ## Critérios de GO
 
-- RED causal reproduzido antes da implementação e verde depois dela;
-- testes focais e baterias afetadas verdes;
-- um único runner amplo verde, sem repetição sem causa;
-- diff sanitizado, commit imutável publicado e auditoria independente obrigatória
-  no Chat sem achado bloqueante ou lacuna causal indispensável.
-
-## Evidência local obtida
-
-- RED causal reproduzido: sobreposição `2 != 1` para o mesmo remetente e duas
-  gravações `2 != 1` para confirmações simultâneas; controle entre remetentes
-  distintos verde;
-- provas focais finais: `5/5`;
-- bateria afetada final: `124/124`;
-- `npm test` final: pretests verdes e runner principal `1.073/1.073`, sem falha,
-  skip ou cancelamento;
-- sintaxe e `git diff --check`: verdes;
-- estado: candidato local aguardando commit imutável e auditoria obrigatória no
-  Chat; ainda sem `GO`.
-
-## Auditoria externa — NO-GO causal
-
-O candidato publicado foi consolidado em
-`549ba68b200031c000ee14827f54293a67ee7153`. Depois da conexão do GitHub no
-Chat, a auditoria independente confirmou esse hash e a leitura integral do
-manifesto, de `messageHandler.js`, de `financialStateMachine.test.js` e de
-`index.js`.
-
-O veredito foi `NO-GO`: no caminho `confirming_transactions`, o efeito
-financeiro era gravado antes da resposta final e o estado só era excluído após
-essa resposta. Uma falha de comunicação pós-commit podia, portanto, preservar
-a confirmação e permitir que a mensagem seguinte repetisse o efeito. Os testes
-simultâneos anteriores cobriam somente o caminho feliz.
-
-## Prova adversarial adicional
-
-1. Injetar falha na primeira resposta enviada depois de uma gravação confirmada.
-2. Enfileirar em seguida outra confirmação distinta do mesmo remetente.
-3. Exigir um único efeito financeiro e estado já consumido, mesmo que a
-   comunicação pós-commit falhe.
-4. Reestruturar somente a ordem local: nenhuma resposta pode ser aguardada entre
-   o primeiro efeito confirmado e o consumo definitivo do estado.
-
-`STATE-01` permanece candidato até RED causal, correção mínima, baterias verdes,
-novo commit imutável e nova auditoria independente no Chat.
+1. workflow do agente e varredura de segredos verdes;
+2. diff restrito e commit sanitizado publicado no GitHub por hash completo;
+3. auditor independente confirma hash e arquivos, não encontra achado
+   bloqueante nem lacuna indispensável dentro de `PRIV-01`;
+4. executor confronta o parecer com o código e registra fechamento separado.
 
 ## Condições de parada
 
-- necessidade de reduzir ou trocar capacidade;
-- ampliação de escopo ou mudança da ordem já decidida;
-- acesso a produção, cofre, EC2/Oracle, Google ou WhatsApp real;
-- conflito com alterações concorrentes do workstream AWS/Oracle.
+- evidência de segredo real exige contenção própria sem reproduzi-lo;
+- necessidade de alterar autorização, efeitos financeiros ou produção;
+- conflito com arquivos concorrentes da migração Oracle;
+- constatação de que `Alto` deixou de ser suficiente para manter qualidade.
 
 ## Capacidade
 
-`STATE-01` exigiu `Codex → Sol → Extra Alto` até o confronto final por envolver
-concorrência crítica sobre estado e efeitos financeiros.
+`Codex → Sol → Alto → publicar e auditar o candidato PRIV-01 sem deploy.`
 
-## Fechamento independente
+## Próxima ação exata
 
-O Chat conectado ao GitHub confirmou o commit imutável
-`afc961fadd3f62a69c9e02ea1eb527f380d6d42f`, leu integralmente os seis arquivos
-exigidos e emitiu `GO TÉCNICO LOCAL`, sem achado de qualquer severidade nem
-lacuna indispensável residual. O parecer foi confrontado com o RED, o código e
-as baterias locais em `docs/audit/23-state01-independent-close-2026-07-22.md`.
-
-Esse GO não autoriza deploy nem valida produção ou WhatsApp real.
-
-## Próxima ação ordenada
-
-Tratar `PRIV-01`, P1 sobre escapes `console.*`, objetos de erro/resposta brutos e
-identificadores que contornam o logger sanitizado. `STATE-04`, proteção do
-snapshot, permanece P2 separado.
-
-Antes de iniciar a inspeção material de `PRIV-01`, reduzir para:
-
-`Codex → Sol → Alto → mapear todos os sinks de log, fixar a prova negativa e corrigir PRIV-01 sem deploy.`
+Criar o manifesto candidato, validar workflow/segredos, adicionar somente os
+arquivos de `PRIV-01`, publicar o commit imutável e submetê-lo uma única vez ao
+Chat conectado ao GitHub.

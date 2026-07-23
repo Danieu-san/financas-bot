@@ -3181,6 +3181,40 @@ test('logger sanitizer redacts identifiers, tokens, private URLs and message con
     assert.strictEqual(redactLogIdentifier('5521999999999@lid'), '[REDACTED_ID]');
 });
 
+test('PRIV-01 logger sanitizer redacts extended identifier and content keys', () => {
+    const { sanitizeLogMessage } = logger.__test__;
+    const raw = [
+        'target_user_id=aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
+        'updated_whatsapp_id=5521999999999@lid',
+        'spreadsheet_id=private-sheet-id-123',
+        'phone=5521999999999',
+        'context={"target_user_id":"aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee","message":"paguei 900 no hospital"}'
+    ].join(' ');
+    const sanitized = sanitizeLogMessage(raw);
+
+    assert.doesNotMatch(sanitized, /aaaaaaaa-bbbb|5521999999999|private-sheet-id-123|paguei 900 no hospital/);
+    assert.match(sanitized, /\[REDACTED_(?:ID|CONTENT)\]/);
+});
+
+test('PRIV-01 runtime warnings and errors cannot bypass the sanitized logger', () => {
+    const runtimeRoots = [
+        path.resolve(process.cwd(), 'index.js'),
+        ...fs.readdirSync(path.resolve(process.cwd(), 'src'), { recursive: true, withFileTypes: true })
+            .filter(entry => entry.isFile() && entry.name.endsWith('.js'))
+            .map(entry => path.resolve(entry.parentPath, entry.name))
+            .filter(file => !file.includes(`${path.sep}testing${path.sep}`))
+    ];
+    const violations = [];
+    for (const file of runtimeRoots) {
+        const source = fs.readFileSync(file, 'utf8');
+        if (/console\.(?:error|warn)\s*\(/.test(source)) {
+            violations.push(path.relative(process.cwd(), file));
+        }
+    }
+
+    assert.deepStrictEqual(violations, []);
+});
+
 test('AI execution paths do not dump raw model responses to logs', () => {
     const files = [
         path.resolve(process.cwd(), 'src/handlers/messageHandler.js'),
@@ -5994,7 +6028,7 @@ test('google direct dashboard USER_ENTERED writes neutralize user-derived labels
 
 test('google.readDataFromSheet silently tolerates an explicitly optional missing sheet', async () => {
     googleService.__test__.clearSheetsReadCache();
-    const originalConsoleError = console.error;
+    const originalLoggerError = logger.error;
     const errors = [];
     const fakeSheets = {
         spreadsheets: {
@@ -6012,7 +6046,7 @@ test('google.readDataFromSheet silently tolerates an explicitly optional missing
         calendarClient: {},
         oauthClient: {}
     });
-    console.error = (...args) => errors.push(args);
+    logger.error = (...args) => errors.push(args);
 
     try {
         const rows = await googleService.readDataFromSheet('Cartões!A:G', {
@@ -6023,15 +6057,15 @@ test('google.readDataFromSheet silently tolerates an explicitly optional missing
         assert.deepStrictEqual(rows, []);
         assert.deepStrictEqual(errors, []);
     } finally {
-        console.error = originalConsoleError;
+        logger.error = originalLoggerError;
         googleService.__test__.clearSheetsReadCache();
     }
 });
 
 test('google.readDataFromSheet preserves provider unavailability instead of returning an empty result', async () => {
     googleService.__test__.clearSheetsReadCache();
-    const originalConsoleError = console.error;
-    const originalConsoleWarn = console.warn;
+    const originalLoggerError = logger.error;
+    const originalLoggerWarn = logger.warn;
     const errors = [];
     const warnings = [];
     const previousAttempts = process.env.GOOGLE_API_RETRY_ATTEMPTS;
@@ -6056,8 +6090,8 @@ test('google.readDataFromSheet preserves provider unavailability instead of retu
         calendarClient: {},
         oauthClient: {}
     });
-    console.error = (...args) => errors.push(args);
-    console.warn = (...args) => warnings.push(args);
+    logger.error = (...args) => errors.push(args);
+    logger.warn = (...args) => warnings.push(args);
 
     try {
         await assert.rejects(
@@ -6069,8 +6103,8 @@ test('google.readDataFromSheet preserves provider unavailability instead of retu
         assert.strictEqual(warnings.length, 1);
         assert.doesNotMatch(JSON.stringify([...warnings, ...errors]), /private details|provider response/i);
     } finally {
-        console.error = originalConsoleError;
-        console.warn = originalConsoleWarn;
+        logger.error = originalLoggerError;
+        logger.warn = originalLoggerWarn;
         if (previousAttempts === undefined) delete process.env.GOOGLE_API_RETRY_ATTEMPTS;
         else process.env.GOOGLE_API_RETRY_ATTEMPTS = previousAttempts;
         if (previousDelay === undefined) delete process.env.GOOGLE_API_RETRY_DELAY_MS;
@@ -6080,8 +6114,8 @@ test('google.readDataFromSheet preserves provider unavailability instead of retu
 });
 
 test('google retry logs do not expose provider errors after reauthorization', async () => {
-    const originalConsoleError = console.error;
-    const originalConsoleWarn = console.warn;
+    const originalLoggerError = logger.error;
+    const originalLoggerWarn = logger.warn;
     const errors = [];
     const warnings = [];
     let attempts = 0;
@@ -6092,8 +6126,8 @@ test('google retry logs do not expose provider errors after reauthorization', as
         calendarClient: {},
         oauthClient: {}
     });
-    console.error = (...args) => errors.push(args);
-    console.warn = (...args) => warnings.push(args);
+    logger.error = (...args) => errors.push(args);
+    logger.warn = (...args) => warnings.push(args);
 
     try {
         await assert.rejects(
@@ -6116,14 +6150,14 @@ test('google retry logs do not expose provider errors after reauthorization', as
         assert.strictEqual(errors.length, 1);
         assert.doesNotMatch(JSON.stringify([...warnings, ...errors]), /private authorization|private provider/i);
     } finally {
-        console.error = originalConsoleError;
-        console.warn = originalConsoleWarn;
+        logger.error = originalLoggerError;
+        logger.warn = originalLoggerWarn;
     }
 });
 
 test('google.readDataFromSheet does not suppress provider failures for an optional sheet', async () => {
     googleService.__test__.clearSheetsReadCache();
-    const originalConsoleError = console.error;
+    const originalLoggerError = logger.error;
     const errors = [];
     const previousAttempts = process.env.GOOGLE_API_RETRY_ATTEMPTS;
     process.env.GOOGLE_API_RETRY_ATTEMPTS = '1';
@@ -6145,7 +6179,7 @@ test('google.readDataFromSheet does not suppress provider failures for an option
         calendarClient: {},
         oauthClient: {}
     });
-    console.error = (...args) => errors.push(args);
+    logger.error = (...args) => errors.push(args);
 
     try {
         await assert.rejects(
@@ -6156,7 +6190,7 @@ test('google.readDataFromSheet does not suppress provider failures for an option
             error => error?.code === 'GOOGLE_SHEET_READ_UNAVAILABLE'
         );
     } finally {
-        console.error = originalConsoleError;
+        logger.error = originalLoggerError;
         if (previousAttempts === undefined) delete process.env.GOOGLE_API_RETRY_ATTEMPTS;
         else process.env.GOOGLE_API_RETRY_ATTEMPTS = previousAttempts;
         googleService.__test__.clearSheetsReadCache();

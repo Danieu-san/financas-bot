@@ -6,9 +6,10 @@ Atualizado em: 2026-07-22
 
 Executar a fila de correções da auditoria exaustiva. `STATE-01` recebeu `GO
 TÉCNICO LOCAL` independente no commit imutável
-`afc961fadd3f62a69c9e02ea1eb527f380d6d42f`. O próximo P1 ordenado é
-`PRIV-01`, escapes globais de log. A decisão pós-Fase 9 sobre proposição de
-salvamento segue registrada no roadmap sem alterar essa ordem.
+`afc961fadd3f62a69c9e02ea1eb527f380d6d42f`. `PRIV-01` está implementado e
+validado localmente, aguardando commit imutável e auditoria independente. A
+decisão pós-Fase 9 sobre proposição de salvamento segue registrada no roadmap
+sem alterar essa ordem.
 
 ## Último gate encerrado
 
@@ -68,9 +69,12 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Gate ativo
 
-`PRIV-01`: mapear e fechar caminhos `console.*`, objetos de erro/resposta brutos
-e identificadores que contornam o logger sanitizado. O gate ainda não foi
-iniciado; `STATE-04`, proteção do snapshot, permanece P2 separado.
+`PRIV-01`: os bypasses `console.error`/`console.warn` do runtime foram fechados,
+payloads crus de provider foram removidos e a redação central foi ampliada para
+identificadores e conteúdo. RED `2/2`, focal `2/2`, regressões `5/5`, afetados
+`510/510`, recorte WhatsApp final `27/27` e runner amplo `1.076/1.076` estão verdes. Falta publicar o candidato
+imutável e obter/confrontar a auditoria independente. `STATE-04`, proteção do
+snapshot, permanece P2 separado.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -90,18 +94,20 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Depois da troca para `Alto`, criar o contrato de `PRIV-01`, inventariar todos os
-sinks de log e objetos potencialmente brutos, definir a prova negativa e então
-implementar a correção mínima. Não acessar produção nem fazer deploy nesse gate.
+Validar workflow e segredos, publicar somente os arquivos do candidato
+`PRIV-01`, pedir auditoria independente no Chat conectado ao GitHub e confrontar
+o parecer. Não acessar produção nem fazer deploy nesse gate.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → mapear e corrigir PRIV-01 sem deploy.`
+`Codex → Sol → Alto → publicar, auditar e fechar PRIV-01 sem deploy.`
 
 ## Histórico dirigido
 
 - fechamento atual:
   `docs/audit/18-flow03-independent-close-2026-07-22.md`;
+- candidato PRIV-01:
+  `docs/audit/24-priv01-runtime-log-boundary-candidate-2026-07-22.md`;
 - candidato STATE-01:
   `docs/audit/19-state01-sender-serialization-candidate-2026-07-22.md`;
 - correção pós-commit candidata:

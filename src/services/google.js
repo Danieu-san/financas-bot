@@ -250,7 +250,7 @@ async function runRetriableGoogleOperation(operationName, fn, { retry = true } =
             lastError = error;
 
             if (retry && isGoogleRetriableError(error) && attempt < maxAttempts) {
-                console.warn(`⚠️ ${operationName}: erro transitório/quota Google. Tentativa ${attempt}/${maxAttempts}; aguardando ${retryConfig.delayMs}ms...`);
+                logger.warn(`[google] operation=${operationName} transient_retry attempt=${attempt}/${maxAttempts} delay_ms=${retryConfig.delayMs}`);
                 await sleep(retryConfig.delayMs);
                 continue;
             }
@@ -277,12 +277,12 @@ async function runWithGoogleRetry(operationName, fn, {
         return await runRetriableGoogleOperation(operationName, fn, { retry });
     } catch (error) {
         if (isGoogleAuthError(error)) {
-            console.warn(`⚠️ ${operationName}: erro de autenticação Google detectado. Reautorizando e tentando novamente...`);
+            logger.warn(`[google] operation=${operationName} auth_retry`);
             await reauthorize(true);
             try {
                 return await runRetriableGoogleOperation(operationName, fn, { retry });
             } catch (retryError) {
-                console.error(`❌ ${operationName}: falhou após reautorização.`);
+                logger.error(`[google] operation=${operationName} failed_after_reauthorization ${logger.safeError(retryError)}`);
                 if (swallowOnError) return fallbackValue;
                 throw retryError;
             }
@@ -316,7 +316,7 @@ async function authorizeGoogle(forceRefresh = false) {
 
             console.log('✅ Google APIs autorizadas com sucesso!');
         } catch (error) {
-            console.error('❌ Erro ao autorizar APIs do Google:', error.message);
+            logger.error(`[google] authorization_failed ${logger.safeError(error)}`);
             throw error;
         } finally {
             authInFlight = null;
@@ -514,7 +514,7 @@ async function createCalendarEvent(title, startDateTime, recurrenceRule, options
             }));
         return response.data;
     } catch (error) {
-        console.error('❌ Erro no Calendar:', error);
+        logger.error(`[google-calendar] create_event_failed ${logger.safeError(error)}`);
         throw new Error('Erro ao criar evento.');
     }
 }
@@ -528,7 +528,7 @@ async function getSheetIds(options = {}) {
         sheetData.forEach(sheet => { sheetNameToId[sheet.properties.title] = sheet.properties.sheetId; });
         return sheetNameToId;
     } catch (error) {
-        console.error('❌ Erro ao carregar IDs das abas:', error);
+        logger.error(`[google-sheets] sheet_ids_load_failed ${logger.safeError(error)}`);
     }
 }
 
@@ -682,7 +682,7 @@ async function resolveSpreadsheetTarget(options = {}) {
                 };
             }
         } catch (error) {
-            console.warn(`⚠️ Não foi possível usar planilha do usuário ${safeUserId}; usando planilha central. Motivo: ${error.message}`);
+            logger.warn(`[google] personal_spreadsheet_fallback user_id=${safeUserId} ${logger.safeError(error)}`);
         }
     }
 
@@ -711,7 +711,7 @@ async function resolveCalendarTarget(options = {}) {
                 };
             }
         } catch (error) {
-            console.warn(`⚠️ Não foi possível usar Calendar do usuário ${safeUserId}; usando Calendar central. Motivo: ${error.message}`);
+            logger.warn(`[google] personal_calendar_fallback user_id=${safeUserId} ${logger.safeError(error)}`);
         }
     }
 
@@ -739,7 +739,7 @@ async function runSheetsOperation(operationName, target, fn, { swallowOnError = 
         if (isMissingUserSheetError(error) && await repairUserSpreadsheetTemplate(target)) {
             return runRetriableGoogleOperation(`${operationName}.afterTemplateRepair`, fn, { retry });
         }
-        console.error(`❌ ${operationName}: erro na planilha do usuário:`, error.message);
+        logger.error(`[google] operation=${operationName} personal_spreadsheet_failed ${logger.safeError(error)}`);
         if (swallowOnError) return fallbackValue;
         throw error;
     }
@@ -931,7 +931,7 @@ async function appendRowToSheet(sheetName, row, options = {}) {
                 });
             }
         }
-        console.error(`❌ Erro ao adicionar linha em ${sheetName}:`, error.message);
+        logger.error(`[google-sheets] append_failed sheet=${sheetName} ${logger.safeError(error)}`);
         throw new Error('Erro ao salvar na planilha.');
     }
 }
@@ -1190,7 +1190,7 @@ async function readDataFromSheet(range, options = {}) {
         if (options.suppressMissingSheetError && isMissingUserSheetError(error)) {
             return [];
         }
-        console.error('❌ Falha ao ler dados da planilha: fonte indisponível.');
+        logger.error('[google-sheets] read_source_unavailable');
         const unavailableError = new Error('google_sheet_read_unavailable');
         unavailableError.code = 'GOOGLE_SHEET_READ_UNAVAILABLE';
         throw unavailableError;
@@ -1301,7 +1301,7 @@ async function updateRowInSheet(range, rowData, options = {}) {
                 });
             }
         }
-        console.error(`❌ Erro ao atualizar linha (${range}):`, error.message);
+        logger.error(`[google-sheets] update_failed range=${range} ${logger.safeError(error)}`);
         throw new Error('Erro ao atualizar dados na planilha.');
     }
 }
@@ -1336,7 +1336,7 @@ async function batchUpdateRowsInSheet(data, options = {}) {
             }
         };
     } catch (error) {
-        console.error('❌ Erro em batchUpdateRowsInSheet:', error.message);
+        logger.error(`[google-sheets] batch_update_failed ${logger.safeError(error)}`);
         throw new Error('Erro ao atualizar dados em lote na planilha.');
     }
 }
@@ -1516,7 +1516,7 @@ async function replaceDashboardCharts(dashboardSheetId) {
             resource: { requests }
         }));
     } catch (error) {
-        console.error('❌ Detalhes do erro ao criar gráficos do Dashboard:', JSON.stringify(error?.response?.data || error.message, null, 2));
+        logger.error(`[google-dashboard] chart_create_failed ${logger.safeError(error)}`);
         throw error;
     }
 }
@@ -1628,7 +1628,7 @@ async function renderVisualDashboard(payload = {}) {
                 }
             }));
         } catch (error) {
-            console.error('❌ Detalhes do erro ao desmesclar Dashboard:', JSON.stringify(error?.response?.data || error.message, null, 2));
+            logger.error(`[google-dashboard] unmerge_failed ${logger.safeError(error)}`);
             throw error;
         }
     }
@@ -1641,7 +1641,7 @@ async function renderVisualDashboard(payload = {}) {
             resource: { values: neutralizeUserEnteredRows(grid) }
         }));
     } catch (error) {
-        console.error('❌ Detalhes do erro ao escrever Dashboard:', JSON.stringify(error?.response?.data || error.message, null, 2));
+        logger.error(`[google-dashboard] write_failed ${logger.safeError(error)}`);
         throw error;
     }
 
@@ -1822,7 +1822,7 @@ async function renderVisualDashboard(payload = {}) {
             resource: { requests }
         }));
     } catch (error) {
-        console.error('❌ Detalhes do erro ao formatar Dashboard:', JSON.stringify(error?.response?.data || error.message, null, 2));
+        logger.error(`[google-dashboard] format_failed ${logger.safeError(error)}`);
         throw error;
     }
 
@@ -1885,7 +1885,7 @@ async function getCalendarEventsForToday(targetDate = new Date(), options = {}) 
         const events = response.data.items || [];
         return filterCalendarEventsForTarget(events, target, options.userId);
     } catch (error) {
-        console.error('❌ Erro ao buscar eventos no Calendar:', error.message);
+        logger.error(`[google-calendar] list_events_failed ${logger.safeError(error)}`);
         return [];
     }
 }
@@ -2049,11 +2049,11 @@ async function ensureSpreadsheetStructure() {
             }));
             console.log('✅ Planilha Sincronizada com Sucesso!');
         } catch (error) {
-            console.warn('⚠️ Aviso: Algumas formatações da planilha não puderam ser aplicadas:', error.message);
+            logger.warn(`[google-sheets] optional_formatting_failed ${logger.safeError(error)}`);
         }
 
     } catch (error) {
-        console.error('❌ Erro fatal ao sincronizar estrutura da planilha:', error.message);
+        logger.error(`[google-sheets] structure_sync_failed ${logger.safeError(error)}`);
     }
 }
 
@@ -2167,7 +2167,7 @@ async function deleteRowsByIndices(sheetName, rowIndices, options = {}) {
                 });
             }
         }
-        console.error(`❌ Erro ao deletar linhas em ${sheetName}:`, error.message);
+        logger.error(`[google-sheets] delete_rows_failed sheet=${sheetName} ${logger.safeError(error)}`);
         return { success: false, message: 'Erro ao apagar item na planilha.' };
     }
 }

@@ -25,7 +25,7 @@ async function startBot() {
 
     // Validação de variáveis de ambiente
     if (!process.env.SPREADSHEET_ID || !process.env.GEMINI_API_KEY || !process.env.GOOGLE_REFRESH_TOKEN || !process.env.ADMIN_IDS) {
-        console.error("❌ Faltam variáveis de ambiente essenciais. Verifique seu .env.");
+        logger.error('[startup] variaveis_essenciais_ausentes');
         process.exit(1);
     }
 
@@ -88,14 +88,14 @@ async function startBot() {
         client.on('message', handleMessage);
 
     } catch (error) {
-        console.error('❌ Erro fatal ao iniciar o bot:', error);
+        logger.error(`[startup] fatal_error ${logger.safeError(error)}`);
         process.exit(1);
     }
 }
 
 // Tratamento de erros globais para evitar crashes silenciosos
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+process.on('unhandledRejection', (reason) => {
+    logger.error(`[process] unhandled_rejection ${logger.safeError(reason)}`);
 });
 
 startBot();

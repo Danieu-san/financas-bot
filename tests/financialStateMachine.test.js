@@ -405,6 +405,7 @@ const userService = require('../src/services/userService');
 const { getReadModelStats } = require('../src/services/readModelService');
 const cache = require('../src/utils/cache');
 const rateLimiter = require('../src/utils/rateLimiter');
+const logger = require('../src/utils/logger');
 const originalRateLimiterIsAllowed = rateLimiter.isAllowed;
 const {
     getProjectedPlanWriteContext,
@@ -3971,7 +3972,7 @@ stateMachineTest('financial states: family goal can be moved by a family member'
 stateMachineTest('financial questions report Google source unavailability instead of an empty or zero result', async () => {
     resetState();
     usesPersonalSpreadsheet = true;
-    const originalConsoleError = console.error;
+    const originalLoggerError = logger.error;
     const errors = [];
     const unavailable = Object.assign(new Error('google_sheet_read_unavailable'), {
         code: 'GOOGLE_SHEET_READ_UNAVAILABLE'
@@ -3980,12 +3981,12 @@ stateMachineTest('financial questions report Google source unavailability instea
         sheetReadErrors.set(sheetName, unavailable);
     });
 
-    console.error = (...args) => errors.push(args);
+    logger.error = (...args) => errors.push(args);
     let reply;
     try {
         reply = await send('quanto gastei este mês?');
     } finally {
-        console.error = originalConsoleError;
+        logger.error = originalLoggerError;
     }
 
     assert.match(reply, /fonte está indisponível/i);

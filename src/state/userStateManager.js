@@ -32,7 +32,7 @@ function loadStateFromDisk() {
         }
         cleanupExpired();
     } catch (error) {
-        console.warn('⚠️ Não foi possível carregar state_store.json:', error.message);
+        logger.warn(`[state-store] file_load_failed ${logger.safeError(error)}`);
     }
 }
 
@@ -108,7 +108,7 @@ function flushStateToDisk() {
         fs.renameSync(TEMP_FILE, STATE_FILE);
         dirty = false;
     } catch (error) {
-        console.error('❌ Erro ao persistir state_store.json:', error.message);
+        logger.error(`[state-store] file_persist_failed ${logger.safeError(error)}`);
     }
 }
 

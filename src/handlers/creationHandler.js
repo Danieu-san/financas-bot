@@ -7,6 +7,7 @@ const { parseValue, parseDate, isDate, getFormattedDateOnly, parseAmount, normal
 const { getUserByWhatsAppId } = require('../services/userService');
 const { getFinancialScopeUserIds } = require('../services/oauthTokenStore');
 const { GOAL_STATUS } = require('../services/goalService');
+const logger = require('../utils/logger');
 
 function normalizeDebtTypeReply(value) {
     const text = normalizeText(value);
@@ -244,7 +245,7 @@ async function finalizeDebtCreation(msg) {
 
     } catch (error) {
         await msg.reply('Houve um erro ao salvar sua dívida.');
-        console.error("Erro ao finalizar a criação da dívida:", error);
+        logger.error(`[debt-create] finalize_failed ${logger.safeError(error)}`);
     } finally {
         userStateManager.deleteState(senderId);
     }
@@ -400,7 +401,7 @@ async function finalizeGoalCreation(msg) {
 
     } catch (error) {
         await msg.reply('Houve um erro ao salvar sua meta.');
-        console.error("Erro ao finalizar a criação da meta:", error);
+        logger.error(`[goal-create] finalize_failed ${logger.safeError(error)}`);
     } finally {
         userStateManager.deleteState(senderId);
     }

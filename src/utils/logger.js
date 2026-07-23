@@ -5,6 +5,25 @@ function redactLogIdentifier(value) {
     return String(value || '').trim() ? '[REDACTED_ID]' : '';
 }
 
+function sanitizeLogCode(value, fallback = 'unknown') {
+    const normalized = String(value || '')
+        .trim()
+        .replace(/[^a-z0-9_.:-]/gi, '_')
+        .slice(0, 64);
+    return normalized || fallback;
+}
+
+function safeErrorSummary(error) {
+    const name = sanitizeLogCode(error && typeof error === 'object' ? error.name : '', 'Error');
+    const code = sanitizeLogCode(
+        error && typeof error === 'object'
+            ? (error.code || error.status || error.response?.status)
+            : '',
+        'unknown'
+    );
+    return `name=${name} code=${code}`;
+}
+
 function sanitizeLogMessage(value) {
     return String(value || '')
         .replace(/\b(?:msg|command)="[^"]*"/gi, match => `${match.split('=')[0]}=[REDACTED_CONTENT]`)
@@ -14,8 +33,9 @@ function sanitizeLogMessage(value) {
         .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, '[REDACTED_TOKEN]')
         .replace(/(docs\.google\.com\/(?:spreadsheets|document)\/d\/)[A-Za-z0-9_-]+/gi, '$1[REDACTED_DOC_ID]')
         .replace(/(drive\.google\.com\/file\/d\/)[A-Za-z0-9_-]+/gi, '$1[REDACTED_DOC_ID]')
-        .replace(/("(?:user_id|sender_id|actor_user_id|whatsapp_id|target_whatsapp_id)"\s*:\s*")[^"]*"/gi, '$1[REDACTED_ID]"')
-        .replace(/\b(?:user_id|sender|sender_id|actor_user_id|whatsapp_id|target_whatsapp_id)=([^\s,}"']+)/gi, match => `${match.split('=')[0]}=[REDACTED_ID]`)
+        .replace(/("(?:[a-z][a-z0-9_]*_id|userId|senderId|whatsappId|spreadsheetId|documentId|phone|sender|target|adminId)"\s*:\s*")[^"]*"/gi, '$1[REDACTED_ID]"')
+        .replace(/("(?:msg|message|command|body|text|content|description)"\s*:\s*")[^"]*"/gi, '$1[REDACTED_CONTENT]"')
+        .replace(/\b(?:[a-z][a-z0-9_]*_id|userId|senderId|whatsappId|spreadsheetId|documentId|phone|sender|target|adminId)=([^\s,}"']+)/gi, match => `${match.split('=')[0]}=[REDACTED_ID]`)
         .replace(/\b\d{10,20}@(c\.us|lid)\b/gi, '[REDACTED_ID]')
         .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/gi, '[REDACTED_ID]')
         .replace(/\b\d{10,15}\b/g, '[REDACTED_ID]');
@@ -46,9 +66,11 @@ const logger = createLogger({
 });
 
 logger.redactIdentifier = redactLogIdentifier;
+logger.safeError = safeErrorSummary;
 logger.__test__ = {
     redactLogIdentifier,
-    sanitizeLogMessage
+    sanitizeLogMessage,
+    safeErrorSummary
 };
 
 module.exports = logger;

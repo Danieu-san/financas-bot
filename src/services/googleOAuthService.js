@@ -31,6 +31,7 @@ const {
     OAUTH_CONNECT_ALLOWED_STATUSES,
     assertOAuthLifecycleAllowed
 } = require('./oauthLifecyclePolicy');
+const logger = require('../utils/logger');
 
 const GOOGLE_OAUTH_SCOPES = Object.freeze([
     'openid',
@@ -173,7 +174,7 @@ async function tryFetchGoogleAccount(oauth2Client, injectedOAuth2Api) {
     try {
         return await fetchGoogleAccount(oauth2Client, injectedOAuth2Api);
     } catch (error) {
-        console.warn(`⚠️ OAuth Google conectado sem e-mail da conta: ${error.message}`);
+        logger.warn(`[oauth] account_email_unavailable ${logger.safeError(error)}`);
         return {};
     }
 }

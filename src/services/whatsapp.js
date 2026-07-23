@@ -1,6 +1,7 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const { scheduleReadyRescue } = require('./whatsappReadyRescueService');
+const logger = require('../utils/logger');
 
 let clientInstance = null;
 let isAuthenticated = false;
@@ -14,8 +15,8 @@ const AUTH_TIMEOUT_MS = Number(process.env.WWEB_AUTH_TIMEOUT_MS || 180000);
 const PROTOCOL_TIMEOUT_MS = Number(process.env.PUPPETEER_PROTOCOL_TIMEOUT_MS || 180000);
 const READY_RESCUE_DELAY_MS = Number(process.env.WWEB_READY_RESCUE_DELAY_MS || 15000);
 
-function exitForSupervisor(reason, delayMs = 1500) {
-    console.error(`❌ WhatsApp indisponível: ${reason}. Encerrando para o PM2 reiniciar.`);
+function exitForSupervisor(reasonCode, delayMs = 1500) {
+    logger.error(`[whatsapp] unavailable reason_code=${reasonCode}`);
     setTimeout(() => process.exit(1), delayMs);
 }
 
@@ -88,7 +89,7 @@ function initializeWhatsAppClient() {
         readyWatchdog = setTimeout(() => {
             if (isInitializing) {
                 isInitializing = false;
-                exitForSupervisor(`timeout aguardando ready após ${label} (${READY_TIMEOUT_MS}ms)`);
+                exitForSupervisor('ready_timeout');
             }
         }, READY_TIMEOUT_MS);
     }
@@ -158,10 +159,10 @@ function initializeWhatsAppClient() {
     client.on('auth_failure', msg => {
         clearReadyWatchdog();
         clearReadyRescue();
-        console.error('❌ Falha na autenticação:', msg);
+        logger.error(`[whatsapp] auth_failure ${logger.safeError(msg)}`);
         isAuthenticated = false;
         isInitializing = false;
-        exitForSupervisor('falha de autenticação');
+        exitForSupervisor('auth_failure');
     });
 
     client.on('disconnected', async (reason) => {
@@ -172,13 +173,13 @@ function initializeWhatsAppClient() {
         isInitializing = false;
 
         if (reason === 'LOGOUT') {
-            console.error('🚪 Sessão encerrada (LOGOUT).');
+            logger.error('[whatsapp] session_logout');
             try {
                 await client.destroy();
             } catch (e) {}
             process.exit(0);
         } else {
-            exitForSupervisor(`cliente desconectado (${reason})`);
+            exitForSupervisor('client_disconnected');
         }
     });
 
@@ -186,9 +187,9 @@ function initializeWhatsAppClient() {
     client.initialize().catch(err => {
         clearReadyWatchdog();
         clearReadyRescue();
-        console.error('❌ Erro na inicialização:', err.message);
+        logger.error(`[whatsapp] initialization_failed ${logger.safeError(err)}`);
         isInitializing = false;
-        exitForSupervisor(err.message);
+        exitForSupervisor('initialization_failed');
     });
 
     clientInstance = client;

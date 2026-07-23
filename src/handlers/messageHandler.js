@@ -6506,7 +6506,7 @@ async function timeStep(label, fn, context = '') {
         metrics.observeDuration(`message.step.${label}.ms`, elapsedMs);
         if (elapsedMs >= PERF_WARN_MS) {
             metrics.increment(`message.step.${label}.slow`);
-            console.warn(`[perf] ${label} levou ${elapsedMs}ms${context ? ` (${context})` : ''}`);
+            logger.warn(`[perf] ${label} levou ${elapsedMs}ms${context ? ` (${context})` : ''}`);
         }
     }
 }
@@ -9402,7 +9402,7 @@ async function processMessage(msg) {
                             }
                             await safeMaybeNotifyDailyGoalAfterExpense(msg, userId, 'credit_card_selection');
                         } catch (error) {
-                            console.error("Erro ao salvar gasto no cartão:", error);
+                            logger.error(`[financial-write] credit_card_save_failed ${logger.safeError(error)}`);
                             await msg.reply("Ocorreu um erro ao salvar o gasto.");
                         } finally {
                             userStateManager.deleteState(senderId);
@@ -9450,7 +9450,7 @@ async function processMessage(msg) {
                     }
                     await safeMaybeNotifyDailyGoalAfterExpense(msg, userId, 'installment_number');
                 } catch (error) {
-                    console.error("Erro ao salvar parcelamento:", error);
+                    logger.error(`[financial-write] installment_save_failed ${logger.safeError(error)}`);
                     await msg.reply("Ocorreu um erro ao salvar o gasto.");
                 } finally {
                     userStateManager.deleteState(senderId);
@@ -9476,7 +9476,7 @@ async function processMessage(msg) {
                     }
                     await safeMaybeNotifyDailyGoalAfterExpense(msg, userId, 'confirmed_credit_card_expense');
                 } catch (error) {
-                    console.error("Erro ao salvar gasto no cartão confirmado:", error);
+                    logger.error(`[financial-write] confirmed_credit_card_save_failed ${logger.safeError(error)}`);
                     await msg.reply("Ocorreu um erro ao salvar o gasto.");
                 } finally {
                     userStateManager.deleteState(senderId);
@@ -11074,8 +11074,8 @@ async function processMessage(msg) {
                         await msg.reply(summaryMessage);
                     } catch (err) {
                         const sourceUnavailable = err?.code === 'GOOGLE_SHEET_READ_UNAVAILABLE';
-                        if (sourceUnavailable) console.error('[financial-read] source_unavailable');
-                        else console.error('Erro ao gerar resumo financeiro:', err);
+                        if (sourceUnavailable) logger.error('[financial-read] source_unavailable');
+                        else logger.error(`[financial-read] summary_failed ${logger.safeError(err)}`);
                         await msg.reply(sourceUnavailable
                             ? 'Não consegui consultar seus dados financeiros agora. A fonte está indisponível; não vou tratar isso como saldo zero. Tente novamente em instantes.'
                             : 'Não consegui gerar o resumo do dashboard agora. Tente novamente em instantes.');
@@ -11760,8 +11760,8 @@ async function processMessage(msg) {
 
                     } catch (err) {
                         const sourceUnavailable = err?.code === 'GOOGLE_SHEET_READ_UNAVAILABLE';
-                        if (sourceUnavailable) console.error('[financial-read] source_unavailable');
-                        else console.error("Erro no novo sistema de perguntas:", err);
+                        if (sourceUnavailable) logger.error('[financial-read] source_unavailable');
+                        else logger.error(`[financial-read] query_system_failed ${logger.safeError(err)}`);
                         await recordQaFailure({
                             kind: 'question_error',
                             reason: 'pergunta_processing_error',
@@ -11848,14 +11848,14 @@ async function processMessage(msg) {
             }
         } catch (error) {
             metrics.increment('message.error.fatal');
-            console.error('❌ Erro fatal ao processar mensagem:', error);
+            logger.error(`[message] fatal_processing_error ${logger.safeError(error)}`);
             await msg.reply('Ocorreu um erro interno e a equipe de TI (o Daniel) foi notificada.');
         } finally {
             const totalMs = Date.now() - messageStartedAt;
             metrics.observeDuration('message.total.ms', totalMs);
             if (totalMs >= PERF_WARN_MS) {
                 metrics.increment('message.total.slow');
-                console.warn(`[perf] handleMessage total ${totalMs}ms (${perfContext})`);
+                logger.warn(`[perf] handleMessage total ${totalMs}ms (${perfContext})`);
             }
         }
     }
