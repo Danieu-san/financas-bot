@@ -16,8 +16,11 @@ imutável `d4c7016204a8877869d24abea8e02b007e8dcfaf` recebeu `NO-GO TÉCNICO
 LOCAL`; todos os achados foram reproduzidos e corrigidos incrementalmente. O
 segundo candidato `8f0f185eb0cc785faff71c7046457f319bd62cce` também recebeu
 `NO-GO TÉCNICO LOCAL` por bypass de reserialização no journal e dois caminhos
-fail-open. Esses achados e as lacunas LOW foram corrigidos; o terceiro candidato
-local está verde e aguarda nova auditoria independente por hash. A
+fail-open. Esses achados e as lacunas LOW foram corrigidos. A revisão do
+terceiro candidato confirmou o hash e os controles principais, mas foi
+interrompida antes do veredito final após apontar duas lacunas de startup. Elas
+foram reproduzidas e corrigidas; o quarto candidato local está verde e aguarda
+nova auditoria independente por hash. A
 decisão pós-Fase 9 sobre proposição de salvamento segue registrada no roadmap
 sem alterar essa ordem.
 
@@ -82,18 +85,20 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Gate ativo
 
-`STATE-04`: terceiro candidato local corrigido após dois `NO-GO`. O snapshot usa envelope
+`STATE-04`: quarto candidato local corrigido após dois `NO-GO` e uma terceira
+revisão interrompida antes do veredito. O snapshot usa envelope
 autenticado AES-256-GCM estrito com chave exclusiva, persiste sem perda os
 campos necessários ao restore, cria temporários em `0600`, faz `fsync`, limita
 retenção e remove fisicamente entradas expiradas. Um journal privado e
 autenticado revoga snapshots substituídos; o journal é confirmado antes da
 promoção do estado para que interrupção falhe fechada, com rollback síncrono do
 journal quando a promoção falha. O digest usa a identidade binária autenticada,
-o driver é validado explicitamente e ausência inconsistente do snapshot nega o
-startup. Revogações expiram, são compactadas e possuem limite fail-closed.
+o driver é validado antes de qualquer carga local, retenção configurada exige
+inteiro seguro e ausência inconsistente do snapshot nega o startup. Revogações
+expiram, são compactadas e possuem limite fail-closed.
 
-Evidência corrigida: testes diretamente afetados `21/21`; bateria causal final
-`352/352`; runner hermético `1.237` testes, `1.232` aprovados, zero falhas e cinco
+Evidência após o último delta: teste dedicado `14/14`; bateria causal final
+`345/345`; runner hermético `1.238` testes, `1.233` aprovados, zero falhas e cinco
 funcionais intencionalmente desativados; rede externa bloqueada; sintaxe e
 `git diff --check` verdes.
 
@@ -116,7 +121,7 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Congelar o terceiro commit sanitizado, publicar a branch e obter nova auditoria
+Congelar o quarto commit sanitizado, publicar a branch e obter nova auditoria
 independente do Chat pelo hash imutável. Não acessar produção nem fazer deploy
 nesta etapa.
 
@@ -127,6 +132,8 @@ STATE-04; Codex → Sol → Alto → ler e confrontar o parecer.`
 
 ## Histórico dirigido
 
+- recuperação da terceira revisão de STATE-04:
+  `docs/audit/33-state04-third-review-recovery-candidate-2026-07-23.md`;
 - recuperação após o segundo `NO-GO` de STATE-04:
   `docs/audit/32-state04-second-nogo-recovery-candidate-2026-07-23.md`;
 - recuperação após `NO-GO` de STATE-04:

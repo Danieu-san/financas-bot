@@ -457,6 +457,41 @@ test('abrupt interruption after durable journal commit makes the prior snapshot 
     }
 });
 
+test('invalid driver fails before touching an existing local snapshot', () => {
+    const childRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'financas-bot-state04-driver-'));
+    const stateFile = path.join(childRoot, 'state_store.json');
+    const sentinel = '{"mustRemainUntouched":true}\n';
+    const script = `
+        try {
+            const manager = require(${JSON.stringify(STATE_MANAGER_PATH)});
+            manager.assertStateStoreConfiguration();
+            process.exit(0);
+        } catch (error) {
+            process.stdout.write(String(error && error.message));
+            process.exit(1);
+        }
+    `;
+    try {
+        fs.writeFileSync(stateFile, sentinel, { mode: 0o600 });
+        const result = spawnSync(process.execPath, ['-e', script], {
+            cwd: childRoot,
+            encoding: 'utf8',
+            env: {
+                ...process.env,
+                STATE_STORE_DRIVER: 'files',
+                STATE_STORE_ENCRYPTION_KEY: TEST_KEY,
+                STATE_STORE_MAX_RETENTION_SECONDS: '60'
+            }
+        });
+        assert.strictEqual(result.status, 1);
+        assert.strictEqual(result.stderr, '');
+        assert.strictEqual(result.stdout, 'state_store_driver_invalid');
+        assert.strictEqual(fs.readFileSync(stateFile, 'utf8'), sentinel);
+    } finally {
+        fs.rmSync(childRoot, { recursive: true, force: true });
+    }
+});
+
 test('startup subprocess fails closed with bounded sanitized configuration errors', () => {
     const childRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'financas-bot-state04-startup-'));
     const script = `
@@ -488,6 +523,13 @@ test('startup subprocess fails closed with bounded sanitized configuration error
                     STATE_STORE_ENCRYPTION_KEY: TEST_KEY
                 },
                 expected: 'state_store_driver_invalid'
+            },
+            {
+                env: {
+                    STATE_STORE_ENCRYPTION_KEY: TEST_KEY,
+                    STATE_STORE_MAX_RETENTION_SECONDS: '0.0005'
+                },
+                expected: 'state_store_retention_invalid'
             }
         ];
         for (const item of cases) {

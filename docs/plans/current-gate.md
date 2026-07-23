@@ -7,8 +7,8 @@ Commit funcional de partida:
 
 ## Estado
 
-`TERCEIRO CANDIDATO LOCAL CORRIGIDO APÓS DOIS NO-GO; NOVA AUDITORIA
-INDEPENDENTE PENDENTE`. Este gate não autoriza produção, deploy ou leitura do
+`QUARTO CANDIDATO LOCAL CORRIGIDO APÓS DOIS NO-GO E UMA REVISÃO INTERROMPIDA;
+NOVA AUDITORIA INDEPENDENTE PENDENTE`. Este gate não autoriza produção, deploy ou leitura do
 snapshot real.
 
 ## Objetivo
@@ -66,7 +66,7 @@ limitada por retenção, sem depender do `umask` operacional.
 6. somente com `GO` local e autorização remota separada, validar modo e retenção
    de forma sanitizada no servidor vigente.
 
-Etapas 1 a 4 foram refeitas após dois `NO-GO`. A etapa 5 aguarda o terceiro
+Etapas 1 a 4 foram refeitas após dois `NO-GO`. A etapa 5 aguarda o quarto
 commit imutável e novo parecer independente.
 
 ## Desenho implementado
@@ -88,8 +88,9 @@ commit imutável e novo parecer independente.
   interrupções, e uma falha síncrona de promoção restaura o journal anterior;
 - o digest do journal usa AAD, IV, tag e ciphertext binários canônicos; outra
   serialização JSON do mesmo envelope continua revogada;
-- driver desconhecido e ausência do snapshot diante de temporário/journal
-  existente negam o startup;
+- driver desconhecido falha antes de qualquer carga do snapshot local; retenção
+  configurada exige inteiro seguro; ausência do snapshot diante de
+  temporário/journal existente nega o startup;
 - revogações possuem expiração, compactação no replacement seguinte e limite
   fail-closed de 10.000 registros ativos;
 - temporários recebem `fsync`; no Linux, substituições também sincronizam o
@@ -104,9 +105,9 @@ commit imutável e novo parecer independente.
 ## Evidência final
 
 - RED causal: `3/3`;
-- testes diretamente afetados: `21/21`;
-- testes causais/afetados: `352/352`;
-- runner hermético: `1.237` testes, `1.232` aprovados, zero falhas, cinco
+- teste dedicado de segurança: `14/14`;
+- testes causais/afetados: `345/345`;
+- runner hermético: `1.238` testes, `1.233` aprovados, zero falhas, cinco
   funcionais desativados por contrato e rede externa bloqueada;
 - sintaxe, `git diff --check` e varredura dirigida de segredos: verdes;
 - nenhuma leitura do snapshot real, produção, Google ou WhatsApp.
@@ -153,5 +154,5 @@ Codex → Sol → Alto → confrontar o parecer, sem deploy.`
 
 ## Próxima ação exata
 
-Criar o terceiro commit sanitizado, publicar a branch e solicitar nova auditoria
+Criar o quarto commit sanitizado, publicar a branch e solicitar nova auditoria
 independente por hash, sem acessar o snapshot real.

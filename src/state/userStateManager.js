@@ -24,7 +24,9 @@ function resolveMaxRetentionSeconds() {
     const configured = process.env.STATE_STORE_MAX_RETENTION_SECONDS;
     if (configured === undefined || configured === '') return DEFAULT_MAX_RETENTION_SECONDS;
     const parsed = Number(configured);
-    if (!Number.isFinite(parsed) || parsed <= 0 || parsed > ABSOLUTE_MAX_RETENTION_SECONDS) {
+    if (!Number.isSafeInteger(parsed)
+        || parsed <= 0
+        || parsed > ABSOLUTE_MAX_RETENTION_SECONDS) {
         throw new Error('state_store_retention_invalid');
     }
     return parsed;
@@ -566,7 +568,9 @@ function closeStateStore() {
 }
 
 void tryInitRedis();
-if (storeMode === 'file' && stateMap.size === 0) {
+if (!initializationFailureCode
+    && STATE_STORE_DRIVER === 'file'
+    && stateMap.size === 0) {
     try {
         loadStateFromDisk();
     } catch {
