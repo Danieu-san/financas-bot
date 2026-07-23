@@ -11,7 +11,10 @@ LOCAL` independente no commit
 `6e360782ce98e45673b7fae9554d84c13478c23d`, após dois ciclos de `NO-GO`,
 reprodução e correção. `AUTH-04` recebeu `GO TÉCNICO LOCAL` independente no
 commit imutável `beb8e0ff7f2eccd74688aa347de6b7d79170d094`. O gate encerrado
-mais recente é `STATE-04`, proteção do snapshot conversacional local. O primeiro candidato
+mais recente é `COV-01`, no hash
+`c96d801f6f5c683634dbc8b3a2997eb576a9e3f5`, com `GO TÉCNICO LOCAL`
+independente e nenhum achado dentro do modelo familiar e de testes confiáveis.
+O gate anterior é `STATE-04`, proteção do snapshot conversacional local. O primeiro candidato
 imutável `d4c7016204a8877869d24abea8e02b007e8dcfaf` recebeu `NO-GO TÉCNICO
 LOCAL`; todos os achados foram reproduzidos e corrigidos incrementalmente. O
 segundo candidato `8f0f185eb0cc785faff71c7046457f319bd62cce` também recebeu
@@ -24,11 +27,27 @@ LOCAL` porque Redis ainda era aceito sem participar da barreira de startup. O
 driver Redis foi tornado explicitamente indisponível até o gate `STATE-03`; o
 quinto candidato recebeu `GO TÉCNICO LOCAL` independente no hash
 `22fff090192269e71d71025653f1b5450b3132e2`, sem achado `CRITICAL`, `HIGH` ou
-`MEDIUM`. O próximo gate da fila documental é `COV-01`. A
+`MEDIUM`. O próximo gate da fila documental é `OPS-01`. A
 decisão pós-Fase 9 sobre proposição de salvamento segue registrada no roadmap
 sem alterar essa ordem.
 
 ## Último gate encerrado
+
+`COV-01` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
+`c96d801f6f5c683634dbc8b3a2997eb576a9e3f5`.
+
+`npm test` agora executa o runner local exaustivo: `114` arquivos descobertos,
+`96` entradas diretas, `18` agregadas e somente o controlador WhatsApp E2E real
+excluído. Ambiente, subprocessos, skips e TODO possuem contratos fail-closed
+proporcionais ao bot familiar e a testes versionados confiáveis.
+
+Evidência executada: contrato adversarial `11/11`; multiprocessos `56/56`;
+agregador Open Finance `103/103`; gate amplo com `1.241` testes, `1.236`
+aprovados, zero falhas, cinco skips permitidos e zero TODO.
+
+Não houve acesso a produção, Google, WhatsApp ou Pluggy reais nem deploy.
+
+## Gate encerrado anterior — STATE-04
 
 `STATE-04` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
 `22fff090192269e71d71025653f1b5450b3132e2`.
@@ -96,10 +115,10 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Git e workspace
 
-- branch ativa: `codex/state04-snapshot-hardening`, baseada em
-  `fd7146c3604fe41bb2ae44de695099254fb30aa4`;
+- branch ativa: `codex/cov01-release-gate`, baseada em
+  `130d86306ef54d57a3345acb52e83e02f0f20c47`;
 - produto com último `GO TÉCNICO LOCAL`:
-  `22fff090192269e71d71025653f1b5450b3132e2`;
+  `c96d801f6f5c683634dbc8b3a2997eb576a9e3f5`;
 - alterações concorrentes do workstream AWS/Oracle e arquivos não rastreados do
   usuário permanecem fora do gate e não devem ser adicionados, alterados ou
   removidos;
@@ -107,32 +126,18 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Próximo gate
 
-`COV-01`: incorporar formalmente a bateria hermética ao gate padrão de teste e
-release, sem executar integração real. `STATE-04` está encerrado. Seu snapshot usa envelope
-autenticado AES-256-GCM estrito com chave exclusiva, persiste sem perda os
-campos necessários ao restore, cria temporários em `0600`, faz `fsync`, limita
-retenção e remove fisicamente entradas expiradas. Um journal privado e
-autenticado revoga snapshots substituídos; o journal é confirmado antes da
-promoção do estado para que interrupção falhe fechada, com rollback síncrono do
-journal quando a promoção falha. O digest usa a identidade binária autenticada,
-somente `file` permanece aceito; Redis falha antes de carregar módulo, iniciar
-fallback ou tocar o snapshot. O driver é validado antes de qualquer carga
-local, retenção configurada exige inteiro seguro e ausência inconsistente do
-snapshot nega o startup. Revogações expiram, são compactadas e possuem limite
-fail-closed.
-
-Evidência após o último delta: teste dedicado `14/14`; bateria causal final
-`345/345`; runner hermético `1.238` testes, `1.233` aprovados, zero falhas e cinco
-funcionais intencionalmente desativados; rede externa bloqueada; sintaxe e
-`git diff --check` verdes.
+`OPS-01`: sincronizar os nomes e contratos de ambiente do runtime com
+`.env.example` ou schema versionado, sem ler valores reais nem acessar
+produção. `COV-01` está encerrado e fornece o gate padrão para validar a próxima
+correção.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
 ## Decisões vigentes
 
-- manter `Codex → Sol → Alto` na caracterização e correção de `COV-01`; esse é
-  o menor nível suficiente para alterar o gate padrão sem omitir baterias ou
-  introduzir integrações externas;
+- manter `Codex → Sol → Alto` na caracterização e correção de `OPS-01`; esse é
+  o menor nível suficiente para reconciliar configuração transversal sem expor
+  segredos;
 - parar e avisar Daniel antes de reduzir ou trocar capacidade;
 - a produção vigente é Oracle/OCI; não reutilizar caminhos AWS e não executar
   Oracle e AWS simultaneamente com a mesma sessão WhatsApp;
@@ -145,17 +150,20 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Abrir um workstream isolado para `COV-01`, caracterizar quais testes ainda não
-participam do gate padrão e implementar a menor integração possível. Não
-acessar produção nem fazer deploy nesta etapa.
+Abrir um workstream isolado para `OPS-01`, comparar somente nomes e contratos
+das variáveis do runtime com o artefato versionado e implementar a menor
+sincronização verificável. Não ler valores reais, acessar produção ou fazer
+deploy.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → caracterizar e corrigir COV-01; Chat → modelo mais capaz
+`Codex → Sol → Alto → caracterizar e corrigir OPS-01; Chat → modelo mais capaz
 disponível → Alto → auditar o futuro hash imutável.`
 
 ## Histórico dirigido
 
+- fechamento independente de COV-01:
+  `docs/audit/36-cov01-independent-close-2026-07-23.md`;
 - fechamento independente de STATE-04:
   `docs/audit/35-state04-independent-close-2026-07-23.md`;
 - recuperação da fronteira Redis de STATE-04:

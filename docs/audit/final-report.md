@@ -20,7 +20,7 @@ Objeto: commit `94c52f23261ae2b9150edcdb7f3ba5ebaba35727`, tree
 - Status posterior: `AUTH-01` foi corrigida e validada em produção; `FLOW-01`
   e o contrato original restrito de `STATE-02` receberam `GO local` na C-01;
   `DATA-01`, `DATA-02`, `AUTH-02`, `AUTH-03` e `FLOW-03` receberam `GO local
-  integral` ou `GO TÉCNICO LOCAL`. Restam dois `P1` abertos e sete `P2` abertos do objeto
+  integral` ou `GO TÉCNICO LOCAL`. Restam zero `P1` aberto e quatro `P2` abertos do objeto
   auditado.
 
 O resultado mais importante é que as baterias verdes não cobrem algumas
@@ -187,10 +187,10 @@ autoriza deploy: indica apenas que uma parte causal possui evidência local.
 | FLOW-04 | P2 | Aberto | jobs gerais do scheduler ainda não possuem outbox/retry durável por usuário |
 | STATE-03 | P2 | Aberto | shutdown Redis ainda não prova espera do último flush |
 | STATE-04 | P2 | Resolvido | snapshot local protegido e privado; GO técnico local no hash `22fff090192269e71d71025653f1b5450b3132e2` |
-| COV-01 | P2 | Aberto | gate padrão ainda não incorpora formalmente toda a bateria hermética |
+| COV-01 | P2 | Resolvido | `npm test` executa o gate local exaustivo; GO técnico local no hash `c96d801f6f5c683634dbc8b3a2997eb576a9e3f5` |
 | OPS-01 | P2 | Aberto | runtime e `.env.example` continuam sem sincronização integral |
 
-Contagem vigente: dez P1 resolvidos; zero P1 aberto; dois P2 resolvidos e cinco P2
+Contagem vigente: dez P1 resolvidos; zero P1 aberto; três P2 resolvidos e quatro P2
 abertos. As
 seções e tabelas anteriores continuam como registro do objeto original, não
 como quadro vigente de remediação.
@@ -282,8 +282,8 @@ Esta sequência é uma fila, não autorização imediata:
 7. **concluído:** alinhar scheduler à planilha pessoal (`FLOW-03`);
 8. **concluído:** serializar mensagens por remetente (`STATE-01`);
 9. **concluído:** fechar escapes de log e proteger o snapshot;
-10. **gate imediato:** transformar a bateria Open Finance local em gate padrão de release;
-11. sincronizar schema de ambiente e `.env.example`;
+10. **concluído:** transformar a bateria Open Finance local em gate padrão de release;
+11. **gate imediato:** sincronizar schema de ambiente e `.env.example`;
 12. reauditar cada fatia antes de promoção.
 
 ## Gate de retorno obrigatório
@@ -297,6 +297,6 @@ satisfeita. `AUTH-01` foi corrigida em fatia explícita posterior. A C-01 recebe
 colisão de temporários estão fechados, com revisão independente e gates locais
 verdes no candidato `0188570...`. DATA-01 e DATA-02 também receberam `GO local
 integral`; WGL-03/WGL-04, AUTH-03/WGL-07 e FLOW-03 também receberam `GO
-TÉCNICO LOCAL`; `STATE-01`, `PRIV-01`, `AUTH-04` e `STATE-04` também foram
-encerrados por parecer independente. Deploy e produção não foram avaliados. A
-próxima correção causal da fila documental é `COV-01`.
+TÉCNICO LOCAL`; `STATE-01`, `PRIV-01`, `AUTH-04`, `STATE-04` e `COV-01` também
+foram encerrados por parecer independente. Deploy e produção não foram
+avaliados. A próxima correção causal da fila documental é `OPS-01`.
