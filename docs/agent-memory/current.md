@@ -9,26 +9,28 @@ TÉCNICO LOCAL` independente no commit imutável
 `afc961fadd3f62a69c9e02ea1eb527f380d6d42f`. `PRIV-01` recebeu `GO TÉCNICO
 LOCAL` independente no commit
 `6e360782ce98e45673b7fae9554d84c13478c23d`, após dois ciclos de `NO-GO`,
-reprodução e correção. `AUTH-04`, revogação imediata do dashboard quando o
-cadastro deixa de estar ativo, está como `CANDIDATO LOCAL VERDE; AUDITORIA
-INDEPENDENTE PENDENTE`. A
+reprodução e correção. `AUTH-04` recebeu `GO TÉCNICO LOCAL` independente no
+commit imutável `beb8e0ff7f2eccd74688aa347de6b7d79170d094`. O gate ativo agora
+é `STATE-04`, proteção do snapshot conversacional local. A
 decisão pós-Fase 9 sobre proposição de salvamento segue registrada no roadmap
 sem alterar essa ordem.
 
 ## Último gate encerrado
 
-`FLOW-03` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
-`4c1001338ca1ed919b55be4e9566258178a0175e`.
+`AUTH-04` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
+`beb8e0ff7f2eccd74688aa347de6b7d79170d094`.
 
-Todos os reads financeiros abrangidos do scheduler agora usam o `userId`
-resolvido, exigem fonte pessoal por `requireUserScoped: true` e mantêm telemetria
-do consumidor. O fallback de cartões preserva apenas o schema legado, nunca a
-fonte central. O Chat confirmou o hash e leu manifesto, scheduler, testes e o
-contrato de leitura do Google, sem achado bloqueante nem lacuna indispensável.
+As APIs financeiras v1, v2 e wrappers autenticados agora validam assinatura/TTL
+e consultam o cadastro fresco antes de qualquer leitura. Ausência, exclusão ou
+status diferente de `ACTIVE` negam com `403`; indisponibilidade da fonte nega
+com `503` distinto. O Chat confirmou hash, base e os cinco arquivos, sem achado
+`CRITICAL`, `HIGH` ou `MEDIUM`.
 
-Evidência executada pelo Codex: RED causal antes da correção, scheduler `23/23`,
-bateria afetada `279/279` e `npm test` com pretests verdes e runner principal
-`1.068/1.068`. O parecer externo foi estático e não reproduziu essas execuções.
+Evidência executada pelo Codex: RED causal `200 !== 403`; cenários `3/3`;
+dashboard `24/24`; OAuth `7/7`; auditoria sanitizada `1/1`; pretests verdes e
+runner principal `1.080/1.080`. O parecer externo foi estático e não reproduziu
+essas execuções. Os dois achados `LOW` de cobertura e o ponto informativo de
+telemetria pré-roteamento não abrem bypass nem vazamento.
 
 Não houve acesso a Google/WhatsApp real, produção ou deploy.
 
@@ -63,10 +65,10 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Git e workspace
 
-- branch candidata: `codex/auth04-dashboard-revocation`, criada a partir de
-  `e408d68d5f5abe75071c6f8d06de479b7d026331`; `main` permanece como destino;
+- branch de fechamento: `codex/auth04-dashboard-revocation`; `main` permanece
+  como destino antes de abrir a branch isolada de `STATE-04`;
 - produto com último `GO TÉCNICO LOCAL`:
-  `6e360782ce98e45673b7fae9554d84c13478c23d`;
+  `beb8e0ff7f2eccd74688aa347de6b7d79170d094`;
 - alterações concorrentes do workstream AWS/Oracle e arquivos não rastreados do
   usuário permanecem fora do gate e não devem ser adicionados, alterados ou
   removidos;
@@ -74,22 +76,18 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Gate ativo
 
-`AUTH-04`: a decisão assíncrona compartilhada valida assinatura/TTL e consulta o
-cadastro fresco antes de qualquer leitura financeira nas APIs v1, v2 e wrappers
-autenticados. Usuário ausente, excluído ou não `ACTIVE` recebe `403`; fonte de
-status indisponível recebe `503` distinto; a auditoria registra somente
-referências e motivos sanitizados. O RED causal original `200 !== 403` foi
-fechado localmente, mas o gate ainda não possui `GO` independente. `STATE-04`,
-proteção do snapshot, permanece P2 separado.
+`STATE-04`: o snapshot `state_store.json` ainda depende de sanitização parcial e
+`umask`; pode persistir identificadores, valores, datas, conta/cartão, pessoa,
+filename e classificações, e não possui contrato demonstrado de modo privado,
+inventário completo ou retenção. A implementação ainda não foi iniciada.
 
 Plano corrente: `docs/plans/current-gate.md`.
-Checkpoint portátil:
-`docs/agent-memory/handoff-2026-07-23-auth04-red.md`.
 
 ## Decisões vigentes
 
-- manter `Codex → Sol → Alto` na publicação e auditoria de `AUTH-04`; esse é o
-  menor nível suficiente para confrontar o commit imutável com as evidências;
+- manter `Codex → Sol → Alto` na caracterização e correção de `STATE-04`; esse
+  é o menor nível suficiente para proteção de estado, compatibilidade de restore
+  e testes adversariais;
 - parar e avisar Daniel antes de reduzir ou trocar capacidade;
 - a produção vigente é Oracle/OCI; não reutilizar caminhos AWS e não executar
   Oracle e AWS simultaneamente com a mesma sessão WhatsApp;
@@ -102,16 +100,19 @@ Checkpoint portátil:
 
 ## Próxima ação exata
 
-Publicar somente o candidato sanitizado de `AUTH-04`, pedir auditoria
-independente pelo hash imutável e confrontar o veredito com a evidência local.
-Não acessar produção nem fazer deploy nesse gate.
+Reproduzir localmente o snapshot contendo metadados sensíveis e o modo inseguro,
+definir o menor contrato que preserve restore sem plaintext privado, e criar
+REDs de modo `0600`, inventário e retenção. Não acessar produção nem fazer
+deploy nessa etapa.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → publicar e auditar o candidato AUTH-04, sem deploy.`
+`Codex → Sol → Alto → caracterizar STATE-04 e criar REDs locais, sem deploy.`
 
 ## Histórico dirigido
 
+- fechamento independente AUTH-04:
+  `docs/audit/29-auth04-independent-close-2026-07-23.md`;
 - candidato AUTH-04:
   `docs/audit/28-auth04-dashboard-revocation-candidate-2026-07-23.md`;
 - fechamento atual:

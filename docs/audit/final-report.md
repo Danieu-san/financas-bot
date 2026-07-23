@@ -182,7 +182,7 @@ autoriza deploy: indica apenas que uma parte causal possui evidência local.
 | STATE-01 | P1 | Resolvido | fila FIFO por remetente recebeu GO técnico local independente |
 | STATE-02 | P1 | Resolvido | mesmo message ID não é retranscrito na mesma instância/TTL; C-01 com GO local integral |
 | PRIV-01 | P1 | Resolvido | fronteira global de warnings/errors recebeu GO técnico local no hash `6e360782ce98e45673b7fae9554d84c13478c23d` |
-| AUTH-04 | P2 | Aberto | token de dashboard não é invalidado imediatamente pelo bloqueio |
+| AUTH-04 | P2 | Resolvido | cadastro fresco revoga token antes de qualquer leitura; GO técnico local no hash `beb8e0ff7f2eccd74688aa347de6b7d79170d094` |
 | FLOW-02 | P2 | Aberto | caminhos de OCR/receipts/import/export anteriores ao rate limit não foram fechados |
 | FLOW-04 | P2 | Aberto | jobs gerais do scheduler ainda não possuem outbox/retry durável por usuário |
 | STATE-03 | P2 | Aberto | shutdown Redis ainda não prova espera do último flush |
@@ -190,7 +190,8 @@ autoriza deploy: indica apenas que uma parte causal possui evidência local.
 | COV-01 | P2 | Aberto | gate padrão ainda não incorpora formalmente toda a bateria hermética |
 | OPS-01 | P2 | Aberto | runtime e `.env.example` continuam sem sincronização integral |
 
-Contagem vigente: dez P1 resolvidos; zero P1 aberto; sete P2 abertos. As
+Contagem vigente: dez P1 resolvidos; zero P1 aberto; um P2 resolvido e seis P2
+abertos. As
 seções e tabelas anteriores continuam como registro do objeto original, não
 como quadro vigente de remediação.
 

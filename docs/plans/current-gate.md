@@ -1,126 +1,103 @@
-# Gate ativo — AUTH-04
+# Gate ativo — STATE-04
 
 Atualizado em: 2026-07-23
 
-Commit de produto de partida:
-`6e360782ce98e45673b7fae9554d84c13478c23d`.
-
-Base da worktree candidata:
-`e408d68d5f5abe75071c6f8d06de479b7d026331`.
+Commit funcional de partida:
+`beb8e0ff7f2eccd74688aa347de6b7d79170d094`.
 
 ## Estado
 
-`CANDIDATO LOCAL VERDE; COMMIT E AUDITORIA INDEPENDENTE PENDENTES`. Este gate
-não autoriza deploy. O checkpoint portátil de partida está em
-`docs/agent-memory/handoff-2026-07-23-auth04-red.md`.
+`CARACTERIZAÇÃO DOCUMENTAL CONFIRMADA; RED LOCAL PENDENTE`. Este gate não
+autoriza produção, deploy ou leitura do snapshot real.
 
 ## Objetivo
 
-Fechar `AUTH-04`: um token de dashboard emitido para um usuário ativo deve
-perder acesso financeiro imediatamente quando o cadastro for bloqueado,
-inativado, excluído ou deixar de existir, sem aguardar o TTL do token.
+Fechar `STATE-04`: o snapshot conversacional local deve preservar somente o
+estado estritamente necessário de forma confidencial, íntegra, privada e
+limitada por retenção, sem depender do `umask` operacional.
 
 ## Escopo
 
-- validação de acesso das APIs v1 e v2 do dashboard;
-- consulta fresca ao cadastro pelo `uid` depois da validação criptográfica;
-- negação antes de qualquer leitura de planilha, read-model ou snapshot;
-- auditoria/telemetria sanitizada de token inválido, usuário revogado e fonte de
-  status indisponível;
-- testes causais com o mesmo token antes e depois da mudança de status.
+- `src/state/userStateManager.js` e testes diretamente relacionados;
+- conteúdo físico de `state_store.json` e seu temporário;
+- modo privado explícito em criação, substituição e recuperação;
+- inventário adversarial de identificadores, valores, datas, contas/cartões,
+  pessoas, filenames, classificações e campos desconhecidos;
+- retenção e compatibilidade de restore/restart;
+- falha fechada quando a proteção exigida não puder ser aplicada.
 
 ## Não escopo
 
-- blacklist geral de tokens, logout no navegador ou token de uso único;
-- mudança de TTL, algoritmo de assinatura, fragmento da URL ou sessão web;
-- alteração de autorização Google/Drive, membership familiar ou `ADMIN_IDS`;
-- dashboard administrativo amplo, produção, deploy ou dados reais;
-- `STATE-04` e os demais P2 da auditoria.
+- shutdown Redis e último flush (`STATE-03`);
+- outbox/retry do scheduler (`FLOW-04`);
+- conteúdo de SQLite, OAuth, Open Finance, logs ou Google Sheets;
+- snapshot real de produção antes de candidato local auditado;
+- deploy, rotação de segredo ou migração destrutiva de estado real.
 
 ## Invariantes
 
-1. assinatura, estrutura e expiração continuam verificadas antes do cadastro;
-2. usuário ausente, deletado ou com status diferente de `ACTIVE` não acessa
-   dados financeiros com token ainda temporalmente válido;
-3. falha ao obter o status atual fecha o acesso sem fingir token inválido e sem
-   converter indisponibilidade em usuário ausente;
-4. nenhuma rota lê Sheets financeiros, SQLite/read-model ou snapshot antes do
-   gate de status atual;
-5. v1, v2 e wrappers autenticados compartilham a mesma decisão;
-6. logs e auditoria não expõem token ou identificador cru.
+1. arquivo final e temporário nunca ficam mais permissivos que `0600`;
+2. plaintext privado não pode permanecer no snapshot apenas por usar chave
+   desconhecida ou estrutura aninhada;
+3. restore não transforma dado protegido/corrompido em fluxo autorizado;
+4. escrita continua atômica e falha não substitui o último snapshot válido;
+5. retenção é limitada e testável;
+6. logs não revelam conteúdo, caminho privado, identificador ou segredo;
+7. o desenho não reutiliza silenciosamente credencial de outro domínio.
 
 ## Riscos
 
-- validar somente uma rota e deixar outra superfície com autorização tardia;
-- reutilizar cache de usuário e preservar a janela que o gate deve eliminar;
-- tratar indisponibilidade do cadastro como ausência definitiva ou permitir
-  acesso por fallback;
-- registrar o token ou o `uid` cru ao negar;
-- mover leitura financeira antes do novo gate por engano.
+- remover campos necessários e reabrir fluxos em estado incoerente;
+- criptografar sem contrato de chave, rotação ou autenticação;
+- aplicar `chmod` somente depois de uma janela de exposição;
+- proteger o arquivo final e deixar o temporário permissivo;
+- aceitar snapshot legado ou corrompido de forma permissiva;
+- confundir proteção local com prova operacional em produção.
 
 ## Etapas
 
-1. concluído: RED causal para token válido de usuário que muda de `ACTIVE` para
-   estado impeditivo antes da segunda requisição;
-2. concluído: provar REDs de usuário ausente/deletado e de fonte de cadastro
-   indisponível;
-3. concluído: centralizar a decisão assíncrona de token + cadastro atual e
-   aplicá-la a todas as APIs do dashboard;
-4. concluído: executar sintaxe, testes focais, bateria afetada e uma suíte ampla
-   final;
-5. pendente: publicar commit sanitizado e pedir auditoria independente por
-   hash.
+1. reproduzir RED de conteúdo e modo em diretório temporário;
+2. mapear campos necessários ao restore e escolher minimização, envelope
+   autenticado ou combinação mínima;
+3. implementar proteção com menor diff e migração/falha fechada explícita;
+4. executar sintaxe, testes focais, bateria afetada e uma suíte ampla final;
+5. publicar commit sanitizado e pedir auditoria independente por hash;
+6. somente com `GO` local e autorização remota separada, validar modo e retenção
+   de forma sanitizada no servidor vigente.
 
 ## Testes previstos
 
-- `tests/dashboardAuthSecurity.test.js` para preservar assinatura e TTL;
-- `tests/dashboardApiContracts.test.js` para revogação causal em v1/v2 e para
-  provar zero leitura financeira após revogação/indisponibilidade;
-- testes adicionais de serviço somente se a fronteira central exigir;
-- `npm test` uma vez quando o candidato estiver estável.
-
-## Evidência local do candidato
-
-- RED reproduzido antes da correção: token bloqueado ainda respondia `200`, com
-  expectativa `403`;
-- cenários causais `AUTH-04`: `3/3`;
-- contratos completos de API e segurança do dashboard: `24/24`;
-- rotas OAuth adjacentes: `7/7`;
-- auditoria sanitizada do dashboard: `1/1`;
-- seis pretests do `npm test`: verdes;
-- runner principal após disponibilizar as dependências ESM à worktree:
-  `1080/1080`;
-- `node --check` nos dois arquivos alterados e `git diff --check`: verdes.
-
-A primeira tentativa ampla na worktree teve `43` falhas ambientais porque
-imports ESM não resolvem dependências por `NODE_PATH`. Uma junction local,
-ignorada e sem alteração de dependências corrigiu o ambiente; um caso
-representativo passou isoladamente e o runner principal completo convergiu para
-`1080/1080`.
+- testes dedicados de `userStateManager` para modo, temporário, conteúdo,
+  corrupção, restore e retenção;
+- `tests/unit.test.js` apenas nos cenários de estado durante o RED;
+- bateria afetada após estabilização;
+- `npm test` uma vez no candidato final.
 
 ## Critérios de GO
 
-1. RED causal reproduz o token ainda aceito depois do bloqueio no código-base;
-2. o mesmo token passa enquanto `ACTIVE` e é negado após mudança impeditiva;
-3. todas as APIs falham antes de qualquer leitura financeira;
-4. indisponibilidade do cadastro falha fechada com resposta distinta e segura;
-5. sintaxe, focal, afetada, runner amplo, workflow, diff e segredos verdes;
-6. commit imutável recebe parecer independente sem achado bloqueante ou lacuna
-   indispensável dentro de `AUTH-04`.
+1. RED demonstra conteúdo privado e/ou modo permissivo no código-base;
+2. arquivo final e temporário ficam `0600` desde a criação;
+3. inventário adversarial não encontra plaintext privado;
+4. restart restaura somente estado válido e protegido;
+5. corrupção, chave ausente ou proteção indisponível falham fechado;
+6. retenção remove estado expirado sem ampliar efeitos;
+7. testes, workflow, diff e segredos ficam verdes;
+8. commit imutável recebe parecer independente sem achado bloqueante.
 
 ## Condições de parada
 
-- necessidade de mudar membership, Google/Drive, privilégio admin ou produção;
-- conflito com os arquivos concorrentes da migração Oracle;
-- evidência de segredo real ou dado pessoal no pacote;
-- constatação de que `Alto` deixou de ser suficiente.
+- necessidade comprovada de nova arquitetura de gestão de segredos que exceda
+  `Alto`;
+- conflito com `STATE-03`, Redis ou a migração Oracle;
+- necessidade de abrir snapshot real, chave ou dado pessoal;
+- qualquer ação remota antes do candidato local auditado.
 
 ## Capacidade
 
-`Codex → Sol → Alto → implementar e auditar AUTH-04 sem deploy.`
+`Codex → Sol → Alto → caracterizar e corrigir STATE-04 localmente, sem deploy.`
 
 ## Próxima ação exata
 
-Criar e publicar o commit sanitizado do candidato, submeter o hash e os cinco
-arquivos exatos à auditoria independente e confrontar o veredito antes de
-declarar `GO`.
+Ler `src/state/userStateManager.js` e os testes de persistência indicados,
+reproduzir em diretório temporário o modo e o conteúdo atuais e criar os REDs
+mínimos sem acessar o snapshot real.
