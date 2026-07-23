@@ -4,48 +4,31 @@ Atualizado em: 2026-07-23
 
 ## Objetivo ativo
 
-Executar a fila de correções da auditoria exaustiva. `STATE-01` recebeu `GO
-TÉCNICO LOCAL` independente no commit imutável
-`afc961fadd3f62a69c9e02ea1eb527f380d6d42f`. `PRIV-01` recebeu `GO TÉCNICO
-LOCAL` independente no commit
-`6e360782ce98e45673b7fae9554d84c13478c23d`, após dois ciclos de `NO-GO`,
-reprodução e correção. `AUTH-04` recebeu `GO TÉCNICO LOCAL` independente no
-commit imutável `beb8e0ff7f2eccd74688aa347de6b7d79170d094`. O gate encerrado
-mais recente é `COV-01`, no hash
-`c96d801f6f5c683634dbc8b3a2997eb576a9e3f5`, com `GO TÉCNICO LOCAL`
-independente e nenhum achado dentro do modelo familiar e de testes confiáveis.
-O gate anterior é `STATE-04`, proteção do snapshot conversacional local. O primeiro candidato
-imutável `d4c7016204a8877869d24abea8e02b007e8dcfaf` recebeu `NO-GO TÉCNICO
-LOCAL`; todos os achados foram reproduzidos e corrigidos incrementalmente. O
-segundo candidato `8f0f185eb0cc785faff71c7046457f319bd62cce` também recebeu
-`NO-GO TÉCNICO LOCAL` por bypass de reserialização no journal e dois caminhos
-fail-open. Esses achados e as lacunas LOW foram corrigidos. A revisão do
-terceiro candidato confirmou o hash e os controles principais, mas foi
-interrompida antes do veredito final após apontar duas lacunas de startup. Elas
-foram reproduzidas e corrigidas. O quarto candidato recebeu `NO-GO TÉCNICO
-LOCAL` porque Redis ainda era aceito sem participar da barreira de startup. O
-driver Redis foi tornado explicitamente indisponível até o gate `STATE-03`; o
-quinto candidato recebeu `GO TÉCNICO LOCAL` independente no hash
-`22fff090192269e71d71025653f1b5450b3132e2`, sem achado `CRITICAL`, `HIGH` ou
-`MEDIUM`. O próximo gate da fila documental é `OPS-01`. A
-decisão pós-Fase 9 sobre proposição de salvamento segue registrada no roadmap
-sem alterar essa ordem.
+Executar a fila de correções da auditoria exaustiva. O gate encerrado mais
+recente é `OPS-01`, com `GO TÉCNICO LOCAL` independente no commit imutável
+`f26e627864d45d2b9b4317844313faf84411b8a7`. O primeiro candidato recebeu
+`NO-GO` por não reconhecer quatro variantes de acesso dinâmico ao ambiente; a
+lacuna foi reproduzida, corrigida e reauditada. O próximo gate é `FLOW-02`.
+A decisão pós-Fase 9 sobre proposição de salvamento e as melhorias de produto
+posteriores continuam na fila sem alterar essa ordem.
 
 ## Último gate encerrado
 
-`COV-01` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
-`c96d801f6f5c683634dbc8b3a2997eb576a9e3f5`.
+`OPS-01` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
+`f26e627864d45d2b9b4317844313faf84411b8a7`.
 
-`npm test` agora executa o runner local exaustivo: `114` arquivos descobertos,
-`96` entradas diretas, `18` agregadas e somente o controlador WhatsApp E2E real
-excluído. Ambiente, subprocessos, skips e TODO possuem contratos fail-closed
-proporcionais ao bot familiar e a testes versionados confiáveis.
+O contrato versionado cobre `183` nomes de ambiente usados pelo produto, com
+`196` nomes documentados, zero lacuna, zero duplicata e zero acesso dinâmico não
+aprovado. O detector reconhece concatenação e optional chaining e mantém apenas
+dois helpers dinâmicos conhecidos na allowlist.
 
-Evidência executada: contrato adversarial `11/11`; multiprocessos `56/56`;
-agregador Open Finance `103/103`; gate amplo com `1.241` testes, `1.236`
-aprovados, zero falhas, cinco skips permitidos e zero TODO.
+Evidência executada: bateria diretamente afetada `88/88`; contrato e inventário
+após a correção causal `9/9`; sintaxe e `git diff --check` verdes. A tentativa
+da suíte completa excedeu dez minutos sem resultado consolidado e permanece
+neutra.
 
-Não houve acesso a produção, Google, WhatsApp ou Pluggy reais nem deploy.
+Não houve leitura de valores reais, produção, Google, WhatsApp ou Pluggy reais
+nem deploy.
 
 ## Gate encerrado anterior — STATE-04
 
@@ -115,10 +98,10 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Git e workspace
 
-- branch ativa: `codex/cov01-release-gate`, baseada em
-  `130d86306ef54d57a3345acb52e83e02f0f20c47`;
+- branch ativa: `codex/ops01-env-contract`, baseada em
+  `240f15827fa682bd2f83d8139b25e7270128e010`;
 - produto com último `GO TÉCNICO LOCAL`:
-  `c96d801f6f5c683634dbc8b3a2997eb576a9e3f5`;
+  `f26e627864d45d2b9b4317844313faf84411b8a7`;
 - alterações concorrentes do workstream AWS/Oracle e arquivos não rastreados do
   usuário permanecem fora do gate e não devem ser adicionados, alterados ou
   removidos;
@@ -126,18 +109,16 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Próximo gate
 
-`OPS-01`: sincronizar os nomes e contratos de ambiente do runtime com
-`.env.example` ou schema versionado, sem ler valores reais nem acessar
-produção. `COV-01` está encerrado e fornece o gate padrão para validar a próxima
-correção.
+`FLOW-02`: assegurar que o rate limit global antecede os caminhos pesados de
+OCR, recibos, importação e exportação. `OPS-01` está encerrado.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
 ## Decisões vigentes
 
-- manter `Codex → Sol → Alto` na caracterização e correção de `OPS-01`; esse é
-  o menor nível suficiente para reconciliar configuração transversal sem expor
-  segredos;
+- manter `Codex → Sol → Alto` na caracterização e correção de `FLOW-02`; esse é
+  o menor nível suficiente para revisar a ordem causal entre gates e efeitos
+  pesados;
 - parar e avisar Daniel antes de reduzir ou trocar capacidade;
 - a produção vigente é Oracle/OCI; não reutilizar caminhos AWS e não executar
   Oracle e AWS simultaneamente com a mesma sessão WhatsApp;
@@ -150,18 +131,29 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Abrir um workstream isolado para `OPS-01`, comparar somente nomes e contratos
-das variáveis do runtime com o artefato versionado e implementar a menor
-sincronização verificável. Não ler valores reais, acessar produção ou fazer
-deploy.
+Abrir um workstream isolado para `FLOW-02`, reproduzir os caminhos pesados que
+antecedem o rate limit e implementar a menor correção causal. Não acessar
+integrações reais ou fazer deploy.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → caracterizar e corrigir OPS-01; Chat → modelo mais capaz
+`Codex → Sol → Alto → caracterizar e corrigir FLOW-02; Chat → modelo mais capaz
 disponível → Alto → auditar o futuro hash imutável.`
+
+## Fila de produto posterior
+
+Somente depois das correções da auditoria e das melhorias já previstas para
+Pluggy/Open Finance:
+
+1. permitir atribuição familiar uniforme de um lançamento a Daniel ou Thaís;
+2. apresentar a forma de pagamento como menu numerado;
+3. na dúvida de categoria, oferecer mais categorias existentes antes da opção
+   de criar uma nova.
 
 ## Histórico dirigido
 
+- fechamento independente de OPS-01:
+  `docs/audit/37-ops01-independent-close-2026-07-23.md`;
 - fechamento independente de COV-01:
   `docs/audit/36-cov01-independent-close-2026-07-23.md`;
 - fechamento independente de STATE-04:

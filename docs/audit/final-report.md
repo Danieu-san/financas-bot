@@ -188,9 +188,9 @@ autoriza deploy: indica apenas que uma parte causal possui evidência local.
 | STATE-03 | P2 | Aberto | shutdown Redis ainda não prova espera do último flush |
 | STATE-04 | P2 | Resolvido | snapshot local protegido e privado; GO técnico local no hash `22fff090192269e71d71025653f1b5450b3132e2` |
 | COV-01 | P2 | Resolvido | `npm test` executa o gate local exaustivo; GO técnico local no hash `c96d801f6f5c683634dbc8b3a2997eb576a9e3f5` |
-| OPS-01 | P2 | Aberto | runtime e `.env.example` continuam sem sincronização integral |
+| OPS-01 | P2 | Resolvido | contrato versionado cobre o runtime sem ler valores; GO técnico local no hash `f26e627864d45d2b9b4317844313faf84411b8a7` |
 
-Contagem vigente: dez P1 resolvidos; zero P1 aberto; três P2 resolvidos e quatro P2
+Contagem vigente: dez P1 resolvidos; zero P1 aberto; quatro P2 resolvidos e três P2
 abertos. As
 seções e tabelas anteriores continuam como registro do objeto original, não
 como quadro vigente de remediação.
@@ -283,7 +283,7 @@ Esta sequência é uma fila, não autorização imediata:
 8. **concluído:** serializar mensagens por remetente (`STATE-01`);
 9. **concluído:** fechar escapes de log e proteger o snapshot;
 10. **concluído:** transformar a bateria Open Finance local em gate padrão de release;
-11. **gate imediato:** sincronizar schema de ambiente e `.env.example`;
+11. **concluído:** sincronizar schema de ambiente e `.env.example`;
 12. reauditar cada fatia antes de promoção.
 
 ## Gate de retorno obrigatório
@@ -298,5 +298,6 @@ colisão de temporários estão fechados, com revisão independente e gates loca
 verdes no candidato `0188570...`. DATA-01 e DATA-02 também receberam `GO local
 integral`; WGL-03/WGL-04, AUTH-03/WGL-07 e FLOW-03 também receberam `GO
 TÉCNICO LOCAL`; `STATE-01`, `PRIV-01`, `AUTH-04`, `STATE-04` e `COV-01` também
-foram encerrados por parecer independente. Deploy e produção não foram
-avaliados. A próxima correção causal da fila documental é `OPS-01`.
+foram encerrados por parecer independente. `OPS-01` também recebeu `GO TÉCNICO
+LOCAL` após correção e reauditoria do detector de ambiente. Deploy e produção
+não foram avaliados. A próxima correção causal da fila documental é `FLOW-02`.
