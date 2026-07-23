@@ -18,7 +18,7 @@ const STATE_SNAPSHOT_AAD = Buffer.from(`${STATE_SNAPSHOT_FORMAT}:v${STATE_SNAPSH
 const DEFAULT_MAX_RETENTION_SECONDS = 24 * 60 * 60;
 const ABSOLUTE_MAX_RETENTION_SECONDS = 30 * 24 * 60 * 60;
 const MAX_REVOKED_SNAPSHOTS = 10_000;
-const ALLOWED_STATE_STORE_DRIVERS = new Set(['file', 'redis']);
+const ALLOWED_STATE_STORE_DRIVERS = new Set(['file']);
 
 function resolveMaxRetentionSeconds() {
     const configured = process.env.STATE_STORE_MAX_RETENTION_SECONDS;
@@ -448,7 +448,7 @@ function flushStateToDisk() {
 }
 
 async function tryInitRedis() {
-    if (STATE_STORE_DRIVER !== 'redis') {
+    if (initializationFailureCode || STATE_STORE_DRIVER !== 'redis') {
         return;
     }
 

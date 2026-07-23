@@ -457,7 +457,7 @@ test('abrupt interruption after durable journal commit makes the prior snapshot 
     }
 });
 
-test('invalid driver fails before touching an existing local snapshot', () => {
+test('unsupported driver fails before touching an existing local snapshot', () => {
     const childRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'financas-bot-state04-driver-'));
     const stateFile = path.join(childRoot, 'state_store.json');
     const sentinel = '{"mustRemainUntouched":true}\n';
@@ -472,21 +472,23 @@ test('invalid driver fails before touching an existing local snapshot', () => {
         }
     `;
     try {
-        fs.writeFileSync(stateFile, sentinel, { mode: 0o600 });
-        const result = spawnSync(process.execPath, ['-e', script], {
-            cwd: childRoot,
-            encoding: 'utf8',
-            env: {
-                ...process.env,
-                STATE_STORE_DRIVER: 'files',
-                STATE_STORE_ENCRYPTION_KEY: TEST_KEY,
-                STATE_STORE_MAX_RETENTION_SECONDS: '60'
-            }
-        });
-        assert.strictEqual(result.status, 1);
-        assert.strictEqual(result.stderr, '');
-        assert.strictEqual(result.stdout, 'state_store_driver_invalid');
-        assert.strictEqual(fs.readFileSync(stateFile, 'utf8'), sentinel);
+        for (const driver of ['files', 'redis']) {
+            fs.writeFileSync(stateFile, sentinel, { mode: 0o600 });
+            const result = spawnSync(process.execPath, ['-e', script], {
+                cwd: childRoot,
+                encoding: 'utf8',
+                env: {
+                    ...process.env,
+                    STATE_STORE_DRIVER: driver,
+                    STATE_STORE_ENCRYPTION_KEY: TEST_KEY,
+                    STATE_STORE_MAX_RETENTION_SECONDS: '60'
+                }
+            });
+            assert.strictEqual(result.status, 1, driver);
+            assert.strictEqual(result.stderr, '', driver);
+            assert.strictEqual(result.stdout, 'state_store_driver_invalid', driver);
+            assert.strictEqual(fs.readFileSync(stateFile, 'utf8'), sentinel, driver);
+        }
     } finally {
         fs.rmSync(childRoot, { recursive: true, force: true });
     }

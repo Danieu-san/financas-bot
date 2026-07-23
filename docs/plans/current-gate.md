@@ -7,7 +7,7 @@ Commit funcional de partida:
 
 ## Estado
 
-`QUARTO CANDIDATO LOCAL CORRIGIDO APÓS DOIS NO-GO E UMA REVISÃO INTERROMPIDA;
+`QUINTO CANDIDATO LOCAL CORRIGIDO APÓS TRÊS NO-GO E UMA REVISÃO INTERROMPIDA;
 NOVA AUDITORIA INDEPENDENTE PENDENTE`. Este gate não autoriza produção, deploy ou leitura do
 snapshot real.
 
@@ -66,7 +66,7 @@ limitada por retenção, sem depender do `umask` operacional.
 6. somente com `GO` local e autorização remota separada, validar modo e retenção
    de forma sanitizada no servidor vigente.
 
-Etapas 1 a 4 foram refeitas após dois `NO-GO`. A etapa 5 aguarda o quarto
+Etapas 1 a 4 foram refeitas após três `NO-GO`. A etapa 5 aguarda o quinto
 commit imutável e novo parecer independente.
 
 ## Desenho implementado
@@ -88,6 +88,9 @@ commit imutável e novo parecer independente.
   interrupções, e uma falha síncrona de promoção restaura o journal anterior;
 - o digest do journal usa AAD, IV, tag e ciphertext binários canônicos; outra
   serialização JSON do mesmo envelope continua revogada;
+- somente o driver `file` permanece aceito; `redis` falha antes de carregar
+  módulo, iniciar fallback ou tocar o snapshot, até ser redesenhado em
+  `STATE-03`;
 - driver desconhecido falha antes de qualquer carga do snapshot local; retenção
   configurada exige inteiro seguro; ausência do snapshot diante de
   temporário/journal existente nega o startup;
@@ -154,5 +157,5 @@ Codex → Sol → Alto → confrontar o parecer, sem deploy.`
 
 ## Próxima ação exata
 
-Criar o quarto commit sanitizado, publicar a branch e solicitar nova auditoria
+Criar o quinto commit sanitizado, publicar a branch e solicitar nova auditoria
 independente por hash, sem acessar o snapshot real.
