@@ -110,7 +110,7 @@ async function callGemini(prompt, isJsonResponse = false, retries = GEMINI_MAX_R
                     metrics.observeDuration('gemini.call.ms', Date.now() - startedAt);
                     return JSON.parse(cleanText);
                 } catch (e) {
-                    logger.error(`[ai] json_parse_failed error=${e.message} response_chars=${cleanText.length}`);
+                    logger.error(`[ai] json_parse_failed ${logger.safeError(e)} response_chars=${cleanText.length}`);
                     metrics.increment('gemini.parse_json_error');
                     return null;
                 }
@@ -126,7 +126,7 @@ async function callGemini(prompt, isJsonResponse = false, retries = GEMINI_MAX_R
             const attemptDuration = Date.now() - attemptStartedAt;
             const hasNextAttempt = attempt < maxAttempts;
 
-            logger.warn(`[ai] gemini_call_failed code=${parsedError.code} duration_ms=${attemptDuration} attempt=${attempt}/${maxAttempts}`);
+            logger.warn(`[ai] gemini_call_failed ${logger.safeError(parsedError)} duration_ms=${attemptDuration} attempt=${attempt}/${maxAttempts}`);
 
             if (hasNextAttempt) {
                 metrics.increment('gemini.retry');
@@ -135,7 +135,7 @@ async function callGemini(prompt, isJsonResponse = false, retries = GEMINI_MAX_R
             }
 
             const totalMs = Date.now() - startedAt;
-            logger.error(`[ai] gemini_call_final_error code=${parsedError.code} duration_ms=${totalMs} error=${parsedError.message}`);
+            logger.error(`[ai] gemini_call_final_error duration_ms=${totalMs} ${logger.safeError(parsedError)}`);
             return { error: true, code: parsedError.code, message: parsedError.message };
         }
     }
@@ -200,7 +200,7 @@ async function transcribeAudio(filePath) {
         metrics.increment('gemini.transcribe.error');
         const parsedError = parseGeminiError(error, GEMINI_TIMEOUT_MS);
         const elapsedMs = Date.now() - startedAt;
-        logger.error(`[ai] gemini_transcription_failed code=${parsedError.code} duration_ms=${elapsedMs} error=${parsedError.message}`);
+        logger.error(`[ai] gemini_transcription_failed duration_ms=${elapsedMs} ${logger.safeError(parsedError)}`);
         return null;
     }
 }
@@ -238,7 +238,7 @@ async function extractFinancialDocument(input = {}) {
     } catch (error) {
         metrics.increment('gemini.document_ocr.error');
         const httpStatus = String(error?.message || '').match(/HTTP\s+(\d{3})/)?.[1] || 'none';
-        logger.warn(`[ai] gemini_document_ocr_failed code=${parseGeminiError(error, GEMINI_TIMEOUT_MS).code} http_status=${httpStatus} duration_ms=${Date.now() - startedAt}`);
+        logger.warn(`[ai] gemini_document_ocr_failed ${logger.safeError(error)} http_status=${httpStatus} duration_ms=${Date.now() - startedAt}`);
         return { error: true, code: 'OCR_FAILED' };
     }
 }

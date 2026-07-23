@@ -139,7 +139,7 @@ async function composeContextualFinancialAnswer({
         };
     } catch (error) {
         metrics.increment('financial_contextual_analyst.error');
-        logger.warn(`[agent] contextual_analyst_failed reason=${error?.name || 'error'}`);
+        logger.warn(`[agent] contextual_analyst_failed ${logger.safeError(error)}`);
         return { ok: false, reason: 'llm_error' };
     }
 }

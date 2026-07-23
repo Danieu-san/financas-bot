@@ -103,7 +103,7 @@ async function classify(questionText) {
             originalQuestion: questionText
         };
     } catch (err) {
-        logger.warn(`[ai] classification_fallback error=${err.message}`);
+        logger.warn(`[ai] classification_fallback ${logger.safeError(err)}`);
         return {
             intent: 'pergunta_geral',
             parameters: {},

@@ -1,3 +1,5 @@
+const defaultLogger = require('../utils/logger');
+
 function getMessageKey(message) {
     return message?.id?._serialized || message?.id?.id || '';
 }
@@ -39,7 +41,7 @@ async function collectUnreadIncomingMessages(chats, options = {}) {
 }
 
 async function backfillUnreadMessages(client, handleMessage, options = {}) {
-    const logger = options.logger || console;
+    const logger = options.logger || defaultLogger;
     const delayMs = Number(options.delayMs || 3000);
     const enabled = options.enabled !== false;
     if (!enabled) return { skipped: true, reason: 'disabled', processed: 0 };

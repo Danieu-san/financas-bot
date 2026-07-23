@@ -1,5 +1,7 @@
+const defaultLogger = require('../utils/logger');
+
 async function triggerReadyRescue(client, options = {}) {
-    const logger = options.logger || console;
+    const logger = options.logger || defaultLogger;
     const isStillPending = typeof options.isStillPending === 'function'
         ? options.isStillPending
         : () => true;
@@ -47,12 +49,12 @@ async function triggerReadyRescue(client, options = {}) {
 function scheduleReadyRescue(client, options = {}) {
     const delayMs = Number(options.delayMs || 15000);
     const setTimeoutFn = options.setTimeoutFn || setTimeout;
-    const logger = options.logger || console;
+    const logger = options.logger || defaultLogger;
     if (delayMs <= 0) return null;
 
     return setTimeoutFn(() => {
         void triggerReadyRescue(client, options).catch(error => {
-            logger.warn('[whatsapp] ready rescue falhou: ' + error.message);
+            logger.warn(`[whatsapp] ready_rescue_failed ${defaultLogger.safeError(error)}`);
         });
     }, delayMs);
 }

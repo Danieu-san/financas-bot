@@ -3,95 +3,102 @@
 Atualizado em: 2026-07-22
 
 Commit de partida: `9894d8215cec7f7b7d3add9329d3e3071f62fc58`.
+Primeiro candidato auditado: `45dbfa1632779924bc8795baefd969f03afde7e7`.
 
 ## Estado
 
-`CANDIDATO LOCAL VALIDADO, AGUARDANDO COMMIT IMUTÁVEL E AUDITORIA
-INDEPENDENTE`. Este gate não autoriza deploy.
+`CANDIDATO PÓS-NO-GO VALIDADO, AGUARDANDO NOVO COMMIT IMUTÁVEL E
+REAUDITORIA INDEPENDENTE`. Este gate não autoriza deploy.
 
 ## Objetivo
 
-Fechar `PRIV-01`, P1 da auditoria exaustiva: impedir que caminhos de runtime
-contornem o logger sanitizado ou enviem a logs objetos de erro/resposta, tokens,
-URLs sensíveis, conteúdo de mensagens ou identificadores crus.
+Fechar `PRIV-01`: impedir que warnings/errors do runtime contornem a fronteira
+sanitizada ou levem objetos, mensagens livres, payloads, tokens, conteúdo ou
+identificadores crus aos logs.
 
 ## Escopo
 
-- entrypoint `index.js` e módulos JavaScript de `src/**`, exceto utilitários
-  exclusivamente de teste em `src/testing/**`;
-- logger central, sinks `console.error`/`console.warn` e payloads de erros de
-  providers;
-- testes adversariais do sanitizador e prova negativa estática do runtime;
+- `index.js` e JavaScript de `src/**`, exceto `src/testing/**`;
+- logger central, sinks warning/error, aliases injetáveis e payloads de erro;
+- prova adversarial do sanitizador e prova negativa estática do runtime;
+- preservação da severidade e de códigos categóricos úteis.
 
 ## Não escopo
 
-- mudança de regras financeiras, retries, respostas, efeitos ou ordem causal
-  do produto;
+- mudança de regras financeiras, retries, respostas, efeitos ou ordem causal;
 - produção, WhatsApp/Google real, deploy ou `STATE-04`;
-- logs de dependências externas ou arquivos históricos já gravados.
+- logs de dependências externas ou arquivos históricos já gravados;
+- saídas estáticas de inicialização que não carregam dados do runtime.
 
-## Inventário e RED
+## Caracterização e RED inicial
 
-O inventário reproduzível encontrou 146 arquivos JavaScript de runtime, 34
-ocorrências de `console.error`, 9 de `console.warn` e quatro dumps explícitos de
-payload de provider. Os escapes estavam em sete módulos: `index.js`,
-`creationHandler`, `messageHandler`, `google`, `googleOAuthService`, `whatsapp`
-e `userStateManager`.
+O inventário encontrou 146 arquivos de runtime, 34 `console.error`, 9
+`console.warn` e quatro dumps explícitos de payload de provider. Dois REDs
+mostraram redação incompleta de identificador/conteúdo e sete módulos que
+usavam console warning/error diretamente.
 
-Dois testes foram escritos antes da correção e falharam causalmente:
+## Primeiro candidato e NO-GO independente
 
-1. o sanitizador preservava um `spreadsheet_id` e conteúdo em `message`;
-2. a prova negativa localizava os sete módulos que contornavam o logger.
+O Chat leu integralmente os 12 arquivos solicitados no hash
+`45dbfa1632779924bc8795baefd969f03afde7e7` e emitiu `NO-GO` por dois achados
+HIGH:
 
-## Correção candidata
+1. propriedades livres como `error.message` continuavam interpoladas antes da
+   sanitização;
+2. módulos injetáveis ainda aceitavam `console` como logger, e o WhatsApp
+   entregava esse alias ao ready-rescue.
 
-- o logger central ganhou resumo seguro de erro composto apenas por nome e
-  código/status sanitizados, sem mensagem, resposta, configuração ou stack;
-- a redação central passou a cobrir chaves ampliadas de identificador e conteúdo
-  tanto em JSON quanto em pares `chave=valor`;
-- todos os `console.error` e `console.warn` do runtime foram encaminhados ao
-  logger central com evento estável e resumo seguro;
-- os quatro dumps explícitos de `response.data` foram removidos;
-- testes que observavam os sinks antigos agora observam o logger, sem alterar a
-  decisão de produto exercitada.
+O parecer também demonstrou que o primeiro scanner tinha produzido falso verde
+porque reconhecia somente chamadas textuais diretas a `console.warn/error`.
+
+## Correção pós-parecer
+
+- todos os sinks warning/error caracterizados passaram a usar evento estável e
+  `safeError`, sem mensagem, payload, response, config ou stack;
+- `safeError` ficou fail-closed: somente classes conhecidas e códigos HTTP ou
+  categóricos em caixa alta e formato estrito sobrevivem;
+- configs de runtime, Open Finance, unread backfill e ready-rescue usam o logger
+  central como fallback, nunca `console`;
+- o WhatsApp injeta o logger central no ready-rescue e não registra motivo livre
+  de desconexão;
+- a prova negativa reprova console direto, aliases de console e propriedades
+  livres de erro em sinks warning/error no recorte completo.
 
 ## Evidência executada pelo Codex
 
-- RED: `2/2` falharam antes da correção pelos escapes acima;
-- provas focais depois da correção: `2/2`;
-- regressões dirigidas dos antigos sinks: `5/5`;
-- recorte WhatsApp após eliminar o último motivo dinâmico: `27/27`;
-- bateria afetada de 20 arquivos: `510/510`;
-- `npm test`: pretests verdes e runner principal `1.076/1.076`, sem falha,
-  cancelamento ou skip;
-- sintaxe dos arquivos alterados e `git diff --check`: verdes;
-- busca final: zero `console.error`/`console.warn` no recorte de runtime e zero
-  dump explícito dos payloads de provider caracterizados.
+- reprodução dos dois achados HIGH: confirmada;
+- padrões estáticos do `NO-GO` depois da correção: zero;
+- sintaxe dos JavaScript alterados: verde;
+- provas focais ampliadas: `3/3`;
+- bateria transversal afetada: `526/526`;
+- bateria final dos últimos sinks: `418/418`;
+- `npm test`: pretests verdes e runner principal `1.077/1.077`, sem falha,
+  cancelamento ou skip.
 
-Essas execuções pertencem ao Codex. A auditoria externa será estática e não
-deve alegar que as reproduziu.
+Essas execuções pertencem ao Codex. O Chat fará revisão estática e não deve
+tratá-las como execução própria.
 
 ## Critérios de GO
 
-1. workflow do agente e varredura de segredos verdes;
-2. diff restrito e commit sanitizado publicado no GitHub por hash completo;
-3. auditor independente confirma hash e arquivos, não encontra achado
-   bloqueante nem lacuna indispensável dentro de `PRIV-01`;
-4. executor confronta o parecer com o código e registra fechamento separado.
+1. workflow do agente, diff e varredura de segredos verdes;
+2. novo commit sanitizado publicado por hash completo;
+3. reauditoria limpa confirma os arquivos e confronta os dois achados HIGH;
+4. nenhum achado bloqueante ou lacuna indispensável permanece em `PRIV-01`;
+5. executor confronta o parecer com o código e registra fechamento separado.
 
 ## Condições de parada
 
 - evidência de segredo real exige contenção própria sem reproduzi-lo;
 - necessidade de alterar autorização, efeitos financeiros ou produção;
 - conflito com arquivos concorrentes da migração Oracle;
-- constatação de que `Alto` deixou de ser suficiente para manter qualidade.
+- constatação de que `Alto` deixou de ser suficiente.
 
 ## Capacidade
 
-`Codex → Sol → Alto → publicar e auditar o candidato PRIV-01 sem deploy.`
+`Codex → Sol → Alto → publicar e reauditar a recuperação de PRIV-01 sem deploy.`
 
 ## Próxima ação exata
 
-Criar o manifesto candidato, validar workflow/segredos, adicionar somente os
-arquivos de `PRIV-01`, publicar o commit imutável e submetê-lo uma única vez ao
-Chat conectado ao GitHub.
+Criar o manifesto de recuperação, validar workflow/segredos, adicionar somente
+os arquivos pós-NO-GO, publicar o novo hash e submetê-lo uma única vez a uma
+reauditoria limpa no Chat conectado ao GitHub.

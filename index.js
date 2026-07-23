@@ -40,7 +40,7 @@ async function startBot() {
             await syncReadModelIfNeeded({ force: true });
             logger.info(`[startup] read-model pronto: ${JSON.stringify(getReadModelStats())}`);
         } catch (readModelError) {
-            logger.warn(`[startup] read-model indisponível no boot. fallback legado ativo. motivo=${readModelError.message}`);
+            logger.warn(`[startup] read_model_boot_fallback ${logger.safeError(readModelError)}`);
         }
 
         const shouldAutoBackfill = String(process.env.AUTO_BACKFILL_USER_ID_ON_STARTUP || 'false').toLowerCase() === 'true';
@@ -81,7 +81,7 @@ async function startBot() {
                 maxPerChat: Number(process.env.WHATSAPP_UNREAD_BACKFILL_MAX_PER_CHAT || 20),
                 notBeforeTimestamp: Math.max(0, startupUnixSeconds - unreadBackfillLookbackSeconds)
             }).catch(error => {
-                logger.warn('[whatsapp] unread backfill falhou: ' + error.message);
+                logger.warn(`[whatsapp] unread_backfill_failed ${logger.safeError(error)}`);
             });
         });
 

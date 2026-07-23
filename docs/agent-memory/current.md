@@ -6,8 +6,10 @@ Atualizado em: 2026-07-22
 
 Executar a fila de correções da auditoria exaustiva. `STATE-01` recebeu `GO
 TÉCNICO LOCAL` independente no commit imutável
-`afc961fadd3f62a69c9e02ea1eb527f380d6d42f`. `PRIV-01` está implementado e
-validado localmente, aguardando commit imutável e auditoria independente. A
+`afc961fadd3f62a69c9e02ea1eb527f380d6d42f`. O primeiro candidato `PRIV-01`
+recebeu `NO-GO` independente no hash
+`45dbfa1632779924bc8795baefd969f03afde7e7`; os dois achados foram reproduzidos,
+corrigidos e validados localmente, aguardando novo hash e reauditoria. A
 decisão pós-Fase 9 sobre proposição de salvamento segue registrada no roadmap
 sem alterar essa ordem.
 
@@ -69,12 +71,12 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Gate ativo
 
-`PRIV-01`: os bypasses `console.error`/`console.warn` do runtime foram fechados,
-payloads crus de provider foram removidos e a redação central foi ampliada para
-identificadores e conteúdo. RED `2/2`, focal `2/2`, regressões `5/5`, afetados
-`510/510`, recorte WhatsApp final `27/27` e runner amplo `1.076/1.076` estão verdes. Falta publicar o candidato
-imutável e obter/confrontar a auditoria independente. `STATE-04`, proteção do
-snapshot, permanece P2 separado.
+`PRIV-01`: após o `NO-GO`, propriedades livres de erro foram removidas dos
+sinks, fallbacks/aliases de `console` foram eliminados, `safeError` ficou
+fail-closed e a prova negativa foi ampliada. Focal `3/3`, baterias afetadas
+`526/526` e `418/418`, e runner amplo `1.077/1.077` estão verdes. Falta publicar
+o novo candidato imutável e obter/confrontar a reauditoria independente.
+`STATE-04`, proteção do snapshot, permanece P2 separado.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -94,9 +96,9 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Validar workflow e segredos, publicar somente os arquivos do candidato
-`PRIV-01`, pedir auditoria independente no Chat conectado ao GitHub e confrontar
-o parecer. Não acessar produção nem fazer deploy nesse gate.
+Validar workflow e segredos, publicar somente a recuperação pós-NO-GO de
+`PRIV-01`, pedir reauditoria independente em conversa limpa no Chat conectado ao
+GitHub e confrontar o parecer. Não acessar produção nem fazer deploy nesse gate.
 
 ## Capacidade para retomar
 
@@ -108,6 +110,8 @@ o parecer. Não acessar produção nem fazer deploy nesse gate.
   `docs/audit/18-flow03-independent-close-2026-07-22.md`;
 - candidato PRIV-01:
   `docs/audit/24-priv01-runtime-log-boundary-candidate-2026-07-22.md`;
+- recuperação pós-NO-GO PRIV-01:
+  `docs/audit/25-priv01-post-audit-recovery-candidate-2026-07-22.md`;
 - candidato STATE-01:
   `docs/audit/19-state01-sender-serialization-candidate-2026-07-22.md`;
 - correção pós-commit candidata:

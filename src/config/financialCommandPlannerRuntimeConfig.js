@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const dotenv = require('dotenv');
+const defaultLogger = require('../utils/logger');
 
 const RUNTIME_MODES = new Set(['off', 'shadow', 'canary']);
 const ROUTABLE_OPERATIONS = new Set(['bill.pay', 'debt.pay', 'invoice.pay', 'expense.create', 'income.create']);
@@ -78,7 +79,7 @@ function readFinancialCommandPlannerRuntimeConfig({
 
 function registerFinancialCommandPlannerRuntimeReload({
     processRef = process,
-    logger = console,
+    logger = defaultLogger,
     readRuntimeConfig = readFinancialCommandPlannerRuntimeConfig
 } = {}) {
     if (registeredProcesses.has(processRef)) return false;

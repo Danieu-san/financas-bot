@@ -797,7 +797,7 @@ async function repairUserSpreadsheetTemplate(target = {}) {
         logger.warn(`[google] user_spreadsheet_template_repaired user_id=${target.userId || ''}`);
         return true;
     } catch (repairError) {
-        logger.error(`[google] user_spreadsheet_template_repair_failed user_id=${target.userId || ''} error=${repairError.message}`);
+        logger.error(`[google] user_spreadsheet_template_repair_failed user_id=${target.userId || ''} ${logger.safeError(repairError)}`);
         return false;
     }
 }
@@ -979,7 +979,7 @@ async function readCanonicalLedgerAccountRowsForShadow(row = []) {
         const userId = row[9] ? String(row[9]) : '';
         return await readDataFromSheet('Contas!A:I', userId ? { userId } : {});
     } catch (error) {
-        logger.warn(`[canonical-ledger] account_rows_unavailable error=${error?.message || error}`);
+        logger.warn(`[canonical-ledger] account_rows_unavailable ${logger.safeError(error)}`);
         return [];
     }
 }
@@ -997,7 +997,7 @@ async function readCanonicalLedgerFinancialAccountRowsForShadow(sheetName, row =
             suppressMissingSheetError: true
         });
     } catch (error) {
-        logger.warn(`[canonical-ledger] financial_account_rows_unavailable error=${error?.message || error}`);
+        logger.warn(`[canonical-ledger] financial_account_rows_unavailable ${logger.safeError(error)}`);
         return [];
     }
 }

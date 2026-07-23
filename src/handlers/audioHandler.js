@@ -51,7 +51,7 @@ async function handleAudio(msg) {
                     resolve();
                 })
                 .on('error', (err) => {
-                    logger.error(`[audio] conversion_failed error=${err.message}`);
+                    logger.error(`[audio] conversion_failed ${logger.safeError(err)}`);
                     reject(err);
                 })
                 .save(mp3Path);
@@ -70,7 +70,7 @@ async function handleAudio(msg) {
         return transcribedText; // Retorna o texto transcrito com sucesso
 
     } catch (error) {
-        logger.error(`[audio] processing_failed error=${error.message}`);
+        logger.error(`[audio] processing_failed ${logger.safeError(error)}`);
         await msg.reply('Ocorreu um erro ao processar seu áudio. A equipe de TI foi notificada.');
         return null;
     } finally {
@@ -87,7 +87,7 @@ function safeUnlink(filePath) {
             fs.unlinkSync(filePath);
         }
     } catch (error) {
-        logger.warn(`[audio] temp_cleanup_failed error=${error.message}`);
+        logger.warn(`[audio] temp_cleanup_failed ${logger.safeError(error)}`);
     }
 }
 

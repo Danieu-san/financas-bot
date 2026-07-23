@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const dotenv = require('dotenv');
+const defaultLogger = require('../utils/logger');
 
 const RUNTIME_MODES = new Set(['off', 'shadow', 'answer', 'canary']);
 const registeredProcesses = new WeakSet();
@@ -52,7 +53,7 @@ function readFinancialAgentRuntimeConfig({
 
 function registerFinancialAgentRuntimeReload({
     processRef = process,
-    logger = console,
+    logger = defaultLogger,
     readRuntimeConfig = readFinancialAgentRuntimeConfig
 } = {}) {
     if (registeredProcesses.has(processRef)) return false;

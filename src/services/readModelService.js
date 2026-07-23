@@ -103,7 +103,7 @@ function saveReadModelToDisk() {
         fs.writeFileSync(TEMP_FILE, JSON.stringify(readModel, null, 2), 'utf8');
         fs.renameSync(TEMP_FILE, STORE_FILE);
     } catch (error) {
-        logger.warn(`read-model: falha ao persistir em disco (${error.message})`);
+        logger.warn(`[read-model] disk_persist_failed ${logger.safeError(error)}`);
     }
 }
 
@@ -130,7 +130,7 @@ function loadReadModelFromDisk() {
         };
         logger.info(`read-model: carregado do disco (saidas=${readModel.saidas.length}, entradas=${readModel.entradas.length}, cartoes=${readModel.cartoes.length})`);
     } catch (error) {
-        logger.warn(`read-model: falha ao carregar do disco (${error.message})`);
+        logger.warn(`[read-model] disk_load_failed ${logger.safeError(error)}`);
     }
 }
 
@@ -592,7 +592,7 @@ async function refreshVisualDashboardFromReadModel() {
             updatedAt: new Date().toISOString()
         });
     } catch (error) {
-        logger.warn(`read-model: falha ao renderizar Dashboard visual (${error.message})`);
+        logger.warn(`[read-model] visual_dashboard_render_failed ${logger.safeError(error)}`);
     }
 }
 

@@ -237,7 +237,7 @@ async function recordLegacyUsageEvent(input = {}, options = {}) {
         await task;
         return { recorded: true, entry };
     } catch (error) {
-        logger.warn(`legacy-usage-telemetry: write_failed code=${error?.code || 'unknown'}`);
+        logger.warn(`[legacy-usage-telemetry] write_failed ${logger.safeError(error)}`);
         return { recorded: false, reason: 'write_failed' };
     }
 }

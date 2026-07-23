@@ -516,7 +516,7 @@ function ensureSqliteReady() {
         logger.info(`sqlite-read-model: pronto em ${SQLITE_FILE}`);
         return true;
     } catch (error) {
-        logger.warn(`sqlite-read-model: falha ao iniciar (${error.message}). Fallback em memória ativo.`);
+        logger.warn(`[sqlite-read-model] startup_failed_memory_fallback ${logger.safeError(error)}`);
         sqliteReady = false;
         db = null;
         return false;

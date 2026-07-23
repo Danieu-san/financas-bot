@@ -99,7 +99,7 @@ async function buildPostConnectionNotificationPayload(result = {}) {
                 onboardingQuestion = prepareOnboardingState(result.whatsappId);
             }
         } catch (error) {
-            logger.warn(`oauth: não foi possível preparar onboarding para user_id=${result.userId}: ${error.message}`);
+            logger.warn(`[oauth] onboarding_prepare_failed user_id=${result.userId} ${logger.safeError(error)}`);
         }
     }
     return { ...result, onboardingQuestion };
@@ -117,7 +117,7 @@ async function notifyUserAfterGoogleConnection(result = {}) {
         await sendWhatsAppMessage(whatsappId, buildGoogleConnectionWhatsAppMessage(payload));
         logger.info(`oauth: confirmação WhatsApp enviada para user_id=${result.userId} whatsapp_id=${whatsappId}`);
     } catch (error) {
-        logger.warn(`oauth: falha ao enviar confirmação WhatsApp user_id=${result.userId || ''} whatsapp_id=${whatsappId} error=${error.message}`);
+        logger.warn(`[oauth] whatsapp_confirmation_failed user_id=${result.userId || ''} whatsapp_id=${whatsappId} ${logger.safeError(error)}`);
     }
 }
 
@@ -877,7 +877,7 @@ async function handleApiSummary(reqUrl, res) {
         sendJson(res, 200, decorateDashboardSummary(snapshot));
     } catch (error) {
         metrics.increment('dashboard.api.error');
-        logger.error(`dashboard api error: ${error.message}`);
+        logger.error(`[dashboard] api_error ${logger.safeError(error)}`);
         sendDashboardDataError(res, error);
     }
 }
@@ -923,7 +923,7 @@ async function handleApiV2Summary(reqUrl, res) {
         sendJson(res, 200, summary);
     } catch (error) {
         metrics.increment('dashboard.api.v2.error');
-        logger.error(`dashboard api v2 error: ${error.message}`);
+        logger.error(`[dashboard-v2] api_error ${logger.safeError(error)}`);
         sendDashboardDataError(res, error);
     }
 }
@@ -962,7 +962,7 @@ async function withAuth(reqUrl, res, cb) {
         await cb(payload, dataUserId, null);
     } catch (error) {
         metrics.increment('dashboard.api.error');
-        logger.error(`dashboard api error: ${error.message}`);
+        logger.error(`[dashboard] api_error ${logger.safeError(error)}`);
         sendDashboardDataError(res, error);
     }
 }
@@ -1004,7 +1004,7 @@ function startDashboardServer() {
                 res.writeHead(302, { ...SECURITY_HEADERS, Location: location });
                 res.end();
             } catch (error) {
-                logger.warn(`oauth google start rejeitado: ${error.message}`);
+                logger.warn(`[oauth] google_start_rejected ${logger.safeError(error)}`);
                 sendHtmlStatus(res, 400, safeOAuthPage(
                     'Link de conexão inválido ou expirado',
                     'Peça um novo link pelo WhatsApp para conectar sua conta Google.'
@@ -1041,7 +1041,7 @@ function startDashboardServer() {
                     return;
                 }
                 metrics.increment('oauth.google.callback.error');
-                logger.warn(`oauth google callback rejeitado: ${error.message}`);
+                logger.warn(`[oauth] google_callback_rejected ${logger.safeError(error)}`);
                 sendHtmlStatus(res, 400, safeOAuthPage(
                     'Não foi possível concluir a conexão',
                     'Peça um novo link pelo WhatsApp e tente novamente.'

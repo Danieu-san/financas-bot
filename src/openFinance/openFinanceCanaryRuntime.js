@@ -15,6 +15,7 @@ const {
     reconciliationMode
 } = require('./openFinanceRuntimeReconciliation');
 const { getActiveUsers } = require('../services/userService');
+const defaultLogger = require('../utils/logger');
 
 function readJson(file, reason) {
     if (!file || !fs.existsSync(file)) throw new Error(reason);
@@ -181,7 +182,7 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
     } finally { journal.close(); outbox.close(); baseline.close(); vault.close(); }
 }
 
-function initializeOpenFinanceCanaryRuntime({ client, logger = console, env = process.env, runCycle = runOpenFinanceCanaryCycle } = {}) {
+function initializeOpenFinanceCanaryRuntime({ client, logger = defaultLogger, env = process.env, runCycle = runOpenFinanceCanaryCycle } = {}) {
     const mode = String(env.OPEN_FINANCE_ALERT_MODE || 'off').toLowerCase();
     if (mode === 'off') return { enabled: false };
     const intervalMs = Math.max(6 * 60 * 60 * 1000, Number(env.OPEN_FINANCE_POLL_INTERVAL_MS) || 6 * 60 * 60 * 1000);
@@ -197,7 +198,7 @@ function initializeOpenFinanceCanaryRuntime({ client, logger = console, env = pr
             const retriesThisCycle = (result.deliveries || []).filter(value => value === 'retry').length;
             logger.info(`[open-finance] cycle=${result.outcome} new=${result.new_observations || 0} delivered=${deliveredThisCycle} accepted_unconfirmed=${acceptedThisCycle} retries=${retriesThisCycle} cumulative_confirmed=${result.outbox?.delivered_confirmed || 0} cumulative_unconfirmed=${result.outbox?.accepted_unconfirmed || 0} cumulative_legacy_sent=${result.outbox?.legacy_sent || 0} writes=0`);
         } catch (error) {
-            logger.warn(`[open-finance] cycle=NO_GO reason=${String(error.message || 'unknown').replace(/[^a-z0-9_-]/gi, '_').slice(0, 64)} writes=0`);
+            logger.warn(`[open-finance] cycle=NO_GO ${defaultLogger.safeError(error)} writes=0`);
         } finally { running = false; }
     };
     const startup = setTimeout(() => { void execute(); }, startupDelayMs);

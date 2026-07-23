@@ -6,15 +6,19 @@ function redactLogIdentifier(value) {
 }
 
 function sanitizeLogCode(value, fallback = 'unknown') {
-    const normalized = String(value || '')
-        .trim()
-        .replace(/[^a-z0-9_.:-]/gi, '_')
-        .slice(0, 64);
-    return normalized || fallback;
+    const normalized = String(value || '').trim();
+    if (/^[1-5]\d{2}$/.test(normalized)) return normalized;
+    if (/^[A-Z][A-Z0-9_.:-]{0,63}$/.test(normalized)) return normalized;
+    return fallback;
 }
 
 function safeErrorSummary(error) {
-    const name = sanitizeLogCode(error && typeof error === 'object' ? error.name : '', 'Error');
+    const safeNames = new Set([
+        'Error', 'TypeError', 'RangeError', 'ReferenceError', 'SyntaxError',
+        'URIError', 'AggregateError', 'EvalError', 'AbortError', 'TimeoutError'
+    ]);
+    const rawName = error && typeof error === 'object' ? String(error.name || '') : '';
+    const name = safeNames.has(rawName) ? rawName : 'Error';
     const code = sanitizeLogCode(
         error && typeof error === 'object'
             ? (error.code || error.status || error.response?.status)

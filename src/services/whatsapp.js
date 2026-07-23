@@ -106,7 +106,7 @@ function initializeWhatsAppClient() {
         readyRescueTimer = scheduleReadyRescue(client, {
             delayMs: READY_RESCUE_DELAY_MS,
             isStillPending: () => isInitializing && isAuthenticated,
-            logger: console
+            logger
         });
     }
 
@@ -168,7 +168,7 @@ function initializeWhatsAppClient() {
     client.on('disconnected', async (reason) => {
         clearReadyWatchdog();
         clearReadyRescue();
-        console.log('⚠️ Cliente desconectado:', reason);
+        logger.info('[whatsapp] client_disconnected');
         isAuthenticated = false;
         isInitializing = false;
 

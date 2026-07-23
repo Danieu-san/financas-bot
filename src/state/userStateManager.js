@@ -126,7 +126,7 @@ async function tryInitRedis() {
         });
 
         redisClient.on('error', (error) => {
-            logger.error(`Redis state store erro: ${error.message}`);
+            logger.error(`[state-store] redis_error ${logger.safeError(error)}`);
             redisReady = false;
             storeMode = 'file';
         });
@@ -142,7 +142,7 @@ async function tryInitRedis() {
         redisReady = true;
         storeMode = 'redis';
     } catch (error) {
-        logger.warn(`Redis nao disponivel para state store. Fallback para arquivo local. Motivo: ${error.message}`);
+        logger.warn(`[state-store] redis_unavailable_file_fallback ${logger.safeError(error)}`);
         redisReady = false;
         storeMode = 'file';
         loadStateFromDisk();
@@ -156,7 +156,7 @@ async function flushStateToRedis() {
         await redisClient.set(REDIS_STATE_KEY, payload);
         dirty = false;
     } catch (error) {
-        logger.error(`Erro ao persistir state no Redis: ${error.message}`);
+        logger.error(`[state-store] redis_persist_failed ${logger.safeError(error)}`);
     }
 }
 
@@ -215,7 +215,7 @@ function closeStateStore() {
                     await redisClient.quit();
                 }
             } catch (error) {
-                logger.error(`Erro ao fechar conexao Redis: ${error.message}`);
+                logger.error(`[state-store] redis_close_failed ${logger.safeError(error)}`);
             }
         });
         return;

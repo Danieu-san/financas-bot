@@ -3196,6 +3196,26 @@ test('PRIV-01 logger sanitizer redacts extended identifier and content keys', ()
     assert.match(sanitized, /\[REDACTED_(?:ID|CONTENT)\]/);
 });
 
+test('PRIV-01 safe error summary rejects free-form names, codes and nested provider data', () => {
+    const { safeErrorSummary } = logger.__test__;
+    const error = new Error('private hospital payment details');
+    error.name = 'privateErrorName';
+    error.code = 'private-code-with-secret-123';
+    error.response = {
+        status: 401,
+        data: { access_token: 'private-provider-token' }
+    };
+    error.config = { url: 'https://private.example.test/path?token=secret' };
+
+    const summary = safeErrorSummary(error);
+    assert.strictEqual(summary, 'name=Error code=unknown');
+    assert.doesNotMatch(summary, /private|hospital|token|example/i);
+    assert.strictEqual(
+        safeErrorSummary(Object.assign(new TypeError('hidden'), { code: 'ECONNRESET' })),
+        'name=TypeError code=ECONNRESET'
+    );
+});
+
 test('PRIV-01 runtime warnings and errors cannot bypass the sanitized logger', () => {
     const runtimeRoots = [
         path.resolve(process.cwd(), 'index.js'),
@@ -3207,8 +3227,14 @@ test('PRIV-01 runtime warnings and errors cannot bypass the sanitized logger', (
     const violations = [];
     for (const file of runtimeRoots) {
         const source = fs.readFileSync(file, 'utf8');
-        if (/console\.(?:error|warn)\s*\(/.test(source)) {
-            violations.push(path.relative(process.cwd(), file));
+        const relative = path.relative(process.cwd(), file);
+        const patterns = [
+            ['direct-console', /console\.(?:error|warn)\s*\(/],
+            ['console-alias', /(?:logger\s*:\s*console|logger\s*=\s*console|options\.logger\s*\|\|\s*console)/],
+            ['free-error-property', /logger\.(?:error|warn)[^\r\n]*(?:(?:error|err|e|Error)\??\.(?:message|name|code)\b|plannerShadow\.error\b)/]
+        ];
+        for (const [kind, pattern] of patterns) {
+            if (pattern.test(source)) violations.push(`${relative}:${kind}`);
         }
     }
 

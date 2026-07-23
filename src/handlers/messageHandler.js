@@ -1013,7 +1013,7 @@ function markFinancialReadModelDirty(reason = 'financial_write') {
             cache.clearAllCache();
         }
     } catch (error) {
-        logger.warn(`read-model: falha ao marcar dados financeiros como sujos (${error.message})`);
+        logger.warn(`[read-model] mark_dirty_failed ${logger.safeError(error)}`);
     }
 }
 
@@ -1090,7 +1090,7 @@ async function buildFinancialAccountOptionsForUser(userId) {
         });
         return parseFinancialAccountRows(rows || [], trustedUserIds);
     } catch (error) {
-        logger.warn(`[financial-accounts] options_fallback_empty user_id=${logger.redactIdentifier(userId)} error="${error?.message || error}"`);
+        logger.warn(`[financial-accounts] options_fallback_empty user_id=${logger.redactIdentifier(userId)} ${logger.safeError(error)}`);
         return [];
     }
 }
@@ -1671,7 +1671,7 @@ async function readRegisteredExpenseCategoriesForUser(userId) {
         const rows = await readDataFromSheet('Categorias!A:E', { userId, suppressMissingSheetError: true });
         return categoryRegistryRowsToOptions(rows, scopeUserIds);
     } catch (error) {
-        logger.warn(`[category-assist] registered_categories_unavailable error="${error?.message || error}"`);
+        logger.warn(`[category-assist] registered_categories_unavailable ${logger.safeError(error)}`);
         return [];
     }
 }
@@ -1739,7 +1739,7 @@ async function buildExpenseCategoryOptionsForUser({ userId, item = {}, messageBo
         const categoryFocus = resolveExpenseCategoryFocus({ item, messageBody, registeredCategories });
         return buildExpenseCategoryOptions({ candidates: resolved.candidates || [], registeredCategories, categoryFocus });
     } catch (error) {
-        logger.warn(`[category-assist] fallback_to_known_options error="${error?.message || error}"`);
+        logger.warn(`[category-assist] fallback_to_known_options ${logger.safeError(error)}`);
         return buildExpenseCategoryOptions({ categoryFocus: resolveExpenseCategoryFocus({ item, messageBody }) });
     }
 }
@@ -2006,7 +2006,7 @@ async function resolveCreditCardExpenseActorUserId(gasto = {}, currentUserId = '
             users
         });
     } catch (error) {
-        logger.warn(`[expense-actor] fallback_to_sender error=${error.message}`);
+        logger.warn(`[expense-actor] fallback_to_sender ${logger.safeError(error)}`);
         return safeCurrentUserId;
     }
 }
@@ -2019,7 +2019,7 @@ async function findMentionedFinancialScopeMember(messageBody = '', currentUserId
     try {
         scopeIds = await Promise.resolve(getFinancialScopeUserIds(currentUserId));
     } catch (error) {
-        logger.warn(`familia: falha ao obter escopo financeiro error=${error.message}`);
+        logger.warn(`[family] financial_scope_failed ${logger.safeError(error)}`);
     }
 
     const uniqueScopeIds = Array.from(new Set((scopeIds || []).filter(Boolean)));
@@ -2122,7 +2122,7 @@ function recordWriteInterpretationShadow({
         });
         return evaluation;
     } catch (error) {
-        logger.warn(`interpretation-reliability: shadow_record_failed error=${error.message}`);
+        logger.warn(`[interpretation-reliability] shadow_record_failed ${logger.safeError(error)}`);
         return null;
     }
 }
@@ -2229,7 +2229,7 @@ async function buildSingleTransactionReliabilityFields(item = {}, messageBody = 
             fields.card = verifiedField(cardValue, 'deterministic', 'explicit_credit_card');
         }
     } catch (error) {
-        logger.warn(`interpretation-reliability: falha ao resolver cartão explícito error=${error.message}`);
+        logger.warn(`[interpretation-reliability] explicit_card_resolution_failed ${logger.safeError(error)}`);
     }
 
     return fields;
@@ -2376,7 +2376,7 @@ function recordFinancialCommandPlannerCanarySafe(input = {}) {
             ...input
         });
     } catch (error) {
-        logger.warn(`[financial-command-planner] canary_telemetry_failed error=${error.message}`);
+        logger.warn(`[financial-command-planner] canary_telemetry_failed ${logger.safeError(error)}`);
     }
 }
 
@@ -2791,7 +2791,7 @@ async function calculateMonthlyBudgetSpend(userId, today = getTodaySaoPauloDateS
         try {
             return await readDataFromSheet(range, { telemetryConsumer: 'whatsapp_budget' }) || [];
         } catch (error) {
-            logger.warn(`[monthly-budget] leitura_ignorada range="${range}" error="${error?.message || error}"`);
+            logger.warn(`[monthly-budget] read_ignored range="${range}" ${logger.safeError(error)}`);
             return [];
         }
     };
@@ -2918,7 +2918,7 @@ async function safeMaybeNotifyDailyGoalAfterExpense(msg, userId, context = 'expe
     try {
         return await maybeNotifyDailyGoalAfterExpense(msg, userId);
     } catch (error) {
-        logger.warn(`[monthly-budget] alert_failed context=${context} user_id=${userId} error=${error.message}`);
+        logger.warn(`[monthly-budget] alert_failed context=${context} user_id=${userId} ${logger.safeError(error)}`);
         return null;
     }
 }
@@ -6678,7 +6678,7 @@ async function saveMonthlyBudgetSettingsWithFeedback(msg, userId, amount, scope 
         await saveMonthlyBudgetSettings(userId, amount, scope, cycleStartDay);
         return true;
     } catch (error) {
-        logger.error(`[settings] monthly_budget_save_failed user_id=${userId} error=${error.message}`);
+        logger.error(`[settings] monthly_budget_save_failed user_id=${userId} ${logger.safeError(error)}`);
         await msg.reply('Não consegui salvar o orçamento mensal agora. O bot continua online; tente novamente em alguns instantes.');
         return false;
     }
@@ -7156,7 +7156,7 @@ async function notifyAdminsAboutPendingApproval(msg, user) {
         try {
             await msg.client.sendMessage(adminId, text);
         } catch (error) {
-            logger.warn(`[admin] falha_notificar_aprovacao admin_id=${adminId} target=${targetUser} error=${error.message}`);
+            logger.warn(`[admin] approval_notification_failed admin_id=${adminId} target=${targetUser} ${logger.safeError(error)}`);
         }
     }
 }
@@ -7508,7 +7508,7 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
         try {
             stats = getReadModelStats();
         } catch (error) {
-            logger.warn(`[admin] status_bot_read_model_falhou context=${JSON.stringify({ ...adminContext, error: error.message })}`);
+            logger.warn(`[admin] bot_status_read_model_failed context=${JSON.stringify(adminContext)} ${logger.safeError(error)}`);
         }
         logger.info(`[admin] status_bot context=${JSON.stringify(adminContext)}`);
         await auditAdminAction(adminContext, 'bot_status', {
@@ -7554,7 +7554,7 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
         try {
             await sendAdminDirectMessage(msg, targetWhatsAppId, buildPreOnboardingInviteMessage(), options);
         } catch (error) {
-            logger.warn(`[admin] convidar_falhou context=${JSON.stringify({ ...adminContext, target_whatsapp_id: targetWhatsAppId, error: error.message })}`);
+            logger.warn(`[admin] invite_failed context=${JSON.stringify({ ...adminContext, target_whatsapp_id: targetWhatsAppId })} ${logger.safeError(error)}`);
             await auditAdminAction(adminContext, 'invite_user', {
                 target: targetWhatsAppId,
                 result: 'failed',
@@ -8069,7 +8069,7 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
             });
             await msg.reply(`Mensagem enviada para ${user.whatsapp_id}.`);
         } catch (error) {
-            logger.warn(`[admin] mensagem_falhou context=${JSON.stringify({ ...adminContext, target_whatsapp_id: user.whatsapp_id, error: error.message })}`);
+            logger.warn(`[admin] message_failed context=${JSON.stringify({ ...adminContext, target_whatsapp_id: user.whatsapp_id })} ${logger.safeError(error)}`);
             await auditAdminAction(adminContext, 'manual_message', {
                 target: user.whatsapp_id,
                 result: 'failed',
@@ -8856,7 +8856,7 @@ async function ensurePendingExpenseCategoryRegistrationForWrite({ msg, userId, p
         });
         return true;
     } catch (error) {
-        logger.warn(`[category-assist] category_registration_failed user_id=${logger.redactIdentifier(userId)} error="${error?.message || error}"`);
+        logger.warn(`[category-assist] category_registration_failed user_id=${logger.redactIdentifier(userId)} ${logger.safeError(error)}`);
         await msg.reply('Não consegui salvar essa categoria agora. Tente confirmar novamente em instantes ou responda não para cancelar.');
         return false;
     }
@@ -9064,7 +9064,7 @@ async function tryHandleFinancialCommandPlannerRoute({ msg, senderId, messageBod
             severity: 'warning',
             plannerLatencyMs: Date.now() - plannerStartedAt
         });
-        logger.warn(`[financial-command-planner] route_failed error=${error.message}`);
+        logger.warn(`[financial-command-planner] route_failed ${logger.safeError(error)}`);
         return false;
     }
 }
@@ -9104,7 +9104,7 @@ async function processMessage(msg) {
                 await sendPlainMessage(msg, buildGoogleConnectReply(access.user));
                 return;
             } catch (error) {
-                logger.warn(`[oauth] link_google_indisponivel sender=${senderId} user_id=${access.user.user_id} error=${error.message}`);
+                logger.warn(`[oauth] google_link_unavailable sender=${senderId} user_id=${access.user.user_id} ${logger.safeError(error)}`);
             }
         }
         if (access.reply) {
@@ -9685,7 +9685,7 @@ async function processMessage(msg) {
                             subcategoria: pendingCategoryRegistration.subcategoria
                         });
                     } catch (error) {
-                        logger.warn(`[category-assist] category_registration_failed user_id=${logger.redactIdentifier(userId)} error="${error?.message || error}"`);
+                        logger.warn(`[category-assist] category_registration_failed user_id=${logger.redactIdentifier(userId)} ${logger.safeError(error)}`);
                         await msg.reply('Não consegui salvar essa categoria agora. Tente confirmar novamente em instantes ou responda não para cancelar.');
                         return;
                     }
@@ -9786,7 +9786,7 @@ async function processMessage(msg) {
                             operationKey
                         });
                     }
-                    logger.error(`[financial-write] planned_credit_card_expense_save_failed error=${error.message}`);
+                    logger.error(`[financial-write] planned_credit_card_expense_save_failed ${logger.safeError(error)}`);
                     await msg.reply('Ocorreu um erro ao salvar o gasto no cartão.');
                 } finally {
                     userStateManager.deleteState(senderId);
@@ -9931,7 +9931,7 @@ async function processMessage(msg) {
                     await msg.reply(result.message);
                 } catch (error) {
                     userStateManager.deleteState(senderId);
-                    logger.warn(`[projected-plan-write] goal_movement_failed error=${error.message}`);
+                    logger.warn(`[projected-plan-write] goal_movement_failed ${logger.safeError(error)}`);
                     await msg.reply(`Não consegui registrar a movimentação da meta com segurança. ${error.message}`);
                 }
                 return;
@@ -10021,7 +10021,7 @@ async function processMessage(msg) {
                         operationKey
                     });
                     userStateManager.deleteState(senderId);
-                    logger.warn(`[financial-command-planner] debt_pay_failed error=${error.message}`);
+                    logger.warn(`[financial-command-planner] debt_pay_failed ${logger.safeError(error)}`);
                     await msg.reply(`Não consegui registrar o pagamento da dívida com segurança. ${error.message}`);
                 }
                 return;
@@ -10640,7 +10640,7 @@ async function processMessage(msg) {
                         userStateManager.deleteState(senderId);
                         await sendPlainMessage(msg, doneMessage);
                     } catch (error) {
-                        logger.error(`importacao: falha ao salvar lançamentos user_id=${userId} error=${error.message}`);
+                        logger.error(`[import] transaction_save_failed user_id=${userId} ${logger.safeError(error)}`);
                         userStateManager.deleteState(senderId);
                         await sendPlainMessage(msg, 'Não consegui concluir a importação agora. Nenhum novo arquivo ficou armazenado; tente novamente em instantes.');
                     }
@@ -10684,7 +10684,7 @@ async function processMessage(msg) {
                                 }
                                 successCount++;
                             } catch (e) {
-                                logger.error(`[financial-write] confirmed_item_save_failed error=${e.message}`);
+                                logger.error(`[financial-write] confirmed_item_save_failed ${logger.safeError(e)}`);
                                 failedItems.push(item);
                             }
                         }
@@ -10790,7 +10790,7 @@ async function processMessage(msg) {
                             successCount++;
                         }
                     } catch (e) {
-                        logger.error(`[financial-write] batch_item_save_failed error=${e.message}`);
+                        logger.error(`[financial-write] batch_item_save_failed ${logger.safeError(e)}`);
                         await msg.reply(`Houve um erro ao tentar salvar o item "${item.descricao}".`);
                     }
                 }
@@ -11042,7 +11042,7 @@ async function processMessage(msg) {
                     `planner=${telemetry.plannerOperation || 'unknown'} divergence=${telemetry.divergenceSeverity || 'none'}`
                 );
             } else if (plannerShadow.reason === 'planner_failed') {
-                logger.warn(`[financial-command-planner] shadow_failed error=${plannerShadow.error || 'unknown'}`);
+                logger.warn('[financial-command-planner] shadow_failed name=Error code=PLANNER_FAILED');
             }
             switch (structuredResponse.intent) {
                 case 'resumo': {
@@ -11503,7 +11503,7 @@ async function processMessage(msg) {
                             } catch (agentError) {
                                 financialAgentFallbackReason = 'agent_error';
                                 metrics.increment('message.financial_agent.error');
-                                logger.warn(`[financial-agent] fallback legacy reason=${sanitizeLogText(agentError.message, 120)} sender=${logger.redactIdentifier(senderId)}`);
+                                logger.warn(`[financial-agent] legacy_fallback ${logger.safeError(agentError)} sender=${logger.redactIdentifier(senderId)}`);
                             }
                         } else if (financialAgentMode !== 'off' && financialAgentCanaryAllowed && !financialAgentSourceCompatible) {
                             financialAgentFallbackReason = 'personal_sheet_source';
@@ -11568,7 +11568,7 @@ async function processMessage(msg) {
                                 logger.info(`[routing] analysis_source=${analysisSource} intent=${effectiveIntentClassification.intent} sender=${senderId}`);
                             } catch (readModelError) {
                                 metrics.increment('message.pergunta.analysis.read_model_error');
-                                logger.warn(`[read-model] fallback legacy execute. motivo=${readModelError.message}`);
+                                logger.warn(`[read-model] legacy_execute_fallback ${logger.safeError(readModelError)}`);
                                 await recordQaFailure({
                                     kind: 'analysis_fallback',
                                     reason: 'read_model_error',
@@ -11869,7 +11869,7 @@ function handleMessage(msg) {
         () => processMessage(msg)
     ).catch((error) => {
         metrics.increment('message.error.unhandled');
-        logger.error(`[message] unhandled_failure sender=${logger.redactIdentifier(senderId)} error=${error.message}`);
+        logger.error(`[message] unhandled_failure sender=${logger.redactIdentifier(senderId)} ${logger.safeError(error)}`);
     });
 }
 

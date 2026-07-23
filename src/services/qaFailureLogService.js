@@ -96,7 +96,7 @@ async function recordQaFailure(input = {}) {
         await fs.appendFile(filePath, `${JSON.stringify(entry)}\n`, 'utf8');
         return entry;
     } catch (error) {
-        logger.warn(`qa-failure-log: falha ao registrar evento (${error.message})`);
+        logger.warn(`[qa-failure-log] record_failed ${logger.safeError(error)}`);
         return null;
     }
 }

@@ -208,7 +208,7 @@ async function checkUpcomingEvents() {
             }
         }
     } catch (error) {
-        logger.error(`Erro ao verificar eventos da agenda: ${error.message}`);
+        logger.error(`[scheduler] calendar_events_check_failed ${logger.safeError(error)}`);
     }
 }
 
@@ -285,7 +285,7 @@ async function checkUpcomingBills() {
             }
         }
     } catch (error) {
-        logger.error(`Erro ao verificar contas a vencer: ${error.message}`);
+        logger.error(`[scheduler] upcoming_bills_check_failed ${logger.safeError(error)}`);
     }
 }
 
@@ -360,7 +360,7 @@ async function sendMorningSummary() {
             logger.info(`[scheduler] resumo matinal enviado user_id=${userId}`);
         }
     } catch (error) {
-        logger.error(`Erro ao enviar resumo matinal: ${error.message}`);
+        logger.error(`[scheduler] morning_summary_failed ${logger.safeError(error)}`);
     }
 }
 
@@ -421,7 +421,7 @@ async function sendEveningSummary() {
             logger.info(`[scheduler] resumo noturno enviado user_id=${userId}`);
         }
     } catch (error) {
-        logger.error(`Erro ao enviar resumo noturno: ${error.message}`);
+        logger.error(`[scheduler] evening_summary_failed ${logger.safeError(error)}`);
     }
 }
 
@@ -434,7 +434,7 @@ async function sendWeeklyCheckIn() {
             await client.sendMessage(id, question);
         }
     } catch (error) {
-        logger.error(`Erro ao enviar check-in semanal: ${error.message}`);
+        logger.error(`[scheduler] weekly_checkin_failed ${logger.safeError(error)}`);
     }
 }
 
@@ -583,7 +583,7 @@ async function sendMonthlyReports() {
             await client.sendMessage(user.whatsapp_id, message);
         }
     } catch (error) {
-        logger.error(`Erro ao enviar relatórios mensais: ${error.message}`);
+        logger.error(`[scheduler] monthly_reports_failed ${logger.safeError(error)}`);
     }
 }
 
@@ -614,7 +614,7 @@ async function sendOperationalHeartbeat() {
             await client.sendMessage(id, text);
         }
     } catch (error) {
-        logger.error(`Erro no heartbeat operacional: ${error.message}`);
+        logger.error(`[scheduler] operational_heartbeat_failed ${logger.safeError(error)}`);
     }
 }
 
@@ -629,7 +629,7 @@ async function sendInterpretationReadinessAdminAlert() {
         }
         return result;
     } catch (error) {
-        logger.error(`Erro no alerta de prontidao do shadow: ${error.message}`);
+        logger.error(`[scheduler] shadow_readiness_alert_failed ${logger.safeError(error)}`);
         return { sent: false, reason: 'alert_failed' };
     }
 }
@@ -727,7 +727,7 @@ async function sendDailyOpsCheckAdminReport() {
         }
         return result;
     } catch (error) {
-        logger.error(`Erro no check diario operacional: ${error.message}`);
+        logger.error(`[scheduler] daily_operational_check_failed ${logger.safeError(error)}`);
         return { sent: false, reason: 'daily_ops_check_failed' };
     }
 }
@@ -763,7 +763,7 @@ function initializeScheduler(wppClient) {
                 console.log(`🧹 Usuários PENDING expirados: ${expired}`);
             }
         } catch (error) {
-            logger.error(`Erro ao expirar usuários pendentes: ${error.message}`);
+            logger.error(`[scheduler] pending_users_expiry_failed ${logger.safeError(error)}`);
         }
     }, { scheduled: true, timezone: 'America/Sao_Paulo' });
 
@@ -798,7 +798,7 @@ function initializeScheduler(wppClient) {
             logger.info(`[read-model] sync agendado OK: ${JSON.stringify(getReadModelStats())}`);
         } catch (error) {
             metrics.increment('read_model.sync.scheduled.error');
-            logger.warn(`[read-model] falha no sync agendado: ${error.message}`);
+            logger.warn(`[read-model] scheduled_sync_failed ${logger.safeError(error)}`);
         }
     }, { scheduled: true, timezone: 'America/Sao_Paulo' });
 }
