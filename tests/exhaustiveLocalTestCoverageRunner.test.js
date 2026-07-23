@@ -96,11 +96,14 @@ test('coverage runner restores pre-existing state and removes test-created state
     const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'exhaustive-coverage-state-'));
     const stateFile = path.join(temporaryRoot, 'state_store.json');
     try {
-        fs.writeFileSync(stateFile, '{"original":true}\n');
+        fs.writeFileSync(stateFile, '{"original":true}\n', { mode: 0o600 });
         const existingSnapshot = captureFileSnapshot(stateFile);
-        fs.writeFileSync(stateFile, '{"test":true}\n');
+        fs.writeFileSync(stateFile, '{"test":true}\n', { mode: 0o644 });
         restoreFileSnapshot(stateFile, existingSnapshot);
         assert.strictEqual(fs.readFileSync(stateFile, 'utf8'), '{"original":true}\n');
+        if (process.platform !== 'win32') {
+            assert.strictEqual(fs.statSync(stateFile).mode & 0o777, 0o600);
+        }
 
         fs.unlinkSync(stateFile);
         const missingSnapshot = captureFileSnapshot(stateFile);
@@ -115,6 +118,9 @@ test('coverage runner restores pre-existing state and removes test-created state
 test('coverage runner snapshots state and file logs that product tests may mutate', () => {
     const normalized = MUTABLE_RUNTIME_FILES.map(file => file.replace(/\\/g, '/'));
     assert.ok(normalized.some(file => file.endsWith('/state_store.json')));
+    assert.ok(normalized.some(file => file.endsWith('/state_store.tmp')));
+    assert.ok(normalized.some(file => file.endsWith('/state_store.replay.json')));
+    assert.ok(normalized.some(file => file.endsWith('/state_store.replay.tmp')));
     assert.ok(normalized.some(file => file.endsWith('/logs/combined.log')));
     assert.ok(normalized.some(file => file.endsWith('/logs/error.log')));
 });

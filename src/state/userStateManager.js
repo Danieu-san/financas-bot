@@ -17,6 +17,8 @@ const STATE_SNAPSHOT_VERSION = 1;
 const STATE_SNAPSHOT_AAD = Buffer.from(`${STATE_SNAPSHOT_FORMAT}:v${STATE_SNAPSHOT_VERSION}`, 'utf8');
 const DEFAULT_MAX_RETENTION_SECONDS = 24 * 60 * 60;
 const ABSOLUTE_MAX_RETENTION_SECONDS = 30 * 24 * 60 * 60;
+const MAX_REVOKED_SNAPSHOTS = 10_000;
+const ALLOWED_STATE_STORE_DRIVERS = new Set(['file', 'redis']);
 
 function resolveMaxRetentionSeconds() {
     const configured = process.env.STATE_STORE_MAX_RETENTION_SECONDS;
@@ -29,11 +31,16 @@ function resolveMaxRetentionSeconds() {
 }
 
 let initializationFailureCode = '';
+if (!ALLOWED_STATE_STORE_DRIVERS.has(STATE_STORE_DRIVER)) {
+    initializationFailureCode = 'state_store_driver_invalid';
+}
 let MAX_RETENTION_SECONDS = DEFAULT_MAX_RETENTION_SECONDS;
 try {
     MAX_RETENTION_SECONDS = resolveMaxRetentionSeconds();
 } catch {
-    initializationFailureCode = 'state_store_retention_invalid';
+    if (!initializationFailureCode) {
+        initializationFailureCode = 'state_store_retention_invalid';
+    }
 }
 
 const stateMap = new Map();
@@ -61,8 +68,8 @@ function decodeEncryptionKey() {
 }
 
 function assertStateStoreConfiguration() {
-    if (STATE_STORE_DRIVER === 'file') decodeEncryptionKey();
     if (initializationFailureCode) throw new Error(initializationFailureCode);
+    if (STATE_STORE_DRIVER === 'file') decodeEncryptionKey();
 }
 
 function assertStateStoreReady() {
@@ -99,7 +106,7 @@ function decodeCanonicalBase64(value, expectedLength = null) {
     return decoded;
 }
 
-function decryptStateSnapshot(protectedPayload) {
+function parseStateSnapshotEnvelope(protectedPayload) {
     const envelope = JSON.parse(String(protectedPayload || ''));
     const envelopeKeys = envelope && typeof envelope === 'object'
         ? Object.keys(envelope).sort()
@@ -119,6 +126,11 @@ function decryptStateSnapshot(protectedPayload) {
     const iv = decodeCanonicalBase64(envelope.iv, 12);
     const tag = decodeCanonicalBase64(envelope.tag, 16);
     const ciphertext = decodeCanonicalBase64(envelope.ciphertext);
+    return { iv, tag, ciphertext };
+}
+
+function decryptStateSnapshot(protectedPayload) {
+    const { iv, tag, ciphertext } = parseStateSnapshotEnvelope(protectedPayload);
     const decipher = crypto.createDecipheriv(
         'aes-256-gcm',
         decodeEncryptionKey(),
@@ -134,13 +146,20 @@ function decryptStateSnapshot(protectedPayload) {
 }
 
 function snapshotDigest(protectedPayload) {
-    return crypto.createHash('sha256').update(String(protectedPayload)).digest('hex');
+    const { iv, tag, ciphertext } = parseStateSnapshotEnvelope(protectedPayload);
+    return crypto
+        .createHash('sha256')
+        .update(STATE_SNAPSHOT_AAD)
+        .update(iv)
+        .update(tag)
+        .update(ciphertext)
+        .digest('hex');
 }
 
-function replayJournalMac(revokedDigests) {
+function replayJournalMac(revokedSnapshots) {
     return crypto
         .createHmac('sha256', decodeEncryptionKey())
-        .update(JSON.stringify(revokedDigests))
+        .update(JSON.stringify(revokedSnapshots))
         .digest('hex');
 }
 
@@ -155,15 +174,27 @@ function readReplayJournal() {
     if (!parsed || Array.isArray(parsed)
         || JSON.stringify(journalKeys) !== JSON.stringify(expectedKeys)
         || parsed.format !== 'financasbot-state-replay'
-        || parsed.version !== 1
+        || parsed.version !== 2
         || !Array.isArray(parsed.revoked)
-        || parsed.revoked.some(item => !/^[a-f0-9]{64}$/.test(item))
-        || new Set(parsed.revoked).size !== parsed.revoked.length
+        || parsed.revoked.length > MAX_REVOKED_SNAPSHOTS
+        || parsed.revoked.some(item => {
+            const itemKeys = item && typeof item === 'object'
+                ? Object.keys(item).sort()
+                : [];
+            return !item
+                || Array.isArray(item)
+                || JSON.stringify(itemKeys) !== JSON.stringify(['digest', 'expiresAt'])
+                || !/^[a-f0-9]{64}$/.test(item.digest)
+                || !Number.isSafeInteger(item.expiresAt)
+                || item.expiresAt <= 0;
+        })
+        || new Set(parsed.revoked.map(item => item.digest)).size !== parsed.revoked.length
         || !/^[a-f0-9]{64}$/.test(parsed.mac)
         || parsed.mac !== replayJournalMac(parsed.revoked)) {
         throw new Error('state_store_replay_journal_invalid');
     }
-    return parsed.revoked;
+    const now = Date.now();
+    return parsed.revoked.filter(item => item.expiresAt > now);
 }
 
 function syncStateDirectory() {
@@ -196,8 +227,17 @@ function prepareReplayRevocation(protectedPayload) {
     if (!protectedPayload) return null;
     const digest = snapshotDigest(protectedPayload);
     const revoked = readReplayJournal();
-    if (revoked.includes(digest)) return null;
-    const next = [...revoked, digest];
+    if (revoked.some(item => item.digest === digest)) return null;
+    if (revoked.length >= MAX_REVOKED_SNAPSHOTS) {
+        throw new Error('state_store_replay_journal_capacity_exceeded');
+    }
+    const next = [
+        ...revoked,
+        {
+            digest,
+            expiresAt: Date.now() + MAX_RETENTION_SECONDS * 1000
+        }
+    ];
     return {
         previousExists: fs.existsSync(REPLAY_FILE),
         previousPayload: fs.existsSync(REPLAY_FILE)
@@ -205,7 +245,7 @@ function prepareReplayRevocation(protectedPayload) {
             : '',
         nextPayload: JSON.stringify({
             format: 'financasbot-state-replay',
-            version: 1,
+            version: 2,
             revoked: next,
             mac: replayJournalMac(next)
         }, null, 2)
@@ -298,11 +338,16 @@ function replaceStateMap(restored) {
 }
 
 function loadStateFromDisk() {
-    if (!fs.existsSync(STATE_FILE)) return;
     try {
+        if (!fs.existsSync(STATE_FILE)) {
+            if ([TEMP_FILE, REPLAY_FILE, REPLAY_TEMP_FILE].some(file => fs.existsSync(file))) {
+                throw new Error('state_store_snapshot_missing');
+            }
+            return;
+        }
         fs.chmodSync(STATE_FILE, STATE_FILE_MODE);
         const protectedPayload = fs.readFileSync(STATE_FILE, 'utf8');
-        if (readReplayJournal().includes(snapshotDigest(protectedPayload))) {
+        if (readReplayJournal().some(item => item.digest === snapshotDigest(protectedPayload))) {
             throw new Error('state_store_snapshot_replayed');
         }
         const { restored, normalized } = deserializeState(decryptStateSnapshot(protectedPayload));

@@ -36,6 +36,13 @@ function decryptTestSnapshot(stateFile) {
     ]).toString('utf8'));
 }
 
+function signTestReplayJournal(revoked) {
+    return crypto
+        .createHmac('sha256', Buffer.from(TEST_KEY, 'base64'))
+        .update(JSON.stringify(revoked))
+        .digest('hex');
+}
+
 test.after(() => {
     process.chdir(ORIGINAL_CWD);
     fs.rmSync(TEMP_ROOT, { recursive: true, force: true });
@@ -237,13 +244,96 @@ test('a superseded protected snapshot is rejected as replay inside its TTL', () 
     const currentSnapshot = fs.readFileSync(stateFile);
     assert.strictEqual(fs.existsSync(replayFile), true);
 
-    fs.writeFileSync(stateFile, supersededSnapshot, { mode: 0o600 });
+    const supersededEnvelope = JSON.parse(supersededSnapshot.toString('utf8'));
+    const semanticallyEquivalentSnapshot = JSON.stringify({
+        ciphertext: supersededEnvelope.ciphertext,
+        tag: supersededEnvelope.tag,
+        iv: supersededEnvelope.iv,
+        algorithm: supersededEnvelope.algorithm,
+        version: supersededEnvelope.version,
+        format: supersededEnvelope.format
+    });
+    fs.writeFileSync(stateFile, semanticallyEquivalentSnapshot, { mode: 0o600 });
     userStateManager.__test__.replaceStateFromJsonForTests('{}');
     assert.throws(() => loadStateFromDiskForTests(), /state_store_restore_failed/);
 
     fs.writeFileSync(stateFile, currentSnapshot, { mode: 0o600 });
     loadStateFromDiskForTests();
     assert.deepStrictEqual(userStateManager.getState('replay-state'), { generation: 2 });
+});
+
+test('durable replacement fsyncs both temporaries and commits the journal before state promotion', () => {
+    const { flushStateToDisk, getStateFilePaths } = userStateManager.__test__;
+    const {
+        stateFile,
+        tempFile,
+        replayFile,
+        replayTempFile
+    } = getStateFilePaths();
+    const originalOpenSync = fs.openSync;
+    const originalFsyncSync = fs.fsyncSync;
+    const originalRenameSync = fs.renameSync;
+    const descriptorTargets = new Map();
+    const events = [];
+
+    fs.openSync = function patchedOpenSync(target, ...args) {
+        const descriptor = originalOpenSync.call(this, target, ...args);
+        const resolved = path.resolve(target);
+        if ([tempFile, replayTempFile].map(item => path.resolve(item)).includes(resolved)) {
+            descriptorTargets.set(descriptor, resolved);
+        }
+        return descriptor;
+    };
+    fs.fsyncSync = function patchedFsyncSync(descriptor) {
+        const target = descriptorTargets.get(descriptor);
+        if (target) events.push(`fsync:${path.basename(target)}`);
+        return originalFsyncSync.call(this, descriptor);
+    };
+    fs.renameSync = function patchedRenameSync(source, target) {
+        const resolvedTarget = path.resolve(target);
+        if ([stateFile, replayFile].map(item => path.resolve(item)).includes(resolvedTarget)) {
+            events.push(`rename:${path.basename(resolvedTarget)}`);
+        }
+        return originalRenameSync.call(this, source, target);
+    };
+
+    try {
+        userStateManager.setState('durability-order', { generation: 1 });
+        flushStateToDisk();
+    } finally {
+        fs.openSync = originalOpenSync;
+        fs.fsyncSync = originalFsyncSync;
+        fs.renameSync = originalRenameSync;
+    }
+
+    const stateFsync = events.indexOf(`fsync:${path.basename(tempFile)}`);
+    const replayFsync = events.indexOf(`fsync:${path.basename(replayTempFile)}`);
+    const replayRename = events.indexOf(`rename:${path.basename(replayFile)}`);
+    const stateRename = events.indexOf(`rename:${path.basename(stateFile)}`);
+    assert.ok(stateFsync >= 0);
+    assert.ok(replayFsync > stateFsync);
+    assert.ok(replayRename > replayFsync);
+    assert.ok(stateRename > replayRename);
+});
+
+test('replay journal compacts expired revocations on the next replacement', () => {
+    const { flushStateToDisk, getStateFilePaths } = userStateManager.__test__;
+    const { replayFile } = getStateFilePaths();
+    const journal = JSON.parse(fs.readFileSync(replayFile, 'utf8'));
+    assert.ok(journal.revoked.length > 0);
+
+    const expiredDigest = journal.revoked[0].digest;
+    journal.revoked[0].expiresAt = Date.now() - 1;
+    journal.mac = signTestReplayJournal(journal.revoked);
+    fs.writeFileSync(replayFile, JSON.stringify(journal), { mode: 0o600 });
+
+    userStateManager.setState('journal-compaction', { generation: 1 });
+    flushStateToDisk();
+
+    const compacted = JSON.parse(fs.readFileSync(replayFile, 'utf8'));
+    assert.strictEqual(compacted.version, 2);
+    assert.strictEqual(compacted.revoked.some(item => item.digest === expiredDigest), false);
+    assert.ok(compacted.revoked.every(item => item.expiresAt > Date.now()));
 });
 
 test('state retention is mandatory and explicit TTL is capped by policy', () => {
@@ -298,6 +388,75 @@ test('file state-store configuration rejects a missing or malformed dedicated ke
     }
 });
 
+test('missing protected snapshot fails closed when a replay journal proves prior persistence', () => {
+    const { getStateFilePaths, loadStateFromDiskForTests } = userStateManager.__test__;
+    const { stateFile, replayFile } = getStateFilePaths();
+    assert.strictEqual(fs.existsSync(stateFile), true);
+    assert.strictEqual(fs.existsSync(replayFile), true);
+
+    fs.rmSync(stateFile);
+    assert.throws(() => loadStateFromDiskForTests(), /state_store_restore_failed/);
+});
+
+test('abrupt interruption after durable journal commit makes the prior snapshot fail closed', () => {
+    const childRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'financas-bot-state04-crash-'));
+    const loggerPath = path.resolve(__dirname, '../src/utils/logger.js');
+    const writerScript = `
+        const fs = require('node:fs');
+        const path = require('node:path');
+        const manager = require(${JSON.stringify(STATE_MANAGER_PATH)});
+        manager.setState('synthetic-crash-state', { generation: 1 });
+        manager.__test__.flushStateToDisk();
+        const { stateFile } = manager.__test__.getStateFilePaths();
+        manager.setState('synthetic-crash-state', { generation: 2 });
+        const originalRename = fs.renameSync;
+        fs.renameSync = (source, target) => {
+            if (path.resolve(target) === path.resolve(stateFile)) process.exit(86);
+            return originalRename(source, target);
+        };
+        manager.__test__.flushStateToDisk();
+    `;
+    const readerScript = `
+        const logger = require(${JSON.stringify(loggerPath)});
+        logger.error = () => {};
+        try {
+            const manager = require(${JSON.stringify(STATE_MANAGER_PATH)});
+            manager.assertStateStoreConfiguration();
+            process.stdout.write('unexpected_success');
+            process.exit(0);
+        } catch (error) {
+            process.stdout.write(String(error && error.message));
+            process.exit(1);
+        }
+    `;
+    const childEnv = {
+        ...process.env,
+        STATE_STORE_DRIVER: 'file',
+        STATE_STORE_ENCRYPTION_KEY: TEST_KEY,
+        STATE_STORE_MAX_RETENTION_SECONDS: '60'
+    };
+    try {
+        const writer = spawnSync(process.execPath, ['-e', writerScript], {
+            cwd: childRoot,
+            encoding: 'utf8',
+            env: childEnv
+        });
+        assert.strictEqual(writer.status, 86);
+        assert.strictEqual(writer.stderr, '');
+
+        const reader = spawnSync(process.execPath, ['-e', readerScript], {
+            cwd: childRoot,
+            encoding: 'utf8',
+            env: childEnv
+        });
+        assert.strictEqual(reader.status, 1);
+        assert.strictEqual(reader.stderr, '');
+        assert.strictEqual(reader.stdout, 'state_store_restore_failed');
+    } finally {
+        fs.rmSync(childRoot, { recursive: true, force: true });
+    }
+});
+
 test('startup subprocess fails closed with bounded sanitized configuration errors', () => {
     const childRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'financas-bot-state04-startup-'));
     const script = `
@@ -322,6 +481,13 @@ test('startup subprocess fails closed with bounded sanitized configuration error
                     STATE_STORE_MAX_RETENTION_SECONDS: String(31 * 24 * 60 * 60)
                 },
                 expected: 'state_store_retention_invalid'
+            },
+            {
+                env: {
+                    STATE_STORE_DRIVER: 'files',
+                    STATE_STORE_ENCRYPTION_KEY: TEST_KEY
+                },
+                expected: 'state_store_driver_invalid'
             }
         ];
         for (const item of cases) {

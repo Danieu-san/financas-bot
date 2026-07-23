@@ -113,12 +113,17 @@ function buildNodeTestArgs(files) {
 
 function captureFileSnapshot(file) {
     if (!fs.existsSync(file)) return { exists: false, data: null };
-    return { exists: true, data: fs.readFileSync(file) };
+    return {
+        exists: true,
+        data: fs.readFileSync(file),
+        mode: fs.statSync(file).mode & 0o777
+    };
 }
 
 function restoreFileSnapshot(file, snapshot) {
     if (snapshot.exists) {
-        fs.writeFileSync(file, snapshot.data);
+        fs.writeFileSync(file, snapshot.data, { mode: snapshot.mode });
+        fs.chmodSync(file, snapshot.mode);
         return;
     }
     if (fs.existsSync(file)) fs.unlinkSync(file);
