@@ -6,13 +6,11 @@ Atualizado em: 2026-07-22
 
 Executar a fila de correções da auditoria exaustiva. `STATE-01` recebeu `GO
 TÉCNICO LOCAL` independente no commit imutável
-`afc961fadd3f62a69c9e02ea1eb527f380d6d42f`. O primeiro candidato `PRIV-01`
-recebeu `NO-GO` independente no hash
-`45dbfa1632779924bc8795baefd969f03afde7e7`. O candidato de recuperação
-`44d703bd3792674d1089e118f08403e1c2e55ee4` também recebeu `NO-GO`: o Chat
-encontrou sinks multilinha, `warning.error`, leitura de `response` no
-sanitizador e falso verde no scanner limitado à linha. Esses achados foram
-reproduzidos, corrigidos e validados; faltam novo hash e reauditoria. A
+`afc961fadd3f62a69c9e02ea1eb527f380d6d42f`. `PRIV-01` recebeu `GO TÉCNICO
+LOCAL` independente no commit
+`6e360782ce98e45673b7fae9554d84c13478c23d`, após dois ciclos de `NO-GO`,
+reprodução e correção. O gate ativo agora é `AUTH-04`, revogação imediata do
+dashboard quando o cadastro deixa de estar ativo. A
 decisão pós-Fase 9 sobre proposição de salvamento segue registrada no roadmap
 sem alterar essa ordem.
 
@@ -65,8 +63,8 @@ Google/WhatsApp real, produção ou deploy.
 ## Git e workspace
 
 - branch: `main`;
-- produto com último `GO TÉCNICO LOCAL`: `afc961fadd3f62a69c9e02ea1eb527f380d6d42f`;
-- candidato anterior auditado com `NO-GO`: `549ba68b200031c000ee14827f54293a67ee7153`;
+- produto com último `GO TÉCNICO LOCAL`:
+  `6e360782ce98e45673b7fae9554d84c13478c23d`;
 - alterações concorrentes do workstream AWS/Oracle e arquivos não rastreados do
   usuário permanecem fora do gate e não devem ser adicionados, alterados ou
   removidos;
@@ -74,20 +72,18 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Gate ativo
 
-`PRIV-01`: após o segundo `NO-GO`, os cinco sinks multilinha e os warnings de
-projeção/conciliação foram sanitizados; `safeError` deixou de consultar
-`response`; e o scanner agora analisa a chamada completa com fixtures contra
-falso negativo e falso positivo. Focal `3/3`, bateria intermediária `342/342` e
-runner amplo `1.077/1.077` estão verdes. Falta publicar o novo candidato
-imutável e obter/confrontar a reauditoria independente.
-`STATE-04`, proteção do snapshot, permanece P2 separado.
+`AUTH-04`: caracterizado para exigir consulta fresca ao cadastro depois da
+assinatura/expiração e antes de qualquer leitura financeira nas APIs v1/v2. O
+RED deve provar que o mesmo token funciona enquanto o usuário está `ACTIVE` e
+é negado imediatamente depois de bloqueio/inativação/exclusão. `STATE-04`,
+proteção do snapshot, permanece P2 separado.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
 ## Decisões vigentes
 
-- reduzir para `Codex → Sol → Alto` antes de iniciar `PRIV-01`; esse é o menor
-  nível suficiente para o hardening transversal e seus testes adversariais;
+- manter `Codex → Sol → Alto` em `AUTH-04`; esse é o menor nível suficiente
+  para a mudança transversal de autorização e seus testes causais;
 - parar e avisar Daniel antes de reduzir ou trocar capacidade;
 - a produção vigente é Oracle/OCI; não reutilizar caminhos AWS e não executar
   Oracle e AWS simultaneamente com a mesma sessão WhatsApp;
@@ -100,14 +96,13 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Validar workflow e segredos, publicar somente a segunda recuperação pós-NO-GO
-de `PRIV-01`, pedir reauditoria independente em conversa
-limpa no Chat conectado ao GitHub e confrontar o parecer. Não acessar produção
-nem fazer deploy nesse gate.
+Criar o RED causal de `AUTH-04` para o mesmo token antes/depois da mudança de
+status, cobrindo v1/v2 e exigindo zero leitura financeira depois da revogação.
+Não acessar produção nem fazer deploy nesse gate.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → publicar, auditar e fechar PRIV-01 sem deploy.`
+`Codex → Sol → Alto → implementar e auditar AUTH-04 sem deploy.`
 
 ## Histórico dirigido
 
@@ -119,6 +114,8 @@ nem fazer deploy nesse gate.
   `docs/audit/25-priv01-post-audit-recovery-candidate-2026-07-22.md`;
 - recuperação dos escapes multilinha PRIV-01:
   `docs/audit/26-priv01-multiline-log-recovery-candidate-2026-07-22.md`;
+- fechamento independente PRIV-01:
+  `docs/audit/27-priv01-independent-close-2026-07-22.md`;
 - candidato STATE-01:
   `docs/audit/19-state01-sender-serialization-candidate-2026-07-22.md`;
 - correção pós-commit candidata:

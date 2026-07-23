@@ -179,9 +179,9 @@ autoriza deploy: indica apenas que uma parte causal possui evidência local.
 | AUTH-02 | P1 | Resolvido | lifecycle impeditivo, state de uso único, replay, recovery e compensação receberam GO técnico local |
 | AUTH-03 | P1 | Resolvido | revogação OAuth individual e remoção/reatribuição causal da permissão Drive receberam GO técnico local |
 | FLOW-03 | P1 | Resolvido | todos os reads financeiros abrangidos do scheduler exigem fonte pessoal; GO técnico local no hash `4c1001338ca1ed919b55be4e9566258178a0175e` |
-| STATE-01 | P1 | Aberto | não há serialização geral por remetente |
+| STATE-01 | P1 | Resolvido | fila FIFO por remetente recebeu GO técnico local independente |
 | STATE-02 | P1 | Resolvido | mesmo message ID não é retranscrito na mesma instância/TTL; C-01 com GO local integral |
-| PRIV-01 | P1 | Aberto | escapes de log e identificadores crus ainda não foram fechados globalmente |
+| PRIV-01 | P1 | Resolvido | fronteira global de warnings/errors recebeu GO técnico local no hash `6e360782ce98e45673b7fae9554d84c13478c23d` |
 | AUTH-04 | P2 | Aberto | token de dashboard não é invalidado imediatamente pelo bloqueio |
 | FLOW-02 | P2 | Aberto | caminhos de OCR/receipts/import/export anteriores ao rate limit não foram fechados |
 | FLOW-04 | P2 | Aberto | jobs gerais do scheduler ainda não possuem outbox/retry durável por usuário |
@@ -190,7 +190,7 @@ autoriza deploy: indica apenas que uma parte causal possui evidência local.
 | COV-01 | P2 | Aberto | gate padrão ainda não incorpora formalmente toda a bateria hermética |
 | OPS-01 | P2 | Aberto | runtime e `.env.example` continuam sem sincronização integral |
 
-Contagem vigente: oito P1 resolvidos; dois P1 abertos; sete P2 abertos. As
+Contagem vigente: dez P1 resolvidos; zero P1 aberto; sete P2 abertos. As
 seções e tabelas anteriores continuam como registro do objeto original, não
 como quadro vigente de remediação.
 
