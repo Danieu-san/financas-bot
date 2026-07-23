@@ -129,6 +129,13 @@ test('coverage runner fails closed for new or missing skipped tests', () => {
         skippedTests: [],
         expectedSkippedTests: ['expected skip']
     }).reasons.includes('unexpected_skipped_tests'));
+    assert.ok(validateRunnerResult({
+        exitStatus: 0,
+        tap: { ...tap, skipped: 0, todo: 1 },
+        coverage,
+        skippedTests: [],
+        expectedSkippedTests: []
+    }).reasons.includes('unexpected_todo_tests'));
     assert.strictEqual(EXPECTED_SKIPPED_TESTS.length, 5);
 });
 
@@ -155,11 +162,29 @@ test('coverage runner scrubs credentials and propagates network blocking to Node
         } catch (error) {
             if (error.code !== 'EXHAUSTIVE_AUDIT_NETWORK_BLOCKED') process.exit(3);
         }
+        process.env.NODE_OPTIONS = '';
+        const descendant = require('node:child_process').spawnSync(process.execPath, [
+            '-e',
+            "try { require('node:https').get('https://example.com'); process.exit(8); } catch (error) { process.exit(error.code === 'EXHAUSTIVE_AUDIT_NETWORK_BLOCKED' ? 0 : 9); }"
+        ]);
+        if (descendant.status !== 0) process.exit(6);
         try {
             require('node:child_process').spawnSync('unapproved-executable', []);
             process.exit(4);
         } catch (error) {
-            process.exit(error.code === 'EXHAUSTIVE_AUDIT_SUBPROCESS_BLOCKED' ? 0 : 5);
+            if (error.code !== 'EXHAUSTIVE_AUDIT_SUBPROCESS_BLOCKED') process.exit(5);
+        }
+        try {
+            require('node:child_process').spawnSync(process.execPath, ['-e', ''], { shell: true });
+            process.exit(10);
+        } catch (error) {
+            if (error.code !== 'EXHAUSTIVE_AUDIT_SUBPROCESS_BLOCKED') process.exit(11);
+        }
+        try {
+            require('node:child_process').fork('missing.js', [], { execPath: 'unapproved-executable' });
+            process.exit(12);
+        } catch (error) {
+            process.exit(error.code === 'EXHAUSTIVE_AUDIT_SUBPROCESS_BLOCKED' ? 0 : 13);
         }`
     ], { env: environment, encoding: 'utf8' });
     assert.strictEqual(child.status, 0, child.stderr);

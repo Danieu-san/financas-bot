@@ -47,31 +47,38 @@ function isCurrentNodeExecutable(command) {
         : resolvedCommand === resolvedNode;
 }
 
-function protectedChildOptions(options) {
+function protectedChildOptions(options, protectedNodeOptions) {
     const source = options && typeof options === 'object' ? options : {};
+    if (source.shell) throw blockedSubprocessError();
     return {
         ...source,
+        shell: false,
         env: {
             ...(source.env || process.env),
             EXHAUSTIVE_NETWORK_TRIPWIRE_ACTIVE: 'true',
-            NODE_OPTIONS: process.env.NODE_OPTIONS || ''
+            NODE_OPTIONS: protectedNodeOptions
         }
     };
 }
 
 function installSubprocessTripwire() {
+    const protectedNodeOptions = process.env.NODE_OPTIONS || '';
     const originalSpawn = childProcess.spawn.bind(childProcess);
     childProcess.spawn = function guardedSpawn(command, args, options) {
         if (!isCurrentNodeExecutable(command)) throw blockedSubprocessError();
-        if (!Array.isArray(args)) return originalSpawn(command, [], protectedChildOptions(args));
-        return originalSpawn(command, args, protectedChildOptions(options));
+        if (!Array.isArray(args)) {
+            return originalSpawn(command, [], protectedChildOptions(args, protectedNodeOptions));
+        }
+        return originalSpawn(command, args, protectedChildOptions(options, protectedNodeOptions));
     };
 
     const originalSpawnSync = childProcess.spawnSync.bind(childProcess);
     childProcess.spawnSync = function guardedSpawnSync(command, args, options) {
         if (!isCurrentNodeExecutable(command)) throw blockedSubprocessError();
-        if (!Array.isArray(args)) return originalSpawnSync(command, [], protectedChildOptions(args));
-        return originalSpawnSync(command, args, protectedChildOptions(options));
+        if (!Array.isArray(args)) {
+            return originalSpawnSync(command, [], protectedChildOptions(args, protectedNodeOptions));
+        }
+        return originalSpawnSync(command, args, protectedChildOptions(options, protectedNodeOptions));
     };
 
     const originalExecFile = childProcess.execFile.bind(childProcess);
@@ -89,7 +96,7 @@ function installSubprocessTripwire() {
             callback = options;
             options = {};
         }
-        return originalExecFile(file, args, protectedChildOptions(options), callback);
+        return originalExecFile(file, args, protectedChildOptions(options, protectedNodeOptions), callback);
     };
 
     const originalExecFileSync = childProcess.execFileSync.bind(childProcess);
@@ -99,13 +106,21 @@ function installSubprocessTripwire() {
             options = args;
             args = [];
         }
-        return originalExecFileSync(file, args, protectedChildOptions(options));
+        return originalExecFileSync(file, args, protectedChildOptions(options, protectedNodeOptions));
     };
 
     const originalFork = childProcess.fork.bind(childProcess);
     childProcess.fork = function guardedFork(modulePath, args, options) {
-        if (!Array.isArray(args)) return originalFork(modulePath, [], protectedChildOptions(args));
-        return originalFork(modulePath, args, protectedChildOptions(options));
+        const sourceOptions = Array.isArray(args) ? options : args;
+        if (sourceOptions?.execPath && !isCurrentNodeExecutable(sourceOptions.execPath)) {
+            throw blockedSubprocessError();
+        }
+        const guardedOptions = {
+            ...protectedChildOptions(sourceOptions, protectedNodeOptions),
+            execPath: process.execPath
+        };
+        if (!Array.isArray(args)) return originalFork(modulePath, [], guardedOptions);
+        return originalFork(modulePath, args, guardedOptions);
     };
 
     childProcess.exec = function blockedExec() {

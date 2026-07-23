@@ -29,13 +29,10 @@ const EXPECTED_SKIPPED_TESTS = Object.freeze([
     'functional: complex analytics handles typos, counts, duplicates and min/max'
 ]);
 const SAFE_ENVIRONMENT_KEYS = Object.freeze([
-    'APPDATA',
     'CI',
     'COMSPEC',
-    'HOME',
     'LANG',
     'LC_ALL',
-    'LOCALAPPDATA',
     'NO_COLOR',
     'OS',
     'PATH',
@@ -48,7 +45,6 @@ const SAFE_ENVIRONMENT_KEYS = Object.freeze([
     'TMP',
     'TMPDIR',
     'TZ',
-    'USERPROFILE',
     'WINDIR'
 ]);
 
@@ -88,6 +84,11 @@ function readTestAggregateManifest(files) {
             }
             nested.add(childPath);
             normalized[aggregateName].push(childPath);
+        }
+    }
+    for (const aggregateName of Object.keys(normalized)) {
+        if (nested.has(path.resolve(TEST_ROOT, aggregateName))) {
+            throw new Error('nested_test_aggregate_forbidden');
         }
     }
     return normalized;
@@ -165,6 +166,9 @@ function validateRunnerResult({
     }
     if (tap && Number.isInteger(tap.skipped) && tap.skipped !== skippedTests.length) {
         reasons.push('skipped_summary_mismatch');
+    }
+    if (tap && Number.isInteger(tap.todo) && tap.todo !== 0) {
+        reasons.push('unexpected_todo_tests');
     }
     const actualSkipped = [...skippedTests].sort();
     const expectedSkipped = [...expectedSkippedTests].sort();
@@ -262,7 +266,7 @@ function runLocalCoverage() {
     return {
         schema_version: 1,
         local_only: true,
-        external_network_blocked: true,
+        network_guard_scope: ['fetch', 'http', 'https', 'net', 'node_descendants', 'non_node_subprocesses'],
         discovered_test_files: allFiles.length,
         test_files: files.length,
         nested_test_entries: nestedTestEntries.map(file => path.relative(ROOT, file).replace(/\\/g, '/')),
