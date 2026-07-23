@@ -1,6 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
+process.env.STATE_STORE_ENCRYPTION_KEY = process.env.STATE_STORE_ENCRYPTION_KEY
+    || Buffer.alloc(32, 0x55).toString('base64');
+
 const userServicePath = require.resolve('../src/services/userService');
 require.cache[userServicePath] = {
     id: userServicePath,

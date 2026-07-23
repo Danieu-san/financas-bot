@@ -10,6 +10,9 @@ if (!process.env.ADMIN_IDS) {
 if (!process.env.USER_MAP) {
     process.env.USER_MAP = '5599990000001@c.us:Daniel';
 }
+if (!process.env.STATE_STORE_ENCRYPTION_KEY) {
+    process.env.STATE_STORE_ENCRYPTION_KEY = Buffer.alloc(32, 0x55).toString('base64');
+}
 
 const helpers = require('../src/utils/helpers');
 const analysisService = require('../src/services/analysisService');
@@ -2420,7 +2423,12 @@ test('userStateManager flush is atomic via temp file rename', (t) => {
     assert.strictEqual(fs.existsSync(tempFile), false, 'Temporary file should not remain after atomic rename');
     assert.strictEqual(fs.existsSync(stateFile), true, 'State file should exist after flush');
     const parsed = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
-    assert.deepStrictEqual(parsed[userId].data, { step: 'persisted' });
+    assert.strictEqual(parsed.format, 'financasbot-state');
+    assert.strictEqual(parsed.version, 1);
+    assert.strictEqual(parsed.algorithm, 'aes-256-gcm');
+    assert.ok(parsed.ciphertext);
+    assert.doesNotMatch(JSON.stringify(parsed), new RegExp(userId));
+    assert.doesNotMatch(JSON.stringify(parsed), /persisted/);
 
     userStateManager.deleteState(userId);
     flushStateToDisk();

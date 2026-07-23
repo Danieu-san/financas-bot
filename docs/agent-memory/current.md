@@ -11,7 +11,8 @@ LOCAL` independente no commit
 `6e360782ce98e45673b7fae9554d84c13478c23d`, após dois ciclos de `NO-GO`,
 reprodução e correção. `AUTH-04` recebeu `GO TÉCNICO LOCAL` independente no
 commit imutável `beb8e0ff7f2eccd74688aa347de6b7d79170d094`. O gate ativo agora
-é `STATE-04`, proteção do snapshot conversacional local. A
+é o candidato local de `STATE-04`, proteção do snapshot conversacional local,
+aguardando auditoria independente por hash. A
 decisão pós-Fase 9 sobre proposição de salvamento segue registrada no roadmap
 sem alterar essa ordem.
 
@@ -65,8 +66,8 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Git e workspace
 
-- branch de fechamento: `codex/auth04-dashboard-revocation`; `main` permanece
-  como destino antes de abrir a branch isolada de `STATE-04`;
+- branch ativa: `codex/state04-snapshot-hardening`, baseada em
+  `fd7146c3604fe41bb2ae44de695099254fb30aa4`;
 - produto com último `GO TÉCNICO LOCAL`:
   `beb8e0ff7f2eccd74688aa347de6b7d79170d094`;
 - alterações concorrentes do workstream AWS/Oracle e arquivos não rastreados do
@@ -76,10 +77,17 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Gate ativo
 
-`STATE-04`: o snapshot `state_store.json` ainda depende de sanitização parcial e
-`umask`; pode persistir identificadores, valores, datas, conta/cartão, pessoa,
-filename e classificações, e não possui contrato demonstrado de modo privado,
-inventário completo ou retenção. A implementação ainda não foi iniciada.
+`STATE-04`: candidato local verde. O snapshot usa envelope autenticado
+AES-256-GCM com chave exclusiva, cria o temporário em `0600`, preserva esse modo
+no `rename`, restaura somente envelope íntegro e limita retenção a 24 horas por
+padrão e 30 dias no máximo. Chave ausente/inválida, corrupção e falha de
+persistência negam de forma sanitizada.
+
+Evidência: RED `3/3`; bateria causal final `336/336`; runner hermético final
+`1.229` testes, `1.224` aprovados, zero falhas e cinco funcionais
+intencionalmente desativados; rede externa bloqueada; sintaxe e
+`git diff --check` verdes. Uma tentativa anterior foi invalidada quando o SSD
+desmontou; após remontagem, dependências e toda a bateria convergiram.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -100,14 +108,13 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Reproduzir localmente o snapshot contendo metadados sensíveis e o modo inseguro,
-definir o menor contrato que preserve restore sem plaintext privado, e criar
-REDs de modo `0600`, inventário e retenção. Não acessar produção nem fazer
-deploy nessa etapa.
+Congelar o commit sanitizado, publicar a branch e obter auditoria independente
+do Chat pelo hash imutável. Não acessar produção nem fazer deploy nesta etapa.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → caracterizar STATE-04 e criar REDs locais, sem deploy.`
+`Chat → modelo mais capaz disponível → Alto → auditar o hash imutável de
+STATE-04; Codex → Sol → Alto → ler e confrontar o parecer.`
 
 ## Histórico dirigido
 

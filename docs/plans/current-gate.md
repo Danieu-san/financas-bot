@@ -7,7 +7,7 @@ Commit funcional de partida:
 
 ## Estado
 
-`CARACTERIZAÇÃO DOCUMENTAL CONFIRMADA; RED LOCAL PENDENTE`. Este gate não
+`CANDIDATO LOCAL VERDE; AUDITORIA INDEPENDENTE PENDENTE`. Este gate não
 autoriza produção, deploy ou leitura do snapshot real.
 
 ## Objetivo
@@ -65,6 +65,42 @@ limitada por retenção, sem depender do `umask` operacional.
 6. somente com `GO` local e autorização remota separada, validar modo e retenção
    de forma sanitizada no servidor vigente.
 
+Etapas 1 a 4 concluídas. A etapa 5 aguarda commit e parecer independente.
+
+## Desenho implementado
+
+- envelope autenticado AES-256-GCM, sem identificador, valor ou metadado privado
+  fora do ciphertext;
+- `STATE_STORE_ENCRYPTION_KEY` exclusiva, sem fallback para OAuth ou Open
+  Finance;
+- temporário criado com modo `0600`, reforçado antes do `rename`; o arquivo
+  final herda o mesmo inode/modo;
+- corrupção, chave errada/ausente e envelope legado em plaintext falham
+  fechado, com código de log constante;
+- persistência que falha antes do `rename` preserva byte a byte o último
+  snapshot válido;
+- TTL obrigatório de 24 horas por padrão, configurável até o teto absoluto de
+  30 dias; restore também reduz expiração excessiva;
+- o runner hermético fornece somente chave fictícia e restaura arquivo final e
+  temporário após os testes.
+
+## Evidência final
+
+- RED causal: `3/3`;
+- testes causais/afetados: `336/336`;
+- runner hermético: `1.229` testes, `1.224` aprovados, zero falhas, cinco
+  funcionais desativados por contrato e rede externa bloqueada;
+- sintaxe, `git diff --check` e varredura dirigida de segredos: verdes;
+- nenhuma leitura do snapshot real, produção, Google ou WhatsApp.
+
+## Condições operacionais futuras
+
+- provisionar a chave dedicada antes de iniciar o binário;
+- tratar deliberadamente o snapshot legado antes do primeiro restart; o
+  candidato não o aceita permissivamente;
+- comprovar `0600` no host Linux vigente e manter rollback imutável;
+- essas condições não autorizam deploy nesta correção local.
+
 ## Testes previstos
 
 - testes dedicados de `userStateManager` para modo, temporário, conteúdo,
@@ -94,10 +130,10 @@ limitada por retenção, sem depender do `umask` operacional.
 
 ## Capacidade
 
-`Codex → Sol → Alto → caracterizar e corrigir STATE-04 localmente, sem deploy.`
+`Chat → modelo mais capaz disponível → Alto → auditar o hash imutável;
+Codex → Sol → Alto → confrontar o parecer, sem deploy.`
 
 ## Próxima ação exata
 
-Ler `src/state/userStateManager.js` e os testes de persistência indicados,
-reproduzir em diretório temporário o modo e o conteúdo atuais e criar os REDs
-mínimos sem acessar o snapshot real.
+Criar commit sanitizado, publicar a branch e solicitar auditoria independente
+por hash, sem acessar o snapshot real.

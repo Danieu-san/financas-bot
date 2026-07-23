@@ -5,9 +5,11 @@ const { spawnSync } = require('node:child_process');
 const ROOT = path.resolve(__dirname, '..');
 const TEST_ROOT = path.join(ROOT, 'tests');
 const STATE_STORE_PATH = path.join(ROOT, 'state_store.json');
+const STATE_STORE_TEMP_PATH = path.join(ROOT, 'state_store.tmp');
 const NETWORK_TRIPWIRE_PATH = path.join(TEST_ROOT, 'helpers', 'exhaustiveNetworkTripwire.js');
 const MUTABLE_RUNTIME_FILES = Object.freeze([
     STATE_STORE_PATH,
+    STATE_STORE_TEMP_PATH,
     path.join(ROOT, 'logs', 'combined.log'),
     path.join(ROOT, 'logs', 'error.log')
 ]);
@@ -136,6 +138,7 @@ function runLocalCoverage() {
                 RUN_FUNCTIONAL_TESTS: 'false',
                 WHATSAPP_E2E_ENABLED: 'false',
                 EXHAUSTIVE_NETWORK_TRIPWIRE_ACTIVE: 'true',
+                STATE_STORE_ENCRYPTION_KEY: Buffer.alloc(32, 0x55).toString('base64'),
                 OPEN_FINANCE_AUTO_SYNC_ENABLED: 'false',
                 OPEN_FINANCE_LIVE_READ_ENABLED: 'false'
             }

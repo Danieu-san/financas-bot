@@ -6,6 +6,8 @@ const path = require('node:path');
 
 process.env.NODE_ENV = 'test';
 process.env.ADMIN_IDS = process.env.ADMIN_IDS || '5599990000001@c.us';
+process.env.STATE_STORE_ENCRYPTION_KEY = process.env.STATE_STORE_ENCRYPTION_KEY
+    || Buffer.alloc(32, 0x55).toString('base64');
 const RELIABILITY_TELEMETRY_PATH = path.join(os.tmpdir(), `financas-bot-reliability-${process.pid}.jsonl`);
 const COMMAND_CANARY_TELEMETRY_PATH = path.join(os.tmpdir(), `financas-bot-command-canary-${process.pid}.jsonl`);
 process.env.INTERPRETATION_RELIABILITY_TELEMETRY_PATH = RELIABILITY_TELEMETRY_PATH;

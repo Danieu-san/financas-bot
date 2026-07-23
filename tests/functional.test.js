@@ -1,6 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
+process.env.STATE_STORE_ENCRYPTION_KEY = process.env.STATE_STORE_ENCRYPTION_KEY
+    || Buffer.alloc(32, 0x55).toString('base64');
+
 const RUN_FUNCTIONAL_TESTS = String(process.env.RUN_FUNCTIONAL_TESTS || '').toLowerCase() === 'true';
 const functionalTest = RUN_FUNCTIONAL_TESTS ? test : test.skip;
 

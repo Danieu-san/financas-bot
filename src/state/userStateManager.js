@@ -9,6 +9,24 @@ const TEMP_FILE = path.resolve(process.cwd(), 'state_store.tmp');
 const FLUSH_INTERVAL_MS = 60 * 1000;
 const STATE_STORE_DRIVER = String(process.env.STATE_STORE_DRIVER || 'file').toLowerCase();
 const REDIS_STATE_KEY = process.env.REDIS_STATE_KEY || 'financasbot:user_state';
+const STATE_FILE_MODE = 0o600;
+const STATE_SNAPSHOT_FORMAT = 'financasbot-state';
+const STATE_SNAPSHOT_VERSION = 1;
+const STATE_SNAPSHOT_AAD = Buffer.from(`${STATE_SNAPSHOT_FORMAT}:v${STATE_SNAPSHOT_VERSION}`, 'utf8');
+const DEFAULT_MAX_RETENTION_SECONDS = 24 * 60 * 60;
+const ABSOLUTE_MAX_RETENTION_SECONDS = 30 * 24 * 60 * 60;
+
+function resolveMaxRetentionSeconds() {
+    const configured = process.env.STATE_STORE_MAX_RETENTION_SECONDS;
+    if (configured === undefined || configured === '') return DEFAULT_MAX_RETENTION_SECONDS;
+    const parsed = Number(configured);
+    if (!Number.isFinite(parsed) || parsed <= 0 || parsed > ABSOLUTE_MAX_RETENTION_SECONDS) {
+        throw new Error('state_store_retention_invalid');
+    }
+    return parsed;
+}
+
+const MAX_RETENTION_SECONDS = resolveMaxRetentionSeconds();
 
 const stateMap = new Map();
 let dirty = false;
@@ -20,32 +38,120 @@ function markDirty() {
     dirty = true;
 }
 
-function loadStateFromDisk() {
-    try {
-        if (!fs.existsSync(STATE_FILE)) return;
-        const raw = fs.readFileSync(STATE_FILE, 'utf8');
-        if (!raw) return;
+function decodeEncryptionKey() {
+    const raw = String(process.env.STATE_STORE_ENCRYPTION_KEY || '').trim();
+    if (!raw) throw new Error('state_store_encryption_key_required');
 
-        const parsed = JSON.parse(raw);
-        for (const [userId, value] of Object.entries(parsed)) {
-            stateMap.set(userId, value);
+    const candidates = [];
+    if (/^[a-f0-9]{64}$/i.test(raw)) {
+        candidates.push(Buffer.from(raw, 'hex'));
+    }
+    candidates.push(Buffer.from(raw, 'base64'));
+    const key = candidates.find(candidate => candidate.length === 32);
+    if (!key) throw new Error('state_store_encryption_key_invalid');
+    return key;
+}
+
+function assertStateStoreConfiguration() {
+    if (STATE_STORE_DRIVER === 'file') decodeEncryptionKey();
+}
+
+function encryptStateSnapshot(clearPayload) {
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv('aes-256-gcm', decodeEncryptionKey(), iv);
+    cipher.setAAD(STATE_SNAPSHOT_AAD);
+    const ciphertext = Buffer.concat([
+        cipher.update(String(clearPayload), 'utf8'),
+        cipher.final()
+    ]);
+    return JSON.stringify({
+        format: STATE_SNAPSHOT_FORMAT,
+        version: STATE_SNAPSHOT_VERSION,
+        algorithm: 'aes-256-gcm',
+        iv: iv.toString('base64'),
+        tag: cipher.getAuthTag().toString('base64'),
+        ciphertext: ciphertext.toString('base64')
+    }, null, 2);
+}
+
+function decryptStateSnapshot(protectedPayload) {
+    const envelope = JSON.parse(String(protectedPayload || ''));
+    if (!envelope || Array.isArray(envelope)
+        || envelope.format !== STATE_SNAPSHOT_FORMAT
+        || envelope.version !== STATE_SNAPSHOT_VERSION
+        || envelope.algorithm !== 'aes-256-gcm'
+        || typeof envelope.iv !== 'string'
+        || typeof envelope.tag !== 'string'
+        || typeof envelope.ciphertext !== 'string') {
+        throw new Error('state_store_envelope_invalid');
+    }
+
+    const decipher = crypto.createDecipheriv(
+        'aes-256-gcm',
+        decodeEncryptionKey(),
+        Buffer.from(envelope.iv, 'base64')
+    );
+    decipher.setAAD(STATE_SNAPSHOT_AAD);
+    decipher.setAuthTag(Buffer.from(envelope.tag, 'base64'));
+    return Buffer.concat([
+        decipher.update(Buffer.from(envelope.ciphertext, 'base64')),
+        decipher.final()
+    ]).toString('utf8');
+}
+
+function deserializeState(raw) {
+    const parsed = JSON.parse(String(raw || ''));
+    if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
+        throw new Error('state_store_payload_invalid');
+    }
+
+    const now = Date.now();
+    const retentionLimit = now + MAX_RETENTION_SECONDS * 1000;
+    const restored = new Map();
+    for (const [userId, wrapper] of Object.entries(parsed)) {
+        if (!userId || !wrapper || Array.isArray(wrapper) || typeof wrapper !== 'object'
+            || !Object.hasOwn(wrapper, 'data')) {
+            throw new Error('state_store_entry_invalid');
         }
-        cleanupExpired();
+        const persistedExpiry = Number(wrapper.expiresAt);
+        if (Number.isFinite(persistedExpiry) && persistedExpiry <= now) continue;
+        restored.set(userId, {
+            data: wrapper.data,
+            expiresAt: Number.isFinite(persistedExpiry)
+                ? Math.min(persistedExpiry, retentionLimit)
+                : retentionLimit
+        });
+    }
+    return restored;
+}
+
+function replaceStateMap(restored) {
+    stateMap.clear();
+    for (const [userId, wrapper] of restored.entries()) {
+        stateMap.set(userId, wrapper);
+    }
+}
+
+function loadStateFromDisk() {
+    if (!fs.existsSync(STATE_FILE)) return;
+    try {
+        fs.chmodSync(STATE_FILE, STATE_FILE_MODE);
+        const protectedPayload = fs.readFileSync(STATE_FILE, 'utf8');
+        const restored = deserializeState(decryptStateSnapshot(protectedPayload));
+        replaceStateMap(restored);
     } catch (error) {
-        logger.warn(`[state-store] file_load_failed ${logger.safeError(error)}`);
+        logger.error('[state-store] file_restore_failed code=state_store_restore_failed');
+        throw new Error('state_store_restore_failed');
     }
 }
 
 function loadStateFromJsonString(raw) {
     if (!raw) return;
-    const parsed = JSON.parse(raw);
-    for (const [userId, value] of Object.entries(parsed)) {
-        stateMap.set(userId, value);
-    }
-    cleanupExpired();
+    replaceStateMap(deserializeState(raw));
 }
 
 function serializeState() {
+    cleanupExpired();
     const obj = {};
     for (const [key, value] of stateMap.entries()) {
         obj[key] = sanitizeStateForPersistence(value);
@@ -103,12 +209,24 @@ function sanitizeStateForPersistence(value) {
 function flushStateToDisk() {
     if (!dirty) return;
     try {
-        const payload = serializeState();
-        fs.writeFileSync(TEMP_FILE, payload, 'utf8');
+        const payload = encryptStateSnapshot(serializeState());
+        fs.rmSync(TEMP_FILE, { force: true });
+        fs.writeFileSync(TEMP_FILE, payload, {
+            encoding: 'utf8',
+            mode: STATE_FILE_MODE,
+            flag: 'wx'
+        });
+        fs.chmodSync(TEMP_FILE, STATE_FILE_MODE);
         fs.renameSync(TEMP_FILE, STATE_FILE);
         dirty = false;
     } catch (error) {
-        logger.error(`[state-store] file_persist_failed ${logger.safeError(error)}`);
+        try {
+            fs.rmSync(TEMP_FILE, { force: true });
+        } catch {
+            // The generic error below remains the only externally visible failure.
+        }
+        logger.error('[state-store] file_persist_failed code=state_store_persist_failed');
+        throw new Error('state_store_persist_failed');
     }
 }
 
@@ -184,7 +302,11 @@ function getState(userId) {
 }
 
 function setState(userId, state, ttlSeconds = null) {
-    const expiresAt = ttlSeconds ? Date.now() + ttlSeconds * 1000 : null;
+    const requestedTtl = Number(ttlSeconds);
+    const retentionSeconds = Number.isFinite(requestedTtl) && requestedTtl > 0
+        ? Math.min(requestedTtl, MAX_RETENTION_SECONDS)
+        : MAX_RETENTION_SECONDS;
+    const expiresAt = Date.now() + retentionSeconds * 1000;
     stateMap.set(userId, { data: state, expiresAt });
     markDirty();
 }
@@ -248,17 +370,20 @@ module.exports = {
     clearState: deleteState,
     findStateEntry,
     closeStateStore,
+    assertStateStoreConfiguration,
     getStoreMode: () => storeMode,
     __test__: {
         cleanupExpired,
         flushStateToDisk,
         serializeState,
         replaceStateFromJsonForTests: (raw) => {
-            stateMap.clear();
-            dirty = false;
             loadStateFromJsonString(raw);
+            dirty = false;
         },
+        loadStateFromDiskForTests: loadStateFromDisk,
         getStateFilePaths: () => ({ stateFile: STATE_FILE, tempFile: TEMP_FILE }),
+        getStateFileMode: () => STATE_FILE_MODE,
+        getMaxRetentionSeconds: () => MAX_RETENTION_SECONDS,
         isDirty: () => dirty
     }
 };

@@ -14,6 +14,7 @@ const logger = require('./src/utils/logger');
 const { registerFinancialCommandPlannerRuntimeReload } = require('./src/config/financialCommandPlannerRuntimeConfig');
 const { registerFinancialAgentRuntimeReload } = require('./src/config/financialAgentRuntimeConfig');
 const { initializeOpenFinanceCanaryRuntime } = require('./src/openFinance/openFinanceCanaryRuntime');
+const { assertStateStoreConfiguration } = require('./src/state/userStateManager');
 
 registerFinancialCommandPlannerRuntimeReload({ logger });
 registerFinancialAgentRuntimeReload({ logger });
@@ -30,6 +31,7 @@ async function startBot() {
     }
 
     try {
+        assertStateStoreConfiguration();
         // 1. Autoriza e prepara a API do Google Sheets ANTES do WhatsApp
         // Isso evita que o WhatsApp fique 'pendurado' esperando o Google
         await authorizeGoogle();
