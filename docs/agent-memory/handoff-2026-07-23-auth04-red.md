@@ -15,8 +15,8 @@ a produção ou alteração de dados reais neste gate.
 
 - raiz: `E:\Users\horus\Documents\FinancasBot\financas-bot`;
 - branch: `main`;
-- HEAD observado antes do commit deste handoff:
-  `0e7f13b22fd2b6f0c89c739f0cfa747a9615c9e7`;
+- HEAD portátil que contém o RED e este handoff:
+  `af3d2300cefe2124f6da8dcfb0a0405e9f6b4a04`;
 - commit de produto de partida:
   `6e360782ce98e45673b7fae9554d84c13478c23d`;
 - o repositório está no SSD portátil e `main` estava alinhada a `origin/main`
@@ -48,7 +48,8 @@ Não houve mudança de produto nem nova execução depois desse RED.
 
 ## Trabalho parcial preservado
 
-Arquivo do objetivo ainda não commitado no instante deste checkpoint:
+Arquivo do objetivo preservado no commit portátil
+`af3d2300cefe2124f6da8dcfb0a0405e9f6b4a04`:
 
 - `tests/dashboardApiContracts.test.js`.
 

@@ -107,9 +107,31 @@ try {
 }
 Invoke-Captured -Executable $GitBin -Arguments @('-C', $resolvedRoot, 'diff', '--check') | Out-Null
 
+$financasBotRoot = Split-Path -Parent $resolvedRoot
+$startHere = Join-Path $resolvedRoot 'docs\agent-memory\START-HERE.md'
+if (-not (Test-Path -LiteralPath $startHere -PathType Leaf)) {
+    throw "Documento de entrada ausente: $startHere"
+}
+
+$keyReferences = @(
+    [ordered]@{
+        role = 'oracle_production'
+        path = Join-Path $financasBotRoot 'financas_bot_oci_ed25519_20260722'
+    },
+    [ordered]@{
+        role = 'aws_rollback'
+        path = Join-Path $financasBotRoot 'financasBot.pem'
+    }
+)
+foreach ($reference in $keyReferences) {
+    $reference['exists'] = Test-Path -LiteralPath $reference.path -PathType Leaf
+    $reference['content_read'] = $false
+    $reference['content_copied'] = $false
+}
+
 $inventory = Get-CodexStoreMetadata
 $report = [ordered]@{
-    schema = 'financasbot-safe-handoff-v1'
+    schema = 'financasbot-safe-handoff-v2'
     generated_at_utc = (Get-Date).ToUniversalTime().ToString('o')
     phase = if ($PostClose) { 'post_close' } else { 'pre_close' }
     repo_root = $resolvedRoot
@@ -118,6 +140,15 @@ $report = [ordered]@{
     status = @($status)
     workflow_validation = 'green'
     diff_check = 'green'
+    start_here = $startHere
+    read_order = @(
+        'AGENTS.md',
+        'docs/agent-memory/START-HERE.md',
+        'docs/agent-memory/README.md',
+        'docs/agent-memory/current.md',
+        'docs/plans/current-gate.md'
+    )
+    key_references = $keyReferences
     codex_store_inventory = @($inventory)
     copied_from_codex = @()
     deliberately_excluded = @(
@@ -129,7 +160,7 @@ $report = [ordered]@{
         'SSH material',
         'private conversation history'
     )
-    resume_prompt = 'Use $execute-financasbot-gate e retome o objetivo ativo.'
+    resume_prompt = 'Continuei o trabalho em outro Codex. Use $handoff-portable-work para validar a retomada e depois $execute-financasbot-gate para retomar o objetivo ativo.'
 }
 
 $reportDirectory = Split-Path -Parent $ReportPath

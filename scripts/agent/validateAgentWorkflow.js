@@ -8,6 +8,7 @@ const root = path.resolve(__dirname, '..', '..');
 const checks = [
     ['AGENTS.md', 16 * 1024, ['Superfície → Modelo → Esforço → Próxima tarefa', 'current.md', '$execute-financasbot-gate', 'ADR-002']],
     ['docs/agent-memory/README.md', 12 * 1024, ['current.md', 'current-gate.md', 'validateAgentWorkflow.js']],
+    ['docs/agent-memory/START-HERE.md', 12 * 1024, ['resumePortableWork.ps1', 'financas_bot_oci_ed25519_20260722', 'financasBot.pem', 'last-safe-handoff.json']],
     ['docs/agent-memory/current.md', 16 * 1024, ['## Objetivo ativo', '## Git e workspace', '## Próxima ação exata', '## Capacidade para retomar']],
     ['docs/plans/current-gate.md', 24 * 1024, ['## Objetivo', '## Escopo', '## Não escopo', '## Critérios de GO', '## Condições de parada']],
     ['docs/agent-workflow/global-AGENTS.md', 12 * 1024, ['Superfície → Modelo → Esforço → Próxima tarefa', 'Não trocar ou reduzir', 'não usar subagentes por padrão', '$handoff-portable-work', 'Antes de ação em servidor']],
@@ -17,7 +18,8 @@ const checks = [
     ['.agents/skills/execute-financasbot-gate/SKILL.md', 12 * 1024, ['name: execute-financasbot-gate', '## Preparar', '## Validar e encerrar']],
     ['.agents/skills/audit-immutable-gate/SKILL.md', 12 * 1024, ['name: audit-immutable-gate', '## Fontes independentes', '## Auditoria pelo Chat']],
     ['.agents/skills/handoff-portable-work/SKILL.md', 12 * 1024, ['name: handoff-portable-work', '## Gatilho automático', '## Parar sem perder trabalho', 'preparePortableHandoff.ps1', '## Retomar em outro computador']],
-    ['scripts/agent/preparePortableHandoff.ps1', 16 * 1024, ['financasbot-safe-handoff-v1', 'content_copied = $false', 'validateAgentWorkflow.js']],
+    ['scripts/agent/preparePortableHandoff.ps1', 20 * 1024, ['financasbot-safe-handoff-v2', 'content_copied = $false', 'validateAgentWorkflow.js', 'START-HERE.md', 'key_references']],
+    ['scripts/agent/resumePortableWork.ps1', 16 * 1024, ['financasbot-portable-resume-v1', 'START-HERE.md', 'key_references', "['content_read'] = $false"]],
     ['scripts/agent/Invoke-SafePortableHandoffAfterClose.ps1', 12 * 1024, ['Test-ExclusiveRead', 'preparePortableHandoff.ps1', 'Nenhum conteúdo privado do Codex foi copiado']]
 ];
 
@@ -88,7 +90,13 @@ try {
     errors.push('Git indisponível; defina GIT_BIN ou instale git no PATH');
 }
 
-const startupFiles = ['AGENTS.md', 'docs/agent-memory/README.md', 'docs/agent-memory/current.md', 'docs/plans/current-gate.md'];
+const startupFiles = [
+    'AGENTS.md',
+    'docs/agent-memory/START-HERE.md',
+    'docs/agent-memory/README.md',
+    'docs/agent-memory/current.md',
+    'docs/plans/current-gate.md'
+];
 const startupBytes = startupFiles.reduce((total, file) => total + (loaded.get(file)?.bytes || 0), 0);
 const estimatedTokens = Math.ceil(startupBytes / 4);
 

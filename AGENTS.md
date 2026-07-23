@@ -21,6 +21,12 @@ Para qualquer tarefa não trivial, usar o workflow versionado no SSD:
    encerrar;
 6. separar implementação de auditoria e nunca declarar GO sem evidência factual.
 
+Ao chegar de outro computador ou conversa, ler primeiro
+`docs/agent-memory/START-HERE.md` e executar
+`scripts/agent/resumePortableWork.ps1`. A frase do usuário informando que
+continuou em outro Codex é autorização para essa validação de retomada, sem
+pedir que ele reconstrua manualmente o contexto.
+
 ### Trava obrigatória de auditoria no Chat
 
 Toda correção material do FinançasBot deve passar por auditoria independente no

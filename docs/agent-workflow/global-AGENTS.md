@@ -75,6 +75,13 @@ de continuidade: usar o repositório no SSD, o checkpoint versionado e o GitHub.
 Rotinas históricas que copiem estado privado devem ser ignoradas e substituídas
 por inventário de metadados e validação pós-fechamento sem leitura de conteúdo.
 
+Quando o usuário disser que continuou o trabalho em outro Codex ou computador,
+tratar a frase como gatilho de retomada: abrir
+`docs/agent-memory/START-HERE.md`, executar
+`scripts/agent/resumePortableWork.ps1`, confirmar Git e referências
+operacionais e então retomar a próxima ação exata do checkpoint. Não pedir ao
+usuário que reconstrua o contexto já preservado no SSD.
+
 ## Evidência e comunicação
 
 Durante trabalho longo, informar progresso sem deixar o usuário sem atualização.
