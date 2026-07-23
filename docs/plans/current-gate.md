@@ -1,4 +1,4 @@
-# Gate ativo — STATE-04
+# Gate encerrado — STATE-04
 
 Atualizado em: 2026-07-23
 
@@ -7,8 +7,9 @@ Commit funcional de partida:
 
 ## Estado
 
-`QUINTO CANDIDATO LOCAL CORRIGIDO APÓS TRÊS NO-GO E UMA REVISÃO INTERROMPIDA;
-NOVA AUDITORIA INDEPENDENTE PENDENTE`. Este gate não autoriza produção, deploy ou leitura do
+`GO TÉCNICO LOCAL` no hash
+`22fff090192269e71d71025653f1b5450b3132e2`, após três `NO-GO` e uma revisão
+interrompida antes do veredito. Este gate não autoriza produção, deploy ou leitura do
 snapshot real.
 
 ## Objetivo
@@ -66,8 +67,8 @@ limitada por retenção, sem depender do `umask` operacional.
 6. somente com `GO` local e autorização remota separada, validar modo e retenção
    de forma sanitizada no servidor vigente.
 
-Etapas 1 a 4 foram refeitas após três `NO-GO`. A etapa 5 aguarda o quinto
-commit imutável e novo parecer independente.
+Etapas 1 a 5 foram concluídas. O Chat confirmou o quinto commit imutável, a
+cadeia, os 19 arquivos e a ausência de achado `CRITICAL`, `HIGH` ou `MEDIUM`.
 
 ## Desenho implementado
 
@@ -152,10 +153,9 @@ commit imutável e novo parecer independente.
 
 ## Capacidade
 
-`Chat → modelo mais capaz disponível → Alto → auditar o hash imutável;
-Codex → Sol → Alto → confrontar o parecer, sem deploy.`
+`Codex → Sol → Alto → abrir COV-01 em workstream isolado, sem deploy.`
 
 ## Próxima ação exata
 
-Criar o quinto commit sanitizado, publicar a branch e solicitar nova auditoria
-independente por hash, sem acessar o snapshot real.
+Abrir o gate `COV-01` em workstream isolado e caracterizar a diferença entre a
+bateria hermética e o gate padrão, sem acessar produção.

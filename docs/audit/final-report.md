@@ -186,11 +186,11 @@ autoriza deploy: indica apenas que uma parte causal possui evidência local.
 | FLOW-02 | P2 | Aberto | caminhos de OCR/receipts/import/export anteriores ao rate limit não foram fechados |
 | FLOW-04 | P2 | Aberto | jobs gerais do scheduler ainda não possuem outbox/retry durável por usuário |
 | STATE-03 | P2 | Aberto | shutdown Redis ainda não prova espera do último flush |
-| STATE-04 | P2 | Aberto | snapshot e permissão produtiva ainda não foram corrigidos |
+| STATE-04 | P2 | Resolvido | snapshot local protegido e privado; GO técnico local no hash `22fff090192269e71d71025653f1b5450b3132e2` |
 | COV-01 | P2 | Aberto | gate padrão ainda não incorpora formalmente toda a bateria hermética |
 | OPS-01 | P2 | Aberto | runtime e `.env.example` continuam sem sincronização integral |
 
-Contagem vigente: dez P1 resolvidos; zero P1 aberto; um P2 resolvido e seis P2
+Contagem vigente: dez P1 resolvidos; zero P1 aberto; dois P2 resolvidos e cinco P2
 abertos. As
 seções e tabelas anteriores continuam como registro do objeto original, não
 como quadro vigente de remediação.
@@ -280,9 +280,9 @@ Esta sequência é uma fila, não autorização imediata:
 6. **concluído:** remover membership/permissão Drive quando o lifecycle exigir
    (`AUTH-03/WGL-07`);
 7. **concluído:** alinhar scheduler à planilha pessoal (`FLOW-03`);
-8. **gate imediato:** serializar mensagens por remetente (`STATE-01`);
-9. fechar escapes de log e proteger o snapshot;
-10. transformar a bateria Open Finance local em gate padrão de release;
+8. **concluído:** serializar mensagens por remetente (`STATE-01`);
+9. **concluído:** fechar escapes de log e proteger o snapshot;
+10. **gate imediato:** transformar a bateria Open Finance local em gate padrão de release;
 11. sincronizar schema de ambiente e `.env.example`;
 12. reauditar cada fatia antes de promoção.
 
@@ -297,5 +297,6 @@ satisfeita. `AUTH-01` foi corrigida em fatia explícita posterior. A C-01 recebe
 colisão de temporários estão fechados, com revisão independente e gates locais
 verdes no candidato `0188570...`. DATA-01 e DATA-02 também receberam `GO local
 integral`; WGL-03/WGL-04, AUTH-03/WGL-07 e FLOW-03 também receberam `GO
-TÉCNICO LOCAL`; deploy e produção não foram avaliados. A próxima correção
-causal é `STATE-01`, sobre serializar mensagens do mesmo remetente.
+TÉCNICO LOCAL`; `STATE-01`, `PRIV-01`, `AUTH-04` e `STATE-04` também foram
+encerrados por parecer independente. Deploy e produção não foram avaliados. A
+próxima correção causal da fila documental é `COV-01`.

@@ -10,8 +10,8 @@ TÉCNICO LOCAL` independente no commit imutável
 LOCAL` independente no commit
 `6e360782ce98e45673b7fae9554d84c13478c23d`, após dois ciclos de `NO-GO`,
 reprodução e correção. `AUTH-04` recebeu `GO TÉCNICO LOCAL` independente no
-commit imutável `beb8e0ff7f2eccd74688aa347de6b7d79170d094`. O gate ativo agora
-é `STATE-04`, proteção do snapshot conversacional local. O primeiro candidato
+commit imutável `beb8e0ff7f2eccd74688aa347de6b7d79170d094`. O gate encerrado
+mais recente é `STATE-04`, proteção do snapshot conversacional local. O primeiro candidato
 imutável `d4c7016204a8877869d24abea8e02b007e8dcfaf` recebeu `NO-GO TÉCNICO
 LOCAL`; todos os achados foram reproduzidos e corrigidos incrementalmente. O
 segundo candidato `8f0f185eb0cc785faff71c7046457f319bd62cce` também recebeu
@@ -22,12 +22,31 @@ interrompida antes do veredito final após apontar duas lacunas de startup. Elas
 foram reproduzidas e corrigidas. O quarto candidato recebeu `NO-GO TÉCNICO
 LOCAL` porque Redis ainda era aceito sem participar da barreira de startup. O
 driver Redis foi tornado explicitamente indisponível até o gate `STATE-03`; o
-quinto candidato local está verde e aguarda nova auditoria independente por
-hash. A
+quinto candidato recebeu `GO TÉCNICO LOCAL` independente no hash
+`22fff090192269e71d71025653f1b5450b3132e2`, sem achado `CRITICAL`, `HIGH` ou
+`MEDIUM`. O próximo gate da fila documental é `COV-01`. A
 decisão pós-Fase 9 sobre proposição de salvamento segue registrada no roadmap
 sem alterar essa ordem.
 
 ## Último gate encerrado
+
+`STATE-04` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
+`22fff090192269e71d71025653f1b5450b3132e2`.
+
+O snapshot local preserva o estado necessário dentro de envelope AES-256-GCM
+estrito, privado e autenticado, com journal de replay, ordem durável, retenção,
+restore fail-closed e arquivos `0600`. Redis permanece indisponível e falha
+antes de qualquer efeito até o gate separado `STATE-03`.
+
+Evidência executada pelo Codex: RED Redis reproduzido; teste dedicado `14/14`;
+bateria causal `345/345`; runner hermético `1.238` testes, `1.233` aprovados,
+zero falhas e cinco skips previstos. O Chat confirmou o hash, os cinco commits,
+os 19 arquivos e a ausência de achado bloqueante, sem executar os testes.
+
+Não houve acesso a snapshot real, Redis real, produção, Google, WhatsApp ou
+deploy.
+
+## Gate encerrado anterior — AUTH-04
 
 `AUTH-04` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
 `beb8e0ff7f2eccd74688aa347de6b7d79170d094`.
@@ -46,7 +65,7 @@ telemetria pré-roteamento não abrem bypass nem vazamento.
 
 Não houve acesso a Google/WhatsApp real, produção ou deploy.
 
-## Gate encerrado anterior
+## Gate encerrado anterior — AUTH-03/WGL-07
 
 `AUTH-03/WGL-07` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
 `2d0092da691985bf945c35d7041b5ef4e2d2fd1d`.
@@ -80,16 +99,16 @@ Google/WhatsApp real, produção ou deploy.
 - branch ativa: `codex/state04-snapshot-hardening`, baseada em
   `fd7146c3604fe41bb2ae44de695099254fb30aa4`;
 - produto com último `GO TÉCNICO LOCAL`:
-  `beb8e0ff7f2eccd74688aa347de6b7d79170d094`;
+  `22fff090192269e71d71025653f1b5450b3132e2`;
 - alterações concorrentes do workstream AWS/Oracle e arquivos não rastreados do
   usuário permanecem fora do gate e não devem ser adicionados, alterados ou
   removidos;
 - raiz canônica: repositório `financas-bot` no SSD portátil.
 
-## Gate ativo
+## Próximo gate
 
-`STATE-04`: quinto candidato local corrigido após três `NO-GO` e uma terceira
-revisão interrompida antes do veredito. O snapshot usa envelope
+`COV-01`: incorporar formalmente a bateria hermética ao gate padrão de teste e
+release, sem executar integração real. `STATE-04` está encerrado. Seu snapshot usa envelope
 autenticado AES-256-GCM estrito com chave exclusiva, persiste sem perda os
 campos necessários ao restore, cria temporários em `0600`, faz `fsync`, limita
 retenção e remove fisicamente entradas expiradas. Um journal privado e
@@ -111,9 +130,9 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Decisões vigentes
 
-- manter `Codex → Sol → Alto` na caracterização e correção de `STATE-04`; esse
-  é o menor nível suficiente para proteção de estado, compatibilidade de restore
-  e testes adversariais;
+- manter `Codex → Sol → Alto` na caracterização e correção de `COV-01`; esse é
+  o menor nível suficiente para alterar o gate padrão sem omitir baterias ou
+  introduzir integrações externas;
 - parar e avisar Daniel antes de reduzir ou trocar capacidade;
 - a produção vigente é Oracle/OCI; não reutilizar caminhos AWS e não executar
   Oracle e AWS simultaneamente com a mesma sessão WhatsApp;
@@ -126,17 +145,19 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Congelar o quinto commit sanitizado, publicar a branch e obter nova auditoria
-independente do Chat pelo hash imutável. Não acessar produção nem fazer deploy
-nesta etapa.
+Abrir um workstream isolado para `COV-01`, caracterizar quais testes ainda não
+participam do gate padrão e implementar a menor integração possível. Não
+acessar produção nem fazer deploy nesta etapa.
 
 ## Capacidade para retomar
 
-`Chat → modelo mais capaz disponível → Alto → auditar o hash imutável de
-STATE-04; Codex → Sol → Alto → ler e confrontar o parecer.`
+`Codex → Sol → Alto → caracterizar e corrigir COV-01; Chat → modelo mais capaz
+disponível → Alto → auditar o futuro hash imutável.`
 
 ## Histórico dirigido
 
+- fechamento independente de STATE-04:
+  `docs/audit/35-state04-independent-close-2026-07-23.md`;
 - recuperação da fronteira Redis de STATE-04:
   `docs/audit/34-state04-redis-boundary-recovery-candidate-2026-07-23.md`;
 - recuperação da terceira revisão de STATE-04:
