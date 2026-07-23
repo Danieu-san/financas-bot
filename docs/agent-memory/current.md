@@ -11,8 +11,11 @@ LOCAL` independente no commit
 `6e360782ce98e45673b7fae9554d84c13478c23d`, após dois ciclos de `NO-GO`,
 reprodução e correção. `AUTH-04` recebeu `GO TÉCNICO LOCAL` independente no
 commit imutável `beb8e0ff7f2eccd74688aa347de6b7d79170d094`. O gate ativo agora
-é o candidato local de `STATE-04`, proteção do snapshot conversacional local,
-aguardando auditoria independente por hash. A
+é `STATE-04`, proteção do snapshot conversacional local. O primeiro candidato
+imutável `d4c7016204a8877869d24abea8e02b007e8dcfaf` recebeu `NO-GO TÉCNICO
+LOCAL`; todos os achados foram reproduzidos e corrigidos incrementalmente. O
+novo candidato local está verde e aguarda nova auditoria independente por
+hash. A
 decisão pós-Fase 9 sobre proposição de salvamento segue registrada no roadmap
 sem alterar essa ordem.
 
@@ -77,17 +80,18 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Gate ativo
 
-`STATE-04`: candidato local verde. O snapshot usa envelope autenticado
-AES-256-GCM com chave exclusiva, cria o temporário em `0600`, preserva esse modo
-no `rename`, restaura somente envelope íntegro e limita retenção a 24 horas por
-padrão e 30 dias no máximo. Chave ausente/inválida, corrupção e falha de
-persistência negam de forma sanitizada.
+`STATE-04`: candidato local corrigido após `NO-GO`. O snapshot usa envelope
+autenticado AES-256-GCM estrito com chave exclusiva, persiste sem perda os
+campos necessários ao restore, cria temporários em `0600`, faz `fsync`, limita
+retenção e remove fisicamente entradas expiradas. Um journal privado e
+autenticado revoga snapshots substituídos; o journal é confirmado antes da
+promoção do estado para que interrupção falhe fechada, com rollback síncrono do
+journal quando a promoção falha.
 
-Evidência: RED `3/3`; bateria causal final `336/336`; runner hermético final
-`1.229` testes, `1.224` aprovados, zero falhas e cinco funcionais
-intencionalmente desativados; rede externa bloqueada; sintaxe e
-`git diff --check` verdes. Uma tentativa anterior foi invalidada quando o SSD
-desmontou; após remontagem, dependências e toda a bateria convergiram.
+Evidência corrigida: teste dedicado `9/9`; bateria causal final `340/340`;
+runner hermético `1.233` testes, `1.228` aprovados, zero falhas e cinco
+funcionais intencionalmente desativados; rede externa bloqueada; sintaxe e
+`git diff --check` verdes.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -108,8 +112,9 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Congelar o commit sanitizado, publicar a branch e obter auditoria independente
-do Chat pelo hash imutável. Não acessar produção nem fazer deploy nesta etapa.
+Congelar o segundo commit sanitizado, publicar a branch e obter nova auditoria
+independente do Chat pelo hash imutável. Não acessar produção nem fazer deploy
+nesta etapa.
 
 ## Capacidade para retomar
 
@@ -118,6 +123,10 @@ STATE-04; Codex → Sol → Alto → ler e confrontar o parecer.`
 
 ## Histórico dirigido
 
+- recuperação após `NO-GO` de STATE-04:
+  `docs/audit/31-state04-independent-nogo-recovery-candidate-2026-07-23.md`;
+- primeiro candidato STATE-04:
+  `docs/audit/30-state04-snapshot-hardening-candidate-2026-07-23.md`;
 - fechamento independente AUTH-04:
   `docs/audit/29-auth04-independent-close-2026-07-23.md`;
 - candidato AUTH-04:

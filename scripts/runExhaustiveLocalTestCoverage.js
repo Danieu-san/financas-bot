@@ -6,10 +6,14 @@ const ROOT = path.resolve(__dirname, '..');
 const TEST_ROOT = path.join(ROOT, 'tests');
 const STATE_STORE_PATH = path.join(ROOT, 'state_store.json');
 const STATE_STORE_TEMP_PATH = path.join(ROOT, 'state_store.tmp');
+const STATE_STORE_REPLAY_PATH = path.join(ROOT, 'state_store.replay.json');
+const STATE_STORE_REPLAY_TEMP_PATH = path.join(ROOT, 'state_store.replay.tmp');
 const NETWORK_TRIPWIRE_PATH = path.join(TEST_ROOT, 'helpers', 'exhaustiveNetworkTripwire.js');
 const MUTABLE_RUNTIME_FILES = Object.freeze([
     STATE_STORE_PATH,
     STATE_STORE_TEMP_PATH,
+    STATE_STORE_REPLAY_PATH,
+    STATE_STORE_REPLAY_TEMP_PATH,
     path.join(ROOT, 'logs', 'combined.log'),
     path.join(ROOT, 'logs', 'error.log')
 ]);

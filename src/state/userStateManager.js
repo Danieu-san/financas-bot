@@ -6,6 +6,8 @@ const logger = require('../utils/logger');
 
 const STATE_FILE = path.resolve(process.cwd(), 'state_store.json');
 const TEMP_FILE = path.resolve(process.cwd(), 'state_store.tmp');
+const REPLAY_FILE = path.resolve(process.cwd(), 'state_store.replay.json');
+const REPLAY_TEMP_FILE = path.resolve(process.cwd(), 'state_store.replay.tmp');
 const FLUSH_INTERVAL_MS = 60 * 1000;
 const STATE_STORE_DRIVER = String(process.env.STATE_STORE_DRIVER || 'file').toLowerCase();
 const REDIS_STATE_KEY = process.env.REDIS_STATE_KEY || 'financasbot:user_state';
@@ -26,7 +28,13 @@ function resolveMaxRetentionSeconds() {
     return parsed;
 }
 
-const MAX_RETENTION_SECONDS = resolveMaxRetentionSeconds();
+let initializationFailureCode = '';
+let MAX_RETENTION_SECONDS = DEFAULT_MAX_RETENTION_SECONDS;
+try {
+    MAX_RETENTION_SECONDS = resolveMaxRetentionSeconds();
+} catch {
+    initializationFailureCode = 'state_store_retention_invalid';
+}
 
 const stateMap = new Map();
 let dirty = false;
@@ -54,6 +62,11 @@ function decodeEncryptionKey() {
 
 function assertStateStoreConfiguration() {
     if (STATE_STORE_DRIVER === 'file') decodeEncryptionKey();
+    if (initializationFailureCode) throw new Error(initializationFailureCode);
+}
+
+function assertStateStoreReady() {
+    if (initializationFailureCode) throw new Error(initializationFailureCode);
 }
 
 function encryptStateSnapshot(clearPayload) {
@@ -74,9 +87,26 @@ function encryptStateSnapshot(clearPayload) {
     }, null, 2);
 }
 
+function decodeCanonicalBase64(value, expectedLength = null) {
+    if (typeof value !== 'string' || !value || !/^[A-Za-z0-9+/]+={0,2}$/.test(value)) {
+        throw new Error('state_store_envelope_invalid');
+    }
+    const decoded = Buffer.from(value, 'base64');
+    if (decoded.toString('base64') !== value
+        || (expectedLength !== null && decoded.length !== expectedLength)) {
+        throw new Error('state_store_envelope_invalid');
+    }
+    return decoded;
+}
+
 function decryptStateSnapshot(protectedPayload) {
     const envelope = JSON.parse(String(protectedPayload || ''));
+    const envelopeKeys = envelope && typeof envelope === 'object'
+        ? Object.keys(envelope).sort()
+        : [];
+    const expectedKeys = ['algorithm', 'ciphertext', 'format', 'iv', 'tag', 'version'];
     if (!envelope || Array.isArray(envelope)
+        || JSON.stringify(envelopeKeys) !== JSON.stringify(expectedKeys)
         || envelope.format !== STATE_SNAPSHOT_FORMAT
         || envelope.version !== STATE_SNAPSHOT_VERSION
         || envelope.algorithm !== 'aes-256-gcm'
@@ -86,17 +116,144 @@ function decryptStateSnapshot(protectedPayload) {
         throw new Error('state_store_envelope_invalid');
     }
 
+    const iv = decodeCanonicalBase64(envelope.iv, 12);
+    const tag = decodeCanonicalBase64(envelope.tag, 16);
+    const ciphertext = decodeCanonicalBase64(envelope.ciphertext);
     const decipher = crypto.createDecipheriv(
         'aes-256-gcm',
         decodeEncryptionKey(),
-        Buffer.from(envelope.iv, 'base64')
+        iv,
+        { authTagLength: 16 }
     );
     decipher.setAAD(STATE_SNAPSHOT_AAD);
-    decipher.setAuthTag(Buffer.from(envelope.tag, 'base64'));
+    decipher.setAuthTag(tag);
     return Buffer.concat([
-        decipher.update(Buffer.from(envelope.ciphertext, 'base64')),
+        decipher.update(ciphertext),
         decipher.final()
     ]).toString('utf8');
+}
+
+function snapshotDigest(protectedPayload) {
+    return crypto.createHash('sha256').update(String(protectedPayload)).digest('hex');
+}
+
+function replayJournalMac(revokedDigests) {
+    return crypto
+        .createHmac('sha256', decodeEncryptionKey())
+        .update(JSON.stringify(revokedDigests))
+        .digest('hex');
+}
+
+function readReplayJournal() {
+    if (!fs.existsSync(REPLAY_FILE)) return [];
+    fs.chmodSync(REPLAY_FILE, STATE_FILE_MODE);
+    const parsed = JSON.parse(fs.readFileSync(REPLAY_FILE, 'utf8'));
+    const journalKeys = parsed && typeof parsed === 'object'
+        ? Object.keys(parsed).sort()
+        : [];
+    const expectedKeys = ['format', 'mac', 'revoked', 'version'];
+    if (!parsed || Array.isArray(parsed)
+        || JSON.stringify(journalKeys) !== JSON.stringify(expectedKeys)
+        || parsed.format !== 'financasbot-state-replay'
+        || parsed.version !== 1
+        || !Array.isArray(parsed.revoked)
+        || parsed.revoked.some(item => !/^[a-f0-9]{64}$/.test(item))
+        || new Set(parsed.revoked).size !== parsed.revoked.length
+        || !/^[a-f0-9]{64}$/.test(parsed.mac)
+        || parsed.mac !== replayJournalMac(parsed.revoked)) {
+        throw new Error('state_store_replay_journal_invalid');
+    }
+    return parsed.revoked;
+}
+
+function syncStateDirectory() {
+    if (process.platform === 'win32') return;
+    const directoryFd = fs.openSync(path.dirname(STATE_FILE), 'r');
+    try {
+        fs.fsyncSync(directoryFd);
+    } finally {
+        fs.closeSync(directoryFd);
+    }
+}
+
+function writeDurablePrivateTemp(target, payload) {
+    fs.rmSync(target, { force: true });
+    fs.writeFileSync(target, payload, {
+        encoding: 'utf8',
+        mode: STATE_FILE_MODE,
+        flag: 'wx'
+    });
+    fs.chmodSync(target, STATE_FILE_MODE);
+    const fileDescriptor = fs.openSync(target, 'r+');
+    try {
+        fs.fsyncSync(fileDescriptor);
+    } finally {
+        fs.closeSync(fileDescriptor);
+    }
+}
+
+function prepareReplayRevocation(protectedPayload) {
+    if (!protectedPayload) return null;
+    const digest = snapshotDigest(protectedPayload);
+    const revoked = readReplayJournal();
+    if (revoked.includes(digest)) return null;
+    const next = [...revoked, digest];
+    return {
+        previousExists: fs.existsSync(REPLAY_FILE),
+        previousPayload: fs.existsSync(REPLAY_FILE)
+            ? fs.readFileSync(REPLAY_FILE, 'utf8')
+            : '',
+        nextPayload: JSON.stringify({
+            format: 'financasbot-state-replay',
+            version: 1,
+            revoked: next,
+            mac: replayJournalMac(next)
+        }, null, 2)
+    };
+}
+
+function commitReplayRevocation(change) {
+    if (!change) return;
+    writeDurablePrivateTemp(REPLAY_TEMP_FILE, change.nextPayload);
+    fs.renameSync(REPLAY_TEMP_FILE, REPLAY_FILE);
+    syncStateDirectory();
+}
+
+function rollbackReplayRevocation(change) {
+    if (!change) return;
+    if (!change.previousExists) {
+        fs.rmSync(REPLAY_FILE, { force: true });
+        syncStateDirectory();
+        return;
+    }
+    writeDurablePrivateTemp(REPLAY_TEMP_FILE, change.previousPayload);
+    fs.renameSync(REPLAY_TEMP_FILE, REPLAY_FILE);
+    syncStateDirectory();
+}
+
+function persistProtectedSnapshot(payload, previousProtectedPayload) {
+    writeDurablePrivateTemp(TEMP_FILE, payload);
+    const replayChange = prepareReplayRevocation(previousProtectedPayload);
+    let replayCommitted = false;
+    let statePromoted = false;
+    try {
+        if (replayChange) {
+            commitReplayRevocation(replayChange);
+            replayCommitted = true;
+        }
+        fs.renameSync(TEMP_FILE, STATE_FILE);
+        statePromoted = true;
+        syncStateDirectory();
+    } catch (error) {
+        if (replayCommitted && !statePromoted) {
+            try {
+                rollbackReplayRevocation(replayChange);
+            } catch {
+                // Leaving the prior snapshot revoked is fail-closed after rollback failure.
+            }
+        }
+        throw error;
+    }
 }
 
 function deserializeState(raw) {
@@ -108,21 +265,29 @@ function deserializeState(raw) {
     const now = Date.now();
     const retentionLimit = now + MAX_RETENTION_SECONDS * 1000;
     const restored = new Map();
+    let normalized = false;
     for (const [userId, wrapper] of Object.entries(parsed)) {
         if (!userId || !wrapper || Array.isArray(wrapper) || typeof wrapper !== 'object'
             || !Object.hasOwn(wrapper, 'data')) {
             throw new Error('state_store_entry_invalid');
         }
         const persistedExpiry = Number(wrapper.expiresAt);
-        if (Number.isFinite(persistedExpiry) && persistedExpiry <= now) continue;
+        if (Number.isFinite(persistedExpiry) && persistedExpiry <= now) {
+            normalized = true;
+            continue;
+        }
+        const boundedExpiry = Number.isFinite(persistedExpiry)
+            ? Math.min(persistedExpiry, retentionLimit)
+            : retentionLimit;
+        if (!Number.isFinite(persistedExpiry) || boundedExpiry !== persistedExpiry) {
+            normalized = true;
+        }
         restored.set(userId, {
             data: wrapper.data,
-            expiresAt: Number.isFinite(persistedExpiry)
-                ? Math.min(persistedExpiry, retentionLimit)
-                : retentionLimit
+            expiresAt: boundedExpiry
         });
     }
-    return restored;
+    return { restored, normalized };
 }
 
 function replaceStateMap(restored) {
@@ -137,8 +302,13 @@ function loadStateFromDisk() {
     try {
         fs.chmodSync(STATE_FILE, STATE_FILE_MODE);
         const protectedPayload = fs.readFileSync(STATE_FILE, 'utf8');
-        const restored = deserializeState(decryptStateSnapshot(protectedPayload));
+        if (readReplayJournal().includes(snapshotDigest(protectedPayload))) {
+            throw new Error('state_store_snapshot_replayed');
+        }
+        const { restored, normalized } = deserializeState(decryptStateSnapshot(protectedPayload));
         replaceStateMap(restored);
+        dirty = normalized;
+        if (normalized) flushStateToDisk();
     } catch (error) {
         logger.error('[state-store] file_restore_failed code=state_store_restore_failed');
         throw new Error('state_store_restore_failed');
@@ -147,14 +317,16 @@ function loadStateFromDisk() {
 
 function loadStateFromJsonString(raw) {
     if (!raw) return;
-    replaceStateMap(deserializeState(raw));
+    const { restored, normalized } = deserializeState(raw);
+    replaceStateMap(restored);
+    if (normalized) markDirty();
 }
 
-function serializeState() {
+function serializeState({ sanitize = true } = {}) {
     cleanupExpired();
     const obj = {};
     for (const [key, value] of stateMap.entries()) {
-        obj[key] = sanitizeStateForPersistence(value);
+        obj[key] = sanitize ? sanitizeStateForPersistence(value) : value;
     }
     return JSON.stringify(obj, null, 2);
 }
@@ -208,20 +380,18 @@ function sanitizeStateForPersistence(value) {
 
 function flushStateToDisk() {
     if (!dirty) return;
+    let previousProtectedPayload = '';
     try {
-        const payload = encryptStateSnapshot(serializeState());
-        fs.rmSync(TEMP_FILE, { force: true });
-        fs.writeFileSync(TEMP_FILE, payload, {
-            encoding: 'utf8',
-            mode: STATE_FILE_MODE,
-            flag: 'wx'
-        });
-        fs.chmodSync(TEMP_FILE, STATE_FILE_MODE);
-        fs.renameSync(TEMP_FILE, STATE_FILE);
+        const payload = encryptStateSnapshot(serializeState({ sanitize: false }));
+        if (fs.existsSync(STATE_FILE)) {
+            previousProtectedPayload = fs.readFileSync(STATE_FILE, 'utf8');
+        }
+        persistProtectedSnapshot(payload, previousProtectedPayload);
         dirty = false;
     } catch (error) {
         try {
             fs.rmSync(TEMP_FILE, { force: true });
+            fs.rmSync(REPLAY_TEMP_FILE, { force: true });
         } catch {
             // The generic error below remains the only externally visible failure.
         }
@@ -291,6 +461,7 @@ function cleanupExpired() {
 }
 
 function getState(userId) {
+    assertStateStoreReady();
     const wrapper = stateMap.get(userId);
     if (!wrapper) return undefined;
     if (wrapper.expiresAt && wrapper.expiresAt <= Date.now()) {
@@ -302,6 +473,7 @@ function getState(userId) {
 }
 
 function setState(userId, state, ttlSeconds = null) {
+    assertStateStoreReady();
     const requestedTtl = Number(ttlSeconds);
     const retentionSeconds = Number.isFinite(requestedTtl) && requestedTtl > 0
         ? Math.min(requestedTtl, MAX_RETENTION_SECONDS)
@@ -312,12 +484,14 @@ function setState(userId, state, ttlSeconds = null) {
 }
 
 function deleteState(userId) {
+    assertStateStoreReady();
     if (stateMap.delete(userId)) {
         markDirty();
     }
 }
 
 function findStateEntry(predicate) {
+    assertStateStoreReady();
     cleanupExpired();
     for (const [key, wrapper] of stateMap.entries()) {
         const data = wrapper?.data;
@@ -329,6 +503,7 @@ function findStateEntry(predicate) {
 }
 
 function closeStateStore() {
+    assertStateStoreReady();
     cleanupExpired();
     if (storeMode === 'redis' && redisReady) {
         void flushStateToRedis().finally(async () => {
@@ -347,7 +522,11 @@ function closeStateStore() {
 
 void tryInitRedis();
 if (storeMode === 'file' && stateMap.size === 0) {
-    loadStateFromDisk();
+    try {
+        loadStateFromDisk();
+    } catch {
+        initializationFailureCode = 'state_store_restore_failed';
+    }
 }
 
 const interval = setInterval(async () => {
@@ -381,7 +560,12 @@ module.exports = {
             dirty = false;
         },
         loadStateFromDiskForTests: loadStateFromDisk,
-        getStateFilePaths: () => ({ stateFile: STATE_FILE, tempFile: TEMP_FILE }),
+        getStateFilePaths: () => ({
+            stateFile: STATE_FILE,
+            tempFile: TEMP_FILE,
+            replayFile: REPLAY_FILE,
+            replayTempFile: REPLAY_TEMP_FILE
+        }),
         getStateFileMode: () => STATE_FILE_MODE,
         getMaxRetentionSeconds: () => MAX_RETENTION_SECONDS,
         isDirty: () => dirty

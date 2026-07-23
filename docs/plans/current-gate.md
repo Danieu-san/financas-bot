@@ -7,8 +7,8 @@ Commit funcional de partida:
 
 ## Estado
 
-`CANDIDATO LOCAL VERDE; AUDITORIA INDEPENDENTE PENDENTE`. Este gate não
-autoriza produção, deploy ou leitura do snapshot real.
+`CANDIDATO LOCAL CORRIGIDO APÓS NO-GO; NOVA AUDITORIA INDEPENDENTE PENDENTE`.
+Este gate não autoriza produção, deploy ou leitura do snapshot real.
 
 ## Objetivo
 
@@ -65,30 +65,41 @@ limitada por retenção, sem depender do `umask` operacional.
 6. somente com `GO` local e autorização remota separada, validar modo e retenção
    de forma sanitizada no servidor vigente.
 
-Etapas 1 a 4 concluídas. A etapa 5 aguarda commit e parecer independente.
+Etapas 1 a 4 foram refeitas após o primeiro `NO-GO`. A etapa 5 aguarda o
+segundo commit imutável e novo parecer independente.
 
 ## Desenho implementado
 
 - envelope autenticado AES-256-GCM, sem identificador, valor ou metadado privado
   fora do ciphertext;
+- envelope estrito com campos exatos, Base64 canônico, IV de 12 bytes e tag de
+  16 bytes;
 - `STATE_STORE_ENCRYPTION_KEY` exclusiva, sem fallback para OAuth ou Open
   Finance;
 - temporário criado com modo `0600`, reforçado antes do `rename`; o arquivo
   final herda o mesmo inode/modo;
+- estado completo necessário é cifrado e restaurado sem a sanitização destrutiva
+  do primeiro candidato;
 - corrupção, chave errada/ausente e envelope legado em plaintext falham
   fechado, com código de log constante;
-- persistência que falha antes do `rename` preserva byte a byte o último
-  snapshot válido;
+- journal privado e autenticado rejeita snapshot substituído; sua revogação é
+  confirmada antes da promoção do novo snapshot para falhar fechado em
+  interrupções, e uma falha síncrona de promoção restaura o journal anterior;
+- temporários recebem `fsync`; no Linux, substituições também sincronizam o
+  diretório;
+- falhas de startup viram códigos constantes e impedem uso posterior do store;
 - TTL obrigatório de 24 horas por padrão, configurável até o teto absoluto de
-  30 dias; restore também reduz expiração excessiva;
-- o runner hermético fornece somente chave fictícia e restaura arquivo final e
-  temporário após os testes.
+  30 dias; restore reduz expiração excessiva e regrava imediatamente a cópia
+  física sem registros expirados;
+- o runner hermético fornece somente chave fictícia e restaura snapshot,
+  temporário, journal e temporário do journal após os testes.
 
 ## Evidência final
 
 - RED causal: `3/3`;
-- testes causais/afetados: `336/336`;
-- runner hermético: `1.229` testes, `1.224` aprovados, zero falhas, cinco
+- teste dedicado corrigido: `9/9`;
+- testes causais/afetados: `340/340`;
+- runner hermético: `1.233` testes, `1.228` aprovados, zero falhas, cinco
   funcionais desativados por contrato e rede externa bloqueada;
 - sintaxe, `git diff --check` e varredura dirigida de segredos: verdes;
 - nenhuma leitura do snapshot real, produção, Google ou WhatsApp.
@@ -135,5 +146,5 @@ Codex → Sol → Alto → confrontar o parecer, sem deploy.`
 
 ## Próxima ação exata
 
-Criar commit sanitizado, publicar a branch e solicitar auditoria independente
-por hash, sem acessar o snapshot real.
+Criar o segundo commit sanitizado, publicar a branch e solicitar nova auditoria
+independente por hash, sem acessar o snapshot real.

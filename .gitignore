@@ -19,3 +19,6 @@ data/
 logs/
 backups/
 state_store.json
+state_store.tmp
+state_store.replay.json
+state_store.replay.tmp
