@@ -1,71 +1,69 @@
-# Gate encerrado — FLOW-02
+# Gate ativo — FLOW-04
 
 Atualizado em: 2026-07-23
 
-Base: `711f3ecfb3bf985a7374bf19bbdab0e99aa68b28`.
-
-Candidato: `73abb5e575f0af8cf36f826c5646e2843a1997a5`.
-
-## Estado
-
-`GO TÉCNICO LOCAL` independente, sem achado `CRITICAL`, `HIGH` ou `MEDIUM`.
-Este gate não autoriza deploy ou acesso a integrações reais.
+Base: `45a42ab2c155a544da674be3a3f8ffa853f664c3`.
 
 ## Objetivo
 
-Colocar o rate limit global antes de comprovantes, OCR, exportação, importação e
-gerenciamento de metas.
+Garantir entrega agendada isolada por usuário, com deduplicação durável e retry
+limitado para mensagens gerais do scheduler.
 
 ## Escopo
 
-- ordem causal dentro de `processMessage`;
-- consumo único do limite para áudio;
-- bloqueio anterior aos cinco handlers pesados;
-- prova local sem integrações reais.
+- lembrete de agenda;
+- lembrete de conta;
+- resumo matinal;
+- resumo noturno;
+- check-in semanal;
+- relatório mensal;
+- outbox SQLite privada e payload cifrado;
+- retry/backoff, retenção, lease e recuperação conservadora após crash;
+- testes locais sem integrações reais.
 
 ## Não escopo
 
-- mudar quotas, janelas ou persistência do rate limiter;
-- limitar comandos legais, lifecycle, configurações, dashboard ou admin;
-- alterar políticas internas dos cinco handlers;
-- deploy, produção ou E2E real.
+- alertas administrativos e operacionais, que possuem mecanismos próprios;
+- exatamente uma entrega após falha ambígua do transporte;
+- mudança de conteúdo, opt-in ou fontes financeiras dos jobs;
+- produção, deploy, Google, WhatsApp ou dados reais;
+- melhorias posteriores de Pluggy/Open Finance ou UX familiar.
 
 ## Contrato
 
-1. identidade, acesso e modo familiar precedem efeitos pesados;
-2. áudio consome o limite uma vez antes da transcrição;
-3. texto consome o limite antes dos cinco handlers;
-4. bloqueio não baixa mídia nem faz leitura financeira;
-5. exceções preexistentes não saltam para os handlers protegidos.
-
-## Evidência
-
-- RED causal reproduzido;
-- prova causal: `1/1`;
-- handler/estado completo: `121/121`;
-- módulos diretamente afetados: `56/56`;
-- sintaxe, diff e workflow: verdes;
-- gate amplo válido, mas não verde: `1.240/1.246`, uma falha não reproduzida e
-  cinco skips permitidos;
-- teste isolado da falha ampla: `2/2`;
-- parecer independente confirmou hash, base e cinco arquivos.
+1. cada mensagem possui chave determinística por usuário, tipo e período/item;
+2. replay e reinício não reenviam item já confirmado ou aceito sem confirmação;
+3. falha de um destinatário não interrompe os demais;
+4. falhas reconhecidamente anteriores à aceitação recebem retry com backoff
+   limitado;
+5. lease expirada vira estado ambíguo, sem retry cego;
+6. destinatário e mensagem ficam cifrados, banco e diretório são privados;
+7. logs e resultados expõem apenas contagens e códigos sanitizados;
+8. ausência de configuração segura bloqueia o envio, sem bypass direto.
 
 ## Critérios de GO
 
-Todos satisfeitos: hash publicado, provas causais verdes, controles locais
-verdes, falha ampla confrontada e parecer sem severidade bloqueante.
+- testes adversariais reproduzem o defeito antes da correção;
+- os seis jobs usam a fronteira durável;
+- retry, deduplicação, crash ambíguo, retenção, criptografia e permissões passam;
+- baterias focadas e controles estáticos ficam verdes;
+- candidato sanitizado é publicado por hash imutável;
+- auditoria independente no Chat não encontra severidade bloqueante.
 
 ## Condições de parada
 
-Nenhuma ativa. O achado `LOW` sobre spies individuais é endurecimento opcional
-e não reabre o gate.
+- qualquer caminho de envio direto remanescente nos seis jobs;
+- retry cego depois de resultado ambíguo;
+- dado privado persistido em claro ou emitido em log;
+- mudança necessária de produção ou integração real;
+- regressão causal fora do escopo.
 
 ## Próxima ação exata
 
-Abrir `FLOW-04` em worktree isolado e caracterizar outbox/retry durável por
-usuário no scheduler, sem produção.
+Criar provas RED do contrato e implementar o menor outbox específico do
+scheduler.
 
 ## Capacidade
 
-`Codex → Sol → Alto → caracterizar e corrigir FLOW-04; Chat → modelo mais capaz
+`Codex → Sol → Alto → implementar e validar FLOW-04; Chat → modelo mais capaz
 disponível → Alto → auditar o futuro hash imutável.`

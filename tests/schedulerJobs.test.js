@@ -13,6 +13,7 @@ const googleOAuthRevocationServicePath = require.resolve('../src/services/google
 const googleSharedMembershipRevocationServicePath = require.resolve('../src/services/googleSharedMembershipRevocationService');
 const googleOAuthServicePath = require.resolve('../src/services/googleOAuthService');
 const oauthTokenStorePath = require.resolve('../src/services/oauthTokenStore');
+const schedulerOutboxPath = require.resolve('../src/jobs/schedulerMessageOutbox');
 
 function formatDateBR(date) {
     return [
@@ -33,6 +34,7 @@ function installSchedulerMocks({
     sharedMembershipRecovery = async () => ({ attempted: 0, revoked: 0, failed: 0, manualRequired: 0 }),
     oauthCompensationRecovery = async () => ({ attempted: 0, compensated: 0, pending: 0, manualRequired: 0 }),
     oauthAttemptCleanup = () => ({ expired: 0, deleted: 0 }),
+    scheduledDispatches = null,
     readCalls = null,
     readErrorsByRange = {}
 }) {
@@ -45,6 +47,38 @@ function installSchedulerMocks({
     delete require.cache[googleOAuthRevocationServicePath];
     delete require.cache[googleSharedMembershipRevocationServicePath];
     delete require.cache[googleOAuthServicePath];
+    delete require.cache[schedulerOutboxPath];
+
+    require.cache[schedulerOutboxPath] = {
+        id: schedulerOutboxPath,
+        filename: schedulerOutboxPath,
+        loaded: true,
+        exports: {
+            enqueueAndDrainScheduledMessage: async (options) => {
+                if (Array.isArray(scheduledDispatches)) scheduledDispatches.push(options);
+                const transportResult = await options.client.sendMessage(options.recipient, options.message);
+                return {
+                    queued: true,
+                    claimed: 1,
+                    delivered: transportResult?.id ? 1 : 0,
+                    acceptedUnconfirmed: transportResult?.id ? 0 : 1,
+                    retryScheduled: 0,
+                    dead: 0,
+                    recoveredAmbiguous: 0,
+                    purged: 0
+                };
+            },
+            drainScheduledMessages: async () => ({
+                claimed: 0,
+                delivered: 0,
+                acceptedUnconfirmed: 0,
+                retryScheduled: 0,
+                dead: 0,
+                recoveredAmbiguous: 0,
+                purged: 0
+            })
+        }
+    };
 
     require.cache[googlePath] = {
         id: googlePath,
@@ -139,6 +173,7 @@ function installSchedulerMocks({
 
 test('scheduler weekly check-in only sends to opted-in active users', async () => {
     const sent = [];
+    const scheduledDispatches = [];
     const scheduler = installSchedulerMocks({
         users: [
             { user_id: 'user-a', whatsapp_id: '5511000000001@c.us' },
@@ -147,7 +182,8 @@ test('scheduler weekly check-in only sends to opted-in active users', async () =
         settingsByUser: {
             'user-a': { weekly_checkin_opt_in: 'SIM' },
             'user-b': { weekly_checkin_opt_in: 'NÃO' }
-        }
+        },
+        scheduledDispatches
     });
 
     scheduler.__test__.setClientForTest({
@@ -158,6 +194,7 @@ test('scheduler weekly check-in only sends to opted-in active users', async () =
 
     assert.deepStrictEqual(sent.map(item => item.to), ['5511000000001@c.us']);
     assert.match(sent[0].message, /Check-in da semana/);
+    assert.deepStrictEqual(scheduledDispatches.map(item => item.jobKind), ['weekly_checkin']);
 });
 
 test('scheduler card policy fails closed and canary requires a scoped user', () => {
@@ -176,11 +213,13 @@ test('scheduler monthly canary reads populated personal unified cards and skips 
     process.env.CARD_SCHEDULER_UNIFIED_FIRST_MODE = 'canary';
     const sent = [];
     const readCalls = [];
+    const scheduledDispatches = [];
     try {
         const scheduler = installSchedulerMocks({
             users: [{ user_id: 'user-a', whatsapp_id: '5511000000001@c.us' }],
             settingsByUser: { 'user-a': { monthly_report_opt_in: 'SIM' } },
             readCalls,
+            scheduledDispatches,
             sheetsByRange: {
                 'Sa\u00eddas!A:J': [['Data', 'Descri\u00e7\u00e3o', 'Categoria', 'Subcategoria', 'Valor', 'Respons\u00e1vel', 'Pagamento', 'Recorrente', 'Obs', 'user_id']],
                 'Entradas!A:I': [['Data', 'Descri\u00e7\u00e3o', 'Categoria', 'Valor', 'Respons\u00e1vel', 'Recebimento', 'Recorrente', 'Obs', 'user_id']],
@@ -199,6 +238,7 @@ test('scheduler monthly canary reads populated personal unified cards and skips 
         await scheduler.__test__.sendMonthlyReports();
 
         assert.strictEqual(sent.length, 1);
+        assert.deepStrictEqual(scheduledDispatches.map(item => item.jobKind), ['monthly_report']);
         assert.match(sent[0].message, /Cart\u00f5es: R\$ 25,00/);
         const cardCalls = readCalls.filter(call => /Cart/.test(call.range));
         assert.strictEqual(cardCalls.length, 1);
@@ -340,6 +380,7 @@ test('scheduler morning summary keeps debts and calendar events scoped per user'
     const fixedNow = new Date('2026-05-20T15:00:00.000Z');
     const tomorrow = new Date('2026-05-21T12:00:00.000Z');
     const sent = [];
+    const scheduledDispatches = [];
     const users = [
         { user_id: 'user-a', whatsapp_id: '5511000000001@c.us' },
         { user_id: 'user-b', whatsapp_id: '5511000000002@c.us' }
@@ -347,6 +388,7 @@ test('scheduler morning summary keeps debts and calendar events scoped per user'
     const scheduler = installSchedulerMocks({
         users,
         settingsByUser: {},
+        scheduledDispatches,
         sheetsByRange: {
             'Dívidas!A:R': [
                 ['Nome', 'Credor', 'Tipo', 'Valor Original', 'Saldo Atual', 'Valor da Parcela', 'Taxa', 'Dia', 'Início', 'Total', 'Pagas', 'Status', 'Obs', '%', 'Próximo Vencimento', 'Atraso', 'Estratégia', 'user_id'],
@@ -374,6 +416,10 @@ test('scheduler morning summary keeps debts and calendar events scoped per user'
     assert.match(byRecipient['5511000000002@c.us'], /Dívida B/);
     assert.match(byRecipient['5511000000002@c.us'], /Evento B/);
     assert.doesNotMatch(byRecipient['5511000000002@c.us'], /Dívida A|Evento A/);
+    assert.deepStrictEqual(scheduledDispatches.map(item => item.jobKind), [
+        'morning_summary',
+        'morning_summary'
+    ]);
 });
 
 test('scheduler evening summary includes tomorrow calendar events and payment dates', async () => {
@@ -381,6 +427,7 @@ test('scheduler evening summary includes tomorrow calendar events and payment da
     const tomorrow = new Date('2026-05-21T12:00:00.000Z');
     const sent = [];
     const readCalls = [];
+    const scheduledDispatches = [];
     const users = [
         { user_id: 'user-a', whatsapp_id: '5511000000001@c.us' },
         { user_id: 'user-b', whatsapp_id: '5511000000002@c.us' }
@@ -389,6 +436,7 @@ test('scheduler evening summary includes tomorrow calendar events and payment da
         users,
         settingsByUser: {},
         readCalls,
+        scheduledDispatches,
         sheetsByRange: {
             'Dívidas!A:R': [
                 ['Nome', 'Credor', 'Tipo', 'Valor Original', 'Saldo Atual', 'Valor da Parcela', 'Taxa', 'Dia', 'Início', 'Total', 'Pagas', 'Status', 'Obs', '%', 'Próximo Vencimento', 'Atraso', 'Estratégia', 'user_id'],
@@ -429,6 +477,10 @@ test('scheduler evening summary includes tomorrow calendar events and payment da
         Array.from(new Set(readCalls.map(call => call.options.userId))).sort(),
         ['user-a', 'user-b']
     );
+    assert.deepStrictEqual(scheduledDispatches.map(item => item.jobKind), [
+        'evening_summary',
+        'evening_summary'
+    ]);
 });
 
 test('scheduler summary event times are formatted in America/Sao_Paulo', async () => {
@@ -480,6 +532,33 @@ test('scheduler public date/time formatters use Sao Paulo timezone', () => {
     assert.strictEqual(scheduler.__test__.formatScheduleDate(new Date('2026-05-20T15:00:00.000Z')), '20/05/2026');
 });
 
+test('scheduler event reminders cross the durable delivery boundary', async () => {
+    const sent = [];
+    const scheduledDispatches = [];
+    const scheduler = installSchedulerMocks({
+        users: [{ user_id: 'user-a', whatsapp_id: '5511000000001@c.us' }],
+        settingsByUser: {},
+        scheduledDispatches,
+        eventsByUser: {
+            'user-a': [{
+                id: 'event-a',
+                summary: 'Evento A',
+                start: { dateTime: '2026-05-20T16:00:00.000Z' }
+            }]
+        }
+    });
+    scheduler.__test__.setClientForTest({
+        sendMessage: async (to, message) => sent.push({ to, message })
+    });
+    scheduler.__test__.setNowForTest(new Date('2026-05-20T15:00:00.000Z'));
+
+    await scheduler.__test__.checkUpcomingEvents();
+
+    assert.strictEqual(sent.length, 1);
+    assert.deepStrictEqual(scheduledDispatches.map(item => item.jobKind), ['event_reminder']);
+    assert.match(scheduledDispatches[0].dedupeKey, /^event_reminder:user-a:/);
+});
+
 test('scheduler clamps recurring bill day 31 to the last valid day of a short month', () => {
     const scheduler = installSchedulerMocks({
         users: [],
@@ -500,9 +579,11 @@ test('scheduler clamps recurring bill day 31 to the last valid day of a short mo
 
 test('scheduler upcoming bill reminders cross month and year boundaries', async () => {
     const sent = [];
+    const scheduledDispatches = [];
     const scheduler = installSchedulerMocks({
         users: [{ user_id: 'user-a', whatsapp_id: '5511000000001@c.us' }],
         settingsByUser: {},
+        scheduledDispatches,
         sheetsByRange: {
             'Contas!A:I': [
                 ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id'],
@@ -523,6 +604,7 @@ test('scheduler upcoming bill reminders cross month and year boundaries', async 
     assert.deepStrictEqual(sent.map(item => item.to), ['5511000000001@c.us']);
     assert.match(sent[0].message, /Conta janeiro/);
     assert.match(sent[0].message, /vence em 5 dias/);
+    assert.deepStrictEqual(scheduledDispatches.map(item => item.jobKind), ['bill_reminder']);
 });
 
 test('scheduler sends interpretation readiness alerts only through the admin notifier', async () => {

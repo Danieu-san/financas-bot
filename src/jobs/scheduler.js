@@ -19,6 +19,10 @@ const { retryPendingGoogleRevocations } = require('../services/googleOAuthRevoca
 const { retryPendingSharedMembershipRevocations } = require('../services/googleSharedMembershipRevocationService');
 const { recoverPendingGoogleOAuthCompensations } = require('../services/googleOAuthService');
 const { expireOAuthConnectionAttempts } = require('../services/oauthTokenStore');
+const {
+    enqueueAndDrainScheduledMessage,
+    drainScheduledMessages
+} = require('./schedulerMessageOutbox');
 
 let client;
 let isInitialized = false;
@@ -71,6 +75,37 @@ function formatScheduleTime(date) {
         minute: '2-digit',
         hour12: false
     }).format(date);
+}
+
+function formatScheduleDateKey(date) {
+    const { year, month, day } = getDatePartsInTimeZone(date);
+    return [
+        String(year).padStart(4, '0'),
+        String(month).padStart(2, '0'),
+        String(day).padStart(2, '0')
+    ].join('-');
+}
+
+async function dispatchScheduledUserMessage({
+    userId,
+    recipient,
+    jobKind,
+    discriminator,
+    message,
+    now = getNow()
+} = {}) {
+    return enqueueAndDrainScheduledMessage({
+        client,
+        recipient,
+        message,
+        jobKind,
+        dedupeKey: [
+            jobKind,
+            String(userId || '').trim(),
+            String(discriminator || '').trim()
+        ].join(':'),
+        now
+    });
 }
 
 function isSyntheticTestWhatsAppId(whatsappId) {
@@ -200,10 +235,18 @@ async function checkUpcomingEvents() {
                         `Lembrete de Agenda 🔔: Seu compromisso "*${evento.summary}*" começa em aproximadamente 1 hora, ` +
                         `às ${formatScheduleTime(horaInicio)}.`;
 
-                    await client.sendMessage(user.whatsapp_id, message);
-
-                    notifiedEventIds.add(notificationKey);
-                    logger.info(`[scheduler] event_reminder_sent user_id=${user.user_id}`);
+                    const delivery = await dispatchScheduledUserMessage({
+                        userId: user.user_id,
+                        recipient: user.whatsapp_id,
+                        jobKind: 'event_reminder',
+                        discriminator: `${evento.id}:${evento.start.dateTime}`,
+                        message,
+                        now: agora
+                    });
+                    if (!delivery.errorCode) {
+                        notifiedEventIds.add(notificationKey);
+                        logger.info('[scheduler] event_reminder_queued');
+                    }
                 }
             }
         }
@@ -281,7 +324,14 @@ async function checkUpcomingBills() {
                 if (diffDays === 0) message = `URGENTE! 🚨 A conta de *${nomeConta}* VENCE HOJE!`;
                 if (!message) continue;
 
-                await client.sendMessage(user.whatsapp_id, message);
+                await dispatchScheduledUserMessage({
+                    userId,
+                    recipient: user.whatsapp_id,
+                    jobKind: 'bill_reminder',
+                    discriminator: `${formatScheduleDateKey(dataVencimento)}:${nomeConta}:${nomeAmigavel}`,
+                    message,
+                    now: getNow()
+                });
             }
         }
     } catch (error) {
@@ -356,8 +406,15 @@ async function sendMorningSummary() {
                 });
             }
 
-            await client.sendMessage(user.whatsapp_id, message);
-            logger.info(`[scheduler] resumo matinal enviado user_id=${userId}`);
+            const delivery = await dispatchScheduledUserMessage({
+                userId,
+                recipient: user.whatsapp_id,
+                jobKind: 'morning_summary',
+                discriminator: formatScheduleDateKey(hoje),
+                message,
+                now: getNow()
+            });
+            if (!delivery.errorCode) logger.info('[scheduler] morning_summary_queued');
         }
     } catch (error) {
         logger.error(`[scheduler] morning_summary_failed ${logger.safeError(error)}`);
@@ -417,8 +474,15 @@ async function sendEveningSummary() {
                 });
             }
 
-            await client.sendMessage(user.whatsapp_id, message);
-            logger.info(`[scheduler] resumo noturno enviado user_id=${userId}`);
+            const delivery = await dispatchScheduledUserMessage({
+                userId,
+                recipient: user.whatsapp_id,
+                jobKind: 'evening_summary',
+                discriminator: formatScheduleDateKey(amanha),
+                message,
+                now: getNow()
+            });
+            if (!delivery.errorCode) logger.info('[scheduler] evening_summary_queued');
         }
     } catch (error) {
         logger.error(`[scheduler] evening_summary_failed ${logger.safeError(error)}`);
@@ -431,7 +495,14 @@ async function sendWeeklyCheckIn() {
         if (recipients.length === 0) return;
         const question = 'Check-in da semana: você quer focar em *reserva* ou *quitar dívida* nesta semana?';
         for (const id of recipients) {
-            await client.sendMessage(id, question);
+            await dispatchScheduledUserMessage({
+                userId: id,
+                recipient: id,
+                jobKind: 'weekly_checkin',
+                discriminator: formatScheduleDateKey(getNow()),
+                message: question,
+                now: getNow()
+            });
         }
     } catch (error) {
         logger.error(`[scheduler] weekly_checkin_failed ${logger.safeError(error)}`);
@@ -580,7 +651,14 @@ async function sendMonthlyReports() {
                 `- Saldo: R$ ${saldo.toFixed(2).replace('.', ',')}`
             ].join('\n');
 
-            await client.sendMessage(user.whatsapp_id, message);
+            await dispatchScheduledUserMessage({
+                userId,
+                recipient: user.whatsapp_id,
+                jobKind: 'monthly_report',
+                discriminator: `${year}-${String(month + 1).padStart(2, '0')}`,
+                message,
+                now
+            });
         }
     } catch (error) {
         logger.error(`[scheduler] monthly_reports_failed ${logger.safeError(error)}`);
@@ -775,6 +853,10 @@ function initializeScheduler(wppClient) {
         await sendMonthlyReports();
     }, { scheduled: true, timezone: 'America/Sao_Paulo' });
 
+    cron.schedule('*/5 * * * *', async () => {
+        await drainScheduledMessages({ client, now: getNow() });
+    }, { scheduled: true, timezone: 'America/Sao_Paulo' });
+
     cron.schedule('0 * * * *', async () => {
         await sendOperationalHeartbeat();
         await recoverPendingGoogleOAuthRevocations();
@@ -845,6 +927,8 @@ module.exports = {
         getDatePartsInTimeZone,
         formatScheduleDate,
         formatScheduleTime,
+        formatScheduleDateKey,
+        dispatchScheduledUserMessage,
         isSyntheticTestWhatsAppId,
         shouldSendScheduledMessageToUser,
         buildScheduledUserReadOptions,
