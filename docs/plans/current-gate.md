@@ -2,12 +2,16 @@
 
 Atualizado em: 2026-07-23
 
-Commit de partida: `6e360782ce98e45673b7fae9554d84c13478c23d`.
+Commit de produto de partida:
+`6e360782ce98e45673b7fae9554d84c13478c23d`.
+
+Base da worktree candidata:
+`e408d68d5f5abe75071c6f8d06de479b7d026331`.
 
 ## Estado
 
-`RED CAUSAL CONFIRMADO; IMPLEMENTAÇÃO NÃO INICIADA`. Este gate não autoriza
-deploy. O checkpoint portátil está em
+`CANDIDATO LOCAL VERDE; COMMIT E AUDITORIA INDEPENDENTE PENDENTES`. Este gate
+não autoriza deploy. O checkpoint portátil de partida está em
 `docs/agent-memory/handoff-2026-07-23-auth04-red.md`.
 
 ## Objetivo
@@ -58,11 +62,14 @@ inativado, excluído ou deixar de existir, sem aguardar o TTL do token.
 
 1. concluído: RED causal para token válido de usuário que muda de `ACTIVE` para
    estado impeditivo antes da segunda requisição;
-2. provar REDs de usuário ausente/deletado e de fonte de cadastro indisponível;
-3. centralizar a decisão assíncrona de token + cadastro atual e aplicá-la a
-   todas as APIs do dashboard;
-4. executar sintaxe, testes focais, bateria afetada e uma suíte ampla final;
-5. publicar commit sanitizado e pedir auditoria independente por hash.
+2. concluído: provar REDs de usuário ausente/deletado e de fonte de cadastro
+   indisponível;
+3. concluído: centralizar a decisão assíncrona de token + cadastro atual e
+   aplicá-la a todas as APIs do dashboard;
+4. concluído: executar sintaxe, testes focais, bateria afetada e uma suíte ampla
+   final;
+5. pendente: publicar commit sanitizado e pedir auditoria independente por
+   hash.
 
 ## Testes previstos
 
@@ -71,6 +78,25 @@ inativado, excluído ou deixar de existir, sem aguardar o TTL do token.
   provar zero leitura financeira após revogação/indisponibilidade;
 - testes adicionais de serviço somente se a fronteira central exigir;
 - `npm test` uma vez quando o candidato estiver estável.
+
+## Evidência local do candidato
+
+- RED reproduzido antes da correção: token bloqueado ainda respondia `200`, com
+  expectativa `403`;
+- cenários causais `AUTH-04`: `3/3`;
+- contratos completos de API e segurança do dashboard: `24/24`;
+- rotas OAuth adjacentes: `7/7`;
+- auditoria sanitizada do dashboard: `1/1`;
+- seis pretests do `npm test`: verdes;
+- runner principal após disponibilizar as dependências ESM à worktree:
+  `1080/1080`;
+- `node --check` nos dois arquivos alterados e `git diff --check`: verdes.
+
+A primeira tentativa ampla na worktree teve `43` falhas ambientais porque
+imports ESM não resolvem dependências por `NODE_PATH`. Uma junction local,
+ignorada e sem alteração de dependências corrigiu o ambiente; um caso
+representativo passou isoladamente e o runner principal completo convergiu para
+`1080/1080`.
 
 ## Critérios de GO
 
@@ -95,7 +121,6 @@ inativado, excluído ou deixar de existir, sem aguardar o TTL do token.
 
 ## Próxima ação exata
 
-Centralizar a decisão assíncrona de token + cadastro fresco antes de qualquer
-leitura financeira nas APIs v1/v2 e wrappers autenticados, sem enfraquecer o RED
-confirmado. Em seguida, completar os casos de ausência/exclusão e
-indisponibilidade da fonte.
+Criar e publicar o commit sanitizado do candidato, submeter o hash e os cinco
+arquivos exatos à auditoria independente e confrontar o veredito antes de
+declarar `GO`.

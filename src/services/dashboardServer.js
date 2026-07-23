@@ -6,7 +6,7 @@ const { decorateDashboardSummary } = require('./dashboardSummaryService');
 const { buildDashboardV2Summary } = require('./dashboardV2SummaryService');
 const { DASHBOARD_V2_ROUTE, dashboardV2Html } = require('./dashboardV2Page');
 const { verifyDashboardToken, isDashboardV2Enabled } = require('../utils/dashboardAuth');
-const { getAllUsers, getUserProfileByUserId } = require('./userService');
+const { getAllUsers, getUserByIdFresh, getUserProfileByUserId } = require('./userService');
 const { getFinancialScopeUserIds } = require('./oauthTokenStore');
 const { buildGoogleAuthorizationUrl, completeGoogleOAuthCallback } = require('./googleOAuthService');
 const { sendWhatsAppMessage } = require('./whatsapp');
@@ -841,21 +841,76 @@ function sendDashboardDataError(res, error) {
     sendJson(res, 500, { error: 'Falha ao carregar dados do dashboard.' });
 }
 
+function getDashboardRevocationReason(user) {
+    if (!user) return 'user_missing';
+    if (String(user.deleted_at || '').trim()) return 'user_deleted';
+    return 'user_inactive';
+}
+
+function isDashboardUserActive(user) {
+    return Boolean(user)
+        && String(user.status || '').trim() === 'ACTIVE'
+        && !String(user.deleted_at || '').trim();
+}
+
+async function requireFreshDashboardAccess(reqUrl, res, {
+    metricPrefix = 'dashboard.api',
+    eventPrefix = 'api'
+} = {}) {
+    const token = reqUrl.searchParams.get('token') || '';
+    const payload = verifyDashboardToken(token);
+    if (!payload) {
+        metrics.increment(`${metricPrefix}.auth_failed`);
+        await recordDashboardApiAccess({
+            event: `${eventPrefix}_auth_failed`,
+            result: 'denied',
+            token,
+            reqUrl
+        });
+        sendJson(res, 401, { error: 'Token inválido ou expirado.' });
+        return null;
+    }
+
+    let user;
+    try {
+        user = await getUserByIdFresh(payload.uid);
+    } catch (_) {
+        metrics.increment(`${metricPrefix}.status_unavailable`);
+        await recordDashboardApiAccess({
+            event: `${eventPrefix}_status_unavailable`,
+            result: 'unavailable',
+            token,
+            payload,
+            reqUrl,
+            metadata: { reason: 'status_source_unavailable' }
+        });
+        logger.warn('[dashboard] current_user_status_unavailable');
+        sendJson(res, 503, { error: 'Não foi possível validar o acesso ao dashboard no momento.' });
+        return null;
+    }
+
+    if (!isDashboardUserActive(user)) {
+        metrics.increment(`${metricPrefix}.access_revoked`);
+        await recordDashboardApiAccess({
+            event: `${eventPrefix}_access_revoked`,
+            result: 'denied',
+            token,
+            payload,
+            reqUrl,
+            metadata: { reason: getDashboardRevocationReason(user) }
+        });
+        sendJson(res, 403, { error: 'Acesso revogado: o cadastro não está ativo.' });
+        return null;
+    }
+
+    return { token, payload };
+}
+
 async function handleApiSummary(reqUrl, res) {
     try {
-        const token = reqUrl.searchParams.get('token') || '';
-        const payload = verifyDashboardToken(token);
-        if (!payload) {
-            metrics.increment('dashboard.api.auth_failed');
-            await recordDashboardApiAccess({
-                event: 'api_auth_failed',
-                result: 'denied',
-                token,
-                reqUrl
-            });
-            sendJson(res, 401, { error: 'Token inválido ou expirado.' });
-            return;
-        }
+        const access = await requireFreshDashboardAccess(reqUrl, res);
+        if (!access) return;
+        const { token, payload } = access;
 
         const month = reqUrl.searchParams.get('month');
         const year = reqUrl.searchParams.get('year');
@@ -884,19 +939,12 @@ async function handleApiSummary(reqUrl, res) {
 
 async function handleApiV2Summary(reqUrl, res) {
     try {
-        const token = reqUrl.searchParams.get('token') || '';
-        const payload = verifyDashboardToken(token);
-        if (!payload) {
-            metrics.increment('dashboard.api.v2.auth_failed');
-            await recordDashboardApiAccess({
-                event: 'api_v2_auth_failed',
-                result: 'denied',
-                token,
-                reqUrl
-            });
-            sendJson(res, 401, { error: 'Token inválido ou expirado.' });
-            return;
-        }
+        const access = await requireFreshDashboardAccess(reqUrl, res, {
+            metricPrefix: 'dashboard.api.v2',
+            eventPrefix: 'api_v2'
+        });
+        if (!access) return;
+        const { token, payload } = access;
 
         if (reqUrl.searchParams.has('user')) {
             await dashboardAuthFailedForScope(null, res, { token, payload, reqUrl });
@@ -930,19 +978,9 @@ async function handleApiV2Summary(reqUrl, res) {
 
 async function withAuth(reqUrl, res, cb) {
     try {
-        const token = reqUrl.searchParams.get('token') || '';
-        const payload = verifyDashboardToken(token);
-        if (!payload) {
-            metrics.increment('dashboard.api.auth_failed');
-            await recordDashboardApiAccess({
-                event: 'api_auth_failed',
-                result: 'denied',
-                token,
-                reqUrl
-            });
-            sendJson(res, 401, { error: 'Token inválido ou expirado.' });
-            return;
-        }
+        const access = await requireFreshDashboardAccess(reqUrl, res);
+        if (!access) return;
+        const { token, payload } = access;
 
         const dataUserId = getDashboardDataUserId(payload, reqUrl);
         if (await dashboardAuthFailedForScope(dataUserId, res, { token, payload, reqUrl })) return;

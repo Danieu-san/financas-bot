@@ -311,8 +311,10 @@ test('AUTH-04 dashboard APIs revoke an already-issued token before financial rea
     try {
         const activeV1 = await fetchJson(`${baseUrl}/dashboard/api/summary?token=${token}`);
         const activeV2 = await fetchJson(`${baseUrl}/dashboard/api/v2/summary?token=${token}`);
+        const activeWrapped = await fetchJson(`${baseUrl}/dashboard/api/kpis?token=${token}`);
         assert.strictEqual(activeV1.response.status, 200);
         assert.strictEqual(activeV2.response.status, 200);
+        assert.strictEqual(activeWrapped.response.status, 200);
 
         currentStatus = 'BLOCKED';
         calls.length = 0;
@@ -320,16 +322,119 @@ test('AUTH-04 dashboard APIs revoke an already-issued token before financial rea
 
         const blockedV1 = await fetchJson(`${baseUrl}/dashboard/api/summary?token=${token}`);
         const blockedV2 = await fetchJson(`${baseUrl}/dashboard/api/v2/summary?token=${token}`);
+        const blockedWrapped = await fetchJson(`${baseUrl}/dashboard/api/kpis?token=${token}`);
 
         assert.strictEqual(blockedV1.response.status, 403);
         assert.strictEqual(blockedV2.response.status, 403);
+        assert.strictEqual(blockedWrapped.response.status, 403);
         assert.match(blockedV1.json.error, /acesso.*revogado|cadastro.*ativo/i);
         assert.match(blockedV2.json.error, /acesso.*revogado|cadastro.*ativo/i);
+        assert.match(blockedWrapped.json.error, /acesso.*revogado|cadastro.*ativo/i);
         assert.strictEqual(calls.length, 0);
         assert.strictEqual(personalFinancialReads, 0);
-        assert.strictEqual(statusReads, 4);
+        assert.strictEqual(statusReads, 6);
     } finally {
         await new Promise(resolve => server.close(resolve));
+    }
+});
+
+test('AUTH-04 dashboard APIs deny missing and deleted users before every financial read', async () => {
+    for (const scenario of [
+        { name: 'missing', user: null },
+        {
+            name: 'deleted',
+            user: {
+                user_id: 'user-dash-a',
+                status: 'ACTIVE',
+                deleted_at: '2026-07-23T10:00:00.000Z'
+            }
+        }
+    ]) {
+        const calls = [];
+        let statusReads = 0;
+        let personalFinancialReads = 0;
+        const { server, baseUrl, token } = await startTestServer(calls, {
+            freshUserReader: async () => {
+                statusReads += 1;
+                return scenario.user;
+            },
+            personalDashboardReader: async () => {
+                personalFinancialReads += 1;
+                return null;
+            }
+        });
+
+        try {
+            const responses = await Promise.all([
+                fetchJson(`${baseUrl}/dashboard/api/summary?token=${token}`),
+                fetchJson(`${baseUrl}/dashboard/api/v2/summary?token=${token}`),
+                fetchJson(`${baseUrl}/dashboard/api/kpis?token=${token}`)
+            ]);
+
+            assert.ok(responses.every(result => result.response.status === 403), scenario.name);
+            assert.ok(responses.every(result => /acesso.*revogado|cadastro.*ativo/i.test(result.json.error)), scenario.name);
+            assert.strictEqual(statusReads, 3, scenario.name);
+            assert.strictEqual(personalFinancialReads, 0, scenario.name);
+            assert.strictEqual(calls.length, 0, scenario.name);
+        } finally {
+            await new Promise(resolve => server.close(resolve));
+        }
+    }
+});
+
+test('AUTH-04 dashboard APIs fail closed and sanitize telemetry when current user status is unavailable', async () => {
+    const calls = [];
+    let statusReads = 0;
+    let personalFinancialReads = 0;
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'financasbot-auth04-'));
+    const accessLogPath = path.join(tempDir, 'dashboard-access.jsonl');
+    const previousAccessLogPath = process.env.DASHBOARD_ACCESS_LOG_PATH;
+    process.env.DASHBOARD_ACCESS_LOG_PATH = accessLogPath;
+    const privateErrorMarker = 'private-user-status-source-detail';
+    const { server, baseUrl, token } = await startTestServer(calls, {
+        freshUserReader: async () => {
+            statusReads += 1;
+            throw new Error(privateErrorMarker);
+        },
+        personalDashboardReader: async () => {
+            personalFinancialReads += 1;
+            return null;
+        }
+    });
+
+    try {
+        const responses = await Promise.all([
+            fetchJson(`${baseUrl}/dashboard/api/summary?token=${token}`),
+            fetchJson(`${baseUrl}/dashboard/api/v2/summary?token=${token}`),
+            fetchJson(`${baseUrl}/dashboard/api/kpis?token=${token}`)
+        ]);
+
+        assert.ok(responses.every(result => result.response.status === 503));
+        assert.ok(responses.every(result => /validar.*acesso.*dashboard/i.test(result.json.error)));
+        assert.strictEqual(statusReads, 3);
+        assert.strictEqual(personalFinancialReads, 0);
+        assert.strictEqual(calls.length, 0);
+
+        const entries = (await fs.readFile(accessLogPath, 'utf8'))
+            .trim()
+            .split(/\r?\n/)
+            .map(JSON.parse);
+        assert.deepStrictEqual(entries.map(entry => entry.event).sort(), [
+            'api_status_unavailable',
+            'api_status_unavailable',
+            'api_v2_status_unavailable'
+        ]);
+        assert.ok(entries.every(entry => entry.result === 'unavailable'));
+        assert.ok(entries.every(entry => entry.metadata.reason === 'status_source_unavailable'));
+        const serialized = JSON.stringify(entries);
+        assert.ok(!serialized.includes(token));
+        assert.ok(!serialized.includes('user-dash-a'));
+        assert.ok(!serialized.includes(privateErrorMarker));
+    } finally {
+        await new Promise(resolve => server.close(resolve));
+        if (previousAccessLogPath === undefined) delete process.env.DASHBOARD_ACCESS_LOG_PATH;
+        else process.env.DASHBOARD_ACCESS_LOG_PATH = previousAccessLogPath;
+        await fs.rm(tempDir, { recursive: true, force: true });
     }
 });
 

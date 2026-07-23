@@ -9,8 +9,9 @@ TÉCNICO LOCAL` independente no commit imutável
 `afc961fadd3f62a69c9e02ea1eb527f380d6d42f`. `PRIV-01` recebeu `GO TÉCNICO
 LOCAL` independente no commit
 `6e360782ce98e45673b7fae9554d84c13478c23d`, após dois ciclos de `NO-GO`,
-reprodução e correção. O gate ativo agora é `AUTH-04`, revogação imediata do
-dashboard quando o cadastro deixa de estar ativo. A
+reprodução e correção. `AUTH-04`, revogação imediata do dashboard quando o
+cadastro deixa de estar ativo, está como `CANDIDATO LOCAL VERDE; AUDITORIA
+INDEPENDENTE PENDENTE`. A
 decisão pós-Fase 9 sobre proposição de salvamento segue registrada no roadmap
 sem alterar essa ordem.
 
@@ -62,7 +63,8 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Git e workspace
 
-- branch: `main`;
+- branch candidata: `codex/auth04-dashboard-revocation`, criada a partir de
+  `e408d68d5f5abe75071c6f8d06de479b7d026331`; `main` permanece como destino;
 - produto com último `GO TÉCNICO LOCAL`:
   `6e360782ce98e45673b7fae9554d84c13478c23d`;
 - alterações concorrentes do workstream AWS/Oracle e arquivos não rastreados do
@@ -72,10 +74,13 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Gate ativo
 
-`AUTH-04`: o RED causal está confirmado nas APIs v1/v2. O mesmo token funciona
-enquanto o usuário está `ACTIVE`, mas o código-base ainda responde `200` depois
-da mudança para `BLOCKED`, em vez do `403` exigido. A implementação de produto
-não foi iniciada. `STATE-04`, proteção do snapshot, permanece P2 separado.
+`AUTH-04`: a decisão assíncrona compartilhada valida assinatura/TTL e consulta o
+cadastro fresco antes de qualquer leitura financeira nas APIs v1, v2 e wrappers
+autenticados. Usuário ausente, excluído ou não `ACTIVE` recebe `403`; fonte de
+status indisponível recebe `503` distinto; a auditoria registra somente
+referências e motivos sanitizados. O RED causal original `200 !== 403` foi
+fechado localmente, mas o gate ainda não possui `GO` independente. `STATE-04`,
+proteção do snapshot, permanece P2 separado.
 
 Plano corrente: `docs/plans/current-gate.md`.
 Checkpoint portátil:
@@ -83,8 +88,8 @@ Checkpoint portátil:
 
 ## Decisões vigentes
 
-- manter `Codex → Sol → Alto` em `AUTH-04`; esse é o menor nível suficiente
-  para a mudança transversal de autorização e seus testes causais;
+- manter `Codex → Sol → Alto` na publicação e auditoria de `AUTH-04`; esse é o
+  menor nível suficiente para confrontar o commit imutável com as evidências;
 - parar e avisar Daniel antes de reduzir ou trocar capacidade;
 - a produção vigente é Oracle/OCI; não reutilizar caminhos AWS e não executar
   Oracle e AWS simultaneamente com a mesma sessão WhatsApp;
@@ -97,17 +102,18 @@ Checkpoint portátil:
 
 ## Próxima ação exata
 
-Retomar pelo RED confirmado e centralizar a decisão assíncrona de token +
-cadastro fresco antes de qualquer leitura financeira nas APIs v1/v2 e wrappers
-autenticados. Completar ausência/exclusão e indisponibilidade da fonte. Não
-acessar produção nem fazer deploy nesse gate.
+Publicar somente o candidato sanitizado de `AUTH-04`, pedir auditoria
+independente pelo hash imutável e confrontar o veredito com a evidência local.
+Não acessar produção nem fazer deploy nesse gate.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → retomar AUTH-04 pelo RED confirmado, sem deploy.`
+`Codex → Sol → Alto → publicar e auditar o candidato AUTH-04, sem deploy.`
 
 ## Histórico dirigido
 
+- candidato AUTH-04:
+  `docs/audit/28-auth04-dashboard-revocation-candidate-2026-07-23.md`;
 - fechamento atual:
   `docs/audit/18-flow03-independent-close-2026-07-22.md`;
 - candidato PRIV-01:
