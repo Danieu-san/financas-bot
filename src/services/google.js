@@ -968,7 +968,7 @@ async function projectCanonicalLedgerShadowAfterAppend({
         financialAccountRows,
         onWarning(warning) {
             logger.warn(
-                `[canonical-ledger] shadow_projection_failed code=${warning.code} sheet=${warning.sheetName} error=${warning.error}`
+                `[canonical-ledger] shadow_projection_failed sheet=${warning.sheetName} ${logger.safeError({ code: warning.code })}`
             );
         }
     });

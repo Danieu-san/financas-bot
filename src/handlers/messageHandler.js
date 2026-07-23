@@ -2612,7 +2612,7 @@ async function saveImportedTransactions(transactions = [], { person, userId, fil
         userId,
         filename,
         onWarning: warning => logger.warn(
-            `importacao: falha no shadow de conciliacao code=${warning.code}`
+            `importacao: falha no shadow de conciliacao ${logger.safeError({ code: warning.code })}`
         )
     });
     return successCount;
@@ -7306,9 +7306,7 @@ async function sendApprovedGoogleConnectMessage(msg, updatedUser, adminContext =
     try {
         connectReply = buildGoogleConnectReply(updatedUser);
     } catch (error) {
-        logger.warn(`[admin] aprovar_sem_link_google context=${JSON.stringify(buildApprovalLinkLogContext({
-            error: error.message
-        }))}`);
+        logger.warn(`[admin] aprovar_sem_link_google context=${JSON.stringify(buildApprovalLinkLogContext())} ${logger.safeError(error)}`);
     }
 
     const message = connectReply || 'Seu cadastro foi aprovado. Agora falta conectar sua conta Google para criar sua planilha no seu Drive e ativar o bot.';
@@ -7325,9 +7323,8 @@ async function sendApprovedGoogleConnectMessage(msg, updatedUser, adminContext =
         };
     } catch (error) {
         logger.warn(`[admin] aprovar_link_falhou context=${JSON.stringify(buildApprovalLinkLogContext({
-            google_link_built: Boolean(connectReply),
-            error: error.message
-        }))}`);
+            google_link_built: Boolean(connectReply)
+        }))} ${logger.safeError(error)}`);
         return {
             sent: false,
             googleLinkBuilt: Boolean(connectReply),
@@ -7680,9 +7677,8 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
             logger.warn(`[admin] compartilhar_planilha_drive_falhou context=${JSON.stringify({
                 ...adminContext,
                 owner_user_id: owner.user_id,
-                member_user_id: member.user_id,
-                error: error.message
-            })}`);
+                member_user_id: member.user_id
+            })} ${logger.safeError(error)}`);
             await auditAdminAction(adminContext, 'share_spreadsheet', {
                 target: `${owner.whatsapp_id} -> ${member.whatsapp_id}`,
                 result: 'failed',
@@ -7777,9 +7773,8 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
                     logger.warn(`[admin] compartilhar_planilha_orcamento_mensal_notificacao_falhou context=${JSON.stringify({
                         ...adminContext,
                         owner_user_id: owner.user_id,
-                        member_user_id: member.user_id,
-                        error: error.message
-                    })}`);
+                        member_user_id: member.user_id
+                    })} ${logger.safeError(error)}`);
                 }
             }
         }
@@ -7793,9 +7788,8 @@ async function handleAdminCommands(msg, senderId, activeUser, options = {}) {
             } catch (error) {
                 logger.warn(`[admin] compartilhar_planilha_notificacao_falhou context=${JSON.stringify({
                     ...adminContext,
-                    member_user_id: member.user_id,
-                    error: error.message
-                })}`);
+                    member_user_id: member.user_id
+                })} ${logger.safeError(error)}`);
             }
         }
         return true;

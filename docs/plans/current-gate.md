@@ -7,8 +7,8 @@ Primeiro candidato auditado: `45dbfa1632779924bc8795baefd969f03afde7e7`.
 
 ## Estado
 
-`CANDIDATO PÓS-NO-GO VALIDADO, AGUARDANDO NOVO COMMIT IMUTÁVEL E
-REAUDITORIA INDEPENDENTE`. Este gate não autoriza deploy.
+`SEGUNDO NO-GO REPRODUZIDO, CORRIGIDO E VALIDADO, AGUARDANDO NOVO COMMIT
+IMUTÁVEL E REAUDITORIA INDEPENDENTE`. Este gate não autoriza deploy.
 
 ## Objetivo
 
@@ -64,6 +64,20 @@ porque reconhecia somente chamadas textuais diretas a `console.warn/error`.
 - a prova negativa reprova console direto, aliases de console e propriedades
   livres de erro em sinks warning/error no recorte completo.
 
+## Segundo candidato e segundo NO-GO independente
+
+O Chat leu integralmente os 27 arquivos exigidos no hash
+`44d703bd3792674d1089e118f08403e1c2e55ee4`. Confirmou o fechamento dos aliases
+de `console`, mas emitiu novo `NO-GO` porque cinco sinks multilinha em
+`messageHandler.js` ainda interpolavam `error.message`, `google.js` interpolava
+`warning.error`, `safeError` consultava `error.response?.status` e o scanner
+limitado à linha não detectava essas chamadas.
+
+Todos os achados foram reproduzidos. Os seis sinks agora passam dados de erro
+por `safeError`; o sanitizador não consulta `response`; e a prova negativa
+analisa chamadas completas, atravessa quebras de linha, diferencia o argumento
+sanitizado e possui fixtures contra falso negativo e falso positivo.
+
 ## Evidência executada pelo Codex
 
 - reprodução dos dois achados HIGH: confirmada;
@@ -99,6 +113,6 @@ tratá-las como execução própria.
 
 ## Próxima ação exata
 
-Criar o manifesto de recuperação, validar workflow/segredos, adicionar somente
-os arquivos pós-NO-GO, publicar o novo hash e submetê-lo uma única vez a uma
-reauditoria limpa no Chat conectado ao GitHub.
+Validar workflow/segredos, adicionar somente os arquivos do segundo pós-NO-GO,
+publicar o novo hash e submetê-lo uma única vez a uma reauditoria limpa no Chat
+conectado ao GitHub.

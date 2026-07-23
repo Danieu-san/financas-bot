@@ -3214,7 +3214,22 @@ test('PRIV-01 safe error summary rejects free-form names, codes and nested provi
         safeErrorSummary(Object.assign(new TypeError('hidden'), { code: 'ECONNRESET' })),
         'name=TypeError code=ECONNRESET'
     );
+    const guardedError = Object.assign(new Error('hidden'), { code: 'BAD free-form code' });
+    Object.defineProperty(guardedError, 'response', {
+        get() {
+            throw new Error('response must not be read');
+        }
+    });
+    assert.strictEqual(safeErrorSummary(guardedError), 'name=Error code=unknown');
 });
+
+function containsFreeErrorPropertyInLoggerCall(source) {
+    const loggerCallPattern = /logger\.(?:error|warn)\s*\(([\s\S]*?)\);/g;
+    return Array.from(source.matchAll(loggerCallPattern)).some(match => {
+        const withoutSafeError = match[1].replace(/logger\.safeError\([\s\S]*?\)/g, 'logger.safeError()');
+        return /(?:(?:error|err|e|Error|warning|plannerShadow)\??\.(?:message|name|code|error|stack|payload|response|config)\b)/.test(withoutSafeError);
+    });
+}
 
 test('PRIV-01 runtime warnings and errors cannot bypass the sanitized logger', () => {
     const runtimeRoots = [
@@ -3230,15 +3245,24 @@ test('PRIV-01 runtime warnings and errors cannot bypass the sanitized logger', (
         const relative = path.relative(process.cwd(), file);
         const patterns = [
             ['direct-console', /console\.(?:error|warn)\s*\(/],
-            ['console-alias', /(?:logger\s*:\s*console|logger\s*=\s*console|options\.logger\s*\|\|\s*console)/],
-            ['free-error-property', /logger\.(?:error|warn)[^\r\n]*(?:(?:error|err|e|Error)\??\.(?:message|name|code)\b|plannerShadow\.error\b)/]
+            ['console-alias', /(?:logger\s*:\s*console|logger\s*=\s*console|options\.logger\s*\|\|\s*console)/]
         ];
         for (const [kind, pattern] of patterns) {
             if (pattern.test(source)) violations.push(`${relative}:${kind}`);
         }
+        if (containsFreeErrorPropertyInLoggerCall(source)) violations.push(`${relative}:free-error-property`);
     }
 
     assert.deepStrictEqual(violations, []);
+
+    const unsafeMultilineCall = `logger.warn(\n        \`event error=\${error.message}\`\n    );`;
+    const unsafeWarningCode = 'logger.warn(`event code=${warning.code}`);';
+    const safeCallBeforeUserReply = `logger.warn(\`event \${logger.safeError(error)}\`);\nmsg.reply(error.message);`;
+    const safeWarningCode = 'logger.warn(`event ${logger.safeError({ code: warning.code })}`);';
+    assert.strictEqual(containsFreeErrorPropertyInLoggerCall(unsafeMultilineCall), true);
+    assert.strictEqual(containsFreeErrorPropertyInLoggerCall(unsafeWarningCode), true);
+    assert.strictEqual(containsFreeErrorPropertyInLoggerCall(safeCallBeforeUserReply), false);
+    assert.strictEqual(containsFreeErrorPropertyInLoggerCall(safeWarningCode), false);
 });
 
 test('AI execution paths do not dump raw model responses to logs', () => {

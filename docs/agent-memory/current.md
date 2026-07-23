@@ -8,8 +8,11 @@ Executar a fila de correções da auditoria exaustiva. `STATE-01` recebeu `GO
 TÉCNICO LOCAL` independente no commit imutável
 `afc961fadd3f62a69c9e02ea1eb527f380d6d42f`. O primeiro candidato `PRIV-01`
 recebeu `NO-GO` independente no hash
-`45dbfa1632779924bc8795baefd969f03afde7e7`; os dois achados foram reproduzidos,
-corrigidos e validados localmente, aguardando novo hash e reauditoria. A
+`45dbfa1632779924bc8795baefd969f03afde7e7`. O candidato de recuperação
+`44d703bd3792674d1089e118f08403e1c2e55ee4` também recebeu `NO-GO`: o Chat
+encontrou sinks multilinha, `warning.error`, leitura de `response` no
+sanitizador e falso verde no scanner limitado à linha. Esses achados foram
+reproduzidos, corrigidos e validados; faltam novo hash e reauditoria. A
 decisão pós-Fase 9 sobre proposição de salvamento segue registrada no roadmap
 sem alterar essa ordem.
 
@@ -71,11 +74,12 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Gate ativo
 
-`PRIV-01`: após o `NO-GO`, propriedades livres de erro foram removidas dos
-sinks, fallbacks/aliases de `console` foram eliminados, `safeError` ficou
-fail-closed e a prova negativa foi ampliada. Focal `3/3`, baterias afetadas
-`526/526` e `418/418`, e runner amplo `1.077/1.077` estão verdes. Falta publicar
-o novo candidato imutável e obter/confrontar a reauditoria independente.
+`PRIV-01`: após o segundo `NO-GO`, os cinco sinks multilinha e os warnings de
+projeção/conciliação foram sanitizados; `safeError` deixou de consultar
+`response`; e o scanner agora analisa a chamada completa com fixtures contra
+falso negativo e falso positivo. Focal `3/3`, bateria intermediária `342/342` e
+runner amplo `1.077/1.077` estão verdes. Falta publicar o novo candidato
+imutável e obter/confrontar a reauditoria independente.
 `STATE-04`, proteção do snapshot, permanece P2 separado.
 
 Plano corrente: `docs/plans/current-gate.md`.
@@ -96,9 +100,10 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Validar workflow e segredos, publicar somente a recuperação pós-NO-GO de
-`PRIV-01`, pedir reauditoria independente em conversa limpa no Chat conectado ao
-GitHub e confrontar o parecer. Não acessar produção nem fazer deploy nesse gate.
+Validar workflow e segredos, publicar somente a segunda recuperação pós-NO-GO
+de `PRIV-01`, pedir reauditoria independente em conversa
+limpa no Chat conectado ao GitHub e confrontar o parecer. Não acessar produção
+nem fazer deploy nesse gate.
 
 ## Capacidade para retomar
 
@@ -112,6 +117,8 @@ GitHub e confrontar o parecer. Não acessar produção nem fazer deploy nesse ga
   `docs/audit/24-priv01-runtime-log-boundary-candidate-2026-07-22.md`;
 - recuperação pós-NO-GO PRIV-01:
   `docs/audit/25-priv01-post-audit-recovery-candidate-2026-07-22.md`;
+- recuperação dos escapes multilinha PRIV-01:
+  `docs/audit/26-priv01-multiline-log-recovery-candidate-2026-07-22.md`;
 - candidato STATE-01:
   `docs/audit/19-state01-sender-serialization-candidate-2026-07-22.md`;
 - correção pós-commit candidata:

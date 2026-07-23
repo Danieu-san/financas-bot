@@ -21,7 +21,7 @@ function safeErrorSummary(error) {
     const name = safeNames.has(rawName) ? rawName : 'Error';
     const code = sanitizeLogCode(
         error && typeof error === 'object'
-            ? (error.code || error.status || error.response?.status)
+            ? (error.code || error.status)
             : '',
         'unknown'
     );
