@@ -10672,6 +10672,7 @@ async function processMessage(msg) {
                             }
                         }
                         let successCount = 0;
+                        const failedItems = [];
                         for (const item of transactions) {
                             try {
                                 const confirmedItem = { ...item, reliabilityConfirmed: true };
@@ -10684,11 +10685,14 @@ async function processMessage(msg) {
                                 successCount++;
                             } catch (e) {
                                 logger.error(`[financial-write] confirmed_item_save_failed error=${e.message}`);
-                                await msg.reply(`Houve um erro ao tentar salvar o item "${item.descricao}".`);
+                                failedItems.push(item);
                             }
                         }
-                        await msg.reply(`Registro finalizado. ${successCount} de ${transactions.length} itens foram salvos com sucesso.`);
                         userStateManager.deleteState(senderId);
+                        for (const item of failedItems) {
+                            await msg.reply(`Houve um erro ao tentar salvar o item "${item.descricao}".`);
+                        }
+                        await msg.reply(`Registro finalizado. ${successCount} de ${transactions.length} itens foram salvos com sucesso.`);
                         return;
                     }
 
@@ -10700,8 +10704,8 @@ async function processMessage(msg) {
                     });
                     await msg.reply("Ótimo! E como esses itens foram pagos? (Crédito, Débito, PIX ou Dinheiro)");
                 } else {
-                    await msg.reply("Ok, registro cancelado.");
                     userStateManager.deleteState(senderId);
+                    await msg.reply("Ok, registro cancelado.");
                 }
                 return; // Importante para esperar a próxima resposta do usuário
             }

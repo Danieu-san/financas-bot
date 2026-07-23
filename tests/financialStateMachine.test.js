@@ -2723,6 +2723,37 @@ stateMachineTest('message ingress consumes a confirmation state only once under 
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
 });
 
+stateMachineTest('message ingress consumes confirmation before a post-commit reply failure', async () => {
+    resetState();
+    userStateManager.setState(SENDER, {
+        action: 'confirming_transactions',
+        data: {
+            person: 'Usuario Estado',
+            transactions: [{
+                type: 'Saídas',
+                data: '10/02/2026',
+                descricao: 'lanche com falha de resposta',
+                categoria: 'Alimentação',
+                subcategoria: 'PADARIA / LANCHE',
+                valor: 80,
+                pagamento: 'PIX',
+                recorrente: 'Não'
+            }]
+        }
+    });
+    const first = createMockMessage('sim');
+    first.reply = async () => {
+        throw new Error('simulated post-commit reply failure');
+    };
+    const second = createMockMessage('sim');
+
+    await Promise.all([handleMessage(first), handleMessage(second)]);
+
+    assert.strictEqual(appendedRows.filter(entry => entry.sheetName === 'Saídas').length, 1);
+    assert.strictEqual(sheets.Saídas.length, 2);
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
+
 stateMachineTest('sender queue preserves FIFO order, recovers after rejection, and releases idle keys', async () => {
     resetState();
     const events = [];

@@ -4,13 +4,13 @@ Atualizado em: 2026-07-22
 
 ## Objetivo ativo
 
-Executar a fila de correções da auditoria exaustiva. `STATE-01` possui candidato
-local testado e publicado no hash imutável
-`facf53d8f605165375e35cc0ae6f95491c7f849f`. A tentativa automática e a
-tentativa manual por URLs não conseguiram ler os arquivos e não produziram
-veredito. Um pacote com os quatro arquivos extraídos do próprio objeto Git e
-conferidos por blob aguarda envio manual como anexos. A decisão pós-Fase 9 sobre
-proposição de salvamento segue registrada no roadmap sem alterar este gate.
+Executar a fila de correções da auditoria exaustiva. A auditoria independente
+do candidato `STATE-01` em `549ba68b200031c000ee14827f54293a67ee7153`
+encontrou uma lacuna causal pós-commit: falha da resposta final podia preservar
+o estado confirmatório e permitir efeito repetido. A lacuna foi reproduzida em
+RED, recebeu correção mínima e aguarda novo commit imutável e reauditoria no
+Chat. A decisão pós-Fase 9 sobre proposição de salvamento segue registrada no
+roadmap sem alterar este gate.
 
 ## Último gate encerrado
 
@@ -61,8 +61,9 @@ Google/WhatsApp real, produção ou deploy.
 ## Git e workspace
 
 - branch: `main`;
-- produto auditado mais recente: `4c1001338ca1ed919b55be4e9566258178a0175e`;
-- candidato publicado aguardando auditoria: `facf53d8f605165375e35cc0ae6f95491c7f849f`;
+- produto com último `GO TÉCNICO LOCAL`: `4c1001338ca1ed919b55be4e9566258178a0175e`;
+- candidato anterior auditado com `NO-GO`: `549ba68b200031c000ee14827f54293a67ee7153`;
+- novo candidato: local, aguardando commit imutável e reauditoria;
 - alterações concorrentes do workstream AWS/Oracle e arquivos não rastreados do
   usuário permanecem fora do gate e não devem ser adicionados, alterados ou
   removidos;
@@ -70,11 +71,11 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Gate ativo
 
-`STATE-01`: a entrada pública agora serializa mensagens do mesmo remetente,
-preserva paralelismo entre remetentes, libera a fila após falha e contém
-rejeições antes de entregá-las ao `EventEmitter`. O RED observou sobreposição e
-efeito duplo; o final ficou verde em `5/5` focal, `124/124` afetado e
-`1.073/1.073` no runner principal do `npm test`.
+`STATE-01`: além da serialização FIFO por remetente, o ramo
+`confirming_transactions` agora consome o estado antes de qualquer comunicação
+pós-efeito. O novo RED observou duas gravações (`2 !== 1`) quando a primeira
+resposta falhou; depois da correção ficaram verdes `3/3` focal, `125/125`
+afetado e `1.074/1.074` no runner principal do `npm test`.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -83,7 +84,10 @@ Plano corrente: `docs/plans/current-gate.md`.
 - manter `Codex → Sol → Extra Alto` até a auditoria e o confronto final de
   `STATE-01`, por ser concorrência crítica sobre estado e efeitos financeiros;
 - parar e avisar Daniel antes de reduzir ou trocar capacidade;
-- não tocar deploy, EC2/Oracle ou serviços reais sem autorização específica;
+- a produção vigente é Oracle/OCI; não reutilizar caminhos AWS e não executar
+  Oracle e AWS simultaneamente com a mesma sessão WhatsApp;
+- antes do próximo deploy funcional, definir e ensaiar instalação por artefato
+  imutável com preservação de estado, checksums e rollback;
 - preservar o bot familiar privado do casal; expansão multiusuário não faz
   parte do escopo;
 - usar commit sanitizado e imutável em auditorias independentes e separar
@@ -91,14 +95,14 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Daniel anexa manualmente os quatro arquivos do pacote `STATE-01` numa conversa
-limpa do Chat, envia o prompt defensivo sem URLs e cola a resposta integral aqui.
-O Codex confere hash e arquivos, confronta o parecer e só então registra ou nega
-`GO TÉCNICO LOCAL`. Não acessar produção nem fazer deploy.
+Publicar somente os arquivos do `STATE-01` em novo commit imutável, abrir uma
+conversa limpa no Chat conectado ao GitHub, solicitar reauditoria autônoma e
+confrontar o parecer antes de registrar ou negar `GO TÉCNICO LOCAL`. Não acessar
+produção nem fazer deploy neste gate.
 
 ## Capacidade para retomar
 
-`Chat → padrão atual da conta → Alto → auditar o hash STATE-01; depois Codex → Sol → Extra Alto → validar o parecer.`
+`Chat → modelo mais capaz disponível → Alto → reauditar o hash STATE-01; depois Codex → Sol → Extra Alto → validar o parecer.`
 
 ## Histórico dirigido
 
@@ -106,6 +110,8 @@ O Codex confere hash e arquivos, confronta o parecer e só então registra ou ne
   `docs/audit/18-flow03-independent-close-2026-07-22.md`;
 - candidato STATE-01:
   `docs/audit/19-state01-sender-serialization-candidate-2026-07-22.md`;
+- correção pós-commit candidata:
+  `docs/audit/22-state01-post-commit-recovery-candidate-2026-07-22.md`;
 - tentativa automática sem acesso:
   `docs/audit/20-state01-chat-access-pending-2026-07-22.md`;
 - tentativa manual sem acesso e integridade dos anexos:

@@ -123,17 +123,31 @@ sanitizado no GitHub e auditoria independente obrigatória no Chat.
 - estado: candidato local aguardando commit imutável e auditoria obrigatória no
   Chat; ainda sem `GO`.
 
-## Auditoria externa pendente
+## Auditoria externa — NO-GO causal
 
-O candidato foi publicado em
-`facf53d8f605165375e35cc0ae6f95491c7f849f`. A tentativa automática única no
-Chat não conseguiu ler integralmente as URLs imutáveis e foi interrompida após
-entrar em busca sem progresso. Não houve bloqueio de segurança nem veredito.
-A tentativa manual seguinte também retornou `ACESSO INSUFICIENTE` para todos os
-arquivos. Foi preparado fora do repositório um pacote com os quatro arquivos
-extraídos diretamente do commit; todos coincidiram com os blobs esperados.
-`STATE-01` permanece sem `GO` até Daniel anexar esses arquivos ao Chat e trazer
-um parecer que confirme sua leitura.
+O candidato publicado foi consolidado em
+`549ba68b200031c000ee14827f54293a67ee7153`. Depois da conexão do GitHub no
+Chat, a auditoria independente confirmou esse hash e a leitura integral do
+manifesto, de `messageHandler.js`, de `financialStateMachine.test.js` e de
+`index.js`.
+
+O veredito foi `NO-GO`: no caminho `confirming_transactions`, o efeito
+financeiro era gravado antes da resposta final e o estado só era excluído após
+essa resposta. Uma falha de comunicação pós-commit podia, portanto, preservar
+a confirmação e permitir que a mensagem seguinte repetisse o efeito. Os testes
+simultâneos anteriores cobriam somente o caminho feliz.
+
+## Prova adversarial adicional
+
+1. Injetar falha na primeira resposta enviada depois de uma gravação confirmada.
+2. Enfileirar em seguida outra confirmação distinta do mesmo remetente.
+3. Exigir um único efeito financeiro e estado já consumido, mesmo que a
+   comunicação pós-commit falhe.
+4. Reestruturar somente a ordem local: nenhuma resposta pode ser aguardada entre
+   o primeiro efeito confirmado e o consumo definitivo do estado.
+
+`STATE-01` permanece candidato até RED causal, correção mínima, baterias verdes,
+novo commit imutável e nova auditoria independente no Chat.
 
 ## Condições de parada
 
