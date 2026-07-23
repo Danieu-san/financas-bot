@@ -4,13 +4,11 @@ Atualizado em: 2026-07-22
 
 ## Objetivo ativo
 
-Executar a fila de correções da auditoria exaustiva. A auditoria independente
-do candidato `STATE-01` em `549ba68b200031c000ee14827f54293a67ee7153`
-encontrou uma lacuna causal pós-commit: falha da resposta final podia preservar
-o estado confirmatório e permitir efeito repetido. A lacuna foi reproduzida em
-RED, recebeu correção mínima e aguarda novo commit imutável e reauditoria no
-Chat. A decisão pós-Fase 9 sobre proposição de salvamento segue registrada no
-roadmap sem alterar este gate.
+Executar a fila de correções da auditoria exaustiva. `STATE-01` recebeu `GO
+TÉCNICO LOCAL` independente no commit imutável
+`afc961fadd3f62a69c9e02ea1eb527f380d6d42f`. O próximo P1 ordenado é
+`PRIV-01`, escapes globais de log. A decisão pós-Fase 9 sobre proposição de
+salvamento segue registrada no roadmap sem alterar essa ordem.
 
 ## Último gate encerrado
 
@@ -61,9 +59,8 @@ Google/WhatsApp real, produção ou deploy.
 ## Git e workspace
 
 - branch: `main`;
-- produto com último `GO TÉCNICO LOCAL`: `4c1001338ca1ed919b55be4e9566258178a0175e`;
+- produto com último `GO TÉCNICO LOCAL`: `afc961fadd3f62a69c9e02ea1eb527f380d6d42f`;
 - candidato anterior auditado com `NO-GO`: `549ba68b200031c000ee14827f54293a67ee7153`;
-- novo candidato: local, aguardando commit imutável e reauditoria;
 - alterações concorrentes do workstream AWS/Oracle e arquivos não rastreados do
   usuário permanecem fora do gate e não devem ser adicionados, alterados ou
   removidos;
@@ -71,18 +68,16 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Gate ativo
 
-`STATE-01`: além da serialização FIFO por remetente, o ramo
-`confirming_transactions` agora consome o estado antes de qualquer comunicação
-pós-efeito. O novo RED observou duas gravações (`2 !== 1`) quando a primeira
-resposta falhou; depois da correção ficaram verdes `3/3` focal, `125/125`
-afetado e `1.074/1.074` no runner principal do `npm test`.
+`PRIV-01`: mapear e fechar caminhos `console.*`, objetos de erro/resposta brutos
+e identificadores que contornam o logger sanitizado. O gate ainda não foi
+iniciado; `STATE-04`, proteção do snapshot, permanece P2 separado.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
 ## Decisões vigentes
 
-- manter `Codex → Sol → Extra Alto` até a auditoria e o confronto final de
-  `STATE-01`, por ser concorrência crítica sobre estado e efeitos financeiros;
+- reduzir para `Codex → Sol → Alto` antes de iniciar `PRIV-01`; esse é o menor
+  nível suficiente para o hardening transversal e seus testes adversariais;
 - parar e avisar Daniel antes de reduzir ou trocar capacidade;
 - a produção vigente é Oracle/OCI; não reutilizar caminhos AWS e não executar
   Oracle e AWS simultaneamente com a mesma sessão WhatsApp;
@@ -95,14 +90,13 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar somente os arquivos do `STATE-01` em novo commit imutável, abrir uma
-conversa limpa no Chat conectado ao GitHub, solicitar reauditoria autônoma e
-confrontar o parecer antes de registrar ou negar `GO TÉCNICO LOCAL`. Não acessar
-produção nem fazer deploy neste gate.
+Depois da troca para `Alto`, criar o contrato de `PRIV-01`, inventariar todos os
+sinks de log e objetos potencialmente brutos, definir a prova negativa e então
+implementar a correção mínima. Não acessar produção nem fazer deploy nesse gate.
 
 ## Capacidade para retomar
 
-`Chat → modelo mais capaz disponível → Alto → reauditar o hash STATE-01; depois Codex → Sol → Extra Alto → validar o parecer.`
+`Codex → Sol → Alto → mapear e corrigir PRIV-01 sem deploy.`
 
 ## Histórico dirigido
 
@@ -112,6 +106,8 @@ produção nem fazer deploy neste gate.
   `docs/audit/19-state01-sender-serialization-candidate-2026-07-22.md`;
 - correção pós-commit candidata:
   `docs/audit/22-state01-post-commit-recovery-candidate-2026-07-22.md`;
+- fechamento independente de STATE-01:
+  `docs/audit/23-state01-independent-close-2026-07-22.md`;
 - tentativa automática sem acesso:
   `docs/audit/20-state01-chat-access-pending-2026-07-22.md`;
 - tentativa manual sem acesso e integridade dos anexos:

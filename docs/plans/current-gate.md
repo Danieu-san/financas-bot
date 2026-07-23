@@ -1,4 +1,4 @@
-# Próximo gate — STATE-01
+# Gate encerrado — STATE-01; próximo gate — PRIV-01
 
 Atualizado em: 2026-07-22
 
@@ -158,4 +158,25 @@ novo commit imutável e nova auditoria independente no Chat.
 
 ## Capacidade
 
-`Codex → Sol → Extra Alto → mapear e corrigir STATE-01 sem deploy.`
+`STATE-01` exigiu `Codex → Sol → Extra Alto` até o confronto final por envolver
+concorrência crítica sobre estado e efeitos financeiros.
+
+## Fechamento independente
+
+O Chat conectado ao GitHub confirmou o commit imutável
+`afc961fadd3f62a69c9e02ea1eb527f380d6d42f`, leu integralmente os seis arquivos
+exigidos e emitiu `GO TÉCNICO LOCAL`, sem achado de qualquer severidade nem
+lacuna indispensável residual. O parecer foi confrontado com o RED, o código e
+as baterias locais em `docs/audit/23-state01-independent-close-2026-07-22.md`.
+
+Esse GO não autoriza deploy nem valida produção ou WhatsApp real.
+
+## Próxima ação ordenada
+
+Tratar `PRIV-01`, P1 sobre escapes `console.*`, objetos de erro/resposta brutos e
+identificadores que contornam o logger sanitizado. `STATE-04`, proteção do
+snapshot, permanece P2 separado.
+
+Antes de iniciar a inspeção material de `PRIV-01`, reduzir para:
+
+`Codex → Sol → Alto → mapear todos os sinks de log, fixar a prova negativa e corrigir PRIV-01 sem deploy.`
