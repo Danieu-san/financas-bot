@@ -61,6 +61,20 @@ prosseguir sem nova pausa.
 - executar testes proporcionais e não repetir suítes verdes sem mudança causal;
 - separar implementação de auditoria e não declarar GO sem evidência factual.
 
+## Transferência automática entre Codex ou computadores
+
+Quando o usuário disser que vai continuar em outro Codex, conta ou computador,
+que vai retirar o SSD, ou pedir para enviar/preparar o trabalho, iniciar sem nova
+confirmação a skill `$handoff-portable-work`. Parar na próxima fronteira
+consistente, registrar o checkpoint, validar o workflow, adicionar somente
+arquivos explícitos e publicar o commit quando autorizado pelo fluxo vigente.
+
+Nunca copiar a pasta pessoal do Codex, sessões, bancos internos, autenticação,
+cookies, tokens, SSH ou histórico privado. Conversas antigas não são o mecanismo
+de continuidade: usar o repositório no SSD, o checkpoint versionado e o GitHub.
+Rotinas históricas que copiem estado privado devem ser ignoradas e substituídas
+por inventário de metadados e validação pós-fechamento sem leitura de conteúdo.
+
 ## Evidência e comunicação
 
 Durante trabalho longo, informar progresso sem deixar o usuário sem atualização.

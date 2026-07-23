@@ -13,7 +13,10 @@ const dashboardAuthPath = require.resolve('../src/utils/dashboardAuth');
 const dashboardV2SummaryPath = require.resolve('../src/services/dashboardV2SummaryService');
 const oauthTokenStorePath = require.resolve('../src/services/oauthTokenStore');
 
-function installReadModelMock(calls, { personalDashboardReader = async () => null } = {}) {
+function installReadModelMock(calls, {
+    personalDashboardReader = async () => null,
+    freshUserReader = null
+} = {}) {
     delete require.cache[dashboardServerPath];
     delete require.cache[readModelPath];
     delete require.cache[userSheetAnalyticsPath];
@@ -80,6 +83,10 @@ function installReadModelMock(calls, { personalDashboardReader = async () => nul
                 { user_id: 'inactive-user', display_name: 'Inativo', phone_e164: '5588888888888', status: 'INACTIVE' },
                 { user_id: 'deleted-user', display_name: 'Deletado', phone_e164: '5577777777777', status: 'DELETED', deleted_at: '2026-05-01T00:00:00.000Z' }
             ],
+            getUserByIdFresh: freshUserReader || (async userId => ({
+                'admin-user': { user_id: 'admin-user', status: 'ACTIVE', deleted_at: '' },
+                'user-dash-a': { user_id: 'user-dash-a', status: 'ACTIVE', deleted_at: '' }
+            }[userId] || null)),
             getUserProfileByUserId: async () => null
         }
     };
@@ -280,6 +287,47 @@ test('dashboard API reports personal sheet unavailability without falling back t
         assert.match(summary.json.error, /dados financeiros.*indisponíveis/i);
         assert.strictEqual(calls.length, 0);
         assert.doesNotMatch(JSON.stringify(summary.json), /"saldo"\s*:\s*0|"entradas"\s*:\s*0|"saidas"\s*:\s*0/i);
+    } finally {
+        await new Promise(resolve => server.close(resolve));
+    }
+});
+
+test('AUTH-04 dashboard APIs revoke an already-issued token before financial reads when user status changes', async () => {
+    const calls = [];
+    let currentStatus = 'ACTIVE';
+    let statusReads = 0;
+    let personalFinancialReads = 0;
+    const { server, baseUrl, token } = await startTestServer(calls, {
+        freshUserReader: async userId => {
+            statusReads += 1;
+            return { user_id: userId, status: currentStatus, deleted_at: '' };
+        },
+        personalDashboardReader: async () => {
+            personalFinancialReads += 1;
+            return null;
+        }
+    });
+
+    try {
+        const activeV1 = await fetchJson(`${baseUrl}/dashboard/api/summary?token=${token}`);
+        const activeV2 = await fetchJson(`${baseUrl}/dashboard/api/v2/summary?token=${token}`);
+        assert.strictEqual(activeV1.response.status, 200);
+        assert.strictEqual(activeV2.response.status, 200);
+
+        currentStatus = 'BLOCKED';
+        calls.length = 0;
+        personalFinancialReads = 0;
+
+        const blockedV1 = await fetchJson(`${baseUrl}/dashboard/api/summary?token=${token}`);
+        const blockedV2 = await fetchJson(`${baseUrl}/dashboard/api/v2/summary?token=${token}`);
+
+        assert.strictEqual(blockedV1.response.status, 403);
+        assert.strictEqual(blockedV2.response.status, 403);
+        assert.match(blockedV1.json.error, /acesso.*revogado|cadastro.*ativo/i);
+        assert.match(blockedV2.json.error, /acesso.*revogado|cadastro.*ativo/i);
+        assert.strictEqual(calls.length, 0);
+        assert.strictEqual(personalFinancialReads, 0);
+        assert.strictEqual(statusReads, 4);
     } finally {
         await new Promise(resolve => server.close(resolve));
     }

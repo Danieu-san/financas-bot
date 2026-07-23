@@ -1,12 +1,14 @@
 # Gate ativo — AUTH-04
 
-Atualizado em: 2026-07-22
+Atualizado em: 2026-07-23
 
 Commit de partida: `6e360782ce98e45673b7fae9554d84c13478c23d`.
 
 ## Estado
 
-`CARACTERIZADO, AGUARDANDO RED CAUSAL`. Este gate não autoriza deploy.
+`RED CAUSAL CONFIRMADO; IMPLEMENTAÇÃO NÃO INICIADA`. Este gate não autoriza
+deploy. O checkpoint portátil está em
+`docs/agent-memory/handoff-2026-07-23-auth04-red.md`.
 
 ## Objetivo
 
@@ -54,7 +56,7 @@ inativado, excluído ou deixar de existir, sem aguardar o TTL do token.
 
 ## Etapas
 
-1. criar RED causal para token válido de usuário que muda de `ACTIVE` para
+1. concluído: RED causal para token válido de usuário que muda de `ACTIVE` para
    estado impeditivo antes da segunda requisição;
 2. provar REDs de usuário ausente/deletado e de fonte de cadastro indisponível;
 3. centralizar a decisão assíncrona de token + cadastro atual e aplicá-la a
@@ -93,6 +95,7 @@ inativado, excluído ou deixar de existir, sem aguardar o TTL do token.
 
 ## Próxima ação exata
 
-Construir o RED causal nas APIs v1 e v2 com token temporalmente válido, usuário
-inicialmente ativo e status fresco depois impeditivo, exigindo zero leitura
-financeira na segunda requisição.
+Centralizar a decisão assíncrona de token + cadastro fresco antes de qualquer
+leitura financeira nas APIs v1/v2 e wrappers autenticados, sem enfraquecer o RED
+confirmado. Em seguida, completar os casos de ausência/exclusão e
+indisponibilidade da fonte.

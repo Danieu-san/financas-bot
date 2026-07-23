@@ -1,6 +1,6 @@
 # Estado atual portátil do FinancasBot
 
-Atualizado em: 2026-07-22
+Atualizado em: 2026-07-23
 
 ## Objetivo ativo
 
@@ -72,13 +72,14 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Gate ativo
 
-`AUTH-04`: caracterizado para exigir consulta fresca ao cadastro depois da
-assinatura/expiração e antes de qualquer leitura financeira nas APIs v1/v2. O
-RED deve provar que o mesmo token funciona enquanto o usuário está `ACTIVE` e
-é negado imediatamente depois de bloqueio/inativação/exclusão. `STATE-04`,
-proteção do snapshot, permanece P2 separado.
+`AUTH-04`: o RED causal está confirmado nas APIs v1/v2. O mesmo token funciona
+enquanto o usuário está `ACTIVE`, mas o código-base ainda responde `200` depois
+da mudança para `BLOCKED`, em vez do `403` exigido. A implementação de produto
+não foi iniciada. `STATE-04`, proteção do snapshot, permanece P2 separado.
 
 Plano corrente: `docs/plans/current-gate.md`.
+Checkpoint portátil:
+`docs/agent-memory/handoff-2026-07-23-auth04-red.md`.
 
 ## Decisões vigentes
 
@@ -96,13 +97,14 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Criar o RED causal de `AUTH-04` para o mesmo token antes/depois da mudança de
-status, cobrindo v1/v2 e exigindo zero leitura financeira depois da revogação.
-Não acessar produção nem fazer deploy nesse gate.
+Retomar pelo RED confirmado e centralizar a decisão assíncrona de token +
+cadastro fresco antes de qualquer leitura financeira nas APIs v1/v2 e wrappers
+autenticados. Completar ausência/exclusão e indisponibilidade da fonte. Não
+acessar produção nem fazer deploy nesse gate.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → implementar e auditar AUTH-04 sem deploy.`
+`Codex → Sol → Alto → retomar AUTH-04 pelo RED confirmado, sem deploy.`
 
 ## Histórico dirigido
 

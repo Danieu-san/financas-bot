@@ -5,6 +5,21 @@ description: Pausar e transferir com segurança um trabalho do FinancasBot entre
 
 # Handoff portátil
 
+## Gatilho automático
+
+Quando o usuário disser que vai continuar em outro Codex, conta ou computador,
+que vai retirar o SSD, ou pedir para enviar/preparar o trabalho, iniciar esta
+rotina imediatamente e sem pedir nova confirmação. A frase é autorização para
+parar na próxima fronteira consistente, registrar o checkpoint, validar o
+pacote portátil e publicar no GitHub somente os arquivos explícitos do objetivo
+quando isso fizer parte do fluxo já autorizado.
+
+O gatilho não autoriza deploy, acesso a produção nem cópia da pasta pessoal do
+Codex. Se houver uma rotina histórica que copie sessões, bancos internos,
+cookies, SSH ou autenticação, não executá-la; substituí-la pelo checkpoint
+versionado e registrar apenas metadados locais necessários para localizar o
+estado na máquina de origem.
+
 ## Parar sem perder trabalho
 
 1. Parar na primeira fronteira consistente; não iniciar nova ação material.
@@ -21,6 +36,13 @@ O checkpoint deve conter objetivo/gate, commit de partida, HEAD, alterações co
 Executar `node scripts/agent/validateAgentWorkflow.js`. Fazer commit de checkpoint somente quando o conjunto estiver coerente e a autorização permitir; adicionar arquivos explicitamente, nunca `git add .`. Se o trabalho não estiver pronto para commit, deixar a árvore suja e documentar isso sem mascarar o estado.
 
 Não transportar `~/.codex`, autenticação, cookies, sessões, tokens ou histórico privado. O repositório no SSD deve transportar regras, skills, estado, plano, scripts e decisões sem segredos.
+
+Executar `scripts/agent/preparePortableHandoff.ps1` depois de atualizar o
+checkpoint. A rotina pode inventariar nomes, datas e localização de stores do
+Codex, mas nunca lê nem copia seu conteúdo. Quando o usuário quiser confirmação
+pós-fechamento, armar `scripts/agent/Invoke-SafePortableHandoffAfterClose.ps1`;
+ela aguarda a liberação dos stores apenas para repetir as verificações seguras e
+gravar o relatório no SSD.
 
 ## Retomar em outro computador
 
