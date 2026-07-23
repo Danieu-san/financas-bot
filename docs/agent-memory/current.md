@@ -4,31 +4,29 @@ Atualizado em: 2026-07-23
 
 ## Objetivo ativo
 
-Executar a fila de correções da auditoria exaustiva. `OPS-01` está encerrado
-com `GO TÉCNICO LOCAL` independente no commit imutável
-`f26e627864d45d2b9b4317844313faf84411b8a7`. `FLOW-02` está implementado
-localmente sobre a base `711f3ecfb3bf985a7374bf19bbdab0e99aa68b28`,
-com provas causais verdes, e aguarda commit imutável e auditoria independente.
+Executar a fila de correções da auditoria exaustiva. `FLOW-02` recebeu `GO
+TÉCNICO LOCAL` independente no commit imutável
+`73abb5e575f0af8cf36f826c5646e2843a1997a5`, sem achado `CRITICAL`, `HIGH` ou
+`MEDIUM`. O próximo gate é `FLOW-04`.
 A decisão pós-Fase 9 sobre proposição de salvamento e as melhorias de produto
 posteriores continuam na fila sem alterar essa ordem.
 
 ## Último gate encerrado
 
-`OPS-01` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
-`f26e627864d45d2b9b4317844313faf84411b8a7`.
+`FLOW-02` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
+`73abb5e575f0af8cf36f826c5646e2843a1997a5`.
 
-O contrato versionado cobre `183` nomes de ambiente usados pelo produto, com
-`196` nomes documentados, zero lacuna, zero duplicata e zero acesso dinâmico não
-aprovado. O detector reconhece concatenação e optional chaining e mantém apenas
-dois helpers dinâmicos conhecidos na allowlist.
+O rate limit agora antecede comprovantes, OCR, exportação, importação e
+gerenciamento de metas. Áudio continua consumindo um limite antes da
+transcrição, e as exceções operacionais preexistentes não saltam para os cinco
+handlers.
 
-Evidência executada: bateria diretamente afetada `88/88`; contrato e inventário
-após a correção causal `9/9`; sintaxe e `git diff --check` verdes. A tentativa
-da suíte completa excedeu dez minutos sem resultado consolidado e permanece
-neutra.
+Evidência executada: RED causal; prova `1/1`; handler completo `121/121`;
+módulos afetados `56/56`; sintaxe, diff e workflow verdes. O gate exaustivo
+válido teve `1.240/1.246` aprovações, uma falha não reproduzida em domínio não
+alterado e cinco skips permitidos; ele não é rotulado como verde.
 
-Não houve leitura de valores reais, produção, Google, WhatsApp ou Pluggy reais
-nem deploy.
+Não houve produção, Google, WhatsApp ou Pluggy reais nem deploy.
 
 ## Gate encerrado anterior — STATE-04
 
@@ -101,7 +99,7 @@ Google/WhatsApp real, produção ou deploy.
 - branch ativa: `codex/flow02-rate-limit-gate`, baseada em
   `711f3ecfb3bf985a7374bf19bbdab0e99aa68b28`;
 - produto com último `GO TÉCNICO LOCAL`:
-  `f26e627864d45d2b9b4317844313faf84411b8a7`;
+  `73abb5e575f0af8cf36f826c5646e2843a1997a5`;
 - alterações concorrentes do workstream AWS/Oracle e arquivos não rastreados do
   usuário permanecem fora do gate e não devem ser adicionados, alterados ou
   removidos;
@@ -109,17 +107,15 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Próximo gate
 
-`FLOW-02`: candidato local implementado, ainda sem `GO`. O rate limit foi
-movido antes de comprovantes, OCR, exportação, importação e gerenciamento de
-metas.
+`FLOW-04`: criar um contrato durável de outbox/retry por usuário para os jobs
+gerais do scheduler. `FLOW-02` está encerrado.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
 ## Decisões vigentes
 
-- manter `Codex → Sol → Alto` na caracterização e correção de `FLOW-02`; esse é
-  o menor nível suficiente para revisar a ordem causal entre gates e efeitos
-  pesados;
+- manter `Codex → Sol → Alto` na caracterização de `FLOW-04`; esse é o menor
+  nível suficiente para revisar causalidade, persistência e retry do scheduler;
 - parar e avisar Daniel antes de reduzir ou trocar capacidade;
 - a produção vigente é Oracle/OCI; não reutilizar caminhos AWS e não executar
   Oracle e AWS simultaneamente com a mesma sessão WhatsApp;
@@ -132,14 +128,12 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar o candidato sanitizado de `FLOW-02`, obter auditoria independente do
-hash imutável e somente então decidir `GO/NO-GO`.
+Publicar este fechamento documental e abrir `FLOW-04` em worktree isolado.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → publicar o candidato FLOW-02; Chat → modelo mais capaz
-disponível → Alto → auditar o hash imutável; Codex → Sol → Alto → confrontar
-o parecer com a evidência local.`
+`Codex → Sol → Alto → caracterizar e corrigir FLOW-04; Chat → modelo mais capaz
+disponível → Alto → auditar o futuro hash imutável.`
 
 ## Fila de produto posterior
 
@@ -153,6 +147,8 @@ Pluggy/Open Finance:
 
 ## Histórico dirigido
 
+- fechamento independente FLOW-02:
+  `docs/audit/39-flow02-independent-close-2026-07-23.md`;
 - candidato FLOW-02:
   `docs/audit/38-flow02-rate-limit-candidate-2026-07-23.md`;
 - fechamento independente de OPS-01:

@@ -183,14 +183,14 @@ autoriza deploy: indica apenas que uma parte causal possui evidência local.
 | STATE-02 | P1 | Resolvido | mesmo message ID não é retranscrito na mesma instância/TTL; C-01 com GO local integral |
 | PRIV-01 | P1 | Resolvido | fronteira global de warnings/errors recebeu GO técnico local no hash `6e360782ce98e45673b7fae9554d84c13478c23d` |
 | AUTH-04 | P2 | Resolvido | cadastro fresco revoga token antes de qualquer leitura; GO técnico local no hash `beb8e0ff7f2eccd74688aa347de6b7d79170d094` |
-| FLOW-02 | P2 | Aberto | caminhos de OCR/receipts/import/export anteriores ao rate limit não foram fechados |
+| FLOW-02 | P2 | Resolvido | rate limit antecede os cinco handlers pesados; GO técnico local no hash `73abb5e575f0af8cf36f826c5646e2843a1997a5` |
 | FLOW-04 | P2 | Aberto | jobs gerais do scheduler ainda não possuem outbox/retry durável por usuário |
 | STATE-03 | P2 | Aberto | shutdown Redis ainda não prova espera do último flush |
 | STATE-04 | P2 | Resolvido | snapshot local protegido e privado; GO técnico local no hash `22fff090192269e71d71025653f1b5450b3132e2` |
 | COV-01 | P2 | Resolvido | `npm test` executa o gate local exaustivo; GO técnico local no hash `c96d801f6f5c683634dbc8b3a2997eb576a9e3f5` |
 | OPS-01 | P2 | Resolvido | contrato versionado cobre o runtime sem ler valores; GO técnico local no hash `f26e627864d45d2b9b4317844313faf84411b8a7` |
 
-Contagem vigente: dez P1 resolvidos; zero P1 aberto; quatro P2 resolvidos e três P2
+Contagem vigente: dez P1 resolvidos; zero P1 aberto; cinco P2 resolvidos e dois P2
 abertos. As
 seções e tabelas anteriores continuam como registro do objeto original, não
 como quadro vigente de remediação.
@@ -284,7 +284,8 @@ Esta sequência é uma fila, não autorização imediata:
 9. **concluído:** fechar escapes de log e proteger o snapshot;
 10. **concluído:** transformar a bateria Open Finance local em gate padrão de release;
 11. **concluído:** sincronizar schema de ambiente e `.env.example`;
-12. reauditar cada fatia antes de promoção.
+12. **concluído:** colocar o rate limit antes dos handlers pesados (`FLOW-02`);
+13. reauditar cada fatia antes de promoção.
 
 ## Gate de retorno obrigatório
 
@@ -298,6 +299,6 @@ colisão de temporários estão fechados, com revisão independente e gates loca
 verdes no candidato `0188570...`. DATA-01 e DATA-02 também receberam `GO local
 integral`; WGL-03/WGL-04, AUTH-03/WGL-07 e FLOW-03 também receberam `GO
 TÉCNICO LOCAL`; `STATE-01`, `PRIV-01`, `AUTH-04`, `STATE-04` e `COV-01` também
-foram encerrados por parecer independente. `OPS-01` também recebeu `GO TÉCNICO
-LOCAL` após correção e reauditoria do detector de ambiente. Deploy e produção
-não foram avaliados. A próxima correção causal da fila documental é `FLOW-02`.
+foram encerrados por parecer independente. `OPS-01` e `FLOW-02` também
+receberam `GO TÉCNICO LOCAL` independente. Deploy e produção não foram
+avaliados. A próxima correção causal da fila documental é `FLOW-04`.

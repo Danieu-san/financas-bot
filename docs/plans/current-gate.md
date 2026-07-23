@@ -1,14 +1,14 @@
-# Gate ativo — FLOW-02
+# Gate encerrado — FLOW-02
 
 Atualizado em: 2026-07-23
 
 Base: `711f3ecfb3bf985a7374bf19bbdab0e99aa68b28`.
 
+Candidato: `73abb5e575f0af8cf36f826c5646e2843a1997a5`.
+
 ## Estado
 
-Candidato local implementado e validado, ainda sem `GO`. Falta criar e publicar
-o commit imutável e obter auditoria independente.
-
+`GO TÉCNICO LOCAL` independente, sem achado `CRITICAL`, `HIGH` ou `MEDIUM`.
 Este gate não autoriza deploy ou acesso a integrações reais.
 
 ## Objetivo
@@ -27,59 +27,45 @@ gerenciamento de metas.
 
 - mudar quotas, janelas ou persistência do rate limiter;
 - limitar comandos legais, lifecycle, configurações, dashboard ou admin;
-- alterar políticas internas de OCR, recibos, importação, exportação ou metas;
+- alterar políticas internas dos cinco handlers;
 - deploy, produção ou E2E real.
 
 ## Contrato
 
-1. identidade, lifecycle e modo familiar precedem o gate;
+1. identidade, acesso e modo familiar precedem efeitos pesados;
 2. áudio consome o limite uma vez antes da transcrição;
-3. texto consome o limite antes dos cinco handlers pesados;
+3. texto consome o limite antes dos cinco handlers;
 4. bloqueio não baixa mídia nem faz leitura financeira;
-5. política e implementação interna dos handlers não mudam.
+5. exceções preexistentes não saltam para os handlers protegidos.
 
 ## Evidência
 
-- RED causal reproduzido antes da mudança;
+- RED causal reproduzido;
 - prova causal: `1/1`;
 - handler/estado completo: `121/121`;
 - módulos diretamente afetados: `56/56`;
-- sintaxe e `git diff --check`: verdes;
-- gate exaustivo válido: `1.246` testes, `1.240` aprovados, uma falha, cinco
-  skips permitidos e zero TODO;
-- a única falha ampla, em relatório de cartões não tocado, passou isoladamente
-  `2/2`; a execução ampla não é rotulada como verde;
-- nenhuma produção ou integração real.
-
-## Limites preservados
-
-Comandos legais, lifecycle, configurações, dashboard e administração preservam
-as exceções preexistentes. Esse limite deve ser avaliado explicitamente na
-auditoria independente.
+- sintaxe, diff e workflow: verdes;
+- gate amplo válido, mas não verde: `1.240/1.246`, uma falha não reproduzida e
+  cinco skips permitidos;
+- teste isolado da falha ampla: `2/2`;
+- parecer independente confirmou hash, base e cinco arquivos.
 
 ## Critérios de GO
 
-- hash sanitizado e publicado;
-- prova causal e baterias diretamente afetadas verdes;
-- sintaxe, diff e workflow verdes;
-- auditor independente confirma a ordem e aceita ou bloqueia explicitamente a
-  falha ampla não reproduzida;
-- nenhum achado `CRITICAL`, `HIGH` ou `MEDIUM` residual.
+Todos satisfeitos: hash publicado, provas causais verdes, controles locais
+verdes, falha ampla confrontada e parecer sem severidade bloqueante.
 
 ## Condições de parada
 
-- qualquer efeito pesado anterior ao rate limit;
-- consumo duplo do limite por áudio;
-- regressão nos testes diretamente afetados;
-- parecer independente `NO-GO`;
-- necessidade de produção ou integração real.
+Nenhuma ativa. O achado `LOW` sobre spies individuais é endurecimento opcional
+e não reabre o gate.
 
 ## Próxima ação exata
 
-Commitar e publicar somente os cinco arquivos do candidato, enviar o hash ao
-Chat e confrontar o parecer com a evidência local antes de decidir `GO/NO-GO`.
+Abrir `FLOW-04` em worktree isolado e caracterizar outbox/retry durável por
+usuário no scheduler, sem produção.
 
 ## Capacidade
 
-`Codex → Sol → Alto → publicar FLOW-02; Chat → modelo mais capaz disponível →
-Alto → auditar o hash; Codex → Sol → Alto → confrontar o parecer.`
+`Codex → Sol → Alto → caracterizar e corrigir FLOW-04; Chat → modelo mais capaz
+disponível → Alto → auditar o futuro hash imutável.`
