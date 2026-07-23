@@ -1,64 +1,85 @@
-# Gate encerrado — OPS-01
+# Gate ativo — FLOW-02
 
 Atualizado em: 2026-07-23
 
-Base: `240f15827fa682bd2f83d8139b25e7270128e010`.
-
-Primeiro candidato: `3dfe946442fb2a80c244088bf526dbfa13870db8`.
-
-Candidato final: `f26e627864d45d2b9b4317844313faf84411b8a7`.
+Base: `711f3ecfb3bf985a7374bf19bbdab0e99aa68b28`.
 
 ## Estado
 
-`GO TÉCNICO LOCAL` após um `NO-GO` independente e correção causal. O parecer
-final confirmou o hash, os quatro artefatos do gate e a cobertura das quatro
-variantes de acesso dinâmico que antes escapavam do inventário.
+Candidato local implementado e validado, ainda sem `GO`. Falta criar e publicar
+o commit imutável e obter auditoria independente.
 
 Este gate não autoriza deploy ou acesso a integrações reais.
 
-## Objetivo encerrado
+## Objetivo
 
-Sincronizar os nomes usados pelo runtime com `.env.example` por um inventário
-versionado e fail-closed, sem ler valores reais.
+Colocar o rate limit global antes de comprovantes, OCR, exportação, importação e
+gerenciamento de metas.
 
-## Modelo de ameaça
+## Escopo
 
-- bot familiar privado e código versionado confiável;
-- prevenir divergência acidental de configuração;
-- não analisar JavaScript deliberadamente hostil ou arbitrário.
+- ordem causal dentro de `processMessage`;
+- consumo único do limite para áudio;
+- bloqueio anterior aos cinco handlers pesados;
+- prova local sem integrações reais.
 
-## Contrato final
+## Não escopo
 
-1. o inventário percorre `index.js` e `src/**/*.js|mjs`;
-2. acessos nominais diretos e literais são comparados com `.env.example`;
-3. concatenação e optional chaining em acessos dinâmicos são reconhecidos;
-4. somente dois helpers dinâmicos conhecidos são aprovados;
-5. nomes ausentes, duplicados ou dinâmicos não aprovados falham;
-6. valores de ambiente reais não são lidos ou exibidos.
+- mudar quotas, janelas ou persistência do rate limiter;
+- limitar comandos legais, lifecycle, configurações, dashboard ou admin;
+- alterar políticas internas de OCR, recibos, importação, exportação ou metas;
+- deploy, produção ou E2E real.
+
+## Contrato
+
+1. identidade, lifecycle e modo familiar precedem o gate;
+2. áudio consome o limite uma vez antes da transcrição;
+3. texto consome o limite antes dos cinco handlers pesados;
+4. bloqueio não baixa mídia nem faz leitura financeira;
+5. política e implementação interna dos handlers não mudam.
 
 ## Evidência
 
-- `183` nomes usados pelo produto e `196` documentados;
-- zero lacuna, zero duplicata e zero acesso dinâmico não aprovado;
-- bateria diretamente afetada: `88/88`;
-- contrato e inventário após a correção: `9/9`;
+- RED causal reproduzido antes da mudança;
+- prova causal: `1/1`;
+- handler/estado completo: `121/121`;
+- módulos diretamente afetados: `56/56`;
 - sintaxe e `git diff --check`: verdes;
-- tentativa da suíte completa encerrada por timeout de dez minutos, sem
-  resultado consolidado e tratada como neutra;
-- nenhum valor real, produção, Google, WhatsApp ou Pluggy.
+- gate exaustivo válido: `1.246` testes, `1.240` aprovados, uma falha, cinco
+  skips permitidos e zero TODO;
+- a única falha ampla, em relatório de cartões não tocado, passou isoladamente
+  `2/2`; a execução ampla não é rotulada como verde;
+- nenhuma produção ou integração real.
 
-## Limitações aceitas
+## Limites preservados
 
-Scripts operacionais e automações de teste permanecem fora deste inventário de
-produto. Uma varredura somente leitura encontrou `51` nomes exclusivos desses
-caminhos; eles não constituem runtime de `index.js`/`src` e não reabrem o
-achado original.
+Comandos legais, lifecycle, configurações, dashboard e administração preservam
+as exceções preexistentes. Esse limite deve ser avaliado explicitamente na
+auditoria independente.
+
+## Critérios de GO
+
+- hash sanitizado e publicado;
+- prova causal e baterias diretamente afetadas verdes;
+- sintaxe, diff e workflow verdes;
+- auditor independente confirma a ordem e aceita ou bloqueia explicitamente a
+  falha ampla não reproduzida;
+- nenhum achado `CRITICAL`, `HIGH` ou `MEDIUM` residual.
+
+## Condições de parada
+
+- qualquer efeito pesado anterior ao rate limit;
+- consumo duplo do limite por áudio;
+- regressão nos testes diretamente afetados;
+- parecer independente `NO-GO`;
+- necessidade de produção ou integração real.
 
 ## Próxima ação exata
 
-Abrir `FLOW-02` em workstream isolado e garantir que o rate limit global preceda
-OCR, recibos, importação e exportação, sem integrações reais.
+Commitar e publicar somente os cinco arquivos do candidato, enviar o hash ao
+Chat e confrontar o parecer com a evidência local antes de decidir `GO/NO-GO`.
 
 ## Capacidade
 
-`Codex → Sol → Alto → caracterizar e corrigir FLOW-02, sem produção.`
+`Codex → Sol → Alto → publicar FLOW-02; Chat → modelo mais capaz disponível →
+Alto → auditar o hash; Codex → Sol → Alto → confrontar o parecer.`

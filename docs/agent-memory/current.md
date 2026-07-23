@@ -4,11 +4,11 @@ Atualizado em: 2026-07-23
 
 ## Objetivo ativo
 
-Executar a fila de correções da auditoria exaustiva. O gate encerrado mais
-recente é `OPS-01`, com `GO TÉCNICO LOCAL` independente no commit imutável
-`f26e627864d45d2b9b4317844313faf84411b8a7`. O primeiro candidato recebeu
-`NO-GO` por não reconhecer quatro variantes de acesso dinâmico ao ambiente; a
-lacuna foi reproduzida, corrigida e reauditada. O próximo gate é `FLOW-02`.
+Executar a fila de correções da auditoria exaustiva. `OPS-01` está encerrado
+com `GO TÉCNICO LOCAL` independente no commit imutável
+`f26e627864d45d2b9b4317844313faf84411b8a7`. `FLOW-02` está implementado
+localmente sobre a base `711f3ecfb3bf985a7374bf19bbdab0e99aa68b28`,
+com provas causais verdes, e aguarda commit imutável e auditoria independente.
 A decisão pós-Fase 9 sobre proposição de salvamento e as melhorias de produto
 posteriores continuam na fila sem alterar essa ordem.
 
@@ -98,8 +98,8 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Git e workspace
 
-- branch ativa: `codex/ops01-env-contract`, baseada em
-  `240f15827fa682bd2f83d8139b25e7270128e010`;
+- branch ativa: `codex/flow02-rate-limit-gate`, baseada em
+  `711f3ecfb3bf985a7374bf19bbdab0e99aa68b28`;
 - produto com último `GO TÉCNICO LOCAL`:
   `f26e627864d45d2b9b4317844313faf84411b8a7`;
 - alterações concorrentes do workstream AWS/Oracle e arquivos não rastreados do
@@ -109,8 +109,9 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Próximo gate
 
-`FLOW-02`: assegurar que o rate limit global antecede os caminhos pesados de
-OCR, recibos, importação e exportação. `OPS-01` está encerrado.
+`FLOW-02`: candidato local implementado, ainda sem `GO`. O rate limit foi
+movido antes de comprovantes, OCR, exportação, importação e gerenciamento de
+metas.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -131,14 +132,14 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Abrir um workstream isolado para `FLOW-02`, reproduzir os caminhos pesados que
-antecedem o rate limit e implementar a menor correção causal. Não acessar
-integrações reais ou fazer deploy.
+Publicar o candidato sanitizado de `FLOW-02`, obter auditoria independente do
+hash imutável e somente então decidir `GO/NO-GO`.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → caracterizar e corrigir FLOW-02; Chat → modelo mais capaz
-disponível → Alto → auditar o futuro hash imutável.`
+`Codex → Sol → Alto → publicar o candidato FLOW-02; Chat → modelo mais capaz
+disponível → Alto → auditar o hash imutável; Codex → Sol → Alto → confrontar
+o parecer com a evidência local.`
 
 ## Fila de produto posterior
 
@@ -152,6 +153,8 @@ Pluggy/Open Finance:
 
 ## Histórico dirigido
 
+- candidato FLOW-02:
+  `docs/audit/38-flow02-rate-limit-candidate-2026-07-23.md`;
 - fechamento independente de OPS-01:
   `docs/audit/37-ops01-independent-close-2026-07-23.md`;
 - fechamento independente de COV-01:

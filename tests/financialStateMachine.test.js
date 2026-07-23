@@ -2651,6 +2651,51 @@ stateMachineTest('audio ingress consumes rate limit once before transcription', 
     assert.strictEqual(rateLimitCheckCount, 1);
 });
 
+stateMachineTest('rate limit blocks heavy financial handlers before their effects', async () => {
+    resetState();
+    rateLimiter.isAllowed = () => {
+        rateLimitCheckCount += 1;
+        return false;
+    };
+    sheets.Metas.push([
+        'Reserva de emergência', 10000, 1500, '', '', '31/12/2026',
+        'Em andamento', 'Alta', USER_ID, 'personal', ''
+    ]);
+
+    let mediaDownloads = 0;
+    const mediaMessage = (body, options) => {
+        const msg = createMockMediaMessage('date,description,amount\n2026-07-01,Teste,10', options);
+        msg.body = body;
+        const downloadMedia = msg.downloadMedia;
+        msg.downloadMedia = async () => {
+            mediaDownloads += 1;
+            return downloadMedia();
+        };
+        return msg;
+    };
+    const messages = [
+        createMockMessage('anexar comprovante ao último gasto'),
+        mediaMessage('importar extrato', { filename: 'extrato.pdf', mimetype: 'application/pdf' }),
+        createMockMessage('exportar finanças de julho de 2026'),
+        mediaMessage('', { filename: 'extrato.csv', mimetype: 'text/csv' }),
+        createMockMessage('guardei 500 na meta reserva')
+    ];
+    const expensiveSheets = new Set(['Saídas', 'Entradas', 'Lançamentos Cartão', 'Metas']);
+
+    for (const msg of messages) {
+        const readsBefore = sheetReadCalls.filter(call => expensiveSheets.has(call.sheetName)).length;
+        await handleMessage(msg);
+        assert.strictEqual(msg.replies.length, 0);
+        assert.strictEqual(
+            sheetReadCalls.filter(call => expensiveSheets.has(call.sheetName)).length,
+            readsBefore
+        );
+    }
+
+    assert.strictEqual(rateLimitCheckCount, messages.length);
+    assert.strictEqual(mediaDownloads, 0);
+});
+
 stateMachineTest('audio ingress claims duplicate id before asynchronous transcription', async () => {
     resetState();
     audioHandleDelayMs = 25;

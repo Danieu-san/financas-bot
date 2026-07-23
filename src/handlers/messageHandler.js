@@ -9189,6 +9189,12 @@ async function processMessage(msg) {
         return;
     }
 
+    if (!audioRateLimitConsumed && !rateLimiter.isAllowed(senderId)) {
+        metrics.increment('message.rate_limited');
+        logger.warn(`[rate-limit] message_blocked sender=${senderId}`);
+        return;
+    }
+
     const handledReceipt = await financialReceiptHandler.handleFinancialReceiptMessage(msg, activeUser);
     if (handledReceipt) {
         metrics.increment('message.financial_receipt.handled');
@@ -9214,12 +9220,6 @@ async function processMessage(msg) {
 
     const handledGoalManagement = await handleGoalManagementCommand(msg, activeUser, senderId, pessoa);
     if (handledGoalManagement) {
-        return;
-    }
-
-    if (!audioRateLimitConsumed && !rateLimiter.isAllowed(senderId)) {
-        metrics.increment('message.rate_limited');
-        logger.warn(`[rate-limit] message_blocked sender=${senderId}`);
         return;
     }
 
