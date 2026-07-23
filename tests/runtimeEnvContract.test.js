@@ -12,6 +12,8 @@ test('runtime env extractor covers direct, injected, literal and approved helper
     const names = extractRuntimeEnvNames(`
         process.env.DIRECT_NAME;
         env.INJECTED_NAME;
+        process.env?.OPTIONAL_DIRECT_NAME;
+        env?.OPTIONAL_INJECTED_NAME;
         process.env['LITERAL_NAME'];
         getPositiveIntegerEnv('DYNAMIC_LIMIT', 10);
         requireEnv(env, 'REQUIRED_NAME');
@@ -22,6 +24,8 @@ test('runtime env extractor covers direct, injected, literal and approved helper
         'DYNAMIC_LIMIT',
         'INJECTED_NAME',
         'LITERAL_NAME',
+        'OPTIONAL_DIRECT_NAME',
+        'OPTIONAL_INJECTED_NAME',
         'REQUIRED_NAME'
     ]);
 });
@@ -30,6 +34,24 @@ test('runtime env extractor exposes unresolved dynamic access instead of hiding 
     assert.deepStrictEqual(
         extractDynamicEnvAccesses('const value = process.env[name]; const other = env[key];', 'src/example.js'),
         ['src/example.js:process.env[name]', 'src/example.js:env[key]']
+    );
+});
+
+test('runtime env extractor rejects concatenated and optional dynamic access', () => {
+    assert.deepStrictEqual(
+        extractDynamicEnvAccesses(`
+            process.env['PREFIX_' + name];
+            env["PREFIX_" + key];
+            process.env?.[name];
+            env?.[key];
+            process.env['STATIC_NAME'];
+        `, 'src/example.js'),
+        [
+            "src/example.js:process.env['PREFIX_' + name]",
+            'src/example.js:env["PREFIX_" + key]',
+            'src/example.js:process.env?.[name]',
+            'src/example.js:env?.[key]'
+        ]
     );
 });
 

@@ -26,8 +26,8 @@ function listCodeFiles(root, output = []) {
 function extractRuntimeEnvNames(source = '') {
     const names = new Set();
     const patterns = [
-        /\bprocess\.env\.([A-Z][A-Z0-9_]*)\b/g,
-        /\benv\.([A-Z][A-Z0-9_]*)\b/g,
+        /\bprocess\.env\??\.([A-Z][A-Z0-9_]*)\b/g,
+        /\benv\??\.([A-Z][A-Z0-9_]*)\b/g,
         /\b(?:process\.)?env\s*\[\s*['"]([A-Z][A-Z0-9_]*)['"]\s*\]/g,
         /\bgetPositiveIntegerEnv\(\s*['"]([A-Z][A-Z0-9_]*)['"]/g,
         /\brequireEnv\(\s*env\s*,\s*['"]([A-Z][A-Z0-9_]*)['"]/g
@@ -40,9 +40,14 @@ function extractRuntimeEnvNames(source = '') {
 
 function extractDynamicEnvAccesses(source = '', file = '') {
     const accesses = [];
-    const pattern = /\b(process\.)?env\s*\[\s*([^'"][^\]]*?)\s*\]/g;
+    const pattern = /\b((?:process\.)?env)\s*(\?\.)?\s*\[\s*([^\]]+?)\s*\]/g;
     for (const match of String(source).matchAll(pattern)) {
-        const target = `${match[1] || ''}env[${String(match[2] || '').trim()}]`;
+        const base = match[1];
+        const optional = Boolean(match[2]);
+        const expression = String(match[3] || '').trim();
+        const plainLiteral = !optional && /^(['"])([A-Z][A-Z0-9_]*)\1$/.test(expression);
+        if (plainLiteral) continue;
+        const target = `${base}${optional ? '?.' : ''}[${expression}]`;
         accesses.push(`${file}:${target}`);
     }
     return accesses;
