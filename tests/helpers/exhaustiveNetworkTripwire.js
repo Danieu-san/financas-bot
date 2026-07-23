@@ -1,6 +1,8 @@
 const http = require('node:http');
 const https = require('node:https');
 const net = require('node:net');
+const path = require('node:path');
+const childProcess = require('node:child_process');
 
 function normalizeHost(value) {
     return String(value || '').trim().toLowerCase().replace(/^\[|\]$/g, '');
@@ -28,6 +30,90 @@ function blockedError(host) {
     const error = new Error(`EXHAUSTIVE_AUDIT_NETWORK_BLOCKED:${normalizeHost(host) || 'unknown'}`);
     error.code = 'EXHAUSTIVE_AUDIT_NETWORK_BLOCKED';
     return error;
+}
+
+function blockedSubprocessError() {
+    const error = new Error('EXHAUSTIVE_AUDIT_SUBPROCESS_BLOCKED');
+    error.code = 'EXHAUSTIVE_AUDIT_SUBPROCESS_BLOCKED';
+    return error;
+}
+
+function isCurrentNodeExecutable(command) {
+    if (typeof command !== 'string' || !command) return false;
+    const resolvedCommand = path.resolve(command);
+    const resolvedNode = path.resolve(process.execPath);
+    return process.platform === 'win32'
+        ? resolvedCommand.toLowerCase() === resolvedNode.toLowerCase()
+        : resolvedCommand === resolvedNode;
+}
+
+function protectedChildOptions(options) {
+    const source = options && typeof options === 'object' ? options : {};
+    return {
+        ...source,
+        env: {
+            ...(source.env || process.env),
+            EXHAUSTIVE_NETWORK_TRIPWIRE_ACTIVE: 'true',
+            NODE_OPTIONS: process.env.NODE_OPTIONS || ''
+        }
+    };
+}
+
+function installSubprocessTripwire() {
+    const originalSpawn = childProcess.spawn.bind(childProcess);
+    childProcess.spawn = function guardedSpawn(command, args, options) {
+        if (!isCurrentNodeExecutable(command)) throw blockedSubprocessError();
+        if (!Array.isArray(args)) return originalSpawn(command, [], protectedChildOptions(args));
+        return originalSpawn(command, args, protectedChildOptions(options));
+    };
+
+    const originalSpawnSync = childProcess.spawnSync.bind(childProcess);
+    childProcess.spawnSync = function guardedSpawnSync(command, args, options) {
+        if (!isCurrentNodeExecutable(command)) throw blockedSubprocessError();
+        if (!Array.isArray(args)) return originalSpawnSync(command, [], protectedChildOptions(args));
+        return originalSpawnSync(command, args, protectedChildOptions(options));
+    };
+
+    const originalExecFile = childProcess.execFile.bind(childProcess);
+    childProcess.execFile = function guardedExecFile(file, args, options, callback) {
+        if (!isCurrentNodeExecutable(file)) throw blockedSubprocessError();
+        if (typeof args === 'function') {
+            callback = args;
+            args = [];
+            options = {};
+        } else if (!Array.isArray(args)) {
+            callback = typeof options === 'function' ? options : callback;
+            options = args;
+            args = [];
+        } else if (typeof options === 'function') {
+            callback = options;
+            options = {};
+        }
+        return originalExecFile(file, args, protectedChildOptions(options), callback);
+    };
+
+    const originalExecFileSync = childProcess.execFileSync.bind(childProcess);
+    childProcess.execFileSync = function guardedExecFileSync(file, args, options) {
+        if (!isCurrentNodeExecutable(file)) throw blockedSubprocessError();
+        if (!Array.isArray(args)) {
+            options = args;
+            args = [];
+        }
+        return originalExecFileSync(file, args, protectedChildOptions(options));
+    };
+
+    const originalFork = childProcess.fork.bind(childProcess);
+    childProcess.fork = function guardedFork(modulePath, args, options) {
+        if (!Array.isArray(args)) return originalFork(modulePath, [], protectedChildOptions(args));
+        return originalFork(modulePath, args, protectedChildOptions(options));
+    };
+
+    childProcess.exec = function blockedExec() {
+        throw blockedSubprocessError();
+    };
+    childProcess.execSync = function blockedExecSync() {
+        throw blockedSubprocessError();
+    };
 }
 
 function installTripwire() {
@@ -67,10 +153,18 @@ function installTripwire() {
             return originalFetch(input, init);
         };
     }
+
+    installSubprocessTripwire();
 }
 
 if (String(process.env.EXHAUSTIVE_NETWORK_TRIPWIRE_ACTIVE || '').toLowerCase() === 'true') {
     installTripwire();
 }
 
-module.exports = { normalizeHost, isLoopbackHost, requestHost, installTripwire };
+module.exports = {
+    normalizeHost,
+    isLoopbackHost,
+    requestHost,
+    installTripwire,
+    isCurrentNodeExecutable
+};

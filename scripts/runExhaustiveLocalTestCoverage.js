@@ -4,6 +4,7 @@ const { spawnSync } = require('node:child_process');
 
 const ROOT = path.resolve(__dirname, '..');
 const TEST_ROOT = path.join(ROOT, 'tests');
+const TEST_AGGREGATES_PATH = path.join(TEST_ROOT, 'exhaustiveLocalTestAggregates.json');
 const STATE_STORE_PATH = path.join(ROOT, 'state_store.json');
 const STATE_STORE_TEMP_PATH = path.join(ROOT, 'state_store.tmp');
 const STATE_STORE_REPLAY_PATH = path.join(ROOT, 'state_store.replay.json');
@@ -20,6 +21,36 @@ const MUTABLE_RUNTIME_FILES = Object.freeze([
 const EXCLUDED = Object.freeze({
     'whatsapp-real-e2e.test.js': 'controls a real signed-in WhatsApp session'
 });
+const EXPECTED_SKIPPED_TESTS = Object.freeze([
+    'functional: consent, onboarding, settings and dashboard',
+    'functional: expenses, income and credit card installments',
+    'functional: goals, debts, payments and reminders',
+    'functional: analytics, deletion, admin and fallback',
+    'functional: complex analytics handles typos, counts, duplicates and min/max'
+]);
+const SAFE_ENVIRONMENT_KEYS = Object.freeze([
+    'APPDATA',
+    'CI',
+    'COMSPEC',
+    'HOME',
+    'LANG',
+    'LC_ALL',
+    'LOCALAPPDATA',
+    'NO_COLOR',
+    'OS',
+    'PATH',
+    'PATHEXT',
+    'Path',
+    'SYSTEMROOT',
+    'SystemRoot',
+    'TEMP',
+    'TERM',
+    'TMP',
+    'TMPDIR',
+    'TZ',
+    'USERPROFILE',
+    'WINDIR'
+]);
 
 function listAllLocalTestFiles() {
     return fs.readdirSync(TEST_ROOT, { withFileTypes: true })
@@ -29,15 +60,44 @@ function listAllLocalTestFiles() {
         .sort();
 }
 
-function findNestedTestEntries(files) {
+function readTestAggregateManifest(files) {
     const entries = new Set(files.map(file => path.resolve(file)));
+    const manifest = JSON.parse(fs.readFileSync(TEST_AGGREGATES_PATH, 'utf8'));
+    if (!manifest || Array.isArray(manifest) || typeof manifest !== 'object') {
+        throw new Error('invalid_test_aggregate_manifest');
+    }
+    const normalized = {};
     const nested = new Set();
-    for (const file of files) {
-        const source = fs.readFileSync(file, 'utf8');
-        for (const match of source.matchAll(/require\(\s*['"](\.\/[^'"]+\.test(?:\.js)?)['"]\s*\)/g)) {
-            const candidate = path.resolve(path.dirname(file), match[1].endsWith('.js') ? match[1] : `${match[1]}.js`);
-            if (entries.has(candidate)) nested.add(candidate);
+    for (const [aggregateName, childNames] of Object.entries(manifest)) {
+        if (!aggregateName.endsWith('.test.js') || !Array.isArray(childNames) || childNames.length === 0) {
+            throw new Error('invalid_test_aggregate_entry');
         }
+        const aggregatePath = path.resolve(TEST_ROOT, aggregateName);
+        if (!entries.has(aggregatePath) || Object.hasOwn(EXCLUDED, aggregateName)) {
+            throw new Error('invalid_test_aggregate_root');
+        }
+        normalized[aggregateName] = [];
+        for (const childName of childNames) {
+            if (typeof childName !== 'string' || !childName.endsWith('.test.js')) {
+                throw new Error('invalid_nested_test_entry');
+            }
+            const childPath = path.resolve(TEST_ROOT, childName);
+            if (childPath === aggregatePath || !entries.has(childPath)
+                || Object.hasOwn(EXCLUDED, childName) || nested.has(childPath)) {
+                throw new Error('invalid_nested_test_entry');
+            }
+            nested.add(childPath);
+            normalized[aggregateName].push(childPath);
+        }
+    }
+    return normalized;
+}
+
+function findNestedTestEntries(files) {
+    const manifest = readTestAggregateManifest(files);
+    const nested = new Set();
+    for (const childPaths of Object.values(manifest)) {
+        for (const childPath of childPaths) nested.add(childPath);
     }
     return [...nested].sort();
 }
@@ -85,7 +145,13 @@ function parseSkippedTests(output) {
         .slice(0, 100);
 }
 
-function validateRunnerResult({ exitStatus, tap, coverage }) {
+function validateRunnerResult({
+    exitStatus,
+    tap,
+    coverage,
+    skippedTests = [],
+    expectedSkippedTests = []
+}) {
     const reasons = [];
     if (!Number.isInteger(exitStatus)) reasons.push('child_exit_status_missing');
     const requiredTapFields = ['tests', 'pass', 'fail', 'cancelled', 'skipped', 'todo'];
@@ -96,6 +162,15 @@ function validateRunnerResult({ exitStatus, tap, coverage }) {
         || !Number.isFinite(coverage.branch_percent)
         || !Number.isFinite(coverage.function_percent)) {
         reasons.push('coverage_summary_missing');
+    }
+    if (tap && Number.isInteger(tap.skipped) && tap.skipped !== skippedTests.length) {
+        reasons.push('skipped_summary_mismatch');
+    }
+    const actualSkipped = [...skippedTests].sort();
+    const expectedSkipped = [...expectedSkippedTests].sort();
+    if (actualSkipped.some((name, index) => name !== expectedSkipped[index])
+        || actualSkipped.length !== expectedSkipped.length) {
+        reasons.push('unexpected_skipped_tests');
     }
     return { valid: reasons.length === 0, reasons };
 }
@@ -109,6 +184,33 @@ function buildNodeTestArgs(files) {
         '--test-concurrency=1',
         ...files
     ];
+}
+
+function buildDescendantNodeOptions(existingNodeOptions = '') {
+    const preservedFlags = ['--preserve-symlinks', '--preserve-symlinks-main']
+        .filter(flag => String(existingNodeOptions).split(/\s+/).includes(flag));
+    const tripwirePath = NETWORK_TRIPWIRE_PATH.replace(/\\/g, '/').replace(/"/g, '\\"');
+    return [`--require="${tripwirePath}"`, ...preservedFlags].join(' ');
+}
+
+function buildHermeticTestEnvironment(sourceEnvironment = process.env) {
+    const environment = {};
+    for (const key of SAFE_ENVIRONMENT_KEYS) {
+        if (typeof sourceEnvironment[key] === 'string' && sourceEnvironment[key]) {
+            environment[key] = sourceEnvironment[key];
+        }
+    }
+    return {
+        ...environment,
+        NODE_ENV: 'test',
+        NODE_OPTIONS: buildDescendantNodeOptions(sourceEnvironment.NODE_OPTIONS),
+        RUN_FUNCTIONAL_TESTS: 'false',
+        WHATSAPP_E2E_ENABLED: 'false',
+        EXHAUSTIVE_NETWORK_TRIPWIRE_ACTIVE: 'true',
+        STATE_STORE_ENCRYPTION_KEY: Buffer.alloc(32, 0x55).toString('base64'),
+        OPEN_FINANCE_AUTO_SYNC_ENABLED: 'false',
+        OPEN_FINANCE_LIVE_READ_ENABLED: 'false'
+    };
 }
 
 function captureFileSnapshot(file) {
@@ -141,16 +243,7 @@ function runLocalCoverage() {
             cwd: ROOT,
             encoding: 'utf8',
             maxBuffer: 128 * 1024 * 1024,
-            env: {
-                ...process.env,
-                NODE_ENV: 'test',
-                RUN_FUNCTIONAL_TESTS: 'false',
-                WHATSAPP_E2E_ENABLED: 'false',
-                EXHAUSTIVE_NETWORK_TRIPWIRE_ACTIVE: 'true',
-                STATE_STORE_ENCRYPTION_KEY: Buffer.alloc(32, 0x55).toString('base64'),
-                OPEN_FINANCE_AUTO_SYNC_ENABLED: 'false',
-                OPEN_FINANCE_LIVE_READ_ENABLED: 'false'
-            }
+            env: buildHermeticTestEnvironment()
         });
     } finally {
         for (const [file, snapshot] of runtimeSnapshots) restoreFileSnapshot(file, snapshot);
@@ -158,7 +251,14 @@ function runLocalCoverage() {
     const output = `${result.stdout || ''}\n${result.stderr || ''}`;
     const tap = parseTapSummary(output);
     const coverage = parseCoverageSummary(output);
-    const validation = validateRunnerResult({ exitStatus: result.status, tap, coverage });
+    const skippedTests = parseSkippedTests(output);
+    const validation = validateRunnerResult({
+        exitStatus: result.status,
+        tap,
+        coverage,
+        skippedTests,
+        expectedSkippedTests: EXPECTED_SKIPPED_TESTS
+    });
     return {
         schema_version: 1,
         local_only: true,
@@ -175,7 +275,7 @@ function runLocalCoverage() {
         tap,
         coverage,
         failures: parseFailures(output),
-        skipped_tests: parseSkippedTests(output)
+        skipped_tests: skippedTests
     };
 }
 
@@ -187,16 +287,20 @@ if (require.main === module) {
 
 module.exports = {
     EXCLUDED,
+    EXPECTED_SKIPPED_TESTS,
     MUTABLE_RUNTIME_FILES,
     listAllLocalTestFiles,
     listLocalTestFiles,
     findNestedTestEntries,
+    readTestAggregateManifest,
     parseTapSummary,
     parseCoverageSummary,
     parseFailures,
     parseSkippedTests,
     validateRunnerResult,
     buildNodeTestArgs,
+    buildDescendantNodeOptions,
+    buildHermeticTestEnvironment,
     captureFileSnapshot,
     restoreFileSnapshot,
     runLocalCoverage

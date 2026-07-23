@@ -1,0 +1,22 @@
+{
+  "openFinanceSandboxStaging.test.js": [
+    "openFinanceSandboxWebhook.test.js",
+    "openFinanceSandboxWebhookInbox.test.js",
+    "openFinanceSandboxPolling.test.js",
+    "openFinancePluggyReadOnly.test.js",
+    "openFinanceShadowReconciliation.test.js",
+    "openFinanceBaseline.test.js",
+    "openFinanceLifecycle.test.js",
+    "openFinanceAlertOutbox.test.js",
+    "openFinanceOutboxStatsReport.test.js",
+    "openFinanceUnconfirmedReport.test.js",
+    "acknowledgeOpenFinanceAlertDelivery.test.js",
+    "openFinanceRolloutPolicy.test.js",
+    "openFinanceWhatsappCanaryDelivery.test.js",
+    "openFinanceCanaryRuntime.test.js",
+    "openFinanceConsentLifecycle.test.js",
+    "openFinanceStateBackup.test.js",
+    "openFinanceOperationalBackupGate.test.js",
+    "openFinanceRevocationJournal.test.js"
+  ]
+}

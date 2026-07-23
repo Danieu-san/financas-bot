@@ -3,13 +3,16 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 
 const ROOT = path.resolve(__dirname, '..');
 const { isLoopbackHost, requestHost } = require('./helpers/exhaustiveNetworkTripwire');
 
 const {
     EXCLUDED,
+    EXPECTED_SKIPPED_TESTS,
     MUTABLE_RUNTIME_FILES,
+    listAllLocalTestFiles,
     listLocalTestFiles,
     parseTapSummary,
     parseCoverageSummary,
@@ -17,6 +20,7 @@ const {
     findNestedTestEntries,
     validateRunnerResult,
     buildNodeTestArgs,
+    buildHermeticTestEnvironment,
     captureFileSnapshot,
     restoreFileSnapshot
 } = require('../scripts/runExhaustiveLocalTestCoverage');
@@ -71,11 +75,10 @@ test('coverage runner parses the final TAP and coverage summaries', () => {
 });
 
 test('coverage runner identifies test entries loaded by an aggregator', () => {
-    const nested = findNestedTestEntries([
-        path.join(ROOT, 'tests', 'openFinanceSandboxStaging.test.js'),
-        path.join(ROOT, 'tests', 'openFinanceSandboxWebhook.test.js')
-    ]).map(file => file.replace(/\\/g, '/'));
+    const nested = findNestedTestEntries(listAllLocalTestFiles())
+        .map(file => file.replace(/\\/g, '/'));
     assert.ok(nested.some(file => file.endsWith('/openFinanceSandboxWebhook.test.js')));
+    assert.strictEqual(nested.length, 18);
 });
 
 test('coverage runner fails closed when TAP or coverage summary is incomplete', () => {
@@ -93,6 +96,73 @@ test('coverage runner fails closed when TAP or coverage summary is incomplete', 
     assert.strictEqual(invalid.valid, false);
     assert.ok(invalid.reasons.includes('tap_summary_incomplete'));
     assert.ok(invalid.reasons.includes('coverage_summary_missing'));
+});
+
+test('coverage runner fails closed for new or missing skipped tests', () => {
+    const tap = {
+        tests: 10,
+        pass: 9,
+        fail: 0,
+        cancelled: 0,
+        skipped: 1,
+        todo: 0
+    };
+    const coverage = { line_percent: 80, branch_percent: 70, function_percent: 75 };
+    assert.deepStrictEqual(validateRunnerResult({
+        exitStatus: 0,
+        tap,
+        coverage,
+        skippedTests: ['expected skip'],
+        expectedSkippedTests: ['expected skip']
+    }), { valid: true, reasons: [] });
+    assert.ok(validateRunnerResult({
+        exitStatus: 0,
+        tap,
+        coverage,
+        skippedTests: ['unexpected skip'],
+        expectedSkippedTests: ['expected skip']
+    }).reasons.includes('unexpected_skipped_tests'));
+    assert.ok(validateRunnerResult({
+        exitStatus: 0,
+        tap: { ...tap, skipped: 0 },
+        coverage,
+        skippedTests: [],
+        expectedSkippedTests: ['expected skip']
+    }).reasons.includes('unexpected_skipped_tests'));
+    assert.strictEqual(EXPECTED_SKIPPED_TESTS.length, 5);
+});
+
+test('coverage runner scrubs credentials and propagates network blocking to Node descendants', () => {
+    const environment = buildHermeticTestEnvironment({
+        Path: process.env.Path || process.env.PATH || '',
+        SYSTEMROOT: process.env.SYSTEMROOT || '',
+        TEMP: os.tmpdir(),
+        NODE_OPTIONS: '--inspect --preserve-symlinks --preserve-symlinks-main',
+        GOOGLE_CLIENT_SECRET: 'must-not-survive',
+        OPEN_FINANCE_CLIENT_SECRET: 'must-not-survive'
+    });
+    assert.strictEqual(environment.GOOGLE_CLIENT_SECRET, undefined);
+    assert.strictEqual(environment.OPEN_FINANCE_CLIENT_SECRET, undefined);
+    assert.ok(environment.NODE_OPTIONS.includes('--require='));
+    assert.ok(environment.NODE_OPTIONS.includes('--preserve-symlinks'));
+    assert.ok(!environment.NODE_OPTIONS.includes('--inspect'));
+
+    const child = spawnSync(process.execPath, [
+        '-e',
+        `try {
+            require('node:https').get('https://example.com');
+            process.exit(2);
+        } catch (error) {
+            if (error.code !== 'EXHAUSTIVE_AUDIT_NETWORK_BLOCKED') process.exit(3);
+        }
+        try {
+            require('node:child_process').spawnSync('unapproved-executable', []);
+            process.exit(4);
+        } catch (error) {
+            process.exit(error.code === 'EXHAUSTIVE_AUDIT_SUBPROCESS_BLOCKED' ? 0 : 5);
+        }`
+    ], { env: environment, encoding: 'utf8' });
+    assert.strictEqual(child.status, 0, child.stderr);
 });
 
 test('coverage runner serializes local test files to avoid shared runtime races', () => {

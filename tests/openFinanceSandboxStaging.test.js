@@ -74,23 +74,8 @@ test('staging falha fechado sem segredo HMAC', () => {
     assert.throws(() => new OpenFinanceStagingStore({ databasePath }), /open_finance_hmac_secret_required/);
 });
 
-// Keep the isolated Open Finance gate in the repository-wide explicit test list
-// without expanding the already long package.json command for each sandbox slice.
-require('./openFinanceSandboxWebhook.test');
-require('./openFinanceSandboxWebhookInbox.test');
-require('./openFinanceSandboxPolling.test');
-require('./openFinancePluggyReadOnly.test');
-require('./openFinanceShadowReconciliation.test');
-require('./openFinanceBaseline.test');
-require('./openFinanceLifecycle.test');
-require('./openFinanceAlertOutbox.test');
-require('./openFinanceOutboxStatsReport.test');
-require('./openFinanceUnconfirmedReport.test');
-require('./acknowledgeOpenFinanceAlertDelivery.test');
-require('./openFinanceRolloutPolicy.test');
-require('./openFinanceWhatsappCanaryDelivery.test');
-require('./openFinanceCanaryRuntime.test');
-require('./openFinanceConsentLifecycle.test');
-require('./openFinanceStateBackup.test');
-require('./openFinanceOperationalBackupGate.test');
-require('./openFinanceRevocationJournal.test');
+// Keep the isolated Open Finance gate in the repository-wide local test list.
+const aggregateEntries = require('./exhaustiveLocalTestAggregates.json');
+for (const entry of aggregateEntries['openFinanceSandboxStaging.test.js']) {
+    require(`./${entry}`);
+}
