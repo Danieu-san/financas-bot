@@ -29,6 +29,20 @@ test('local coverage runner excludes the real WhatsApp controller and nested dup
     assert.ok(files.some(file => file.endsWith('/exhaustiveRuntimeInventory.test.js')));
 });
 
+test('npm test delegates to the exhaustive local release gate while real E2E remains explicit', () => {
+    const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+    assert.strictEqual(packageJson.scripts.pretest, undefined);
+    assert.strictEqual(packageJson.scripts.test, 'npm run test:release');
+    assert.strictEqual(
+        packageJson.scripts['test:release'],
+        'node scripts/runExhaustiveLocalTestCoverage.js'
+    );
+    assert.strictEqual(
+        packageJson.scripts['test:whatsapp:e2e'],
+        'node scripts/runWhatsappRealE2E.js'
+    );
+});
+
 test('coverage runner parses the final TAP and coverage summaries', () => {
     const output = [
         '# tests 12',

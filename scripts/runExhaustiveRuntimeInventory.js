@@ -6,6 +6,7 @@ const SOURCE_ROOT = path.join(ROOT, 'src');
 const SCRIPT_ROOT = path.join(ROOT, 'scripts');
 const TEST_ROOT = path.join(ROOT, 'tests');
 const CODE_EXTENSIONS = new Set(['.js', '.mjs']);
+const EXHAUSTIVE_LOCAL_TEST_RUNNER = 'scripts/runExhaustiveLocalTestCoverage.js';
 
 function normalizeFile(file) {
     return path.relative(ROOT, file).replace(/\\/g, '/');
@@ -123,10 +124,21 @@ function runInventory() {
     const registeredTestFiles = [...new Set(packageReferences
         .filter(reference => reference.file.startsWith('tests/') && fs.existsSync(path.join(ROOT, reference.file)))
         .map(reference => reference.file))].sort();
-    const defaultTestFiles = [...new Set(packageReferences
+    const staticallyReferencedDefaultTestFiles = packageReferences
         .filter(reference => defaultTestScripts.includes(reference.script))
         .filter(reference => reference.file.startsWith('tests/') && fs.existsSync(path.join(ROOT, reference.file)))
-        .map(reference => reference.file))].sort();
+        .map(reference => reference.file);
+    const exhaustiveRunnerIsDefault = packageReferences.some(reference => (
+        defaultTestScripts.includes(reference.script)
+        && reference.file === EXHAUSTIVE_LOCAL_TEST_RUNNER
+    ));
+    const discoveredDefaultTestFiles = exhaustiveRunnerIsDefault
+        ? require('./runExhaustiveLocalTestCoverage').listAllLocalTestFiles().map(normalizeFile)
+        : [];
+    const defaultTestFiles = [...new Set([
+        ...staticallyReferencedDefaultTestFiles,
+        ...discoveredDefaultTestFiles
+    ])].sort();
     const testEntryFiles = testFiles.map(normalizeFile).filter(file => file.endsWith('.test.js'));
     const unregisteredTestFiles = testEntryFiles.filter(file => !registeredTestFiles.includes(file));
     const outsideDefaultTestFiles = testEntryFiles.filter(file => !defaultTestFiles.includes(file));
@@ -195,6 +207,7 @@ function runInventory() {
         classification_counts: classificationCounts,
         missing_package_references: missingPackageReferences,
         default_test_scripts: defaultTestScripts,
+        exhaustive_local_runner_is_default: exhaustiveRunnerIsDefault,
         unregistered_test_files: unregisteredTestFiles,
         outside_default_test_files: outsideDefaultTestFiles,
         unresolved_relative_imports: unresolved,

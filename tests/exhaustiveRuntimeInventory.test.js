@@ -48,6 +48,8 @@ test('inventory accounts for every source module without silently dropping graph
     assert.strictEqual(new Set(inventory.modules.map(module => module.file)).size, inventory.scope.source_files);
     assert.ok(inventory.scope.test_entry_files >= inventory.scope.default_test_files);
     assert.ok(inventory.scope.test_entry_files >= inventory.scope.registered_test_files);
+    assert.strictEqual(inventory.exhaustive_local_runner_is_default, true);
+    assert.deepStrictEqual(inventory.outside_default_test_files, ['tests/whatsapp-real-e2e.test.js']);
     assert.strictEqual(
         Object.values(inventory.classification_counts).reduce((sum, count) => sum + count, 0),
         inventory.scope.source_files
