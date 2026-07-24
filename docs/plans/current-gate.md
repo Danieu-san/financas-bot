@@ -6,7 +6,7 @@ Base: `195ac58af68acdec87c0fb80617d0ddcf1d1de3b`.
 
 ## Estado
 
-`TERCEIRA RECUPERAÇÃO LOCAL VERDE; NOVO HASH E REAUDITORIA PENDENTES`.
+`GO TÉCNICO LOCAL`.
 
 9P.0 encerrou a persistência shadow da proposta reconciliada. Esta fatia
 implementa o destinatário autorizado e a confirmação durável de uso único sem
@@ -29,7 +29,9 @@ A segunda recuperação foi publicada em
 independente por um `MEDIUM`: o próprio journal ainda podia ser apagado,
 truncado ou revertido para uma cópia válida anterior. A terceira recuperação
 vincula o journal a uma âncora autenticada e separada, verificada antes de toda
-operação.
+operação. Ela foi publicada em
+`a2c15b6dd7e52ef7aff8dc3ac4a4050e9adbc445` e recebeu `GO TÉCNICO LOCAL`
+independente, sem achados `CRITICAL`, `HIGH` ou `MEDIUM`.
 
 ## Objetivo
 
@@ -97,13 +99,11 @@ ator familiar, geração, expiração e idempotência.
 
 ## Próxima ação exata
 
-Criar e publicar o commit sanitizado da terceira recuperação, pedir reauditoria
-independente por hash imutável e confrontar o parecer com a evidência local.
-
-Arquivos intencionais deste gate ficam somente no worktree
-`open-finance-save-proposal`; não misturá-los com arquivos externos nem iniciar
-as verificações posteriores antes do GO independente.
+Publicar o fechamento documental de 9P.1 e substituir este plano por um gate
+local de entrega/captura WhatsApp da proposta já reconciliada. A nova fatia deve
+manter `OPEN_FINANCE_WRITE_MODE=off`, não acessar produção e não conceder escrita
+financeira.
 
 ## Capacidade
 
-`Codex → Sol → Alto → implementar o contrato local 9P.1 sem produção.`
+`Codex → Sol → Alto → materializar a entrega e captura local da proposta sem escrita.`

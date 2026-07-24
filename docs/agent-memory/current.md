@@ -4,40 +4,32 @@ Atualizado em: 2026-07-24
 
 ## Objetivo ativo
 
-A fila original da auditoria exaustiva está tecnicamente encerrada. O primeiro
-candidato `9P.1`, publicado em `434ecaafed4e20cbafc02dffd51c7710ef3b86fc`,
-recebeu `NO-GO` independente por retenção do token cifrado após decisão e falta
-de autenticação do estado mutável de uso único.
+A fila original da auditoria exaustiva está tecnicamente encerrada. `9P.1`
+também recebeu `GO TÉCNICO LOCAL` independente no commit imutável
+`a2c15b6dd7e52ef7aff8dc3ac4a4050e9adbc445`.
 
-A primeira recuperação, publicada em
-`5fbeb378ea666ae854b3ae7bad0069bdb9f53a15`, também recebeu `NO-GO`: apagar
-todo o envelope ainda simulava “nunca preparado”, e um backup antigo válido
-reabria `ready`.
+A confirmação local de uso único agora preserva terminais contra replay,
+restart, restore e perda/rollback unilateral dos armazenamentos. O journal
+possui identidade autenticada e uma âncora SQLite separada, confrontada na
+abertura e antes de toda operação pública.
 
-A segunda recuperação foi publicada em
-`3beef9309c5d8f857bc96a3de08965118fdb989b` e recebeu `NO-GO`
-independente por um `MEDIUM`: perda, truncamento ou rollback válido do próprio
-journal ainda podia reabrir uma proposta terminal.
-
-A terceira recuperação adiciona uma âncora SQLite separada e autenticada,
-confrontada na abertura e antes de toda operação. Perda/truncamento/rollback do
-journal, perda/rollback da âncora e reingestão posterior falham fechados. A
-evidência está verde em `22/22` focados, `234/234` Open Finance e
-`1.283/1.288` no runner hermético, com zero falhas e cinco skips previstos.
-Aguarda novo commit imutável e reauditoria.
+Evidência: `22/22` focados, `234/234` Open Finance e `1.283/1.288` no runner
+hermético, com zero falhas e cinco skips previstos. A auditoria confirmou
+`CRITICAL/HIGH/MEDIUM = 0` e classificou rollback coordenado de todos os
+armazenamentos locais como limite inerente ao contrato local, não lacuna do
+gate.
 
 ## Transferência em curso
 
 Worktree vigente:
 `E:\\Users\\horus\\Documents\\FinancasBot\\worktrees\\open-finance-save-proposal`.
-Branch: `codex/open-finance-save-proposal`; HEAD de partida desta recuperação:
-`3beef9309c5d8f857bc96a3de08965118fdb989b`.
+Branch: `codex/open-finance-save-proposal`; produto auditado:
+`a2c15b6dd7e52ef7aff8dc3ac4a4050e9adbc445`.
 
-Alterações intencionais desta recuperação: journal, testes causais e documentos
-9P.1. Ao retomar, conferir a árvore, adicionar somente esses arquivos, criar o
-commit sanitizado, publicar na mesma branch e
-pedir a reauditoria por hash imutável. Não executar fase 8, produção,
-Oracle/AWS, cofre Pluggy ou remoção de mensagens antes desse GO.
+Alterações intencionais em curso: apenas o fechamento documental de 9P.1.
+Depois de publicá-lo, materializar o próximo gate local derivado do roadmap:
+entrega WhatsApp da proposta já reconciliada e captura de resposta, ainda sem
+escrita financeira. Não executar fase 8, produção, Oracle/AWS ou Pluggy real.
 
 Não houve transporte, handler WhatsApp, escrita financeira, produção, Google
 ou Pluggy real.
@@ -145,8 +137,8 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Git e workspace
 
-- branch ativa: `codex/open-finance-save-proposal`, recuperação baseada em
-  `3beef9309c5d8f857bc96a3de08965118fdb989b`;
+- branch ativa: `codex/open-finance-save-proposal`, produto 9P.1 auditado em
+  `a2c15b6dd7e52ef7aff8dc3ac4a4050e9adbc445`;
 - último produto com `GO TÉCNICO LOCAL`:
   `195ac58af68acdec87c0fb80617d0ddcf1d1de3b`;
 - fechamento documental de 9P.0:
@@ -158,15 +150,14 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Próximo gate
 
-`9P.1`: terceira recuperação pós-`NO-GO` localmente verde; commit, publicação e
-reauditoria independente pendentes.
+`9P.1`: `GO TÉCNICO LOCAL`; fechamento documental em publicação.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
 ## Decisões vigentes
 
-- manter `Codex → Sol → Alto` no gate `9P.1`, que cruza estado conversacional,
-  autorização familiar, replay e futura idempotência de escrita;
+- manter `Codex → Sol → Alto` no próximo gate, que cruza transporte WhatsApp,
+  estado conversacional, autorização familiar e replay;
 - parar e avisar Daniel antes de reduzir ou trocar capacidade;
 - a produção vigente é Oracle/OCI; não reutilizar caminhos AWS e não executar
   Oracle e AWS simultaneamente com a mesma sessão WhatsApp;
@@ -179,8 +170,9 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar a terceira recuperação 9P.1 por novo hash imutável e submetê-lo uma
-única vez à reauditoria independente no Chat.
+Registrar e publicar o fechamento independente de 9P.1; em seguida materializar
+o gate local de entrega/captura WhatsApp da proposta reconciliada, com
+`OPEN_FINANCE_WRITE_MODE=off`.
 
 ## Capacidade para retomar
 
@@ -213,6 +205,8 @@ Pluggy/Open Finance:
   `docs/audit/51-open-finance-save-proposal-terminal-journal-recovery-candidate-2026-07-24.md`;
 - terceira recuperação 9P.1:
   `docs/audit/52-open-finance-save-proposal-terminal-anchor-recovery-candidate-2026-07-24.md`;
+- fechamento independente 9P.1:
+  `docs/audit/53-open-finance-save-proposal-confirmation-independent-close-2026-07-24.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:
