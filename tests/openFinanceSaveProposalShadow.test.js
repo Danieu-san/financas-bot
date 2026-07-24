@@ -12,7 +12,8 @@ const { observationRef } = require('../src/openFinance/openFinanceRuntimeReconci
 const {
     runOpenFinanceCanaryCycle,
     initializeOpenFinanceCanaryRuntime,
-    saveProposalMode
+    saveProposalMode,
+    saveProposalConfiguration
 } = require('../src/openFinance/openFinanceCanaryRuntime');
 
 const secret = 'open-finance-save-proposal-shadow-secret';
@@ -96,13 +97,40 @@ function proposalInput(input, observedAt = '2026-07-23T11:00:00.000Z') {
     };
 }
 
-test('9P.0 proposal mode is dark by default and refuses premature canary activation', () => {
+test('9P.2 proposal mode is dark by default and exposes only shadow or write-free prompt', () => {
     assert.equal(saveProposalMode({}), 'off');
     assert.equal(saveProposalMode({ OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'shadow' }), 'shadow');
+    assert.equal(saveProposalMode({ OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt' }), 'prompt');
     assert.throws(() => saveProposalMode({ OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'canary' }),
         /invalid_open_finance_save_proposal_mode/);
     assert.throws(() => saveProposalMode({ OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'on' }),
         /invalid_open_finance_save_proposal_mode/);
+});
+
+test('9P.2 prompt configuration requires reconciliation, preview and financial writes off', () => {
+    const valid = {
+        OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
+        OPEN_FINANCE_SHADOW_PREVIEW_MODE: 'canary',
+        OPEN_FINANCE_RECONCILIATION_MODE: 'canary',
+        OPEN_FINANCE_WRITE_MODE: 'off'
+    };
+    assert.deepEqual(saveProposalConfiguration(valid), {
+        proposalMode: 'prompt',
+        previewMode: 'canary',
+        internalReconciliationMode: 'canary'
+    });
+    assert.throws(() => saveProposalConfiguration({
+        ...valid,
+        OPEN_FINANCE_SHADOW_PREVIEW_MODE: 'off'
+    }), /open_finance_save_proposal_preview_required/);
+    assert.throws(() => saveProposalConfiguration({
+        ...valid,
+        OPEN_FINANCE_RECONCILIATION_MODE: 'off'
+    }), /open_finance_save_proposal_reconciliation_required/);
+    assert.throws(() => saveProposalConfiguration({
+        ...valid,
+        OPEN_FINANCE_WRITE_MODE: 'canary'
+    }), /open_finance_prompt_requires_write_mode_off/);
 });
 
 test('9P.0 initializer rejects invalid proposal configuration before installing polling timers', () => {
@@ -397,11 +425,12 @@ test('9P.0 runtime creates shadow proposals without changing WhatsApp or financi
     vault.close();
 
     let apiCalls = 0;
+    let currentSnapshot = changed;
     let messages = 0;
     class FakeApi {
         async readSnapshot() {
             apiCalls += 1;
-            return changed;
+            return currentSnapshot;
         }
     }
     const env = {
@@ -421,8 +450,13 @@ test('9P.0 runtime creates shadow proposals without changing WhatsApp or financi
         OPEN_FINANCE_REVOCATION_JOURNAL_DB: files.journal,
         OPEN_FINANCE_SHADOW_PREVIEW_DB: files.preview
     };
+    const conversationStates = new Map();
     const dependencies = {
         PluggyReadOnlyClient: FakeApi,
+        userStateManager: {
+            getState: actor => conversationStates.get(actor),
+            setState: (actor, state) => conversationStates.set(actor, state)
+        },
         getActiveUsers: async () => [{
             user_id: 'user-daniel',
             display_name: 'Daniel',
@@ -458,11 +492,62 @@ test('9P.0 runtime creates shadow proposals without changing WhatsApp or financi
         reopened.close();
     }
 
+    for (const suffix of ['', '-wal', '-shm']) {
+        fs.rmSync(`${files.outbox}${suffix}`, { force: true });
+    }
+    new OpenFinanceAlertOutbox({ databasePath: files.outbox, secret }).close();
+    currentSnapshot = {
+        ...changed,
+        event_id: 'prompt-changed',
+        observed_at: '2026-07-23T12:00:00.000Z',
+        items: [{
+            ...baseItem,
+            transactions: [
+                transaction('old'),
+                transaction('purchase-posted'),
+                transaction('purchase-prompt')
+            ]
+        }]
+    };
+    let promptText = '';
+    const promptResult = await runOpenFinanceCanaryCycle({
+        client: {
+            sendMessage: async (_recipient, text) => {
+                messages += 1;
+                promptText = text;
+                return { id: 'runtime-prompt-message-id' };
+            }
+        },
+        env: {
+            ...env,
+            OPEN_FINANCE_ALERT_MODE: 'canary',
+            OPEN_FINANCE_ALERT_CANARY_ALIAS: 'daniel_nubank',
+            OPEN_FINANCE_ALERT_CANARY_ACTIVATIONS_JSON: JSON.stringify({
+                daniel_nubank: '2026-07-23T11:30:00.000Z'
+            }),
+            OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt'
+        },
+        dependencies
+    });
+    assert.equal(promptResult.outcome, 'GO');
+    assert.equal(promptResult.save_proposals.mode, 'prompt');
+    assert.equal(promptResult.save_proposals.inserted, 1);
+    assert.deepEqual(promptResult.deliveries, ['delivered_confirmed', 'idle']);
+    assert.equal(promptResult.financial_writes, 0);
+    assert.equal(messages, 1);
+    assert.match(promptText, /Quer continuar para salvar este lançamento/);
+    assert.match(promptText, /Nada será salvo antes da conferência final/);
+    const promptState = conversationStates.get(actorWhatsappId);
+    assert.equal(promptState.action, 'awaiting_open_finance_save_confirmation');
+    assert.match(promptState.data.proposalRef, /^[a-f0-9]{32}$/);
+    assert.equal(Object.hasOwn(promptState.data, 'confirmationRef'), false);
+    conversationStates.delete(actorWhatsappId);
+
     await assert.rejects(() => runOpenFinanceCanaryCycle({
         client: { sendMessage: async () => { messages += 1; } },
         env: { ...env, OPEN_FINANCE_SHADOW_PREVIEW_MODE: 'off' },
         dependencies
     }), /open_finance_save_proposal_preview_required/);
-    assert.equal(apiCalls, 1);
-    assert.equal(messages, 0);
+    assert.equal(apiCalls, 2);
+    assert.equal(messages, 1);
 });

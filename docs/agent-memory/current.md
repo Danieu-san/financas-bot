@@ -4,35 +4,32 @@ Atualizado em: 2026-07-24
 
 ## Objetivo ativo
 
-A fila original da auditoria exaustiva está tecnicamente encerrada. `9P.1`
-também recebeu `GO TÉCNICO LOCAL` independente no commit imutável
-`a2c15b6dd7e52ef7aff8dc3ac4a4050e9adbc445`.
+A fila original da auditoria exaustiva e o gate `9P.1` estão tecnicamente
+encerrados. O objetivo ativo é fechar `9P.2`, cujo candidato local já liga a
+proposta reconciliada e a confirmação durável ao transporte WhatsApp e ao
+handler público, ainda sem escrita financeira.
 
-A confirmação local de uso único agora preserva terminais contra replay,
-restart, restore e perda/rollback unilateral dos armazenamentos. O journal
-possui identidade autenticada e uma âncora SQLite separada, confrontada na
-abertura e antes de toda operação pública.
-
-Evidência: `22/22` focados, `234/234` Open Finance e `1.283/1.288` no runner
-hermético, com zero falhas e cinco skips previstos. A auditoria confirmou
-`CRITICAL/HIGH/MEDIUM = 0` e classificou rollback coordenado de todos os
-armazenamentos locais como limite inerente ao contrato local, não lacuna do
-gate.
+O contrato exige uma única confirmação pronta por familiar, preparação antes
+do transporte, recuperação após restart, captura estrita de
+`sim/não/cancelar` e `financial_writes=0`. O novo modo permanecerá desligado por
+padrão e não será promovido nem deployado neste gate.
 
 ## Transferência em curso
 
 Worktree vigente:
 `E:\\Users\\horus\\Documents\\FinancasBot\\worktrees\\open-finance-save-proposal`.
-Branch: `codex/open-finance-save-proposal`; produto auditado:
-`a2c15b6dd7e52ef7aff8dc3ac4a4050e9adbc445`.
+Branch: `codex/open-finance-save-proposal`; base de 9P.2:
+`ae9c7df91b0015d9812afdd0e06db6399254851a`.
 
-Alterações intencionais em curso: apenas o fechamento documental de 9P.1.
-Depois de publicá-lo, materializar o próximo gate local derivado do roadmap:
-entrega WhatsApp da proposta já reconciliada e captura de resposta, ainda sem
-escrita financeira. Não executar fase 8, produção, Oracle/AWS ou Pluggy real.
+Alterações intencionais em curso: plano, manifesto, produto e testes causais de
+9P.2. Evidência atual: focados `44/44`, máquina de estados `122/122`, Open
+Finance `244/244` e runner hermético `1.293/1.298`, sem falhas e com cinco
+skips funcionais previstos. Cobertura: linhas `90,10%`, branches `72,21%`,
+funções `89,92%`.
+Não executar fase 8, produção, Oracle/AWS, cofre Pluggy ou integrações reais.
 
-Não houve transporte, handler WhatsApp, escrita financeira, produção, Google
-ou Pluggy real.
+Não houve transporte WhatsApp real, escrita financeira, produção, Google ou
+Pluggy real.
 
 ## Último gate encerrado
 
@@ -150,7 +147,8 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Próximo gate
 
-`9P.1`: `GO TÉCNICO LOCAL`; fechamento documental em publicação.
+`9P.2`: entrega e captura local da proposta reconciliada; candidato local verde
+aguardando commit imutável e auditoria independente.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -170,9 +168,8 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Registrar e publicar o fechamento independente de 9P.1; em seguida materializar
-o gate local de entrega/captura WhatsApp da proposta reconciliada, com
-`OPEN_FINANCE_WRITE_MODE=off`.
+Criar e publicar o commit sanitizado do 9P.2, obter auditoria independente por
+hash imutável e somente então fechar ou corrigir o gate.
 
 ## Capacidade para retomar
 
@@ -207,6 +204,8 @@ Pluggy/Open Finance:
   `docs/audit/52-open-finance-save-proposal-terminal-anchor-recovery-candidate-2026-07-24.md`;
 - fechamento independente 9P.1:
   `docs/audit/53-open-finance-save-proposal-confirmation-independent-close-2026-07-24.md`;
+- candidato 9P.2:
+  `docs/audit/54-open-finance-save-proposal-conversation-candidate-2026-07-24.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:

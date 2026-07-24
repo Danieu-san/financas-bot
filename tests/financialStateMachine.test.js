@@ -408,6 +408,10 @@ const { getReadModelStats } = require('../src/services/readModelService');
 const cache = require('../src/utils/cache');
 const rateLimiter = require('../src/utils/rateLimiter');
 const logger = require('../src/utils/logger');
+const { OpenFinanceAlertOutbox } = require('../src/openFinance/openFinanceAlertOutbox');
+const { OpenFinanceRevocationJournal } = require('../src/openFinance/openFinanceRevocationJournal');
+const { OpenFinanceShadowPreviewStore } = require('../src/openFinance/openFinanceShadowPreviewStore');
+const { observationRef } = require('../src/openFinance/openFinanceRuntimeReconciliation');
 const originalRateLimiterIsAllowed = rateLimiter.isAllowed;
 const {
     getProjectedPlanWriteContext,
@@ -492,6 +496,162 @@ function resetState() {
         userService.invalidateUserCaches();
     }
 }
+
+stateMachineTest('9P.2 public serialized handler consumes one durable proposal reply without financial write', async () => {
+    resetState();
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-public-save-proposal-'));
+    const paths = {
+        secret: path.join(directory, 'secret.txt'),
+        journal: path.join(directory, 'journal.sqlite'),
+        preview: path.join(directory, 'preview.sqlite'),
+        outbox: path.join(directory, 'outbox.sqlite')
+    };
+    const secret = 'open-finance-public-handler-secret-32-bytes';
+    fs.writeFileSync(paths.secret, secret, { mode: 0o600 });
+    const journal = new OpenFinanceRevocationJournal({
+        databasePath: paths.journal,
+        secret
+    });
+    const store = new OpenFinanceShadowPreviewStore({
+        databasePath: paths.preview,
+        secret,
+        revocationJournal: journal,
+        authorizedWhatsAppIds: [SENDER],
+        confirmationActors: [{ principal: 'daniel', whatsappId: SENDER }]
+    });
+    const item = {
+        id: 'public-handler-item',
+        alias_code: 'daniel_nubank',
+        generation: 2,
+        accounts: [{ id: 'credit-account', type: 'CREDIT' }],
+        transactions: [{
+            id: 'public-handler-purchase',
+            account_id: 'credit-account',
+            amount_cents: 3490,
+            description: 'Compra para confirmação pública',
+            date: new Date(Date.now() - 3_600_000).toISOString(),
+            status: 'POSTED'
+        }]
+    };
+    const ref = observationRef(secret, item.id, 'credit-account', 'public-handler-purchase');
+    const ingested = store.ingestSaveProposals({
+        reconciliationDecisions: [{
+            alias: 'daniel_nubank',
+            observation_ref: ref,
+            transaction_ref: 'public-handler-transaction',
+            status: 'new',
+            rule: 'no_candidate'
+        }],
+        lifecycleDecisions: [{
+            observation_ref: ref,
+            classification: 'purchase',
+            provider_state: 'POSTED',
+            lifecycle_milestone: 'first_posted'
+        }],
+        openFinanceItems: [item],
+        policies: [{
+            alias: 'daniel_nubank',
+            write_confirmation_principal: 'daniel'
+        }],
+        observedAt: new Date(Date.now() - 60_000).toISOString(),
+        includeProposalLinks: true
+    });
+    const proposalRef = ingested.proposal_links[0].proposal_ref;
+    store.prepareSaveProposalConfirmation(proposalRef, { actorWhatsappId: SENDER });
+    const outbox = new OpenFinanceAlertOutbox({
+        databasePath: paths.outbox,
+        secret
+    });
+    outbox.enqueue({
+        candidates: [{
+            observation_ref: ref,
+            external_event_ref: 'public-handler-external-event',
+            correlation_state: 'new_event',
+            reconciliation_status: 'new'
+        }],
+        lifecycleDecisions: [{
+            observation_ref: ref,
+            classification: 'purchase',
+            provider_state: 'POSTED',
+            lifecycle_milestone: 'first_posted'
+        }],
+        items: [item],
+        policies: [{
+            alias: 'daniel_nubank',
+            source_owner: 'daniel',
+            authorized_viewers: ['daniel'],
+            whatsapp_recipient: 'daniel',
+            family_aggregation_allowed: false,
+            write_confirmation_principal: 'daniel'
+        }],
+        baselineComplete: true,
+        reconciliationRequired: true,
+        saveProposalLinks: ingested.proposal_links
+    });
+    const claimed = outbox.claimNext({ canaryAlias: 'daniel_nubank' });
+    outbox.acknowledgeDelivered({
+        alertRef: claimed.alert_ref,
+        leaseToken: claimed.lease_token,
+        whatsappMessageId: 'public-handler-message-id'
+    });
+    outbox.close();
+    store.close();
+    journal.close();
+
+    const variableNames = [
+        'OPEN_FINANCE_SAVE_PROPOSAL_MODE',
+        'OPEN_FINANCE_WRITE_MODE',
+        'OPEN_FINANCE_LIVE_STAGING_SECRET_FILE',
+        'OPEN_FINANCE_REVOCATION_JOURNAL_DB',
+        'OPEN_FINANCE_SHADOW_PREVIEW_DB',
+        'OPEN_FINANCE_OUTBOX_DB'
+    ];
+    const previous = Object.fromEntries(variableNames.map(name => [name, process.env[name]]));
+    Object.assign(process.env, {
+        OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
+        OPEN_FINANCE_WRITE_MODE: 'off',
+        OPEN_FINANCE_LIVE_STAGING_SECRET_FILE: paths.secret,
+        OPEN_FINANCE_REVOCATION_JOURNAL_DB: paths.journal,
+        OPEN_FINANCE_SHADOW_PREVIEW_DB: paths.preview,
+        OPEN_FINANCE_OUTBOX_DB: paths.outbox
+    });
+    userStateManager.setState(SENDER, {
+        action: 'awaiting_open_finance_save_confirmation',
+        data: { proposalRef }
+    });
+    try {
+        const reply = await send('sim');
+        assert.match(reply, /Proposta aceita/);
+        assert.match(reply, /Nada foi salvo ainda/);
+        assert.strictEqual(appendedRows.length, 0);
+        assert.strictEqual(userStateManager.getState(SENDER), undefined);
+
+        const reopenedJournal = new OpenFinanceRevocationJournal({
+            databasePath: paths.journal,
+            secret
+        });
+        const reopenedStore = new OpenFinanceShadowPreviewStore({
+            databasePath: paths.preview,
+            secret,
+            revocationJournal: reopenedJournal,
+            authorizedWhatsAppIds: [SENDER],
+            confirmationActors: [{ principal: 'daniel', whatsappId: SENDER }]
+        });
+        try {
+            assert.strictEqual(reopenedStore.stats().save_confirmations_accepted, 1);
+            assert.strictEqual(reopenedStore.stats().financial_writes, 0);
+        } finally {
+            reopenedStore.close();
+            reopenedJournal.close();
+        }
+    } finally {
+        for (const name of variableNames) {
+            if (previous[name] === undefined) delete process.env[name];
+            else process.env[name] = previous[name];
+        }
+        userStateManager.deleteState(SENDER);
+    }
+});
 
 function readReliabilityTelemetryEntries() {
     if (!fs.existsSync(RELIABILITY_TELEMETRY_PATH)) return [];

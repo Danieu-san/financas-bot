@@ -110,6 +110,9 @@ const metrics = require('../utils/metrics');
 const { isAdminWithContext } = require('../utils/adminCheck');
 const logger = require('../utils/logger');
 const { sendPlainMessage } = require('../utils/whatsappMessaging');
+const {
+    handleOpenFinanceSaveProposalReply
+} = require('../openFinance/openFinanceSaveProposalConversation');
 const { recordQaFailure } = require('../services/qaFailureLogService');
 const { recordAdminAction, hashRef, sanitizeValue } = require('../services/adminActionLogService');
 const { recordDashboardAccessEvent } = require('../services/dashboardAccessLogService');
@@ -9233,6 +9236,22 @@ async function processMessage(msg) {
         }
     }
 
+    let currentState = getConversationStateForMessage(senderId, activeUser);
+    if (!currentState || currentState.action === 'awaiting_open_finance_save_confirmation') {
+        const proposalReply = handleOpenFinanceSaveProposalReply({
+            messageBody,
+            actorWhatsappId: senderId,
+            expectedProposalRef: currentState?.data?.proposalRef || null
+        });
+        if (proposalReply.handled) {
+            if (!proposalReply.keep_pending) {
+                userStateManager.deleteState(senderId);
+            }
+            await sendPlainMessage(msg, proposalReply.reply);
+            return;
+        }
+    }
+
     const cacheKey = `${senderId}:${messageBody}`;
     const cachedResponse = cache.get(cacheKey);
     if (cachedResponse) {
@@ -9241,7 +9260,6 @@ async function processMessage(msg) {
         return;
     }
 
-    let currentState = getConversationStateForMessage(senderId, activeUser);
     if (currentState && isGlobalConversationCancel(messageBody)) {
         logger.info(`[state] conversation_cancelled action=${currentState.action} sender=${logger.redactIdentifier(senderId)}`);
         userStateManager.deleteState(senderId);

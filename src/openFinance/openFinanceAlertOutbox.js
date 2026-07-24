@@ -74,10 +74,24 @@ class OpenFinanceAlertOutbox {
     }
 
     enqueue({ candidates = [], lifecycleDecisions = [], items = [], policies = [], baselineComplete = false,
-        reconciliationRequired = false, createdAt = new Date().toISOString() } = {}) {
+        reconciliationRequired = false, saveProposalLinks = [],
+        createdAt = new Date().toISOString() } = {}) {
         if (!baselineComplete) throw new Error('outbox_requires_completed_baseline');
         const normalizedPolicies = new Map(normalizePolicies(policies).map(policy => [policy.alias, policy]));
         const decisionByRef = new Map(lifecycleDecisions.map(decision => [decision.observation_ref, decision]));
+        const proposalByObservation = new Map();
+        for (const link of saveProposalLinks) {
+            const observationRef = String(link?.observation_ref || '');
+            const proposalRef = String(link?.proposal_ref || '');
+            const principal = String(link?.principal || '').toLowerCase();
+            if (!/^[a-f0-9]{32}$/.test(observationRef) ||
+                !/^[a-f0-9]{32}$/.test(proposalRef) ||
+                !['daniel', 'thais'].includes(principal) ||
+                proposalByObservation.has(observationRef)) {
+                throw new Error('invalid_save_proposal_outbox_link');
+            }
+            proposalByObservation.set(observationRef, { proposalRef, principal });
+        }
         const sourceByRef = new Map();
         for (const item of items) {
             for (const transaction of item.transactions || []) {
@@ -99,11 +113,20 @@ class OpenFinanceAlertOutbox {
                     continue;
                 }
                 const policy = normalizedPolicies.get(source.alias);
+                const proposal = proposalByObservation.get(candidate.observation_ref);
                 const ineligible = !ALERTABLE_CLASSIFICATIONS.has(decision.classification) ||
                     (decision.provider_state === 'PENDING' && decision.lifecycle_milestone !== 'first_pending');
                 const revoked = this.db.prepare('SELECT 1 FROM finance_alert_revocations WHERE alias_ref=?')
                     .get(this.#ref('alias', source.alias));
                 if (!policy || ineligible || revoked) { blocked += 1; continue; }
+                if (proposal && (
+                    proposal.principal !== policy.principal ||
+                    decision.classification !== 'purchase' ||
+                    decision.provider_state !== 'POSTED' ||
+                    (reconciliationRequired && candidate.reconciliation_status !== 'new')
+                )) {
+                    throw new Error('save_proposal_outbox_link_mismatch');
+                }
                 const milestone = decision.provider_state === 'PENDING' ? 'first_pending' : decision.lifecycle_milestone;
                 const alertRef = this.#ref('alert', `${candidate.external_event_ref}:${milestone}`);
                 const payload = {
@@ -116,6 +139,7 @@ class OpenFinanceAlertOutbox {
                     description: String(source.transaction.description || '').slice(0, 120),
                     internal_reference: alertRef.slice(0, 10),
                     reconciliation_status: reconciliationRequired ? 'new' : 'legacy_unchecked',
+                    ...(proposal ? { proposal_ref: proposal.proposalRef } : {}),
                     write_enabled: false
                 };
                 const result = statement.run(alertRef, candidate.external_event_ref, milestone,
@@ -146,11 +170,16 @@ class OpenFinanceAlertOutbox {
             };
         });
     }
-    claimNext({ canaryAlias, canaryAliases, activatedAfterByAlias = {}, now = new Date().toISOString(), leaseSeconds = 120 } = {}) {
+    claimNext({ canaryAlias, canaryAliases, activatedAfterByAlias = {}, excludedRecipients = [],
+        now = new Date().toISOString(), leaseSeconds = 120 } = {}) {
         const aliases = [...new Set((Array.isArray(canaryAliases) && canaryAliases.length
             ? canaryAliases : [canaryAlias]).map(value => String(value || '').toLowerCase()).filter(Boolean))];
         if (!aliases.length || aliases.some(alias => !/^[a-z0-9_-]{2,48}$/.test(alias))) {
             throw new Error('valid_canary_alias_required');
+        }
+        const excluded = new Set((excludedRecipients || []).map(value => String(value || '').toLowerCase()));
+        if ([...excluded].some(value => !['daniel', 'thais'].includes(value))) {
+            throw new Error('valid_excluded_open_finance_recipient_required');
         }
         if (!Number.isInteger(leaseSeconds) || leaseSeconds < 30 || leaseSeconds > 900) throw new Error('invalid_outbox_lease');
         this.recoverExpiredAmbiguous({ now });
@@ -164,6 +193,7 @@ class OpenFinanceAlertOutbox {
                 const payload = this.#decrypt(row.alert_ref, row.encrypted_payload);
                 const payloadAlias = String(payload.alias || '').toLowerCase();
                 if (!aliases.includes(payloadAlias)) continue;
+                if (excluded.has(String(payload.recipient || '').toLowerCase())) continue;
                 const cutoff = activatedAfterByAlias[payloadAlias];
                 if (cutoff && Date.parse(row.created_at) < Date.parse(cutoff)) continue;
                 if (!ALERTABLE_CLASSIFICATIONS.has(payload.classification)) continue;
@@ -176,6 +206,18 @@ class OpenFinanceAlertOutbox {
             }
             return null;
         })();
+    }
+
+    getProposalDeliveryState(proposalRef) {
+        const normalized = String(proposalRef || '');
+        if (!/^[a-f0-9]{32}$/.test(normalized)) {
+            throw new Error('valid_save_proposal_ref_required');
+        }
+        const matches = this.db.prepare(`SELECT alert_ref,delivery_state,encrypted_payload
+            FROM finance_alert_outbox`).all()
+            .filter(row => this.#decrypt(row.alert_ref, row.encrypted_payload).proposal_ref === normalized);
+        if (matches.length > 1) throw new Error('ambiguous_save_proposal_outbox_link');
+        return matches[0]?.delivery_state || null;
     }
     quarantineBeforeActivation({ canaryAliases = [], activatedAfterByAlias = {} } = {}) {
         const aliases = new Set(canaryAliases.map(value => String(value || '').toLowerCase()));
