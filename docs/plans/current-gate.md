@@ -1,94 +1,85 @@
-# Gate encerrado — STATE-03
+# Gate ativo — 9P.0 propostas Open Finance em shadow
 
 Atualizado em: 2026-07-23
 
-Base: `7f619a0b0b15734a836b3288c281d21f5a270290`.
+Base: `f8d124f785f89479642fbf4847a9f4c3860a268d`.
 
 ## Estado
 
-`GO TÉCNICO LOCAL` independente no candidato final
-`e341d4feae5b6ecba8990a226f386e11cb18d027`.
+`CANDIDATO LOCAL VALIDADO; COMMIT IMUTÁVEL E AUDITORIA INDEPENDENTE PENDENTES`.
 
-O achado original apontava que o shutdown Redis disparava o último flush sem
-aguardá-lo. Desde STATE-04, somente o backend de arquivo é aceito e Redis falha
-fechado antes de qualquer efeito. Este gate não reintroduz Redis: elimina o
-caminho legado inalcançável e torna explícita e testável a conclusão do flush do
-único backend suportado antes da saída do processo.
-
-O primeiro candidato recebeu `NO-GO` por usar `process.once`: um segundo sinal
-do mesmo tipo poderia restaurar a ação padrão antes do término do flush. A
-recuperação mantém ambos os listeners instalados e coalesce sinais iguais ou
-mistos na mesma conclusão.
-
-A reauditoria confirmou a cadeia linear, fechou explicitamente o `MEDIUM` e o
-`LOW` anteriores e não encontrou novo achado bloqueante.
+A reconciliação read-only já separa `matched`, `new`, `possible_duplicate` e
+`uncertain` antes do outbox. Esta fatia cria a fundação durável da proposta de
+salvamento, sem mudar a mensagem enviada e sem habilitar escrita.
 
 ## Objetivo
 
-Garantir que o encerramento do backend de estado conclua o último flush durável
-antes da saída do processo.
+Persistir em shadow somente compras `POSTED`, realmente novas e reconciliadas,
+com referência estável, payload cifrado, escopo familiar autorizado, retenção,
+replay fechado e revogação monotônica.
 
 ## Escopo
 
-- backend de estado em arquivo já suportado;
-- fechamento explícito, idempotente e aguardável;
-- handlers de `SIGINT`/`SIGTERM` que só encerram após o fechamento;
-- remoção do código Redis legado e das variáveis de exemplo sem suporte;
-- testes locais sem snapshot real ou integração externa.
+- modo `OPEN_FINANCE_SAVE_PROPOSAL_MODE=off|shadow`, com `off` padrão;
+- tabela de propostas no preview privado já incluído no backup v3;
+- operação idempotente por observação, alias e geração;
+- autorização por WhatsApp familiar para leitura/cancelamento local;
+- expiração sem extensão por replay;
+- revogação e restore apagando propostas da geração revogada;
+- integração shadow no runtime após reconciliação e antes do outbox;
+- zero mudança de mensagem, transporte ou escrita financeira.
 
 ## Não escopo
 
-- reintrodução ou implantação de Redis;
-- mudança no formato, criptografia, retenção ou replay do snapshot protegido;
-- produção, deploy, Google, WhatsApp ou dados reais;
-- melhorias posteriores de Pluggy/Open Finance ou UX familiar.
+- `canary`, pergunta “quer salvar?”, comando remoto ou resposta `sim/não`;
+- escrita em Sheets/ledger ou mudança de `OPEN_FINANCE_WRITE_MODE=off`;
+- categorias, forma de pagamento, conta/cartão ou atribuição de pessoa;
+- propostas de estorno, eventos `PENDING`, duplicados, incertos ou incompletos;
+- produção, deploy, Pluggy/Google/WhatsApp reais.
 
 ## Contrato
 
-1. `closeStateStore()` retorna uma conclusão aguardável e idempotente;
-2. o último estado sujo está no snapshot durável quando a conclusão resolve;
-3. `SIGINT` e `SIGTERM` aguardam essa conclusão antes de sair;
-4. falha de flush produz saída não zero e log sanitizado;
-5. `redis` continua rejeitado antes de qualquer efeito e não existe código
-   legado capaz de conectá-lo;
-6. o backend de arquivo preserva criptografia, replay, retenção e arquivos
-   privados já aprovados em STATE-04.
+1. modo ausente não cria banco nem proposta;
+2. `canary`, `on` ou valor desconhecido falha antes do polling;
+3. shadow exige reconciliação e preview em `canary`;
+4. somente `new + purchase + POSTED` entra no store;
+5. replay não duplica, não reabre cancelamento e não amplia `expires_at`;
+6. payload privado fica cifrado e só pode ser lido por ator familiar autorizado;
+7. revogação e retenção removem o material cifrado;
+8. o backup/restore v3 preserva a nova tabela e reaplica as mesmas proteções;
+9. mensagens continuam informando somente leitura e `financial_writes=0`.
 
 ## Critérios de GO
 
-- teste adversarial reproduz a ausência de conclusão aguardável;
-- fechamento, sinais, falha e idempotência passam;
-- bateria do snapshot protegido e consumidores diretamente afetados passa;
-- controles estáticos e gate exaustivo ficam verdes;
-- candidato sanitizado é publicado por hash imutável;
-- auditoria independente no Chat não encontra severidade bloqueante.
+- RED causal e prova verde dedicados;
+- testes de runtime, preview, revogação, reconciliação e backup verdes;
+- gate exaustivo e controles estáticos verdes;
+- commit sanitizado publicado por hash imutável;
+- auditoria independente no Chat sem achado bloqueante.
 
-## Evidência local
+## Evidência local atual
 
-- RED causal: `0/4`;
-- primeira prova causal verde: `4/4`;
-- recuperação de sinais repetidos: `5/5`;
-- estado protegido + onboarding: `26/26`;
-- máquina financeira: `121/121`;
-- recorte unitário do gerenciador: `4/4`;
-- contrato de ambiente: `5/5`;
-- gate exaustivo final: `1.261/1.266`, zero falhas e cinco skips previstos;
-- sintaxe, diff e workflow: verdes.
+- RED causal: `0/3`;
+- prova causal final: `4/4`;
+- bateria Open Finance diretamente afetada: `42/42`;
+- gate exaustivo: `1.265/1.270`, zero falhas e cinco skips previstos;
+- cobertura: linhas `89,96%`, branches `72,01%`, funções `89,73%`;
+- sintaxe, diff e workflow: verdes;
+- produção, rede, Google e WhatsApp reais não acessados.
 
 ## Condições de parada
 
-- necessidade de reativar Redis ou adicionar dependência;
-- saída do processo anterior ao flush;
-- dado privado persistido em claro ou emitido em log;
-- mudança necessária de produção ou integração real;
-- regressão causal fora do escopo.
+- necessidade de expor a pergunta antes do fluxo confirmável;
+- qualquer escrita com modo `off`;
+- payload privado em claro;
+- replay que reabra proposta terminal ou estenda retenção;
+- revogação que preserve proposta da geração revogada;
+- necessidade de produção ou integração real.
 
 ## Próxima ação exata
 
-Publicar este fechamento documental e reconciliar o roadmap pós-auditoria para
-abrir a próxima melhoria já registrada, sem produção.
+Publicar o candidato imutável e solicitar auditoria independente no Chat.
 
 ## Capacidade
 
-`Codex → Sol → Alto → reconciliar e executar continuamente as próximas
-melhorias já registradas, conforme autorização expressa do usuário.`
+`Codex → Sol → Alto → validar e auditar o gate 9P.0 sem produção.`

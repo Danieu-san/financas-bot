@@ -4,12 +4,12 @@
 
 - O rollout atual cobre quatro fontes separadas no WhatsApp, mas continua
   estritamente read-only. `OPEN_FINANCE_WRITE_MODE=off` nao deve ser alterado.
-- O runtime nao reconcilia o evento novo com read-model, ledger ou Sheets antes
-  de alertar. A idempotencia atual evita repetir o mesmo evento do Pluggy, mas
-  uma compra ja lancada manualmente no bot ainda pode gerar alerta.
-- O reconciliador 9D existe apenas no preview shadow/offline e nao esta ligado
-  ao `openFinanceCanaryRuntime`. Nao declarar como entregue o fluxo
-  `matched -> silencio / new -> proposta / possible_duplicate -> revisao`.
+- O runtime reconcilia cada evento novo com a fonte familiar antes do outbox:
+  `matched` e silenciado, `possible_duplicate/uncertain` vai ao preview privado
+  e somente `new` pode gerar alerta.
+- A fatia 9P.0 cria a proposta persistente apenas em `shadow`. Ela nao muda a
+  mensagem, nao aceita `sim/nao` e nao concede escrita. Nao declarar como
+  entregue o fluxo completo `new -> pergunta -> confirmacao -> recibo`.
 - A referencia de dez caracteres exibida no alerta identifica a entrega no
   outbox. Ela nao confirma nem salva a movimentacao financeira.
 - Uma futura proposta de salvamento deve falhar fechada quando o read-model
@@ -36,7 +36,7 @@
   exige o journal monotonicamente append-only e reaplica revogacoes posteriores
   antes de expor os stores.
 
-Atualizado em: 2026-07-15
+Atualizado em: 2026-07-23
 
 ## Fase 8A: remocao de legado bloqueada
 

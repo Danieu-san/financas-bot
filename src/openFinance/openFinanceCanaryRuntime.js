@@ -49,6 +49,12 @@ function shadowPreviewMode(env = process.env) {
     return mode;
 }
 
+function saveProposalMode(env = process.env) {
+    const mode = String(env.OPEN_FINANCE_SAVE_PROPOSAL_MODE || 'off').trim().toLowerCase();
+    if (!['off', 'shadow'].includes(mode)) throw new Error('invalid_open_finance_save_proposal_mode');
+    return mode;
+}
+
 async function runOpenFinanceCanaryCycle({ client, env = process.env, dependencies = {} } = {}) {
     if (!client || typeof client.sendMessage !== 'function') throw new Error('whatsapp_client_required');
     const evidence = readJson(env.OPEN_FINANCE_COMMERCIAL_EVIDENCE_FILE, 'commercial_evidence_unavailable');
@@ -60,14 +66,21 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
     }
     const secret = fs.readFileSync(env.OPEN_FINANCE_LIVE_STAGING_SECRET_FILE, 'utf8').trim();
     const previewMode = shadowPreviewMode(env);
+    const proposalMode = saveProposalMode(env);
+    const internalReconciliationMode = reconciliationMode(env);
+    if (proposalMode === 'shadow' && previewMode !== 'canary') {
+        throw new Error('open_finance_save_proposal_preview_required');
+    }
+    if (proposalMode === 'shadow' && internalReconciliationMode !== 'canary') {
+        throw new Error('open_finance_save_proposal_reconciliation_required');
+    }
     const requiredState = [env.OPEN_FINANCE_LIVE_STAGING_DB, env.OPEN_FINANCE_BASELINE_DB,
         env.OPEN_FINANCE_OUTBOX_DB, env.OPEN_FINANCE_REVOCATION_JOURNAL_DB,
-        ...(previewMode === 'canary' ? [env.OPEN_FINANCE_SHADOW_PREVIEW_DB] : [])];
+        ...(previewMode === 'canary' || proposalMode === 'shadow' ? [env.OPEN_FINANCE_SHADOW_PREVIEW_DB] : [])];
     const vaultAvailable = requiredState.every(file => file && fs.existsSync(file));
     const policy = buildOpenFinanceRolloutPolicy({ env, evidence, mappings, vaultAvailable });
     if (!policy.enabled) return { outcome: 'blocked', blockers: policy.blockers, transport_calls: 0, financial_writes: 0 };
     if (policy.mode === 'canary' && !vaultAvailable) throw new Error('canary_state_unavailable');
-    const internalReconciliationMode = reconciliationMode(env);
 
     const ApiClient = dependencies.PluggyReadOnlyClient || PluggyReadOnlyClient;
     const vault = new OpenFinanceLiveStagingVault({ databasePath: env.OPEN_FINANCE_LIVE_STAGING_DB, secret });
@@ -100,6 +113,8 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
         let activeUsers = null;
         let candidates = baseline.listCandidates();
         let reconciliation = { mode: 'off', financial_writes: 0 };
+        let saveProposals = { mode: proposalMode, inserted: 0, replayed: 0, blocked: 0,
+            pending: 0, financial_writes: 0 };
         const strictQuarantine = internalReconciliationMode === 'canary'
             ? outbox.quarantineUnreconciled()
             : { blocked: 0, financial_writes: 0 };
@@ -138,6 +153,27 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
             });
             const resolution = baseline.markCandidateResolutions(reconciled.resolutions);
             candidates = reconciled.eligibleCandidates;
+            if (proposalMode === 'shadow') {
+                const preview = new OpenFinanceShadowPreviewStore({
+                    databasePath: env.OPEN_FINANCE_SHADOW_PREVIEW_DB,
+                    secret,
+                    revocationJournal: journal
+                });
+                try {
+                    saveProposals = {
+                        mode: 'shadow',
+                        ...preview.ingestSaveProposals({
+                            reconciliationDecisions: reconciled.decisions,
+                            lifecycleDecisions: lifecycle.decisions,
+                            openFinanceItems: items,
+                            policies,
+                            observedAt: snapshot.observed_at
+                        })
+                    };
+                } finally {
+                    preview.close();
+                }
+            }
             reconciliation = {
                 mode: 'canary',
                 source_health: internalSource.source_health,
@@ -176,7 +212,8 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
             }
         }
         return { outcome: 'GO', staged_items: staged.staged_items, new_observations: observed.new_observations,
-            queued, reconciliation, quarantined, pre_activation: preActivation, outbox: outbox.stats(), deliveries,
+            queued, reconciliation, save_proposals: saveProposals, quarantined,
+            pre_activation: preActivation, outbox: outbox.stats(), deliveries,
             transport_calls: deliveries.filter(value => ['delivered_confirmed', 'accepted_unconfirmed', 'retry'].includes(value)).length,
             financial_writes: 0 };
     } finally { journal.close(); outbox.close(); baseline.close(); vault.close(); }
@@ -212,5 +249,6 @@ module.exports = {
     initializeOpenFinanceCanaryRuntime,
     resolveWhatsAppRecipient,
     resolveInternalUserIds,
-    shadowPreviewMode
+    shadowPreviewMode,
+    saveProposalMode
 };

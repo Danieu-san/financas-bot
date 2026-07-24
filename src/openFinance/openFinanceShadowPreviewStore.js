@@ -57,6 +57,21 @@ class OpenFinanceShadowPreviewStore {
                 claimed_by_ref TEXT,
                 reviewed_at TEXT
             );
+            CREATE TABLE IF NOT EXISTS open_finance_save_proposals (
+                proposal_ref TEXT PRIMARY KEY,
+                transaction_ref TEXT NOT NULL UNIQUE,
+                family_scope_ref TEXT NOT NULL,
+                alias_ref TEXT NOT NULL,
+                generation INTEGER NOT NULL,
+                encrypted_payload TEXT NOT NULL,
+                payload_version INTEGER NOT NULL,
+                proposal_state TEXT NOT NULL DEFAULT 'pending',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                resolved_by_ref TEXT,
+                resolved_at TEXT
+            );
         `);
         this.#migrateLegacySchema();
         this.db.exec(`
@@ -64,12 +79,20 @@ class OpenFinanceShadowPreviewStore {
                 ON shadow_preview_items(family_scope_ref,review_state,expires_at,created_at);
             CREATE INDEX IF NOT EXISTS idx_shadow_preview_alias_generation
                 ON shadow_preview_items(alias_ref,generation);
+            CREATE INDEX IF NOT EXISTS idx_open_finance_save_proposals_pending
+                ON open_finance_save_proposals(family_scope_ref,proposal_state,expires_at,created_at);
+            CREATE INDEX IF NOT EXISTS idx_open_finance_save_proposals_alias_generation
+                ON open_finance_save_proposals(alias_ref,generation);
         `);
         this.#hardenFiles();
     }
 
     #hmac(value) {
         return crypto.createHmac('sha256', this.secret).update(String(value || '')).digest('hex').slice(0, 32);
+    }
+
+    #operationKey(value) {
+        return crypto.createHmac('sha256', this.secret).update(String(value || '')).digest('hex').slice(0, 48);
     }
 
     #aliasRef(alias) {
@@ -222,11 +245,140 @@ class OpenFinanceShadowPreviewStore {
             ...(expired ? { expired } : {}) };
     }
 
+    ingestSaveProposals({
+        reconciliationDecisions = [],
+        lifecycleDecisions = [],
+        openFinanceItems = [],
+        policies = [],
+        observedAt = new Date().toISOString()
+    } = {}) {
+        const created = validTimestamp(observedAt, 'valid_save_proposal_time_required');
+        const now = this.#now();
+        if (created.getTime() > Date.parse(now) + 5 * 60 * 1000) {
+            throw new Error('save_proposal_future_observation_rejected');
+        }
+        const expiresAt = new Date(created.getTime() + this.retentionDays * 86400000).toISOString();
+        this.purgeExpired();
+        const lifecycleByObservation = new Map(
+            lifecycleDecisions.map(decision => [decision.observation_ref, decision])
+        );
+        const principalByAlias = new Map();
+        for (const policy of policies) {
+            const alias = String(policy.alias || '').trim().toLowerCase();
+            const principal = String(policy.write_confirmation_principal || '').trim().toLowerCase();
+            if (!/^[a-z0-9_-]{2,48}$/.test(alias) || !['daniel', 'thais'].includes(principal)) {
+                throw new Error('invalid_save_proposal_policy');
+            }
+            if (principalByAlias.has(alias)) throw new Error('duplicate_save_proposal_policy');
+            principalByAlias.set(alias, principal);
+        }
+        const sourceByObservation = new Map();
+        for (const item of openFinanceItems) {
+            const alias = String(item.alias_code || '').trim().toLowerCase();
+            const generation = validGeneration(item.generation || 1);
+            if (this.revocationJournal?.isGenerationRevoked?.(alias, generation)) {
+                throw new Error('save_proposal_revoked_generation');
+            }
+            const accounts = new Map((item.accounts || []).map(account => [account.id, account]));
+            for (const transaction of item.transactions || []) {
+                const observationRef = this.#hmac(
+                    `observation:${item.id}:${transaction.account_id}:${transaction.id}`
+                );
+                sourceByObservation.set(observationRef, {
+                    alias,
+                    aliasRef: this.#aliasRef(alias),
+                    generation,
+                    accountType: String(accounts.get(transaction.account_id)?.type || '').toUpperCase(),
+                    transaction
+                });
+            }
+        }
+        let inserted = 0;
+        let replayed = 0;
+        let blocked = 0;
+        const existing = this.db.prepare(
+            'SELECT proposal_state FROM open_finance_save_proposals WHERE proposal_ref=?'
+        );
+        const insert = this.db.prepare(`INSERT INTO open_finance_save_proposals (
+            proposal_ref,transaction_ref,family_scope_ref,alias_ref,generation,encrypted_payload,
+            payload_version,proposal_state,created_at,updated_at,expires_at
+        ) VALUES (?,?,?,?,?,?,1,'pending',?,?,?)`);
+        const updatePending = this.db.prepare(`UPDATE open_finance_save_proposals
+            SET encrypted_payload=?,updated_at=?
+            WHERE proposal_ref=? AND proposal_state='pending'`);
+        this.db.transaction(() => {
+            for (const decision of reconciliationDecisions) {
+                const lifecycle = lifecycleByObservation.get(decision.observation_ref);
+                const source = sourceByObservation.get(decision.observation_ref);
+                const principal = source ? principalByAlias.get(source.alias) : null;
+                if (decision.status !== 'new' || !source || !principal ||
+                    lifecycle?.classification !== 'purchase' || lifecycle?.provider_state !== 'POSTED' ||
+                    expiresAt <= now) {
+                    blocked += 1;
+                    continue;
+                }
+                const proposalRef = this.#hmac(
+                    `save-proposal:${source.aliasRef}:${source.generation}:${decision.observation_ref}`
+                );
+                const transactionRef = this.#hmac(
+                    `save-proposal-transaction:${source.aliasRef}:${source.generation}:${decision.transaction_ref}`
+                );
+                const payload = {
+                    alias: source.alias,
+                    generation: source.generation,
+                    principal,
+                    classification: lifecycle.classification,
+                    provider_state: lifecycle.provider_state,
+                    account_type: source.accountType,
+                    source: source.transaction,
+                    observation_ref: decision.observation_ref,
+                    operation_key: this.#operationKey(
+                        `open-finance-write:${source.aliasRef}:${source.generation}:${decision.observation_ref}`
+                    )
+                };
+                const prior = existing.get(proposalRef);
+                if (prior) {
+                    if (prior.proposal_state === 'pending') {
+                        updatePending.run(this.#encrypt(proposalRef, payload), now, proposalRef);
+                    }
+                    replayed += 1;
+                    continue;
+                }
+                insert.run(
+                    proposalRef,
+                    transactionRef,
+                    this.familyScopeRef,
+                    source.aliasRef,
+                    source.generation,
+                    this.#encrypt(proposalRef, payload),
+                    created.toISOString(),
+                    now,
+                    expiresAt
+                );
+                inserted += 1;
+            }
+        })();
+        this.#hardenFiles();
+        const pending = this.db.prepare(`SELECT COUNT(*) AS total FROM open_finance_save_proposals
+            WHERE family_scope_ref=? AND proposal_state='pending' AND expires_at>?`)
+            .get(this.familyScopeRef, now).total;
+        return { inserted, replayed, blocked, pending, financial_writes: 0 };
+    }
+
     purgeExpired() {
         const timestamp = this.#now();
-        const result = this.db.prepare('DELETE FROM shadow_preview_items WHERE expires_at<=?').run(timestamp);
+        const result = this.db.transaction(() => ({
+            previews: this.db.prepare('DELETE FROM shadow_preview_items WHERE expires_at<=?').run(timestamp).changes,
+            saveProposals: this.db.prepare(
+                'DELETE FROM open_finance_save_proposals WHERE expires_at<=?'
+            ).run(timestamp).changes
+        }))();
         this.#hardenFiles();
-        return { removed: result.changes, financial_writes: 0 };
+        return {
+            removed: result.previews,
+            removed_save_proposals: result.saveProposals,
+            financial_writes: 0
+        };
     }
 
     listPending({ actorWhatsappId, limit = 100 } = {}) {
@@ -266,27 +418,88 @@ class OpenFinanceShadowPreviewStore {
         return { applied: true, replay: false, financial_writes: 0 };
     }
 
+    listPendingSaveProposals({ actorWhatsappId, limit = 100 } = {}) {
+        this.#requireAuthorizedActor(actorWhatsappId);
+        if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+            throw new Error('valid_save_proposal_limit_required');
+        }
+        this.purgeExpired();
+        return this.db.prepare(`SELECT proposal_ref,created_at,expires_at FROM open_finance_save_proposals
+            WHERE family_scope_ref=? AND proposal_state='pending'
+            ORDER BY created_at,proposal_ref LIMIT ?`).all(this.familyScopeRef, limit);
+    }
+
+    readSaveProposalPrivate(proposalRef, { actorWhatsappId } = {}) {
+        this.#requireAuthorizedActor(actorWhatsappId);
+        this.purgeExpired();
+        const row = this.db.prepare(`SELECT encrypted_payload FROM open_finance_save_proposals
+            WHERE proposal_ref=? AND family_scope_ref=?`).get(proposalRef, this.familyScopeRef);
+        return row ? this.#decrypt(proposalRef, row.encrypted_payload) : null;
+    }
+
+    cancelSaveProposal(proposalRef, { actorWhatsappId } = {}) {
+        this.#requireAuthorizedActor(actorWhatsappId);
+        const timestamp = this.#now();
+        this.purgeExpired();
+        const actorRef = this.#actorRef(actorWhatsappId);
+        const row = this.db.prepare(`SELECT proposal_state FROM open_finance_save_proposals
+            WHERE proposal_ref=? AND family_scope_ref=?`).get(proposalRef, this.familyScopeRef);
+        if (!row) throw new Error('save_proposal_not_found');
+        if (row.proposal_state === 'cancelled') {
+            return { cancelled: true, replay: true, financial_writes: 0 };
+        }
+        if (row.proposal_state !== 'pending') throw new Error('save_proposal_state_conflict');
+        const result = this.db.prepare(`UPDATE open_finance_save_proposals
+            SET proposal_state='cancelled',resolved_by_ref=?,resolved_at=?,updated_at=?
+            WHERE proposal_ref=? AND family_scope_ref=? AND proposal_state='pending'`)
+            .run(actorRef, timestamp, timestamp, proposalRef, this.familyScopeRef);
+        if (result.changes !== 1) throw new Error('save_proposal_state_changed');
+        this.#hardenFiles();
+        return { cancelled: true, replay: false, financial_writes: 0 };
+    }
+
     revokeSourceAlias(alias, { generation = 1, revokedAt = this.#now() } = {}) {
         validTimestamp(revokedAt, 'valid_shadow_preview_revocation_time_required');
-        const result = this.db.prepare('DELETE FROM shadow_preview_items WHERE alias_ref=? AND generation<=?')
-            .run(this.#aliasRef(alias), validGeneration(generation));
+        const aliasRef = this.#aliasRef(alias);
+        const valid = validGeneration(generation);
+        const result = this.db.transaction(() => ({
+            previews: this.db.prepare('DELETE FROM shadow_preview_items WHERE alias_ref=? AND generation<=?')
+                .run(aliasRef, valid).changes,
+            saveProposals: this.db.prepare(
+                'DELETE FROM open_finance_save_proposals WHERE alias_ref=? AND generation<=?'
+            ).run(aliasRef, valid).changes
+        }))();
         this.#hardenFiles();
-        return { removed_previews: result.changes, financial_writes: 0 };
+        return {
+            removed_previews: result.previews,
+            removed_save_proposals: result.saveProposals,
+            financial_writes: 0
+        };
     }
 
     reapplyRevocations({ revocations = [] } = {}) {
         let removed = 0;
+        let removedSaveProposals = 0;
         const statement = this.db.prepare('DELETE FROM shadow_preview_items WHERE alias_ref=? AND generation<=?');
+        const saveProposalStatement = this.db.prepare(
+            'DELETE FROM open_finance_save_proposals WHERE alias_ref=? AND generation<=?'
+        );
         this.db.transaction(() => {
             for (const revocation of revocations) {
                 if (!/^[a-f0-9]{32}$/.test(String(revocation.alias_ref || ''))) {
                     throw new Error('valid_shadow_preview_alias_ref_required');
                 }
-                removed += statement.run(revocation.alias_ref, validGeneration(revocation.generation)).changes;
+                const generation = validGeneration(revocation.generation);
+                removed += statement.run(revocation.alias_ref, generation).changes;
+                removedSaveProposals += saveProposalStatement.run(revocation.alias_ref, generation).changes;
             }
         })();
         this.#hardenFiles();
-        return { removed_previews: removed, financial_writes: 0 };
+        return {
+            removed_previews: removed,
+            removed_save_proposals: removedSaveProposals,
+            financial_writes: 0
+        };
     }
 
     stats() {
@@ -295,8 +508,16 @@ class OpenFinanceShadowPreviewStore {
             SUM(CASE WHEN review_state='pending' THEN 1 ELSE 0 END) AS pending,
             SUM(CASE WHEN review_state='reviewed' THEN 1 ELSE 0 END) AS reviewed
             FROM shadow_preview_items WHERE family_scope_ref=?`).get(this.familyScopeRef);
+        const proposalRow = this.db.prepare(`SELECT COUNT(*) AS total,
+            SUM(CASE WHEN proposal_state='pending' THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN proposal_state='cancelled' THEN 1 ELSE 0 END) AS cancelled
+            FROM open_finance_save_proposals WHERE family_scope_ref=?`).get(this.familyScopeRef);
         return { total: row.total, pending: row.pending || 0, reviewed: row.reviewed || 0,
-            retention_days: this.retentionDays, financial_writes: 0 };
+            retention_days: this.retentionDays,
+            save_proposals_total: proposalRow.total,
+            save_proposals_pending: proposalRow.pending || 0,
+            save_proposals_cancelled: proposalRow.cancelled || 0,
+            financial_writes: 0 };
     }
 
     close() { this.#hardenFiles(); this.db.close(); this.#hardenFiles(); }

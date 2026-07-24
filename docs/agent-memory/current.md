@@ -4,17 +4,18 @@ Atualizado em: 2026-07-23
 
 ## Objetivo ativo
 
-A fila original da auditoria exaustiva está tecnicamente encerrada. `STATE-03`,
-último achado aberto, recebeu `GO TÉCNICO LOCAL` independente no hash
-`e341d4feae5b6ecba8990a226f386e11cb18d027`, após fechar a janela de sinais
-repetidos do primeiro candidato.
-A decisão pós-Fase 9 sobre proposição de salvamento e as melhorias de produto
-posteriores continuam na fila sem alterar essa ordem.
+A fila original da auditoria exaustiva está tecnicamente encerrada. A fatia
+ativa é `9P.0`: proposta Open Finance persistente apenas em shadow, sem pergunta
+ao usuário e com escrita desligada. A prova causal passou `4/4` e os testes
+Open Finance diretamente afetados passaram `42/42`; o gate exaustivo passou
+`1.265/1.270`, sem falhas e com cinco skips previstos. Commit imutável e
+auditoria independente ainda estão pendentes.
 
 ## Último gate encerrado
 
-`FLOW-04` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
-`34f0f0cdcb470a2bcfa7152fecd45361edee28e4`.
+`STATE-03` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
+`e341d4feae5b6ecba8990a226f386e11cb18d027`; o fechamento documental foi
+publicado em `f8d124f785f89479642fbf4847a9f4c3860a268d`.
 
 Os seis jobs gerais do scheduler usam outbox SQLite cifrado e privado, com
 deduplicação durável, retry limitado, lease, retenção e isolamento por usuário.
@@ -113,10 +114,10 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Git e workspace
 
-- branch ativa: `codex/state03-shutdown-flush`, baseada em
-  `7f619a0b0b15734a836b3288c281d21f5a270290`;
+- branch ativa: `codex/open-finance-save-proposal`, baseada em
+  `f8d124f785f89479642fbf4847a9f4c3860a268d`;
 - último produto com `GO TÉCNICO LOCAL`:
-  `34f0f0cdcb470a2bcfa7152fecd45361edee28e4`;
+  `e341d4feae5b6ecba8990a226f386e11cb18d027`;
 - alterações concorrentes do workstream AWS/Oracle e arquivos não rastreados do
   usuário permanecem fora do gate e não devem ser adicionados, alterados ou
   removidos;
@@ -124,16 +125,15 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Próximo gate
 
-Reconciliar o roadmap pós-auditoria e abrir a próxima melhoria já registrada,
-preservando a ordem em que Pluggy/Open Finance precedem as melhorias de UX
-familiar.
+`9P.0`: persistência shadow de propostas Open Finance reconciliadas, sem
+pergunta remota e sem escrita.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
 ## Decisões vigentes
 
-- manter `Codex → Sol → Alto` na caracterização de `STATE-03`; esse é o menor
-  nível suficiente para revisar shutdown, causalidade e persistência do estado;
+- manter `Codex → Sol → Alto` no gate `9P.0`, que cruza reconciliação,
+  criptografia, retenção, revogação e backup;
 - parar e avisar Daniel antes de reduzir ou trocar capacidade;
 - a produção vigente é Oracle/OCI; não reutilizar caminhos AWS e não executar
   Oracle e AWS simultaneamente com a mesma sessão WhatsApp;
@@ -146,8 +146,8 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar o fechamento documental de `STATE-03`, então fazer uma leitura dirigida
-do roadmap para definir a próxima fatia material.
+Publicar o candidato imutável de `9P.0` e solicitar auditoria independente no
+Chat.
 
 ## Capacidade para retomar
 
@@ -166,6 +166,8 @@ Pluggy/Open Finance:
 
 ## Histórico dirigido
 
+- candidato 9P.0:
+  `docs/audit/46-open-finance-save-proposal-shadow-candidate-2026-07-23.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:
