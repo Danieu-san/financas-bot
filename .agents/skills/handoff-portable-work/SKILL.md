@@ -49,15 +49,19 @@ gravar o relatório no SSD.
 1. Montar o SSD e abrir a raiz exata do repositório.
 2. Ler `docs/agent-memory/START-HERE.md` e executar
    `scripts/agent/resumePortableWork.ps1`; a rotina deve validar o Git, o
-   workflow e apenas a existência das referências de chaves no SSD.
+   workflow, o `resume_target` do último handoff e apenas a existência das
+   referências de chaves no SSD.
 3. Instalar/atualizar a orientação global da máquina com
    `node scripts/agent/installPortableWorkflow.js` quando necessário.
 4. Abrir o Codex na raiz do Git.
 5. Quando o usuário disser que continuou em outro Codex, tratar a frase como
    gatilho de retomada, sem pedir que ele reconstrua o contexto.
-6. Depois da validação, usar `$execute-financasbot-gate` para retomar a próxima
+6. Se branch ou hash do último handoff divergirem da worktree aberta, não ler o
+   `current.md` local. Materializar uma worktree isolada no alvo registrado e
+   somente então usar `$execute-financasbot-gate`.
+7. Se o alvo coincidir, usar `$execute-financasbot-gate` para retomar a próxima
    ação exata de `current.md`/`current-gate.md`.
-7. O novo Codex deve preservar a árvore preexistente e não acessar produção sem
+8. O novo Codex deve preservar a árvore preexistente e não acessar produção sem
    autorização correspondente.
 
 Conversas antigas não são o mecanismo de continuidade. O checkpoint versionado no SSD é a fonte portátil; o GitHub é a cópia imutável para auditoria e recuperação.

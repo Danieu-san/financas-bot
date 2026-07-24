@@ -86,15 +86,25 @@ if (-not (Test-Path -LiteralPath (Join-Path $resolvedRoot '.git'))) {
     throw "Raiz Git inválida: $resolvedRoot"
 }
 
+$gitCommonDir = (
+    Invoke-Captured -Executable $GitBin -Arguments @(
+        '-C', $resolvedRoot, 'rev-parse', '--path-format=absolute', '--git-common-dir'
+    )
+) -join ''
+$gitCommonDir = (Resolve-Path -LiteralPath $gitCommonDir).Path
+$canonicalRepoRoot = Split-Path -Parent $gitCommonDir
+$financasBotRoot = Split-Path -Parent $canonicalRepoRoot
+$portableRoot = Join-Path $financasBotRoot 'Trabalho Codex no outro PC'
+
 if (-not $ReportPath) {
-    $workspaceParent = Split-Path -Parent $resolvedRoot
-    $portableRoot = Join-Path $workspaceParent 'Trabalho Codex no outro PC'
     $ReportPath = Join-Path $portableRoot 'last-safe-handoff.json'
 }
 
 $branch = (Invoke-Captured -Executable $GitBin -Arguments @('-C', $resolvedRoot, 'branch', '--show-current')) -join ''
 $head = (Invoke-Captured -Executable $GitBin -Arguments @('-C', $resolvedRoot, 'rev-parse', 'HEAD')) -join ''
-$status = Invoke-Captured -Executable $GitBin -Arguments @('-C', $resolvedRoot, 'status', '--porcelain=v1', '--branch')
+$status = @(Invoke-Captured -Executable $GitBin -Arguments @(
+    '-C', $resolvedRoot, 'status', '--porcelain=v1', '--branch'
+))
 
 $previousGitBin = $env:GIT_BIN
 try {
@@ -107,8 +117,7 @@ try {
 }
 Invoke-Captured -Executable $GitBin -Arguments @('-C', $resolvedRoot, 'diff', '--check') | Out-Null
 
-$financasBotRoot = Split-Path -Parent $resolvedRoot
-$startHere = Join-Path $resolvedRoot 'docs\agent-memory\START-HERE.md'
+$startHere = Join-Path $canonicalRepoRoot 'docs\agent-memory\START-HERE.md'
 if (-not (Test-Path -LiteralPath $startHere -PathType Leaf)) {
     throw "Documento de entrada ausente: $startHere"
 }
@@ -131,10 +140,13 @@ foreach ($reference in $keyReferences) {
 
 $inventory = Get-CodexStoreMetadata
 $report = [ordered]@{
-    schema = 'financasbot-safe-handoff-v2'
+    schema = 'financasbot-safe-handoff-v3'
     generated_at_utc = (Get-Date).ToUniversalTime().ToString('o')
     phase = if ($PostClose) { 'post_close' } else { 'pre_close' }
     repo_root = $resolvedRoot
+    worktree_root = $resolvedRoot
+    canonical_repo_root = $canonicalRepoRoot
+    git_common_dir = $gitCommonDir
     branch = $branch
     head = $head
     status = @($status)
@@ -149,6 +161,16 @@ $report = [ordered]@{
         'docs/plans/current-gate.md'
     )
     key_references = $keyReferences
+    resume_target = [ordered]@{
+        branch = $branch
+        head = $head
+        status_clean = (
+            $status.Count -eq 1 -and
+            ($status[0] -as [string]).StartsWith('## ')
+        )
+        current_document = "$head`:docs/agent-memory/current.md"
+        gate_document = "$head`:docs/plans/current-gate.md"
+    }
     codex_store_inventory = @($inventory)
     copied_from_codex = @()
     deliberately_excluded = @(
@@ -169,6 +191,21 @@ $temporary = "$ReportPath.tmp-$PID"
 $report | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $temporary -Encoding UTF8
 Move-Item -LiteralPath $temporary -Destination $ReportPath -Force
 
+$safeBranch = ($branch -replace '[^0-9A-Za-z._-]+', '-').Trim('-')
+if (-not $safeBranch) {
+    $safeBranch = 'detached'
+}
+$historyDirectory = Join-Path $portableRoot 'handoffs'
+New-Item -ItemType Directory -Force -Path $historyDirectory | Out-Null
+$historyName = '{0}-{1}-{2}.json' -f (
+    (Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmmssfffZ'),
+    $safeBranch,
+    $head.Substring(0, 12)
+)
+$historyPath = Join-Path $historyDirectory $historyName
+$report | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $historyPath -Encoding UTF8
+
 Write-Output "Handoff seguro validado: $branch $head"
 Write-Output "Relatório: $ReportPath"
+Write-Output "Histórico: $historyPath"
 Write-Output 'Nenhum conteúdo privado do Codex foi lido ou copiado.'

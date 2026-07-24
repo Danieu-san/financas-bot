@@ -78,9 +78,11 @@ por inventário de metadados e validação pós-fechamento sem leitura de conte�
 Quando o usuário disser que continuou o trabalho em outro Codex ou computador,
 tratar a frase como gatilho de retomada: abrir
 `docs/agent-memory/START-HERE.md`, executar
-`scripts/agent/resumePortableWork.ps1`, confirmar Git e referências
-operacionais e então retomar a próxima ação exata do checkpoint. Não pedir ao
-usuário que reconstrua o contexto já preservado no SSD.
+`scripts/agent/resumePortableWork.ps1`, confirmar Git, referências operacionais
+e o `resume_target` do último handoff. Se branch/hash divergirem da worktree
+aberta, não ler o `current.md` local: materializar primeiro uma worktree isolada
+no alvo registrado. Não pedir ao usuário que reconstrua o contexto já
+preservado no SSD.
 
 ## Evidência e comunicação
 

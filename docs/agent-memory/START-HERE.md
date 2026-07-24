@@ -17,11 +17,17 @@ disponíveis.
 
 1. `AGENTS.md`;
 2. este arquivo;
-3. `docs/agent-memory/README.md`;
-4. `docs/agent-memory/current.md`;
-5. `docs/plans/current-gate.md`;
-6. o checkpoint específico apontado por `current.md`;
+3. executar `scripts/agent/resumePortableWork.ps1`;
+4. conferir `resume_target` em `last-resume-check.json`;
+5. somente quando `matches_current_worktree=true`, ler
+   `docs/agent-memory/README.md`, `docs/agent-memory/current.md` e
+   `docs/plans/current-gate.md`;
+6. o checkpoint específico apontado pelo `current.md` do hash-alvo;
 7. somente os workstreams, runbooks, código e testes citados por essas fontes.
+
+Se o último handoff apontar outra branch ou outro hash, o checkpoint da
+worktree aberta não é fonte válida. Materializar primeiro uma worktree isolada
+no `resume_target`; não mesclar, fazer checkout forçado ou sobrescrever `main`.
 
 Antes de editar, confirmar raiz, branch, HEAD completo e `git status`. Preservar
 todos os arquivos alheios ou não rastreados. O GitHub serve para commits
@@ -77,7 +83,8 @@ Executar, a partir da raiz do repositório:
 
 Se `git` não estiver no `PATH`, informar `-GitBin` com o executável local. A
 rotina produz `Trabalho Codex no outro PC\last-resume-check.json`, valida o
-workflow, confirma Git e verifica apenas a existência das chaves referenciadas.
+workflow, confirma Git, compara a worktree aberta com o último handoff e
+verifica apenas a existência das chaves referenciadas.
 
 Depois, retomar a próxima ação exata de `current.md`/`current-gate.md`, usando a
 capacidade ali recomendada. Não acessar produção ou fazer deploy sem a
