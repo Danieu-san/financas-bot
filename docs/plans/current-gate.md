@@ -1,38 +1,36 @@
-# Gate ativo — 9P.0 propostas Open Finance em shadow
+# Gate ativo — 9P.1 confirmação local de proposta Open Finance
 
 Atualizado em: 2026-07-23
 
-Base: `f8d124f785f89479642fbf4847a9f4c3860a268d`.
+Base: `195ac58af68acdec87c0fb80617d0ddcf1d1de3b`.
 
 ## Estado
 
-`RECOVERY PÓS-NO-GO VALIDADO LOCALMENTE; COMMIT IMUTÁVEL E REAUDITORIA
-PENDENTES`.
+`DESENHO LOCAL PENDENTE; TRANSPORTE E ESCRITA BLOQUEADOS`.
 
-A reconciliação read-only já separa `matched`, `new`, `possible_duplicate` e
-`uncertain` antes do outbox. Esta fatia cria a fundação durável da proposta de
-salvamento, sem mudar a mensagem enviada e sem habilitar escrita.
+9P.0 encerrou a persistência shadow da proposta reconciliada. Esta fatia deve
+modelar a pergunta proativa, o destinatário autorizado e uma confirmação de uso
+único sem enviar mensagem e sem conceder escrita.
 
 ## Objetivo
 
-Persistir em shadow somente compras `POSTED`, realmente novas e reconciliadas,
-com referência estável, payload cifrado, escopo familiar autorizado, retenção,
-replay fechado e revogação monotônica.
+Definir um contrato local e durável que transforme uma proposta pendente em
+pergunta pronta para entrega e processe `sim/não` uma única vez, preservando
+ator familiar, geração, expiração e idempotência.
 
 ## Escopo
 
-- modo `OPEN_FINANCE_SAVE_PROPOSAL_MODE=off|shadow`, com `off` padrão;
-- tabela de propostas no preview privado já incluído no backup v3;
-- operação idempotente por observação, alias e geração;
-- autorização por WhatsApp familiar para leitura/cancelamento local;
-- expiração sem extensão por replay;
-- revogação e restore apagando propostas da geração revogada;
-- integração shadow no runtime após reconciliação e antes do outbox;
-- zero mudança de mensagem, transporte ou escrita financeira.
+- estados locais `pending`, `ready`, `accepted`, `declined` e `expired`;
+- destinatário derivado da política familiar, sem inferência por titularidade;
+- token/referência de confirmação de uso único, cifrado e com expiração;
+- `sim` e `não` vinculados à proposta e ao ator autorizado;
+- replay idêntico sem reabrir estado terminal;
+- resposta conflitante falhando fechada;
+- zero envio, zero handler remoto e zero escrita financeira nesta fatia.
 
 ## Não escopo
 
-- `canary`, pergunta “quer salvar?”, comando remoto ou resposta `sim/não`;
+- envio de “quer salvar?” ou ativação de handler WhatsApp;
 - escrita em Sheets/ledger ou mudança de `OPEN_FINANCE_WRITE_MODE=off`;
 - categorias, forma de pagamento, conta/cartão ou atribuição de pessoa;
 - propostas de estorno, eventos `PENDING`, duplicados, incertos ou incompletos;
@@ -40,41 +38,35 @@ replay fechado e revogação monotônica.
 
 ## Contrato
 
-1. modo ausente não cria banco nem proposta;
-2. `canary`, `on` ou valor desconhecido falha antes do polling;
-3. shadow exige reconciliação e preview em `canary`;
-4. somente `new + purchase + POSTED` entra no store;
-5. replay não duplica, não reabre cancelamento e não amplia `expires_at`;
-   replay idêntico é no-op e divergência causal falha fechada;
-6. payload privado fica cifrado e só pode ser lido por ator familiar autorizado;
-7. revogação e retenção removem o material cifrado;
-8. o backup/restore v3 preserva a nova tabela e reaplica as mesmas proteções;
-9. mensagens continuam informando somente leitura e `financial_writes=0`.
+1. proposta só fica pronta para o destinatário explicitamente resolvido;
+2. confirmação sem referência, expirada ou de terceiro falha fechada;
+3. `sim` repetido é replay do mesmo resultado; `não` depois de `sim`, ou o
+   inverso, é conflito;
+4. nenhuma confirmação desta fatia chama Google, ledger ou transporte;
+5. revogação e retenção invalidam também a confirmação;
+6. restart preserva estado e uso único;
+7. retorno e logs expõem apenas referências e estados sanitizados;
+8. `financial_writes=0` em todos os caminhos.
 
 ## Critérios de GO
 
 - RED causal e prova verde dedicados;
-- testes de runtime, preview, revogação, reconciliação e backup verdes;
+- testes de estado, autorização, restart, replay, conflito, revogação e
+  expiração verdes;
 - gate exaustivo e controles estáticos verdes;
 - commit sanitizado publicado por hash imutável;
 - auditoria independente no Chat sem achado bloqueante.
 
-## Evidência local atual
+## Evidência de entrada
 
-- candidato anterior: `NO-GO` estático no hash `826807a`;
-- recovery causal, operacional e backup: `16/16`;
-- bateria diretamente afetada: `32/32`;
-- regressões Open Finance adicionais: blocos `41/41`, `26/26`, `4/4` e
-  `113/113`, parcialmente sobrepostos;
-- gate exaustivo: `1.269/1.274`, zero falhas, cinco skips previstos e zero TODO;
-- cobertura: linhas `89,99%`, branches `72,04%`, funções `89,75%`;
-- sintaxe, diff e workflow: verdes;
-- reauditoria: pendente;
-- produção, rede, Google e WhatsApp reais não acessados.
+- 9P.0: `GO TÉCNICO LOCAL` no hash `195ac58`;
+- gate exaustivo anterior: `1.269/1.274`, zero falhas e cinco skips previstos;
+- nenhum banco persistente criado pelo candidato v1 será reutilizado;
+- produção, rede, Google e WhatsApp reais permanecem fora do gate.
 
 ## Condições de parada
 
-- necessidade de expor a pergunta antes do fluxo confirmável;
+- necessidade de expor a pergunta antes do fluxo local confirmável;
 - qualquer escrita com modo `off`;
 - payload privado em claro;
 - replay que reabra proposta terminal ou estenda retenção;
@@ -83,8 +75,10 @@ replay fechado e revogação monotônica.
 
 ## Próxima ação exata
 
-Publicar o recovery imutável e solicitar reauditoria independente no Chat.
+Inspecionar os estados conversacionais e stores já existentes, escrever primeiro
+os testes RED de autorização, uso único, conflito, restart e expiração e então
+implementar o menor contrato local.
 
 ## Capacidade
 
-`Codex → Sol → Alto → validar e auditar o gate 9P.0 sem produção.`
+`Codex → Sol → Alto → implementar o contrato local 9P.1 sem produção.`

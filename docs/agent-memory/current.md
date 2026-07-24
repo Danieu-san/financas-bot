@@ -4,14 +4,12 @@ Atualizado em: 2026-07-23
 
 ## Objetivo ativo
 
-A fila original da auditoria exaustiva está tecnicamente encerrada. A fatia
-ativa é `9P.0`: proposta Open Finance persistente apenas em shadow, sem pergunta
-ao usuário e com escrita desligada. O candidato `826807a` recebeu `NO-GO`
-estático por replay mutável, validação posterior aos timers e prova incompleta
-de backup. O recovery local fecha os três pontos: bateria causal/backup
-`16/16`, diretamente afetada `32/32`, blocos adicionais Open Finance verdes e
-gate exaustivo `1.269/1.274`, sem falhas e com cinco skips previstos. Novo
-commit imutável e reauditoria ainda estão pendentes.
+A fila original da auditoria exaustiva está tecnicamente encerrada. `9P.0`
+recebeu `GO TÉCNICO LOCAL` independente no commit
+`195ac58af68acdec87c0fb80617d0ddcf1d1de3b`. Replay é imutável, configuração
+inválida falha antes dos timers e backup/restore v3 prova propostas, revogação
+e retenção. A próxima fatia é `9P.1`: contrato local da pergunta proativa e
+confirmação de uso único, ainda sem transporte ou escrita.
 
 ## Último gate encerrado
 
@@ -127,15 +125,15 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Próximo gate
 
-`9P.0`: persistência shadow de propostas Open Finance reconciliadas, sem
-pergunta remota e sem escrita.
+`9P.1`: contrato local de proposta proativa e confirmação de uso único, sem
+transporte remoto e com escrita desligada.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
 ## Decisões vigentes
 
-- manter `Codex → Sol → Alto` no gate `9P.0`, que cruza reconciliação,
-  criptografia, retenção, revogação e backup;
+- manter `Codex → Sol → Alto` no gate `9P.1`, que cruza estado conversacional,
+  autorização familiar, replay e futura idempotência de escrita;
 - parar e avisar Daniel antes de reduzir ou trocar capacidade;
 - a produção vigente é Oracle/OCI; não reutilizar caminhos AWS e não executar
   Oracle e AWS simultaneamente com a mesma sessão WhatsApp;
@@ -148,8 +146,8 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar o recovery em novo commit imutável e solicitar reauditoria
-independente no Chat.
+Fechar o contrato e os testes adversariais de 9P.1 sem expor pergunta ao
+WhatsApp nem habilitar escrita.
 
 ## Capacidade para retomar
 
@@ -172,6 +170,8 @@ Pluggy/Open Finance:
   `docs/audit/46-open-finance-save-proposal-shadow-candidate-2026-07-23.md`;
 - recovery pós-NO-GO 9P.0:
   `docs/audit/47-open-finance-save-proposal-shadow-recovery-candidate-2026-07-23.md`;
+- fechamento independente 9P.0:
+  `docs/audit/48-open-finance-save-proposal-shadow-independent-close-2026-07-23.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:
