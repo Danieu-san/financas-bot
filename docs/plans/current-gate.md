@@ -1,4 +1,4 @@
-# Gate ativo — FLOW-04
+# Gate encerrado — FLOW-04
 
 Atualizado em: 2026-07-23
 
@@ -6,12 +6,12 @@ Base: `45a42ab2c155a544da674be3a3f8ffa853f664c3`.
 
 ## Estado
 
-Recuperação local após `NO-GO TÉCNICO LOCAL` do candidato
-`7c8d2b290dca84943a661532717f94eea91c1c6c`.
+`GO TÉCNICO LOCAL` independente no candidato final
+`34f0f0cdcb470a2bcfa7152fecd45361edee28e4`.
 
-O bloqueador pós-aceitação foi corrigido: somente rejeição do transporte pode
-liberar retry. Falha posterior de confirmação mantém a lease `in_flight`, que
-expira para `accepted_unconfirmed`, e não interrompe os jobs seguintes.
+O primeiro candidato recebeu `NO-GO` por um retry cego pós-aceitação. A
+recuperação separou transporte e confirmação, recebeu zero achado
+`CRITICAL`/`HIGH`/`MEDIUM` e fechou explicitamente o bloqueador anterior.
 
 ## Objetivo
 
@@ -69,10 +69,10 @@ limitado para mensagens gerais do scheduler.
 
 ## Próxima ação exata
 
-Publicar um novo commit imutável com a recuperação pós-auditoria e submetê-lo a
-nova auditoria independente antes de declarar GO.
+Publicar este fechamento documental e abrir `STATE-03` em worktree isolado,
+sem produção.
 
 ## Capacidade
 
-`Codex → Sol → Alto → implementar e validar FLOW-04; Chat → modelo mais capaz
-disponível → Alto → auditar o futuro hash imutável.`
+`Codex → Sol → Alto → caracterizar e corrigir STATE-03; Chat → modelo mais
+capaz disponível → Alto → auditar o futuro hash imutável.`

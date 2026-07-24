@@ -20,7 +20,7 @@ Objeto: commit `94c52f23261ae2b9150edcdb7f3ba5ebaba35727`, tree
 - Status posterior: `AUTH-01` foi corrigida e validada em produção; `FLOW-01`
   e o contrato original restrito de `STATE-02` receberam `GO local` na C-01;
   `DATA-01`, `DATA-02`, `AUTH-02`, `AUTH-03` e `FLOW-03` receberam `GO local
-  integral` ou `GO TÉCNICO LOCAL`. Restam zero `P1` aberto e quatro `P2` abertos do objeto
+  integral` ou `GO TÉCNICO LOCAL`. Restam zero `P1` aberto e um `P2` aberto do objeto
   auditado.
 
 O resultado mais importante é que as baterias verdes não cobrem algumas
@@ -184,13 +184,13 @@ autoriza deploy: indica apenas que uma parte causal possui evidência local.
 | PRIV-01 | P1 | Resolvido | fronteira global de warnings/errors recebeu GO técnico local no hash `6e360782ce98e45673b7fae9554d84c13478c23d` |
 | AUTH-04 | P2 | Resolvido | cadastro fresco revoga token antes de qualquer leitura; GO técnico local no hash `beb8e0ff7f2eccd74688aa347de6b7d79170d094` |
 | FLOW-02 | P2 | Resolvido | rate limit antecede os cinco handlers pesados; GO técnico local no hash `73abb5e575f0af8cf36f826c5646e2843a1997a5` |
-| FLOW-04 | P2 | Aberto | jobs gerais do scheduler ainda não possuem outbox/retry durável por usuário |
+| FLOW-04 | P2 | Resolvido | outbox/retry durável por usuário recebeu GO técnico local no hash `34f0f0cdcb470a2bcfa7152fecd45361edee28e4` |
 | STATE-03 | P2 | Aberto | shutdown Redis ainda não prova espera do último flush |
 | STATE-04 | P2 | Resolvido | snapshot local protegido e privado; GO técnico local no hash `22fff090192269e71d71025653f1b5450b3132e2` |
 | COV-01 | P2 | Resolvido | `npm test` executa o gate local exaustivo; GO técnico local no hash `c96d801f6f5c683634dbc8b3a2997eb576a9e3f5` |
 | OPS-01 | P2 | Resolvido | contrato versionado cobre o runtime sem ler valores; GO técnico local no hash `f26e627864d45d2b9b4317844313faf84411b8a7` |
 
-Contagem vigente: dez P1 resolvidos; zero P1 aberto; cinco P2 resolvidos e dois P2
+Contagem vigente: dez P1 resolvidos; zero P1 aberto; seis P2 resolvidos e um P2
 abertos. As
 seções e tabelas anteriores continuam como registro do objeto original, não
 como quadro vigente de remediação.
@@ -300,5 +300,6 @@ verdes no candidato `0188570...`. DATA-01 e DATA-02 também receberam `GO local
 integral`; WGL-03/WGL-04, AUTH-03/WGL-07 e FLOW-03 também receberam `GO
 TÉCNICO LOCAL`; `STATE-01`, `PRIV-01`, `AUTH-04`, `STATE-04` e `COV-01` também
 foram encerrados por parecer independente. `OPS-01` e `FLOW-02` também
-receberam `GO TÉCNICO LOCAL` independente. Deploy e produção não foram
-avaliados. A próxima correção causal da fila documental é `FLOW-04`.
+receberam `GO TÉCNICO LOCAL` independente. `FLOW-04` também foi encerrado no
+hash `34f0f0cdcb470a2bcfa7152fecd45361edee28e4`. Deploy e produção não foram
+avaliados. A próxima correção causal da fila documental é `STATE-03`.

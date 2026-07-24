@@ -4,14 +4,31 @@ Atualizado em: 2026-07-23
 
 ## Objetivo ativo
 
-Executar a fila de correções da auditoria exaustiva. `FLOW-02` recebeu `GO
+Executar a fila de correções da auditoria exaustiva. `FLOW-04` recebeu `GO
 TÉCNICO LOCAL` independente no commit imutável
-`73abb5e575f0af8cf36f826c5646e2843a1997a5`, sem achado `CRITICAL`, `HIGH` ou
-`MEDIUM`. O próximo gate é `FLOW-04`.
+`34f0f0cdcb470a2bcfa7152fecd45361edee28e4`, sem achado `CRITICAL`, `HIGH` ou
+`MEDIUM`. O último gate da fila original é `STATE-03`.
 A decisão pós-Fase 9 sobre proposição de salvamento e as melhorias de produto
 posteriores continuam na fila sem alterar essa ordem.
 
 ## Último gate encerrado
+
+`FLOW-04` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
+`34f0f0cdcb470a2bcfa7152fecd45361edee28e4`.
+
+Os seis jobs gerais do scheduler usam outbox SQLite cifrado e privado, com
+deduplicação durável, retry limitado, lease, retenção e isolamento por usuário.
+Falha posterior a transporte resolvido não reabre retry e expira para
+`accepted_unconfirmed`.
+
+Evidência: focados `42/42`; afetados `46/46`; gate exaustivo `1.256/1.261`,
+zero falhas e cinco skips previstos; controles locais verdes. O Chat confirmou
+o fechamento do `HIGH` inicial e deixou somente dois achados `LOW`
+composicionais.
+
+Não houve produção, Google, WhatsApp ou dado real nem deploy.
+
+## Gate encerrado anterior — FLOW-02
 
 `FLOW-02` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
 `73abb5e575f0af8cf36f826c5646e2843a1997a5`.
@@ -96,10 +113,10 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Git e workspace
 
-- branch ativa: `codex/flow02-rate-limit-gate`, baseada em
-  `711f3ecfb3bf985a7374bf19bbdab0e99aa68b28`;
+- branch ativa: `codex/flow04-scheduler-outbox`, baseada em
+  `45a42ab2c155a544da674be3a3f8ffa853f664c3`;
 - produto com último `GO TÉCNICO LOCAL`:
-  `73abb5e575f0af8cf36f826c5646e2843a1997a5`;
+  `34f0f0cdcb470a2bcfa7152fecd45361edee28e4`;
 - alterações concorrentes do workstream AWS/Oracle e arquivos não rastreados do
   usuário permanecem fora do gate e não devem ser adicionados, alterados ou
   removidos;
@@ -107,15 +124,15 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Próximo gate
 
-`FLOW-04`: criar um contrato durável de outbox/retry por usuário para os jobs
-gerais do scheduler. `FLOW-02` está encerrado.
+`STATE-03`: provar que o shutdown do backend de estado aguarda o último flush.
+`FLOW-04` está encerrado.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
 ## Decisões vigentes
 
-- manter `Codex → Sol → Alto` na caracterização de `FLOW-04`; esse é o menor
-  nível suficiente para revisar causalidade, persistência e retry do scheduler;
+- manter `Codex → Sol → Alto` na caracterização de `STATE-03`; esse é o menor
+  nível suficiente para revisar shutdown, causalidade e persistência do estado;
 - parar e avisar Daniel antes de reduzir ou trocar capacidade;
 - a produção vigente é Oracle/OCI; não reutilizar caminhos AWS e não executar
   Oracle e AWS simultaneamente com a mesma sessão WhatsApp;
@@ -128,11 +145,11 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar este fechamento documental e abrir `FLOW-04` em worktree isolado.
+Publicar este fechamento documental e abrir `STATE-03` em worktree isolado.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → caracterizar e corrigir FLOW-04; Chat → modelo mais capaz
+`Codex → Sol → Alto → caracterizar e corrigir STATE-03; Chat → modelo mais capaz
 disponível → Alto → auditar o futuro hash imutável.`
 
 ## Fila de produto posterior
@@ -147,6 +164,10 @@ Pluggy/Open Finance:
 
 ## Histórico dirigido
 
+- fechamento independente FLOW-04:
+  `docs/audit/42-flow04-independent-close-2026-07-23.md`;
+- recuperação pós-NO-GO FLOW-04:
+  `docs/audit/41-flow04-post-audit-recovery-candidate-2026-07-23.md`;
 - fechamento independente FLOW-02:
   `docs/audit/39-flow02-independent-close-2026-07-23.md`;
 - candidato FLOW-02:
