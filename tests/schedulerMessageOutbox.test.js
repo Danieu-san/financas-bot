@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
+const logger = require('../src/utils/logger');
 
 const {
     SchedulerMessageOutbox,
@@ -71,6 +72,8 @@ test('scheduler outbox isolates a failed recipient, retains retry and continues 
             acceptedUnconfirmed: 0,
             retryScheduled: 1,
             dead: 0,
+            confirmationAmbiguous: 0,
+            stateUpdateFailures: 0,
             recoveredAmbiguous: 0,
             purged: 0
         });
@@ -222,6 +225,121 @@ test('transport acceptance without a provider id is terminal and replay-safe', a
     }
 });
 
+test('confirmation failure after transport acceptance never reopens retry and does not block the next user', async () => {
+    const fixture = await createFixture();
+    try {
+        fixture.store.enqueue({
+            dedupeKey: 'morning:user-a:2026-07-23',
+            jobKind: 'morning_summary',
+            recipient: '5511000000001@c.us',
+            message: 'mensagem privada A',
+            createdAt: '2026-07-23T10:00:00.000Z'
+        });
+        fixture.store.enqueue({
+            dedupeKey: 'morning:user-b:2026-07-23',
+            jobKind: 'morning_summary',
+            recipient: '5511000000002@c.us',
+            message: 'mensagem privada B',
+            createdAt: '2026-07-23T10:00:01.000Z'
+        });
+        const originalAcknowledge = fixture.store.acknowledgeDelivered.bind(fixture.store);
+        let confirmations = 0;
+        fixture.store.acknowledgeDelivered = (options) => {
+            confirmations += 1;
+            if (confirmations === 1) throw new Error('private sqlite confirmation detail');
+            return originalAcknowledge(options);
+        };
+        const calls = [];
+        const first = await drainSchedulerMessageOutbox({
+            store: fixture.store,
+            client: {
+                sendMessage: async (recipient) => {
+                    calls.push(recipient);
+                    return { id: { _serialized: `provider-${calls.length}` } };
+                }
+            },
+            now: '2026-07-23T10:00:02.000Z'
+        });
+        assert.strictEqual(first.confirmationAmbiguous, 1);
+        assert.strictEqual(first.retryScheduled, 0);
+        assert.strictEqual(first.delivered, 1);
+        assert.deepStrictEqual(calls, ['5511000000001@c.us', '5511000000002@c.us']);
+        assert.deepStrictEqual(fixture.store.getStateCounts(), {
+            delivered_confirmed: 1,
+            in_flight: 1
+        });
+
+        const recoveryCalls = [];
+        const recovered = await drainSchedulerMessageOutbox({
+            store: fixture.store,
+            client: {
+                sendMessage: async (recipient) => {
+                    recoveryCalls.push(recipient);
+                    return {};
+                }
+            },
+            now: '2026-07-23T10:02:03.000Z'
+        });
+        assert.strictEqual(recovered.recoveredAmbiguous, 1);
+        assert.strictEqual(recovered.claimed, 0);
+        assert.deepStrictEqual(recoveryCalls, []);
+        assert.deepStrictEqual(fixture.store.getStateCounts(), {
+            accepted_unconfirmed: 1,
+            delivered_confirmed: 1
+        });
+    } finally {
+        await fixture.cleanup();
+    }
+});
+
+test('state update failure after transport rejection remains conservative and does not stop later jobs', async () => {
+    const fixture = await createFixture();
+    try {
+        fixture.store.enqueue({
+            dedupeKey: 'bill:user-a:2026-07-24',
+            jobKind: 'bill_reminder',
+            recipient: '5511000000001@c.us',
+            message: 'mensagem privada A',
+            createdAt: '2026-07-23T10:00:00.000Z'
+        });
+        fixture.store.enqueue({
+            dedupeKey: 'bill:user-b:2026-07-24',
+            jobKind: 'bill_reminder',
+            recipient: '5511000000002@c.us',
+            message: 'mensagem privada B',
+            createdAt: '2026-07-23T10:00:01.000Z'
+        });
+        const originalRelease = fixture.store.releaseFailure.bind(fixture.store);
+        let releases = 0;
+        fixture.store.releaseFailure = (options) => {
+            releases += 1;
+            if (releases === 1) throw new Error('private sqlite release detail');
+            return originalRelease(options);
+        };
+        const calls = [];
+        const result = await drainSchedulerMessageOutbox({
+            store: fixture.store,
+            client: {
+                sendMessage: async (recipient) => {
+                    calls.push(recipient);
+                    if (recipient.endsWith('1@c.us')) throw new Error('private transport detail');
+                    return { id: { _serialized: 'provider-b' } };
+                }
+            },
+            now: '2026-07-23T10:00:02.000Z'
+        });
+        assert.strictEqual(result.stateUpdateFailures, 1);
+        assert.strictEqual(result.delivered, 1);
+        assert.deepStrictEqual(calls, ['5511000000001@c.us', '5511000000002@c.us']);
+        assert.deepStrictEqual(fixture.store.getStateCounts(), {
+            delivered_confirmed: 1,
+            in_flight: 1
+        });
+    } finally {
+        await fixture.cleanup();
+    }
+});
+
 test('independent workers cannot claim the same durable job', async () => {
     const fixture = await createFixture();
     let secondStore;
@@ -330,8 +448,11 @@ test('scheduler outbox fails closed when encryption configuration is missing or 
 test('scheduler runtime never bypasses the outbox when secure configuration is unavailable', async () => {
     const previousKey = process.env.STATE_STORE_ENCRYPTION_KEY;
     const previousPath = process.env.SCHEDULER_OUTBOX_DB_PATH;
+    const previousLoggerError = logger.error;
+    const logged = [];
     let sends = 0;
     try {
+        logger.error = (...args) => logged.push(args.join(' '));
         delete process.env.STATE_STORE_ENCRYPTION_KEY;
         process.env.SCHEDULER_OUTBOX_DB_PATH = ':memory:';
         schedulerOutboxTest.resetRuntimeStoreForTest();
@@ -345,7 +466,12 @@ test('scheduler runtime never bypasses the outbox when secure configuration is u
         });
         assert.strictEqual(result.errorCode, 'SCHEDULER_OUTBOX_UNAVAILABLE');
         assert.strictEqual(sends, 0);
+        assert.doesNotMatch(
+            JSON.stringify(logged),
+            /5511000000001|mensagem privada|private transport/
+        );
     } finally {
+        logger.error = previousLoggerError;
         schedulerOutboxTest.resetRuntimeStoreForTest();
         if (previousKey === undefined) delete process.env.STATE_STORE_ENCRYPTION_KEY;
         else process.env.STATE_STORE_ENCRYPTION_KEY = previousKey;

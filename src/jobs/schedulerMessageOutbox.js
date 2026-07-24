@@ -98,6 +98,7 @@ class SchedulerMessageOutbox {
         this.databasePath = databasePath === ':memory:' ? databasePath : path.resolve(databasePath);
         ensurePrivateDatabasePath(this.databasePath);
         this.db = new Database(this.databasePath);
+        this.db.pragma('busy_timeout = 5000');
         this.db.pragma('journal_mode = DELETE');
         this.db.pragma('foreign_keys = ON');
         this.db.exec(`
@@ -431,6 +432,8 @@ async function drainSchedulerMessageOutbox({
         acceptedUnconfirmed: 0,
         retryScheduled: 0,
         dead: 0,
+        confirmationAmbiguous: 0,
+        stateUpdateFailures: 0,
         recoveredAmbiguous: recovered.recoveredAmbiguous,
         purged: purged.purged
     };
@@ -438,8 +441,24 @@ async function drainSchedulerMessageOutbox({
         const job = store.claimNext({ now: timestamp });
         if (!job) break;
         result.claimed += 1;
+        let transportResult;
         try {
-            const transportResult = await client.sendMessage(job.recipient, job.message);
+            transportResult = await client.sendMessage(job.recipient, job.message);
+        } catch {
+            try {
+                const released = store.releaseFailure({
+                    jobRef: job.jobRef,
+                    leaseToken: job.leaseToken,
+                    now: timestamp
+                });
+                if (released.dead) result.dead += 1;
+                else result.retryScheduled += 1;
+            } catch {
+                result.stateUpdateFailures += 1;
+            }
+            continue;
+        }
+        try {
             const providerMessageId = extractProviderMessageId(transportResult);
             if (providerMessageId) {
                 store.acknowledgeDelivered({
@@ -458,13 +477,9 @@ async function drainSchedulerMessageOutbox({
                 result.acceptedUnconfirmed += 1;
             }
         } catch {
-            const released = store.releaseFailure({
-                jobRef: job.jobRef,
-                leaseToken: job.leaseToken,
-                now: timestamp
-            });
-            if (released.dead) result.dead += 1;
-            else result.retryScheduled += 1;
+            // The transport already resolved. Keep the lease in-flight so its
+            // expiry becomes accepted_unconfirmed instead of retrying blindly.
+            result.confirmationAmbiguous += 1;
         }
     }
     return result;
@@ -525,6 +540,8 @@ async function enqueueAndDrainScheduledMessage({
             acceptedUnconfirmed: 0,
             retryScheduled: 0,
             dead: 0,
+            confirmationAmbiguous: 0,
+            stateUpdateFailures: 0,
             recoveredAmbiguous: 0,
             purged: 0,
             errorCode: 'SCHEDULER_OUTBOX_UNAVAILABLE'
@@ -547,6 +564,8 @@ async function drainScheduledMessages({ client, now = new Date() } = {}) {
             acceptedUnconfirmed: 0,
             retryScheduled: 0,
             dead: 0,
+            confirmationAmbiguous: 0,
+            stateUpdateFailures: 0,
             recoveredAmbiguous: 0,
             purged: 0,
             errorCode: 'SCHEDULER_OUTBOX_UNAVAILABLE'

@@ -35,6 +35,7 @@ function installSchedulerMocks({
     oauthCompensationRecovery = async () => ({ attempted: 0, compensated: 0, pending: 0, manualRequired: 0 }),
     oauthAttemptCleanup = () => ({ expired: 0, deleted: 0 }),
     scheduledDispatches = null,
+    useRealSchedulerOutbox = false,
     readCalls = null,
     readErrorsByRange = {}
 }) {
@@ -49,36 +50,42 @@ function installSchedulerMocks({
     delete require.cache[googleOAuthServicePath];
     delete require.cache[schedulerOutboxPath];
 
-    require.cache[schedulerOutboxPath] = {
-        id: schedulerOutboxPath,
-        filename: schedulerOutboxPath,
-        loaded: true,
-        exports: {
-            enqueueAndDrainScheduledMessage: async (options) => {
-                if (Array.isArray(scheduledDispatches)) scheduledDispatches.push(options);
-                const transportResult = await options.client.sendMessage(options.recipient, options.message);
-                return {
-                    queued: true,
-                    claimed: 1,
-                    delivered: transportResult?.id ? 1 : 0,
-                    acceptedUnconfirmed: transportResult?.id ? 0 : 1,
+    if (!useRealSchedulerOutbox) {
+        require.cache[schedulerOutboxPath] = {
+            id: schedulerOutboxPath,
+            filename: schedulerOutboxPath,
+            loaded: true,
+            exports: {
+                enqueueAndDrainScheduledMessage: async (options) => {
+                    if (Array.isArray(scheduledDispatches)) scheduledDispatches.push(options);
+                    const transportResult = await options.client.sendMessage(options.recipient, options.message);
+                    return {
+                        queued: true,
+                        claimed: 1,
+                        delivered: transportResult?.id ? 1 : 0,
+                        acceptedUnconfirmed: transportResult?.id ? 0 : 1,
+                        retryScheduled: 0,
+                        dead: 0,
+                        confirmationAmbiguous: 0,
+                        stateUpdateFailures: 0,
+                        recoveredAmbiguous: 0,
+                        purged: 0
+                    };
+                },
+                drainScheduledMessages: async () => ({
+                    claimed: 0,
+                    delivered: 0,
+                    acceptedUnconfirmed: 0,
                     retryScheduled: 0,
                     dead: 0,
+                    confirmationAmbiguous: 0,
+                    stateUpdateFailures: 0,
                     recoveredAmbiguous: 0,
                     purged: 0
-                };
-            },
-            drainScheduledMessages: async () => ({
-                claimed: 0,
-                delivered: 0,
-                acceptedUnconfirmed: 0,
-                retryScheduled: 0,
-                dead: 0,
-                recoveredAmbiguous: 0,
-                purged: 0
-            })
-        }
-    };
+                })
+            }
+        };
+    }
 
     require.cache[googlePath] = {
         id: googlePath,
@@ -557,6 +564,70 @@ test('scheduler event reminders cross the durable delivery boundary', async () =
     assert.strictEqual(sent.length, 1);
     assert.deepStrictEqual(scheduledDispatches.map(item => item.jobKind), ['event_reminder']);
     assert.match(scheduledDispatches[0].dedupeKey, /^event_reminder:user-a:/);
+});
+
+test('scheduler durable boundary persists and deduplicates all six user job kinds', async () => {
+    const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'scheduler-real-boundary-'));
+    const previousKey = process.env.STATE_STORE_ENCRYPTION_KEY;
+    const previousPath = process.env.SCHEDULER_OUTBOX_DB_PATH;
+    try {
+        process.env.STATE_STORE_ENCRYPTION_KEY = Buffer.alloc(32, 0x31).toString('base64');
+        process.env.SCHEDULER_OUTBOX_DB_PATH = path.join(directory, 'private', 'outbox.sqlite');
+        const scheduler = installSchedulerMocks({
+            users: [],
+            settingsByUser: {},
+            useRealSchedulerOutbox: true
+        });
+        const sent = [];
+        scheduler.__test__.setClientForTest({
+            sendMessage: async (recipient, message) => {
+                sent.push({ recipient, message });
+                return { id: { _serialized: `provider-${sent.length}` } };
+            }
+        });
+        scheduler.__test__.setNowForTest(new Date('2026-07-23T15:00:00.000Z'));
+        const jobKinds = [
+            'event_reminder',
+            'bill_reminder',
+            'morning_summary',
+            'evening_summary',
+            'weekly_checkin',
+            'monthly_report'
+        ];
+        for (const jobKind of jobKinds) {
+            await scheduler.__test__.dispatchScheduledUserMessage({
+                userId: 'user-a',
+                recipient: '5511000000001@c.us',
+                jobKind,
+                discriminator: `period-${jobKind}`,
+                message: `private-${jobKind}`,
+                now: new Date('2026-07-23T15:00:00.000Z')
+            });
+        }
+        for (const jobKind of jobKinds) {
+            await scheduler.__test__.dispatchScheduledUserMessage({
+                userId: 'user-a',
+                recipient: '5511000000001@c.us',
+                jobKind,
+                discriminator: `period-${jobKind}`,
+                message: `private-${jobKind}`,
+                now: new Date('2026-07-23T15:05:00.000Z')
+            });
+        }
+        assert.strictEqual(sent.length, 6);
+        assert.deepStrictEqual(
+            sent.map(item => item.message),
+            jobKinds.map(jobKind => `private-${jobKind}`)
+        );
+    } finally {
+        const outboxModule = require('../src/jobs/schedulerMessageOutbox');
+        outboxModule.__test__.resetRuntimeStoreForTest();
+        if (previousKey === undefined) delete process.env.STATE_STORE_ENCRYPTION_KEY;
+        else process.env.STATE_STORE_ENCRYPTION_KEY = previousKey;
+        if (previousPath === undefined) delete process.env.SCHEDULER_OUTBOX_DB_PATH;
+        else process.env.SCHEDULER_OUTBOX_DB_PATH = previousPath;
+        await fs.rm(directory, { recursive: true, force: true });
+    }
 });
 
 test('scheduler clamps recurring bill day 31 to the last valid day of a short month', () => {

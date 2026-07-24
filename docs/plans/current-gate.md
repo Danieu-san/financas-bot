@@ -4,6 +4,15 @@ Atualizado em: 2026-07-23
 
 Base: `45a42ab2c155a544da674be3a3f8ffa853f664c3`.
 
+## Estado
+
+Recuperação local após `NO-GO TÉCNICO LOCAL` do candidato
+`7c8d2b290dca84943a661532717f94eea91c1c6c`.
+
+O bloqueador pós-aceitação foi corrigido: somente rejeição do transporte pode
+liberar retry. Falha posterior de confirmação mantém a lease `in_flight`, que
+expira para `accepted_unconfirmed`, e não interrompe os jobs seguintes.
+
 ## Objetivo
 
 Garantir entrega agendada isolada por usuário, com deduplicação durável e retry
@@ -60,8 +69,8 @@ limitado para mensagens gerais do scheduler.
 
 ## Próxima ação exata
 
-Criar provas RED do contrato e implementar o menor outbox específico do
-scheduler.
+Publicar um novo commit imutável com a recuperação pós-auditoria e submetê-lo a
+nova auditoria independente antes de declarar GO.
 
 ## Capacidade
 
