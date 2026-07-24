@@ -5,16 +5,22 @@ const path = require('node:path');
 const test = require('node:test');
 const Database = require('better-sqlite3');
 const { OpenFinanceShadowPreviewStore } = require('../src/openFinance/openFinanceShadowPreviewStore');
+const { OpenFinanceRevocationJournal } = require('../src/openFinance/openFinanceRevocationJournal');
 const { observationRef } = require('../src/openFinance/openFinanceRuntimeReconciliation');
 
 const secret = 'open-finance-save-confirmation-secret';
 const danielWhatsappId = 'daniel-family-actor@c.us';
 const thaisWhatsappId = 'thais-family-actor@c.us';
 
-function openStore(databasePath, clock) {
-    return new OpenFinanceShadowPreviewStore({
+function openStore(databasePath, clock, revocationJournal) {
+    const ownedJournal = revocationJournal || new OpenFinanceRevocationJournal({
+        databasePath: ':memory:',
+        secret
+    });
+    const store = new OpenFinanceShadowPreviewStore({
         databasePath,
         secret,
+        revocationJournal: ownedJournal,
         authorizedWhatsAppIds: [danielWhatsappId, thaisWhatsappId],
         confirmationActors: [
             { principal: 'daniel', whatsappId: danielWhatsappId },
@@ -23,6 +29,11 @@ function openStore(databasePath, clock) {
         confirmationTtlMinutes: 60,
         clock
     });
+    if (!revocationJournal) {
+        const close = store.close.bind(store);
+        store.close = () => { close(); ownedJournal.close(); };
+    }
+    return store;
 }
 
 function seedProposal(store, {
@@ -172,18 +183,20 @@ test('9P.1 authenticates the mutable state that enforces one-time decisions', ()
 });
 
 test('9P.1 preserves the same ready confirmation across restart and consumes it once', () => {
-    const databasePath = path.join(
-        fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-save-confirmation-restart-')),
-        'preview.sqlite'
-    );
-    let store = openStore(databasePath, () => new Date('2026-07-23T12:00:00.000Z'));
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-save-confirmation-restart-'));
+    const databasePath = path.join(directory, 'preview.sqlite');
+    const journal = new OpenFinanceRevocationJournal({
+        databasePath: path.join(directory, 'journal.sqlite'),
+        secret
+    });
+    let store = openStore(databasePath, () => new Date('2026-07-23T12:00:00.000Z'), journal);
     const proposalRef = seedProposal(store);
     const first = store.prepareSaveProposalConfirmation(proposalRef, {
         actorWhatsappId: danielWhatsappId
     });
     store.close();
 
-    store = openStore(databasePath, () => new Date('2026-07-23T12:05:00.000Z'));
+    store = openStore(databasePath, () => new Date('2026-07-23T12:05:00.000Z'), journal);
     try {
         assert.deepEqual(store.prepareSaveProposalConfirmation(proposalRef, {
             actorWhatsappId: danielWhatsappId
@@ -201,7 +214,7 @@ test('9P.1 preserves the same ready confirmation across restart and consumes it 
         store.close();
     }
 
-    store = openStore(databasePath, () => new Date('2026-07-23T12:10:00.000Z'));
+    store = openStore(databasePath, () => new Date('2026-07-23T12:10:00.000Z'), journal);
     try {
         assert.deepEqual(store.prepareSaveProposalConfirmation(proposalRef, {
             actorWhatsappId: danielWhatsappId
@@ -232,13 +245,30 @@ test('9P.1 preserves the same ready confirmation across restart and consumes it 
         assert.throws(() => store.decideSaveProposalConfirmation(first.confirmation_ref, 'accept', {
             actorWhatsappId: thaisWhatsappId
         }), /save_proposal_confirmation_actor_unauthorized/);
-        store.cancelSaveProposal(proposalRef, { actorWhatsappId: danielWhatsappId });
-        assert.equal(store.db.prepare(`SELECT encrypted_confirmation
-            FROM open_finance_save_proposals WHERE proposal_ref=?`).get(proposalRef).encrypted_confirmation, null);
+        store.db.prepare(`UPDATE open_finance_save_proposals
+            SET encrypted_confirmation='restored-ciphertext',confirmation_payload_version=1
+            WHERE proposal_ref=?`).run(proposalRef);
+        assert.throws(() => store.stats(), /save_proposal_confirmation_state_metadata_mismatch/);
+        store.db.prepare(`UPDATE open_finance_save_proposals
+            SET encrypted_confirmation=NULL,confirmation_payload_version=NULL
+            WHERE proposal_ref=?`).run(proposalRef);
+        store.db.prepare(`UPDATE open_finance_save_proposals SET confirmation_ref_hash=NULL,
+            confirmation_actor_ref=NULL,confirmation_state='pending',confirmation_state_mac=NULL,
+            confirmation_ready_at=NULL,confirmation_expires_at=NULL,confirmation_decided_at=NULL
+            WHERE proposal_ref=?`).run(proposalRef);
+        assert.deepEqual(store.prepareSaveProposalConfirmation(proposalRef, {
+            actorWhatsappId: danielWhatsappId
+        }), {
+            state: 'accepted',
+            replay: true,
+            proposal_ref: proposalRef,
+            financial_writes: 0
+        });
         assert.equal(store.stats().save_confirmations_accepted, 1);
         assert.equal(store.stats().financial_writes, 0);
     } finally {
         store.close();
+        journal.close();
     }
 });
 
@@ -305,18 +335,23 @@ test('9P.1 revocation and cancellation invalidate confirmation decisions', () =>
         assert.throws(() => store.decideSaveProposalConfirmation(cancelled.confirmation_ref, 'accept', {
             actorWhatsappId: danielWhatsappId
         }), /save_proposal_state_conflict/);
+        store.db.prepare(`UPDATE open_finance_save_proposals SET resolved_at=?
+            WHERE proposal_ref=?`).run('2026-07-23T12:05:00.000Z', cancelledProposal);
+        assert.throws(() => store.stats(), /save_proposal_confirmation_state_metadata_mismatch/);
     } finally {
         store.close();
     }
 });
 
 test('9P.1 conditional updates fail closed across two store instances', () => {
-    const databasePath = path.join(
-        fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-save-confirmation-race-')),
-        'preview.sqlite'
-    );
-    const firstStore = openStore(databasePath, () => new Date('2026-07-23T12:00:00.000Z'));
-    const secondStore = openStore(databasePath, () => new Date('2026-07-23T12:00:01.000Z'));
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-save-confirmation-race-'));
+    const databasePath = path.join(directory, 'preview.sqlite');
+    const journal = new OpenFinanceRevocationJournal({
+        databasePath: path.join(directory, 'journal.sqlite'),
+        secret
+    });
+    const firstStore = openStore(databasePath, () => new Date('2026-07-23T12:00:00.000Z'), journal);
+    const secondStore = openStore(databasePath, () => new Date('2026-07-23T12:00:01.000Z'), journal);
     try {
         const proposalRef = seedProposal(firstStore);
         const prepared = firstStore.prepareSaveProposalConfirmation(proposalRef, {
@@ -337,10 +372,11 @@ test('9P.1 conditional updates fail closed across two store instances', () => {
     } finally {
         secondStore.close();
         firstStore.close();
+        journal.close();
     }
 });
 
-test('9P.1 migrates an empty 9P.0 proposal table before creating confirmations', () => {
+test('9P.1 migrates a populated 9P.0 proposal table before creating confirmations', () => {
     const databasePath = path.join(
         fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-save-confirmation-migration-')),
         'preview.sqlite'
@@ -361,6 +397,22 @@ test('9P.1 migrates an empty 9P.0 proposal table before creating confirmations',
         resolved_by_ref TEXT,
         resolved_at TEXT
     )`);
+    legacy.prepare(`INSERT INTO open_finance_save_proposals (
+        proposal_ref,transaction_ref,family_scope_ref,alias_ref,generation,encrypted_payload,
+        payload_version,proposal_state,created_at,updated_at,expires_at
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?)`).run(
+        'f'.repeat(32),
+        'e'.repeat(32),
+        'd'.repeat(32),
+        'c'.repeat(32),
+        1,
+        'legacy-encrypted-placeholder',
+        2,
+        'pending',
+        '2026-07-23T11:00:00.000Z',
+        '2026-07-23T11:00:00.000Z',
+        '2026-08-22T11:00:00.000Z'
+    );
     legacy.close();
 
     const store = openStore(databasePath, () => new Date('2026-07-23T12:00:00.000Z'));
@@ -369,6 +421,9 @@ test('9P.1 migrates an empty 9P.0 proposal table before creating confirmations',
             store.db.pragma('table_info(open_finance_save_proposals)').map(column => column.name)
         );
         assert.equal(columns.has('confirmation_state_mac'), true);
+        assert.match(store.db.prepare(`SELECT confirmation_state_mac
+            FROM open_finance_save_proposals WHERE proposal_ref=?`)
+            .get('f'.repeat(32)).confirmation_state_mac, /^[a-f0-9]{32}$/);
         const proposalRef = seedProposal(store);
         assert.equal(store.prepareSaveProposalConfirmation(proposalRef, {
             actorWhatsappId: danielWhatsappId

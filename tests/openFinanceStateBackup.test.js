@@ -211,6 +211,7 @@ test('9P.0 v3 backup preserves pending and cancelled proposals and reapplies pro
     const preview = new OpenFinanceShadowPreviewStore({
         databasePath: databasePaths.preview,
         secret,
+        revocationJournal: journal,
         authorizedWhatsAppIds: [actorWhatsappId],
         confirmationActors: [{ principal: 'daniel', whatsappId: actorWhatsappId }],
         clock: () => '2020-07-23T12:00:00.000Z'
@@ -259,6 +260,18 @@ test('9P.0 v3 backup preserves pending and cancelled proposals and reapplies pro
     });
     assert.equal(fs.readFileSync(path.join(path.dirname(backup.manifest_path), 'shadow-preview.sqlite'))
         .toString('latin1').includes(prepared.confirmation_ref), false);
+    let sourcePreview = new OpenFinanceShadowPreviewStore({
+        databasePath: databasePaths.preview,
+        secret,
+        revocationJournal: journal,
+        authorizedWhatsAppIds: [actorWhatsappId],
+        confirmationActors: [{ principal: 'daniel', whatsappId: actorWhatsappId }],
+        clock: () => '2020-07-23T12:05:00.000Z'
+    });
+    sourcePreview.decideSaveProposalConfirmation(prepared.confirmation_ref, 'accept', {
+        actorWhatsappId
+    });
+    sourcePreview.close();
     const restored = restoreOpenFinanceStateBackup({
         manifestPath: backup.manifest_path,
         destinationDirectory: path.join(root, 'restore-v3-proposals'),
@@ -268,10 +281,12 @@ test('9P.0 v3 backup preserves pending and cancelled proposals and reapplies pro
         clock: () => '2020-07-23T12:00:00.000Z'
     });
     assert.equal(restored.preview_save_proposal_revocations_reapplied, 0);
+    assert.equal(restored.preview_save_proposal_terminals_reapplied, 2);
     assert.equal(restored.expired_save_proposals_removed, 0);
     let restoredPreview = new OpenFinanceShadowPreviewStore({
         databasePath: restored.restored.preview,
         secret,
+        revocationJournal: journal,
         authorizedWhatsAppIds: [actorWhatsappId],
         confirmationActors: [{ principal: 'daniel', whatsappId: actorWhatsappId }],
         clock: () => '2020-07-23T12:00:00.000Z'
@@ -285,30 +300,31 @@ test('9P.0 v3 backup preserves pending and cancelled proposals and reapplies pro
             save_proposals_total: 2,
             save_proposals_pending: 1,
             save_proposals_cancelled: 1,
-            save_confirmations_ready: 1,
-            save_confirmations_accepted: 0,
+            save_confirmations_ready: 0,
+            save_confirmations_accepted: 1,
             save_confirmations_declined: 0,
             save_confirmations_expired: 0,
             financial_writes: 0
         });
         assert.deepEqual(restoredPreview.listPendingSaveProposals({ actorWhatsappId }), []);
-        assert.deepEqual(restoredPreview.listReadySaveProposalConfirmations({ actorWhatsappId }), [{
-            confirmation_ref: prepared.confirmation_ref,
-            proposal_ref: pendingBefore.proposal_ref,
-            expires_at: prepared.expires_at,
-            state: 'ready'
-        }]);
+        assert.deepEqual(restoredPreview.listReadySaveProposalConfirmations({ actorWhatsappId }), []);
         assert.deepEqual(restoredPreview.readSaveProposalPrivate(pendingBefore.proposal_ref, {
             actorWhatsappId
         }), pendingPayload);
         assert.deepEqual(restoredPreview.readSaveProposalPrivate(cancelledRef, {
             actorWhatsappId
         }), cancelledPayload);
-        assert.equal(restoredPreview.decideSaveProposalConfirmation(
+        assert.deepEqual(restoredPreview.decideSaveProposalConfirmation(
             prepared.confirmation_ref,
             'accept',
             { actorWhatsappId }
-        ).state, 'accepted');
+        ), {
+            applied: false,
+            replay: true,
+            state: 'accepted',
+            proposal_ref: pendingBefore.proposal_ref,
+            financial_writes: 0
+        });
     } finally {
         restoredPreview.close();
     }

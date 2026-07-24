@@ -9,11 +9,31 @@ candidato `9P.1`, publicado em `434ecaafed4e20cbafc02dffd51c7710ef3b86fc`,
 recebeu `NO-GO` independente por retenção do token cifrado após decisão e falta
 de autenticação do estado mutável de uso único.
 
-A recuperação local destrói o payload terminal, autentica estado e marcos
-temporais por HMAC, injeta o relógio no restore e prova a migração 9P.0 para
-9P.1. A evidência está verde em `22/22` focados, `39/39` causais, `224/224`
-Open Finance e `1.277/1.282` no runner hermético, com zero falhas e cinco skips
-funcionais previstos. O novo candidato aguarda hash imutável e reauditoria.
+A primeira recuperação, publicada em
+`5fbeb378ea666ae854b3ae7bad0069bdb9f53a15`, também recebeu `NO-GO`: apagar
+todo o envelope ainda simulava “nunca preparado”, e um backup antigo válido
+reabria `ready`.
+
+A segunda recuperação cria estado inicial autenticado e journal terminal
+monotônico externo ao backup. Apagamento coordenado é reparado pelo journal;
+restore reaplica o terminal antes da exposição. A evidência está verde em
+`17/17` focados, `41/41` causais, `226/226` Open Finance e `1.278/1.283` no
+runner hermético, com zero falhas e cinco skips previstos. Aguarda commit
+imutável e nova reauditoria.
+
+## Transferência em curso
+
+Worktree de origem: `C:\\Users\\Thais\\.codex\\visualizations\\2026\\07\\17\\019f7176-f073-7cd0-bdc7-eccdaaa55717\\state03-shutdown-flush`.
+Branch: `codex/open-finance-save-proposal`; HEAD de partida:
+`5fbeb378ea666ae854b3ae7bad0069bdb9f53a15`.
+
+Dez arquivos deste gate permanecem intencionalmente não commitados: seis de
+produto/teste e quatro documentos de checkpoint/auditoria. A interface do
+Codex recusou novas operações elevadas por limite de uso durante a publicação;
+não houve falha de teste, Git ou rede do projeto. Ao retomar, conferir a árvore,
+fazer `git add` somente desses dez arquivos, criar o commit sanitizado, publicar
+na mesma branch e pedir a reauditoria por hash imutável. Não executar fase 8,
+produção, Oracle/AWS, cofre Pluggy ou remoção de mensagens antes desse GO.
 
 Não houve transporte, handler WhatsApp, escrita financeira, produção, Google
 ou Pluggy real.
@@ -134,7 +154,7 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Próximo gate
 
-`9P.1`: recuperação pós-`NO-GO` localmente verde; novo commit, publicação e
+`9P.1`: segunda recuperação pós-`NO-GO` localmente verde; commit, publicação e
 reauditoria independente pendentes.
 
 Plano corrente: `docs/plans/current-gate.md`.
@@ -155,8 +175,8 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar a recuperação 9P.1 por novo hash imutável e submetê-la uma única vez à
-reauditoria independente no Chat.
+Publicar a segunda recuperação 9P.1 por novo hash imutável e submetê-la uma
+única vez à reauditoria independente no Chat.
 
 ## Capacidade para retomar
 
@@ -185,6 +205,8 @@ Pluggy/Open Finance:
   `docs/audit/49-open-finance-save-proposal-confirmation-candidate-2026-07-24.md`;
 - recuperação pós-NO-GO 9P.1:
   `docs/audit/50-open-finance-save-proposal-confirmation-recovery-candidate-2026-07-24.md`;
+- segunda recuperação 9P.1:
+  `docs/audit/51-open-finance-save-proposal-terminal-journal-recovery-candidate-2026-07-24.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:

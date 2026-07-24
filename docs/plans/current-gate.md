@@ -6,7 +6,7 @@ Base: `195ac58af68acdec87c0fb80617d0ddcf1d1de3b`.
 
 ## Estado
 
-`RECUPERAÇÃO LOCAL VERDE; NOVO HASH E REAUDITORIA PENDENTES`.
+`SEGUNDA RECUPERAÇÃO LOCAL VERDE; NOVO HASH E REAUDITORIA PENDENTES`.
 
 9P.0 encerrou a persistência shadow da proposta reconciliada. Esta fatia
 implementa o destinatário autorizado e a confirmação durável de uso único sem
@@ -17,6 +17,12 @@ O primeiro candidato `434ecaafed4e20cbafc02dffd51c7710ef3b86fc` recebeu
 autenticava o estado mutável. A recuperação destrói o payload terminal,
 autentica estado e marcos temporais por HMAC, injeta o relógio no restore e
 prova a migração aditiva desde 9P.0.
+
+A primeira recuperação `5fbeb378ea666ae854b3ae7bad0069bdb9f53a15` também
+recebeu `NO-GO`, pois apagar o envelope completo ainda simulava estado inicial
+e um backup válido anterior à decisão reabria `ready`. A segunda recuperação
+autentica o estado inicial e registra terminais em journal monotônico externo ao
+backup, reaplicado antes da exposição no restore.
 
 ## Objetivo
 
@@ -82,8 +88,13 @@ ator familiar, geração, expiração e idempotência.
 
 ## Próxima ação exata
 
-Criar e publicar o novo commit sanitizado da recuperação, pedir reauditoria
+Criar e publicar o commit sanitizado da segunda recuperação, pedir reauditoria
 independente por hash imutável e confrontar o parecer com a evidência local.
+
+Transferência: o commit ficou pendente exclusivamente porque a interface do
+Codex recusou operações elevadas por limite de uso. A árvore contém dez
+arquivos intencionais deste gate; não misturá-los com arquivos externos nem
+iniciar as verificações posteriores antes do GO independente.
 
 ## Capacidade
 

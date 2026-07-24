@@ -160,15 +160,21 @@ function restoreOpenFinanceStateBackup({ manifestPath, destinationDirectory, rev
         const reapplication = revocationJournal.reapplyRevocations({ mappings, vault, baseline, outbox });
         let previewState = 'absent_legacy';
         let previewRevocations = { removed_previews: 0, removed_save_proposals: 0 };
+        let previewTerminals = { reapplied: 0 };
         let previewRetention = {
             removed: 0,
             removed_save_proposals: 0,
             expired_save_confirmations: 0
         };
         if (restored.preview) {
-            if (!revocationJournal.listRevocations) throw new Error('open_finance_preview_revocation_protection_required');
+            if (!revocationJournal.listRevocations || !revocationJournal.listSaveProposalTerminals) {
+                throw new Error('open_finance_preview_revocation_protection_required');
+            }
             preview = new OpenFinanceShadowPreviewStore({ databasePath: restored.preview, secret, clock });
             previewRevocations = preview.reapplyRevocations({ revocations: revocationJournal.listRevocations() });
+            previewTerminals = preview.reapplySaveProposalTerminals({
+                terminals: revocationJournal.listSaveProposalTerminals()
+            });
             previewRetention = preview.purgeExpired();
             previewState = 'restored';
         }
@@ -176,6 +182,7 @@ function restoreOpenFinanceStateBackup({ manifestPath, destinationDirectory, rev
             preview_state: previewState,
             preview_revocations_reapplied: previewRevocations.removed_previews,
             preview_save_proposal_revocations_reapplied: previewRevocations.removed_save_proposals,
+            preview_save_proposal_terminals_reapplied: previewTerminals.reapplied,
             expired_previews_removed: previewRetention.removed,
             expired_save_proposals_removed: previewRetention.removed_save_proposals,
             expired_save_confirmations: previewRetention.expired_save_confirmations,

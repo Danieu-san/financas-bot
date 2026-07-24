@@ -34,7 +34,23 @@ class OpenFinanceRevocationJournal {
                 reason_code TEXT NOT NULL,
                 UNIQUE(alias_ref,generation)
             );
+            CREATE TABLE IF NOT EXISTS open_finance_save_proposal_terminal_journal (
+                sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+                proposal_ref TEXT NOT NULL UNIQUE,
+                terminal_state TEXT NOT NULL,
+                confirmation_ref_hash TEXT,
+                confirmation_actor_ref TEXT,
+                confirmation_ready_at TEXT,
+                confirmation_expires_at TEXT,
+                confirmation_decided_at TEXT NOT NULL,
+                resolved_by_ref TEXT,
+                entry_mac TEXT NOT NULL
+            );
         `);
+    }
+
+    #hmac(value) {
+        return crypto.createHmac('sha256', this.secret).update(String(value || '')).digest('hex').slice(0, 32);
     }
 
     #ref(alias) {
@@ -80,6 +96,117 @@ class OpenFinanceRevocationJournal {
     listRevocations() {
         return this.db.prepare(`SELECT alias_ref,generation,revoked_at FROM open_finance_revocation_journal
             ORDER BY sequence`).all();
+    }
+
+    #normalizeSaveProposalTerminal(entry) {
+        const proposalRef = String(entry?.proposal_ref || '');
+        const terminalState = String(entry?.terminal_state || '');
+        const confirmationRefHash = entry?.confirmation_ref_hash || null;
+        const confirmationActorRef = entry?.confirmation_actor_ref || null;
+        const confirmationReadyAt = entry?.confirmation_ready_at || null;
+        const confirmationExpiresAt = entry?.confirmation_expires_at || null;
+        const resolvedByRef = entry?.resolved_by_ref || null;
+        const confirmationDecidedAt = new Date(entry?.confirmation_decided_at);
+        if (!/^[a-f0-9]{32}$/.test(proposalRef) ||
+            !['accepted', 'declined', 'cancelled'].includes(terminalState) ||
+            Number.isNaN(confirmationDecidedAt.getTime())) {
+            throw new Error('valid_save_proposal_terminal_required');
+        }
+        const confirmationFields = [
+            confirmationRefHash,
+            confirmationActorRef,
+            confirmationReadyAt,
+            confirmationExpiresAt
+        ];
+        const hasConfirmation = confirmationFields.some(Boolean);
+        if (hasConfirmation && (
+            !/^[a-f0-9]{32}$/.test(String(confirmationRefHash || '')) ||
+            !/^[a-f0-9]{32}$/.test(String(confirmationActorRef || '')) ||
+            Number.isNaN(new Date(confirmationReadyAt).getTime()) ||
+            Number.isNaN(new Date(confirmationExpiresAt).getTime())
+        )) {
+            throw new Error('valid_save_proposal_terminal_confirmation_required');
+        }
+        if (terminalState !== 'cancelled' && !hasConfirmation) {
+            throw new Error('save_proposal_terminal_confirmation_required');
+        }
+        if (terminalState === 'cancelled' && !/^[a-f0-9]{32}$/.test(String(resolvedByRef || ''))) {
+            throw new Error('save_proposal_terminal_resolver_required');
+        }
+        return {
+            proposal_ref: proposalRef,
+            terminal_state: terminalState,
+            confirmation_ref_hash: confirmationRefHash,
+            confirmation_actor_ref: confirmationActorRef,
+            confirmation_ready_at: hasConfirmation ? new Date(confirmationReadyAt).toISOString() : null,
+            confirmation_expires_at: hasConfirmation ? new Date(confirmationExpiresAt).toISOString() : null,
+            confirmation_decided_at: confirmationDecidedAt.toISOString(),
+            resolved_by_ref: resolvedByRef
+        };
+    }
+
+    #saveProposalTerminalMac(entry) {
+        return this.#hmac(`open-finance-save-proposal-terminal:${JSON.stringify(entry)}`);
+    }
+
+    #readSaveProposalTerminal(row) {
+        if (!row) return null;
+        const entry = this.#normalizeSaveProposalTerminal(row);
+        if (row.entry_mac !== this.#saveProposalTerminalMac(entry)) {
+            throw new Error('save_proposal_terminal_journal_metadata_mismatch');
+        }
+        return entry;
+    }
+
+    recordSaveProposalTerminal(entry = {}) {
+        const normalized = this.#normalizeSaveProposalTerminal(entry);
+        const existing = this.db.prepare(`SELECT proposal_ref,terminal_state,confirmation_ref_hash,
+            confirmation_actor_ref,confirmation_ready_at,confirmation_expires_at,
+            confirmation_decided_at,resolved_by_ref,entry_mac
+            FROM open_finance_save_proposal_terminal_journal WHERE proposal_ref=?`)
+            .get(normalized.proposal_ref);
+        if (existing) {
+            const prior = this.#readSaveProposalTerminal(existing);
+            if (JSON.stringify(prior) !== JSON.stringify(normalized)) {
+                throw new Error('save_proposal_terminal_journal_conflict');
+            }
+            return { recorded: false, replay: true, terminal_state: prior.terminal_state,
+                financial_writes: 0 };
+        }
+        this.db.prepare(`INSERT INTO open_finance_save_proposal_terminal_journal (
+            proposal_ref,terminal_state,confirmation_ref_hash,confirmation_actor_ref,
+            confirmation_ready_at,confirmation_expires_at,confirmation_decided_at,entry_mac
+            ,resolved_by_ref
+        ) VALUES (?,?,?,?,?,?,?,?,?)`).run(
+            normalized.proposal_ref,
+            normalized.terminal_state,
+            normalized.confirmation_ref_hash,
+            normalized.confirmation_actor_ref,
+            normalized.confirmation_ready_at,
+            normalized.confirmation_expires_at,
+            normalized.confirmation_decided_at,
+            this.#saveProposalTerminalMac(normalized),
+            normalized.resolved_by_ref
+        );
+        return { recorded: true, replay: false, terminal_state: normalized.terminal_state,
+            financial_writes: 0 };
+    }
+
+    getSaveProposalTerminal(proposalRef) {
+        const normalized = String(proposalRef || '');
+        if (!/^[a-f0-9]{32}$/.test(normalized)) throw new Error('valid_save_proposal_ref_required');
+        return this.#readSaveProposalTerminal(this.db.prepare(`SELECT proposal_ref,terminal_state,
+            confirmation_ref_hash,confirmation_actor_ref,confirmation_ready_at,
+            confirmation_expires_at,confirmation_decided_at,resolved_by_ref,entry_mac
+            FROM open_finance_save_proposal_terminal_journal WHERE proposal_ref=?`).get(normalized));
+    }
+
+    listSaveProposalTerminals() {
+        return this.db.prepare(`SELECT proposal_ref,terminal_state,confirmation_ref_hash,
+            confirmation_actor_ref,confirmation_ready_at,confirmation_expires_at,
+            confirmation_decided_at,resolved_by_ref,entry_mac
+            FROM open_finance_save_proposal_terminal_journal ORDER BY sequence`).all()
+            .map(row => this.#readSaveProposalTerminal(row));
     }
 
     checkpoint() {

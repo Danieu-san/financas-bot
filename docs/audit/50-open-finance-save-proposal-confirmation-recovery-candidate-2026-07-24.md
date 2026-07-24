@@ -7,11 +7,31 @@ Primeiro candidato auditado:
 
 ## Estado
 
-`RECUPERAÇÃO LOCAL VERDE; NOVO HASH IMUTÁVEL E REAUDITORIA PENDENTES`.
+`NO-GO INDEPENDENTE; SUBSTITUÍDO PELA SEGUNDA RECUPERAÇÃO`.
 
 O primeiro candidato recebeu `NO-GO` independente por dois achados `MEDIUM` e
 dois `LOW`. Esta recuperação trata os quatro pontos sem enviar mensagens, sem
 instalar handler remoto e sem conceder escrita financeira.
+
+## Resultado da reauditoria
+
+O candidato foi publicado em
+`5fbeb378ea666ae854b3ae7bad0069bdb9f53a15`. O Chat confirmou o SHA, o parent
+`434ecaafed4e20cbafc02dffd51c7710ef3b86fc` e a leitura integral dos oito
+arquivos antes de emitir `NO-GO`.
+
+Os dois bloqueadores `MEDIUM` foram:
+
+1. apagar coordenadamente todo o envelope de confirmação ainda fazia uma
+   decisão terminal parecer uma proposta nunca preparada;
+2. restaurar um backup válido anterior à decisão reabria o estado `ready`,
+   porque o MAC autenticava o conteúdo, mas não sua atualidade.
+
+Os dois achados `LOW` foram a ausência de invariante verificável para payload
+terminal nulo e a falta de autenticação de `resolved_by_ref`/`resolved_at`.
+
+A segunda recuperação está em
+`docs/audit/51-open-finance-save-proposal-terminal-journal-recovery-candidate-2026-07-24.md`.
 
 ## Correções
 
