@@ -186,6 +186,6 @@ test('onboarding advances through the objective step before completing', async (
     assert.ok(msgGoal.replies.some(text => text.includes('Onboarding concluído')));
 });
 
-test.after(() => {
-    userStateManager.closeStateStore();
+test.after(async () => {
+    await userStateManager.closeStateStore();
 });

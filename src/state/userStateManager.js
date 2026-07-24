@@ -10,7 +10,6 @@ const REPLAY_FILE = path.resolve(process.cwd(), 'state_store.replay.json');
 const REPLAY_TEMP_FILE = path.resolve(process.cwd(), 'state_store.replay.tmp');
 const FLUSH_INTERVAL_MS = 60 * 1000;
 const STATE_STORE_DRIVER = String(process.env.STATE_STORE_DRIVER || 'file').toLowerCase();
-const REDIS_STATE_KEY = process.env.REDIS_STATE_KEY || 'financasbot:user_state';
 const STATE_FILE_MODE = 0o600;
 const STATE_SNAPSHOT_FORMAT = 'financasbot-state';
 const STATE_SNAPSHOT_VERSION = 1;
@@ -47,9 +46,7 @@ try {
 
 const stateMap = new Map();
 let dirty = false;
-let storeMode = 'file';
-let redisClient = null;
-let redisReady = false;
+let closePromise = null;
 
 function markDirty() {
     dirty = true;
@@ -447,54 +444,6 @@ function flushStateToDisk() {
     }
 }
 
-async function tryInitRedis() {
-    if (initializationFailureCode || STATE_STORE_DRIVER !== 'redis') {
-        return;
-    }
-
-    try {
-        // Dependencia opcional: bot continua funcionando sem Redis instalado.
-        // eslint-disable-next-line global-require
-        const { createClient } = require('redis');
-        redisClient = createClient({
-            url: process.env.REDIS_URL
-        });
-
-        redisClient.on('error', (error) => {
-            logger.error(`[state-store] redis_error ${logger.safeError(error)}`);
-            redisReady = false;
-            storeMode = 'file';
-        });
-
-        await redisClient.connect();
-        const payload = await redisClient.get(REDIS_STATE_KEY);
-        if (payload) {
-            loadStateFromJsonString(payload);
-            logger.info('State store carregado do Redis com sucesso.');
-        } else {
-            logger.info('State store Redis sem snapshot previo. Iniciando vazio.');
-        }
-        redisReady = true;
-        storeMode = 'redis';
-    } catch (error) {
-        logger.warn(`[state-store] redis_unavailable_file_fallback ${logger.safeError(error)}`);
-        redisReady = false;
-        storeMode = 'file';
-        loadStateFromDisk();
-    }
-}
-
-async function flushStateToRedis() {
-    if (!dirty || !redisReady || !redisClient) return;
-    try {
-        const payload = serializeState();
-        await redisClient.set(REDIS_STATE_KEY, payload);
-        dirty = false;
-    } catch (error) {
-        logger.error(`[state-store] redis_persist_failed ${logger.safeError(error)}`);
-    }
-}
-
 function cleanupExpired() {
     const now = Date.now();
     let removed = 0;
@@ -550,24 +499,15 @@ function findStateEntry(predicate) {
 }
 
 function closeStateStore() {
-    assertStateStoreReady();
-    cleanupExpired();
-    if (storeMode === 'redis' && redisReady) {
-        void flushStateToRedis().finally(async () => {
-            try {
-                if (redisClient) {
-                    await redisClient.quit();
-                }
-            } catch (error) {
-                logger.error(`[state-store] redis_close_failed ${logger.safeError(error)}`);
-            }
-        });
-        return;
-    }
-    flushStateToDisk();
+    if (closePromise) return closePromise;
+    closePromise = Promise.resolve().then(() => {
+        assertStateStoreReady();
+        cleanupExpired();
+        flushStateToDisk();
+    });
+    return closePromise;
 }
 
-void tryInitRedis();
 if (!initializationFailureCode
     && STATE_STORE_DRIVER === 'file'
     && stateMap.size === 0) {
@@ -578,18 +518,36 @@ if (!initializationFailureCode
     }
 }
 
-const interval = setInterval(async () => {
+const interval = setInterval(() => {
     cleanupExpired();
-    if (storeMode === 'redis' && redisReady) {
-        await flushStateToRedis();
-        return;
-    }
     flushStateToDisk();
 }, FLUSH_INTERVAL_MS);
 interval.unref();
 
-process.on('SIGINT', closeStateStore);
-process.on('SIGTERM', closeStateStore);
+function createSignalShutdownHandler({
+    close = closeStateStore,
+    exit = code => process.exit(code),
+    logError = message => logger.error(message)
+} = {}) {
+    let signalPromise = null;
+    return function stateStoreSignalShutdown() {
+        if (signalPromise) return signalPromise;
+        signalPromise = Promise.resolve()
+            .then(() => close())
+            .then(
+                () => exit(0),
+                () => {
+                    logError('[state-store] shutdown_failed code=state_store_shutdown_failed');
+                    exit(1);
+                }
+            );
+        return signalPromise;
+    };
+}
+
+const handleStateStoreShutdownSignal = createSignalShutdownHandler();
+process.once('SIGINT', handleStateStoreShutdownSignal);
+process.once('SIGTERM', handleStateStoreShutdownSignal);
 
 module.exports = {
     getState,
@@ -599,8 +557,9 @@ module.exports = {
     findStateEntry,
     closeStateStore,
     assertStateStoreConfiguration,
-    getStoreMode: () => storeMode,
+    getStoreMode: () => 'file',
     __test__: {
+        createSignalShutdownHandler,
         cleanupExpired,
         flushStateToDisk,
         serializeState,

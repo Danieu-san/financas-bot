@@ -4,10 +4,10 @@ Atualizado em: 2026-07-23
 
 ## Objetivo ativo
 
-Executar a fila de correções da auditoria exaustiva. `FLOW-04` recebeu `GO
-TÉCNICO LOCAL` independente no commit imutável
-`34f0f0cdcb470a2bcfa7152fecd45361edee28e4`, sem achado `CRITICAL`, `HIGH` ou
-`MEDIUM`. O último gate da fila original é `STATE-03`.
+Executar a fila de correções da auditoria exaustiva. `STATE-03`, último gate da
+fila original, possui candidato local validado sobre a base
+`7f619a0b0b15734a836b3288c281d21f5a270290`; commit imutável e auditoria
+independente ainda estão pendentes.
 A decisão pós-Fase 9 sobre proposição de salvamento e as melhorias de produto
 posteriores continuam na fila sem alterar essa ordem.
 
@@ -113,9 +113,9 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Git e workspace
 
-- branch ativa: `codex/flow04-scheduler-outbox`, baseada em
-  `45a42ab2c155a544da674be3a3f8ffa853f664c3`;
-- produto com último `GO TÉCNICO LOCAL`:
+- branch ativa: `codex/state03-shutdown-flush`, baseada em
+  `7f619a0b0b15734a836b3288c281d21f5a270290`;
+- último produto com `GO TÉCNICO LOCAL`:
   `34f0f0cdcb470a2bcfa7152fecd45361edee28e4`;
 - alterações concorrentes do workstream AWS/Oracle e arquivos não rastreados do
   usuário permanecem fora do gate e não devem ser adicionados, alterados ou
@@ -124,8 +124,8 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Próximo gate
 
-`STATE-03`: provar que o shutdown do backend de estado aguarda o último flush.
-`FLOW-04` está encerrado.
+`STATE-03`: publicar e auditar o candidato que remove o Redis legado sem suporte
+e aguarda o último flush do backend de arquivo antes da saída.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -145,7 +145,8 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar este fechamento documental e abrir `STATE-03` em worktree isolado.
+Criar e publicar o commit imutável de `STATE-03`, então solicitar auditoria
+independente no Chat.
 
 ## Capacidade para retomar
 

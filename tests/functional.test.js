@@ -453,8 +453,8 @@ functionalTest('functional: complex analytics handles typos, counts, duplicates 
     });
 });
 
-test.after(() => {
-    userStateManager.closeStateStore();
+test.after(async () => {
+    await userStateManager.closeStateStore();
     if (RUN_FUNCTIONAL_TESTS) {
         setTimeout(() => process.exit(functionalFailed ? 1 : 0), 1000);
     }

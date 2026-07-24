@@ -4608,8 +4608,8 @@ stateMachineTest('financial states: statement import can route credit card purch
     assert.strictEqual(sheets[CARD_SHEETS[0]][1][6], USER_ID);
 });
 
-test.after(() => {
-    userStateManager.closeStateStore();
+test.after(async () => {
+    await userStateManager.closeStateStore();
     if (typeof cache.close === 'function') {
         cache.close();
     }

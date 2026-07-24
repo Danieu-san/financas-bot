@@ -1,78 +1,85 @@
-# Gate encerrado — FLOW-04
+# Gate ativo — STATE-03
 
 Atualizado em: 2026-07-23
 
-Base: `45a42ab2c155a544da674be3a3f8ffa853f664c3`.
+Base: `7f619a0b0b15734a836b3288c281d21f5a270290`.
 
 ## Estado
 
-`GO TÉCNICO LOCAL` independente no candidato final
-`34f0f0cdcb470a2bcfa7152fecd45361edee28e4`.
+`CANDIDATO LOCAL VALIDADO; COMMIT IMUTÁVEL E AUDITORIA INDEPENDENTE
+PENDENTES`.
 
-O primeiro candidato recebeu `NO-GO` por um retry cego pós-aceitação. A
-recuperação separou transporte e confirmação, recebeu zero achado
-`CRITICAL`/`HIGH`/`MEDIUM` e fechou explicitamente o bloqueador anterior.
+O achado original apontava que o shutdown Redis disparava o último flush sem
+aguardá-lo. Desde STATE-04, somente o backend de arquivo é aceito e Redis falha
+fechado antes de qualquer efeito. Este gate não reintroduz Redis: elimina o
+caminho legado inalcançável e torna explícita e testável a conclusão do flush do
+único backend suportado antes da saída do processo.
 
 ## Objetivo
 
-Garantir entrega agendada isolada por usuário, com deduplicação durável e retry
-limitado para mensagens gerais do scheduler.
+Garantir que o encerramento do backend de estado conclua o último flush durável
+antes da saída do processo.
 
 ## Escopo
 
-- lembrete de agenda;
-- lembrete de conta;
-- resumo matinal;
-- resumo noturno;
-- check-in semanal;
-- relatório mensal;
-- outbox SQLite privada e payload cifrado;
-- retry/backoff, retenção, lease e recuperação conservadora após crash;
-- testes locais sem integrações reais.
+- backend de estado em arquivo já suportado;
+- fechamento explícito, idempotente e aguardável;
+- handlers de `SIGINT`/`SIGTERM` que só encerram após o fechamento;
+- remoção do código Redis legado e das variáveis de exemplo sem suporte;
+- testes locais sem snapshot real ou integração externa.
 
 ## Não escopo
 
-- alertas administrativos e operacionais, que possuem mecanismos próprios;
-- exatamente uma entrega após falha ambígua do transporte;
-- mudança de conteúdo, opt-in ou fontes financeiras dos jobs;
+- reintrodução ou implantação de Redis;
+- mudança no formato, criptografia, retenção ou replay do snapshot protegido;
 - produção, deploy, Google, WhatsApp ou dados reais;
 - melhorias posteriores de Pluggy/Open Finance ou UX familiar.
 
 ## Contrato
 
-1. cada mensagem possui chave determinística por usuário, tipo e período/item;
-2. replay e reinício não reenviam item já confirmado ou aceito sem confirmação;
-3. falha de um destinatário não interrompe os demais;
-4. falhas reconhecidamente anteriores à aceitação recebem retry com backoff
-   limitado;
-5. lease expirada vira estado ambíguo, sem retry cego;
-6. destinatário e mensagem ficam cifrados, banco e diretório são privados;
-7. logs e resultados expõem apenas contagens e códigos sanitizados;
-8. ausência de configuração segura bloqueia o envio, sem bypass direto.
+1. `closeStateStore()` retorna uma conclusão aguardável e idempotente;
+2. o último estado sujo está no snapshot durável quando a conclusão resolve;
+3. `SIGINT` e `SIGTERM` aguardam essa conclusão antes de sair;
+4. falha de flush produz saída não zero e log sanitizado;
+5. `redis` continua rejeitado antes de qualquer efeito e não existe código
+   legado capaz de conectá-lo;
+6. o backend de arquivo preserva criptografia, replay, retenção e arquivos
+   privados já aprovados em STATE-04.
 
 ## Critérios de GO
 
-- testes adversariais reproduzem o defeito antes da correção;
-- os seis jobs usam a fronteira durável;
-- retry, deduplicação, crash ambíguo, retenção, criptografia e permissões passam;
-- baterias focadas e controles estáticos ficam verdes;
+- teste adversarial reproduz a ausência de conclusão aguardável;
+- fechamento, sinais, falha e idempotência passam;
+- bateria do snapshot protegido e consumidores diretamente afetados passa;
+- controles estáticos e gate exaustivo ficam verdes;
 - candidato sanitizado é publicado por hash imutável;
 - auditoria independente no Chat não encontra severidade bloqueante.
 
+## Evidência local
+
+- RED causal: `0/4`;
+- prova causal verde: `4/4`;
+- estado protegido + onboarding: `26/26`;
+- máquina financeira: `121/121`;
+- recorte unitário do gerenciador: `4/4`;
+- contrato de ambiente: `5/5`;
+- gate exaustivo: `1.260/1.265`, zero falhas e cinco skips previstos;
+- sintaxe, diff e workflow: verdes.
+
 ## Condições de parada
 
-- qualquer caminho de envio direto remanescente nos seis jobs;
-- retry cego depois de resultado ambíguo;
+- necessidade de reativar Redis ou adicionar dependência;
+- saída do processo anterior ao flush;
 - dado privado persistido em claro ou emitido em log;
 - mudança necessária de produção ou integração real;
 - regressão causal fora do escopo.
 
 ## Próxima ação exata
 
-Publicar este fechamento documental e abrir `STATE-03` em worktree isolado,
-sem produção.
+Criar e publicar o commit sanitizado imutável, então solicitar auditoria
+independente no Chat, sem produção.
 
 ## Capacidade
 
-`Codex → Sol → Alto → caracterizar e corrigir STATE-03; Chat → modelo mais
-capaz disponível → Alto → auditar o futuro hash imutável.`
+`Codex → Sol → Alto → implementar e validar STATE-03; Chat → modelo mais capaz
+disponível → Alto → auditar o futuro hash imutável.`
