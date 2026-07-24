@@ -10,10 +10,32 @@ Fechamento documental anterior:
 
 ## Estado
 
-`CANDIDATO LOCAL VERDE; COMMIT IMUTÁVEL E AUDITORIA INDEPENDENTE PENDENTES`.
+`NO-GO INDEPENDENTE; SUBSTITUÍDO PELO CANDIDATO DE RECUPERAÇÃO`.
 
 Esta fatia não envia a pergunta ao WhatsApp, não instala handler remoto, não
 chama Google/ledger e não concede elegibilidade de escrita.
+
+## Resultado da auditoria independente
+
+O candidato foi publicado em
+`434ecaafed4e20cbafc02dffd51c7710ef3b86fc`. O Chat confirmou esse SHA, o
+parent e os seis arquivos do gate antes da revisão estática.
+
+Veredito: `NO-GO`.
+
+Não houve achado `CRITICAL` ou `HIGH`. Os dois bloqueadores `MEDIUM` foram:
+
+1. `accept` e `decline` preservavam o payload cifrado da confirmação, apesar do
+   contrato exigir destruição do token em estado terminal;
+2. o estado mutável que garante uso único não era autenticado, de modo que uma
+   adulteração local do SQLite poderia reabrir uma confirmação terminal.
+
+Também foram registrados dois achados `LOW`: o teste de restore dependia do
+relógio real e faltava uma prova adversarial explícita da migração 9P.0 para
+9P.1.
+
+A recuperação e sua nova evidência estão em
+`docs/audit/50-open-finance-save-proposal-confirmation-recovery-candidate-2026-07-24.md`.
 
 ## Contrato implementado
 

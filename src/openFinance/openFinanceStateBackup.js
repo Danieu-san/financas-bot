@@ -135,7 +135,7 @@ function verifyOpenFinanceStateBackup(manifestPath) {
 }
 
 function restoreOpenFinanceStateBackup({ manifestPath, destinationDirectory, revocationJournal,
-    mappings = [], secret } = {}) {
+    mappings = [], secret, clock } = {}) {
     if (!manifestPath || !destinationDirectory) throw new Error('open_finance_restore_paths_required');
     if (!revocationJournal?.reapplyRevocations || String(secret || '').length < 32) {
         throw new Error('open_finance_restore_revocation_protection_required');
@@ -160,10 +160,14 @@ function restoreOpenFinanceStateBackup({ manifestPath, destinationDirectory, rev
         const reapplication = revocationJournal.reapplyRevocations({ mappings, vault, baseline, outbox });
         let previewState = 'absent_legacy';
         let previewRevocations = { removed_previews: 0, removed_save_proposals: 0 };
-        let previewRetention = { removed: 0, removed_save_proposals: 0 };
+        let previewRetention = {
+            removed: 0,
+            removed_save_proposals: 0,
+            expired_save_confirmations: 0
+        };
         if (restored.preview) {
             if (!revocationJournal.listRevocations) throw new Error('open_finance_preview_revocation_protection_required');
-            preview = new OpenFinanceShadowPreviewStore({ databasePath: restored.preview, secret });
+            preview = new OpenFinanceShadowPreviewStore({ databasePath: restored.preview, secret, clock });
             previewRevocations = preview.reapplyRevocations({ revocations: revocationJournal.listRevocations() });
             previewRetention = preview.purgeExpired();
             previewState = 'restored';
@@ -174,6 +178,7 @@ function restoreOpenFinanceStateBackup({ manifestPath, destinationDirectory, rev
             preview_save_proposal_revocations_reapplied: previewRevocations.removed_save_proposals,
             expired_previews_removed: previewRetention.removed,
             expired_save_proposals_removed: previewRetention.removed_save_proposals,
+            expired_save_confirmations: previewRetention.expired_save_confirmations,
             financial_writes: 0 };
     } catch (error) {
         try { preview?.close(); } catch {}

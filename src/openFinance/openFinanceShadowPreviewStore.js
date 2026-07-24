@@ -108,6 +108,7 @@ class OpenFinanceShadowPreviewStore {
                 confirmation_actor_ref TEXT,
                 encrypted_confirmation TEXT,
                 confirmation_payload_version INTEGER,
+                confirmation_state_mac TEXT,
                 confirmation_ready_at TEXT,
                 confirmation_expires_at TEXT,
                 confirmation_decided_at TEXT
@@ -197,6 +198,7 @@ class OpenFinanceShadowPreviewStore {
             confirmation_actor_ref: 'TEXT',
             encrypted_confirmation: 'TEXT',
             confirmation_payload_version: 'INTEGER',
+            confirmation_state_mac: 'TEXT',
             confirmation_ready_at: 'TEXT',
             confirmation_expires_at: 'TEXT',
             confirmation_decided_at: 'TEXT'
@@ -263,6 +265,36 @@ class OpenFinanceShadowPreviewStore {
             throw new Error('save_proposal_confirmation_metadata_mismatch');
         }
         return payload;
+    }
+
+    #confirmationStateMac(row) {
+        return this.#hmac(`save-proposal-confirmation-state:${stableSerialize({
+            proposal_ref: row.proposal_ref,
+            confirmation_ref_hash: row.confirmation_ref_hash,
+            confirmation_actor_ref: row.confirmation_actor_ref,
+            proposal_state: row.proposal_state,
+            confirmation_state: row.confirmation_state,
+            confirmation_ready_at: row.confirmation_ready_at,
+            confirmation_expires_at: row.confirmation_expires_at,
+            confirmation_decided_at: row.confirmation_decided_at || null
+        })}`);
+    }
+
+    #assertSaveConfirmationState(row) {
+        if (!row.confirmation_ref_hash) {
+            if (row.confirmation_state !== 'pending' ||
+                row.confirmation_actor_ref || row.confirmation_state_mac ||
+                row.confirmation_ready_at || row.confirmation_expires_at ||
+                row.confirmation_decided_at || row.encrypted_confirmation ||
+                row.confirmation_payload_version) {
+                throw new Error('save_proposal_confirmation_state_metadata_mismatch');
+            }
+            return;
+        }
+        if (!['ready', 'accepted', 'declined', 'expired'].includes(row.confirmation_state) ||
+            row.confirmation_state_mac !== this.#confirmationStateMac(row)) {
+            throw new Error('save_proposal_confirmation_state_metadata_mismatch');
+        }
     }
 
     ingest({ decisions = [], openFinanceItems = [], canonicalTransactions = [], observedAt = new Date().toISOString() } = {}) {
@@ -525,11 +557,45 @@ class OpenFinanceShadowPreviewStore {
     purgeExpired() {
         const timestamp = this.#now();
         const result = this.db.transaction(() => {
-            const expiredConfirmations = this.db.prepare(`UPDATE open_finance_save_proposals
-                SET confirmation_state='expired',encrypted_confirmation=NULL,
-                    confirmation_payload_version=NULL,confirmation_decided_at=?,updated_at=?
-                WHERE confirmation_state='ready' AND confirmation_expires_at<=?`)
-                .run(timestamp, timestamp, timestamp).changes;
+            let expiredConfirmations = 0;
+            const confirmations = this.db.prepare(`SELECT proposal_ref,proposal_state,
+                confirmation_ref_hash,confirmation_state,confirmation_actor_ref,
+                encrypted_confirmation,confirmation_payload_version,confirmation_state_mac,
+                confirmation_ready_at,confirmation_expires_at,confirmation_decided_at
+                FROM open_finance_save_proposals
+                WHERE confirmation_ref_hash IS NOT NULL AND confirmation_expires_at<=?
+                    AND (confirmation_state='ready' OR encrypted_confirmation IS NOT NULL)`)
+                .all(timestamp);
+            const expire = this.db.prepare(`UPDATE open_finance_save_proposals SET
+                confirmation_state=?,encrypted_confirmation=NULL,
+                confirmation_payload_version=NULL,confirmation_state_mac=?,
+                confirmation_decided_at=?,updated_at=?
+                WHERE proposal_ref=? AND confirmation_ref_hash=? AND confirmation_state=?`);
+            for (const row of confirmations) {
+                this.#assertSaveConfirmationState(row);
+                const state = row.confirmation_state === 'ready' ? 'expired' : row.confirmation_state;
+                const decidedAt = row.confirmation_state === 'ready'
+                    ? timestamp
+                    : row.confirmation_decided_at;
+                const stateMac = this.#confirmationStateMac({
+                    ...row,
+                    confirmation_state: state,
+                    confirmation_decided_at: decidedAt
+                });
+                const update = expire.run(
+                    state,
+                    stateMac,
+                    decidedAt,
+                    timestamp,
+                    row.proposal_ref,
+                    row.confirmation_ref_hash,
+                    row.confirmation_state
+                );
+                if (update.changes !== 1) {
+                    throw new Error('save_proposal_confirmation_state_changed');
+                }
+                if (row.confirmation_state === 'ready') expiredConfirmations += 1;
+            }
             return {
                 previews: this.db.prepare(
                     'DELETE FROM shadow_preview_items WHERE expires_at<=?'
@@ -592,9 +658,21 @@ class OpenFinanceShadowPreviewStore {
             throw new Error('valid_save_proposal_limit_required');
         }
         this.purgeExpired();
-        return this.db.prepare(`SELECT proposal_ref,created_at,expires_at FROM open_finance_save_proposals
+        return this.db.prepare(`SELECT proposal_ref,proposal_state,created_at,expires_at,
+            confirmation_ref_hash,confirmation_state,confirmation_actor_ref,
+            encrypted_confirmation,confirmation_payload_version,confirmation_state_mac,
+            confirmation_ready_at,confirmation_expires_at,confirmation_decided_at
+            FROM open_finance_save_proposals
             WHERE family_scope_ref=? AND proposal_state='pending' AND confirmation_state='pending'
-            ORDER BY created_at,proposal_ref LIMIT ?`).all(this.familyScopeRef, limit);
+            ORDER BY created_at,proposal_ref LIMIT ?`).all(this.familyScopeRef, limit)
+            .map(row => {
+                this.#assertSaveConfirmationState(row);
+                return {
+                    proposal_ref: row.proposal_ref,
+                    created_at: row.created_at,
+                    expires_at: row.expires_at
+                };
+            });
     }
 
     readSaveProposalPrivate(proposalRef, { actorWhatsappId } = {}) {
@@ -614,7 +692,8 @@ class OpenFinanceShadowPreviewStore {
         const select = this.db.prepare(`SELECT proposal_ref,family_scope_ref,alias_ref,generation,
             encrypted_payload,payload_version,proposal_state,created_at,expires_at,
             confirmation_ref_hash,confirmation_state,confirmation_actor_ref,encrypted_confirmation,
-            confirmation_payload_version,confirmation_ready_at,confirmation_expires_at
+            confirmation_payload_version,confirmation_state_mac,confirmation_ready_at,
+            confirmation_expires_at,confirmation_decided_at
             FROM open_finance_save_proposals WHERE proposal_ref=? AND family_scope_ref=?`);
         let row = select.get(proposalRef, this.familyScopeRef);
         if (!row) throw new Error('save_proposal_not_found');
@@ -625,17 +704,21 @@ class OpenFinanceShadowPreviewStore {
         if (expectedActorRef !== actorRef) {
             throw new Error('save_proposal_confirmation_recipient_unauthorized');
         }
+        this.#assertSaveConfirmationState(row);
         if (row.confirmation_state !== 'pending') {
             if (row.confirmation_actor_ref !== actorRef) {
                 throw new Error('save_proposal_confirmation_actor_unauthorized');
             }
-            if (row.confirmation_state === 'expired') {
+            if (['accepted', 'declined', 'expired'].includes(row.confirmation_state)) {
                 return {
-                    state: 'expired',
+                    state: row.confirmation_state,
                     replay: true,
                     proposal_ref: proposalRef,
                     financial_writes: 0
                 };
+            }
+            if (row.confirmation_state !== 'ready') {
+                throw new Error('save_proposal_confirmation_state_conflict');
             }
             const confirmation = this.#readBoundSaveConfirmation(row);
             return {
@@ -662,16 +745,27 @@ class OpenFinanceShadowPreviewStore {
             ready_at: timestamp,
             expires_at: expiresAt
         };
+        const stateMac = this.#confirmationStateMac({
+            proposal_ref: proposalRef,
+            confirmation_ref_hash: confirmationRefHash,
+            confirmation_actor_ref: actorRef,
+            proposal_state: 'pending',
+            confirmation_state: 'ready',
+            confirmation_ready_at: timestamp,
+            confirmation_expires_at: expiresAt,
+            confirmation_decided_at: null
+        });
         const result = this.db.prepare(`UPDATE open_finance_save_proposals SET
             confirmation_ref_hash=?,confirmation_state='ready',confirmation_actor_ref=?,
-            encrypted_confirmation=?,confirmation_payload_version=1,confirmation_ready_at=?,
-            confirmation_expires_at=?,updated_at=?
+            encrypted_confirmation=?,confirmation_payload_version=1,confirmation_state_mac=?,
+            confirmation_ready_at=?,confirmation_expires_at=?,updated_at=?
             WHERE proposal_ref=? AND family_scope_ref=? AND proposal_state='pending'
                 AND confirmation_state='pending'`)
             .run(
                 confirmationRefHash,
                 actorRef,
                 this.#encrypt(confirmationRefHash, confirmation),
+                stateMac,
                 timestamp,
                 expiresAt,
                 timestamp,
@@ -685,6 +779,18 @@ class OpenFinanceShadowPreviewStore {
             }
             if (row.confirmation_actor_ref !== actorRef) {
                 throw new Error('save_proposal_confirmation_actor_unauthorized');
+            }
+            this.#assertSaveConfirmationState(row);
+            if (['accepted', 'declined', 'expired'].includes(row.confirmation_state)) {
+                return {
+                    state: row.confirmation_state,
+                    replay: true,
+                    proposal_ref: proposalRef,
+                    financial_writes: 0
+                };
+            }
+            if (row.confirmation_state !== 'ready') {
+                throw new Error('save_proposal_confirmation_state_conflict');
             }
             const replay = this.#readBoundSaveConfirmation(row);
             return {
@@ -714,15 +820,17 @@ class OpenFinanceShadowPreviewStore {
         }
         this.purgeExpired();
         const actorRef = this.#actorRef(actorWhatsappId);
-        return this.db.prepare(`SELECT proposal_ref,family_scope_ref,confirmation_ref_hash,
+        return this.db.prepare(`SELECT proposal_ref,family_scope_ref,proposal_state,confirmation_ref_hash,
             confirmation_state,confirmation_actor_ref,encrypted_confirmation,
-            confirmation_payload_version,confirmation_ready_at,confirmation_expires_at
+            confirmation_payload_version,confirmation_state_mac,confirmation_ready_at,
+            confirmation_expires_at,confirmation_decided_at
             FROM open_finance_save_proposals
             WHERE family_scope_ref=? AND proposal_state='pending' AND confirmation_state='ready'
                 AND confirmation_actor_ref=?
             ORDER BY confirmation_ready_at,proposal_ref LIMIT ?`)
             .all(this.familyScopeRef, actorRef, limit)
             .map(row => {
+                this.#assertSaveConfirmationState(row);
                 const confirmation = this.#readBoundSaveConfirmation(row);
                 return {
                     confirmation_ref: confirmation.confirmation_ref,
@@ -744,7 +852,8 @@ class OpenFinanceShadowPreviewStore {
         const actorRef = this.#actorRef(actorWhatsappId);
         const select = this.db.prepare(`SELECT proposal_ref,family_scope_ref,proposal_state,
             confirmation_ref_hash,confirmation_state,confirmation_actor_ref,encrypted_confirmation,
-            confirmation_payload_version,confirmation_ready_at,confirmation_expires_at
+            confirmation_payload_version,confirmation_state_mac,confirmation_ready_at,
+            confirmation_expires_at,confirmation_decided_at
             FROM open_finance_save_proposals
             WHERE confirmation_ref_hash=? AND family_scope_ref=?`);
         let row = select.get(confirmationRefHash, this.familyScopeRef);
@@ -752,11 +861,11 @@ class OpenFinanceShadowPreviewStore {
         if (row.confirmation_actor_ref !== actorRef) {
             throw new Error('save_proposal_confirmation_actor_unauthorized');
         }
+        this.#assertSaveConfirmationState(row);
         if (row.proposal_state !== 'pending') throw new Error('save_proposal_state_conflict');
         if (row.confirmation_state === 'expired') {
             throw new Error('save_proposal_confirmation_expired');
         }
-        this.#readBoundSaveConfirmation(row);
         const targetState = decision === 'accept' ? 'accepted' : 'declined';
         if (['accepted', 'declined'].includes(row.confirmation_state)) {
             if (row.confirmation_state !== targetState) {
@@ -773,12 +882,20 @@ class OpenFinanceShadowPreviewStore {
         if (row.confirmation_state !== 'ready') {
             throw new Error('save_proposal_confirmation_state_conflict');
         }
+        this.#readBoundSaveConfirmation(row);
+        const stateMac = this.#confirmationStateMac({
+            ...row,
+            confirmation_state: targetState,
+            confirmation_decided_at: timestamp
+        });
         const result = this.db.prepare(`UPDATE open_finance_save_proposals SET
-            confirmation_state=?,confirmation_decided_at=?,updated_at=?
+            confirmation_state=?,encrypted_confirmation=NULL,confirmation_payload_version=NULL,
+            confirmation_state_mac=?,confirmation_decided_at=?,updated_at=?
             WHERE confirmation_ref_hash=? AND family_scope_ref=? AND proposal_state='pending'
                 AND confirmation_state='ready' AND confirmation_actor_ref=?`)
             .run(
                 targetState,
+                stateMac,
                 timestamp,
                 timestamp,
                 confirmationRefHash,
@@ -791,11 +908,11 @@ class OpenFinanceShadowPreviewStore {
             if (row.confirmation_actor_ref !== actorRef) {
                 throw new Error('save_proposal_confirmation_actor_unauthorized');
             }
+            this.#assertSaveConfirmationState(row);
             if (row.proposal_state !== 'pending') throw new Error('save_proposal_state_conflict');
             if (row.confirmation_state === 'expired') {
                 throw new Error('save_proposal_confirmation_expired');
             }
-            this.#readBoundSaveConfirmation(row);
             if (row.confirmation_state !== targetState) {
                 throw new Error('save_proposal_confirmation_conflict');
             }
@@ -822,25 +939,48 @@ class OpenFinanceShadowPreviewStore {
         const timestamp = this.#now();
         this.purgeExpired();
         const actorRef = this.#actorRef(actorWhatsappId);
-        const row = this.db.prepare(`SELECT proposal_state,confirmation_state FROM open_finance_save_proposals
+        const row = this.db.prepare(`SELECT proposal_ref,proposal_state,confirmation_ref_hash,
+            confirmation_state,confirmation_actor_ref,encrypted_confirmation,
+            confirmation_payload_version,confirmation_state_mac,confirmation_ready_at,
+            confirmation_expires_at,confirmation_decided_at
+            FROM open_finance_save_proposals
             WHERE proposal_ref=? AND family_scope_ref=?`).get(proposalRef, this.familyScopeRef);
         if (!row) throw new Error('save_proposal_not_found');
+        this.#assertSaveConfirmationState(row);
         if (row.proposal_state === 'cancelled') {
             return { cancelled: true, replay: true, financial_writes: 0 };
         }
         if (row.proposal_state !== 'pending') throw new Error('save_proposal_state_conflict');
+        const confirmationState = row.confirmation_state === 'ready'
+            ? 'declined'
+            : row.confirmation_state;
+        const confirmationDecidedAt = row.confirmation_state === 'ready'
+            ? timestamp
+            : row.confirmation_decided_at;
+        const stateMac = row.confirmation_ref_hash
+            ? this.#confirmationStateMac({
+                ...row,
+                proposal_state: 'cancelled',
+                confirmation_state: confirmationState,
+                confirmation_decided_at: confirmationDecidedAt
+            })
+            : null;
         const result = this.db.prepare(`UPDATE open_finance_save_proposals
             SET proposal_state='cancelled',resolved_by_ref=?,resolved_at=?,updated_at=?,
-                confirmation_state=CASE WHEN confirmation_state='ready' THEN 'declined'
-                    ELSE confirmation_state END,
-                encrypted_confirmation=CASE WHEN confirmation_state='ready' THEN NULL
-                    ELSE encrypted_confirmation END,
-                confirmation_payload_version=CASE WHEN confirmation_state='ready' THEN NULL
-                    ELSE confirmation_payload_version END,
-                confirmation_decided_at=CASE WHEN confirmation_state='ready' THEN ?
-                    ELSE confirmation_decided_at END
+                confirmation_state=?,encrypted_confirmation=NULL,
+                confirmation_payload_version=NULL,confirmation_state_mac=?,
+                confirmation_decided_at=?
             WHERE proposal_ref=? AND family_scope_ref=? AND proposal_state='pending'`)
-            .run(actorRef, timestamp, timestamp, timestamp, proposalRef, this.familyScopeRef);
+            .run(
+                actorRef,
+                timestamp,
+                timestamp,
+                confirmationState,
+                stateMac,
+                confirmationDecidedAt,
+                proposalRef,
+                this.familyScopeRef
+            );
         if (result.changes !== 1) throw new Error('save_proposal_state_changed');
         this.#hardenFiles();
         return { cancelled: true, replay: false, financial_writes: 0 };
@@ -892,6 +1032,14 @@ class OpenFinanceShadowPreviewStore {
 
     stats() {
         this.purgeExpired();
+        const confirmationRows = this.db.prepare(`SELECT proposal_ref,proposal_state,
+            confirmation_ref_hash,confirmation_state,confirmation_actor_ref,
+            encrypted_confirmation,confirmation_payload_version,confirmation_state_mac,
+            confirmation_ready_at,confirmation_expires_at,confirmation_decided_at
+            FROM open_finance_save_proposals WHERE family_scope_ref=?`).all(this.familyScopeRef);
+        for (const confirmationRow of confirmationRows) {
+            this.#assertSaveConfirmationState(confirmationRow);
+        }
         const row = this.db.prepare(`SELECT COUNT(*) AS total,
             SUM(CASE WHEN review_state='pending' THEN 1 ELSE 0 END) AS pending,
             SUM(CASE WHEN review_state='reviewed' THEN 1 ELSE 0 END) AS reviewed

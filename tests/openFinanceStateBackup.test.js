@@ -213,9 +213,10 @@ test('9P.0 v3 backup preserves pending and cancelled proposals and reapplies pro
         secret,
         authorizedWhatsAppIds: [actorWhatsappId],
         confirmationActors: [{ principal: 'daniel', whatsappId: actorWhatsappId }],
-        clock: () => '2026-07-23T12:00:00.000Z'
+        clock: () => '2020-07-23T12:00:00.000Z'
     });
     const source = structuredClone(buildSnapshot().items[0]);
+    source.transactions[0].date = '2020-07-23T10:00:00.000Z';
     source.transactions.push({
         ...source.transactions[0],
         id: 'private-transaction-2',
@@ -238,7 +239,7 @@ test('9P.0 v3 backup preserves pending and cancelled proposals and reapplies pro
         })),
         openFinanceItems: [{ ...source, generation: 1 }],
         policies: [{ alias: 'daniel_nubank', write_confirmation_principal: 'daniel' }],
-        observedAt: '2026-07-23T11:00:00.000Z'
+        observedAt: '2020-07-23T11:00:00.000Z'
     });
     const proposals = preview.listPendingSaveProposals({ actorWhatsappId });
     const pendingBefore = proposals[0];
@@ -263,7 +264,8 @@ test('9P.0 v3 backup preserves pending and cancelled proposals and reapplies pro
         destinationDirectory: path.join(root, 'restore-v3-proposals'),
         revocationJournal: journal,
         mappings: [{ alias: 'daniel_nubank', itemId: source.id, generation: 1 }],
-        secret
+        secret,
+        clock: () => '2020-07-23T12:00:00.000Z'
     });
     assert.equal(restored.preview_save_proposal_revocations_reapplied, 0);
     assert.equal(restored.expired_save_proposals_removed, 0);
@@ -272,7 +274,7 @@ test('9P.0 v3 backup preserves pending and cancelled proposals and reapplies pro
         secret,
         authorizedWhatsAppIds: [actorWhatsappId],
         confirmationActors: [{ principal: 'daniel', whatsappId: actorWhatsappId }],
-        clock: () => '2026-07-23T12:00:00.000Z'
+        clock: () => '2020-07-23T12:00:00.000Z'
     });
     try {
         assert.deepEqual(restoredPreview.stats(), {
@@ -317,7 +319,8 @@ test('9P.0 v3 backup preserves pending and cancelled proposals and reapplies pro
         destinationDirectory: path.join(root, 'restore-v3-proposals-revoked'),
         revocationJournal: journal,
         mappings: [{ alias: 'daniel_nubank', itemId: source.id, generation: 1 }],
-        secret
+        secret,
+        clock: () => '2020-07-23T12:00:00.000Z'
     });
     assert.equal(revokedRestore.preview_save_proposal_revocations_reapplied, 2);
     restoredPreview = new OpenFinanceShadowPreviewStore({

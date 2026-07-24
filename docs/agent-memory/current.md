@@ -4,12 +4,16 @@ Atualizado em: 2026-07-24
 
 ## Objetivo ativo
 
-A fila original da auditoria exaustiva está tecnicamente encerrada. `9P.1`
-possui candidato local verde para confirmação durável e de uso único de uma
-proposta Open Finance. O token opaco fica somente no payload cifrado, enquanto
-o banco indexa seu HMAC; ator, principal familiar, expiração, replay, conflito,
-restart, cancelamento, revogação e backup/restore estão cobertos. O candidato
-aguarda commit imutável e auditoria independente antes de receber GO.
+A fila original da auditoria exaustiva está tecnicamente encerrada. O primeiro
+candidato `9P.1`, publicado em `434ecaafed4e20cbafc02dffd51c7710ef3b86fc`,
+recebeu `NO-GO` independente por retenção do token cifrado após decisão e falta
+de autenticação do estado mutável de uso único.
+
+A recuperação local destrói o payload terminal, autentica estado e marcos
+temporais por HMAC, injeta o relógio no restore e prova a migração 9P.0 para
+9P.1. A evidência está verde em `22/22` focados, `39/39` causais, `224/224`
+Open Finance e `1.277/1.282` no runner hermético, com zero falhas e cinco skips
+funcionais previstos. O novo candidato aguarda hash imutável e reauditoria.
 
 Não houve transporte, handler WhatsApp, escrita financeira, produção, Google
 ou Pluggy real.
@@ -130,8 +134,8 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Próximo gate
 
-`9P.1`: candidato local verde; commit, publicação e auditoria independente
-pendentes.
+`9P.1`: recuperação pós-`NO-GO` localmente verde; novo commit, publicação e
+reauditoria independente pendentes.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -151,8 +155,8 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar o candidato 9P.1 por hash imutável e submetê-lo à auditoria
-independente no Chat.
+Publicar a recuperação 9P.1 por novo hash imutável e submetê-la uma única vez à
+reauditoria independente no Chat.
 
 ## Capacidade para retomar
 
@@ -179,6 +183,8 @@ Pluggy/Open Finance:
   `docs/audit/48-open-finance-save-proposal-shadow-independent-close-2026-07-23.md`;
 - candidato 9P.1:
   `docs/audit/49-open-finance-save-proposal-confirmation-candidate-2026-07-24.md`;
+- recuperação pós-NO-GO 9P.1:
+  `docs/audit/50-open-finance-save-proposal-confirmation-recovery-candidate-2026-07-24.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:

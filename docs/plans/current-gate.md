@@ -6,11 +6,17 @@ Base: `195ac58af68acdec87c0fb80617d0ddcf1d1de3b`.
 
 ## Estado
 
-`CANDIDATO LOCAL VERDE; AUDITORIA INDEPENDENTE PENDENTE`.
+`RECUPERAÇÃO LOCAL VERDE; NOVO HASH E REAUDITORIA PENDENTES`.
 
 9P.0 encerrou a persistência shadow da proposta reconciliada. Esta fatia
 implementa o destinatário autorizado e a confirmação durável de uso único sem
 enviar mensagem e sem conceder escrita.
+
+O primeiro candidato `434ecaafed4e20cbafc02dffd51c7710ef3b86fc` recebeu
+`NO-GO` independente porque preservava o token cifrado após decisão e não
+autenticava o estado mutável. A recuperação destrói o payload terminal,
+autentica estado e marcos temporais por HMAC, injeta o relógio no restore e
+prova a migração aditiva desde 9P.0.
 
 ## Objetivo
 
@@ -76,8 +82,8 @@ ator familiar, geração, expiração e idempotência.
 
 ## Próxima ação exata
 
-Criar e publicar o commit sanitizado do candidato, pedir auditoria independente
-por hash imutável e confrontar o parecer com a evidência local.
+Criar e publicar o novo commit sanitizado da recuperação, pedir reauditoria
+independente por hash imutável e confrontar o parecer com a evidência local.
 
 ## Capacidade
 
