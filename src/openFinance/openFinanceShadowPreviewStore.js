@@ -22,6 +22,15 @@ function validGeneration(value) {
     return generation;
 }
 
+function stableSerialize(value) {
+    if (Array.isArray(value)) return `[${value.map(stableSerialize).join(',')}]`;
+    if (value && typeof value === 'object') {
+        return `{${Object.keys(value).sort().map(key =>
+            `${JSON.stringify(key)}:${stableSerialize(value[key])}`).join(',')}}`;
+    }
+    return JSON.stringify(value);
+}
+
 class OpenFinanceShadowPreviewStore {
     constructor({ databasePath = ':memory:', secret, retentionDays = 30,
         familyScope = 'shared-family', revocationJournal, authorizedWhatsAppIds = [],
@@ -164,6 +173,19 @@ class OpenFinanceShadowPreviewStore {
         return JSON.parse(Buffer.concat([decipher.update(Buffer.from(encrypted, 'base64')), decipher.final()]).toString('utf8'));
     }
 
+    #readBoundSaveProposal(proposalRef, row) {
+        const payload = this.#decrypt(proposalRef, row.encrypted_payload);
+        if (row.payload_version !== 2 ||
+            payload.family_scope_ref !== row.family_scope_ref ||
+            payload.alias_ref !== row.alias_ref ||
+            payload.generation !== row.generation ||
+            payload.created_at !== row.created_at ||
+            payload.expires_at !== row.expires_at) {
+            throw new Error('save_proposal_metadata_mismatch');
+        }
+        return payload;
+    }
+
     ingest({ decisions = [], openFinanceItems = [], canonicalTransactions = [], observedAt = new Date().toISOString() } = {}) {
         const created = validTimestamp(observedAt, 'valid_shadow_preview_time_required');
         const now = this.#now();
@@ -296,24 +318,23 @@ class OpenFinanceShadowPreviewStore {
         let inserted = 0;
         let replayed = 0;
         let blocked = 0;
-        const existing = this.db.prepare(
-            'SELECT proposal_state FROM open_finance_save_proposals WHERE proposal_ref=?'
+        const existing = this.db.prepare(`SELECT transaction_ref,family_scope_ref,alias_ref,generation,
+            encrypted_payload,payload_version,proposal_state,created_at,expires_at
+            FROM open_finance_save_proposals WHERE proposal_ref=?`);
+        const existingByTransaction = this.db.prepare(
+            'SELECT proposal_ref FROM open_finance_save_proposals WHERE transaction_ref=?'
         );
         const insert = this.db.prepare(`INSERT INTO open_finance_save_proposals (
             proposal_ref,transaction_ref,family_scope_ref,alias_ref,generation,encrypted_payload,
             payload_version,proposal_state,created_at,updated_at,expires_at
-        ) VALUES (?,?,?,?,?,?,1,'pending',?,?,?)`);
-        const updatePending = this.db.prepare(`UPDATE open_finance_save_proposals
-            SET encrypted_payload=?,updated_at=?
-            WHERE proposal_ref=? AND proposal_state='pending'`);
+        ) VALUES (?,?,?,?,?,?,2,'pending',?,?,?)
+        ON CONFLICT(proposal_ref) DO NOTHING`);
         this.db.transaction(() => {
             for (const decision of reconciliationDecisions) {
                 const lifecycle = lifecycleByObservation.get(decision.observation_ref);
                 const source = sourceByObservation.get(decision.observation_ref);
                 const principal = source ? principalByAlias.get(source.alias) : null;
-                if (decision.status !== 'new' || !source || !principal ||
-                    lifecycle?.classification !== 'purchase' || lifecycle?.provider_state !== 'POSTED' ||
-                    expiresAt <= now) {
+                if (!source || !principal || expiresAt <= now) {
                     blocked += 1;
                     continue;
                 }
@@ -323,7 +344,14 @@ class OpenFinanceShadowPreviewStore {
                 const transactionRef = this.#hmac(
                     `save-proposal-transaction:${source.aliasRef}:${source.generation}:${decision.transaction_ref}`
                 );
-                const payload = {
+                let prior = existing.get(proposalRef);
+                if (decision.status !== 'new' || lifecycle?.classification !== 'purchase' ||
+                    lifecycle?.provider_state !== 'POSTED') {
+                    if (prior) throw new Error('save_proposal_replay_conflict');
+                    blocked += 1;
+                    continue;
+                }
+                const basePayload = {
                     alias: source.alias,
                     generation: source.generation,
                     principal,
@@ -332,30 +360,80 @@ class OpenFinanceShadowPreviewStore {
                     account_type: source.accountType,
                     source: source.transaction,
                     observation_ref: decision.observation_ref,
+                    reconciliation_transaction_ref: decision.transaction_ref,
+                    reconciliation_status: decision.status,
+                    reconciliation_rule: decision.rule,
                     operation_key: this.#operationKey(
                         `open-finance-write:${source.aliasRef}:${source.generation}:${decision.observation_ref}`
                     )
                 };
-                const prior = existing.get(proposalRef);
                 if (prior) {
-                    if (prior.proposal_state === 'pending') {
-                        updatePending.run(this.#encrypt(proposalRef, payload), now, proposalRef);
+                    const payload = {
+                        ...basePayload,
+                        family_scope_ref: this.familyScopeRef,
+                        alias_ref: source.aliasRef,
+                        created_at: prior.created_at,
+                        expires_at: prior.expires_at
+                    };
+                    if (prior.transaction_ref !== transactionRef ||
+                        prior.family_scope_ref !== this.familyScopeRef ||
+                        prior.alias_ref !== source.aliasRef ||
+                        prior.generation !== source.generation ||
+                        stableSerialize(this.#readBoundSaveProposal(proposalRef, prior)) !== stableSerialize(payload)) {
+                        throw new Error('save_proposal_replay_conflict');
                     }
                     replayed += 1;
                     continue;
                 }
-                insert.run(
-                    proposalRef,
-                    transactionRef,
-                    this.familyScopeRef,
-                    source.aliasRef,
-                    source.generation,
-                    this.#encrypt(proposalRef, payload),
-                    created.toISOString(),
-                    now,
-                    expiresAt
-                );
-                inserted += 1;
+                const payload = {
+                    ...basePayload,
+                    family_scope_ref: this.familyScopeRef,
+                    alias_ref: source.aliasRef,
+                    created_at: created.toISOString(),
+                    expires_at: expiresAt
+                };
+                const transactionOwner = existingByTransaction.get(transactionRef);
+                if (transactionOwner && transactionOwner.proposal_ref !== proposalRef) {
+                    throw new Error('save_proposal_replay_conflict');
+                }
+                let result;
+                try {
+                    result = insert.run(
+                        proposalRef,
+                        transactionRef,
+                        this.familyScopeRef,
+                        source.aliasRef,
+                        source.generation,
+                        this.#encrypt(proposalRef, payload),
+                        created.toISOString(),
+                        now,
+                        expiresAt
+                    );
+                } catch (error) {
+                    if (String(error.code || '').startsWith('SQLITE_CONSTRAINT')) {
+                        throw new Error('save_proposal_replay_conflict');
+                    }
+                    throw error;
+                }
+                if (result.changes === 1) {
+                    inserted += 1;
+                    continue;
+                }
+                prior = existing.get(proposalRef);
+                if (!prior || prior.transaction_ref !== transactionRef ||
+                    prior.family_scope_ref !== this.familyScopeRef ||
+                    prior.alias_ref !== source.aliasRef ||
+                    prior.generation !== source.generation ||
+                    stableSerialize(this.#readBoundSaveProposal(proposalRef, prior)) !== stableSerialize({
+                        ...basePayload,
+                        family_scope_ref: this.familyScopeRef,
+                        alias_ref: source.aliasRef,
+                        created_at: prior.created_at,
+                        expires_at: prior.expires_at
+                    })) {
+                    throw new Error('save_proposal_replay_conflict');
+                }
+                replayed += 1;
             }
         })();
         this.#hardenFiles();
@@ -432,9 +510,10 @@ class OpenFinanceShadowPreviewStore {
     readSaveProposalPrivate(proposalRef, { actorWhatsappId } = {}) {
         this.#requireAuthorizedActor(actorWhatsappId);
         this.purgeExpired();
-        const row = this.db.prepare(`SELECT encrypted_payload FROM open_finance_save_proposals
+        const row = this.db.prepare(`SELECT family_scope_ref,alias_ref,generation,encrypted_payload,
+            payload_version,created_at,expires_at FROM open_finance_save_proposals
             WHERE proposal_ref=? AND family_scope_ref=?`).get(proposalRef, this.familyScopeRef);
-        return row ? this.#decrypt(proposalRef, row.encrypted_payload) : null;
+        return row ? this.#readBoundSaveProposal(proposalRef, row) : null;
     }
 
     cancelSaveProposal(proposalRef, { actorWhatsappId } = {}) {

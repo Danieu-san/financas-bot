@@ -9,7 +9,11 @@ const { OpenFinanceAlertOutbox } = require('../src/openFinance/openFinanceAlertO
 const { OpenFinanceRevocationJournal } = require('../src/openFinance/openFinanceRevocationJournal');
 const { OpenFinanceShadowPreviewStore } = require('../src/openFinance/openFinanceShadowPreviewStore');
 const { observationRef } = require('../src/openFinance/openFinanceRuntimeReconciliation');
-const { runOpenFinanceCanaryCycle, saveProposalMode } = require('../src/openFinance/openFinanceCanaryRuntime');
+const {
+    runOpenFinanceCanaryCycle,
+    initializeOpenFinanceCanaryRuntime,
+    saveProposalMode
+} = require('../src/openFinance/openFinanceCanaryRuntime');
 
 const secret = 'open-finance-save-proposal-shadow-secret';
 const actorWhatsappId = 'family-actor@c.us';
@@ -82,6 +86,16 @@ function openStore(databasePath, clock = () => new Date('2026-07-23T12:00:00.000
     });
 }
 
+function proposalInput(input, observedAt = '2026-07-23T11:00:00.000Z') {
+    return {
+        reconciliationDecisions: input.reconciliationDecisions,
+        lifecycleDecisions: input.lifecycleDecisions,
+        openFinanceItems: [input.item],
+        policies: input.policies,
+        observedAt
+    };
+}
+
 test('9P.0 proposal mode is dark by default and refuses premature canary activation', () => {
     assert.equal(saveProposalMode({}), 'off');
     assert.equal(saveProposalMode({ OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'shadow' }), 'shadow');
@@ -89,6 +103,122 @@ test('9P.0 proposal mode is dark by default and refuses premature canary activat
         /invalid_open_finance_save_proposal_mode/);
     assert.throws(() => saveProposalMode({ OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'on' }),
         /invalid_open_finance_save_proposal_mode/);
+});
+
+test('9P.0 initializer rejects invalid proposal configuration before installing polling timers', () => {
+    const originalTimeout = global.setTimeout;
+    const originalInterval = global.setInterval;
+    let timerCalls = 0;
+    global.setTimeout = () => { timerCalls += 1; return { unref() {} }; };
+    global.setInterval = () => { timerCalls += 1; return { unref() {} }; };
+    try {
+        assert.throws(() => initializeOpenFinanceCanaryRuntime({
+            client: {},
+            env: {
+                OPEN_FINANCE_ALERT_MODE: 'canary',
+                OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'canary'
+            }
+        }), /invalid_open_finance_save_proposal_mode/);
+        assert.throws(() => initializeOpenFinanceCanaryRuntime({
+            client: {},
+            env: {
+                OPEN_FINANCE_ALERT_MODE: 'canary',
+                OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'shadow',
+                OPEN_FINANCE_SHADOW_PREVIEW_MODE: 'off',
+                OPEN_FINANCE_RECONCILIATION_MODE: 'canary'
+            }
+        }), /open_finance_save_proposal_preview_required/);
+        assert.throws(() => initializeOpenFinanceCanaryRuntime({
+            client: {},
+            env: {
+                OPEN_FINANCE_ALERT_MODE: 'canary',
+                OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'shadow',
+                OPEN_FINANCE_SHADOW_PREVIEW_MODE: 'canary',
+                OPEN_FINANCE_RECONCILIATION_MODE: 'off'
+            }
+        }), /open_finance_save_proposal_reconciliation_required/);
+        assert.equal(timerCalls, 0);
+    } finally {
+        global.setTimeout = originalTimeout;
+        global.setInterval = originalInterval;
+    }
+});
+
+test('9P.0 replay is content-immutable across causal fields and store instances', () => {
+    const databasePath = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-save-proposal-replay-')),
+        'preview.sqlite');
+    const input = fixture();
+    const firstStore = openStore(databasePath);
+    const secondStore = openStore(databasePath);
+    try {
+        firstStore.ingestSaveProposals(proposalInput(input));
+        const [initial] = firstStore.listPendingSaveProposals({ actorWhatsappId });
+        const originalPayload = firstStore.readSaveProposalPrivate(initial.proposal_ref, { actorWhatsappId });
+        assert.deepEqual(secondStore.ingestSaveProposals(proposalInput(structuredClone(input))), {
+            inserted: 0,
+            replayed: 1,
+            blocked: 3,
+            pending: 1,
+            financial_writes: 0
+        });
+        assert.deepEqual(firstStore.listPendingSaveProposals({ actorWhatsappId }), [initial]);
+
+        const mutations = [
+            changed => { changed.item.transactions[0].amount_cents += 1; },
+            changed => { changed.item.transactions[0].description = 'CHANGED DESCRIPTION'; },
+            changed => { changed.item.transactions[0].date = '2026-07-23T10:01:00.000Z'; },
+            changed => { changed.item.transactions[0].status = 'PENDING'; },
+            changed => { changed.item.accounts[0].type = 'BANK'; },
+            changed => { changed.policies[0].write_confirmation_principal = 'thais'; },
+            changed => { changed.lifecycleDecisions[0].classification = 'refund'; },
+            changed => { changed.lifecycleDecisions[0].provider_state = 'PENDING'; },
+            changed => { changed.reconciliationDecisions[0].transaction_ref = 'changed-transaction-ref'; },
+            changed => { changed.reconciliationDecisions[0].status = 'matched'; }
+        ];
+        for (const mutate of mutations) {
+            const changed = structuredClone(input);
+            mutate(changed);
+            assert.throws(() => secondStore.ingestSaveProposals(proposalInput(changed)),
+                /save_proposal_replay_conflict/);
+        }
+        assert.deepEqual(firstStore.readSaveProposalPrivate(initial.proposal_ref, { actorWhatsappId }), originalPayload);
+        assert.deepEqual(firstStore.listPendingSaveProposals({ actorWhatsappId }), [initial]);
+
+        firstStore.cancelSaveProposal(initial.proposal_ref, { actorWhatsappId });
+        const changedAfterCancellation = structuredClone(input);
+        changedAfterCancellation.item.transactions[0].amount_cents += 1;
+        assert.throws(() => secondStore.ingestSaveProposals(proposalInput(changedAfterCancellation)),
+            /save_proposal_replay_conflict/);
+        assert.equal(firstStore.stats().save_proposals_cancelled, 1);
+    } finally {
+        secondStore.close();
+        firstStore.close();
+    }
+});
+
+test('9P.0 conflicting decisions roll back atomically and metadata corruption fails closed', () => {
+    const databasePath = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-save-proposal-conflict-')),
+        'preview.sqlite');
+    const input = fixture();
+    const store = openStore(databasePath);
+    try {
+        const collision = structuredClone(input);
+        collision.lifecycleDecisions[1].provider_state = 'POSTED';
+        collision.reconciliationDecisions[1].transaction_ref =
+            collision.reconciliationDecisions[0].transaction_ref;
+        assert.throws(() => store.ingestSaveProposals(proposalInput(collision)),
+            /save_proposal_replay_conflict/);
+        assert.equal(store.stats().save_proposals_total, 0);
+
+        store.ingestSaveProposals(proposalInput(input));
+        const [pending] = store.listPendingSaveProposals({ actorWhatsappId });
+        store.db.prepare(`UPDATE open_finance_save_proposals SET created_at=?
+            WHERE proposal_ref=?`).run('2026-07-23T11:01:00.000Z', pending.proposal_ref);
+        assert.throws(() => store.readSaveProposalPrivate(pending.proposal_ref, { actorWhatsappId }),
+            /save_proposal_metadata_mismatch/);
+    } finally {
+        store.close();
+    }
 });
 
 test('9P.0 persists only reconciled posted purchases and never reopens a cancelled proposal', () => {

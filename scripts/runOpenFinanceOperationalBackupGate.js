@@ -45,7 +45,10 @@ function publicStats({ staging, baseline, outbox, preview }) {
             try {
                 const previewStats = previewStore.stats();
                 state.preview = { total: previewStats.total, pending: previewStats.pending,
-                    reviewed: previewStats.reviewed, retention_days: previewStats.retention_days };
+                    reviewed: previewStats.reviewed, retention_days: previewStats.retention_days,
+                    save_proposals_total: previewStats.save_proposals_total,
+                    save_proposals_pending: previewStats.save_proposals_pending,
+                    save_proposals_cancelled: previewStats.save_proposals_cancelled };
             } finally { previewStore.close(); }
         }
         return state;

@@ -6,7 +6,8 @@ Base: `f8d124f785f89479642fbf4847a9f4c3860a268d`.
 
 ## Estado
 
-`CANDIDATO LOCAL VALIDADO; COMMIT IMUTÁVEL E AUDITORIA INDEPENDENTE PENDENTES`.
+`RECOVERY PÓS-NO-GO VALIDADO LOCALMENTE; COMMIT IMUTÁVEL E REAUDITORIA
+PENDENTES`.
 
 A reconciliação read-only já separa `matched`, `new`, `possible_duplicate` e
 `uncertain` antes do outbox. Esta fatia cria a fundação durável da proposta de
@@ -44,6 +45,7 @@ replay fechado e revogação monotônica.
 3. shadow exige reconciliação e preview em `canary`;
 4. somente `new + purchase + POSTED` entra no store;
 5. replay não duplica, não reabre cancelamento e não amplia `expires_at`;
+   replay idêntico é no-op e divergência causal falha fechada;
 6. payload privado fica cifrado e só pode ser lido por ator familiar autorizado;
 7. revogação e retenção removem o material cifrado;
 8. o backup/restore v3 preserva a nova tabela e reaplica as mesmas proteções;
@@ -59,12 +61,15 @@ replay fechado e revogação monotônica.
 
 ## Evidência local atual
 
-- RED causal: `0/3`;
-- prova causal final: `4/4`;
-- bateria Open Finance diretamente afetada: `42/42`;
-- gate exaustivo: `1.265/1.270`, zero falhas e cinco skips previstos;
-- cobertura: linhas `89,96%`, branches `72,01%`, funções `89,73%`;
+- candidato anterior: `NO-GO` estático no hash `826807a`;
+- recovery causal, operacional e backup: `16/16`;
+- bateria diretamente afetada: `32/32`;
+- regressões Open Finance adicionais: blocos `41/41`, `26/26`, `4/4` e
+  `113/113`, parcialmente sobrepostos;
+- gate exaustivo: `1.269/1.274`, zero falhas, cinco skips previstos e zero TODO;
+- cobertura: linhas `89,99%`, branches `72,04%`, funções `89,75%`;
 - sintaxe, diff e workflow: verdes;
+- reauditoria: pendente;
 - produção, rede, Google e WhatsApp reais não acessados.
 
 ## Condições de parada
@@ -78,7 +83,7 @@ replay fechado e revogação monotônica.
 
 ## Próxima ação exata
 
-Publicar o candidato imutável e solicitar auditoria independente no Chat.
+Publicar o recovery imutável e solicitar reauditoria independente no Chat.
 
 ## Capacidade
 

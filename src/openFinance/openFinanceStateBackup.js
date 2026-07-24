@@ -159,8 +159,8 @@ function restoreOpenFinanceStateBackup({ manifestPath, destinationDirectory, rev
         outbox = new OpenFinanceAlertOutbox({ databasePath: restored.outbox, secret });
         const reapplication = revocationJournal.reapplyRevocations({ mappings, vault, baseline, outbox });
         let previewState = 'absent_legacy';
-        let previewRevocations = { removed_previews: 0 };
-        let previewRetention = { removed: 0 };
+        let previewRevocations = { removed_previews: 0, removed_save_proposals: 0 };
+        let previewRetention = { removed: 0, removed_save_proposals: 0 };
         if (restored.preview) {
             if (!revocationJournal.listRevocations) throw new Error('open_finance_preview_revocation_protection_required');
             preview = new OpenFinanceShadowPreviewStore({ databasePath: restored.preview, secret });
@@ -171,7 +171,9 @@ function restoreOpenFinanceStateBackup({ manifestPath, destinationDirectory, rev
         return { restored, files: manifest.files.length, revocations_reapplied: reapplication.reapplied,
             preview_state: previewState,
             preview_revocations_reapplied: previewRevocations.removed_previews,
+            preview_save_proposal_revocations_reapplied: previewRevocations.removed_save_proposals,
             expired_previews_removed: previewRetention.removed,
+            expired_save_proposals_removed: previewRetention.removed_save_proposals,
             financial_writes: 0 };
     } catch (error) {
         try { preview?.close(); } catch {}

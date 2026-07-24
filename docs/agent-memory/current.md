@@ -6,10 +6,12 @@ Atualizado em: 2026-07-23
 
 A fila original da auditoria exaustiva está tecnicamente encerrada. A fatia
 ativa é `9P.0`: proposta Open Finance persistente apenas em shadow, sem pergunta
-ao usuário e com escrita desligada. A prova causal passou `4/4` e os testes
-Open Finance diretamente afetados passaram `42/42`; o gate exaustivo passou
-`1.265/1.270`, sem falhas e com cinco skips previstos. Commit imutável e
-auditoria independente ainda estão pendentes.
+ao usuário e com escrita desligada. O candidato `826807a` recebeu `NO-GO`
+estático por replay mutável, validação posterior aos timers e prova incompleta
+de backup. O recovery local fecha os três pontos: bateria causal/backup
+`16/16`, diretamente afetada `32/32`, blocos adicionais Open Finance verdes e
+gate exaustivo `1.269/1.274`, sem falhas e com cinco skips previstos. Novo
+commit imutável e reauditoria ainda estão pendentes.
 
 ## Último gate encerrado
 
@@ -146,8 +148,8 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar o candidato imutável de `9P.0` e solicitar auditoria independente no
-Chat.
+Publicar o recovery em novo commit imutável e solicitar reauditoria
+independente no Chat.
 
 ## Capacidade para retomar
 
@@ -168,6 +170,8 @@ Pluggy/Open Finance:
 
 - candidato 9P.0:
   `docs/audit/46-open-finance-save-proposal-shadow-candidate-2026-07-23.md`;
+- recovery pós-NO-GO 9P.0:
+  `docs/audit/47-open-finance-save-proposal-shadow-recovery-candidate-2026-07-23.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:

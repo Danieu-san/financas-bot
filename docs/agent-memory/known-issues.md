@@ -10,6 +10,10 @@
 - A fatia 9P.0 cria a proposta persistente apenas em `shadow`. Ela nao muda a
   mensagem, nao aceita `sim/nao` e nao concede escrita. Nao declarar como
   entregue o fluxo completo `new -> pergunta -> confirmacao -> recibo`.
+- A referencia estavel de uma proposta nao autoriza substituir seu conteudo.
+  Replay identico e no-op; qualquer divergencia causal falha fechada. Backup e
+  restore devem comparar tambem contadores de propostas e provar payload,
+  estado terminal, expiracao, revogacao e retencao.
 - A referencia de dez caracteres exibida no alerta identifica a entrega no
   outbox. Ela nao confirma nem salva a movimentacao financeira.
 - Uma futura proposta de salvamento deve falhar fechada quando o read-model

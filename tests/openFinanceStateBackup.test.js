@@ -9,6 +9,7 @@ const { OpenFinanceAlertOutbox } = require('../src/openFinance/openFinanceAlertO
 const { OpenFinanceRevocationJournal } = require('../src/openFinance/openFinanceRevocationJournal');
 const { OpenFinanceShadowPreviewStore } = require('../src/openFinance/openFinanceShadowPreviewStore');
 const { revokeOpenFinanceConsent } = require('../src/openFinance/openFinanceConsentLifecycle');
+const { observationRef } = require('../src/openFinance/openFinanceRuntimeReconciliation');
 const {
     createOpenFinanceStateBackup,
     verifyOpenFinanceStateBackup,
@@ -17,6 +18,7 @@ const {
 } = require('../src/openFinance/openFinanceStateBackup');
 
 const secret = 'open-finance-backup-test-secret-32-bytes';
+const actorWhatsappId = 'backup-family-actor@c.us';
 
 function buildSnapshot() {
     return {
@@ -198,6 +200,116 @@ test('9F v3 backup restores preview only after revocation and retention protecti
     } finally { restoredPreview.close(); journal.close(); }
 });
 
+test('9P.0 v3 backup preserves pending and cancelled proposals and reapplies proposal revocation', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-open-backup-v3-proposals-'));
+    const databasePaths = Object.fromEntries(['staging', 'baseline', 'outbox', 'preview']
+        .map(key => [key, path.join(root, `${key}.sqlite`)]));
+    new OpenFinanceLiveStagingVault({ databasePath: databasePaths.staging, secret }).close();
+    new OpenFinanceBaselineStore({ databasePath: databasePaths.baseline, secret }).close();
+    new OpenFinanceAlertOutbox({ databasePath: databasePaths.outbox, secret }).close();
+    const journal = new OpenFinanceRevocationJournal({ databasePath: path.join(root, 'journal.sqlite'), secret });
+    const preview = new OpenFinanceShadowPreviewStore({
+        databasePath: databasePaths.preview,
+        secret,
+        authorizedWhatsAppIds: [actorWhatsappId],
+        clock: () => '2026-07-23T12:00:00.000Z'
+    });
+    const source = structuredClone(buildSnapshot().items[0]);
+    source.transactions.push({
+        ...source.transactions[0],
+        id: 'private-transaction-2',
+        provider_id: 'private-provider-2',
+        amount_cents: 200,
+        description: 'PRIVATE CANCELLED BACKUP DESCRIPTION'
+    });
+    const refs = source.transactions.map(row => observationRef(secret, source.id, row.account_id, row.id));
+    preview.ingestSaveProposals({
+        reconciliationDecisions: refs.map((ref, index) => ({
+            observation_ref: ref,
+            transaction_ref: `backup-proposal-transaction-${index + 1}`,
+            status: 'new',
+            rule: 'no_candidate'
+        })),
+        lifecycleDecisions: refs.map(ref => ({
+            observation_ref: ref,
+            classification: 'purchase',
+            provider_state: 'POSTED'
+        })),
+        openFinanceItems: [{ ...source, generation: 1 }],
+        policies: [{ alias: 'daniel_nubank', write_confirmation_principal: 'daniel' }],
+        observedAt: '2026-07-23T11:00:00.000Z'
+    });
+    const proposals = preview.listPendingSaveProposals({ actorWhatsappId });
+    const pendingBefore = proposals[0];
+    const cancelledRef = proposals[1].proposal_ref;
+    const pendingPayload = preview.readSaveProposalPrivate(pendingBefore.proposal_ref, { actorWhatsappId });
+    const cancelledPayload = preview.readSaveProposalPrivate(cancelledRef, { actorWhatsappId });
+    preview.cancelSaveProposal(cancelledRef, { actorWhatsappId });
+    preview.close();
+
+    const backup = await createOpenFinanceStateBackup({
+        databasePaths,
+        destinationDirectory: path.join(root, 'backup-v3-proposals'),
+        revocationJournal: journal
+    });
+    const restored = restoreOpenFinanceStateBackup({
+        manifestPath: backup.manifest_path,
+        destinationDirectory: path.join(root, 'restore-v3-proposals'),
+        revocationJournal: journal,
+        mappings: [{ alias: 'daniel_nubank', itemId: source.id, generation: 1 }],
+        secret
+    });
+    assert.equal(restored.preview_save_proposal_revocations_reapplied, 0);
+    assert.equal(restored.expired_save_proposals_removed, 0);
+    let restoredPreview = new OpenFinanceShadowPreviewStore({
+        databasePath: restored.restored.preview,
+        secret,
+        authorizedWhatsAppIds: [actorWhatsappId],
+        clock: () => '2026-07-23T12:00:00.000Z'
+    });
+    try {
+        assert.deepEqual(restoredPreview.stats(), {
+            total: 0,
+            pending: 0,
+            reviewed: 0,
+            retention_days: 30,
+            save_proposals_total: 2,
+            save_proposals_pending: 1,
+            save_proposals_cancelled: 1,
+            financial_writes: 0
+        });
+        assert.deepEqual(restoredPreview.listPendingSaveProposals({ actorWhatsappId }), [pendingBefore]);
+        assert.deepEqual(restoredPreview.readSaveProposalPrivate(pendingBefore.proposal_ref, {
+            actorWhatsappId
+        }), pendingPayload);
+        assert.deepEqual(restoredPreview.readSaveProposalPrivate(cancelledRef, {
+            actorWhatsappId
+        }), cancelledPayload);
+    } finally {
+        restoredPreview.close();
+    }
+
+    journal.recordRevocation({ alias: 'daniel_nubank', generation: 1 });
+    const revokedRestore = restoreOpenFinanceStateBackup({
+        manifestPath: backup.manifest_path,
+        destinationDirectory: path.join(root, 'restore-v3-proposals-revoked'),
+        revocationJournal: journal,
+        mappings: [{ alias: 'daniel_nubank', itemId: source.id, generation: 1 }],
+        secret
+    });
+    assert.equal(revokedRestore.preview_save_proposal_revocations_reapplied, 2);
+    restoredPreview = new OpenFinanceShadowPreviewStore({
+        databasePath: revokedRestore.restored.preview,
+        secret
+    });
+    try {
+        assert.equal(restoredPreview.stats().save_proposals_total, 0);
+    } finally {
+        restoredPreview.close();
+        journal.close();
+    }
+});
+
 test('9F v3 restore purges expired encrypted preview before exposure', async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-open-backup-v3-expired-'));
     const databasePaths = Object.fromEntries(['staging', 'baseline', 'outbox', 'preview']
@@ -219,6 +331,28 @@ test('9F v3 restore purges expired encrypted preview before exposure', async () 
             rule: 'manual_review', confidence_band: 'low' }],
         openFinanceItems: [{ ...source, generation: 1 }],
         canonicalTransactions: [],
+        observedAt: '2026-06-01T12:00:00.000Z'
+    });
+    const proposalObservationRef = observationRef(
+        secret,
+        source.id,
+        source.transactions[0].account_id,
+        source.transactions[0].id
+    );
+    preview.ingestSaveProposals({
+        reconciliationDecisions: [{
+            observation_ref: proposalObservationRef,
+            transaction_ref: 'expired-backup-proposal',
+            status: 'new',
+            rule: 'no_candidate'
+        }],
+        lifecycleDecisions: [{
+            observation_ref: proposalObservationRef,
+            classification: 'purchase',
+            provider_state: 'POSTED'
+        }],
+        openFinanceItems: [{ ...source, generation: 1 }],
+        policies: [{ alias: 'daniel_nubank', write_confirmation_principal: 'daniel' }],
         observedAt: '2026-06-01T12:00:00.000Z'
     });
     for (const file of [databasePaths.preview, `${databasePaths.preview}-wal`, `${databasePaths.preview}-shm`]) {
@@ -243,11 +377,13 @@ test('9F v3 restore purges expired encrypted preview before exposure', async () 
         secret
     });
     assert.equal(restored.expired_previews_removed, 1);
+    assert.equal(restored.expired_save_proposals_removed, 1);
     const restoredPreview = new OpenFinanceShadowPreviewStore({
         databasePath: restored.restored.preview,
         secret
     });
     try {
         assert.equal(restoredPreview.stats().total, 0);
+        assert.equal(restoredPreview.stats().save_proposals_total, 0);
     } finally { restoredPreview.close(); journal.close(); }
 });

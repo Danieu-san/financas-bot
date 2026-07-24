@@ -55,6 +55,19 @@ function saveProposalMode(env = process.env) {
     return mode;
 }
 
+function saveProposalConfiguration(env = process.env) {
+    const proposalMode = saveProposalMode(env);
+    const previewMode = shadowPreviewMode(env);
+    const internalReconciliationMode = reconciliationMode(env);
+    if (proposalMode === 'shadow' && previewMode !== 'canary') {
+        throw new Error('open_finance_save_proposal_preview_required');
+    }
+    if (proposalMode === 'shadow' && internalReconciliationMode !== 'canary') {
+        throw new Error('open_finance_save_proposal_reconciliation_required');
+    }
+    return { proposalMode, previewMode, internalReconciliationMode };
+}
+
 async function runOpenFinanceCanaryCycle({ client, env = process.env, dependencies = {} } = {}) {
     if (!client || typeof client.sendMessage !== 'function') throw new Error('whatsapp_client_required');
     const evidence = readJson(env.OPEN_FINANCE_COMMERCIAL_EVIDENCE_FILE, 'commercial_evidence_unavailable');
@@ -65,15 +78,7 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
         throw new Error('open_finance_secret_unavailable');
     }
     const secret = fs.readFileSync(env.OPEN_FINANCE_LIVE_STAGING_SECRET_FILE, 'utf8').trim();
-    const previewMode = shadowPreviewMode(env);
-    const proposalMode = saveProposalMode(env);
-    const internalReconciliationMode = reconciliationMode(env);
-    if (proposalMode === 'shadow' && previewMode !== 'canary') {
-        throw new Error('open_finance_save_proposal_preview_required');
-    }
-    if (proposalMode === 'shadow' && internalReconciliationMode !== 'canary') {
-        throw new Error('open_finance_save_proposal_reconciliation_required');
-    }
+    const { proposalMode, previewMode, internalReconciliationMode } = saveProposalConfiguration(env);
     const requiredState = [env.OPEN_FINANCE_LIVE_STAGING_DB, env.OPEN_FINANCE_BASELINE_DB,
         env.OPEN_FINANCE_OUTBOX_DB, env.OPEN_FINANCE_REVOCATION_JOURNAL_DB,
         ...(previewMode === 'canary' || proposalMode === 'shadow' ? [env.OPEN_FINANCE_SHADOW_PREVIEW_DB] : [])];
@@ -220,6 +225,7 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
 }
 
 function initializeOpenFinanceCanaryRuntime({ client, logger = defaultLogger, env = process.env, runCycle = runOpenFinanceCanaryCycle } = {}) {
+    saveProposalConfiguration(env);
     const mode = String(env.OPEN_FINANCE_ALERT_MODE || 'off').toLowerCase();
     if (mode === 'off') return { enabled: false };
     const intervalMs = Math.max(6 * 60 * 60 * 1000, Number(env.OPEN_FINANCE_POLL_INTERVAL_MS) || 6 * 60 * 60 * 1000);

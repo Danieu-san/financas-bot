@@ -9,9 +9,11 @@ const { OpenFinanceAlertOutbox } = require('../src/openFinance/openFinanceAlertO
 const { OpenFinanceShadowPreviewStore } = require('../src/openFinance/openFinanceShadowPreviewStore');
 const { OpenFinanceRevocationJournal } = require('../src/openFinance/openFinanceRevocationJournal');
 const { openFinanceConsentRuntime } = require('../src/openFinance/openFinanceConsentRuntime');
+const { observationRef } = require('../src/openFinance/openFinanceRuntimeReconciliation');
 const { runOperationalBackupGate } = require('../scripts/runOpenFinanceOperationalBackupGate');
 
 const secret = 'open-finance-operational-backup-secret-32-bytes';
+const actorWhatsappId = 'operational-family-actor@c.us';
 
 test('9F operational gate creates a retained backup and destroys only the isolated restore', async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-operational-backup-'));
@@ -25,12 +27,44 @@ test('9F operational gate creates a retained backup and destroys only the isolat
         items: [{ id: 'item-operational-1', alias_code: 'daniel_nubank', owner_scope: 'daniel', status: 'UPDATED',
             availability: { accounts: 'available', transactions: 'available', bills: 'available', investments: 'available' },
             accounts: [{ id: 'account-1', type: 'BANK', name: 'bank', balance_cents: 0 }],
-            transactions: [], bills: [], investments: [] }] };
+            transactions: [
+                { id: 'transaction-1', provider_id: 'provider-1', account_id: 'account-1',
+                    amount_cents: 100, description: 'PRIVATE PENDING PROPOSAL',
+                    date: '2026-07-16T10:00:00.000Z', status: 'POSTED' },
+                { id: 'transaction-2', provider_id: 'provider-2', account_id: 'account-1',
+                    amount_cents: 200, description: 'PRIVATE CANCELLED PROPOSAL',
+                    date: '2026-07-16T11:00:00.000Z', status: 'POSTED' }
+            ], bills: [], investments: [] }] };
     const vault = new OpenFinanceLiveStagingVault({ databasePath: files.staging, secret });
     const baseline = new OpenFinanceBaselineStore({ databasePath: files.baseline, secret });
     const outbox = new OpenFinanceAlertOutbox({ databasePath: files.outbox, secret });
-    const preview = new OpenFinanceShadowPreviewStore({ databasePath: files.preview, secret });
+    const preview = new OpenFinanceShadowPreviewStore({
+        databasePath: files.preview,
+        secret,
+        authorizedWhatsAppIds: [actorWhatsappId],
+        clock: () => '2026-07-16T12:00:00.000Z'
+    });
     vault.ingestSnapshot(snapshot); baseline.ingestSnapshot(snapshot);
+    const refs = snapshot.items[0].transactions.map(row =>
+        observationRef(secret, snapshot.items[0].id, row.account_id, row.id));
+    preview.ingestSaveProposals({
+        reconciliationDecisions: refs.map((ref, index) => ({
+            observation_ref: ref,
+            transaction_ref: `operational-transaction-ref-${index + 1}`,
+            status: 'new',
+            rule: 'no_candidate'
+        })),
+        lifecycleDecisions: refs.map(ref => ({
+            observation_ref: ref,
+            classification: 'purchase',
+            provider_state: 'POSTED'
+        })),
+        openFinanceItems: [{ ...snapshot.items[0], generation: 1 }],
+        policies: [{ alias: 'daniel_nubank', write_confirmation_principal: 'daniel' }],
+        observedAt: '2026-07-16T12:00:00.000Z'
+    });
+    const proposals = preview.listPendingSaveProposals({ actorWhatsappId });
+    preview.cancelSaveProposal(proposals[1].proposal_ref, { actorWhatsappId });
     vault.close(); baseline.close(); outbox.close(); preview.close();
     const result = await runOperationalBackupGate({ argv: ['--confirm-encrypted-state-read', '--confirm-isolated-restore'],
         env: { OPEN_FINANCE_LIVE_STAGING_SECRET_FILE: files.secret, OPEN_FINANCE_LIVE_STAGING_DB: files.staging,
@@ -40,6 +74,9 @@ test('9F operational gate creates a retained backup and destroys only the isolat
             OPEN_FINANCE_BACKUP_ROOT: files.backups } });
     assert.equal(result.outcome, 'GO'); assert.equal(result.parity, true);
     assert.equal(result.files, 4); assert.equal(result.state.preview.total, 0);
+    assert.equal(result.state.preview.save_proposals_total, 2);
+    assert.equal(result.state.preview.save_proposals_pending, 1);
+    assert.equal(result.state.preview.save_proposals_cancelled, 1);
     assert.equal(result.secret_in_backup, false); assert.equal(result.financial_writes, 0);
     assert.deepEqual(result.revocation_integration, { tested: true, mode_forwarded: true,
         preview_supplied: true, journal_recorded: true, financial_writes: 0 });
