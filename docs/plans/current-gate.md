@@ -1,16 +1,16 @@
 # Gate ativo — 9P.1 confirmação local de proposta Open Finance
 
-Atualizado em: 2026-07-23
+Atualizado em: 2026-07-24
 
 Base: `195ac58af68acdec87c0fb80617d0ddcf1d1de3b`.
 
 ## Estado
 
-`DESENHO LOCAL PENDENTE; TRANSPORTE E ESCRITA BLOQUEADOS`.
+`CANDIDATO LOCAL VERDE; AUDITORIA INDEPENDENTE PENDENTE`.
 
-9P.0 encerrou a persistência shadow da proposta reconciliada. Esta fatia deve
-modelar a pergunta proativa, o destinatário autorizado e uma confirmação de uso
-único sem enviar mensagem e sem conceder escrita.
+9P.0 encerrou a persistência shadow da proposta reconciliada. Esta fatia
+implementa o destinatário autorizado e a confirmação durável de uso único sem
+enviar mensagem e sem conceder escrita.
 
 ## Objetivo
 
@@ -22,7 +22,8 @@ ator familiar, geração, expiração e idempotência.
 
 - estados locais `pending`, `ready`, `accepted`, `declined` e `expired`;
 - destinatário derivado da política familiar, sem inferência por titularidade;
-- token/referência de confirmação de uso único, cifrado e com expiração;
+- token/referência de confirmação de uso único: somente HMAC indexável e cópia
+  cifrada persistem, com expiração e apagamento do material cifrado;
 - `sim` e `não` vinculados à proposta e ao ator autorizado;
 - replay idêntico sem reabrir estado terminal;
 - resposta conflitante falhando fechada;
@@ -75,9 +76,8 @@ ator familiar, geração, expiração e idempotência.
 
 ## Próxima ação exata
 
-Inspecionar os estados conversacionais e stores já existentes, escrever primeiro
-os testes RED de autorização, uso único, conflito, restart e expiração e então
-implementar o menor contrato local.
+Criar e publicar o commit sanitizado do candidato, pedir auditoria independente
+por hash imutável e confrontar o parecer com a evidência local.
 
 ## Capacidade
 

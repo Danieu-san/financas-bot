@@ -1,15 +1,18 @@
 # Estado atual portátil do FinancasBot
 
-Atualizado em: 2026-07-23
+Atualizado em: 2026-07-24
 
 ## Objetivo ativo
 
-A fila original da auditoria exaustiva está tecnicamente encerrada. `9P.0`
-recebeu `GO TÉCNICO LOCAL` independente no commit
-`195ac58af68acdec87c0fb80617d0ddcf1d1de3b`. Replay é imutável, configuração
-inválida falha antes dos timers e backup/restore v3 prova propostas, revogação
-e retenção. A próxima fatia é `9P.1`: contrato local da pergunta proativa e
-confirmação de uso único, ainda sem transporte ou escrita.
+A fila original da auditoria exaustiva está tecnicamente encerrada. `9P.1`
+possui candidato local verde para confirmação durável e de uso único de uma
+proposta Open Finance. O token opaco fica somente no payload cifrado, enquanto
+o banco indexa seu HMAC; ator, principal familiar, expiração, replay, conflito,
+restart, cancelamento, revogação e backup/restore estão cobertos. O candidato
+aguarda commit imutável e auditoria independente antes de receber GO.
+
+Não houve transporte, handler WhatsApp, escrita financeira, produção, Google
+ou Pluggy real.
 
 ## Último gate encerrado
 
@@ -117,7 +120,9 @@ Google/WhatsApp real, produção ou deploy.
 - branch ativa: `codex/open-finance-save-proposal`, baseada em
   `f8d124f785f89479642fbf4847a9f4c3860a268d`;
 - último produto com `GO TÉCNICO LOCAL`:
-  `e341d4feae5b6ecba8990a226f386e11cb18d027`;
+  `195ac58af68acdec87c0fb80617d0ddcf1d1de3b`;
+- fechamento documental de 9P.0:
+  `bcdbf0e8772270019e9223e6a996f5102eb446bd`;
 - alterações concorrentes do workstream AWS/Oracle e arquivos não rastreados do
   usuário permanecem fora do gate e não devem ser adicionados, alterados ou
   removidos;
@@ -125,8 +130,8 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Próximo gate
 
-`9P.1`: contrato local de proposta proativa e confirmação de uso único, sem
-transporte remoto e com escrita desligada.
+`9P.1`: candidato local verde; commit, publicação e auditoria independente
+pendentes.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -146,8 +151,8 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Fechar o contrato e os testes adversariais de 9P.1 sem expor pergunta ao
-WhatsApp nem habilitar escrita.
+Publicar o candidato 9P.1 por hash imutável e submetê-lo à auditoria
+independente no Chat.
 
 ## Capacidade para retomar
 
@@ -172,6 +177,8 @@ Pluggy/Open Finance:
   `docs/audit/47-open-finance-save-proposal-shadow-recovery-candidate-2026-07-23.md`;
 - fechamento independente 9P.0:
   `docs/audit/48-open-finance-save-proposal-shadow-independent-close-2026-07-23.md`;
+- candidato 9P.1:
+  `docs/audit/49-open-finance-save-proposal-confirmation-candidate-2026-07-24.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:
