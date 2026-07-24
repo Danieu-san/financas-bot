@@ -6,7 +6,7 @@ Base: `7f619a0b0b15734a836b3288c281d21f5a270290`.
 
 ## Estado
 
-`CANDIDATO LOCAL VALIDADO; COMMIT IMUTÁVEL E AUDITORIA INDEPENDENTE
+`RECUPERAÇÃO LOCAL VALIDADA APÓS NO-GO; NOVO COMMIT IMUTÁVEL E REAUDITORIA
 PENDENTES`.
 
 O achado original apontava que o shutdown Redis disparava o último flush sem
@@ -14,6 +14,11 @@ aguardá-lo. Desde STATE-04, somente o backend de arquivo é aceito e Redis falh
 fechado antes de qualquer efeito. Este gate não reintroduz Redis: elimina o
 caminho legado inalcançável e torna explícita e testável a conclusão do flush do
 único backend suportado antes da saída do processo.
+
+O primeiro candidato recebeu `NO-GO` por usar `process.once`: um segundo sinal
+do mesmo tipo poderia restaurar a ação padrão antes do término do flush. A
+recuperação mantém ambos os listeners instalados e coalesce sinais iguais ou
+mistos na mesma conclusão.
 
 ## Objetivo
 
@@ -58,12 +63,13 @@ antes da saída do processo.
 ## Evidência local
 
 - RED causal: `0/4`;
-- prova causal verde: `4/4`;
+- primeira prova causal verde: `4/4`;
+- recuperação de sinais repetidos: `5/5`;
 - estado protegido + onboarding: `26/26`;
 - máquina financeira: `121/121`;
 - recorte unitário do gerenciador: `4/4`;
 - contrato de ambiente: `5/5`;
-- gate exaustivo: `1.260/1.265`, zero falhas e cinco skips previstos;
+- gate exaustivo final: `1.261/1.266`, zero falhas e cinco skips previstos;
 - sintaxe, diff e workflow: verdes.
 
 ## Condições de parada
@@ -76,7 +82,7 @@ antes da saída do processo.
 
 ## Próxima ação exata
 
-Criar e publicar o commit sanitizado imutável, então solicitar auditoria
+Criar e publicar o commit sanitizado da recuperação, então solicitar reauditoria
 independente no Chat, sem produção.
 
 ## Capacidade

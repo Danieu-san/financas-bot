@@ -545,9 +545,20 @@ function createSignalShutdownHandler({
     };
 }
 
+function registerStateStoreSignalHandlers({
+    emitter = process,
+    handler = createSignalShutdownHandler()
+} = {}) {
+    emitter.on('SIGINT', handler);
+    emitter.on('SIGTERM', handler);
+    return () => {
+        emitter.off('SIGINT', handler);
+        emitter.off('SIGTERM', handler);
+    };
+}
+
 const handleStateStoreShutdownSignal = createSignalShutdownHandler();
-process.once('SIGINT', handleStateStoreShutdownSignal);
-process.once('SIGTERM', handleStateStoreShutdownSignal);
+registerStateStoreSignalHandlers({ handler: handleStateStoreShutdownSignal });
 
 module.exports = {
     getState,
@@ -560,6 +571,7 @@ module.exports = {
     getStoreMode: () => 'file',
     __test__: {
         createSignalShutdownHandler,
+        registerStateStoreSignalHandlers,
         cleanupExpired,
         flushStateToDisk,
         serializeState,

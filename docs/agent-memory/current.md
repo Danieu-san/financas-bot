@@ -4,9 +4,9 @@ Atualizado em: 2026-07-23
 
 ## Objetivo ativo
 
-Executar a fila de correções da auditoria exaustiva. `STATE-03`, último gate da
-fila original, possui candidato local validado sobre a base
-`7f619a0b0b15734a836b3288c281d21f5a270290`; commit imutável e auditoria
+Executar a fila de correções da auditoria exaustiva. O primeiro candidato de
+`STATE-03` recebeu `NO-GO TÉCNICO LOCAL` por uma janela de sinais repetidos.
+A recuperação está validada localmente; novo commit imutável e reauditoria
 independente ainda estão pendentes.
 A decisão pós-Fase 9 sobre proposição de salvamento e as melhorias de produto
 posteriores continuam na fila sem alterar essa ordem.
@@ -124,8 +124,8 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Próximo gate
 
-`STATE-03`: publicar e auditar o candidato que remove o Redis legado sem suporte
-e aguarda o último flush do backend de arquivo antes da saída.
+`STATE-03`: publicar e reauditar a recuperação que mantém os listeners ativos
+durante o último flush do backend de arquivo.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -145,8 +145,8 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Criar e publicar o commit imutável de `STATE-03`, então solicitar auditoria
-independente no Chat.
+Criar e publicar o commit imutável da recuperação de `STATE-03`, então solicitar
+reauditoria independente no Chat.
 
 ## Capacidade para retomar
 

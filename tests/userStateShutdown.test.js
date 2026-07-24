@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const { EventEmitter } = require('node:events');
 
 const ORIGINAL_CWD = process.cwd();
 const TEMP_ROOT = fs.mkdtempSync(path.join(os.tmpdir(), 'financas-bot-state03-'));
@@ -79,6 +80,45 @@ test('signal shutdown waits for close completion before requesting process exit'
     resolveClose();
     await pending;
     assert.deepStrictEqual(events, ['exit:0']);
+});
+
+test('registered handlers coalesce repeated equal and mixed signals until close completes', async () => {
+    const emitter = new EventEmitter();
+    const exits = [];
+    let closeCalls = 0;
+    let resolveClose;
+    const closePromise = new Promise(resolve => {
+        resolveClose = resolve;
+    });
+    const shutdown = userStateManager.__test__.createSignalShutdownHandler({
+        close: () => {
+            closeCalls += 1;
+            return closePromise;
+        },
+        exit: code => exits.push(code)
+    });
+    const unregister = userStateManager.__test__.registerStateStoreSignalHandlers({
+        emitter,
+        handler: shutdown
+    });
+
+    emitter.emit('SIGTERM');
+    emitter.emit('SIGTERM');
+    emitter.emit('SIGINT');
+    await Promise.resolve();
+
+    assert.strictEqual(closeCalls, 1);
+    assert.deepStrictEqual(exits, []);
+    assert.strictEqual(emitter.listenerCount('SIGTERM'), 1);
+    assert.strictEqual(emitter.listenerCount('SIGINT'), 1);
+
+    resolveClose();
+    await shutdown();
+    assert.deepStrictEqual(exits, [0]);
+
+    unregister();
+    assert.strictEqual(emitter.listenerCount('SIGTERM'), 0);
+    assert.strictEqual(emitter.listenerCount('SIGINT'), 0);
 });
 
 test('signal shutdown exits non-zero with a bounded sanitized error when flush fails', async () => {
