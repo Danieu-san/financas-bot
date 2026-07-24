@@ -185,13 +185,13 @@ autoriza deploy: indica apenas que uma parte causal possui evidência local.
 | AUTH-04 | P2 | Resolvido | cadastro fresco revoga token antes de qualquer leitura; GO técnico local no hash `beb8e0ff7f2eccd74688aa347de6b7d79170d094` |
 | FLOW-02 | P2 | Resolvido | rate limit antecede os cinco handlers pesados; GO técnico local no hash `73abb5e575f0af8cf36f826c5646e2843a1997a5` |
 | FLOW-04 | P2 | Resolvido | outbox/retry durável por usuário recebeu GO técnico local no hash `34f0f0cdcb470a2bcfa7152fecd45361edee28e4` |
-| STATE-03 | P2 | Aberto | shutdown Redis ainda não prova espera do último flush |
+| STATE-03 | P2 | Resolvido | Redis legado removido e shutdown do backend de arquivo recebeu GO técnico local no hash `e341d4feae5b6ecba8990a226f386e11cb18d027` |
 | STATE-04 | P2 | Resolvido | snapshot local protegido e privado; GO técnico local no hash `22fff090192269e71d71025653f1b5450b3132e2` |
 | COV-01 | P2 | Resolvido | `npm test` executa o gate local exaustivo; GO técnico local no hash `c96d801f6f5c683634dbc8b3a2997eb576a9e3f5` |
 | OPS-01 | P2 | Resolvido | contrato versionado cobre o runtime sem ler valores; GO técnico local no hash `f26e627864d45d2b9b4317844313faf84411b8a7` |
 
-Contagem vigente: dez P1 resolvidos; zero P1 aberto; seis P2 resolvidos e um P2
-abertos. As
+Contagem vigente: dez P1 resolvidos; zero P1 aberto; sete P2 resolvidos e zero
+P2 aberto. As
 seções e tabelas anteriores continuam como registro do objeto original, não
 como quadro vigente de remediação.
 
@@ -301,5 +301,6 @@ integral`; WGL-03/WGL-04, AUTH-03/WGL-07 e FLOW-03 também receberam `GO
 TÉCNICO LOCAL`; `STATE-01`, `PRIV-01`, `AUTH-04`, `STATE-04` e `COV-01` também
 foram encerrados por parecer independente. `OPS-01` e `FLOW-02` também
 receberam `GO TÉCNICO LOCAL` independente. `FLOW-04` também foi encerrado no
-hash `34f0f0cdcb470a2bcfa7152fecd45361edee28e4`. Deploy e produção não foram
-avaliados. A próxima correção causal da fila documental é `STATE-03`.
+hash `34f0f0cdcb470a2bcfa7152fecd45361edee28e4`. `STATE-03`, último achado aberto,
+foi encerrado no hash `e341d4feae5b6ecba8990a226f386e11cb18d027`. Deploy e
+produção não foram avaliados. A fila original está tecnicamente encerrada.

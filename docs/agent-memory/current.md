@@ -4,10 +4,10 @@ Atualizado em: 2026-07-23
 
 ## Objetivo ativo
 
-Executar a fila de correções da auditoria exaustiva. O primeiro candidato de
-`STATE-03` recebeu `NO-GO TÉCNICO LOCAL` por uma janela de sinais repetidos.
-A recuperação está validada localmente; novo commit imutável e reauditoria
-independente ainda estão pendentes.
+A fila original da auditoria exaustiva está tecnicamente encerrada. `STATE-03`,
+último achado aberto, recebeu `GO TÉCNICO LOCAL` independente no hash
+`e341d4feae5b6ecba8990a226f386e11cb18d027`, após fechar a janela de sinais
+repetidos do primeiro candidato.
 A decisão pós-Fase 9 sobre proposição de salvamento e as melhorias de produto
 posteriores continuam na fila sem alterar essa ordem.
 
@@ -124,8 +124,9 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Próximo gate
 
-`STATE-03`: publicar e reauditar a recuperação que mantém os listeners ativos
-durante o último flush do backend de arquivo.
+Reconciliar o roadmap pós-auditoria e abrir a próxima melhoria já registrada,
+preservando a ordem em que Pluggy/Open Finance precedem as melhorias de UX
+familiar.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -145,13 +146,13 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Criar e publicar o commit imutável da recuperação de `STATE-03`, então solicitar
-reauditoria independente no Chat.
+Publicar o fechamento documental de `STATE-03`, então fazer uma leitura dirigida
+do roadmap para definir a próxima fatia material.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → caracterizar e corrigir STATE-03; Chat → modelo mais capaz
-disponível → Alto → auditar o futuro hash imutável.`
+`Codex → Sol → Alto → reconciliar e executar continuamente as próximas
+melhorias já registradas, conforme autorização expressa do usuário.`
 
 ## Fila de produto posterior
 
@@ -165,6 +166,10 @@ Pluggy/Open Finance:
 
 ## Histórico dirigido
 
+- fechamento independente STATE-03:
+  `docs/audit/45-state03-independent-close-2026-07-23.md`;
+- recuperação de sinais repetidos STATE-03:
+  `docs/audit/44-state03-repeated-signal-recovery-candidate-2026-07-23.md`;
 - fechamento independente FLOW-04:
   `docs/audit/42-flow04-independent-close-2026-07-23.md`;
 - recuperação pós-NO-GO FLOW-04:

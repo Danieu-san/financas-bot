@@ -1,4 +1,4 @@
-# Gate ativo — STATE-03
+# Gate encerrado — STATE-03
 
 Atualizado em: 2026-07-23
 
@@ -6,8 +6,8 @@ Base: `7f619a0b0b15734a836b3288c281d21f5a270290`.
 
 ## Estado
 
-`RECUPERAÇÃO LOCAL VALIDADA APÓS NO-GO; NOVO COMMIT IMUTÁVEL E REAUDITORIA
-PENDENTES`.
+`GO TÉCNICO LOCAL` independente no candidato final
+`e341d4feae5b6ecba8990a226f386e11cb18d027`.
 
 O achado original apontava que o shutdown Redis disparava o último flush sem
 aguardá-lo. Desde STATE-04, somente o backend de arquivo é aceito e Redis falha
@@ -19,6 +19,9 @@ O primeiro candidato recebeu `NO-GO` por usar `process.once`: um segundo sinal
 do mesmo tipo poderia restaurar a ação padrão antes do término do flush. A
 recuperação mantém ambos os listeners instalados e coalesce sinais iguais ou
 mistos na mesma conclusão.
+
+A reauditoria confirmou a cadeia linear, fechou explicitamente o `MEDIUM` e o
+`LOW` anteriores e não encontrou novo achado bloqueante.
 
 ## Objetivo
 
@@ -82,10 +85,10 @@ antes da saída do processo.
 
 ## Próxima ação exata
 
-Criar e publicar o commit sanitizado da recuperação, então solicitar reauditoria
-independente no Chat, sem produção.
+Publicar este fechamento documental e reconciliar o roadmap pós-auditoria para
+abrir a próxima melhoria já registrada, sem produção.
 
 ## Capacidade
 
-`Codex → Sol → Alto → implementar e validar STATE-03; Chat → modelo mais capaz
-disponível → Alto → auditar o futuro hash imutável.`
+`Codex → Sol → Alto → reconciliar e executar continuamente as próximas
+melhorias já registradas, conforme autorização expressa do usuário.`
