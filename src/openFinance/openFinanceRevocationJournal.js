@@ -1,4 +1,6 @@
 const crypto = require('node:crypto');
+const fs = require('node:fs');
+const path = require('node:path');
 const Database = require('better-sqlite3');
 
 function requireSecret(secret) {
@@ -20,37 +22,228 @@ function normalizeGeneration(generation) {
 }
 
 class OpenFinanceRevocationJournal {
-    constructor({ databasePath = ':memory:', secret } = {}) {
+    constructor({ databasePath = ':memory:', terminalAnchorPath, secret } = {}) {
         this.secret = requireSecret(secret);
-        this.db = new Database(databasePath);
-        this.db.pragma('journal_mode = WAL');
-        this.db.exec(`
-            CREATE TABLE IF NOT EXISTS open_finance_revocation_journal (
-                sequence INTEGER PRIMARY KEY AUTOINCREMENT,
-                alias_ref TEXT NOT NULL,
-                generation INTEGER NOT NULL,
-                revoked_at TEXT NOT NULL,
-                key_version INTEGER NOT NULL,
-                reason_code TEXT NOT NULL,
-                UNIQUE(alias_ref,generation)
-            );
-            CREATE TABLE IF NOT EXISTS open_finance_save_proposal_terminal_journal (
-                sequence INTEGER PRIMARY KEY AUTOINCREMENT,
-                proposal_ref TEXT NOT NULL UNIQUE,
-                terminal_state TEXT NOT NULL,
-                confirmation_ref_hash TEXT,
-                confirmation_actor_ref TEXT,
-                confirmation_ready_at TEXT,
-                confirmation_expires_at TEXT,
-                confirmation_decided_at TEXT NOT NULL,
-                resolved_by_ref TEXT,
-                entry_mac TEXT NOT NULL
-            );
-        `);
+        this.databasePath = databasePath;
+        this.terminalAnchorPath = databasePath === ':memory:'
+            ? null
+            : String(terminalAnchorPath || `${databasePath}.terminal-anchor.sqlite`);
+        if (this.terminalAnchorPath &&
+            path.resolve(this.terminalAnchorPath) === path.resolve(this.databasePath)) {
+            throw new Error('open_finance_terminal_journal_anchor_must_be_separate');
+        }
+        const anchorExisted = this.terminalAnchorPath && fs.existsSync(this.terminalAnchorPath);
+        this.db = null;
+        this.anchorDb = null;
+        this.memoryAnchor = null;
+        try {
+            this.db = new Database(databasePath);
+            this.db.pragma('journal_mode = WAL');
+            this.db.exec(`
+                CREATE TABLE IF NOT EXISTS open_finance_revocation_journal (
+                    sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+                    alias_ref TEXT NOT NULL,
+                    generation INTEGER NOT NULL,
+                    revoked_at TEXT NOT NULL,
+                    key_version INTEGER NOT NULL,
+                    reason_code TEXT NOT NULL,
+                    UNIQUE(alias_ref,generation)
+                );
+                CREATE TABLE IF NOT EXISTS open_finance_save_proposal_terminal_journal (
+                    sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+                    proposal_ref TEXT NOT NULL UNIQUE,
+                    terminal_state TEXT NOT NULL,
+                    confirmation_ref_hash TEXT,
+                    confirmation_actor_ref TEXT,
+                    confirmation_ready_at TEXT,
+                    confirmation_expires_at TEXT,
+                    confirmation_decided_at TEXT NOT NULL,
+                    resolved_by_ref TEXT,
+                    entry_mac TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS open_finance_terminal_journal_metadata (
+                    singleton INTEGER PRIMARY KEY CHECK(singleton=1),
+                    journal_id TEXT NOT NULL UNIQUE,
+                    created_at TEXT NOT NULL,
+                    metadata_mac TEXT NOT NULL
+                );
+            `);
+            if (this.terminalAnchorPath) {
+                this.anchorDb = new Database(this.terminalAnchorPath);
+                this.anchorDb.pragma('journal_mode = DELETE');
+                this.anchorDb.pragma('synchronous = FULL');
+                this.anchorDb.exec(`
+                    CREATE TABLE IF NOT EXISTS open_finance_terminal_journal_anchor (
+                        singleton INTEGER PRIMARY KEY CHECK(singleton=1),
+                        schema TEXT NOT NULL,
+                        journal_id TEXT NOT NULL,
+                        entries INTEGER NOT NULL,
+                        sequence INTEGER NOT NULL,
+                        head_mac TEXT NOT NULL,
+                        anchor_mac TEXT NOT NULL
+                    );
+                `);
+            }
+            this.#initializeTerminalAnchor({ anchorExisted });
+            this.#hardenFiles();
+        } catch (error) {
+            try { this.anchorDb?.close(); } catch {}
+            try { this.db?.close(); } catch {}
+            throw error;
+        }
     }
 
     #hmac(value) {
         return crypto.createHmac('sha256', this.secret).update(String(value || '')).digest('hex').slice(0, 32);
+    }
+
+    #metadataMac({ journal_id: journalId, created_at: createdAt }) {
+        return this.#hmac(`open-finance-terminal-journal-metadata:${journalId}:${createdAt}`);
+    }
+
+    #anchorMac(anchor) {
+        return this.#hmac(`open-finance-terminal-journal-anchor:${JSON.stringify(anchor)}`);
+    }
+
+    #terminalRows() {
+        return this.db.prepare(`SELECT sequence,entry_mac
+            FROM open_finance_save_proposal_terminal_journal ORDER BY sequence`).all();
+    }
+
+    #terminalHead(journalId, rows = this.#terminalRows()) {
+        let head = this.#hmac(`open-finance-terminal-journal-head:${journalId}:root`);
+        for (const row of rows) {
+            head = this.#hmac(
+                `open-finance-terminal-journal-head:${journalId}:${head}:${row.sequence}:${row.entry_mac}`
+            );
+        }
+        return {
+            entries: rows.length,
+            sequence: rows.length ? rows[rows.length - 1].sequence : 0,
+            head_mac: head
+        };
+    }
+
+    #readMetadata() {
+        const metadata = this.db.prepare(`SELECT journal_id,created_at,metadata_mac
+            FROM open_finance_terminal_journal_metadata WHERE singleton=1`).get();
+        if (!metadata || !/^[a-f0-9]{32}$/.test(metadata.journal_id) ||
+            Number.isNaN(new Date(metadata.created_at).getTime()) ||
+            metadata.metadata_mac !== this.#metadataMac(metadata)) {
+            throw new Error('open_finance_terminal_journal_metadata_mismatch');
+        }
+        return metadata;
+    }
+
+    #readAnchor() {
+        if (!this.anchorDb) return this.memoryAnchor;
+        return this.anchorDb.prepare(`SELECT schema,journal_id,entries,sequence,head_mac,anchor_mac
+            FROM open_finance_terminal_journal_anchor WHERE singleton=1`).get() || null;
+    }
+
+    #writeAnchor(anchor) {
+        const row = { ...anchor, anchor_mac: this.#anchorMac(anchor) };
+        if (!this.anchorDb) {
+            this.memoryAnchor = row;
+            return;
+        }
+        this.anchorDb.prepare(`INSERT INTO open_finance_terminal_journal_anchor (
+            singleton,schema,journal_id,entries,sequence,head_mac,anchor_mac
+        ) VALUES (1,?,?,?,?,?,?)
+        ON CONFLICT(singleton) DO UPDATE SET
+            schema=excluded.schema,
+            journal_id=excluded.journal_id,
+            entries=excluded.entries,
+            sequence=excluded.sequence,
+            head_mac=excluded.head_mac,
+            anchor_mac=excluded.anchor_mac`).run(
+            row.schema,
+            row.journal_id,
+            row.entries,
+            row.sequence,
+            row.head_mac,
+            row.anchor_mac
+        );
+        this.#hardenFiles();
+    }
+
+    #expectedAnchor(metadata = this.#readMetadata()) {
+        return {
+            schema: 'open-finance-terminal-journal-anchor-v1',
+            journal_id: metadata.journal_id,
+            ...this.#terminalHead(metadata.journal_id)
+        };
+    }
+
+    #initializeTerminalAnchor({ anchorExisted }) {
+        let metadata = this.db.prepare(`SELECT journal_id,created_at,metadata_mac
+            FROM open_finance_terminal_journal_metadata WHERE singleton=1`).get();
+        const terminalCount = this.db.prepare(`SELECT COUNT(*) AS entries
+            FROM open_finance_save_proposal_terminal_journal`).get().entries;
+        const anchor = this.#readAnchor();
+        if (!metadata) {
+            if (anchorExisted || anchor || terminalCount > 0) {
+                throw new Error('open_finance_terminal_journal_anchor_migration_required');
+            }
+            metadata = {
+                journal_id: crypto.randomBytes(16).toString('hex'),
+                created_at: new Date().toISOString()
+            };
+            metadata.metadata_mac = this.#metadataMac(metadata);
+            this.db.prepare(`INSERT INTO open_finance_terminal_journal_metadata (
+                singleton,journal_id,created_at,metadata_mac
+            ) VALUES (1,?,?,?)`).run(
+                metadata.journal_id,
+                metadata.created_at,
+                metadata.metadata_mac
+            );
+            this.#writeAnchor(this.#expectedAnchor(metadata));
+            return;
+        }
+        metadata = this.#readMetadata();
+        if (!anchor) throw new Error('open_finance_terminal_journal_anchor_required');
+        this.#assertTerminalAnchorIntegrity(metadata, anchor);
+    }
+
+    #assertTerminalAnchorIntegrity(metadata = this.#readMetadata(), anchor = this.#readAnchor()) {
+        if (!anchor) throw new Error('open_finance_terminal_journal_anchor_required');
+        const unsigned = {
+            schema: anchor.schema,
+            journal_id: anchor.journal_id,
+            entries: anchor.entries,
+            sequence: anchor.sequence,
+            head_mac: anchor.head_mac
+        };
+        const validShape = anchor.schema === 'open-finance-terminal-journal-anchor-v1' &&
+            /^[a-f0-9]{32}$/.test(String(anchor.journal_id || '')) &&
+            Number.isInteger(anchor.entries) && anchor.entries >= 0 &&
+            Number.isInteger(anchor.sequence) && anchor.sequence >= 0 &&
+            /^[a-f0-9]{32}$/.test(String(anchor.head_mac || '')) &&
+            /^[a-f0-9]{32}$/.test(String(anchor.anchor_mac || ''));
+        const expected = this.#expectedAnchor(metadata);
+        if (!validShape ||
+            anchor.anchor_mac !== this.#anchorMac(unsigned) ||
+            JSON.stringify(unsigned) !== JSON.stringify(expected)) {
+            throw new Error('open_finance_terminal_journal_anchor_mismatch');
+        }
+        return expected;
+    }
+
+    #refreshTerminalAnchor() {
+        this.#writeAnchor(this.#expectedAnchor());
+        this.#assertTerminalAnchorIntegrity();
+    }
+
+    #hardenFiles() {
+        for (const file of [
+            this.databasePath,
+            `${this.databasePath}-wal`,
+            `${this.databasePath}-shm`,
+            this.terminalAnchorPath
+        ]) {
+            if (!file || file === ':memory:' || !fs.existsSync(file)) continue;
+            try { fs.chmodSync(file, 0o600); } catch {}
+        }
     }
 
     #ref(alias) {
@@ -60,6 +253,7 @@ class OpenFinanceRevocationJournal {
 
     recordRevocation({ alias, generation = 1, revokedAt = new Date().toISOString(),
         keyVersion = 1, reasonCode = 'consent_revoked' } = {}) {
+        this.#assertTerminalAnchorIntegrity();
         const aliasRef = this.#ref(alias);
         const normalizedGeneration = normalizeGeneration(generation);
         const timestamp = new Date(revokedAt);
@@ -80,6 +274,7 @@ class OpenFinanceRevocationJournal {
     }
 
     revokedGeneration(alias) {
+        this.#assertTerminalAnchorIntegrity();
         const row = this.db.prepare(`SELECT MAX(generation) AS generation FROM open_finance_revocation_journal
             WHERE alias_ref=?`).get(this.#ref(alias));
         return row?.generation || 0;
@@ -94,6 +289,7 @@ class OpenFinanceRevocationJournal {
     }
 
     listRevocations() {
+        this.#assertTerminalAnchorIntegrity();
         return this.db.prepare(`SELECT alias_ref,generation,revoked_at FROM open_finance_revocation_journal
             ORDER BY sequence`).all();
     }
@@ -159,6 +355,7 @@ class OpenFinanceRevocationJournal {
     }
 
     recordSaveProposalTerminal(entry = {}) {
+        this.#assertTerminalAnchorIntegrity();
         const normalized = this.#normalizeSaveProposalTerminal(entry);
         const existing = this.db.prepare(`SELECT proposal_ref,terminal_state,confirmation_ref_hash,
             confirmation_actor_ref,confirmation_ready_at,confirmation_expires_at,
@@ -174,25 +371,27 @@ class OpenFinanceRevocationJournal {
                 financial_writes: 0 };
         }
         this.db.prepare(`INSERT INTO open_finance_save_proposal_terminal_journal (
-            proposal_ref,terminal_state,confirmation_ref_hash,confirmation_actor_ref,
-            confirmation_ready_at,confirmation_expires_at,confirmation_decided_at,entry_mac
-            ,resolved_by_ref
-        ) VALUES (?,?,?,?,?,?,?,?,?)`).run(
-            normalized.proposal_ref,
-            normalized.terminal_state,
-            normalized.confirmation_ref_hash,
-            normalized.confirmation_actor_ref,
-            normalized.confirmation_ready_at,
-            normalized.confirmation_expires_at,
-            normalized.confirmation_decided_at,
-            this.#saveProposalTerminalMac(normalized),
-            normalized.resolved_by_ref
-        );
+                proposal_ref,terminal_state,confirmation_ref_hash,confirmation_actor_ref,
+                confirmation_ready_at,confirmation_expires_at,confirmation_decided_at,entry_mac,
+                resolved_by_ref
+            ) VALUES (?,?,?,?,?,?,?,?,?)`).run(
+                normalized.proposal_ref,
+                normalized.terminal_state,
+                normalized.confirmation_ref_hash,
+                normalized.confirmation_actor_ref,
+                normalized.confirmation_ready_at,
+                normalized.confirmation_expires_at,
+                normalized.confirmation_decided_at,
+                this.#saveProposalTerminalMac(normalized),
+                normalized.resolved_by_ref
+            );
+        this.#refreshTerminalAnchor();
         return { recorded: true, replay: false, terminal_state: normalized.terminal_state,
             financial_writes: 0 };
     }
 
     getSaveProposalTerminal(proposalRef) {
+        this.#assertTerminalAnchorIntegrity();
         const normalized = String(proposalRef || '');
         if (!/^[a-f0-9]{32}$/.test(normalized)) throw new Error('valid_save_proposal_ref_required');
         return this.#readSaveProposalTerminal(this.db.prepare(`SELECT proposal_ref,terminal_state,
@@ -202,6 +401,7 @@ class OpenFinanceRevocationJournal {
     }
 
     listSaveProposalTerminals() {
+        this.#assertTerminalAnchorIntegrity();
         return this.db.prepare(`SELECT proposal_ref,terminal_state,confirmation_ref_hash,
             confirmation_actor_ref,confirmation_ready_at,confirmation_expires_at,
             confirmation_decided_at,resolved_by_ref,entry_mac
@@ -210,6 +410,7 @@ class OpenFinanceRevocationJournal {
     }
 
     checkpoint() {
+        this.#assertTerminalAnchorIntegrity();
         const row = this.db.prepare(`SELECT COUNT(*) AS entries,COALESCE(MAX(sequence),0) AS sequence,
             MAX(revoked_at) AS latest_revoked_at FROM open_finance_revocation_journal`).get();
         return Object.freeze({ schema: 'open-finance-revocation-journal-v1', entries: row.entries,
@@ -217,6 +418,7 @@ class OpenFinanceRevocationJournal {
     }
 
     reapplyRevocations({ mappings = [], vault, baseline, outbox } = {}) {
+        this.#assertTerminalAnchorIntegrity();
         if (!vault?.revokeItem || !baseline?.revokeConnection || !outbox?.revokeSourceAlias) {
             throw new Error('revocation_reapply_stores_required');
         }
@@ -235,7 +437,12 @@ class OpenFinanceRevocationJournal {
         return { reapplied: applied.length, revoked_mappings: applied, financial_writes: 0 };
     }
 
-    close() { this.db.close(); }
+    close() {
+        this.#hardenFiles();
+        this.anchorDb?.close();
+        this.db.close();
+        this.#hardenFiles();
+    }
 }
 
 module.exports = { OpenFinanceRevocationJournal };

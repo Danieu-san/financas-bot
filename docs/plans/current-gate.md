@@ -6,7 +6,7 @@ Base: `195ac58af68acdec87c0fb80617d0ddcf1d1de3b`.
 
 ## Estado
 
-`SEGUNDA RECUPERAÇÃO LOCAL VERDE; NOVO HASH E REAUDITORIA PENDENTES`.
+`TERCEIRA RECUPERAÇÃO LOCAL VERDE; NOVO HASH E REAUDITORIA PENDENTES`.
 
 9P.0 encerrou a persistência shadow da proposta reconciliada. Esta fatia
 implementa o destinatário autorizado e a confirmação durável de uso único sem
@@ -23,6 +23,13 @@ recebeu `NO-GO`, pois apagar o envelope completo ainda simulava estado inicial
 e um backup válido anterior à decisão reabria `ready`. A segunda recuperação
 autentica o estado inicial e registra terminais em journal monotônico externo ao
 backup, reaplicado antes da exposição no restore.
+
+A segunda recuperação foi publicada em
+`3beef9309c5d8f857bc96a3de08965118fdb989b` e recebeu `NO-GO`
+independente por um `MEDIUM`: o próprio journal ainda podia ser apagado,
+truncado ou revertido para uma cópia válida anterior. A terceira recuperação
+vincula o journal a uma âncora autenticada e separada, verificada antes de toda
+operação.
 
 ## Objetivo
 
@@ -60,6 +67,8 @@ ator familiar, geração, expiração e idempotência.
 6. restart preserva estado e uso único;
 7. retorno e logs expõem apenas referências e estados sanitizados;
 8. `financial_writes=0` em todos os caminhos.
+9. perda, truncamento ou rollback unilateral do journal ou de sua âncora falha
+   fechado antes de ingest, restore, replay ou nova decisão.
 
 ## Critérios de GO
 
@@ -88,13 +97,12 @@ ator familiar, geração, expiração e idempotência.
 
 ## Próxima ação exata
 
-Criar e publicar o commit sanitizado da segunda recuperação, pedir reauditoria
+Criar e publicar o commit sanitizado da terceira recuperação, pedir reauditoria
 independente por hash imutável e confrontar o parecer com a evidência local.
 
-Transferência: o commit ficou pendente exclusivamente porque a interface do
-Codex recusou operações elevadas por limite de uso. A árvore contém dez
-arquivos intencionais deste gate; não misturá-los com arquivos externos nem
-iniciar as verificações posteriores antes do GO independente.
+Arquivos intencionais deste gate ficam somente no worktree
+`open-finance-save-proposal`; não misturá-los com arquivos externos nem iniciar
+as verificações posteriores antes do GO independente.
 
 ## Capacidade
 

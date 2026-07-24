@@ -376,6 +376,42 @@ test('9P.1 conditional updates fail closed across two store instances', () => {
     }
 });
 
+test('9P.1 journal truncation blocks reingest before a terminal proposal can reopen', () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-save-confirmation-anchor-'));
+    const databasePath = path.join(directory, 'preview.sqlite');
+    const journal = new OpenFinanceRevocationJournal({
+        databasePath: path.join(directory, 'journal.sqlite'),
+        secret
+    });
+    const store = openStore(databasePath, () => new Date('2026-07-23T12:00:00.000Z'), journal);
+    try {
+        const proposalRef = seedProposal(store);
+        const prepared = store.prepareSaveProposalConfirmation(proposalRef, {
+            actorWhatsappId: danielWhatsappId
+        });
+        store.decideSaveProposalConfirmation(prepared.confirmation_ref, 'accept', {
+            actorWhatsappId: danielWhatsappId
+        });
+        journal.db.prepare('DELETE FROM open_finance_save_proposal_terminal_journal').run();
+        assert.throws(
+            () => seedProposal(store),
+            /open_finance_terminal_journal_anchor_mismatch/
+        );
+        assert.throws(
+            () => store.prepareSaveProposalConfirmation(proposalRef, {
+                actorWhatsappId: danielWhatsappId
+            }),
+            /open_finance_terminal_journal_anchor_mismatch/
+        );
+        assert.equal(store.db.prepare(`SELECT confirmation_state
+            FROM open_finance_save_proposals WHERE proposal_ref=?`)
+            .get(proposalRef).confirmation_state, 'accepted');
+    } finally {
+        store.close();
+        journal.close();
+    }
+});
+
 test('9P.1 migrates a populated 9P.0 proposal table before creating confirmations', () => {
     const databasePath = path.join(
         fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-save-confirmation-migration-')),

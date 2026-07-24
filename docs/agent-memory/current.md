@@ -14,26 +14,30 @@ A primeira recuperação, publicada em
 todo o envelope ainda simulava “nunca preparado”, e um backup antigo válido
 reabria `ready`.
 
-A segunda recuperação cria estado inicial autenticado e journal terminal
-monotônico externo ao backup. Apagamento coordenado é reparado pelo journal;
-restore reaplica o terminal antes da exposição. A evidência está verde em
-`17/17` focados, `41/41` causais, `226/226` Open Finance e `1.278/1.283` no
-runner hermético, com zero falhas e cinco skips previstos. Aguarda commit
-imutável e nova reauditoria.
+A segunda recuperação foi publicada em
+`3beef9309c5d8f857bc96a3de08965118fdb989b` e recebeu `NO-GO`
+independente por um `MEDIUM`: perda, truncamento ou rollback válido do próprio
+journal ainda podia reabrir uma proposta terminal.
+
+A terceira recuperação adiciona uma âncora SQLite separada e autenticada,
+confrontada na abertura e antes de toda operação. Perda/truncamento/rollback do
+journal, perda/rollback da âncora e reingestão posterior falham fechados. A
+evidência está verde em `22/22` focados, `234/234` Open Finance e
+`1.283/1.288` no runner hermético, com zero falhas e cinco skips previstos.
+Aguarda novo commit imutável e reauditoria.
 
 ## Transferência em curso
 
-Worktree de origem: `C:\\Users\\Thais\\.codex\\visualizations\\2026\\07\\17\\019f7176-f073-7cd0-bdc7-eccdaaa55717\\state03-shutdown-flush`.
-Branch: `codex/open-finance-save-proposal`; HEAD de partida:
-`5fbeb378ea666ae854b3ae7bad0069bdb9f53a15`.
+Worktree vigente:
+`E:\\Users\\horus\\Documents\\FinancasBot\\worktrees\\open-finance-save-proposal`.
+Branch: `codex/open-finance-save-proposal`; HEAD de partida desta recuperação:
+`3beef9309c5d8f857bc96a3de08965118fdb989b`.
 
-Dez arquivos deste gate permanecem intencionalmente não commitados: seis de
-produto/teste e quatro documentos de checkpoint/auditoria. A interface do
-Codex recusou novas operações elevadas por limite de uso durante a publicação;
-não houve falha de teste, Git ou rede do projeto. Ao retomar, conferir a árvore,
-fazer `git add` somente desses dez arquivos, criar o commit sanitizado, publicar
-na mesma branch e pedir a reauditoria por hash imutável. Não executar fase 8,
-produção, Oracle/AWS, cofre Pluggy ou remoção de mensagens antes desse GO.
+Alterações intencionais desta recuperação: journal, testes causais e documentos
+9P.1. Ao retomar, conferir a árvore, adicionar somente esses arquivos, criar o
+commit sanitizado, publicar na mesma branch e
+pedir a reauditoria por hash imutável. Não executar fase 8, produção,
+Oracle/AWS, cofre Pluggy ou remoção de mensagens antes desse GO.
 
 Não houve transporte, handler WhatsApp, escrita financeira, produção, Google
 ou Pluggy real.
@@ -141,8 +145,8 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Git e workspace
 
-- branch ativa: `codex/open-finance-save-proposal`, baseada em
-  `f8d124f785f89479642fbf4847a9f4c3860a268d`;
+- branch ativa: `codex/open-finance-save-proposal`, recuperação baseada em
+  `3beef9309c5d8f857bc96a3de08965118fdb989b`;
 - último produto com `GO TÉCNICO LOCAL`:
   `195ac58af68acdec87c0fb80617d0ddcf1d1de3b`;
 - fechamento documental de 9P.0:
@@ -154,7 +158,7 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Próximo gate
 
-`9P.1`: segunda recuperação pós-`NO-GO` localmente verde; commit, publicação e
+`9P.1`: terceira recuperação pós-`NO-GO` localmente verde; commit, publicação e
 reauditoria independente pendentes.
 
 Plano corrente: `docs/plans/current-gate.md`.
@@ -175,7 +179,7 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar a segunda recuperação 9P.1 por novo hash imutável e submetê-la uma
+Publicar a terceira recuperação 9P.1 por novo hash imutável e submetê-lo uma
 única vez à reauditoria independente no Chat.
 
 ## Capacidade para retomar
@@ -207,6 +211,8 @@ Pluggy/Open Finance:
   `docs/audit/50-open-finance-save-proposal-confirmation-recovery-candidate-2026-07-24.md`;
 - segunda recuperação 9P.1:
   `docs/audit/51-open-finance-save-proposal-terminal-journal-recovery-candidate-2026-07-24.md`;
+- terceira recuperação 9P.1:
+  `docs/audit/52-open-finance-save-proposal-terminal-anchor-recovery-candidate-2026-07-24.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:
