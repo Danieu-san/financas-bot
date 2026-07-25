@@ -86,9 +86,17 @@ if (-not (Test-Path -LiteralPath (Join-Path $resolvedRoot '.git'))) {
     throw "Raiz Git inválida: $resolvedRoot"
 }
 
+$workspaceParent = Split-Path -Parent $resolvedRoot
+$financasBotRoot = if (
+    (Split-Path -Leaf $workspaceParent) -ieq 'worktrees'
+) {
+    Split-Path -Parent $workspaceParent
+} else {
+    $workspaceParent
+}
+
 if (-not $ReportPath) {
-    $workspaceParent = Split-Path -Parent $resolvedRoot
-    $portableRoot = Join-Path $workspaceParent 'Trabalho Codex no outro PC'
+    $portableRoot = Join-Path $financasBotRoot 'Trabalho Codex no outro PC'
     $ReportPath = Join-Path $portableRoot 'last-safe-handoff.json'
 }
 
@@ -107,7 +115,6 @@ try {
 }
 Invoke-Captured -Executable $GitBin -Arguments @('-C', $resolvedRoot, 'diff', '--check') | Out-Null
 
-$financasBotRoot = Split-Path -Parent $resolvedRoot
 $startHere = Join-Path $resolvedRoot 'docs\agent-memory\START-HERE.md'
 if (-not (Test-Path -LiteralPath $startHere -PathType Leaf)) {
     throw "Documento de entrada ausente: $startHere"
