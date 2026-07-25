@@ -411,6 +411,9 @@ const logger = require('../src/utils/logger');
 const { OpenFinanceAlertOutbox } = require('../src/openFinance/openFinanceAlertOutbox');
 const { OpenFinanceRevocationJournal } = require('../src/openFinance/openFinanceRevocationJournal');
 const { OpenFinanceShadowPreviewStore } = require('../src/openFinance/openFinanceShadowPreviewStore');
+const {
+    OpenFinanceSaveProposalReviewStore
+} = require('../src/openFinance/openFinanceSaveProposalReviewStore');
 const { observationRef } = require('../src/openFinance/openFinanceRuntimeReconciliation');
 const originalRateLimiterIsAllowed = rateLimiter.isAllowed;
 const {
@@ -621,10 +624,13 @@ stateMachineTest('9P.2 public serialized handler consumes one durable proposal r
     });
     try {
         const reply = await send('sim');
-        assert.match(reply, /Proposta aceita/);
-        assert.match(reply, /Nada foi salvo ainda/);
+        assert.match(reply, /Confira a proposta/);
+        assert.match(reply, /Nada foi salvo/);
         assert.strictEqual(appendedRows.length, 0);
-        assert.strictEqual(userStateManager.getState(SENDER), undefined);
+        assert.strictEqual(
+            userStateManager.getState(SENDER).action,
+            'awaiting_open_finance_save_review'
+        );
 
         const reopenedJournal = new OpenFinanceRevocationJournal({
             databasePath: paths.journal,
@@ -637,10 +643,20 @@ stateMachineTest('9P.2 public serialized handler consumes one durable proposal r
             authorizedWhatsAppIds: [SENDER],
             confirmationActors: [{ principal: 'daniel', whatsappId: SENDER }]
         });
+        const reopenedReviewStore = new OpenFinanceSaveProposalReviewStore({
+            databasePath: paths.preview,
+            secret,
+            authorizedWhatsAppIds: [SENDER]
+        });
         try {
             assert.strictEqual(reopenedStore.stats().save_confirmations_accepted, 1);
             assert.strictEqual(reopenedStore.stats().financial_writes, 0);
+            assert.strictEqual(
+                reopenedReviewStore.listActiveReviews({ actorWhatsappId: SENDER })[0].state,
+                'editing'
+            );
         } finally {
+            reopenedReviewStore.close();
             reopenedStore.close();
             reopenedJournal.close();
         }

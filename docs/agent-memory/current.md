@@ -5,8 +5,9 @@ Atualizado em: 2026-07-24
 ## Objetivo ativo
 
 A fila original da auditoria exaustiva e os gates `9P.0`, `9P.1` e `9P.2`
-estão tecnicamente encerrados. O objetivo ativo é `9P.3`: permitir a revisão e
-correção guiada da proposta aceita antes de qualquer escrita financeira.
+estão tecnicamente encerrados. O objetivo ativo é fechar o candidato `9P.3`:
+revisão e correção guiada da proposta aceita antes de qualquer escrita
+financeira.
 
 O contrato cobre pessoa, categoria, forma de pagamento, conta e cartão, com
 catálogos autorizados, estado durável, recuperação após restart e
@@ -26,7 +27,17 @@ Branch: `codex/open-finance-save-proposal`; base de 9P.3:
 `accepted_unconfirmed` continua at-most-once e inelegível. Severidades finais:
 `CRITICAL 0`, `HIGH 0`, `MEDIUM 0`, `LOW 0`.
 
-Alterações intencionais seguintes: plano, produto e testes causais de 9P.3.
+O candidato 9P.3 prepara revisão cifrada antes da aceitação, ativa depois dela,
+recupera a janela intermediária, usa catálogo familiar read-only e impede nova
+pergunta ao ator com revisão ativa. Pessoa, categoria, pagamento, conta e
+cartão são corrigidos por opções numeradas; dependências ausentes bloqueiam a
+conclusão.
+
+Evidência: conversa/store `15/15`, catálogo `2/2`, runtime `8/8`, máquina de
+estados `122/122` e runner hermético `1.302/1.307`, zero falhas e cinco skips
+previstos. Cobertura: linhas `90,12%`, branches `72,23%`, funções `90,01%`.
+
+Alterações intencionais: produto, testes, plano e manifesto de 9P.3.
 Não executar fase 8, produção, Oracle/AWS, cofre Pluggy ou integrações reais.
 
 Não houve transporte WhatsApp real, escrita financeira, produção, Google ou
@@ -148,8 +159,8 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Próximo gate
 
-`9P.3`: revisão e correção guiada local de pessoa, categoria, forma de
-pagamento, conta e cartão, sem writer financeiro.
+`9P.3`: candidato local verde aguardando commit sanitizado e auditoria
+independente por hash imutável.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -169,8 +180,7 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Mapear o estado pós-aceitação e os catálogos existentes; escrever a prova RED
-causal e implementar a revisão guiada sem writer.
+Publicar o candidato imutável e submetê-lo à auditoria independente no Chat.
 
 ## Capacidade para retomar
 
@@ -211,6 +221,8 @@ Pluggy/Open Finance:
   `docs/audit/55-open-finance-save-proposal-delivery-proof-recovery-candidate-2026-07-24.md`;
 - fechamento independente 9P.2:
   `docs/audit/56-open-finance-save-proposal-conversation-independent-close-2026-07-24.md`;
+- candidato 9P.3:
+  `docs/audit/57-open-finance-save-proposal-guided-review-candidate-2026-07-24.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:

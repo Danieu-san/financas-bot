@@ -833,6 +833,44 @@ class OpenFinanceShadowPreviewStore {
         return row ? this.#readBoundSaveProposal(proposalRef, row) : null;
     }
 
+    readReviewableSaveProposal(proposalRef, { actorWhatsappId } = {}) {
+        this.#requireAuthorizedActor(actorWhatsappId);
+        const terminalJournal = this.#requireSaveProposalTerminalJournal();
+        this.purgeExpired();
+        const actorRef = this.#actorRef(actorWhatsappId);
+        const select = this.db.prepare(`SELECT proposal_ref,family_scope_ref,alias_ref,generation,
+            encrypted_payload,payload_version,proposal_state,resolved_by_ref,resolved_at,
+            created_at,expires_at,confirmation_ref_hash,confirmation_state,
+            confirmation_actor_ref,encrypted_confirmation,confirmation_payload_version,
+            confirmation_state_mac,confirmation_ready_at,confirmation_expires_at,
+            confirmation_decided_at
+            FROM open_finance_save_proposals
+            WHERE proposal_ref=? AND family_scope_ref=?`);
+        let row = select.get(proposalRef, this.familyScopeRef);
+        if (!row) throw new Error('save_proposal_not_found');
+        const terminal = terminalJournal.getSaveProposalTerminal(proposalRef);
+        if (terminal) {
+            this.#applySaveProposalTerminal(terminal);
+            row = select.get(proposalRef, this.familyScopeRef);
+        }
+        this.#assertSaveConfirmationState(row);
+        if (row.proposal_state !== 'pending' ||
+            !['ready', 'accepted'].includes(row.confirmation_state)) {
+            throw new Error('save_proposal_not_reviewable');
+        }
+        if (row.confirmation_actor_ref !== actorRef) {
+            throw new Error('save_proposal_confirmation_actor_unauthorized');
+        }
+        return {
+            ...this.#readBoundSaveProposal(proposalRef, row),
+            proposal_ref: proposalRef,
+            confirmation_state: row.confirmation_state,
+            confirmation_decided_at: row.confirmation_decided_at,
+            review_expires_at: row.confirmation_expires_at || row.expires_at,
+            financial_writes: 0
+        };
+    }
+
     prepareSaveProposalConfirmation(proposalRef, { actorWhatsappId } = {}) {
         this.#requireAuthorizedActor(actorWhatsappId);
         const terminalJournal = this.#requireSaveProposalTerminalJournal();

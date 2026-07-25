@@ -3,11 +3,16 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
+const Database = require('better-sqlite3');
 const { OpenFinanceAlertOutbox } = require('../src/openFinance/openFinanceAlertOutbox');
 const { OpenFinanceRevocationJournal } = require('../src/openFinance/openFinanceRevocationJournal');
 const { OpenFinanceShadowPreviewStore } = require('../src/openFinance/openFinanceShadowPreviewStore');
 const {
+    OpenFinanceSaveProposalReviewStore
+} = require('../src/openFinance/openFinanceSaveProposalReviewStore');
+const {
     handleOpenFinanceSaveProposalReply,
+    handleOpenFinanceSaveProposalReviewReply,
     assertPromptConfiguration
 } = require('../src/openFinance/openFinanceSaveProposalConversation');
 const {
@@ -30,6 +35,26 @@ const policy = {
     can_write_financial: false,
     canary_aliases: ['daniel_nubank'],
     canary_activations: {}
+};
+const reviewCatalog = {
+    people: [
+        { id: 'user-daniel', label: 'Daniel' },
+        { id: 'user-thais', label: 'Thaís' }
+    ],
+    categories: [
+        { id: 'alimentacao|supermercado', label: 'Alimentação / SUPERMERCADO',
+            category: 'Alimentação', subcategory: 'SUPERMERCADO' }
+    ],
+    paymentMethods: [
+        { id: 'credit', label: 'Crédito', value: 'Crédito' },
+        { id: 'pix', label: 'PIX', value: 'PIX' }
+    ],
+    financialAccounts: [
+        { id: 'account-nubank', label: 'Nubank Daniel', ownerUserId: 'user-daniel' }
+    ],
+    cards: [
+        { id: 'card-nubank', label: 'Nubank Daniel' }
+    ]
 };
 
 function createHarness({ transactionId = 'purchase-posted' } = {}) {
@@ -306,13 +331,15 @@ test('9P.2 accepts the authorized reply after restart without auxiliary conversa
     const accepted = handleOpenFinanceSaveProposalReply({
         messageBody: 'sim',
         actorWhatsappId,
-        env: harness.env
+        env: harness.env,
+        reviewCatalog
     });
     assert.equal(accepted.handled, true);
-    assert.equal(accepted.state, 'accepted');
+    assert.equal(accepted.state, 'review_editing');
+    assert.equal(accepted.keep_pending, true);
     assert.equal(accepted.proposal_ref, proposalRef);
     assert.equal(accepted.financial_writes, 0);
-    assert.match(accepted.reply, /Nada foi salvo ainda/);
+    assert.match(accepted.reply, /Nada foi salvo/);
 
     const journal = new OpenFinanceRevocationJournal({
         databasePath: harness.env.OPEN_FINANCE_REVOCATION_JOURNAL_DB,
@@ -331,6 +358,296 @@ test('9P.2 accepts the authorized reply after restart without auxiliary conversa
     } finally {
         store.close();
         journal.close();
+    }
+});
+
+test('9P.3 prepares a durable guided review before accepting the proposal', async () => {
+    const harness = createHarness({ transactionId: 'purchase-guided-review' });
+    try {
+        await deliverOneOpenFinanceCanary(deliveryInput(harness, {
+            sendMessage: async () => ({ id: 'guided-review-message-id' })
+        }));
+        const accepted = handleOpenFinanceSaveProposalReply({
+            messageBody: 'sim',
+            actorWhatsappId,
+            env: harness.env,
+            reviewCatalog
+        });
+        assert.equal(accepted.handled, true);
+        assert.equal(accepted.state, 'review_editing');
+        assert.equal(accepted.keep_pending, true);
+        assert.equal(accepted.proposal_ref, harness.proposalRef);
+        assert.equal(accepted.financial_writes, 0);
+        assert.match(accepted.reply, /Confira a proposta/i);
+        assert.match(accepted.reply, /Pessoa/i);
+        assert.match(accepted.reply, /Categoria/i);
+        assert.match(accepted.reply, /Nada foi salvo/i);
+
+        const reopened = new OpenFinanceSaveProposalReviewStore({
+            databasePath: harness.env.OPEN_FINANCE_SHADOW_PREVIEW_DB,
+            secret,
+            authorizedWhatsAppIds: [actorWhatsappId]
+        });
+        try {
+            const [review] = reopened.listActiveReviews({ actorWhatsappId });
+            assert.equal(review.proposal_ref, harness.proposalRef);
+            assert.equal(review.state, 'editing');
+            assert.equal(review.financial_writes, 0);
+        } finally {
+            reopened.close();
+        }
+        assert.equal(harness.store.stats().save_confirmations_accepted, 1);
+    } finally {
+        harness.close();
+    }
+});
+
+test('9P.3 corrects every guided field and only completes a causally valid draft', async () => {
+    const harness = createHarness({ transactionId: 'purchase-guided-fields' });
+    try {
+        await deliverOneOpenFinanceCanary(deliveryInput(harness, {
+            sendMessage: async () => ({ id: 'guided-fields-message-id' })
+        }));
+        const accepted = handleOpenFinanceSaveProposalReply({
+            messageBody: 'sim',
+            actorWhatsappId,
+            env: harness.env,
+            reviewCatalog
+        });
+        const reply = body => handleOpenFinanceSaveProposalReviewReply({
+            messageBody: body,
+            actorWhatsappId,
+            expectedProposalRef: accepted.proposal_ref,
+            env: harness.env
+        });
+
+        assert.match(reply('1').reply, /Escolha a pessoa/i);
+        assert.match(reply('2').reply, /Pessoa: Thaís/i);
+        assert.match(reply('2').reply, /Escolha a categoria/i);
+        assert.match(reply('1').reply, /Alimentação \/ SUPERMERCADO/i);
+        assert.match(reply('3').reply, /Escolha a forma de pagamento/i);
+        const pix = reply('2');
+        assert.match(pix.reply, /Pagamento: PIX/i);
+        assert.match(pix.reply, /Conta financeira/i);
+        assert.match(reply('4').reply, /Escolha a conta financeira/i);
+        assert.match(reply('1').reply, /Nubank Daniel/i);
+
+        const completed = reply('6');
+        assert.equal(completed.state, 'review_ready');
+        assert.equal(completed.keep_pending, false);
+        assert.equal(completed.financial_writes, 0);
+        assert.match(completed.reply, /Conferência concluída/i);
+        assert.match(completed.reply, /Nada foi salvo/i);
+
+        const reopened = new OpenFinanceSaveProposalReviewStore({
+            databasePath: harness.env.OPEN_FINANCE_SHADOW_PREVIEW_DB,
+            secret,
+            authorizedWhatsAppIds: [actorWhatsappId]
+        });
+        try {
+            const stored = reopened.readReviewPrivate(
+                harness.proposalRef,
+                { actorWhatsappId }
+            );
+            assert.equal(stored.state, 'ready');
+            assert.equal(stored.payload.draft.person.label, 'Thaís');
+            assert.equal(stored.payload.draft.category.category, 'Alimentação');
+            assert.equal(stored.payload.draft.paymentMethod.value, 'PIX');
+            assert.equal(stored.payload.draft.financialAccount.id, 'account-nubank');
+            assert.equal(stored.payload.draft.card, null);
+        } finally {
+            reopened.close();
+        }
+    } finally {
+        harness.close();
+    }
+});
+
+test('9P.3 blocks completion while a required card is missing', async () => {
+    const harness = createHarness({ transactionId: 'purchase-missing-card' });
+    try {
+        await deliverOneOpenFinanceCanary(deliveryInput(harness, {
+            sendMessage: async () => ({ id: 'missing-card-message-id' })
+        }));
+        handleOpenFinanceSaveProposalReply({
+            messageBody: 'sim',
+            actorWhatsappId,
+            env: harness.env,
+            reviewCatalog
+        });
+        const reply = body => handleOpenFinanceSaveProposalReviewReply({
+            messageBody: body,
+            actorWhatsappId,
+            expectedProposalRef: harness.proposalRef,
+            env: harness.env
+        });
+        reply('2');
+        reply('1');
+        const blocked = reply('6');
+        assert.equal(blocked.state, 'review_editing');
+        assert.equal(blocked.keep_pending, true);
+        assert.match(blocked.reply, /falta cartão/i);
+        assert.match(reply('5').reply, /Escolha o cartão/i);
+        assert.match(reply('1').reply, /Cartão: Nubank Daniel/i);
+        assert.equal(reply('6').state, 'review_ready');
+    } finally {
+        harness.close();
+    }
+});
+
+test('9P.3 recovers a prepared review when acceptance failed before activation', async () => {
+    const harness = createHarness({ transactionId: 'purchase-prepared-recovery' });
+    try {
+        await deliverOneOpenFinanceCanary(deliveryInput(harness, {
+            sendMessage: async () => ({ id: 'prepared-recovery-message-id' })
+        }));
+        class FailBeforeAcceptanceStore extends OpenFinanceShadowPreviewStore {
+            decideSaveProposalConfirmation() {
+                throw new Error('simulated_acceptance_failure');
+            }
+        }
+        assert.throws(() => handleOpenFinanceSaveProposalReply({
+            messageBody: 'sim',
+            actorWhatsappId,
+            env: harness.env,
+            reviewCatalog,
+            dependencies: {
+                OpenFinanceShadowPreviewStore: FailBeforeAcceptanceStore
+            }
+        }), /simulated_acceptance_failure/);
+
+        const reviews = new OpenFinanceSaveProposalReviewStore({
+            databasePath: harness.env.OPEN_FINANCE_SHADOW_PREVIEW_DB,
+            secret,
+            authorizedWhatsAppIds: [actorWhatsappId]
+        });
+        try {
+            assert.equal(
+                reviews.listActiveReviews({ actorWhatsappId })[0].state,
+                'prepared'
+            );
+        } finally {
+            reviews.close();
+        }
+        const recovered = handleOpenFinanceSaveProposalReply({
+            messageBody: 'sim',
+            actorWhatsappId,
+            env: harness.env,
+            reviewCatalog
+        });
+        assert.equal(recovered.state, 'review_editing');
+        assert.equal(recovered.financial_writes, 0);
+    } finally {
+        harness.close();
+    }
+});
+
+test('9P.3 keeps review payload encrypted, actor-bound and cancellation terminal', async () => {
+    const harness = createHarness({ transactionId: 'purchase-private-review' });
+    try {
+        await deliverOneOpenFinanceCanary(deliveryInput(harness, {
+            sendMessage: async () => ({ id: 'private-review-message-id' })
+        }));
+        handleOpenFinanceSaveProposalReply({
+            messageBody: 'sim',
+            actorWhatsappId,
+            env: harness.env,
+            reviewCatalog
+        });
+        const rawDatabase = fs.readFileSync(harness.env.OPEN_FINANCE_SHADOW_PREVIEW_DB);
+        assert.equal(rawDatabase.includes(Buffer.from('Compra privada de teste')), false);
+        assert.equal(rawDatabase.includes(Buffer.from('Nubank Daniel')), false);
+
+        const outsider = handleOpenFinanceSaveProposalReviewReply({
+            messageBody: '1',
+            actorWhatsappId: 'outsider@c.us',
+            env: harness.env
+        });
+        assert.equal(outsider.handled, false);
+        assert.equal(outsider.financial_writes, 0);
+
+        const cancelled = handleOpenFinanceSaveProposalReviewReply({
+            messageBody: 'cancelar',
+            actorWhatsappId,
+            expectedProposalRef: harness.proposalRef,
+            env: harness.env
+        });
+        assert.equal(cancelled.state, 'cancelled');
+        assert.equal(cancelled.keep_pending, false);
+        assert.equal(cancelled.financial_writes, 0);
+        const replay = handleOpenFinanceSaveProposalReviewReply({
+            messageBody: '1',
+            actorWhatsappId,
+            expectedProposalRef: harness.proposalRef,
+            env: harness.env
+        });
+        assert.equal(replay.handled, true);
+        assert.equal(replay.keep_pending, false);
+        assert.match(replay.reply, /não está mais disponível/i);
+    } finally {
+        harness.close();
+    }
+});
+
+test('9P.3 rejects mutable review metadata tampering before exposing the draft', async () => {
+    const harness = createHarness({ transactionId: 'purchase-tampered-review' });
+    try {
+        await deliverOneOpenFinanceCanary(deliveryInput(harness, {
+            sendMessage: async () => ({ id: 'tampered-review-message-id' })
+        }));
+        handleOpenFinanceSaveProposalReply({
+            messageBody: 'sim',
+            actorWhatsappId,
+            env: harness.env,
+            reviewCatalog
+        });
+        const database = new Database(harness.env.OPEN_FINANCE_SHADOW_PREVIEW_DB);
+        database.prepare(`UPDATE open_finance_save_proposal_reviews
+            SET review_state='ready' WHERE proposal_ref=?`).run(harness.proposalRef);
+        database.close();
+        assert.throws(() => handleOpenFinanceSaveProposalReviewReply({
+            messageBody: '1',
+            actorWhatsappId,
+            expectedProposalRef: harness.proposalRef,
+            env: harness.env
+        }), /open_finance_save_review_state_metadata_mismatch/);
+    } finally {
+        harness.close();
+    }
+});
+
+test('9P.3 expires an unfinished review with the original confirmation window', async () => {
+    const harness = createHarness({ transactionId: 'purchase-expired-review' });
+    try {
+        await deliverOneOpenFinanceCanary(deliveryInput(harness, {
+            sendMessage: async () => ({ id: 'expired-review-message-id' })
+        }));
+        handleOpenFinanceSaveProposalReply({
+            messageBody: 'sim',
+            actorWhatsappId,
+            env: harness.env,
+            reviewCatalog
+        });
+        const expiredStore = new OpenFinanceSaveProposalReviewStore({
+            databasePath: harness.env.OPEN_FINANCE_SHADOW_PREVIEW_DB,
+            secret,
+            authorizedWhatsAppIds: [actorWhatsappId],
+            clock: () => new Date(Date.parse(harness.now) + 2 * 60 * 60 * 1000)
+        });
+        try {
+            assert.equal(expiredStore.listActiveReviews({ actorWhatsappId }).length, 0);
+            const expired = expiredStore.readReviewPrivate(
+                harness.proposalRef,
+                { actorWhatsappId }
+            );
+            assert.equal(expired.state, 'expired');
+            assert.equal(expired.payload, null);
+            assert.equal(expired.financial_writes, 0);
+        } finally {
+            expiredStore.close();
+        }
+    } finally {
+        harness.close();
     }
 });
 

@@ -111,8 +111,12 @@ const { isAdminWithContext } = require('../utils/adminCheck');
 const logger = require('../utils/logger');
 const { sendPlainMessage } = require('../utils/whatsappMessaging');
 const {
-    handleOpenFinanceSaveProposalReply
+    handleOpenFinanceSaveProposalReply,
+    handleOpenFinanceSaveProposalReviewReply
 } = require('../openFinance/openFinanceSaveProposalConversation');
+const {
+    buildOpenFinanceSaveProposalReviewCatalog
+} = require('../openFinance/openFinanceSaveProposalReviewCatalog');
 const { recordQaFailure } = require('../services/qaFailureLogService');
 const { recordAdminAction, hashRef, sanitizeValue } = require('../services/adminActionLogService');
 const { recordDashboardAccessEvent } = require('../services/dashboardAccessLogService');
@@ -9237,14 +9241,60 @@ async function processMessage(msg) {
     }
 
     let currentState = getConversationStateForMessage(senderId, activeUser);
-    if (!currentState || currentState.action === 'awaiting_open_finance_save_confirmation') {
-        const proposalReply = handleOpenFinanceSaveProposalReply({
+    if (!currentState || currentState.action === 'awaiting_open_finance_save_review') {
+        const reviewReply = handleOpenFinanceSaveProposalReviewReply({
             messageBody,
             actorWhatsappId: senderId,
             expectedProposalRef: currentState?.data?.proposalRef || null
         });
+        if (reviewReply.handled) {
+            if (reviewReply.keep_pending) {
+                userStateManager.setState(senderId, {
+                    action: 'awaiting_open_finance_save_review',
+                    data: { proposalRef: reviewReply.proposal_ref }
+                });
+            } else {
+                userStateManager.deleteState(senderId);
+            }
+            await sendPlainMessage(msg, reviewReply.reply);
+            return;
+        }
+    }
+    if (!currentState || currentState.action === 'awaiting_open_finance_save_confirmation') {
+        let proposalReply;
+        try {
+            proposalReply = handleOpenFinanceSaveProposalReply({
+                messageBody,
+                actorWhatsappId: senderId,
+                expectedProposalRef: currentState?.data?.proposalRef || null
+            });
+        } catch (error) {
+            if (error?.message !== 'open_finance_save_review_catalog_required') throw error;
+            let reviewCatalog;
+            try {
+                reviewCatalog = await buildOpenFinanceSaveProposalReviewCatalog({ userId });
+            } catch (catalogError) {
+                logger.warn(`[open-finance] save_review_catalog_unavailable sender=${logger.redactIdentifier(senderId)} ${logger.safeError(catalogError)}`);
+                await sendPlainMessage(
+                    msg,
+                    'Não consegui abrir os dados de conferência agora. A proposta continua pendente e nada foi salvo.'
+                );
+                return;
+            }
+            proposalReply = handleOpenFinanceSaveProposalReply({
+                messageBody,
+                actorWhatsappId: senderId,
+                expectedProposalRef: currentState?.data?.proposalRef || null,
+                reviewCatalog
+            });
+        }
         if (proposalReply.handled) {
-            if (!proposalReply.keep_pending) {
+            if (proposalReply.keep_pending && proposalReply.state === 'review_editing') {
+                userStateManager.setState(senderId, {
+                    action: 'awaiting_open_finance_save_review',
+                    data: { proposalRef: proposalReply.proposal_ref }
+                });
+            } else if (!proposalReply.keep_pending) {
                 userStateManager.deleteState(senderId);
             }
             await sendPlainMessage(msg, proposalReply.reply);

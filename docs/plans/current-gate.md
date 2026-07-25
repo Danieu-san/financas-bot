@@ -7,7 +7,7 @@ Base:
 
 ## Estado
 
-`DEFINIDO; IMPLEMENTAÇÃO LOCAL PENDENTE`.
+`CANDIDATO LOCAL VERDE; COMMIT IMUTÁVEL E AUDITORIA INDEPENDENTE PENDENTES`.
 
 9P.0 encerrou a proposta reconciliada em shadow; 9P.1, a confirmação local
 durável; e 9P.2, a entrega confirmada e a captura pública de
@@ -84,21 +84,30 @@ estado local pronto para revalidação posterior, sem gravar planilha ou ledger.
 - perda ou reabertura de decisão após restart;
 - necessidade de produção ou integração real.
 
-## Evidência de base
+## Evidência local
 
 9P.2 recebeu `GO TÉCNICO LOCAL` independente no commit
 `b52b7879fd5a795a436b4f6332294052732ebe7a`. O fechamento está em
 `docs/audit/56-open-finance-save-proposal-conversation-independent-close-2026-07-24.md`.
 
-Essa evidência autoriza iniciar 9P.3, mas não é evidência de implementação de
-9P.3.
+O candidato 9P.3 possui:
+
+- conversa/store: `15/15`;
+- catálogo: `2/2`;
+- runtime prompt/shadow: `8/8`;
+- máquina de estados e entrada pública: `122/122`;
+- runner hermético: `1.302/1.307`, zero falhas e cinco skips previstos;
+- cobertura: linhas `90,12%`, branches `72,23%`, funções `90,01%`;
+- sintaxe, workflow portátil e `git diff --check`: verdes.
+
+Manifesto:
+`docs/audit/57-open-finance-save-proposal-guided-review-candidate-2026-07-24.md`.
 
 ## Próxima ação exata
 
-Mapear o estado pós-aceitação, os catálogos já existentes e a fronteira do
-handler público; então escrever a prova RED causal de abertura e correção
-guiada sem writer.
+Criar e publicar o commit sanitizado do candidato e submetê-lo à auditoria
+independente por hash imutável.
 
 ## Capacidade
 
-`Codex → Sol → Alto → implementar a revisão e correção guiada local do 9P.3.`
+`Codex → Sol → Alto → publicar e auditar o candidato imutável do 9P.3.`

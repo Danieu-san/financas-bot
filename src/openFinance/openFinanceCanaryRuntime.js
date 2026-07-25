@@ -7,6 +7,9 @@ const { classifyOpenFinanceLifecycle } = require('./openFinanceLifecycleClassifi
 const { OpenFinanceAlertOutbox } = require('./openFinanceAlertOutbox');
 const { OpenFinanceRevocationJournal } = require('./openFinanceRevocationJournal');
 const { OpenFinanceShadowPreviewStore } = require('./openFinanceShadowPreviewStore');
+const {
+    OpenFinanceSaveProposalReviewStore
+} = require('./openFinanceSaveProposalReviewStore');
 const { buildOpenFinanceRolloutPolicy } = require('./openFinanceRolloutPolicy');
 const { deliverOneOpenFinanceCanary } = require('./openFinanceWhatsappCanaryDelivery');
 const {
@@ -122,6 +125,7 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
     const outbox = new OpenFinanceAlertOutbox({ databasePath: env.OPEN_FINANCE_OUTBOX_DB, secret });
     const journal = new OpenFinanceRevocationJournal({ databasePath: env.OPEN_FINANCE_REVOCATION_JOURNAL_DB, secret });
     let proposalStore = null;
+    let proposalReviewStore = null;
     try {
         const revocations = journal.reapplyRevocations({ mappings, vault, baseline, outbox });
         if (previewMode === 'canary') {
@@ -202,6 +206,15 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
                     authorizedWhatsAppIds: confirmationScope.authorizedWhatsAppIds,
                     confirmationActors
                 });
+                if (proposalMode === 'prompt') {
+                    const ReviewStore = dependencies.OpenFinanceSaveProposalReviewStore ||
+                        OpenFinanceSaveProposalReviewStore;
+                    proposalReviewStore = new ReviewStore({
+                        databasePath: env.OPEN_FINANCE_SHADOW_PREVIEW_DB,
+                        secret,
+                        authorizedWhatsAppIds: confirmationScope.authorizedWhatsAppIds
+                    });
+                }
                 const ingestedProposals = proposalStore.ingestSaveProposals({
                     reconciliationDecisions: reconciled.decisions,
                     lifecycleDecisions: lifecycle.decisions,
@@ -246,6 +259,13 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
             if (proposalMode === 'prompt') {
                 for (const actor of confirmationActors) {
                     if (stateManager.getState(actor.whatsappId)) {
+                        excludedRecipients.add(actor.principal);
+                        continue;
+                    }
+                    if (proposalReviewStore.listActiveReviews({
+                        actorWhatsappId: actor.whatsappId,
+                        limit: 2
+                    }).length > 0) {
                         excludedRecipients.add(actor.principal);
                         continue;
                     }
@@ -294,6 +314,7 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
             transport_calls: deliveries.filter(value => ['delivered_confirmed', 'accepted_unconfirmed', 'retry'].includes(value)).length,
             financial_writes: 0 };
     } finally {
+        proposalReviewStore?.close();
         proposalStore?.close();
         journal.close();
         outbox.close();

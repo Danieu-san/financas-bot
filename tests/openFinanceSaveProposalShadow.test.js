@@ -8,6 +8,9 @@ const { OpenFinanceBaselineStore } = require('../src/openFinance/openFinanceBase
 const { OpenFinanceAlertOutbox } = require('../src/openFinance/openFinanceAlertOutbox');
 const { OpenFinanceRevocationJournal } = require('../src/openFinance/openFinanceRevocationJournal');
 const { OpenFinanceShadowPreviewStore } = require('../src/openFinance/openFinanceShadowPreviewStore');
+const {
+    OpenFinanceSaveProposalReviewStore
+} = require('../src/openFinance/openFinanceSaveProposalReviewStore');
 const { observationRef } = require('../src/openFinance/openFinanceRuntimeReconciliation');
 const {
     runOpenFinanceCanaryCycle,
@@ -509,6 +512,7 @@ test('9P.0 runtime creates shadow proposals without changing WhatsApp or financi
             ]
         }]
     };
+    const deliveredPromptSnapshot = currentSnapshot;
     let promptText = '';
     const promptResult = await runOpenFinanceCanaryCycle({
         client: {
@@ -543,11 +547,76 @@ test('9P.0 runtime creates shadow proposals without changing WhatsApp or financi
     assert.equal(Object.hasOwn(promptState.data, 'confirmationRef'), false);
     conversationStates.delete(actorWhatsappId);
 
+    const reviewJournal = new OpenFinanceRevocationJournal({
+        databasePath: files.journal,
+        secret
+    });
+    const reviewPreview = new OpenFinanceShadowPreviewStore({
+        databasePath: files.preview,
+        secret,
+        revocationJournal: reviewJournal,
+        authorizedWhatsAppIds: [actorWhatsappId]
+    });
+    const reviewStore = new OpenFinanceSaveProposalReviewStore({
+        databasePath: files.preview,
+        secret,
+        authorizedWhatsAppIds: [actorWhatsappId]
+    });
+    try {
+        const proposal = reviewPreview.readReviewableSaveProposal(
+            promptState.data.proposalRef,
+            { actorWhatsappId }
+        );
+        reviewStore.prepareReview({
+            proposalRef: promptState.data.proposalRef,
+            proposal,
+            actorWhatsappId,
+            catalog: {
+                people: [{ id: 'user-daniel', label: 'Daniel' }],
+                categories: [],
+                paymentMethods: [{ id: 'credit', label: 'Crédito', value: 'Crédito' }],
+                financialAccounts: [],
+                cards: []
+            }
+        });
+    } finally {
+        reviewStore.close();
+        reviewPreview.close();
+        reviewJournal.close();
+    }
+    currentSnapshot = {
+        ...deliveredPromptSnapshot,
+        event_id: 'prompt-review-active',
+        observed_at: '2026-07-23T13:00:00.000Z',
+        items: [{
+            ...baseItem,
+            transactions: [
+                ...deliveredPromptSnapshot.items[0].transactions,
+                transaction('purchase-blocked-by-review')
+            ]
+        }]
+    };
+    const blockedByReview = await runOpenFinanceCanaryCycle({
+        client: { sendMessage: async () => { messages += 1; return { id: 'must-not-send' }; } },
+        env: {
+            ...env,
+            OPEN_FINANCE_ALERT_MODE: 'canary',
+            OPEN_FINANCE_ALERT_CANARY_ALIAS: 'daniel_nubank',
+            OPEN_FINANCE_ALERT_CANARY_ACTIVATIONS_JSON: JSON.stringify({
+                daniel_nubank: '2026-07-23T11:30:00.000Z'
+            }),
+            OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt'
+        },
+        dependencies
+    });
+    assert.deepEqual(blockedByReview.deliveries, ['idle']);
+    assert.equal(messages, 1);
+
     await assert.rejects(() => runOpenFinanceCanaryCycle({
         client: { sendMessage: async () => { messages += 1; } },
         env: { ...env, OPEN_FINANCE_SHADOW_PREVIEW_MODE: 'off' },
         dependencies
     }), /open_finance_save_proposal_preview_required/);
-    assert.equal(apiCalls, 2);
+    assert.equal(apiCalls, 3);
     assert.equal(messages, 1);
 });
