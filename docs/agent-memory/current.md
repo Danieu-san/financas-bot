@@ -4,30 +4,29 @@ Atualizado em: 2026-07-24
 
 ## Objetivo ativo
 
-A fila original da auditoria exaustiva e o gate `9P.1` estão tecnicamente
-encerrados. O objetivo ativo é recuperar e fechar `9P.2`. O primeiro candidato
-ligou proposta, confirmação, transporte e handler, mas recebeu `NO-GO`
-independente por habilitar resposta em transporte `accepted_unconfirmed`.
+A fila original da auditoria exaustiva e os gates `9P.0`, `9P.1` e `9P.2`
+estão tecnicamente encerrados. O objetivo ativo é `9P.3`: permitir a revisão e
+correção guiada da proposta aceita antes de qualquer escrita financeira.
 
-O contrato exige uma única confirmação pronta por familiar, preparação antes
-do transporte, recuperação após restart, captura estrita de
-`sim/não/cancelar` e `financial_writes=0`. O novo modo permanecerá desligado por
-padrão e não será promovido nem deployado neste gate.
+O contrato cobre pessoa, categoria, forma de pagamento, conta e cartão, com
+catálogos autorizados, estado durável, recuperação após restart e
+`financial_writes=0`. O modo proativo permanece desligado por padrão e não será
+promovido nem deployado neste gate.
 
 ## Transferência em curso
 
 Worktree vigente:
 `E:\\Users\\horus\\Documents\\FinancasBot\\worktrees\\open-finance-save-proposal`.
-Branch: `codex/open-finance-save-proposal`; base de 9P.2:
-`ae9c7df91b0015d9812afdd0e06db6399254851a`.
+Branch: `codex/open-finance-save-proposal`; base de 9P.3:
+`b52b7879fd5a795a436b4f6332294052732ebe7a`.
 
-Alterações intencionais em curso: plano, manifesto, produto e testes causais de
-9P.2. A recuperação exige prova positiva `delivered_confirmed`; transporte
-ambíguo continua at-most-once, mas não habilita resposta. Evidência anterior:
-focados `44/44`, máquina de estados `122/122`, Open
-Finance `244/244` e runner hermético `1.293/1.298`, sem falhas e com cinco
-skips funcionais previstos. Cobertura: linhas `90,10%`, branches `72,21%`,
-funções `89,92%`.
+9P.2 recebeu `GO TÉCNICO LOCAL` no hash
+`b52b7879fd5a795a436b4f6332294052732ebe7a`. A reauditoria fechou o único
+`MEDIUM` do primeiro candidato: apenas `delivered_confirmed` habilita resposta;
+`accepted_unconfirmed` continua at-most-once e inelegível. Severidades finais:
+`CRITICAL 0`, `HIGH 0`, `MEDIUM 0`, `LOW 0`.
+
+Alterações intencionais seguintes: plano, produto e testes causais de 9P.3.
 Não executar fase 8, produção, Oracle/AWS, cofre Pluggy ou integrações reais.
 
 Não houve transporte WhatsApp real, escrita financeira, produção, Google ou
@@ -136,10 +135,10 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Git e workspace
 
-- branch ativa: `codex/open-finance-save-proposal`, produto 9P.1 auditado em
-  `a2c15b6dd7e52ef7aff8dc3ac4a4050e9adbc445`;
+- branch ativa: `codex/open-finance-save-proposal`, recuperação 9P.2 auditada
+  em `b52b7879fd5a795a436b4f6332294052732ebe7a`;
 - último produto com `GO TÉCNICO LOCAL`:
-  `195ac58af68acdec87c0fb80617d0ddcf1d1de3b`;
+  `b52b7879fd5a795a436b4f6332294052732ebe7a`;
 - fechamento documental de 9P.0:
   `bcdbf0e8772270019e9223e6a996f5102eb446bd`;
 - alterações concorrentes do workstream AWS/Oracle e arquivos não rastreados do
@@ -149,8 +148,8 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Próximo gate
 
-`9P.2`: recuperação causal local verde aguardando regressão proporcional, novo
-commit imutável e reauditoria independente.
+`9P.3`: revisão e correção guiada local de pessoa, categoria, forma de
+pagamento, conta e cartão, sem writer financeiro.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -170,8 +169,8 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Concluir a regressão proporcional da recuperação, publicar novo hash imutável e
-reauditar o fechamento do `MEDIUM`.
+Mapear o estado pós-aceitação e os catálogos existentes; escrever a prova RED
+causal e implementar a revisão guiada sem writer.
 
 ## Capacidade para retomar
 
@@ -210,6 +209,8 @@ Pluggy/Open Finance:
   `docs/audit/54-open-finance-save-proposal-conversation-candidate-2026-07-24.md`;
 - recuperação pós-NO-GO 9P.2:
   `docs/audit/55-open-finance-save-proposal-delivery-proof-recovery-candidate-2026-07-24.md`;
+- fechamento independente 9P.2:
+  `docs/audit/56-open-finance-save-proposal-conversation-independent-close-2026-07-24.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:

@@ -1,77 +1,75 @@
-# Gate ativo — 9P.2 entrega e captura local da proposta Open Finance
+# Gate ativo — 9P.3 revisão e correção guiada da proposta Open Finance
 
 Atualizado em: 2026-07-24
 
 Base:
-`ae9c7df91b0015d9812afdd0e06db6399254851a`.
+`b52b7879fd5a795a436b4f6332294052732ebe7a`.
 
 ## Estado
 
-`RECUPERAÇÃO PÓS-NO-GO LOCAL VERDE; NOVO COMMIT E REAUDITORIA PENDENTES`.
+`DEFINIDO; IMPLEMENTAÇÃO LOCAL PENDENTE`.
 
-9P.0 encerrou a proposta reconciliada em shadow. 9P.1 encerrou a confirmação
-local, durável e de uso único no commit imutável
-`a2c15b6dd7e52ef7aff8dc3ac4a4050e9adbc445`, com `GO TÉCNICO LOCAL`
-independente e sem achados `CRITICAL`, `HIGH` ou `MEDIUM`.
+9P.0 encerrou a proposta reconciliada em shadow; 9P.1, a confirmação local
+durável; e 9P.2, a entrega confirmada e a captura pública de
+`sim/não/cancelar`. O commit imutável de recuperação de 9P.2
+`b52b7879fd5a795a436b4f6332294052732ebe7a` recebeu `GO TÉCNICO LOCAL`
+independente, sem achados `CRITICAL`, `HIGH`, `MEDIUM` ou `LOW`.
 
-O próximo elo definido no roadmap é unir a proposta ao transporte WhatsApp e à
-entrada pública de mensagens, sem conceder escrita financeira.
+O próximo elo já registrado é permitir que a proposta aceita seja conferida e
+corrigida antes de qualquer autorização de escrita.
 
 ## Objetivo
 
-Quando o polling produzir uma compra `POSTED`, realmente nova e já reconciliada,
-preparar uma confirmação para o familiar explicitamente autorizado, enviar um
-resumo com pergunta de salvamento e capturar `sim`, `não` ou `cancelar` pela
-entrada pública do bot. A resposta somente resolve a proposta local; nunca
-grava planilha ou ledger nesta fatia.
+Depois de uma proposta entregue e aceita pelo familiar autorizado, apresentar
+os campos financeiros inferidos e permitir revisão/correção guiada de pessoa,
+categoria, forma de pagamento, conta e cartão. A conversa deve terminar em um
+estado local pronto para revalidação posterior, sem gravar planilha ou ledger.
 
 ## Escopo
 
-- novo modo explícito de proposta proativa, desligado por padrão;
-- vínculo causal entre observação reconciliada, proposta, alerta e confirmação;
-- preparação durável da confirmação antes do transporte;
-- no máximo uma confirmação pronta por familiar;
-- recuperação da confirmação pronta depois de restart ou perda do estado
-  conversacional auxiliar;
-- `sim` aceita para a próxima etapa; `não` recusa; `cancelar` cancela;
-- resposta somente do destinatário familiar vinculado;
-- mensagem clara de que nada foi salvo ainda;
-- transporte ambíguo permanece at-most-once e não dispara retry automático;
+- entrada somente a partir de proposta 9P.2 aceita e vinculada ao ator;
+- resumo explícito dos campos presentes, ausentes e incertos;
+- correção guiada de pessoa, categoria, forma de pagamento, conta e cartão;
+- opções derivadas dos catálogos financeiros autorizados, sem inventar fonte
+  ausente;
+- uma decisão conversacional por vez, serializada pelo handler público;
+- cancelamento e expiração fail-closed;
+- estado local durável e recuperável após restart;
+- mensagem explícita de que a revisão ainda não salvou o lançamento;
 - `financial_writes=0` em todos os caminhos.
 
 ## Não escopo
 
-- correção guiada de pessoa, categoria, pagamento, conta ou cartão;
 - revalidação final contra Sheets/ledger;
 - operation key e recibo de escrita;
+- autorização final de persistência;
 - qualquer escrita em Sheets, ledger ou Google;
 - alteração de `OPEN_FINANCE_WRITE_MODE=off`;
 - deploy, produção, Oracle/AWS, Pluggy ou WhatsApp reais.
 
 ## Contrato
 
-1. somente proposta ligada a decisão `new`, compra `POSTED` e política familiar
-   explícita pode gerar pergunta;
-2. confirmação é preparada antes do transporte e o replay reutiliza a mesma
-   referência;
-3. um familiar não recebe segunda pergunta enquanto existir confirmação pronta;
-4. o estado durável da proposta é a fonte de verdade; estado conversacional é
-   somente índice auxiliar recuperável;
-5. respostas de terceiro, expiradas, ambíguas ou sem proposta pronta falham
-   fechadas;
-6. `sim`, `não` e `cancelar` passam pelo handler público serializado por
-   remetente;
-7. falha definitiva antes do envio libera o alerta para retry; envio aceito sem
-   confirmação do provedor permanece `accepted_unconfirmed`;
+1. somente proposta aceita e entregue com prova positiva pode abrir revisão;
+2. o ator da revisão deve ser o familiar vinculado à confirmação;
+3. valores atuais permanecem preservados até uma correção válida e explícita;
+4. opções de pessoa, categoria, pagamento, conta e cartão vêm de fontes
+   autorizadas e respeitam dependências entre os campos;
+5. resposta inválida, ambígua, de terceiro, expirada ou fora de ordem não avança
+   estado;
+6. restart recupera a etapa e os valores já confirmados sem duplicar decisão;
+7. cancelamento é terminal e replay não reabre a revisão;
 8. nenhum caminho desta fatia chama writer financeiro.
 
 ## Critérios de GO
 
 - RED causal antes da integração;
-- provas de vínculo observação→proposta→alerta→confirmação;
-- destinatário correto e bloqueio de terceiro;
-- uma proposta ativa por ator e recuperação após restart;
-- sucesso, recusa, cancelamento, expiração, replay e transporte ambíguo;
+- abertura somente após aceitação válida de 9P.2;
+- pessoa, categoria, pagamento, conta e cartão exercitados individualmente e
+  em combinações causais;
+- opções reais do catálogo e ausência de fonte tratada como ausência, nunca
+  como zero ou valor inventado;
+- ator correto, bloqueio de terceiro e de respostas fora de ordem;
+- cancelamento, expiração, replay e recuperação após restart;
 - entrada pública real do handler exercitada;
 - testes afetados e gate Open Finance verdes;
 - commit sanitizado e auditoria independente por hash imutável sem achado
@@ -80,33 +78,27 @@ grava planilha ou ledger nesta fatia.
 ## Condições de parada
 
 - qualquer escrita financeira;
-- pergunta para observação matched, duplicada, incerta, incompleta, ambígua,
-  `PENDING` ou não compra;
-- token bruto em logs, mensagem ou estado conversacional;
-- segunda confirmação pronta para o mesmo ator;
+- abertura de revisão sem proposta aceita e entrega confirmada;
+- alteração silenciosa de campo não escolhido;
+- opção proveniente de outro usuário ou catálogo não autorizado;
+- perda ou reabertura de decisão após restart;
 - necessidade de produção ou integração real.
 
-## Evidência local atual
+## Evidência de base
 
-- bateria causal focada: `44/44`;
-- máquina de estados completa: `122/122`;
-- todos os testes Open Finance: `244/244`;
-- runner hermético: `1.293/1.298`, zero falhas e cinco skips previstos;
-- cobertura: linhas `90,10%`, branches `72,21%`, funções `89,92%`;
-- sintaxe e `git diff --check`: verdes.
+9P.2 recebeu `GO TÉCNICO LOCAL` independente no commit
+`b52b7879fd5a795a436b4f6332294052732ebe7a`. O fechamento está em
+`docs/audit/56-open-finance-save-proposal-conversation-independent-close-2026-07-24.md`.
 
-A primeira auditoria do hash
-`8e7a4716391e4fdcf32fe8ea30c341ec4d1b2f1c` encontrou um `MEDIUM`: transporte
-`accepted_unconfirmed` podia habilitar resposta sem prova positiva de entrega.
-A recuperação agora exige `delivered_confirmed` para criar estado
-conversacional ou consumir a proposta; `accepted_unconfirmed` continua
-at-most-once, mas é inelegível para resposta.
+Essa evidência autoriza iniciar 9P.3, mas não é evidência de implementação de
+9P.3.
 
 ## Próxima ação exata
 
-Executar a regressão proporcional da recuperação, publicar novo commit
-sanitizado e submetê-lo a nova auditoria por hash imutável.
+Mapear o estado pós-aceitação, os catálogos já existentes e a fronteira do
+handler público; então escrever a prova RED causal de abertura e correção
+guiada sem writer.
 
 ## Capacidade
 
-`Codex → Sol → Alto → publicar e auditar o candidato imutável do 9P.2.`
+`Codex → Sol → Alto → implementar a revisão e correção guiada local do 9P.3.`
