@@ -270,8 +270,7 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
                     excludedRecipients: [...excludedRecipients],
                     sourceLabels: { daniel_nubank: 'Nubank Daniel', thais_nubank: 'Nubank Thais',
                         cristina_nubank: 'Nubank Cristina', thais_itau: 'Itau Thais' } });
-                if (delivery.proposal_ref &&
-                    ['delivered_confirmed', 'accepted_unconfirmed'].includes(delivery.outcome)) {
+                if (delivery.proposal_ref && delivery.outcome === 'delivered_confirmed') {
                     const ttlSeconds = Math.max(
                         1,
                         Math.floor((Date.parse(delivery.confirmation_expires_at) - Date.now()) / 1000)

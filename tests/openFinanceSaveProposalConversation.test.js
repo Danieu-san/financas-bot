@@ -224,7 +224,7 @@ test('9P.2 reuses one ready confirmation after definitive no-send and succeeds o
     }
 });
 
-test('9P.2 treats ambiguous transport as at-most-once and leaves the reply ready', async () => {
+test('9P.2 keeps ambiguous transport at-most-once but ineligible for a reply', async () => {
     const harness = createHarness();
     let calls = 0;
     try {
@@ -240,6 +240,13 @@ test('9P.2 treats ambiguous transport as at-most-once and leaves the reply ready
         assert.equal(harness.store.listReadySaveProposalConfirmations({
             actorWhatsappId
         }).length, 1);
+        const unseenReply = handleOpenFinanceSaveProposalReply({
+            messageBody: 'sim',
+            actorWhatsappId,
+            env: harness.env
+        });
+        assert.equal(unseenReply.handled, false);
+        assert.equal(unseenReply.financial_writes, 0);
         const replay = await deliverOneOpenFinanceCanary(deliveryInput(harness, {
             sendMessage: async () => {
                 calls += 1;

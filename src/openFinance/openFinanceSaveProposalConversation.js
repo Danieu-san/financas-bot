@@ -82,8 +82,7 @@ function handleOpenFinanceSaveProposalReply({
             limit: 2
         });
         const delivered = ready.filter(item =>
-            ['delivered_confirmed', 'accepted_unconfirmed']
-                .includes(outbox.getProposalDeliveryState(item.proposal_ref)));
+            outbox.getProposalDeliveryState(item.proposal_ref) === 'delivered_confirmed');
         const candidates = expectedProposalRef
             ? delivered.filter(item => item.proposal_ref === expectedProposalRef)
             : delivered;

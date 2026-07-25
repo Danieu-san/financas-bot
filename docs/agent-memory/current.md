@@ -5,9 +5,9 @@ Atualizado em: 2026-07-24
 ## Objetivo ativo
 
 A fila original da auditoria exaustiva e o gate `9P.1` estão tecnicamente
-encerrados. O objetivo ativo é fechar `9P.2`, cujo candidato local já liga a
-proposta reconciliada e a confirmação durável ao transporte WhatsApp e ao
-handler público, ainda sem escrita financeira.
+encerrados. O objetivo ativo é recuperar e fechar `9P.2`. O primeiro candidato
+ligou proposta, confirmação, transporte e handler, mas recebeu `NO-GO`
+independente por habilitar resposta em transporte `accepted_unconfirmed`.
 
 O contrato exige uma única confirmação pronta por familiar, preparação antes
 do transporte, recuperação após restart, captura estrita de
@@ -22,7 +22,9 @@ Branch: `codex/open-finance-save-proposal`; base de 9P.2:
 `ae9c7df91b0015d9812afdd0e06db6399254851a`.
 
 Alterações intencionais em curso: plano, manifesto, produto e testes causais de
-9P.2. Evidência atual: focados `44/44`, máquina de estados `122/122`, Open
+9P.2. A recuperação exige prova positiva `delivered_confirmed`; transporte
+ambíguo continua at-most-once, mas não habilita resposta. Evidência anterior:
+focados `44/44`, máquina de estados `122/122`, Open
 Finance `244/244` e runner hermético `1.293/1.298`, sem falhas e com cinco
 skips funcionais previstos. Cobertura: linhas `90,10%`, branches `72,21%`,
 funções `89,92%`.
@@ -147,8 +149,8 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Próximo gate
 
-`9P.2`: entrega e captura local da proposta reconciliada; candidato local verde
-aguardando commit imutável e auditoria independente.
+`9P.2`: recuperação causal local verde aguardando regressão proporcional, novo
+commit imutável e reauditoria independente.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -168,8 +170,8 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Criar e publicar o commit sanitizado do 9P.2, obter auditoria independente por
-hash imutável e somente então fechar ou corrigir o gate.
+Concluir a regressão proporcional da recuperação, publicar novo hash imutável e
+reauditar o fechamento do `MEDIUM`.
 
 ## Capacidade para retomar
 
@@ -206,6 +208,8 @@ Pluggy/Open Finance:
   `docs/audit/53-open-finance-save-proposal-confirmation-independent-close-2026-07-24.md`;
 - candidato 9P.2:
   `docs/audit/54-open-finance-save-proposal-conversation-candidate-2026-07-24.md`;
+- recuperação pós-NO-GO 9P.2:
+  `docs/audit/55-open-finance-save-proposal-delivery-proof-recovery-candidate-2026-07-24.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:

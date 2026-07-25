@@ -7,10 +7,16 @@ Base:
 
 ## Estado
 
-`CANDIDATO LOCAL VERDE; COMMIT IMUTÁVEL E AUDITORIA INDEPENDENTE PENDENTES`.
+`NO-GO INDEPENDENTE; SUBSTITUÍDO PELO CANDIDATO DE RECUPERAÇÃO`.
 
-Este manifesto deve ser lido no mesmo hash imutável informado no prompt da
-auditoria. O gate não autoriza deploy nem escrita financeira.
+Este candidato foi publicado em
+`8e7a4716391e4fdcf32fe8ea30c341ec4d1b2f1c`. O Chat confirmou hash, parent e
+leitura dos onze arquivos solicitados e emitiu `NO-GO` por um achado `MEDIUM`:
+`accepted_unconfirmed` impedia retry, mas também habilitava uma resposta mesmo
+quando a exceção ambígua podia ter ocorrido antes da entrega efetiva.
+
+A recuperação está em
+`docs/audit/55-open-finance-save-proposal-delivery-proof-recovery-candidate-2026-07-24.md`.
 
 ## Contrato implementado
 

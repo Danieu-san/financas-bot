@@ -7,7 +7,7 @@ Base:
 
 ## Estado
 
-`CANDIDATO LOCAL VERDE; COMMIT IMUTÁVEL E AUDITORIA INDEPENDENTE PENDENTES`.
+`RECUPERAÇÃO PÓS-NO-GO LOCAL VERDE; NOVO COMMIT E REAUDITORIA PENDENTES`.
 
 9P.0 encerrou a proposta reconciliada em shadow. 9P.1 encerrou a confirmação
 local, durável e de uso único no commit imutável
@@ -95,11 +95,17 @@ grava planilha ou ledger nesta fatia.
 - cobertura: linhas `90,10%`, branches `72,21%`, funções `89,92%`;
 - sintaxe e `git diff --check`: verdes.
 
+A primeira auditoria do hash
+`8e7a4716391e4fdcf32fe8ea30c341ec4d1b2f1c` encontrou um `MEDIUM`: transporte
+`accepted_unconfirmed` podia habilitar resposta sem prova positiva de entrega.
+A recuperação agora exige `delivered_confirmed` para criar estado
+conversacional ou consumir a proposta; `accepted_unconfirmed` continua
+at-most-once, mas é inelegível para resposta.
+
 ## Próxima ação exata
 
-Criar e publicar o commit sanitizado do candidato, submetê-lo uma vez ao Chat
-por hash imutável e confrontar o parecer com a evidência local antes de fechar
-ou corrigir o gate.
+Executar a regressão proporcional da recuperação, publicar novo commit
+sanitizado e submetê-lo a nova auditoria por hash imutável.
 
 ## Capacidade
 
