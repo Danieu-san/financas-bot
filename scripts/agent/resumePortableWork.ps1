@@ -36,7 +36,14 @@ if (-not (Test-Path -LiteralPath (Join-Path $resolvedRoot '.git'))) {
     throw "Raiz Git inválida: $resolvedRoot"
 }
 
-$financasBotRoot = Split-Path -Parent $resolvedRoot
+$workspaceParent = Split-Path -Parent $resolvedRoot
+$financasBotRoot = if (
+    (Split-Path -Leaf $workspaceParent) -ieq 'worktrees'
+) {
+    Split-Path -Parent $workspaceParent
+} else {
+    $workspaceParent
+}
 $portableRoot = Join-Path $financasBotRoot 'Trabalho Codex no outro PC'
 if (-not $ReportPath) {
     $ReportPath = Join-Path $portableRoot 'last-resume-check.json'
