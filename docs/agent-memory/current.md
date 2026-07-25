@@ -49,6 +49,13 @@ O runner hermético definitivo teve `1.305/1.310`, zero falhas e cinco skips
 funcionais previstos; cobertura de linhas `90,18%`, branches `72,27%` e
 funções `90,03%`.
 
+O candidato corrigido foi publicado no hash
+`f8a1e9f41eee3c904f0de69ae465219ef874212d`. A única tentativa automática de
+reauditoria confirmou parcialmente os caminhos de M1, M2 e M3, mas o handoff
+ocorreu antes da resposta final. A conversa automática não ficou recuperável
+no histórico; não existe GO válido. O registro está em
+`docs/audit/59-open-finance-save-proposal-guided-review-chat-pending-2026-07-24.md`.
+
 Alterações intencionais: produto, testes, plano e manifesto de 9P.3.
 Não executar fase 8, produção, Oracle/AWS, cofre Pluggy ou integrações reais.
 
@@ -171,8 +178,9 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Próximo gate
 
-`9P.3`: correções pós-NO-GO locais verdes aguardando novo commit sanitizado e
-reauditoria independente por hash imutável.
+`9P.3`: correções pós-NO-GO locais verdes e publicadas no hash
+`f8a1e9f41eee3c904f0de69ae465219ef874212d`, aguardando parecer independente
+final.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -192,8 +200,9 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar o novo candidato imutável e submetê-lo à reauditoria independente no
-Chat.
+Obter manualmente no Chat o parecer final do hash
+`f8a1e9f41eee3c904f0de69ae465219ef874212d`, confrontá-lo com a evidência local
+e somente então fechar ou reabrir 9P.3.
 
 ## Capacidade para retomar
 
@@ -238,6 +247,8 @@ Pluggy/Open Finance:
   `docs/audit/57-open-finance-save-proposal-guided-review-candidate-2026-07-24.md`;
 - reauditoria candidata 9P.3:
   `docs/audit/58-open-finance-save-proposal-guided-review-reaudit-candidate-2026-07-24.md`;
+- reauditoria do Chat interrompida pelo handoff:
+  `docs/audit/59-open-finance-save-proposal-guided-review-chat-pending-2026-07-24.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:

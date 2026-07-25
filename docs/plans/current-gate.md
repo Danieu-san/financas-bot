@@ -7,8 +7,8 @@ Base:
 
 ## Estado
 
-`CORREÇÕES PÓS-NO-GO LOCAIS VERDES; NOVO COMMIT IMUTÁVEL E REAUDITORIA
-PENDENTES`.
+`CORREÇÕES PÓS-NO-GO LOCAIS VERDES; COMMIT IMUTÁVEL PUBLICADO; PARECER
+INDEPENDENTE FINAL PENDENTE`.
 
 9P.0 encerrou a proposta reconciliada em shadow; 9P.1, a confirmação local
 durável; e 9P.2, a entrega confirmada e a captura pública de
@@ -116,13 +116,21 @@ funções `90,03%`.
 Manifesto de reauditoria:
 `docs/audit/58-open-finance-save-proposal-guided-review-reaudit-candidate-2026-07-24.md`.
 
+O candidato foi publicado em
+`f8a1e9f41eee3c904f0de69ae465219ef874212d`. A única tentativa automática de
+reauditoria confirmou parcialmente M1, M2 e M3, mas foi interrompida pelo
+handoff antes de emitir o veredito final. Essas observações não autorizam GO.
+Registro:
+`docs/audit/59-open-finance-save-proposal-guided-review-chat-pending-2026-07-24.md`.
+
 Manifesto:
 `docs/audit/57-open-finance-save-proposal-guided-review-candidate-2026-07-24.md`.
 
 ## Próxima ação exata
 
-Criar e publicar o novo commit sanitizado e submetê-lo à reauditoria
-independente por hash imutável.
+Obter manualmente no Chat o parecer final do hash
+`f8a1e9f41eee3c904f0de69ae465219ef874212d`, confrontá-lo com a evidência local
+e somente então fechar ou reabrir 9P.3.
 
 ## Capacidade
 
