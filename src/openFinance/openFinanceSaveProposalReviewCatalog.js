@@ -41,18 +41,18 @@ function categoriesFromRows({ registryRows = [], expenseRows = [], cardRows = []
     for (const row of registry) {
         const rowUserId = String(row?.[4] || '').trim();
         const active = normalizeText(row?.[2] ?? 'sim');
-        if (rowUserId && !allowed.has(rowUserId)) continue;
+        if (!allowed.has(rowUserId)) continue;
         if (['nao', 'n', 'false', '0', 'inativa', 'inativo'].includes(active)) continue;
         addCategory(categories, seen, row?.[0], row?.[1]);
     }
     for (const row of Array.isArray(expenseRows) ? expenseRows.slice(1) : []) {
         const rowUserId = String(row?.[9] || '').trim();
-        if (rowUserId && !allowed.has(rowUserId)) continue;
+        if (!allowed.has(rowUserId)) continue;
         addCategory(categories, seen, row?.[2], row?.[3]);
     }
     for (const row of Array.isArray(cardRows) ? cardRows.slice(1) : []) {
         const rowUserId = String(row?.[9] || '').trim();
-        if (rowUserId && !allowed.has(rowUserId)) continue;
+        if (!allowed.has(rowUserId)) continue;
         addCategory(categories, seen, row?.[2], '');
     }
     return categories
@@ -69,7 +69,7 @@ function accountsFromRows(rows = [], scopeUserIds = []) {
             const status = normalizeText(row?.[4] || 'active');
             const owner = String(row?.[6] || '').trim();
             const rowUserId = String(row?.[7] || '').trim();
-            if (!name || (rowUserId && !allowed.has(rowUserId)) ||
+            if (!name || !allowed.has(rowUserId) ||
                 !['active', 'ativo', 'ativa', 'sim'].includes(status)) return null;
             const id = stableId('account', rowUserId || owner, name);
             if (seen.has(id)) return null;
@@ -123,22 +123,27 @@ async function buildOpenFinanceSaveProposalReviewCatalog({
                 loadUsers(),
                 readSheet('Categorias!A:E', {
                     userId: safeUserId,
+                    requireUserScoped: true,
                     suppressMissingSheetError: true
                 }),
                 readSheet('Saídas!A:K', {
                     userId: safeUserId,
+                    requireUserScoped: true,
                     suppressMissingSheetError: true
                 }),
                 readSheet('Lançamentos Cartão!A:J', {
                     userId: safeUserId,
+                    requireUserScoped: true,
                     suppressMissingSheetError: true
                 }),
                 readSheet('Contas Financeiras!A:I', {
                     userId: safeUserId,
+                    requireUserScoped: true,
                     suppressMissingSheetError: true
                 }),
                 readSheet('Cartões!A:G', {
                     userId: safeUserId,
+                    requireUserScoped: true,
                     suppressMissingSheetError: true
                 })
             ]);

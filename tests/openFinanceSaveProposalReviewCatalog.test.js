@@ -10,6 +10,7 @@ test('9P.3 catalog keeps only authorized family data and deduplicates categories
             ['Categoria', 'Subcategoria', 'Ativa', 'Criada em', 'user_id'],
             ['Alimentação', 'SUPERMERCADO', 'SIM', '', 'user-daniel'],
             ['Sigilosa', 'TERCEIRO', 'SIM', '', 'user-outsider'],
+            ['Legada', 'SEM DONO', 'SIM', '', ''],
             ['Inativa', 'ANTIGA', 'NÃO', '', 'user-thais']
         ],
         'Saídas!A:K': [
@@ -17,7 +18,8 @@ test('9P.3 catalog keeps only authorized family data and deduplicates categories
                 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id'],
             ['', '', 'Alimentação', 'SUPERMERCADO', '', '', '', '', '', 'user-thais'],
             ['', '', 'Transporte', 'UBER', '', '', '', '', '', 'user-thais'],
-            ['', '', 'Privada', 'FORA', '', '', '', '', '', 'user-outsider']
+            ['', '', 'Privada', 'FORA', '', '', '', '', '', 'user-outsider'],
+            ['', '', 'Legada', 'SEM DONO', '', '', '', '', '', '']
         ],
         'Lançamentos Cartão!A:J': [
             ['Data', 'Descrição', 'Categoria', '', '', '', '', '', '', 'user_id'],
@@ -26,7 +28,8 @@ test('9P.3 catalog keeps only authorized family data and deduplicates categories
         'Contas Financeiras!A:I': [
             ['Nome', 'Tipo', '', '', 'Status', '', 'Responsável', 'user_id', ''],
             ['Nubank Daniel', 'bank', '', '', 'active', '', 'Daniel', 'user-daniel', ''],
-            ['Conta Terceiro', 'bank', '', '', 'active', '', 'Outro', 'user-outsider', '']
+            ['Conta Terceiro', 'bank', '', '', 'active', '', 'Outro', 'user-outsider', ''],
+            ['Conta legada', 'bank', '', '', 'active', '', 'Sem dono', '', '']
         ],
         'Cartões!A:G': [
             ['card_id', 'Nome', 'Banco', '', '', 'Ativo', ''],
@@ -34,6 +37,7 @@ test('9P.3 catalog keeps only authorized family data and deduplicates categories
             ['antigo', 'Cartão antigo', '', '', '', 'NÃO', '']
         ]
     };
+    const readCalls = [];
     const catalog = await buildOpenFinanceSaveProposalReviewCatalog({
         userId: 'user-daniel',
         dependencies: {
@@ -43,7 +47,10 @@ test('9P.3 catalog keeps only authorized family data and deduplicates categories
                 { user_id: 'user-thais', display_name: 'Thaís' },
                 { user_id: 'user-outsider', display_name: 'Terceiro' }
             ],
-            readDataFromSheet: async range => rows[range]
+            readDataFromSheet: async (range, options) => {
+                readCalls.push({ range, options });
+                return rows[range];
+            }
         }
     });
 
@@ -57,6 +64,10 @@ test('9P.3 catalog keeps only authorized family data and deduplicates categories
         'Nubank Daniel · Daniel'
     ]);
     assert.deepEqual(catalog.cards.map(item => item.label), ['Nubank Daniel']);
+    assert.equal(readCalls.length, 5);
+    assert.equal(readCalls.every(call =>
+        call.options?.userId === 'user-daniel' &&
+        call.options?.requireUserScoped === true), true);
     assert.equal(catalog.paymentMethods.length, 4);
     assert.equal(catalog.financial_writes, 0);
 });

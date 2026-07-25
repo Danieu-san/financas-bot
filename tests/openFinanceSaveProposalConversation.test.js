@@ -138,6 +138,7 @@ function createHarness({ transactionId = 'purchase-posted' } = {}) {
         OPEN_FINANCE_SHADOW_PREVIEW_DB: previewPath,
         OPEN_FINANCE_OUTBOX_DB: outboxPath
     };
+    let closed = false;
     return {
         directory,
         env,
@@ -147,6 +148,8 @@ function createHarness({ transactionId = 'purchase-posted' } = {}) {
         now: now.toISOString(),
         proposalRef: link.proposal_ref,
         close() {
+            if (closed) return;
+            closed = true;
             outbox.close();
             store.close();
             journal.close();
@@ -537,6 +540,200 @@ test('9P.3 recovers a prepared review when acceptance failed before activation',
         });
         assert.equal(recovered.state, 'review_editing');
         assert.equal(recovered.financial_writes, 0);
+    } finally {
+        harness.close();
+    }
+});
+
+test('9P.3 terminalizes prepared review after a pre-acceptance failure is declined or cancelled', async () => {
+    for (const [suffix, reply] of [['declined', 'não'], ['cancelled', 'cancelar']]) {
+        const harness = createHarness({ transactionId: `purchase-prepared-${suffix}` });
+        try {
+            await deliverOneOpenFinanceCanary(deliveryInput(harness, {
+                sendMessage: async () => ({ id: `prepared-${suffix}-message-id` })
+            }));
+            class FailBeforeAcceptanceStore extends OpenFinanceShadowPreviewStore {
+                decideSaveProposalConfirmation() {
+                    throw new Error('simulated_acceptance_failure');
+                }
+            }
+            assert.throws(() => handleOpenFinanceSaveProposalReply({
+                messageBody: 'sim',
+                actorWhatsappId,
+                env: harness.env,
+                reviewCatalog,
+                dependencies: {
+                    OpenFinanceShadowPreviewStore: FailBeforeAcceptanceStore
+                }
+            }), /simulated_acceptance_failure/);
+
+            const terminal = handleOpenFinanceSaveProposalReply({
+                messageBody: reply,
+                actorWhatsappId,
+                env: harness.env
+            });
+            assert.equal(terminal.keep_pending, false);
+            assert.equal(terminal.financial_writes, 0);
+
+            const reviews = new OpenFinanceSaveProposalReviewStore({
+                databasePath: harness.env.OPEN_FINANCE_SHADOW_PREVIEW_DB,
+                secret,
+                authorizedWhatsAppIds: [actorWhatsappId]
+            });
+            try {
+                assert.equal(reviews.listActiveReviews({ actorWhatsappId }).length, 0);
+                assert.equal(
+                    reviews.readReviewPrivate(
+                        harness.proposalRef,
+                        { actorWhatsappId }
+                    ).state,
+                    'cancelled'
+                );
+            } finally {
+                reviews.close();
+            }
+        } finally {
+            harness.close();
+        }
+    }
+});
+
+test('9P.3 reconciles a prepared review after a terminal decision persisted before review cleanup', async () => {
+    for (const terminal of ['declined', 'cancelled']) {
+        const harness = createHarness({ transactionId: `purchase-terminal-${terminal}` });
+        try {
+            await deliverOneOpenFinanceCanary(deliveryInput(harness, {
+                sendMessage: async () => ({ id: `terminal-${terminal}-message-id` })
+            }));
+            class FailBeforeAcceptanceStore extends OpenFinanceShadowPreviewStore {
+                decideSaveProposalConfirmation() {
+                    throw new Error('simulated_acceptance_failure');
+                }
+            }
+            assert.throws(() => handleOpenFinanceSaveProposalReply({
+                messageBody: 'sim',
+                actorWhatsappId,
+                env: harness.env,
+                reviewCatalog,
+                dependencies: {
+                    OpenFinanceShadowPreviewStore: FailBeforeAcceptanceStore
+                }
+            }), /simulated_acceptance_failure/);
+
+            if (terminal === 'declined') {
+                const [confirmation] = harness.store.listReadySaveProposalConfirmations({
+                    actorWhatsappId
+                });
+                harness.store.decideSaveProposalConfirmation(
+                    confirmation.confirmation_ref,
+                    'decline',
+                    { actorWhatsappId }
+                );
+            } else {
+                harness.store.cancelSaveProposal(
+                    harness.proposalRef,
+                    { actorWhatsappId }
+                );
+            }
+
+            const recovered = handleOpenFinanceSaveProposalReviewReply({
+                messageBody: '1',
+                actorWhatsappId,
+                expectedProposalRef: harness.proposalRef,
+                env: harness.env
+            });
+            assert.equal(recovered.handled, true);
+            assert.equal(recovered.keep_pending, false);
+            assert.equal(recovered.state, 'cancelled');
+            assert.equal(recovered.financial_writes, 0);
+
+            const reviews = new OpenFinanceSaveProposalReviewStore({
+                databasePath: harness.env.OPEN_FINANCE_SHADOW_PREVIEW_DB,
+                secret,
+                authorizedWhatsAppIds: [actorWhatsappId]
+            });
+            try {
+                assert.equal(reviews.listActiveReviews({ actorWhatsappId }).length, 0);
+            } finally {
+                reviews.close();
+            }
+        } finally {
+            harness.close();
+        }
+    }
+});
+
+test('9P.3 recovers after acceptance persisted but activation failed, then routes the next review reply', async () => {
+    const harness = createHarness({ transactionId: 'purchase-accepted-before-activation' });
+    try {
+        await deliverOneOpenFinanceCanary(deliveryInput(harness, {
+            sendMessage: async () => ({ id: 'accepted-before-activation-message-id' })
+        }));
+        class FailActivationReviewStore extends OpenFinanceSaveProposalReviewStore {
+            activateReview() {
+                throw new Error('simulated_activation_failure');
+            }
+        }
+        assert.throws(() => handleOpenFinanceSaveProposalReply({
+            messageBody: 'sim',
+            actorWhatsappId,
+            env: harness.env,
+            reviewCatalog,
+            dependencies: {
+                OpenFinanceSaveProposalReviewStore: FailActivationReviewStore
+            }
+        }), /simulated_activation_failure/);
+
+        const persistedPreview = harness.store.readReviewableSaveProposal(
+            harness.proposalRef,
+            { actorWhatsappId }
+        );
+        assert.equal(persistedPreview.confirmation_state, 'accepted');
+        harness.close();
+
+        const beforeRestart = new OpenFinanceSaveProposalReviewStore({
+            databasePath: harness.env.OPEN_FINANCE_SHADOW_PREVIEW_DB,
+            secret,
+            authorizedWhatsAppIds: [actorWhatsappId]
+        });
+        try {
+            assert.equal(
+                beforeRestart.readReviewPrivate(
+                    harness.proposalRef,
+                    { actorWhatsappId }
+                ).state,
+                'prepared'
+            );
+        } finally {
+            beforeRestart.close();
+        }
+
+        const recovered = handleOpenFinanceSaveProposalReviewReply({
+            messageBody: '2',
+            actorWhatsappId,
+            expectedProposalRef: harness.proposalRef,
+            env: harness.env
+        });
+        assert.equal(recovered.state, 'review_editing');
+        assert.equal(recovered.keep_pending, true);
+        assert.match(recovered.reply, /Escolha a categoria/i);
+        assert.equal(recovered.financial_writes, 0);
+
+        const afterRestart = new OpenFinanceSaveProposalReviewStore({
+            databasePath: harness.env.OPEN_FINANCE_SHADOW_PREVIEW_DB,
+            secret,
+            authorizedWhatsAppIds: [actorWhatsappId]
+        });
+        try {
+            const review = afterRestart.readReviewPrivate(
+                harness.proposalRef,
+                { actorWhatsappId }
+            );
+            assert.equal(review.state, 'editing');
+            assert.equal(review.payload.step, 'select_category');
+        } finally {
+            afterRestart.close();
+        }
     } finally {
         harness.close();
     }

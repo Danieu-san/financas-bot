@@ -833,6 +833,37 @@ class OpenFinanceShadowPreviewStore {
         return row ? this.#readBoundSaveProposal(proposalRef, row) : null;
     }
 
+    readSaveProposalDecisionState(proposalRef, { actorWhatsappId } = {}) {
+        this.#requireAuthorizedActor(actorWhatsappId);
+        const terminalJournal = this.#requireSaveProposalTerminalJournal();
+        this.purgeExpired();
+        const actorRef = this.#actorRef(actorWhatsappId);
+        const select = this.db.prepare(`SELECT proposal_ref,family_scope_ref,proposal_state,
+            resolved_by_ref,resolved_at,confirmation_ref_hash,confirmation_state,
+            confirmation_actor_ref,encrypted_confirmation,confirmation_payload_version,
+            confirmation_state_mac,confirmation_ready_at,confirmation_expires_at,
+            confirmation_decided_at,created_at,updated_at,expires_at
+            FROM open_finance_save_proposals
+            WHERE proposal_ref=? AND family_scope_ref=?`);
+        let row = select.get(proposalRef, this.familyScopeRef);
+        if (!row) return null;
+        const terminal = terminalJournal.getSaveProposalTerminal(proposalRef);
+        if (terminal) {
+            this.#applySaveProposalTerminal(terminal);
+            row = select.get(proposalRef, this.familyScopeRef);
+        }
+        this.#assertSaveConfirmationState(row);
+        if (row.confirmation_actor_ref && row.confirmation_actor_ref !== actorRef) {
+            throw new Error('save_proposal_confirmation_actor_unauthorized');
+        }
+        return {
+            proposal_ref: proposalRef,
+            proposal_state: row.proposal_state,
+            confirmation_state: row.confirmation_state,
+            financial_writes: 0
+        };
+    }
+
     readReviewableSaveProposal(proposalRef, { actorWhatsappId } = {}) {
         this.#requireAuthorizedActor(actorWhatsappId);
         const terminalJournal = this.#requireSaveProposalTerminalJournal();

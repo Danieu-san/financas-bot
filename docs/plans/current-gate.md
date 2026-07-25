@@ -7,7 +7,8 @@ Base:
 
 ## Estado
 
-`CANDIDATO LOCAL VERDE; COMMIT IMUTÁVEL E AUDITORIA INDEPENDENTE PENDENTES`.
+`CORREÇÕES PÓS-NO-GO LOCAIS VERDES; NOVO COMMIT IMUTÁVEL E REAUDITORIA
+PENDENTES`.
 
 9P.0 encerrou a proposta reconciliada em shadow; 9P.1, a confirmação local
 durável; e 9P.2, a entrega confirmada e a captura pública de
@@ -100,12 +101,27 @@ O candidato 9P.3 possui:
 - cobertura: linhas `90,12%`, branches `72,23%`, funções `90,01%`;
 - sintaxe, workflow portátil e `git diff --check`: verdes.
 
+O primeiro candidato imutável
+`c452b9b999a6caf6af62696b5c8927ec5970c1f2` recebeu `NO-GO` independente por
+três achados `MEDIUM`: revisão `prepared` órfã após recusa/cancelamento posterior
+a falha de aceitação, linhas de catálogo sem escopo explícito e ausência da
+prova causal exata de queda entre `accepted` e ativação. As três correções estão
+locais e verdes: focal `20/20`, causal `150/150`, Open Finance `259/259` e
+entrada pública/máquina de estados `122/122`. A entrada pública também recupera
+revisão durável quando o snapshot auxiliar ainda aponta para confirmação.
+O runner hermético definitivo teve `1.305/1.310`, zero falhas e cinco skips
+funcionais previstos; cobertura de linhas `90,18%`, branches `72,27%` e
+funções `90,03%`.
+
+Manifesto de reauditoria:
+`docs/audit/58-open-finance-save-proposal-guided-review-reaudit-candidate-2026-07-24.md`.
+
 Manifesto:
 `docs/audit/57-open-finance-save-proposal-guided-review-candidate-2026-07-24.md`.
 
 ## Próxima ação exata
 
-Criar e publicar o commit sanitizado do candidato e submetê-lo à auditoria
+Criar e publicar o novo commit sanitizado e submetê-lo à reauditoria
 independente por hash imutável.
 
 ## Capacidade

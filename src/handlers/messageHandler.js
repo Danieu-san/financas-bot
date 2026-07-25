@@ -9241,11 +9241,17 @@ async function processMessage(msg) {
     }
 
     let currentState = getConversationStateForMessage(senderId, activeUser);
-    if (!currentState || currentState.action === 'awaiting_open_finance_save_review') {
+    if (!currentState || [
+        'awaiting_open_finance_save_review',
+        'awaiting_open_finance_save_confirmation'
+    ].includes(currentState.action)) {
         const reviewReply = handleOpenFinanceSaveProposalReviewReply({
             messageBody,
             actorWhatsappId: senderId,
-            expectedProposalRef: currentState?.data?.proposalRef || null
+            expectedProposalRef: currentState?.action ===
+                'awaiting_open_finance_save_review'
+                ? currentState?.data?.proposalRef || null
+                : null
         });
         if (reviewReply.handled) {
             if (reviewReply.keep_pending) {

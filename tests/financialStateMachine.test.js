@@ -632,6 +632,18 @@ stateMachineTest('9P.2 public serialized handler consumes one durable proposal r
             'awaiting_open_finance_save_review'
         );
 
+        userStateManager.setState(SENDER, {
+            action: 'awaiting_open_finance_save_confirmation',
+            data: { proposalRef }
+        });
+        const routedAfterStaleState = await send('2');
+        assert.match(routedAfterStaleState, /Escolha a categoria/);
+        assert.strictEqual(appendedRows.length, 0);
+        assert.strictEqual(
+            userStateManager.getState(SENDER).action,
+            'awaiting_open_finance_save_review'
+        );
+
         const reopenedJournal = new OpenFinanceRevocationJournal({
             databasePath: paths.journal,
             secret
@@ -654,6 +666,13 @@ stateMachineTest('9P.2 public serialized handler consumes one durable proposal r
             assert.strictEqual(
                 reopenedReviewStore.listActiveReviews({ actorWhatsappId: SENDER })[0].state,
                 'editing'
+            );
+            assert.strictEqual(
+                reopenedReviewStore.readReviewPrivate(
+                    proposalRef,
+                    { actorWhatsappId: SENDER }
+                ).payload.step,
+                'select_category'
             );
         } finally {
             reopenedReviewStore.close();

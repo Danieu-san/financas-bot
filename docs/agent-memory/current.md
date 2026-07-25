@@ -27,15 +27,27 @@ Branch: `codex/open-finance-save-proposal`; base de 9P.3:
 `accepted_unconfirmed` continua at-most-once e inelegível. Severidades finais:
 `CRITICAL 0`, `HIGH 0`, `MEDIUM 0`, `LOW 0`.
 
-O candidato 9P.3 prepara revisão cifrada antes da aceitação, ativa depois dela,
-recupera a janela intermediária, usa catálogo familiar read-only e impede nova
-pergunta ao ator com revisão ativa. Pessoa, categoria, pagamento, conta e
-cartão são corrigidos por opções numeradas; dependências ausentes bloqueiam a
-conclusão.
+O primeiro candidato 9P.3
+`c452b9b999a6caf6af62696b5c8927ec5970c1f2` recebeu `NO-GO` independente por
+três achados `MEDIUM`. As correções locais agora:
 
-Evidência: conversa/store `15/15`, catálogo `2/2`, runtime `8/8`, máquina de
-estados `122/122` e runner hermético `1.302/1.307`, zero falhas e cinco skips
-previstos. Cobertura: linhas `90,12%`, branches `72,23%`, funções `90,01%`.
+- terminalizam ou reconciliam revisão `prepared` depois de recusa/cancelamento;
+- negam linhas de categoria/conta sem `user_id` familiar explícito e exigem
+  leitura user-scoped das cinco fontes;
+- provam a queda exata depois de `accepted` e antes da ativação, com restart e
+  retomada pela rota de produto;
+- recuperam a revisão aceita/preparada pela entrada pública mesmo quando o
+  snapshot auxiliar restaurado ainda aponta para confirmação.
+
+Cartões continuam compartilhados somente dentro da planilha familiar
+autorizada, coerente com o uso privado pelo casal. Não há ampliação
+multiusuário.
+
+Evidência pós-NO-GO: RED `17/19`; GREEN focal `20/20`; causal `150/150`; toda a
+bateria Open Finance `259/259`; máquina de estados e entrada pública `122/122`.
+O runner hermético definitivo teve `1.305/1.310`, zero falhas e cinco skips
+funcionais previstos; cobertura de linhas `90,18%`, branches `72,27%` e
+funções `90,03%`.
 
 Alterações intencionais: produto, testes, plano e manifesto de 9P.3.
 Não executar fase 8, produção, Oracle/AWS, cofre Pluggy ou integrações reais.
@@ -159,8 +171,8 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Próximo gate
 
-`9P.3`: candidato local verde aguardando commit sanitizado e auditoria
-independente por hash imutável.
+`9P.3`: correções pós-NO-GO locais verdes aguardando novo commit sanitizado e
+reauditoria independente por hash imutável.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -180,7 +192,8 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar o candidato imutável e submetê-lo à auditoria independente no Chat.
+Publicar o novo candidato imutável e submetê-lo à reauditoria independente no
+Chat.
 
 ## Capacidade para retomar
 
@@ -223,6 +236,8 @@ Pluggy/Open Finance:
   `docs/audit/56-open-finance-save-proposal-conversation-independent-close-2026-07-24.md`;
 - candidato 9P.3:
   `docs/audit/57-open-finance-save-proposal-guided-review-candidate-2026-07-24.md`;
+- reauditoria candidata 9P.3:
+  `docs/audit/58-open-finance-save-proposal-guided-review-reaudit-candidate-2026-07-24.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:

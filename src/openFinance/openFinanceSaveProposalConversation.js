@@ -148,6 +148,34 @@ function openReviewStore({ env, secret, actorWhatsappId, dependencies = {} }) {
     });
 }
 
+function cancelPreparedReviewIfPresent({
+    proposalRef,
+    actorWhatsappId,
+    env,
+    secret,
+    dependencies = {}
+}) {
+    const reviewStore = openReviewStore({
+        env,
+        secret,
+        actorWhatsappId,
+        dependencies
+    });
+    try {
+        const review = reviewStore.readReviewPrivate(
+            proposalRef,
+            { actorWhatsappId }
+        );
+        if (review?.state !== 'prepared') return null;
+        return reviewStore.cancelReview(
+            proposalRef,
+            { actorWhatsappId }
+        );
+    } finally {
+        reviewStore.close();
+    }
+}
+
 function handleOpenFinanceSaveProposalReply({
     messageBody,
     actorWhatsappId,
@@ -213,6 +241,13 @@ function handleOpenFinanceSaveProposalReply({
         const confirmation = candidates[0];
         if (intent === 'cancel') {
             const result = preview.cancelSaveProposal(confirmation.proposal_ref, { actorWhatsappId });
+            cancelPreparedReviewIfPresent({
+                proposalRef: confirmation.proposal_ref,
+                actorWhatsappId,
+                env,
+                secret,
+                dependencies
+            });
             return {
                 handled: true,
                 keep_pending: false,
@@ -268,6 +303,15 @@ function handleOpenFinanceSaveProposalReply({
             }
         } finally {
             reviewStore?.close();
+        }
+        if (intent === 'decline') {
+            cancelPreparedReviewIfPresent({
+                proposalRef: result.proposal_ref,
+                actorWhatsappId,
+                env,
+                secret,
+                dependencies
+            });
         }
         return {
             handled: true,
@@ -351,13 +395,32 @@ function handleOpenFinanceSaveProposalReviewReply({
                 authorizedWhatsAppIds: [actorWhatsappId]
             });
             try {
+                const decisionState = preview.readSaveProposalDecisionState(
+                    proposalRef,
+                    { actorWhatsappId }
+                );
+                if (decisionState?.confirmation_state === 'declined' ||
+                    decisionState?.proposal_state === 'cancelled') {
+                    const cancelled = reviewStore.cancelReview(
+                        proposalRef,
+                        { actorWhatsappId }
+                    );
+                    return {
+                        handled: true,
+                        keep_pending: false,
+                        state: cancelled.state,
+                        proposal_ref: proposalRef,
+                        reply: 'Conferência cancelada. Nenhum lançamento foi salvo.',
+                        financial_writes: 0
+                    };
+                }
+                if (decisionState?.confirmation_state !== 'accepted') {
+                    return { handled: false, financial_writes: 0 };
+                }
                 const proposal = preview.readReviewableSaveProposal(
                     proposalRef,
                     { actorWhatsappId }
                 );
-                if (proposal.confirmation_state !== 'accepted') {
-                    return { handled: false, financial_writes: 0 };
-                }
                 review = reviewStore.activateReview(
                     proposalRef,
                     { actorWhatsappId }
