@@ -1,25 +1,33 @@
 # Estado atual portátil do FinancasBot
 
-Atualizado em: 2026-07-24
+Atualizado em: 2026-07-30
 
 ## Objetivo ativo
 
-A fila original da auditoria exaustiva e os gates `9P.0`, `9P.1` e `9P.2`
-estão tecnicamente encerrados. O objetivo ativo é fechar o candidato `9P.3`:
-revisão e correção guiada da proposta aceita antes de qualquer escrita
-financeira.
+A fila original da auditoria exaustiva e os gates `9P.0`, `9P.1`, `9P.2` e
+`9P.3` estão tecnicamente encerrados. 9P.3 recebeu `GO TÉCNICO LOCAL`
+independente no commit imutável
+`f8a1e9f41eee3c904f0de69ae465219ef874212d`, sem achado residual e com
+`financial_writes=0`.
 
-O contrato cobre pessoa, categoria, forma de pagamento, conta e cartão, com
-catálogos autorizados, estado durável, recuperação após restart e
-`financial_writes=0`. O modo proativo permanece desligado por padrão e não será
-promovido nem deployado neste gate.
+O objetivo ativo seguinte é delimitar e corrigir a perda silenciosa de liveness
+da sessão WhatsApp/Puppeteer observada em produção Oracle em 2026-07-30.
+PM2, Google, read-model e `/dashboard/health` permaneceram verdes enquanto
+operações do WhatsApp acumulavam `Runtime.callFunctionOn timed out`; não houve
+recuperação automática. 9P.4 permanece não autorizado até o fechamento desse
+incidente.
 
-## Transferência em curso
+## Workspace vigente
 
-Worktree vigente:
-`E:\\Users\\horus\\Documents\\FinancasBot\\worktrees\\open-finance-save-proposal`.
-Branch: `codex/open-finance-save-proposal`; base de 9P.3:
-`b52b7879fd5a795a436b4f6332294052732ebe7a`.
+Raiz recuperada:
+`C:\Users\Administrador\Documents\FinancasBot\financas-bot`.
+Branch: `codex/open-finance-save-proposal`; HEAD antes deste fechamento:
+`9db5ed164d44988e98a0a2bcb1e5a8e90f231dea`; candidato auditado:
+`f8a1e9f41eee3c904f0de69ae465219ef874212d`.
+
+O SSD portátil anterior foi perdido e não é mais a raiz canônica. A produção
+vigente é Oracle/OCI e permanece separada deste gate; o código 9P.3 não foi
+deployado.
 
 9P.2 recebeu `GO TÉCNICO LOCAL` no hash
 `b52b7879fd5a795a436b4f6332294052732ebe7a`. A reauditoria fechou o único
@@ -50,11 +58,11 @@ funcionais previstos; cobertura de linhas `90,18%`, branches `72,27%` e
 funções `90,03%`.
 
 O candidato corrigido foi publicado no hash
-`f8a1e9f41eee3c904f0de69ae465219ef874212d`. A única tentativa automática de
-reauditoria confirmou parcialmente os caminhos de M1, M2 e M3, mas o handoff
-ocorreu antes da resposta final. A conversa automática não ficou recuperável
-no histórico; não existe GO válido. O registro está em
-`docs/audit/59-open-finance-save-proposal-guided-review-chat-pending-2026-07-24.md`.
+`f8a1e9f41eee3c904f0de69ae465219ef874212d`. A revisão manual final no Chat
+confirmou o hash e os arquivos, encerrou M1, M2 e M3, registrou `CRITICAL 0`,
+`HIGH 0`, `MEDIUM 0`, `LOW 0` e não identificou lacuna indispensável residual.
+O fechamento está em
+`docs/audit/60-open-finance-save-proposal-guided-review-independent-close-2026-07-30.md`.
 
 Alterações intencionais: produto, testes, plano e manifesto de 9P.3.
 Não executar fase 8, produção, Oracle/AWS, cofre Pluggy ou integrações reais.
@@ -63,6 +71,19 @@ Não houve transporte WhatsApp real, escrita financeira, produção, Google ou
 Pluggy real.
 
 ## Último gate encerrado
+
+`9P.3` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
+`f8a1e9f41eee3c904f0de69ae465219ef874212d`. O fechamento autoriza somente a
+revisão guiada local e durável da proposta aceita, preservando
+`financial_writes=0`; não autoriza 9P.4, revalidação final, writer, integração
+real ou produção.
+
+O parecer foi estático e não executou os testes. A evidência local publicada
+permanece: focal `20/20`, causal `150/150`, Open Finance `259/259`, entrada
+pública/máquina de estados `122/122` e runner hermético `1.305/1.310`, com
+zero falhas e cinco skips previstos.
+
+## Gate encerrado anterior — STATE-03
 
 `STATE-03` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
 `e341d4feae5b6ecba8990a226f386e11cb18d027`; o fechamento documental foi
@@ -165,29 +186,30 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Git e workspace
 
-- branch ativa: `codex/open-finance-save-proposal`, recuperação 9P.2 auditada
-  em `b52b7879fd5a795a436b4f6332294052732ebe7a`;
+- branch ativa: `codex/open-finance-save-proposal`;
 - último produto com `GO TÉCNICO LOCAL`:
-  `b52b7879fd5a795a436b4f6332294052732ebe7a`;
+  `f8a1e9f41eee3c904f0de69ae465219ef874212d`;
 - fechamento documental de 9P.0:
   `bcdbf0e8772270019e9223e6a996f5102eb446bd`;
 - alterações concorrentes do workstream AWS/Oracle e arquivos não rastreados do
   usuário permanecem fora do gate e não devem ser adicionados, alterados ou
   removidos;
-- raiz canônica: repositório `financas-bot` no SSD portátil.
+- raiz canônica recuperada:
+  `C:\Users\Administrador\Documents\FinancasBot\financas-bot`.
 
 ## Próximo gate
 
-`9P.3`: correções pós-NO-GO locais verdes e publicadas no hash
-`f8a1e9f41eee3c904f0de69ae465219ef874212d`, aguardando parecer independente
-final.
+Gate operacional separado para liveness da sessão WhatsApp/Puppeteer. O
+incidente real comprovou que o health atual mede processo, HTTP e SQLite, mas
+não detecta uma página WhatsApp incapaz de executar funções ou sem conexão
+externa.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
 ## Decisões vigentes
 
 - manter `Codex → Sol → Alto` no próximo gate, que cruza transporte WhatsApp,
-  estado conversacional, autorização familiar e replay;
+  Puppeteer, supervisor, health e recuperação sem duplicidade;
 - parar e avisar Daniel antes de reduzir ou trocar capacidade;
 - a produção vigente é Oracle/OCI; não reutilizar caminhos AWS e não executar
   Oracle e AWS simultaneamente com a mesma sessão WhatsApp;
@@ -200,19 +222,20 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Obter manualmente no Chat o parecer final do hash
-`f8a1e9f41eee3c904f0de69ae465219ef874212d`, confrontá-lo com a evidência local
-e somente então fechar ou reabrir 9P.3.
+Criar o charter causal do incidente de liveness do WhatsApp, caracterizar a
+fronteira de detecção e recuperação e produzir RED que reproduza processo/HTTP
+verdes com transporte WhatsApp indisponível. Não reiniciar produção nem
+alterar sessão real durante a implementação local.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → reconciliar e executar continuamente as próximas
-melhorias já registradas, conforme autorização expressa do usuário.`
+`Codex → Sol → Alto → corrigir e auditar a perda silenciosa de liveness do
+WhatsApp antes de retomar 9P.4.`
 
 ## Fila de produto posterior
 
-Somente depois das correções da auditoria e das melhorias já previstas para
-Pluggy/Open Finance:
+Depois da correção operacional de liveness, abrir gate próprio para revalidação
+final, confirmação idempotente, operation key e recibo de 9P.4. Somente depois:
 
 1. permitir atribuição familiar uniforme de um lançamento a Daniel ou Thaís;
 2. apresentar a forma de pagamento como menu numerado;
@@ -249,6 +272,8 @@ Pluggy/Open Finance:
   `docs/audit/58-open-finance-save-proposal-guided-review-reaudit-candidate-2026-07-24.md`;
 - reauditoria do Chat interrompida pelo handoff:
   `docs/audit/59-open-finance-save-proposal-guided-review-chat-pending-2026-07-24.md`;
+- fechamento independente 9P.3:
+  `docs/audit/60-open-finance-save-proposal-guided-review-independent-close-2026-07-30.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:

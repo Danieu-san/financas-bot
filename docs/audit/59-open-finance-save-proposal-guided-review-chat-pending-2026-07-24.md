@@ -10,9 +10,9 @@ Commit sanitizado e publicado:
 Manifesto:
 `docs/audit/58-open-finance-save-proposal-guided-review-reaudit-candidate-2026-07-24.md`.
 
-## Estado
+## Estado histórico
 
-`CANDIDATO LOCAL VERDE; PARECER INDEPENDENTE FINAL NÃO RECEBIDO`.
+`RESOLVIDO EM 2026-07-30; GO TÉCNICO LOCAL REGISTRADO NO FECHAMENTO 60`.
 
 Uma conversa limpa no Chat recebeu o hash completo e os doze arquivos públicos
 necessários. Antes do handoff, a análise parcial visível havia:
@@ -38,3 +38,12 @@ Como a única tentativa automática desse hash foi consumida sem resposta final,
 usar revisão manual no Chat com o mesmo hash e os mesmos arquivos do manifesto
 58. Aceitar o resultado somente se o Chat confirmar leitura integral e emitir
 veredito final; até lá, 9P.3 permanece candidato aguardando auditoria.
+
+## Resolução
+
+Daniel recuperou e forneceu integralmente o parecer final da revisão manual. O
+Chat confirmou o hash completo
+`f8a1e9f41eee3c904f0de69ae465219ef874212d`, os arquivos lidos, o fechamento de
+M1, M2 e M3 e a ausência de achados ou lacuna indispensável residual. O
+fechamento técnico local está em:
+`docs/audit/60-open-finance-save-proposal-guided-review-independent-close-2026-07-30.md`.

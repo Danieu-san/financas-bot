@@ -1,14 +1,13 @@
-# Gate ativo — 9P.3 revisão e correção guiada da proposta Open Finance
+# Gate encerrado — 9P.3 revisão e correção guiada da proposta Open Finance
 
-Atualizado em: 2026-07-24
+Atualizado em: 2026-07-30
 
 Base:
 `b52b7879fd5a795a436b4f6332294052732ebe7a`.
 
 ## Estado
 
-`CORREÇÕES PÓS-NO-GO LOCAIS VERDES; COMMIT IMUTÁVEL PUBLICADO; PARECER
-INDEPENDENTE FINAL PENDENTE`.
+`GO TÉCNICO LOCAL; ESCRITA FINANCEIRA DESLIGADA; PRODUÇÃO NÃO AUTORIZADA`.
 
 9P.0 encerrou a proposta reconciliada em shadow; 9P.1, a confirmação local
 durável; e 9P.2, a entrega confirmada e a captura pública de
@@ -117,21 +116,30 @@ Manifesto de reauditoria:
 `docs/audit/58-open-finance-save-proposal-guided-review-reaudit-candidate-2026-07-24.md`.
 
 O candidato foi publicado em
-`f8a1e9f41eee3c904f0de69ae465219ef874212d`. A única tentativa automática de
-reauditoria confirmou parcialmente M1, M2 e M3, mas foi interrompida pelo
-handoff antes de emitir o veredito final. Essas observações não autorizam GO.
-Registro:
-`docs/audit/59-open-finance-save-proposal-guided-review-chat-pending-2026-07-24.md`.
+`f8a1e9f41eee3c904f0de69ae465219ef874212d`. O parecer final da revisão manual
+no Chat confirmou o hash e os arquivos, encerrou M1, M2 e M3, registrou
+`CRITICAL 0`, `HIGH 0`, `MEDIUM 0`, `LOW 0` e não identificou lacuna
+indispensável residual. A revisão foi estática e não executou os testes.
+
+Fechamento:
+`docs/audit/60-open-finance-save-proposal-guided-review-independent-close-2026-07-30.md`.
 
 Manifesto:
 `docs/audit/57-open-finance-save-proposal-guided-review-candidate-2026-07-24.md`.
 
 ## Próxima ação exata
 
-Obter manualmente no Chat o parecer final do hash
-`f8a1e9f41eee3c904f0de69ae465219ef874212d`, confrontá-lo com a evidência local
-e somente então fechar ou reabrir 9P.3.
+Abrir gate separado de confiabilidade operacional para a perda silenciosa de
+liveness da sessão WhatsApp/Puppeteer observada em 2026-07-30. PM2, Google,
+read-model e `/dashboard/health` permaneceram verdes enquanto operações do
+WhatsApp falhavam repetidamente com `Runtime.callFunctionOn timed out`; o
+processo não se recuperou sozinho.
+
+9P.4 permanece não autorizado até o fechamento desse incidente. Depois dele,
+o próximo elo de produto é revalidação contra a fonte, confirmação final
+idempotente, operation key e recibo, ainda sob gate próprio.
 
 ## Capacidade
 
-`Codex → Sol → Alto → publicar e auditar o candidato imutável do 9P.3.`
+`Codex → Sol → Alto → delimitar e provar causalmente a correção de liveness do
+WhatsApp antes de retomar 9P.4.`
