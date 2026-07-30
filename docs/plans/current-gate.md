@@ -7,7 +7,7 @@ Base:
 
 ## Estado
 
-`RECOVERY PÓS-NO-GO LOCAL VERDE; NOVO COMMIT IMUTÁVEL E REAUDITORIA PENDENTES`.
+`GO TÉCNICO LOCAL; 9P.4 ENCERRADO`.
 
 O primeiro candidato, no hash
 `a512a07a8f18c9dffcf62676357c35f41f50395d`, recebeu `NO-GO` independente por
@@ -99,7 +99,7 @@ restart-safe que:
 4. [concluída] Baterias focal, causal, Open Finance e entrada pública.
 5. [concluída] Runner hermético, contrato de ambiente, diff e segredos.
 6. [concluída] Primeiro commit sanitizado e auditoria independente: `NO-GO`.
-7. [em andamento] Publicar o recovery e reauditar o novo hash imutável.
+7. [concluída] Recovery publicado e reauditoria independente: `GO TÉCNICO LOCAL`.
 8. [fora deste gate] Deploy OCI por artefato com rollback e ativação controlada.
 
 ## Critérios de GO
@@ -124,10 +124,10 @@ restart-safe que:
 
 ## Próxima ação exata
 
-Publicar o recovery sanitizado, fornecer o novo hash imutável ao Chat e
-confrontar o parecer independente com a evidência local antes de declarar
-`GO`.
+Registrar o fechamento documental e, sem ativar flags ou produção, verificar o
+primeiro item da fila posterior: atribuição familiar uniforme a Daniel ou
+Thaís no fluxo 9P.3/9P.4.
 
 ## Capacidade
 
-`Codex → Sol → Alto → implementar e validar causalmente 9P.4.`
+`Codex → Sol → Alto → verificar a atribuição familiar uniforme pós-9P.4.`

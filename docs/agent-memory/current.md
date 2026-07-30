@@ -16,10 +16,10 @@ imutável `ccd4d2e2bb8689d4f838cab21f92ffc6b8b5b6ff` emitiu
 parecer e não identificou lacuna indispensável residual dentro do gate de
 processo único.
 
-O objetivo ativo é fechar 9P.4. O candidato local de revalidação final,
-confirmação idempotente, operation key e recibo está verde e aguarda commit
-imutável e auditoria independente. Integração real e produção continuam
-desligadas.
+9P.4 está tecnicamente encerrado. O recovery de revalidação final, confirmação
+idempotente, operation key e recibo recebeu `GO TÉCNICO LOCAL` independente no
+hash `b98157dfde061793ad94cd025c99b1f8b5145712`. Integração real e produção
+continuam desligadas.
 
 O primeiro candidato 9P.4
 `a512a07a8f18c9dffcf62676357c35f41f50395d` recebeu `NO-GO` independente:
@@ -29,6 +29,11 @@ preserva `FINANCIAL_WRITE_UNCERTAIN` e adiciona prova com stores separados,
 `appendRowToSheet` e `FinancialWriteLedger` reais. Evidência afetada:
 finalização `9/9`, writer/ledger `6/6`, entrada pública `1/1` e suíte unitária
 completa `205/205`.
+
+A reauditoria confirmou os oito arquivos, fechou os dois `HIGH` e o `MEDIUM`,
+zerou todas as severidades e não encontrou lacuna causal indispensável. O
+fechamento está em
+`docs/audit/66-open-finance-finalization-independent-close-2026-07-30.md`.
 
 ## Workspace vigente
 
@@ -83,6 +88,19 @@ Não houve transporte WhatsApp real, escrita financeira, produção, Google ou
 Pluggy real.
 
 ## Último gate encerrado
+
+`9P.4` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
+`b98157dfde061793ad94cd025c99b1f8b5145712`. Retomadas `writing/uncertain`
+usam somente reconciliação fail-closed; ausência de prova nunca cria append e
+`FINANCIAL_WRITE_UNCERTAIN` permanece incerto.
+
+Evidência executada pelo Codex: finalização `9/9`, writer/ledger `6/6`, entrada
+pública `1/1` e suíte unitária `205/205`. O Chat realizou revisão estática e
+não executou essas contagens.
+
+O fechamento não autoriza flags, integração real, deploy ou produção.
+
+## Gate encerrado anterior — 9P.3
 
 `9P.3` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
 `f8a1e9f41eee3c904f0de69ae465219ef874212d`. O fechamento autoriza somente a
@@ -148,30 +166,11 @@ os 19 arquivos e a ausência de achado bloqueante, sem executar os testes.
 Não houve acesso a snapshot real, Redis real, produção, Google, WhatsApp ou
 deploy.
 
-## Gate encerrado anterior — AUTH-04
-
-`AUTH-04` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
-`beb8e0ff7f2eccd74688aa347de6b7d79170d094`.
-
-As APIs financeiras v1, v2 e wrappers autenticados agora validam assinatura/TTL
-e consultam o cadastro fresco antes de qualquer leitura. Ausência, exclusão ou
-status diferente de `ACTIVE` negam com `403`; indisponibilidade da fonte nega
-com `503` distinto. O Chat confirmou hash, base e os cinco arquivos, sem achado
-`CRITICAL`, `HIGH` ou `MEDIUM`.
-
-Evidência executada pelo Codex: RED causal `200 !== 403`; cenários `3/3`;
-dashboard `24/24`; OAuth `7/7`; auditoria sanitizada `1/1`; pretests verdes e
-runner principal `1.080/1.080`. O parecer externo foi estático e não reproduziu
-essas execuções. Os dois achados `LOW` de cobertura e o ponto informativo de
-telemetria pré-roteamento não abrem bypass nem vazamento.
-
-Não houve acesso a Google/WhatsApp real, produção ou deploy.
-
 ## Git e workspace
 
 - branch ativa: `codex/open-finance-finalization`;
 - último produto com `GO TÉCNICO LOCAL`:
-  `f8a1e9f41eee3c904f0de69ae465219ef874212d`;
+  `b98157dfde061793ad94cd025c99b1f8b5145712`;
 - fechamento documental de 9P.0:
   `bcdbf0e8772270019e9223e6a996f5102eb446bd`;
 - alterações concorrentes do workstream AWS/Oracle e arquivos não rastreados do
@@ -188,18 +187,19 @@ dois `MEDIUM` e o `LOW`, com zero achado residual e nenhuma lacuna indispensáve
 dentro do processo único. O fechamento está em
 `docs/audit/63-ops02-independent-close-2026-07-30.md`.
 
-O recovery 9P.4 está localmente verde nas provas afetadas: finalização `9/9`,
-writer/ledger `6/6`, entrada pública `1/1` e suíte unitária `205/205`. O runner
-hermético anterior do primeiro candidato permanece `1.335/1.340`, com zero
-falhas e cinco skips previstos, mas não foi atribuído ao recovery. Ainda não há
-`GO`: falta reauditoria independente do novo commit imutável.
+9P.4 recebeu `GO TÉCNICO LOCAL` no recovery
+`b98157dfde061793ad94cd025c99b1f8b5145712`. O próximo trabalho é verificar,
+na ordem já aprovada, se a atribuição familiar uniforme de um lançamento a
+Daniel ou Thaís já está integralmente coberta por 9P.3/9P.4 antes de alterar o
+produto.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
 ## Decisões vigentes
 
-- manter `Codex → Sol → Alto` até fechar 9P.4, que cruza revalidação, estado
-  durável, entrada FIFO, ledger idempotente e recuperação de recibo;
+- manter `Codex → Sol → Alto` ao verificar a atribuição familiar, pois o
+  contrato cruza catálogo autorizado, revisão durável, writer e testes
+  adversariais;
 - parar e avisar Daniel antes de reduzir ou trocar capacidade;
 - a produção vigente é Oracle/OCI; não reutilizar caminhos AWS e não executar
   Oracle e AWS simultaneamente com a mesma sessão WhatsApp;
@@ -212,12 +212,13 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar o recovery 9P.4 sanitizado, reauditar o novo hash imutável no Chat e
-confrontar o parecer com a evidência local.
+Verificar estaticamente e por testes se a atribuição familiar uniforme a Daniel
+ou Thaís já está integralmente coberta no fluxo 9P.3/9P.4; corrigir apenas se
+houver lacuna factual.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → publicar e auditar o candidato imutável de 9P.4.`
+`Codex → Sol → Alto → verificar a atribuição familiar uniforme pós-9P.4.`
 
 ## Fila de produto posterior
 
@@ -267,6 +268,8 @@ final, confirmação idempotente, operation key e recibo de 9P.4. Somente depois
   `docs/audit/64-open-finance-save-proposal-finalization-candidate-2026-07-30.md`;
 - recovery pós-NO-GO 9P.4:
   `docs/audit/65-open-finance-finalization-reconcile-only-recovery-candidate-2026-07-30.md`;
+- fechamento independente 9P.4:
+  `docs/audit/66-open-finance-finalization-independent-close-2026-07-30.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:
