@@ -308,6 +308,7 @@ test('9P.4 accepts one explicit durable new category without adding a second wri
         assert.equal(committed.financial_writes, 1);
         assert.equal(appendCalls.length, 1);
         assert.equal(appendCalls[0].row[2], 'Pets');
+        assert.equal(appendCalls[0].options.requireUserScoped, true);
         assert.equal(
             appendCalls[0].options.messageId,
             `open-finance-final:${proposalRef}`
@@ -921,6 +922,7 @@ test('9P.4 restart across separate stores reconciles only and never blindly appe
     const appendRowToSheet = (sheetName, row, options) =>
         googleService.appendRowToSheet(sheetName, row, {
             ...options,
+            requireUserScoped: false,
             forceCentral: true,
             writeLedger: ledger
         });

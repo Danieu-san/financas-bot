@@ -25,11 +25,12 @@ O menu numerado de pagamento está encerrado. O primeiro candidato
 `b25ff51b59054483a66a16e926534068e6c074f5` recebeu `GO TÉCNICO LOCAL`,
 zerou todas as severidades e não deixou lacuna causal indispensável.
 
-O objetivo ativo é o terceiro item da fila. O RED confirmou que a proposta
-Open Finance intercepta a conversa antes do assistente geral e não oferecia
-criação. O candidato agora lista existentes antes de `Criar nova categoria`,
-persiste a escolha explícita na revisão e mantém um único write no lançamento
-final. Evidência focal `2/2`; falta commit imutável e auditoria independente.
+O objetivo ativo é o terceiro item da fila. O primeiro candidato
+`4473a4c66d6d7bdad6149e25f20ccaa9e2e4b10e` recebeu `NO-GO` por truncar o
+catálogo, permitir fallback central e deixar incompleta a prova causal. O
+recovery pagina o catálogo integral, falha fechado acima de 1.000, exige
+destino pessoal/familiar e prova a redescoberta em Saídas e cartão. Falta novo
+commit imutável e reauditoria independente.
 
 ## Workspace vigente
 
@@ -201,11 +202,11 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar e auditar o candidato de nova categoria na proposta proativa.
+Publicar e reauditar o recovery da nova categoria na proposta proativa.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → verificar o menu numerado de pagamento pós-9P.4.`
+`Codex → Sol → Alto → reauditar o recovery da nova categoria proativa.`
 
 ## Fila de produto posterior
 

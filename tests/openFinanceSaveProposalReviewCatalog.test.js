@@ -87,3 +87,36 @@ test('9P.3 catalog fails closed when the authorized source is unavailable', asyn
         /open_finance_save_review_catalog_unavailable/
     );
 });
+
+test('9P.3 catalog preserves every authorized category and fails closed above its bound', async () => {
+    const buildRows = count => [
+        ['Categoria', 'Subcategoria', 'Ativa', 'Criada em', 'user_id'],
+        ...Array.from({ length: count }, (_, index) => [
+            `Categoria ${String(index + 1).padStart(4, '0')}`,
+            '',
+            'SIM',
+            '',
+            'user-daniel'
+        ])
+    ];
+    const build = count => buildOpenFinanceSaveProposalReviewCatalog({
+        userId: 'user-daniel',
+        dependencies: {
+            getFinancialScopeUserIds: () => ['user-daniel'],
+            getActiveUsers: async () => [
+                { user_id: 'user-daniel', display_name: 'Daniel' }
+            ],
+            readDataFromSheet: async range => (
+                range === 'Categorias!A:E' ? buildRows(count) : []
+            )
+        }
+    });
+
+    const catalog = await build(137);
+    assert.equal(catalog.categories.length, 137);
+    assert.equal(catalog.categories[136].category, 'Categoria 0137');
+    await assert.rejects(
+        build(1001),
+        /open_finance_save_review_categories_catalog_too_large/
+    );
+});

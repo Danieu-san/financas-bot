@@ -153,18 +153,41 @@ function formatReviewSummary(payload, { includeMenu = true } = {}) {
     return lines.join('\n');
 }
 
+const CATEGORY_PAGE_SIZE = 8;
+
 function reviewOptionsForStep(payload = {}) {
     const catalog = payload.catalog || {};
     if (payload.step === 'select_person') return catalog.people || [];
     if (payload.step === 'select_category') {
-        return [
-            ...(catalog.categories || []),
-            {
+        const categories = catalog.categories || [];
+        const pageCount = Math.max(1, Math.ceil(categories.length / CATEGORY_PAGE_SIZE));
+        const requestedPage = Number.isInteger(payload.categoryPage)
+            ? payload.categoryPage
+            : 0;
+        const page = Math.max(0, Math.min(requestedPage, pageCount - 1));
+        const start = page * CATEGORY_PAGE_SIZE;
+        const options = categories.slice(start, start + CATEGORY_PAGE_SIZE);
+        if (page > 0) {
+            options.push({
+                id: '__previous_category_page__',
+                label: 'Ver categorias anteriores',
+                categoryPage: page - 1
+            });
+        }
+        if (page < pageCount - 1) {
+            options.push({
+                id: '__next_category_page__',
+                label: 'Ver mais categorias',
+                categoryPage: page + 1
+            });
+        } else {
+            options.push({
                 id: '__create_new_category__',
                 label: 'Criar nova categoria',
                 createNew: true
-            }
-        ];
+            });
+        }
+        return options;
     }
     if (payload.step === 'select_payment') return catalog.paymentMethods || [];
     if (payload.step === 'select_account') return catalog.financialAccounts || [];
@@ -617,7 +640,13 @@ function handleOpenFinanceSaveProposalReviewReply({
             }
             const updated = reviewStore.updateReview(proposalRef, {
                 actorWhatsappId,
-                mutate: current => ({ ...current, step })
+                mutate: current => ({
+                    ...current,
+                    step,
+                    categoryPage: step === 'select_category'
+                        ? 0
+                        : current.categoryPage
+                })
             });
             return {
                 handled: true,
@@ -675,6 +704,24 @@ function handleOpenFinanceSaveProposalReviewReply({
                 financial_writes: 0
             };
         }
+        if (payload.step === 'select_category' &&
+            Number.isInteger(selected.categoryPage)) {
+            const updated = reviewStore.updateReview(proposalRef, {
+                actorWhatsappId,
+                mutate: current => ({
+                    ...current,
+                    categoryPage: selected.categoryPage
+                })
+            });
+            return {
+                handled: true,
+                keep_pending: true,
+                state: 'review_editing',
+                proposal_ref: proposalRef,
+                reply: formatReviewOptions(updated.payload),
+                financial_writes: 0
+            };
+        }
         const updated = reviewStore.updateReview(proposalRef, {
             actorWhatsappId,
             mutate: current => {
@@ -716,6 +763,7 @@ function handleOpenFinanceSaveProposalReviewReply({
                     };
                 }
                 current.step = 'menu';
+                current.categoryPage = 0;
                 return current;
             }
         });

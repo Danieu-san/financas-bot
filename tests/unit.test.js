@@ -5208,6 +5208,38 @@ test('google user spreadsheet mapping keeps legacy card flows compatible', (t) =
     );
 });
 
+test('google append fails closed when a user-scoped destination is required', async () => {
+    let appendCalls = 0;
+    googleService.__test__.setGoogleClientsForTest({
+        sheetsClient: {
+            spreadsheets: {
+                values: {
+                    append: async () => {
+                        appendCalls += 1;
+                        return {};
+                    }
+                }
+            }
+        },
+        tasksClient: {},
+        calendarClient: {},
+        oauthClient: {}
+    });
+
+    await assert.rejects(
+        googleService.appendRowToSheet(
+            'Saídas',
+            ['10/02/2026', 'ração', 'Pets', '', 50, 'Daniel', 'PIX', 'Não', '', 'user-1'],
+            {
+                userId: 'user-1',
+                requireUserScoped: true
+            }
+        ),
+        /user_spreadsheet_required/
+    );
+    assert.equal(appendCalls, 0);
+});
+
 test('google.headerToNumberFormat distinguishes date columns from due-day columns', (t) => {
     const { headerToNumberFormat } = googleService.__test__;
 

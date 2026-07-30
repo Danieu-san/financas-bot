@@ -13,6 +13,7 @@ let sheets;
 let tasks;
 let calendar;
 let oAuth2Client;
+let userSheetsClientFactory = auth => google.sheets({ version: 'v4', auth });
 let authInFlight = null;
 let defaultFinancialWriteLedger = null;
 const repairedUserSpreadsheetIds = new Set();
@@ -210,6 +211,12 @@ function setGoogleClientsForTest({ sheetsClient = sheets, tasksClient = tasks, c
     calendar = calendarClient;
     oAuth2Client = oauthClient;
     authInFlight = null;
+}
+
+function setUserSheetsClientFactoryForTest(factory) {
+    userSheetsClientFactory = typeof factory === 'function'
+        ? factory
+        : (auth => google.sheets({ version: 'v4', auth }));
 }
 
 function isGoogleRetriableError(error) {
@@ -678,7 +685,7 @@ async function resolveSpreadsheetTarget(options = {}) {
                     sharedSpreadsheet: Boolean(sharedMembership),
                     displayName: context.displayName || '',
                     spreadsheetId,
-                    sheetsClient: google.sheets({ version: 'v4', auth })
+                    sheetsClient: userSheetsClientFactory(auth)
                 };
             }
         } catch (error) {
@@ -805,6 +812,9 @@ async function repairUserSpreadsheetTemplate(target = {}) {
 async function appendRowToSheet(sheetName, row, options = {}) {
     validateUserScopedWrite(sheetName, row);
     const target = await resolveSpreadsheetTarget({ ...options, sheetName });
+    if (options.requireUserScoped && !target.userScoped) {
+        throw new Error('user_spreadsheet_required');
+    }
     const mappedSheetName = target.userScoped ? mapSheetNameForUserSpreadsheet(sheetName) : sheetName;
     const mappedRow = target.userScoped
         ? mapRowForUserSpreadsheet(sheetName, row, options)
@@ -2219,6 +2229,7 @@ module.exports = {
         getSheetsReadCacheTtlMs,
         invalidateSheetsReadCache,
         setGoogleClientsForTest,
+        setUserSheetsClientFactoryForTest,
         normalizeGoogleEmail,
         isValidGoogleEmail,
         findSpreadsheetPermissionByEmail,

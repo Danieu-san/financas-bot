@@ -482,6 +482,18 @@ test('9P.3 corrects every guided field and only completes a causally valid draft
 
 test('9P.3 lists existing categories before an explicit durable new-category choice', async () => {
     const harness = createHarness({ transactionId: 'purchase-new-category' });
+    const pagedReviewCatalog = {
+        ...reviewCatalog,
+        categories: [
+            ...reviewCatalog.categories,
+            ...Array.from({ length: 9 }, (_, index) => ({
+                id: `category-${index + 2}`,
+                label: `Categoria ${String(index + 2).padStart(2, '0')}`,
+                category: `Categoria ${String(index + 2).padStart(2, '0')}`,
+                subcategory: ''
+            }))
+        ]
+    };
     try {
         await deliverOneOpenFinanceCanary(deliveryInput(harness, {
             sendMessage: async () => ({ id: 'new-category-message-id' })
@@ -490,7 +502,7 @@ test('9P.3 lists existing categories before an explicit durable new-category cho
             messageBody: 'sim',
             actorWhatsappId,
             env: harness.env,
-            reviewCatalog
+            reviewCatalog: pagedReviewCatalog
         });
         const reply = body => handleOpenFinanceSaveProposalReviewReply({
             messageBody: body,
@@ -501,13 +513,19 @@ test('9P.3 lists existing categories before an explicit durable new-category cho
 
         const categoryMenu = reply('2');
         assert.match(categoryMenu.reply, /^1\. Alimentação \/ SUPERMERCADO$/m);
-        assert.match(categoryMenu.reply, /^2\. Criar nova categoria$/m);
-        assert.ok(
-            categoryMenu.reply.indexOf('Alimentação / SUPERMERCADO') <
-            categoryMenu.reply.indexOf('Criar nova categoria')
-        );
+        assert.match(categoryMenu.reply, /^9\. Ver mais categorias$/m);
+        assert.doesNotMatch(categoryMenu.reply, /Criar nova categoria/);
         assert.match(reply('categoria inventada').reply, /número de uma opção válida/i);
-        assert.match(reply('2').reply, /nome da nova categoria/i);
+        const lastPage = reply('9');
+        assert.match(lastPage.reply, /^1\. Categoria 09$/m);
+        assert.match(lastPage.reply, /^2\. Categoria 10$/m);
+        assert.match(lastPage.reply, /^3\. Ver categorias anteriores$/m);
+        assert.match(lastPage.reply, /^4\. Criar nova categoria$/m);
+        assert.ok(
+            lastPage.reply.indexOf('Categoria 10') <
+            lastPage.reply.indexOf('Criar nova categoria')
+        );
+        assert.match(reply('4').reply, /nome da nova categoria/i);
         assert.match(reply('1').reply, /nome válido/i);
         assert.match(reply('=IMPORTXML').reply, /nome válido/i);
         assert.match(reply('Alimentação').reply, /categoria já existe/i);
@@ -526,6 +544,7 @@ test('9P.3 lists existing categories before an explicit durable new-category cho
                 { actorWhatsappId }
             );
             assert.equal(stored.state, 'editing');
+            assert.equal(stored.payload.catalog.categories.length, 10);
             assert.deepEqual(stored.payload.draft.category, {
                 id: 'new-category:pets',
                 label: 'Pets',

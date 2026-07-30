@@ -660,6 +660,9 @@ stateMachineTest('9P.2 public serialized handler consumes one durable proposal r
         });
         const routedAfterStaleState = await send('2');
         assert.match(routedAfterStaleState, /Escolha a categoria/);
+        assert.match(routedAfterStaleState, /Criar nova categoria/i);
+        assert.match(await send('1'), /nome da nova categoria/i);
+        assert.match(await send('Pets'), /Categoria: Pets/i);
         assert.strictEqual(appendedRows.length, 0);
         assert.strictEqual(
             userStateManager.getState(SENDER).action,
@@ -689,13 +692,18 @@ stateMachineTest('9P.2 public serialized handler consumes one durable proposal r
                 reopenedReviewStore.listActiveReviews({ actorWhatsappId: SENDER })[0].state,
                 'editing'
             );
-            assert.strictEqual(
-                reopenedReviewStore.readReviewPrivate(
-                    proposalRef,
-                    { actorWhatsappId: SENDER }
-                ).payload.step,
-                'select_category'
+            const durableReview = reopenedReviewStore.readReviewPrivate(
+                proposalRef,
+                { actorWhatsappId: SENDER }
             );
+            assert.strictEqual(durableReview.payload.step, 'menu');
+            assert.deepStrictEqual(durableReview.payload.draft.category, {
+                id: 'new-category:pets',
+                label: 'Pets',
+                category: 'Pets',
+                subcategory: '',
+                origin: 'user_created'
+            });
         } finally {
             reopenedReviewStore.close();
             reopenedStore.close();
@@ -2972,7 +2980,13 @@ stateMachineTest('9P.4 public handler writes once, survives receipt send failure
             step: 'menu',
             draft: {
                 person: catalog.people[0],
-                category: catalog.categories[0],
+                category: {
+                    id: 'new-category:pets',
+                    label: 'Pets',
+                    category: 'Pets',
+                    subcategory: '',
+                    origin: 'user_created'
+                },
                 paymentMethod: catalog.paymentMethods[0],
                 financialAccount: null,
                 card: catalog.cards[0]
@@ -3020,6 +3034,8 @@ stateMachineTest('9P.4 public handler writes once, survives receipt send failure
         ]);
         assert.equal(appendedRows.length, 1);
         assert.equal(appendedRows[0].options.cardId, 'nubank-daniel');
+        assert.equal(appendedRows[0].options.requireUserScoped, true);
+        assert.equal(appendedRows[0].row[2], 'Pets');
         const recoveredReceipt = [
             ...firstConfirmation.replies,
             ...concurrentConfirmation.replies

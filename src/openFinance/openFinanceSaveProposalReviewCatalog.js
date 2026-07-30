@@ -2,6 +2,8 @@ const { readDataFromSheet } = require('../services/google');
 const { getActiveUsers } = require('../services/userService');
 const { getFinancialScopeUserIds } = require('../services/oauthTokenStore');
 
+const MAX_CATEGORY_CATALOG_ITEMS = 1000;
+
 function normalizeText(value) {
     return String(value || '')
         .normalize('NFD')
@@ -55,9 +57,11 @@ function categoriesFromRows({ registryRows = [], expenseRows = [], cardRows = []
         if (!allowed.has(rowUserId)) continue;
         addCategory(categories, seen, row?.[2], '');
     }
-    return categories
-        .sort((left, right) => left.label.localeCompare(right.label, 'pt-BR'))
-        .slice(0, 100);
+    categories.sort((left, right) => left.label.localeCompare(right.label, 'pt-BR'));
+    if (categories.length > MAX_CATEGORY_CATALOG_ITEMS) {
+        throw new Error('open_finance_save_review_categories_catalog_too_large');
+    }
+    return categories;
 }
 
 function accountsFromRows(rows = [], scopeUserIds = []) {

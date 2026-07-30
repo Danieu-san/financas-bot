@@ -7,7 +7,7 @@ Base:
 
 ## Estado
 
-`CORREÇÃO LOCAL VERDE; COMMIT IMUTÁVEL E AUDITORIA PENDENTES`.
+`RECOVERY LOCAL VERDE; NOVO COMMIT IMUTÁVEL E REAUDITORIA PENDENTES`.
 
 ## Objetivo
 
@@ -45,7 +45,7 @@ criação de uma nova.
 3. [concluída] Confirmar que a proposta proativa não alcançava a criação.
 4. [concluída] Adicionar criação durável sem segundo write.
 5. [concluída] Executar provas causais e regressão proporcional.
-6. [em andamento] Publicar candidato e auditar por hash imutável.
+6. [em andamento] Publicar recovery e reauditar por hash imutável.
 7. [pendente] Registrar o fechamento e avançar na fila.
 
 ## Critérios de GO
@@ -65,7 +65,8 @@ criação de uma nova.
 
 ## Próxima ação exata
 
-Publicar o candidato sanitizado e auditar a criação durável com um único write.
+Publicar o recovery sanitizado e reauditar catálogo integral, destino
+user-scoped e cadeia causal.
 
 ## Capacidade
 

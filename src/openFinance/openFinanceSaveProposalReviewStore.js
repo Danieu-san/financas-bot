@@ -79,7 +79,7 @@ function normalizeCatalogItems(items, kind, limit) {
 function normalizeCatalog(catalog = {}) {
     return {
         people: normalizeCatalogItems(catalog.people || [], 'people', 10),
-        categories: normalizeCatalogItems(catalog.categories || [], 'categories', 100),
+        categories: normalizeCatalogItems(catalog.categories || [], 'categories', 1000),
         paymentMethods: normalizeCatalogItems(
             catalog.paymentMethods || [],
             'payment_methods',

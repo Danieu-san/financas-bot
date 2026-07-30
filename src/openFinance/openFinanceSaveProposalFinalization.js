@@ -744,6 +744,7 @@ async function writeOpenFinanceSaveProposal(writePlan, {
         cardId: writePlan.cardId,
         messageId: `open-finance-final:${proposalRef}`,
         source: 'open_finance.save_proposal.final',
+        requireUserScoped: true,
         reconcileOnly: Boolean(reconcileOnly)
     });
 }
