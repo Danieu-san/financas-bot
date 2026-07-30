@@ -138,6 +138,114 @@ test('9P.4 revalidates the current provider, family source and catalog before pr
     assert.equal(result.financial_writes, 0);
 });
 
+test('9P.4 writes the selected family member independently of the confirming actor', async () => {
+    const cases = [
+        {
+            actorWhatsappId,
+            actorUserId: 'user-daniel',
+            selectedPerson: { id: 'user-thais', label: 'Thaís' },
+            configure(input) {
+                input.review.payload.draft.person = this.selectedPerson;
+            },
+            expectedSheet: 'Cartão Nubank Daniel',
+            expectedUserIdIndex: 6
+        },
+        {
+            actorWhatsappId: 'thais@c.us',
+            actorUserId: 'user-thais',
+            selectedPerson: { id: 'user-daniel', label: 'Daniel' },
+            configure(input) {
+                input.review.payload.draft.person = this.selectedPerson;
+                input.review.payload.draft.paymentMethod = {
+                    id: 'pix',
+                    label: 'PIX',
+                    value: 'PIX'
+                };
+                input.review.payload.draft.financialAccount = {
+                    id: 'account-thais',
+                    label: 'Conta Thaís',
+                    ownerUserId: 'user-thais'
+                };
+                input.review.payload.draft.card = null;
+                input.catalog.paymentMethods.push(
+                    input.review.payload.draft.paymentMethod
+                );
+                input.catalog.financialAccounts.push(
+                    input.review.payload.draft.financialAccount
+                );
+            },
+            expectedSheet: 'Saídas',
+            expectedUserIdIndex: 9
+        }
+    ];
+    const env = {
+        OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
+        OPEN_FINANCE_WRITE_MODE: 'confirm'
+    };
+
+    for (const scenario of cases) {
+        const input = fixture();
+        input.catalog.people.push({ id: 'user-thais', label: 'Thaís' });
+        scenario.configure(input);
+        const store = new OpenFinanceSaveProposalFinalizationStore({
+            secret,
+            authorizedWhatsAppIds: [scenario.actorWhatsappId]
+        });
+        const appendCalls = [];
+        const dependencies = {
+            secret,
+            finalizationStore: store,
+            loadContext: async () => input,
+            appendRowToSheet: async (sheetName, row, options) => {
+                appendCalls.push({ sheetName, row, options });
+                return {
+                    status: 'committed',
+                    receipt: {
+                        sheetName,
+                        updatedRange: `${sheetName}!A2:K2`
+                    }
+                };
+            }
+        };
+
+        try {
+            await prepareOpenFinanceSaveProposalFinalization({
+                proposalRef,
+                actorWhatsappId: scenario.actorWhatsappId,
+                userId: scenario.actorUserId,
+                env,
+                dependencies
+            });
+            const committed = await handleOpenFinanceSaveProposalFinalizationReply({
+                messageBody: 'sim',
+                actorWhatsappId: scenario.actorWhatsappId,
+                userId: scenario.actorUserId,
+                expectedProposalRef: proposalRef,
+                env,
+                dependencies
+            });
+
+            assert.equal(committed.state, 'committed');
+            assert.equal(appendCalls.length, 1);
+            assert.equal(appendCalls[0].sheetName, scenario.expectedSheet);
+            assert.equal(
+                appendCalls[0].row[scenario.expectedUserIdIndex],
+                scenario.selectedPerson.id
+            );
+            assert.equal(
+                appendCalls[0].options.userId,
+                scenario.selectedPerson.id
+            );
+            assert.equal(
+                appendCalls[0].options.messageId,
+                `open-finance-final:${proposalRef}`
+            );
+        } finally {
+            store.close();
+        }
+    }
+});
+
 test('9P.4 fails closed when source changed, catalog lost authorization or Sheets now matches', () => {
     const changed = fixture();
     changed.item.transactions[0] = {

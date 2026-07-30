@@ -10,12 +10,6 @@ independente no commit imutável
 `f8a1e9f41eee3c904f0de69ae465219ef874212d`, sem achado residual e com
 `financial_writes=0`.
 
-OPS-02 também está tecnicamente encerrado. A reauditoria independente do commit
-imutável `ccd4d2e2bb8689d4f838cab21f92ffc6b8b5b6ff` emitiu
-`GO TÉCNICO LOCAL`, encerrou o `HIGH`, os dois `MEDIUM` e o `LOW` do primeiro
-parecer e não identificou lacuna indispensável residual dentro do gate de
-processo único.
-
 9P.4 está tecnicamente encerrado. O recovery de revalidação final, confirmação
 idempotente, operation key e recibo recebeu `GO TÉCNICO LOCAL` independente no
 hash `b98157dfde061793ad94cd025c99b1f8b5145712`. Integração real e produção
@@ -34,6 +28,12 @@ A reauditoria confirmou os oito arquivos, fechou os dois `HIGH` e o `MEDIUM`,
 zerou todas as severidades e não encontrou lacuna causal indispensável. O
 fechamento está em
 `docs/audit/66-open-finance-finalization-independent-close-2026-07-30.md`.
+
+O objetivo ativo é encerrar o primeiro item da fila posterior: atribuição
+familiar uniforme a Daniel ou Thaís. A capacidade já existia; foi adicionada a
+prova cruzada que atravessa confirmação e writer nos dois sentidos do casal.
+Evidência local: finalização `10/10`, conversa guiada `18/18` e catálogo `2/2`.
+Falta publicar e auditar o commit imutável.
 
 ## Workspace vigente
 
@@ -188,10 +188,9 @@ dentro do processo único. O fechamento está em
 `docs/audit/63-ops02-independent-close-2026-07-30.md`.
 
 9P.4 recebeu `GO TÉCNICO LOCAL` no recovery
-`b98157dfde061793ad94cd025c99b1f8b5145712`. O próximo trabalho é verificar,
-na ordem já aprovada, se a atribuição familiar uniforme de um lançamento a
-Daniel ou Thaís já está integralmente coberta por 9P.3/9P.4 antes de alterar o
-produto.
+`b98157dfde061793ad94cd025c99b1f8b5145712`. A atribuição familiar uniforme já
+existia no produto; o candidato atual acrescenta somente a prova causal
+Daniel → Thaís e Thaís → Daniel até o boundary do writer.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -212,9 +211,8 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Verificar estaticamente e por testes se a atribuição familiar uniforme a Daniel
-ou Thaís já está integralmente coberta no fluxo 9P.3/9P.4; corrigir apenas se
-houver lacuna factual.
+Publicar e auditar o candidato imutável da atribuição familiar uniforme; se
+receber `GO`, seguir para o menu numerado de forma de pagamento.
 
 ## Capacidade para retomar
 
@@ -270,6 +268,8 @@ final, confirmação idempotente, operation key e recibo de 9P.4. Somente depois
   `docs/audit/65-open-finance-finalization-reconcile-only-recovery-candidate-2026-07-30.md`;
 - fechamento independente 9P.4:
   `docs/audit/66-open-finance-finalization-independent-close-2026-07-30.md`;
+- candidato de atribuição familiar uniforme:
+  `docs/audit/67-family-assignment-uniformity-candidate-2026-07-30.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:
