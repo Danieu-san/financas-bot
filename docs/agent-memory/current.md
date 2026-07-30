@@ -10,16 +10,15 @@ independente no commit imutável
 `f8a1e9f41eee3c904f0de69ae465219ef874212d`, sem achado residual e com
 `financial_writes=0`.
 
-O objetivo ativo seguinte é reauditar a correção da
-perda silenciosa de liveness da sessão WhatsApp/Puppeteer observada em produção
-Oracle em 2026-07-30.
-PM2, Google, read-model e `/dashboard/health` permaneceram verdes enquanto
-operações do WhatsApp acumulavam `Runtime.callFunctionOn timed out`; não houve
-recuperação automática. O candidato local OPS-02 agora possui monitor
-single-flight pós-`ready`, timeout e limiar de duas falhas, recuperação única
-pelo supervisor, health composto SQLite/WhatsApp e retry limitado do backfill.
-O primeiro candidato recebeu `NO-GO` independente e a recuperação local fecha
-os quatro achados relatados. 9P.4 permanece não autorizado até a reauditoria.
+OPS-02 também está tecnicamente encerrado. A reauditoria independente do commit
+imutável `ccd4d2e2bb8689d4f838cab21f92ffc6b8b5b6ff` emitiu
+`GO TÉCNICO LOCAL`, encerrou o `HIGH`, os dois `MEDIUM` e o `LOW` do primeiro
+parecer e não identificou lacuna indispensável residual dentro do gate de
+processo único.
+
+O objetivo ativo seguinte é delimitar 9P.4: revalidação final da proposta
+revisada contra a fonte autorizada, confirmação idempotente, operation key e
+recibo. Escrita financeira, integração real e produção continuam desligadas.
 
 ## Workspace vigente
 
@@ -27,8 +26,8 @@ Raiz recuperada:
 `C:\Users\Administrador\Documents\FinancasBot\financas-bot`.
 Branch ativa: `codex/whatsapp-liveness-recovery`; base:
 `43c4555f534421aa87fee6ccc97d242d80a1744c`. Primeiro candidato OPS-02:
-`4647ea775f801dcd277d0282a8cc424a43d3f4f3`; o hash da recuperação será
-registrado depois do novo commit sanitizado.
+`4647ea775f801dcd277d0282a8cc424a43d3f4f3`; recuperação auditada:
+`ccd4d2e2bb8689d4f838cab21f92ffc6b8b5b6ff`.
 
 O SSD portátil anterior foi perdido e não é mais a raiz canônica. A produção
 vigente é Oracle/OCI e permanece separada deste gate; o código 9P.3 não foi
@@ -175,23 +174,15 @@ Não houve acesso a Google/WhatsApp real, produção ou deploy.
 
 ## Próximo gate
 
-OPS-02 está em `recuperação pós-NO-GO local verde; reauditoria independente
-pendente`. O
-incidente real comprovou que o health anterior media processo, HTTP e SQLite,
-mas não detectava uma página WhatsApp incapaz de executar funções ou sem
-conexão externa.
+OPS-02 recebeu `GO TÉCNICO LOCAL` independente no commit
+`ccd4d2e2bb8689d4f838cab21f92ffc6b8b5b6ff`. O parecer encerrou o `HIGH`, os
+dois `MEDIUM` e o `LOW`, com zero achado residual e nenhuma lacuna indispensável
+dentro do processo único. O fechamento está em
+`docs/audit/63-ops02-independent-close-2026-07-30.md`.
 
-O primeiro parecer leu os 14 arquivos no hash completo e encontrou `HIGH 1`,
-`MEDIUM 2`, `LOW 1`: retry inexistente do handler absorvido, provas ausentes de
-resolução tardia/saída concorrente e negativo ausente do rescue.
-
-A recuperação separa retry de descoberta do processamento at-most-once,
-propaga falha sanitizada pela entrada pública serializada, prova zero replay e
-zero escrita na falha, centraliza todas as causas numa saída idempotente, trava
-sucesso tardio após recovery e adiciona o negativo do rescue. Evidência:
-`142/142` focal; runner hermético pós-produto `1.325/1.330`, zero falhas e cinco
-skips previstos; contrato de ambiente verde. O audit de dependências continua
-com 11 avisos `high` transitivos preexistentes; o lockfile não mudou.
+O próximo gate é 9P.4: revalidação final, confirmação idempotente, operation key
+e recibo. Ele deve começar com `financial_writes=0` e não autoriza integração
+real ou produção.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -211,14 +202,12 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar o commit sanitizado de recuperação OPS-02 e executar uma reauditoria
-independente no Chat usando o novo hash completo e URLs imutáveis. Não reiniciar
-produção nem alterar a sessão real.
+Delimitar invariantes e RED causal de 9P.4 sem ativar writer, integração real ou
+produção.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → corrigir e auditar a perda silenciosa de liveness do
-WhatsApp antes de retomar 9P.4.`
+`Codex → Sol → Alto → delimitar e implementar o primeiro elo causal de 9P.4.`
 
 ## Fila de produto posterior
 
@@ -262,6 +251,8 @@ final, confirmação idempotente, operation key e recibo de 9P.4. Somente depois
   `docs/audit/59-open-finance-save-proposal-guided-review-chat-pending-2026-07-24.md`;
 - fechamento independente 9P.3:
   `docs/audit/60-open-finance-save-proposal-guided-review-independent-close-2026-07-30.md`;
+- fechamento independente OPS-02:
+  `docs/audit/63-ops02-independent-close-2026-07-30.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:

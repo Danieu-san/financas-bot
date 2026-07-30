@@ -7,7 +7,7 @@ Base:
 
 ## Estado
 
-`RECUPERAÇÃO PÓS-NO-GO LOCAL VERDE; REAUDITORIA INDEPENDENTE PENDENTE`.
+`GO TÉCNICO LOCAL`.
 
 ## Evidência do incidente
 
@@ -94,8 +94,11 @@ durante QR/autenticação e sem criar caminho de duplicação de mensagens.
 6. [concluído com NO-GO] Primeiro commit sanitizado
    `4647ea775f801dcd277d0282a8cc424a43d3f4f3` e auditoria independente.
 7. [concluído localmente] Fechamento de um `HIGH`, dois `MEDIUM` e um `LOW`.
-8. [pendente] Commit de recuperação e reauditoria por novo hash imutável.
-9. [bloqueado até GO] Planejar deploy OCI por artefato com rollback.
+8. [concluído] Commit de recuperação
+   `ccd4d2e2bb8689d4f838cab21f92ffc6b8b5b6ff` e reauditoria independente com
+   `GO TÉCNICO LOCAL`.
+9. [separado] Planejar deploy OCI por artefato com rollback antes de qualquer
+   publicação funcional.
 
 ## Evidência local do candidato
 
@@ -176,12 +179,21 @@ O Chat leu os 14 arquivos no hash
 - ausência de prova da fronteira entre falha isolada e sessão morta;
 - mudança de transporte, pacote ou arquitetura fora deste gate.
 
+## Veredito independente final
+
+O Chat confirmou o hash completo e a leitura integral dos 14 arquivos. O parecer
+encerrou o `HIGH`, os dois `MEDIUM` e o `LOW`, registrou `HIGH 0`, `MEDIUM 0` e
+`LOW 0` residuais e não encontrou lacuna indispensável dentro do gate de
+processo único. A revisão foi estática e não executou os testes.
+
+Fechamento:
+`docs/audit/63-ops02-independent-close-2026-07-30.md`.
+
 ## Próxima ação exata
 
-Publicar o commit de recuperação sanitizado, fornecer o novo hash completo e os
-arquivos exatos ao Chat e exigir reavaliação explícita dos quatro achados. Sem
-resposta auditável, o estado máximo continua `recuperação candidata`.
+Abrir o gate 9P.4 para revalidação final, confirmação idempotente, operation key
+e recibo, mantendo writer, integração real e produção desligados.
 
 ## Capacidade
 
-`Codex → Sol → Alto → implementar e validar causalmente OPS-02.`
+`Codex → Sol → Alto → delimitar e implementar o primeiro elo causal de 9P.4.`
