@@ -103,6 +103,45 @@ function assertCatalogSelection(catalog, kind, selected) {
     return current;
 }
 
+function normalizeText(value) {
+    return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .toLowerCase();
+}
+
+function assertCategorySelection(catalog, selected) {
+    if (selected?.origin !== 'user_created') {
+        return assertCatalogSelection(catalog, 'categories', selected);
+    }
+    const category = String(selected.category || '').trim().replace(/\s+/g, ' ');
+    const normalized = normalizeText(category);
+    const slug = normalized.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    if (!category || category.length > 60 ||
+        selected.label !== category ||
+        String(selected.subcategory || '') !== '' ||
+        String(selected.id || '') !== `new-category:${slug}`.slice(0, 128) ||
+        /^\d+$/.test(category) ||
+        /^[=+\-@]/.test(category) ||
+        /[\u0000-\u001f\u007f]/.test(category) ||
+        ['outro', 'outros', 'sem categoria'].includes(normalized)) {
+        throw new Error('open_finance_final_new_category_forbidden');
+    }
+    const alreadyExists = (catalog.categories || []).some(option =>
+        normalizeText(option.category) === normalized);
+    if (alreadyExists) {
+        throw new Error('open_finance_final_catalog_changed');
+    }
+    return {
+        id: selected.id,
+        label: category,
+        category,
+        subcategory: '',
+        origin: 'user_created'
+    };
+}
+
 function revalidateDraftCatalog(draft = {}, catalog = {}) {
     requireObject(draft, 'open_finance_final_draft_required');
     for (const key of [
@@ -117,7 +156,7 @@ function revalidateDraftCatalog(draft = {}, catalog = {}) {
         }
     }
     const person = assertCatalogSelection(catalog, 'people', draft.person);
-    const category = assertCatalogSelection(catalog, 'categories', draft.category);
+    const category = assertCategorySelection(catalog, draft.category);
     const paymentMethod = assertCatalogSelection(
         catalog,
         'paymentMethods',

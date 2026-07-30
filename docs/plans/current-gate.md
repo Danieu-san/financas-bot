@@ -7,7 +7,7 @@ Base:
 
 ## Estado
 
-`CARACTERIZAÇÃO LOCAL VERDE; AUDITORIA DE ALCANCE PENDENTE`.
+`CORREÇÃO LOCAL VERDE; COMMIT IMUTÁVEL E AUDITORIA PENDENTES`.
 
 ## Objetivo
 
@@ -42,10 +42,10 @@ criação de uma nova.
 
 1. [concluída] Mapear catálogo, menu e tratamento de dúvida.
 2. [concluída] Confirmar o comportamento existente no fluxo financeiro geral.
-3. [em andamento] Auditar se a proposta proativa alcança o mesmo contrato.
-4. [pendente] Implementar somente a menor correção necessária.
-5. [pendente] Executar provas causais e regressão proporcional.
-6. [pendente] Publicar recovery e reauditar, se houver lacuna.
+3. [concluída] Confirmar que a proposta proativa não alcançava a criação.
+4. [concluída] Adicionar criação durável sem segundo write.
+5. [concluída] Executar provas causais e regressão proporcional.
+6. [em andamento] Publicar candidato e auditar por hash imutável.
 7. [pendente] Registrar o fechamento e avançar na fila.
 
 ## Critérios de GO
@@ -65,9 +65,8 @@ criação de uma nova.
 
 ## Próxima ação exata
 
-Publicar a caracterização e auditar o alcance do caminho proativo por hash
-imutável.
+Publicar o candidato sanitizado e auditar a criação durável com um único write.
 
 ## Capacidade
 
-`Codex → Sol → Alto → auditar o alcance da precedência de categorias existentes.`
+`Codex → Sol → Alto → auditar a nova categoria na proposta proativa.`

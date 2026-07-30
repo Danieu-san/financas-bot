@@ -14,6 +14,27 @@ function normalizeReply(value) {
         .toLowerCase();
 }
 
+function normalizeNewCategoryName(value) {
+    const category = String(value || '').trim().replace(/\s+/g, ' ');
+    const normalized = normalizeReply(category);
+    if (!category || category.length > 60 ||
+        /^\d+$/.test(category) ||
+        /^[=+\-@]/.test(category) ||
+        /[\u0000-\u001f\u007f]/.test(category) ||
+        ['outro', 'outros', 'sem categoria'].includes(normalized)) {
+        return null;
+    }
+    const slug = normalized.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    if (!slug) return null;
+    return {
+        id: `new-category:${slug}`.slice(0, 128),
+        label: category,
+        category,
+        subcategory: '',
+        origin: 'user_created'
+    };
+}
+
 function classifySaveProposalReply(value) {
     const normalized = normalizeReply(value);
     if (['sim', 's', 'ss', 'confirmo', 'continuar'].includes(normalized)) return 'accept';
@@ -135,7 +156,16 @@ function formatReviewSummary(payload, { includeMenu = true } = {}) {
 function reviewOptionsForStep(payload = {}) {
     const catalog = payload.catalog || {};
     if (payload.step === 'select_person') return catalog.people || [];
-    if (payload.step === 'select_category') return catalog.categories || [];
+    if (payload.step === 'select_category') {
+        return [
+            ...(catalog.categories || []),
+            {
+                id: '__create_new_category__',
+                label: 'Criar nova categoria',
+                createNew: true
+            }
+        ];
+    }
     if (payload.step === 'select_payment') return catalog.paymentMethods || [];
     if (payload.step === 'select_account') return catalog.financialAccounts || [];
     if (payload.step === 'select_card') return catalog.cards || [];
@@ -490,6 +520,43 @@ function handleOpenFinanceSaveProposalReviewReply({
         }
 
         const payload = review.payload;
+        if (payload.step === 'enter_new_category') {
+            const newCategory = normalizeNewCategoryName(messageBody);
+            const existing = newCategory
+                ? (payload.catalog?.categories || []).some(option =>
+                    normalizeReply(option.category) ===
+                    normalizeReply(newCategory.category))
+                : false;
+            if (!newCategory || existing) {
+                const reason = existing
+                    ? 'Essa categoria já existe. Envie *voltar* e escolha uma opção numerada.'
+                    : 'Envie um nome válido de categoria, sem número isolado ou fórmula.';
+                return {
+                    handled: true,
+                    keep_pending: true,
+                    state: 'review_editing',
+                    proposal_ref: proposalRef,
+                    reply: `${reason}\nNada foi salvo.`,
+                    financial_writes: 0
+                };
+            }
+            const updated = reviewStore.updateReview(proposalRef, {
+                actorWhatsappId,
+                mutate: current => {
+                    current.draft.category = newCategory;
+                    current.step = 'menu';
+                    return current;
+                }
+            });
+            return {
+                handled: true,
+                keep_pending: true,
+                state: 'review_editing',
+                proposal_ref: proposalRef,
+                reply: formatReviewSummary(updated.payload),
+                financial_writes: 0
+            };
+        }
         if (payload.step === 'menu') {
             const fieldByChoice = {
                 '1': 'select_person',
@@ -587,6 +654,24 @@ function handleOpenFinanceSaveProposalReviewReply({
                 state: 'review_editing',
                 proposal_ref: proposalRef,
                 reply: `Escolha o número de uma opção válida.\n\n${formatReviewOptions(payload)}`,
+                financial_writes: 0
+            };
+        }
+        if (payload.step === 'select_category' && selected.createNew) {
+            const updated = reviewStore.updateReview(proposalRef, {
+                actorWhatsappId,
+                mutate: current => ({ ...current, step: 'enter_new_category' })
+            });
+            return {
+                handled: true,
+                keep_pending: true,
+                state: 'review_editing',
+                proposal_ref: proposalRef,
+                reply: [
+                    'Qual é o nome da nova categoria?',
+                    'Ela só será usada se você concluir e confirmar o salvamento.',
+                    'Envie *voltar* para escolher uma categoria existente. Nada foi salvo.'
+                ].join('\n'),
                 financial_writes: 0
             };
         }

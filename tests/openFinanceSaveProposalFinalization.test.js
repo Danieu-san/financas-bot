@@ -246,6 +246,105 @@ test('9P.4 writes the selected family member independently of the confirming act
     }
 });
 
+test('9P.4 accepts one explicit durable new category without adding a second write', async () => {
+    const input = fixture();
+    input.review.payload.draft.category = {
+        id: 'new-category:pets',
+        label: 'Pets',
+        category: 'Pets',
+        subcategory: '',
+        origin: 'user_created'
+    };
+
+    const result = revalidateOpenFinanceSaveProposal({
+        ...input,
+        secret
+    });
+    assert.equal(result.writePlan.sheetName, 'Cartão Nubank Daniel');
+    assert.equal(result.writePlan.row[2], 'Pets');
+    assert.equal(result.writePlan.financial_writes, 0);
+
+    const store = new OpenFinanceSaveProposalFinalizationStore({
+        secret,
+        authorizedWhatsAppIds: [actorWhatsappId]
+    });
+    const appendCalls = [];
+    const dependencies = {
+        secret,
+        finalizationStore: store,
+        loadContext: async () => input,
+        appendRowToSheet: async (sheetName, row, options) => {
+            appendCalls.push({ sheetName, row, options });
+            return {
+                status: 'committed',
+                receipt: {
+                    sheetName,
+                    updatedRange: `${sheetName}!A2:G2`
+                }
+            };
+        }
+    };
+    const env = {
+        OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
+        OPEN_FINANCE_WRITE_MODE: 'confirm'
+    };
+    try {
+        await prepareOpenFinanceSaveProposalFinalization({
+            proposalRef,
+            actorWhatsappId,
+            userId: 'user-daniel',
+            env,
+            dependencies
+        });
+        const committed = await handleOpenFinanceSaveProposalFinalizationReply({
+            messageBody: 'sim',
+            actorWhatsappId,
+            userId: 'user-daniel',
+            expectedProposalRef: proposalRef,
+            env,
+            dependencies
+        });
+        assert.equal(committed.state, 'committed');
+        assert.equal(committed.financial_writes, 1);
+        assert.equal(appendCalls.length, 1);
+        assert.equal(appendCalls[0].row[2], 'Pets');
+        assert.equal(
+            appendCalls[0].options.messageId,
+            `open-finance-final:${proposalRef}`
+        );
+    } finally {
+        store.close();
+    }
+
+    for (const category of ['=IMPORTXML', 'Outros', '1']) {
+        const unsafe = fixture();
+        unsafe.review.payload.draft.category = {
+            id: `new-category:${category.toLowerCase()}`,
+            label: category,
+            category,
+            subcategory: '',
+            origin: 'user_created'
+        };
+        assert.throws(
+            () => revalidateOpenFinanceSaveProposal({ ...unsafe, secret }),
+            /open_finance_final_new_category_forbidden/
+        );
+    }
+
+    const collision = fixture();
+    collision.review.payload.draft.category = {
+        id: 'new-category:alimentacao',
+        label: 'Alimentação',
+        category: 'Alimentação',
+        subcategory: '',
+        origin: 'user_created'
+    };
+    assert.throws(
+        () => revalidateOpenFinanceSaveProposal({ ...collision, secret }),
+        /open_finance_final_catalog_changed/
+    );
+});
+
 test('9P.4 fails closed when source changed, catalog lost authorization or Sheets now matches', () => {
     const changed = fixture();
     changed.item.transactions[0] = {

@@ -480,6 +480,67 @@ test('9P.3 corrects every guided field and only completes a causally valid draft
     }
 });
 
+test('9P.3 lists existing categories before an explicit durable new-category choice', async () => {
+    const harness = createHarness({ transactionId: 'purchase-new-category' });
+    try {
+        await deliverOneOpenFinanceCanary(deliveryInput(harness, {
+            sendMessage: async () => ({ id: 'new-category-message-id' })
+        }));
+        const accepted = handleOpenFinanceSaveProposalReply({
+            messageBody: 'sim',
+            actorWhatsappId,
+            env: harness.env,
+            reviewCatalog
+        });
+        const reply = body => handleOpenFinanceSaveProposalReviewReply({
+            messageBody: body,
+            actorWhatsappId,
+            expectedProposalRef: accepted.proposal_ref,
+            env: harness.env
+        });
+
+        const categoryMenu = reply('2');
+        assert.match(categoryMenu.reply, /^1\. Alimentação \/ SUPERMERCADO$/m);
+        assert.match(categoryMenu.reply, /^2\. Criar nova categoria$/m);
+        assert.ok(
+            categoryMenu.reply.indexOf('Alimentação / SUPERMERCADO') <
+            categoryMenu.reply.indexOf('Criar nova categoria')
+        );
+        assert.match(reply('categoria inventada').reply, /número de uma opção válida/i);
+        assert.match(reply('2').reply, /nome da nova categoria/i);
+        assert.match(reply('1').reply, /nome válido/i);
+        assert.match(reply('=IMPORTXML').reply, /nome válido/i);
+        assert.match(reply('Alimentação').reply, /categoria já existe/i);
+        const created = reply('Pets');
+        assert.match(created.reply, /Categoria: Pets/i);
+        assert.match(created.reply, /Nada foi salvo/i);
+
+        const reopened = new OpenFinanceSaveProposalReviewStore({
+            databasePath: harness.env.OPEN_FINANCE_SHADOW_PREVIEW_DB,
+            secret,
+            authorizedWhatsAppIds: [actorWhatsappId]
+        });
+        try {
+            const stored = reopened.readReviewPrivate(
+                harness.proposalRef,
+                { actorWhatsappId }
+            );
+            assert.equal(stored.state, 'editing');
+            assert.deepEqual(stored.payload.draft.category, {
+                id: 'new-category:pets',
+                label: 'Pets',
+                category: 'Pets',
+                subcategory: '',
+                origin: 'user_created'
+            });
+        } finally {
+            reopened.close();
+        }
+    } finally {
+        harness.close();
+    }
+});
+
 test('9P.3 shows every payment method as a numbered menu and clears stale dependencies', async () => {
     const harness = createHarness({ transactionId: 'purchase-payment-menu' });
     try {

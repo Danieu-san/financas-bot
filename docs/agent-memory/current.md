@@ -25,11 +25,11 @@ O menu numerado de pagamento está encerrado. O primeiro candidato
 `b25ff51b59054483a66a16e926534068e6c074f5` recebeu `GO TÉCNICO LOCAL`,
 zerou todas as severidades e não deixou lacuna causal indispensável.
 
-O objetivo ativo é o terceiro item da fila. O fluxo financeiro geral já oferece
-categorias existentes numeradas antes da criação e a prova focal ficou `5/5`.
-A proposta proativa Open Finance usa revisão própria, lista categorias
-existentes, mas não expõe criação; falta auditoria independente do alcance antes
-de encerrar ou corrigir.
+O objetivo ativo é o terceiro item da fila. O RED confirmou que a proposta
+Open Finance intercepta a conversa antes do assistente geral e não oferecia
+criação. O candidato agora lista existentes antes de `Criar nova categoria`,
+persiste a escolha explícita na revisão e mantém um único write no lançamento
+final. Evidência focal `2/2`; falta commit imutável e auditoria independente.
 
 ## Workspace vigente
 
@@ -201,7 +201,7 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar e auditar a caracterização do alcance da categoria assistida.
+Publicar e auditar o candidato de nova categoria na proposta proativa.
 
 ## Capacidade para retomar
 
@@ -269,6 +269,8 @@ final, confirmação idempotente, operation key e recibo de 9P.4. Somente depois
   `docs/audit/71-payment-method-dependency-independent-close-2026-07-30.md`;
 - caracterização da precedência de categorias existentes:
   `docs/audit/72-category-existing-precedence-characterization-2026-07-30.md`;
+- candidato de nova categoria na proposta proativa:
+  `docs/audit/73-open-finance-new-category-candidate-2026-07-30.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:
