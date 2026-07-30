@@ -1274,9 +1274,31 @@ class OpenFinanceShadowPreviewStore {
         validTimestamp(revokedAt, 'valid_shadow_preview_revocation_time_required');
         const aliasRef = this.#aliasRef(alias);
         const valid = validGeneration(generation);
+        const hasReviews = Boolean(this.db.prepare(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='open_finance_save_proposal_reviews'"
+        ).get());
+        const hasFinalizations = Boolean(this.db.prepare(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='open_finance_save_proposal_finalizations'"
+        ).get());
+        const deleteReviews = hasReviews
+            ? this.db.prepare(`DELETE FROM open_finance_save_proposal_reviews
+                WHERE proposal_ref IN (
+                    SELECT proposal_ref FROM open_finance_save_proposals
+                    WHERE alias_ref=? AND generation<=?
+                )`)
+            : null;
+        const deleteFinalizations = hasFinalizations
+            ? this.db.prepare(`DELETE FROM open_finance_save_proposal_finalizations
+                WHERE proposal_ref IN (
+                    SELECT proposal_ref FROM open_finance_save_proposals
+                    WHERE alias_ref=? AND generation<=?
+                )`)
+            : null;
         const result = this.db.transaction(() => ({
             previews: this.db.prepare('DELETE FROM shadow_preview_items WHERE alias_ref=? AND generation<=?')
                 .run(aliasRef, valid).changes,
+            reviews: deleteReviews?.run(aliasRef, valid).changes || 0,
+            finalizations: deleteFinalizations?.run(aliasRef, valid).changes || 0,
             saveProposals: this.db.prepare(
                 'DELETE FROM open_finance_save_proposals WHERE alias_ref=? AND generation<=?'
             ).run(aliasRef, valid).changes
@@ -1284,6 +1306,8 @@ class OpenFinanceShadowPreviewStore {
         this.#hardenFiles();
         return {
             removed_previews: result.previews,
+            removed_save_proposal_reviews: result.reviews,
+            removed_save_proposal_finalizations: result.finalizations,
             removed_save_proposals: result.saveProposals,
             financial_writes: 0
         };
@@ -1292,10 +1316,32 @@ class OpenFinanceShadowPreviewStore {
     reapplyRevocations({ revocations = [] } = {}) {
         let removed = 0;
         let removedSaveProposals = 0;
+        let removedSaveProposalReviews = 0;
+        let removedSaveProposalFinalizations = 0;
         const statement = this.db.prepare('DELETE FROM shadow_preview_items WHERE alias_ref=? AND generation<=?');
         const saveProposalStatement = this.db.prepare(
             'DELETE FROM open_finance_save_proposals WHERE alias_ref=? AND generation<=?'
         );
+        const hasReviews = Boolean(this.db.prepare(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='open_finance_save_proposal_reviews'"
+        ).get());
+        const hasFinalizations = Boolean(this.db.prepare(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='open_finance_save_proposal_finalizations'"
+        ).get());
+        const reviewStatement = hasReviews
+            ? this.db.prepare(`DELETE FROM open_finance_save_proposal_reviews
+                WHERE proposal_ref IN (
+                    SELECT proposal_ref FROM open_finance_save_proposals
+                    WHERE alias_ref=? AND generation<=?
+                )`)
+            : null;
+        const finalizationStatement = hasFinalizations
+            ? this.db.prepare(`DELETE FROM open_finance_save_proposal_finalizations
+                WHERE proposal_ref IN (
+                    SELECT proposal_ref FROM open_finance_save_proposals
+                    WHERE alias_ref=? AND generation<=?
+                )`)
+            : null;
         this.db.transaction(() => {
             for (const revocation of revocations) {
                 if (!/^[a-f0-9]{32}$/.test(String(revocation.alias_ref || ''))) {
@@ -1303,12 +1349,18 @@ class OpenFinanceShadowPreviewStore {
                 }
                 const generation = validGeneration(revocation.generation);
                 removed += statement.run(revocation.alias_ref, generation).changes;
+                removedSaveProposalReviews +=
+                    reviewStatement?.run(revocation.alias_ref, generation).changes || 0;
+                removedSaveProposalFinalizations +=
+                    finalizationStatement?.run(revocation.alias_ref, generation).changes || 0;
                 removedSaveProposals += saveProposalStatement.run(revocation.alias_ref, generation).changes;
             }
         })();
         this.#hardenFiles();
         return {
             removed_previews: removed,
+            removed_save_proposal_reviews: removedSaveProposalReviews,
+            removed_save_proposal_finalizations: removedSaveProposalFinalizations,
             removed_save_proposals: removedSaveProposals,
             financial_writes: 0
         };

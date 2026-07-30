@@ -53,7 +53,12 @@ const reviewCatalog = {
         { id: 'account-nubank', label: 'Nubank Daniel', ownerUserId: 'user-daniel' }
     ],
     cards: [
-        { id: 'card-nubank', label: 'Nubank Daniel' }
+        {
+            id: 'card-nubank',
+            label: 'Nubank Daniel',
+            cardId: 'nubank-daniel',
+            closingDay: 25
+        }
     ]
 };
 

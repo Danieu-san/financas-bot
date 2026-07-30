@@ -117,6 +117,11 @@ const {
 const {
     buildOpenFinanceSaveProposalReviewCatalog
 } = require('../openFinance/openFinanceSaveProposalReviewCatalog');
+const {
+    prepareOpenFinanceSaveProposalFinalization,
+    handleOpenFinanceSaveProposalFinalizationReply,
+    acknowledgeOpenFinanceSaveProposalReceipt
+} = require('../openFinance/openFinanceSaveProposalFinalization');
 const { recordQaFailure } = require('../services/qaFailureLogService');
 const { recordAdminAction, hashRef, sanitizeValue } = require('../services/adminActionLogService');
 const { recordDashboardAccessEvent } = require('../services/dashboardAccessLogService');
@@ -9244,6 +9249,40 @@ async function processMessage(msg) {
     let currentState = getConversationStateForMessage(senderId, activeUser);
     if (!currentState || [
         'awaiting_open_finance_save_review',
+        'awaiting_open_finance_save_confirmation',
+        'awaiting_open_finance_final_confirmation'
+    ].includes(currentState.action)) {
+        const finalReply = await handleOpenFinanceSaveProposalFinalizationReply({
+            messageBody,
+            actorWhatsappId: senderId,
+            userId,
+            expectedProposalRef: currentState?.action ===
+                'awaiting_open_finance_final_confirmation'
+                ? currentState?.data?.proposalRef || null
+                : null
+        });
+        if (finalReply.handled) {
+            if (finalReply.keep_pending) {
+                userStateManager.setState(senderId, {
+                    action: 'awaiting_open_finance_final_confirmation',
+                    data: { proposalRef: finalReply.proposal_ref }
+                });
+            } else {
+                userStateManager.deleteState(senderId);
+            }
+            await sendPlainMessage(msg, finalReply.reply);
+            if (finalReply.acknowledge_receipt) {
+                acknowledgeOpenFinanceSaveProposalReceipt({
+                    proposalRef: finalReply.proposal_ref,
+                    actorWhatsappId: senderId
+                });
+                userStateManager.deleteState(senderId);
+            }
+            return;
+        }
+    }
+    if (!currentState || [
+        'awaiting_open_finance_save_review',
         'awaiting_open_finance_save_confirmation'
     ].includes(currentState.action)) {
         const reviewReply = handleOpenFinanceSaveProposalReviewReply({
@@ -9255,6 +9294,21 @@ async function processMessage(msg) {
                 : null
         });
         if (reviewReply.handled) {
+            if (reviewReply.state === 'review_ready') {
+                const finalization = await prepareOpenFinanceSaveProposalFinalization({
+                    proposalRef: reviewReply.proposal_ref,
+                    actorWhatsappId: senderId,
+                    userId
+                });
+                if (finalization.handled) {
+                    userStateManager.setState(senderId, {
+                        action: 'awaiting_open_finance_final_confirmation',
+                        data: { proposalRef: finalization.proposal_ref }
+                    });
+                    await sendPlainMessage(msg, finalization.reply);
+                    return;
+                }
+            }
             if (reviewReply.keep_pending) {
                 userStateManager.setState(senderId, {
                     action: 'awaiting_open_finance_save_review',

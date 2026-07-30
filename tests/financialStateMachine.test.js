@@ -120,6 +120,7 @@ function resetSheets() {
     sheets.Entradas = [['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável', 'Recebimento', 'Recorrente', 'Observações', 'user_id', 'Conta Financeira']];
     sheets.Transferências = [['Data', 'Descrição', 'Valor', 'Origem', 'Destino', 'Método', 'Observações', 'Status', 'user_id']];
     sheets['Lançamentos Cartão'] = [['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Status', 'user_id']];
+    sheets['Cartões'] = [['card_id', 'Nome', 'Vencimento', 'Fechamento', 'Responsável', 'Ativo', 'Observações']];
     sheets.Categorias = [['Categoria', 'Subcategoria', 'Ativa', 'Criada em', 'user_id']];
     sheets.Contas = [['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa']];
     sheets['Contas Financeiras'] = [['Nome da Conta', 'Tipo', 'Saldo Inicial', 'Data de Abertura', 'Status', 'Moeda', 'Responsável', 'user_id', 'Observações']];
@@ -291,6 +292,13 @@ function installMocks() {
                 }
                 sheets[name].push(row);
                 appendedRows.push({ sheetName: name, row, options });
+                return {
+                    status: 'committed',
+                    receipt: {
+                        sheetName: name,
+                        updatedRange: `${name}!A${sheets[name].length}`
+                    }
+                };
             },
             createCalendarEvent: async (title, startDateTime, recurrenceRule, options = {}) => {
                 const event = { title, startDateTime, recurrenceRule, options };
@@ -322,6 +330,7 @@ function installMocks() {
                 return { success: true };
             },
             hasUserSpreadsheetContext: async () => usesPersonalSpreadsheet,
+            runWithUserSheetContext: async (_user, action) => action(),
             syncDashboardForUser: async () => {},
             __test__: {
                 eventBelongsToUser: (event, userId) => event?.extendedProperties?.private?.user_id === userId
@@ -421,6 +430,12 @@ const { OpenFinanceShadowPreviewStore } = require('../src/openFinance/openFinanc
 const {
     OpenFinanceSaveProposalReviewStore
 } = require('../src/openFinance/openFinanceSaveProposalReviewStore');
+const {
+    OpenFinanceSaveProposalFinalizationStore
+} = require('../src/openFinance/openFinanceSaveProposalFinalizationStore');
+const {
+    OpenFinanceLiveStagingVault
+} = require('../src/openFinance/openFinanceLiveStagingVault');
 const { observationRef } = require('../src/openFinance/openFinanceRuntimeReconciliation');
 const originalRateLimiterIsAllowed = rateLimiter.isAllowed;
 const {
@@ -2782,6 +2797,266 @@ stateMachineTest('audio ingress discards status and outgoing messages before tra
     assert.strictEqual(audioHandleCalls, 0);
     assert.deepStrictEqual(statusMessage.replies, []);
     assert.deepStrictEqual(outgoingMessage.replies, []);
+});
+
+stateMachineTest('9P.4 public handler writes once, survives receipt send failure and closes on replay', async () => {
+    resetState();
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-public-finalization-'));
+    const paths = {
+        secret: path.join(directory, 'secret.txt'),
+        staging: path.join(directory, 'staging.sqlite'),
+        journal: path.join(directory, 'journal.sqlite'),
+        preview: path.join(directory, 'preview.sqlite'),
+        mapping: path.join(directory, 'mapping.json')
+    };
+    const secret = 'open-finance-public-final-secret-32-bytes';
+    const item = {
+        id: 'public-final-item',
+        alias_code: 'daniel_nubank',
+        owner_scope: 'daniel',
+        availability: {
+            accounts: 'available',
+            transactions: 'available',
+            bills: 'available',
+            investments: 'available'
+        },
+        accounts: [{
+            id: 'public-final-credit',
+            type: 'CREDIT',
+            name: 'Nubank Daniel',
+            balance_cents: 0
+        }],
+        transactions: [{
+            id: 'public-final-purchase',
+            provider_id: 'public-final-provider',
+            account_id: 'public-final-credit',
+            amount_cents: 2590,
+            description: 'Mercado final público',
+            date: new Date(Date.now() - 3_600_000).toISOString(),
+            status: 'POSTED'
+        }],
+        bills: [],
+        investments: []
+    };
+    fs.writeFileSync(paths.secret, secret, { mode: 0o600 });
+    fs.writeFileSync(paths.mapping, JSON.stringify([{
+        itemId: item.id,
+        alias: item.alias_code,
+        ownerScope: 'daniel',
+        generation: 2
+    }]));
+    const vault = new OpenFinanceLiveStagingVault({
+        databasePath: paths.staging,
+        secret
+    });
+    vault.ingestSnapshot({
+        provider: 'pluggy',
+        mode: 'live_readonly_staging',
+        event_id: 'public-final-event',
+        observed_at: new Date().toISOString(),
+        collection_health: { complete: true, warning_count: 0 },
+        items: [item]
+    });
+    vault.close();
+    const journal = new OpenFinanceRevocationJournal({
+        databasePath: paths.journal,
+        secret
+    });
+    const preview = new OpenFinanceShadowPreviewStore({
+        databasePath: paths.preview,
+        secret,
+        revocationJournal: journal,
+        authorizedWhatsAppIds: [SENDER],
+        confirmationActors: [{
+            principal: 'daniel',
+            whatsappId: SENDER
+        }]
+    });
+    const observation = observationRef(
+        secret,
+        item.id,
+        item.transactions[0].account_id,
+        item.transactions[0].id
+    );
+    const ingested = preview.ingestSaveProposals({
+        reconciliationDecisions: [{
+            alias: item.alias_code,
+            observation_ref: observation,
+            transaction_ref: 'public-final-transaction',
+            status: 'new',
+            rule: 'no_candidate'
+        }],
+        lifecycleDecisions: [{
+            observation_ref: observation,
+            classification: 'purchase',
+            provider_state: 'POSTED',
+            lifecycle_milestone: 'first_posted'
+        }],
+        openFinanceItems: [{ ...item, generation: 2 }],
+        policies: [{
+            alias: item.alias_code,
+            write_confirmation_principal: 'daniel'
+        }],
+        observedAt: new Date(Date.now() - 60_000).toISOString(),
+        includeProposalLinks: true
+    });
+    const proposalRef = ingested.proposal_links[0].proposal_ref;
+    const confirmation = preview.prepareSaveProposalConfirmation(proposalRef, {
+        actorWhatsappId: SENDER
+    });
+    preview.decideSaveProposalConfirmation(
+        confirmation.confirmation_ref,
+        'accept',
+        { actorWhatsappId: SENDER }
+    );
+    const proposal = preview.readReviewableSaveProposal(proposalRef, {
+        actorWhatsappId: SENDER
+    });
+    preview.close();
+    journal.close();
+
+    sheets.Categorias.push([
+        'Alimentação',
+        'Mercado',
+        'SIM',
+        new Date().toISOString(),
+        USER_ID
+    ]);
+    sheets['Cartões'].push([
+        'nubank-daniel',
+        'Nubank - Daniel',
+        '10',
+        '25',
+        'Usuario Estado',
+        'SIM',
+        ''
+    ]);
+    usesPersonalSpreadsheet = true;
+    const reviewStore = new OpenFinanceSaveProposalReviewStore({
+        databasePath: paths.preview,
+        secret,
+        authorizedWhatsAppIds: [SENDER]
+    });
+    const catalog = {
+        people: [{ id: USER_ID, label: 'Usuario Estado' }],
+        categories: [{
+            id: 'category:alimentacao:mercado',
+            label: 'Alimentação / Mercado',
+            category: 'Alimentação',
+            subcategory: 'Mercado'
+        }],
+        paymentMethods: [{
+            id: 'credit',
+            label: 'Crédito',
+            value: 'Crédito'
+        }],
+        financialAccounts: [],
+        cards: [{
+            id: 'card:nubank-daniel',
+            label: 'Nubank - Daniel',
+            cardId: 'nubank-daniel',
+            closingDay: 25
+        }]
+    };
+    reviewStore.prepareReview({
+        proposalRef,
+        proposal,
+        actorWhatsappId: SENDER,
+        catalog
+    });
+    reviewStore.activateReview(proposalRef, { actorWhatsappId: SENDER });
+    reviewStore.updateReview(proposalRef, {
+        actorWhatsappId: SENDER,
+        mutate: current => ({
+            ...current,
+            step: 'menu',
+            draft: {
+                person: catalog.people[0],
+                category: catalog.categories[0],
+                paymentMethod: catalog.paymentMethods[0],
+                financialAccount: null,
+                card: catalog.cards[0]
+            }
+        })
+    });
+    reviewStore.completeReview(proposalRef, { actorWhatsappId: SENDER });
+    reviewStore.close();
+
+    const variableNames = [
+        'OPEN_FINANCE_SAVE_PROPOSAL_MODE',
+        'OPEN_FINANCE_WRITE_MODE',
+        'OPEN_FINANCE_LIVE_STAGING_SECRET_FILE',
+        'OPEN_FINANCE_LIVE_STAGING_DB',
+        'OPEN_FINANCE_REVOCATION_JOURNAL_DB',
+        'OPEN_FINANCE_SHADOW_PREVIEW_DB',
+        'PLUGGY_ITEM_MAP_FILE'
+    ];
+    const previous = Object.fromEntries(variableNames.map(name => [name, process.env[name]]));
+    Object.assign(process.env, {
+        OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
+        OPEN_FINANCE_WRITE_MODE: 'confirm',
+        OPEN_FINANCE_LIVE_STAGING_SECRET_FILE: paths.secret,
+        OPEN_FINANCE_LIVE_STAGING_DB: paths.staging,
+        OPEN_FINANCE_REVOCATION_JOURNAL_DB: paths.journal,
+        OPEN_FINANCE_SHADOW_PREVIEW_DB: paths.preview,
+        PLUGGY_ITEM_MAP_FILE: paths.mapping
+    });
+    try {
+        const finalPrompt = await send('continuar');
+        assert.match(finalPrompt, /Confirma o salvamento/i);
+        assert.equal(appendedRows.length, 0);
+        assert.equal(
+            userStateManager.getState(SENDER).action,
+            'awaiting_open_finance_final_confirmation'
+        );
+
+        failNextPlainMessage = true;
+        appendRowDelayMs = 20;
+        const firstConfirmation = createMockMessage('sim');
+        const concurrentConfirmation = createMockMessage('sim');
+        await Promise.all([
+            handleMessage(firstConfirmation),
+            handleMessage(concurrentConfirmation)
+        ]);
+        assert.equal(appendedRows.length, 1);
+        assert.equal(appendedRows[0].options.cardId, 'nubank-daniel');
+        const recoveredReceipt = [
+            ...firstConfirmation.replies,
+            ...concurrentConfirmation.replies
+        ].find(reply => /Recibo/.test(reply));
+        assert.ok(recoveredReceipt);
+        assert.equal(appendedRows.length, 1);
+        assert.equal(userStateManager.getState(SENDER), undefined);
+
+        const finalizationStore = new OpenFinanceSaveProposalFinalizationStore({
+            databasePath: paths.preview,
+            secret,
+            authorizedWhatsAppIds: [SENDER]
+        });
+        const reopenedReviewStore = new OpenFinanceSaveProposalReviewStore({
+            databasePath: paths.preview,
+            secret,
+            authorizedWhatsAppIds: [SENDER]
+        });
+        try {
+            assert.equal(finalizationStore.read(proposalRef, {
+                actorWhatsappId: SENDER
+            }).state, 'receipt_delivered');
+            assert.equal(reopenedReviewStore.readReviewPrivate(proposalRef, {
+                actorWhatsappId: SENDER
+            }).state, 'finalized');
+        } finally {
+            reopenedReviewStore.close();
+            finalizationStore.close();
+        }
+    } finally {
+        for (const name of variableNames) {
+            if (previous[name] === undefined) delete process.env[name];
+            else process.env[name] = previous[name];
+        }
+        userStateManager.deleteState(SENDER);
+        fs.rmSync(directory, { recursive: true, force: true });
+    }
 });
 
 stateMachineTest('unread backfill uses the public serialized handler and never retries ambiguous processing', async () => {

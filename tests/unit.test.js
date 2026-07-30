@@ -5187,6 +5187,14 @@ test('google user spreadsheet mapping keeps legacy card flows compatible', (t) =
         mapRowForUserSpreadsheet('Cartão Nubank - Daniel', ['10/02/2026', 'mercado', 'Alimentação', 50, '1/1', 'Fevereiro de 2026', 'user-1']),
         ['10/02/2026', 'mercado', 'Alimentação', 50, '1/1', 'Fevereiro de 2026', 'nubank-daniel', 'Cartão Nubank - Daniel', '', 'user-1']
     );
+    assert.deepStrictEqual(
+        mapRowForUserSpreadsheet(
+            'Cartão Nome Amigável',
+            ['10/02/2026', 'mercado', 'Alimentação', 50, '1/1', 'Fevereiro de 2026', 'user-1'],
+            { cardId: 'card-stable-123' }
+        ),
+        ['10/02/2026', 'mercado', 'Alimentação', 50, '1/1', 'Fevereiro de 2026', 'card-stable-123', 'Cartão Nome Amigável', '', 'user-1']
+    );
 
     assert.deepStrictEqual(
         mapValuesFromUserSpreadsheetRange('Cartão Nubank - Daniel!A:G', [

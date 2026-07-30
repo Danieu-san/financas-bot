@@ -16,18 +16,17 @@ imutável `ccd4d2e2bb8689d4f838cab21f92ffc6b8b5b6ff` emitiu
 parecer e não identificou lacuna indispensável residual dentro do gate de
 processo único.
 
-O objetivo ativo seguinte é delimitar 9P.4: revalidação final da proposta
-revisada contra a fonte autorizada, confirmação idempotente, operation key e
-recibo. Escrita financeira, integração real e produção continuam desligadas.
+O objetivo ativo é fechar 9P.4. O candidato local de revalidação final,
+confirmação idempotente, operation key e recibo está verde e aguarda commit
+imutável e auditoria independente. Integração real e produção continuam
+desligadas.
 
 ## Workspace vigente
 
 Raiz recuperada:
 `C:\Users\Administrador\Documents\FinancasBot\financas-bot`.
-Branch ativa: `codex/whatsapp-liveness-recovery`; base:
-`43c4555f534421aa87fee6ccc97d242d80a1744c`. Primeiro candidato OPS-02:
-`4647ea775f801dcd277d0282a8cc424a43d3f4f3`; recuperação auditada:
-`ccd4d2e2bb8689d4f838cab21f92ffc6b8b5b6ff`.
+Branch ativa: `codex/open-finance-finalization`; base:
+`20b8b7873c6626a3e74019ef025624e75303df7f`.
 
 O SSD portátil anterior foi perdido e não é mais a raiz canônica. A produção
 vigente é Oracle/OCI e permanece separada deste gate; o código 9P.3 não foi
@@ -68,7 +67,7 @@ confirmou o hash e os arquivos, encerrou M1, M2 e M3, registrou `CRITICAL 0`,
 O fechamento está em
 `docs/audit/60-open-finance-save-proposal-guided-review-independent-close-2026-07-30.md`.
 
-Alterações intencionais: produto, testes, plano e manifesto de 9P.3.
+Alterações intencionais: produto, testes, plano e manifesto de 9P.4.
 Não executar fase 8, produção, Oracle/AWS, cofre Pluggy ou integrações reais.
 
 Não houve transporte WhatsApp real, escrita financeira, produção, Google ou
@@ -161,7 +160,7 @@ Não houve acesso a Google/WhatsApp real, produção ou deploy.
 
 ## Git e workspace
 
-- branch ativa: `codex/open-finance-save-proposal`;
+- branch ativa: `codex/open-finance-finalization`;
 - último produto com `GO TÉCNICO LOCAL`:
   `f8a1e9f41eee3c904f0de69ae465219ef874212d`;
 - fechamento documental de 9P.0:
@@ -180,16 +179,17 @@ dois `MEDIUM` e o `LOW`, com zero achado residual e nenhuma lacuna indispensáve
 dentro do processo único. O fechamento está em
 `docs/audit/63-ops02-independent-close-2026-07-30.md`.
 
-O próximo gate é 9P.4: revalidação final, confirmação idempotente, operation key
-e recibo. Ele deve começar com `financial_writes=0` e não autoriza integração
-real ou produção.
+O candidato 9P.4 está localmente verde: focal `8/8`, entrada pública `124/124`,
+Open Finance ampliado `55/55` e runner hermético `1.335/1.340`, com zero falhas
+e cinco skips previstos. Ainda não há `GO`: falta auditoria independente do
+commit imutável.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
 ## Decisões vigentes
 
-- manter `Codex → Sol → Alto` no próximo gate, que cruza transporte WhatsApp,
-  Puppeteer, supervisor, health e recuperação sem duplicidade;
+- manter `Codex → Sol → Alto` até fechar 9P.4, que cruza revalidação, estado
+  durável, entrada FIFO, ledger idempotente e recuperação de recibo;
 - parar e avisar Daniel antes de reduzir ou trocar capacidade;
 - a produção vigente é Oracle/OCI; não reutilizar caminhos AWS e não executar
   Oracle e AWS simultaneamente com a mesma sessão WhatsApp;
@@ -202,12 +202,12 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Delimitar invariantes e RED causal de 9P.4 sem ativar writer, integração real ou
-produção.
+Publicar o candidato 9P.4 sanitizado, auditar o hash imutável no Chat e
+confrontar o parecer com a evidência local.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → delimitar e implementar o primeiro elo causal de 9P.4.`
+`Codex → Sol → Alto → publicar e auditar o candidato imutável de 9P.4.`
 
 ## Fila de produto posterior
 
@@ -253,6 +253,8 @@ final, confirmação idempotente, operation key e recibo de 9P.4. Somente depois
   `docs/audit/60-open-finance-save-proposal-guided-review-independent-close-2026-07-30.md`;
 - fechamento independente OPS-02:
   `docs/audit/63-ops02-independent-close-2026-07-30.md`;
+- candidato 9P.4:
+  `docs/audit/64-open-finance-save-proposal-finalization-candidate-2026-07-30.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:

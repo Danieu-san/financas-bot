@@ -109,7 +109,7 @@ function cardIdFromLegacySheetName(sheetName) {
         .replace(/^-+|-+$/g, '') || 'cartao';
 }
 
-function mapRowForUserSpreadsheet(sheetName, row) {
+function mapRowForUserSpreadsheet(sheetName, row, options = {}) {
     if (!isLegacyCreditCardSheetName(sheetName)) return row;
     return [
         row[0] || '',
@@ -118,7 +118,7 @@ function mapRowForUserSpreadsheet(sheetName, row) {
         row[3] || '',
         row[4] || '',
         row[5] || '',
-        cardIdFromLegacySheetName(sheetName),
+        String(options.cardId || '').trim() || cardIdFromLegacySheetName(sheetName),
         sheetName,
         '',
         row[6] || ''
@@ -806,7 +806,9 @@ async function appendRowToSheet(sheetName, row, options = {}) {
     validateUserScopedWrite(sheetName, row);
     const target = await resolveSpreadsheetTarget({ ...options, sheetName });
     const mappedSheetName = target.userScoped ? mapSheetNameForUserSpreadsheet(sheetName) : sheetName;
-    const mappedRow = target.userScoped ? mapRowForUserSpreadsheet(sheetName, row) : row;
+    const mappedRow = target.userScoped
+        ? mapRowForUserSpreadsheet(sheetName, row, options)
+        : row;
     const userEnteredRow = neutralizeUserEnteredRow(mappedRow);
     const writeContext = sheetContext.getStore() || {};
     const operationKey = resolveAppendOperationKey(sheetName, mappedRow, options, writeContext);

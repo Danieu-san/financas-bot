@@ -62,6 +62,16 @@ function normalizeCatalogItems(items, kind, limit) {
                 ownerUserId: String(item.ownerUserId || '').trim()
             };
         }
+        if (kind === 'cards') {
+            const cardId = String(item.cardId || '').trim();
+            const closingDay = Number(item.closingDay);
+            if (!cardId || cardId.length > 128 ||
+                !Number.isInteger(closingDay) ||
+                closingDay < 1 || closingDay > 31) {
+                throw new Error('invalid_open_finance_save_review_cards_catalog');
+            }
+            return { id, label, cardId, closingDay };
+        }
         return { id, label };
     });
 }
@@ -219,11 +229,13 @@ class OpenFinanceSaveProposalReviewStore {
 
     #assertRow(row) {
         if (!row || row.family_scope_ref !== this.familyScopeRef ||
-            !['prepared', 'editing', 'ready', 'cancelled', 'expired'].includes(row.review_state) ||
+            !['prepared', 'editing', 'ready', 'finalized', 'cancelled', 'expired']
+                .includes(row.review_state) ||
             row.state_mac !== this.#stateMac(row)) {
             throw new Error('open_finance_save_review_state_metadata_mismatch');
         }
-        const terminal = ['ready', 'cancelled', 'expired'].includes(row.review_state);
+        const terminal = ['ready', 'finalized', 'cancelled', 'expired']
+            .includes(row.review_state);
         if ((terminal && !row.completed_at) || (!terminal && row.completed_at) ||
             (row.review_state === 'expired' && (row.encrypted_payload || row.payload_version)) ||
             (row.review_state !== 'expired' &&
@@ -441,6 +453,14 @@ class OpenFinanceSaveProposalReviewStore {
         });
     }
 
+    finalizeReview(proposalRef, { actorWhatsappId } = {}) {
+        return this.#transition(proposalRef, {
+            actorWhatsappId,
+            allowedStates: ['ready', 'finalized'],
+            targetState: 'finalized'
+        });
+    }
+
     cancelReview(proposalRef, { actorWhatsappId } = {}) {
         return this.#transition(proposalRef, {
             actorWhatsappId,
@@ -472,7 +492,7 @@ class OpenFinanceSaveProposalReviewStore {
             };
         }
         const updatedAt = this.#now();
-        const terminal = ['ready', 'cancelled'].includes(targetState);
+        const terminal = ['ready', 'finalized', 'cancelled'].includes(targetState);
         const nextRow = {
             ...row,
             review_state: targetState,
@@ -522,6 +542,27 @@ class OpenFinanceSaveProposalReviewStore {
                     proposal_ref: row.proposal_ref,
                     state: row.review_state,
                     step: payload.step,
+                    financial_writes: 0
+                };
+            });
+    }
+
+    listReadyReviews({ actorWhatsappId, limit = 2 } = {}) {
+        const actorRef = this.#requireActor(actorWhatsappId);
+        if (!Number.isInteger(limit) || limit < 1 || limit > 10) {
+            throw new Error('valid_open_finance_save_review_limit_required');
+        }
+        this.purgeExpired();
+        return this.db.prepare(`SELECT * FROM open_finance_save_proposal_reviews
+            WHERE family_scope_ref=? AND actor_ref=? AND review_state='ready'
+            ORDER BY updated_at,proposal_ref LIMIT ?`)
+            .all(this.familyScopeRef, actorRef, limit)
+            .map((row) => {
+                const payload = this.#readPayload(row);
+                return {
+                    proposal_ref: row.proposal_ref,
+                    state: row.review_state,
+                    expires_at: payload.expires_at,
                     financial_writes: 0
                 };
             });

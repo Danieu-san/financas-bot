@@ -26,8 +26,11 @@ function assertPromptConfiguration(env = process.env) {
     const mode = String(env.OPEN_FINANCE_SAVE_PROPOSAL_MODE || 'off').trim().toLowerCase();
     if (['off', 'shadow'].includes(mode)) return { enabled: false };
     if (mode !== 'prompt') throw new Error('invalid_open_finance_save_proposal_mode');
-    if (String(env.OPEN_FINANCE_WRITE_MODE || 'off').trim().toLowerCase() !== 'off') {
-        throw new Error('open_finance_prompt_requires_write_mode_off');
+    const writeMode = String(env.OPEN_FINANCE_WRITE_MODE || 'off')
+        .trim()
+        .toLowerCase();
+    if (!['off', 'confirm'].includes(writeMode)) {
+        throw new Error('open_finance_save_proposal_write_mode_invalid');
     }
     const required = [
         env.OPEN_FINANCE_LIVE_STAGING_SECRET_FILE,
@@ -38,7 +41,7 @@ function assertPromptConfiguration(env = process.env) {
     if (required.some(file => !file || !fs.existsSync(file))) {
         throw new Error('open_finance_save_proposal_state_unavailable');
     }
-    return { enabled: true };
+    return { enabled: true, writeMode };
 }
 
 function formatMoneyFromCents(value) {
@@ -566,7 +569,12 @@ function handleOpenFinanceSaveProposalReviewReply({
                         ownerUserId: selected.ownerUserId || ''
                     };
                 } else if (current.step === 'select_card') {
-                    current.draft.card = { id: selected.id, label: selected.label };
+                    current.draft.card = {
+                        id: selected.id,
+                        label: selected.label,
+                        cardId: selected.cardId,
+                        closingDay: selected.closingDay
+                    };
                 }
                 current.step = 'menu';
                 return current;

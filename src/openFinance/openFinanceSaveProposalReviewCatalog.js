@@ -90,6 +90,7 @@ function cardsFromRows(rows = []) {
         .map((row) => {
             const rawId = String(row?.[0] || '').trim();
             const name = String(row?.[1] || rawId).trim();
+            const closingDay = Number.parseInt(row?.[3], 10);
             const active = normalizeText(row?.[5] || 'sim');
             if (!name || ['nao', 'n', 'false', '0', 'inativo', 'inativa'].includes(active)) {
                 return null;
@@ -97,7 +98,15 @@ function cardsFromRows(rows = []) {
             const id = stableId('card', rawId || name);
             if (seen.has(id)) return null;
             seen.add(id);
-            return { id, label: name };
+            return {
+                id,
+                label: name,
+                cardId: rawId || name,
+                closingDay: Number.isInteger(closingDay) &&
+                    closingDay >= 1 && closingDay <= 31
+                    ? closingDay
+                    : 1
+            };
         })
         .filter(Boolean)
         .slice(0, 50);
