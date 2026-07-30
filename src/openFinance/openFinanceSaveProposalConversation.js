@@ -559,7 +559,10 @@ function handleOpenFinanceSaveProposalReviewReply({
                     };
                     if (selected.value === 'Crédito') {
                         current.draft.financialAccount = null;
+                    } else if (['Débito', 'PIX'].includes(selected.value)) {
+                        current.draft.card = null;
                     } else {
+                        current.draft.financialAccount = null;
                         current.draft.card = null;
                     }
                 } else if (current.step === 'select_account') {

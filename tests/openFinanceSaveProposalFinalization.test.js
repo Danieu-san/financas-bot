@@ -289,6 +289,52 @@ test('9P.4 fails closed when source changed, catalog lost authorization or Sheet
     );
 });
 
+test('9P.4 accepts clean cash selection and rejects a stale financial account', () => {
+    const clean = fixture();
+    clean.review.payload.draft.paymentMethod = {
+        id: 'cash',
+        label: 'Dinheiro',
+        value: 'Dinheiro'
+    };
+    clean.review.payload.draft.financialAccount = null;
+    clean.review.payload.draft.card = null;
+    clean.catalog.paymentMethods.push(
+        clean.review.payload.draft.paymentMethod
+    );
+
+    const validated = revalidateOpenFinanceSaveProposal({
+        ...clean,
+        secret
+    });
+    assert.equal(validated.writePlan.sheetName, 'Saídas');
+    assert.equal(validated.writePlan.row[6], 'Dinheiro');
+    assert.equal(validated.writePlan.row[10], '');
+
+    const stale = fixture();
+    stale.review.payload.draft.paymentMethod = {
+        id: 'cash',
+        label: 'Dinheiro',
+        value: 'Dinheiro'
+    };
+    stale.review.payload.draft.financialAccount = {
+        id: 'account-nubank',
+        label: 'Nubank Daniel',
+        ownerUserId: 'user-daniel'
+    };
+    stale.review.payload.draft.card = null;
+    stale.catalog.paymentMethods.push(
+        stale.review.payload.draft.paymentMethod
+    );
+    stale.catalog.financialAccounts.push(
+        stale.review.payload.draft.financialAccount
+    );
+
+    assert.throws(
+        () => revalidateOpenFinanceSaveProposal({ ...stale, secret }),
+        /open_finance_final_draft_incomplete/
+    );
+});
+
 test('9P.4 finalization store is encrypted, actor-bound and restart-safe', () => {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-9p4-store-'));
     const databasePath = path.join(directory, 'preview.sqlite');

@@ -1,79 +1,83 @@
-# Gate ativo — atribuição familiar uniforme pós-9P.4
+# Gate ativo — menu numerado de pagamento pós-9P.4
 
 Atualizado em: 2026-07-30
 
 Base:
-`bcc4afd012bf50278e65888ae8dd6d63be1d8336`.
+`6a94eb425f3a7bc58aad8b3382ddc8021ad7a07e`.
 
 ## Estado
 
-`GO TÉCNICO LOCAL; ITEM ENCERRADO`.
+`CORREÇÃO LOCAL VERDE; COMMIT IMUTÁVEL E AUDITORIA INDEPENDENTE PENDENTES`.
 
 ## Objetivo
 
-Encerrar o primeiro item da fila posterior a 9P.4: Daniel ou Thaís pode
-confirmar uma proposta e atribuir o lançamento a qualquer um dos dois membros
-do casal, inclusive usando cartão ou conta do outro, sem conceder acesso a
-terceiros.
+Garantir que a forma de pagamento seja escolhida por menu numerado e que
+Crédito, Débito, PIX e Dinheiro preservem somente cartão/conta compatíveis.
 
 ## Escopo
 
-- catálogo familiar autorizado;
-- escolha numerada de pessoa na revisão guiada;
-- preservação da pessoa na revalidação final;
-- `user_id` e nome no plano de escrita;
-- `options.userId` entregue ao adaptador Google;
-- matriz Daniel → Thaís e Thaís → Daniel.
+- catálogo fechado e ordenado de formas de pagamento;
+- renderização numerada;
+- seleção exclusivamente por índice válido;
+- transições Crédito, Débito, PIX e Dinheiro;
+- coerência entre conversa durável e revalidação final.
 
 ## Não escopo
 
-- ampliar além do casal;
-- mudar titularidade de cartão ou conta;
-- ativar flags Open Finance;
-- integração real, deploy ou produção;
-- menu de pagamento e expansão de categorias, que são os próximos itens.
+- ativar flags ou produção;
+- adicionar forma de pagamento;
+- mudar titularidade de cartão/conta;
+- integração real;
+- expansão de categorias, próximo item da fila.
 
 ## Invariantes
 
-1. O remetente precisa ser um dos atores familiares autorizados.
-2. A pessoa selecionada precisa continuar no catálogo familiar relido.
-3. A pessoa selecionada, não o remetente, determina `user_id` e pessoa da linha.
-4. Cartão ou conta de outro membro não amplia o conjunto de pessoas autorizado.
-5. Terceiro nunca aparece no catálogo, na revisão ou no writer.
+1. O menu mostra Crédito, Débito, PIX e Dinheiro com números.
+2. Crédito exige cartão e não preserva conta.
+3. Débito/PIX exigem conta e não preservam cartão.
+4. Dinheiro não preserva cartão nem conta.
+5. A conversa não conclui estado que a revalidação final rejeitará.
 
-## Evidência
+## RED causal
 
-- finalização/writer: `10/10`;
-- conversa guiada: `18/18`;
-- catálogo familiar: `2/2`;
-- workflow e diff: pendentes da consolidação do commit.
+- [x] PIX com conta seguido de Dinheiro preservava a conta antiga;
+- [x] a resposta exibiu `Pagamento: Dinheiro` com conta ainda definida.
+
+## Evidência GREEN
+
+- conversa guiada: `19/19`;
+- finalização: `11/11`;
+- catálogo: `2/2`;
+- sintaxe e diff: verdes.
 
 ## Etapas
 
-1. [concluída] Inspecionar catálogo, conversa, revalidação e writer.
-2. [concluída] Confirmar que o produto já implementa o contrato.
-3. [concluída] Adicionar matriz causal cruzada dos dois atores.
-4. [concluída] Commit sanitizado e auditoria independente: `GO TÉCNICO LOCAL`.
-5. [concluída] Item encerrado; autorizado seguir ao menu numerado de pagamento.
+1. [concluída] Inspecionar menu e dependências.
+2. [concluída] Reproduzir divergência PIX → Dinheiro.
+3. [concluída] Limpar conta e cartão ao selecionar Dinheiro.
+4. [concluída] Provar menu completo e revalidação final.
+5. [em andamento] Publicar e auditar o hash imutável.
+6. [pendente] Fechar o item e seguir para categorias existentes.
 
 ## Critérios de GO
 
-O Chat confirma que a pessoa escolhida atravessa o produto até o boundary de
-escrita nos dois sentidos do casal e que os testes não substituem essa decisão.
+- menu numerado fechado;
+- nenhuma dependência incompatível residual;
+- conversa e finalização concordam;
+- nenhum achado independente bloqueante.
 
 ## Condições de parada
 
-- divergência entre pessoa escolhida, linha e `options.userId`;
-- terceiro incluído no catálogo ou no writer;
-- teste que substitua a decisão de atribuição;
+- teste causal vermelho;
+- forma de pagamento fora do catálogo fechado;
+- estado aceito pela conversa e rejeitado na finalização;
 - necessidade de integração real, flag, deploy ou produção;
 - achado independente bloqueante.
 
 ## Próxima ação exata
 
-Registrar o fechamento e verificar se o menu numerado de forma de pagamento já
-está integralmente coberto no fluxo guiado.
+Publicar o candidato sanitizado e auditar o hash imutável no Chat.
 
 ## Capacidade
 
-`Codex → Sol → Alto → auditar a atribuição familiar uniforme pós-9P.4.`
+`Codex → Sol → Alto → auditar o menu numerado e suas transições.`

@@ -61,6 +61,15 @@ const reviewCatalog = {
         }
     ]
 };
+const fullPaymentCatalog = {
+    ...reviewCatalog,
+    paymentMethods: [
+        { id: 'credit', label: 'Crédito', value: 'Crédito' },
+        { id: 'debit', label: 'Débito', value: 'Débito' },
+        { id: 'pix', label: 'PIX', value: 'PIX' },
+        { id: 'cash', label: 'Dinheiro', value: 'Dinheiro' }
+    ]
+};
 
 function createHarness({ transactionId = 'purchase-posted' } = {}) {
     const now = new Date();
@@ -462,6 +471,66 @@ test('9P.3 corrects every guided field and only completes a causally valid draft
             assert.equal(stored.payload.draft.category.category, 'Alimentação');
             assert.equal(stored.payload.draft.paymentMethod.value, 'PIX');
             assert.equal(stored.payload.draft.financialAccount.id, 'account-nubank');
+            assert.equal(stored.payload.draft.card, null);
+        } finally {
+            reopened.close();
+        }
+    } finally {
+        harness.close();
+    }
+});
+
+test('9P.3 shows every payment method as a numbered menu and clears stale dependencies', async () => {
+    const harness = createHarness({ transactionId: 'purchase-payment-menu' });
+    try {
+        await deliverOneOpenFinanceCanary(deliveryInput(harness, {
+            sendMessage: async () => ({ id: 'payment-menu-message-id' })
+        }));
+        const accepted = handleOpenFinanceSaveProposalReply({
+            messageBody: 'sim',
+            actorWhatsappId,
+            env: harness.env,
+            reviewCatalog: fullPaymentCatalog
+        });
+        const reply = body => handleOpenFinanceSaveProposalReviewReply({
+            messageBody: body,
+            actorWhatsappId,
+            expectedProposalRef: accepted.proposal_ref,
+            env: harness.env
+        });
+
+        assert.match(reply('2').reply, /Escolha a categoria/i);
+        assert.match(reply('1').reply, /Alimentação \/ SUPERMERCADO/i);
+        const paymentMenu = reply('3');
+        assert.match(paymentMenu.reply, /^1\. Crédito$/m);
+        assert.match(paymentMenu.reply, /^2\. Débito$/m);
+        assert.match(paymentMenu.reply, /^3\. PIX$/m);
+        assert.match(paymentMenu.reply, /^4\. Dinheiro$/m);
+        assert.match(paymentMenu.reply, /Responda com o número/i);
+
+        assert.match(reply('3').reply, /Pagamento: PIX/i);
+        assert.match(reply('4').reply, /Escolha a conta financeira/i);
+        assert.match(reply('1').reply, /Conta financeira: Nubank Daniel/i);
+
+        assert.match(reply('3').reply, /Escolha a forma de pagamento/i);
+        const cash = reply('4');
+        assert.match(cash.reply, /Pagamento: Dinheiro/i);
+        assert.match(cash.reply, /Conta financeira: não definida/i);
+        assert.match(cash.reply, /Cartão: não definido/i);
+        assert.equal(reply('6').state, 'review_ready');
+
+        const reopened = new OpenFinanceSaveProposalReviewStore({
+            databasePath: harness.env.OPEN_FINANCE_SHADOW_PREVIEW_DB,
+            secret,
+            authorizedWhatsAppIds: [actorWhatsappId]
+        });
+        try {
+            const stored = reopened.readReviewPrivate(
+                harness.proposalRef,
+                { actorWhatsappId }
+            );
+            assert.equal(stored.payload.draft.paymentMethod.value, 'Dinheiro');
+            assert.equal(stored.payload.draft.financialAccount, null);
             assert.equal(stored.payload.draft.card, null);
         } finally {
             reopened.close();

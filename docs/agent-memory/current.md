@@ -29,13 +29,11 @@ zerou todas as severidades e não encontrou lacuna causal indispensável. O
 fechamento está em
 `docs/audit/66-open-finance-finalization-independent-close-2026-07-30.md`.
 
-O objetivo ativo é encerrar o primeiro item da fila posterior: atribuição
-familiar uniforme a Daniel ou Thaís. A capacidade já existia; foi adicionada a
-prova cruzada que atravessa confirmação e writer nos dois sentidos do casal.
-Evidência local: finalização `10/10`, conversa guiada `18/18` e catálogo `2/2`.
-O commit `dde61633dc992c70c6d7c02b370b2681aed716c0` recebeu `GO TÉCNICO LOCAL`
-independente, sem achado CRITICAL/HIGH/MEDIUM e com um LOW não bloqueante de
-cobertura redundante. O próximo item é o menu numerado de pagamento.
+O objetivo ativo é fechar o menu numerado de pagamento. O RED confirmou que
+trocar PIX com conta para Dinheiro preservava a conta antiga. A correção limpa
+cartão e conta para Dinheiro, e a prova exige as quatro opções numeradas e
+coerência com a revalidação final. Evidência: conversa `19/19`, finalização
+`11/11` e catálogo `2/2`; falta commit imutável e auditoria independente.
 
 ## Workspace vigente
 
@@ -186,10 +184,9 @@ dois `MEDIUM` e o `LOW`, com zero achado residual e nenhuma lacuna indispensáve
 dentro do processo único. O fechamento está em
 `docs/audit/63-ops02-independent-close-2026-07-30.md`.
 
-A atribuição familiar uniforme recebeu `GO TÉCNICO LOCAL` no commit
-`dde61633dc992c70c6d7c02b370b2681aed716c0`. O próximo trabalho é verificar se
-a forma de pagamento já é apresentada como menu numerado em todos os caminhos
-do fluxo guiado.
+O menu numerado já existia, mas PIX → Dinheiro deixava uma conta incompatível
+no rascunho. O candidato atual corrige a transição e prova concordância entre
+conversa e finalização.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -209,9 +206,7 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Verificar estaticamente e por testes se a forma de pagamento já é apresentada
-como menu numerado em todos os caminhos do fluxo guiado; corrigir somente
-lacunas factuais.
+Publicar e auditar o candidato imutável do menu numerado de pagamento.
 
 ## Capacidade para retomar
 
@@ -222,8 +217,8 @@ lacunas factuais.
 Depois da correção operacional de liveness, abrir gate próprio para revalidação
 final, confirmação idempotente, operation key e recibo de 9P.4. Somente depois:
 
-1. permitir atribuição familiar uniforme de um lançamento a Daniel ou Thaís;
-2. apresentar a forma de pagamento como menu numerado;
+1. [encerrado] atribuição familiar uniforme a Daniel ou Thaís;
+2. [ativo] forma de pagamento como menu numerado;
 3. na dúvida de categoria, oferecer mais categorias existentes antes da opção
    de criar uma nova.
 
@@ -271,6 +266,8 @@ final, confirmação idempotente, operation key e recibo de 9P.4. Somente depois
   `docs/audit/67-family-assignment-uniformity-candidate-2026-07-30.md`;
 - fechamento da atribuição familiar uniforme:
   `docs/audit/68-family-assignment-uniformity-independent-close-2026-07-30.md`;
+- candidato do menu numerado de pagamento:
+  `docs/audit/69-payment-method-numbered-menu-candidate-2026-07-30.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:
