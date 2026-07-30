@@ -34,11 +34,12 @@ imutável `1b7379e2968974c3c456e64f06ba20cedb0fc599` recebeu `GO LOCAL`
 independente, sem achado bloqueante. O fechamento está em
 `docs/audit/75-open-finance-new-category-independent-close-2026-07-30.md`.
 
-O gate ativo corrige a impossibilidade de compor esses componentes em runtime.
-Uma política central agora exige, simultaneamente, alerta/reconciliação/preview
-em `canary`, proposta `prompt`, write mode `confirm` e aprovação explícita
+O gate de composição operacional também está tecnicamente encerrado. Uma
+política central exige, simultaneamente, alerta/reconciliação/preview em
+`canary`, proposta `prompt`, write mode `confirm` e aprovação explícita
 separada. Defaults, combinações parciais e rollback continuam sem escrita. O
-candidato local está verde e aguarda publicação e auditoria independente.
+hash `8fa365353c693c7ba34cde62d2a1a8799a3f41e0` recebeu `GO TÉCNICO LOCAL`
+independente, sem lacuna indispensável residual.
 
 ## Workspace vigente
 
@@ -115,11 +116,13 @@ dois `MEDIUM` e o `LOW`, com zero achado residual e nenhuma lacuna indispensáve
 dentro do processo único. O fechamento está em
 `docs/audit/63-ops02-independent-close-2026-07-30.md`.
 
-Os três itens da fila pós-9P.4 estão tecnicamente encerrados. A consolidação
-identificou uma contradição real: o runtime exigia write `off`, enquanto o
-writer exigia `confirm`. O recovery local criou uma decisão compartilhada
-fail-closed e está em estado `CANDIDATO LOCAL VERDE; AUDITORIA INDEPENDENTE
-PENDENTE`.
+Os três itens da fila pós-9P.4 e a composição operacional estão tecnicamente
+encerrados. A política fail-closed recebeu `GO TÉCNICO LOCAL` independente no
+hash `8fa365353c693c7ba34cde62d2a1a8799a3f41e0`.
+
+O próximo pré-requisito é alinhar o processo de release ao runtime Oracle/OCI
+por artefato imutável. O checklist antigo ainda contém passos de EC2 e checkout
+Git que não podem ser usados na produção vigente.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -139,12 +142,12 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar o candidato de ativação fail-closed e submetê-lo ao Chat por hash
-imutável, sem ativação ou deploy.
+Abrir gate separado para desenhar e ensaiar localmente o deploy OCI por
+artefato, preservação de estado, checksums e rollback, sem acessar produção.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → auditar a composição fail-closed da escrita Open Finance.`
+`Codex → Sol → Alto → desenhar o deploy OCI por artefato com rollback.`
 
 ## Fila de produto posterior
 
@@ -218,6 +221,8 @@ final, confirmação idempotente, operation key e recibo de 9P.4. Somente depois
   `docs/audit/76-open-finance-write-activation-characterization-2026-07-30.md`;
 - candidato da ativação fail-closed:
   `docs/audit/77-open-finance-write-activation-candidate-2026-07-30.md`;
+- fechamento independente da ativação fail-closed:
+  `docs/audit/78-open-finance-write-activation-independent-close-2026-07-30.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:

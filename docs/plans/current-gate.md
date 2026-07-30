@@ -7,7 +7,7 @@ Base:
 
 ## Estado
 
-`CANDIDATO LOCAL VERDE; AUDITORIA INDEPENDENTE PENDENTE`.
+`GO TÉCNICO LOCAL`.
 
 ## Objetivo
 
@@ -42,8 +42,8 @@ ao writer 9P.4, sem alterar defaults, flags reais ou produção.
 3. [concluída] Implementar uma decisão central de autorização fail-closed.
 4. [concluída] Provar entrega sem escrita e finalização somente após confirmação.
 5. [concluída] Executar regressão proporcional e controles.
-6. [em andamento] Publicar candidato sanitizado e auditar no Chat.
-7. [pendente] Registrar o fechamento sem autorizar ativação ou deploy.
+6. [concluída] Publicar candidato sanitizado e auditar no Chat.
+7. [concluída] Registrar o fechamento sem autorizar ativação ou deploy.
 
 ## Critérios de GO
 
@@ -63,8 +63,9 @@ ao writer 9P.4, sem alterar defaults, flags reais ou produção.
 
 ## Próxima ação exata
 
-Publicar o candidato sanitizado e submetê-lo ao Chat por hash imutável.
+Abrir gate separado para o procedimento permanente de deploy OCI por artefato,
+sem executar deploy ou alterar produção.
 
 ## Capacidade
 
-`Codex → Sol → Alto → compor a autorização fail-closed da escrita confirmada.`
+`Codex → Sol → Alto → desenhar o deploy OCI por artefato com rollback.`
