@@ -33,7 +33,9 @@ O objetivo ativo é encerrar o primeiro item da fila posterior: atribuição
 familiar uniforme a Daniel ou Thaís. A capacidade já existia; foi adicionada a
 prova cruzada que atravessa confirmação e writer nos dois sentidos do casal.
 Evidência local: finalização `10/10`, conversa guiada `18/18` e catálogo `2/2`.
-Falta publicar e auditar o commit imutável.
+O commit `dde61633dc992c70c6d7c02b370b2681aed716c0` recebeu `GO TÉCNICO LOCAL`
+independente, sem achado CRITICAL/HIGH/MEDIUM e com um LOW não bloqueante de
+cobertura redundante. O próximo item é o menu numerado de pagamento.
 
 ## Workspace vigente
 
@@ -80,9 +82,6 @@ confirmou o hash e os arquivos, encerrou M1, M2 e M3, registrou `CRITICAL 0`,
 `HIGH 0`, `MEDIUM 0`, `LOW 0` e não identificou lacuna indispensável residual.
 O fechamento está em
 `docs/audit/60-open-finance-save-proposal-guided-review-independent-close-2026-07-30.md`.
-
-Alterações intencionais: produto, testes, plano e manifesto de 9P.4.
-Não executar fase 8, produção, Oracle/AWS, cofre Pluggy ou integrações reais.
 
 Não houve transporte WhatsApp real, escrita financeira, produção, Google ou
 Pluggy real.
@@ -187,18 +186,17 @@ dois `MEDIUM` e o `LOW`, com zero achado residual e nenhuma lacuna indispensáve
 dentro do processo único. O fechamento está em
 `docs/audit/63-ops02-independent-close-2026-07-30.md`.
 
-9P.4 recebeu `GO TÉCNICO LOCAL` no recovery
-`b98157dfde061793ad94cd025c99b1f8b5145712`. A atribuição familiar uniforme já
-existia no produto; o candidato atual acrescenta somente a prova causal
-Daniel → Thaís e Thaís → Daniel até o boundary do writer.
+A atribuição familiar uniforme recebeu `GO TÉCNICO LOCAL` no commit
+`dde61633dc992c70c6d7c02b370b2681aed716c0`. O próximo trabalho é verificar se
+a forma de pagamento já é apresentada como menu numerado em todos os caminhos
+do fluxo guiado.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
 ## Decisões vigentes
 
-- manter `Codex → Sol → Alto` ao verificar a atribuição familiar, pois o
-  contrato cruza catálogo autorizado, revisão durável, writer e testes
-  adversariais;
+- manter `Codex → Sol → Alto` ao verificar o menu de pagamento e suas
+  dependências com cartão, conta, revisão durável e writer;
 - parar e avisar Daniel antes de reduzir ou trocar capacidade;
 - a produção vigente é Oracle/OCI; não reutilizar caminhos AWS e não executar
   Oracle e AWS simultaneamente com a mesma sessão WhatsApp;
@@ -211,12 +209,13 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar e auditar o candidato imutável da atribuição familiar uniforme; se
-receber `GO`, seguir para o menu numerado de forma de pagamento.
+Verificar estaticamente e por testes se a forma de pagamento já é apresentada
+como menu numerado em todos os caminhos do fluxo guiado; corrigir somente
+lacunas factuais.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → verificar a atribuição familiar uniforme pós-9P.4.`
+`Codex → Sol → Alto → verificar o menu numerado de pagamento pós-9P.4.`
 
 ## Fila de produto posterior
 
@@ -270,6 +269,8 @@ final, confirmação idempotente, operation key e recibo de 9P.4. Somente depois
   `docs/audit/66-open-finance-finalization-independent-close-2026-07-30.md`;
 - candidato de atribuição familiar uniforme:
   `docs/audit/67-family-assignment-uniformity-candidate-2026-07-30.md`;
+- fechamento da atribuição familiar uniforme:
+  `docs/audit/68-family-assignment-uniformity-independent-close-2026-07-30.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:

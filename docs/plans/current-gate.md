@@ -7,7 +7,7 @@ Base:
 
 ## Estado
 
-`CAPACIDADE PREEXISTENTE; PROVA LOCAL VERDE; AUDITORIA INDEPENDENTE PENDENTE`.
+`GO TÉCNICO LOCAL; ITEM ENCERRADO`.
 
 ## Objetivo
 
@@ -53,8 +53,8 @@ terceiros.
 1. [concluída] Inspecionar catálogo, conversa, revalidação e writer.
 2. [concluída] Confirmar que o produto já implementa o contrato.
 3. [concluída] Adicionar matriz causal cruzada dos dois atores.
-4. [em andamento] Publicar commit sanitizado e auditar o hash imutável.
-5. [pendente] Encerrar o item e seguir para o menu numerado de pagamento.
+4. [concluída] Commit sanitizado e auditoria independente: `GO TÉCNICO LOCAL`.
+5. [concluída] Item encerrado; autorizado seguir ao menu numerado de pagamento.
 
 ## Critérios de GO
 
@@ -71,8 +71,8 @@ escrita nos dois sentidos do casal e que os testes não substituem essa decisão
 
 ## Próxima ação exata
 
-Publicar o candidato sanitizado, auditar o hash imutável no Chat e confrontar o
-parecer antes de encerrar o item.
+Registrar o fechamento e verificar se o menu numerado de forma de pagamento já
+está integralmente coberto no fluxo guiado.
 
 ## Capacidade
 
