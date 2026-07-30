@@ -40,7 +40,7 @@ multiusuário, executar também seus gates e ADRs específicos.
 Na raiz local:
 
 ```powershell
-npm run release:oci:build -- --commit <HASH_COMPLETO> --output release-artifacts
+npm run release:oci:build -- <HASH_COMPLETO> release-artifacts
 ```
 
 O builder usa somente o commit informado, mesmo se houver arquivos locais
@@ -57,7 +57,7 @@ O pacote falha se contiver `.env`, credenciais, sessão WhatsApp, `data`,
 Verificação local independente do pacote:
 
 ```powershell
-npm run release:oci:verify -- --artifact release-artifacts\financas-bot-<HASH>.tar.gz --checksum release-artifacts\financas-bot-<HASH>.tar.gz.sha256
+npm run release:oci:verify -- release-artifacts\financas-bot-<HASH>.tar.gz release-artifacts\financas-bot-<HASH>.tar.gz.sha256
 ```
 
 - [ ] O checksum externo foi aceito.

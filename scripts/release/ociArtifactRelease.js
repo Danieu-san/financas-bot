@@ -700,19 +700,23 @@ async function main(args = process.argv.slice(2)) {
     if (command === 'build') {
         const result = await buildArtifact({
             repoRoot: argumentValue(args, '--repo', process.cwd()),
-            commitRef: argumentValue(args, '--commit', 'HEAD'),
+            commitRef: argumentValue(args, '--commit', args[1] || 'HEAD'),
             outputDir: argumentValue(
                 args,
                 '--output',
-                path.join(process.cwd(), 'release-artifacts')
+                args[2] || path.join(process.cwd(), 'release-artifacts')
             )
         });
         process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
         return;
     }
     if (command === 'verify') {
-        const artifactPath = path.resolve(argumentValue(args, '--artifact'));
-        const checksumPath = path.resolve(argumentValue(args, '--checksum'));
+        const artifactPath = path.resolve(
+            argumentValue(args, '--artifact', args[1])
+        );
+        const checksumPath = path.resolve(
+            argumentValue(args, '--checksum', args[2])
+        );
         verifyChecksumFile(artifactPath, checksumPath);
         listArchiveEntries(artifactPath);
         const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-verify-'));
@@ -731,19 +735,33 @@ async function main(args = process.argv.slice(2)) {
     }
     if (command === 'prepare') {
         const result = await prepareArtifact({
-            artifactPath: path.resolve(argumentValue(args, '--artifact')),
-            checksumPath: path.resolve(argumentValue(args, '--checksum')),
-            targetRoot: path.resolve(argumentValue(args, '--target'))
+            artifactPath: path.resolve(
+                argumentValue(args, '--artifact', args[1])
+            ),
+            checksumPath: path.resolve(
+                argumentValue(args, '--checksum', args[2])
+            ),
+            targetRoot: path.resolve(
+                argumentValue(args, '--target', args[3])
+            )
         });
         process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
         return;
     }
     if (command === 'plan') {
         const result = createPromotionPlan({
-            targetRoot: argumentValue(args, '--target'),
-            commitSha: argumentValue(args, '--commit'),
-            previousScript: argumentValue(args, '--previous-script'),
-            processName: argumentValue(args, '--process', 'financas-bot')
+            targetRoot: argumentValue(args, '--target', args[1]),
+            commitSha: argumentValue(args, '--commit', args[2]),
+            previousScript: argumentValue(
+                args,
+                '--previous-script',
+                args[3]
+            ),
+            processName: argumentValue(
+                args,
+                '--process',
+                args[4] || 'financas-bot'
+            )
         });
         process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
         return;

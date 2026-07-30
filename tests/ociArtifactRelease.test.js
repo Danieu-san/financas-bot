@@ -317,6 +317,27 @@ test('OPS-03 builder archives the exact commit and excludes dirty local state', 
                 ['.env', 'data/runtime.sqlite'].includes(file.path)),
             false
         );
+        const positionalVerify = run(
+            process.execPath,
+            [
+                path.join(
+                    __dirname,
+                    '..',
+                    'scripts',
+                    'release',
+                    'ociArtifactRelease.js'
+                ),
+                'verify',
+                built.artifact_path,
+                built.checksum_path
+            ],
+            { encoding: 'utf8' }
+        );
+        assert.equal(positionalVerify.status, 0, positionalVerify.stderr);
+        assert.equal(
+            JSON.parse(positionalVerify.stdout).commit_sha,
+            commitSha
+        );
     } finally {
         fs.rmSync(repo, { recursive: true, force: true });
         fs.rmSync(output, { recursive: true, force: true });
