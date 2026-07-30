@@ -21,6 +21,15 @@ confirmação idempotente, operation key e recibo está verde e aguarda commit
 imutável e auditoria independente. Integração real e produção continuam
 desligadas.
 
+O primeiro candidato 9P.4
+`a512a07a8f18c9dffcf62676357c35f41f50395d` recebeu `NO-GO` independente:
+`CRITICAL 0`, `HIGH 2`, `MEDIUM 1`, `LOW 0`. O recovery local separa writer e
+reconciliador, impede qualquer append novo em retomada `writing/uncertain`,
+preserva `FINANCIAL_WRITE_UNCERTAIN` e adiciona prova com stores separados,
+`appendRowToSheet` e `FinancialWriteLedger` reais. Evidência afetada:
+finalização `9/9`, writer/ledger `6/6`, entrada pública `1/1` e suíte unitária
+completa `205/205`.
+
 ## Workspace vigente
 
 Raiz recuperada:
@@ -179,10 +188,11 @@ dois `MEDIUM` e o `LOW`, com zero achado residual e nenhuma lacuna indispensáve
 dentro do processo único. O fechamento está em
 `docs/audit/63-ops02-independent-close-2026-07-30.md`.
 
-O candidato 9P.4 está localmente verde: focal `8/8`, entrada pública `124/124`,
-Open Finance ampliado `55/55` e runner hermético `1.335/1.340`, com zero falhas
-e cinco skips previstos. Ainda não há `GO`: falta auditoria independente do
-commit imutável.
+O recovery 9P.4 está localmente verde nas provas afetadas: finalização `9/9`,
+writer/ledger `6/6`, entrada pública `1/1` e suíte unitária `205/205`. O runner
+hermético anterior do primeiro candidato permanece `1.335/1.340`, com zero
+falhas e cinco skips previstos, mas não foi atribuído ao recovery. Ainda não há
+`GO`: falta reauditoria independente do novo commit imutável.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -202,7 +212,7 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar o candidato 9P.4 sanitizado, auditar o hash imutável no Chat e
+Publicar o recovery 9P.4 sanitizado, reauditar o novo hash imutável no Chat e
 confrontar o parecer com a evidência local.
 
 ## Capacidade para retomar
@@ -255,6 +265,8 @@ final, confirmação idempotente, operation key e recibo de 9P.4. Somente depois
   `docs/audit/63-ops02-independent-close-2026-07-30.md`;
 - candidato 9P.4:
   `docs/audit/64-open-finance-save-proposal-finalization-candidate-2026-07-30.md`;
+- recovery pós-NO-GO 9P.4:
+  `docs/audit/65-open-finance-finalization-reconcile-only-recovery-candidate-2026-07-30.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:

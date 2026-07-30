@@ -7,7 +7,13 @@ Base:
 
 ## Estado
 
-`CANDIDATO LOCAL VERDE; COMMIT IMUTÁVEL E AUDITORIA INDEPENDENTE PENDENTES`.
+`RECOVERY PÓS-NO-GO LOCAL VERDE; NOVO COMMIT IMUTÁVEL E REAUDITORIA PENDENTES`.
+
+O primeiro candidato, no hash
+`a512a07a8f18c9dffcf62676357c35f41f50395d`, recebeu `NO-GO` independente por
+dois achados `HIGH` e um `MEDIUM`. A recuperação separa o writer inicial do
+reconciliador, torna retomadas `writing/uncertain` estritamente
+`reconcileOnly` e preserva `FINANCIAL_WRITE_UNCERTAIN` no ledger.
 
 ## Objetivo
 
@@ -81,6 +87,9 @@ restart-safe que:
 - [x] banco não contém descrição, valor, conta, cartão ou pessoa em claro;
 - [x] revogação remove proposta, revisão e finalização antes de nova confirmação;
 - [x] falha de envio após append recupera o recibo sem segundo lançamento.
+- [x] restart entre stores distintos sem ledger bloqueia antes do append;
+- [x] retomada somente conclui por ledger committed ou prova positiva no Sheets;
+- [x] `FINANCIAL_WRITE_UNCERTAIN` nunca é rebaixado a `failed`.
 
 ## Etapas
 
@@ -89,8 +98,9 @@ restart-safe que:
 3. [concluída] Integração na entrada pública, ainda dormente por flag.
 4. [concluída] Baterias focal, causal, Open Finance e entrada pública.
 5. [concluída] Runner hermético, contrato de ambiente, diff e segredos.
-6. [em andamento] Commit sanitizado e auditoria independente por hash imutável.
-7. [fora deste gate] Deploy OCI por artefato com rollback e ativação controlada.
+6. [concluída] Primeiro commit sanitizado e auditoria independente: `NO-GO`.
+7. [em andamento] Publicar o recovery e reauditar o novo hash imutável.
+8. [fora deste gate] Deploy OCI por artefato com rollback e ativação controlada.
 
 ## Critérios de GO
 
@@ -114,8 +124,9 @@ restart-safe que:
 
 ## Próxima ação exata
 
-Publicar o candidato sanitizado, fornecer o hash imutável ao Chat e confrontar
-o parecer independente com a evidência local antes de declarar `GO`.
+Publicar o recovery sanitizado, fornecer o novo hash imutável ao Chat e
+confrontar o parecer independente com a evidência local antes de declarar
+`GO`.
 
 ## Capacidade
 

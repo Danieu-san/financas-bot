@@ -859,6 +859,13 @@ async function appendRowToSheet(sheetName, row, options = {}) {
             uncertainError.code = 'FINANCIAL_WRITE_UNCERTAIN';
             throw uncertainError;
         }
+        if (options.reconcileOnly) {
+            const uncertainError = new Error(
+                'OperaÃ§Ã£o em retomada sem prova durÃ¡vel suficiente; novo append bloqueado.'
+            );
+            uncertainError.code = 'FINANCIAL_WRITE_UNCERTAIN';
+            throw uncertainError;
+        }
         writeLedger.beginOperation({
             operationKey,
             actorScope: {
@@ -922,6 +929,14 @@ async function appendRowToSheet(sheetName, row, options = {}) {
         });
         return committed;
     } catch (error) {
+        if (error?.code === 'FINANCIAL_WRITE_UNCERTAIN') {
+            if (writeLedger && operationKey) {
+                writeLedger.markUncertain(operationKey, {
+                    receipt: { sheetName, mappedSheetName, error: error.message }
+                });
+            }
+            throw error;
+        }
         if (writeLedger && operationKey) {
             if (isGoogleRetriableError(error)) {
                 writeLedger.markUncertain(operationKey, {

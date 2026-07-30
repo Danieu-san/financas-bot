@@ -14,6 +14,10 @@ const {
     OpenFinanceRevocationJournal
 } = require('../src/openFinance/openFinanceRevocationJournal');
 const {
+    FinancialWriteLedger
+} = require('../src/reliability/financialWriteLedger');
+const googleService = require('../src/services/google');
+const {
     revalidateOpenFinanceSaveProposal,
     executeOpenFinanceSaveProposalFinalization,
     prepareOpenFinanceSaveProposalFinalization,
@@ -530,27 +534,31 @@ test('9P.4 keeps an ambiguous write uncertain and reconciles with the same opera
         authorizedWhatsAppIds: [actorWhatsappId]
     });
     const operationKeys = [];
+    const reconcileModes = [];
     let attempts = 0;
+    const performOperation = async (_plan, { operationKey, reconcileOnly }) => {
+        attempts += 1;
+        operationKeys.push(operationKey);
+        reconcileModes.push(Boolean(reconcileOnly));
+        if (attempts === 1) {
+            const error = new Error('timeout after append');
+            error.code = 'ETIMEDOUT';
+            throw error;
+        }
+        return {
+            status: 'committed',
+            receipt: {
+                sheetName: 'LanÃ§amentos CartÃ£o',
+                reconciled: true
+            }
+        };
+    };
     const dependencies = {
         secret,
         finalizationStore: store,
         loadContext: async () => input,
-        writer: async (_plan, { operationKey }) => {
-            attempts += 1;
-            operationKeys.push(operationKey);
-            if (attempts === 1) {
-                const error = new Error('timeout after append');
-                error.code = 'ETIMEDOUT';
-                throw error;
-            }
-            return {
-                status: 'committed',
-                receipt: {
-                    sheetName: 'Lançamentos Cartão',
-                    reconciled: true
-                }
-            };
-        }
+        writer: performOperation,
+        reconciler: performOperation
     };
     const env = {
         OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
@@ -587,7 +595,137 @@ test('9P.4 keeps an ambiguous write uncertain and reconciles with the same opera
         assert.equal(reconciled.state, 'committed');
         assert.equal(attempts, 2);
         assert.equal(operationKeys[0], operationKeys[1]);
+        assert.deepEqual(reconcileModes, [false, true]);
     } finally {
         store.close();
+    }
+});
+
+test('9P.4 restart across separate stores reconciles only and never blindly appends', async () => {
+    const input = fixture();
+    const dir = fs.mkdtempSync(path.join(
+        os.tmpdir(),
+        'financasbot-open-finance-final-restart-'
+    ));
+    const databasePath = path.join(dir, 'finalization.sqlite');
+    const ledger = new FinancialWriteLedger({
+        dbPath: path.join(dir, 'financial-writes.sqlite')
+    });
+    const validated = revalidateOpenFinanceSaveProposal({
+        ...input,
+        secret
+    });
+    const firstStore = new OpenFinanceSaveProposalFinalizationStore({
+        databasePath,
+        secret,
+        authorizedWhatsAppIds: [actorWhatsappId]
+    });
+    firstStore.prepare({
+        proposalRef,
+        actorWhatsappId,
+        operationKey: validated.operationKey,
+        payload: validated,
+        expiresAt: input.review.payload.expires_at
+    });
+    firstStore.claim(proposalRef, { actorWhatsappId });
+    firstStore.close();
+
+    let appendCalls = 0;
+    let sheetRows = [];
+    const fakeSheets = {
+        spreadsheets: {
+            values: {
+                append: async () => {
+                    appendCalls += 1;
+                    return {
+                        data: {
+                            updates: {
+                                updatedRange: 'CartÃ£o Nubank Daniel!A2:K2'
+                            }
+                        }
+                    };
+                },
+                get: async () => ({ data: { values: sheetRows } })
+            },
+            batchUpdate: async () => ({})
+        }
+    };
+    googleService.__test__.setGoogleClientsForTest({
+        sheetsClient: fakeSheets,
+        tasksClient: {},
+        calendarClient: {},
+        oauthClient: {}
+    });
+    const secondStore = new OpenFinanceSaveProposalFinalizationStore({
+        databasePath,
+        secret,
+        authorizedWhatsAppIds: [actorWhatsappId]
+    });
+    const env = {
+        OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
+        OPEN_FINANCE_WRITE_MODE: 'confirm'
+    };
+    const appendRowToSheet = (sheetName, row, options) =>
+        googleService.appendRowToSheet(sheetName, row, {
+            ...options,
+            forceCentral: true,
+            writeLedger: ledger
+        });
+
+    try {
+        const blocked = await handleOpenFinanceSaveProposalFinalizationReply({
+            messageBody: 'sim',
+            actorWhatsappId,
+            userId: 'user-daniel',
+            expectedProposalRef: proposalRef,
+            env,
+            dependencies: {
+                secret,
+                finalizationStore: secondStore,
+                loadContext: async () => input,
+                appendRowToSheet
+            }
+        });
+        assert.equal(blocked.state, 'uncertain');
+        assert.equal(blocked.financial_writes, 0);
+        assert.equal(appendCalls, 0);
+        assert.equal(
+            ledger.getOperation(validated.operationKey),
+            null
+        );
+
+        ledger.beginOperation({
+            operationKey: validated.operationKey,
+            actorScope: { scope: 'central' },
+            operation: `append.${validated.writePlan.sheetName}`,
+            payload: { recovery: true },
+            provenance: { source: 'test.crash-window' }
+        });
+        sheetRows = [validated.writePlan.row];
+
+        const reconciled = await handleOpenFinanceSaveProposalFinalizationReply({
+            messageBody: 'sim',
+            actorWhatsappId,
+            userId: 'user-daniel',
+            expectedProposalRef: proposalRef,
+            env,
+            dependencies: {
+                secret,
+                finalizationStore: secondStore,
+                loadContext: async () => input,
+                appendRowToSheet
+            }
+        });
+        assert.equal(reconciled.state, 'committed');
+        assert.equal(reconciled.financial_writes, 0);
+        assert.equal(appendCalls, 0);
+        assert.equal(
+            ledger.getOperation(validated.operationKey).status,
+            'committed'
+        );
+    } finally {
+        secondStore.close();
+        ledger.close();
+        googleService.__test__.clearSheetsReadCache();
     }
 });

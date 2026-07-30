@@ -331,7 +331,8 @@ async function executeOpenFinanceSaveProposalFinalization({
     proposalRef,
     actorWhatsappId,
     store,
-    writer
+    writer,
+    reconciler = null
 } = {}) {
     if (!store || typeof store.read !== 'function' ||
         typeof store.claim !== 'function' ||
@@ -359,14 +360,24 @@ async function executeOpenFinanceSaveProposalFinalization({
                 financial_writes: 0
             };
         }
+        const reconcileOnly = ['writing', 'uncertain'].includes(current.state);
         const claimed = store.claim(proposalRef, { actorWhatsappId });
         try {
-            const writeResult = await writer(
+            const operation = reconcileOnly ? reconciler : writer;
+            if (typeof operation !== 'function') {
+                const unavailable = new Error(
+                    'open_finance_final_reconciler_required'
+                );
+                unavailable.code = 'OPEN_FINANCE_FINAL_WRITE_UNCERTAIN';
+                throw unavailable;
+            }
+            const writeResult = await operation(
                 claimed.payload.validated.writePlan,
                 {
                     operationKey: claimed.payload.operation_key,
                     proposalRef,
-                    actorWhatsappId
+                    actorWhatsappId,
+                    reconcileOnly
                 }
             );
             if (writeResult?.status !== 'committed') {
@@ -384,7 +395,7 @@ async function executeOpenFinanceSaveProposalFinalization({
                 receipt_ref: committed.payload.receipt_ref,
                 receipt: committed.payload.receipt,
                 replay: false,
-                financial_writes: 1
+                financial_writes: reconcileOnly ? 0 : 1
             };
         } catch (error) {
             const latest = store.read(proposalRef, { actorWhatsappId });
@@ -683,6 +694,7 @@ async function prepareOpenFinanceSaveProposalFinalization({
 async function writeOpenFinanceSaveProposal(writePlan, {
     operationKey,
     proposalRef,
+    reconcileOnly = false,
     dependencies = {}
 } = {}) {
     const append = dependencies.appendRowToSheet ||
@@ -692,7 +704,8 @@ async function writeOpenFinanceSaveProposal(writePlan, {
         userId: writePlan.userId,
         cardId: writePlan.cardId,
         messageId: `open-finance-final:${proposalRef}`,
-        source: 'open_finance.save_proposal.final'
+        source: 'open_finance.save_proposal.final',
+        reconcileOnly: Boolean(reconcileOnly)
     });
 }
 
@@ -862,12 +875,22 @@ async function handleOpenFinanceSaveProposalFinalizationReply({
                 ...options,
                 dependencies
             }));
+        const reconciler = dependencies.reconciler || (
+            dependencies.writer
+                ? null
+                : ((plan, options) => writeOpenFinanceSaveProposal(plan, {
+                    ...options,
+                    reconcileOnly: true,
+                    dependencies
+                }))
+        );
         try {
             const result = await executeOpenFinanceSaveProposalFinalization({
                 proposalRef: current.proposal_ref,
                 actorWhatsappId,
                 store,
-                writer
+                writer,
+                reconciler
             });
             const committed = store.read(current.proposal_ref, {
                 actorWhatsappId

@@ -5919,6 +5919,100 @@ test('google.appendRowToSheet blocks uncertain replay when the saved row cannot 
     }
 });
 
+test('google.appendRowToSheet never creates a new append in reconcile-only mode', async () => {
+    const { FinancialWriteLedger } = require('../src/reliability/financialWriteLedger');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-google-reconcile-only-'));
+    const ledger = new FinancialWriteLedger({ dbPath: path.join(dir, 'ledger.sqlite') });
+    const row = ['10/05/2026', 'mercado', 'AlimentaÃ§Ã£o', '', 25, 'Pessoa Teste', 'PIX', 'NÃ£o', '', 'user-1'];
+    let appendCalls = 0;
+    const fakeSheets = {
+        spreadsheets: {
+            values: {
+                append: async () => {
+                    appendCalls += 1;
+                    return { data: { updates: { updatedRange: 'SaÃ­das!A2:J2' } } };
+                },
+                get: async () => ({ data: { values: [] } })
+            },
+            batchUpdate: async () => ({})
+        }
+    };
+
+    googleService.__test__.setGoogleClientsForTest({
+        sheetsClient: fakeSheets,
+        tasksClient: {},
+        calendarClient: {},
+        oauthClient: {}
+    });
+
+    try {
+        await assert.rejects(
+            googleService.appendRowToSheet('SaÃ­das', row, {
+                forceCentral: true,
+                operationKey: 'reconcile-only-without-ledger-op',
+                writeLedger: ledger,
+                reconcileOnly: true
+            }),
+            error => error?.code === 'FINANCIAL_WRITE_UNCERTAIN'
+        );
+        assert.strictEqual(appendCalls, 0);
+        assert.strictEqual(
+            ledger.getOperation('reconcile-only-without-ledger-op'),
+            null
+        );
+    } finally {
+        ledger.close();
+        googleService.__test__.clearSheetsReadCache();
+    }
+});
+
+test('google.appendRowToSheet preserves an explicit uncertain result in the ledger', async () => {
+    const { FinancialWriteLedger } = require('../src/reliability/financialWriteLedger');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-google-explicit-uncertain-'));
+    const ledger = new FinancialWriteLedger({ dbPath: path.join(dir, 'ledger.sqlite') });
+    const row = ['10/05/2026', 'mercado', 'AlimentaÃ§Ã£o', '', 25, 'Pessoa Teste', 'PIX', 'NÃ£o', '', 'user-1'];
+    let appendCalls = 0;
+    const fakeSheets = {
+        spreadsheets: {
+            values: {
+                append: async () => {
+                    appendCalls += 1;
+                    const error = new Error('result remains uncertain');
+                    error.code = 'FINANCIAL_WRITE_UNCERTAIN';
+                    throw error;
+                }
+            },
+            batchUpdate: async () => ({})
+        }
+    };
+
+    googleService.__test__.setGoogleClientsForTest({
+        sheetsClient: fakeSheets,
+        tasksClient: {},
+        calendarClient: {},
+        oauthClient: {}
+    });
+
+    try {
+        await assert.rejects(
+            googleService.appendRowToSheet('SaÃ­das', row, {
+                forceCentral: true,
+                operationKey: 'explicit-uncertain-op',
+                writeLedger: ledger
+            }),
+            error => error?.code === 'FINANCIAL_WRITE_UNCERTAIN'
+        );
+        assert.strictEqual(appendCalls, 1);
+        assert.strictEqual(
+            ledger.getOperation('explicit-uncertain-op').status,
+            'uncertain'
+        );
+    } finally {
+        ledger.close();
+        googleService.__test__.clearSheetsReadCache();
+    }
+});
+
 test('google.appendRowToSheet does not reconcile against an older identical row', async () => {
     const { FinancialWriteLedger } = require('../src/reliability/financialWriteLedger');
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-google-uncertain-old-row-'));
