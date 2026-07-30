@@ -221,12 +221,16 @@ Ja houve divergencia entre horario exibido no WhatsApp e Google Calendar. Ao mex
 - Deploy em producao confirmado no commit `6dfca42`.
 - Cuidado com falso positivo: perguntas legitimas sobre a propria familia devem continuar permitidas; pedidos amplos por `todos os usuarios/clientes` devem continuar bloqueados.
 
-## WhatsApp Web pode travar ao iniciar
+## WhatsApp Web pode travar ao iniciar ou perder liveness depois de `ready`
 
 Sintoma:
 
 - Logs param em `WhatsApp carregando: 100%` ou `Autenticado com sucesso! Carregando chats...`.
 - Tambem pode acontecer de o WhatsApp Web ficar logado e visualmente pronto, mas mensagens recebidas durante a inicializacao ficarem como nao lidas na pagina sem disparar `client.on('message')` no Node.
+- Incidente de 2026-07-27 a 2026-07-30: PM2, Caddy, SQLite e o health antigo
+  permaneceram verdes, mas o Chrome deixou de manter a conexao externa do
+  WhatsApp e repetiu `Runtime.callFunctionOn timed out`. O bot parou de receber
+  mensagens sem que o processo terminasse.
 
 Mitigacoes usadas:
 
@@ -237,6 +241,16 @@ Mitigacoes usadas:
 - Producao passou a usar `WWEB_CACHE_TYPE=local` com `WWEB_VERSION=2.3000.1017054665` apos incidente de 2026-06-29 em que `none/live` travou no 100%.
 - O startup agora reprocessa mensagens nao lidas apos `ready`, via backfill deduplicado, para cobrir mensagens que chegaram antes dos listeners de `Msg.on('add')` ficarem plenamente ativos.
 - Armadilha corrigida em 2026-06-30: se o ready rescue chamar apenas `onAppStateHasSyncedEvent()` quando `window.WWebJS` ja existe, o WhatsApp pode emitir `ready` sem anexar novamente os listeners de mensagem. Sintoma: PM2/health/WhatsApp prontos, mensagens ficam nao lidas na pagina e nao aparece `[message] received` no log. O rescue agora chama `client.attachEventListeners()` antes de forcar o `ready`.
+- O health deve considerar separadamente SQLite e liveness do WhatsApp. Processo
+  online e SQLite pronto nao bastam: enquanto o WhatsApp estiver iniciando,
+  aguardando QR, parado ou degradado, `/dashboard/health` deve responder `503`.
+- Depois de `ready`, o runtime faz probes `getState()` sem sobreposicao. Uma
+  falha degrada o health; duas falhas consecutivas solicitam uma unica saida
+  para o supervisor reiniciar o processo. O monitor nao reinicia durante
+  startup, autenticacao ou QR.
+- Timeout de transporte tambem alimenta a mesma contagem, sem registrar texto,
+  destinatario, QR ou sessao. O backfill de nao lidas tem retry limitado e
+  continua dependendo da deduplicacao duravel do handler publico.
 
 ## `.env` de producao e sensivel
 

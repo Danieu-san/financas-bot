@@ -12,10 +12,12 @@ const userServicePath = require.resolve('../src/services/userService');
 const dashboardAuthPath = require.resolve('../src/utils/dashboardAuth');
 const dashboardV2SummaryPath = require.resolve('../src/services/dashboardV2SummaryService');
 const oauthTokenStorePath = require.resolve('../src/services/oauthTokenStore');
+const whatsappPath = require.resolve('../src/services/whatsapp');
 
 function installReadModelMock(calls, {
     personalDashboardReader = async () => null,
-    freshUserReader = null
+    freshUserReader = null,
+    whatsappHealth = { status: 'ready', liveness: 'healthy' }
 } = {}) {
     delete require.cache[dashboardServerPath];
     delete require.cache[readModelPath];
@@ -23,6 +25,7 @@ function installReadModelMock(calls, {
     delete require.cache[userServicePath];
     delete require.cache[dashboardV2SummaryPath];
     delete require.cache[oauthTokenStorePath];
+    delete require.cache[whatsappPath];
     require.cache[readModelPath] = {
         id: readModelPath,
         filename: readModelPath,
@@ -123,6 +126,15 @@ function installReadModelMock(calls, {
             getFinancialScopeUserIds: userId => [userId]
         }
     };
+    require.cache[whatsappPath] = {
+        id: whatsappPath,
+        filename: whatsappPath,
+        loaded: true,
+        exports: {
+            sendWhatsAppMessage: async () => ({ id: 'synthetic' }),
+            getWhatsAppHealth: () => whatsappHealth
+        }
+    };
 }
 
 async function startTestServer(calls, options = {}) {
@@ -166,6 +178,49 @@ async function fetchText(url) {
     const text = await response.text();
     return { response, text };
 }
+
+test('public health requires both SQLite and WhatsApp runtime liveness', async () => {
+    const calls = [];
+    const { server, baseUrl } = await startTestServer(calls);
+    try {
+        const health = await fetchJson(`${baseUrl}/dashboard/health`);
+        assert.strictEqual(health.response.status, 200);
+        assert.deepStrictEqual(health.json, {
+            ok: true,
+            sqlite: true,
+            whatsapp: true,
+            whatsappStatus: 'ready',
+            whatsappLiveness: 'healthy'
+        });
+    } finally {
+        server.close();
+    }
+});
+
+test('public health fails closed for degraded WhatsApp without exposing failure details', async () => {
+    const calls = [];
+    const { server, baseUrl } = await startTestServer(calls, {
+        whatsappHealth: {
+            status: 'degraded',
+            liveness: 'degraded',
+            lastReason: 'private protocol failure'
+        }
+    });
+    try {
+        const health = await fetchJson(`${baseUrl}/dashboard/health`);
+        assert.strictEqual(health.response.status, 503);
+        assert.deepStrictEqual(health.json, {
+            ok: false,
+            sqlite: true,
+            whatsapp: false,
+            whatsappStatus: 'degraded',
+            whatsappLiveness: 'degraded'
+        });
+        assert.strictEqual(JSON.stringify(health.json).includes('private'), false);
+    } finally {
+        server.close();
+    }
+});
 
 test('dashboard v2 page is opt-in, mobile-first and consumes only the sanitized v2 contract', async () => {
     const calls = [];

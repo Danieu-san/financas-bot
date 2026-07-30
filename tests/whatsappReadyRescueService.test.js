@@ -74,3 +74,34 @@ test('triggerReadyRescue attaches WhatsApp event listeners before emitting ready
     assert.equal(result.skipped, false);
     assert.deepEqual(calls, ['attach', 'evaluate']);
 });
+
+test('triggerReadyRescue continues when the message page binding already exists', async () => {
+    const calls = [];
+    const result = await triggerReadyRescue({
+        attachEventListeners: async () => {
+            calls.push('attach');
+            throw new Error(
+                "Failed to add page binding with name onAddMessageEvent: "
+                + "window['onAddMessageEvent'] already exists!"
+            );
+        },
+        pupPage: {
+            evaluate: async () => {
+                calls.push('evaluate');
+                return {
+                    wwebjs: 'object',
+                    sync: 'function',
+                    add: 'function',
+                    triggered: true
+                };
+            }
+        }
+    }, {
+        isStillPending: () => true,
+        logger: { info() {}, warn() {} }
+    });
+
+    assert.equal(result.skipped, false);
+    assert.equal(result.result.triggered, true);
+    assert.deepEqual(calls, ['attach', 'evaluate']);
+});

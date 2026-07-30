@@ -81,6 +81,8 @@ async function startBot() {
                 enabled: String(process.env.WHATSAPP_UNREAD_BACKFILL_ON_READY || 'true').toLowerCase() !== 'false',
                 delayMs: Number(process.env.WHATSAPP_UNREAD_BACKFILL_DELAY_MS || 3000),
                 maxPerChat: Number(process.env.WHATSAPP_UNREAD_BACKFILL_MAX_PER_CHAT || 20),
+                maxAttempts: Number(process.env.WHATSAPP_UNREAD_BACKFILL_MAX_ATTEMPTS || 3),
+                retryDelayMs: Number(process.env.WHATSAPP_UNREAD_BACKFILL_RETRY_DELAY_MS || 5000),
                 notBeforeTimestamp: Math.max(0, startupUnixSeconds - unreadBackfillLookbackSeconds)
             }).catch(error => {
                 logger.warn(`[whatsapp] unread_backfill_failed ${logger.safeError(error)}`);

@@ -9,7 +9,8 @@ const { verifyDashboardToken, isDashboardV2Enabled } = require('../utils/dashboa
 const { getAllUsers, getUserByIdFresh, getUserProfileByUserId } = require('./userService');
 const { getFinancialScopeUserIds } = require('./oauthTokenStore');
 const { buildGoogleAuthorizationUrl, completeGoogleOAuthCallback } = require('./googleOAuthService');
-const { sendWhatsAppMessage } = require('./whatsapp');
+const { sendWhatsAppMessage, getWhatsAppHealth } = require('./whatsapp');
+const { buildRuntimeHealthSnapshot } = require('./runtimeHealthService');
 const { prepareOnboardingState } = require('../handlers/onboardingHandler');
 const { recordDashboardAccessEvent } = require('./dashboardAccessLogService');
 const { recordLegacyUsageEvent } = require('../telemetry/legacyUsageTelemetry');
@@ -1224,7 +1225,13 @@ function startDashboardServer() {
             return;
         }
         if (req.method === 'GET' && reqUrl.pathname === '/dashboard/health') {
-            sendJson(res, 200, { ok: true, sqlite: isSqliteReady() });
+            const health = buildRuntimeHealthSnapshot({
+                sqliteReady: isSqliteReady(),
+                whatsappHealth: typeof getWhatsAppHealth === 'function'
+                    ? getWhatsAppHealth()
+                    : { status: 'starting', liveness: 'pending' }
+            });
+            sendJson(res, health.statusCode, health.payload);
             return;
         }
         sendJson(res, 404, { error: 'Rota não encontrada.' });

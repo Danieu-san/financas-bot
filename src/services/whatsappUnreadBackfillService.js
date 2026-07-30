@@ -1,5 +1,31 @@
 const defaultLogger = require('../utils/logger');
 
+function nonNegativeNumber(value, fallback) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+function positiveInteger(value, fallback) {
+    const parsed = Number(value);
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function classifyBackfillFailure(error) {
+    const message = String(error?.message || error || '').toLowerCase();
+    if (
+        message.includes('runtime.callfunctionon')
+        || (message.includes('protocol') && message.includes('timed out'))
+    ) {
+        return 'protocol_timeout';
+    }
+    return 'backfill_failed';
+}
+
+function wait(delayMs) {
+    if (delayMs <= 0) return Promise.resolve();
+    return new Promise(resolve => setTimeout(resolve, delayMs));
+}
+
 function getMessageKey(message) {
     return message?.id?._serialized || message?.id?.id || '';
 }
@@ -42,7 +68,9 @@ async function collectUnreadIncomingMessages(chats, options = {}) {
 
 async function backfillUnreadMessages(client, handleMessage, options = {}) {
     const logger = options.logger || defaultLogger;
-    const delayMs = Number(options.delayMs || 3000);
+    const delayMs = nonNegativeNumber(options.delayMs, 3000);
+    const retryDelayMs = nonNegativeNumber(options.retryDelayMs, 5000);
+    const maxAttempts = positiveInteger(options.maxAttempts, 3);
     const enabled = options.enabled !== false;
     if (!enabled) return { skipped: true, reason: 'disabled', processed: 0 };
     if (!client || typeof client.getChats !== 'function') {
@@ -52,25 +80,44 @@ async function backfillUnreadMessages(client, handleMessage, options = {}) {
         return { skipped: true, reason: 'handler_missing', processed: 0 };
     }
 
-    if (delayMs > 0) {
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-    }
+    await wait(delayMs);
 
-    const chats = await client.getChats();
-    const messages = await collectUnreadIncomingMessages(chats, options);
-    for (const message of messages) {
-        await handleMessage(message);
-    }
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        try {
+            const chats = await client.getChats();
+            const messages = await collectUnreadIncomingMessages(chats, options);
+            for (const message of messages) {
+                await handleMessage(message);
+            }
 
-    if (messages.length > 0) {
-        logger.info(`[whatsapp] unread backfill processou ${messages.length} mensagem(ns).`);
-    }
+            if (messages.length > 0) {
+                logger.info(`[whatsapp] unread backfill processou ${messages.length} mensagem(ns).`);
+            }
 
-    return { skipped: false, processed: messages.length };
+            return {
+                skipped: false,
+                processed: messages.length,
+                attempts: attempt
+            };
+        } catch (error) {
+            const reasonCode = classifyBackfillFailure(error);
+            logger.warn(
+                `[whatsapp] unread_backfill_attempt_failed reason_code=${reasonCode} `
+                + `attempt=${attempt} max_attempts=${maxAttempts}`
+            );
+            if (attempt >= maxAttempts) {
+                const exhausted = new Error('WhatsApp unread backfill exhausted.');
+                exhausted.code = 'WHATSAPP_UNREAD_BACKFILL_EXHAUSTED';
+                throw exhausted;
+            }
+            await wait(retryDelayMs);
+        }
+    }
 }
 
 module.exports = {
     backfillUnreadMessages,
+    classifyBackfillFailure,
     collectUnreadIncomingMessages,
     getMessageKey
 };

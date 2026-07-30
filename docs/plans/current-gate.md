@@ -1,145 +1,150 @@
-# Gate encerrado — 9P.3 revisão e correção guiada da proposta Open Finance
+# Gate ativo — OPS-02 liveness e recuperação do WhatsApp
 
 Atualizado em: 2026-07-30
 
 Base:
-`b52b7879fd5a795a436b4f6332294052732ebe7a`.
+`43c4555f534421aa87fee6ccc97d242d80a1744c`.
 
 ## Estado
 
-`GO TÉCNICO LOCAL; ESCRITA FINANCEIRA DESLIGADA; PRODUÇÃO NÃO AUTORIZADA`.
+`CANDIDATO LOCAL VERDE; AUDITORIA INDEPENDENTE PENDENTE`.
 
-9P.0 encerrou a proposta reconciliada em shadow; 9P.1, a confirmação local
-durável; e 9P.2, a entrega confirmada e a captura pública de
-`sim/não/cancelar`. O commit imutável de recuperação de 9P.2
-`b52b7879fd5a795a436b4f6332294052732ebe7a` recebeu `GO TÉCNICO LOCAL`
-independente, sem achados `CRITICAL`, `HIGH`, `MEDIUM` ou `LOW`.
+## Evidência do incidente
 
-O próximo elo já registrado é permitir que a proposta aceita seja conferida e
-corrigida antes de qualquer autorização de escrita.
+Na produção Oracle, o processo permaneceu `online`, sem reinícios, e
+`/dashboard/health` continuou `200` com SQLite verde. Ao mesmo tempo:
+
+- operações do WhatsApp falharam repetidamente com
+  `Runtime.callFunctionOn timed out` desde 2026-07-27;
+- o Chrome não mantinha conexão externa, apenas o socket local com Node;
+- Google e read-model continuaram sincronizando;
+- `client.on('disconnected')` não foi emitido e o processo não se recuperou;
+- restart controlado restaurou o runtime, mas a sessão exigiu novo QR;
+- depois do QR, `ready` e uma mensagem real confirmaram recuperação.
+
+O código possui watchdog somente entre inicialização/autenticação e `ready`.
+Depois de `ready`, o health não consulta a sessão WhatsApp e não existe probe
+periódico ou escalonamento ao supervisor.
 
 ## Objetivo
 
-Depois de uma proposta entregue e aceita pelo familiar autorizado, apresentar
-os campos financeiros inferidos e permitir revisão/correção guiada de pessoa,
-categoria, forma de pagamento, conta e cartão. A conversa deve terminar em um
-estado local pronto para revalidação posterior, sem gravar planilha ou ledger.
+Detectar de forma limitada e sanitizada a perda de liveness da sessão
+WhatsApp/Puppeteer depois de `ready`, refletir o estado no health e acionar uma
+única recuperação pelo supervisor após falhas consecutivas, sem reiniciar
+durante QR/autenticação e sem criar caminho de duplicação de mensagens.
 
 ## Escopo
 
-- entrada somente a partir de proposta 9P.2 aceita e vinculada ao ator;
-- resumo explícito dos campos presentes, ausentes e incertos;
-- correção guiada de pessoa, categoria, forma de pagamento, conta e cartão;
-- opções derivadas dos catálogos financeiros autorizados, sem inventar fonte
-  ausente;
-- uma decisão conversacional por vez, serializada pelo handler público;
-- cancelamento e expiração fail-closed;
-- estado local durável e recuperável após restart;
-- mensagem explícita de que a revisão ainda não salvou o lançamento;
-- `financial_writes=0` em todos os caminhos.
+- máquina de liveness testável e independente do navegador real;
+- estados mínimos `starting`, `qr_pending`, `ready`, `degraded` e `stopped`;
+- probe single-flight e com timeout próprio;
+- limiar configurável de falhas consecutivas e recuperação após sucesso;
+- escalonamento exatamente uma vez para o supervisor;
+- integração com `ready`, `qr`, `authenticated`, `auth_failure`,
+  `disconnected` e falha de transporte;
+- `/dashboard/health` distingue processo/SQLite de WhatsApp operacional;
+- retry limitado do unread backfill após reconexão, com reason codes estáveis;
+- logs sanitizados por reason code, sem destinatário, mensagem ou sessão;
+- variáveis novas presentes no contrato de ambiente;
+- testes de não regressão do ready rescue e do backfill.
 
 ## Não escopo
 
-- revalidação final contra Sheets/ledger;
-- operation key e recibo de escrita;
-- autorização final de persistência;
-- qualquer escrita em Sheets, ledger ou Google;
-- alteração de `OPEN_FINANCE_WRITE_MODE=off`;
-- deploy, produção, Oracle/AWS, Pluggy ou WhatsApp reais.
+- deploy, restart adicional, QR ou alteração da sessão real;
+- upgrade de `whatsapp-web.js`, Chrome ou mudança de flags Puppeteer;
+- remoção de `LocalAuth` ou troca de provedor de transporte;
+- alta disponibilidade com dois processos concorrentes;
+- escrita financeira, 9P.4 ou ativação Open Finance;
+- provar a causa raiz do alto CPU steal da VM.
 
-## Contrato
+## Invariantes
 
-1. somente proposta aceita e entregue com prova positiva pode abrir revisão;
-2. o ator da revisão deve ser o familiar vinculado à confirmação;
-3. valores atuais permanecem preservados até uma correção válida e explícita;
-4. opções de pessoa, categoria, pagamento, conta e cartão vêm de fontes
-   autorizadas e respeitam dependências entre os campos;
-5. resposta inválida, ambígua, de terceiro, expirada ou fora de ordem não avança
-   estado;
-6. restart recupera a etapa e os valores já confirmados sem duplicar decisão;
-7. cancelamento é terminal e replay não reabre a revisão;
-8. nenhum caminho desta fatia chama writer financeiro.
+1. QR pendente, inicialização e autenticação em curso nunca acionam restart por
+   liveness de runtime.
+2. Somente sessão previamente `ready` pode ser sondada como runtime.
+3. Um probe lento não permite probes concorrentes.
+4. Falha isolada degrada o health, mas não encerra o processo.
+5. Sucesso antes do limiar zera falhas consecutivas.
+6. O limiar aciona no máximo uma saída; eventos posteriores não duplicam a
+   recuperação.
+7. Timeout não vira sucesso por ausência de erro.
+8. Health não expõe IDs, números, conteúdo, QR, URL de sessão ou erro cru.
+9. A correção não envia mensagem e não chama writer financeiro.
+10. A deduplicação e o backfill existentes continuam na mesma entrada pública.
+
+## Riscos
+
+- falso positivo reiniciar uma sessão saudável sob pressão transitória;
+- probe pendente acumular trabalho no Chrome;
+- loop de restart quando a sessão exigir QR;
+- health mudar de `200` para `503` durante startup e afetar monitor externo;
+- saída durante transporte ambíguo reprocessar mensagem sem deduplicação.
+
+## Etapas
+
+1. [concluído] RED causal da sessão `ready` cujo probe trava ou retorna
+   desconectado.
+2. [concluído] RED do health falso verde com WhatsApp degradado.
+3. [concluído] Implementação mínima da máquina, integração e contrato de
+   ambiente.
+4. [concluído] Testes focais, ready rescue, backfill, dashboard e entrada
+   pública afetada.
+5. [concluído] Bateria hermética, diff, contrato de ambiente e varredura de
+   segredos.
+6. [pendente] Commit sanitizado e auditoria independente por hash imutável.
+7. [bloqueado até GO] Planejar deploy OCI por artefato com rollback.
+
+## Evidência local do candidato
+
+- RED: os novos contratos de liveness/health não existiam; a prova dirigida de
+  ready rescue e retry do backfill terminou com três falhas esperadas.
+- GREEN focal HTTP/runtime/rescue/backfill: `36/36`.
+- Bateria afetada com dashboard, OAuth, scheduler, estado e auditorias Google:
+  `211/211`.
+- Runner hermético exaustivo: `1.321/1.326`, zero falhas e cinco skips E2E
+  funcionais previstos; 124 arquivos descobertos, 106 executados diretamente e
+  18 cobertos por runners aninhados.
+- Cobertura: linhas `90,37%`, branches `72,31%`, funções `89,86%`.
+- Contrato de ambiente: 188 nomes referenciados, 201 documentados, zero nomes
+  ausentes, duplicados ou acessos dinâmicos não aprovados.
+- `git diff --check`, sintaxe dos módulos alterados e varredura dirigida de
+  segredos: verdes.
+- `npm audit --audit-level=high` relata 11 vulnerabilidades transitivas da árvore
+  já fixada, incluindo `js-yaml` sem correção disponível via
+  `whatsapp-web.js`/Puppeteer. O lockfile não foi alterado e nenhum `audit fix`
+  foi aplicado neste gate.
 
 ## Critérios de GO
 
-- RED causal antes da integração;
-- abertura somente após aceitação válida de 9P.2;
-- pessoa, categoria, pagamento, conta e cartão exercitados individualmente e
-  em combinações causais;
-- opções reais do catálogo e ausência de fonte tratada como ausência, nunca
-  como zero ou valor inventado;
-- ator correto, bloqueio de terceiro e de respostas fora de ordem;
-- cancelamento, expiração, replay e recuperação após restart;
-- entrada pública real do handler exercitada;
-- testes afetados e gate Open Finance verdes;
-- commit sanitizado e auditoria independente por hash imutável sem achado
-  bloqueante.
+- RED reproduz o falso verde sem rede ou WhatsApp real;
+- duas falhas consecutivas configuradas acionam uma única recuperação;
+- uma falha seguida de sucesso não aciona recuperação;
+- probe single-flight não acumula chamadas;
+- QR/startup/auth não iniciam probe nem recuperação;
+- health retorna `503` sanitizado quando WhatsApp não está operacional e
+  `200` somente com SQLite e WhatsApp saudáveis;
+- `ready` restaura health, falhas degradam e sucesso posterior recupera;
+- integração real de `src/services/whatsapp.js` exercitada com cliente falso;
+- ready rescue e unread backfill permanecem verdes;
+- binding de mensagem já existente não invalida o ready rescue, e falha
+  transitória do backfill é repetida sem expor erro cru;
+- nenhuma escrita financeira, mensagem real ou integração externa;
+- auditoria independente sem achado bloqueante.
 
 ## Condições de parada
 
-- qualquer escrita financeira;
-- abertura de revisão sem proposta aceita e entrega confirmada;
-- alteração silenciosa de campo não escolhido;
-- opção proveniente de outro usuário ou catálogo não autorizado;
-- perda ou reabertura de decisão após restart;
-- necessidade de produção ou integração real.
-
-## Evidência local
-
-9P.2 recebeu `GO TÉCNICO LOCAL` independente no commit
-`b52b7879fd5a795a436b4f6332294052732ebe7a`. O fechamento está em
-`docs/audit/56-open-finance-save-proposal-conversation-independent-close-2026-07-24.md`.
-
-O candidato 9P.3 possui:
-
-- conversa/store: `15/15`;
-- catálogo: `2/2`;
-- runtime prompt/shadow: `8/8`;
-- máquina de estados e entrada pública: `122/122`;
-- runner hermético: `1.302/1.307`, zero falhas e cinco skips previstos;
-- cobertura: linhas `90,12%`, branches `72,23%`, funções `90,01%`;
-- sintaxe, workflow portátil e `git diff --check`: verdes.
-
-O primeiro candidato imutável
-`c452b9b999a6caf6af62696b5c8927ec5970c1f2` recebeu `NO-GO` independente por
-três achados `MEDIUM`: revisão `prepared` órfã após recusa/cancelamento posterior
-a falha de aceitação, linhas de catálogo sem escopo explícito e ausência da
-prova causal exata de queda entre `accepted` e ativação. As três correções estão
-locais e verdes: focal `20/20`, causal `150/150`, Open Finance `259/259` e
-entrada pública/máquina de estados `122/122`. A entrada pública também recupera
-revisão durável quando o snapshot auxiliar ainda aponta para confirmação.
-O runner hermético definitivo teve `1.305/1.310`, zero falhas e cinco skips
-funcionais previstos; cobertura de linhas `90,18%`, branches `72,27%` e
-funções `90,03%`.
-
-Manifesto de reauditoria:
-`docs/audit/58-open-finance-save-proposal-guided-review-reaudit-candidate-2026-07-24.md`.
-
-O candidato foi publicado em
-`f8a1e9f41eee3c904f0de69ae465219ef874212d`. O parecer final da revisão manual
-no Chat confirmou o hash e os arquivos, encerrou M1, M2 e M3, registrou
-`CRITICAL 0`, `HIGH 0`, `MEDIUM 0`, `LOW 0` e não identificou lacuna
-indispensável residual. A revisão foi estática e não executou os testes.
-
-Fechamento:
-`docs/audit/60-open-finance-save-proposal-guided-review-independent-close-2026-07-30.md`.
-
-Manifesto:
-`docs/audit/57-open-finance-save-proposal-guided-review-candidate-2026-07-24.md`.
+- necessidade de apagar `.wwebjs_auth`;
+- necessidade de tocar produção durante a implementação;
+- recuperação que possa executar mais de uma vez;
+- ausência de prova da fronteira entre falha isolada e sessão morta;
+- mudança de transporte, pacote ou arquitetura fora deste gate.
 
 ## Próxima ação exata
 
-Abrir gate separado de confiabilidade operacional para a perda silenciosa de
-liveness da sessão WhatsApp/Puppeteer observada em 2026-07-30. PM2, Google,
-read-model e `/dashboard/health` permaneceram verdes enquanto operações do
-WhatsApp falhavam repetidamente com `Runtime.callFunctionOn timed out`; o
-processo não se recuperou sozinho.
-
-9P.4 permanece não autorizado até o fechamento desse incidente. Depois dele,
-o próximo elo de produto é revalidação contra a fonte, confirmação final
-idempotente, operation key e recibo, ainda sob gate próprio.
+Publicar o candidato sanitizado, fornecer o hash completo e os arquivos exatos
+ao Chat e confrontar o parecer estático independente com a evidência executada
+localmente. Sem resposta auditável, o estado máximo continua `candidato`.
 
 ## Capacidade
 
-`Codex → Sol → Alto → delimitar e provar causalmente a correção de liveness do
-WhatsApp antes de retomar 9P.4.`
+`Codex → Sol → Alto → implementar e validar causalmente OPS-02.`

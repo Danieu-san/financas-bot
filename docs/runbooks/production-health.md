@@ -1,6 +1,8 @@
 # Production Health Runbook
 
-Use this after deploys, restarts, QR renewals, or incidents on the EC2 server.
+Use este runbook depois de deploy, restart, renovacao de QR ou incidente na
+producao vigente. Em 2026-07-30, a producao ativa e Oracle Cloud; nao reutilize
+comandos ou caminhos AWS/EC2 do historico.
 
 ## 1. Process Status
 
@@ -51,14 +53,26 @@ curl http://localhost:8787/dashboard/health
 Expected:
 
 ```json
-{ "ok": true, "sqlite": true }
+{
+  "ok": true,
+  "sqlite": true,
+  "whatsapp": true,
+  "whatsappStatus": "ready",
+  "whatsappLiveness": "healthy"
+}
 ```
+
+Semantica:
+
+- `200`: SQLite pronto e WhatsApp `ready`/`healthy`;
+- `503`: startup, QR pendente, WhatsApp degradado/parado ou SQLite indisponivel;
+- PM2 `online` isoladamente nao prova que o bot recebe mensagens.
 
 If local health passes but public link times out:
 
-- Check EC2 security group inbound rule for TCP `8787`.
-- Check network ACL inbound and outbound rules.
-- Confirm `DASHBOARD_BASE_URL` matches the current public IP/domain.
+- confira o proxy Caddy e o health publico HTTPS;
+- confira as regras de rede da OCI;
+- confirme que `DASHBOARD_BASE_URL` corresponde ao dominio vigente.
 
 Hourly metrics to inspect:
 
@@ -123,31 +137,18 @@ npm run test:whatsapp:e2e
 
 Use only with explicit `.env` opt-in. Do not run destructive spreadsheet reset against production unless the sheet is intentionally disposable and the reset env confirmation is set.
 
-## 7. Deploy Commands
+## 7. Deploy
 
-```bash
-cd /home/ubuntu/financas-bot
-git pull origin main
-npm install
-pm2 restart financas-bot --update-env
-pm2 logs financas-bot --lines 160 --nostream
-curl http://localhost:8787/dashboard/health
-```
+A producao OCI foi materializada por artefato imutavel e nao possui contrato
+aprovado de checkout Git. Nao execute `git pull`, `git reset` ou `git revert`
+no diretorio de producao. Antes do proximo deploy funcional, preparar e ensaiar
+instalacao por artefato com checksum, preservacao explicita de estado e rollback.
 
 ## 8. Rollback
 
-If the newest deploy is bad:
-
-```bash
-cd /home/ubuntu/financas-bot
-git log --oneline -5
-git revert --no-edit <bad_commit_sha>
-npm install
-pm2 restart financas-bot --update-env
-pm2 logs financas-bot --lines 160 --nostream
-```
-
-Avoid `git reset --hard` on the server unless you have explicitly decided to discard local server-only changes.
+Se o novo artefato falhar, usar somente o rollback ensaiado para o artefato
+anterior, preservando `.env`, credenciais, sessao WhatsApp e stores persistentes.
+Nunca iniciar Oracle e AWS simultaneamente com a mesma sessao WhatsApp.
 
 ## 9. Escalation Signals
 

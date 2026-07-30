@@ -10,20 +10,23 @@ independente no commit imutável
 `f8a1e9f41eee3c904f0de69ae465219ef874212d`, sem achado residual e com
 `financial_writes=0`.
 
-O objetivo ativo seguinte é delimitar e corrigir a perda silenciosa de liveness
-da sessão WhatsApp/Puppeteer observada em produção Oracle em 2026-07-30.
+O objetivo ativo seguinte é fechar por auditoria independente a correção da
+perda silenciosa de liveness da sessão WhatsApp/Puppeteer observada em produção
+Oracle em 2026-07-30.
 PM2, Google, read-model e `/dashboard/health` permaneceram verdes enquanto
 operações do WhatsApp acumulavam `Runtime.callFunctionOn timed out`; não houve
-recuperação automática. 9P.4 permanece não autorizado até o fechamento desse
-incidente.
+recuperação automática. O candidato local OPS-02 agora possui monitor
+single-flight pós-`ready`, timeout e limiar de duas falhas, recuperação única
+pelo supervisor, health composto SQLite/WhatsApp e retry limitado do backfill.
+9P.4 permanece não autorizado até o fechamento desse incidente.
 
 ## Workspace vigente
 
 Raiz recuperada:
 `C:\Users\Administrador\Documents\FinancasBot\financas-bot`.
-Branch: `codex/open-finance-save-proposal`; HEAD antes deste fechamento:
-`9db5ed164d44988e98a0a2bcb1e5a8e90f231dea`; candidato auditado:
-`f8a1e9f41eee3c904f0de69ae465219ef874212d`.
+Branch ativa: `codex/whatsapp-liveness-recovery`; base:
+`43c4555f534421aa87fee6ccc97d242d80a1744c`. O hash do candidato OPS-02 será
+registrado depois do commit sanitizado.
 
 O SSD portátil anterior foi perdido e não é mais a raiz canônica. A produção
 vigente é Oracle/OCI e permanece separada deste gate; o código 9P.3 não foi
@@ -155,35 +158,6 @@ telemetria pré-roteamento não abrem bypass nem vazamento.
 
 Não houve acesso a Google/WhatsApp real, produção ou deploy.
 
-## Gate encerrado anterior — AUTH-03/WGL-07
-
-`AUTH-03/WGL-07` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
-`2d0092da691985bf945c35d7041b5ef4e2d2fd1d`.
-
-O gate fecha localmente a remoção e a reatribuição causal de memberships e
-permissões Drive familiares quando o lifecycle exigir. O tombstone local
-precede a rede; retry/compensação são persistentes, cercados por geração e
-lease, limitados por backoff/retenção e destroem credenciais cifradas em estados
-terminais. Reatribuição bloqueia o novo grant enquanto o acesso anterior não
-estiver resolvido, e grant remoto seguido de falha local gera compensação
-durável.
-
-## Evidência anterior de AUTH-03/WGL-07
-
-- sintaxe dos módulos e testes alterados: verde;
-- ensaios causais dedicados + lifecycle: `21/21`;
-- prova negativa: `4/4`;
-- bateria focal ampliada: `399/399`;
-- `npm test`: pretests verdes e runner principal `1.066/1.066`, sem falha ou
-  skip;
-- `git diff --check`, `package.json` e varredura de segredos: verdes;
-- auditor independente leu o hash e os dez artefatos exigidos, não encontrou
-  `CRITICAL`, `HIGH`, `MEDIUM` ou lacuna causal indispensável e emitiu `GO
-  TÉCNICO LOCAL`.
-
-O parecer independente foi estático e não executou testes. Não houve acesso a
-Google/WhatsApp real, produção ou deploy.
-
 ## Git e workspace
 
 - branch ativa: `codex/open-finance-save-proposal`;
@@ -199,10 +173,16 @@ Google/WhatsApp real, produção ou deploy.
 
 ## Próximo gate
 
-Gate operacional separado para liveness da sessão WhatsApp/Puppeteer. O
-incidente real comprovou que o health atual mede processo, HTTP e SQLite, mas
-não detecta uma página WhatsApp incapaz de executar funções ou sem conexão
-externa.
+OPS-02 está em `candidato local verde; auditoria independente pendente`. O
+incidente real comprovou que o health anterior media processo, HTTP e SQLite,
+mas não detectava uma página WhatsApp incapaz de executar funções ou sem
+conexão externa.
+
+Evidência executada: focal `36/36`; afetada `211/211`; runner hermético
+`1.321/1.326`, zero falhas e cinco skips funcionais previstos; cobertura de
+linhas `90,37%`; contrato de ambiente verde. O audit de dependências relata 11
+avisos `high` transitivos preexistentes; nenhum lockfile foi alterado neste
+gate.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -222,10 +202,9 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Criar o charter causal do incidente de liveness do WhatsApp, caracterizar a
-fronteira de detecção e recuperação e produzir RED que reproduza processo/HTTP
-verdes com transporte WhatsApp indisponível. Não reiniciar produção nem
-alterar sessão real durante a implementação local.
+Publicar o commit sanitizado de OPS-02 e executar uma tentativa de auditoria
+independente no Chat conectado usando hash completo e URLs imutáveis. Não
+reiniciar produção nem alterar a sessão real.
 
 ## Capacidade para retomar
 

@@ -119,7 +119,9 @@ Validar:
 
 Validar:
 
-- `/dashboard/health`.
+- `/dashboard/health`: `200` somente com SQLite pronto e WhatsApp em
+  `status=ready`/`liveness=healthy`; startup, QR, desconexao ou degradacao devem
+  retornar `503` sem expor motivo interno, QR, sessao ou payload de mensagem.
 - `/dashboard/api/summary?month=<m>&year=<y>` muda entre meses.
 - `/dashboard/api/v2/summary?month=<m>&year=<y>` devolve os onze blocos do
   contrato, separa caixa atual de competencia e usa `null` quando uma fonte
@@ -141,6 +143,14 @@ Validar:
 - `admin status bot` ou `admin health` responde resumo operacional sem credenciais, IDs internos, variaveis de ambiente ou dados financeiros individuais.
 - `admin reiniciar bot` exige `confirmar admin` e so agenda reinicio do processo; nao deve aceitar comando livre de terminal.
 - Apos deploy de manutencao, conferir PM2, `/dashboard/health` e logs ate `Bot pronto para receber mensagens`.
+- Em mudanca de transporte WhatsApp, executar tambem
+  `tests/whatsappLivenessService.test.js`,
+  `tests/runtimeHealthService.test.js`,
+  `tests/whatsappServiceLiveness.test.js`,
+  `tests/whatsappReadyRescueService.test.js` e
+  `tests/whatsappUnreadBackfillService.test.js`. Provar probe sem sobreposicao,
+  recuperacao unica pelo supervisor, nenhuma recuperacao durante QR/startup e
+  retry limitado do backfill.
 
 ## Interpretation reliability shadow
 

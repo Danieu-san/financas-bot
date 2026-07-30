@@ -1,5 +1,11 @@
 const defaultLogger = require('../utils/logger');
 
+function isExistingMessageBindingError(error) {
+    const message = String(error?.message || error || '');
+    return message.includes('onAddMessageEvent')
+        && message.includes('already exists');
+}
+
 async function triggerReadyRescue(client, options = {}) {
     const logger = options.logger || defaultLogger;
     const isStillPending = typeof options.isStillPending === 'function'
@@ -16,7 +22,12 @@ async function triggerReadyRescue(client, options = {}) {
     }
 
     if (typeof client.attachEventListeners === 'function') {
-        await client.attachEventListeners();
+        try {
+            await client.attachEventListeners();
+        } catch (error) {
+            if (!isExistingMessageBindingError(error)) throw error;
+            logger.info('[whatsapp] ready_rescue_binding_already_attached');
+        }
     }
 
     const result = await page.evaluate(() => {
@@ -60,6 +71,7 @@ function scheduleReadyRescue(client, options = {}) {
 }
 
 module.exports = {
+    isExistingMessageBindingError,
     scheduleReadyRescue,
     triggerReadyRescue
 };

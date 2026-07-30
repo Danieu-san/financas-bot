@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 const {
+    backfillUnreadMessages,
     collectUnreadIncomingMessages
 } = require('../src/services/whatsappUnreadBackfillService');
 
@@ -67,4 +68,60 @@ test('collectUnreadIncomingMessages ignores unread messages older than the curre
         messages.map(message => message.id.id),
         ['new-1']
     );
+});
+
+test('backfillUnreadMessages retries a transient chat read and processes once', async () => {
+    const incoming = makeMessage('retry-1', { timestamp: 200 });
+    const handled = [];
+    const warnings = [];
+    let attempts = 0;
+
+    const result = await backfillUnreadMessages({
+        async getChats() {
+            attempts += 1;
+            if (attempts === 1) throw new Error('transient private browser failure');
+            return [{
+                unreadCount: 1,
+                fetchMessages: async () => [incoming]
+            }];
+        }
+    }, async message => {
+        handled.push(message.id.id);
+    }, {
+        delayMs: 0,
+        retryDelayMs: 0,
+        maxAttempts: 2,
+        logger: {
+            info() {},
+            warn(message) {
+                warnings.push(message);
+            }
+        }
+    });
+
+    assert.equal(result.processed, 1);
+    assert.equal(attempts, 2);
+    assert.deepEqual(handled, ['retry-1']);
+    assert.equal(warnings.length, 1);
+    assert.match(warnings[0], /reason_code=backfill_failed/);
+    assert.equal(warnings[0].includes('private browser failure'), false);
+});
+
+test('backfillUnreadMessages fails with a stable code after bounded retries', async () => {
+    let attempts = 0;
+    await assert.rejects(
+        backfillUnreadMessages({
+            async getChats() {
+                attempts += 1;
+                throw new Error('r');
+            }
+        }, async () => {}, {
+            delayMs: 0,
+            retryDelayMs: 0,
+            maxAttempts: 2,
+            logger: { info() {}, warn() {} }
+        }),
+        error => error?.code === 'WHATSAPP_UNREAD_BACKFILL_EXHAUSTED'
+    );
+    assert.equal(attempts, 2);
 });
