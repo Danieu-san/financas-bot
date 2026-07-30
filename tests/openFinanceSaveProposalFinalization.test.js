@@ -30,6 +30,18 @@ const secret = 'open-finance-finalization-test-secret';
 const actorWhatsappId = 'daniel@c.us';
 const proposalRef = 'a'.repeat(32);
 
+function enabledWriteEnv(overrides = {}) {
+    return {
+        OPEN_FINANCE_ALERT_MODE: 'canary',
+        OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
+        OPEN_FINANCE_SHADOW_PREVIEW_MODE: 'canary',
+        OPEN_FINANCE_RECONCILIATION_MODE: 'canary',
+        OPEN_FINANCE_WRITE_MODE: 'confirm',
+        OPEN_FINANCE_WRITE_APPROVED: 'true',
+        ...overrides
+    };
+}
+
 function fixture() {
     const transaction = {
         id: 'purchase-final',
@@ -178,10 +190,7 @@ test('9P.4 writes the selected family member independently of the confirming act
             expectedUserIdIndex: 9
         }
     ];
-    const env = {
-        OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
-        OPEN_FINANCE_WRITE_MODE: 'confirm'
-    };
+    const env = enabledWriteEnv();
 
     for (const scenario of cases) {
         const input = fixture();
@@ -284,10 +293,7 @@ test('9P.4 accepts one explicit durable new category without adding a second wri
             };
         }
     };
-    const env = {
-        OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
-        OPEN_FINANCE_WRITE_MODE: 'confirm'
-    };
+    const env = enabledWriteEnv();
     try {
         await prepareOpenFinanceSaveProposalFinalization({
             proposalRef,
@@ -672,10 +678,7 @@ test('9P.4 remains dormant with write mode off and requires a second explicit co
             }
         }
     };
-    const env = {
-        OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
-        OPEN_FINANCE_WRITE_MODE: 'confirm'
-    };
+    const env = enabledWriteEnv();
     try {
         const prepared = await prepareOpenFinanceSaveProposalFinalization({
             proposalRef,
@@ -716,6 +719,37 @@ test('9P.4 remains dormant with write mode off and requires a second explicit co
     }
 });
 
+test('post-9P.4 finalization rejects every partial write activation before loading context', async () => {
+    const complete = enabledWriteEnv();
+    for (const key of [
+        'OPEN_FINANCE_ALERT_MODE',
+        'OPEN_FINANCE_SAVE_PROPOSAL_MODE',
+        'OPEN_FINANCE_SHADOW_PREVIEW_MODE',
+        'OPEN_FINANCE_RECONCILIATION_MODE',
+        'OPEN_FINANCE_WRITE_MODE',
+        'OPEN_FINANCE_WRITE_APPROVED'
+    ]) {
+        const env = { ...complete };
+        delete env[key];
+        let contextLoads = 0;
+        const result = await prepareOpenFinanceSaveProposalFinalization({
+            proposalRef,
+            actorWhatsappId,
+            userId: 'user-daniel',
+            env,
+            dependencies: {
+                secret,
+                loadContext: async () => {
+                    contextLoads += 1;
+                    return fixture();
+                }
+            }
+        });
+        assert.deepEqual(result, { handled: false, financial_writes: 0 });
+        assert.equal(contextLoads, 0);
+    }
+});
+
 test('9P.4 keeps receipt acknowledgement retryable until the durable review is finalized', async () => {
     const input = fixture();
     const store = new OpenFinanceSaveProposalFinalizationStore({
@@ -739,10 +773,7 @@ test('9P.4 keeps receipt acknowledgement retryable until the durable review is f
             receipt: { sheetName: 'Lançamentos Cartão' }
         })
     });
-    const env = {
-        OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
-        OPEN_FINANCE_WRITE_MODE: 'confirm'
-    };
+    const env = enabledWriteEnv();
     try {
         assert.throws(() => acknowledgeOpenFinanceSaveProposalReceipt({
             proposalRef,
@@ -814,10 +845,7 @@ test('9P.4 keeps an ambiguous write uncertain and reconciles with the same opera
         writer: performOperation,
         reconciler: performOperation
     };
-    const env = {
-        OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
-        OPEN_FINANCE_WRITE_MODE: 'confirm'
-    };
+    const env = enabledWriteEnv();
     try {
         await prepareOpenFinanceSaveProposalFinalization({
             proposalRef,
@@ -915,10 +943,7 @@ test('9P.4 restart across separate stores reconciles only and never blindly appe
         secret,
         authorizedWhatsAppIds: [actorWhatsappId]
     });
-    const env = {
-        OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
-        OPEN_FINANCE_WRITE_MODE: 'confirm'
-    };
+    const env = enabledWriteEnv();
     const appendRowToSheet = (sheetName, row, options) =>
         googleService.appendRowToSheet(sheetName, row, {
             ...options,

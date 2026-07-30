@@ -197,6 +197,29 @@ test('9P.2 keeps off and shadow modes passive in the public conversation path', 
     }), { handled: false, financial_writes: 0 });
 });
 
+test('post-9P.4 public conversation rejects partial confirmed-write activation', () => {
+    const harness = createHarness();
+    try {
+        assert.throws(() => assertPromptConfiguration({
+            ...harness.env,
+            OPEN_FINANCE_ALERT_MODE: 'canary',
+            OPEN_FINANCE_SHADOW_PREVIEW_MODE: 'canary',
+            OPEN_FINANCE_RECONCILIATION_MODE: 'canary',
+            OPEN_FINANCE_WRITE_MODE: 'confirm'
+        }), /open_finance_write_approval_required/);
+        assert.deepEqual(assertPromptConfiguration({
+            ...harness.env,
+            OPEN_FINANCE_ALERT_MODE: 'canary',
+            OPEN_FINANCE_SHADOW_PREVIEW_MODE: 'canary',
+            OPEN_FINANCE_RECONCILIATION_MODE: 'canary',
+            OPEN_FINANCE_WRITE_MODE: 'confirm',
+            OPEN_FINANCE_WRITE_APPROVED: 'true'
+        }), { enabled: true, writeMode: 'confirm' });
+    } finally {
+        harness.close();
+    }
+});
+
 test('9P.2 sends a reconciled proposal without exposing its bearer confirmation', async () => {
     const harness = createHarness();
     let sentText = '';
@@ -475,6 +498,34 @@ test('9P.3 corrects every guided field and only completes a causally valid draft
         } finally {
             reopened.close();
         }
+    } finally {
+        harness.close();
+    }
+});
+
+test('post-9P.4 write-approved policy still delivers only a zero-write proposal', async () => {
+    const harness = createHarness();
+    let calls = 0;
+    try {
+        const delivered = await deliverOneOpenFinanceCanary({
+            ...deliveryInput(harness, {
+                sendMessage: async () => {
+                    calls += 1;
+                    return { id: 'approved-policy-proposal-id' };
+                }
+            }),
+            policy: {
+                ...policy,
+                can_write_financial: true
+            }
+        });
+        assert.equal(delivered.outcome, 'delivered_confirmed');
+        assert.equal(delivered.financial_writes, 0);
+        assert.equal(calls, 1);
+        assert.equal(
+            harness.outbox.getProposalDeliveryState(harness.proposalRef),
+            'delivered_confirmed'
+        );
     } finally {
         harness.close();
     }

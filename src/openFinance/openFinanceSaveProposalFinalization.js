@@ -6,6 +6,9 @@ const {
     reconcileOpenFinanceRuntimeCandidates
 } = require('./openFinanceRuntimeReconciliation');
 const { classifyOpenFinanceLifecycle } = require('./openFinanceLifecycleClassifier');
+const {
+    evaluateOpenFinanceWriteActivation
+} = require('./openFinanceWriteActivationPolicy');
 
 const inFlightByStore = new WeakMap();
 const MONTH_NAMES = [
@@ -458,14 +461,13 @@ async function executeOpenFinanceSaveProposalFinalization({
 }
 
 function finalizationConfiguration(env = process.env, { allowInjectedContext = false } = {}) {
-    const proposalMode = String(env.OPEN_FINANCE_SAVE_PROPOSAL_MODE || 'off')
-        .trim()
-        .toLowerCase();
-    const writeMode = String(env.OPEN_FINANCE_WRITE_MODE || 'off')
-        .trim()
-        .toLowerCase();
-    if (proposalMode !== 'prompt' || writeMode !== 'confirm') {
-        return { enabled: false, proposalMode, writeMode };
+    const activation = evaluateOpenFinanceWriteActivation(env);
+    if (!activation.enabled) {
+        return {
+            enabled: false,
+            proposalMode: activation.proposalMode,
+            writeMode: activation.writeMode
+        };
     }
     if (!allowInjectedContext) {
         for (const file of [
@@ -480,7 +482,11 @@ function finalizationConfiguration(env = process.env, { allowInjectedContext = f
             }
         }
     }
-    return { enabled: true, proposalMode, writeMode };
+    return {
+        enabled: true,
+        proposalMode: activation.proposalMode,
+        writeMode: activation.writeMode
+    };
 }
 
 function readJson(file, reason) {

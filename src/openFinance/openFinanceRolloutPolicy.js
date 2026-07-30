@@ -1,4 +1,7 @@
 const ALLOWED_MODES = new Set(['off', 'shadow', 'canary']);
+const {
+    evaluateOpenFinanceWriteActivation
+} = require('./openFinanceWriteActivationPolicy');
 
 function parseCanaryAliases(env, blockers) {
     const legacyAlias = String(env.OPEN_FINANCE_ALERT_CANARY_ALIAS || '').trim().toLowerCase();
@@ -43,12 +46,14 @@ function parseCanaryActivations(env, aliases, blockers) {
 
 function buildOpenFinanceRolloutPolicy({ env = process.env, evidence = {}, mappings = [], vaultAvailable = false } = {}) {
     const mode = String(env.OPEN_FINANCE_ALERT_MODE || 'off').toLowerCase();
-    const writeMode = String(env.OPEN_FINANCE_WRITE_MODE || 'off').toLowerCase();
+    const writeActivation = evaluateOpenFinanceWriteActivation(env);
     const blockers = [];
     const canaryAliases = parseCanaryAliases(env, blockers);
     const canaryActivations = parseCanaryActivations(env, canaryAliases, blockers);
     if (!ALLOWED_MODES.has(mode)) blockers.push('open_finance_rollout_mode_forbidden');
-    if (writeMode !== 'off') blockers.push('open_finance_write_mode_forbidden');
+    if (writeActivation.writeMode !== 'off' && !writeActivation.enabled) {
+        blockers.push(...writeActivation.blockers);
+    }
     if (evidence.route !== 'meu_pluggy_connector_200') blockers.push('free_route_unverified');
     if (Number(evidence.connector_id) !== 200) blockers.push('connector_200_required');
     if (Number(evidence.observed_cost_cents) !== 0) blockers.push('nonzero_cost_forbidden');
@@ -63,13 +68,14 @@ function buildOpenFinanceRolloutPolicy({ env = process.env, evidence = {}, mappi
     }
     if (mode === 'shadow' && canaryAliases.length) blockers.push('shadow_must_not_select_recipient');
     const enabled = mode !== 'off' && blockers.length === 0;
+    const canWriteFinancial = enabled && writeActivation.enabled;
     return Object.freeze({
         mode,
         enabled,
         can_poll_readonly: enabled,
         can_build_outbox: enabled,
         can_send_whatsapp: mode === 'canary' && enabled,
-        can_write_financial: false,
+        can_write_financial: canWriteFinancial,
         can_update_item: false,
         can_use_pro_features: false,
         canary_alias: mode === 'canary' && enabled && canaryAliases.length === 1 ? canaryAliases[0] : null,

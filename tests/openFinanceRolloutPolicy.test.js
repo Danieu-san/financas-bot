@@ -115,9 +115,65 @@ test('9E.0 fails closed for missing vault, paid/trial ambiguity, Pro or Update I
     ]) assert.equal(buildOpenFinanceRolloutPolicy({ env, mappings, ...unsafe }).enabled, false);
 });
 
-test('9E.0 forbids every write mode and unknown on mode', () => {
+test('post-9P.4 rejects incomplete confirmed writing and unknown alert mode', () => {
     const write = buildOpenFinanceRolloutPolicy({ env: { OPEN_FINANCE_ALERT_MODE: 'canary', OPEN_FINANCE_ALERT_CANARY_ALIAS: 'daniel_nubank', OPEN_FINANCE_WRITE_MODE: 'confirm' }, evidence, mappings, vaultAvailable: true });
     const on = buildOpenFinanceRolloutPolicy({ env: { OPEN_FINANCE_ALERT_MODE: 'on' }, evidence, mappings, vaultAvailable: true });
     assert.equal(write.enabled, false);
     assert.equal(on.enabled, false);
+});
+
+test('post-9P.4 rollout authorizes confirm only behind the complete explicit gate', () => {
+    const approved = {
+        OPEN_FINANCE_ALERT_MODE: 'canary',
+        OPEN_FINANCE_ALERT_CANARY_ALIAS: 'daniel_nubank',
+        OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
+        OPEN_FINANCE_SHADOW_PREVIEW_MODE: 'canary',
+        OPEN_FINANCE_RECONCILIATION_MODE: 'canary',
+        OPEN_FINANCE_WRITE_MODE: 'confirm',
+        OPEN_FINANCE_WRITE_APPROVED: 'true'
+    };
+    const policy = buildOpenFinanceRolloutPolicy({
+        env: approved,
+        evidence,
+        mappings,
+        vaultAvailable: true
+    });
+    assert.equal(policy.enabled, true);
+    assert.equal(policy.can_send_whatsapp, true);
+    assert.equal(policy.can_write_financial, true);
+    assert.deepEqual(policy.blockers, []);
+
+    const rolledBack = buildOpenFinanceRolloutPolicy({
+        env: {
+            ...approved,
+            OPEN_FINANCE_WRITE_MODE: 'off'
+        },
+        evidence,
+        mappings,
+        vaultAvailable: true
+    });
+    assert.equal(rolledBack.enabled, true);
+    assert.equal(rolledBack.can_send_whatsapp, true);
+    assert.equal(rolledBack.can_write_financial, false);
+
+    for (const key of [
+        'OPEN_FINANCE_ALERT_MODE',
+        'OPEN_FINANCE_SAVE_PROPOSAL_MODE',
+        'OPEN_FINANCE_SHADOW_PREVIEW_MODE',
+        'OPEN_FINANCE_RECONCILIATION_MODE',
+        'OPEN_FINANCE_WRITE_APPROVED'
+    ]) {
+        const partial = { ...approved };
+        delete partial[key];
+        const blocked = buildOpenFinanceRolloutPolicy({
+            env: partial,
+            evidence,
+            mappings,
+            vaultAvailable: true
+        });
+        assert.equal(blocked.enabled, false);
+        assert.equal(blocked.can_write_financial, false);
+        assert.ok(blocked.blockers.some(reason =>
+            reason.startsWith('open_finance_write_')));
+    }
 });

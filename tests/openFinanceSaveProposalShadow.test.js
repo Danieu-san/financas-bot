@@ -133,7 +133,34 @@ test('9P.2 prompt configuration requires reconciliation, preview and financial w
     assert.throws(() => saveProposalConfiguration({
         ...valid,
         OPEN_FINANCE_WRITE_MODE: 'canary'
-    }), /open_finance_prompt_requires_write_mode_off/);
+    }), /open_finance_write_mode_invalid/);
+});
+
+test('post-9P.4 prompt accepts confirmed writing only under the complete explicit gate', () => {
+    const approved = {
+        OPEN_FINANCE_ALERT_MODE: 'canary',
+        OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
+        OPEN_FINANCE_SHADOW_PREVIEW_MODE: 'canary',
+        OPEN_FINANCE_RECONCILIATION_MODE: 'canary',
+        OPEN_FINANCE_WRITE_MODE: 'confirm',
+        OPEN_FINANCE_WRITE_APPROVED: 'true'
+    };
+    assert.deepEqual(saveProposalConfiguration(approved), {
+        proposalMode: 'prompt',
+        previewMode: 'canary',
+        internalReconciliationMode: 'canary'
+    });
+    for (const [key, value] of [
+        ['OPEN_FINANCE_ALERT_MODE', 'shadow'],
+        ['OPEN_FINANCE_SHADOW_PREVIEW_MODE', 'off'],
+        ['OPEN_FINANCE_RECONCILIATION_MODE', 'off'],
+        ['OPEN_FINANCE_WRITE_APPROVED', 'false']
+    ]) {
+        assert.throws(() => saveProposalConfiguration({
+            ...approved,
+            [key]: value
+        }), /open_finance_write_/);
+    }
 });
 
 test('9P.0 initializer rejects invalid proposal configuration before installing polling timers', () => {
@@ -529,7 +556,9 @@ test('9P.0 runtime creates shadow proposals without changing WhatsApp or financi
             OPEN_FINANCE_ALERT_CANARY_ACTIVATIONS_JSON: JSON.stringify({
                 daniel_nubank: '2026-07-23T11:30:00.000Z'
             }),
-            OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt'
+            OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
+            OPEN_FINANCE_WRITE_MODE: 'confirm',
+            OPEN_FINANCE_WRITE_APPROVED: 'true'
         },
         dependencies
     });

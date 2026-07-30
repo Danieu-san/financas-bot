@@ -11,6 +11,9 @@ const {
     OpenFinanceSaveProposalReviewStore
 } = require('./openFinanceSaveProposalReviewStore');
 const { buildOpenFinanceRolloutPolicy } = require('./openFinanceRolloutPolicy');
+const {
+    evaluateOpenFinanceWriteActivation
+} = require('./openFinanceWriteActivationPolicy');
 const { deliverOneOpenFinanceCanary } = require('./openFinanceWhatsappCanaryDelivery');
 const {
     readOpenFinanceInternalSource,
@@ -79,15 +82,18 @@ function saveProposalConfiguration(env = process.env) {
     const proposalMode = saveProposalMode(env);
     const previewMode = shadowPreviewMode(env);
     const internalReconciliationMode = reconciliationMode(env);
+    const writeActivation = evaluateOpenFinanceWriteActivation(env);
+    if (writeActivation.writeMode !== 'off' && !writeActivation.enabled) {
+        throw new Error(
+            writeActivation.blockers[0] ||
+            'open_finance_write_configuration_invalid'
+        );
+    }
     if (proposalMode !== 'off' && previewMode !== 'canary') {
         throw new Error('open_finance_save_proposal_preview_required');
     }
     if (proposalMode !== 'off' && internalReconciliationMode !== 'canary') {
         throw new Error('open_finance_save_proposal_reconciliation_required');
-    }
-    if (proposalMode === 'prompt' &&
-        String(env.OPEN_FINANCE_WRITE_MODE || 'off').trim().toLowerCase() !== 'off') {
-        throw new Error('open_finance_prompt_requires_write_mode_off');
     }
     return { proposalMode, previewMode, internalReconciliationMode };
 }

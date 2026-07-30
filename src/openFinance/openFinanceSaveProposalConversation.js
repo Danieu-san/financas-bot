@@ -1,4 +1,7 @@
 const fs = require('node:fs');
+const {
+    evaluateOpenFinanceWriteActivation
+} = require('./openFinanceWriteActivationPolicy');
 const { OpenFinanceAlertOutbox } = require('./openFinanceAlertOutbox');
 const { OpenFinanceRevocationJournal } = require('./openFinanceRevocationJournal');
 const { OpenFinanceShadowPreviewStore } = require('./openFinanceShadowPreviewStore');
@@ -52,6 +55,15 @@ function assertPromptConfiguration(env = process.env) {
         .toLowerCase();
     if (!['off', 'confirm'].includes(writeMode)) {
         throw new Error('open_finance_save_proposal_write_mode_invalid');
+    }
+    if (writeMode === 'confirm') {
+        const activation = evaluateOpenFinanceWriteActivation(env);
+        if (!activation.enabled) {
+            throw new Error(
+                activation.blockers[0] ||
+                'open_finance_write_configuration_invalid'
+            );
+        }
     }
     const required = [
         env.OPEN_FINANCE_LIVE_STAGING_SECRET_FILE,

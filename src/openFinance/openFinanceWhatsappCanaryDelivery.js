@@ -39,7 +39,9 @@ function formatSaveProposalMessage(delivery, sourceLabel, proposal) {
 async function deliverOneOpenFinanceCanary({ policy, outbox, transport, recipientResolver,
     sourceLabels = {}, saveProposalStore = null, proposalMode = 'off',
     excludedRecipients = [], now } = {}) {
-    if (!policy?.can_send_whatsapp || policy.can_write_financial !== false || !policy.canary_aliases?.length) {
+    if (!policy?.can_send_whatsapp ||
+        typeof policy.can_write_financial !== 'boolean' ||
+        !policy.canary_aliases?.length) {
         return { outcome: 'blocked', reason: 'canary_policy_not_authorized', transport_calls: 0, financial_writes: 0 };
     }
     if (!['off', 'prompt'].includes(proposalMode)) {

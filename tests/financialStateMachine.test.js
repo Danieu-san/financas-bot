@@ -2997,8 +2997,12 @@ stateMachineTest('9P.4 public handler writes once, survives receipt send failure
     reviewStore.close();
 
     const variableNames = [
+        'OPEN_FINANCE_ALERT_MODE',
         'OPEN_FINANCE_SAVE_PROPOSAL_MODE',
+        'OPEN_FINANCE_SHADOW_PREVIEW_MODE',
+        'OPEN_FINANCE_RECONCILIATION_MODE',
         'OPEN_FINANCE_WRITE_MODE',
+        'OPEN_FINANCE_WRITE_APPROVED',
         'OPEN_FINANCE_LIVE_STAGING_SECRET_FILE',
         'OPEN_FINANCE_LIVE_STAGING_DB',
         'OPEN_FINANCE_REVOCATION_JOURNAL_DB',
@@ -3007,8 +3011,12 @@ stateMachineTest('9P.4 public handler writes once, survives receipt send failure
     ];
     const previous = Object.fromEntries(variableNames.map(name => [name, process.env[name]]));
     Object.assign(process.env, {
+        OPEN_FINANCE_ALERT_MODE: 'canary',
         OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
+        OPEN_FINANCE_SHADOW_PREVIEW_MODE: 'canary',
+        OPEN_FINANCE_RECONCILIATION_MODE: 'canary',
         OPEN_FINANCE_WRITE_MODE: 'confirm',
+        OPEN_FINANCE_WRITE_APPROVED: 'true',
         OPEN_FINANCE_LIVE_STAGING_SECRET_FILE: paths.secret,
         OPEN_FINANCE_LIVE_STAGING_DB: paths.staging,
         OPEN_FINANCE_REVOCATION_JOURNAL_DB: paths.journal,

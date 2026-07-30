@@ -34,6 +34,12 @@ imutável `1b7379e2968974c3c456e64f06ba20cedb0fc599` recebeu `GO LOCAL`
 independente, sem achado bloqueante. O fechamento está em
 `docs/audit/75-open-finance-new-category-independent-close-2026-07-30.md`.
 
+O gate ativo corrige a impossibilidade de compor esses componentes em runtime.
+Uma política central agora exige, simultaneamente, alerta/reconciliação/preview
+em `canary`, proposta `prompt`, write mode `confirm` e aprovação explícita
+separada. Defaults, combinações parciais e rollback continuam sem escrita. O
+candidato local está verde e aguarda publicação e auditoria independente.
+
 ## Workspace vigente
 
 Raiz recuperada:
@@ -42,45 +48,8 @@ Branch ativa: `codex/open-finance-finalization`; base:
 `20b8b7873c6626a3e74019ef025624e75303df7f`.
 
 O SSD portátil anterior foi perdido e não é mais a raiz canônica. A produção
-vigente é Oracle/OCI e permanece separada deste gate; o código 9P.3 não foi
-deployado.
-
-9P.2 recebeu `GO TÉCNICO LOCAL` no hash
-`b52b7879fd5a795a436b4f6332294052732ebe7a`. A reauditoria fechou o único
-`MEDIUM` do primeiro candidato: apenas `delivered_confirmed` habilita resposta;
-`accepted_unconfirmed` continua at-most-once e inelegível. Severidades finais:
-`CRITICAL 0`, `HIGH 0`, `MEDIUM 0`, `LOW 0`.
-
-O primeiro candidato 9P.3
-`c452b9b999a6caf6af62696b5c8927ec5970c1f2` recebeu `NO-GO` independente por
-três achados `MEDIUM`. As correções locais agora:
-
-- terminalizam ou reconciliam revisão `prepared` depois de recusa/cancelamento;
-- negam linhas de categoria/conta sem `user_id` familiar explícito e exigem
-  leitura user-scoped das cinco fontes;
-- provam a queda exata depois de `accepted` e antes da ativação, com restart e
-  retomada pela rota de produto;
-- recuperam a revisão aceita/preparada pela entrada pública mesmo quando o
-  snapshot auxiliar restaurado ainda aponta para confirmação.
-
-Cartões continuam compartilhados somente dentro da planilha familiar
-autorizada, coerente com o uso privado pelo casal.
-
-Evidência pós-NO-GO: RED `17/19`; GREEN focal `20/20`; causal `150/150`; toda a
-bateria Open Finance `259/259`; máquina de estados e entrada pública `122/122`.
-O runner hermético definitivo teve `1.305/1.310`, zero falhas e cinco skips
-funcionais previstos; cobertura de linhas `90,18%`, branches `72,27%` e
-funções `90,03%`.
-
-O candidato corrigido foi publicado no hash
-`f8a1e9f41eee3c904f0de69ae465219ef874212d`. A revisão manual final no Chat
-confirmou o hash e os arquivos, encerrou M1, M2 e M3, registrou `CRITICAL 0`,
-`HIGH 0`, `MEDIUM 0`, `LOW 0` e não identificou lacuna indispensável residual.
-O fechamento está em
-`docs/audit/60-open-finance-save-proposal-guided-review-independent-close-2026-07-30.md`.
-
-Não houve transporte WhatsApp real, escrita financeira, produção, Google ou
-Pluggy real.
+vigente é Oracle/OCI e permanece separada deste gate; nenhuma alteração deste
+workstream foi deployada.
 
 ## Último gate encerrado
 
@@ -146,14 +115,11 @@ dois `MEDIUM` e o `LOW`, com zero achado residual e nenhuma lacuna indispensáve
 dentro do processo único. O fechamento está em
 `docs/audit/63-ops02-independent-close-2026-07-30.md`.
 
-Os três itens da fila pós-9P.4 estão tecnicamente encerrados. O terceiro recebeu
-`GO LOCAL` independente no hash
-`1b7379e2968974c3c456e64f06ba20cedb0fc599`.
-
-O roadmap declara que não há nova fase estrutural autorizada depois de 9F. O
-próximo trabalho é consolidar a prontidão do caminho dormente e identificar os
-gates operacionais necessários para uma futura decisão de publicação, sem
-alterar flags, deployar ou tocar produção.
+Os três itens da fila pós-9P.4 estão tecnicamente encerrados. A consolidação
+identificou uma contradição real: o runtime exigia write `off`, enquanto o
+writer exigia `confirm`. O recovery local criou uma decisão compartilhada
+fail-closed e está em estado `CANDIDATO LOCAL VERDE; AUDITORIA INDEPENDENTE
+PENDENTE`.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -173,12 +139,12 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Consolidar o encerramento da fila pós-9P.4 e mapear os pré-requisitos
-operacionais ainda não satisfeitos, sem ativação ou deploy.
+Publicar o candidato de ativação fail-closed e submetê-lo ao Chat por hash
+imutável, sem ativação ou deploy.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → consolidar a prontidão operacional pós-9P.4.`
+`Codex → Sol → Alto → auditar a composição fail-closed da escrita Open Finance.`
 
 ## Fila de produto posterior
 
@@ -248,6 +214,10 @@ final, confirmação idempotente, operation key e recibo de 9P.4. Somente depois
   `docs/audit/74-open-finance-new-category-recovery-candidate-2026-07-30.md`;
 - fechamento independente da nova categoria:
   `docs/audit/75-open-finance-new-category-independent-close-2026-07-30.md`;
+- caracterização da composição operacional:
+  `docs/audit/76-open-finance-write-activation-characterization-2026-07-30.md`;
+- candidato da ativação fail-closed:
+  `docs/audit/77-open-finance-write-activation-candidate-2026-07-30.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:

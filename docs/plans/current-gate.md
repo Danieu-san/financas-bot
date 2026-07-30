@@ -1,73 +1,70 @@
-# Gate ativo — categorias existentes antes de criar nova
+# Gate ativo — composição operacional fail-closed da escrita Open Finance
 
 Atualizado em: 2026-07-30
 
 Base:
-`b25ff51b59054483a66a16e926534068e6c074f5`.
+`10c7dc025938c4206e92996a4dbc94709f9687c5`.
 
 ## Estado
 
-`GO TÉCNICO LOCAL`.
+`CANDIDATO LOCAL VERDE; AUDITORIA INDEPENDENTE PENDENTE`.
 
 ## Objetivo
 
-Quando houver dúvida de categoria na revisão da proposta Open Finance,
-apresentar uma seleção útil de categorias já existentes antes de oferecer a
-criação de uma nova.
+Conectar de forma configurável e fail-closed a proposta proativa já encerrada
+ao writer 9P.4, sem alterar defaults, flags reais ou produção.
 
 ## Escopo
 
-- origem e deduplicação do catálogo autorizado;
-- quantidade e ordenação das categorias exibidas;
-- comportamento diante de baixa confiança ou dúvida;
-- escolha numerada de categoria existente;
-- fronteira explícita para criação de nova categoria.
+- decisão central de autorização da escrita confirmada;
+- composição entre alerta, reconciliação, preview, proposta e writer;
+- entrega da pergunta com zero escrita;
+- segunda confirmação como única fronteira de escrita;
+- rollback por flags e retomada de estado durável.
 
 ## Não escopo
 
-- alterar taxonomia sem evidência;
-- criar categoria automaticamente;
 - ativar flags, integração real, escrita financeira, deploy ou produção;
 - ampliar acesso além do casal autorizado.
 
 ## Invariantes
 
-1. Categorias existentes autorizadas têm precedência sobre criação.
-2. A sugestão não inventa categoria nem trata ausência como lista vazia.
-3. A escolha persiste identidade, categoria e subcategoria do catálogo.
-4. A criação de nova categoria exige ação explícita e não ocorre por fallback.
-5. A revalidação final continua confirmando que a escolha permanece autorizada.
+1. Todos os defaults continuam sem escrita.
+2. `confirm` isolado ou qualquer combinação parcial falha fechado.
+3. O ciclo de polling e a entrega da proposta sempre produzem zero escrita.
+4. Somente a segunda confirmação explícita alcança o writer idempotente.
+5. Rollback desabilita nova escrita sem apagar ou converter estado durável.
 
 ## Etapas
 
-1. [concluída] Mapear catálogo, menu e tratamento de dúvida.
-2. [concluída] Confirmar o comportamento existente no fluxo financeiro geral.
-3. [concluída] Confirmar que a proposta proativa não alcançava a criação.
-4. [concluída] Adicionar criação durável sem segundo write.
-5. [concluída] Executar provas causais e regressão proporcional.
-6. [concluída] Publicar recovery e reauditar por hash imutável.
-7. [concluída] Registrar o fechamento e encerrar a fila pós-9P.4.
+1. [concluída] Caracterizar a contradição entre runtime, rollout e writer.
+2. [concluída] Criar provas RED da combinação impossível e dos defaults.
+3. [concluída] Implementar uma decisão central de autorização fail-closed.
+4. [concluída] Provar entrega sem escrita e finalização somente após confirmação.
+5. [concluída] Executar regressão proporcional e controles.
+6. [em andamento] Publicar candidato sanitizado e auditar no Chat.
+7. [pendente] Registrar o fechamento sem autorizar ativação ou deploy.
 
 ## Critérios de GO
 
-- mais categorias existentes aparecem antes da criação;
-- seleção numerada atravessa store e revalidação reais;
-- ausência de fonte falha fechada;
+- combinação completa e explicitamente aprovada é a única habilitada;
+- combinações parciais preservam zero escrita;
+- polling e transporte não escrevem;
+- finalização mantém revalidação, idempotência e destino user-scoped;
 - nenhum achado independente bloqueante.
 
 ## Condições de parada
 
-- criação implícita ou automática;
-- categoria fora do catálogo autorizado;
-- divergência entre conversa e finalização;
+- qualquer default que passe a escrever;
+- aprovação implícita ou herdada;
+- transporte ou polling alcançando writer;
 - necessidade de integração real, flag, deploy ou produção;
 - achado independente bloqueante.
 
 ## Próxima ação exata
 
-Consolidar a prontidão operacional do caminho proativo completo e mapear os
-gates ainda necessários, sem ativação, deploy ou produção.
+Publicar o candidato sanitizado e submetê-lo ao Chat por hash imutável.
 
 ## Capacidade
 
-`Codex → Sol → Alto → consolidar a prontidão operacional pós-9P.4.`
+`Codex → Sol → Alto → compor a autorização fail-closed da escrita confirmada.`
