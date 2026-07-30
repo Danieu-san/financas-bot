@@ -175,7 +175,12 @@ function readAndVerifyReleaseManifest(root) {
 }
 
 function runChecked(command, args, options = {}) {
-    const result = spawnSync(command, args, {
+    const auditedExecutable = {
+        git: process.env.EXHAUSTIVE_LOCAL_GIT_PATH,
+        tar: process.env.EXHAUSTIVE_LOCAL_TAR_PATH
+    }[command];
+    const executable = auditedExecutable || command;
+    const result = spawnSync(executable, args, {
         cwd: options.cwd,
         encoding: 'utf8',
         env: options.env || process.env,

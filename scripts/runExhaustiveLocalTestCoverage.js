@@ -48,6 +48,28 @@ const SAFE_ENVIRONMENT_KEYS = Object.freeze([
     'WINDIR'
 ]);
 
+function resolveExecutableOnPath(name, sourceEnvironment = process.env) {
+    const pathValue = sourceEnvironment.Path || sourceEnvironment.PATH || '';
+    const extensions = process.platform === 'win32'
+        ? String(sourceEnvironment.PATHEXT || '.COM;.EXE;.BAT;.CMD')
+            .split(';')
+            .filter(Boolean)
+        : [''];
+    for (const rawDirectory of String(pathValue).split(path.delimiter)) {
+        const directory = rawDirectory.trim().replace(/^"(.*)"$/, '$1');
+        if (!directory) continue;
+        for (const extension of extensions) {
+            const candidate = path.join(directory, `${name}${extension}`);
+            try {
+                if (fs.statSync(candidate).isFile()) return fs.realpathSync(candidate);
+            } catch {
+                // Continue searching the inherited PATH.
+            }
+        }
+    }
+    return null;
+}
+
 function listAllLocalTestFiles() {
     return fs.readdirSync(TEST_ROOT, { withFileTypes: true })
         .filter(entry => entry.isFile() && entry.name.endsWith('.test.js'))
@@ -213,7 +235,10 @@ function buildHermeticTestEnvironment(sourceEnvironment = process.env) {
         EXHAUSTIVE_NETWORK_TRIPWIRE_ACTIVE: 'true',
         STATE_STORE_ENCRYPTION_KEY: Buffer.alloc(32, 0x55).toString('base64'),
         OPEN_FINANCE_AUTO_SYNC_ENABLED: 'false',
-        OPEN_FINANCE_LIVE_READ_ENABLED: 'false'
+        OPEN_FINANCE_LIVE_READ_ENABLED: 'false',
+        EXHAUSTIVE_REPO_ROOT: ROOT,
+        EXHAUSTIVE_LOCAL_GIT_PATH: resolveExecutableOnPath('git', sourceEnvironment) || '',
+        EXHAUSTIVE_LOCAL_TAR_PATH: resolveExecutableOnPath('tar', sourceEnvironment) || ''
     };
 }
 
@@ -266,7 +291,14 @@ function runLocalCoverage() {
     return {
         schema_version: 1,
         local_only: true,
-        network_guard_scope: ['fetch', 'http', 'https', 'net', 'node_descendants', 'non_node_subprocesses'],
+        network_guard_scope: [
+            'fetch',
+            'http',
+            'https',
+            'net',
+            'node_descendants',
+            'non_node_subprocesses_except_audited_local_git_and_tar'
+        ],
         discovered_test_files: allFiles.length,
         test_files: files.length,
         nested_test_entries: nestedTestEntries.map(file => path.relative(ROOT, file).replace(/\\/g, '/')),
@@ -305,6 +337,7 @@ module.exports = {
     buildNodeTestArgs,
     buildDescendantNodeOptions,
     buildHermeticTestEnvironment,
+    resolveExecutableOnPath,
     captureFileSnapshot,
     restoreFileSnapshot,
     runLocalCoverage

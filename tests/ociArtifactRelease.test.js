@@ -343,8 +343,9 @@ test('OPS-03 builder archives the exact commit and excludes dirty local state', 
     const output = tempDir('financasbot-release-output-');
     try {
         const run = require('node:child_process').spawnSync;
+        const gitExecutable = process.env.EXHAUSTIVE_LOCAL_GIT_PATH || 'git';
         const git = args => {
-            const result = run('git', args, {
+            const result = run(gitExecutable, args, {
                 cwd: repo,
                 encoding: 'utf8',
                 env: {
@@ -362,7 +363,7 @@ test('OPS-03 builder archives the exact commit and excludes dirty local state', 
         write(repo, 'index.js', 'console.log("committed");\n');
         write(repo, 'package.json', '{"name":"fixture","version":"1.0.0"}\n');
         git(['add', 'index.js', 'package.json']);
-        git(['commit', '--quiet', '-m', 'fixture']);
+        git(['commit', '--quiet', '--no-verify', '-m', 'fixture']);
         const commitSha = git(['rev-parse', 'HEAD']);
         write(repo, 'index.js', 'console.log("dirty");\n');
         write(repo, '.env', 'SECRET=never\n');

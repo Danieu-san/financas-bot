@@ -110,6 +110,20 @@ zero falhas e cinco skips previstos.
 
 ## Próximo gate
 
+`AUDIT-FINAL-01` está em andamento sobre a base
+`7682dd4d16835ae6887a2b493108a3517bd9ffb7`. O gate consolida ancestralidade,
+inventário atual, causalidade entre correções, suíte hermética e revisão
+independente antes de qualquer preparação OCI. Produção continua fora do
+escopo.
+
+A matriz local confirmou 29/29 fechamentos ancestrais e com sinal independente
+de GO; 27 documentos vinculam literalmente o hash e as duas exceções legadas
+serão revinculadas pela revisão deste commit atual. O inventário mede 160 fontes,
+129 módulos de runtime, zero import de produto quebrado e zero referência
+operacional ausente. As provas de composição passaram 50/50 e o isolamento
+endurecido passou 28/28. O candidato está em
+`docs/audit/84-final-consolidated-audit-candidate-2026-07-30.md`.
+
 OPS-02 recebeu `GO TÉCNICO LOCAL` independente no commit
 `ccd4d2e2bb8689d4f838cab21f92ffc6b8b5b6ff`. O parecer encerrou o `HIGH`, os
 dois `MEDIUM` e o `LOW`, com zero achado residual e nenhuma lacuna indispensável
@@ -135,7 +149,7 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Decisões vigentes
 
-- manter `Codex → Sol → Alto` ao consolidar causalidade, controles e
+- manter `Codex → Sol → Extra Alto` ao consolidar causalidade, controles e
   pré-requisitos operacionais do caminho proativo completo;
 - parar e avisar Daniel antes de reduzir ou trocar capacidade;
 - a produção vigente é Oracle/OCI; não reutilizar caminhos AWS e não executar
@@ -149,13 +163,12 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Registrar o fechamento de OPS-03 e selecionar o próximo gate local. Preparação
-OCI exige autorização operacional explícita; promoção e deploy não estão
-autorizados.
+Executar a suíte hermética final sobre a árvore congelada, publicar o commit
+sanitizado e obter auditoria independente no Chat, sem acessar produção.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → auditar o release OCI por artefato e rollback.`
+`Codex → Sol → Extra Alto → executar a auditoria final exaustiva consolidada.`
 
 ## Fila de produto posterior
 

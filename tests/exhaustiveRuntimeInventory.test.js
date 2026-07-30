@@ -33,11 +33,11 @@ test('default test script expansion follows npm run dependencies', () => {
     assert.deepStrictEqual(expanded, ['phase:a', 'phase:b', 'phase:c', 'pretest', 'test']);
 });
 
-test('package file references include operational config and JavaScript entrypoints', () => {
+test('package file references include JavaScript entrypoints and all references exist', () => {
     const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
     const references = packageFileReferences(packageJson);
     assert.ok(references.some(reference => reference.script === 'start' && reference.file === 'index.js'));
-    assert.ok(references.some(reference => reference.script === 'pm2:start' && reference.file === 'ecosystem.config.js'));
+    assert.deepStrictEqual(runInventory().missing_package_references, []);
 });
 
 test('inventory accounts for every source module without silently dropping graph gaps', () => {

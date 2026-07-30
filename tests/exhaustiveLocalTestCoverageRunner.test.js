@@ -21,6 +21,7 @@ const {
     validateRunnerResult,
     buildNodeTestArgs,
     buildHermeticTestEnvironment,
+    resolveExecutableOnPath,
     captureFileSnapshot,
     restoreFileSnapshot
 } = require('../scripts/runExhaustiveLocalTestCoverage');
@@ -153,6 +154,14 @@ test('coverage runner scrubs credentials and propagates network blocking to Node
     assert.ok(environment.NODE_OPTIONS.includes('--require='));
     assert.ok(environment.NODE_OPTIONS.includes('--preserve-symlinks'));
     assert.ok(!environment.NODE_OPTIONS.includes('--inspect'));
+    assert.strictEqual(
+        environment.EXHAUSTIVE_LOCAL_GIT_PATH,
+        resolveExecutableOnPath('git', { ...process.env, ...environment })
+    );
+    assert.strictEqual(
+        environment.EXHAUSTIVE_LOCAL_TAR_PATH,
+        resolveExecutableOnPath('tar', { ...process.env, ...environment })
+    );
 
     const child = spawnSync(process.execPath, [
         '-e',
@@ -173,6 +182,22 @@ test('coverage runner scrubs credentials and propagates network blocking to Node
             process.exit(4);
         } catch (error) {
             if (error.code !== 'EXHAUSTIVE_AUDIT_SUBPROCESS_BLOCKED') process.exit(5);
+        }
+        const safeGit = require('node:child_process').spawnSync(
+            process.env.EXHAUSTIVE_LOCAL_GIT_PATH,
+            ['rev-parse', 'HEAD'],
+            { cwd: ${JSON.stringify(ROOT)} }
+        );
+        if (safeGit.status !== 0) process.exit(14);
+        try {
+            require('node:child_process').spawnSync(
+                process.env.EXHAUSTIVE_LOCAL_GIT_PATH,
+                ['status'],
+                { cwd: ${JSON.stringify(ROOT)} }
+            );
+            process.exit(15);
+        } catch (error) {
+            if (error.code !== 'EXHAUSTIVE_AUDIT_SUBPROCESS_BLOCKED') process.exit(16);
         }
         try {
             require('node:child_process').spawnSync(process.execPath, ['-e', ''], { shell: true });

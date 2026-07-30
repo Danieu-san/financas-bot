@@ -1,0 +1,181 @@
+{
+  "schema_version": 1,
+  "audit_base": "38fbdb19289fd858c68e00406a00e9f9809f5e01",
+  "required_head_base": "7682dd4d16835ae6887a2b493108a3517bd9ffb7",
+  "closures": [
+    {
+      "id": "AUTH-01",
+      "candidate_hash": "7f61aaa0c3f7298cdd85c096b7d2164d7b97df91",
+      "closure_doc": "docs/audit/final-report.md",
+      "hash_documented": false
+    },
+    {
+      "id": "C-01_FLOW-01_STATE-02",
+      "candidate_hash": "0188570edcc96d3dd95afb4207fb08746feb80c5",
+      "closure_doc": "docs/audit/final-report.md",
+      "hash_documented": true
+    },
+    {
+      "id": "C-02_WGL-01",
+      "candidate_hash": "c03f7d4db74e9cda9308fe86451748303dfd07cd",
+      "closure_doc": "docs/audit/correction-packets/2026-07-18-c02-oauth-lifecycle-precedence.md",
+      "hash_documented": false
+    },
+    {
+      "id": "C-03_WGL-02",
+      "candidate_hash": "be8eb6e850b3d51a012238d78053b6602cf9cba8",
+      "closure_doc": "docs/audit/correction-packets/2026-07-19-c03-oauth-revocation.md",
+      "hash_documented": true
+    },
+    {
+      "id": "DATA-01",
+      "candidate_hash": "96ca43b5a82a1d6944f400cb6167fe6feb4d298f",
+      "closure_doc": "docs/audit/final-report.md",
+      "hash_documented": true
+    },
+    {
+      "id": "DATA-02",
+      "candidate_hash": "d8a58c5cb0a3601555029d4582c46fa8bdd65cca",
+      "closure_doc": "docs/audit/final-report.md",
+      "hash_documented": true
+    },
+    {
+      "id": "WGL-03_WGL-04_AUTH-02",
+      "candidate_hash": "867be43265ed363a8bf235a87a77787d013a5abb",
+      "closure_doc": "docs/audit/14-wgl03-wgl04-independent-close-2026-07-22.md",
+      "hash_documented": true
+    },
+    {
+      "id": "AUTH-03_WGL-07",
+      "candidate_hash": "2d0092da691985bf945c35d7041b5ef4e2d2fd1d",
+      "closure_doc": "docs/audit/16-auth03-wgl07-independent-close-2026-07-22.md",
+      "hash_documented": true
+    },
+    {
+      "id": "FLOW-03",
+      "candidate_hash": "4c1001338ca1ed919b55be4e9566258178a0175e",
+      "closure_doc": "docs/audit/18-flow03-independent-close-2026-07-22.md",
+      "hash_documented": true
+    },
+    {
+      "id": "STATE-01",
+      "candidate_hash": "afc961fadd3f62a69c9e02ea1eb527f380d6d42f",
+      "closure_doc": "docs/audit/23-state01-independent-close-2026-07-22.md",
+      "hash_documented": true
+    },
+    {
+      "id": "PRIV-01",
+      "candidate_hash": "6e360782ce98e45673b7fae9554d84c13478c23d",
+      "closure_doc": "docs/audit/27-priv01-independent-close-2026-07-22.md",
+      "hash_documented": true
+    },
+    {
+      "id": "AUTH-04",
+      "candidate_hash": "beb8e0ff7f2eccd74688aa347de6b7d79170d094",
+      "closure_doc": "docs/audit/29-auth04-independent-close-2026-07-23.md",
+      "hash_documented": true
+    },
+    {
+      "id": "STATE-04",
+      "candidate_hash": "22fff090192269e71d71025653f1b5450b3132e2",
+      "closure_doc": "docs/audit/35-state04-independent-close-2026-07-23.md",
+      "hash_documented": true
+    },
+    {
+      "id": "COV-01",
+      "candidate_hash": "c96d801f6f5c683634dbc8b3a2997eb576a9e3f5",
+      "closure_doc": "docs/audit/36-cov01-independent-close-2026-07-23.md",
+      "hash_documented": true
+    },
+    {
+      "id": "OPS-01",
+      "candidate_hash": "f26e627864d45d2b9b4317844313faf84411b8a7",
+      "closure_doc": "docs/audit/37-ops01-independent-close-2026-07-23.md",
+      "hash_documented": true
+    },
+    {
+      "id": "FLOW-02",
+      "candidate_hash": "73abb5e575f0af8cf36f826c5646e2843a1997a5",
+      "closure_doc": "docs/audit/39-flow02-independent-close-2026-07-23.md",
+      "hash_documented": true
+    },
+    {
+      "id": "FLOW-04",
+      "candidate_hash": "34f0f0cdcb470a2bcfa7152fecd45361edee28e4",
+      "closure_doc": "docs/audit/42-flow04-independent-close-2026-07-23.md",
+      "hash_documented": true
+    },
+    {
+      "id": "STATE-03",
+      "candidate_hash": "e341d4feae5b6ecba8990a226f386e11cb18d027",
+      "closure_doc": "docs/audit/45-state03-independent-close-2026-07-23.md",
+      "hash_documented": true
+    },
+    {
+      "id": "9P.0",
+      "candidate_hash": "195ac58af68acdec87c0fb80617d0ddcf1d1de3b",
+      "closure_doc": "docs/audit/48-open-finance-save-proposal-shadow-independent-close-2026-07-23.md",
+      "hash_documented": true
+    },
+    {
+      "id": "9P.1",
+      "candidate_hash": "a2c15b6dd7e52ef7aff8dc3ac4a4050e9adbc445",
+      "closure_doc": "docs/audit/53-open-finance-save-proposal-confirmation-independent-close-2026-07-24.md",
+      "hash_documented": true
+    },
+    {
+      "id": "9P.2",
+      "candidate_hash": "b52b7879fd5a795a436b4f6332294052732ebe7a",
+      "closure_doc": "docs/audit/56-open-finance-save-proposal-conversation-independent-close-2026-07-24.md",
+      "hash_documented": true
+    },
+    {
+      "id": "9P.3",
+      "candidate_hash": "f8a1e9f41eee3c904f0de69ae465219ef874212d",
+      "closure_doc": "docs/audit/60-open-finance-save-proposal-guided-review-independent-close-2026-07-30.md",
+      "hash_documented": true
+    },
+    {
+      "id": "OPS-02",
+      "candidate_hash": "ccd4d2e2bb8689d4f838cab21f92ffc6b8b5b6ff",
+      "closure_doc": "docs/audit/63-ops02-independent-close-2026-07-30.md",
+      "hash_documented": true
+    },
+    {
+      "id": "9P.4",
+      "candidate_hash": "b98157dfde061793ad94cd025c99b1f8b5145712",
+      "closure_doc": "docs/audit/66-open-finance-finalization-independent-close-2026-07-30.md",
+      "hash_documented": true
+    },
+    {
+      "id": "FAMILY-ASSIGNMENT",
+      "candidate_hash": "dde61633dc992c70c6d7c02b370b2681aed716c0",
+      "closure_doc": "docs/audit/68-family-assignment-uniformity-independent-close-2026-07-30.md",
+      "hash_documented": true
+    },
+    {
+      "id": "PAYMENT-MENU",
+      "candidate_hash": "b25ff51b59054483a66a16e926534068e6c074f5",
+      "closure_doc": "docs/audit/71-payment-method-dependency-independent-close-2026-07-30.md",
+      "hash_documented": true
+    },
+    {
+      "id": "CATEGORY-CREATION",
+      "candidate_hash": "1b7379e2968974c3c456e64f06ba20cedb0fc599",
+      "closure_doc": "docs/audit/75-open-finance-new-category-independent-close-2026-07-30.md",
+      "hash_documented": true
+    },
+    {
+      "id": "WRITE-ACTIVATION",
+      "candidate_hash": "8fa365353c693c7ba34cde62d2a1a8799a3f41e0",
+      "closure_doc": "docs/audit/78-open-finance-write-activation-independent-close-2026-07-30.md",
+      "hash_documented": true
+    },
+    {
+      "id": "OPS-03",
+      "candidate_hash": "461e79ae52903ff7160916026abfe833b3ab589e",
+      "closure_doc": "docs/audit/82-oci-artifact-release-independent-close-2026-07-30.md",
+      "hash_documented": true
+    }
+  ]
+}

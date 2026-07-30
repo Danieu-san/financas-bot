@@ -5,7 +5,9 @@ Use este mapa para escolher rapidamente quais arquivos abrir por tarefa.
 ## Entrada e ciclo de vida
 
 - `index.js` - inicializa Google, WhatsApp, dashboard/read model e scheduler.
-- `ecosystem.config.js` - PM2 em producao.
+- `scripts/release/ociArtifactRelease.js` - instala e promove artefatos
+  imutaveis na OCI, preservando o estado externo aos releases e controlando o
+  processo PM2 `financas-bot`; nao existe `ecosystem.config.js` versionado.
 - `src/services/whatsapp.js` - cliente WhatsApp singleton, eventos `qr`, `ready`, `disconnected`.
 
 ## Mensagens WhatsApp
