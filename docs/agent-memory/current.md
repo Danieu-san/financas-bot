@@ -29,11 +29,13 @@ zerou todas as severidades e não encontrou lacuna causal indispensável. O
 fechamento está em
 `docs/audit/66-open-finance-finalization-independent-close-2026-07-30.md`.
 
-O objetivo ativo é fechar o menu numerado de pagamento. O RED confirmou que
-trocar PIX com conta para Dinheiro preservava a conta antiga. A correção limpa
-cartão e conta para Dinheiro, e a prova exige as quatro opções numeradas e
-coerência com a revalidação final. Evidência: conversa `19/19`, finalização
-`11/11` e catálogo `2/2`; falta commit imutável e auditoria independente.
+O objetivo ativo é fechar o menu numerado de pagamento. O primeiro candidato
+`6b1ba3ffb105149bd04207a1fced6d18d9b7d624` recebeu `NO-GO` independente:
+`HIGH 1` por permitir edição direta incompatível e `MEDIUM 1` por matriz
+adversarial incompleta. O recovery bloqueia conta fora de Débito/PIX, cartão
+fora de Crédito e ambos para Dinheiro; entradas de texto, decimal e fora da
+faixa também são provadas. Evidência: conversa `21/21`, finalização e catálogo
+`13/13`; falta novo commit imutável e reauditoria.
 
 ## Workspace vigente
 
@@ -184,9 +186,9 @@ dois `MEDIUM` e o `LOW`, com zero achado residual e nenhuma lacuna indispensáve
 dentro do processo único. O fechamento está em
 `docs/audit/63-ops02-independent-close-2026-07-30.md`.
 
-O menu numerado já existia, mas PIX → Dinheiro deixava uma conta incompatível
-no rascunho. O candidato atual corrige a transição e prova concordância entre
-conversa e finalização.
+O primeiro candidato do menu corrigiu PIX → Dinheiro, mas o Chat encontrou
+outra rota: a edição direta de conta/cartão podia recriar incompatibilidade. O
+recovery fecha a entrada dos seletores e a conferência final.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -206,7 +208,7 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar e auditar o candidato imutável do menu numerado de pagamento.
+Publicar e reauditar o recovery imutável do menu numerado de pagamento.
 
 ## Capacidade para retomar
 
@@ -268,6 +270,8 @@ final, confirmação idempotente, operation key e recibo de 9P.4. Somente depois
   `docs/audit/68-family-assignment-uniformity-independent-close-2026-07-30.md`;
 - candidato do menu numerado de pagamento:
   `docs/audit/69-payment-method-numbered-menu-candidate-2026-07-30.md`;
+- recovery das dependências de pagamento:
+  `docs/audit/70-payment-method-dependency-recovery-candidate-2026-07-30.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:

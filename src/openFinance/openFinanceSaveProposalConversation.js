@@ -60,11 +60,36 @@ function reviewMissingFields(draft = {}) {
     if (draft.paymentMethod?.value === 'Crédito' && !draft.card) {
         missing.push('cartão');
     }
+    if (draft.paymentMethod?.value === 'Crédito' && draft.financialAccount) {
+        missing.push('remover conta financeira incompatível');
+    }
     if (['Débito', 'PIX'].includes(draft.paymentMethod?.value) &&
         !draft.financialAccount) {
         missing.push('conta financeira');
     }
+    if (['Débito', 'PIX'].includes(draft.paymentMethod?.value) && draft.card) {
+        missing.push('remover cartão incompatível');
+    }
+    if (draft.paymentMethod?.value === 'Dinheiro' &&
+        (draft.financialAccount || draft.card)) {
+        missing.push('remover conta ou cartão incompatível');
+    }
     return missing;
+}
+
+function paymentEditBlockMessage(draft = {}, step = '') {
+    const payment = draft.paymentMethod?.value;
+    if (!['select_account', 'select_card'].includes(step)) return '';
+    if (!payment) {
+        return 'Escolha primeiro a forma de pagamento antes de definir conta ou cartão.';
+    }
+    if (step === 'select_account' && !['Débito', 'PIX'].includes(payment)) {
+        return `A forma de pagamento ${payment} não usa conta financeira.`;
+    }
+    if (step === 'select_card' && payment !== 'Crédito') {
+        return `A forma de pagamento ${payment} não usa cartão.`;
+    }
+    return '';
 }
 
 function formatReviewSummary(payload, { includeMenu = true } = {}) {
@@ -512,6 +537,17 @@ function handleOpenFinanceSaveProposalReviewReply({
                     financial_writes: 0
                 };
             }
+            const blockedEdit = paymentEditBlockMessage(payload.draft, step);
+            if (blockedEdit) {
+                return {
+                    handled: true,
+                    keep_pending: true,
+                    state: 'review_editing',
+                    proposal_ref: proposalRef,
+                    reply: `${blockedEdit}\n\n${formatReviewSummary(payload)}`,
+                    financial_writes: 0
+                };
+            }
             const updated = reviewStore.updateReview(proposalRef, {
                 actorWhatsappId,
                 mutate: current => ({ ...current, step })
@@ -526,6 +562,21 @@ function handleOpenFinanceSaveProposalReviewReply({
             };
         }
 
+        const blockedEdit = paymentEditBlockMessage(payload.draft, payload.step);
+        if (blockedEdit) {
+            const restored = reviewStore.updateReview(proposalRef, {
+                actorWhatsappId,
+                mutate: current => ({ ...current, step: 'menu' })
+            });
+            return {
+                handled: true,
+                keep_pending: true,
+                state: 'review_editing',
+                proposal_ref: proposalRef,
+                reply: `${blockedEdit}\n\n${formatReviewSummary(restored.payload)}`,
+                financial_writes: 0
+            };
+        }
         const options = reviewOptionsForStep(payload);
         const choice = /^\d+$/.test(normalized) ? Number.parseInt(normalized, 10) : 0;
         const selected = choice >= 1 ? options[choice - 1] : null;

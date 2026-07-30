@@ -7,7 +7,7 @@ Base:
 
 ## Estado
 
-`CORREÇÃO LOCAL VERDE; COMMIT IMUTÁVEL E AUDITORIA INDEPENDENTE PENDENTES`.
+`RECOVERY LOCAL VERDE; NOVO COMMIT IMUTÁVEL E REAUDITORIA PENDENTES`.
 
 ## Objetivo
 
@@ -42,12 +42,15 @@ Crédito, Débito, PIX e Dinheiro preservem somente cartão/conta compatíveis.
 
 - [x] PIX com conta seguido de Dinheiro preservava a conta antiga;
 - [x] a resposta exibiu `Pagamento: Dinheiro` com conta ainda definida.
+- [x] o candidato `6b1ba3ffb105149bd04207a1fced6d18d9b7d624`
+  recebeu `NO-GO`: a edição direta permitia Dinheiro → conta, Crédito → conta e
+  Débito/PIX → cartão;
+- [x] faltavam entradas adversariais de texto, decimal e índice fora da faixa.
 
 ## Evidência GREEN
 
-- conversa guiada: `19/19`;
-- finalização: `11/11`;
-- catálogo: `2/2`;
+- conversa guiada: `21/21`;
+- finalização e catálogo: `13/13`;
 - sintaxe e diff: verdes.
 
 ## Etapas
@@ -56,8 +59,10 @@ Crédito, Débito, PIX e Dinheiro preservem somente cartão/conta compatíveis.
 2. [concluída] Reproduzir divergência PIX → Dinheiro.
 3. [concluída] Limpar conta e cartão ao selecionar Dinheiro.
 4. [concluída] Provar menu completo e revalidação final.
-5. [em andamento] Publicar e auditar o hash imutável.
-6. [pendente] Fechar o item e seguir para categorias existentes.
+5. [concluída] Primeiro hash recebeu `NO-GO` com `HIGH 1`, `MEDIUM 1`.
+6. [concluída] Bloquear edição direta incompatível e ampliar a matriz.
+7. [em andamento] Publicar e reauditar o recovery imutável.
+8. [pendente] Fechar o item e seguir para categorias existentes.
 
 ## Critérios de GO
 
@@ -76,8 +81,8 @@ Crédito, Débito, PIX e Dinheiro preservem somente cartão/conta compatíveis.
 
 ## Próxima ação exata
 
-Publicar o candidato sanitizado e auditar o hash imutável no Chat.
+Publicar o recovery sanitizado e reauditar o novo hash no Chat.
 
 ## Capacidade
 
-`Codex → Sol → Alto → auditar o menu numerado e suas transições.`
+`Codex → Sol → Alto → reauditar o recovery das dependências de pagamento.`
