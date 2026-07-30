@@ -3,11 +3,13 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
+const zlib = require('node:zlib');
 
 const {
     assertArtifactPathsSafe,
     buildArtifact,
     createReleaseManifest,
+    extractArchive,
     prepareExtractedRelease,
     promotePreparedRelease,
     readAndVerifyReleaseManifest,
@@ -37,6 +39,49 @@ function createSourceTree() {
     return root;
 }
 
+function writeTarOctal(header, offset, length, value) {
+    const text = Number(value).toString(8).padStart(length - 1, '0');
+    header.write(`${text}\0`, offset, length, 'ascii');
+}
+
+function createTarEntry({
+    name,
+    type = '0',
+    linkName = '',
+    content = Buffer.alloc(0)
+}) {
+    const body = Buffer.isBuffer(content) ? content : Buffer.from(content);
+    const header = Buffer.alloc(512);
+    header.write(name, 0, 100, 'utf8');
+    writeTarOctal(header, 100, 8, type === '5' ? 0o755 : 0o644);
+    writeTarOctal(header, 108, 8, 0);
+    writeTarOctal(header, 116, 8, 0);
+    writeTarOctal(header, 124, 12, body.length);
+    writeTarOctal(header, 136, 12, 0);
+    header.fill(0x20, 148, 156);
+    header.write(type, 156, 1, 'ascii');
+    header.write(linkName, 157, 100, 'utf8');
+    header.write('ustar\0', 257, 6, 'ascii');
+    header.write('00', 263, 2, 'ascii');
+    const checksum = header.reduce((total, byte) => total + byte, 0);
+    header.write(
+        `${checksum.toString(8).padStart(6, '0')}\0 `,
+        148,
+        8,
+        'ascii'
+    );
+    const padding = Buffer.alloc((512 - (body.length % 512)) % 512);
+    return Buffer.concat([header, body, padding]);
+}
+
+function writeTarGz(file, entries) {
+    const tar = Buffer.concat([
+        ...entries.map(createTarEntry),
+        Buffer.alloc(1024)
+    ]);
+    fs.writeFileSync(file, zlib.gzipSync(tar));
+}
+
 test('OPS-03 rejects traversal, secrets, state and runtime dependencies in an artifact', () => {
     for (const unsafe of [
         '../escape',
@@ -61,6 +106,34 @@ test('OPS-03 rejects traversal, secrets, state and runtime dependencies in an ar
         'src/service.js',
         'docs/runbooks/release-checklist.md'
     ]));
+});
+
+test('OPS-03 rejects a symlink archive before creating any extracted path', () => {
+    const root = tempDir('financasbot-release-symlink-');
+    const artifact = path.join(root, 'malicious.tar.gz');
+    const destination = path.join(root, 'extract');
+    const escaped = path.join(root, 'escaped.txt');
+    try {
+        writeTarGz(artifact, [
+            {
+                name: 'link',
+                type: '2',
+                linkName: '..'
+            },
+            {
+                name: 'link/escaped.txt',
+                content: 'must-not-extract\n'
+            }
+        ]);
+        assert.throws(
+            () => extractArchive(artifact, destination),
+            /oci_release_unsafe_tar_type:2:link/
+        );
+        assert.equal(fs.existsSync(destination), false);
+        assert.equal(fs.existsSync(escaped), false);
+    } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+    }
 });
 
 test('OPS-03 manifest binds every source file and rejects tampering or extras', () => {
@@ -295,6 +368,14 @@ test('OPS-03 builder archives the exact commit and excludes dirty local state', 
         write(repo, '.env', 'SECRET=never\n');
         write(repo, 'data/runtime.sqlite', 'never\n');
 
+        await assert.rejects(
+            buildArtifact({
+                repoRoot: repo,
+                commitRef: 'HEAD',
+                outputDir: output
+            }),
+            /oci_release_literal_full_commit_required/
+        );
         const built = await buildArtifact({
             repoRoot: repo,
             commitRef: commitSha,
@@ -508,6 +589,44 @@ test('OPS-03 failed health deletes the candidate and restores the captured scrip
             path.join(fixture.targetRoot, 'index.js')
         );
         assert.equal(calls[4].env.APP_COMMIT_SHA, 'previous-runtime');
+    } finally {
+        fs.rmSync(fixture.targetRoot, { recursive: true, force: true });
+        fs.rmSync(fixture.extractedRoot, { recursive: true, force: true });
+    }
+});
+
+test('OPS-03 rollback fails closed when the candidate cannot be deleted', async () => {
+    const fixture = await preparedPromotionFixture();
+    const calls = [];
+    try {
+        await assert.rejects(
+            promotePreparedRelease({
+                targetRoot: fixture.targetRoot,
+                commitSha: COMMIT,
+                runCommand: async (command, args) => {
+                    calls.push([command, args[0]]);
+                    if (command === 'pm2' && args[0] === 'jlist') {
+                        return { stdout: pm2Inventory(fixture.targetRoot) };
+                    }
+                    if (command === 'pm2' &&
+                        args[0] === 'delete' &&
+                        calls.length === 4) {
+                        throw new Error('synthetic_candidate_still_running');
+                    }
+                    return { stdout: '' };
+                },
+                healthCheck: async () => false,
+                healthAttempts: 1,
+                healthDelayMs: 0
+            }),
+            /oci_release_rollback_candidate_delete_failed:synthetic_candidate_still_running/
+        );
+        assert.deepEqual(calls, [
+            ['pm2', 'jlist'],
+            ['pm2', 'delete'],
+            ['pm2', 'start'],
+            ['pm2', 'delete']
+        ]);
     } finally {
         fs.rmSync(fixture.targetRoot, { recursive: true, force: true });
         fs.rmSync(fixture.extractedRoot, { recursive: true, force: true });

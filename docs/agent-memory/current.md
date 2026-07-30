@@ -124,11 +124,11 @@ O próximo pré-requisito é alinhar o processo de release ao runtime Oracle/OCI
 por artefato imutável. O checklist antigo ainda contém passos de EC2 e checkout
 Git que não podem ser usados na produção vigente.
 
-OPS-03 está em candidato local verde. Builder, checksum, manifesto, slots,
-preflight, promoção explícita e rollback automático foram implementados e
-ensaiados em ambiente sintético, com `11/11` testes focais. Runbooks e
-workstream agora apontam para Oracle/OCI e proíbem Git em produção. Nenhuma ação
-remota foi executada.
+OPS-03 recebeu `NO-GO` independente no primeiro candidato
+`a82930becd65a2d5aebfa376dd07945c2935713f`. O recovery exige SHA completo
+literal, inspeciona e extrai o tar sem criar links e falha fechado se não
+conseguir remover o candidato antes do rollback. A suíte focal está verde em
+`13/13`. Nenhuma ação remota foi executada.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -148,8 +148,8 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar o candidato OPS-03, construir/verificar o artefato do hash imutável e
-submetê-lo à auditoria independente no Chat, sem acessar produção.
+Publicar o recovery OPS-03, reconstruir/verificar o artefato do hash imutável e
+submetê-lo à nova auditoria independente no Chat, sem acessar produção.
 
 ## Capacidade para retomar
 
@@ -233,6 +233,8 @@ final, confirmação idempotente, operation key e recibo de 9P.4. Somente depois
   `docs/audit/79-oci-artifact-release-characterization-2026-07-30.md`;
 - candidato do release OCI:
   `docs/audit/80-oci-artifact-release-candidate-2026-07-30.md`;
+- recovery do release OCI após `NO-GO`:
+  `docs/audit/81-oci-artifact-release-recovery-candidate-2026-07-30.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:

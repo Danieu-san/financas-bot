@@ -2,6 +2,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const zlib = require('node:zlib');
 const { spawnSync } = require('node:child_process');
 
 const MANIFEST_NAME = '.release-manifest.json';
@@ -197,25 +198,172 @@ async function defaultRunCommand(command, args, options = {}) {
 }
 
 function resolveCommit(repoRoot, commitRef) {
+    const requested = String(commitRef || '');
+    if (!COMMIT_PATTERN.test(requested)) {
+        throw new Error('oci_release_literal_full_commit_required');
+    }
     const commitSha = runChecked(
         'git',
-        ['rev-parse', '--verify', `${commitRef || 'HEAD'}^{commit}`],
+        ['rev-parse', '--verify', `${requested}^{commit}`],
         { cwd: repoRoot }
     );
-    if (!COMMIT_PATTERN.test(commitSha)) {
+    if (!COMMIT_PATTERN.test(commitSha) || commitSha !== requested) {
         throw new Error('oci_release_full_commit_required');
     }
     return commitSha;
 }
 
-function listArchiveEntries(artifactPath) {
-    const output = runChecked('tar', ['-tzf', artifactPath]);
-    const entries = output.split(/\r?\n/)
-        .map(normalizeArtifactPath)
-        .filter(Boolean)
-        .filter(entry => entry !== MANIFEST_NAME);
-    assertArtifactPathsSafe(entries);
+function readTarString(buffer, offset, length) {
+    const end = buffer.indexOf(0, offset);
+    const boundedEnd = end < 0 || end >= offset + length
+        ? offset + length
+        : end;
+    return buffer.subarray(offset, boundedEnd).toString('utf8');
+}
+
+function readTarOctal(buffer, offset, length, field) {
+    const bytes = buffer.subarray(offset, offset + length);
+    if (bytes[0] & 0x80) {
+        throw new Error(`oci_release_tar_base256_forbidden:${field}`);
+    }
+    const text = bytes.toString('ascii').replace(/\0.*$/, '').trim();
+    if (!text) return 0;
+    if (!/^[0-7]+$/.test(text)) {
+        throw new Error(`oci_release_tar_number_invalid:${field}`);
+    }
+    const value = Number.parseInt(text, 8);
+    if (!Number.isSafeInteger(value) || value < 0) {
+        throw new Error(`oci_release_tar_number_invalid:${field}`);
+    }
+    return value;
+}
+
+function assertTarHeaderChecksum(header) {
+    const expected = readTarOctal(header, 148, 8, 'checksum');
+    let actual = 0;
+    for (let index = 0; index < header.length; index += 1) {
+        actual += index >= 148 && index < 156 ? 32 : header[index];
+    }
+    if (actual !== expected) {
+        throw new Error('oci_release_tar_header_checksum_invalid');
+    }
+}
+
+function parsePaxRecords(content) {
+    const records = {};
+    let offset = 0;
+    while (offset < content.length) {
+        const space = content.indexOf(0x20, offset);
+        if (space < 0) throw new Error('oci_release_pax_record_invalid');
+        const lengthText = content.subarray(offset, space).toString('ascii');
+        if (!/^[1-9][0-9]*$/.test(lengthText)) {
+            throw new Error('oci_release_pax_record_invalid');
+        }
+        const length = Number(lengthText);
+        const end = offset + length;
+        if (!Number.isSafeInteger(length) ||
+            end > content.length ||
+            content[end - 1] !== 0x0a) {
+            throw new Error('oci_release_pax_record_invalid');
+        }
+        const record = content.subarray(space + 1, end - 1).toString('utf8');
+        const separator = record.indexOf('=');
+        if (separator <= 0) throw new Error('oci_release_pax_record_invalid');
+        records[record.slice(0, separator)] = record.slice(separator + 1);
+        offset = end;
+    }
+    return records;
+}
+
+function readTarEntries(tarBuffer) {
+    const entries = [];
+    const seen = new Set();
+    let offset = 0;
+    let globalPax = {};
+    let pendingPax = {};
+    let pendingLongName = null;
+    let pendingLongLink = null;
+    while (offset + 512 <= tarBuffer.length) {
+        const header = tarBuffer.subarray(offset, offset + 512);
+        if (header.every(byte => byte === 0)) break;
+        assertTarHeaderChecksum(header);
+        const size = readTarOctal(header, 124, 12, 'size');
+        const mode = readTarOctal(header, 100, 8, 'mode');
+        const dataStart = offset + 512;
+        const dataEnd = dataStart + size;
+        if (dataEnd > tarBuffer.length) {
+            throw new Error('oci_release_tar_truncated');
+        }
+        const type = String.fromCharCode(header[156] || 0);
+        const name = readTarString(header, 0, 100);
+        const prefix = readTarString(header, 345, 155);
+        const headerPath = prefix ? `${prefix}/${name}` : name;
+        const headerLink = readTarString(header, 157, 100);
+        const content = tarBuffer.subarray(dataStart, dataEnd);
+        if (type === 'x' || type === 'g') {
+            const records = parsePaxRecords(content);
+            if (type === 'g') globalPax = { ...globalPax, ...records };
+            else pendingPax = records;
+        } else if (type === 'L' || type === 'K') {
+            const value = content.toString('utf8').replace(/\0.*$/, '')
+                .replace(/\n$/, '');
+            if (type === 'L') pendingLongName = value;
+            else pendingLongLink = value;
+        } else {
+            const metadata = { ...globalPax, ...pendingPax };
+            const rawPath = metadata.path || pendingLongName || headerPath;
+            const linkPath = metadata.linkpath ||
+                pendingLongLink ||
+                headerLink;
+            const relativePath = normalizeArtifactPath(rawPath);
+            const rootEntry = type === '5' &&
+                (relativePath === '.' || relativePath === '');
+            if (!rootEntry) {
+                if (relativePath !== MANIFEST_NAME) {
+                    assertArtifactPathsSafe([relativePath]);
+                }
+                if (type !== '0' && type !== '\0' && type !== '5') {
+                    throw new Error(
+                        `oci_release_unsafe_tar_type:${type}:${relativePath}`
+                    );
+                }
+                if (linkPath) {
+                    throw new Error(
+                        `oci_release_tar_link_forbidden:${relativePath}`
+                    );
+                }
+                if (seen.has(relativePath)) {
+                    throw new Error(
+                        `oci_release_tar_duplicate_path:${relativePath}`
+                    );
+                }
+                seen.add(relativePath);
+                entries.push({
+                    path: relativePath,
+                    type: type === '5' ? 'directory' : 'file',
+                    mode,
+                    content
+                });
+            }
+            pendingPax = {};
+            pendingLongName = null;
+            pendingLongLink = null;
+        }
+        offset = Math.ceil(dataEnd / 512) * 512;
+    }
     return entries;
+}
+
+function readArchiveEntries(artifactPath, { gzip = true } = {}) {
+    const bytes = fs.readFileSync(artifactPath);
+    const tarBuffer = gzip ? zlib.gunzipSync(bytes) : bytes;
+    return readTarEntries(tarBuffer);
+}
+
+function listArchiveEntries(artifactPath, options) {
+    return readArchiveEntries(artifactPath, options)
+        .map(entry => entry.path)
+        .filter(entry => entry !== MANIFEST_NAME);
 }
 
 function verifyChecksumFile(artifactPath, checksumPath) {
@@ -231,14 +379,33 @@ function verifyChecksumFile(artifactPath, checksumPath) {
     return actual;
 }
 
-function extractArchive(artifactPath, destination) {
+function extractArchive(artifactPath, destination, options) {
+    const entries = readArchiveEntries(artifactPath, options);
     fs.mkdirSync(destination, { recursive: true });
-    runChecked('tar', ['-xzf', artifactPath, '-C', destination]);
+    if (fs.readdirSync(destination).length !== 0) {
+        throw new Error('oci_release_extract_destination_not_empty');
+    }
+    const root = path.resolve(destination);
+    for (const entry of entries) {
+        const target = path.resolve(root, ...entry.path.split('/'));
+        if (!target.startsWith(`${root}${path.sep}`)) {
+            throw new Error(`unsafe_oci_artifact_path:${entry.path}`);
+        }
+        if (entry.type === 'directory') {
+            fs.mkdirSync(target, { recursive: true });
+            continue;
+        }
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        fs.writeFileSync(target, entry.content, {
+            flag: 'wx',
+            mode: entry.mode & 0o111 ? 0o755 : 0o644
+        });
+    }
 }
 
 async function buildArtifact({
     repoRoot,
-    commitRef = 'HEAD',
+    commitRef,
     outputDir
 }) {
     const absoluteRepo = path.resolve(repoRoot);
@@ -262,7 +429,7 @@ async function buildArtifact({
             ['archive', '--format=tar', `--output=${sourceTar}`, commitSha],
             { cwd: absoluteRepo }
         );
-        runChecked('tar', ['-xf', sourceTar, '-C', tree]);
+        extractArchive(sourceTar, tree, { gzip: false });
         const manifest = createReleaseManifest({
             root: tree,
             commitSha
@@ -602,10 +769,11 @@ async function promotePreparedRelease({
         processName
     });
     let oldProcessDeleted = false;
-    let newProcessStarted = false;
+    let candidateStartAttempted = false;
     try {
         await runCommand('pm2', ['delete', processName], { cwd: targetRoot });
         oldProcessDeleted = true;
+        candidateStartAttempted = true;
         await runCommand(
             'pm2',
             [
@@ -625,7 +793,6 @@ async function promotePreparedRelease({
                 }
             }
         );
-        newProcessStarted = true;
         if (!await waitForHealthy({
             healthCheck,
             healthUrl,
@@ -645,15 +812,18 @@ async function promotePreparedRelease({
         };
     } catch (error) {
         if (!oldProcessDeleted) throw error;
-        if (newProcessStarted) {
+        if (candidateStartAttempted) {
             try {
                 await runCommand(
                     'pm2',
                     ['delete', processName],
                     { cwd: targetRoot }
                 );
-            } catch {
-                // Continue to the deterministic rollback start.
+            } catch (rollbackDeleteError) {
+                throw new Error(
+                    'oci_release_rollback_candidate_delete_failed:' +
+                    `${rollbackDeleteError.message}:${error.message}`
+                );
             }
         }
         await runCommand(
@@ -700,7 +870,7 @@ async function main(args = process.argv.slice(2)) {
     if (command === 'build') {
         const result = await buildArtifact({
             repoRoot: argumentValue(args, '--repo', process.cwd()),
-            commitRef: argumentValue(args, '--commit', args[1] || 'HEAD'),
+            commitRef: argumentValue(args, '--commit', args[1]),
             outputDir: argumentValue(
                 args,
                 '--output',
@@ -799,6 +969,7 @@ module.exports = {
     buildArtifact,
     createPromotionPlan,
     createReleaseManifest,
+    extractArchive,
     listArchiveEntries,
     parseCurrentPm2Process,
     prepareArtifact,
