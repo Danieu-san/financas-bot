@@ -10,7 +10,7 @@ independente no commit imutável
 `f8a1e9f41eee3c904f0de69ae465219ef874212d`, sem achado residual e com
 `financial_writes=0`.
 
-O objetivo ativo seguinte é fechar por auditoria independente a correção da
+O objetivo ativo seguinte é reauditar a correção da
 perda silenciosa de liveness da sessão WhatsApp/Puppeteer observada em produção
 Oracle em 2026-07-30.
 PM2, Google, read-model e `/dashboard/health` permaneceram verdes enquanto
@@ -18,15 +18,17 @@ operações do WhatsApp acumulavam `Runtime.callFunctionOn timed out`; não houv
 recuperação automática. O candidato local OPS-02 agora possui monitor
 single-flight pós-`ready`, timeout e limiar de duas falhas, recuperação única
 pelo supervisor, health composto SQLite/WhatsApp e retry limitado do backfill.
-9P.4 permanece não autorizado até o fechamento desse incidente.
+O primeiro candidato recebeu `NO-GO` independente e a recuperação local fecha
+os quatro achados relatados. 9P.4 permanece não autorizado até a reauditoria.
 
 ## Workspace vigente
 
 Raiz recuperada:
 `C:\Users\Administrador\Documents\FinancasBot\financas-bot`.
 Branch ativa: `codex/whatsapp-liveness-recovery`; base:
-`43c4555f534421aa87fee6ccc97d242d80a1744c`. O hash do candidato OPS-02 será
-registrado depois do commit sanitizado.
+`43c4555f534421aa87fee6ccc97d242d80a1744c`. Primeiro candidato OPS-02:
+`4647ea775f801dcd277d0282a8cc424a43d3f4f3`; o hash da recuperação será
+registrado depois do novo commit sanitizado.
 
 O SSD portátil anterior foi perdido e não é mais a raiz canônica. A produção
 vigente é Oracle/OCI e permanece separada deste gate; o código 9P.3 não foi
@@ -173,16 +175,23 @@ Não houve acesso a Google/WhatsApp real, produção ou deploy.
 
 ## Próximo gate
 
-OPS-02 está em `candidato local verde; auditoria independente pendente`. O
+OPS-02 está em `recuperação pós-NO-GO local verde; reauditoria independente
+pendente`. O
 incidente real comprovou que o health anterior media processo, HTTP e SQLite,
 mas não detectava uma página WhatsApp incapaz de executar funções ou sem
 conexão externa.
 
-Evidência executada: focal `36/36`; afetada `211/211`; runner hermético
-`1.321/1.326`, zero falhas e cinco skips funcionais previstos; cobertura de
-linhas `90,37%`; contrato de ambiente verde. O audit de dependências relata 11
-avisos `high` transitivos preexistentes; nenhum lockfile foi alterado neste
-gate.
+O primeiro parecer leu os 14 arquivos no hash completo e encontrou `HIGH 1`,
+`MEDIUM 2`, `LOW 1`: retry inexistente do handler absorvido, provas ausentes de
+resolução tardia/saída concorrente e negativo ausente do rescue.
+
+A recuperação separa retry de descoberta do processamento at-most-once,
+propaga falha sanitizada pela entrada pública serializada, prova zero replay e
+zero escrita na falha, centraliza todas as causas numa saída idempotente, trava
+sucesso tardio após recovery e adiciona o negativo do rescue. Evidência:
+`142/142` focal; runner hermético pós-produto `1.325/1.330`, zero falhas e cinco
+skips previstos; contrato de ambiente verde. O audit de dependências continua
+com 11 avisos `high` transitivos preexistentes; o lockfile não mudou.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -202,9 +211,9 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar o commit sanitizado de OPS-02 e executar uma tentativa de auditoria
-independente no Chat conectado usando hash completo e URLs imutáveis. Não
-reiniciar produção nem alterar a sessão real.
+Publicar o commit sanitizado de recuperação OPS-02 e executar uma reauditoria
+independente no Chat usando o novo hash completo e URLs imutáveis. Não reiniciar
+produção nem alterar a sessão real.
 
 ## Capacidade para retomar
 

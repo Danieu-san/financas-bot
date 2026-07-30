@@ -2,12 +2,12 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const { scheduleReadyRescue } = require('./whatsappReadyRescueService');
 const { createWhatsAppLivenessMonitor } = require('./whatsappLivenessService');
+const { createSupervisorExitRequester } = require('./supervisorExitService');
 const logger = require('../utils/logger');
 
 let clientInstance = null;
 let isAuthenticated = false;
 let isInitializing = false;
-let supervisorExitRequested = false;
 let livenessMonitor = null;
 
 const CONFIGURED_WEB_VERSION = String(process.env.WWEB_VERSION || '').trim();
@@ -21,12 +21,10 @@ const LIVENESS_INTERVAL_MS = Number(process.env.WWEB_LIVENESS_INTERVAL_MS || 600
 const LIVENESS_PROBE_TIMEOUT_MS = Number(process.env.WWEB_LIVENESS_PROBE_TIMEOUT_MS || 15000);
 const LIVENESS_FAILURE_THRESHOLD = Number(process.env.WWEB_LIVENESS_FAILURE_THRESHOLD || 2);
 
-function exitForSupervisor(reasonCode, delayMs = 1500) {
-    if (supervisorExitRequested) return false;
-    supervisorExitRequested = true;
-    logger.error(`[whatsapp] unavailable reason_code=${reasonCode}`);
-    setTimeout(() => process.exit(1), delayMs);
-    return true;
+const supervisorExitRequester = createSupervisorExitRequester({ logger });
+
+function exitForSupervisor(reasonCode) {
+    return supervisorExitRequester.request(reasonCode);
 }
 
 function initializeWhatsAppClient() {

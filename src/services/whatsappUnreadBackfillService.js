@@ -82,23 +82,13 @@ async function backfillUnreadMessages(client, handleMessage, options = {}) {
 
     await wait(delayMs);
 
+    let discovery = null;
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         try {
             const chats = await client.getChats();
             const messages = await collectUnreadIncomingMessages(chats, options);
-            for (const message of messages) {
-                await handleMessage(message);
-            }
-
-            if (messages.length > 0) {
-                logger.info(`[whatsapp] unread backfill processou ${messages.length} mensagem(ns).`);
-            }
-
-            return {
-                skipped: false,
-                processed: messages.length,
-                attempts: attempt
-            };
+            discovery = { messages, attempts: attempt };
+            break;
         } catch (error) {
             const reasonCode = classifyBackfillFailure(error);
             logger.warn(
@@ -113,6 +103,28 @@ async function backfillUnreadMessages(client, handleMessage, options = {}) {
             await wait(retryDelayMs);
         }
     }
+
+    let processed = 0;
+    for (const message of discovery?.messages || []) {
+        try {
+            await handleMessage(message);
+            processed += 1;
+        } catch {
+            const handlerFailure = new Error('WhatsApp unread backfill handler failed.');
+            handlerFailure.code = 'WHATSAPP_UNREAD_BACKFILL_HANDLER_FAILED';
+            throw handlerFailure;
+        }
+    }
+
+    if (processed > 0) {
+        logger.info(`[whatsapp] unread backfill processou ${processed} mensagem(ns).`);
+    }
+
+    return {
+        skipped: false,
+        processed,
+        attempts: discovery?.attempts || maxAttempts
+    };
 }
 
 module.exports = {

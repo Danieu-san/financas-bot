@@ -125,3 +125,39 @@ test('backfillUnreadMessages fails with a stable code after bounded retries', as
     );
     assert.equal(attempts, 2);
 });
+
+test('backfill does not retry an ambiguous handler failure or replay earlier messages', async () => {
+    const handled = [];
+    let discoveries = 0;
+    const first = makeMessage('handler-1', { timestamp: 200 });
+    const second = makeMessage('handler-2', { timestamp: 201 });
+
+    await assert.rejects(
+        backfillUnreadMessages({
+            async getChats() {
+                discoveries += 1;
+                return [{
+                    unreadCount: 2,
+                    fetchMessages: async () => [first, second]
+                }];
+            }
+        }, async message => {
+            handled.push(message.id.id);
+            if (message.id.id === 'handler-2') {
+                throw new Error('private ambiguous processing error');
+            }
+        }, {
+            delayMs: 0,
+            retryDelayMs: 0,
+            maxAttempts: 3,
+            logger: { info() {}, warn() {} }
+        }),
+        error => (
+            error?.code === 'WHATSAPP_UNREAD_BACKFILL_HANDLER_FAILED'
+            && !String(error?.message || '').includes('private')
+        )
+    );
+
+    assert.equal(discoveries, 1);
+    assert.deepEqual(handled, ['handler-1', 'handler-2']);
+});

@@ -6,6 +6,10 @@ const test = require('node:test');
 
 const whatsappPath = path.resolve(__dirname, '../src/services/whatsapp.js');
 const loggerPath = path.resolve(__dirname, '../src/utils/logger.js');
+const supervisorExitPath = path.resolve(__dirname, '../src/services/supervisorExitService.js');
+const {
+    createSupervisorExitRequester
+} = require(supervisorExitPath);
 
 function installModule(modulePath, exports) {
     require.cache[modulePath] = {
@@ -16,7 +20,7 @@ function installModule(modulePath, exports) {
     };
 }
 
-function loadWhatsappService() {
+function loadWhatsappService({ supervisorOptions = null } = {}) {
     delete require.cache[whatsappPath];
     installModule(loggerPath, {
         info() {},
@@ -26,6 +30,13 @@ function loadWhatsappService() {
             return String(error?.message || error || '');
         }
     });
+    if (supervisorOptions) {
+        installModule(supervisorExitPath, {
+            createSupervisorExitRequester() {
+                return createSupervisorExitRequester(supervisorOptions);
+            }
+        });
+    }
 
     class FakeClient extends EventEmitter {
         constructor(options) {
@@ -145,5 +156,48 @@ test('product send wrapper records a sanitized transport failure', async () => {
         else process.env.WWEB_LIVENESS_INTERVAL_MS = previousInterval;
         delete require.cache[whatsappPath];
         delete require.cache[loggerPath];
+    }
+});
+
+test('product routes liveness and disconnected causes through one idempotent supervisor exit', async () => {
+    const previousInterval = process.env.WWEB_LIVENESS_INTERVAL_MS;
+    const previousThreshold = process.env.WWEB_LIVENESS_FAILURE_THRESHOLD;
+    process.env.WWEB_LIVENESS_INTERVAL_MS = '600000';
+    process.env.WWEB_LIVENESS_FAILURE_THRESHOLD = '2';
+    const timers = [];
+    const exits = [];
+
+    try {
+        const { service, FakeClient } = loadWhatsappService({
+            supervisorOptions: {
+                logger: { error() {} },
+                setTimeoutFn(callback, delayMs) {
+                    timers.push({ callback, delayMs });
+                    return timers.length;
+                },
+                exitFn(code) {
+                    exits.push(code);
+                }
+            }
+        });
+        const client = service.initializeWhatsAppClient();
+        client.emit('ready');
+        FakeClient.instance.state = 'UNPAIRED';
+
+        await service.runWhatsAppLivenessProbe();
+        await service.runWhatsAppLivenessProbe();
+        client.emit('disconnected', 'NETWORK');
+
+        assert.equal(timers.length, 1);
+        timers[0].callback();
+        assert.deepEqual(exits, [1]);
+    } finally {
+        if (previousInterval === undefined) delete process.env.WWEB_LIVENESS_INTERVAL_MS;
+        else process.env.WWEB_LIVENESS_INTERVAL_MS = previousInterval;
+        if (previousThreshold === undefined) delete process.env.WWEB_LIVENESS_FAILURE_THRESHOLD;
+        else process.env.WWEB_LIVENESS_FAILURE_THRESHOLD = previousThreshold;
+        delete require.cache[whatsappPath];
+        delete require.cache[loggerPath];
+        delete require.cache[supervisorExitPath];
     }
 });

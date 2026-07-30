@@ -233,6 +233,7 @@ const MASTER_SCHEMA = {
 
 const processedMessages = new Set();
 const senderMessageTails = new Map();
+const MESSAGE_PROCESSING_FAILED = Symbol('message_processing_failed');
 const ANALYTICAL_CONTEXT_TTL_SECONDS = 5 * 60;
 const ANALYTICAL_CONTEXT_STATE_PREFIX = 'analytical_followup_v1:';
 const analyticalContextKeysForTests = new Set();
@@ -11917,7 +11918,12 @@ async function processMessage(msg) {
         } catch (error) {
             metrics.increment('message.error.fatal');
             logger.error(`[message] fatal_processing_error ${logger.safeError(error)}`);
-            await msg.reply('Ocorreu um erro interno e a equipe de TI (o Daniel) foi notificada.');
+            try {
+                await msg.reply('Ocorreu um erro interno e a equipe de TI (o Daniel) foi notificada.');
+            } catch {
+                logger.warn('[message] fatal_error_reply_failed');
+            }
+            return MESSAGE_PROCESSING_FAILED;
         } finally {
             const totalMs = Date.now() - messageStartedAt;
             metrics.observeDuration('message.total.ms', totalMs);
@@ -11930,19 +11936,44 @@ async function processMessage(msg) {
     });
 }
 
-function handleMessage(msg) {
+function createBackfillHandlerError() {
+    const error = new Error('WhatsApp backfill public handler failed.');
+    error.code = 'WHATSAPP_BACKFILL_PUBLIC_HANDLER_FAILED';
+    return error;
+}
+
+function runPublicMessageHandler(msg, { propagateFailure = false } = {}) {
     const senderId = resolveMessageSenderKey(msg);
     return runMessageTaskForSender(
         senderId,
         () => processMessage(msg)
-    ).catch((error) => {
+    ).then(result => {
+        if (result === MESSAGE_PROCESSING_FAILED) {
+            throw createBackfillHandlerError();
+        }
+        return result;
+    }).catch((error) => {
         metrics.increment('message.error.unhandled');
         logger.error(`[message] unhandled_failure sender=${logger.redactIdentifier(senderId)} ${logger.safeError(error)}`);
+        if (propagateFailure) {
+            throw error?.code === 'WHATSAPP_BACKFILL_PUBLIC_HANDLER_FAILED'
+                ? error
+                : createBackfillHandlerError();
+        }
     });
+}
+
+function handleMessage(msg) {
+    return runPublicMessageHandler(msg);
+}
+
+function handleMessageForBackfill(msg) {
+    return runPublicMessageHandler(msg, { propagateFailure: true });
 }
 
 module.exports = {
     handleMessage,
+    handleMessageForBackfill,
     __test__: {
         classifyPerguntaLocally,
         detectFastPerguntaIntent,

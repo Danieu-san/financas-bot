@@ -7,7 +7,7 @@ Base:
 
 ## Estado
 
-`CANDIDATO LOCAL VERDE; AUDITORIA INDEPENDENTE PENDENTE`.
+`RECUPERAÇÃO PÓS-NO-GO LOCAL VERDE; REAUDITORIA INDEPENDENTE PENDENTE`.
 
 ## Evidência do incidente
 
@@ -91,8 +91,11 @@ durante QR/autenticação e sem criar caminho de duplicação de mensagens.
    pública afetada.
 5. [concluído] Bateria hermética, diff, contrato de ambiente e varredura de
    segredos.
-6. [pendente] Commit sanitizado e auditoria independente por hash imutável.
-7. [bloqueado até GO] Planejar deploy OCI por artefato com rollback.
+6. [concluído com NO-GO] Primeiro commit sanitizado
+   `4647ea775f801dcd277d0282a8cc424a43d3f4f3` e auditoria independente.
+7. [concluído localmente] Fechamento de um `HIGH`, dois `MEDIUM` e um `LOW`.
+8. [pendente] Commit de recuperação e reauditoria por novo hash imutável.
+9. [bloqueado até GO] Planejar deploy OCI por artefato com rollback.
 
 ## Evidência local do candidato
 
@@ -113,6 +116,40 @@ durante QR/autenticação e sem criar caminho de duplicação de mensagens.
   já fixada, incluindo `js-yaml` sem correção disponível via
   `whatsapp-web.js`/Puppeteer. O lockfile não foi alterado e nenhum `audit fix`
   foi aplicado neste gate.
+
+## Primeiro parecer independente
+
+O Chat leu os 14 arquivos no hash
+`4647ea775f801dcd277d0282a8cc424a43d3f4f3` e emitiu `NO-GO`:
+
+- `HIGH 1`: o manifesto atribuía retry ao handler, mas o handler público
+  absorvia a falha;
+- `MEDIUM 2`: faltavam provas de resolução tardia após decisão de recovery e
+  concorrência entre causas de saída;
+- `LOW 1`: faltava o negativo do rescue para erro diferente do binding
+  permitido.
+
+## Recuperação pós-NO-GO
+
+- O retry agora termina antes de executar handlers e cobre somente descoberta e
+  leitura de não lidas. Falha ambígua do handler nunca reabre o lote nem repete
+  uma mensagem já tentada.
+- `index.js` usa `handleMessageForBackfill`, que conserva a mesma fila pública
+  por remetente, transforma falha absorvida no processamento em código
+  sanitizado e a propaga ao serviço.
+- A integração real `backfillUnreadMessages -> handleMessageForBackfill ->
+  processMessage` é exercitada com falha interna, duas tentativas de resposta,
+  zero escrita e uma única descoberta.
+- Resolução `CONNECTED` tardia depois de recovery solicitado não restaura o
+  health nem solicita nova saída.
+- Todas as causas de saída atravessam uma única instância idempotente; teste do
+  produto combina limiar de liveness e `disconnected` e exige um só timer/exit.
+- Rescue rejeita e não avalia a página quando `attachEventListeners` falha por
+  causa diferente de `onAddMessageEvent ... already exists`.
+- GREEN pós-auditoria focal: `142/142`.
+- Runner hermético após as mudanças de produto: `1.325/1.330`, zero falhas e
+  cinco skips funcionais previstos; a última adição foi somente a prova de
+  composição já coberta na bateria focal.
 
 ## Critérios de GO
 
@@ -141,9 +178,9 @@ durante QR/autenticação e sem criar caminho de duplicação de mensagens.
 
 ## Próxima ação exata
 
-Publicar o candidato sanitizado, fornecer o hash completo e os arquivos exatos
-ao Chat e confrontar o parecer estático independente com a evidência executada
-localmente. Sem resposta auditável, o estado máximo continua `candidato`.
+Publicar o commit de recuperação sanitizado, fornecer o novo hash completo e os
+arquivos exatos ao Chat e exigir reavaliação explícita dos quatro achados. Sem
+resposta auditável, o estado máximo continua `recuperação candidata`.
 
 ## Capacidade
 

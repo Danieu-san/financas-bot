@@ -150,7 +150,8 @@ Validar:
   `tests/whatsappReadyRescueService.test.js` e
   `tests/whatsappUnreadBackfillService.test.js`. Provar probe sem sobreposicao,
   recuperacao unica pelo supervisor, nenhuma recuperacao durante QR/startup e
-  retry limitado do backfill.
+  retry limitado da descoberta do backfill, propagação sanitizada da falha do
+  handler e ausência de replay após processamento ambíguo.
 
 ## Interpretation reliability shadow
 

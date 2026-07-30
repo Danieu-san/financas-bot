@@ -4,7 +4,10 @@ require('dotenv').config();
 
 const { initializeWhatsAppClient } = require('./src/services/whatsapp');
 const { authorizeGoogle, getSheetIds, ensureSpreadsheetStructure } = require('./src/services/google');
-const { handleMessage } = require('./src/handlers/messageHandler');
+const {
+    handleMessage,
+    handleMessageForBackfill
+} = require('./src/handlers/messageHandler');
 const { initializeScheduler } = require('./src/jobs/scheduler');
 const { validateUserIdIntegrity, backfillMissingUserIds } = require('./src/services/userIdMaintenanceService');
 const { initializeReadModel, syncReadModelIfNeeded, getReadModelStats } = require('./src/services/readModelService');
@@ -76,7 +79,7 @@ async function startBot() {
             // Inicia o agendador apenas quando o bot estiver pronto pela primeira vez
             initializeScheduler(client);
             initializeOpenFinanceCanaryRuntime({ client, logger });
-            void backfillUnreadMessages(client, handleMessage, {
+            void backfillUnreadMessages(client, handleMessageForBackfill, {
                 logger,
                 enabled: String(process.env.WHATSAPP_UNREAD_BACKFILL_ON_READY || 'true').toLowerCase() !== 'false',
                 delayMs: Number(process.env.WHATSAPP_UNREAD_BACKFILL_DELAY_MS || 3000),

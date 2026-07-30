@@ -401,7 +401,14 @@ function installMocks() {
 
 installMocks();
 
-const { handleMessage, __test__: messageHandlerTest } = require('../src/handlers/messageHandler');
+const {
+    handleMessage,
+    handleMessageForBackfill,
+    __test__: messageHandlerTest
+} = require('../src/handlers/messageHandler');
+const {
+    backfillUnreadMessages
+} = require('../src/services/whatsappUnreadBackfillService');
 const userStateManager = require('../src/state/userStateManager');
 const userService = require('../src/services/userService');
 const { getReadModelStats } = require('../src/services/readModelService');
@@ -2775,6 +2782,49 @@ stateMachineTest('audio ingress discards status and outgoing messages before tra
     assert.strictEqual(audioHandleCalls, 0);
     assert.deepStrictEqual(statusMessage.replies, []);
     assert.deepStrictEqual(outgoingMessage.replies, []);
+});
+
+stateMachineTest('unread backfill uses the public serialized handler and never retries ambiguous processing', async () => {
+    resetState();
+    enqueueStructuredResponse({ intent: 'ajuda' });
+    const msg = createMockMessage('ajuda');
+    const originalReply = msg.reply;
+    let discoveries = 0;
+    let replyAttempts = 0;
+    msg.reply = async () => {
+        replyAttempts += 1;
+        throw new Error('private simulated reply failure');
+    };
+
+    try {
+        await assert.rejects(
+            backfillUnreadMessages({
+                async getChats() {
+                    discoveries += 1;
+                    return [{
+                        unreadCount: 1,
+                        fetchMessages: async () => [msg]
+                    }];
+                }
+            }, handleMessageForBackfill, {
+                delayMs: 0,
+                retryDelayMs: 0,
+                maxAttempts: 3,
+                logger: { info() {}, warn() {} }
+            }),
+            error => (
+                error?.code === 'WHATSAPP_UNREAD_BACKFILL_HANDLER_FAILED'
+                && !String(error?.message || '').includes('private')
+            )
+        );
+    } finally {
+        msg.reply = originalReply;
+    }
+
+    assert.equal(discoveries, 1);
+    assert.equal(replyAttempts, 2);
+    assert.equal(sheets.Saídas.length, 1);
+    assert.equal(sheets.Entradas.length, 1);
 });
 
 stateMachineTest('audio ingress resolves lifecycle before transcription', async () => {

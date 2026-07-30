@@ -249,8 +249,10 @@ Mitigacoes usadas:
   para o supervisor reiniciar o processo. O monitor nao reinicia durante
   startup, autenticacao ou QR.
 - Timeout de transporte tambem alimenta a mesma contagem, sem registrar texto,
-  destinatario, QR ou sessao. O backfill de nao lidas tem retry limitado e
-  continua dependendo da deduplicacao duravel do handler publico.
+  destinatario, QR ou sessao. O backfill repete somente a descoberta/leitura de
+  nao lidas. Depois disso, cada mensagem entra uma vez no handler publico
+  serializado; falha ambigua e propagada por codigo sanitizado e nunca dispara
+  replay automatico do lote.
 
 ## `.env` de producao e sensivel
 

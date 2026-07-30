@@ -105,3 +105,24 @@ test('triggerReadyRescue continues when the message page binding already exists'
     assert.equal(result.result.triggered, true);
     assert.deepEqual(calls, ['attach', 'evaluate']);
 });
+
+test('triggerReadyRescue rejects a different attachEventListeners failure', async () => {
+    let evaluations = 0;
+    await assert.rejects(
+        triggerReadyRescue({
+            attachEventListeners: async () => {
+                throw new Error('different private binding failure');
+            },
+            pupPage: {
+                evaluate: async () => {
+                    evaluations += 1;
+                }
+            }
+        }, {
+            isStillPending: () => true,
+            logger: { info() {}, warn() {} }
+        }),
+        /different private binding failure/
+    );
+    assert.equal(evaluations, 0);
+});

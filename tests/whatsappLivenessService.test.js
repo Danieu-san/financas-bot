@@ -90,6 +90,7 @@ test('consecutive runtime failures request exactly one supervisor recovery', asy
 });
 
 test('a timed-out probe fails closed and does not allow an overlapping probe', async () => {
+    const exits = [];
     let releaseProbe;
     let calls = 0;
     const pendingProbe = new Promise(resolve => {
@@ -100,7 +101,7 @@ test('a timed-out probe fails closed and does not allow an overlapping probe', a
             calls += 1;
             return pendingProbe;
         },
-        onUnhealthy() {},
+        onUnhealthy: reason => exits.push(reason),
         logger: createLogger(),
         failureThreshold: 2,
         probeTimeoutMs: 15
@@ -123,8 +124,14 @@ test('a timed-out probe fails closed and does not allow an overlapping probe', a
     assert.equal(stillPending.ok, false);
     assert.equal(stillPending.reason, 'probe_still_in_flight');
     assert.equal(calls, 1);
+    assert.deepEqual(exits, ['probe_still_in_flight']);
 
     releaseProbe('CONNECTED');
+    await pendingProbe;
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(monitor.getSnapshot().recoveryRequested, true);
+    assert.equal(monitor.getSnapshot().status, 'degraded');
+    assert.deepEqual(exits, ['probe_still_in_flight']);
 });
 
 test('transport protocol timeouts contribute to the same bounded recovery threshold', () => {
