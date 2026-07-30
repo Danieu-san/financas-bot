@@ -7,7 +7,7 @@ Base:
 
 ## Estado
 
-`RECOVERY LOCAL VERDE; NOVO COMMIT IMUTÁVEL E REAUDITORIA PENDENTES`.
+`GO TÉCNICO LOCAL`.
 
 ## Objetivo
 
@@ -45,8 +45,8 @@ criação de uma nova.
 3. [concluída] Confirmar que a proposta proativa não alcançava a criação.
 4. [concluída] Adicionar criação durável sem segundo write.
 5. [concluída] Executar provas causais e regressão proporcional.
-6. [em andamento] Publicar recovery e reauditar por hash imutável.
-7. [pendente] Registrar o fechamento e avançar na fila.
+6. [concluída] Publicar recovery e reauditar por hash imutável.
+7. [concluída] Registrar o fechamento e encerrar a fila pós-9P.4.
 
 ## Critérios de GO
 
@@ -65,9 +65,9 @@ criação de uma nova.
 
 ## Próxima ação exata
 
-Publicar o recovery sanitizado e reauditar catálogo integral, destino
-user-scoped e cadeia causal.
+Consolidar a prontidão operacional do caminho proativo completo e mapear os
+gates ainda necessários, sem ativação, deploy ou produção.
 
 ## Capacidade
 
-`Codex → Sol → Alto → auditar a nova categoria na proposta proativa.`
+`Codex → Sol → Alto → consolidar a prontidão operacional pós-9P.4.`

@@ -25,12 +25,14 @@ O menu numerado de pagamento está encerrado. O primeiro candidato
 `b25ff51b59054483a66a16e926534068e6c074f5` recebeu `GO TÉCNICO LOCAL`,
 zerou todas as severidades e não deixou lacuna causal indispensável.
 
-O objetivo ativo é o terceiro item da fila. O primeiro candidato
+O terceiro item da fila pós-9P.4 está tecnicamente encerrado. O primeiro candidato
 `4473a4c66d6d7bdad6149e25f20ccaa9e2e4b10e` recebeu `NO-GO` por truncar o
 catálogo, permitir fallback central e deixar incompleta a prova causal. O
 recovery pagina o catálogo integral, falha fechado acima de 1.000, exige
-destino pessoal/familiar e prova a redescoberta em Saídas e cartão. Falta novo
-commit imutável e reauditoria independente.
+destino pessoal/familiar e prova a redescoberta em Saídas e cartão. O commit
+imutável `1b7379e2968974c3c456e64f06ba20cedb0fc599` recebeu `GO LOCAL`
+independente, sem achado bloqueante. O fechamento está em
+`docs/audit/75-open-finance-new-category-independent-close-2026-07-30.md`.
 
 ## Workspace vigente
 
@@ -82,6 +84,23 @@ Pluggy real.
 
 ## Último gate encerrado
 
+O terceiro item pós-9P.4 recebeu `GO TÉCNICO LOCAL` independente no commit
+imutável `1b7379e2968974c3c456e64f06ba20cedb0fc599`. Categorias autorizadas são
+deduplicadas antes do limite e paginadas; excesso falha fechado; criação é
+explícita e somente na última página; a finalização exige destino user-scoped;
+e a categoria é redescoberta depois do único lançamento confirmado em Saídas
+ou cartão.
+
+Evidência executada pelo Codex: focal sequencial `38/38`, entrada pública
+afetada `2/2`, Google/fallback `2/2`, paginação/store `1/1`, sintaxe, diff e
+workflow verdes. O Chat realizou revisão estática e não executou essas
+contagens. Uma falha de renderização truncou o texto final, mas a recuperação
+sem nova análise devolveu `GO LOCAL`.
+
+O fechamento não autoriza flags, integração real, deploy ou produção.
+
+## Gate encerrado anterior — 9P.4
+
 `9P.4` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
 `b98157dfde061793ad94cd025c99b1f8b5145712`. Retomadas `writing/uncertain`
 usam somente reconciliação fail-closed; ausência de prova nunca cria append e
@@ -106,64 +125,11 @@ permanece: focal `20/20`, causal `150/150`, Open Finance `259/259`, entrada
 pública/máquina de estados `122/122` e runner hermético `1.305/1.310`, com
 zero falhas e cinco skips previstos.
 
-## Gate encerrado anterior — STATE-03
-
-`STATE-03` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
-`e341d4feae5b6ecba8990a226f386e11cb18d027`; o fechamento documental foi
-publicado em `f8d124f785f89479642fbf4847a9f4c3860a268d`.
-
-Os seis jobs gerais do scheduler usam outbox SQLite cifrado e privado, com
-deduplicação durável, retry limitado, lease, retenção e isolamento por usuário.
-Falha posterior a transporte resolvido não reabre retry e expira para
-`accepted_unconfirmed`.
-
-Evidência: focados `42/42`; afetados `46/46`; gate exaustivo `1.256/1.261`,
-zero falhas e cinco skips previstos; controles locais verdes. O Chat confirmou
-o fechamento do `HIGH` inicial e deixou somente dois achados `LOW`
-composicionais.
-
-Não houve produção, Google, WhatsApp ou dado real nem deploy.
-
-## Gate encerrado anterior — FLOW-02
-
-`FLOW-02` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
-`73abb5e575f0af8cf36f826c5646e2843a1997a5`.
-
-O rate limit agora antecede comprovantes, OCR, exportação, importação e
-gerenciamento de metas. Áudio continua consumindo um limite antes da
-transcrição, e as exceções operacionais preexistentes não saltam para os cinco
-handlers.
-
-Evidência executada: RED causal; prova `1/1`; handler completo `121/121`;
-módulos afetados `56/56`; sintaxe, diff e workflow verdes. O gate exaustivo
-válido teve `1.240/1.246` aprovações, uma falha não reproduzida em domínio não
-alterado e cinco skips permitidos; ele não é rotulado como verde.
-
-Não houve produção, Google, WhatsApp ou Pluggy reais nem deploy.
-
-## Gate encerrado anterior — STATE-04
-
-`STATE-04` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
-`22fff090192269e71d71025653f1b5450b3132e2`.
-
-O snapshot local preserva o estado necessário dentro de envelope AES-256-GCM
-estrito, privado e autenticado, com journal de replay, ordem durável, retenção,
-restore fail-closed e arquivos `0600`. Redis permanece indisponível e falha
-antes de qualquer efeito até o gate separado `STATE-03`.
-
-Evidência executada pelo Codex: RED Redis reproduzido; teste dedicado `14/14`;
-bateria causal `345/345`; runner hermético `1.238` testes, `1.233` aprovados,
-zero falhas e cinco skips previstos. O Chat confirmou o hash, os cinco commits,
-os 19 arquivos e a ausência de achado bloqueante, sem executar os testes.
-
-Não houve acesso a snapshot real, Redis real, produção, Google, WhatsApp ou
-deploy.
-
 ## Git e workspace
 
 - branch ativa: `codex/open-finance-finalization`;
 - último produto com `GO TÉCNICO LOCAL`:
-  `b98157dfde061793ad94cd025c99b1f8b5145712`;
+  `1b7379e2968974c3c456e64f06ba20cedb0fc599`;
 - fechamento documental de 9P.0:
   `bcdbf0e8772270019e9223e6a996f5102eb446bd`;
 - alterações concorrentes do workstream AWS/Oracle e arquivos não rastreados do
@@ -180,16 +146,21 @@ dois `MEDIUM` e o `LOW`, com zero achado residual e nenhuma lacuna indispensáve
 dentro do processo único. O fechamento está em
 `docs/audit/63-ops02-independent-close-2026-07-30.md`.
 
-O recovery do menu de pagamento recebeu `GO TÉCNICO LOCAL` no hash
-`b25ff51b59054483a66a16e926534068e6c074f5`, com todas as severidades zeradas.
-O próximo item é ampliar a oferta de categorias existentes antes de criar nova.
+Os três itens da fila pós-9P.4 estão tecnicamente encerrados. O terceiro recebeu
+`GO LOCAL` independente no hash
+`1b7379e2968974c3c456e64f06ba20cedb0fc599`.
+
+O roadmap declara que não há nova fase estrutural autorizada depois de 9F. O
+próximo trabalho é consolidar a prontidão do caminho dormente e identificar os
+gates operacionais necessários para uma futura decisão de publicação, sem
+alterar flags, deployar ou tocar produção.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
 ## Decisões vigentes
 
-- manter `Codex → Sol → Alto` ao verificar o menu de pagamento e suas
-  dependências com cartão, conta, revisão durável e writer;
+- manter `Codex → Sol → Alto` ao consolidar causalidade, controles e
+  pré-requisitos operacionais do caminho proativo completo;
 - parar e avisar Daniel antes de reduzir ou trocar capacidade;
 - a produção vigente é Oracle/OCI; não reutilizar caminhos AWS e não executar
   Oracle e AWS simultaneamente com a mesma sessão WhatsApp;
@@ -202,11 +173,12 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar e reauditar o recovery da nova categoria na proposta proativa.
+Consolidar o encerramento da fila pós-9P.4 e mapear os pré-requisitos
+operacionais ainda não satisfeitos, sem ativação ou deploy.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → reauditar o recovery da nova categoria proativa.`
+`Codex → Sol → Alto → consolidar a prontidão operacional pós-9P.4.`
 
 ## Fila de produto posterior
 
@@ -215,8 +187,8 @@ final, confirmação idempotente, operation key e recibo de 9P.4. Somente depois
 
 1. [encerrado] atribuição familiar uniforme a Daniel ou Thaís;
 2. [encerrado] forma de pagamento como menu numerado;
-3. [ativo] na dúvida de categoria, oferecer mais categorias existentes antes da opção
-   de criar uma nova.
+3. [encerrado] na dúvida de categoria, oferecer mais categorias existentes
+   antes da opção de criar uma nova.
 
 ## Histórico dirigido
 
@@ -272,6 +244,10 @@ final, confirmação idempotente, operation key e recibo de 9P.4. Somente depois
   `docs/audit/72-category-existing-precedence-characterization-2026-07-30.md`;
 - candidato de nova categoria na proposta proativa:
   `docs/audit/73-open-finance-new-category-candidate-2026-07-30.md`;
+- recovery da nova categoria na proposta proativa:
+  `docs/audit/74-open-finance-new-category-recovery-candidate-2026-07-30.md`;
+- fechamento independente da nova categoria:
+  `docs/audit/75-open-finance-new-category-independent-close-2026-07-30.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:
