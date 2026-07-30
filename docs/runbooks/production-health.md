@@ -41,7 +41,7 @@ Required production env:
 
 - `DASHBOARD_BASE_URL` points to the public domain/IP.
 - `DASHBOARD_TOKEN_SECRET` is set to a long random value.
-- `DASHBOARD_REQUIRE_STRONG_SECRET=true` is recommended on EC2.
+- `DASHBOARD_REQUIRE_STRONG_SECRET=true` is recommended on OCI production.
 - `DASHBOARD_V2_ENABLED=true` keeps the opt-in v2 surface available. Set it to
   `false` and restart PM2 with `--update-env` to roll back only v2; the current
   dashboard and `/dashboard/health` remain available.
@@ -139,15 +139,17 @@ Use only with explicit `.env` opt-in. Do not run destructive spreadsheet reset a
 
 ## 7. Deploy
 
-A producao OCI foi materializada por artefato imutavel e nao possui contrato
-aprovado de checkout Git. Nao execute `git pull`, `git reset` ou `git revert`
-no diretorio de producao. Antes do proximo deploy funcional, preparar e ensaiar
-instalacao por artefato com checksum, preservacao explicita de estado e rollback.
+A produção OCI usa releases imutáveis em
+`/home/ubuntu/financas-bot/releases/<hash>`, com a raiz estável como `cwd` e
+estado compartilhado. Não execute `git pull`, `git reset` ou `git revert` no
+diretório de produção. Siga `docs/runbooks/release-checklist.md` para construir,
+verificar, preparar, promover e reverter o artefato.
 
 ## 8. Rollback
 
-Se o novo artefato falhar, usar somente o rollback ensaiado para o artefato
-anterior, preservando `.env`, credenciais, sessao WhatsApp e stores persistentes.
+Se o novo artefato falhar, usar somente o rollback ensaiado para o script OCI
+anterior capturado antes da promoção, preservando `.env`, credenciais, sessão
+WhatsApp e stores persistentes.
 Nunca iniciar Oracle e AWS simultaneamente com a mesma sessao WhatsApp.
 
 ## 9. Escalation Signals

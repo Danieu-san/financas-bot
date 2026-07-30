@@ -1,27 +1,37 @@
 # Plano do workstream — migração AWS para Oracle
 
-Status: não iniciado; requer planejamento factual pela conversa responsável.
+Status: migração concluída; contrato permanente de release em OPS-03.
 
 ## Objetivo
 
-Migrar o FinancasBot de AWS para Oracle com continuidade, rollback e nenhum uso
-acidental de credenciais ou caminhos obsoletos.
+Manter a produção Oracle/OCI com release imutável, preservação de estado,
+checksums e rollback local, sem reintroduzir checkout Git ou caminhos AWS.
 
-## Escopo ainda a confirmar
+## Estado concluído
 
-- inventário da origem AWS e do destino Oracle;
-- dados/estado persistente, processo, rede, DNS/TLS, secrets e observabilidade;
-- estratégia de sincronização, cutover, validação e rollback;
-- atualização dos runbooks e do destino oficial de deploy.
+- Oracle é a produção vigente;
+- PM2, Caddy, domínio, health, WhatsApp, Google e read-model foram validados;
+- AWS deixou de ser o destino operacional;
+- referências privadas de acesso permanecem fora do Git;
+- o checkout Git remoto foi retirado do contrato de deploy.
+
+## Gate derivado OPS-03
+
+- construir o pacote a partir de hash completo;
+- proibir segredos e estado;
+- validar checksum externo e manifesto interno;
+- preparar slot sem tocar no processo ativo;
+- promover explicitamente e reverter ao script OCI capturado;
+- manter AWS desligada.
 
 ## Não autorizado por este stub
 
-SSH, criação/remoção de infraestrutura, deploy, cópia de dados, DNS, restart,
-troca de segredo, desligamento AWS ou promoção Oracle.
+SSH, upload, deploy, restart, DNS, rotação de segredo, remoção de infraestrutura
+ou promoção Oracle sem autorização específica.
 
 ## Invariantes mínimas
 
-1. Descobrir o destino vigente; nunca inferi-lo do histórico.
+1. Produção vigente é Oracle/OCI; confirmar novamente antes de ação remota.
 2. Não copiar segredos para Git, Chat, logs ou checkpoint.
 3. Preservar rollback até validação factual do Oracle.
 4. Não permitir escrita concorrente não reconciliada entre servidores.
@@ -29,5 +39,5 @@ troca de segredo, desligamento AWS ou promoção Oracle.
 
 ## Próximo passo
 
-A conversa responsável deve substituir este stub por plano factual quando a
-migração começar, mantendo o workstream separado do WGL.
+Fechar OPS-03 por auditoria independente. Depois, qualquer deploy deve seguir
+`docs/runbooks/release-checklist.md`.

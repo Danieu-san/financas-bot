@@ -1,35 +1,37 @@
 # Estado — migração AWS para Oracle
 
-Atualizado em: 2026-07-22
+Atualizado em: 2026-07-30
 
 ## Responsabilidade
 
-Este workstream está reservado para a outra conversa Codex mencionada por
-Daniel. Ela deve preenchê-lo quando a migração for iniciada.
+Registrar o estado operacional consolidado da migração e impedir o reuso de
+procedimentos AWS em releases futuras.
 
 ## Objetivo conhecido
 
-Migrar a operação do FinancasBot do servidor AWS para infraestrutura Oracle.
+Manter o FinancasBot na Oracle/OCI e publicar evoluções somente pelo contrato de
+artefato imutável.
 
 ## Estado conhecido neste checkpoint
 
-- Daniel confirmou que a migração ainda não foi iniciada;
-- branch, HEAD, arquivos alterados e etapa exata ainda não foram importados;
-- provedor atualmente ativo, host, usuário, chave, diretório e processo não
-  foram confirmados por esta conversa;
-- nenhum comando remoto deve reutilizar caminhos EC2/AWS do histórico.
+- migração AWS→Oracle concluída com GO técnico e funcional;
+- produção vigente: Oracle/OCI, Ubuntu, raiz
+  `/home/ubuntu/financas-bot`, PM2 `financas-bot` e Caddy;
+- domínio público e sessão WhatsApp operam na Oracle;
+- a AWS não é destino de deploy nem rollback comum e não pode executar a mesma
+  sessão simultaneamente;
+- o runtime OCI foi materializado por artefato e não possui checkout Git
+  aprovado;
+- OPS-03 implementa builder, checksum, manifesto, slots, preflight, promoção e
+  rollback por artefato;
+- nenhuma ação remota faz parte do gate local OPS-03.
 
-## Próxima ação obrigatória ao iniciar
+## Próxima ação obrigatória
 
-1. confirmar raiz, branch, HEAD e `git status`;
-2. registrar o que já foi concluído e o que está parcial;
-3. identificar, sem expor segredos, AWS atual, Oracle alvo e qual deles está
-   ativo para cada serviço;
-4. registrar referências da chave, diretório, processo e runbook vigentes;
-5. atualizar o plano próprio antes de qualquer SSH, deploy ou cópia.
+Encerrar OPS-03 por testes locais, commit sanitizado e auditoria independente.
+Deploy real continua dependendo de autorização específica e do checklist de
+release.
 
 ## Capacidade
 
-Recomendar conforme a etapa. Arquitetura de migração, segurança, cutover e
-rollback normalmente exigem esforço alto ou extra alto; inventário documental
-pode usar esforço menor após Daniel ser avisado.
+`Codex → Sol → Alto → validar e auditar o release OCI por artefato.`

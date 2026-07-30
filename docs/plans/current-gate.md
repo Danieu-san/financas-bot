@@ -1,71 +1,74 @@
-# Gate ativo — composição operacional fail-closed da escrita Open Finance
+# Gate ativo — OPS-03 deploy OCI por artefato
 
 Atualizado em: 2026-07-30
 
 Base:
-`10c7dc025938c4206e92996a4dbc94709f9687c5`.
+`508324403417a319cfe609eb43019b5fe682eeec`.
 
 ## Estado
 
-`GO TÉCNICO LOCAL`.
+`CANDIDATO LOCAL VERDE; AUDITORIA INDEPENDENTE PENDENTE`.
 
 ## Objetivo
 
-Conectar de forma configurável e fail-closed a proposta proativa já encerrada
-ao writer 9P.4, sem alterar defaults, flags reais ou produção.
+Criar e ensaiar localmente o procedimento permanente de release OCI por
+artefato imutável, preservando estado, validando checksums e mantendo rollback.
 
 ## Escopo
 
-- decisão central de autorização da escrita confirmada;
-- composição entre alerta, reconciliação, preview, proposta e writer;
-- entrega da pergunta com zero escrita;
-- segunda confirmação como única fronteira de escrita;
-- rollback por flags e retomada de estado durável.
+- builder a partir de commit completo;
+- checksum externo e manifesto interno;
+- bloqueio de segredos/estado no pacote;
+- instalação em slot sem tocar no runtime ativo;
+- preflight, promoção explícita e rollback;
+- alinhamento dos runbooks com Oracle/OCI.
 
 ## Não escopo
 
-- ativar flags, integração real, escrita financeira, deploy ou produção;
-- ampliar acesso além do casal autorizado.
+- SSH, upload, restart, deploy ou mudança de produção;
+- rotação de segredos;
+- remoção da AWS ou de releases antigos.
 
 ## Invariantes
 
-1. Todos os defaults continuam sem escrita.
-2. `confirm` isolado ou qualquer combinação parcial falha fechado.
-3. O ciclo de polling e a entrega da proposta sempre produzem zero escrita.
-4. Somente a segunda confirmação explícita alcança o writer idempotente.
-5. Rollback desabilita nova escrita sem apagar ou converter estado durável.
+1. O pacote contém somente arquivos do commit e metadados gerados.
+2. Estado, segredos, sessão e `node_modules` nunca entram no artefato.
+3. Adulteração, arquivo extra e path traversal falham antes da instalação.
+4. Preparação não para nem reinicia o PM2.
+5. Promoção é explícita e captura o script anterior antes da troca.
+6. Rollback nunca inicia AWS nem outra cópia da sessão WhatsApp.
 
 ## Etapas
 
-1. [concluída] Caracterizar a contradição entre runtime, rollout e writer.
-2. [concluída] Criar provas RED da combinação impossível e dos defaults.
-3. [concluída] Implementar uma decisão central de autorização fail-closed.
-4. [concluída] Provar entrega sem escrita e finalização somente após confirmação.
-5. [concluída] Executar regressão proporcional e controles.
-6. [concluída] Publicar candidato sanitizado e auditar no Chat.
-7. [concluída] Registrar o fechamento sem autorizar ativação ou deploy.
+1. [concluída] Caracterizar contradições e ausência de tooling.
+2. [concluída] Criar provas RED do pacote, adulteração e layout.
+3. [concluída] Implementar builder, verificador e preparação do slot.
+4. [concluída] Documentar promoção e rollback fail-closed.
+5. [concluída] Ensaiar localmente sem rede nem produção.
+6. [em andamento] Publicar candidato sanitizado e auditar no Chat.
+7. [pendente] Registrar fechamento sem executar deploy.
 
 ## Critérios de GO
 
-- combinação completa e explicitamente aprovada é a única habilitada;
-- combinações parciais preservam zero escrita;
-- polling e transporte não escrevem;
-- finalização mantém revalidação, idempotência e destino user-scoped;
+- pacote e manifesto correspondem ao hash completo;
+- estado e segredos são proibidos;
+- adulteração e caminhos inseguros são rejeitados;
+- preparação isolada preserva uma raiz sintética;
+- promoção/rollback possuem pré-condições e ordem inequívocas;
 - nenhum achado independente bloqueante.
 
 ## Condições de parada
 
-- qualquer default que passe a escrever;
-- aprovação implícita ou herdada;
-- transporte ou polling alcançando writer;
-- necessidade de integração real, flag, deploy ou produção;
+- estado ou segredo incluído/substituído;
+- instalação que altere o slot ativo durante preparação;
+- ausência de checksum ou rollback verificável;
+- necessidade de SSH, restart, deploy ou produção;
 - achado independente bloqueante.
 
 ## Próxima ação exata
 
-Abrir gate separado para o procedimento permanente de deploy OCI por artefato,
-sem executar deploy ou alterar produção.
+Publicar o candidato, construir/verificar o artefato do hash e auditar no Chat.
 
 ## Capacidade
 
-`Codex → Sol → Alto → desenhar o deploy OCI por artefato com rollback.`
+`Codex → Sol → Alto → implementar e ensaiar o deploy OCI por artefato.`

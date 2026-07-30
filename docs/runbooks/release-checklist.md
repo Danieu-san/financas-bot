@@ -1,130 +1,184 @@
-# Release Checklist
+# Release Checklist — Oracle/OCI por artefato
 
-Use this before deploying `main` to the EC2 PM2 process.
+Use este checklist antes de qualquer deploy funcional. A produção vigente é
+Oracle/OCI, em `/home/ubuntu/financas-bot`, processo PM2 `financas-bot`.
 
-## Current Release Gates
+O diretório de produção não possui contrato de checkout Git. Nunca execute
+`git pull`, `git reset`, `git revert` ou `git checkout` nele.
 
-- [ ] `git status --short` has no unexpected tracked changes.
-- [ ] `npm test` passes.
-- [ ] `npm audit --audit-level=high` returns no vulnerabilities.
-- [ ] `.env` on EC2 includes all required production variables from `.env.example`.
-- [ ] `ADMIN_IDS` on EC2 contains only intended admins; normal/test users must not be present.
-- [ ] Multiuser OAuth releases have `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_STATE_SECRET`, and `OAUTH_TOKEN_ENCRYPTION_KEY` configured.
-- [ ] `AUTH_GATE_REPLY_COOLDOWN_MS` is configured or intentionally left at the default to prevent bot-to-bot consent loops.
-- [ ] `DASHBOARD_TOKEN_SECRET` is configured before deploying dashboard changes.
-- [ ] `DASHBOARD_V2_ENABLED=true` is explicit when releasing v2; rollback is prepared by setting it to `false` and restarting PM2 with `--update-env`.
-- [ ] Dashboard v2 rollback was tested: current `/dashboard` remains `200`, v2 page/API return `404`, and the WhatsApp `dashboard v2` command falls back visibly to the current dashboard.
-- [ ] `DASHBOARD_ADMIN_ALL_USERS_ENABLED` is unset/false for beta or production unless a temporary support/test mode was explicitly approved.
-- [ ] Dashboard admin cross-user scopes are rejected by default (`user=all` or another user returns `403`).
-- [ ] Risky admin commands still require a second WhatsApp message `confirmar admin` and log `confirmacao_pendente`/`confirmacao_recebida`.
-- [ ] AdminActionLog is enabled or intentionally disabled; risky admin actions append sanitized entries to `data/admin-actions.jsonl` or `ADMIN_ACTION_LOG_PATH`.
-- [ ] Prompt-injection/security gate tests still block internal IDs, prompt/system instructions, secrets, cross-user data, and bypass attempts.
-- [ ] Interpretation reliability rollout uses `shadow` before `enforce`; initial allowlist is limited to `expense.create,income.create`, alerts are enabled, and no automated path changes the mode to `enforce`.
-- [ ] Se `LEGACY_USAGE_TELEMETRY_ENABLED=true`, o segredo HMAC exclusivo possui
-      pelo menos 16 caracteres, o caminho e gravavel, a rotacao esta limitada e
-      um heartbeat sanitizado foi persistido sem identificadores brutos.
-- [ ] `APP_COMMIT_SHA` corresponde ao HEAD que sera reiniciado; atualizar a cada
-      deploy para que eventos de telemetria sejam atribuiveis ao codigo certo.
-- [ ] If the approved narrow canary is in `enforce`, `INTERPRETATION_RELIABILITY_ENFORCE_APPROVED=true` is set and `INTERPRETATION_RELIABILITY_OPERATIONS` remains exactly `expense.create,income.create`; any broader allowlist must make the daily check critical.
-- [ ] Financial Agent rollout follows ADR-005: production stays `FINANCIAL_AGENT_MODE=shadow` until evidence gates pass; `answer` is not enabled globally from a single manual success.
-- [ ] If this release moves toward real multiuser scale, ADR-002 and ADR-003 have been reviewed; admin access to all users' transaction-level financial data remains removed or replaced with consented/audited support mode.
-- [ ] If cron/payment reminders changed, a real validation marker was created and cleaned up (`TESTE_APAGAR Cron` or equivalent).
-- [ ] Rollback command is ready before restart.
-- [ ] O `HEAD` da EC2 depois do pull corresponde exatamente ao commit esperado
-      no GitHub/local; registrar o hash na entrega do deploy.
+## 1. Autorizações e invariantes
 
-## EC2 Deploy
+- [ ] O deploy e o restart foram autorizados explicitamente para o commit.
+- [ ] A AWS permanece sem PM2/Chrome/Puppeteer e não será iniciada.
+- [ ] Existe exatamente um processo PM2 `financas-bot` na Oracle.
+- [ ] O commit sanitizado recebeu a auditoria obrigatória aplicável.
+- [ ] O hash completo a publicar foi registrado.
+- [ ] O rollback será para o script OCI atualmente ativo, nunca para a AWS.
+
+Não prossiga se houver dúvida sobre servidor, chave, diretório, processo,
+sessão WhatsApp ou hash.
+
+## 2. Gates locais
+
+- [ ] `git status --short` não contém mudanças inesperadas.
+- [ ] O HEAD local é o commit imutável aprovado.
+- [ ] `npm test` passou.
+- [ ] `npm audit --audit-level=high` não encontrou vulnerabilidade bloqueante.
+- [ ] `node scripts/agent/validateAgentWorkflow.js` passou.
+- [ ] `APP_COMMIT_SHA` será promovido para o hash completo do artefato.
+- [ ] `.env.example` e o contrato de ambiente foram revisados.
+- [ ] `ADMIN_IDS` contém somente Daniel.
+- [ ] `DASHBOARD_ADMIN_ALL_USERS_ENABLED` permanece ausente ou `false`, salvo
+      exceção temporária, explícita e auditada.
+- [ ] Flags novas permanecem no estado aprovado; ausência nunca vira ativação.
+
+Quando a release tocar OAuth, dashboard, cron, planner, ledger, Open Finance ou
+multiusuário, executar também seus gates e ADRs específicos.
+
+## 3. Construção imutável
+
+Na raiz local:
+
+```powershell
+npm run release:oci:build -- --commit <HASH_COMPLETO> --output release-artifacts
+```
+
+O builder usa somente o commit informado, mesmo se houver arquivos locais
+ignorados ou não rastreados. Ele produz:
+
+1. `financas-bot-<HASH>.tar.gz`;
+2. `financas-bot-<HASH>.tar.gz.sha256`;
+3. `oci-artifact-release-<HASH>.js`;
+4. `oci-artifact-release-<HASH>.js.sha256`.
+
+O pacote falha se contiver `.env`, credenciais, sessão WhatsApp, `data`,
+`private`, stores, logs, backups ou `node_modules`.
+
+Verificação local independente do pacote:
+
+```powershell
+npm run release:oci:verify -- --artifact release-artifacts\financas-bot-<HASH>.tar.gz --checksum release-artifacts\financas-bot-<HASH>.tar.gz.sha256
+```
+
+- [ ] O checksum externo foi aceito.
+- [ ] O manifesto interno confirmou o mesmo hash completo.
+- [ ] Todos os arquivos declarados passaram por tamanho e SHA-256.
+- [ ] Nenhum arquivo extra, symlink ou caminho inseguro foi aceito.
+
+## 4. Transferência para OCI
+
+Somente após autorização remota, enviar os quatro arquivos para um diretório
+temporário fora do slot ativo. Não enviar `.env`, chaves, credenciais, sessão,
+stores ou backup junto do artefato.
+
+No servidor, antes de executar o instalador:
 
 ```bash
-cd /home/ubuntu/financas-bot
-git pull origin main
-npm install
-pm2 restart financas-bot --update-env
-pm2 logs financas-bot --lines 160 --nostream
-curl http://localhost:8787/dashboard/health
+cd /home/ubuntu/financas-bot/incoming
+sha256sum -c oci-artifact-release-<HASH>.js.sha256
+node oci-artifact-release-<HASH>.js verify \
+  --artifact financas-bot-<HASH>.tar.gz \
+  --checksum financas-bot-<HASH>.tar.gz.sha256
 ```
 
-Expected health:
+Qualquer divergência encerra o deploy antes de tocar no runtime.
 
-```json
-{"ok":true,"sqlite":true}
-```
-
-## First 10 Minutes After Deploy
-
-- [ ] PM2 status is `online`.
-- [ ] Logs show `Google APIs autorizadas com sucesso!`.
-- [ ] Logs show `Planilha Sincronizada com Sucesso!`.
-- [ ] Logs show `read-model pronto`.
-- [ ] Logs show `integridade user_id validada: sem pendencias`.
-- [ ] Logs show `dashboard: servidor web ativo`.
-- [ ] WhatsApp reaches ready state or shows a QR that can be scanned.
-- [ ] If an admin command was tested, AdminActionLog did not store raw phone numbers, message bodies, tokens or Google document IDs.
-- [ ] Se a telemetria 8B.0 estiver ativa, `data/legacy-usage-telemetry.jsonl`
-      existe com permissao `600` e o ultimo `heartbeat` tem `reason_code=self_check`.
-
-## WhatsApp Smoke
-
-Send from an admin number:
-
-```text
-Oi
-dashboard
-admin stats
-quanto gastei esse mês?
-liste minhas metas
-```
-
-Expected:
-
-- `Oi` returns the local greeting/menu without AI.
-- `dashboard` returns a valid tokenized link using `/dashboard#token=`, not `/dashboard?token=`.
-- `admin stats` returns user counts and logs `[admin] stats`.
-- Analytical question uses deterministic/read-model route when possible.
-- Goals question uses deterministic `resumo_metas` or `progresso_metas` route, not generic AI fallback.
-
-## Dashboard Smoke
+## 5. Preparação isolada
 
 ```bash
-curl http://localhost:8787/dashboard/health
-curl "http://localhost:8787/dashboard/api/kpis?token=TOKEN_INVALIDO"
+node oci-artifact-release-<HASH>.js prepare \
+  --artifact financas-bot-<HASH>.tar.gz \
+  --checksum financas-bot-<HASH>.tar.gz.sha256 \
+  --target /home/ubuntu/financas-bot
 ```
 
-Expected:
+A preparação:
 
-- Health returns `{ "ok": true, "sqlite": true }`.
-- Invalid token returns `401` with `Token inválido ou expirado.`.
-- Dashboard link token is kept out of the initial HTTP querystring and removed from the browser address bar after page load.
-- Dashboard tokens use a short TTL (`DASHBOARD_TOKEN_TTL_SECONDS`, default 900s) and are capped (`DASHBOARD_TOKEN_MAX_TTL_SECONDS`, default 1800s).
-- `data/dashboard-access.jsonl` receives sanitized dashboard events, or `DASHBOARD_ACCESS_LOG_ENABLED=false` was intentionally documented.
-- Admin token with `user=all` returns `403` unless `DASHBOARD_ADMIN_ALL_USERS_ENABLED=true` was deliberately enabled for a controlled support/test session.
-- Browser-opened dashboard loads cards, charts/sections, alerts, debts, goals, and recent transactions.
+- instala em `/home/ubuntu/financas-bot/releases/<HASH>`;
+- mantém o `cwd` futuro em `/home/ubuntu/financas-bot`;
+- não para nem reinicia PM2;
+- não lê a sessão WhatsApp;
+- não altera `.env`, `credentials.json`, `.wwebjs_auth`, `.wwebjs_cache`,
+  `data`, `private`, `state_store.json` ou o `node_modules` ativo;
+- usa `PUPPETEER_SKIP_DOWNLOAD=true` no `npm ci`;
+- valida `index.js`, `better-sqlite3` e um Chrome headless isolado antes da
+  promoção.
 
-## Rollback
+- [ ] O slot preparado corresponde ao hash.
+- [ ] O PM2 continuou online e com o script anterior.
+- [ ] Checksums do estado crítico antes/depois são idênticos.
+- [ ] O script anterior ainda existe e é legível.
 
-If the deploy is bad:
+## 6. Plano e promoção
+
+Primeiro gere e confira o plano sem alterar o processo:
 
 ```bash
-cd /home/ubuntu/financas-bot
-git log --oneline -5
-git revert --no-edit <bad_commit_sha>
-npm install
-pm2 restart financas-bot --update-env
-pm2 logs financas-bot --lines 160 --nostream
-curl http://localhost:8787/dashboard/health
+node oci-artifact-release-<HASH>.js plan \
+  --target /home/ubuntu/financas-bot \
+  --commit <HASH> \
+  --previous-script <SCRIPT_ATUAL_CONFIRMADO>
 ```
 
-Do not use `git reset --hard` unless you explicitly decide to discard server-local changes.
+O plano deve apontar:
 
-## Hold Or Roll Back If
+- provider `oracle_oci`;
+- `cwd=/home/ubuntu/financas-bot`;
+- próximo script `releases/<HASH>/index.js`;
+- script OCI anterior como rollback;
+- processo único `financas-bot`.
 
-- PM2 restart count keeps increasing.
-- Dashboard health fails.
-- `dashboard` command says `DASHBOARD_TOKEN_SECRET` is missing.
-- A production/multiuser release still exposes admin `Todos os usuários` transaction-level financial data. See `docs/decisions/ADR-002-admin-financial-data-access.md`.
-- `DASHBOARD_ADMIN_ALL_USERS_ENABLED=true` is present without an explicit, time-boxed support/test reason.
-- `ADMIN_IDS` includes a normal/test user such as Thaís.
-- Google auth fails repeatedly.
-- Read-model sync fails repeatedly.
-- WhatsApp never reaches ready state after QR renewal.
-- Logs show user data isolation errors or missing `user_id`.
+Somente após a segunda conferência e autorização de restart:
+
+```bash
+node oci-artifact-release-<HASH>.js promote \
+  --target /home/ubuntu/financas-bot \
+  --commit <HASH> \
+  --process financas-bot \
+  --health-url http://127.0.0.1:8787/dashboard/health \
+  --confirm-process-restart
+```
+
+O promotor lê `pm2 jlist`, exige exatamente um processo online no `cwd` OCI,
+captura script/hash anteriores, remove o processo antes de iniciar o novo e
+executa `pm2 save` somente após health verde. Se a promoção ou o health
+falharem, restaura automaticamente o script capturado e exige health verde do
+rollback.
+
+## 7. Validação pós-deploy
+
+Executar `docs/runbooks/production-health.md`.
+
+- [ ] `pm2 status` mostra um único `financas-bot` online.
+- [ ] O script PM2 aponta para `releases/<HASH>/index.js`.
+- [ ] `APP_COMMIT_SHA=<HASH>` está no processo.
+- [ ] Health local e público estão verdes.
+- [ ] WhatsApp está `ready/healthy`, sem novo processo concorrente.
+- [ ] Google, read-model, SQLite, cron e dashboard estão verdes.
+- [ ] Smoke WhatsApp: `Oi`, `dashboard`, `admin stats` e consulta mensal.
+- [ ] Nenhuma resposta duplicada.
+- [ ] Nenhuma flag não autorizada foi ativada.
+
+## 8. Rollback
+
+O rollback automático cobre falha de start ou health durante a promoção.
+Falha posterior exige usar o mesmo promotor com o hash do slot anterior já
+preparado, após registrar o incidente e confirmar novamente o script atual.
+
+Nunca:
+
+- ligar a AWS para um rollback comum;
+- copiar a sessão WhatsApp entre processos ativos;
+- apagar o slot anterior antes do fim da observação;
+- modificar estado para fazer o novo código iniciar;
+- usar Git no diretório de produção.
+
+## 9. Hold
+
+Interrompa e mantenha/restaure o release anterior se:
+
+- checksum, manifesto, preflight ou inventário PM2 falhar;
+- o processo anterior não estiver dentro da raiz OCI;
+- health, WhatsApp, Google, read-model ou SQLite degradar;
+- houver reinícios crescentes, duplicidade ou erro de isolamento;
+- admin amplo, segredo ausente ou flag não autorizada aparecer.

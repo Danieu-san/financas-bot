@@ -124,6 +124,12 @@ O próximo pré-requisito é alinhar o processo de release ao runtime Oracle/OCI
 por artefato imutável. O checklist antigo ainda contém passos de EC2 e checkout
 Git que não podem ser usados na produção vigente.
 
+OPS-03 está em candidato local verde. Builder, checksum, manifesto, slots,
+preflight, promoção explícita e rollback automático foram implementados e
+ensaiados em ambiente sintético, com `11/11` testes focais. Runbooks e
+workstream agora apontam para Oracle/OCI e proíbem Git em produção. Nenhuma ação
+remota foi executada.
+
 Plano corrente: `docs/plans/current-gate.md`.
 
 ## Decisões vigentes
@@ -142,12 +148,12 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Abrir gate separado para desenhar e ensaiar localmente o deploy OCI por
-artefato, preservação de estado, checksums e rollback, sem acessar produção.
+Publicar o candidato OPS-03, construir/verificar o artefato do hash imutável e
+submetê-lo à auditoria independente no Chat, sem acessar produção.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → desenhar o deploy OCI por artefato com rollback.`
+`Codex → Sol → Alto → auditar o release OCI por artefato e rollback.`
 
 ## Fila de produto posterior
 
@@ -223,6 +229,10 @@ final, confirmação idempotente, operation key e recibo de 9P.4. Somente depois
   `docs/audit/77-open-finance-write-activation-candidate-2026-07-30.md`;
 - fechamento independente da ativação fail-closed:
   `docs/audit/78-open-finance-write-activation-independent-close-2026-07-30.md`;
+- caracterização do release OCI:
+  `docs/audit/79-oci-artifact-release-characterization-2026-07-30.md`;
+- candidato do release OCI:
+  `docs/audit/80-oci-artifact-release-candidate-2026-07-30.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:
