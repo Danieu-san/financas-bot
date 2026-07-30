@@ -15,15 +15,6 @@ idempotente, operation key e recibo recebeu `GO TÉCNICO LOCAL` independente no
 hash `b98157dfde061793ad94cd025c99b1f8b5145712`. Integração real e produção
 continuam desligadas.
 
-O primeiro candidato 9P.4
-`a512a07a8f18c9dffcf62676357c35f41f50395d` recebeu `NO-GO` independente:
-`CRITICAL 0`, `HIGH 2`, `MEDIUM 1`, `LOW 0`. O recovery local separa writer e
-reconciliador, impede qualquer append novo em retomada `writing/uncertain`,
-preserva `FINANCIAL_WRITE_UNCERTAIN` e adiciona prova com stores separados,
-`appendRowToSheet` e `FinancialWriteLedger` reais. Evidência afetada:
-finalização `9/9`, writer/ledger `6/6`, entrada pública `1/1` e suíte unitária
-completa `205/205`.
-
 A reauditoria confirmou os oito arquivos, fechou os dois `HIGH` e o `MEDIUM`,
 zerou todas as severidades e não encontrou lacuna causal indispensável. O
 fechamento está em
@@ -34,8 +25,11 @@ O menu numerado de pagamento está encerrado. O primeiro candidato
 `b25ff51b59054483a66a16e926534068e6c074f5` recebeu `GO TÉCNICO LOCAL`,
 zerou todas as severidades e não deixou lacuna causal indispensável.
 
-O objetivo ativo é o terceiro item da fila: quando houver dúvida de categoria,
-oferecer mais categorias já existentes antes da opção de criar uma nova.
+O objetivo ativo é o terceiro item da fila. O fluxo financeiro geral já oferece
+categorias existentes numeradas antes da criação e a prova focal ficou `5/5`.
+A proposta proativa Open Finance usa revisão própria, lista categorias
+existentes, mas não expõe criação; falta auditoria independente do alcance antes
+de encerrar ou corrigir.
 
 ## Workspace vigente
 
@@ -207,8 +201,7 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Mapear o tratamento atual de dúvida de categoria e a precedência entre
-categorias existentes e criação de nova.
+Publicar e auditar a caracterização do alcance da categoria assistida.
 
 ## Capacidade para retomar
 
@@ -274,6 +267,8 @@ final, confirmação idempotente, operation key e recibo de 9P.4. Somente depois
   `docs/audit/70-payment-method-dependency-recovery-candidate-2026-07-30.md`;
 - fechamento independente do menu de pagamento:
   `docs/audit/71-payment-method-dependency-independent-close-2026-07-30.md`;
+- caracterização da precedência de categorias existentes:
+  `docs/audit/72-category-existing-precedence-characterization-2026-07-30.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:

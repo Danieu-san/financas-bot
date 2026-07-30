@@ -7,7 +7,7 @@ Base:
 
 ## Estado
 
-`LEVANTAMENTO LOCAL EM ANDAMENTO`.
+`CARACTERIZAÇÃO LOCAL VERDE; AUDITORIA DE ALCANCE PENDENTE`.
 
 ## Objetivo
 
@@ -40,12 +40,13 @@ criação de uma nova.
 
 ## Etapas
 
-1. [em andamento] Mapear catálogo, menu e tratamento de dúvida.
-2. [pendente] Reproduzir a lacuna factual, se houver.
-3. [pendente] Implementar somente a menor correção necessária.
-4. [pendente] Executar provas causais e regressão proporcional.
-5. [pendente] Publicar commit sanitizado e auditar por hash imutável.
-6. [pendente] Registrar o fechamento e avançar na fila.
+1. [concluída] Mapear catálogo, menu e tratamento de dúvida.
+2. [concluída] Confirmar o comportamento existente no fluxo financeiro geral.
+3. [em andamento] Auditar se a proposta proativa alcança o mesmo contrato.
+4. [pendente] Implementar somente a menor correção necessária.
+5. [pendente] Executar provas causais e regressão proporcional.
+6. [pendente] Publicar recovery e reauditar, se houver lacuna.
+7. [pendente] Registrar o fechamento e avançar na fila.
 
 ## Critérios de GO
 
@@ -64,9 +65,9 @@ criação de uma nova.
 
 ## Próxima ação exata
 
-Inspecionar o fluxo atual e identificar onde a dúvida de categoria é reduzida
-cedo demais ou encaminhada para criação.
+Publicar a caracterização e auditar o alcance do caminho proativo por hash
+imutável.
 
 ## Capacidade
 
-`Codex → Sol → Alto → mapear e corrigir a precedência das categorias existentes.`
+`Codex → Sol → Alto → auditar o alcance da precedência de categorias existentes.`
