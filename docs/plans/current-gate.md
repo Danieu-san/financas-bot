@@ -7,7 +7,7 @@ Base:
 
 ## Estado
 
-`RECOVERY LOCAL VERDE; REAUDITORIA INDEPENDENTE PENDENTE`.
+`GO TÉCNICO LOCAL`.
 
 ## Objetivo
 
@@ -46,8 +46,8 @@ artefato imutável, preservando estado, validando checksums e mantendo rollback.
 4. [concluída] Documentar promoção e rollback fail-closed.
 5. [concluída] Ensaiar localmente sem rede nem produção.
 6. [concluída] Publicar o primeiro candidato e receber o `NO-GO` independente.
-7. [em andamento] Publicar o recovery e reauditar no Chat.
-8. [pendente] Registrar fechamento sem executar deploy.
+7. [concluída] Publicar o recovery e receber `GO TÉCNICO LOCAL` no Chat.
+8. [concluída] Registrar fechamento sem executar deploy.
 
 ## Critérios de GO
 
@@ -68,8 +68,8 @@ artefato imutável, preservando estado, validando checksums e mantendo rollback.
 
 ## Próxima ação exata
 
-Publicar o recovery, reconstruir/verificar o artefato do hash e reauditar no
-Chat.
+Selecionar o próximo gate local. Preparação OCI exige autorização operacional
+explícita; promoção, PM2, restart e deploy continuam não autorizados.
 
 ## Capacidade
 
