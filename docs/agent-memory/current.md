@@ -29,13 +29,13 @@ zerou todas as severidades e não encontrou lacuna causal indispensável. O
 fechamento está em
 `docs/audit/66-open-finance-finalization-independent-close-2026-07-30.md`.
 
-O objetivo ativo é fechar o menu numerado de pagamento. O primeiro candidato
-`6b1ba3ffb105149bd04207a1fced6d18d9b7d624` recebeu `NO-GO` independente:
-`HIGH 1` por permitir edição direta incompatível e `MEDIUM 1` por matriz
-adversarial incompleta. O recovery bloqueia conta fora de Débito/PIX, cartão
-fora de Crédito e ambos para Dinheiro; entradas de texto, decimal e fora da
-faixa também são provadas. Evidência: conversa `21/21`, finalização e catálogo
-`13/13`; falta novo commit imutável e reauditoria.
+O menu numerado de pagamento está encerrado. O primeiro candidato
+`6b1ba3ffb105149bd04207a1fced6d18d9b7d624` recebeu `NO-GO`; o recovery
+`b25ff51b59054483a66a16e926534068e6c074f5` recebeu `GO TÉCNICO LOCAL`,
+zerou todas as severidades e não deixou lacuna causal indispensável.
+
+O objetivo ativo é o terceiro item da fila: quando houver dúvida de categoria,
+oferecer mais categorias já existentes antes da opção de criar uma nova.
 
 ## Workspace vigente
 
@@ -67,8 +67,7 @@ três achados `MEDIUM`. As correções locais agora:
   snapshot auxiliar restaurado ainda aponta para confirmação.
 
 Cartões continuam compartilhados somente dentro da planilha familiar
-autorizada, coerente com o uso privado pelo casal. Não há ampliação
-multiusuário.
+autorizada, coerente com o uso privado pelo casal.
 
 Evidência pós-NO-GO: RED `17/19`; GREEN focal `20/20`; causal `150/150`; toda a
 bateria Open Finance `259/259`; máquina de estados e entrada pública `122/122`.
@@ -186,9 +185,9 @@ dois `MEDIUM` e o `LOW`, com zero achado residual e nenhuma lacuna indispensáve
 dentro do processo único. O fechamento está em
 `docs/audit/63-ops02-independent-close-2026-07-30.md`.
 
-O primeiro candidato do menu corrigiu PIX → Dinheiro, mas o Chat encontrou
-outra rota: a edição direta de conta/cartão podia recriar incompatibilidade. O
-recovery fecha a entrada dos seletores e a conferência final.
+O recovery do menu de pagamento recebeu `GO TÉCNICO LOCAL` no hash
+`b25ff51b59054483a66a16e926534068e6c074f5`, com todas as severidades zeradas.
+O próximo item é ampliar a oferta de categorias existentes antes de criar nova.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -208,7 +207,8 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar e reauditar o recovery imutável do menu numerado de pagamento.
+Mapear o tratamento atual de dúvida de categoria e a precedência entre
+categorias existentes e criação de nova.
 
 ## Capacidade para retomar
 
@@ -220,8 +220,8 @@ Depois da correção operacional de liveness, abrir gate próprio para revalida�
 final, confirmação idempotente, operation key e recibo de 9P.4. Somente depois:
 
 1. [encerrado] atribuição familiar uniforme a Daniel ou Thaís;
-2. [ativo] forma de pagamento como menu numerado;
-3. na dúvida de categoria, oferecer mais categorias existentes antes da opção
+2. [encerrado] forma de pagamento como menu numerado;
+3. [ativo] na dúvida de categoria, oferecer mais categorias existentes antes da opção
    de criar uma nova.
 
 ## Histórico dirigido
@@ -272,6 +272,8 @@ final, confirmação idempotente, operation key e recibo de 9P.4. Somente depois
   `docs/audit/69-payment-method-numbered-menu-candidate-2026-07-30.md`;
 - recovery das dependências de pagamento:
   `docs/audit/70-payment-method-dependency-recovery-candidate-2026-07-30.md`;
+- fechamento independente do menu de pagamento:
+  `docs/audit/71-payment-method-dependency-independent-close-2026-07-30.md`;
 - fechamento independente STATE-03:
   `docs/audit/45-state03-independent-close-2026-07-23.md`;
 - recuperação de sinais repetidos STATE-03:
