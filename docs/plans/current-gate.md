@@ -4,7 +4,7 @@ Atualizado em: 2026-07-31
 
 ## Estado
 
-`PLANEJAMENTO FAIL-CLOSED`.
+`CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE`.
 
 ## Objetivo
 
@@ -57,6 +57,10 @@ As flags funcionais foram preservadas: alerta, reconciliação e preview em
   `docs/audit/92-open-finance-family-alerts-independent-close-2026-07-30.md`;
 - release OCI vigente:
   `docs/audit/99-oci-whatsapp-readiness-window-independent-production-close-2026-07-31.md`.
+- controlador candidato:
+  `docs/audit/100-open-finance-production-activation-controller-candidate-2026-07-31.md`;
+- testes focais do controlador: `10/10`;
+- bateria causal afetada: `92/92` antes do reforço final somente probatório.
 
 ## Critérios de GO
 
@@ -78,8 +82,8 @@ As flags funcionais foram preservadas: alerta, reconciliação e preview em
 
 ## Próxima ação exata
 
-Caracterizar a política e escrever o runbook/teste de ativação reversível sem
-alterar as flags de produção. A execução do smoke real aguarda Daniel estar
+Publicar o candidato sanitizado e obter auditoria independente do hash
+imutável. Mesmo com GO, a execução do smoke real aguarda Daniel estar
 disponível para operar o WhatsApp.
 
 ## Capacidade

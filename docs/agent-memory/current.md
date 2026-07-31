@@ -177,10 +177,11 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Caracterizar `PROD-ACT-01` e preparar um runbook reversível para ativar a
-proposta proativa e, em etapa separada, a escrita confirmada. Não alterar flags
-de produção enquanto Daniel estiver indisponível para operar e conferir o
-smoke real no WhatsApp.
+Publicar e auditar `PROD-ACT-01`, cujo controlador transacional, runbook e prova
+causal estão candidatos em
+`docs/audit/100-open-finance-production-activation-controller-candidate-2026-07-31.md`.
+Não alterar flags de produção enquanto Daniel estiver indisponível para operar
+e conferir o smoke real no WhatsApp.
 
 ## Capacidade para retomar
 
