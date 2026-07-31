@@ -4,7 +4,8 @@ Atualizado em: 2026-07-31
 
 ## Objetivo ativo
 
-`DASH-DATA-01` está em `RECOVERY CANDIDATO AGUARDANDO REAUDITORIA INDEPENDENTE`.
+`DASH-DATA-01` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
+`e712bc11c81c67035b7f4e3e9972853c5307e9cc`.
 O primeiro candidato `7e16c75708f34765fce28911761052093de057e0`
 recebeu `NO-GO` por substituir fatura formal ausente por previsão, permitir que
 `accounts`/`forecast` pulassem o filtro público, descartar mapeamentos
@@ -21,6 +22,9 @@ Evidência do recovery: RED causal `4/4`, focal `15/15`, afetada `123/123` e
 suíte hermética `1.398` testes, `1.393` aprovados, zero falha e cinco skips
 esperados. Manifesto:
 `docs/audit/94-dashboard-financial-truth-recovery-candidate-2026-07-31.md`.
+O parecer confirmou os nove arquivos, zerou todas as severidades e não
+identificou lacuna indispensável. Fechamento:
+`docs/audit/95-dashboard-financial-truth-independent-close-2026-07-31.md`.
 
 A fila original da auditoria exaustiva e os gates `9P.0`, `9P.1`, `9P.2` e
 `9P.3` estão tecnicamente encerrados. 9P.3 recebeu `GO TÉCNICO LOCAL`
@@ -59,23 +63,6 @@ Branch ativa: `codex/open-finance-finalization`; base:
 O SSD portátil anterior foi perdido e não é mais a raiz canônica. A produção
 vigente é Oracle/OCI e permanece separada deste gate; nenhuma alteração deste
 workstream foi deployada.
-
-## Último gate encerrado
-
-O terceiro item pós-9P.4 recebeu `GO TÉCNICO LOCAL` independente no commit
-imutável `1b7379e2968974c3c456e64f06ba20cedb0fc599`. Categorias autorizadas são
-deduplicadas antes do limite e paginadas; excesso falha fechado; criação é
-explícita e somente na última página; a finalização exige destino user-scoped;
-e a categoria é redescoberta depois do único lançamento confirmado em Saídas
-ou cartão.
-
-Evidência executada pelo Codex: focal sequencial `38/38`, entrada pública
-afetada `2/2`, Google/fallback `2/2`, paginação/store `1/1`, sintaxe, diff e
-workflow verdes. O Chat realizou revisão estática e não executou essas
-contagens. Uma falha de renderização truncou o texto final, mas a recuperação
-sem nova análise devolveu `GO LOCAL`.
-
-O fechamento não autoriza flags, integração real, deploy ou produção.
 
 ## Gate encerrado anterior — 9P.4
 
@@ -164,13 +151,14 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar o recovery `DASH-DATA-01` em commit sanitizado e submetê-lo à
-reauditoria independente por hash imutável. Sem parecer auditável, o estado
-máximo permanece candidato.
+Construir e verificar o artefato imutável do hash auditado
+`e712bc11c81c67035b7f4e3e9972853c5307e9cc`; executar o release OCI com
+preservação de estado, checksums e rollback; depois validar versão, processo
+único, saúde local/pública e sinais do WhatsApp.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → diagnosticar e corrigir o gate DASH-DATA-01.`
+`Codex → Sol → Alto → preparar e validar o release OCI do hash auditado.`
 
 ## Fila de produto posterior
 

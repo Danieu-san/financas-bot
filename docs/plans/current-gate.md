@@ -7,7 +7,7 @@ Base:
 
 ## Estado
 
-`RECOVERY CANDIDATO AGUARDANDO REAUDITORIA INDEPENDENTE`.
+`GO TÉCNICO LOCAL`.
 
 O primeiro candidato `7e16c75708f34765fce28911761052093de057e0`
 recebeu `NO-GO`. O recovery fecha os retornos antecipados sem filtro, impede
@@ -62,7 +62,8 @@ v2 e consultas do bot representarem a mesma verdade autorizada do casal.
 3. [concluído] Fixar contrato RED com fixtures sanitizadas.
 4. [concluído] Implementar correção mínima e validar bateria afetada.
 5. [concluído com NO-GO] Publicar o primeiro candidato e auditar no Chat.
-6. [em andamento] Publicar o recovery sanitizado e reauditar no Chat.
+6. [concluído] Publicar o recovery sanitizado e reauditar no Chat.
+7. [em andamento] Preparar o release OCI autorizado do hash auditado.
 
 ## Resultado do diagnóstico e correção
 
@@ -81,6 +82,9 @@ v2 e consultas do bot representarem a mesma verdade autorizada do casal.
 
 Manifesto candidato:
 `docs/audit/94-dashboard-financial-truth-recovery-candidate-2026-07-31.md`.
+
+Fechamento independente:
+`docs/audit/95-dashboard-financial-truth-independent-close-2026-07-31.md`.
 
 Recovery pós-NO-GO:
 
@@ -110,10 +114,11 @@ Recovery pós-NO-GO:
 
 ## Próxima ação exata
 
-Criar e publicar o commit sanitizado imutável do recovery; solicitar
-reauditoria independente dos quatro fechamentos e da preservação das invariantes
-anteriores.
+Construir e verificar o artefato imutável do commit auditado
+`e712bc11c81c67035b7f4e3e9972853c5307e9cc`; aplicar o release aprovado na
+OCI sem alterar flags e preservando estado, checksums e rollback; validar a
+versão e a saúde de produção.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> diagnosticar e corrigir o gate DASH-DATA-01.`
+`Codex -> Sol -> Alto -> preparar e validar o release OCI do hash auditado.`
