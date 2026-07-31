@@ -1,13 +1,18 @@
 # Gate ativo - DASH-DATA-01 verdade canônica de saldos e dashboards
 
-Atualizado em: 2026-07-30
+Atualizado em: 2026-07-31
 
 Base:
 `f896ce9f1d60b39300237afb64fd67bc47e03d4a`.
 
 ## Estado
 
-`CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE`.
+`RECOVERY CANDIDATO AGUARDANDO REAUDITORIA INDEPENDENTE`.
+
+O primeiro candidato `7e16c75708f34765fce28911761052093de057e0`
+recebeu `NO-GO`. O recovery fecha os retornos antecipados sem filtro, impede
+previsão de substituir fatura formal e falha parcialmente quando há mapeamento
+autorizado ou limite usado ausente.
 
 ## Objetivo
 
@@ -56,7 +61,8 @@ v2 e consultas do bot representarem a mesma verdade autorizada do casal.
 2. [concluído] Caracterizar cada divergência e sua causa.
 3. [concluído] Fixar contrato RED com fixtures sanitizadas.
 4. [concluído] Implementar correção mínima e validar bateria afetada.
-5. [em andamento] Publicar candidato sanitizado e auditar no Chat.
+5. [concluído com NO-GO] Publicar o primeiro candidato e auditar no Chat.
+6. [em andamento] Publicar o recovery sanitizado e reauditar no Chat.
 
 ## Resultado do diagnóstico e correção
 
@@ -74,7 +80,16 @@ v2 e consultas do bot representarem a mesma verdade autorizada do casal.
   `1.395` testes com `1.390` aprovações, zero falha e cinco skips esperados.
 
 Manifesto candidato:
-`docs/audit/93-dashboard-financial-truth-candidate-2026-07-30.md`.
+`docs/audit/94-dashboard-financial-truth-recovery-candidate-2026-07-31.md`.
+
+Recovery pós-NO-GO:
+
+- previsão não substitui fatura formal ausente;
+- `accounts` e `forecast` filtram marcadores antes de agregar;
+- mapeamento autorizado sem registro e `usedLimit` ausente tornam os blocos
+  parciais;
+- evidência: focal `15/15`, afetada `123/123`, suíte hermética `1.398` testes
+  com `1.393` aprovações, zero falha e cinco skips esperados.
 
 ## Critérios de GO
 
@@ -95,9 +110,9 @@ Manifesto candidato:
 
 ## Próxima ação exata
 
-Criar e publicar o commit sanitizado imutável; solicitar auditoria independente
-dos contratos de escopo, semântica financeira, freshness, filtro não destrutivo
-e paridade v1/v2.
+Criar e publicar o commit sanitizado imutável do recovery; solicitar
+reauditoria independente dos quatro fechamentos e da preservação das invariantes
+anteriores.
 
 ## Capacidade
 

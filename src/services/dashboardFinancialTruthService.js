@@ -91,6 +91,7 @@ function loadOpenFinanceDashboardSnapshot({
             .map(mapping => ({ mapping, record: vault.readItemRecordByAlias(mapping.alias) }))
             .filter(entry => entry.record?.item);
         if (!records.length) return unavailable('source_unavailable');
+        const missingAuthorizedMapping = records.length !== mappings.length;
 
         const observedTimes = records
             .map(entry => Date.parse(entry.record.observed_at))
@@ -107,8 +108,8 @@ function loadOpenFinanceDashboardSnapshot({
 
         const bankAccounts = [];
         const creditCards = [];
-        let partialAccounts = false;
-        let partialBills = false;
+        let partialAccounts = missingAuthorizedMapping;
+        let partialBills = missingAuthorizedMapping;
         for (const { mapping, record } of records) {
             const item = record.item;
             const owner = normalizePerson(mapping.ownerScope);
@@ -147,7 +148,8 @@ function loadOpenFinanceDashboardSnapshot({
                     source: SOURCE
                 });
                 if (!currentBill || !Number.isInteger(account.credit_limit_cents) ||
-                    !Number.isInteger(account.available_credit_limit_cents)) {
+                    !Number.isInteger(account.available_credit_limit_cents) ||
+                    !Number.isInteger(account.used_limit_cents)) {
                     partialBills = true;
                 }
             }

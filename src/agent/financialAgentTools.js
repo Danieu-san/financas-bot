@@ -313,7 +313,8 @@ async function queryCanonicalAccountsPlanTool({
     userIds = [],
     personByUserId = {},
     env = process.env,
-    canonicalLedgerDbPath
+    canonicalLedgerDbPath,
+    excludePublicTestMarkers = false
 } = {}) {
     const canary = readCanonicalLedgerCanaryDomain({
         env,
@@ -332,7 +333,10 @@ async function queryCanonicalAccountsPlanTool({
     }
 
     const requestedAccount = plan.filters?.account || '';
-    const publicRows = (canary.rows || []).map(canonicalAccountToPublicItem);
+    const sourceRows = excludePublicTestMarkers
+        ? (canary.rows || []).filter(row => !containsPublicDashboardTestMarker(row))
+        : (canary.rows || []);
+    const publicRows = sourceRows.map(canonicalAccountToPublicItem);
     const matchingRows = publicRows.filter(item => accountMatchesFilter(item, requestedAccount));
     const normalizedRequestedAccount = normalizeText(String(requestedAccount || '').trim()).replace(/[^a-z0-9]+/g, ' ').trim();
     const exactRows = normalizedRequestedAccount
@@ -488,7 +492,8 @@ async function queryCanonicalForecastPlanTool({
     personByUserId = {},
     currentDate = '',
     env = process.env,
-    canonicalLedgerDbPath
+    canonicalLedgerDbPath,
+    excludePublicTestMarkers = false
 } = {}) {
     const window = forecastWindowFromPlan(plan, currentDate);
     const canary = readCanonicalLedgerCanaryDomain({
@@ -508,8 +513,11 @@ async function queryCanonicalForecastPlanTool({
         };
     }
 
+    const sourceRows = excludePublicTestMarkers
+        ? (canary.rows || []).filter(row => !containsPublicDashboardTestMarker(row))
+        : (canary.rows || []);
     const rows = forecastSortRows(
-        (canary.rows || []).map(forecastItemToPublicItem).filter(item => forecastItemMatchesPlan(item, plan)),
+        sourceRows.map(forecastItemToPublicItem).filter(item => forecastItemMatchesPlan(item, plan)),
         plan.sort || { by: 'due_date', direction: 'asc' }
     );
     const limitedRows = rows.slice(0, plan.limit || 50);
@@ -610,7 +618,8 @@ async function queryFinancialPlanTool({
             userIds: resolvedScope.userIds,
             personByUserId,
             env,
-            canonicalLedgerDbPath
+            canonicalLedgerDbPath,
+            excludePublicTestMarkers
         });
     }
 
@@ -621,7 +630,8 @@ async function queryFinancialPlanTool({
             personByUserId,
             currentDate,
             env,
-            canonicalLedgerDbPath
+            canonicalLedgerDbPath,
+            excludePublicTestMarkers
         });
     }
 
@@ -632,7 +642,8 @@ async function queryFinancialPlanTool({
             personByUserId,
             currentDate,
             env,
-            canonicalLedgerDbPath
+            canonicalLedgerDbPath,
+            excludePublicTestMarkers
         });
         if (forecastResult.ok) return forecastResult;
     }

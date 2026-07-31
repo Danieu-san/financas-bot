@@ -147,8 +147,10 @@ test('dashboard v2 composes every block from the snapshot and existing financial
     assert.strictEqual(result.blocks.reserve.availableBalance, 450);
     assert.strictEqual(result.blocks.budget.remainingBudget, 570);
     assert.strictEqual(result.blocks.accounts.totalBalance, 1527.77);
-    assert.strictEqual(result.blocks.invoices.total, 100);
+    assert.strictEqual(result.blocks.invoices.status, 'unavailable');
+    assert.strictEqual(result.blocks.invoices.total, null);
     assert.strictEqual(result.blocks.forecast.currentCashImpact, 0);
+    assert.strictEqual(result.blocks.forecast.items[0].domain, 'invoice');
     assert.strictEqual(result.blocks.quality.status, 'unavailable');
     assert.strictEqual(result.blocks.quality.classifiedCount, null);
     assert.strictEqual(result.blocks.quality.pendingCount, null);

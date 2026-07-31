@@ -1,20 +1,26 @@
 # Estado atual portátil do FinancasBot
 
-Atualizado em: 2026-07-30
+Atualizado em: 2026-07-31
 
 ## Objetivo ativo
 
-`DASH-DATA-01` está em `CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE`.
-O candidato projeta o staging Open Finance somente leitura para v1/v2,
+`DASH-DATA-01` está em `RECOVERY CANDIDATO AGUARDANDO REAUDITORIA INDEPENDENTE`.
+O primeiro candidato `7e16c75708f34765fce28911761052093de057e0`
+recebeu `NO-GO` por substituir fatura formal ausente por previsão, permitir que
+`accounts`/`forecast` pulassem o filtro público, descartar mapeamentos
+autorizados sem registro e não marcar `usedLimit` ausente como parcial.
+
+O recovery projeta o staging Open Finance somente leitura para v1/v2,
 separa saldo bancário, resultado econômico, fatura formal e limites, rotula
 staleness/fallback e remove marcadores controlados de teste antes de agregações
-públicas sem apagar as fontes. O comando `dashboard` permanece v1; v2 continua
-opt-in.
+públicas sem apagar as fontes. Previsão não substitui mais fatura formal,
+mapeamento ausente e limite usado ausente falham como parciais. O comando
+`dashboard` permanece v1; v2 continua opt-in.
 
-Evidência: focal final `12/12`, transversal `98/98`, suíte hermética ampla
-`1.395` testes, `1.390` aprovados, zero falha e cinco skips esperados.
-Manifesto:
-`docs/audit/93-dashboard-financial-truth-candidate-2026-07-30.md`.
+Evidência do recovery: RED causal `4/4`, focal `15/15`, afetada `123/123` e
+suíte hermética `1.398` testes, `1.393` aprovados, zero falha e cinco skips
+esperados. Manifesto:
+`docs/audit/94-dashboard-financial-truth-recovery-candidate-2026-07-31.md`.
 
 A fila original da auditoria exaustiva e os gates `9P.0`, `9P.1`, `9P.2` e
 `9P.3` estão tecnicamente encerrados. 9P.3 recebeu `GO TÉCNICO LOCAL`
@@ -32,19 +38,9 @@ zerou todas as severidades e não encontrou lacuna causal indispensável. O
 fechamento está em
 `docs/audit/66-open-finance-finalization-independent-close-2026-07-30.md`.
 
-O menu numerado de pagamento está encerrado. O primeiro candidato
-`6b1ba3ffb105149bd04207a1fced6d18d9b7d624` recebeu `NO-GO`; o recovery
-`b25ff51b59054483a66a16e926534068e6c074f5` recebeu `GO TÉCNICO LOCAL`,
-zerou todas as severidades e não deixou lacuna causal indispensável.
-
-O terceiro item da fila pós-9P.4 está tecnicamente encerrado. O primeiro candidato
-`4473a4c66d6d7bdad6149e25f20ccaa9e2e4b10e` recebeu `NO-GO` por truncar o
-catálogo, permitir fallback central e deixar incompleta a prova causal. O
-recovery pagina o catálogo integral, falha fechado acima de 1.000, exige
-destino pessoal/familiar e prova a redescoberta em Saídas e cartão. O commit
-imutável `1b7379e2968974c3c456e64f06ba20cedb0fc599` recebeu `GO LOCAL`
-independente, sem achado bloqueante. O fechamento está em
-`docs/audit/75-open-finance-new-category-independent-close-2026-07-30.md`.
+O menu numerado de pagamento e a precedência/criação de categorias estão
+encerrados; seus fechamentos independentes permanecem apontados no histórico
+dirigido abaixo.
 
 O gate de composição operacional também está tecnicamente encerrado. Uma
 política central exige, simultaneamente, alerta/reconciliação/preview em
@@ -168,9 +164,9 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar o candidato `DASH-DATA-01` em commit sanitizado e submetê-lo à
-auditoria independente por hash imutável. Sem parecer auditável, o estado máximo
-permanece candidato.
+Publicar o recovery `DASH-DATA-01` em commit sanitizado e submetê-lo à
+reauditoria independente por hash imutável. Sem parecer auditável, o estado
+máximo permanece candidato.
 
 ## Capacidade para retomar
 

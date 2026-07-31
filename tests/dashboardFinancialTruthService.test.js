@@ -127,7 +127,7 @@ function snapshot(observedAt = '2026-07-30T12:00:00.000Z') {
     };
 }
 
-function fixture() {
+function fixture(snapshotValue = snapshot()) {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'dashboard-financial-truth-'));
     const databasePath = path.join(root, 'staging.sqlite');
     const secretPath = path.join(root, 'secret.txt');
@@ -138,7 +138,7 @@ function fixture() {
         { itemId: 'item-thais', alias: 'thais_nubank', ownerScope: 'thais' }
     ]));
     const vault = new OpenFinanceLiveStagingVault({ databasePath, secret: SECRET });
-    vault.ingestSnapshot(snapshot());
+    vault.ingestSnapshot(snapshotValue);
     vault.close();
     return {
         root,
@@ -151,6 +151,51 @@ function fixture() {
         cleanup: () => fs.rmSync(root, { recursive: true, force: true })
     };
 }
+
+test('dashboard financial truth stays partial when an authorized mapping has no staged record', () => {
+    const partialSnapshot = snapshot();
+    partialSnapshot.items = partialSnapshot.items.filter(item => item.alias_code === 'daniel_nubank');
+    const files = fixture(partialSnapshot);
+    try {
+        const { loadOpenFinanceDashboardSnapshot } = require('../src/services/dashboardFinancialTruthService');
+        const truth = loadOpenFinanceDashboardSnapshot({
+            userIds: ['user-daniel', 'user-thais'],
+            users: [
+                { user_id: 'user-daniel', display_name: 'Daniel Santos' },
+                { user_id: 'user-thais', display_name: 'Thais Santos' }
+            ],
+            env: files.env,
+            now: '2026-07-30T16:00:00.000Z'
+        });
+
+        assert.equal(truth.status, 'partial');
+        assert.equal(truth.bankAccounts.status, 'partial');
+        assert.equal(truth.creditCards.status, 'partial');
+    } finally {
+        files.cleanup();
+    }
+});
+
+test('dashboard financial truth marks card data partial when used limit is absent', () => {
+    const partialSnapshot = snapshot();
+    partialSnapshot.items[0].accounts
+        .find(account => account.type === 'CREDIT').used_limit_cents = null;
+    const files = fixture(partialSnapshot);
+    try {
+        const { loadOpenFinanceDashboardSnapshot } = require('../src/services/dashboardFinancialTruthService');
+        const truth = loadOpenFinanceDashboardSnapshot({
+            userIds: ['user-daniel'],
+            users: [{ user_id: 'user-daniel', display_name: 'Daniel Santos' }],
+            env: files.env,
+            now: '2026-07-30T16:00:00.000Z'
+        });
+
+        assert.equal(truth.creditCards.status, 'partial');
+        assert.equal(truth.creditCards.items[0].usedLimit, null);
+    } finally {
+        files.cleanup();
+    }
+});
 
 test('dashboard financial truth separates bank balance, current bill and card limits for the authorized family', () => {
     const files = fixture();

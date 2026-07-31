@@ -337,17 +337,16 @@ function buildForecastBlocks(result) {
         };
     }
     const items = sanitizePublicValue(Array.isArray(value.items) ? value.items : []);
-    const invoiceItems = items.filter(item => String(item.domain || '').toLowerCase() === 'invoice');
     const criteria = toolCriteria(result, 'Vencimentos previstos não alteram o caixa atual.');
     return {
         invoices: {
-            status: 'available',
-            timeBasis: 'due_date',
-            total: roundMoney(invoiceItems.reduce((sum, item) => sum + Number(item.value || item.amount || 0), 0)),
-            count: invoiceItems.length,
-            items: invoiceItems,
-            source: publicSource(result.source),
-            criteria
+            status: 'unavailable',
+            reason: 'formal_invoice_unavailable',
+            timeBasis: 'current_bill',
+            total: null,
+            count: null,
+            items: [],
+            criteria: 'Fatura formal indisponível; previsões de vencimento permanecem separadas e não a substituem.'
         },
         forecast: {
             status: 'available',
