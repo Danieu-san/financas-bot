@@ -1,76 +1,87 @@
-# Gate ativo — OPS-05 readiness do WhatsApp no release OCI
+# Gate ativo — PROD-ACT-01 ativação funcional Open Finance
 
 Atualizado em: 2026-07-31
 
 ## Estado
 
-`CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE`.
+`PLANEJAMENTO FAIL-CLOSED`.
 
 ## Objetivo
 
-Permitir uma janela explícita e limitada para o WhatsApp alcançar `ready` na
-OCI sem afrouxar o health, desabilitar rollback ou ampliar a interrupção sem
-limite.
+Promover de forma controlada a experiência proativa de salvamento para o casal,
+sem transformar alerta em escrita automática e sem habilitar flags antes de
+prova operacional, auditoria independente e rollback explícito.
 
 ## Escopo
 
-- parser limitado de `--health-attempts`;
-- prova causal de readiness após a décima segunda tentativa;
-- preservação integral do rollback e do health;
-- testes focais e auditoria independente.
+- inventário das flags vigentes e da política de ativação;
+- sequência reversível `shadow/prompt` antes de `confirm`;
+- prova real de segunda confirmação, escrita única e recibo;
+- rollback imediato para `OPEN_FINANCE_WRITE_MODE=off`;
+- auditoria independente do plano e da evidência antes do GO funcional.
 
 ## Não escopo
 
-- ignorar o estado do WhatsApp;
-- espera ilimitada ou sem rollback;
-- alterar flags funcionais do bot;
-- usar AWS como destino ou rollback.
+- escrita automática ao detectar movimentação;
+- aceitar correspondência ou ambiguidade como item novo;
+- ampliar o produto além do casal autorizado;
+- usar AWS como destino ou rollback;
+- ativar escrita sem Daniel disponível para o smoke controlado.
 
 ## Incidente
 
-O artefato `ce43a8f8f6c4080bda5ab92e697388753da598d8` passou build, checksums,
-manifesto e preparo. A promoção fez rollback porque o WhatsApp não chegou a
-`ready` na janela padrão. Google, Sheets, SQLite, read-model e dashboard haviam
-iniciado. A sessão recebeu `LOGOUT`, foi reautenticada por QR e o runtime
-anterior voltou a `ready`.
+`OPS-05` foi encerrado em produção no commit
+`8f89aec906439dba0024318bddee8d255747b54f`. O release por artefato imutável
+está ativo na OCI, com WhatsApp `ready/healthy`, zero reinício e sem rollback.
+As flags funcionais foram preservadas: alerta, reconciliação e preview em
+`canary`; escrita em `off`; proposta e aprovação ausentes.
 
 ## Invariantes
 
-1. Health continua fail-closed e não ignora WhatsApp.
-2. A janela só aumenta por parâmetro explícito.
-3. Somente inteiros entre `12` e `60` são aceitos.
-4. Valor inválido falha antes de qualquer restart.
-5. Candidato saudável tardiamente não sofre rollback prematuro.
-6. Candidato que não fica saudável dentro do limite ainda executa rollback.
-7. AWS não participa de deploy ou rollback.
+1. Detecção e alerta nunca escrevem automaticamente.
+2. Somente evento `new`, revalidado, pode originar proposta.
+3. O primeiro cônjuge autorizado que confirmar reserva a operação.
+4. A segunda confirmação explícita é obrigatória antes da escrita.
+5. Operation key e recibo impedem duplicação em retry/restart.
+6. Falha ou incerteza permanece fail-closed e reconciliável.
+7. Rollback de flags remove imediatamente a capacidade de escrita.
+8. AWS não participa de deploy ou rollback.
 
 ## Evidência
 
-- release/OPS-03/04/05: `23/23`;
-- sintaxe e diff: verdes.
-
-Manifesto:
-`docs/audit/98-oci-whatsapp-readiness-window-candidate-2026-07-31.md`.
+- fechamento técnico local de 9P.4:
+  `docs/audit/66-open-finance-finalization-independent-close-2026-07-30.md`;
+- composição fail-closed:
+  `docs/audit/78-open-finance-write-activation-independent-close-2026-07-30.md`;
+- fanout familiar:
+  `docs/audit/92-open-finance-family-alerts-independent-close-2026-07-30.md`;
+- release OCI vigente:
+  `docs/audit/99-oci-whatsapp-readiness-window-independent-production-close-2026-07-31.md`.
 
 ## Critérios de GO
 
-- parser aceita `60` e recusa valores fora dos limites;
-- prova tardia não executa rollback;
-- health e rollback permanecem inalterados;
-- testes focais/afetados e auditoria independente ficam verdes.
+- plano de ativação identifica todos os estados e rollback;
+- flags parciais continuam com zero escrita;
+- smoke real prova pergunta, revisão, segunda confirmação, escrita única e
+  recibo sem dados de teste residuais;
+- replay/restart não duplica;
+- health, WhatsApp, Sheets, ledger e dashboard permanecem coerentes;
+- evidência recebe auditoria independente antes do GO funcional.
 
 ## Condições de parada
 
+- Daniel indisponível para confirmar e conferir o lançamento real;
 - identidade do servidor/processo divergente;
-- falha de health ou rollback;
+- qualquer escrita antes da segunda confirmação;
+- falha de health, recibo, reconciliação ou rollback;
 - `NO-GO` independente.
 
 ## Próxima ação exata
 
-Publicar o candidato sanitizado, obter auditoria independente do hash e,
-somente com GO, reconstruir/preparar o artefato e repetir a promoção OCI com
-`--health-attempts 60` e `--confirm-empty-state-bootstrap`.
+Caracterizar a política e escrever o runbook/teste de ativação reversível sem
+alterar as flags de produção. A execução do smoke real aguarda Daniel estar
+disponível para operar o WhatsApp.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> auditar OPS-05 e repetir o release OCI.`
+`Codex -> Sol -> Alto -> caracterizar PROD-ACT-01 e preparar ativação reversível.`

@@ -44,6 +44,14 @@ a `ready`, cron ativo e `writes=0`. `OPS-05` agora candidata uma janela
 explícita e limitada de até 60 tentativas sem afrouxar o health. Manifesto:
 `docs/audit/98-oci-whatsapp-readiness-window-candidate-2026-07-31.md`.
 
+`OPS-05` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
+`8f89aec906439dba0024318bddee8d255747b54f` e foi promovido com sucesso na
+Oracle. O script ativo e `APP_COMMIT_SHA` apontam para esse hash; PM2 está
+online com zero reinício, health local/público está
+`ok/sqlite/whatsapp=true`, WhatsApp `ready/healthy`, cron ativo e Open Finance
+`writes=0`. A promoção não executou rollback. Fechamento:
+`docs/audit/99-oci-whatsapp-readiness-window-independent-production-close-2026-07-31.md`.
+
 A fila original da auditoria exaustiva e os gates `9P.0`, `9P.1`, `9P.2` e
 `9P.3` estão tecnicamente encerrados. 9P.3 recebeu `GO TÉCNICO LOCAL`
 independente no commit imutável
@@ -169,13 +177,14 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar `OPS-05`, obter auditoria independente por hash imutável e, somente
-com GO, reconstruir o artefato e repetir a promoção com
-`--health-attempts 60`, bootstrap vazio confirmado e rollback transacional.
+Caracterizar `PROD-ACT-01` e preparar um runbook reversível para ativar a
+proposta proativa e, em etapa separada, a escrita confirmada. Não alterar flags
+de produção enquanto Daniel estiver indisponível para operar e conferir o
+smoke real no WhatsApp.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → auditar o recovery OPS-04 e repetir o release OCI.`
+`Codex → Sol → Alto → caracterizar PROD-ACT-01 e preparar ativação reversível.`
 
 ## Fila de produto posterior
 

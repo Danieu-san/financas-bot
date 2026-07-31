@@ -73,6 +73,10 @@ própria.
 
 ## Estado
 
-`CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE`.
+`ENCERRADO EM PRODUÇÃO`.
 
-Nova promoção permanece bloqueada até parecer independente sobre o hash.
+O commit imutável
+`8f89aec906439dba0024318bddee8d255747b54f` recebeu `GO TÉCNICO LOCAL`
+independente e foi promovido na OCI com health completo do WhatsApp, sem
+rollback. Fechamento:
+`docs/audit/99-oci-whatsapp-readiness-window-independent-production-close-2026-07-31.md`.
