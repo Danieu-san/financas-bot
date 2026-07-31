@@ -4,7 +4,7 @@ Atualizado em: 2026-07-31
 
 ## Estado
 
-`PROMPT ATIVO; ESCRITA OFF; SMOKE FAMILIAR BLOQUEADO PELA POLÍTICA PRIVADA`.
+`GO TÉCNICO LOCAL; POLÍTICA FAMILIAR ATIVA; SMOKE OPERACIONAL PARCIAL`.
 
 ## Objetivo
 
@@ -42,6 +42,12 @@ O candidato `OF-FAMILY-ACT-01` adiciona um controlador transacional para mudar
 somente o escopo da política privada para o casal autorizado, com backup exato,
 troca atômica, health e rollback. Evidência:
 `docs/audit/102-open-finance-family-policy-activation-candidate-2026-07-31.md`.
+
+O commit `33ab7969bf9ef4190a64f103e46b1ddce9ffe4b0` recebeu `GO TÉCNICO LOCAL`
+independente, foi promovido na OCI por artefato imutável e aplicou a política
+familiar sem rollback. O primeiro ciclo pós-política entregou dois alertas
+cruzados para Daniel e dois para Thaís, com `writes=0`; eram expansões de eventos
+já observados, por isso o smoke de uma nova movimentação ainda não terminou.
 
 ## Invariantes
 
@@ -85,8 +91,12 @@ troca atômica, health e rollback. Evidência:
 - bateria causal afetada: `92/92` antes do reforço final somente probatório.
 - primeiro smoke prompt-only: `new=5`, uma entrega aceita sem id confirmado,
   `writes=0`; política owner-only identificada como bloqueio;
-- controlador familiar candidato: `33/33` testes causais e `git diff --check`
-  verde; auditoria independente ainda pendente.
+- controlador familiar: `33/33` testes causais e `git diff --check` verde;
+  auditoria independente emitiu `GO TÉCNICO LOCAL`.
+- auditoria e produção da política familiar:
+  `docs/audit/103-open-finance-family-policy-independent-production-close-2026-07-31.md`;
+- política pós-aplicação: `changed=0`, health completo, quatro entregas cruzadas
+  e `writes=0`.
 
 ## Critérios de GO
 
@@ -108,11 +118,11 @@ troca atômica, health e rollback. Evidência:
 
 ## Próxima ação exata
 
-Publicar o candidato `OF-FAMILY-ACT-01` em commit imutável, obter auditoria
-independente e, somente com GO, implantar o artefato, executar `plan`, promover
-a política privada ao casal e repetir o smoke com uma próxima movimentação real
-nova. A etapa `confirm` continua bloqueada.
+Conferir nos dois aparelhos as quatro entregas cruzadas e observar a próxima
+movimentação real nova. Os dois cônjuges devem receber a proposta; somente um
+pode tomar a revisão e nenhuma linha pode ser criada com write `off`. A etapa
+`confirm` continua bloqueada.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> auditar e aplicar a política familiar antes de repetir o smoke.`
+`Codex -> Sol -> Alto -> concluir o smoke familiar prompt-only com uma movimentação real nova.`

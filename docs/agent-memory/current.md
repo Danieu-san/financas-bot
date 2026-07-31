@@ -187,12 +187,20 @@ O candidato `OF-FAMILY-ACT-01` cria o controlador transacional da promoção par
 o casal autorizado, preservando titular/principal, com backup exato, troca
 atômica, health e rollback. As quatro suítes causais passaram `33/33`. Manifesto:
 `docs/audit/102-open-finance-family-policy-activation-candidate-2026-07-31.md`.
-Estado: candidato local aguardando commit imutável e auditoria independente;
+
+O commit `33ab7969bf9ef4190a64f103e46b1ddce9ffe4b0` recebeu `GO TÉCNICO LOCAL`
+independente, foi promovido na OCI por artefato imutável e aplicou a política
+familiar sem rollback. Health local/público está completo; prompt segue ativo,
+write `off` e aprovação falsa. O ciclo pós-política entregou dois alertas
+cruzados para Daniel e dois para Thaís com `writes=0`. Como eram expansões de
+eventos já observados, falta o smoke causal de uma próxima movimentação nova.
+Fechamento:
+`docs/audit/103-open-finance-family-policy-independent-production-close-2026-07-31.md`.
 `confirm` continua bloqueado.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → auditar e aplicar a política familiar antes de repetir o smoke.`
+`Codex → Sol → Alto → concluir o smoke familiar prompt-only com uma movimentação real nova.`
 
 ## Fila de produto posterior
 
