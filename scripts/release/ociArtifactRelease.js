@@ -9,6 +9,8 @@ const MANIFEST_NAME = '.release-manifest.json';
 const PREPARED_NAME = '.release-prepared.json';
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 const COMMIT_PATTERN = /^[a-f0-9]{40}$/;
+const STATE_SNAPSHOT_AAD = Buffer.from('financasbot-state:v1', 'utf8');
+const STATE_FILE_MODE = 0o600;
 const PROTECTED_EXACT = new Set([
     '.env',
     'credentials.json',
@@ -79,6 +81,362 @@ function sha256File(file) {
     const hash = crypto.createHash('sha256');
     hash.update(fs.readFileSync(file));
     return hash.digest('hex');
+}
+
+function parseEnvPayload(payload) {
+    const lines = String(payload || '').split(/\r?\n/);
+    const indexes = [];
+    lines.forEach((line, index) => {
+        if (/^STATE_STORE_ENCRYPTION_KEY=/.test(line)) indexes.push(index);
+    });
+    if (indexes.length > 1) {
+        throw new Error('oci_release_state_store_key_duplicated');
+    }
+    const rawKey = indexes.length === 1
+        ? lines[indexes[0]].slice('STATE_STORE_ENCRYPTION_KEY='.length).trim()
+        : '';
+    return { lines, indexes, rawKey };
+}
+
+function decodeStateEncryptionKey(raw) {
+    const value = String(raw || '').trim();
+    if (!value) return null;
+    const candidates = [];
+    if (/^[a-f0-9]{64}$/i.test(value)) {
+        candidates.push(Buffer.from(value, 'hex'));
+    }
+    candidates.push(Buffer.from(value, 'base64'));
+    const key = candidates.find(candidate => candidate.length === 32);
+    if (!key) throw new Error('oci_release_state_store_key_invalid');
+    return key;
+}
+
+function buildEncryptedEmptyStateSnapshot(key, {
+    randomBytes = crypto.randomBytes
+} = {}) {
+    const iv = randomBytes(12);
+    if (!Buffer.isBuffer(iv) || iv.length !== 12) {
+        throw new Error('oci_release_state_store_iv_invalid');
+    }
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+    cipher.setAAD(STATE_SNAPSHOT_AAD);
+    const ciphertext = Buffer.concat([
+        cipher.update('{}', 'utf8'),
+        cipher.final()
+    ]);
+    return `${JSON.stringify({
+        format: 'financasbot-state',
+        version: 1,
+        algorithm: 'aes-256-gcm',
+        iv: iv.toString('base64'),
+        tag: cipher.getAuthTag().toString('base64'),
+        ciphertext: ciphertext.toString('base64')
+    }, null, 2)}\n`;
+}
+
+function decodeCanonicalBase64(value, expectedLength = null) {
+    if (typeof value !== 'string' ||
+        !value ||
+        !/^[A-Za-z0-9+/]+={0,2}$/.test(value)) {
+        throw new Error('oci_release_state_store_snapshot_invalid');
+    }
+    const decoded = Buffer.from(value, 'base64');
+    if (decoded.toString('base64') !== value ||
+        (expectedLength !== null && decoded.length !== expectedLength)) {
+        throw new Error('oci_release_state_store_snapshot_invalid');
+    }
+    return decoded;
+}
+
+function parseStateSnapshotEnvelope(payload) {
+    let envelope;
+    try {
+        envelope = JSON.parse(String(payload || ''));
+    } catch {
+        throw new Error('oci_release_state_store_snapshot_invalid');
+    }
+    const expectedKeys = [
+        'algorithm',
+        'ciphertext',
+        'format',
+        'iv',
+        'tag',
+        'version'
+    ];
+    if (!envelope || Array.isArray(envelope) ||
+        JSON.stringify(Object.keys(envelope).sort()) !== JSON.stringify(expectedKeys) ||
+        envelope.format !== 'financasbot-state' ||
+        envelope.version !== 1 ||
+        envelope.algorithm !== 'aes-256-gcm') {
+        throw new Error('oci_release_state_store_snapshot_invalid');
+    }
+    return {
+        iv: decodeCanonicalBase64(envelope.iv, 12),
+        tag: decodeCanonicalBase64(envelope.tag, 16),
+        ciphertext: decodeCanonicalBase64(envelope.ciphertext)
+    };
+}
+
+function decryptStateSnapshot(payload, key) {
+    const envelope = parseStateSnapshotEnvelope(payload);
+    try {
+        const decipher = crypto.createDecipheriv(
+            'aes-256-gcm',
+            key,
+            envelope.iv,
+            { authTagLength: 16 }
+        );
+        decipher.setAAD(STATE_SNAPSHOT_AAD);
+        decipher.setAuthTag(envelope.tag);
+        return Buffer.concat([
+            decipher.update(envelope.ciphertext),
+            decipher.final()
+        ]).toString('utf8');
+    } catch {
+        throw new Error('oci_release_state_store_snapshot_invalid');
+    }
+}
+
+function assertStatePayloadCompatible(payload) {
+    let clear;
+    try {
+        clear = JSON.parse(payload);
+    } catch {
+        throw new Error('oci_release_state_store_payload_invalid');
+    }
+    if (!clear || Array.isArray(clear) || typeof clear !== 'object') {
+        throw new Error('oci_release_state_store_payload_invalid');
+    }
+    for (const [userId, wrapper] of Object.entries(clear)) {
+        if (!userId ||
+            !wrapper ||
+            Array.isArray(wrapper) ||
+            typeof wrapper !== 'object' ||
+            !Object.hasOwn(wrapper, 'data')) {
+            throw new Error('oci_release_state_store_payload_invalid');
+        }
+    }
+    return clear;
+}
+
+function snapshotDigest(payload) {
+    const envelope = parseStateSnapshotEnvelope(payload);
+    return crypto.createHash('sha256')
+        .update(STATE_SNAPSHOT_AAD)
+        .update(envelope.iv)
+        .update(envelope.tag)
+        .update(envelope.ciphertext)
+        .digest('hex');
+}
+
+function assertReplayJournalCompatible(file, key, protectedPayload) {
+    if (!fs.existsSync(file)) return;
+    let journal;
+    try {
+        journal = JSON.parse(fs.readFileSync(file, 'utf8'));
+    } catch {
+        throw new Error('oci_release_state_store_replay_invalid');
+    }
+    const expectedKeys = ['format', 'mac', 'revoked', 'version'];
+    if (!journal ||
+        Array.isArray(journal) ||
+        JSON.stringify(Object.keys(journal).sort()) !== JSON.stringify(expectedKeys) ||
+        journal.format !== 'financasbot-state-replay' ||
+        journal.version !== 2 ||
+        !Array.isArray(journal.revoked) ||
+        journal.revoked.length > 10_000 ||
+        journal.revoked.some(item =>
+            !item ||
+            Array.isArray(item) ||
+            JSON.stringify(Object.keys(item).sort()) !==
+                JSON.stringify(['digest', 'expiresAt']) ||
+            !/^[a-f0-9]{64}$/.test(item.digest) ||
+            !Number.isSafeInteger(item.expiresAt) ||
+            item.expiresAt <= 0
+        ) ||
+        new Set(journal.revoked.map(item => item.digest)).size !==
+            journal.revoked.length ||
+        !/^[a-f0-9]{64}$/.test(journal.mac)) {
+        throw new Error('oci_release_state_store_replay_invalid');
+    }
+    const expectedMac = crypto.createHmac('sha256', key)
+        .update(JSON.stringify(journal.revoked))
+        .digest('hex');
+    if (journal.mac !== expectedMac ||
+        journal.revoked.some(item =>
+            item.expiresAt > Date.now() &&
+            item.digest === snapshotDigest(protectedPayload)
+        )) {
+        throw new Error('oci_release_state_store_replay_invalid');
+    }
+}
+
+function inspectStateStorePromotion(targetRoot) {
+    const root = path.resolve(targetRoot);
+    const envPath = path.join(root, '.env');
+    const statePath = path.join(root, 'state_store.json');
+    const tempPaths = [
+        path.join(root, 'state_store.tmp'),
+        path.join(root, 'state_store.replay.tmp')
+    ];
+    if (!fs.existsSync(envPath) || !fs.existsSync(statePath)) {
+        throw new Error('oci_release_state_store_prerequisite_missing');
+    }
+    if (tempPaths.some(file => fs.existsSync(file))) {
+        throw new Error('oci_release_state_store_interrupted_write');
+    }
+    const envPayload = fs.readFileSync(envPath, 'utf8');
+    const statePayload = fs.readFileSync(statePath, 'utf8');
+    const { rawKey } = parseEnvPayload(envPayload);
+    const key = decodeStateEncryptionKey(rawKey);
+    let parsed;
+    try {
+        parsed = JSON.parse(statePayload);
+    } catch {
+        throw new Error('oci_release_state_store_snapshot_invalid');
+    }
+    if (parsed?.format === 'financasbot-state') {
+        if (!key) throw new Error('oci_release_state_store_key_required');
+        assertStatePayloadCompatible(decryptStateSnapshot(statePayload, key));
+        assertReplayJournalCompatible(
+            path.join(root, 'state_store.replay.json'),
+            key,
+            statePayload
+        );
+        return Object.freeze({
+            ready: true,
+            bootstrap_required: false,
+            encrypted: true,
+            legacy_empty: false
+        });
+    }
+    if (parsed && !Array.isArray(parsed) && typeof parsed === 'object' &&
+        Object.keys(parsed).length === 0) {
+        return Object.freeze({
+            ready: false,
+            bootstrap_required: true,
+            encrypted: false,
+            legacy_empty: true
+        });
+    }
+    throw new Error('oci_release_state_store_legacy_nonempty');
+}
+
+function syncDirectory(directory) {
+    if (process.platform === 'win32') return;
+    const fd = fs.openSync(directory, 'r');
+    try {
+        fs.fsyncSync(fd);
+    } finally {
+        fs.closeSync(fd);
+    }
+}
+
+function writeAtomicPrivate(file, payload, mode = STATE_FILE_MODE) {
+    const directory = path.dirname(file);
+    const temp = path.join(
+        directory,
+        `.${path.basename(file)}.oci-release-${process.pid}-${crypto.randomUUID()}`
+    );
+    const fd = fs.openSync(temp, 'wx', mode);
+    try {
+        fs.writeFileSync(fd, payload, 'utf8');
+        fs.fsyncSync(fd);
+    } finally {
+        fs.closeSync(fd);
+    }
+    fs.chmodSync(temp, mode);
+    fs.renameSync(temp, file);
+    syncDirectory(directory);
+}
+
+function bootstrapEncryptedEmptyStateStore(targetRoot, {
+    randomBytes = crypto.randomBytes,
+    now = () => new Date()
+} = {}) {
+    const root = path.resolve(targetRoot);
+    const inspection = inspectStateStorePromotion(root);
+    if (!inspection.bootstrap_required) {
+        return { changed: false, transaction: null, inspection };
+    }
+    const envPath = path.join(root, '.env');
+    const statePath = path.join(root, 'state_store.json');
+    const envPayload = fs.readFileSync(envPath, 'utf8');
+    const statePayload = fs.readFileSync(statePath, 'utf8');
+    const envMode = fs.statSync(envPath).mode;
+    const stateMode = fs.statSync(statePath).mode;
+    const parsedEnv = parseEnvPayload(envPayload);
+    const key = decodeStateEncryptionKey(parsedEnv.rawKey) || randomBytes(32);
+    if (!Buffer.isBuffer(key) || key.length !== 32) {
+        throw new Error('oci_release_state_store_key_generation_failed');
+    }
+    const encodedKey = key.toString('base64');
+    const newline = envPayload.includes('\r\n') ? '\r\n' : '\n';
+    const nextLines = [...parsedEnv.lines];
+    if (parsedEnv.indexes.length === 1) {
+        nextLines[parsedEnv.indexes[0]] = `STATE_STORE_ENCRYPTION_KEY=${encodedKey}`;
+    } else {
+        if (nextLines.at(-1) === '') nextLines.pop();
+        nextLines.push(`STATE_STORE_ENCRYPTION_KEY=${encodedKey}`, '');
+    }
+    const nextEnv = nextLines.join(newline);
+    const nextState = buildEncryptedEmptyStateSnapshot(key, { randomBytes });
+    const stamp = now().toISOString().replace(/[:.]/g, '-');
+    const backupRoot = path.join(root, 'data', 'backups');
+    fs.mkdirSync(backupRoot, { recursive: true });
+    const envBackup = path.join(backupRoot, `.env.pre-state-bootstrap-${stamp}`);
+    const stateBackup = path.join(
+        backupRoot,
+        `state_store.pre-state-bootstrap-${stamp}.json`
+    );
+    fs.copyFileSync(envPath, envBackup, fs.constants.COPYFILE_EXCL);
+    fs.copyFileSync(statePath, stateBackup, fs.constants.COPYFILE_EXCL);
+    fs.chmodSync(envBackup, STATE_FILE_MODE);
+    fs.chmodSync(stateBackup, STATE_FILE_MODE);
+    const transaction = {
+        envPath,
+        statePath,
+        envPayload,
+        statePayload,
+        envMode,
+        stateMode,
+        envBackup,
+        stateBackup
+    };
+    try {
+        writeAtomicPrivate(envPath, nextEnv, envMode);
+        writeAtomicPrivate(statePath, nextState, STATE_FILE_MODE);
+        const after = inspectStateStorePromotion(root);
+        if (!after.ready) throw new Error('oci_release_state_store_bootstrap_failed');
+        return {
+            changed: true,
+            transaction,
+            inspection: after,
+            backup_files: [
+                path.relative(root, envBackup),
+                path.relative(root, stateBackup)
+            ]
+        };
+    } catch (error) {
+        writeAtomicPrivate(envPath, envPayload, envMode);
+        writeAtomicPrivate(statePath, statePayload, stateMode);
+        throw error;
+    }
+}
+
+function rollbackStateStoreBootstrap(transaction) {
+    if (!transaction) return false;
+    writeAtomicPrivate(
+        transaction.envPath,
+        transaction.envPayload,
+        transaction.envMode
+    );
+    writeAtomicPrivate(
+        transaction.statePath,
+        transaction.statePayload,
+        transaction.stateMode
+    );
+    return true;
 }
 
 function listFiles(root, {
@@ -773,7 +1131,8 @@ async function promotePreparedRelease({
     runCommand = defaultRunCommand,
     healthCheck = defaultHealthCheck,
     healthAttempts = 12,
-    healthDelayMs = 5000
+    healthDelayMs = 5000,
+    bootstrapEmptyStateStore = false
 }) {
     const releaseDir = path.join(targetRoot, 'releases', commitSha);
     const verified = readAndVerifyPreparedRelease(releaseDir, commitSha);
@@ -788,11 +1147,19 @@ async function promotePreparedRelease({
         previousScript: previous.script,
         processName
     });
+    const stateStoreInspection = inspectStateStorePromotion(targetRoot);
+    if (stateStoreInspection.bootstrap_required && !bootstrapEmptyStateStore) {
+        throw new Error('oci_release_state_store_bootstrap_confirmation_required');
+    }
     let oldProcessDeleted = false;
     let candidateStartAttempted = false;
+    let stateStoreBootstrap = null;
     try {
         await runCommand('pm2', ['delete', processName], { cwd: targetRoot });
         oldProcessDeleted = true;
+        if (stateStoreInspection.bootstrap_required) {
+            stateStoreBootstrap = bootstrapEncryptedEmptyStateStore(targetRoot);
+        }
         candidateStartAttempted = true;
         await runCommand(
             'pm2',
@@ -828,7 +1195,9 @@ async function promotePreparedRelease({
             previous_script: previous.script,
             current_script: verified.entrypoint,
             health_url: healthUrl,
-            rollback_performed: false
+            rollback_performed: false,
+            state_store_bootstrapped: Boolean(stateStoreBootstrap?.changed),
+            state_store_backup_files: stateStoreBootstrap?.backup_files || []
         };
     } catch (error) {
         if (!oldProcessDeleted) throw error;
@@ -845,6 +1214,9 @@ async function promotePreparedRelease({
                     `${rollbackDeleteError.message}:${error.message}`
                 );
             }
+        }
+        if (stateStoreBootstrap?.transaction) {
+            rollbackStateStoreBootstrap(stateStoreBootstrap.transaction);
         }
         await runCommand(
             'pm2',
@@ -950,7 +1322,7 @@ async function main(args = process.argv.slice(2)) {
             processName: argumentValue(
                 args,
                 '--process',
-                args[4] || 'financas-bot'
+                'financas-bot'
             )
         });
         process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
@@ -968,6 +1340,9 @@ async function main(args = process.argv.slice(2)) {
                 args,
                 '--health-url',
                 'http://127.0.0.1:8787/dashboard/health'
+            ),
+            bootstrapEmptyStateStore: args.includes(
+                '--confirm-empty-state-bootstrap'
             )
         });
         process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
@@ -989,12 +1364,15 @@ module.exports = {
     buildArtifact,
     createPromotionPlan,
     createReleaseManifest,
+    bootstrapEncryptedEmptyStateStore,
     extractArchive,
     listArchiveEntries,
     parseCurrentPm2Process,
+    inspectStateStorePromotion,
     prepareArtifact,
     prepareExtractedRelease,
     promotePreparedRelease,
+    rollbackStateStoreBootstrap,
     readAndVerifyReleaseManifest,
     readAndVerifyPreparedRelease,
     sha256File,

@@ -31,6 +31,8 @@ sessão WhatsApp ou hash.
 - [ ] `DASHBOARD_ADMIN_ALL_USERS_ENABLED` permanece ausente ou `false`, salvo
       exceção temporária, explícita e auditada.
 - [ ] Flags novas permanecem no estado aprovado; ausência nunca vira ativação.
+- [ ] `STATE_STORE_ENCRYPTION_KEY` e `state_store.json` satisfazem o contrato
+      criptografado do runtime que será promovido.
 
 Quando a release tocar OAuth, dashboard, cron, planner, ledger, Open Finance ou
 multiusuário, executar também seus gates e ADRs específicos.
@@ -138,6 +140,19 @@ node oci-artifact-release-<HASH>.js promote \
   --health-url http://127.0.0.1:8787/dashboard/health \
   --confirm-process-restart
 ```
+
+Se, e somente se, o promotor diagnosticar
+`oci_release_state_store_bootstrap_confirmation_required` e o snapshot legado
+for comprovadamente o objeto vazio `{}`, repetir acrescentando:
+
+```bash
+  --confirm-empty-state-bootstrap
+```
+
+Essa confirmação não aceita estado legado não vazio. O promotor para o PM2
+antes da migração, gera a chave sem imprimi-la, cria backups privados, troca
+`.env` e snapshot atomicamente e restaura ambos antes de iniciar o rollback se
+o candidato falhar.
 
 O promotor lê `pm2 jlist`, exige exatamente um processo online no `cwd` OCI,
 captura script/hash anteriores, remove o processo antes de iniciar o novo e

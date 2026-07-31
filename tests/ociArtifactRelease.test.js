@@ -7,11 +7,14 @@ const zlib = require('node:zlib');
 
 const {
     assertArtifactPathsSafe,
+    bootstrapEncryptedEmptyStateStore,
     buildArtifact,
     createReleaseManifest,
     extractArchive,
+    inspectStateStorePromotion,
     prepareExtractedRelease,
     promotePreparedRelease,
+    rollbackStateStoreBootstrap,
     readAndVerifyReleaseManifest,
     createPromotionPlan
 } = require('../scripts/release/ociArtifactRelease');
@@ -472,10 +475,18 @@ test('OPS-03 runtime preflight checks native SQLite and an isolated browser only
     assert.equal(pages, 1);
 });
 
-async function preparedPromotionFixture() {
+async function preparedPromotionFixture({ legacyEmptyState = false } = {}) {
     const targetRoot = tempDir('financasbot-release-promote-');
     const extractedRoot = createSourceTree();
     write(targetRoot, 'index.js', 'console.log("previous");\n');
+    write(targetRoot, '.env', 'ADMIN_IDS=daniel\n');
+    write(targetRoot, 'state_store.json', '{}');
+    if (!legacyEmptyState) {
+        bootstrapEncryptedEmptyStateStore(targetRoot, {
+            randomBytes: length => Buffer.alloc(length, 0x31),
+            now: () => new Date('2026-07-31T00:00:00.000Z')
+        });
+    }
     const manifest = createReleaseManifest({
         root: extractedRoot,
         commitSha: COMMIT
@@ -496,6 +507,216 @@ async function preparedPromotionFixture() {
     });
     return { targetRoot, extractedRoot, prepared };
 }
+
+test('OPS-04 inspects encrypted state and refuses non-empty legacy payloads', () => {
+    const root = tempDir('financasbot-state-inspect-');
+    try {
+        write(root, '.env', 'ADMIN_IDS=daniel\n');
+        write(root, 'state_store.json', '{}');
+        assert.deepEqual(inspectStateStorePromotion(root), {
+            ready: false,
+            bootstrap_required: true,
+            encrypted: false,
+            legacy_empty: true
+        });
+        write(root, 'state_store.json', '{"user":{"data":{"step":1}}}');
+        assert.throws(
+            () => inspectStateStorePromotion(root),
+            /oci_release_state_store_legacy_nonempty/
+        );
+    } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test('OPS-04 bootstraps only an empty legacy state and supports exact rollback', () => {
+    const root = tempDir('financasbot-state-bootstrap-');
+    try {
+        const originalEnv = 'ADMIN_IDS=daniel\n';
+        const originalState = '{}';
+        write(root, '.env', originalEnv);
+        write(root, 'state_store.json', originalState);
+        const result = bootstrapEncryptedEmptyStateStore(root, {
+            randomBytes: length => Buffer.alloc(length, 0x42),
+            now: () => new Date('2026-07-31T01:02:03.000Z')
+        });
+        assert.equal(result.changed, true);
+        assert.equal(result.backup_files.length, 2);
+        assert.equal(inspectStateStorePromotion(root).ready, true);
+        assert.match(
+            fs.readFileSync(path.join(root, '.env'), 'utf8'),
+            /STATE_STORE_ENCRYPTION_KEY=/
+        );
+        assert.equal(
+            JSON.parse(fs.readFileSync(path.join(root, 'state_store.json'), 'utf8'))
+                .format,
+            'financasbot-state'
+        );
+        assert.equal(rollbackStateStoreBootstrap(result.transaction), true);
+        assert.equal(fs.readFileSync(path.join(root, '.env'), 'utf8'), originalEnv);
+        assert.equal(
+            fs.readFileSync(path.join(root, 'state_store.json'), 'utf8'),
+            originalState
+        );
+    } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test('OPS-04 rejects tampered encrypted state and replay journals', () => {
+    const root = tempDir('financasbot-state-tamper-');
+    try {
+        write(root, '.env', 'ADMIN_IDS=daniel\n');
+        write(root, 'state_store.json', '{}');
+        bootstrapEncryptedEmptyStateStore(root, {
+            randomBytes: length => Buffer.alloc(length, 0x43),
+            now: () => new Date('2026-07-31T01:03:00.000Z')
+        });
+        const statePath = path.join(root, 'state_store.json');
+        const originalState = fs.readFileSync(statePath, 'utf8');
+        const tampered = JSON.parse(originalState);
+        tampered.ciphertext = Buffer.from('tampered').toString('base64');
+        fs.writeFileSync(statePath, JSON.stringify(tampered));
+        assert.throws(
+            () => inspectStateStorePromotion(root),
+            /oci_release_state_store_snapshot_invalid/
+        );
+
+        fs.writeFileSync(statePath, originalState);
+        write(root, 'state_store.replay.json', JSON.stringify({
+            format: 'financasbot-state-replay',
+            version: 2,
+            revoked: [],
+            mac: '0'.repeat(64)
+        }));
+        assert.throws(
+            () => inspectStateStorePromotion(root),
+            /oci_release_state_store_replay_invalid/
+        );
+    } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test('OPS-04 promotion refuses legacy state before stopping PM2 without confirmation', async () => {
+    const fixture = await preparedPromotionFixture({ legacyEmptyState: true });
+    const calls = [];
+    try {
+        await assert.rejects(
+            promotePreparedRelease({
+                targetRoot: fixture.targetRoot,
+                commitSha: COMMIT,
+                runCommand: async (command, args) => {
+                    calls.push([command, args[0]]);
+                    return { stdout: pm2Inventory(fixture.targetRoot) };
+                }
+            }),
+            /oci_release_state_store_bootstrap_confirmation_required/
+        );
+        assert.deepEqual(calls, [['pm2', 'jlist']]);
+    } finally {
+        fs.rmSync(fixture.targetRoot, { recursive: true, force: true });
+        fs.rmSync(fixture.extractedRoot, { recursive: true, force: true });
+    }
+});
+
+test('OPS-04 confirmed promotion bootstraps empty state after stopping PM2', async () => {
+    const fixture = await preparedPromotionFixture({ legacyEmptyState: true });
+    const calls = [];
+    try {
+        const result = await promotePreparedRelease({
+            targetRoot: fixture.targetRoot,
+            commitSha: COMMIT,
+            bootstrapEmptyStateStore: true,
+            runCommand: async (command, args) => {
+                calls.push([command, args[0]]);
+                return command === 'pm2' && args[0] === 'jlist'
+                    ? { stdout: pm2Inventory(fixture.targetRoot) }
+                    : { stdout: '' };
+            },
+            healthCheck: async () => true,
+            healthAttempts: 1,
+            healthDelayMs: 0
+        });
+        assert.equal(result.promoted, true);
+        assert.equal(result.state_store_bootstrapped, true);
+        assert.equal(inspectStateStorePromotion(fixture.targetRoot).ready, true);
+        assert.deepEqual(calls.slice(0, 2), [
+            ['pm2', 'jlist'],
+            ['pm2', 'delete']
+        ]);
+    } finally {
+        fs.rmSync(fixture.targetRoot, { recursive: true, force: true });
+        fs.rmSync(fixture.extractedRoot, { recursive: true, force: true });
+    }
+});
+
+test('OPS-04 failed candidate restores legacy state before starting rollback', async () => {
+    const fixture = await preparedPromotionFixture({ legacyEmptyState: true });
+    const originalEnv = fs.readFileSync(path.join(fixture.targetRoot, '.env'), 'utf8');
+    const calls = [];
+    let healthCalls = 0;
+    try {
+        await assert.rejects(
+            promotePreparedRelease({
+                targetRoot: fixture.targetRoot,
+                commitSha: COMMIT,
+                bootstrapEmptyStateStore: true,
+                runCommand: async (command, args) => {
+                    calls.push([command, args[0]]);
+                    if (command === 'pm2' &&
+                        args[0] === 'start' &&
+                        calls.filter(call =>
+                            call[0] === 'pm2' && call[1] === 'start'
+                        ).length === 2) {
+                        assert.equal(
+                            fs.readFileSync(
+                                path.join(fixture.targetRoot, '.env'),
+                                'utf8'
+                            ),
+                            originalEnv
+                        );
+                        assert.equal(
+                            fs.readFileSync(
+                                path.join(
+                                    fixture.targetRoot,
+                                    'state_store.json'
+                                ),
+                                'utf8'
+                            ),
+                            '{}'
+                        );
+                    }
+                    return command === 'pm2' && args[0] === 'jlist'
+                        ? { stdout: pm2Inventory(fixture.targetRoot) }
+                        : { stdout: '' };
+                },
+                healthCheck: async () => {
+                    healthCalls += 1;
+                    return healthCalls === 2;
+                },
+                healthAttempts: 1,
+                healthDelayMs: 0
+            }),
+            /oci_release_promote_rolled_back/
+        );
+        assert.equal(
+            fs.readFileSync(path.join(fixture.targetRoot, '.env'), 'utf8'),
+            originalEnv
+        );
+        assert.equal(
+            fs.readFileSync(path.join(fixture.targetRoot, 'state_store.json'), 'utf8'),
+            '{}'
+        );
+        assert.deepEqual(calls.slice(-2), [
+            ['pm2', 'start'],
+            ['pm2', 'save']
+        ]);
+    } finally {
+        fs.rmSync(fixture.targetRoot, { recursive: true, force: true });
+        fs.rmSync(fixture.extractedRoot, { recursive: true, force: true });
+    }
+});
 
 function pm2Inventory(targetRoot) {
     return JSON.stringify([{
@@ -661,4 +882,29 @@ test('OPS-03 CLI refuses promotion without the literal restart confirmation', ()
         result.stderr,
         /oci_release_process_restart_confirmation_required/
     );
+});
+
+test('OPS-04 CLI plan defaults to the single financas-bot process', () => {
+    const result = require('node:child_process').spawnSync(
+        process.execPath,
+        [
+            path.join(
+                __dirname,
+                '..',
+                'scripts',
+                'release',
+                'ociArtifactRelease.js'
+            ),
+            'plan',
+            '--target',
+            '/home/ubuntu/financas-bot',
+            '--commit',
+            COMMIT,
+            '--previous-script',
+            '/home/ubuntu/financas-bot/index.js'
+        ],
+        { encoding: 'utf8' }
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(JSON.parse(result.stdout).process_name, 'financas-bot');
 });

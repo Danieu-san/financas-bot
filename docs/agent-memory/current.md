@@ -26,6 +26,13 @@ O parecer confirmou os nove arquivos, zerou todas as severidades e não
 identificou lacuna indispensável. Fechamento:
 `docs/audit/95-dashboard-financial-truth-independent-close-2026-07-31.md`.
 
+O primeiro release OCI desse hash falhou fechado antes do Google/WhatsApp e
+executou rollback automático. A causa foi o `state_store.json={}` legado sem
+`STATE_STORE_ENCRYPTION_KEY`. `OPS-04` agora é candidato local: o promotor
+detecta o contrato antes de parar PM2, migra somente estado legado vazio com
+confirmação explícita e restaura `.env`/snapshot no rollback. Manifesto:
+`docs/audit/96-oci-state-bootstrap-recovery-candidate-2026-07-31.md`.
+
 A fila original da auditoria exaustiva e os gates `9P.0`, `9P.1`, `9P.2` e
 `9P.3` estão tecnicamente encerrados. 9P.3 recebeu `GO TÉCNICO LOCAL`
 independente no commit imutável
@@ -151,14 +158,13 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Construir e verificar o artefato imutável do hash auditado
-`e712bc11c81c67035b7f4e3e9972853c5307e9cc`; executar o release OCI com
-preservação de estado, checksums e rollback; depois validar versão, processo
-único, saúde local/pública e sinais do WhatsApp.
+Publicar o candidato `OPS-04`, obter auditoria independente por hash imutável e,
+somente com GO, reconstruir o artefato e repetir a promoção com bootstrap vazio
+confirmado e rollback transacional.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → preparar e validar o release OCI do hash auditado.`
+`Codex → Sol → Alto → auditar o recovery OPS-04 e repetir o release OCI.`
 
 ## Fila de produto posterior
 
