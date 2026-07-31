@@ -1,5 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const { loadDashboardTelemetryEntries } = require('../src/telemetry/dashboardAdoptionReport');
 
 const CANDIDATES = [
     'debt_update_handler',
@@ -21,17 +22,17 @@ function parseSince(argv) {
 function main({ env = process.env, since = null } = {}) {
     const file = env.LEGACY_USAGE_TELEMETRY_PATH || path.resolve(process.cwd(), 'data', 'legacy-usage-telemetry.jsonl');
     if (!fs.existsSync(file)) throw new Error('legacy_telemetry_unavailable');
+    const loaded = loadDashboardTelemetryEntries(file, {
+        maxBackups: Number.parseInt(env.LEGACY_USAGE_TELEMETRY_MAX_BACKUPS || '4', 10)
+    });
     const counts = Object.fromEntries(CANDIDATES.map(candidate => [candidate, 0]));
     const evidence = { runtime: 0, synthetic: 0, production_replay: 0, real_user: 0 };
     const schemaVersions = {};
-    let invalidLines = 0;
     let considered = 0;
     let heartbeats = 0;
     let firstTripwireAt = null;
     let lastTripwireAt = null;
-    for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/).filter(Boolean)) {
-        let entry;
-        try { entry = JSON.parse(line); } catch (_) { invalidLines += 1; continue; }
+    for (const entry of loaded.entries) {
         if (since && Date.parse(entry.logged_at) < Date.parse(since)) continue;
         considered += 1;
         schemaVersions[entry.schema_version] = (schemaVersions[entry.schema_version] || 0) + 1;
@@ -46,8 +47,9 @@ function main({ env = process.env, since = null } = {}) {
         schema_version: 1,
         generated_at: new Date().toISOString(),
         observation_since: since,
+        files_read: loaded.filesRead,
         considered_events: considered,
-        invalid_lines: invalidLines,
+        invalid_lines: loaded.invalidLines,
         telemetry_schema_versions: schemaVersions,
         heartbeats,
         tripwires: counts,
