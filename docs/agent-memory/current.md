@@ -177,20 +177,22 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-`PROD-ACT-01` recebeu `GO TÉCNICO LOCAL` independente no hash
-`bae6454ba5ab1cc109ce608e41cb0b849b6266af`. O mesmo hash foi instalado na
-OCI por artefato imutável, sem rollback, com health local/público completo,
-PM2 único e zero reinícios. Proposta e escrita continuam `off`; o ciclo Open
-Finance confirmou `writes=0`. Fechamento:
-`docs/audit/101-open-finance-activation-controller-independent-production-close-2026-07-31.md`.
+`PROD-ACT-01` ativou `prompt` na OCI com escrita `off`, aprovação falsa, health
+local/público completo e `writes=0`. No smoke acompanhado, Daniel atualizou os
+quatro Items; o ciclo encontrou cinco observações novas, mas a única entrega
+aceita ficou restrita à titular porque a política privada das quatro fontes
+ainda estava owner-only.
 
-Quando Daniel estiver presente, executar o plano `prompt`, ativar somente a
-proposta e realizar o smoke real no WhatsApp. Não ativar `confirm` antes de
-validar a proposta.
+O candidato `OF-FAMILY-ACT-01` cria o controlador transacional da promoção para
+o casal autorizado, preservando titular/principal, com backup exato, troca
+atômica, health e rollback. As quatro suítes causais passaram `33/33`. Manifesto:
+`docs/audit/102-open-finance-family-policy-activation-candidate-2026-07-31.md`.
+Estado: candidato local aguardando commit imutável e auditoria independente;
+`confirm` continua bloqueado.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → ativar prompt e executar o smoke real com Daniel presente.`
+`Codex → Sol → Alto → auditar e aplicar a política familiar antes de repetir o smoke.`
 
 ## Fila de produto posterior
 

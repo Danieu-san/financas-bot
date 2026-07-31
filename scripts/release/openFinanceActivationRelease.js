@@ -558,9 +558,15 @@ module.exports = {
     SAFE_FLAG_KEYS,
     applyActivationStage,
     buildActivationPlan,
+    defaultHealthCheck,
+    defaultRunCommand,
     parseHealthAttempts,
     safeFlagSnapshot,
     stageUpdates,
+    syncDirectory,
+    timestamp,
     updateEnvPayload,
-    waitForHealthy
+    waitForHealthy,
+    writePrivateAtomic,
+    writePrivateNew
 };

@@ -4,7 +4,7 @@ Atualizado em: 2026-07-31
 
 ## Estado
 
-`GO TÉCNICO LOCAL; CONTROLADOR INSTALADO; ATIVAÇÃO REAL PENDENTE`.
+`PROMPT ATIVO; ESCRITA OFF; SMOKE FAMILIAR BLOQUEADO PELA POLÍTICA PRIVADA`.
 
 ## Objetivo
 
@@ -31,10 +31,17 @@ prova operacional, auditoria independente e rollback explícito.
 ## Incidente
 
 O controlador auditado no commit
-`bae6454ba5ab1cc109ce608e41cb0b849b6266af` está ativo na OCI por artefato
-imutável, com WhatsApp `ready/healthy`, zero reinício e sem rollback. As flags
-funcionais foram preservadas: alerta, reconciliação e preview em `canary`;
-proposta e escrita em `off`; aprovação falsa.
+`bae6454ba5ab1cc109ce608e41cb0b849b6266af` ativou `prompt` na OCI com
+WhatsApp `ready/healthy`, escrita `off`, aprovação falsa e zero escrita. Após
+Daniel atualizar os quatro Items, o ciclo real encontrou cinco observações
+novas, mas aceitou somente uma entrega para a titular da fonte. A política
+privada ainda estava em modo individual nas quatro fontes. O fan-out familiar
+não foi comprovado e `confirm` permanece bloqueado.
+
+O candidato `OF-FAMILY-ACT-01` adiciona um controlador transacional para mudar
+somente o escopo da política privada para o casal autorizado, com backup exato,
+troca atômica, health e rollback. Evidência:
+`docs/audit/102-open-finance-family-policy-activation-candidate-2026-07-31.md`.
 
 ## Invariantes
 
@@ -76,6 +83,10 @@ proposta e escrita em `off`; aprovação falsa.
 - fechamento e produção:
   `docs/audit/101-open-finance-activation-controller-independent-production-close-2026-07-31.md`;
 - bateria causal afetada: `92/92` antes do reforço final somente probatório.
+- primeiro smoke prompt-only: `new=5`, uma entrega aceita sem id confirmado,
+  `writes=0`; política owner-only identificada como bloqueio;
+- controlador familiar candidato: `33/33` testes causais e `git diff --check`
+  verde; auditoria independente ainda pendente.
 
 ## Critérios de GO
 
@@ -97,10 +108,11 @@ proposta e escrita em `off`; aprovação falsa.
 
 ## Próxima ação exata
 
-Quando Daniel estiver presente, executar o plano `prompt`, ativar somente a
-proposta e realizar o smoke real no WhatsApp. A etapa `confirm` continua
-bloqueada até essa validação.
+Publicar o candidato `OF-FAMILY-ACT-01` em commit imutável, obter auditoria
+independente e, somente com GO, implantar o artefato, executar `plan`, promover
+a política privada ao casal e repetir o smoke com uma próxima movimentação real
+nova. A etapa `confirm` continua bloqueada.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> ativar prompt e executar o smoke real com Daniel presente.`
+`Codex -> Sol -> Alto -> auditar e aplicar a política familiar antes de repetir o smoke.`

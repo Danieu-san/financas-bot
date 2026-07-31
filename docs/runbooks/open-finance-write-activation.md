@@ -68,6 +68,36 @@ Validar health local/público, um PM2, zero reinício crescente e ausência de
 escrita. Um evento `new` pode oferecer a proposta aos dois cônjuges; match ou
 ambiguidade não pode oferecer escrita.
 
+### 2.1 Promover a política privada para o casal autorizado
+
+Antes do smoke familiar, planejar a mudança sem expor o arquivo privado:
+
+```bash
+node scripts/release/openFinanceFamilyPolicyRelease.js plan \
+  --target /home/ubuntu/financas-bot
+```
+
+O plano deve mostrar somente os aliases e o escopo atual/futuro. Aplicar apenas
+com `prompt` ativo, escrita `off`, aprovação `false`, processo único no hash
+esperado e health completo:
+
+```bash
+node scripts/release/openFinanceFamilyPolicyRelease.js apply \
+  --target /home/ubuntu/financas-bot \
+  --expected-commit <HASH_ATIVO_COMPLETO> \
+  --process financas-bot \
+  --health-url http://127.0.0.1:8787/dashboard/health \
+  --health-attempts 60 \
+  --confirm-config-change
+```
+
+O controlador preserva titular, destinatário principal, principal de
+confirmação e campos alheios. Ele amplia somente `authorized_viewers` para o
+casal e ativa `family_aggregation_allowed`, mantendo
+`financial_write_enabled=false`. O arquivo anterior é copiado para backup
+privado durável; falha de substituição, restart ou health restaura exatamente o
+conteúdo anterior e reinicia o processo no estado seguro.
+
 ## 3. Ativar escrita confirmada
 
 Somente com Daniel presente e depois da auditoria independente do candidato:
