@@ -177,21 +177,20 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar e reauditar `PROD-ACT-01`. O primeiro parecer independente foi
-`NO-GO` por duas lacunas de durabilidade/prova; o recovery agora sincroniza no
-pai a criação de `data/backups` e prova causalmente
-`backup → alteração → restart` e `restauração exata → restart`. A segunda
-reauditoria confirmou esses fechamentos e encontrou uma borda posterior ao
-`rename`; o novo recovery marca a substituição antes do fsync, restaura mesmo
-se esse fsync falhar e reinicia com os bytes seguros se a durabilidade do
-rollback falhar. Controlador, runbook e prova estão candidatos em
-`docs/audit/100-open-finance-production-activation-controller-candidate-2026-07-31.md`.
-Não alterar flags de produção enquanto Daniel estiver indisponível para operar
-e conferir o smoke real no WhatsApp.
+`PROD-ACT-01` recebeu `GO TÉCNICO LOCAL` independente no hash
+`bae6454ba5ab1cc109ce608e41cb0b849b6266af`. O mesmo hash foi instalado na
+OCI por artefato imutável, sem rollback, com health local/público completo,
+PM2 único e zero reinícios. Proposta e escrita continuam `off`; o ciclo Open
+Finance confirmou `writes=0`. Fechamento:
+`docs/audit/101-open-finance-activation-controller-independent-production-close-2026-07-31.md`.
+
+Quando Daniel estiver presente, executar o plano `prompt`, ativar somente a
+proposta e realizar o smoke real no WhatsApp. Não ativar `confirm` antes de
+validar a proposta.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → caracterizar PROD-ACT-01 e preparar ativação reversível.`
+`Codex → Sol → Alto → ativar prompt e executar o smoke real com Daniel presente.`
 
 ## Fila de produto posterior
 

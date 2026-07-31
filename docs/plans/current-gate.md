@@ -4,8 +4,7 @@ Atualizado em: 2026-07-31
 
 ## Estado
 
-`RECOVERY DO NO-GO IMPLEMENTADO; CANDIDATO AGUARDANDO NOVA AUDITORIA
-INDEPENDENTE`.
+`GO TÉCNICO LOCAL; CONTROLADOR INSTALADO; ATIVAÇÃO REAL PENDENTE`.
 
 ## Objetivo
 
@@ -31,11 +30,11 @@ prova operacional, auditoria independente e rollback explícito.
 
 ## Incidente
 
-`OPS-05` foi encerrado em produção no commit
-`8f89aec906439dba0024318bddee8d255747b54f`. O release por artefato imutável
-está ativo na OCI, com WhatsApp `ready/healthy`, zero reinício e sem rollback.
-As flags funcionais foram preservadas: alerta, reconciliação e preview em
-`canary`; escrita em `off`; proposta e aprovação ausentes.
+O controlador auditado no commit
+`bae6454ba5ab1cc109ce608e41cb0b849b6266af` está ativo na OCI por artefato
+imutável, com WhatsApp `ready/healthy`, zero reinício e sem rollback. As flags
+funcionais foram preservadas: alerta, reconciliação e preview em `canary`;
+proposta e escrita em `off`; aprovação falsa.
 
 ## Invariantes
 
@@ -71,6 +70,11 @@ As flags funcionais foram preservadas: alerta, reconciliação e preview em
   a borda `rename` aplicado seguido de falha no fsync; o recovery marca a
   substituição no instante do rename, restaura também nesse caso e mantém o
   restart seguro mesmo se o fsync do rollback falhar;
+- a terceira auditoria independente do hash
+  `bae6454ba5ab1cc109ce608e41cb0b849b6266af` emitiu `GO TÉCNICO LOCAL`, sem
+  lacuna residual;
+- fechamento e produção:
+  `docs/audit/101-open-finance-activation-controller-independent-production-close-2026-07-31.md`;
 - bateria causal afetada: `92/92` antes do reforço final somente probatório.
 
 ## Critérios de GO
@@ -93,10 +97,10 @@ As flags funcionais foram preservadas: alerta, reconciliação e preview em
 
 ## Próxima ação exata
 
-Publicar o recovery sanitizado e obter nova auditoria independente do novo hash
-imutável. Mesmo com GO, a execução do smoke real aguarda Daniel estar
-disponível para operar o WhatsApp.
+Quando Daniel estiver presente, executar o plano `prompt`, ativar somente a
+proposta e realizar o smoke real no WhatsApp. A etapa `confirm` continua
+bloqueada até essa validação.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> caracterizar PROD-ACT-01 e preparar ativação reversível.`
+`Codex -> Sol -> Alto -> ativar prompt e executar o smoke real com Daniel presente.`
