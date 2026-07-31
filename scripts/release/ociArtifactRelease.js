@@ -11,6 +11,7 @@ const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 const COMMIT_PATTERN = /^[a-f0-9]{40}$/;
 const STATE_SNAPSHOT_AAD = Buffer.from('financasbot-state:v1', 'utf8');
 const STATE_FILE_MODE = 0o600;
+const PRIVATE_DIRECTORY_MODE = 0o700;
 const PROTECTED_EXACT = new Set([
     '.env',
     'credentials.json',
@@ -350,10 +351,64 @@ function writeAtomicPrivate(file, payload, mode = STATE_FILE_MODE) {
     syncDirectory(directory);
 }
 
+function ensurePrivateDirectory(directory) {
+    const existed = fs.existsSync(directory);
+    fs.mkdirSync(directory, {
+        recursive: true,
+        mode: PRIVATE_DIRECTORY_MODE
+    });
+    fs.chmodSync(directory, PRIVATE_DIRECTORY_MODE);
+    if (!existed) syncDirectory(path.dirname(directory));
+    syncDirectory(directory);
+}
+
+function assertPrivateMode(file, expectedMode) {
+    if (process.platform === 'win32') return;
+    if ((fs.statSync(file).mode & 0o777) !== expectedMode) {
+        throw new Error('oci_release_private_mode_invalid');
+    }
+}
+
+function writeAtomicPrivateNew(file, payload) {
+    const directory = path.dirname(file);
+    const temp = path.join(
+        directory,
+        `.${path.basename(file)}.oci-release-${process.pid}-${crypto.randomUUID()}`
+    );
+    const fd = fs.openSync(temp, 'wx', STATE_FILE_MODE);
+    let published = false;
+    try {
+        fs.writeFileSync(fd, payload, 'utf8');
+        fs.fsyncSync(fd);
+        fs.chmodSync(temp, STATE_FILE_MODE);
+        fs.closeSync(fd);
+        fs.linkSync(temp, file);
+        published = true;
+    } finally {
+        try {
+            fs.closeSync(fd);
+        } catch {
+            // The descriptor was already closed after its durable write.
+        }
+        try {
+            fs.unlinkSync(temp);
+        } catch (error) {
+            if (error.code !== 'ENOENT') throw error;
+        }
+        if (published) syncDirectory(directory);
+    }
+    assertPrivateMode(file, STATE_FILE_MODE);
+}
+
 function bootstrapEncryptedEmptyStateStore(targetRoot, {
     randomBytes = crypto.randomBytes,
-    now = () => new Date()
+    now = () => new Date(),
+    assertProcessStopped
 } = {}) {
+    if (typeof assertProcessStopped !== 'function' ||
+        assertProcessStopped() !== true) {
+        throw new Error('oci_release_state_store_process_not_stopped');
+    }
     const root = path.resolve(targetRoot);
     const inspection = inspectStateStorePromotion(root);
     if (!inspection.bootstrap_required) {
@@ -363,8 +418,6 @@ function bootstrapEncryptedEmptyStateStore(targetRoot, {
     const statePath = path.join(root, 'state_store.json');
     const envPayload = fs.readFileSync(envPath, 'utf8');
     const statePayload = fs.readFileSync(statePath, 'utf8');
-    const envMode = fs.statSync(envPath).mode;
-    const stateMode = fs.statSync(statePath).mode;
     const parsedEnv = parseEnvPayload(envPayload);
     const key = decodeStateEncryptionKey(parsedEnv.rawKey) || randomBytes(32);
     if (!Buffer.isBuffer(key) || key.length !== 32) {
@@ -382,30 +435,31 @@ function bootstrapEncryptedEmptyStateStore(targetRoot, {
     const nextEnv = nextLines.join(newline);
     const nextState = buildEncryptedEmptyStateSnapshot(key, { randomBytes });
     const stamp = now().toISOString().replace(/[:.]/g, '-');
-    const backupRoot = path.join(root, 'data', 'backups');
-    fs.mkdirSync(backupRoot, { recursive: true });
+    const dataRoot = path.join(root, 'data');
+    const backupRoot = path.join(dataRoot, 'backups');
+    ensurePrivateDirectory(dataRoot);
+    ensurePrivateDirectory(backupRoot);
+    assertPrivateMode(backupRoot, PRIVATE_DIRECTORY_MODE);
     const envBackup = path.join(backupRoot, `.env.pre-state-bootstrap-${stamp}`);
     const stateBackup = path.join(
         backupRoot,
         `state_store.pre-state-bootstrap-${stamp}.json`
     );
-    fs.copyFileSync(envPath, envBackup, fs.constants.COPYFILE_EXCL);
-    fs.copyFileSync(statePath, stateBackup, fs.constants.COPYFILE_EXCL);
-    fs.chmodSync(envBackup, STATE_FILE_MODE);
-    fs.chmodSync(stateBackup, STATE_FILE_MODE);
+    writeAtomicPrivateNew(envBackup, envPayload);
+    writeAtomicPrivateNew(stateBackup, statePayload);
     const transaction = {
         envPath,
         statePath,
         envPayload,
         statePayload,
-        envMode,
-        stateMode,
         envBackup,
         stateBackup
     };
     try {
-        writeAtomicPrivate(envPath, nextEnv, envMode);
+        writeAtomicPrivate(envPath, nextEnv, STATE_FILE_MODE);
         writeAtomicPrivate(statePath, nextState, STATE_FILE_MODE);
+        assertPrivateMode(envPath, STATE_FILE_MODE);
+        assertPrivateMode(statePath, STATE_FILE_MODE);
         const after = inspectStateStorePromotion(root);
         if (!after.ready) throw new Error('oci_release_state_store_bootstrap_failed');
         return {
@@ -418,8 +472,8 @@ function bootstrapEncryptedEmptyStateStore(targetRoot, {
             ]
         };
     } catch (error) {
-        writeAtomicPrivate(envPath, envPayload, envMode);
-        writeAtomicPrivate(statePath, statePayload, stateMode);
+        writeAtomicPrivate(envPath, envPayload, STATE_FILE_MODE);
+        writeAtomicPrivate(statePath, statePayload, STATE_FILE_MODE);
         throw error;
     }
 }
@@ -429,12 +483,12 @@ function rollbackStateStoreBootstrap(transaction) {
     writeAtomicPrivate(
         transaction.envPath,
         transaction.envPayload,
-        transaction.envMode
+        STATE_FILE_MODE
     );
     writeAtomicPrivate(
         transaction.statePath,
         transaction.statePayload,
-        transaction.stateMode
+        STATE_FILE_MODE
     );
     return true;
 }
@@ -1158,7 +1212,9 @@ async function promotePreparedRelease({
         await runCommand('pm2', ['delete', processName], { cwd: targetRoot });
         oldProcessDeleted = true;
         if (stateStoreInspection.bootstrap_required) {
-            stateStoreBootstrap = bootstrapEncryptedEmptyStateStore(targetRoot);
+            stateStoreBootstrap = bootstrapEncryptedEmptyStateStore(targetRoot, {
+                assertProcessStopped: () => oldProcessDeleted
+            });
         }
         candidateStartAttempted = true;
         await runCommand(

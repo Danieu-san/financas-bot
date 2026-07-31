@@ -150,9 +150,11 @@ for comprovadamente o objeto vazio `{}`, repetir acrescentando:
 ```
 
 Essa confirmação não aceita estado legado não vazio. O promotor para o PM2
-antes da migração, gera a chave sem imprimi-la, cria backups privados, troca
-`.env` e snapshot atomicamente e restaura ambos antes de iniciar o rollback se
-o candidato falhar.
+antes da migração, gera a chave sem imprimi-la, mantém `.env`, snapshot e
+backups em `0600`, mantém o diretório de backups em `0700`, publica os backups
+de modo atômico e exclusivo e sincroniza arquivos e diretórios. A troca de
+`.env` e snapshot também é atômica e durável. Se o candidato falhar, ambos são
+restaurados antes de iniciar o rollback.
 
 O promotor lê `pm2 jlist`, exige exatamente um processo online no `cwd` OCI,
 captura script/hash anteriores, remove o processo antes de iniciar o novo e

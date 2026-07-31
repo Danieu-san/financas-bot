@@ -484,7 +484,8 @@ async function preparedPromotionFixture({ legacyEmptyState = false } = {}) {
     if (!legacyEmptyState) {
         bootstrapEncryptedEmptyStateStore(targetRoot, {
             randomBytes: length => Buffer.alloc(length, 0x31),
-            now: () => new Date('2026-07-31T00:00:00.000Z')
+            now: () => new Date('2026-07-31T00:00:00.000Z'),
+            assertProcessStopped: () => true
         });
     }
     const manifest = createReleaseManifest({
@@ -538,15 +539,31 @@ test('OPS-04 bootstraps only an empty legacy state and supports exact rollback',
         write(root, 'state_store.json', originalState);
         const result = bootstrapEncryptedEmptyStateStore(root, {
             randomBytes: length => Buffer.alloc(length, 0x42),
-            now: () => new Date('2026-07-31T01:02:03.000Z')
+            now: () => new Date('2026-07-31T01:02:03.000Z'),
+            assertProcessStopped: () => true
         });
         assert.equal(result.changed, true);
         assert.equal(result.backup_files.length, 2);
+        if (process.platform !== 'win32') {
+            assert.equal(
+                fs.statSync(path.join(root, 'data', 'backups')).mode & 0o777,
+                0o700
+            );
+            for (const backupFile of result.backup_files) {
+                assert.equal(
+                    fs.statSync(path.join(root, backupFile)).mode & 0o777,
+                    0o600
+                );
+            }
+        }
         assert.equal(inspectStateStorePromotion(root).ready, true);
         assert.match(
             fs.readFileSync(path.join(root, '.env'), 'utf8'),
             /STATE_STORE_ENCRYPTION_KEY=/
         );
+        if (process.platform !== 'win32') {
+            assert.equal(fs.statSync(path.join(root, '.env')).mode & 0o777, 0o600);
+        }
         assert.equal(
             JSON.parse(fs.readFileSync(path.join(root, 'state_store.json'), 'utf8'))
                 .format,
@@ -563,6 +580,29 @@ test('OPS-04 bootstraps only an empty legacy state and supports exact rollback',
     }
 });
 
+test('OPS-04 refuses bootstrap before the process-stop boundary', () => {
+    const root = tempDir('financasbot-state-stop-boundary-');
+    try {
+        const originalEnv = 'ADMIN_IDS=daniel\n';
+        write(root, '.env', originalEnv);
+        write(root, 'state_store.json', '{}');
+        assert.throws(
+            () => bootstrapEncryptedEmptyStateStore(root, {
+                assertProcessStopped: () => false
+            }),
+            /oci_release_state_store_process_not_stopped/
+        );
+        assert.equal(fs.readFileSync(path.join(root, '.env'), 'utf8'), originalEnv);
+        assert.equal(
+            fs.readFileSync(path.join(root, 'state_store.json'), 'utf8'),
+            '{}'
+        );
+        assert.equal(fs.existsSync(path.join(root, 'data')), false);
+    } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+    }
+});
+
 test('OPS-04 rejects tampered encrypted state and replay journals', () => {
     const root = tempDir('financasbot-state-tamper-');
     try {
@@ -570,7 +610,8 @@ test('OPS-04 rejects tampered encrypted state and replay journals', () => {
         write(root, 'state_store.json', '{}');
         bootstrapEncryptedEmptyStateStore(root, {
             randomBytes: length => Buffer.alloc(length, 0x43),
-            now: () => new Date('2026-07-31T01:03:00.000Z')
+            now: () => new Date('2026-07-31T01:03:00.000Z'),
+            assertProcessStopped: () => true
         });
         const statePath = path.join(root, 'state_store.json');
         const originalState = fs.readFileSync(statePath, 'utf8');
@@ -630,6 +671,28 @@ test('OPS-04 confirmed promotion bootstraps empty state after stopping PM2', asy
             bootstrapEmptyStateStore: true,
             runCommand: async (command, args) => {
                 calls.push([command, args[0]]);
+                if (command === 'pm2' && args[0] === 'delete') {
+                    assert.equal(
+                        fs.readFileSync(
+                            path.join(fixture.targetRoot, 'state_store.json'),
+                            'utf8'
+                        ),
+                        '{}'
+                    );
+                    assert.doesNotMatch(
+                        fs.readFileSync(
+                            path.join(fixture.targetRoot, '.env'),
+                            'utf8'
+                        ),
+                        /STATE_STORE_ENCRYPTION_KEY=/
+                    );
+                    assert.equal(
+                        fs.existsSync(
+                            path.join(fixture.targetRoot, 'data', 'backups')
+                        ),
+                        false
+                    );
+                }
                 return command === 'pm2' && args[0] === 'jlist'
                     ? { stdout: pm2Inventory(fixture.targetRoot) }
                     : { stdout: '' };

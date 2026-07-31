@@ -4,7 +4,7 @@ Atualizado em: 2026-07-31
 
 ## Estado
 
-`CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE`.
+`RECOVERY CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE`.
 
 ## Objetivo
 
@@ -44,16 +44,18 @@ automático restaurou o script anterior.
 5. Falha do candidato restaura `.env` e snapshot antes de iniciar o rollback.
 6. Snapshot, envelope e journal adulterados ou replayados falham fechados.
 7. AWS não participa de deploy ou rollback.
+8. `.env`, snapshot e backups ficam `0600`; o diretório de backups fica `0700`.
+9. Backups são publicados atomicamente e arquivos/diretórios são sincronizados.
 
 ## Evidência
 
-- release/OPS-04: `20/20`;
+- release/OPS-04: `21/21`;
 - segurança do snapshot isolada: `14/14`;
 - shutdown isolado: `5/5`;
 - sintaxe e diff: verdes.
 
 Manifesto:
-`docs/audit/96-oci-state-bootstrap-recovery-candidate-2026-07-31.md`.
+`docs/audit/97-oci-state-bootstrap-private-durability-recovery-candidate-2026-07-31.md`.
 
 ## Critérios de GO
 
@@ -72,8 +74,8 @@ Manifesto:
 
 ## Próxima ação exata
 
-Publicar commit sanitizado, obter auditoria independente do hash e, somente com
-GO, reconstruir/preparar o artefato e repetir a promoção OCI com
+Publicar o recovery sanitizado, obter reauditoria independente do hash e,
+somente com GO, reconstruir/preparar o artefato e repetir a promoção OCI com
 `--confirm-empty-state-bootstrap`.
 
 ## Capacidade

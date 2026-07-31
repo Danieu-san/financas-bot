@@ -28,10 +28,12 @@ identificou lacuna indispensável. Fechamento:
 
 O primeiro release OCI desse hash falhou fechado antes do Google/WhatsApp e
 executou rollback automático. A causa foi o `state_store.json={}` legado sem
-`STATE_STORE_ENCRYPTION_KEY`. `OPS-04` agora é candidato local: o promotor
-detecta o contrato antes de parar PM2, migra somente estado legado vazio com
-confirmação explícita e restaura `.env`/snapshot no rollback. Manifesto:
-`docs/audit/96-oci-state-bootstrap-recovery-candidate-2026-07-31.md`.
+`STATE_STORE_ENCRYPTION_KEY`. O primeiro candidato `OPS-04`, no hash
+`a47ce899adb34f0c94847d8e8654aa06a6586fce`, recebeu `NO-GO` independente:
+backups e `.env` não garantiam privacidade/durabilidade desde a criação e o
+teste não travava causalmente bootstrap após a parada. O recovery fixa modos,
+publicação atômica exclusiva, `fsync` e a fronteira causal. Manifesto:
+`docs/audit/97-oci-state-bootstrap-private-durability-recovery-candidate-2026-07-31.md`.
 
 A fila original da auditoria exaustiva e os gates `9P.0`, `9P.1`, `9P.2` e
 `9P.3` estão tecnicamente encerrados. 9P.3 recebeu `GO TÉCNICO LOCAL`
@@ -158,9 +160,9 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar o candidato `OPS-04`, obter auditoria independente por hash imutável e,
-somente com GO, reconstruir o artefato e repetir a promoção com bootstrap vazio
-confirmado e rollback transacional.
+Publicar o recovery `OPS-04`, obter reauditoria independente por hash imutável
+e, somente com GO, reconstruir o artefato e repetir a promoção com bootstrap
+vazio confirmado e rollback transacional.
 
 ## Capacidade para retomar
 
