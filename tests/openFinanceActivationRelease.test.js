@@ -352,6 +352,105 @@ test('PROD-ACT-01 restores exact env and health after failed activation', async 
     }
 });
 
+test('PROD-ACT-01 rolls back when directory sync fails after env rename', async () => {
+    const harness = createHarness();
+    const commands = [];
+    let syncCalls = 0;
+    try {
+        await assert.rejects(() => applyActivationStage({
+            targetRoot: harness.root,
+            stage: 'prompt',
+            expectedCommitSha: COMMIT,
+            confirmConfigChange: true,
+            healthAttempts: 12,
+            healthDelayMs: 0,
+            runCommand: async (command, args) => {
+                commands.push([command, ...args]);
+                if (args[0] === 'jlist') {
+                    return { stdout: pm2Inventory(harness.root) };
+                }
+                if (args[0] === 'restart') {
+                    assert.equal(
+                        fs.readFileSync(harness.envPath, 'utf8'),
+                        harness.raw
+                    );
+                }
+                return { stdout: '' };
+            },
+            healthCheck: async () => true,
+            atomicDirectorySync: () => {
+                syncCalls += 1;
+                if (syncCalls === 1) {
+                    throw new Error('forced_directory_sync_failure');
+                }
+            },
+            now: () => new Date('2026-07-31T12:00:00.000Z')
+        }), /open_finance_activation_rolled_back:forced_directory_sync_failure/);
+        assert.equal(syncCalls, 2);
+        assert.equal(fs.readFileSync(harness.envPath, 'utf8'), harness.raw);
+        assert.deepEqual(commands.map(item => item.slice(0, 3)), [
+            ['pm2', 'jlist'],
+            ['pm2', 'restart', 'financas-bot'],
+            ['pm2', 'save']
+        ]);
+    } finally {
+        harness.close();
+    }
+});
+
+test('PROD-ACT-01 restarts safe env before reporting rollback sync failure', async () => {
+    const harness = createHarness();
+    const commands = [];
+    let healthCalls = 0;
+    let syncCalls = 0;
+    try {
+        await assert.rejects(() => applyActivationStage({
+            targetRoot: harness.root,
+            stage: 'prompt',
+            expectedCommitSha: COMMIT,
+            confirmConfigChange: true,
+            healthAttempts: 12,
+            healthDelayMs: 0,
+            runCommand: async (command, args) => {
+                commands.push([command, ...args]);
+                if (args[0] === 'jlist') {
+                    return { stdout: pm2Inventory(harness.root) };
+                }
+                if (args[0] === 'restart' &&
+                    commands.filter(item => item[1] === 'restart').length === 2) {
+                    assert.equal(
+                        fs.readFileSync(harness.envPath, 'utf8'),
+                        harness.raw
+                    );
+                }
+                return { stdout: '' };
+            },
+            healthCheck: async () => {
+                healthCalls += 1;
+                if (healthCalls === 1) return true;
+                if (healthCalls <= 13) return false;
+                return true;
+            },
+            atomicDirectorySync: () => {
+                syncCalls += 1;
+                if (syncCalls === 2) {
+                    throw new Error('forced_rollback_sync_failure');
+                }
+            },
+            now: () => new Date('2026-07-31T12:00:00.000Z')
+        }), /open_finance_activation_rollback_durability_failed:/);
+        assert.equal(fs.readFileSync(harness.envPath, 'utf8'), harness.raw);
+        assert.deepEqual(commands.map(item => item.slice(0, 3)), [
+            ['pm2', 'jlist'],
+            ['pm2', 'restart', 'financas-bot'],
+            ['pm2', 'restart', 'financas-bot'],
+            ['pm2', 'save']
+        ]);
+    } finally {
+        harness.close();
+    }
+});
+
 test('PROD-ACT-01 rejects unhealthy runtime before backup or mutation', async () => {
     const harness = createHarness();
     const commands = [];

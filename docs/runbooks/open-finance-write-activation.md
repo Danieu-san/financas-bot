@@ -19,6 +19,9 @@ por artefato.
 6. Falha de restart ou health restaura exatamente o `.env`, reinicia o mesmo
    script e exige health verde.
 7. O health exige SQLite e WhatsApp `ready/healthy`.
+8. Falha de fsync depois de um rename é tratada como mutação aplicada: o
+   controlador restaura os bytes seguros; se a falha ocorrer no fsync do
+   rollback, reinicia primeiro com esses bytes e reporta falha explícita.
 
 ## Pré-condições
 

@@ -180,8 +180,11 @@ Plano corrente: `docs/plans/current-gate.md`.
 Publicar e reauditar `PROD-ACT-01`. O primeiro parecer independente foi
 `NO-GO` por duas lacunas de durabilidade/prova; o recovery agora sincroniza no
 pai a criação de `data/backups` e prova causalmente
-`backup → alteração → restart` e `restauração exata → restart`. Controlador,
-runbook e prova estão candidatos em
+`backup → alteração → restart` e `restauração exata → restart`. A segunda
+reauditoria confirmou esses fechamentos e encontrou uma borda posterior ao
+`rename`; o novo recovery marca a substituição antes do fsync, restaura mesmo
+se esse fsync falhar e reinicia com os bytes seguros se a durabilidade do
+rollback falhar. Controlador, runbook e prova estão candidatos em
 `docs/audit/100-open-finance-production-activation-controller-candidate-2026-07-31.md`.
 Não alterar flags de produção enquanto Daniel estiver indisponível para operar
 e conferir o smoke real no WhatsApp.

@@ -21,7 +21,11 @@ gate.
 - criação privada e durável de `data/backups`, sincronizando cada nova entrada
   no diretório pai, seguida do backup privado e durável do `.env`;
 - escrita atômica do `.env`, restart limitado e health completo;
+- a substituição do `.env` é marcada no instante do `rename`, antes do fsync do
+  diretório, de modo que falha de durabilidade ainda força restauração;
 - restauração exata do `.env`, novo restart e health obrigatório na falha;
+- se o fsync falhar depois do rename de restauração, o processo ainda reinicia
+  com os bytes seguros antes de o controlador reportar falha de durabilidade;
 - recibo sanitizado, sem segredo ou conteúdo completo do `.env`.
 
 O controlador não muda código, artefato, script ativo, aliases, stores,
@@ -46,12 +50,15 @@ lançamentos ou AWS.
 12. cenário em que `data/backups` não existe antes da operação;
 13. transições observáveis do produto provando
     `backup_durable → env_replaced → restart`;
-14. bytes originais restaurados antes do restart de rollback.
+14. bytes originais restaurados antes do restart de rollback;
+15. falha de fsync depois do rename inicial força restauração e restart seguro;
+16. falha de fsync depois do rename de rollback não impede o restart seguro e
+    permanece erro explícito.
 
 ## Evidência executada pelo Codex
 
-- focal final do controlador: `10/10`;
-- controlador mais instalador OCI reutilizado: `33/33`;
+- focal final do controlador: `12/12`;
+- controlador mais instalador OCI reutilizado: `35/35`;
 - tentativa ampla interrompida pelo limite local depois de `278` testes verdes
   e nenhuma falha; não é contabilizada como suíte concluída;
 - bateria afetada anterior ao último reforço exclusivamente probatório:

@@ -60,13 +60,17 @@ As flags funcionais foram preservadas: alerta, reconciliação e preview em
   `docs/audit/99-oci-whatsapp-readiness-window-independent-production-close-2026-07-31.md`.
 - controlador candidato:
   `docs/audit/100-open-finance-production-activation-controller-candidate-2026-07-31.md`;
-- testes focais do controlador: `10/10`;
-- controlador mais instalador OCI: `33/33`;
+- testes focais do controlador: `12/12`;
+- controlador mais instalador OCI: `35/35`;
 - o primeiro parecer independente do hash
   `b56fd6a930057788f0afe24ea93fee09aaf621bc` foi `NO-GO`: exigiu sincronizar
   no pai a criação de `data/backups` e tornar causalmente observável
   `backup → alteração` e `restauração → restart`;
 - o recovery implementa exatamente essas duas exigências;
+- a segunda reauditoria confirmou o fechamento das duas exigências e encontrou
+  a borda `rename` aplicado seguido de falha no fsync; o recovery marca a
+  substituição no instante do rename, restaura também nesse caso e mantém o
+  restart seguro mesmo se o fsync do rollback falhar;
 - bateria causal afetada: `92/92` antes do reforço final somente probatório.
 
 ## Critérios de GO

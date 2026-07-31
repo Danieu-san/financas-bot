@@ -245,7 +245,10 @@ function writePrivateNew(file, payload) {
     syncDirectory(path.dirname(file));
 }
 
-function writePrivateAtomic(file, payload) {
+function writePrivateAtomic(file, payload, {
+    onReplaced = () => {},
+    syncDirectoryFn = syncDirectory
+} = {}) {
     const directory = path.dirname(file);
     const temporary = path.join(
         directory,
@@ -260,7 +263,8 @@ function writePrivateAtomic(file, payload) {
         handle = undefined;
         fs.chmodSync(temporary, PRIVATE_FILE_MODE);
         fs.renameSync(temporary, file);
-        syncDirectory(directory);
+        onReplaced();
+        syncDirectoryFn(directory);
     } finally {
         if (handle !== undefined) fs.closeSync(handle);
         if (fs.existsSync(temporary)) fs.rmSync(temporary, { force: true });
@@ -332,7 +336,8 @@ async function applyActivationStage({
     runCommand = defaultRunCommand,
     healthCheck = defaultHealthCheck,
     now = () => new Date(),
-    observeTransition = () => {}
+    observeTransition = () => {},
+    atomicDirectorySync = syncDirectory
 }) {
     if (!confirmConfigChange) {
         throw new Error(
@@ -385,8 +390,12 @@ async function applyActivationStage({
     });
     let envChanged = false;
     try {
-        writePrivateAtomic(envPath, nextPayload);
-        envChanged = true;
+        writePrivateAtomic(envPath, nextPayload, {
+            onReplaced: () => {
+                envChanged = true;
+            },
+            syncDirectoryFn: atomicDirectorySync
+        });
         observeTransition('env_replaced', {
             backupPath,
             envPath
@@ -425,7 +434,24 @@ async function applyActivationStage({
         });
     } catch (error) {
         if (!envChanged) throw error;
-        writePrivateAtomic(envPath, raw);
+        let envRestored = false;
+        let rollbackDurabilityError = null;
+        try {
+            writePrivateAtomic(envPath, raw, {
+                onReplaced: () => {
+                    envRestored = true;
+                },
+                syncDirectoryFn: atomicDirectorySync
+            });
+        } catch (restoreError) {
+            if (!envRestored) {
+                throw new Error(
+                    `open_finance_activation_rollback_restore_failed:` +
+                    `${error.message}:${restoreError.message}`
+                );
+            }
+            rollbackDurabilityError = restoreError;
+        }
         observeTransition('env_restored', {
             backupPath,
             envPath
@@ -452,6 +478,12 @@ async function applyActivationStage({
             );
         }
         await runCommand('pm2', ['save'], { cwd: root });
+        if (rollbackDurabilityError) {
+            throw new Error(
+                `open_finance_activation_rollback_durability_failed:` +
+                `${error.message}:${rollbackDurabilityError.message}`
+            );
+        }
         throw new Error(
             `open_finance_activation_rolled_back:${error.message}`
         );
