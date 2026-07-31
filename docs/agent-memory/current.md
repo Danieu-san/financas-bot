@@ -108,35 +108,19 @@ zero falhas e cinco skips previstos.
 - raiz canônica recuperada:
   `C:\Users\Administrador\Documents\FinancasBot\financas-bot`.
 
-## Próximo gate
+## Gate final encerrado
 
-`AUDIT-FINAL-01` está em andamento sobre a base
-`7682dd4d16835ae6887a2b493108a3517bd9ffb7`. O gate consolida ancestralidade,
-inventário atual, causalidade entre correções, suíte hermética e revisão
-independente antes de qualquer preparação OCI. Produção continua fora do
-escopo.
+`AUDIT-FINAL-01` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
+`18248db41356974f80842dc39690165891c3f642`. O primeiro candidato
+`60c1421272887b46f26fdb06091b74ed71c37d8b` havia recebido `NO-GO`; os dois
+`HIGH` e o `LOW` foram reproduzidos e encerrados no recovery.
 
-A matriz local confirmou 29/29 fechamentos ancestrais e com sinal independente
-de GO; 27 documentos vinculam literalmente o hash e as duas exceções legadas
-serão revinculadas pela revisão deste commit atual. O inventário mede 160 fontes,
-129 módulos de runtime, zero import de produto quebrado e zero referência
-operacional ausente. As provas de composição passaram 50/50 e o isolamento
-endurecido passou 28/28. O candidato está em
-`docs/audit/84-final-consolidated-audit-candidate-2026-07-30.md`.
-
-O candidato imutável
-`60c1421272887b46f26fdb06091b74ed71c37d8b` recebeu `NO-GO` independente:
-dois `HIGH` mostraram que `NO-GO` podia satisfazer o sinal textual positivo,
-que novas exceções de hash podiam ser declaradas e que o allowlist Git/Tar
-aceitava raízes temporárias amplas. Os bypasses foram reproduzidos e corrigidos.
-A matriz agora fixa exatamente as duas exceções históricas; Git mutável ficou
-restrito ao fixture; Git/Tar usam raiz privada, comandos e nomes exatos e
-confinamento por `realpath`.
-
-O recovery local passou `30/30` provas focais, `12/12` dentro do isolamento e
-a suíte hermética final registrou `1.377` testes, `1.372` aprovados, zero falha
-e cinco skips esperados. O candidato de recuperação está em
-`docs/audit/85-final-consolidated-audit-recovery-candidate-2026-07-30.md`.
+A matriz confirmou `29/29` fechamentos e exatamente duas exceções legadas. O
+recovery passou `30/30` provas focais, `12/12` dentro do isolamento e a suíte
+hermética final registrou `1.377` testes, `1.372` aprovados, zero falha e cinco
+skips esperados. O parecer zerou todas as severidades e não encontrou lacuna
+indispensável. Fechamento:
+`docs/audit/86-final-consolidated-audit-independent-close-2026-07-30.md`.
 
 Os três itens da fila pós-9P.4 e a composição operacional estão tecnicamente
 encerrados. A política fail-closed recebeu `GO TÉCNICO LOCAL` independente no
@@ -167,8 +151,8 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar o recovery sanitizado em novo hash imutável e obter reauditoria
-independente no Chat, sem acessar produção.
+Registrar o fechamento no Git e selecionar o próximo gate planejado, sem
+acessar produção.
 
 ## Capacidade para retomar
 

@@ -7,7 +7,7 @@ Base:
 
 ## Estado
 
-`RECOVERY LOCAL VERDE, AGUARDANDO NOVO HASH E REAUDITORIA`.
+`GO TÉCNICO LOCAL — ENCERRADO`.
 
 ## Objetivo
 
@@ -52,8 +52,8 @@ release OCI antes de qualquer preparação ou deploy.
 3. [concluído] Executar provas de composição e estabilizar a suíte hermética.
 4. [concluído] Publicar o primeiro candidato sanitizado e imutável.
 5. [concluído] Obter auditoria independente: `NO-GO`, com dois `HIGH`.
-6. [em andamento] Publicar o recovery local verde e obter reauditoria
-   independente antes do fechamento sem deploy.
+6. [concluído] Publicar o recovery, obter `GO TÉCNICO LOCAL` independente e
+   registrar o fechamento sem deploy.
 
 ## Critérios de GO
 
@@ -76,8 +76,8 @@ release OCI antes de qualquer preparação ou deploy.
 
 ## Próxima ação exata
 
-Revisar e publicar o recovery sanitizado, fornecer o novo hash imutável ao
-Chat e confrontar o parecer com a suíte hermética final `1.377/1.372/0/5`.
+Registrar o fechamento no Git e selecionar o próximo gate de produto em
+workstream próprio. Produção e deploy continuam fora do alcance.
 
 ## Capacidade
 
