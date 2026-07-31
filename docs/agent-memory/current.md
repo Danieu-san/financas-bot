@@ -133,12 +133,17 @@ não inicia o processo anterior se não conseguir remover o candidato. A suíte
 focal está verde em `13/13`; o artefato exato foi verificado com `688` arquivos.
 Nenhuma ação remota foi executada.
 
+PHASE8-OBS-01 recebeu `GO TÉCNICO LOCAL` independente no commit imutável
+`abf411e0831d90bc9628f56021475c9e23816de9`. O relatório lê o arquivo ativo e
+as rotações limitadas, preserva uso real arquivado e linhas inválidas e não
+autoriza soft-disable, flag, restart, deploy ou produção. O fechamento está em
+`docs/audit/88-phase8-tripwire-rotation-proof-independent-close-2026-07-30.md`.
+
 Plano corrente: `docs/plans/current-gate.md`.
 
 ## Decisões vigentes
 
-- manter `Codex → Sol → Extra Alto` ao consolidar causalidade, controles e
-  pré-requisitos operacionais do caminho proativo completo;
+- usar `Codex → Sol → Alto` no gate causal de recuperação de áudio;
 - parar e avisar Daniel antes de reduzir ou trocar capacidade;
 - a produção vigente é Oracle/OCI; não reutilizar caminhos AWS e não executar
   Oracle e AWS simultaneamente com a mesma sessão WhatsApp;
@@ -151,12 +156,14 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Registrar o fechamento no Git e selecionar o próximo gate planejado, sem
-acessar produção.
+Executar `AUDIO-01`: corrigir a falha anterior ao FFmpeg em
+`msg.downloadMedia()`, com retentativa limitada, reaquisição segura da mensagem
+e testes causais. Depois, abrir gate separado para dashboard, saldos Pluggy e
+alertas familiares proativos.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Extra Alto → executar a auditoria final exaustiva consolidada.`
+`Codex → Sol → Alto → corrigir e auditar o gate AUDIO-01.`
 
 ## Fila de produto posterior
 

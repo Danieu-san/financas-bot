@@ -1,84 +1,71 @@
-# Gate ativo — AUDIT-FINAL-01 consolidação exaustiva
+# Gate ativo - AUDIO-01 recuperacao do download de voz
 
 Atualizado em: 2026-07-30
 
 Base:
-`7682dd4d16835ae6887a2b493108a3517bd9ffb7`.
+`abf411e0831d90bc9628f56021475c9e23816de9`.
 
 ## Estado
 
-`GO TÉCNICO LOCAL — ENCERRADO`.
+`EM IMPLEMENTACAO LOCAL`.
 
 ## Objetivo
 
-Revalidar, em um único objeto imutável, a composição das correções da auditoria
-exaustiva original, dos gates Open Finance proativos, do liveness WhatsApp e do
-release OCI antes de qualquer preparação ou deploy.
+Recuperar de falhas transitorias de `msg.downloadMedia()` em mensagens de voz
+sem duplicar o processamento, expor conteudo privado ou transformar falha de
+download em transcricao vazia.
 
 ## Escopo
 
-- ancestralidade e rastreabilidade de todos os fechamentos;
-- inventário atual de runtime, entrypoints e testes;
-- composição entre identidade, lifecycle, estado, fontes e efeitos;
-- proposta Open Finance até confirmação final e recibo;
-- ativação fail-closed e preservação de escrita desligada;
-- liveness, serialização e recovery do WhatsApp;
-- integridade do release OCI por artefato;
-- suíte hermética local única e auditoria independente por hash.
+- retentativa limitada de download;
+- reacquisicao da mensagem pelo ID publico da biblioteca;
+- habilitacao defensiva do auto-download de audio quando suportada;
+- temporarios isolados e removidos;
+- regressao causal para falha inicial seguida de sucesso e exaustao.
 
 ## Não escopo
 
-- SSH, upload, preparação, PM2, restart ou deploy OCI;
-- Google, Pluggy ou WhatsApp reais;
-- alteração de flags ou escrita financeira;
-- remoção de legado da Fase 8;
-- expansão multiusuário além do casal autorizado.
+- dashboard, Pluggy, saldos, alertas ou proposta de salvamento;
+- mudanca de provedor de transcricao;
+- mensagem de voz real, restart ou deploy OCI;
+- alteracao de sessao WhatsApp.
 
 ## Invariantes
 
-1. Todo fechamento obrigatório pertence à história do HEAD auditado.
-2. Nenhum `GO` documental substitui código e teste vigente.
-3. Ausência, erro, ambiguidade, replay ou combinação parcial falha fechado.
-4. Escrita Open Finance exige proposta, revalidação e confirmação final.
-5. Um remetente não produz efeitos financeiros concorrentes sobrepostos.
-6. Liveness degradado não pode permanecer health verde indefinidamente.
-7. Release local não equivale a instalação nem autorização de deploy.
-8. Produção e dados reais permanecem intocados.
+1. Cada mensagem produz no maximo uma transcricao.
+2. Falha de download nao chama Gemini nem FFmpeg.
+3. Logs nao contem audio, transcricao, ID de mensagem ou caminho privado.
+4. Toda tentativa termina com limpeza dos temporarios pertencentes ao handler.
+5. Exaustao responde de forma segura e nao envenena mensagens posteriores.
 
 ## Etapas
 
-1. [concluído] Gerar matriz reproduzível de fechamentos e ancestralidade.
-2. [concluído] Reexecutar inventário atual e revisar deltas desde a auditoria.
-3. [concluído] Executar provas de composição e estabilizar a suíte hermética.
-4. [concluído] Publicar o primeiro candidato sanitizado e imutável.
-5. [concluído] Obter auditoria independente: `NO-GO`, com dois `HIGH`.
-6. [concluído] Publicar o recovery, obter `GO TÉCNICO LOCAL` independente e
-   registrar o fechamento sem deploy.
+1. [concluido] Diagnosticar a fronteira da falha em producao.
+2. [pendente] Escrever regressao RED para retry/reacquisicao.
+3. [pendente] Implementar recuperacao minima.
+4. [pendente] Executar testes focais e afetados.
+5. [pendente] Publicar candidato sanitizado e auditar no Chat.
 
 ## Critérios de GO
 
-- matriz obrigatória completa, sem hash ausente da história;
-- zero caminho runtime/import quebrado;
-- suíte hermética válida, sem falha e sem rede externa observada nos canais
-  cobertos;
-- provas focais de composição verdes;
-- nenhum segredo, estado ou dado real no candidato;
-- parecer independente sem lacuna indispensável;
-- limites locais e operacionais explicitamente preservados.
+- falha inicial e sucesso posterior retornam uma unica transcricao;
+- exaustao nao chama transcricao;
+- temporarios e privacidade permanecem verdes;
+- entrada publica afetada continua processando o texto transcrito uma vez;
+- auditoria independente sem lacuna indispensavel.
 
 ## Condições de parada
 
-- fechamento obrigatório não ancestral ou sem evidência suficiente;
-- regressão causal entre gates individualmente verdes;
-- teste hermético inválido ou efeito externo inesperado;
-- necessidade de produção, segredo ou autorização operacional;
+- necessidade de reiniciar ou alterar a sessao real;
+- recuperacao exigir dependencia nao documentada da pagina WhatsApp;
+- regressao de privacidade ou concorrencia;
 - `NO-GO` independente.
 
 ## Próxima ação exata
 
-Registrar o fechamento no Git e selecionar o próximo gate de produto em
-workstream próprio. Produção e deploy continuam fora do alcance.
+Criar a prova RED de falha inicial de download seguida de reacquisicao e
+sucesso.
 
 ## Capacidade
 
-`Codex → Sol → Extra Alto → executar a auditoria final exaustiva consolidada.`
+`Codex -> Sol -> Alto -> corrigir e auditar o gate AUDIO-01.`
