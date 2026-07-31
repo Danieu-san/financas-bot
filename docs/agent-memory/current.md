@@ -124,19 +124,23 @@ operacional ausente. As provas de composição passaram 50/50 e o isolamento
 endurecido passou 28/28. O candidato está em
 `docs/audit/84-final-consolidated-audit-candidate-2026-07-30.md`.
 
-OPS-02 recebeu `GO TÉCNICO LOCAL` independente no commit
-`ccd4d2e2bb8689d4f838cab21f92ffc6b8b5b6ff`. O parecer encerrou o `HIGH`, os
-dois `MEDIUM` e o `LOW`, com zero achado residual e nenhuma lacuna indispensável
-dentro do processo único. O fechamento está em
-`docs/audit/63-ops02-independent-close-2026-07-30.md`.
+O candidato imutável
+`60c1421272887b46f26fdb06091b74ed71c37d8b` recebeu `NO-GO` independente:
+dois `HIGH` mostraram que `NO-GO` podia satisfazer o sinal textual positivo,
+que novas exceções de hash podiam ser declaradas e que o allowlist Git/Tar
+aceitava raízes temporárias amplas. Os bypasses foram reproduzidos e corrigidos.
+A matriz agora fixa exatamente as duas exceções históricas; Git mutável ficou
+restrito ao fixture; Git/Tar usam raiz privada, comandos e nomes exatos e
+confinamento por `realpath`.
+
+O recovery local passou `30/30` provas focais, `12/12` dentro do isolamento e
+a suíte hermética final registrou `1.377` testes, `1.372` aprovados, zero falha
+e cinco skips esperados. O candidato de recuperação está em
+`docs/audit/85-final-consolidated-audit-recovery-candidate-2026-07-30.md`.
 
 Os três itens da fila pós-9P.4 e a composição operacional estão tecnicamente
 encerrados. A política fail-closed recebeu `GO TÉCNICO LOCAL` independente no
 hash `8fa365353c693c7ba34cde62d2a1a8799a3f41e0`.
-
-O próximo pré-requisito é alinhar o processo de release ao runtime Oracle/OCI
-por artefato imutável. O checklist antigo ainda contém passos de EC2 e checkout
-Git que não podem ser usados na produção vigente.
 
 OPS-03 recebeu `NO-GO` no primeiro candidato e `GO TÉCNICO LOCAL` independente
 no recovery `461e79ae52903ff7160916026abfe833b3ab589e`. O builder exige SHA
@@ -163,8 +167,8 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Executar a suíte hermética final sobre a árvore congelada, publicar o commit
-sanitizado e obter auditoria independente no Chat, sem acessar produção.
+Publicar o recovery sanitizado em novo hash imutável e obter reauditoria
+independente no Chat, sem acessar produção.
 
 ## Capacidade para retomar
 

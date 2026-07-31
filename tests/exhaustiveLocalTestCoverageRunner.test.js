@@ -215,6 +215,133 @@ test('coverage runner scrubs credentials and propagates network blocking to Node
     assert.strictEqual(child.status, 0, child.stderr);
 });
 
+test('coverage runner confines Git and Tar to exact controlled roots', () => {
+    const inheritedAuditRoot =
+        process.env.EXHAUSTIVE_AUDIT_TEMP_ROOT || null;
+    const auditRoot = inheritedAuditRoot
+        ? fs.realpathSync(inheritedAuditRoot)
+        : fs.mkdtempSync(
+            path.join(os.tmpdir(), 'financasbot-exhaustive-test-')
+        );
+    const ownsAuditRoot = !inheritedAuditRoot;
+    const outsideRepo = fs.mkdtempSync(
+        path.join(os.tmpdir(), 'financasbot-release-repo-')
+    );
+    const outsideTarget = fs.mkdtempSync(
+        path.join(os.tmpdir(), 'financasbot-release-escape-')
+    );
+    let fixtureRepo = null;
+    let buildRoot = null;
+    let outputRoot = null;
+    let linkedOutput = null;
+    try {
+        fixtureRepo = fs.mkdtempSync(
+            path.join(auditRoot, 'financasbot-release-repo-')
+        );
+        buildRoot = fs.mkdtempSync(
+            path.join(auditRoot, 'financasbot-build-')
+        );
+        const tree = path.join(buildRoot, 'tree');
+        fs.mkdirSync(tree);
+        outputRoot = fs.mkdtempSync(
+            path.join(auditRoot, 'financasbot-release-output-')
+        );
+        linkedOutput = path.join(
+            auditRoot,
+            'financasbot-release-output-linked'
+        );
+        fs.symlinkSync(outsideTarget, linkedOutput, 'junction');
+        const commit = 'a'.repeat(40);
+        const environment = buildHermeticTestEnvironment(
+            {
+                ...process.env,
+                TEMP: os.tmpdir()
+            },
+            { auditTempRoot: auditRoot }
+        );
+        const child = spawnSync(process.execPath, [
+            '-e',
+            `const assert = require('node:assert/strict');
+            const path = require('node:path');
+            const tripwire = require(${JSON.stringify(
+                path.join(ROOT, 'tests', 'helpers', 'exhaustiveNetworkTripwire.js')
+            )});
+            const git = process.env.EXHAUSTIVE_LOCAL_GIT_PATH;
+            const tar = process.env.EXHAUSTIVE_LOCAL_TAR_PATH;
+            const commit = ${JSON.stringify(commit)};
+            assert.equal(tripwire.isAuditedLocalGitCommand(
+                git,
+                ['init', '--quiet'],
+                { cwd: ${JSON.stringify(ROOT)} }
+            ), false);
+            assert.equal(tripwire.isAuditedLocalGitCommand(
+                git,
+                ['init', '--quiet'],
+                { cwd: ${JSON.stringify(fixtureRepo)} }
+            ), true);
+            assert.equal(tripwire.isAuditedLocalGitCommand(
+                git,
+                ['init', '--quiet'],
+                { cwd: ${JSON.stringify(outsideRepo)} }
+            ), false);
+            assert.equal(tripwire.isAuditedLocalGitCommand(
+                git,
+                [
+                    'archive',
+                    '--format=tar',
+                    '--output=' + path.join(${JSON.stringify(outsideTarget)}, 'source.tar'),
+                    commit
+                ],
+                { cwd: ${JSON.stringify(ROOT)} }
+            ), false);
+            assert.equal(tripwire.isAuditedLocalTarCommand(
+                tar,
+                [
+                    '-czf',
+                    path.join(
+                        ${JSON.stringify(outputRoot)},
+                        'financas-bot-' + commit + '.tar.gz'
+                    ),
+                    '-C',
+                    ${JSON.stringify(tree)},
+                    '.'
+                ]
+            ), true);
+            assert.equal(tripwire.isAuditedLocalTarCommand(
+                tar,
+                [
+                    '-czf',
+                    path.join(
+                        ${JSON.stringify(linkedOutput)},
+                        'financas-bot-' + commit + '.tar.gz'
+                    ),
+                    '-C',
+                    ${JSON.stringify(tree)},
+                    '.'
+                ]
+            ), false);`
+        ], {
+            env: environment,
+            encoding: 'utf8'
+        });
+        assert.strictEqual(child.status, 0, child.stderr);
+    } finally {
+        for (const target of [
+            linkedOutput,
+            fixtureRepo,
+            buildRoot,
+            outputRoot
+        ]) {
+            if (target) fs.rmSync(target, { recursive: true, force: true });
+        }
+        if (ownsAuditRoot) {
+            fs.rmSync(auditRoot, { recursive: true, force: true });
+        }
+        fs.rmSync(outsideRepo, { recursive: true, force: true });
+        fs.rmSync(outsideTarget, { recursive: true, force: true });
+    }
+});
+
 test('coverage runner serializes local test files to avoid shared runtime races', () => {
     const args = buildNodeTestArgs([
         path.join(ROOT, 'tests', 'financialAgent.test.js'),

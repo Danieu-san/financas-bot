@@ -1,4 +1,5 @@
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
@@ -219,7 +220,10 @@ function buildDescendantNodeOptions(existingNodeOptions = '') {
     return [`--require="${tripwirePath}"`, ...preservedFlags].join(' ');
 }
 
-function buildHermeticTestEnvironment(sourceEnvironment = process.env) {
+function buildHermeticTestEnvironment(
+    sourceEnvironment = process.env,
+    { auditTempRoot = null } = {}
+) {
     const environment = {};
     for (const key of SAFE_ENVIRONMENT_KEYS) {
         if (typeof sourceEnvironment[key] === 'string' && sourceEnvironment[key]) {
@@ -237,6 +241,9 @@ function buildHermeticTestEnvironment(sourceEnvironment = process.env) {
         OPEN_FINANCE_AUTO_SYNC_ENABLED: 'false',
         OPEN_FINANCE_LIVE_READ_ENABLED: 'false',
         EXHAUSTIVE_REPO_ROOT: ROOT,
+        EXHAUSTIVE_AUDIT_TEMP_ROOT: auditTempRoot
+            ? fs.realpathSync(auditTempRoot)
+            : '',
         EXHAUSTIVE_LOCAL_GIT_PATH: resolveExecutableOnPath('git', sourceEnvironment) || '',
         EXHAUSTIVE_LOCAL_TAR_PATH: resolveExecutableOnPath('tar', sourceEnvironment) || ''
     };
@@ -265,6 +272,9 @@ function runLocalCoverage() {
     const nestedTestEntries = findNestedTestEntries(allFiles);
     const files = listLocalTestFiles();
     const startedAt = Date.now();
+    const auditTempRoot = fs.mkdtempSync(
+        path.join(os.tmpdir(), 'financasbot-exhaustive-')
+    );
     const runtimeSnapshots = MUTABLE_RUNTIME_FILES.map(file => [file, captureFileSnapshot(file)]);
     let result;
     try {
@@ -272,10 +282,11 @@ function runLocalCoverage() {
             cwd: ROOT,
             encoding: 'utf8',
             maxBuffer: 128 * 1024 * 1024,
-            env: buildHermeticTestEnvironment()
+            env: buildHermeticTestEnvironment(process.env, { auditTempRoot })
         });
     } finally {
         for (const [file, snapshot] of runtimeSnapshots) restoreFileSnapshot(file, snapshot);
+        fs.rmSync(auditTempRoot, { recursive: true, force: true });
     }
     const output = `${result.stdout || ''}\n${result.stderr || ''}`;
     const tap = parseTapSummary(output);

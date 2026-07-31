@@ -20,9 +20,12 @@ const {
 } = require('../scripts/release/verifyOciReleaseRuntime');
 
 const COMMIT = 'a'.repeat(40);
+const TEST_TEMP_ROOT = process.env.EXHAUSTIVE_AUDIT_TEMP_ROOT
+    ? fs.realpathSync(process.env.EXHAUSTIVE_AUDIT_TEMP_ROOT)
+    : os.tmpdir();
 
 function tempDir(prefix) {
-    return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+    return fs.mkdtempSync(path.join(TEST_TEMP_ROOT, prefix));
 }
 
 function write(root, relativePath, content) {

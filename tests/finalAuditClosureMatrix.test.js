@@ -3,7 +3,9 @@ const path = require('node:path');
 const test = require('node:test');
 
 const {
+    LEGACY_HASH_BINDING_EXCEPTIONS,
     REQUIRED_GATE_IDS,
+    hasPositiveGoSignal,
     loadManifest,
     normalizeVerdict,
     validateClosureManifest
@@ -59,13 +61,63 @@ test('AUDIT-FINAL-01 rejects non-immutable hashes before invoking Git', () => {
     );
 });
 
-test('AUDIT-FINAL-01 recognizes normalized independent GO signals', () => {
+test('AUDIT-FINAL-01 recognizes only positive independent GO signals', () => {
+    assert.equal(hasPositiveGoSignal('GO TÉCNICO LOCAL'), true);
+    assert.equal(hasPositiveGoSignal('GO local formal'), true);
+    assert.equal(hasPositiveGoSignal('NO-GO TÉCNICO LOCAL'), false);
+    assert.equal(hasPositiveGoSignal('NO GO local formal'), false);
     assert.equal(
-        normalizeVerdict('GO TÉCNICO LOCAL').includes('GO TECNICO LOCAL'),
+        hasPositiveGoSignal(
+            'Candidato anterior: NO-GO TÉCNICO LOCAL.\n' +
+            'Veredito independente: GO TÉCNICO LOCAL.'
+        ),
         true
     );
     assert.equal(
-        normalizeVerdict('GO local formal').includes('GO LOCAL FORMAL'),
-        true
+        normalizeVerdict('GO TÉCNICO LOCAL'),
+        'GO TECNICO LOCAL'
+    );
+});
+
+test('AUDIT-FINAL-01 fixes the two legacy hash exceptions by identity', () => {
+    assert.deepEqual(
+        Object.keys(LEGACY_HASH_BINDING_EXCEPTIONS),
+        ['AUTH-01', 'C-02_WGL-01']
+    );
+
+    const extraException = clone(loadManifest(REPO_ROOT, MANIFEST_PATH));
+    extraException.closures.find(closure =>
+        closure.id === 'OPS-03').hash_documented = false;
+    assert.throws(
+        () => validateClosureManifest({
+            repoRoot: REPO_ROOT,
+            manifest: extraException,
+            git: () => ''
+        }),
+        /final_audit_legacy_hash_binding_set_mismatch:OPS-03/
+    );
+
+    const removedException = clone(loadManifest(REPO_ROOT, MANIFEST_PATH));
+    removedException.closures.find(closure =>
+        closure.id === 'AUTH-01').hash_documented = true;
+    assert.throws(
+        () => validateClosureManifest({
+            repoRoot: REPO_ROOT,
+            manifest: removedException,
+            git: () => ''
+        }),
+        /final_audit_legacy_hash_binding_set_mismatch:AUTH-01/
+    );
+
+    const changedIdentity = clone(loadManifest(REPO_ROOT, MANIFEST_PATH));
+    changedIdentity.closures.find(closure =>
+        closure.id === 'C-02_WGL-01').candidate_hash = 'a'.repeat(40);
+    assert.throws(
+        () => validateClosureManifest({
+            repoRoot: REPO_ROOT,
+            manifest: changedIdentity,
+            git: () => ''
+        }),
+        /final_audit_legacy_hash_binding_identity_mismatch:C-02_WGL-01/
     );
 });

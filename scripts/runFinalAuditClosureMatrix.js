@@ -34,6 +34,17 @@ const REQUIRED_GATE_IDS = Object.freeze([
     'WRITE-ACTIVATION',
     'OPS-03'
 ]);
+const LEGACY_HASH_BINDING_EXCEPTIONS = Object.freeze({
+    'AUTH-01': Object.freeze({
+        candidate_hash: '7f61aaa0c3f7298cdd85c096b7d2164d7b97df91',
+        closure_doc: 'docs/audit/final-report.md'
+    }),
+    'C-02_WGL-01': Object.freeze({
+        candidate_hash: 'c03f7d4db74e9cda9308fe86451748303dfd07cd',
+        closure_doc:
+            'docs/audit/correction-packets/2026-07-18-c02-oauth-lifecycle-precedence.md'
+    })
+});
 
 function runGit(repoRoot, args) {
     const result = spawnSync(process.env.EXHAUSTIVE_LOCAL_GIT_PATH || 'git', args, {
@@ -55,6 +66,16 @@ function normalizeVerdict(text) {
         .normalize('NFD')
         .replace(/\p{M}/gu, '')
         .toUpperCase();
+}
+
+function hasPositiveGoSignal(text) {
+    const normalized = normalizeVerdict(text);
+    const withoutNegativeSignals = normalized.replace(
+        /\bNO\s*[-–—]?\s*GO\s+(?:TECNICO LOCAL|LOCAL FORMAL|LOCAL INTEGRAL)\b/g,
+        ''
+    );
+    return /\bGO\s+(?:TECNICO LOCAL|LOCAL FORMAL|LOCAL INTEGRAL)\b/
+        .test(withoutNegativeSignals);
 }
 
 function assertRelativeAuditPath(relativePath) {
@@ -96,16 +117,32 @@ function validateClosureManifest({
             throw new Error(`final_audit_hash_invalid:${closure?.id}`);
         }
         const relativeDoc = assertRelativeAuditPath(closure?.closure_doc);
+        if (typeof closure?.hash_documented !== 'boolean') {
+            throw new Error(
+                `final_audit_hash_documented_invalid:${closure?.id}`
+            );
+        }
+        const legacyException =
+            LEGACY_HASH_BINDING_EXCEPTIONS[closure.id] || null;
+        if (closure.hash_documented === Boolean(legacyException)) {
+            throw new Error(
+                `final_audit_legacy_hash_binding_set_mismatch:${closure.id}`
+            );
+        }
+        if (legacyException &&
+            (candidateHash !== legacyException.candidate_hash ||
+                relativeDoc !== legacyException.closure_doc)) {
+            throw new Error(
+                `final_audit_legacy_hash_binding_identity_mismatch:${closure.id}`
+            );
+        }
         const absoluteDoc = path.resolve(repoRoot, ...relativeDoc.split('/'));
         if (!absoluteDoc.startsWith(`${path.resolve(repoRoot)}${path.sep}`) ||
             !fs.existsSync(absoluteDoc)) {
             throw new Error(`final_audit_closure_missing:${closure.id}`);
         }
         const document = fs.readFileSync(absoluteDoc, 'utf8');
-        const verdict = normalizeVerdict(document);
-        if (!verdict.includes('GO TECNICO LOCAL') &&
-            !verdict.includes('GO LOCAL FORMAL') &&
-            !verdict.includes('GO LOCAL INTEGRAL')) {
+        if (!hasPositiveGoSignal(document)) {
             throw new Error(`final_audit_go_signal_missing:${closure.id}`);
         }
         if (closure.hash_documented === true &&
@@ -163,7 +200,9 @@ if (require.main === module) {
 }
 
 module.exports = {
+    LEGACY_HASH_BINDING_EXCEPTIONS,
     REQUIRED_GATE_IDS,
+    hasPositiveGoSignal,
     loadManifest,
     normalizeVerdict,
     validateClosureManifest

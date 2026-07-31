@@ -28,6 +28,17 @@ const PROTECTED_PREFIXES = [
     'private/'
 ];
 
+function temporaryBase() {
+    const configured = process.env.EXHAUSTIVE_AUDIT_TEMP_ROOT;
+    if (!configured) return os.tmpdir();
+    if (!path.isAbsolute(configured) ||
+        !fs.existsSync(configured) ||
+        !fs.statSync(configured).isDirectory()) {
+        throw new Error('oci_release_audit_temp_root_invalid');
+    }
+    return fs.realpathSync(configured);
+}
+
 function normalizeArtifactPath(value) {
     let normalized = String(value || '').replaceAll('\\', '/');
     while (normalized.startsWith('./')) normalized = normalized.slice(2);
@@ -424,7 +435,9 @@ async function buildArtifact({
     assertArtifactPathsSafe(tracked);
 
     fs.mkdirSync(absoluteOutput, { recursive: true });
-    const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-build-'));
+    const scratch = fs.mkdtempSync(
+        path.join(temporaryBase(), 'financasbot-build-')
+    );
     try {
         const sourceTar = path.join(scratch, 'source.tar');
         const tree = path.join(scratch, 'tree');
@@ -623,7 +636,9 @@ async function prepareArtifact({
 }) {
     verifyChecksumFile(artifactPath, checksumPath);
     listArchiveEntries(artifactPath);
-    const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-verify-'));
+    const scratch = fs.mkdtempSync(
+        path.join(temporaryBase(), 'financasbot-verify-')
+    );
     try {
         extractArchive(artifactPath, scratch);
         return await prepareExtractedRelease({

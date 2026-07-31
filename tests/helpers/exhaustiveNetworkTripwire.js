@@ -1,11 +1,42 @@
 const http = require('node:http');
 const https = require('node:https');
+const fs = require('node:fs');
 const net = require('node:net');
-const os = require('node:os');
 const path = require('node:path');
 const childProcess = require('node:child_process');
 
 const COMMIT_PATTERN = /^[a-f0-9]{40}$/;
+const RELEASE_ARTIFACT_PATTERN =
+    /^financas-bot-[a-f0-9]{40}\.tar\.gz$/;
+
+function canonicalExistingPath(value) {
+    if (typeof value !== 'string' || !value || !path.isAbsolute(value)) {
+        return null;
+    }
+    try {
+        return fs.realpathSync(value);
+    } catch {
+        return null;
+    }
+}
+
+function samePath(left, right) {
+    if (!left || !right) return false;
+    const resolvedLeft = path.resolve(left);
+    const resolvedRight = path.resolve(right);
+    return process.platform === 'win32'
+        ? resolvedLeft.toLowerCase() === resolvedRight.toLowerCase()
+        : resolvedLeft === resolvedRight;
+}
+
+const AUDITED_GIT_EXECUTABLE =
+    canonicalExistingPath(process.env.EXHAUSTIVE_LOCAL_GIT_PATH);
+const AUDITED_TAR_EXECUTABLE =
+    canonicalExistingPath(process.env.EXHAUSTIVE_LOCAL_TAR_PATH);
+const AUDITED_REPO_ROOT =
+    canonicalExistingPath(process.env.EXHAUSTIVE_REPO_ROOT);
+const AUDITED_TEMP_ROOT =
+    canonicalExistingPath(process.env.EXHAUSTIVE_AUDIT_TEMP_ROOT);
 
 function normalizeHost(value) {
     return String(value || '').trim().toLowerCase().replace(/^\[|\]$/g, '');
@@ -51,14 +82,7 @@ function isCurrentNodeExecutable(command) {
 }
 
 function isAuditedLocalGitExecutable(command) {
-    const auditedPath = process.env.EXHAUSTIVE_LOCAL_GIT_PATH;
-    if (typeof command !== 'string' || !command || !auditedPath ||
-        !path.isAbsolute(auditedPath)) return false;
-    const resolvedCommand = path.resolve(command);
-    const resolvedAuditedPath = path.resolve(auditedPath);
-    return process.platform === 'win32'
-        ? resolvedCommand.toLowerCase() === resolvedAuditedPath.toLowerCase()
-        : resolvedCommand === resolvedAuditedPath;
+    return samePath(canonicalExistingPath(command), AUDITED_GIT_EXECUTABLE);
 }
 
 function isCommitObject(value) {
@@ -68,30 +92,82 @@ function isCommitObject(value) {
 
 function resolvedCwd(options) {
     const source = options && typeof options === 'object' ? options : {};
-    return path.resolve(source.cwd || process.cwd());
+    return canonicalExistingPath(
+        path.resolve(source.cwd || process.cwd())
+    );
 }
 
-function isWithin(parent, candidate) {
-    const relative = path.relative(path.resolve(parent), path.resolve(candidate));
-    return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+function isDirectControlledDirectory(candidate, prefix) {
+    if (!AUDITED_TEMP_ROOT || !candidate) return false;
+    const realCandidate = canonicalExistingPath(candidate);
+    return Boolean(realCandidate) &&
+        samePath(path.dirname(realCandidate), AUDITED_TEMP_ROOT) &&
+        path.basename(realCandidate).startsWith(prefix);
 }
 
-function isAuditedGitDirectory(options) {
+function auditedGitDirectoryKind(options) {
     const cwd = resolvedCwd(options);
-    const repoRoot = process.env.EXHAUSTIVE_REPO_ROOT;
-    if (repoRoot && path.isAbsolute(repoRoot) &&
-        path.resolve(repoRoot) === cwd) return true;
-    return isWithin(os.tmpdir(), cwd) &&
-        path.basename(cwd).startsWith('financasbot-release-repo-');
+    if (samePath(cwd, AUDITED_REPO_ROOT)) return 'audited_repo';
+    if (isDirectControlledDirectory(
+        cwd,
+        'financasbot-release-repo-'
+    )) return 'release_fixture';
+    return null;
+}
+
+function controlledMissingFile(candidate, {
+    directoryPrefix,
+    basenamePattern
+}) {
+    if (!AUDITED_TEMP_ROOT || typeof candidate !== 'string' ||
+        !path.isAbsolute(candidate)) return false;
+    const parent = canonicalExistingPath(path.dirname(candidate));
+    if (!isDirectControlledDirectory(parent, directoryPrefix)) return false;
+    if (fs.existsSync(candidate) &&
+        !samePath(
+            canonicalExistingPath(candidate),
+            path.join(parent, path.basename(candidate))
+        )) return false;
+    return basenamePattern.test(path.basename(candidate));
+}
+
+function isControlledGitArchiveOutput(candidate) {
+    return controlledMissingFile(candidate, {
+        directoryPrefix: 'financasbot-build-',
+        basenamePattern: /^source\.tar$/
+    });
+}
+
+function isControlledTarOutput(candidate) {
+    return controlledMissingFile(candidate, {
+        directoryPrefix: 'financasbot-release-output-',
+        basenamePattern: RELEASE_ARTIFACT_PATTERN
+    });
+}
+
+function isControlledTarSource(candidate) {
+    if (!AUDITED_TEMP_ROOT || typeof candidate !== 'string' ||
+        !path.isAbsolute(candidate)) return false;
+    const source = canonicalExistingPath(candidate);
+    if (!source || path.basename(source) !== 'tree') return false;
+    return isDirectControlledDirectory(
+        path.dirname(source),
+        'financasbot-build-'
+    );
 }
 
 function isAuditedLocalGitCommand(command, args, options) {
     if (!isAuditedLocalGitExecutable(command) || !Array.isArray(args)) return false;
-    if (!isAuditedGitDirectory(options)) return false;
-    if (args.length === 2 && args[0] === 'init' && args[1] === '--quiet') return true;
+    const directoryKind = auditedGitDirectoryKind(options);
+    if (!directoryKind) return false;
+    if (directoryKind === 'release_fixture' &&
+        args.length === 2 && args[0] === 'init' &&
+        args[1] === '--quiet') return true;
     if (args.length === 3 && args[0] === 'add' &&
+        directoryKind === 'release_fixture' &&
         args[1] === 'index.js' && args[2] === 'package.json') return true;
     if (args.length === 5 && args[0] === 'commit' && args[1] === '--quiet' &&
+        directoryKind === 'release_fixture' &&
         args[2] === '--no-verify' && args[3] === '-m' && args[4] === 'fixture') return true;
     if (args.length === 2 && args[0] === 'rev-parse' && args[1] === 'HEAD') return true;
     if (args.length === 3 && args[0] === 'rev-parse' && args[1] === '--verify' &&
@@ -105,31 +181,36 @@ function isAuditedLocalGitCommand(command, args, options) {
         args[2] === '--name-only' && COMMIT_PATTERN.test(args[3])) return true;
     if (args.length === 4 && args[0] === 'archive' && args[1] === '--format=tar' &&
         args[2].startsWith('--output=') &&
-        path.isAbsolute(args[2].slice('--output='.length)) &&
+        isControlledGitArchiveOutput(
+            args[2].slice('--output='.length)
+        ) &&
         COMMIT_PATTERN.test(args[3])) return true;
     return false;
 }
 
 function isAuditedLocalTarCommand(command, args) {
-    const auditedPath = process.env.EXHAUSTIVE_LOCAL_TAR_PATH;
-    if (typeof command !== 'string' || !command || !auditedPath ||
-        !path.isAbsolute(auditedPath) || !Array.isArray(args)) return false;
-    const resolvedCommand = path.resolve(command);
-    const resolvedAuditedPath = path.resolve(auditedPath);
-    const executableMatches = process.platform === 'win32'
-        ? resolvedCommand.toLowerCase() === resolvedAuditedPath.toLowerCase()
-        : resolvedCommand === resolvedAuditedPath;
-    return executableMatches && args.length === 5 && args[0] === '-czf' &&
-        path.isAbsolute(args[1]) && args[1].endsWith('.tar.gz') &&
-        isWithin(os.tmpdir(), args[1]) &&
+    if (!Array.isArray(args) ||
+        !samePath(
+            canonicalExistingPath(command),
+            AUDITED_TAR_EXECUTABLE
+        )) return false;
+    return args.length === 5 && args[0] === '-czf' &&
+        isControlledTarOutput(args[1]) &&
         args[2] === '-C' && path.isAbsolute(args[3]) &&
-        isWithin(os.tmpdir(), args[3]) && args[4] === '.';
+        isControlledTarSource(args[3]) && args[4] === '.';
 }
 
 function protectedChildOptions(options, protectedNodeOptions, auditedGit = false) {
     const source = options && typeof options === 'object' ? options : {};
     if (source.shell) throw blockedSubprocessError();
     const sourceEnvironment = { ...(source.env || process.env) };
+    sourceEnvironment.EXHAUSTIVE_LOCAL_GIT_PATH =
+        AUDITED_GIT_EXECUTABLE || '';
+    sourceEnvironment.EXHAUSTIVE_LOCAL_TAR_PATH =
+        AUDITED_TAR_EXECUTABLE || '';
+    sourceEnvironment.EXHAUSTIVE_REPO_ROOT = AUDITED_REPO_ROOT || '';
+    sourceEnvironment.EXHAUSTIVE_AUDIT_TEMP_ROOT =
+        AUDITED_TEMP_ROOT || '';
     if (auditedGit) {
         for (const key of Object.keys(sourceEnvironment)) {
             if (/^GIT_CONFIG_(?:COUNT|KEY_|VALUE_)/.test(key) ||

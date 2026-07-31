@@ -7,7 +7,7 @@ Base:
 
 ## Estado
 
-`AUDITORIA LOCAL EM ANDAMENTO`.
+`RECOVERY LOCAL VERDE, AGUARDANDO NOVO HASH E REAUDITORIA`.
 
 ## Objetivo
 
@@ -50,9 +50,10 @@ release OCI antes de qualquer preparação ou deploy.
 1. [concluído] Gerar matriz reproduzível de fechamentos e ancestralidade.
 2. [concluído] Reexecutar inventário atual e revisar deltas desde a auditoria.
 3. [concluído] Executar provas de composição e estabilizar a suíte hermética.
-4. [em andamento] Publicar candidato sanitizado e imutável.
-5. [pendente] Obter auditoria independente no Chat.
-6. [pendente] Corrigir achados ou registrar fechamento final sem deploy.
+4. [concluído] Publicar o primeiro candidato sanitizado e imutável.
+5. [concluído] Obter auditoria independente: `NO-GO`, com dois `HIGH`.
+6. [em andamento] Publicar o recovery local verde e obter reauditoria
+   independente antes do fechamento sem deploy.
 
 ## Critérios de GO
 
@@ -75,8 +76,8 @@ release OCI antes de qualquer preparação ou deploy.
 
 ## Próxima ação exata
 
-Executar a suíte hermética final sobre a árvore congelada, revisar o diff,
-publicar o candidato sanitizado e submetê-lo à auditoria independente no Chat.
+Revisar e publicar o recovery sanitizado, fornecer o novo hash imutável ao
+Chat e confrontar o parecer com a suíte hermética final `1.377/1.372/0/5`.
 
 ## Capacidade
 
