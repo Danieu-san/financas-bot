@@ -13,7 +13,9 @@ por artefato.
 3. `confirm` exige Daniel presente, segunda confirmação explícita, operation key
    e recibo.
 4. O controlador exige um único PM2 online no hash esperado.
-5. O `.env` é copiado para backup privado antes da alteração.
+5. Se `data/backups` precisar nascer, cada novo diretório e sua entrada no pai
+   são sincronizados; depois o `.env` é copiado para backup privado e durável
+   antes da alteração.
 6. Falha de restart ou health restaura exatamente o `.env`, reinicia o mesmo
    script e exige health verde.
 7. O health exige SQLite e WhatsApp `ready/healthy`.

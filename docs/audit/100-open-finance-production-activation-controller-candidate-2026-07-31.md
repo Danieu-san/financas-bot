@@ -18,7 +18,8 @@ gate.
 - `confirm` bloqueado sem três confirmações CLI explícitas;
 - inventário de um único PM2 e igualdade com o hash completo esperado;
 - health completo antes da mutação;
-- backup privado e durável do `.env`;
+- criação privada e durável de `data/backups`, sincronizando cada nova entrada
+  no diretório pai, seguida do backup privado e durável do `.env`;
 - escrita atômica do `.env`, restart limitado e health completo;
 - restauração exata do `.env`, novo restart e health obrigatório na falha;
 - recibo sanitizado, sem segredo ou conteúdo completo do `.env`.
@@ -42,11 +43,17 @@ lançamentos ou AWS.
 9. ausência de segredo no recibo;
 10. health inicial verde antes de qualquer backup ou alteração;
 11. `confirm` aplicado somente com as três confirmações ao vivo;
-12. backup já existente e privado antes do primeiro restart.
+12. cenário em que `data/backups` não existe antes da operação;
+13. transições observáveis do produto provando
+    `backup_durable → env_replaced → restart`;
+14. bytes originais restaurados antes do restart de rollback.
 
 ## Evidência executada pelo Codex
 
 - focal final do controlador: `10/10`;
+- controlador mais instalador OCI reutilizado: `33/33`;
+- tentativa ampla interrompida pelo limite local depois de `278` testes verdes
+  e nenhuma falha; não é contabilizada como suíte concluída;
 - bateria afetada anterior ao último reforço exclusivamente probatório:
   `92/92`;
 - sintaxe e `git diff --check`: verdes.
@@ -67,7 +74,8 @@ produto: apenas tornam explícitos o health prévio e a aplicação completa de
 
 ## Estado
 
-`CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE`.
+`RECOVERY DO NO-GO IMPLEMENTADO; CANDIDATO AGUARDANDO NOVA AUDITORIA
+INDEPENDENTE`.
 
 Mesmo com GO local, a etapa `confirm` permanece bloqueada até Daniel estar
 presente para operar o WhatsApp e conferir o único lançamento real.

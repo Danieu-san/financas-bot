@@ -14,11 +14,11 @@ const {
 
 const COMMIT = '8f89aec906439dba0024318bddee8d255747b54f';
 
-function createHarness() {
+function createHarness({ precreateBackups = true } = {}) {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'of-activation-'));
     const data = path.join(root, 'data');
     const backups = path.join(data, 'backups');
-    fs.mkdirSync(backups, { recursive: true });
+    fs.mkdirSync(precreateBackups ? backups : data, { recursive: true });
     const required = {
         OPEN_FINANCE_LIVE_STAGING_SECRET_FILE: path.join(data, 'secret'),
         OPEN_FINANCE_REVOCATION_JOURNAL_DB: path.join(data, 'journal.sqlite'),
@@ -169,9 +169,10 @@ test('PROD-ACT-01 requires live confirmations before confirm mutation', async ()
 });
 
 test('PROD-ACT-01 applies prompt transactionally without exposing secrets', async () => {
-    const harness = createHarness();
+    const harness = createHarness({ precreateBackups: false });
     const commands = [];
     const backups = path.join(harness.root, 'data', 'backups');
+    const transitions = [];
     try {
         const result = await applyActivationStage({
             targetRoot: harness.root,
@@ -183,7 +184,7 @@ test('PROD-ACT-01 applies prompt transactionally without exposing secrets', asyn
             runCommand: async (command, args) => {
                 commands.push([command, ...args]);
                 if (args[0] === 'jlist') {
-                    assert.equal(fs.readdirSync(backups).length, 0);
+                    assert.equal(fs.existsSync(backups), false);
                     assert.equal(
                         fs.readFileSync(harness.envPath, 'utf8'),
                         harness.raw
@@ -200,6 +201,23 @@ test('PROD-ACT-01 applies prompt transactionally without exposing secrets', asyn
                 return { stdout: '' };
             },
             healthCheck: async () => true,
+            observeTransition: (step, context) => {
+                transitions.push(step);
+                assert.equal(context.envPath, harness.envPath);
+                assert.equal(fs.existsSync(context.backupPath), true);
+                if (step === 'backup_durable') {
+                    assert.equal(
+                        fs.readFileSync(harness.envPath, 'utf8'),
+                        harness.raw
+                    );
+                }
+                if (step === 'env_replaced') {
+                    assert.match(
+                        fs.readFileSync(harness.envPath, 'utf8'),
+                        /OPEN_FINANCE_SAVE_PROPOSAL_MODE=prompt/
+                    );
+                }
+            },
             now: () => new Date('2026-07-31T12:00:00.000Z')
         });
         const next = fs.readFileSync(harness.envPath, 'utf8');
@@ -215,6 +233,10 @@ test('PROD-ACT-01 applies prompt transactionally without exposing secrets', asyn
         assert.equal(result.financial_write_enabled, false);
         assert.equal(JSON.stringify(result).includes('not-for-output'), false);
         assert.equal(result.rollback_performed, false);
+        assert.deepEqual(transitions, [
+            'backup_durable',
+            'env_replaced'
+        ]);
         assert.equal(
             fs.existsSync(path.join(harness.root, result.backup_file)),
             true
@@ -263,7 +285,9 @@ test('PROD-ACT-01 applies confirm only with all live gates', async () => {
 test('PROD-ACT-01 restores exact env and health after failed activation', async () => {
     const harness = createHarness();
     const commands = [];
+    const transitions = [];
     let healthCalls = 0;
+    let restarts = 0;
     try {
         await assert.rejects(() => applyActivationStage({
             targetRoot: harness.root,
@@ -277,6 +301,21 @@ test('PROD-ACT-01 restores exact env and health after failed activation', async 
                 if (args[0] === 'jlist') {
                     return { stdout: pm2Inventory(harness.root) };
                 }
+                if (args[0] === 'restart') {
+                    restarts += 1;
+                    const current = fs.readFileSync(
+                        harness.envPath,
+                        'utf8'
+                    );
+                    if (restarts === 1) {
+                        assert.match(
+                            current,
+                            /OPEN_FINANCE_SAVE_PROPOSAL_MODE=prompt/
+                        );
+                    } else {
+                        assert.equal(current, harness.raw);
+                    }
+                }
                 return { stdout: '' };
             },
             healthCheck: async () => {
@@ -284,6 +323,15 @@ test('PROD-ACT-01 restores exact env and health after failed activation', async 
                 if (healthCalls === 1) return true;
                 if (healthCalls <= 13) return false;
                 return true;
+            },
+            observeTransition: step => {
+                transitions.push(step);
+                if (step === 'env_restored') {
+                    assert.equal(
+                        fs.readFileSync(harness.envPath, 'utf8'),
+                        harness.raw
+                    );
+                }
             },
             now: () => new Date('2026-07-31T12:00:00.000Z')
         }), /open_finance_activation_rolled_back:open_finance_activation_health_failed/);
@@ -293,6 +341,11 @@ test('PROD-ACT-01 restores exact env and health after failed activation', async 
             ['pm2', 'restart', 'financas-bot'],
             ['pm2', 'restart', 'financas-bot'],
             ['pm2', 'save']
+        ]);
+        assert.deepEqual(transitions, [
+            'backup_durable',
+            'env_replaced',
+            'env_restored'
         ]);
     } finally {
         harness.close();

@@ -4,7 +4,8 @@ Atualizado em: 2026-07-31
 
 ## Estado
 
-`CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE`.
+`RECOVERY DO NO-GO IMPLEMENTADO; CANDIDATO AGUARDANDO NOVA AUDITORIA
+INDEPENDENTE`.
 
 ## Objetivo
 
@@ -60,6 +61,12 @@ As flags funcionais foram preservadas: alerta, reconciliação e preview em
 - controlador candidato:
   `docs/audit/100-open-finance-production-activation-controller-candidate-2026-07-31.md`;
 - testes focais do controlador: `10/10`;
+- controlador mais instalador OCI: `33/33`;
+- o primeiro parecer independente do hash
+  `b56fd6a930057788f0afe24ea93fee09aaf621bc` foi `NO-GO`: exigiu sincronizar
+  no pai a criação de `data/backups` e tornar causalmente observável
+  `backup → alteração` e `restauração → restart`;
+- o recovery implementa exatamente essas duas exigências;
 - bateria causal afetada: `92/92` antes do reforço final somente probatório.
 
 ## Critérios de GO
@@ -82,7 +89,7 @@ As flags funcionais foram preservadas: alerta, reconciliação e preview em
 
 ## Próxima ação exata
 
-Publicar o candidato sanitizado e obter auditoria independente do hash
+Publicar o recovery sanitizado e obter nova auditoria independente do novo hash
 imutável. Mesmo com GO, a execução do smoke real aguarda Daniel estar
 disponível para operar o WhatsApp.
 

@@ -211,12 +211,28 @@ function syncDirectory(directory) {
     }
 }
 
+function ensurePrivateDirectoryDurable(directory) {
+    const missing = [];
+    let current = path.resolve(directory);
+    while (!fs.existsSync(current)) {
+        missing.push(current);
+        const parent = path.dirname(current);
+        if (parent === current) {
+            throw new Error('open_finance_activation_backup_root_unavailable');
+        }
+        current = parent;
+    }
+    for (const candidate of missing.reverse()) {
+        fs.mkdirSync(candidate, { mode: 0o700 });
+        fs.chmodSync(candidate, 0o700);
+        syncDirectory(candidate);
+        syncDirectory(path.dirname(candidate));
+    }
+    fs.chmodSync(directory, 0o700);
+}
+
 function writePrivateNew(file, payload) {
-    fs.mkdirSync(path.dirname(file), {
-        recursive: true,
-        mode: 0o700
-    });
-    fs.chmodSync(path.dirname(file), 0o700);
+    ensurePrivateDirectoryDurable(path.dirname(file));
     let handle;
     try {
         handle = fs.openSync(file, 'wx', PRIVATE_FILE_MODE);
@@ -315,7 +331,8 @@ async function applyActivationStage({
     confirmUserPresent = false,
     runCommand = defaultRunCommand,
     healthCheck = defaultHealthCheck,
-    now = () => new Date()
+    now = () => new Date(),
+    observeTransition = () => {}
 }) {
     if (!confirmConfigChange) {
         throw new Error(
@@ -362,10 +379,18 @@ async function applyActivationStage({
         `.env.pre-open-finance-${stage}-${timestamp(now())}`
     );
     writePrivateNew(backupPath, raw);
+    observeTransition('backup_durable', {
+        backupPath,
+        envPath
+    });
     let envChanged = false;
     try {
         writePrivateAtomic(envPath, nextPayload);
         envChanged = true;
+        observeTransition('env_replaced', {
+            backupPath,
+            envPath
+        });
         await runCommand(
             'pm2',
             ['restart', processName, '--update-env'],
@@ -401,6 +426,10 @@ async function applyActivationStage({
     } catch (error) {
         if (!envChanged) throw error;
         writePrivateAtomic(envPath, raw);
+        observeTransition('env_restored', {
+            backupPath,
+            envPath
+        });
         await runCommand(
             'pm2',
             ['restart', processName, '--update-env'],
