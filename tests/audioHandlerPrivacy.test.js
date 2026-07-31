@@ -117,6 +117,155 @@ test('audioHandler removes converted temp file when transcription fails', async 
     }
 });
 
+test('audioHandler recovers a transient media download through the product client', async () => {
+    const audioHandlerPath = require.resolve('../src/handlers/audioHandler');
+    delete require.cache[audioHandlerPath];
+
+    const media = { data: Buffer.from('recovered-audio').toString('base64') };
+    const calls = {
+        originalDownload: 0,
+        refreshedDownload: 0,
+        enableAutoDownload: 0,
+        reacquire: 0
+    };
+    const refreshedMessage = {
+        downloadMedia: async () => {
+            calls.refreshedDownload += 1;
+            return media;
+        }
+    };
+    const client = {
+        setAutoDownloadAudio: async enabled => {
+            assert.strictEqual(enabled, true);
+            calls.enableAutoDownload += 1;
+        },
+        getMessageById: async messageId => {
+            assert.strictEqual(messageId, 'private-message-id');
+            calls.reacquire += 1;
+            return refreshedMessage;
+        }
+    };
+    const message = {
+        client,
+        id: { _serialized: 'private-message-id' },
+        downloadMedia: async () => {
+            calls.originalDownload += 1;
+            throw new Error('transient media failure');
+        }
+    };
+
+    const { __test__ } = require('../src/handlers/audioHandler');
+    const result = await __test__.downloadAudioMedia(message, {
+        maxAttempts: 2,
+        retryDelayMs: 0,
+        sleep: async () => {}
+    });
+
+    assert.deepStrictEqual(result, media);
+    assert.deepStrictEqual(calls, {
+        originalDownload: 1,
+        refreshedDownload: 1,
+        enableAutoDownload: 1,
+        reacquire: 1
+    });
+});
+
+test('audioHandler exhausts bounded download retries without leaking identifiers', async () => {
+    const audioHandlerPath = require.resolve('../src/handlers/audioHandler');
+    const logger = require('../src/utils/logger');
+    delete require.cache[audioHandlerPath];
+
+    const warnings = [];
+    const originalWarn = logger.warn;
+    logger.warn = message => warnings.push(String(message));
+    try {
+        const failedMessage = {
+            downloadMedia: async () => {
+                throw new Error('failure mentioning private-message-id');
+            }
+        };
+        const client = {
+            setAutoDownloadAudio: async () => {},
+            getMessageById: async () => failedMessage
+        };
+        const message = {
+            client,
+            id: { _serialized: 'private-message-id' },
+            downloadMedia: failedMessage.downloadMedia
+        };
+
+        const { __test__ } = require('../src/handlers/audioHandler');
+        await assert.rejects(
+            __test__.downloadAudioMedia(message, {
+                maxAttempts: 3,
+                retryDelayMs: 0,
+                sleep: async () => {}
+            }),
+            /audio_media_download_failed/
+        );
+
+        assert.deepStrictEqual(warnings, [
+            '[audio] download_attempt_failed attempt=1',
+            '[audio] download_attempt_failed attempt=2',
+            '[audio] download_attempt_failed attempt=3'
+        ]);
+        assert.doesNotMatch(warnings.join('\n'), /private-message-id|failure mentioning/i);
+    } finally {
+        logger.warn = originalWarn;
+    }
+});
+
+test('audioHandler does not invoke conversion or transcription after download exhaustion', async () => {
+    const fluentPath = require.resolve('fluent-ffmpeg');
+    const geminiPath = require.resolve('../src/services/gemini');
+    const audioHandlerPath = require.resolve('../src/handlers/audioHandler');
+    delete require.cache[audioHandlerPath];
+
+    let conversionCalls = 0;
+    let transcriptionCalls = 0;
+    require.cache[fluentPath] = {
+        id: fluentPath,
+        filename: fluentPath,
+        loaded: true,
+        exports: Object.assign(() => {
+            conversionCalls += 1;
+            throw new Error('conversion must not run');
+        }, { setFfmpegPath: () => {} })
+    };
+    require.cache[geminiPath] = {
+        id: geminiPath,
+        filename: geminiPath,
+        loaded: true,
+        exports: {
+            transcribeAudio: async () => {
+                transcriptionCalls += 1;
+                throw new Error('transcription must not run');
+            }
+        }
+    };
+
+    const replies = [];
+    const { handleAudio } = require('../src/handlers/audioHandler');
+    const result = await handleAudio({
+        reply: async text => replies.push(String(text)),
+        downloadMedia: async () => {
+            throw new Error('download unavailable');
+        }
+    }, {
+        downloadOptions: {
+            maxAttempts: 2,
+            retryDelayMs: 0,
+            sleep: async () => {}
+        }
+    });
+
+    assert.strictEqual(result, null);
+    assert.strictEqual(conversionCalls, 0);
+    assert.strictEqual(transcriptionCalls, 0);
+    assert.match(replies.at(-1), /erro ao processar/i);
+    assert.strictEqual(findAudioTempFiles().length, 0);
+});
+
 test('audioHandler isolates concurrent temp files when timestamps match', async () => {
     const fluentPath = require.resolve('fluent-ffmpeg');
     const geminiPath = require.resolve('../src/services/gemini');

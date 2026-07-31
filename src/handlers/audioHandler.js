@@ -6,6 +6,8 @@ const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('ffmpeg-static'); // Importa um helper para encontrar o caminho
 const { transcribeAudio } = require('../services/gemini');
 const logger = require('../utils/logger');
+const AUDIO_DOWNLOAD_MAX_ATTEMPTS = 3;
+const AUDIO_DOWNLOAD_RETRY_DELAY_MS = 750;
 
 // Se o ffmpeg foi instalado globalmente e está no PATH, a linha abaixo pode não ser necessária,
 // mas é uma boa prática para garantir que o código encontre o executável.
@@ -19,7 +21,7 @@ if (!fs.existsSync(audioDir)) {
     fs.mkdirSync(audioDir);
 }
 
-async function handleAudio(msg) {
+async function handleAudio(msg, options = {}) {
     let tempDir = '';
     let audioPath = '';
     let mp3Path = '';
@@ -27,7 +29,7 @@ async function handleAudio(msg) {
         await msg.reply('🎙️ Entendido! Recebi seu áudio e já estou processando. Um momento...');
         
         logger.info('[audio] download_started');
-        const media = await msg.downloadMedia();
+        const media = await downloadAudioMedia(msg, options.downloadOptions);
 
         if (!media || !media.data) {
             await msg.reply('❌ Desculpe, não consegui baixar o áudio. Tente novamente.');
@@ -80,6 +82,75 @@ async function handleAudio(msg) {
     }
 }
 
+async function downloadAudioMedia(msg, options = {}) {
+    const maxAttempts = normalizeMaxAttempts(options.maxAttempts);
+    const retryDelayMs = normalizeRetryDelay(options.retryDelayMs);
+    const sleep = typeof options.sleep === 'function' ? options.sleep : delay;
+    let currentMessage = msg;
+    let autoDownloadEnabled = false;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        try {
+            const media = await currentMessage.downloadMedia();
+            if (media?.data) return media;
+        } catch {
+            // A falha bruta pode conter IDs ou conteúdo privado; o log é deliberadamente opaco.
+        }
+
+        logger.warn(`[audio] download_attempt_failed attempt=${attempt}`);
+        if (attempt >= maxAttempts) break;
+
+        if (!autoDownloadEnabled) {
+            autoDownloadEnabled = true;
+            await enableAudioAutoDownload(msg);
+        }
+        await sleep(retryDelayMs * attempt);
+        currentMessage = await reacquireMessage(msg, currentMessage);
+    }
+
+    const error = new Error('audio_media_download_failed');
+    error.code = 'AUDIO_MEDIA_DOWNLOAD_FAILED';
+    throw error;
+}
+
+function normalizeMaxAttempts(value) {
+    const parsed = Number.parseInt(value, 10);
+    if (!Number.isFinite(parsed)) return AUDIO_DOWNLOAD_MAX_ATTEMPTS;
+    return Math.min(3, Math.max(1, parsed));
+}
+
+function normalizeRetryDelay(value) {
+    const parsed = Number.parseInt(value, 10);
+    if (!Number.isFinite(parsed)) return AUDIO_DOWNLOAD_RETRY_DELAY_MS;
+    return Math.min(3000, Math.max(0, parsed));
+}
+
+async function enableAudioAutoDownload(msg) {
+    if (typeof msg?.client?.setAutoDownloadAudio !== 'function') return;
+    try {
+        await msg.client.setAutoDownloadAudio(true);
+    } catch {
+        logger.warn('[audio] auto_download_enable_failed');
+    }
+}
+
+async function reacquireMessage(originalMessage, fallbackMessage) {
+    const messageId = originalMessage?.id?._serialized;
+    if (!messageId || typeof originalMessage?.client?.getMessageById !== 'function') {
+        return fallbackMessage;
+    }
+    try {
+        return await originalMessage.client.getMessageById(messageId) || fallbackMessage;
+    } catch {
+        logger.warn('[audio] message_reacquire_failed');
+        return fallbackMessage;
+    }
+}
+
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 function safeUnlink(filePath) {
     if (!filePath) return;
     try {
@@ -100,4 +171,9 @@ function safeRemoveTempDir(dirPath) {
     }
 }
 
-module.exports = { handleAudio };
+module.exports = {
+    handleAudio,
+    __test__: {
+        downloadAudioMedia
+    }
+};

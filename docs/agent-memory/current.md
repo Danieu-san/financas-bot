@@ -156,10 +156,10 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Executar `AUDIO-01`: corrigir a falha anterior ao FFmpeg em
-`msg.downloadMedia()`, com retentativa limitada, reaquisição segura da mensagem
-e testes causais. Depois, abrir gate separado para dashboard, saldos Pluggy e
-alertas familiares proativos.
+Publicar e auditar o candidato `AUDIO-01` descrito em
+`docs/audit/89-audio-download-recovery-candidate-2026-07-30.md`. Depois de
+`GO TÉCNICO LOCAL`, abrir gate separado para dashboard, saldos Pluggy e alertas
+familiares proativos.
 
 ## Capacidade para retomar
 

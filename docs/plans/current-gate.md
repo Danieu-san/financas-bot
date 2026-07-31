@@ -7,7 +7,7 @@ Base:
 
 ## Estado
 
-`EM IMPLEMENTACAO LOCAL`.
+`CANDIDATO LOCAL AGUARDANDO AUDITORIA`.
 
 ## Objetivo
 
@@ -41,9 +41,9 @@ download em transcricao vazia.
 ## Etapas
 
 1. [concluido] Diagnosticar a fronteira da falha em producao.
-2. [pendente] Escrever regressao RED para retry/reacquisicao.
-3. [pendente] Implementar recuperacao minima.
-4. [pendente] Executar testes focais e afetados.
+2. [concluido] Escrever regressao RED para retry/reacquisicao.
+3. [concluido] Implementar recuperacao minima.
+4. [concluido] Executar testes focais e afetados.
 5. [pendente] Publicar candidato sanitizado e auditar no Chat.
 
 ## Critérios de GO
@@ -63,8 +63,8 @@ download em transcricao vazia.
 
 ## Próxima ação exata
 
-Criar a prova RED de falha inicial de download seguida de reacquisicao e
-sucesso.
+Criar o commit imutável, publicar no GitHub e obter auditoria independente no
+Chat. Não iniciar o gate seguinte antes do veredito.
 
 ## Capacidade
 
