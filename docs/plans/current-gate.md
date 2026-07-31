@@ -1,83 +1,76 @@
-# Gate ativo — OPS-04 bootstrap criptográfico do release OCI
+# Gate ativo — OPS-05 readiness do WhatsApp no release OCI
 
 Atualizado em: 2026-07-31
 
 ## Estado
 
-`RECOVERY CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE`.
+`CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE`.
 
 ## Objetivo
 
-Impedir que um release pare o PM2 antes de descobrir incompatibilidade entre o
-state store persistente e o runtime novo; migrar somente o estado legado
-comprovadamente vazio e garantir rollback exato de `.env` e snapshot.
+Permitir uma janela explícita e limitada para o WhatsApp alcançar `ready` na
+OCI sem afrouxar o health, desabilitar rollback ou ampliar a interrupção sem
+limite.
 
 ## Escopo
 
-- inspeção criptográfica anterior à remoção do PM2;
-- bootstrap confirmado do objeto legado vazio;
-- backups, substituição atômica e restauração transacional;
-- correção do processo padrão no plano de promoção;
-- testes causais e auditoria independente.
+- parser limitado de `--health-attempts`;
+- prova causal de readiness após a décima segunda tentativa;
+- preservação integral do rollback e do health;
+- testes focais e auditoria independente.
 
 ## Não escopo
 
-- migrar estado legado com entradas;
-- ler, imprimir ou transferir payload, chave ou identificadores;
+- ignorar o estado do WhatsApp;
+- espera ilimitada ou sem rollback;
 - alterar flags funcionais do bot;
 - usar AWS como destino ou rollback.
 
 ## Incidente
 
-O artefato `e712bc11c81c67035b7f4e3e9972853c5307e9cc` passou build, checksum,
-manifesto e preparo isolado. A promoção falhou em
-`state_store_restore_failed`, pois a raiz OCI ainda tinha
-`state_store.json={}` e não possuía `STATE_STORE_ENCRYPTION_KEY`. O rollback
-automático restaurou o script anterior.
+O artefato `ce43a8f8f6c4080bda5ab92e697388753da598d8` passou build, checksums,
+manifesto e preparo. A promoção fez rollback porque o WhatsApp não chegou a
+`ready` na janela padrão. Google, Sheets, SQLite, read-model e dashboard haviam
+iniciado. A sessão recebeu `LOGOUT`, foi reautenticada por QR e o runtime
+anterior voltou a `ready`.
 
 ## Invariantes
 
-1. Inspeção ocorre antes de remover o processo antigo.
-2. Estado legado não vazio nunca é migrado automaticamente.
-3. Chave, payload e identificadores nunca aparecem na saída.
-4. Bootstrap exige confirmação literal e ocorre com PM2 anterior já parado.
-5. Falha do candidato restaura `.env` e snapshot antes de iniciar o rollback.
-6. Snapshot, envelope e journal adulterados ou replayados falham fechados.
+1. Health continua fail-closed e não ignora WhatsApp.
+2. A janela só aumenta por parâmetro explícito.
+3. Somente inteiros entre `12` e `60` são aceitos.
+4. Valor inválido falha antes de qualquer restart.
+5. Candidato saudável tardiamente não sofre rollback prematuro.
+6. Candidato que não fica saudável dentro do limite ainda executa rollback.
 7. AWS não participa de deploy ou rollback.
-8. `.env`, snapshot e backups ficam `0600`; o diretório de backups fica `0700`.
-9. Backups são publicados atomicamente e arquivos/diretórios são sincronizados.
 
 ## Evidência
 
-- release/OPS-04: `21/21`;
-- segurança do snapshot isolada: `14/14`;
-- shutdown isolado: `5/5`;
+- release/OPS-03/04/05: `23/23`;
 - sintaxe e diff: verdes.
 
 Manifesto:
-`docs/audit/97-oci-state-bootstrap-private-durability-recovery-candidate-2026-07-31.md`.
+`docs/audit/98-oci-whatsapp-readiness-window-candidate-2026-07-31.md`.
 
 ## Critérios de GO
 
-- incompatibilidade é detectada antes de parar PM2;
-- somente `{}` legado aceita bootstrap explícito;
-- envelope, payload e journal inválidos falham fechados;
-- rollback restaura `.env` e snapshot antes do script anterior;
+- parser aceita `60` e recusa valores fora dos limites;
+- prova tardia não executa rollback;
+- health e rollback permanecem inalterados;
 - testes focais/afetados e auditoria independente ficam verdes.
 
 ## Condições de parada
 
-- estado legado não vazio ou temporário de escrita presente;
 - identidade do servidor/processo divergente;
-- falha de backup, `fsync`, substituição, health ou rollback;
+- falha de health ou rollback;
 - `NO-GO` independente.
 
 ## Próxima ação exata
 
-Publicar o recovery sanitizado, obter reauditoria independente do hash e,
+Publicar o candidato sanitizado, obter auditoria independente do hash e,
 somente com GO, reconstruir/preparar o artefato e repetir a promoção OCI com
-`--confirm-empty-state-bootstrap`.
+`--health-attempts 60` e `--confirm-empty-state-bootstrap`.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> auditar o recovery OPS-04 e repetir o release OCI.`
+`Codex -> Sol -> Alto -> auditar OPS-05 e repetir o release OCI.`

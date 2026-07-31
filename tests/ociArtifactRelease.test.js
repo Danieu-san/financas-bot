@@ -12,6 +12,7 @@ const {
     createReleaseManifest,
     extractArchive,
     inspectStateStorePromotion,
+    parseHealthAttempts,
     prepareExtractedRelease,
     promotePreparedRelease,
     rollbackStateStoreBootstrap,
@@ -837,6 +838,41 @@ test('OPS-03 promotion stops the single OCI process before starting the prepared
     }
 });
 
+test('OPS-05 bounded extended health window accepts slow WhatsApp readiness', async () => {
+    const fixture = await preparedPromotionFixture();
+    const calls = [];
+    let healthCalls = 0;
+    try {
+        const result = await promotePreparedRelease({
+            targetRoot: fixture.targetRoot,
+            commitSha: COMMIT,
+            runCommand: async (command, args) => {
+                calls.push([command, args[0]]);
+                return command === 'pm2' && args[0] === 'jlist'
+                    ? { stdout: pm2Inventory(fixture.targetRoot) }
+                    : { stdout: '' };
+            },
+            healthCheck: async () => {
+                healthCalls += 1;
+                return healthCalls === 13;
+            },
+            healthAttempts: 13,
+            healthDelayMs: 0
+        });
+        assert.equal(result.promoted, true);
+        assert.equal(healthCalls, 13);
+        assert.deepEqual(calls, [
+            ['pm2', 'jlist'],
+            ['pm2', 'delete'],
+            ['pm2', 'start'],
+            ['pm2', 'save']
+        ]);
+    } finally {
+        fs.rmSync(fixture.targetRoot, { recursive: true, force: true });
+        fs.rmSync(fixture.extractedRoot, { recursive: true, force: true });
+    }
+});
+
 test('OPS-03 failed health deletes the candidate and restores the captured script', async () => {
     const fixture = await preparedPromotionFixture();
     const calls = [];
@@ -970,4 +1006,15 @@ test('OPS-04 CLI plan defaults to the single financas-bot process', () => {
     );
     assert.equal(result.status, 0, result.stderr);
     assert.equal(JSON.parse(result.stdout).process_name, 'financas-bot');
+});
+
+test('OPS-05 CLI health attempts are explicit and bounded', () => {
+    assert.equal(parseHealthAttempts([]), 12);
+    assert.equal(parseHealthAttempts(['--health-attempts', '60']), 60);
+    for (const invalid of ['0', '11', '61', '1.5', 'unbounded']) {
+        assert.throws(
+            () => parseHealthAttempts(['--health-attempts', invalid]),
+            /oci_release_health_attempts_invalid/
+        );
+    }
 });

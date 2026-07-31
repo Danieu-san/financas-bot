@@ -12,6 +12,8 @@ const COMMIT_PATTERN = /^[a-f0-9]{40}$/;
 const STATE_SNAPSHOT_AAD = Buffer.from('financasbot-state:v1', 'utf8');
 const STATE_FILE_MODE = 0o600;
 const PRIVATE_DIRECTORY_MODE = 0o700;
+const DEFAULT_HEALTH_ATTEMPTS = 12;
+const MAX_HEALTH_ATTEMPTS = 60;
 const PROTECTED_EXACT = new Set([
     '.env',
     'credentials.json',
@@ -1313,6 +1315,24 @@ function argumentValue(args, name, fallback = null) {
     return index >= 0 ? args[index + 1] : fallback;
 }
 
+function parseHealthAttempts(args) {
+    const raw = String(argumentValue(
+        args,
+        '--health-attempts',
+        DEFAULT_HEALTH_ATTEMPTS
+    ));
+    if (!/^\d+$/.test(raw)) {
+        throw new Error('oci_release_health_attempts_invalid');
+    }
+    const value = Number(raw);
+    if (!Number.isSafeInteger(value) ||
+        value < DEFAULT_HEALTH_ATTEMPTS ||
+        value > MAX_HEALTH_ATTEMPTS) {
+        throw new Error('oci_release_health_attempts_invalid');
+    }
+    return value;
+}
+
 async function main(args = process.argv.slice(2)) {
     const command = args[0];
     if (command === 'build') {
@@ -1397,6 +1417,7 @@ async function main(args = process.argv.slice(2)) {
                 '--health-url',
                 'http://127.0.0.1:8787/dashboard/health'
             ),
+            healthAttempts: parseHealthAttempts(args),
             bootstrapEmptyStateStore: args.includes(
                 '--confirm-empty-state-bootstrap'
             )
@@ -1424,6 +1445,7 @@ module.exports = {
     extractArchive,
     listArchiveEntries,
     parseCurrentPm2Process,
+    parseHealthAttempts,
     inspectStateStorePromotion,
     prepareArtifact,
     prepareExtractedRelease,

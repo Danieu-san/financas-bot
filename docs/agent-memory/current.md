@@ -35,6 +35,15 @@ teste não travava causalmente bootstrap após a parada. O recovery fixa modos,
 publicação atômica exclusiva, `fsync` e a fronteira causal. Manifesto:
 `docs/audit/97-oci-state-bootstrap-private-durability-recovery-candidate-2026-07-31.md`.
 
+Esse recovery recebeu `GO TÉCNICO LOCAL` independente no hash
+`ce43a8f8f6c4080bda5ab92e697388753da598d8`. A primeira promoção fez rollback:
+o candidato iniciou Google, Sheets, SQLite, read-model e dashboard, mas o
+WhatsApp não chegou a `ready` na janela de cerca de 60 segundos. A sessão
+recebeu `LOGOUT` na troca e foi reautenticada por QR; o runtime anterior voltou
+a `ready`, cron ativo e `writes=0`. `OPS-05` agora candidata uma janela
+explícita e limitada de até 60 tentativas sem afrouxar o health. Manifesto:
+`docs/audit/98-oci-whatsapp-readiness-window-candidate-2026-07-31.md`.
+
 A fila original da auditoria exaustiva e os gates `9P.0`, `9P.1`, `9P.2` e
 `9P.3` estão tecnicamente encerrados. 9P.3 recebeu `GO TÉCNICO LOCAL`
 independente no commit imutável
@@ -160,9 +169,9 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar o recovery `OPS-04`, obter reauditoria independente por hash imutável
-e, somente com GO, reconstruir o artefato e repetir a promoção com bootstrap
-vazio confirmado e rollback transacional.
+Publicar `OPS-05`, obter auditoria independente por hash imutável e, somente
+com GO, reconstruir o artefato e repetir a promoção com
+`--health-attempts 60`, bootstrap vazio confirmado e rollback transacional.
 
 ## Capacidade para retomar
 

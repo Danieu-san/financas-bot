@@ -138,8 +138,14 @@ node oci-artifact-release-<HASH>.js promote \
   --commit <HASH> \
   --process financas-bot \
   --health-url http://127.0.0.1:8787/dashboard/health \
+  --health-attempts 60 \
   --confirm-process-restart
 ```
+
+`--health-attempts` aceita somente inteiro entre `12` e `60`. Na OCI
+`VM.Standard.E2.1.Micro`, usar `60` para permitir até cerca de cinco minutos de
+readiness do WhatsApp sem afrouxar o health. Valor ausente preserva a janela
+padrão de `12` tentativas; valor inválido falha antes do restart.
 
 Se, e somente se, o promotor diagnosticar
 `oci_release_state_store_bootstrap_confirmation_required` e o snapshot legado
