@@ -139,11 +139,18 @@ as rotações limitadas, preserva uso real arquivado e linhas inválidas e não
 autoriza soft-disable, flag, restart, deploy ou produção. O fechamento está em
 `docs/audit/88-phase8-tripwire-rotation-proof-independent-close-2026-07-30.md`.
 
+AUDIO-01 recebeu `GO TÉCNICO LOCAL` independente no commit imutável
+`bb6b102a56fb23fed154017a359a9953d5627285`. Retry limitado, reaquisição,
+privacidade, limpeza e fronteira anterior a FFmpeg/Gemini foram aceitos sem
+lacuna indispensável local. A validação com áudio real permanece operacional e
+nenhum deploy foi autorizado. Fechamento:
+`docs/audit/90-audio-download-recovery-independent-close-2026-07-30.md`.
+
 Plano corrente: `docs/plans/current-gate.md`.
 
 ## Decisões vigentes
 
-- usar `Codex → Sol → Alto` no gate causal de recuperação de áudio;
+- usar `Codex → Sol → Alto` no gate familiar Open Finance;
 - parar e avisar Daniel antes de reduzir ou trocar capacidade;
 - a produção vigente é Oracle/OCI; não reutilizar caminhos AWS e não executar
   Oracle e AWS simultaneamente com a mesma sessão WhatsApp;
@@ -156,14 +163,13 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar e auditar o candidato `AUDIO-01` descrito em
-`docs/audit/89-audio-download-recovery-candidate-2026-07-30.md`. Depois de
-`GO TÉCNICO LOCAL`, abrir gate separado para dashboard, saldos Pluggy e alertas
-familiares proativos.
+Executar `OF-FAMILY-01`: enviar a Daniel e Thaís somente movimentações novas
+após reconciliação fail-closed contra a planilha, já com proposta proativa de
+salvamento. O contrato de números do dashboard será gate separado.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → corrigir e auditar o gate AUDIO-01.`
+`Codex → Sol → Alto → implementar e auditar o gate OF-FAMILY-01.`
 
 ## Fila de produto posterior
 

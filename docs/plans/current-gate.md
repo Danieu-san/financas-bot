@@ -1,71 +1,75 @@
-# Gate ativo - AUDIO-01 recuperacao do download de voz
+# Gate ativo - OF-FAMILY-01 alertas familiares proativos
 
 Atualizado em: 2026-07-30
 
 Base:
-`abf411e0831d90bc9628f56021475c9e23816de9`.
+`bb6b102a56fb23fed154017a359a9953d5627285`.
 
 ## Estado
 
-`CANDIDATO LOCAL AGUARDANDO AUDITORIA`.
+`EM DIAGNÓSTICO LOCAL`.
 
 ## Objetivo
 
-Recuperar de falhas transitorias de `msg.downloadMedia()` em mensagens de voz
-sem duplicar o processamento, expor conteudo privado ou transformar falha de
-download em transcricao vazia.
+Entregar a Daniel e Thaís os alertas de novas movimentações Open Finance
+elegíveis do casal, somente quando a movimentação ainda não estiver
+representada na planilha, com proposta proativa de classificação e salvamento.
 
 ## Escopo
 
-- retentativa limitada de download;
-- reacquisicao da mensagem pelo ID publico da biblioteca;
-- habilitacao defensiva do auto-download de audio quando suportada;
-- temporarios isolados e removidos;
-- regressao causal para falha inicial seguida de sucesso e exaustao.
+- resolução explícita dos dois destinatários familiares autorizados;
+- reconciliação fail-closed contra o ledger/planilha antes da entrega;
+- uma mensagem por destinatário e movimentação elegível;
+- proposta de salvamento com referência estável e classificação sugerida;
+- confirmação posterior sem gravação automática;
+- retry/outbox sem duplicar alerta ou efeito financeiro.
 
 ## Não escopo
 
-- dashboard, Pluggy, saldos, alertas ou proposta de salvamento;
-- mudanca de provedor de transcricao;
-- mensagem de voz real, restart ou deploy OCI;
-- alteracao de sessao WhatsApp.
+- correção dos números e fontes do dashboard;
+- substituição da fatura corrente por limite usado;
+- ativação global, mensagem real, restart ou deploy OCI;
+- expansão para pessoas fora do casal autorizado.
 
 ## Invariantes
 
-1. Cada mensagem produz no maximo uma transcricao.
-2. Falha de download nao chama Gemini nem FFmpeg.
-3. Logs nao contem audio, transcricao, ID de mensagem ou caminho privado.
-4. Toda tentativa termina com limpeza dos temporarios pertencentes ao handler.
-5. Exaustao responde de forma segura e nao envenena mensagens posteriores.
+1. Acesso familiar deriva do vínculo autorizado, nunca do nome do cartão.
+2. Ausência ou falha da fonte de reconciliação não vira “não cadastrado”.
+3. Item já representado na planilha não gera alerta.
+4. Nenhum alerta grava lançamento automaticamente.
+5. Reenvio, retry ou duas rotas de descoberta não duplicam alerta nem proposta.
+6. Referências, logs e mensagens não expõem IDs internos ou segredos.
 
 ## Etapas
 
-1. [concluido] Diagnosticar a fronteira da falha em producao.
-2. [concluido] Escrever regressao RED para retry/reacquisicao.
-3. [concluido] Implementar recuperacao minima.
-4. [concluido] Executar testes focais e afetados.
+1. [pendente] Mapear descoberta, reconciliação, outbox, entrega e confirmação.
+2. [pendente] Fixar contrato RED para dois destinatários e item já cadastrado.
+3. [pendente] Implementar fanout e proposta mínima fail-closed.
+4. [pendente] Executar testes focais, afetados e workflow.
 5. [pendente] Publicar candidato sanitizado e auditar no Chat.
 
 ## Critérios de GO
 
-- falha inicial e sucesso posterior retornam uma unica transcricao;
-- exaustao nao chama transcricao;
-- temporarios e privacidade permanecem verdes;
-- entrada publica afetada continua processando o texto transcrito uma vez;
-- auditoria independente sem lacuna indispensavel.
+- Daniel e Thaís recebem cada item familiar novo exatamente uma vez;
+- item já cadastrado não é entregue;
+- fonte indisponível não produz falso alerta;
+- mensagem oferece proposta de salvamento e confirmação explícita;
+- confirmação de um destinatário não permite duplicação pelo outro;
+- nenhuma escrita ocorre antes da confirmação válida;
+- auditoria independente sem lacuna indispensável.
 
 ## Condições de parada
 
-- necessidade de reiniciar ou alterar a sessao real;
-- recuperacao exigir dependencia nao documentada da pagina WhatsApp;
-- regressao de privacidade ou concorrencia;
+- necessidade de ler ou alterar planilha real para provar o contrato local;
+- ambiguidade sobre vínculo familiar ou escopo da planilha;
+- regressão de privacidade, deduplicação ou idempotência financeira;
 - `NO-GO` independente.
 
 ## Próxima ação exata
 
-Criar o commit imutável, publicar no GitHub e obter auditoria independente no
-Chat. Não iniciar o gate seguinte antes do veredito.
+Mapear no código a origem das transações, a reconciliação com a planilha, o
+outbox, o roteamento atual por proprietário e a confirmação `salvar`.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> corrigir e auditar o gate AUDIO-01.`
+`Codex -> Sol -> Alto -> implementar e auditar o gate OF-FAMILY-01.`

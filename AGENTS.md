@@ -69,6 +69,10 @@ vigente o provedor, host, usuário, chave, diretório e processo atuais. Nunca
 reutilizar caminho EC2/AWS apenas porque aparece no histórico. Ação remota
 continua exigindo autorização explícita.
 
+Daniel concedeu autorização contínua para criar e publicar commits sanitizados
+deste projeto no GitHub. Essa autorização não inclui deploy, alteração de
+produção, envio de dados privados ou inclusão de segredos.
+
 ## Contrato Obrigatório de Comunicação e Capacidade
 
 Antes de iniciar ou retomar qualquer tarefa, a primeira atualização visível ao
