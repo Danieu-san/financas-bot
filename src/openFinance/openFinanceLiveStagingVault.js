@@ -10,9 +10,15 @@ function requireSecret(secret) {
 class OpenFinanceLiveStagingVault {
     constructor(options = {}) {
         this.secret = requireSecret(options.secret);
-        this.db = new Database(options.databasePath || ':memory:');
-        this.db.pragma('journal_mode = WAL');
-        this.#migrate();
+        this.readonly = options.readonly === true;
+        this.db = new Database(
+            options.databasePath || ':memory:',
+            this.readonly ? { readonly: true, fileMustExist: true } : {}
+        );
+        if (!this.readonly) {
+            this.db.pragma('journal_mode = WAL');
+            this.#migrate();
+        }
     }
 
     #migrate() {
@@ -119,6 +125,19 @@ class OpenFinanceLiveStagingVault {
         const row = this.db.prepare('SELECT item_ref, encrypted_payload FROM live_staging_items WHERE alias_ref = ?')
             .get(this.#ref('alias', String(alias || '').toLowerCase()));
         return row ? this.#decrypt(row.item_ref, row.encrypted_payload) : null;
+    }
+
+    readItemRecordByAlias(alias) {
+        const row = this.db.prepare(`
+            SELECT item_ref, encrypted_payload, observed_at
+            FROM live_staging_items
+            WHERE alias_ref = ?
+        `).get(this.#ref('alias', String(alias || '').toLowerCase()));
+        if (!row) return null;
+        return Object.freeze({
+            item: this.#decrypt(row.item_ref, row.encrypted_payload),
+            observed_at: row.observed_at
+        });
     }
 
     revokeItem(itemId, options = {}) {

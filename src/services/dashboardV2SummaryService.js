@@ -131,8 +131,8 @@ function buildCashBlock(snapshot = {}, accountsBlock = {}) {
     return {
         status: currentBalance === null
             ? 'partial'
-            : accountsBlock.status === 'fallback'
-                ? 'fallback'
+            : BLOCK_STATUS.has(accountsBlock.status)
+                ? accountsBlock.status
                 : 'available',
         timeBasis: 'current_state',
         currentBalance,
@@ -252,19 +252,23 @@ function buildBudgetBlock(result) {
 function snapshotAccountsFallback(snapshot = {}) {
     const accounts = snapshot.financialAccounts;
     const totalBalance = roundMoney(accounts?.totalBalance);
-    if (!accounts || totalBalance === null || !Array.isArray(accounts.items) || accounts.items.length === 0) return null;
+    if (!accounts || !Array.isArray(accounts.items) || accounts.items.length === 0) return null;
     return {
-        status: 'fallback',
-        timeBasis: 'current_state',
+        status: BLOCK_STATUS.has(accounts.status) ? accounts.status : 'fallback',
+        timeBasis: accounts.timeBasis || 'current_state',
         totalBalance,
         count: accounts.items.length,
         items: sanitizePublicValue(accounts.items),
-        source: 'dashboard_snapshot',
-        criteria: 'Saldo por conta lido do snapshot sanitizado do dashboard.'
+        source: accounts.source || 'dashboard_snapshot',
+        observedAt: accounts.observedAt || null,
+        stale: accounts.stale === true,
+        criteria: accounts.criteria || 'Saldo por conta lido do snapshot sanitizado do dashboard.'
     };
 }
 
 function buildAccountsBlock(result, snapshot = {}) {
+    const snapshotBlock = snapshotAccountsFallback(snapshot);
+    if (snapshotBlock?.source === 'open_finance') return snapshotBlock;
     const value = result?.result?.value;
     if (result?.ok && value && typeof value === 'object') {
         return {
@@ -277,7 +281,7 @@ function buildAccountsBlock(result, snapshot = {}) {
             criteria: toolCriteria(result, 'Saldo atual lido da fonte canônica de contas.')
         };
     }
-    return snapshotAccountsFallback(snapshot) || {
+    return snapshotBlock || {
         status: 'unavailable',
         reason: 'source_unavailable',
         timeBasis: 'current_state',
@@ -285,6 +289,23 @@ function buildAccountsBlock(result, snapshot = {}) {
         count: null,
         items: [],
         criteria: UNAVAILABLE_CRITERIA
+    };
+}
+
+function buildCurrentInvoicesBlock(snapshot = {}) {
+    const cards = snapshot.creditCards;
+    if (!cards || !Array.isArray(cards.items) || cards.items.length === 0) return null;
+    const total = roundMoney(cards.totalCurrentInvoice);
+    return {
+        status: BLOCK_STATUS.has(cards.status) ? cards.status : total === null ? 'partial' : 'available',
+        timeBasis: cards.timeBasis || 'current_bill',
+        total,
+        count: cards.items.length,
+        items: sanitizePublicValue(cards.items),
+        source: cards.source || 'dashboard_snapshot',
+        observedAt: cards.observedAt || null,
+        stale: cards.stale === true,
+        criteria: cards.criteria || 'Fatura atual e limites lidos do snapshot sanitizado do dashboard.'
     };
 }
 
@@ -427,7 +448,8 @@ async function buildDashboardV2Summary({
     const common = {
         userIds: safeUserIds,
         ownerUserId: String(ownerUserId || '').trim(),
-        currentDate: saoPauloIsoDate(currentDate)
+        currentDate: saoPauloIsoDate(currentDate),
+        excludePublicTestMarkers: true
     };
     const plans = [
         { kind: 'financial_query', domain: 'expenses', operation: 'sum', filters: { period: planPeriod }, timeBasis: 'billing_month' },
@@ -443,6 +465,7 @@ async function buildDashboardV2Summary({
     const criteria = { ...buildDashboardCriteria(), ...(snapshot.criteria || {}) };
     const forecastBlocks = buildForecastBlocks(forecast);
     const accountsBlock = buildAccountsBlock(accounts, snapshot);
+    const currentInvoicesBlock = buildCurrentInvoicesBlock(snapshot);
 
     return sanitizePublicValue({
         version: 'dashboard-summary-v2',
@@ -454,7 +477,7 @@ async function buildDashboardV2Summary({
             reserve: buildReserveBlock(snapshot, criteria),
             budget: buildBudgetBlock(budget),
             accounts: accountsBlock,
-            invoices: forecastBlocks.invoices,
+            invoices: currentInvoicesBlock || forecastBlocks.invoices,
             forecast: forecastBlocks.forecast,
             goals: buildCollectionBlock(snapshot.goals, 'Metas atuais do snapshot read-only.'),
             debts: buildCollectionBlock(snapshot.debts, 'Dívidas atuais do snapshot read-only.'),

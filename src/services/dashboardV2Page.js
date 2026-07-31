@@ -450,11 +450,22 @@ function dashboardV2Html() {
     }
     function renderInvoices(block) {
       var items = Array.isArray(block.items) ? block.items : [];
-      var content = blockUnavailable(block) ? empty('As faturas previstas estão indisponíveis. Isso não significa que não existam faturas.', true) :
-        '<div class="mini-grid">' + miniStat('Total previsto', money(block.total)) + miniStat('Faturas', plainNumber(block.count)) + '</div><div class="list" style="margin-top:14px">' +
-        (items.length ? items.map(function (item) { return row(item.description || item.name || 'Fatura', datedItem(item), money(item.value !== undefined ? item.value : item.amount)); }).join('') : empty('Nenhuma fatura prevista neste período.', false)) + '</div>';
-      return panel('Faturas', 'Compromissos por vencimento', block.status, content, details(block));
+      var content = blockUnavailable(block) ? empty('As faturas estão indisponíveis. Isso não significa fatura zero.', true) :
+        '<div class="mini-grid">' + miniStat('Total das faturas', money(block.total)) + miniStat('Cartões', plainNumber(block.count)) + '</div><div class="list" style="margin-top:14px">' +
+        (items.length ? items.map(function (item) {
+          if (item.currentInvoice !== undefined || item.totalLimit !== undefined) {
+            var limits = [
+              item.totalLimit === null || item.totalLimit === undefined ? '' : 'limite total ' + money(item.totalLimit),
+              item.availableLimit === null || item.availableLimit === undefined ? '' : 'disponível ' + money(item.availableLimit),
+              item.usedLimit === null || item.usedLimit === undefined ? '' : 'usado ' + money(item.usedLimit)
+            ].filter(Boolean).join(' · ');
+            return row(item.name || 'Cartão', [item.owner, limits].filter(Boolean).join(' · '), money(item.currentInvoice));
+          }
+          return row(item.description || item.name || 'Fatura', datedItem(item), money(item.value !== undefined ? item.value : item.amount));
+        }).join('') : empty('Nenhuma fatura disponível nesta leitura.', false)) + '</div>';
+      return panel('Faturas e limites', 'Posição observada e compromissos', block.status, content, details(block));
     }
+
     function renderForecast(block) {
       var items = Array.isArray(block.items) ? block.items : [];
       var content = blockUnavailable(block) ? empty('Os próximos vencimentos estão indisponíveis. Eles não foram tratados como zero.', true) :

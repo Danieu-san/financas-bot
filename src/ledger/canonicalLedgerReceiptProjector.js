@@ -809,6 +809,7 @@ function readCanonicalCategoryBudgetSource({
                 effective_on: event.effective_on,
                 competence_month: event.competence_month,
                 due_on: event.due_on,
+                description: event.description,
                 category: event.category,
                 subcategory: event.subcategory,
                 amount_cents: event.amount_cents,

@@ -75,7 +75,23 @@ Returns:
 
 ## `GET /dashboard/api/summary`
 
-Returns the complete user-scoped dashboard snapshot: `period`, `kpis`, `topCategories`, `dailyFlow`, `recentTransactions`, `goals`, `debts`, `alerts`, and `sync`.
+Returns the complete user-scoped dashboard snapshot: `period`, `kpis`,
+`topCategories`, `dailyFlow`, `recentTransactions`, `goals`, `debts`, `alerts`,
+`sync`, `financialAccounts`, and `creditCards`.
+
+When the encrypted Open Finance staging snapshot is available and authorized
+for the token holder's personal/family scope:
+
+- `financialAccounts` contains provider-observed bank balances;
+- `creditCards` keeps `currentInvoice`, `totalLimit`, `availableLimit`, and
+  `usedLimit` as separate values;
+- `observedAt`, `status`, `stale`, `source`, and `criteria` make freshness and
+  provenance explicit.
+
+When Open Finance is unavailable, a ledger-derived account position may remain
+visible only as `status: "fallback"`, `timeBasis: "ledger_estimate"`. It is not
+described as a live bank balance. Unknown bills or limits remain `null`, never
+zero.
 
 ## `GET /dashboard/api/v2/summary`
 
@@ -119,9 +135,12 @@ and `unavailable`.
   calculated through the Query Engine.
 - `reserve`: applied, redeemed, net reserve and estimated available balance.
 - `budget`: the category/cycle contract from Phase 4A.
-- `accounts`: current balances from the canonical accounts reader, with the
-  existing sanitized dashboard snapshot as fallback.
-- `invoices`: invoice items extracted from the canonical forecast.
+- `accounts`: provider-observed Open Finance bank balances when available;
+  otherwise the canonical accounts reader or the explicitly labelled ledger
+  estimate.
+- `invoices`: formal provider bills and card limits when Open Finance is
+  available. `usedLimit` is never relabelled as `currentInvoice`; canonical
+  forecast invoices remain a separate fallback.
 - `forecast`: payable, receivable and net expected cash without changing
   current cash.
 - `goals` and `debts`: current read-only rows already exposed by the dashboard.
@@ -155,3 +174,6 @@ offer a user selector and cannot send a user id to the API.
 - Query parameters may choose period only (`month`, `year`), never user.
 - No endpoint should log financial row contents.
 - Prefer `source: "sqlite"`; `source: "memory"` is a fallback only.
+- Rows carrying an exact controlled `TESTE_APAGAR_<identificador>` marker are
+  excluded before public dashboard aggregation and rendering. Their source
+  rows and audit history are not deleted or mutated.

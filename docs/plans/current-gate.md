@@ -1,9 +1,9 @@
-# Gate ativo - OF-FAMILY-01 alertas familiares proativos
+# Gate ativo - DASH-DATA-01 verdade canônica de saldos e dashboards
 
 Atualizado em: 2026-07-30
 
 Base:
-`bb6b102a56fb23fed154017a359a9953d5627285`.
+`f896ce9f1d60b39300237afb64fd67bc47e03d4a`.
 
 ## Estado
 
@@ -11,67 +11,94 @@ Base:
 
 ## Objetivo
 
-Entregar a Daniel e Thaís os alertas de novas movimentações Open Finance
-elegíveis do casal, somente quando a movimentação ainda não estiver
-representada na planilha, com proposta proativa de salvamento e conferência
-guiada.
+Estabelecer um contrato único e auditável para saldo de conta, fatura atual,
+limite total, limite disponível e movimentações; fazer dashboard v1, dashboard
+v2 e consultas do bot representarem a mesma verdade autorizada do casal.
+
+## Sintomas observados
+
+- dashboard v2 expõe registros `TESTE_APAGAR`;
+- dashboards v1 e v2 apresentam valores diferentes;
+- valores das contas no provedor não coincidem com os dashboards;
+- existe risco de confundir limite usado com fatura corrente;
+- precisa ser confirmado qual versão é entregue pelo comando `dashboard`.
 
 ## Escopo
 
-- resolução explícita dos dois destinatários familiares autorizados;
-- reconciliação fail-closed contra o ledger/planilha antes da entrega;
-- uma mensagem por destinatário e movimentação elegível;
-- proposta de salvamento com referência estável e classificação feita na
-  conferência guiada, sem sugestão inventada;
-- confirmação posterior sem gravação automática;
-- retry/outbox sem duplicar alerta ou efeito financeiro.
+- mapear o comando público `dashboard` até a versão entregue;
+- mapear fontes e semântica de saldos, faturas, limites e movimentações;
+- comparar agregações e filtros de v1, v2, read-model e Open Finance;
+- reproduzir divergências com fixtures sanitizadas;
+- definir e implementar a menor correção fail-closed;
+- impedir dados de teste na visão familiar sem apagar ledger ou evidência.
 
 ## Não escopo
 
-- correção dos números e fontes do dashboard;
-- substituição da fatura corrente por limite usado;
-- ativação global, mensagem real, restart ou deploy OCI;
-- expansão para pessoas fora do casal autorizado.
+- deploy, restart, alteração de flags ou dados reais;
+- exclusão destrutiva de lançamentos;
+- mudança das permissões administrativas sem revisão da ADR-002;
+- correção do limite semanal, que terá gate próprio se não compartilhar a
+  mesma causa.
 
 ## Invariantes
 
-1. Acesso familiar deriva do vínculo autorizado, nunca do nome do cartão.
-2. Ausência ou falha da fonte de reconciliação não vira “não cadastrado”.
-3. Item já representado na planilha não gera alerta.
-4. Nenhum alerta grava lançamento automaticamente.
-5. Reenvio, retry ou duas rotas de descoberta não duplicam alerta nem proposta.
-6. Referências, logs e mensagens não expõem IDs internos ou segredos.
+1. Saldo, fatura, limite usado e limite disponível são conceitos separados.
+2. Ausência ou desatualização do provedor nunca vira zero atual.
+3. Dashboard v1 e v2 não podem divergir por fonte ou filtro silencioso.
+4. Dados de teste podem ser preservados no histórico, mas não contaminar a
+   visão familiar normal.
+5. Acesso familiar deriva da autorização do casal, nunca de privilégio admin.
+6. Nenhuma correção local altera produção antes de release autorizado.
 
 ## Etapas
 
-1. [concluído] Mapear descoberta, reconciliação, outbox, entrega e confirmação.
-2. [concluído] Fixar contrato RED para dois destinatários e item já cadastrado.
-3. [concluído] Implementar fanout e proposta mínima fail-closed.
-4. [concluído] Executar testes focais e afetados: `77/77`.
+1. [concluído] Mapear entrada pública, versões e fontes.
+2. [concluído] Caracterizar cada divergência e sua causa.
+3. [concluído] Fixar contrato RED com fixtures sanitizadas.
+4. [concluído] Implementar correção mínima e validar bateria afetada.
 5. [em andamento] Publicar candidato sanitizado e auditar no Chat.
+
+## Resultado do diagnóstico e correção
+
+- `dashboard` continua entregando v1; v2 permanece opt-in por comando explícito;
+- saldo bancário, resultado econômico, fatura, limite usado, total e disponível
+  agora possuem nomes, fontes e campos distintos;
+- v1 e v2 priorizam a mesma fotografia Open Finance autorizada para posição
+  observada de contas e cartões;
+- staging é aberto em SQLite somente leitura;
+- observação antiga é `partial`/`stale`, nunca atual ou zero presumido;
+- fallback do ledger é rotulado `ledger_estimate`;
+- marcadores controlados de teste são excluídos antes das agregações públicas
+  de planilha, Query Engine, orçamento e qualidade, sem apagar a fonte;
+- evidência local: focal final `12/12`, transversal `98/98`, suíte hermética
+  `1.395` testes com `1.390` aprovações, zero falha e cinco skips esperados.
+
+Manifesto candidato:
+`docs/audit/93-dashboard-financial-truth-candidate-2026-07-30.md`.
 
 ## Critérios de GO
 
-- Daniel e Thaís recebem cada item familiar novo exatamente uma vez;
-- item já cadastrado não é entregue;
-- fonte indisponível não produz falso alerta;
-- mensagem oferece proposta de salvamento e confirmação explícita;
-- confirmação de um destinatário não permite duplicação pelo outro;
-- nenhuma escrita ocorre antes da confirmação válida;
+- comando `dashboard` entrega versão explicitamente definida;
+- v1 e v2 usam conceitos e filtros consistentes;
+- conta corrente, fatura, limite total, usado e disponível não são
+  intercambiados;
+- dados de teste não aparecem na visão familiar normal;
+- fonte ausente ou antiga é rotulada e não mascarada;
 - auditoria independente sem lacuna indispensável.
 
 ## Condições de parada
 
-- necessidade de ler ou alterar planilha real para provar o contrato local;
-- ambiguidade sobre vínculo familiar ou escopo da planilha;
-- regressão de privacidade, deduplicação ou idempotência financeira;
+- necessidade de ler dados financeiros reais sem autorização específica;
+- ambiguidade de produto que altere o significado financeiro dos números;
+- regressão de privacidade prevista na ADR-002;
 - `NO-GO` independente.
 
 ## Próxima ação exata
 
-Publicar o candidato sanitizado, fornecer ao Chat o hash imutável e os oito
-arquivos exatos e confrontar o parecer com a evidência local.
+Criar e publicar o commit sanitizado imutável; solicitar auditoria independente
+dos contratos de escopo, semântica financeira, freshness, filtro não destrutivo
+e paridade v1/v2.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> implementar e auditar o gate OF-FAMILY-01.`
+`Codex -> Sol -> Alto -> diagnosticar e corrigir o gate DASH-DATA-01.`

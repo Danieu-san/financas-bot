@@ -296,6 +296,19 @@ function buildFinancialAccountsSummary(rows = [], userIds = [], movements = {}) 
         items
     };
 }
+
+const PUBLIC_DASHBOARD_TEST_MARKER = /\bTESTE_APAGAR_[A-Z0-9_]{6,96}\b/i;
+
+function isPublicDashboardTestRow(row = []) {
+    return (Array.isArray(row) ? row : [row])
+        .some(value => PUBLIC_DASHBOARD_TEST_MARKER.test(String(value || '')));
+}
+
+function filterPublicDashboardRows(rows = []) {
+    if (!Array.isArray(rows) || rows.length === 0) return [];
+    return [rows[0], ...rows.slice(1).filter(row => !isPublicDashboardTestRow(row))];
+}
+
 function buildTopCategories(transactions) {
     const totals = new Map();
     transactions.forEach((item) => {
@@ -576,7 +589,7 @@ async function getUserSheetDashboardData(userId, { month, year, telemetryConsume
         const financialScopeUserIds = getFinancialScopeUserIds(safeUserId);
         const period = normalizePeriod({ month, year });
         const dailyGoalConfig = await getDailyGoalDashboardSettings(safeUserId);
-        const [saidasRows, entradasRows, cartaoRows, cardConfigRows, transferRows, metasRows, dividasRows, accountRows, financialAccountRows] = await Promise.all([
+        const dashboardRows = await Promise.all([
             readDataFromSheet('Saídas!A:K'),
             readDataFromSheet('Entradas!A:J'),
             readDataFromSheet('Lançamentos Cartão!A:J'),
@@ -587,6 +600,8 @@ async function getUserSheetDashboardData(userId, { month, year, telemetryConsume
             readDataFromSheet('Contas!A:I'),
             readDataFromSheet('Contas Financeiras!A:I', { suppressMissingSheetError: true })
         ]);
+        const [saidasRows, entradasRows, cartaoRows, cardConfigRows, transferRows, metasRows, dividasRows, accountRows, financialAccountRows] =
+            dashboardRows.map(filterPublicDashboardRows);
 
         const saidas = saidasRows.slice(1)
             .filter(row => rowBelongsToAnyUser(row, 9, financialScopeUserIds) && periodMatchesDate(row[0], period.month, period.year))
@@ -672,6 +687,8 @@ module.exports = {
         rowBelongsToAnyUser,
         buildReserveSummary,
         buildFinancialAccountsSummary,
+        isPublicDashboardTestRow,
+        filterPublicDashboardRows,
         buildMemberBreakdown,
         buildGoalDashboardRows,
         isReserveApplication,

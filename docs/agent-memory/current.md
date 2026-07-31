@@ -4,6 +4,18 @@ Atualizado em: 2026-07-30
 
 ## Objetivo ativo
 
+`DASH-DATA-01` está em `CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE`.
+O candidato projeta o staging Open Finance somente leitura para v1/v2,
+separa saldo bancário, resultado econômico, fatura formal e limites, rotula
+staleness/fallback e remove marcadores controlados de teste antes de agregações
+públicas sem apagar as fontes. O comando `dashboard` permanece v1; v2 continua
+opt-in.
+
+Evidência: focal final `12/12`, transversal `98/98`, suíte hermética ampla
+`1.395` testes, `1.390` aprovados, zero falha e cinco skips esperados.
+Manifesto:
+`docs/audit/93-dashboard-financial-truth-candidate-2026-07-30.md`.
+
 A fila original da auditoria exaustiva e os gates `9P.0`, `9P.1`, `9P.2` e
 `9P.3` estão tecnicamente encerrados. 9P.3 recebeu `GO TÉCNICO LOCAL`
 independente no commit imutável
@@ -133,12 +145,11 @@ lacuna indispensável local. A validação com áudio real permanece operacional
 nenhum deploy foi autorizado. Fechamento:
 `docs/audit/90-audio-download-recovery-independent-close-2026-07-30.md`.
 
-OF-FAMILY-01 está como candidato local. O fanout cria uma linha cifrada por
-cônjuge, reconcilia contra os dois escopos internos autorizados, preserva o
-outbox owner-only existente, envia a proposta proativa sem gravar e vincula a
-revisão ao primeiro cônjuge que responder. Sintaxe, diff e suíte afetada estão
-verdes em `77/77`. Manifesto:
-`docs/audit/91-open-finance-family-alerts-candidate-2026-07-30.md`.
+OF-FAMILY-01 recebeu `GO TÉCNICO LOCAL` independente no commit imutável
+`f896ce9f1d60b39300237afb64fd67bc47e03d4a`. O fanout para os dois cônjuges,
+a reconciliação conjunta, a migração do outbox e a disputa one-time foram
+aceitos sem lacuna indispensável. Evidência local: `77/77`. Fechamento:
+`docs/audit/92-open-finance-family-alerts-independent-close-2026-07-30.md`.
 
 Plano corrente: `docs/plans/current-gate.md`.
 
@@ -157,12 +168,13 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Publicar o candidato de `OF-FAMILY-01` e submetê-lo à auditoria independente por
-hash imutável. O contrato de números do dashboard permanece gate separado.
+Publicar o candidato `DASH-DATA-01` em commit sanitizado e submetê-lo à
+auditoria independente por hash imutável. Sem parecer auditável, o estado máximo
+permanece candidato.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → implementar e auditar o gate OF-FAMILY-01.`
+`Codex → Sol → Alto → diagnosticar e corrigir o gate DASH-DATA-01.`
 
 ## Fila de produto posterior
 

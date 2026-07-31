@@ -4,6 +4,10 @@ const { syncReadModelIfNeeded, getDashboardSnapshot, getDashboardSqlData, isSqli
 const { getUserSheetDashboardData } = require('./userSheetAnalyticsService');
 const { decorateDashboardSummary } = require('./dashboardSummaryService');
 const { buildDashboardV2Summary } = require('./dashboardV2SummaryService');
+const {
+    loadOpenFinanceDashboardSnapshot,
+    applyDashboardFinancialTruth
+} = require('./dashboardFinancialTruthService');
 const { DASHBOARD_V2_ROUTE, dashboardV2Html } = require('./dashboardV2Page');
 const { verifyDashboardToken, isDashboardV2Enabled } = require('../utils/dashboardAuth');
 const { getAllUsers, getUserByIdFresh, getUserProfileByUserId } = require('./userService');
@@ -311,7 +315,17 @@ function dashboardHtml() {
         <h2>Saldos por Conta</h2>
         <div id="financialAccountsTotal" class="chart-note"></div>
       </div>
+      <div id="financialAccountsCriteria" class="criteria-note"></div>
       <div id="financialAccounts" class="list"></div>
+    </div>
+
+    <div id="creditCardsCard" class="section card" style="display:none">
+      <div class="chart-head">
+        <h2>Faturas e Limites</h2>
+        <div id="creditCardsTotal" class="chart-note"></div>
+      </div>
+      <div id="creditCardsCriteria" class="criteria-note"></div>
+      <div id="creditCards" class="list"></div>
     </div>
 
     <div class="section card chart-card">
@@ -513,6 +527,7 @@ function dashboardHtml() {
       renderFinanceChart(k);
       renderScopeSummary(data.scope);
       renderFinancialAccounts(data.financialAccounts);
+      renderCreditCards(data.creditCards);
       renderDailyGoal(data.dailyGoal);
 
       const cats = data.topCategories || [];
@@ -564,18 +579,59 @@ function dashboardHtml() {
       const card = document.getElementById('financialAccountsCard');
       const list = document.getElementById('financialAccounts');
       const total = document.getElementById('financialAccountsTotal');
+      const criteria = document.getElementById('financialAccountsCriteria');
       const items = Array.isArray(financialAccounts?.items) ? financialAccounts.items : [];
       if (!items.length) {
         card.style.display = 'none';
         list.innerHTML = '';
         total.textContent = '';
+        criteria.textContent = '';
         return;
       }
       card.style.display = '';
-      total.textContent = 'Total: ' + brl(financialAccounts.totalBalance || items.reduce((sum, item) => sum + Number(item.balance || 0), 0));
+      total.textContent = financialAccounts.totalBalance === null || financialAccounts.totalBalance === undefined
+        ? 'Total indisponível'
+        : 'Total: ' + brl(financialAccounts.totalBalance);
+      criteria.textContent = financialAccounts.criteria || '';
       list.innerHTML = items.map(item => {
         const meta = [item.accountType, item.responsible, item.status].filter(Boolean).join(' · ');
-        return '<div class="line"><span>' + esc(item.name || 'Conta') + (meta ? '<span class="muted"> · ' + esc(meta) + '</span>' : '') + '</span><strong>' + brl(item.balance) + '</strong></div>';
+        const balance = item.balance === null || item.balance === undefined ? 'Indisponível' : brl(item.balance);
+        return '<div class="line"><span>' + esc(item.name || 'Conta') +
+          (meta ? '<span class="muted"> · ' + esc(meta) + '</span>' : '') +
+          '</span><strong>' + balance + '</strong></div>';
+      }).join('');
+    }
+
+    function renderCreditCards(creditCards) {
+      const card = document.getElementById('creditCardsCard');
+      const list = document.getElementById('creditCards');
+      const total = document.getElementById('creditCardsTotal');
+      const criteria = document.getElementById('creditCardsCriteria');
+      const items = Array.isArray(creditCards?.items) ? creditCards.items : [];
+      if (!items.length) {
+        card.style.display = 'none';
+        list.innerHTML = '';
+        total.textContent = '';
+        criteria.textContent = '';
+        return;
+      }
+      card.style.display = '';
+      total.textContent = creditCards.totalCurrentInvoice === null || creditCards.totalCurrentInvoice === undefined
+        ? 'Fatura total indisponível'
+        : 'Faturas atuais: ' + brl(creditCards.totalCurrentInvoice);
+      criteria.textContent = creditCards.criteria || '';
+      list.innerHTML = items.map(item => {
+        const invoice = item.currentInvoice === null || item.currentInvoice === undefined
+          ? 'Fatura indisponível'
+          : 'Fatura ' + brl(item.currentInvoice);
+        const limits = [
+          item.totalLimit === null || item.totalLimit === undefined ? '' : 'limite total ' + brl(item.totalLimit),
+          item.availableLimit === null || item.availableLimit === undefined ? '' : 'disponível ' + brl(item.availableLimit),
+          item.usedLimit === null || item.usedLimit === undefined ? '' : 'usado ' + brl(item.usedLimit)
+        ].filter(Boolean).join(' · ');
+        return '<div class="line"><span>' + esc(item.name || 'Cartão') +
+          (limits ? '<span class="muted"> · ' + esc(limits) + '</span>' : '') +
+          '</span><strong>' + esc(invoice) + '</strong></div>';
       }).join('');
     }
 
@@ -907,6 +963,22 @@ async function requireFreshDashboardAccess(reqUrl, res, {
     return { token, payload };
 }
 
+async function applyCurrentFinancialTruth(snapshot, dataUserId) {
+    try {
+        const configuredScope = getFinancialScopeUserIds(dataUserId);
+        const userIds = Array.isArray(configuredScope) && configuredScope.length > 0
+            ? configuredScope
+            : [dataUserId];
+        const truth = loadOpenFinanceDashboardSnapshot({
+            userIds,
+            users: await getAllUsers()
+        });
+        return applyDashboardFinancialTruth(snapshot || {}, truth);
+    } catch (_error) {
+        return applyDashboardFinancialTruth(snapshot || {});
+    }
+}
+
 async function handleApiSummary(reqUrl, res) {
     try {
         const access = await requireFreshDashboardAccess(reqUrl, res);
@@ -924,13 +996,19 @@ async function handleApiSummary(reqUrl, res) {
             : null;
         if (personal) {
             metrics.increment('dashboard.api.summary.success');
-            sendJson(res, 200, decorateDashboardSummary(personal));
+            sendJson(res, 200, decorateDashboardSummary(
+                await applyCurrentFinancialTruth(personal, dataUserId)
+            ));
             return;
         }
         await syncReadModelIfNeeded();
         const snapshot = getDashboardSqlData(dataUserId, { month, year }) || getDashboardSnapshot(dataUserId, { month, year });
         metrics.increment('dashboard.api.summary.success');
-        sendJson(res, 200, decorateDashboardSummary(snapshot));
+        sendJson(res, 200, decorateDashboardSummary(
+            dataUserId === payload.uid
+                ? await applyCurrentFinancialTruth(snapshot, dataUserId)
+                : snapshot
+        ));
     } catch (error) {
         metrics.increment('dashboard.api.error');
         logger.error(`[dashboard] api_error ${logger.safeError(error)}`);
@@ -958,7 +1036,8 @@ async function handleApiV2Summary(reqUrl, res) {
         const year = reqUrl.searchParams.get('year');
         const personal = await getUserSheetDashboardData(dataUserId, { month, year, telemetryConsumer: 'dashboard_v2' });
         if (!personal) await syncReadModelIfNeeded();
-        const snapshot = personal || getDashboardSqlData(dataUserId, { month, year }) || getDashboardSnapshot(dataUserId, { month, year }) || {};
+        const rawSnapshot = personal || getDashboardSqlData(dataUserId, { month, year }) || getDashboardSnapshot(dataUserId, { month, year }) || {};
+        const snapshot = await applyCurrentFinancialTruth(rawSnapshot, dataUserId);
         const configuredScope = getFinancialScopeUserIds(dataUserId);
         const userIds = Array.isArray(configuredScope) && configuredScope.length > 0 ? configuredScope : [dataUserId];
         const summary = await buildDashboardV2Summary({

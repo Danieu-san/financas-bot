@@ -203,6 +203,79 @@ test('dashboard v2 preserves null when neither canonical nor snapshot account ba
     assert.notStrictEqual(result.blocks.cash.currentBalance, 0);
 });
 
+test('dashboard v2 prioritizes the same Open Finance account, bill and limit snapshot exposed by v1', async () => {
+    const snapshot = snapshotFixture();
+    snapshot.financialAccounts = {
+        status: 'partial',
+        source: 'open_finance',
+        timeBasis: 'observed_state',
+        observedAt: '2026-07-30T12:00:00.000Z',
+        stale: true,
+        totalBalance: 12.34,
+        items: [{ name: 'Banco exemplo', owner: 'Pessoa A', balance: 12.34 }]
+    };
+    snapshot.creditCards = {
+        status: 'available',
+        source: 'open_finance',
+        timeBasis: 'observed_state',
+        observedAt: '2026-07-30T12:00:00.000Z',
+        totalCurrentInvoice: 456.78,
+        items: [{
+            name: 'Cartão exemplo',
+            owner: 'Pessoa A',
+            currentInvoice: 456.78,
+            totalLimit: 4000,
+            availableLimit: 1234.56,
+            usedLimit: 2765.44
+        }]
+    };
+    const result = await buildDashboardV2Summary({
+        snapshot,
+        userIds: ['user-owner'],
+        ownerUserId: 'user-owner',
+        month: 6,
+        year: 2026,
+        currentDate: '2026-07-30',
+        queryTool: async ({ plan }) => {
+            if (plan.domain === 'accounts') {
+                return {
+                    ok: true,
+                    source: 'canonical',
+                    result: { value: { total: 9999, count: 1, items: [{ name: 'estimativa', balance: 9999 }] } }
+                };
+            }
+            if (plan.domain === 'forecast') {
+                return {
+                    ok: true,
+                    source: 'canonical',
+                    result: {
+                        value: {
+                            payable: 100,
+                            receivable: 0,
+                            netExpectedCash: -100,
+                            currentCashImpact: 0,
+                            count: 1,
+                            items: [{ domain: 'invoice', description: 'previsão', value: 888 }]
+                        }
+                    }
+                };
+            }
+            return { ok: false, reason: 'source_unavailable' };
+        }
+    });
+
+    assert.equal(result.blocks.accounts.source, 'open_finance');
+    assert.equal(result.blocks.accounts.status, 'partial');
+    assert.equal(result.blocks.accounts.totalBalance, 12.34);
+    assert.equal(result.blocks.cash.currentBalance, 12.34);
+    assert.equal(result.blocks.cash.status, 'partial');
+    assert.equal(result.blocks.invoices.source, 'open_finance');
+    assert.equal(result.blocks.invoices.total, 456.78);
+    assert.equal(result.blocks.invoices.items[0].usedLimit, 2765.44);
+    assert.notEqual(result.blocks.invoices.total, result.blocks.invoices.items[0].usedLimit);
+    assert.equal(result.blocks.forecast.payable, 100, 'forecast remains a separate concept');
+});
+
 test('dashboard v2 exposes trusted quality indicators only when the snapshot provides them', async () => {
     const snapshot = snapshotFixture();
     snapshot.dataQuality = {

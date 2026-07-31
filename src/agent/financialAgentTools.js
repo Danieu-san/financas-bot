@@ -42,6 +42,57 @@ const BLOCKED_PUBLIC_KEYS = new Set([
     'rawrows',
     'raw_rows'
 ]);
+const PUBLIC_DASHBOARD_TEST_MARKER = /\bTESTE_APAGAR_[A-Z0-9_]{6,96}\b/i;
+
+function containsPublicDashboardTestMarker(value, depth = 0) {
+    if (depth > 6 || value === null || value === undefined) return false;
+    if (Array.isArray(value)) {
+        return value.some(item => containsPublicDashboardTestMarker(item, depth + 1));
+    }
+    if (typeof value === 'object') {
+        return Object.values(value).some(item => containsPublicDashboardTestMarker(item, depth + 1));
+    }
+    return PUBLIC_DASHBOARD_TEST_MARKER.test(String(value));
+}
+
+function filterPublicDashboardTable(rows = []) {
+    if (!Array.isArray(rows) || rows.length === 0) return [];
+    return [rows[0], ...rows.slice(1).filter(row => !containsPublicDashboardTestMarker(row))];
+}
+
+function filterPublicDashboardDataSources(dataSources = {}) {
+    const filtered = { ...dataSources };
+    for (const key of ['saidas', 'entradas', 'transferencias', 'contas', 'metas',
+        'movimentacoesMetas', 'dividas', 'cartoesConfig', 'userSettings']) {
+        if (Array.isArray(filtered[key])) filtered[key] = filterPublicDashboardTable(filtered[key]);
+    }
+    if (Array.isArray(filtered.cartoes)) {
+        filtered.cartoes = filtered.cartoes.map(filterPublicDashboardTable);
+    }
+    for (const key of ['canonicalBudgetEvents', 'budgetCategories', 'budgetAllocations']) {
+        if (Array.isArray(filtered[key])) {
+            filtered[key] = filtered[key]
+                .filter(item => !containsPublicDashboardTestMarker(item));
+        }
+    }
+    return filtered;
+}
+
+function filterPublicDashboardQualitySource(source = {}) {
+    if (!source?.enabled || !Array.isArray(source.events)) return source;
+    const events = source.events.filter(event => !containsPublicDashboardTestMarker(event));
+    const eventIds = new Set(events.map(event => event.event_id).filter(Boolean));
+    return {
+        ...source,
+        events,
+        lines: Array.isArray(source.lines)
+            ? source.lines.filter(line => eventIds.has(line.event_id))
+            : [],
+        reconciliationLinks: Array.isArray(source.reconciliationLinks)
+            ? source.reconciliationLinks.filter(link => eventIds.has(link.event_id))
+            : []
+    };
+}
 
 function getScopedPublicRows({ userIds = [], personByUserId = {} } = {}) {
     return queryFinancialEventsPublicRows({ userIds, personByUserId });
@@ -523,7 +574,15 @@ async function queryCanonicalForecastPlanTool({
         errors: [`operacao de previsao ainda nao implementada: ${plan.operation}`]
     };
 }
-async function queryFinancialPlanTool({ plan, userIds = [], personByUserId = {}, currentDate = '', env = process.env, canonicalLedgerDbPath } = {}) {
+async function queryFinancialPlanTool({
+    plan,
+    userIds = [],
+    personByUserId = {},
+    currentDate = '',
+    env = process.env,
+    canonicalLedgerDbPath,
+    excludePublicTestMarkers = false
+} = {}) {
     const normalized = normalizeFinancialQueryPlan(plan);
     if (!normalized.ok) {
         return { ok: false, tool: 'query_financial_plan', reason: 'invalid_financial_query_plan', errors: normalized.errors };
@@ -579,11 +638,14 @@ async function queryFinancialPlanTool({ plan, userIds = [], personByUserId = {},
     }
 
     if (scopedPlan.domain === 'quality') {
-        const qualitySource = readCanonicalDataQualitySource({
+        const rawQualitySource = readCanonicalDataQualitySource({
             env,
             dbPath: canonicalLedgerDbPath,
             ownerPersonIds: resolvedScope.userIds
         });
+        const qualitySource = excludePublicTestMarkers
+            ? filterPublicDashboardQualitySource(rawQualitySource)
+            : rawQualitySource;
         if (!qualitySource.enabled) {
             return {
                 ok: false,
@@ -620,7 +682,7 @@ async function queryFinancialPlanTool({ plan, userIds = [], personByUserId = {},
         return { ok: false, tool: 'query_financial_plan', reason: 'read_model_unavailable' };
     }
 
-    const dataSources = queryFinancialQueryDataSourcesSql(scopedPlan, {
+    let dataSources = queryFinancialQueryDataSourcesSql(scopedPlan, {
         userId: resolvedScope.userIds[0],
         userIds: resolvedScope.userIds,
         currentDate
@@ -645,6 +707,9 @@ async function queryFinancialPlanTool({ plan, userIds = [], personByUserId = {},
                 budgetSourceHealth: canonicalBudget.sourceHealth
             });
         }
+    }
+    if (excludePublicTestMarkers) {
+        dataSources = filterPublicDashboardDataSources(dataSources);
     }
 
     const execution = await executeFinancialQuery(scopedPlan, dataSources);
@@ -803,6 +868,9 @@ module.exports = {
         resolvedScopeFromUserIds,
         sanitizePublicValue,
         sanitizeDashboardSnapshot,
-        normalizeMetric
+        normalizeMetric,
+        containsPublicDashboardTestMarker,
+        filterPublicDashboardDataSources,
+        filterPublicDashboardQualitySource
     }
 };
