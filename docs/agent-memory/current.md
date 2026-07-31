@@ -82,19 +82,6 @@ não executou essas contagens.
 
 O fechamento não autoriza flags, integração real, deploy ou produção.
 
-## Gate encerrado anterior — 9P.3
-
-`9P.3` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
-`f8a1e9f41eee3c904f0de69ae465219ef874212d`. O fechamento autoriza somente a
-revisão guiada local e durável da proposta aceita, preservando
-`financial_writes=0`; não autoriza 9P.4, revalidação final, writer, integração
-real ou produção.
-
-O parecer foi estático e não executou os testes. A evidência local publicada
-permanece: focal `20/20`, causal `150/150`, Open Finance `259/259`, entrada
-pública/máquina de estados `122/122` e runner hermético `1.305/1.310`, com
-zero falhas e cinco skips previstos.
-
 ## Git e workspace
 
 - branch ativa: `codex/open-finance-finalization`;
@@ -146,6 +133,13 @@ lacuna indispensável local. A validação com áudio real permanece operacional
 nenhum deploy foi autorizado. Fechamento:
 `docs/audit/90-audio-download-recovery-independent-close-2026-07-30.md`.
 
+OF-FAMILY-01 está como candidato local. O fanout cria uma linha cifrada por
+cônjuge, reconcilia contra os dois escopos internos autorizados, preserva o
+outbox owner-only existente, envia a proposta proativa sem gravar e vincula a
+revisão ao primeiro cônjuge que responder. Sintaxe, diff e suíte afetada estão
+verdes em `77/77`. Manifesto:
+`docs/audit/91-open-finance-family-alerts-candidate-2026-07-30.md`.
+
 Plano corrente: `docs/plans/current-gate.md`.
 
 ## Decisões vigentes
@@ -163,9 +157,8 @@ Plano corrente: `docs/plans/current-gate.md`.
 
 ## Próxima ação exata
 
-Executar `OF-FAMILY-01`: enviar a Daniel e Thaís somente movimentações novas
-após reconciliação fail-closed contra a planilha, já com proposta proativa de
-salvamento. O contrato de números do dashboard será gate separado.
+Publicar o candidato de `OF-FAMILY-01` e submetê-lo à auditoria independente por
+hash imutável. O contrato de números do dashboard permanece gate separado.
 
 ## Capacidade para retomar
 

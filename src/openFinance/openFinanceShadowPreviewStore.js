@@ -35,6 +35,7 @@ class OpenFinanceShadowPreviewStore {
     constructor({ databasePath = ':memory:', secret, retentionDays = 30,
         familyScope = 'shared-family', revocationJournal, authorizedWhatsAppIds = [],
         confirmationActors = [], confirmationTtlMinutes = 24 * 60,
+        familyConfirmationEnabled = false,
         clock = () => new Date() } = {}) {
         this.secret = requireSecret(secret);
         if (!Number.isInteger(retentionDays) || retentionDays < 7 || retentionDays > 90) {
@@ -44,9 +45,13 @@ class OpenFinanceShadowPreviewStore {
             confirmationTtlMinutes < 5 || confirmationTtlMinutes > 7 * 24 * 60) {
             throw new Error('open_finance_save_confirmation_ttl_out_of_range');
         }
+        if (typeof familyConfirmationEnabled !== 'boolean') {
+            throw new Error('invalid_family_confirmation_mode');
+        }
         this.databasePath = databasePath;
         this.retentionDays = retentionDays;
         this.confirmationTtlMinutes = confirmationTtlMinutes;
+        this.familyConfirmationEnabled = familyConfirmationEnabled;
         this.familyScopeRef = this.#hmac(`family:${String(familyScope || 'shared-family')}`);
         this.authorizedActorRefs = new Set(authorizedWhatsAppIds.map(value => this.#actorRef(value)));
         this.confirmationActorByPrincipal = new Map();
@@ -924,10 +929,12 @@ class OpenFinanceShadowPreviewStore {
         }
         if (row.proposal_state !== 'pending') throw new Error('save_proposal_state_conflict');
         const proposal = this.#readBoundSaveProposal(proposalRef, row);
-        const expectedActorRef = this.confirmationActorByPrincipal.get(proposal.principal);
-        if (!expectedActorRef) throw new Error('save_proposal_confirmation_recipient_unconfigured');
-        if (expectedActorRef !== actorRef) {
-            throw new Error('save_proposal_confirmation_recipient_unauthorized');
+        if (!this.familyConfirmationEnabled) {
+            const expectedActorRef = this.confirmationActorByPrincipal.get(proposal.principal);
+            if (!expectedActorRef) throw new Error('save_proposal_confirmation_recipient_unconfigured');
+            if (expectedActorRef !== actorRef) {
+                throw new Error('save_proposal_confirmation_recipient_unauthorized');
+            }
         }
         this.#assertSaveConfirmationState(row);
         if (row.confirmation_state !== 'pending') {

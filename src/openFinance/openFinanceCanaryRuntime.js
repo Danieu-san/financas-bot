@@ -4,7 +4,7 @@ const { PluggyReadOnlyClient } = require('./pluggyReadOnlyClient');
 const { OpenFinanceLiveStagingVault } = require('./openFinanceLiveStagingVault');
 const { OpenFinanceBaselineStore } = require('./openFinanceBaselineStore');
 const { classifyOpenFinanceLifecycle } = require('./openFinanceLifecycleClassifier');
-const { OpenFinanceAlertOutbox } = require('./openFinanceAlertOutbox');
+const { OpenFinanceAlertOutbox, normalizePolicies } = require('./openFinanceAlertOutbox');
 const { OpenFinanceRevocationJournal } = require('./openFinanceRevocationJournal');
 const { OpenFinanceShadowPreviewStore } = require('./openFinanceShadowPreviewStore');
 const {
@@ -40,18 +40,24 @@ function resolveWhatsAppRecipient(owner, users = []) {
 }
 
 function resolveInternalUserIds(policies = [], users = []) {
-    const owners = [...new Set(policies.map(policy => normalizePerson(policy.source_owner)).filter(Boolean))];
-    if (!owners.length) throw new Error('open_finance_internal_scope_unavailable');
-    return owners.map(owner => {
-        const matches = users.filter(user => normalizePerson(user.display_name).split(' ')[0] === owner && user.user_id);
+    const normalizedPolicies = normalizePolicies(policies);
+    const principals = [...new Set(normalizedPolicies
+        .flatMap(policy => policy.family ? policy.viewers : [policy.owner])
+        .filter(Boolean))];
+    if (!principals.length) throw new Error('open_finance_internal_scope_unavailable');
+    return principals.map(principal => {
+        const matches = users.filter(user =>
+            normalizePerson(user.display_name).split(' ')[0] === principal &&
+            user.user_id);
         if (matches.length !== 1) throw new Error('open_finance_internal_scope_unavailable');
         return matches[0].user_id;
     });
 }
 
 function resolveConfirmationActors(policies = [], users = []) {
-    const principals = [...new Set(policies
-        .map(policy => String(policy.write_confirmation_principal || '').trim().toLowerCase())
+    const normalizedPolicies = normalizePolicies(policies);
+    const principals = [...new Set(normalizedPolicies
+        .flatMap(policy => policy.family ? policy.viewers : [policy.principal])
         .filter(Boolean))];
     if (!principals.length || principals.some(principal => !['daniel', 'thais'].includes(principal))) {
         throw new Error('open_finance_confirmation_scope_unavailable');
@@ -98,6 +104,13 @@ function saveProposalConfiguration(env = process.env) {
     return { proposalMode, previewMode, internalReconciliationMode };
 }
 
+function familySharingEnabled(policies = []) {
+    const normalized = normalizePolicies(policies);
+    const modes = new Set(normalized.map(policy => policy.family));
+    if (modes.size > 1) throw new Error('mixed_open_finance_visibility_mode');
+    return modes.has(true);
+}
+
 async function runOpenFinanceCanaryCycle({ client, env = process.env, dependencies = {} } = {}) {
     if (!client || typeof client.sendMessage !== 'function') throw new Error('whatsapp_client_required');
     const evidence = readJson(env.OPEN_FINANCE_COMMERCIAL_EVIDENCE_FILE, 'commercial_evidence_unavailable');
@@ -108,6 +121,7 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
         throw new Error('open_finance_secret_unavailable');
     }
     const secret = fs.readFileSync(env.OPEN_FINANCE_LIVE_STAGING_SECRET_FILE, 'utf8').trim();
+    const sharedFamilyAlerts = familySharingEnabled(policies);
     const { proposalMode, previewMode, internalReconciliationMode } = saveProposalConfiguration(env);
     const stateManager = proposalMode === 'prompt'
         ? (dependencies.userStateManager || require('../state/userStateManager'))
@@ -210,7 +224,8 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
                     secret,
                     revocationJournal: journal,
                     authorizedWhatsAppIds: confirmationScope.authorizedWhatsAppIds,
-                    confirmationActors
+                    confirmationActors,
+                    familyConfirmationEnabled: sharedFamilyAlerts
                 });
                 if (proposalMode === 'prompt') {
                     const ReviewStore = dependencies.OpenFinanceSaveProposalReviewStore ||
@@ -281,18 +296,28 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
                     });
                     if (ready.some(confirmation =>
                         ['in_flight', 'delivered_confirmed', 'accepted_unconfirmed']
-                            .includes(outbox.getProposalDeliveryState(confirmation.proposal_ref)))) {
+                            .includes(outbox.getProposalDeliveryState(
+                                confirmation.proposal_ref,
+                                { recipient: actor.principal }
+                            )))) {
                         excludedRecipients.add(actor.principal);
                     }
                 }
             }
-            const max = Math.min(5, Math.max(1, Number(env.OPEN_FINANCE_ALERT_MAX_PER_RUN) || 2));
+            const requestedMax = Math.min(
+                5,
+                Math.max(1, Number(env.OPEN_FINANCE_ALERT_MAX_PER_RUN) || 2)
+            );
+            const max = sharedFamilyAlerts
+                ? Math.min(4, Math.max(2, requestedMax + (requestedMax % 2)))
+                : requestedMax;
             for (let index = 0; index < max; index += 1) {
                 const delivery = await deliverOneOpenFinanceCanary({ policy, outbox,
                     transport: { sendMessage: (to, text) => client.sendMessage(to, text) },
                     recipientResolver: owner => resolveWhatsAppRecipient(owner, activeUsers),
                     saveProposalStore: proposalStore,
                     proposalMode,
+                    deferSaveProposalConfirmation: sharedFamilyAlerts,
                     excludedRecipients: [...excludedRecipients],
                     sourceLabels: { daniel_nubank: 'Nubank Daniel', thais_nubank: 'Nubank Thais',
                         cristina_nubank: 'Nubank Cristina', thais_itau: 'Itau Thais' } });
@@ -361,6 +386,7 @@ module.exports = {
     resolveWhatsAppRecipient,
     resolveInternalUserIds,
     resolveConfirmationActors,
+    familySharingEnabled,
     shadowPreviewMode,
     saveProposalMode,
     saveProposalConfiguration

@@ -8,7 +8,7 @@ const { OpenFinanceBaselineStore } = require('../src/openFinance/openFinanceBase
 const { OpenFinanceAlertOutbox } = require('../src/openFinance/openFinanceAlertOutbox');
 const { OpenFinanceRevocationJournal } = require('../src/openFinance/openFinanceRevocationJournal');
 const { runOpenFinanceCanaryCycle, initializeOpenFinanceCanaryRuntime, resolveWhatsAppRecipient,
-    shadowPreviewMode } = require('../src/openFinance/openFinanceCanaryRuntime');
+    resolveInternalUserIds, shadowPreviewMode } = require('../src/openFinance/openFinanceCanaryRuntime');
 
 const secret = 'open-finance-runtime-test-secret-32-bytes';
 
@@ -88,6 +88,156 @@ test('9E.1 runtime sends only purchase and refund and quarantines unrelated inco
     assert.deepEqual(blocked.blockers, ['internal_source_stale']);
     assert.equal(blocked.transport_calls, 0);
     assert.equal(messages.length, 2);
+});
+
+test('OF-FAMILY-01 reconciles shared alerts against both spouses internal sources', () => {
+    assert.deepEqual(resolveInternalUserIds([{
+        alias: 'daniel_nubank',
+        source_owner: 'daniel',
+        authorized_viewers: ['daniel', 'thais'],
+        whatsapp_recipient: 'daniel',
+        family_aggregation_allowed: true,
+        write_confirmation_principal: 'daniel'
+    }], [
+        { user_id: 'user-daniel', display_name: 'Daniel da Silva' },
+        { user_id: 'user-thais', display_name: 'Thaís Leopoldo' }
+    ]).sort(), ['user-daniel', 'user-thais']);
+});
+
+test('OF-FAMILY-01 runtime fans one reconciled transaction out to both spouses', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-open-runtime-family-'));
+    const files = Object.fromEntries(
+        ['credentials', 'mapping', 'visibility', 'evidence', 'secret', 'vault', 'baseline', 'outbox', 'journal']
+            .map(name => [name, path.join(
+                dir,
+                `${name}.${['vault', 'baseline', 'outbox', 'journal'].includes(name)
+                    ? 'sqlite'
+                    : name === 'secret' ? 'txt' : 'json'}`
+            )])
+    );
+    fs.writeFileSync(files.credentials, JSON.stringify({
+        clientId: 'client',
+        clientSecret: 'secret'
+    }));
+    fs.writeFileSync(files.mapping, JSON.stringify([{
+        itemId: 'item-daniel-0001',
+        alias: 'daniel_nubank',
+        ownerScope: 'daniel',
+        generation: 1
+    }]));
+    fs.writeFileSync(files.visibility, JSON.stringify([{
+        alias: 'daniel_nubank',
+        source_owner: 'daniel',
+        authorized_viewers: ['daniel', 'thais'],
+        whatsapp_recipient: 'daniel',
+        family_aggregation_allowed: true,
+        write_confirmation_principal: 'daniel'
+    }]));
+    fs.writeFileSync(files.evidence, JSON.stringify({
+        route: 'meu_pluggy_connector_200',
+        connector_id: 200,
+        observed_cost_cents: 0,
+        payment_method_registered: false,
+        pro_features_required: false,
+        update_item_enabled: false,
+        category_source: 'financasbot_local'
+    }));
+    fs.writeFileSync(files.secret, secret);
+
+    const initial = snapshot([transaction('family-old', 500, 'old')]);
+    const vault = new OpenFinanceLiveStagingVault({
+        databasePath: files.vault,
+        secret
+    });
+    const baseline = new OpenFinanceBaselineStore({
+        databasePath: files.baseline,
+        secret
+    });
+    const outbox = new OpenFinanceAlertOutbox({
+        databasePath: files.outbox,
+        secret
+    });
+    const journal = new OpenFinanceRevocationJournal({
+        databasePath: files.journal,
+        secret
+    });
+    vault.ingestSnapshot(initial);
+    baseline.ingestSnapshot(initial);
+    vault.close();
+    baseline.close();
+    outbox.close();
+    journal.close();
+
+    const changed = snapshot([
+        transaction('family-old', 500, 'old'),
+        transaction('family-new', 1983, 'Compra compartilhada')
+    ], '2026-07-16T12:00:00.000Z');
+    class FakeApi {
+        async readSnapshot() {
+            return changed;
+        }
+    }
+    const messages = [];
+    const env = {
+        OPEN_FINANCE_ALERT_MODE: 'canary',
+        OPEN_FINANCE_ALERT_CANARY_ALIAS: 'daniel_nubank',
+        OPEN_FINANCE_RECONCILIATION_MODE: 'canary',
+        OPEN_FINANCE_WRITE_MODE: 'off',
+        OPEN_FINANCE_COMMERCIAL_EVIDENCE_FILE: files.evidence,
+        PLUGGY_ITEM_MAP_FILE: files.mapping,
+        OPEN_FINANCE_VISIBILITY_POLICY_FILE: files.visibility,
+        PLUGGY_CREDENTIALS_FILE: files.credentials,
+        OPEN_FINANCE_LIVE_STAGING_SECRET_FILE: files.secret,
+        OPEN_FINANCE_LIVE_STAGING_DB: files.vault,
+        OPEN_FINANCE_BASELINE_DB: files.baseline,
+        OPEN_FINANCE_OUTBOX_DB: files.outbox,
+        OPEN_FINANCE_REVOCATION_JOURNAL_DB: files.journal,
+        OPEN_FINANCE_ALERT_MAX_PER_RUN: '1'
+    };
+    const result = await runOpenFinanceCanaryCycle({
+        client: {
+            sendMessage: async (to, text) => {
+                messages.push({ to, text });
+                return { id: `family-runtime-${messages.length}` };
+            }
+        },
+        env,
+        dependencies: {
+            PluggyReadOnlyClient: FakeApi,
+            readOpenFinanceInternalSource: async () => ({
+                available: true,
+                source_health: 'available',
+                transactions: [],
+                financial_writes: 0
+            }),
+            getActiveUsers: async () => [
+                {
+                    user_id: 'user-daniel',
+                    display_name: 'Daniel da Silva',
+                    whatsapp_id: 'daniel@c.us',
+                    status: 'ACTIVE'
+                },
+                {
+                    user_id: 'user-thais',
+                    display_name: 'Thais Leopoldo',
+                    whatsapp_id: 'thais@c.us',
+                    status: 'ACTIVE'
+                }
+            ]
+        }
+    });
+
+    assert.equal(result.outcome, 'GO');
+    assert.equal(result.queued.inserted, 2);
+    assert.deepEqual(result.deliveries, [
+        'delivered_confirmed',
+        'delivered_confirmed'
+    ]);
+    assert.deepEqual(messages.map(message => message.to).sort(), [
+        'daniel@c.us',
+        'thais@c.us'
+    ]);
+    assert.equal(result.financial_writes, 0);
 });
 
 test('post-9F runtime expands to Thais Nubank without disabling Daniel or writing financial data', async () => {

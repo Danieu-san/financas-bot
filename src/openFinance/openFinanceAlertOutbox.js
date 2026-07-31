@@ -16,14 +16,69 @@ function normalizePolicies(policies = []) {
         const recipient = String(policy.whatsapp_recipient || '').toLowerCase();
         const viewers = [...new Set((policy.authorized_viewers || []).map(value => String(value).toLowerCase()))];
         const principal = String(policy.write_confirmation_principal || '').toLowerCase();
-        if (!/^[a-z0-9_-]{2,48}$/.test(alias) || !['daniel', 'thais'].includes(owner) || recipient !== owner ||
-            principal !== owner || viewers.length !== 1 || viewers[0] !== owner || policy.family_aggregation_allowed !== false) {
+        const family = policy.family_aggregation_allowed === true;
+        const ownerOnly = policy.family_aggregation_allowed === false &&
+            viewers.length === 1 && viewers[0] === owner;
+        const sharedFamily = family && viewers.length === 2 &&
+            viewers.includes('daniel') && viewers.includes('thais');
+        if (!/^[a-z0-9_-]{2,48}$/.test(alias) ||
+            !['daniel', 'thais'].includes(owner) ||
+            recipient !== owner ||
+            principal !== owner ||
+            (!ownerOnly && !sharedFamily)) {
             throw new Error('invalid_fail_closed_visibility_policy');
         }
         if (aliases.has(alias)) throw new Error('duplicate_visibility_policy');
         aliases.add(alias);
-        return { alias, owner, recipient, principal, viewers, family: false };
+        return {
+            alias,
+            owner,
+            recipient,
+            principal,
+            viewers,
+            recipients: family ? ['daniel', 'thais'] : [recipient],
+            family
+        };
     });
+}
+
+const OUTBOX_TABLE_SQL = `
+    CREATE TABLE IF NOT EXISTS finance_alert_outbox (
+        alert_ref TEXT PRIMARY KEY, external_event_ref TEXT NOT NULL,
+        milestone TEXT NOT NULL, recipient_ref TEXT NOT NULL,
+        encrypted_payload TEXT NOT NULL, delivery_state TEXT NOT NULL,
+        attempts INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL,
+        sent_at TEXT, whatsapp_message_ref TEXT,
+        lease_token TEXT, lease_expires_at TEXT, last_error_code TEXT,
+        attempt_ref TEXT, accepted_at TEXT, confirmed_at TEXT,
+        UNIQUE(external_event_ref, milestone, recipient_ref)
+    );
+`;
+
+function migrateRecipientScopedOutbox(db) {
+    const table = db.prepare(`SELECT sql FROM sqlite_master
+        WHERE type='table' AND name='finance_alert_outbox'`).get();
+    const sql = String(table?.sql || '');
+    if (!/UNIQUE\s*\(\s*external_event_ref\s*,\s*milestone\s*\)/i.test(sql)) return;
+    db.transaction(() => {
+        db.exec(`
+            ALTER TABLE finance_alert_outbox RENAME TO finance_alert_outbox_owner_only;
+            ${OUTBOX_TABLE_SQL}
+            INSERT INTO finance_alert_outbox (
+                alert_ref,external_event_ref,milestone,recipient_ref,encrypted_payload,
+                delivery_state,attempts,created_at,sent_at,whatsapp_message_ref,
+                lease_token,lease_expires_at,last_error_code,attempt_ref,accepted_at,
+                confirmed_at
+            )
+            SELECT
+                alert_ref,external_event_ref,milestone,recipient_ref,encrypted_payload,
+                delivery_state,attempts,created_at,sent_at,whatsapp_message_ref,
+                lease_token,lease_expires_at,last_error_code,attempt_ref,accepted_at,
+                confirmed_at
+            FROM finance_alert_outbox_owner_only;
+            DROP TABLE finance_alert_outbox_owner_only;
+        `);
+    })();
 }
 
 class OpenFinanceAlertOutbox {
@@ -32,14 +87,7 @@ class OpenFinanceAlertOutbox {
         this.db = new Database(databasePath);
         this.db.pragma('journal_mode = WAL');
         this.db.exec(`
-            CREATE TABLE IF NOT EXISTS finance_alert_outbox (
-                alert_ref TEXT PRIMARY KEY, external_event_ref TEXT NOT NULL,
-                milestone TEXT NOT NULL, recipient_ref TEXT NOT NULL,
-                encrypted_payload TEXT NOT NULL, delivery_state TEXT NOT NULL,
-                attempts INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL,
-                sent_at TEXT, whatsapp_message_ref TEXT,
-                UNIQUE(external_event_ref, milestone)
-            );
+            ${OUTBOX_TABLE_SQL}
             CREATE TABLE IF NOT EXISTS finance_alert_revocations (
                 alias_ref TEXT PRIMARY KEY, revoked_at TEXT NOT NULL,
                 reason_code TEXT NOT NULL
@@ -52,6 +100,7 @@ class OpenFinanceAlertOutbox {
         ]) {
             if (!columns.has(name)) this.db.exec(`ALTER TABLE finance_alert_outbox ADD COLUMN ${name} ${type}`);
         }
+        migrateRecipientScopedOutbox(this.db);
     }
     #ref(kind, value) { return crypto.createHmac('sha256', this.secret).update(`${kind}:${value}`).digest('hex').slice(0, 32); }
     #key() { return crypto.createHash('sha256').update(`open-finance-outbox:${this.secret}`).digest(); }
@@ -128,23 +177,35 @@ class OpenFinanceAlertOutbox {
                     throw new Error('save_proposal_outbox_link_mismatch');
                 }
                 const milestone = decision.provider_state === 'PENDING' ? 'first_pending' : decision.lifecycle_milestone;
-                const alertRef = this.#ref('alert', `${candidate.external_event_ref}:${milestone}`);
-                const payload = {
-                    recipient: policy.recipient,
-                    alias: source.alias,
-                    classification: decision.classification,
-                    provider_state: decision.provider_state,
-                    date: source.transaction.date,
-                    amount_cents: source.transaction.amount_cents,
-                    description: String(source.transaction.description || '').slice(0, 120),
-                    internal_reference: alertRef.slice(0, 10),
-                    reconciliation_status: reconciliationRequired ? 'new' : 'legacy_unchecked',
-                    ...(proposal ? { proposal_ref: proposal.proposalRef } : {}),
-                    write_enabled: false
-                };
-                const result = statement.run(alertRef, candidate.external_event_ref, milestone,
-                    this.#ref('recipient', policy.recipient), this.#encrypt(alertRef, payload), createdAt);
-                if (result.changes) inserted += 1; else replayed += 1;
+                for (const recipientPrincipal of policy.recipients) {
+                    const alertRef = this.#ref(
+                        'alert',
+                        `${candidate.external_event_ref}:${milestone}:${recipientPrincipal}`
+                    );
+                    const payload = {
+                        recipient: recipientPrincipal,
+                        confirmation_principal: policy.principal,
+                        alias: source.alias,
+                        classification: decision.classification,
+                        provider_state: decision.provider_state,
+                        date: source.transaction.date,
+                        amount_cents: source.transaction.amount_cents,
+                        description: String(source.transaction.description || '').slice(0, 120),
+                        internal_reference: alertRef.slice(0, 10),
+                        reconciliation_status: reconciliationRequired ? 'new' : 'legacy_unchecked',
+                        ...(proposal ? { proposal_ref: proposal.proposalRef } : {}),
+                        write_enabled: false
+                    };
+                    const result = statement.run(
+                        alertRef,
+                        candidate.external_event_ref,
+                        milestone,
+                        this.#ref('recipient', recipientPrincipal),
+                        this.#encrypt(alertRef, payload),
+                        createdAt
+                    );
+                    if (result.changes) inserted += 1; else replayed += 1;
+                }
             }
         });
         apply();
@@ -188,7 +249,8 @@ class OpenFinanceAlertOutbox {
         const leaseExpiresAt = new Date(Date.parse(now) + leaseSeconds * 1000).toISOString();
         return this.db.transaction(() => {
             const rows = this.db.prepare(`SELECT alert_ref,encrypted_payload,created_at FROM finance_alert_outbox
-                WHERE delivery_state='pending' ORDER BY created_at,alert_ref`).all();
+                WHERE delivery_state='pending'
+                ORDER BY created_at,external_event_ref,recipient_ref,alert_ref`).all();
             for (const row of rows) {
                 const payload = this.#decrypt(row.alert_ref, row.encrypted_payload);
                 const payloadAlias = String(payload.alias || '').toLowerCase();
@@ -208,15 +270,38 @@ class OpenFinanceAlertOutbox {
         })();
     }
 
-    getProposalDeliveryState(proposalRef) {
+    getProposalDeliveryState(proposalRef, { recipient = null } = {}) {
         const normalized = String(proposalRef || '');
         if (!/^[a-f0-9]{32}$/.test(normalized)) {
             throw new Error('valid_save_proposal_ref_required');
         }
+        const normalizedRecipient = String(recipient || '').trim().toLowerCase();
+        if (normalizedRecipient && !['daniel', 'thais'].includes(normalizedRecipient)) {
+            throw new Error('valid_open_finance_recipient_required');
+        }
         const matches = this.db.prepare(`SELECT alert_ref,delivery_state,encrypted_payload
             FROM finance_alert_outbox`).all()
-            .filter(row => this.#decrypt(row.alert_ref, row.encrypted_payload).proposal_ref === normalized);
-        if (matches.length > 1) throw new Error('ambiguous_save_proposal_outbox_link');
+            .filter(row => {
+                const payload = this.#decrypt(row.alert_ref, row.encrypted_payload);
+                return payload.proposal_ref === normalized &&
+                    (!normalizedRecipient || payload.recipient === normalizedRecipient);
+            });
+        if (matches.length > 1) {
+            if (normalizedRecipient) {
+                throw new Error('ambiguous_save_proposal_outbox_link');
+            }
+            const states = new Set(matches.map(row => row.delivery_state));
+            for (const state of [
+                'delivered_confirmed',
+                'accepted_unconfirmed',
+                'in_flight',
+                'pending',
+                'blocked'
+            ]) {
+                if (states.has(state)) return state;
+            }
+            throw new Error('ambiguous_save_proposal_outbox_link');
+        }
         return matches[0]?.delivery_state || null;
     }
     quarantineBeforeActivation({ canaryAliases = [], activatedAfterByAlias = {} } = {}) {

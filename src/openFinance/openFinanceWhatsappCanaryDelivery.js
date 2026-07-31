@@ -38,7 +38,7 @@ function formatSaveProposalMessage(delivery, sourceLabel, proposal) {
 
 async function deliverOneOpenFinanceCanary({ policy, outbox, transport, recipientResolver,
     sourceLabels = {}, saveProposalStore = null, proposalMode = 'off',
-    excludedRecipients = [], now } = {}) {
+    deferSaveProposalConfirmation = false, excludedRecipients = [], now } = {}) {
     if (!policy?.can_send_whatsapp ||
         typeof policy.can_write_financial !== 'boolean' ||
         !policy.canary_aliases?.length) {
@@ -46,6 +46,9 @@ async function deliverOneOpenFinanceCanary({ policy, outbox, transport, recipien
     }
     if (!['off', 'prompt'].includes(proposalMode)) {
         throw new Error('invalid_open_finance_delivery_proposal_mode');
+    }
+    if (typeof deferSaveProposalConfirmation !== 'boolean') {
+        throw new Error('invalid_open_finance_deferred_confirmation_mode');
     }
     if (!outbox || !transport || typeof transport.sendMessage !== 'function' || typeof recipientResolver !== 'function') {
         throw new Error('canary_delivery_dependencies_required');
@@ -66,21 +69,30 @@ async function deliverOneOpenFinanceCanary({ policy, outbox, transport, recipien
                 throw Object.assign(new Error('save_proposal_store_unavailable'),
                     { code: 'save_proposal_store_unavailable' });
             }
-            const prepared = saveProposalStore.prepareSaveProposalConfirmation(
-                delivery.proposal_ref,
-                { actorWhatsappId: recipient }
-            );
-            if (prepared.state !== 'ready' || !prepared.confirmation_ref) {
-                throw Object.assign(new Error('save_proposal_confirmation_not_ready'),
-                    { code: 'save_proposal_confirmation_not_ready' });
-            }
             proposalPayload = saveProposalStore.readSaveProposalPrivate(
                 delivery.proposal_ref,
                 { actorWhatsappId: recipient }
             );
-            if (!proposalPayload || proposalPayload.principal !== delivery.recipient) {
+            const expectedPrincipal = delivery.confirmation_principal ||
+                delivery.recipient;
+            if (!proposalPayload ||
+                proposalPayload.principal !== expectedPrincipal) {
                 throw Object.assign(new Error('save_proposal_delivery_binding_mismatch'),
                     { code: 'save_proposal_delivery_binding_mismatch' });
+            }
+            const prepared = deferSaveProposalConfirmation
+                ? {
+                    state: 'deferred',
+                    expires_at: proposalPayload.expires_at
+                }
+                : saveProposalStore.prepareSaveProposalConfirmation(
+                    delivery.proposal_ref,
+                    { actorWhatsappId: recipient }
+                );
+            if (!deferSaveProposalConfirmation &&
+                (prepared.state !== 'ready' || !prepared.confirmation_ref)) {
+                throw Object.assign(new Error('save_proposal_confirmation_not_ready'),
+                    { code: 'save_proposal_confirmation_not_ready' });
             }
             proposalContext = {
                 proposal_ref: delivery.proposal_ref,

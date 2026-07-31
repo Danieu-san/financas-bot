@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const {
     evaluateOpenFinanceWriteActivation
 } = require('./openFinanceWriteActivationPolicy');
-const { OpenFinanceAlertOutbox } = require('./openFinanceAlertOutbox');
+const { OpenFinanceAlertOutbox, normalizePolicies } = require('./openFinanceAlertOutbox');
 const { OpenFinanceRevocationJournal } = require('./openFinanceRevocationJournal');
 const { OpenFinanceShadowPreviewStore } = require('./openFinanceShadowPreviewStore');
 const {
@@ -74,7 +74,23 @@ function assertPromptConfiguration(env = process.env) {
     if (required.some(file => !file || !fs.existsSync(file))) {
         throw new Error('open_finance_save_proposal_state_unavailable');
     }
-    return { enabled: true, writeMode };
+    let familyConfirmationEnabled = false;
+    if (env.OPEN_FINANCE_VISIBILITY_POLICY_FILE) {
+        if (!fs.existsSync(env.OPEN_FINANCE_VISIBILITY_POLICY_FILE)) {
+            throw new Error('visibility_policy_unavailable');
+        }
+        const policies = normalizePolicies(JSON.parse(
+            fs.readFileSync(env.OPEN_FINANCE_VISIBILITY_POLICY_FILE, 'utf8')
+        ));
+        const modes = new Set(policies.map(policy => policy.family));
+        if (modes.size > 1) throw new Error('mixed_open_finance_visibility_mode');
+        familyConfirmationEnabled = modes.has(true);
+    }
+    return {
+        enabled: true,
+        writeMode,
+        ...(familyConfirmationEnabled ? { familyConfirmationEnabled: true } : {})
+    };
 }
 
 function formatMoneyFromCents(value) {
@@ -302,13 +318,43 @@ function handleOpenFinanceSaveProposalReply({
         databasePath: env.OPEN_FINANCE_SHADOW_PREVIEW_DB,
         secret,
         revocationJournal: journal,
-        authorizedWhatsAppIds: [actorWhatsappId]
+        authorizedWhatsAppIds: [actorWhatsappId],
+        familyConfirmationEnabled: Boolean(configuration.familyConfirmationEnabled)
     });
     const outbox = new Outbox({
         databasePath: env.OPEN_FINANCE_OUTBOX_DB,
         secret
     });
     try {
+        if (expectedProposalRef && configuration.familyConfirmationEnabled) {
+            const deliveryState = outbox.getProposalDeliveryState(expectedProposalRef);
+            if (deliveryState !== 'delivered_confirmed') {
+                return {
+                    handled: true,
+                    keep_pending: false,
+                    reply: 'Essa proposta não está mais disponível. Nenhum lançamento foi salvo.',
+                    financial_writes: 0
+                };
+            }
+            try {
+                preview.prepareSaveProposalConfirmation(
+                    expectedProposalRef,
+                    { actorWhatsappId }
+                );
+            } catch (error) {
+                if (/confirmation_actor_unauthorized|confirmation_state_conflict/.test(
+                    String(error?.message || '')
+                )) {
+                    return {
+                        handled: true,
+                        keep_pending: false,
+                        reply: 'Esta proposta já está sendo conferida pelo outro membro do casal. Nada foi salvo por esta resposta.',
+                        financial_writes: 0
+                    };
+                }
+                throw error;
+            }
+        }
         const ready = preview.listReadySaveProposalConfirmations({
             actorWhatsappId,
             limit: 2

@@ -7,20 +7,22 @@ Base:
 
 ## Estado
 
-`EM DIAGNÓSTICO LOCAL`.
+`CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE`.
 
 ## Objetivo
 
 Entregar a Daniel e Thaís os alertas de novas movimentações Open Finance
 elegíveis do casal, somente quando a movimentação ainda não estiver
-representada na planilha, com proposta proativa de classificação e salvamento.
+representada na planilha, com proposta proativa de salvamento e conferência
+guiada.
 
 ## Escopo
 
 - resolução explícita dos dois destinatários familiares autorizados;
 - reconciliação fail-closed contra o ledger/planilha antes da entrega;
 - uma mensagem por destinatário e movimentação elegível;
-- proposta de salvamento com referência estável e classificação sugerida;
+- proposta de salvamento com referência estável e classificação feita na
+  conferência guiada, sem sugestão inventada;
 - confirmação posterior sem gravação automática;
 - retry/outbox sem duplicar alerta ou efeito financeiro.
 
@@ -42,11 +44,11 @@ representada na planilha, com proposta proativa de classificação e salvamento.
 
 ## Etapas
 
-1. [pendente] Mapear descoberta, reconciliação, outbox, entrega e confirmação.
-2. [pendente] Fixar contrato RED para dois destinatários e item já cadastrado.
-3. [pendente] Implementar fanout e proposta mínima fail-closed.
-4. [pendente] Executar testes focais, afetados e workflow.
-5. [pendente] Publicar candidato sanitizado e auditar no Chat.
+1. [concluído] Mapear descoberta, reconciliação, outbox, entrega e confirmação.
+2. [concluído] Fixar contrato RED para dois destinatários e item já cadastrado.
+3. [concluído] Implementar fanout e proposta mínima fail-closed.
+4. [concluído] Executar testes focais e afetados: `77/77`.
+5. [em andamento] Publicar candidato sanitizado e auditar no Chat.
 
 ## Critérios de GO
 
@@ -67,8 +69,8 @@ representada na planilha, com proposta proativa de classificação e salvamento.
 
 ## Próxima ação exata
 
-Mapear no código a origem das transações, a reconciliação com a planilha, o
-outbox, o roteamento atual por proprietário e a confirmação `salvar`.
+Publicar o candidato sanitizado, fornecer ao Chat o hash imutável e os oito
+arquivos exatos e confrontar o parecer com a evidência local.
 
 ## Capacidade
 
