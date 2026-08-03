@@ -29,6 +29,9 @@ function initialClassification(transaction, account, observedAt) {
         return { classification: 'fee_interest', provider_state: transaction.status, rule: 'fee_interest_keyword' };
     }
     if (account.type === 'CREDIT') {
+        if (includesAny(description, ['saldo em atraso'])) {
+            return { classification: 'bill_balance', provider_state: transaction.status, rule: 'credit_overdue_balance_marker' };
+        }
         if (amount > 0) return { classification: 'purchase', provider_state: transaction.status, rule: 'credit_positive_charge' };
         if (includesAny(description, ['estorno', 'reembolso', 'credito', 'cancelamento'])) {
             return { classification: 'refund', provider_state: transaction.status, rule: 'credit_negative_refund' };

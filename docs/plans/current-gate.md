@@ -1,10 +1,30 @@
 # Gate ativo — PROD-ACT-01 ativação funcional Open Finance
 
-Atualizado em: 2026-07-31
+Atualizado em: 2026-08-03
 
 ## Estado
 
-`GO TÉCNICO LOCAL; POLÍTICA FAMILIAR ATIVA; SMOKE OPERACIONAL PARCIAL`.
+`POLÍTICA FAMILIAR ATIVA; RECOVERY OF-ALERT-BIND-01 CANDIDATO LOCAL;
+AGUARDANDO AUDITORIA INDEPENDENTE`.
+
+## Recovery ativo — OF-ALERT-BIND-01
+
+O smoke real demonstrou que transporte resolvido sem id podia entregar uma
+proposta sem vincular a conversa, uma transferência observada era excluída dos
+alertas e marcador de saldo em atraso podia virar compra. O provedor não
+retornou a compra e o estorno adicionais relatados mesmo após atualização, por
+isso o produto não os sintetizou.
+
+O candidato vincula uma única proposta ao telefone e principal exatos, mantém
+falhas ambíguas inelegíveis, amplia somente a visibilidade das classes
+reconciliadas e bloqueia `bill_balance`. Evidência local: `192/192` afetados,
+`13/13` no fixture temporal de 9P.4 e suíte hermética com `1.431` testes,
+`1.426` aprovados, zero falha e cinco skips esperados. Manifesto:
+`docs/audit/104-open-finance-alert-binding-recovery-candidate-2026-08-03.md`.
+
+Invariantes preservadas: proposta `prompt`, escrita `off`, aprovação falsa,
+zero escrita e `confirm` bloqueado. Entradas e transferências ficam alertáveis;
+seu salvamento proativo permanece fora deste recovery e exige gate próprio.
 
 ## Objetivo
 
@@ -118,11 +138,12 @@ já observados, por isso o smoke de uma nova movimentação ainda não terminou.
 
 ## Próxima ação exata
 
-Conferir nos dois aparelhos as quatro entregas cruzadas e observar a próxima
-movimentação real nova. Os dois cônjuges devem receber a proposta; somente um
-pode tomar a revisão e nenhuma linha pode ser criada com write `off`. A etapa
-`confirm` continua bloqueada.
+Criar e publicar um commit sanitizado e imutável do recovery
+`OF-ALERT-BIND-01`, submeter os arquivos reais à auditoria independente e
+confrontar o parecer com a evidência local. Somente `GO TÉCNICO LOCAL` autoriza
+release OCI por artefato, mantendo write `off`. A etapa `confirm` continua
+bloqueada.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> concluir o smoke familiar prompt-only com uma movimentação real nova.`
+`Codex -> Sol -> Alto -> publicar e auditar OF-ALERT-BIND-01 por hash imutável.`

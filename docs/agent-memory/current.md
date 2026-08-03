@@ -1,348 +1,109 @@
 # Estado atual portátil do FinancasBot
 
-Atualizado em: 2026-07-31
+Atualizado em: 2026-08-03
 
 ## Objetivo ativo
 
-`DASH-DATA-01` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
-`e712bc11c81c67035b7f4e3e9972853c5307e9cc`.
-O primeiro candidato `7e16c75708f34765fce28911761052093de057e0`
-recebeu `NO-GO` por substituir fatura formal ausente por previsão, permitir que
-`accounts`/`forecast` pulassem o filtro público, descartar mapeamentos
-autorizados sem registro e não marcar `usedLimit` ausente como parcial.
+Finalizar `OF-ALERT-BIND-01`: corrigir a visibilidade das classes reconciliadas
+do Open Finance e garantir que respostas curtas sejam associadas a uma única
+proposta interativa no telefone destinatário. O candidato local ainda precisa
+de commit imutável, publicação no GitHub e auditoria independente antes de
+qualquer deploy.
 
-O recovery projeta o staging Open Finance somente leitura para v1/v2,
-separa saldo bancário, resultado econômico, fatura formal e limites, rotula
-staleness/fallback e remove marcadores controlados de teste antes de agregações
-públicas sem apagar as fontes. Previsão não substitui mais fatura formal,
-mapeamento ausente e limite usado ausente falham como parciais. O comando
-`dashboard` permanece v1; v2 continua opt-in.
+## Estado vigente
 
-Evidência do recovery: RED causal `4/4`, focal `15/15`, afetada `123/123` e
-suíte hermética `1.398` testes, `1.393` aprovados, zero falha e cinco skips
-esperados. Manifesto:
-`docs/audit/94-dashboard-financial-truth-recovery-candidate-2026-07-31.md`.
-O parecer confirmou os nove arquivos, zerou todas as severidades e não
-identificou lacuna indispensável. Fechamento:
-`docs/audit/95-dashboard-financial-truth-independent-close-2026-07-31.md`.
+`CANDIDATO LOCAL; AGUARDANDO AUDITORIA INDEPENDENTE; NO-GO PARA DEPLOY`.
 
-O primeiro release OCI desse hash falhou fechado antes do Google/WhatsApp e
-executou rollback automático. A causa foi o `state_store.json={}` legado sem
-`STATE_STORE_ENCRYPTION_KEY`. O primeiro candidato `OPS-04`, no hash
-`a47ce899adb34f0c94847d8e8654aa06a6586fce`, recebeu `NO-GO` independente:
-backups e `.env` não garantiam privacidade/durabilidade desde a criação e o
-teste não travava causalmente bootstrap após a parada. O recovery fixa modos,
-publicação atômica exclusiva, `fsync` e a fronteira causal. Manifesto:
-`docs/audit/97-oci-state-bootstrap-private-durability-recovery-candidate-2026-07-31.md`.
+O smoke familiar real expôs três defeitos:
 
-Esse recovery recebeu `GO TÉCNICO LOCAL` independente no hash
-`ce43a8f8f6c4080bda5ab92e697388753da598d8`. A primeira promoção fez rollback:
-o candidato iniciou Google, Sheets, SQLite, read-model e dashboard, mas o
-WhatsApp não chegou a `ready` na janela de cerca de 60 segundos. A sessão
-recebeu `LOGOUT` na troca e foi reautenticada por QR; o runtime anterior voltou
-a `ready`, cron ativo e `writes=0`. `OPS-05` agora candidata uma janela
-explícita e limitada de até 60 tentativas sem afrouxar o health. Manifesto:
-`docs/audit/98-oci-whatsapp-readiness-window-candidate-2026-07-31.md`.
+- transporte resolvido sem id podia entregar a proposta sem criar o estado
+  conversacional correspondente;
+- uma transferência presente no snapshot era excluída pela allowlist de
+  alertas;
+- marcador sintético de saldo em atraso podia ser tratado como compra.
 
-`OPS-05` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
-`8f89aec906439dba0024318bddee8d255747b54f` e foi promovido com sucesso na
-Oracle. O script ativo e `APP_COMMIT_SHA` apontam para esse hash; PM2 está
-online com zero reinício, health local/público está
-`ok/sqlite/whatsapp=true`, WhatsApp `ready/healthy`, cron ativo e Open Finance
-`writes=0`. A promoção não executou rollback. Fechamento:
-`docs/audit/99-oci-whatsapp-readiness-window-independent-production-close-2026-07-31.md`.
+O snapshot atualizado do provedor não continha a compra e o estorno adicionais
+relatados pelo usuário. O produto não sintetizou eventos ausentes da fonte.
 
-A fila original da auditoria exaustiva e os gates `9P.0`, `9P.1`, `9P.2` e
-`9P.3` estão tecnicamente encerrados. 9P.3 recebeu `GO TÉCNICO LOCAL`
-independente no commit imutável
-`f8a1e9f41eee3c904f0de69ae465219ef874212d`, sem achado residual e com
-`financial_writes=0`.
+O recovery local:
 
-9P.4 está tecnicamente encerrado. O recovery de revalidação final, confirmação
-idempotente, operation key e recibo recebeu `GO TÉCNICO LOCAL` independente no
-hash `b98157dfde061793ad94cd025c99b1f8b5145712`. Integração real e produção
-continuam desligadas.
+- torna alertáveis compra, estorno, pagamento de fatura, transferência,
+  entrada, saída bancária e tarifa/juros;
+- mantém incerteza, parcela futura e `bill_balance` bloqueados;
+- vincula transporte resolvido sem id somente à proposta e ao principal
+  destinatário exatos;
+- mantém falha ambígua inelegível para resposta;
+- impede uma segunda proposta interativa simultânea no mesmo telefone;
+- preserva zero escrita financeira.
 
-A reauditoria confirmou os oito arquivos, fechou os dois `HIGH` e o `MEDIUM`,
-zerou todas as severidades e não encontrou lacuna causal indispensável. O
-fechamento está em
-`docs/audit/66-open-finance-finalization-independent-close-2026-07-30.md`.
+Manifesto:
+`docs/audit/104-open-finance-alert-binding-recovery-candidate-2026-08-03.md`.
 
-O menu numerado de pagamento e a precedência/criação de categorias estão
-encerrados; seus fechamentos independentes permanecem apontados no histórico
-dirigido abaixo.
+## Evidência local
 
-O gate de composição operacional também está tecnicamente encerrado. Uma
-política central exige, simultaneamente, alerta/reconciliação/preview em
-`canary`, proposta `prompt`, write mode `confirm` e aprovação explícita
-separada. Defaults, combinações parciais e rollback continuam sem escrita. O
-hash `8fa365353c693c7ba34cde62d2a1a8799a3f41e0` recebeu `GO TÉCNICO LOCAL`
-independente, sem lacuna indispensável residual.
+- bateria causal afetada: `192/192`;
+- suíte temporal de 9P.4, após estabilizar somente o prazo do fixture: `13/13`;
+- suíte hermética: `1.431` testes, `1.426` aprovados, zero falha e cinco skips
+  funcionais esperados;
+- cobertura: linhas `90,57%`, branches `72,93%`, funções `90,12%`;
+- `git diff --check`: verde.
 
-## Workspace vigente
-
-Raiz recuperada:
-`C:\Users\Administrador\Documents\FinancasBot\financas-bot`.
-Branch ativa: `codex/open-finance-finalization`; base:
-`20b8b7873c6626a3e74019ef025624e75303df7f`.
-
-O SSD portátil anterior foi perdido e não é mais a raiz canônica. A produção
-vigente é Oracle/OCI e permanece separada deste gate; nenhuma alteração deste
-workstream foi deployada.
-
-## Gate encerrado anterior — 9P.4
-
-`9P.4` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
-`b98157dfde061793ad94cd025c99b1f8b5145712`. Retomadas `writing/uncertain`
-usam somente reconciliação fail-closed; ausência de prova nunca cria append e
-`FINANCIAL_WRITE_UNCERTAIN` permanece incerto.
-
-Evidência executada pelo Codex: finalização `9/9`, writer/ledger `6/6`, entrada
-pública `1/1` e suíte unitária `205/205`. O Chat realizou revisão estática e
-não executou essas contagens.
-
-O fechamento não autoriza flags, integração real, deploy ou produção.
+As contagens são execução local do Codex. Ainda não são revisão independente e
+não autorizam promover o candidato.
 
 ## Git e workspace
 
-- branch ativa: `codex/open-finance-finalization`;
-- último produto com `GO TÉCNICO LOCAL`:
-  `1b7379e2968974c3c456e64f06ba20cedb0fc599`;
-- fechamento documental de 9P.0:
-  `bcdbf0e8772270019e9223e6a996f5102eb446bd`;
-- alterações concorrentes do workstream AWS/Oracle e arquivos não rastreados do
-  usuário permanecem fora do gate e não devem ser adicionados, alterados ou
-  removidos;
 - raiz canônica recuperada:
-  `C:\Users\Administrador\Documents\FinancasBot\financas-bot`.
+  `C:\Users\Administrador\Documents\FinancasBot\financas-bot`;
+- branch: `codex/open-finance-finalization`;
+- base do candidato: `a171a55d23c491575239ccd63c0e0ce4e7cfd666`;
+- o SSD antigo não é raiz canônica e não deve receber edições deste gate.
 
-## Gate final encerrado
+## Produção vigente
 
-`AUDIT-FINAL-01` recebeu `GO TÉCNICO LOCAL` independente no commit imutável
-`18248db41356974f80842dc39690165891c3f642`. O primeiro candidato
-`60c1421272887b46f26fdb06091b74ed71c37d8b` havia recebido `NO-GO`; os dois
-`HIGH` e o `LOW` foram reproduzidos e encerrados no recovery.
+- provedor: Oracle/OCI, conforme runbook e workstream vigentes;
+- release funcional conhecido antes deste candidato:
+  `33ab7969bf9ef4190a64f103e46b1ddce9ffe4b0`;
+- política familiar ativa para o casal;
+- proposta `prompt`, escrita `off`, aprovação falsa;
+- health e WhatsApp estavam completos na última verificação registrada;
+- AWS não participa de deploy ou rollback.
 
-A matriz confirmou `29/29` fechamentos e exatamente duas exceções legadas. O
-recovery passou `30/30` provas focais, `12/12` dentro do isolamento e a suíte
-hermética final registrou `1.377` testes, `1.372` aprovados, zero falha e cinco
-skips esperados. O parecer zerou todas as severidades e não encontrou lacuna
-indispensável. Fechamento:
-`docs/audit/86-final-consolidated-audit-independent-close-2026-07-30.md`.
+Antes de qualquer ação remota, redescobrir host, usuário, chave, diretório e
+processo nos documentos operacionais atuais. Não executar Git no diretório de
+produção; usar somente release por artefato imutável, checksum e rollback.
 
-Os três itens da fila pós-9P.4 e a composição operacional estão tecnicamente
-encerrados. A política fail-closed recebeu `GO TÉCNICO LOCAL` independente no
-hash `8fa365353c693c7ba34cde62d2a1a8799a3f41e0`.
+## Limites e fila posterior
 
-OPS-03 recebeu `NO-GO` no primeiro candidato e `GO TÉCNICO LOCAL` independente
-no recovery `461e79ae52903ff7160916026abfe833b3ab589e`. O builder exige SHA
-completo literal, o extrator recusa links antes de criar o destino e o rollback
-não inicia o processo anterior se não conseguir remover o candidato. A suíte
-focal está verde em `13/13`; o artefato exato foi verificado com `688` arquivos.
-Nenhuma ação remota foi executada.
-
-PHASE8-OBS-01 recebeu `GO TÉCNICO LOCAL` independente no commit imutável
-`abf411e0831d90bc9628f56021475c9e23816de9`. O relatório lê o arquivo ativo e
-as rotações limitadas, preserva uso real arquivado e linhas inválidas e não
-autoriza soft-disable, flag, restart, deploy ou produção. O fechamento está em
-`docs/audit/88-phase8-tripwire-rotation-proof-independent-close-2026-07-30.md`.
-
-AUDIO-01 recebeu `GO TÉCNICO LOCAL` independente no commit imutável
-`bb6b102a56fb23fed154017a359a9953d5627285`. Retry limitado, reaquisição,
-privacidade, limpeza e fronteira anterior a FFmpeg/Gemini foram aceitos sem
-lacuna indispensável local. A validação com áudio real permanece operacional e
-nenhum deploy foi autorizado. Fechamento:
-`docs/audit/90-audio-download-recovery-independent-close-2026-07-30.md`.
-
-OF-FAMILY-01 recebeu `GO TÉCNICO LOCAL` independente no commit imutável
-`f896ce9f1d60b39300237afb64fd67bc47e03d4a`. O fanout para os dois cônjuges,
-a reconciliação conjunta, a migração do outbox e a disputa one-time foram
-aceitos sem lacuna indispensável. Evidência local: `77/77`. Fechamento:
-`docs/audit/92-open-finance-family-alerts-independent-close-2026-07-30.md`.
-
-Plano corrente: `docs/plans/current-gate.md`.
-
-## Decisões vigentes
-
-- usar `Codex → Sol → Alto` no gate familiar Open Finance;
-- parar e avisar Daniel antes de reduzir ou trocar capacidade;
-- a produção vigente é Oracle/OCI; não reutilizar caminhos AWS e não executar
-  Oracle e AWS simultaneamente com a mesma sessão WhatsApp;
-- antes do próximo deploy funcional, definir e ensaiar instalação por artefato
-  imutável com preservação de estado, checksums e rollback;
-- preservar o bot familiar privado do casal; expansão multiusuário não faz
-  parte do escopo;
-- usar commit sanitizado e imutável em auditorias independentes e separar
-  evidência executada localmente de revisão estática externa.
+- eventos ausentes no provedor não podem ser criados artificialmente;
+- eventos já terminalizados como não alertáveis não serão reenviados;
+- neste candidato, propostas proativas continuam restritas a compras
+  reconciliadas;
+- salvar entrada, transferência, saída bancária, pagamento ou tarifa exige gate
+  próprio com semântica e writers adequados;
+- `confirm` continua bloqueado até smoke acompanhado e autorização própria.
 
 ## Próxima ação exata
 
-`PROD-ACT-01` ativou `prompt` na OCI com escrita `off`, aprovação falsa, health
-local/público completo e `writes=0`. No smoke acompanhado, Daniel atualizou os
-quatro Items; o ciclo encontrou cinco observações novas, mas a única entrega
-aceita ficou restrita à titular porque a política privada das quatro fontes
-ainda estava owner-only.
-
-O candidato `OF-FAMILY-ACT-01` cria o controlador transacional da promoção para
-o casal autorizado, preservando titular/principal, com backup exato, troca
-atômica, health e rollback. As quatro suítes causais passaram `33/33`. Manifesto:
-`docs/audit/102-open-finance-family-policy-activation-candidate-2026-07-31.md`.
-
-O commit `33ab7969bf9ef4190a64f103e46b1ddce9ffe4b0` recebeu `GO TÉCNICO LOCAL`
-independente, foi promovido na OCI por artefato imutável e aplicou a política
-familiar sem rollback. Health local/público está completo; prompt segue ativo,
-write `off` e aprovação falsa. O ciclo pós-política entregou dois alertas
-cruzados para Daniel e dois para Thaís com `writes=0`. Como eram expansões de
-eventos já observados, falta o smoke causal de uma próxima movimentação nova.
-Fechamento:
-`docs/audit/103-open-finance-family-policy-independent-production-close-2026-07-31.md`.
-`confirm` continua bloqueado.
+Criar commit sanitizado e imutável de `OF-ALERT-BIND-01`, publicar a branch,
+submeter o manifesto, código e testes exatos à auditoria independente e
+confrontar o parecer com a evidência local. Somente `GO TÉCNICO LOCAL` autoriza
+release OCI por artefato, mantendo escrita `off`.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → concluir o smoke familiar prompt-only com uma movimentação real nova.`
+`Codex → Sol → Alto → publicar e auditar OF-ALERT-BIND-01 por hash imutável.`
 
-## Fila de produto posterior
+## Referências dirigidas
 
-Depois da correção operacional de liveness, abrir gate próprio para revalidação
-final, confirmação idempotente, operation key e recibo de 9P.4. Somente depois:
-
-1. [encerrado] atribuição familiar uniforme a Daniel ou Thaís;
-2. [encerrado] forma de pagamento como menu numerado;
-3. [encerrado] na dúvida de categoria, oferecer mais categorias existentes
-   antes da opção de criar uma nova.
-
-## Histórico dirigido
-
-- candidato 9P.0:
-  `docs/audit/46-open-finance-save-proposal-shadow-candidate-2026-07-23.md`;
-- recovery pós-NO-GO 9P.0:
-  `docs/audit/47-open-finance-save-proposal-shadow-recovery-candidate-2026-07-23.md`;
-- fechamento independente 9P.0:
-  `docs/audit/48-open-finance-save-proposal-shadow-independent-close-2026-07-23.md`;
-- candidato 9P.1:
-  `docs/audit/49-open-finance-save-proposal-confirmation-candidate-2026-07-24.md`;
-- recuperação pós-NO-GO 9P.1:
-  `docs/audit/50-open-finance-save-proposal-confirmation-recovery-candidate-2026-07-24.md`;
-- segunda recuperação 9P.1:
-  `docs/audit/51-open-finance-save-proposal-terminal-journal-recovery-candidate-2026-07-24.md`;
-- terceira recuperação 9P.1:
-  `docs/audit/52-open-finance-save-proposal-terminal-anchor-recovery-candidate-2026-07-24.md`;
-- fechamento independente 9P.1:
-  `docs/audit/53-open-finance-save-proposal-confirmation-independent-close-2026-07-24.md`;
-- candidato 9P.2:
-  `docs/audit/54-open-finance-save-proposal-conversation-candidate-2026-07-24.md`;
-- recuperação pós-NO-GO 9P.2:
-  `docs/audit/55-open-finance-save-proposal-delivery-proof-recovery-candidate-2026-07-24.md`;
-- fechamento independente 9P.2:
-  `docs/audit/56-open-finance-save-proposal-conversation-independent-close-2026-07-24.md`;
-- candidato 9P.3:
-  `docs/audit/57-open-finance-save-proposal-guided-review-candidate-2026-07-24.md`;
-- reauditoria candidata 9P.3:
-  `docs/audit/58-open-finance-save-proposal-guided-review-reaudit-candidate-2026-07-24.md`;
-- reauditoria do Chat interrompida pelo handoff:
-  `docs/audit/59-open-finance-save-proposal-guided-review-chat-pending-2026-07-24.md`;
-- fechamento independente 9P.3:
-  `docs/audit/60-open-finance-save-proposal-guided-review-independent-close-2026-07-30.md`;
-- fechamento independente OPS-02:
-  `docs/audit/63-ops02-independent-close-2026-07-30.md`;
-- candidato 9P.4:
-  `docs/audit/64-open-finance-save-proposal-finalization-candidate-2026-07-30.md`;
-- recovery pós-NO-GO 9P.4:
-  `docs/audit/65-open-finance-finalization-reconcile-only-recovery-candidate-2026-07-30.md`;
-- fechamento independente 9P.4:
-  `docs/audit/66-open-finance-finalization-independent-close-2026-07-30.md`;
-- candidato de atribuição familiar uniforme:
-  `docs/audit/67-family-assignment-uniformity-candidate-2026-07-30.md`;
-- fechamento da atribuição familiar uniforme:
-  `docs/audit/68-family-assignment-uniformity-independent-close-2026-07-30.md`;
-- candidato do menu numerado de pagamento:
-  `docs/audit/69-payment-method-numbered-menu-candidate-2026-07-30.md`;
-- recovery das dependências de pagamento:
-  `docs/audit/70-payment-method-dependency-recovery-candidate-2026-07-30.md`;
-- fechamento independente do menu de pagamento:
-  `docs/audit/71-payment-method-dependency-independent-close-2026-07-30.md`;
-- caracterização da precedência de categorias existentes:
-  `docs/audit/72-category-existing-precedence-characterization-2026-07-30.md`;
-- candidato de nova categoria na proposta proativa:
-  `docs/audit/73-open-finance-new-category-candidate-2026-07-30.md`;
-- recovery da nova categoria na proposta proativa:
-  `docs/audit/74-open-finance-new-category-recovery-candidate-2026-07-30.md`;
-- fechamento independente da nova categoria:
-  `docs/audit/75-open-finance-new-category-independent-close-2026-07-30.md`;
-- caracterização da composição operacional:
-  `docs/audit/76-open-finance-write-activation-characterization-2026-07-30.md`;
-- candidato da ativação fail-closed:
-  `docs/audit/77-open-finance-write-activation-candidate-2026-07-30.md`;
-- fechamento independente da ativação fail-closed:
-  `docs/audit/78-open-finance-write-activation-independent-close-2026-07-30.md`;
-- caracterização do release OCI:
-  `docs/audit/79-oci-artifact-release-characterization-2026-07-30.md`;
-- candidato do release OCI:
-  `docs/audit/80-oci-artifact-release-candidate-2026-07-30.md`;
-- recovery do release OCI após `NO-GO`:
-  `docs/audit/81-oci-artifact-release-recovery-candidate-2026-07-30.md`;
-- fechamento independente do release OCI:
-  `docs/audit/82-oci-artifact-release-independent-close-2026-07-30.md`;
-- fechamento independente STATE-03:
-  `docs/audit/45-state03-independent-close-2026-07-23.md`;
-- recuperação de sinais repetidos STATE-03:
-  `docs/audit/44-state03-repeated-signal-recovery-candidate-2026-07-23.md`;
-- fechamento independente FLOW-04:
-  `docs/audit/42-flow04-independent-close-2026-07-23.md`;
-- recuperação pós-NO-GO FLOW-04:
-  `docs/audit/41-flow04-post-audit-recovery-candidate-2026-07-23.md`;
-- fechamento independente FLOW-02:
-  `docs/audit/39-flow02-independent-close-2026-07-23.md`;
-- candidato FLOW-02:
-  `docs/audit/38-flow02-rate-limit-candidate-2026-07-23.md`;
-- fechamento independente de OPS-01:
-  `docs/audit/37-ops01-independent-close-2026-07-23.md`;
-- fechamento independente de COV-01:
-  `docs/audit/36-cov01-independent-close-2026-07-23.md`;
-- fechamento independente de STATE-04:
-  `docs/audit/35-state04-independent-close-2026-07-23.md`;
-- recuperação da fronteira Redis de STATE-04:
-  `docs/audit/34-state04-redis-boundary-recovery-candidate-2026-07-23.md`;
-- recuperação da terceira revisão de STATE-04:
-  `docs/audit/33-state04-third-review-recovery-candidate-2026-07-23.md`;
-- recuperação após o segundo `NO-GO` de STATE-04:
-  `docs/audit/32-state04-second-nogo-recovery-candidate-2026-07-23.md`;
-- recuperação após `NO-GO` de STATE-04:
-  `docs/audit/31-state04-independent-nogo-recovery-candidate-2026-07-23.md`;
-- primeiro candidato STATE-04:
-  `docs/audit/30-state04-snapshot-hardening-candidate-2026-07-23.md`;
-- fechamento independente AUTH-04:
-  `docs/audit/29-auth04-independent-close-2026-07-23.md`;
-- candidato AUTH-04:
-  `docs/audit/28-auth04-dashboard-revocation-candidate-2026-07-23.md`;
-- fechamento atual:
-  `docs/audit/18-flow03-independent-close-2026-07-22.md`;
-- candidato PRIV-01:
-  `docs/audit/24-priv01-runtime-log-boundary-candidate-2026-07-22.md`;
-- recuperação pós-NO-GO PRIV-01:
-  `docs/audit/25-priv01-post-audit-recovery-candidate-2026-07-22.md`;
-- recuperação dos escapes multilinha PRIV-01:
-  `docs/audit/26-priv01-multiline-log-recovery-candidate-2026-07-22.md`;
-- fechamento independente PRIV-01:
-  `docs/audit/27-priv01-independent-close-2026-07-22.md`;
-- candidato STATE-01:
-  `docs/audit/19-state01-sender-serialization-candidate-2026-07-22.md`;
-- correção pós-commit candidata:
-  `docs/audit/22-state01-post-commit-recovery-candidate-2026-07-22.md`;
-- fechamento independente de STATE-01:
-  `docs/audit/23-state01-independent-close-2026-07-22.md`;
-- tentativa automática sem acesso:
-  `docs/audit/20-state01-chat-access-pending-2026-07-22.md`;
-- tentativa manual sem acesso e integridade dos anexos:
-  `docs/audit/21-state01-manual-access-insufficient-2026-07-22.md`;
-- candidato FLOW-03:
-  `docs/audit/17-flow03-scheduler-personal-source-candidate-2026-07-22.md`;
-- fechamento anterior:
-  `docs/audit/16-auth03-wgl07-independent-close-2026-07-22.md`;
-- candidato AUTH-03/WGL-07:
-  `docs/audit/15-auth03-wgl07-candidate-2026-07-22.md`;
-- fechamento anterior:
-  `docs/audit/14-wgl03-wgl04-independent-close-2026-07-22.md`;
-- fila original:
-  `docs/audit/11-exhaustive-path-independent-review-2026-07-18.md`.
+- plano vigente: `docs/plans/current-gate.md`;
+- candidato atual:
+  `docs/audit/104-open-finance-alert-binding-recovery-candidate-2026-08-03.md`;
+- última ativação familiar em produção:
+  `docs/audit/103-open-finance-family-policy-independent-production-close-2026-07-31.md`;
+- release OCI auditado:
+  `docs/audit/99-oci-whatsapp-readiness-window-independent-production-close-2026-07-31.md`;
+- arquitetura: `docs/agent-memory/architecture-map.md`;
+- riscos: `docs/agent-memory/known-issues.md`;
+- seleção de testes: `docs/agent-memory/testing-playbook.md`;
+- histórico cronológico: `docs/agent-memory/current-state.md` e Git.

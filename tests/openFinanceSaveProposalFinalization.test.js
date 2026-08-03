@@ -103,7 +103,7 @@ function fixture() {
             ),
             reconciliation_status: 'new',
             operation_key: 'b'.repeat(48),
-            expires_at: '2026-07-31T12:00:00.000Z'
+            expires_at: '2099-01-01T00:00:00.000Z'
         },
         review: {
             proposal_ref: proposalRef,
@@ -111,7 +111,7 @@ function fixture() {
             payload: {
                 proposal_ref: proposalRef,
                 draft,
-                expires_at: '2026-07-31T12:00:00.000Z'
+                expires_at: '2099-01-01T00:00:00.000Z'
             }
         },
         item,

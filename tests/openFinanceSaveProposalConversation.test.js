@@ -1289,3 +1289,37 @@ test('9P.2 fails closed when one actor has more than one delivered ready proposa
         first.close();
     }
 });
+
+test('resolved transport without provider id accepts only the exactly bound proposal reply', async () => {
+    const harness = createHarness({ transactionId: 'resolved-without-provider-id' });
+    try {
+        const accepted = await deliverOneOpenFinanceCanary(deliveryInput(harness, {
+            sendMessage: async () => undefined
+        }));
+        assert.equal(accepted.outcome, 'accepted_unconfirmed');
+        assert.equal(accepted.conversation_bindable, true);
+
+        const unbound = handleOpenFinanceSaveProposalReply({
+            messageBody: 'sim',
+            actorWhatsappId,
+            reviewCatalog,
+            env: harness.env
+        });
+        assert.equal(unbound.handled, false);
+
+        const bound = handleOpenFinanceSaveProposalReply({
+            messageBody: 'sim',
+            actorWhatsappId,
+            expectedProposalRef: harness.proposalRef,
+            expectedRecipientPrincipal: 'daniel',
+            reviewCatalog,
+            env: harness.env
+        });
+        assert.equal(bound.handled, true);
+        assert.equal(bound.state, 'review_editing');
+        assert.equal(bound.proposal_ref, harness.proposalRef);
+        assert.equal(bound.financial_writes, 0);
+    } finally {
+        harness.close();
+    }
+});

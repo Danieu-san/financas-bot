@@ -1,6 +1,9 @@
 const crypto = require('node:crypto');
 const Database = require('better-sqlite3');
-const ALERTABLE_CLASSIFICATIONS = new Set(['purchase', 'refund']);
+const ALERTABLE_CLASSIFICATIONS = new Set([
+    'purchase', 'refund', 'bill_payment', 'transfer',
+    'income_candidate', 'purchase_candidate', 'fee_interest'
+]);
 
 function requireSecret(secret) {
     const value = String(secret || '');
@@ -303,6 +306,32 @@ class OpenFinanceAlertOutbox {
             throw new Error('ambiguous_save_proposal_outbox_link');
         }
         return matches[0]?.delivery_state || null;
+    }
+
+    isProposalReplyEligible(proposalRef, { recipient = null } = {}) {
+        const normalized = String(proposalRef || '');
+        if (!/^[a-f0-9]{32}$/.test(normalized)) {
+            throw new Error('valid_save_proposal_ref_required');
+        }
+        const normalizedRecipient = String(recipient || '').trim().toLowerCase();
+        if (normalizedRecipient && !['daniel', 'thais'].includes(normalizedRecipient)) {
+            throw new Error('valid_open_finance_recipient_required');
+        }
+        const matches = this.db.prepare(`SELECT alert_ref,delivery_state,encrypted_payload,last_error_code
+            FROM finance_alert_outbox`).all().filter(row => {
+            const payload = this.#decrypt(row.alert_ref, row.encrypted_payload);
+            return payload.proposal_ref === normalized &&
+                (!normalizedRecipient || payload.recipient === normalizedRecipient);
+        });
+        if (matches.length > 1 && normalizedRecipient) {
+            throw new Error('ambiguous_save_proposal_outbox_link');
+        }
+        return matches.some(row =>
+            row.delivery_state === 'delivered_confirmed' ||
+            (Boolean(normalizedRecipient) &&
+                row.delivery_state === 'accepted_unconfirmed' &&
+                row.last_error_code === 'transport_accepted_without_provider_id')
+        );
     }
     quarantineBeforeActivation({ canaryAliases = [], activatedAfterByAlias = {} } = {}) {
         const aliases = new Set(canaryAliases.map(value => String(value || '').toLowerCase()));

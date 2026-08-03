@@ -9327,7 +9327,8 @@ async function processMessage(msg) {
             proposalReply = handleOpenFinanceSaveProposalReply({
                 messageBody,
                 actorWhatsappId: senderId,
-                expectedProposalRef: currentState?.data?.proposalRef || null
+                expectedProposalRef: currentState?.data?.proposalRef || null,
+                expectedRecipientPrincipal: currentState?.data?.recipientPrincipal || null
             });
         } catch (error) {
             if (error?.message !== 'open_finance_save_review_catalog_required') throw error;
@@ -9346,6 +9347,7 @@ async function processMessage(msg) {
                 messageBody,
                 actorWhatsappId: senderId,
                 expectedProposalRef: currentState?.data?.proposalRef || null,
+                expectedRecipientPrincipal: currentState?.data?.recipientPrincipal || null,
                 reviewCatalog
             });
         }

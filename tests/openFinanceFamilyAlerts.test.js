@@ -422,11 +422,19 @@ test('OF-FAMILY-01 public reply lets either spouse start one durable review afte
             transport: {
                 sendMessage: async recipient => {
                     recipients.push(recipient);
+                    if (recipient === thaisWhatsappId) {
+                        return undefined;
+                    }
                     return { id: `provider-${recipient}` };
                 }
             }
         });
-        assert.equal(delivered.outcome, 'delivered_confirmed');
+        if (delivered.recipient === thaisWhatsappId) {
+            assert.equal(delivered.outcome, 'accepted_unconfirmed');
+            assert.equal(delivered.conversation_bindable, true);
+        } else {
+            assert.equal(delivered.outcome, 'delivered_confirmed');
+        }
     }
     assert.deepEqual(recipients.sort(), [danielWhatsappId, thaisWhatsappId].sort());
     outbox.close();
@@ -467,6 +475,7 @@ test('OF-FAMILY-01 public reply lets either spouse start one durable review afte
         messageBody: 'sim',
         actorWhatsappId: thaisWhatsappId,
         expectedProposalRef: proposalLink.proposal_ref,
+        expectedRecipientPrincipal: 'thais',
         reviewCatalog,
         env
     });
@@ -478,6 +487,7 @@ test('OF-FAMILY-01 public reply lets either spouse start one durable review afte
         messageBody: 'sim',
         actorWhatsappId: danielWhatsappId,
         expectedProposalRef: proposalLink.proposal_ref,
+        expectedRecipientPrincipal: 'daniel',
         reviewCatalog,
         env
     });

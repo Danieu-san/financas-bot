@@ -8,7 +8,8 @@ const { OpenFinanceBaselineStore } = require('../src/openFinance/openFinanceBase
 const { OpenFinanceAlertOutbox } = require('../src/openFinance/openFinanceAlertOutbox');
 const { OpenFinanceRevocationJournal } = require('../src/openFinance/openFinanceRevocationJournal');
 const { runOpenFinanceCanaryCycle, initializeOpenFinanceCanaryRuntime, resolveWhatsAppRecipient,
-    resolveInternalUserIds, shadowPreviewMode } = require('../src/openFinance/openFinanceCanaryRuntime');
+    resolveInternalUserIds, shadowPreviewMode,
+    bindOpenFinanceProposalConversation } = require('../src/openFinance/openFinanceCanaryRuntime');
 
 const secret = 'open-finance-runtime-test-secret-32-bytes';
 
@@ -31,7 +32,7 @@ function transaction(id, amount, description, status = 'POSTED', accountId = 'ac
         date: '2026-07-16T09:00:00.000Z', status, currency: 'BRL' };
 }
 
-test('9E.1 runtime sends only purchase and refund and quarantines unrelated income', async () => {
+test('Open Finance runtime alerts reconciled purchase, refund and bank income', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-open-runtime-'));
     const files = Object.fromEntries(['credentials', 'mapping', 'visibility', 'evidence', 'secret', 'vault', 'baseline', 'outbox', 'journal'].map(name => [name, path.join(dir, `${name}.${['vault','baseline','outbox','journal'].includes(name) ? 'sqlite' : name === 'secret' ? 'txt' : 'json'}`)]));
     fs.writeFileSync(files.credentials, JSON.stringify({ clientId: 'client', clientSecret: 'secret' }));
@@ -66,9 +67,9 @@ test('9E.1 runtime sends only purchase and refund and quarantines unrelated inco
             getActiveUsers: async () => [{ user_id: 'user-daniel', display_name: 'Daniel da Silva',
                 whatsapp_id: 'daniel@c.us', status: 'ACTIVE' }] } });
     assert.equal(result.outcome, 'GO'); assert.equal(result.new_observations, 3);
-    assert.deepEqual(result.deliveries, ['delivered_confirmed', 'delivered_confirmed', 'idle']); assert.equal(messages.length, 2);
+    assert.deepEqual(result.deliveries, ['delivered_confirmed', 'delivered_confirmed', 'delivered_confirmed']); assert.equal(messages.length, 3);
     assert.ok(messages.every(message => message.to === 'daniel@c.us' && message.text.includes('nada foi salvo')));
-    assert.equal(result.queued.blocked, 1); assert.equal(result.outbox.blocked, 0); assert.equal(result.financial_writes, 0);
+    assert.equal(result.queued.blocked, 0); assert.equal(result.outbox.blocked, 0); assert.equal(result.financial_writes, 0);
     assert.deepEqual(result.reconciliation.summary, {
         matched: 0, new: 3, possible_duplicate: 0, uncertain: 0,
         lifecycle_replayed: 0, possible_replacement: 0, resolved_replay: 0, source_missing: 0
@@ -87,7 +88,7 @@ test('9E.1 runtime sends only purchase and refund and quarantines unrelated inco
     assert.equal(blocked.outcome, 'blocked');
     assert.deepEqual(blocked.blockers, ['internal_source_stale']);
     assert.equal(blocked.transport_calls, 0);
-    assert.equal(messages.length, 2);
+    assert.equal(messages.length, 3);
 });
 
 test('OF-FAMILY-01 reconciles shared alerts against both spouses internal sources', () => {
@@ -376,4 +377,41 @@ test('9E.1 runtime log separates cycle deliveries from cumulative outbox state',
     } finally {
         runtime.stop();
     }
+});
+
+test('resolved no-id proposal binds one exact conversation and blocks a second prompt', () => {
+    const states = new Map();
+    const stateManager = {
+        setState(key, value, ttl) { states.set(key, { value, ttl }); }
+    };
+    const excludedRecipients = new Set();
+    const bound = bindOpenFinanceProposalConversation({
+        delivery: {
+            outcome: 'accepted_unconfirmed',
+            conversation_bindable: true,
+            proposal_ref: 'a'.repeat(32),
+            confirmation_expires_at: new Date(Date.now() + 60_000).toISOString(),
+            recipient: 'daniel@c.us',
+            recipient_principal: 'daniel'
+        },
+        stateManager,
+        excludedRecipients
+    });
+    assert.equal(bound, true);
+    assert.equal(states.get('daniel@c.us').value.action,
+        'awaiting_open_finance_save_confirmation');
+    assert.equal(states.get('daniel@c.us').value.data.proposalRef, 'a'.repeat(32));
+    assert.equal(states.get('daniel@c.us').value.data.recipientPrincipal, 'daniel');
+    assert.equal(excludedRecipients.has('daniel'), true);
+
+    assert.equal(bindOpenFinanceProposalConversation({
+        delivery: {
+            outcome: 'accepted_unconfirmed',
+            conversation_bindable: false,
+            proposal_ref: 'b'.repeat(32)
+        },
+        stateManager,
+        excludedRecipients
+    }), false);
+    assert.equal(states.size, 1);
 });

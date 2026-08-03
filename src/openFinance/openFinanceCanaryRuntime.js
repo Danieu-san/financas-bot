@@ -111,6 +111,39 @@ function familySharingEnabled(policies = []) {
     return modes.has(true);
 }
 
+
+function bindOpenFinanceProposalConversation({
+    delivery,
+    stateManager,
+    excludedRecipients,
+    now = Date.now()
+} = {}) {
+    if (!delivery?.proposal_ref) return false;
+    const bindable = delivery.outcome === 'delivered_confirmed' ||
+        (delivery.outcome === 'accepted_unconfirmed' &&
+            delivery.conversation_bindable === true);
+    if (!bindable) return false;
+    if (!stateManager || typeof stateManager.setState !== 'function' ||
+        !excludedRecipients || typeof excludedRecipients.add !== 'function') {
+        throw new Error('open_finance_conversation_binding_dependencies_required');
+    }
+    const expiresAt = Date.parse(delivery.confirmation_expires_at);
+    const nowMs = typeof now === 'number' ? now : Date.parse(String(now));
+    if (!Number.isFinite(expiresAt) || !Number.isFinite(nowMs) || expiresAt <= nowMs) {
+        return false;
+    }
+    const ttlSeconds = Math.max(1, Math.floor((expiresAt - nowMs) / 1000));
+    stateManager.setState(delivery.recipient, {
+        action: 'awaiting_open_finance_save_confirmation',
+        data: {
+            proposalRef: delivery.proposal_ref,
+            expiresAt: delivery.confirmation_expires_at,
+            recipientPrincipal: delivery.recipient_principal
+        }
+    }, ttlSeconds);
+    excludedRecipients.add(delivery.recipient_principal);
+    return true;
+}
 async function runOpenFinanceCanaryCycle({ client, env = process.env, dependencies = {} } = {}) {
     if (!client || typeof client.sendMessage !== 'function') throw new Error('whatsapp_client_required');
     const evidence = readJson(env.OPEN_FINANCE_COMMERCIAL_EVIDENCE_FILE, 'commercial_evidence_unavailable');
@@ -321,20 +354,11 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
                     excludedRecipients: [...excludedRecipients],
                     sourceLabels: { daniel_nubank: 'Nubank Daniel', thais_nubank: 'Nubank Thais',
                         cristina_nubank: 'Nubank Cristina', thais_itau: 'Itau Thais' } });
-                if (delivery.proposal_ref && delivery.outcome === 'delivered_confirmed') {
-                    const ttlSeconds = Math.max(
-                        1,
-                        Math.floor((Date.parse(delivery.confirmation_expires_at) - Date.now()) / 1000)
-                    );
-                    stateManager.setState(delivery.recipient, {
-                        action: 'awaiting_open_finance_save_confirmation',
-                        data: {
-                            proposalRef: delivery.proposal_ref,
-                            expiresAt: delivery.confirmation_expires_at
-                        }
-                    }, ttlSeconds);
-                    excludedRecipients.add(delivery.recipient_principal);
-                }
+                bindOpenFinanceProposalConversation({
+                    delivery,
+                    stateManager,
+                    excludedRecipients
+                });
                 deliveries.push(delivery.outcome);
                 if (delivery.outcome === 'idle' || delivery.outcome === 'blocked') break;
             }
@@ -389,5 +413,6 @@ module.exports = {
     familySharingEnabled,
     shadowPreviewMode,
     saveProposalMode,
-    saveProposalConfiguration
+    saveProposalConfiguration,
+    bindOpenFinanceProposalConversation
 };

@@ -59,11 +59,11 @@ test('9D.1c blocks possible replacement and future installment', () => {
     } finally { store.close(); }
 });
 
-test('9D.1c alerts only purchases and refunds during the first canary', () => {
+test('9D.1c blocks an uncertain movement', () => {
     const data = fixture();
     const store = new OpenFinanceAlertOutbox({ secret });
     try {
-        data.lifecycle.decisions[0].classification = 'income_candidate';
+        data.lifecycle.decisions[0].classification = 'uncertain';
         assert.equal(store.enqueue({ candidates: [data.candidate], lifecycleDecisions: data.lifecycle.decisions,
             items: [data.item], policies, baselineComplete: true }).blocked, 1);
         assert.equal(store.stats().total, 0);
@@ -106,4 +106,23 @@ test('post-9F claim accepts an alias allowlist and honors per-alias activation t
         assert.equal(store.quarantineBeforeActivation({ canaryAliases: ['cristina_nubank'],
             activatedAfterByAlias: { cristina_nubank: '2026-07-16T13:00:00.000Z' } }).blocked, 1);
     } finally { store.close(); }
+});
+
+test('Open Finance alerts every reconciled movement class', () => {
+    for (const classification of [
+        'purchase', 'refund', 'bill_payment', 'transfer',
+        'income_candidate', 'purchase_candidate', 'fee_interest'
+    ]) {
+        const data = fixture();
+        const store = new OpenFinanceAlertOutbox({ secret });
+        try {
+            data.lifecycle.decisions[0].classification = classification;
+            const queued = store.enqueue({ candidates: [data.candidate], lifecycleDecisions: data.lifecycle.decisions,
+                items: [data.item], policies, baselineComplete: true });
+            assert.equal(queued.inserted, 1, classification);
+            assert.equal(queued.blocked, 0, classification);
+        } finally {
+            store.close();
+        }
+    }
 });

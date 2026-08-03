@@ -289,6 +289,7 @@ function handleOpenFinanceSaveProposalReply({
     messageBody,
     actorWhatsappId,
     expectedProposalRef = null,
+    expectedRecipientPrincipal = null,
     reviewCatalog = null,
     env = process.env,
     dependencies = {}
@@ -327,8 +328,10 @@ function handleOpenFinanceSaveProposalReply({
     });
     try {
         if (expectedProposalRef && configuration.familyConfirmationEnabled) {
-            const deliveryState = outbox.getProposalDeliveryState(expectedProposalRef);
-            if (deliveryState !== 'delivered_confirmed') {
+            const replyEligible = outbox.isProposalReplyEligible(expectedProposalRef, {
+                recipient: expectedRecipientPrincipal
+            });
+            if (!replyEligible) {
                 return {
                     handled: true,
                     keep_pending: false,
@@ -359,11 +362,15 @@ function handleOpenFinanceSaveProposalReply({
             actorWhatsappId,
             limit: 2
         });
-        const delivered = ready.filter(item =>
-            outbox.getProposalDeliveryState(item.proposal_ref) === 'delivered_confirmed');
-        const candidates = expectedProposalRef
-            ? delivered.filter(item => item.proposal_ref === expectedProposalRef)
-            : delivered;
+        const candidates = ready.filter(item => {
+            if (expectedProposalRef) {
+                return item.proposal_ref === expectedProposalRef &&
+                    outbox.isProposalReplyEligible(item.proposal_ref, {
+                        recipient: expectedRecipientPrincipal
+                    });
+            }
+            return outbox.getProposalDeliveryState(item.proposal_ref) === 'delivered_confirmed';
+        });
         if (candidates.length === 0) {
             return {
                 handled: Boolean(expectedProposalRef),
@@ -374,7 +381,7 @@ function handleOpenFinanceSaveProposalReply({
                 financial_writes: 0
             };
         }
-        if (candidates.length !== 1 || delivered.length !== 1) {
+        if (candidates.length !== 1) {
             throw new Error('ambiguous_open_finance_save_proposal_reply');
         }
         const confirmation = candidates[0];

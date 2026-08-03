@@ -118,12 +118,14 @@ async function deliverOneOpenFinanceCanary({ policy, outbox, transport, recipien
         }
         outbox.acknowledgeAccepted({ alertRef: delivery.alert_ref, leaseToken: delivery.lease_token, acceptedAt: now });
         return { outcome: 'accepted_unconfirmed', alert_ref: delivery.alert_ref,
+            conversation_bindable: Boolean(proposalContext),
             ...(proposalContext || {}), transport_calls: 1, financial_writes: 0 };
     } catch (error) {
         if (transportStarted && error?.definitiveNoSend !== true) {
             outbox.acknowledgeAccepted({ alertRef: delivery.alert_ref, leaseToken: delivery.lease_token,
                 acceptedAt: now, reasonCode: 'ambiguous_transport_failure' });
             return { outcome: 'accepted_unconfirmed', reason: 'ambiguous_delivery',
+                conversation_bindable: false,
                 ...(proposalContext || {}), transport_calls: 1, financial_writes: 0 };
         }
         outbox.releaseFailed({ alertRef: delivery.alert_ref, leaseToken: delivery.lease_token,

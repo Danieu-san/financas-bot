@@ -92,6 +92,7 @@ test('9F resolved transport without provider id becomes accepted_unconfirmed and
             recipientResolver: async () => 'recipient', sourceLabels: { daniel_nubank: 'Nubank Daniel' },
             transport: { sendMessage: async () => { calls += 1; return undefined; } } });
         assert.equal(result.outcome, 'accepted_unconfirmed'); assert.equal(calls, 1);
+        assert.equal(result.conversation_bindable, false);
         assert.equal(outbox.stats().accepted_unconfirmed, 1); assert.equal(outbox.stats().sent, 0);
         const replay = await deliverOneOpenFinanceCanary({ policy: canaryPolicy(), outbox,
             recipientResolver: async () => 'recipient', sourceLabels: { daniel_nubank: 'Nubank Daniel' },
@@ -183,6 +184,7 @@ test('9F ambiguous transport rejection is at-most-once and can be confirmed by r
             recipientResolver: async () => 'recipient', sourceLabels: { daniel_nubank: 'Nubank Daniel' },
             transport: { sendMessage: async () => { calls += 1; throw new Error('unknown delivery state'); } } });
         assert.equal(result.outcome, 'accepted_unconfirmed'); assert.equal(calls, 1);
+        assert.equal(result.conversation_bindable, false);
         const row = outbox.db.prepare('SELECT encrypted_payload,alert_ref FROM finance_alert_outbox').get();
         assert.equal(outbox.stats().accepted_unconfirmed, 1);
         assert.equal((await deliverOneOpenFinanceCanary({ policy: canaryPolicy(), outbox,

@@ -21,6 +21,16 @@ test('9D.1b classifies credit charge, refund and payment without write eligibili
     assert.equal(result.decisions.every(row => !row.write_eligible && !row.alert_eligible), true);
 });
 
+test('Open Finance does not treat an overdue balance marker as a new purchase', () => {
+    const result = classifyOpenFinanceLifecycle({ secret, items: [item({
+        accounts: [account('card', 'CREDIT')],
+        transactions: [tx('overdue-balance', 'card', 12345, 'Saldo em atraso')]
+    })] });
+    assert.equal(result.decisions[0].classification, 'bill_balance');
+    assert.equal(result.decisions[0].rule, 'credit_overdue_balance_marker');
+    assert.equal(result.decisions[0].write_eligible, false);
+});
+
 test('9D.1b PENDING and future installment never become write eligible', () => {
     const result = classifyOpenFinanceLifecycle({ secret, observedAt: '2026-07-16T10:00:00.000Z', items: [item({ accounts: [account('card', 'CREDIT')], transactions: [
         tx('pending', 'card', 1000, 'Compra', { status: 'PENDING' }),
