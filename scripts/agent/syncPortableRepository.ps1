@@ -53,7 +53,8 @@ if ($porcelain.Count -gt 0 -and ($porcelain -join '').Trim()) {
 }
 
 Invoke-Captured -Executable $GitBin -Arguments @(
-    '-C', $sourceRoot, 'fetch', '--prune', 'origin'
+    '-C', $sourceRoot, 'fetch', '--prune', 'origin',
+    "+refs/heads/${branch}:refs/remotes/origin/${branch}"
 ) | Out-Null
 $remoteHead = (Invoke-Captured -Executable $GitBin -Arguments @(
     '-C', $sourceRoot, 'rev-parse', "origin/$branch"
