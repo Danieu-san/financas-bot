@@ -43,6 +43,23 @@ Antes de etapa inevitavelmente cara, informar o custo esperado e a evidência qu
 ela produzirá. Estas regras reduzem tokens e tempo, mas não removem teste causal,
 auditoria obrigatória ou controle de produção.
 
+### Calibração prospectiva de uso do Codex
+
+Enquanto `CODEX-USAGE-CAL-01` estiver ativo, as quatro primeiras tarefas reais
+de calibração devem usar o coletor local versionado em
+`scripts/agent/codexTelemetryCollector.js`, controlado por
+`scripts/agent/Manage-CodexUsageTelemetry.ps1`. Antes da tarefa material,
+confirmar que o coletor está saudável e iniciar um `objective_id` sem texto
+livre; ao encerrar ou pausar, fechar o objetivo e registrar o resumo agregado no
+workstream correspondente.
+
+O coletor deve permanecer restrito a loopback, armazenar somente metadados da
+allowlist e nunca persistir prompt, comando, patch, saída de ferramenta,
+mensagem, segredo ou identidade de conta. Ausência de evento ou métrica é
+`NAO_DISPONIVEL`, nunca zero. Os arquivos locais ficam fora do Git. Falha da
+telemetria não autoriza ampliar coleta nem bloquear o produto: registrar a
+lacuna e preservar a execução normal.
+
 Ao chegar de outro computador ou conversa, ler primeiro
 `docs/agent-memory/START-HERE.md` e executar
 `scripts/agent/resumePortableWork.ps1`. A frase do usuário informando que
