@@ -407,7 +407,7 @@ class OpenFinanceShadowPreviewStore {
         });
     }
 
-    #invalidateSaveProposalEligibility(proposalRef, reasonCode) {
+    #invalidateSaveProposal(proposalRef, reasonCode) {
         const terminalJournal = this.#requireSaveProposalTerminalJournal();
         const timestamp = this.#now();
         const select = this.db.prepare(`SELECT proposal_ref,proposal_state,resolved_by_ref,resolved_at,
@@ -481,6 +481,12 @@ class OpenFinanceShadowPreviewStore {
             return { invalidated: true, replay: true, financial_writes: 0 };
         }
         return { invalidated: true, replay: false, financial_writes: 0 };
+    }
+
+    #saveProposalSourceIdentityKey({ aliasRef, generation, transaction } = {}) {
+        const transactionId = String(transaction?.id || '').trim();
+        if (!transactionId) throw new Error('save_proposal_source_identity_required');
+        return this.#hmac(`save-proposal-source-identity:${aliasRef}:${generation}:${transactionId}`);
     }
 
     reapplySaveProposalTerminals({ terminals = [] } = {}) {
@@ -632,12 +638,29 @@ class OpenFinanceShadowPreviewStore {
         let blocked = 0;
         let invalidated = 0;
         const proposalLinks = [];
+        const insertedThisRun = new Set();
         const existing = this.db.prepare(`SELECT transaction_ref,family_scope_ref,alias_ref,generation,
             encrypted_payload,payload_version,proposal_state,created_at,expires_at
             FROM open_finance_save_proposals WHERE proposal_ref=?`);
         const existingByTransaction = this.db.prepare(
             'SELECT proposal_ref FROM open_finance_save_proposals WHERE transaction_ref=?'
         );
+        const existingBySourceIdentity = new Map();
+        const existingRows = this.db.prepare(`SELECT proposal_ref,transaction_ref,family_scope_ref,
+            alias_ref,generation,encrypted_payload,payload_version,proposal_state,created_at,expires_at
+            FROM open_finance_save_proposals WHERE family_scope_ref=?`).all(this.familyScopeRef);
+        for (const row of existingRows) {
+            const payload = this.#readBoundSaveProposal(row.proposal_ref, row);
+            const key = this.#saveProposalSourceIdentityKey({
+                aliasRef: row.alias_ref,
+                generation: row.generation,
+                transaction: payload.source
+            });
+            if (existingBySourceIdentity.has(key)) {
+                throw new Error('save_proposal_replay_conflict');
+            }
+            existingBySourceIdentity.set(key, row.proposal_ref);
+        }
         const insert = this.db.prepare(`INSERT INTO open_finance_save_proposals (
             proposal_ref,transaction_ref,family_scope_ref,alias_ref,generation,encrypted_payload,
             payload_version,proposal_state,created_at,updated_at,expires_at,confirmation_state_mac
@@ -665,6 +688,30 @@ class OpenFinanceShadowPreviewStore {
                     `save-proposal-transaction:${source.aliasRef}:${source.generation}:${decision.transaction_ref}`
                 );
                 let prior = existing.get(proposalRef);
+                const sourceIdentityKey = this.#saveProposalSourceIdentityKey({
+                    aliasRef: source.aliasRef,
+                    generation: source.generation,
+                    transaction: source.transaction
+                });
+                const displacedRefs = new Set([
+                    existingByTransaction.get(transactionRef)?.proposal_ref,
+                    existingBySourceIdentity.get(sourceIdentityKey)
+                ].filter(ref => ref && ref !== proposalRef));
+                if (!prior && displacedRefs.size) {
+                    if (displacedRefs.size !== 1) throw new Error('save_proposal_replay_conflict');
+                    const displacedRef = [...displacedRefs][0];
+                    if (insertedThisRun.has(displacedRef)) {
+                        throw new Error('save_proposal_replay_conflict');
+                    }
+                    if (!existing.get(displacedRef)) throw new Error('save_proposal_replay_conflict');
+                    const result = this.#invalidateSaveProposal(
+                        displacedRef,
+                        'source_identity_conflict'
+                    );
+                    if (!result.replay) invalidated += 1;
+                    blocked += 1;
+                    continue;
+                }
                 const basePayload = {
                     alias: source.alias,
                     generation: source.generation,
@@ -693,7 +740,7 @@ class OpenFinanceShadowPreviewStore {
                         })) {
                             throw new Error('save_proposal_replay_conflict');
                         }
-                        const result = this.#invalidateSaveProposalEligibility(
+                        const result = this.#invalidateSaveProposal(
                             proposalRef,
                             decision.status !== 'new'
                                 ? 'reconciliation_ineligible'
@@ -774,6 +821,7 @@ class OpenFinanceShadowPreviewStore {
                 }
                 if (result.changes === 1) {
                     inserted += 1;
+                    insertedThisRun.add(proposalRef);
                     if (includeProposalLinks) {
                         proposalLinks.push({
                             observation_ref: decision.observation_ref,

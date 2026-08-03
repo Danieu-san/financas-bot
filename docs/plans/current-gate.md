@@ -4,7 +4,7 @@ Atualizado em: 2026-08-03
 
 ## Estado
 
-`POLÍTICA FAMILIAR ATIVA; STALE PROPOSAL INVALIDATION RECOVERY CANDIDATE;
+`POLÍTICA FAMILIAR ATIVA; STALE PROPOSAL IDENTITY RECOVERY CANDIDATE;
 AUDITORIA INDEPENDENTE PENDENTE; CONFIRM BLOQUEADO`.
 
 O recovery de dependências `c781365d1b6b5524b3ae5ac0ce821d9461821a28`
@@ -14,11 +14,13 @@ O diagnóstico em cópias consistentes do estado real reproduziu
 `save_proposal_replay_conflict`: propostas anteriores ao refinamento do
 classificador permaneciam persistidas embora tivessem deixado de ser elegíveis.
 
-O candidato atual invalida essa proposta somente quando identidade e payload
-financeiro permanecem idênticos, registra cancelamento no terminal journal e
-impede reabertura por replay/restart. Mudança de valor, descrição, conta,
-principal ou identidade continua bloqueada. Evidência:
-`docs/audit/108-open-finance-stale-proposal-invalidation-recovery-candidate-2026-08-03.md`.
+O primeiro candidato, `63d7bb66dba9040047b22935760b32344e9059e1`, recebeu
+NO-GO independente porque uma mudança de conta podia deslocar a referência e
+deixar a proposta anterior ativa, e porque faltava prova completa de rollback e
+reabertura. O candidato atual usa identidade HMAC estável da transação fonte,
+terminaliza a proposta deslocada, bloqueia a substituta e prova recuperação
+após falha injetada entre journal e preview com reabertura real. Evidência:
+`docs/audit/109-open-finance-stale-proposal-identity-recovery-candidate-2026-08-03.md`.
 
 ## Recovery ativo — OF-ALERT-BIND-01
 
@@ -167,7 +169,7 @@ já observados, por isso o smoke de uma nova movimentação ainda não terminou.
 
 ## Próxima ação exata
 
-Publicar o recovery de invalidação de proposta legada em hash imutável e
+Publicar o recovery de identidade de proposta legada em hash imutável e
 submetê-lo à auditoria independente. Somente após GO construir e promover esse
 novo hash na OCI, exigir `cycle=GO`, health completo e `writes=0`. A etapa
 `confirm` continua bloqueada.

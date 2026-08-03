@@ -10,7 +10,7 @@ hash imutavel e promover um novo artefato na OCI com proposta `prompt`, escrita
 
 ## Estado vigente
 
-`STALE PROPOSAL INVALIDATION RECOVERY CANDIDATE; AWAITING INDEPENDENT AUDIT;
+`STALE PROPOSAL IDENTITY RECOVERY CANDIDATE; AWAITING INDEPENDENT AUDIT;
 CONFIRM BLOCKED`.
 
 O commit `c781365d1b6b5524b3ae5ac0ce821d9461821a28` recebeu GO tecnico local
@@ -19,30 +19,30 @@ ficou com processo unico, WhatsApp ready/healthy, health local e publico verdes,
 flags seguras e zero escrita. O primeiro ciclo Open Finance, porem, terminou em
 `NO_GO`; portanto o fechamento de producao nao foi declarado.
 
-O diagnostico reproduziu `save_proposal_replay_conflict` sobre copias
-consistentes do estado real, com WhatsApp simulado. Propostas persistidas antes
-do refinamento do classificador continuam imutaveis, mas algumas deixaram de ser
-elegiveis, como o marcador `bill_balance` antes tratado como compra. O recovery
-adiciona uma transicao fail-closed: invalida somente a proposta cuja identidade
-e payload financeiro permanecem identicos, registra cancelamento no terminal
-journal e impede reabertura por replay ou restart. Alteracao de valor,
-descricao, conta, principal ou identidade continua sendo conflito.
+O primeiro candidato, no commit
+`63d7bb66dba9040047b22935760b32344e9059e1`, recebeu NO-GO independente:
+mudanca de conta podia deslocar observation/proposal ref e esconder a proposta
+anterior, e faltava prova de rollback entre journal e preview com reabertura
+real. O recovery atual indexa propostas pela identidade HMAC estavel da fonte,
+terminaliza a proposta deslocada e bloqueia a substituta. A prova nova injeta
+falha depois do journal, comprova o preview ainda pending/ready, fecha e reabre
+journal, ancora e store, e exige reaplicacao cancelled/declined com zero escrita.
 
-Manifesto:
-`docs/audit/108-open-finance-stale-proposal-invalidation-recovery-candidate-2026-08-03.md`.
+Manifesto recuperado:
+`docs/audit/109-open-finance-stale-proposal-identity-recovery-candidate-2026-08-03.md`.
 
 ## Evidencia
 
 - Pluggy real somente leitura: verde, sem WhatsApp e sem escrita;
 - ensaio completo com estado copiado e codigo candidato: `GO`, duas propostas
   inelegiveis invalidadas, quatro entregas simuladas e zero escrita;
-- save proposal shadow `10/10`;
+- save proposal shadow `12/12`;
 - confirmation `9/9`;
 - family alerts `6/6`;
 - state machine `124/124`;
-- suite hermetica: `1.433` testes, `1.428` aprovados, zero falha e cinco skips
-  funcionais esperados;
-- cobertura: linhas `90,58%`, branches `72,90%`, funcoes `90,13%`.
+- bateria causal relacionada: `151/151`;
+- suite hermetica completa: exit code zero; dois testes novos sobre a base de
+  `1.433`, total derivado `1.435`, zero falha e cinco skips esperados.
 
 As contagens sao execucao local do Codex e ainda nao substituem a auditoria
 independente obrigatoria.
@@ -78,7 +78,7 @@ independente obrigatoria.
 
 ## Próxima ação exata
 
-Commitar e publicar o recovery sanitizado, submeter o hash imutavel a auditoria
+Commitar e publicar o recovery de identidade sanitizado, submeter o hash imutavel a auditoria
 independente no Chat e, somente apos GO, construir e promover o novo artefato na
 OCI. No primeiro ciclo real exigir invalidacao das propostas legadas,
 `cycle=GO`, health completo e `writes=0`.
@@ -91,6 +91,8 @@ OCI. No primeiro ciclo real exigir invalidacao das propostas legadas,
 
 - plano vigente: `docs/plans/current-gate.md`;
 - recovery atual:
+  `docs/audit/109-open-finance-stale-proposal-identity-recovery-candidate-2026-08-03.md`;
+- candidato anterior e NO-GO:
   `docs/audit/108-open-finance-stale-proposal-invalidation-recovery-candidate-2026-08-03.md`;
 - recovery de dependencias:
   `docs/audit/107-runtime-dependency-security-recovery-candidate-2026-08-03.md`;

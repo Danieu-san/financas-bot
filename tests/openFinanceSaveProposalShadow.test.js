@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
+const Database = require('better-sqlite3');
 const { OpenFinanceLiveStagingVault } = require('../src/openFinance/openFinanceLiveStagingVault');
 const { OpenFinanceBaselineStore } = require('../src/openFinance/openFinanceBaselineStore');
 const { OpenFinanceAlertOutbox } = require('../src/openFinance/openFinanceAlertOutbox');
@@ -321,6 +322,133 @@ test('OF-ALERT-BIND-01 eligibility loss durably invalidates a stale prompt witho
             store.close();
             journal.close();
         }
+    }
+});
+
+test('OF-ALERT-BIND-01 source identity displacement closes the old prompt and blocks the replacement', () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-save-proposal-identity-displacement-'));
+    const databasePath = path.join(directory, 'preview.sqlite');
+    const journal = new OpenFinanceRevocationJournal({
+        databasePath: path.join(directory, 'journal.sqlite'),
+        secret
+    });
+    const store = new OpenFinanceShadowPreviewStore({
+        databasePath,
+        secret,
+        revocationJournal: journal,
+        authorizedWhatsAppIds: [actorWhatsappId],
+        confirmationActors: [{ principal: 'daniel', whatsappId: actorWhatsappId }]
+    });
+    try {
+        const input = fixture();
+        store.ingestSaveProposals(proposalInput(input));
+        const oldProposalRef = store.listPendingSaveProposals({ actorWhatsappId })[0].proposal_ref;
+        store.prepareSaveProposalConfirmation(oldProposalRef, { actorWhatsappId });
+
+        const changed = structuredClone(input);
+        const changedTransaction = changed.item.transactions[0];
+        changed.item.accounts = [{ id: 'moved-account', type: 'BANK' }];
+        changedTransaction.account_id = 'moved-account';
+        changedTransaction.amount_cents += 1;
+        changedTransaction.description = 'CHANGED DESCRIPTION';
+        const changedObservationRef = observationRef(
+            secret,
+            changed.item.id,
+            changedTransaction.account_id,
+            changedTransaction.id
+        );
+        changed.reconciliationDecisions[0] = {
+            ...changed.reconciliationDecisions[0],
+            observation_ref: changedObservationRef,
+            transaction_ref: 'changed-transaction-ref'
+        };
+        changed.lifecycleDecisions[0] = {
+            ...changed.lifecycleDecisions[0],
+            observation_ref: changedObservationRef,
+            classification: 'bill_balance'
+        };
+        changed.policies[0].write_confirmation_principal = 'thais';
+
+        assert.deepEqual(store.ingestSaveProposals(proposalInput(changed)), {
+            inserted: 0,
+            replayed: 0,
+            blocked: 4,
+            pending: 0,
+            invalidated: 1,
+            financial_writes: 0
+        });
+        const decision = store.readSaveProposalDecisionState(oldProposalRef, { actorWhatsappId });
+        assert.equal(decision.proposal_state, 'cancelled');
+        assert.equal(decision.confirmation_state, 'declined');
+        assert.equal(journal.getSaveProposalTerminal(oldProposalRef).terminal_state, 'cancelled');
+        assert.equal(store.stats().save_proposals_total, 1);
+        assert.equal(store.stats().save_proposals_pending, 0);
+    } finally {
+        store.close();
+        journal.close();
+    }
+});
+
+test('OF-ALERT-BIND-01 journal terminal recovers a preview rollback after restart', () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-save-proposal-journal-recovery-'));
+    const databasePath = path.join(directory, 'preview.sqlite');
+    const journalPath = path.join(directory, 'journal.sqlite');
+    const input = fixture();
+    const changed = structuredClone(input);
+    changed.lifecycleDecisions[0].classification = 'bill_balance';
+    let journal = new OpenFinanceRevocationJournal({ databasePath: journalPath, secret });
+    let store = new OpenFinanceShadowPreviewStore({
+        databasePath,
+        secret,
+        revocationJournal: journal,
+        authorizedWhatsAppIds: [actorWhatsappId],
+        confirmationActors: [{ principal: 'daniel', whatsappId: actorWhatsappId }]
+    });
+    let proposalRef;
+    try {
+        store.ingestSaveProposals(proposalInput(input));
+        proposalRef = store.listPendingSaveProposals({ actorWhatsappId })[0].proposal_ref;
+        store.prepareSaveProposalConfirmation(proposalRef, { actorWhatsappId });
+        store.db.exec(`CREATE TRIGGER fail_terminal_preview_update
+            BEFORE UPDATE OF proposal_state ON open_finance_save_proposals
+            WHEN NEW.proposal_state='cancelled'
+            BEGIN SELECT RAISE(ABORT, 'injected_preview_update_failure'); END`);
+        assert.throws(() => store.ingestSaveProposals(proposalInput(changed)),
+            /injected_preview_update_failure/);
+        assert.equal(journal.getSaveProposalTerminal(proposalRef).terminal_state, 'cancelled');
+    } finally {
+        store.close();
+        journal.close();
+    }
+
+    const raw = new Database(databasePath);
+    try {
+        const row = raw.prepare(`SELECT proposal_state,confirmation_state
+            FROM open_finance_save_proposals WHERE proposal_ref=?`).get(proposalRef);
+        assert.deepEqual(row, { proposal_state: 'pending', confirmation_state: 'ready' });
+        raw.exec('DROP TRIGGER fail_terminal_preview_update');
+    } finally {
+        raw.close();
+    }
+
+    journal = new OpenFinanceRevocationJournal({ databasePath: journalPath, secret });
+    store = new OpenFinanceShadowPreviewStore({
+        databasePath,
+        secret,
+        revocationJournal: journal,
+        authorizedWhatsAppIds: [actorWhatsappId],
+        confirmationActors: [{ principal: 'daniel', whatsappId: actorWhatsappId }]
+    });
+    try {
+        const replay = store.ingestSaveProposals(proposalInput(changed));
+        assert.equal(replay.pending, 0);
+        assert.equal(replay.financial_writes, 0);
+        const decision = store.readSaveProposalDecisionState(proposalRef, { actorWhatsappId });
+        assert.equal(decision.proposal_state, 'cancelled');
+        assert.equal(decision.confirmation_state, 'declined');
+    } finally {
+        store.close();
+        journal.close();
     }
 });
 
