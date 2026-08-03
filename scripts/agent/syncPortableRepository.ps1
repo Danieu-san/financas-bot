@@ -45,9 +45,9 @@ if (-not $branch) {
 $head = (Invoke-Captured -Executable $GitBin -Arguments @(
     '-C', $sourceRoot, 'rev-parse', 'HEAD'
 )) -join ''
-$porcelain = Invoke-Captured -Executable $GitBin -Arguments @(
+$porcelain = @(Invoke-Captured -Executable $GitBin -Arguments @(
     '-C', $sourceRoot, 'status', '--porcelain=v1'
-)
+))
 if ($porcelain.Count -gt 0 -and ($porcelain -join '').Trim()) {
     throw 'A raiz canônica possui mudanças não commitadas; registre o checkpoint antes de sincronizar o SSD.'
 }
