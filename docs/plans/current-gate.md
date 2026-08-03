@@ -185,8 +185,11 @@ já observados, por isso o smoke de uma nova movimentação ainda não terminou.
 Aguardar uma nova compra genuína observada pelo Pluggy e, com Daniel presente,
 executar o smoke de proposta proativa, revisão guiada e ausência de efeito antes
 da segunda confirmação. Não reutilizar respostas antigas. A etapa `confirm`
-continua bloqueada.
+continua bloqueada. O diagnóstico remoto de 2026-08-03T20:00Z encontrou health
+verde, release correto e 105 aceitações antigas não confirmadas, mas nenhum
+ciclo posterior a 16:46:59Z; esse backlog não é evidência do smoke. Depois da
+compra, atualizar o Item no Meu Pluggy e aguardar o próximo ciclo de seis horas.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> auditar o recovery imutável e promover o artefato na OCI.`
+`Codex -> Sol -> Medio -> acompanhar o smoke real do recovery com Daniel presente.`

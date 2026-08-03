@@ -61,6 +61,13 @@ Fechamento:
 As contagens sao execucao local do Codex e ainda nao substituem a auditoria
 independente obrigatoria.
 
+Diagnostico remoto somente leitura em 2026-08-03T20:00Z confirmou release
+`1a1630949cf6acb301a2a054e61987d1cf516fb4`, PM2 unico/online com zero
+reinicios e health/WhatsApp verdes. O ultimo ciclo Open Finance permanece o de
+16:46:59Z; nao houve ciclo posterior capaz de observar uma compra nova. O
+outbox possui 105 entregas antigas `accepted_unconfirmed`, todas inelegiveis
+para o smoke. Nenhuma escrita, restart ou mudanca de flag foi executada.
+
 ## Git e workspace
 
 - raiz canonica:
@@ -108,7 +115,9 @@ liquido demonstravel.
 Aguardar uma nova compra genuina observada pelo Pluggy e, com Daniel presente,
 executar o smoke de proposta proativa sem usar respostas antigas. Validar uma
 unica proposta por telefone, revisao guiada e nenhum efeito antes da segunda
-confirmacao. `confirm` permanece bloqueado.
+confirmacao. Atualizar o Item no Meu Pluggy depois da compra; sem restart, o
+proximo ciclo automatico e esperado aproximadamente as 22:46Z (19:46 de
+Brasilia). `confirm` permanece bloqueado.
 
 ## Capacidade para retomar
 
