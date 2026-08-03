@@ -80,7 +80,7 @@ if (-not $targetBranch) {
 }
 
 Invoke-Captured -Executable $GitBin -Arguments @(
-    '-C', $resolvedRoot, 'fetch', '--prune', 'origin', $targetBranch
+    '-C', $resolvedRoot, 'fetch', '--prune', 'origin'
 ) | Out-Null
 $remoteRef = "origin/$targetBranch"
 $remoteHead = (Invoke-Captured -Executable $GitBin -Arguments @(
