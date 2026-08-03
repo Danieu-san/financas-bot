@@ -4,8 +4,8 @@ Atualizado em: 2026-08-03
 
 ## Estado
 
-`POLÍTICA FAMILIAR ATIVA; INTRAINGEST IDENTITY COLLISION RECOVERY CANDIDATE;
-AUDITORIA INDEPENDENTE PENDENTE; CONFIRM BLOQUEADO`.
+`POLÍTICA FAMILIAR ATIVA; OF-ALERT-BIND-01 GO TÉCNICO E OPERACIONAL;
+9P.4 REAL SMOKE PENDENTE; CONFIRM BLOQUEADO`.
 
 O recovery de dependências `c781365d1b6b5524b3ae5ac0ce821d9461821a28`
 recebeu GO independente e foi promovido na OCI com processo, WhatsApp e health
@@ -28,6 +28,12 @@ uma inserção feita dentro do mesmo ingest. O recovery atual atualiza o mapa na
 mesma transação; uma segunda representação da mesma fonte encontra a primeira,
 é reconhecida como intraingest e causa rollback integral. Evidência:
 `docs/audit/110-open-finance-intraingest-identity-collision-recovery-candidate-2026-08-03.md`.
+
+O hash final `1a1630949cf6acb301a2a054e61987d1cf516fb4` recebeu GO
+independente, foi promovido por artefato OCI sem rollback e produziu no novo
+processo `cycle=GO`, zero entrega e `writes=0`. Health local/público, WhatsApp,
+PM2, Caddy e estado crítico permaneceram verdes. Fechamento:
+`docs/audit/111-open-finance-stale-proposal-identity-independent-production-close-2026-08-03.md`.
 
 ## Recovery ativo — OF-ALERT-BIND-01
 
@@ -176,10 +182,10 @@ já observados, por isso o smoke de uma nova movimentação ainda não terminou.
 
 ## Próxima ação exata
 
-Revalidar e publicar o recovery de colisão intraingest em hash imutável e
-submetê-lo à auditoria independente. Somente após GO construir e promover esse
-novo hash na OCI, exigir `cycle=GO`, health completo e `writes=0`. A etapa
-`confirm` continua bloqueada.
+Aguardar uma nova compra genuína observada pelo Pluggy e, com Daniel presente,
+executar o smoke de proposta proativa, revisão guiada e ausência de efeito antes
+da segunda confirmação. Não reutilizar respostas antigas. A etapa `confirm`
+continua bloqueada.
 
 ## Capacidade
 

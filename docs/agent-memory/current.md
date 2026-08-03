@@ -10,7 +10,7 @@ hash imutavel e promover um novo artefato na OCI com proposta `prompt`, escrita
 
 ## Estado vigente
 
-`INTRAINGEST IDENTITY COLLISION RECOVERY CANDIDATE; AWAITING INDEPENDENT AUDIT;
+`OF-ALERT-BIND-01 GO TÉCNICO E OPERACIONAL; 9P.4 REAL SMOKE PENDENTE;
 CONFIRM BLOCKED`.
 
 O commit `c781365d1b6b5524b3ae5ac0ce821d9461821a28` recebeu GO tecnico local
@@ -34,8 +34,15 @@ ingest, permitindo duas propostas da mesma fonte com referências diferentes.
 O recovery atual atualiza o índice dentro da transação e transforma a segunda
 representação em `save_proposal_replay_conflict`, com rollback integral.
 
-Manifesto recuperado:
-`docs/audit/110-open-finance-intraingest-identity-collision-recovery-candidate-2026-08-03.md`.
+O hash final `1a1630949cf6acb301a2a054e61987d1cf516fb4` recebeu GO
+independente, foi promovido na OCI por artefato imutavel e iniciou com processo
+unico, zero reinicios, WhatsApp/health verdes e estado preservado. O primeiro
+ciclo do novo release terminou `GO`, com quatro eventos novos, zero entrega e
+zero escrita. Duas propostas obsoletas ficaram canceladas e nenhuma duplicidade
+foi criada.
+
+Fechamento:
+`docs/audit/111-open-finance-stale-proposal-identity-independent-production-close-2026-08-03.md`.
 
 ## Evidencia
 
@@ -67,7 +74,7 @@ independente obrigatoria.
 - provedor: Oracle/OCI;
 - host, usuario, chave, diretorio e processo devem ser redescobertos nos
   runbooks antes de nova acao remota;
-- release vigente: `c781365d1b6b5524b3ae5ac0ce821d9461821a28`;
+- release vigente: `1a1630949cf6acb301a2a054e61987d1cf516fb4`;
 - processo e WhatsApp saudaveis na ultima verificacao;
 - proposta `prompt`, escrita `off`, aprovacao falsa;
 - AWS nao participa de deploy ou rollback;
@@ -85,10 +92,10 @@ independente obrigatoria.
 
 ## Próxima ação exata
 
-Revalidar, commitar e publicar o recovery intraingest sanitizado, submeter o hash imutavel a auditoria
-independente no Chat e, somente apos GO, construir e promover o novo artefato na
-OCI. No primeiro ciclo real exigir invalidacao das propostas legadas,
-`cycle=GO`, health completo e `writes=0`.
+Aguardar uma nova compra genuina observada pelo Pluggy e, com Daniel presente,
+executar o smoke de proposta proativa sem usar respostas antigas. Validar uma
+unica proposta por telefone, revisao guiada e nenhum efeito antes da segunda
+confirmacao. `confirm` permanece bloqueado.
 
 ## Capacidade para retomar
 
@@ -98,6 +105,8 @@ OCI. No primeiro ciclo real exigir invalidacao das propostas legadas,
 
 - plano vigente: `docs/plans/current-gate.md`;
 - recovery atual:
+  `docs/audit/111-open-finance-stale-proposal-identity-independent-production-close-2026-08-03.md`;
+- candidato final:
   `docs/audit/110-open-finance-intraingest-identity-collision-recovery-candidate-2026-08-03.md`;
 - candidato anterior e segundo NO-GO:
   `docs/audit/109-open-finance-stale-proposal-identity-recovery-candidate-2026-08-03.md`;
