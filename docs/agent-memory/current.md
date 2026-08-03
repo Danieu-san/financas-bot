@@ -4,15 +4,20 @@ Atualizado em: 2026-08-03
 
 ## Objetivo ativo
 
-Finalizar `OF-ALERT-BIND-01`: corrigir a visibilidade das classes reconciliadas
-do Open Finance e garantir que respostas curtas sejam associadas a uma única
-proposta interativa no telefone destinatário. O candidato local ainda precisa
-de commit imutável, publicação no GitHub e auditoria independente antes de
-qualquer deploy.
+Finalizar o recovery de `OF-ALERT-BIND-01`: corrigir a visibilidade das classes
+reconciliadas e garantir uma única proposta interativa por telefone inclusive
+após transporte ambíguo. O recovery ainda precisa de novo commit imutável,
+publicação no GitHub e reauditoria independente antes de qualquer deploy.
 
 ## Estado vigente
 
-`CANDIDATO LOCAL; AGUARDANDO AUDITORIA INDEPENDENTE; NO-GO PARA DEPLOY`.
+`RECOVERY CANDIDATO LOCAL; AGUARDANDO NOVA AUDITORIA INDEPENDENTE; NO-GO PARA
+DEPLOY`.
+
+O candidato anterior `ed4326759c9108a81b4903abf7e14dc171f7feb7` recebeu
+`NO-GO` independente com `ALTO=1`: uma falha de transporte ambígua podia ter
+entregado a primeira proposta sem reservar o telefone no restante do ciclo,
+permitindo uma segunda tentativa interativa.
 
 O smoke familiar real expôs três defeitos:
 
@@ -33,19 +38,21 @@ O recovery local:
 - vincula transporte resolvido sem id somente à proposta e ao principal
   destinatário exatos;
 - mantém falha ambígua inelegível para resposta;
+- reserva o destinatário no restante do ciclo sempre que o transporte da
+  proposta possa ter enviado, inclusive em falha ambígua;
 - impede uma segunda proposta interativa simultânea no mesmo telefone;
 - preserva zero escrita financeira.
 
-Manifesto:
-`docs/audit/104-open-finance-alert-binding-recovery-candidate-2026-08-03.md`.
+Recovery:
+`docs/audit/105-open-finance-ambiguous-recipient-reservation-recovery-candidate-2026-08-03.md`.
 
 ## Evidência local
 
-- bateria causal afetada: `192/192`;
+- bateria causal afetada: `193/193`;
 - suíte temporal de 9P.4, após estabilizar somente o prazo do fixture: `13/13`;
-- suíte hermética: `1.431` testes, `1.426` aprovados, zero falha e cinco skips
+- suíte hermética: `1.432` testes, `1.427` aprovados, zero falha e cinco skips
   funcionais esperados;
-- cobertura: linhas `90,57%`, branches `72,93%`, funções `90,12%`;
+- cobertura: linhas `90,56%`, branches `72,85%`, funções `90,13%`;
 - `git diff --check`: verde.
 
 As contagens são execução local do Codex. Ainda não são revisão independente e
@@ -56,7 +63,7 @@ não autorizam promover o candidato.
 - raiz canônica recuperada:
   `C:\Users\Administrador\Documents\FinancasBot\financas-bot`;
 - branch: `codex/open-finance-finalization`;
-- base do candidato: `a171a55d23c491575239ccd63c0e0ce4e7cfd666`;
+- base do recovery: `ed4326759c9108a81b4903abf7e14dc171f7feb7`;
 - o SSD antigo não é raiz canônica e não deve receber edições deste gate.
 
 ## Produção vigente
@@ -85,20 +92,20 @@ produção; usar somente release por artefato imutável, checksum e rollback.
 
 ## Próxima ação exata
 
-Criar commit sanitizado e imutável de `OF-ALERT-BIND-01`, publicar a branch,
-submeter o manifesto, código e testes exatos à auditoria independente e
+Criar novo commit sanitizado e imutável do recovery, publicar a branch,
+submeter o manifesto, código e testes exatos à reauditoria independente e
 confrontar o parecer com a evidência local. Somente `GO TÉCNICO LOCAL` autoriza
 release OCI por artefato, mantendo escrita `off`.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → publicar e auditar OF-ALERT-BIND-01 por hash imutável.`
+`Codex → Sol → Alto → publicar e reauditar o recovery de OF-ALERT-BIND-01.`
 
 ## Referências dirigidas
 
 - plano vigente: `docs/plans/current-gate.md`;
 - candidato atual:
-  `docs/audit/104-open-finance-alert-binding-recovery-candidate-2026-08-03.md`;
+  `docs/audit/105-open-finance-ambiguous-recipient-reservation-recovery-candidate-2026-08-03.md`;
 - última ativação familiar em produção:
   `docs/audit/103-open-finance-family-policy-independent-production-close-2026-07-31.md`;
 - release OCI auditado:

@@ -119,12 +119,22 @@ function bindOpenFinanceProposalConversation({
     now = Date.now()
 } = {}) {
     if (!delivery?.proposal_ref) return false;
+    const transportMayHaveSent = delivery.outcome === 'delivered_confirmed' ||
+        delivery.outcome === 'accepted_unconfirmed';
+    if (!transportMayHaveSent) return false;
+    if (!excludedRecipients || typeof excludedRecipients.add !== 'function') {
+        throw new Error('open_finance_conversation_binding_dependencies_required');
+    }
+    const recipientPrincipal = String(delivery.recipient_principal || '').trim().toLowerCase();
+    if (!recipientPrincipal) {
+        throw new Error('open_finance_delivery_recipient_principal_required');
+    }
+    excludedRecipients.add(recipientPrincipal);
     const bindable = delivery.outcome === 'delivered_confirmed' ||
         (delivery.outcome === 'accepted_unconfirmed' &&
             delivery.conversation_bindable === true);
     if (!bindable) return false;
-    if (!stateManager || typeof stateManager.setState !== 'function' ||
-        !excludedRecipients || typeof excludedRecipients.add !== 'function') {
+    if (!stateManager || typeof stateManager.setState !== 'function') {
         throw new Error('open_finance_conversation_binding_dependencies_required');
     }
     const expiresAt = Date.parse(delivery.confirmation_expires_at);
@@ -138,10 +148,9 @@ function bindOpenFinanceProposalConversation({
         data: {
             proposalRef: delivery.proposal_ref,
             expiresAt: delivery.confirmation_expires_at,
-            recipientPrincipal: delivery.recipient_principal
+            recipientPrincipal
         }
     }, ttlSeconds);
-    excludedRecipients.add(delivery.recipient_principal);
     return true;
 }
 async function runOpenFinanceCanaryCycle({ client, env = process.env, dependencies = {} } = {}) {

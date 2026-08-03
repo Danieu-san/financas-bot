@@ -7,6 +7,7 @@ const { OpenFinanceLiveStagingVault } = require('../src/openFinance/openFinanceL
 const { OpenFinanceBaselineStore } = require('../src/openFinance/openFinanceBaselineStore');
 const { OpenFinanceAlertOutbox } = require('../src/openFinance/openFinanceAlertOutbox');
 const { OpenFinanceRevocationJournal } = require('../src/openFinance/openFinanceRevocationJournal');
+const { observationRef } = require('../src/openFinance/openFinanceRuntimeReconciliation');
 const { runOpenFinanceCanaryCycle, initializeOpenFinanceCanaryRuntime, resolveWhatsAppRecipient,
     resolveInternalUserIds, shadowPreviewMode,
     bindOpenFinanceProposalConversation } = require('../src/openFinance/openFinanceCanaryRuntime');
@@ -379,7 +380,7 @@ test('9E.1 runtime log separates cycle deliveries from cumulative outbox state',
     }
 });
 
-test('resolved no-id proposal binds one exact conversation and blocks a second prompt', () => {
+test('resolved no-id proposal binds one conversation and ambiguous delivery still reserves its recipient', () => {
     const states = new Map();
     const stateManager = {
         setState(key, value, ttl) { states.set(key, { value, ttl }); }
@@ -408,10 +409,83 @@ test('resolved no-id proposal binds one exact conversation and blocks a second p
         delivery: {
             outcome: 'accepted_unconfirmed',
             conversation_bindable: false,
-            proposal_ref: 'b'.repeat(32)
+            proposal_ref: 'b'.repeat(32),
+            recipient_principal: 'thais'
         },
         stateManager,
         excludedRecipients
     }), false);
     assert.equal(states.size, 1);
+    assert.equal(excludedRecipients.has('thais'), true);
+});
+
+test('ambiguous first proposal prevents the outbox from claiming a second prompt for that recipient', () => {
+    const outbox = new OpenFinanceAlertOutbox({ secret });
+    const item = snapshot([
+        transaction('first-proposal', 1000, 'Primeira compra'),
+        transaction('second-proposal', 2000, 'Segunda compra')
+    ]).items[0];
+    const refs = item.transactions.map(tx =>
+        observationRef(secret, item.id, tx.account_id, tx.id));
+    const lifecycleDecisions = refs.map(observation_ref => ({
+        observation_ref,
+        classification: 'purchase',
+        provider_state: 'POSTED',
+        lifecycle_milestone: 'first_posted'
+    }));
+    try {
+        outbox.enqueue({
+            candidates: refs.map((observation_ref, index) => ({
+                observation_ref,
+                external_event_ref: `event-proposal-${index}`,
+                correlation_state: 'new_event',
+                reconciliation_status: 'new'
+            })),
+            lifecycleDecisions,
+            items: [item],
+            policies: [{
+                alias: 'daniel_nubank',
+                source_owner: 'daniel',
+                authorized_viewers: ['daniel'],
+                whatsapp_recipient: 'daniel',
+                family_aggregation_allowed: false,
+                write_confirmation_principal: 'daniel'
+            }],
+            baselineComplete: true,
+            reconciliationRequired: true,
+            saveProposalLinks: refs.map((observation_ref, index) => ({
+                observation_ref,
+                proposal_ref: (index ? 'b' : 'a').repeat(32),
+                principal: 'daniel'
+            }))
+        });
+        const first = outbox.claimNext({ canaryAliases: ['daniel_nubank'] });
+        assert.equal(first.recipient, 'daniel');
+        outbox.acknowledgeAccepted({
+            alertRef: first.alert_ref,
+            leaseToken: first.lease_token,
+            reasonCode: 'ambiguous_transport_failure'
+        });
+
+        const excludedRecipients = new Set();
+        assert.equal(bindOpenFinanceProposalConversation({
+            delivery: {
+                ...first,
+                outcome: 'accepted_unconfirmed',
+                conversation_bindable: false,
+                recipient_principal: first.recipient
+            },
+            stateManager: null,
+            excludedRecipients
+        }), false);
+        assert.equal(excludedRecipients.has('daniel'), true);
+        assert.equal(outbox.listPending().length, 1);
+        assert.equal(outbox.claimNext({
+            canaryAliases: ['daniel_nubank'],
+            excludedRecipients: [...excludedRecipients]
+        }), null);
+        assert.equal(outbox.stats().accepted_unconfirmed, 1);
+    } finally {
+        outbox.close();
+    }
 });

@@ -4,8 +4,8 @@ Atualizado em: 2026-08-03
 
 ## Estado
 
-`POLÍTICA FAMILIAR ATIVA; RECOVERY OF-ALERT-BIND-01 CANDIDATO LOCAL;
-AGUARDANDO AUDITORIA INDEPENDENTE`.
+`POLÍTICA FAMILIAR ATIVA; RECOVERY PÓS-NO-GO OF-ALERT-BIND-01 CANDIDATO LOCAL;
+AGUARDANDO NOVA AUDITORIA INDEPENDENTE`.
 
 ## Recovery ativo — OF-ALERT-BIND-01
 
@@ -25,6 +25,16 @@ reconciliadas e bloqueia `bill_balance`. Evidência local: `192/192` afetados,
 Invariantes preservadas: proposta `prompt`, escrita `off`, aprovação falsa,
 zero escrita e `confirm` bloqueado. Entradas e transferências ficam alertáveis;
 seu salvamento proativo permanece fora deste recovery e exige gate próprio.
+
+O commit imutável `ed4326759c9108a81b4903abf7e14dc171f7feb7` recebeu
+`NO-GO` independente com um achado `ALTO`: falha de transporte ambígua não
+reservava o destinatário no restante do ciclo. O recovery agora reserva o
+principal sempre que o transporte possa ter enviado, sem criar estado de
+resposta para a falha ambígua. A prova com outbox real mantém uma segunda
+proposta pendente e exige que ela não possa ser reclamada. Evidência final:
+afetada `193/193`; hermética `1.432` testes, `1.427` aprovados, zero falha e
+cinco skips esperados. Manifesto:
+`docs/audit/105-open-finance-ambiguous-recipient-reservation-recovery-candidate-2026-08-03.md`.
 
 ## Objetivo
 
@@ -138,12 +148,12 @@ já observados, por isso o smoke de uma nova movimentação ainda não terminou.
 
 ## Próxima ação exata
 
-Criar e publicar um commit sanitizado e imutável do recovery
-`OF-ALERT-BIND-01`, submeter os arquivos reais à auditoria independente e
+Criar e publicar um novo commit sanitizado e imutável do recovery pós-NO-GO,
+submeter os arquivos reais à reauditoria independente e
 confrontar o parecer com a evidência local. Somente `GO TÉCNICO LOCAL` autoriza
 release OCI por artefato, mantendo write `off`. A etapa `confirm` continua
 bloqueada.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> publicar e auditar OF-ALERT-BIND-01 por hash imutável.`
+`Codex -> Sol -> Alto -> publicar e reauditar o recovery de OF-ALERT-BIND-01.`
