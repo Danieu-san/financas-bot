@@ -386,6 +386,103 @@ class OpenFinanceShadowPreviewStore {
         return true;
     }
 
+    #isSaveProposalIneligibilityTransitionCompatible({ proposalRef, prior, transactionRef, source, basePayload }) {
+        if (prior.transaction_ref !== transactionRef ||
+            prior.family_scope_ref !== this.familyScopeRef ||
+            prior.alias_ref !== source.aliasRef ||
+            prior.generation !== source.generation) {
+            return false;
+        }
+        const payload = this.#readBoundSaveProposal(proposalRef, prior);
+        return stableSerialize(payload) === stableSerialize({
+            ...basePayload,
+            classification: payload.classification,
+            provider_state: payload.provider_state,
+            reconciliation_status: payload.reconciliation_status,
+            reconciliation_rule: payload.reconciliation_rule,
+            family_scope_ref: this.familyScopeRef,
+            alias_ref: source.aliasRef,
+            created_at: prior.created_at,
+            expires_at: prior.expires_at
+        });
+    }
+
+    #invalidateSaveProposalEligibility(proposalRef, reasonCode) {
+        const terminalJournal = this.#requireSaveProposalTerminalJournal();
+        const timestamp = this.#now();
+        const select = this.db.prepare(`SELECT proposal_ref,proposal_state,resolved_by_ref,resolved_at,
+            confirmation_ref_hash,confirmation_state,confirmation_actor_ref,encrypted_confirmation,
+            confirmation_payload_version,confirmation_state_mac,confirmation_ready_at,
+            confirmation_expires_at,confirmation_decided_at
+            FROM open_finance_save_proposals
+            WHERE proposal_ref=? AND family_scope_ref=?`);
+        let row = select.get(proposalRef, this.familyScopeRef);
+        if (!row) throw new Error('save_proposal_not_found');
+        const priorTerminal = terminalJournal.getSaveProposalTerminal(proposalRef);
+        if (priorTerminal) {
+            this.#applySaveProposalTerminal(priorTerminal);
+            return { invalidated: true, replay: true, financial_writes: 0 };
+        }
+        this.#assertSaveConfirmationState(row);
+        if (row.proposal_state === 'cancelled') {
+            return { invalidated: true, replay: true, financial_writes: 0 };
+        }
+        if (row.proposal_state !== 'pending' ||
+            ['accepted', 'declined'].includes(row.confirmation_state)) {
+            throw new Error('save_proposal_state_conflict');
+        }
+        const normalizedReason = String(reasonCode || '').trim().toLowerCase();
+        if (!/^[a-z0-9_]{2,48}$/.test(normalizedReason)) {
+            throw new Error('valid_save_proposal_invalidation_reason_required');
+        }
+        const resolverRef = this.#hmac(`save-proposal-system-invalidation:${normalizedReason}`);
+        const confirmationState = row.confirmation_state === 'ready'
+            ? 'declined'
+            : row.confirmation_state;
+        const confirmationDecidedAt = row.confirmation_state === 'ready'
+            ? timestamp
+            : row.confirmation_decided_at;
+        terminalJournal.recordSaveProposalTerminal({
+            proposal_ref: proposalRef,
+            terminal_state: 'cancelled',
+            confirmation_ref_hash: row.confirmation_ref_hash,
+            confirmation_actor_ref: row.confirmation_actor_ref,
+            confirmation_ready_at: row.confirmation_ready_at,
+            confirmation_expires_at: row.confirmation_expires_at,
+            confirmation_decided_at: timestamp,
+            resolved_by_ref: resolverRef
+        });
+        const stateMac = this.#confirmationStateMac({
+            ...row,
+            proposal_state: 'cancelled',
+            resolved_by_ref: resolverRef,
+            resolved_at: timestamp,
+            confirmation_state: confirmationState,
+            confirmation_decided_at: confirmationDecidedAt
+        });
+        const result = this.db.prepare(`UPDATE open_finance_save_proposals
+            SET proposal_state='cancelled',resolved_by_ref=?,resolved_at=?,updated_at=?,
+                confirmation_state=?,encrypted_confirmation=NULL,
+                confirmation_payload_version=NULL,confirmation_state_mac=?,
+                confirmation_decided_at=?
+            WHERE proposal_ref=? AND family_scope_ref=? AND proposal_state='pending'`)
+            .run(
+                resolverRef,
+                timestamp,
+                timestamp,
+                confirmationState,
+                stateMac,
+                confirmationDecidedAt,
+                proposalRef,
+                this.familyScopeRef
+            );
+        if (result.changes !== 1) {
+            this.#applySaveProposalTerminal(terminalJournal.getSaveProposalTerminal(proposalRef));
+            return { invalidated: true, replay: true, financial_writes: 0 };
+        }
+        return { invalidated: true, replay: false, financial_writes: 0 };
+    }
+
     reapplySaveProposalTerminals({ terminals = [] } = {}) {
         let reapplied = 0;
         this.db.transaction(() => {
@@ -533,6 +630,7 @@ class OpenFinanceShadowPreviewStore {
         let inserted = 0;
         let replayed = 0;
         let blocked = 0;
+        let invalidated = 0;
         const proposalLinks = [];
         const existing = this.db.prepare(`SELECT transaction_ref,family_scope_ref,alias_ref,generation,
             encrypted_payload,payload_version,proposal_state,created_at,expires_at
@@ -567,18 +665,12 @@ class OpenFinanceShadowPreviewStore {
                     `save-proposal-transaction:${source.aliasRef}:${source.generation}:${decision.transaction_ref}`
                 );
                 let prior = existing.get(proposalRef);
-                if (decision.status !== 'new' || lifecycle?.classification !== 'purchase' ||
-                    lifecycle?.provider_state !== 'POSTED') {
-                    if (prior) throw new Error('save_proposal_replay_conflict');
-                    blocked += 1;
-                    continue;
-                }
                 const basePayload = {
                     alias: source.alias,
                     generation: source.generation,
                     principal,
-                    classification: lifecycle.classification,
-                    provider_state: lifecycle.provider_state,
+                    classification: lifecycle?.classification,
+                    provider_state: lifecycle?.provider_state,
                     account_type: source.accountType,
                     source: source.transaction,
                     observation_ref: decision.observation_ref,
@@ -589,6 +681,29 @@ class OpenFinanceShadowPreviewStore {
                         `open-finance-write:${source.aliasRef}:${source.generation}:${decision.observation_ref}`
                     )
                 };
+                if (decision.status !== 'new' || lifecycle?.classification !== 'purchase' ||
+                    lifecycle?.provider_state !== 'POSTED') {
+                    if (prior) {
+                        if (!this.#isSaveProposalIneligibilityTransitionCompatible({
+                            proposalRef,
+                            prior,
+                            transactionRef,
+                            source,
+                            basePayload
+                        })) {
+                            throw new Error('save_proposal_replay_conflict');
+                        }
+                        const result = this.#invalidateSaveProposalEligibility(
+                            proposalRef,
+                            decision.status !== 'new'
+                                ? 'reconciliation_ineligible'
+                                : 'lifecycle_ineligible'
+                        );
+                        if (!result.replay) invalidated += 1;
+                    }
+                    blocked += 1;
+                    continue;
+                }
                 if (prior) {
                     const payload = {
                         ...basePayload,
@@ -701,6 +816,7 @@ class OpenFinanceShadowPreviewStore {
             replayed,
             blocked,
             pending,
+            ...(invalidated ? { invalidated } : {}),
             ...(includeProposalLinks ? { proposal_links: proposalLinks } : {}),
             financial_writes: 0
         };

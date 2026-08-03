@@ -228,10 +228,7 @@ test('9P.0 replay is content-immutable across causal fields and store instances'
             changed => { changed.item.transactions[0].status = 'PENDING'; },
             changed => { changed.item.accounts[0].type = 'BANK'; },
             changed => { changed.policies[0].write_confirmation_principal = 'thais'; },
-            changed => { changed.lifecycleDecisions[0].classification = 'refund'; },
-            changed => { changed.lifecycleDecisions[0].provider_state = 'PENDING'; },
-            changed => { changed.reconciliationDecisions[0].transaction_ref = 'changed-transaction-ref'; },
-            changed => { changed.reconciliationDecisions[0].status = 'matched'; }
+            changed => { changed.reconciliationDecisions[0].transaction_ref = 'changed-transaction-ref'; }
         ];
         for (const mutate of mutations) {
             const changed = structuredClone(input);
@@ -251,6 +248,79 @@ test('9P.0 replay is content-immutable across causal fields and store instances'
     } finally {
         secondStore.close();
         firstStore.close();
+    }
+});
+
+test('OF-ALERT-BIND-01 eligibility loss durably invalidates a stale prompt without reopening it', () => {
+    for (const scenario of ['lifecycle', 'reconciliation']) {
+        const directory = fs.mkdtempSync(path.join(os.tmpdir(), `finbot-save-proposal-invalidation-${scenario}-`));
+        const databasePath = path.join(directory, 'preview.sqlite');
+        const journalPath = path.join(directory, 'journal.sqlite');
+        const input = fixture();
+        const journal = new OpenFinanceRevocationJournal({ databasePath: journalPath, secret });
+        let store = new OpenFinanceShadowPreviewStore({
+            databasePath,
+            secret,
+            revocationJournal: journal,
+            authorizedWhatsAppIds: [actorWhatsappId],
+            confirmationActors: [{ principal: 'daniel', whatsappId: actorWhatsappId }]
+        });
+        let proposalRef;
+        try {
+            store.ingestSaveProposals(proposalInput(input));
+            proposalRef = store.listPendingSaveProposals({ actorWhatsappId })[0].proposal_ref;
+            store.prepareSaveProposalConfirmation(proposalRef, { actorWhatsappId });
+            const changed = structuredClone(input);
+            if (scenario === 'lifecycle') {
+                changed.lifecycleDecisions[0].classification = 'bill_balance';
+            } else {
+                changed.reconciliationDecisions[0].status = 'matched';
+                changed.reconciliationDecisions[0].rule = 'amount_date_description';
+            }
+            const tampered = structuredClone(changed);
+            tampered.item.transactions[0].amount_cents += 1;
+            assert.throws(() => store.ingestSaveProposals(proposalInput(tampered)),
+                /save_proposal_replay_conflict/);
+            assert.equal(
+                store.readSaveProposalDecisionState(proposalRef, { actorWhatsappId }).proposal_state,
+                'pending'
+            );
+            assert.deepEqual(store.ingestSaveProposals(proposalInput(changed)), {
+                inserted: 0,
+                replayed: 0,
+                blocked: 4,
+                pending: 0,
+                invalidated: 1,
+                financial_writes: 0
+            });
+            assert.equal(store.listPendingSaveProposals({ actorWhatsappId }).length, 0);
+            const decision = store.readSaveProposalDecisionState(proposalRef, { actorWhatsappId });
+            assert.equal(decision.proposal_state, 'cancelled');
+            assert.equal(decision.confirmation_state, 'declined');
+            const terminal = journal.getSaveProposalTerminal(proposalRef);
+            assert.equal(terminal.terminal_state, 'cancelled');
+            assert.match(terminal.resolved_by_ref, /^[a-f0-9]{32}$/);
+            assert.equal(store.ingestSaveProposals(proposalInput(changed)).invalidated, undefined);
+        } finally {
+            store.close();
+        }
+        store = new OpenFinanceShadowPreviewStore({
+            databasePath,
+            secret,
+            revocationJournal: journal,
+            authorizedWhatsAppIds: [actorWhatsappId],
+            confirmationActors: [{ principal: 'daniel', whatsappId: actorWhatsappId }]
+        });
+        try {
+            const replay = store.ingestSaveProposals(proposalInput(input));
+            assert.equal(replay.inserted, 0);
+            assert.equal(replay.pending, 0);
+            assert.equal(store.listPendingSaveProposals({ actorWhatsappId }).length, 0);
+            assert.equal(replay.financial_writes, 0);
+        } finally {
+            store.close();
+            journal.close();
+        }
     }
 });
 

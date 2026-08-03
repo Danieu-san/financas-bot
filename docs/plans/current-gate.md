@@ -4,14 +4,21 @@ Atualizado em: 2026-08-03
 
 ## Estado
 
-`POLÍTICA FAMILIAR ATIVA; DEPENDENCY SECURITY RECOVERY CANDIDATE; AUDITORIA
-INDEPENDENTE PENDENTE; CONFIRM BLOQUEADO`.
+`POLÍTICA FAMILIAR ATIVA; STALE PROPOSAL INVALIDATION RECOVERY CANDIDATE;
+AUDITORIA INDEPENDENTE PENDENTE; CONFIRM BLOQUEADO`.
 
-O preflight de release encontrou duas vulnerabilidades altas transitivas no
-grafo de produção. O hash funcional aprovado não foi promovido. O recovery
-altera somente o lockfile, atualiza `brace-expansion` e `js-yaml`, zera o audit
-atual e preserva a suíte exaustiva verde. Evidência:
-`docs/audit/107-runtime-dependency-security-recovery-candidate-2026-08-03.md`.
+O recovery de dependências `c781365d1b6b5524b3ae5ac0ce821d9461821a28`
+recebeu GO independente e foi promovido na OCI com processo, WhatsApp e health
+verdes. O primeiro ciclo Open Finance, porém, falhou fechado com zero escrita.
+O diagnóstico em cópias consistentes do estado real reproduziu
+`save_proposal_replay_conflict`: propostas anteriores ao refinamento do
+classificador permaneciam persistidas embora tivessem deixado de ser elegíveis.
+
+O candidato atual invalida essa proposta somente quando identidade e payload
+financeiro permanecem idênticos, registra cancelamento no terminal journal e
+impede reabertura por replay/restart. Mudança de valor, descrição, conta,
+principal ou identidade continua bloqueada. Evidência:
+`docs/audit/108-open-finance-stale-proposal-invalidation-recovery-candidate-2026-08-03.md`.
 
 ## Recovery ativo — OF-ALERT-BIND-01
 
@@ -160,10 +167,11 @@ já observados, por isso o smoke de uma nova movimentação ainda não terminou.
 
 ## Próxima ação exata
 
-Publicar o recovery de dependências em hash imutável e submetê-lo à auditoria
-independente. Somente após GO construir e promover esse novo hash na OCI. A
-etapa `confirm` continua bloqueada.
+Publicar o recovery de invalidação de proposta legada em hash imutável e
+submetê-lo à auditoria independente. Somente após GO construir e promover esse
+novo hash na OCI, exigir `cycle=GO`, health completo e `writes=0`. A etapa
+`confirm` continua bloqueada.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> promover o hash auditado na OCI e validar o estado seguro.`
+`Codex -> Sol -> Alto -> auditar o recovery imutável e promover o artefato na OCI.`
