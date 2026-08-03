@@ -65,6 +65,14 @@ Na primeira fronteira consistente:
 6. deixar em `Trabalho Codex no outro PC\last-safe-handoff.json` o relatório
    mecânico de saída.
 
+Se o SSD esteve ausente ou ficou desatualizado, executar depois do push:
+
+`powershell -ExecutionPolicy Bypass -File scripts\agent\syncPortableRepository.ps1 -PortableFinancasBotRoot "<SSD>:\...\FinancasBot"`
+
+A rotina cria `financas-bot-handoff-<hash>` a partir do GitHub e grava
+`Trabalho Codex no outro PC\OPEN-THIS.json`. Não modificar nem substituir a
+pasta antiga do SSD, especialmente quando ela estiver suja.
+
 O relatório deve confirmar a presença das referências operacionais e apontar
 este arquivo. Ele não transporta autenticação, cookies, sessões, tokens,
 histórico privado nem o conteúdo das chaves.
@@ -80,6 +88,10 @@ rotina produz `Trabalho Codex no outro PC\last-resume-check.json`, valida o
 workflow, instala ou confirma automaticamente a política global versionada do
 Codex com backup da versão divergente, confirma Git e verifica apenas a
 existência das chaves referenciadas.
+
+Antes de aceitar o checkpoint como vigente, ela também executa `git fetch` na
+branch registrada. Se o remoto avançou, cria uma worktree isolada no novo HEAD
+e informa `Raiz efetiva`; o Codex deve continuar somente nessa raiz.
 
 Depois, retomar a próxima ação exata de `current.md`/`current-gate.md`, usando a
 capacidade ali recomendada. Não acessar produção ou fazer deploy sem a

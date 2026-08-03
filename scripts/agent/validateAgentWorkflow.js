@@ -6,20 +6,21 @@ const { execFileSync } = require('node:child_process');
 
 const root = path.resolve(__dirname, '..', '..');
 const checks = [
-    ['AGENTS.md', 18 * 1024, ['Superfície → Modelo → Esforço → Próxima tarefa', 'current.md', '$execute-financasbot-gate', 'ADR-002', 'Escada obrigatória de validação']],
+    ['AGENTS.md', 20 * 1024, ['Superfície → Modelo → Esforço → Próxima tarefa', 'current.md', '$execute-financasbot-gate', 'ADR-002', 'Escada obrigatória de validação', 'syncPortableRepository.ps1']],
     ['docs/agent-memory/README.md', 12 * 1024, ['current.md', 'current-gate.md', 'validateAgentWorkflow.js', 'Escada obrigatória de validação']],
-    ['docs/agent-memory/START-HERE.md', 12 * 1024, ['resumePortableWork.ps1', 'financas_bot_oci_ed25519_20260722', 'financasBot.pem', 'last-safe-handoff.json', 'política global versionada']],
+    ['docs/agent-memory/START-HERE.md', 14 * 1024, ['resumePortableWork.ps1', 'syncPortableRepository.ps1', 'OPEN-THIS.json', 'financas_bot_oci_ed25519_20260722', 'financasBot.pem', 'last-safe-handoff.json', 'política global versionada']],
     ['docs/agent-memory/current.md', 16 * 1024, ['## Objetivo ativo', '## Git e workspace', '## Próxima ação exata', '## Capacidade para retomar']],
     ['docs/plans/current-gate.md', 24 * 1024, ['## Objetivo', '## Escopo', '## Não escopo', '## Critérios de GO', '## Condições de parada']],
-    ['docs/agent-workflow/global-AGENTS.md', 16 * 1024, ['Superfície → Modelo → Esforço → Próxima tarefa', 'Não trocar ou reduzir', 'não usar subagentes por padrão', '$handoff-portable-work', 'Antes de ação em servidor', 'Escada obrigatória de validação e orçamento de contexto']],
+    ['docs/agent-workflow/global-AGENTS.md', 18 * 1024, ['Superfície → Modelo → Esforço → Próxima tarefa', 'Não trocar ou reduzir', 'não usar subagentes por padrão', '$handoff-portable-work', 'Antes de ação em servidor', 'Escada obrigatória de validação e orçamento de contexto', 'raiz canônica']],
     ['docs/agent-memory/workstreams/index.md', 8 * 1024, ['wgl-03-wgl-04', 'aws-oracle-migration']],
     ['docs/agent-memory/workstreams/aws-oracle-migration.md', 12 * 1024, ['## Objetivo conhecido', '## Próxima ação obrigatória']],
     ['docs/plans/workstreams/aws-oracle-migration.md', 16 * 1024, ['## Objetivo', '## Não autorizado por este stub', '## Invariantes mínimas']],
     ['.agents/skills/execute-financasbot-gate/SKILL.md', 14 * 1024, ['name: execute-financasbot-gate', '## Preparar', '## Validar e encerrar', 'escada obrigatória de validação']],
     ['.agents/skills/audit-immutable-gate/SKILL.md', 12 * 1024, ['name: audit-immutable-gate', '## Fontes independentes', '## Auditoria pelo Chat']],
-    ['.agents/skills/handoff-portable-work/SKILL.md', 12 * 1024, ['name: handoff-portable-work', '## Gatilho automático', '## Parar sem perder trabalho', 'preparePortableHandoff.ps1', '## Retomar em outro computador']],
-    ['scripts/agent/preparePortableHandoff.ps1', 20 * 1024, ['financasbot-safe-handoff-v2', 'content_copied = $false', 'validateAgentWorkflow.js', 'START-HERE.md', 'key_references']],
-    ['scripts/agent/resumePortableWork.ps1', 18 * 1024, ['financasbot-portable-resume-v1', 'START-HERE.md', 'key_references', "['content_read'] = $false", 'installPortableWorkflow.js', 'installed_with_backup']],
+    ['.agents/skills/handoff-portable-work/SKILL.md', 14 * 1024, ['name: handoff-portable-work', '## Gatilho automático', '## Parar sem perder trabalho', 'preparePortableHandoff.ps1', 'syncPortableRepository.ps1', 'OPEN-THIS.json', '## Retomar em outro computador']],
+    ['scripts/agent/preparePortableHandoff.ps1', 20 * 1024, ['financasbot-safe-handoff-v2', 'content_copied = $false', 'validateAgentWorkflow.js', 'START-HERE.md', 'key_references', 'resume_target']],
+    ['scripts/agent/resumePortableWork.ps1', 24 * 1024, ['financasbot-portable-resume-v1', 'START-HERE.md', 'key_references', "['content_read'] = $false", 'installPortableWorkflow.js', 'installed_with_backup', "'fetch', '--prune'", 'Raiz efetiva']],
+    ['scripts/agent/syncPortableRepository.ps1', 20 * 1024, ['PortableFinancasBotRoot', 'origin/$branch', 'financas-bot-handoff-', 'OPEN-THIS.json', 'A pasta antiga do SSD']],
     ['scripts/agent/Invoke-SafePortableHandoffAfterClose.ps1', 12 * 1024, ['Test-ExclusiveRead', 'preparePortableHandoff.ps1', 'Nenhum conteúdo privado do Codex foi copiado']]
 ];
 

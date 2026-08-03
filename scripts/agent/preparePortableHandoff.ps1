@@ -103,6 +103,8 @@ if (-not $ReportPath) {
 $branch = (Invoke-Captured -Executable $GitBin -Arguments @('-C', $resolvedRoot, 'branch', '--show-current')) -join ''
 $head = (Invoke-Captured -Executable $GitBin -Arguments @('-C', $resolvedRoot, 'rev-parse', 'HEAD')) -join ''
 $status = Invoke-Captured -Executable $GitBin -Arguments @('-C', $resolvedRoot, 'status', '--porcelain=v1', '--branch')
+$remoteName = 'origin'
+$remoteRef = if ($branch) { "$remoteName/$branch" } else { '' }
 
 $previousGitBin = $env:GIT_BIN
 try {
@@ -148,6 +150,12 @@ $report = [ordered]@{
     workflow_validation = 'green'
     diff_check = 'green'
     start_here = $startHere
+    resume_target = [ordered]@{
+        remote = $remoteName
+        branch = $branch
+        remote_ref = $remoteRef
+        head = $head
+    }
     read_order = @(
         'AGENTS.md',
         'docs/agent-memory/START-HERE.md',

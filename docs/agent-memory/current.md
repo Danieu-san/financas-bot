@@ -67,7 +67,10 @@ independente obrigatoria.
   `C:\Users\Administrador\Documents\FinancasBot\financas-bot`;
 - branch: `codex/open-finance-finalization`;
 - parent implantado: `c781365d1b6b5524b3ae5ac0ce821d9461821a28`;
-- o SSD antigo nao e raiz canonica e nao deve receber edicoes deste gate.
+- o SSD antigo nao e raiz canonica e nao deve receber edicoes deste gate;
+- no proximo handoff, reconstruir uma copia nova no SSD a partir do HEAD
+  publicado com `syncPortableRepository.ps1`; preservar integralmente a arvore
+  antiga/suja e usar o `OPEN-THIS.json` como ponteiro de retomada.
 
 ## Producao vigente
 

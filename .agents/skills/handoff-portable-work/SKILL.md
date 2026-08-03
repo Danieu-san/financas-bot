@@ -44,12 +44,22 @@ pós-fechamento, armar `scripts/agent/Invoke-SafePortableHandoffAfterClose.ps1`;
 ela aguarda a liberação dos stores apenas para repetir as verificações seguras e
 gravar o relatório no SSD.
 
+Se o SSD ficou ausente, desatualizado ou contém uma árvore antiga/suja, não
+sincronizar por cima dela. Depois de commit e push, executar
+`scripts/agent/syncPortableRepository.ps1` apontando para a pasta `FinancasBot`
+do SSD. A rotina deve confirmar que HEAD coincide com `origin/<branch>`, criar
+uma cópia nova `financas-bot-handoff-<hash>` e gravar
+`Trabalho Codex no outro PC/OPEN-THIS.json`. A cópia antiga permanece intacta.
+
 ## Retomar em outro computador
 
-1. Montar o SSD e abrir a raiz exata do repositório.
+1. Montar o SSD, ler `Trabalho Codex no outro PC/OPEN-THIS.json` e abrir a raiz
+   exata apontada, nunca escolher a pasta antiga apenas pelo nome.
 2. Ler `docs/agent-memory/START-HERE.md` e executar
-   `scripts/agent/resumePortableWork.ps1`; a rotina deve validar o Git, o
-   workflow e apenas a existência das referências de chaves no SSD.
+   `scripts/agent/resumePortableWork.ps1`; a rotina deve fazer `fetch` da branch
+   registrada, usar o HEAD remoto mais recente, criar worktree isolada se
+   necessário, validar o workflow e apenas a existência das referências de
+   chaves no SSD.
 3. Instalar/atualizar a orientação global da máquina com
    `node scripts/agent/installPortableWorkflow.js` quando necessário.
 4. Abrir o Codex na raiz do Git.

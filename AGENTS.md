@@ -49,6 +49,14 @@ Ao chegar de outro computador ou conversa, ler primeiro
 continuou em outro Codex é autorização para essa validação de retomada, sem
 pedir que ele reconstrua manualmente o contexto.
 
+O handoff para SSD deve partir da raiz canônica atual e de um HEAD já publicado,
+usando `scripts/agent/syncPortableRepository.ps1`. Nunca atualizar por cima de
+uma cópia antiga ou suja: criar uma cópia nova identificada pelo hash e deixar
+`Trabalho Codex no outro PC/OPEN-THIS.json` apontando para ela. Na retomada,
+buscar `origin`, comparar a branch registrada com o remoto e materializar uma
+worktree isolada se houver commit posterior; não usar `pull`, `reset` ou a pasta
+antiga como fonte vigente.
+
 ### Trava obrigatória de auditoria no Chat
 
 Toda correção material do FinançasBot deve passar por auditoria independente no

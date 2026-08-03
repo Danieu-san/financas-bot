@@ -119,6 +119,12 @@ tratar a frase como gatilho de retomada: abrir
 operacionais e então retomar a próxima ação exata do checkpoint. Não pedir ao
 usuário que reconstrua o contexto já preservado no SSD.
 
+Quando o projeto fornecer sincronização portátil versionada, o fechamento deve
+partir do HEAD publicado da raiz canônica, preservar cópias antigas ou sujas e
+criar uma cópia nova identificada pelo hash. A retomada deve consultar o remoto
+antes de ler o checkpoint como vigente e usar raiz/worktree isolada se houver
+versão posterior, sem `pull`, `reset` ou sobrescrita automática.
+
 ## Evidência e comunicação
 
 Durante trabalho longo, informar progresso sem deixar o usuário sem atualização.
