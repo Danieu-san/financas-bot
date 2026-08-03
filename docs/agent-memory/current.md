@@ -10,7 +10,7 @@ hash imutavel e promover um novo artefato na OCI com proposta `prompt`, escrita
 
 ## Estado vigente
 
-`STALE PROPOSAL IDENTITY RECOVERY CANDIDATE; AWAITING INDEPENDENT AUDIT;
+`INTRAINGEST IDENTITY COLLISION RECOVERY CANDIDATE; AWAITING INDEPENDENT AUDIT;
 CONFIRM BLOCKED`.
 
 O commit `c781365d1b6b5524b3ae5ac0ce821d9461821a28` recebeu GO tecnico local
@@ -28,21 +28,28 @@ terminaliza a proposta deslocada e bloqueia a substituta. A prova nova injeta
 falha depois do journal, comprova o preview ainda pending/ready, fecha e reabre
 journal, ancora e store, e exige reaplicacao cancelled/declined com zero escrita.
 
+O commit `f5768a03ea57fa7665dd1b0f5fd2dea5749fe9b6` recebeu novo NO-GO
+independente: o índice estável não era atualizado após uma inserção no mesmo
+ingest, permitindo duas propostas da mesma fonte com referências diferentes.
+O recovery atual atualiza o índice dentro da transação e transforma a segunda
+representação em `save_proposal_replay_conflict`, com rollback integral.
+
 Manifesto recuperado:
-`docs/audit/109-open-finance-stale-proposal-identity-recovery-candidate-2026-08-03.md`.
+`docs/audit/110-open-finance-intraingest-identity-collision-recovery-candidate-2026-08-03.md`.
 
 ## Evidencia
 
 - Pluggy real somente leitura: verde, sem WhatsApp e sem escrita;
 - ensaio completo com estado copiado e codigo candidato: `GO`, duas propostas
   inelegiveis invalidadas, quatro entregas simuladas e zero escrita;
-- save proposal shadow `12/12`;
+- save proposal shadow `13/13`;
 - confirmation `9/9`;
 - family alerts `6/6`;
 - state machine `124/124`;
-- bateria causal relacionada: `151/151`;
-- suite hermetica completa: exit code zero; dois testes novos sobre a base de
-  `1.433`, total derivado `1.435`, zero falha e cinco skips esperados.
+- bateria causal relacionada: `152/152`;
+- suite hermetica: `1.436` testes, `1.431` aprovados, zero falha e cinco
+  skips esperados;
+- cobertura: linhas `90,59%`, branches `72,90%`, funcoes `90,15%`.
 
 As contagens sao execucao local do Codex e ainda nao substituem a auditoria
 independente obrigatoria.
@@ -78,7 +85,7 @@ independente obrigatoria.
 
 ## Próxima ação exata
 
-Commitar e publicar o recovery de identidade sanitizado, submeter o hash imutavel a auditoria
+Revalidar, commitar e publicar o recovery intraingest sanitizado, submeter o hash imutavel a auditoria
 independente no Chat e, somente apos GO, construir e promover o novo artefato na
 OCI. No primeiro ciclo real exigir invalidacao das propostas legadas,
 `cycle=GO`, health completo e `writes=0`.
@@ -91,6 +98,8 @@ OCI. No primeiro ciclo real exigir invalidacao das propostas legadas,
 
 - plano vigente: `docs/plans/current-gate.md`;
 - recovery atual:
+  `docs/audit/110-open-finance-intraingest-identity-collision-recovery-candidate-2026-08-03.md`;
+- candidato anterior e segundo NO-GO:
   `docs/audit/109-open-finance-stale-proposal-identity-recovery-candidate-2026-08-03.md`;
 - candidato anterior e NO-GO:
   `docs/audit/108-open-finance-stale-proposal-invalidation-recovery-candidate-2026-08-03.md`;

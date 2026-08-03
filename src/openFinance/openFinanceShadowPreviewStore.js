@@ -822,6 +822,7 @@ class OpenFinanceShadowPreviewStore {
                 if (result.changes === 1) {
                     inserted += 1;
                     insertedThisRun.add(proposalRef);
+                    existingBySourceIdentity.set(sourceIdentityKey, proposalRef);
                     if (includeProposalLinks) {
                         proposalLinks.push({
                             observation_ref: decision.observation_ref,

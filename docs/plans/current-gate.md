@@ -4,7 +4,7 @@ Atualizado em: 2026-08-03
 
 ## Estado
 
-`POLÍTICA FAMILIAR ATIVA; STALE PROPOSAL IDENTITY RECOVERY CANDIDATE;
+`POLÍTICA FAMILIAR ATIVA; INTRAINGEST IDENTITY COLLISION RECOVERY CANDIDATE;
 AUDITORIA INDEPENDENTE PENDENTE; CONFIRM BLOQUEADO`.
 
 O recovery de dependências `c781365d1b6b5524b3ae5ac0ce821d9461821a28`
@@ -21,6 +21,13 @@ reabertura. O candidato atual usa identidade HMAC estável da transação fonte,
 terminaliza a proposta deslocada, bloqueia a substituta e prova recuperação
 após falha injetada entre journal e preview com reabertura real. Evidência:
 `docs/audit/109-open-finance-stale-proposal-identity-recovery-candidate-2026-08-03.md`.
+
+Esse candidato, no commit `f5768a03ea57fa7665dd1b0f5fd2dea5749fe9b6`,
+recebeu novo NO-GO independente: o mapa de identidade estável não incorporava
+uma inserção feita dentro do mesmo ingest. O recovery atual atualiza o mapa na
+mesma transação; uma segunda representação da mesma fonte encontra a primeira,
+é reconhecida como intraingest e causa rollback integral. Evidência:
+`docs/audit/110-open-finance-intraingest-identity-collision-recovery-candidate-2026-08-03.md`.
 
 ## Recovery ativo — OF-ALERT-BIND-01
 
@@ -169,7 +176,7 @@ já observados, por isso o smoke de uma nova movimentação ainda não terminou.
 
 ## Próxima ação exata
 
-Publicar o recovery de identidade de proposta legada em hash imutável e
+Revalidar e publicar o recovery de colisão intraingest em hash imutável e
 submetê-lo à auditoria independente. Somente após GO construir e promover esse
 novo hash na OCI, exigir `cycle=GO`, health completo e `writes=0`. A etapa
 `confirm` continua bloqueada.

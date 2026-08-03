@@ -477,6 +477,44 @@ test('9P.0 conflicting decisions roll back atomically and metadata corruption fa
     }
 });
 
+test('OF-ALERT-BIND-01 duplicate stable source identity in one ingest rolls back atomically', () => {
+    const databasePath = path.join(fs.mkdtempSync(path.join(os.tmpdir(),
+        'finbot-save-proposal-intraingest-identity-')), 'preview.sqlite');
+    const input = fixture();
+    const duplicate = structuredClone(input.item.transactions[0]);
+    duplicate.account_id = 'moved-account';
+    input.item.accounts.push({ id: duplicate.account_id, type: 'BANK' });
+    input.item.transactions.push(duplicate);
+    const duplicateObservationRef = observationRef(
+        secret,
+        input.item.id,
+        duplicate.account_id,
+        duplicate.id
+    );
+    input.reconciliationDecisions.push({
+        alias: input.item.alias_code,
+        observation_ref: duplicateObservationRef,
+        transaction_ref: 'transaction-ref-purchase-posted-moved',
+        status: 'new',
+        rule: 'no_candidate'
+    });
+    input.lifecycleDecisions.push({
+        observation_ref: duplicateObservationRef,
+        classification: 'purchase',
+        provider_state: 'POSTED'
+    });
+
+    const store = openStore(databasePath);
+    try {
+        assert.throws(() => store.ingestSaveProposals(proposalInput(input)),
+            /save_proposal_replay_conflict/);
+        assert.equal(store.stats().save_proposals_total, 0);
+        assert.equal(store.stats().save_proposals_pending, 0);
+    } finally {
+        store.close();
+    }
+});
+
 test('9P.0 persists only reconciled posted purchases and never reopens a cancelled proposal', () => {
     const databasePath = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-save-proposal-')), 'preview.sqlite');
     const input = fixture();
