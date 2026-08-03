@@ -4,8 +4,8 @@ Atualizado em: 2026-08-03
 
 ## Estado
 
-`POLÍTICA FAMILIAR ATIVA; RECOVERY PÓS-NO-GO OF-ALERT-BIND-01 CANDIDATO LOCAL;
-AGUARDANDO NOVA AUDITORIA INDEPENDENTE`.
+`POLÍTICA FAMILIAR ATIVA; OF-ALERT-BIND-01 COM GO TÉCNICO LOCAL; RELEASE OCI
+DO HASH AUDITADO AUTORIZADO; CONFIRM BLOQUEADO`.
 
 ## Recovery ativo — OF-ALERT-BIND-01
 
@@ -35,6 +35,12 @@ proposta pendente e exige que ela não possa ser reclamada. Evidência final:
 afetada `193/193`; hermética `1.432` testes, `1.427` aprovados, zero falha e
 cinco skips esperados. Manifesto:
 `docs/audit/105-open-finance-ambiguous-recipient-reservation-recovery-candidate-2026-08-03.md`.
+
+O hash `c26594f3f11cbe702acee37dd85b72f6721d686c` recebeu `GO TÉCNICO LOCAL`
+independente, com todas as severidades zeradas e sem lacuna indispensável
+residual. O alcance autorizado é somente release OCI por artefato imutável com
+`prompt`, write `off` e aprovação falsa. Fechamento:
+`docs/audit/106-open-finance-alert-binding-independent-close-2026-08-03.md`.
 
 ## Objetivo
 
@@ -148,12 +154,11 @@ já observados, por isso o smoke de uma nova movimentação ainda não terminou.
 
 ## Próxima ação exata
 
-Criar e publicar um novo commit sanitizado e imutável do recovery pós-NO-GO,
-submeter os arquivos reais à reauditoria independente e
-confrontar o parecer com a evidência local. Somente `GO TÉCNICO LOCAL` autoriza
-release OCI por artefato, mantendo write `off`. A etapa `confirm` continua
+Redescobrir o contrato OCI nos documentos vigentes, construir e verificar o
+artefato exatamente do hash auditado, promover com rollback automático e
+validar processo único, health e flags seguras. A etapa `confirm` continua
 bloqueada.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> publicar e reauditar o recovery de OF-ALERT-BIND-01.`
+`Codex -> Sol -> Alto -> promover o hash auditado na OCI e validar o estado seguro.`

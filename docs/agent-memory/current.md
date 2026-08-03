@@ -4,20 +4,23 @@ Atualizado em: 2026-08-03
 
 ## Objetivo ativo
 
-Finalizar o recovery de `OF-ALERT-BIND-01`: corrigir a visibilidade das classes
-reconciliadas e garantir uma única proposta interativa por telefone inclusive
-após transporte ambíguo. O recovery ainda precisa de novo commit imutável,
-publicação no GitHub e reauditoria independente antes de qualquer deploy.
+Promover com segurança o recovery auditado de `OF-ALERT-BIND-01` na OCI,
+mantendo proposta `prompt`, escrita `off` e aprovação falsa, e validar health,
+processo único e flags após o release por artefato imutável.
 
 ## Estado vigente
 
-`RECOVERY CANDIDATO LOCAL; AGUARDANDO NOVA AUDITORIA INDEPENDENTE; NO-GO PARA
-DEPLOY`.
+`GO TÉCNICO LOCAL; RELEASE OCI DO HASH AUDITADO AUTORIZADO; CONFIRM BLOQUEADO`.
 
 O candidato anterior `ed4326759c9108a81b4903abf7e14dc171f7feb7` recebeu
 `NO-GO` independente com `ALTO=1`: uma falha de transporte ambígua podia ter
 entregado a primeira proposta sem reservar o telefone no restante do ciclo,
 permitindo uma segunda tentativa interativa.
+
+O recovery `c26594f3f11cbe702acee37dd85b72f6721d686c` recebeu `GO TÉCNICO
+LOCAL` independente: `ALTO=0`, `MÉDIO=0`, `BAIXO=0`, sem lacuna indispensável
+residual. Fechamento:
+`docs/audit/106-open-finance-alert-binding-independent-close-2026-08-03.md`.
 
 O smoke familiar real expôs três defeitos:
 
@@ -63,7 +66,8 @@ não autorizam promover o candidato.
 - raiz canônica recuperada:
   `C:\Users\Administrador\Documents\FinancasBot\financas-bot`;
 - branch: `codex/open-finance-finalization`;
-- base do recovery: `ed4326759c9108a81b4903abf7e14dc171f7feb7`;
+- hash de produto auditado para release:
+  `c26594f3f11cbe702acee37dd85b72f6721d686c`;
 - o SSD antigo não é raiz canônica e não deve receber edições deste gate.
 
 ## Produção vigente
@@ -92,20 +96,19 @@ produção; usar somente release por artefato imutável, checksum e rollback.
 
 ## Próxima ação exata
 
-Criar novo commit sanitizado e imutável do recovery, publicar a branch,
-submeter o manifesto, código e testes exatos à reauditoria independente e
-confrontar o parecer com a evidência local. Somente `GO TÉCNICO LOCAL` autoriza
-release OCI por artefato, mantendo escrita `off`.
+Redescobrir o contrato OCI nos documentos vigentes, construir e verificar o
+artefato do hash auditado, promover com rollback automático e validar health,
+processo único e flags seguras. Não habilitar `confirm`.
 
 ## Capacidade para retomar
 
-`Codex → Sol → Alto → publicar e reauditar o recovery de OF-ALERT-BIND-01.`
+`Codex → Sol → Alto → promover o hash auditado na OCI e validar o estado seguro.`
 
 ## Referências dirigidas
 
 - plano vigente: `docs/plans/current-gate.md`;
 - candidato atual:
-  `docs/audit/105-open-finance-ambiguous-recipient-reservation-recovery-candidate-2026-08-03.md`;
+  `docs/audit/106-open-finance-alert-binding-independent-close-2026-08-03.md`;
 - última ativação familiar em produção:
   `docs/audit/103-open-finance-family-policy-independent-production-close-2026-07-31.md`;
 - release OCI auditado:
