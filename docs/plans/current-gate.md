@@ -4,8 +4,14 @@ Atualizado em: 2026-08-03
 
 ## Estado
 
-`POLÍTICA FAMILIAR ATIVA; OF-ALERT-BIND-01 COM GO TÉCNICO LOCAL; RELEASE OCI
-DO HASH AUDITADO AUTORIZADO; CONFIRM BLOQUEADO`.
+`POLÍTICA FAMILIAR ATIVA; DEPENDENCY SECURITY RECOVERY CANDIDATE; AUDITORIA
+INDEPENDENTE PENDENTE; CONFIRM BLOQUEADO`.
+
+O preflight de release encontrou duas vulnerabilidades altas transitivas no
+grafo de produção. O hash funcional aprovado não foi promovido. O recovery
+altera somente o lockfile, atualiza `brace-expansion` e `js-yaml`, zera o audit
+atual e preserva a suíte exaustiva verde. Evidência:
+`docs/audit/107-runtime-dependency-security-recovery-candidate-2026-08-03.md`.
 
 ## Recovery ativo — OF-ALERT-BIND-01
 
@@ -154,10 +160,9 @@ já observados, por isso o smoke de uma nova movimentação ainda não terminou.
 
 ## Próxima ação exata
 
-Redescobrir o contrato OCI nos documentos vigentes, construir e verificar o
-artefato exatamente do hash auditado, promover com rollback automático e
-validar processo único, health e flags seguras. A etapa `confirm` continua
-bloqueada.
+Publicar o recovery de dependências em hash imutável e submetê-lo à auditoria
+independente. Somente após GO construir e promover esse novo hash na OCI. A
+etapa `confirm` continua bloqueada.
 
 ## Capacidade
 

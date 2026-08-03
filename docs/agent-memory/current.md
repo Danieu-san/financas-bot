@@ -10,7 +10,14 @@ processo único e flags após o release por artefato imutável.
 
 ## Estado vigente
 
-`GO TÉCNICO LOCAL; RELEASE OCI DO HASH AUDITADO AUTORIZADO; CONFIRM BLOQUEADO`.
+`DEPENDENCY SECURITY RECOVERY CANDIDATE; AWAITING INDEPENDENT AUDIT; CONFIRM BLOCKED`.
+
+The OCI release preflight on 2026-08-03 found two high severity transitive
+runtime vulnerabilities after the functional hash had received GO. The prior
+hash was not deployed. A lockfile-only recovery upgrades `brace-expansion` and
+`js-yaml`, leaves product sources unchanged and passes the exhaustive suite.
+Candidate evidence:
+`docs/audit/107-runtime-dependency-security-recovery-candidate-2026-08-03.md`.
 
 O candidato anterior `ed4326759c9108a81b4903abf7e14dc171f7feb7` recebeu
 `NO-GO` independente com `ALTO=1`: uma falha de transporte ambígua podia ter
@@ -96,9 +103,9 @@ produção; usar somente release por artefato imutável, checksum e rollback.
 
 ## Próxima ação exata
 
-Redescobrir o contrato OCI nos documentos vigentes, construir e verificar o
-artefato do hash auditado, promover com rollback automático e validar health,
-processo único e flags seguras. Não habilitar `confirm`.
+Commit and publish the lockfile-only security recovery, obtain an independent
+audit against the immutable hash, and only after GO build and promote that new
+hash to OCI. Do not enable `confirm`.
 
 ## Capacidade para retomar
 
