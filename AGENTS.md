@@ -21,6 +21,28 @@ Para qualquer tarefa não trivial, usar o workflow versionado no SSD:
    encerrar;
 6. separar implementação de auditoria e nunca declarar GO sem evidência factual.
 
+### Escada obrigatória de validação e economia
+
+Este projeto aplica também o orçamento de contexto do contrato global. Antes da
+primeira suíte ampla, fazer revisão adversarial local, syntax check, teste focal
+e bateria causal. Executar somente uma suíte hermética ampla por candidato
+estável, imediatamente antes do commit auditável. Não repetir suíte verde sem
+mudança causal; depois de NO-GO com alteração de código, repetir os afetados e
+uma única suíte ampla final.
+
+Ferramentas devem devolver somente evidência necessária: resumos de manifesto,
+recortes de logs desde o último evento relevante, campos agregados e a resposta
+final do auditor. Não capturar página inteira do Chat, barra lateral, manifesto
+completo ou logs históricos quando um seletor ou filtro resolve. Agrupar
+diagnósticos somente leitura, não consultar estado externo inalterado e limitar
+esperas a blocos de 60 segundos sem polling redundante.
+
+Usar uma conversa limpa e uma tentativa automática de Chat por hash imutável.
+Subagentes continuam desligados sem pedido explícito e benefício líquido claro.
+Antes de etapa inevitavelmente cara, informar o custo esperado e a evidência que
+ela produzirá. Estas regras reduzem tokens e tempo, mas não removem teste causal,
+auditoria obrigatória ou controle de produção.
+
 Ao chegar de outro computador ou conversa, ler primeiro
 `docs/agent-memory/START-HERE.md` e executar
 `scripts/agent/resumePortableWork.ps1`. A frase do usuário informando que

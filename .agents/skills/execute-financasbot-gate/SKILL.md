@@ -37,6 +37,20 @@ Não converter achados laterais em implementação silenciosa. Registrar o achad
 5. Não usar subagentes por padrão. Usá-los somente quando Daniel pedir explicitamente e quando subtarefas independentes justificarem o consumo adicional.
 6. Usar worktree/branch separada para trabalho simultâneo. Nunca iniciar outro agente escritor na mesma pasta e branch.
 7. Manter Daniel informado durante operações longas e registrar checkpoint antes de pausa, troca de contexto ou compactação.
+8. Aplicar a escada obrigatória de validação: revisão adversarial, syntax/RED,
+   teste focal, bateria causal e somente então uma suíte hermética ampla no
+   candidato estável. Não repetir a ampla sem mudança causal posterior.
+9. Se auditoria produzir NO-GO com mudança de código, executar novamente os
+   afetados e uma única ampla final; sem mudança causal, reutilizar a evidência
+   verde já existente.
+10. Filtrar saídas na origem: resumos de JSON, manifesto e diff; logs somente
+    desde o evento relevante; no navegador, extrair a resposta final em vez de
+    snapshots completos. Limitar waits a 60 segundos e evitar polling redundante.
+11. Antes de cada ferramenta, verificar se a chamada muda a decisão ou preenche
+    evidência ausente. Agrupar diagnósticos somente leitura e avisar antes de uma
+    etapa inevitavelmente cara, explicitando a evidência obtida.
+12. Para auditoria no Chat, usar uma conversa limpa e uma tentativa automática
+    por hash. Não reenviar o mesmo gate sem hash ou evidência material nova.
 
 ## Validar e encerrar
 

@@ -90,6 +90,16 @@ independente obrigatoria.
 - `confirm` continua bloqueado;
 - nenhuma resposta antiga `sim` deve ser usada como smoke do recovery.
 
+## Padrao economico permanente
+
+O workflow global e portatil exige revisao adversarial antes da suite ampla,
+testes focais e causais durante a implementacao, uma unica suite hermetica por
+candidato estavel e repeticao somente apos mudanca causal. Saidas de ferramentas
+devem ser filtradas na origem; Chat usa uma conversa e uma tentativa por hash;
+logs, manifestos e navegador nao devem carregar conteudo integral sem necessidade
+probatoria. Subagentes permanecem desligados sem pedido explicito e beneficio
+liquido demonstravel.
+
 ## Próxima ação exata
 
 Aguardar uma nova compra genuina observada pelo Pluggy e, com Daniel presente,
@@ -99,7 +109,7 @@ confirmacao. `confirm` permanece bloqueado.
 
 ## Capacidade para retomar
 
-`Codex -> Sol -> Alto -> auditar o recovery imutavel e promover o artefato na OCI.`
+`Codex -> Sol -> Medio -> executar o smoke real do recovery com Daniel presente.`
 
 ## Referencias dirigidas
 

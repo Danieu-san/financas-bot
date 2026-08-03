@@ -9,6 +9,25 @@ Use este arquivo para escolher a bateria minima antes de afirmar que algo esta p
 - Mudou dashboard: validar API/HTML e trocar mes/usuario.
 - Mudou producao: checar PM2, logs recentes e health.
 
+## Escada obrigatória de validação
+
+1. Antes de testar amplamente, revisar o diff e procurar adversarialmente
+   colisões, replay, restart, rollback, identidade e efeitos parciais aplicáveis.
+2. Durante a implementação, executar syntax check, teste focal e bateria causal
+   afetada. Reexecutar somente o que foi causalmente tocado.
+3. Quando o candidato estiver estável, executar uma única `npm test` antes do
+   commit auditável.
+4. Não repetir `npm test` verde sem mudança causal posterior. Um NO-GO apenas
+   documental não invalida a suíte; um NO-GO que exige código novo requer testes
+   afetados e uma única suíte completa final.
+5. Capturar o resultado estruturado do runner e não despejar o TAP inteiro. Em
+   deploy, consultar logs desde o restart e extrair somente health, hash, flags,
+   ciclo e erros relevantes.
+
+Testes focais não substituem a suíte ampla final quando o gate material a exige;
+a suíte ampla não substitui causalidade focal. A economia vem de ordem, recorte e
+reuso legítimo da evidência, nunca da omissão de um gate.
+
 ## Comandos locais
 
 - Suite completa local, somente com testes ativos e sem E2E real destrutivo: `npm test`.

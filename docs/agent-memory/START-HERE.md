@@ -77,7 +77,9 @@ Executar, a partir da raiz do repositório:
 
 Se `git` não estiver no `PATH`, informar `-GitBin` com o executável local. A
 rotina produz `Trabalho Codex no outro PC\last-resume-check.json`, valida o
-workflow, confirma Git e verifica apenas a existência das chaves referenciadas.
+workflow, instala ou confirma automaticamente a política global versionada do
+Codex com backup da versão divergente, confirma Git e verifica apenas a
+existência das chaves referenciadas.
 
 Depois, retomar a próxima ação exata de `current.md`/`current-gate.md`, usando a
 capacidade ali recomendada. Não acessar produção ou fazer deploy sem a

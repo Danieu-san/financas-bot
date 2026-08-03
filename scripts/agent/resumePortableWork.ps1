@@ -74,6 +74,25 @@ try {
     $env:GIT_BIN = $previousGitBin
 }
 
+$globalAgentsInstaller = Join-Path $resolvedRoot 'scripts\agent\installPortableWorkflow.js'
+$globalAgentsStatus = 'already_current'
+try {
+    Invoke-Captured -Executable $NodeBin -Arguments @(
+        $globalAgentsInstaller,
+        '--check'
+    ) | Out-Null
+} catch {
+    Invoke-Captured -Executable $NodeBin -Arguments @(
+        $globalAgentsInstaller,
+        '--replace'
+    ) | Out-Null
+    Invoke-Captured -Executable $NodeBin -Arguments @(
+        $globalAgentsInstaller,
+        '--check'
+    ) | Out-Null
+    $globalAgentsStatus = 'installed_with_backup'
+}
+
 $keyReferences = @(
     [ordered]@{
         role = 'oracle_production'
@@ -97,6 +116,7 @@ $report = [ordered]@{
     head = $head
     status = @($status)
     workflow_validation = 'green'
+    global_agents = $globalAgentsStatus
     start_here = $startHere
     read_order = @(
         'AGENTS.md',
@@ -116,6 +136,7 @@ $report | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $temporary -Encodin
 Move-Item -LiteralPath $temporary -Destination $ReportPath -Force
 
 Write-Output "Retomada portátil validada: $branch $head"
+Write-Output "Política global do Codex: $globalAgentsStatus"
 Write-Output "Leia primeiro: $startHere"
 foreach ($reference in $keyReferences) {
     Write-Output "Referência $($reference.role): $($reference.path) (existe=$($reference.exists))"

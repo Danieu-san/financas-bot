@@ -54,6 +54,10 @@ padrao.
   `testing-playbook.md`.
 - Execute `node scripts/agent/validateAgentWorkflow.js` antes de handoff ou
   encerramento de gate.
+- A `Escada obrigatória de validação` do contrato global e de
+  `testing-playbook.md` vale em toda retomada: uma suíte ampla por candidato
+  estável, saídas filtradas, uma auditoria por hash e nenhuma consulta repetida
+  de estado inalterado.
 
 ## Trava de retorno depois de auditorias paralelas
 

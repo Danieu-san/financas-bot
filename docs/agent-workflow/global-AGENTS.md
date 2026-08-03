@@ -51,6 +51,43 @@ prosseguir sem nova pausa.
   resolver diretamente;
 - nunca aceitar o Chat como fonte única para código, testes, Git ou produção.
 
+### Escada obrigatória de validação e orçamento de contexto
+
+Qualidade não autoriza desperdício. Para toda tarefa, aplicar a menor sequência
+capaz de produzir evidência suficiente:
+
+1. fazer inspeção e revisão adversarial local antes da primeira suíte ampla;
+2. durante a implementação, executar somente syntax check, teste RED/focal e a
+   bateria causal afetada;
+3. executar uma única suíte hermética ampla quando o candidato estiver estável,
+   imediatamente antes do commit auditável;
+4. não repetir suíte ampla verde sem mudança causal posterior; se uma auditoria
+   exigir alteração de código, repetir os testes afetados e somente uma nova
+   suíte ampla final;
+5. usar uma única conversa limpa e uma tentativa automática de Chat por hash
+   imutável; não repetir auditoria sem novo hash ou nova evidência material.
+
+Ao usar ferramentas, limitar entrada e saída ao necessário para a decisão:
+
+- extrair resumos, contagens, campos e últimas linhas relevantes; nunca carregar
+  manifestos, logs, diffs ou snapshots integrais quando um recorte basta;
+- no navegador, ler a mensagem ou região relevante, não a página inteira nem a
+  barra lateral repetidamente;
+- agrupar diagnósticos somente leitura que compartilhem a mesma fronteira e não
+  consultar novamente estado externo que não mudou;
+- usar esperas em blocos de no máximo 60 segundos, sem espera ativa ou polling
+  redundante;
+- antes de cada chamada, confirmar que ela altera a decisão ou fornece evidência
+  ainda ausente; caso contrário, não executá-la;
+- avisar antes de uma etapa inevitavelmente cara e explicar qual evidência ela
+  compra.
+
+Subagentes permanecem desligados por padrão. Só usá-los mediante pedido
+explícito e benefício líquido demonstrável após considerar o custo do handoff,
+da duplicação de contexto e da consolidação. Economia nunca permite omitir teste
+causal, auditoria obrigatória ou controle de produção; ela remove repetição e
+volume sem valor probatório.
+
 ## Trabalho prolongado
 
 - manter plano com objetivo, contexto, restrições e critérios de conclusão;
