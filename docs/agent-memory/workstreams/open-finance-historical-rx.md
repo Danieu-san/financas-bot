@@ -10,7 +10,7 @@ financeira.
 
 ## Estado
 
-`RX-HIST-TIME-INV-01 RECOVERY PROBATORIO CANDIDATO; AGUARDANDO REAUDITORIA INDEPENDENTE`.
+`RX-HIST-TIME-INV-01 GO TECNICO LOCAL; PREVIEW PRIVADO READ-ONLY NAO AUTORIZADO`.
 
 O `GO TECNICO LOCAL` anterior de `RX-HIST-SEG-01`, no hash
 `62ec19532f1e4d288efa7c3fb75291540358fdd5`, continua valido para o contrato
@@ -33,6 +33,14 @@ fechada, mas exigiu JSON sintaticamente invalido, prova direta de zero chamadas
 de snapshot/copia nas rejeicoes pre-vault e subprocesso real cobrindo o JSON de
 erro em stderr. O recovery probatorio atual adiciona essas tres evidencias sem
 alterar o contrato financeiro.
+
+O recovery probatorio, no hash
+`19c9df0c624c658860d9d4e39fceffa08b78deaf`, recebeu `GO TECNICO LOCAL`
+independente. O auditor leu integralmente manifesto, builder, CLI e testes,
+confirmou o fechamento das tres lacunas anteriores e nao identificou lacuna
+causal indispensavel residual. O alcance continua estritamente local: nao
+autoriza abrir dados privados, executar preview real, escrever, deployar ou
+alterar producao.
 
 ## Contrato temporal
 
@@ -89,11 +97,11 @@ cartao nao e inventada.
 
 ## Proxima acao
 
-Publicar o recovery probatorio e obter reauditoria independente por hash imutavel.
-Somente depois de novo `GO TECNICO LOCAL` podera ser preparada uma execucao
-privada read-only; isso ainda nao autoriza abrir o backup, alterar planilha ou
-usar producao.
+Com autorizacao especifica para acessar a copia privada, preparar e executar uma
+unica previa read-only fora do repositorio. Antes dessa autorizacao, nao abrir o
+backup nem consultar dados reais. Planilha, escrita financeira, deploy e
+producao continuam fora do alcance.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> publicar e auditar o contrato temporal e inventarial.`
+`Codex -> Sol -> Medio -> preparar a previa privada read-only, apos autorizacao.`
