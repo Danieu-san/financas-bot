@@ -10,7 +10,7 @@ financeira.
 
 ## Estado
 
-`RX-HIST-TIME-INV-01 GO TECNICO LOCAL; PREVIA PRIVADA READ-ONLY AUTORIZADA`.
+`RX-HIST-TIME-INV-01 RECOVERY DE AMBIGUIDADE DE PARCELAS EM VALIDACAO LOCAL`.
 
 O `GO TECNICO LOCAL` anterior de `RX-HIST-SEG-01`, no hash
 `62ec19532f1e4d288efa7c3fb75291540358fdd5`, continua valido para o contrato
@@ -73,6 +73,14 @@ testes, o fechamento do falso positivo, a preservacao dos rotulos validos e a
 ausencia de regressao causal ou lacuna indispensavel residual. Fica autorizada
 somente uma previa read-only na copia privada.
 
+A previa autorizada terminou em `NO_GO` antes de criar relatorio, devido a uma
+colisao de identidade de parcela. A copia SQLite permaneceu byte a byte
+inalterada. O diagnostico sanitizado provou que duas linhas sem identificador
+forte compartilham parcela e metadados, mas possuem datas distintas; portanto
+nao e seguro deduplicar nem considera-las compras distintas. O recovery atual
+preserva as linhas como observadas, marca a serie e os totais como ambiguos,
+nao infere parcelas ausentes e bloqueia reconciliacao.
+
 ## Contrato temporal
 
 - inicio do RX historico: `2025-07-01`;
@@ -107,11 +115,11 @@ desconhecido, nunca inferido nem zerado.
   fechado;
 - lifecycle pode ser declarado por conta, sem aplicar a existencia da conta ao
   cartao do mesmo banco;
-- teste focal: 15/15;
-- bateria causal Open Finance: 337/337;
-- suite hermetica final posterior ao recovery: 1.469 testes, 1.459 aprovados, 0 falhas e 10 skips
+- teste focal do recovery atual: 17/17;
+- bateria causal Open Finance do recovery atual: 338/338;
+- suite hermetica final do recovery de parcelas: 1.471 testes, 1.461 aprovados, 0 falhas e 10 skips
   conhecidos;
-- cobertura: linhas 90,62%, branches 72,90%, funcoes 90,24%;
+- cobertura: linhas 90,63%, branches 73,02%, funcoes 90,26%;
 - nenhuma chamada Pluggy live; a copia privada foi usada somente no preflight
   sanitizado, sem imprimir IDs, saldos ou transacoes;
 - nenhuma planilha, deploy, OCI, WhatsApp ou escrita financeira.
@@ -136,10 +144,10 @@ desconhecido, nunca inferido nem zerado.
 
 ## Proxima acao
 
-Reexecutar uma unica previa read-only na copia privada, com lifecycle por conta
-e inventario canonico de nove segmentos. Planilha, escrita financeira, deploy
-e producao continuam fora do alcance.
+Executar a suite hermetica final, publicar e auditar o recovery de ambiguidade.
+Somente novo `GO TECNICO LOCAL` permite reexecutar a previa read-only. Planilha,
+escrita financeira, deploy e producao continuam fora do alcance.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> executar e interpretar a previa privada read-only.`
+`Codex -> Sol -> Alto -> validar e auditar o recovery de ambiguidade de parcelas.`

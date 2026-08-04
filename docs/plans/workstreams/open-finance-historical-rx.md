@@ -1,6 +1,6 @@
 # Plano - RX historico segmentado Open Finance
 
-Status: `GO tecnico local; previa privada read-only autorizada`.
+Status: `recovery de ambiguidade de parcelas em validacao local`.
 
 ## Objetivo
 
@@ -46,7 +46,11 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 12. [concluida] Corrigir o contrato para cinco contas bancarias e quatro cartoes,
     mantendo corrente, poupanca e cartao Itau separados.
 13. [concluida] Testar, publicar e reauditar o contrato sucessor.
-14. [em andamento] Reexecutar uma unica previa privada read-only.
+14. [concluida] Executar previa privada; falha fechada antes do relatorio por
+    identidade ambigua de parcela, com copia SQLite inalterada.
+15. [em andamento] Modelar ambiguidade sem deduplicar nem somar silenciosamente,
+    testar, publicar e auditar.
+16. [pendente] Reexecutar a previa privada somente apos novo GO tecnico local.
 
 ## Criterios de GO
 
@@ -77,6 +81,6 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 
 ## Proxima acao
 
-Executar uma unica previa read-only na copia privada. O inicio da poupanca e o
-historico individual das Caixinhas permanecem desconhecidos ate existir fonte
-confirmada.
+Executar suite hermetica final, publicar e auditar o recovery de ambiguidade.
+O inicio da poupanca e o historico individual das Caixinhas permanecem
+desconhecidos ate existir fonte confirmada.

@@ -249,6 +249,38 @@ test('RX separa inicio historico do cutoff de alertas e aplica lifecycle por con
     }), /historical_rx_account_lifecycle_required/);
 });
 
+test('RX preserva colisao heuristica de parcelas como ambigua sem inferir lacunas', () => {
+    const input = fixture();
+    const daniel = input.items.find(item => item.alias_code === 'daniel_nubank');
+    const firstInstallment = daniel.transactions.find(row => row.id === 'card-i1');
+    daniel.transactions.push({
+        ...firstInstallment,
+        id: 'card-i1-collision',
+        date: '2026-03-21T10:00:00.000Z'
+    });
+
+    const report = buildOpenFinanceHistoricalRx({
+        items: input.items,
+        historyStartDate: '2025-07-01',
+        observedAt: input.observedAt,
+        secret: SECRET,
+        sourceLifecycles: canonicalSourceLifecycles()
+    });
+    const card = report.segments.find(row =>
+        row.source_alias === 'daniel_nubank' && row.product === 'credit_card');
+    const series = card.installments.series[0];
+
+    assert.equal(report.ready_for_reconciliation, false);
+    assert.equal(report.blockers.includes('daniel_nubank:installment_series_ambiguous'), true);
+    assert.equal(card.flows.identity_status, 'ambiguous_raw_provider_rows');
+    assert.equal(card.installments.ambiguous_series_count, 1);
+    assert.equal(series.identity_status, 'ambiguous_duplicate_installment_number');
+    assert.equal(series.observed_rows, 3);
+    assert.deepEqual(series.observed_numbers, [1, 2]);
+    assert.deepEqual(series.duplicate_numbers, [1]);
+    assert.equal(series.missing_numbers, null);
+});
+
 test('RX valida inventario familiar exato sem misturar titular, conta e cartao', () => {
     const input = familyInventoryFixture();
     const report = buildOpenFinanceHistoricalRx({
@@ -374,6 +406,7 @@ test('RX falha fechado em fonte essencial incompleta e nunca transforma ausencia
     const incompleteCard = report.segments.find(row =>
         row.source_alias === 'daniel_nubank' && row.product === 'credit_card');
     assert.deepEqual(incompleteCard.flows, {
+        identity_status: 'unavailable',
         count: null,
         posted_count: null,
         pending_count: null,
@@ -386,6 +419,7 @@ test('RX falha fechado em fonte essencial incompleta e nunca transforma ausencia
         series: null,
         series_count: null,
         incomplete_series_count: null,
+        ambiguous_series_count: null,
         observed_rows: null,
         synthesized_rows: 0
     });
@@ -949,6 +983,65 @@ test('CLI retorna NO_GO quando o relatorio contem blockers', () => {
         assert.deepEqual(publicResult.blockers, ['daniel_nubank:transactions_partial']);
         assert.equal(publicResult.sqlite_files_unchanged, true);
         assert.equal(JSON.parse(fs.readFileSync(outputPath, 'utf8')).ready_for_reconciliation, false);
+    } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test('CLI grava RX bloqueado e sanitizado quando identidade de parcela e ambigua', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'open-finance-rx-installment-ambiguity-'));
+    try {
+        const databasePath = path.join(root, 'live-staging.sqlite');
+        const secretPath = path.join(root, 'staging-secret.txt');
+        const mappingPath = path.join(root, 'pluggy-item-map.json');
+        const lifecyclePath = path.join(root, 'source-lifecycle.json');
+        const inventoryPath = path.join(root, 'expected-inventory.json');
+        const outputPath = path.join(root, 'historical-rx.json');
+        const input = fixture();
+        input.items.forEach(item => { item.investments = []; });
+        const daniel = input.items.find(item => item.alias_code === 'daniel_nubank');
+        const firstInstallment = daniel.transactions.find(row => row.id === 'card-i1');
+        daniel.transactions.push({
+            ...firstInstallment,
+            id: 'private-collision-id',
+            date: '2026-03-21T10:00:00.000Z'
+        });
+        fs.writeFileSync(secretPath, SECRET, 'utf8');
+        fs.writeFileSync(mappingPath, JSON.stringify(input.items.map(item => ({ alias: item.alias_code }))), 'utf8');
+        fs.writeFileSync(inventoryPath, JSON.stringify(CANONICAL_HISTORICAL_RX_INVENTORY), 'utf8');
+        fs.writeFileSync(lifecyclePath, JSON.stringify(resolvedSourceLifecycles()), 'utf8');
+        const vault = new OpenFinanceLiveStagingVault({ databasePath, secret: SECRET });
+        vault.ingestSnapshot({
+            provider: 'pluggy', mode: 'live_readonly_staging', event_id: 'rx-ambiguous-installment-event',
+            observed_at: input.observedAt, items: input.items
+        });
+        vault.close();
+        const beforeSqliteFiles = snapshotSqliteFileSet(databasePath);
+        const script = path.resolve(__dirname, '..', 'scripts', 'runOpenFinanceHistoricalRx.js');
+        const result = spawnSync(process.execPath, [
+            script, '--confirm-read-only', '--history-start', '2026-03-01',
+            '--staging-db', databasePath, '--secret-file', secretPath,
+            '--mapping-file', mappingPath, '--source-lifecycle-file', lifecyclePath,
+            '--expected-inventory-file', inventoryPath,
+            '--output', outputPath
+        ], { encoding: 'utf8' });
+
+        assert.equal(result.status, 2, result.stderr);
+        const publicResult = JSON.parse(result.stdout);
+        assert.deepEqual(publicResult.blockers, ['daniel_nubank:installment_series_ambiguous']);
+        assert.equal(publicResult.financial_writes, 0);
+        assert.equal(publicResult.sqlite_files_unchanged, true);
+        assert.equal(sqliteFileSetsEqual(beforeSqliteFiles, snapshotSqliteFileSet(databasePath)), true);
+        const report = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
+        const card = report.segments.find(row =>
+            row.source_alias === 'daniel_nubank' && row.product === 'credit_card');
+        assert.equal(card.flows.identity_status, 'ambiguous_raw_provider_rows');
+        assert.equal(card.installments.ambiguous_series_count, 1);
+        assert.equal(card.installments.series[0].missing_numbers, null);
+        for (const privateValue of ['private-collision-id', 'Compra parcelada privada']) {
+            assert.doesNotMatch(result.stdout, new RegExp(privateValue, 'i'));
+            assert.doesNotMatch(JSON.stringify(report), new RegExp(privateValue, 'i'));
+        }
     } finally {
         fs.rmSync(root, { recursive: true, force: true });
     }

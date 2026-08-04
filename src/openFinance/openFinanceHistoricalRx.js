@@ -380,6 +380,8 @@ function buildOpenFinanceHistoricalRx({
                         grouping_confidence: strong ? 'provider_reference' : 'provider_metadata_heuristic',
                         total_installments: totalInstallments,
                         observed_numbers: [],
+                        observed_rows: 0,
+                        duplicate_numbers: [],
                         billing_months: []
                     });
                 }
@@ -387,19 +389,33 @@ function buildOpenFinanceHistoricalRx({
                 if (entry.total_installments !== totalInstallments) {
                     throw new Error('conflicting_historical_rx_installment_total');
                 }
+                entry.observed_rows += 1;
                 if (entry.observed_numbers.includes(installmentNumber)) {
-                    throw new Error('duplicate_historical_rx_installment_number');
+                    entry.duplicate_numbers.push(installmentNumber);
+                } else {
+                    entry.observed_numbers.push(installmentNumber);
                 }
-                entry.observed_numbers.push(installmentNumber);
                 if (transaction.bill_forecast_month) entry.billing_months.push(String(transaction.bill_forecast_month).slice(0, 7));
             }
             const installmentSeries = [...series.values()].map(entry => {
                 entry.observed_numbers = uniqueSorted(entry.observed_numbers);
+                entry.duplicate_numbers = uniqueSorted(entry.duplicate_numbers);
                 entry.billing_months = [...new Set(entry.billing_months)].sort();
-                entry.missing_numbers = Array.from({ length: entry.total_installments }, (_, index) => index + 1)
-                    .filter(number => !entry.observed_numbers.includes(number));
+                const ambiguous = entry.duplicate_numbers.length > 0;
+                entry.identity_status = ambiguous
+                    ? 'ambiguous_duplicate_installment_number'
+                    : 'unique_within_group';
+                entry.missing_numbers = ambiguous
+                    ? null
+                    : Array.from({ length: entry.total_installments }, (_, index) => index + 1)
+                        .filter(number => !entry.observed_numbers.includes(number));
+                if (ambiguous && !blockers.includes(`${alias}:installment_series_ambiguous`)) {
+                    blockers.push(`${alias}:installment_series_ambiguous`);
+                }
                 return entry;
             }).sort((left, right) => left.series_ref.localeCompare(right.series_ref));
+            const hasAmbiguousInstallments = installmentSeries.some(entry =>
+                entry.identity_status === 'ambiguous_duplicate_installment_number');
 
             segments.push({
                 segment_ref: segmentRef,
@@ -425,6 +441,7 @@ function buildOpenFinanceHistoricalRx({
                     debits_cents: null,
                     posted_net_cents: null
                 } : {
+                    identity_status: 'unavailable',
                     count: null,
                     posted_count: null,
                     pending_count: null,
@@ -439,6 +456,9 @@ function buildOpenFinanceHistoricalRx({
                     debits_cents: Math.abs(sum(negative, row => row.amount_cents)),
                     posted_net_cents: sum(postedThroughObservation, row => row.amount_cents)
                 } : {
+                    identity_status: hasAmbiguousInstallments
+                        ? 'ambiguous_raw_provider_rows'
+                        : 'observed_provider_rows',
                     count: rows.length,
                     posted_count: postedThroughObservation.length,
                     pending_count: pending.length,
@@ -508,7 +528,12 @@ function buildOpenFinanceHistoricalRx({
                     series: transactionsAvailable ? installmentSeries : null,
                     series_count: transactionsAvailable ? installmentSeries.length : null,
                     incomplete_series_count: transactionsAvailable
-                        ? installmentSeries.filter(entry => entry.missing_numbers.length > 0).length
+                        ? installmentSeries.filter(entry => entry.missing_numbers === null
+                            || entry.missing_numbers.length > 0).length
+                        : null,
+                    ambiguous_series_count: transactionsAvailable
+                        ? installmentSeries.filter(entry => entry.identity_status
+                            === 'ambiguous_duplicate_installment_number').length
                         : null,
                     observed_rows: transactionsAvailable ? installmentRows.length : null,
                     synthesized_rows: 0
