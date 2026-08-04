@@ -10,7 +10,7 @@ Cada conversa/worktree trabalha em um objetivo e preserva seu próprio estado.
 | `lost-ssd-recovery` | concluído | `lost-ssd-recovery.md` | `../../plans/workstreams/lost-ssd-recovery.md` | pacote AES-256 validado; Drive restrito ao proprietário e a Daniel |
 | `phase-8-legacy-retirement` | PHASE8-OBS-01 candidato local | `phase-8-legacy-retirement.md` | `../../plans/workstreams/phase-8-legacy-retirement.md` | sem flag, restart, deploy ou exclusao |
 | `codex-usage-calibration` | instrumentacao prospectiva em implementacao | `codex-usage-calibration.md` | `../../plans/workstreams/codex-usage-calibration.md` | metadados locais sanitizados; sem prompts, comandos, saidas ou dados financeiros |
-| `open-finance-historical-rx` | RX-HIST-TIME-INV-01 GO tecnico local; preview privado nao autorizado | `open-finance-historical-rx.md` | `../../plans/workstreams/open-finance-historical-rx.md` | contrato canonico e tripwires pre-vault; 4 contas + 4 cartoes; zero escrita |
+| `open-finance-historical-rx` | preflight privado NO-GO; poupanca Itau ausente do contrato auditado | `open-finance-historical-rx.md` | `../../plans/workstreams/open-finance-historical-rx.md` | contrato sucessor: 5 contas + 4 cartoes; corrente/poupanca/cartao separados; zero escrita |
 
 Se dois workstreams puderem escrever simultaneamente, usar branches/worktrees
 distintas. Atualizar somente a própria linha e seus arquivos.

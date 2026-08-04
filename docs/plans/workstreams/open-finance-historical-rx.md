@@ -1,6 +1,6 @@
 # Plano - RX historico segmentado Open Finance
 
-Status: `RX-HIST-TIME-INV-01 GO tecnico local; preview privado read-only nao autorizado`.
+Status: `preflight privado NO-GO; contrato sucessor deve incluir poupanca Itau separada`.
 
 ## Objetivo
 
@@ -41,12 +41,17 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 8. [concluida] Publicar recovery e obter NO-GO probatorio independente.
 9. [concluida] Provar JSON invalido, zero snapshot/copia/vault e stderr real.
 10. [concluida] Publicar recovery probatorio e obter GO tecnico local independente.
-11. [pendente] Depois de GO, preparar a execucao privada read-only.
+11. [concluida] Executar preflight privado read-only; falha fechada antes do
+    relatorio por inventario real maior que o contrato canonico.
+12. [pendente] Corrigir o contrato para cinco contas bancarias e quatro cartoes,
+    mantendo corrente, poupanca e cartao Itau separados.
+13. [pendente] Testar, publicar e reauditar o contrato sucessor.
+14. [pendente] Reexecutar uma unica previa privada read-only.
 
 ## Criterios de GO
 
 - `history_start_date=2025-07-01` sem campo de cutoff de alertas no RX;
-- exatamente quatro fontes, quatro contas bancarias e quatro cartoes;
+- exatamente quatro fontes, cinco contas bancarias e quatro cartoes;
 - exatamente dois segmentos Daniel e seis segmentos no escopo Thais;
 - conta Itau Thais disponivel no inicio e cartao Itau Thais nao aplicavel;
 - inventario ausente ou nao canonico falha no builder;
@@ -66,5 +71,6 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 
 ## Proxima acao
 
-Obter autorizacao especifica para acessar a copia privada e entao preparar uma
-unica execucao read-only, com saida agregada fora do repositorio e zero escrita.
+Corrigir e reauditar o contrato sucessor antes de reabrir a copia privada. A
+conta corrente, a poupanca e o cartao Itau devem continuar segmentos distintos;
+o inicio da poupanca permanece desconhecido ate existir fonte confirmada.

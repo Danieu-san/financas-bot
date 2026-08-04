@@ -10,7 +10,7 @@ financeira.
 
 ## Estado
 
-`RX-HIST-TIME-INV-01 GO TECNICO LOCAL; PREVIEW PRIVADO READ-ONLY NAO AUTORIZADO`.
+`RX-HIST-TIME-INV-01 GO LOCAL SUPERADO POR NO-GO FACTUAL NO PREFLIGHT PRIVADO`.
 
 O `GO TECNICO LOCAL` anterior de `RX-HIST-SEG-01`, no hash
 `62ec19532f1e4d288efa7c3fb75291540358fdd5`, continua valido para o contrato
@@ -42,6 +42,15 @@ causal indispensavel residual. O alcance continua estritamente local: nao
 autoriza abrir dados privados, executar preview real, escrever, deployar ou
 alterar producao.
 
+O preflight privado read-only autorizado em 2026-08-04 validou o checksum do
+backup local e abriu somente uma copia extraida do vault. Antes de gerar o
+relatorio, o inventario real falhou fechado: `thais_itau` possui uma conta
+corrente, uma poupanca e um cartao, enquanto o contrato canonico auditado
+admitia somente uma conta bancaria e um cartao nessa fonte. Nenhum relatorio
+foi criado, nenhum ID, saldo ou transacao foi exposto e `financial_writes=0`.
+O GO anterior continua valido para o contrato que auditou, mas esse contrato
+foi factualmente superado para uso com a copia privada.
+
 ## Contrato temporal
 
 - inicio do RX historico: `2025-07-01`;
@@ -57,13 +66,15 @@ alterar producao.
 |---|---:|---:|---|
 | Daniel Nubank | 1 | 1 | Daniel |
 | Thais Nubank | 1 | 1 | Thais |
-| Thais Itau | 1 | 1 | Thais |
+| Thais Itau | 2 | 1 | Thais |
 | Cristina Nubank | 1 | 1 | Thais |
 
-Total: quatro contas bancarias, quatro cartoes, dois segmentos de Daniel e seis
-segmentos vinculados a Thais. A conta Itau de Thais existia em `2025-07-01`; o
-cartao Itau de Thais nao existia nessa data. A data exata de criacao desse
-cartao nao e inventada.
+O contrato auditado totalizava quatro contas bancarias e quatro cartoes; a
+tabela acima registra o inventario sucessor exigido pelo preflight. No Itau da
+Thais, conta corrente, poupanca e cartao sao segmentos distintos. A conta
+corrente Itau existia em `2025-07-01`; o cartao Itau nao existia nessa data. O
+inicio da poupanca ainda nao possui fonte confirmada e deve permanecer
+desconhecido, nunca inferido nem zerado.
 
 ## Evidencia local atual
 
@@ -97,11 +108,12 @@ cartao nao e inventada.
 
 ## Proxima acao
 
-Com autorizacao especifica para acessar a copia privada, preparar e executar uma
-unica previa read-only fora do repositorio. Antes dessa autorizacao, nao abrir o
-backup nem consultar dados reais. Planilha, escrita financeira, deploy e
-producao continuam fora do alcance.
+Corrigir o contrato canonico para cinco contas bancarias e quatro cartoes,
+preservando separadamente conta corrente, poupanca e cartao Itau. Revalidar o
+preflight sem consultar producao e somente depois gerar uma unica previa
+read-only. Planilha, escrita financeira, deploy e producao continuam fora do
+alcance.
 
 ## Capacidade
 
-`Codex -> Sol -> Medio -> preparar a previa privada read-only, apos autorizacao.`
+`Codex -> Sol -> Alto -> corrigir e reauditar o inventario canonico sucessor.`
