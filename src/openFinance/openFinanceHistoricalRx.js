@@ -8,9 +8,15 @@ const HISTORICAL_RX_GATE = 'RX-HIST-TIME-INV-01';
 const CANONICAL_HISTORICAL_RX_INVENTORY = Object.freeze([
     Object.freeze({ alias: 'daniel_nubank', ownerScope: 'daniel', accounts: Object.freeze({ BANK: 1, CREDIT: 1 }) }),
     Object.freeze({ alias: 'thais_nubank', ownerScope: 'thais', accounts: Object.freeze({ BANK: 1, CREDIT: 1 }) }),
-    Object.freeze({ alias: 'thais_itau', ownerScope: 'thais', accounts: Object.freeze({ BANK: 1, CREDIT: 1 }) }),
+    Object.freeze({ alias: 'thais_itau', ownerScope: 'thais', accounts: Object.freeze({ BANK: 2, CREDIT: 1 }) }),
     Object.freeze({ alias: 'cristina_nubank', ownerScope: 'thais', accounts: Object.freeze({ BANK: 1, CREDIT: 1 }) })
 ]);
+const CANONICAL_HISTORICAL_RX_ACCOUNT_SUBTYPES = Object.freeze({
+    daniel_nubank: Object.freeze(['BANK:CHECKING_ACCOUNT', 'CREDIT:CREDIT_CARD']),
+    thais_nubank: Object.freeze(['BANK:CHECKING_ACCOUNT', 'CREDIT:CREDIT_CARD']),
+    thais_itau: Object.freeze(['BANK:CHECKING_ACCOUNT', 'BANK:SAVINGS_ACCOUNT', 'CREDIT:CREDIT_CARD']),
+    cristina_nubank: Object.freeze(['BANK:CHECKING_ACCOUNT', 'CREDIT:CREDIT_CARD'])
+});
 const SQLITE_FILES = Object.freeze({
     database: '',
     wal: '-wal',
@@ -143,6 +149,13 @@ function validateHistoricalRxInventory(items, expectedInventory) {
         if (actualCounts.BANK !== accounts.BANK || actualCounts.CREDIT !== accounts.CREDIT) {
             throw new Error('historical_rx_inventory_account_count_mismatch');
         }
+        const actualSubtypes = (Array.isArray(actual.accounts) ? actual.accounts : [])
+            .map(account => `${String(account.type || '').toUpperCase()}:${String(account.subtype || 'UNKNOWN').toUpperCase()}`)
+            .sort();
+        const expectedSubtypes = [...CANONICAL_HISTORICAL_RX_ACCOUNT_SUBTYPES[alias]].sort();
+        if (JSON.stringify(actualSubtypes) !== JSON.stringify(expectedSubtypes)) {
+            throw new Error('historical_rx_inventory_account_subtype_mismatch');
+        }
         ownerCounts[ownerScope] = (ownerCounts[ownerScope] || 0) + actualCounts.BANK + actualCounts.CREDIT;
         bankAccounts += actualCounts.BANK;
         creditCards += actualCounts.CREDIT;
@@ -163,6 +176,11 @@ function sum(rows, selector) {
 
 function uniqueSorted(values) {
     return [...new Set(values)].sort((left, right) => left - right);
+}
+
+function providerInvestmentOperationType(value) {
+    const operationType = String(value || '').trim().toUpperCase();
+    return /APLIC|INVEST|RESGATE/.test(operationType) ? operationType : null;
 }
 
 function cents(value, field, { nullable = false } = {}) {
@@ -299,6 +317,16 @@ function buildOpenFinanceHistoricalRx({
             const pending = rows.filter(transaction => String(transaction.status || '').toUpperCase() === 'PENDING');
             const positive = rows.filter(transaction => Number(transaction.amount_cents) > 0);
             const negative = rows.filter(transaction => Number(transaction.amount_cents) < 0);
+            const providerLabeledInvestmentRows = rows.filter(transaction =>
+                providerInvestmentOperationType(transaction.operation_type)
+            );
+            const postedInvestmentRows = providerLabeledInvestmentRows.filter(transaction =>
+                String(transaction.status || '').toUpperCase() === 'POSTED'
+                && parseDate(transaction.date, 'historical_rx_transaction_date') <= observedTimestamp
+            );
+            const pendingInvestmentRows = providerLabeledInvestmentRows.filter(transaction =>
+                String(transaction.status || '').toUpperCase() === 'PENDING'
+            );
             const dates = rows.map(transaction => String(transaction.date).slice(0, 10)).sort();
             const segmentRef = ref('historical_rx_segment', `${alias}:${accountId}`);
             const isBank = accountType === 'BANK';
@@ -415,6 +443,37 @@ function buildOpenFinanceHistoricalRx({
                     payments_or_credits_cents: Math.abs(sum(negative, row => row.amount_cents)),
                     posted_net_cents: sum(postedThroughObservation, row => row.amount_cents)
                 },
+                investment_movements: !isBank ? {
+                    status: 'not_applicable',
+                    unlabeled_movements_inferred: false,
+                    count: null,
+                    posted_count: null,
+                    pending_count: null,
+                    credits_cents: null,
+                    debits_cents: null,
+                    operation_types: null
+                } : !transactionsAvailable ? {
+                    status: 'unavailable',
+                    unlabeled_movements_inferred: false,
+                    count: null,
+                    posted_count: null,
+                    pending_count: null,
+                    credits_cents: null,
+                    debits_cents: null,
+                    operation_types: null
+                } : {
+                    status: 'provider_labeled_only',
+                    unlabeled_movements_inferred: false,
+                    count: providerLabeledInvestmentRows.length,
+                    posted_count: postedInvestmentRows.length,
+                    pending_count: pendingInvestmentRows.length,
+                    credits_cents: sum(providerLabeledInvestmentRows.filter(row => Number(row.amount_cents) > 0),
+                        row => row.amount_cents),
+                    debits_cents: Math.abs(sum(providerLabeledInvestmentRows.filter(row => Number(row.amount_cents) < 0),
+                        row => row.amount_cents)),
+                    operation_types: [...new Set(providerLabeledInvestmentRows
+                        .map(row => providerInvestmentOperationType(row.operation_type)))].sort()
+                },
                 current_snapshot: isBank ? {
                     balance_cents: accountsAvailable ? currentBalance : null,
                     observed_at: new Date(observedTimestamp).toISOString()
@@ -456,6 +515,9 @@ function buildOpenFinanceHistoricalRx({
 
         const investmentsAvailable = String(item.availability?.investments || 'unavailable').toLowerCase()
             === 'available';
+        if (investmentsAvailable && (item.investments || []).length > 0) {
+            blockers.push(`${alias}:investment_history_unlinked`);
+        }
         for (const investment of (investmentsAvailable ? (item.investments || []) : [])) {
             investments.push({
                 investment_ref: ref('historical_rx_investment', `${alias}:${investment.id}`),
@@ -468,6 +530,7 @@ function buildOpenFinanceHistoricalRx({
                 current_balance_cents: cents(investment.balance_cents,
                     'historical_rx_investment_balance', { nullable: true }),
                 observed_at: new Date(observedTimestamp).toISOString(),
+                movement_linkage: 'not_provided_by_provider',
                 historical_reconstruction: null
             });
         }

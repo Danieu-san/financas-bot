@@ -32,10 +32,12 @@ function fixture() {
         { id: 'bank-before', account_id: 'bank-1', description: 'Antes do corte', amount_cents: 1000,
             currency: 'BRL', date: '2026-02-20T10:00:00.000Z', status: 'POSTED' },
         { id: 'bank-income', account_id: 'bank-1', description: 'Entrada privada', amount_cents: 5000,
-            currency: 'BRL', date: '2026-03-10T10:00:00.000Z', status: 'POSTED' },
+            currency: 'BRL', date: '2026-03-10T10:00:00.000Z', status: 'POSTED',
+            operation_type: 'RESGATE_APLIC_FINANCEIRA' },
         { id: 'bank-expense', account_id: 'bank-1', description: 'Saida privada', amount_cents: -2000,
-            currency: 'BRL', date: '2026-03-11T10:00:00.000Z', status: 'POSTED' },
-        { id: 'bank-pending', account_id: 'bank-1', description: 'Pendente privada', amount_cents: -500,
+            currency: 'BRL', date: '2026-03-11T10:00:00.000Z', status: 'POSTED',
+            operation_type: 'APLICACAO_FINANCEIRA' },
+        { id: 'bank-pending', account_id: 'bank-1', description: 'Caixinha sem rotulo', amount_cents: -500,
             currency: 'BRL', date: '2026-03-12T10:00:00.000Z', status: 'PENDING' },
         { id: 'card-i1', account_id: 'card-1', description: 'Compra parcelada privada', amount_cents: 1000,
             currency: 'BRL', date: '2026-03-20T10:00:00.000Z', original_date: '2026-03-20T10:00:00.000Z',
@@ -70,10 +72,17 @@ function canonicalSourceLifecycles() {
         thais_itau: {
             accounts: {
                 'thais_itau-bank': { existedAtHistoryStart: true },
+                'thais_itau-savings': {},
                 'thais_itau-card': { existedAtHistoryStart: false }
             }
         }
     };
+}
+
+function resolvedSourceLifecycles() {
+    const lifecycles = canonicalSourceLifecycles();
+    lifecycles.thais_itau.accounts['thais_itau-savings'] = { existedAtHistoryStart: true };
+    return lifecycles;
 }
 
 function buildOpenFinanceHistoricalRx(options) {
@@ -108,6 +117,9 @@ function familyInventoryFixture() {
         bills: [],
         investments: []
     }));
+    items.find(item => item.alias_code === 'thais_itau').accounts.push({
+        id: 'thais_itau-savings', type: 'BANK', subtype: 'SAVINGS_ACCOUNT', currency: 'BRL', balance_cents: 0
+    });
     return {
         observedAt: '2026-08-04T12:00:00.000Z',
         items,
@@ -131,7 +143,7 @@ test('RX separa conta, cartao, fatura e investimento sem expor payload bruto', (
 
     assert.equal(report.financial_writes, 0);
     assert.equal(report.gate, HISTORICAL_RX_GATE);
-    assert.equal(report.segments.length, 8);
+    assert.equal(report.segments.length, 9);
     const bank = report.segments.find(row => row.source_alias === 'daniel_nubank' && row.product === 'bank_account');
     const card = report.segments.find(row => row.source_alias === 'daniel_nubank' && row.product === 'credit_card');
     const itau = report.segments.find(row => row.source_alias === 'thais_itau' && row.product === 'credit_card');
@@ -140,6 +152,16 @@ test('RX separa conta, cartao, fatura e investimento sem expor payload bruto', (
     assert.equal(bank.flows.pending_count, 1);
     assert.equal(bank.flows.credits_cents, 5000);
     assert.equal(bank.flows.debits_cents, 2500);
+    assert.deepEqual(bank.investment_movements, {
+        status: 'provider_labeled_only',
+        unlabeled_movements_inferred: false,
+        count: 2,
+        posted_count: 2,
+        pending_count: 0,
+        credits_cents: 5000,
+        debits_cents: 2000,
+        operation_types: ['APLICACAO_FINANCEIRA', 'RESGATE_APLIC_FINANCEIRA']
+    });
     assert.equal(card.history_start_reconstruction.balance_cents, null);
     assert.equal(card.history_start_reconstruction.reason, 'credit_balance_is_not_invoice');
     assert.equal(card.current_snapshot.used_limit_cents, 30000);
@@ -156,9 +178,12 @@ test('RX separa conta, cartao, fatura e investimento sem expor payload bruto', (
     assert.equal(itau.history_start_reconstruction.balance_cents, null);
     assert.equal(report.investments.length, 1);
     assert.equal(report.investments[0].current_balance_cents, 9000);
+    assert.equal(report.investments[0].movement_linkage, 'not_provided_by_provider');
+    assert.equal(report.investments[0].historical_reconstruction, null);
+    assert.equal(report.blockers.includes('daniel_nubank:investment_history_unlinked'), true);
 
     const serialized = JSON.stringify(report);
-    for (const privateValue of ['bank-1', 'card-1', 'thais_itau-card', 'Entrada privada', 'Compra parcelada privada', 'Investimento privado']) {
+    for (const privateValue of ['bank-1', 'card-1', 'thais_itau-card', 'thais_itau-savings', 'Entrada privada', 'Caixinha sem rotulo', 'Compra parcelada privada', 'Investimento privado']) {
         assert.doesNotMatch(serialized, new RegExp(privateValue, 'i'));
     }
 });
@@ -175,6 +200,7 @@ test('RX separa inicio historico do cutoff de alertas e aplica lifecycle por con
             thais_itau: {
                 accounts: {
                     'thais_itau-bank': { existedAtHistoryStart: true },
+                    'thais_itau-savings': {},
                     'thais_itau-card': { existedAtHistoryStart: false, availableFrom: '2026-04-01' }
                 }
             }
@@ -184,10 +210,16 @@ test('RX separa inicio historico do cutoff de alertas e aplica lifecycle por con
     assert.equal(report.history_start_date, '2025-07-01');
     assert.equal(Object.hasOwn(report, 'cutoff_date'), false);
     assert.equal(Object.hasOwn(report, 'alert_cutoff_date'), false);
-    const bank = report.segments.find(row => row.source_alias === 'thais_itau' && row.product === 'bank_account');
+    const bank = report.segments.find(row => row.source_alias === 'thais_itau'
+        && row.product === 'bank_account' && row.subtype === 'CHECKING_ACCOUNT');
+    const savings = report.segments.find(row => row.source_alias === 'thais_itau'
+        && row.product === 'bank_account' && row.subtype === 'SAVINGS_ACCOUNT');
     const card = report.segments.find(row => row.source_alias === 'thais_itau' && row.product === 'credit_card');
     assert.equal(bank.history_start_relation, 'account_available_at_history_start');
     assert.equal(bank.account_existed_at_history_start, true);
+    assert.equal(savings.history_start_relation, 'account_start_unknown');
+    assert.equal(savings.account_existed_at_history_start, null);
+    assert.equal(report.blockers.includes('thais_itau:account_start_unknown'), true);
     assert.equal(card.history_start_relation, 'not_applicable_before_account_start');
     assert.equal(card.account_existed_at_history_start, false);
     assert.equal(card.account_available_from, '2026-04-01');
@@ -230,22 +262,29 @@ test('RX valida inventario familiar exato sem misturar titular, conta e cartao',
     assert.deepEqual(report.inventory_validation, {
         status: 'validated',
         sources: 4,
-        accounts: 8,
-        bank_accounts: 4,
+        accounts: 9,
+        bank_accounts: 5,
         credit_cards: 4,
-        owner_segment_counts: { daniel: 2, thais: 6 }
+        owner_segment_counts: { daniel: 2, thais: 7 }
     });
-    assert.equal(report.segments.length, 8);
+    assert.equal(report.segments.length, 9);
     assert.equal(report.segments.filter(segment => segment.owner_scope === 'daniel').length, 2);
-    assert.equal(report.segments.filter(segment => segment.owner_scope === 'thais').length, 6);
-    assert.equal(report.segments.filter(segment => segment.product === 'bank_account').length, 4);
+    assert.equal(report.segments.filter(segment => segment.owner_scope === 'thais').length, 7);
+    assert.equal(report.segments.filter(segment => segment.product === 'bank_account').length, 5);
     assert.equal(report.segments.filter(segment => segment.product === 'credit_card').length, 4);
     const itauBank = report.segments.find(segment =>
-        segment.source_alias === 'thais_itau' && segment.product === 'bank_account');
+        segment.source_alias === 'thais_itau' && segment.product === 'bank_account'
+        && segment.subtype === 'CHECKING_ACCOUNT');
+    const itauSavings = report.segments.find(segment =>
+        segment.source_alias === 'thais_itau' && segment.product === 'bank_account'
+        && segment.subtype === 'SAVINGS_ACCOUNT');
     const itauCard = report.segments.find(segment =>
         segment.source_alias === 'thais_itau' && segment.product === 'credit_card');
     assert.equal(itauBank.history_start_relation, 'account_available_at_history_start');
+    assert.equal(itauSavings.history_start_relation, 'account_start_unknown');
     assert.equal(itauCard.history_start_relation, 'not_applicable_before_account_start');
+    assert.notEqual(itauBank.segment_ref, itauSavings.segment_ref);
+    assert.notEqual(itauSavings.segment_ref, itauCard.segment_ref);
 
     assert.throws(() => buildOpenFinanceHistoricalRx({
         items: input.items.slice(0, 3), historyStartDate: '2025-07-01', observedAt: input.observedAt,
@@ -267,6 +306,14 @@ test('RX valida inventario familiar exato sem misturar titular, conta e cartao',
         items: wrongOwnerItems, historyStartDate: '2025-07-01', observedAt: input.observedAt,
         secret: SECRET, sourceLifecycles: input.sourceLifecycles, expectedInventory: input.expectedInventory
     }), /historical_rx_inventory_owner_mismatch/);
+
+    const wrongSubtypeItems = structuredClone(input.items);
+    wrongSubtypeItems.find(item => item.alias_code === 'thais_itau')
+        .accounts.find(account => account.subtype === 'SAVINGS_ACCOUNT').subtype = 'CHECKING_ACCOUNT';
+    assert.throws(() => buildOpenFinanceHistoricalRx({
+        items: wrongSubtypeItems, historyStartDate: '2025-07-01', observedAt: input.observedAt,
+        secret: SECRET, sourceLifecycles: input.sourceLifecycles, expectedInventory: input.expectedInventory
+    }), /historical_rx_inventory_account_subtype_mismatch/);
 });
 
 test('RX exige inventario tambem na fronteira direta do builder', () => {
@@ -306,7 +353,10 @@ test('RX falha fechado em fonte essencial incompleta e nunca transforma ausencia
         }
     });
     assert.equal(report.ready_for_reconciliation, false);
-    assert.deepEqual(report.blockers, ['daniel_nubank:transactions_partial']);
+    assert.deepEqual(report.blockers, [
+        'daniel_nubank:investment_history_unlinked',
+        'daniel_nubank:transactions_partial'
+    ]);
     assert.equal(report.financial_writes, 0);
     const incompleteBank = report.segments.find(row =>
         row.source_alias === 'daniel_nubank' && row.product === 'bank_account');
@@ -350,6 +400,7 @@ test('RX falha fechado em fonte essencial incompleta e nunca transforma ausencia
     assert.deepEqual(unknownReport.blockers, [
         'cristina_nubank:account_start_unknown',
         'daniel_nubank:account_start_unknown',
+        'daniel_nubank:investment_history_unlinked',
         'thais_itau:account_start_unknown',
         'thais_nubank:account_start_unknown'
     ]);
@@ -410,7 +461,10 @@ test('RX exige cobertura de fatura para cartao e recusa ligacao a conta desconhe
         }
     });
     assert.equal(report.ready_for_reconciliation, false);
-    assert.deepEqual(report.blockers, ['daniel_nubank:bills_unavailable']);
+    assert.deepEqual(report.blockers, [
+        'daniel_nubank:bills_unavailable',
+        'daniel_nubank:investment_history_unlinked'
+    ]);
     const unavailableBills = report.segments.find(row =>
         row.source_alias === 'daniel_nubank' && row.product === 'credit_card').bills;
     assert.deepEqual(unavailableBills, {
@@ -561,10 +615,11 @@ test('CLI abre somente copia privada no vault real, exige readonly e limpa em fi
     const inventoryPath = path.join(root, 'expected-inventory.json');
     const outputPath = path.join(root, 'historical-rx.json');
     const input = fixture();
+    input.items.forEach(item => { item.investments = []; });
     fs.writeFileSync(secretPath, SECRET, 'utf8');
     fs.writeFileSync(mappingPath, JSON.stringify(input.items.map(item => ({ alias: item.alias_code }))), 'utf8');
     fs.writeFileSync(inventoryPath, JSON.stringify(CANONICAL_HISTORICAL_RX_INVENTORY), 'utf8');
-    fs.writeFileSync(lifecyclePath, JSON.stringify(canonicalSourceLifecycles()), 'utf8');
+    fs.writeFileSync(lifecyclePath, JSON.stringify(resolvedSourceLifecycles()), 'utf8');
     const sourceVault = new OpenFinanceLiveStagingVault({ databasePath, secret: SECRET });
     sourceVault.ingestSnapshot({
         provider: 'pluggy', mode: 'live_readonly_staging', event_id: 'rx-boundary-event',
@@ -771,6 +826,7 @@ test('CLI remove copia privada mesmo quando o vault real falha apos abrir', () =
     const inventoryPath = path.join(root, 'expected-inventory.json');
     const outputPath = path.join(root, 'historical-rx.json');
     const input = fixture();
+    input.items.forEach(item => { item.investments = []; });
     fs.writeFileSync(secretPath, SECRET, 'utf8');
     fs.writeFileSync(mappingPath, JSON.stringify(CANONICAL_HISTORICAL_RX_INVENTORY.map(({ alias }) => ({ alias }))), 'utf8');
     fs.writeFileSync(inventoryPath, JSON.stringify(CANONICAL_HISTORICAL_RX_INVENTORY), 'utf8');
@@ -813,10 +869,11 @@ test('CLI le vault real em readonly, grava fora do Git e nao imprime payload pri
     const inventoryPath = path.join(root, 'expected-inventory.json');
     const outputPath = path.join(root, 'historical-rx.json');
     const input = fixture();
+    input.items.forEach(item => { item.investments = []; });
     fs.writeFileSync(secretPath, SECRET, 'utf8');
     fs.writeFileSync(mappingPath, JSON.stringify(input.items.map(item => ({ alias: item.alias_code }))), 'utf8');
     fs.writeFileSync(inventoryPath, JSON.stringify(CANONICAL_HISTORICAL_RX_INVENTORY), 'utf8');
-    fs.writeFileSync(lifecyclePath, JSON.stringify(canonicalSourceLifecycles()), 'utf8');
+    fs.writeFileSync(lifecyclePath, JSON.stringify(resolvedSourceLifecycles()), 'utf8');
     const vault = new OpenFinanceLiveStagingVault({ databasePath, secret: SECRET });
     vault.ingestSnapshot({
         provider: 'pluggy', mode: 'live_readonly_staging', event_id: 'rx-test-event',
@@ -839,7 +896,7 @@ test('CLI le vault real em readonly, grava fora do Git e nao imprime payload pri
     assert.equal(publicResult.sqlite_files_unchanged, true);
     assert.equal(publicResult.financial_writes, 0);
     assert.equal(publicResult.gate, HISTORICAL_RX_GATE);
-    assert.equal(publicResult.segments, 8);
+    assert.equal(publicResult.segments, 9);
     assert.equal(crypto.createHash('sha256').update(fs.readFileSync(databasePath)).digest('hex'), beforeHash);
     assert.equal(sqliteFileSetsEqual(beforeSqliteFiles, snapshotSqliteFileSet(databasePath)), true);
     const report = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
@@ -864,11 +921,12 @@ test('CLI retorna NO_GO quando o relatorio contem blockers', () => {
         const inventoryPath = path.join(root, 'expected-inventory.json');
         const outputPath = path.join(root, 'historical-rx.json');
         const input = fixture();
+        input.items.forEach(item => { item.investments = []; });
         input.items[0].availability.transactions = 'partial';
         fs.writeFileSync(secretPath, SECRET, 'utf8');
         fs.writeFileSync(mappingPath, JSON.stringify(input.items.map(item => ({ alias: item.alias_code }))), 'utf8');
         fs.writeFileSync(inventoryPath, JSON.stringify(CANONICAL_HISTORICAL_RX_INVENTORY), 'utf8');
-        fs.writeFileSync(lifecyclePath, JSON.stringify(canonicalSourceLifecycles()), 'utf8');
+        fs.writeFileSync(lifecyclePath, JSON.stringify(resolvedSourceLifecycles()), 'utf8');
         const vault = new OpenFinanceLiveStagingVault({ databasePath, secret: SECRET });
         vault.ingestSnapshot({
             provider: 'pluggy', mode: 'live_readonly_staging', event_id: 'rx-blocked-event',

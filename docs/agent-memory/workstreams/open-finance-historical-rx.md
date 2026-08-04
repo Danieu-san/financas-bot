@@ -10,7 +10,7 @@ financeira.
 
 ## Estado
 
-`RX-HIST-TIME-INV-01 GO LOCAL SUPERADO POR NO-GO FACTUAL NO PREFLIGHT PRIVADO`.
+`RX-HIST-TIME-INV-01 CONTRATO SUCESSOR CANDIDATO; AUDITORIA INDEPENDENTE PENDENTE`.
 
 O `GO TECNICO LOCAL` anterior de `RX-HIST-SEG-01`, no hash
 `62ec19532f1e4d288efa7c3fb75291540358fdd5`, continua valido para o contrato
@@ -51,6 +51,14 @@ foi criado, nenhum ID, saldo ou transacao foi exposto e `financial_writes=0`.
 O GO anterior continua valido para o contrato que auditou, mas esse contrato
 foi factualmente superado para uso com a copia privada.
 
+O candidato sucessor exige tambem o multiconjunto exato de subtipos: no Itau
+da Thais, uma corrente, uma poupanca e um cartao. O preflight sanitizado mostrou
+ainda que Caixinhas podem aparecer como posicoes de investimento e que apenas
+parte de seus movimentos recebe `operation_type` financeiro do provedor. O RX
+agora mantem posicoes separadas, resume somente movimentos rotulados pelo
+provedor, nunca infere pela descricao e bloqueia reconciliacao enquanto o
+historico da posicao nao estiver ligado.
+
 ## Contrato temporal
 
 - inicio do RX historico: `2025-07-01`;
@@ -86,34 +94,39 @@ desconhecido, nunca inferido nem zerado.
 - lifecycle pode ser declarado por conta, sem aplicar a existencia da conta ao
   cartao do mesmo banco;
 - teste focal: 15/15;
-- bateria causal Open Finance: 340/340;
+- bateria causal Open Finance: 337/337;
 - suite hermetica final: 1.469 testes, 1.459 aprovados, 0 falhas e 10 skips
   conhecidos;
-- cobertura: linhas 90,62%, branches 72,96%, funcoes 90,22%;
-- nenhuma chamada Pluggy nova, dado real, planilha, deploy, OCI, WhatsApp ou
-  escrita financeira.
+- cobertura: linhas 90,62%, branches 72,97%, funcoes 90,23%;
+- nenhuma chamada Pluggy live; a copia privada foi usada somente no preflight
+  sanitizado, sem imprimir IDs, saldos ou transacoes;
+- nenhuma planilha, deploy, OCI, WhatsApp ou escrita financeira.
 
 ## Invariantes
 
 - conta bancaria e cartao nunca sao fundidos, mesmo quando pertencem ao mesmo
   banco ou pessoa;
-- o escopo de Cristina permanece Thais; somente os dois segmentos Nubank de
-  Daniel ficam no escopo Daniel;
+- conta corrente, poupanca e cartao Itau sao segmentos distintos;
+- o escopo de Cristina permanece Thais; dois segmentos ficam no escopo Daniel
+  e sete no escopo Thais;
 - `account.balance` de cartao nao e rotulado como fatura;
 - conta ou cartao inexistente no inicio historico fica `not_applicable`, nunca
   zero;
 - parcelas usam numero e competencia fornecidos pelo provedor;
+- Caixinhas/investimentos ficam fora das contas bancarias e nao sao somados a
+  elas; somente `operation_type` do provedor pode marcar movimento relacionado;
+- descricao nunca vira evidencia de aplicacao ou resgate;
+- posicao sem historico ligado gera `investment_history_unlinked`;
 - IDs e descricoes de transacao nao aparecem no resumo;
 - resultado declara `financial_writes=0`.
 
 ## Proxima acao
 
-Corrigir o contrato canonico para cinco contas bancarias e quatro cartoes,
-preservando separadamente conta corrente, poupanca e cartao Itau. Revalidar o
-preflight sem consultar producao e somente depois gerar uma unica previa
-read-only. Planilha, escrita financeira, deploy e producao continuam fora do
-alcance.
+Publicar o candidato sucessor e obter auditoria independente por hash imutavel.
+Somente depois de `GO TECNICO LOCAL` reexecutar uma unica previa read-only na
+copia privada. Planilha, escrita financeira, deploy e producao continuam fora
+do alcance.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> corrigir e reauditar o inventario canonico sucessor.`
+`Codex -> Sol -> Alto -> publicar e auditar o contrato sucessor.`
