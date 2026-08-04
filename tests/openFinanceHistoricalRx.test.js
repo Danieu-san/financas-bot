@@ -73,7 +73,7 @@ function canonicalSourceLifecycles() {
         thais_itau: {
             accounts: {
                 'thais_itau-bank': { existedAtHistoryStart: true },
-                'thais_itau-savings': {},
+                'thais_itau-savings': { existedAtHistoryStart: true },
                 'thais_itau-card': { existedAtHistoryStart: false }
             }
         }
@@ -153,14 +153,24 @@ test('RX separa conta, cartao, fatura e investimento sem expor payload bruto', (
     assert.equal(bank.flows.pending_count, 1);
     assert.equal(bank.flows.credits_cents, 5000);
     assert.equal(bank.flows.debits_cents, 2500);
+    assert.equal(bank.flows.semantic, 'raw_account_movement_not_income_expense');
+    assert.equal(bank.flows.reserve_principal_exclusion_scope, 'provider_labeled_only');
+    assert.equal(bank.flows.non_reserve_principal_credits_cents, 0);
+    assert.equal(bank.flows.non_reserve_principal_debits_cents, 500);
     assert.deepEqual(bank.investment_movements, {
         status: 'provider_labeled_only',
         unlabeled_movements_inferred: false,
+        principal_transfers_treated_as_income: false,
+        principal_transfers_treated_as_expense: false,
         count: 2,
         posted_count: 2,
         pending_count: 0,
         credits_cents: 5000,
         debits_cents: 2000,
+        applications_cents: 2000,
+        redemptions_cents: 5000,
+        investment_income_cents: 0,
+        semantically_ambiguous_count: 0,
         operation_types: ['APLICACAO_FINANCEIRA', 'RESGATE_APLIC_FINANCEIRA']
     });
     assert.equal(card.history_start_reconstruction.balance_cents, null);
@@ -189,8 +199,110 @@ test('RX separa conta, cartao, fatura e investimento sem expor payload bruto', (
     }
 });
 
+test('RX trata rendimento como ganho e aplicacao/resgate como transferencia patrimonial', () => {
+    const input = fixture();
+    const daniel = input.items.find(item => item.alias_code === 'daniel_nubank');
+    daniel.transactions.push({
+        id: 'bank-yield', account_id: 'bank-1', description: 'Rendimento privado', amount_cents: 300,
+        currency: 'BRL', date: '2026-03-13T10:00:00.000Z', status: 'POSTED',
+        operation_type: 'RENDIMENTO_APLIC_FINANCEIRA'
+    });
+
+    const report = buildOpenFinanceHistoricalRx({
+        items: input.items,
+        historyStartDate: '2026-03-01',
+        observedAt: input.observedAt,
+        secret: SECRET,
+        sourceLifecycles: canonicalSourceLifecycles()
+    });
+    const bank = report.segments.find(row =>
+        row.source_alias === 'daniel_nubank' && row.product === 'bank_account');
+
+    assert.equal(bank.flows.credits_cents, 5300);
+    assert.equal(bank.flows.non_reserve_principal_credits_cents, 300);
+    assert.equal(bank.flows.non_reserve_principal_debits_cents, 500);
+    assert.equal(bank.investment_movements.applications_cents, 2000);
+    assert.equal(bank.investment_movements.redemptions_cents, 5000);
+    assert.equal(bank.investment_movements.investment_income_cents, 300);
+    assert.equal(bank.investment_movements.principal_transfers_treated_as_income, false);
+    assert.equal(bank.investment_movements.principal_transfers_treated_as_expense, false);
+});
+
+test('RX bloqueia rotulo de investimento sem semantica patrimonial suficiente', () => {
+    const input = fixture();
+    const daniel = input.items.find(item => item.alias_code === 'daniel_nubank');
+    daniel.transactions.find(row => row.id === 'bank-expense').operation_type = 'INVESTIMENTO';
+
+    const report = buildOpenFinanceHistoricalRx({
+        items: input.items,
+        historyStartDate: '2026-03-01',
+        observedAt: input.observedAt,
+        secret: SECRET,
+        sourceLifecycles: canonicalSourceLifecycles()
+    });
+    const bank = report.segments.find(row =>
+        row.source_alias === 'daniel_nubank' && row.product === 'bank_account');
+
+    assert.equal(report.ready_for_reconciliation, false);
+    assert.equal(report.blockers.includes('daniel_nubank:investment_movement_semantics_ambiguous'), true);
+    assert.equal(bank.flows.reserve_principal_exclusion_scope,
+        'provider_labeled_with_ambiguous_semantics');
+    assert.equal(bank.flows.non_reserve_principal_debits_cents, 2500);
+    assert.equal(bank.investment_movements.status, 'provider_labeled_with_ambiguous_semantics');
+    assert.equal(bank.investment_movements.semantically_ambiguous_count, 1);
+    assert.equal(bank.investment_movements.principal_transfers_treated_as_expense, false);
+});
+
+test('RX nao exclui do subtotal nem classifica operacao patrimonial com direcao incompatível', () => {
+    const input = fixture();
+    const daniel = input.items.find(item => item.alias_code === 'daniel_nubank');
+    daniel.transactions.find(row => row.id === 'bank-income').operation_type = 'APLICACAO_FINANCEIRA';
+
+    const report = buildOpenFinanceHistoricalRx({
+        items: input.items,
+        historyStartDate: '2026-03-01',
+        observedAt: input.observedAt,
+        secret: SECRET,
+        sourceLifecycles: canonicalSourceLifecycles()
+    });
+    const bank = report.segments.find(row =>
+        row.source_alias === 'daniel_nubank' && row.product === 'bank_account');
+
+    assert.equal(report.blockers.includes('daniel_nubank:investment_movement_semantics_ambiguous'), true);
+    assert.equal(bank.flows.non_reserve_principal_credits_cents, 5000);
+    assert.equal(bank.investment_movements.applications_cents, 2000);
+    assert.equal(bank.investment_movements.semantically_ambiguous_count, 1);
+});
+
+test('RX nao transforma rotulo de resgate nao financeiro em retirada de reserva', () => {
+    const input = fixture();
+    const daniel = input.items.find(item => item.alias_code === 'daniel_nubank');
+    daniel.transactions.find(row => row.id === 'bank-income').operation_type = 'RESGATE_TARIFA';
+
+    const report = buildOpenFinanceHistoricalRx({
+        items: input.items,
+        historyStartDate: '2026-03-01',
+        observedAt: input.observedAt,
+        secret: SECRET,
+        sourceLifecycles: canonicalSourceLifecycles()
+    });
+    const bank = report.segments.find(row =>
+        row.source_alias === 'daniel_nubank' && row.product === 'bank_account');
+
+    assert.equal(bank.flows.non_reserve_principal_credits_cents, 5000);
+    assert.equal(bank.investment_movements.redemptions_cents, 0);
+    assert.deepEqual(bank.investment_movements.operation_types, ['APLICACAO_FINANCEIRA']);
+});
+
 test('RX separa inicio historico do cutoff de alertas e aplica lifecycle por conta', () => {
     const input = fixture();
+    const itau = input.items.find(item => item.alias_code === 'thais_itau');
+    itau.transactions.push(
+        { id: 'itau-card-before', account_id: 'thais_itau-card', description: 'Antes da existencia', amount_cents: 100,
+            currency: 'BRL', date: '2026-03-31T10:00:00.000Z', status: 'POSTED' },
+        { id: 'itau-card-after', account_id: 'thais_itau-card', description: 'Depois da existencia', amount_cents: 200,
+            currency: 'BRL', date: '2026-04-02T10:00:00.000Z', status: 'POSTED' }
+    );
     const report = buildOpenFinanceHistoricalRx({
         items: input.items,
         historyStartDate: '2025-07-01',
@@ -201,7 +313,7 @@ test('RX separa inicio historico do cutoff de alertas e aplica lifecycle por con
             thais_itau: {
                 accounts: {
                     'thais_itau-bank': { existedAtHistoryStart: true },
-                    'thais_itau-savings': {},
+                    'thais_itau-savings': { existedAtHistoryStart: true },
                     'thais_itau-card': { existedAtHistoryStart: false, availableFrom: '2026-04-01' }
                 }
             }
@@ -218,13 +330,16 @@ test('RX separa inicio historico do cutoff de alertas e aplica lifecycle por con
     const card = report.segments.find(row => row.source_alias === 'thais_itau' && row.product === 'credit_card');
     assert.equal(bank.history_start_relation, 'account_available_at_history_start');
     assert.equal(bank.account_existed_at_history_start, true);
-    assert.equal(savings.history_start_relation, 'account_start_unknown');
-    assert.equal(savings.account_existed_at_history_start, null);
-    assert.equal(report.blockers.includes('thais_itau:account_start_unknown'), true);
+    assert.equal(savings.history_start_relation, 'account_available_at_history_start');
+    assert.equal(savings.account_existed_at_history_start, true);
+    assert.equal(report.blockers.includes('thais_itau:account_start_unknown'), false);
     assert.equal(card.history_start_relation, 'not_applicable_before_account_start');
     assert.equal(card.account_existed_at_history_start, false);
     assert.equal(card.account_available_from, '2026-04-01');
     assert.equal(card.history_start_reconstruction.reason, 'account_not_available_at_history_start');
+    assert.equal(card.flows.count, 1);
+    assert.equal(card.coverage.first_observed_date, '2026-04-02');
+    assert.equal(report.blockers.includes('thais_itau:activity_before_account_start'), true);
 
     assert.throws(() => buildOpenFinanceHistoricalRx({
         items: fixture().items,
@@ -275,6 +390,8 @@ test('RX preserva colisao heuristica de parcelas como ambigua sem inferir lacuna
     assert.equal(card.flows.identity_status, 'ambiguous_raw_provider_rows');
     assert.equal(card.installments.ambiguous_series_count, 1);
     assert.equal(series.identity_status, 'ambiguous_duplicate_installment_number');
+    assert.equal(series.save_eligibility, 'blocked_pending_identity_resolution');
+    assert.equal(card.installments.write_mode, 'read_only');
     assert.equal(series.observed_rows, 3);
     assert.deepEqual(series.observed_numbers, [1, 2]);
     assert.deepEqual(series.duplicate_numbers, [1]);
@@ -314,7 +431,7 @@ test('RX valida inventario familiar exato sem misturar titular, conta e cartao',
     const itauCard = report.segments.find(segment =>
         segment.source_alias === 'thais_itau' && segment.product === 'credit_card');
     assert.equal(itauBank.history_start_relation, 'account_available_at_history_start');
-    assert.equal(itauSavings.history_start_relation, 'account_start_unknown');
+    assert.equal(itauSavings.history_start_relation, 'account_available_at_history_start');
     assert.equal(itauCard.history_start_relation, 'not_applicable_before_account_start');
     assert.notEqual(itauBank.segment_ref, itauSavings.segment_ref);
     assert.notEqual(itauSavings.segment_ref, itauCard.segment_ref);
@@ -416,6 +533,7 @@ test('RX falha fechado em fonte essencial incompleta e nunca transforma ausencia
     });
     assert.deepEqual(incompleteCard.installments, {
         status: 'partial',
+        write_mode: 'read_only',
         series: null,
         series_count: null,
         incomplete_series_count: null,
@@ -458,11 +576,15 @@ test('RX falha fechado em fonte essencial incompleta e nunca transforma ausencia
         row.source_alias === 'daniel_nubank' && row.product === 'credit_card');
     assert.equal(unavailableBank.current_snapshot.balance_cents, null);
     assert.deepEqual(unavailableBank.flows, {
+        semantic: 'raw_account_movement_not_income_expense',
+        reserve_principal_exclusion_scope: 'unavailable',
         count: null,
         posted_count: null,
         pending_count: null,
         credits_cents: null,
         debits_cents: null,
+        non_reserve_principal_credits_cents: null,
+        non_reserve_principal_debits_cents: null,
         posted_net_cents: null
     });
     assert.deepEqual(unavailableCard.current_snapshot, {

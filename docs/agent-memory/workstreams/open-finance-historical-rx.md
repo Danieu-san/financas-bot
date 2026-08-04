@@ -10,7 +10,7 @@ financeira.
 
 ## Estado
 
-`RX-HIST-TIME-INV-01 PREVIA PRIVADA CONCLUIDA; TRES BLOCKERS PENDENTES`.
+`RX-HIST-RESERVE-LIFECYCLE-01 CANDIDATO EM VALIDACAO LOCAL`.
 
 O `GO TECNICO LOCAL` anterior de `RX-HIST-SEG-01`, no hash
 `62ec19532f1e4d288efa7c3fb75291540358fdd5`, continua valido para o contrato
@@ -97,6 +97,15 @@ inalterado e zero escrita. Permanecem tres blockers: identidade ambigua de
 parcela, historico de investimento sem ligacao a posicao e inicio desconhecido
 da poupanca Itau. Nenhum dado financeiro privado foi levado ao Git.
 
+O usuario confirmou depois que todas as contas bancarias, inclusive a poupanca
+Itau, ja existiam em `2025-07-01`; somente o cartao Itau surgiu durante o RX.
+Assim, o inicio da poupanca deixa de ser blocker, sem inventar sua data de
+abertura. O candidato atual trata aplicacao em Caixinha e resgate como
+transferencias patrimoniais internas: continuam nos movimentos brutos usados
+para saldo, mas nao viram receita ou despesa. Rendimento permanece ganho;
+rotulo generico ou direcao incompatível falham fechado. Serie de parcela
+ambigua fica bloqueada para salvamento ate resolver sua identidade.
+
 ## Contrato temporal
 
 - inicio do RX historico: `2025-07-01`;
@@ -117,10 +126,10 @@ da poupanca Itau. Nenhum dado financeiro privado foi levado ao Git.
 
 O contrato auditado totalizava quatro contas bancarias e quatro cartoes; a
 tabela acima registra o inventario sucessor exigido pelo preflight. No Itau da
-Thais, conta corrente, poupanca e cartao sao segmentos distintos. A conta
-corrente Itau existia em `2025-07-01`; o cartao Itau nao existia nessa data. O
-inicio da poupanca ainda nao possui fonte confirmada e deve permanecer
-desconhecido, nunca inferido nem zerado.
+Thais, conta corrente, poupanca e cartao sao segmentos distintos. Todas as
+contas bancarias da tabela existiam em `2025-07-01`, conforme declaracao do
+usuario. O cartao Itau nao existia nessa data e passa a integrar o RX somente
+quando observado/disponivel, sem herdar o lifecycle da conta.
 
 ## Evidencia local atual
 
@@ -131,11 +140,11 @@ desconhecido, nunca inferido nem zerado.
   fechado;
 - lifecycle pode ser declarado por conta, sem aplicar a existencia da conta ao
   cartao do mesmo banco;
-- teste focal do recovery atual: 17/17;
-- bateria causal Open Finance do recovery atual: 338/338;
-- suite hermetica final do recovery de parcelas: 1.471 testes, 1.461 aprovados, 0 falhas e 10 skips
-  conhecidos;
-- cobertura: linhas 90,63%, branches 73,02%, funcoes 90,26%;
+- teste focal do candidato atual: 21/21;
+- bateria causal Open Finance do candidato atual: 343/343;
+- suite hermetica final do candidato atual: 1.475 testes, 1.465 aprovados,
+  0 falhas e 10 skips conhecidos;
+- cobertura: linhas 90,64%, branches 73,02%, funcoes 90,28%;
 - nenhuma chamada Pluggy live; a copia privada foi usada somente no preflight
   sanitizado, sem imprimir IDs, saldos ou transacoes;
 - nenhuma planilha, deploy, OCI, WhatsApp ou escrita financeira.
@@ -154,18 +163,22 @@ desconhecido, nunca inferido nem zerado.
 - Caixinhas/investimentos ficam fora das contas bancarias e nao sao somados a
   elas; somente `operation_type` do provedor pode marcar movimento relacionado;
 - descricao nunca vira evidencia de aplicacao ou resgate;
+- aplicacao e resgate de reserva sao transferencias patrimoniais internas, nao
+  receita nem despesa; rendimento continua ganho;
+- semantica de investimento generica ou incompatível falha fechado;
 - posicao sem historico ligado gera `investment_history_unlinked`;
+- parcela ambigua nao e elegivel a salvamento antes da resolucao de identidade;
 - IDs e descricoes de transacao nao aparecem no resumo;
 - resultado declara `financial_writes=0`.
 
 ## Proxima acao
 
-Resolver cada blocker por evidencia propria, sem inferir ausencia. Primeiro,
-confirmar a data de existencia da poupanca Itau; depois investigar se o
-provedor oferece ligacao de movimentos a posicoes e preparar a revisao humana
-da parcela ambigua. Planilha, escrita financeira, deploy e producao continuam
-fora do alcance.
+Concluir bateria causal, uma unica suite ampla, publicar o candidato e obter
+auditoria independente. Somente depois de GO, reexecutar a previa privada com
+a poupanca marcada como existente no inicio e sem inventar a data exata do
+cartao Itau. Planilha, escrita financeira, deploy e producao continuam fora do
+alcance.
 
 ## Capacidade
 
-`Codex -> Sol -> Medio -> levantar a evidencia minima para os tres blockers do RX.`
+`Codex -> Sol -> Medio -> validar e auditar o candidato de reserva e lifecycle.`

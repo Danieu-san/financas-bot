@@ -1,6 +1,6 @@
 # Plano - RX historico segmentado Open Finance
 
-Status: `previa privada concluida; tres blockers pendentes`.
+Status: `candidato de reserva e lifecycle em validacao local`.
 
 ## Objetivo
 
@@ -54,13 +54,19 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
     autorizado em novo hash, sem repetir testes.
 17. [concluida] Reexecutar a previa privada apos confirmacao explicita; relatorio
     criado com NO_GO controlado, SQLite inalterado e zero escrita.
-18. [pendente] Confirmar por evidencia a existencia da poupanca Itau no inicio
-    historico ou manter `account_start_unknown`.
+18. [concluida] Registrar a declaracao do usuario de que todas as contas
+    bancarias existiam no inicio historico; manter somente o cartao Itau como
+    inexistente nessa data.
 19. [pendente] Verificar se o provedor oferece ligacao confiavel entre movimentos
     e posicoes de investimento; descricao nunca vira evidencia.
 20. [pendente] Em gate operacional separado, avisar os dois usuarios sobre
     movimentos ambiguos e oferecer revisao/salvamento numerados; nunca usar
     `sim` generico para multiplas opcoes nem salvar automaticamente.
+21. [em andamento] Classificar aplicacao/resgate de reserva como transferencia
+    patrimonial, rendimento como ganho, bloquear semantica generica e impedir
+    salvamento de parcela ambigua; testar, publicar e auditar.
+22. [pendente] Depois de GO independente, reexecutar uma previa privada com o
+    lifecycle corrigido, mantendo o cartao Itau separado e sem data inventada.
 
 ## Criterios de GO
 
@@ -68,7 +74,9 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 - exatamente quatro fontes, cinco contas bancarias e quatro cartoes;
 - exatamente dois segmentos Daniel e sete segmentos no escopo Thais;
 - conta Itau Thais disponivel no inicio e cartao Itau Thais nao aplicavel;
-- poupanca Itau separada, com inicio desconhecido ate fonte confirmada;
+- poupanca Itau separada e existente no inicio por declaracao do usuario;
+- cartao Itau separado, inexistente no inicio e incluido somente quando
+  observado/disponivel;
 - subtipos canonicos falham fechado mesmo quando as contagens coincidem;
 - inventario ausente ou nao canonico falha no builder;
 - arquivo com forma, fonte, quantidade ou titular divergente e mapa incompleto
@@ -77,6 +85,10 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 - investimentos permanecem fora do inventario de contas e cartoes;
 - movimentos de investimento usam somente `operation_type` do provedor,
   declaram cobertura parcial e nunca inferem por descricao;
+- aplicacoes e resgates rotulados continuam nos movimentos brutos de saldo,
+  mas nao viram receita ou despesa; rendimento permanece ganho;
+- semantica generica ou direcao incompatível bloqueia reconciliacao;
+- parcela ambigua permanece inelegivel a salvamento ate resolver identidade;
 - posicao sem historico ligado impede `ready_for_reconciliation`;
 - `financial_writes=0` em todos os caminhos;
 - testes, workflow e auditoria independente verdes.
@@ -91,6 +103,5 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 
 ## Proxima acao
 
-Resolver os tres blockers com evidencias independentes. O inicio da poupanca e
-o historico individual das Caixinhas permanecem desconhecidos ate existir
-fonte confirmada.
+Validar o candidato de reserva/lifecycle, publicar hash imutavel e obter
+auditoria independente antes de qualquer nova previa privada.

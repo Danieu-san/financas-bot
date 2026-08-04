@@ -178,12 +178,14 @@ function uniqueSorted(values) {
     return [...new Set(values)].sort((left, right) => left - right);
 }
 
-function providerInvestmentOperationType(value) {
+function providerInvestmentOperation(value) {
     const operationType = String(value || '').trim().toUpperCase();
-    return /^(?:APLIC(?:ACAO)?_FINANCEIRA|INVESTIMENTO|RESGATE|RENDIMENTO_APLIC_FINANCEIRA)(?:_|$)/
-        .test(operationType)
-        ? operationType
-        : null;
+    let semantic = null;
+    if (/^APLIC(?:ACAO)?_FINANCEIRA(?:_|$)/.test(operationType)) semantic = 'reserve_application';
+    else if (/^RESGATE_APLIC_FINANCEIRA(?:_|$)/.test(operationType)) semantic = 'reserve_redemption';
+    else if (/^RENDIMENTO_APLIC_FINANCEIRA(?:_|$)/.test(operationType)) semantic = 'investment_income';
+    else if (/^INVESTIMENTO(?:_|$)/.test(operationType)) semantic = 'investment_related_unknown';
+    return semantic ? { operationType, semantic } : null;
 }
 
 function cents(value, field, { nullable = false } = {}) {
@@ -308,11 +310,24 @@ function buildOpenFinanceHistoricalRx({
             const accountStatus = String(item.availability?.accounts || 'unavailable').toLowerCase();
             const accountsAvailable = accountStatus === 'available';
             const transactionsAvailable = accountsAvailable && transactionStatus === 'available';
-            const rows = transactionsAvailable ? (item.transactions || []).filter(transaction => {
+            const accountAvailableTimestamp = accountAvailableFrom
+                ? parseDate(`${accountAvailableFrom}T00:00:00.000Z`, 'historical_rx_account_available_from')
+                : null;
+            const historicalRows = transactionsAvailable ? (item.transactions || []).filter(transaction => {
                 if (String(transaction.account_id || '') !== accountId) return false;
                 const timestamp = parseDate(transaction.date, 'historical_rx_transaction_date');
                 return timestamp >= historyStartTimestamp;
             }) : [];
+            const rowsBeforeAvailability = accountAvailableTimestamp === null ? [] : historicalRows.filter(transaction =>
+                parseDate(transaction.date, 'historical_rx_transaction_date') < accountAvailableTimestamp
+            );
+            if (rowsBeforeAvailability.length > 0
+                && !blockers.includes(`${alias}:activity_before_account_start`)) {
+                blockers.push(`${alias}:activity_before_account_start`);
+            }
+            const rows = accountAvailableTimestamp === null ? historicalRows : historicalRows.filter(transaction =>
+                parseDate(transaction.date, 'historical_rx_transaction_date') >= accountAvailableTimestamp
+            );
             const postedThroughObservation = rows.filter(transaction =>
                 String(transaction.status || '').toUpperCase() === 'POSTED' &&
                 parseDate(transaction.date, 'historical_rx_transaction_date') <= observedTimestamp
@@ -320,9 +335,50 @@ function buildOpenFinanceHistoricalRx({
             const pending = rows.filter(transaction => String(transaction.status || '').toUpperCase() === 'PENDING');
             const positive = rows.filter(transaction => Number(transaction.amount_cents) > 0);
             const negative = rows.filter(transaction => Number(transaction.amount_cents) < 0);
-            const providerLabeledInvestmentRows = rows.filter(transaction =>
-                providerInvestmentOperationType(transaction.operation_type)
+            const providerInvestmentOperations = rows.map(transaction => ({
+                transaction,
+                operation: providerInvestmentOperation(transaction.operation_type)
+            })).filter(entry => entry.operation);
+            const providerLabeledInvestmentRows = providerInvestmentOperations.map(entry => entry.transaction);
+            const reserveApplicationRows = providerInvestmentOperations
+                .filter(entry => entry.operation.semantic === 'reserve_application')
+                .map(entry => entry.transaction);
+            const reserveRedemptionRows = providerInvestmentOperations
+                .filter(entry => entry.operation.semantic === 'reserve_redemption')
+                .map(entry => entry.transaction);
+            const investmentIncomeRows = providerInvestmentOperations
+                .filter(entry => entry.operation.semantic === 'investment_income')
+                .map(entry => entry.transaction);
+            const semanticallyAmbiguousInvestmentRows = providerInvestmentOperations.filter(entry =>
+                entry.operation.semantic === 'investment_related_unknown'
+                || (entry.operation.semantic === 'reserve_application'
+                    && Number(entry.transaction.amount_cents) >= 0)
+                || (entry.operation.semantic === 'reserve_redemption'
+                    && Number(entry.transaction.amount_cents) <= 0)
+                || (entry.operation.semantic === 'investment_income'
+                    && Number(entry.transaction.amount_cents) <= 0)
             );
+            if (semanticallyAmbiguousInvestmentRows.length > 0
+                && !blockers.includes(`${alias}:investment_movement_semantics_ambiguous`)) {
+                blockers.push(`${alias}:investment_movement_semantics_ambiguous`);
+            }
+            const semanticallyAmbiguousTransactions = new Set(
+                semanticallyAmbiguousInvestmentRows.map(entry => entry.transaction)
+            );
+            const validReserveApplicationRows = reserveApplicationRows.filter(transaction =>
+                !semanticallyAmbiguousTransactions.has(transaction)
+            );
+            const validReserveRedemptionRows = reserveRedemptionRows.filter(transaction =>
+                !semanticallyAmbiguousTransactions.has(transaction)
+            );
+            const validInvestmentIncomeRows = investmentIncomeRows.filter(transaction =>
+                !semanticallyAmbiguousTransactions.has(transaction)
+            );
+            const reservePrincipalRows = new Set([
+                ...validReserveApplicationRows,
+                ...validReserveRedemptionRows
+            ]);
+            const nonReservePrincipalRows = rows.filter(transaction => !reservePrincipalRows.has(transaction));
             const postedInvestmentRows = providerLabeledInvestmentRows.filter(transaction =>
                 String(transaction.status || '').toUpperCase() === 'POSTED'
                 && parseDate(transaction.date, 'historical_rx_transaction_date') <= observedTimestamp
@@ -352,10 +408,20 @@ function buildOpenFinanceHistoricalRx({
 
             const billStatus = String(item.availability?.bills || 'unavailable').toLowerCase();
             const billsAvailable = accountsAvailable && billStatus === 'available';
-            const accountBills = billsAvailable ? (item.bills || []).filter(bill =>
-                String(bill.account_id || '') === accountId &&
-                parseDate(bill.due_date, 'historical_rx_bill_due_date') >= historyStartTimestamp
+            const historicalBills = billsAvailable ? (item.bills || []).filter(bill =>
+                String(bill.account_id || '') === accountId
+                && parseDate(bill.due_date, 'historical_rx_bill_due_date') >= historyStartTimestamp
             ) : [];
+            const billsBeforeAvailability = accountAvailableTimestamp === null ? [] : historicalBills.filter(bill =>
+                parseDate(bill.due_date, 'historical_rx_bill_due_date') < accountAvailableTimestamp
+            );
+            if (billsBeforeAvailability.length > 0
+                && !blockers.includes(`${alias}:activity_before_account_start`)) {
+                blockers.push(`${alias}:activity_before_account_start`);
+            }
+            const accountBills = accountAvailableTimestamp === null ? historicalBills : historicalBills.filter(bill =>
+                parseDate(bill.due_date, 'historical_rx_bill_due_date') >= accountAvailableTimestamp
+            );
             const installmentRows = rows.filter(transaction =>
                 Number.isInteger(Number(transaction.installment_number)) &&
                 Number.isInteger(Number(transaction.total_installments)) &&
@@ -405,6 +471,9 @@ function buildOpenFinanceHistoricalRx({
                 entry.identity_status = ambiguous
                     ? 'ambiguous_duplicate_installment_number'
                     : 'unique_within_group';
+                entry.save_eligibility = ambiguous
+                    ? 'blocked_pending_identity_resolution'
+                    : 'not_authorized_by_read_only_rx';
                 entry.missing_numbers = ambiguous
                     ? null
                     : Array.from({ length: entry.total_installments }, (_, index) => index + 1)
@@ -434,11 +503,15 @@ function buildOpenFinanceHistoricalRx({
                     last_observed_date: dates[dates.length - 1] || null
                 },
                 flows: !transactionsAvailable ? (isBank ? {
+                    semantic: 'raw_account_movement_not_income_expense',
+                    reserve_principal_exclusion_scope: 'unavailable',
                     count: null,
                     posted_count: null,
                     pending_count: null,
                     credits_cents: null,
                     debits_cents: null,
+                    non_reserve_principal_credits_cents: null,
+                    non_reserve_principal_debits_cents: null,
                     posted_net_cents: null
                 } : {
                     identity_status: 'unavailable',
@@ -449,11 +522,23 @@ function buildOpenFinanceHistoricalRx({
                     payments_or_credits_cents: null,
                     posted_net_cents: null
                 }) : isBank ? {
+                    semantic: 'raw_account_movement_not_income_expense',
+                    reserve_principal_exclusion_scope: semanticallyAmbiguousInvestmentRows.length > 0
+                        ? 'provider_labeled_with_ambiguous_semantics'
+                        : 'provider_labeled_only',
                     count: rows.length,
                     posted_count: postedThroughObservation.length,
                     pending_count: pending.length,
                     credits_cents: sum(positive, row => row.amount_cents),
                     debits_cents: Math.abs(sum(negative, row => row.amount_cents)),
+                    non_reserve_principal_credits_cents: sum(
+                        nonReservePrincipalRows.filter(row => Number(row.amount_cents) > 0),
+                        row => row.amount_cents
+                    ),
+                    non_reserve_principal_debits_cents: Math.abs(sum(
+                        nonReservePrincipalRows.filter(row => Number(row.amount_cents) < 0),
+                        row => row.amount_cents
+                    )),
                     posted_net_cents: sum(postedThroughObservation, row => row.amount_cents)
                 } : {
                     identity_status: hasAmbiguousInstallments
@@ -469,24 +554,40 @@ function buildOpenFinanceHistoricalRx({
                 investment_movements: !isBank ? {
                     status: 'not_applicable',
                     unlabeled_movements_inferred: false,
+                    principal_transfers_treated_as_income: false,
+                    principal_transfers_treated_as_expense: false,
                     count: null,
                     posted_count: null,
                     pending_count: null,
                     credits_cents: null,
                     debits_cents: null,
+                    applications_cents: null,
+                    redemptions_cents: null,
+                    investment_income_cents: null,
+                    semantically_ambiguous_count: null,
                     operation_types: null
                 } : !transactionsAvailable ? {
                     status: 'unavailable',
                     unlabeled_movements_inferred: false,
+                    principal_transfers_treated_as_income: false,
+                    principal_transfers_treated_as_expense: false,
                     count: null,
                     posted_count: null,
                     pending_count: null,
                     credits_cents: null,
                     debits_cents: null,
+                    applications_cents: null,
+                    redemptions_cents: null,
+                    investment_income_cents: null,
+                    semantically_ambiguous_count: null,
                     operation_types: null
                 } : {
-                    status: 'provider_labeled_only',
+                    status: semanticallyAmbiguousInvestmentRows.length > 0
+                        ? 'provider_labeled_with_ambiguous_semantics'
+                        : 'provider_labeled_only',
                     unlabeled_movements_inferred: false,
+                    principal_transfers_treated_as_income: false,
+                    principal_transfers_treated_as_expense: false,
                     count: providerLabeledInvestmentRows.length,
                     posted_count: postedInvestmentRows.length,
                     pending_count: pendingInvestmentRows.length,
@@ -494,8 +595,12 @@ function buildOpenFinanceHistoricalRx({
                         row => row.amount_cents),
                     debits_cents: Math.abs(sum(providerLabeledInvestmentRows.filter(row => Number(row.amount_cents) < 0),
                         row => row.amount_cents)),
-                    operation_types: [...new Set(providerLabeledInvestmentRows
-                        .map(row => providerInvestmentOperationType(row.operation_type)))].sort()
+                    applications_cents: Math.abs(sum(validReserveApplicationRows, row => row.amount_cents)),
+                    redemptions_cents: Math.abs(sum(validReserveRedemptionRows, row => row.amount_cents)),
+                    investment_income_cents: sum(validInvestmentIncomeRows, row => row.amount_cents),
+                    semantically_ambiguous_count: semanticallyAmbiguousInvestmentRows.length,
+                    operation_types: [...new Set(providerInvestmentOperations
+                        .map(entry => entry.operation.operationType))].sort()
                 },
                 current_snapshot: isBank ? {
                     balance_cents: accountsAvailable ? currentBalance : null,
@@ -525,6 +630,7 @@ function buildOpenFinanceHistoricalRx({
                 },
                 installments: {
                     status: transactionStatus,
+                    write_mode: 'read_only',
                     series: transactionsAvailable ? installmentSeries : null,
                     series_count: transactionsAvailable ? installmentSeries.length : null,
                     incomplete_series_count: transactionsAvailable
