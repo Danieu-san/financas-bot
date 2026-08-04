@@ -89,8 +89,11 @@ function copySqliteFileSet(sourceDatabase, targetDatabase, snapshot) {
     }
 }
 
-function main() {
-    const args = parseArgs(process.argv.slice(2));
+function main(argv = process.argv.slice(2), {
+    VaultClass = OpenFinanceLiveStagingVault,
+    stdout = process.stdout
+} = {}) {
+    const args = parseArgs(argv);
     if (!args.confirmReadOnly) throw new Error('confirm_read_only_required');
     const stagingDb = requireFile(args.stagingDb, 'historical_rx_staging_db_required');
     const secretFile = requireFile(args.secretFile, 'historical_rx_secret_file_required');
@@ -114,7 +117,7 @@ function main() {
         if (!sqliteFileSetsEqual(beforeSqliteFiles, snapshotSqliteFileSet(snapshotDb))) {
             throw new Error('historical_rx_snapshot_copy_mismatch');
         }
-        const vault = new OpenFinanceLiveStagingVault({ databasePath: snapshotDb, secret, readonly: true });
+        const vault = new VaultClass({ databasePath: snapshotDb, secret, readonly: true });
         try {
             records = aliasList(mappings).map(alias => {
                 const record = vault.readItemRecordByAlias(alias);
@@ -143,7 +146,7 @@ function main() {
     writePrivateJson(output, report);
     const reportHash = sha256(output);
     const outcome = report.ready_for_reconciliation ? 'GO' : 'NO_GO';
-    process.stdout.write(`${JSON.stringify({
+    stdout.write(`${JSON.stringify({
         gate: 'RX-HIST-SEG-01',
         outcome,
         cutoff_date: report.cutoff_date,
@@ -161,14 +164,18 @@ function main() {
     return report.ready_for_reconciliation ? 0 : 2;
 }
 
-try {
-    process.exitCode = main();
-} catch (error) {
-    process.stderr.write(`${JSON.stringify({
-        gate: 'RX-HIST-SEG-01',
-        outcome: 'NO_GO',
-        reason: error.message,
-        financial_writes: 0
-    })}\n`);
-    process.exitCode = 1;
+if (require.main === module) {
+    try {
+        process.exitCode = main();
+    } catch (error) {
+        process.stderr.write(`${JSON.stringify({
+            gate: 'RX-HIST-SEG-01',
+            outcome: 'NO_GO',
+            reason: error.message,
+            financial_writes: 0
+        })}\n`);
+        process.exitCode = 1;
+    }
 }
+
+module.exports = { copySqliteFileSet, main };

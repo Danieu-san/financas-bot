@@ -13,6 +13,7 @@ const {
     sqliteFileSetsEqual
 } = require('../src/openFinance/openFinanceHistoricalRx');
 const { OpenFinanceLiveStagingVault } = require('../src/openFinance/openFinanceLiveStagingVault');
+const { copySqliteFileSet, main: runHistoricalRx } = require('../scripts/runOpenFinanceHistoricalRx');
 
 const SECRET = 'rx-hist-seg-test-secret-32-bytes-minimum';
 
@@ -131,10 +132,32 @@ test('RX falha fechado em fonte essencial incompleta e nunca transforma ausencia
     assert.equal(report.financial_writes, 0);
     const incompleteBank = report.segments.find(row => row.product === 'bank_account');
     assert.equal(incompleteBank.flows.count, null);
+    assert.equal(incompleteBank.flows.posted_count, null);
+    assert.equal(incompleteBank.flows.pending_count, null);
     assert.equal(incompleteBank.flows.credits_cents, null);
     assert.equal(incompleteBank.flows.debits_cents, null);
+    assert.equal(incompleteBank.flows.posted_net_cents, null);
+    assert.equal(incompleteBank.coverage.first_observed_date, null);
+    assert.equal(incompleteBank.coverage.last_observed_date, null);
     assert.equal(incompleteBank.cutoff_reconstruction.balance_cents, null);
     assert.equal(incompleteBank.cutoff_reconstruction.reason, 'complete_bank_history_unavailable');
+    const incompleteCard = report.segments.find(row => row.product === 'credit_card');
+    assert.deepEqual(incompleteCard.flows, {
+        count: null,
+        posted_count: null,
+        pending_count: null,
+        charges_cents: null,
+        payments_or_credits_cents: null,
+        posted_net_cents: null
+    });
+    assert.deepEqual(incompleteCard.installments, {
+        status: 'partial',
+        series: null,
+        series_count: null,
+        incomplete_series_count: null,
+        observed_rows: null,
+        synthesized_rows: 0
+    });
 
     const unknownLifecycle = fixture();
     const unknownReport = buildOpenFinanceHistoricalRx({
@@ -165,10 +188,29 @@ test('RX falha fechado em fonte essencial incompleta e nunca transforma ausencia
     const unavailableCard = unavailableAccountsReport.segments.find(row =>
         row.source_alias === 'daniel_nubank' && row.product === 'credit_card');
     assert.equal(unavailableBank.current_snapshot.balance_cents, null);
-    assert.equal(unavailableBank.flows.count, null);
-    assert.equal(unavailableCard.current_snapshot.provider_balance_cents, null);
-    assert.equal(unavailableCard.current_snapshot.credit_limit_cents, null);
-    assert.equal(unavailableCard.bills.total_cents, null);
+    assert.deepEqual(unavailableBank.flows, {
+        count: null,
+        posted_count: null,
+        pending_count: null,
+        credits_cents: null,
+        debits_cents: null,
+        posted_net_cents: null
+    });
+    assert.deepEqual(unavailableCard.current_snapshot, {
+        provider_balance_cents: null,
+        provider_balance_semantic: 'used_limit_not_invoice',
+        credit_limit_cents: null,
+        available_credit_limit_cents: null,
+        used_limit_cents: null,
+        observed_at: input.observedAt
+    });
+    assert.deepEqual(unavailableCard.bills, {
+        status: 'available',
+        count: null,
+        total_cents: null,
+        first_due_date: null,
+        last_due_date: null
+    });
 });
 
 test('RX exige cobertura de fatura para cartao e recusa ligacao a conta desconhecida', () => {
@@ -188,8 +230,13 @@ test('RX exige cobertura de fatura para cartao e recusa ligacao a conta desconhe
     assert.deepEqual(report.blockers, ['daniel_nubank:bills_unavailable']);
     const unavailableBills = report.segments.find(row =>
         row.source_alias === 'daniel_nubank' && row.product === 'credit_card').bills;
-    assert.equal(unavailableBills.count, null);
-    assert.equal(unavailableBills.total_cents, null);
+    assert.deepEqual(unavailableBills, {
+        status: 'unavailable',
+        count: null,
+        total_cents: null,
+        first_due_date: null,
+        last_due_date: null
+    });
 
     const unknownAccount = fixture();
     unknownAccount.items[0].transactions[0].account_id = 'conta-inexistente';
@@ -291,6 +338,156 @@ test('snapshot de imutabilidade cobre sidecars SQLite e detecta qualquer diverge
         fs.writeFileSync(`${databasePath}-wal`, 'wal-before');
         fs.writeFileSync(`${databasePath}-journal`, 'journal-created');
         assert.equal(sqliteFileSetsEqual(before, snapshotSqliteFileSet(databasePath)), false);
+    } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test('copia SQLite replica o conjunto completo sem tocar a fonte', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'open-finance-rx-copy-set-'));
+    try {
+        const source = path.join(root, 'source.sqlite');
+        const target = path.join(root, 'private', 'staging.sqlite');
+        fs.mkdirSync(path.dirname(target), { mode: 0o700 });
+        for (const [suffix, contents] of [['', 'db'], ['-wal', 'wal'], ['-shm', 'shm'], ['-journal', '']]) {
+            fs.writeFileSync(`${source}${suffix}`, contents);
+        }
+        const before = snapshotSqliteFileSet(source);
+        copySqliteFileSet(source, target, before);
+        assert.deepEqual(snapshotSqliteFileSet(target), before);
+        assert.deepEqual(snapshotSqliteFileSet(source), before);
+        if (process.platform !== 'win32') {
+            assert.equal(fs.statSync(path.dirname(target)).mode & 0o777, 0o700);
+            for (const suffix of ['', '-wal', '-shm', '-journal']) {
+                assert.equal(fs.statSync(`${target}${suffix}`).mode & 0o777, 0o600);
+            }
+        }
+    } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test('CLI abre somente copia privada no vault real, exige readonly e limpa em finally', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'open-finance-rx-boundary-'));
+    const databasePath = path.join(root, 'live-staging.sqlite');
+    const secretPath = path.join(root, 'staging-secret.txt');
+    const mappingPath = path.join(root, 'pluggy-item-map.json');
+    const lifecyclePath = path.join(root, 'source-lifecycle.json');
+    const outputPath = path.join(root, 'historical-rx.json');
+    const input = fixture();
+    fs.writeFileSync(secretPath, SECRET, 'utf8');
+    fs.writeFileSync(mappingPath, JSON.stringify(input.items.map(item => ({ alias: item.alias_code }))), 'utf8');
+    fs.writeFileSync(lifecyclePath, JSON.stringify({
+        daniel_nubank: { existedAtCutoff: true },
+        thais_itau: { existedAtCutoff: false }
+    }), 'utf8');
+    const sourceVault = new OpenFinanceLiveStagingVault({ databasePath, secret: SECRET });
+    sourceVault.ingestSnapshot({
+        provider: 'pluggy', mode: 'live_readonly_staging', event_id: 'rx-boundary-event',
+        observed_at: input.observedAt, items: input.items
+    });
+    sourceVault.close();
+    const sourceBefore = snapshotSqliteFileSet(databasePath);
+    let openedPath;
+    let openedReadonly;
+    let snapshotInsideVault;
+    class ObservedRealVault extends OpenFinanceLiveStagingVault {
+        constructor(options) {
+            openedPath = options.databasePath;
+            openedReadonly = options.readonly;
+            snapshotInsideVault = snapshotSqliteFileSet(options.databasePath);
+            super(options);
+        }
+    }
+    try {
+        const stdout = { value: '', write(chunk) { this.value += chunk; } };
+        const status = runHistoricalRx([
+            '--confirm-read-only', '--cutoff', '2026-03-01',
+            '--staging-db', databasePath, '--secret-file', secretPath,
+            '--mapping-file', mappingPath, '--source-lifecycle-file', lifecyclePath,
+            '--output', outputPath
+        ], { VaultClass: ObservedRealVault, stdout });
+        assert.equal(status, 0);
+        assert.notEqual(path.resolve(openedPath), path.resolve(databasePath));
+        assert.match(path.basename(path.dirname(openedPath)), /^financasbot-historical-rx-/);
+        assert.equal(openedReadonly, true);
+        assert.deepEqual(snapshotInsideVault, sourceBefore);
+        assert.equal(fs.existsSync(path.dirname(openedPath)), false);
+        assert.deepEqual(snapshotSqliteFileSet(databasePath), sourceBefore);
+        assert.equal(JSON.parse(stdout.value).sqlite_files_unchanged, true);
+    } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test('CLI falha fechado com journal pendente antes de abrir vault ou criar saida', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'open-finance-rx-journal-'));
+    try {
+        const databasePath = path.join(root, 'live-staging.sqlite');
+        const secretPath = path.join(root, 'staging-secret.txt');
+        const mappingPath = path.join(root, 'pluggy-item-map.json');
+        const outputPath = path.join(root, 'historical-rx.json');
+        const input = fixture();
+        fs.writeFileSync(secretPath, SECRET, 'utf8');
+        fs.writeFileSync(mappingPath, JSON.stringify(input.items.map(item => ({ alias: item.alias_code }))), 'utf8');
+        const sourceVault = new OpenFinanceLiveStagingVault({ databasePath, secret: SECRET });
+        sourceVault.ingestSnapshot({
+            provider: 'pluggy', mode: 'live_readonly_staging', event_id: 'rx-journal-event',
+            observed_at: input.observedAt, items: input.items
+        });
+        sourceVault.close();
+        fs.writeFileSync(`${databasePath}-journal`, 'uncheckpointed');
+        let vaultOpened = false;
+        class VaultTripwire extends OpenFinanceLiveStagingVault {
+            constructor(options) {
+                vaultOpened = true;
+                super(options);
+            }
+        }
+        assert.throws(() => runHistoricalRx([
+            '--confirm-read-only', '--cutoff', '2026-03-01',
+            '--staging-db', databasePath, '--secret-file', secretPath,
+            '--mapping-file', mappingPath, '--output', outputPath
+        ], { VaultClass: VaultTripwire }), /historical_rx_uncheckpointed_sqlite_state/);
+        assert.equal(vaultOpened, false);
+        assert.equal(fs.existsSync(outputPath), false);
+    } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test('CLI remove copia privada mesmo quando o vault real falha apos abrir', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'open-finance-rx-cleanup-'));
+    const databasePath = path.join(root, 'live-staging.sqlite');
+    const secretPath = path.join(root, 'staging-secret.txt');
+    const mappingPath = path.join(root, 'pluggy-item-map.json');
+    const outputPath = path.join(root, 'historical-rx.json');
+    const input = fixture();
+    fs.writeFileSync(secretPath, SECRET, 'utf8');
+    fs.writeFileSync(mappingPath, JSON.stringify([{ alias: 'missing_alias' }]), 'utf8');
+    const sourceVault = new OpenFinanceLiveStagingVault({ databasePath, secret: SECRET });
+    sourceVault.ingestSnapshot({
+        provider: 'pluggy', mode: 'live_readonly_staging', event_id: 'rx-cleanup-event',
+        observed_at: input.observedAt, items: input.items
+    });
+    sourceVault.close();
+    const sourceBefore = snapshotSqliteFileSet(databasePath);
+    let openedPath;
+    class ObservedRealVault extends OpenFinanceLiveStagingVault {
+        constructor(options) {
+            openedPath = options.databasePath;
+            super(options);
+        }
+    }
+    try {
+        assert.throws(() => runHistoricalRx([
+            '--confirm-read-only', '--cutoff', '2026-03-01',
+            '--staging-db', databasePath, '--secret-file', secretPath,
+            '--mapping-file', mappingPath, '--output', outputPath
+        ], { VaultClass: ObservedRealVault }), /historical_rx_alias_snapshot_missing:missing_alias/);
+        assert.equal(fs.existsSync(path.dirname(openedPath)), false);
+        assert.deepEqual(snapshotSqliteFileSet(databasePath), sourceBefore);
+        assert.equal(fs.existsSync(outputPath), false);
     } finally {
         fs.rmSync(root, { recursive: true, force: true });
     }
