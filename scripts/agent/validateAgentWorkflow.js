@@ -24,8 +24,8 @@ const checks = [
     ['scripts/agent/resumePortableWork.ps1', 24 * 1024, ['financasbot-portable-resume-v1', 'START-HERE.md', 'key_references', "['content_read'] = $false", 'installPortableWorkflow.js', 'installed_with_backup', "'fetch', '--prune'", 'Raiz efetiva']],
     ['scripts/agent/syncPortableRepository.ps1', 20 * 1024, ['PortableFinancasBotRoot', 'origin/$branch', 'financas-bot-handoff-', 'OPEN-THIS.json', 'A pasta antiga do SSD']],
     ['scripts/agent/Invoke-SafePortableHandoffAfterClose.ps1', 12 * 1024, ['Test-ExclusiveRead', 'preparePortableHandoff.ps1', 'Nenhum conteúdo privado do Codex foi copiado']],
-    ['scripts/agent/codexTelemetryCollector.js', 28 * 1024, ['127.0.0.1', 'SAFE_ATTRIBUTE_KEYS', 'collector_host_deve_ser_loopback', 'event_id']],
-    ['scripts/agent/Manage-CodexUsageTelemetry.ps1', 20 * 1024, ['log_user_prompt = false', '127.0.0.1:4318', 'before-financasbot-otel', '-WindowStyle Hidden']]
+    ['scripts/agent/codexTelemetryCollector.js', 40 * 1024, ['127.0.0.1', 'SAFE_ATTRIBUTE_KEYS', 'collector_host_deve_ser_loopback', 'objective-intervals.jsonl', 'resolvePhysicalPath', 'event_id']],
+    ['scripts/agent/Manage-CodexUsageTelemetry.ps1', 28 * 1024, ['log_user_prompt = false', '127.0.0.1:4318', 'before-financasbot-otel', '-WindowStyle Hidden', "'Uninstall'", 'storage-check', 'objective-intervals.jsonl']]
 ];
 
 const errors = [];

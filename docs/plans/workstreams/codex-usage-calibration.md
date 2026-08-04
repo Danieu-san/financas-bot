@@ -1,6 +1,6 @@
 # Plano - calibracao prospectiva de uso do Codex
 
-Status: `CODEX-USAGE-CAL-01 candidato local aguardando auditoria`.
+Status: `CODEX-USAGE-CAL-01 recovery candidato aguardando reauditoria`.
 
 ## Objetivo
 
@@ -46,8 +46,10 @@ roll-up por objetivo autorizado e sem conteudo de usuario ou ferramenta.
 2. [concluida] Implementar instalacao reversivel e configuracao segura.
 3. [concluida] Executar RED/focal e bateria causal.
 4. [concluida] Validar workflow e revisar o diff.
-5. [em andamento] Publicar candidato sanitizado e obter auditoria independente.
-6. [pendente] Ativar localmente e iniciar a calibracao `RX-HIST-SEG-01`.
+5. [concluida com NO-GO] Publicar candidato sanitizado e obter auditoria independente.
+6. [concluida] Corrigir privacidade, causalidade temporal, junction e rollback.
+7. [em andamento] Publicar recovery e obter nova auditoria independente.
+8. [pendente] Ativar objetivo e iniciar a calibracao `RX-HIST-SEG-01`.
 
 ## Criterios de GO
 
@@ -69,5 +71,5 @@ roll-up por objetivo autorizado e sem conteudo de usuario ou ferramenta.
 
 ## Proxima acao
 
-Concluir a bateria ampla do workflow, revisar o diff e publicar o candidato
-sanitizado para auditoria independente por hash imutavel.
+Concluir a bateria ampla do workflow, revisar o diff e publicar o recovery
+sanitizado para nova auditoria independente por hash imutavel.

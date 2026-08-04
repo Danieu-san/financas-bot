@@ -9,7 +9,7 @@ por objetivo aceito sem registrar conteudo privado.
 
 ## Estado
 
-`CODEX-USAGE-CAL-01 CANDIDATO LOCAL AGUARDANDO AUDITORIA`.
+`CODEX-USAGE-CAL-01 RECOVERY CANDIDATO AGUARDANDO REAUDITORIA`.
 
 A pesquisa documental confirmou que o Codex pode exportar telemetria OTel com
 identidade de conversa, modelo, effort, duracao, ferramentas, compactacoes,
@@ -22,13 +22,23 @@ instalada com backup e exige reinicio do Codex para a primeira observacao real.
 O coletor permanece local; nenhum evento sintetico vale como prova de emissao
 do processo Codex.
 
+O hash `682fd9546a9eeee1d15a4f6e15165b2a6e303cc9` recebeu NO-GO
+independente: strings allowlisted ainda podiam conservar identidade, o
+`event_id` dependia do objetivo vigente no recebimento, a atribuicao nao usava
+intervalos temporais, junctions nao eram resolvidos fisicamente e nao havia
+rollback executavel da configuracao.
+
 ## Evidencia local
 
 - RED inicial confirmou ausencia do modulo antes da implementacao;
-- 7 de 7 testes focais verdes;
+- 13 de 13 testes focais verdes no recovery;
 - syntax check de JavaScript e parse de PowerShell verdes;
 - instalacao temporaria provou backup, bloco OTel e prompt desligado;
 - listener operacional respondeu saudavel somente em loopback;
+- nove eventos OTel reais `codex.api_request`, todos nao atribuidos, com zero
+  identificador bruto e somente chaves sanitizadas;
+- instalacao real reconheceu o backup original sem reescrever a configuracao e
+  deixou rollback gerenciado disponivel;
 - workflow validator verde como bateria ampla final do candidato.
 
 ## Limites
@@ -43,10 +53,10 @@ do processo Codex.
 
 ## Proxima acao
 
-Executar a bateria ampla final, revisar o diff, publicar o hash imutavel e obter
-auditoria independente. Depois do GO, reiniciar o Codex e confirmar eventos
-reais antes de iniciar a primeira tarefa de calibracao.
+Concluir a bateria ampla final do recovery, revisar o diff, publicar novo hash
+imutavel e obter reauditoria independente. Somente depois do GO iniciar a
+primeira tarefa real de calibracao.
 
 ## Capacidade
 
-`Codex -> Sol -> Medio -> publicar e auditar o candidato local privado.`
+`Codex -> Sol -> Alto -> concluir e reauditar o recovery causal.`

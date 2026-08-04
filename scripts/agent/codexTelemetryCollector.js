@@ -8,15 +8,86 @@ const path = require('node:path');
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 4318;
 const DEFAULT_MAX_BODY_BYTES = 2 * 1024 * 1024;
-const SAFE_EVENT_NAME = /^codex\.[a-z0-9_.-]{1,120}$/i;
 const SAFE_IDENTIFIER = /^[a-zA-Z0-9_.:-]{1,128}$/;
+const SAFE_EVENT_NAMES = new Set([
+    'codex.unknown_log',
+    'codex.conversation_starts',
+    'codex.api_request',
+    'codex.api_request.duration_ms',
+    'codex.sse_event',
+    'codex.sse_event.duration_ms',
+    'codex.websocket_request',
+    'codex.websocket_event',
+    'codex.websocket.request',
+    'codex.websocket.request.duration_ms',
+    'codex.websocket.event',
+    'codex.websocket.event.duration_ms',
+    'codex.user_prompt',
+    'codex.tool_decision',
+    'codex.tool_result',
+    'codex.tool.call',
+    'codex.tool.call.duration_ms',
+    'codex.turn.e2e_duration_ms',
+    'codex.turn.tool.call',
+    'codex.turn.token_usage',
+    'codex.thread.started',
+    'codex.thread.fork',
+    'codex.thread.side',
+    'codex.conversation.turn.count',
+    'codex.task.compact',
+    'codex.multi_agent.spawn',
+    'codex.multi_agent.resume'
+]);
+const HASHED_ATTRIBUTE_KEYS = new Set([
+    'conversation.id',
+    'conversation_id',
+    'thread.id',
+    'thread_id',
+    'turn.id',
+    'turn_id',
+    'task.id',
+    'task_id'
+]);
+const NUMERIC_ATTRIBUTE_KEYS = new Set([
+    'duration_ms',
+    'attempt',
+    'status_code',
+    'input_token_count',
+    'cached_input_token_count',
+    'output_token_count',
+    'reasoning_output_token_count',
+    'total_token_count',
+    'input_tokens',
+    'cached_input_tokens',
+    'output_tokens',
+    'reasoning_output_tokens',
+    'total_tokens'
+]);
+const BOOLEAN_ATTRIBUTE_KEYS = new Set([
+    'success',
+    'tmp_mem_enabled',
+    'is_git',
+    'approved'
+]);
+const PUBLIC_MODEL_NAMES = new Set([
+    'gpt-5.6-sol',
+    'gpt-5.6-terra',
+    'gpt-5.4',
+    'gpt-5.3-codex',
+    'gpt-5.2-codex',
+    'gpt-5.1-codex',
+    'gpt-5-codex',
+    'gpt-5',
+    'o3',
+    'o4-mini',
+    'codex-mini-latest'
+]);
 const SAFE_ATTRIBUTE_KEYS = new Set([
     'service.name',
     'service.version',
     'deployment.environment.name',
     'app.version',
     'auth_mode',
-    'originator',
     'session_source',
     'model',
     'reasoning_effort',
@@ -38,15 +109,12 @@ const SAFE_ATTRIBUTE_KEYS = new Set([
     'tool',
     'token_type',
     'tmp_mem_enabled',
-    'role',
-    'source',
     'type',
     'is_git',
     'approved',
     'duration_ms',
     'attempt',
     'status_code',
-    'failure_reason',
     'input_token_count',
     'cached_input_token_count',
     'output_token_count',
@@ -58,6 +126,74 @@ const SAFE_ATTRIBUTE_KEYS = new Set([
     'reasoning_output_tokens',
     'total_tokens'
 ]);
+
+function hashOpaqueIdentifier(value) {
+    return `sha256:${crypto.createHash('sha256').update(value).digest('hex')}`;
+}
+
+function normalizeStringAttribute(key, value) {
+    if (HASHED_ATTRIBUTE_KEYS.has(key)) return hashOpaqueIdentifier(value);
+    if (key === 'service.name') return value === 'codex' ? value : undefined;
+    if (key === 'deployment.environment.name') {
+        return value === 'financasbot-local' ? value : undefined;
+    }
+    if (key === 'service.version' || key === 'app.version') {
+        return /^\d{1,4}(?:\.\d{1,4}){1,3}(?:-[a-z0-9.-]{1,32})?$/i.test(value)
+            ? value
+            : undefined;
+    }
+    if (key === 'model') {
+        return PUBLIC_MODEL_NAMES.has(value) ? value : 'other';
+    }
+    if (key === 'reasoning_effort' || key === 'model_reasoning_effort') {
+        return new Set(['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max', 'ultra']).has(value)
+            ? value
+            : 'other';
+    }
+    if (key === 'auth_mode') {
+        return new Set(['swic', 'api', 'unknown']).has(value) ? value : 'other';
+    }
+    if (key === 'session_source') {
+        return new Set(['cli', 'desktop', 'vscode', 'ide', 'remote', 'unknown']).has(value)
+            ? value
+            : 'other';
+    }
+    if (key === 'event.name' || key === 'event_name') {
+        return SAFE_EVENT_NAMES.has(value) ? value : undefined;
+    }
+    if (key === 'event.kind' || key === 'kind') {
+        return new Set([
+            'response.completed', 'response.failed', 'response.in_progress',
+            'completed', 'failed', 'error', 'message'
+        ]).has(value) ? value : 'other';
+    }
+    if (key === 'status') {
+        return /^(?:[1-5]\d\d|ok|success|failure|failed|error|denied|approved|aborted|pending|completed)$/i.test(value)
+            ? value.toLowerCase()
+            : 'other';
+    }
+    if (key === 'tool') {
+        return new Set([
+            'apply_patch', 'shell', 'shell_command', 'exec_command', 'web',
+            'browser', 'computer_use', 'mcp', 'view_image', 'image_generation',
+            'request_user_input'
+        ]).has(value) ? value : 'other';
+    }
+    if (key === 'token_type') {
+        return new Set(['total', 'input', 'cached_input', 'output', 'reasoning_output']).has(value)
+            ? value
+            : 'other';
+    }
+    if (key === 'type') {
+        return new Set(['remote', 'local', 'manual', 'auto']).has(value) ? value : 'other';
+    }
+    if (key === 'approved') {
+        return new Set([
+            'approved', 'approved_with_amendment', 'approved_for_session', 'denied', 'abort'
+        ]).has(value) ? value : 'other';
+    }
+    return undefined;
+}
 
 function parseScalar(value) {
     if (!value || typeof value !== 'object') return undefined;
@@ -74,10 +210,21 @@ function parseScalar(value) {
     return undefined;
 }
 
-function isSafeAttributeValue(key, value) {
-    if (typeof value === 'number' || typeof value === 'boolean') return true;
-    if (typeof value !== 'string') return false;
-    return SAFE_IDENTIFIER.test(value);
+function sanitizeAttributeValue(key, value) {
+    if (typeof value === 'number') {
+        if (!NUMERIC_ATTRIBUTE_KEYS.has(key) || !Number.isFinite(value) || value < 0) {
+            return undefined;
+        }
+        if (key === 'status_code') return value <= 599 ? value : undefined;
+        if (key === 'attempt') return value <= 100 ? value : undefined;
+        if (key === 'duration_ms') return value <= 604800000 ? value : undefined;
+        return value <= 10000000 ? value : undefined;
+    }
+    if (typeof value === 'boolean') {
+        return BOOLEAN_ATTRIBUTE_KEYS.has(key) ? value : undefined;
+    }
+    if (typeof value !== 'string') return undefined;
+    return normalizeStringAttribute(key, value);
 }
 
 function extractSafeAttributes(...attributeLists) {
@@ -88,8 +235,9 @@ function extractSafeAttributes(...attributeLists) {
             const key = typeof attribute?.key === 'string' ? attribute.key : '';
             if (!SAFE_ATTRIBUTE_KEYS.has(key)) continue;
             const value = parseScalar(attribute.value);
-            if (!isSafeAttributeValue(key, value)) continue;
-            output[key] = value;
+            const sanitized = sanitizeAttributeValue(key, value);
+            if (sanitized === undefined) continue;
+            output[key] = sanitized;
         }
     }
     return output;
@@ -107,6 +255,7 @@ function createEventId(record) {
     const identity = { ...record };
     delete identity.event_id;
     delete identity.received_at;
+    delete identity.objective_id;
     return crypto
         .createHash('sha256')
         .update(JSON.stringify(canonicalize(identity)))
@@ -115,12 +264,19 @@ function createEventId(record) {
 
 function safeEventName(body, attributes, fallback) {
     const fromAttributes = attributes['event.name'] || attributes.event_name;
-    if (typeof fromAttributes === 'string' && SAFE_EVENT_NAME.test(fromAttributes)) {
+    if (typeof fromAttributes === 'string' && SAFE_EVENT_NAMES.has(fromAttributes)) {
         return fromAttributes;
     }
     const fromBody = parseScalar(body);
-    if (typeof fromBody === 'string' && SAFE_EVENT_NAME.test(fromBody)) return fromBody;
+    if (typeof fromBody === 'string' && SAFE_EVENT_NAMES.has(fromBody)) return fromBody;
     return fallback;
+}
+
+function normalizeNanoTimestamp(value) {
+    const normalized = typeof value === 'number' ? String(value) : value;
+    return typeof normalized === 'string' && /^\d{1,30}$/.test(normalized)
+        ? normalized
+        : null;
 }
 
 function buildRecord({ kind, eventName, timestamp, attributes, value, objectiveId, receivedAt }) {
@@ -128,7 +284,7 @@ function buildRecord({ kind, eventName, timestamp, attributes, value, objectiveI
         schema_version: 1,
         telemetry_kind: kind,
         event_name: eventName,
-        observed_time_unix_nano: timestamp || null,
+        observed_time_unix_nano: normalizeNanoTimestamp(timestamp),
         objective_id: objectiveId || null,
         attributes: canonicalize(attributes),
         received_at: receivedAt
@@ -136,6 +292,13 @@ function buildRecord({ kind, eventName, timestamp, attributes, value, objectiveI
     if (value !== undefined) record.value = value;
     record.event_id = createEventId(record);
     return record;
+}
+
+function resolveObjectiveId(context, timestamp) {
+    if (typeof context.objectiveForTimestamp === 'function') {
+        return context.objectiveForTimestamp(normalizeNanoTimestamp(timestamp));
+    }
+    return context.objectiveId || null;
 }
 
 function extractMetricValue(point) {
@@ -169,7 +332,7 @@ function sanitizeLogs(payload, context) {
                     eventName,
                     timestamp: logRecord.timeUnixNano || logRecord.observedTimeUnixNano,
                     attributes,
-                    objectiveId: context.objectiveId,
+                    objectiveId: resolveObjectiveId(context, logRecord.timeUnixNano || logRecord.observedTimeUnixNano),
                     receivedAt: context.receivedAt
                 }));
             }
@@ -191,7 +354,7 @@ function sanitizeMetrics(payload, context) {
         const resourceAttributes = resourceMetric?.resource?.attributes;
         for (const scopeMetric of resourceMetric?.scopeMetrics || []) {
             for (const metric of scopeMetric?.metrics || []) {
-                if (!SAFE_EVENT_NAME.test(metric?.name || '')) continue;
+                if (!SAFE_EVENT_NAMES.has(metric?.name || '')) continue;
                 for (const point of metricDataPoints(metric)) {
                     const attributes = extractSafeAttributes(resourceAttributes, point.attributes);
                     records.push(buildRecord({
@@ -200,7 +363,7 @@ function sanitizeMetrics(payload, context) {
                         timestamp: point.timeUnixNano || point.startTimeUnixNano,
                         attributes,
                         value: extractMetricValue(point),
-                        objectiveId: context.objectiveId,
+                        objectiveId: resolveObjectiveId(context, point.timeUnixNano || point.startTimeUnixNano),
                         receivedAt: context.receivedAt
                     }));
                 }
@@ -230,6 +393,7 @@ function validateObjectiveState(state) {
         'status',
         'native_usage_status',
         'started_at',
+        'started_time_unix_nano',
         'stopped_at'
     ]);
     const sanitized = {};
@@ -262,15 +426,88 @@ function writeObjectiveState(statePath, state) {
     return sanitized;
 }
 
-function readObjectiveId(statePath) {
+function readObjectiveState(statePath) {
     try {
-        const state = validateObjectiveState(JSON.parse(fs.readFileSync(statePath, 'utf8')));
-        return state.status === 'active' && typeof state.objective_id === 'string'
-            ? state.objective_id
-            : null;
+        return validateObjectiveState(JSON.parse(fs.readFileSync(statePath, 'utf8')));
     } catch {
         return null;
     }
+}
+
+function validateObjectiveInterval(interval) {
+    if (!interval || typeof interval !== 'object' || Array.isArray(interval)) return null;
+    const objectiveId = interval.objective_id;
+    const started = normalizeNanoTimestamp(interval.started_time_unix_nano);
+    const stopped = normalizeNanoTimestamp(interval.stopped_time_unix_nano);
+    if (typeof objectiveId !== 'string' || !SAFE_IDENTIFIER.test(objectiveId)) return null;
+    if (!started || !stopped || BigInt(stopped) < BigInt(started)) return null;
+    return {
+        objective_id: objectiveId,
+        started_time_unix_nano: started,
+        stopped_time_unix_nano: stopped
+    };
+}
+
+function appendObjectiveInterval(intervalsPath, interval) {
+    const sanitized = validateObjectiveInterval(interval);
+    if (!sanitized) throw new TypeError('objective interval inseguro');
+    fs.mkdirSync(path.dirname(intervalsPath), { recursive: true });
+    fs.appendFileSync(intervalsPath, `${JSON.stringify(sanitized)}\n`, {
+        encoding: 'utf8',
+        mode: 0o600
+    });
+    return sanitized;
+}
+
+function readObjectiveIntervals(intervalsPath) {
+    const intervals = [];
+    if (!fs.existsSync(intervalsPath)) return intervals;
+    for (const line of fs.readFileSync(intervalsPath, 'utf8').split(/\r?\n/)) {
+        if (!line) continue;
+        try {
+            const parsed = validateObjectiveInterval(JSON.parse(line));
+            if (parsed) intervals.push(parsed);
+        } catch {
+            // Invalid local state fails closed and is not attributed.
+        }
+    }
+    return intervals;
+}
+
+function matchingClosedInterval(state, intervals) {
+    if (state?.status !== 'active' ||
+        typeof state.objective_id !== 'string' ||
+        !normalizeNanoTimestamp(state.started_time_unix_nano)) {
+        return null;
+    }
+    return intervals.find(interval =>
+        interval.objective_id === state.objective_id &&
+        interval.started_time_unix_nano === state.started_time_unix_nano
+    ) || null;
+}
+
+function readObjectiveIdAt(statePath, intervalsPath, timestamp) {
+    const normalizedTimestamp = normalizeNanoTimestamp(timestamp);
+    if (!normalizedTimestamp) return null;
+    const instant = BigInt(normalizedTimestamp);
+    const candidates = new Set();
+    const active = readObjectiveState(statePath);
+    const intervals = readObjectiveIntervals(intervalsPath);
+    const activeAlreadyClosed = matchingClosedInterval(active, intervals);
+    if (active?.status === 'active' &&
+        !activeAlreadyClosed &&
+        typeof active.objective_id === 'string' &&
+        normalizeNanoTimestamp(active.started_time_unix_nano) &&
+        BigInt(active.started_time_unix_nano) <= instant) {
+        candidates.add(active.objective_id);
+    }
+    for (const interval of intervals) {
+        if (BigInt(interval.started_time_unix_nano) <= instant &&
+            instant <= BigInt(interval.stopped_time_unix_nano)) {
+            candidates.add(interval.objective_id);
+        }
+    }
+    return candidates.size === 1 ? [...candidates][0] : null;
 }
 
 function isLoopback(address) {
@@ -330,6 +567,9 @@ function createCollector(options = {}) {
     const port = Number.isInteger(options.port) ? options.port : DEFAULT_PORT;
     const outputPath = path.resolve(options.outputPath);
     const statePath = path.resolve(options.statePath);
+    const intervalsPath = path.resolve(
+        options.intervalsPath || path.join(path.dirname(statePath), 'objective-intervals.jsonl')
+    );
     const maxBodyBytes = options.maxBodyBytes || DEFAULT_MAX_BODY_BYTES;
     const knownEventIds = loadKnownEventIds(outputPath);
     let server;
@@ -374,7 +614,11 @@ function createCollector(options = {}) {
             const payload = await readJsonBody(request, maxBodyBytes);
             const records = sanitizeOtlpEnvelope(payload, {
                 kind,
-                objectiveId: readObjectiveId(statePath),
+                objectiveForTimestamp: timestamp => readObjectiveIdAt(
+                    statePath,
+                    intervalsPath,
+                    timestamp
+                ),
                 receivedAt: new Date().toISOString()
             });
             persist(records);
@@ -408,6 +652,8 @@ function createCollector(options = {}) {
 }
 
 module.exports = {
+    appendObjectiveInterval,
+    assertOutsideRepository,
     createCollector,
     createEventId,
     sanitizeOtlpEnvelope,
@@ -438,12 +684,29 @@ function localStorageRoot() {
     return path.join(base, 'FinancasBot', 'codex-usage-calibration');
 }
 
+function resolvePhysicalPath(candidatePath) {
+    let existing = path.resolve(candidatePath);
+    const suffix = [];
+    while (!fs.existsSync(existing)) {
+        const parent = path.dirname(existing);
+        if (parent === existing) break;
+        suffix.unshift(path.basename(existing));
+        existing = parent;
+    }
+    const physicalBase = fs.realpathSync.native(existing);
+    return path.resolve(physicalBase, ...suffix);
+}
+
 function assertOutsideRepository(...candidatePaths) {
-    const repositoryRoot = path.resolve(__dirname, '..', '..');
-    const repositoryPrefix = `${repositoryRoot}${path.sep}`.toLowerCase();
+    const repositoryRoot = resolvePhysicalPath(path.resolve(__dirname, '..', '..'));
+    const normalizeForComparison = value => process.platform === 'win32'
+        ? value.toLowerCase()
+        : value;
+    const comparableRoot = normalizeForComparison(repositoryRoot);
+    const repositoryPrefix = `${comparableRoot}${path.sep}`;
     for (const candidatePath of candidatePaths) {
-        const absolute = path.resolve(candidatePath).toLowerCase();
-        if (absolute === repositoryRoot.toLowerCase() || absolute.startsWith(repositoryPrefix)) {
+        const physical = normalizeForComparison(resolvePhysicalPath(candidatePath));
+        if (physical === comparableRoot || physical.startsWith(repositoryPrefix)) {
             throw new Error('telemetry_storage_deve_ficar_fora_do_repositorio');
         }
     }
@@ -451,8 +714,19 @@ function assertOutsideRepository(...candidatePaths) {
 
 function objectiveCommand(subcommand, values) {
     const statePath = path.resolve(values.state || path.join(localStorageRoot(), 'active-objective.json'));
+    const intervalsPath = path.resolve(
+        values.intervals || path.join(path.dirname(statePath), 'objective-intervals.jsonl')
+    );
     const timestamp = new Date().toISOString();
+    const timestampNano = (BigInt(Date.now()) * 1000000n).toString();
     if (subcommand === 'start') {
+        const previous = readObjectiveState(statePath);
+        const intervals = readObjectiveIntervals(intervalsPath);
+        if (previous?.status === 'active' &&
+            previous.objective_id &&
+            !matchingClosedInterval(previous, intervals)) {
+            throw new Error('objective_ja_ativo');
+        }
         const state = writeObjectiveState(statePath, {
             objective_id: values['objective-id'],
             category: values.category,
@@ -460,12 +734,30 @@ function objectiveCommand(subcommand, values) {
             authorized_outcome_scope: values['authorized-outcome-scope'],
             status: 'active',
             native_usage_status: 'PENDING_OTEL_OBSERVATION',
-            started_at: timestamp
+            started_at: timestamp,
+            started_time_unix_nano: timestampNano
         });
         process.stdout.write(`${JSON.stringify({ ok: true, state })}\n`);
         return;
     }
     if (subcommand === 'stop') {
+        const previous = readObjectiveState(statePath);
+        if (previous?.status !== 'active' ||
+            typeof previous.objective_id !== 'string' ||
+            !normalizeNanoTimestamp(previous.started_time_unix_nano)) {
+            throw new Error('objective_ativo_ausente');
+        }
+        const existingClosed = matchingClosedInterval(
+            previous,
+            readObjectiveIntervals(intervalsPath)
+        );
+        if (!existingClosed) {
+            appendObjectiveInterval(intervalsPath, {
+                objective_id: previous.objective_id,
+                started_time_unix_nano: previous.started_time_unix_nano,
+                stopped_time_unix_nano: timestampNano
+            });
+        }
         const state = writeObjectiveState(statePath, {
             objective_id: null,
             status: 'stopped',
@@ -512,12 +804,21 @@ function summarize(outputPath) {
 
 async function runCli() {
     const { command, subcommand, values } = parseArguments(process.argv.slice(2));
+    if (command === 'storage-check') {
+        if (typeof values.path !== 'string') throw new Error('storage_path_ausente');
+        assertOutsideRepository(values.path);
+        process.stdout.write(`${JSON.stringify({ ok: true })}\n`);
+        return;
+    }
     const root = localStorageRoot();
     const outputPath = path.resolve(values.output || path.join(root, 'events.jsonl'));
     const statePath = path.resolve(values.state || path.join(root, 'active-objective.json'));
-    assertOutsideRepository(outputPath, statePath);
+    const intervalsPath = path.resolve(
+        values.intervals || path.join(path.dirname(statePath), 'objective-intervals.jsonl')
+    );
+    assertOutsideRepository(outputPath, statePath, intervalsPath);
     if (command === 'objective') {
-        objectiveCommand(subcommand, values);
+        objectiveCommand(subcommand, { ...values, intervals: intervalsPath });
         return;
     }
     if (command === 'summary') {
@@ -532,6 +833,7 @@ async function runCli() {
         port: values.port ? Number(values.port) : DEFAULT_PORT,
         outputPath,
         statePath,
+        intervalsPath,
         maxBodyBytes: values['max-body-bytes']
             ? Number(values['max-body-bytes'])
             : DEFAULT_MAX_BODY_BYTES

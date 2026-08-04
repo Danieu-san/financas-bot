@@ -8,7 +8,9 @@ const { spawnSync } = require('node:child_process');
 const test = require('node:test');
 
 const {
+    assertOutsideRepository,
     createCollector,
+    createEventId,
     sanitizeOtlpEnvelope,
     writeObjectiveState
 } = require('../scripts/agent/codexTelemetryCollector');
@@ -45,7 +47,9 @@ function logEnvelope() {
                         attribute('tool.output', 'token=privado'),
                         attribute('message', 'conteudo pessoal'),
                         attribute('failure_reason', 'C:/Users/Daniel/.ssh/id_ed25519'),
-                        attribute('source', 'daniel@example.com')
+                        attribute('source', 'daniel@example.com'),
+                        attribute('originator', 'Daniel'),
+                        attribute('failure_reason', 'SegredoFinanceiro')
                     ]
                 }]
             }]
@@ -64,7 +68,7 @@ test('sanitizacao conserva metadados e elimina conteudo sensivel em qualquer cam
     const [record] = records;
     assert.equal(record.objective_id, 'RX-HIST-SEG-01');
     assert.equal(record.event_name, 'codex.sse_event');
-    assert.equal(record.attributes['conversation.id'], 'conv-123');
+    assert.match(record.attributes['conversation.id'], /^sha256:[a-f0-9]{64}$/);
     assert.equal(record.attributes.model, 'gpt-5.6-sol');
     assert.equal(record.attributes.model_reasoning_effort, 'medium');
     assert.equal(record.attributes.input_token_count, 120);
@@ -82,10 +86,76 @@ test('sanitizacao conserva metadados e elimina conteudo sensivel em qualquer cam
         'tool.output'
         ,'C:/Users/Daniel/.ssh/id_ed25519'
         ,'daniel@example.com'
+        ,'Daniel'
+        ,'SegredoFinanceiro'
+        ,'conv-123'
     ]) {
         assert.equal(serialized.includes(forbidden), false, forbidden);
     }
     assert.match(record.event_id, /^[a-f0-9]{64}$/);
+});
+
+test('event_id ignora objetivo de recebimento para deduplicar retransmissao tardia', () => {
+    const base = {
+        schema_version: 1,
+        telemetry_kind: 'logs',
+        event_name: 'codex.sse_event',
+        observed_time_unix_nano: '150',
+        attributes: { kind: 'response.completed' },
+        received_at: '2026-08-03T21:00:00.000Z'
+    };
+    assert.equal(
+        createEventId({ ...base, objective_id: 'OBJ-A' }),
+        createEventId({ ...base, objective_id: 'OBJ-B' })
+    );
+});
+
+test('evento atrasado usa intervalo temporal e nao o objetivo ativo no recebimento', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-temporal-test-'));
+    const outputPath = path.join(root, 'events.jsonl');
+    const statePath = path.join(root, 'active-objective.json');
+    const intervalsPath = path.join(root, 'objective-intervals.jsonl');
+    writeObjectiveState(statePath, {
+        objective_id: 'OBJ-B',
+        status: 'active',
+        started_time_unix_nano: '300',
+        started_at: '1970-01-01T00:00:00.000Z'
+    });
+    fs.writeFileSync(intervalsPath, `${JSON.stringify({
+        objective_id: 'OBJ-A',
+        started_time_unix_nano: '100',
+        stopped_time_unix_nano: '200'
+    })}\n`, 'utf8');
+    const payload = logEnvelope();
+    payload.resourceLogs[0].scopeLogs[0].logRecords[0].timeUnixNano = '150';
+
+    const collector = createCollector({
+        host: '127.0.0.1',
+        port: 0,
+        outputPath,
+        statePath,
+        intervalsPath
+    });
+    await collector.start();
+    const endpoint = `http://127.0.0.1:${collector.address().port}/v1/logs`;
+    try {
+        assert.equal((await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(payload)
+        })).status, 200);
+        assert.equal((await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(payload)
+        })).status, 200);
+    } finally {
+        await collector.stop();
+    }
+
+    const records = fs.readFileSync(outputPath, 'utf8').trim().split(/\r?\n/).map(JSON.parse);
+    assert.equal(records.length, 1);
+    assert.equal(records[0].objective_id, 'OBJ-A');
 });
 
 test('metricas preservam contagens numericas sem dimensoes nao autorizadas', () => {
@@ -124,6 +194,62 @@ test('metricas preservam contagens numericas sem dimensoes nao autorizadas', () 
     assert.equal(JSON.stringify(record).includes('private@example.com'), false);
 });
 
+test('valores tecnicos desconhecidos viram categoria neutra sem conservar o texto', () => {
+    const payload = logEnvelope();
+    payload.resourceLogs[0].scopeLogs[0].logRecords[0].attributes.push(
+        attribute('model', 'gpt-5-DanielPrivado'),
+        attribute('tool', 'FerramentaSecreta'),
+        attribute('status', 'ContaPessoal')
+    );
+    const [record] = sanitizeOtlpEnvelope(payload, {
+        kind: 'logs',
+        objectiveId: 'OBJ-A',
+        receivedAt: '2026-08-03T21:00:00.000Z'
+    });
+    assert.equal(record.attributes.model, 'other');
+    assert.equal(record.attributes.tool, 'other');
+    assert.equal(record.attributes.status, 'other');
+    const serialized = JSON.stringify(record);
+    assert.equal(serialized.includes('DanielPrivado'), false);
+    assert.equal(serialized.includes('FerramentaSecreta'), false);
+    assert.equal(serialized.includes('ContaPessoal'), false);
+});
+
+test('intervalo terminal reconcilia estado ativo obsoleto e falha fechado fora da janela', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-crash-window-test-'));
+    const outputPath = path.join(root, 'events.jsonl');
+    const statePath = path.join(root, 'active-objective.json');
+    const intervalsPath = path.join(root, 'objective-intervals.jsonl');
+    writeObjectiveState(statePath, {
+        objective_id: 'OBJ-A',
+        status: 'active',
+        started_time_unix_nano: '100'
+    });
+    fs.writeFileSync(intervalsPath, `${JSON.stringify({
+        objective_id: 'OBJ-A',
+        started_time_unix_nano: '100',
+        stopped_time_unix_nano: '200'
+    })}\n`, 'utf8');
+    const payload = logEnvelope();
+    payload.resourceLogs[0].scopeLogs[0].logRecords[0].timeUnixNano = '250';
+    const collector = createCollector({
+        host: '127.0.0.1', port: 0, outputPath, statePath, intervalsPath
+    });
+    await collector.start();
+    try {
+        const response = await fetch(`http://127.0.0.1:${collector.address().port}/v1/logs`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        assert.equal(response.status, 200);
+    } finally {
+        await collector.stop();
+    }
+    const [record] = fs.readFileSync(outputPath, 'utf8').trim().split(/\r?\n/).map(JSON.parse);
+    assert.equal(record.objective_id, null);
+});
+
 test('receptor local persiste uma vez, rejeita payload grande e nao guarda corpo bruto', async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-otel-test-'));
     const outputPath = path.join(root, 'events.jsonl');
@@ -133,7 +259,8 @@ test('receptor local persiste uma vez, rejeita payload grande e nao guarda corpo
         category: 'mudanca_transversal',
         risk: 'alto',
         authorized_outcome_scope: 'preview_sem_escrita',
-        status: 'active'
+        status: 'active',
+        started_time_unix_nano: '1'
     });
 
     const collector = createCollector({
@@ -172,6 +299,28 @@ test('receptor local persiste uma vez, rejeita payload grande e nao guarda corpo
         await collector.stop();
     }
 
+    const restarted = createCollector({
+        host: '127.0.0.1',
+        port: 0,
+        outputPath,
+        statePath,
+        maxBodyBytes: 16 * 1024
+    });
+    await restarted.start();
+    try {
+        const replayAfterRestart = await fetch(
+            `http://127.0.0.1:${restarted.address().port}/v1/logs`,
+            {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify(logEnvelope())
+            }
+        );
+        assert.equal(replayAfterRestart.status, 200);
+    } finally {
+        await restarted.stop();
+    }
+
     const lines = fs.readFileSync(outputPath, 'utf8').trim().split(/\r?\n/);
     assert.equal(lines.length, 1);
     assert.equal(lines[0].includes('SEGREDO FINANCEIRO'), false);
@@ -195,6 +344,14 @@ test('listener recusa bind nao loopback e CLI recusa armazenamento dentro do rep
     ], { encoding: 'utf8' });
     assert.notEqual(rejected.status, 0);
     assert.match(rejected.stderr, /fora_do_repositorio/);
+
+    const junctionRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-junction-test-'));
+    const junction = path.join(junctionRoot, 'repo-link');
+    fs.symlinkSync(path.resolve(__dirname, '..'), junction, 'junction');
+    assert.throws(
+        () => assertOutsideRepository(path.join(junction, 'events.jsonl')),
+        /fora_do_repositorio/
+    );
 });
 
 test('objective stop impede atribuicao posterior sem transformar ausencia em zero', () => {
@@ -249,6 +406,12 @@ test('CLI inicia e encerra objetivo sem aceitar texto livre inseguro', () => {
     ], { encoding: 'utf8' });
     assert.equal(stopped.status, 0, stopped.stderr);
     assert.equal(JSON.parse(fs.readFileSync(statePath, 'utf8')).objective_id, null);
+    const intervalsPath = path.join(root, 'objective-intervals.jsonl');
+    const intervals = fs.readFileSync(intervalsPath, 'utf8').trim().split(/\r?\n/).map(JSON.parse);
+    assert.equal(intervals.length, 1);
+    assert.equal(intervals[0].objective_id, 'RX-HIST-SEG-01');
+    assert.match(intervals[0].started_time_unix_nano, /^\d+$/);
+    assert.match(intervals[0].stopped_time_unix_nano, /^\d+$/);
 });
 
 test('instalador fixa loopback, JSON, prompt desligado e backup sem segredo embutido', () => {
@@ -260,4 +423,48 @@ test('instalador fixa loopback, JSON, prompt desligado e backup sem segredo embu
     assert.match(installer, /Copy-Item -LiteralPath \$configPath -Destination \$backupPath/);
     assert.match(installer, /Start-Process[^\n]+-WindowStyle Hidden/);
     assert.doesNotMatch(installer, /BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY|gh[opsu]_|sk-/);
+});
+
+test('instalador executa install e uninstall restaurando bytes preexistentes', {
+    skip: process.platform !== 'win32'
+}, () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-installer-test-'));
+    const configPath = path.join(root, 'config.toml');
+    const storagePath = path.join(root, 'telemetry');
+    const original = Buffer.from('[features]\napps = true\n', 'utf8');
+    fs.writeFileSync(configPath, original);
+    const installerPath = path.resolve(__dirname, '..', 'scripts', 'agent', 'Manage-CodexUsageTelemetry.ps1');
+    const common = [
+        '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', installerPath,
+        '-CodexConfigPath', configPath,
+        '-TelemetryStorageRoot', storagePath
+    ];
+    const installed = spawnSync('powershell.exe', [...common, '-Action', 'Install'], { encoding: 'utf8' });
+    assert.equal(installed.status, 0, installed.stderr);
+    assert.match(fs.readFileSync(configPath, 'utf8'), /\[otel\]/);
+
+    const uninstalled = spawnSync('powershell.exe', [...common, '-Action', 'Uninstall'], { encoding: 'utf8' });
+    assert.equal(uninstalled.status, 0, uninstalled.stderr);
+    assert.deepEqual(fs.readFileSync(configPath), original);
+});
+
+test('uninstall recusa configuracao alterada e preserva o arquivo atual', {
+    skip: process.platform !== 'win32'
+}, () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-uninstall-guard-'));
+    const configPath = path.join(root, 'config.toml');
+    const storagePath = path.join(root, 'telemetry');
+    fs.writeFileSync(configPath, '[features]\napps = true\n', 'utf8');
+    const installerPath = path.resolve(__dirname, '..', 'scripts', 'agent', 'Manage-CodexUsageTelemetry.ps1');
+    const common = [
+        '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', installerPath,
+        '-CodexConfigPath', configPath,
+        '-TelemetryStorageRoot', storagePath
+    ];
+    assert.equal(spawnSync('powershell.exe', [...common, '-Action', 'Install']).status, 0);
+    fs.appendFileSync(configPath, '\n# alteracao posterior\n', 'utf8');
+    const before = fs.readFileSync(configPath);
+    const rejected = spawnSync('powershell.exe', [...common, '-Action', 'Uninstall'], { encoding: 'utf8' });
+    assert.notEqual(rejected.status, 0);
+    assert.deepEqual(fs.readFileSync(configPath), before);
 });
