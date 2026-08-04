@@ -9,7 +9,7 @@ por objetivo aceito sem registrar conteudo privado.
 
 ## Estado
 
-`CODEX-USAGE-CAL-01 PROVA DE ADOPTION CANDIDATA AGUARDANDO REAUDITORIA`.
+`CODEX-USAGE-CAL-01 GO TECNICO LOCAL; CALIBRACAO PROSPECTIVA AUTORIZADA`.
 
 A pesquisa documental confirmou que o Codex pode exportar telemetria OTel com
 identidade de conversa, modelo, effort, duracao, ferramentas, compactacoes,
@@ -38,6 +38,11 @@ O segundo recovery `ee3cff39c212a69c7c62231a5f7551c9fdb5da65`
 recebeu NO-GO somente por ausencia de prova executavel da trilha
 `adopted_existing`. O codigo de produto nao foi alterado: dois testes agora
 acionam o manager real e cobrem a adocao positiva e a recusa binaria por BOM.
+
+O candidato probatorio `da331b83c4100bd79a0b434d93d20e7785b08967`
+recebeu GO tecnico local independente. O auditor leu integralmente manifesto,
+manager e testes no hash, classificou as duas provas como suficientes e nao
+identificou achado nem lacuna indispensavel residual.
 
 ## Evidencia local
 
@@ -68,10 +73,10 @@ acionam o manager real e cobrem a adocao positiva e a recusa binaria por BOM.
 
 ## Proxima acao
 
-Revisar e publicar o candidato de prova de adoption em hash imutavel e obter
-reauditoria independente. Somente depois do GO iniciar a primeira tarefa real
-de calibracao.
+Ativar o objetivo `RX-HIST-SEG-01` no coletor ja instalado e executar o recorte
+historico segmentado como primeira tarefa real da calibracao, sem escrita em
+planilha ou producao.
 
 ## Capacidade
 
-`Codex -> Sol -> Medio -> publicar e reauditar a prova causal de adoption.`
+`Codex -> Sol -> Alto -> iniciar RX-HIST-SEG-01 com objetivo ativo.`
