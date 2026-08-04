@@ -10,7 +10,7 @@ financeira.
 
 ## Estado
 
-`RX-HIST-TIME-INV-01 GO TECNICO LOCAL SUBSTANTIVO; FECHAMENTO DOCUMENTAL PENDENTE`.
+`RX-HIST-TIME-INV-01 PREVIA PRIVADA CONCLUIDA; TRES BLOCKERS PENDENTES`.
 
 O `GO TECNICO LOCAL` anterior de `RX-HIST-SEG-01`, no hash
 `62ec19532f1e4d288efa7c3fb75291540358fdd5`, continua valido para o contrato
@@ -89,6 +89,14 @@ dizia, incorretamente, que a suite final estava pendente, apesar de a evidencia
 verde ja constar no mesmo arquivo. O recovery atual e exclusivamente
 documental; nao altera codigo, testes ou evidencias.
 
+O fechamento documental no hash
+`6042cfcd012e5a6010428aed8e026c63493e2d0f` foi confirmado
+independentemente e autorizou uma unica nova previa. A execucao concluiu com
+relatorio agregado e `NO_GO` controlado: inventario 5+4 validado, SQLite
+inalterado e zero escrita. Permanecem tres blockers: identidade ambigua de
+parcela, historico de investimento sem ligacao a posicao e inicio desconhecido
+da poupanca Itau. Nenhum dado financeiro privado foi levado ao Git.
+
 ## Contrato temporal
 
 - inicio do RX historico: `2025-07-01`;
@@ -152,10 +160,12 @@ desconhecido, nunca inferido nem zerado.
 
 ## Proxima acao
 
-Publicar e confirmar o fechamento documental por hash imutavel. Somente a
-confirmacao explicita permite reexecutar a previa read-only. Planilha, escrita
-financeira, deploy e producao continuam fora do alcance.
+Resolver cada blocker por evidencia propria, sem inferir ausencia. Primeiro,
+confirmar a data de existencia da poupanca Itau; depois investigar se o
+provedor oferece ligacao de movimentos a posicoes e preparar a revisao humana
+da parcela ambigua. Planilha, escrita financeira, deploy e producao continuam
+fora do alcance.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> confirmar o fechamento documental e reexecutar a previa read-only.`
+`Codex -> Sol -> Medio -> levantar a evidencia minima para os tres blockers do RX.`

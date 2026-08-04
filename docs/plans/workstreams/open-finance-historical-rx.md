@@ -1,6 +1,6 @@
 # Plano - RX historico segmentado Open Finance
 
-Status: `GO tecnico local substantivo; fechamento documental pendente`.
+Status: `previa privada concluida; tres blockers pendentes`.
 
 ## Objetivo
 
@@ -50,10 +50,15 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
     identidade ambigua de parcela, com copia SQLite inalterada.
 15. [concluida] Modelar ambiguidade sem deduplicar nem somar silenciosamente,
     testar, publicar e obter GO tecnico local substantivo.
-16. [em andamento] Corrigir o estado documental obsoleto e confirmar o alcance
+16. [concluida] Corrigir o estado documental obsoleto e confirmar o alcance
     autorizado em novo hash, sem repetir testes.
-17. [pendente] Reexecutar a previa privada somente apos confirmacao explicita.
-18. [pendente] Em gate operacional separado, avisar os dois usuarios sobre
+17. [concluida] Reexecutar a previa privada apos confirmacao explicita; relatorio
+    criado com NO_GO controlado, SQLite inalterado e zero escrita.
+18. [pendente] Confirmar por evidencia a existencia da poupanca Itau no inicio
+    historico ou manter `account_start_unknown`.
+19. [pendente] Verificar se o provedor oferece ligacao confiavel entre movimentos
+    e posicoes de investimento; descricao nunca vira evidencia.
+20. [pendente] Em gate operacional separado, avisar os dois usuarios sobre
     movimentos ambiguos e oferecer revisao/salvamento numerados; nunca usar
     `sim` generico para multiplas opcoes nem salvar automaticamente.
 
@@ -86,6 +91,6 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 
 ## Proxima acao
 
-Publicar e confirmar o fechamento documental, sem repetir testes. O inicio da
-poupanca e o historico individual das Caixinhas permanecem desconhecidos ate
-existir fonte confirmada.
+Resolver os tres blockers com evidencias independentes. O inicio da poupanca e
+o historico individual das Caixinhas permanecem desconhecidos ate existir
+fonte confirmada.
