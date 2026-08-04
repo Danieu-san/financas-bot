@@ -27,7 +27,12 @@ const EXPECTED_SKIPPED_TESTS = Object.freeze([
     'functional: expenses, income and credit card installments',
     'functional: goals, debts, payments and reminders',
     'functional: analytics, deletion, admin and fallback',
-    'functional: complex analytics handles typos, counts, duplicates and min/max'
+    'functional: complex analytics handles typos, counts, duplicates and min/max',
+    'instalador executa install e uninstall restaurando bytes preexistentes',
+    'install adota bloco existente e preserva integralmente os bytes atuais',
+    'install recusa adocao quando backup diverge apenas por BOM sem mutar config',
+    'uninstall recusa configuracao alterada e preserva o arquivo atual',
+    'uninstall recusa divergencia somente de BOM e preserva bytes atuais'
 ]);
 const SAFE_ENVIRONMENT_KEYS = Object.freeze([
     'CI',

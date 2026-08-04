@@ -137,7 +137,13 @@ test('coverage runner fails closed for new or missing skipped tests', () => {
         skippedTests: [],
         expectedSkippedTests: []
     }).reasons.includes('unexpected_todo_tests'));
-    assert.strictEqual(EXPECTED_SKIPPED_TESTS.length, 5);
+    assert.strictEqual(EXPECTED_SKIPPED_TESTS.length, 10);
+    assert.ok(EXPECTED_SKIPPED_TESTS.includes(
+        'instalador executa install e uninstall restaurando bytes preexistentes'
+    ));
+    assert.ok(EXPECTED_SKIPPED_TESTS.includes(
+        'uninstall recusa divergencia somente de BOM e preserva bytes atuais'
+    ));
 });
 
 test('coverage runner scrubs credentials and propagates network blocking to Node descendants', () => {

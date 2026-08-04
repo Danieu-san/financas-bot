@@ -7,6 +7,9 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const test = require('node:test');
 
+const skipPowerShellIntegration = process.platform !== 'win32'
+    || process.env.EXHAUSTIVE_NETWORK_TRIPWIRE_ACTIVE === 'true';
+
 const {
     assertOutsideRepository,
     createCollector,
@@ -472,7 +475,7 @@ test('instalador fixa loopback, JSON, prompt desligado e backup sem segredo embu
 });
 
 test('instalador executa install e uninstall restaurando bytes preexistentes', {
-    skip: process.platform !== 'win32'
+    skip: skipPowerShellIntegration
 }, () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-installer-test-'));
     const configPath = path.join(root, 'config.toml');
@@ -495,7 +498,7 @@ test('instalador executa install e uninstall restaurando bytes preexistentes', {
 });
 
 test('install adota bloco existente e preserva integralmente os bytes atuais', {
-    skip: process.platform !== 'win32'
+    skip: skipPowerShellIntegration
 }, () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-install-adopt-'));
     const configPath = path.join(root, 'config.toml');
@@ -526,7 +529,7 @@ test('install adota bloco existente e preserva integralmente os bytes atuais', {
 });
 
 test('install recusa adocao quando backup diverge apenas por BOM sem mutar config', {
-    skip: process.platform !== 'win32'
+    skip: skipPowerShellIntegration
 }, () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-install-adopt-bom-'));
     const configPath = path.join(root, 'config.toml');
@@ -558,7 +561,7 @@ test('install recusa adocao quando backup diverge apenas por BOM sem mutar confi
 });
 
 test('uninstall recusa configuracao alterada e preserva o arquivo atual', {
-    skip: process.platform !== 'win32'
+    skip: skipPowerShellIntegration
 }, () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-uninstall-guard-'));
     const configPath = path.join(root, 'config.toml');
@@ -579,7 +582,7 @@ test('uninstall recusa configuracao alterada e preserva o arquivo atual', {
 });
 
 test('uninstall recusa divergencia somente de BOM e preserva bytes atuais', {
-    skip: process.platform !== 'win32'
+    skip: skipPowerShellIntegration
 }, () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-uninstall-bom-'));
     const configPath = path.join(root, 'config.toml');
