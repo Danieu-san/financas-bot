@@ -10,7 +10,7 @@ financeira.
 
 ## Estado
 
-`RX-HIST-TIME-INV-01 RECOVERY DO FILTRO CANDIDATO; REAUDITORIA INDEPENDENTE PENDENTE`.
+`RX-HIST-TIME-INV-01 GO TECNICO LOCAL; PREVIA PRIVADA READ-ONLY AUTORIZADA`.
 
 O `GO TECNICO LOCAL` anterior de `RX-HIST-SEG-01`, no hash
 `62ec19532f1e4d288efa7c3fb75291540358fdd5`, continua valido para o contrato
@@ -65,6 +65,13 @@ por uma unica lacuna: o filtro de `operation_type` por substring aceitava o
 falso positivo `NAO_APLICAVEL`. O recovery ancora rotulos financeiros
 positivos e adiciona esse valor como caso adversarial, sem alterar inventario,
 lifecycle, segmentacao ou bloqueadores.
+
+O recovery, no hash
+`bce32c50de6026fc81a3a310577ec70f401423e0`, recebeu `GO TECNICO LOCAL`
+independente. O auditor confirmou a leitura integral do manifesto, produto e
+testes, o fechamento do falso positivo, a preservacao dos rotulos validos e a
+ausencia de regressao causal ou lacuna indispensavel residual. Fica autorizada
+somente uma previa read-only na copia privada.
 
 ## Contrato temporal
 
@@ -129,11 +136,10 @@ desconhecido, nunca inferido nem zerado.
 
 ## Proxima acao
 
-Publicar o recovery e obter reauditoria independente por hash imutavel.
-Somente depois de `GO TECNICO LOCAL` reexecutar uma unica previa read-only na
-copia privada. Planilha, escrita financeira, deploy e producao continuam fora
-do alcance.
+Reexecutar uma unica previa read-only na copia privada, com lifecycle por conta
+e inventario canonico de nove segmentos. Planilha, escrita financeira, deploy
+e producao continuam fora do alcance.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> publicar e reauditar o recovery do filtro.`
+`Codex -> Sol -> Alto -> executar e interpretar a previa privada read-only.`

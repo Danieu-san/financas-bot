@@ -1,6 +1,6 @@
 # Plano - RX historico segmentado Open Finance
 
-Status: `recovery do filtro candidato; reauditoria independente pendente`.
+Status: `GO tecnico local; previa privada read-only autorizada`.
 
 ## Objetivo
 
@@ -45,8 +45,8 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
     relatorio por inventario real maior que o contrato canonico.
 12. [concluida] Corrigir o contrato para cinco contas bancarias e quatro cartoes,
     mantendo corrente, poupanca e cartao Itau separados.
-13. [em andamento] Testar, publicar e reauditar o contrato sucessor.
-14. [pendente] Reexecutar uma unica previa privada read-only.
+13. [concluida] Testar, publicar e reauditar o contrato sucessor.
+14. [em andamento] Reexecutar uma unica previa privada read-only.
 
 ## Criterios de GO
 
@@ -77,6 +77,6 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 
 ## Proxima acao
 
-Publicar o recovery sanitizado e obter reauditoria independente antes de reabrir
-a copia privada. O inicio da poupanca e o historico individual das Caixinhas
-permanecem desconhecidos ate existir fonte confirmada.
+Executar uma unica previa read-only na copia privada. O inicio da poupanca e o
+historico individual das Caixinhas permanecem desconhecidos ate existir fonte
+confirmada.
