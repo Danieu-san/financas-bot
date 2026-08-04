@@ -1,6 +1,6 @@
 # Plano - RX historico segmentado Open Finance
 
-Status: `RX-HIST-SEG-01 candidato local; auditoria independente pendente`.
+Status: `RX-HIST-SEG-01 recovery local; reauditoria independente pendente`.
 
 ## Base
 
@@ -35,7 +35,7 @@ partir de um corte temporal explicito, preservando semantica e origem.
 3. [concluida] Implementar RED e segmentador puro.
 4. [concluida] Implementar CLI read-only e saida privada.
 5. [concluida] Executar bateria causal e suite ampla final.
-6. [em andamento] Publicar candidato sanitizado e obter auditoria independente.
+6. [em andamento] Publicar recovery sanitizado e obter reauditoria independente.
 7. [pendente] Executar preview na copia isolada e apresentar o RX.
 
 ## Criterios de GO
@@ -58,4 +58,4 @@ partir de um corte temporal explicito, preservando semantica e origem.
 
 ## Proxima acao
 
-Publicar o candidato sanitizado e obter parecer independente por hash imutavel.
+Publicar o recovery sanitizado e obter novo parecer independente por hash imutavel.

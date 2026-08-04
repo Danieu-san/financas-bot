@@ -1,8 +1,32 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const fs = require('node:fs');
 
 const ESSENTIAL_AVAILABILITY = ['accounts', 'transactions'];
+const SQLITE_FILES = Object.freeze({
+    database: '',
+    wal: '-wal',
+    shm: '-shm',
+    journal: '-journal'
+});
+
+function snapshotSqliteFileSet(databasePath) {
+    return Object.freeze(Object.fromEntries(Object.entries(SQLITE_FILES).map(([kind, suffix]) => {
+        const file = `${databasePath}${suffix}`;
+        if (!fs.existsSync(file)) return [kind, { exists: false, size: null, sha256: null }];
+        const data = fs.readFileSync(file);
+        return [kind, {
+            exists: true,
+            size: data.length,
+            sha256: crypto.createHash('sha256').update(data).digest('hex')
+        }];
+    })));
+}
+
+function sqliteFileSetsEqual(left, right) {
+    return JSON.stringify(left) === JSON.stringify(right);
+}
 
 function requireSecret(secret) {
     const value = String(secret || '');
@@ -90,12 +114,14 @@ function buildOpenFinanceHistoricalRx({
         if (cutoffRelation === 'source_start_unknown') blockers.push(`${alias}:source_start_unknown`);
         const accounts = Array.isArray(item.accounts) ? item.accounts : [];
         const accountIds = new Set();
+        const accountTypes = new Map();
         const transactionIds = new Set();
 
         for (const account of accounts) {
             const accountId = String(account.id || '');
             if (!accountId || accountIds.has(accountId)) throw new Error('duplicate_or_missing_historical_rx_account');
             accountIds.add(accountId);
+            accountTypes.set(accountId, String(account.type || '').toUpperCase());
         }
         if (accounts.some(account => String(account.type || '').toUpperCase() === 'CREDIT')) {
             const billStatus = String(item.availability?.bills || 'unavailable').toLowerCase();
@@ -106,6 +132,14 @@ function buildOpenFinanceHistoricalRx({
             if (!id || transactionIds.has(id)) throw new Error('duplicate_or_missing_historical_rx_transaction');
             transactionIds.add(id);
             if (!accountIds.has(String(transaction.account_id || ''))) throw new Error('historical_rx_transaction_account_unknown');
+            const accountType = accountTypes.get(String(transaction.account_id || ''));
+            const hasInstallment = transaction.installment_number !== null
+                && transaction.installment_number !== undefined;
+            const hasInstallmentTotal = transaction.total_installments !== null
+                && transaction.total_installments !== undefined;
+            if (accountType === 'BANK' && (hasInstallment || hasInstallmentTotal)) {
+                throw new Error('historical_rx_installment_requires_credit_account');
+            }
             const status = String(transaction.status || '').toUpperCase();
             if (!['POSTED', 'PENDING'].includes(status)) throw new Error('invalid_historical_rx_transaction_status');
             cents(transaction.amount_cents, 'historical_rx_transaction_amount');
@@ -113,6 +147,9 @@ function buildOpenFinanceHistoricalRx({
         }
         for (const bill of (item.bills || [])) {
             if (!accountIds.has(String(bill.account_id || ''))) throw new Error('historical_rx_bill_account_unknown');
+            if (accountTypes.get(String(bill.account_id || '')) !== 'CREDIT') {
+                throw new Error('historical_rx_bill_requires_credit_account');
+            }
             cents(bill.total_cents, 'historical_rx_bill_total');
             parseDate(bill.due_date, 'historical_rx_bill_due_date');
         }
@@ -122,11 +159,15 @@ function buildOpenFinanceHistoricalRx({
             const accountType = String(account.type || '').toUpperCase();
             if (!['BANK', 'CREDIT'].includes(accountType)) throw new Error('unsupported_historical_rx_account_type');
 
-            const rows = (item.transactions || []).filter(transaction => {
+            const transactionStatus = String(item.availability?.transactions || 'unavailable').toLowerCase();
+            const accountStatus = String(item.availability?.accounts || 'unavailable').toLowerCase();
+            const accountsAvailable = accountStatus === 'available';
+            const transactionsAvailable = accountsAvailable && transactionStatus === 'available';
+            const rows = transactionsAvailable ? (item.transactions || []).filter(transaction => {
                 if (String(transaction.account_id || '') !== accountId) return false;
                 const timestamp = parseDate(transaction.date, 'historical_rx_transaction_date');
                 return timestamp >= cutoffTimestamp;
-            });
+            }) : [];
             const postedThroughObservation = rows.filter(transaction =>
                 String(transaction.status || '').toUpperCase() === 'POSTED' &&
                 parseDate(transaction.date, 'historical_rx_transaction_date') <= observedTimestamp
@@ -145,7 +186,7 @@ function buildOpenFinanceHistoricalRx({
                 cutoffReconstruction = { balance_cents: null, reason: 'credit_balance_is_not_invoice' };
             } else if (cutoffRelation === 'not_applicable_before_source_start') {
                 cutoffReconstruction = { balance_cents: null, reason: 'source_not_available_at_cutoff' };
-            } else if (currentBalance === null || String(item.availability?.transactions).toLowerCase() !== 'available') {
+            } else if (currentBalance === null || !transactionsAvailable) {
                 cutoffReconstruction = { balance_cents: null, reason: 'complete_bank_history_unavailable' };
             } else {
                 cutoffReconstruction = {
@@ -154,10 +195,12 @@ function buildOpenFinanceHistoricalRx({
                 };
             }
 
-            const accountBills = (item.bills || []).filter(bill =>
+            const billStatus = String(item.availability?.bills || 'unavailable').toLowerCase();
+            const billsAvailable = accountsAvailable && billStatus === 'available';
+            const accountBills = billsAvailable ? (item.bills || []).filter(bill =>
                 String(bill.account_id || '') === accountId &&
                 parseDate(bill.due_date, 'historical_rx_bill_due_date') >= cutoffTimestamp
-            );
+            ) : [];
             const installmentRows = rows.filter(transaction =>
                 Number.isInteger(Number(transaction.installment_number)) &&
                 Number.isInteger(Number(transaction.total_installments)) &&
@@ -214,11 +257,26 @@ function buildOpenFinanceHistoricalRx({
                 source_available_from: availableFrom,
                 source_existed_at_cutoff: existedAtCutoff,
                 coverage: {
-                    status: String(item.availability?.transactions || 'unavailable').toLowerCase(),
+                    account_status: accountStatus,
+                    status: transactionStatus,
                     first_observed_date: dates[0] || null,
                     last_observed_date: dates[dates.length - 1] || null
                 },
-                flows: isBank ? {
+                flows: !transactionsAvailable ? (isBank ? {
+                    count: null,
+                    posted_count: null,
+                    pending_count: null,
+                    credits_cents: null,
+                    debits_cents: null,
+                    posted_net_cents: null
+                } : {
+                    count: null,
+                    posted_count: null,
+                    pending_count: null,
+                    charges_cents: null,
+                    payments_or_credits_cents: null,
+                    posted_net_cents: null
+                }) : isBank ? {
                     count: rows.length,
                     posted_count: postedThroughObservation.length,
                     pending_count: pending.length,
@@ -234,36 +292,47 @@ function buildOpenFinanceHistoricalRx({
                     posted_net_cents: sum(postedThroughObservation, row => row.amount_cents)
                 },
                 current_snapshot: isBank ? {
-                    balance_cents: currentBalance,
+                    balance_cents: accountsAvailable ? currentBalance : null,
                     observed_at: new Date(observedTimestamp).toISOString()
                 } : {
-                    provider_balance_cents: currentBalance,
+                    provider_balance_cents: accountsAvailable ? currentBalance : null,
                     provider_balance_semantic: 'used_limit_not_invoice',
-                    credit_limit_cents: cents(account.credit_limit_cents, 'historical_rx_credit_limit', { nullable: true }),
-                    available_credit_limit_cents: cents(account.available_credit_limit_cents,
-                        'historical_rx_available_credit_limit', { nullable: true }),
-                    used_limit_cents: cents(account.used_limit_cents, 'historical_rx_used_limit', { nullable: true }),
+                    credit_limit_cents: accountsAvailable
+                        ? cents(account.credit_limit_cents, 'historical_rx_credit_limit', { nullable: true })
+                        : null,
+                    available_credit_limit_cents: accountsAvailable
+                        ? cents(account.available_credit_limit_cents,
+                            'historical_rx_available_credit_limit', { nullable: true })
+                        : null,
+                    used_limit_cents: accountsAvailable
+                        ? cents(account.used_limit_cents, 'historical_rx_used_limit', { nullable: true })
+                        : null,
                     observed_at: new Date(observedTimestamp).toISOString()
                 },
                 cutoff_reconstruction: cutoffReconstruction,
                 bills: {
-                    status: String(item.availability?.bills || 'unavailable').toLowerCase(),
-                    count: accountBills.length,
-                    total_cents: sum(accountBills, row => row.total_cents),
+                    status: billStatus,
+                    count: billsAvailable ? accountBills.length : null,
+                    total_cents: billsAvailable ? sum(accountBills, row => row.total_cents) : null,
                     first_due_date: accountBills.map(row => String(row.due_date).slice(0, 10)).sort()[0] || null,
                     last_due_date: accountBills.map(row => String(row.due_date).slice(0, 10)).sort().at(-1) || null
                 },
                 installments: {
-                    series: installmentSeries,
-                    series_count: installmentSeries.length,
-                    incomplete_series_count: installmentSeries.filter(entry => entry.missing_numbers.length > 0).length,
-                    observed_rows: installmentRows.length,
+                    status: transactionStatus,
+                    series: transactionsAvailable ? installmentSeries : null,
+                    series_count: transactionsAvailable ? installmentSeries.length : null,
+                    incomplete_series_count: transactionsAvailable
+                        ? installmentSeries.filter(entry => entry.missing_numbers.length > 0).length
+                        : null,
+                    observed_rows: transactionsAvailable ? installmentRows.length : null,
                     synthesized_rows: 0
                 }
             });
         }
 
-        for (const investment of (item.investments || [])) {
+        const investmentsAvailable = String(item.availability?.investments || 'unavailable').toLowerCase()
+            === 'available';
+        for (const investment of (investmentsAvailable ? (item.investments || []) : [])) {
             investments.push({
                 investment_ref: ref('historical_rx_investment', `${alias}:${investment.id}`),
                 source_alias: alias,
@@ -297,4 +366,8 @@ function buildOpenFinanceHistoricalRx({
     });
 }
 
-module.exports = { buildOpenFinanceHistoricalRx };
+module.exports = {
+    buildOpenFinanceHistoricalRx,
+    snapshotSqliteFileSet,
+    sqliteFileSetsEqual
+};

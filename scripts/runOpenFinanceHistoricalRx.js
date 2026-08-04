@@ -2,9 +2,14 @@
 
 const crypto = require('node:crypto');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { OpenFinanceLiveStagingVault } = require('../src/openFinance/openFinanceLiveStagingVault');
-const { buildOpenFinanceHistoricalRx } = require('../src/openFinance/openFinanceHistoricalRx');
+const {
+    buildOpenFinanceHistoricalRx,
+    snapshotSqliteFileSet,
+    sqliteFileSetsEqual
+} = require('../src/openFinance/openFinanceHistoricalRx');
 
 function parseArgs(argv) {
     const allowed = new Set([
@@ -75,6 +80,15 @@ function writePrivateJson(output, payload) {
     fs.renameSync(temporary, output);
 }
 
+function copySqliteFileSet(sourceDatabase, targetDatabase, snapshot) {
+    const suffixes = { database: '', wal: '-wal', shm: '-shm', journal: '-journal' };
+    for (const [kind, suffix] of Object.entries(suffixes)) {
+        if (!snapshot[kind].exists) continue;
+        fs.copyFileSync(`${sourceDatabase}${suffix}`, `${targetDatabase}${suffix}`, fs.constants.COPYFILE_EXCL);
+        fs.chmodSync(`${targetDatabase}${suffix}`, 0o600);
+    }
+}
+
 function main() {
     const args = parseArgs(process.argv.slice(2));
     if (!args.confirmReadOnly) throw new Error('confirm_read_only_required');
@@ -87,17 +101,31 @@ function main() {
     const sourceLifecycles = args.sourceLifecycleFile
         ? loadJson(requireFile(args.sourceLifecycleFile, 'historical_rx_lifecycle_file_required'), 'invalid_historical_rx_lifecycle_file')
         : {};
-    const beforeHash = sha256(stagingDb);
-    const vault = new OpenFinanceLiveStagingVault({ databasePath: stagingDb, secret, readonly: true });
+    const beforeSqliteFiles = snapshotSqliteFileSet(stagingDb);
+    if (beforeSqliteFiles.journal.exists && beforeSqliteFiles.journal.size > 0) {
+        throw new Error('historical_rx_uncheckpointed_sqlite_state');
+    }
+    const snapshotRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-historical-rx-'));
+    fs.chmodSync(snapshotRoot, 0o700);
+    const snapshotDb = path.join(snapshotRoot, 'staging.sqlite');
     let records;
     try {
-        records = aliasList(mappings).map(alias => {
-            const record = vault.readItemRecordByAlias(alias);
-            if (!record) throw new Error(`historical_rx_alias_snapshot_missing:${alias}`);
-            return record;
-        });
+        copySqliteFileSet(stagingDb, snapshotDb, beforeSqliteFiles);
+        if (!sqliteFileSetsEqual(beforeSqliteFiles, snapshotSqliteFileSet(snapshotDb))) {
+            throw new Error('historical_rx_snapshot_copy_mismatch');
+        }
+        const vault = new OpenFinanceLiveStagingVault({ databasePath: snapshotDb, secret, readonly: true });
+        try {
+            records = aliasList(mappings).map(alias => {
+                const record = vault.readItemRecordByAlias(alias);
+                if (!record) throw new Error(`historical_rx_alias_snapshot_missing:${alias}`);
+                return record;
+            });
+        } finally {
+            vault.close();
+        }
     } finally {
-        vault.close();
+        fs.rmSync(snapshotRoot, { recursive: true, force: true });
     }
     const observationTimes = [...new Set(records.map(record => record.observed_at))];
     if (observationTimes.length !== 1) throw new Error('historical_rx_mixed_observation_times');
@@ -108,12 +136,16 @@ function main() {
         secret,
         sourceLifecycles
     });
-    if (sha256(stagingDb) !== beforeHash) throw new Error('historical_rx_staging_mutated');
+    const afterSqliteFiles = snapshotSqliteFileSet(stagingDb);
+    if (!sqliteFileSetsEqual(beforeSqliteFiles, afterSqliteFiles)) {
+        throw new Error('historical_rx_staging_mutated');
+    }
     writePrivateJson(output, report);
     const reportHash = sha256(output);
+    const outcome = report.ready_for_reconciliation ? 'GO' : 'NO_GO';
     process.stdout.write(`${JSON.stringify({
         gate: 'RX-HIST-SEG-01',
-        outcome: 'GO',
+        outcome,
         cutoff_date: report.cutoff_date,
         observed_at: report.observed_at,
         sources: records.length,
@@ -122,13 +154,15 @@ function main() {
         ready_for_reconciliation: report.ready_for_reconciliation,
         blockers: report.blockers,
         database_unchanged: true,
+        sqlite_files_unchanged: true,
         report_sha256: reportHash,
         financial_writes: 0
     })}\n`);
+    return report.ready_for_reconciliation ? 0 : 2;
 }
 
 try {
-    main();
+    process.exitCode = main();
 } catch (error) {
     process.stderr.write(`${JSON.stringify({
         gate: 'RX-HIST-SEG-01',
