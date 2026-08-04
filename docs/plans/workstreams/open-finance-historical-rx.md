@@ -57,8 +57,9 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 18. [concluida] Registrar a declaracao do usuario de que todas as contas
     bancarias existiam no inicio historico; manter somente o cartao Itau como
     inexistente nessa data.
-19. [pendente] Verificar se o provedor oferece ligacao confiavel entre movimentos
-    e posicoes de investimento; descricao nunca vira evidencia.
+19. [em andamento] O provedor oferece endpoint de transacoes por posicao, mas o
+    cliente nao o coleta e a cobertura Nubank nao esta garantida; implementar
+    disponibilidade separada e falha fechada, sem usar descricao como vinculo.
 20. [pendente] Em gate operacional separado, avisar os dois usuarios sobre
     movimentos ambiguos e oferecer revisao/salvamento numerados; nunca usar
     `sim` generico para multiplas opcoes nem salvar automaticamente.
@@ -70,9 +71,12 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 22. [concluida] Depois de GO independente, reexecutar uma previa privada com o
     lifecycle corrigido: nove segmentos, zero escrita e arquivos inalterados;
     poupanca deixou de bloquear, sem data inventada para o cartao Itau.
-23. [pendente] Confirmar em fonte primaria a convencao de sinal dos movimentos
-    `RESGATE_APLIC_FINANCEIRA`; ate la, manter 22 linhas como semanticamente
-    ambiguas e fora da classificacao patrimonial.
+23. [concluida] Confirmar em fonte primaria a convencao de direcao: `CREDIT` e
+    entrada e `DEBIT` e saida. Manter 22 `RESGATE_APLIC_FINANCEIRA` debitados
+    como semanticamente ambiguos e fora da classificacao patrimonial.
+24. [pendente] Em Sol Alto, coletar `/investments/{id}/transactions` de modo
+    opcional, paginado, sanitizado e fail-closed, propagar sua disponibilidade
+    pelo contrato/vault/RX e provar ausencia de regressao.
 
 ## Criterios de GO
 

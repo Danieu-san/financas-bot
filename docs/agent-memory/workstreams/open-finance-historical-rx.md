@@ -131,6 +131,16 @@ movimentos de investimento. A ultima decorre de 22 movimentos Daniel Nubank
 rotulados `RESGATE_APLIC_FINANCEIRA` cuja direcao nao corresponde a regra
 assumida; valores, datas, IDs e descricoes permaneceram fora do Git.
 
+A documentacao primaria do Pluggy confirmou que `type=CREDIT` significa entrada
+e `type=DEBIT` significa saida. A inspecao privada agregada encontrou 54
+resgates Daniel Nubank `CREDIT/positivo`, 22 resgates `DEBIT/negativo` e 39
+rendimentos Thais Itau `CREDIT/positivo`. Portanto, as 22 linhas sao
+contraditorias com o rotulo do provedor e devem continuar ambiguas; nao ha
+correcao de sinal a aplicar. A API possui o endpoint por posicao
+`/investments/{id}/transactions`, com tipos como `BUY`, `SELL`, `TRANSFER` e
+`INTEREST`, mas o cliente atual coleta somente a lista de posicoes e a cobertura
+publica nao garante transacoes de investimento Nubank.
+
 ## Contrato temporal
 
 - inicio do RX historico: `2025-07-01`;
@@ -198,12 +208,13 @@ quando observado/disponivel, sem herdar o lifecycle da conta.
 
 ## Proxima acao
 
-Confirmar em fonte primaria a convencao de sinal de
-`RESGATE_APLIC_FINANCEIRA` e verificar se o provedor oferece ligacao confiavel
-entre movimentos e posicoes. Em paralelo conceitual, preparar a revisao humana
-da parcela ambigua, sem salvar antes de resolver identidade. Planilha, escrita
-financeira, deploy e producao continuam fora do alcance.
+Implementar em gate separado a coleta opcional e fail-closed das transacoes por
+posicao, preservando disponibilidade distinta de lista de investimentos. So
+depois de teste e auditoria podera haver uma chamada Pluggy live explicitamente
+autorizada para verificar cobertura Nubank. Em paralelo conceitual, preparar a
+revisao humana da parcela ambigua, sem salvar antes de resolver identidade.
+Planilha, escrita financeira, deploy e producao continuam fora do alcance.
 
 ## Capacidade
 
-`Codex -> Sol -> Medio -> validar e auditar o candidato de reserva e lifecycle.`
+`Codex -> Sol -> Alto -> implementar coleta opcional de transacoes por posicao.`
