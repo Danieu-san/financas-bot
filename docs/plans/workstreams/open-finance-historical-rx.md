@@ -1,6 +1,6 @@
 # Plano - RX historico segmentado Open Finance
 
-Status: `recovery de ambiguidade de parcelas em validacao local`.
+Status: `GO tecnico local substantivo; fechamento documental pendente`.
 
 ## Objetivo
 
@@ -48,9 +48,14 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 13. [concluida] Testar, publicar e reauditar o contrato sucessor.
 14. [concluida] Executar previa privada; falha fechada antes do relatorio por
     identidade ambigua de parcela, com copia SQLite inalterada.
-15. [em andamento] Modelar ambiguidade sem deduplicar nem somar silenciosamente,
-    testar, publicar e auditar.
-16. [pendente] Reexecutar a previa privada somente apos novo GO tecnico local.
+15. [concluida] Modelar ambiguidade sem deduplicar nem somar silenciosamente,
+    testar, publicar e obter GO tecnico local substantivo.
+16. [em andamento] Corrigir o estado documental obsoleto e confirmar o alcance
+    autorizado em novo hash, sem repetir testes.
+17. [pendente] Reexecutar a previa privada somente apos confirmacao explicita.
+18. [pendente] Em gate operacional separado, avisar os dois usuarios sobre
+    movimentos ambiguos e oferecer revisao/salvamento numerados; nunca usar
+    `sim` generico para multiplas opcoes nem salvar automaticamente.
 
 ## Criterios de GO
 
@@ -81,6 +86,6 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 
 ## Proxima acao
 
-Executar suite hermetica final, publicar e auditar o recovery de ambiguidade.
-O inicio da poupanca e o historico individual das Caixinhas permanecem
-desconhecidos ate existir fonte confirmada.
+Publicar e confirmar o fechamento documental, sem repetir testes. O inicio da
+poupanca e o historico individual das Caixinhas permanecem desconhecidos ate
+existir fonte confirmada.

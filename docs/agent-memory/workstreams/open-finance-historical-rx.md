@@ -10,7 +10,7 @@ financeira.
 
 ## Estado
 
-`RX-HIST-TIME-INV-01 RECOVERY DE AMBIGUIDADE DE PARCELAS EM VALIDACAO LOCAL`.
+`RX-HIST-TIME-INV-01 GO TECNICO LOCAL SUBSTANTIVO; FECHAMENTO DOCUMENTAL PENDENTE`.
 
 O `GO TECNICO LOCAL` anterior de `RX-HIST-SEG-01`, no hash
 `62ec19532f1e4d288efa7c3fb75291540358fdd5`, continua valido para o contrato
@@ -81,6 +81,14 @@ nao e seguro deduplicar nem considera-las compras distintas. O recovery atual
 preserva as linhas como observadas, marca a serie e os totais como ambiguos,
 nao infere parcelas ausentes e bloqueia reconciliacao.
 
+O candidato no hash
+`22a97729df02d123ec7d754f97b86bd2439f099d` recebeu `GO TECNICO LOCAL`
+independente sem lacuna substantiva residual. A autorizacao operacional da
+ultima linha permaneceu limitada apenas porque o estado do manifesto ainda
+dizia, incorretamente, que a suite final estava pendente, apesar de a evidencia
+verde ja constar no mesmo arquivo. O recovery atual e exclusivamente
+documental; nao altera codigo, testes ou evidencias.
+
 ## Contrato temporal
 
 - inicio do RX historico: `2025-07-01`;
@@ -144,10 +152,10 @@ desconhecido, nunca inferido nem zerado.
 
 ## Proxima acao
 
-Executar a suite hermetica final, publicar e auditar o recovery de ambiguidade.
-Somente novo `GO TECNICO LOCAL` permite reexecutar a previa read-only. Planilha,
-escrita financeira, deploy e producao continuam fora do alcance.
+Publicar e confirmar o fechamento documental por hash imutavel. Somente a
+confirmacao explicita permite reexecutar a previa read-only. Planilha, escrita
+financeira, deploy e producao continuam fora do alcance.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> validar e auditar o recovery de ambiguidade de parcelas.`
+`Codex -> Sol -> Alto -> confirmar o fechamento documental e reexecutar a previa read-only.`

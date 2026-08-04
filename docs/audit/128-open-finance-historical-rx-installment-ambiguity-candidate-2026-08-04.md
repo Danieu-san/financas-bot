@@ -48,7 +48,7 @@ compras distintas. O candidato portanto:
 
 ## Estado autorizado
 
-`CANDIDATO LOCAL AGUARDANDO SUITE FINAL E AUDITORIA INDEPENDENTE`.
+`CANDIDATO LOCAL AGUARDANDO AUDITORIA INDEPENDENTE`.
 
 Nao autoriza nova previa privada, planilha, escrita financeira, deploy,
 WhatsApp ou producao.
