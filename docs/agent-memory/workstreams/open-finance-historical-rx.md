@@ -10,13 +10,21 @@ financeira.
 
 ## Estado
 
-`RX-HIST-TIME-INV-01 CANDIDATO LOCAL; AGUARDANDO AUDITORIA INDEPENDENTE`.
+`RX-HIST-TIME-INV-01 RECOVERY CANDIDATO LOCAL; AGUARDANDO REAUDITORIA INDEPENDENTE`.
 
 O `GO TECNICO LOCAL` anterior de `RX-HIST-SEG-01`, no hash
 `62ec19532f1e4d288efa7c3fb75291540358fdd5`, continua valido para o contrato
 antigo, mas foi superado para qualquer preview real. O usuario esclareceu duas
 fronteiras temporais diferentes e o inventario familiar completo; o candidato
 atual incorpora essas condicoes antes de abrir dados reais.
+
+O primeiro candidato temporal/inventarial, no hash
+`3103677231897f6a64b9bcd89c8cd2c16d2835e1`, recebeu `NO-GO` independente:
+o arquivo esperado ainda podia descrever um inventario menor autoconsistente,
+a CLI so confrontava forma/titularidade/contagem depois de abrir o vault e o
+identificador publico ainda era o gate anterior. O recovery fixa o inventario
+canonico no produto, valida inventario e aliases antes do snapshot/vault e usa
+`RX-HIST-TIME-INV-01` em builder, stdout e erro da CLI.
 
 ## Contrato temporal
 
@@ -43,8 +51,9 @@ cartao nao e inventada.
 
 ## Evidencia local atual
 
-- o builder exige o inventario e a CLI operacional exige seu arquivo externo
-  antes de abrir o vault;
+- o builder confronta o inventario recebido com o contrato familiar canonico;
+- a CLI valida forma, quatro aliases, titularidade e contagens do arquivo antes
+  de criar a copia ou abrir o vault;
 - fonte ausente ou extra, tipo/quantidade divergente e titular incorreto falham
   fechado;
 - lifecycle pode ser declarado por conta, sem aplicar a existencia da conta ao
@@ -53,7 +62,7 @@ cartao nao e inventada.
 - bateria causal Open Finance: 339/339;
 - suite hermetica final: 1.468 testes, 1.458 aprovados, 0 falhas e 10 skips
   conhecidos;
-- cobertura: linhas 90,60%, branches 72,95%, funcoes 90,23%;
+- cobertura: linhas 90,61%, branches 72,93%, funcoes 90,24%;
 - nenhuma chamada Pluggy nova, dado real, planilha, deploy, OCI, WhatsApp ou
   escrita financeira.
 
@@ -72,7 +81,7 @@ cartao nao e inventada.
 
 ## Proxima acao
 
-Publicar o commit sanitizado e obter auditoria independente por hash imutavel.
+Publicar o recovery sanitizado e obter reauditoria independente por hash imutavel.
 Somente depois de novo `GO TECNICO LOCAL` podera ser preparada uma execucao
 privada read-only; isso ainda nao autoriza abrir o backup, alterar planilha ou
 usar producao.

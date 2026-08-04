@@ -6,9 +6,12 @@ const os = require('node:os');
 const path = require('node:path');
 const { OpenFinanceLiveStagingVault } = require('../src/openFinance/openFinanceLiveStagingVault');
 const {
+    HISTORICAL_RX_GATE,
     buildOpenFinanceHistoricalRx,
     snapshotSqliteFileSet,
-    sqliteFileSetsEqual
+    sqliteFileSetsEqual,
+    validateHistoricalRxInventoryContract,
+    validateHistoricalRxMappingAliases
 } = require('../src/openFinance/openFinanceHistoricalRx');
 
 function parseArgs(argv) {
@@ -105,6 +108,9 @@ function main(argv = process.argv.slice(2), {
         requireFile(args.expectedInventoryFile, 'historical_rx_expected_inventory_file_required'),
         'invalid_historical_rx_expected_inventory_file'
     );
+    validateHistoricalRxInventoryContract(expectedInventory);
+    const mappingAliases = aliasList(mappings);
+    validateHistoricalRxMappingAliases(mappingAliases, expectedInventory);
     const sourceLifecycles = args.sourceLifecycleFile
         ? loadJson(requireFile(args.sourceLifecycleFile, 'historical_rx_lifecycle_file_required'), 'invalid_historical_rx_lifecycle_file')
         : {};
@@ -123,7 +129,7 @@ function main(argv = process.argv.slice(2), {
         }
         const vault = new VaultClass({ databasePath: snapshotDb, secret, readonly: true });
         try {
-            records = aliasList(mappings).map(alias => {
+            records = mappingAliases.map(alias => {
                 const record = vault.readItemRecordByAlias(alias);
                 if (!record) throw new Error(`historical_rx_alias_snapshot_missing:${alias}`);
                 return record;
@@ -152,7 +158,7 @@ function main(argv = process.argv.slice(2), {
     const reportHash = sha256(output);
     const outcome = report.ready_for_reconciliation ? 'GO' : 'NO_GO';
     stdout.write(`${JSON.stringify({
-        gate: 'RX-HIST-SEG-01',
+        gate: HISTORICAL_RX_GATE,
         outcome,
         history_start_date: report.history_start_date,
         observed_at: report.observed_at,
@@ -177,7 +183,7 @@ if (require.main === module) {
         process.exitCode = main();
     } catch (error) {
         process.stderr.write(`${JSON.stringify({
-            gate: 'RX-HIST-SEG-01',
+            gate: HISTORICAL_RX_GATE,
             outcome: 'NO_GO',
             reason: error.message,
             financial_writes: 0

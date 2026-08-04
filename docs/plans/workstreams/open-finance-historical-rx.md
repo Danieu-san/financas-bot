@@ -1,6 +1,6 @@
 # Plano - RX historico segmentado Open Finance
 
-Status: `RX-HIST-TIME-INV-01 candidato local; auditoria independente pendente`.
+Status: `RX-HIST-TIME-INV-01 recovery candidato local; reauditoria independente pendente`.
 
 ## Objetivo
 
@@ -36,8 +36,10 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 4. [concluida] Exigir inventario no builder e arquivo externo na CLI, falhando
    fechado em divergencia.
 5. [concluida] Executar teste focal, bateria causal e uma suite hermetica final.
-6. [em andamento] Publicar candidato sanitizado e obter auditoria independente.
-7. [pendente] Depois de GO, preparar a execucao privada read-only.
+6. [concluida] Publicar primeiro candidato e obter NO-GO independente.
+7. [concluida] Fixar contrato canonico, validacao pre-vault e identificador do gate.
+8. [em andamento] Publicar recovery sanitizado e obter reauditoria independente.
+9. [pendente] Depois de GO, preparar a execucao privada read-only.
 
 ## Criterios de GO
 
@@ -45,8 +47,9 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 - exatamente quatro fontes, quatro contas bancarias e quatro cartoes;
 - exatamente dois segmentos Daniel e seis segmentos no escopo Thais;
 - conta Itau Thais disponivel no inicio e cartao Itau Thais nao aplicavel;
-- inventario ausente falha no builder; fonte, tipo, quantidade ou titular
-  divergente falha antes da leitura do vault;
+- inventario ausente ou nao canonico falha no builder;
+- arquivo com forma, fonte, quantidade ou titular divergente e mapa incompleto
+  falham na CLI antes de snapshot, copia ou abertura do vault;
 - conta, cartao, fatura e limite permanecem semanticamente separados;
 - `financial_writes=0` em todos os caminhos;
 - testes, workflow e auditoria independente verdes.

@@ -4,6 +4,13 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 
 const ESSENTIAL_AVAILABILITY = ['accounts', 'transactions'];
+const HISTORICAL_RX_GATE = 'RX-HIST-TIME-INV-01';
+const CANONICAL_HISTORICAL_RX_INVENTORY = Object.freeze([
+    Object.freeze({ alias: 'daniel_nubank', ownerScope: 'daniel', accounts: Object.freeze({ BANK: 1, CREDIT: 1 }) }),
+    Object.freeze({ alias: 'thais_nubank', ownerScope: 'thais', accounts: Object.freeze({ BANK: 1, CREDIT: 1 }) }),
+    Object.freeze({ alias: 'thais_itau', ownerScope: 'thais', accounts: Object.freeze({ BANK: 1, CREDIT: 1 }) }),
+    Object.freeze({ alias: 'cristina_nubank', ownerScope: 'thais', accounts: Object.freeze({ BANK: 1, CREDIT: 1 }) })
+]);
 const SQLITE_FILES = Object.freeze({
     database: '',
     wal: '-wal',
@@ -70,30 +77,58 @@ function resolveAccountLifecycle(definition, historyStart) {
     return { availableFrom, existedAtHistoryStart, historyStartRelation };
 }
 
-function validateHistoricalRxInventory(items, expectedInventory) {
+function validateHistoricalRxInventoryContract(expectedInventory) {
     if (!Array.isArray(expectedInventory) || !expectedInventory.length) {
         throw new Error('historical_rx_expected_inventory_required');
     }
-    const actualByAlias = new Map(items.map(item => [String(item.alias_code || '').trim().toLowerCase(), item]));
-    if (actualByAlias.size !== items.length || expectedInventory.length !== items.length) {
-        throw new Error('historical_rx_inventory_source_mismatch');
-    }
     const expectedAliases = new Set();
-    const ownerCounts = {};
-    let bankAccounts = 0;
-    let creditCards = 0;
+    const normalized = [];
     for (const expected of expectedInventory) {
         const alias = String(expected?.alias || '').trim().toLowerCase();
         const ownerScope = String(expected?.ownerScope || '').trim().toLowerCase();
         const accounts = expected?.accounts;
         if (!/^[a-z0-9_-]{2,48}$/.test(alias) || !ownerScope || expectedAliases.has(alias)
+            || Object.keys(expected || {}).sort().join(',') !== 'accounts,alias,ownerScope'
             || !accounts || typeof accounts !== 'object' || Array.isArray(accounts)
-            || Object.keys(accounts).some(type => !['BANK', 'CREDIT'].includes(type))
+            || Object.keys(accounts).sort().join(',') !== 'BANK,CREDIT'
             || !Number.isSafeInteger(accounts.BANK) || accounts.BANK < 0
             || !Number.isSafeInteger(accounts.CREDIT) || accounts.CREDIT < 0) {
             throw new Error('invalid_historical_rx_expected_inventory');
         }
         expectedAliases.add(alias);
+        normalized.push({ alias, ownerScope, accounts: { BANK: accounts.BANK, CREDIT: accounts.CREDIT } });
+    }
+    const sortInventory = inventory => [...inventory].sort((left, right) => left.alias.localeCompare(right.alias));
+    if (JSON.stringify(sortInventory(normalized)) !== JSON.stringify(sortInventory(CANONICAL_HISTORICAL_RX_INVENTORY))) {
+        throw new Error('historical_rx_noncanonical_inventory');
+    }
+    return CANONICAL_HISTORICAL_RX_INVENTORY;
+}
+
+function validateHistoricalRxMappingAliases(aliases, expectedInventory) {
+    const canonical = validateHistoricalRxInventoryContract(expectedInventory);
+    if (!Array.isArray(aliases)
+        || aliases.length !== new Set(aliases).size
+        || JSON.stringify([...aliases].map(alias => String(alias || '').trim().toLowerCase()).sort())
+            !== JSON.stringify(canonical.map(entry => entry.alias).sort())) {
+        throw new Error('historical_rx_mapping_inventory_mismatch');
+    }
+    return true;
+}
+
+function validateHistoricalRxInventory(items, expectedInventory) {
+    const canonicalInventory = validateHistoricalRxInventoryContract(expectedInventory);
+    const actualByAlias = new Map(items.map(item => [String(item.alias_code || '').trim().toLowerCase(), item]));
+    if (actualByAlias.size !== items.length || canonicalInventory.length !== items.length) {
+        throw new Error('historical_rx_inventory_source_mismatch');
+    }
+    const ownerCounts = {};
+    let bankAccounts = 0;
+    let creditCards = 0;
+    for (const expected of canonicalInventory) {
+        const alias = expected.alias;
+        const ownerScope = expected.ownerScope;
+        const accounts = expected.accounts;
         const actual = actualByAlias.get(alias);
         if (!actual) throw new Error('historical_rx_inventory_source_mismatch');
         if (String(actual.owner_scope || '').trim().toLowerCase() !== ownerScope) {
@@ -114,7 +149,7 @@ function validateHistoricalRxInventory(items, expectedInventory) {
     }
     return Object.freeze({
         status: 'validated',
-        sources: expectedAliases.size,
+        sources: canonicalInventory.length,
         accounts: bankAccounts + creditCards,
         bank_accounts: bankAccounts,
         credit_cards: creditCards,
@@ -440,7 +475,7 @@ function buildOpenFinanceHistoricalRx({
 
     return Object.freeze({
         schema_version: 2,
-        gate: 'RX-HIST-SEG-01',
+        gate: HISTORICAL_RX_GATE,
         history_start_date: historyStart,
         observed_at: new Date(observedTimestamp).toISOString(),
         ready_for_reconciliation: blockers.length === 0,
@@ -457,8 +492,12 @@ function buildOpenFinanceHistoricalRx({
 }
 
 module.exports = {
+    CANONICAL_HISTORICAL_RX_INVENTORY,
+    HISTORICAL_RX_GATE,
     buildOpenFinanceHistoricalRx,
     validateHistoricalRxInventory,
+    validateHistoricalRxInventoryContract,
+    validateHistoricalRxMappingAliases,
     snapshotSqliteFileSet,
     sqliteFileSetsEqual
 };
