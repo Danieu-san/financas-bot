@@ -1,6 +1,6 @@
 # Plano - RX historico segmentado Open Finance
 
-Status: `contrato sucessor candidato; auditoria independente pendente`.
+Status: `recovery do filtro candidato; reauditoria independente pendente`.
 
 ## Objetivo
 
@@ -77,6 +77,6 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 
 ## Proxima acao
 
-Publicar o candidato sanitizado e obter auditoria independente antes de reabrir
+Publicar o recovery sanitizado e obter reauditoria independente antes de reabrir
 a copia privada. O inicio da poupanca e o historico individual das Caixinhas
 permanecem desconhecidos ate existir fonte confirmada.

@@ -10,7 +10,7 @@ financeira.
 
 ## Estado
 
-`RX-HIST-TIME-INV-01 CONTRATO SUCESSOR CANDIDATO; AUDITORIA INDEPENDENTE PENDENTE`.
+`RX-HIST-TIME-INV-01 RECOVERY DO FILTRO CANDIDATO; REAUDITORIA INDEPENDENTE PENDENTE`.
 
 O `GO TECNICO LOCAL` anterior de `RX-HIST-SEG-01`, no hash
 `62ec19532f1e4d288efa7c3fb75291540358fdd5`, continua valido para o contrato
@@ -59,6 +59,13 @@ agora mantem posicoes separadas, resume somente movimentos rotulados pelo
 provedor, nunca infere pela descricao e bloqueia reconciliacao enquanto o
 historico da posicao nao estiver ligado.
 
+O candidato sucessor, no hash
+`7a4540b4df7efe01b91720007671953832182d64`, recebeu `NO-GO` independente
+por uma unica lacuna: o filtro de `operation_type` por substring aceitava o
+falso positivo `NAO_APLICAVEL`. O recovery ancora rotulos financeiros
+positivos e adiciona esse valor como caso adversarial, sem alterar inventario,
+lifecycle, segmentacao ou bloqueadores.
+
 ## Contrato temporal
 
 - inicio do RX historico: `2025-07-01`;
@@ -95,9 +102,9 @@ desconhecido, nunca inferido nem zerado.
   cartao do mesmo banco;
 - teste focal: 15/15;
 - bateria causal Open Finance: 337/337;
-- suite hermetica final: 1.469 testes, 1.459 aprovados, 0 falhas e 10 skips
+- suite hermetica final posterior ao recovery: 1.469 testes, 1.459 aprovados, 0 falhas e 10 skips
   conhecidos;
-- cobertura: linhas 90,62%, branches 72,97%, funcoes 90,23%;
+- cobertura: linhas 90,62%, branches 72,90%, funcoes 90,24%;
 - nenhuma chamada Pluggy live; a copia privada foi usada somente no preflight
   sanitizado, sem imprimir IDs, saldos ou transacoes;
 - nenhuma planilha, deploy, OCI, WhatsApp ou escrita financeira.
@@ -122,11 +129,11 @@ desconhecido, nunca inferido nem zerado.
 
 ## Proxima acao
 
-Publicar o candidato sucessor e obter auditoria independente por hash imutavel.
+Publicar o recovery e obter reauditoria independente por hash imutavel.
 Somente depois de `GO TECNICO LOCAL` reexecutar uma unica previa read-only na
 copia privada. Planilha, escrita financeira, deploy e producao continuam fora
 do alcance.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> publicar e auditar o contrato sucessor.`
+`Codex -> Sol -> Alto -> publicar e reauditar o recovery do filtro.`

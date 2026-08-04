@@ -180,7 +180,10 @@ function uniqueSorted(values) {
 
 function providerInvestmentOperationType(value) {
     const operationType = String(value || '').trim().toUpperCase();
-    return /APLIC|INVEST|RESGATE/.test(operationType) ? operationType : null;
+    return /^(?:APLIC(?:ACAO)?_FINANCEIRA|INVESTIMENTO|RESGATE|RENDIMENTO_APLIC_FINANCEIRA)(?:_|$)/
+        .test(operationType)
+        ? operationType
+        : null;
 }
 
 function cents(value, field, { nullable = false } = {}) {
