@@ -114,6 +114,23 @@ importada. O recovery muda o literal runtime para
 `RX-HIST-RESERVE-LIFECYCLE-01` e confronta builder, stderr e stdout/relatorio
 com literais independentes, sem alterar o contrato financeiro.
 
+O recovery no hash `95b56590f516e4df34ae9293b9a482c12394cc44`
+recebeu `GO TECNICO LOCAL` independente. O auditor confirmou o identificador
+em builder, stderr real, stdout e relatorio, bem como a remocao do oraculo
+tautologico, sem lacuna indispensavel residual. O alcance nao autoriza
+producao, deploy ou escrita; a proxima previa privada permanece somente leitura
+e depende da autorizacao operacional ja registrada.
+
+A previa privada read-only posterior ao GO criou relatorio agregado com o gate
+novo, nove segmentos e `financial_writes=0`; todos os cinco arquivos privados
+permaneceram byte a byte inalterados. O blocker de inicio desconhecido da
+poupanca Itau desapareceu e nao houve atividade anterior ao lifecycle
+declarado. O resultado continua `NO_GO` por tres blockers: serie de parcela
+ambigua, historico de investimento sem ligacao a posicao e semantica ambigua de
+movimentos de investimento. A ultima decorre de 22 movimentos Daniel Nubank
+rotulados `RESGATE_APLIC_FINANCEIRA` cuja direcao nao corresponde a regra
+assumida; valores, datas, IDs e descricoes permaneceram fora do Git.
+
 ## Contrato temporal
 
 - inicio do RX historico: `2025-07-01`;
@@ -181,11 +198,11 @@ quando observado/disponivel, sem herdar o lifecycle da conta.
 
 ## Proxima acao
 
-Concluir bateria causal, uma unica suite ampla, publicar o candidato e obter
-auditoria independente. Somente depois de GO, reexecutar a previa privada com
-a poupanca marcada como existente no inicio e sem inventar a data exata do
-cartao Itau. Planilha, escrita financeira, deploy e producao continuam fora do
-alcance.
+Confirmar em fonte primaria a convencao de sinal de
+`RESGATE_APLIC_FINANCEIRA` e verificar se o provedor oferece ligacao confiavel
+entre movimentos e posicoes. Em paralelo conceitual, preparar a revisao humana
+da parcela ambigua, sem salvar antes de resolver identidade. Planilha, escrita
+financeira, deploy e producao continuam fora do alcance.
 
 ## Capacidade
 

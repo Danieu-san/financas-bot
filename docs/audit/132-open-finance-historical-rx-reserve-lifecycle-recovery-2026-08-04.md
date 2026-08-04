@@ -23,7 +23,9 @@ essas saidas com a constante importada e, por isso, nao provavam o nome do gate.
 - bateria causal Open Finance: 343/343;
 - suite hermetica ampla final: 1.475 testes, 1.465 aprovados, 0 falhas e
   10 skips conhecidos; cobertura 90,65% linhas, 73,10% branches e 90,28% funcoes;
-- auditoria independente do recovery: pendente.
+- auditoria independente do recovery: `GO TECNICO LOCAL` no hash
+  `95b56590f516e4df34ae9293b9a482c12394cc44`; nenhuma lacuna indispensavel
+  residual para o achado reavaliado.
 
 ## Alcance
 

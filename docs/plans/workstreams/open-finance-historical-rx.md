@@ -62,13 +62,17 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 20. [pendente] Em gate operacional separado, avisar os dois usuarios sobre
     movimentos ambiguos e oferecer revisao/salvamento numerados; nunca usar
     `sim` generico para multiplas opcoes nem salvar automaticamente.
-21. [em andamento] Classificar aplicacao/resgate de reserva como transferencia
+21. [concluida] Classificar aplicacao/resgate de reserva como transferencia
     patrimonial, rendimento como ganho, bloquear semantica generica e impedir
     salvamento de parcela ambigua; o primeiro candidato recebeu NO-GO porque o
-    runtime ainda publicava o gate anterior. Publicar e auditar o recovery com
-    literal independente nos testes.
-22. [pendente] Depois de GO independente, reexecutar uma previa privada com o
-    lifecycle corrigido, mantendo o cartao Itau separado e sem data inventada.
+    runtime ainda publicava o gate anterior; o recovery recebeu GO independente
+    com literal independente nos testes.
+22. [concluida] Depois de GO independente, reexecutar uma previa privada com o
+    lifecycle corrigido: nove segmentos, zero escrita e arquivos inalterados;
+    poupanca deixou de bloquear, sem data inventada para o cartao Itau.
+23. [pendente] Confirmar em fonte primaria a convencao de sinal dos movimentos
+    `RESGATE_APLIC_FINANCEIRA`; ate la, manter 22 linhas como semanticamente
+    ambiguas e fora da classificacao patrimonial.
 
 ## Criterios de GO
 
