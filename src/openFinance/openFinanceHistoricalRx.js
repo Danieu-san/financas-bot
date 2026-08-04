@@ -40,12 +40,86 @@ function parseDate(value, field) {
     return timestamp;
 }
 
-function requireCutoff(value) {
+function requireCalendarDate(value, code) {
     const text = String(value || '');
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) throw new Error('invalid_historical_rx_cutoff');
-    const timestamp = parseDate(`${text}T00:00:00.000Z`, 'historical_rx_cutoff');
-    if (new Date(timestamp).toISOString().slice(0, 10) !== text) throw new Error('invalid_historical_rx_cutoff');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) throw new Error(code);
+    const timestamp = parseDate(`${text}T00:00:00.000Z`, 'historical_rx_calendar_date');
+    if (new Date(timestamp).toISOString().slice(0, 10) !== text) throw new Error(code);
     return text;
+}
+
+function resolveAccountLifecycle(definition, historyStart) {
+    const lifecycle = definition && typeof definition === 'object' && !Array.isArray(definition)
+        ? definition
+        : {};
+    const availableFrom = lifecycle.availableFrom
+        ? requireCalendarDate(lifecycle.availableFrom, 'invalid_historical_rx_lifecycle_date')
+        : null;
+    const existedAtHistoryStart = typeof lifecycle.existedAtHistoryStart === 'boolean'
+        ? lifecycle.existedAtHistoryStart
+        : null;
+    if ((existedAtHistoryStart === false && availableFrom && availableFrom <= historyStart)
+        || (existedAtHistoryStart === true && availableFrom && availableFrom > historyStart)) {
+        throw new Error('conflicting_historical_rx_account_lifecycle');
+    }
+    const historyStartRelation = existedAtHistoryStart === false || (availableFrom && availableFrom > historyStart)
+        ? 'not_applicable_before_account_start'
+        : existedAtHistoryStart === true || (availableFrom && availableFrom <= historyStart)
+            ? 'account_available_at_history_start'
+            : 'account_start_unknown';
+    return { availableFrom, existedAtHistoryStart, historyStartRelation };
+}
+
+function validateHistoricalRxInventory(items, expectedInventory) {
+    if (!Array.isArray(expectedInventory) || !expectedInventory.length) {
+        throw new Error('historical_rx_expected_inventory_required');
+    }
+    const actualByAlias = new Map(items.map(item => [String(item.alias_code || '').trim().toLowerCase(), item]));
+    if (actualByAlias.size !== items.length || expectedInventory.length !== items.length) {
+        throw new Error('historical_rx_inventory_source_mismatch');
+    }
+    const expectedAliases = new Set();
+    const ownerCounts = {};
+    let bankAccounts = 0;
+    let creditCards = 0;
+    for (const expected of expectedInventory) {
+        const alias = String(expected?.alias || '').trim().toLowerCase();
+        const ownerScope = String(expected?.ownerScope || '').trim().toLowerCase();
+        const accounts = expected?.accounts;
+        if (!/^[a-z0-9_-]{2,48}$/.test(alias) || !ownerScope || expectedAliases.has(alias)
+            || !accounts || typeof accounts !== 'object' || Array.isArray(accounts)
+            || Object.keys(accounts).some(type => !['BANK', 'CREDIT'].includes(type))
+            || !Number.isSafeInteger(accounts.BANK) || accounts.BANK < 0
+            || !Number.isSafeInteger(accounts.CREDIT) || accounts.CREDIT < 0) {
+            throw new Error('invalid_historical_rx_expected_inventory');
+        }
+        expectedAliases.add(alias);
+        const actual = actualByAlias.get(alias);
+        if (!actual) throw new Error('historical_rx_inventory_source_mismatch');
+        if (String(actual.owner_scope || '').trim().toLowerCase() !== ownerScope) {
+            throw new Error('historical_rx_inventory_owner_mismatch');
+        }
+        const actualCounts = { BANK: 0, CREDIT: 0 };
+        for (const account of (Array.isArray(actual.accounts) ? actual.accounts : [])) {
+            const type = String(account.type || '').toUpperCase();
+            if (!Object.hasOwn(actualCounts, type)) throw new Error('historical_rx_inventory_account_type_mismatch');
+            actualCounts[type] += 1;
+        }
+        if (actualCounts.BANK !== accounts.BANK || actualCounts.CREDIT !== accounts.CREDIT) {
+            throw new Error('historical_rx_inventory_account_count_mismatch');
+        }
+        ownerCounts[ownerScope] = (ownerCounts[ownerScope] || 0) + actualCounts.BANK + actualCounts.CREDIT;
+        bankAccounts += actualCounts.BANK;
+        creditCards += actualCounts.CREDIT;
+    }
+    return Object.freeze({
+        status: 'validated',
+        sources: expectedAliases.size,
+        accounts: bankAccounts + creditCards,
+        bank_accounts: bankAccounts,
+        credit_cards: creditCards,
+        owner_segment_counts: Object.freeze(Object.fromEntries(Object.entries(ownerCounts).sort()))
+    });
 }
 
 function sum(rows, selector) {
@@ -68,17 +142,19 @@ function cents(value, field, { nullable = false } = {}) {
 
 function buildOpenFinanceHistoricalRx({
     items = [],
-    cutoffDate,
+    historyStartDate,
     observedAt,
     secret,
-    sourceLifecycles = {}
+    sourceLifecycles = {},
+    expectedInventory
 } = {}) {
     const hmacSecret = requireSecret(secret);
-    const cutoff = requireCutoff(cutoffDate);
-    const cutoffTimestamp = parseDate(`${cutoff}T00:00:00.000Z`, 'historical_rx_cutoff');
+    const historyStart = requireCalendarDate(historyStartDate, 'invalid_historical_rx_history_start');
+    const historyStartTimestamp = parseDate(`${historyStart}T00:00:00.000Z`, 'historical_rx_history_start');
     const observedTimestamp = parseDate(observedAt, 'historical_rx_observed_at');
-    if (observedTimestamp < cutoffTimestamp) throw new Error('historical_rx_observed_before_cutoff');
+    if (observedTimestamp < historyStartTimestamp) throw new Error('historical_rx_observed_before_history_start');
     if (!Array.isArray(items) || !items.length) throw new Error('historical_rx_items_required');
+    const inventoryValidation = validateHistoricalRxInventory(items, expectedInventory);
 
     const ref = (kind, value) => crypto.createHmac('sha256', hmacSecret)
         .update(`${kind}:${String(value || '')}`).digest('hex').slice(0, 32);
@@ -97,21 +173,15 @@ function buildOpenFinanceHistoricalRx({
             if (status !== 'available') blockers.push(`${alias}:${key}_${status}`);
         }
 
-        const lifecycle = sourceLifecycles[alias] || {};
-        const availableFrom = lifecycle.availableFrom ? requireCutoff(lifecycle.availableFrom) : null;
-        const existedAtCutoff = typeof lifecycle.existedAtCutoff === 'boolean'
-            ? lifecycle.existedAtCutoff
-            : null;
-        if ((existedAtCutoff === false && availableFrom && availableFrom <= cutoff)
-            || (existedAtCutoff === true && availableFrom && availableFrom > cutoff)) {
-            throw new Error('conflicting_historical_rx_source_lifecycle');
+        const sourceLifecycle = sourceLifecycles[alias] || {};
+        const accountLifecycles = sourceLifecycle.accounts === undefined
+            ? {}
+            : sourceLifecycle.accounts;
+        if (!accountLifecycles || typeof accountLifecycles !== 'object' || Array.isArray(accountLifecycles)) {
+            throw new Error('invalid_historical_rx_account_lifecycles');
         }
-        const cutoffRelation = existedAtCutoff === false || (availableFrom && availableFrom > cutoff)
-            ? 'not_applicable_before_source_start'
-            : existedAtCutoff === true || (availableFrom && availableFrom <= cutoff)
-                ? 'source_available_at_cutoff'
-                : 'source_start_unknown';
-        if (cutoffRelation === 'source_start_unknown') blockers.push(`${alias}:source_start_unknown`);
+        const hasSourceLifecycleDefault = typeof sourceLifecycle.existedAtHistoryStart === 'boolean'
+            || Boolean(sourceLifecycle.availableFrom);
         const accounts = Array.isArray(item.accounts) ? item.accounts : [];
         const accountIds = new Set();
         const accountTypes = new Map();
@@ -122,6 +192,13 @@ function buildOpenFinanceHistoricalRx({
             if (!accountId || accountIds.has(accountId)) throw new Error('duplicate_or_missing_historical_rx_account');
             accountIds.add(accountId);
             accountTypes.set(accountId, String(account.type || '').toUpperCase());
+        }
+        for (const accountId of Object.keys(accountLifecycles)) {
+            if (!accountIds.has(accountId)) throw new Error('historical_rx_lifecycle_account_unknown');
+        }
+        if (Object.keys(accountLifecycles).length && !hasSourceLifecycleDefault
+            && accounts.some(account => !Object.hasOwn(accountLifecycles, String(account.id || '')))) {
+            throw new Error('historical_rx_account_lifecycle_required');
         }
         if (accounts.some(account => String(account.type || '').toUpperCase() === 'CREDIT')) {
             const billStatus = String(item.availability?.bills || 'unavailable').toLowerCase();
@@ -158,6 +235,18 @@ function buildOpenFinanceHistoricalRx({
             const accountId = String(account.id || '');
             const accountType = String(account.type || '').toUpperCase();
             if (!['BANK', 'CREDIT'].includes(accountType)) throw new Error('unsupported_historical_rx_account_type');
+            const accountLifecycleDefinition = Object.hasOwn(accountLifecycles, accountId)
+                ? accountLifecycles[accountId]
+                : sourceLifecycle;
+            const {
+                availableFrom: accountAvailableFrom,
+                existedAtHistoryStart: accountExistedAtHistoryStart,
+                historyStartRelation
+            } = resolveAccountLifecycle(accountLifecycleDefinition, historyStart);
+            if (historyStartRelation === 'account_start_unknown'
+                && !blockers.includes(`${alias}:account_start_unknown`)) {
+                blockers.push(`${alias}:account_start_unknown`);
+            }
 
             const transactionStatus = String(item.availability?.transactions || 'unavailable').toLowerCase();
             const accountStatus = String(item.availability?.accounts || 'unavailable').toLowerCase();
@@ -166,7 +255,7 @@ function buildOpenFinanceHistoricalRx({
             const rows = transactionsAvailable ? (item.transactions || []).filter(transaction => {
                 if (String(transaction.account_id || '') !== accountId) return false;
                 const timestamp = parseDate(transaction.date, 'historical_rx_transaction_date');
-                return timestamp >= cutoffTimestamp;
+                return timestamp >= historyStartTimestamp;
             }) : [];
             const postedThroughObservation = rows.filter(transaction =>
                 String(transaction.status || '').toUpperCase() === 'POSTED' &&
@@ -181,15 +270,15 @@ function buildOpenFinanceHistoricalRx({
             const currentBalance = cents(account.balance_cents,
                 'historical_rx_account_balance', { nullable: true });
 
-            let cutoffReconstruction;
-            if (!isBank) {
-                cutoffReconstruction = { balance_cents: null, reason: 'credit_balance_is_not_invoice' };
-            } else if (cutoffRelation === 'not_applicable_before_source_start') {
-                cutoffReconstruction = { balance_cents: null, reason: 'source_not_available_at_cutoff' };
+            let historyStartReconstruction;
+            if (historyStartRelation === 'not_applicable_before_account_start') {
+                historyStartReconstruction = { balance_cents: null, reason: 'account_not_available_at_history_start' };
+            } else if (!isBank) {
+                historyStartReconstruction = { balance_cents: null, reason: 'credit_balance_is_not_invoice' };
             } else if (currentBalance === null || !transactionsAvailable) {
-                cutoffReconstruction = { balance_cents: null, reason: 'complete_bank_history_unavailable' };
+                historyStartReconstruction = { balance_cents: null, reason: 'complete_bank_history_unavailable' };
             } else {
-                cutoffReconstruction = {
+                historyStartReconstruction = {
                     balance_cents: currentBalance - sum(postedThroughObservation, row => row.amount_cents),
                     confidence: 'conditional_on_complete_posted_history'
                 };
@@ -199,7 +288,7 @@ function buildOpenFinanceHistoricalRx({
             const billsAvailable = accountsAvailable && billStatus === 'available';
             const accountBills = billsAvailable ? (item.bills || []).filter(bill =>
                 String(bill.account_id || '') === accountId &&
-                parseDate(bill.due_date, 'historical_rx_bill_due_date') >= cutoffTimestamp
+                parseDate(bill.due_date, 'historical_rx_bill_due_date') >= historyStartTimestamp
             ) : [];
             const installmentRows = rows.filter(transaction =>
                 Number.isInteger(Number(transaction.installment_number)) &&
@@ -253,9 +342,9 @@ function buildOpenFinanceHistoricalRx({
                 product: isBank ? 'bank_account' : 'credit_card',
                 subtype: String(account.subtype || 'UNKNOWN').toUpperCase(),
                 currency: String(account.currency || 'BRL').toUpperCase(),
-                cutoff_relation: cutoffRelation,
-                source_available_from: availableFrom,
-                source_existed_at_cutoff: existedAtCutoff,
+                history_start_relation: historyStartRelation,
+                account_available_from: accountAvailableFrom,
+                account_existed_at_history_start: accountExistedAtHistoryStart,
                 coverage: {
                     account_status: accountStatus,
                     status: transactionStatus,
@@ -309,7 +398,7 @@ function buildOpenFinanceHistoricalRx({
                         : null,
                     observed_at: new Date(observedTimestamp).toISOString()
                 },
-                cutoff_reconstruction: cutoffReconstruction,
+                history_start_reconstruction: historyStartReconstruction,
                 bills: {
                     status: billStatus,
                     count: billsAvailable ? accountBills.length : null,
@@ -350,12 +439,13 @@ function buildOpenFinanceHistoricalRx({
     }
 
     return Object.freeze({
-        schema_version: 1,
+        schema_version: 2,
         gate: 'RX-HIST-SEG-01',
-        cutoff_date: cutoff,
+        history_start_date: historyStart,
         observed_at: new Date(observedTimestamp).toISOString(),
         ready_for_reconciliation: blockers.length === 0,
         blockers: blockers.sort(),
+        inventory_validation: inventoryValidation,
         segments: segments.sort((left, right) =>
             `${left.source_alias}:${left.product}:${left.segment_ref}`.localeCompare(
                 `${right.source_alias}:${right.product}:${right.segment_ref}`
@@ -368,6 +458,7 @@ function buildOpenFinanceHistoricalRx({
 
 module.exports = {
     buildOpenFinanceHistoricalRx,
+    validateHistoricalRxInventory,
     snapshotSqliteFileSet,
     sqliteFileSetsEqual
 };

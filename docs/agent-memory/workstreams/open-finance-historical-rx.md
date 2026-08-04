@@ -1,74 +1,82 @@
 # Estado - RX historico segmentado Open Finance
 
-Atualizado em: 2026-08-03
+Atualizado em: 2026-08-04
 
 ## Objetivo
 
 Produzir um RX historico deterministico a partir do snapshot normalizado do
-Pluggy, com data de corte configuravel e sem escrita financeira.
+Pluggy, com inicio historico explicito, inventario familiar exato e zero escrita
+financeira.
 
 ## Estado
 
-`RX-HIST-SEG-01 GO TECNICO LOCAL; PREVIEW PRIVADO NAO AUTORIZADO`.
+`RX-HIST-TIME-INV-01 CANDIDATO LOCAL; AGUARDANDO AUDITORIA INDEPENDENTE`.
 
-O objetivo esta sendo medido pelo coletor local sanitizado. O segmentador puro e
-a CLI read-only estao implementados. A primeira fonte real sera uma copia
-isolada do backup OCI de 2026-07-28; o arquivo original nao sera alterado.
-Nenhum segredo, payload privado ou resultado financeiro entra no Git.
+O `GO TECNICO LOCAL` anterior de `RX-HIST-SEG-01`, no hash
+`62ec19532f1e4d288efa7c3fb75291540358fdd5`, continua valido para o contrato
+antigo, mas foi superado para qualquer preview real. O usuario esclareceu duas
+fronteiras temporais diferentes e o inventario familiar completo; o candidato
+atual incorpora essas condicoes antes de abrir dados reais.
 
-## Evidencia local
+## Contrato temporal
 
-- auditoria independente do hash
-  `3888a337f12cb9e44524d0c1510f1f8507e5fd51`: `NO-GO`;
-- reauditoria independente do hash
-  `1d05065646059a6c47a77e7a049300e98fb163a5`: `NO-GO` probatorio, sem achado
-  funcional novo;
-- reauditoria independente do hash
-  `62ec19532f1e4d288efa7c3fb75291540358fdd5`: `GO TECNICO LOCAL`, com leitura
-  integral dos quatro arquivos e zero achados residuais;
-- achados fechados localmente: agregados ausentes nao viram zero, fatura e
-  parcela exigem conta `CREDIT`, blockers produzem `NO_GO` e a fonte SQLite
-  inteira permanece byte a byte intacta;
-- a leitura ocorre em copia temporaria privada do banco e de seus sidecars,
-  aberta pelo vault com `readonly:true` e removida ao final;
-- os testes agora exigem todos os derivados nulos, abertura exclusiva da copia,
-  `readonly:true`, rejeicao de journal pendente e limpeza em sucesso e erro;
-- syntax checks da CLI e dos testes: verdes;
-- teste focal: 10/10;
-- bateria causal ampliada: 135/135;
-- suite hermetica final do recovery: 1.464 testes, 1.454 aprovados, 0 falhas e 10 skips
+- inicio do RX historico: `2025-07-01`;
+- corte de elegibilidade de novos alertas: `2026-07-28`;
+- o corte de alertas pertence ao fluxo operacional de notificacao e nao entra
+  na CLI nem no relatorio do RX;
+- transacoes anteriores ao inicio historico nao participam da reconstrucao;
+- nenhuma data ausente e inferida.
+
+## Inventario familiar obrigatorio
+
+| Fonte | Conta bancaria | Cartao | Escopo titular |
+|---|---:|---:|---|
+| Daniel Nubank | 1 | 1 | Daniel |
+| Thais Nubank | 1 | 1 | Thais |
+| Thais Itau | 1 | 1 | Thais |
+| Cristina Nubank | 1 | 1 | Thais |
+
+Total: quatro contas bancarias, quatro cartoes, dois segmentos de Daniel e seis
+segmentos vinculados a Thais. A conta Itau de Thais existia em `2025-07-01`; o
+cartao Itau de Thais nao existia nessa data. A data exata de criacao desse
+cartao nao e inventada.
+
+## Evidencia local atual
+
+- o builder exige o inventario e a CLI operacional exige seu arquivo externo
+  antes de abrir o vault;
+- fonte ausente ou extra, tipo/quantidade divergente e titular incorreto falham
+  fechado;
+- lifecycle pode ser declarado por conta, sem aplicar a existencia da conta ao
+  cartao do mesmo banco;
+- teste focal: 14/14;
+- bateria causal Open Finance: 339/339;
+- suite hermetica final: 1.468 testes, 1.458 aprovados, 0 falhas e 10 skips
   conhecidos;
-- cinco integracoes PowerShell, incompatíveis com a trava de subprocessos da
-  suite hermetica, foram executadas fora dela e passaram 5/5;
-- cobertura final: linhas 90,59%, branches 72,88%, funcoes 90,20%;
-- nenhuma chamada Pluggy nova, producao, WhatsApp ou escrita financeira.
+- cobertura: linhas 90,60%, branches 72,95%, funcoes 90,23%;
+- nenhuma chamada Pluggy nova, dado real, planilha, deploy, OCI, WhatsApp ou
+  escrita financeira.
 
 ## Invariantes
 
-- conta bancaria, cartao, fatura e investimento nunca sao fundidos;
+- conta bancaria e cartao nunca sao fundidos, mesmo quando pertencem ao mesmo
+  banco ou pessoa;
+- o escopo de Cristina permanece Thais; somente os dois segmentos Nubank de
+  Daniel ficam no escopo Daniel;
 - `account.balance` de cartao nao e rotulado como fatura;
-- reconstrucao de saldo no corte usa somente movimentos `POSTED` de conta
-  bancaria e permanece explicitamente condicional a historia completa;
-- fonte que ainda nao existia no corte fica `not_applicable`, nunca zero;
-- parcelas usam numero e competencia fornecidos pelo provedor; lacuna nao e
-  preenchida por inferencia;
+- conta ou cartao inexistente no inicio historico fica `not_applicable`, nunca
+  zero;
+- parcelas usam numero e competencia fornecidos pelo provedor;
 - IDs e descricoes de transacao nao aparecem no resumo;
 - resultado declara `financial_writes=0`.
 
-## Fora do escopo
-
-- apagar testes ou ajustar planilha;
-- importar ou salvar lancamentos;
-- fluxo numerico de selecao e salvamento;
-- chamada Pluggy nova, deploy, OCI ou WhatsApp;
-- escolher silenciosamente a data final do corte.
-
 ## Proxima acao
 
-Obter autorizacao operacional separada para o preview privado read-only e
-confirmar a data de corte e o lifecycle de cada fonte. Ate la, nao abrir o
-backup real nem produzir relatorio financeiro.
+Publicar o commit sanitizado e obter auditoria independente por hash imutavel.
+Somente depois de novo `GO TECNICO LOCAL` podera ser preparada uma execucao
+privada read-only; isso ainda nao autoriza abrir o backup, alterar planilha ou
+usar producao.
 
 ## Capacidade
 
-`Codex -> Sol -> Medio -> confirmar corte/lifecycles e preparar o preview privado read-only.`
+`Codex -> Sol -> Alto -> publicar e auditar o contrato temporal e inventarial.`

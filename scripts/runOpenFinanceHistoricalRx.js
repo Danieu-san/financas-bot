@@ -13,8 +13,8 @@ const {
 
 function parseArgs(argv) {
     const allowed = new Set([
-        '--confirm-read-only', '--cutoff', '--staging-db', '--secret-file',
-        '--mapping-file', '--source-lifecycle-file', '--output'
+        '--confirm-read-only', '--history-start', '--staging-db', '--secret-file',
+        '--mapping-file', '--source-lifecycle-file', '--expected-inventory-file', '--output'
     ]);
     const result = {};
     for (let index = 0; index < argv.length; index += 1) {
@@ -101,6 +101,10 @@ function main(argv = process.argv.slice(2), {
     const output = requirePrivateOutput(args.output);
     const secret = fs.readFileSync(secretFile, 'utf8').trim();
     const mappings = loadJson(mappingFile, 'invalid_historical_rx_mapping_file');
+    const expectedInventory = loadJson(
+        requireFile(args.expectedInventoryFile, 'historical_rx_expected_inventory_file_required'),
+        'invalid_historical_rx_expected_inventory_file'
+    );
     const sourceLifecycles = args.sourceLifecycleFile
         ? loadJson(requireFile(args.sourceLifecycleFile, 'historical_rx_lifecycle_file_required'), 'invalid_historical_rx_lifecycle_file')
         : {};
@@ -134,10 +138,11 @@ function main(argv = process.argv.slice(2), {
     if (observationTimes.length !== 1) throw new Error('historical_rx_mixed_observation_times');
     const report = buildOpenFinanceHistoricalRx({
         items: records.map(record => record.item),
-        cutoffDate: args.cutoff,
+        historyStartDate: args.historyStart,
         observedAt: observationTimes[0],
         secret,
-        sourceLifecycles
+        sourceLifecycles,
+        expectedInventory
     });
     const afterSqliteFiles = snapshotSqliteFileSet(stagingDb);
     if (!sqliteFileSetsEqual(beforeSqliteFiles, afterSqliteFiles)) {
@@ -149,10 +154,13 @@ function main(argv = process.argv.slice(2), {
     stdout.write(`${JSON.stringify({
         gate: 'RX-HIST-SEG-01',
         outcome,
-        cutoff_date: report.cutoff_date,
+        history_start_date: report.history_start_date,
         observed_at: report.observed_at,
         sources: records.length,
         segments: report.segments.length,
+        inventory_validated: report.inventory_validation?.status === 'validated',
+        bank_accounts: report.inventory_validation?.bank_accounts ?? null,
+        credit_cards: report.inventory_validation?.credit_cards ?? null,
         investments: report.investments.length,
         ready_for_reconciliation: report.ready_for_reconciliation,
         blockers: report.blockers,
