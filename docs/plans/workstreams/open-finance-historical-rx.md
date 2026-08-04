@@ -1,6 +1,6 @@
 # Plano - RX historico segmentado Open Finance
 
-Status: `RX-HIST-TIME-INV-01 recovery candidato local; reauditoria independente pendente`.
+Status: `RX-HIST-TIME-INV-01 recovery probatorio candidato; reauditoria independente pendente`.
 
 ## Objetivo
 
@@ -38,8 +38,10 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 5. [concluida] Executar teste focal, bateria causal e uma suite hermetica final.
 6. [concluida] Publicar primeiro candidato e obter NO-GO independente.
 7. [concluida] Fixar contrato canonico, validacao pre-vault e identificador do gate.
-8. [em andamento] Publicar recovery sanitizado e obter reauditoria independente.
-9. [pendente] Depois de GO, preparar a execucao privada read-only.
+8. [concluida] Publicar recovery e obter NO-GO probatorio independente.
+9. [concluida] Provar JSON invalido, zero snapshot/copia/vault e stderr real.
+10. [em andamento] Publicar recovery probatorio e obter reauditoria independente.
+11. [pendente] Depois de GO, preparar a execucao privada read-only.
 
 ## Criterios de GO
 

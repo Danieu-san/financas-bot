@@ -94,7 +94,9 @@ function copySqliteFileSet(sourceDatabase, targetDatabase, snapshot) {
 
 function main(argv = process.argv.slice(2), {
     VaultClass = OpenFinanceLiveStagingVault,
-    stdout = process.stdout
+    stdout = process.stdout,
+    snapshotSqliteFileSetFn = snapshotSqliteFileSet,
+    copySqliteFileSetFn = copySqliteFileSet
 } = {}) {
     const args = parseArgs(argv);
     if (!args.confirmReadOnly) throw new Error('confirm_read_only_required');
@@ -114,7 +116,7 @@ function main(argv = process.argv.slice(2), {
     const sourceLifecycles = args.sourceLifecycleFile
         ? loadJson(requireFile(args.sourceLifecycleFile, 'historical_rx_lifecycle_file_required'), 'invalid_historical_rx_lifecycle_file')
         : {};
-    const beforeSqliteFiles = snapshotSqliteFileSet(stagingDb);
+    const beforeSqliteFiles = snapshotSqliteFileSetFn(stagingDb);
     if (beforeSqliteFiles.journal.exists && beforeSqliteFiles.journal.size > 0) {
         throw new Error('historical_rx_uncheckpointed_sqlite_state');
     }
@@ -123,8 +125,8 @@ function main(argv = process.argv.slice(2), {
     const snapshotDb = path.join(snapshotRoot, 'staging.sqlite');
     let records;
     try {
-        copySqliteFileSet(stagingDb, snapshotDb, beforeSqliteFiles);
-        if (!sqliteFileSetsEqual(beforeSqliteFiles, snapshotSqliteFileSet(snapshotDb))) {
+        copySqliteFileSetFn(stagingDb, snapshotDb, beforeSqliteFiles);
+        if (!sqliteFileSetsEqual(beforeSqliteFiles, snapshotSqliteFileSetFn(snapshotDb))) {
             throw new Error('historical_rx_snapshot_copy_mismatch');
         }
         const vault = new VaultClass({ databasePath: snapshotDb, secret, readonly: true });
@@ -150,7 +152,7 @@ function main(argv = process.argv.slice(2), {
         sourceLifecycles,
         expectedInventory
     });
-    const afterSqliteFiles = snapshotSqliteFileSet(stagingDb);
+    const afterSqliteFiles = snapshotSqliteFileSetFn(stagingDb);
     if (!sqliteFileSetsEqual(beforeSqliteFiles, afterSqliteFiles)) {
         throw new Error('historical_rx_staging_mutated');
     }

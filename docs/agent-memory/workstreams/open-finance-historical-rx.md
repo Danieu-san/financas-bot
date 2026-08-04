@@ -10,7 +10,7 @@ financeira.
 
 ## Estado
 
-`RX-HIST-TIME-INV-01 RECOVERY CANDIDATO LOCAL; AGUARDANDO REAUDITORIA INDEPENDENTE`.
+`RX-HIST-TIME-INV-01 RECOVERY PROBATORIO CANDIDATO; AGUARDANDO REAUDITORIA INDEPENDENTE`.
 
 O `GO TECNICO LOCAL` anterior de `RX-HIST-SEG-01`, no hash
 `62ec19532f1e4d288efa7c3fb75291540358fdd5`, continua valido para o contrato
@@ -25,6 +25,14 @@ a CLI so confrontava forma/titularidade/contagem depois de abrir o vault e o
 identificador publico ainda era o gate anterior. O recovery fixa o inventario
 canonico no produto, valida inventario e aliases antes do snapshot/vault e usa
 `RX-HIST-TIME-INV-01` em builder, stdout e erro da CLI.
+
+O primeiro recovery, no hash
+`5cee2aa4fcd0814d0f783f6680b035e8c8408bae`, recebeu novo `NO-GO`
+exclusivamente probatorio. O auditor considerou a implementacao materialmente
+fechada, mas exigiu JSON sintaticamente invalido, prova direta de zero chamadas
+de snapshot/copia nas rejeicoes pre-vault e subprocesso real cobrindo o JSON de
+erro em stderr. O recovery probatorio atual adiciona essas tres evidencias sem
+alterar o contrato financeiro.
 
 ## Contrato temporal
 
@@ -58,11 +66,11 @@ cartao nao e inventada.
   fechado;
 - lifecycle pode ser declarado por conta, sem aplicar a existencia da conta ao
   cartao do mesmo banco;
-- teste focal: 14/14;
-- bateria causal Open Finance: 339/339;
-- suite hermetica final: 1.468 testes, 1.458 aprovados, 0 falhas e 10 skips
+- teste focal: 15/15;
+- bateria causal Open Finance: 340/340;
+- suite hermetica final: 1.469 testes, 1.459 aprovados, 0 falhas e 10 skips
   conhecidos;
-- cobertura: linhas 90,61%, branches 72,93%, funcoes 90,24%;
+- cobertura: linhas 90,62%, branches 72,96%, funcoes 90,22%;
 - nenhuma chamada Pluggy nova, dado real, planilha, deploy, OCI, WhatsApp ou
   escrita financeira.
 
@@ -81,7 +89,7 @@ cartao nao e inventada.
 
 ## Proxima acao
 
-Publicar o recovery sanitizado e obter reauditoria independente por hash imutavel.
+Publicar o recovery probatorio e obter reauditoria independente por hash imutavel.
 Somente depois de novo `GO TECNICO LOCAL` podera ser preparada uma execucao
 privada read-only; isso ainda nao autoriza abrir o backup, alterar planilha ou
 usar producao.

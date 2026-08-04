@@ -617,19 +617,40 @@ test('CLI exige inventario externo antes de abrir o vault', () => {
         fs.writeFileSync(secretPath, SECRET, 'utf8');
         fs.writeFileSync(mappingPath, JSON.stringify([{ alias: 'daniel_nubank' }]), 'utf8');
         let vaultOpened = false;
+        let snapshotCalls = 0;
+        let copyCalls = 0;
         class VaultTripwire extends OpenFinanceLiveStagingVault {
             constructor(options) {
                 vaultOpened = true;
                 super(options);
             }
         }
+        const tripwires = {
+            VaultClass: VaultTripwire,
+            snapshotSqliteFileSetFn() {
+                snapshotCalls += 1;
+                throw new Error('snapshot_tripwire_called');
+            },
+            copySqliteFileSetFn() {
+                copyCalls += 1;
+                throw new Error('copy_tripwire_called');
+            }
+        };
         assert.throws(() => runHistoricalRx([
             '--confirm-read-only', '--history-start', '2025-07-01',
             '--staging-db', databasePath, '--secret-file', secretPath,
             '--mapping-file', mappingPath, '--output', outputPath
-        ], { VaultClass: VaultTripwire }), /historical_rx_expected_inventory_file_required/);
+        ], tripwires), /historical_rx_expected_inventory_file_required/);
         assert.equal(vaultOpened, false);
         assert.equal(fs.existsSync(outputPath), false);
+
+        fs.writeFileSync(inventoryPath, '{"broken":', 'utf8');
+        assert.throws(() => runHistoricalRx([
+            '--confirm-read-only', '--history-start', '2025-07-01',
+            '--staging-db', databasePath, '--secret-file', secretPath,
+            '--mapping-file', mappingPath, '--expected-inventory-file', inventoryPath,
+            '--output', outputPath
+        ], tripwires), /invalid_historical_rx_expected_inventory_file/);
 
         const wrongOwner = structuredClone(CANONICAL_HISTORICAL_RX_INVENTORY);
         wrongOwner.find(entry => entry.alias === 'cristina_nubank').ownerScope = 'cristina';
@@ -649,7 +670,7 @@ test('CLI exige inventario externo antes de abrir o vault', () => {
                 '--staging-db', databasePath, '--secret-file', secretPath,
                 '--mapping-file', mappingPath, '--expected-inventory-file', inventoryPath,
                 '--output', outputPath
-            ], { VaultClass: VaultTripwire }), expectedError);
+            ], tripwires), expectedError);
             assert.equal(vaultOpened, false);
         }
 
@@ -659,8 +680,44 @@ test('CLI exige inventario externo antes de abrir o vault', () => {
             '--staging-db', databasePath, '--secret-file', secretPath,
             '--mapping-file', mappingPath, '--expected-inventory-file', inventoryPath,
             '--output', outputPath
-        ], { VaultClass: VaultTripwire }), /historical_rx_mapping_inventory_mismatch/);
+        ], tripwires), /historical_rx_mapping_inventory_mismatch/);
         assert.equal(vaultOpened, false);
+        assert.equal(snapshotCalls, 0);
+        assert.equal(copyCalls, 0);
+        assert.equal(fs.existsSync(outputPath), false);
+    } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test('CLI subprocesso publica erro sanitizado com o gate novo', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'open-finance-rx-error-contract-'));
+    try {
+        const databasePath = path.join(root, 'live-staging.sqlite');
+        const secretPath = path.join(root, 'staging-secret.txt');
+        const mappingPath = path.join(root, 'pluggy-item-map.json');
+        const inventoryPath = path.join(root, 'expected-inventory.json');
+        const outputPath = path.join(root, 'historical-rx.json');
+        fs.writeFileSync(databasePath, 'not-opened');
+        fs.writeFileSync(secretPath, SECRET, 'utf8');
+        fs.writeFileSync(mappingPath,
+            JSON.stringify(CANONICAL_HISTORICAL_RX_INVENTORY.map(({ alias }) => ({ alias }))), 'utf8');
+        fs.writeFileSync(inventoryPath, '{"broken":', 'utf8');
+        const script = path.resolve(__dirname, '..', 'scripts', 'runOpenFinanceHistoricalRx.js');
+        const result = spawnSync(process.execPath, [
+            script, '--confirm-read-only', '--history-start', '2025-07-01',
+            '--staging-db', databasePath, '--secret-file', secretPath,
+            '--mapping-file', mappingPath, '--expected-inventory-file', inventoryPath,
+            '--output', outputPath
+        ], { encoding: 'utf8' });
+        assert.equal(result.status, 1);
+        assert.equal(result.stdout, '');
+        assert.deepEqual(JSON.parse(result.stderr), {
+            gate: HISTORICAL_RX_GATE,
+            outcome: 'NO_GO',
+            reason: 'invalid_historical_rx_expected_inventory_file',
+            financial_writes: 0
+        });
         assert.equal(fs.existsSync(outputPath), false);
     } finally {
         fs.rmSync(root, { recursive: true, force: true });
