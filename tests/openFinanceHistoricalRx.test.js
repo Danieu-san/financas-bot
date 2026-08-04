@@ -9,7 +9,6 @@ const { spawnSync } = require('node:child_process');
 const test = require('node:test');
 const {
     CANONICAL_HISTORICAL_RX_INVENTORY,
-    HISTORICAL_RX_GATE,
     buildOpenFinanceHistoricalRx: buildHistoricalRx,
     snapshotSqliteFileSet,
     sqliteFileSetsEqual
@@ -143,7 +142,7 @@ test('RX separa conta, cartao, fatura e investimento sem expor payload bruto', (
     });
 
     assert.equal(report.financial_writes, 0);
-    assert.equal(report.gate, HISTORICAL_RX_GATE);
+    assert.equal(report.gate, 'RX-HIST-RESERVE-LIFECYCLE-01');
     assert.equal(report.segments.length, 9);
     const bank = report.segments.find(row => row.source_alias === 'daniel_nubank' && row.product === 'bank_account');
     const card = report.segments.find(row => row.source_alias === 'daniel_nubank' && row.product === 'credit_card');
@@ -925,7 +924,7 @@ test('CLI subprocesso publica erro sanitizado com o gate novo', () => {
         assert.equal(result.status, 1);
         assert.equal(result.stdout, '');
         assert.deepEqual(JSON.parse(result.stderr), {
-            gate: HISTORICAL_RX_GATE,
+            gate: 'RX-HIST-RESERVE-LIFECYCLE-01',
             outcome: 'NO_GO',
             reason: 'invalid_historical_rx_expected_inventory_file',
             financial_writes: 0
@@ -1052,13 +1051,13 @@ test('CLI le vault real em readonly, grava fora do Git e nao imprime payload pri
     assert.equal(publicResult.database_unchanged, true);
     assert.equal(publicResult.sqlite_files_unchanged, true);
     assert.equal(publicResult.financial_writes, 0);
-    assert.equal(publicResult.gate, HISTORICAL_RX_GATE);
+    assert.equal(publicResult.gate, 'RX-HIST-RESERVE-LIFECYCLE-01');
     assert.equal(publicResult.segments, 9);
     assert.equal(crypto.createHash('sha256').update(fs.readFileSync(databasePath)).digest('hex'), beforeHash);
     assert.equal(sqliteFileSetsEqual(beforeSqliteFiles, snapshotSqliteFileSet(databasePath)), true);
     const report = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
     assert.equal(report.financial_writes, 0);
-    assert.equal(report.gate, HISTORICAL_RX_GATE);
+    assert.equal(report.gate, 'RX-HIST-RESERVE-LIFECYCLE-01');
     assert.equal(report.segments.find(row =>
         row.source_alias === 'thais_itau' && row.product === 'credit_card').history_start_relation,
         'not_applicable_before_account_start');

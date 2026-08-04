@@ -106,6 +106,14 @@ para saldo, mas nao viram receita ou despesa. Rendimento permanece ganho;
 rotulo generico ou direcao incompatível falham fechado. Serie de parcela
 ambigua fica bloqueada para salvamento ate resolver sua identidade.
 
+O primeiro candidato de reserva/lifecycle, no hash
+`457f31b588b10ca0d9fe48e9fa7397ec3a2b0e12`, recebeu `NO-GO` independente
+por uma unica divergencia probatoria: builder e CLI ainda publicavam o gate
+anterior, e os testes comparavam as saidas apenas com a mesma constante
+importada. O recovery muda o literal runtime para
+`RX-HIST-RESERVE-LIFECYCLE-01` e confronta builder, stderr e stdout/relatorio
+com literais independentes, sem alterar o contrato financeiro.
+
 ## Contrato temporal
 
 - inicio do RX historico: `2025-07-01`;
@@ -144,7 +152,7 @@ quando observado/disponivel, sem herdar o lifecycle da conta.
 - bateria causal Open Finance do candidato atual: 343/343;
 - suite hermetica final do candidato atual: 1.475 testes, 1.465 aprovados,
   0 falhas e 10 skips conhecidos;
-- cobertura: linhas 90,64%, branches 73,02%, funcoes 90,28%;
+- cobertura do recovery: linhas 90,65%, branches 73,10%, funcoes 90,28%;
 - nenhuma chamada Pluggy live; a copia privada foi usada somente no preflight
   sanitizado, sem imprimir IDs, saldos ou transacoes;
 - nenhuma planilha, deploy, OCI, WhatsApp ou escrita financeira.

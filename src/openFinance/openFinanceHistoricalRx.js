@@ -4,7 +4,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 
 const ESSENTIAL_AVAILABILITY = ['accounts', 'transactions'];
-const HISTORICAL_RX_GATE = 'RX-HIST-TIME-INV-01';
+const HISTORICAL_RX_GATE = 'RX-HIST-RESERVE-LIFECYCLE-01';
 const CANONICAL_HISTORICAL_RX_INVENTORY = Object.freeze([
     Object.freeze({ alias: 'daniel_nubank', ownerScope: 'daniel', accounts: Object.freeze({ BANK: 1, CREDIT: 1 }) }),
     Object.freeze({ alias: 'thais_nubank', ownerScope: 'thais', accounts: Object.freeze({ BANK: 1, CREDIT: 1 }) }),

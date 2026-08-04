@@ -64,7 +64,9 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
     `sim` generico para multiplas opcoes nem salvar automaticamente.
 21. [em andamento] Classificar aplicacao/resgate de reserva como transferencia
     patrimonial, rendimento como ganho, bloquear semantica generica e impedir
-    salvamento de parcela ambigua; testar, publicar e auditar.
+    salvamento de parcela ambigua; o primeiro candidato recebeu NO-GO porque o
+    runtime ainda publicava o gate anterior. Publicar e auditar o recovery com
+    literal independente nos testes.
 22. [pendente] Depois de GO independente, reexecutar uma previa privada com o
     lifecycle corrigido, mantendo o cartao Itau separado e sem data inventada.
 
