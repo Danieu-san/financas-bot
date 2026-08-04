@@ -9,7 +9,7 @@ Pluggy, com data de corte configuravel e sem escrita financeira.
 
 ## Estado
 
-`RX-HIST-SEG-01 RECOVERY PROBATORIO LOCAL; REAUDITORIA INDEPENDENTE PENDENTE`.
+`RX-HIST-SEG-01 GO TECNICO LOCAL; PREVIEW PRIVADO NAO AUTORIZADO`.
 
 O objetivo esta sendo medido pelo coletor local sanitizado. O segmentador puro e
 a CLI read-only estao implementados. A primeira fonte real sera uma copia
@@ -23,6 +23,9 @@ Nenhum segredo, payload privado ou resultado financeiro entra no Git.
 - reauditoria independente do hash
   `1d05065646059a6c47a77e7a049300e98fb163a5`: `NO-GO` probatorio, sem achado
   funcional novo;
+- reauditoria independente do hash
+  `62ec19532f1e4d288efa7c3fb75291540358fdd5`: `GO TECNICO LOCAL`, com leitura
+  integral dos quatro arquivos e zero achados residuais;
 - achados fechados localmente: agregados ausentes nao viram zero, fatura e
   parcela exigem conta `CREDIT`, blockers produzem `NO_GO` e a fonte SQLite
   inteira permanece byte a byte intacta;
@@ -62,11 +65,10 @@ Nenhum segredo, payload privado ou resultado financeiro entra no Git.
 
 ## Proxima acao
 
-Publicar o recovery probatorio sanitizado e submeter o novo hash imutavel a
-reauditoria independente.
-Somente apos GO tecnico local, executar o preview privado sobre copia isolada,
-com data de corte e lifecycle das fontes explicitamente fornecidos.
+Obter autorizacao operacional separada para o preview privado read-only e
+confirmar a data de corte e o lifecycle de cada fonte. Ate la, nao abrir o
+backup real nem produzir relatorio financeiro.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> publicar e reauditar o recovery probatorio RX-HIST-SEG-01.`
+`Codex -> Sol -> Medio -> confirmar corte/lifecycles e preparar o preview privado read-only.`

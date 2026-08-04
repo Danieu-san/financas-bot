@@ -1,6 +1,6 @@
 # Plano - RX historico segmentado Open Finance
 
-Status: `RX-HIST-SEG-01 recovery probatorio local; reauditoria independente pendente`.
+Status: `RX-HIST-SEG-01 GO tecnico local; preview privado nao autorizado`.
 
 ## Base
 
@@ -35,8 +35,8 @@ partir de um corte temporal explicito, preservando semantica e origem.
 3. [concluida] Implementar RED e segmentador puro.
 4. [concluida] Implementar CLI read-only e saida privada.
 5. [concluida] Executar bateria causal e suite ampla final.
-6. [em andamento] Publicar recovery probatorio sanitizado e obter reauditoria independente.
-7. [pendente] Executar preview na copia isolada e apresentar o RX.
+6. [concluida] Publicar recovery probatorio sanitizado e obter reauditoria independente.
+7. [pendente] Obter autorizacao separada, confirmar corte/lifecycles e executar preview na copia isolada.
 
 ## Criterios de GO
 
@@ -58,4 +58,5 @@ partir de um corte temporal explicito, preservando semantica e origem.
 
 ## Proxima acao
 
-Publicar o recovery probatorio sanitizado e obter novo parecer independente por hash imutavel.
+Obter autorizacao operacional separada e confirmar corte/lifecycles antes de
+abrir a copia privada do backup real.
