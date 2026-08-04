@@ -494,6 +494,69 @@ test('instalador executa install e uninstall restaurando bytes preexistentes', {
     assert.deepEqual(fs.readFileSync(configPath), original);
 });
 
+test('install adota bloco existente e preserva integralmente os bytes atuais', {
+    skip: process.platform !== 'win32'
+}, () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-install-adopt-'));
+    const configPath = path.join(root, 'config.toml');
+    const storagePath = path.join(root, 'telemetry');
+    const original = Buffer.concat([
+        Buffer.from([0xef, 0xbb, 0xbf]),
+        Buffer.from('[features]\napps = true\n', 'utf8')
+    ]);
+    fs.writeFileSync(configPath, original);
+    const installerPath = path.resolve(__dirname, '..', 'scripts', 'agent', 'Manage-CodexUsageTelemetry.ps1');
+    const common = [
+        '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', installerPath,
+        '-CodexConfigPath', configPath,
+        '-TelemetryStorageRoot', storagePath
+    ];
+    const firstInstall = spawnSync('powershell.exe', [...common, '-Action', 'Install'], { encoding: 'utf8' });
+    assert.equal(firstInstall.status, 0, firstInstall.stderr);
+    const installedBytes = fs.readFileSync(configPath);
+    fs.rmSync(path.join(storagePath, 'install-state.json'));
+
+    const adopted = spawnSync('powershell.exe', [...common, '-Action', 'Install'], { encoding: 'utf8' });
+    assert.equal(adopted.status, 0, adopted.stderr);
+    assert.equal(JSON.parse(adopted.stdout.trim()).adopted_existing, true);
+    assert.deepEqual(fs.readFileSync(configPath), installedBytes);
+    const state = JSON.parse(fs.readFileSync(path.join(storagePath, 'install-state.json'), 'utf8'));
+    assert.equal(state.status, 'installed');
+    assert.equal(fs.existsSync(state.backup_path), true);
+});
+
+test('install recusa adocao quando backup diverge apenas por BOM sem mutar config', {
+    skip: process.platform !== 'win32'
+}, () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-install-adopt-bom-'));
+    const configPath = path.join(root, 'config.toml');
+    const storagePath = path.join(root, 'telemetry');
+    const original = Buffer.concat([
+        Buffer.from([0xef, 0xbb, 0xbf]),
+        Buffer.from('[features]\napps = true\n', 'utf8')
+    ]);
+    fs.writeFileSync(configPath, original);
+    const installerPath = path.resolve(__dirname, '..', 'scripts', 'agent', 'Manage-CodexUsageTelemetry.ps1');
+    const common = [
+        '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', installerPath,
+        '-CodexConfigPath', configPath,
+        '-TelemetryStorageRoot', storagePath
+    ];
+    const firstInstall = spawnSync('powershell.exe', [...common, '-Action', 'Install'], { encoding: 'utf8' });
+    assert.equal(firstInstall.status, 0, firstInstall.stderr);
+    const firstResult = JSON.parse(firstInstall.stdout.trim());
+    const installedBytes = fs.readFileSync(configPath);
+    fs.rmSync(path.join(storagePath, 'install-state.json'));
+    const backupBytes = fs.readFileSync(firstResult.backup);
+    assert.deepEqual([...backupBytes.subarray(0, 3)], [0xef, 0xbb, 0xbf]);
+    fs.writeFileSync(firstResult.backup, backupBytes.subarray(3));
+
+    const rejected = spawnSync('powershell.exe', [...common, '-Action', 'Install'], { encoding: 'utf8' });
+    assert.notEqual(rejected.status, 0);
+    assert.deepEqual(fs.readFileSync(configPath), installedBytes);
+    assert.equal(fs.existsSync(path.join(storagePath, 'install-state.json')), false);
+});
+
 test('uninstall recusa configuracao alterada e preserva o arquivo atual', {
     skip: process.platform !== 'win32'
 }, () => {
