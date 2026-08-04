@@ -43,6 +43,7 @@ metrics_exporter = { otlp-http = { endpoint = "http://127.0.0.1:4318/v1/metrics"
 trace_exporter = "none"
 log_user_prompt = false
 '@
+$otelBlockBytes = [System.Text.UTF8Encoding]::new($false).GetBytes($otelBlock)
 
 & $node $collector storage-check --path $storageRoot | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'Raiz de telemetria insegura.' }
@@ -69,6 +70,29 @@ function Write-InstallState {
     $temporary = "$installStatePath.$PID.tmp"
     [System.IO.File]::WriteAllText($temporary, "$payload`n", [System.Text.UTF8Encoding]::new($false))
     Move-Item -LiteralPath $temporary -Destination $installStatePath -Force
+}
+
+function Test-ByteArrayEqual {
+    param([byte[]]$Left, [byte[]]$Right)
+    if ($null -eq $Left -or $null -eq $Right -or $Left.Length -ne $Right.Length) {
+        return $false
+    }
+    for ($index = 0; $index -lt $Left.Length; $index++) {
+        if ($Left[$index] -ne $Right[$index]) { return $false }
+    }
+    return $true
+}
+
+function Get-ManagedPrefixBytes {
+    param([byte[]]$Content, [byte[]]$Suffix)
+    if ($Content.Length -lt $Suffix.Length) { return $null }
+    $offset = $Content.Length - $Suffix.Length
+    for ($index = 0; $index -lt $Suffix.Length; $index++) {
+        if ($Content[$offset + $index] -ne $Suffix[$index]) { return $null }
+    }
+    $prefix = [byte[]]::new($offset)
+    if ($offset -gt 0) { [System.Array]::Copy($Content, 0, $prefix, 0, $offset) }
+    return ,$prefix
 }
 
 function Get-CollectorProcess {
@@ -99,14 +123,17 @@ switch ($Action) {
         }
         $config = Get-Content -Raw -LiteralPath $configPath
         if ($config -match '(?m)^\s*\[otel\]\s*$') {
-            if (-not $config.EndsWith($otelBlock, [System.StringComparison]::Ordinal)) {
+            $configBytes = [System.IO.File]::ReadAllBytes($configPath)
+            [byte[]]$originalBytes = Get-ManagedPrefixBytes -Content $configBytes -Suffix $otelBlockBytes
+            if ($null -eq $originalBytes) {
                 throw 'A secao [otel] existente nao corresponde ao bloco gerenciado.'
             }
-            $originalText = $config.Substring(0, $config.Length - $otelBlock.Length)
             $directory = Split-Path -Parent $configPath
             $fileName = Split-Path -Leaf $configPath
             $matches = @(Get-ChildItem -LiteralPath $directory -Filter "$fileName.before-financasbot-otel-*.bak" -File |
-                Where-Object { (Get-Content -Raw -LiteralPath $_.FullName) -ceq $originalText })
+                Where-Object {
+                    Test-ByteArrayEqual -Left ([System.IO.File]::ReadAllBytes($_.FullName)) -Right $originalBytes
+                })
             if ($matches.Count -ne 1) {
                 throw 'Nao foi possivel identificar um unico backup original para o bloco existente.'
             }
@@ -154,14 +181,15 @@ switch ($Action) {
         if (-not (Test-Path -LiteralPath $backupPath)) {
             throw 'Backup original ausente; nenhuma alteracao foi feita.'
         }
-        $config = Get-Content -Raw -LiteralPath $configPath
-        if (-not $config.EndsWith($otelBlock, [System.StringComparison]::Ordinal)) {
+        $configBytes = [System.IO.File]::ReadAllBytes($configPath)
+        [byte[]]$currentPrefix = Get-ManagedPrefixBytes -Content $configBytes -Suffix $otelBlockBytes
+        if ($null -eq $currentPrefix) {
             throw 'O bloco gerenciado foi alterado; rollback automatico recusado.'
         }
-        $originalText = Get-Content -Raw -LiteralPath $backupPath
-        $currentPrefix = $config.Substring(0, $config.Length - $otelBlock.Length)
+        [byte[]]$originalBytes = [System.IO.File]::ReadAllBytes($backupPath)
         $backupHash = (Get-FileHash -LiteralPath $backupPath -Algorithm SHA256).Hash.ToLowerInvariant()
-        if ($currentPrefix -cne $originalText -or $backupHash -cne [string]$installState.original_sha256) {
+        if (-not (Test-ByteArrayEqual -Left $currentPrefix -Right $originalBytes) -or
+            $backupHash -cne [string]$installState.original_sha256) {
             throw 'A configuracao preexistente divergiu do backup; rollback recusado.'
         }
         $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'

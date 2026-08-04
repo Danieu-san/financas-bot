@@ -199,7 +199,9 @@ test('valores tecnicos desconhecidos viram categoria neutra sem conservar o text
     payload.resourceLogs[0].scopeLogs[0].logRecords[0].attributes.push(
         attribute('model', 'gpt-5-DanielPrivado'),
         attribute('tool', 'FerramentaSecreta'),
-        attribute('status', 'ContaPessoal')
+        attribute('status', 'ContaPessoal'),
+        attribute('service.version', '1.2.3-DanielPrivado'),
+        attribute('app.version', '9.8.7-ContaPessoal')
     );
     const [record] = sanitizeOtlpEnvelope(payload, {
         kind: 'logs',
@@ -209,10 +211,54 @@ test('valores tecnicos desconhecidos viram categoria neutra sem conservar o text
     assert.equal(record.attributes.model, 'other');
     assert.equal(record.attributes.tool, 'other');
     assert.equal(record.attributes.status, 'other');
+    assert.equal(Object.hasOwn(record.attributes, 'service.version'), false);
+    assert.equal(Object.hasOwn(record.attributes, 'app.version'), false);
     const serialized = JSON.stringify(record);
     assert.equal(serialized.includes('DanielPrivado'), false);
     assert.equal(serialized.includes('FerramentaSecreta'), false);
     assert.equal(serialized.includes('ContaPessoal'), false);
+});
+
+test('intervalos sobrepostos falham fechado mesmo com o mesmo objective_id', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-overlap-test-'));
+    const outputPath = path.join(root, 'events.jsonl');
+    const statePath = path.join(root, 'active-objective.json');
+    const intervalsPath = path.join(root, 'objective-intervals.jsonl');
+    writeObjectiveState(statePath, { objective_id: null, status: 'stopped' });
+    fs.writeFileSync(intervalsPath, [
+        { objective_id: 'OBJ-A', started_time_unix_nano: '100', stopped_time_unix_nano: '250' },
+        { objective_id: 'OBJ-A', started_time_unix_nano: '150', stopped_time_unix_nano: '300' }
+    ].map(value => JSON.stringify(value)).join('\n') + '\n', 'utf8');
+    const payload = logEnvelope();
+    payload.resourceLogs[0].scopeLogs[0].logRecords[0].timeUnixNano = '200';
+    const collector = createCollector({
+        host: '127.0.0.1', port: 0, outputPath, statePath, intervalsPath
+    });
+    await collector.start();
+    try {
+        const response = await fetch(`http://127.0.0.1:${collector.address().port}/v1/logs`, {
+            method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload)
+        });
+        assert.equal(response.status, 200);
+    } finally {
+        await collector.stop();
+    }
+    const [record] = fs.readFileSync(outputPath, 'utf8').trim().split(/\r?\n/).map(JSON.parse);
+    assert.equal(record.objective_id, null);
+});
+
+test('timestamp ausente ou invalido nunca recebe o objetivo ativo', () => {
+    const payload = logEnvelope();
+    delete payload.resourceLogs[0].scopeLogs[0].logRecords[0].timeUnixNano;
+    payload.resourceLogs[0].scopeLogs[0].logRecords[0].observedTimeUnixNano = 'segredo-temporal';
+    const [record] = sanitizeOtlpEnvelope(payload, {
+        kind: 'logs',
+        objectiveForTimestamp: () => 'OBJ-A',
+        receivedAt: '2026-08-03T21:00:00.000Z'
+    });
+    assert.equal(record.observed_time_unix_nano, null);
+    assert.equal(record.objective_id, null);
+    assert.equal(JSON.stringify(record).includes('segredo-temporal'), false);
 });
 
 test('intervalo terminal reconcilia estado ativo obsoleto e falha fechado fora da janela', async () => {
@@ -463,6 +509,30 @@ test('uninstall recusa configuracao alterada e preserva o arquivo atual', {
     ];
     assert.equal(spawnSync('powershell.exe', [...common, '-Action', 'Install']).status, 0);
     fs.appendFileSync(configPath, '\n# alteracao posterior\n', 'utf8');
+    const before = fs.readFileSync(configPath);
+    const rejected = spawnSync('powershell.exe', [...common, '-Action', 'Uninstall'], { encoding: 'utf8' });
+    assert.notEqual(rejected.status, 0);
+    assert.deepEqual(fs.readFileSync(configPath), before);
+});
+
+test('uninstall recusa divergencia somente de BOM e preserva bytes atuais', {
+    skip: process.platform !== 'win32'
+}, () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-uninstall-bom-'));
+    const configPath = path.join(root, 'config.toml');
+    const storagePath = path.join(root, 'telemetry');
+    const text = Buffer.from('[features]\napps = true\n', 'utf8');
+    fs.writeFileSync(configPath, Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), text]));
+    const installerPath = path.resolve(__dirname, '..', 'scripts', 'agent', 'Manage-CodexUsageTelemetry.ps1');
+    const common = [
+        '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', installerPath,
+        '-CodexConfigPath', configPath,
+        '-TelemetryStorageRoot', storagePath
+    ];
+    assert.equal(spawnSync('powershell.exe', [...common, '-Action', 'Install']).status, 0);
+    const installedBytes = fs.readFileSync(configPath);
+    assert.deepEqual([...installedBytes.subarray(0, 3)], [0xef, 0xbb, 0xbf]);
+    fs.writeFileSync(configPath, installedBytes.subarray(3));
     const before = fs.readFileSync(configPath);
     const rejected = spawnSync('powershell.exe', [...common, '-Action', 'Uninstall'], { encoding: 'utf8' });
     assert.notEqual(rejected.status, 0);

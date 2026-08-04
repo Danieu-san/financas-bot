@@ -1,6 +1,6 @@
 # Plano - calibracao prospectiva de uso do Codex
 
-Status: `CODEX-USAGE-CAL-01 recovery candidato aguardando reauditoria`.
+Status: `CODEX-USAGE-CAL-01 segundo recovery candidato aguardando reauditoria`.
 
 ## Objetivo
 
@@ -48,8 +48,10 @@ roll-up por objetivo autorizado e sem conteudo de usuario ou ferramenta.
 4. [concluida] Validar workflow e revisar o diff.
 5. [concluida com NO-GO] Publicar candidato sanitizado e obter auditoria independente.
 6. [concluida] Corrigir privacidade, causalidade temporal, junction e rollback.
-7. [em andamento] Publicar recovery e obter nova auditoria independente.
-8. [pendente] Ativar objetivo e iniciar a calibracao `RX-HIST-SEG-01`.
+7. [concluida com NO-GO] Publicar recovery e obter nova auditoria independente.
+8. [concluida] Corrigir versoes livres, sobreposicao e comparacao binaria.
+9. [em andamento] Publicar segundo recovery e obter reauditoria independente.
+10. [pendente] Ativar objetivo e iniciar a calibracao `RX-HIST-SEG-01`.
 
 ## Criterios de GO
 

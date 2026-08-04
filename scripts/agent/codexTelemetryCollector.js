@@ -84,9 +84,7 @@ const PUBLIC_MODEL_NAMES = new Set([
 ]);
 const SAFE_ATTRIBUTE_KEYS = new Set([
     'service.name',
-    'service.version',
     'deployment.environment.name',
-    'app.version',
     'auth_mode',
     'session_source',
     'model',
@@ -136,11 +134,6 @@ function normalizeStringAttribute(key, value) {
     if (key === 'service.name') return value === 'codex' ? value : undefined;
     if (key === 'deployment.environment.name') {
         return value === 'financasbot-local' ? value : undefined;
-    }
-    if (key === 'service.version' || key === 'app.version') {
-        return /^\d{1,4}(?:\.\d{1,4}){1,3}(?:-[a-z0-9.-]{1,32})?$/i.test(value)
-            ? value
-            : undefined;
     }
     if (key === 'model') {
         return PUBLIC_MODEL_NAMES.has(value) ? value : 'other';
@@ -295,8 +288,10 @@ function buildRecord({ kind, eventName, timestamp, attributes, value, objectiveI
 }
 
 function resolveObjectiveId(context, timestamp) {
+    const normalizedTimestamp = normalizeNanoTimestamp(timestamp);
+    if (!normalizedTimestamp) return null;
     if (typeof context.objectiveForTimestamp === 'function') {
-        return context.objectiveForTimestamp(normalizeNanoTimestamp(timestamp));
+        return context.objectiveForTimestamp(normalizedTimestamp);
     }
     return context.objectiveId || null;
 }
@@ -490,7 +485,7 @@ function readObjectiveIdAt(statePath, intervalsPath, timestamp) {
     const normalizedTimestamp = normalizeNanoTimestamp(timestamp);
     if (!normalizedTimestamp) return null;
     const instant = BigInt(normalizedTimestamp);
-    const candidates = new Set();
+    const candidates = [];
     const active = readObjectiveState(statePath);
     const intervals = readObjectiveIntervals(intervalsPath);
     const activeAlreadyClosed = matchingClosedInterval(active, intervals);
@@ -499,15 +494,15 @@ function readObjectiveIdAt(statePath, intervalsPath, timestamp) {
         typeof active.objective_id === 'string' &&
         normalizeNanoTimestamp(active.started_time_unix_nano) &&
         BigInt(active.started_time_unix_nano) <= instant) {
-        candidates.add(active.objective_id);
+        candidates.push(active.objective_id);
     }
     for (const interval of intervals) {
         if (BigInt(interval.started_time_unix_nano) <= instant &&
             instant <= BigInt(interval.stopped_time_unix_nano)) {
-            candidates.add(interval.objective_id);
+            candidates.push(interval.objective_id);
         }
     }
-    return candidates.size === 1 ? [...candidates][0] : null;
+    return candidates.length === 1 ? candidates[0] : null;
 }
 
 function isLoopback(address) {

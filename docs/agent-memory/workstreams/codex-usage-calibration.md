@@ -9,7 +9,7 @@ por objetivo aceito sem registrar conteudo privado.
 
 ## Estado
 
-`CODEX-USAGE-CAL-01 RECOVERY CANDIDATO AGUARDANDO REAUDITORIA`.
+`CODEX-USAGE-CAL-01 SEGUNDO RECOVERY CANDIDATO AGUARDANDO REAUDITORIA`.
 
 A pesquisa documental confirmou que o Codex pode exportar telemetria OTel com
 identidade de conversa, modelo, effort, duracao, ferramentas, compactacoes,
@@ -28,10 +28,16 @@ independente: strings allowlisted ainda podiam conservar identidade, o
 intervalos temporais, junctions nao eram resolvidos fisicamente e nao havia
 rollback executavel da configuracao.
 
+O primeiro recovery `a3c6134a8a861daa42e0de9d4cd34c538684f171`
+tambem recebeu NO-GO: versoes ainda aceitavam sufixo livre, comparacoes de
+rollback eram textuais e sobreposicoes do mesmo objetivo eram colapsadas. O
+segundo recovery remove versoes da persistencia, compara configuracao e backup
+em bytes e conta cada janela concorrente antes de atribuir.
+
 ## Evidencia local
 
 - RED inicial confirmou ausencia do modulo antes da implementacao;
-- 13 de 13 testes focais verdes no recovery;
+- 16 de 16 testes focais verdes no segundo recovery;
 - syntax check de JavaScript e parse de PowerShell verdes;
 - instalacao temporaria provou backup, bloco OTel e prompt desligado;
 - listener operacional respondeu saudavel somente em loopback;
@@ -53,9 +59,9 @@ rollback executavel da configuracao.
 
 ## Proxima acao
 
-Concluir a bateria ampla final do recovery, revisar o diff, publicar novo hash
-imutavel e obter reauditoria independente. Somente depois do GO iniciar a
-primeira tarefa real de calibracao.
+Concluir a bateria ampla final do segundo recovery, revisar o diff, publicar
+novo hash imutavel e obter reauditoria independente. Somente depois do GO
+iniciar a primeira tarefa real de calibracao.
 
 ## Capacidade
 
