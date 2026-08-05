@@ -486,6 +486,16 @@ function deleteState(userId) {
     }
 }
 
+function setStateDurably(userId, state, ttlSeconds = null) {
+    setState(userId, state, ttlSeconds);
+    flushStateToDisk();
+}
+
+function deleteStateDurably(userId) {
+    deleteState(userId);
+    flushStateToDisk();
+}
+
 function findStateEntry(predicate) {
     assertStateStoreReady();
     cleanupExpired();
@@ -563,7 +573,9 @@ registerStateStoreSignalHandlers({ handler: handleStateStoreShutdownSignal });
 module.exports = {
     getState,
     setState,
+    setStateDurably,
     deleteState,
+    deleteStateDurably,
     clearState: deleteState,
     findStateEntry,
     closeStateStore,

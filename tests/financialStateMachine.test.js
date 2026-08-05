@@ -3142,7 +3142,28 @@ stateMachineTest('gate 32 public handler rejects batch sim and advances a numeri
         assert.strictEqual(state.action, 'awaiting_open_finance_save_review');
         assert.strictEqual(state.data.proposalRef, proposalRefs[0]);
         assert.deepStrictEqual(state.data.batch.queuedProposalRefs, [proposalRefs[1]]);
-        const nextReply = await send('cancelar');
+        sheetReadErrors.set('Categorias', new Error('synthetic catalog outage'));
+        const interruptedReply = await send('cancelar');
+        assert.match(interruptedReply, /continua reservada/i);
+        state = userStateManager.getState(SENDER);
+        assert.strictEqual(
+            state.action,
+            'awaiting_open_finance_save_batch_continue'
+        );
+        assert.deepStrictEqual(state.data.batch.queuedProposalRefs, [proposalRefs[1]]);
+
+        userStateManager.__test__.replaceStateFromJsonForTests('{}');
+        assert.strictEqual(userStateManager.getState(SENDER), undefined);
+        userStateManager.__test__.loadStateFromDiskForTests();
+        state = userStateManager.getState(SENDER);
+        assert.strictEqual(
+            state.action,
+            'awaiting_open_finance_save_batch_continue'
+        );
+        assert.deepStrictEqual(state.data.batch.queuedProposalRefs, [proposalRefs[1]]);
+
+        sheetReadErrors.delete('Categorias');
+        const nextReply = await send('continuar');
         assert.match(nextReply, /Confira a proposta/);
         state = userStateManager.getState(SENDER);
         assert.strictEqual(state.action, 'awaiting_open_finance_save_review');
@@ -3154,7 +3175,8 @@ stateMachineTest('gate 32 public handler rejects batch sim and advances a numeri
             if (previous[name] === undefined) delete process.env[name];
             else process.env[name] = previous[name];
         }
-        userStateManager.deleteState(SENDER);
+        sheetReadErrors.delete('Categorias');
+        userStateManager.deleteStateDurably(SENDER);
     }
 });
 

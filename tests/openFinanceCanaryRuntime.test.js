@@ -383,7 +383,7 @@ test('9E.1 runtime log separates cycle deliveries from cumulative outbox state',
 test('resolved no-id proposal binds one conversation and ambiguous delivery still reserves its recipient', () => {
     const states = new Map();
     const stateManager = {
-        setState(key, value, ttl) { states.set(key, { value, ttl }); }
+        setStateDurably(key, value, ttl) { states.set(key, { value, ttl }); }
     };
     const excludedRecipients = new Set();
     const bound = bindOpenFinanceProposalConversation({

@@ -336,6 +336,29 @@ linhas 90,75%, branches 73,39% e funcoes 90,51%. Manifesto:
 O estado maximo e candidato local aguardando auditoria independente por hash
 imutavel. Nao ativar flags, nao fazer deploy e nao usar producao neste gate.
 
+O hash `a10931d8f8cdb2291ffe0b39927778cb71a9f46d` recebeu `NO-GO`
+independente. Transporte atomico, selecao familiar e revisoes individuais
+foram confirmados, mas a fila auxiliar podia ficar apenas em memoria entre a
+remocao do estado corrente e a abertura do proximo item. Uma queda antes do
+flush periodico deixaria propostas reservadas sem retomada publica.
+
+O recovery remove essa janela: o runtime e o handler usam transicoes duraveis
+do state store cifrado, e o handler persiste
+`awaiting_open_finance_save_batch_continue` antes de tentar o proximo item. A
+prova publica injeta falha de catalogo, elimina o estado residente, reabre o
+snapshot do disco e retoma exatamente a segunda revisao com `continuar`.
+Tambem ficou explicito o rollback integral de leases adulterados nos caminhos
+`accepted_unconfirmed` e `release`. Focal 12/12 e bateria causal 171/171.
+Suite hermetica ampla final: 1.530 testes, 1.520 aprovados, zero falhas e 10
+skips conhecidos; cobertura de linhas 90,78%, branches 73,45% e funcoes
+90,52%.
+Manifesto:
+`docs/audit/151-open-finance-numeric-save-flow-durable-queue-recovery-candidate-2026-08-05.md`.
+
+O estado maximo volta a ser recovery candidato aguardando reauditoria em novo
+hash. Flags, deploy, Pluggy/Sheets/WhatsApp reais e producao permanecem fora do
+escopo.
+
 ## Capacidade
 
-`Codex -> Sol -> Alto -> auditar o gate 32 por hash imutavel e confrontar o veredito.`
+`Codex -> Sol -> Alto -> publicar e reauditar o recovery duravel do gate 32 por hash imutavel.`

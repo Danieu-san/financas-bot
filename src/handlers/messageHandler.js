@@ -6620,6 +6620,21 @@ function openFinanceStateData(proposalRef, batch = null) {
     };
 }
 
+function setOpenFinanceConversationState(senderId, state) {
+    userStateManager.setStateDurably(senderId, state);
+}
+
+function clearOpenFinanceConversationState(senderId) {
+    userStateManager.deleteStateDurably(senderId);
+}
+
+function persistOpenFinanceBatchContinuation(senderId, batch) {
+    setOpenFinanceConversationState(senderId, {
+        action: 'awaiting_open_finance_save_batch_continue',
+        data: { batch }
+    });
+}
+
 async function advanceQueuedOpenFinanceSaveReview({
     batch,
     senderId,
@@ -9314,7 +9329,7 @@ async function processMessage(msg) {
         }
         if (batchReply.handled) {
             if (batchReply.keep_pending && batchReply.state === 'review_editing') {
-                userStateManager.setState(senderId, {
+                setOpenFinanceConversationState(senderId, {
                     action: 'awaiting_open_finance_save_review',
                     data: openFinanceStateData(
                         batchReply.proposal_ref,
@@ -9322,9 +9337,9 @@ async function processMessage(msg) {
                     )
                 });
             } else if (batchReply.keep_pending) {
-                userStateManager.setState(senderId, currentState);
+                setOpenFinanceConversationState(senderId, currentState);
             } else {
-                userStateManager.deleteState(senderId);
+                clearOpenFinanceConversationState(senderId);
             }
             await sendPlainMessage(msg, batchReply.reply);
             return;
@@ -9339,11 +9354,11 @@ async function processMessage(msg) {
                 userId
             });
             if (!advanced) {
-                userStateManager.deleteState(senderId);
+                clearOpenFinanceConversationState(senderId);
                 await sendPlainMessage(msg, 'A fila de conferência já foi concluída.');
                 return;
             }
-            userStateManager.setState(senderId, {
+            setOpenFinanceConversationState(senderId, {
                 action: 'awaiting_open_finance_save_review',
                 data: openFinanceStateData(advanced.proposal_ref, advanced.batch)
             });
@@ -9374,13 +9389,19 @@ async function processMessage(msg) {
         });
         if (finalReply.handled) {
             const batch = currentState?.data?.batch || null;
+            const shouldAdvanceBatch = Boolean(
+                batch?.queuedProposalRefs?.length &&
+                (!finalReply.keep_pending || finalReply.acknowledge_receipt)
+            );
             if (finalReply.keep_pending) {
-                userStateManager.setState(senderId, {
+                setOpenFinanceConversationState(senderId, {
                     action: 'awaiting_open_finance_final_confirmation',
                     data: openFinanceStateData(finalReply.proposal_ref, batch)
                 });
+            } else if (shouldAdvanceBatch) {
+                persistOpenFinanceBatchContinuation(senderId, batch);
             } else {
-                userStateManager.deleteState(senderId);
+                clearOpenFinanceConversationState(senderId);
             }
             await sendPlainMessage(msg, finalReply.reply);
             if (finalReply.acknowledge_receipt) {
@@ -9388,10 +9409,13 @@ async function processMessage(msg) {
                     proposalRef: finalReply.proposal_ref,
                     actorWhatsappId: senderId
                 });
-                userStateManager.deleteState(senderId);
+                if (shouldAdvanceBatch) {
+                    persistOpenFinanceBatchContinuation(senderId, batch);
+                } else {
+                    clearOpenFinanceConversationState(senderId);
+                }
             }
-            if (batch?.queuedProposalRefs?.length &&
-                (!finalReply.keep_pending || finalReply.acknowledge_receipt)) {
+            if (shouldAdvanceBatch) {
                 try {
                     const advanced = await advanceQueuedOpenFinanceSaveReview({
                         batch,
@@ -9399,7 +9423,7 @@ async function processMessage(msg) {
                         userId
                     });
                     if (advanced) {
-                        userStateManager.setState(senderId, {
+                        setOpenFinanceConversationState(senderId, {
                             action: 'awaiting_open_finance_save_review',
                             data: openFinanceStateData(
                                 advanced.proposal_ref,
@@ -9410,10 +9434,6 @@ async function processMessage(msg) {
                     }
                 } catch (error) {
                     logger.warn(`[open-finance] save_batch_advance_unavailable sender=${logger.redactIdentifier(senderId)} ${logger.safeError(error)}`);
-                    userStateManager.setState(senderId, {
-                        action: 'awaiting_open_finance_save_batch_continue',
-                        data: { batch }
-                    });
                     await sendPlainMessage(
                         msg,
                         'A próxima conferência continua reservada. Não consegui abri-la agora; envie *continuar* mais tarde. Nada adicional foi salvo.'
@@ -9437,6 +9457,10 @@ async function processMessage(msg) {
         });
         if (reviewReply.handled) {
             const batch = currentState?.data?.batch || null;
+            const shouldAdvanceBatch = Boolean(
+                reviewReply.state === 'cancelled' &&
+                batch?.queuedProposalRefs?.length
+            );
             if (reviewReply.state === 'review_ready') {
                 const finalization = await prepareOpenFinanceSaveProposalFinalization({
                     proposalRef: reviewReply.proposal_ref,
@@ -9444,7 +9468,7 @@ async function processMessage(msg) {
                     userId
                 });
                 if (finalization.handled) {
-                    userStateManager.setState(senderId, {
+                    setOpenFinanceConversationState(senderId, {
                         action: 'awaiting_open_finance_final_confirmation',
                         data: openFinanceStateData(
                             finalization.proposal_ref,
@@ -9456,16 +9480,17 @@ async function processMessage(msg) {
                 }
             }
             if (reviewReply.keep_pending) {
-                userStateManager.setState(senderId, {
+                setOpenFinanceConversationState(senderId, {
                     action: 'awaiting_open_finance_save_review',
                     data: openFinanceStateData(reviewReply.proposal_ref, batch)
                 });
+            } else if (shouldAdvanceBatch) {
+                persistOpenFinanceBatchContinuation(senderId, batch);
             } else {
-                userStateManager.deleteState(senderId);
+                clearOpenFinanceConversationState(senderId);
             }
             await sendPlainMessage(msg, reviewReply.reply);
-            if (reviewReply.state === 'cancelled' &&
-                batch?.queuedProposalRefs?.length) {
+            if (shouldAdvanceBatch) {
                 try {
                     const advanced = await advanceQueuedOpenFinanceSaveReview({
                         batch,
@@ -9473,7 +9498,7 @@ async function processMessage(msg) {
                         userId
                     });
                     if (advanced) {
-                        userStateManager.setState(senderId, {
+                        setOpenFinanceConversationState(senderId, {
                             action: 'awaiting_open_finance_save_review',
                             data: openFinanceStateData(
                                 advanced.proposal_ref,
@@ -9484,10 +9509,6 @@ async function processMessage(msg) {
                     }
                 } catch (error) {
                     logger.warn(`[open-finance] save_batch_advance_unavailable sender=${logger.redactIdentifier(senderId)} ${logger.safeError(error)}`);
-                    userStateManager.setState(senderId, {
-                        action: 'awaiting_open_finance_save_batch_continue',
-                        data: { batch }
-                    });
                     await sendPlainMessage(
                         msg,
                         'A próxima conferência continua reservada. Não consegui abri-la agora; envie *continuar* mais tarde. Nada adicional foi salvo.'
@@ -9529,12 +9550,12 @@ async function processMessage(msg) {
         }
         if (proposalReply.handled) {
             if (proposalReply.keep_pending && proposalReply.state === 'review_editing') {
-                userStateManager.setState(senderId, {
+                setOpenFinanceConversationState(senderId, {
                     action: 'awaiting_open_finance_save_review',
                     data: { proposalRef: proposalReply.proposal_ref }
                 });
             } else if (!proposalReply.keep_pending) {
-                userStateManager.deleteState(senderId);
+                clearOpenFinanceConversationState(senderId);
             }
             await sendPlainMessage(msg, proposalReply.reply);
             return;

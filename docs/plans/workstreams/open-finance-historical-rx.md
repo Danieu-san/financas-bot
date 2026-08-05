@@ -119,7 +119,7 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
     read-only, recalcular blockers/elegibilidade sem inferir identidade e provar
     replay, restart, conflito familiar e `financial_writes=0`. Nao criar ainda
     proposta de salvamento nem ativar `prompt`.
-32. [candidato local aguardando auditoria independente] Substituir a colisao de propostas individuais pelo fluxo
+32. [NO-GO independente; recovery duravel concluido localmente] Substituir a colisao de propostas individuais pelo fluxo
     numerico de salvamento. Cada destinatario recebe um unico lote de ate quatro
     transacoes elegiveis; o fan-out do mesmo lote para Daniel e Thais nao reduz
     esse limite. Um lote aceita `salvar 1`, `salvar 1 e 3` e `salvar todas`; `sim`
@@ -166,7 +166,7 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 
 ## Proxima acao
 
-32. [pendente] Especificar o gate sucessor do fluxo numerico de salvamento a
-partir de eventos reconciliados elegiveis, preservando a separacao entre o RX
-historico e o corte operacional de alertas. Nenhuma proposta, ativacao de
-`prompt`, deploy ou producao entra automaticamente nesse gate.
+32. [em reauditoria] Publicar o recovery da fila duravel, auditar o novo hash e
+fechar somente o gate tecnico local se todas as severidades e a lacuna
+indispensavel ficarem zeradas. O gate sucessor, qualquer ativacao de `prompt`,
+deploy ou producao permanecem fora deste fechamento.

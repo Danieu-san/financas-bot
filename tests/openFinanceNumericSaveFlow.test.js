@@ -254,7 +254,7 @@ test('gate 32 binds an authenticated durable selection list instead of one ambig
     const states = new Map();
     const excludedRecipients = new Set();
     const stateManager = {
-        setState(key, value, ttl) {
+        setStateDurably(key, value, ttl) {
             states.set(key, { value, ttl });
         }
     };
@@ -306,6 +306,28 @@ test('gate 32 leases and acknowledges at most four proposals as one atomic trans
             whatsappMessageId: 'must-roll-back',
             sentAt: '2026-07-29T12:02:00.500Z'
         }), /batch_ack_lease_mismatch/);
+        assert.ok(first.every(item =>
+            outbox.getProposalDeliveryState(item.proposal_ref, {
+                recipient: 'daniel'
+            }) === 'in_flight'));
+        assert.throws(() => outbox.acknowledgeAcceptedBatch({
+            deliveries: first.map((item, index) => ({
+                alertRef: item.alert_ref,
+                leaseToken: index === 2 ? 'stale-lease' : item.lease_token
+            })),
+            acceptedAt: '2026-07-29T12:02:00.600Z'
+        }), /outbox_batch_accept_lease_mismatch/);
+        assert.ok(first.every(item =>
+            outbox.getProposalDeliveryState(item.proposal_ref, {
+                recipient: 'daniel'
+            }) === 'in_flight'));
+        assert.throws(() => outbox.releaseFailedBatch({
+            deliveries: first.map((item, index) => ({
+                alertRef: item.alert_ref,
+                leaseToken: index === 1 ? 'stale-lease' : item.lease_token
+            })),
+            errorCode: 'synthetic_transport_failure'
+        }), /outbox_batch_release_lease_mismatch/);
         assert.ok(first.every(item =>
             outbox.getProposalDeliveryState(item.proposal_ref, {
                 recipient: 'daniel'
@@ -526,7 +548,7 @@ test('gate 32 delivers one real numbered WhatsApp batch per family recipient', a
         assert.equal(bindOpenFinanceProposalConversation({
             delivery,
             stateManager: {
-                setState(key, value, ttl) {
+                setStateDurably(key, value, ttl) {
                     states.set(key, { value, ttl });
                 }
             },
@@ -649,7 +671,9 @@ test('gate 32 quarantines the whole batch after an ambiguous transport failure',
         const excludedRecipients = new Set();
         assert.equal(bindOpenFinanceProposalConversation({
             delivery,
-            stateManager: { setState() { throw new Error('must not bind'); } },
+            stateManager: {
+                setStateDurably() { throw new Error('must not bind'); }
+            },
             excludedRecipients
         }), false);
         assert.equal(excludedRecipients.has('thais'), true);

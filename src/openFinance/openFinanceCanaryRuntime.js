@@ -147,7 +147,7 @@ function bindOpenFinanceProposalConversation({
         (delivery.outcome === 'accepted_unconfirmed' &&
             delivery.conversation_bindable === true);
     if (!bindable) return false;
-    if (!stateManager || typeof stateManager.setState !== 'function') {
+    if (!stateManager || typeof stateManager.setStateDurably !== 'function') {
         throw new Error('open_finance_conversation_binding_dependencies_required');
     }
     const expiryTimes = proposalItems.map(item =>
@@ -159,7 +159,7 @@ function bindOpenFinanceProposalConversation({
     }
     const ttlSeconds = Math.max(1, Math.floor((expiresAt - nowMs) / 1000));
     const expiresAtIso = new Date(expiresAt).toISOString();
-    stateManager.setState(delivery.recipient, proposalItems.length === 1
+    stateManager.setStateDurably(delivery.recipient, proposalItems.length === 1
         ? {
             action: 'awaiting_open_finance_save_confirmation',
             data: {
@@ -198,7 +198,7 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
         : null;
     if (proposalMode === 'prompt' && (!stateManager ||
         typeof stateManager.getState !== 'function' ||
-        typeof stateManager.setState !== 'function')) {
+        typeof stateManager.setStateDurably !== 'function')) {
         throw new Error('open_finance_conversation_state_unavailable');
     }
     const requiredState = [env.OPEN_FINANCE_LIVE_STAGING_DB, env.OPEN_FINANCE_BASELINE_DB,

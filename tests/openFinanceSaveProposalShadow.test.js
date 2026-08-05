@@ -721,7 +721,7 @@ test('9P.0 runtime creates shadow proposals without changing WhatsApp or financi
         PluggyReadOnlyClient: FakeApi,
         userStateManager: {
             getState: actor => conversationStates.get(actor),
-            setState: (actor, state) => conversationStates.set(actor, state)
+            setStateDurably: (actor, state) => conversationStates.set(actor, state)
         },
         getActiveUsers: async () => [{
             user_id: 'user-daniel',
