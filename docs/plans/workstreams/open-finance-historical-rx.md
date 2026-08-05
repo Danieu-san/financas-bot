@@ -1,6 +1,6 @@
 # Plano - RX historico segmentado Open Finance
 
-Status: `candidato de reserva e lifecycle em validacao local`.
+Status: `recovery de paginacao de investimentos aguardando reauditoria`.
 
 ## Objetivo
 
@@ -77,12 +77,17 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 23. [concluida] Confirmar em fonte primaria a convencao de direcao: `CREDIT` e
     entrada e `DEBIT` e saida. Manter 22 `RESGATE_APLIC_FINANCEIRA` debitados
     como semanticamente ambiguos e fora da classificacao patrimonial.
-24. [concluida localmente; auditoria pendente] Em Sol Alto, coletar `/investments/{id}/transactions` de modo
+24. [NO-GO independente; recovery concluido localmente] Em Sol Alto, coletar `/investments/{id}/transactions` de modo
     opcional, paginado, sanitizado e fail-closed, propagar sua disponibilidade
     pelo contrato/vault/RX e provar ausencia de regressao. A fronteira RED esta
     fechada em 36/36; bateria causal 356/356 e suite ampla final substitutiva
     com 1.481 testes, 1.471 aprovados, zero falhas e 10 skips. Nenhuma chamada
     real, escrita financeira ou producao.
+25. [concluida localmente; reauditoria pendente] Rejeitar `totalPages`
+    contraditorio e provar 403/404 em pagina posterior sem retencao, 200 vazio,
+    limite de posicoes e ausencia/nulidade dos seis campos obrigatorios. Focal
+    39/39, bateria Open Finance 359/359 e suite ampla 1.484 testes, 1.474
+    aprovados, zero falhas e 10 skips.
 
 ## Criterios de GO
 
@@ -119,6 +124,6 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 
 ## Proxima acao
 
-Publicar o hash imutavel do gate `RX-HIST-INVESTMENT-LINKAGE-01` e obter
-auditoria independente antes de qualquer nova previa privada ou chamada Pluggy
+Publicar o hash imutavel do recovery de `RX-HIST-INVESTMENT-LINKAGE-01` e obter
+nova auditoria independente antes de qualquer previa privada ou chamada Pluggy
 live.

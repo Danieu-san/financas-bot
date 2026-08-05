@@ -156,6 +156,12 @@ class PluggyReadOnlyClient {
             if (hasTotalPages && (!Number.isSafeInteger(totalPages) || totalPages < 0)) {
                 throw new Error('pluggy_invalid_investment_transaction_total_pages');
             }
+            if (hasTotalPages && (
+                (totalPages === 0 && (page !== 1 || pageRows.length > 0))
+                || (totalPages > 0 && totalPages < page)
+            )) {
+                throw new Error('pluggy_inconsistent_investment_transaction_total_pages');
+            }
             if ((hasTotalPages && (totalPages === 0 || page >= totalPages))
                 || (!hasTotalPages && pageRows.length < 500)) {
                 return { rows, availability: 'available', pages: page };

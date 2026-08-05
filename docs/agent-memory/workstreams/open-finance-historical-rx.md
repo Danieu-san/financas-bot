@@ -10,7 +10,7 @@ financeira.
 
 ## Estado
 
-`RX-HIST-INVESTMENT-LINKAGE-01 CANDIDATO AGUARDANDO AUDITORIA`.
+`RX-HIST-INVESTMENT-LINKAGE-01 RECOVERY AGUARDANDO REAUDITORIA`.
 
 O `GO TECNICO LOCAL` anterior de `RX-HIST-SEG-01`, no hash
 `62ec19532f1e4d288efa7c3fb75291540358fdd5`, continua valido para o contrato
@@ -173,8 +173,18 @@ fonte com uma linha bancaria por heuristica. A bateria causal terminou 356/356
 e a suite ampla final substitutiva terminou com 1.481 testes, 1.471 aprovados,
 zero falhas e 10 skips conhecidos. A primeira ampla verde foi superada quando
 a revisao adversarial fechou o caso `quantity=null`; depois dessa mudanca houve
-novo focal e uma unica ampla final. Nao houve chamada Pluggy live nem acesso a
+ novo focal e uma unica ampla final. Nao houve chamada Pluggy live nem acesso a
 dados privados.
+
+O candidato publicado no hash
+`facee30b9725e4322b5cd5117c5499408c9f1910` recebeu `NO-GO`
+independente. A revisao encontrou uma falha real: `totalPages=0` com resultados
+ou `totalPages` inferior a pagina corrente podiam encerrar a coleta como
+valida. Tambem pediu provas diretas para 403/404 em pagina posterior, 200 vazio,
+limite de posicoes e os seis campos obrigatorios. O recovery rejeita os
+metadados contraditorios e cobre todas essas bordas. A hipotese de mistura apos
+403/404 nao se reproduziu: o cliente ja descartava todas as linhas daquela
+posicao; a nova prova torna esse comportamento causalmente explicito.
 
 ## Contrato temporal
 
@@ -210,11 +220,11 @@ quando observado/disponivel, sem herdar o lifecycle da conta.
   fechado;
 - lifecycle pode ser declarado por conta, sem aplicar a existencia da conta ao
   cartao do mesmo banco;
-- teste focal do candidato atual: 36/36;
-- bateria causal Open Finance do candidato atual: 356/356;
-- suite hermetica final do candidato atual: 1.481 testes, 1.471 aprovados,
+- teste focal do recovery atual: 39/39;
+- bateria causal Open Finance do recovery atual: 359/359;
+- suite hermetica final do recovery atual: 1.484 testes, 1.474 aprovados,
   0 falhas e 10 skips conhecidos;
-- cobertura do candidato: linhas 90,66%, branches 73,23%, funcoes 90,31%;
+- cobertura do recovery: linhas 90,67%, branches 73,26%, funcoes 90,32%;
 - nenhuma chamada Pluggy live; a copia privada foi usada somente no preflight
   sanitizado, sem imprimir IDs, saldos ou transacoes;
 - nenhuma planilha, deploy, OCI, WhatsApp ou escrita financeira.
@@ -243,11 +253,11 @@ quando observado/disponivel, sem herdar o lifecycle da conta.
 
 ## Proxima acao
 
-Publicar o commit sanitizado e obter auditoria independente por hash imutavel.
+Publicar o commit sanitizado do recovery e obter nova auditoria independente por hash imutavel.
 So depois desse GO podera haver uma chamada Pluggy live explicitamente
 autorizada para verificar cobertura Nubank. Planilha, escrita financeira,
 deploy e producao continuam fora do alcance.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> implementar coleta opcional de transacoes por posicao.`
+`Chat -> modelo mais capaz disponivel -> Alto -> reauditar o recovery por hash imutavel.`

@@ -97,6 +97,36 @@ test('contrato normaliza historico minimo por posicao sem carregar descricao pri
     assert.throws(() => normalizePluggyReadOnlySnapshot(payload), /invalid_investment_transaction_quantity/);
 });
 
+test('contrato rejeita ausencia e nulidade dos seis campos obrigatorios do historico', () => {
+    const requiredFields = [
+        ['type', 'investment_transaction_type'],
+        ['quantity', 'investment_transaction_quantity'],
+        ['value', 'investment_transaction_value'],
+        ['amount', 'investment_transaction_amount'],
+        ['date', 'investment_transaction_date'],
+        ['tradeDate', 'investment_transaction_trade_date']
+    ];
+    for (const [field, errorName] of requiredFields) {
+        for (const invalidValue of [undefined, null]) {
+            const payload = rawSnapshot();
+            payload.items[0].availability.investment_transactions = 'available';
+            payload.items[0].investments[0].transactionAvailability = 'available';
+            const transaction = {
+                type: 'BUY', quantity: 1, value: 25, amount: 25,
+                date: '2026-07-14T10:00:00.000Z', tradeDate: '2026-07-15T10:00:00.000Z'
+            };
+            if (invalidValue === undefined) delete transaction[field];
+            else transaction[field] = invalidValue;
+            payload.items[0].investments[0].transactions = [transaction];
+            assert.throws(
+                () => normalizePluggyReadOnlySnapshot(payload),
+                new RegExp(`invalid_${errorName}`),
+                `${field}=${String(invalidValue)}`
+            );
+        }
+    }
+});
+
 test('cliente usa apenas auth e endpoints GET read-only com paginacao v2', async () => {
     const calls = [];
     const mockFetch = async (url, options) => {
@@ -126,6 +156,8 @@ test('cliente usa apenas auth e endpoints GET read-only com paginacao v2', async
     assert.equal(calls.slice(1).every((call) => call.method === 'GET'), true);
     assert.equal(calls.some((call) => call.path.startsWith('/v2/transactions?')), true);
     assert.equal(calls.some((call) => call.path.startsWith('/investments/investment-001/transactions?')), true);
+    assert.equal(snapshot.items[0].availability.investment_transactions, 'available');
+    assert.deepEqual(snapshot.items[0].investments[0].transaction_history.transactions, []);
 });
 
 test('cliente pagina historico por posicao e distingue indisponibilidade de lista vazia', async () => {
@@ -188,6 +220,82 @@ test('cliente pagina historico por posicao e distingue indisponibilidade de list
     });
 });
 
+test('403 ou 404 em pagina posterior descarta integralmente o historico parcial da posicao', async () => {
+    for (const deniedStatus of [403, 404]) {
+        const client = new PluggyReadOnlyClient({
+            clientId: 'client-id', clientSecret: 'client-secret', itemMappings: mapping(),
+            fetchImpl: async (url) => {
+                const parsed = new URL(url);
+                if (parsed.pathname === '/auth') return response(200, { apiKey: 'ephemeral-api-key' });
+                if (parsed.pathname.startsWith('/items/')) return response(200, {
+                    id: 'item-daniel-001', connectorId: '200', status: 'UPDATED'
+                });
+                if (parsed.pathname === '/accounts') return response(200, { results: rawSnapshot().items[0].accounts });
+                if (parsed.pathname === '/v2/transactions') return response(200, { results: [], next: null });
+                if (parsed.pathname === '/bills') return response(200, { results: [] });
+                if (parsed.pathname === '/investments') return response(200, { results: rawSnapshot().items[0].investments });
+                if (parsed.pathname === '/investments/investment-001/transactions') {
+                    const page = Number(parsed.searchParams.get('page'));
+                    if (page === 1) return response(200, {
+                        totalPages: 2, page: 1, results: [{
+                            type: 'BUY', quantity: 1, value: 10, amount: 10,
+                            date: '2026-07-10T00:00:00.000Z', tradeDate: '2026-07-10T00:00:00.000Z'
+                        }]
+                    });
+                    return response(deniedStatus, {});
+                }
+                return response(500, {});
+            }
+        });
+        const snapshot = await client.readSnapshot({ eventId: `event-page-denied-${deniedStatus}` });
+        assert.equal(snapshot.items[0].availability.investment_transactions, 'unavailable');
+        assert.deepEqual(snapshot.items[0].investments[0].transaction_history, {
+            availability: 'unavailable', transactions: []
+        });
+    }
+});
+
+test('cliente rejeita totalPages contraditorio com a pagina ou com resultados', async () => {
+    const makeClient = (investmentResponder) => new PluggyReadOnlyClient({
+        clientId: 'client-id', clientSecret: 'client-secret', itemMappings: mapping(),
+        fetchImpl: async (url) => {
+            const parsed = new URL(url);
+            if (parsed.pathname === '/auth') return response(200, { apiKey: 'ephemeral-api-key' });
+            if (parsed.pathname.startsWith('/items/')) return response(200, {
+                id: 'item-daniel-001', connectorId: '200', status: 'UPDATED'
+            });
+            if (parsed.pathname === '/accounts') return response(200, { results: rawSnapshot().items[0].accounts });
+            if (parsed.pathname === '/v2/transactions') return response(200, { results: [], next: null });
+            if (parsed.pathname === '/bills') return response(200, { results: [] });
+            if (parsed.pathname === '/investments') return response(200, { results: rawSnapshot().items[0].investments });
+            if (parsed.pathname === '/investments/investment-001/transactions') return investmentResponder(parsed);
+            return response(500, {});
+        }
+    });
+    const transaction = {
+        type: 'BUY', quantity: 1, value: 10, amount: 10,
+        date: '2026-07-10T00:00:00.000Z', tradeDate: '2026-07-10T00:00:00.000Z'
+    };
+    const zeroWithRows = makeClient(() => response(200, {
+        totalPages: 0, page: 1, results: [transaction]
+    }));
+    await assert.rejects(
+        () => zeroWithRows.readSnapshot({ eventId: 'event-total-pages-zero-with-rows' }),
+        /pluggy_inconsistent_investment_transaction_total_pages/
+    );
+
+    const lowerThanPage = makeClient((parsed) => {
+        const page = Number(parsed.searchParams.get('page'));
+        return page === 1
+            ? response(200, { totalPages: 2, page: 1, results: [transaction] })
+            : response(200, { totalPages: 1, page: 2, results: [] });
+    });
+    await assert.rejects(
+        () => lowerThanPage.readSnapshot({ eventId: 'event-total-pages-lower-than-page' }),
+        /pluggy_inconsistent_investment_transaction_total_pages/
+    );
+});
+
 test('erro nao opcional no historico por posicao rejeita o snapshot inteiro', async () => {
     const client = new PluggyReadOnlyClient({
         clientId: 'client-id', clientSecret: 'client-secret', itemMappings: mapping(),
@@ -245,6 +353,15 @@ test('cliente agrega cobertura mista como parcial e limita paginacao por posicao
     });
     await assert.rejects(() => limitedClient.readSnapshot({ eventId: 'event-investment-page-limit' }),
         /pluggy_investment_transaction_page_limit/);
+
+    const positionLimitedClient = new PluggyReadOnlyClient({
+        clientId: 'client-id', clientSecret: 'client-secret', itemMappings: mapping(),
+        fetchImpl: makeFetch(), maxInvestmentPositions: 1
+    });
+    await assert.rejects(
+        () => positionLimitedClient.readSnapshot({ eventId: 'event-investment-position-limit' }),
+        /pluggy_investment_position_limit/
+    );
 });
 
 test('cliente conclui cinco paginas antes de declarar collection health completa', async () => {
