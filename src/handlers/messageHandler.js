@@ -122,6 +122,9 @@ const {
     handleOpenFinanceSaveProposalFinalizationReply,
     acknowledgeOpenFinanceSaveProposalReceipt
 } = require('../openFinance/openFinanceSaveProposalFinalization');
+const {
+    tryHandleOpenFinanceHistoricalAmbiguityReply
+} = require('../openFinance/openFinanceHistoricalAmbiguityWhatsappRuntime');
 const { recordQaFailure } = require('../services/qaFailureLogService');
 const { recordAdminAction, hashRef, sanitizeValue } = require('../services/adminActionLogService');
 const { recordDashboardAccessEvent } = require('../services/dashboardAccessLogService');
@@ -9247,6 +9250,16 @@ async function processMessage(msg) {
     }
 
     let currentState = getConversationStateForMessage(senderId, activeUser);
+    if (!currentState) {
+        const historicalReviewReply = tryHandleOpenFinanceHistoricalAmbiguityReply({
+            actorWhatsappId: senderId,
+            body: messageBody
+        });
+        if (historicalReviewReply.handled) {
+            await sendPlainMessage(msg, historicalReviewReply.reply);
+            return;
+        }
+    }
     if (!currentState || [
         'awaiting_open_finance_save_review',
         'awaiting_open_finance_save_confirmation',

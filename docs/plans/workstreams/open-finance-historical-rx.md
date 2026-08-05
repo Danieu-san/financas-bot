@@ -63,9 +63,10 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
     35 testes focais, 25 aprovados e 10 falhas esperadas. O candidato fechou a
     prova em 36/36 e implementou disponibilidade separada e falha fechada, sem
     usar descricao, data ou valor como vinculo a transacao bancaria.
-20. [proxima] Em gate operacional separado, avisar os dois usuarios sobre
-    movimentos ambiguos e oferecer revisao/salvamento numerados; nunca usar
-    `sim` generico para multiplas opcoes nem salvar automaticamente.
+20. [nucleo local concluido com GO; integracao publica pendente] Em gate
+    operacional separado, avisar os dois usuarios sobre movimentos ambiguos e
+    oferecer revisao numerada; nunca usar `sim` generico para multiplas opcoes
+    nem salvar automaticamente.
 21. [concluida] Classificar aplicacao/resgate de reserva como transferencia
     patrimonial, rendimento como ganho, bloquear semantica generica e impedir
     salvamento de parcela ambigua; o primeiro candidato recebeu NO-GO porque o
@@ -101,6 +102,16 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
     para reavaliar somente `investment_history_unlinked`. O blocker foi
     fechado; lifecycle obsoleto foi corrigido no mesmo cofre e restaram somente
     ambiguidade de parcela e semantica de investimento.
+29. [concluida com GO tecnico local independente] Implementar o nucleo cifrado
+    e reiniciavel da revisao numerada, com catalogo bidirecional, pagina e
+    selecao por ator, decisao familiar unica, protecao contra replay isolado do
+    envelope e `financial_writes=0`.
+30. [candidato local; auditoria pendente] Integrar o nucleo ao handler e a
+    entrega publicos do WhatsApp para os dois atores, provar restart/replay,
+    isolamento da fila e zero chamada a qualquer writer. Evidencia: focal
+    154/154, Open Finance 377/377 e ampla final 1.502 testes, 1.492 aprovados,
+    zero falhas e 10 skips; salvamento, deploy e producao continuam fora deste
+    gate.
 
 ## Criterios de GO
 
@@ -137,6 +148,6 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 
 ## Proxima acao
 
-Abrir gate operacional de revisao numerada das ambiguidades, sem `sim` generico
-para multiplas opcoes e sem escrita automatica. A coincidencia de cardinalidade
-observada nao autoriza pareamento nem reclassificacao.
+Publicar a integracao WhatsApp em hash imutavel e obter auditoria independente.
+Somente um GO desse hash pode encerrar o gate; consumo das decisoes, deploy e
+producao permanecem fora do alcance.

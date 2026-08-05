@@ -10,7 +10,8 @@ const ALLOWED_JOB_KINDS = new Set([
     'morning_summary',
     'evening_summary',
     'weekly_checkin',
-    'monthly_report'
+    'monthly_report',
+    'historical_ambiguity_review'
 ]);
 const TERMINAL_STATES = ['delivered_confirmed', 'accepted_unconfirmed', 'dead'];
 const DEFAULT_MAX_ATTEMPTS = 5;
@@ -244,7 +245,8 @@ class SchedulerMessageOutbox {
 
     claimNext({
         now = new Date().toISOString(),
-        leaseSeconds = DEFAULT_LEASE_SECONDS
+        leaseSeconds = DEFAULT_LEASE_SECONDS,
+        jobRefs = []
     } = {}) {
         this.#assertOpen();
         const timestamp = parseIso(now, 'scheduler_outbox_now_invalid');
@@ -257,14 +259,23 @@ class SchedulerMessageOutbox {
         const leaseExpiresAt = new Date(
             Date.parse(timestamp) + normalizedLeaseSeconds * 1000
         ).toISOString();
+        const scopedJobRefs = [...new Set((jobRefs || [])
+            .map(value => String(value || '').trim()).filter(Boolean))];
+        if (scopedJobRefs.length > 1000) {
+            throw new Error('scheduler_outbox_job_scope_invalid');
+        }
+        const scopeClause = scopedJobRefs.length
+            ? ` AND job_ref IN (${scopedJobRefs.map(() => '?').join(',')})`
+            : '';
         return this.db.transaction(() => {
             const row = this.db.prepare(`
                 SELECT job_ref, job_kind, encrypted_payload, attempts
                 FROM scheduler_message_outbox
                 WHERE delivery_state='pending' AND available_at<=?
+                ${scopeClause}
                 ORDER BY available_at, created_at, job_ref
                 LIMIT 1
-            `).get(timestamp);
+            `).get(timestamp, ...scopedJobRefs);
             if (!row) return null;
             const update = this.db.prepare(`
                 UPDATE scheduler_message_outbox
@@ -400,6 +411,18 @@ class SchedulerMessageOutbox {
             GROUP BY delivery_state
             ORDER BY delivery_state
         `).all().map(row => [row.delivery_state, row.count]));
+    }
+
+    getDeliveryStateByDedupeKey(dedupeKey) {
+        this.#assertOpen();
+        const normalizedDedupeKey = String(dedupeKey || '').trim();
+        if (!normalizedDedupeKey || normalizedDedupeKey.length > 512) {
+            throw new Error('scheduler_outbox_dedupe_key_invalid');
+        }
+        const row = this.db.prepare(`
+            SELECT delivery_state FROM scheduler_message_outbox WHERE job_ref=?
+        `).get(this.#ref('job', normalizedDedupeKey));
+        return row?.delivery_state || null;
     }
 
     close() {

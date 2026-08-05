@@ -459,3 +459,31 @@ test('rejects replay of an older authenticated envelope after the durable revisi
         store.close();
     }
 });
+
+test('restart accepts only the original candidate identity and never a rebuilt conflicting envelope', () => {
+    const initial = buildOpenFinanceHistoricalAmbiguityReview({
+        ...fixture(), secret: SECRET, familyScope: 'family',
+        authorizedWhatsAppIds: [DANIEL, THAIS],
+        clock: () => new Date('2026-08-05T12:00:00.000Z')
+    });
+    const conflicting = buildOpenFinanceHistoricalAmbiguityReview({
+        ...fixture(), secret: SECRET, familyScope: 'family',
+        authorizedWhatsAppIds: [DANIEL, THAIS],
+        clock: () => new Date('2026-08-05T12:01:00.000Z')
+    });
+    const store = new OpenFinanceHistoricalAmbiguityReviewStore({
+        secret: SECRET, familyScope: 'family',
+        authorizedWhatsAppIds: [DANIEL, THAIS],
+        clock: () => new Date('2026-08-05T12:02:00.000Z')
+    });
+    try {
+        store.prepare({ sealedState: initial.sealed_state });
+        store.handleReply({ actorWhatsappId: DANIEL, body: '1' });
+        assert.throws(
+            () => store.prepare({ sealedState: conflicting.sealed_state }),
+            /open_finance_historical_ambiguity_review_store_prepare_conflict/
+        );
+    } finally {
+        store.close();
+    }
+});

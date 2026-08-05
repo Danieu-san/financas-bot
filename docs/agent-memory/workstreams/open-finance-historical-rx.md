@@ -4,13 +4,23 @@ Atualizado em: 2026-08-05
 
 ## Objetivo
 
-Produzir um RX historico deterministico a partir do snapshot normalizado do
-Pluggy, com inicio historico explicito, inventario familiar exato e zero escrita
-financeira.
+Integrar a revisao numerada das ambiguidades historicas a entrada e a entrega
+publicas do WhatsApp para exatamente os dois atores familiares autorizados,
+mantendo salvamento e escrita financeira desligados.
 
 ## Estado
 
-`RX-HIST-INVESTMENT-LINKAGE-01 FECHADO; PREVIA PRIVADA NO_GO COM DOIS BLOCKERS`.
+`RX-HIST-AMBIGUITY-REVIEW-01 GO TECNICO LOCAL; INTEGRACAO WHATSAPP CANDIDATA
+AGUARDANDO AUDITORIA; WRITES OFF`.
+
+O nucleo local da revisao numerada foi encerrado no commit auditado
+`987404c37a5839058be5010d2a036f963819a511`. O parecer independente confirmou
+zero achados dentro do alcance: consistencia bidirecional com o RX, pagina e
+selecao isoladas por telefone, estado familiar cifrado/reiniciavel e protecao
+contra substituicao isolada por envelope anterior. O registro de fechamento e
+`docs/audit/142-open-finance-historical-ambiguity-numbered-review-independent-close-2026-08-05.md`.
+Esse GO nao cobre entrada/entrega WhatsApp, consumo posterior das decisoes,
+salvamento, deploy ou producao.
 
 O `GO TECNICO LOCAL` anterior de `RX-HIST-SEG-01`, no hash
 `62ec19532f1e4d288efa7c3fb75291540358fdd5`, continua valido para o contrato
@@ -289,12 +299,13 @@ quando observado/disponivel, sem herdar o lifecycle da conta.
 
 ## Proxima acao
 
-Abrir gate operacional separado para apresentar as duas ambiguidades aos
-usuarios autorizados em fluxo numerado, sem `sim` generico, pareamento
-heuristico ou salvamento automatico. O RX historico permanece read-only;
-planilha, escrita financeira, deploy e producao ficam fora do alcance ate novo
-candidato auditado.
+Publicar o candidato da integracao WhatsApp em hash imutavel e submete-lo a
+auditoria independente. A evidencia local esta verde em 154/154 no foco,
+377/377 na bateria Open Finance e 1.502 testes na ampla final, com 1.492
+aprovados, zero falhas e 10 skips conhecidos. `sim` generico nao decide,
+restart/replay nao duplicam entrega e nenhum caminho chama planilha, ledger ou
+salvamento. Deploy e producao permanecem fora do alcance ate novo GO.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> implementar revisao numerada das ambiguidades sem escrita.`
+`Codex -> Sol -> Alto -> publicar e auditar a integracao WhatsApp sem escrita.`

@@ -3,6 +3,9 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const {
+    __test__: historicalAmbiguityRuntimeTest
+} = require('../src/openFinance/openFinanceHistoricalAmbiguityWhatsappRuntime');
 
 process.env.NODE_ENV = 'test';
 process.env.ADMIN_IDS = process.env.ADMIN_IDS || '5599990000001@c.us';
@@ -517,10 +520,67 @@ function resetState() {
     userStateManager.deleteState(SENDER);
     userStateManager.deleteState(PARTNER_SENDER);
     messageHandlerTest.clearSenderMessageQueueForTests();
+    historicalAmbiguityRuntimeTest.setRuntimeForTests(null);
     if (typeof userService.invalidateUserCaches === 'function') {
         userService.invalidateUserCaches();
     }
 }
+
+stateMachineTest('public handler consumes an eligible historical ambiguity reply before every financial writer', async () => {
+    resetState();
+    const calls = [];
+    historicalAmbiguityRuntimeTest.setRuntimeForTests({
+        handlePublicReply({ actorWhatsappId, body }) {
+            calls.push({ actorWhatsappId, body });
+            return {
+                handled: true,
+                reply: 'Ambiguidades pendentes (2): responda com o nÃºmero.',
+                financial_writes: 0
+            };
+        }
+    });
+    const msg = createMockMessage('1');
+    await handleMessage(msg);
+
+    assert.deepStrictEqual(calls, [{ actorWhatsappId: SENDER, body: '1' }]);
+    assert.match(msg.replies.at(-1), /Ambiguidades pendentes/);
+    assert.strictEqual(appendedRows.length, 0);
+    assert.strictEqual(structuredResponses.length, 0);
+    assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
+
+stateMachineTest('public handler preserves an existing conversation ahead of historical ambiguity routing', async () => {
+    resetState();
+    let historicalCalls = 0;
+    historicalAmbiguityRuntimeTest.setRuntimeForTests({
+        handlePublicReply() {
+            historicalCalls += 1;
+            return { handled: true, reply: 'nao deveria responder', financial_writes: 0 };
+        }
+    });
+    userStateManager.setState(SENDER, { action: 'awaiting_payment_method', data: {} });
+    const msg = createMockMessage('cancelar');
+    await handleMessage(msg);
+
+    assert.strictEqual(historicalCalls, 0);
+    assert.match(msg.replies.at(-1), /cancelada/i);
+    assert.strictEqual(appendedRows.length, 0);
+});
+
+stateMachineTest('historical ambiguity integrity failure blocks fallback and financial writers', async () => {
+    resetState();
+    historicalAmbiguityRuntimeTest.setRuntimeForTests({
+        handlePublicReply() {
+            throw new Error('private integrity failure');
+        }
+    });
+    const msg = createMockMessage('1');
+    await handleMessage(msg);
+
+    assert.match(msg.replies.at(-1), /Nada foi salvo/i);
+    assert.strictEqual(appendedRows.length, 0);
+    assert.strictEqual(structuredResponses.length, 0);
+});
 
 stateMachineTest('9P.2 public serialized handler consumes one durable proposal reply without financial write', async () => {
     resetState();

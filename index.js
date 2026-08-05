@@ -17,6 +17,9 @@ const logger = require('./src/utils/logger');
 const { registerFinancialCommandPlannerRuntimeReload } = require('./src/config/financialCommandPlannerRuntimeConfig');
 const { registerFinancialAgentRuntimeReload } = require('./src/config/financialAgentRuntimeConfig');
 const { initializeOpenFinanceCanaryRuntime } = require('./src/openFinance/openFinanceCanaryRuntime');
+const {
+    initializeOpenFinanceHistoricalAmbiguityWhatsappRuntime
+} = require('./src/openFinance/openFinanceHistoricalAmbiguityWhatsappRuntime');
 const { assertStateStoreConfiguration } = require('./src/state/userStateManager');
 
 registerFinancialCommandPlannerRuntimeReload({ logger });
@@ -78,6 +81,12 @@ async function startBot() {
             console.log('✅ Bot pronto para receber mensagens!');
             // Inicia o agendador apenas quando o bot estiver pronto pela primeira vez
             initializeScheduler(client);
+            void initializeOpenFinanceHistoricalAmbiguityWhatsappRuntime({ client, logger })
+                .then(result => logger.info(
+                    `[open-finance-historical-review] initialized enabled=${result.enabled} ` +
+                    `mode=${result.mode} writes=${result.financial_writes}`
+                ))
+                .catch(() => logger.warn('[open-finance-historical-review] initialization_failed'));
             initializeOpenFinanceCanaryRuntime({ client, logger });
             void backfillUnreadMessages(client, handleMessageForBackfill, {
                 logger,

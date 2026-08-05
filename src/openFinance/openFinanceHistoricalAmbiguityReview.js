@@ -470,6 +470,8 @@ function handleOpenFinanceHistoricalAmbiguityReviewReply({
     const pending = pendingItems(state);
     if (state.status === 'reviewed' || !pending.length) {
         state.status = 'reviewed';
+        delete state.selected_item_refs[decidingActorRef];
+        state.updated_at = timestamp;
         return {
             handled: true,
             state: 'reviewed',
@@ -706,14 +708,24 @@ class OpenFinanceHistoricalAmbiguityReviewStore {
             WHERE review_ref=?`).get(state.review_ref);
         if (existing) {
             this.#assertRow(existing);
+            const existingState = openState(existing.sealed_state, this.secret);
             if (existing.sealed_state !== sealedState) {
-                throw new Error('open_finance_historical_ambiguity_review_store_prepare_conflict');
+                const sameCandidate = existingState.created_at === state.created_at
+                    && existingState.expires_at === state.expires_at
+                    && existingState.family_scope_ref === state.family_scope_ref
+                    && JSON.stringify(existingState.authorized_actor_refs)
+                        === JSON.stringify(state.authorized_actor_refs)
+                    && JSON.stringify(existingState.items.map(item => item.item_ref))
+                        === JSON.stringify(state.items.map(item => item.item_ref));
+                if (!sameCandidate) {
+                    throw new Error('open_finance_historical_ambiguity_review_store_prepare_conflict');
+                }
             }
             return {
-                review_ref: state.review_ref,
+                review_ref: existingState.review_ref,
                 state: existing.review_state,
-                pending_count: pendingItems(state).length,
-                reply: formatInbox(state),
+                pending_count: pendingItems(existingState).length,
+                reply: formatInbox(existingState),
                 financial_writes: 0
             };
         }
@@ -792,6 +804,29 @@ class OpenFinanceHistoricalAmbiguityReviewStore {
             actorWhatsappId,
             clock: this.clock
         });
+    }
+
+    inspectPublicReply({ actorWhatsappId } = {}) {
+        const normalizedActor = String(actorWhatsappId || '').trim();
+        if (!normalizedActor) return { eligible: false, financial_writes: 0 };
+        const resolvedActorRef = actorRef(this.secret, normalizedActor);
+        if (!this.authorizedActorRefs.includes(resolvedActorRef)) {
+            return { eligible: false, financial_writes: 0 };
+        }
+        this.purgeExpired();
+        const row = this.#latestRow();
+        if (!row) return { eligible: false, financial_writes: 0 };
+        this.#assertRow(row);
+        const state = openState(row.sealed_state, this.secret);
+        const staleSelection = Boolean(state.selected_item_refs[resolvedActorRef]);
+        return {
+            eligible: state.status === 'pending' || staleSelection,
+            review_ref: row.review_ref,
+            actor_ref: resolvedActorRef,
+            review_state: state.status,
+            stale_selection: staleSelection,
+            financial_writes: 0
+        };
     }
 
     close() {
