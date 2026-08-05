@@ -193,13 +193,16 @@ function installmentChoices(candidates) {
     ];
 }
 
-function investmentChoices() {
+function investmentChoices(candidate) {
+    const amountCents = Number(candidate?.amount_cents);
     return [
         { code: 'reserve_application', label: 'Aplicação em reserva' },
         { code: 'reserve_redemption', label: 'Resgate de reserva' },
         { code: 'investment_income', label: 'Rendimento' },
         { code: 'not_investment_movement', label: 'Não é movimento de investimento' }
-    ];
+    ].filter(choice => choice.code === 'not_investment_movement'
+        || (amountCents < 0 && choice.code === 'reserve_application')
+        || (amountCents > 0 && ['reserve_redemption', 'investment_income'].includes(choice.code)));
 }
 
 function isAmbiguousInvestment(transaction) {
@@ -305,7 +308,8 @@ function buildItems({ items, historicalRx, secret }) {
                     throw new Error('open_finance_historical_ambiguity_review_installment_evidence_missing');
                 }
                 const itemRef = hmac(secret,
-                    `installment:${segmentRef}:${series.series_ref}:${duplicateNumber}`);
+                    `installment:${segmentRef}:${series.series_ref}:${duplicateNumber}:`
+                    + candidates.map(candidate => candidate.candidate_ref).join(':'));
                 reviewItems.push({
                     item_ref: itemRef,
                     type: 'installment_identity',
@@ -334,7 +338,7 @@ function buildItems({ items, historicalRx, secret }) {
                     source_alias: sourceAlias,
                     segment_ref: segmentRef,
                     candidates: [candidate],
-                    choices: investmentChoices(),
+                    choices: investmentChoices(candidate),
                     decision: null
                 });
             }
@@ -461,6 +465,87 @@ function readOpenFinanceHistoricalAmbiguityReviewPrivate({
         })),
         financial_writes: 0
     };
+}
+
+function buildOpenFinanceHistoricalAmbiguityResolutionPlan({
+    items = [],
+    historicalRx,
+    resolutionSnapshot,
+    secret,
+    familyScope = 'shared-family'
+} = {}) {
+    const safeSecret = requireSecret(secret);
+    if (!historicalRx || historicalRx.financial_writes !== 0 || !Array.isArray(items) || !items.length) {
+        throw new Error('open_finance_historical_ambiguity_resolution_snapshot_invalid');
+    }
+    const reviewItems = buildItems({ items, historicalRx, secret: safeSecret });
+    const expectedReviewRef = hmac(safeSecret,
+        `review:${String(familyScope || 'shared-family')}:${reviewItems.map(item => item.item_ref).join(':')}`);
+    if (!resolutionSnapshot || typeof resolutionSnapshot !== 'object'
+        || Array.isArray(resolutionSnapshot)
+        || resolutionSnapshot.review_ref !== expectedReviewRef
+        || resolutionSnapshot.state !== 'reviewed'
+        || resolutionSnapshot.pending_count !== 0
+        || resolutionSnapshot.financial_writes !== 0
+        || !Array.isArray(resolutionSnapshot.decisions)
+        || resolutionSnapshot.decisions.length !== reviewItems.length) {
+        throw new Error('open_finance_historical_ambiguity_resolution_snapshot_invalid');
+    }
+
+    const expectedByRef = new Map(reviewItems.map(item => [item.item_ref, item]));
+    const seenItems = new Set();
+    const excludedCandidateRefs = new Set();
+    const distinctCandidateRefs = new Set();
+    const investmentSemantics = [];
+    let resolvedInstallmentItems = 0;
+    let resolvedInvestmentItems = 0;
+
+    for (const decision of resolutionSnapshot.decisions) {
+        const itemRef = String(decision?.item_ref || '');
+        const item = expectedByRef.get(itemRef);
+        const resolutionCode = String(decision?.resolution_code || '');
+        if (!item || seenItems.has(itemRef) || decision.type !== item.type
+            || !item.choices.some(choice => choice.code === resolutionCode)) {
+            throw new Error('open_finance_historical_ambiguity_resolution_snapshot_invalid');
+        }
+        seenItems.add(itemRef);
+        if (item.type === 'installment_identity') {
+            resolvedInstallmentItems += 1;
+            if (resolutionCode === 'distinct_rows') {
+                item.candidates.forEach(candidate => distinctCandidateRefs.add(candidate.candidate_ref));
+            } else if (resolutionCode === 'discard_all') {
+                item.candidates.forEach(candidate => excludedCandidateRefs.add(candidate.candidate_ref));
+            } else if (resolutionCode.startsWith('keep_only:')) {
+                const keptCandidateRef = resolutionCode.slice('keep_only:'.length);
+                item.candidates.filter(candidate => candidate.candidate_ref !== keptCandidateRef)
+                    .forEach(candidate => excludedCandidateRefs.add(candidate.candidate_ref));
+            }
+        } else if (item.type === 'investment_semantics') {
+            resolvedInvestmentItems += 1;
+            investmentSemantics.push(Object.freeze({
+                candidate_ref: item.candidates[0].candidate_ref,
+                semantic: resolutionCode
+            }));
+        } else {
+            throw new Error('open_finance_historical_ambiguity_resolution_snapshot_invalid');
+        }
+    }
+    if (seenItems.size !== reviewItems.length
+        || [...excludedCandidateRefs].some(candidateRef => distinctCandidateRefs.has(candidateRef))) {
+        throw new Error('open_finance_historical_ambiguity_resolution_snapshot_invalid');
+    }
+    return Object.freeze({
+        schema_version: 1,
+        review_ref: expectedReviewRef,
+        excluded_candidate_refs: Object.freeze([...excludedCandidateRefs].sort()),
+        distinct_candidate_refs: Object.freeze([...distinctCandidateRefs].sort()),
+        investment_semantics: Object.freeze(investmentSemantics
+            .sort((left, right) => left.candidate_ref.localeCompare(right.candidate_ref))),
+        applied_decisions: reviewItems.length,
+        resolved_installment_items: resolvedInstallmentItems,
+        resolved_investment_items: resolvedInvestmentItems,
+        financial_writes: 0
+    });
 }
 
 function handleOpenFinanceHistoricalAmbiguityReviewReply({
@@ -914,6 +999,7 @@ class OpenFinanceHistoricalAmbiguityReviewStore {
 module.exports = {
     OpenFinanceHistoricalAmbiguityReviewStore,
     buildOpenFinanceHistoricalAmbiguityReview,
+    buildOpenFinanceHistoricalAmbiguityResolutionPlan,
     handleOpenFinanceHistoricalAmbiguityReviewReply,
     readOpenFinanceHistoricalAmbiguityReviewPrivate
 };

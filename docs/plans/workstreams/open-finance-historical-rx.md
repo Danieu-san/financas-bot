@@ -115,7 +115,7 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
     `off`; bateria causal 174/174 e ampla final 1.510 testes, 1.500 aprovados,
     zero falhas e 10 skips. O hash auditado foi
     `a5ea2dd977621c8c6f24a041db74a7b89eb2b1c7`.
-31. [pendente] Consumir as decisoes duraveis da revisao no reconciliador
+31. [concluida localmente; auditoria pendente] Consumir as decisoes duraveis da revisao no reconciliador
     read-only, recalcular blockers/elegibilidade sem inferir identidade e provar
     replay, restart, conflito familiar e `financial_writes=0`. Nao criar ainda
     proposta de salvamento nem ativar `prompt`.
@@ -155,5 +155,6 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 
 ## Proxima acao
 
-Abrir o gate 31 para integrar as decisoes ao reconciliador read-only. Salvamento
-numerado, ativacao de `prompt`, deploy e producao permanecem fora do alcance.
+Publicar o candidato do gate 31 e submete-lo a auditoria independente por hash
+imutavel. Salvamento numerado, ativacao de `prompt`, deploy e producao
+permanecem fora do alcance.

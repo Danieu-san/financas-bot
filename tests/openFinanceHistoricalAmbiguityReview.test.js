@@ -198,9 +198,8 @@ test('requires an explicit numbered semantic classification and survives reseali
         actorWhatsappId: THAIS, body: '1'
     });
     assert.match(selectInvestment.reply, /1\. Aplicação em reserva/i);
-    assert.match(selectInvestment.reply, /2\. Resgate de reserva/i);
-    assert.match(selectInvestment.reply, /3\. Rendimento/i);
-    assert.match(selectInvestment.reply, /4\. Não é movimento de investimento/i);
+    assert.match(selectInvestment.reply, /2\. Não é movimento de investimento/i);
+    assert.doesNotMatch(selectInvestment.reply, /Resgate de reserva|Rendimento/i);
 
     const resolved = handleOpenFinanceHistoricalAmbiguityReviewReply({
         sealedState: selectInvestment.sealed_state, secret: SECRET,
@@ -219,6 +218,32 @@ test('requires an explicit numbered semantic classification and survives reseali
     assert.equal(reopened.state, 'reviewed');
     assert.equal(reopened.decisions.length, 2);
     assert.equal(reopened.financial_writes, 0);
+});
+
+test('offers only direction-compatible investment semantics', () => {
+    const positive = fixture();
+    positive.items[0].transactions.find(transaction => transaction.id === 'investment-private-a')
+        .amount_cents = 2000;
+    const built = buildOpenFinanceHistoricalAmbiguityReview({
+        ...positive, secret: SECRET, familyScope: 'family',
+        authorizedWhatsAppIds: [DANIEL, THAIS]
+    });
+    const selectInstallment = handleOpenFinanceHistoricalAmbiguityReviewReply({
+        sealedState: built.sealed_state, secret: SECRET,
+        actorWhatsappId: DANIEL, body: '1'
+    });
+    const resolveInstallment = handleOpenFinanceHistoricalAmbiguityReviewReply({
+        sealedState: selectInstallment.sealed_state, secret: SECRET,
+        actorWhatsappId: DANIEL, body: '1'
+    });
+    const selectInvestment = handleOpenFinanceHistoricalAmbiguityReviewReply({
+        sealedState: resolveInstallment.sealed_state, secret: SECRET,
+        actorWhatsappId: THAIS, body: '1'
+    });
+    assert.match(selectInvestment.reply, /1\. Resgate de reserva/i);
+    assert.match(selectInvestment.reply, /2\. Rendimento/i);
+    assert.match(selectInvestment.reply, /3\. Não é movimento de investimento/i);
+    assert.doesNotMatch(selectInvestment.reply, /Aplicação em reserva/i);
 });
 
 test('fails closed for outsider, tampering, expiry and RX without supported ambiguity', () => {

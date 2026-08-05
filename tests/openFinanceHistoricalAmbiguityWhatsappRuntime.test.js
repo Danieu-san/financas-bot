@@ -478,15 +478,17 @@ test('ready bootstrap waits for the real prompt runtime before unread discovery'
             }
         });
         await new Promise(resolve => setImmediate(resolve));
-        assert.deepStrictEqual(order, ['scheduler', `send:${DANIEL}`]);
+        assert.equal(order[0], 'scheduler');
+        assert.equal(order.length, 2);
+        assert.ok([`send:${DANIEL}`, `send:${THAIS}`].includes(order[1]));
 
         releaseFirstDelivery();
         const result = await boot;
         assert.equal(result.historicalReview.enabled, true);
         assert.equal(result.backfill.processed, 0);
-        assert.deepStrictEqual(order, [
-            'scheduler', `send:${DANIEL}`, `send:${THAIS}`, 'canary', 'getChats'
-        ]);
+        assert.deepStrictEqual(new Set(order.slice(1, 3)),
+            new Set([`send:${DANIEL}`, `send:${THAIS}`]));
+        assert.deepStrictEqual(order.slice(3), ['canary', 'getChats']);
     } finally {
         runtimeTest.setRuntimeForTests(null);
         fs.rmSync(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });

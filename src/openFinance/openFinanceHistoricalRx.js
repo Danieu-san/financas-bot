@@ -213,6 +213,43 @@ function cents(value, field, { nullable = false } = {}) {
     return amount;
 }
 
+function validateAmbiguityResolutionPlan(plan) {
+    if (plan === undefined || plan === null) {
+        return {
+            excluded: new Set(), distinct: new Set(), investment: new Map(), targeted: new Set()
+        };
+    }
+    const refsAreValid = values => Array.isArray(values)
+        && values.every(value => /^[a-f0-9]{32}$/.test(String(value || '')))
+        && new Set(values).size === values.length;
+    if (!plan || typeof plan !== 'object' || Array.isArray(plan)
+        || plan.schema_version !== 1 || plan.financial_writes !== 0
+        || !/^[a-f0-9]{32}$/.test(String(plan.review_ref || ''))
+        || !refsAreValid(plan.excluded_candidate_refs)
+        || !refsAreValid(plan.distinct_candidate_refs)
+        || !Array.isArray(plan.investment_semantics)) {
+        throw new Error('invalid_historical_rx_ambiguity_resolution_plan');
+    }
+    const excluded = new Set(plan.excluded_candidate_refs);
+    const distinct = new Set(plan.distinct_candidate_refs);
+    const investment = new Map();
+    for (const entry of plan.investment_semantics) {
+        const candidateRef = String(entry?.candidate_ref || '');
+        const semantic = String(entry?.semantic || '');
+        if (!/^[a-f0-9]{32}$/.test(candidateRef) || investment.has(candidateRef)
+            || !['reserve_application', 'reserve_redemption', 'investment_income',
+                'not_investment_movement'].includes(semantic)) {
+            throw new Error('invalid_historical_rx_ambiguity_resolution_plan');
+        }
+        investment.set(candidateRef, semantic);
+    }
+    const targeted = [...excluded, ...distinct, ...investment.keys()];
+    if (new Set(targeted).size !== targeted.length) {
+        throw new Error('invalid_historical_rx_ambiguity_resolution_plan');
+    }
+    return { excluded, distinct, investment, targeted: new Set(targeted) };
+}
+
 function summarizeInvestmentTransactionHistory(investment, historyStartTimestamp, observedTimestamp) {
     const history = investment?.transaction_history || {};
     const status = String(history.availability || 'unavailable').toLowerCase();
@@ -287,7 +324,8 @@ function buildOpenFinanceHistoricalRx({
     observedAt,
     secret,
     sourceLifecycles = {},
-    expectedInventory
+    expectedInventory,
+    ambiguityResolutionPlan
 } = {}) {
     const hmacSecret = requireSecret(secret);
     const historyStart = requireCalendarDate(historyStartDate, 'invalid_historical_rx_history_start');
@@ -299,6 +337,8 @@ function buildOpenFinanceHistoricalRx({
 
     const ref = (kind, value) => crypto.createHmac('sha256', hmacSecret)
         .update(`${kind}:${String(value || '')}`).digest('hex').slice(0, 32);
+    const ambiguityResolution = validateAmbiguityResolutionPlan(ambiguityResolutionPlan);
+    const consumedResolutionRefs = new Set();
     const blockers = [];
     const segments = [];
     const investments = [];
@@ -399,7 +439,15 @@ function buildOpenFinanceHistoricalRx({
             const historicalRows = transactionsAvailable ? (item.transactions || []).filter(transaction => {
                 if (String(transaction.account_id || '') !== accountId) return false;
                 const timestamp = parseDate(transaction.date, 'historical_rx_transaction_date');
-                return timestamp >= historyStartTimestamp;
+                if (timestamp < historyStartTimestamp) return false;
+                const candidateRef = ref('historical-ambiguity-transaction', transaction.id);
+                if (ambiguityResolution.targeted.has(candidateRef)) {
+                    if (consumedResolutionRefs.has(candidateRef)) {
+                        throw new Error('invalid_historical_rx_ambiguity_resolution_plan');
+                    }
+                    consumedResolutionRefs.add(candidateRef);
+                }
+                return !ambiguityResolution.excluded.has(candidateRef);
             }) : [];
             const rowsBeforeAvailability = accountAvailableTimestamp === null ? [] : historicalRows.filter(transaction =>
                 parseDate(transaction.date, 'historical_rx_transaction_date') < accountAvailableTimestamp
@@ -418,10 +466,30 @@ function buildOpenFinanceHistoricalRx({
             const pending = rows.filter(transaction => String(transaction.status || '').toUpperCase() === 'PENDING');
             const positive = rows.filter(transaction => Number(transaction.amount_cents) > 0);
             const negative = rows.filter(transaction => Number(transaction.amount_cents) < 0);
-            const providerInvestmentOperations = rows.map(transaction => ({
-                transaction,
-                operation: providerInvestmentOperation(transaction.operation_type)
-            })).filter(entry => entry.operation);
+            const providerInvestmentOperations = rows.map(transaction => {
+                const candidateRef = ref('historical-ambiguity-transaction', transaction.id);
+                const resolvedSemantic = ambiguityResolution.investment.get(candidateRef);
+                if (resolvedSemantic === 'not_investment_movement') {
+                    return { transaction, operation: null };
+                }
+                if (resolvedSemantic) {
+                    const amountCents = Number(transaction.amount_cents);
+                    const directionValid = (resolvedSemantic === 'reserve_application' && amountCents < 0)
+                        || (['reserve_redemption', 'investment_income'].includes(resolvedSemantic)
+                            && amountCents > 0);
+                    if (!directionValid) {
+                        throw new Error('invalid_historical_rx_ambiguity_resolution_plan');
+                    }
+                    return {
+                        transaction,
+                        operation: {
+                            operationType: `FAMILY_REVIEW_${resolvedSemantic.toUpperCase()}`,
+                            semantic: resolvedSemantic
+                        }
+                    };
+                }
+                return { transaction, operation: providerInvestmentOperation(transaction.operation_type) };
+            }).filter(entry => entry.operation);
             const providerLabeledInvestmentRows = providerInvestmentOperations.map(entry => entry.transaction);
             const reserveApplicationRows = providerInvestmentOperations
                 .filter(entry => entry.operation.semantic === 'reserve_application')
@@ -517,7 +585,11 @@ function buildOpenFinanceHistoricalRx({
                 if (installmentNumber < 1 || installmentNumber > totalInstallments) {
                     throw new Error('invalid_historical_rx_installment_number');
                 }
-                const grouping = historicalRxInstallmentGrouping(transaction);
+                const candidateRef = ref('historical-ambiguity-transaction', transaction.id);
+                const resolvedDistinct = ambiguityResolution.distinct.has(candidateRef);
+                const grouping = resolvedDistinct
+                    ? { confidence: 'family_review_distinct', basis: `resolved:${candidateRef}` }
+                    : historicalRxInstallmentGrouping(transaction);
                 const seriesRef = ref('historical_rx_installment', `${alias}:${accountId}:${grouping.basis}`);
                 if (!series.has(seriesRef)) {
                     series.set(seriesRef, {
@@ -775,6 +847,9 @@ function buildOpenFinanceHistoricalRx({
         }
     }
 
+    if (consumedResolutionRefs.size !== ambiguityResolution.targeted.size) {
+        throw new Error('invalid_historical_rx_ambiguity_resolution_plan');
+    }
     return Object.freeze({
         schema_version: 2,
         gate: HISTORICAL_RX_GATE,

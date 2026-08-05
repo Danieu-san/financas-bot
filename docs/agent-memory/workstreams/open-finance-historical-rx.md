@@ -299,16 +299,19 @@ quando observado/disponivel, sem herdar o lifecycle da conta.
 
 ## Proxima acao
 
-O hash `a5ea2dd977621c8c6f24a041db74a7b89eb2b1c7` recebeu `GO TECNICO
-LOCAL` independente. O auditor confirmou a barreira explicita entre runtime e
-backfill, falha fechada sem `getChats` quando `prompt` nao fica pronto,
-compatibilidade do modo `off`, contencao da rejeicao no entrypoint e preservacao
-dos fechamentos anteriores. A prova usa inicializador, review store, outbox e
-backfill reais; a composicao com handler real permanece separada e verde.
-Registro: `docs/audit/146-open-finance-historical-ambiguity-whatsapp-independent-close-2026-08-05.md`.
-O proximo gate e consumir as decisoes duraveis no reconciliador read-only,
-sem salvar, ativar flags, deployar ou tocar producao.
+O gate 31 esta concluido localmente e aguarda auditoria independente. O
+reconciliador reconstrui o catalogo privado, vincula decisoes ao conjunto exato
+de IDs HMAC do provedor, recusa snapshot parcial ou de outro RX e recalcula o RX
+com todas as escolhas de parcela e investimento preservando
+`financial_writes=0`. A bateria causal final passou 31/31 e a suite hermetica
+final passou 1.509 de 1.519 testes, com zero falhas e 10 skips conhecidos.
+Manifesto:
+`docs/audit/147-open-finance-historical-ambiguity-reconciliation-candidate-2026-08-05.md`.
+
+A proxima acao e publicar o hash imutavel, obter auditoria independente e
+confrontar o parecer. Salvamento numerado, flags, deploy e producao continuam
+fora do alcance.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> integrar decisoes duraveis ao reconciliador read-only.`
+`Codex -> Sol -> Alto -> auditar o candidato imutavel do gate 31.`
