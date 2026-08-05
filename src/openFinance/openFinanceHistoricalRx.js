@@ -4,7 +4,10 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 
 const ESSENTIAL_AVAILABILITY = ['accounts', 'transactions'];
-const HISTORICAL_RX_GATE = 'RX-HIST-RESERVE-LIFECYCLE-01';
+const HISTORICAL_RX_GATE = 'RX-HIST-INVESTMENT-LINKAGE-01';
+const INVESTMENT_TRANSACTION_TYPES = new Set([
+    'BUY', 'SELL', 'TAX', 'TRANSFER', 'INTEREST', 'AMORTIZATION'
+]);
 const CANONICAL_HISTORICAL_RX_INVENTORY = Object.freeze([
     Object.freeze({ alias: 'daniel_nubank', ownerScope: 'daniel', accounts: Object.freeze({ BANK: 1, CREDIT: 1 }) }),
     Object.freeze({ alias: 'thais_nubank', ownerScope: 'thais', accounts: Object.freeze({ BANK: 1, CREDIT: 1 }) }),
@@ -196,6 +199,74 @@ function cents(value, field, { nullable = false } = {}) {
     const amount = Number(value);
     if (!Number.isSafeInteger(amount)) throw new Error(`invalid_${field}`);
     return amount;
+}
+
+function summarizeInvestmentTransactionHistory(investment, historyStartTimestamp, observedTimestamp) {
+    const history = investment?.transaction_history || {};
+    const status = String(history.availability || 'unavailable').toLowerCase();
+    if (!['available', 'partial', 'unavailable'].includes(status)) {
+        throw new Error('invalid_historical_rx_investment_transaction_availability');
+    }
+    const rows = Array.isArray(history.transactions) ? history.transactions : [];
+    if (status !== 'available') {
+        if (rows.length) throw new Error('historical_rx_unavailable_investment_transactions_present');
+        return {
+            linked: false,
+            summary: {
+                status,
+                count: null,
+                first_observed_date: null,
+                last_observed_date: null,
+                type_totals: null
+            }
+        };
+    }
+    const observedRows = rows.map((transaction) => {
+        const type = String(transaction?.type || '').toUpperCase();
+        if (!INVESTMENT_TRANSACTION_TYPES.has(type)) {
+            throw new Error('invalid_historical_rx_investment_transaction_type');
+        }
+        const dateTimestamp = parseDate(transaction.date, 'historical_rx_investment_transaction_date');
+        parseDate(transaction.trade_date, 'historical_rx_investment_transaction_trade_date');
+        const amountCents = cents(transaction.amount_cents, 'historical_rx_investment_transaction_amount');
+        const netAmountCents = cents(transaction.net_amount_cents,
+            'historical_rx_investment_transaction_net_amount', { nullable: true });
+        return { type, dateTimestamp, amountCents, netAmountCents };
+    }).filter(transaction => transaction.dateTimestamp >= historyStartTimestamp
+        && transaction.dateTimestamp <= observedTimestamp);
+    const byType = new Map();
+    for (const transaction of observedRows) {
+        const current = byType.get(transaction.type) || {
+            type: transaction.type,
+            count: 0,
+            amount_cents: 0,
+            net_amount_cents: 0,
+            net_complete: true
+        };
+        current.count += 1;
+        current.amount_cents += transaction.amountCents;
+        if (transaction.netAmountCents === null) current.net_complete = false;
+        else current.net_amount_cents += transaction.netAmountCents;
+        byType.set(transaction.type, current);
+    }
+    const dates = observedRows.map(transaction => transaction.dateTimestamp);
+    return {
+        linked: true,
+        summary: {
+            status: 'available',
+            count: observedRows.length,
+            first_observed_date: dates.length ? new Date(Math.min(...dates)).toISOString() : null,
+            last_observed_date: dates.length ? new Date(Math.max(...dates)).toISOString() : null,
+            type_totals: [...byType.values()]
+                .sort((left, right) => left.type.localeCompare(right.type))
+                .map(({ type, count, amount_cents, net_amount_cents, net_complete }) => ({
+                    type,
+                    count,
+                    amount_cents,
+                    net_amount_cents: net_complete ? net_amount_cents : null
+                }))
+        }
+    };
 }
 
 function buildOpenFinanceHistoricalRx({
@@ -649,10 +720,33 @@ function buildOpenFinanceHistoricalRx({
 
         const investmentsAvailable = String(item.availability?.investments || 'unavailable').toLowerCase()
             === 'available';
-        if (investmentsAvailable && (item.investments || []).length > 0) {
-            blockers.push(`${alias}:investment_history_unlinked`);
+        const availableInvestments = investmentsAvailable ? (item.investments || []) : [];
+        const investmentsWithHistory = availableInvestments.map(investment => ({
+            investment,
+            transactionHistory: summarizeInvestmentTransactionHistory(
+                investment, historyStartTimestamp, observedTimestamp
+            )
+        }));
+        const derivedInvestmentTransactionsAvailability = investmentsAvailable
+            ? investmentsWithHistory.length === 0
+                ? 'available'
+                : investmentsWithHistory.every(entry => entry.transactionHistory.summary.status === 'available')
+                    ? 'available'
+                    : investmentsWithHistory.every(entry => entry.transactionHistory.summary.status === 'unavailable')
+                        ? 'unavailable'
+                        : 'partial'
+            : 'unavailable';
+        if (investmentsWithHistory.length > 0
+            && item.availability?.investment_transactions !== undefined
+            && String(item.availability.investment_transactions).toLowerCase()
+                !== derivedInvestmentTransactionsAvailability) {
+            throw new Error('historical_rx_inconsistent_investment_transaction_availability');
         }
-        for (const investment of (investmentsAvailable ? (item.investments || []) : [])) {
+        for (const { investment, transactionHistory } of investmentsWithHistory) {
+            if (!transactionHistory.linked
+                && !blockers.includes(`${alias}:investment_history_unlinked`)) {
+                blockers.push(`${alias}:investment_history_unlinked`);
+            }
             investments.push({
                 investment_ref: ref('historical_rx_investment', `${alias}:${investment.id}`),
                 source_alias: alias,
@@ -664,8 +758,11 @@ function buildOpenFinanceHistoricalRx({
                 current_balance_cents: cents(investment.balance_cents,
                     'historical_rx_investment_balance', { nullable: true }),
                 observed_at: new Date(observedTimestamp).toISOString(),
-                movement_linkage: 'not_provided_by_provider',
-                historical_reconstruction: null
+                movement_linkage: transactionHistory.linked
+                    ? 'provider_position_transactions'
+                    : 'not_provided_by_provider',
+                historical_reconstruction: null,
+                transaction_history: transactionHistory.summary
             });
         }
     }

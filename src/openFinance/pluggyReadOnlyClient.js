@@ -39,6 +39,11 @@ class PluggyReadOnlyClient {
         this.mappings = normalizeMappings(options.itemMappings);
         this.maxTransactionPages = Math.min(100, Math.max(1, Number(options.maxTransactionPages) || 50));
         this.maxInvestmentPages = Math.min(20, Math.max(1, Number(options.maxInvestmentPages) || 10));
+        this.maxInvestmentTransactionPages = Math.min(
+            50,
+            Math.max(1, Number(options.maxInvestmentTransactionPages) || 20)
+        );
+        this.maxInvestmentPositions = Math.min(500, Math.max(1, Number(options.maxInvestmentPositions) || 100));
         this.apiKey = null;
     }
 
@@ -49,6 +54,7 @@ class PluggyReadOnlyClient {
             || path.startsWith('/accounts?')
             || path.startsWith('/v2/transactions?')
             || path.startsWith('/investments?')
+            || /^\/investments\/[A-Za-z0-9._:-]+\/transactions\?/.test(path)
             || path.startsWith('/bills?')
         );
         if (!allowedPost && !allowedGet) throw new Error('pluggy_non_read_operation_forbidden');
@@ -125,11 +131,45 @@ class PluggyReadOnlyClient {
         throw new Error('pluggy_investment_page_limit');
     }
 
+    async #investmentTransactions(investmentId) {
+        const rows = [];
+        for (let page = 1; page <= this.maxInvestmentTransactionPages; page += 1) {
+            let payload;
+            try {
+                payload = await this.#request('GET',
+                    `/investments/${encodeURIComponent(investmentId)}/transactions?pageSize=500&page=${page}`);
+            } catch (error) {
+                if ([403, 404].includes(error.status)) {
+                    return { rows: [], availability: 'unavailable', pages: page };
+                }
+                throw error;
+            }
+            const pageRows = extractList(payload);
+            rows.push(...pageRows);
+            const declaredPage = payload?.page;
+            if (declaredPage !== undefined && Number(declaredPage) !== page) {
+                throw new Error('pluggy_investment_transaction_page_mismatch');
+            }
+            const rawTotalPages = payload?.totalPages;
+            const hasTotalPages = rawTotalPages !== undefined && rawTotalPages !== null;
+            const totalPages = Number(rawTotalPages);
+            if (hasTotalPages && (!Number.isSafeInteger(totalPages) || totalPages < 0)) {
+                throw new Error('pluggy_invalid_investment_transaction_total_pages');
+            }
+            if ((hasTotalPages && (totalPages === 0 || page >= totalPages))
+                || (!hasTotalPages && pageRows.length < 500)) {
+                return { rows, availability: 'available', pages: page };
+            }
+        }
+        throw new Error('pluggy_investment_transaction_page_limit');
+    }
+
     async readSnapshot(options = {}) {
         await this.#authenticate();
         const entries = [];
         let transactionPages = 0;
         let investmentPages = 0;
+        let investmentTransactionPages = 0;
         for (const mapping of this.mappings) {
             const itemPayload = await this.#request('GET', `/items/${encodeURIComponent(mapping.itemId)}`);
             const item = itemPayload?.data || itemPayload;
@@ -156,18 +196,43 @@ class PluggyReadOnlyClient {
             }
             const investments = await this.#investments(mapping.itemId);
             investmentPages += investments.pages;
+            if (investments.rows.length > this.maxInvestmentPositions) {
+                throw new Error('pluggy_investment_position_limit');
+            }
+            const investmentsWithTransactions = [];
+            for (const investment of investments.rows) {
+                const history = await this.#investmentTransactions(investment.id);
+                investmentTransactionPages += history.pages;
+                investmentsWithTransactions.push({
+                    ...investment,
+                    transactionAvailability: history.availability,
+                    transactions: history.rows
+                });
+            }
+            const investmentTransactionAvailability = investments.availability !== 'available'
+                ? 'unavailable'
+                : investmentsWithTransactions.length === 0
+                    ? 'available'
+                    : investmentsWithTransactions.every(investment =>
+                        investment.transactionAvailability === 'available')
+                        ? 'available'
+                        : investmentsWithTransactions.every(investment =>
+                            investment.transactionAvailability === 'unavailable')
+                            ? 'unavailable'
+                            : 'partial';
             entries.push({
                 mapping,
                 item,
                 accounts,
                 transactions,
                 bills,
-                investments: investments.rows,
+                investments: investmentsWithTransactions,
                 availability: {
                     accounts: 'available',
                     transactions: transactionAvailability,
                     bills: billAvailability,
-                    investments: investments.availability
+                    investments: investments.availability,
+                    investment_transactions: investmentTransactionAvailability
                 }
             });
         }
@@ -180,7 +245,8 @@ class PluggyReadOnlyClient {
                 complete: true,
                 warningCount: 0,
                 transactionPages,
-                investmentPages
+                investmentPages,
+                investmentTransactionPages
             }
         });
         if (snapshot.items.some(item => !['UPDATED', 'SUCCESS'].includes(item.status))) {

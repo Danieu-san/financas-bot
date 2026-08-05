@@ -10,7 +10,7 @@ financeira.
 
 ## Estado
 
-`RX-HIST-RESERVE-LIFECYCLE-01 CANDIDATO EM VALIDACAO LOCAL`.
+`RX-HIST-INVESTMENT-LINKAGE-01 CANDIDATO AGUARDANDO AUDITORIA`.
 
 O `GO TECNICO LOCAL` anterior de `RX-HIST-SEG-01`, no hash
 `62ec19532f1e4d288efa7c3fb75291540358fdd5`, continua valido para o contrato
@@ -141,6 +141,41 @@ correcao de sinal a aplicar. A API possui o endpoint por posicao
 `INTEREST`, mas o cliente atual coleta somente a lista de posicoes e a cobertura
 publica nao garante transacoes de investimento Nubank.
 
+Em 2026-08-04, a implementacao de coleta por posicao foi iniciada a partir do
+HEAD `88f0d494286e19bdb9468ce1359c0bee2e1736d5` e pausada a pedido do usuario
+antes de alterar produto. Foram adicionados somente testes RED em
+`tests/openFinancePluggyReadOnly.test.js` e
+`tests/openFinanceHistoricalRx.test.js`. A bateria focal conjunta terminou com
+35 testes, 25 aprovados e 10 falhas esperadas, provando que o produto ainda nao:
+
+- coleta ou pagina `/investments/{id}/transactions`;
+- distingue disponibilidade dessa fonte de uma lista vazia;
+- normaliza o historico minimo por posicao sem descricao privada;
+- propaga a nova evidencia cifrada pelo vault;
+- publica no RX o resumo ligado a posicao.
+
+Decisao de desenho ja tomada: o endpoint por posicao nao autoriza casar uma
+linha bancaria com uma posicao apenas por data ou valor. Logo, o novo historico
+pode fechar somente `investment_history_unlinked`; as 22 linhas bancarias com
+rotulo de resgate e direcao contraditoria continuam em
+`investment_movement_semantics_ambiguous`. Erros diferentes de 403/404 devem
+abortar o snapshot inteiro; 403/404 viram `unavailable`, nunca zero. O vault
+ja cifra o item normalizado inteiro, portanto a propagacao pode ser provada por
+round-trip sem migracao de schema SQLite.
+
+O candidato local fechou as 10 falhas RED e acrescentou cobertura adversarial
+para estado misto, limite de paginacao, campos obrigatorios, gate runtime
+independente e round-trip cifrado positivo. O cliente consulta somente GET,
+limita posicoes e paginas, converte 403/404 em indisponibilidade explicita e
+aborta o snapshot em qualquer outro erro. O contrato v2 descarta descricao e
+mantem apenas tipo, valores e datas; o RX agrega por posicao e nunca cruza essa
+fonte com uma linha bancaria por heuristica. A bateria causal terminou 356/356
+e a suite ampla final substitutiva terminou com 1.481 testes, 1.471 aprovados,
+zero falhas e 10 skips conhecidos. A primeira ampla verde foi superada quando
+a revisao adversarial fechou o caso `quantity=null`; depois dessa mudanca houve
+novo focal e uma unica ampla final. Nao houve chamada Pluggy live nem acesso a
+dados privados.
+
 ## Contrato temporal
 
 - inicio do RX historico: `2025-07-01`;
@@ -175,11 +210,11 @@ quando observado/disponivel, sem herdar o lifecycle da conta.
   fechado;
 - lifecycle pode ser declarado por conta, sem aplicar a existencia da conta ao
   cartao do mesmo banco;
-- teste focal do candidato atual: 21/21;
-- bateria causal Open Finance do candidato atual: 343/343;
-- suite hermetica final do candidato atual: 1.475 testes, 1.465 aprovados,
+- teste focal do candidato atual: 36/36;
+- bateria causal Open Finance do candidato atual: 356/356;
+- suite hermetica final do candidato atual: 1.481 testes, 1.471 aprovados,
   0 falhas e 10 skips conhecidos;
-- cobertura do recovery: linhas 90,65%, branches 73,10%, funcoes 90,28%;
+- cobertura do candidato: linhas 90,66%, branches 73,23%, funcoes 90,31%;
 - nenhuma chamada Pluggy live; a copia privada foi usada somente no preflight
   sanitizado, sem imprimir IDs, saldos ou transacoes;
 - nenhuma planilha, deploy, OCI, WhatsApp ou escrita financeira.
@@ -208,12 +243,10 @@ quando observado/disponivel, sem herdar o lifecycle da conta.
 
 ## Proxima acao
 
-Implementar em gate separado a coleta opcional e fail-closed das transacoes por
-posicao, preservando disponibilidade distinta de lista de investimentos. So
-depois de teste e auditoria podera haver uma chamada Pluggy live explicitamente
-autorizada para verificar cobertura Nubank. Em paralelo conceitual, preparar a
-revisao humana da parcela ambigua, sem salvar antes de resolver identidade.
-Planilha, escrita financeira, deploy e producao continuam fora do alcance.
+Publicar o commit sanitizado e obter auditoria independente por hash imutavel.
+So depois desse GO podera haver uma chamada Pluggy live explicitamente
+autorizada para verificar cobertura Nubank. Planilha, escrita financeira,
+deploy e producao continuam fora do alcance.
 
 ## Capacidade
 

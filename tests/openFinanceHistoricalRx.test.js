@@ -54,8 +54,10 @@ function fixture() {
     daniel.investments = [
         { id: 'investment-1', name: 'Investimento privado', type: 'CDB', balance_cents: 9000, currency: 'BRL', status: 'ACTIVE' }
     ];
+    daniel.availability.investment_transactions = 'unavailable';
     const itau = input.items.find(item => item.alias_code === 'thais_itau');
     itau.availability.investments = 'unavailable';
+    itau.availability.investment_transactions = 'unavailable';
     itau.accounts[0].balance_cents = 2500;
     Object.assign(itau.accounts[1], {
         balance_cents: 1200, credit_limit_cents: 50000,
@@ -107,7 +109,10 @@ function familyInventoryFixture() {
         id: `item-${alias}`,
         alias_code: alias,
         owner_scope: ownerScope,
-        availability: { accounts: 'available', transactions: 'available', bills: 'available', investments: 'available' },
+        availability: {
+            accounts: 'available', transactions: 'available', bills: 'available', investments: 'available',
+            investment_transactions: 'available'
+        },
         accounts: [
             { id: `${alias}-bank`, type: 'BANK', subtype: 'CHECKING_ACCOUNT', currency: 'BRL', balance_cents: 0 },
             { id: `${alias}-card`, type: 'CREDIT', subtype: 'CREDIT_CARD', currency: 'BRL', balance_cents: 0,
@@ -142,7 +147,7 @@ test('RX separa conta, cartao, fatura e investimento sem expor payload bruto', (
     });
 
     assert.equal(report.financial_writes, 0);
-    assert.equal(report.gate, 'RX-HIST-RESERVE-LIFECYCLE-01');
+    assert.equal(report.gate, 'RX-HIST-INVESTMENT-LINKAGE-01');
     assert.equal(report.segments.length, 9);
     const bank = report.segments.find(row => row.source_alias === 'daniel_nubank' && row.product === 'bank_account');
     const card = report.segments.find(row => row.source_alias === 'daniel_nubank' && row.product === 'credit_card');
@@ -190,12 +195,71 @@ test('RX separa conta, cartao, fatura e investimento sem expor payload bruto', (
     assert.equal(report.investments[0].current_balance_cents, 9000);
     assert.equal(report.investments[0].movement_linkage, 'not_provided_by_provider');
     assert.equal(report.investments[0].historical_reconstruction, null);
+    assert.deepEqual(report.investments[0].transaction_history, {
+        status: 'unavailable', count: null, first_observed_date: null,
+        last_observed_date: null, type_totals: null
+    });
     assert.equal(report.blockers.includes('daniel_nubank:investment_history_unlinked'), true);
 
     const serialized = JSON.stringify(report);
     for (const privateValue of ['bank-1', 'card-1', 'thais_itau-card', 'thais_itau-savings', 'Entrada privada', 'Caixinha sem rotulo', 'Compra parcelada privada', 'Investimento privado']) {
         assert.doesNotMatch(serialized, new RegExp(privateValue, 'i'));
     }
+});
+
+test('RX usa historico ligado a posicao sem inferir pareamento com conta bancaria', () => {
+    const input = fixture();
+    const daniel = input.items.find(item => item.alias_code === 'daniel_nubank');
+    daniel.availability.investment_transactions = 'available';
+    daniel.investments[0].transaction_history = {
+        availability: 'available',
+        transactions: [
+            { type: 'BUY', amount_cents: 2000, net_amount_cents: 2000,
+                date: '2026-03-11T10:00:00.000Z', trade_date: '2026-03-11T10:00:00.000Z' },
+            { type: 'INTEREST', amount_cents: 300, net_amount_cents: null,
+                date: '2026-03-13T10:00:00.000Z', trade_date: '2026-03-13T10:00:00.000Z' }
+        ]
+    };
+    daniel.transactions.push({
+        id: 'bank-ambiguous-redemption', account_id: 'bank-1', description: 'Nao expor', amount_cents: -5000,
+        currency: 'BRL', date: '2026-03-14T10:00:00.000Z', status: 'POSTED',
+        operation_type: 'RESGATE_APLIC_FINANCEIRA'
+    });
+
+    const report = buildOpenFinanceHistoricalRx({
+        items: input.items, historyStartDate: '2026-03-01', observedAt: input.observedAt,
+        secret: SECRET, sourceLifecycles: canonicalSourceLifecycles()
+    });
+    const investment = report.investments[0];
+    assert.equal(investment.movement_linkage, 'provider_position_transactions');
+    assert.deepEqual(investment.transaction_history, {
+        status: 'available', count: 2,
+        first_observed_date: '2026-03-11T10:00:00.000Z',
+        last_observed_date: '2026-03-13T10:00:00.000Z',
+        type_totals: [
+            { type: 'BUY', count: 1, amount_cents: 2000, net_amount_cents: 2000 },
+            { type: 'INTEREST', count: 1, amount_cents: 300, net_amount_cents: null }
+        ]
+    });
+    assert.equal(report.blockers.includes('daniel_nubank:investment_history_unlinked'), false);
+    assert.equal(report.blockers.includes('daniel_nubank:investment_movement_semantics_ambiguous'), true);
+    assert.doesNotMatch(JSON.stringify(report), /bank-ambiguous-redemption|Nao expor/);
+});
+
+test('RX nao transforma historico de posicao indisponivel em lista vazia', () => {
+    const input = fixture();
+    const daniel = input.items.find(item => item.alias_code === 'daniel_nubank');
+    daniel.availability.investment_transactions = 'unavailable';
+    daniel.investments[0].transaction_history = { availability: 'unavailable', transactions: [] };
+    const report = buildOpenFinanceHistoricalRx({
+        items: input.items, historyStartDate: '2026-03-01', observedAt: input.observedAt,
+        secret: SECRET, sourceLifecycles: canonicalSourceLifecycles()
+    });
+    assert.equal(report.blockers.includes('daniel_nubank:investment_history_unlinked'), true);
+    assert.deepEqual(report.investments[0].transaction_history, {
+        status: 'unavailable', count: null, first_observed_date: null,
+        last_observed_date: null, type_totals: null
+    });
 });
 
 test('RX trata rendimento como ganho e aplicacao/resgate como transferencia patrimonial', () => {
@@ -924,7 +988,7 @@ test('CLI subprocesso publica erro sanitizado com o gate novo', () => {
         assert.equal(result.status, 1);
         assert.equal(result.stdout, '');
         assert.deepEqual(JSON.parse(result.stderr), {
-            gate: 'RX-HIST-RESERVE-LIFECYCLE-01',
+            gate: 'RX-HIST-INVESTMENT-LINKAGE-01',
             outcome: 'NO_GO',
             reason: 'invalid_historical_rx_expected_inventory_file',
             financial_writes: 0
@@ -1051,13 +1115,13 @@ test('CLI le vault real em readonly, grava fora do Git e nao imprime payload pri
     assert.equal(publicResult.database_unchanged, true);
     assert.equal(publicResult.sqlite_files_unchanged, true);
     assert.equal(publicResult.financial_writes, 0);
-    assert.equal(publicResult.gate, 'RX-HIST-RESERVE-LIFECYCLE-01');
+    assert.equal(publicResult.gate, 'RX-HIST-INVESTMENT-LINKAGE-01');
     assert.equal(publicResult.segments, 9);
     assert.equal(crypto.createHash('sha256').update(fs.readFileSync(databasePath)).digest('hex'), beforeHash);
     assert.equal(sqliteFileSetsEqual(beforeSqliteFiles, snapshotSqliteFileSet(databasePath)), true);
     const report = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
     assert.equal(report.financial_writes, 0);
-    assert.equal(report.gate, 'RX-HIST-RESERVE-LIFECYCLE-01');
+    assert.equal(report.gate, 'RX-HIST-INVESTMENT-LINKAGE-01');
     assert.equal(report.segments.find(row =>
         row.source_alias === 'thais_itau' && row.product === 'credit_card').history_start_relation,
         'not_applicable_before_account_start');

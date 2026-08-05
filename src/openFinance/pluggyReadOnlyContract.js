@@ -2,6 +2,9 @@ const ALLOWED_ACCOUNT_TYPES = new Set(['BANK', 'CREDIT']);
 const ALLOWED_TRANSACTION_STATUSES = new Set(['POSTED', 'PENDING']);
 const ALLOWED_OWNER_SCOPES = new Set(['daniel', 'thais']);
 const ALLOWED_AVAILABILITY = new Set(['available', 'partial', 'unavailable']);
+const ALLOWED_INVESTMENT_TRANSACTION_TYPES = new Set([
+    'BUY', 'SELL', 'TAX', 'TRANSFER', 'INTEREST', 'AMORTIZATION'
+]);
 
 function requiredText(value, field, maxLength = 256) {
     const text = String(value || '').trim();
@@ -51,6 +54,13 @@ function currency(value) {
     const normalized = requiredText(value || 'BRL', 'currency', 3).toUpperCase();
     if (!/^[A-Z]{3}$/.test(normalized)) throw new Error('invalid_currency');
     return normalized;
+}
+
+function finiteNumber(value, field) {
+    if (value === null || value === undefined || value === '') throw new Error(`invalid_${field}`);
+    const number = Number(value);
+    if (!Number.isFinite(number)) throw new Error(`invalid_${field}`);
+    return number;
 }
 
 function availability(value) {
@@ -131,6 +141,46 @@ function normalizeBill(bill, itemId, accountIds) {
 }
 
 function normalizeInvestment(investment, itemId) {
+    const transactionHistory = investment.transaction_history || {};
+    const transactionAvailability = availability(
+        investment.transactionAvailability
+        ?? investment.transactionsAvailability
+        ?? transactionHistory.availability
+        ?? 'unavailable'
+    );
+    const rawTransactions = investment.transactions ?? transactionHistory.transactions ?? [];
+    if (!Array.isArray(rawTransactions)) throw new Error('invalid_investment_transactions');
+    if (transactionAvailability !== 'available' && rawTransactions.length) {
+        throw new Error('inconsistent_investment_transaction_availability');
+    }
+    const transactions = rawTransactions.map((transaction) => {
+        const type = requiredText(transaction.type, 'investment_transaction_type', 32).toUpperCase();
+        if (!ALLOWED_INVESTMENT_TRANSACTION_TYPES.has(type)) {
+            throw new Error('invalid_investment_transaction_type');
+        }
+        finiteNumber(transaction.quantity, 'investment_transaction_quantity');
+        finiteNumber(transaction.value, 'investment_transaction_value');
+        const rawAmount = transaction.amount !== undefined && transaction.amount !== null
+            ? transaction.amount
+            : transaction.amount_cents !== undefined && transaction.amount_cents !== null
+                ? transaction.amount_cents / 100
+                : undefined;
+        const rawNetAmount = transaction.netAmount !== undefined && transaction.netAmount !== null
+            ? transaction.netAmount
+            : transaction.net_amount_cents !== undefined && transaction.net_amount_cents !== null
+                ? transaction.net_amount_cents / 100
+                : null;
+        return {
+            type,
+            amount_cents: cents(rawAmount, 'investment_transaction_amount'),
+            net_amount_cents: cents(rawNetAmount, 'investment_transaction_net_amount', { nullable: true }),
+            date: isoDate(transaction.date, 'investment_transaction_date'),
+            trade_date: isoDate(
+                transaction.tradeDate || transaction.trade_date,
+                'investment_transaction_trade_date'
+            )
+        };
+    });
     return {
         id: opaqueId(investment.id, 'investment_id'),
         item_id: itemId,
@@ -140,8 +190,21 @@ function normalizeInvestment(investment, itemId) {
         balance_cents: cents(investment.balance, 'investment_balance', { nullable: true }),
         currency: currency(investment.currencyCode),
         status: optionalText(investment.status, 32)?.toUpperCase() || null,
-        date: optionalIsoDate(investment.date)
+        date: optionalIsoDate(investment.date),
+        transaction_history: {
+            availability: transactionAvailability,
+            transactions
+        }
     };
+}
+
+function aggregateInvestmentTransactionAvailability(investmentsAvailability, investments) {
+    if (investmentsAvailability !== 'available') return 'unavailable';
+    if (!investments.length) return 'available';
+    const statuses = investments.map(investment => investment.transaction_history.availability);
+    if (statuses.every(status => status === 'available')) return 'available';
+    if (statuses.every(status => status === 'unavailable')) return 'unavailable';
+    return 'partial';
 }
 
 function normalizePluggyReadOnlySnapshot(payload = {}) {
@@ -163,7 +226,16 @@ function normalizePluggyReadOnlySnapshot(payload = {}) {
             normalizeTransaction(transaction, itemId, accountIds)
         ));
         const bills = (entry.bills || []).map((bill) => normalizeBill(bill, itemId, accountIds));
+        const investmentsAvailability = availability(entry.availability?.investments);
         const investments = (entry.investments || []).map((investment) => normalizeInvestment(investment, itemId));
+        const investmentTransactionsAvailability = aggregateInvestmentTransactionAvailability(
+            investmentsAvailability,
+            investments
+        );
+        if (entry.availability?.investment_transactions !== undefined
+            && availability(entry.availability.investment_transactions) !== investmentTransactionsAvailability) {
+            throw new Error('inconsistent_investment_transaction_availability');
+        }
         return {
             id: itemId,
             alias_code: alias,
@@ -178,7 +250,8 @@ function normalizePluggyReadOnlySnapshot(payload = {}) {
                 accounts: availability(entry.availability?.accounts),
                 transactions: availability(entry.availability?.transactions),
                 bills: availability(entry.availability?.bills),
-                investments: availability(entry.availability?.investments)
+                investments: investmentsAvailability,
+                investment_transactions: investmentTransactionsAvailability
             },
             accounts,
             transactions,
@@ -189,7 +262,7 @@ function normalizePluggyReadOnlySnapshot(payload = {}) {
     if (!items.length) throw new Error('pluggy_item_mapping_required');
     const collectionHealth = payload.collectionHealth || payload.collection_health || {};
     return {
-        schema_version: 1,
+        schema_version: 2,
         provider: 'pluggy',
         mode: 'live_readonly_staging',
         event_id: eventId,
@@ -198,7 +271,11 @@ function normalizePluggyReadOnlySnapshot(payload = {}) {
             complete: collectionHealth.complete === true,
             warning_count: Math.max(0, Number(collectionHealth.warningCount ?? collectionHealth.warning_count) || 0),
             transaction_pages: Math.max(0, Number(collectionHealth.transactionPages ?? collectionHealth.transaction_pages) || 0),
-            investment_pages: Math.max(0, Number(collectionHealth.investmentPages ?? collectionHealth.investment_pages) || 0)
+            investment_pages: Math.max(0, Number(collectionHealth.investmentPages ?? collectionHealth.investment_pages) || 0),
+            investment_transaction_pages: Math.max(0, Number(
+                collectionHealth.investmentTransactionPages
+                ?? collectionHealth.investment_transaction_pages
+            ) || 0)
         },
         items
     };

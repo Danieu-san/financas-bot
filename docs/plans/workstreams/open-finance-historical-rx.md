@@ -57,9 +57,12 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 18. [concluida] Registrar a declaracao do usuario de que todas as contas
     bancarias existiam no inicio historico; manter somente o cartao Itau como
     inexistente nessa data.
-19. [em andamento] O provedor oferece endpoint de transacoes por posicao, mas o
-    cliente nao o coleta e a cobertura Nubank nao esta garantida; implementar
-    disponibilidade separada e falha fechada, sem usar descricao como vinculo.
+19. [concluida localmente; auditoria pendente] O provedor oferece endpoint de transacoes por posicao, mas o
+    cliente nao o coleta e a cobertura Nubank nao esta garantida. Prova RED
+    registrada no HEAD de partida `88f0d494286e19bdb9468ce1359c0bee2e1736d5`:
+    35 testes focais, 25 aprovados e 10 falhas esperadas. O candidato fechou a
+    prova em 36/36 e implementou disponibilidade separada e falha fechada, sem
+    usar descricao, data ou valor como vinculo a transacao bancaria.
 20. [pendente] Em gate operacional separado, avisar os dois usuarios sobre
     movimentos ambiguos e oferecer revisao/salvamento numerados; nunca usar
     `sim` generico para multiplas opcoes nem salvar automaticamente.
@@ -74,9 +77,12 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 23. [concluida] Confirmar em fonte primaria a convencao de direcao: `CREDIT` e
     entrada e `DEBIT` e saida. Manter 22 `RESGATE_APLIC_FINANCEIRA` debitados
     como semanticamente ambiguos e fora da classificacao patrimonial.
-24. [pendente] Em Sol Alto, coletar `/investments/{id}/transactions` de modo
+24. [concluida localmente; auditoria pendente] Em Sol Alto, coletar `/investments/{id}/transactions` de modo
     opcional, paginado, sanitizado e fail-closed, propagar sua disponibilidade
-    pelo contrato/vault/RX e provar ausencia de regressao.
+    pelo contrato/vault/RX e provar ausencia de regressao. A fronteira RED esta
+    fechada em 36/36; bateria causal 356/356 e suite ampla final substitutiva
+    com 1.481 testes, 1.471 aprovados, zero falhas e 10 skips. Nenhuma chamada
+    real, escrita financeira ou producao.
 
 ## Criterios de GO
 
@@ -113,5 +119,6 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 
 ## Proxima acao
 
-Validar o candidato de reserva/lifecycle, publicar hash imutavel e obter
-auditoria independente antes de qualquer nova previa privada.
+Publicar o hash imutavel do gate `RX-HIST-INVESTMENT-LINKAGE-01` e obter
+auditoria independente antes de qualquer nova previa privada ou chamada Pluggy
+live.
