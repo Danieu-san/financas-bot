@@ -106,12 +106,14 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
     e reiniciavel da revisao numerada, com catalogo bidirecional, pagina e
     selecao por ator, decisao familiar unica, protecao contra replay isolado do
     envelope e `financial_writes=0`.
-30. [NO-GO independente; recovery focal verde] Integrar o nucleo ao handler e
-    a entrega publicos do WhatsApp. O primeiro hash falhou por timestamp,
-    ordem, TTL, ID de transporte, retry e escopo da outbox. O recovery adiciona
-    as garantias e uma prova composta backfill-handler-runtime-store-outbox;
-    foco 164/164, Open Finance 381/381 e ampla final 1.507 testes, 1.497
-    aprovados, zero falhas e 10 skips. Reauditoria ainda pendente.
+30. [segundo NO-GO independente; recovery de bootstrap verde] Integrar o nucleo
+    ao handler e a entrega publicos do WhatsApp. O primeiro hash falhou por
+    timestamp, ordem, TTL, ID de transporte, retry e escopo da outbox. O
+    primeiro recovery fechou esses achados, mas a reauditoria exigiu barreira
+    explicita entre runtime e backfill. O segundo recovery coordena o evento
+    `ready`, bloqueia backfill se `prompt` nao estiver pronto e preserva o modo
+    `off`; bateria causal 174/174 e ampla final 1.510 testes, 1.500 aprovados,
+    zero falhas e 10 skips. Nova reauditoria ainda pendente.
 
 ## Criterios de GO
 

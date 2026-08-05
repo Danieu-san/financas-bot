@@ -10,8 +10,8 @@ mantendo salvamento e escrita financeira desligados.
 
 ## Estado
 
-`RX-HIST-AMBIGUITY-REVIEW-01 GO TECNICO LOCAL; INTEGRACAO WHATSAPP EM RECOVERY
-APOS NO-GO, AGUARDANDO REAUDITORIA; WRITES OFF`.
+`RX-HIST-AMBIGUITY-REVIEW-01 GO TECNICO LOCAL; INTEGRACAO WHATSAPP EM SEGUNDO
+RECOVERY APOS NO-GO DE BOOTSTRAP, AGUARDANDO REAUDITORIA; WRITES OFF`.
 
 O nucleo local da revisao numerada foi encerrado no commit auditado
 `987404c37a5839058be5010d2a036f963819a511`. O parecer independente confirmou
@@ -299,15 +299,15 @@ quando observado/disponivel, sem herdar o lifecycle da conta.
 
 ## Proxima acao
 
-O hash `f96717328de3f1e9ca8d259b5bed06af5f1fb039` recebeu `NO-GO`
-independente por lacunas causais de timestamp/backfill, ordem do handler, TTL,
-confirmacao de transporte, retry e isolamento de jobs. O recovery fecha os
-achados com tentativa temporal duravel, gate antes dos handlers de produto,
-expiracao consumida uma vez, ID textual estrito, timer de retry e escopo comum
-de claim/recovery/purge. Evidencia final: foco composto 164/164, afetados apos
-o aperto temporal 137/137, Open Finance 381/381 e ampla com 1.507 testes, 1.497
-aprovados, zero falhas e 10 skips conhecidos. Publicar novo hash e reauditar.
-Deploy e producao permanecem fora do alcance.
+O hash `10e398af0391ca35273ee39292e8a28494d62d2d` confirmou em auditoria os
+fechamentos de timestamp, ordem do handler, TTL, transporte, retry e isolamento
+de jobs, mas recebeu `NO-GO` pela ausencia de uma barreira explicita entre a
+inicializacao do runtime e o backfill no evento `ready`. O segundo recovery
+move a sequencia para um coordenador aguardado: `prompt` invalido bloqueia a
+descoberta, `prompt` valido so libera depois da preparacao/entrega e `off`
+preserva o backfill. Evidencia final: bateria causal 174/174 e ampla hermetica
+com 1.510 testes, 1.500 aprovados, zero falhas e 10 skips conhecidos. Publicar
+novo hash e reauditar. Deploy e producao permanecem fora do alcance.
 
 ## Capacidade
 

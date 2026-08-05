@@ -18,6 +18,9 @@ const {
     tryHandleOpenFinanceHistoricalAmbiguityReply,
     __test__: runtimeTest
 } = require('../src/openFinance/openFinanceHistoricalAmbiguityWhatsappRuntime');
+const {
+    initializeWhatsappReadyServices
+} = require('../src/services/whatsappReadyBootstrap');
 
 const SECRET = 'historical-ambiguity-whatsapp-secret-2026';
 const OUTBOX_KEY = Buffer.alloc(32, 0x63).toString('base64');
@@ -429,4 +432,123 @@ test('prompt initialization consumes an external sealed file and restart preserv
         runtimeTest.setRuntimeForTests(null);
         fs.rmSync(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
     }
+});
+
+test('ready bootstrap waits for the real prompt runtime before unread discovery', async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'historical-review-ready-bootstrap-'));
+    const sealedStateFile = path.join(directory, 'sealed-state.txt');
+    fs.writeFileSync(sealedStateFile, buildCandidate().sealed_state, { mode: 0o600 });
+    const env = {
+        OPEN_FINANCE_HISTORICAL_AMBIGUITY_REVIEW_MODE: 'prompt',
+        OPEN_FINANCE_HISTORICAL_AMBIGUITY_REVIEW_ACTOR_IDS: `${DANIEL},${THAIS}`,
+        OPEN_FINANCE_HISTORICAL_AMBIGUITY_REVIEW_SEALED_STATE_FILE: sealedStateFile,
+        OPEN_FINANCE_HISTORICAL_AMBIGUITY_REVIEW_DB_PATH: path.join(directory, 'review.sqlite'),
+        OPEN_FINANCE_HISTORICAL_AMBIGUITY_REVIEW_OUTBOX_DB_PATH: path.join(directory, 'outbox.sqlite'),
+        OPEN_FINANCE_HISTORICAL_AMBIGUITY_REVIEW_FAMILY_SCOPE: 'family',
+        OPEN_FINANCE_HISTORICAL_AMBIGUITY_REVIEW_SECRET: SECRET,
+        STATE_STORE_ENCRYPTION_KEY: OUTBOX_KEY,
+        WHATSAPP_UNREAD_BACKFILL_DELAY_MS: '0',
+        WHATSAPP_UNREAD_BACKFILL_MAX_ATTEMPTS: '1'
+    };
+    const order = [];
+    let deliveryCalls = 0;
+    let releaseFirstDelivery;
+    const firstDelivery = new Promise(resolve => { releaseFirstDelivery = resolve; });
+    const client = {
+        sendMessage: async to => {
+            deliveryCalls += 1;
+            order.push(`send:${to}`);
+            if (deliveryCalls === 1) await firstDelivery;
+            return { id: `provider-${deliveryCalls}` };
+        },
+        getChats: async () => {
+            order.push('getChats');
+            return [];
+        }
+    };
+    try {
+        const boot = initializeWhatsappReadyServices({
+            client,
+            env,
+            startupUnixSeconds: Date.parse(NOW) / 1000,
+            dependencies: {
+                initializeScheduler: () => order.push('scheduler'),
+                initializeOpenFinanceCanaryRuntime: () => order.push('canary'),
+                handleMessageForBackfill: async () => { throw new Error('unexpected_message'); }
+            }
+        });
+        await new Promise(resolve => setImmediate(resolve));
+        assert.deepStrictEqual(order, ['scheduler', `send:${DANIEL}`]);
+
+        releaseFirstDelivery();
+        const result = await boot;
+        assert.equal(result.historicalReview.enabled, true);
+        assert.equal(result.backfill.processed, 0);
+        assert.deepStrictEqual(order, [
+            'scheduler', `send:${DANIEL}`, `send:${THAIS}`, 'canary', 'getChats'
+        ]);
+    } finally {
+        runtimeTest.setRuntimeForTests(null);
+        fs.rmSync(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+    }
+});
+
+test('ready bootstrap fails closed when prompt runtime configuration is invalid', async () => {
+    let discoveryCalls = 0;
+    const result = await initializeWhatsappReadyServices({
+        client: {
+            sendMessage: async () => ({ id: 'unexpected' }),
+            getChats: async () => {
+                discoveryCalls += 1;
+                return [];
+            }
+        },
+        env: { OPEN_FINANCE_HISTORICAL_AMBIGUITY_REVIEW_MODE: 'prompt' },
+        startupUnixSeconds: Date.parse(NOW) / 1000,
+        dependencies: {
+            initializeScheduler() {},
+            initializeOpenFinanceCanaryRuntime() {},
+            handleMessageForBackfill: async () => {}
+        }
+    });
+
+    assert.equal(result.historicalReview.reason, 'configuration_invalid');
+    assert.deepStrictEqual(result.backfill, {
+        skipped: true,
+        reason: 'historical_review_not_ready',
+        processed: 0
+    });
+    assert.equal(discoveryCalls, 0);
+    runtimeTest.setRuntimeForTests(null);
+});
+
+test('ready bootstrap preserves unread backfill when historical review is explicitly off', async () => {
+    let discoveryCalls = 0;
+    const result = await initializeWhatsappReadyServices({
+        client: {
+            sendMessage: async () => ({ id: 'unexpected' }),
+            getChats: async () => {
+                discoveryCalls += 1;
+                return [];
+            }
+        },
+        env: {
+            OPEN_FINANCE_HISTORICAL_AMBIGUITY_REVIEW_MODE: 'off',
+            WHATSAPP_UNREAD_BACKFILL_DELAY_MS: '0',
+            WHATSAPP_UNREAD_BACKFILL_MAX_ATTEMPTS: '1'
+        },
+        startupUnixSeconds: Date.parse(NOW) / 1000,
+        dependencies: {
+            initializeScheduler() {},
+            initializeOpenFinanceCanaryRuntime() {},
+            handleMessageForBackfill: async () => {}
+        }
+    });
+
+    assert.equal(result.historicalReview.enabled, false);
+    assert.equal(result.historicalReview.mode, 'off');
+    assert.equal(result.backfill.skipped, false);
+    assert.equal(result.backfill.processed, 0);
+    assert.equal(discoveryCalls, 1);
+    runtimeTest.setRuntimeForTests(null);
 });

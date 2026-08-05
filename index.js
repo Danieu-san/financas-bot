@@ -4,22 +4,16 @@ require('dotenv').config();
 
 const { initializeWhatsAppClient } = require('./src/services/whatsapp');
 const { authorizeGoogle, getSheetIds, ensureSpreadsheetStructure } = require('./src/services/google');
-const {
-    handleMessage,
-    handleMessageForBackfill
-} = require('./src/handlers/messageHandler');
-const { initializeScheduler } = require('./src/jobs/scheduler');
+const { handleMessage } = require('./src/handlers/messageHandler');
 const { validateUserIdIntegrity, backfillMissingUserIds } = require('./src/services/userIdMaintenanceService');
 const { initializeReadModel, syncReadModelIfNeeded, getReadModelStats } = require('./src/services/readModelService');
 const { startDashboardServer } = require('./src/services/dashboardServer');
-const { backfillUnreadMessages } = require('./src/services/whatsappUnreadBackfillService');
 const logger = require('./src/utils/logger');
 const { registerFinancialCommandPlannerRuntimeReload } = require('./src/config/financialCommandPlannerRuntimeConfig');
 const { registerFinancialAgentRuntimeReload } = require('./src/config/financialAgentRuntimeConfig');
-const { initializeOpenFinanceCanaryRuntime } = require('./src/openFinance/openFinanceCanaryRuntime');
 const {
-    initializeOpenFinanceHistoricalAmbiguityWhatsappRuntime
-} = require('./src/openFinance/openFinanceHistoricalAmbiguityWhatsappRuntime');
+    initializeWhatsappReadyServices
+} = require('./src/services/whatsappReadyBootstrap');
 const { assertStateStoreConfiguration } = require('./src/state/userStateManager');
 
 registerFinancialCommandPlannerRuntimeReload({ logger });
@@ -79,25 +73,14 @@ async function startBot() {
         // 3. Configura os handlers de eventos
         client.once('ready', () => {
             console.log('✅ Bot pronto para receber mensagens!');
-            // Inicia o agendador apenas quando o bot estiver pronto pela primeira vez
-            initializeScheduler(client);
-            void initializeOpenFinanceHistoricalAmbiguityWhatsappRuntime({ client, logger })
-                .then(result => logger.info(
-                    `[open-finance-historical-review] initialized enabled=${result.enabled} ` +
-                    `mode=${result.mode} writes=${result.financial_writes}`
-                ))
-                .catch(() => logger.warn('[open-finance-historical-review] initialization_failed'));
-            initializeOpenFinanceCanaryRuntime({ client, logger });
-            void backfillUnreadMessages(client, handleMessageForBackfill, {
+            void initializeWhatsappReadyServices({
+                client,
                 logger,
-                enabled: String(process.env.WHATSAPP_UNREAD_BACKFILL_ON_READY || 'true').toLowerCase() !== 'false',
-                delayMs: Number(process.env.WHATSAPP_UNREAD_BACKFILL_DELAY_MS || 3000),
-                maxPerChat: Number(process.env.WHATSAPP_UNREAD_BACKFILL_MAX_PER_CHAT || 20),
-                maxAttempts: Number(process.env.WHATSAPP_UNREAD_BACKFILL_MAX_ATTEMPTS || 3),
-                retryDelayMs: Number(process.env.WHATSAPP_UNREAD_BACKFILL_RETRY_DELAY_MS || 5000),
-                notBeforeTimestamp: Math.max(0, startupUnixSeconds - unreadBackfillLookbackSeconds)
+                env: process.env,
+                startupUnixSeconds,
+                unreadBackfillLookbackSeconds
             }).catch(error => {
-                logger.warn(`[whatsapp] unread_backfill_failed ${logger.safeError(error)}`);
+                logger.warn(`[whatsapp] ready_services_failed ${logger.safeError(error)}`);
             });
         });
 
