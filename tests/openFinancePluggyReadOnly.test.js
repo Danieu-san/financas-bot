@@ -354,14 +354,24 @@ test('cliente agrega cobertura mista como parcial e limita paginacao por posicao
     await assert.rejects(() => limitedClient.readSnapshot({ eventId: 'event-investment-page-limit' }),
         /pluggy_investment_transaction_page_limit/);
 
+    let positionHistoryCalls = 0;
+    const positionLimitFetch = makeFetch();
     const positionLimitedClient = new PluggyReadOnlyClient({
         clientId: 'client-id', clientSecret: 'client-secret', itemMappings: mapping(),
-        fetchImpl: makeFetch(), maxInvestmentPositions: 1
+        fetchImpl: async (...args) => {
+            const parsed = new URL(args[0]);
+            if (/^\/investments\/[^/]+\/transactions$/.test(parsed.pathname)) {
+                positionHistoryCalls += 1;
+            }
+            return positionLimitFetch(...args);
+        },
+        maxInvestmentPositions: 1
     });
     await assert.rejects(
         () => positionLimitedClient.readSnapshot({ eventId: 'event-investment-position-limit' }),
         /pluggy_investment_position_limit/
     );
+    assert.equal(positionHistoryCalls, 0);
 });
 
 test('cliente conclui cinco paginas antes de declarar collection health completa', async () => {

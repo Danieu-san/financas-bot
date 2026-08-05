@@ -10,7 +10,7 @@ financeira.
 
 ## Estado
 
-`RX-HIST-INVESTMENT-LINKAGE-01 RECOVERY AGUARDANDO REAUDITORIA`.
+`RX-HIST-INVESTMENT-LINKAGE-01 RECOVERY PROBATORIO AGUARDANDO REAUDITORIA`.
 
 O `GO TECNICO LOCAL` anterior de `RX-HIST-SEG-01`, no hash
 `62ec19532f1e4d288efa7c3fb75291540358fdd5`, continua valido para o contrato
@@ -186,6 +186,15 @@ metadados contraditorios e cobre todas essas bordas. A hipotese de mistura apos
 403/404 nao se reproduziu: o cliente ja descartava todas as linhas daquela
 posicao; a nova prova torna esse comportamento causalmente explicito.
 
+O recovery publicado no hash
+`260ff76986fc98682317c1570a3dc760e870045f` recebeu novo `NO-GO`
+exclusivamente probatorio. O auditor confirmou todas as propriedades
+funcionais e nao encontrou defeito critico ou alto, mas observou que o teste do
+limite de posicoes exigia apenas a rejeicao final. O recovery probatorio atual
+instala um tripwire na fronteira HTTP e exige zero chamadas ao historico por
+posicao quando o limite e excedido. Nenhum codigo de produto foi alterado e,
+por isso, a suite ampla verde anterior nao foi repetida.
+
 ## Contrato temporal
 
 - inicio do RX historico: `2025-07-01`;
@@ -253,7 +262,7 @@ quando observado/disponivel, sem herdar o lifecycle da conta.
 
 ## Proxima acao
 
-Publicar o commit sanitizado do recovery e obter nova auditoria independente por hash imutavel.
+Publicar o commit sanitizado do recovery probatorio e obter nova auditoria independente por hash imutavel.
 So depois desse GO podera haver uma chamada Pluggy live explicitamente
 autorizada para verificar cobertura Nubank. Planilha, escrita financeira,
 deploy e producao continuam fora do alcance.

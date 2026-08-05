@@ -1,6 +1,6 @@
 # Plano - RX historico segmentado Open Finance
 
-Status: `recovery de paginacao de investimentos aguardando reauditoria`.
+Status: `recovery probatorio do limite de posicoes aguardando reauditoria`.
 
 ## Objetivo
 
@@ -88,6 +88,10 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
     limite de posicoes e ausencia/nulidade dos seis campos obrigatorios. Focal
     39/39, bateria Open Finance 359/359 e suite ampla 1.484 testes, 1.474
     aprovados, zero falhas e 10 skips.
+26. [concluida localmente; reauditoria pendente] Fechar o NO-GO probatorio do
+    hash `260ff76986fc98682317c1570a3dc760e870045f` com tripwire que exige zero
+    requests ao historico quando o limite de posicoes e excedido. Mudanca
+    somente em teste; focal 39/39 e suite ampla anterior preservada.
 
 ## Criterios de GO
 
@@ -124,6 +128,6 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 
 ## Proxima acao
 
-Publicar o hash imutavel do recovery de `RX-HIST-INVESTMENT-LINKAGE-01` e obter
-nova auditoria independente antes de qualquer previa privada ou chamada Pluggy
-live.
+Publicar o hash imutavel do recovery probatorio de
+`RX-HIST-INVESTMENT-LINKAGE-01` e obter nova auditoria independente antes de
+qualquer previa privada ou chamada Pluggy live.
