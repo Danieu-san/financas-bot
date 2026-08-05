@@ -115,7 +115,7 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
     `off`; bateria causal 174/174 e ampla final 1.510 testes, 1.500 aprovados,
     zero falhas e 10 skips. O hash auditado foi
     `a5ea2dd977621c8c6f24a041db74a7b89eb2b1c7`.
-31. [recovery concluido localmente; reauditoria pendente] Consumir as decisoes duraveis da revisao no reconciliador
+31. [concluida com GO tecnico local independente] Consumir as decisoes duraveis da revisao no reconciliador
     read-only, recalcular blockers/elegibilidade sem inferir identidade e provar
     replay, restart, conflito familiar e `financial_writes=0`. Nao criar ainda
     proposta de salvamento nem ativar `prompt`.
@@ -155,6 +155,7 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 
 ## Proxima acao
 
-Publicar o recovery de identidade integral do RX e submete-lo a reauditoria
-independente por novo hash imutavel. Salvamento numerado, ativacao de `prompt`,
-deploy e producao permanecem fora do alcance.
+32. [pendente] Especificar o gate sucessor do fluxo numerico de salvamento a
+partir de eventos reconciliados elegiveis, preservando a separacao entre o RX
+historico e o corte operacional de alertas. Nenhuma proposta, ativacao de
+`prompt`, deploy ou producao entra automaticamente nesse gate.

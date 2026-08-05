@@ -314,9 +314,15 @@ A bateria causal passou 54/54 e a suite hermetica passou 1.509 de 1.519 testes,
 zero falhas e 10 skips conhecidos. Manifesto:
 `docs/audit/148-open-finance-historical-ambiguity-rx-identity-recovery-candidate-2026-08-05.md`.
 
-A proxima acao e publicar o novo hash e reauditar somente as duas causas do
-NO-GO, preservando salvamento, flags, deploy e producao fora do alcance.
+O hash `23007057ae04862d2319b93fa230312de723f1c2` recebeu `GO TECNICO
+LOCAL` independente. O auditor confirmou o fechamento integral das duas causas,
+sem achado remanescente ou lacuna indispensavel no alcance read-only. Registro:
+`docs/audit/149-open-finance-historical-ambiguity-reconciliation-independent-close-2026-08-05.md`.
+
+A proxima acao e especificar o gate sucessor do fluxo numerico de salvamento,
+sem misturar o RX historico iniciado em 2025-07-01 com o corte operacional de
+alertas em 2026-07-28 e sem ativar flags, deploy ou producao.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> auditar o candidato imutavel do gate 31.`
+`Codex -> Sol -> Alto -> especificar e testar o gate sucessor do fluxo numerico.`
