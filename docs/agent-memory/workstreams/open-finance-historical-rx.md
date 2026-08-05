@@ -10,7 +10,7 @@ financeira.
 
 ## Estado
 
-`RX-HIST-INVESTMENT-LINKAGE-01 GO TECNICO LOCAL; COBERTURA LIVE OBSERVADA; PREVIA PRIVADA PENDENTE`.
+`RX-HIST-INVESTMENT-LINKAGE-01 FECHADO; PREVIA PRIVADA NO_GO COM DOIS BLOCKERS`.
 
 O `GO TECNICO LOCAL` anterior de `RX-HIST-SEG-01`, no hash
 `62ec19532f1e4d288efa7c3fb75291540358fdd5`, continua valido para o contrato
@@ -211,6 +211,17 @@ Uma coincidencia de cardinalidade observada e apenas pista: nao cria identidade
 e nao autoriza pareamento ou reclassificacao. PM2 permaneceu unico, online, sem
 reinicios e com health/WhatsApp verdes.
 
+A previa privada cifrada posterior ligou todas as posicoes observadas e fechou
+`investment_history_unlinked`. O primeiro calculo reutilizou um lifecycle
+privado obsoleto e falhou fechado; o recálculo no mesmo cofre aplicou a
+declaracao ja confirmada do usuario — contas bancarias Itau existentes no
+inicio e cartao posterior — e removeu `account_start_unknown` sem nova chamada
+Pluggy. O resultado final permanece `NO_GO` somente pelas classes
+`installment_series_ambiguous` e
+`investment_movement_semantics_ambiguous`; a associacao de cada blocker a uma
+fonte fica exclusivamente no relatorio privado. O cofre temporario foi
+removido, o relatorio ficou fora do Git e `financial_writes=0`.
+
 ## Contrato temporal
 
 - inicio do RX historico: `2025-07-01`;
@@ -278,13 +289,12 @@ quando observado/disponivel, sem herdar o lifecycle da conta.
 
 ## Proxima acao
 
-Obter autorizacao separada antes de uma nova previa privada cifrada. Ela devera
-persistir o snapshot somente no vault privado, executar o RX read-only e
-verificar se `investment_history_unlinked` fecha, sem parear as 22 linhas por
-contagem, data, valor ou descricao. Parcela ambigua e semantica contraditoria
-continuam bloqueadas; planilha, escrita financeira, deploy e producao ficam
-fora do alcance.
+Abrir gate operacional separado para apresentar as duas ambiguidades aos
+usuarios autorizados em fluxo numerado, sem `sim` generico, pareamento
+heuristico ou salvamento automatico. O RX historico permanece read-only;
+planilha, escrita financeira, deploy e producao ficam fora do alcance ate novo
+candidato auditado.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> executar uma previa privada cifrada e read-only, se autorizada.`
+`Codex -> Sol -> Alto -> implementar revisao numerada das ambiguidades sem escrita.`

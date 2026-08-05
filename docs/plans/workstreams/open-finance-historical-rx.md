@@ -1,6 +1,6 @@
 # Plano - RX historico segmentado Open Finance
 
-Status: `ligacao por posicao com GO local e cobertura live; previa privada pendente`.
+Status: `ligacao por posicao fechada; previa privada NO_GO com dois blockers`.
 
 ## Objetivo
 
@@ -63,7 +63,7 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
     35 testes focais, 25 aprovados e 10 falhas esperadas. O candidato fechou a
     prova em 36/36 e implementou disponibilidade separada e falha fechada, sem
     usar descricao, data ou valor como vinculo a transacao bancaria.
-20. [pendente] Em gate operacional separado, avisar os dois usuarios sobre
+20. [proxima] Em gate operacional separado, avisar os dois usuarios sobre
     movimentos ambiguos e oferecer revisao/salvamento numerados; nunca usar
     `sim` generico para multiplas opcoes nem salvar automaticamente.
 21. [concluida] Classificar aplicacao/resgate de reserva como transferencia
@@ -96,9 +96,11 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
     Pluggy live sanitizada para verificar cobertura do historico por posicao nas
     fontes Nubank, sem preview privado, escrita ou producao. A cobertura
     relevante foi observada; contagens e detalhes ficaram fora do Git.
-28. [pendente de autorizacao operacional explicita] Gerar nova previa privada
+28. [concluida] Gerar nova previa privada
     cifrada e read-only com o historico por posicao, sem pareamento heuristico,
-    para reavaliar somente `investment_history_unlinked`.
+    para reavaliar somente `investment_history_unlinked`. O blocker foi
+    fechado; lifecycle obsoleto foi corrigido no mesmo cofre e restaram somente
+    ambiguidade de parcela e semantica de investimento.
 
 ## Criterios de GO
 
@@ -135,7 +137,6 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 
 ## Proxima acao
 
-Solicitar autorizacao separada para uma previa privada cifrada e read-only. A
-coincidencia de cardinalidade observada nao autoriza pareamento nem
-reclassificacao. Parcela ambigua e semantica contraditoria permanecem blockers
-independentes.
+Abrir gate operacional de revisao numerada das ambiguidades, sem `sim` generico
+para multiplas opcoes e sem escrita automatica. A coincidencia de cardinalidade
+observada nao autoriza pareamento nem reclassificacao.
