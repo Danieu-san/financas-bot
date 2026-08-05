@@ -106,14 +106,19 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
     e reiniciavel da revisao numerada, com catalogo bidirecional, pagina e
     selecao por ator, decisao familiar unica, protecao contra replay isolado do
     envelope e `financial_writes=0`.
-30. [segundo NO-GO independente; recovery de bootstrap verde] Integrar o nucleo
+30. [concluida com GO tecnico local independente] Integrar o nucleo
     ao handler e a entrega publicos do WhatsApp. O primeiro hash falhou por
     timestamp, ordem, TTL, ID de transporte, retry e escopo da outbox. O
     primeiro recovery fechou esses achados, mas a reauditoria exigiu barreira
     explicita entre runtime e backfill. O segundo recovery coordena o evento
     `ready`, bloqueia backfill se `prompt` nao estiver pronto e preserva o modo
     `off`; bateria causal 174/174 e ampla final 1.510 testes, 1.500 aprovados,
-    zero falhas e 10 skips. Nova reauditoria ainda pendente.
+    zero falhas e 10 skips. O hash auditado foi
+    `a5ea2dd977621c8c6f24a041db74a7b89eb2b1c7`.
+31. [pendente] Consumir as decisoes duraveis da revisao no reconciliador
+    read-only, recalcular blockers/elegibilidade sem inferir identidade e provar
+    replay, restart, conflito familiar e `financial_writes=0`. Nao criar ainda
+    proposta de salvamento nem ativar `prompt`.
 
 ## Criterios de GO
 
@@ -150,5 +155,5 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 
 ## Proxima acao
 
-Publicar o recovery em outro hash imutavel e obter nova auditoria independente.
-Consumo das decisoes, deploy e producao permanecem fora do alcance.
+Abrir o gate 31 para integrar as decisoes ao reconciliador read-only. Salvamento
+numerado, ativacao de `prompt`, deploy e producao permanecem fora do alcance.

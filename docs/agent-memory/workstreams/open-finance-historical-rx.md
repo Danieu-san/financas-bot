@@ -10,8 +10,8 @@ mantendo salvamento e escrita financeira desligados.
 
 ## Estado
 
-`RX-HIST-AMBIGUITY-REVIEW-01 GO TECNICO LOCAL; INTEGRACAO WHATSAPP EM SEGUNDO
-RECOVERY APOS NO-GO DE BOOTSTRAP, AGUARDANDO REAUDITORIA; WRITES OFF`.
+`RX-HIST-AMBIGUITY-REVIEW-01 E INTEGRACAO WHATSAPP COM GO TECNICO LOCAL;
+CONSUMO DAS DECISOES PELO RECONCILIADOR PENDENTE; WRITES OFF`.
 
 O nucleo local da revisao numerada foi encerrado no commit auditado
 `987404c37a5839058be5010d2a036f963819a511`. O parecer independente confirmou
@@ -299,16 +299,16 @@ quando observado/disponivel, sem herdar o lifecycle da conta.
 
 ## Proxima acao
 
-O hash `10e398af0391ca35273ee39292e8a28494d62d2d` confirmou em auditoria os
-fechamentos de timestamp, ordem do handler, TTL, transporte, retry e isolamento
-de jobs, mas recebeu `NO-GO` pela ausencia de uma barreira explicita entre a
-inicializacao do runtime e o backfill no evento `ready`. O segundo recovery
-move a sequencia para um coordenador aguardado: `prompt` invalido bloqueia a
-descoberta, `prompt` valido so libera depois da preparacao/entrega e `off`
-preserva o backfill. Evidencia final: bateria causal 174/174 e ampla hermetica
-com 1.510 testes, 1.500 aprovados, zero falhas e 10 skips conhecidos. Publicar
-novo hash e reauditar. Deploy e producao permanecem fora do alcance.
+O hash `a5ea2dd977621c8c6f24a041db74a7b89eb2b1c7` recebeu `GO TECNICO
+LOCAL` independente. O auditor confirmou a barreira explicita entre runtime e
+backfill, falha fechada sem `getChats` quando `prompt` nao fica pronto,
+compatibilidade do modo `off`, contencao da rejeicao no entrypoint e preservacao
+dos fechamentos anteriores. A prova usa inicializador, review store, outbox e
+backfill reais; a composicao com handler real permanece separada e verde.
+Registro: `docs/audit/146-open-finance-historical-ambiguity-whatsapp-independent-close-2026-08-05.md`.
+O proximo gate e consumir as decisoes duraveis no reconciliador read-only,
+sem salvar, ativar flags, deployar ou tocar producao.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> publicar e reauditar o recovery WhatsApp sem escrita.`
+`Codex -> Sol -> Alto -> integrar decisoes duraveis ao reconciliador read-only.`
