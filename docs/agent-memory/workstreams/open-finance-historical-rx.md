@@ -10,7 +10,7 @@ financeira.
 
 ## Estado
 
-`RX-HIST-INVESTMENT-LINKAGE-01 RECOVERY PROBATORIO AGUARDANDO REAUDITORIA`.
+`RX-HIST-INVESTMENT-LINKAGE-01 GO TECNICO LOCAL; LEITURA LIVE AGUARDANDO AUTORIZACAO`.
 
 O `GO TECNICO LOCAL` anterior de `RX-HIST-SEG-01`, no hash
 `62ec19532f1e4d288efa7c3fb75291540358fdd5`, continua valido para o contrato
@@ -195,6 +195,14 @@ instala um tripwire na fronteira HTTP e exige zero chamadas ao historico por
 posicao quando o limite e excedido. Nenhum codigo de produto foi alterado e,
 por isso, a suite ampla verde anterior nao foi repetida.
 
+O recovery probatorio no hash
+`3369804a215de33a8146a53b794bc9f33b435b51` recebeu `GO TECNICO LOCAL`
+independente. O auditor confirmou que o tripwire usa o cliente real, observa a
+fronteira HTTP exata, exige a rejeicao especifica e prova zero requests ao
+historico antes do gate. Todas as severidades ficaram zeradas e nao ha lacuna
+indispensavel residual. O fechamento nao autoriza chamada Pluggy live, previa
+privada, salvamento, planilha, deploy ou producao.
+
 ## Contrato temporal
 
 - inicio do RX historico: `2025-07-01`;
@@ -262,11 +270,14 @@ quando observado/disponivel, sem herdar o lifecycle da conta.
 
 ## Proxima acao
 
-Publicar o commit sanitizado do recovery probatorio e obter nova auditoria independente por hash imutavel.
+Obter autorizacao explicita antes de uma unica leitura Pluggy live destinada a
+verificar se o historico por posicao esta disponivel nas fontes Nubank. Mesmo
+com cobertura disponivel, parcela ambigua e as 22 linhas contraditorias
+continuam bloqueadas e nao podem ser salvas automaticamente.
 So depois desse GO podera haver uma chamada Pluggy live explicitamente
 autorizada para verificar cobertura Nubank. Planilha, escrita financeira,
 deploy e producao continuam fora do alcance.
 
 ## Capacidade
 
-`Chat -> modelo mais capaz disponivel -> Alto -> reauditar o recovery por hash imutavel.`
+`Codex -> Sol -> Alto -> executar uma leitura Pluggy live unica e sanitizada, se autorizada.`

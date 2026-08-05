@@ -1,6 +1,6 @@
 # Plano - RX historico segmentado Open Finance
 
-Status: `recovery probatorio do limite de posicoes aguardando reauditoria`.
+Status: `ligacao de historico por posicao com GO tecnico local; leitura live pendente de autorizacao`.
 
 ## Objetivo
 
@@ -88,10 +88,13 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
     limite de posicoes e ausencia/nulidade dos seis campos obrigatorios. Focal
     39/39, bateria Open Finance 359/359 e suite ampla 1.484 testes, 1.474
     aprovados, zero falhas e 10 skips.
-26. [concluida localmente; reauditoria pendente] Fechar o NO-GO probatorio do
+26. [concluida com GO tecnico local independente] Fechar o NO-GO probatorio do
     hash `260ff76986fc98682317c1570a3dc760e870045f` com tripwire que exige zero
     requests ao historico quando o limite de posicoes e excedido. Mudanca
     somente em teste; focal 39/39 e suite ampla anterior preservada.
+27. [pendente de autorizacao operacional explicita] Fazer uma unica leitura
+    Pluggy live sanitizada para verificar cobertura do historico por posicao nas
+    fontes Nubank, sem preview privado, escrita ou producao.
 
 ## Criterios de GO
 
@@ -128,6 +131,6 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 
 ## Proxima acao
 
-Publicar o hash imutavel do recovery probatorio de
-`RX-HIST-INVESTMENT-LINKAGE-01` e obter nova auditoria independente antes de
-qualquer previa privada ou chamada Pluggy live.
+Solicitar autorizacao explicita para uma unica leitura Pluggy live sanitizada.
+Sem essa autorizacao, nao abrir dados privados nem executar preview. Parcela
+ambigua e as 22 linhas contraditorias permanecem blockers independentes.
