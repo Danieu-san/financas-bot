@@ -428,3 +428,34 @@ test('persists one shared encrypted family decision across restart and never sto
         fs.rmSync(directory, { recursive: true, force: true });
     }
 });
+
+test('rejects replay of an older authenticated envelope after the durable revision advances', () => {
+    const built = buildOpenFinanceHistoricalAmbiguityReview({
+        ...fixture(), secret: SECRET, familyScope: 'family',
+        authorizedWhatsAppIds: [DANIEL, THAIS]
+    });
+    const store = new OpenFinanceHistoricalAmbiguityReviewStore({
+        secret: SECRET, familyScope: 'family',
+        authorizedWhatsAppIds: [DANIEL, THAIS]
+    });
+    try {
+        store.prepare({ sealedState: built.sealed_state });
+        const advanced = store.handleReply({ actorWhatsappId: DANIEL, body: '1' });
+        assert.equal(advanced.state, 'awaiting_resolution_number');
+
+        const tamper = store.db.prepare(`UPDATE open_finance_historical_ambiguity_reviews
+            SET sealed_state=?`).run(built.sealed_state);
+        assert.equal(tamper.changes, 1);
+
+        assert.throws(
+            () => store.handleReply({ actorWhatsappId: DANIEL, body: '2' }),
+            /open_finance_historical_ambiguity_review_store_state_invalid/
+        );
+        assert.throws(
+            () => store.readPrivate({ actorWhatsappId: DANIEL }),
+            /open_finance_historical_ambiguity_review_store_state_invalid/
+        );
+    } finally {
+        store.close();
+    }
+});

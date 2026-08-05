@@ -633,6 +633,9 @@ class OpenFinanceHistoricalAmbiguityReviewStore {
         return hmac(this.secret, `historical-ambiguity-row:${JSON.stringify({
             review_ref: row.review_ref,
             family_scope_ref: row.family_scope_ref,
+            sealed_state_sha256: crypto.createHash('sha256')
+                .update(String(row.sealed_state || ''))
+                .digest('hex'),
             review_state: row.review_state,
             revision: row.revision,
             updated_at: row.updated_at
@@ -646,6 +649,13 @@ class OpenFinanceHistoricalAmbiguityReviewStore {
             || row.state_mac !== this.#stateMac(row)) {
             throw new Error('open_finance_historical_ambiguity_review_store_state_invalid');
         }
+        const state = openState(row.sealed_state, this.secret);
+        if (state.review_ref !== row.review_ref
+            || state.family_scope_ref !== row.family_scope_ref
+            || state.status !== row.review_state) {
+            throw new Error('open_finance_historical_ambiguity_review_store_state_invalid');
+        }
+        this.#assertStateScope(state);
         return row;
     }
 
