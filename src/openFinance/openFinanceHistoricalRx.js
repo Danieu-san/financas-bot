@@ -191,6 +191,18 @@ function providerInvestmentOperation(value) {
     return semantic ? { operationType, semantic } : null;
 }
 
+function historicalRxInstallmentGrouping(transaction = {}) {
+    const strongReference = transaction.provider_id || transaction.reference_number || null;
+    return {
+        confidence: strongReference ? 'provider_reference' : 'provider_metadata_heuristic',
+        basis: strongReference
+            ? `strong:${strongReference}`
+            : [transaction.description, transaction.original_date || '',
+                Math.abs(Number(transaction.amount_cents)),
+                Number(transaction.total_installments)].join(':')
+    };
+}
+
 function cents(value, field, { nullable = false } = {}) {
     if (value === null || value === undefined) {
         if (nullable) return null;
@@ -505,16 +517,12 @@ function buildOpenFinanceHistoricalRx({
                 if (installmentNumber < 1 || installmentNumber > totalInstallments) {
                     throw new Error('invalid_historical_rx_installment_number');
                 }
-                const strong = transaction.provider_id || transaction.reference_number || null;
-                const groupingBasis = strong
-                    ? `strong:${strong}`
-                    : [transaction.description, transaction.original_date || '', Math.abs(Number(transaction.amount_cents)),
-                        Number(transaction.total_installments)].join(':');
-                const seriesRef = ref('historical_rx_installment', `${alias}:${accountId}:${groupingBasis}`);
+                const grouping = historicalRxInstallmentGrouping(transaction);
+                const seriesRef = ref('historical_rx_installment', `${alias}:${accountId}:${grouping.basis}`);
                 if (!series.has(seriesRef)) {
                     series.set(seriesRef, {
                         series_ref: seriesRef,
-                        grouping_confidence: strong ? 'provider_reference' : 'provider_metadata_heuristic',
+                        grouping_confidence: grouping.confidence,
                         total_installments: totalInstallments,
                         observed_numbers: [],
                         observed_rows: 0,
@@ -789,6 +797,8 @@ module.exports = {
     CANONICAL_HISTORICAL_RX_INVENTORY,
     HISTORICAL_RX_GATE,
     buildOpenFinanceHistoricalRx,
+    classifyHistoricalRxInvestmentOperation: providerInvestmentOperation,
+    historicalRxInstallmentGrouping,
     validateHistoricalRxInventory,
     validateHistoricalRxInventoryContract,
     validateHistoricalRxMappingAliases,
