@@ -299,18 +299,23 @@ quando observado/disponivel, sem herdar o lifecycle da conta.
 
 ## Proxima acao
 
-O gate 31 esta concluido localmente e aguarda auditoria independente. O
-reconciliador reconstrui o catalogo privado, vincula decisoes ao conjunto exato
-de IDs HMAC do provedor, recusa snapshot parcial ou de outro RX e recalcula o RX
-com todas as escolhas de parcela e investimento preservando
-`financial_writes=0`. A bateria causal final passou 31/31 e a suite hermetica
-final passou 1.509 de 1.519 testes, com zero falhas e 10 skips conhecidos.
-Manifesto:
-`docs/audit/147-open-finance-historical-ambiguity-reconciliation-candidate-2026-08-05.md`.
+O primeiro candidato do gate 31, no hash
+`e552d84cac049d7878c6d2f6bcc55b86d90e2404`, recebeu `NO-GO`
+independente. O auditor identificou que o snapshot nao estava preso a um digest
+integral do RX e que a prova de restart nao reconciliava novamente o snapshot
+reaberto nem preservava blocker externo.
 
-A proxima acao e publicar o hash imutavel, obter auditoria independente e
-confrontar o parecer. Salvamento numerado, flags, deploy e producao continuam
-fora do alcance.
+O recovery calcula um `rx_ref` HMAC canonico dos itens fonte completos e do RX,
+incorpora-o ao `review_ref` e exige ambos na aplicacao. A prova altera dado nao
+ambiguo mantendo as mesmas ambiguidades — inclusive com o agregado inalterado —
+e exige rejeicao. Depois de reabrir o SQLite, executa novamente o reconciliador,
+compara o relatorio integral e preserva um blocker de fatura nao relacionado.
+A bateria causal passou 54/54 e a suite hermetica passou 1.509 de 1.519 testes,
+zero falhas e 10 skips conhecidos. Manifesto:
+`docs/audit/148-open-finance-historical-ambiguity-rx-identity-recovery-candidate-2026-08-05.md`.
+
+A proxima acao e publicar o novo hash e reauditar somente as duas causas do
+NO-GO, preservando salvamento, flags, deploy e producao fora do alcance.
 
 ## Capacidade
 

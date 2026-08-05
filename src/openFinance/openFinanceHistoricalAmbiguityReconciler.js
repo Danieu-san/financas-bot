@@ -41,6 +41,7 @@ function reconcileOpenFinanceHistoricalAmbiguityDecisions({
         ...reconciled,
         ambiguity_resolution: Object.freeze({
             review_ref: ambiguityResolutionPlan.review_ref,
+            rx_ref: ambiguityResolutionPlan.rx_ref,
             applied_decisions: ambiguityResolutionPlan.applied_decisions,
             excluded_rows: ambiguityResolutionPlan.excluded_candidate_refs.length,
             resolved_installment_items: ambiguityResolutionPlan.resolved_installment_items,

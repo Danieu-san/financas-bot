@@ -23,7 +23,7 @@ const DANIEL = '5511999999999@c.us';
 const THAIS = '5511888888888@c.us';
 const NOW = '2026-08-05T12:00:00.000Z';
 
-function canonicalFixture({ investmentAmount = -2000 } = {}) {
+function canonicalFixture({ investmentAmount = -2000, unrelatedBlocker = false } = {}) {
     const owners = {
         daniel_nubank: 'daniel',
         thais_nubank: 'thais',
@@ -52,6 +52,13 @@ function canonicalFixture({ investmentAmount = -2000 } = {}) {
         id: 'thais_itau-savings', type: 'BANK', subtype: 'SAVINGS_ACCOUNT',
         currency: 'BRL', balance_cents: 0
     });
+    const thais = items.find(item => item.alias_code === 'thais_nubank');
+    thais.transactions.push({
+        id: 'nonambiguous-family-row', account_id: 'thais_nubank-bank',
+        description: 'Movimento familiar observado', date: '2025-08-09T12:00:00.000Z',
+        amount_cents: 100, status: 'POSTED'
+    });
+    if (unrelatedBlocker) thais.availability.bills = 'partial';
     const daniel = items.find(item => item.alias_code === 'daniel_nubank');
     daniel.transactions.push(
         {
@@ -86,14 +93,17 @@ function canonicalFixture({ investmentAmount = -2000 } = {}) {
 }
 
 function buildReviewedSnapshot(directory, {
-    installmentChoice = '2', investmentChoice = '1', investmentAmount = -2000
+    installmentChoice = '2', investmentChoice = '1', investmentAmount = -2000,
+    unrelatedBlocker = false
 } = {}) {
-    const input = canonicalFixture({ investmentAmount });
+    const input = canonicalFixture({ investmentAmount, unrelatedBlocker });
     const historicalRx = buildOpenFinanceHistoricalRx(input);
-    assert.deepStrictEqual(historicalRx.blockers, [
+    const expectedBlockers = [
         'daniel_nubank:installment_series_ambiguous',
-        'daniel_nubank:investment_movement_semantics_ambiguous'
-    ]);
+        'daniel_nubank:investment_movement_semantics_ambiguous',
+        ...(unrelatedBlocker ? ['thais_nubank:bills_partial'] : [])
+    ].sort();
+    assert.deepStrictEqual(historicalRx.blockers, expectedBlockers);
     const candidate = buildOpenFinanceHistoricalAmbiguityReview({
         items: input.items,
         historicalRx,
@@ -144,6 +154,7 @@ test('durable family decisions deterministically unblock a read-only historical 
         assert.equal(first.financial_writes, 0);
         assert.deepStrictEqual(first.ambiguity_resolution, {
             review_ref: resolutionSnapshot.review_ref,
+            rx_ref: resolutionSnapshot.rx_ref,
             applied_decisions: 2,
             excluded_rows: 1,
             resolved_installment_items: 1,
@@ -166,9 +177,15 @@ test('restart preserves the same decisions and tampering fails closed', () => {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'historical-ambiguity-reconciler-restart-'));
     let store;
     try {
-        const built = buildReviewedSnapshot(directory);
+        const built = buildReviewedSnapshot(directory, { unrelatedBlocker: true });
         store = built.store;
         const before = store.readPrivate({ actorWhatsappId: THAIS });
+        const beforeRestart = reconcileOpenFinanceHistoricalAmbiguityDecisions({
+            ...built.input, historicalRx: built.historicalRx,
+            resolutionSnapshot: before, familyScope: 'family'
+        });
+        assert.deepStrictEqual(beforeRestart.blockers, ['thais_nubank:bills_partial']);
+        assert.equal(beforeRestart.ready_for_reconciliation, false);
         store.close();
         store = new OpenFinanceHistoricalAmbiguityReviewStore({
             databasePath: path.join(directory, 'review.sqlite'), secret: SECRET,
@@ -177,6 +194,11 @@ test('restart preserves the same decisions and tampering fails closed', () => {
         });
         const after = store.readPrivate({ actorWhatsappId: DANIEL });
         assert.deepStrictEqual(after, before);
+        const afterRestart = reconcileOpenFinanceHistoricalAmbiguityDecisions({
+            ...built.input, historicalRx: built.historicalRx,
+            resolutionSnapshot: after, familyScope: 'family'
+        });
+        assert.deepStrictEqual(afterRestart, beforeRestart);
 
         const tampered = structuredClone(after);
         tampered.decisions[0].resolution_code = 'keep_only:forged';
@@ -236,6 +258,25 @@ test('partial, cross-RX, and direction-incompatible decisions fail closed', () =
         assert.throws(() => reconcileOpenFinanceHistoricalAmbiguityDecisions({
             ...built.input, historicalRx: built.historicalRx,
             resolutionSnapshot: partial, familyScope: 'family'
+        }), /resolution_snapshot_invalid/);
+
+        const changedNonAmbiguousIdentity = structuredClone(built.input);
+        changedNonAmbiguousIdentity.items.find(item => item.alias_code === 'thais_nubank')
+            .transactions.find(transaction => transaction.id === 'nonambiguous-family-row')
+            .description = 'Mesmo agregado, outra linha fonte';
+        assert.throws(() => reconcileOpenFinanceHistoricalAmbiguityDecisions({
+            ...changedNonAmbiguousIdentity, historicalRx: built.historicalRx,
+            resolutionSnapshot: snapshot, familyScope: 'family'
+        }), /resolution_snapshot_invalid/);
+
+        const changedNonAmbiguousValue = structuredClone(built.input);
+        changedNonAmbiguousValue.items.find(item => item.alias_code === 'thais_nubank')
+            .transactions.find(transaction => transaction.id === 'nonambiguous-family-row')
+            .amount_cents = 101;
+        const changedHistoricalRx = buildOpenFinanceHistoricalRx(changedNonAmbiguousValue);
+        assert.throws(() => reconcileOpenFinanceHistoricalAmbiguityDecisions({
+            ...changedNonAmbiguousValue, historicalRx: changedHistoricalRx,
+            resolutionSnapshot: snapshot, familyScope: 'family'
         }), /resolution_snapshot_invalid/);
 
         const changedInput = structuredClone(built.input);

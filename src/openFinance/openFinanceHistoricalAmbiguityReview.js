@@ -26,6 +26,23 @@ function hmac(secret, value, length = 32) {
         .slice(0, length);
 }
 
+function canonicalJson(value) {
+    if (value === null || typeof value === 'string' || typeof value === 'boolean') {
+        return JSON.stringify(value);
+    }
+    if (typeof value === 'number' && Number.isFinite(value)) return JSON.stringify(value);
+    if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+    if (value && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype) {
+        return `{${Object.keys(value).sort().map(key =>
+            `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(',')}}`;
+    }
+    throw new Error('open_finance_historical_ambiguity_review_rx_identity_invalid');
+}
+
+function historicalRxIdentityRef(secret, items, historicalRx) {
+    return hmac(secret, `historical-rx-identity:${canonicalJson({ items, historicalRx })}`);
+}
+
 function historicalRef(secret, kind, value) {
     return hmac(secret, `${kind}:${String(value || '')}`);
 }
@@ -106,6 +123,7 @@ function openState(sealedState, secret) {
             decipher.final()
         ]).toString('utf8'));
         if (state?.schema_version !== SCHEMA_VERSION || !state.review_ref
+            || !/^[a-f0-9]{32}$/.test(String(state.rx_ref || ''))
             || !Array.isArray(state.items) || !Array.isArray(state.authorized_actor_refs)
             || !state.selected_item_refs || typeof state.selected_item_refs !== 'object'
             || Array.isArray(state.selected_item_refs)
@@ -420,10 +438,13 @@ function buildOpenFinanceHistoricalAmbiguityReview({
         throw new Error('open_finance_historical_ambiguity_review_supported_ambiguity_required');
     }
     const createdAt = nowIso(clock);
+    const rxRef = historicalRxIdentityRef(safeSecret, items, historicalRx);
     const state = {
         schema_version: SCHEMA_VERSION,
         review_ref: hmac(safeSecret,
-            `review:${String(familyScope || 'shared-family')}:${reviewItems.map(item => item.item_ref).join(':')}`),
+            `review:${String(familyScope || 'shared-family')}:${rxRef}:`
+            + reviewItems.map(item => item.item_ref).join(':')),
+        rx_ref: rxRef,
         family_scope_ref: hmac(safeSecret, `family:${String(familyScope || 'shared-family')}`),
         authorized_actor_refs: uniqueActors.sort(),
         status: 'pending',
@@ -455,6 +476,7 @@ function readOpenFinanceHistoricalAmbiguityReviewPrivate({
     requireFresh(state, clock);
     return {
         review_ref: state.review_ref,
+        rx_ref: state.rx_ref,
         state: state.status,
         pending_count: pendingItems(state).length,
         decisions: state.items.filter(item => item.decision).map(item => ({
@@ -479,11 +501,14 @@ function buildOpenFinanceHistoricalAmbiguityResolutionPlan({
         throw new Error('open_finance_historical_ambiguity_resolution_snapshot_invalid');
     }
     const reviewItems = buildItems({ items, historicalRx, secret: safeSecret });
+    const rxRef = historicalRxIdentityRef(safeSecret, items, historicalRx);
     const expectedReviewRef = hmac(safeSecret,
-        `review:${String(familyScope || 'shared-family')}:${reviewItems.map(item => item.item_ref).join(':')}`);
+        `review:${String(familyScope || 'shared-family')}:${rxRef}:`
+        + reviewItems.map(item => item.item_ref).join(':'));
     if (!resolutionSnapshot || typeof resolutionSnapshot !== 'object'
         || Array.isArray(resolutionSnapshot)
         || resolutionSnapshot.review_ref !== expectedReviewRef
+        || resolutionSnapshot.rx_ref !== rxRef
         || resolutionSnapshot.state !== 'reviewed'
         || resolutionSnapshot.pending_count !== 0
         || resolutionSnapshot.financial_writes !== 0
@@ -537,6 +562,7 @@ function buildOpenFinanceHistoricalAmbiguityResolutionPlan({
     return Object.freeze({
         schema_version: 1,
         review_ref: expectedReviewRef,
+        rx_ref: rxRef,
         excluded_candidate_refs: Object.freeze([...excludedCandidateRefs].sort()),
         distinct_candidate_refs: Object.freeze([...distinctCandidateRefs].sort()),
         investment_semantics: Object.freeze(investmentSemantics
