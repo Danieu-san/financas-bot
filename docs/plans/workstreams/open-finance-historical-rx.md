@@ -1,6 +1,6 @@
 # Plano - RX historico segmentado Open Finance
 
-Status: `ligacao de historico por posicao com GO tecnico local; leitura live pendente de autorizacao`.
+Status: `ligacao por posicao com GO local e cobertura live; previa privada pendente`.
 
 ## Objetivo
 
@@ -92,9 +92,13 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
     hash `260ff76986fc98682317c1570a3dc760e870045f` com tripwire que exige zero
     requests ao historico quando o limite de posicoes e excedido. Mudanca
     somente em teste; focal 39/39 e suite ampla anterior preservada.
-27. [pendente de autorizacao operacional explicita] Fazer uma unica leitura
+27. [concluida] Fazer uma unica leitura
     Pluggy live sanitizada para verificar cobertura do historico por posicao nas
-    fontes Nubank, sem preview privado, escrita ou producao.
+    fontes Nubank, sem preview privado, escrita ou producao. A cobertura
+    relevante foi observada; contagens e detalhes ficaram fora do Git.
+28. [pendente de autorizacao operacional explicita] Gerar nova previa privada
+    cifrada e read-only com o historico por posicao, sem pareamento heuristico,
+    para reavaliar somente `investment_history_unlinked`.
 
 ## Criterios de GO
 
@@ -131,6 +135,7 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 
 ## Proxima acao
 
-Solicitar autorizacao explicita para uma unica leitura Pluggy live sanitizada.
-Sem essa autorizacao, nao abrir dados privados nem executar preview. Parcela
-ambigua e as 22 linhas contraditorias permanecem blockers independentes.
+Solicitar autorizacao separada para uma previa privada cifrada e read-only. A
+coincidencia de cardinalidade observada nao autoriza pareamento nem
+reclassificacao. Parcela ambigua e semantica contraditoria permanecem blockers
+independentes.

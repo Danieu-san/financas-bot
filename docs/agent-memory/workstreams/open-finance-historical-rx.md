@@ -1,6 +1,6 @@
 # Estado - RX historico segmentado Open Finance
 
-Atualizado em: 2026-08-04
+Atualizado em: 2026-08-05
 
 ## Objetivo
 
@@ -10,7 +10,7 @@ financeira.
 
 ## Estado
 
-`RX-HIST-INVESTMENT-LINKAGE-01 GO TECNICO LOCAL; LEITURA LIVE AGUARDANDO AUTORIZACAO`.
+`RX-HIST-INVESTMENT-LINKAGE-01 GO TECNICO LOCAL; COBERTURA LIVE OBSERVADA; PREVIA PRIVADA PENDENTE`.
 
 O `GO TECNICO LOCAL` anterior de `RX-HIST-SEG-01`, no hash
 `62ec19532f1e4d288efa7c3fb75291540358fdd5`, continua valido para o contrato
@@ -203,6 +203,14 @@ historico antes do gate. Todas as severidades ficaram zeradas e nao ha lacuna
 indispensavel residual. O fechamento nao autoriza chamada Pluggy live, previa
 privada, salvamento, planilha, deploy ou producao.
 
+A unica leitura Pluggy live autorizada terminou em `GO` sem persistir payload,
+atualizar Item ou escrever dados. A fonte relevante apresentou historico por
+posicao disponivel e suficiente para uma previa privada; as contagens e o
+detalhamento financeiro ficaram somente em checkpoint local ignorado pelo Git.
+Uma coincidencia de cardinalidade observada e apenas pista: nao cria identidade
+e nao autoriza pareamento ou reclassificacao. PM2 permaneceu unico, online, sem
+reinicios e com health/WhatsApp verdes.
+
 ## Contrato temporal
 
 - inicio do RX historico: `2025-07-01`;
@@ -270,14 +278,13 @@ quando observado/disponivel, sem herdar o lifecycle da conta.
 
 ## Proxima acao
 
-Obter autorizacao explicita antes de uma unica leitura Pluggy live destinada a
-verificar se o historico por posicao esta disponivel nas fontes Nubank. Mesmo
-com cobertura disponivel, parcela ambigua e as 22 linhas contraditorias
-continuam bloqueadas e nao podem ser salvas automaticamente.
-So depois desse GO podera haver uma chamada Pluggy live explicitamente
-autorizada para verificar cobertura Nubank. Planilha, escrita financeira,
-deploy e producao continuam fora do alcance.
+Obter autorizacao separada antes de uma nova previa privada cifrada. Ela devera
+persistir o snapshot somente no vault privado, executar o RX read-only e
+verificar se `investment_history_unlinked` fecha, sem parear as 22 linhas por
+contagem, data, valor ou descricao. Parcela ambigua e semantica contraditoria
+continuam bloqueadas; planilha, escrita financeira, deploy e producao ficam
+fora do alcance.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> executar uma leitura Pluggy live unica e sanitizada, se autorizada.`
+`Codex -> Sol -> Alto -> executar uma previa privada cifrada e read-only, se autorizada.`
