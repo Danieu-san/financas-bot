@@ -10,8 +10,8 @@ mantendo salvamento e escrita financeira desligados.
 
 ## Estado
 
-`RX-HIST-AMBIGUITY-REVIEW-01 GO TECNICO LOCAL; INTEGRACAO WHATSAPP CANDIDATA
-AGUARDANDO AUDITORIA; WRITES OFF`.
+`RX-HIST-AMBIGUITY-REVIEW-01 GO TECNICO LOCAL; INTEGRACAO WHATSAPP EM RECOVERY
+APOS NO-GO, AGUARDANDO REAUDITORIA; WRITES OFF`.
 
 O nucleo local da revisao numerada foi encerrado no commit auditado
 `987404c37a5839058be5010d2a036f963819a511`. O parecer independente confirmou
@@ -299,13 +299,16 @@ quando observado/disponivel, sem herdar o lifecycle da conta.
 
 ## Proxima acao
 
-Publicar o candidato da integracao WhatsApp em hash imutavel e submete-lo a
-auditoria independente. A evidencia local esta verde em 154/154 no foco,
-377/377 na bateria Open Finance e 1.502 testes na ampla final, com 1.492
-aprovados, zero falhas e 10 skips conhecidos. `sim` generico nao decide,
-restart/replay nao duplicam entrega e nenhum caminho chama planilha, ledger ou
-salvamento. Deploy e producao permanecem fora do alcance ate novo GO.
+O hash `f96717328de3f1e9ca8d259b5bed06af5f1fb039` recebeu `NO-GO`
+independente por lacunas causais de timestamp/backfill, ordem do handler, TTL,
+confirmacao de transporte, retry e isolamento de jobs. O recovery fecha os
+achados com tentativa temporal duravel, gate antes dos handlers de produto,
+expiracao consumida uma vez, ID textual estrito, timer de retry e escopo comum
+de claim/recovery/purge. Evidencia final: foco composto 164/164, afetados apos
+o aperto temporal 137/137, Open Finance 381/381 e ampla com 1.507 testes, 1.497
+aprovados, zero falhas e 10 skips conhecidos. Publicar novo hash e reauditar.
+Deploy e producao permanecem fora do alcance.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> publicar e auditar a integracao WhatsApp sem escrita.`
+`Codex -> Sol -> Alto -> publicar e reauditar o recovery WhatsApp sem escrita.`

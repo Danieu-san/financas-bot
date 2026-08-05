@@ -74,11 +74,12 @@ function buildCandidate() {
     });
 }
 
-function openRuntime(directory, client) {
+function openRuntime(directory, client, options = {}) {
+    const clock = options.clock || (() => new Date(NOW));
     const reviewStore = new OpenFinanceHistoricalAmbiguityReviewStore({
         databasePath: path.join(directory, 'review.sqlite'), secret: SECRET,
         familyScope: 'family', authorizedWhatsAppIds: [DANIEL, THAIS],
-        clock: () => new Date(NOW)
+        clock
     });
     const outbox = new SchedulerMessageOutbox({
         databasePath: path.join(directory, 'delivery.sqlite'), encryptionKey: OUTBOX_KEY
@@ -88,9 +89,15 @@ function openRuntime(directory, client) {
         outbox,
         runtime: new OpenFinanceHistoricalAmbiguityWhatsappRuntime({
             reviewStore, outbox, client, authorizedWhatsAppIds: [DANIEL, THAIS],
-            clock: () => new Date(NOW)
+            clock,
+            setTimeoutFn: options.setTimeoutFn,
+            clearTimeoutFn: options.clearTimeoutFn
         })
     };
+}
+
+function reply(runtime, actorWhatsappId, body, messageTimestamp = (Date.parse(NOW) / 1000) + 1) {
+    return runtime.handlePublicReply({ actorWhatsappId, body, messageTimestamp });
 }
 
 test('delivers one encrypted review per actor and restart never duplicates a terminal delivery', async () => {
@@ -148,14 +155,12 @@ test('ambiguous transport is accepted at most once and enables only authorized p
         assert.equal(replay.transport_calls, 0);
         assert.equal(calls, 2);
 
-        assert.equal(opened.runtime.handlePublicReply({
-            actorWhatsappId: '5511777777777@c.us', body: '1'
-        }).handled, false);
-        const generic = opened.runtime.handlePublicReply({ actorWhatsappId: DANIEL, body: 'sim' });
+        assert.equal(reply(opened.runtime, '5511777777777@c.us', '1').handled, false);
+        const generic = reply(opened.runtime, DANIEL, 'sim');
         assert.equal(generic.handled, true);
         assert.match(generic.reply, /Sim.*n.o resolve ambiguidades/i);
         assert.equal(generic.financial_writes, 0);
-        const selected = opened.runtime.handlePublicReply({ actorWhatsappId: DANIEL, body: '1' });
+        const selected = reply(opened.runtime, DANIEL, '1');
         assert.equal(selected.state, 'awaiting_resolution_number');
         assert.equal(selected.financial_writes, 0);
     } finally {
@@ -170,18 +175,18 @@ test('one stale reply after family completion is consumed once and never reinter
     const opened = openRuntime(directory, { sendMessage: async (_to, _message) => ({ id: 'confirmed' }) });
     try {
         await opened.runtime.prepareAndDeliver({ sealedState: buildCandidate().sealed_state });
-        opened.runtime.handlePublicReply({ actorWhatsappId: DANIEL, body: '1' });
-        opened.runtime.handlePublicReply({ actorWhatsappId: DANIEL, body: '1' });
-        opened.runtime.handlePublicReply({ actorWhatsappId: DANIEL, body: '1' });
-        opened.runtime.handlePublicReply({ actorWhatsappId: THAIS, body: '1' });
-        const finished = opened.runtime.handlePublicReply({ actorWhatsappId: DANIEL, body: '1' });
+        reply(opened.runtime, DANIEL, '1');
+        reply(opened.runtime, DANIEL, '1');
+        reply(opened.runtime, DANIEL, '1');
+        reply(opened.runtime, THAIS, '1');
+        const finished = reply(opened.runtime, DANIEL, '1');
         assert.equal(finished.state, 'reviewed');
 
-        const stale = opened.runtime.handlePublicReply({ actorWhatsappId: THAIS, body: '1' });
+        const stale = reply(opened.runtime, THAIS, '1');
         assert.equal(stale.handled, true);
         assert.equal(stale.state, 'reviewed');
         assert.match(stale.reply, /Revis.o conclu.da/i);
-        const next = opened.runtime.handlePublicReply({ actorWhatsappId: THAIS, body: '1' });
+        const next = reply(opened.runtime, THAIS, '1');
         assert.equal(next.handled, false);
         assert.equal(next.financial_writes, 0);
     } finally {
@@ -203,6 +208,184 @@ test('runtime initialization is off by default and invalid prompt configuration 
     assert.equal(invalid.reason, 'configuration_invalid');
     assert.equal(invalid.financial_writes, 0);
     runtimeTest.setRuntimeForTests(null);
+});
+
+test('pre-attempt backfill is blocked without advancing review and malformed provider id stays unconfirmed', async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'historical-review-whatsapp-time-'));
+    const opened = openRuntime(directory, {
+        sendMessage: async () => ({ id: { unexpected: 'object' } })
+    });
+    try {
+        const activation = await opened.runtime.prepareAndDeliver({
+            sealedState: buildCandidate().sealed_state
+        });
+        assert.equal(activation.delivered_confirmed, 0);
+        assert.equal(activation.accepted_unconfirmed, 2);
+
+        const missingTimestamp = opened.runtime.handlePublicReply({
+            actorWhatsappId: DANIEL, body: '1'
+        });
+        assert.equal(missingTimestamp.handled, true);
+        assert.equal(missingTimestamp.blocked, true);
+        const stale = reply(opened.runtime, DANIEL, '1', (Date.parse(NOW) / 1000) - 1);
+        assert.equal(stale.handled, true);
+        assert.equal(stale.blocked, true);
+        assert.match(stale.reply, /anterior.*revis.o/i);
+
+        const current = reply(opened.runtime, DANIEL, '1', (Date.parse(NOW) / 1000) + 1);
+        assert.equal(current.state, 'awaiting_resolution_number');
+    } finally {
+        opened.runtime.close();
+        fs.rmSync(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+    }
+});
+
+test('definitive no-send is retried by the scoped runtime timer and never recovers an unrelated lease', async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'historical-review-whatsapp-retry-'));
+    let current = new Date(NOW);
+    const scheduled = [];
+    let transportCalls = 0;
+    const opened = openRuntime(directory, {
+        sendMessage: async () => {
+            transportCalls += 1;
+            if (transportCalls === 1) {
+                const error = new Error('definitive no send');
+                error.definitiveNoSend = true;
+                throw error;
+            }
+            return { id: `provider-${transportCalls}` };
+        }
+    }, {
+        clock: () => current,
+        setTimeoutFn(callback, delay) {
+            scheduled.push({ callback, delay });
+            return { unref() {} };
+        },
+        clearTimeoutFn() {}
+    });
+    try {
+        const unrelatedTerminal = opened.outbox.enqueue({
+            dedupeKey: 'unrelated-old-terminal', jobKind: 'historical_ambiguity_review',
+            recipient: '5511555555555@c.us', message: 'terminal alheia',
+            createdAt: new Date(Date.parse(NOW) - (40 * 24 * 60 * 60 * 1000)).toISOString()
+        });
+        const terminalClaim = opened.outbox.claimNext({
+            now: new Date(Date.parse(NOW) - (40 * 24 * 60 * 60 * 1000)).toISOString(),
+            jobRefs: [unrelatedTerminal.jobRef]
+        });
+        opened.outbox.acknowledgeDelivered({
+            jobRef: terminalClaim.jobRef,
+            leaseToken: terminalClaim.leaseToken,
+            providerMessageId: 'unrelated-provider',
+            now: new Date(Date.parse(NOW) - (40 * 24 * 60 * 60 * 1000)).toISOString()
+        });
+        const unrelated = opened.outbox.enqueue({
+            dedupeKey: 'unrelated-in-flight', jobKind: 'historical_ambiguity_review',
+            recipient: '5511666666666@c.us', message: 'alheia',
+            createdAt: new Date(Date.parse(NOW) - 180000).toISOString()
+        });
+        opened.outbox.claimNext({
+            now: new Date(Date.parse(NOW) - 180000).toISOString(),
+            jobRefs: [unrelated.jobRef], leaseSeconds: 30
+        });
+
+        const first = await opened.runtime.prepareAndDeliver({
+            sealedState: buildCandidate().sealed_state
+        });
+        assert.equal(first.retry_scheduled, 1);
+        assert.equal(opened.outbox.getStateCounts().in_flight, 1);
+        assert.equal(opened.outbox.getDeliveryStateByDedupeKey('unrelated-old-terminal'),
+            'delivered_confirmed');
+        assert.equal(scheduled.length, 1);
+        assert.ok(scheduled[0].delay > 0);
+
+        current = new Date(Date.parse(NOW) + 61000);
+        await scheduled[0].callback();
+        assert.equal(transportCalls, 3);
+        assert.equal(opened.outbox.getStateCounts().in_flight, 1);
+        assert.equal(opened.outbox.getStateCounts().delivered_confirmed, 3);
+    } finally {
+        opened.runtime.close();
+        fs.rmSync(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+    }
+});
+
+test('restart re-arms a pending definitive retry without duplicating the confirmed actor', async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'historical-review-whatsapp-restart-retry-'));
+    let current = new Date(NOW);
+    let transportCalls = 0;
+    const client = {
+        sendMessage: async () => {
+            transportCalls += 1;
+            if (transportCalls === 1) {
+                const error = new Error('definitive no send');
+                error.definitiveNoSend = true;
+                throw error;
+            }
+            return { id: `provider-${transportCalls}` };
+        }
+    };
+    const firstTimers = [];
+    let opened = openRuntime(directory, client, {
+        clock: () => current,
+        setTimeoutFn(callback, delay) {
+            firstTimers.push({ callback, delay });
+            return { unref() {} };
+        },
+        clearTimeoutFn() {}
+    });
+    try {
+        await opened.runtime.prepareAndDeliver({ sealedState: buildCandidate().sealed_state });
+        assert.equal(transportCalls, 2);
+        assert.equal(firstTimers.length, 1);
+        opened.runtime.close();
+
+        const restartTimers = [];
+        opened = openRuntime(directory, client, {
+            clock: () => current,
+            setTimeoutFn(callback, delay) {
+                restartTimers.push({ callback, delay });
+                return { unref() {} };
+            },
+            clearTimeoutFn() {}
+        });
+        const restarted = await opened.runtime.prepareAndDeliver({
+            sealedState: buildCandidate().sealed_state
+        });
+        assert.equal(restarted.queued, 0);
+        assert.equal(restarted.transport_calls, 0);
+        assert.equal(restartTimers.length, 1);
+
+        current = new Date(Date.parse(NOW) + 61000);
+        await restartTimers[0].callback();
+        assert.equal(transportCalls, 3);
+        assert.equal(opened.outbox.getStateCounts().delivered_confirmed, 2);
+    } finally {
+        opened.runtime.close();
+        fs.rmSync(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+    }
+});
+
+test('expired selection is consumed once without a decision or financial write', async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'historical-review-whatsapp-expiry-'));
+    let current = new Date(NOW);
+    const opened = openRuntime(directory, {
+        sendMessage: async () => ({ id: 'confirmed' })
+    }, { clock: () => current });
+    try {
+        await opened.runtime.prepareAndDeliver({ sealedState: buildCandidate().sealed_state });
+        assert.equal(reply(opened.runtime, DANIEL, '1').state, 'awaiting_resolution_number');
+        current = new Date(Date.parse(NOW) + (8 * 24 * 60 * 60 * 1000));
+        const expired = reply(opened.runtime, DANIEL, '1', current.getTime() / 1000);
+        assert.equal(expired.handled, true);
+        assert.equal(expired.expired, true);
+        assert.equal(expired.financial_writes, 0);
+        assert.match(expired.reply, /expirou.*Nada foi salvo/i);
+        assert.equal(reply(opened.runtime, DANIEL, '1', current.getTime() / 1000).handled, false);
+    } finally {
+        opened.runtime.close();
+        fs.rmSync(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+    }
 });
 
 test('prompt initialization consumes an external sealed file and restart preserves progress without redelivery', async () => {
@@ -230,7 +413,7 @@ test('prompt initialization consumes an external sealed file and restart preserv
         assert.equal(first.enabled, true);
         assert.equal(first.delivered_confirmed, 2);
         const selected = tryHandleOpenFinanceHistoricalAmbiguityReply({
-            actorWhatsappId: DANIEL, body: '1'
+            actorWhatsappId: DANIEL, body: '1', messageTimestamp: (Date.now() / 1000) + 2
         });
         assert.equal(selected.state, 'awaiting_resolution_number');
         const second = await initializeOpenFinanceHistoricalAmbiguityWhatsappRuntime({ client, env });
@@ -238,7 +421,7 @@ test('prompt initialization consumes an external sealed file and restart preserv
         assert.equal(second.transport_calls, 0);
         assert.equal(sent.length, 2);
         const resumed = tryHandleOpenFinanceHistoricalAmbiguityReply({
-            actorWhatsappId: DANIEL, body: '1'
+            actorWhatsappId: DANIEL, body: '1', messageTimestamp: (Date.now() / 1000) + 2
         });
         assert.equal(resumed.state, 'awaiting_item_number');
         assert.equal(resumed.pending_count, 1);

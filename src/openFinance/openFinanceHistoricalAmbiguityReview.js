@@ -139,6 +139,15 @@ function requireFresh(state, clock) {
     }
 }
 
+function isExpired(state, clock) {
+    const currentTimestamp = new Date(clock()).getTime();
+    const expiresTimestamp = Date.parse(state?.expires_at);
+    if (!Number.isFinite(currentTimestamp) || !Number.isFinite(expiresTimestamp)) {
+        throw new Error('open_finance_historical_ambiguity_review_state_invalid');
+    }
+    return expiresTimestamp <= currentTimestamp;
+}
+
 function itemBySegment(items, sourceAlias, segmentRef, secret) {
     const source = items.find(item =>
         String(item?.alias_code || '').trim().toLowerCase() === sourceAlias);
@@ -813,20 +822,86 @@ class OpenFinanceHistoricalAmbiguityReviewStore {
         if (!this.authorizedActorRefs.includes(resolvedActorRef)) {
             return { eligible: false, financial_writes: 0 };
         }
-        this.purgeExpired();
         const row = this.#latestRow();
         if (!row) return { eligible: false, financial_writes: 0 };
         this.#assertRow(row);
         const state = openState(row.sealed_state, this.secret);
         const staleSelection = Boolean(state.selected_item_refs[resolvedActorRef]);
+        const expired = isExpired(state, this.clock);
+        const expiredActorRefs = Array.isArray(state.expired_reply_actor_refs)
+            ? state.expired_reply_actor_refs
+            : state.status === 'pending'
+                ? state.authorized_actor_refs
+                : Object.keys(state.selected_item_refs)
+                    .filter(actor => state.authorized_actor_refs.includes(actor));
         return {
-            eligible: state.status === 'pending' || staleSelection,
+            eligible: expired
+                ? expiredActorRefs.includes(resolvedActorRef)
+                : state.status === 'pending' || staleSelection,
             review_ref: row.review_ref,
             actor_ref: resolvedActorRef,
             review_state: state.status,
             stale_selection: staleSelection,
+            expired,
             financial_writes: 0
         };
+    }
+
+    consumeExpiredPublicReply({ actorWhatsappId } = {}) {
+        const normalizedActor = String(actorWhatsappId || '').trim();
+        if (!normalizedActor) return { handled: false, financial_writes: 0 };
+        const resolvedActorRef = actorRef(this.secret, normalizedActor);
+        if (!this.authorizedActorRefs.includes(resolvedActorRef)) {
+            return { handled: false, financial_writes: 0 };
+        }
+        const transaction = this.db.transaction(() => {
+            const row = this.#assertRow(this.#latestRow());
+            const state = openState(row.sealed_state, this.secret);
+            if (!isExpired(state, this.clock)) {
+                return { handled: false, financial_writes: 0 };
+            }
+            const pendingActorRefs = Array.isArray(state.expired_reply_actor_refs)
+                ? state.expired_reply_actor_refs
+                : state.status === 'pending'
+                    ? [...state.authorized_actor_refs]
+                    : Object.keys(state.selected_item_refs)
+                        .filter(actor => state.authorized_actor_refs.includes(actor));
+            if (!pendingActorRefs.includes(resolvedActorRef)) {
+                return { handled: false, financial_writes: 0 };
+            }
+            state.status = 'reviewed';
+            state.expired_reply_actor_refs = pendingActorRefs
+                .filter(actor => actor !== resolvedActorRef);
+            delete state.selected_item_refs[resolvedActorRef];
+            state.updated_at = nowIso(this.clock);
+            const updated = {
+                ...row,
+                sealed_state: sealState(state, this.secret),
+                review_state: 'reviewed',
+                revision: row.revision + 1,
+                updated_at: state.updated_at
+            };
+            updated.state_mac = this.#stateMac(updated);
+            const write = this.db.prepare(`UPDATE open_finance_historical_ambiguity_reviews
+                SET sealed_state=?,review_state=?,revision=?,updated_at=?,state_mac=?
+                WHERE review_ref=? AND revision=?`).run(
+                updated.sealed_state, updated.review_state, updated.revision,
+                updated.updated_at, updated.state_mac, row.review_ref, row.revision
+            );
+            if (write.changes !== 1) {
+                throw new Error('open_finance_historical_ambiguity_review_store_revision_conflict');
+            }
+            return {
+                handled: true,
+                expired: true,
+                state: 'reviewed',
+                reply: 'Esta revisao expirou. Nada foi salvo.',
+                financial_writes: 0
+            };
+        });
+        const result = transaction.immediate();
+        this.#hardenFiles();
+        return result;
     }
 
     close() {

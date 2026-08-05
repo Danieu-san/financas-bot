@@ -16,9 +16,27 @@ const ATTEMPTED_DELIVERY_STATES = new Set([
 ]);
 
 function providerMessageId(response) {
-    return response?.id?._serialized || response?.id?.id || response?.id
-        || response?.messageId || response?._data?.id?._serialized
-        || response?._data?.id?.id || null;
+    const candidates = [response?.id?._serialized, response?.id?.id, response?.id,
+        response?.messageId, response?._data?.id?._serialized, response?._data?.id?.id];
+    const value = candidates.find(candidate => typeof candidate === 'string' && candidate.trim());
+    return value ? value.trim() : null;
+}
+
+function messageEpochSeconds(value) {
+    if (value instanceof Date) return Math.floor(value.getTime() / 1000);
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return Math.floor(value > 100000000000 ? value / 1000 : value);
+    }
+    const normalized = String(value || '').trim();
+    if (!normalized) return null;
+    if (/^\d+(?:\.\d+)?$/.test(normalized)) {
+        const numeric = Number(normalized);
+        return Number.isFinite(numeric)
+            ? Math.floor(numeric > 100000000000 ? numeric / 1000 : numeric)
+            : null;
+    }
+    const parsed = Date.parse(normalized);
+    return Number.isFinite(parsed) ? Math.floor(parsed / 1000) : null;
 }
 
 function requireActors(values) {
@@ -39,7 +57,7 @@ function deliveryDedupeKey(reviewRef, actorWhatsappId) {
 
 class OpenFinanceHistoricalAmbiguityWhatsappRuntime {
     constructor({ reviewStore, outbox, client, authorizedWhatsAppIds = [],
-        clock = () => new Date() } = {}) {
+        clock = () => new Date(), setTimeoutFn = setTimeout, clearTimeoutFn = clearTimeout } = {}) {
         if (!reviewStore || !outbox || !client || typeof client.sendMessage !== 'function') {
             throw new Error('open_finance_historical_ambiguity_whatsapp_dependencies_required');
         }
@@ -48,6 +66,11 @@ class OpenFinanceHistoricalAmbiguityWhatsappRuntime {
         this.client = client;
         this.authorizedWhatsAppIds = requireActors(authorizedWhatsAppIds);
         this.clock = clock;
+        this.setTimeoutFn = setTimeoutFn || setTimeout;
+        this.clearTimeoutFn = clearTimeoutFn || clearTimeout;
+        this.retryTimer = null;
+        this.activeJobRefs = [];
+        this.closed = false;
     }
 
     #now() {
@@ -75,6 +98,7 @@ class OpenFinanceHistoricalAmbiguityWhatsappRuntime {
             jobRefs.push(result.jobRef);
             if (result.inserted) queued += 1;
         }
+        this.activeJobRefs = [...jobRefs];
         const delivery = await this.#drain({
             now, limit: this.authorizedWhatsAppIds.length, jobRefs
         });
@@ -82,8 +106,8 @@ class OpenFinanceHistoricalAmbiguityWhatsappRuntime {
     }
 
     async #drain({ now, limit, jobRefs }) {
-        this.outbox.recoverExpiredAmbiguous({ now });
-        this.outbox.purgeExpired({ now });
+        this.outbox.recoverExpiredAmbiguous({ now, jobRefs });
+        this.outbox.purgeExpired({ now, jobRefs });
         const result = {
             transport_calls: 0,
             delivered_confirmed: 0,
@@ -128,26 +152,72 @@ class OpenFinanceHistoricalAmbiguityWhatsappRuntime {
                 result.accepted_unconfirmed += 1;
             }
         }
+        this.#scheduleNext(jobRefs);
         return result;
     }
 
-    handlePublicReply({ actorWhatsappId, body } = {}) {
+    #scheduleNext(jobRefs) {
+        if (this.retryTimer) {
+            this.clearTimeoutFn(this.retryTimer);
+            this.retryTimer = null;
+        }
+        if (this.closed) return;
+        const nextPendingAt = this.outbox.getNextPendingAt({ jobRefs });
+        if (!nextPendingAt) return;
+        const delay = Math.max(0, Date.parse(nextPendingAt) - Date.parse(this.#now()));
+        const callback = async () => {
+            this.retryTimer = null;
+            if (this.closed) return;
+            try {
+                await this.#drain({
+                    now: this.#now(), limit: this.authorizedWhatsAppIds.length, jobRefs
+                });
+            } catch {
+                // A proxima inicializacao reabre a outbox; nunca faz retry cego aqui.
+            }
+        };
+        this.retryTimer = this.setTimeoutFn(callback, delay);
+        this.retryTimer?.unref?.();
+    }
+
+    handlePublicReply({ actorWhatsappId, body, messageTimestamp } = {}) {
         const actor = String(actorWhatsappId || '').trim();
         if (!this.authorizedWhatsAppIds.includes(actor)) {
             return { handled: false, financial_writes: 0 };
         }
         const eligibility = this.reviewStore.inspectPublicReply({ actorWhatsappId: actor });
         if (!eligibility.eligible) return { handled: false, financial_writes: 0 };
-        const deliveryState = this.outbox.getDeliveryStateByDedupeKey(
+        const receipt = this.outbox.getDeliveryReceiptByDedupeKey(
             deliveryDedupeKey(eligibility.review_ref, actor)
         );
-        if (!ATTEMPTED_DELIVERY_STATES.has(deliveryState)) {
+        if (!receipt || !ATTEMPTED_DELIVERY_STATES.has(receipt.deliveryState)) {
             return { handled: false, financial_writes: 0 };
+        }
+        const incomingSeconds = messageEpochSeconds(messageTimestamp);
+        const attemptedSeconds = Number.isFinite(Date.parse(receipt.attemptedAt))
+            ? Math.floor(Date.parse(receipt.attemptedAt) / 1000)
+            : null;
+        if (incomingSeconds === null || attemptedSeconds === null
+            || incomingSeconds <= attemptedSeconds) {
+            return {
+                handled: true,
+                blocked: true,
+                reply: 'Esta mensagem e anterior a revisao atual. Nada foi salvo.',
+                financial_writes: 0
+            };
+        }
+        if (eligibility.expired) {
+            return this.reviewStore.consumeExpiredPublicReply({ actorWhatsappId: actor });
         }
         return this.reviewStore.handleReply({ actorWhatsappId: actor, body });
     }
 
     close() {
+        this.closed = true;
+        if (this.retryTimer) {
+            this.clearTimeoutFn(this.retryTimer);
+            this.retryTimer = null;
+        }
         this.reviewStore?.close?.();
         this.outbox?.close?.();
     }
@@ -219,6 +289,7 @@ async function initializeOpenFinanceHistoricalAmbiguityWhatsappRuntime({
             transport_calls: activation.transport_calls,
             delivered_confirmed: activation.delivered_confirmed,
             accepted_unconfirmed: activation.accepted_unconfirmed,
+            retry_scheduled: activation.retry_scheduled,
             financial_writes: 0 };
     } catch (error) {
         if (runtime?.reviewStore === reviewStore && runtime?.outbox === outbox) {
@@ -235,10 +306,12 @@ async function initializeOpenFinanceHistoricalAmbiguityWhatsappRuntime({
     }
 }
 
-function tryHandleOpenFinanceHistoricalAmbiguityReply({ actorWhatsappId, body } = {}) {
+function tryHandleOpenFinanceHistoricalAmbiguityReply({
+    actorWhatsappId, body, messageTimestamp
+} = {}) {
     if (!runtime) return { handled: false, financial_writes: 0 };
     try {
-        return runtime.handlePublicReply({ actorWhatsappId, body });
+        return runtime.handlePublicReply({ actorWhatsappId, body, messageTimestamp });
     } catch (error) {
         runtimeLogger?.warn?.('[open-finance-historical-review] reply_blocked');
         return {
@@ -266,5 +339,5 @@ module.exports = {
     initializeOpenFinanceHistoricalAmbiguityWhatsappRuntime,
     prepareAndDeliverOpenFinanceHistoricalAmbiguityReview,
     tryHandleOpenFinanceHistoricalAmbiguityReply,
-    __test__: { deliveryDedupeKey, providerMessageId, setRuntimeForTests }
+    __test__: { deliveryDedupeKey, messageEpochSeconds, providerMessageId, setRuntimeForTests }
 };

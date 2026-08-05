@@ -115,6 +115,7 @@ class SchedulerMessageOutbox {
                 updated_at TEXT NOT NULL,
                 lease_token TEXT,
                 lease_expires_at TEXT,
+                attempted_at TEXT,
                 delivered_at TEXT,
                 transport_ref TEXT,
                 last_error_code TEXT
@@ -122,6 +123,10 @@ class SchedulerMessageOutbox {
             CREATE INDEX IF NOT EXISTS idx_scheduler_message_due
                 ON scheduler_message_outbox(delivery_state, available_at, created_at);
         `);
+        const columns = this.db.prepare('PRAGMA table_info(scheduler_message_outbox)').all();
+        if (!columns.some(column => column.name === 'attempted_at')) {
+            this.db.exec('ALTER TABLE scheduler_message_outbox ADD COLUMN attempted_at TEXT');
+        }
         enforcePrivateDatabaseMode(this.databasePath);
     }
 
@@ -228,9 +233,13 @@ class SchedulerMessageOutbox {
         };
     }
 
-    recoverExpiredAmbiguous({ now = new Date().toISOString() } = {}) {
+    recoverExpiredAmbiguous({ now = new Date().toISOString(), jobRefs = [] } = {}) {
         this.#assertOpen();
         const timestamp = parseIso(now, 'scheduler_outbox_now_invalid');
+        const scopedJobRefs = this.#normalizeJobRefs(jobRefs);
+        const scopeClause = scopedJobRefs.length
+            ? ` AND job_ref IN (${scopedJobRefs.map(() => '?').join(',')})`
+            : '';
         const result = this.db.prepare(`
             UPDATE scheduler_message_outbox
             SET delivery_state='accepted_unconfirmed',
@@ -239,7 +248,8 @@ class SchedulerMessageOutbox {
                 lease_expires_at=NULL,
                 last_error_code='ambiguous_after_crash'
             WHERE delivery_state='in_flight' AND lease_expires_at<=?
-        `).run(timestamp, timestamp);
+            ${scopeClause}
+        `).run(timestamp, timestamp, ...scopedJobRefs);
         return { recoveredAmbiguous: result.changes };
     }
 
@@ -259,11 +269,7 @@ class SchedulerMessageOutbox {
         const leaseExpiresAt = new Date(
             Date.parse(timestamp) + normalizedLeaseSeconds * 1000
         ).toISOString();
-        const scopedJobRefs = [...new Set((jobRefs || [])
-            .map(value => String(value || '').trim()).filter(Boolean))];
-        if (scopedJobRefs.length > 1000) {
-            throw new Error('scheduler_outbox_job_scope_invalid');
-        }
+        const scopedJobRefs = this.#normalizeJobRefs(jobRefs);
         const scopeClause = scopedJobRefs.length
             ? ` AND job_ref IN (${scopedJobRefs.map(() => '?').join(',')})`
             : '';
@@ -282,11 +288,12 @@ class SchedulerMessageOutbox {
                 SET delivery_state='in_flight',
                     attempts=attempts+1,
                     updated_at=?,
+                    attempted_at=?,
                     lease_token=?,
                     lease_expires_at=?,
                     last_error_code=NULL
                 WHERE job_ref=? AND delivery_state='pending'
-            `).run(timestamp, leaseToken, leaseExpiresAt, row.job_ref);
+            `).run(timestamp, timestamp, leaseToken, leaseExpiresAt, row.job_ref);
             if (!update.changes) return null;
             const payload = this.#decrypt(row.job_ref, row.encrypted_payload);
             return {
@@ -385,21 +392,27 @@ class SchedulerMessageOutbox {
         `).run(dead ? 'dead' : 'pending', availableAt, timestamp, jobRef, leaseToken);
         return {
             retryScheduled: !dead,
-            dead
+            dead,
+            availableAt: dead ? null : availableAt
         };
     }
 
-    purgeExpired({ now = new Date().toISOString() } = {}) {
+    purgeExpired({ now = new Date().toISOString(), jobRefs = [] } = {}) {
         this.#assertOpen();
         const timestamp = parseIso(now, 'scheduler_outbox_now_invalid');
         const cutoff = new Date(
             Date.parse(timestamp) - this.retentionSeconds * 1000
         ).toISOString();
         const placeholders = TERMINAL_STATES.map(() => '?').join(',');
+        const scopedJobRefs = this.#normalizeJobRefs(jobRefs);
+        const scopeClause = scopedJobRefs.length
+            ? ` AND job_ref IN (${scopedJobRefs.map(() => '?').join(',')})`
+            : '';
         const result = this.db.prepare(`
             DELETE FROM scheduler_message_outbox
             WHERE delivery_state IN (${placeholders}) AND updated_at<?
-        `).run(...TERMINAL_STATES, cutoff);
+            ${scopeClause}
+        `).run(...TERMINAL_STATES, cutoff, ...scopedJobRefs);
         return { purged: result.changes };
     }
 
@@ -413,16 +426,46 @@ class SchedulerMessageOutbox {
         `).all().map(row => [row.delivery_state, row.count]));
     }
 
-    getDeliveryStateByDedupeKey(dedupeKey) {
+    #normalizeJobRefs(jobRefs) {
+        if (!Array.isArray(jobRefs)) throw new Error('scheduler_outbox_job_scope_invalid');
+        const scopedJobRefs = [...new Set(jobRefs
+            .map(value => String(value || '').trim()).filter(Boolean))];
+        if (scopedJobRefs.length > 1000) {
+            throw new Error('scheduler_outbox_job_scope_invalid');
+        }
+        return scopedJobRefs;
+    }
+
+    getDeliveryReceiptByDedupeKey(dedupeKey) {
         this.#assertOpen();
         const normalizedDedupeKey = String(dedupeKey || '').trim();
         if (!normalizedDedupeKey || normalizedDedupeKey.length > 512) {
             throw new Error('scheduler_outbox_dedupe_key_invalid');
         }
         const row = this.db.prepare(`
-            SELECT delivery_state FROM scheduler_message_outbox WHERE job_ref=?
+            SELECT delivery_state,attempted_at FROM scheduler_message_outbox WHERE job_ref=?
         `).get(this.#ref('job', normalizedDedupeKey));
-        return row?.delivery_state || null;
+        return row ? {
+            deliveryState: row.delivery_state,
+            attemptedAt: row.attempted_at || null
+        } : null;
+    }
+
+    getDeliveryStateByDedupeKey(dedupeKey) {
+        return this.getDeliveryReceiptByDedupeKey(dedupeKey)?.deliveryState || null;
+    }
+
+    getNextPendingAt({ jobRefs = [] } = {}) {
+        this.#assertOpen();
+        const scopedJobRefs = this.#normalizeJobRefs(jobRefs);
+        if (!scopedJobRefs.length) return null;
+        const placeholders = scopedJobRefs.map(() => '?').join(',');
+        const row = this.db.prepare(`
+            SELECT MIN(available_at) AS available_at
+            FROM scheduler_message_outbox
+            WHERE delivery_state='pending' AND job_ref IN (${placeholders})
+        `).get(...scopedJobRefs);
+        return row?.available_at || null;
     }
 
     close() {

@@ -9161,6 +9161,28 @@ async function processMessage(msg) {
 
     return runWithUserSheetContext({ ...activeUser, messageId, telemetryConsumer: 'message_handler' }, async () => {
     const userId = activeUser.user_id;
+    if (!audioSecurityCheckCompleted) {
+        const securityCheck = detectSecuritySensitiveRequest(messageBody);
+        if (securityCheck.blocked) {
+            metrics.increment('message.security.blocked');
+            logger.warn(`[security] sensitive_request_blocked category=${securityCheck.category} sender=${senderId} msg="${sanitizeLogText(messageBody)}"`);
+            await sendPlainMessage(msg, SECURITY_BLOCK_REPLY);
+            return;
+        }
+    }
+
+    let currentState = getConversationStateForMessage(senderId, activeUser);
+    if (!currentState) {
+        const historicalReviewReply = tryHandleOpenFinanceHistoricalAmbiguityReply({
+            actorWhatsappId: senderId,
+            body: messageBody,
+            messageTimestamp: msg.timestamp ?? msg.t
+        });
+        if (historicalReviewReply.handled) {
+            await sendPlainMessage(msg, historicalReviewReply.reply);
+            return;
+        }
+    }
     const pessoa = activeUser.display_name || userMap[senderId] || 'Usuário';
 
     if (access.justActivated) {
@@ -9239,27 +9261,6 @@ async function processMessage(msg) {
         return;
     }
 
-    if (!audioSecurityCheckCompleted) {
-        const securityCheck = detectSecuritySensitiveRequest(messageBody);
-        if (securityCheck.blocked) {
-            metrics.increment('message.security.blocked');
-            logger.warn(`[security] sensitive_request_blocked category=${securityCheck.category} sender=${senderId} msg="${sanitizeLogText(messageBody)}"`);
-            await sendPlainMessage(msg, SECURITY_BLOCK_REPLY);
-            return;
-        }
-    }
-
-    let currentState = getConversationStateForMessage(senderId, activeUser);
-    if (!currentState) {
-        const historicalReviewReply = tryHandleOpenFinanceHistoricalAmbiguityReply({
-            actorWhatsappId: senderId,
-            body: messageBody
-        });
-        if (historicalReviewReply.handled) {
-            await sendPlainMessage(msg, historicalReviewReply.reply);
-            return;
-        }
-    }
     if (!currentState || [
         'awaiting_open_finance_save_review',
         'awaiting_open_finance_save_confirmation',

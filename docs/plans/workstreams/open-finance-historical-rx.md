@@ -106,12 +106,12 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
     e reiniciavel da revisao numerada, com catalogo bidirecional, pagina e
     selecao por ator, decisao familiar unica, protecao contra replay isolado do
     envelope e `financial_writes=0`.
-30. [candidato local; auditoria pendente] Integrar o nucleo ao handler e a
-    entrega publicos do WhatsApp para os dois atores, provar restart/replay,
-    isolamento da fila e zero chamada a qualquer writer. Evidencia: focal
-    154/154, Open Finance 377/377 e ampla final 1.502 testes, 1.492 aprovados,
-    zero falhas e 10 skips; salvamento, deploy e producao continuam fora deste
-    gate.
+30. [NO-GO independente; recovery focal verde] Integrar o nucleo ao handler e
+    a entrega publicos do WhatsApp. O primeiro hash falhou por timestamp,
+    ordem, TTL, ID de transporte, retry e escopo da outbox. O recovery adiciona
+    as garantias e uma prova composta backfill-handler-runtime-store-outbox;
+    foco 164/164, Open Finance 381/381 e ampla final 1.507 testes, 1.497
+    aprovados, zero falhas e 10 skips. Reauditoria ainda pendente.
 
 ## Criterios de GO
 
@@ -148,6 +148,5 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 
 ## Proxima acao
 
-Publicar a integracao WhatsApp em hash imutavel e obter auditoria independente.
-Somente um GO desse hash pode encerrar o gate; consumo das decisoes, deploy e
-producao permanecem fora do alcance.
+Publicar o recovery em outro hash imutavel e obter nova auditoria independente.
+Consumo das decisoes, deploy e producao permanecem fora do alcance.

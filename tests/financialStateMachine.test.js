@@ -1,11 +1,18 @@
 const test = require('node:test');
 const assert = require('node:assert');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const {
+    OpenFinanceHistoricalAmbiguityWhatsappRuntime,
     __test__: historicalAmbiguityRuntimeTest
 } = require('../src/openFinance/openFinanceHistoricalAmbiguityWhatsappRuntime');
+const {
+    OpenFinanceHistoricalAmbiguityReviewStore,
+    buildOpenFinanceHistoricalAmbiguityReview
+} = require('../src/openFinance/openFinanceHistoricalAmbiguityReview');
+const { SchedulerMessageOutbox } = require('../src/jobs/schedulerMessageOutbox');
 
 process.env.NODE_ENV = 'test';
 process.env.ADMIN_IDS = process.env.ADMIN_IDS || '5599990000001@c.us';
@@ -25,6 +32,68 @@ const PARTNER_SENDER = '5599993000002@c.us';
 const ADMIN_SENDER = String(process.env.ADMIN_IDS).split(',').map(value => value.trim()).find(Boolean);
 const ADMIN_USER_ID = 'state-machine-admin';
 const TERMS_VERSION = process.env.TERMS_VERSION || 'v1.1';
+const HISTORICAL_REVIEW_SECRET = 'state-machine-historical-review-secret-2026';
+
+function buildStateMachineHistoricalCandidate(clock) {
+    const alias = 'family_source';
+    const creditId = 'credit-private-id';
+    const bankId = 'bank-private-id';
+    const hmacRef = (kind, value) => crypto.createHmac('sha256', HISTORICAL_REVIEW_SECRET)
+        .update(`${kind}:${value}`).digest('hex').slice(0, 32);
+    const groupingBasis = ['Compra parcelada', '2025-07-10', 5000, 3].join(':');
+    const seriesRef = hmacRef('historical_rx_installment',
+        `${alias}:${creditId}:${groupingBasis}`);
+    const items = [{
+        alias_code: alias,
+        owner_scope: 'family',
+        availability: { accounts: 'available', transactions: 'available' },
+        accounts: [{ id: creditId, type: 'CREDIT' }, { id: bankId, type: 'BANK' }],
+        transactions: [
+            { id: 'installment-a', account_id: creditId, description: 'Compra parcelada',
+                original_date: '2025-07-10', date: '2025-08-10T12:00:00.000Z',
+                amount_cents: 5000, installment_number: 2, total_installments: 3,
+                status: 'POSTED' },
+            { id: 'installment-b', account_id: creditId, description: 'Compra parcelada',
+                original_date: '2025-07-10', date: '2025-08-11T12:00:00.000Z',
+                amount_cents: 5000, installment_number: 2, total_installments: 3,
+                status: 'POSTED' },
+            { id: 'investment-a', account_id: bankId, description: 'Movimento patrimonial',
+                date: '2025-08-12T12:00:00.000Z', amount_cents: -2000,
+                operation_type: 'INVESTIMENTO', status: 'POSTED' }
+        ]
+    }];
+    const built = buildOpenFinanceHistoricalAmbiguityReview({
+        items,
+        historicalRx: {
+            schema_version: 1,
+            financial_writes: 0,
+            blockers: [`${alias}:installment_series_ambiguous`,
+                `${alias}:investment_movement_semantics_ambiguous`],
+            segments: [
+                { source_alias: alias, segment_ref: hmacRef('historical_rx_segment',
+                    `${alias}:${creditId}`),
+                product: 'credit_card', installments: { series: [{
+                    series_ref: seriesRef,
+                    duplicate_numbers: [2],
+                    identity_status: 'ambiguous_duplicate_installment_number'
+                }] },
+                investment_movements: { semantically_ambiguous_count: null } },
+                { source_alias: alias, segment_ref: hmacRef('historical_rx_segment',
+                    `${alias}:${bankId}`),
+                product: 'bank_account', installments: { series: [] },
+                investment_movements: {
+                    status: 'provider_labeled_with_ambiguous_semantics',
+                    semantically_ambiguous_count: 1
+                } }
+            ]
+        },
+        secret: HISTORICAL_REVIEW_SECRET,
+        familyScope: 'family',
+        authorizedWhatsAppIds: [SENDER, PARTNER_SENDER],
+        clock
+    });
+    return built;
+}
 
 const USERS_HEADER = ['user_id', 'whatsapp_id', 'phone_e164', 'display_name', 'status', 'created_at', 'updated_at', 'consent_at', 'terms_version', 'deleted_at'];
 const DEBTS_HEADER = [
@@ -452,6 +521,7 @@ function createMockMessage(body) {
         id: { id: `state-${Date.now()}-${Math.random().toString(36).slice(2)}` },
         type: 'chat',
         body,
+        timestamp: Math.floor(Date.now() / 1000),
         from: SENDER,
         author: SENDER,
         isStatus: false,
@@ -539,14 +609,76 @@ stateMachineTest('public handler consumes an eligible historical ambiguity reply
             };
         }
     });
-    const msg = createMockMessage('1');
+    const msg = createMockMessage('dashboard');
     await handleMessage(msg);
 
-    assert.deepStrictEqual(calls, [{ actorWhatsappId: SENDER, body: '1' }]);
+    assert.deepStrictEqual(calls, [{ actorWhatsappId: SENDER, body: 'dashboard' }]);
     assert.match(msg.replies.at(-1), /Ambiguidades pendentes/);
     assert.strictEqual(appendedRows.length, 0);
     assert.strictEqual(structuredResponses.length, 0);
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
+
+stateMachineTest('real backfill, handler, runtime, review store and outbox reject a pre-attempt reply before writers', async () => {
+    resetState();
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-public-historical-review-'));
+    const current = new Date('2026-08-05T18:00:00.000Z');
+    const reviewStore = new OpenFinanceHistoricalAmbiguityReviewStore({
+        databasePath: path.join(directory, 'review.sqlite'),
+        secret: HISTORICAL_REVIEW_SECRET,
+        familyScope: 'family',
+        authorizedWhatsAppIds: [SENDER, PARTNER_SENDER],
+        clock: () => current
+    });
+    const outbox = new SchedulerMessageOutbox({
+        databasePath: path.join(directory, 'outbox.sqlite'),
+        encryptionKey: process.env.STATE_STORE_ENCRYPTION_KEY
+    });
+    const runtime = new OpenFinanceHistoricalAmbiguityWhatsappRuntime({
+        reviewStore,
+        outbox,
+        client: { sendMessage: async (_to, _message) => ({ id: 'confirmed' }) },
+        authorizedWhatsAppIds: [SENDER, PARTNER_SENDER],
+        clock: () => current
+    });
+    historicalAmbiguityRuntimeTest.setRuntimeForTests(runtime);
+    try {
+        await runtime.prepareAndDeliver({
+            sealedState: buildStateMachineHistoricalCandidate(() => current).sealed_state
+        });
+        const attemptedAtSeconds = current.getTime() / 1000;
+        const stale = createMockMessage('1');
+        stale.timestamp = attemptedAtSeconds - 1;
+        stale.id.fromMe = false;
+        const currentReply = createMockMessage('1');
+        currentReply.timestamp = attemptedAtSeconds + 1;
+        currentReply.id.fromMe = false;
+
+        const result = await backfillUnreadMessages({
+            getChats: async () => [{
+                unreadCount: 2,
+                fetchMessages: async () => [currentReply, stale]
+            }]
+        }, handleMessageForBackfill, {
+            delayMs: 0,
+            retryDelayMs: 0,
+            maxAttempts: 1,
+            maxPerChat: 2
+        });
+
+        assert.strictEqual(result.processed, 2);
+        assert.match(stale.replies.at(-1), /anterior.*revis.o/i);
+        assert.match(currentReply.replies.at(-1), /Escolha.*resolu/i);
+        assert.deepStrictEqual(
+            reviewStore.readPrivate({ actorWhatsappId: SENDER }).decisions,
+            []
+        );
+        assert.strictEqual(appendedRows.length, 0);
+        assert.strictEqual(structuredResponses.length, 0);
+    } finally {
+        historicalAmbiguityRuntimeTest.setRuntimeForTests(null);
+        fs.rmSync(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+    }
 });
 
 stateMachineTest('public handler preserves an existing conversation ahead of historical ambiguity routing', async () => {
