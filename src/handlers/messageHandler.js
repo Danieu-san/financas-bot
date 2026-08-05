@@ -112,7 +112,9 @@ const logger = require('../utils/logger');
 const { sendPlainMessage } = require('../utils/whatsappMessaging');
 const {
     handleOpenFinanceSaveProposalReply,
-    handleOpenFinanceSaveProposalReviewReply
+    handleOpenFinanceSaveProposalBatchReply,
+    handleOpenFinanceSaveProposalReviewReply,
+    advanceOpenFinanceSaveProposalBatch
 } = require('../openFinance/openFinanceSaveProposalConversation');
 const {
     buildOpenFinanceSaveProposalReviewCatalog
@@ -6611,6 +6613,27 @@ function getConversationStateForMessage(senderId, activeUser = {}) {
     return recovered.data;
 }
 
+function openFinanceStateData(proposalRef, batch = null) {
+    return {
+        proposalRef,
+        ...(batch ? { batch } : {})
+    };
+}
+
+async function advanceQueuedOpenFinanceSaveReview({
+    batch,
+    senderId,
+    userId
+} = {}) {
+    if (!batch?.queuedProposalRefs?.length) return null;
+    const reviewCatalog = await buildOpenFinanceSaveProposalReviewCatalog({ userId });
+    return advanceOpenFinanceSaveProposalBatch({
+        batch,
+        actorWhatsappId: senderId,
+        reviewCatalog
+    });
+}
+
 function normalizeSettingsCommandText(text) {
     return normalizeText(String(text || ''))
         .replace(/[`*_~]/g, ' ')
@@ -9261,6 +9284,80 @@ async function processMessage(msg) {
         return;
     }
 
+    if (currentState?.action === 'awaiting_open_finance_save_selection') {
+        let batchReply;
+        try {
+            batchReply = handleOpenFinanceSaveProposalBatchReply({
+                messageBody,
+                actorWhatsappId: senderId,
+                proposals: currentState.data?.proposals || []
+            });
+        } catch (error) {
+            if (error?.message !== 'open_finance_save_review_catalog_required') throw error;
+            let reviewCatalog;
+            try {
+                reviewCatalog = await buildOpenFinanceSaveProposalReviewCatalog({ userId });
+            } catch (catalogError) {
+                logger.warn(`[open-finance] save_batch_catalog_unavailable sender=${logger.redactIdentifier(senderId)} ${logger.safeError(catalogError)}`);
+                await sendPlainMessage(
+                    msg,
+                    'Não consegui abrir os dados de conferência agora. A lista continua pendente e nada foi salvo.'
+                );
+                return;
+            }
+            batchReply = handleOpenFinanceSaveProposalBatchReply({
+                messageBody,
+                actorWhatsappId: senderId,
+                proposals: currentState.data?.proposals || [],
+                reviewCatalog
+            });
+        }
+        if (batchReply.handled) {
+            if (batchReply.keep_pending && batchReply.state === 'review_editing') {
+                userStateManager.setState(senderId, {
+                    action: 'awaiting_open_finance_save_review',
+                    data: openFinanceStateData(
+                        batchReply.proposal_ref,
+                        batchReply.batch
+                    )
+                });
+            } else if (batchReply.keep_pending) {
+                userStateManager.setState(senderId, currentState);
+            } else {
+                userStateManager.deleteState(senderId);
+            }
+            await sendPlainMessage(msg, batchReply.reply);
+            return;
+        }
+    }
+
+    if (currentState?.action === 'awaiting_open_finance_save_batch_continue') {
+        try {
+            const advanced = await advanceQueuedOpenFinanceSaveReview({
+                batch: currentState.data?.batch,
+                senderId,
+                userId
+            });
+            if (!advanced) {
+                userStateManager.deleteState(senderId);
+                await sendPlainMessage(msg, 'A fila de conferência já foi concluída.');
+                return;
+            }
+            userStateManager.setState(senderId, {
+                action: 'awaiting_open_finance_save_review',
+                data: openFinanceStateData(advanced.proposal_ref, advanced.batch)
+            });
+            await sendPlainMessage(msg, advanced.reply);
+        } catch (error) {
+            logger.warn(`[open-finance] save_batch_resume_unavailable sender=${logger.redactIdentifier(senderId)} ${logger.safeError(error)}`);
+            await sendPlainMessage(
+                msg,
+                'A próxima conferência continua reservada. Não consegui abri-la agora; envie *continuar* mais tarde. Nada foi salvo.'
+            );
+        }
+        return;
+    }
+
     if (!currentState || [
         'awaiting_open_finance_save_review',
         'awaiting_open_finance_save_confirmation',
@@ -9276,10 +9373,11 @@ async function processMessage(msg) {
                 : null
         });
         if (finalReply.handled) {
+            const batch = currentState?.data?.batch || null;
             if (finalReply.keep_pending) {
                 userStateManager.setState(senderId, {
                     action: 'awaiting_open_finance_final_confirmation',
-                    data: { proposalRef: finalReply.proposal_ref }
+                    data: openFinanceStateData(finalReply.proposal_ref, batch)
                 });
             } else {
                 userStateManager.deleteState(senderId);
@@ -9291,6 +9389,36 @@ async function processMessage(msg) {
                     actorWhatsappId: senderId
                 });
                 userStateManager.deleteState(senderId);
+            }
+            if (batch?.queuedProposalRefs?.length &&
+                (!finalReply.keep_pending || finalReply.acknowledge_receipt)) {
+                try {
+                    const advanced = await advanceQueuedOpenFinanceSaveReview({
+                        batch,
+                        senderId,
+                        userId
+                    });
+                    if (advanced) {
+                        userStateManager.setState(senderId, {
+                            action: 'awaiting_open_finance_save_review',
+                            data: openFinanceStateData(
+                                advanced.proposal_ref,
+                                advanced.batch
+                            )
+                        });
+                        await sendPlainMessage(msg, advanced.reply);
+                    }
+                } catch (error) {
+                    logger.warn(`[open-finance] save_batch_advance_unavailable sender=${logger.redactIdentifier(senderId)} ${logger.safeError(error)}`);
+                    userStateManager.setState(senderId, {
+                        action: 'awaiting_open_finance_save_batch_continue',
+                        data: { batch }
+                    });
+                    await sendPlainMessage(
+                        msg,
+                        'A próxima conferência continua reservada. Não consegui abri-la agora; envie *continuar* mais tarde. Nada adicional foi salvo.'
+                    );
+                }
             }
             return;
         }
@@ -9308,6 +9436,7 @@ async function processMessage(msg) {
                 : null
         });
         if (reviewReply.handled) {
+            const batch = currentState?.data?.batch || null;
             if (reviewReply.state === 'review_ready') {
                 const finalization = await prepareOpenFinanceSaveProposalFinalization({
                     proposalRef: reviewReply.proposal_ref,
@@ -9317,7 +9446,10 @@ async function processMessage(msg) {
                 if (finalization.handled) {
                     userStateManager.setState(senderId, {
                         action: 'awaiting_open_finance_final_confirmation',
-                        data: { proposalRef: finalization.proposal_ref }
+                        data: openFinanceStateData(
+                            finalization.proposal_ref,
+                            batch
+                        )
                     });
                     await sendPlainMessage(msg, finalization.reply);
                     return;
@@ -9326,12 +9458,42 @@ async function processMessage(msg) {
             if (reviewReply.keep_pending) {
                 userStateManager.setState(senderId, {
                     action: 'awaiting_open_finance_save_review',
-                    data: { proposalRef: reviewReply.proposal_ref }
+                    data: openFinanceStateData(reviewReply.proposal_ref, batch)
                 });
             } else {
                 userStateManager.deleteState(senderId);
             }
             await sendPlainMessage(msg, reviewReply.reply);
+            if (reviewReply.state === 'cancelled' &&
+                batch?.queuedProposalRefs?.length) {
+                try {
+                    const advanced = await advanceQueuedOpenFinanceSaveReview({
+                        batch,
+                        senderId,
+                        userId
+                    });
+                    if (advanced) {
+                        userStateManager.setState(senderId, {
+                            action: 'awaiting_open_finance_save_review',
+                            data: openFinanceStateData(
+                                advanced.proposal_ref,
+                                advanced.batch
+                            )
+                        });
+                        await sendPlainMessage(msg, advanced.reply);
+                    }
+                } catch (error) {
+                    logger.warn(`[open-finance] save_batch_advance_unavailable sender=${logger.redactIdentifier(senderId)} ${logger.safeError(error)}`);
+                    userStateManager.setState(senderId, {
+                        action: 'awaiting_open_finance_save_batch_continue',
+                        data: { batch }
+                    });
+                    await sendPlainMessage(
+                        msg,
+                        'A próxima conferência continua reservada. Não consegui abri-la agora; envie *continuar* mais tarde. Nada adicional foi salvo.'
+                    );
+                }
+            }
             return;
         }
     }

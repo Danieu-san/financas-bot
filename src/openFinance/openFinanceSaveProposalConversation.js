@@ -46,6 +46,48 @@ function classifySaveProposalReply(value) {
     return null;
 }
 
+function classifySaveProposalBatchReply(value, proposalCount) {
+    const count = Number(proposalCount);
+    if (!Number.isInteger(count) || count < 1 || count > 4) {
+        throw new Error('valid_open_finance_save_batch_size_required');
+    }
+    const normalized = normalizeReply(value);
+    if (['sim', 's', 'ss', 'confirmo', 'continuar'].includes(normalized)) {
+        return count === 1
+            ? { action: 'select', indexes: [1] }
+            : { action: 'invalid', indexes: [] };
+    }
+    if (/^salvar\s+todas?$/.test(normalized)) {
+        return {
+            action: 'select',
+            indexes: Array.from({ length: count }, (_, index) => index + 1)
+        };
+    }
+    const selection = normalized.match(/^salvar\s+(.+)$/);
+    if (selection) {
+        const tokens = selection[1]
+            .replace(/\s+e\s+|,/g, ' ')
+            .split(/\s+/)
+            .filter(Boolean);
+        if (!tokens.length || tokens.some(token => !/^\d+$/.test(token))) {
+            return { action: 'invalid', indexes: [] };
+        }
+        const indexes = [...new Set(tokens.map(token => Number.parseInt(token, 10)))]
+            .sort((left, right) => left - right);
+        if (!indexes.length || indexes.some(index => index < 1 || index > count)) {
+            return { action: 'invalid', indexes: [] };
+        }
+        return { action: 'select', indexes };
+    }
+    if (['cancelar', 'cancela'].includes(normalized)) {
+        return {
+            action: 'cancel',
+            indexes: Array.from({ length: count }, (_, index) => index + 1)
+        };
+    }
+    return { action: 'invalid', indexes: [] };
+}
+
 function assertPromptConfiguration(env = process.env) {
     const mode = String(env.OPEN_FINANCE_SAVE_PROPOSAL_MODE || 'off').trim().toLowerCase();
     if (['off', 'shadow'].includes(mode)) return { enabled: false };
@@ -283,6 +325,264 @@ function cancelPreparedReviewIfPresent({
     } finally {
         reviewStore.close();
     }
+}
+
+function normalizeSaveProposalBatchEntries(proposals) {
+    if (!Array.isArray(proposals) || proposals.length < 2 || proposals.length > 4) {
+        throw new Error('valid_open_finance_save_selection_required');
+    }
+    const normalized = proposals.map(item => ({
+        number: Number(item?.number),
+        proposalRef: String(item?.proposalRef || ''),
+        recipientPrincipal: String(item?.recipientPrincipal || '').trim().toLowerCase()
+    }));
+    if (new Set(normalized.map(item => item.number)).size !== normalized.length ||
+        new Set(normalized.map(item => item.proposalRef)).size !== normalized.length ||
+        normalized.some(item => !Number.isInteger(item.number) || item.number < 1 ||
+            item.number > 4 || !/^[a-f0-9]{32}$/.test(item.proposalRef) ||
+            !['daniel', 'thais'].includes(item.recipientPrincipal))) {
+        throw new Error('valid_open_finance_save_selection_required');
+    }
+    return normalized.sort((left, right) => left.number - right.number);
+}
+
+function formatSaveProposalSelectionHelp() {
+    return [
+        'Escolha quais lançamentos deseja conferir:',
+        '*salvar 1*, *salvar 1 e 3* ou *salvar todas*.',
+        'Um *sim* isolado não escolhe um lote com vários itens.',
+        'Nada foi salvo.'
+    ].join('\n');
+}
+
+function resumeOrStartOpenFinanceSaveReview({
+    proposalRef,
+    recipientPrincipal,
+    actorWhatsappId,
+    reviewCatalog,
+    env,
+    dependencies
+}) {
+    const secret = fs.readFileSync(
+        env.OPEN_FINANCE_LIVE_STAGING_SECRET_FILE,
+        'utf8'
+    ).trim();
+    const reviewStore = openReviewStore({
+        env,
+        secret,
+        actorWhatsappId,
+        dependencies
+    });
+    let active;
+    try {
+        active = reviewStore.listActiveReviews({ actorWhatsappId, limit: 2 });
+    } finally {
+        reviewStore.close();
+    }
+    if (active.length) {
+        if (active.length !== 1 || active[0].proposal_ref !== proposalRef) {
+            throw new Error('open_finance_save_batch_active_review_conflict');
+        }
+        const resumed = handleOpenFinanceSaveProposalReviewReply({
+            messageBody: 'voltar',
+            actorWhatsappId,
+            expectedProposalRef: proposalRef,
+            env,
+            dependencies
+        });
+        if (!resumed.handled || resumed.state !== 'review_editing') {
+            throw new Error('open_finance_save_batch_review_not_resumed');
+        }
+        return resumed;
+    }
+    return handleOpenFinanceSaveProposalReply({
+        messageBody: 'sim',
+        actorWhatsappId,
+        expectedProposalRef: proposalRef,
+        expectedRecipientPrincipal: recipientPrincipal,
+        reviewCatalog,
+        env,
+        dependencies
+    });
+}
+
+function handleOpenFinanceSaveProposalBatchReply({
+    messageBody,
+    actorWhatsappId,
+    proposals,
+    reviewCatalog = null,
+    env = process.env,
+    dependencies = {}
+} = {}) {
+    const configuration = assertPromptConfiguration(env);
+    if (!configuration.enabled) return { handled: false, financial_writes: 0 };
+    const entries = normalizeSaveProposalBatchEntries(proposals);
+    const selection = classifySaveProposalBatchReply(
+        messageBody,
+        Math.max(...entries.map(item => item.number))
+    );
+    const byNumber = new Map(entries.map(item => [item.number, item]));
+    if (selection.action === 'invalid' ||
+        selection.indexes.some(index => !byNumber.has(index))) {
+        return {
+            handled: true,
+            keep_pending: true,
+            state: 'selection_pending',
+            reply: formatSaveProposalSelectionHelp(),
+            financial_writes: 0
+        };
+    }
+    if (selection.action === 'cancel') {
+        return {
+            handled: true,
+            keep_pending: false,
+            state: 'cancelled',
+            reply: 'Lista encerrada. Nenhuma proposta foi aceita e nenhum lançamento foi salvo.',
+            financial_writes: 0
+        };
+    }
+    const secret = fs.readFileSync(
+        env.OPEN_FINANCE_LIVE_STAGING_SECRET_FILE,
+        'utf8'
+    ).trim();
+    const Journal = dependencies.OpenFinanceRevocationJournal ||
+        OpenFinanceRevocationJournal;
+    const Preview = dependencies.OpenFinanceShadowPreviewStore ||
+        OpenFinanceShadowPreviewStore;
+    const Outbox = dependencies.OpenFinanceAlertOutbox || OpenFinanceAlertOutbox;
+    const journal = new Journal({
+        databasePath: env.OPEN_FINANCE_REVOCATION_JOURNAL_DB,
+        secret
+    });
+    const preview = new Preview({
+        databasePath: env.OPEN_FINANCE_SHADOW_PREVIEW_DB,
+        secret,
+        revocationJournal: journal,
+        authorizedWhatsAppIds: [actorWhatsappId],
+        familyConfirmationEnabled: Boolean(configuration.familyConfirmationEnabled)
+    });
+    const outbox = new Outbox({
+        databasePath: env.OPEN_FINANCE_OUTBOX_DB,
+        secret
+    });
+    let selectedEntries = [];
+    try {
+        if (!reviewCatalog) {
+            throw new Error('open_finance_save_review_catalog_required');
+        }
+        selectedEntries = selection.indexes.map(index => byNumber.get(index));
+        const replyEligible = selectedEntries.every(entry =>
+            outbox.isProposalReplyEligible(entry.proposalRef, {
+                recipient: entry.recipientPrincipal
+            }));
+        if (!replyEligible) {
+            return {
+                handled: true,
+                keep_pending: false,
+                state: 'selection_stale',
+                reply: 'Uma das propostas selecionadas não está mais disponível. Nenhum item do lote foi reservado ou salvo.',
+                financial_writes: 0
+            };
+        }
+        try {
+            preview.prepareSaveProposalConfirmations(
+                selectedEntries.map(entry => entry.proposalRef),
+                { actorWhatsappId }
+            );
+        } catch (error) {
+            if (/confirmation_actor_unauthorized|confirmation_state_conflict/.test(
+                String(error?.message || '')
+            )) {
+                return {
+                    handled: true,
+                    keep_pending: false,
+                    state: 'selection_claimed_elsewhere',
+                    reply: 'Uma das propostas já está sendo conferida pelo outro membro do casal. Nenhum item adicional foi reservado por esta resposta.',
+                    financial_writes: 0
+                };
+            }
+            throw error;
+        }
+    } finally {
+        outbox.close();
+        preview.close();
+        journal.close();
+    }
+    const [first, ...queued] = selectedEntries;
+    const started = resumeOrStartOpenFinanceSaveReview({
+        proposalRef: first.proposalRef,
+        recipientPrincipal: first.recipientPrincipal,
+        actorWhatsappId,
+        reviewCatalog,
+        env,
+        dependencies
+    });
+    if (!started.handled || started.state !== 'review_editing') {
+        throw new Error('open_finance_save_batch_first_review_not_started');
+    }
+    return {
+        ...started,
+        batch: {
+            version: 1,
+            selectedProposalRefs: selectedEntries.map(entry => entry.proposalRef),
+            queuedProposalRefs: queued.map(entry => entry.proposalRef),
+            recipientPrincipalByProposal: Object.fromEntries(
+                selectedEntries.map(entry => [entry.proposalRef, entry.recipientPrincipal])
+            )
+        }
+    };
+}
+
+function advanceOpenFinanceSaveProposalBatch({
+    batch,
+    actorWhatsappId,
+    reviewCatalog,
+    env = process.env,
+    dependencies = {}
+} = {}) {
+    const queued = Array.isArray(batch?.queuedProposalRefs)
+        ? batch.queuedProposalRefs.map(value => String(value || ''))
+        : [];
+    if (batch?.version !== 1 || queued.some(value =>
+        !/^[a-f0-9]{32}$/.test(value)) ||
+        !batch?.recipientPrincipalByProposal ||
+        typeof batch.recipientPrincipalByProposal !== 'object') {
+        throw new Error('invalid_open_finance_save_batch_state');
+    }
+    if (!queued.length) {
+        return {
+            handled: true,
+            keep_pending: false,
+            state: 'batch_complete',
+            reply: 'Conferência do lote concluída. Nenhum outro item foi selecionado.',
+            financial_writes: 0
+        };
+    }
+    const [nextProposalRef, ...remaining] = queued;
+    const recipientPrincipal = String(
+        batch.recipientPrincipalByProposal[nextProposalRef] || ''
+    ).toLowerCase();
+    if (!['daniel', 'thais'].includes(recipientPrincipal)) {
+        throw new Error('invalid_open_finance_save_batch_state');
+    }
+    const started = resumeOrStartOpenFinanceSaveReview({
+        proposalRef: nextProposalRef,
+        recipientPrincipal,
+        actorWhatsappId,
+        reviewCatalog,
+        env,
+        dependencies
+    });
+    if (!started.handled || started.state !== 'review_editing') {
+        throw new Error('open_finance_save_batch_next_review_not_started');
+    }
+    return {
+        ...started,
+        batch: {
+            ...batch,
+            queuedProposalRefs: remaining
+        }
+    };
 }
 
 function handleOpenFinanceSaveProposalReply({
@@ -847,8 +1147,11 @@ function handleOpenFinanceSaveProposalReviewReply({
 
 module.exports = {
     handleOpenFinanceSaveProposalReply,
+    handleOpenFinanceSaveProposalBatchReply,
+    advanceOpenFinanceSaveProposalBatch,
     handleOpenFinanceSaveProposalReviewReply,
     classifySaveProposalReply,
+    classifySaveProposalBatchReply,
     assertPromptConfiguration,
     formatOpenFinanceSaveProposalReviewSummary: formatReviewSummary
 };

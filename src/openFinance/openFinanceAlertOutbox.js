@@ -236,6 +236,20 @@ class OpenFinanceAlertOutbox {
     }
     claimNext({ canaryAlias, canaryAliases, activatedAfterByAlias = {}, excludedRecipients = [],
         now = new Date().toISOString(), leaseSeconds = 120 } = {}) {
+        return this.claimNextBatch({
+            canaryAlias,
+            canaryAliases,
+            activatedAfterByAlias,
+            excludedRecipients,
+            now,
+            leaseSeconds,
+            batchSize: 1
+        })[0] || null;
+    }
+
+    claimNextBatch({ canaryAlias, canaryAliases, activatedAfterByAlias = {},
+        excludedRecipients = [], now = new Date().toISOString(), leaseSeconds = 120,
+        batchSize = 4 } = {}) {
         const aliases = [...new Set((Array.isArray(canaryAliases) && canaryAliases.length
             ? canaryAliases : [canaryAlias]).map(value => String(value || '').toLowerCase()).filter(Boolean))];
         if (!aliases.length || aliases.some(alias => !/^[a-z0-9_-]{2,48}$/.test(alias))) {
@@ -246,6 +260,9 @@ class OpenFinanceAlertOutbox {
             throw new Error('valid_excluded_open_finance_recipient_required');
         }
         if (!Number.isInteger(leaseSeconds) || leaseSeconds < 30 || leaseSeconds > 900) throw new Error('invalid_outbox_lease');
+        if (!Number.isInteger(batchSize) || batchSize < 1 || batchSize > 4) {
+            throw new Error('invalid_open_finance_outbox_batch_size');
+        }
         this.recoverExpiredAmbiguous({ now });
         const leaseToken = crypto.randomBytes(24).toString('hex');
         const attemptRef = this.#ref('attempt', leaseToken);
@@ -254,6 +271,7 @@ class OpenFinanceAlertOutbox {
             const rows = this.db.prepare(`SELECT alert_ref,encrypted_payload,created_at FROM finance_alert_outbox
                 WHERE delivery_state='pending'
                 ORDER BY created_at,external_event_ref,recipient_ref,alert_ref`).all();
+            const eligible = [];
             for (const row of rows) {
                 const payload = this.#decrypt(row.alert_ref, row.encrypted_payload);
                 const payloadAlias = String(payload.alias || '').toLowerCase();
@@ -262,14 +280,36 @@ class OpenFinanceAlertOutbox {
                 const cutoff = activatedAfterByAlias[payloadAlias];
                 if (cutoff && Date.parse(row.created_at) < Date.parse(cutoff)) continue;
                 if (!ALERTABLE_CLASSIFICATIONS.has(payload.classification)) continue;
+                eligible.push({ row, payload });
+            }
+            if (!eligible.length) return [];
+            const first = eligible[0];
+            const targetRecipient = String(first.payload.recipient || '').toLowerCase();
+            const proposalBatch = Boolean(first.payload.proposal_ref);
+            const selected = proposalBatch
+                ? eligible.filter(({ payload }) =>
+                    String(payload.recipient || '').toLowerCase() === targetRecipient &&
+                    Boolean(payload.proposal_ref)
+                ).slice(0, batchSize)
+                : [first];
+            const claimed = [];
+            for (const { row, payload } of selected) {
                 const updated = this.db.prepare(`UPDATE finance_alert_outbox SET delivery_state='in_flight',
                     lease_token=?,lease_expires_at=?,attempt_ref=?,attempts=attempts+1,last_error_code=NULL
                     WHERE alert_ref=? AND delivery_state='pending'`)
                     .run(leaseToken, leaseExpiresAt, attemptRef, row.alert_ref);
                 if (!updated.changes) continue;
-                return { alert_ref: row.alert_ref, lease_token: leaseToken, attempt_ref: attemptRef, ...payload };
+                claimed.push({
+                    alert_ref: row.alert_ref,
+                    lease_token: leaseToken,
+                    attempt_ref: attemptRef,
+                    ...payload
+                });
             }
-            return null;
+            if (claimed.length !== selected.length) {
+                throw new Error('open_finance_outbox_batch_claim_changed');
+            }
+            return claimed;
         })();
     }
 
@@ -405,6 +445,38 @@ class OpenFinanceAlertOutbox {
         if (!result.changes) throw new Error('outbox_ack_lease_mismatch');
         return { delivered_confirmed: true, financial_writes: 0 };
     }
+    acknowledgeDeliveredBatch({ deliveries = [], whatsappMessageId,
+        sentAt = new Date().toISOString() } = {}) {
+        if (!Array.isArray(deliveries) || deliveries.length < 1 || deliveries.length > 4 ||
+            !whatsappMessageId) {
+            throw new Error('outbox_batch_ack_fields_required');
+        }
+        const refs = new Set(deliveries.map(item => String(item?.alertRef || '')));
+        if (refs.size !== deliveries.length || deliveries.some(item =>
+            !item?.alertRef || !item?.leaseToken)) {
+            throw new Error('outbox_batch_ack_fields_required');
+        }
+        const statement = this.db.prepare(`UPDATE finance_alert_outbox SET
+            delivery_state='delivered_confirmed',sent_at=?,confirmed_at=?,
+            whatsapp_message_ref=?,lease_token=NULL,lease_expires_at=NULL,last_error_code=NULL
+            WHERE alert_ref=? AND delivery_state='in_flight' AND lease_token=?`);
+        const count = this.db.transaction(() => {
+            let changed = 0;
+            for (const item of deliveries) {
+                const result = statement.run(
+                    sentAt,
+                    sentAt,
+                    this.#ref('whatsapp-message', whatsappMessageId),
+                    item.alertRef,
+                    item.leaseToken
+                );
+                if (result.changes !== 1) throw new Error('outbox_batch_ack_lease_mismatch');
+                changed += result.changes;
+            }
+            return changed;
+        })();
+        return { delivered_confirmed: count, financial_writes: 0 };
+    }
     acknowledgeAccepted({ alertRef, leaseToken, acceptedAt = new Date().toISOString(),
         reasonCode = 'transport_accepted_without_provider_id' } = {}) {
         if (!alertRef || !leaseToken) throw new Error('outbox_accept_fields_required');
@@ -416,6 +488,40 @@ class OpenFinanceAlertOutbox {
             .run(acceptedAt, code, alertRef, leaseToken);
         if (!result.changes) throw new Error('outbox_accept_lease_mismatch');
         return { accepted_unconfirmed: true, financial_writes: 0 };
+    }
+    acknowledgeAcceptedBatch({ deliveries = [], acceptedAt = new Date().toISOString(),
+        reasonCode = 'transport_accepted_without_provider_id' } = {}) {
+        const code = String(reasonCode || '').toLowerCase();
+        if (!Array.isArray(deliveries) || deliveries.length < 1 || deliveries.length > 4 ||
+            !/^[a-z0-9_]{2,48}$/.test(code)) {
+            throw new Error('outbox_batch_accept_fields_required');
+        }
+        const refs = new Set(deliveries.map(item => String(item?.alertRef || '')));
+        if (refs.size !== deliveries.length || deliveries.some(item =>
+            !item?.alertRef || !item?.leaseToken)) {
+            throw new Error('outbox_batch_accept_fields_required');
+        }
+        const statement = this.db.prepare(`UPDATE finance_alert_outbox SET
+            delivery_state='accepted_unconfirmed',accepted_at=?,lease_token=NULL,
+            lease_expires_at=NULL,last_error_code=?
+            WHERE alert_ref=? AND delivery_state='in_flight' AND lease_token=?`);
+        const count = this.db.transaction(() => {
+            let changed = 0;
+            for (const item of deliveries) {
+                const result = statement.run(
+                    acceptedAt,
+                    code,
+                    item.alertRef,
+                    item.leaseToken
+                );
+                if (result.changes !== 1) {
+                    throw new Error('outbox_batch_accept_lease_mismatch');
+                }
+                changed += result.changes;
+            }
+            return changed;
+        })();
+        return { accepted_unconfirmed: count, financial_writes: 0 };
     }
     acknowledgeUserConfirmed({ internalReference, confirmedAt = new Date().toISOString() } = {}) {
         const reference = String(internalReference || '').toLowerCase();
@@ -458,6 +564,33 @@ class OpenFinanceAlertOutbox {
             .run(code, alertRef, leaseToken);
         if (!result.changes) throw new Error('outbox_release_lease_mismatch');
         return { released: true, financial_writes: 0 };
+    }
+    releaseFailedBatch({ deliveries = [], errorCode = 'transport_error' } = {}) {
+        const code = String(errorCode || '').toLowerCase();
+        if (!Array.isArray(deliveries) || deliveries.length < 1 || deliveries.length > 4 ||
+            !/^[a-z0-9_]{2,48}$/.test(code)) {
+            throw new Error('outbox_batch_release_fields_required');
+        }
+        const refs = new Set(deliveries.map(item => String(item?.alertRef || '')));
+        if (refs.size !== deliveries.length || deliveries.some(item =>
+            !item?.alertRef || !item?.leaseToken)) {
+            throw new Error('outbox_batch_release_fields_required');
+        }
+        const statement = this.db.prepare(`UPDATE finance_alert_outbox SET
+            delivery_state='pending',lease_token=NULL,lease_expires_at=NULL,last_error_code=?
+            WHERE alert_ref=? AND delivery_state='in_flight' AND lease_token=?`);
+        const count = this.db.transaction(() => {
+            let changed = 0;
+            for (const item of deliveries) {
+                const result = statement.run(code, item.alertRef, item.leaseToken);
+                if (result.changes !== 1) {
+                    throw new Error('outbox_batch_release_lease_mismatch');
+                }
+                changed += result.changes;
+            }
+            return changed;
+        })();
+        return { released: count, financial_writes: 0 };
     }
     revokeSourceAlias(alias, options = {}) {
         const normalizedAlias = String(alias || '').toLowerCase();

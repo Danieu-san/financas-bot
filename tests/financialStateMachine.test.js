@@ -2999,6 +2999,165 @@ stateMachineTest('audio ingress discards status and outgoing messages before tra
     assert.deepStrictEqual(outgoingMessage.replies, []);
 });
 
+stateMachineTest('gate 32 public handler rejects batch sim and advances a numeric queue without financial write', async () => {
+    resetState();
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-public-save-batch-'));
+    const paths = {
+        secret: path.join(directory, 'secret.txt'),
+        journal: path.join(directory, 'journal.sqlite'),
+        preview: path.join(directory, 'preview.sqlite'),
+        outbox: path.join(directory, 'outbox.sqlite'),
+        visibility: path.join(directory, 'visibility.json')
+    };
+    const secret = 'open-finance-public-save-batch-secret-32-bytes';
+    fs.writeFileSync(paths.secret, secret, { mode: 0o600 });
+    const journal = new OpenFinanceRevocationJournal({
+        databasePath: paths.journal,
+        secret
+    });
+    const store = new OpenFinanceShadowPreviewStore({
+        databasePath: paths.preview,
+        secret,
+        revocationJournal: journal,
+        authorizedWhatsAppIds: [SENDER],
+        confirmationActors: [{ principal: 'daniel', whatsappId: SENDER }],
+        familyConfirmationEnabled: true
+    });
+    const item = {
+        id: 'public-handler-batch-item',
+        alias_code: 'daniel_nubank',
+        generation: 2,
+        accounts: [{ id: 'credit-account', type: 'CREDIT' }],
+        transactions: [1, 2].map(index => ({
+            id: `public-handler-batch-${index}`,
+            account_id: 'credit-account',
+            amount_cents: 3400 + index,
+            description: `Compra pública ${index}`,
+            date: new Date(Date.now() - index * 3_600_000).toISOString(),
+            status: 'POSTED'
+        }))
+    };
+    const refs = item.transactions.map(transaction =>
+        observationRef(secret, item.id, transaction.account_id, transaction.id));
+    const lifecycleDecisions = refs.map(observation_ref => ({
+        observation_ref,
+        classification: 'purchase',
+        provider_state: 'POSTED',
+        lifecycle_milestone: 'first_posted'
+    }));
+    const policies = [{
+        alias: 'daniel_nubank',
+        source_owner: 'daniel',
+        authorized_viewers: ['daniel', 'thais'],
+        whatsapp_recipient: 'daniel',
+        family_aggregation_allowed: true,
+        write_confirmation_principal: 'daniel'
+    }];
+    fs.writeFileSync(paths.visibility, JSON.stringify(policies));
+    const ingested = store.ingestSaveProposals({
+        reconciliationDecisions: refs.map((observation_ref, index) => ({
+            alias: 'daniel_nubank',
+            observation_ref,
+            transaction_ref: `public-handler-batch-transaction-${index + 1}`,
+            status: 'new',
+            rule: 'no_candidate'
+        })),
+        lifecycleDecisions,
+        openFinanceItems: [item],
+        policies,
+        observedAt: new Date(Date.now() - 60_000).toISOString(),
+        includeProposalLinks: true
+    });
+    const proposalRefs = ingested.proposal_links.map(link => link.proposal_ref);
+    const outbox = new OpenFinanceAlertOutbox({
+        databasePath: paths.outbox,
+        secret
+    });
+    outbox.enqueue({
+        candidates: refs.map((observation_ref, index) => ({
+            observation_ref,
+            external_event_ref: `public-handler-batch-event-${index + 1}`,
+            correlation_state: 'new_event',
+            reconciliation_status: 'new'
+        })),
+        lifecycleDecisions,
+        items: [item],
+        policies,
+        baselineComplete: true,
+        reconciliationRequired: true,
+        saveProposalLinks: ingested.proposal_links
+    });
+    const claimed = outbox.claimNextBatch({
+        canaryAliases: ['daniel_nubank'],
+        excludedRecipients: ['thais'],
+        batchSize: 4
+    });
+    outbox.acknowledgeDeliveredBatch({
+        deliveries: claimed.map(entry => ({
+            alertRef: entry.alert_ref,
+            leaseToken: entry.lease_token
+        })),
+        whatsappMessageId: 'public-handler-batch-message-id'
+    });
+    outbox.close();
+    store.close();
+    journal.close();
+
+    const variableNames = [
+        'OPEN_FINANCE_SAVE_PROPOSAL_MODE',
+        'OPEN_FINANCE_WRITE_MODE',
+        'OPEN_FINANCE_LIVE_STAGING_SECRET_FILE',
+        'OPEN_FINANCE_REVOCATION_JOURNAL_DB',
+        'OPEN_FINANCE_SHADOW_PREVIEW_DB',
+        'OPEN_FINANCE_OUTBOX_DB',
+        'OPEN_FINANCE_VISIBILITY_POLICY_FILE'
+    ];
+    const previous = Object.fromEntries(variableNames.map(name => [name, process.env[name]]));
+    Object.assign(process.env, {
+        OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
+        OPEN_FINANCE_WRITE_MODE: 'off',
+        OPEN_FINANCE_LIVE_STAGING_SECRET_FILE: paths.secret,
+        OPEN_FINANCE_REVOCATION_JOURNAL_DB: paths.journal,
+        OPEN_FINANCE_SHADOW_PREVIEW_DB: paths.preview,
+        OPEN_FINANCE_OUTBOX_DB: paths.outbox,
+        OPEN_FINANCE_VISIBILITY_POLICY_FILE: paths.visibility
+    });
+    const proposals = proposalRefs.map((proposalRef, index) => ({
+        number: index + 1,
+        proposalRef,
+        recipientPrincipal: 'daniel'
+    }));
+    userStateManager.setState(SENDER, {
+        action: 'awaiting_open_finance_save_selection',
+        data: { proposals }
+    });
+    try {
+        assert.match(await send('sim'), /isolado .* escolhe um lote/i);
+        assert.strictEqual(
+            userStateManager.getState(SENDER).action,
+            'awaiting_open_finance_save_selection'
+        );
+        assert.match(await send('salvar 1 e 2'), /Confira a proposta/);
+        let state = userStateManager.getState(SENDER);
+        assert.strictEqual(state.action, 'awaiting_open_finance_save_review');
+        assert.strictEqual(state.data.proposalRef, proposalRefs[0]);
+        assert.deepStrictEqual(state.data.batch.queuedProposalRefs, [proposalRefs[1]]);
+        const nextReply = await send('cancelar');
+        assert.match(nextReply, /Confira a proposta/);
+        state = userStateManager.getState(SENDER);
+        assert.strictEqual(state.action, 'awaiting_open_finance_save_review');
+        assert.strictEqual(state.data.proposalRef, proposalRefs[1]);
+        assert.deepStrictEqual(state.data.batch.queuedProposalRefs, []);
+        assert.strictEqual(appendedRows.length, 0);
+    } finally {
+        for (const name of variableNames) {
+            if (previous[name] === undefined) delete process.env[name];
+            else process.env[name] = previous[name];
+        }
+        userStateManager.deleteState(SENDER);
+    }
+});
+
 stateMachineTest('9P.4 public handler writes once, survives receipt send failure and closes on replay', async () => {
     resetState();
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-public-finalization-'));

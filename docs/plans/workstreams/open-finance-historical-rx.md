@@ -119,6 +119,17 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
     read-only, recalcular blockers/elegibilidade sem inferir identidade e provar
     replay, restart, conflito familiar e `financial_writes=0`. Nao criar ainda
     proposta de salvamento nem ativar `prompt`.
+32. [candidato local aguardando auditoria independente] Substituir a colisao de propostas individuais pelo fluxo
+    numerico de salvamento. Cada destinatario recebe um unico lote de ate quatro
+    transacoes elegiveis; o fan-out do mesmo lote para Daniel e Thais nao reduz
+    esse limite. Um lote aceita `salvar 1`, `salvar 1 e 3` e `salvar todas`; `sim`
+    permanece valido somente quando existe uma proposta. A selecao cria apenas
+    uma fila duravel de conferencias e cada item continua passando, isoladamente,
+    pela revisao guiada e pela confirmacao final. O primeiro conjuge que selecionar
+    um item o reserva. Reinicio, concorrencia familiar e falha de transporte devem
+    permanecer fail-closed, com `financial_writes=0`. O gate nao pode incluir o RX
+    historico anterior ao corte operacional de `2026-07-28`, ambiguidades ainda
+    nao resolvidas, ativacao de flags, deploy ou producao.
 
 ## Criterios de GO
 

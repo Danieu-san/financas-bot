@@ -804,12 +804,17 @@ test('9P.0 runtime creates shadow proposals without changing WhatsApp or financi
     assert.deepEqual(promptResult.deliveries, ['delivered_confirmed', 'idle']);
     assert.equal(promptResult.financial_writes, 0);
     assert.equal(messages, 1);
-    assert.match(promptText, /Quer continuar para salvar este lançamento/);
-    assert.match(promptText, /Nada será salvo antes da conferência final/);
+    assert.match(promptText, /^1\. /m);
+    assert.match(promptText, /^2\. /m);
+    assert.match(promptText, /salvar todas/i);
+    assert.match(promptText, /Nada será salvo automaticamente/);
     const promptState = conversationStates.get(actorWhatsappId);
-    assert.equal(promptState.action, 'awaiting_open_finance_save_confirmation');
-    assert.match(promptState.data.proposalRef, /^[a-f0-9]{32}$/);
+    assert.equal(promptState.action, 'awaiting_open_finance_save_selection');
+    assert.equal(promptState.data.proposals.length, 2);
+    assert.ok(promptState.data.proposals.every(item =>
+        /^[a-f0-9]{32}$/.test(item.proposalRef)));
     assert.equal(Object.hasOwn(promptState.data, 'confirmationRef'), false);
+    const reviewProposalRef = promptState.data.proposals[0].proposalRef;
     conversationStates.delete(actorWhatsappId);
 
     const reviewJournal = new OpenFinanceRevocationJournal({
@@ -829,11 +834,11 @@ test('9P.0 runtime creates shadow proposals without changing WhatsApp or financi
     });
     try {
         const proposal = reviewPreview.readReviewableSaveProposal(
-            promptState.data.proposalRef,
+            reviewProposalRef,
             { actorWhatsappId }
         );
         reviewStore.prepareReview({
-            proposalRef: promptState.data.proposalRef,
+            proposalRef: reviewProposalRef,
             proposal,
             actorWhatsappId,
             catalog: {

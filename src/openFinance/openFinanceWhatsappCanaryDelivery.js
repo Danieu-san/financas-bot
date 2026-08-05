@@ -36,9 +36,40 @@ function formatSaveProposalMessage(delivery, sourceLabel, proposal) {
     ].join('\n');
 }
 
+function formatSaveProposalBatchMessage(entries = []) {
+    if (!Array.isArray(entries) || entries.length < 2 || entries.length > 4) {
+        throw new Error('valid_open_finance_save_batch_required');
+    }
+    const lines = [
+        '🧾 Novas compras reconciliadas:',
+        ''
+    ];
+    entries.forEach(({ delivery = {}, sourceLabel, proposal = {} }, index) => {
+        const source = proposal.source || {};
+        const amountCents = Number.isInteger(source.amount_cents)
+            ? source.amount_cents
+            : delivery.amount_cents;
+        lines.push(
+            `${index + 1}. ${sourceLabel}`,
+            `Valor: ${formatAmount(amountCents)}`,
+            `Descrição: ${String(source.description || delivery.description || 'indisponível').slice(0, 120)}`,
+            `Data: ${String(source.date || delivery.date || '').slice(0, 10) || 'indisponível'}`,
+            `Referência: ${delivery.internal_reference}`,
+            ''
+        );
+    });
+    lines.push(
+        'Para iniciar a conferência, responda *salvar 1*, *salvar 1 e 3* ou *salvar todas*.',
+        'Cada lançamento será conferido e confirmado separadamente.',
+        'Nada será salvo automaticamente.'
+    );
+    return lines.join('\n');
+}
+
 async function deliverOneOpenFinanceCanary({ policy, outbox, transport, recipientResolver,
     sourceLabels = {}, saveProposalStore = null, proposalMode = 'off',
-    deferSaveProposalConfirmation = false, excludedRecipients = [], now } = {}) {
+    deferSaveProposalConfirmation = false, proposalBatchSize = 1,
+    excludedRecipients = [], now } = {}) {
     if (!policy?.can_send_whatsapp ||
         typeof policy.can_write_financial !== 'boolean' ||
         !policy.canary_aliases?.length) {
@@ -50,88 +81,191 @@ async function deliverOneOpenFinanceCanary({ policy, outbox, transport, recipien
     if (typeof deferSaveProposalConfirmation !== 'boolean') {
         throw new Error('invalid_open_finance_deferred_confirmation_mode');
     }
+    if (!Number.isInteger(proposalBatchSize) || proposalBatchSize < 1 ||
+        proposalBatchSize > 4) {
+        throw new Error('invalid_open_finance_proposal_batch_size');
+    }
     if (!outbox || !transport || typeof transport.sendMessage !== 'function' || typeof recipientResolver !== 'function') {
         throw new Error('canary_delivery_dependencies_required');
     }
-    const delivery = outbox.claimNext({ canaryAliases: policy.canary_aliases,
-        activatedAfterByAlias: policy.canary_activations || {}, excludedRecipients, now });
-    if (!delivery) return { outcome: 'idle', transport_calls: 0, financial_writes: 0 };
+    const claimed = proposalBatchSize > 1
+        ? outbox.claimNextBatch({
+            canaryAliases: policy.canary_aliases,
+            activatedAfterByAlias: policy.canary_activations || {},
+            excludedRecipients,
+            batchSize: proposalBatchSize,
+            now
+        })
+        : [outbox.claimNext({ canaryAliases: policy.canary_aliases,
+            activatedAfterByAlias: policy.canary_activations || {}, excludedRecipients, now })]
+            .filter(Boolean);
+    if (!claimed.length) {
+        return { outcome: 'idle', transport_calls: 0, financial_writes: 0 };
+    }
+    const delivery = claimed[0];
+    if (claimed.some(item => item.recipient !== delivery.recipient)) {
+        throw new Error('open_finance_delivery_batch_recipient_mismatch');
+    }
     let transportStarted = false;
     let proposalContext = null;
-    let proposalPayload = null;
+    const proposalEntries = [];
     try {
         const recipient = await recipientResolver(delivery.recipient);
         if (!recipient) throw Object.assign(new Error('recipient_unavailable'), { code: 'recipient_unavailable' });
-        const sourceLabel = sourceLabels[delivery.alias];
-        if (!sourceLabel) throw Object.assign(new Error('source_label_unavailable'), { code: 'source_label_unavailable' });
-        if (delivery.proposal_ref && proposalMode === 'prompt') {
-            if (!saveProposalStore) {
-                throw Object.assign(new Error('save_proposal_store_unavailable'),
-                    { code: 'save_proposal_store_unavailable' });
+        for (const item of claimed) {
+            const sourceLabel = sourceLabels[item.alias];
+            if (!sourceLabel) {
+                throw Object.assign(new Error('source_label_unavailable'),
+                    { code: 'source_label_unavailable' });
             }
-            proposalPayload = saveProposalStore.readSaveProposalPrivate(
-                delivery.proposal_ref,
-                { actorWhatsappId: recipient }
-            );
-            const expectedPrincipal = delivery.confirmation_principal ||
-                delivery.recipient;
-            if (!proposalPayload ||
-                proposalPayload.principal !== expectedPrincipal) {
-                throw Object.assign(new Error('save_proposal_delivery_binding_mismatch'),
-                    { code: 'save_proposal_delivery_binding_mismatch' });
-            }
-            const prepared = deferSaveProposalConfirmation
-                ? {
-                    state: 'deferred',
-                    expires_at: proposalPayload.expires_at
+            if (item.proposal_ref && proposalMode === 'prompt') {
+                if (!saveProposalStore) {
+                    throw Object.assign(new Error('save_proposal_store_unavailable'),
+                        { code: 'save_proposal_store_unavailable' });
                 }
-                : saveProposalStore.prepareSaveProposalConfirmation(
-                    delivery.proposal_ref,
+                const proposalPayload = saveProposalStore.readSaveProposalPrivate(
+                    item.proposal_ref,
                     { actorWhatsappId: recipient }
                 );
-            if (!deferSaveProposalConfirmation &&
-                (prepared.state !== 'ready' || !prepared.confirmation_ref)) {
-                throw Object.assign(new Error('save_proposal_confirmation_not_ready'),
-                    { code: 'save_proposal_confirmation_not_ready' });
+                const expectedPrincipal = item.confirmation_principal || item.recipient;
+                if (!proposalPayload || proposalPayload.principal !== expectedPrincipal) {
+                    throw Object.assign(new Error('save_proposal_delivery_binding_mismatch'),
+                        { code: 'save_proposal_delivery_binding_mismatch' });
+                }
+                const prepared = deferSaveProposalConfirmation
+                    ? { state: 'deferred', expires_at: proposalPayload.expires_at }
+                    : saveProposalStore.prepareSaveProposalConfirmation(
+                        item.proposal_ref,
+                        { actorWhatsappId: recipient }
+                    );
+                if (!deferSaveProposalConfirmation &&
+                    (prepared.state !== 'ready' || !prepared.confirmation_ref)) {
+                    throw Object.assign(new Error('save_proposal_confirmation_not_ready'),
+                        { code: 'save_proposal_confirmation_not_ready' });
+                }
+                proposalEntries.push({
+                    delivery: item,
+                    sourceLabel,
+                    proposal: proposalPayload,
+                    proposal_ref: item.proposal_ref,
+                    confirmation_expires_at: prepared.expires_at,
+                    recipient_principal: item.recipient
+                });
+            } else if (claimed.length > 1) {
+                throw new Error('open_finance_nonproposal_delivery_batch_forbidden');
             }
-            proposalContext = {
-                proposal_ref: delivery.proposal_ref,
-                confirmation_expires_at: prepared.expires_at,
-                recipient,
-                recipient_principal: delivery.recipient
-            };
+        }
+        if (proposalEntries.length) {
+            proposalContext = proposalEntries.length === 1
+                ? {
+                    proposal_ref: proposalEntries[0].proposal_ref,
+                    confirmation_expires_at: proposalEntries[0].confirmation_expires_at,
+                    recipient,
+                    recipient_principal: delivery.recipient
+                }
+                : {
+                    proposal_items: proposalEntries.map(entry => ({
+                        proposal_ref: entry.proposal_ref,
+                        confirmation_expires_at: entry.confirmation_expires_at,
+                        recipient_principal: entry.recipient_principal
+                    })),
+                    confirmation_expires_at: proposalEntries
+                        .map(entry => entry.confirmation_expires_at)
+                        .sort()[0],
+                    recipient,
+                    recipient_principal: delivery.recipient
+                };
         }
         transportStarted = true;
         const response = await transport.sendMessage(
             recipient,
-            proposalContext
-                ? formatSaveProposalMessage(delivery, sourceLabel, proposalPayload)
-                : formatCanaryMessage(delivery, sourceLabel)
+            proposalEntries.length > 1
+                ? formatSaveProposalBatchMessage(proposalEntries)
+                : proposalContext
+                    ? formatSaveProposalMessage(
+                        delivery,
+                        proposalEntries[0].sourceLabel,
+                        proposalEntries[0].proposal
+                    )
+                    : formatCanaryMessage(delivery, sourceLabels[delivery.alias])
         );
         const messageId = response?.id?._serialized || response?.id?.id || response?.id || response?.messageId ||
             response?._data?.id?._serialized || response?._data?.id?.id;
         if (messageId) {
-            outbox.acknowledgeDelivered({ alertRef: delivery.alert_ref, leaseToken: delivery.lease_token,
-                whatsappMessageId: String(messageId), sentAt: now });
+            if (claimed.length > 1) {
+                outbox.acknowledgeDeliveredBatch({
+                    deliveries: claimed.map(item => ({
+                        alertRef: item.alert_ref,
+                        leaseToken: item.lease_token
+                    })),
+                    whatsappMessageId: String(messageId),
+                    sentAt: now
+                });
+            } else {
+                outbox.acknowledgeDelivered({ alertRef: delivery.alert_ref,
+                    leaseToken: delivery.lease_token,
+                    whatsappMessageId: String(messageId), sentAt: now });
+            }
             return { outcome: 'delivered_confirmed', alert_ref: delivery.alert_ref,
+                alert_refs: claimed.map(item => item.alert_ref),
                 ...(proposalContext || {}), transport_calls: 1, financial_writes: 0 };
         }
-        outbox.acknowledgeAccepted({ alertRef: delivery.alert_ref, leaseToken: delivery.lease_token, acceptedAt: now });
+        if (claimed.length > 1) {
+            outbox.acknowledgeAcceptedBatch({
+                deliveries: claimed.map(item => ({
+                    alertRef: item.alert_ref,
+                    leaseToken: item.lease_token
+                })),
+                acceptedAt: now
+            });
+        } else {
+            outbox.acknowledgeAccepted({ alertRef: delivery.alert_ref,
+                leaseToken: delivery.lease_token, acceptedAt: now });
+        }
         return { outcome: 'accepted_unconfirmed', alert_ref: delivery.alert_ref,
+            alert_refs: claimed.map(item => item.alert_ref),
             conversation_bindable: Boolean(proposalContext),
             ...(proposalContext || {}), transport_calls: 1, financial_writes: 0 };
     } catch (error) {
         if (transportStarted && error?.definitiveNoSend !== true) {
-            outbox.acknowledgeAccepted({ alertRef: delivery.alert_ref, leaseToken: delivery.lease_token,
-                acceptedAt: now, reasonCode: 'ambiguous_transport_failure' });
+            const leases = claimed.map(item => ({
+                alertRef: item.alert_ref,
+                leaseToken: item.lease_token
+            }));
+            if (claimed.length > 1) {
+                outbox.acknowledgeAcceptedBatch({ deliveries: leases,
+                    acceptedAt: now, reasonCode: 'ambiguous_transport_failure' });
+            } else {
+                outbox.acknowledgeAccepted({ alertRef: delivery.alert_ref,
+                    leaseToken: delivery.lease_token,
+                    acceptedAt: now, reasonCode: 'ambiguous_transport_failure' });
+            }
             return { outcome: 'accepted_unconfirmed', reason: 'ambiguous_delivery',
                 conversation_bindable: false,
                 ...(proposalContext || {}), transport_calls: 1, financial_writes: 0 };
         }
-        outbox.releaseFailed({ alertRef: delivery.alert_ref, leaseToken: delivery.lease_token,
-            errorCode: /^[a-z0-9_]{2,48}$/.test(String(error.code || '')) ? error.code : 'transport_error' });
+        const errorCode = /^[a-z0-9_]{2,48}$/.test(String(error.code || ''))
+            ? error.code
+            : 'transport_error';
+        if (claimed.length > 1) {
+            outbox.releaseFailedBatch({
+                deliveries: claimed.map(item => ({
+                    alertRef: item.alert_ref,
+                    leaseToken: item.lease_token
+                })),
+                errorCode
+            });
+        } else {
+            outbox.releaseFailed({ alertRef: delivery.alert_ref,
+                leaseToken: delivery.lease_token, errorCode });
+        }
         return { outcome: 'retry', reason: 'delivery_failed', transport_calls: transportStarted ? 1 : 0, financial_writes: 0 };
     }
 }
 
-module.exports = { deliverOneOpenFinanceCanary, formatCanaryMessage, formatSaveProposalMessage };
+module.exports = {
+    deliverOneOpenFinanceCanary,
+    formatCanaryMessage,
+    formatSaveProposalMessage,
+    formatSaveProposalBatchMessage
+};

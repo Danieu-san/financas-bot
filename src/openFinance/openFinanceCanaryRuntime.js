@@ -118,7 +118,20 @@ function bindOpenFinanceProposalConversation({
     excludedRecipients,
     now = Date.now()
 } = {}) {
-    if (!delivery?.proposal_ref) return false;
+    const proposalItems = Array.isArray(delivery?.proposal_items)
+        ? delivery.proposal_items
+        : delivery?.proposal_ref
+            ? [{
+                proposal_ref: delivery.proposal_ref,
+                confirmation_expires_at: delivery.confirmation_expires_at,
+                recipient_principal: delivery.recipient_principal
+            }]
+            : [];
+    if (!proposalItems.length) return false;
+    if (proposalItems.length > 4 || proposalItems.some(item =>
+        !/^[a-f0-9]{32}$/.test(String(item?.proposal_ref || '')))) {
+        throw new Error('invalid_open_finance_delivery_proposal_batch');
+    }
     const transportMayHaveSent = delivery.outcome === 'delivered_confirmed' ||
         delivery.outcome === 'accepted_unconfirmed';
     if (!transportMayHaveSent) return false;
@@ -137,20 +150,35 @@ function bindOpenFinanceProposalConversation({
     if (!stateManager || typeof stateManager.setState !== 'function') {
         throw new Error('open_finance_conversation_binding_dependencies_required');
     }
-    const expiresAt = Date.parse(delivery.confirmation_expires_at);
+    const expiryTimes = proposalItems.map(item =>
+        Date.parse(item.confirmation_expires_at || delivery.confirmation_expires_at));
+    const expiresAt = Math.min(...expiryTimes);
     const nowMs = typeof now === 'number' ? now : Date.parse(String(now));
     if (!Number.isFinite(expiresAt) || !Number.isFinite(nowMs) || expiresAt <= nowMs) {
         return false;
     }
     const ttlSeconds = Math.max(1, Math.floor((expiresAt - nowMs) / 1000));
-    stateManager.setState(delivery.recipient, {
-        action: 'awaiting_open_finance_save_confirmation',
-        data: {
-            proposalRef: delivery.proposal_ref,
-            expiresAt: delivery.confirmation_expires_at,
-            recipientPrincipal
+    const expiresAtIso = new Date(expiresAt).toISOString();
+    stateManager.setState(delivery.recipient, proposalItems.length === 1
+        ? {
+            action: 'awaiting_open_finance_save_confirmation',
+            data: {
+                proposalRef: proposalItems[0].proposal_ref,
+                expiresAt: expiresAtIso,
+                recipientPrincipal
+            }
         }
-    }, ttlSeconds);
+        : {
+            action: 'awaiting_open_finance_save_selection',
+            data: {
+                proposals: proposalItems.map((item, index) => ({
+                    number: index + 1,
+                    proposalRef: item.proposal_ref,
+                    recipientPrincipal
+                })),
+                expiresAt: expiresAtIso
+            }
+        }, ttlSeconds);
     return true;
 }
 async function runOpenFinanceCanaryCycle({ client, env = process.env, dependencies = {} } = {}) {
@@ -350,6 +378,10 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
                 5,
                 Math.max(1, Number(env.OPEN_FINANCE_ALERT_MAX_PER_RUN) || 2)
             );
+            const proposalBatchSize = proposalMode === 'prompt'
+                ? Math.min(4, Math.max(1,
+                    Number(env.OPEN_FINANCE_SAVE_PROPOSAL_BATCH_SIZE) || 4))
+                : 1;
             const max = sharedFamilyAlerts
                 ? Math.min(4, Math.max(2, requestedMax + (requestedMax % 2)))
                 : requestedMax;
@@ -359,6 +391,7 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
                     recipientResolver: owner => resolveWhatsAppRecipient(owner, activeUsers),
                     saveProposalStore: proposalStore,
                     proposalMode,
+                    proposalBatchSize,
                     deferSaveProposalConfirmation: sharedFamilyAlerts,
                     excludedRecipients: [...excludedRecipients],
                     sourceLabels: { daniel_nubank: 'Nubank Daniel', thais_nubank: 'Nubank Thais',

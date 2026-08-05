@@ -1212,6 +1212,36 @@ class OpenFinanceShadowPreviewStore {
         };
     }
 
+    prepareSaveProposalConfirmations(proposalRefs, { actorWhatsappId } = {}) {
+        this.#requireAuthorizedActor(actorWhatsappId);
+        if (!Array.isArray(proposalRefs) || proposalRefs.length < 1 ||
+            proposalRefs.length > 4) {
+            throw new Error('valid_save_proposal_batch_required');
+        }
+        const normalized = proposalRefs.map(value => String(value || ''));
+        if (new Set(normalized).size !== normalized.length || normalized.some(value =>
+            !/^[a-f0-9]{32}$/.test(value))) {
+            throw new Error('valid_save_proposal_batch_required');
+        }
+        const confirmations = this.db.transaction(() => normalized.map(proposalRef => {
+            const prepared = this.prepareSaveProposalConfirmation(
+                proposalRef,
+                { actorWhatsappId }
+            );
+            if (!['ready', 'accepted'].includes(prepared.state) ||
+                (prepared.state === 'ready' && !prepared.confirmation_ref)) {
+                throw new Error('save_proposal_batch_not_ready');
+            }
+            return prepared;
+        }))();
+        return {
+            confirmations,
+            expires_at: confirmations.map(item => item.expires_at)
+                .filter(Boolean).sort()[0] || null,
+            financial_writes: 0
+        };
+    }
+
     listReadySaveProposalConfirmations({ actorWhatsappId, limit = 100 } = {}) {
         this.#requireAuthorizedActor(actorWhatsappId);
         if (!Number.isInteger(limit) || limit < 1 || limit > 100) {

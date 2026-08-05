@@ -319,10 +319,23 @@ LOCAL` independente. O auditor confirmou o fechamento integral das duas causas,
 sem achado remanescente ou lacuna indispensavel no alcance read-only. Registro:
 `docs/audit/149-open-finance-historical-ambiguity-reconciliation-independent-close-2026-08-05.md`.
 
-A proxima acao e especificar o gate sucessor do fluxo numerico de salvamento,
-sem misturar o RX historico iniciado em 2025-07-01 com o corte operacional de
-alertas em 2026-07-28 e sem ativar flags, deploy ou producao.
+O gate 32 implementa o fluxo numerico de salvamento sem misturar o RX historico
+iniciado em 2025-07-01 com o corte operacional de alertas em 2026-07-28. Um
+destinatario recebe ate quatro compras elegiveis numa mensagem e pode responder
+`salvar 1`, `salvar 1 e 3` ou `salvar todas`; uma proposta isolada preserva
+`sim`. A selecao reserva o item para o primeiro conjuge e cria somente uma fila
+de revisoes individuais. Transporte, reserva e replay foram provados atomicos e
+fail-closed, inclusive apos reabertura e falha ambigua, sempre com
+`financial_writes=0`.
+
+A bateria causal passou 214/214. A suite hermetica ampla final executou 1.530
+testes, aprovou 1.520, falhou zero e manteve 10 skips conhecidos; cobertura de
+linhas 90,75%, branches 73,39% e funcoes 90,51%. Manifesto:
+`docs/audit/150-open-finance-numeric-save-flow-candidate-2026-08-05.md`.
+
+O estado maximo e candidato local aguardando auditoria independente por hash
+imutavel. Nao ativar flags, nao fazer deploy e nao usar producao neste gate.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> especificar e testar o gate sucessor do fluxo numerico.`
+`Codex -> Sol -> Alto -> auditar o gate 32 por hash imutavel e confrontar o veredito.`
