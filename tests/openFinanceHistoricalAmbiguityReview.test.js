@@ -13,6 +13,10 @@ const {
     handleOpenFinanceHistoricalAmbiguityReviewReply,
     readOpenFinanceHistoricalAmbiguityReviewPrivate
 } = require('../src/openFinance/openFinanceHistoricalAmbiguityReview');
+const {
+    CANONICAL_HISTORICAL_RX_INVENTORY,
+    buildOpenFinanceHistoricalRx
+} = require('../src/openFinance/openFinanceHistoricalRx');
 
 const SECRET = 'historical-ambiguity-review-secret-2026';
 const DANIEL = '5511999999999@c.us';
@@ -250,7 +254,14 @@ test('fails closed for outsider, tampering, expiry and RX without supported ambi
     assert.throws(() => buildOpenFinanceHistoricalAmbiguityReview({
         ...clean, secret: SECRET, familyScope: 'family',
         authorizedWhatsAppIds: [DANIEL, THAIS]
-    }), /supported_ambiguity_required/);
+    }), /private_evidence_mismatch/);
+    const invented = fixture();
+    invented.items[0].transactions = invented.items[0].transactions.filter(transaction =>
+        transaction.id !== 'installment-private-b' && transaction.id !== 'investment-private-a');
+    assert.throws(() => buildOpenFinanceHistoricalAmbiguityReview({
+        ...invented, secret: SECRET, familyScope: 'family',
+        authorizedWhatsAppIds: [DANIEL, THAIS]
+    }), /private_evidence_mismatch/);
     assert.throws(() => buildOpenFinanceHistoricalAmbiguityReview({
         ...fixture(), secret: SECRET, familyScope: 'family',
         authorizedWhatsAppIds: [DANIEL, THAIS, 'third-person@c.us']
@@ -284,6 +295,93 @@ test('paginates four review items independently of the two authorized deliveries
     assert.equal((next.reply.match(/^\d+\./gm) || []).length, 3);
     assert.match(next.reply, /Página 2 de 2/i);
     assert.equal(next.financial_writes, 0);
+
+    const thaisFirstPage = handleOpenFinanceHistoricalAmbiguityReviewReply({
+        sealedState: next.sealed_state, secret: SECRET,
+        actorWhatsappId: THAIS, body: '1'
+    });
+    assert.match(thaisFirstPage.reply, /Parcela com identidade duplicada/i);
+    const danielSecondPage = handleOpenFinanceHistoricalAmbiguityReviewReply({
+        sealedState: thaisFirstPage.sealed_state, secret: SECRET,
+        actorWhatsappId: DANIEL, body: '1'
+    });
+    assert.match(danielSecondPage.reply, /Movimento de investimento sem natureza definida/i);
+});
+
+test('keeps a stale selection long enough to prevent a number from being reinterpreted', () => {
+    const built = buildOpenFinanceHistoricalAmbiguityReview({
+        ...fixture(), secret: SECRET, familyScope: 'family',
+        authorizedWhatsAppIds: [DANIEL, THAIS]
+    });
+    const danielSelected = handleOpenFinanceHistoricalAmbiguityReviewReply({
+        sealedState: built.sealed_state, secret: SECRET,
+        actorWhatsappId: DANIEL, body: '1'
+    });
+    const bothSelected = handleOpenFinanceHistoricalAmbiguityReviewReply({
+        sealedState: danielSelected.sealed_state, secret: SECRET,
+        actorWhatsappId: THAIS, body: '1'
+    });
+    const danielResolved = handleOpenFinanceHistoricalAmbiguityReviewReply({
+        sealedState: bothSelected.sealed_state, secret: SECRET,
+        actorWhatsappId: DANIEL, body: '2'
+    });
+    const thaisStaleReply = handleOpenFinanceHistoricalAmbiguityReviewReply({
+        sealedState: danielResolved.sealed_state, secret: SECRET,
+        actorWhatsappId: THAIS, body: '2'
+    });
+    assert.equal(thaisStaleReply.state, 'awaiting_item_number');
+    assert.match(thaisStaleReply.reply, /já foi resolvido pelo outro membro/i);
+    assert.equal(thaisStaleReply.pending_count, 1);
+    assert.equal(thaisStaleReply.financial_writes, 0);
+});
+
+test('accepts the real RX builder output and derives the same two private ambiguities', () => {
+    const ownerByAlias = {
+        daniel_nubank: 'daniel', thais_nubank: 'thais',
+        thais_itau: 'thais', cristina_nubank: 'thais'
+    };
+    const items = Object.entries(ownerByAlias).map(([alias, ownerScope]) => ({
+        id: `item-${alias}`, alias_code: alias, owner_scope: ownerScope,
+        availability: {
+            accounts: 'available', transactions: 'available', bills: 'available',
+            investments: 'available', investment_transactions: 'available'
+        },
+        accounts: [
+            { id: `${alias}-bank`, type: 'BANK', subtype: 'CHECKING_ACCOUNT', currency: 'BRL', balance_cents: 0 },
+            { id: `${alias}-card`, type: 'CREDIT', subtype: 'CREDIT_CARD', currency: 'BRL', balance_cents: 0,
+                credit_limit_cents: 0, available_credit_limit_cents: 0, used_limit_cents: 0 }
+        ],
+        transactions: [], bills: [], investments: []
+    }));
+    items.find(item => item.alias_code === 'thais_itau').accounts.push({
+        id: 'thais_itau-savings', type: 'BANK', subtype: 'SAVINGS_ACCOUNT',
+        currency: 'BRL', balance_cents: 0
+    });
+    const daniel = items.find(item => item.alias_code === 'daniel_nubank');
+    daniel.transactions.push(
+        { id: 'real-rx-installment-a', account_id: 'daniel_nubank-card', description: 'Serie sintetica',
+            original_date: '2025-07-10', date: '2025-08-10T12:00:00.000Z', amount_cents: 5000,
+            installment_number: 2, total_installments: 3, status: 'POSTED' },
+        { id: 'real-rx-installment-b', account_id: 'daniel_nubank-card', description: 'Serie sintetica',
+            original_date: '2025-07-10', date: '2025-08-11T12:00:00.000Z', amount_cents: 5000,
+            installment_number: 2, total_installments: 3, status: 'POSTED' },
+        { id: 'real-rx-investment', account_id: 'daniel_nubank-bank', description: 'Operacao sintetica',
+            date: '2025-08-12T12:00:00.000Z', amount_cents: -2000,
+            operation_type: 'INVESTIMENTO', status: 'POSTED' }
+    );
+    const sourceLifecycles = Object.fromEntries(Object.keys(ownerByAlias)
+        .map(alias => [alias, { existedAtHistoryStart: true }]));
+    const historicalRx = buildOpenFinanceHistoricalRx({
+        items, historyStartDate: '2025-07-01', observedAt: '2026-08-05T12:00:00.000Z',
+        secret: SECRET, sourceLifecycles,
+        expectedInventory: structuredClone(CANONICAL_HISTORICAL_RX_INVENTORY)
+    });
+    const built = buildOpenFinanceHistoricalAmbiguityReview({
+        items, historicalRx, secret: SECRET, familyScope: 'family',
+        authorizedWhatsAppIds: [DANIEL, THAIS]
+    });
+    assert.equal(built.pending_count, 2);
+    assert.equal(built.financial_writes, 0);
 });
 
 test('persists one shared encrypted family decision across restart and never stores private text in plaintext', () => {

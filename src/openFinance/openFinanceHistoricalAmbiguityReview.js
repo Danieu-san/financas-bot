@@ -109,6 +109,7 @@ function openState(sealedState, secret) {
             || !Array.isArray(state.items) || !Array.isArray(state.authorized_actor_refs)
             || !state.selected_item_refs || typeof state.selected_item_refs !== 'object'
             || Array.isArray(state.selected_item_refs)
+            || !state.pages || typeof state.pages !== 'object' || Array.isArray(state.pages)
             || !['pending', 'reviewed'].includes(state.status)
             || state.financial_writes !== 0) {
             throw new Error('invalid_payload');
@@ -202,19 +203,63 @@ function isAmbiguousInvestment(transaction) {
         || (operation.semantic === 'investment_income' && amount <= 0);
 }
 
+function derivePrivateInstallmentAmbiguities(rows, sourceAlias, accountId, secret) {
+    const groups = new Map();
+    for (const transaction of rows) {
+        const installmentNumber = Number(transaction.installment_number);
+        const totalInstallments = Number(transaction.total_installments);
+        if (!Number.isInteger(installmentNumber) || !Number.isInteger(totalInstallments)
+            || totalInstallments <= 1) continue;
+        const grouping = historicalRxInstallmentGrouping(transaction);
+        const seriesRef = historicalRef(secret, 'historical_rx_installment',
+            `${sourceAlias}:${accountId}:${grouping.basis}`);
+        if (!groups.has(seriesRef)) groups.set(seriesRef, new Map());
+        const counts = groups.get(seriesRef);
+        counts.set(installmentNumber, (counts.get(installmentNumber) || 0) + 1);
+    }
+    return [...groups.entries()].map(([seriesRef, counts]) => ({
+        series_ref: seriesRef,
+        duplicate_numbers: [...counts.entries()]
+            .filter(([, count]) => count > 1)
+            .map(([number]) => number)
+            .sort((left, right) => left - right)
+    })).filter(series => series.duplicate_numbers.length)
+        .sort((left, right) => left.series_ref.localeCompare(right.series_ref));
+}
+
+function normalizeReportedInstallmentAmbiguities(series = []) {
+    return series.filter(entry => entry?.identity_status === 'ambiguous_duplicate_installment_number')
+        .map(entry => ({
+            series_ref: String(entry.series_ref || ''),
+            duplicate_numbers: [...new Set((entry.duplicate_numbers || []).map(Number))]
+                .sort((left, right) => left - right)
+        }))
+        .sort((left, right) => left.series_ref.localeCompare(right.series_ref));
+}
+
 function buildItems({ items, historicalRx, secret }) {
     const reviewItems = [];
     const observedBlockers = new Set();
+    const privateSegmentRefs = items.flatMap(source => {
+        const sourceAlias = String(source?.alias_code || '').trim().toLowerCase();
+        return (source.accounts || []).map(account =>
+            historicalRef(secret, 'historical_rx_segment', `${sourceAlias}:${account.id}`));
+    }).sort();
+    const reportedSegmentRefs = (historicalRx.segments || [])
+        .map(segment => String(segment?.segment_ref || '')).sort();
+    if (JSON.stringify(privateSegmentRefs) !== JSON.stringify(reportedSegmentRefs)) {
+        throw new Error('open_finance_historical_ambiguity_review_private_evidence_mismatch');
+    }
     for (const segment of historicalRx.segments || []) {
         const sourceAlias = String(segment?.source_alias || '').trim().toLowerCase();
         const segmentRef = String(segment?.segment_ref || '');
         if (!sourceAlias || !segmentRef) {
             throw new Error('open_finance_historical_ambiguity_review_segment_invalid');
         }
-        const ambiguousSeries = (segment.installments?.series || []).filter(series =>
-            series?.identity_status === 'ambiguous_duplicate_installment_number');
+        const ambiguousSeries = normalizeReportedInstallmentAmbiguities(
+            segment.installments?.series || []
+        );
         const investmentCount = Number(segment.investment_movements?.semantically_ambiguous_count || 0);
-        if (!ambiguousSeries.length && !investmentCount) continue;
         const { source, account } = itemBySegment(items, sourceAlias, segmentRef, secret);
         const lowerBound = [historicalRx.history_start_date, segment.account_available_from]
             .filter(Boolean).sort().at(-1);
@@ -222,6 +267,15 @@ function buildItems({ items, historicalRx, secret }) {
             if (String(transaction.account_id || '') !== String(account.id || '')) return false;
             return !lowerBound || String(transaction.date || '').slice(0, 10) >= lowerBound;
         });
+        const privateAmbiguousSeries = derivePrivateInstallmentAmbiguities(
+            rows, sourceAlias, account.id, secret
+        );
+        const privateAmbiguousInvestmentRows = rows.filter(isAmbiguousInvestment);
+        if (JSON.stringify(privateAmbiguousSeries) !== JSON.stringify(ambiguousSeries)
+            || privateAmbiguousInvestmentRows.length !== investmentCount) {
+            throw new Error('open_finance_historical_ambiguity_review_private_evidence_mismatch');
+        }
+        if (!ambiguousSeries.length && !investmentCount) continue;
 
         for (const series of ambiguousSeries) {
             observedBlockers.add(`${sourceAlias}:installment_series_ambiguous`);
@@ -258,7 +312,7 @@ function buildItems({ items, historicalRx, secret }) {
 
         if (investmentCount) {
             observedBlockers.add(`${sourceAlias}:investment_movement_semantics_ambiguous`);
-            const ambiguousRows = rows.filter(isAmbiguousInvestment);
+            const ambiguousRows = privateAmbiguousInvestmentRows;
             if (ambiguousRows.length !== investmentCount) {
                 throw new Error('open_finance_historical_ambiguity_review_investment_evidence_mismatch');
             }
@@ -290,19 +344,21 @@ function pendingItems(state) {
     return state.items.filter(item => !item.decision);
 }
 
-function formatInbox(state, prefix = '') {
+function formatInbox(state, prefix = '', actor = null) {
     const pending = pendingItems(state);
     if (!pending.length) {
         return `${prefix}Revisão concluída. Nenhum lançamento foi salvo.`.trim();
     }
     const pageCount = Math.max(1, Math.ceil(pending.length / PAGE_SIZE));
-    state.page = Math.min(Math.max(Number(state.page) || 0, 0), pageCount - 1);
-    const pageItems = pending.slice(state.page * PAGE_SIZE, (state.page + 1) * PAGE_SIZE);
+    const requestedPage = actor ? state.pages[actor] : 0;
+    const page = Math.min(Math.max(Number(requestedPage) || 0, 0), pageCount - 1);
+    if (actor) state.pages[actor] = page;
+    const pageItems = pending.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
     const lines = [prefix, `Ambiguidades pendentes (${pending.length}):`]
         .filter(Boolean);
     pageItems.forEach((item, index) => lines.push(`${index + 1}. ${item.title}`));
     if (pageCount > 1) {
-        lines.push(`Página ${state.page + 1} de ${pageCount}. Envie *mais* ou *anteriores* para navegar.`);
+        lines.push(`Página ${page + 1} de ${pageCount}. Envie *mais* ou *anteriores* para navegar.`);
     }
     lines.push('Responda com o número do item que deseja revisar. “Sim” não resolve ambiguidades.');
     lines.push('Nada foi salvo.');
@@ -358,7 +414,7 @@ function buildOpenFinanceHistoricalAmbiguityReview({
         family_scope_ref: hmac(safeSecret, `family:${String(familyScope || 'shared-family')}`),
         authorized_actor_refs: uniqueActors.sort(),
         status: 'pending',
-        page: 0,
+        pages: {},
         selected_item_refs: {},
         created_at: createdAt,
         updated_at: createdAt,
@@ -427,13 +483,17 @@ function handleOpenFinanceHistoricalAmbiguityReviewReply({
     const selectedItemRef = state.selected_item_refs[decidingActorRef] || null;
     if (!selectedItemRef) {
         const pageCount = Math.max(1, Math.ceil(pending.length / PAGE_SIZE));
+        const actorPage = Math.min(
+            Math.max(Number(state.pages[decidingActorRef]) || 0, 0),
+            pageCount - 1
+        );
         if (reply === 'mais') {
-            state.page = Math.min((Number(state.page) || 0) + 1, pageCount - 1);
+            state.pages[decidingActorRef] = Math.min(actorPage + 1, pageCount - 1);
         } else if (reply === 'anteriores') {
-            state.page = Math.max((Number(state.page) || 0) - 1, 0);
+            state.pages[decidingActorRef] = Math.max(actorPage - 1, 0);
         } else if (/^\d+$/.test(reply)) {
             const index = Number(reply) - 1;
-            const pageItems = pending.slice(state.page * PAGE_SIZE, (state.page + 1) * PAGE_SIZE);
+            const pageItems = pending.slice(actorPage * PAGE_SIZE, (actorPage + 1) * PAGE_SIZE);
             const selected = pageItems[index];
             if (selected) {
                 state.selected_item_refs[decidingActorRef] = selected.item_ref;
@@ -456,7 +516,7 @@ function handleOpenFinanceHistoricalAmbiguityReviewReply({
             handled: true,
             state: 'awaiting_item_number',
             pending_count: pending.length,
-            reply: formatInbox(state, prefix),
+            reply: formatInbox(state, prefix, decidingActorRef),
             sealed_state: sealState(state, safeSecret),
             financial_writes: 0
         };
@@ -470,7 +530,8 @@ function handleOpenFinanceHistoricalAmbiguityReviewReply({
             handled: true,
             state: 'awaiting_item_number',
             pending_count: pending.length,
-            reply: formatInbox(state, 'Esse item já foi resolvido pelo outro membro do casal.\n'),
+            reply: formatInbox(state,
+                'Esse item já foi resolvido pelo outro membro do casal.\n', decidingActorRef),
             sealed_state: sealState(state, safeSecret),
             financial_writes: 0
         };
@@ -482,7 +543,7 @@ function handleOpenFinanceHistoricalAmbiguityReviewReply({
             handled: true,
             state: 'awaiting_item_number',
             pending_count: pending.length,
-            reply: formatInbox(state),
+            reply: formatInbox(state, '', decidingActorRef),
             sealed_state: sealState(state, safeSecret),
             financial_writes: 0
         };
@@ -506,16 +567,14 @@ function handleOpenFinanceHistoricalAmbiguityReviewReply({
         actor_ref: decidingActorRef,
         decided_at: timestamp
     };
-    for (const [actor, itemRef] of Object.entries(state.selected_item_refs)) {
-        if (itemRef === selected.item_ref) delete state.selected_item_refs[actor];
-    }
-    state.page = 0;
+    delete state.selected_item_refs[decidingActorRef];
+    state.pages[decidingActorRef] = 0;
     state.updated_at = timestamp;
     const remaining = pendingItems(state);
     if (!remaining.length) state.status = 'reviewed';
     const responseText = state.status === 'reviewed'
         ? 'Decisão familiar registrada. Revisão concluída. Nenhum lançamento foi salvo.'
-        : formatInbox(state, 'Decisão familiar registrada.\n');
+        : formatInbox(state, 'Decisão familiar registrada.\n', decidingActorRef);
     return {
         handled: true,
         state: state.status === 'reviewed' ? 'reviewed' : 'awaiting_item_number',
