@@ -392,3 +392,34 @@ iniciado ou autorizado por este registro.
 ## Capacidade
 
 `Codex -> Sol -> Alto -> implementar a fronteira RED causal do gate 33 sem acessar producao.`
+
+## Handoff portatil - 2026-08-05
+
+- objetivo ativo: iniciar a fronteira RED causal de
+  `OF-NUMERIC-SAVE-RELEASE-01` (gate 33);
+- commit de partida do gate 33:
+  `9b36cc95935ca0e7c546e525f2aa10fc46d50859`;
+- ultimo HEAD publicado antes deste checkpoint:
+  `6bbe49ac2132a394477c65b7fee936c4ce9e5c83`;
+- concluido: gate 32 com GO tecnico local independente, charter do gate 33 e
+  ordem formal dos gates 34 a 38;
+- trabalho parcial: nenhum codigo ou teste RED do gate 33 foi iniciado;
+- decisao vigente: provar primeiro cutoff, backlog, compatibilidade de estado,
+  restart e rollback em ambiente local/copia consistente;
+- risco principal: ressuscitar proposta anterior a `2026-07-28` ou misturar
+  estado individual legado com lote numerico;
+- ultima evidencia confiavel de produto: gate 32 com focal 12/12, causal
+  171/171 e suite hermetica 1.530 total, 1.520 aprovados, zero falhas e 10
+  skips; nenhuma mudanca causal posterior;
+- mudancas posteriores: somente documentacao dos gates 33 a 38 e deste
+  checkpoint;
+- arquivos alheios: nenhum arquivo sujo observado na raiz canonica antes do
+  checkpoint;
+- autorizacoes externas: commit/push e handoff portatil autorizados; deploy,
+  flags, producao, Pluggy/Sheets/WhatsApp reais nao autorizados por este gate;
+- proxima acao: criar a prova RED local do gate 33;
+- capacidade de retomada: `Codex -> Sol -> Alto`.
+
+O HEAD exato resultante e a raiz portatil nova devem ser obtidos de
+`Trabalho Codex no outro PC/OPEN-THIS.json`; esse ponteiro prevalece sobre
+qualquer copia antiga do SSD.
