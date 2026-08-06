@@ -355,10 +355,18 @@ skips conhecidos; cobertura de linhas 90,78%, branches 73,45% e funcoes
 Manifesto:
 `docs/audit/151-open-finance-numeric-save-flow-durable-queue-recovery-candidate-2026-08-05.md`.
 
-O estado maximo volta a ser recovery candidato aguardando reauditoria em novo
-hash. Flags, deploy, Pluggy/Sheets/WhatsApp reais e producao permanecem fora do
-escopo.
+O recovery foi publicado no hash
+`1d233aecdf5b810a364f0d8c3202e18b0ff36aa9` e recebeu `GO TECNICO LOCAL`
+independente. O auditor confirmou a persistencia cifrada imediata da fila, a
+retomada pela entrada publica depois de reabrir o estado do disco e o rollback
+integral dos caminhos ACK, `accepted_unconfirmed` e `release`. Achados
+residuais: CRITICAL 0, HIGH 0, MEDIUM 0 e LOW 0; nenhuma lacuna indispensavel.
+Registro:
+`docs/audit/152-open-finance-numeric-save-flow-independent-close-2026-08-05.md`.
+
+O gate 32 esta encerrado somente no alcance tecnico local. Flags, deploy,
+Pluggy/Sheets/WhatsApp reais e producao permanecem fora do escopo.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> publicar e reauditar o recovery duravel do gate 32 por hash imutavel.`
+`Codex -> Sol -> Medio -> especificar o gate sucessor do fluxo numerico sem ativar flags ou producao.`

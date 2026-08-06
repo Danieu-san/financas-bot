@@ -119,7 +119,7 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
     read-only, recalcular blockers/elegibilidade sem inferir identidade e provar
     replay, restart, conflito familiar e `financial_writes=0`. Nao criar ainda
     proposta de salvamento nem ativar `prompt`.
-32. [NO-GO independente; recovery duravel concluido localmente] Substituir a colisao de propostas individuais pelo fluxo
+32. [concluida com GO tecnico local independente] Substituir a colisao de propostas individuais pelo fluxo
     numerico de salvamento. Cada destinatario recebe um unico lote de ate quatro
     transacoes elegiveis; o fan-out do mesmo lote para Daniel e Thais nao reduz
     esse limite. Um lote aceita `salvar 1`, `salvar 1 e 3` e `salvar todas`; `sim`
@@ -166,7 +166,9 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 
 ## Proxima acao
 
-32. [em reauditoria] Publicar o recovery da fila duravel, auditar o novo hash e
-fechar somente o gate tecnico local se todas as severidades e a lacuna
-indispensavel ficarem zeradas. O gate sucessor, qualquer ativacao de `prompt`,
-deploy ou producao permanecem fora deste fechamento.
+32. [concluida com GO tecnico local independente] O recovery publicado em
+`1d233aecdf5b810a364f0d8c3202e18b0ff36aa9` fechou a durabilidade da fila e as
+provas de rollback. A reauditoria zerou todas as severidades e nao encontrou
+lacuna indispensavel. O gate sucessor, qualquer ativacao de `prompt`, deploy ou
+producao permanecem fora deste fechamento e devem ser especificados
+separadamente.
