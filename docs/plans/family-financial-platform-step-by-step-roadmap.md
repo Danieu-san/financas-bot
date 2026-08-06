@@ -1523,5 +1523,25 @@ revalidacao contra a fonte, confirmacao, idempotencia, recuperacao, revogacao e
 zero escrita em correspondencia/ambiguidade. Ele nao autoriza escrita automatica
 nem altera `OPEN_FINANCE_WRITE_MODE=off`.
 
+### Fila operacional posterior - fluxo proativo e RX historico
+
+A evolucao posterior fica dividida em gates independentes e ordenados:
+
+1. `OF-NUMERIC-SAVE-RELEASE-01` (gate 33): preflight local de cutoff, estado,
+   restart e rollback do fluxo numerico, sem deploy;
+2. gate 34: deploy OCI e smoke do lote numerico de compras com `write=off`;
+3. gate 35: revisao humana das ambiguidades remanescentes e recalculo do RX
+   historico, preservando como bloqueado tudo que nao tiver evidencia;
+4. gate 36: tratamento proativo de estornos e entradas, sem confundi-los com
+   transferencia interna;
+5. gate 37: transferencias entre contas e movimentos de reserva/Caixinha,
+   preservando neutralidade patrimonial;
+6. gate 38: escrita gradual por classe, iniciando por compra e exigindo para
+   cada classe GO proprio, segunda confirmacao, idempotencia, recibo e rollback.
+
+Um gate concluido nao ativa automaticamente o seguinte. Expansao de classe,
+mudanca de flag, deploy e escrita continuam exigindo evidencia e autorizacao
+correspondentes.
+
 Nao ha nova fase estrutural autorizada depois da 9F. O trabalho ativo volta a
 ser observacao da Fase 8 e operacao/manutencao do produto.

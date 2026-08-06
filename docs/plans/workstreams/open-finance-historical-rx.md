@@ -1,13 +1,12 @@
-# Plano - RX historico segmentado Open Finance
+# Plano - RX historico e evolucao operacional Open Finance
 
-Status: `ligacao por posicao fechada; previa privada NO_GO com dois blockers`.
+Status: `gate 32 fechado; gate 33 especificado; gates 34 a 38 ordenados`.
 
 ## Objetivo
 
-Gerar um preview privado e agregado da vida financeira observavel pelo Pluggy a
-partir de `2025-07-01`, preservando semantica, origem, tipo de produto e
-titularidade, sem misturar esse inicio historico com o corte de alertas de
-`2026-07-28`.
+Concluir o RX privado iniciado em `2025-07-01` e evoluir, em gates separados, o
+fluxo proativo familiar a partir do corte operacional de `2026-07-28`, sem
+misturar historico, alertas, propostas e escrita financeira.
 
 ## Escopo
 
@@ -17,16 +16,19 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
 - inventario externo exato de quatro fontes e nove segmentos;
 - saldo bancario reconstruido de forma condicional;
 - faturas, limites, parcelas e investimentos em blocos distintos;
-- relatorio fora do repositorio e zero escrita financeira.
+- relatorio fora do repositorio e zero escrita financeira durante o RX;
+- fluxo numerico de compras e sua promocao operacional controlada;
+- tratamento proativo posterior de estornos, entradas e transferencias;
+- ativacao de escrita somente em gate final, por classe previamente aprovada.
 
 ## Nao escopo
 
 - mutacao de Sheets, ledger, Pluggy ou producao;
 - exclusao de dados de teste;
-- salvamento numerico de movimentacoes;
 - reconciliacao definitiva sem conferencia humana;
 - sintetizar saldo, parcela, fatura, titularidade ou existencia ausente;
-- alterar o corte operacional de alertas neste gate.
+- alterar retroativamente o corte operacional;
+- habilitar uma classe financeira por efeito automatico de outro gate.
 
 ## Etapas
 
@@ -136,6 +138,32 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
     `accepted_unconfirmed`, estados individuais preexistentes, restart e
     rollback do artefato. O charter e
     `docs/plans/workstreams/open-finance-numeric-save-release.md`.
+34. [planejada; depende do GO do gate 33] Promover o fluxo numerico de compras
+    na OCI por artefato imutavel e executar smoke com Daniel presente. Manter
+    proposta em `prompt`, escrita `off`, aprovacao falsa e `confirm` bloqueado;
+    provar lotes independentes nos dois telefones, cutoff, processo unico,
+    health e rollback sem ressuscitar backlog.
+35. [planejada; depende do gate 34] Concluir o RX historico por revisao humana
+    das ambiguidades remanescentes. Ativar de forma controlada a revisao
+    numerada, consumir decisoes duraveis, recalcular o RX e separar: resolvido,
+    ainda ambiguo por falta de evidencia e inelegivel. Parcela e investimento
+    nunca sao saneados por inferencia; o resultado pode permanecer NO_GO
+    parcial sem bloquear classes independentes.
+36. [planejada; depende do gate 35] Acrescentar tratamento proativo de estornos
+    e entradas. Estorno exige vinculo forte com a compra quando esse vinculo for
+    necessario para a semantica; entrada genuina exige reconciliacao com o
+    ledger. Nenhum deles pode absorver transferencia interna, rendimento de
+    reserva sem evidencia ou duplicidade. Primeiro prompt/revisao, sem escrita.
+37. [planejada; depende do gate 36] Tratar transferencias e reservas
+    patrimoniais. Parear pontas somente por identidade forte e escopo de contas;
+    aplicacao/resgate de Caixinha nao vira receita ou despesa, rendimento
+    continua ganho e transferencia nao pareada permanece alertavel/revisavel,
+    nunca classificada por descricao. Primeiro prompt/revisao, sem escrita.
+38. [planejada; depende dos GOs das classes anteriores] Ativar escrita
+    financeira de modo gradual. Comecar por compra; cada classe adicional entra
+    somente depois do proprio GO. Exigir segunda confirmacao, revalidacao,
+    idempotencia, recibo, restart, revogacao e rollback para `write=off`, com
+    auditoria independente e smoke real separados por classe.
 
 ## Criterios de GO
 
@@ -182,3 +210,7 @@ separadamente.
 33. [proxima] Implementar primeiro a prova RED do preflight de compatibilidade
 e release, sempre sobre fixtures ou copia consistente e sem acesso remoto. Nao
 ativar flags, nao executar polling real e nao fazer deploy.
+
+Depois do GO independente do gate 33, seguir estritamente 34 -> 35 -> 36 -> 37
+-> 38. Nenhum GO autoriza automaticamente o gate seguinte, uma nova classe ou
+escrita em producao.

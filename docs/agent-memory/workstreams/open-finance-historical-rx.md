@@ -373,6 +373,22 @@ de backlog anterior, a terminalidade de `accepted_unconfirmed`, a
 compatibilidade de estados individuais antigos com lotes novos e o rollback do
 conjunto persistido. A primeira etapa e exclusivamente RED/local.
 
+A fila posterior ficou formalizada no roadmap do workstream:
+
+- gate 34: deploy OCI e smoke do fluxo numerico de compras, ainda sem escrita;
+- gate 35: revisao humana e recalculo final do RX historico, sem inferir
+  parcelas ou movimentos de investimento ambiguos;
+- gate 36: propostas proativas de estornos e entradas, semanticamente separadas
+  de transferencias internas;
+- gate 37: pareamento de transferencias e reservas/Caixinhas sem criar receita
+  ou despesa artificial;
+- gate 38: escrita gradual por classe, com compra primeiro e cada expansao
+  condicionada ao proprio GO, segunda confirmacao, idempotencia e recibo.
+
+Essa ordem impede que uma transferencia seja salva como entrada e que uma
+ambiguidade historica contamine as novas classes. Nenhum gate posterior foi
+iniciado ou autorizado por este registro.
+
 ## Capacidade
 
 `Codex -> Sol -> Alto -> implementar a fronteira RED causal do gate 33 sem acessar producao.`
