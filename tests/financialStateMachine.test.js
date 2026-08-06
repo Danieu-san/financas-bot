@@ -3142,6 +3142,25 @@ stateMachineTest('gate 32 public handler rejects batch sim and advances a numeri
         assert.strictEqual(state.action, 'awaiting_open_finance_save_review');
         assert.strictEqual(state.data.proposalRef, proposalRefs[0]);
         assert.deepStrictEqual(state.data.batch.queuedProposalRefs, [proposalRefs[1]]);
+        const durableBatch = structuredClone(state.data.batch);
+
+        userStateManager.setStateDurably(SENDER, {
+            action: 'awaiting_open_finance_save_review',
+            data: { proposalRef: proposalRefs[0] }
+        });
+        userStateManager.__test__.replaceStateFromJsonForTests('{}');
+        userStateManager.__test__.loadStateFromDiskForTests();
+        assert.match(await send('9'), /Escolha uma opção de 0 a 6/i);
+        state = userStateManager.getState(SENDER);
+        assert.strictEqual(state.action, 'awaiting_open_finance_save_review');
+        assert.strictEqual(state.data.proposalRef, proposalRefs[0]);
+        assert.equal(Object.hasOwn(state.data, 'batch'), false);
+        assert.strictEqual(appendedRows.length, 0);
+
+        userStateManager.setStateDurably(SENDER, {
+            action: 'awaiting_open_finance_save_review',
+            data: { proposalRef: proposalRefs[0], batch: durableBatch }
+        });
         sheetReadErrors.set('Categorias', new Error('synthetic catalog outage'));
         const interruptedReply = await send('cancelar');
         assert.match(interruptedReply, /continua reservada/i);

@@ -47,6 +47,7 @@
     "ack:open-finance-alert-delivery": "node scripts/acknowledgeOpenFinanceAlertDelivery.js",
     "ops:apply-runtime-env": "node scripts/applyRuntimeEnvOverrides.js",
     "gate:open-finance-operational-backup": "node scripts/runOpenFinanceOperationalBackupGate.js --confirm-encrypted-state-read --confirm-isolated-restore",
+    "gate:open-finance-numeric-save-release": "node scripts/runOpenFinanceNumericSaveReleaseGate.js --confirm-local-copy --confirm-no-external-effects",
     "release:oci:build": "node scripts/release/ociArtifactRelease.js build",
     "release:oci:verify": "node scripts/release/ociArtifactRelease.js verify",
     "release:oci:prepare": "node scripts/release/ociArtifactRelease.js prepare",

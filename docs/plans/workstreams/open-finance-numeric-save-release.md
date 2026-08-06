@@ -2,10 +2,10 @@
 
 ID: `OF-NUMERIC-SAVE-RELEASE-01`
 
-Estado: `contrato especificado; execucao nao iniciada`.
+Estado: `candidato local validado; aguardando auditoria independente por hash imutavel`.
 
-Commit de partida:
-`9b36cc95935ca0e7c546e525f2aa10fc46d50859`.
+Commit de partida efetivo desta execucao:
+`25c7c6be8953214aa1e4310403a006efcc9c88bb`.
 
 ## Objetivo
 
@@ -68,13 +68,41 @@ WhatsApp, Pluggy ou planilhas.
 
 ## Etapas
 
-1. Criar RED causal para cutoff, backlog terminal, compatibilidade de estado e
-   rollback do conjunto persistido.
-2. Implementar apenas o preflight/ensaio necessario para fechar as falhas RED.
-3. Executar syntax check, focal e bateria causal afetada.
-4. Executar uma unica suite hermetica ampla quando o candidato estiver estavel.
-5. Publicar commit sanitizado e obter auditoria independente por hash imutavel.
-6. Encerrar somente o GO tecnico local e preparar um gate operacional separado.
+1. Concluido: RED causal para cutoff, backlog terminal, compatibilidade de
+   estado e rollback do conjunto persistido.
+2. Concluido: preflight e ensaio local minimos para fechar as falhas RED.
+3. Concluido: syntax check, focal `6/6` e bateria causal afetada `226/226`.
+4. Concluido: uma unica suite hermetica ampla no candidato estavel, com 1.536
+   testes, 1.526 aprovados, zero falhas e 10 skips conhecidos.
+5. Em andamento: publicar commit sanitizado e obter auditoria independente por
+   hash imutavel.
+6. Pendente: encerrar somente o GO tecnico local e preparar um gate operacional
+   separado.
+
+## Evidencia local do candidato
+
+- as quatro fontes exigem configuracao explicita com ativacao no corte
+  `2026-07-28` ou posterior;
+- `OPEN_FINANCE_WRITE_MODE=off`, aprovacao falsa, proposta `prompt` e modos
+  canary obrigatorios falham fechado quando divergentes;
+- o pacote v3 inclui staging, baseline, outbox, preview, journal, ancora
+  terminal e state store cifrado, com checksums e rejeicao de arquivos
+  inesperados;
+- a restauracao em copia quarentena pendencias anteriores ao corte, mantem
+  `accepted_unconfirmed` terminal, recupera leases expirados e prova que toda
+  pendencia elegivel e reclamavel sem transporte;
+- estado individual legado e lote numerico novo reabrem pela entrada publica
+  correta;
+- o rollback restaura o fingerprint integral do conjunto persistido;
+- focal `6/6`, bateria causal `226/226`, syntax checks e
+  `git diff --check` verdes;
+- suite hermetica: 1.536 total, 1.526 aprovados, zero falhas, 10 skips;
+  cobertura de linhas 90,80%, branches 73,37% e funcoes 90,52%;
+- o runner rejeita tambem work root fisicamente contido na copia por
+  junction/symlink, mesmo quando o caminho aparente esta fora dela;
+- nenhuma chamada Pluggy/Sheets/WhatsApp real, flag, deploy ou producao.
+
+As contagens sao evidencia local e nao substituem a auditoria independente.
 
 ## Criterios de GO
 

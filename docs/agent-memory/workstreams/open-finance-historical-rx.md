@@ -423,3 +423,31 @@ iniciado ou autorizado por este registro.
 O HEAD exato resultante e a raiz portatil nova devem ser obtidos de
 `Trabalho Codex no outro PC/OPEN-THIS.json`; esse ponteiro prevalece sobre
 qualquer copia antiga do SSD.
+
+## Gate 33 - candidato local de prontidao de release
+
+Atualizado em: 2026-08-06
+
+O gate `OF-NUMERIC-SAVE-RELEASE-01` foi implementado em worktree isolada a
+partir de `25c7c6be8953214aa1e4310403a006efcc9c88bb`. O preflight exige os
+quatro aliases e seus cutoffs explicitos em `2026-07-28` ou posterior, modos
+canary, proposta `prompt`, escrita `off` e aprovacao falsa.
+
+O ensaio cria um bundle coerente v3 em copia local com staging, baseline,
+outbox, preview, journal, ancora terminal e state store cifrado. O restore
+quarentena backlog anterior ao corte, preserva `accepted_unconfirmed` como
+terminal, recupera leases expirados, reclama somente pendencias elegiveis e
+prova rollback pelo fingerprint integral. A compatibilidade cobre estado
+individual antigo e lote numerico novo depois de reabertura, sempre com
+`financial_writes=0` e sem efeito externo.
+
+Evidencia local: focal `6/6`; bateria causal `226/226`; suite hermetica ampla
+1.536 total, 1.526 aprovados, zero falhas e 10 skips conhecidos; cobertura de
+linhas 90,80%, branches 73,37% e funcoes 90,52%; syntax checks e
+`git diff --check` verdes. Nenhuma chamada Pluggy/Sheets/WhatsApp real, flag,
+deploy ou producao foi executada.
+
+Estado maximo: `candidato local aguardando auditoria independente por hash
+imutavel`. Proxima acao: publicar somente os arquivos sanitizados deste gate e
+submeter o commit a uma conversa limpa no Chat. O gate operacional 34 continua
+fora do escopo e requer autorizacao/presenca de Daniel.
