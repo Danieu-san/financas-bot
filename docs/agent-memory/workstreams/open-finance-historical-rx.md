@@ -4,14 +4,13 @@ Atualizado em: 2026-08-05
 
 ## Objetivo
 
-Integrar a revisao numerada das ambiguidades historicas a entrada e a entrega
-publicas do WhatsApp para exatamente os dois atores familiares autorizados,
-mantendo salvamento e escrita financeira desligados.
+Provar a prontidao de release do fluxo numerico usando somente fixtures ou uma
+copia consistente do estado vigente, sem alterar flags, producao ou dados reais.
 
 ## Estado
 
-`RX-HIST-AMBIGUITY-REVIEW-01 E INTEGRACAO WHATSAPP COM GO TECNICO LOCAL;
-CONSUMO DAS DECISOES PELO RECONCILIADOR PENDENTE; WRITES OFF`.
+`GATES 31 E 32 COM GO TECNICO LOCAL INDEPENDENTE; GATE 33 ESPECIFICADO;
+WRITES OFF; SEM DEPLOY AUTORIZADO NESTE GATE`.
 
 O nucleo local da revisao numerada foi encerrado no commit auditado
 `987404c37a5839058be5010d2a036f963819a511`. O parecer independente confirmou
@@ -367,6 +366,13 @@ Registro:
 O gate 32 esta encerrado somente no alcance tecnico local. Flags, deploy,
 Pluggy/Sheets/WhatsApp reais e producao permanecem fora do escopo.
 
+O gate 33 foi especificado em
+`docs/plans/workstreams/open-finance-numeric-save-release.md`. Ele deve provar,
+antes de qualquer deploy, o cutoff efetivo de `2026-07-28`, a nao ressurreicao
+de backlog anterior, a terminalidade de `accepted_unconfirmed`, a
+compatibilidade de estados individuais antigos com lotes novos e o rollback do
+conjunto persistido. A primeira etapa e exclusivamente RED/local.
+
 ## Capacidade
 
-`Codex -> Sol -> Medio -> especificar o gate sucessor do fluxo numerico sem ativar flags ou producao.`
+`Codex -> Sol -> Alto -> implementar a fronteira RED causal do gate 33 sem acessar producao.`

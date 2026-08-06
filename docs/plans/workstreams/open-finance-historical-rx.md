@@ -130,6 +130,12 @@ titularidade, sem misturar esse inicio historico com o corte de alertas de
     permanecer fail-closed, com `financial_writes=0`. O gate nao pode incluir o RX
     historico anterior ao corte operacional de `2026-07-28`, ambiguidades ainda
     nao resolvidas, ativacao de flags, deploy ou producao.
+33. [contrato especificado; execucao nao iniciada] Provar a compatibilidade do
+    fluxo numerico com uma copia consistente do estado vigente, incluindo
+    cutoff efetivo por fonte, backlog anterior ao corte, entregas
+    `accepted_unconfirmed`, estados individuais preexistentes, restart e
+    rollback do artefato. O charter e
+    `docs/plans/workstreams/open-finance-numeric-save-release.md`.
 
 ## Criterios de GO
 
@@ -172,3 +178,7 @@ provas de rollback. A reauditoria zerou todas as severidades e nao encontrou
 lacuna indispensavel. O gate sucessor, qualquer ativacao de `prompt`, deploy ou
 producao permanecem fora deste fechamento e devem ser especificados
 separadamente.
+
+33. [proxima] Implementar primeiro a prova RED do preflight de compatibilidade
+e release, sempre sobre fixtures ou copia consistente e sem acesso remoto. Nao
+ativar flags, nao executar polling real e nao fazer deploy.
