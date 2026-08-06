@@ -451,3 +451,23 @@ Estado maximo: `candidato local aguardando auditoria independente por hash
 imutavel`. Proxima acao: publicar somente os arquivos sanitizados deste gate e
 submeter o commit a uma conversa limpa no Chat. O gate operacional 34 continua
 fora do escopo e requer autorizacao/presenca de Daniel.
+
+O candidato `a27ac8160cf797a04d4e798929bfae2ae427a6ff` recebeu `NO-GO`
+independente. O bloqueador `HIGH` era causal: `rollback_match` comparava duas
+restauracoes limpas, sem reverter a arvore realmente alterada. O parecer tambem
+registrou falta de auditoria do backlog na arvore pos-rollback, quiescencia
+mecanica da copia, tripwire de efeitos externos e politica imutavel.
+
+O recovery reverte o mesmo diretorio instalado e compara seu fingerprint
+recursivo integral, inclusive removendo arquivo extra injetado. Depois do
+rollback, reabre o outbox, prova zero reclamacao anterior ao corte, preserva
+`accepted_unconfirmed` e falha para pendencia estranha. A origem precisa manter
+o mesmo fingerprint durante o snapshot; a CLI exige confirmacao quiescente;
+aliases/cutoffs ficam congelados desde o preflight; o focal bloqueia
+`fetch`/HTTP/HTTPS/sockets e preserva zero escrita no handler.
+
+Evidencia final do recovery: focal `8/8`; causal `228/228`; suite hermetica
+1.538 total, 1.528 aprovados, zero falhas e 10 skips; cobertura de linhas
+90,81%, branches 73,36% e funcoes 90,52%. Estado maximo: `recovery candidato
+aguardando nova auditoria independente por novo hash`. O gate 34 permanece fora
+do escopo.

@@ -43,6 +43,48 @@ function checksum(file) {
     return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 }
 
+function digestJson(value) {
+    return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex');
+}
+
+function sourceSetFingerprint(databasePaths, persistentPaths) {
+    const entries = [];
+    const sources = [
+        ...Object.entries(databasePaths || {}).map(([key, file]) => [`database/${key}`, file]),
+        ...['journal', 'anchor', 'state', 'replay']
+            .map(key => [`persistent/${key}`, persistentPaths?.[key]])
+            .filter(([, file]) => file)
+    ];
+    for (const [key, file] of sources.sort(([left], [right]) => left.localeCompare(right))) {
+        for (const [suffix, label] of [['', 'main'], ['-wal', 'wal']]) {
+            const candidate = `${file}${suffix}`;
+            if (!fs.existsSync(candidate)) continue;
+            const bytes = fs.statSync(candidate).size;
+            if (label === 'wal' && bytes === 0) continue;
+            entries.push({ key: `${key}/${label}`, bytes,
+                sha256: checksum(candidate) });
+        }
+    }
+    return digestJson(entries);
+}
+
+function directoryFingerprint(directory) {
+    const entries = [];
+    const visit = current => {
+        for (const entry of fs.readdirSync(current, { withFileTypes: true })
+            .sort((left, right) => left.name.localeCompare(right.name))) {
+            const absolute = path.join(current, entry.name);
+            const relative = path.relative(directory, absolute).split(path.sep).join('/');
+            if (entry.isDirectory()) visit(absolute);
+            else if (entry.isFile()) entries.push({ file: relative,
+                bytes: fs.statSync(absolute).size, sha256: checksum(absolute) });
+            else throw new Error('numeric_save_release_unexpected_file_type');
+        }
+    };
+    visit(directory);
+    return digestJson(entries);
+}
+
 function decodeStateStoreKey(value) {
     const raw = String(value || '').trim();
     const candidates = [];
@@ -277,6 +319,7 @@ async function createOpenFinanceNumericSaveReleaseBundle({
         !fs.existsSync(persistentPaths.state)) {
         throw new Error('numeric_save_release_persistent_state_unavailable');
     }
+    const sourceFingerprintBefore = sourceSetFingerprint(databasePaths, persistentPaths);
     const stateInventory = inspectPersistentConversationState({
         statePath: persistentPaths.state,
         replayPath: persistentPaths.replay,
@@ -313,6 +356,10 @@ async function createOpenFinanceNumericSaveReleaseBundle({
             fs.copyFileSync(persistentPaths.replay, replayTarget, fs.constants.COPYFILE_EXCL);
             fs.chmodSync(replayTarget, 0o600);
         }
+        const sourceFingerprintAfter = sourceSetFingerprint(databasePaths, persistentPaths);
+        if (sourceFingerprintAfter !== sourceFingerprintBefore) {
+            throw new Error('numeric_save_release_source_changed_during_snapshot');
+        }
         const manifest = {
             schema: BUNDLE_SCHEMA,
             created_at: new Date(createdAt).toISOString(),
@@ -327,6 +374,7 @@ async function createOpenFinanceNumericSaveReleaseBundle({
                 persistentEntry('replay', replayTarget, replayPresent)
             ],
             state_inventory: stateInventory,
+            source_snapshot_sha256: sourceFingerprintBefore,
             financial_writes: 0
         };
         const manifestPath = path.join(destinationDirectory, 'manifest.json');
@@ -355,6 +403,7 @@ function readBundleManifest(manifestPath) {
         manifest.state_inventory.numeric_batch < 0 ||
         typeof manifest.state_inventory.replay_present !== 'boolean' ||
         manifest.state_inventory.financial_writes !== 0 ||
+        !/^[a-f0-9]{64}$/.test(String(manifest.source_snapshot_sha256 || '')) ||
         manifest.financial_writes !== 0) {
         throw new Error('invalid_numeric_save_release_manifest');
     }
@@ -482,30 +531,14 @@ function restoreOpenFinanceNumericSaveReleaseBundle({
     }
 }
 
-function restoredFingerprint(restored) {
-    const entries = [
-        ...Object.entries(restored.core),
-        ...Object.entries(restored.persistent)
-    ].filter(([, file]) => file).sort(([left], [right]) => left.localeCompare(right));
-    const fingerprint = {};
-    for (const [key, file] of entries) {
-        fingerprint[key] = checksum(file);
-        for (const [suffix, label] of [['-wal', 'wal'], ['-shm', 'shm']]) {
-            const sidecar = `${file}${suffix}`;
-            if (fs.existsSync(sidecar)) fingerprint[`${key}_${label}`] = checksum(sidecar);
-        }
-    }
-    return fingerprint;
-}
-
-function auditPendingEligibility({ outbox, env, now }) {
+function auditPendingEligibility({ outbox, policy, now }) {
     const batches = [];
     let claimed = 0;
     const total = outbox.stats().total;
     for (let iteration = 0; iteration <= total; iteration += 1) {
         const batch = outbox.claimNextBatch({
-            canaryAliases: aliasesFromConfig(env),
-            activatedAfterByAlias: JSON.parse(env.OPEN_FINANCE_ALERT_CANARY_ACTIVATIONS_JSON),
+            canaryAliases: policy.aliases,
+            activatedAfterByAlias: policy.activations,
             now,
             batchSize: 4
         });
@@ -527,6 +560,50 @@ function auditPendingEligibility({ outbox, env, now }) {
     return { claimed, unclaimable };
 }
 
+function auditRollbackEligibility({ outbox, policy, now }) {
+    const pendingCreatedAt = new Map(outbox.listPending()
+        .map(row => [row.alert_ref, row.created_at]));
+    const batches = [];
+    let claimed = 0;
+    let cutoffViolations = 0;
+    const total = outbox.stats().total;
+    for (let iteration = 0; iteration <= total; iteration += 1) {
+        const batch = outbox.claimNextBatch({
+            canaryAliases: policy.aliases,
+            activatedAfterByAlias: policy.activations,
+            now,
+            batchSize: 4
+        });
+        if (!batch.length) break;
+        batches.push(batch);
+        claimed += batch.length;
+        for (const item of batch) {
+            const createdAt = pendingCreatedAt.get(item.alert_ref);
+            const cutoff = policy.activations[String(item.alias || '').toLowerCase()];
+            if (!createdAt || !cutoff || Date.parse(createdAt) < Date.parse(cutoff)) {
+                cutoffViolations += 1;
+            }
+        }
+        if (iteration === total) throw new Error('numeric_save_release_claim_loop_exceeded');
+    }
+    const protectedBacklog = outbox.quarantineBeforeActivation({
+        canaryAliases: policy.aliases,
+        activatedAfterByAlias: policy.activations
+    }).blocked;
+    const unclaimable = outbox.stats().pending;
+    const acceptedUnconfirmed = outbox.stats().accepted_unconfirmed;
+    for (const batch of batches) {
+        outbox.releaseFailedBatch({
+            deliveries: batch.map(item => ({
+                alertRef: item.alert_ref,
+                leaseToken: item.lease_token
+            })),
+            errorCode: 'release_gate_rollback_audit'
+        });
+    }
+    return { claimed, protectedBacklog, unclaimable, cutoffViolations, acceptedUnconfirmed };
+}
+
 async function runOpenFinanceNumericSaveReleaseRehearsal({
     env = process.env,
     mappings = [],
@@ -538,7 +615,9 @@ async function runOpenFinanceNumericSaveReleaseRehearsal({
     stateStoreKey,
     clock
 } = {}) {
-    const config = evaluateOpenFinanceNumericSaveReleaseConfig({ env, mappings });
+    const resolvedConfig = resolveOpenFinanceNumericSaveReleaseConfig({ env, mappings });
+    const config = resolvedConfig.report;
+    const policy = resolvedConfig.policy;
     if (config.outcome !== 'GO') return { ...config, rollback_match: false };
     if (!workDirectory) throw new Error('numeric_save_release_work_directory_required');
     ensureEmptyDirectory(workDirectory);
@@ -550,15 +629,16 @@ async function runOpenFinanceNumericSaveReleaseRehearsal({
         stateStoreKey,
         createdAt: clock ? clock() : new Date().toISOString()
     });
-    const installed = restoreOpenFinanceNumericSaveReleaseBundle({
+    const installedDirectory = path.join(workDirectory, 'installed');
+    let installed = restoreOpenFinanceNumericSaveReleaseBundle({
         manifestPath: bundle.manifest_path,
-        destinationDirectory: path.join(workDirectory, 'installed'),
+        destinationDirectory: installedDirectory,
         mappings,
         secret,
         stateStoreKey,
         clock
     });
-    const before = restoredFingerprint(installed);
+    const before = directoryFingerprint(installedDirectory);
     let quarantined;
     let recovered;
     let stats;
@@ -566,8 +646,8 @@ async function runOpenFinanceNumericSaveReleaseRehearsal({
     let outbox = new OpenFinanceAlertOutbox({ databasePath: installed.core.outbox, secret });
     try {
         quarantined = outbox.quarantineBeforeActivation({
-            canaryAliases: aliasesFromConfig(env),
-            activatedAfterByAlias: JSON.parse(env.OPEN_FINANCE_ALERT_CANARY_ACTIVATIONS_JSON)
+            canaryAliases: policy.aliases,
+            activatedAfterByAlias: policy.activations
         });
         recovered = outbox.recoverExpiredAmbiguous({
             now: clock ? clock() : new Date().toISOString()
@@ -579,27 +659,47 @@ async function runOpenFinanceNumericSaveReleaseRehearsal({
     try {
         eligibility = auditPendingEligibility({
             outbox,
-            env,
+            policy,
             now: clock ? clock() : new Date().toISOString()
         });
         stats = outbox.stats();
     } finally {
         outbox.close();
     }
+    const rollbackProbe = path.join(installedDirectory, 'rollback-probe');
+    fs.writeFileSync(rollbackProbe, 'local-release-gate-probe', { encoding: 'utf8', mode: 0o600,
+        flag: 'wx' });
+    const mutationObserved = directoryFingerprint(installedDirectory) !== before;
+    fs.rmSync(installedDirectory, { recursive: true, force: false });
+    installed = null;
     const rollback = restoreOpenFinanceNumericSaveReleaseBundle({
         manifestPath: bundle.manifest_path,
-        destinationDirectory: path.join(workDirectory, 'rollback'),
+        destinationDirectory: installedDirectory,
         mappings,
         secret,
         stateStoreKey,
         clock
     });
-    const rollbackMatch = JSON.stringify(before) === JSON.stringify(restoredFingerprint(rollback));
+    const rollbackMatch = before === directoryFingerprint(installedDirectory) &&
+        !fs.existsSync(rollbackProbe);
+    let rollbackEligibility;
+    outbox = new OpenFinanceAlertOutbox({ databasePath: rollback.core.outbox, secret });
+    try {
+        rollbackEligibility = auditRollbackEligibility({
+            outbox,
+            policy,
+            now: clock ? clock() : new Date().toISOString()
+        });
+    } finally {
+        outbox.close();
+    }
     const replayWasPresent = Boolean(
         persistentPaths.replay && fs.existsSync(persistentPaths.replay)
     );
     return {
-        outcome: rollbackMatch && eligibility.unclaimable === 0 ? 'GO' : 'NO_GO',
+        outcome: rollbackMatch && mutationObserved && eligibility.unclaimable === 0 &&
+            rollbackEligibility.unclaimable === 0 &&
+            rollbackEligibility.cutoffViolations === 0 ? 'GO' : 'NO_GO',
         minimum_cutoff: config.minimum_cutoff,
         aliases: config.aliases,
         backlog_quarantined: quarantined.blocked,
@@ -608,6 +708,11 @@ async function runOpenFinanceNumericSaveReleaseRehearsal({
         pending_after_cutoff: eligibility.claimed,
         unclaimable_pending: eligibility.unclaimable,
         rollback_match: rollbackMatch,
+        rollback_mutation_observed: mutationObserved,
+        rollback_backlog_protected: rollbackEligibility.protectedBacklog,
+        rollback_cutoff_violations: rollbackEligibility.cutoffViolations,
+        rollback_unclaimable_pending: rollbackEligibility.unclaimable,
+        rollback_accepted_unconfirmed: rollbackEligibility.acceptedUnconfirmed,
         state_snapshot_preserved: Boolean(rollback.persistent.state),
         replay_snapshot_preserved: replayWasPresent
             ? Boolean(rollback.persistent.replay)
@@ -618,12 +723,7 @@ async function runOpenFinanceNumericSaveReleaseRehearsal({
     };
 }
 
-function aliasesFromConfig(env) {
-    const blockers = [];
-    return parseCanaryAliases(env, blockers);
-}
-
-function evaluateOpenFinanceNumericSaveReleaseConfig({
+function resolveOpenFinanceNumericSaveReleaseConfig({
     env = process.env,
     mappings = [],
     minimumCutoff = MINIMUM_OPERATIONAL_CUTOFF
@@ -664,7 +764,7 @@ function evaluateOpenFinanceNumericSaveReleaseConfig({
     if (writeApproved !== 'false') blockers.push('numeric_save_write_approval_must_remain_false');
 
     const normalizedBlockers = unique(blockers);
-    return Object.freeze({
+    const report = Object.freeze({
         outcome: normalizedBlockers.length ? 'NO_GO' : 'GO',
         minimum_cutoff: Number.isFinite(minimumTimestamp)
             ? new Date(minimumTimestamp).toISOString()
@@ -675,6 +775,17 @@ function evaluateOpenFinanceNumericSaveReleaseConfig({
         blockers: Object.freeze(normalizedBlockers),
         financial_writes: 0
     });
+    return Object.freeze({
+        report,
+        policy: Object.freeze({
+            aliases: Object.freeze([...canaryAliases]),
+            activations: Object.freeze({ ...activations })
+        })
+    });
+}
+
+function evaluateOpenFinanceNumericSaveReleaseConfig(options = {}) {
+    return resolveOpenFinanceNumericSaveReleaseConfig(options).report;
 }
 
 module.exports = {

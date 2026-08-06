@@ -4,6 +4,9 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
+const http = require('node:http');
+const https = require('node:https');
+const net = require('node:net');
 
 const { OpenFinanceLiveStagingVault } = require('../src/openFinance/openFinanceLiveStagingVault');
 const { OpenFinanceBaselineStore } = require('../src/openFinance/openFinanceBaselineStore');
@@ -39,6 +42,41 @@ const policies = aliases.map(alias => ({
     family_aggregation_allowed: true,
     write_confirmation_principal: alias === 'daniel_nubank' ? 'daniel' : 'thais'
 }));
+
+async function withExternalEffectTripwire(callback) {
+    const original = {
+        fetch: global.fetch,
+        httpRequest: http.request,
+        httpGet: http.get,
+        httpsRequest: https.request,
+        httpsGet: https.get,
+        netConnect: net.connect,
+        netCreateConnection: net.createConnection
+    };
+    let calls = 0;
+    const blocked = () => {
+        calls += 1;
+        throw new Error('unexpected_external_effect');
+    };
+    global.fetch = blocked;
+    http.request = blocked;
+    http.get = blocked;
+    https.request = blocked;
+    https.get = blocked;
+    net.connect = blocked;
+    net.createConnection = blocked;
+    try {
+        return { result: await callback(), calls };
+    } finally {
+        global.fetch = original.fetch;
+        http.request = original.httpRequest;
+        http.get = original.httpGet;
+        https.request = original.httpsRequest;
+        https.get = original.httpsGet;
+        net.connect = original.netConnect;
+        net.createConnection = original.netCreateConnection;
+    }
+}
 
 function safeEnv(overrides = {}) {
     return {
@@ -343,6 +381,11 @@ test('gate 33 quarantines pre-cutoff backlog and restores accepted terminals exa
             pending_after_cutoff: 1,
             unclaimable_pending: 0,
             rollback_match: true,
+            rollback_mutation_observed: true,
+            rollback_backlog_protected: 2,
+            rollback_cutoff_violations: 0,
+            rollback_unclaimable_pending: 0,
+            rollback_accepted_unconfirmed: 1,
             state_snapshot_preserved: true,
             replay_snapshot_preserved: true,
             legacy_individual_states: 1,
@@ -402,11 +445,21 @@ test('gate 33 executable accepts only an explicit local copy and has no external
         runNumericSaveReleaseGate({ env, argv: [] }),
         /numeric_save_release_confirmation_required/
     );
-    const report = await runNumericSaveReleaseGate({
+    await assert.rejects(
+        runNumericSaveReleaseGate({
+            env,
+            argv: ['--confirm-local-copy', '--confirm-no-external-effects']
+        }),
+        /numeric_save_release_confirmation_required/
+    );
+    const tripwire = await withExternalEffectTripwire(() => runNumericSaveReleaseGate({
         env,
-        argv: ['--confirm-local-copy', '--confirm-no-external-effects'],
+        argv: ['--confirm-local-copy', '--confirm-quiescent-source-copy',
+            '--confirm-no-external-effects'],
         clock: () => '2026-08-06T00:00:00.000Z'
-    });
+    }));
+    const report = tripwire.result;
+    assert.equal(tripwire.calls, 0);
     assert.equal(report.outcome, 'GO');
     assert.equal(report.rollback_match, true);
     assert.equal(report.legacy_individual_states, 1);
@@ -418,7 +471,8 @@ test('gate 33 executable accepts only an explicit local copy and has no external
     await assert.rejects(
         runNumericSaveReleaseGate({
             env: { ...env, OPEN_FINANCE_OUTBOX_DB: outsideOutbox },
-            argv: ['--confirm-local-copy', '--confirm-no-external-effects']
+            argv: ['--confirm-local-copy', '--confirm-quiescent-source-copy',
+                '--confirm-no-external-effects']
         }),
         /numeric_save_release_source_outside_copy/
     );
@@ -430,11 +484,65 @@ test('gate 33 executable accepts only an explicit local copy and has no external
     await assert.rejects(
         runNumericSaveReleaseGate({
             env: { ...env, OPEN_FINANCE_NUMERIC_RELEASE_WORK_ROOT: workLink },
-            argv: ['--confirm-local-copy', '--confirm-no-external-effects']
+            argv: ['--confirm-local-copy', '--confirm-quiescent-source-copy',
+                '--confirm-no-external-effects']
         }),
         /numeric_save_release_work_inside_source_copy/
     );
     assert.deepStrictEqual(fs.readdirSync(workTarget), []);
+});
+
+test('gate 33 rejects a source copy that changes while the coherent bundle is created', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-numeric-release-changing-'));
+    const fixture = createFixture(root);
+    const checkpoint = fixture.journal.checkpoint.bind(fixture.journal);
+    fixture.journal.checkpoint = () => {
+        fs.appendFileSync(fixture.persistentPaths.state, 'changed-during-snapshot');
+        return checkpoint();
+    };
+    try {
+        await assert.rejects(
+            createOpenFinanceNumericSaveReleaseBundle({
+                databasePaths: fixture.databasePaths,
+                persistentPaths: fixture.persistentPaths,
+                destinationDirectory: path.join(root, 'bundle'),
+                revocationJournal: fixture.journal,
+                stateStoreKey
+            }),
+            /numeric_save_release_source_changed_during_snapshot/
+        );
+        assert.equal(fs.existsSync(path.join(root, 'bundle')), false);
+    } finally {
+        fixture.journal.close();
+    }
+});
+
+test('gate 33 binds the rehearsal to the immutable policy resolved by preflight', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-numeric-release-policy-'));
+    const fixture = createFixture(root);
+    const env = safeEnv();
+    try {
+        const rehearsal = runOpenFinanceNumericSaveReleaseRehearsal({
+            env,
+            mappings: fixture.mappings,
+            databasePaths: fixture.databasePaths,
+            persistentPaths: fixture.persistentPaths,
+            revocationJournal: fixture.journal,
+            workDirectory: path.join(root, 'rehearsal'),
+            secret,
+            stateStoreKey,
+            clock: () => '2026-08-06T00:00:00.000Z'
+        });
+        env.OPEN_FINANCE_ALERT_CANARY_ALIASES = 'changed_after_preflight';
+        env.OPEN_FINANCE_ALERT_CANARY_ACTIVATIONS_JSON = '{}';
+        const report = await rehearsal;
+        assert.equal(report.outcome, 'GO');
+        assert.equal(report.aliases, 4);
+        assert.equal(report.rollback_cutoff_violations, 0);
+        assert.equal(report.financial_writes, 0);
+    } finally {
+        fixture.journal.close();
+    }
 });
 
 test('gate 33 returns NO_GO when a pending row cannot be claimed by the configured sources', async () => {

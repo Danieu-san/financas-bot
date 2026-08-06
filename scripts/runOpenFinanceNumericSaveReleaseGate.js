@@ -65,7 +65,9 @@ async function runNumericSaveReleaseGate({
     argv = process.argv.slice(2),
     clock
 } = {}) {
-    if (!argv.includes('--confirm-local-copy') || !argv.includes('--confirm-no-external-effects')) {
+    if (!argv.includes('--confirm-local-copy') ||
+        !argv.includes('--confirm-quiescent-source-copy') ||
+        !argv.includes('--confirm-no-external-effects')) {
         throw new Error('numeric_save_release_confirmation_required');
     }
     const sourceRoot = requiredDirectory(

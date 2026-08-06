@@ -2,7 +2,7 @@
 
 ID: `OF-NUMERIC-SAVE-RELEASE-01`
 
-Estado: `candidato local validado; aguardando auditoria independente por hash imutavel`.
+Estado: `recovery local validado apos NO-GO; aguardando nova auditoria independente`.
 
 Commit de partida efetivo desta execucao:
 `25c7c6be8953214aa1e4310403a006efcc9c88bb`.
@@ -71,9 +71,10 @@ WhatsApp, Pluggy ou planilhas.
 1. Concluido: RED causal para cutoff, backlog terminal, compatibilidade de
    estado e rollback do conjunto persistido.
 2. Concluido: preflight e ensaio local minimos para fechar as falhas RED.
-3. Concluido: syntax check, focal `6/6` e bateria causal afetada `226/226`.
-4. Concluido: uma unica suite hermetica ampla no candidato estavel, com 1.536
-   testes, 1.526 aprovados, zero falhas e 10 skips conhecidos.
+3. Concluido no recovery: syntax check, focal `8/8` e bateria causal afetada
+   `228/228`.
+4. Concluido no recovery: uma unica suite hermetica ampla final, com 1.538
+   testes, 1.528 aprovados, zero falhas e 10 skips conhecidos.
 5. Em andamento: publicar commit sanitizado e obter auditoria independente por
    hash imutavel.
 6. Pendente: encerrar somente o GO tecnico local e preparar um gate operacional
@@ -94,15 +95,31 @@ WhatsApp, Pluggy ou planilhas.
 - estado individual legado e lote numerico novo reabrem pela entrada publica
   correta;
 - o rollback restaura o fingerprint integral do conjunto persistido;
-- focal `6/6`, bateria causal `226/226`, syntax checks e
+- focal `8/8`, bateria causal `228/228`, syntax checks e
   `git diff --check` verdes;
-- suite hermetica: 1.536 total, 1.526 aprovados, zero falhas, 10 skips;
-  cobertura de linhas 90,80%, branches 73,37% e funcoes 90,52%;
+- suite hermetica final do recovery: 1.538 total, 1.528 aprovados, zero falhas,
+  10 skips; cobertura de linhas 90,81%, branches 73,36% e funcoes 90,52%;
 - o runner rejeita tambem work root fisicamente contido na copia por
   junction/symlink, mesmo quando o caminho aparente esta fora dela;
 - nenhuma chamada Pluggy/Sheets/WhatsApp real, flag, deploy ou producao.
 
 As contagens sao evidencia local e nao substituem a auditoria independente.
+
+## NO-GO independente e recovery
+
+O hash `a27ac8160cf797a04d4e798929bfae2ae427a6ff` recebeu `NO-GO`:
+o campo `rollback_match` comparava duas restauracoes limpas e nao revertia a
+arvore efetivamente alterada. O parecer tambem exigiu prova pos-rollback do
+backlog, quiescencia da copia, tripwire de efeitos e vinculacao imutavel da
+politica validada.
+
+O recovery agora apaga e restaura o mesmo diretorio instalado, injeta e remove
+um arquivo extra, compara o fingerprint recursivo integral e reabre o outbox
+restaurado. Nessa arvore, nenhum item anterior ao corte pode ser reclamado,
+`accepted_unconfirmed` continua terminal e qualquer pendencia estranha produz
+`NO_GO`. A origem e fingerprintada antes/depois, a CLI exige confirmacao de
+copia quiescente, a politica e congelada no preflight e o teste instala
+tripwires para `fetch`, HTTP, HTTPS e sockets.
 
 ## Criterios de GO
 
