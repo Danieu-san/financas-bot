@@ -550,3 +550,14 @@ nas duas VMs. SSH permanece limitado a um CIDR cuja correspondencia atual nao
 foi confirmada. A menor proxima acao e criar conexao serial efemera somente na
 VM Ubuntu para listeners, firewall, SSH, Caddy, PM2 e health read-only; a
 criacao dessa conexao exige autorizacao propria e nao autoriza reparo ou reboot.
+
+Daniel autorizou uma regra SSH `/32` temporaria para o IP atual e diagnostico
+somente leitura. A regra tornou a VM Ubuntu alcancavel, confirmou a chave de
+host previamente confiada e o servidor Ubuntu esperado, mas a chave local
+disponivel foi recusada antes de qualquer comando remoto. A regra temporaria foi
+removida e sua ausencia foi confirmada; nenhuma mutacao ficou ativa.
+
+Estado vigente: gate 34 continua `NO-GO` antes de upload. PM2, health, flags,
+stores e `financial_writes=0` seguem `NAO_DISPONIVEL`. Menor proxima acao:
+autorizar uma conexao serial efemera somente na VM Ubuntu para diagnostico
+interno read-only; troca de chave ou qualquer reparo exigem autorizacao separada.

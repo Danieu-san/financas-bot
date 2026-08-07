@@ -43,9 +43,18 @@ servidor.
 - as duas VMs apresentam metricas recentes de CPU e memoria em 2026-08-07;
 - a VM Ubuntu usa a imagem aprovada e a VM anterior continua em Oracle Linux
   8.10, ambas ainda `Running`;
+- com autorizacao especifica de Daniel, foi acrescentada uma regra SSH `/32`
+  temporaria para o IP informado, sem substituir a regra preexistente;
+- com a regra ativa, a porta 22 da VM Ubuntu respondeu, a chave de host
+  previamente confiada coincidiu e o servidor se identificou como OpenSSH no
+  Ubuntu esperado;
+- a chave local preparada para essa VM foi oferecida, mas nao esta autorizada
+  pelo servidor; a autenticacao terminou antes de executar qualquer comando;
+- a regra temporaria foi removida no `finally` e sua ausencia foi confirmada na
+  security list; nenhuma mutacao temporaria permaneceu;
 - portanto a indisponibilidade nao e explicada pela ausencia de rota, gateway ou
-  regras web e foi reduzida a acesso SSH possivelmente desatualizado e/ou
-  firewall/servicos dentro dos sistemas operacionais.
+  regras web. O bloqueio SSH foi reduzido a divergencia entre a chave local e a
+  chave autorizada na VM; firewall e servicos internos continuam desconhecidos.
 
 Nenhum IP, OCID, hostname privado, fingerprint, token, telefone ou dado
 financeiro foi registrado neste documento.
@@ -67,10 +76,10 @@ Ausencia dessa evidencia e `NAO_DISPONIVEL`, nunca resultado verde ou zero.
 
 `NO-GO` para upload, prepare remoto, promocao, restart e smoke.
 
-O artefato local esta valido, mas o gate nao pode avancar enquanto a identidade
-da unica producao nao estiver restabelecida, a segunda VM ligada for explicada
-e a VM aprovada nao permitir um preflight autenticado e sanitizado. Qualquer
-correcao de rede, reboot, console serial, run-command ou desligamento e mutacao
+O artefato local esta valido, mas o gate nao pode avancar enquanto o acesso
+autenticado a unica producao nao for restabelecido, a segunda VM ligada for
+explicada e a VM aprovada nao permitir um preflight sanitizado. Qualquer troca
+de chave, reboot, console serial, run-command ou desligamento e mutacao
 operacional e exige autorizacao propria.
 
 ## Menor diagnostico sucessor
