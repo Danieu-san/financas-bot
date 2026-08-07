@@ -521,3 +521,12 @@ acao remota permanecem nao autorizados.
 Proxima acao: com Daniel presente, iniciar a fronteira A pelo hash e pela
 redescoberta sanitizada da infraestrutura vigente; sem presenca/autorizacao,
 parar neste checkpoint.
+
+Autorizacao permanente registrada em 2026-08-07: construir/verificar localmente
+o artefato deste gate e fazer descoberta OCI sanitizada estritamente read-only.
+Upload, prepare remoto, backup novo, restart, flags, promocao, mensagem, polling
+e smoke continuam exigindo autorizacao propria. O artefato do hash
+`ea803c5c29919daa582355046536bd22bf8f88a1` foi construido e verificado
+localmente, com 799 arquivos e checksums do pacote e instalador validos. A
+descoberta remota esta aguardando novo login na console Oracle: o host historico
+nao responde e nao foi reutilizado sem validacao.

@@ -65,18 +65,27 @@ em `false` e confirma zero escrita financeira.
 
 ## Fronteiras de autorizacao
 
+Em 2026-08-07, Daniel concedeu autorizacao permanente somente para construir e
+verificar localmente o artefato imutavel deste gate e para redescobrir a OCI por
+consultas sanitizadas estritamente read-only. Essa autorizacao permanente nao
+inclui upload, preparacao remota, backup novo, alteracao de `.env`, restart,
+troca de script, flag, mensagem, polling, promocao ou smoke.
+
 ### A. Preparacao local e descoberta remota somente leitura
 
-Exige Daniel presente e autorizacao explicita para este hash. Permite:
+O build local e a descoberta sanitizada read-only estao autorizados de forma
+permanente para este gate. Permitem:
 
 - construir e verificar o artefato local;
 - descobrir provedor, host, usuario, chave, raiz e processo vigentes sem os
   registrar em Git;
 - consultar somente metadados sanitizados de PM2, health, flags e permissoes;
 - executar o plano read-only dos controladores;
-- transferir e preparar o slot somente depois de nova confirmacao de upload.
+- gerar o plano read-only dos controladores.
 
-Nao permite restart, alteracao de `.env`, troca de script ou mensagem.
+Transferir os quatro arquivos e preparar o slot exigem nova confirmacao
+explicita. A autorizacao permanente nao permite restart, alteracao de `.env`,
+troca de script ou mensagem.
 
 ### B. Promocao, restart e smoke
 
