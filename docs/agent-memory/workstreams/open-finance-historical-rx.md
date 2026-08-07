@@ -578,3 +578,15 @@ temporarias foram removidas. Evidencia vigente:
 Estado atual: acesso SSH recuperado; gate 34 ainda `NO-GO` antes de upload por
 backup/restore v3, verificacao agregada dos stores e segunda VM pendentes. A
 proxima implementacao local pode seguir sem herdar autorizacao de deploy.
+
+O primeiro backup/restore v3 OCI concluiu quatro arquivos, paridade, retencao,
+revogacao isolada, limpeza do restore e `financial_writes=0`, mas revelou o
+diretorio do pacote em `0775`. O diretorio real foi reduzido imediatamente a
+`0700`; raiz e arquivos ja estavam privados.
+
+Recovery local em
+`docs/audit/159-open-finance-backup-private-directory-recovery-candidate-2026-08-07.md`:
+criacao e endurecimento explicitos em `0700`, verificacao POSIX fail-closed e
+teste adversarial para destinos preexistentes em `0755`. Evidencia focal/causal
+`9/9 + 9/9`, checks sintaticos e diff verdes. Estado: candidato aguardando
+auditoria independente; artefato anterior invalidado e nenhum upload realizado.

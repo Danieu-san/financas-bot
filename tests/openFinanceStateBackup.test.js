@@ -46,8 +46,11 @@ test('9F backup is consistent, verifiable, restorable and encrypted at rest', as
     vault.close(); baseline.close(); outbox.close();
 
     const backupDirectory = path.join(root, 'backups', 'backup-1');
+    fs.mkdirSync(backupDirectory, { recursive: true, mode: 0o755 });
+    fs.chmodSync(backupDirectory, 0o755);
     const backup = await createOpenFinanceStateBackup({ databasePaths, destinationDirectory: backupDirectory, revocationJournal: journal,
         createdAt: '2026-07-01T00:00:00.000Z', retentionDays: 30 });
+    if (process.platform !== 'win32') assert.equal(fs.statSync(backupDirectory).mode & 0o777, 0o700);
     assert.deepEqual(verifyOpenFinanceStateBackup(backup.manifest_path), {
         valid: true, retention_until: '2026-07-31T00:00:00.000Z', files: 3, financial_writes: 0
     });
@@ -57,9 +60,12 @@ test('9F backup is consistent, verifiable, restorable and encrypted at rest', as
     }
 
     const restoreDirectory = path.join(root, 'restore');
+    fs.mkdirSync(restoreDirectory, { mode: 0o755 });
+    fs.chmodSync(restoreDirectory, 0o755);
     const restored = restoreOpenFinanceStateBackup({ manifestPath: backup.manifest_path,
         destinationDirectory: restoreDirectory, revocationJournal: journal,
         mappings: [{ alias: 'daniel_nubank', itemId: 'private-item', generation: 1 }], secret });
+    if (process.platform !== 'win32') assert.equal(fs.statSync(restoreDirectory).mode & 0o777, 0o700);
     assert.equal(restored.preview_state, 'absent_legacy');
     const restoredVault = new OpenFinanceLiveStagingVault({ databasePath: restored.restored.staging, secret });
     const restoredBaseline = new OpenFinanceBaselineStore({ databasePath: restored.restored.baseline, secret });

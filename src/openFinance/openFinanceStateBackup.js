@@ -13,6 +13,7 @@ const FILES_V2 = Object.freeze({
     outbox: 'outbox.sqlite'
 });
 const FILES_V3 = Object.freeze({ ...FILES_V2, preview: 'shadow-preview.sqlite' });
+const PRIVATE_DIRECTORY_MODE = 0o700;
 
 function filesForSchema(schema) {
     if (schema === 'open-finance-state-backup-v2') return FILES_V2;
@@ -26,7 +27,11 @@ function checksum(file) {
 
 function ensureEmptyDirectory(directory) {
     if (fs.existsSync(directory) && fs.readdirSync(directory).length) throw new Error('open_finance_backup_destination_not_empty');
-    fs.mkdirSync(directory, { recursive: true });
+    fs.mkdirSync(directory, { recursive: true, mode: PRIVATE_DIRECTORY_MODE });
+    fs.chmodSync(directory, PRIVATE_DIRECTORY_MODE);
+    if (process.platform !== 'win32' && (fs.statSync(directory).mode & 0o777) !== PRIVATE_DIRECTORY_MODE) {
+        throw new Error('open_finance_backup_directory_not_private');
+    }
 }
 
 function verifySqlite(file) {
