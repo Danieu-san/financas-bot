@@ -543,3 +543,10 @@ Estado vigente do gate 34: `NO-GO` antes de upload. Evidencia:
 Proxima acao: obter autorizacao propria para diagnostico operacional mutavel ou
 restabelecer acesso por um caminho ja aprovado; nao preparar nem promover o
 artefato enquanto a identidade da unica producao e sua saude nao forem provadas.
+
+Diagnostico read-only adicional confirmou rota padrao, internet gateway
+`Available`, regras publicas para HTTP/HTTPS e metricas recentes de CPU/memoria
+nas duas VMs. SSH permanece limitado a um CIDR cuja correspondencia atual nao
+foi confirmada. A menor proxima acao e criar conexao serial efemera somente na
+VM Ubuntu para listeners, firewall, SSH, Caddy, PM2 e health read-only; a
+criacao dessa conexao exige autorizacao propria e nao autoriza reparo ou reboot.

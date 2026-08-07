@@ -179,6 +179,8 @@ registro sanitizado e
 `docs/audit/157-open-finance-numeric-save-oci-frontier-a-preflight-2026-08-07.md`.
 
 O gate fica em `NO-GO` antes de upload. O proximo trabalho permitido e somente
-diagnosticar a indisponibilidade e identificar a unica producao. Reboot, console
-serial, run-command, regra de rede, desligamento de VM, upload, prepare, restart,
-flag, promocao e smoke exigem autorizacao explicita propria.
+criar, com autorizacao propria, uma conexao serial efemera na VM Ubuntu e rodar
+diagnostico interno read-only. A rota, o internet gateway e as regras web estao
+presentes, e ambas as VMs possuem metricas recentes. Reboot, reparo, regra de
+rede, desligamento de VM, upload, prepare, restart, flag, promocao e smoke exigem
+autorizacao explicita separada.

@@ -35,8 +35,17 @@ servidor.
 - ambas recusaram por timeout conexoes read-only nas portas 22, 80 e 443;
 - a subnet e publica, nao ha NSG associado visivel e a security list possui
   ingress TCP para 22, 80 e 443;
-- portanto a indisponibilidade nao pode ser explicada por ausencia dessas regras
-  na security list e exige diagnostico operacional separado.
+- a regra SSH esta limitada a um CIDR especifico; a correspondencia com o IP
+  atual nao pode ser confirmada porque a consulta foi bloqueada pela politica
+  do navegador e nao houve tentativa de contorno;
+- HTTP e HTTPS aceitam origem publica, a tabela possui rota padrao pelo internet
+  gateway e o gateway esta `Available`;
+- as duas VMs apresentam metricas recentes de CPU e memoria em 2026-08-07;
+- a VM Ubuntu usa a imagem aprovada e a VM anterior continua em Oracle Linux
+  8.10, ambas ainda `Running`;
+- portanto a indisponibilidade nao e explicada pela ausencia de rota, gateway ou
+  regras web e foi reduzida a acesso SSH possivelmente desatualizado e/ou
+  firewall/servicos dentro dos sistemas operacionais.
 
 Nenhum IP, OCID, hostname privado, fingerprint, token, telefone ou dado
 financeiro foi registrado neste documento.
@@ -63,3 +72,11 @@ da unica producao nao estiver restabelecida, a segunda VM ligada for explicada
 e a VM aprovada nao permitir um preflight autenticado e sanitizado. Qualquer
 correcao de rede, reboot, console serial, run-command ou desligamento e mutacao
 operacional e exige autorizacao propria.
+
+## Menor diagnostico sucessor
+
+Criar uma conexao de console serial efemera somente para a VM Ubuntu e executar
+comandos read-only de estado: listeners, firewall local, SSH, Caddy, PM2, rota,
+health e flags sanitizadas. A criacao da conexao e uma mutacao operacional,
+embora nao reinicie nem altere a VM, e por isso exige autorizacao explicita.
+Qualquer reparo posterior deve receber autorizacao separada com alvo e rollback.
