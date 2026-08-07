@@ -10,7 +10,7 @@ Cada conversa/worktree trabalha em um objetivo e preserva seu próprio estado.
 | `lost-ssd-recovery` | concluído | `lost-ssd-recovery.md` | `../../plans/workstreams/lost-ssd-recovery.md` | pacote AES-256 validado; Drive restrito ao proprietário e a Daniel |
 | `phase-8-legacy-retirement` | PHASE8-OBS-01 candidato local | `phase-8-legacy-retirement.md` | `../../plans/workstreams/phase-8-legacy-retirement.md` | sem flag, restart, deploy ou exclusao |
 | `codex-usage-calibration` | instrumentacao prospectiva em implementacao | `codex-usage-calibration.md` | `../../plans/workstreams/codex-usage-calibration.md` | metadados locais sanitizados; sem prompts, comandos, saidas ou dados financeiros |
-| `open-finance-historical-rx` | gates 31 a 33 fechados; gate 34 NO-GO por chave SSH nao autorizada na VM Ubuntu e duas VMs ligadas | `open-finance-historical-rx.md` | `../../plans/workstreams/open-finance-historical-rx.md` | regra temporaria removida; console serial/reparo exige autorizacao propria; sem upload, restart, flag, deploy ou smoke |
+| `open-finance-historical-rx` | gates 31 a 33 fechados; acesso SSH recuperado; gate 34 NO-GO antes de upload por gates operacionais restantes | `open-finance-historical-rx.md` | `../../plans/workstreams/open-finance-historical-rx.md` | regras temporarias removidas; backup/restore, upload, restart, flag, deploy e smoke exigem autorizacao propria |
 
 Se dois workstreams puderem escrever simultaneamente, usar branches/worktrees
 distintas. Atualizar somente a própria linha e seus arquivos.

@@ -178,14 +178,17 @@ conhecido apontando para elas. Security list permite essas tres portas. O
 registro sanitizado e
 `docs/audit/157-open-finance-numeric-save-oci-frontier-a-preflight-2026-08-07.md`.
 
-O gate fica em `NO-GO` antes de upload. Uma regra SSH `/32` temporaria,
-explicitamente autorizada, provou que a VM Ubuntu e sua chave de host respondem,
-mas a chave local disponivel nao esta autorizada no servidor. Nenhum comando
-interno foi executado e a regra temporaria foi removida e conferida.
+O acesso foi recuperado com a chave permanente do pacote privado, sem console
+serial. O preflight autenticado confirmou processo unico online sem restart,
+health/SQLite/WhatsApp verdes, flags em
+`canary/canary/canary/prompt/off/false`, stores principais privados e logs
+recentes sem segredo, telefone ou escrita financeira. Todas as regras SSH
+temporarias foram removidas. Evidencia:
+`docs/audit/158-open-finance-numeric-save-oci-key-recovery-preflight-2026-08-07.md`.
 
-O proximo trabalho permitido e somente criar, com autorizacao propria, uma
-conexao serial efemera na VM Ubuntu e rodar diagnostico interno read-only. A
-rota, o internet gateway e as regras web estao presentes, e ambas as VMs possuem
-metricas recentes. Troca de chave, reboot, reparo, nova regra de rede,
-desligamento de VM, upload, prepare, restart, flag, promocao e smoke exigem
-autorizacao explicita separada.
+O gate continua `NO-GO` antes de upload porque backup/restore v3, validacao
+interna agregada dos stores e explicacao da segunda VM ainda nao foram
+executados. Essas etapas exigem autorizacao operacional propria. O acesso SSH
+deixou de ser bloqueador e a implementacao local pode continuar sem manter a
+OCI aberta. Upload, prepare, restart, flag, promocao e smoke permanecem fora do
+alcance.

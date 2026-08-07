@@ -561,3 +561,20 @@ Estado vigente: gate 34 continua `NO-GO` antes de upload. PM2, health, flags,
 stores e `financial_writes=0` seguem `NAO_DISPONIVEL`. Menor proxima acao:
 autorizar uma conexao serial efemera somente na VM Ubuntu para diagnostico
 interno read-only; troca de chave ou qualquer reparo exigem autorizacao separada.
+
+O pacote privado recuperado em 2026-08-07 continha a configuracao de producao e
+uma chave permanente diferente da chave historica recusada. A ACL herdada do
+ZIP foi reduzida a Thais, Administradores e Sistema; a chave autenticou na VM
+Ubuntu e tornou console serial desnecessario. Nenhum material privado foi lido
+ou registrado.
+
+O preflight autenticado confirmou SSH/Caddy ativos, listeners esperados, um
+PM2 online sem restart, health/SQLite/WhatsApp verdes, seis flags seguras,
+stores em `0600` sob diretorios `0700` e ausencia de sidecars SQLite residuais.
+Logs foram avaliados somente por contagens sanitizadas. Todas as regras SSH
+temporarias foram removidas. Evidencia vigente:
+`docs/audit/158-open-finance-numeric-save-oci-key-recovery-preflight-2026-08-07.md`.
+
+Estado atual: acesso SSH recuperado; gate 34 ainda `NO-GO` antes de upload por
+backup/restore v3, verificacao agregada dos stores e segunda VM pendentes. A
+proxima implementacao local pode seguir sem herdar autorizacao de deploy.

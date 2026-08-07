@@ -89,3 +89,11 @@ comandos read-only de estado: listeners, firewall local, SSH, Caddy, PM2, rota,
 health e flags sanitizadas. A criacao da conexao e uma mutacao operacional,
 embora nao reinicie nem altere a VM, e por isso exige autorizacao explicita.
 Qualquer reparo posterior deve receber autorizacao separada com alvo e rollback.
+
+## Adendo posterior
+
+O bloqueio de chave descrito acima foi resolvido no mesmo dia com o pacote de
+recuperacao privado. O preflight autenticado vigente esta em
+`docs/audit/158-open-finance-numeric-save-oci-key-recovery-preflight-2026-08-07.md`
+e substitui as secoes de evidencia indisponivel e menor diagnostico sucessor
+deste registro inicial. Console serial deixou de ser necessario.
