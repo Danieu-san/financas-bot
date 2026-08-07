@@ -599,3 +599,28 @@ modo efetivo e falha fechado. Fechamento:
 Estado atual: recovery encerrado; artefato anterior invalidado. Proxima acao:
 construir novo artefato e provar na OCI backup/restore real com diretorio do
 pacote em `0700`, antes de preparar o plano de promocao.
+
+## Gate 34 - fronteira A concluida com uma precondicao externa pendente
+
+Atualizado em: 2026-08-07
+
+O artefato `2219590411fbea993bc8baa608e6a86c372dea27` foi reconstruido,
+verificado localmente e na OCI e preparado em slot isolado. O backup/restore v3
+executado pelo codigo novo passou com diretorio real em `0700`, arquivos em
+`0600`, paridade, retencao, revogacao somente na copia, limpeza integral e
+`financial_writes=0`.
+
+A VM OCI candidata antiga foi identificada pela console e parada graciosamente;
+a producao Ubuntu permaneceu com processo unico, zero restart, health,
+SQLite/WhatsApp e flags seguros. Todas as regras SSH temporarias foram
+removidas.
+
+Plano e evidencia:
+`docs/audit/161-open-finance-numeric-save-oci-frontier-a-plan-2026-08-07.md`.
+O rollback aponta para a release anterior e o novo slot ainda nao foi
+promovido.
+
+Estado: `NO-GO PARA PROMOCAO` somente porque `aws_pm2_stopped` nao recebeu
+prova factual: o host historico nao responde e a console AWS exige login. Apos
+confirmar a AWS, apresentar o plano a Daniel e exigir a autorizacao final com
+presenca para o smoke familiar. Nenhum polling ou mensagem foi disparado.

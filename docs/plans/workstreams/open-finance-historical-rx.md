@@ -138,7 +138,7 @@ misturar historico, alertas, propostas e escrita financeira.
     `accepted_unconfirmed`, estados individuais preexistentes, restart e
     rollback do artefato. O charter e
     `docs/plans/workstreams/open-finance-numeric-save-release.md`.
-34. [em execucao; recovery de backup com GO independente] Promover o fluxo numerico de compras
+34. [em execucao; slot/plano prontos, AWS pendente] Promover o fluxo numerico de compras
     na OCI por artefato imutavel e executar smoke com Daniel presente. Manter
     proposta em `prompt`, escrita `off`, aprovacao falsa e `confirm` bloqueado;
     provar lotes independentes nos dois telefones, cutoff, processo unico,
@@ -208,8 +208,10 @@ e recebeu zero achados na reauditoria focal.
 34. [em execucao] O preflight autenticado identificou a producao OCI e o
 primeiro backup/restore real revelou o diretorio do pacote em `0775`. O recovery
 publicado em `2af482094cd325f2e6c7f543020c07babcfd5d57` recebeu GO independente.
-Construir novo artefato, provar o diretorio real em `0700`, preparar o plano e
-obter a confirmacao final antes da promocao.
+O novo artefato foi preparado e o diretorio real passou em `0700`; a VM OCI
+candidata antiga foi parada graciosamente e o plano de rollback esta pronto.
+Confirmar factualmente a AWS antiga, depois obter a autorizacao final de Daniel
+presente antes da promocao e do smoke.
 
 Depois do GO independente do gate 33, seguir estritamente 34 -> 35 -> 36 -> 37
 -> 38. Nenhum GO autoriza automaticamente o gate seguinte, uma nova classe ou
