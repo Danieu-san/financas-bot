@@ -9,8 +9,8 @@ copia consistente do estado vigente, sem alterar flags, producao ou dados reais.
 
 ## Estado
 
-`GATES 31, 32 E 33 COM GO TECNICO LOCAL INDEPENDENTE; WRITES OFF; SEM
-DEPLOY AUTORIZADO NESTE WORKSTREAM`.
+`GATES 31, 32 E 33 COM GO TECNICO LOCAL INDEPENDENTE; GATE 34 ESPECIFICADO;
+WRITES OFF; SEM DEPLOY AUTORIZADO`.
 
 O nucleo local da revisao numerada foi encerrado no commit auditado
 `987404c37a5839058be5010d2a036f963819a511`. O parecer independente confirmou
@@ -502,3 +502,22 @@ O gate 33 esta encerrado somente no alcance tecnico local. Gate 34, deploy OCI,
 flags, Pluggy/Sheets/WhatsApp reais e producao continuam fora do escopo. A
 proxima acao e apenas preparar o gate operacional 34 para execucao futura com
 Daniel presente e autorizacao explicita.
+
+## Gate 34 - charter operacional preparado
+
+Atualizado em: 2026-08-07
+
+O charter `OF-NUMERIC-SAVE-OCI-01` foi preparado em
+`docs/plans/workstreams/open-finance-numeric-save-oci.md`. Ele fixa o hash de
+produto auditado `ea803c5c29919daa582355046536bd22bf8f88a1`, separa preparacao
+somente leitura de promocao/restart e exige uma segunda autorizacao antes da
+mutacao remota.
+
+O smoke espera polling natural, usa os dois telefones somente com Daniel
+presente, prova reserva unica e mantem `OPEN_FINANCE_WRITE_MODE=off`, aprovacao
+`false` e `financial_writes=0`. `confirm`, escrita, gates 35 a 38 e qualquer
+acao remota permanecem nao autorizados.
+
+Proxima acao: com Daniel presente, iniciar a fronteira A pelo hash e pela
+redescoberta sanitizada da infraestrutura vigente; sem presenca/autorizacao,
+parar neste checkpoint.

@@ -1,6 +1,6 @@
 # Plano - RX historico e evolucao operacional Open Finance
 
-Status: `gate 32 fechado; gate 33 especificado; gates 34 a 38 ordenados`.
+Status: `gates 31 a 33 fechados; gate 34 especificado; gates 35 a 38 ordenados`.
 
 ## Objetivo
 
@@ -132,17 +132,18 @@ misturar historico, alertas, propostas e escrita financeira.
     permanecer fail-closed, com `financial_writes=0`. O gate nao pode incluir o RX
     historico anterior ao corte operacional de `2026-07-28`, ambiguidades ainda
     nao resolvidas, ativacao de flags, deploy ou producao.
-33. [contrato especificado; execucao nao iniciada] Provar a compatibilidade do
+33. [concluida com GO tecnico local independente] Provar a compatibilidade do
     fluxo numerico com uma copia consistente do estado vigente, incluindo
     cutoff efetivo por fonte, backlog anterior ao corte, entregas
     `accepted_unconfirmed`, estados individuais preexistentes, restart e
     rollback do artefato. O charter e
     `docs/plans/workstreams/open-finance-numeric-save-release.md`.
-34. [planejada; depende do GO do gate 33] Promover o fluxo numerico de compras
+34. [contrato especificado; execucao operacional nao autorizada] Promover o fluxo numerico de compras
     na OCI por artefato imutavel e executar smoke com Daniel presente. Manter
     proposta em `prompt`, escrita `off`, aprovacao falsa e `confirm` bloqueado;
     provar lotes independentes nos dois telefones, cutoff, processo unico,
-    health e rollback sem ressuscitar backlog.
+    health e rollback sem ressuscitar backlog. O charter e
+    `docs/plans/workstreams/open-finance-numeric-save-oci.md`.
 35. [planejada; depende do gate 34] Concluir o RX historico por revisao humana
     das ambiguidades remanescentes. Ativar de forma controlada a revisao
     numerada, consumir decisoes duraveis, recalcular o RX e separar: resolvido,
@@ -200,16 +201,14 @@ misturar historico, alertas, propostas e escrita financeira.
 
 ## Proxima acao
 
-32. [concluida com GO tecnico local independente] O recovery publicado em
-`1d233aecdf5b810a364f0d8c3202e18b0ff36aa9` fechou a durabilidade da fila e as
-provas de rollback. A reauditoria zerou todas as severidades e nao encontrou
-lacuna indispensavel. O gate sucessor, qualquer ativacao de `prompt`, deploy ou
-producao permanecem fora deste fechamento e devem ser especificados
-separadamente.
+33. [concluida com GO tecnico local independente] O segundo recovery publicado
+em `ea803c5c29919daa582355046536bd22bf8f88a1` fechou a corrida de temporarios
+e recebeu zero achados na reauditoria focal.
 
-33. [proxima] Implementar primeiro a prova RED do preflight de compatibilidade
-e release, sempre sobre fixtures ou copia consistente e sem acesso remoto. Nao
-ativar flags, nao executar polling real e nao fazer deploy.
+34. [proxima, condicionada] Executar primeiro a fronteira A do charter
+`open-finance-numeric-save-oci.md`, somente com Daniel presente e autorizacao
+explicita: confirmar o hash, construir/verificar o artefato e redescobrir a
+infraestrutura antes de qualquer mutacao remota.
 
 Depois do GO independente do gate 33, seguir estritamente 34 -> 35 -> 36 -> 37
 -> 38. Nenhum GO autoriza automaticamente o gate seguinte, uma nova classe ou

@@ -166,3 +166,7 @@ um gate operacional separado de deploy OCI por artefato imutavel, sem o
 executar automaticamente. Esse gate posterior deve
 redescobrir host, usuario, chave, diretorio e processo, preservar estado,
 manter escrita `off` e definir smoke real com Daniel presente.
+
+O charter sucessor foi preparado em
+`docs/plans/workstreams/open-finance-numeric-save-oci.md`. Sua existencia nao
+autoriza acesso remoto, upload, restart, deploy, flag ou smoke.
