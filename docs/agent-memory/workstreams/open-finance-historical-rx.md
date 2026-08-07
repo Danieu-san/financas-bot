@@ -9,8 +9,8 @@ copia consistente do estado vigente, sem alterar flags, producao ou dados reais.
 
 ## Estado
 
-`GATES 31 E 32 COM GO TECNICO LOCAL INDEPENDENTE; GATE 33 ESPECIFICADO;
-WRITES OFF; SEM DEPLOY AUTORIZADO NESTE GATE`.
+`GATES 31, 32 E 33 COM GO TECNICO LOCAL INDEPENDENTE; WRITES OFF; SEM
+DEPLOY AUTORIZADO NESTE WORKSTREAM`.
 
 O nucleo local da revisao numerada foi encerrado no commit auditado
 `987404c37a5839058be5010d2a036f963819a511`. O parecer independente confirmou
@@ -490,3 +490,15 @@ total, 1.529 aprovados, zero falhas e 10 skips; cobertura de linhas 90,82%,
 branches 73,38% e funcoes 90,53%. Estado maximo: `segundo recovery candidato
 aguardando nova auditoria independente por novo hash`. Gate 34 continua fora
 do escopo.
+
+O segundo recovery foi publicado no hash imutavel
+`ea803c5c29919daa582355046536bd22bf8f88a1` e recebeu `GO TECNICO LOCAL`
+independente. O auditor confirmou literalmente o hash, leu integralmente os
+seis arquivos alterados e encerrou o residual da corrida de temporarios com
+`CRITICAL 0`, `HIGH 0`, `MEDIUM 0` e `LOW 0`. O registro de fechamento e
+`docs/audit/156-open-finance-numeric-save-release-independent-close-2026-08-06.md`.
+
+O gate 33 esta encerrado somente no alcance tecnico local. Gate 34, deploy OCI,
+flags, Pluggy/Sheets/WhatsApp reais e producao continuam fora do escopo. A
+proxima acao e apenas preparar o gate operacional 34 para execucao futura com
+Daniel presente e autorizacao explicita.

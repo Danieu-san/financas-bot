@@ -2,7 +2,7 @@
 
 ID: `OF-NUMERIC-SAVE-RELEASE-01`
 
-Estado: `segundo recovery local validado; aguardando nova auditoria independente`.
+Estado: `GO TECNICO LOCAL independente; gate 33 encerrado`.
 
 Commit de partida efetivo desta execucao:
 `25c7c6be8953214aa1e4310403a006efcc9c88bb`.
@@ -75,10 +75,10 @@ WhatsApp, Pluggy ou planilhas.
    afetada `229/229`.
 4. Concluido no segundo recovery: uma unica suite hermetica ampla final, com
    1.539 testes, 1.529 aprovados, zero falhas e 10 skips conhecidos.
-5. Em andamento: publicar commit sanitizado e obter auditoria independente por
-   hash imutavel.
-6. Pendente: encerrar somente o GO tecnico local e preparar um gate operacional
-   separado.
+5. Concluido: segundo recovery publicado no hash imutavel
+   `ea803c5c29919daa582355046536bd22bf8f88a1` e auditado independentemente.
+6. Concluido: `GO TECNICO LOCAL` registrado; gate operacional permanece
+   separado e nao autorizado por este fechamento.
 
 ## Evidencia local do candidato
 
@@ -129,6 +129,13 @@ entrar no fingerprint final. O segundo recovery inclui `temp` e `replayTemp`
 no conjunto de quiescencia, repete a verificacao imediatamente antes do
 manifesto e cobre a corrida durante `checkpoint()`.
 
+O segundo recovery, no hash imutavel
+`ea803c5c29919daa582355046536bd22bf8f88a1`, recebeu `GO TECNICO LOCAL`
+independente. O auditor confirmou literalmente o hash, leu integralmente os
+seis arquivos alterados e considerou fechada a corrida dos temporarios:
+`CRITICAL 0`, `HIGH 0`, `MEDIUM 0` e `LOW 0`. As contagens locais foram
+tratadas corretamente como evidencia relatada, nao como execucao independente.
+
 ## Criterios de GO
 
 - o preflight falha fechado se qualquer fonte nao comprovar cutoff efetivo em
@@ -154,7 +161,8 @@ manifesto e cobre a corrida durante `checkpoint()`.
 
 ## Proximo estado autorizado
 
-Somente depois do GO tecnico local deste gate pode ser aberto um gate
-operacional de deploy OCI por artefato imutavel. Esse gate posterior deve
+O gate tecnico local 33 esta encerrado. O proximo trabalho permitido e preparar
+um gate operacional separado de deploy OCI por artefato imutavel, sem o
+executar automaticamente. Esse gate posterior deve
 redescobrir host, usuario, chave, diretorio e processo, preservar estado,
 manter escrita `off` e definir smoke real com Daniel presente.
