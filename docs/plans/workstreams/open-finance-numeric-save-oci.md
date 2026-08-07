@@ -2,7 +2,7 @@
 
 ID: `OF-NUMERIC-SAVE-OCI-01`
 
-Estado: `charter preparado; execucao operacional nao autorizada`.
+Estado: `fronteira A em NO-GO operacional; artefato local valido, OCI inacessivel`.
 
 Commit de partida documental:
 `fa81aa2523291b035977996b048a52dfa842a463`.
@@ -172,7 +172,13 @@ controlador. Nunca ligar a AWS nem editar estado para fazer o release iniciar.
 
 ## Proximo passo autorizado
 
-Nenhuma acao operacional esta autorizada por este charter. Quando Daniel estiver
-presente, iniciar pela fronteira A: confirmar novamente o hash, construir e
-verificar localmente o artefato e so entao redescobrir a infraestrutura vigente
-antes de transferir ou alterar qualquer estado remoto.
+O build/verifier local terminou verde, mas a redescoberta read-only encontrou
+duas VMs relacionadas em `Running`, nenhuma acessivel por 22/80/443 e nenhum DNS
+conhecido apontando para elas. Security list permite essas tres portas. O
+registro sanitizado e
+`docs/audit/157-open-finance-numeric-save-oci-frontier-a-preflight-2026-08-07.md`.
+
+O gate fica em `NO-GO` antes de upload. O proximo trabalho permitido e somente
+diagnosticar a indisponibilidade e identificar a unica producao. Reboot, console
+serial, run-command, regra de rede, desligamento de VM, upload, prepare, restart,
+flag, promocao e smoke exigem autorizacao explicita propria.

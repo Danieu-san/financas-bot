@@ -530,3 +530,16 @@ e smoke continuam exigindo autorizacao propria. O artefato do hash
 localmente, com 799 arquivos e checksums do pacote e instalador validos. A
 descoberta remota esta aguardando novo login na console Oracle: o host historico
 nao responde e nao foi reutilizado sem validacao.
+
+Depois do login, a console confirmou duas VMs relacionadas ao bot em `Running`.
+A VM Ubuntu historica e a VM candidata anterior estao inacessiveis por
+22/80/443, enquanto a subnet publica e a security list mostram ingress para as
+tres portas. Nenhum DNS conhecido aponta para qualquer VM observada. Sem acesso
+autenticado, PM2, health, flags, stores e `financial_writes=0` permanecem
+`NAO_DISPONIVEL`.
+
+Estado vigente do gate 34: `NO-GO` antes de upload. Evidencia:
+`docs/audit/157-open-finance-numeric-save-oci-frontier-a-preflight-2026-08-07.md`.
+Proxima acao: obter autorizacao propria para diagnostico operacional mutavel ou
+restabelecer acesso por um caminho ja aprovado; nao preparar nem promover o
+artefato enquanto a identidade da unica producao e sua saude nao forem provadas.
