@@ -50,17 +50,22 @@ function digestJson(value) {
 function sourceSetFingerprint(databasePaths, persistentPaths) {
     const entries = [];
     const sources = [
-        ...Object.entries(databasePaths || {}).map(([key, file]) => [`database/${key}`, file]),
-        ...['journal', 'anchor', 'state', 'replay']
-            .map(key => [`persistent/${key}`, persistentPaths?.[key]])
-            .filter(([, file]) => file)
-    ];
-    for (const [key, file] of sources.sort(([left], [right]) => left.localeCompare(right))) {
-        for (const [suffix, label] of [['', 'main'], ['-wal', 'wal']]) {
+        ...Object.entries(databasePaths || {})
+            .map(([key, file]) => [`database/${key}`, file, true]),
+        ...['journal', 'anchor'].map(key => [`persistent/${key}`, persistentPaths?.[key], true]),
+        ...['state', 'replay', 'temp', 'replayTemp']
+            .map(key => [`persistent/${key}`, persistentPaths?.[key], false])
+    ].filter(([, file]) => file);
+    for (const [key, file, sqlite] of sources
+        .sort(([left], [right]) => left.localeCompare(right))) {
+        const candidates = sqlite
+            ? [['', 'main'], ['-wal', 'wal'], ['-journal', 'journal']]
+            : [['', 'main']];
+        for (const [suffix, label] of candidates) {
             const candidate = `${file}${suffix}`;
             if (!fs.existsSync(candidate)) continue;
             const bytes = fs.statSync(candidate).size;
-            if (label === 'wal' && bytes === 0) continue;
+            if ((label === 'wal' || label === 'journal') && bytes === 0) continue;
             entries.push({ key: `${key}/${label}`, bytes,
                 sha256: checksum(candidate) });
         }
@@ -357,7 +362,9 @@ async function createOpenFinanceNumericSaveReleaseBundle({
             fs.chmodSync(replayTarget, 0o600);
         }
         const sourceFingerprintAfter = sourceSetFingerprint(databasePaths, persistentPaths);
-        if (sourceFingerprintAfter !== sourceFingerprintBefore) {
+        const temporaryAppeared = [persistentPaths.temp, persistentPaths.replayTemp]
+            .filter(Boolean).some(file => fs.existsSync(file));
+        if (temporaryAppeared || sourceFingerprintAfter !== sourceFingerprintBefore) {
             throw new Error('numeric_save_release_source_changed_during_snapshot');
         }
         const manifest = {

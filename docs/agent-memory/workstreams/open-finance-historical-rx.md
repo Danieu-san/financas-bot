@@ -471,3 +471,22 @@ Evidencia final do recovery: focal `8/8`; causal `228/228`; suite hermetica
 90,81%, branches 73,36% e funcoes 90,52%. Estado maximo: `recovery candidato
 aguardando nova auditoria independente por novo hash`. O gate 34 permanece fora
 do escopo.
+
+O recovery `3e94bb43c7bf13e0bf6521a9a36236080f83af7d` recebeu novo
+`NO-GO` com apenas um `MEDIUM` residual. O auditor confirmou fechados os dois
+`HIGH`, o tripwire de efeitos e a politica imutavel, mas demonstrou que
+`state_store.tmp` ou `state_store.replay.tmp` podiam surgir depois do precheck
+sem participar do fingerprint posterior.
+
+O segundo recovery inclui a existencia e o conteudo desses temporarios no
+fingerprint antes/depois e os verifica novamente imediatamente antes do
+manifesto. A prova injeta `state_store.tmp` durante o `checkpoint()` assincrono,
+exige `numeric_save_release_source_changed_during_snapshot` e confirma a
+remocao do bundle parcial. WAL e rollback journal SQLite com conteudo tambem
+integram a verificacao; SHM derivado nao e tratado como dado persistente.
+
+Evidencia final atual: focal `9/9`; causal `229/229`; suite hermetica 1.539
+total, 1.529 aprovados, zero falhas e 10 skips; cobertura de linhas 90,82%,
+branches 73,38% e funcoes 90,53%. Estado maximo: `segundo recovery candidato
+aguardando nova auditoria independente por novo hash`. Gate 34 continua fora
+do escopo.

@@ -2,7 +2,7 @@
 
 ID: `OF-NUMERIC-SAVE-RELEASE-01`
 
-Estado: `recovery local validado apos NO-GO; aguardando nova auditoria independente`.
+Estado: `segundo recovery local validado; aguardando nova auditoria independente`.
 
 Commit de partida efetivo desta execucao:
 `25c7c6be8953214aa1e4310403a006efcc9c88bb`.
@@ -71,10 +71,10 @@ WhatsApp, Pluggy ou planilhas.
 1. Concluido: RED causal para cutoff, backlog terminal, compatibilidade de
    estado e rollback do conjunto persistido.
 2. Concluido: preflight e ensaio local minimos para fechar as falhas RED.
-3. Concluido no recovery: syntax check, focal `8/8` e bateria causal afetada
-   `228/228`.
-4. Concluido no recovery: uma unica suite hermetica ampla final, com 1.538
-   testes, 1.528 aprovados, zero falhas e 10 skips conhecidos.
+3. Concluido no segundo recovery: syntax check, focal `9/9` e bateria causal
+   afetada `229/229`.
+4. Concluido no segundo recovery: uma unica suite hermetica ampla final, com
+   1.539 testes, 1.529 aprovados, zero falhas e 10 skips conhecidos.
 5. Em andamento: publicar commit sanitizado e obter auditoria independente por
    hash imutavel.
 6. Pendente: encerrar somente o GO tecnico local e preparar um gate operacional
@@ -95,10 +95,11 @@ WhatsApp, Pluggy ou planilhas.
 - estado individual legado e lote numerico novo reabrem pela entrada publica
   correta;
 - o rollback restaura o fingerprint integral do conjunto persistido;
-- focal `8/8`, bateria causal `228/228`, syntax checks e
+- focal `9/9`, bateria causal `229/229`, syntax checks e
   `git diff --check` verdes;
-- suite hermetica final do recovery: 1.538 total, 1.528 aprovados, zero falhas,
-  10 skips; cobertura de linhas 90,81%, branches 73,36% e funcoes 90,52%;
+- suite hermetica final do segundo recovery: 1.539 total, 1.529 aprovados, zero
+  falhas, 10 skips; cobertura de linhas 90,82%, branches 73,38% e funcoes
+  90,53%;
 - o runner rejeita tambem work root fisicamente contido na copia por
   junction/symlink, mesmo quando o caminho aparente esta fora dela;
 - nenhuma chamada Pluggy/Sheets/WhatsApp real, flag, deploy ou producao.
@@ -120,6 +121,13 @@ restaurado. Nessa arvore, nenhum item anterior ao corte pode ser reclamado,
 `NO_GO`. A origem e fingerprintada antes/depois, a CLI exige confirmacao de
 copia quiescente, a politica e congelada no preflight e o teste instala
 tripwires para `fetch`, HTTP, HTTPS e sockets.
+
+O hash `3e94bb43c7bf13e0bf6521a9a36236080f83af7d` fechou os dois
+`HIGH`, o tripwire e a politica imutavel, mas recebeu novo `NO-GO` por um unico
+`MEDIUM`: os temporarios do state store podiam surgir depois do precheck sem
+entrar no fingerprint final. O segundo recovery inclui `temp` e `replayTemp`
+no conjunto de quiescencia, repete a verificacao imediatamente antes do
+manifesto e cobre a corrida durante `checkpoint()`.
 
 ## Criterios de GO
 

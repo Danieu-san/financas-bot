@@ -517,6 +517,31 @@ test('gate 33 rejects a source copy that changes while the coherent bundle is cr
     }
 });
 
+test('gate 33 rejects a state-store temporary that appears during the snapshot', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-numeric-release-temp-race-'));
+    const fixture = createFixture(root);
+    const checkpoint = fixture.journal.checkpoint.bind(fixture.journal);
+    fixture.journal.checkpoint = () => {
+        fs.writeFileSync(fixture.persistentPaths.temp, 'pending-state-promotion', { mode: 0o600 });
+        return checkpoint();
+    };
+    try {
+        await assert.rejects(
+            createOpenFinanceNumericSaveReleaseBundle({
+                databasePaths: fixture.databasePaths,
+                persistentPaths: fixture.persistentPaths,
+                destinationDirectory: path.join(root, 'bundle'),
+                revocationJournal: fixture.journal,
+                stateStoreKey
+            }),
+            /numeric_save_release_source_changed_during_snapshot/
+        );
+        assert.equal(fs.existsSync(path.join(root, 'bundle')), false);
+    } finally {
+        fixture.journal.close();
+    }
+});
+
 test('gate 33 binds the rehearsal to the immutable policy resolved by preflight', async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-numeric-release-policy-'));
     const fixture = createFixture(root);
