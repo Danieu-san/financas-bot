@@ -588,5 +588,14 @@ Recovery local em
 `docs/audit/159-open-finance-backup-private-directory-recovery-candidate-2026-08-07.md`:
 criacao e endurecimento explicitos em `0700`, verificacao POSIX fail-closed e
 teste adversarial para destinos preexistentes em `0755`. Evidencia focal/causal
-`9/9 + 9/9`, checks sintaticos e diff verdes. Estado: candidato aguardando
-auditoria independente; artefato anterior invalidado e nenhum upload realizado.
+`9/9 + 9/9`, checks sintaticos e diff verdes.
+
+O hash imutavel `2af482094cd325f2e6c7f543020c07babcfd5d57` recebeu `GO TECNICO
+LOCAL` independente, com zero achado critico, alto ou medio. Um `LOW` de
+cobertura rara foi aceito como nao bloqueante porque o produto ja verifica o
+modo efetivo e falha fechado. Fechamento:
+`docs/audit/160-open-finance-backup-private-directory-recovery-independent-close-2026-08-07.md`.
+
+Estado atual: recovery encerrado; artefato anterior invalidado. Proxima acao:
+construir novo artefato e provar na OCI backup/restore real com diretorio do
+pacote em `0700`, antes de preparar o plano de promocao.

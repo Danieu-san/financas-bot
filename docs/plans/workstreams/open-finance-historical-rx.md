@@ -138,7 +138,7 @@ misturar historico, alertas, propostas e escrita financeira.
     `accepted_unconfirmed`, estados individuais preexistentes, restart e
     rollback do artefato. O charter e
     `docs/plans/workstreams/open-finance-numeric-save-release.md`.
-34. [contrato especificado; execucao operacional nao autorizada] Promover o fluxo numerico de compras
+34. [em execucao; recovery de backup com GO independente] Promover o fluxo numerico de compras
     na OCI por artefato imutavel e executar smoke com Daniel presente. Manter
     proposta em `prompt`, escrita `off`, aprovacao falsa e `confirm` bloqueado;
     provar lotes independentes nos dois telefones, cutoff, processo unico,
@@ -205,10 +205,11 @@ misturar historico, alertas, propostas e escrita financeira.
 em `ea803c5c29919daa582355046536bd22bf8f88a1` fechou a corrida de temporarios
 e recebeu zero achados na reauditoria focal.
 
-34. [proxima, condicionada] Executar primeiro a fronteira A do charter
-`open-finance-numeric-save-oci.md`, somente com Daniel presente e autorizacao
-explicita: confirmar o hash, construir/verificar o artefato e redescobrir a
-infraestrutura antes de qualquer mutacao remota.
+34. [em execucao] O preflight autenticado identificou a producao OCI e o
+primeiro backup/restore real revelou o diretorio do pacote em `0775`. O recovery
+publicado em `2af482094cd325f2e6c7f543020c07babcfd5d57` recebeu GO independente.
+Construir novo artefato, provar o diretorio real em `0700`, preparar o plano e
+obter a confirmacao final antes da promocao.
 
 Depois do GO independente do gate 33, seguir estritamente 34 -> 35 -> 36 -> 37
 -> 38. Nenhum GO autoriza automaticamente o gate seguinte, uma nova classe ou

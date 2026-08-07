@@ -36,8 +36,11 @@ bloqueio inicial nao foi contado como falha do produto.
 
 ## Estado
 
-`CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE`.
+`GO TECNICO LOCAL` no hash imutavel
+`2af482094cd325f2e6c7f543020c07babcfd5d57`.
 
-O artefato anterior nao pode ser enviado. Depois de GO independente, construir
-e verificar novo artefato, reexecutar o backup/restore v3 na OCI e exigir o
-diretorio real em `0700` antes de continuar o gate 34.
+O fechamento independente esta em
+`docs/audit/160-open-finance-backup-private-directory-recovery-independent-close-2026-08-07.md`.
+O artefato anterior nao pode ser enviado. Construir e verificar novo artefato,
+reexecutar o backup/restore v3 na OCI e exigir o diretorio real em `0700` antes
+de continuar o gate 34.
