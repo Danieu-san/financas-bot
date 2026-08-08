@@ -59,15 +59,59 @@ async function triggerReadyRescue(client, options = {}) {
 
 function scheduleReadyRescue(client, options = {}) {
     const delayMs = Number(options.delayMs || 15000);
+    const retryDelayMs = Number(options.retryDelayMs || delayMs);
+    const maxAttempts = Number.isInteger(Number(options.maxAttempts))
+        ? Math.max(1, Number(options.maxAttempts))
+        : 3;
     const setTimeoutFn = options.setTimeoutFn || setTimeout;
+    const clearTimeoutFn = options.clearTimeoutFn || clearTimeout;
     const logger = options.logger || defaultLogger;
     if (delayMs <= 0) return null;
 
-    return setTimeoutFn(() => {
-        void triggerReadyRescue(client, options).catch(error => {
-            logger.warn(`[whatsapp] ready_rescue_failed ${defaultLogger.safeError(error)}`);
-        });
-    }, delayMs);
+    let attempt = 0;
+    let cancelled = false;
+    let timer = null;
+
+    const isStillPending = typeof options.isStillPending === 'function'
+        ? options.isStillPending
+        : () => true;
+
+    function scheduleNext(waitMs) {
+        timer = setTimeoutFn(runAttempt, waitMs);
+    }
+
+    async function runAttempt() {
+        timer = null;
+        if (cancelled || !isStillPending()) return;
+
+        attempt += 1;
+        try {
+            await triggerReadyRescue(client, options);
+        } catch (error) {
+            logger.warn(
+                `[whatsapp] ready_rescue_failed attempt=${attempt} ` +
+                defaultLogger.safeError(error)
+            );
+        }
+
+        if (cancelled || !isStillPending()) return;
+        if (attempt >= maxAttempts) {
+            logger.warn(`[whatsapp] ready_rescue_exhausted attempts=${attempt}`);
+            return;
+        }
+        scheduleNext(retryDelayMs);
+    }
+
+    scheduleNext(delayMs);
+    return {
+        cancel() {
+            cancelled = true;
+            if (timer !== null) {
+                clearTimeoutFn(timer);
+                timer = null;
+            }
+        }
+    };
 }
 
 module.exports = {

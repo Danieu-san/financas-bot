@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 const {
+    scheduleReadyRescue,
     triggerReadyRescue
 } = require('../src/services/whatsappReadyRescueService');
 
@@ -125,4 +126,102 @@ test('triggerReadyRescue rejects a different attachEventListeners failure', asyn
         /different private binding failure/
     );
     assert.equal(evaluations, 0);
+});
+
+test('scheduleReadyRescue retries a transient failure and stops after ready', async () => {
+    const timers = [];
+    const warnings = [];
+    let pending = true;
+    let attachments = 0;
+    let evaluations = 0;
+
+    scheduleReadyRescue({
+        async attachEventListeners() {
+            attachments += 1;
+            if (attachments === 1) throw new Error('transient attach failure');
+        },
+        pupPage: {
+            async evaluate() {
+                evaluations += 1;
+                pending = false;
+                return { triggered: true };
+            }
+        }
+    }, {
+        delayMs: 10,
+        retryDelayMs: 20,
+        maxAttempts: 3,
+        isStillPending: () => pending,
+        setTimeoutFn(callback, delayMs) {
+            timers.push({ callback, delayMs });
+            return timers.length;
+        },
+        clearTimeoutFn() {},
+        logger: {
+            info() {},
+            warn(message) { warnings.push(message); }
+        }
+    });
+
+    assert.equal(timers.length, 1);
+    assert.equal(timers[0].delayMs, 10);
+    await timers.shift().callback();
+    assert.equal(timers.length, 1);
+    assert.equal(timers[0].delayMs, 20);
+    await timers.shift().callback();
+
+    assert.equal(attachments, 2);
+    assert.equal(evaluations, 1);
+    assert.equal(timers.length, 0);
+    assert.equal(warnings.some(message => message.includes('attempt=1')), true);
+    assert.equal(warnings.some(message => message.includes('exhausted')), false);
+});
+
+test('scheduleReadyRescue bounds repeated failures and reports exhaustion', async () => {
+    const timers = [];
+    const warnings = [];
+    let attempts = 0;
+
+    scheduleReadyRescue({
+        async attachEventListeners() {
+            attempts += 1;
+            throw new Error('persistent attach failure');
+        },
+        pupPage: { async evaluate() { return { triggered: false }; } }
+    }, {
+        delayMs: 1,
+        retryDelayMs: 1,
+        maxAttempts: 3,
+        isStillPending: () => true,
+        setTimeoutFn(callback, delayMs) {
+            timers.push({ callback, delayMs });
+            return timers.length;
+        },
+        clearTimeoutFn() {},
+        logger: {
+            info() {},
+            warn(message) { warnings.push(message); }
+        }
+    });
+
+    while (timers.length) {
+        await timers.shift().callback();
+    }
+
+    assert.equal(attempts, 3);
+    assert.equal(warnings.filter(message => message.includes('ready_rescue_failed')).length, 3);
+    assert.equal(warnings.filter(message => message.includes('ready_rescue_exhausted')).length, 1);
+});
+
+test('scheduleReadyRescue cancellation clears the pending attempt', () => {
+    const cleared = [];
+    const rescue = scheduleReadyRescue({}, {
+        delayMs: 1,
+        setTimeoutFn() { return 42; },
+        clearTimeoutFn(timer) { cleared.push(timer); }
+    });
+
+    rescue.cancel();
+    rescue.cancel();
+    assert.deepEqual(cleared, [42]);
 });

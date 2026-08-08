@@ -624,3 +624,31 @@ Estado: `NO-GO PARA PROMOCAO` somente porque `aws_pm2_stopped` nao recebeu
 prova factual: o host historico nao responde e a console AWS exige login. Apos
 confirmar a AWS, apresentar o plano a Daniel e exigir a autorizacao final com
 presenca para o smoke familiar. Nenhum polling ou mensagem foi disparado.
+
+## Gate 34 - primeira promocao revertida e recovery de readiness
+
+Atualizado em: 2026-08-07
+
+Daniel confirmou que a AWS antiga ja estava parada e, presente com os dois
+telefones, autorizou a promocao e o smoke. Essa confirmacao do usuario resolveu
+a precondicao operacional, embora a AWS nao tenha sido revalidada de forma
+independente nesta execucao.
+
+O preflight imediato ficou verde. A promocao do artefato `2219590411fbea993bc8baa608e6a86c372dea27`
+iniciou, o candidato autenticou o WhatsApp e chegou a 100% de carregamento, mas
+a unica tentativa de `ready rescue` falhou e o health permaneceu fechado. O
+controlador executou rollback automatico para `1a1630949cf6acb301a2a054e61987d1cf516fb4`.
+A release anterior recuperou processo unico, health, SQLite e WhatsApp verdes;
+o instalador encerrou e a regra SSH temporaria foi removida. Nao houve segunda
+promocao, polling forcado, smoke ou escrita financeira.
+
+Recovery local:
+`docs/audit/162-open-finance-numeric-save-whatsapp-readiness-recovery-candidate-2026-08-07.md`.
+O resgate agora repete no maximo tres vezes enquanto a inicializacao continuar
+pendente e possui cancelamento idempotente. Evidencia: `11/11` focados,
+`56/56` afetados, sintaxe e diff verdes.
+
+Estado: `CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE`; gate 34 permanece
+`NO-GO` para nova promocao. Proxima acao: commit sanitizado, push e auditoria do
+Chat pelo hash imutavel. Somente um GO autoriza reconstruir o artefato e repetir
+o preflight/promocao.

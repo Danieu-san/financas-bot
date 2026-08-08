@@ -129,7 +129,11 @@ function initializeWhatsAppClient() {
 
     function clearReadyRescue() {
         if (readyRescueTimer) {
-            clearTimeout(readyRescueTimer);
+            if (typeof readyRescueTimer.cancel === 'function') {
+                readyRescueTimer.cancel();
+            } else {
+                clearTimeout(readyRescueTimer);
+            }
             readyRescueTimer = null;
         }
     }
