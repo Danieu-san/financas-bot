@@ -42,8 +42,8 @@ retry limitado dentro do proprio runtime do WhatsApp.
 
 ## Evidencia local
 
-- testes focados: `14/14`;
-- testes diretamente afetados: `59/59`;
+- testes focados: `16/16`;
+- testes diretamente afetados: `61/61`;
 - sintaxe dos tres arquivos alterados: verde;
 - `git diff --check`: verde;
 - nenhuma chamada externa, mensagem, polling forcado ou escrita financeira nos
@@ -91,5 +91,29 @@ enquanto a anexacao estiver em curso. Depois da conclusao, uma reanexacao real
 continua permitida. Testes causais provam que o resgate nao avalia a pagina
 antes da anexacao inicial e que duas chamadas concorrentes executam o metodo
 original apenas uma vez.
+
+Estado: `CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE POR NOVO HASH`.
+
+## Recovery apos o NO-GO formal do terceiro hash
+
+O Chat confirmou a leitura do hash
+`c4f63f1c9937a39d185cf1595a850dc076333ba1` e dos seis arquivos. O
+veredito foi `NO-GO TECNICO LOCAL`, com zero CRITICAL/HIGH, um MEDIUM e dois
+LOW:
+
+- MEDIUM: faltava prova causal de rejeicao compartilhada, limpeza de
+  `inFlight` e retry posterior;
+- LOW: `cancel()` isolado nao participava do predicado da tentativa ja ativa;
+- LOW: uma anexacao que nunca conclui preserva a promessa ate teardown.
+
+O recovery atual prova a rejeicao compartilhada e executa novamente o metodo
+original depois da limpeza. O controller agora combina seu estado `cancelled`
+com `isStillPending`, portanto cancelamento durante a promessa compartilhada
+impede a avaliacao posterior e qualquer reagendamento.
+
+A promessa permanentemente pendente permanece um risco baixo aceito: ela nao
+abre o health, nao cria retries adicionais e o controlador OCI limitado executa
+rollback. Adicionar um segundo timeout concorrente dentro do cliente ampliaria
+o mecanismo de teardown sem evidencia de necessidade.
 
 Estado: `CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE POR NOVO HASH`.

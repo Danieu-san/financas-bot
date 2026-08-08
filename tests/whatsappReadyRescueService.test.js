@@ -164,6 +164,26 @@ test('single-flight attachment permits a later completed reattachment', async ()
     assert.equal(attachments, 2);
 });
 
+test('single-flight attachment clears a shared rejection before a later retry', async () => {
+    let attachments = 0;
+    const client = {
+        async attachEventListeners() {
+            attachments += 1;
+            if (attachments === 1) throw new Error('transient attach failure');
+        }
+    };
+    installSingleFlightListenerAttachment(client);
+
+    const first = client.attachEventListeners();
+    const shared = client.attachEventListeners();
+    assert.equal(first, shared);
+    const results = await Promise.allSettled([first, shared]);
+    assert.deepEqual(results.map(result => result.status), ['rejected', 'rejected']);
+
+    await client.attachEventListeners();
+    assert.equal(attachments, 2);
+});
+
 test('triggerReadyRescue rejects a different attachEventListeners failure', async () => {
     let evaluations = 0;
     await assert.rejects(
@@ -306,4 +326,44 @@ test('scheduleReadyRescue cancellation clears the pending attempt', () => {
     rescue.cancel();
     rescue.cancel();
     assert.deepEqual(cleared, [42]);
+});
+
+test('scheduleReadyRescue cancellation stops an attachment already in flight', async () => {
+    const timers = [];
+    let finishAttachment;
+    let evaluations = 0;
+    const client = {
+        attachEventListeners() {
+            return new Promise(resolve => {
+                finishAttachment = resolve;
+            });
+        },
+        pupPage: {
+            async evaluate() {
+                evaluations += 1;
+                return { triggered: true };
+            }
+        }
+    };
+    installSingleFlightListenerAttachment(client);
+    const rescue = scheduleReadyRescue(client, {
+        delayMs: 1,
+        isStillPending: () => true,
+        setTimeoutFn(callback) {
+            timers.push(callback);
+            return timers.length;
+        },
+        clearTimeoutFn() {},
+        logger: { info() {}, warn() {} }
+    });
+
+    const activeAttempt = timers.shift()();
+    await Promise.resolve();
+    await Promise.resolve();
+    rescue.cancel();
+    finishAttachment();
+    await activeAttempt;
+
+    assert.equal(evaluations, 0);
+    assert.equal(timers.length, 0);
 });

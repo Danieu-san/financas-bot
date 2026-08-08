@@ -670,3 +670,13 @@ forcar sincronizacao durante anexacao concorrente; uma chamada posterior a uma
 conclusao continua permitida. Evidencia atual: `14/14` focados e `59/59`
 afetados. Estado permanece `CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE POR NOVO
 HASH`; producao continua saudavel na release anterior.
+
+O terceiro hash, `c4f63f1c9937a39d185cf1595a850dc076333ba1`, recebeu
+`NO-GO TECNICO LOCAL` formal: zero CRITICAL/HIGH, um MEDIUM por falta de teste
+da rejeicao/limpeza/retry do single-flight e dois LOW, incluindo cancelamento
+isolado durante tentativa ativa e promessa permanentemente pendente. O recovery
+atual adiciona a prova de rejeicao compartilhada seguida de retry real e inclui
+`cancelled` no predicado passado a tentativa em voo. Evidencia atual:
+`16/16` focados e `61/61` afetados. A promessa permanentemente pendente segue
+fail-closed pelo health e rollback OCI e foi aceita como risco baixo. Estado:
+`CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE POR NOVO HASH`; sem nova promocao.

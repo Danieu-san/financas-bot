@@ -115,7 +115,10 @@ function scheduleReadyRescue(client, options = {}) {
 
         attempt += 1;
         try {
-            await triggerReadyRescue(client, options);
+            await triggerReadyRescue(client, {
+                ...options,
+                isStillPending: () => !cancelled && isStillPending()
+            });
         } catch (error) {
             logger.warn(
                 `[whatsapp] ready_rescue_failed attempt=${attempt} ` +
