@@ -192,3 +192,17 @@ executados. Essas etapas exigem autorizacao operacional propria. O acesso SSH
 deixou de ser bloqueador e a implementacao local pode continuar sem manter a
 OCI aberta. Upload, prepare, restart, flag, promocao e smoke permanecem fora do
 alcance.
+
+## Atualizacao operacional - 2026-08-08
+
+O recovery auditado `ce49c0705120ea9a421e05fd60a9373aea889019` foi promovido
+com sucesso na OCI, sem rollback e sem bootstrap de estado. O pos-deploy ficou
+verde e a regra SSH temporaria foi removida.
+
+Um polling natural posterior ao restart terminou em `GO` e
+`financial_writes=0`, mas nao produziu lote numerado novo. As entregas recentes
+eram alertas comuns sem vinculo de proposta. O gate permanece sem GO somente
+ate um evento novo elegivel permitir o smoke familiar descrito acima.
+
+Evidencia:
+`docs/audit/165-open-finance-numeric-save-oci-promotion-observation-2026-08-08.md`.

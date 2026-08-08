@@ -701,3 +701,26 @@ adicionada, a porta permaneceu fechada e nao houve upload ou acesso remoto.
 Estado: `ARTEFATO LOCAL VERDE; AGUARDANDO LOGIN ORACLE`. Proxima acao exata:
 Daniel autentica a aba Oracle e informa `pronto`; entao adicionar `/32`
 temporario, repetir preflight e preparar/promover o slot sob o mesmo rollback.
+
+## Gate 34 - recovery promovido; smoke numerico aguardando evento natural
+
+Atualizado em: 2026-08-08
+
+O artefato auditado `ce49c0705120ea9a421e05fd60a9373aea889019` foi enviado,
+verificado e preparado com `production_changed=false`. A promocao terminou sem
+rollback e sem bootstrap de estado. Processo unico, health, SQLite, WhatsApp,
+liveness, flags, stores e logs sanitizados ficaram verdes; escrita permaneceu
+desligada. A regra SSH temporaria foi removida e a porta voltou a ficar fechada.
+
+O primeiro polling natural posterior ao restart terminou em `GO`, com zero
+retry e `financial_writes=0`, mas entregou somente alertas comuns. A verificacao
+agregada provou que nenhum deles carregava `proposal_ref`; propostas antigas nao
+serao reutilizadas para o smoke.
+
+Evidencia:
+`docs/audit/165-open-finance-numeric-save-oci-promotion-observation-2026-08-08.md`.
+
+Estado: `PROMOCAO VERDE; GATE 34 AINDA SEM GO`. Proxima acao: observar o
+proximo polling natural sem antecipa-lo. Somente quando surgir lote numerado
+novo, apresentar a Daniel as mensagens exatas do smoke familiar e parar antes
+da fronteira de escrita.
