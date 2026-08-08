@@ -1,6 +1,9 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
-const { scheduleReadyRescue } = require('./whatsappReadyRescueService');
+const {
+    installSingleFlightListenerAttachment,
+    scheduleReadyRescue
+} = require('./whatsappReadyRescueService');
 const { createWhatsAppLivenessMonitor } = require('./whatsappLivenessService');
 const { createSupervisorExitRequester } = require('./supervisorExitService');
 const logger = require('../utils/logger');
@@ -88,6 +91,7 @@ function initializeWhatsAppClient() {
     console.log(`🌐 WhatsApp Web cache: ${WEB_VERSION_CACHE_TYPE}; versão: ${clientOptions.webVersion || 'live/default'}`);
 
     const client = new Client(clientOptions);
+    installSingleFlightListenerAttachment(client);
     livenessMonitor = createWhatsAppLivenessMonitor({
         probe: () => client.getState(),
         onUnhealthy: () => exitForSupervisor('runtime_liveness_failed'),

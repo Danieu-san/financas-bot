@@ -660,3 +660,13 @@ revalidacao do estado pendente depois do `await` de anexacao e teto real de tres
 tentativas mesmo sob configuracao futura maior. A evidencia atualizada e
 `12/12` focados e `57/57` afetados. O estado continua `CANDIDATO AGUARDANDO NOVA
 AUDITORIA POR NOVO HASH`; nenhuma nova promocao foi executada.
+
+O segundo hash, `3bb037893372867e7912123cb1ef304e05812d1e`, tambem nao
+recebeu veredito formal. A revisao identificou que o primeiro binding duplicado
+na versao pinada de `whatsapp-web.js` nao prova que a longa anexacao de todos os
+listeners terminou. O recovery atual instala single-flight antes de
+`client.initialize()`: inicializacao e resgate aguardam a mesma promessa, sem
+forcar sincronizacao durante anexacao concorrente; uma chamada posterior a uma
+conclusao continua permitida. Evidencia atual: `14/14` focados e `59/59`
+afetados. Estado permanece `CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE POR NOVO
+HASH`; producao continua saudavel na release anterior.

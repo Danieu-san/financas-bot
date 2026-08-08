@@ -42,8 +42,8 @@ retry limitado dentro do proprio runtime do WhatsApp.
 
 ## Evidencia local
 
-- testes focados: `12/12`;
-- testes diretamente afetados: `57/57`;
+- testes focados: `14/14`;
+- testes diretamente afetados: `59/59`;
 - sintaxe dos tres arquivos alterados: verde;
 - `git diff --check`: verde;
 - nenhuma chamada externa, mensagem, polling forcado ou escrita financeira nos
@@ -75,3 +75,21 @@ retorna sem avaliar a pagina quando houve cancelamento. O limite agora e
 fechado em `1..3`, inclusive se o chamador fornecer valor maior. Os dois
 contratos possuem testes causais novos. Um novo commit imutavel e uma nova
 auditoria independente sao obrigatorios.
+
+## Recovery apos a segunda revisao externa
+
+O hash `3bb037893372867e7912123cb1ef304e05812d1e` tambem nao recebeu
+veredito formal. A revisao confirmou na versao pinada de `whatsapp-web.js` que
+`attachEventListeners()` expoe o primeiro binding muito antes de concluir todos
+os listeners. Logo, o erro de binding duplicado podia significar uma anexacao
+concorrente ainda incompleta; trata-lo como sucesso podia forcar o sinal de
+sincronizacao cedo demais.
+
+O recovery atual instala um wrapper single-flight no cliente antes de
+`initialize()`. A inicializacao e o resgate compartilham a mesma promessa
+enquanto a anexacao estiver em curso. Depois da conclusao, uma reanexacao real
+continua permitida. Testes causais provam que o resgate nao avalia a pagina
+antes da anexacao inicial e que duas chamadas concorrentes executam o metodo
+original apenas uma vez.
+
+Estado: `CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE POR NOVO HASH`.

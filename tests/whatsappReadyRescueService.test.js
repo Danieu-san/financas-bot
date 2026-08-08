@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 const {
+    installSingleFlightListenerAttachment,
     scheduleReadyRescue,
     triggerReadyRescue
 } = require('../src/services/whatsappReadyRescueService');
@@ -105,6 +106,62 @@ test('triggerReadyRescue continues when the message page binding already exists'
     assert.equal(result.skipped, false);
     assert.equal(result.result.triggered, true);
     assert.deepEqual(calls, ['attach', 'evaluate']);
+});
+
+test('single-flight attachment makes rescue await the initialization attachment', async () => {
+    let finishAttachment;
+    let attachments = 0;
+    let evaluations = 0;
+    const client = {
+        attachEventListeners() {
+            attachments += 1;
+            return new Promise(resolve => {
+                finishAttachment = resolve;
+            });
+        },
+        pupPage: {
+            async evaluate() {
+                evaluations += 1;
+                return { triggered: true };
+            }
+        }
+    };
+    installSingleFlightListenerAttachment(client);
+
+    const initializationAttachment = client.attachEventListeners();
+    const rescue = triggerReadyRescue(client, {
+        isStillPending: () => true,
+        logger: { info() {}, warn() {} }
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    assert.equal(attachments, 1);
+    assert.equal(evaluations, 0);
+    finishAttachment();
+    await Promise.all([initializationAttachment, rescue]);
+
+    assert.equal(attachments, 1);
+    assert.equal(evaluations, 1);
+});
+
+test('single-flight attachment permits a later completed reattachment', async () => {
+    let attachments = 0;
+    const client = {
+        async attachEventListeners() {
+            attachments += 1;
+        }
+    };
+    installSingleFlightListenerAttachment(client);
+    installSingleFlightListenerAttachment(client);
+
+    const first = client.attachEventListeners();
+    const concurrent = client.attachEventListeners();
+    assert.equal(first, concurrent);
+    await first;
+    await client.attachEventListeners();
+
+    assert.equal(attachments, 2);
 });
 
 test('triggerReadyRescue rejects a different attachEventListeners failure', async () => {

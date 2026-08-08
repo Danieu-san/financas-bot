@@ -1,5 +1,30 @@
 const defaultLogger = require('../utils/logger');
 
+const listenerAttachmentState = new WeakMap();
+
+function installSingleFlightListenerAttachment(client) {
+    if (!client || typeof client.attachEventListeners !== 'function') {
+        return client;
+    }
+    if (listenerAttachmentState.has(client)) return client;
+
+    const original = client.attachEventListeners;
+    const state = { inFlight: null };
+    listenerAttachmentState.set(client, state);
+
+    client.attachEventListeners = function attachEventListenersSingleFlight(...args) {
+        if (state.inFlight) return state.inFlight;
+
+        const operation = Promise.resolve().then(() => original.apply(this, args));
+        const tracked = operation.finally(() => {
+            if (state.inFlight === tracked) state.inFlight = null;
+        });
+        state.inFlight = tracked;
+        return tracked;
+    };
+    return client;
+}
+
 function isExistingMessageBindingError(error) {
     const message = String(error?.message || error || '');
     return message.includes('onAddMessageEvent')
@@ -119,6 +144,7 @@ function scheduleReadyRescue(client, options = {}) {
 }
 
 module.exports = {
+    installSingleFlightListenerAttachment,
     isExistingMessageBindingError,
     scheduleReadyRescue,
     triggerReadyRescue
