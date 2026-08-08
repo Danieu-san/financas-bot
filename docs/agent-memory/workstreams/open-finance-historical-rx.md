@@ -691,3 +691,13 @@ Estado atual: recovery de readiness encerrado localmente; producao continua
 saudavel na release anterior e nao ha regra SSH temporaria. Proxima acao:
 construir artefato exatamente do hash auditado, verificar/preparar novo slot e
 repetir preflight, promocao com rollback e smoke familiar do gate 34.
+
+O artefato do hash auditado foi construido e verificado localmente: manifesto
+com `807` arquivos, pacote e instalador com checksums validos. Checkpoint:
+`docs/audit/164-open-finance-numeric-save-recovery-artifact-checkpoint-2026-08-07.md`.
+
+A sessao Oracle expirou antes da criacao da nova regra SSH. Nenhuma regra foi
+adicionada, a porta permaneceu fechada e nao houve upload ou acesso remoto.
+Estado: `ARTEFATO LOCAL VERDE; AGUARDANDO LOGIN ORACLE`. Proxima acao exata:
+Daniel autentica a aba Oracle e informa `pronto`; entao adicionar `/32`
+temporario, repetir preflight e preparar/promover o slot sob o mesmo rollback.
