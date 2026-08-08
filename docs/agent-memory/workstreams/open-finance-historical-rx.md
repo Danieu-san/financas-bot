@@ -652,3 +652,11 @@ Estado: `CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE`; gate 34 permanece
 `NO-GO` para nova promocao. Proxima acao: commit sanitizado, push e auditoria do
 Chat pelo hash imutavel. Somente um GO autoriza reconstruir o artefato e repetir
 o preflight/promocao.
+
+O primeiro commit do recovery, `1883877c4412d0827185b88557a55117bdc3d1c3`,
+nao recebeu veredito: a geracao do Chat foi interrompida depois de ficar sem
+progresso. Dois achados validos foram incorporados antes da interrupcao:
+revalidacao do estado pendente depois do `await` de anexacao e teto real de tres
+tentativas mesmo sob configuracao futura maior. A evidencia atualizada e
+`12/12` focados e `57/57` afetados. O estado continua `CANDIDATO AGUARDANDO NOVA
+AUDITORIA POR NOVO HASH`; nenhuma nova promocao foi executada.

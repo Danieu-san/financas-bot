@@ -42,8 +42,8 @@ retry limitado dentro do proprio runtime do WhatsApp.
 
 ## Evidencia local
 
-- testes focados: `11/11`;
-- testes diretamente afetados: `56/56`;
+- testes focados: `12/12`;
+- testes diretamente afetados: `57/57`;
 - sintaxe dos tres arquivos alterados: verde;
 - `git diff --check`: verde;
 - nenhuma chamada externa, mensagem, polling forcado ou escrita financeira nos
@@ -57,3 +57,21 @@ O gate 34 continua `NO-GO` para nova promocao. Somente um commit imutavel,
 publicado e aprovado pelo Chat pode gerar novo artefato e nova tentativa
 operacional. A confirmacao de que a AWS antiga esta parada veio de Daniel; nao
 foi revalidada independentemente nesta execucao.
+
+## Recovery apos a primeira revisao externa
+
+O primeiro hash publicado, `1883877c4412d0827185b88557a55117bdc3d1c3`,
+teve sua geracao de parecer interrompida depois de permanecer sem progresso. Ele
+nao recebeu veredito formal e nao foi aceito como GO. Antes da interrupcao, o
+Chat identificou dois achados validos:
+
+- cancelamento durante `attachEventListeners()` ainda permitia executar a
+  avaliacao da pagina depois do retorno do `await`;
+- `maxAttempts` possuia piso, mas nao teto, portanto um chamador futuro podia
+  ultrapassar o contrato de tres tentativas.
+
+O recovery atual revalida `isStillPending()` imediatamente apos a anexacao e
+retorna sem avaliar a pagina quando houve cancelamento. O limite agora e
+fechado em `1..3`, inclusive se o chamador fornecer valor maior. Os dois
+contratos possuem testes causais novos. Um novo commit imutavel e uma nova
+auditoria independente sao obrigatorios.

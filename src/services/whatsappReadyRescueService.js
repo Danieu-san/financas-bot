@@ -30,6 +30,10 @@ async function triggerReadyRescue(client, options = {}) {
         }
     }
 
+    if (!isStillPending()) {
+        return { skipped: true, reason: 'not_pending_after_attach' };
+    }
+
     const result = await page.evaluate(() => {
         const status = {
             href: typeof location !== 'undefined' ? location.href : '',
@@ -61,7 +65,7 @@ function scheduleReadyRescue(client, options = {}) {
     const delayMs = Number(options.delayMs || 15000);
     const retryDelayMs = Number(options.retryDelayMs || delayMs);
     const maxAttempts = Number.isInteger(Number(options.maxAttempts))
-        ? Math.max(1, Number(options.maxAttempts))
+        ? Math.min(3, Math.max(1, Number(options.maxAttempts)))
         : 3;
     const setTimeoutFn = options.setTimeoutFn || setTimeout;
     const clearTimeoutFn = options.clearTimeoutFn || clearTimeout;

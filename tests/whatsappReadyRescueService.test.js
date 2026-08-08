@@ -128,6 +128,31 @@ test('triggerReadyRescue rejects a different attachEventListeners failure', asyn
     assert.equal(evaluations, 0);
 });
 
+test('triggerReadyRescue stops when readiness is cancelled during listener attachment', async () => {
+    let pending = true;
+    let evaluations = 0;
+    const result = await triggerReadyRescue({
+        async attachEventListeners() {
+            pending = false;
+        },
+        pupPage: {
+            async evaluate() {
+                evaluations += 1;
+                return { triggered: true };
+            }
+        }
+    }, {
+        isStillPending: () => pending,
+        logger: { info() {}, warn() {} }
+    });
+
+    assert.deepEqual(result, {
+        skipped: true,
+        reason: 'not_pending_after_attach'
+    });
+    assert.equal(evaluations, 0);
+});
+
 test('scheduleReadyRescue retries a transient failure and stops after ready', async () => {
     const timers = [];
     const warnings = [];
@@ -177,7 +202,7 @@ test('scheduleReadyRescue retries a transient failure and stops after ready', as
     assert.equal(warnings.some(message => message.includes('exhausted')), false);
 });
 
-test('scheduleReadyRescue bounds repeated failures and reports exhaustion', async () => {
+test('scheduleReadyRescue caps configured attempts and reports exhaustion', async () => {
     const timers = [];
     const warnings = [];
     let attempts = 0;
@@ -191,7 +216,7 @@ test('scheduleReadyRescue bounds repeated failures and reports exhaustion', asyn
     }, {
         delayMs: 1,
         retryDelayMs: 1,
-        maxAttempts: 3,
+        maxAttempts: 99,
         isStillPending: () => true,
         setTimeoutFn(callback, delayMs) {
             timers.push({ callback, delayMs });
