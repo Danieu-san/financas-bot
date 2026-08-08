@@ -680,3 +680,14 @@ atual adiciona a prova de rejeicao compartilhada seguida de retry real e inclui
 `16/16` focados e `61/61` afetados. A promessa permanentemente pendente segue
 fail-closed pelo health e rollback OCI e foi aceita como risco baixo. Estado:
 `CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE POR NOVO HASH`; sem nova promocao.
+
+O hash final `ce49c0705120ea9a421e05fd60a9373aea889019` recebeu `GO
+TECNICO LOCAL` independente: CRITICAL/HIGH/MEDIUM zero, um LOW aceito e nenhuma
+lacuna indispensavel. O Chat confirmou o mesmo SHA e os seis arquivos, sem
+executar os testes locais. Fechamento:
+`docs/audit/163-open-finance-numeric-save-whatsapp-readiness-independent-close-2026-08-07.md`.
+
+Estado atual: recovery de readiness encerrado localmente; producao continua
+saudavel na release anterior e nao ha regra SSH temporaria. Proxima acao:
+construir artefato exatamente do hash auditado, verificar/preparar novo slot e
+repetir preflight, promocao com rollback e smoke familiar do gate 34.
