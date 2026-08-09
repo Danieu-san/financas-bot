@@ -4,6 +4,19 @@ Atualizado em: 2026-08-09
 
 ## Retomada vigente - Gate 34
 
+Release OCI candidata no hash
+`09b6dab6e679ce28202cb87f83d38549f64e6ae8`: workflow, build, checksum,
+manifesto e inventario verdes; artefato com `819` arquivos. A OCI correta esta
+`Running`, mas o SSH permanece fechado porque o IP do navegador nao corresponde
+ao IP de saida do executor. Nenhum upload, restart ou deploy ocorreu e todas as
+regras SSH temporarias foram removidas. Estado: `HOLD SEGURO ANTES DE UPLOAD`.
+Evidencia:
+`docs/audit/175-gate34-oci-release-preflight-hold-2026-08-09.md`.
+
+Proxima acao: obter autorizacao explicita para consultar
+`https://checkip.amazonaws.com/` a partir do executor, abrir somente o `/32`
+resultante, confirmar fingerprint e retomar o preflight OCI.
+
 Reauditoria independente do hash
 `d5597d3d0d47f453940b60fcee200f70f62be25c`: `GO TECNICO LOCAL`, zero
 achados em todas as severidades e nenhuma lacuna indispensavel. O recovery

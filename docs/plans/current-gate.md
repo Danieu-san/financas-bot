@@ -4,6 +4,14 @@ Atualizado em: 2026-08-09
 
 ## Estado vigente - Gate 34
 
+O artefato OCI do hash `09b6dab6e679ce28202cb87f83d38549f64e6ae8`
+foi construido e verificado, mas o release esta em `HOLD SEGURO ANTES DE
+UPLOAD`: o IP do navegador nao alcanca o executor SSH. Nenhum deploy ocorreu e
+todas as regras temporarias foram removidas. Desbloqueio: consultar o IP do
+executor em `https://checkip.amazonaws.com/` com autorizacao explicita e abrir
+somente esse `/32`. Evidencia:
+`docs/audit/175-gate34-oci-release-preflight-hold-2026-08-09.md`.
+
 O recovery do hash `d5597d3d0d47f453940b60fcee200f70f62be25c`
 recebeu `GO TECNICO LOCAL` independente, com zero achados e nenhuma lacuna
 indispensavel. O Gate 34 esta apto ao fluxo de release OCI autorizado. Parecer:

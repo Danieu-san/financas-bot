@@ -888,3 +888,21 @@ Parecer:
 `docs/audit/174-open-finance-pending-purchase-durable-state-independent-close-2026-08-09.md`.
 
 Estado: `GATE 34 FECHADO; APTO AO FLUXO DE RELEASE OCI AUTORIZADO`.
+
+## Gate 34 - preflight OCI em hold seguro
+
+Atualizado em: 2026-08-09
+
+O artefato do hash `09b6dab6e679ce28202cb87f83d38549f64e6ae8` foi construido e
+verificado localmente, com manifesto de `819` arquivos e checksums verdes. A
+instancia OCI correta esta `Running`, mas o `/32` observado pelo navegador nao
+corresponde a saida do executor SSH.
+
+Nenhum login, upload, prepare, restart ou deploy ocorreu. As regras SSH
+temporarias foram removidas e a rede voltou ao inventario original.
+
+Evidencia:
+`docs/audit/175-gate34-oci-release-preflight-hold-2026-08-09.md`.
+
+Estado: `HOLD SEGURO ANTES DE UPLOAD; AGUARDA IP DO EXECUTOR POR CONSULTA
+EXPLICITAMENTE AUTORIZADA`.
