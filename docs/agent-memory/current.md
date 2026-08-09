@@ -4,18 +4,26 @@ Atualizado em: 2026-08-09
 
 ## Retomada vigente - Gate 34
 
-Release OCI candidata no hash
-`09b6dab6e679ce28202cb87f83d38549f64e6ae8`: workflow, build, checksum,
-manifesto e inventario verdes; artefato com `819` arquivos. A OCI correta esta
-`Running`, mas o SSH permanece fechado porque o IP do navegador nao corresponde
-ao IP de saida do executor. Nenhum upload, restart ou deploy ocorreu e todas as
-regras SSH temporarias foram removidas. Estado: `HOLD SEGURO ANTES DE UPLOAD`.
-Evidencia:
-`docs/audit/175-gate34-oci-release-preflight-hold-2026-08-09.md`.
+O hash `09b6dab6e679ce28202cb87f83d38549f64e6ae8` foi promovido na OCI
+por artefato imutavel, checksum e instalador verificados. Exatamente um processo
+PM2 esta online com zero reinicios, o hash runtime e as flags sao os esperados,
+health local/publico, SQLite e WhatsApp ficaram verdes e os checksums de estado
+permaneceram identicos. Nao houve rollback.
 
-Proxima acao: obter autorizacao explicita para consultar
-`https://checkip.amazonaws.com/` a partir do executor, abrir somente o `/32`
-resultante, confirmar fingerprint e retomar o preflight OCI.
+O smoke real `admin stats` recebeu exatamente uma resposta e zero escrita. Ele
+prova o transporte e o handler publico do novo release, mas nao substitui o
+smoke funcional do lote numerado.
+
+Todo acesso temporario foi removido: sessoes e Bastion `Deleted`, plugin
+Bastion `Disabled`, nenhuma regra TCP/22 na VCN e nenhum listener local 22022.
+AWS nao foi usada. Evidencia:
+`docs/audit/176-gate34-oci-release-promotion-2026-08-09.md`.
+
+Estado: `GO OPERACIONAL DA PROMOCAO OCI; GATE 34 FUNCIONAL PENDENTE`.
+
+Proxima acao: aguardar uma compra genuina `purchase/POSTED/new` posterior ao
+corte, conferir o lote numerado nos dois telefones e executar somente a
+selecao/revisao; escrita continua `off` e `confirm` permanece bloqueado.
 
 Reauditoria independente do hash
 `d5597d3d0d47f453940b60fcee200f70f62be25c`: `GO TECNICO LOCAL`, zero

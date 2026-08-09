@@ -4,13 +4,19 @@ Atualizado em: 2026-08-09
 
 ## Estado vigente - Gate 34
 
-O artefato OCI do hash `09b6dab6e679ce28202cb87f83d38549f64e6ae8`
-foi construido e verificado, mas o release esta em `HOLD SEGURO ANTES DE
-UPLOAD`: o IP do navegador nao alcanca o executor SSH. Nenhum deploy ocorreu e
-todas as regras temporarias foram removidas. Desbloqueio: consultar o IP do
-executor em `https://checkip.amazonaws.com/` com autorizacao explicita e abrir
-somente esse `/32`. Evidencia:
-`docs/audit/175-gate34-oci-release-preflight-hold-2026-08-09.md`.
+O artefato do hash `09b6dab6e679ce28202cb87f83d38549f64e6ae8` foi
+promovido na OCI sem rollback. Processo unico, hash runtime, health
+local/publico, SQLite, WhatsApp, servicos e flags ficaram verdes; estado
+critico permaneceu byte a byte equivalente. O smoke real `admin stats` teve
+uma resposta e zero escrita.
+
+As sessoes e o Bastion temporarios foram excluidos, o plugin foi desativado, a
+regra privada TCP/22 foi removida e nao existe regra SSH na VCN. Evidencia:
+`docs/audit/176-gate34-oci-release-promotion-2026-08-09.md`.
+
+Estado: `GO OPERACIONAL DA PROMOCAO OCI; SMOKE NUMERICO AINDA PENDENTE`.
+A promocao nao encerra o Gate 34: falta uma compra real elegivel gerar o lote
+numerado nos dois telefones e provar selecao/revisao com escrita desligada.
 
 O recovery do hash `d5597d3d0d47f453940b60fcee200f70f62be25c`
 recebeu `GO TECNICO LOCAL` independente, com zero achados e nenhuma lacuna

@@ -1,6 +1,6 @@
 # Plano - RX historico e evolucao operacional Open Finance
 
-Status: `gates 31 a 33 fechados; gate 34 especificado; gates 35 a 38 ordenados`.
+Status: `gate 34 promovido na OCI; smoke numerico pendente; gates 35 a 38 ordenados`.
 
 ## Objetivo
 
@@ -138,7 +138,7 @@ misturar historico, alertas, propostas e escrita financeira.
     `accepted_unconfirmed`, estados individuais preexistentes, restart e
     rollback do artefato. O charter e
     `docs/plans/workstreams/open-finance-numeric-save-release.md`.
-34. [em execucao; slot/plano prontos, AWS pendente] Promover o fluxo numerico de compras
+34. [promocao OCI concluida; smoke numerico pendente] Promover o fluxo numerico de compras
     na OCI por artefato imutavel e executar smoke com Daniel presente. Manter
     proposta em `prompt`, escrita `off`, aprovacao falsa e `confirm` bloqueado;
     provar lotes independentes nos dois telefones, cutoff, processo unico,
@@ -205,13 +205,12 @@ misturar historico, alertas, propostas e escrita financeira.
 em `ea803c5c29919daa582355046536bd22bf8f88a1` fechou a corrida de temporarios
 e recebeu zero achados na reauditoria focal.
 
-34. [em execucao] O preflight autenticado identificou a producao OCI e o
-primeiro backup/restore real revelou o diretorio do pacote em `0775`. O recovery
-publicado em `2af482094cd325f2e6c7f543020c07babcfd5d57` recebeu GO independente.
-O novo artefato foi preparado e o diretorio real passou em `0700`; a VM OCI
-candidata antiga foi parada graciosamente e o plano de rollback esta pronto.
-Confirmar factualmente a AWS antiga, depois obter a autorizacao final de Daniel
-presente antes da promocao e do smoke.
+34. [promocao OCI concluida; smoke numerico pendente] O hash
+`09b6dab6e679ce28202cb87f83d38549f64e6ae8` foi promovido sem rollback;
+processo, health, WhatsApp, flags e estado ficaram verdes. Todo acesso SSH
+temporario foi removido. A resposta unica a `admin stats` prova o novo runtime,
+mas o fechamento funcional ainda exige uma compra real `POSTED/new` produzir o
+lote numerado nos dois telefones, com selecao/revisao e zero escrita.
 
 Depois do GO independente do gate 33, seguir estritamente 34 -> 35 -> 36 -> 37
 -> 38. Nenhum GO autoriza automaticamente o gate seguinte, uma nova classe ou

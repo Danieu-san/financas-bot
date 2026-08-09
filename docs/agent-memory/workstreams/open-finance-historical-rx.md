@@ -2,6 +2,24 @@
 
 Atualizado em: 2026-08-05
 
+## Atualizacao operacional de 2026-08-09
+
+O release `09b6dab6e679ce28202cb87f83d38549f64e6ae8` foi promovido na
+OCI por artefato imutavel e permaneceu saudavel, com processo unico, zero
+reinicios, flags seguras e estado preservado. O acesso temporario foi encerrado
+integralmente e a VCN nao possui regra TCP/22. Evidencia:
+`docs/audit/176-gate34-oci-release-promotion-2026-08-09.md`.
+
+O smoke `admin stats` comprovou transporte e handler do novo processo, mas nao
+o lote numerado. Portanto, o estado correto e:
+
+`GO OPERACIONAL DA PROMOCAO OCI; GATE 34 FUNCIONAL PENDENTE; WRITES OFF`.
+
+Proxima acao exata: aguardar uma compra genuina `purchase/POSTED/new` posterior
+ao corte `2026-07-28`, conferir o mesmo lote numerado nos dois telefones e
+executar somente selecao e revisao guiada. Nao confirmar nem escrever. Gates 35
+a 38 continuam bloqueados ate o fechamento funcional do Gate 34.
+
 ## Objetivo
 
 Provar a prontidao de release do fluxo numerico usando somente fixtures ou uma
