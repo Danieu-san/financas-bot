@@ -2,6 +2,20 @@
 
 Atualizado em: 2026-08-09
 
+## Gate 35 com GO tecnico local independente
+
+O hash `afe44614d7488104c642b1f9e846a8b72441de40` recebeu `GO TECNICO
+LOCAL` independente. O auditor confirmou os sete arquivos, zero achados em
+todas as severidades, defaults reais no caminho causal e nenhuma lacuna
+indispensavel residual no escopo estatico.
+
+Fechamento:
+`docs/audit/178-open-finance-historical-rx-gate35-orchestrator-independent-close-2026-08-09.md`.
+
+Alcance autorizado: planejar a operacao privada separada. Ainda nao abrir o
+snapshot, ativar a revisao, recalcular o RX real, tocar producao ou escrever.
+Gate 34 permanece observavel e funcionalmente pendente, sem mudanca na janela.
+
 ## Gate 35 local em preparacao; Gate 34 observavel em paralelo
 
 Por decisao explicita de Daniel, a janela vigente do Gate 34 foi mantida sem

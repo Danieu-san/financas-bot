@@ -2,6 +2,20 @@
 
 Atualizado em: 2026-08-05
 
+## Gate 35 — fechamento independente do orquestrador
+
+O hash `afe44614d7488104c642b1f9e846a8b72441de40` recebeu `GO TECNICO
+LOCAL` independente. O parecer confirmou os sete arquivos, zero achados em
+todas as severidades, caminho causal com defaults reais e nenhuma lacuna
+indispensavel residual no escopo estatico.
+
+Fechamento:
+`docs/audit/178-open-finance-historical-rx-gate35-orchestrator-independent-close-2026-08-09.md`.
+
+Proxima acao autorizada: planejar a operacao privada separada. Nao abrir ainda
+o snapshot, ativar a revisao, recalcular o RX real ou escrever. Gate 34 continua
+observavel e funcionalmente pendente.
+
 ## Gate 35 — candidato local do orquestrador
 
 Por decisao explicita de Daniel, o Gate 34 permanece observavel e sem alteracao

@@ -2,6 +2,20 @@
 
 Atualizado em: 2026-08-09
 
+## Gate 35 — GO tecnico local do orquestrador
+
+O commit `afe44614d7488104c642b1f9e846a8b72441de40` recebeu `GO TECNICO
+LOCAL` independente, com zero achados por severidade e nenhuma lacuna
+indispensavel residual dentro do parecer estatico. O caminho causal usa os
+defaults reais e preserva `financial_writes=0`.
+
+Proximo estado autorizado: somente planejamento operacional privado separado.
+Snapshot real, ativacao, recalculo privado, producao e escrita continuam nao
+autorizados. Gate 34 permanece pendente e inalterado.
+
+Fechamento:
+`docs/audit/178-open-finance-historical-rx-gate35-orchestrator-independent-close-2026-08-09.md`.
+
 ## Preparacao local do Gate 35 em paralelo
 
 Daniel determinou que a janela do Gate 34 permanecesse aberta e inalterada,

@@ -144,7 +144,7 @@ misturar historico, alertas, propostas e escrita financeira.
     provar lotes independentes nos dois telefones, cutoff, processo unico,
     health e rollback sem ressuscitar backlog. O charter e
     `docs/plans/workstreams/open-finance-numeric-save-oci.md`.
-35. [preparacao local autorizada em paralelo; ativacao ainda nao autorizada]
+35. [GO tecnico local independente; operacao privada ainda nao autorizada]
     Concluir o RX historico por revisao humana
     das ambiguidades remanescentes. Ativar de forma controlada a revisao
     numerada, consumir decisoes duraveis, recalcular o RX e separar: resolvido,
