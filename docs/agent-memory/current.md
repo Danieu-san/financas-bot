@@ -4,6 +4,15 @@ Atualizado em: 2026-08-09
 
 ## Retomada vigente - Gate 34
 
+Checkpoint de transferencia: a primeira janela rapida expirou sem lote
+numerado e a automacao foi excluida. Daniel confirmou os dois celulares,
+relatou compras novas e atualizou o Pluggy. A preparacao de uma segunda janela
+foi interrompida antes de backup, `.env`, restart ou leitura remota; a regra SSH
+temporaria foi removida e a porta voltou a ficar fechada. Proxima acao: retomar
+em `Codex -> Sol -> Alto`, criar backup privado, abrir nova janela inferior a
+duas horas com um unico restart e verificar o ciclo sanitizado. Evidencia:
+`docs/audit/170-gate-34-portable-handoff-checkpoint-2026-08-09.md`.
+
 Diagnostico mais recente: as mensagens sem numeracao observadas durante a
 janela rapida vieram do backlog comum, nao de propostas elegiveis novas. Os
 ciclos sem observacao nova escoaram itens `PENDING` ou `purchase_candidate`, que
@@ -26,12 +35,13 @@ ficaram verdes. A regra SSH temporaria foi removida e a porta voltou a ficar
 fechada. Escrita continua `off`, aprovacao falsa e `financial_writes=0`.
 
 Estado vigente:
-`PROMOCAO VERDE; JANELA RAPIDA ATIVA; GATE 34 AGUARDA SMOKE NATURAL`.
+`PROMOCAO VERDE; JANELA RAPIDA EXPIRADA; GATE 34 AGUARDA NOVA JANELA E SMOKE`.
 
-Proxima acao: nao forcar polling nem tratar alerta comum como falha. Observar os
-ciclos temporarios; quando surgir um lote `purchase/POSTED/new` numerado e
-Daniel estiver com os dois celulares, executar o smoke familiar e parar antes
-de qualquer confirmacao ou escrita.
+Proxima acao: depois da retomada portatil, abrir uma nova janela de 15 minutos
+por menos de duas horas, com backup privado e um unico restart. Verificar o
+ciclo atualizado; quando surgir lote `purchase/POSTED/new` numerado nos dois
+celulares, executar o smoke familiar e parar antes de qualquer confirmacao ou
+escrita.
 Evidencia:
 `docs/audit/168-open-finance-temporary-fast-polling-oci-promotion-2026-08-09.md`.
 

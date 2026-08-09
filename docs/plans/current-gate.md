@@ -4,6 +4,13 @@ Atualizado em: 2026-08-09
 
 ## Estado vigente - Gate 34
 
+Checkpoint portatil: a primeira janela expirou e sua automacao foi removida.
+Daniel esta com os dois celulares, relatou compras novas e atualizou o Pluggy.
+A segunda janela ainda nao foi aplicada: nao houve backup, mudanca de `.env`,
+restart ou leitura remota. A regra SSH de preparacao foi removida e a porta esta
+fechada. Evidencia:
+`docs/audit/170-gate-34-portable-handoff-checkpoint-2026-08-09.md`.
+
 Diagnostico posterior confirmou que os alertas sem numeracao da janela rapida
 eram backlog comum: itens ainda `PENDING` ou apenas `purchase_candidate`, sem
 proposta elegivel. Ciclos `GO` sem observacao nova podem escoar esses alertas;
@@ -17,7 +24,7 @@ seis horas ao expirar. Processo, health, SQLite, WhatsApp, flags, stores,
 retencao e logs ficaram verdes; a regra SSH temporaria foi removida. Evidencia:
 `docs/audit/168-open-finance-temporary-fast-polling-oci-promotion-2026-08-09.md`.
 
-`PROMOCAO VERDE; JANELA RAPIDA ATIVA; SMOKE NATURAL PENDENTE; CONFIRM BLOQUEADO`.
+`PROMOCAO VERDE; JANELA RAPIDA EXPIRADA; NOVA JANELA E SMOKE PENDENTES; CONFIRM BLOQUEADO`.
 
 O hash `f5806e1b071b47d6441354928740d2139fb5ae51` recebeu GO independente e
 foi promovido na Oracle/OCI sem rollback. Processo, health, SQLite, WhatsApp,
@@ -25,9 +32,10 @@ liveness, flags, stores, retencao e logs sanitizados ficaram verdes; a regra
 SSH temporaria foi removida. `OPEN_FINANCE_WRITE_MODE=off`, aprovacao falsa e
 `financial_writes=0` permanecem invariantes.
 
-Proxima acao: observar sem forcar polling os ciclos temporarios. Somente com
-lote `purchase/POSTED/new` numerado, Daniel e os dois celulares presentes,
-executar o smoke familiar e parar antes de qualquer confirmacao/escrita.
+Proxima acao: retomar em `Codex -> Sol -> Alto`, criar backup privado do `.env`,
+abrir nova janela inferior a duas horas com um unico restart e verificar o
+ciclo. Somente com lote `purchase/POSTED/new` numerado nos dois celulares,
+executar o smoke e parar antes de qualquer confirmacao/escrita.
 
 ## Estado
 

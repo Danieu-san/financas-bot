@@ -810,3 +810,21 @@ ficar fechada. Evidencia:
 `docs/audit/169-open-finance-unnumbered-fast-poll-diagnosis-2026-08-09.md`.
 
 Estado: `COMPORTAMENTO ESPERADO; GATE 34 AGUARDA PURCHASE/POSTED/NEW`.
+
+## Gate 34 - handoff antes da segunda janela
+
+Atualizado em: 2026-08-09
+
+A primeira janela temporaria expirou sem lote numerado e a automacao foi
+excluida. Daniel confirmou os dois celulares, relatou novas compras e atualizou
+o Pluggy. A preparacao da segunda janela foi pausada para transferencia antes
+de backup, alteracao de `.env`, restart ou leitura remota. A regra SSH criada
+para a preparacao foi removida e a porta voltou a ficar fechada.
+
+Evidencia:
+`docs/audit/170-gate-34-portable-handoff-checkpoint-2026-08-09.md`.
+
+Proxima acao: retomar em `Codex -> Sol -> Alto`, abrir nova janela de 15 minutos
+por menos de duas horas com backup privado e um unico restart, verificar o ciclo
+sanitizado e executar o smoke somente se surgir lote numerado nos dois
+celulares, parando antes de qualquer confirmacao ou escrita.
