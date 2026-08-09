@@ -35,6 +35,14 @@ runtime WhatsApp, nao exige restart e nao depende de backfill ou health remoto.
 
 Saida: `PREFLIGHT_READY` ou `NO_GO`, sempre com `financial_writes=0`.
 
+### Execucao de 2026-08-09
+
+Resultado: `PREFLIGHT_READY`, `financial_writes=0`. Produto, plano, nucleos,
+conjunto privado, espaco e ACL exclusiva foram confirmados sem abrir conteudo.
+Fase B permanece dependente de autorizacao especifica para abrir somente a
+copia privada read-only. Evidencia:
+`docs/audit/184-open-finance-historical-rx-gate35-local-phase-a-preflight-ready-2026-08-09.md`.
+
 ## Fase B — preparar o candidato privado read-only
 
 Somente depois de autorizacao especifica para abrir a copia privada:

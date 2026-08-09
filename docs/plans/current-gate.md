@@ -2,6 +2,18 @@
 
 Atualizado em: 2026-08-09
 
+## Gate 35 — Fase A local em PREFLIGHT_READY
+
+O novo preflight confirmou produto, plano, nucleos locais, conjunto privado,
+espaco e ACL exclusiva equivalente a `0700`/`0600`. Nenhum conteudo privado foi
+aberto e a politica do produto permaneceu fail-closed. Estado:
+`PREFLIGHT_READY`, `financial_writes=0`; Fase B ainda requer autorizacao
+especifica.
+
+Proxima fronteira: abrir somente uma copia privada read-only na Fase B e
+publicar apenas evidencia sanitizada. Evidencia:
+`docs/audit/184-open-finance-historical-rx-gate35-local-phase-a-preflight-ready-2026-08-09.md`.
+
 ## Gate 35 — revisor local com GO tecnico
 
 Foi implementada a revisao local privada solicitada por Daniel. Ela gera HTML

@@ -2,6 +2,21 @@
 
 Atualizado em: 2026-08-09
 
+## Gate 35 — nova Fase A local em PREFLIGHT_READY
+
+Produto auditado, plano, HEAD limpo e nucleos locais foram confirmados. Nenhum
+dado privado foi aberto. O cofre foi desbloqueado por Daniel; os caminhos
+necessarios, WAL vazio, ausencia de journal, espaco e ACL exclusiva foram
+confirmados por metadados. A politica real do produto continuou bloqueando
+`off` e `confirm` sem aprovacao.
+
+Estado: `PREFLIGHT_READY`, `financial_writes=0`; Fase B depende de autorizacao
+especifica. Evidencia:
+`docs/audit/184-open-finance-historical-rx-gate35-local-phase-a-preflight-ready-2026-08-09.md`.
+
+Proximo passo: produzir e abrir somente a copia privada read-only da Fase B,
+mantendo origem inalterada e saida sanitizada.
+
 ## Gate 35 — revisor local privado com GO tecnico
 
 O fluxo WhatsApp foi substituido por pagina HTML temporaria local e store

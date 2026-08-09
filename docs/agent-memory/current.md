@@ -2,6 +2,28 @@
 
 Atualizado em: 2026-08-09
 
+## Gate 35 — Fase A local em PREFLIGHT_READY
+
+O preflight sucessor fixou o produto auditado em
+`b8d1004f2ee216f95a7f71047f568221159573f6` e o fechamento documental em
+`8972205be391b3ede6ab463d44d7eb939f5cf2e4`. HEAD e remoto coincidiam, a
+arvore estava limpa, o diff era somente documental e os quatro nucleos locais
+estavam presentes.
+
+Nenhum dado privado foi aberto. O cofre existente foi desbloqueado por Daniel;
+staging operacional, backup, segredo e mapping foram confirmados somente por
+metadados. WALs estavam vazios, journal ausente e o espaco era mais de seiscentas
+vezes o maior staging. Workspace e arquivos necessarios receberam ACL exclusiva,
+equivalente local a `0700`/`0600`. A politica real do produto bloqueou escrita
+em `off` e bloqueou `confirm` sem aprovacao. Resultado: `PREFLIGHT_READY`,
+`financial_writes=0`.
+
+Evidencia:
+`docs/audit/184-open-finance-historical-rx-gate35-local-phase-a-preflight-ready-2026-08-09.md`.
+
+Proxima acao: somente com autorizacao especifica, executar a Fase B sobre uma
+copia privada read-only, mantendo origem inalterada e saida sanitizada.
+
 ## Gate 35 — GO tecnico local do revisor privado
 
 O sucessor local substitui a entrega WhatsApp por pagina HTML temporaria,
