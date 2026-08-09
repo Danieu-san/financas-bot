@@ -8,7 +8,8 @@ const { OpenFinanceBaselineStore } = require('../src/openFinance/openFinanceBase
 const { OpenFinanceAlertOutbox } = require('../src/openFinance/openFinanceAlertOutbox');
 const { OpenFinanceRevocationJournal } = require('../src/openFinance/openFinanceRevocationJournal');
 const { observationRef } = require('../src/openFinance/openFinanceRuntimeReconciliation');
-const { runOpenFinanceCanaryCycle, initializeOpenFinanceCanaryRuntime, resolveWhatsAppRecipient,
+const { runOpenFinanceCanaryCycle, initializeOpenFinanceCanaryRuntime,
+    resolveOpenFinancePollSchedule, resolveWhatsAppRecipient,
     resolveInternalUserIds, shadowPreviewMode,
     bindOpenFinanceProposalConversation } = require('../src/openFinance/openFinanceCanaryRuntime');
 
@@ -375,6 +376,139 @@ test('9E.1 runtime log separates cycle deliveries from cumulative outbox state',
         assert.match(messages[0], /cumulative_unconfirmed=0/);
         assert.match(messages[0], /cumulative_legacy_sent=2/);
         assert.doesNotMatch(messages[0], /\ssent=2/);
+    } finally {
+        runtime.stop();
+    }
+});
+
+test('9E.1 fast polling requires a short expiry and every safe Open Finance flag', () => {
+    const now = Date.parse('2026-08-09T00:00:00.000Z');
+    const safe = {
+        OPEN_FINANCE_ALERT_MODE: 'canary',
+        OPEN_FINANCE_RECONCILIATION_MODE: 'canary',
+        OPEN_FINANCE_SHADOW_PREVIEW_MODE: 'canary',
+        OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
+        OPEN_FINANCE_WRITE_MODE: 'off',
+        OPEN_FINANCE_WRITE_APPROVED: 'false',
+        OPEN_FINANCE_POLL_INTERVAL_MS: String(15 * 60 * 1000),
+        OPEN_FINANCE_FAST_POLL_UNTIL: new Date(now + 2 * 60 * 60 * 1000).toISOString()
+    };
+    const active = resolveOpenFinancePollSchedule(safe, now);
+    assert.equal(active.fastPolling, true);
+    assert.equal(active.intervalMs, 15 * 60 * 1000);
+    assert.equal(active.naturalIntervalMs, 6 * 60 * 60 * 1000);
+
+    for (const override of [
+        { OPEN_FINANCE_WRITE_MODE: 'confirm' },
+        { OPEN_FINANCE_WRITE_APPROVED: 'true' },
+        { OPEN_FINANCE_FAST_POLL_UNTIL: '' },
+        { OPEN_FINANCE_FAST_POLL_UNTIL: new Date(now).toISOString() },
+        { OPEN_FINANCE_FAST_POLL_UNTIL: new Date(now + 2 * 60 * 60 * 1000 + 1).toISOString() },
+        { OPEN_FINANCE_POLL_INTERVAL_MS: String(5 * 60 * 1000 - 1) }
+    ]) {
+        const rejected = resolveOpenFinancePollSchedule({ ...safe, ...override }, now);
+        assert.equal(rejected.fastPolling, false);
+        assert.equal(rejected.intervalMs, 6 * 60 * 60 * 1000);
+        assert.ok(rejected.ignoredReason);
+    }
+});
+
+test('9E.1 expired fast polling suppresses cycles until the natural interval is due', async () => {
+    const base = Date.parse('2026-08-09T00:00:00.000Z');
+    let current = base;
+    let scheduledInterval;
+    let intervalMs;
+    let cycles = 0;
+    const runtime = initializeOpenFinanceCanaryRuntime({
+        client: {},
+        env: {
+            OPEN_FINANCE_ALERT_MODE: 'canary',
+            OPEN_FINANCE_RECONCILIATION_MODE: 'canary',
+            OPEN_FINANCE_SHADOW_PREVIEW_MODE: 'canary',
+            OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
+            OPEN_FINANCE_WRITE_MODE: 'off',
+            OPEN_FINANCE_WRITE_APPROVED: 'false',
+            OPEN_FINANCE_POLL_INTERVAL_MS: String(15 * 60 * 1000),
+            OPEN_FINANCE_FAST_POLL_UNTIL: new Date(base + 60 * 60 * 1000).toISOString(),
+            OPEN_FINANCE_STARTUP_DELAY_MS: '600000'
+        },
+        logger: { info() {}, warn() {} },
+        now: () => current,
+        runCycle: async () => {
+            cycles += 1;
+            return { outcome: 'GO', deliveries: [], outbox: {}, financial_writes: 0 };
+        },
+        setTimeoutFn: () => ({ unref() {} }),
+        setIntervalFn: (callback, delay) => {
+            scheduledInterval = callback;
+            intervalMs = delay;
+            return { unref() {} };
+        },
+        clearTimeoutFn() {},
+        clearIntervalFn() {}
+    });
+    try {
+        assert.equal(runtime.fastPolling, true);
+        assert.equal(intervalMs, 15 * 60 * 1000);
+        await scheduledInterval();
+        assert.equal(cycles, 1);
+
+        current = base + 60 * 60 * 1000;
+        const expired = await scheduledInterval();
+        assert.equal(expired.outcome, 'SKIPPED_FAST_POLL_EXPIRED');
+        assert.equal(expired.financial_writes, 0);
+        assert.equal(cycles, 1);
+
+        current = base + 6 * 60 * 60 * 1000;
+        await scheduledInterval();
+        assert.equal(cycles, 2);
+    } finally {
+        runtime.stop();
+    }
+});
+
+test('9E.1 fast polling never overlaps an Open Finance cycle already running', async () => {
+    const base = Date.parse('2026-08-09T00:00:00.000Z');
+    let scheduledInterval;
+    let releaseCycle;
+    let cycles = 0;
+    const runtime = initializeOpenFinanceCanaryRuntime({
+        client: {},
+        env: {
+            OPEN_FINANCE_ALERT_MODE: 'canary',
+            OPEN_FINANCE_RECONCILIATION_MODE: 'canary',
+            OPEN_FINANCE_SHADOW_PREVIEW_MODE: 'canary',
+            OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
+            OPEN_FINANCE_WRITE_MODE: 'off',
+            OPEN_FINANCE_WRITE_APPROVED: 'false',
+            OPEN_FINANCE_POLL_INTERVAL_MS: String(15 * 60 * 1000),
+            OPEN_FINANCE_FAST_POLL_UNTIL: new Date(base + 60 * 60 * 1000).toISOString()
+        },
+        logger: { info() {}, warn() {} },
+        now: () => base,
+        runCycle: async () => {
+            cycles += 1;
+            await new Promise(resolve => { releaseCycle = resolve; });
+            return { outcome: 'GO', deliveries: [], outbox: {}, financial_writes: 0 };
+        },
+        setTimeoutFn: () => ({ unref() {} }),
+        setIntervalFn: callback => {
+            scheduledInterval = callback;
+            return { unref() {} };
+        },
+        clearTimeoutFn() {},
+        clearIntervalFn() {}
+    });
+    try {
+        const first = scheduledInterval();
+        await new Promise(resolve => setImmediate(resolve));
+        const concurrent = await scheduledInterval();
+        assert.equal(concurrent.outcome, 'SKIPPED_ALREADY_RUNNING');
+        assert.equal(concurrent.financial_writes, 0);
+        assert.equal(cycles, 1);
+        releaseCycle();
+        await first;
+        assert.equal(cycles, 1);
     } finally {
         runtime.stop();
     }

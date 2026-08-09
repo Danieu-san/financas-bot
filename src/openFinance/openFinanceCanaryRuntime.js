@@ -23,6 +23,10 @@ const {
 const { getActiveUsers } = require('../services/userService');
 const defaultLogger = require('../utils/logger');
 
+const NATURAL_POLL_INTERVAL_MS = 6 * 60 * 60 * 1000;
+const FAST_POLL_MIN_INTERVAL_MS = 5 * 60 * 1000;
+const FAST_POLL_MAX_WINDOW_MS = 2 * 60 * 60 * 1000;
+
 function readJson(file, reason) {
     if (!file || !fs.existsSync(file)) throw new Error(reason);
     return JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -102,6 +106,62 @@ function saveProposalConfiguration(env = process.env) {
         throw new Error('open_finance_save_proposal_reconciliation_required');
     }
     return { proposalMode, previewMode, internalReconciliationMode };
+}
+
+function resolveOpenFinancePollSchedule(env = process.env, now = Date.now()) {
+    const requested = Number(env.OPEN_FINANCE_POLL_INTERVAL_MS);
+    const requestedIntervalMs = Number.isFinite(requested) && requested > 0
+        ? requested
+        : NATURAL_POLL_INTERVAL_MS;
+    if (requestedIntervalMs >= NATURAL_POLL_INTERVAL_MS) {
+        return {
+            intervalMs: requestedIntervalMs,
+            naturalIntervalMs: requestedIntervalMs,
+            fastPolling: false,
+            fastPollingUntilMs: null,
+            ignoredReason: null
+        };
+    }
+
+    const nowMs = Number(now);
+    const fastPollingUntilMs = Date.parse(
+        String(env.OPEN_FINANCE_FAST_POLL_UNTIL || '')
+    );
+    const safeFlags =
+        String(env.OPEN_FINANCE_ALERT_MODE || '').trim().toLowerCase() === 'canary' &&
+        String(env.OPEN_FINANCE_RECONCILIATION_MODE || '').trim().toLowerCase() === 'canary' &&
+        String(env.OPEN_FINANCE_SHADOW_PREVIEW_MODE || '').trim().toLowerCase() === 'canary' &&
+        String(env.OPEN_FINANCE_SAVE_PROPOSAL_MODE || '').trim().toLowerCase() === 'prompt' &&
+        String(env.OPEN_FINANCE_WRITE_MODE || '').trim().toLowerCase() === 'off' &&
+        String(env.OPEN_FINANCE_WRITE_APPROVED || '').trim().toLowerCase() === 'false';
+    let ignoredReason = null;
+    if (requestedIntervalMs < FAST_POLL_MIN_INTERVAL_MS) {
+        ignoredReason = 'interval_below_minimum';
+    } else if (!safeFlags) {
+        ignoredReason = 'unsafe_flags';
+    } else if (!Number.isFinite(nowMs) || !Number.isFinite(fastPollingUntilMs)) {
+        ignoredReason = 'invalid_expiry';
+    } else if (fastPollingUntilMs <= nowMs) {
+        ignoredReason = 'expired';
+    } else if (fastPollingUntilMs - nowMs > FAST_POLL_MAX_WINDOW_MS) {
+        ignoredReason = 'window_too_long';
+    }
+    if (ignoredReason) {
+        return {
+            intervalMs: NATURAL_POLL_INTERVAL_MS,
+            naturalIntervalMs: NATURAL_POLL_INTERVAL_MS,
+            fastPolling: false,
+            fastPollingUntilMs: null,
+            ignoredReason
+        };
+    }
+    return {
+        intervalMs: requestedIntervalMs,
+        naturalIntervalMs: NATURAL_POLL_INTERVAL_MS,
+        fastPolling: true,
+        fastPollingUntilMs,
+        ignoredReason: null
+    };
 }
 
 function familySharingEnabled(policies = []) {
@@ -421,30 +481,67 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
     }
 }
 
-function initializeOpenFinanceCanaryRuntime({ client, logger = defaultLogger, env = process.env, runCycle = runOpenFinanceCanaryCycle } = {}) {
+function initializeOpenFinanceCanaryRuntime({
+    client,
+    logger = defaultLogger,
+    env = process.env,
+    runCycle = runOpenFinanceCanaryCycle,
+    now = () => Date.now(),
+    setTimeoutFn = setTimeout,
+    setIntervalFn = setInterval,
+    clearTimeoutFn = clearTimeout,
+    clearIntervalFn = clearInterval
+} = {}) {
     saveProposalConfiguration(env);
     const mode = String(env.OPEN_FINANCE_ALERT_MODE || 'off').toLowerCase();
     if (mode === 'off') return { enabled: false };
-    const intervalMs = Math.max(6 * 60 * 60 * 1000, Number(env.OPEN_FINANCE_POLL_INTERVAL_MS) || 6 * 60 * 60 * 1000);
+    const schedule = resolveOpenFinancePollSchedule(env, now());
+    const intervalMs = schedule.intervalMs;
     const startupDelayMs = Math.max(0, Number(env.OPEN_FINANCE_STARTUP_DELAY_MS) || 5000);
     let running = false;
-    const execute = async () => {
-        if (running) return;
+    let lastCycleStartedAt = null;
+    if (schedule.fastPolling) {
+        logger.warn(`[open-finance] fast_polling=active interval_ms=${intervalMs} writes=0`);
+    } else if (schedule.ignoredReason) {
+        logger.warn(`[open-finance] fast_polling=ignored reason=${schedule.ignoredReason} writes=0`);
+    }
+    const execute = async ({ scheduled = false } = {}) => {
+        const nowMs = Number(now());
+        if (scheduled && schedule.fastPolling &&
+            nowMs >= schedule.fastPollingUntilMs &&
+            lastCycleStartedAt !== null &&
+            nowMs - lastCycleStartedAt < schedule.naturalIntervalMs) {
+            return { outcome: 'SKIPPED_FAST_POLL_EXPIRED', financial_writes: 0 };
+        }
+        if (running) return { outcome: 'SKIPPED_ALREADY_RUNNING', financial_writes: 0 };
         running = true;
+        lastCycleStartedAt = nowMs;
         try {
             const result = await runCycle({ client, env });
             const deliveredThisCycle = (result.deliveries || []).filter(value => value === 'delivered_confirmed').length;
             const acceptedThisCycle = (result.deliveries || []).filter(value => value === 'accepted_unconfirmed').length;
             const retriesThisCycle = (result.deliveries || []).filter(value => value === 'retry').length;
             logger.info(`[open-finance] cycle=${result.outcome} new=${result.new_observations || 0} delivered=${deliveredThisCycle} accepted_unconfirmed=${acceptedThisCycle} retries=${retriesThisCycle} cumulative_confirmed=${result.outbox?.delivered_confirmed || 0} cumulative_unconfirmed=${result.outbox?.accepted_unconfirmed || 0} cumulative_legacy_sent=${result.outbox?.legacy_sent || 0} writes=0`);
+            return result;
         } catch (error) {
             logger.warn(`[open-finance] cycle=NO_GO ${defaultLogger.safeError(error)} writes=0`);
+            return { outcome: 'NO_GO', financial_writes: 0 };
         } finally { running = false; }
     };
-    const startup = setTimeout(() => { void execute(); }, startupDelayMs);
-    const interval = setInterval(() => { void execute(); }, intervalMs);
+    const startup = setTimeoutFn(() => execute({ scheduled: true }), startupDelayMs);
+    const interval = setIntervalFn(() => execute({ scheduled: true }), intervalMs);
     startup.unref?.(); interval.unref?.();
-    return { enabled: true, intervalMs, execute, stop: () => { clearTimeout(startup); clearInterval(interval); } };
+    return {
+        enabled: true,
+        intervalMs,
+        naturalIntervalMs: schedule.naturalIntervalMs,
+        fastPolling: schedule.fastPolling,
+        execute,
+        stop: () => {
+            clearTimeoutFn(startup);
+            clearIntervalFn(interval);
+        }
+    };
 }
 
 module.exports = {
@@ -457,5 +554,6 @@ module.exports = {
     shadowPreviewMode,
     saveProposalMode,
     saveProposalConfiguration,
+    resolveOpenFinancePollSchedule,
     bindOpenFinanceProposalConversation
 };

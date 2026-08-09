@@ -9,6 +9,8 @@ const ALLOWED_KEYS = new Set([
     'OPEN_FINANCE_ALERT_CANARY_ALIASES',
     'OPEN_FINANCE_ALERT_CANARY_ACTIVATIONS_JSON',
     'OPEN_FINANCE_ALERT_MAX_PER_RUN',
+    'OPEN_FINANCE_POLL_INTERVAL_MS',
+    'OPEN_FINANCE_FAST_POLL_UNTIL',
     'FINANCIAL_AGENT_MODE',
     'FINANCIAL_FILE_IO_MODE',
     'FINANCIAL_RECEIPTS_MODE',
@@ -32,6 +34,16 @@ function validateOverride(key, value) {
     if (key === 'OPEN_FINANCE_ALERT_MAX_PER_RUN' &&
         (!/^\d+$/.test(String(value)) || Number(value) < 1 || Number(value) > 5)) {
         throw new Error('open_finance_alert_limit_invalid');
+    }
+    if (key === 'OPEN_FINANCE_POLL_INTERVAL_MS' &&
+        (!/^\d+$/.test(String(value)) ||
+            Number(value) < 5 * 60 * 1000 ||
+            Number(value) > 7 * 24 * 60 * 60 * 1000)) {
+        throw new Error('open_finance_poll_interval_invalid');
+    }
+    if (key === 'OPEN_FINANCE_FAST_POLL_UNTIL' &&
+        value !== '' && !Number.isFinite(Date.parse(String(value)))) {
+        throw new Error('open_finance_fast_poll_expiry_invalid');
     }
     if (key === 'BATCH_MAINTENANCE_USER_IDS') {
         const ids = String(value).split(',').map(item => item.trim()).filter(Boolean);

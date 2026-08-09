@@ -104,3 +104,30 @@ test('runtime env updater rejects unsafe promotion values', () => {
     assert.throws(() => main(['--env-file', envFile, 'OPEN_FINANCE_ALERT_MAX_PER_RUN=6']), /open_finance_alert_limit_invalid/);
     assert.throws(() => main(['--env-file', envFile, 'BATCH_MAINTENANCE_USER_IDS=not-a-user']), /batch_maintenance_user_ids_invalid/);
 });
+
+test('runtime env updater accepts only bounded Open Finance polling window values', () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'runtime-env-'));
+    const envFile = path.join(directory, '.env');
+    fs.writeFileSync(envFile, 'OPEN_FINANCE_POLL_INTERVAL_MS=21600000\n', { mode: 0o600 });
+    const expiry = '2026-08-09T02:00:00.000Z';
+    const result = main([
+        '--env-file', envFile,
+        'OPEN_FINANCE_POLL_INTERVAL_MS=900000',
+        `OPEN_FINANCE_FAST_POLL_UNTIL=${expiry}`
+    ]);
+    const content = fs.readFileSync(envFile, 'utf8');
+    assert.match(content, /^OPEN_FINANCE_POLL_INTERVAL_MS=900000$/m);
+    assert.match(content, new RegExp(`^OPEN_FINANCE_FAST_POLL_UNTIL=${expiry}$`, 'm'));
+    assert.deepEqual(result.updated_keys, [
+        'OPEN_FINANCE_FAST_POLL_UNTIL',
+        'OPEN_FINANCE_POLL_INTERVAL_MS'
+    ]);
+    assert.throws(() => main([
+        '--env-file', envFile,
+        'OPEN_FINANCE_POLL_INTERVAL_MS=299999'
+    ]), /open_finance_poll_interval_invalid/);
+    assert.throws(() => main([
+        '--env-file', envFile,
+        'OPEN_FINANCE_FAST_POLL_UNTIL=not-a-date'
+    ]), /open_finance_fast_poll_expiry_invalid/);
+});

@@ -4,6 +4,13 @@ Atualizado em: 2026-08-09
 
 ## Retomada vigente - Gate 34
 
+Atualizacao mais recente: o candidato `OF-FAST-POLL-01` permite uma janela de
+15 minutos com expiracao automatica, somente sob as seis flags seguras. A prova
+local terminou com focal `20/20`, causal `71/71` e suite hermetica 1.553 total,
+1.543 aprovados, zero falhas e 10 skips. Estado:
+`CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE`; producao permanece no release
+`f5806e1b071b47d6441354928740d2139fb5ae51`, com escrita desligada.
+
 O release `f5806e1b071b47d6441354928740d2139fb5ae51` foi auditado e
 promovido de forma controlada na Oracle/OCI. Processo unico, health local e
 publico, SQLite, WhatsApp, liveness, flags, stores, retencao e logs sanitizados

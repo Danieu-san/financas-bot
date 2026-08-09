@@ -4,6 +4,11 @@ Atualizado em: 2026-08-09
 
 ## Estado vigente - Gate 34
 
+Atualizacao mais recente: `OF-FAST-POLL-01` esta localmente verde e aguarda
+auditoria independente por hash imutavel. A janela rapida continua fora de
+producao; o release vigente e as flags permanecem inalterados. Evidencia:
+`docs/audit/167-open-finance-temporary-fast-polling-candidate-2026-08-09.md`.
+
 `PROMOCAO VERDE; SMOKE NATURAL PENDENTE; CONFIRM BLOQUEADO`.
 
 O hash `f5806e1b071b47d6441354928740d2139fb5ae51` recebeu GO independente e

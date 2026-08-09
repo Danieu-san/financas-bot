@@ -748,3 +748,23 @@ Estado: `PROMOCAO VERDE; GATE 34 AINDA AGUARDA SMOKE NATURAL`. Proxima acao:
 aguardar, sem forcar polling, um lote numerado genuinamente novo; somente com
 Daniel presente e os dois celulares executar o smoke familiar e parar antes de
 qualquer confirmacao ou escrita.
+
+## Gate 34 - candidato de janela temporaria de polling
+
+Atualizado em: 2026-08-09
+
+O clamp fixo de seis horas impedia repetir o smoke em tempo util depois de cada
+ajuste. O candidato `OF-FAST-POLL-01` preserva seis horas como padrao, mas aceita
+uma janela explicita entre cinco minutos e duas horas somente sob as seis flags
+seguras. Expiracao, flag insegura ou configuracao invalida voltam a seis horas;
+ticks nunca sobrepoem ciclo em andamento e, depois do prazo, so executam quando
+a cadencia natural estiver vencida.
+
+Evidencia: focal `20/20`, causal `71/71`, checks estaticos verdes e suite
+hermetica com 1.553 testes, 1.543 aprovados, zero falhas e 10 skips esperados.
+Manifesto:
+`docs/audit/167-open-finance-temporary-fast-polling-candidate-2026-08-09.md`.
+
+Estado: `CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE POR HASH IMUTAVEL`.
+Proxima acao: commit sanitizado, push e uma auditoria limpa do Chat. Nenhuma
+mudanca de producao ou flags e autorizada antes do GO independente.
