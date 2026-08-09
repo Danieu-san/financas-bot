@@ -2,6 +2,25 @@
 
 Atualizado em: 2026-08-09
 
+## Gate 35 — Fase A em NO_GO; Fase C sera redesenhada
+
+O preflight falhou fechado porque a producao OCI comprovada ainda executa
+`09b6dab6e679ce28202cb87f83d38549f64e6ae8`, anterior ao orquestrador
+Gate 35 auditado em `afe44614d7488104c642b1f9e846a8b72441de40`.
+
+Estado: `NO_GO — PRODUTO AUDITADO DO GATE 35 AUSENTE NA PRODUCAO`.
+Evidencia:
+`docs/audit/180-open-finance-historical-rx-gate35-phase-a-preflight-no-go-2026-08-09.md`.
+
+Por decisao de Daniel, a Fase C via WhatsApp sera substituida por revisao local
+privada conduzida com o Codex. Decisoes coletivas exigem classe de equivalencia
+explicita, conjunto integral exibido e identidade forte; nenhuma generalizacao
+por descricao, valor ou data isolados. O redesenho nao autoriza abrir dados
+reais, recalcular, escrever ou promover producao.
+
+Proxima fronteira: candidato local testado e auditado da nova revisao. Somente
+depois preparar um release OCI sucessor e repetir a Fase A.
+
 ## Estado atual — Gate 35 autorizado somente para a Fase A
 
 O plano operacional no hash `9ec123834b2e85d0b966c8834eb020c5eef3ef8b`

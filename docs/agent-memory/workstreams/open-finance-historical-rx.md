@@ -2,6 +2,22 @@
 
 Atualizado em: 2026-08-05
 
+## Gate 35 — Fase A em NO_GO; revisao local solicitada
+
+O preflight parou antes de dados privados porque a producao no hash
+`09b6dab6e679ce28202cb87f83d38549f64e6ae8` nao contem o orquestrador
+auditado do Gate 35, adicionado em
+`afe44614d7488104c642b1f9e846a8b72441de40`. Evidencia:
+`docs/audit/180-open-finance-historical-rx-gate35-phase-a-preflight-no-go-2026-08-09.md`.
+
+Daniel substituiu a direcao da futura Fase C: a revisao deve ocorrer localmente
+com o Codex, sem WhatsApp, e uma decisao pode abranger todas as ocorrencias
+somente quando uma classe de equivalencia estavel e auditavel provar o conjunto
+integral. Dados privados permanecem fora do Git e do texto da conversa.
+
+Proximo passo: candidato local da nova fronteira, testes causais e auditoria
+independente antes de qualquer release ou repeticao da Fase A.
+
 ## Gate 35 — plano operacional com GO para a Fase A
 
 O hash documental `9ec123834b2e85d0b966c8834eb020c5eef3ef8b` recebeu

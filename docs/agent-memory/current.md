@@ -2,71 +2,28 @@
 
 Atualizado em: 2026-08-09
 
-## Gate 35 — plano operacional auditado; Fase A autorizada
+## Gate 35 — Fase A encerrou em NO_GO antes de dados privados
 
-O plano operacional privado no hash
-`9ec123834b2e85d0b966c8834eb020c5eef3ef8b` recebeu `GO OPERACIONAL PARA
-FASE A` independente. A Fase A e somente preflight: nao abre conteudo privado,
-nao reinicia ou ativa o runtime, nao recalcula o RX e mantem
-`financial_writes=0`.
+A Fase A parou no passo 3: a evidencia operacional vigente comprova producao
+OCI no hash `09b6dab6e679ce28202cb87f83d38549f64e6ae8`, enquanto o nucleo
+`openFinanceHistoricalRxGate35.js` so existe no produto auditado
+`afe44614d7488104c642b1f9e846a8b72441de40`. Portanto, a producao nao contem
+todos os nucleos auditados exigidos pelo preflight.
 
-O parecer registrou um achado `MEDIUM` restrito a futura Fase C: o documento
-exige health antes do backfill, mas o bootstrap real encadeia o inicio do
-backfill depois de `WhatsApp ready` sem uma barreira externa de health entre
-essas etapas. A lacuna deve ser fechada antes da Fase C; nao bloqueia a Fase A.
+Resultado: `NO_GO — PRODUTO AUDITADO DO GATE 35 AUSENTE NA PRODUCAO`.
+Nenhum dado privado, SSH, rede, processo, flag ou producao foi alterado;
+`financial_writes=0`. Evidencia:
+`docs/audit/180-open-finance-historical-rx-gate35-phase-a-preflight-no-go-2026-08-09.md`.
 
-Fechamento:
-`docs/audit/179-open-finance-historical-rx-gate35-operation-independent-close-2026-08-09.md`.
+Daniel decidiu substituir a futura revisao via WhatsApp por revisao local com
+o Codex e aplicar decisoes a todas as ocorrencias comprovadamente equivalentes.
+O sucessor ainda precisa de desenho, implementacao, testes e auditoria. Dados
+privados nao podem ser gravados no Git nem no texto da conversa; a revisao deve
+usar interface local privada, referencias opacas, quantidade integral e classe
+de equivalencia estavel. Sem identidade forte, as ocorrencias ficam separadas.
 
-Por decisao explicita de Daniel, o Gate 34 fica
-`PAUSADO POR DECISAO DO USUARIO; RETOMADA FUTURA`. Seu smoke numerico continua
-pendente e a pausa nao altera producao nem equivale a GO funcional.
-
-Proxima acao: executar somente a Fase A e emitir `PREFLIGHT_READY` ou `NO_GO`,
-sem abrir conteudo privado, sem restart, sem deploy e sem escrita.
-
-## Gate 35 com GO tecnico local independente
-
-O hash `afe44614d7488104c642b1f9e846a8b72441de40` recebeu `GO TECNICO
-LOCAL` independente. O auditor confirmou os sete arquivos, zero achados em
-todas as severidades, defaults reais no caminho causal e nenhuma lacuna
-indispensavel residual no escopo estatico.
-
-Fechamento:
-`docs/audit/178-open-finance-historical-rx-gate35-orchestrator-independent-close-2026-08-09.md`.
-
-Alcance autorizado: planejar a operacao privada separada. Ainda nao abrir o
-snapshot, ativar a revisao, recalcular o RX real, tocar producao ou escrever.
-Gate 34 foi posteriormente pausado por decisao do usuario; o smoke funcional
-permanece pendente para retomada futura.
-
-Plano operacional privado em preparacao:
-`docs/plans/workstreams/open-finance-historical-rx-gate35-operation.md`.
-O plano detectou que a ativacao exige restart do runtime principal e, portanto,
-deve permanecer em hold antes dessa fronteira enquanto Daniel exigir a janela
-do Gate 34 inalterada. Nenhum segundo processo WhatsApp e permitido.
-
-## Gate 35 local em preparacao; Gate 34 observavel em paralelo
-
-Por decisao explicita de Daniel, a janela vigente do Gate 34 foi mantida sem
-qualquer alteracao e seu smoke numerico continua pendente. Se surgir uma compra
-real `purchase/POSTED/new`, Daniel avisara e o smoke sera retomado sem reabrir a
-preparacao operacional.
-
-O Gate 35 foi iniciado apenas localmente. O novo orquestrador compoe a revisao
-historica cifrada e o reconciliador read-only ja auditados, exige decisao
-duravel completa, preserva bloqueadores independentes e falha fechado diante de
-qualquer escrita declarada. Evidencia focal `3/3`, integracao real `11/11`,
-bateria causal `34/34` e suite hermetica ampla valida `1.558/1.548/0/10`.
-
-Estado: `CANDIDATO LOCAL VERDE; AGUARDA COMMIT E AUDITORIA INDEPENDENTE`.
-Manifesto:
-`docs/audit/177-open-finance-historical-rx-gate35-orchestrator-candidate-2026-08-09.md`.
-
-Nenhuma flag, conexao, polling, producao ou dado privado foi alterado. A
-suspeita de corridas concluidas no Nubank Thais ainda entregues pela API como
-`PENDING` permanece pendente de comparacao futura com o payload bruto de uma
-transacao identificada.
+Proxima acao: implementar e auditar essa nova fronteira local antes de um unico
+release OCI sucessor e antes de repetir a Fase A.
 
 ## Retomada vigente - Gate 34
 
