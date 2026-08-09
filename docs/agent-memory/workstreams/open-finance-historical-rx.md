@@ -1,6 +1,18 @@
 # Estado - RX historico segmentado Open Finance
 
-Atualizado em: 2026-08-05
+Atualizado em: 2026-08-09
+
+## Gate 35 — revisor local privado candidato
+
+O fluxo WhatsApp foi substituido por pagina HTML temporaria local e store
+cifrado. Decisao coletiva exige conjunto exato e classe forte: investimento por
+fonte, segmento, tipo do provedor e direcao; parcela por serie, sem generalizar
+`keep_only`. Descricao, data e valor nunca formam equivalencia.
+
+Focal/regressao `18/18`, bateria causal Gate 35 `41/41` e suite hermetica
+ampla `1565/1555/0/10`. Estado:
+`CANDIDATO LOCAL VERDE; AGUARDA COMMIT E AUDITORIA`.
+Nenhum dado real ou producao foi acessado; `financial_writes=0`.
 
 ## Gate 35 — Fase A em NO_GO; revisao local solicitada
 

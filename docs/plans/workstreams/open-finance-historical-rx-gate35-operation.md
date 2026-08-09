@@ -4,10 +4,11 @@ Atualizado em: 2026-08-09
 
 ## Objetivo
 
-Executar uma unica revisao humana familiar das ambiguidades do RX historico,
-consumir somente decisoes duraveis completas e recalcular o RX em copia privada,
-sem escrita financeira e sem misturar a janela historica com o cutoff de
-alertas.
+Executar uma unica revisao humana local das ambiguidades do RX historico,
+visualizada em pagina temporaria privada e conduzida nesta conversa por
+referencias opacas. Consumir somente decisoes duraveis completas e recalcular o
+RX em copia privada, sem escrita financeira e sem misturar a janela historica
+com o cutoff de alertas.
 
 Este documento planeja a operacao. Ele nao a autoriza.
 
@@ -15,19 +16,17 @@ Este documento planeja a operacao. Ele nao a autoriza.
 
 Daniel pausou o Gate 34 para retomada posterior. Seu smoke numerico permanece
 pendente; a pausa nao equivale a GO funcional e nao altera por si so o estado
-de producao. A ativacao do runtime historico continua exigindo configuracao e
-restart do processo WhatsApp principal. Portanto:
+de producao. A revisao do Gate 35 passa a ser estritamente local: nao ativa o
+runtime WhatsApp, nao exige restart e nao depende de backfill ou health remoto.
 
-`FASE A AUTORIZADA; HOLD ANTES DAS FASES B, C E D`.
-
-Nao e permitido iniciar um segundo processo WhatsApp, criar sessao paralela ou
-alterar o polling para contornar essa fronteira.
+`HOLD ANTES DE DADOS REAIS ATE GO INDEPENDENTE DO REVISOR LOCAL`.
 
 ## Fase A — preflight local sem abrir dados privados
 
 1. Confirmar raiz, branch, HEAD e arvore limpa.
 2. Fixar o hash de produto auditado e o hash documental do plano.
-3. Confirmar que o codigo em producao contem os nucleos auditados, sem deploy.
+3. Confirmar que a worktree local esta no produto auditado que contem todos os
+   nucleos do Gate 35; producao nao precisa executar o revisor local.
 4. Inventariar somente existencia, modo e permissao dos caminhos privados
    necessarios; nao imprimir conteudo, IDs, valores, descricoes ou segredos.
 5. Confirmar espaco para copia, diretorios `0700` e arquivos `0600`.
@@ -45,34 +44,40 @@ Somente depois de autorizacao especifica para abrir a copia privada:
 3. abrir somente o snapshot em modo read-only;
 4. reconstruir o RX com `history_start_date=2025-07-01` e inventario canonico;
 5. preparar o estado cifrado pelo orquestrador Gate 35;
-6. gravar o estado cifrado fora do Git com criacao exclusiva e modo `0600`;
+6. usar `review_channel=local_private`, exatamente um revisor local e preparar
+   o store SQLite cifrado fora do Git em modo `0600`;
 7. fechar/remover a copia temporaria e exigir hashes da origem inalterados;
 8. publicar apenas contagens, blockers sanitizados e `financial_writes=0`.
 
 Saida: `REVIEW_CANDIDATE_READY` ou `NO_GO`. Nenhuma mensagem e enviada.
 
-## Fase C — ativacao familiar controlada
+## Fase C — revisao local controlada
 
 Precondicoes adicionais:
 
-- Gate 34 em fronteira segura ou autorizacao explicita para interromper sua
-  janela;
-- Daniel com acesso aos dois telefones;
-- backup privado verificado do `.env`, store da revisao e outbox;
-- exatamente um processo PM2 e uma sessao WhatsApp;
-- plano de rollback ensaiado sem dados reais.
+- candidato local com GO independente;
+- diretorio privado `0700`, store `0600` e segredo fora do Git;
+- exatamente um revisor local autorizado;
+- conjunto integral de referencias opacas conferido antes de cada decisao;
+- escrita financeira desligada.
 
 Sequencia:
 
-1. configurar `OPEN_FINANCE_HISTORICAL_AMBIGUITY_REVIEW_MODE=prompt`, dois
-   atores exatos e caminhos privados absolutos;
-2. manter todas as flags de escrita desligadas;
-3. executar um unico restart controlado;
-4. exigir health, SQLite e WhatsApp `ready/healthy` antes do backfill;
-5. entregar uma unica revisao cifrada a cada ator, com dedupe e at-most-once;
-6. em erro ambiguo de transporte, nao reenviar automaticamente ao mesmo ator;
-7. aceitar somente escolhas numericas explicitas; `sim` nunca resolve item;
-8. parar quando todas as decisoes estiverem duraveis ou quando expirar.
+1. gerar uma pagina HTML temporaria, autocontida, sem scripts ou rede, em modo
+   `0600` e fora do repositorio;
+2. abrir a pagina localmente para Daniel visualizar os detalhes necessarios;
+3. conduzir nesta conversa somente referencias opacas, regra de equivalencia,
+   quantidade integral e codigo de resolucao;
+4. aceitar `aplicar a todas` apenas quando o conjunto pendente coincidir
+   exatamente com o conjunto previamente exibido;
+5. para investimento, equivalencia exige mesma fonte, segmento, tipo de
+   operacao do provedor e direcao; descricao, data e valor nao participam;
+6. para parcela, equivalencia exige a mesma serie; `distinct_rows` e
+   `discard_all` podem ser coletivos, mas `keep_only` permanece individual;
+7. persistir cada decisao em transacao SQLite, estado AES-256-GCM e MAC de
+   revisao, sobrevivendo a restart sem replay de envelope anterior;
+8. regenerar a pagina apos cada decisao e remover a versao temporaria anterior;
+9. parar quando todas as decisoes estiverem duraveis ou quando expirar.
 
 Nenhuma selecao cria lancamento ou proposta de escrita.
 
@@ -94,22 +99,21 @@ somente aos alertas e nao entra no RX.
 
 ## Rollback
 
-Em qualquer falha antes, durante ou depois do restart:
+Em qualquer falha local:
 
-1. restaurar o `.env` byte a byte;
-2. voltar o modo historico para `off`;
-3. restaurar somente stores do Gate 35 a partir do backup correspondente;
-4. executar no maximo um restart de recuperacao;
-5. exigir processo unico, health e WhatsApp verdes;
-6. preservar o estado do Gate 34 e nao alterar seus stores;
-7. remover temporarios e confirmar `financial_writes=0`.
+1. nao reaplicar a decisao automaticamente;
+2. exigir rollback integral da transacao SQLite;
+3. reabrir o store e validar MAC, revisao e contagens;
+4. remover pagina e arquivos temporarios;
+5. preservar producao, Gate 34 e fontes privadas de origem;
+6. confirmar `financial_writes=0`.
 
 ## Evidencias permitidas
 
 - hashes, contagens, modos de arquivo e estados sanitizados;
 - estado `resolved`/`partial_no_go` e nomes publicos de blockers;
 - contagens de decisoes e cobertura por fonte/segmento;
-- health, processo unico, flags e zero escrita.
+- canal `local_private`, grupos, quantidades e zero escrita.
 
 Nunca registrar no Git ou no Chat IDs bancarios, descricoes, valores, datas de
 transacao, telefones completos, segredos, paths privados completos ou o estado
@@ -117,22 +121,20 @@ cifrado.
 
 ## Gates de parada
 
-- Gate 34 ter sido retomado e exigir preservacao da janela no momento da
-  ativacao;
-- barreira de health pre-backfill ainda nao corresponder a ordem real do
-  bootstrap no momento de autorizar a Fase C;
+- candidato local sem GO independente;
 - hash de origem divergente ou journal pendente;
 - inventario diferente de quatro fontes, cinco contas e quatro cartoes;
 - conta/cartao/poupanca/investimento misturados;
 - revisao parcial, expirada, adulterada ou ligada a outro RX;
-- qualquer escrita financeira, segundo processo WhatsApp ou sessao paralela;
-- health ou WhatsApp nao verde depois de restart;
+- conjunto esperado divergente, referencia duplicada ou resolucao coletiva nao
+  portavel;
+- qualquer escrita financeira, pagina dentro do Git ou recurso externo no HTML;
 - auditoria independente do plano emitir NO-GO.
 
 ## Proximo estado
 
-O parecer independente do hash
-`9ec123834b2e85d0b966c8834eb020c5eef3ef8b` autorizou somente a Fase A. As
-fases B, C e D exigem autorizacoes operacionais separadas em suas fronteiras;
-a Fase C tambem exige fechar a discrepancia de health pre-backfill. Nenhum GO
-deste plano antecipa o Gate 38 de escrita historica.
+O plano anterior recebeu GO somente para a Fase A, que encontrou NO_GO porque
+presumia execucao do orquestrador em producao. O sucessor local remove essa
+premissa e elimina a dependencia de WhatsApp/backfill que originou o achado
+`MEDIUM`. Antes de dados reais, o novo codigo e este plano exigem auditoria
+independente por hash. Nenhum GO antecipa o Gate 38 de escrita historica.

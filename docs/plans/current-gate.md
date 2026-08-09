@@ -2,24 +2,29 @@
 
 Atualizado em: 2026-08-09
 
-## Gate 35 — Fase A em NO_GO; Fase C sera redesenhada
+## Gate 35 — candidato local da nova Fase C
 
-O preflight falhou fechado porque a producao OCI comprovada ainda executa
-`09b6dab6e679ce28202cb87f83d38549f64e6ae8`, anterior ao orquestrador
-Gate 35 auditado em `afe44614d7488104c642b1f9e846a8b72441de40`.
+Foi implementada a revisao local privada solicitada por Daniel. Ela gera HTML
+temporario sem script/rede, fora do Git, e persiste decisoes cifradas em SQLite.
+`aplicar a todas` exige grupo estavel, lista integral de referencias opacas e
+codigo portavel para todos os itens; qualquer divergencia falha fechado.
 
-Estado: `NO_GO — PRODUTO AUDITADO DO GATE 35 AUSENTE NA PRODUCAO`.
-Evidencia:
-`docs/audit/180-open-finance-historical-rx-gate35-phase-a-preflight-no-go-2026-08-09.md`.
+Investimentos agrupam por fonte, segmento, tipo do provedor e direcao, nunca
+por descricao, data ou valor. Parcelas agrupam por serie; `keep_only` nao pode
+ser generalizado. Restart, MAC, envelope antigo, conjunto divergente, outsider,
+expiracao e zero escrita possuem cobertura causal.
 
-Por decisao de Daniel, a Fase C via WhatsApp sera substituida por revisao local
-privada conduzida com o Codex. Decisoes coletivas exigem classe de equivalencia
-explicita, conjunto integral exibido e identidade forte; nenhuma generalizacao
-por descricao, valor ou data isolados. O redesenho nao autoriza abrir dados
-reais, recalcular, escrever ou promover producao.
+Evidencia: focal/regressao `18/18`; bateria causal Gate 35 `41/41`; suite
+hermetica ampla `1565` testes, `1555` aprovados, zero falhas e `10` skips
+previstos, com cobertura de linhas `90,89%`.
+Estado: `CANDIDATO LOCAL VERDE; AGUARDA COMMIT E AUDITORIA`.
 
-Proxima fronteira: candidato local testado e auditado da nova revisao. Somente
-depois preparar um release OCI sucessor e repetir a Fase A.
+O plano sucessor torna a revisao estritamente local e remove a dependencia de
+runtime WhatsApp/backfill, fechando por desenho a lacuna `MEDIUM` anterior. O
+NO_GO operacional da antiga Fase A continua historico, mas a exigencia de o
+revisor estar implantado em producao deixou de existir.
+
+Proxima fronteira: auditoria independente por hash antes de abrir dados reais.
 
 ## Estado atual — Gate 35 autorizado somente para a Fase A
 

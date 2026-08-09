@@ -2,6 +2,7 @@
 
 const crypto = require('node:crypto');
 const fs = require('node:fs');
+const path = require('node:path');
 const Database = require('better-sqlite3');
 
 const {
@@ -122,12 +123,14 @@ function openState(sealedState, secret) {
             decipher.update(Buffer.from(ciphertext, 'base64url')),
             decipher.final()
         ]).toString('utf8'));
+        if (!state.review_channel) state.review_channel = 'whatsapp_family';
         if (state?.schema_version !== SCHEMA_VERSION || !state.review_ref
             || !/^[a-f0-9]{32}$/.test(String(state.rx_ref || ''))
             || !Array.isArray(state.items) || !Array.isArray(state.authorized_actor_refs)
             || !state.selected_item_refs || typeof state.selected_item_refs !== 'object'
             || Array.isArray(state.selected_item_refs)
             || !state.pages || typeof state.pages !== 'object' || Array.isArray(state.pages)
+            || !['whatsapp_family', 'local_private'].includes(state.review_channel)
             || !['pending', 'reviewed'].includes(state.status)
             || state.financial_writes !== 0) {
             throw new Error('invalid_payload');
@@ -233,6 +236,34 @@ function isAmbiguousInvestment(transaction) {
         || (operation.semantic === 'investment_income' && amount <= 0);
 }
 
+function installmentEquivalence(secret, sourceAlias, segmentRef, seriesRef) {
+    const basis = Object.freeze({
+        kind: 'installment_series',
+        source_alias: sourceAlias,
+        segment_ref: segmentRef,
+        series_ref: seriesRef
+    });
+    return {
+        group_ref: hmac(secret, `historical-ambiguity-equivalence:${canonicalJson(basis)}`),
+        basis,
+        collective_resolution_codes: Object.freeze(['discard_all', 'distinct_rows'])
+    };
+}
+
+function investmentEquivalence(secret, sourceAlias, segmentRef, candidate) {
+    const basis = Object.freeze({
+        kind: 'investment_operation',
+        source_alias: sourceAlias,
+        segment_ref: segmentRef,
+        operation_type: String(candidate.operation_type || '').trim().toUpperCase(),
+        direction: Number(candidate.amount_cents) < 0 ? 'debit' : 'credit'
+    });
+    return {
+        group_ref: hmac(secret, `historical-ambiguity-equivalence:${canonicalJson(basis)}`),
+        basis
+    };
+}
+
 function derivePrivateInstallmentAmbiguities(rows, sourceAlias, accountId, secret) {
     const groups = new Map();
     for (const transaction of rows) {
@@ -328,6 +359,9 @@ function buildItems({ items, historicalRx, secret }) {
                 const itemRef = hmac(secret,
                     `installment:${segmentRef}:${series.series_ref}:${duplicateNumber}:`
                     + candidates.map(candidate => candidate.candidate_ref).join(':'));
+                const equivalence = installmentEquivalence(
+                    secret, sourceAlias, segmentRef, series.series_ref
+                );
                 reviewItems.push({
                     item_ref: itemRef,
                     type: 'installment_identity',
@@ -336,6 +370,9 @@ function buildItems({ items, historicalRx, secret }) {
                     segment_ref: segmentRef,
                     candidates,
                     choices: installmentChoices(candidates),
+                    equivalence_group_ref: equivalence.group_ref,
+                    equivalence_basis: equivalence.basis,
+                    collective_resolution_codes: equivalence.collective_resolution_codes,
                     decision: null
                 });
             }
@@ -349,6 +386,10 @@ function buildItems({ items, historicalRx, secret }) {
             }
             for (const transaction of ambiguousRows) {
                 const candidate = privateCandidate(transaction, secret);
+                const equivalence = investmentEquivalence(
+                    secret, sourceAlias, segmentRef, candidate
+                );
+                const choices = investmentChoices(candidate);
                 reviewItems.push({
                     item_ref: hmac(secret, `investment:${segmentRef}:${candidate.candidate_ref}`),
                     type: 'investment_semantics',
@@ -356,7 +397,10 @@ function buildItems({ items, historicalRx, secret }) {
                     source_alias: sourceAlias,
                     segment_ref: segmentRef,
                     candidates: [candidate],
-                    choices: investmentChoices(candidate),
+                    choices,
+                    equivalence_group_ref: equivalence.group_ref,
+                    equivalence_basis: equivalence.basis,
+                    collective_resolution_codes: choices.map(choice => choice.code).sort(),
                     decision: null
                 });
             }
@@ -416,6 +460,8 @@ function buildOpenFinanceHistoricalAmbiguityReview({
     secret,
     familyScope = 'shared-family',
     authorizedWhatsAppIds = [],
+    reviewChannel = 'whatsapp_family',
+    authorizedLocalReviewerIds = [],
     clock = () => new Date(),
     ttlMs = DEFAULT_TTL_MS
 } = {}) {
@@ -426,9 +472,18 @@ function buildOpenFinanceHistoricalAmbiguityReview({
     if (!Array.isArray(items) || !items.length) {
         throw new Error('open_finance_historical_ambiguity_review_items_required');
     }
-    const uniqueActors = [...new Set(authorizedWhatsAppIds.map(value => actorRef(safeSecret, value)))];
-    if (uniqueActors.length !== 2) {
-        throw new Error('open_finance_historical_ambiguity_review_family_actors_required');
+    const normalizedReviewChannel = String(reviewChannel || 'whatsapp_family').trim();
+    if (!['whatsapp_family', 'local_private'].includes(normalizedReviewChannel)) {
+        throw new Error('open_finance_historical_ambiguity_review_channel_invalid');
+    }
+    const actorIds = normalizedReviewChannel === 'local_private'
+        ? authorizedLocalReviewerIds : authorizedWhatsAppIds;
+    const uniqueActors = [...new Set(actorIds.map(value => actorRef(safeSecret, value)))];
+    const expectedActorCount = normalizedReviewChannel === 'local_private' ? 1 : 2;
+    if (uniqueActors.length !== expectedActorCount) {
+        throw new Error(normalizedReviewChannel === 'local_private'
+            ? 'open_finance_historical_ambiguity_review_local_reviewer_required'
+            : 'open_finance_historical_ambiguity_review_family_actors_required');
     }
     if (!Number.isSafeInteger(ttlMs) || ttlMs < 60_000) {
         throw new Error('open_finance_historical_ambiguity_review_ttl_invalid');
@@ -447,6 +502,7 @@ function buildOpenFinanceHistoricalAmbiguityReview({
         rx_ref: rxRef,
         family_scope_ref: hmac(safeSecret, `family:${String(familyScope || 'shared-family')}`),
         authorized_actor_refs: uniqueActors.sort(),
+        review_channel: normalizedReviewChannel,
         status: 'pending',
         pages: {},
         selected_item_refs: {},
@@ -487,6 +543,222 @@ function readOpenFinanceHistoricalAmbiguityReviewPrivate({
         })),
         financial_writes: 0
     };
+}
+
+function requireLocalReviewer(state, secret, localReviewerId) {
+    if (state.review_channel !== 'local_private') {
+        throw new Error('open_finance_historical_ambiguity_local_review_channel_required');
+    }
+    return requireActor(state, secret, localReviewerId);
+}
+
+function buildOpenFinanceHistoricalAmbiguityLocalReviewView({
+    sealedState,
+    secret,
+    localReviewerId,
+    clock = () => new Date()
+} = {}) {
+    const safeSecret = requireSecret(secret);
+    const state = openState(sealedState, safeSecret);
+    requireLocalReviewer(state, safeSecret, localReviewerId);
+    requireFresh(state, clock);
+    const pending = pendingItems(state);
+    const groups = new Map();
+    for (const item of pending) {
+        if (!item.equivalence_group_ref || !item.equivalence_basis
+            || !Array.isArray(item.collective_resolution_codes)) {
+            throw new Error('open_finance_historical_ambiguity_local_review_equivalence_invalid');
+        }
+        if (!groups.has(item.equivalence_group_ref)) {
+            groups.set(item.equivalence_group_ref, {
+                group_ref: item.equivalence_group_ref,
+                type: item.type,
+                equivalence_basis: item.equivalence_basis,
+                collective_resolution_codes: [...item.collective_resolution_codes].sort(),
+                items: []
+            });
+        }
+        const group = groups.get(item.equivalence_group_ref);
+        if (group.type !== item.type
+            || canonicalJson(group.equivalence_basis) !== canonicalJson(item.equivalence_basis)
+            || canonicalJson(group.collective_resolution_codes)
+                !== canonicalJson([...item.collective_resolution_codes].sort())) {
+            throw new Error('open_finance_historical_ambiguity_local_review_equivalence_invalid');
+        }
+        group.items.push({
+            item_ref: item.item_ref,
+            type: item.type,
+            title: item.title,
+            source_alias: item.source_alias,
+            segment_ref: item.segment_ref,
+            candidates: item.candidates.map(candidate => ({ ...candidate })),
+            choices: item.choices.map(choice => ({ ...choice }))
+        });
+    }
+    const normalizedGroups = [...groups.values()].map(group => {
+        group.items.sort((left, right) => left.item_ref.localeCompare(right.item_ref));
+        return Object.freeze({
+            ...group,
+            item_count: group.items.length,
+            item_refs: Object.freeze(group.items.map(item => item.item_ref)),
+            items: Object.freeze(group.items)
+        });
+    }).sort((left, right) => left.type.localeCompare(right.type)
+        || left.group_ref.localeCompare(right.group_ref));
+    return Object.freeze({
+        review_ref: state.review_ref,
+        rx_ref: state.rx_ref,
+        review_channel: state.review_channel,
+        state: state.status,
+        pending_count: pending.length,
+        decided_count: state.items.length - pending.length,
+        groups: Object.freeze(normalizedGroups),
+        financial_writes: 0
+    });
+}
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, character => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[character]);
+}
+
+function renderLocalReviewHtml(view) {
+    const groupSections = view.groups.map((group, groupIndex) => {
+        const basis = Object.entries(group.equivalence_basis)
+            .map(([key, value]) => `<li><strong>${escapeHtml(key)}</strong>: ${escapeHtml(value)}</li>`)
+            .join('');
+        const items = group.items.map((item, itemIndex) => {
+            const candidates = item.candidates.map((candidate, candidateIndex) =>
+                `<li>${candidateIndex + 1}. ${escapeHtml(candidate.date)} · `
+                + `${escapeHtml(formatMoney(candidate.amount_cents))} · `
+                + `${escapeHtml(candidate.description)}</li>`).join('');
+            const choices = item.choices.map(choice =>
+                `<li><code>${escapeHtml(choice.code)}</code> — ${escapeHtml(choice.label)}</li>`)
+                .join('');
+            return `<article><h3>Item ${itemIndex + 1}: ${escapeHtml(item.title)}</h3>`
+                + `<p>Referencia opaca: <code>${escapeHtml(item.item_ref)}</code></p>`
+                + `<ul>${candidates}</ul><h4>Resolucao</h4><ul>${choices}</ul></article>`;
+        }).join('');
+        return `<section><h2>Grupo ${groupIndex + 1} — ${group.item_count} ocorrencias equivalentes</h2>`
+            + `<p>Referencia opaca: <code>${escapeHtml(group.group_ref)}</code></p>`
+            + `<h3>Regra de equivalencia</h3><ul>${basis}</ul>`
+            + `<p>Codigos coletivos permitidos: ${group.collective_resolution_codes
+                .map(code => `<code>${escapeHtml(code)}</code>`).join(', ') || 'nenhum'}</p>${items}</section>`;
+    }).join('');
+    return '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">'
+        + '<meta name="referrer" content="no-referrer"><title>Revisao privada Gate 35</title>'
+        + '<style>body{font:16px system-ui;max-width:1000px;margin:32px auto;padding:0 20px}'
+        + 'section,article{border:1px solid #bbb;border-radius:8px;padding:16px;margin:16px 0}'
+        + 'code{word-break:break-all}</style></head><body><h1>Revisao privada Gate 35</h1>'
+        + `<p>Pendentes: ${view.pending_count}. Decididas: ${view.decided_count}. Nada sera salvo.</p>`
+        + groupSections + '</body></html>';
+}
+
+function writeOpenFinanceHistoricalAmbiguityLocalReviewHtml({
+    outputPath,
+    ...input
+} = {}) {
+    const resolvedOutputPath = path.resolve(String(outputPath || ''));
+    if (!outputPath || fs.existsSync(resolvedOutputPath)) {
+        throw new Error('open_finance_historical_ambiguity_local_review_output_invalid');
+    }
+    const view = buildOpenFinanceHistoricalAmbiguityLocalReviewView(input);
+    const directory = path.dirname(resolvedOutputPath);
+    fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
+    fs.chmodSync(directory, 0o700);
+    const temporaryPath = `${resolvedOutputPath}.${crypto.randomBytes(8).toString('hex')}.tmp`;
+    try {
+        fs.writeFileSync(temporaryPath, renderLocalReviewHtml(view), {
+            encoding: 'utf8', flag: 'wx', mode: 0o600
+        });
+        fs.chmodSync(temporaryPath, 0o600);
+        fs.renameSync(temporaryPath, resolvedOutputPath);
+        fs.chmodSync(resolvedOutputPath, 0o600);
+    } finally {
+        if (fs.existsSync(temporaryPath)) fs.rmSync(temporaryPath, { force: true });
+    }
+    return Object.freeze({
+        output_path: resolvedOutputPath,
+        review_ref: view.review_ref,
+        pending_count: view.pending_count,
+        group_count: view.groups.length,
+        financial_writes: 0
+    });
+}
+
+function applyOpenFinanceHistoricalAmbiguityLocalDecision({
+    sealedState,
+    secret,
+    localReviewerId,
+    groupRef,
+    itemRef,
+    scope = 'single',
+    expectedItemRefs = [],
+    resolutionCode,
+    clock = () => new Date()
+} = {}) {
+    const safeSecret = requireSecret(secret);
+    const state = openState(sealedState, safeSecret);
+    const reviewerRef = requireLocalReviewer(state, safeSecret, localReviewerId);
+    requireFresh(state, clock);
+    if (state.status !== 'pending' || !['single', 'equivalent'].includes(scope)) {
+        throw new Error('open_finance_historical_ambiguity_local_review_decision_invalid');
+    }
+    const rawExpected = expectedItemRefs.map(value => String(value || ''));
+    if (!rawExpected.length || new Set(rawExpected).size !== rawExpected.length) {
+        throw new Error('open_finance_historical_ambiguity_local_review_equivalence_set_mismatch');
+    }
+    const expected = [...rawExpected].sort();
+    let selectedItems;
+    if (scope === 'equivalent') {
+        selectedItems = pendingItems(state)
+            .filter(item => item.equivalence_group_ref === String(groupRef || ''))
+            .sort((left, right) => left.item_ref.localeCompare(right.item_ref));
+    } else {
+        const selectedRef = String(itemRef || expected[0] || '');
+        selectedItems = pendingItems(state).filter(item => item.item_ref === selectedRef);
+        if (selectedItems.length === 1
+            && selectedItems[0].equivalence_group_ref !== String(groupRef || '')) {
+            throw new Error('open_finance_historical_ambiguity_local_review_equivalence_set_mismatch');
+        }
+    }
+    const actual = selectedItems.map(item => item.item_ref).sort();
+    if (!actual.length || canonicalJson(actual) !== canonicalJson(expected)) {
+        throw new Error('open_finance_historical_ambiguity_local_review_equivalence_set_mismatch');
+    }
+    const code = String(resolutionCode || '');
+    for (const item of selectedItems) {
+        if (!item.choices.some(choice => choice.code === code)) {
+            throw new Error('open_finance_historical_ambiguity_local_review_resolution_invalid');
+        }
+        if (scope === 'equivalent' && !item.collective_resolution_codes.includes(code)) {
+            throw new Error('open_finance_historical_ambiguity_local_review_collective_resolution_not_allowed');
+        }
+    }
+    const timestamp = nowIso(clock);
+    for (const item of selectedItems) {
+        item.decision = {
+            resolution_code: code,
+            actor_ref: reviewerRef,
+            decided_at: timestamp,
+            decision_channel: 'local_private',
+            equivalence_group_ref: item.equivalence_group_ref,
+            applied_item_count: selectedItems.length
+        };
+    }
+    state.updated_at = timestamp;
+    const remaining = pendingItems(state);
+    if (!remaining.length) state.status = 'reviewed';
+    return Object.freeze({
+        review_ref: state.review_ref,
+        state: state.status,
+        pending_count: remaining.length,
+        applied_count: selectedItems.length,
+        applied_item_refs: Object.freeze(actual),
+        sealed_state: sealState(state, safeSecret),
+        financial_writes: 0
+    });
 }
 
 function buildOpenFinanceHistoricalAmbiguityResolutionPlan({
@@ -713,16 +985,27 @@ class OpenFinanceHistoricalAmbiguityReviewStore {
         secret,
         familyScope = 'shared-family',
         authorizedWhatsAppIds = [],
+        reviewChannel = 'whatsapp_family',
+        authorizedLocalReviewerIds = [],
         clock = () => new Date()
     } = {}) {
         this.secret = requireSecret(secret);
         this.databasePath = databasePath;
+        this.reviewChannel = String(reviewChannel || 'whatsapp_family').trim();
+        if (!['whatsapp_family', 'local_private'].includes(this.reviewChannel)) {
+            throw new Error('open_finance_historical_ambiguity_review_channel_invalid');
+        }
         this.familyScopeRef = hmac(this.secret, `family:${String(familyScope || 'shared-family')}`);
+        const actorIds = this.reviewChannel === 'local_private'
+            ? authorizedLocalReviewerIds : authorizedWhatsAppIds;
         this.authorizedActorRefs = [...new Set(
-            authorizedWhatsAppIds.map(value => actorRef(this.secret, value))
+            actorIds.map(value => actorRef(this.secret, value))
         )].sort();
-        if (this.authorizedActorRefs.length !== 2) {
-            throw new Error('open_finance_historical_ambiguity_review_family_actors_required');
+        const expectedActorCount = this.reviewChannel === 'local_private' ? 1 : 2;
+        if (this.authorizedActorRefs.length !== expectedActorCount) {
+            throw new Error(this.reviewChannel === 'local_private'
+                ? 'open_finance_historical_ambiguity_review_local_reviewer_required'
+                : 'open_finance_historical_ambiguity_review_family_actors_required');
         }
         this.clock = clock;
         this.db = new Database(databasePath);
@@ -783,6 +1066,7 @@ class OpenFinanceHistoricalAmbiguityReviewStore {
 
     #assertStateScope(state) {
         if (state.family_scope_ref !== this.familyScopeRef
+            || state.review_channel !== this.reviewChannel
             || JSON.stringify([...state.authorized_actor_refs].sort())
                 !== JSON.stringify(this.authorizedActorRefs)) {
             throw new Error('open_finance_historical_ambiguity_review_store_scope_mismatch');
@@ -883,6 +1167,9 @@ class OpenFinanceHistoricalAmbiguityReviewStore {
     }
 
     handleReply({ actorWhatsappId, body } = {}) {
+        if (this.reviewChannel !== 'whatsapp_family') {
+            throw new Error('open_finance_historical_ambiguity_review_channel_invalid');
+        }
         const transaction = this.db.transaction(() => {
             const row = this.#assertRow(this.#activeRow() || this.#latestRow());
             const result = handleOpenFinanceHistoricalAmbiguityReviewReply({
@@ -896,6 +1183,69 @@ class OpenFinanceHistoricalAmbiguityReviewStore {
                 ...row,
                 sealed_state: result.sealed_state,
                 review_state: result.state === 'reviewed' ? 'reviewed' : 'pending',
+                revision: row.revision + 1,
+                updated_at: nowIso(this.clock)
+            };
+            updated.state_mac = this.#stateMac(updated);
+            const write = this.db.prepare(`UPDATE open_finance_historical_ambiguity_reviews
+                SET sealed_state=?,review_state=?,revision=?,updated_at=?,state_mac=?
+                WHERE review_ref=? AND revision=?`).run(
+                    updated.sealed_state, updated.review_state, updated.revision,
+                    updated.updated_at, updated.state_mac, row.review_ref, row.revision
+                );
+            if (write.changes !== 1) {
+                throw new Error('open_finance_historical_ambiguity_review_store_revision_conflict');
+            }
+            return result;
+        });
+        const result = transaction.immediate();
+        this.#hardenFiles();
+        return result;
+    }
+
+    readLocalView({ localReviewerId } = {}) {
+        if (this.reviewChannel !== 'local_private') {
+            throw new Error('open_finance_historical_ambiguity_local_review_channel_required');
+        }
+        const row = this.#assertRow(this.#latestRow());
+        return buildOpenFinanceHistoricalAmbiguityLocalReviewView({
+            sealedState: row.sealed_state,
+            secret: this.secret,
+            localReviewerId,
+            clock: this.clock
+        });
+    }
+
+    writeLocalReviewHtml({ localReviewerId, outputPath } = {}) {
+        if (this.reviewChannel !== 'local_private') {
+            throw new Error('open_finance_historical_ambiguity_local_review_channel_required');
+        }
+        const row = this.#assertRow(this.#latestRow());
+        return writeOpenFinanceHistoricalAmbiguityLocalReviewHtml({
+            sealedState: row.sealed_state,
+            secret: this.secret,
+            localReviewerId,
+            outputPath,
+            clock: this.clock
+        });
+    }
+
+    applyLocalDecision(input = {}) {
+        if (this.reviewChannel !== 'local_private') {
+            throw new Error('open_finance_historical_ambiguity_local_review_channel_required');
+        }
+        const transaction = this.db.transaction(() => {
+            const row = this.#assertRow(this.#latestRow());
+            const result = applyOpenFinanceHistoricalAmbiguityLocalDecision({
+                ...input,
+                sealedState: row.sealed_state,
+                secret: this.secret,
+                clock: this.clock
+            });
+            const updated = {
+                ...row,
+                sealed_state: result.sealed_state,
+                review_state: result.state,
                 revision: row.revision + 1,
                 updated_at: nowIso(this.clock)
             };
@@ -1024,8 +1374,11 @@ class OpenFinanceHistoricalAmbiguityReviewStore {
 
 module.exports = {
     OpenFinanceHistoricalAmbiguityReviewStore,
+    applyOpenFinanceHistoricalAmbiguityLocalDecision,
+    buildOpenFinanceHistoricalAmbiguityLocalReviewView,
     buildOpenFinanceHistoricalAmbiguityReview,
     buildOpenFinanceHistoricalAmbiguityResolutionPlan,
     handleOpenFinanceHistoricalAmbiguityReviewReply,
-    readOpenFinanceHistoricalAmbiguityReviewPrivate
+    readOpenFinanceHistoricalAmbiguityReviewPrivate,
+    writeOpenFinanceHistoricalAmbiguityLocalReviewHtml
 };

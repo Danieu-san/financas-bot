@@ -37,6 +37,7 @@
     "probe:open-finance-live-staging": "node scripts/runPluggyLiveStagingProbe.js --confirm-live-read",
     "test:open-finance-historical-rx": "node --test tests/openFinanceHistoricalRx.test.js",
     "preview:open-finance-historical-rx": "node scripts/runOpenFinanceHistoricalRx.js --confirm-read-only",
+    "review:open-finance-historical-local": "node scripts/runOpenFinanceHistoricalLocalReview.js",
     "check:open-finance-auto-sync": "node scripts/checkPluggyAutoSyncStatus.js",
     "preview:open-finance-shadow": "node scripts/runOpenFinanceShadowPreview.js --confirm-shadow-read",
     "preview:open-finance-lifecycle": "node scripts/runOpenFinanceLifecycleShadow.js --confirm-shadow-read",
