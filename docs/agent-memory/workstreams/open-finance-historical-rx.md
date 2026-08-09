@@ -2,7 +2,7 @@
 
 Atualizado em: 2026-08-09
 
-## Gate 35 — revisor local privado candidato
+## Gate 35 — revisor local privado com GO tecnico
 
 O fluxo WhatsApp foi substituido por pagina HTML temporaria local e store
 cifrado. Decisao coletiva exige conjunto exato e classe forte: investimento por
@@ -12,7 +12,9 @@ fonte, segmento, tipo do provedor e direcao; parcela por serie, sem generalizar
 O primeiro hash recebeu NO-GO por possivel vazamento de path privado no stderr
 do CLI. O recovery sanitiza erros nativos e valores de argumentos. Evidencia:
 focal `3/3`, causal Gate 35 `42/42` e suite hermetica `1566/1556/0/10`.
-Estado: `RECOVERY LOCAL VERDE; AGUARDA COMMIT E REAUDITORIA`.
+A reauditoria do hash `b8d1004f2ee216f95a7f71047f568221159573f6`
+fechou a lacuna sem residual. Estado: `GO TECNICO LOCAL`; proxima fronteira e
+a nova Fase A sem abrir dados privados.
 Nenhum dado real ou producao foi acessado; `financial_writes=0`.
 
 ## Gate 35 — Fase A em NO_GO; revisao local solicitada

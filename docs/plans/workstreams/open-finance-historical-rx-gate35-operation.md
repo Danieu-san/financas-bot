@@ -133,8 +133,8 @@ cifrado.
 
 ## Proximo estado
 
-O plano anterior recebeu GO somente para a Fase A, que encontrou NO_GO porque
-presumia execucao do orquestrador em producao. O sucessor local remove essa
-premissa e elimina a dependencia de WhatsApp/backfill que originou o achado
-`MEDIUM`. Antes de dados reais, o novo codigo e este plano exigem auditoria
-independente por hash. Nenhum GO antecipa o Gate 38 de escrita historica.
+O revisor local e seu recovery receberam GO tecnico independente no hash
+`b8d1004f2ee216f95a7f71047f568221159573f6`. Fica autorizada tecnicamente a
+nova Fase A local, que nao abre dados privados. As fases B, C e D conservam suas
+fronteiras operacionais e autorizacoes separadas. Nenhum GO antecipa producao,
+WhatsApp ou o Gate 38 de escrita historica.

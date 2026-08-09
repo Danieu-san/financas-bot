@@ -144,7 +144,7 @@ misturar historico, alertas, propostas e escrita financeira.
     provar lotes independentes nos dois telefones, cutoff, processo unico,
     health e rollback sem ressuscitar backlog. O charter e
     `docs/plans/workstreams/open-finance-numeric-save-oci.md`.
-35. [recovery local verde; aguarda hash e reauditoria; dados reais bloqueados]
+35. [revisor local com GO tecnico; proxima Fase A; dados reais bloqueados]
     Concluir o RX historico por revisao humana
     das ambiguidades remanescentes. Ativar de forma controlada a revisao
     numerada, consumir decisoes duraveis, recalcular o RX e separar: resolvido,
@@ -161,7 +161,10 @@ misturar historico, alertas, propostas e escrita financeira.
     Codex; aplicacao coletiva exige classe explicita, conjunto integral e
     identidade forte. O primeiro hash local recebeu NO-GO por repassar
     `error.message` no stderr do CLI; o recovery usa codigos publicos fixos e
-    possui focal `3/3`, causal `42/42` e suite ampla `1566/1556/0/10`.
+    possui focal `3/3`, causal `42/42` e suite ampla `1566/1556/0/10`. A
+    reauditoria do hash `b8d1004f2ee216f95a7f71047f568221159573f6`
+    emitiu GO tecnico local sem lacuna residual. O proximo estado e a nova Fase
+    A local; abrir dados privados continua pertencendo as fases seguintes.
 36. [planejada; depende do gate 35] Acrescentar tratamento proativo de estornos
     e entradas. Estorno exige vinculo forte com a compra quando esse vinculo for
     necessario para a semantica; entrada genuina exige reconciliacao com o

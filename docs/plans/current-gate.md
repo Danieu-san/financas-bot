@@ -2,7 +2,7 @@
 
 Atualizado em: 2026-08-09
 
-## Gate 35 — candidato local da nova Fase C
+## Gate 35 — revisor local com GO tecnico
 
 Foi implementada a revisao local privada solicitada por Daniel. Ela gera HTML
 temporario sem script/rede, fora do Git, e persiste decisoes cifradas em SQLite.
@@ -20,15 +20,18 @@ nativo. O recovery usa whitelist de codigos de dominio e codigos fixos para
 erros do sistema e argumentos.
 
 Evidencia do recovery: focal `3/3`; causal Gate 35 `42/42`; suite hermetica
-ampla `1566/1556/0/10`, com cobertura de linhas `90,90%`.
-Estado: `RECOVERY LOCAL VERDE; AGUARDA COMMIT E REAUDITORIA`.
+ampla `1566/1556/0/10`, com cobertura de linhas `90,90%`. A reauditoria do
+hash `b8d1004f2ee216f95a7f71047f568221159573f6` confirmou a mesma funcao no
+teste e no catch real, nenhum conteudo livre no stderr e nenhuma lacuna
+residual. Estado: `GO TECNICO LOCAL`.
 
 O plano sucessor torna a revisao estritamente local e remove a dependencia de
 runtime WhatsApp/backfill, fechando por desenho a lacuna `MEDIUM` anterior. O
 NO_GO operacional da antiga Fase A continua historico, mas a exigencia de o
 revisor estar implantado em producao deixou de existir.
 
-Proxima fronteira: reauditoria independente por hash antes de abrir dados reais.
+Proxima fronteira: nova Fase A local sem abrir dados privados. Fases B, C e D
+mantem suas autorizacoes operacionais separadas.
 
 ## Estado atual — Gate 35 autorizado somente para a Fase A
 

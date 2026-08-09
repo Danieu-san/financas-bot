@@ -2,7 +2,7 @@
 
 Atualizado em: 2026-08-09
 
-## Gate 35 — candidato de revisao local privada
+## Gate 35 — GO tecnico local do revisor privado
 
 O sucessor local substitui a entrega WhatsApp por pagina HTML temporaria,
 autocontida, sem rede e fora do Git. A conversa usa somente referencias opacas;
@@ -25,16 +25,18 @@ de dominio permitidos e reduz erros nativos/argumentos a codigos fixos.
 Evidencia do recovery: focal CLI `3/3`; bateria causal Gate 35 `42/42`; suite
 hermetica ampla `1566` testes, `1556` aprovados, zero falhas e `10` skips
 previstos, com cobertura de linhas `90,90%`. Nenhum dado real, producao, SSH,
-WhatsApp ou escrita foi acessado. Estado:
-`RECOVERY LOCAL VERDE; AGUARDA COMMIT E REAUDITORIA INDEPENDENTE`.
+WhatsApp ou escrita foi acessado. A reauditoria do hash
+`b8d1004f2ee216f95a7f71047f568221159573f6` confirmou o fechamento do
+stderr, nao encontrou lacuna residual e emitiu `GO TECNICO LOCAL`. Evidencia:
+`docs/audit/183-open-finance-historical-local-review-independent-close-2026-08-09.md`.
 
 O NO_GO anterior da Fase A permanece registrado em
 `docs/audit/180-open-finance-historical-rx-gate35-phase-a-preflight-no-go-2026-08-09.md`,
 mas sua premissa de execucao em producao foi removida do plano sucessor: o
 revisor agora e estritamente local.
 
-Proxima acao: commit sanitizado e reauditoria independente antes de qualquer
-dado real.
+Proxima acao: executar a nova Fase A local sem abrir dados privados. Fases B,
+C e D continuam sujeitas as autorizacoes operacionais de suas fronteiras.
 
 ## Retomada vigente - Gate 34
 
