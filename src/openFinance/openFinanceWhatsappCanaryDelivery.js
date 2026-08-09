@@ -69,7 +69,7 @@ function formatSaveProposalBatchMessage(entries = []) {
 async function deliverOneOpenFinanceCanary({ policy, outbox, transport, recipientResolver,
     sourceLabels = {}, saveProposalStore = null, proposalMode = 'off',
     deferSaveProposalConfirmation = false, proposalBatchSize = 1,
-    excludedRecipients = [], now } = {}) {
+    eligibleProposalRefs = [], excludedRecipients = [], now } = {}) {
     if (!policy?.can_send_whatsapp ||
         typeof policy.can_write_financial !== 'boolean' ||
         !policy.canary_aliases?.length) {
@@ -85,6 +85,10 @@ async function deliverOneOpenFinanceCanary({ policy, outbox, transport, recipien
         proposalBatchSize > 4) {
         throw new Error('invalid_open_finance_proposal_batch_size');
     }
+    if (!Array.isArray(eligibleProposalRefs) || eligibleProposalRefs.some(ref =>
+        !/^[a-f0-9]{32}$/.test(String(ref || '')))) {
+        throw new Error('invalid_open_finance_eligible_proposal_refs');
+    }
     if (!outbox || !transport || typeof transport.sendMessage !== 'function' || typeof recipientResolver !== 'function') {
         throw new Error('canary_delivery_dependencies_required');
     }
@@ -94,10 +98,13 @@ async function deliverOneOpenFinanceCanary({ policy, outbox, transport, recipien
             activatedAfterByAlias: policy.canary_activations || {},
             excludedRecipients,
             batchSize: proposalBatchSize,
+            preferProposalBatch: proposalMode === 'prompt',
+            eligibleProposalRefs,
             now
         })
         : [outbox.claimNext({ canaryAliases: policy.canary_aliases,
-            activatedAfterByAlias: policy.canary_activations || {}, excludedRecipients, now })]
+            activatedAfterByAlias: policy.canary_activations || {}, excludedRecipients,
+            preferProposalBatch: proposalMode === 'prompt', eligibleProposalRefs, now })]
             .filter(Boolean);
     if (!claimed.length) {
         return { outcome: 'idle', transport_calls: 0, financial_writes: 0 };

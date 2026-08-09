@@ -352,6 +352,178 @@ test('gate 32 leases and acknowledges at most four proposals as one atomic trans
     }
 });
 
+test('gate 34 prompt delivery prioritizes a numeric batch without dropping older common alerts', () => {
+    const outbox = new OpenFinanceAlertOutbox({ secret });
+    const item = {
+        id: 'item-priority',
+        alias_code: 'daniel_nubank',
+        transactions: [
+            { id: 'common-1', account_id: 'credit-1', amount_cents: 1000,
+                description: 'Alerta sintetico', date: '2026-08-08T10:00:00.000Z' },
+            { id: 'numeric-1', account_id: 'credit-1', amount_cents: 2000,
+                description: 'Proposta sintetica 1', date: '2026-08-08T10:01:00.000Z' },
+            { id: 'numeric-2', account_id: 'credit-1', amount_cents: 3000,
+                description: 'Proposta sintetica 2', date: '2026-08-08T10:02:00.000Z' },
+            { id: 'numeric-stale', account_id: 'credit-1', amount_cents: 4000,
+                description: 'Proposta sintetica obsoleta', date: '2026-08-08T10:03:00.000Z' }
+        ]
+    };
+    const refs = Object.fromEntries(item.transactions.map(transaction => [
+        transaction.id,
+        observationRef(secret, item.id, transaction.account_id, transaction.id)
+    ]));
+    const policy = [{
+        alias: 'daniel_nubank',
+        source_owner: 'daniel',
+        authorized_viewers: ['daniel'],
+        whatsapp_recipient: 'daniel',
+        family_aggregation_allowed: false,
+        write_confirmation_principal: 'daniel'
+    }];
+    const lifecycle = id => ({
+        observation_ref: refs[id],
+        classification: 'purchase',
+        provider_state: 'POSTED',
+        lifecycle_milestone: 'first_posted'
+    });
+    try {
+        assert.throws(() => outbox.claimNextBatch({
+            canaryAliases: ['daniel_nubank'],
+            preferProposalBatch: 'yes'
+        }), /invalid_open_finance_outbox_priority_mode/);
+        assert.throws(() => outbox.claimNextBatch({
+            canaryAliases: ['daniel_nubank'],
+            preferProposalBatch: true,
+            eligibleProposalRefs: ['not-a-ref']
+        }), /invalid_open_finance_eligible_proposal_refs/);
+        outbox.enqueue({
+            candidates: [{ observation_ref: refs['common-1'],
+                external_event_ref: 'external-common', correlation_state: 'new_event' }],
+            lifecycleDecisions: [lifecycle('common-1')],
+            items: [item],
+            policies: policy,
+            baselineComplete: true,
+            createdAt: '2026-08-08T11:00:00.000Z'
+        });
+        outbox.enqueue({
+            candidates: ['numeric-1', 'numeric-2', 'numeric-stale'].map(id => ({
+                observation_ref: refs[id],
+                external_event_ref: `external-${id}`,
+                correlation_state: 'new_event'
+            })),
+            lifecycleDecisions: [lifecycle('numeric-1'), lifecycle('numeric-2'),
+                lifecycle('numeric-stale')],
+            items: [item],
+            policies: policy,
+            baselineComplete: true,
+            saveProposalLinks: [
+                { observation_ref: refs['numeric-1'], proposal_ref: 'a'.repeat(32),
+                    principal: 'daniel' },
+                { observation_ref: refs['numeric-2'], proposal_ref: 'b'.repeat(32),
+                    principal: 'daniel' },
+                { observation_ref: refs['numeric-stale'], proposal_ref: 'c'.repeat(32),
+                    principal: 'daniel' }
+            ],
+            createdAt: '2026-08-08T11:01:00.000Z'
+        });
+        const fifo = outbox.claimNextBatch({
+            canaryAliases: ['daniel_nubank'],
+            batchSize: 4,
+            now: '2026-08-08T11:01:30.000Z'
+        });
+        assert.equal(fifo.length, 1);
+        assert.equal(fifo[0].proposal_ref, undefined);
+        outbox.releaseFailed({
+            alertRef: fifo[0].alert_ref,
+            leaseToken: fifo[0].lease_token,
+            errorCode: 'synthetic_fifo_probe'
+        });
+        const numeric = outbox.claimNextBatch({
+            canaryAliases: ['daniel_nubank'],
+            batchSize: 4,
+            preferProposalBatch: true,
+            eligibleProposalRefs: ['a'.repeat(32), 'b'.repeat(32)],
+            now: '2026-08-08T11:02:00.000Z'
+        });
+        assert.equal(numeric.length, 2);
+        assert.deepEqual(numeric.map(row => row.proposal_ref).sort(), [
+            'a'.repeat(32),
+            'b'.repeat(32)
+        ]);
+        outbox.acknowledgeDeliveredBatch({
+            deliveries: numeric.map(row => ({
+                alertRef: row.alert_ref,
+                leaseToken: row.lease_token
+            })),
+            whatsappMessageId: 'numeric-priority-batch',
+            sentAt: '2026-08-08T11:02:01.000Z'
+        });
+        const common = outbox.claimNextBatch({
+            canaryAliases: ['daniel_nubank'],
+            batchSize: 4,
+            preferProposalBatch: true,
+            eligibleProposalRefs: [],
+            now: '2026-08-08T11:03:00.000Z'
+        });
+        assert.equal(common.length, 1);
+        assert.equal(common[0].proposal_ref, undefined);
+        outbox.acknowledgeDelivered({
+            alertRef: common[0].alert_ref,
+            leaseToken: common[0].lease_token,
+            whatsappMessageId: 'common-after-priority',
+            sentAt: '2026-08-08T11:03:01.000Z'
+        });
+        assert.deepEqual(outbox.claimNextBatch({
+            canaryAliases: ['daniel_nubank'],
+            batchSize: 4,
+            preferProposalBatch: true,
+            eligibleProposalRefs: [],
+            now: '2026-08-08T11:04:00.000Z'
+        }), []);
+        assert.equal(outbox.listPending().length, 1);
+        assert.equal(outbox.stats().financial_writes, 0);
+    } finally {
+        outbox.close();
+    }
+});
+
+test('gate 34 delivery requests numeric priority only in prompt mode', async () => {
+    for (const { proposalMode, proposalBatchSize, expected } of [
+        { proposalMode: 'prompt', proposalBatchSize: 1, expected: true },
+        { proposalMode: 'prompt', proposalBatchSize: 4, expected: true },
+        { proposalMode: 'off', proposalBatchSize: 4, expected: false }
+    ]) {
+        let claimOptions = null;
+        const outbox = {
+            claimNext(options) {
+                claimOptions = options;
+                return null;
+            },
+            claimNextBatch(options) {
+                claimOptions = options;
+                return [];
+            }
+        };
+        const result = await deliverOneOpenFinanceCanary({
+            policy: {
+                can_send_whatsapp: true,
+                can_write_financial: false,
+                canary_aliases: ['daniel_nubank'],
+                canary_activations: {}
+            },
+            outbox,
+            transport: { sendMessage: async () => ({ id: 'must-not-send' }) },
+            recipientResolver: async () => 'daniel@c.us',
+            proposalMode,
+            proposalBatchSize,
+            eligibleProposalRefs: ['a'.repeat(32)]
+        });
+        assert.equal(result.outcome, 'idle');
+        assert.equal(claimOptions.preferProposalBatch, expected);
+        assert.deepEqual(claimOptions.eligibleProposalRefs, ['a'.repeat(32)]);
+    }
+});
+
 test('gate 32 reserves a selected family batch atomically and survives reopening', () => {
     const harness = createBatchPreview(2);
     try {
@@ -533,6 +705,7 @@ test('gate 32 delivers one real numbered WhatsApp batch per family recipient', a
             saveProposalStore: harness.store,
             proposalMode: 'prompt',
             proposalBatchSize: 4,
+            eligibleProposalRefs: harness.proposalRefs,
             deferSaveProposalConfirmation: true,
             excludedRecipients: ['daniel'],
             now: '2026-07-29T12:03:00.000Z'
@@ -595,6 +768,7 @@ test('gate 32 lets only the first spouse reserve a shared numeric selection', as
             saveProposalStore: harness.store,
             proposalMode: 'prompt',
             proposalBatchSize: 4,
+            eligibleProposalRefs: harness.proposalRefs,
             deferSaveProposalConfirmation: true,
             excludedRecipients: ['daniel'],
             now: '2026-07-29T12:03:00.000Z'
@@ -657,6 +831,7 @@ test('gate 32 quarantines the whole batch after an ambiguous transport failure',
             saveProposalStore: harness.store,
             proposalMode: 'prompt',
             proposalBatchSize: 4,
+            eligibleProposalRefs: harness.proposalRefs,
             deferSaveProposalConfirmation: true,
             excludedRecipients: ['daniel'],
             now: '2026-07-29T12:03:00.000Z'

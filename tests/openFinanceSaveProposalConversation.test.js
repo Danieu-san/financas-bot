@@ -177,6 +177,7 @@ function deliveryInput(harness, transport) {
         outbox: harness.outbox,
         saveProposalStore: harness.store,
         proposalMode: 'prompt',
+        eligibleProposalRefs: [harness.proposalRef],
         recipientResolver: async principal =>
             principal === 'daniel' ? actorWhatsappId : null,
         sourceLabels: { daniel_nubank: 'Nubank Daniel' },
@@ -1274,9 +1275,12 @@ test('9P.2 fails closed when one actor has more than one delivered ready proposa
             saveProposalLinks: inserted.proposal_links,
             createdAt: new Date(Date.parse(first.now) + 1_000).toISOString()
         });
-        await deliverOneOpenFinanceCanary(deliveryInput(first, {
-            sendMessage: async () => ({ id: 'second-message-id' })
-        }));
+        await deliverOneOpenFinanceCanary({
+            ...deliveryInput(first, {
+                sendMessage: async () => ({ id: 'second-message-id' })
+            }),
+            eligibleProposalRefs: [inserted.proposal_links[0].proposal_ref]
+        });
         assert.throws(() => handleOpenFinanceSaveProposalReply({
             messageBody: 'sim',
             actorWhatsappId,

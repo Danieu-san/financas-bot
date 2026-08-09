@@ -241,6 +241,7 @@ test('OF-FAMILY-01 defers confirmation ownership while sending a proactive promp
             recipientResolver: async principal => `${principal}@c.us`,
             sourceLabels: { [familyPolicy.alias]: 'Nubank Daniel' },
             proposalMode: 'prompt',
+            eligibleProposalRefs: [data.proposalLink.proposal_ref],
             deferSaveProposalConfirmation: true,
             saveProposalStore: {
                 prepareSaveProposalConfirmation: () => {
@@ -417,6 +418,7 @@ test('OF-FAMILY-01 public reply lets either spouse start one durable review afte
             })[principal],
             sourceLabels: { [familyPolicy.alias]: 'Nubank Daniel' },
             proposalMode: 'prompt',
+            eligibleProposalRefs: [proposalLink.proposal_ref],
             deferSaveProposalConfirmation: true,
             saveProposalStore: store,
             transport: {

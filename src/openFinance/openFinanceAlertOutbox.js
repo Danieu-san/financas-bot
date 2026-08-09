@@ -235,7 +235,8 @@ class OpenFinanceAlertOutbox {
         });
     }
     claimNext({ canaryAlias, canaryAliases, activatedAfterByAlias = {}, excludedRecipients = [],
-        now = new Date().toISOString(), leaseSeconds = 120 } = {}) {
+        now = new Date().toISOString(), leaseSeconds = 120,
+        preferProposalBatch = false, eligibleProposalRefs = [] } = {}) {
         return this.claimNextBatch({
             canaryAlias,
             canaryAliases,
@@ -243,13 +244,15 @@ class OpenFinanceAlertOutbox {
             excludedRecipients,
             now,
             leaseSeconds,
-            batchSize: 1
+            batchSize: 1,
+            preferProposalBatch,
+            eligibleProposalRefs
         })[0] || null;
     }
 
     claimNextBatch({ canaryAlias, canaryAliases, activatedAfterByAlias = {},
         excludedRecipients = [], now = new Date().toISOString(), leaseSeconds = 120,
-        batchSize = 4 } = {}) {
+        batchSize = 4, preferProposalBatch = false, eligibleProposalRefs = [] } = {}) {
         const aliases = [...new Set((Array.isArray(canaryAliases) && canaryAliases.length
             ? canaryAliases : [canaryAlias]).map(value => String(value || '').toLowerCase()).filter(Boolean))];
         if (!aliases.length || aliases.some(alias => !/^[a-z0-9_-]{2,48}$/.test(alias))) {
@@ -263,6 +266,14 @@ class OpenFinanceAlertOutbox {
         if (!Number.isInteger(batchSize) || batchSize < 1 || batchSize > 4) {
             throw new Error('invalid_open_finance_outbox_batch_size');
         }
+        if (typeof preferProposalBatch !== 'boolean') {
+            throw new Error('invalid_open_finance_outbox_priority_mode');
+        }
+        if (!Array.isArray(eligibleProposalRefs) || eligibleProposalRefs.some(ref =>
+            !/^[a-f0-9]{32}$/.test(String(ref || '')))) {
+            throw new Error('invalid_open_finance_eligible_proposal_refs');
+        }
+        const eligibleProposalRefSet = new Set(eligibleProposalRefs);
         this.recoverExpiredAmbiguous({ now });
         const leaseToken = crypto.randomBytes(24).toString('hex');
         const attemptRef = this.#ref('attempt', leaseToken);
@@ -280,10 +291,14 @@ class OpenFinanceAlertOutbox {
                 const cutoff = activatedAfterByAlias[payloadAlias];
                 if (cutoff && Date.parse(row.created_at) < Date.parse(cutoff)) continue;
                 if (!ALERTABLE_CLASSIFICATIONS.has(payload.classification)) continue;
+                if (preferProposalBatch && payload.proposal_ref &&
+                    !eligibleProposalRefSet.has(payload.proposal_ref)) continue;
                 eligible.push({ row, payload });
             }
             if (!eligible.length) return [];
-            const first = eligible[0];
+            const first = preferProposalBatch
+                ? eligible.find(({ payload }) => Boolean(payload.proposal_ref)) || eligible[0]
+                : eligible[0];
             const targetRecipient = String(first.payload.recipient || '').toLowerCase();
             const proposalBatch = Boolean(first.payload.proposal_ref);
             const selected = proposalBatch

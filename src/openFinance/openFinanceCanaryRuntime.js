@@ -392,6 +392,7 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
                     saveProposalStore: proposalStore,
                     proposalMode,
                     proposalBatchSize,
+                    eligibleProposalRefs: saveProposalLinks.map(link => link.proposal_ref),
                     deferSaveProposalConfirmation: sharedFamilyAlerts,
                     excludedRecipients: [...excludedRecipients],
                     sourceLabels: { daniel_nubank: 'Nubank Daniel', thais_nubank: 'Nubank Thais',
