@@ -4,12 +4,12 @@ Atualizado em: 2026-08-09
 
 ## Retomada vigente - Gate 34
 
-Atualizacao mais recente: o candidato `OF-FAST-POLL-01` permite uma janela de
-15 minutos com expiracao automatica, somente sob as seis flags seguras. A prova
-local terminou com focal `20/20`, causal `71/71` e suite hermetica 1.553 total,
-1.543 aprovados, zero falhas e 10 skips. Estado:
-`CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE`; producao permanece no release
-`f5806e1b071b47d6441354928740d2139fb5ae51`, com escrita desligada.
+Atualizacao mais recente: `OF-FAST-POLL-01` recebeu GO independente e o hash
+`b6f8edc37bd46ba977a7a4a4e59f54ad092300d6` foi promovido na Oracle/OCI.
+A janela natural de 15 minutos esta ativa por menos de duas horas, sob as seis
+flags seguras, com fallback automatico para seis horas ao expirar. Processo,
+health, SQLite, WhatsApp, stores, retencao e logs sanitizados ficaram verdes;
+a regra SSH temporaria foi removida e a porta voltou a ficar fechada.
 
 O release `f5806e1b071b47d6441354928740d2139fb5ae51` foi auditado e
 promovido de forma controlada na Oracle/OCI. Processo unico, health local e
@@ -17,12 +17,14 @@ publico, SQLite, WhatsApp, liveness, flags, stores, retencao e logs sanitizados
 ficaram verdes. A regra SSH temporaria foi removida e a porta voltou a ficar
 fechada. Escrita continua `off`, aprovacao falsa e `financial_writes=0`.
 
-Estado vigente: `PROMOCAO VERDE; GATE 34 AGUARDA SMOKE NATURAL`.
+Estado vigente:
+`PROMOCAO VERDE; JANELA RAPIDA ATIVA; GATE 34 AGUARDA SMOKE NATURAL`.
 
-Proxima acao: nao forcar polling. Aguardar um lote numerado genuinamente novo;
-quando Daniel estiver com os dois celulares, executar o smoke familiar e parar
-antes de qualquer confirmacao ou escrita. Evidencia:
-`docs/audit/166-open-finance-numeric-save-priority-oci-promotion-2026-08-09.md`.
+Proxima acao: nao forcar polling. Observar os ciclos temporarios; quando surgir
+um lote numerado genuinamente novo e Daniel estiver com os dois celulares,
+executar o smoke familiar e parar antes de qualquer confirmacao ou escrita.
+Evidencia:
+`docs/audit/168-open-finance-temporary-fast-polling-oci-promotion-2026-08-09.md`.
 
 ## Objetivo ativo
 

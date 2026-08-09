@@ -4,12 +4,14 @@ Atualizado em: 2026-08-09
 
 ## Estado vigente - Gate 34
 
-Atualizacao mais recente: `OF-FAST-POLL-01` esta localmente verde e aguarda
-auditoria independente por hash imutavel. A janela rapida continua fora de
-producao; o release vigente e as flags permanecem inalterados. Evidencia:
-`docs/audit/167-open-finance-temporary-fast-polling-candidate-2026-08-09.md`.
+Atualizacao mais recente: `OF-FAST-POLL-01` recebeu GO independente e o hash
+`b6f8edc37bd46ba977a7a4a4e59f54ad092300d6` foi promovido na Oracle/OCI. A
+janela de 15 minutos esta ativa por menos de duas horas e volta efetivamente a
+seis horas ao expirar. Processo, health, SQLite, WhatsApp, flags, stores,
+retencao e logs ficaram verdes; a regra SSH temporaria foi removida. Evidencia:
+`docs/audit/168-open-finance-temporary-fast-polling-oci-promotion-2026-08-09.md`.
 
-`PROMOCAO VERDE; SMOKE NATURAL PENDENTE; CONFIRM BLOQUEADO`.
+`PROMOCAO VERDE; JANELA RAPIDA ATIVA; SMOKE NATURAL PENDENTE; CONFIRM BLOQUEADO`.
 
 O hash `f5806e1b071b47d6441354928740d2139fb5ae51` recebeu GO independente e
 foi promovido na Oracle/OCI sem rollback. Processo, health, SQLite, WhatsApp,
@@ -17,10 +19,9 @@ liveness, flags, stores, retencao e logs sanitizados ficaram verdes; a regra
 SSH temporaria foi removida. `OPEN_FINANCE_WRITE_MODE=off`, aprovacao falsa e
 `financial_writes=0` permanecem invariantes.
 
-Proxima acao: aguardar um lote numerado genuinamente novo sem antecipar o
-polling. Com Daniel e os dois celulares presentes, executar o smoke familiar e
-parar antes de qualquer confirmacao/escrita. Evidencia:
-`docs/audit/166-open-finance-numeric-save-priority-oci-promotion-2026-08-09.md`.
+Proxima acao: observar sem forcar polling os ciclos temporarios. Com lote
+numerado genuinamente novo, Daniel e os dois celulares presentes, executar o
+smoke familiar e parar antes de qualquer confirmacao/escrita.
 
 ## Estado
 

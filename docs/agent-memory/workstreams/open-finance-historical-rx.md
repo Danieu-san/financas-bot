@@ -768,3 +768,28 @@ Manifesto:
 Estado: `CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE POR HASH IMUTAVEL`.
 Proxima acao: commit sanitizado, push e uma auditoria limpa do Chat. Nenhuma
 mudanca de producao ou flags e autorizada antes do GO independente.
+
+## Gate 34 - janela temporaria promovida
+
+Atualizado em: 2026-08-09
+
+O hash `b6f8edc37bd46ba977a7a4a4e59f54ad092300d6` recebeu GO
+independente para uma janela controlada de 15 minutos, com zero achado
+critical/high/medium e um low probatorio nao bloqueante. O artefato exato foi
+verificado, preparado com `production_changed=false` e promovido na OCI sem
+rollback ou bootstrap de estado.
+
+A configuracao foi precedida por backup privado e recebeu expiracao inferior a
+duas horas. Processo unico, health local/publico, SQLite, WhatsApp, liveness,
+seis flags seguras, stores privados, retencao e logs sanitizados ficaram verdes.
+O ciclo automatico de inicializacao terminou `GO`, sem observacao nova, entrega,
+retry ou escrita. A regra SSH temporaria foi removida e a porta voltou a ficar
+fechada.
+
+Evidencia:
+`docs/audit/168-open-finance-temporary-fast-polling-oci-promotion-2026-08-09.md`.
+
+Estado: `PROMOCAO VERDE; JANELA RAPIDA ATIVA; GATE 34 AINDA AGUARDA SMOKE`.
+Proxima acao: observar os ciclos sem forcar polling; somente quando surgir lote
+numerado novo e Daniel estiver com os dois celulares executar o smoke familiar,
+parando antes de qualquer confirmacao ou escrita.
