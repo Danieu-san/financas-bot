@@ -2,6 +2,24 @@
 
 Atualizado em: 2026-08-09
 
+## Estado atual — Gate 35 autorizado somente para a Fase A
+
+O plano operacional no hash `9ec123834b2e85d0b966c8834eb020c5eef3ef8b`
+recebeu `GO OPERACIONAL PARA FASE A` independente. O preflight pode confirmar
+hashes, runtime, metadados de caminhos privados, espaco, modos e flags seguras,
+sem abrir conteudo privado, reiniciar, ativar, recalcular ou escrever.
+
+Parecer:
+`docs/audit/179-open-finance-historical-rx-gate35-operation-independent-close-2026-08-09.md`.
+
+Existe um achado `MEDIUM` que bloqueia a Fase C: falta alinhar a exigencia de
+health pre-backfill com a ordem automatica efetiva do bootstrap. As Fases B, C
+e D continuam dependendo de fronteiras e autorizacoes proprias.
+
+Gate 34: `PAUSADO POR DECISAO DO USUARIO; RETOMADA FUTURA`. O smoke numerico
+nao foi concluido, e nenhuma configuracao de producao foi alterada por essa
+decisao.
+
 ## Gate 35 — GO tecnico local do orquestrador
 
 O commit `afe44614d7488104c642b1f9e846a8b72441de40` recebeu `GO TECNICO

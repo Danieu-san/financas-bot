@@ -13,11 +13,12 @@ Este documento planeja a operacao. Ele nao a autoriza.
 
 ## Restricao vigente
 
-O Gate 34 permanece observavel em producao e Daniel determinou que sua janela,
-conexao e cadencia nao fossem alteradas. A ativacao do runtime historico exige
-configuracao e restart do processo WhatsApp principal. Portanto:
+Daniel pausou o Gate 34 para retomada posterior. Seu smoke numerico permanece
+pendente; a pausa nao equivale a GO funcional e nao altera por si so o estado
+de producao. A ativacao do runtime historico continua exigindo configuracao e
+restart do processo WhatsApp principal. Portanto:
 
-`HOLD ANTES DA ATIVACAO ENQUANTO A JANELA DO GATE 34 FOR PRESERVADA`.
+`FASE A AUTORIZADA; HOLD ANTES DAS FASES B, C E D`.
 
 Nao e permitido iniciar um segundo processo WhatsApp, criar sessao paralela ou
 alterar o polling para contornar essa fronteira.
@@ -116,7 +117,10 @@ cifrado.
 
 ## Gates de parada
 
-- Gate 34 ainda exigir preservacao da janela no momento da ativacao;
+- Gate 34 ter sido retomado e exigir preservacao da janela no momento da
+  ativacao;
+- barreira de health pre-backfill ainda nao corresponder a ordem real do
+  bootstrap no momento de autorizar a Fase C;
 - hash de origem divergente ou journal pendente;
 - inventario diferente de quatro fontes, cinco contas e quatro cartoes;
 - conta/cartao/poupanca/investimento misturados;
@@ -127,6 +131,8 @@ cifrado.
 
 ## Proximo estado
 
-Depois de commit e auditoria independente deste plano, fica autorizavel apenas
-a Fase A. As fases B, C e D exigem autorizacoes operacionais separadas em suas
-fronteiras. Nenhum GO deste plano antecipa o Gate 38 de escrita historica.
+O parecer independente do hash
+`9ec123834b2e85d0b966c8834eb020c5eef3ef8b` autorizou somente a Fase A. As
+fases B, C e D exigem autorizacoes operacionais separadas em suas fronteiras;
+a Fase C tambem exige fechar a discrepancia de health pre-backfill. Nenhum GO
+deste plano antecipa o Gate 38 de escrita historica.

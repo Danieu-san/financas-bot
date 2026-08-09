@@ -1,6 +1,6 @@
 # Plano - RX historico e evolucao operacional Open Finance
 
-Status: `gate 34 promovido na OCI; smoke numerico pendente; gates 35 a 38 ordenados`.
+Status: `gate 34 pausado com smoke pendente; gate 35 autorizado somente para Fase A; gates 36 a 38 ordenados`.
 
 ## Objetivo
 
@@ -138,13 +138,13 @@ misturar historico, alertas, propostas e escrita financeira.
     `accepted_unconfirmed`, estados individuais preexistentes, restart e
     rollback do artefato. O charter e
     `docs/plans/workstreams/open-finance-numeric-save-release.md`.
-34. [promocao OCI concluida; smoke numerico pendente] Promover o fluxo numerico de compras
+34. [pausado por decisao do usuario; promocao OCI concluida; smoke numerico pendente] Promover o fluxo numerico de compras
     na OCI por artefato imutavel e executar smoke com Daniel presente. Manter
     proposta em `prompt`, escrita `off`, aprovacao falsa e `confirm` bloqueado;
     provar lotes independentes nos dois telefones, cutoff, processo unico,
     health e rollback sem ressuscitar backlog. O charter e
     `docs/plans/workstreams/open-finance-numeric-save-oci.md`.
-35. [GO tecnico local independente; operacao privada ainda nao autorizada]
+35. [GO operacional do plano somente para Fase A; Fases B-D nao autorizadas]
     Concluir o RX historico por revisao humana
     das ambiguidades remanescentes. Ativar de forma controlada a revisao
     numerada, consumir decisoes duraveis, recalcular o RX e separar: resolvido,
@@ -153,8 +153,9 @@ misturar historico, alertas, propostas e escrita financeira.
     parcial sem bloquear classes independentes.
     O charter operacional e
     `docs/plans/workstreams/open-finance-historical-rx-gate35.md`. O Gate 34
-    permanece observavel e funcionalmente pendente; sua janela nao deve ser
-    alterada durante a preparacao local do Gate 35.
+    foi pausado por decisao do usuario e sera retomado posteriormente. A Fase C
+    permanece bloqueada por uma lacuna `MEDIUM`: o requisito de health antes do
+    backfill ainda nao corresponde literalmente a ordem automatica do bootstrap.
 36. [planejada; depende do gate 35] Acrescentar tratamento proativo de estornos
     e entradas. Estorno exige vinculo forte com a compra quando esse vinculo for
     necessario para a semantica; entrada genuina exige reconciliacao com o

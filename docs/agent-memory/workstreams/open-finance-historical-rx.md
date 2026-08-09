@@ -2,6 +2,18 @@
 
 Atualizado em: 2026-08-05
 
+## Gate 35 — plano operacional com GO para a Fase A
+
+O hash documental `9ec123834b2e85d0b966c8834eb020c5eef3ef8b` recebeu
+`GO OPERACIONAL PARA FASE A` independente. A Fase A permanece sem conteudo
+privado, restart, ativacao, recalculo ou escrita. Parecer:
+`docs/audit/179-open-finance-historical-rx-gate35-operation-independent-close-2026-08-09.md`.
+
+O achado `MEDIUM` residual nao impede o preflight, mas bloqueia a Fase C ate
+que a ordem real do bootstrap sustente a barreira de health antes do backfill.
+Gate 34 foi pausado por decisao do usuario e sera retomado posteriormente; seu
+smoke numerico continua pendente.
+
 ## Gate 35 — fechamento independente do orquestrador
 
 O hash `afe44614d7488104c642b1f9e846a8b72441de40` recebeu `GO TECNICO

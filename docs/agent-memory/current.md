@@ -2,6 +2,29 @@
 
 Atualizado em: 2026-08-09
 
+## Gate 35 — plano operacional auditado; Fase A autorizada
+
+O plano operacional privado no hash
+`9ec123834b2e85d0b966c8834eb020c5eef3ef8b` recebeu `GO OPERACIONAL PARA
+FASE A` independente. A Fase A e somente preflight: nao abre conteudo privado,
+nao reinicia ou ativa o runtime, nao recalcula o RX e mantem
+`financial_writes=0`.
+
+O parecer registrou um achado `MEDIUM` restrito a futura Fase C: o documento
+exige health antes do backfill, mas o bootstrap real encadeia o inicio do
+backfill depois de `WhatsApp ready` sem uma barreira externa de health entre
+essas etapas. A lacuna deve ser fechada antes da Fase C; nao bloqueia a Fase A.
+
+Fechamento:
+`docs/audit/179-open-finance-historical-rx-gate35-operation-independent-close-2026-08-09.md`.
+
+Por decisao explicita de Daniel, o Gate 34 fica
+`PAUSADO POR DECISAO DO USUARIO; RETOMADA FUTURA`. Seu smoke numerico continua
+pendente e a pausa nao altera producao nem equivale a GO funcional.
+
+Proxima acao: executar somente a Fase A e emitir `PREFLIGHT_READY` ou `NO_GO`,
+sem abrir conteudo privado, sem restart, sem deploy e sem escrita.
+
 ## Gate 35 com GO tecnico local independente
 
 O hash `afe44614d7488104c642b1f9e846a8b72441de40` recebeu `GO TECNICO
@@ -14,7 +37,8 @@ Fechamento:
 
 Alcance autorizado: planejar a operacao privada separada. Ainda nao abrir o
 snapshot, ativar a revisao, recalcular o RX real, tocar producao ou escrever.
-Gate 34 permanece observavel e funcionalmente pendente, sem mudanca na janela.
+Gate 34 foi posteriormente pausado por decisao do usuario; o smoke funcional
+permanece pendente para retomada futura.
 
 Plano operacional privado em preparacao:
 `docs/plans/workstreams/open-finance-historical-rx-gate35-operation.md`.
