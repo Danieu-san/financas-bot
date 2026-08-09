@@ -850,3 +850,23 @@ Manifesto:
 `docs/audit/172-open-finance-pending-purchase-transparency-candidate-2026-08-09.md`.
 
 Estado: `CANDIDATO LOCAL VERDE; AGUARDA COMMIT E AUDITORIA INDEPENDENTE`.
+
+## Gate 34 - recovery do estado duravel apos NO-GO
+
+Atualizado em: 2026-08-09
+
+O auditor independente confirmou a implementacao do hash
+`809930a5f516cc33d61db42d020bfc279738e7a3`, mas emitiu `NO-GO` probatorio
+com um achado `MEDIUM`: o teste causal afirmava durabilidade usando um `Map` em
+memoria.
+
+O recovery substitui esse double pelo `userStateManager` real. A prova grava
+snapshot cifrado, fecha e reabre o modulo e exige o estado numerico restaurado
+com duas propostas, mantendo `financial_writes=0`. Focal `1/1`, bateria causal
+`38/38`, syntax verde e suite hermetica final unica `1.555/1.545/0/10`, com
+zero falhas e skips esperados.
+
+Manifesto:
+`docs/audit/173-open-finance-pending-purchase-durable-state-recovery-candidate-2026-08-09.md`.
+
+Estado: `CANDIDATO LOCAL VERDE; AGUARDA NOVO HASH E REAUDITORIA`.

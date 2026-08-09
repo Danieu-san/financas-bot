@@ -146,11 +146,21 @@ test('gate 34 promotes two pending purchases to one numbered batch after both be
     let currentSnapshot = pending;
     class FakeApi { async readSnapshot() { return currentSnapshot; } }
     const messages = [];
-    const states = new Map();
-    const userStateManager = {
-        getState(key) { return states.get(key) || null; },
-        setStateDurably(key, value) { states.set(key, value); }
-    };
+    const stateDirectory = path.join(dir, 'conversation-state');
+    const stateManagerPath = path.resolve(__dirname, '../src/state/userStateManager.js');
+    const originalCwd = process.cwd();
+    const originalStateEnv = Object.fromEntries([
+        'STATE_STORE_DRIVER',
+        'STATE_STORE_ENCRYPTION_KEY',
+        'STATE_STORE_MAX_RETENTION_SECONDS'
+    ].map(key => [key, process.env[key]]));
+    const originalSignalListeners = Object.fromEntries(['SIGINT', 'SIGTERM'].map(signal => [
+        signal,
+        new Set(process.listeners(signal))
+    ]));
+    fs.mkdirSync(stateDirectory);
+    let userStateManager;
+    let reopenedStateManager;
     const env = {
         OPEN_FINANCE_ALERT_MODE: 'canary',
         OPEN_FINANCE_ALERT_CANARY_ALIAS: 'daniel_nubank',
@@ -172,17 +182,6 @@ test('gate 34 promotes two pending purchases to one numbered batch after both be
         OPEN_FINANCE_SHADOW_PREVIEW_DB: files.preview,
         OPEN_FINANCE_ALERT_MAX_PER_RUN: '4'
     };
-    const dependencies = {
-        PluggyReadOnlyClient: FakeApi,
-        userStateManager,
-        readOpenFinanceInternalSource: async () => ({
-            available: true, source_health: 'available', transactions: [], financial_writes: 0
-        }),
-        getActiveUsers: async () => [{
-            user_id: 'user-daniel', display_name: 'Daniel da Silva',
-            whatsapp_id: 'daniel@c.us', status: 'ACTIVE'
-        }]
-    };
     const client = {
         sendMessage: async (to, text) => {
             messages.push({ to, text });
@@ -190,30 +189,87 @@ test('gate 34 promotes two pending purchases to one numbered batch after both be
         }
     };
 
-    const first = await runOpenFinanceCanaryCycle({ client, env, dependencies });
-    assert.equal(first.outcome, 'GO');
-    assert.equal(first.new_observations, 2);
-    assert.equal(first.save_proposals.inserted, 0);
-    assert.equal(messages.length, 2);
-    assert.ok(messages.every(message => message.text.includes('compra ainda pendente no banco')));
-    assert.ok(messages.every(message => message.text.includes('Somente leitura')));
-    assert.equal(states.size, 0);
+    try {
+        process.env.STATE_STORE_DRIVER = 'file';
+        process.env.STATE_STORE_ENCRYPTION_KEY = Buffer.alloc(32, 0x47).toString('base64');
+        process.env.STATE_STORE_MAX_RETENTION_SECONDS = '3600';
+        process.chdir(stateDirectory);
+        delete require.cache[stateManagerPath];
+        userStateManager = require(stateManagerPath);
+        process.chdir(originalCwd);
+        const dependencies = {
+            PluggyReadOnlyClient: FakeApi,
+            userStateManager,
+            readOpenFinanceInternalSource: async () => ({
+                available: true, source_health: 'available', transactions: [], financial_writes: 0
+            }),
+            getActiveUsers: async () => [{
+                user_id: 'user-daniel', display_name: 'Daniel da Silva',
+                whatsapp_id: 'daniel@c.us', status: 'ACTIVE'
+            }]
+        };
 
-    currentSnapshot = snapshot([
-        transaction('old-posted-batch', 500, 'old'),
-        transaction('pending-to-posted-1', 1200, 'Compra um', 'POSTED'),
-        transaction('pending-to-posted-2', 2300, 'Compra dois', 'POSTED')
-    ], '2026-07-16T13:00:00.000Z');
-    const second = await runOpenFinanceCanaryCycle({ client, env, dependencies });
-    assert.equal(second.outcome, 'GO');
-    assert.equal(second.new_observations, 0);
-    assert.equal(second.save_proposals.inserted, 2);
-    assert.equal(messages.length, 3);
-    assert.match(messages[2].text, /1\./);
-    assert.match(messages[2].text, /2\./);
-    assert.match(messages[2].text, /salvar todas/i);
-    assert.equal(states.get('daniel@c.us').action, 'awaiting_open_finance_save_selection');
-    assert.equal(second.financial_writes, 0);
+        const first = await runOpenFinanceCanaryCycle({ client, env, dependencies });
+        assert.equal(first.outcome, 'GO');
+        assert.equal(first.new_observations, 2);
+        assert.equal(first.save_proposals.inserted, 0);
+        assert.equal(messages.length, 2);
+        assert.ok(messages.every(message => message.text.includes('compra ainda pendente no banco')));
+        assert.ok(messages.every(message => message.text.includes('Somente leitura')));
+        assert.equal(userStateManager.getState('daniel@c.us'), undefined);
+
+        currentSnapshot = snapshot([
+            transaction('old-posted-batch', 500, 'old'),
+            transaction('pending-to-posted-1', 1200, 'Compra um', 'POSTED'),
+            transaction('pending-to-posted-2', 2300, 'Compra dois', 'POSTED')
+        ], '2026-07-16T13:00:00.000Z');
+        const second = await runOpenFinanceCanaryCycle({ client, env, dependencies });
+        assert.equal(second.outcome, 'GO');
+        assert.equal(second.new_observations, 0);
+        assert.equal(second.save_proposals.inserted, 2);
+        assert.equal(messages.length, 3);
+        assert.match(messages[2].text, /1\./);
+        assert.match(messages[2].text, /2\./);
+        assert.match(messages[2].text, /salvar todas/i);
+        assert.equal(
+            userStateManager.getState('daniel@c.us').action,
+            'awaiting_open_finance_save_selection'
+        );
+        assert.equal(second.financial_writes, 0);
+
+        const { stateFile } = userStateManager.__test__.getStateFilePaths();
+        assert.equal(fs.existsSync(stateFile), true);
+        assert.doesNotMatch(
+            fs.readFileSync(stateFile, 'utf8'),
+            /awaiting_open_finance_save_selection|pending-to-posted/i
+        );
+        await userStateManager.closeStateStore();
+        delete require.cache[stateManagerPath];
+        process.chdir(stateDirectory);
+        reopenedStateManager = require(stateManagerPath);
+        process.chdir(originalCwd);
+        const restored = reopenedStateManager.getState('daniel@c.us');
+        assert.equal(restored.action, 'awaiting_open_finance_save_selection');
+        assert.equal(restored.data.proposals.length, 2);
+        assert.deepEqual(restored.data.proposals.map(item => item.number), [1, 2]);
+    } finally {
+        process.chdir(originalCwd);
+        await Promise.all([userStateManager, reopenedStateManager]
+            .filter(Boolean)
+            .map(manager => manager.closeStateStore()));
+        delete require.cache[stateManagerPath];
+        for (const signal of ['SIGINT', 'SIGTERM']) {
+            for (const listener of process.listeners(signal)) {
+                if (!originalSignalListeners[signal].has(listener)) {
+                    process.off(signal, listener);
+                }
+            }
+        }
+        for (const [key, value] of Object.entries(originalStateEnv)) {
+            if (value === undefined) delete process.env[key];
+            else process.env[key] = value;
+        }
+    }
 });
 
 test('OF-FAMILY-01 reconciles shared alerts against both spouses internal sources', () => {

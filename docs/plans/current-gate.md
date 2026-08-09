@@ -4,6 +4,18 @@ Atualizado em: 2026-08-09
 
 ## Estado vigente - Gate 34
 
+O hash `809930a5f516cc33d61db42d020bfc279738e7a3` recebeu `NO-GO`
+independente por lacuna `MEDIUM` exclusivamente probatoria: o teste de runtime
+substituia o gerenciador duravel por um `Map`.
+
+O recovery usa o `userStateManager` real, persiste snapshot cifrado, fecha e
+reabre o modulo e exige a selecao `[1,2]` restaurada. Focal `1/1`, causal
+`38/38`, syntax verde, suite hermetica final `1.555/1.545/0/10` e
+`financial_writes=0`. Estado:
+`CANDIDATO LOCAL VERDE; AGUARDA NOVO HASH E REAUDITORIA`.
+Manifesto:
+`docs/audit/173-open-finance-pending-purchase-durable-state-recovery-candidate-2026-08-09.md`.
+
 O ciclo real das 10:27 comprovou coleta e entrega da compra e do estorno novos.
 A compra ainda estava `PENDING`, por isso nao podia originar proposta; o estorno
 permanece apenas informativo. O teste causal ausente foi acrescentado e prova

@@ -4,6 +4,21 @@ Atualizado em: 2026-08-09
 
 ## Retomada vigente - Gate 34
 
+Auditoria do hash `809930a5f516cc33d61db42d020bfc279738e7a3`:
+implementacao suficiente, mas `NO-GO` probatorio por um achado `MEDIUM`. O teste
+usava um `Map` no lugar da persistencia real do estado numerico.
+
+Recovery aplicado: o runtime agora e testado com o `userStateManager` real,
+snapshot cifrado, fechamento, remocao do modulo do cache e reabertura. O estado
+`awaiting_open_finance_save_selection` reaparece com duas propostas numeradas;
+focal `1/1`, bateria causal `38/38` e zero escrita. Estado:
+suite hermetica final unica `1.555/1.545/0/10`, com os skips esperados. Estado:
+`CANDIDATO LOCAL VERDE; AGUARDA NOVO HASH E REAUDITORIA`.
+Manifesto:
+`docs/audit/173-open-finance-pending-purchase-durable-state-recovery-candidate-2026-08-09.md`.
+
+Proxima acao: publicar novo hash e reauditar antes de qualquer promocao OCI.
+
 Diagnostico novo: depois da atualizacao do Meu Pluggy, o ciclo das 10:27
 entregou a compra e o estorno recentes. A coleta e o WhatsApp funcionaram; a
 compra ainda nao era `POSTED`, portanto recebeu alerta comum, e o estorno segue
