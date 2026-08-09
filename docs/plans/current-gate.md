@@ -4,6 +4,12 @@ Atualizado em: 2026-08-09
 
 ## Estado vigente - Gate 34
 
+Diagnostico posterior confirmou que os alertas sem numeracao da janela rapida
+eram backlog comum: itens ainda `PENDING` ou apenas `purchase_candidate`, sem
+proposta elegivel. Ciclos `GO` sem observacao nova podem escoar esses alertas;
+isso nao viola a prioridade do lote numerado. Evidencia:
+`docs/audit/169-open-finance-unnumbered-fast-poll-diagnosis-2026-08-09.md`.
+
 Atualizacao mais recente: `OF-FAST-POLL-01` recebeu GO independente e o hash
 `b6f8edc37bd46ba977a7a4a4e59f54ad092300d6` foi promovido na Oracle/OCI. A
 janela de 15 minutos esta ativa por menos de duas horas e volta efetivamente a
@@ -19,9 +25,9 @@ liveness, flags, stores, retencao e logs sanitizados ficaram verdes; a regra
 SSH temporaria foi removida. `OPEN_FINANCE_WRITE_MODE=off`, aprovacao falsa e
 `financial_writes=0` permanecem invariantes.
 
-Proxima acao: observar sem forcar polling os ciclos temporarios. Com lote
-numerado genuinamente novo, Daniel e os dois celulares presentes, executar o
-smoke familiar e parar antes de qualquer confirmacao/escrita.
+Proxima acao: observar sem forcar polling os ciclos temporarios. Somente com
+lote `purchase/POSTED/new` numerado, Daniel e os dois celulares presentes,
+executar o smoke familiar e parar antes de qualquer confirmacao/escrita.
 
 ## Estado
 

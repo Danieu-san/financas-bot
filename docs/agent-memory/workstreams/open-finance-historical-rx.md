@@ -793,3 +793,20 @@ Estado: `PROMOCAO VERDE; JANELA RAPIDA ATIVA; GATE 34 AINDA AGUARDA SMOKE`.
 Proxima acao: observar os ciclos sem forcar polling; somente quando surgir lote
 numerado novo e Daniel estiver com os dois celulares executar o smoke familiar,
 parando antes de qualquer confirmacao ou escrita.
+
+## Gate 34 - alertas comuns durante a janela rapida
+
+Atualizado em: 2026-08-09
+
+Uma verificacao sanitizada e somente leitura confirmou que as mensagens sem
+numeracao relatadas por Daniel pertenciam ao backlog comum. Os ciclos recentes
+permaneceram `GO` e sem escrita, mas escoaram itens ainda `PENDING` ou apenas
+`purchase_candidate`; nenhum deles podia receber `proposal_ref`.
+
+O release, o processo e as flags estavam corretos. A prioridade numerica segue
+valida: ela prioriza propostas elegiveis, mas nao converte alerta comum em
+proposta. A regra SSH temporaria de diagnostico foi removida e a porta voltou a
+ficar fechada. Evidencia:
+`docs/audit/169-open-finance-unnumbered-fast-poll-diagnosis-2026-08-09.md`.
+
+Estado: `COMPORTAMENTO ESPERADO; GATE 34 AGUARDA PURCHASE/POSTED/NEW`.

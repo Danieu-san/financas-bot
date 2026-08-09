@@ -4,6 +4,14 @@ Atualizado em: 2026-08-09
 
 ## Retomada vigente - Gate 34
 
+Diagnostico mais recente: as mensagens sem numeracao observadas durante a
+janela rapida vieram do backlog comum, nao de propostas elegiveis novas. Os
+ciclos sem observacao nova escoaram itens `PENDING` ou `purchase_candidate`, que
+intencionalmente nao recebem `proposal_ref`. O hash promovido, processo e
+invariantes estavam corretos; a regra SSH de diagnostico foi removida.
+Evidencia:
+`docs/audit/169-open-finance-unnumbered-fast-poll-diagnosis-2026-08-09.md`.
+
 Atualizacao mais recente: `OF-FAST-POLL-01` recebeu GO independente e o hash
 `b6f8edc37bd46ba977a7a4a4e59f54ad092300d6` foi promovido na Oracle/OCI.
 A janela natural de 15 minutos esta ativa por menos de duas horas, sob as seis
@@ -20,9 +28,10 @@ fechada. Escrita continua `off`, aprovacao falsa e `financial_writes=0`.
 Estado vigente:
 `PROMOCAO VERDE; JANELA RAPIDA ATIVA; GATE 34 AGUARDA SMOKE NATURAL`.
 
-Proxima acao: nao forcar polling. Observar os ciclos temporarios; quando surgir
-um lote numerado genuinamente novo e Daniel estiver com os dois celulares,
-executar o smoke familiar e parar antes de qualquer confirmacao ou escrita.
+Proxima acao: nao forcar polling nem tratar alerta comum como falha. Observar os
+ciclos temporarios; quando surgir um lote `purchase/POSTED/new` numerado e
+Daniel estiver com os dois celulares, executar o smoke familiar e parar antes
+de qualquer confirmacao ou escrita.
 Evidencia:
 `docs/audit/168-open-finance-temporary-fast-polling-oci-promotion-2026-08-09.md`.
 
