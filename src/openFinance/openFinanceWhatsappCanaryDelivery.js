@@ -7,6 +7,13 @@ function formatCanaryMessage(delivery, sourceLabel) {
         purchase: 'Compra', refund: 'Estorno/reembolso', bill_payment: 'Pagamento de fatura',
         transfer: 'Transferência', income_candidate: 'Entrada', purchase_candidate: 'Saída', fee_interest: 'Tarifa/juros'
     }[delivery.classification] || 'Movimentação';
+    const pendingPurchaseNote = delivery.classification === 'purchase' &&
+        delivery.provider_state === 'PENDING'
+        ? [
+            'Status: compra ainda pendente no banco.',
+            'Ela só entrará na proposta de salvamento quando o banco confirmar a transação.'
+        ]
+        : [];
     return [
         `🔎 Nova movimentação detectada em ${sourceLabel}.`,
         `${kind}: ${formatAmount(delivery.amount_cents)}`,
@@ -14,6 +21,8 @@ function formatCanaryMessage(delivery, sourceLabel) {
         `Data: ${String(delivery.date || '').slice(0, 10) || 'indisponível'}`,
         `Referência: ${delivery.internal_reference}`,
         '',
+        ...pendingPurchaseNote,
+        ...(pendingPurchaseNote.length ? [''] : []),
         'Somente leitura: nada foi salvo automaticamente.'
     ].join('\n');
 }

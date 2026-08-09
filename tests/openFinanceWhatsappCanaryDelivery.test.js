@@ -3,7 +3,10 @@ const test = require('node:test');
 const { OpenFinanceAlertOutbox } = require('../src/openFinance/openFinanceAlertOutbox');
 const { classifyOpenFinanceLifecycle } = require('../src/openFinance/openFinanceLifecycleClassifier');
 const { buildOpenFinanceRolloutPolicy } = require('../src/openFinance/openFinanceRolloutPolicy');
-const { deliverOneOpenFinanceCanary } = require('../src/openFinance/openFinanceWhatsappCanaryDelivery');
+const {
+    deliverOneOpenFinanceCanary,
+    formatCanaryMessage
+} = require('../src/openFinance/openFinanceWhatsappCanaryDelivery');
 
 const secret = 'open-finance-canary-delivery-secret-32-bytes';
 const evidence = { route: 'meu_pluggy_connector_200', connector_id: 200, observed_cost_cents: 0, payment_method_registered: false, pro_features_required: false, update_item_enabled: false, category_source: 'financasbot_local' };
@@ -47,6 +50,24 @@ function multiCanaryPolicy() {
 function canaryPolicy(mode = 'canary') {
     return buildOpenFinanceRolloutPolicy({ env: { OPEN_FINANCE_ALERT_MODE: mode, OPEN_FINANCE_ALERT_CANARY_ALIAS: mode === 'canary' ? 'daniel_nubank' : '', OPEN_FINANCE_WRITE_MODE: 'off' }, evidence, mappings, vaultAvailable: true });
 }
+
+test('gate 34 explains why a pending purchase is not yet a save proposal', () => {
+    const message = formatCanaryMessage({
+        classification: 'purchase', provider_state: 'PENDING', amount_cents: 1234,
+        description: 'Compra privada', date: '2026-08-09T10:00:00.000Z',
+        internal_reference: 'pending123'
+    }, 'Nubank Daniel');
+    assert.match(message, /compra ainda pendente no banco/i);
+    assert.match(message, /só entrará na proposta de salvamento quando o banco confirmar/i);
+    assert.match(message, /nada foi salvo automaticamente/i);
+
+    const posted = formatCanaryMessage({
+        classification: 'purchase', provider_state: 'POSTED', amount_cents: 1234,
+        description: 'Compra privada', date: '2026-08-09T10:00:00.000Z',
+        internal_reference: 'posted123'
+    }, 'Nubank Daniel');
+    assert.doesNotMatch(posted, /compra ainda pendente/i);
+});
 
 test('9F canary with provider id becomes delivered_confirmed', async () => {
     const outbox = setup(); let calls = 0; let sentText = '';

@@ -828,3 +828,25 @@ Proxima acao: retomar em `Codex -> Sol -> Alto`, abrir nova janela de 15 minutos
 por menos de duas horas com backup privado e um unico restart, verificar o ciclo
 sanitizado e executar o smoke somente se surgir lote numerado nos dois
 celulares, parando antes de qualquer confirmacao ou escrita.
+
+## Gate 34 - compra pendente explicita e prova causal do lote
+
+Atualizado em: 2026-08-09
+
+Depois da atualizacao do Meu Pluggy, o ciclo das 10:27 entregou a compra e o
+estorno recentes. Isso isolou a causa: a coleta e o WhatsApp estavam verdes, mas
+a compra ainda nao era `POSTED`; logo, nao podia receber `proposal_ref`. O
+estorno continua apenas informativo por contrato.
+
+O candidato passa a explicar no alerta `purchase/PENDING` que a compra aguarda
+confirmacao bancaria. Uma prova causal nova executa o runtime real em dois
+ciclos e exige que duas compras `PENDING`, ao passarem a `POSTED`, sejam
+entregues em um unico lote numerado, com estado duravel e zero escrita.
+
+Evidencia: focais `2/2`, bateria causal `38/38`, syntax e diff verdes; suite
+hermetica valida com 1.555 testes, 1.545 aprovados, zero falhas e 10 skips
+esperados.
+Manifesto:
+`docs/audit/172-open-finance-pending-purchase-transparency-candidate-2026-08-09.md`.
+
+Estado: `CANDIDATO LOCAL VERDE; AGUARDA COMMIT E AUDITORIA INDEPENDENTE`.

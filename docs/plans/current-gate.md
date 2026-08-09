@@ -4,6 +4,19 @@ Atualizado em: 2026-08-09
 
 ## Estado vigente - Gate 34
 
+O ciclo real das 10:27 comprovou coleta e entrega da compra e do estorno novos.
+A compra ainda estava `PENDING`, por isso nao podia originar proposta; o estorno
+permanece apenas informativo. O teste causal ausente foi acrescentado e prova
+`PENDING -> POSTED -> lote numerado`, com estado duravel e zero escrita.
+
+O candidato de transparencia altera somente o texto do alerta
+`purchase/PENDING` para explicar a espera pela confirmacao bancaria. Focais
+`2/2`, bateria causal `38/38`, syntax e diff verdes; suite hermetica valida com
+1.555 testes, 1.545 aprovados, zero falhas e 10 skips esperados. Estado:
+`CANDIDATO LOCAL VERDE; AGUARDA COMMIT E AUDITORIA INDEPENDENTE`.
+Manifesto:
+`docs/audit/172-open-finance-pending-purchase-transparency-candidate-2026-08-09.md`.
+
 Segunda janela aplicada: backup privado verificado, intervalo de 15 minutos por
 115 minutos, exatamente um restart e primeiro ciclo automatico `GO` com
 `new=0`, `delivered=0`, `retries=0` e `writes=0`. Processo, health local,

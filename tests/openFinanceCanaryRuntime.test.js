@@ -7,6 +7,7 @@ const { OpenFinanceLiveStagingVault } = require('../src/openFinance/openFinanceL
 const { OpenFinanceBaselineStore } = require('../src/openFinance/openFinanceBaselineStore');
 const { OpenFinanceAlertOutbox } = require('../src/openFinance/openFinanceAlertOutbox');
 const { OpenFinanceRevocationJournal } = require('../src/openFinance/openFinanceRevocationJournal');
+const { OpenFinanceShadowPreviewStore } = require('../src/openFinance/openFinanceShadowPreviewStore');
 const { observationRef } = require('../src/openFinance/openFinanceRuntimeReconciliation');
 const { runOpenFinanceCanaryCycle, initializeOpenFinanceCanaryRuntime,
     resolveOpenFinancePollSchedule, resolveWhatsAppRecipient,
@@ -91,6 +92,128 @@ test('Open Finance runtime alerts reconciled purchase, refund and bank income', 
     assert.deepEqual(blocked.blockers, ['internal_source_stale']);
     assert.equal(blocked.transport_calls, 0);
     assert.equal(messages.length, 3);
+});
+
+test('gate 34 promotes two pending purchases to one numbered batch after both become posted', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-open-runtime-posted-batch-'));
+    const files = Object.fromEntries([
+        'credentials', 'mapping', 'visibility', 'evidence', 'secret',
+        'vault', 'baseline', 'outbox', 'journal', 'preview'
+    ].map(name => [name, path.join(dir, `${name}.${[
+        'vault', 'baseline', 'outbox', 'journal', 'preview'
+    ].includes(name) ? 'sqlite' : name === 'secret' ? 'txt' : 'json'}`)]));
+    fs.writeFileSync(files.credentials, JSON.stringify({
+        clientId: 'client', clientSecret: 'secret'
+    }));
+    fs.writeFileSync(files.mapping, JSON.stringify([{
+        itemId: 'item-daniel-0001', alias: 'daniel_nubank',
+        ownerScope: 'daniel', generation: 1
+    }]));
+    fs.writeFileSync(files.visibility, JSON.stringify([{
+        alias: 'daniel_nubank', source_owner: 'daniel',
+        authorized_viewers: ['daniel'], whatsapp_recipient: 'daniel',
+        family_aggregation_allowed: false, write_confirmation_principal: 'daniel'
+    }]));
+    fs.writeFileSync(files.evidence, JSON.stringify({
+        route: 'meu_pluggy_connector_200', connector_id: 200,
+        observed_cost_cents: 0, payment_method_registered: false,
+        pro_features_required: false, update_item_enabled: false,
+        category_source: 'financasbot_local'
+    }));
+    fs.writeFileSync(files.secret, secret);
+
+    const initial = snapshot([transaction('old-posted-batch', 500, 'old')]);
+    const vault = new OpenFinanceLiveStagingVault({ databasePath: files.vault, secret });
+    const baseline = new OpenFinanceBaselineStore({ databasePath: files.baseline, secret });
+    const outbox = new OpenFinanceAlertOutbox({ databasePath: files.outbox, secret });
+    const journal = new OpenFinanceRevocationJournal({ databasePath: files.journal, secret });
+    const preview = new OpenFinanceShadowPreviewStore({
+        databasePath: files.preview, secret, revocationJournal: journal
+    });
+    vault.ingestSnapshot(initial);
+    baseline.ingestSnapshot(initial);
+    preview.close();
+    journal.close();
+    outbox.close();
+    baseline.close();
+    vault.close();
+
+    const pending = snapshot([
+        transaction('old-posted-batch', 500, 'old'),
+        transaction('pending-to-posted-1', 1200, 'Compra um', 'PENDING'),
+        transaction('pending-to-posted-2', 2300, 'Compra dois', 'PENDING')
+    ], '2026-07-16T12:00:00.000Z');
+    let currentSnapshot = pending;
+    class FakeApi { async readSnapshot() { return currentSnapshot; } }
+    const messages = [];
+    const states = new Map();
+    const userStateManager = {
+        getState(key) { return states.get(key) || null; },
+        setStateDurably(key, value) { states.set(key, value); }
+    };
+    const env = {
+        OPEN_FINANCE_ALERT_MODE: 'canary',
+        OPEN_FINANCE_ALERT_CANARY_ALIAS: 'daniel_nubank',
+        OPEN_FINANCE_RECONCILIATION_MODE: 'canary',
+        OPEN_FINANCE_SHADOW_PREVIEW_MODE: 'canary',
+        OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
+        OPEN_FINANCE_SAVE_PROPOSAL_BATCH_SIZE: '4',
+        OPEN_FINANCE_WRITE_MODE: 'off',
+        OPEN_FINANCE_WRITE_APPROVED: 'false',
+        OPEN_FINANCE_COMMERCIAL_EVIDENCE_FILE: files.evidence,
+        PLUGGY_ITEM_MAP_FILE: files.mapping,
+        OPEN_FINANCE_VISIBILITY_POLICY_FILE: files.visibility,
+        PLUGGY_CREDENTIALS_FILE: files.credentials,
+        OPEN_FINANCE_LIVE_STAGING_SECRET_FILE: files.secret,
+        OPEN_FINANCE_LIVE_STAGING_DB: files.vault,
+        OPEN_FINANCE_BASELINE_DB: files.baseline,
+        OPEN_FINANCE_OUTBOX_DB: files.outbox,
+        OPEN_FINANCE_REVOCATION_JOURNAL_DB: files.journal,
+        OPEN_FINANCE_SHADOW_PREVIEW_DB: files.preview,
+        OPEN_FINANCE_ALERT_MAX_PER_RUN: '4'
+    };
+    const dependencies = {
+        PluggyReadOnlyClient: FakeApi,
+        userStateManager,
+        readOpenFinanceInternalSource: async () => ({
+            available: true, source_health: 'available', transactions: [], financial_writes: 0
+        }),
+        getActiveUsers: async () => [{
+            user_id: 'user-daniel', display_name: 'Daniel da Silva',
+            whatsapp_id: 'daniel@c.us', status: 'ACTIVE'
+        }]
+    };
+    const client = {
+        sendMessage: async (to, text) => {
+            messages.push({ to, text });
+            return { id: `message-${messages.length}` };
+        }
+    };
+
+    const first = await runOpenFinanceCanaryCycle({ client, env, dependencies });
+    assert.equal(first.outcome, 'GO');
+    assert.equal(first.new_observations, 2);
+    assert.equal(first.save_proposals.inserted, 0);
+    assert.equal(messages.length, 2);
+    assert.ok(messages.every(message => message.text.includes('compra ainda pendente no banco')));
+    assert.ok(messages.every(message => message.text.includes('Somente leitura')));
+    assert.equal(states.size, 0);
+
+    currentSnapshot = snapshot([
+        transaction('old-posted-batch', 500, 'old'),
+        transaction('pending-to-posted-1', 1200, 'Compra um', 'POSTED'),
+        transaction('pending-to-posted-2', 2300, 'Compra dois', 'POSTED')
+    ], '2026-07-16T13:00:00.000Z');
+    const second = await runOpenFinanceCanaryCycle({ client, env, dependencies });
+    assert.equal(second.outcome, 'GO');
+    assert.equal(second.new_observations, 0);
+    assert.equal(second.save_proposals.inserted, 2);
+    assert.equal(messages.length, 3);
+    assert.match(messages[2].text, /1\./);
+    assert.match(messages[2].text, /2\./);
+    assert.match(messages[2].text, /salvar todas/i);
+    assert.equal(states.get('daniel@c.us').action, 'awaiting_open_finance_save_selection');
+    assert.equal(second.financial_writes, 0);
 });
 
 test('OF-FAMILY-01 reconciles shared alerts against both spouses internal sources', () => {
