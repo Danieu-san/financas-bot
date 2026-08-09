@@ -144,7 +144,7 @@ misturar historico, alertas, propostas e escrita financeira.
     provar lotes independentes nos dois telefones, cutoff, processo unico,
     health e rollback sem ressuscitar backlog. O charter e
     `docs/plans/workstreams/open-finance-numeric-save-oci.md`.
-35. [revisor local candidato; suite ampla verde; aguarda hash e auditoria; dados reais bloqueados]
+35. [recovery local verde; aguarda hash e reauditoria; dados reais bloqueados]
     Concluir o RX historico por revisao humana
     das ambiguidades remanescentes. Ativar de forma controlada a revisao
     numerada, consumir decisoes duraveis, recalcular o RX e separar: resolvido,
@@ -159,7 +159,9 @@ misturar historico, alertas, propostas e escrita financeira.
     dependencia de health/backfill que gerava a lacuna `MEDIUM`. Daniel
     substituiu a revisao WhatsApp por pagina privada local conduzida com o
     Codex; aplicacao coletiva exige classe explicita, conjunto integral e
-    identidade forte.
+    identidade forte. O primeiro hash local recebeu NO-GO por repassar
+    `error.message` no stderr do CLI; o recovery usa codigos publicos fixos e
+    possui focal `3/3`, causal `42/42` e suite ampla `1566/1556/0/10`.
 36. [planejada; depende do gate 35] Acrescentar tratamento proativo de estornos
     e entradas. Estorno exige vinculo forte com a compra quando esse vinculo for
     necessario para a semantica; entrada genuina exige reconciliacao com o

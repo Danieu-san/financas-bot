@@ -8,6 +8,19 @@ const {
 
 const CONFIRM_VIEW = '--confirm-private-local-review';
 const CONFIRM_DECISION = '--confirm-exact-set';
+const PUBLIC_ERROR_CODE = /^(?:historical_local_review|open_finance_historical_ambiguity)[a-z0-9_]*$/;
+
+function sanitizePublicError(error) {
+    const message = String(error?.message || '');
+    if (PUBLIC_ERROR_CODE.test(message)) return message;
+    if (message.startsWith('unsupported_argument:')) {
+        return 'historical_local_review_unsupported_argument';
+    }
+    if (message.startsWith('missing_argument_value:')) {
+        return 'historical_local_review_missing_argument_value';
+    }
+    return 'historical_local_review_operation_failed';
+}
 
 function parseArgs(argv) {
     const command = String(argv[0] || '');
@@ -138,11 +151,17 @@ if (require.main === module) {
         process.stderr.write(`${JSON.stringify({
             operation: 'historical_local_review',
             outcome: 'NO_GO',
-            reason: error.message,
+            reason: sanitizePublicError(error),
             financial_writes: 0
         })}\n`);
         process.exitCode = 1;
     }
 }
 
-module.exports = { main, parseArgs, readExpectedItemRefs, requireOutsideRepository };
+module.exports = {
+    main,
+    parseArgs,
+    readExpectedItemRefs,
+    requireOutsideRepository,
+    sanitizePublicError
+};

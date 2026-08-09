@@ -14,17 +14,21 @@ por descricao, data ou valor. Parcelas agrupam por serie; `keep_only` nao pode
 ser generalizado. Restart, MAC, envelope antigo, conjunto divergente, outsider,
 expiracao e zero escrita possuem cobertura causal.
 
-Evidencia: focal/regressao `18/18`; bateria causal Gate 35 `41/41`; suite
-hermetica ampla `1565` testes, `1555` aprovados, zero falhas e `10` skips
-previstos, com cobertura de linhas `90,89%`.
-Estado: `CANDIDATO LOCAL VERDE; AGUARDA COMMIT E AUDITORIA`.
+O hash `e5f510d0a439c8492de7a46a730a38d0b4e96f96` recebeu NO-GO porque
+o stderr do CLI imprimia `error.message` e podia expor path privado em erro
+nativo. O recovery usa whitelist de codigos de dominio e codigos fixos para
+erros do sistema e argumentos.
+
+Evidencia do recovery: focal `3/3`; causal Gate 35 `42/42`; suite hermetica
+ampla `1566/1556/0/10`, com cobertura de linhas `90,90%`.
+Estado: `RECOVERY LOCAL VERDE; AGUARDA COMMIT E REAUDITORIA`.
 
 O plano sucessor torna a revisao estritamente local e remove a dependencia de
 runtime WhatsApp/backfill, fechando por desenho a lacuna `MEDIUM` anterior. O
 NO_GO operacional da antiga Fase A continua historico, mas a exigencia de o
 revisor estar implantado em producao deixou de existir.
 
-Proxima fronteira: auditoria independente por hash antes de abrir dados reais.
+Proxima fronteira: reauditoria independente por hash antes de abrir dados reais.
 
 ## Estado atual — Gate 35 autorizado somente para a Fase A
 

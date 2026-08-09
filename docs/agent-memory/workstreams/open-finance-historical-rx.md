@@ -9,9 +9,10 @@ cifrado. Decisao coletiva exige conjunto exato e classe forte: investimento por
 fonte, segmento, tipo do provedor e direcao; parcela por serie, sem generalizar
 `keep_only`. Descricao, data e valor nunca formam equivalencia.
 
-Focal/regressao `18/18`, bateria causal Gate 35 `41/41` e suite hermetica
-ampla `1565/1555/0/10`. Estado:
-`CANDIDATO LOCAL VERDE; AGUARDA COMMIT E AUDITORIA`.
+O primeiro hash recebeu NO-GO por possivel vazamento de path privado no stderr
+do CLI. O recovery sanitiza erros nativos e valores de argumentos. Evidencia:
+focal `3/3`, causal Gate 35 `42/42` e suite hermetica `1566/1556/0/10`.
+Estado: `RECOVERY LOCAL VERDE; AGUARDA COMMIT E REAUDITORIA`.
 Nenhum dado real ou producao foi acessado; `financial_writes=0`.
 
 ## Gate 35 — Fase A em NO_GO; revisao local solicitada

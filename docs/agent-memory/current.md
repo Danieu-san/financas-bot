@@ -17,18 +17,23 @@ serie e permite coletivamente apenas `distinct_rows` ou `discard_all`;
 AES-256-GCM e MAC de revisao, sobrevivem a restart e alimentam o reconciliador
 read-only existente com `financial_writes=0`.
 
-Evidencia atual: focal e regressao `18/18`; bateria causal Gate 35 `41/41`;
-suite hermetica ampla `1565` testes, `1555` aprovados, zero falhas e `10`
-skips previstos, com cobertura de linhas `90,89%`. Nenhum dado real, producao,
-SSH, WhatsApp ou escrita foi acessado. Estado:
-`CANDIDATO LOCAL VERDE; AGUARDA COMMIT E AUDITORIA INDEPENDENTE`.
+O primeiro hash imutavel `e5f510d0a439c8492de7a46a730a38d0b4e96f96`
+recebeu `NO-GO TECNICO LOCAL`: o stderr do CLI repassava `error.message` e um
+erro nativo poderia expor o caminho privado. O recovery converte somente codigos
+de dominio permitidos e reduz erros nativos/argumentos a codigos fixos.
+
+Evidencia do recovery: focal CLI `3/3`; bateria causal Gate 35 `42/42`; suite
+hermetica ampla `1566` testes, `1556` aprovados, zero falhas e `10` skips
+previstos, com cobertura de linhas `90,90%`. Nenhum dado real, producao, SSH,
+WhatsApp ou escrita foi acessado. Estado:
+`RECOVERY LOCAL VERDE; AGUARDA COMMIT E REAUDITORIA INDEPENDENTE`.
 
 O NO_GO anterior da Fase A permanece registrado em
 `docs/audit/180-open-finance-historical-rx-gate35-phase-a-preflight-no-go-2026-08-09.md`,
 mas sua premissa de execucao em producao foi removida do plano sucessor: o
 revisor agora e estritamente local.
 
-Proxima acao: commit sanitizado e auditoria independente antes de qualquer
+Proxima acao: commit sanitizado e reauditoria independente antes de qualquer
 dado real.
 
 ## Retomada vigente - Gate 34

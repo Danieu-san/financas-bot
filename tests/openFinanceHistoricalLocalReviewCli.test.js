@@ -6,7 +6,10 @@ const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 
-const { main } = require('../scripts/runOpenFinanceHistoricalLocalReview');
+const {
+    main,
+    sanitizePublicError
+} = require('../scripts/runOpenFinanceHistoricalLocalReview');
 
 const ENV = {
     OPEN_FINANCE_HISTORICAL_AMBIGUITY_REVIEW_SECRET: 'cli-local-review-secret-with-more-than-32-characters',
@@ -81,4 +84,18 @@ test('CLI refuses private artifacts inside the repository', () => {
         '--sealed-state-file', repositoryPath, '--confirm-private-local-review'], {
         env: ENV, StoreClass: StoreStub
     }), /path_must_be_outside_repository/);
+});
+
+test('CLI public error code never exposes a native private path or argument value', () => {
+    const privatePath = 'C:\\SensitiveUser\\private-review\\review.sqlite';
+    const native = sanitizePublicError(new Error(`ENOENT: no such file, realpath '${privatePath}'`));
+    const unsupported = sanitizePublicError(new Error(`unsupported_argument:${privatePath}`));
+    const missing = sanitizePublicError(new Error(`missing_argument_value:${privatePath}`));
+
+    assert.equal(native, 'historical_local_review_operation_failed');
+    assert.equal(unsupported, 'historical_local_review_unsupported_argument');
+    assert.equal(missing, 'historical_local_review_missing_argument_value');
+    assert.doesNotMatch(JSON.stringify([native, unsupported, missing]), /SensitiveUser|private-review|sqlite/);
+    assert.equal(sanitizePublicError(new Error('historical_local_review_private_file_required')),
+        'historical_local_review_private_file_required');
 });
