@@ -870,3 +870,21 @@ Manifesto:
 `docs/audit/173-open-finance-pending-purchase-durable-state-recovery-candidate-2026-08-09.md`.
 
 Estado: `CANDIDATO LOCAL VERDE; AGUARDA NOVO HASH E REAUDITORIA`.
+
+## Gate 34 - fechamento independente do recovery duravel
+
+Atualizado em: 2026-08-09
+
+O auditor independente leu o hash
+`d5597d3d0d47f453940b60fcee200f70f62be25c` e confirmou o fechamento do
+achado `MEDIUM`: o estado real e cifrado e recuperado apos fechamento e
+reabertura do modulo, com as duas propostas numeradas `[1,2]` e
+`financial_writes=0`.
+
+Veredito: `GO TECNICO LOCAL`; `CRITICAL 0`, `HIGH 0`, `MEDIUM 0`, `LOW 0` e
+nenhuma lacuna indispensavel residual.
+
+Parecer:
+`docs/audit/174-open-finance-pending-purchase-durable-state-independent-close-2026-08-09.md`.
+
+Estado: `GATE 34 FECHADO; APTO AO FLUXO DE RELEASE OCI AUTORIZADO`.

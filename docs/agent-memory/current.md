@@ -4,6 +4,16 @@ Atualizado em: 2026-08-09
 
 ## Retomada vigente - Gate 34
 
+Reauditoria independente do hash
+`d5597d3d0d47f453940b60fcee200f70f62be25c`: `GO TECNICO LOCAL`, zero
+achados em todas as severidades e nenhuma lacuna indispensavel. O recovery
+duravel esta fechado. Parecer:
+`docs/audit/174-open-finance-pending-purchase-durable-state-independent-close-2026-08-09.md`.
+
+Proxima acao autorizada: preparar e executar release OCI por artefato imutavel,
+preservar estado e rollback, validar release exato, health, processo, WhatsApp,
+flags e zero escrita.
+
 Auditoria do hash `809930a5f516cc33d61db42d020bfc279738e7a3`:
 implementacao suficiente, mas `NO-GO` probatorio por um achado `MEDIUM`. O teste
 usava um `Map` no lugar da persistencia real do estado numerico.
