@@ -724,3 +724,27 @@ Estado: `PROMOCAO VERDE; GATE 34 AINDA SEM GO`. Proxima acao: observar o
 proximo polling natural sem antecipa-lo. Somente quando surgir lote numerado
 novo, apresentar a Daniel as mensagens exatas do smoke familiar e parar antes
 da fronteira de escrita.
+
+## Gate 34 - prioridade numerica promovida; smoke natural pendente
+
+Atualizado em: 2026-08-09
+
+O recovery de prioridade foi fechado no hash imutavel
+`f5806e1b071b47d6441354928740d2139fb5ae51`. A auditoria independente confirmou
+o SHA e os seis arquivos, com zero critical/high/medium e um low probatorio nao
+bloqueante. O artefato exato foi verificado localmente e na OCI, preparado com
+`production_changed=false` e promovido sem rollback ou bootstrap de estado.
+
+Depois do restart, processo unico, health local/publico, SQLite, WhatsApp,
+liveness, seis flags seguras, stores privados, agregados de outbox/preview/
+journal e retencao ficaram verdes. Nao houve marcador severo novo nem
+`financial_writes` diferente de zero. A regra SSH temporaria foi removida e a
+porta voltou a ficar fechada.
+
+Evidencia:
+`docs/audit/166-open-finance-numeric-save-priority-oci-promotion-2026-08-09.md`.
+
+Estado: `PROMOCAO VERDE; GATE 34 AINDA AGUARDA SMOKE NATURAL`. Proxima acao:
+aguardar, sem forcar polling, um lote numerado genuinamente novo; somente com
+Daniel presente e os dois celulares executar o smoke familiar e parar antes de
+qualquer confirmacao ou escrita.

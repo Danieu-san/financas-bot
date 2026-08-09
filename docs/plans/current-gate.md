@@ -1,6 +1,21 @@
 # Gate ativo — PROD-ACT-01 ativação funcional Open Finance
 
-Atualizado em: 2026-08-03
+Atualizado em: 2026-08-09
+
+## Estado vigente - Gate 34
+
+`PROMOCAO VERDE; SMOKE NATURAL PENDENTE; CONFIRM BLOQUEADO`.
+
+O hash `f5806e1b071b47d6441354928740d2139fb5ae51` recebeu GO independente e
+foi promovido na Oracle/OCI sem rollback. Processo, health, SQLite, WhatsApp,
+liveness, flags, stores, retencao e logs sanitizados ficaram verdes; a regra
+SSH temporaria foi removida. `OPEN_FINANCE_WRITE_MODE=off`, aprovacao falsa e
+`financial_writes=0` permanecem invariantes.
+
+Proxima acao: aguardar um lote numerado genuinamente novo sem antecipar o
+polling. Com Daniel e os dois celulares presentes, executar o smoke familiar e
+parar antes de qualquer confirmacao/escrita. Evidencia:
+`docs/audit/166-open-finance-numeric-save-priority-oci-promotion-2026-08-09.md`.
 
 ## Estado
 

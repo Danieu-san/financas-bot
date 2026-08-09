@@ -1,6 +1,21 @@
 # Estado atual portatil do FinancasBot
 
-Atualizado em: 2026-08-03
+Atualizado em: 2026-08-09
+
+## Retomada vigente - Gate 34
+
+O release `f5806e1b071b47d6441354928740d2139fb5ae51` foi auditado e
+promovido de forma controlada na Oracle/OCI. Processo unico, health local e
+publico, SQLite, WhatsApp, liveness, flags, stores, retencao e logs sanitizados
+ficaram verdes. A regra SSH temporaria foi removida e a porta voltou a ficar
+fechada. Escrita continua `off`, aprovacao falsa e `financial_writes=0`.
+
+Estado vigente: `PROMOCAO VERDE; GATE 34 AGUARDA SMOKE NATURAL`.
+
+Proxima acao: nao forcar polling. Aguardar um lote numerado genuinamente novo;
+quando Daniel estiver com os dois celulares, executar o smoke familiar e parar
+antes de qualquer confirmacao ou escrita. Evidencia:
+`docs/audit/166-open-finance-numeric-save-priority-oci-promotion-2026-08-09.md`.
 
 ## Objetivo ativo
 
