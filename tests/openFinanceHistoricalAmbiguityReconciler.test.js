@@ -17,6 +17,10 @@ const {
 const {
     reconcileOpenFinanceHistoricalAmbiguityDecisions
 } = require('../src/openFinance/openFinanceHistoricalAmbiguityReconciler');
+const {
+    prepareOpenFinanceHistoricalRxGate35,
+    recalculateOpenFinanceHistoricalRxGate35
+} = require('../src/openFinance/openFinanceHistoricalRxGate35');
 
 const SECRET = 'historical-ambiguity-reconciler-secret-2026';
 const DANIEL = '5511999999999@c.us';
@@ -104,7 +108,7 @@ function buildReviewedSnapshot(directory, {
         ...(unrelatedBlocker ? ['thais_nubank:bills_partial'] : [])
     ].sort();
     assert.deepStrictEqual(historicalRx.blockers, expectedBlockers);
-    const candidate = buildOpenFinanceHistoricalAmbiguityReview({
+    const candidate = prepareOpenFinanceHistoricalRxGate35({
         items: input.items,
         historicalRx,
         secret: SECRET,
@@ -135,20 +139,24 @@ test('durable family decisions deterministically unblock a read-only historical 
         const built = buildReviewedSnapshot(directory);
         store = built.store;
         const resolutionSnapshot = store.readPrivate({ actorWhatsappId: DANIEL });
-        const first = reconcileOpenFinanceHistoricalAmbiguityDecisions({
+        const firstGate = recalculateOpenFinanceHistoricalRxGate35({
             ...built.input,
             historicalRx: built.historicalRx,
             resolutionSnapshot,
             familyScope: 'family'
         });
-        const replay = reconcileOpenFinanceHistoricalAmbiguityDecisions({
+        const replayGate = recalculateOpenFinanceHistoricalRxGate35({
             ...built.input,
             historicalRx: built.historicalRx,
             resolutionSnapshot,
             familyScope: 'family'
         });
+        const first = firstGate.report;
+        const replay = replayGate.report;
 
-        assert.deepStrictEqual(replay, first);
+        assert.deepStrictEqual(replayGate, firstGate);
+        assert.equal(firstGate.state, 'resolved');
+        assert.deepStrictEqual(firstGate.remaining_blockers, []);
         assert.equal(first.ready_for_reconciliation, true);
         assert.deepStrictEqual(first.blockers, []);
         assert.equal(first.financial_writes, 0);

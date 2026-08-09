@@ -2,6 +2,28 @@
 
 Atualizado em: 2026-08-09
 
+## Gate 35 local em preparacao; Gate 34 observavel em paralelo
+
+Por decisao explicita de Daniel, a janela vigente do Gate 34 foi mantida sem
+qualquer alteracao e seu smoke numerico continua pendente. Se surgir uma compra
+real `purchase/POSTED/new`, Daniel avisara e o smoke sera retomado sem reabrir a
+preparacao operacional.
+
+O Gate 35 foi iniciado apenas localmente. O novo orquestrador compoe a revisao
+historica cifrada e o reconciliador read-only ja auditados, exige decisao
+duravel completa, preserva bloqueadores independentes e falha fechado diante de
+qualquer escrita declarada. Evidencia focal `3/3`, integracao real `11/11`,
+bateria causal `34/34` e suite hermetica ampla valida `1.558/1.548/0/10`.
+
+Estado: `CANDIDATO LOCAL VERDE; AGUARDA COMMIT E AUDITORIA INDEPENDENTE`.
+Manifesto:
+`docs/audit/177-open-finance-historical-rx-gate35-orchestrator-candidate-2026-08-09.md`.
+
+Nenhuma flag, conexao, polling, producao ou dado privado foi alterado. A
+suspeita de corridas concluidas no Nubank Thais ainda entregues pela API como
+`PENDING` permanece pendente de comparacao futura com o payload bruto de uma
+transacao identificada.
+
 ## Retomada vigente - Gate 34
 
 O hash `09b6dab6e679ce28202cb87f83d38549f64e6ae8` foi promovido na OCI

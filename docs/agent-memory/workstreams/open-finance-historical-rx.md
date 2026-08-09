@@ -2,6 +2,23 @@
 
 Atualizado em: 2026-08-05
 
+## Gate 35 — candidato local do orquestrador
+
+Por decisao explicita de Daniel, o Gate 34 permanece observavel e sem alteracao
+operacional enquanto a preparacao local do Gate 35 avanca. Isso nao declara o
+smoke numerico concluido nem autoriza ativacao em producao.
+
+O candidato do Gate 35 compoe os nucleos reais ja auditados: prepara a revisao
+cifrada, exige decisoes duraveis completas e recalcula o RX read-only. O
+resultado diferencia `resolved` de `partial_no_go`, preserva blockers alheios e
+mantem `financial_writes=0`.
+
+Evidencia: focal `3/3`, integracao real `11/11`, causal `34/34` e suite
+hermetica ampla valida `1.558/1.548/0/10`. Manifesto:
+`docs/audit/177-open-finance-historical-rx-gate35-orchestrator-candidate-2026-08-09.md`.
+
+Estado: `CANDIDATO LOCAL VERDE; AGUARDA COMMIT E AUDITORIA INDEPENDENTE`.
+
 ## Atualizacao operacional de 2026-08-09
 
 O release `09b6dab6e679ce28202cb87f83d38549f64e6ae8` foi promovido na

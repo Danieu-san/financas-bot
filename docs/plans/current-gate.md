@@ -2,6 +2,25 @@
 
 Atualizado em: 2026-08-09
 
+## Preparacao local do Gate 35 em paralelo
+
+Daniel determinou que a janela do Gate 34 permanecesse aberta e inalterada,
+avancando ao proximo trabalho sem declarar o smoke funcional concluido. O Gate
+35 foi iniciado somente no repositorio, sem ativacao, dados privados ou
+producao.
+
+O candidato compoe os nucleos reais de revisao historica e reconciliacao,
+retorna estado cifrado na preparacao, exige snapshot de decisoes completo e
+recalcula o RX com `financial_writes=0`. Blockers independentes permanecem
+visiveis como `partial_no_go`; nenhuma inferencia foi adicionada.
+
+Evidencia: focal `3/3`, integracao real `11/11`, causal `34/34`, suite
+hermetica ampla `1.558/1.548/0/10`. Estado:
+`CANDIDATO LOCAL VERDE; AGUARDA COMMIT E AUDITORIA INDEPENDENTE`.
+
+Manifesto:
+`docs/audit/177-open-finance-historical-rx-gate35-orchestrator-candidate-2026-08-09.md`.
+
 ## Estado vigente - Gate 34
 
 O artefato do hash `09b6dab6e679ce28202cb87f83d38549f64e6ae8` foi

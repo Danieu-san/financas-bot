@@ -144,12 +144,17 @@ misturar historico, alertas, propostas e escrita financeira.
     provar lotes independentes nos dois telefones, cutoff, processo unico,
     health e rollback sem ressuscitar backlog. O charter e
     `docs/plans/workstreams/open-finance-numeric-save-oci.md`.
-35. [planejada; depende do gate 34] Concluir o RX historico por revisao humana
+35. [preparacao local autorizada em paralelo; ativacao ainda nao autorizada]
+    Concluir o RX historico por revisao humana
     das ambiguidades remanescentes. Ativar de forma controlada a revisao
     numerada, consumir decisoes duraveis, recalcular o RX e separar: resolvido,
     ainda ambiguo por falta de evidencia e inelegivel. Parcela e investimento
     nunca sao saneados por inferencia; o resultado pode permanecer NO_GO
     parcial sem bloquear classes independentes.
+    O charter operacional e
+    `docs/plans/workstreams/open-finance-historical-rx-gate35.md`. O Gate 34
+    permanece observavel e funcionalmente pendente; sua janela nao deve ser
+    alterada durante a preparacao local do Gate 35.
 36. [planejada; depende do gate 35] Acrescentar tratamento proativo de estornos
     e entradas. Estorno exige vinculo forte com a compra quando esse vinculo for
     necessario para a semantica; entrada genuina exige reconciliacao com o
