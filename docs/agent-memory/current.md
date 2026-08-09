@@ -16,6 +16,12 @@ Alcance autorizado: planejar a operacao privada separada. Ainda nao abrir o
 snapshot, ativar a revisao, recalcular o RX real, tocar producao ou escrever.
 Gate 34 permanece observavel e funcionalmente pendente, sem mudanca na janela.
 
+Plano operacional privado em preparacao:
+`docs/plans/workstreams/open-finance-historical-rx-gate35-operation.md`.
+O plano detectou que a ativacao exige restart do runtime principal e, portanto,
+deve permanecer em hold antes dessa fronteira enquanto Daniel exigir a janela
+do Gate 34 inalterada. Nenhum segundo processo WhatsApp e permitido.
+
 ## Gate 35 local em preparacao; Gate 34 observavel em paralelo
 
 Por decisao explicita de Daniel, a janela vigente do Gate 34 foi mantida sem

@@ -16,6 +16,12 @@ autorizados. Gate 34 permanece pendente e inalterado.
 Fechamento:
 `docs/audit/178-open-finance-historical-rx-gate35-orchestrator-independent-close-2026-08-09.md`.
 
+Plano operacional privado em preparacao:
+`docs/plans/workstreams/open-finance-historical-rx-gate35-operation.md`.
+Ativacao fica em hold porque exige restart do mesmo runtime WhatsApp usado pela
+janela ainda preservada do Gate 34. Planejamento e auditoria podem seguir sem
+abrir dados privados ou tocar producao.
+
 ## Preparacao local do Gate 35 em paralelo
 
 Daniel determinou que a janela do Gate 34 permanecesse aberta e inalterada,
