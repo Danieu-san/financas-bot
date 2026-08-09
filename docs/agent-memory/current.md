@@ -4,14 +4,14 @@ Atualizado em: 2026-08-09
 
 ## Retomada vigente - Gate 34
 
-Checkpoint de transferencia: a primeira janela rapida expirou sem lote
-numerado e a automacao foi excluida. Daniel confirmou os dois celulares,
-relatou compras novas e atualizou o Pluggy. A preparacao de uma segunda janela
-foi interrompida antes de backup, `.env`, restart ou leitura remota; a regra SSH
-temporaria foi removida e a porta voltou a ficar fechada. Proxima acao: retomar
-em `Codex -> Sol -> Alto`, criar backup privado, abrir nova janela inferior a
-duas horas com um unico restart e verificar o ciclo sanitizado. Evidencia:
-`docs/audit/170-gate-34-portable-handoff-checkpoint-2026-08-09.md`.
+Segunda janela concluida operacionalmente: backup privado verificado, intervalo
+de 15 minutos renovado por 115 minutos, exatamente um restart e primeiro ciclo
+`GO` com `new=0`, `delivered=0`, `retries=0` e `writes=0`. Processo, health
+local, SQLite, WhatsApp, flags e cinco stores ficaram verdes. A unica regra SSH
+`/32` correspondia a conexao da janela, foi removida e a porta 22 voltou a ficar
+fechada. O health publico nao foi verificavel nesta rede por interceptacao TLS
+Fortinet. Evidencia:
+`docs/audit/171-open-finance-second-fast-poll-window-observation-2026-08-09.md`.
 
 Diagnostico mais recente: as mensagens sem numeracao observadas durante a
 janela rapida vieram do backlog comum, nao de propostas elegiveis novas. Os
@@ -35,15 +35,12 @@ ficaram verdes. A regra SSH temporaria foi removida e a porta voltou a ficar
 fechada. Escrita continua `off`, aprovacao falsa e `financial_writes=0`.
 
 Estado vigente:
-`PROMOCAO VERDE; JANELA RAPIDA EXPIRADA; GATE 34 AGUARDA NOVA JANELA E SMOKE`.
+`PROMOCAO VERDE; SEGUNDA JANELA RAPIDA ATIVA; PRIMEIRO CICLO SEM LOTE NOVO; GATE 34 AGUARDA SMOKE`.
 
-Proxima acao: depois da retomada portatil, abrir uma nova janela de 15 minutos
-por menos de duas horas, com backup privado e um unico restart. Verificar o
-ciclo atualizado; quando surgir lote `purchase/POSTED/new` numerado nos dois
-celulares, executar o smoke familiar e parar antes de qualquer confirmacao ou
-escrita.
-Evidencia:
-`docs/audit/168-open-finance-temporary-fast-polling-oci-promotion-2026-08-09.md`.
+Proxima acao: observar os dois celulares durante a janela vigente. Quando
+surgir lote `purchase/POSTED/new` numerado, executar o smoke familiar e parar
+antes de qualquer confirmacao ou escrita. Se a janela expirar sem lote, manter
+o Gate 34 pendente sem novo restart automatico.
 
 ## Objetivo ativo
 

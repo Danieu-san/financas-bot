@@ -4,12 +4,12 @@ Atualizado em: 2026-08-09
 
 ## Estado vigente - Gate 34
 
-Checkpoint portatil: a primeira janela expirou e sua automacao foi removida.
-Daniel esta com os dois celulares, relatou compras novas e atualizou o Pluggy.
-A segunda janela ainda nao foi aplicada: nao houve backup, mudanca de `.env`,
-restart ou leitura remota. A regra SSH de preparacao foi removida e a porta esta
-fechada. Evidencia:
-`docs/audit/170-gate-34-portable-handoff-checkpoint-2026-08-09.md`.
+Segunda janela aplicada: backup privado verificado, intervalo de 15 minutos por
+115 minutos, exatamente um restart e primeiro ciclo automatico `GO` com
+`new=0`, `delivered=0`, `retries=0` e `writes=0`. Processo, health local,
+SQLite, WhatsApp, flags e stores ficaram verdes. A regra SSH `/32` usada na
+janela foi removida e a porta 22 foi confirmada fechada. Evidencia:
+`docs/audit/171-open-finance-second-fast-poll-window-observation-2026-08-09.md`.
 
 Diagnostico posterior confirmou que os alertas sem numeracao da janela rapida
 eram backlog comum: itens ainda `PENDING` ou apenas `purchase_candidate`, sem
@@ -24,7 +24,7 @@ seis horas ao expirar. Processo, health, SQLite, WhatsApp, flags, stores,
 retencao e logs ficaram verdes; a regra SSH temporaria foi removida. Evidencia:
 `docs/audit/168-open-finance-temporary-fast-polling-oci-promotion-2026-08-09.md`.
 
-`PROMOCAO VERDE; JANELA RAPIDA EXPIRADA; NOVA JANELA E SMOKE PENDENTES; CONFIRM BLOQUEADO`.
+`PROMOCAO VERDE; SEGUNDA JANELA RAPIDA ATIVA; PRIMEIRO CICLO SEM LOTE NOVO; SMOKE PENDENTE; CONFIRM BLOQUEADO`.
 
 O hash `f5806e1b071b47d6441354928740d2139fb5ae51` recebeu GO independente e
 foi promovido na Oracle/OCI sem rollback. Processo, health, SQLite, WhatsApp,
@@ -32,10 +32,10 @@ liveness, flags, stores, retencao e logs sanitizados ficaram verdes; a regra
 SSH temporaria foi removida. `OPEN_FINANCE_WRITE_MODE=off`, aprovacao falsa e
 `financial_writes=0` permanecem invariantes.
 
-Proxima acao: retomar em `Codex -> Sol -> Alto`, criar backup privado do `.env`,
-abrir nova janela inferior a duas horas com um unico restart e verificar o
-ciclo. Somente com lote `purchase/POSTED/new` numerado nos dois celulares,
-executar o smoke e parar antes de qualquer confirmacao/escrita.
+Proxima acao: observar os dois celulares durante a janela vigente. Somente com
+lote `purchase/POSTED/new` numerado, executar o smoke familiar e parar antes de
+qualquer confirmacao/escrita. Sem lote novo, deixar a janela expirar e manter o
+gate pendente.
 
 ## Estado
 
