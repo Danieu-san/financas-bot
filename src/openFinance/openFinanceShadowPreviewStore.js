@@ -891,13 +891,18 @@ class OpenFinanceShadowPreviewStore {
         const classification = String(proposal?.classification || '');
         const isIncome = classification === 'income';
         const isRefund = classification === 'refund';
+        const isTransfer = classification === 'transfer';
         const pairObservationRef = String(proposal?.pair_observation_ref || '');
         const identityLabel = isRefund
             ? `reviewed-refund-save-proposal:${reviewRef}:${observationRef}:${pairObservationRef}`
-            : `reviewed-income-save-proposal:${reviewRef}:${observationRef}`;
+            : isTransfer
+                ? `reviewed-transfer-save-proposal:${reviewRef}:${observationRef}:${pairObservationRef}`
+                : `reviewed-income-save-proposal:${reviewRef}:${observationRef}`;
         const operationLabel = isRefund
             ? `open-finance-refund-write:${reviewRef}:${observationRef}:${pairObservationRef}`
-            : `open-finance-income-write:${reviewRef}:${observationRef}`;
+            : isTransfer
+                ? `open-finance-transfer-write:${reviewRef}:${observationRef}:${pairObservationRef}`
+                : `open-finance-income-write:${reviewRef}:${observationRef}`;
         const refundTarget = proposal?.linked_target || {};
         const validRefundTarget = !isRefund || (
             ['card', 'bank'].includes(refundTarget.kind) &&
@@ -915,6 +920,46 @@ class OpenFinanceShadowPreviewStore {
                 : String(refundTarget.financial_account || '').trim() &&
                     !refundTarget.card_id)
         );
+        const pairAlias = String(proposal?.pair_alias || '').trim().toLowerCase();
+        const pairAliasRef = isTransfer ? this.#aliasRef(pairAlias) : '';
+        const pairGeneration = isTransfer ? validGeneration(proposal?.pair_generation) : null;
+        const validTransfer = !isTransfer || (
+            /^[a-f0-9]{32}$/.test(pairObservationRef) &&
+            /^[a-z0-9_-]{2,48}$/.test(pairAlias) &&
+            pairAliasRef === proposal.pair_alias_ref &&
+            ['daniel', 'thais'].includes(String(proposal.principal || '')) &&
+            ['daniel', 'thais'].includes(String(proposal.pair_principal || '')) &&
+            ['BANK', 'CHECKING', 'SAVINGS'].includes(
+                String(proposal.account_type || '').toUpperCase()
+            ) &&
+            ['BANK', 'CHECKING', 'SAVINGS'].includes(
+                String(proposal.pair_account_type || '').toUpperCase()
+            ) &&
+            proposal.source_classification === 'transfer' &&
+            proposal.pair_reconciliation_status === 'new' &&
+            /^[a-f0-9]{32}$/.test(String(proposal.pair_reconciliation_transaction_ref || '')) &&
+            proposal.paired_source?.id && proposal.paired_source?.account_id &&
+            proposal.transfer_origin?.observation_ref &&
+            proposal.transfer_destination?.observation_ref &&
+            proposal.transfer_origin.observation_ref !==
+                proposal.transfer_destination.observation_ref &&
+            proposal.transfer_origin.account_id !==
+                proposal.transfer_destination.account_id &&
+            new Set([
+                proposal.transfer_origin.observation_ref,
+                proposal.transfer_destination.observation_ref
+            ]).has(observationRef) &&
+            new Set([
+                proposal.transfer_origin.observation_ref,
+                proposal.transfer_destination.observation_ref
+            ]).has(pairObservationRef) &&
+            ['daniel', 'thais'].includes(proposal.transfer_origin.principal) &&
+            ['daniel', 'thais'].includes(proposal.transfer_destination.principal) &&
+            Math.sign(Number(proposal.source?.amount_cents)) !==
+                Math.sign(Number(proposal.paired_source?.amount_cents)) &&
+            Math.abs(Number(proposal.source?.amount_cents)) ===
+                Math.abs(Number(proposal.paired_source?.amount_cents))
+        );
         const expiresAt = validTimestamp(
             proposal?.expires_at,
             'valid_reviewed_semantic_save_proposal_expiry_required'
@@ -922,8 +967,8 @@ class OpenFinanceShadowPreviewStore {
         if (!/^[a-f0-9]{32}$/.test(proposalRef) ||
             !/^[a-f0-9]{32}$/.test(reviewRef) ||
             !/^[a-f0-9]{32}$/.test(observationRef) ||
-            (!isIncome && !isRefund) ||
-            (isRefund && !/^[a-f0-9]{32}$/.test(pairObservationRef)) ||
+            (!isIncome && !isRefund && !isTransfer) ||
+            ((isRefund || isTransfer) && !/^[a-f0-9]{32}$/.test(pairObservationRef)) ||
             proposalRef !== this.#hmac(identityLabel) ||
             aliasRef !== proposal.alias_ref ||
             (isIncome && proposal.source_classification !== 'income_candidate') ||
@@ -932,6 +977,7 @@ class OpenFinanceShadowPreviewStore {
                 !/^[a-f0-9]{32}$/.test(String(proposal.pair_reconciliation_ref || '')) ||
                 !proposal.paired_source?.id || !proposal.paired_source?.account_id ||
                 !validRefundTarget)) ||
+            !validTransfer ||
             proposal.provider_state !== 'POSTED' ||
             proposal.reconciliation_status !== 'new' ||
             proposal.operation_key !== this.#operationKey(operationLabel) ||
@@ -940,6 +986,10 @@ class OpenFinanceShadowPreviewStore {
             throw new Error('invalid_reviewed_semantic_save_proposal');
         }
         if (this.revocationJournal?.isGenerationRevoked?.(alias, generation)) {
+            throw new Error('save_proposal_revoked_generation');
+        }
+        if (isTransfer &&
+            this.revocationJournal?.isGenerationRevoked?.(pairAlias, pairGeneration)) {
             throw new Error('save_proposal_revoked_generation');
         }
         const terminal = this.revocationJournal?.getSaveProposalTerminal?.(proposalRef);
@@ -951,6 +1001,8 @@ class OpenFinanceShadowPreviewStore {
         const transactionRef = this.#hmac(
             isRefund
                 ? `reviewed-refund-save-proposal-transaction:${reviewRef}:${observationRef}:${pairObservationRef}`
+                : isTransfer
+                    ? `reviewed-transfer-save-proposal-transaction:${reviewRef}:${observationRef}:${pairObservationRef}`
                 : `reviewed-income-save-proposal-transaction:${reviewRef}:${observationRef}`
         );
         const rows = this.db.prepare(`SELECT proposal_ref,transaction_ref,family_scope_ref,
@@ -962,6 +1014,13 @@ class OpenFinanceShadowPreviewStore {
             generation,
             transaction: proposal.source
         });
+        const pairSourceIdentity = isTransfer
+            ? this.#saveProposalSourceIdentityKey({
+                aliasRef: pairAliasRef,
+                generation: pairGeneration,
+                transaction: proposal.paired_source
+            })
+            : null;
         let existing = null;
         for (const row of rows) {
             const payload = this.#readBoundSaveProposal(row.proposal_ref, row);
@@ -970,8 +1029,21 @@ class OpenFinanceShadowPreviewStore {
                 generation: row.generation,
                 transaction: payload.source
             });
+            const storedPairIdentity = payload.classification === 'transfer'
+                ? this.#saveProposalSourceIdentityKey({
+                    aliasRef: payload.pair_alias_ref,
+                    generation: payload.pair_generation,
+                    transaction: payload.paired_source
+                })
+                : null;
             if (row.proposal_ref === proposalRef) existing = { row, payload };
-            if (identity === sourceIdentity && row.proposal_ref !== proposalRef) {
+            if (row.proposal_ref !== proposalRef && (
+                identity === sourceIdentity ||
+                (isTransfer && identity === pairSourceIdentity) ||
+                (storedPairIdentity && storedPairIdentity === sourceIdentity) ||
+                (isTransfer && storedPairIdentity &&
+                    storedPairIdentity === pairSourceIdentity)
+            )) {
                 throw new Error('save_proposal_replay_conflict');
             }
         }

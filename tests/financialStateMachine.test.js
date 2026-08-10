@@ -5904,6 +5904,206 @@ stateMachineTest('gate 38.2 public handler promotes, reviews and writes one genu
     }
 });
 
+stateMachineTest('gate 38.4 public handler writes one strongly paired internal transfer exactly once', async () => {
+    resetSheets();
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-public-transfer-'));
+    const secret = 'public-transfer-state-machine-secret-12345';
+    const paths = {
+        secret: path.join(directory, 'secret.txt'),
+        mapping: path.join(directory, 'mapping.json'),
+        staging: path.join(directory, 'staging.sqlite'),
+        preview: path.join(directory, 'preview.sqlite'),
+        journal: path.join(directory, 'journal.sqlite'),
+        outbox: path.join(directory, 'outbox.sqlite')
+    };
+    const observedAt = new Date().toISOString();
+    const out = {
+        id: 'public-transfer-out', account_id: 'daniel-bank', amount_cents: -10,
+        description: 'Pix enviado para Thais', date: observedAt, status: 'POSTED',
+        reference_number: 'public-provider-transfer-1'
+    };
+    const incoming = {
+        id: 'public-transfer-in', account_id: 'thais-bank', amount_cents: 10,
+        description: 'Pix recebido de Daniel', date: observedAt, status: 'POSTED',
+        reference_number: 'public-provider-transfer-1'
+    };
+    const items = [
+        {
+            id: 'public-transfer-daniel', alias_code: 'daniel_nubank',
+            owner_scope: 'daniel', generation: 1,
+            accounts: [{ id: 'daniel-bank', type: 'BANK', name: 'Nubank Daniel' }],
+            transactions: [out], bills: [], investments: []
+        },
+        {
+            id: 'public-transfer-thais', alias_code: 'thais_nubank',
+            owner_scope: 'thais', generation: 1,
+            accounts: [{ id: 'thais-bank', type: 'BANK', name: 'Nubank Thais' }],
+            transactions: [incoming], bills: [], investments: []
+        }
+    ];
+    fs.writeFileSync(paths.secret, secret, { mode: 0o600 });
+    fs.writeFileSync(paths.mapping, JSON.stringify(items.map(item => ({
+        itemId: item.id,
+        alias: item.alias_code,
+        ownerScope: item.owner_scope,
+        generation: 1
+    }))));
+    fs.writeFileSync(paths.outbox, '');
+    const vault = new OpenFinanceLiveStagingVault({
+        databasePath: paths.staging,
+        secret
+    });
+    vault.ingestSnapshot({
+        provider: 'pluggy', mode: 'live_readonly_staging',
+        event_id: 'public-transfer-event', observed_at: observedAt,
+        collection_health: { complete: true, warning_count: 0 }, items
+    });
+    vault.close();
+    const journal = new OpenFinanceRevocationJournal({
+        databasePath: paths.journal,
+        secret
+    });
+    journal.close();
+    const outObservation = observationRef(
+        secret, items[0].id, out.account_id, out.id
+    );
+    const inObservation = observationRef(
+        secret, items[1].id, incoming.account_id, incoming.id
+    );
+    const [anchorObservation, pairObservation] =
+        [outObservation, inObservation].sort();
+    const sourceAlias = anchorObservation === outObservation
+        ? items[0].alias_code
+        : items[1].alias_code;
+    const proactive = new OpenFinanceProactiveReviewStore({
+        databasePath: paths.preview,
+        secret
+    });
+    const reviewCode = proactive.ingest({
+        reviews: [{
+            observation_ref: anchorObservation,
+            source_alias: sourceAlias,
+            generation: 1,
+            classification: 'transfer',
+            review_kind: 'transfer',
+            review_status: 'strong_pair_confirmation_required',
+            pair_observation_ref: pairObservation,
+            pair_basis: 'shared_provider_reference',
+            save_eligible: false,
+            financial_writes: 0
+        }],
+        items,
+        policies: [
+            { alias: 'daniel_nubank', principal: 'daniel', recipients: ['daniel', 'thais'] },
+            { alias: 'thais_nubank', principal: 'thais', recipients: ['daniel', 'thais'] }
+        ],
+        confirmationActors: [
+            { principal: 'daniel', whatsappId: SENDER },
+            { principal: 'thais', whatsappId: SENDER }
+        ],
+        observedAt
+    }).links[0].review_code;
+    proactive.close();
+
+    sheets.Users[1][3] = 'Daniel';
+    sheets.Users.push(partnerUserRow());
+    userService.invalidateUserCaches();
+    sheets['Contas Financeiras'].push(
+        ['Daniel - Nubank', 'bank', 0, '2025-01-01', 'ATIVA',
+            'BRL', 'Usuario Estado', USER_ID, ''],
+        ['Thais - Nubank', 'bank', 0, '2025-01-01', 'ATIVA',
+            'BRL', 'Thais', PARTNER_ID, '']
+    );
+    financialScopeUserIds = [USER_ID, PARTNER_ID];
+    usesPersonalSpreadsheet = true;
+    const variableNames = [
+        'OPEN_FINANCE_ALERT_MODE', 'OPEN_FINANCE_SAVE_PROPOSAL_MODE',
+        'OPEN_FINANCE_SHADOW_PREVIEW_MODE', 'OPEN_FINANCE_RECONCILIATION_MODE',
+        'OPEN_FINANCE_WRITE_MODE', 'OPEN_FINANCE_WRITE_APPROVED',
+        'OPEN_FINANCE_LIVE_STAGING_SECRET_FILE', 'OPEN_FINANCE_LIVE_STAGING_DB',
+        'OPEN_FINANCE_REVOCATION_JOURNAL_DB', 'OPEN_FINANCE_SHADOW_PREVIEW_DB',
+        'OPEN_FINANCE_OUTBOX_DB', 'PLUGGY_ITEM_MAP_FILE'
+    ];
+    const previous = Object.fromEntries(variableNames.map(name => [name, process.env[name]]));
+    Object.assign(process.env, {
+        OPEN_FINANCE_ALERT_MODE: 'canary',
+        OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
+        OPEN_FINANCE_SHADOW_PREVIEW_MODE: 'canary',
+        OPEN_FINANCE_RECONCILIATION_MODE: 'canary',
+        OPEN_FINANCE_WRITE_MODE: 'confirm',
+        OPEN_FINANCE_WRITE_APPROVED: 'true',
+        OPEN_FINANCE_LIVE_STAGING_SECRET_FILE: paths.secret,
+        OPEN_FINANCE_LIVE_STAGING_DB: paths.staging,
+        OPEN_FINANCE_REVOCATION_JOURNAL_DB: paths.journal,
+        OPEN_FINANCE_SHADOW_PREVIEW_DB: paths.preview,
+        OPEN_FINANCE_OUTBOX_DB: paths.outbox,
+        PLUGGY_ITEM_MAP_FILE: paths.mapping
+    });
+    try {
+        const offered = await send(`revisar ${reviewCode} confirmar`);
+        assert.match(offered, /Transferência interna vinculada/i);
+        assert.equal(appendedRows.length, 0);
+        assert.equal(userStateManager.getState(SENDER).action,
+            'awaiting_open_finance_save_confirmation');
+
+        assert.match(await send('sim'), /Confira a transferência interna/i);
+        assert.equal(appendedRows.length, 0);
+        assert.match(await send('1'), /Escolha a conta de origem/i);
+        assert.match(await send('1'), /Origem \(daniel\): Daniel - Nubank/i);
+        assert.match(await send('2'), /Escolha a conta de destino/i);
+        assert.match(await send('1'), /Destino \(thais\): Thais - Nubank/i);
+        const finalPrompt = await send('3');
+        assert.match(finalPrompt, /Confirma o salvamento/i);
+        assert.equal(appendedRows.length, 0);
+
+        const receipt = await send('sim');
+        assert.match(receipt, /Recibo/i);
+        assert.equal(appendedRows.length, 1);
+        assert.equal(appendedRows[0].sheetName, 'Transferências');
+        assert.equal(appendedRows[0].row[2], 0.1);
+        assert.match(appendedRows[0].row[3], /^Daniel - Nubank/);
+        assert.match(appendedRows[0].row[4], /^Thais - Nubank/);
+        assert.equal(appendedRows[0].row[8], USER_ID);
+        assert.equal(appendedRows[0].options.requireUserScoped, true);
+        assert.deepEqual(appendedRows[0].options.canonicalRelation, {
+            type: 'internal_transfer_pair',
+            origin_owner_person_id: USER_ID,
+            destination_owner_person_id: PARTNER_ID
+        });
+        const proposalRef = String(appendedRows[0].options.messageId)
+            .replace('open-finance-final:', '');
+        assert.equal(appendRowAttempts.length, 1);
+        assert.equal(userStateManager.getState(SENDER), undefined);
+
+        assert.doesNotMatch(await send('sim'), /salvo com sucesso/i);
+        assert.equal(appendedRows.length, 1);
+        assert.equal(appendRowAttempts.length, 1);
+        const finalizationModulePath = require.resolve(
+            '../src/openFinance/openFinanceSaveProposalFinalization'
+        );
+        delete require.cache[finalizationModulePath];
+        const {
+            handleOpenFinanceSaveProposalFinalizationReply: handleAfterRestart
+        } = require(finalizationModulePath);
+        const replayAfterRestart = await handleAfterRestart({
+            messageBody: 'sim', actorWhatsappId: SENDER, userId: USER_ID,
+            expectedProposalRef: proposalRef, env: process.env
+        });
+        assert.equal(replayAfterRestart.state, 'receipt_delivered');
+        assert.equal(replayAfterRestart.financial_writes, 0);
+        assert.equal(appendedRows.length, 1);
+        assert.equal(appendRowAttempts.length, 1);
+    } finally {
+        for (const name of variableNames) {
+            if (previous[name] === undefined) delete process.env[name];
+            else process.env[name] = previous[name];
+        }
+        financialScopeUserIds = [USER_ID];
+        userStateManager.deleteState(SENDER);
+        fs.rmSync(directory, { recursive: true, force: true });
+    }
+});
+
 stateMachineTest('gate 38.3 public handler writes one confirmed refund on the original card', async () => {
     resetSheets();
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-public-refund-'));

@@ -136,6 +136,9 @@ const {
 const {
     prepareReviewedRefundSaveProposal
 } = require('../openFinance/openFinanceReviewedRefundSaveProposal');
+const {
+    prepareReviewedTransferSaveProposal
+} = require('../openFinance/openFinanceReviewedTransferSaveProposal');
 const { recordQaFailure } = require('../services/qaFailureLogService');
 const { recordAdminAction, hashRef, sanitizeValue } = require('../services/adminActionLogService');
 const { recordDashboardAccessEvent } = require('../services/dashboardAccessLogService');
@@ -9285,6 +9288,34 @@ async function processMessage(msg) {
                 await sendPlainMessage(msg, [
                     proactiveReviewReply.reply,
                     'N\u00e3o consegui provar agora o v\u00ednculo com o gasto original. A decis\u00e3o continua registrada e nada foi salvo.'
+                ].join('\n'));
+                return;
+            }
+        }
+        if (proactiveReviewReply.decision === 'confirm_transfer_pair' &&
+            proactiveReviewReply.review_code) {
+            try {
+                const transferProposal = await prepareReviewedTransferSaveProposal({
+                    reviewCode: proactiveReviewReply.review_code,
+                    actorWhatsappId: senderId,
+                    userId
+                });
+                if (transferProposal.handled) {
+                    setOpenFinanceConversationState(senderId, {
+                        action: 'awaiting_open_finance_save_confirmation',
+                        data: {
+                            proposalRef: transferProposal.proposal_ref,
+                            recipientPrincipal: transferProposal.recipient_principal
+                        }
+                    });
+                    await sendPlainMessage(msg, transferProposal.reply);
+                    return;
+                }
+            } catch (error) {
+                logger.warn(`[open-finance] reviewed_transfer_proposal_unavailable sender=${logger.redactIdentifier(senderId)} ${logger.safeError(error)}`);
+                await sendPlainMessage(msg, [
+                    proactiveReviewReply.reply,
+                    'Não consegui provar agora as duas pontas da transferência. A decisão continua registrada e nada foi salvo.'
                 ].join('\n'));
                 return;
             }

@@ -149,6 +149,22 @@ function isReceiptLike(classification, linkedTargetKind = '') {
 }
 
 function reviewMissingFields(draft = {}, classification = 'purchase', linkedTargetKind = '') {
+    if (classification === 'transfer') {
+        const missing = [];
+        if (!draft.originAccount) missing.push('conta de origem');
+        if (!draft.destinationAccount) missing.push('conta de destino');
+        if (draft.originAccount?.ownerUserId !== draft.originOwnerUserId) {
+            missing.push('conta de origem autorizada');
+        }
+        if (draft.destinationAccount?.ownerUserId !== draft.destinationOwnerUserId) {
+            missing.push('conta de destino autorizada');
+        }
+        if (draft.originAccount?.id &&
+            draft.originAccount.id === draft.destinationAccount?.id) {
+            missing.push('contas distintas');
+        }
+        return [...new Set(missing)];
+    }
     const receiptLike = isReceiptLike(classification, linkedTargetKind);
     const missing = [];
     if (!draft.person) missing.push('pessoa');
@@ -205,6 +221,32 @@ function paymentEditBlockMessage(draft = {}, step = '', classification = 'purcha
 function formatReviewSummary(payload, { includeMenu = true } = {}) {
     const draft = payload?.draft || {};
     const source = payload?.source || {};
+    if (payload?.classification === 'transfer') {
+        const lines = [
+            'Confira a transferência interna:',
+            `Descrição: ${source.description || 'não informada'}`,
+            `Valor: ${formatMoneyFromCents(Math.abs(source.amount_cents))}`,
+            `Origem (${payload.transfer_origin_principal}): ${draft.originAccount?.label || 'não definida'}`,
+            `Destino (${payload.transfer_destination_principal}): ${draft.destinationAccount?.label || 'não definida'}`
+        ];
+        const missing = reviewMissingFields(draft, 'transfer');
+        if (missing.length) lines.push(`Ainda falta: ${missing.join(', ')}.`);
+        if (includeMenu) {
+            lines.push(
+                '',
+                'O que deseja ajustar?',
+                '1. Conta de origem',
+                '2. Conta de destino',
+                '3. Concluir conferência',
+                '0. Cancelar',
+                '',
+                'Responda com o número. Nada foi salvo.'
+            );
+        } else {
+            lines.push('', 'Nada foi salvo.');
+        }
+        return lines.join('\n');
+    }
     const category = draft.category
         ? `${draft.category.category}${draft.category.subcategory
             ? ` / ${draft.category.subcategory}`
@@ -258,6 +300,14 @@ const CATEGORY_PAGE_SIZE = 8;
 
 function reviewOptionsForStep(payload = {}) {
     const catalog = payload.catalog || {};
+    if (payload.step === 'select_origin_account') {
+        return (catalog.financialAccounts || []).filter(item =>
+            item.ownerUserId === payload.draft?.originOwnerUserId);
+    }
+    if (payload.step === 'select_destination_account') {
+        return (catalog.financialAccounts || []).filter(item =>
+            item.ownerUserId === payload.draft?.destinationOwnerUserId);
+    }
     if (payload.step === 'select_person') return catalog.people || [];
     if (payload.step === 'select_category') {
         const categories = catalog.categories || [];
@@ -299,6 +349,8 @@ function reviewOptionsForStep(payload = {}) {
 function formatReviewOptions(payload = {}) {
     const isIncome = isReceiptLike(payload?.classification, payload?.linked_target_kind);
     const labels = {
+        select_origin_account: 'Escolha a conta de origem:',
+        select_destination_account: 'Escolha a conta de destino:',
         select_person: 'Escolha a pessoa:',
         select_category: 'Escolha a categoria:',
         select_payment: isIncome
@@ -668,7 +720,7 @@ function handleOpenFinanceSaveProposalReply({
                 { actorWhatsappId }
             );
             directReviewedSemantic = Boolean(
-                ['income', 'refund'].includes(directProposal?.classification) &&
+                ['income', 'refund', 'transfer'].includes(directProposal?.classification) &&
                 /^[a-f0-9]{32}$/.test(String(directProposal.semantic_review_ref || ''))
             );
         }
@@ -732,7 +784,7 @@ function handleOpenFinanceSaveProposalReply({
                 item.proposal_ref,
                 { actorWhatsappId }
             );
-            return ['income', 'refund'].includes(proposal?.classification) &&
+            return ['income', 'refund', 'transfer'].includes(proposal?.classification) &&
                 /^[a-f0-9]{32}$/.test(String(proposal.semantic_review_ref || ''));
         });
         if (candidates.length === 0) {
@@ -1010,10 +1062,14 @@ function handleOpenFinanceSaveProposalReviewReply({
             };
         }
         if (payload.step === 'menu') {
+            const isTransfer = payload.classification === 'transfer';
             const isIncome = isReceiptLike(
                 payload.classification, payload.linked_target_kind
             );
-            const fieldByChoice = isIncome ? {
+            const fieldByChoice = isTransfer ? {
+                '1': 'select_origin_account',
+                '2': 'select_destination_account'
+            } : isIncome ? {
                 '1': 'select_person',
                 '2': 'select_category',
                 '3': 'select_payment',
@@ -1025,7 +1081,7 @@ function handleOpenFinanceSaveProposalReviewReply({
                 '4': 'select_account',
                 '5': 'select_card'
             };
-            const completionChoice = isIncome ? '5' : '6';
+            const completionChoice = isTransfer ? '3' : isIncome ? '5' : '6';
             if (normalized === completionChoice) {
                 const missing = reviewMissingFields(
                     payload.draft, payload.classification, payload.linked_target_kind
@@ -1206,6 +1262,21 @@ function handleOpenFinanceSaveProposalReviewReply({
                     current.draft.financialAccount = {
                         id: selected.id,
                         label: selected.label,
+                        accountName: selected.accountName || selected.label,
+                        ownerUserId: selected.ownerUserId || ''
+                    };
+                } else if (current.step === 'select_origin_account') {
+                    current.draft.originAccount = {
+                        id: selected.id,
+                        label: selected.label,
+                        accountName: selected.accountName || selected.label,
+                        ownerUserId: selected.ownerUserId || ''
+                    };
+                } else if (current.step === 'select_destination_account') {
+                    current.draft.destinationAccount = {
+                        id: selected.id,
+                        label: selected.label,
+                        accountName: selected.accountName || selected.label,
                         ownerUserId: selected.ownerUserId || ''
                     };
                 } else if (current.step === 'select_card') {

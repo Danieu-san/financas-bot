@@ -60,6 +60,7 @@ function normalizeCatalogItems(items, kind, limit) {
             return {
                 id,
                 label,
+                accountName: String(item.accountName || label).trim(),
                 ownerUserId: String(item.ownerUserId || '').trim()
             };
         }
@@ -96,6 +97,33 @@ function normalizeCatalog(catalog = {}) {
 }
 
 function catalogForProposal(proposal = {}, catalog = {}) {
+    if (proposal.classification === 'transfer') {
+        const originPrincipal = normalizeText(proposal.transfer_origin?.principal);
+        const destinationPrincipal = normalizeText(proposal.transfer_destination?.principal);
+        const personFor = principal => (catalog.people || []).filter(item =>
+            normalizeText(item.label).split(/\s+/)[0] === principal);
+        const originPeople = personFor(originPrincipal);
+        const destinationPeople = personFor(destinationPrincipal);
+        if (!originPrincipal || !destinationPrincipal ||
+            originPeople.length !== 1 || destinationPeople.length !== 1) {
+            throw new Error('open_finance_transfer_review_owner_unavailable');
+        }
+        const ownerIds = new Set([originPeople[0].id, destinationPeople[0].id]);
+        const financialAccounts = (catalog.financialAccounts || []).filter(item =>
+            ownerIds.has(item.ownerUserId));
+        if (![...ownerIds].every(ownerId =>
+            financialAccounts.some(item => item.ownerUserId === ownerId))) {
+            throw new Error('open_finance_transfer_review_account_unavailable');
+        }
+        return {
+            people: [...new Map([...originPeople, ...destinationPeople]
+                .map(item => [item.id, item])).values()],
+            categories: [],
+            paymentMethods: [],
+            financialAccounts,
+            cards: []
+        };
+    }
     if (proposal.classification === 'income') {
         return {
             ...catalog,
@@ -147,6 +175,22 @@ function catalogForProposal(proposal = {}, catalog = {}) {
 }
 
 function initialDraft(proposal, catalog) {
+    if (proposal?.classification === 'transfer') {
+        const ownerIdFor = principal => {
+            const matches = catalog.people.filter(item =>
+                normalizeText(item.label).split(/\s+/)[0] === normalizeText(principal));
+            if (matches.length !== 1) {
+                throw new Error('open_finance_transfer_review_owner_unavailable');
+            }
+            return matches[0].id;
+        };
+        return {
+            originAccount: null,
+            destinationAccount: null,
+            originOwnerUserId: ownerIdFor(proposal.transfer_origin?.principal),
+            destinationOwnerUserId: ownerIdFor(proposal.transfer_destination?.principal)
+        };
+    }
     if (proposal?.classification === 'refund') {
         const person = catalog.people[0] || null;
         const category = catalog.categories[0] || null;
@@ -165,6 +209,7 @@ function initialDraft(proposal, catalog) {
             } : null,
             financialAccount: financialAccount ? {
                 id: financialAccount.id, label: financialAccount.label,
+                accountName: financialAccount.accountName,
                 ownerUserId: financialAccount.ownerUserId
             } : null,
             card: card ? {
@@ -423,6 +468,10 @@ class OpenFinanceSaveProposalReviewStore {
             classification: String(proposal?.classification || 'purchase'),
             semantic_review_ref: String(proposal?.semantic_review_ref || ''),
             linked_target_kind: String(proposal?.linked_target?.kind || ''),
+            transfer_origin_principal: String(proposal?.transfer_origin?.principal || ''),
+            transfer_destination_principal: String(
+                proposal?.transfer_destination?.principal || ''
+            ),
             catalog: normalizedCatalog,
             draft: initialDraft(proposal, normalizedCatalog),
             step: 'menu',

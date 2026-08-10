@@ -225,7 +225,12 @@ function assignRegisteredAccount(line, ownerPersonId, accountName) {
     Object.assign(line, accountIdentity(ownerPersonId, accountName));
 }
 
-function decorateReceiptProjection(projected, { sheetName, row, financialAccountRows = [] }) {
+function decorateReceiptProjection(projected, {
+    sheetName,
+    row,
+    financialAccountRows = [],
+    canonicalRelation = null
+}) {
     const event = projected.events[0];
     if (!event) return;
 
@@ -246,13 +251,26 @@ function decorateReceiptProjection(projected, { sheetName, row, financialAccount
             resolveRegisteredAccountName(financialAccountRows, event.owner_person_id, [row[9], row[5]])
         );
     } else if (sheetName === 'Transferências') {
+        const relation = canonicalRelation?.type === 'internal_transfer_pair'
+            ? canonicalRelation
+            : null;
+        const originOwner = String(
+            relation?.origin_owner_person_id || event.owner_person_id || ''
+        ).trim();
+        const destinationOwner = String(
+            relation?.destination_owner_person_id || event.owner_person_id || ''
+        ).trim();
+        if (relation && (!originOwner || !destinationOwner ||
+            event.owner_person_id !== originOwner)) {
+            throw new Error('invalid_canonical_transfer_relation');
+        }
         Object.assign(
             projected.lines.find(line => line.line_type === 'cash') || {},
-            accountIdentity(event.owner_person_id, row[3])
+            accountIdentity(originOwner, row[3])
         );
         Object.assign(
             projected.lines.find(line => line.line_type === 'clearing') || {},
-            accountIdentity(event.owner_person_id, row[4])
+            accountIdentity(destinationOwner, row[4])
         );
     }
 }
@@ -404,6 +422,16 @@ function applyCanonicalRefundRelation(projected, relation = null) {
         status: 'active',
         created_at: event.created_at || '1970-01-01T00:00:00.000Z'
     });
+}
+
+function applyCanonicalRelation(projected, relation = null) {
+    if (!relation) return;
+    if (relation.type === 'refund_pair') {
+        applyCanonicalRefundRelation(projected, relation);
+        return;
+    }
+    if (relation.type === 'internal_transfer_pair') return;
+    throw new Error('invalid_canonical_relation');
 }
 
 function refundRelationSourceRowRef(observation = '') {
@@ -574,8 +602,13 @@ function buildCanonicalLedgerReceiptProjection({
         event.created_at = projectedAt;
         event.updated_at = projectedAt;
     }
-    decorateReceiptProjection(projected, { sheetName, row, financialAccountRows });
-    applyCanonicalRefundRelation(projected, canonicalRelation);
+    decorateReceiptProjection(projected, {
+        sheetName,
+        row,
+        financialAccountRows,
+        canonicalRelation
+    });
+    applyCanonicalRelation(projected, canonicalRelation);
     projected.accounts = ledgerAccountsFromFinancialAccountRows(financialAccountRows);
     const publicProjection = buildCanonicalPublicProjection(projected, input);
     const runId = `receipt_${hash(operationKey)}`;

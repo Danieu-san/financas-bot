@@ -103,6 +103,7 @@ function accountsFromRows(rows = [], scopeUserIds = []) {
             return {
                 id,
                 label: owner ? `${name} · ${owner}` : name,
+                accountName: name,
                 ownerUserId: rowUserId
             };
         })

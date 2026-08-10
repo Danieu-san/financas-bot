@@ -92,6 +92,7 @@ function catalogProjection(kind, value = {}) {
     if (kind === 'financialAccounts') {
         return {
             ...base,
+            accountName: String(value.accountName || value.label || '').trim(),
             ownerUserId: String(value.ownerUserId || '').trim()
         };
     }
@@ -208,6 +209,30 @@ function revalidateRefundDraftCatalog(draft = {}, catalog = {}, linkedTarget = {
 function revalidateDraftCatalog(draft = {}, catalog = {}, classification = 'purchase',
     linkedTarget = null) {
     requireObject(draft, 'open_finance_final_draft_required');
+    if (classification === 'transfer') {
+        if (!Array.isArray(catalog.financialAccounts)) {
+            throw new Error('open_finance_final_catalog_unavailable');
+        }
+        const originAccount = assertCatalogSelection(
+            catalog, 'financialAccounts', draft.originAccount
+        );
+        const destinationAccount = assertCatalogSelection(
+            catalog, 'financialAccounts', draft.destinationAccount
+        );
+        if (!originAccount || !destinationAccount ||
+            originAccount.id === destinationAccount.id ||
+            originAccount.ownerUserId !== String(draft.originOwnerUserId || '') ||
+            destinationAccount.ownerUserId !==
+                String(draft.destinationOwnerUserId || '')) {
+            throw new Error('open_finance_final_transfer_accounts_changed');
+        }
+        return {
+            originAccount,
+            destinationAccount,
+            originOwnerUserId: String(draft.originOwnerUserId),
+            destinationOwnerUserId: String(draft.destinationOwnerUserId)
+        };
+    }
     if (classification === 'refund') {
         return revalidateRefundDraftCatalog(draft, catalog, linkedTarget || {});
     }
@@ -314,6 +339,30 @@ function buildWritePlan({ proposal, draft }) {
     const amount = Math.abs(Number(proposal.source.amount_cents)) / 100;
     if (!Number.isFinite(amount) || amount <= 0) {
         throw new Error('open_finance_final_source_changed');
+    }
+    if (proposal.classification === 'transfer') {
+        return {
+            operation: 'transfer.create',
+            sheetName: 'Transferências',
+            row: [
+                getFormattedDateOnly(date),
+                proposal.source.description,
+                amount,
+                draft.originAccount.accountName,
+                draft.destinationAccount.accountName,
+                'Transferência',
+                'Importado de par Open Finance confirmado nas duas pontas.',
+                'Conferida',
+                draft.originOwnerUserId
+            ],
+            userId: draft.originOwnerUserId,
+            canonicalRelation: {
+                type: 'internal_transfer_pair',
+                origin_owner_person_id: draft.originOwnerUserId,
+                destination_owner_person_id: draft.destinationOwnerUserId
+            },
+            financial_writes: 0
+        };
     }
     if (proposal.classification === 'income') {
         return {
@@ -431,6 +480,7 @@ function revalidateOpenFinanceSaveProposal({
     proposal,
     review,
     item,
+    pairItem = null,
     internalSource,
     catalog,
     semanticReview = null,
@@ -447,10 +497,11 @@ function revalidateOpenFinanceSaveProposal({
     const isPurchase = proposal.classification === 'purchase';
     const isIncome = proposal.classification === 'income';
     const isRefund = proposal.classification === 'refund';
+    const isTransfer = proposal.classification === 'transfer';
     if (!/^[a-f0-9]{32}$/.test(String(proposal.proposal_ref || '')) ||
         review.proposal_ref !== proposal.proposal_ref ||
         review.state !== 'ready' ||
-        (!isPurchase && !isIncome && !isRefund) ||
+        (!isPurchase && !isIncome && !isRefund && !isTransfer) ||
         proposal.provider_state !== 'POSTED' ||
         proposal.reconciliation_status !== 'new' ||
         !/^[a-f0-9]{48}$/.test(String(proposal.operation_key || ''))) {
@@ -479,6 +530,34 @@ function revalidateOpenFinanceSaveProposal({
             stableSerialize(semanticReviewSourceFingerprint(proposal.paired_source)))) {
         throw new Error('open_finance_final_refund_review_changed');
     }
+    if (isTransfer && (!semanticReview || semanticReview.review_state !== 'decided' ||
+        semanticReview.decision !== 'confirm_transfer_pair' ||
+        semanticReview.review_kind !== 'transfer' ||
+        semanticReview.review_status !== 'strong_pair_confirmation_required' ||
+        semanticReview.pair_basis !== 'shared_provider_reference' ||
+        semanticReview.review_ref !== proposal.semantic_review_ref ||
+        semanticReview.observation_ref !== proposal.observation_ref ||
+        semanticReview.pair_observation_ref !== proposal.pair_observation_ref ||
+        Number(semanticReview.generation) !== Number(proposal.generation) ||
+        stableSerialize(semanticReviewSourceFingerprint(semanticReview.source)) !==
+            stableSerialize(semanticReviewSourceFingerprint(proposal.source)) ||
+        stableSerialize(semanticReviewSourceFingerprint(semanticReview.pair_source)) !==
+            stableSerialize(semanticReviewSourceFingerprint(proposal.paired_source)))) {
+        throw new Error('open_finance_final_transfer_review_changed');
+    }
+    if (isTransfer && (
+        review.payload?.classification !== 'transfer' ||
+        review.payload?.transfer_origin_principal !== proposal.transfer_origin?.principal ||
+        review.payload?.transfer_destination_principal !==
+            proposal.transfer_destination?.principal ||
+        proposal.transfer_origin?.observation_ref ===
+            proposal.transfer_destination?.observation_ref ||
+        ![proposal.observation_ref, proposal.pair_observation_ref]
+            .includes(proposal.transfer_origin?.observation_ref) ||
+        ![proposal.observation_ref, proposal.pair_observation_ref]
+            .includes(proposal.transfer_destination?.observation_ref))) {
+        throw new Error('open_finance_final_transfer_review_changed');
+    }
     if (Number(proposal.source?.total_installments) > 1 ||
         Number(proposal.source?.installment_number) > 1) {
         throw new Error('open_finance_final_installments_unsupported');
@@ -502,23 +581,39 @@ function revalidateOpenFinanceSaveProposal({
             String(transaction.id || '') === String(proposal.paired_source?.id || '') &&
             String(transaction.account_id || '') ===
                 String(proposal.paired_source?.account_id || ''))
+        : isTransfer && pairItem
+            ? (pairItem.transactions || []).find(transaction =>
+                String(transaction.id || '') === String(proposal.paired_source?.id || '') &&
+                String(transaction.account_id || '') ===
+                    String(proposal.paired_source?.account_id || ''))
+        : null;
+    const currentPairAccount = isTransfer && pairItem
+        ? (pairItem.accounts || []).find(account =>
+            String(account.id || '') === String(proposal.paired_source?.account_id || ''))
         : null;
     if (!currentTransaction || !currentAccount ||
         stableSerialize(sourceFingerprint(currentTransaction, currentAccount.type)) !==
             stableSerialize(sourceFingerprint(proposal.source, proposal.account_type)) ||
-        (isRefund && (!currentPair ||
+        ((isRefund || isTransfer) && (!currentPair ||
             stableSerialize(semanticReviewSourceFingerprint(currentPair)) !==
-                stableSerialize(semanticReviewSourceFingerprint(proposal.paired_source))))) {
+                stableSerialize(semanticReviewSourceFingerprint(proposal.paired_source)))) ||
+        (isTransfer && (!currentPairAccount ||
+            String(pairItem.alias_code || '').trim().toLowerCase() !== proposal.pair_alias ||
+            Number(pairItem.generation) !== Number(proposal.pair_generation) ||
+            String(currentPairAccount.type || '').trim().toUpperCase() !==
+                String(proposal.pair_account_type || '').trim().toUpperCase()))) {
         throw new Error('open_finance_final_source_changed');
     }
+    const revalidationItems = isTransfer ? [item, pairItem] : [item];
     const lifecycle = classifyOpenFinanceLifecycle({
-        items: [item],
+        items: revalidationItems,
         observedAt: new Date().toISOString(),
         secret: hmacSecret
     });
     const lifecycleDecision = lifecycle.decisions.find(decision =>
         decision.observation_ref === proposal.observation_ref);
-    const expectedLifecycle = isIncome ? 'income_candidate' : isRefund ? 'refund' : 'purchase';
+    const expectedLifecycle = isIncome ? 'income_candidate' : isRefund ? 'refund' :
+        isTransfer ? 'transfer' : 'purchase';
     if (!lifecycleDecision ||
         lifecycleDecision.classification !== expectedLifecycle ||
         lifecycleDecision.provider_state !== 'POSTED') {
@@ -528,14 +623,14 @@ function revalidateOpenFinanceSaveProposal({
         observation_ref: proposal.observation_ref,
         correlation_state: 'new_event'
     }];
-    if (isRefund) {
+    if (isRefund || isTransfer) {
         candidates.push({
             observation_ref: proposal.pair_observation_ref,
             correlation_state: 'new_event'
         });
     }
     const reconciliation = reconcileOpenFinanceRuntimeCandidates({
-        items: [item],
+        items: revalidationItems,
         candidates,
         internalTransactions: internalSource.transactions,
         scopeCoverage: internalSource.scope_coverage,
@@ -573,6 +668,31 @@ function revalidateOpenFinanceSaveProposal({
             throw new Error('open_finance_final_refund_target_changed');
         }
     }
+    if (isTransfer) {
+        const pairDecision = reconciliation.decisions.find(value =>
+            value.observation_ref === proposal.pair_observation_ref);
+        if (!pairDecision || pairDecision.status !== 'new' ||
+            !reconciliation.eligibleCandidates.some(candidate =>
+                candidate.observation_ref === proposal.pair_observation_ref)) {
+            throw new Error('open_finance_final_transfer_pair_changed');
+        }
+        const { analyzeOpenFinanceProactiveReviews } =
+            require('./openFinanceProactiveReview');
+        const pairAnalysis = analyzeOpenFinanceProactiveReviews({
+            items: revalidationItems,
+            lifecycleDecisions: lifecycle.decisions,
+            reconciliationDecisions: reconciliation.decisions,
+            secret: hmacSecret
+        });
+        const strongPair = pairAnalysis.reviews.find(candidate =>
+            candidate.observation_ref === proposal.observation_ref &&
+            candidate.pair_observation_ref === proposal.pair_observation_ref);
+        if (!strongPair ||
+            strongPair.review_status !== 'strong_pair_confirmation_required' ||
+            strongPair.pair_basis !== 'shared_provider_reference') {
+            throw new Error('open_finance_final_transfer_pair_changed');
+        }
+    }
     const draft = revalidateDraftCatalog(
         review.payload?.draft,
         catalog,
@@ -589,7 +709,10 @@ function revalidateOpenFinanceSaveProposal({
         operationKey,
         writePlan: buildWritePlan({ proposal, draft }),
         sourceFingerprint: crypto.createHmac('sha256', hmacSecret)
-            .update(stableSerialize(sourceFingerprint(currentTransaction, currentAccount.type)))
+            .update(stableSerialize(isTransfer ? [
+                sourceFingerprint(currentTransaction, currentAccount.type),
+                sourceFingerprint(currentPair, currentPairAccount.type)
+            ] : sourceFingerprint(currentTransaction, currentAccount.type)))
             .digest('hex')
             .slice(0, 32),
         revalidation: {
@@ -597,6 +720,8 @@ function revalidateOpenFinanceSaveProposal({
                 ? 'posted_reviewed_income_unchanged'
                 : isRefund
                     ? 'posted_reviewed_refund_pair_unchanged'
+                    : isTransfer
+                        ? 'posted_reviewed_transfer_pair_unchanged'
                     : 'posted_purchase_unchanged',
             internal: 'new',
             catalog: 'authorized'
@@ -876,7 +1001,7 @@ async function loadDefaultFinalizationContext({
             { actorWhatsappId }
         );
         let semanticReview = null;
-        if (['income', 'refund'].includes(proposal.classification)) {
+        if (['income', 'refund', 'transfer'].includes(proposal.classification)) {
             const ProactiveReview = dependencies.OpenFinanceProactiveReviewStore ||
                 OpenFinanceProactiveReviewStore;
             const proactiveStore = new ProactiveReview({
@@ -905,6 +1030,28 @@ async function loadDefaultFinalizationContext({
         const item = vault.readItemByAlias(proposal.alias);
         if (!item) throw new Error('open_finance_final_source_unavailable');
         item.generation = Number(mappingMatches[0].generation) || 1;
+        let pairItem = null;
+        if (proposal.classification === 'transfer') {
+            const pairMappingMatches = mappings.filter(mapping =>
+                String(mapping?.alias || '').trim().toLowerCase() ===
+                    String(proposal.pair_alias || '').trim().toLowerCase());
+            if (pairMappingMatches.length !== 1 ||
+                Number(pairMappingMatches[0].generation || 1) !==
+                    Number(proposal.pair_generation)) {
+                throw new Error('open_finance_final_mapping_unavailable');
+            }
+            pairItem = proposal.pair_alias === proposal.alias
+                ? item
+                : vault.readItemByAlias(proposal.pair_alias);
+            if (!pairItem) throw new Error('open_finance_final_source_unavailable');
+            pairItem.generation = Number(pairMappingMatches[0].generation) || 1;
+            if (journal.isGenerationRevoked?.(
+                proposal.pair_alias,
+                proposal.pair_generation
+            )) {
+                throw new Error('save_proposal_revoked_generation');
+            }
+        }
         const users = await (dependencies.getActiveUsers || getActiveUsers)();
         const resolveScope = dependencies.getFinancialScopeUserIds ||
             getFinancialScopeUserIds;
@@ -914,7 +1061,10 @@ async function loadDefaultFinalizationContext({
         const internalSource = await internalReader({
             users,
             userIds,
-            aliases: [proposal.alias],
+            aliases: [...new Set([
+                proposal.alias,
+                ...(proposal.classification === 'transfer' ? [proposal.pair_alias] : [])
+            ])],
             dependencies: dependencies.internalSourceDependencies || {}
         });
         const catalogBuilder =
@@ -939,7 +1089,7 @@ async function loadDefaultFinalizationContext({
             canonicalOriginal = resolver({ env, original: pairMatches[0] });
         }
         return {
-            proposal, review, semanticReview, item, internalSource, catalog,
+            proposal, review, semanticReview, item, pairItem, internalSource, catalog,
             canonicalOriginal
         };
     } finally {
@@ -952,7 +1102,11 @@ async function loadDefaultFinalizationContext({
 
 function buildFinalConfirmationReply(validated) {
     const plan = validated.writePlan;
-    const amount = plan.sheetName === 'Saídas' ? plan.row[4] : plan.row[3];
+    const amount = plan.sheetName === 'Saídas'
+        ? plan.row[4]
+        : plan.sheetName === 'Transferências'
+            ? plan.row[2]
+            : plan.row[3];
     return [
         'Revalidação final concluída na fonte Open Finance e na planilha familiar.',
         `Data: *${plan.row[0]}*`,
