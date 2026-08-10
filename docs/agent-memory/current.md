@@ -19,7 +19,7 @@ producao.
 - Gate 37: `GO TECNICO LOCAL INDEPENDENTE`; transferencias e reservas seguem
   para revisao proativa read-only, com principal separado de rendimento.
 - Gate 38.1: `GO TECNICO LOCAL INDEPENDENTE; SEM DEPLOY`.
-- Gate 38.2: `CANDIDATO LOCAL VERDE; AGUARDA AUDITORIA; SEM DEPLOY`.
+- Gate 38.2: `RECOVERY PROBATORIO LOCAL VERDE; AGUARDA REAUDITORIA; SEM DEPLOY`.
 
 O nucleo ja auditado de escrita de compras permanece inalterado e aceita apenas
 `purchase/POSTED/new` nao parcelada depois de revisao guiada, revalidacao e
@@ -39,6 +39,16 @@ um novo `sim` nao e herdado como confirmacao financeira.
 - suite hermetica ampla unica: `1599/1589/0/10`, zero falhas;
 - manifesto:
   `docs/audit/199-open-finance-income-write-candidate-2026-08-10.md`.
+
+A auditoria independente do hash `9a7f20d6f106a8c9dda311d371faa1e87bc5563b`
+emitiu NO-GO somente probatorio: o double de Google ocultava uma eventual
+segunda chamada com a mesma operation key e o cenario nao reabria
+explicitamente a finalizacao. O recovery agora conta tentativas antes da
+deduplicacao e recarrega o modulo/stores antes do replay. Focais verdes:
+handler `1/1` e finalizacao relacionada `28/28`. Manifesto de recovery:
+`docs/audit/200-open-finance-income-write-proof-recovery-candidate-2026-08-10.md`.
+Suite hermetica ampla final: `1599/1589/0/10`, zero falhas; cobertura de
+linhas `91,04%`.
 
 Nenhuma flag, servidor, planilha, WhatsApp ou dado real foi alterado.
 
@@ -78,9 +88,8 @@ Nenhuma flag, servidor, planilha, WhatsApp ou dado real foi alterado.
 
 ## Próxima ação exata
 
-Publicar o candidato do Gate 38.2 e obter auditoria independente pelo hash
-imutavel. Ativacao `confirm` e smokes ficam bloqueados enquanto Daniel estiver
-ausente.
+Publicar o recovery em novo hash e obter reauditoria independente. Ativacao
+`confirm` e smokes ficam bloqueados enquanto Daniel estiver ausente.
 
 ## Capacidade para retomar
 

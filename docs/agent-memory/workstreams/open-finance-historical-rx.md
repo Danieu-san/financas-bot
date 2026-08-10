@@ -1126,7 +1126,7 @@ Evidencia:
 Estado: `HOLD SEGURO ANTES DE UPLOAD; AGUARDA IP DO EXECUTOR POR CONSULTA
 EXPLICITAMENTE AUTORIZADA`.
 
-## Gate 38.2 - candidato de entrada genuina
+## Gate 38.2 - recovery probatorio de entrada genuina
 
 Atualizado em: 2026-08-10
 
@@ -1136,8 +1136,14 @@ categoria de entrada, recebimento e conta, revalidacao integral e segundo
 `sim`. Somente entao o writer produz uma linha em `Entradas`; cartao,
 classificacao alterada, fonte alterada e catalogo alterado falham fechado.
 
-Evidencia local: focais/regressoes `46/46`, handler publico `1/1` e suite
-hermetica ampla unica `1599/1589/0/10`, zero falhas. Manifesto:
-`docs/audit/199-open-finance-income-write-candidate-2026-08-10.md`.
+O primeiro parecer independente aprovou as fronteiras estaticas, mas emitiu
+NO-GO probatorio porque o double externo deduplicava antes de tornar visivel
+uma eventual segunda chamada e faltava replay explicito apos reabertura. O
+recovery conta tentativas antes da deduplicacao, recarrega o finalizador e
+reabre os stores antes do replay.
 
-Estado: `CANDIDATO LOCAL VERDE; AGUARDA HASH E AUDITORIA; SEM DEPLOY`.
+Evidencia local do recovery: handler publico `1/1`, finalizacao relacionada
+`28/28` e suite hermetica ampla final `1599/1589/0/10`, zero falhas. Manifesto:
+`docs/audit/200-open-finance-income-write-proof-recovery-candidate-2026-08-10.md`.
+
+Estado: `RECOVERY PROBATORIO LOCAL VERDE; AGUARDA HASH E REAUDITORIA; SEM DEPLOY`.

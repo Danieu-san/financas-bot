@@ -4,7 +4,7 @@ Atualizado em: 2026-08-10
 
 ## Estado
 
-`CANDIDATO LOCAL VERDE; AGUARDA AUDITORIA INDEPENDENTE; SEM DEPLOY`.
+`RECOVERY PROBATORIO LOCAL VERDE; AGUARDA REAUDITORIA; SEM DEPLOY`.
 
 ## Objetivo
 
@@ -55,7 +55,17 @@ Focais e regressao de compra `46/46`; handler publico `1/1`; suite hermetica
 ampla unica `1599/1589/0/10`, zero falhas. Manifesto em
 `docs/audit/199-open-finance-income-write-candidate-2026-08-10.md`.
 
+A auditoria do hash `9a7f20d6f106a8c9dda311d371faa1e87bc5563b`
+emitiu NO-GO probatorio: o double de Google deduplicava por `operationKey` e
+nao deixava visivel uma eventual segunda chamada do writer; faltava tambem um
+replay explicito apos reabertura. O recovery registra tentativas antes da
+deduplicacao e recarrega a finalizacao antes do replay. Focais do recovery:
+handler `1/1` e finalizacao relacionada `28/28`.
+
+Suite hermetica ampla final do recovery: `1599/1589/0/10`, zero falhas;
+cobertura de linhas `91,04%`.
+
 ## Proxima acao
 
-Publicar o commit sanitizado e submeter o hash imutavel a uma unica auditoria
-independente. Sem GO independente, o Gate 38.3 nao inicia.
+Publicar o recovery sanitizado e submeter o novo hash a uma unica reauditoria.
+Sem GO independente, o Gate 38.3 nao inicia.

@@ -120,6 +120,7 @@ const sheetReadErrors = new Map();
 const sheetReadCalls = [];
 const deletedRows = [];
 const appendedRows = [];
+const appendRowAttempts = [];
 const seenAppendOperationKeys = new Set();
 const seenUpdateOperationKeys = new Set();
 const createdCalendarEvents = [];
@@ -204,6 +205,7 @@ function resetSheets() {
     }
     deletedRows.length = 0;
     appendedRows.length = 0;
+    appendRowAttempts.length = 0;
     seenAppendOperationKeys.clear();
     seenUpdateOperationKeys.clear();
     createdCalendarEvents.length = 0;
@@ -353,6 +355,7 @@ function installMocks() {
             appendRowToSheet: async (sheetName, row, options = {}) => {
                 const name = getSheetName(sheetName);
                 if (!sheets[name]) sheets[name] = [[]];
+                appendRowAttempts.push({ sheetName: name, row, options });
                 if (appendRowDelayMs > 0) {
                     await new Promise(resolve => setTimeout(resolve, appendRowDelayMs));
                 }
@@ -5862,11 +5865,35 @@ stateMachineTest('gate 38.2 public handler promotes, reviews and writes one genu
         assert.equal(appendedRows[0].row[8], USER_ID);
         assert.equal(appendedRows[0].options.requireUserScoped, true);
         assert.match(String(appendedRows[0].options.operationKey), /^[a-f0-9]{48}$/);
+        const committedProposalRef = String(appendedRows[0].options.messageId)
+            .replace('open-finance-final:', '');
+        assert.match(committedProposalRef, /^[a-f0-9]{32}$/);
+        assert.equal(appendRowAttempts.length, 1);
         assert.equal(userStateManager.getState(SENDER), undefined);
 
         const replay = await send('sim');
         assert.doesNotMatch(replay, /salvo com sucesso/i);
         assert.equal(appendedRows.length, 1);
+        assert.equal(appendRowAttempts.length, 1);
+
+        const finalizationModulePath = require.resolve(
+            '../src/openFinance/openFinanceSaveProposalFinalization'
+        );
+        delete require.cache[finalizationModulePath];
+        const {
+            handleOpenFinanceSaveProposalFinalizationReply: handleAfterRestart
+        } = require(finalizationModulePath);
+        const replayAfterRestart = await handleAfterRestart({
+            messageBody: 'sim',
+            actorWhatsappId: SENDER,
+            userId: USER_ID,
+            expectedProposalRef: committedProposalRef,
+            env: process.env
+        });
+        assert.equal(replayAfterRestart.state, 'receipt_delivered');
+        assert.equal(replayAfterRestart.financial_writes, 0);
+        assert.equal(appendedRows.length, 1);
+        assert.equal(appendRowAttempts.length, 1);
     } finally {
         for (const name of variableNames) {
             if (previous[name] === undefined) delete process.env[name];

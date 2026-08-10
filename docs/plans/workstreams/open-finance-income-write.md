@@ -2,7 +2,7 @@
 
 Atualizado em: 2026-08-10
 
-Estado: `CANDIDATO LOCAL VERDE; AGUARDA AUDITORIA INDEPENDENTE`.
+Estado: `RECOVERY PROBATORIO LOCAL VERDE; AGUARDA REAUDITORIA`.
 
 ## Objetivo
 
@@ -71,3 +71,15 @@ O resultado maximo nesta ausencia de Daniel e `GO TECNICO LOCAL; SEM DEPLOY`.
 - handler publico completo do fluxo de entrada: `1/1`;
 - suite hermetica ampla unica: `1599/1589/0/10`, zero falhas;
 - manifesto: `docs/audit/199-open-finance-income-write-candidate-2026-08-10.md`.
+
+## Recovery probatorio
+
+O primeiro parecer independente aprovou a implementacao estatica, mas emitiu
+NO-GO porque o double de Google deduplicava `operationKey` antes da contagem e
+o teste nao explicitava replay apos reabertura. O recovery conta tentativas de
+append antes dessa deduplicacao, recarrega o modulo de finalizacao, reabre os
+stores duraveis e exige que o replay nao invoque novamente a borda de escrita.
+Manifesto:
+`docs/audit/200-open-finance-income-write-proof-recovery-candidate-2026-08-10.md`.
+Focais verdes `1/1` e `28/28`; suite hermetica ampla final
+`1599/1589/0/10`, zero falhas.
