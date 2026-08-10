@@ -2,6 +2,17 @@
 
 Atualizado em: 2026-08-09
 
+## Gate 35 — Fase C concluida em REVIEWED
+
+As vinte e tres pendencias receberam decisoes explicitas de Daniel sobre os
+conjuntos exatos: uma `distinct_rows` e vinte e duas `reserve_application`.
+Store `reviewed`, zero pendencias, restart verde, replay do envelope original
+sem reabrir revisao, HTML removido e `financial_writes=0`.
+
+O blocker `investment_history_unlinked` nao foi inferido nem alterado. Proxima
+fronteira: Fase D read-only em snapshot novo. Evidencia:
+`docs/audit/186-open-finance-historical-rx-gate35-phase-c-reviewed-2026-08-09.md`.
+
 ## Gate 35 — Fase B em REVIEW_CANDIDATE_READY
 
 O snapshot privado read-only validou quatro fontes e nove segmentos. O store

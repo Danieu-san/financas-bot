@@ -2,6 +2,19 @@
 
 Atualizado em: 2026-08-09
 
+## Gate 35 — Fase C concluida em REVIEWED
+
+Daniel aplicou `distinct_rows` a uma ocorrencia e `reserve_application` a vinte
+e duas ocorrencias, sempre sobre o conjunto exato exibido. O store cifrado
+ficou `reviewed`, com zero pendencias, sobreviveu a restart e nao aceitou o
+envelope original como replay de estado pendente.
+
+Paginas temporarias removidas e `financial_writes=0`. O blocker de historico de
+investimento nao ligado permanece fora de inferencia. Evidencia:
+`docs/audit/186-open-finance-historical-rx-gate35-phase-c-reviewed-2026-08-09.md`.
+
+Proximo passo: Fase D read-only com novo snapshot e recalculo factual.
+
 ## Gate 35 — Fase B em REVIEW_CANDIDATE_READY
 
 A copia privada read-only validou quatro fontes, nove segmentos, cinco contas

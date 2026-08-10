@@ -98,6 +98,16 @@ Sequencia:
 
 Nenhuma selecao cria lancamento ou proposta de escrita.
 
+### Execucao de 2026-08-09
+
+Resultado: `REVIEWED`, `pending_count=0`, `financial_writes=0`. Daniel aplicou
+`distinct_rows` a uma ocorrencia do primeiro grupo e `reserve_application` a
+vinte e duas ocorrencias do segundo. Conjunto exato e codigo coletivo foram
+validados antes de cada transacao; restart preservou o estado, o envelope
+original nao reabriu a revisao e os HTMLs temporarios foram removidos.
+Evidencia:
+`docs/audit/186-open-finance-historical-rx-gate35-phase-c-reviewed-2026-08-09.md`.
+
 ## Fase D — recalculo privado
 
 Somente com snapshot `reviewed`, `pending_count=0` e `financial_writes=0`:
