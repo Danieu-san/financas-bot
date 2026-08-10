@@ -6629,6 +6629,16 @@ function openFinanceStateData(proposalRef, batch = null) {
     };
 }
 
+const OPEN_FINANCE_IDENTITY_BOUND_STATE_ACTIONS = new Set([
+    'awaiting_open_finance_save_review',
+    'awaiting_open_finance_final_confirmation'
+]);
+
+function hasOpenFinanceStateProposalIdentity(state) {
+    return typeof state?.data?.proposalRef === 'string' &&
+        Boolean(state.data.proposalRef.trim());
+}
+
 function setOpenFinanceConversationState(senderId, state) {
     userStateManager.setStateDurably(senderId, state);
 }
@@ -9442,6 +9452,24 @@ async function processMessage(msg) {
             await sendPlainMessage(
                 msg,
                 'A próxima conferência continua reservada. Não consegui abri-la agora; envie *continuar* mais tarde. Nada foi salvo.'
+            );
+        }
+        return;
+    }
+
+    if (OPEN_FINANCE_IDENTITY_BOUND_STATE_ACTIONS.has(currentState?.action) &&
+        !hasOpenFinanceStateProposalIdentity(currentState)) {
+        logger.warn(`[open-finance] malformed_identity_bound_state action=${currentState.action} sender=${logger.redactIdentifier(senderId)}`);
+        if (isGlobalConversationCancel(messageBody)) {
+            clearOpenFinanceConversationState(senderId);
+            await sendPlainMessage(
+                msg,
+                'Opera\u00e7\u00e3o cancelada. Nenhum dado pendente foi salvo.'
+            );
+        } else {
+            await sendPlainMessage(
+                msg,
+                'N\u00e3o consegui identificar esta confer\u00eancia com seguran\u00e7a. Nada foi salvo. Envie *cancelar* para encerrar e abra a proposta novamente.'
             );
         }
         return;

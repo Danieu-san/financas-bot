@@ -6067,6 +6067,31 @@ stateMachineTest('gate 38.3 public handler writes one confirmed refund on the or
         });
         orphanFinalization.close();
 
+        const offeredState = userStateManager.getState(SENDER);
+        userStateManager.setStateDurably(SENDER, {
+            action: 'awaiting_open_finance_save_review',
+            data: { batch: offeredState.data.batch || null }
+        });
+        const malformedReviewReply = await send('sim');
+        assert.match(malformedReviewReply, /identificar esta confer\u00eancia com seguran\u00e7a/i);
+        assert.equal(appendedRows.length, 0);
+        assert.equal(userStateManager.getState(SENDER).action,
+            'awaiting_open_finance_save_review');
+        assert.equal(userStateManager.getState(SENDER).data.proposalRef, undefined);
+        const orphanAfterMalformedReview = new OpenFinanceSaveProposalFinalizationStore({
+            databasePath: paths.preview,
+            secret,
+            authorizedWhatsAppIds: [SENDER]
+        });
+        try {
+            assert.equal(orphanAfterMalformedReview.read(orphanProposalRef, {
+                actorWhatsappId: SENDER
+            }).state, 'awaiting_confirmation');
+        } finally {
+            orphanAfterMalformedReview.close();
+        }
+        userStateManager.setStateDurably(SENDER, offeredState);
+
         assert.match(await send('sim'), /Confira a proposta/i);
         assert.equal(appendedRows.length, 0);
         assert.equal(userStateManager.getState(SENDER).action,
@@ -6090,6 +6115,20 @@ stateMachineTest('gate 38.3 public handler writes one confirmed refund on the or
         assert.equal(appendedRows.length, 0);
         assert.equal(userStateManager.getState(SENDER).action,
             'awaiting_open_finance_final_confirmation');
+
+        const exactFinalState = userStateManager.getState(SENDER);
+        userStateManager.setStateDurably(SENDER, {
+            action: 'awaiting_open_finance_final_confirmation',
+            data: { batch: exactFinalState.data.batch || null }
+        });
+        const malformedFinalReply = await send('sim');
+        assert.match(malformedFinalReply, /identificar esta confer\u00eancia com seguran\u00e7a/i);
+        assert.equal(appendedRows.length, 0);
+        assert.equal(appendRowAttempts.length, 0);
+        assert.equal(userStateManager.getState(SENDER).action,
+            'awaiting_open_finance_final_confirmation');
+        assert.equal(userStateManager.getState(SENDER).data.proposalRef, undefined);
+        userStateManager.setStateDurably(SENDER, exactFinalState);
 
         const receipt = await send('sim');
         assert.match(receipt, /Recibo/i);

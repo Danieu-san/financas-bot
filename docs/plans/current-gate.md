@@ -4,7 +4,7 @@ Atualizado em: 2026-08-10
 
 ## Estado
 
-`CANDIDATO DE RECOVERY LOCAL VERDE; AGUARDA REAUDITORIA; SEM DEPLOY`.
+`SEGUNDO CANDIDATO DE RECOVERY LOCAL VERDE; AGUARDA REAUDITORIA; SEM DEPLOY`.
 
 ## Objetivo
 
@@ -44,6 +44,8 @@ compra original ainda nao salva e par neutralizado permanecem inelegiveis.
 7. O append do reembolso deve manter o vinculo causal necessario para o ledger
    compensar a compra original sem criar receita genuina.
 8. Producao continua com escrita desligada.
+9. Estado de revisao ou confirmacao final sem `proposalRef` falha fechado antes
+   de qualquer descoberta global, leitura de outra finalizacao ou escrita.
 
 ## Não escopo
 
@@ -68,5 +70,6 @@ independente. Estado maximo: `GO TECNICO LOCAL; SEM DEPLOY`.
 
 ## Proxima acao
 
-Publicar o recovery de identidade causal em novo hash, reauditar o diff focal
-no Chat e confrontar o parecer com a evidencia local. Nao tocar producao.
+Publicar o recovery fail-closed para estado malformado em novo hash, reauditar
+o diff focal no Chat e confrontar o parecer com a evidencia local. Nao tocar
+producao.
