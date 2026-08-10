@@ -208,7 +208,7 @@ function revalidateRefundDraftCatalog(draft = {}, catalog = {}, linkedTarget = {
 }
 
 function revalidateDraftCatalog(draft = {}, catalog = {}, classification = 'purchase',
-    linkedTarget = null) {
+    linkedTarget = null, principal = '') {
     requireObject(draft, 'open_finance_final_draft_required');
     if (classification === 'reserve_transfer') {
         if (!Array.isArray(catalog.financialAccounts)) {
@@ -256,7 +256,25 @@ function revalidateDraftCatalog(draft = {}, catalog = {}, classification = 'purc
     if (classification === 'refund') {
         return revalidateRefundDraftCatalog(draft, catalog, linkedTarget || {});
     }
-    if (classification === 'income') {
+    if (classification === 'investment_income') {
+        principal = String(principal || '').trim().toLowerCase();
+        const people = (catalog.people || []).filter(item =>
+            String(item.label || '').trim().toLowerCase().split(/\s+/)[0] === principal);
+        const categories = (catalog.incomeCategories || catalog.categories || [])
+            .filter(item => String(item.category || '').trim().toLowerCase() === 'investimentos');
+        const ownerId = people.length === 1 ? people[0].id : '';
+        const financialAccounts = (catalog.financialAccounts || []).filter(item =>
+            item.ownerUserId === ownerId &&
+            ['bank', 'savings', 'reserve'].includes(String(item.accountType || '')));
+        catalog = {
+            ...catalog,
+            people,
+            categories,
+            paymentMethods: catalog.receiptMethods || catalog.paymentMethods,
+            financialAccounts,
+            cards: []
+        };
+    } else if (classification === 'income') {
         catalog = {
             ...catalog,
             categories: catalog.incomeCategories || catalog.categories,
@@ -287,7 +305,7 @@ function revalidateDraftCatalog(draft = {}, catalog = {}, classification = 'purc
     }
     let financialAccount = null;
     let card = null;
-    if (classification === 'income') {
+    if (['income', 'investment_income'].includes(classification)) {
         if (!['PIX', 'Conta Corrente', 'Conta Poupança']
             .includes(paymentMethod.value) || draft.card) {
             throw new Error('open_finance_final_payment_method_forbidden');
@@ -437,6 +455,30 @@ function buildWritePlan({ proposal, draft }) {
             financial_writes: 0
         };
     }
+    if (proposal.classification === 'investment_income') {
+        return {
+            operation: 'income.create',
+            sheetName: 'Entradas',
+            row: [
+                getFormattedDateOnly(date),
+                proposal.source.description,
+                draft.category.category,
+                amount,
+                draft.person.label,
+                draft.paymentMethod.value,
+                'N\u00e3o',
+                'Rendimento de investimento importado do Open Finance.',
+                draft.person.id,
+                draft.financialAccount.label
+            ],
+            userId: draft.person.id,
+            canonicalRelation: {
+                type: 'investment_income',
+                owner_person_id: draft.person.id
+            },
+            financial_writes: 0
+        };
+    }
     if (proposal.classification === 'refund') {
         const target = proposal.linked_target || {};
         const canonicalRelation = {
@@ -549,13 +591,15 @@ function revalidateOpenFinanceSaveProposal({
 
     const isPurchase = proposal.classification === 'purchase';
     const isIncome = proposal.classification === 'income';
+    const isInvestmentIncome = proposal.classification === 'investment_income';
     const isRefund = proposal.classification === 'refund';
     const isTransfer = proposal.classification === 'transfer';
     const isReserveTransfer = proposal.classification === 'reserve_transfer';
     if (!/^[a-f0-9]{32}$/.test(String(proposal.proposal_ref || '')) ||
         review.proposal_ref !== proposal.proposal_ref ||
         review.state !== 'ready' ||
-        (!isPurchase && !isIncome && !isRefund && !isTransfer && !isReserveTransfer) ||
+        (!isPurchase && !isIncome && !isInvestmentIncome && !isRefund && !isTransfer &&
+            !isReserveTransfer) ||
         proposal.provider_state !== 'POSTED' ||
         proposal.reconciliation_status !== 'new' ||
         !/^[a-f0-9]{48}$/.test(String(proposal.operation_key || ''))) {
@@ -569,6 +613,22 @@ function revalidateOpenFinanceSaveProposal({
         stableSerialize(semanticReviewSourceFingerprint(semanticReview.source)) !==
             stableSerialize(semanticReviewSourceFingerprint(proposal.source)))) {
         throw new Error('open_finance_final_income_review_changed');
+    }
+    if (isInvestmentIncome && (!semanticReview ||
+        semanticReview.review_state !== 'decided' ||
+        semanticReview.decision !== 'investment_income' ||
+        semanticReview.review_kind !== 'reserve' ||
+        semanticReview.review_ref !== proposal.semantic_review_ref ||
+        semanticReview.observation_ref !== proposal.observation_ref ||
+        Number(semanticReview.generation) !== Number(proposal.generation) ||
+        String(semanticReview.provider_operation_type || '').trim().toUpperCase() !==
+            String(proposal.source?.operation_type || '').trim().toUpperCase() ||
+        !/^RENDIMENTO_APLIC_FINANCEIRA(?:_|$)/.test(
+            String(proposal.source?.operation_type || '').trim().toUpperCase()) ||
+        Number(proposal.source?.amount_cents) <= 0 ||
+        stableSerialize(semanticReviewSourceFingerprint(semanticReview.source)) !==
+            stableSerialize(semanticReviewSourceFingerprint(proposal.source)))) {
+        throw new Error('open_finance_final_investment_income_review_changed');
     }
     if (isRefund && (!semanticReview || semanticReview.review_state !== 'decided' ||
         semanticReview.decision !== 'confirm_pair' ||
@@ -634,6 +694,11 @@ function revalidateOpenFinanceSaveProposal({
         review.payload?.reserve_direction !== proposal.reserve_direction)) {
         throw new Error('open_finance_final_reserve_review_changed');
     }
+    if (isInvestmentIncome && (
+        review.payload?.classification !== 'investment_income' ||
+        proposal.investment_semantic !== 'income_only')) {
+        throw new Error('open_finance_final_investment_income_review_changed');
+    }
     if (Number(proposal.source?.total_installments) > 1 ||
         Number(proposal.source?.installment_number) > 1) {
         throw new Error('open_finance_final_installments_unsupported');
@@ -670,6 +735,9 @@ function revalidateOpenFinanceSaveProposal({
     if (!currentTransaction || !currentAccount ||
         stableSerialize(sourceFingerprint(currentTransaction, currentAccount.type)) !==
             stableSerialize(sourceFingerprint(proposal.source, proposal.account_type)) ||
+        (isInvestmentIncome &&
+            String(currentTransaction.operation_type || '').trim().toUpperCase() !==
+                String(proposal.source?.operation_type || '').trim().toUpperCase()) ||
         ((isRefund || isTransfer) && (!currentPair ||
             stableSerialize(semanticReviewSourceFingerprint(currentPair)) !==
                 stableSerialize(semanticReviewSourceFingerprint(proposal.paired_source)))) ||
@@ -688,7 +756,8 @@ function revalidateOpenFinanceSaveProposal({
     });
     const lifecycleDecision = lifecycle.decisions.find(decision =>
         decision.observation_ref === proposal.observation_ref);
-    const expectedLifecycle = isIncome ? 'income_candidate' : isRefund ? 'refund' :
+    const expectedLifecycle = (isIncome || isInvestmentIncome) ? 'income_candidate' :
+        isRefund ? 'refund' :
         isTransfer ? 'transfer' : isReserveTransfer
             ? (proposal.reserve_direction === 'application'
                 ? 'purchase_candidate'
@@ -790,11 +859,29 @@ function revalidateOpenFinanceSaveProposal({
             throw new Error('open_finance_final_reserve_review_changed');
         }
     }
+    if (isInvestmentIncome) {
+        const { analyzeOpenFinanceProactiveReviews } =
+            require('./openFinanceProactiveReview');
+        const incomeAnalysis = analyzeOpenFinanceProactiveReviews({
+            items: [item],
+            lifecycleDecisions: lifecycle.decisions,
+            reconciliationDecisions: reconciliation.decisions,
+            secret: hmacSecret
+        });
+        const currentIncomeReview = incomeAnalysis.reviews.find(candidate =>
+            candidate.observation_ref === proposal.observation_ref &&
+            candidate.review_kind === 'reserve');
+        if (!currentIncomeReview ||
+            currentIncomeReview.review_status !== semanticReview.review_status) {
+            throw new Error('open_finance_final_investment_income_review_changed');
+        }
+    }
     const draft = revalidateDraftCatalog(
         review.payload?.draft,
         catalog,
         proposal.classification,
-        proposal.linked_target
+        proposal.linked_target,
+        proposal.principal
     );
     const operationKey = crypto.createHmac('sha256', hmacSecret)
         .update(`open-finance-final:${proposal.operation_key}:${stableSerialize(draft)}`)
@@ -815,6 +902,8 @@ function revalidateOpenFinanceSaveProposal({
         revalidation: {
             provider: isIncome
                 ? 'posted_reviewed_income_unchanged'
+                : isInvestmentIncome
+                    ? 'posted_reviewed_investment_income_unchanged'
                 : isRefund
                     ? 'posted_reviewed_refund_pair_unchanged'
                     : isTransfer
@@ -1100,7 +1189,7 @@ async function loadDefaultFinalizationContext({
             { actorWhatsappId }
         );
         let semanticReview = null;
-        if (['income', 'refund', 'transfer', 'reserve_transfer']
+        if (['income', 'investment_income', 'refund', 'transfer', 'reserve_transfer']
             .includes(proposal.classification)) {
             const ProactiveReview = dependencies.OpenFinanceProactiveReviewStore ||
                 OpenFinanceProactiveReviewStore;

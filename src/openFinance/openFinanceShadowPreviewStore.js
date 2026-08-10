@@ -890,6 +890,7 @@ class OpenFinanceShadowPreviewStore {
         const observationRef = String(proposal?.observation_ref || '');
         const classification = String(proposal?.classification || '');
         const isIncome = classification === 'income';
+        const isInvestmentIncome = classification === 'investment_income';
         const isRefund = classification === 'refund';
         const isTransfer = classification === 'transfer';
         const isReserveTransfer = classification === 'reserve_transfer';
@@ -900,14 +901,18 @@ class OpenFinanceShadowPreviewStore {
                 ? `reviewed-transfer-save-proposal:${reviewRef}:${observationRef}:${pairObservationRef}`
                 : isReserveTransfer
                     ? `reviewed-reserve-save-proposal:${reviewRef}:${observationRef}`
-                : `reviewed-income-save-proposal:${reviewRef}:${observationRef}`;
+                : isInvestmentIncome
+                    ? `reviewed-investment-income-save-proposal:${reviewRef}:${observationRef}`
+                    : `reviewed-income-save-proposal:${reviewRef}:${observationRef}`;
         const operationLabel = isRefund
             ? `open-finance-refund-write:${reviewRef}:${observationRef}:${pairObservationRef}`
             : isTransfer
                 ? `open-finance-transfer-write:${reviewRef}:${observationRef}:${pairObservationRef}`
                 : isReserveTransfer
                     ? `open-finance-reserve-write:${reviewRef}:${observationRef}`
-                : `open-finance-income-write:${reviewRef}:${observationRef}`;
+                : isInvestmentIncome
+                    ? `open-finance-investment-income-write:${reviewRef}:${observationRef}`
+                    : `open-finance-income-write:${reviewRef}:${observationRef}`;
         const refundTarget = proposal?.linked_target || {};
         const validRefundTarget = !isRefund || (
             ['card', 'bank'].includes(refundTarget.kind) &&
@@ -984,11 +989,17 @@ class OpenFinanceShadowPreviewStore {
         if (!/^[a-f0-9]{32}$/.test(proposalRef) ||
             !/^[a-f0-9]{32}$/.test(reviewRef) ||
             !/^[a-f0-9]{32}$/.test(observationRef) ||
-            (!isIncome && !isRefund && !isTransfer && !isReserveTransfer) ||
+            (!isIncome && !isInvestmentIncome && !isRefund && !isTransfer &&
+                !isReserveTransfer) ||
             ((isRefund || isTransfer) && !/^[a-f0-9]{32}$/.test(pairObservationRef)) ||
             proposalRef !== this.#hmac(identityLabel) ||
             aliasRef !== proposal.alias_ref ||
             (isIncome && proposal.source_classification !== 'income_candidate') ||
+            (isInvestmentIncome && (proposal.source_classification !== 'reserve_candidate' ||
+                proposal.investment_semantic !== 'income_only' ||
+                Number(proposal.source?.amount_cents) <= 0 ||
+                !/^RENDIMENTO_APLIC_FINANCEIRA(?:_|$)/.test(
+                    String(proposal.source?.operation_type || '').trim().toUpperCase()))) ||
             (isRefund && (proposal.source_classification !== 'refund' ||
                 proposal.pair_reconciliation_status !== 'matched' ||
                 !/^[a-f0-9]{32}$/.test(String(proposal.pair_reconciliation_ref || '')) ||
@@ -1021,7 +1032,9 @@ class OpenFinanceShadowPreviewStore {
                 ? `reviewed-refund-save-proposal-transaction:${reviewRef}:${observationRef}:${pairObservationRef}`
                 : isTransfer
                     ? `reviewed-transfer-save-proposal-transaction:${reviewRef}:${observationRef}:${pairObservationRef}`
-                : `reviewed-income-save-proposal-transaction:${reviewRef}:${observationRef}`
+                : isInvestmentIncome
+                    ? `reviewed-investment-income-save-proposal-transaction:${reviewRef}:${observationRef}`
+                    : `reviewed-income-save-proposal-transaction:${reviewRef}:${observationRef}`
         );
         const rows = this.db.prepare(`SELECT proposal_ref,transaction_ref,family_scope_ref,
             alias_ref,generation,encrypted_payload,payload_version,proposal_state,

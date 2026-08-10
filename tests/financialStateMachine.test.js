@@ -6294,6 +6294,145 @@ stateMachineTest('gate 38.5 public handler writes one neutral reserve applicatio
     }
 });
 
+stateMachineTest('gate 38.6 public handler writes one investment income exactly once', async () => {
+    resetSheets();
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-public-investment-income-'));
+    const secret = 'public-investment-income-secret-123456789';
+    const paths = {
+        secret: path.join(directory, 'secret.txt'),
+        mapping: path.join(directory, 'mapping.json'),
+        staging: path.join(directory, 'staging.sqlite'),
+        preview: path.join(directory, 'preview.sqlite'),
+        journal: path.join(directory, 'journal.sqlite'),
+        outbox: path.join(directory, 'outbox.sqlite')
+    };
+    const observedAt = new Date().toISOString();
+    const transaction = {
+        id: 'public-investment-income',
+        account_id: 'daniel-bank',
+        amount_cents: 325,
+        description: 'Rendimento Caixinha',
+        date: observedAt,
+        status: 'POSTED',
+        operation_type: 'RENDIMENTO_APLIC_FINANCEIRA'
+    };
+    const item = {
+        id: 'public-investment-income-item', alias_code: 'daniel_nubank',
+        owner_scope: 'daniel', generation: 1,
+        accounts: [{ id: 'daniel-bank', type: 'BANK', name: 'Nubank Daniel' }],
+        transactions: [transaction], bills: [], investments: []
+    };
+    fs.writeFileSync(paths.secret, secret, { mode: 0o600 });
+    fs.writeFileSync(paths.mapping, JSON.stringify([{
+        itemId: item.id, alias: item.alias_code, ownerScope: 'daniel', generation: 1
+    }]));
+    fs.writeFileSync(paths.outbox, '');
+    const vault = new OpenFinanceLiveStagingVault({
+        databasePath: paths.staging, secret
+    });
+    vault.ingestSnapshot({
+        provider: 'pluggy', mode: 'live_readonly_staging',
+        event_id: 'public-investment-income-event', observed_at: observedAt,
+        collection_health: { complete: true, warning_count: 0 }, items: [item]
+    });
+    vault.close();
+    const journal = new OpenFinanceRevocationJournal({
+        databasePath: paths.journal, secret
+    });
+    journal.close();
+    const observation = observationRef(secret, item.id,
+        transaction.account_id, transaction.id);
+    const proactive = new OpenFinanceProactiveReviewStore({
+        databasePath: paths.preview, secret
+    });
+    const reviewCode = proactive.ingest({
+        reviews: [{
+            observation_ref: observation, source_alias: item.alias_code,
+            generation: 1, classification: 'income_candidate', review_kind: 'reserve',
+            review_status: 'provider_semantic_confirmation_required',
+            suggested_decision: 'investment_income',
+            provider_operation_type: 'RENDIMENTO_APLIC_FINANCEIRA',
+            save_eligible: false, financial_writes: 0
+        }],
+        items: [item],
+        policies: [{ alias: item.alias_code, principal: 'daniel', recipients: ['daniel'] }],
+        confirmationActors: [{ principal: 'daniel', whatsappId: SENDER }],
+        observedAt
+    }).links[0].review_code;
+    proactive.close();
+
+    sheets.Users[1][3] = 'Daniel';
+    userService.invalidateUserCaches();
+    sheets['Contas Financeiras'].push([
+        'Daniel - Nubank', 'bank', 0, '2025-01-01', 'ATIVA',
+        'BRL', 'Daniel', USER_ID, ''
+    ]);
+    usesPersonalSpreadsheet = true;
+    const variableNames = [
+        'OPEN_FINANCE_ALERT_MODE', 'OPEN_FINANCE_SAVE_PROPOSAL_MODE',
+        'OPEN_FINANCE_SHADOW_PREVIEW_MODE', 'OPEN_FINANCE_RECONCILIATION_MODE',
+        'OPEN_FINANCE_WRITE_MODE', 'OPEN_FINANCE_WRITE_APPROVED',
+        'OPEN_FINANCE_LIVE_STAGING_SECRET_FILE', 'OPEN_FINANCE_LIVE_STAGING_DB',
+        'OPEN_FINANCE_REVOCATION_JOURNAL_DB', 'OPEN_FINANCE_SHADOW_PREVIEW_DB',
+        'OPEN_FINANCE_OUTBOX_DB', 'PLUGGY_ITEM_MAP_FILE'
+    ];
+    const previous = Object.fromEntries(variableNames.map(name => [name, process.env[name]]));
+    Object.assign(process.env, {
+        OPEN_FINANCE_ALERT_MODE: 'canary', OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
+        OPEN_FINANCE_SHADOW_PREVIEW_MODE: 'canary',
+        OPEN_FINANCE_RECONCILIATION_MODE: 'canary', OPEN_FINANCE_WRITE_MODE: 'confirm',
+        OPEN_FINANCE_WRITE_APPROVED: 'true',
+        OPEN_FINANCE_LIVE_STAGING_SECRET_FILE: paths.secret,
+        OPEN_FINANCE_LIVE_STAGING_DB: paths.staging,
+        OPEN_FINANCE_REVOCATION_JOURNAL_DB: paths.journal,
+        OPEN_FINANCE_SHADOW_PREVIEW_DB: paths.preview,
+        OPEN_FINANCE_OUTBOX_DB: paths.outbox, PLUGGY_ITEM_MAP_FILE: paths.mapping
+    });
+    try {
+        const offered = await send(`revisar ${reviewCode} confirmar`);
+        assert.match(offered, /Rendimento de reserva confirmado/i);
+        assert.equal(appendedRows.length, 0);
+        assert.equal(userStateManager.getState(SENDER).action,
+            'awaiting_open_finance_save_confirmation');
+
+        assert.match(await send('sim'), /Confira a proposta/i);
+        assert.equal(appendedRows.length, 0);
+        assert.match(await send('1'), /Escolha a pessoa/i);
+        assert.match(await send('1'), /Pessoa:/i);
+        assert.match(await send('2'), /Escolha a categoria/i);
+        assert.match(await send('1'), /Investimentos/i);
+        assert.match(await send('4'), /Escolha a conta financeira/i);
+        assert.match(await send('1'), /Conta financeira:/i);
+        assert.match(await send('5'), /Confirma o salvamento/i);
+        assert.equal(appendedRows.length, 0);
+
+        const receipt = await send('sim');
+        assert.match(receipt, /Recibo/i);
+        assert.equal(appendedRows.length, 1);
+        assert.equal(appendedRows[0].sheetName, 'Entradas');
+        assert.equal(appendedRows[0].row[1], 'Rendimento Caixinha');
+        assert.equal(appendedRows[0].row[2], 'Investimentos');
+        assert.equal(appendedRows[0].row[3], 3.25);
+        assert.equal(appendedRows[0].row[8], USER_ID);
+        assert.deepEqual(appendedRows[0].options.canonicalRelation, {
+            type: 'investment_income', owner_person_id: USER_ID
+        });
+        assert.equal(appendRowAttempts.length, 1);
+        assert.equal(userStateManager.getState(SENDER), undefined);
+
+        assert.doesNotMatch(await send('sim'), /salvo com sucesso/i);
+        assert.equal(appendedRows.length, 1);
+        assert.equal(appendRowAttempts.length, 1);
+    } finally {
+        for (const name of variableNames) {
+            if (previous[name] === undefined) delete process.env[name];
+            else process.env[name] = previous[name];
+        }
+        userStateManager.deleteState(SENDER);
+        fs.rmSync(directory, { recursive: true, force: true });
+    }
+});
+
 stateMachineTest('gate 38.3 public handler writes one confirmed refund on the original card', async () => {
     resetSheets();
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-public-refund-'));

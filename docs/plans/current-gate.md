@@ -4,7 +4,7 @@ Atualizado em: 2026-08-10
 
 ## Estado
 
-`CHARTER LOCAL ABERTO; SEM IMPLEMENTACAO; SEM DEPLOY`.
+`CANDIDATO LOCAL VERDE; AGUARDANDO AUDITORIA INDEPENDENTE; SEM DEPLOY`.
 
 ## Objetivo
 
@@ -69,6 +69,14 @@ maximo: `GO TECNICO LOCAL; SEM DEPLOY`.
 
 ## Proxima acao
 
-Inspecionar os caminhos reais de decisao, catalogo, finalizacao e projecao de
-entradas; criar primeiro a prova RED focal que separa rendimento de principal,
-aplicacao e resgate. Nenhuma promocao e autorizada por este charter.
+Publicar o candidato sanitizado em hash imutavel e fazer uma unica auditoria
+independente. Somente um `GO` pode encerrar tecnicamente o Gate 38.6; este gate
+nao autoriza deploy isoladamente.
+
+## Evidencia do candidato
+
+- focal `3/3`;
+- caminho publico real `1/1`;
+- causal afetada `223/223`;
+- suite hermetica ampla `1628/1618/0/10`, com skips previstos;
+- manifesto: `docs/audit/213-open-finance-investment-income-write-candidate-2026-08-10.md`.

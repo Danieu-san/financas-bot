@@ -144,7 +144,7 @@ function formatMoneyFromCents(value) {
 }
 
 function isReceiptLike(classification, linkedTargetKind = '') {
-    return classification === 'income' ||
+    return ['income', 'investment_income'].includes(classification) ||
         (classification === 'refund' && linkedTargetKind === 'bank');
 }
 
@@ -752,7 +752,7 @@ function handleOpenFinanceSaveProposalReply({
                 { actorWhatsappId }
             );
             directReviewedSemantic = Boolean(
-                ['income', 'refund', 'transfer', 'reserve_transfer']
+                ['income', 'investment_income', 'refund', 'transfer', 'reserve_transfer']
                     .includes(directProposal?.classification) &&
                 /^[a-f0-9]{32}$/.test(String(directProposal.semantic_review_ref || ''))
             );
@@ -817,7 +817,7 @@ function handleOpenFinanceSaveProposalReply({
                 item.proposal_ref,
                 { actorWhatsappId }
             );
-            return ['income', 'refund', 'transfer', 'reserve_transfer']
+            return ['income', 'investment_income', 'refund', 'transfer', 'reserve_transfer']
                 .includes(proposal?.classification) &&
                 /^[a-f0-9]{32}$/.test(String(proposal.semantic_review_ref || ''));
         });

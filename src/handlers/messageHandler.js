@@ -142,6 +142,9 @@ const {
 const {
     prepareReviewedReserveSaveProposal
 } = require('../openFinance/openFinanceReviewedReserveSaveProposal');
+const {
+    prepareReviewedInvestmentIncomeSaveProposal
+} = require('../openFinance/openFinanceReviewedInvestmentIncomeSaveProposal');
 const { recordQaFailure } = require('../services/qaFailureLogService');
 const { recordAdminAction, hashRef, sanitizeValue } = require('../services/adminActionLogService');
 const { recordDashboardAccessEvent } = require('../services/dashboardAccessLogService');
@@ -9348,6 +9351,36 @@ async function processMessage(msg) {
                 await sendPlainMessage(msg, [
                     proactiveReviewReply.reply,
                     'Não consegui provar agora a conta e a reserva. A decisão continua registrada e nada foi salvo.'
+                ].join('\n'));
+                return;
+            }
+        }
+        if (proactiveReviewReply.decision === 'investment_income' &&
+            proactiveReviewReply.review_code) {
+            try {
+                const investmentIncomeProposal =
+                    await prepareReviewedInvestmentIncomeSaveProposal({
+                        reviewCode: proactiveReviewReply.review_code,
+                        actorWhatsappId: senderId,
+                        userId
+                    });
+                if (investmentIncomeProposal.handled) {
+                    setOpenFinanceConversationState(senderId, {
+                        action: 'awaiting_open_finance_save_confirmation',
+                        data: {
+                            proposalRef: investmentIncomeProposal.proposal_ref,
+                            recipientPrincipal:
+                                investmentIncomeProposal.recipient_principal
+                        }
+                    });
+                    await sendPlainMessage(msg, investmentIncomeProposal.reply);
+                    return;
+                }
+            } catch (error) {
+                logger.warn(`[open-finance] reviewed_investment_income_proposal_unavailable sender=${logger.redactIdentifier(senderId)} ${logger.safeError(error)}`);
+                await sendPlainMessage(msg, [
+                    proactiveReviewReply.reply,
+                    'N\u00e3o consegui provar agora que este valor \u00e9 somente rendimento. A decis\u00e3o continua registrada e nada foi salvo.'
                 ].join('\n'));
                 return;
             }

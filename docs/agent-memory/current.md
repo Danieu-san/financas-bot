@@ -17,7 +17,8 @@ ganho separado, sem alterar producao.
   entrada, estorno/reembolso e transferencia interna forte.
 - Gate 38.5: `GO TECNICO LOCAL INDEPENDENTE; SEM DEPLOY` para aplicacao/resgate
   de reserva (`1624/1614/0/10`, zero falhas).
-- Gate 38.6: rendimento de investimento, charter local aberto.
+- Gate 38.6: rendimento de investimento, candidato local verde
+  (`1628/1618/0/10`, zero falhas), aguardando auditoria independente.
 
 ## Fechamento do Gate 38.4
 
@@ -48,12 +49,12 @@ hermetica `1617/1607/0/10`, zero falhas. Fechamento:
 
 ## Próxima ação exata
 
-Criar a prova RED focal do Gate 38.6, separando rendimento comprovado de
-principal, aplicacao e resgate.
+Publicar o candidato do Gate 38.6 e obter auditoria independente por hash
+imutavel.
 
 ## Capacidade para retomar
 
-`Codex -> Sol -> Alto -> implementar e validar o Gate 38.6.`
+`Codex -> Sol -> Alto -> publicar e auditar o Gate 38.6.`
 
 ## Referencias dirigidas
 

@@ -453,6 +453,17 @@ function applyCanonicalRelation(projected, relation = null) {
         }
         return;
     }
+    if (relation.type === 'investment_income') {
+        const event = projected.events[0];
+        if (!event || event.source_type !== 'sheet.entradas' ||
+            event.kind !== 'income' ||
+            event.owner_person_id !== String(relation.owner_person_id || '').trim() ||
+            event.free_budget_eligible !== true ||
+            Number(event.net_income_expense_impact) !== Number(event.amount_cents)) {
+            throw new Error('invalid_canonical_investment_income_relation');
+        }
+        return;
+    }
     throw new Error('invalid_canonical_relation');
 }
 
