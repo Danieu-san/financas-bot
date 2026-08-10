@@ -880,6 +880,127 @@ class OpenFinanceShadowPreviewStore {
         };
     }
 
+    ingestReviewedIncomeSaveProposal({ proposal } = {}) {
+        const now = this.#now();
+        const alias = String(proposal?.alias || '').trim().toLowerCase();
+        const aliasRef = this.#aliasRef(alias);
+        const generation = validGeneration(proposal?.generation);
+        const proposalRef = String(proposal?.proposal_ref || '');
+        const reviewRef = String(proposal?.semantic_review_ref || '');
+        const observationRef = String(proposal?.observation_ref || '');
+        const expiresAt = validTimestamp(
+            proposal?.expires_at,
+            'valid_reviewed_income_save_proposal_expiry_required'
+        ).toISOString();
+        if (!/^[a-f0-9]{32}$/.test(proposalRef) ||
+            !/^[a-f0-9]{32}$/.test(reviewRef) ||
+            !/^[a-f0-9]{32}$/.test(observationRef) ||
+            proposalRef !== this.#hmac(
+                `reviewed-income-save-proposal:${reviewRef}:${observationRef}`
+            ) ||
+            aliasRef !== proposal.alias_ref ||
+            proposal.classification !== 'income' ||
+            proposal.source_classification !== 'income_candidate' ||
+            proposal.provider_state !== 'POSTED' ||
+            proposal.reconciliation_status !== 'new' ||
+            proposal.operation_key !== this.#operationKey(
+                `open-finance-income-write:${reviewRef}:${observationRef}`
+            ) ||
+            !proposal.source?.id || !proposal.source?.account_id ||
+            expiresAt <= now) {
+            throw new Error('invalid_reviewed_income_save_proposal');
+        }
+        if (this.revocationJournal?.isGenerationRevoked?.(alias, generation)) {
+            throw new Error('save_proposal_revoked_generation');
+        }
+        const terminal = this.revocationJournal?.getSaveProposalTerminal?.(proposalRef);
+        if (terminal) {
+            this.#applySaveProposalTerminal(terminal);
+            return { proposal_ref: proposalRef, inserted: 0, replayed: 1,
+                blocked: 1, financial_writes: 0 };
+        }
+        const transactionRef = this.#hmac(
+            `reviewed-income-save-proposal-transaction:${reviewRef}:${observationRef}`
+        );
+        const rows = this.db.prepare(`SELECT proposal_ref,transaction_ref,family_scope_ref,
+            alias_ref,generation,encrypted_payload,payload_version,proposal_state,
+            created_at,expires_at FROM open_finance_save_proposals
+            WHERE family_scope_ref=?`).all(this.familyScopeRef);
+        const sourceIdentity = this.#saveProposalSourceIdentityKey({
+            aliasRef,
+            generation,
+            transaction: proposal.source
+        });
+        let existing = null;
+        for (const row of rows) {
+            const payload = this.#readBoundSaveProposal(row.proposal_ref, row);
+            const identity = this.#saveProposalSourceIdentityKey({
+                aliasRef: row.alias_ref,
+                generation: row.generation,
+                transaction: payload.source
+            });
+            if (row.proposal_ref === proposalRef) existing = { row, payload };
+            if (identity === sourceIdentity && row.proposal_ref !== proposalRef) {
+                throw new Error('save_proposal_replay_conflict');
+            }
+        }
+        const payload = {
+            ...proposal,
+            family_scope_ref: this.familyScopeRef,
+            alias_ref: aliasRef,
+            created_at: existing?.row.created_at || now,
+            expires_at: expiresAt
+        };
+        if (existing) {
+            if (existing.row.transaction_ref !== transactionRef ||
+                existing.row.alias_ref !== aliasRef ||
+                existing.row.generation !== generation ||
+                stableSerialize(existing.payload) !== stableSerialize(payload)) {
+                throw new Error('save_proposal_replay_conflict');
+            }
+            return { proposal_ref: proposalRef, inserted: 0, replayed: 1,
+                blocked: 0, financial_writes: 0 };
+        }
+        const initialStateMac = this.#confirmationStateMac({
+            proposal_ref: proposalRef,
+            proposal_state: 'pending',
+            resolved_by_ref: null,
+            resolved_at: null,
+            confirmation_ref_hash: null,
+            confirmation_state: 'pending',
+            confirmation_actor_ref: null,
+            confirmation_ready_at: null,
+            confirmation_expires_at: null,
+            confirmation_decided_at: null
+        });
+        try {
+            this.db.prepare(`INSERT INTO open_finance_save_proposals (
+                proposal_ref,transaction_ref,family_scope_ref,alias_ref,generation,
+                encrypted_payload,payload_version,proposal_state,created_at,updated_at,
+                expires_at,confirmation_state_mac
+            ) VALUES (?,?,?,?,?,?,2,'pending',?,?,?,?)`).run(
+                proposalRef,
+                transactionRef,
+                this.familyScopeRef,
+                aliasRef,
+                generation,
+                this.#encrypt(proposalRef, payload),
+                now,
+                now,
+                expiresAt,
+                initialStateMac
+            );
+        } catch (error) {
+            if (String(error.code || '').startsWith('SQLITE_CONSTRAINT')) {
+                throw new Error('save_proposal_replay_conflict');
+            }
+            throw error;
+        }
+        this.#hardenFiles();
+        return { proposal_ref: proposalRef, inserted: 1, replayed: 0,
+            blocked: 0, financial_writes: 0 };
+    }
+
     purgeExpired() {
         const timestamp = this.#now();
         const result = this.db.transaction(() => {

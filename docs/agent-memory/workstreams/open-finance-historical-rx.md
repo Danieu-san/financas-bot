@@ -2,6 +2,16 @@
 
 Atualizado em: 2026-08-10
 
+## Gate 38.2 - charter local
+
+A proxima classe e somente entrada genuina: revisao Gate 36 decidida como
+`income`, nova conferencia e segunda confirmacao antes de um append idempotente
+em `Entradas`. Estornos ficam no Gate 38.3 porque sua semantica depende do
+vinculo com a compra e nao pode ser tratada como receita comum.
+
+Plano: `docs/plans/workstreams/open-finance-income-write.md`. Producao segue
+write `off`.
+
 ## Gate 38.1 - GO tecnico local independente
 
 O recovery `f14849ce0da78b94a8c2c981f94242c113cf43cb` recebeu GO independente.
@@ -1115,3 +1125,19 @@ Evidencia:
 
 Estado: `HOLD SEGURO ANTES DE UPLOAD; AGUARDA IP DO EXECUTOR POR CONSULTA
 EXPLICITAMENTE AUTORIZADA`.
+
+## Gate 38.2 - candidato de entrada genuina
+
+Atualizado em: 2026-08-10
+
+A decisao proativa `income` agora pode originar uma proposta duravel sem
+escrita. O fluxo publico exige primeiro aceite, conferencia de pessoa,
+categoria de entrada, recebimento e conta, revalidacao integral e segundo
+`sim`. Somente entao o writer produz uma linha em `Entradas`; cartao,
+classificacao alterada, fonte alterada e catalogo alterado falham fechado.
+
+Evidencia local: focais/regressoes `46/46`, handler publico `1/1` e suite
+hermetica ampla unica `1599/1589/0/10`, zero falhas. Manifesto:
+`docs/audit/199-open-finance-income-write-candidate-2026-08-10.md`.
+
+Estado: `CANDIDATO LOCAL VERDE; AGUARDA HASH E AUDITORIA; SEM DEPLOY`.

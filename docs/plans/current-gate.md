@@ -1,94 +1,61 @@
-# Gate ativo - Gate 38.1 escrita gradual de compras Open Finance
+# Gate ativo - Gate 38.2 escrita de entrada genuina Open Finance
 
 Atualizado em: 2026-08-10
 
 ## Estado
 
-`GO TECNICO LOCAL INDEPENDENTE; SEM DEPLOY`.
-
-Producao permanece com `OPEN_FINANCE_WRITE_MODE=off`, aprovacao falsa e zero
-escrita. Nenhum deploy ou mudanca de flag faz parte do candidato local.
+`CANDIDATO LOCAL VERDE; AGUARDA AUDITORIA INDEPENDENTE; SEM DEPLOY`.
 
 ## Objetivo
 
-Revalidar no HEAD atual a escrita de uma compra Open Finance depois de revisao
-guiada e segunda confirmacao explicita. O gate nao reimplementa o nucleo que ja
-recebeu GO; verifica sua composicao com a fila numerica adicionada depois.
-
-O primeiro auditor concluiu `ACESSO INSUFICIENTE`, sem GO. A prova publica
-acrescentada atravessa duas compras e exige escrita unica do primeiro item,
-recuperacao do recibo, abertura da revisao seguinte e ausencia de consentimento
-herdado. O codigo de produto nao mudou.
+Estender, para entrada genuina, a finalizacao duravel ja aprovada para compra,
+sem misturar estorno, transferencia, reserva ou rendimento e sem alterar
+producao.
 
 ## Escopo
 
-- somente proposta `purchase`, `POSTED`, `new`, nao parcelada e autorizada;
-- primeira aceitacao abre revisao e permanece read-only;
-- revalidacao nova da fonte, do ledger e do catalogo antes do segundo prompt;
-- segunda confirmacao explicita como unica entrada para o writer;
-- operation key, recibo, concorrencia, replay, restart e reconciliacao incerta;
-- revogacao, expiracao, fonte/catalogo alterados e correspondencia nova;
-- fila numerica preservada durante a finalizacao e avancada somente apos recibo;
-- rollback imediato para `write-off` pelo controlador transacional.
-
-## Não escopo
-
-- escrita de entrada, estorno, transferencia, reserva ou rendimento;
-- escrita automatica na deteccao ou no primeiro aceite;
-- parcelamentos;
-- mudanca de flags, deploy, restart, Pluggy, Sheets ou WhatsApp reais;
-- uso da AWS;
-- smoke sem Daniel presente.
+Promocao da decisao duravel `income`, proposta cifrada, conferencia guiada,
+revalidacao final e append unico em `Entradas`, somente em testes locais.
 
 ## Invariantes
 
-1. Deteccao e alerta nunca escrevem.
-2. O primeiro aceite nunca escreve.
-3. Somente compra revalidada chega ao writer.
-4. O segundo `sim` e explicito e vinculado a uma finalizacao duravel.
-5. Concorrencia/replay/restart produzem no maximo um append.
-6. Resultado ambiguo permanece `uncertain` e so reconcilia pela mesma chave.
-7. O item seguinte do lote exige sua propria revisao e segunda confirmacao.
-8. `write=off` remove imediatamente a capacidade de escrita.
+1. Somente revisao Gate 36 decidida como `income` pode originar proposta.
+2. Classificar a entrada nao constitui consentimento para salvar.
+3. Primeiro aceite e conferencia guiada mantem zero escrita.
+4. Cartao nunca participa do plano de entrada.
+5. Fonte, ledger, catalogo e decisao proativa sao revalidados antes do prompt
+   final.
+6. Somente o segundo `sim` chama o writer.
+7. Operation key, recibo, replay, restart e reconciliacao incerta preservam no
+   maximo um append.
+8. `OPEN_FINANCE_WRITE_MODE=off` permanece default e producao nao muda.
 
-## Evidencia local
+## Não escopo
 
-- modulos causais: `94/94`;
-- nova prova focal publica: `1/1`;
-- par publico afetado: `2/2`;
-- arquivo completo do handler financeiro publico: `130/130`;
-- suite hermetica no mesmo codigo de produto: `1592/1582/0/10`, zero falhas;
-- writer/store/politica sem diff desde os GOs independentes anteriores;
-- apenas documentos foram alterados depois da suite ampla.
-
-Recovery:
-`docs/audit/197-open-finance-purchase-write-public-batch-proof-candidate-2026-08-10.md`.
+- estorno/reembolso, transferencia, reserva, rendimento, compra ou saida;
+- flags, deploy, restart ou smoke real;
+- qualquer acesso AWS.
 
 ## Critérios de GO
 
-Cumprido no hash `f14849ce0da78b94a8c2c981f94242c113cf43cb`, com auditoria
-independente e nenhuma lacuna causal indispensavel.
+Teste causal, regressao da compra, suite ampla unica, hash imutavel e auditoria
+independente. Estado maximo: `GO TECNICO LOCAL; SEM DEPLOY`.
 
 ## Condições de parada
 
-Parar diante de `NO-GO`, regressao causal, escrita anterior ao segundo `sim`,
-Daniel ausente, identidade de producao divergente ou health/rollback incertos.
+- qualquer escrita antes do segundo `sim`;
+- mistura com estorno, transferencia, reserva ou rendimento;
+- fonte, decisao, ledger ou catalogo alterado aceito silenciosamente;
+- regressao da classe compra, falha de teste ou NO-GO independente;
+- qualquer mutacao de producao enquanto Daniel estiver ausente.
 
-Depois do GO local, a ativacao ainda exige Daniel presente, commit OCI exato,
-backup/rollback do `.env`, health verde, proposta real nova, verificacao de zero
-efeito antes do segundo `sim`, escrita unica, recibo, planilha/ledger coerentes e
-retorno imediato a `write-off` diante de qualquer incerteza.
+## Evidencia
+
+Focais e regressao de compra `46/46`; handler publico `1/1`; suite hermetica
+ampla unica `1599/1589/0/10`, zero falhas. Manifesto em
+`docs/audit/199-open-finance-income-write-candidate-2026-08-10.md`.
 
 ## Proxima acao
 
-Fechar documentalmente o Gate 38.1 e definir o charter local do Gate 38.2. Nao
-ativar producao nesta ausencia de Daniel.
-
-## Referencias
-
-- plano da fatia: `docs/plans/workstreams/open-finance-purchase-write.md`;
-- roadmap: `docs/plans/workstreams/open-finance-historical-rx.md`;
-- finalizacao: `docs/audit/66-open-finance-finalization-independent-close-2026-07-30.md`;
-- fail-closed: `docs/audit/78-open-finance-write-activation-independent-close-2026-07-30.md`;
-- release: `docs/runbooks/release-checklist.md`;
-- health: `docs/runbooks/production-health.md`.
+Publicar o commit sanitizado e submeter o hash imutavel a uma unica auditoria
+independente. Sem GO independente, o Gate 38.3 nao inicia.

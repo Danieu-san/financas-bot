@@ -195,6 +195,7 @@ function tryHandleOpenFinanceProactiveReviewReply({
         return {
             handled: true,
             review_ref: result.review_ref,
+            review_code: match[1],
             decision: result.decision,
             replay: result.replay,
             reply: result.replay

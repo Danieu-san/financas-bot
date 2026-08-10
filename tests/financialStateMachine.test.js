@@ -5696,6 +5696,187 @@ stateMachineTest('financial states: statement import can route credit card purch
     assert.strictEqual(sheets[CARD_SHEETS[0]][1][6], USER_ID);
 });
 
+stateMachineTest('gate 38.2 public handler promotes, reviews and writes one genuine income exactly once', async () => {
+    resetState();
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-public-income-finalization-'));
+    const paths = {
+        secret: path.join(directory, 'secret.txt'),
+        staging: path.join(directory, 'staging.sqlite'),
+        journal: path.join(directory, 'journal.sqlite'),
+        preview: path.join(directory, 'preview.sqlite'),
+        outbox: path.join(directory, 'outbox.sqlite'),
+        mapping: path.join(directory, 'mapping.json')
+    };
+    const secret = 'open-finance-public-income-secret-32-bytes';
+    const item = {
+        id: 'public-income-item',
+        alias_code: 'daniel_nubank',
+        owner_scope: 'daniel',
+        availability: {
+            accounts: 'available',
+            transactions: 'available',
+            bills: 'available',
+            investments: 'available'
+        },
+        accounts: [{
+            id: 'public-income-checking',
+            type: 'CHECKING',
+            name: 'Nubank Daniel',
+            balance_cents: 125000
+        }],
+        transactions: [{
+            id: 'public-income-transaction',
+            provider_id: 'public-income-provider',
+            account_id: 'public-income-checking',
+            amount_cents: 125000,
+            description: 'Pagamento recebido',
+            date: new Date(Date.now() - 3_600_000).toISOString(),
+            status: 'POSTED'
+        }],
+        bills: [],
+        investments: []
+    };
+    fs.writeFileSync(paths.secret, secret, { mode: 0o600 });
+    fs.writeFileSync(paths.mapping, JSON.stringify([{
+        itemId: item.id,
+        alias: item.alias_code,
+        ownerScope: 'daniel',
+        generation: 1
+    }]));
+    fs.writeFileSync(paths.outbox, '');
+    const vault = new OpenFinanceLiveStagingVault({
+        databasePath: paths.staging,
+        secret
+    });
+    vault.ingestSnapshot({
+        provider: 'pluggy',
+        mode: 'live_readonly_staging',
+        event_id: 'public-income-event',
+        observed_at: new Date().toISOString(),
+        collection_health: { complete: true, warning_count: 0 },
+        items: [item]
+    });
+    vault.close();
+    const journal = new OpenFinanceRevocationJournal({
+        databasePath: paths.journal,
+        secret
+    });
+    journal.close();
+    const observation = observationRef(
+        secret,
+        item.id,
+        item.transactions[0].account_id,
+        item.transactions[0].id
+    );
+    const proactive = new OpenFinanceProactiveReviewStore({
+        databasePath: paths.preview,
+        secret
+    });
+    const reviewCode = proactive.ingest({
+        reviews: [{
+            observation_ref: observation,
+            source_alias: item.alias_code,
+            generation: 1,
+            classification: 'income_candidate',
+            review_kind: 'income',
+            review_status: 'classification_required',
+            save_eligible: false,
+            financial_writes: 0
+        }],
+        items: [item],
+        policies: [{
+            alias: item.alias_code,
+            principal: 'daniel',
+            recipients: ['daniel']
+        }],
+        confirmationActors: [{ principal: 'daniel', whatsappId: SENDER }],
+        observedAt: new Date().toISOString()
+    }).links[0].review_code;
+    proactive.close();
+    sheets['Contas Financeiras'].push([
+        'Daniel - Nubank', 'Conta Corrente', 0, '2025-01-01', 'ATIVA',
+        'BRL', 'Usuario Estado', USER_ID, ''
+    ]);
+    usesPersonalSpreadsheet = true;
+    const variableNames = [
+        'OPEN_FINANCE_ALERT_MODE',
+        'OPEN_FINANCE_SAVE_PROPOSAL_MODE',
+        'OPEN_FINANCE_SHADOW_PREVIEW_MODE',
+        'OPEN_FINANCE_RECONCILIATION_MODE',
+        'OPEN_FINANCE_WRITE_MODE',
+        'OPEN_FINANCE_WRITE_APPROVED',
+        'OPEN_FINANCE_LIVE_STAGING_SECRET_FILE',
+        'OPEN_FINANCE_LIVE_STAGING_DB',
+        'OPEN_FINANCE_REVOCATION_JOURNAL_DB',
+        'OPEN_FINANCE_SHADOW_PREVIEW_DB',
+        'OPEN_FINANCE_OUTBOX_DB',
+        'PLUGGY_ITEM_MAP_FILE'
+    ];
+    const previous = Object.fromEntries(variableNames.map(name => [name, process.env[name]]));
+    Object.assign(process.env, {
+        OPEN_FINANCE_ALERT_MODE: 'canary',
+        OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
+        OPEN_FINANCE_SHADOW_PREVIEW_MODE: 'canary',
+        OPEN_FINANCE_RECONCILIATION_MODE: 'canary',
+        OPEN_FINANCE_WRITE_MODE: 'confirm',
+        OPEN_FINANCE_WRITE_APPROVED: 'true',
+        OPEN_FINANCE_LIVE_STAGING_SECRET_FILE: paths.secret,
+        OPEN_FINANCE_LIVE_STAGING_DB: paths.staging,
+        OPEN_FINANCE_REVOCATION_JOURNAL_DB: paths.journal,
+        OPEN_FINANCE_SHADOW_PREVIEW_DB: paths.preview,
+        OPEN_FINANCE_OUTBOX_DB: paths.outbox,
+        PLUGGY_ITEM_MAP_FILE: paths.mapping
+    });
+    try {
+        const offered = await send(`revisar ${reviewCode} entrada`);
+        assert.match(offered, /Nenhum .* foi salvo ainda/i);
+        assert.equal(appendedRows.length, 0);
+        let state = userStateManager.getState(SENDER);
+        assert.equal(state.action, 'awaiting_open_finance_save_confirmation');
+
+        assert.match(await send('sim'), /Confira a proposta/i);
+        assert.equal(appendedRows.length, 0);
+        state = userStateManager.getState(SENDER);
+        assert.equal(state.action, 'awaiting_open_finance_save_review');
+
+        assert.match(await send('1'), /Escolha a pessoa/i);
+        assert.match(await send('1'), /Pessoa:/i);
+        assert.match(await send('2'), /Escolha a categoria/i);
+        assert.match(await send('1'), /Categoria:/i);
+        assert.match(await send('4'), /Escolha a conta financeira/i);
+        assert.match(await send('1'), /Conta financeira:/i);
+        const finalPrompt = await send('5');
+        assert.match(finalPrompt, /Confirma o salvamento/i);
+        assert.equal(appendedRows.length, 0);
+        assert.equal(
+            userStateManager.getState(SENDER).action,
+            'awaiting_open_finance_final_confirmation'
+        );
+
+        const receipt = await send('sim');
+        assert.match(receipt, /Recibo/i);
+        assert.equal(appendedRows.length, 1);
+        assert.equal(appendedRows[0].sheetName, 'Entradas');
+        assert.equal(appendedRows[0].row[1], 'Pagamento recebido');
+        assert.equal(appendedRows[0].row[3], 1250);
+        assert.equal(appendedRows[0].row[8], USER_ID);
+        assert.equal(appendedRows[0].options.requireUserScoped, true);
+        assert.match(String(appendedRows[0].options.operationKey), /^[a-f0-9]{48}$/);
+        assert.equal(userStateManager.getState(SENDER), undefined);
+
+        const replay = await send('sim');
+        assert.doesNotMatch(replay, /salvo com sucesso/i);
+        assert.equal(appendedRows.length, 1);
+    } finally {
+        for (const name of variableNames) {
+            if (previous[name] === undefined) delete process.env[name];
+            else process.env[name] = previous[name];
+        }
+        userStateManager.deleteState(SENDER);
+        fs.rmSync(directory, { recursive: true, force: true });
+    }
+});
+
 test.after(async () => {
     await userStateManager.closeStateStore();
     if (typeof cache.close === 'function') {

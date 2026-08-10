@@ -4,7 +4,8 @@ Atualizado em: 2026-08-10
 
 ## Objetivo ativo
 
-Gate 38.2: definir a proxima classe de escrita gradual sem alterar producao.
+Gate 38.2: implementar localmente a escrita de entrada genuina, sem alterar
+producao.
 
 ## Estado vigente
 
@@ -18,6 +19,7 @@ Gate 38.2: definir a proxima classe de escrita gradual sem alterar producao.
 - Gate 37: `GO TECNICO LOCAL INDEPENDENTE`; transferencias e reservas seguem
   para revisao proativa read-only, com principal separado de rendimento.
 - Gate 38.1: `GO TECNICO LOCAL INDEPENDENTE; SEM DEPLOY`.
+- Gate 38.2: `CANDIDATO LOCAL VERDE; AGUARDA AUDITORIA; SEM DEPLOY`.
 
 O nucleo ja auditado de escrita de compras permanece inalterado e aceita apenas
 `purchase/POSTED/new` nao parcelada depois de revisao guiada, revalidacao e
@@ -29,7 +31,18 @@ recebeu GO independente. A prova publica atravessa duas compras: grava apenas a
 primeira, recupera o recibo, avanca para a revisao da segunda e demonstra que
 um novo `sim` nao e herdado como confirmacao financeira.
 
-## Evidencia do Gate 38.1
+## Evidencia do Gate 38.2
+
+- promocao e revalidacao fail-closed: `6/6`;
+- focais e regressao integral da conversa/finalizacao de compra: `46/46`;
+- handler publico do fluxo completo de entrada: `1/1`;
+- suite hermetica ampla unica: `1599/1589/0/10`, zero falhas;
+- manifesto:
+  `docs/audit/199-open-finance-income-write-candidate-2026-08-10.md`.
+
+Nenhuma flag, servidor, planilha, WhatsApp ou dado real foi alterado.
+
+## Evidencia anterior do Gate 38.1
 
 - politica, runtime, confirmacao, conversa, finalizacao e fila: `94/94`;
 - caminhos publicos selecionados: `2/2`;
@@ -65,13 +78,13 @@ Nenhuma flag, servidor, planilha, WhatsApp ou dado real foi alterado.
 
 ## Próxima ação exata
 
-Definir o charter da proxima classe de escrita gradual, mantendo producao
-inalterada. Ativacao `confirm` e smoke do Gate 38.1 ficam bloqueados enquanto
-Daniel estiver ausente.
+Publicar o candidato do Gate 38.2 e obter auditoria independente pelo hash
+imutavel. Ativacao `confirm` e smokes ficam bloqueados enquanto Daniel estiver
+ausente.
 
 ## Capacidade para retomar
 
-`Codex -> Sol -> Alto -> definir e testar o Gate 38.2 sem producao.`
+`Codex -> Sol -> Alto -> auditar e fechar localmente o Gate 38.2.`
 
 ## Referencias dirigidas
 
@@ -80,6 +93,7 @@ Daniel estiver ausente.
 - Gate 35: `docs/audit/183-open-finance-historical-rx-phase-d-candidate-2026-08-10.md`;
 - Gate 36: `docs/audit/192-open-finance-proactive-income-refund-independent-close-2026-08-10.md`;
 - Gate 37: `docs/audit/195-open-finance-transfer-reserve-independent-close-2026-08-10.md`;
+- Gate 38.2: `docs/plans/workstreams/open-finance-income-write.md`;
 - finalizacao anterior: `docs/audit/66-open-finance-finalization-independent-close-2026-07-30.md`;
 - ativacao fail-closed: `docs/audit/78-open-finance-write-activation-independent-close-2026-07-30.md`;
 - deploy: `docs/runbooks/release-checklist.md`;

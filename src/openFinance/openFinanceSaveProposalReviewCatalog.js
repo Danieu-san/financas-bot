@@ -3,6 +3,9 @@ const { getActiveUsers } = require('../services/userService');
 const { getFinancialScopeUserIds } = require('../services/oauthTokenStore');
 
 const MAX_CATEGORY_CATALOG_ITEMS = 1000;
+const OFFICIAL_INCOME_CATEGORIES = [
+    'Salário', 'Renda Extra', 'Investimentos', 'Presente', 'Reembolso', 'Venda', 'Outros'
+];
 
 function normalizeText(value) {
     return String(value || '')
@@ -60,6 +63,25 @@ function categoriesFromRows({ registryRows = [], expenseRows = [], cardRows = []
     categories.sort((left, right) => left.label.localeCompare(right.label, 'pt-BR'));
     if (categories.length > MAX_CATEGORY_CATALOG_ITEMS) {
         throw new Error('open_finance_save_review_categories_catalog_too_large');
+    }
+    return categories;
+}
+
+function incomeCategoriesFromRows({ incomeRows = [], scopeUserIds = [] } = {}) {
+    const allowed = new Set(scopeUserIds.map(String));
+    const categories = [];
+    const seen = new Set();
+    for (const category of OFFICIAL_INCOME_CATEGORIES) {
+        addCategory(categories, seen, category, '');
+    }
+    for (const row of Array.isArray(incomeRows) ? incomeRows.slice(1) : []) {
+        const rowUserId = String(row?.[8] || '').trim();
+        if (!allowed.has(rowUserId)) continue;
+        addCategory(categories, seen, row?.[2], '');
+    }
+    categories.sort((left, right) => left.label.localeCompare(right.label, 'pt-BR'));
+    if (categories.length > MAX_CATEGORY_CATALOG_ITEMS) {
+        throw new Error('open_finance_save_review_income_categories_catalog_too_large');
     }
     return categories;
 }
@@ -131,7 +153,8 @@ async function buildOpenFinanceSaveProposalReviewCatalog({
         throw new Error('open_finance_save_review_scope_unavailable');
     }
     try {
-        const [users, registryRows, expenseRows, cardLaunchRows, accountRows, cardRows] =
+        const [users, registryRows, expenseRows, cardLaunchRows, incomeRows,
+            accountRows, cardRows] =
             await Promise.all([
                 loadUsers(),
                 readSheet('Categorias!A:E', {
@@ -145,6 +168,11 @@ async function buildOpenFinanceSaveProposalReviewCatalog({
                     suppressMissingSheetError: true
                 }),
                 readSheet('Lançamentos Cartão!A:J', {
+                    userId: safeUserId,
+                    requireUserScoped: true,
+                    suppressMissingSheetError: true
+                }),
+                readSheet('Entradas!A:J', {
                     userId: safeUserId,
                     requireUserScoped: true,
                     suppressMissingSheetError: true
@@ -179,11 +207,20 @@ async function buildOpenFinanceSaveProposalReviewCatalog({
                 cardRows: cardLaunchRows,
                 scopeUserIds
             }),
+            incomeCategories: incomeCategoriesFromRows({
+                incomeRows,
+                scopeUserIds
+            }),
             paymentMethods: [
                 { id: 'credit', label: 'Crédito', value: 'Crédito' },
                 { id: 'debit', label: 'Débito', value: 'Débito' },
                 { id: 'pix', label: 'PIX', value: 'PIX' },
                 { id: 'cash', label: 'Dinheiro', value: 'Dinheiro' }
+            ],
+            receiptMethods: [
+                { id: 'receipt:checking', label: 'Conta Corrente', value: 'Conta Corrente' },
+                { id: 'receipt:savings', label: 'Conta Poupança', value: 'Conta Poupança' },
+                { id: 'receipt:pix', label: 'PIX', value: 'PIX' }
             ],
             financialAccounts: accountsFromRows(accountRows, scopeUserIds),
             cards: cardsFromRows(cardRows),
@@ -201,6 +238,7 @@ module.exports = {
     buildOpenFinanceSaveProposalReviewCatalog,
     __test__: {
         categoriesFromRows,
+        incomeCategoriesFromRows,
         accountsFromRows,
         cardsFromRows
     }

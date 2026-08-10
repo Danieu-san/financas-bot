@@ -143,11 +143,18 @@ function formatMoneyFromCents(value) {
     });
 }
 
-function reviewMissingFields(draft = {}) {
+function reviewMissingFields(draft = {}, classification = 'purchase') {
     const missing = [];
     if (!draft.person) missing.push('pessoa');
     if (!draft.category) missing.push('categoria');
-    if (!draft.paymentMethod) missing.push('forma de pagamento');
+    if (!draft.paymentMethod) {
+        missing.push(classification === 'income' ? 'forma de recebimento' : 'forma de pagamento');
+    }
+    if (classification === 'income') {
+        if (!draft.financialAccount) missing.push('conta financeira');
+        if (draft.card) missing.push('remover cartão incompatível');
+        return missing;
+    }
     if (draft.paymentMethod?.value === 'Crédito' && !draft.card) {
         missing.push('cartão');
     }
@@ -168,9 +175,14 @@ function reviewMissingFields(draft = {}) {
     return missing;
 }
 
-function paymentEditBlockMessage(draft = {}, step = '') {
+function paymentEditBlockMessage(draft = {}, step = '', classification = 'purchase') {
     const payment = draft.paymentMethod?.value;
     if (!['select_account', 'select_card'].includes(step)) return '';
+    if (classification === 'income') {
+        return step === 'select_card'
+            ? 'Entradas não usam cartão. Escolha a conta financeira de destino.'
+            : '';
+    }
     if (!payment) {
         return 'Escolha primeiro a forma de pagamento antes de definir conta ou cartão.';
     }
@@ -191,28 +203,38 @@ function formatReviewSummary(payload, { includeMenu = true } = {}) {
             ? ` / ${draft.category.subcategory}`
             : ''}`
         : 'não definida';
+    const isIncome = payload?.classification === 'income';
     const lines = [
         'Confira a proposta:',
         `Descrição: ${source.description || 'não informada'}`,
         `Valor: ${formatMoneyFromCents(source.amount_cents)}`,
         `Pessoa: ${draft.person?.label || 'não definida'}`,
         `Categoria: ${category}`,
-        `Pagamento: ${draft.paymentMethod?.label || 'não definido'}`,
+        `${isIncome ? 'Recebimento' : 'Pagamento'}: ${draft.paymentMethod?.label || 'não definido'}`,
         `Conta financeira: ${draft.financialAccount?.label || 'não definida'}`,
-        `Cartão: ${draft.card?.label || 'não definido'}`
+        ...(!isIncome ? [`Cartão: ${draft.card?.label || 'não definido'}`] : [])
     ];
-    const missing = reviewMissingFields(draft);
+    const missing = reviewMissingFields(draft, payload?.classification);
     if (missing.length) lines.push(`Ainda falta: ${missing.join(', ')}.`);
     if (includeMenu) {
-        lines.push(
-            '',
-            'O que deseja ajustar?',
+        const menu = isIncome ? [
+            '1. Pessoa',
+            '2. Categoria',
+            '3. Forma de recebimento',
+            '4. Conta financeira',
+            '5. Concluir conferência'
+        ] : [
             '1. Pessoa',
             '2. Categoria',
             '3. Forma de pagamento',
             '4. Conta financeira',
             '5. Cartão',
-            '6. Concluir conferência',
+            '6. Concluir conferência'
+        ];
+        lines.push(
+            '',
+            'O que deseja ajustar?',
+            ...menu,
             '0. Cancelar',
             '',
             'Responda com o número. Nada foi salvo.'
@@ -266,10 +288,13 @@ function reviewOptionsForStep(payload = {}) {
 }
 
 function formatReviewOptions(payload = {}) {
+    const isIncome = payload?.classification === 'income';
     const labels = {
         select_person: 'Escolha a pessoa:',
         select_category: 'Escolha a categoria:',
-        select_payment: 'Escolha a forma de pagamento:',
+        select_payment: isIncome
+            ? 'Escolha a forma de recebimento:'
+            : 'Escolha a forma de pagamento:',
         select_account: 'Escolha a conta financeira:',
         select_card: 'Escolha o cartão:'
     };
@@ -627,11 +652,22 @@ function handleOpenFinanceSaveProposalReply({
         secret
     });
     try {
+        let directReviewedIncome = false;
+        if (expectedProposalRef) {
+            const directProposal = preview.readSaveProposalPrivate(
+                expectedProposalRef,
+                { actorWhatsappId }
+            );
+            directReviewedIncome = Boolean(
+                directProposal?.classification === 'income' &&
+                /^[a-f0-9]{32}$/.test(String(directProposal.semantic_review_ref || ''))
+            );
+        }
         if (expectedProposalRef && configuration.familyConfirmationEnabled) {
             const replyEligible = outbox.isProposalReplyEligible(expectedProposalRef, {
                 recipient: expectedRecipientPrincipal
             });
-            if (!replyEligible) {
+            if (!replyEligible && !directReviewedIncome) {
                 return {
                     handled: true,
                     keep_pending: false,
@@ -640,10 +676,20 @@ function handleOpenFinanceSaveProposalReply({
                 };
             }
             try {
+                if (directReviewedIncome) {
+                    const state = preview.listReadySaveProposalConfirmations({
+                        actorWhatsappId,
+                        limit: 2
+                    });
+                    if (!state.some(item => item.proposal_ref === expectedProposalRef)) {
+                        throw new Error('save_proposal_confirmation_state_conflict');
+                    }
+                } else {
                 preview.prepareSaveProposalConfirmation(
                     expectedProposalRef,
                     { actorWhatsappId }
                 );
+                }
             } catch (error) {
                 if (/confirmation_actor_unauthorized|confirmation_state_conflict/.test(
                     String(error?.message || '')
@@ -665,11 +711,20 @@ function handleOpenFinanceSaveProposalReply({
         const candidates = ready.filter(item => {
             if (expectedProposalRef) {
                 return item.proposal_ref === expectedProposalRef &&
-                    outbox.isProposalReplyEligible(item.proposal_ref, {
-                        recipient: expectedRecipientPrincipal
-                    });
+                    (directReviewedIncome ||
+                        outbox.isProposalReplyEligible(item.proposal_ref, {
+                            recipient: expectedRecipientPrincipal
+                        }));
             }
-            return outbox.getProposalDeliveryState(item.proposal_ref) === 'delivered_confirmed';
+            if (outbox.getProposalDeliveryState(item.proposal_ref) === 'delivered_confirmed') {
+                return true;
+            }
+            const proposal = preview.readSaveProposalPrivate(
+                item.proposal_ref,
+                { actorWhatsappId }
+            );
+            return proposal?.classification === 'income' &&
+                /^[a-f0-9]{32}$/.test(String(proposal.semantic_review_ref || ''));
         });
         if (candidates.length === 0) {
             return {
@@ -946,15 +1001,22 @@ function handleOpenFinanceSaveProposalReviewReply({
             };
         }
         if (payload.step === 'menu') {
-            const fieldByChoice = {
+            const isIncome = payload.classification === 'income';
+            const fieldByChoice = isIncome ? {
+                '1': 'select_person',
+                '2': 'select_category',
+                '3': 'select_payment',
+                '4': 'select_account'
+            } : {
                 '1': 'select_person',
                 '2': 'select_category',
                 '3': 'select_payment',
                 '4': 'select_account',
                 '5': 'select_card'
             };
-            if (normalized === '6') {
-                const missing = reviewMissingFields(payload.draft);
+            const completionChoice = isIncome ? '5' : '6';
+            if (normalized === completionChoice) {
+                const missing = reviewMissingFields(payload.draft, payload.classification);
                 if (missing.length) {
                     return {
                         handled: true,
@@ -988,11 +1050,15 @@ function handleOpenFinanceSaveProposalReviewReply({
                     keep_pending: true,
                     state: 'review_editing',
                     proposal_ref: proposalRef,
-                    reply: `Escolha uma opção de 0 a 6.\n\n${formatReviewSummary(payload)}`,
+                    reply: `Escolha uma opção de 0 a ${completionChoice}.\n\n${formatReviewSummary(payload)}`,
                     financial_writes: 0
                 };
             }
-            const blockedEdit = paymentEditBlockMessage(payload.draft, step);
+            const blockedEdit = paymentEditBlockMessage(
+                payload.draft,
+                step,
+                payload.classification
+            );
             if (blockedEdit) {
                 return {
                     handled: true,
@@ -1023,7 +1089,11 @@ function handleOpenFinanceSaveProposalReviewReply({
             };
         }
 
-        const blockedEdit = paymentEditBlockMessage(payload.draft, payload.step);
+        const blockedEdit = paymentEditBlockMessage(
+            payload.draft,
+            payload.step,
+            payload.classification
+        );
         if (blockedEdit) {
             const restored = reviewStore.updateReview(proposalRef, {
                 actorWhatsappId,
@@ -1105,7 +1175,9 @@ function handleOpenFinanceSaveProposalReviewReply({
                         label: selected.label,
                         value: selected.value
                     };
-                    if (selected.value === 'Crédito') {
+                    if (current.classification === 'income') {
+                        current.draft.card = null;
+                    } else if (selected.value === 'Crédito') {
                         current.draft.financialAccount = null;
                     } else if (['Débito', 'PIX'].includes(selected.value)) {
                         current.draft.card = null;

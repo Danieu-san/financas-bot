@@ -25,6 +25,12 @@ test('9P.3 catalog keeps only authorized family data and deduplicates categories
             ['Data', 'Descrição', 'Categoria', '', '', '', '', '', '', 'user_id'],
             ['', '', 'Lazer', '', '', '', '', '', '', 'user-daniel']
         ],
+        'Entradas!A:J': [
+            ['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável',
+                'Recebimento', 'Recorrente', 'Obs', 'user_id', 'Conta Financeira'],
+            ['', '', 'Freela', '', '', '', '', '', 'user-thais', ''],
+            ['', '', 'Privada', '', '', '', '', '', 'user-outsider', '']
+        ],
         'Contas Financeiras!A:I': [
             ['Nome', 'Tipo', '', '', 'Status', '', 'Responsável', 'user_id', ''],
             ['Nubank Daniel', 'bank', '', '', 'active', '', 'Daniel', 'user-daniel', ''],
@@ -60,15 +66,20 @@ test('9P.3 catalog keeps only authorized family data and deduplicates categories
         'Lazer',
         'Transporte / UBER'
     ]);
+    assert.equal(catalog.incomeCategories.some(item => item.label === 'Freela'), true);
+    assert.equal(catalog.incomeCategories.some(item => item.label === 'Privada'), false);
     assert.deepEqual(catalog.financialAccounts.map(item => item.label), [
         'Nubank Daniel · Daniel'
     ]);
     assert.deepEqual(catalog.cards.map(item => item.label), ['Nubank Daniel']);
-    assert.equal(readCalls.length, 5);
+    assert.equal(readCalls.length, 6);
     assert.equal(readCalls.every(call =>
         call.options?.userId === 'user-daniel' &&
         call.options?.requireUserScoped === true), true);
     assert.equal(catalog.paymentMethods.length, 4);
+    assert.deepEqual(catalog.receiptMethods.map(item => item.value), [
+        'Conta Corrente', 'Conta Poupança', 'PIX'
+    ]);
     assert.equal(catalog.financial_writes, 0);
 });
 

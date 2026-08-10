@@ -63,6 +63,17 @@ function sourceFingerprint(transaction = {}, accountType = '') {
     };
 }
 
+function semanticReviewSourceFingerprint(transaction = {}) {
+    return {
+        id: String(transaction.id || '').trim(),
+        account_id: String(transaction.account_id || '').trim(),
+        amount_cents: Number(transaction.amount_cents),
+        description: String(transaction.description || '').trim(),
+        date: String(transaction.date || '').trim(),
+        status: String(transaction.status || '').trim().toUpperCase()
+    };
+}
+
 function catalogProjection(kind, value = {}) {
     const base = {
         id: String(value.id || '').trim(),
@@ -145,8 +156,16 @@ function assertCategorySelection(catalog, selected) {
     };
 }
 
-function revalidateDraftCatalog(draft = {}, catalog = {}) {
+function revalidateDraftCatalog(draft = {}, catalog = {}, classification = 'purchase') {
     requireObject(draft, 'open_finance_final_draft_required');
+    if (classification === 'income') {
+        catalog = {
+            ...catalog,
+            categories: catalog.incomeCategories || catalog.categories,
+            paymentMethods: catalog.receiptMethods || catalog.paymentMethods,
+            cards: []
+        };
+    }
     for (const key of [
         'people',
         'categories',
@@ -170,6 +189,21 @@ function revalidateDraftCatalog(draft = {}, catalog = {}) {
     }
     let financialAccount = null;
     let card = null;
+    if (classification === 'income') {
+        if (!['PIX', 'Conta Corrente', 'Conta Poupança']
+            .includes(paymentMethod.value) || draft.card) {
+            throw new Error('open_finance_final_payment_method_forbidden');
+        }
+        financialAccount = assertCatalogSelection(
+            catalog,
+            'financialAccounts',
+            draft.financialAccount
+        );
+        if (!financialAccount) {
+            throw new Error('open_finance_final_draft_incomplete');
+        }
+        return { person, category, paymentMethod, financialAccount, card: null };
+    }
     if (paymentMethod.value === 'Crédito') {
         card = assertCatalogSelection(catalog, 'cards', draft.card);
         if (!card || draft.financialAccount) {
@@ -222,6 +256,26 @@ function buildWritePlan({ proposal, draft }) {
     if (!Number.isFinite(amount) || amount <= 0) {
         throw new Error('open_finance_final_source_changed');
     }
+    if (proposal.classification === 'income') {
+        return {
+            operation: 'income.create',
+            sheetName: 'Entradas',
+            row: [
+                getFormattedDateOnly(date),
+                proposal.source.description,
+                draft.category.category,
+                amount,
+                draft.person.label,
+                draft.paymentMethod.value,
+                'Não',
+                'Importado de observação Open Finance confirmada.',
+                draft.person.id,
+                draft.financialAccount.label
+            ],
+            userId: draft.person.id,
+            financial_writes: 0
+        };
+    }
     if (draft.paymentMethod.value === 'Crédito') {
         return {
             operation: 'expense.create',
@@ -267,6 +321,7 @@ function revalidateOpenFinanceSaveProposal({
     item,
     internalSource,
     catalog,
+    semanticReview = null,
     secret
 } = {}) {
     const hmacSecret = requireSecret(secret);
@@ -276,14 +331,25 @@ function revalidateOpenFinanceSaveProposal({
     requireObject(internalSource, 'open_finance_final_internal_source_unavailable');
     requireObject(catalog, 'open_finance_final_catalog_unavailable');
 
+    const isPurchase = proposal.classification === 'purchase';
+    const isIncome = proposal.classification === 'income';
     if (!/^[a-f0-9]{32}$/.test(String(proposal.proposal_ref || '')) ||
         review.proposal_ref !== proposal.proposal_ref ||
         review.state !== 'ready' ||
-        proposal.classification !== 'purchase' ||
+        (!isPurchase && !isIncome) ||
         proposal.provider_state !== 'POSTED' ||
         proposal.reconciliation_status !== 'new' ||
         !/^[a-f0-9]{48}$/.test(String(proposal.operation_key || ''))) {
         throw new Error('open_finance_final_proposal_not_ready');
+    }
+    if (isIncome && (!semanticReview || semanticReview.review_state !== 'decided' ||
+        semanticReview.decision !== 'income' || semanticReview.review_kind !== 'income' ||
+        semanticReview.review_ref !== proposal.semantic_review_ref ||
+        semanticReview.observation_ref !== proposal.observation_ref ||
+        Number(semanticReview.generation) !== Number(proposal.generation) ||
+        stableSerialize(semanticReviewSourceFingerprint(semanticReview.source)) !==
+            stableSerialize(semanticReviewSourceFingerprint(proposal.source)))) {
+        throw new Error('open_finance_final_income_review_changed');
     }
     if (Number(proposal.source?.total_installments) > 1 ||
         Number(proposal.source?.installment_number) > 1) {
@@ -315,8 +381,9 @@ function revalidateOpenFinanceSaveProposal({
     });
     const lifecycleDecision = lifecycle.decisions.find(decision =>
         decision.observation_ref === proposal.observation_ref);
+    const expectedLifecycle = isIncome ? 'income_candidate' : 'purchase';
     if (!lifecycleDecision ||
-        lifecycleDecision.classification !== 'purchase' ||
+        lifecycleDecision.classification !== expectedLifecycle ||
         lifecycleDecision.provider_state !== 'POSTED') {
         throw new Error('open_finance_final_source_changed');
     }
@@ -337,7 +404,11 @@ function revalidateOpenFinanceSaveProposal({
         reconciliation.eligibleCandidates.length !== 1) {
         throw new Error('open_finance_final_not_new');
     }
-    const draft = revalidateDraftCatalog(review.payload?.draft, catalog);
+    const draft = revalidateDraftCatalog(
+        review.payload?.draft,
+        catalog,
+        proposal.classification
+    );
     const operationKey = crypto.createHmac('sha256', hmacSecret)
         .update(`open-finance-final:${proposal.operation_key}:${stableSerialize(draft)}`)
         .digest('hex')
@@ -352,7 +423,9 @@ function revalidateOpenFinanceSaveProposal({
             .digest('hex')
             .slice(0, 32),
         revalidation: {
-            provider: 'posted_purchase_unchanged',
+            provider: isIncome
+                ? 'posted_reviewed_income_unchanged'
+                : 'posted_purchase_unchanged',
             internal: 'new',
             catalog: 'authorized'
         },
@@ -563,6 +636,8 @@ async function loadDefaultFinalizationContext({
         require('./openFinanceShadowPreviewStore');
     const { OpenFinanceSaveProposalReviewStore } =
         require('./openFinanceSaveProposalReviewStore');
+    const { OpenFinanceProactiveReviewStore } =
+        require('./openFinanceProactiveReviewStore');
     const { OpenFinanceLiveStagingVault } =
         require('./openFinanceLiveStagingVault');
     const { buildOpenFinanceSaveProposalReviewCatalog } =
@@ -615,6 +690,23 @@ async function loadDefaultFinalizationContext({
             proposalRef,
             { actorWhatsappId }
         );
+        let semanticReview = null;
+        if (proposal.classification === 'income') {
+            const ProactiveReview = dependencies.OpenFinanceProactiveReviewStore ||
+                OpenFinanceProactiveReviewStore;
+            const proactiveStore = new ProactiveReview({
+                databasePath: env.OPEN_FINANCE_SHADOW_PREVIEW_DB,
+                secret
+            });
+            try {
+                semanticReview = proactiveStore.readPrivate(
+                    proposal.semantic_review_ref,
+                    { actorWhatsappId }
+                );
+            } finally {
+                proactiveStore.close();
+            }
+        }
         const mappings = readJson(
             env.PLUGGY_ITEM_MAP_FILE,
             'open_finance_final_mapping_unavailable'
@@ -647,7 +739,7 @@ async function loadDefaultFinalizationContext({
             userId,
             dependencies: dependencies.catalogDependencies || {}
         });
-        return { proposal, review, item, internalSource, catalog };
+        return { proposal, review, semanticReview, item, internalSource, catalog };
     } finally {
         vault.close();
         reviewStore.close();

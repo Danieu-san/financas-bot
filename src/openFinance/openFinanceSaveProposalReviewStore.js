@@ -47,7 +47,8 @@ function normalizeCatalogItems(items, kind, limit) {
         }
         if (kind === 'payment_methods') {
             const value = String(item.value || '').trim();
-            if (!['Crédito', 'Débito', 'PIX', 'Dinheiro'].includes(value)) {
+            if (!['Crédito', 'Débito', 'PIX', 'Dinheiro',
+                'Conta Corrente', 'Conta Poupança'].includes(value)) {
                 throw new Error('invalid_open_finance_save_review_payment_methods_catalog');
             }
             return { id, label, value };
@@ -94,12 +95,24 @@ function normalizeCatalog(catalog = {}) {
     };
 }
 
+function catalogForProposal(proposal = {}, catalog = {}) {
+    if (proposal.classification !== 'income') return catalog;
+    return {
+        ...catalog,
+        categories: catalog.incomeCategories || [],
+        paymentMethods: catalog.receiptMethods || [],
+        cards: []
+    };
+}
+
 function initialDraft(proposal, catalog) {
     const principal = normalizeText(proposal?.principal);
     const person = catalog.people.find(item =>
         normalizeText(item.label).split(/\s+/)[0] === principal) || null;
     const accountType = String(proposal?.account_type || '').trim().toUpperCase();
-    const paymentValue = accountType === 'CREDIT'
+    const paymentValue = proposal?.classification === 'income'
+        ? (accountType === 'SAVINGS' ? 'Conta Poupança' : 'Conta Corrente')
+        : accountType === 'CREDIT'
         ? 'Crédito'
         : (['CHECKING', 'SAVINGS', 'BANK'].includes(accountType) ? 'Débito' : '');
     const paymentMethod = catalog.paymentMethods.find(item => item.value === paymentValue) || null;
@@ -304,7 +317,7 @@ class OpenFinanceSaveProposalReviewStore {
             throw new Error('valid_open_finance_save_review_proposal_required');
         }
         const actorRef = this.#requireActor(actorWhatsappId);
-        const normalizedCatalog = normalizeCatalog(catalog);
+        const normalizedCatalog = normalizeCatalog(catalogForProposal(proposal, catalog));
         const createdAt = this.#now();
         const expiresAt = String(proposal?.review_expires_at || proposal?.expires_at || '');
         if (!expiresAt || Number.isNaN(Date.parse(expiresAt)) || expiresAt <= createdAt) {
@@ -340,6 +353,8 @@ class OpenFinanceSaveProposalReviewStore {
                 date: String(proposal?.source?.date || '').trim(),
                 account_type: String(proposal?.account_type || '').trim()
             },
+            classification: String(proposal?.classification || 'purchase'),
+            semantic_review_ref: String(proposal?.semantic_review_ref || ''),
             catalog: normalizedCatalog,
             draft: initialDraft(proposal, normalizedCatalog),
             step: 'menu',
@@ -596,5 +611,6 @@ class OpenFinanceSaveProposalReviewStore {
 
 module.exports = {
     OpenFinanceSaveProposalReviewStore,
-    normalizeOpenFinanceSaveReviewCatalog: normalizeCatalog
+    normalizeOpenFinanceSaveReviewCatalog: normalizeCatalog,
+    __test__: { catalogForProposal, initialDraft }
 };

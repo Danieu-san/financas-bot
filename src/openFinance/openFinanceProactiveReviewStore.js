@@ -436,6 +436,25 @@ class OpenFinanceProactiveReviewStore {
             financial_writes: 0 };
     }
 
+    readPrivate(reviewRef, { actorWhatsappId } = {}) {
+        const ref = String(reviewRef || '').trim().toLowerCase();
+        if (!/^[a-f0-9]{32}$/.test(ref)) {
+            throw new Error('valid_open_finance_proactive_review_ref_required');
+        }
+        this.purgeExpired();
+        const row = this.db.prepare(`SELECT * FROM open_finance_proactive_reviews
+            WHERE review_ref=? AND family_scope_ref=?`).get(ref, this.familyScopeRef);
+        if (!row) throw new Error('open_finance_proactive_review_not_found');
+        this.#assertRow(row);
+        if (row.review_state === 'expired') {
+            throw new Error('open_finance_proactive_review_not_pending');
+        }
+        const payload = this.#readPayload(row);
+        this.#requireActor(payload, actorWhatsappId);
+        return { ...payload, review_state: row.review_state, decision: row.decision,
+            financial_writes: 0 };
+    }
+
     decideByCode(reviewCode, decision, { actorWhatsappId } = {}) {
         this.purgeExpired();
         const code = String(reviewCode || '').trim().toLowerCase();

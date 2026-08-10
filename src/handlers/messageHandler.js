@@ -130,6 +130,9 @@ const {
 const {
     tryHandleOpenFinanceProactiveReviewReply
 } = require('../openFinance/openFinanceProactiveReviewConversation');
+const {
+    prepareReviewedIncomeSaveProposal
+} = require('../openFinance/openFinanceReviewedIncomeSaveProposal');
 const { recordQaFailure } = require('../services/qaFailureLogService');
 const { recordAdminAction, hashRef, sanitizeValue } = require('../services/adminActionLogService');
 const { recordDashboardAccessEvent } = require('../services/dashboardAccessLogService');
@@ -9217,6 +9220,34 @@ async function processMessage(msg) {
         body: messageBody
     });
     if (proactiveReviewReply.handled) {
+        if (proactiveReviewReply.decision === 'income' &&
+            proactiveReviewReply.review_code) {
+            try {
+                const incomeProposal = await prepareReviewedIncomeSaveProposal({
+                    reviewCode: proactiveReviewReply.review_code,
+                    actorWhatsappId: senderId,
+                    userId
+                });
+                if (incomeProposal.handled) {
+                    setOpenFinanceConversationState(senderId, {
+                        action: 'awaiting_open_finance_save_confirmation',
+                        data: {
+                            proposalRef: incomeProposal.proposal_ref,
+                            recipientPrincipal: incomeProposal.recipient_principal
+                        }
+                    });
+                    await sendPlainMessage(msg, incomeProposal.reply);
+                    return;
+                }
+            } catch (error) {
+                logger.warn(`[open-finance] reviewed_income_proposal_unavailable sender=${logger.redactIdentifier(senderId)} ${logger.safeError(error)}`);
+                await sendPlainMessage(msg, [
+                    proactiveReviewReply.reply,
+                    'Não consegui abrir a conferência de salvamento agora. A classificação continua registrada e nada foi salvo.'
+                ].join('\n'));
+                return;
+            }
+        }
         await sendPlainMessage(msg, proactiveReviewReply.reply);
         return;
     }
