@@ -25,6 +25,11 @@ de cartao na fatura aberta do Pluggy.
 - auditoria independente no hash
   `421270f98a3a6c5eccee21af39557cfecabb04ac`: `GO TECNICO LOCAL`, zero
   achados e nenhuma lacuna tecnica indispensavel;
+- o preflight posterior encontrou `ip-address@10.2.0` vulneravel na cadeia
+  transitiva do Puppeteer; o lockfile foi atualizado minimamente para `10.5.0`;
+- instalacao limpa, smoke da cadeia proxy/SOCKS, `npm audit` zerado e suite
+  hermetica ampla `1632/1622/0/10` passaram apos a atualizacao; novo hash ainda
+  precisa de reauditoria independente;
 - nenhum deploy do Gate 40 foi executado.
 
 ## Git e workspace
@@ -43,18 +48,19 @@ de cartao na fatura aberta do Pluggy.
 
 ## Próxima ação exata
 
-Publicar o fechamento independente e promover o hash auditado por artefato OCI,
-condicionado aos preflights e ao rollback do runbook.
+Publicar o saneamento transitivo, obter reauditoria independente do novo hash e
+somente entao construir e promover o artefato OCI.
 
 ## Capacidade para retomar
 
-`Codex -> Sol -> Alto -> promover o Gate 40 por artefato OCI e validar a producao.`
+`Codex -> Sol -> Alto -> reauditar o saneamento transitivo e promover o Gate 40 na OCI.`
 
 ## Referencias dirigidas
 
 - gate ativo: `docs/plans/current-gate.md`;
 - Gate 39 em producao: `docs/audit/219-open-finance-reviewed-write-release-production-activation-2026-08-10.md`;
 - Gate 40 auditado: `docs/audit/221-open-finance-open-invoice-purchase-independent-close-2026-08-10.md`;
+- saneamento de dependencia: `docs/audit/222-gate40-ip-address-security-preflight-candidate-2026-08-10.md`;
 - elegibilidade: `src/openFinance/openFinancePurchaseProposalEligibility.js`;
 - finalizacao: `src/openFinance/openFinanceSaveProposalFinalization.js`;
 - deploy: `docs/runbooks/release-checklist.md`;

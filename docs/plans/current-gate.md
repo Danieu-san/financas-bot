@@ -4,7 +4,8 @@ Atualizado em: 2026-08-10
 
 ## Estado
 
-`GO TECNICO LOCAL; DEPLOY OCI PENDENTE`.
+`GO TECNICO DO CODIGO; SANEAMENTO DE DEPENDENCIA VALIDADO LOCALMENTE;
+REAUDITORIA INDEPENDENTE PENDENTE; SEM DEPLOY`.
 
 ## Objetivo
 
@@ -66,6 +67,9 @@ mesmo lancamento de `PENDING` para `POSTED`.
    no commit `421270f98a3a6c5eccee21af39557cfecabb04ac`, sem achados nem lacuna
    tecnica indispensavel.
 7. Promover por artefato OCI e executar smoke real.
+8. Preflight de release encontrou `ip-address@10.2.0` vulneravel; a correcao
+   minima para `10.5.0` passou em instalacao limpa, audit high zerado, smoke da
+   cadeia proxy/SOCKS e nova suite hermetica ampla `1632/1622/0/10`.
 
 ## Critérios de GO
 
@@ -84,8 +88,8 @@ mesmo lancamento de `PENDING` para `POSTED`.
 
 ## Proxima acao
 
-Registrar o fechamento independente, publicar a evidencia e promover o mesmo
-hash por artefato OCI, condicionado aos preflights do runbook.
+Publicar o saneamento transitivo em novo hash e obter reauditoria independente
+antes de construir o artefato OCI.
 
 ## Referencias
 
@@ -96,5 +100,6 @@ hash por artefato OCI, condicionado aos preflights do runbook.
 - `src/openFinance/openFinanceWhatsappCanaryDelivery.js`;
 - `docs/audit/220-open-finance-open-invoice-purchase-candidate-2026-08-10.md`;
 - `docs/audit/221-open-finance-open-invoice-purchase-independent-close-2026-08-10.md`;
+- `docs/audit/222-gate40-ip-address-security-preflight-candidate-2026-08-10.md`;
 - documentacao oficial Pluggy: `https://docs.pluggy.ai/docs/transactions`;
 - documentacao oficial Pluggy: `https://docs.pluggy.ai/docs/credit-card-installments`.
