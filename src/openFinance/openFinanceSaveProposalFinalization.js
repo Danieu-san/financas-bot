@@ -156,8 +156,61 @@ function assertCategorySelection(catalog, selected) {
     };
 }
 
-function revalidateDraftCatalog(draft = {}, catalog = {}, classification = 'purchase') {
+function revalidateRefundDraftCatalog(draft = {}, catalog = {}, linkedTarget = {}) {
+    const person = assertCatalogSelection(catalog, 'people', draft.person);
+    if (!person || person.id !== linkedTarget.user_id) {
+        throw new Error('open_finance_final_refund_target_changed');
+    }
+    if (linkedTarget.kind === 'card') {
+        const category = assertCatalogSelection(catalog, 'categories', draft.category);
+        const paymentMethod = assertCatalogSelection(
+            catalog, 'paymentMethods', draft.paymentMethod
+        );
+        const card = assertCatalogSelection(catalog, 'cards', draft.card);
+        if (!category || normalizeText(category.category) !==
+            normalizeText(linkedTarget.category) ||
+            normalizeText(category.subcategory) !== normalizeText(linkedTarget.subcategory) ||
+            !paymentMethod || paymentMethod.value !== 'Cr\u00e9dito' || !card ||
+            card.cardId !== linkedTarget.card_id ||
+            normalizeText(card.label) !== normalizeText(linkedTarget.card_name) ||
+            draft.financialAccount) {
+            throw new Error('open_finance_final_refund_target_changed');
+        }
+        return { person, category, paymentMethod, financialAccount: null, card };
+    }
+    if (linkedTarget.kind === 'bank') {
+        const incomeCatalog = {
+            ...catalog,
+            categories: catalog.incomeCategories || [],
+            paymentMethods: catalog.receiptMethods || []
+        };
+        const category = assertCatalogSelection(incomeCatalog, 'categories', draft.category);
+        const paymentMethod = assertCatalogSelection(
+            incomeCatalog, 'paymentMethods', draft.paymentMethod
+        );
+        const financialAccount = assertCatalogSelection(
+            catalog, 'financialAccounts', draft.financialAccount
+        );
+        const accountLabel = normalizeText(financialAccount?.label || '');
+        const expectedAccount = normalizeText(linkedTarget.financial_account || '');
+        if (!category || normalizeText(category.category) !== 'reembolso' ||
+            !paymentMethod || paymentMethod.value !== 'Conta Corrente' ||
+            !financialAccount || financialAccount.ownerUserId !== linkedTarget.user_id ||
+            (accountLabel !== expectedAccount &&
+                !accountLabel.startsWith(`${expectedAccount} `)) || draft.card) {
+            throw new Error('open_finance_final_refund_target_changed');
+        }
+        return { person, category, paymentMethod, financialAccount, card: null };
+    }
+    throw new Error('open_finance_final_refund_target_changed');
+}
+
+function revalidateDraftCatalog(draft = {}, catalog = {}, classification = 'purchase',
+    linkedTarget = null) {
     requireObject(draft, 'open_finance_final_draft_required');
+    if (classification === 'refund') {
+        return revalidateRefundDraftCatalog(draft, catalog, linkedTarget || {});
+    }
     if (classification === 'income') {
         catalog = {
             ...catalog,
@@ -250,6 +303,12 @@ function billingMonth(date, closingDay) {
     return `${MONTH_NAMES[month]} de ${year}`;
 }
 
+function refundRelationNote(target = {}) {
+    const ref = String(target.related_source_row_ref || '').trim();
+    if (!ref) throw new Error('open_finance_final_refund_relation_unavailable');
+    return `[open_finance_refund_pair:${Buffer.from(ref, 'utf8').toString('base64url')}]`;
+}
+
 function buildWritePlan({ proposal, draft }) {
     const date = parseProviderDate(proposal.source.date);
     const amount = Math.abs(Number(proposal.source.amount_cents)) / 100;
@@ -273,6 +332,59 @@ function buildWritePlan({ proposal, draft }) {
                 draft.financialAccount.label
             ],
             userId: draft.person.id,
+            financial_writes: 0
+        };
+    }
+    if (proposal.classification === 'refund') {
+        const target = proposal.linked_target || {};
+        const canonicalRelation = {
+            type: 'refund_pair',
+            related_event_id: target.related_event_id,
+            related_source_row_ref: target.related_source_row_ref,
+            original_amount_cents: target.original_amount_cents,
+            category: target.category,
+            subcategory: target.subcategory,
+            owner_person_id: target.user_id,
+            original_source_type: target.kind === 'card'
+                ? 'sheet.lancamentos_cartao'
+                : 'sheet.saidas'
+        };
+        if (target.kind === 'card') {
+            return {
+                operation: 'refund.create',
+                sheetName: `Cart\u00e3o ${draft.card.label}`,
+                cardId: draft.card.cardId,
+                row: [
+                    getFormattedDateOnly(date),
+                    proposal.source.description,
+                    draft.category.category,
+                    -amount,
+                    '1/1',
+                    billingMonth(date, draft.card.closingDay),
+                    draft.person.id
+                ],
+                userId: draft.person.id,
+                canonicalRelation,
+                financial_writes: 0
+            };
+        }
+        return {
+            operation: 'refund.create',
+            sheetName: 'Entradas',
+            row: [
+                getFormattedDateOnly(date),
+                proposal.source.description,
+                'Reembolso',
+                amount,
+                draft.person.label,
+                draft.paymentMethod.value,
+                'N\u00e3o',
+                `Reembolso Open Finance vinculado ao gasto original. ${refundRelationNote(target)}`,
+                draft.person.id,
+                target.financial_account
+            ],
+            userId: draft.person.id,
+            canonicalRelation,
             financial_writes: 0
         };
     }
@@ -322,6 +434,7 @@ function revalidateOpenFinanceSaveProposal({
     internalSource,
     catalog,
     semanticReview = null,
+    canonicalOriginal = null,
     secret
 } = {}) {
     const hmacSecret = requireSecret(secret);
@@ -333,10 +446,11 @@ function revalidateOpenFinanceSaveProposal({
 
     const isPurchase = proposal.classification === 'purchase';
     const isIncome = proposal.classification === 'income';
+    const isRefund = proposal.classification === 'refund';
     if (!/^[a-f0-9]{32}$/.test(String(proposal.proposal_ref || '')) ||
         review.proposal_ref !== proposal.proposal_ref ||
         review.state !== 'ready' ||
-        (!isPurchase && !isIncome) ||
+        (!isPurchase && !isIncome && !isRefund) ||
         proposal.provider_state !== 'POSTED' ||
         proposal.reconciliation_status !== 'new' ||
         !/^[a-f0-9]{48}$/.test(String(proposal.operation_key || ''))) {
@@ -350,6 +464,20 @@ function revalidateOpenFinanceSaveProposal({
         stableSerialize(semanticReviewSourceFingerprint(semanticReview.source)) !==
             stableSerialize(semanticReviewSourceFingerprint(proposal.source)))) {
         throw new Error('open_finance_final_income_review_changed');
+    }
+    if (isRefund && (!semanticReview || semanticReview.review_state !== 'decided' ||
+        semanticReview.decision !== 'confirm_pair' ||
+        semanticReview.review_kind !== 'refund_link' ||
+        semanticReview.review_status !== 'pair_confirmation_required' ||
+        semanticReview.review_ref !== proposal.semantic_review_ref ||
+        semanticReview.observation_ref !== proposal.observation_ref ||
+        semanticReview.pair_observation_ref !== proposal.pair_observation_ref ||
+        Number(semanticReview.generation) !== Number(proposal.generation) ||
+        stableSerialize(semanticReviewSourceFingerprint(semanticReview.source)) !==
+            stableSerialize(semanticReviewSourceFingerprint(proposal.source)) ||
+        stableSerialize(semanticReviewSourceFingerprint(semanticReview.pair_source)) !==
+            stableSerialize(semanticReviewSourceFingerprint(proposal.paired_source)))) {
+        throw new Error('open_finance_final_refund_review_changed');
     }
     if (Number(proposal.source?.total_installments) > 1 ||
         Number(proposal.source?.installment_number) > 1) {
@@ -369,9 +497,18 @@ function revalidateOpenFinanceSaveProposal({
             String(proposal.source?.account_id || ''));
     const currentAccount = (item.accounts || []).find(account =>
         String(account.id || '') === String(proposal.source?.account_id || ''));
+    const currentPair = isRefund
+        ? (item.transactions || []).find(transaction =>
+            String(transaction.id || '') === String(proposal.paired_source?.id || '') &&
+            String(transaction.account_id || '') ===
+                String(proposal.paired_source?.account_id || ''))
+        : null;
     if (!currentTransaction || !currentAccount ||
         stableSerialize(sourceFingerprint(currentTransaction, currentAccount.type)) !==
-            stableSerialize(sourceFingerprint(proposal.source, proposal.account_type))) {
+            stableSerialize(sourceFingerprint(proposal.source, proposal.account_type)) ||
+        (isRefund && (!currentPair ||
+            stableSerialize(semanticReviewSourceFingerprint(currentPair)) !==
+                stableSerialize(semanticReviewSourceFingerprint(proposal.paired_source))))) {
         throw new Error('open_finance_final_source_changed');
     }
     const lifecycle = classifyOpenFinanceLifecycle({
@@ -381,18 +518,25 @@ function revalidateOpenFinanceSaveProposal({
     });
     const lifecycleDecision = lifecycle.decisions.find(decision =>
         decision.observation_ref === proposal.observation_ref);
-    const expectedLifecycle = isIncome ? 'income_candidate' : 'purchase';
+    const expectedLifecycle = isIncome ? 'income_candidate' : isRefund ? 'refund' : 'purchase';
     if (!lifecycleDecision ||
         lifecycleDecision.classification !== expectedLifecycle ||
         lifecycleDecision.provider_state !== 'POSTED') {
         throw new Error('open_finance_final_source_changed');
     }
+    const candidates = [{
+        observation_ref: proposal.observation_ref,
+        correlation_state: 'new_event'
+    }];
+    if (isRefund) {
+        candidates.push({
+            observation_ref: proposal.pair_observation_ref,
+            correlation_state: 'new_event'
+        });
+    }
     const reconciliation = reconcileOpenFinanceRuntimeCandidates({
         items: [item],
-        candidates: [{
-            observation_ref: proposal.observation_ref,
-            correlation_state: 'new_event'
-        }],
+        candidates,
         internalTransactions: internalSource.transactions,
         scopeCoverage: internalSource.scope_coverage,
         secret: hmacSecret,
@@ -401,13 +545,39 @@ function revalidateOpenFinanceSaveProposal({
     const decision = reconciliation.decisions.find(value =>
         value.observation_ref === proposal.observation_ref);
     if (!decision || decision.status !== 'new' ||
-        reconciliation.eligibleCandidates.length !== 1) {
+        !reconciliation.eligibleCandidates.some(candidate =>
+            candidate.observation_ref === proposal.observation_ref)) {
         throw new Error('open_finance_final_not_new');
+    }
+    if (isRefund) {
+        const pairDecision = reconciliation.decisions.find(value =>
+            value.observation_ref === proposal.pair_observation_ref);
+        const internalMatches = (internalSource.transactions || []).filter(value =>
+            crypto.createHmac('sha256', hmacSecret)
+                .update(String(value.id || ''))
+                .digest('hex').slice(0, 32) === pairDecision?.canonical_ref);
+        if (!pairDecision || pairDecision.status !== 'matched' ||
+            pairDecision.confidence_band !== 'high' || internalMatches.length !== 1 ||
+            pairDecision.canonical_ref !== proposal.pair_reconciliation_ref ||
+            !canonicalOriginal?.resolved) {
+            throw new Error('open_finance_final_refund_pair_changed');
+        }
+        const { linkedTargetFromInternal } =
+            require('./openFinanceReviewedRefundSaveProposal');
+        const currentTarget = linkedTargetFromInternal({
+            accountType: proposal.account_type,
+            internalTransaction: internalMatches[0],
+            canonicalOriginal
+        });
+        if (stableSerialize(currentTarget) !== stableSerialize(proposal.linked_target)) {
+            throw new Error('open_finance_final_refund_target_changed');
+        }
     }
     const draft = revalidateDraftCatalog(
         review.payload?.draft,
         catalog,
-        proposal.classification
+        proposal.classification,
+        proposal.linked_target
     );
     const operationKey = crypto.createHmac('sha256', hmacSecret)
         .update(`open-finance-final:${proposal.operation_key}:${stableSerialize(draft)}`)
@@ -425,7 +595,9 @@ function revalidateOpenFinanceSaveProposal({
         revalidation: {
             provider: isIncome
                 ? 'posted_reviewed_income_unchanged'
-                : 'posted_purchase_unchanged',
+                : isRefund
+                    ? 'posted_reviewed_refund_pair_unchanged'
+                    : 'posted_purchase_unchanged',
             internal: 'new',
             catalog: 'authorized'
         },
@@ -691,7 +863,7 @@ async function loadDefaultFinalizationContext({
             { actorWhatsappId }
         );
         let semanticReview = null;
-        if (proposal.classification === 'income') {
+        if (['income', 'refund'].includes(proposal.classification)) {
             const ProactiveReview = dependencies.OpenFinanceProactiveReviewStore ||
                 OpenFinanceProactiveReviewStore;
             const proactiveStore = new ProactiveReview({
@@ -739,7 +911,24 @@ async function loadDefaultFinalizationContext({
             userId,
             dependencies: dependencies.catalogDependencies || {}
         });
-        return { proposal, review, semanticReview, item, internalSource, catalog };
+        let canonicalOriginal = null;
+        if (proposal.classification === 'refund') {
+            const pairMatches = (internalSource.transactions || []).filter(value =>
+                crypto.createHmac('sha256', secret)
+                    .update(String(value.id || ''))
+                    .digest('hex').slice(0, 32) === proposal.pair_reconciliation_ref);
+            if (pairMatches.length !== 1) {
+                throw new Error('open_finance_final_refund_pair_changed');
+            }
+            const resolver = dependencies.resolveCanonicalRefundOriginal ||
+                require('../ledger/canonicalLedgerReceiptProjector')
+                    .resolveCanonicalRefundOriginal;
+            canonicalOriginal = resolver({ env, original: pairMatches[0] });
+        }
+        return {
+            proposal, review, semanticReview, item, internalSource, catalog,
+            canonicalOriginal
+        };
     } finally {
         vault.close();
         reviewStore.close();
@@ -843,7 +1032,8 @@ async function writeOpenFinanceSaveProposal(writePlan, {
         messageId: `open-finance-final:${proposalRef}`,
         source: 'open_finance.save_proposal.final',
         requireUserScoped: true,
-        reconcileOnly: Boolean(reconcileOnly)
+        reconcileOnly: Boolean(reconcileOnly),
+        canonicalRelation: writePlan.canonicalRelation || null
     });
 }
 

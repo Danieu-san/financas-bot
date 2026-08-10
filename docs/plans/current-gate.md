@@ -4,7 +4,7 @@ Atualizado em: 2026-08-10
 
 ## Estado
 
-`CHARTER LOCAL; SEM IMPLEMENTACAO; SEM DEPLOY`.
+`CANDIDATO LOCAL VERDE; AGUARDA AUDITORIA INDEPENDENTE; SEM DEPLOY`.
 
 ## Objetivo
 
@@ -16,8 +16,8 @@ estorno que ja foram neutralizados antes do salvamento.
 ## Escopo
 
 Promocao da decisao duravel `confirm_pair`, proposta cifrada, conferencia
-guiada, revalidacao do par e append unico em `Entradas`, somente em testes
-locais.
+guiada, revalidacao do par e append unico no mesmo instrumento financeiro da
+compra original, somente em testes locais.
 
 ## Origem autorizada
 
@@ -35,8 +35,9 @@ compra original ainda nao salva e par neutralizado permanecem inelegiveis.
 1. Revisar o vinculo nao constitui consentimento financeiro.
 2. Primeiro aceite e conferencia mantem zero escrita.
 3. Fonte, revisao, par, ledger e catalogo sao relidos antes do prompt final.
-4. O destino e `Entradas`, com categoria de reembolso e conta coerentes com o
-   evento; cartao nao pode ser escolhido como conta financeira de entrada.
+4. Estorno de compra no credito e gravado como valor negativo no mesmo cartao;
+   reembolso de gasto bancario vai para `Entradas` na mesma conta. Conta e
+   cartao nunca sao intercambiaveis.
 5. Somente o segundo `sim` pode chamar o writer.
 6. Operation key, recibo, replay, restart e resultado incerto preservam no
    maximo um append.
@@ -67,5 +68,5 @@ independente. Estado maximo: `GO TECNICO LOCAL; SEM DEPLOY`.
 
 ## Proxima acao
 
-Confirmar o contrato canonico do vinculo de reembolso, escrever testes RED e
-implementar promocao/revalidacao fail-closed sem tocar producao.
+Publicar o commit sanitizado e imutavel, auditar os arquivos primarios do Gate
+38.3 no Chat e confrontar o parecer com a evidencia local. Nao tocar producao.

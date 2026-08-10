@@ -132,6 +132,10 @@ async function readOpenFinanceInternalSource({
                 value: row => row[4],
                 fields: (row, value) => ({
                     direction: value < 0 ? 'credit' : 'debit',
+                    category: row[2] || '',
+                    subcategory: row[3] || '',
+                    person_label: row[5] || '',
+                    payment_method: row[6] || '',
                     financial_account: row[10] || ''
                 })
             }, allowedIds),
@@ -139,6 +143,9 @@ async function readOpenFinanceInternalSource({
                 value: row => row[3],
                 fields: (row, value) => ({
                     direction: value < 0 ? 'debit' : 'credit',
+                    category: row[2] || '',
+                    person_label: row[4] || '',
+                    payment_method: row[5] || '',
                     financial_account: row[9] || ''
                 })
             }, allowedIds),
@@ -150,6 +157,7 @@ async function readOpenFinanceInternalSource({
                 value: row => row[3],
                 fields: (row, value) => ({
                     direction: value < 0 ? 'credit' : 'debit',
+                    category: row[2] || '',
                     card_id: row[6] || '',
                     card_name: row[7] || ''
                 })

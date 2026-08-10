@@ -5904,6 +5904,213 @@ stateMachineTest('gate 38.2 public handler promotes, reviews and writes one genu
     }
 });
 
+stateMachineTest('gate 38.3 public handler writes one confirmed refund on the original card', async () => {
+    resetSheets();
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-public-refund-'));
+    const secret = 'public-refund-state-machine-secret-123456';
+    const paths = {
+        secret: path.join(directory, 'secret.txt'),
+        mapping: path.join(directory, 'mapping.json'),
+        staging: path.join(directory, 'staging.sqlite'),
+        preview: path.join(directory, 'preview.sqlite'),
+        journal: path.join(directory, 'journal.sqlite'),
+        outbox: path.join(directory, 'outbox.sqlite'),
+        canonical: path.join(directory, 'canonical.sqlite')
+    };
+    const purchase = {
+        id: 'public-purchase-1', account_id: 'public-credit-1', amount_cents: 5590,
+        description: 'Mercado Central', date: '2026-08-08T12:00:00.000Z',
+        status: 'POSTED'
+    };
+    const refund = {
+        id: 'public-refund-1', account_id: 'public-credit-1', amount_cents: -5590,
+        description: 'Estorno Mercado Central', date: '2026-08-09T12:00:00.000Z',
+        status: 'POSTED'
+    };
+    const item = {
+        id: 'public-refund-item', alias_code: 'daniel_nubank', generation: 1,
+        accounts: [{ id: 'public-credit-1', type: 'CREDIT' }],
+        transactions: [purchase, refund], bills: [], investments: []
+    };
+    fs.writeFileSync(paths.secret, secret, { mode: 0o600 });
+    fs.writeFileSync(paths.mapping, JSON.stringify([{
+        itemId: item.id, alias: item.alias_code, ownerScope: 'daniel', generation: 1
+    }]));
+    fs.writeFileSync(paths.outbox, '');
+    const { OpenFinanceLiveStagingVault } =
+        require('../src/openFinance/openFinanceLiveStagingVault');
+    const { OpenFinanceRevocationJournal } =
+        require('../src/openFinance/openFinanceRevocationJournal');
+    const { OpenFinanceProactiveReviewStore } =
+        require('../src/openFinance/openFinanceProactiveReviewStore');
+    const { observationRef } =
+        require('../src/openFinance/openFinanceRuntimeReconciliation');
+    const { buildCanonicalLedgerReceiptProjection } =
+        require('../src/ledger/canonicalLedgerReceiptProjector');
+    const { CanonicalLedgerShadowStore } =
+        require('../src/ledger/canonicalLedgerShadowStore');
+    const vault = new OpenFinanceLiveStagingVault({
+        databasePath: paths.staging,
+        secret
+    });
+    vault.ingestSnapshot({
+        provider: 'pluggy', mode: 'live_readonly_staging',
+        event_id: 'public-refund-event', observed_at: new Date().toISOString(),
+        collection_health: { complete: true, warning_count: 0 }, items: [item]
+    });
+    vault.close();
+    const journal = new OpenFinanceRevocationJournal({
+        databasePath: paths.journal,
+        secret
+    });
+    journal.close();
+    const purchaseObservation = observationRef(
+        secret, item.id, purchase.account_id, purchase.id
+    );
+    const refundObservation = observationRef(
+        secret, item.id, refund.account_id, refund.id
+    );
+    const proactive = new OpenFinanceProactiveReviewStore({
+        databasePath: paths.preview,
+        secret
+    });
+    const reviewCode = proactive.ingest({
+        reviews: [{
+            observation_ref: refundObservation,
+            source_alias: item.alias_code,
+            generation: 1,
+            classification: 'refund',
+            review_kind: 'refund_link',
+            review_status: 'pair_confirmation_required',
+            pair_observation_ref: purchaseObservation,
+            pair_basis: 'same_account_amount_date_description',
+            save_eligible: false,
+            financial_writes: 0
+        }],
+        items: [item],
+        policies: [{
+            alias: item.alias_code, principal: 'daniel', recipients: ['daniel']
+        }],
+        confirmationActors: [{ principal: 'daniel', whatsappId: SENDER }],
+        observedAt: new Date().toISOString()
+    }).links[0].review_code;
+    proactive.close();
+
+    sheets['Lan\u00e7amentos Cart\u00e3o'].push([
+        '08/08/2026', 'Mercado Central', 'Alimenta\u00e7\u00e3o', 55.9,
+        '1/1', 'Agosto de 2026', 'nubank-daniel', 'Nubank Daniel', '', USER_ID
+    ]);
+    sheets['Cart\u00f5es'].push([
+        'nubank-daniel', 'Nubank Daniel', 3, 25, 'Daniel', 'SIM', ''
+    ]);
+    sheets.Categorias.push([
+        'Alimenta\u00e7\u00e3o', '', 'SIM', '2026-01-01', USER_ID
+    ]);
+    usesPersonalSpreadsheet = true;
+    const canonicalStore = new CanonicalLedgerShadowStore({
+        dbPath: paths.canonical,
+        writesEnabled: true
+    });
+    canonicalStore.persistProjection(buildCanonicalLedgerReceiptProjection({
+        sheetName: 'Cart\u00e3o Nubank Daniel',
+        row: ['08/08/2026', 'Mercado Central', 'Alimenta\u00e7\u00e3o', 55.9,
+            '1/1', 'Agosto de 2026', USER_ID],
+        operationKey: 'public-original-card-write',
+        receipt: { updatedRange: 'Cart\u00e3o Nubank Daniel!A2:G2' },
+        committedAt: '2026-08-08T13:00:00.000Z'
+    }));
+    canonicalStore.close();
+    const variableNames = [
+        'OPEN_FINANCE_ALERT_MODE', 'OPEN_FINANCE_SAVE_PROPOSAL_MODE',
+        'OPEN_FINANCE_SHADOW_PREVIEW_MODE', 'OPEN_FINANCE_RECONCILIATION_MODE',
+        'OPEN_FINANCE_WRITE_MODE', 'OPEN_FINANCE_WRITE_APPROVED',
+        'OPEN_FINANCE_LIVE_STAGING_SECRET_FILE', 'OPEN_FINANCE_LIVE_STAGING_DB',
+        'OPEN_FINANCE_REVOCATION_JOURNAL_DB', 'OPEN_FINANCE_SHADOW_PREVIEW_DB',
+        'OPEN_FINANCE_OUTBOX_DB', 'PLUGGY_ITEM_MAP_FILE',
+        'CANONICAL_LEDGER_SHADOW_DB_PATH'
+    ];
+    const previous = Object.fromEntries(variableNames.map(name => [name, process.env[name]]));
+    Object.assign(process.env, {
+        OPEN_FINANCE_ALERT_MODE: 'canary',
+        OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
+        OPEN_FINANCE_SHADOW_PREVIEW_MODE: 'canary',
+        OPEN_FINANCE_RECONCILIATION_MODE: 'canary',
+        OPEN_FINANCE_WRITE_MODE: 'confirm',
+        OPEN_FINANCE_WRITE_APPROVED: 'true',
+        OPEN_FINANCE_LIVE_STAGING_SECRET_FILE: paths.secret,
+        OPEN_FINANCE_LIVE_STAGING_DB: paths.staging,
+        OPEN_FINANCE_REVOCATION_JOURNAL_DB: paths.journal,
+        OPEN_FINANCE_SHADOW_PREVIEW_DB: paths.preview,
+        OPEN_FINANCE_OUTBOX_DB: paths.outbox,
+        PLUGGY_ITEM_MAP_FILE: paths.mapping,
+        CANONICAL_LEDGER_SHADOW_DB_PATH: paths.canonical
+    });
+    try {
+        const offered = await send(`revisar ${reviewCode} confirmar`);
+        assert.match(offered, /Estorno vinculado/i);
+        assert.equal(appendedRows.length, 0);
+        assert.equal(userStateManager.getState(SENDER).action,
+            'awaiting_open_finance_save_confirmation');
+
+        assert.match(await send('sim'), /Confira a proposta/i);
+        assert.equal(appendedRows.length, 0);
+        assert.equal(userStateManager.getState(SENDER).action,
+            'awaiting_open_finance_save_review');
+
+        const finalPrompt = await send('6');
+        assert.match(finalPrompt, /Confirma o salvamento/i);
+        assert.equal(appendedRows.length, 0);
+        assert.equal(userStateManager.getState(SENDER).action,
+            'awaiting_open_finance_final_confirmation');
+
+        const receipt = await send('sim');
+        assert.match(receipt, /Recibo/i);
+        assert.equal(appendedRows.length, 1);
+        assert.equal(appendedRows[0].sheetName, 'Cart\u00e3o Nubank Daniel');
+        assert.equal(appendedRows[0].row[3], -55.9);
+        assert.equal(appendedRows[0].row[6], USER_ID);
+        assert.equal(appendedRows[0].options.canonicalRelation.type, 'refund_pair');
+        assert.match(appendedRows[0].options.canonicalRelation.related_event_id,
+            /^evt_[a-f0-9]{8,64}$/);
+        const committedProposalRef = String(appendedRows[0].options.messageId)
+            .replace('open-finance-final:', '');
+        assert.match(committedProposalRef, /^[a-f0-9]{32}$/);
+        assert.equal(appendRowAttempts.length, 1);
+        assert.equal(userStateManager.getState(SENDER), undefined);
+
+        const replay = await send('sim');
+        assert.doesNotMatch(replay, /salvo com sucesso/i);
+        assert.equal(appendedRows.length, 1);
+        assert.equal(appendRowAttempts.length, 1);
+
+        const finalizationModulePath = require.resolve(
+            '../src/openFinance/openFinanceSaveProposalFinalization'
+        );
+        delete require.cache[finalizationModulePath];
+        const {
+            handleOpenFinanceSaveProposalFinalizationReply: handleAfterRestart
+        } = require(finalizationModulePath);
+        const replayAfterRestart = await handleAfterRestart({
+            messageBody: 'sim',
+            actorWhatsappId: SENDER,
+            userId: USER_ID,
+            expectedProposalRef: committedProposalRef,
+            env: process.env
+        });
+        assert.equal(replayAfterRestart.state, 'receipt_delivered');
+        assert.equal(replayAfterRestart.financial_writes, 0);
+        assert.equal(appendedRows.length, 1);
+        assert.equal(appendRowAttempts.length, 1);
+    } finally {
+        for (const name of variableNames) {
+            if (previous[name] === undefined) delete process.env[name];
+            else process.env[name] = previous[name];
+        }
+        userStateManager.deleteState(SENDER);
+        fs.rmSync(directory, { recursive: true, force: true });
+    }
+});
+
 test.after(async () => {
     await userStateManager.closeStateStore();
     if (typeof cache.close === 'function') {

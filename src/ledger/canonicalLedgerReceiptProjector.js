@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const fs = require('node:fs');
 const Database = require('better-sqlite3');
 const { normalizeRecurringBillRow } = require('../utils/recurringBillMatcher');
 const { parseAmountLocal, normalizeText } = require('../utils/helpers');
@@ -256,6 +257,167 @@ function decorateReceiptProjection(projected, { sheetName, row, financialAccount
     }
 }
 
+function normalizeLedgerDate(value) {
+    const raw = String(value || '').trim();
+    const br = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (br) {
+        return `${br[3]}-${String(br[2]).padStart(2, '0')}-${String(br[1]).padStart(2, '0')}`;
+    }
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) return '';
+    return parsed.toISOString().slice(0, 10);
+}
+
+function resolveCanonicalRefundOriginal({
+    env = process.env,
+    dbPath = env.CANONICAL_LEDGER_SHADOW_DB_PATH || DEFAULT_DB_PATH,
+    original = {}
+} = {}) {
+    const ownerPersonId = String(original.user_id || '').trim();
+    const sourceType = original.source_type === 'cartao'
+        ? 'sheet.lancamentos_cartao'
+        : original.source_type === 'saida'
+            ? 'sheet.saidas'
+            : '';
+    const amountCents = Math.abs(Number(original.amountCents));
+    const date = normalizeLedgerDate(original.date);
+    const description = normalizeText(original.description || '');
+    if (!ownerPersonId || !sourceType || !Number.isSafeInteger(amountCents) ||
+        amountCents <= 0 || !date || !description || !fs.existsSync(dbPath)) {
+        return { resolved: false, reason: 'canonical_refund_original_unavailable' };
+    }
+
+    let db;
+    try {
+        db = new Database(dbPath, { readonly: true, fileMustExist: true });
+        if (!tableExists(db, 'canonical_ledger_events') ||
+            !tableExists(db, 'canonical_ledger_event_lines') ||
+            !tableExists(db, 'canonical_ledger_reconciliation_links') ||
+            !tableExists(db, 'canonical_ledger_projection_runs')) {
+            return { resolved: false, reason: 'canonical_refund_original_unavailable' };
+        }
+        const rows = db.prepare(`
+            SELECT e.run_id,e.event_id,e.event_json
+            FROM canonical_ledger_events e
+            JOIN canonical_ledger_projection_runs r ON r.run_id=e.run_id
+            WHERE r.report_type=? AND e.owner_person_id=? AND e.source_type=?
+                AND e.status='settled'
+        `).all('canonical_ledger_receipt_shadow', ownerPersonId, sourceType);
+        const expectedAccountId = sourceType === 'sheet.lancamentos_cartao'
+            ? String(original.card_id || '').trim()
+            : accountIdentity(ownerPersonId, original.financial_account || '').account_id;
+        const expectedLineType = sourceType === 'sheet.lancamentos_cartao'
+            ? 'card_liability'
+            : 'cash';
+        const matches = [];
+        for (const row of rows) {
+            const event = JSON.parse(row.event_json);
+            if (!['expense', 'card_purchase'].includes(event.kind) ||
+                Math.abs(Number(event.amount_cents)) !== amountCents ||
+                normalizeLedgerDate(event.occurred_on) !== date ||
+                normalizeText(event.description || '') !== description) {
+                continue;
+            }
+            const line = db.prepare(`SELECT line_json FROM canonical_ledger_event_lines
+                WHERE run_id=? AND event_id=? AND line_type=?`)
+                .get(row.run_id, row.event_id, expectedLineType);
+            if (!line) continue;
+            const parsedLine = JSON.parse(line.line_json);
+            if (!expectedAccountId || parsedLine.account_id !== expectedAccountId) continue;
+            matches.push({ event, line: parsedLine });
+        }
+        if (matches.length !== 1) {
+            return {
+                resolved: false,
+                reason: matches.length > 1
+                    ? 'canonical_refund_original_ambiguous'
+                    : 'canonical_refund_original_unavailable'
+            };
+        }
+        const [{ event }] = matches;
+        const priorCompensation = db.prepare(`
+            SELECT COUNT(*) AS total
+            FROM canonical_ledger_reconciliation_links l
+            JOIN canonical_ledger_projection_runs r ON r.run_id=l.run_id
+            WHERE r.report_type=? AND l.link_type='refund_pair'
+                AND l.status='active' AND l.related_event_id=?
+        `).get('canonical_ledger_receipt_shadow', event.event_id);
+        if (Number(priorCompensation?.total || 0) > 0) {
+            return { resolved: false, reason: 'canonical_refund_original_already_compensated' };
+        }
+        return {
+            resolved: true,
+            related_event_id: event.event_id,
+            related_source_row_ref: String(event.source_row_ref || ''),
+            original_amount_cents: Math.abs(Number(event.net_income_expense_impact ||
+                event.amount_cents)),
+            category: String(event.category || original.category || '').trim(),
+            subcategory: String(event.subcategory || original.subcategory || '').trim(),
+            owner_person_id: event.owner_person_id,
+            source_type: event.source_type,
+            financial_writes: 0
+        };
+    } catch (error) {
+        return { resolved: false, reason: 'canonical_refund_original_unavailable' };
+    } finally {
+        if (db) db.close();
+    }
+}
+
+function applyCanonicalRefundRelation(projected, relation = null) {
+    if (!relation) return;
+    const event = projected.events[0];
+    const relatedEventId = String(relation.related_event_id || '').trim();
+    const originalAmountCents = Number(relation.original_amount_cents);
+    const expectedOriginalSource = event?.source_type === 'sheet.lancamentos_cartao'
+        ? 'sheet.lancamentos_cartao'
+        : event?.source_type === 'sheet.entradas'
+            ? 'sheet.saidas'
+            : '';
+    if (!event || relation.type !== 'refund_pair' ||
+        !/^evt_[a-f0-9]{8,64}$/.test(relatedEventId) ||
+        !String(relation.related_source_row_ref || '').trim() ||
+        relation.original_source_type !== expectedOriginalSource ||
+        event.owner_person_id !== relation.owner_person_id ||
+        !Number.isSafeInteger(originalAmountCents) || originalAmountCents <= 0 ||
+        event.amount_cents > originalAmountCents) {
+        throw new Error('invalid_canonical_refund_relation');
+    }
+    event.kind = event.source_type === 'sheet.lancamentos_cartao'
+        ? 'chargeback'
+        : 'reimbursement';
+    event.status = 'settled';
+    event.category = String(relation.category || '').trim() || event.category;
+    event.subcategory = String(relation.subcategory || '').trim() || null;
+    event.free_budget_eligible = false;
+    event.net_income_expense_impact = -Math.abs(Number(event.amount_cents));
+    projected.warnings = (projected.warnings || []).filter(warning =>
+        warning.event_id !== event.event_id ||
+        warning.code !== 'compensation_original_unresolved');
+    projected.reconciliationLinks.push({
+        link_id: `link_${hash(`${event.event_id}:refund_pair:${relatedEventId}`, 24)}`,
+        event_id: event.event_id,
+        link_type: 'refund_pair',
+        related_event_id: relatedEventId,
+        external_hash: hash('open_finance_confirmed_pair', 32),
+        confidence: 'verified',
+        status: 'active',
+        created_at: event.created_at || '1970-01-01T00:00:00.000Z'
+    });
+}
+
+function refundRelationSourceRowRef(observation = '') {
+    const match = String(observation || '').match(
+        /\[open_finance_refund_pair:([A-Za-z0-9_-]{1,512})\]/
+    );
+    if (!match) return '';
+    try {
+        return Buffer.from(match[1], 'base64url').toString('utf8').slice(0, 500);
+    } catch (error) {
+        return '';
+    }
+}
+
 function legacyInputFromAppend({ sheetName, row, operationKey, receipt, accountRows = [] }) {
     const sourceRowId = String(receipt?.updatedRange || operationKey);
     const competenceMonth = competenceMonthFromReceiptDate(row?.[0]);
@@ -296,6 +458,7 @@ function legacyInputFromAppend({ sheetName, row, operationKey, receipt, accountR
             user_id: row[9]
         });
     } else if (sheetName === 'Entradas') {
+        const relatedSourceRowId = refundRelationSourceRowRef(row[7]);
         base.legacyRows.entradas.push({
             source_row_id: sourceRowId,
             data: row[0],
@@ -306,7 +469,8 @@ function legacyInputFromAppend({ sheetName, row, operationKey, receipt, accountR
             recebimento: row[5],
             recorrente: row[6],
             observacoes: row[7],
-            user_id: row[8]
+            user_id: row[8],
+            ...(relatedSourceRowId ? { related_source_row_id: relatedSourceRowId } : {})
         });
     } else if (sheetName === 'Transferências') {
         base.legacyRows.transferencias.push({
@@ -323,6 +487,7 @@ function legacyInputFromAppend({ sheetName, row, operationKey, receipt, accountR
         });
     } else if (isCreditCardSheet(sheetName)) {
         const unifiedRow = row.length >= 10;
+        const relatedSourceRowId = refundRelationSourceRowRef(unifiedRow ? row[8] : '');
         base.legacyRows.lancamentosCartao.push({
             source_row_id: sourceRowId,
             data: row[0],
@@ -334,7 +499,8 @@ function legacyInputFromAppend({ sheetName, row, operationKey, receipt, accountR
             card_id: unifiedRow ? row[6] : cardIdFromSheetName(sheetName),
             cartao: unifiedRow ? row[7] : sheetName,
             observacoes: unifiedRow ? row[8] : '',
-            user_id: unifiedRow ? row[9] : row[6]
+            user_id: unifiedRow ? row[9] : row[6],
+            ...(relatedSourceRowId ? { related_source_row_id: relatedSourceRowId } : {})
         });
     }
 
@@ -378,7 +544,8 @@ function buildCanonicalLedgerReceiptProjection({
     accountRows = [],
     financialAccountRows = [],
     committedAt = '',
-    now = () => new Date()
+    now = () => new Date(),
+    canonicalRelation = null
 } = {}) {
     if (!isSupportedSheet(sheetName)) return null;
     if (!Array.isArray(row) || !String(operationKey || '').trim()) return null;
@@ -408,6 +575,7 @@ function buildCanonicalLedgerReceiptProjection({
         event.updated_at = projectedAt;
     }
     decorateReceiptProjection(projected, { sheetName, row, financialAccountRows });
+    applyCanonicalRefundRelation(projected, canonicalRelation);
     projected.accounts = ledgerAccountsFromFinancialAccountRows(financialAccountRows);
     const publicProjection = buildCanonicalPublicProjection(projected, input);
     const runId = `receipt_${hash(operationKey)}`;
@@ -944,5 +1112,11 @@ module.exports = {
     projectCommittedAppendToCanonicalShadow,
     safelyProjectCommittedAppendToCanonicalShadow,
     readCanonicalLedgerCanaryDomain,
-    readCanonicalCategoryBudgetSource
+    readCanonicalCategoryBudgetSource,
+    resolveCanonicalRefundOriginal,
+    __test__: {
+        applyCanonicalRefundRelation,
+        normalizeLedgerDate,
+        refundRelationSourceRowRef
+    }
 };

@@ -133,6 +133,9 @@ const {
 const {
     prepareReviewedIncomeSaveProposal
 } = require('../openFinance/openFinanceReviewedIncomeSaveProposal');
+const {
+    prepareReviewedRefundSaveProposal
+} = require('../openFinance/openFinanceReviewedRefundSaveProposal');
 const { recordQaFailure } = require('../services/qaFailureLogService');
 const { recordAdminAction, hashRef, sanitizeValue } = require('../services/adminActionLogService');
 const { recordDashboardAccessEvent } = require('../services/dashboardAccessLogService');
@@ -9244,6 +9247,34 @@ async function processMessage(msg) {
                 await sendPlainMessage(msg, [
                     proactiveReviewReply.reply,
                     'Não consegui abrir a conferência de salvamento agora. A classificação continua registrada e nada foi salvo.'
+                ].join('\n'));
+                return;
+            }
+        }
+        if (proactiveReviewReply.decision === 'confirm_pair' &&
+            proactiveReviewReply.review_code) {
+            try {
+                const refundProposal = await prepareReviewedRefundSaveProposal({
+                    reviewCode: proactiveReviewReply.review_code,
+                    actorWhatsappId: senderId,
+                    userId
+                });
+                if (refundProposal.handled) {
+                    setOpenFinanceConversationState(senderId, {
+                        action: 'awaiting_open_finance_save_confirmation',
+                        data: {
+                            proposalRef: refundProposal.proposal_ref,
+                            recipientPrincipal: refundProposal.recipient_principal
+                        }
+                    });
+                    await sendPlainMessage(msg, refundProposal.reply);
+                    return;
+                }
+            } catch (error) {
+                logger.warn(`[open-finance] reviewed_refund_proposal_unavailable sender=${logger.redactIdentifier(senderId)} ${logger.safeError(error)}`);
+                await sendPlainMessage(msg, [
+                    proactiveReviewReply.reply,
+                    'N\u00e3o consegui provar agora o v\u00ednculo com o gasto original. A decis\u00e3o continua registrada e nada foi salvo.'
                 ].join('\n'));
                 return;
             }

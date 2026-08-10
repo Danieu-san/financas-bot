@@ -96,16 +96,83 @@ function normalizeCatalog(catalog = {}) {
 }
 
 function catalogForProposal(proposal = {}, catalog = {}) {
-    if (proposal.classification !== 'income') return catalog;
+    if (proposal.classification === 'income') {
+        return {
+            ...catalog,
+            categories: catalog.incomeCategories || [],
+            paymentMethods: catalog.receiptMethods || [],
+            cards: []
+        };
+    }
+    if (proposal.classification !== 'refund') return catalog;
+    const target = proposal.linked_target || {};
+    const normalizedAccount = normalizeText(target.financial_account);
+    const categories = target.kind === 'bank'
+        ? (catalog.incomeCategories || []).filter(item =>
+            normalizeText(item.category) === 'reembolso')
+        : (catalog.categories || []).filter(item =>
+            normalizeText(item.category) === normalizeText(target.category) &&
+            normalizeText(item.subcategory) === normalizeText(target.subcategory));
+    const paymentMethods = target.kind === 'bank'
+        ? (catalog.receiptMethods || []).filter(item =>
+            item.value === 'Conta Corrente')
+        : (catalog.paymentMethods || []).filter(item => item.value === 'Cr\u00e9dito');
+    const financialAccounts = target.kind === 'bank'
+        ? (catalog.financialAccounts || []).filter(item => {
+            const label = normalizeText(item.label);
+            return item.ownerUserId === target.user_id &&
+                (label === normalizedAccount || label.startsWith(`${normalizedAccount} `));
+        })
+        : [];
+    const cards = target.kind === 'card'
+        ? (catalog.cards || []).filter(item =>
+            item.cardId === target.card_id && normalizeText(item.label) ===
+                normalizeText(target.card_name))
+        : [];
+    const people = (catalog.people || []).filter(item => item.id === target.user_id);
+    if (people.length !== 1 || categories.length !== 1 ||
+        paymentMethods.length !== 1 ||
+        (target.kind === 'bank' && financialAccounts.length !== 1) ||
+        (target.kind === 'card' && cards.length !== 1)) {
+        throw new Error('open_finance_refund_review_target_unavailable');
+    }
     return {
         ...catalog,
-        categories: catalog.incomeCategories || [],
-        paymentMethods: catalog.receiptMethods || [],
-        cards: []
+        people,
+        categories,
+        paymentMethods,
+        financialAccounts,
+        cards
     };
 }
 
 function initialDraft(proposal, catalog) {
+    if (proposal?.classification === 'refund') {
+        const person = catalog.people[0] || null;
+        const category = catalog.categories[0] || null;
+        const paymentMethod = catalog.paymentMethods[0] || null;
+        const financialAccount = catalog.financialAccounts[0] || null;
+        const card = catalog.cards[0] || null;
+        return {
+            person: person ? { id: person.id, label: person.label } : null,
+            category: category ? {
+                id: category.id, label: category.label,
+                category: category.category, subcategory: category.subcategory
+            } : null,
+            paymentMethod: paymentMethod ? {
+                id: paymentMethod.id, label: paymentMethod.label,
+                value: paymentMethod.value
+            } : null,
+            financialAccount: financialAccount ? {
+                id: financialAccount.id, label: financialAccount.label,
+                ownerUserId: financialAccount.ownerUserId
+            } : null,
+            card: card ? {
+                id: card.id, label: card.label, cardId: card.cardId,
+                closingDay: card.closingDay
+            } : null
+        };
+    }
     const principal = normalizeText(proposal?.principal);
     const person = catalog.people.find(item =>
         normalizeText(item.label).split(/\s+/)[0] === principal) || null;
@@ -355,6 +422,7 @@ class OpenFinanceSaveProposalReviewStore {
             },
             classification: String(proposal?.classification || 'purchase'),
             semantic_review_ref: String(proposal?.semantic_review_ref || ''),
+            linked_target_kind: String(proposal?.linked_target?.kind || ''),
             catalog: normalizedCatalog,
             draft: initialDraft(proposal, normalizedCatalog),
             step: 'menu',

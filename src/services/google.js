@@ -112,6 +112,15 @@ function cardIdFromLegacySheetName(sheetName) {
 
 function mapRowForUserSpreadsheet(sheetName, row, options = {}) {
     if (!isLegacyCreditCardSheetName(sheetName)) return row;
+    const relationSourceRowRef = String(
+        options.canonicalRelation?.related_source_row_ref || ''
+    ).trim();
+    const relationNote = relationSourceRowRef
+        ? `[open_finance_refund_pair:${Buffer.from(
+            relationSourceRowRef,
+            'utf8'
+        ).toString('base64url')}]`
+        : '';
     return [
         row[0] || '',
         row[1] || '',
@@ -121,7 +130,7 @@ function mapRowForUserSpreadsheet(sheetName, row, options = {}) {
         row[5] || '',
         String(options.cardId || '').trim() || cardIdFromLegacySheetName(sheetName),
         sheetName,
-        '',
+        relationNote,
         row[6] || ''
     ];
 }
@@ -840,7 +849,8 @@ async function appendRowToSheet(sheetName, row, options = {}) {
                 row: mappedRow,
                 operationKey,
                 result: existing,
-                source: options.source
+                source: options.source,
+                canonicalRelation: options.canonicalRelation
             });
             return existing;
         }
@@ -860,7 +870,8 @@ async function appendRowToSheet(sheetName, row, options = {}) {
                     row: mappedRow,
                     operationKey,
                     result: committed,
-                    source: options.source
+                    source: options.source,
+                    canonicalRelation: options.canonicalRelation
                 });
                 return committed;
             }
@@ -918,7 +929,8 @@ async function appendRowToSheet(sheetName, row, options = {}) {
                 row: mappedRow,
                 operationKey,
                 result: committed,
-                source: options.source
+                source: options.source,
+                canonicalRelation: options.canonicalRelation
             });
             return committed;
         }
@@ -935,7 +947,8 @@ async function appendRowToSheet(sheetName, row, options = {}) {
             row: mappedRow,
             operationKey,
             result: committed,
-            source: options.source
+            source: options.source,
+            canonicalRelation: options.canonicalRelation
         });
         return committed;
     } catch (error) {
@@ -968,7 +981,8 @@ async function projectCanonicalLedgerShadowAfterAppend({
     row,
     operationKey,
     result,
-    source
+    source,
+    canonicalRelation
 } = {}) {
     const {
         safelyProjectCommittedAppendToCanonicalShadow
@@ -991,6 +1005,7 @@ async function projectCanonicalLedgerShadowAfterAppend({
         receipt: result?.receipt || {},
         committedAt: result?.updatedAt || result?.createdAt || '',
         source,
+        canonicalRelation,
         accountRows,
         financialAccountRows,
         onWarning(warning) {

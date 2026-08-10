@@ -880,7 +880,7 @@ class OpenFinanceShadowPreviewStore {
         };
     }
 
-    ingestReviewedIncomeSaveProposal({ proposal } = {}) {
+    ingestReviewedSemanticSaveProposal({ proposal } = {}) {
         const now = this.#now();
         const alias = String(proposal?.alias || '').trim().toLowerCase();
         const aliasRef = this.#aliasRef(alias);
@@ -888,27 +888,56 @@ class OpenFinanceShadowPreviewStore {
         const proposalRef = String(proposal?.proposal_ref || '');
         const reviewRef = String(proposal?.semantic_review_ref || '');
         const observationRef = String(proposal?.observation_ref || '');
+        const classification = String(proposal?.classification || '');
+        const isIncome = classification === 'income';
+        const isRefund = classification === 'refund';
+        const pairObservationRef = String(proposal?.pair_observation_ref || '');
+        const identityLabel = isRefund
+            ? `reviewed-refund-save-proposal:${reviewRef}:${observationRef}:${pairObservationRef}`
+            : `reviewed-income-save-proposal:${reviewRef}:${observationRef}`;
+        const operationLabel = isRefund
+            ? `open-finance-refund-write:${reviewRef}:${observationRef}:${pairObservationRef}`
+            : `open-finance-income-write:${reviewRef}:${observationRef}`;
+        const refundTarget = proposal?.linked_target || {};
+        const validRefundTarget = !isRefund || (
+            ['card', 'bank'].includes(refundTarget.kind) &&
+            String(refundTarget.user_id || '').trim() &&
+            String(refundTarget.category || '').trim() &&
+            /^evt_[a-f0-9]{8,64}$/.test(String(refundTarget.related_event_id || '')) &&
+            String(refundTarget.related_source_row_ref || '').trim() &&
+            Number.isSafeInteger(Number(refundTarget.original_amount_cents)) &&
+            Number(refundTarget.original_amount_cents) >=
+                Math.abs(Number(proposal?.source?.amount_cents)) &&
+            (refundTarget.kind === 'card'
+                ? String(refundTarget.card_id || '').trim() &&
+                    String(refundTarget.card_name || '').trim() &&
+                    !refundTarget.financial_account
+                : String(refundTarget.financial_account || '').trim() &&
+                    !refundTarget.card_id)
+        );
         const expiresAt = validTimestamp(
             proposal?.expires_at,
-            'valid_reviewed_income_save_proposal_expiry_required'
+            'valid_reviewed_semantic_save_proposal_expiry_required'
         ).toISOString();
         if (!/^[a-f0-9]{32}$/.test(proposalRef) ||
             !/^[a-f0-9]{32}$/.test(reviewRef) ||
             !/^[a-f0-9]{32}$/.test(observationRef) ||
-            proposalRef !== this.#hmac(
-                `reviewed-income-save-proposal:${reviewRef}:${observationRef}`
-            ) ||
+            (!isIncome && !isRefund) ||
+            (isRefund && !/^[a-f0-9]{32}$/.test(pairObservationRef)) ||
+            proposalRef !== this.#hmac(identityLabel) ||
             aliasRef !== proposal.alias_ref ||
-            proposal.classification !== 'income' ||
-            proposal.source_classification !== 'income_candidate' ||
+            (isIncome && proposal.source_classification !== 'income_candidate') ||
+            (isRefund && (proposal.source_classification !== 'refund' ||
+                proposal.pair_reconciliation_status !== 'matched' ||
+                !/^[a-f0-9]{32}$/.test(String(proposal.pair_reconciliation_ref || '')) ||
+                !proposal.paired_source?.id || !proposal.paired_source?.account_id ||
+                !validRefundTarget)) ||
             proposal.provider_state !== 'POSTED' ||
             proposal.reconciliation_status !== 'new' ||
-            proposal.operation_key !== this.#operationKey(
-                `open-finance-income-write:${reviewRef}:${observationRef}`
-            ) ||
+            proposal.operation_key !== this.#operationKey(operationLabel) ||
             !proposal.source?.id || !proposal.source?.account_id ||
             expiresAt <= now) {
-            throw new Error('invalid_reviewed_income_save_proposal');
+            throw new Error('invalid_reviewed_semantic_save_proposal');
         }
         if (this.revocationJournal?.isGenerationRevoked?.(alias, generation)) {
             throw new Error('save_proposal_revoked_generation');
@@ -920,7 +949,9 @@ class OpenFinanceShadowPreviewStore {
                 blocked: 1, financial_writes: 0 };
         }
         const transactionRef = this.#hmac(
-            `reviewed-income-save-proposal-transaction:${reviewRef}:${observationRef}`
+            isRefund
+                ? `reviewed-refund-save-proposal-transaction:${reviewRef}:${observationRef}:${pairObservationRef}`
+                : `reviewed-income-save-proposal-transaction:${reviewRef}:${observationRef}`
         );
         const rows = this.db.prepare(`SELECT proposal_ref,transaction_ref,family_scope_ref,
             alias_ref,generation,encrypted_payload,payload_version,proposal_state,
@@ -999,6 +1030,10 @@ class OpenFinanceShadowPreviewStore {
         this.#hardenFiles();
         return { proposal_ref: proposalRef, inserted: 1, replayed: 0,
             blocked: 0, financial_writes: 0 };
+    }
+
+    ingestReviewedIncomeSaveProposal({ proposal } = {}) {
+        return this.ingestReviewedSemanticSaveProposal({ proposal });
     }
 
     purgeExpired() {

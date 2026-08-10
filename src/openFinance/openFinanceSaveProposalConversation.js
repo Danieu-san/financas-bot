@@ -143,14 +143,20 @@ function formatMoneyFromCents(value) {
     });
 }
 
-function reviewMissingFields(draft = {}, classification = 'purchase') {
+function isReceiptLike(classification, linkedTargetKind = '') {
+    return classification === 'income' ||
+        (classification === 'refund' && linkedTargetKind === 'bank');
+}
+
+function reviewMissingFields(draft = {}, classification = 'purchase', linkedTargetKind = '') {
+    const receiptLike = isReceiptLike(classification, linkedTargetKind);
     const missing = [];
     if (!draft.person) missing.push('pessoa');
     if (!draft.category) missing.push('categoria');
     if (!draft.paymentMethod) {
-        missing.push(classification === 'income' ? 'forma de recebimento' : 'forma de pagamento');
+        missing.push(receiptLike ? 'forma de recebimento' : 'forma de pagamento');
     }
-    if (classification === 'income') {
+    if (receiptLike) {
         if (!draft.financialAccount) missing.push('conta financeira');
         if (draft.card) missing.push('remover cartão incompatível');
         return missing;
@@ -175,10 +181,11 @@ function reviewMissingFields(draft = {}, classification = 'purchase') {
     return missing;
 }
 
-function paymentEditBlockMessage(draft = {}, step = '', classification = 'purchase') {
+function paymentEditBlockMessage(draft = {}, step = '', classification = 'purchase',
+    linkedTargetKind = '') {
     const payment = draft.paymentMethod?.value;
     if (!['select_account', 'select_card'].includes(step)) return '';
-    if (classification === 'income') {
+    if (isReceiptLike(classification, linkedTargetKind)) {
         return step === 'select_card'
             ? 'Entradas não usam cartão. Escolha a conta financeira de destino.'
             : '';
@@ -203,7 +210,7 @@ function formatReviewSummary(payload, { includeMenu = true } = {}) {
             ? ` / ${draft.category.subcategory}`
             : ''}`
         : 'não definida';
-    const isIncome = payload?.classification === 'income';
+    const isIncome = isReceiptLike(payload?.classification, payload?.linked_target_kind);
     const lines = [
         'Confira a proposta:',
         `Descrição: ${source.description || 'não informada'}`,
@@ -214,7 +221,9 @@ function formatReviewSummary(payload, { includeMenu = true } = {}) {
         `Conta financeira: ${draft.financialAccount?.label || 'não definida'}`,
         ...(!isIncome ? [`Cartão: ${draft.card?.label || 'não definido'}`] : [])
     ];
-    const missing = reviewMissingFields(draft, payload?.classification);
+    const missing = reviewMissingFields(
+        draft, payload?.classification, payload?.linked_target_kind
+    );
     if (missing.length) lines.push(`Ainda falta: ${missing.join(', ')}.`);
     if (includeMenu) {
         const menu = isIncome ? [
@@ -272,7 +281,7 @@ function reviewOptionsForStep(payload = {}) {
                 label: 'Ver mais categorias',
                 categoryPage: page + 1
             });
-        } else {
+        } else if (payload.classification !== 'refund') {
             options.push({
                 id: '__create_new_category__',
                 label: 'Criar nova categoria',
@@ -288,7 +297,7 @@ function reviewOptionsForStep(payload = {}) {
 }
 
 function formatReviewOptions(payload = {}) {
-    const isIncome = payload?.classification === 'income';
+    const isIncome = isReceiptLike(payload?.classification, payload?.linked_target_kind);
     const labels = {
         select_person: 'Escolha a pessoa:',
         select_category: 'Escolha a categoria:',
@@ -652,14 +661,14 @@ function handleOpenFinanceSaveProposalReply({
         secret
     });
     try {
-        let directReviewedIncome = false;
+        let directReviewedSemantic = false;
         if (expectedProposalRef) {
             const directProposal = preview.readSaveProposalPrivate(
                 expectedProposalRef,
                 { actorWhatsappId }
             );
-            directReviewedIncome = Boolean(
-                directProposal?.classification === 'income' &&
+            directReviewedSemantic = Boolean(
+                ['income', 'refund'].includes(directProposal?.classification) &&
                 /^[a-f0-9]{32}$/.test(String(directProposal.semantic_review_ref || ''))
             );
         }
@@ -667,7 +676,7 @@ function handleOpenFinanceSaveProposalReply({
             const replyEligible = outbox.isProposalReplyEligible(expectedProposalRef, {
                 recipient: expectedRecipientPrincipal
             });
-            if (!replyEligible && !directReviewedIncome) {
+            if (!replyEligible && !directReviewedSemantic) {
                 return {
                     handled: true,
                     keep_pending: false,
@@ -676,7 +685,7 @@ function handleOpenFinanceSaveProposalReply({
                 };
             }
             try {
-                if (directReviewedIncome) {
+                if (directReviewedSemantic) {
                     const state = preview.listReadySaveProposalConfirmations({
                         actorWhatsappId,
                         limit: 2
@@ -711,7 +720,7 @@ function handleOpenFinanceSaveProposalReply({
         const candidates = ready.filter(item => {
             if (expectedProposalRef) {
                 return item.proposal_ref === expectedProposalRef &&
-                    (directReviewedIncome ||
+                    (directReviewedSemantic ||
                         outbox.isProposalReplyEligible(item.proposal_ref, {
                             recipient: expectedRecipientPrincipal
                         }));
@@ -723,7 +732,7 @@ function handleOpenFinanceSaveProposalReply({
                 item.proposal_ref,
                 { actorWhatsappId }
             );
-            return proposal?.classification === 'income' &&
+            return ['income', 'refund'].includes(proposal?.classification) &&
                 /^[a-f0-9]{32}$/.test(String(proposal.semantic_review_ref || ''));
         });
         if (candidates.length === 0) {
@@ -1001,7 +1010,9 @@ function handleOpenFinanceSaveProposalReviewReply({
             };
         }
         if (payload.step === 'menu') {
-            const isIncome = payload.classification === 'income';
+            const isIncome = isReceiptLike(
+                payload.classification, payload.linked_target_kind
+            );
             const fieldByChoice = isIncome ? {
                 '1': 'select_person',
                 '2': 'select_category',
@@ -1016,7 +1027,9 @@ function handleOpenFinanceSaveProposalReviewReply({
             };
             const completionChoice = isIncome ? '5' : '6';
             if (normalized === completionChoice) {
-                const missing = reviewMissingFields(payload.draft, payload.classification);
+                const missing = reviewMissingFields(
+                    payload.draft, payload.classification, payload.linked_target_kind
+                );
                 if (missing.length) {
                     return {
                         handled: true,
@@ -1057,7 +1070,8 @@ function handleOpenFinanceSaveProposalReviewReply({
             const blockedEdit = paymentEditBlockMessage(
                 payload.draft,
                 step,
-                payload.classification
+                payload.classification,
+                payload.linked_target_kind
             );
             if (blockedEdit) {
                 return {
@@ -1092,7 +1106,8 @@ function handleOpenFinanceSaveProposalReviewReply({
         const blockedEdit = paymentEditBlockMessage(
             payload.draft,
             payload.step,
-            payload.classification
+            payload.classification,
+            payload.linked_target_kind
         );
         if (blockedEdit) {
             const restored = reviewStore.updateReview(proposalRef, {
@@ -1175,7 +1190,9 @@ function handleOpenFinanceSaveProposalReviewReply({
                         label: selected.label,
                         value: selected.value
                     };
-                    if (current.classification === 'income') {
+                    if (isReceiptLike(
+                        current.classification, current.linked_target_kind
+                    )) {
                         current.draft.card = null;
                     } else if (selected.value === 'Crédito') {
                         current.draft.financialAccount = null;
