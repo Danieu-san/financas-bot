@@ -189,9 +189,9 @@ misturar historico, alertas, propostas e escrita financeira.
     somente depois do proprio GO. Exigir segunda confirmacao, revalidacao,
     idempotencia, recibo, restart, revogacao e rollback para `write=off`, com
     auditoria independente e smoke real separados por classe.
-    Gate 38.2: entrada genuina, separada de estorno, recovery probatorio local
-    verde e aguardando reauditoria (`1599/1589/0/10`, zero falhas).
-    Gate 38.3: estorno/reembolso, pendente depois do GO de 38.2.
+    Gate 38.2: entrada genuina, separada de estorno, GO tecnico local
+    independente (`1599/1589/0/10`, zero falhas), sem deploy.
+    Gate 38.3: estorno/reembolso fortemente vinculado, objetivo local ativo.
 
 ## Criterios de GO
 

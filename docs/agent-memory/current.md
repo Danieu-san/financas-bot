@@ -4,8 +4,8 @@ Atualizado em: 2026-08-10
 
 ## Objetivo ativo
 
-Gate 38.2: implementar localmente a escrita de entrada genuina, sem alterar
-producao.
+Gate 38.3: implementar localmente a escrita de estorno/reembolso fortemente
+vinculado, sem alterar producao.
 
 ## Estado vigente
 
@@ -19,7 +19,8 @@ producao.
 - Gate 37: `GO TECNICO LOCAL INDEPENDENTE`; transferencias e reservas seguem
   para revisao proativa read-only, com principal separado de rendimento.
 - Gate 38.1: `GO TECNICO LOCAL INDEPENDENTE; SEM DEPLOY`.
-- Gate 38.2: `RECOVERY PROBATORIO LOCAL VERDE; AGUARDA REAUDITORIA; SEM DEPLOY`.
+- Gate 38.2: `GO TECNICO LOCAL INDEPENDENTE; SEM DEPLOY`.
+- Gate 38.3: `CHARTER LOCAL; SEM IMPLEMENTACAO; SEM DEPLOY`.
 
 O nucleo ja auditado de escrita de compras permanece inalterado e aceita apenas
 `purchase/POSTED/new` nao parcelada depois de revisao guiada, revalidacao e
@@ -49,6 +50,11 @@ handler `1/1` e finalizacao relacionada `28/28`. Manifesto de recovery:
 `docs/audit/200-open-finance-income-write-proof-recovery-candidate-2026-08-10.md`.
 Suite hermetica ampla final: `1599/1589/0/10`, zero falhas; cobertura de
 linhas `91,04%`.
+
+O recovery publicado em `17f5a156a64b288c252363ba1aca83ec959c921d`
+recebeu GO independente com zero achados em todas as severidades e nenhuma
+lacuna residual. Fechamento:
+`docs/audit/201-open-finance-income-write-independent-close-2026-08-10.md`.
 
 Nenhuma flag, servidor, planilha, WhatsApp ou dado real foi alterado.
 
@@ -88,12 +94,13 @@ Nenhuma flag, servidor, planilha, WhatsApp ou dado real foi alterado.
 
 ## Próxima ação exata
 
-Publicar o recovery em novo hash e obter reauditoria independente. Ativacao
-`confirm` e smokes ficam bloqueados enquanto Daniel estiver ausente.
+Definir os testes RED e implementar o Gate 38.3 somente para reembolso
+fortemente vinculado. Ativacao `confirm` e smokes ficam bloqueados enquanto
+Daniel estiver ausente.
 
 ## Capacidade para retomar
 
-`Codex -> Sol -> Alto -> auditar e fechar localmente o Gate 38.2.`
+`Codex -> Sol -> Alto -> implementar e validar localmente o Gate 38.3.`
 
 ## Referencias dirigidas
 
@@ -103,6 +110,8 @@ Publicar o recovery em novo hash e obter reauditoria independente. Ativacao
 - Gate 36: `docs/audit/192-open-finance-proactive-income-refund-independent-close-2026-08-10.md`;
 - Gate 37: `docs/audit/195-open-finance-transfer-reserve-independent-close-2026-08-10.md`;
 - Gate 38.2: `docs/plans/workstreams/open-finance-income-write.md`;
+- fechamento 38.2:
+  `docs/audit/201-open-finance-income-write-independent-close-2026-08-10.md`;
 - finalizacao anterior: `docs/audit/66-open-finance-finalization-independent-close-2026-07-30.md`;
 - ativacao fail-closed: `docs/audit/78-open-finance-write-activation-independent-close-2026-07-30.md`;
 - deploy: `docs/runbooks/release-checklist.md`;
