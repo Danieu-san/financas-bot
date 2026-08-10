@@ -768,12 +768,19 @@ function openFinalizationStore({
 
 function findReadyReview({
     actorWhatsappId,
+    expectedProposalRef = null,
     env,
     secret,
     dependencies
 }) {
     if (typeof dependencies.findReadyProposalRef === 'function') {
-        return dependencies.findReadyProposalRef({ actorWhatsappId });
+        const readyProposalRef = dependencies.findReadyProposalRef({
+            actorWhatsappId,
+            expectedProposalRef
+        });
+        return expectedProposalRef && readyProposalRef !== expectedProposalRef
+            ? null
+            : readyProposalRef;
     }
     const Review = dependencies.OpenFinanceSaveProposalReviewStore ||
         require('./openFinanceSaveProposalReviewStore')
@@ -784,6 +791,12 @@ function findReadyReview({
         authorizedWhatsAppIds: [actorWhatsappId]
     });
     try {
+        if (expectedProposalRef) {
+            const exact = store.readReviewPrivate(expectedProposalRef, {
+                actorWhatsappId
+            });
+            return exact?.state === 'ready' ? expectedProposalRef : null;
+        }
         const ready = store.listReadyReviews({ actorWhatsappId, limit: 2 });
         if (ready.length > 1) {
             throw new Error('ambiguous_open_finance_finalization_reply');
@@ -1058,6 +1071,8 @@ async function handleOpenFinanceSaveProposalFinalizationReply({
     actorWhatsappId,
     userId,
     expectedProposalRef = null,
+    prepareExpectedIfMissing = true,
+    handleExpectedMissing = true,
     env = process.env,
     dependencies = {}
 } = {}) {
@@ -1079,10 +1094,39 @@ async function handleOpenFinanceSaveProposalFinalizationReply({
         let current = expectedProposalRef
             ? store.read(expectedProposalRef, { actorWhatsappId })
             : null;
+        if (!current && expectedProposalRef) {
+            const readyProposalRef = prepareExpectedIfMissing
+                ? findReadyReview({
+                    actorWhatsappId,
+                    expectedProposalRef,
+                    env,
+                    secret,
+                    dependencies
+                })
+                : null;
+            if (readyProposalRef) {
+                return prepareOpenFinanceSaveProposalFinalization({
+                    proposalRef: readyProposalRef,
+                    actorWhatsappId,
+                    userId,
+                    env,
+                    dependencies
+                });
+            }
+            return {
+                handled: Boolean(handleExpectedMissing),
+                keep_pending: Boolean(handleExpectedMissing),
+                proposal_ref: expectedProposalRef,
+                reply: handleExpectedMissing
+                    ? 'Essa confirma\u00e7\u00e3o final n\u00e3o est\u00e1 mais dispon\u00edvel.'
+                    : null,
+                financial_writes: 0
+            };
+        }
         if (!current) {
             const active = store.listActive({ actorWhatsappId, limit: 2 });
             if (active.length === 0) {
-                const readyProposalRef = expectedProposalRef || findReadyReview({
+                const readyProposalRef = findReadyReview({
                     actorWhatsappId,
                     env,
                     secret,

@@ -4,7 +4,7 @@ Atualizado em: 2026-08-10
 
 ## Estado
 
-`CANDIDATO LOCAL VERDE; AGUARDA AUDITORIA INDEPENDENTE; SEM DEPLOY`.
+`CANDIDATO DE RECOVERY LOCAL VERDE; AGUARDA REAUDITORIA; SEM DEPLOY`.
 
 ## Objetivo
 
@@ -68,5 +68,5 @@ independente. Estado maximo: `GO TECNICO LOCAL; SEM DEPLOY`.
 
 ## Proxima acao
 
-Publicar o commit sanitizado e imutavel, auditar os arquivos primarios do Gate
-38.3 no Chat e confrontar o parecer com a evidencia local. Nao tocar producao.
+Publicar o recovery de identidade causal em novo hash, reauditar o diff focal
+no Chat e confrontar o parecer com a evidencia local. Nao tocar producao.

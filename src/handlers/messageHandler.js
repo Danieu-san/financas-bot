@@ -9449,17 +9449,17 @@ async function processMessage(msg) {
 
     if (!currentState || [
         'awaiting_open_finance_save_review',
-        'awaiting_open_finance_save_confirmation',
         'awaiting_open_finance_final_confirmation'
     ].includes(currentState.action)) {
+        const expectedFinalizationProposalRef = currentState?.data?.proposalRef || null;
         const finalReply = await handleOpenFinanceSaveProposalFinalizationReply({
             messageBody,
             actorWhatsappId: senderId,
             userId,
-            expectedProposalRef: currentState?.action ===
+            expectedProposalRef: expectedFinalizationProposalRef,
+            prepareExpectedIfMissing: Boolean(expectedFinalizationProposalRef),
+            handleExpectedMissing: currentState?.action ===
                 'awaiting_open_finance_final_confirmation'
-                ? currentState?.data?.proposalRef || null
-                : null
         });
         if (finalReply.handled) {
             const batch = currentState?.data?.batch || null;

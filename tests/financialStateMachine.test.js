@@ -6052,10 +6052,38 @@ stateMachineTest('gate 38.3 public handler writes one confirmed refund on the or
         assert.equal(userStateManager.getState(SENDER).action,
             'awaiting_open_finance_save_confirmation');
 
+        const orphanProposalRef = 'a'.repeat(32);
+        const orphanFinalization = new OpenFinanceSaveProposalFinalizationStore({
+            databasePath: paths.preview,
+            secret,
+            authorizedWhatsAppIds: [SENDER]
+        });
+        orphanFinalization.prepare({
+            proposalRef: orphanProposalRef,
+            actorWhatsappId: SENDER,
+            operationKey: 'b'.repeat(48),
+            payload: { marker: 'unrelated-active-finalization' },
+            expiresAt: new Date(Date.now() + 3_600_000).toISOString()
+        });
+        orphanFinalization.close();
+
         assert.match(await send('sim'), /Confira a proposta/i);
         assert.equal(appendedRows.length, 0);
         assert.equal(userStateManager.getState(SENDER).action,
             'awaiting_open_finance_save_review');
+
+        const unchangedOrphan = new OpenFinanceSaveProposalFinalizationStore({
+            databasePath: paths.preview,
+            secret,
+            authorizedWhatsAppIds: [SENDER]
+        });
+        try {
+            assert.equal(unchangedOrphan.read(orphanProposalRef, {
+                actorWhatsappId: SENDER
+            }).state, 'awaiting_confirmation');
+        } finally {
+            unchangedOrphan.close();
+        }
 
         const finalPrompt = await send('6');
         assert.match(finalPrompt, /Confirma o salvamento/i);
