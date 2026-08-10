@@ -1030,6 +1030,12 @@ async function loadDefaultFinalizationContext({
         const item = vault.readItemByAlias(proposal.alias);
         if (!item) throw new Error('open_finance_final_source_unavailable');
         item.generation = Number(mappingMatches[0].generation) || 1;
+        if (journal.isGenerationRevoked?.(
+            proposal.alias,
+            proposal.generation
+        )) {
+            throw new Error('save_proposal_revoked_generation');
+        }
         let pairItem = null;
         if (proposal.classification === 'transfer') {
             const pairMappingMatches = mappings.filter(mapping =>

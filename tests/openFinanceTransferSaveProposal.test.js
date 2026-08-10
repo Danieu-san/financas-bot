@@ -18,7 +18,8 @@ const {
     analyzeOpenFinanceProactiveReviews
 } = require('../src/openFinance/openFinanceProactiveReview');
 const {
-    revalidateOpenFinanceSaveProposal
+    revalidateOpenFinanceSaveProposal,
+    prepareOpenFinanceSaveProposalFinalization
 } = require('../src/openFinance/openFinanceSaveProposalFinalization');
 const {
     OpenFinanceSaveProposalReviewStore
@@ -321,6 +322,94 @@ test('38.4 final revalidation rejects a changed pair or inverted account ownersh
             }
         }
     }), /transfer_accounts_changed/);
+});
+
+test('38.4 default finalization fails closed when the anchor generation was revoked', async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'of-transfer-anchor-revoked-'));
+    const proposal = reviewedTransfer();
+    const files = {
+        secret: path.join(directory, 'secret.txt'),
+        staging: path.join(directory, 'staging.sqlite'),
+        preview: path.join(directory, 'preview.sqlite'),
+        journal: path.join(directory, 'journal.sqlite'),
+        mapping: path.join(directory, 'mapping.json')
+    };
+    fs.writeFileSync(files.secret, secret);
+    fs.writeFileSync(files.staging, '');
+    fs.writeFileSync(files.preview, '');
+    fs.writeFileSync(files.journal, '');
+    fs.writeFileSync(files.mapping, JSON.stringify([
+        { alias: proposal.alias, generation: proposal.generation },
+        { alias: proposal.pair_alias, generation: proposal.pair_generation }
+    ]));
+    const revokedChecks = [];
+    class JournalStub {
+        isGenerationRevoked(alias, generation) {
+            revokedChecks.push([alias, generation]);
+            return alias === proposal.alias && generation === proposal.generation;
+        }
+        close() {}
+    }
+    class PreviewStub {
+        readSaveProposalDecisionState() {
+            return { proposal_state: 'pending', confirmation_state: 'accepted' };
+        }
+        readReviewableSaveProposal() { return proposal; }
+        close() {}
+    }
+    class ReviewStub {
+        readReviewPrivate() {
+            return { proposal_ref: proposal.proposal_ref, state: 'ready', payload: {} };
+        }
+        close() {}
+    }
+    class ProactiveReviewStub {
+        readPrivate() { return { review_ref: proposal.semantic_review_ref }; }
+        close() {}
+    }
+    class VaultStub {
+        readItemByAlias(alias) {
+            return {
+                id: `item-${alias}`,
+                alias_code: alias,
+                accounts: [],
+                transactions: []
+            };
+        }
+        close() {}
+    }
+    const env = {
+        OPEN_FINANCE_ALERT_MODE: 'canary',
+        OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
+        OPEN_FINANCE_SHADOW_PREVIEW_MODE: 'canary',
+        OPEN_FINANCE_RECONCILIATION_MODE: 'canary',
+        OPEN_FINANCE_WRITE_MODE: 'confirm',
+        OPEN_FINANCE_WRITE_APPROVED: 'true',
+        OPEN_FINANCE_LIVE_STAGING_SECRET_FILE: files.secret,
+        OPEN_FINANCE_LIVE_STAGING_DB: files.staging,
+        OPEN_FINANCE_SHADOW_PREVIEW_DB: files.preview,
+        OPEN_FINANCE_REVOCATION_JOURNAL_DB: files.journal,
+        PLUGGY_ITEM_MAP_FILE: files.mapping
+    };
+    try {
+        await assert.rejects(() => prepareOpenFinanceSaveProposalFinalization({
+            proposalRef: proposal.proposal_ref,
+            actorWhatsappId: '5511999999999@c.us',
+            userId: 'user-daniel',
+            env,
+            dependencies: {
+                secret,
+                OpenFinanceRevocationJournal: JournalStub,
+                OpenFinanceShadowPreviewStore: PreviewStub,
+                OpenFinanceSaveProposalReviewStore: ReviewStub,
+                OpenFinanceProactiveReviewStore: ProactiveReviewStub,
+                OpenFinanceLiveStagingVault: VaultStub
+            }
+        }), /save_proposal_revoked_generation/);
+        assert.deepEqual(revokedChecks, [[proposal.alias, proposal.generation]]);
+    } finally {
+        fs.rmSync(directory, { recursive: true, force: true });
+    }
 });
 
 test('38.4 guided review exposes only authorized origin and destination accounts', () => {
