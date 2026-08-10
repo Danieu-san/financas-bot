@@ -139,9 +139,17 @@ function buildActivationPlan(env, {
         throw new Error('open_finance_activation_stage_invalid');
     }
     const current = safeFlagSnapshot(env);
-    if (stage !== 'off') {
+    if (stage === 'prompt' || stage === 'confirm') {
         assertCanaryPrerequisites(env);
         assertRequiredStateFiles(env, { existsSync });
+    }
+    if (stage === 'confirm' &&
+        (current.OPEN_FINANCE_SAVE_PROPOSAL_MODE !== 'prompt' ||
+            current.OPEN_FINANCE_WRITE_MODE !== 'off' ||
+            current.OPEN_FINANCE_WRITE_APPROVED !== 'false')) {
+        throw new Error(
+            'open_finance_activation_confirm_current_prompt_required'
+        );
     }
     const nextEnv = { ...env, ...stageUpdates(stage) };
     const next = safeFlagSnapshot(nextEnv);
@@ -374,7 +382,7 @@ async function applyActivationStage({
     if (current.appCommitSha !== expectedCommitSha) {
         throw new Error('open_finance_activation_commit_mismatch');
     }
-    if (!await healthCheck(healthUrl)) {
+    if (stage !== 'write-off' && !await healthCheck(healthUrl)) {
         throw new Error('open_finance_activation_pre_health_failed');
     }
 
@@ -434,6 +442,12 @@ async function applyActivationStage({
         });
     } catch (error) {
         if (!envChanged) throw error;
+        if (stage === 'write-off') {
+            throw new Error(
+                `open_finance_activation_write_off_applied_degraded:` +
+                `${error.message}`
+            );
+        }
         let envRestored = false;
         let rollbackDurabilityError = null;
         try {

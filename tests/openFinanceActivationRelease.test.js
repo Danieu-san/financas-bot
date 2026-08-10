@@ -74,9 +74,13 @@ test('PROD-ACT-01 builds prompt, confirm and rollback plans fail-closed', () => 
         assert.equal(prompt.next.OPEN_FINANCE_SAVE_PROPOSAL_MODE, 'prompt');
         assert.equal(prompt.next.OPEN_FINANCE_WRITE_MODE, 'off');
 
-        const confirm = buildActivationPlan(harness.env, {
+        assert.throws(() => buildActivationPlan(harness.env, {
             stage: 'confirm'
-        });
+        }), /open_finance_activation_confirm_current_prompt_required/);
+        const confirm = buildActivationPlan({
+            ...harness.env,
+            OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt'
+        }, { stage: 'confirm' });
         assert.equal(confirm.financial_write_enabled, true);
         assert.equal(confirm.next.OPEN_FINANCE_WRITE_APPROVED, 'true');
         assert.equal(confirm.rollback_stage, 'write-off');
@@ -256,6 +260,11 @@ test('PROD-ACT-01 applies prompt transactionally without exposing secrets', asyn
 test('PROD-ACT-01 applies confirm only with all live gates', async () => {
     const harness = createHarness();
     try {
+        const promptRaw = harness.raw.replace(
+            'OPEN_FINANCE_SAVE_PROPOSAL_MODE=off',
+            'OPEN_FINANCE_SAVE_PROPOSAL_MODE=prompt'
+        );
+        fs.writeFileSync(harness.envPath, promptRaw);
         const result = await applyActivationStage({
             targetRoot: harness.root,
             stage: 'confirm',
@@ -277,6 +286,50 @@ test('PROD-ACT-01 applies confirm only with all live gates', async () => {
         assert.equal(result.financial_write_enabled, true);
         assert.equal(result.flags.OPEN_FINANCE_WRITE_MODE, 'confirm');
         assert.equal(result.flags.OPEN_FINANCE_WRITE_APPROVED, 'true');
+    } finally {
+        harness.close();
+    }
+});
+
+test('PROD-ACT-01 write-off bypasses degraded prerequisites and never restores confirm', async () => {
+    const harness = createHarness();
+    const confirmRaw = harness.raw
+        .replace('OPEN_FINANCE_RECONCILIATION_MODE=canary',
+            'OPEN_FINANCE_RECONCILIATION_MODE=off')
+        .replace('OPEN_FINANCE_SAVE_PROPOSAL_MODE=off',
+            'OPEN_FINANCE_SAVE_PROPOSAL_MODE=prompt')
+        .replace('OPEN_FINANCE_WRITE_MODE=off',
+            'OPEN_FINANCE_WRITE_MODE=confirm')
+        .replace('OPEN_FINANCE_WRITE_APPROVED=false',
+            'OPEN_FINANCE_WRITE_APPROVED=true');
+    fs.writeFileSync(harness.envPath, confirmRaw);
+    fs.rmSync(harness.env.OPEN_FINANCE_OUTBOX_DB);
+    let healthCalls = 0;
+    try {
+        await assert.rejects(() => applyActivationStage({
+            targetRoot: harness.root,
+            stage: 'write-off',
+            expectedCommitSha: COMMIT,
+            confirmConfigChange: true,
+            healthAttempts: 12,
+            healthDelayMs: 0,
+            runCommand: async (_command, args) => {
+                if (args[0] === 'jlist') {
+                    return { stdout: pm2Inventory(harness.root) };
+                }
+                return { stdout: '' };
+            },
+            healthCheck: async () => {
+                healthCalls += 1;
+                return false;
+            },
+            now: () => new Date('2026-08-10T12:00:00.000Z')
+        }), /open_finance_activation_write_off_applied_degraded:open_finance_activation_health_failed/);
+        const safeRaw = fs.readFileSync(harness.envPath, 'utf8');
+        assert.match(safeRaw, /OPEN_FINANCE_SAVE_PROPOSAL_MODE=prompt/);
+        assert.match(safeRaw, /OPEN_FINANCE_WRITE_MODE=off/);
+        assert.match(safeRaw, /OPEN_FINANCE_WRITE_APPROVED=false/);
+        assert.equal(healthCalls, 12);
     } finally {
         harness.close();
     }

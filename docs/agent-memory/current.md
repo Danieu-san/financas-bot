@@ -20,6 +20,10 @@ Gate 39: consolidar e auditar o release OCI das escritas revisadas dos Gates
 - Gate 38.6: `GO TECNICO LOCAL INDEPENDENTE; SEM DEPLOY`; o recovery fechou a
   categoria fixa e a prova writer-projetor (`1629/1619/0/10`, zero falhas),
   sem achado ou lacuna residual.
+- Gate 39: primeiro candidato recebeu `NO-GO` por dois achados `ALTO` no
+  controlador. O recovery agora exige `prompt/off/false` antes de `confirm` e
+  mantem `write-off` disponivel sob degradacao; focal `13/13` e ampla
+  `1630/1620/0/10`, zero falhas, aguardando reauditoria.
 
 ## Fechamento do Gate 38.4
 
@@ -50,13 +54,13 @@ hermetica `1617/1607/0/10`, zero falhas. Fechamento:
 
 ## Próxima ação exata
 
-Publicar e auditar o candidato consolidado do Gate 39. Com `GO`, iniciar apenas
-o preflight operacional OCI e preservar a sequencia promocao inerte, health,
-ativacao `confirm` e rollback `write-off`.
+Publicar, reconstruir o artefato e reauditar o recovery do Gate 39. Com `GO`,
+iniciar apenas o preflight operacional OCI e preservar a sequencia promocao
+inerte, health, ativacao `confirm` e rollback `write-off`.
 
 ## Capacidade para retomar
 
-`Codex -> Sol -> Alto -> auditar o Gate 39 e iniciar o preflight OCI se houver GO.`
+`Codex -> Sol -> Alto -> publicar e reauditar o recovery do Gate 39.`
 
 ## Referencias dirigidas
 
@@ -67,6 +71,7 @@ ativacao `confirm` e rollback `write-off`.
 - Gate 38.5: `docs/audit/212-open-finance-reserve-write-independent-close-2026-08-10.md`;
 - Gate 38.6: `docs/audit/215-open-finance-investment-income-write-independent-close-2026-08-10.md`;
 - Gate 39: `docs/audit/216-open-finance-reviewed-write-release-candidate-2026-08-10.md`;
+- recovery Gate 39: `docs/audit/217-open-finance-reviewed-write-release-recovery-candidate-2026-08-10.md`;
 - finalizacao: `src/openFinance/openFinanceSaveProposalFinalization.js`;
 - deploy: `docs/runbooks/release-checklist.md`;
 - producao: `docs/runbooks/production-health.md`.

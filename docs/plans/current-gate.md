@@ -4,7 +4,7 @@ Atualizado em: 2026-08-10
 
 ## Estado
 
-`CANDIDATO LOCAL EM PREPARACAO; SEM DEPLOY`.
+`RECOVERY LOCAL VERDE APOS NO-GO; AGUARDANDO REAUDITORIA; SEM DEPLOY`.
 
 ## Objetivo
 
@@ -66,14 +66,15 @@ OCI, preservando escrita desligada na promocao e separando a ativacao
 
 ## Proxima acao
 
-Publicar e auditar o manifesto consolidado do Gate 39. Somente um `GO` permite
-iniciar o preflight operacional OCI; upload, restart, promocao e ativacao
-continuam separados pelos controles do runbook.
+Publicar o recovery em hash imutavel, reconstruir e verificar o artefato e
+reauditar somente os dois achados ALTO. Somente um `GO` permite iniciar o
+preflight operacional OCI.
 
 ## Evidencia candidata
 
 - produto/artefato: `17471ba8a6ec8df737ea97c45ff9d19c01b84b87`;
-- suite ampla final: `1629/1619/0/10`, zero falhas;
+- suite ampla final do recovery: `1630/1620/0/10`, zero falhas;
 - ativacao, instalador OCI, contrato de ambiente e audit offline: verdes;
 - artefato OCI: `886` arquivos e hash interno confirmado;
 - manifesto: `docs/audit/216-open-finance-reviewed-write-release-candidate-2026-08-10.md`.
+- recovery: `docs/audit/217-open-finance-reviewed-write-release-recovery-candidate-2026-08-10.md`.
