@@ -2,17 +2,18 @@
 
 Atualizado em: 2026-08-10
 
-## Gate 38.1 - recovery probatorio local verde
+## Gate 38.1 - GO tecnico local independente
 
-O primeiro auditor terminou com `ACESSO INSUFICIENTE`, sem GO. A prova publica
-nova atravessa duas compras, escreve somente a primeira, recupera o recibo,
-avanca para a revisao da segunda e impede que um novo `sim` seja herdado como
-confirmacao. Evidencia: focal `1/1`, publica `2/2`, causal anterior `94/94` e
-handler financeiro completo `130/130`; hermetica reutilizada
-`1592/1582/0/10`.
+O recovery `f14849ce0da78b94a8c2c981f94242c113cf43cb` recebeu GO independente.
+A prova publica atravessa duas compras, escreve somente a primeira, recupera o
+recibo, avanca para a revisao da segunda e impede consentimento herdado.
+Evidencia: focal `1/1`, publica `2/2`, causal anterior `94/94`, handler
+financeiro completo `130/130` e hermetica reutilizada `1592/1582/0/10`.
 
-Proximo passo: novo hash imutavel e reauditoria focal. Producao segue write
-`off`, sem deploy ou smoke enquanto Daniel estiver ausente.
+Fechamento:
+`docs/audit/198-open-finance-purchase-write-independent-close-2026-08-10.md`.
+Proximo passo: charter do Gate 38.2. Producao segue write `off`, sem deploy ou
+smoke enquanto Daniel estiver ausente.
 
 ## Gate 37 - GO tecnico local independente
 

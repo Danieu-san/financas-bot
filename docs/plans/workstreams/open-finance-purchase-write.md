@@ -2,7 +2,7 @@
 
 Atualizado em: 2026-08-10
 
-Estado: `RECOVERY PROBATORIO LOCAL VERDE; AGUARDA REAUDITORIA`.
+Estado: `GO TECNICO LOCAL INDEPENDENTE; SEM DEPLOY`.
 
 ## Objetivo
 
@@ -46,8 +46,9 @@ revalidada focalmente.
 ## Gate de saida local
 
 Commit sanitizado e imutavel, auditoria independente do codigo atual e ausencia
-de lacuna causal indispensavel. Isso autoriza apenas o `GO TECNICO LOCAL` da
-classe compra.
+de lacuna causal indispensavel. Cumprido no hash
+`f14849ce0da78b94a8c2c981f94242c113cf43cb`; isso autoriza apenas o
+`GO TECNICO LOCAL` da classe compra.
 
 ## Fronteira de producao
 

@@ -4,8 +4,7 @@ Atualizado em: 2026-08-10
 
 ## Objetivo ativo
 
-Gate 38.1: revalidar e, somente depois do GO independente, preparar a ativacao
-gradual da escrita de compras Open Finance. Producao permanece inalterada.
+Gate 38.2: definir a proxima classe de escrita gradual sem alterar producao.
 
 ## Estado vigente
 
@@ -18,17 +17,17 @@ gradual da escrita de compras Open Finance. Producao permanece inalterada.
   para revisao proativa read-only.
 - Gate 37: `GO TECNICO LOCAL INDEPENDENTE`; transferencias e reservas seguem
   para revisao proativa read-only, com principal separado de rendimento.
-- Gate 38.1: `RECOVERY PROBATORIO LOCAL VERDE; AGUARDA REAUDITORIA`.
+- Gate 38.1: `GO TECNICO LOCAL INDEPENDENTE; SEM DEPLOY`.
 
 O nucleo ja auditado de escrita de compras permanece inalterado e aceita apenas
 `purchase/POSTED/new` nao parcelada depois de revisao guiada, revalidacao e
 segunda confirmacao. A mudanca posterior esta no handler que preserva e avanca
 a fila numerica um item por vez.
 
-O primeiro auditor terminou com `ACESSO INSUFICIENTE`, sem GO. A nova prova
-publica atravessa duas compras: grava apenas a primeira, recupera o recibo,
-avanca para a revisao da segunda e demonstra que um novo `sim` nao e herdado
-como confirmacao financeira.
+O recovery publicado em `f14849ce0da78b94a8c2c981f94242c113cf43cb`
+recebeu GO independente. A prova publica atravessa duas compras: grava apenas a
+primeira, recupera o recibo, avanca para a revisao da segunda e demonstra que
+um novo `sim` nao e herdado como confirmacao financeira.
 
 ## Evidencia do Gate 38.1
 
@@ -38,6 +37,8 @@ como confirmacao financeira.
 - suite hermetica reutilizada no mesmo codigo: `1592/1582/0/10`;
 - recovery:
   `docs/audit/197-open-finance-purchase-write-public-batch-proof-candidate-2026-08-10.md`;
+- fechamento:
+  `docs/audit/198-open-finance-purchase-write-independent-close-2026-08-10.md`;
 - plano: `docs/plans/workstreams/open-finance-purchase-write.md`.
 
 Nenhuma flag, servidor, planilha, WhatsApp ou dado real foi alterado.
@@ -64,13 +65,13 @@ Nenhuma flag, servidor, planilha, WhatsApp ou dado real foi alterado.
 
 ## Próxima ação exata
 
-Publicar o recovery probatorio em novo hash e obter uma reauditoria focal. Se
-houver GO, fechar somente o Gate 38.1 local.
-Ativacao `confirm` e smoke ficam bloqueados enquanto Daniel estiver ausente.
+Definir o charter da proxima classe de escrita gradual, mantendo producao
+inalterada. Ativacao `confirm` e smoke do Gate 38.1 ficam bloqueados enquanto
+Daniel estiver ausente.
 
 ## Capacidade para retomar
 
-`Codex -> Sol -> Alto -> auditar a composicao atual do Gate 38.1.`
+`Codex -> Sol -> Alto -> definir e testar o Gate 38.2 sem producao.`
 
 ## Referencias dirigidas
 

@@ -4,7 +4,7 @@ Atualizado em: 2026-08-10
 
 ## Estado
 
-`RECOVERY PROBATORIO LOCAL VERDE; AGUARDA REAUDITORIA INDEPENDENTE`.
+`GO TECNICO LOCAL INDEPENDENTE; SEM DEPLOY`.
 
 Producao permanece com `OPEN_FINANCE_WRITE_MODE=off`, aprovacao falsa e zero
 escrita. Nenhum deploy ou mudanca de flag faz parte do candidato local.
@@ -66,8 +66,8 @@ Recovery:
 
 ## Critérios de GO
 
-Commit sanitizado e imutavel, auditoria independente dos arquivos atuais e
-nenhuma lacuna causal indispensavel. O resultado maximo e `GO TECNICO LOCAL`.
+Cumprido no hash `f14849ce0da78b94a8c2c981f94242c113cf43cb`, com auditoria
+independente e nenhuma lacuna causal indispensavel.
 
 ## Condições de parada
 
@@ -81,8 +81,8 @@ retorno imediato a `write-off` diante de qualquer incerteza.
 
 ## Proxima acao
 
-Publicar o recovery e reauditar o novo hash. Nao ativar producao nesta ausencia de
-Daniel.
+Fechar documentalmente o Gate 38.1 e definir o charter local do Gate 38.2. Nao
+ativar producao nesta ausencia de Daniel.
 
 ## Referencias
 
