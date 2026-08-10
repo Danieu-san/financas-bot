@@ -2,6 +2,22 @@
 
 Atualizado em: 2026-08-09
 
+## Gate 36 - candidato local verde
+
+Entrada genuina e estorno `POSTED/new` agora seguem para revisao proativa
+read-only. Ponta oposta em outra conta familiar e sinais de Caixinha/reserva
+ficam adiados ao Gate 37. Compra ainda nao salva mais estorno integral sao
+neutralizados sem criar receita, despesa ou proposta concorrente.
+
+O store cifrado e terminal sobrevive a restart; ambos os membros autorizados da
+familia usam `revisar <codigo> ...`, sem `sim` ambiguo. Expiracao e conflito
+falham fechado. Evidencia local: `13/13`, `62/62`, `69/69`, `130/130` e suite
+hermetica ampla `1580/1570/0/10`, com zero falhas e dez skips previstos.
+
+Estado: `CANDIDATO LOCAL VERDE; AGUARDA AUDITORIA INDEPENDENTE`.
+Manifesto: `docs/audit/190-open-finance-proactive-income-refund-candidate-2026-08-09.md`.
+Proxima fronteira: commit, GitHub e Chat. Sem deploy.
+
 ## Gate 35 - Fase D concluida em PARTIAL_NO_GO
 
 As vinte e tres decisoes explicitas foram consumidas no snapshot novo pelo

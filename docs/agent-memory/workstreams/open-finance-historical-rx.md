@@ -2,6 +2,21 @@
 
 Atualizado em: 2026-08-09
 
+## Gate 36 - candidato local verde
+
+Foi implementada a revisao proativa, read-only e familiar de entradas e
+estornos. Eventos precisam estar `POSTED/new`; transferencias possiveis e
+Caixinha/reserva seguem explicitamente para o Gate 37. Compra nao salva e
+estorno integral fortemente pareados sao neutralizados inclusive entre ciclos.
+
+Revisoes usam SQLite cifrado, codigo opaco, comando explicito, decisao terminal,
+restart e expiracao segura. `financial_writes=0`. Evidencia: focal `13/13`,
+causal `62/62` e `69/69`, handler publico `130/130` e suite hermetica ampla
+`1580/1570/0/10`, sem falhas.
+
+Proximo passo: commit imutavel e auditoria independente. Gate 34 permanece
+pausado, Gate 35 permanece parcial e nao ha deploy autorizado neste gate.
+
 ## Gate 35 - Fase D concluida em PARTIAL_NO_GO
 
 O snapshot novo confirmou a identidade do RX e as vinte e tres decisoes

@@ -127,6 +127,7 @@ class OpenFinanceAlertOutbox {
 
     enqueue({ candidates = [], lifecycleDecisions = [], items = [], policies = [], baselineComplete = false,
         reconciliationRequired = false, saveProposalLinks = [],
+        semanticReviewLinks = [], semanticAnnotations = [],
         createdAt = new Date().toISOString() } = {}) {
         if (!baselineComplete) throw new Error('outbox_requires_completed_baseline');
         const normalizedPolicies = new Map(normalizePolicies(policies).map(policy => [policy.alias, policy]));
@@ -143,6 +144,45 @@ class OpenFinanceAlertOutbox {
                 throw new Error('invalid_save_proposal_outbox_link');
             }
             proposalByObservation.set(observationRef, { proposalRef, principal });
+        }
+        const semanticReviewByObservation = new Map();
+        for (const link of semanticReviewLinks) {
+            const observationRef = String(link?.observation_ref || '');
+            const reviewRef = String(link?.review_ref || '');
+            const reviewCode = String(link?.review_code || '');
+            const principal = String(link?.principal || '').toLowerCase();
+            const reviewKind = String(link?.review_kind || '');
+            const reviewStatus = String(link?.review_status || '');
+            if (!/^[a-f0-9]{32}$/.test(observationRef) ||
+                !/^[a-f0-9]{32}$/.test(reviewRef) ||
+                !/^[a-f0-9]{10}$/.test(reviewCode) ||
+                !['daniel', 'thais'].includes(principal) ||
+                !['income', 'refund_link'].includes(reviewKind) ||
+                !/^[a-z0-9_]{2,48}$/.test(reviewStatus) ||
+                semanticReviewByObservation.has(observationRef) ||
+                proposalByObservation.has(observationRef)) {
+                throw new Error('invalid_proactive_review_outbox_link');
+            }
+            semanticReviewByObservation.set(observationRef, {
+                reviewRef, reviewCode, principal, reviewKind, reviewStatus
+            });
+        }
+        const allowedSemanticStatuses = new Set([
+            'possible_internal_transfer_deferred',
+            'reserve_semantics_deferred',
+            'paired_refund_neutralized',
+            'paired_unsaved_purchase_neutralized'
+        ]);
+        const semanticStatusByObservation = new Map();
+        for (const annotation of semanticAnnotations) {
+            const observationRef = String(annotation?.observation_ref || '');
+            const status = String(annotation?.status || '');
+            if (!/^[a-f0-9]{32}$/.test(observationRef) ||
+                !allowedSemanticStatuses.has(status) ||
+                semanticStatusByObservation.has(observationRef)) {
+                throw new Error('invalid_proactive_review_outbox_annotation');
+            }
+            semanticStatusByObservation.set(observationRef, status);
         }
         const sourceByRef = new Map();
         for (const item of items) {
@@ -166,6 +206,7 @@ class OpenFinanceAlertOutbox {
                 }
                 const policy = normalizedPolicies.get(source.alias);
                 const proposal = proposalByObservation.get(candidate.observation_ref);
+                const semanticReview = semanticReviewByObservation.get(candidate.observation_ref);
                 const ineligible = !ALERTABLE_CLASSIFICATIONS.has(decision.classification) ||
                     (decision.provider_state === 'PENDING' && decision.lifecycle_milestone !== 'first_pending');
                 const revoked = this.db.prepare('SELECT 1 FROM finance_alert_revocations WHERE alias_ref=?')
@@ -178,6 +219,14 @@ class OpenFinanceAlertOutbox {
                     (reconciliationRequired && candidate.reconciliation_status !== 'new')
                 )) {
                     throw new Error('save_proposal_outbox_link_mismatch');
+                }
+                if (semanticReview && (
+                    semanticReview.principal !== policy.principal ||
+                    !['refund', 'income_candidate'].includes(decision.classification) ||
+                    decision.provider_state !== 'POSTED' ||
+                    (reconciliationRequired && candidate.reconciliation_status !== 'new')
+                )) {
+                    throw new Error('proactive_review_outbox_link_mismatch');
                 }
                 const milestone = decision.provider_state === 'PENDING' ? 'first_pending' : decision.lifecycle_milestone;
                 for (const recipientPrincipal of policy.recipients) {
@@ -197,6 +246,14 @@ class OpenFinanceAlertOutbox {
                         internal_reference: alertRef.slice(0, 10),
                         reconciliation_status: reconciliationRequired ? 'new' : 'legacy_unchecked',
                         ...(proposal ? { proposal_ref: proposal.proposalRef } : {}),
+                        ...(semanticReview ? { semantic_review: {
+                            review_code: semanticReview.reviewCode,
+                            review_kind: semanticReview.reviewKind,
+                            review_status: semanticReview.reviewStatus
+                        } } : {}),
+                        ...(semanticStatusByObservation.has(candidate.observation_ref) ? {
+                            semantic_status: semanticStatusByObservation.get(candidate.observation_ref)
+                        } : {}),
                         write_enabled: false
                     };
                     const result = statement.run(

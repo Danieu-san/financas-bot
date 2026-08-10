@@ -508,6 +508,9 @@ const {
 const {
     OpenFinanceLiveStagingVault
 } = require('../src/openFinance/openFinanceLiveStagingVault');
+const {
+    OpenFinanceProactiveReviewStore
+} = require('../src/openFinance/openFinanceProactiveReviewStore');
 const { observationRef } = require('../src/openFinance/openFinanceRuntimeReconciliation');
 const originalRateLimiterIsAllowed = rateLimiter.isAllowed;
 const {
@@ -617,6 +620,72 @@ stateMachineTest('public handler consumes an eligible historical ambiguity reply
     assert.strictEqual(appendedRows.length, 0);
     assert.strictEqual(structuredResponses.length, 0);
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
+});
+
+stateMachineTest('public handler consumes one explicit Gate 36 review before every financial writer', async () => {
+    resetState();
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-public-gate36-review-'));
+    const databasePath = path.join(directory, 'preview.sqlite');
+    const secretPath = path.join(directory, 'secret.txt');
+    const secret = 'state-machine-proactive-review-secret-2026';
+    fs.writeFileSync(secretPath, secret, { mode: 0o600 });
+    const item = {
+        id: 'item-daniel', alias_code: 'daniel_nubank', generation: 1,
+        accounts: [{ id: 'bank-daniel', type: 'BANK' }],
+        transactions: [{ id: 'income-one', account_id: 'bank-daniel', amount_cents: 5000,
+            description: 'Crédito legítimo', date: '2026-08-09T12:00:00.000Z', status: 'POSTED' }]
+    };
+    const observationRef = crypto.createHmac('sha256', secret)
+        .update('observation:item-daniel:bank-daniel:income-one')
+        .digest('hex').slice(0, 32);
+    const store = new OpenFinanceProactiveReviewStore({
+        databasePath, secret, clock: () => new Date('2026-08-09T13:00:00.000Z')
+    });
+    let code;
+    try {
+        code = store.ingest({
+            reviews: [{ observation_ref: observationRef, source_alias: 'daniel_nubank',
+                generation: 1, classification: 'income_candidate', review_kind: 'income',
+                review_status: 'classification_required', save_eligible: false,
+                financial_writes: 0 }],
+            items: [item],
+            policies: [{ alias: 'daniel_nubank', principal: 'daniel', recipients: ['daniel'] }],
+            confirmationActors: [{ principal: 'daniel', whatsappId: SENDER }],
+            observedAt: '2026-08-09T13:00:00.000Z'
+        }).links[0].review_code;
+    } finally {
+        store.close();
+    }
+    const previous = {
+        mode: process.env.OPEN_FINANCE_SAVE_PROPOSAL_MODE,
+        secret: process.env.OPEN_FINANCE_LIVE_STAGING_SECRET_FILE,
+        preview: process.env.OPEN_FINANCE_SHADOW_PREVIEW_DB
+    };
+    process.env.OPEN_FINANCE_SAVE_PROPOSAL_MODE = 'prompt';
+    process.env.OPEN_FINANCE_LIVE_STAGING_SECRET_FILE = secretPath;
+    process.env.OPEN_FINANCE_SHADOW_PREVIEW_DB = databasePath;
+    try {
+        const msg = createMockMessage(`revisar ${code} entrada`);
+        await handleMessage(msg);
+        assert.match(msg.replies.at(-1), /Decisão registrada para futura conferência/);
+        assert.strictEqual(appendedRows.length, 0);
+        assert.strictEqual(structuredResponses.length, 0);
+        assert.strictEqual(userStateManager.getState(SENDER), undefined);
+        const reopened = new OpenFinanceProactiveReviewStore({ databasePath, secret });
+        try {
+            assert.strictEqual(reopened.stats().decided, 1);
+        } finally {
+            reopened.close();
+        }
+    } finally {
+        if (previous.mode === undefined) delete process.env.OPEN_FINANCE_SAVE_PROPOSAL_MODE;
+        else process.env.OPEN_FINANCE_SAVE_PROPOSAL_MODE = previous.mode;
+        if (previous.secret === undefined) delete process.env.OPEN_FINANCE_LIVE_STAGING_SECRET_FILE;
+        else process.env.OPEN_FINANCE_LIVE_STAGING_SECRET_FILE = previous.secret;
+        if (previous.preview === undefined) delete process.env.OPEN_FINANCE_SHADOW_PREVIEW_DB;
+        else process.env.OPEN_FINANCE_SHADOW_PREVIEW_DB = previous.preview;
+        fs.rmSync(directory, { recursive: true, force: true });
+    }
 });
 
 stateMachineTest('real backfill, handler, runtime, review store and outbox reject a pre-attempt reply before writers', async () => {

@@ -127,6 +127,9 @@ const {
 const {
     tryHandleOpenFinanceHistoricalAmbiguityReply
 } = require('../openFinance/openFinanceHistoricalAmbiguityWhatsappRuntime');
+const {
+    tryHandleOpenFinanceProactiveReviewReply
+} = require('../openFinance/openFinanceProactiveReviewConversation');
 const { recordQaFailure } = require('../services/qaFailureLogService');
 const { recordAdminAction, hashRef, sanitizeValue } = require('../services/adminActionLogService');
 const { recordDashboardAccessEvent } = require('../services/dashboardAccessLogService');
@@ -9218,6 +9221,14 @@ async function processMessage(msg) {
         });
         if (historicalReviewReply.handled) {
             await sendPlainMessage(msg, historicalReviewReply.reply);
+            return;
+        }
+        const proactiveReviewReply = tryHandleOpenFinanceProactiveReviewReply({
+            actorWhatsappId: senderId,
+            body: messageBody
+        });
+        if (proactiveReviewReply.handled) {
+            await sendPlainMessage(msg, proactiveReviewReply.reply);
             return;
         }
     }

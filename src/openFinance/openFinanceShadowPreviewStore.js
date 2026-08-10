@@ -587,11 +587,17 @@ class OpenFinanceShadowPreviewStore {
         openFinanceItems = [],
         policies = [],
         observedAt = new Date().toISOString(),
-        includeProposalLinks = false
+        includeProposalLinks = false,
+        suppressedObservationRefs = []
     } = {}) {
         if (typeof includeProposalLinks !== 'boolean') {
             throw new Error('valid_save_proposal_link_mode_required');
         }
+        if (!Array.isArray(suppressedObservationRefs) || suppressedObservationRefs.some(value =>
+            !/^[a-f0-9]{32}$/.test(String(value || '')))) {
+            throw new Error('valid_save_proposal_suppression_refs_required');
+        }
+        const suppressed = new Set(suppressedObservationRefs);
         const created = validTimestamp(observedAt, 'valid_save_proposal_time_required');
         const now = this.#now();
         if (created.getTime() > Date.parse(now) + 5 * 60 * 1000) {
@@ -729,7 +735,8 @@ class OpenFinanceShadowPreviewStore {
                     )
                 };
                 if (decision.status !== 'new' || lifecycle?.classification !== 'purchase' ||
-                    lifecycle?.provider_state !== 'POSTED') {
+                    lifecycle?.provider_state !== 'POSTED' ||
+                    suppressed.has(decision.observation_ref)) {
                     if (prior) {
                         if (!this.#isSaveProposalIneligibilityTransitionCompatible({
                             proposalRef,
@@ -742,7 +749,9 @@ class OpenFinanceShadowPreviewStore {
                         }
                         const result = this.#invalidateSaveProposal(
                             proposalRef,
-                            decision.status !== 'new'
+                            suppressed.has(decision.observation_ref)
+                                ? 'refund_pair_neutralized'
+                                : decision.status !== 'new'
                                 ? 'reconciliation_ineligible'
                                 : 'lifecycle_ineligible'
                         );
@@ -992,6 +1001,17 @@ class OpenFinanceShadowPreviewStore {
                     expires_at: row.expires_at
                 };
             });
+    }
+
+    listPendingSaveProposalObservationRefs() {
+        this.purgeExpired();
+        const now = this.#now();
+        return this.db.prepare(`SELECT proposal_ref,transaction_ref,family_scope_ref,alias_ref,
+            generation,encrypted_payload,payload_version,proposal_state,created_at,expires_at
+            FROM open_finance_save_proposals
+            WHERE family_scope_ref=? AND proposal_state='pending' AND expires_at>?
+            ORDER BY created_at,proposal_ref`).all(this.familyScopeRef, now)
+            .map(row => this.#readBoundSaveProposal(row.proposal_ref, row).observation_ref);
     }
 
     readSaveProposalPrivate(proposalRef, { actorWhatsappId } = {}) {

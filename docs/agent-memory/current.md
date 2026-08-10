@@ -2,6 +2,22 @@
 
 Atualizado em: 2026-08-09
 
+## Gate 36 - candidato local verde
+
+O tratamento proativo read-only de entradas e estornos foi implementado com
+reconciliacao obrigatoria, neutralizacao de compra ainda nao salva mais estorno
+integral, revisao cifrada familiar e comandos explicitos por codigo opaco.
+Transferencias possiveis e semantica de Caixinha/reserva permanecem adiadas ao
+Gate 37. Nenhuma escrita financeira foi habilitada.
+
+Evidencia: focal `13/13`, baterias causais `62/62` e `69/69`, maquina de
+estados publica `130/130` e suite hermetica ampla `1580/1570/0/10`, com zero
+falhas e os dez skips previstos. Cobertura de linhas `90,93%`.
+Manifesto: `docs/audit/190-open-finance-proactive-income-refund-candidate-2026-08-09.md`.
+
+Proxima acao: commit sanitizado, publicacao e auditoria independente por hash
+imutavel. Sem deploy.
+
 ## Gate 35 - Fase D concluida em PARTIAL_NO_GO
 
 O snapshot novo reproduziu o RX revisado e o orquestrador auditado consumiu as

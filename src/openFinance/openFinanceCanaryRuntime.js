@@ -16,6 +16,12 @@ const {
 } = require('./openFinanceWriteActivationPolicy');
 const { deliverOneOpenFinanceCanary } = require('./openFinanceWhatsappCanaryDelivery');
 const {
+    analyzeOpenFinanceProactiveReviews
+} = require('./openFinanceProactiveReview');
+const {
+    OpenFinanceProactiveReviewStore
+} = require('./openFinanceProactiveReviewStore');
+const {
     readOpenFinanceInternalSource,
     reconcileOpenFinanceRuntimeCandidates,
     reconciliationMode
@@ -276,6 +282,7 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
     const journal = new OpenFinanceRevocationJournal({ databasePath: env.OPEN_FINANCE_REVOCATION_JOURNAL_DB, secret });
     let proposalStore = null;
     let proposalReviewStore = null;
+    let proactiveReviewStore = null;
     try {
         const revocations = journal.reapplyRevocations({ mappings, vault, baseline, outbox });
         if (previewMode === 'canary') {
@@ -305,6 +312,11 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
         let saveProposals = { mode: proposalMode, inserted: 0, replayed: 0, blocked: 0,
             pending: 0, financial_writes: 0 };
         let saveProposalLinks = [];
+        let proactiveReviews = { reviews: [], annotations: [],
+            suppressed_purchase_observation_refs: [], summary: {
+                reviewable: 0, suppressed_purchases: 0, deferred: 0
+            }, financial_writes: 0 };
+        let proactiveReviewLinks = [];
         let confirmationActors = [];
         const strictQuarantine = internalReconciliationMode === 'canary'
             ? outbox.quarantineUnreconciled()
@@ -366,18 +378,54 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
                         authorizedWhatsAppIds: confirmationScope.authorizedWhatsAppIds
                     });
                 }
+            }
+            proactiveReviews = analyzeOpenFinanceProactiveReviews({
+                items,
+                lifecycleDecisions: lifecycle.decisions,
+                reconciliationDecisions: reconciled.decisions,
+                pendingPurchaseObservationRefs: proposalStore
+                    ? proposalStore.listPendingSaveProposalObservationRefs()
+                    : [],
+                secret
+            });
+            if (proposalMode !== 'off') {
                 const ingestedProposals = proposalStore.ingestSaveProposals({
                     reconciliationDecisions: reconciled.decisions,
                     lifecycleDecisions: lifecycle.decisions,
                     openFinanceItems: items,
                     policies,
                     observedAt: snapshot.observed_at,
-                    includeProposalLinks: proposalMode === 'prompt'
+                    includeProposalLinks: proposalMode === 'prompt',
+                    suppressedObservationRefs:
+                        proactiveReviews.suppressed_purchase_observation_refs
                 });
                 ({ proposal_links: saveProposalLinks = [], ...saveProposals } = {
                     mode: proposalMode,
                     ...ingestedProposals
                 });
+                if (proposalMode === 'prompt' && proactiveReviews.reviews.length) {
+                    proactiveReviewStore = new OpenFinanceProactiveReviewStore({
+                        databasePath: env.OPEN_FINANCE_SHADOW_PREVIEW_DB,
+                        secret
+                    });
+                    const ingestedReviews = proactiveReviewStore.ingest({
+                        reviews: proactiveReviews.reviews,
+                        items,
+                        policies: normalizePolicies(policies),
+                        confirmationActors,
+                        observedAt: snapshot.observed_at
+                    });
+                    proactiveReviewLinks = ingestedReviews.links;
+                    proactiveReviews = {
+                        ...proactiveReviews,
+                        store: {
+                            inserted: ingestedReviews.inserted,
+                            replayed: ingestedReviews.replayed,
+                            pending: ingestedReviews.pending,
+                            financial_writes: 0
+                        }
+                    };
+                }
             }
             reconciliation = {
                 mode: 'canary',
@@ -391,7 +439,9 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
         const queued = outbox.enqueue({ candidates, lifecycleDecisions: lifecycle.decisions,
             items, policies, baselineComplete: baseline.stats().completed_baselines === mappings.length,
             reconciliationRequired: internalReconciliationMode === 'canary',
-            saveProposalLinks });
+            saveProposalLinks,
+            semanticReviewLinks: proactiveReviewLinks,
+            semanticAnnotations: proactiveReviews.annotations });
         const classificationQuarantine = outbox.quarantineNonAlertable();
         const quarantined = {
             blocked: strictQuarantine.blocked + classificationQuarantine.blocked,
@@ -467,12 +517,19 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
             }
         }
         return { outcome: 'GO', staged_items: staged.staged_items, new_observations: observed.new_observations,
-            queued, reconciliation, save_proposals: saveProposals, quarantined,
+            queued, reconciliation, save_proposals: saveProposals,
+            proactive_reviews: {
+                summary: proactiveReviews.summary,
+                ...(proactiveReviews.store ? { store: proactiveReviews.store } : {}),
+                financial_writes: 0
+            },
+            quarantined,
             pre_activation: preActivation, outbox: outbox.stats(), deliveries,
             transport_calls: deliveries.filter(value => ['delivered_confirmed', 'accepted_unconfirmed', 'retry'].includes(value)).length,
             financial_writes: 0 };
     } finally {
         proposalReviewStore?.close();
+        proactiveReviewStore?.close();
         proposalStore?.close();
         journal.close();
         outbox.close();

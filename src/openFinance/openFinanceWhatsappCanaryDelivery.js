@@ -14,6 +14,43 @@ function formatCanaryMessage(delivery, sourceLabel) {
             'Ela só entrará na proposta de salvamento quando o banco confirmar a transação.'
         ]
         : [];
+    const semanticNotes = {
+        possible_internal_transfer_deferred: [
+            'Há uma ponta oposta compatível em outra conta familiar.',
+            'Mantive como possível transferência interna para revisão no Gate 37.'
+        ],
+        reserve_semantics_deferred: [
+            'O movimento tem sinal de Caixinha, reserva ou investimento.',
+            'Mantive separado de receita e despesa para revisão no Gate 37.'
+        ],
+        paired_refund_neutralized: [
+            'Este estorno foi pareado com uma compra ainda não salva.',
+            'O par foi neutralizado e não gerará receita nem despesa.'
+        ],
+        paired_unsaved_purchase_neutralized: [
+            'Esta compra foi pareada com um estorno integral antes do salvamento.',
+            'O par foi neutralizado e não gerará receita nem despesa.'
+        ]
+    }[delivery.semantic_status] || [];
+    let proactivePrompt = [];
+    const review = delivery.semantic_review;
+    if (review?.review_kind === 'income') {
+        proactivePrompt = [
+            'Para classificar esta entrada, responda:',
+            `*revisar ${review.review_code} entrada*, *transferência*, *reserva* ou *não sei*.`
+        ];
+    } else if (review?.review_kind === 'refund_link' &&
+        review.review_status === 'pair_confirmation_required') {
+        proactivePrompt = [
+            'Encontrei uma compra compatível para este estorno.',
+            `Responda *revisar ${review.review_code} confirmar*, *rejeitar* ou *não sei*.`
+        ];
+    } else if (review?.review_kind === 'refund_link') {
+        proactivePrompt = [
+            'Não encontrei um vínculo único para este estorno.',
+            `Responda *revisar ${review.review_code} estorno sem vínculo*, *não é estorno* ou *não sei*.`
+        ];
+    }
     return [
         `🔎 Nova movimentação detectada em ${sourceLabel}.`,
         `${kind}: ${formatAmount(delivery.amount_cents)}`,
@@ -23,6 +60,10 @@ function formatCanaryMessage(delivery, sourceLabel) {
         '',
         ...pendingPurchaseNote,
         ...(pendingPurchaseNote.length ? [''] : []),
+        ...semanticNotes,
+        ...(semanticNotes.length ? [''] : []),
+        ...proactivePrompt,
+        ...(proactivePrompt.length ? [''] : []),
         'Somente leitura: nada foi salvo automaticamente.'
     ].join('\n');
 }
