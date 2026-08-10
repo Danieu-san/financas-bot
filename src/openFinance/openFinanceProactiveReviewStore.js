@@ -275,11 +275,47 @@ class OpenFinanceProactiveReviewStore {
                 const generation = Number(review?.generation);
                 const source = sourceByObservation.get(observation);
                 const policy = policyByAlias.get(alias);
+                const allowedStatuses = {
+                    income: ['classification_required'],
+                    refund_link: ['pair_confirmation_required', 'link_required'],
+                    transfer: ['strong_pair_confirmation_required',
+                        'unpaired_classification_required'],
+                    reserve: ['provider_semantic_confirmation_required',
+                        'provider_semantic_conflict_review_required',
+                        'provider_semantic_classification_required',
+                        'reserve_semantic_classification_required']
+                };
                 if (!/^[a-f0-9]{32}$/.test(observation) || !source || !policy ||
                     !Number.isInteger(generation) || generation < 1 ||
-                    !['income', 'refund_link'].includes(review.review_kind) ||
+                    !['income', 'refund_link', 'transfer', 'reserve'].includes(review.review_kind) ||
+                    !allowedStatuses[review.review_kind].includes(review.review_status) ||
                     review.save_eligible !== false) {
                     throw new Error('invalid_open_finance_proactive_review');
+                }
+                const pairObservation = String(review.pair_observation_ref || '');
+                const pairRequired = ['pair_confirmation_required',
+                    'strong_pair_confirmation_required'].includes(review.review_status);
+                if ((pairRequired && (!/^[a-f0-9]{32}$/.test(pairObservation) ||
+                    pairObservation === observation)) || (!pairRequired && pairObservation)) {
+                    throw new Error('invalid_open_finance_proactive_review_pair');
+                }
+                const candidateObservations = review.candidate_observation_refs || [];
+                if (!Array.isArray(candidateObservations) ||
+                    candidateObservations.some(value => !/^[a-f0-9]{32}$/.test(String(value)) ||
+                        value === observation) ||
+                    new Set(candidateObservations).size !== candidateObservations.length) {
+                    throw new Error('invalid_open_finance_proactive_review_candidates');
+                }
+                const suggestedDecision = String(review.suggested_decision || '');
+                if (suggestedDecision && (review.review_kind !== 'reserve' ||
+                    review.review_status !== 'provider_semantic_confirmation_required' ||
+                    !['reserve_application', 'reserve_redemption', 'investment_income']
+                        .includes(suggestedDecision))) {
+                    throw new Error('invalid_open_finance_proactive_review_suggestion');
+                }
+                if (review.provider_operation_type &&
+                    !/^[A-Z0-9_]{2,64}$/.test(String(review.provider_operation_type))) {
+                    throw new Error('invalid_open_finance_proactive_review_provider_operation');
                 }
                 const aliasRef = this.#aliasRef(alias);
                 const reviewRef = this.#hmac(`proactive-review:${aliasRef}:${generation}:${observation}`);
@@ -308,10 +344,30 @@ class OpenFinanceProactiveReviewStore {
                     },
                     ...(review.pair_observation_ref ? {
                         pair_observation_ref: review.pair_observation_ref,
-                        pair_basis: review.pair_basis
+                        pair_basis: review.pair_basis,
+                        pair_source: (() => {
+                            const pairSource = sourceByObservation.get(review.pair_observation_ref);
+                            if (!pairSource) {
+                                throw new Error('open_finance_proactive_review_pair_source_unavailable');
+                            }
+                            return {
+                                id: String(pairSource.id || ''),
+                                account_id: String(pairSource.account_id || ''),
+                                amount_cents: Number(pairSource.amount_cents),
+                                description: String(pairSource.description || '').slice(0, 200),
+                                date: String(pairSource.date || ''),
+                                status: String(pairSource.status || '')
+                            };
+                        })()
                     } : {}),
                     ...(Array.isArray(review.candidate_observation_refs) ? {
                         candidate_observation_refs: review.candidate_observation_refs
+                    } : {}),
+                    ...(review.suggested_decision ? {
+                        suggested_decision: String(review.suggested_decision)
+                    } : {}),
+                    ...(review.provider_operation_type ? {
+                        provider_operation_type: String(review.provider_operation_type)
                     } : {}),
                     created_at: created.toISOString(),
                     expires_at: expiresAt
@@ -350,7 +406,10 @@ class OpenFinanceProactiveReviewStore {
                     review_code: reviewCode,
                     principal: policy.principal,
                     review_kind: review.review_kind,
-                    review_status: review.review_status
+                    review_status: review.review_status,
+                    ...(review.suggested_decision ? {
+                        suggested_decision: String(review.suggested_decision)
+                    } : {})
                 });
             }
         })();
@@ -390,11 +449,24 @@ class OpenFinanceProactiveReviewStore {
         const payload = this.#readPayload(row);
         const actorRef = this.#requireActor(payload, actorWhatsappId);
         const normalized = String(decision || '').trim().toLowerCase();
-        const allowed = payload.review_kind === 'income'
-            ? ['income', 'transfer', 'reserve', 'uncertain']
-            : payload.review_status === 'pair_confirmation_required'
-                ? ['confirm_pair', 'reject_pair', 'uncertain']
-                : ['unlinked_refund', 'not_refund', 'uncertain'];
+        let allowed;
+        if (payload.review_kind === 'income') {
+            allowed = ['income', 'transfer', 'reserve_redemption', 'investment_income',
+                'reserve', 'uncertain'];
+        } else if (payload.review_kind === 'transfer') {
+            allowed = payload.review_status === 'strong_pair_confirmation_required'
+                ? ['confirm_transfer_pair', 'reject_transfer_pair', 'uncertain']
+                : Number(payload.source?.amount_cents) > 0
+                    ? ['transfer', 'income', 'reserve_redemption', 'investment_income', 'uncertain']
+                    : ['transfer', 'expense', 'reserve_application', 'uncertain'];
+        } else if (payload.review_kind === 'reserve') {
+            allowed = ['reserve_application', 'reserve_redemption', 'investment_income',
+                'not_reserve', 'uncertain'];
+        } else if (payload.review_status === 'pair_confirmation_required') {
+            allowed = ['confirm_pair', 'reject_pair', 'uncertain'];
+        } else {
+            allowed = ['unlinked_refund', 'not_refund', 'uncertain'];
+        }
         if (!allowed.includes(normalized)) {
             throw new Error('invalid_open_finance_proactive_review_decision');
         }

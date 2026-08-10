@@ -314,7 +314,8 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
         let saveProposalLinks = [];
         let proactiveReviews = { reviews: [], annotations: [],
             suppressed_purchase_observation_refs: [], summary: {
-                reviewable: 0, suppressed_purchases: 0, deferred: 0
+                reviewable: 0, suppressed_purchases: 0, deferred: 0,
+                transfer_pairs: 0, transfer_reviews: 0, reserve_reviews: 0
             }, financial_writes: 0 };
         let proactiveReviewLinks = [];
         let confirmationActors = [];

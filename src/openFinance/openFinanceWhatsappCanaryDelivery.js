@@ -23,6 +23,18 @@ function formatCanaryMessage(delivery, sourceLabel) {
             'O movimento tem sinal de Caixinha, reserva ou investimento.',
             'Mantive separado de receita e despesa para revisão no Gate 37.'
         ],
+        paired_internal_transfer_review_required: [
+            'Há uma referência forte compartilhada com a ponta oposta em outra conta familiar.',
+            'O par permanece somente em revisão e não virou receita nem despesa.'
+        ],
+        unpaired_transfer_review_required: [
+            'Esta movimentação parece transferência, mas não possui par forte único.',
+            'Ela permanece em revisão e não foi classificada pela descrição.'
+        ],
+        reserve_review_required: [
+            'Esta movimentação pode afetar uma Caixinha ou reserva patrimonial.',
+            'Principal e rendimento permanecem separados até a revisão.'
+        ],
         paired_refund_neutralized: [
             'Este estorno foi pareado com uma compra ainda não salva.',
             'O par foi neutralizado e não gerará receita nem despesa.'
@@ -37,7 +49,36 @@ function formatCanaryMessage(delivery, sourceLabel) {
     if (review?.review_kind === 'income') {
         proactivePrompt = [
             'Para classificar esta entrada, responda:',
-            `*revisar ${review.review_code} entrada*, *transferência*, *reserva* ou *não sei*.`
+            `*revisar ${review.review_code} entrada*, *transferência*, *resgate*, *rendimento* ou *não sei*.`
+        ];
+    } else if (review?.review_kind === 'transfer' &&
+        review.review_status === 'strong_pair_confirmation_required') {
+        proactivePrompt = [
+            'Encontrei uma ponta oposta com a mesma referência forte.',
+            `Responda *revisar ${review.review_code} confirmar*, *rejeitar* ou *não sei*.`
+        ];
+    } else if (review?.review_kind === 'transfer') {
+        const alternatives = Number(delivery.amount_cents) > 0
+            ? '*entrada*, *resgate* ou *rendimento*'
+            : '*saída* ou *aplicação*';
+        proactivePrompt = [
+            'A identidade da outra ponta não foi comprovada.',
+            `Responda *revisar ${review.review_code} transferência*, ${alternatives} ou *não sei*.`
+        ];
+    } else if (review?.review_kind === 'reserve' && review.suggested_decision) {
+        const suggested = {
+            reserve_application: 'aplicação em reserva',
+            reserve_redemption: 'resgate de reserva',
+            investment_income: 'rendimento'
+        }[review.suggested_decision];
+        proactivePrompt = [
+            `O provedor sinalizou ${suggested}.`,
+            `Responda *revisar ${review.review_code} confirmar*, *não é reserva* ou *não sei*.`
+        ];
+    } else if (review?.review_kind === 'reserve') {
+        proactivePrompt = [
+            'A descrição é apenas um sinal e não definiu a semântica.',
+            `Responda *revisar ${review.review_code} aplicação*, *resgate*, *rendimento*, *não é reserva* ou *não sei*.`
         ];
     } else if (review?.review_kind === 'refund_link' &&
         review.review_status === 'pair_confirmation_required') {

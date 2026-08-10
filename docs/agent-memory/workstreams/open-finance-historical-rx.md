@@ -2,6 +2,21 @@
 
 Atualizado em: 2026-08-10
 
+## Gate 37 - candidato local verde
+
+Par de transferencia exige referencia forte compartilhada, contas bancarias
+distintas, sinais opostos, valor exato, janela de dois dias e unicidade mutua.
+Sem isso, a movimentacao continua alertavel e revisavel, nunca pareada por
+descricao. Uma revisao cifrada representa o par e mostra ambas as pontas.
+
+`operation_type` reconhecido pode sugerir aplicacao, resgate ou rendimento;
+tipo generico e descricao apenas abrem revisao. As respostas separam principal
+de ganho. Evidencia: focal `10/10`, combinado `24/24`, causal `173/173` e suite
+hermetica `1591/1581/0/10`, com zero falhas e `financial_writes=0`.
+
+Proximo passo: hash imutavel e auditoria independente.
+Sem deploy.
+
 ## Gate 36 - GO tecnico local independente
 
 Foi implementada a revisao proativa, read-only e familiar de entradas e

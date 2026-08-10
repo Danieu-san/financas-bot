@@ -69,6 +69,56 @@ function isReserveSemantic(transaction) {
     );
 }
 
+function reserveReview(source) {
+    const provider = classifyHistoricalRxInvestmentOperation(source.transaction.operation_type);
+    const descriptionSignal = /\b(caixinha|reserva|aplicacao|resgate|investimento)\b/.test(
+        normalize(source.transaction.description)
+    );
+    if (!provider && !descriptionSignal) return null;
+    const amount = Number(source.transaction.amount_cents);
+    const directionCompatible = provider && (
+        (provider.semantic === 'reserve_application' && amount < 0) ||
+        (['reserve_redemption', 'investment_income'].includes(provider.semantic) && amount > 0)
+    );
+    return {
+        observation_ref: source.observation_ref,
+        source_alias: source.alias,
+        generation: source.generation,
+        classification: source.lifecycle?.classification || 'uncertain',
+        review_kind: 'reserve',
+        review_status: provider
+            ? provider.semantic === 'investment_related_unknown'
+                ? 'provider_semantic_classification_required'
+                : directionCompatible
+                    ? 'provider_semantic_confirmation_required'
+                    : 'provider_semantic_conflict_review_required'
+            : 'reserve_semantic_classification_required',
+        ...(directionCompatible ? { suggested_decision: provider.semantic } : {}),
+        ...(provider ? { provider_operation_type: provider.operationType } : {}),
+        save_eligible: false,
+        financial_writes: 0
+    };
+}
+
+function isPostedNewBank(source) {
+    return source.account?.type === 'BANK' &&
+        source.lifecycle?.provider_state === 'POSTED' &&
+        source.reconciliation?.status === 'new' &&
+        Number(source.transaction.amount_cents) !== 0;
+}
+
+function isAmountDateCounterpart(left, right) {
+    if (left.observation_ref === right.observation_ref ||
+        left.transaction.account_id === right.transaction.account_id ||
+        Math.sign(Number(left.transaction.amount_cents)) ===
+            Math.sign(Number(right.transaction.amount_cents)) ||
+        Math.abs(Number(left.transaction.amount_cents)) !==
+            Math.abs(Number(right.transaction.amount_cents))) return false;
+    const leftDay = day(left.transaction.date);
+    const rightDay = day(right.transaction.date);
+    return leftDay !== null && rightDay !== null && Math.abs(leftDay - rightDay) <= 2;
+}
+
 function analyzeOpenFinanceProactiveReviews({
     items = [],
     lifecycleDecisions = [],
@@ -109,7 +159,105 @@ function analyzeOpenFinanceProactiveReviews({
     const reviews = [];
     const annotations = [];
     const suppressed = new Set();
-    const eligible = sources.filter(source =>
+    const handled = new Set();
+    let transferPairs = 0;
+    let transferReviews = 0;
+    let reserveReviews = 0;
+    const bankSources = sources.filter(isPostedNewBank);
+
+    for (const source of bankSources) {
+        const review = reserveReview(source);
+        if (!review) continue;
+        reviews.push(review);
+        handled.add(source.observation_ref);
+        reserveReviews += 1;
+        annotations.push({
+            observation_ref: source.observation_ref,
+            status: 'reserve_review_required',
+            financial_writes: 0
+        });
+    }
+
+    const transferCandidates = bankSources.filter(source => !handled.has(source.observation_ref));
+    const strongCounterparts = new Map(transferCandidates.map(source => [
+        source.observation_ref,
+        transferCandidates.filter(candidate =>
+            isAmountDateCounterpart(source, candidate) &&
+            sharedExplicitReference(source.transaction, candidate.transaction)
+        )
+    ]));
+    const paired = new Set();
+    for (const source of [...transferCandidates]
+        .sort((left, right) => left.observation_ref.localeCompare(right.observation_ref))) {
+        if (paired.has(source.observation_ref)) continue;
+        const matches = strongCounterparts.get(source.observation_ref) || [];
+        if (matches.length !== 1) continue;
+        const counterpart = matches[0];
+        const reverse = strongCounterparts.get(counterpart.observation_ref) || [];
+        if (reverse.length !== 1 || reverse[0].observation_ref !== source.observation_ref) continue;
+        const pairSources = [source, counterpart]
+            .sort((left, right) => left.observation_ref.localeCompare(right.observation_ref));
+        const anchor = pairSources[0];
+        const pair = pairSources[1];
+        reviews.push({
+            observation_ref: anchor.observation_ref,
+            source_alias: anchor.alias,
+            generation: anchor.generation,
+            classification: 'transfer',
+            review_kind: 'transfer',
+            review_status: 'strong_pair_confirmation_required',
+            pair_observation_ref: pair.observation_ref,
+            pair_basis: 'shared_provider_reference',
+            save_eligible: false,
+            financial_writes: 0
+        });
+        for (const leg of pairSources) {
+            paired.add(leg.observation_ref);
+            handled.add(leg.observation_ref);
+            annotations.push({
+                observation_ref: leg.observation_ref,
+                status: 'paired_internal_transfer_review_required',
+                counterpart_observation_ref: pairSources.find(candidate =>
+                    candidate.observation_ref !== leg.observation_ref).observation_ref,
+                financial_writes: 0
+            });
+        }
+        transferPairs += 1;
+        transferReviews += 1;
+    }
+
+    for (const source of transferCandidates) {
+        if (handled.has(source.observation_ref)) continue;
+        const amountDateCandidates = transferCandidates.filter(candidate =>
+            !handled.has(candidate.observation_ref) &&
+            isAmountDateCounterpart(source, candidate)
+        );
+        const descriptionOnlyTransfer = source.lifecycle?.classification === 'transfer';
+        const possibleCreditTransfer = source.lifecycle?.classification === 'income_candidate' &&
+            amountDateCandidates.length > 0;
+        if (!descriptionOnlyTransfer && !possibleCreditTransfer) continue;
+        reviews.push({
+            observation_ref: source.observation_ref,
+            source_alias: source.alias,
+            generation: source.generation,
+            classification: 'transfer_candidate',
+            review_kind: 'transfer',
+            review_status: 'unpaired_classification_required',
+            candidate_observation_refs: amountDateCandidates
+                .map(candidate => candidate.observation_ref).sort(),
+            save_eligible: false,
+            financial_writes: 0
+        });
+        handled.add(source.observation_ref);
+        transferReviews += 1;
+        annotations.push({
+            observation_ref: source.observation_ref,
+            status: 'unpaired_transfer_review_required',
+            financial_writes: 0
+        });
+    }
+
+    const eligible = sources.filter(source => !handled.has(source.observation_ref) &&
         ['income_candidate', 'refund'].includes(source.lifecycle?.classification) &&
         source.lifecycle?.provider_state === 'POSTED' &&
         source.reconciliation?.status === 'new'
@@ -117,34 +265,6 @@ function analyzeOpenFinanceProactiveReviews({
 
     for (const source of eligible) {
         if (source.lifecycle.classification === 'income_candidate') {
-            if (isReserveSemantic(source.transaction)) {
-                annotations.push({
-                    observation_ref: source.observation_ref,
-                    status: 'reserve_semantics_deferred',
-                    financial_writes: 0
-                });
-                continue;
-            }
-            const sourceDay = day(source.transaction.date);
-            const oppositeBankLeg = sources.find(candidate =>
-                candidate.observation_ref !== source.observation_ref &&
-                source.account?.type === 'BANK' && candidate.account?.type === 'BANK' &&
-                candidate.transaction.account_id !== source.transaction.account_id &&
-                Number(candidate.transaction.amount_cents) < 0 &&
-                Math.abs(Number(candidate.transaction.amount_cents)) ===
-                    Math.abs(Number(source.transaction.amount_cents)) &&
-                sourceDay !== null && day(candidate.transaction.date) !== null &&
-                Math.abs(sourceDay - day(candidate.transaction.date)) <= 2
-            );
-            if (oppositeBankLeg) {
-                annotations.push({
-                    observation_ref: source.observation_ref,
-                    status: 'possible_internal_transfer_deferred',
-                    counterpart_observation_ref: oppositeBankLeg.observation_ref,
-                    financial_writes: 0
-                });
-                continue;
-            }
             reviews.push({
                 observation_ref: source.observation_ref,
                 source_alias: source.alias,
@@ -236,8 +356,10 @@ function analyzeOpenFinanceProactiveReviews({
         summary: {
             reviewable: reviews.length,
             suppressed_purchases: suppressed.size,
-            deferred: annotations.filter(annotation =>
-                annotation.status.endsWith('_deferred')).length
+            deferred: 0,
+            transfer_pairs: transferPairs,
+            transfer_reviews: transferReviews,
+            reserve_reviews: reserveReviews
         },
         financial_writes: 0
     };

@@ -153,23 +153,30 @@ class OpenFinanceAlertOutbox {
             const principal = String(link?.principal || '').toLowerCase();
             const reviewKind = String(link?.review_kind || '');
             const reviewStatus = String(link?.review_status || '');
+            const suggestedDecision = String(link?.suggested_decision || '');
             if (!/^[a-f0-9]{32}$/.test(observationRef) ||
                 !/^[a-f0-9]{32}$/.test(reviewRef) ||
                 !/^[a-f0-9]{10}$/.test(reviewCode) ||
                 !['daniel', 'thais'].includes(principal) ||
-                !['income', 'refund_link'].includes(reviewKind) ||
+                !['income', 'refund_link', 'transfer', 'reserve'].includes(reviewKind) ||
                 !/^[a-z0-9_]{2,48}$/.test(reviewStatus) ||
+                (suggestedDecision && !['reserve_application', 'reserve_redemption',
+                    'investment_income'].includes(suggestedDecision)) ||
                 semanticReviewByObservation.has(observationRef) ||
                 proposalByObservation.has(observationRef)) {
                 throw new Error('invalid_proactive_review_outbox_link');
             }
             semanticReviewByObservation.set(observationRef, {
-                reviewRef, reviewCode, principal, reviewKind, reviewStatus
+                reviewRef, reviewCode, principal, reviewKind, reviewStatus,
+                ...(suggestedDecision ? { suggestedDecision } : {})
             });
         }
         const allowedSemanticStatuses = new Set([
             'possible_internal_transfer_deferred',
             'reserve_semantics_deferred',
+            'paired_internal_transfer_review_required',
+            'unpaired_transfer_review_required',
+            'reserve_review_required',
             'paired_refund_neutralized',
             'paired_unsaved_purchase_neutralized'
         ]);
@@ -220,10 +227,18 @@ class OpenFinanceAlertOutbox {
                 )) {
                     throw new Error('save_proposal_outbox_link_mismatch');
                 }
+                const semanticClassificationAllowed = semanticReview && (
+                    (semanticReview.reviewKind === 'income' &&
+                        decision.classification === 'income_candidate') ||
+                    (semanticReview.reviewKind === 'refund_link' &&
+                        decision.classification === 'refund') ||
+                    (['transfer', 'reserve'].includes(semanticReview.reviewKind) &&
+                        ['transfer', 'income_candidate', 'purchase_candidate']
+                            .includes(decision.classification))
+                );
                 if (semanticReview && (
                     semanticReview.principal !== policy.principal ||
-                    !['refund', 'income_candidate'].includes(decision.classification) ||
-                    decision.provider_state !== 'POSTED' ||
+                    !semanticClassificationAllowed || decision.provider_state !== 'POSTED' ||
                     (reconciliationRequired && candidate.reconciliation_status !== 'new')
                 )) {
                     throw new Error('proactive_review_outbox_link_mismatch');
@@ -249,7 +264,10 @@ class OpenFinanceAlertOutbox {
                         ...(semanticReview ? { semantic_review: {
                             review_code: semanticReview.reviewCode,
                             review_kind: semanticReview.reviewKind,
-                            review_status: semanticReview.reviewStatus
+                            review_status: semanticReview.reviewStatus,
+                            ...(semanticReview.suggestedDecision ? {
+                                suggested_decision: semanticReview.suggestedDecision
+                            } : {})
                         } } : {}),
                         ...(semanticStatusByObservation.has(candidate.observation_ref) ? {
                             semantic_status: semanticStatusByObservation.get(candidate.observation_ref)

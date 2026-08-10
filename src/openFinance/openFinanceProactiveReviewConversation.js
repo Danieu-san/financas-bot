@@ -21,7 +21,22 @@ function formatAmount(cents) {
 function optionsFor(review) {
     const code = review.review_code;
     if (review.review_kind === 'income') {
-        return `Responda *revisar ${code} entrada*, *transferência*, *reserva* ou *não sei*.`;
+        return `Responda *revisar ${code} entrada*, *transferência*, *resgate*, *rendimento* ou *não sei*.`;
+    }
+    if (review.review_kind === 'transfer') {
+        if (review.review_status === 'strong_pair_confirmation_required') {
+            return `Responda *revisar ${code} confirmar*, *rejeitar* ou *não sei*.`;
+        }
+        const alternatives = Number(review.source?.amount_cents) > 0
+            ? '*entrada*, *resgate* ou *rendimento*'
+            : '*saída* ou *aplicação*';
+        return `Responda *revisar ${code} transferência*, ${alternatives} ou *não sei*.`;
+    }
+    if (review.review_kind === 'reserve') {
+        if (review.suggested_decision) {
+            return `Responda *revisar ${code} confirmar*, *não é reserva* ou *não sei*.`;
+        }
+        return `Responda *revisar ${code} aplicação*, *resgate*, *rendimento*, *não é reserva* ou *não sei*.`;
     }
     if (review.review_status === 'pair_confirmation_required') {
         return `Responda *revisar ${code} confirmar*, *rejeitar* ou *não sei*.`;
@@ -36,7 +51,35 @@ function decisionFor(value, review) {
     if (review.review_kind === 'income') {
         return {
             entrada: 'income', renda: 'income', receita: 'income',
-            transferencia: 'transfer', reserva: 'reserve', caixinha: 'reserve'
+            transferencia: 'transfer',
+            resgate: 'reserve_redemption', rendimento: 'investment_income'
+        }[normalized] || null;
+    }
+    if (review.review_kind === 'transfer') {
+        if (review.review_status === 'strong_pair_confirmation_required') {
+            return {
+                confirmar: 'confirm_transfer_pair', confirma: 'confirm_transfer_pair',
+                rejeitar: 'reject_transfer_pair', rejeita: 'reject_transfer_pair'
+            }[normalized] || null;
+        }
+        const alternatives = Number(review.source?.amount_cents) > 0
+            ? { entrada: 'income', renda: 'income', receita: 'income',
+                resgate: 'reserve_redemption', rendimento: 'investment_income' }
+            : { saida: 'expense', despesa: 'expense', gasto: 'expense',
+                aplicacao: 'reserve_application', guardar: 'reserve_application' };
+        return {
+            transferencia: 'transfer',
+            ...alternatives
+        }[normalized] || null;
+    }
+    if (review.review_kind === 'reserve') {
+        if (['confirmar', 'confirma'].includes(normalized)) {
+            return review.suggested_decision || null;
+        }
+        return {
+            aplicacao: 'reserve_application', guardar: 'reserve_application',
+            resgate: 'reserve_redemption', rendimento: 'investment_income',
+            'nao e reserva': 'not_reserve'
         }[normalized] || null;
     }
     if (review.review_status === 'pair_confirmation_required') {
@@ -97,13 +140,30 @@ function tryHandleOpenFinanceProactiveReviewReply({
             throw error;
         }
         if (!match[2]) {
+            const pairLines = review.pair_source ? [
+                '',
+                'Outra ponta vinculada por referência forte:',
+                `Valor: ${formatAmount(review.pair_source.amount_cents)}`,
+                `Descrição: ${String(review.pair_source.description || 'indisponível').slice(0, 120)}`,
+                `Data: ${String(review.pair_source.date || '').slice(0, 10)}`
+            ] : [];
+            const suggestionLines = review.suggested_decision ? [
+                '',
+                `Sinal do provedor: ${{ reserve_application: 'aplicação em reserva',
+                    reserve_redemption: 'resgate de reserva',
+                    investment_income: 'rendimento' }[review.suggested_decision]}.`
+            ] : [];
             return {
                 handled: true,
                 reply: [
-                    `Revisão de ${review.review_kind === 'income' ? 'entrada' : 'estorno'}:`,
+                    `Revisão de ${{ income: 'entrada', refund_link: 'estorno',
+                        transfer: 'transferência', reserve: 'reserva' }[review.review_kind]
+                        || 'movimentação'}:`,
                     `Valor: ${formatAmount(review.source.amount_cents)}`,
                     `Descrição: ${String(review.source.description || 'indisponível').slice(0, 120)}`,
                     `Data: ${String(review.source.date || '').slice(0, 10)}`,
+                    ...pairLines,
+                    ...suggestionLines,
                     '',
                     optionsFor(review),
                     'Somente leitura: nada foi salvo.'

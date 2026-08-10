@@ -2,6 +2,21 @@
 
 Atualizado em: 2026-08-10
 
+## Gate 37 - candidato local verde
+
+Transferencias e reservas agora geram revisao familiar read-only. Um par exige
+referencia forte compartilhada, contas bancarias distintas, sinais opostos,
+valor exato, janela temporal e unicidade mutua. Valor, data e descricao nao
+pareiam. `operation_type` pode sugerir aplicacao, resgate ou rendimento; tipo
+generico e descricao apenas abrem revisao sem decidir.
+
+A decisao humana separa aplicacao, resgate e rendimento. Uma unica revisao
+representa um par e exibe ambas as pontas. Evidencia focal `10/10`, Gate 36+37
+`24/24`, causal `173/173` e suite hermetica `1591/1581/0/10`, com zero falhas
+e `financial_writes=0`.
+
+Proxima acao: commit e auditoria independente. Sem deploy.
+
 ## Gate 36 - GO tecnico local independente
 
 O recovery moveu o comando explicito para antes de qualquer estado financeiro

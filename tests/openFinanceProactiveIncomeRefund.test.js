@@ -87,7 +87,7 @@ function analyze(items, classifications) {
     });
 }
 
-test('gate 36 proposes only genuine reconciled income and defers implicit transfers and reserves', () => {
+test('gate 37 preserves genuine income while promoting deferred transfers and reserves to review', () => {
     const danielAccount = 'daniel_nubank-bank';
     const thaisAccount = 'thais_nubank-bank';
     const items = [
@@ -109,12 +109,20 @@ test('gate 36 proposes only genuine reconciled income and defers implicit transf
         'transfer-in': 'income_candidate'
     });
 
-    assert.deepEqual(result.reviews.map(row => row.observation_ref), [
-        ref('observation', 'item-daniel_nubank:daniel_nubank-bank:salary')
-    ]);
+    assert.equal(result.reviews.length, 3);
+    assert.equal(result.reviews.find(row => row.observation_ref ===
+        ref('observation', 'item-daniel_nubank:daniel_nubank-bank:salary')).review_kind, 'income');
+    const reserveReview = result.reviews.find(row => row.observation_ref ===
+        ref('observation', 'item-daniel_nubank:daniel_nubank-bank:reserve'));
+    assert.equal(reserveReview.review_kind, 'reserve');
+    assert.equal(reserveReview.suggested_decision, 'reserve_redemption');
+    const transferReview = result.reviews.find(row => row.observation_ref ===
+        ref('observation', 'item-thais_nubank:thais_nubank-bank:transfer-in'));
+    assert.equal(transferReview.review_kind, 'transfer');
+    assert.equal(transferReview.review_status, 'unpaired_classification_required');
     assert.deepEqual(result.annotations.map(row => row.status).sort(), [
-        'possible_internal_transfer_deferred',
-        'reserve_semantics_deferred'
+        'reserve_review_required',
+        'unpaired_transfer_review_required'
     ]);
     assert.equal(result.financial_writes, 0);
 });
@@ -460,7 +468,8 @@ test('gate 36 outbox binds one actionable semantic review without creating a sav
         const message = formatCanaryMessage(delivery, 'Nubank Daniel');
         assert.match(message, /revisar bbbbbbbbbb entrada/);
         assert.match(message, /transferência/);
-        assert.match(message, /reserva/);
+        assert.match(message, /resgate/);
+        assert.match(message, /rendimento/);
         assert.doesNotMatch(message, /salvar/i);
     } finally {
         outbox.close();
@@ -554,7 +563,7 @@ test('gate 36 public review command reports expiry without falling through to wr
     }
 });
 
-test('gate 36 real canary runtime persists and delivers an income review with zero writes', async () => {
+test('gate 37 real canary runtime persists income and reserve reviews with zero writes', async () => {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-gate36-runtime-'));
     const names = ['credentials', 'mapping', 'visibility', 'evidence', 'secret',
         'vault', 'baseline', 'outbox', 'journal', 'preview'];
@@ -579,6 +588,9 @@ test('gate 36 real canary runtime persists and delivers an income review with ze
     const accountId = 'daniel_nubank-bank';
     const old = tx('old', accountId, -500, 'Compra antiga', '2026-08-08');
     const salary = tx('salary', accountId, 100000, 'Salário organização', '2026-08-09');
+    const reserve = tx('reserve', accountId, -5000, 'Texto neutro', '2026-08-09', {
+        operation_type: 'APLICACAO_FINANCEIRA'
+    });
     const baseItem = {
         ...item('daniel_nubank', [old]),
         owner_scope: 'daniel',
@@ -593,7 +605,7 @@ test('gate 36 real canary runtime persists and delivers an income review with ze
     };
     const changed = {
         ...initial, event_id: 'changed', observed_at: '2026-08-09T15:00:00.000Z',
-        items: [{ ...baseItem, transactions: [old, salary] }]
+        items: [{ ...baseItem, transactions: [old, salary, reserve] }]
     };
     const stores = [
         new OpenFinanceLiveStagingVault({ databasePath: files.vault, secret }),
@@ -608,7 +620,7 @@ test('gate 36 real canary runtime persists and delivers an income review with ze
     class FakeApi {
         async readSnapshot() { return changed; }
     }
-    let sentText = '';
+    const sentTexts = [];
     const env = {
         OPEN_FINANCE_ALERT_MODE: 'canary',
         OPEN_FINANCE_ALERT_CANARY_ALIAS: 'daniel_nubank',
@@ -633,7 +645,7 @@ test('gate 36 real canary runtime persists and delivers an income review with ze
     try {
         const result = await runOpenFinanceCanaryCycle({
             client: { sendMessage: async (_to, text) => {
-                sentText = text;
+                sentTexts.push(text);
                 return { id: 'gate36-message-id' };
             } },
             env,
@@ -653,15 +665,18 @@ test('gate 36 real canary runtime persists and delivers an income review with ze
         });
         assert.equal(result.outcome, 'GO');
         assert.equal(result.save_proposals.inserted, 0);
-        assert.equal(result.proactive_reviews.store.inserted, 1);
-        assert.equal(result.proactive_reviews.summary.reviewable, 1);
-        assert.match(sentText, /revisar [a-f0-9]{10} entrada/);
+        assert.equal(result.proactive_reviews.store.inserted, 2);
+        assert.equal(result.proactive_reviews.summary.reviewable, 2);
+        assert.equal(result.proactive_reviews.summary.reserve_reviews, 1);
+        assert.equal(sentTexts.some(text => /revisar [a-f0-9]{10} entrada/.test(text)), true);
+        assert.equal(sentTexts.some(text => /provedor sinalizou aplicação em reserva/i.test(text)), true);
+        assert.equal(sentTexts.some(text => /revisar [a-f0-9]{10} confirmar/.test(text)), true);
         assert.equal(result.financial_writes, 0);
         const reviewStore = new OpenFinanceProactiveReviewStore({
             databasePath: files.preview, secret
         });
         try {
-            assert.equal(reviewStore.stats().pending, 1);
+            assert.equal(reviewStore.stats().pending, 2);
         } finally {
             reviewStore.close();
         }

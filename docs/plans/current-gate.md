@@ -2,6 +2,19 @@
 
 Atualizado em: 2026-08-10
 
+## Gate 37 - candidato local verde
+
+O tratamento read-only de transferencias e reservas foi implementado. Par
+interno exige identidade forte e unica; pontas sem essa prova continuam
+revisaveis. Principal de Caixinha permanece separado de rendimento tanto no
+classificador quanto nas opcoes de resposta.
+
+Estado: `CANDIDATO LOCAL VERDE; AGUARDA AUDITORIA INDEPENDENTE`.
+Evidencia: focal `10/10`, Gate 36+37 `24/24`, causal `173/173` e suite
+hermetica `1591/1581/0/10`, com zero falhas.
+Manifesto: `docs/audit/193-open-finance-transfer-reserve-candidate-2026-08-10.md`.
+Proxima fronteira: commit, GitHub e Chat. Sem deploy.
+
 ## Gate 36 - GO tecnico local independente
 
 Entrada genuina e estorno `POSTED/new` agora seguem para revisao proativa
