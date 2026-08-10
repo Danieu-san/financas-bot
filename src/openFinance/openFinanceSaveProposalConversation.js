@@ -363,7 +363,7 @@ function reviewOptionsForStep(payload = {}) {
                 label: 'Ver mais categorias',
                 categoryPage: page + 1
             });
-        } else if (payload.classification !== 'refund') {
+        } else if (!['refund', 'investment_income'].includes(payload.classification)) {
             options.push({
                 id: '__create_new_category__',
                 label: 'Criar nova categoria',
@@ -1059,6 +1059,9 @@ function handleOpenFinanceSaveProposalReviewReply({
 
         const payload = review.payload;
         if (payload.step === 'enter_new_category') {
+            if (payload.classification === 'investment_income') {
+                throw new Error('open_finance_investment_income_new_category_forbidden');
+            }
             const newCategory = normalizeNewCategoryName(messageBody);
             const existing = newCategory
                 ? (payload.catalog?.categories || []).some(option =>

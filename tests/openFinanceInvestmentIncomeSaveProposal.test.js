@@ -4,13 +4,20 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const Database = require('better-sqlite3');
 
 const {
     buildReviewedInvestmentIncomeSaveProposal
 } = require('../src/openFinance/openFinanceReviewedInvestmentIncomeSaveProposal');
 const {
-    revalidateOpenFinanceSaveProposal
+    revalidateOpenFinanceSaveProposal,
+    writeOpenFinanceSaveProposal
 } = require('../src/openFinance/openFinanceSaveProposalFinalization');
+const googleService = require('../src/services/google');
+const oauthTokenStore = require('../src/services/oauthTokenStore');
+const {
+    FinancialWriteLedger
+} = require('../src/reliability/financialWriteLedger');
 const {
     buildCanonicalLedgerReceiptProjection
 } = require('../src/ledger/canonicalLedgerReceiptProjector');
@@ -228,6 +235,25 @@ test('38.6 revalidates one investment gain into Entradas and canonical income', 
         },
         semanticReview: decidedReview({ decision: 'reserve_redemption' })
     }), /investment_income_review_changed/);
+    assert.throws(() => revalidateOpenFinanceSaveProposal({
+        ...baseArgs,
+        review: { proposal_ref: built.proposal_ref, state: 'ready', payload: {
+            classification: 'investment_income',
+            draft: {
+                ...draft,
+                category: {
+                    id: 'new-category:juros', label: 'Juros', category: 'Juros',
+                    subcategory: '', origin: 'user_created'
+                }
+            }
+        } },
+        item: {
+            id: 'item-daniel', alias_code: built.alias, generation: built.generation,
+            accounts: [{ id: 'daniel-bank', type: 'BANK' }],
+            transactions: [source()], bills: [], investments: []
+        },
+        semanticReview: decidedReview()
+    }), /investment_income_category_forbidden/);
 
     const projected = buildCanonicalLedgerReceiptProjection({
         operationKey: result.operationKey,
@@ -242,4 +268,124 @@ test('38.6 revalidates one investment gain into Entradas and canonical income', 
     });
     assert.equal(projected.projected.events[0].kind, 'income');
     assert.equal(projected.projected.events[0].free_budget_eligible, true);
+});
+
+test('38.6 product writer appends once and invokes the real canonical projector', async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'of-investment-writer-'));
+    const previous = Object.fromEntries([
+        'OAUTH_TOKEN_DB_PATH', 'OAUTH_TOKEN_ENCRYPTION_KEY',
+        'GOOGLE_OAUTH_CLIENT_ID', 'GOOGLE_OAUTH_CLIENT_SECRET', 'NODE_ENV',
+        'CANONICAL_LEDGER_PROJECTION_MODE', 'CANONICAL_LEDGER_SHADOW_WRITE_ENABLED',
+        'CANONICAL_LEDGER_SHADOW_DB_PATH'
+    ].map(name => [name, process.env[name]]));
+    const shadowDb = path.join(directory, 'canonical.sqlite');
+    const writeLedger = new FinancialWriteLedger({
+        dbPath: path.join(directory, 'writes.sqlite')
+    });
+    const appendCalls = [];
+    Object.assign(process.env, {
+        OAUTH_TOKEN_DB_PATH: path.join(directory, 'oauth.sqlite'),
+        OAUTH_TOKEN_ENCRYPTION_KEY: '8'.repeat(64),
+        GOOGLE_OAUTH_CLIENT_ID: 'test-client-id',
+        GOOGLE_OAUTH_CLIENT_SECRET: 'test-client-secret',
+        NODE_ENV: 'test',
+        CANONICAL_LEDGER_PROJECTION_MODE: 'shadow',
+        CANONICAL_LEDGER_SHADOW_WRITE_ENABLED: 'true',
+        CANONICAL_LEDGER_SHADOW_DB_PATH: shadowDb
+    });
+    oauthTokenStore.__test__.closeDatabaseForTests();
+    const fakeUserSheets = {
+        spreadsheets: {
+            values: {
+                append: async ({ spreadsheetId, range, resource }) => {
+                    appendCalls.push({ spreadsheetId, range, row: resource.values[0] });
+                    return { data: { updates: { updatedRange: 'Entradas!A2:J2' } } };
+                },
+                get: async ({ range }) => ({ data: { values:
+                    range.includes('Contas Financeiras') ? [[
+                        'Nome', 'Tipo', 'Saldo', 'Abertura', 'Status', 'Moeda',
+                        'Titular', 'user_id', 'Obs'
+                    ], [
+                        'Nubank Daniel', 'bank', 0, '2025-01-01', 'ATIVA', 'BRL',
+                        'Daniel', 'user-daniel', ''
+                    ]] : [] } })
+            },
+            batchUpdate: async () => ({})
+        }
+    };
+    try {
+        oauthTokenStore.saveOAuthConnection('user-daniel', {
+            scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+            tokens: { access_token: 'test-access', refresh_token: 'test-refresh' },
+            spreadsheetId: 'personal-family-sheet'
+        });
+        googleService.__test__.setUserSheetsClientFactoryForTest(() => fakeUserSheets);
+        const validated = revalidateOpenFinanceSaveProposal({
+            proposal: proposal(),
+            review: { proposal_ref: proposal().proposal_ref, state: 'ready', payload: {
+                classification: 'investment_income',
+                draft: {
+                    person: { id: 'user-daniel', label: 'Daniel' },
+                    category: { id: 'income:investimentos', label: 'Investimentos',
+                        category: 'Investimentos', subcategory: '' },
+                    paymentMethod: { id: 'receipt:checking', label: 'Conta Corrente',
+                        value: 'Conta Corrente' },
+                    financialAccount: { id: 'account:daniel', label: 'Nubank Daniel',
+                        accountName: 'Nubank Daniel', ownerUserId: 'user-daniel',
+                        accountType: 'bank' },
+                    card: null
+                }
+            } },
+            item: {
+                id: 'item-daniel', alias_code: 'daniel_nubank', generation: 3,
+                accounts: [{ id: 'daniel-bank', type: 'BANK' }],
+                transactions: [source()], bills: [], investments: []
+            },
+            internalSource: { available: true, transactions: [], scope_coverage: {} },
+            catalog: {
+                people: [{ id: 'user-daniel', label: 'Daniel' }],
+                incomeCategories: [{ id: 'income:investimentos', label: 'Investimentos',
+                    category: 'Investimentos', subcategory: '' }],
+                receiptMethods: [{ id: 'receipt:checking', label: 'Conta Corrente',
+                    value: 'Conta Corrente' }],
+                financialAccounts: [{ id: 'account:daniel', label: 'Nubank Daniel',
+                    accountName: 'Nubank Daniel', ownerUserId: 'user-daniel',
+                    accountType: 'bank' }],
+                categories: [], paymentMethods: [], cards: []
+            },
+            semanticReview: decidedReview(),
+            secret
+        });
+        const receipt = await googleService.runWithUserSheetContext({
+            userId: 'user-daniel', writeLedger
+        }, () => writeOpenFinanceSaveProposal(validated.writePlan, {
+            operationKey: validated.operationKey,
+            proposalRef: validated.proposal_ref
+        }));
+        assert.equal(receipt.status, 'committed');
+        assert.equal(appendCalls.length, 1);
+        assert.equal(appendCalls[0].range, 'Entradas!A:A');
+        assert.equal(appendCalls[0].row[2], 'Investimentos');
+        const db = new Database(shadowDb, { readonly: true });
+        try {
+            const events = db.prepare('SELECT event_json FROM canonical_ledger_events').all()
+                .map(row => JSON.parse(row.event_json));
+            assert.equal(events.length, 1);
+            assert.equal(events[0].kind, 'income');
+            assert.equal(events[0].amount_cents, 325);
+            assert.equal(events[0].free_budget_eligible, true);
+        } finally {
+            db.close();
+        }
+    } finally {
+        googleService.__test__.setUserSheetsClientFactoryForTest(null);
+        googleService.__test__.clearSheetsReadCache();
+        writeLedger.close();
+        oauthTokenStore.__test__.closeDatabaseForTests();
+        for (const [name, value] of Object.entries(previous)) {
+            if (value === undefined) delete process.env[name];
+            else process.env[name] = value;
+        }
+        fs.rmSync(directory, { recursive: true, force: true });
+    }
 });

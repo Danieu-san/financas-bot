@@ -6399,7 +6399,10 @@ stateMachineTest('gate 38.6 public handler writes one investment income exactly 
         assert.equal(appendedRows.length, 0);
         assert.match(await send('1'), /Escolha a pessoa/i);
         assert.match(await send('1'), /Pessoa:/i);
-        assert.match(await send('2'), /Escolha a categoria/i);
+        const categoryPrompt = await send('2');
+        assert.match(categoryPrompt, /Escolha a categoria/i);
+        assert.match(categoryPrompt, /Investimentos/i);
+        assert.doesNotMatch(categoryPrompt, /Criar nova categoria/i);
         assert.match(await send('1'), /Investimentos/i);
         assert.match(await send('4'), /Escolha a conta financeira/i);
         assert.match(await send('1'), /Conta financeira:/i);

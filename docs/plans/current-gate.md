@@ -4,7 +4,7 @@ Atualizado em: 2026-08-10
 
 ## Estado
 
-`CANDIDATO LOCAL VERDE; AGUARDANDO AUDITORIA INDEPENDENTE; SEM DEPLOY`.
+`RECOVERY LOCAL VERDE APOS NO-GO; AGUARDANDO REAUDITORIA; SEM DEPLOY`.
 
 ## Objetivo
 
@@ -69,14 +69,17 @@ maximo: `GO TECNICO LOCAL; SEM DEPLOY`.
 
 ## Proxima acao
 
-Publicar o candidato sanitizado em hash imutavel e fazer uma unica auditoria
-independente. Somente um `GO` pode encerrar tecnicamente o Gate 38.6; este gate
-nao autoriza deploy isoladamente.
+Publicar o recovery sanitizado em novo hash imutavel e fazer uma unica
+reauditoria dos achados ALTO e MEDIO. Somente um `GO` pode encerrar tecnicamente
+o Gate 38.6; este gate nao autoriza deploy isoladamente.
 
 ## Evidencia do candidato
 
-- focal `3/3`;
+- primeiro candidato: `NO-GO` por categoria nova contornavel e lacuna de prova
+  integrada writer-projetor;
+- focal do recovery `4/4`;
 - caminho publico real `1/1`;
-- causal afetada `223/223`;
-- suite hermetica ampla `1628/1618/0/10`, com skips previstos;
+- causal afetada do recovery `184/184`;
+- suite hermetica ampla do recovery `1629/1619/0/10`, com skips previstos;
 - manifesto: `docs/audit/213-open-finance-investment-income-write-candidate-2026-08-10.md`.
+- recovery: `docs/audit/214-open-finance-investment-income-write-recovery-candidate-2026-08-10.md`.

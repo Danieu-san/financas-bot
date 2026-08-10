@@ -17,8 +17,9 @@ ganho separado, sem alterar producao.
   entrada, estorno/reembolso e transferencia interna forte.
 - Gate 38.5: `GO TECNICO LOCAL INDEPENDENTE; SEM DEPLOY` para aplicacao/resgate
   de reserva (`1624/1614/0/10`, zero falhas).
-- Gate 38.6: rendimento de investimento, candidato local verde
-  (`1628/1618/0/10`, zero falhas), aguardando auditoria independente.
+- Gate 38.6: primeiro candidato recebeu `NO-GO`; recovery de categoria fixa e
+  prova writer-projetor esta verde (`1629/1619/0/10`, zero falhas) e aguarda
+  reauditoria independente.
 
 ## Fechamento do Gate 38.4
 
@@ -49,12 +50,12 @@ hermetica `1617/1607/0/10`, zero falhas. Fechamento:
 
 ## Próxima ação exata
 
-Publicar o candidato do Gate 38.6 e obter auditoria independente por hash
+Publicar o recovery do Gate 38.6 e obter reauditoria independente por novo hash
 imutavel.
 
 ## Capacidade para retomar
 
-`Codex -> Sol -> Alto -> publicar e auditar o Gate 38.6.`
+`Codex -> Sol -> Alto -> publicar e reauditar o recovery do Gate 38.6.`
 
 ## Referencias dirigidas
 

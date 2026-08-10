@@ -294,6 +294,10 @@ function revalidateDraftCatalog(draft = {}, catalog = {}, classification = 'purc
         }
     }
     const person = assertCatalogSelection(catalog, 'people', draft.person);
+    if (classification === 'investment_income' &&
+        draft.category?.origin === 'user_created') {
+        throw new Error('open_finance_final_investment_income_category_forbidden');
+    }
     const category = assertCategorySelection(catalog, draft.category);
     const paymentMethod = assertCatalogSelection(
         catalog,
