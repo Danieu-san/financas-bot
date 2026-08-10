@@ -93,7 +93,8 @@ function catalogProjection(kind, value = {}) {
         return {
             ...base,
             accountName: String(value.accountName || value.label || '').trim(),
-            ownerUserId: String(value.ownerUserId || '').trim()
+            ownerUserId: String(value.ownerUserId || '').trim(),
+            accountType: normalizeText(value.accountType || 'bank')
         };
     }
     if (kind === 'cards') {
@@ -209,6 +210,25 @@ function revalidateRefundDraftCatalog(draft = {}, catalog = {}, linkedTarget = {
 function revalidateDraftCatalog(draft = {}, catalog = {}, classification = 'purchase',
     linkedTarget = null) {
     requireObject(draft, 'open_finance_final_draft_required');
+    if (classification === 'reserve_transfer') {
+        if (!Array.isArray(catalog.financialAccounts)) {
+            throw new Error('open_finance_final_catalog_unavailable');
+        }
+        const originAccount = assertCatalogSelection(
+            catalog, 'financialAccounts', draft.originAccount
+        );
+        const destinationAccount = assertCatalogSelection(
+            catalog, 'financialAccounts', draft.destinationAccount
+        );
+        const ownerUserId = String(draft.ownerUserId || '');
+        if (!originAccount || !destinationAccount ||
+            originAccount.id === destinationAccount.id || !ownerUserId ||
+            originAccount.ownerUserId !== ownerUserId ||
+            destinationAccount.ownerUserId !== ownerUserId) {
+            throw new Error('open_finance_final_reserve_accounts_changed');
+        }
+        return { originAccount, destinationAccount, ownerUserId };
+    }
     if (classification === 'transfer') {
         if (!Array.isArray(catalog.financialAccounts)) {
             throw new Error('open_finance_final_catalog_unavailable');
@@ -364,6 +384,39 @@ function buildWritePlan({ proposal, draft }) {
             financial_writes: 0
         };
     }
+    if (proposal.classification === 'reserve_transfer') {
+        const application = proposal.reserve_direction === 'application';
+        const expectedOrigin = application ? ['bank', 'savings'] : ['reserve'];
+        const expectedDestination = application ? ['reserve'] : ['bank', 'savings'];
+        if (!expectedOrigin.includes(draft.originAccount.accountType) ||
+            !expectedDestination.includes(draft.destinationAccount.accountType)) {
+            throw new Error('open_finance_final_reserve_accounts_changed');
+        }
+        const relationType = application ? 'reserve_application' : 'reserve_redemption';
+        return {
+            operation: 'transfer.create',
+            sheetName: 'Transferências',
+            row: [
+                getFormattedDateOnly(date),
+                proposal.source.description,
+                amount,
+                draft.originAccount.accountName,
+                draft.destinationAccount.accountName,
+                'Transferência',
+                application
+                    ? 'Aplicação em reserva importada do Open Finance.'
+                    : 'Resgate de reserva importado do Open Finance.',
+                'Conferida',
+                draft.ownerUserId
+            ],
+            userId: draft.ownerUserId,
+            canonicalRelation: {
+                type: relationType,
+                owner_person_id: draft.ownerUserId
+            },
+            financial_writes: 0
+        };
+    }
     if (proposal.classification === 'income') {
         return {
             operation: 'income.create',
@@ -498,10 +551,11 @@ function revalidateOpenFinanceSaveProposal({
     const isIncome = proposal.classification === 'income';
     const isRefund = proposal.classification === 'refund';
     const isTransfer = proposal.classification === 'transfer';
+    const isReserveTransfer = proposal.classification === 'reserve_transfer';
     if (!/^[a-f0-9]{32}$/.test(String(proposal.proposal_ref || '')) ||
         review.proposal_ref !== proposal.proposal_ref ||
         review.state !== 'ready' ||
-        (!isPurchase && !isIncome && !isRefund && !isTransfer) ||
+        (!isPurchase && !isIncome && !isRefund && !isTransfer && !isReserveTransfer) ||
         proposal.provider_state !== 'POSTED' ||
         proposal.reconciliation_status !== 'new' ||
         !/^[a-f0-9]{48}$/.test(String(proposal.operation_key || ''))) {
@@ -545,6 +599,23 @@ function revalidateOpenFinanceSaveProposal({
             stableSerialize(semanticReviewSourceFingerprint(proposal.paired_source)))) {
         throw new Error('open_finance_final_transfer_review_changed');
     }
+    if (isReserveTransfer && (!semanticReview ||
+        semanticReview.review_state !== 'decided' ||
+        semanticReview.review_kind !== 'reserve' ||
+        semanticReview.review_ref !== proposal.semantic_review_ref ||
+        semanticReview.observation_ref !== proposal.observation_ref ||
+        Number(semanticReview.generation) !== Number(proposal.generation) ||
+        !['reserve_application', 'reserve_redemption'].includes(semanticReview.decision) ||
+        (semanticReview.decision === 'reserve_application'
+            ? proposal.reserve_direction !== 'application'
+            : proposal.reserve_direction !== 'redemption') ||
+        (semanticReview.provider_operation_type &&
+            String(semanticReview.provider_operation_type).trim().toUpperCase() !==
+                String(proposal.source?.operation_type || '').trim().toUpperCase()) ||
+        stableSerialize(semanticReviewSourceFingerprint(semanticReview.source)) !==
+            stableSerialize(semanticReviewSourceFingerprint(proposal.source)))) {
+        throw new Error('open_finance_final_reserve_review_changed');
+    }
     if (isTransfer && (
         review.payload?.classification !== 'transfer' ||
         review.payload?.transfer_origin_principal !== proposal.transfer_origin?.principal ||
@@ -557,6 +628,11 @@ function revalidateOpenFinanceSaveProposal({
         ![proposal.observation_ref, proposal.pair_observation_ref]
             .includes(proposal.transfer_destination?.observation_ref))) {
         throw new Error('open_finance_final_transfer_review_changed');
+    }
+    if (isReserveTransfer && (
+        review.payload?.classification !== 'reserve_transfer' ||
+        review.payload?.reserve_direction !== proposal.reserve_direction)) {
+        throw new Error('open_finance_final_reserve_review_changed');
     }
     if (Number(proposal.source?.total_installments) > 1 ||
         Number(proposal.source?.installment_number) > 1) {
@@ -613,7 +689,11 @@ function revalidateOpenFinanceSaveProposal({
     const lifecycleDecision = lifecycle.decisions.find(decision =>
         decision.observation_ref === proposal.observation_ref);
     const expectedLifecycle = isIncome ? 'income_candidate' : isRefund ? 'refund' :
-        isTransfer ? 'transfer' : 'purchase';
+        isTransfer ? 'transfer' : isReserveTransfer
+            ? (proposal.reserve_direction === 'application'
+                ? 'purchase_candidate'
+                : 'income_candidate')
+            : 'purchase';
     if (!lifecycleDecision ||
         lifecycleDecision.classification !== expectedLifecycle ||
         lifecycleDecision.provider_state !== 'POSTED') {
@@ -693,6 +773,23 @@ function revalidateOpenFinanceSaveProposal({
             throw new Error('open_finance_final_transfer_pair_changed');
         }
     }
+    if (isReserveTransfer) {
+        const { analyzeOpenFinanceProactiveReviews } =
+            require('./openFinanceProactiveReview');
+        const reserveAnalysis = analyzeOpenFinanceProactiveReviews({
+            items: [item],
+            lifecycleDecisions: lifecycle.decisions,
+            reconciliationDecisions: reconciliation.decisions,
+            secret: hmacSecret
+        });
+        const currentReserveReview = reserveAnalysis.reviews.find(candidate =>
+            candidate.observation_ref === proposal.observation_ref &&
+            candidate.review_kind === 'reserve');
+        if (!currentReserveReview ||
+            currentReserveReview.review_status !== semanticReview.review_status) {
+            throw new Error('open_finance_final_reserve_review_changed');
+        }
+    }
     const draft = revalidateDraftCatalog(
         review.payload?.draft,
         catalog,
@@ -722,6 +819,8 @@ function revalidateOpenFinanceSaveProposal({
                     ? 'posted_reviewed_refund_pair_unchanged'
                     : isTransfer
                         ? 'posted_reviewed_transfer_pair_unchanged'
+                        : isReserveTransfer
+                            ? 'posted_reviewed_reserve_transfer_unchanged'
                     : 'posted_purchase_unchanged',
             internal: 'new',
             catalog: 'authorized'
@@ -1001,7 +1100,8 @@ async function loadDefaultFinalizationContext({
             { actorWhatsappId }
         );
         let semanticReview = null;
-        if (['income', 'refund', 'transfer'].includes(proposal.classification)) {
+        if (['income', 'refund', 'transfer', 'reserve_transfer']
+            .includes(proposal.classification)) {
             const ProactiveReview = dependencies.OpenFinanceProactiveReviewStore ||
                 OpenFinanceProactiveReviewStore;
             const proactiveStore = new ProactiveReview({

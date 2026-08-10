@@ -251,18 +251,30 @@ function decorateReceiptProjection(projected, {
             resolveRegisteredAccountName(financialAccountRows, event.owner_person_id, [row[9], row[5]])
         );
     } else if (sheetName === 'Transferências') {
-        const relation = canonicalRelation?.type === 'internal_transfer_pair'
+        const relation = ['internal_transfer_pair', 'reserve_application',
+            'reserve_redemption'].includes(canonicalRelation?.type)
             ? canonicalRelation
             : null;
+        const reserveOwner = ['reserve_application', 'reserve_redemption']
+            .includes(relation?.type)
+            ? String(relation.owner_person_id || '').trim()
+            : '';
         const originOwner = String(
-            relation?.origin_owner_person_id || event.owner_person_id || ''
+            reserveOwner || relation?.origin_owner_person_id || event.owner_person_id || ''
         ).trim();
         const destinationOwner = String(
-            relation?.destination_owner_person_id || event.owner_person_id || ''
+            reserveOwner || relation?.destination_owner_person_id || event.owner_person_id || ''
         ).trim();
         if (relation && (!originOwner || !destinationOwner ||
             event.owner_person_id !== originOwner)) {
             throw new Error('invalid_canonical_transfer_relation');
+        }
+        if (reserveOwner) {
+            event.kind = 'transfer';
+            const reserveLine = projected.lines.find(line => line.line_type === 'goal');
+            if (!reserveLine) throw new Error('invalid_canonical_reserve_relation');
+            reserveLine.line_type = 'clearing';
+            reserveLine.line_id = `line_${hash(`${event.event_id}:clearing`, 16)}`;
         }
         Object.assign(
             projected.lines.find(line => line.line_type === 'cash') || {},
@@ -431,6 +443,16 @@ function applyCanonicalRelation(projected, relation = null) {
         return;
     }
     if (relation.type === 'internal_transfer_pair') return;
+    if (['reserve_application', 'reserve_redemption'].includes(relation.type)) {
+        const event = projected.events[0];
+        if (!event || event.source_type !== 'sheet.transferencias' ||
+            event.owner_person_id !== String(relation.owner_person_id || '').trim() ||
+            event.free_budget_eligible !== false ||
+            Number(event.net_income_expense_impact) !== 0) {
+            throw new Error('invalid_canonical_reserve_relation');
+        }
+        return;
+    }
     throw new Error('invalid_canonical_relation');
 }
 

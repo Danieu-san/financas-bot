@@ -15,7 +15,8 @@ reserva patrimonial, sem alterar producao.
 - Gates 36 e 37: `GO TECNICO LOCAL INDEPENDENTE`; fluxos proativos read-only.
 - Gates 38.1 a 38.4: `GO TECNICO LOCAL INDEPENDENTE; SEM DEPLOY` para compra,
   entrada, estorno/reembolso e transferencia interna forte.
-- Gate 38.5: aplicacao/resgate de reserva, `CHARTER LOCAL; SEM IMPLEMENTACAO`.
+- Gate 38.5: aplicacao/resgate de reserva, `CANDIDATO LOCAL VERDE; AGUARDA
+  AUDITORIA INDEPENDENTE; SEM DEPLOY` (`1624/1614/0/10`, zero falhas).
 - Gate 38.6: rendimento de investimento, enfileirado separadamente.
 
 ## Fechamento do Gate 38.4
@@ -41,17 +42,18 @@ hermetica `1617/1607/0/10`, zero falhas. Fechamento:
 - provedor vigente: Oracle/OCI; AWS nao participa de deploy ou rollback;
 - ultimo release documentado: `1a1630949cf6acb301a2a054e61987d1cf516fb4`;
 - proposta `prompt`, write `off`, aprovacao falsa;
-- Daniel esta ausente: nenhum deploy, flag, restart, smoke real, Sheets,
-  WhatsApp ou Pluggy.
+- Daniel esta ausente, mas autorizou consultas e alteracoes externas e deploy
+  OCI somente depois de `GO` independente. Nenhuma promocao pode preceder o
+  parecer; AWS permanece fora do fluxo.
 
 ## Proxima acao exata
 
-Mapear decisoes de reserva, catalogo de Caixinhas e projecao patrimonial neutra;
-criar o teste RED e implementar somente o Gate 38.5.
+Publicar o candidato do Gate 38.5, auditar o hash imutavel no Chat e confrontar
+o parecer com a evidencia local antes de qualquer deploy.
 
 ## Capacidade para retomar
 
-`Codex -> Sol -> Alto -> implementar e validar localmente o Gate 38.5.`
+`Codex -> Sol -> Alto -> publicar e auditar o Gate 38.5.`
 
 ## Referencias dirigidas
 

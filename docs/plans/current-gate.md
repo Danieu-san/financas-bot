@@ -4,7 +4,7 @@ Atualizado em: 2026-08-10
 
 ## Estado
 
-`CHARTER LOCAL; SEM IMPLEMENTACAO; SEM DEPLOY`.
+`CANDIDATO LOCAL VERDE; AGUARDA AUDITORIA INDEPENDENTE; SEM DEPLOY`.
 
 ## Objetivo
 
@@ -66,8 +66,15 @@ maximo: `GO TECNICO LOCAL; SEM DEPLOY`.
 - regressao anterior, falha de teste ou `NO-GO` independente;
 - qualquer mutacao de producao enquanto Daniel estiver ausente.
 
+## Evidencia do candidato
+
+- focal `6/6`;
+- caminho publico real `1/1`;
+- causal afetada `246/246`;
+- suite hermetica ampla `1624/1614/0/10`, com skips previstos;
+- manifesto: `docs/audit/210-open-finance-reserve-write-candidate-2026-08-10.md`.
+
 ## Proxima acao
 
-Mapear as decisoes `reserve_application` e `reserve_redemption`, o catalogo de
-reservas e o contrato neutro de `Transferencias`; depois criar o teste RED
-causal e implementar somente o Gate 38.5.
+Publicar o commit sanitizado, auditar o hash imutavel no Chat e somente um `GO`
+independente pode encerrar tecnicamente o Gate 38.5 ou autorizar promocao.

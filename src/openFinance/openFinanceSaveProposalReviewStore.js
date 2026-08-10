@@ -25,6 +25,15 @@ function normalizeText(value) {
         .toLowerCase();
 }
 
+function normalizeAccountType(value) {
+    const type = normalizeText(value);
+    if (['bank', 'checking', 'conta corrente'].includes(type)) return 'bank';
+    if (['savings', 'poupanca', 'conta poupanca'].includes(type)) return 'savings';
+    if (['reserve', 'reserva', 'caixinha'].includes(type)) return 'reserve';
+    if (['cash', 'dinheiro', 'carteira'].includes(type)) return 'cash';
+    return type;
+}
+
 function normalizeCatalogItems(items, kind, limit) {
     if (!Array.isArray(items) || items.length > limit) {
         throw new Error(`invalid_open_finance_save_review_${kind}_catalog`);
@@ -57,11 +66,16 @@ function normalizeCatalogItems(items, kind, limit) {
             return { id, label };
         }
         if (kind === 'financial_accounts') {
+            const accountType = normalizeAccountType(item.accountType || 'bank');
+            if (!['bank', 'savings', 'reserve', 'cash'].includes(accountType)) {
+                throw new Error('invalid_open_finance_save_review_financial_accounts_catalog');
+            }
             return {
                 id,
                 label,
                 accountName: String(item.accountName || label).trim(),
-                ownerUserId: String(item.ownerUserId || '').trim()
+                ownerUserId: String(item.ownerUserId || '').trim(),
+                accountType
             };
         }
         if (kind === 'cards') {
@@ -97,6 +111,29 @@ function normalizeCatalog(catalog = {}) {
 }
 
 function catalogForProposal(proposal = {}, catalog = {}) {
+    if (proposal.classification === 'reserve_transfer') {
+        const principal = normalizeText(proposal.principal);
+        const people = (catalog.people || []).filter(item =>
+            normalizeText(item.label).split(/\s+/)[0] === principal);
+        if (!principal || people.length !== 1) {
+            throw new Error('open_finance_reserve_review_owner_unavailable');
+        }
+        const financialAccounts = (catalog.financialAccounts || []).filter(item =>
+            item.ownerUserId === people[0].id);
+        const banks = financialAccounts.filter(item =>
+            ['bank', 'savings'].includes(item.accountType));
+        const reserves = financialAccounts.filter(item => item.accountType === 'reserve');
+        if (!banks.length || !reserves.length) {
+            throw new Error('open_finance_reserve_review_account_unavailable');
+        }
+        return {
+            people,
+            categories: [],
+            paymentMethods: [],
+            financialAccounts: [...banks, ...reserves],
+            cards: []
+        };
+    }
     if (proposal.classification === 'transfer') {
         const originPrincipal = normalizeText(proposal.transfer_origin?.principal);
         const destinationPrincipal = normalizeText(proposal.transfer_destination?.principal);
@@ -175,6 +212,19 @@ function catalogForProposal(proposal = {}, catalog = {}) {
 }
 
 function initialDraft(proposal, catalog) {
+    if (proposal?.classification === 'reserve_transfer') {
+        const principal = normalizeText(proposal.principal);
+        const people = catalog.people.filter(item =>
+            normalizeText(item.label).split(/\s+/)[0] === principal);
+        if (people.length !== 1) {
+            throw new Error('open_finance_reserve_review_owner_unavailable');
+        }
+        return {
+            originAccount: null,
+            destinationAccount: null,
+            ownerUserId: people[0].id
+        };
+    }
     if (proposal?.classification === 'transfer') {
         const ownerIdFor = principal => {
             const matches = catalog.people.filter(item =>
@@ -210,7 +260,8 @@ function initialDraft(proposal, catalog) {
             financialAccount: financialAccount ? {
                 id: financialAccount.id, label: financialAccount.label,
                 accountName: financialAccount.accountName,
-                ownerUserId: financialAccount.ownerUserId
+                ownerUserId: financialAccount.ownerUserId,
+                accountType: financialAccount.accountType
             } : null,
             card: card ? {
                 id: card.id, label: card.label, cardId: card.cardId,
@@ -466,6 +517,7 @@ class OpenFinanceSaveProposalReviewStore {
                 account_type: String(proposal?.account_type || '').trim()
             },
             classification: String(proposal?.classification || 'purchase'),
+            reserve_direction: String(proposal?.reserve_direction || ''),
             semantic_review_ref: String(proposal?.semantic_review_ref || ''),
             linked_target_kind: String(proposal?.linked_target?.kind || ''),
             transfer_origin_principal: String(proposal?.transfer_origin?.principal || ''),

@@ -892,16 +892,21 @@ class OpenFinanceShadowPreviewStore {
         const isIncome = classification === 'income';
         const isRefund = classification === 'refund';
         const isTransfer = classification === 'transfer';
+        const isReserveTransfer = classification === 'reserve_transfer';
         const pairObservationRef = String(proposal?.pair_observation_ref || '');
         const identityLabel = isRefund
             ? `reviewed-refund-save-proposal:${reviewRef}:${observationRef}:${pairObservationRef}`
             : isTransfer
                 ? `reviewed-transfer-save-proposal:${reviewRef}:${observationRef}:${pairObservationRef}`
+                : isReserveTransfer
+                    ? `reviewed-reserve-save-proposal:${reviewRef}:${observationRef}`
                 : `reviewed-income-save-proposal:${reviewRef}:${observationRef}`;
         const operationLabel = isRefund
             ? `open-finance-refund-write:${reviewRef}:${observationRef}:${pairObservationRef}`
             : isTransfer
                 ? `open-finance-transfer-write:${reviewRef}:${observationRef}:${pairObservationRef}`
+                : isReserveTransfer
+                    ? `open-finance-reserve-write:${reviewRef}:${observationRef}`
                 : `open-finance-income-write:${reviewRef}:${observationRef}`;
         const refundTarget = proposal?.linked_target || {};
         const validRefundTarget = !isRefund || (
@@ -960,6 +965,18 @@ class OpenFinanceShadowPreviewStore {
             Math.abs(Number(proposal.source?.amount_cents)) ===
                 Math.abs(Number(proposal.paired_source?.amount_cents))
         );
+        const validReserveTransfer = !isReserveTransfer || (
+            ['daniel', 'thais'].includes(String(proposal.principal || '')) &&
+            ['BANK', 'CHECKING', 'SAVINGS'].includes(
+                String(proposal.account_type || '').toUpperCase()
+            ) &&
+            proposal.source_classification === 'reserve_candidate' &&
+            ['application', 'redemption'].includes(proposal.reserve_direction) &&
+            ((proposal.reserve_direction === 'application' &&
+                Number(proposal.source?.amount_cents) < 0) ||
+                (proposal.reserve_direction === 'redemption' &&
+                    Number(proposal.source?.amount_cents) > 0))
+        );
         const expiresAt = validTimestamp(
             proposal?.expires_at,
             'valid_reviewed_semantic_save_proposal_expiry_required'
@@ -967,7 +984,7 @@ class OpenFinanceShadowPreviewStore {
         if (!/^[a-f0-9]{32}$/.test(proposalRef) ||
             !/^[a-f0-9]{32}$/.test(reviewRef) ||
             !/^[a-f0-9]{32}$/.test(observationRef) ||
-            (!isIncome && !isRefund && !isTransfer) ||
+            (!isIncome && !isRefund && !isTransfer && !isReserveTransfer) ||
             ((isRefund || isTransfer) && !/^[a-f0-9]{32}$/.test(pairObservationRef)) ||
             proposalRef !== this.#hmac(identityLabel) ||
             aliasRef !== proposal.alias_ref ||
@@ -978,6 +995,7 @@ class OpenFinanceShadowPreviewStore {
                 !proposal.paired_source?.id || !proposal.paired_source?.account_id ||
                 !validRefundTarget)) ||
             !validTransfer ||
+            !validReserveTransfer ||
             proposal.provider_state !== 'POSTED' ||
             proposal.reconciliation_status !== 'new' ||
             proposal.operation_key !== this.#operationKey(operationLabel) ||

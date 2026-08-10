@@ -139,6 +139,9 @@ const {
 const {
     prepareReviewedTransferSaveProposal
 } = require('../openFinance/openFinanceReviewedTransferSaveProposal');
+const {
+    prepareReviewedReserveSaveProposal
+} = require('../openFinance/openFinanceReviewedReserveSaveProposal');
 const { recordQaFailure } = require('../services/qaFailureLogService');
 const { recordAdminAction, hashRef, sanitizeValue } = require('../services/adminActionLogService');
 const { recordDashboardAccessEvent } = require('../services/dashboardAccessLogService');
@@ -9316,6 +9319,35 @@ async function processMessage(msg) {
                 await sendPlainMessage(msg, [
                     proactiveReviewReply.reply,
                     'Não consegui provar agora as duas pontas da transferência. A decisão continua registrada e nada foi salvo.'
+                ].join('\n'));
+                return;
+            }
+        }
+        if (['reserve_application', 'reserve_redemption']
+            .includes(proactiveReviewReply.decision) &&
+            proactiveReviewReply.review_code) {
+            try {
+                const reserveProposal = await prepareReviewedReserveSaveProposal({
+                    reviewCode: proactiveReviewReply.review_code,
+                    actorWhatsappId: senderId,
+                    userId
+                });
+                if (reserveProposal.handled) {
+                    setOpenFinanceConversationState(senderId, {
+                        action: 'awaiting_open_finance_save_confirmation',
+                        data: {
+                            proposalRef: reserveProposal.proposal_ref,
+                            recipientPrincipal: reserveProposal.recipient_principal
+                        }
+                    });
+                    await sendPlainMessage(msg, reserveProposal.reply);
+                    return;
+                }
+            } catch (error) {
+                logger.warn(`[open-finance] reviewed_reserve_proposal_unavailable sender=${logger.redactIdentifier(senderId)} ${logger.safeError(error)}`);
+                await sendPlainMessage(msg, [
+                    proactiveReviewReply.reply,
+                    'Não consegui provar agora a conta e a reserva. A decisão continua registrada e nada foi salvo.'
                 ].join('\n'));
                 return;
             }

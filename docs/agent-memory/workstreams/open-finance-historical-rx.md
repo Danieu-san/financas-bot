@@ -2,7 +2,7 @@
 
 Atualizado em: 2026-08-10
 
-## Gate 38.5 - charter local
+## Gate 38.5 - candidato local verde
 
 A proxima classe e somente movimento de reserva: decisoes duraveis
 `reserve_application` e `reserve_redemption`, revalidadas contra a fonte atual,
@@ -10,8 +10,11 @@ viram uma unica transferencia patrimonial entre a conta bancaria e a reserva.
 Principal nunca vira receita, despesa ou verba livre. Rendimento permanece fora
 deste gate e sera tratado separadamente no Gate 38.6.
 
-Producao segue write `off`; nao ha deploy ou smoke enquanto Daniel estiver
-ausente.
+O caminho publico, a revisao guiada e a finalizacao neutra estao implementados.
+Evidencia: focal `6/6`, caminho publico `1/1`, causal `246/246` e suite
+hermetica `1624/1614/0/10`, zero falhas. O candidato aguarda commit imutavel e
+auditoria independente. Producao segue write `off`; Daniel autorizou promocao
+somente depois de `GO` independente.
 
 ## Gate 38.4 - GO tecnico local independente
 

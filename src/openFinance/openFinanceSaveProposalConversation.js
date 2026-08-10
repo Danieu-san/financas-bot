@@ -148,15 +148,24 @@ function isReceiptLike(classification, linkedTargetKind = '') {
         (classification === 'refund' && linkedTargetKind === 'bank');
 }
 
+function isTransferLike(classification) {
+    return ['transfer', 'reserve_transfer'].includes(classification);
+}
+
 function reviewMissingFields(draft = {}, classification = 'purchase', linkedTargetKind = '') {
-    if (classification === 'transfer') {
+    if (isTransferLike(classification)) {
         const missing = [];
+        const ownerField = classification === 'reserve_transfer'
+            ? 'ownerUserId'
+            : null;
+        const originOwner = ownerField ? draft[ownerField] : draft.originOwnerUserId;
+        const destinationOwner = ownerField ? draft[ownerField] : draft.destinationOwnerUserId;
         if (!draft.originAccount) missing.push('conta de origem');
         if (!draft.destinationAccount) missing.push('conta de destino');
-        if (draft.originAccount?.ownerUserId !== draft.originOwnerUserId) {
+        if (draft.originAccount?.ownerUserId !== originOwner) {
             missing.push('conta de origem autorizada');
         }
-        if (draft.destinationAccount?.ownerUserId !== draft.destinationOwnerUserId) {
+        if (draft.destinationAccount?.ownerUserId !== destinationOwner) {
             missing.push('conta de destino autorizada');
         }
         if (draft.originAccount?.id &&
@@ -221,15 +230,22 @@ function paymentEditBlockMessage(draft = {}, step = '', classification = 'purcha
 function formatReviewSummary(payload, { includeMenu = true } = {}) {
     const draft = payload?.draft || {};
     const source = payload?.source || {};
-    if (payload?.classification === 'transfer') {
+    if (isTransferLike(payload?.classification)) {
+        const reserve = payload.classification === 'reserve_transfer';
         const lines = [
-            'Confira a transferência interna:',
+            reserve
+                ? `Confira ${payload.reserve_direction === 'application' ? 'a aplicação na reserva' : 'o resgate da reserva'}:`
+                : 'Confira a transferência interna:',
             `Descrição: ${source.description || 'não informada'}`,
             `Valor: ${formatMoneyFromCents(Math.abs(source.amount_cents))}`,
-            `Origem (${payload.transfer_origin_principal}): ${draft.originAccount?.label || 'não definida'}`,
-            `Destino (${payload.transfer_destination_principal}): ${draft.destinationAccount?.label || 'não definida'}`
+            reserve
+                ? `Origem: ${draft.originAccount?.label || 'não definida'}`
+                : `Origem (${payload.transfer_origin_principal}): ${draft.originAccount?.label || 'não definida'}`,
+            reserve
+                ? `Destino: ${draft.destinationAccount?.label || 'não definida'}`
+                : `Destino (${payload.transfer_destination_principal}): ${draft.destinationAccount?.label || 'não definida'}`
         ];
-        const missing = reviewMissingFields(draft, 'transfer');
+        const missing = reviewMissingFields(draft, payload.classification);
         if (missing.length) lines.push(`Ainda falta: ${missing.join(', ')}.`);
         if (includeMenu) {
             lines.push(
@@ -301,12 +317,28 @@ const CATEGORY_PAGE_SIZE = 8;
 function reviewOptionsForStep(payload = {}) {
     const catalog = payload.catalog || {};
     if (payload.step === 'select_origin_account') {
-        return (catalog.financialAccounts || []).filter(item =>
-            item.ownerUserId === payload.draft?.originOwnerUserId);
+        return (catalog.financialAccounts || []).filter(item => {
+            if (payload.classification === 'reserve_transfer') {
+                const expectedType = payload.reserve_direction === 'application'
+                    ? ['bank', 'savings']
+                    : ['reserve'];
+                return item.ownerUserId === payload.draft?.ownerUserId &&
+                    expectedType.includes(item.accountType);
+            }
+            return item.ownerUserId === payload.draft?.originOwnerUserId;
+        });
     }
     if (payload.step === 'select_destination_account') {
-        return (catalog.financialAccounts || []).filter(item =>
-            item.ownerUserId === payload.draft?.destinationOwnerUserId);
+        return (catalog.financialAccounts || []).filter(item => {
+            if (payload.classification === 'reserve_transfer') {
+                const expectedType = payload.reserve_direction === 'application'
+                    ? ['reserve']
+                    : ['bank', 'savings'];
+                return item.ownerUserId === payload.draft?.ownerUserId &&
+                    expectedType.includes(item.accountType);
+            }
+            return item.ownerUserId === payload.draft?.destinationOwnerUserId;
+        });
     }
     if (payload.step === 'select_person') return catalog.people || [];
     if (payload.step === 'select_category') {
@@ -720,7 +752,8 @@ function handleOpenFinanceSaveProposalReply({
                 { actorWhatsappId }
             );
             directReviewedSemantic = Boolean(
-                ['income', 'refund', 'transfer'].includes(directProposal?.classification) &&
+                ['income', 'refund', 'transfer', 'reserve_transfer']
+                    .includes(directProposal?.classification) &&
                 /^[a-f0-9]{32}$/.test(String(directProposal.semantic_review_ref || ''))
             );
         }
@@ -784,7 +817,8 @@ function handleOpenFinanceSaveProposalReply({
                 item.proposal_ref,
                 { actorWhatsappId }
             );
-            return ['income', 'refund', 'transfer'].includes(proposal?.classification) &&
+            return ['income', 'refund', 'transfer', 'reserve_transfer']
+                .includes(proposal?.classification) &&
                 /^[a-f0-9]{32}$/.test(String(proposal.semantic_review_ref || ''));
         });
         if (candidates.length === 0) {
@@ -1062,7 +1096,7 @@ function handleOpenFinanceSaveProposalReviewReply({
             };
         }
         if (payload.step === 'menu') {
-            const isTransfer = payload.classification === 'transfer';
+            const isTransfer = isTransferLike(payload.classification);
             const isIncome = isReceiptLike(
                 payload.classification, payload.linked_target_kind
             );
@@ -1263,21 +1297,24 @@ function handleOpenFinanceSaveProposalReviewReply({
                         id: selected.id,
                         label: selected.label,
                         accountName: selected.accountName || selected.label,
-                        ownerUserId: selected.ownerUserId || ''
+                        ownerUserId: selected.ownerUserId || '',
+                        accountType: selected.accountType || ''
                     };
                 } else if (current.step === 'select_origin_account') {
                     current.draft.originAccount = {
                         id: selected.id,
                         label: selected.label,
                         accountName: selected.accountName || selected.label,
-                        ownerUserId: selected.ownerUserId || ''
+                        ownerUserId: selected.ownerUserId || '',
+                        accountType: selected.accountType || ''
                     };
                 } else if (current.step === 'select_destination_account') {
                     current.draft.destinationAccount = {
                         id: selected.id,
                         label: selected.label,
                         accountName: selected.accountName || selected.label,
-                        ownerUserId: selected.ownerUserId || ''
+                        ownerUserId: selected.ownerUserId || '',
+                        accountType: selected.accountType || ''
                     };
                 } else if (current.step === 'select_card') {
                     current.draft.card = {

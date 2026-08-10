@@ -67,6 +67,15 @@ function categoriesFromRows({ registryRows = [], expenseRows = [], cardRows = []
     return categories;
 }
 
+function normalizeAccountType(value) {
+    const type = normalizeText(value);
+    if (['bank', 'checking', 'conta corrente'].includes(type)) return 'bank';
+    if (['savings', 'poupanca', 'conta poupanca'].includes(type)) return 'savings';
+    if (['reserve', 'reserva', 'caixinha'].includes(type)) return 'reserve';
+    if (['cash', 'dinheiro', 'carteira'].includes(type)) return 'cash';
+    return type;
+}
+
 function incomeCategoriesFromRows({ incomeRows = [], scopeUserIds = [] } = {}) {
     const allowed = new Set(scopeUserIds.map(String));
     const categories = [];
@@ -104,7 +113,8 @@ function accountsFromRows(rows = [], scopeUserIds = []) {
                 id,
                 label: owner ? `${name} · ${owner}` : name,
                 accountName: name,
-                ownerUserId: rowUserId
+                ownerUserId: rowUserId,
+                accountType: normalizeAccountType(row?.[1] || '')
             };
         })
         .filter(Boolean)
@@ -241,6 +251,7 @@ module.exports = {
         categoriesFromRows,
         incomeCategoriesFromRows,
         accountsFromRows,
+        normalizeAccountType,
         cardsFromRows
     }
 };
