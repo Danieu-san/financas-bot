@@ -1,88 +1,79 @@
-# Gate ativo - Gate 38.6 escrita de rendimento de investimento
+# Gate ativo - Gate 39 release consolidado das escritas revisadas
 
 Atualizado em: 2026-08-10
 
 ## Estado
 
-`GO TECNICO LOCAL INDEPENDENTE; SEM DEPLOY`.
+`CANDIDATO LOCAL EM PREPARACAO; SEM DEPLOY`.
 
 ## Objetivo
 
-Permitir escrita gradual somente de movimentos `POSTED/new` decididos de forma
-duravel como `investment_income`, registrando apenas o ganho comprovado e sem
-absorver principal, aplicacao ou resgate.
+Consolidar os Gates 38.1 a 38.6 em um unico candidato de release por artefato
+OCI, preservando escrita desligada na promocao e separando a ativacao
+`confirm` em etapa operacional com rollback `write-off`.
 
 ## Escopo
 
-- rendimento como uma entrada financeira unica vinculada a reserva/conta de
-  destino inequivoca;
-- selecao explicita do destino autorizado, sem transformar principal em ganho;
-- revalidacao da fonte, decisao, geracao, catalogo e semantica antes do segundo
-  `sim`;
-- recibo canonico de ganho e idempotencia em replay, restart e resultado
-  incerto;
-- somente testes locais.
-
-## Origem autorizada
-
-- revisao Gate 37 com decisao terminal `investment_income`;
-- fonte atual `POSTED/new`, credito positivo e sem mudanca de direcao ou valor;
-- semantica fornecida pelo provedor ou confirmada explicitamente na revisao;
-- destino pertencente ao escopo familiar autorizado.
-
-Principal, aplicacao, resgate, movimento generico, descricao isolada,
-transferencia familiar, pagamento de fatura, cartao, entrada genuina, estorno
-ou despesa permanecem inelegiveis.
+- compra, entrada genuina, estorno/reembolso fortemente vinculado,
+  transferencia interna forte, aplicacao/resgate de reserva e rendimento de
+  investimento;
+- confrontar os seis fechamentos tecnicos independentes;
+- validar contrato de ambiente, controlador de ativacao e instalador OCI;
+- construir e verificar artefato imutavel do hash aprovado;
+- auditar a composicao antes de tocar na OCI;
+- depois do GO, executar preflight, prepare, promocao inerte, health, ativacao
+  separada e smokes controlados conforme o runbook.
 
 ## Invariantes
 
-1. A primeira decisao e a conferencia mantem zero escrita.
-2. Somente rendimento comprovado vira ganho; principal nunca vira receita.
-3. Cada movimento gera uma unica escrita financeira de entrada.
-4. O credito positivo e o destino autorizado nunca podem ser invertidos.
-5. O destino deve existir e permanecer autorizado no catalogo atual.
-6. Fonte, geracao, revisao, catalogo e reconciliacao sao relidos no final.
-7. Somente o segundo `sim` pode chamar o writer.
-8. Operation key, recibo, replay, restart e resultado incerto preservam no
-   maximo uma tentativa de append.
-9. Producao continua com escrita desligada.
+1. Classes financeiras permanecem mutuamente exclusivas.
+2. Principal, aplicacao, resgate e transferencias internas nao viram renda ou
+   despesa.
+3. Cada proposta exige revisao individual e segundo consentimento.
+4. Replay, restart, revogacao, concorrencia, recibo e resultado incerto
+   preservam no maximo um efeito.
+5. O codigo e promovido primeiro com escrita `off` e aprovacao falsa.
+6. Ativacao `confirm` ocorre somente pelo controlador auditado e com rollback
+   `write-off` pronto.
+7. O deploy usa somente artefato OCI; AWS nao participa.
+8. Estado, credenciais, sessao WhatsApp e segredos permanecem fora do pacote.
 
 ## Não escopo
 
-- aplicacao e resgate de reserva, encerrados no Gate 38.5;
-- reconstruir o historico de Caixinhas bloqueado no Gate 35;
-- alterar flags, deployar, reiniciar ou acessar Sheets, Pluggy e WhatsApp reais.
+- reconstruir o historico indisponivel de Caixinhas do Gate 35;
+- fabricar transacoes para smoke;
+- editar `.env` manualmente;
+- usar checkout Git, AWS ou duas sessoes WhatsApp em producao;
+- declarar GO de producao antes de health e smokes factuais.
 
 ## Critérios de GO
 
-Teste RED/focal, caminho publico, regressao das classes anteriores, uma unica
-suite hermetica ampla final, hash imutavel e auditoria independente. Estado
-maximo: `GO TECNICO LOCAL; SEM DEPLOY`.
+- seis fechamentos independentes consistentes;
+- suite ampla final sem mudanca causal posterior;
+- testes do controlador de ativacao e instalador OCI verdes;
+- contrato de ambiente e auditoria de dependencias verdes;
+- artefato construido e verificado no mesmo hash completo;
+- auditoria independente do candidato consolidado sem lacuna indispensavel.
 
 ## Condições de parada
 
-- semantica, direcao ou destino ambiguos;
-- principal absorvido como rendimento ou escrita dupla;
-- segunda tentativa de append em replay/restart;
-- regressao anterior, falha de teste ou `NO-GO` independente;
-- qualquer mutacao de producao enquanto Daniel estiver ausente.
+- divergencia entre hash, artefato, manifesto ou fechamentos independentes;
+- regressao causal, vulnerabilidade bloqueante ou falha no controlador;
+- infraestrutura, slot, flags, stores, processo ou rollback ambiguos;
+- escrita habilitada antes da etapa `confirm` autorizada;
+- health, WhatsApp, Google, read-model ou SQLite degradados;
+- qualquer duplicidade, classificacao cruzada ou escrita sem segundo consentimento.
 
 ## Proxima acao
 
-Preparar o gate consolidado de release das classes 38.1 a 38.6, confrontando
-hashes auditados, flags, artefato OCI, rollback e smokes por classe antes de
-qualquer promocao. O fechamento isolado deste gate nao autoriza deploy.
+Publicar e auditar o manifesto consolidado do Gate 39. Somente um `GO` permite
+iniciar o preflight operacional OCI; upload, restart, promocao e ativacao
+continuam separados pelos controles do runbook.
 
-## Evidencia do candidato
+## Evidencia candidata
 
-- primeiro candidato: `NO-GO` por categoria nova contornavel e lacuna de prova
-  integrada writer-projetor;
-- focal do recovery `4/4`;
-- caminho publico real `1/1`;
-- causal afetada do recovery `184/184`;
-- suite hermetica ampla do recovery `1629/1619/0/10`, com skips previstos;
-- manifesto: `docs/audit/213-open-finance-investment-income-write-candidate-2026-08-10.md`.
-- recovery: `docs/audit/214-open-finance-investment-income-write-recovery-candidate-2026-08-10.md`.
-- reauditoria: achados `ALTO` e `MEDIO` fechados, zero achados residuais e
-  nenhuma lacuna causal indispensavel;
-- fechamento: `docs/audit/215-open-finance-investment-income-write-independent-close-2026-08-10.md`.
+- produto/artefato: `17471ba8a6ec8df737ea97c45ff9d19c01b84b87`;
+- suite ampla final: `1629/1619/0/10`, zero falhas;
+- ativacao, instalador OCI, contrato de ambiente e audit offline: verdes;
+- artefato OCI: `886` arquivos e hash interno confirmado;
+- manifesto: `docs/audit/216-open-finance-reviewed-write-release-candidate-2026-08-10.md`.

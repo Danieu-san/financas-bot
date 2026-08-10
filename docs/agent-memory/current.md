@@ -4,8 +4,8 @@ Atualizado em: 2026-08-10
 
 ## Objetivo ativo
 
-Gate 38.6: implementar localmente a escrita de rendimento de investimento como
-ganho separado, sem alterar producao.
+Gate 39: consolidar e auditar o release OCI das escritas revisadas dos Gates
+38.1 a 38.6, antes de qualquer promocao ou ativacao.
 
 ## Estado vigente
 
@@ -50,13 +50,13 @@ hermetica `1617/1607/0/10`, zero falhas. Fechamento:
 
 ## Próxima ação exata
 
-Registrar o fechamento independente do Gate 38.6 e preparar o gate consolidado
-de release das classes 38.1 a 38.6, sem promover producao antes da validacao
-operacional propria.
+Publicar e auditar o candidato consolidado do Gate 39. Com `GO`, iniciar apenas
+o preflight operacional OCI e preservar a sequencia promocao inerte, health,
+ativacao `confirm` e rollback `write-off`.
 
 ## Capacidade para retomar
 
-`Codex -> Sol -> Alto -> preparar o gate consolidado de release dos Gates 38.1 a 38.6.`
+`Codex -> Sol -> Alto -> auditar o Gate 39 e iniciar o preflight OCI se houver GO.`
 
 ## Referencias dirigidas
 
@@ -66,6 +66,7 @@ operacional propria.
 - Gate 38.4: `docs/audit/209-open-finance-transfer-write-independent-close-2026-08-10.md`;
 - Gate 38.5: `docs/audit/212-open-finance-reserve-write-independent-close-2026-08-10.md`;
 - Gate 38.6: `docs/audit/215-open-finance-investment-income-write-independent-close-2026-08-10.md`;
+- Gate 39: `docs/audit/216-open-finance-reviewed-write-release-candidate-2026-08-10.md`;
 - finalizacao: `src/openFinance/openFinanceSaveProposalFinalization.js`;
 - deploy: `docs/runbooks/release-checklist.md`;
 - producao: `docs/runbooks/production-health.md`.
