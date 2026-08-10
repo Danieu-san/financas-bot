@@ -4,7 +4,7 @@ Atualizado em: 2026-08-10
 
 ## Estado
 
-`GO TECNICO LOCAL DE RELEASE; PREFLIGHT OCI AUTORIZADO; SEM DEPLOY`.
+`GO TECNICO LOCAL DE RELEASE; PREFLIGHT OCI BLOQUEADO POR LOGIN; SEM DEPLOY`.
 
 ## Objetivo
 
@@ -66,9 +66,10 @@ OCI, preservando escrita desligada na promocao e separando a ativacao
 
 ## Proxima acao
 
-Registrar o fechamento independente e executar somente o preflight operacional
-OCI: redescoberta read-only e backup/restore isolado. Upload, prepare, restart,
-promocao e ativacao dependem do resultado factual desse preflight.
+Retomar a sessao autenticada da console OCI, abrir acesso SSH temporario
+limitado ao IP atual `/32` e executar o preflight read-only e o backup/restore
+isolado. A chave permanente esta disponivel localmente e a porta 22 permanece
+fechada. Nenhuma regra, upload, restart ou deploy ocorreu nesta tentativa.
 
 ## Evidencia candidata
 

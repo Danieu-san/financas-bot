@@ -59,6 +59,12 @@ Registrar o fechamento do Gate 39 e executar somente o preflight operacional
 OCI, preservando a sequencia promocao inerte, health, ativacao `confirm` e
 rollback `write-off`.
 
+Tentativa de 2026-08-10: a chave SSH permanente e a configuracao do host foram
+localizadas; a porta 22 esta fechada e nao existe tunel local. A sessao da
+console OCI expirou e pede senha, enquanto o Chrome nao possui aba OCI
+autenticada. Nenhuma regra, comando remoto, upload, restart ou deploy ocorreu.
+Retomar depois que Daniel autenticar a console OCI no navegador interno.
+
 ## Capacidade para retomar
 
 `Codex -> Sol -> Alto -> executar o preflight operacional OCI do Gate 39.`
