@@ -2,14 +2,16 @@
 
 Atualizado em: 2026-08-10
 
-## Gate 38.1 - candidato de revalidacao local verde
+## Gate 38.1 - recovery probatorio local verde
 
-O writer, o store final e a politica fail-closed ja auditados nao mudaram. O
-handler atual preserva o lote numerico durante revisao/finalizacao e so avanca
-depois do recibo. Evidencia: causal `94/94`, publica `2/2` e hermetica
-reutilizada `1592/1582/0/10`.
+O primeiro auditor terminou com `ACESSO INSUFICIENTE`, sem GO. A prova publica
+nova atravessa duas compras, escreve somente a primeira, recupera o recibo,
+avanca para a revisao da segunda e impede que um novo `sim` seja herdado como
+confirmacao. Evidencia: focal `1/1`, publica `2/2`, causal anterior `94/94` e
+handler financeiro completo `130/130`; hermetica reutilizada
+`1592/1582/0/10`.
 
-Proximo passo: hash imutavel e auditoria independente. Producao segue write
+Proximo passo: novo hash imutavel e reauditoria focal. Producao segue write
 `off`, sem deploy ou smoke enquanto Daniel estiver ausente.
 
 ## Gate 37 - GO tecnico local independente

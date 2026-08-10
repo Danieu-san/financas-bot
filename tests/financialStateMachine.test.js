@@ -3272,7 +3272,7 @@ stateMachineTest('gate 32 public handler rejects batch sim and advances a numeri
     }
 });
 
-stateMachineTest('9P.4 public handler writes once, survives receipt send failure and closes on replay', async () => {
+stateMachineTest('gate 38.1 public handler writes one item, recovers the receipt and advances the numeric batch without inherited consent', async () => {
     resetState();
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-public-finalization-'));
     const paths = {
@@ -3280,6 +3280,7 @@ stateMachineTest('9P.4 public handler writes once, survives receipt send failure
         staging: path.join(directory, 'staging.sqlite'),
         journal: path.join(directory, 'journal.sqlite'),
         preview: path.join(directory, 'preview.sqlite'),
+        outbox: path.join(directory, 'outbox.sqlite'),
         mapping: path.join(directory, 'mapping.json')
     };
     const secret = 'open-finance-public-final-secret-32-bytes';
@@ -3299,15 +3300,26 @@ stateMachineTest('9P.4 public handler writes once, survives receipt send failure
             name: 'Nubank Daniel',
             balance_cents: 0
         }],
-        transactions: [{
-            id: 'public-final-purchase',
-            provider_id: 'public-final-provider',
-            account_id: 'public-final-credit',
-            amount_cents: 2590,
-            description: 'Mercado final público',
-            date: new Date(Date.now() - 3_600_000).toISOString(),
-            status: 'POSTED'
-        }],
+        transactions: [
+            {
+                id: 'public-final-purchase',
+                provider_id: 'public-final-provider',
+                account_id: 'public-final-credit',
+                amount_cents: 2590,
+                description: 'Mercado final público',
+                date: new Date(Date.now() - 3_600_000).toISOString(),
+                status: 'POSTED'
+            },
+            {
+                id: 'public-final-purchase-next',
+                provider_id: 'public-final-provider-next',
+                account_id: 'public-final-credit',
+                amount_cents: 1790,
+                description: 'Compra seguinte pública',
+                date: new Date(Date.now() - 7_200_000).toISOString(),
+                status: 'POSTED'
+            }
+        ],
         bills: [],
         investments: []
     };
@@ -3345,40 +3357,47 @@ stateMachineTest('9P.4 public handler writes once, survives receipt send failure
             whatsappId: SENDER
         }]
     });
-    const observation = observationRef(
+    const observations = item.transactions.map(transaction => observationRef(
         secret,
         item.id,
-        item.transactions[0].account_id,
-        item.transactions[0].id
-    );
+        transaction.account_id,
+        transaction.id
+    ));
+    const lifecycleDecisions = observations.map(observation_ref => ({
+        observation_ref,
+        classification: 'purchase',
+        provider_state: 'POSTED',
+        lifecycle_milestone: 'first_posted'
+    }));
+    const policies = [{
+        alias: item.alias_code,
+        source_owner: 'daniel',
+        authorized_viewers: ['daniel', 'thais'],
+        whatsapp_recipient: 'daniel',
+        family_aggregation_allowed: true,
+        write_confirmation_principal: 'daniel'
+    }];
     const ingested = preview.ingestSaveProposals({
-        reconciliationDecisions: [{
+        reconciliationDecisions: observations.map((observation_ref, index) => ({
             alias: item.alias_code,
-            observation_ref: observation,
-            transaction_ref: 'public-final-transaction',
+            observation_ref,
+            transaction_ref: `public-final-transaction-${index + 1}`,
             status: 'new',
             rule: 'no_candidate'
-        }],
-        lifecycleDecisions: [{
-            observation_ref: observation,
-            classification: 'purchase',
-            provider_state: 'POSTED',
-            lifecycle_milestone: 'first_posted'
-        }],
+        })),
+        lifecycleDecisions,
         openFinanceItems: [{ ...item, generation: 2 }],
-        policies: [{
-            alias: item.alias_code,
-            write_confirmation_principal: 'daniel'
-        }],
+        policies,
         observedAt: new Date(Date.now() - 60_000).toISOString(),
         includeProposalLinks: true
     });
-    const proposalRef = ingested.proposal_links[0].proposal_ref;
-    const confirmation = preview.prepareSaveProposalConfirmation(proposalRef, {
+    const proposalRefs = ingested.proposal_links.map(link => link.proposal_ref);
+    const [proposalRef, nextProposalRef] = proposalRefs;
+    const confirmations = preview.prepareSaveProposalConfirmations(proposalRefs, {
         actorWhatsappId: SENDER
     });
     preview.decideSaveProposalConfirmation(
-        confirmation.confirmation_ref,
+        confirmations.confirmations[0].confirmation_ref,
         'accept',
         { actorWhatsappId: SENDER }
     );
@@ -3387,6 +3406,38 @@ stateMachineTest('9P.4 public handler writes once, survives receipt send failure
     });
     preview.close();
     journal.close();
+
+    const outbox = new OpenFinanceAlertOutbox({
+        databasePath: paths.outbox,
+        secret
+    });
+    outbox.enqueue({
+        candidates: observations.map((observation_ref, index) => ({
+            observation_ref,
+            external_event_ref: `public-final-event-${index + 1}`,
+            correlation_state: 'new_event',
+            reconciliation_status: 'new'
+        })),
+        lifecycleDecisions,
+        items: [item],
+        policies,
+        baselineComplete: true,
+        reconciliationRequired: true,
+        saveProposalLinks: ingested.proposal_links
+    });
+    const claimed = outbox.claimNextBatch({
+        canaryAliases: [item.alias_code],
+        excludedRecipients: ['thais'],
+        batchSize: 4
+    });
+    outbox.acknowledgeDeliveredBatch({
+        deliveries: claimed.map(entry => ({
+            alertRef: entry.alert_ref,
+            leaseToken: entry.lease_token
+        })),
+        whatsappMessageId: 'public-final-batch-message-id'
+    });
+    outbox.close();
 
     sheets.Categorias.push([
         'Alimentação',
@@ -3472,6 +3523,7 @@ stateMachineTest('9P.4 public handler writes once, survives receipt send failure
         'OPEN_FINANCE_LIVE_STAGING_DB',
         'OPEN_FINANCE_REVOCATION_JOURNAL_DB',
         'OPEN_FINANCE_SHADOW_PREVIEW_DB',
+        'OPEN_FINANCE_OUTBOX_DB',
         'PLUGGY_ITEM_MAP_FILE'
     ];
     const previous = Object.fromEntries(variableNames.map(name => [name, process.env[name]]));
@@ -3486,9 +3538,22 @@ stateMachineTest('9P.4 public handler writes once, survives receipt send failure
         OPEN_FINANCE_LIVE_STAGING_DB: paths.staging,
         OPEN_FINANCE_REVOCATION_JOURNAL_DB: paths.journal,
         OPEN_FINANCE_SHADOW_PREVIEW_DB: paths.preview,
+        OPEN_FINANCE_OUTBOX_DB: paths.outbox,
         PLUGGY_ITEM_MAP_FILE: paths.mapping
     });
     try {
+        const batch = {
+            version: 1,
+            selectedProposalRefs: proposalRefs,
+            queuedProposalRefs: [nextProposalRef],
+            recipientPrincipalByProposal: Object.fromEntries(
+                proposalRefs.map(value => [value, 'daniel'])
+            )
+        };
+        userStateManager.setStateDurably(SENDER, {
+            action: 'awaiting_open_finance_save_review',
+            data: { proposalRef, batch }
+        });
         const finalPrompt = await send('continuar');
         assert.match(finalPrompt, /Confirma o salvamento/i);
         assert.equal(appendedRows.length, 0);
@@ -3498,22 +3563,36 @@ stateMachineTest('9P.4 public handler writes once, survives receipt send failure
         );
 
         failNextPlainMessage = true;
-        appendRowDelayMs = 20;
         const firstConfirmation = createMockMessage('sim');
-        const concurrentConfirmation = createMockMessage('sim');
-        await Promise.all([
-            handleMessage(firstConfirmation),
-            handleMessage(concurrentConfirmation)
-        ]);
+        await handleMessage(firstConfirmation);
         assert.equal(appendedRows.length, 1);
         assert.equal(appendedRows[0].options.cardId, 'nubank-daniel');
         assert.equal(appendedRows[0].options.requireUserScoped, true);
         assert.equal(appendedRows[0].row[2], 'Pets');
-        const recoveredReceipt = [
-            ...firstConfirmation.replies,
-            ...concurrentConfirmation.replies
-        ].find(reply => /Recibo/.test(reply));
-        assert.ok(recoveredReceipt);
+        assert.equal(firstConfirmation.replies.length, 0);
+        assert.equal(
+            userStateManager.getState(SENDER).action,
+            'awaiting_open_finance_final_confirmation'
+        );
+
+        const replayConfirmation = createMockMessage('sim');
+        await handleMessage(replayConfirmation);
+        assert.ok(replayConfirmation.replies.some(reply => /Recibo/.test(reply)));
+        assert.match(replayConfirmation.replies.at(-1), /Confira a proposta/i);
+        assert.equal(appendedRows.length, 1);
+        let state = userStateManager.getState(SENDER);
+        assert.equal(state.action, 'awaiting_open_finance_save_review');
+        assert.equal(state.data.proposalRef, nextProposalRef);
+        assert.deepEqual(state.data.batch.queuedProposalRefs, []);
+
+        const nonInheritedReply = await send('sim');
+        assert.match(nonInheritedReply, /Escolha uma opção de 0 a 6/i);
+        assert.equal(appendedRows.length, 1);
+        state = userStateManager.getState(SENDER);
+        assert.equal(state.action, 'awaiting_open_finance_save_review');
+        assert.equal(state.data.proposalRef, nextProposalRef);
+
+        assert.match(await send('cancelar'), /cancelada/i);
         assert.equal(appendedRows.length, 1);
         assert.equal(userStateManager.getState(SENDER), undefined);
 

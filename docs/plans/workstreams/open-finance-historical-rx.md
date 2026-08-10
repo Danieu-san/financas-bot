@@ -184,7 +184,7 @@ misturar historico, alertas, propostas e escrita financeira.
     aplicacao/resgate de Caixinha nao vira receita ou despesa, rendimento
     continua ganho e transferencia nao pareada permanece alertavel/revisavel,
     nunca classificada por descricao. Primeiro prompt/revisao, sem escrita.
-38. [Gate 38.1 candidato de revalidacao local; aguarda auditoria] Ativar escrita
+38. [Gate 38.1 recovery probatorio local; aguarda reauditoria] Ativar escrita
     financeira de modo gradual. Comecar por compra; cada classe adicional entra
     somente depois do proprio GO. Exigir segunda confirmacao, revalidacao,
     idempotencia, recibo, restart, revogacao e rollback para `write=off`, com

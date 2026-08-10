@@ -2,7 +2,7 @@
 
 Atualizado em: 2026-08-10
 
-Estado: `CANDIDATO DE REVALIDACAO LOCAL VERDE; AGUARDA AUDITORIA`.
+Estado: `RECOVERY PROBATORIO LOCAL VERDE; AGUARDA REAUDITORIA`.
 
 ## Objetivo
 
@@ -37,6 +37,9 @@ revalidada focalmente.
 
 - modulos causais atuais: `94/94`;
 - caminhos publicos selecionados: `2/2`;
+- nova prova publica de escrita seguida de avancar fila sem consentimento
+  herdado: `1/1`;
+- arquivo completo do handler financeiro publico: `130/130`;
 - suite hermetica mais recente no mesmo codigo de produto: `1592/1582/0/10`;
 - `financial_writes=0` no ambiente e nenhuma flag foi alterada.
 
@@ -52,4 +55,3 @@ Ativacao `confirm`, deploy, restart e smoke real ficam bloqueados ate Daniel
 estar presente para revisar a compra, emitir a segunda confirmacao e conferir o
 recibo e a planilha. O controlador deve validar o commit OCI, preservar estado,
 manter rollback imediato para `write-off` e nunca usar AWS.
-

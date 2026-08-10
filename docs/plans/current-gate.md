@@ -4,7 +4,7 @@ Atualizado em: 2026-08-10
 
 ## Estado
 
-`CANDIDATO DE REVALIDACAO LOCAL VERDE; AGUARDA AUDITORIA INDEPENDENTE`.
+`RECOVERY PROBATORIO LOCAL VERDE; AGUARDA REAUDITORIA INDEPENDENTE`.
 
 Producao permanece com `OPEN_FINANCE_WRITE_MODE=off`, aprovacao falsa e zero
 escrita. Nenhum deploy ou mudanca de flag faz parte do candidato local.
@@ -14,6 +14,11 @@ escrita. Nenhum deploy ou mudanca de flag faz parte do candidato local.
 Revalidar no HEAD atual a escrita de uma compra Open Finance depois de revisao
 guiada e segunda confirmacao explicita. O gate nao reimplementa o nucleo que ja
 recebeu GO; verifica sua composicao com a fila numerica adicionada depois.
+
+O primeiro auditor concluiu `ACESSO INSUFICIENTE`, sem GO. A prova publica
+acrescentada atravessa duas compras e exige escrita unica do primeiro item,
+recuperacao do recibo, abertura da revisao seguinte e ausencia de consentimento
+herdado. O codigo de produto nao mudou.
 
 ## Escopo
 
@@ -49,13 +54,15 @@ recebeu GO; verifica sua composicao com a fila numerica adicionada depois.
 ## Evidencia local
 
 - modulos causais: `94/94`;
-- handler publico, fila read-only e escrita unica com replay de recibo: `2/2`;
+- nova prova focal publica: `1/1`;
+- par publico afetado: `2/2`;
+- arquivo completo do handler financeiro publico: `130/130`;
 - suite hermetica no mesmo codigo de produto: `1592/1582/0/10`, zero falhas;
 - writer/store/politica sem diff desde os GOs independentes anteriores;
 - apenas documentos foram alterados depois da suite ampla.
 
-Manifesto:
-`docs/audit/196-open-finance-purchase-write-revalidation-candidate-2026-08-10.md`.
+Recovery:
+`docs/audit/197-open-finance-purchase-write-public-batch-proof-candidate-2026-08-10.md`.
 
 ## Critérios de GO
 
@@ -74,7 +81,7 @@ retorno imediato a `write-off` diante de qualquer incerteza.
 
 ## Proxima acao
 
-Publicar o candidato e auditar o hash. Nao ativar producao nesta ausencia de
+Publicar o recovery e reauditar o novo hash. Nao ativar producao nesta ausencia de
 Daniel.
 
 ## Referencias

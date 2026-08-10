@@ -18,20 +18,26 @@ gradual da escrita de compras Open Finance. Producao permanece inalterada.
   para revisao proativa read-only.
 - Gate 37: `GO TECNICO LOCAL INDEPENDENTE`; transferencias e reservas seguem
   para revisao proativa read-only, com principal separado de rendimento.
-- Gate 38.1: `CANDIDATO DE REVALIDACAO LOCAL VERDE; AGUARDA AUDITORIA`.
+- Gate 38.1: `RECOVERY PROBATORIO LOCAL VERDE; AGUARDA REAUDITORIA`.
 
 O nucleo ja auditado de escrita de compras permanece inalterado e aceita apenas
 `purchase/POSTED/new` nao parcelada depois de revisao guiada, revalidacao e
 segunda confirmacao. A mudanca posterior esta no handler que preserva e avanca
 a fila numerica um item por vez.
 
+O primeiro auditor terminou com `ACESSO INSUFICIENTE`, sem GO. A nova prova
+publica atravessa duas compras: grava apenas a primeira, recupera o recibo,
+avanca para a revisao da segunda e demonstra que um novo `sim` nao e herdado
+como confirmacao financeira.
+
 ## Evidencia do Gate 38.1
 
 - politica, runtime, confirmacao, conversa, finalizacao e fila: `94/94`;
 - caminhos publicos selecionados: `2/2`;
+- arquivo completo do handler financeiro publico: `130/130`;
 - suite hermetica reutilizada no mesmo codigo: `1592/1582/0/10`;
-- manifesto:
-  `docs/audit/196-open-finance-purchase-write-revalidation-candidate-2026-08-10.md`;
+- recovery:
+  `docs/audit/197-open-finance-purchase-write-public-batch-proof-candidate-2026-08-10.md`;
 - plano: `docs/plans/workstreams/open-finance-purchase-write.md`.
 
 Nenhuma flag, servidor, planilha, WhatsApp ou dado real foi alterado.
@@ -58,8 +64,8 @@ Nenhuma flag, servidor, planilha, WhatsApp ou dado real foi alterado.
 
 ## Próxima ação exata
 
-Publicar o candidato documental em hash imutavel e obter uma auditoria
-independente do codigo atual. Se houver GO, fechar somente o Gate 38.1 local.
+Publicar o recovery probatorio em novo hash e obter uma reauditoria focal. Se
+houver GO, fechar somente o Gate 38.1 local.
 Ativacao `confirm` e smoke ficam bloqueados enquanto Daniel estiver ausente.
 
 ## Capacidade para retomar
