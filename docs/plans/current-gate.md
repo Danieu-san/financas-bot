@@ -4,7 +4,7 @@ Atualizado em: 2026-08-10
 
 ## Estado
 
-`RECOVERY LOCAL VERDE APOS NO-GO; AGUARDANDO REAUDITORIA; SEM DEPLOY`.
+`GO TECNICO LOCAL INDEPENDENTE; SEM DEPLOY`.
 
 ## Objetivo
 
@@ -69,9 +69,9 @@ maximo: `GO TECNICO LOCAL; SEM DEPLOY`.
 
 ## Proxima acao
 
-Publicar o recovery sanitizado em novo hash imutavel e fazer uma unica
-reauditoria dos achados ALTO e MEDIO. Somente um `GO` pode encerrar tecnicamente
-o Gate 38.6; este gate nao autoriza deploy isoladamente.
+Preparar o gate consolidado de release das classes 38.1 a 38.6, confrontando
+hashes auditados, flags, artefato OCI, rollback e smokes por classe antes de
+qualquer promocao. O fechamento isolado deste gate nao autoriza deploy.
 
 ## Evidencia do candidato
 
@@ -83,3 +83,6 @@ o Gate 38.6; este gate nao autoriza deploy isoladamente.
 - suite hermetica ampla do recovery `1629/1619/0/10`, com skips previstos;
 - manifesto: `docs/audit/213-open-finance-investment-income-write-candidate-2026-08-10.md`.
 - recovery: `docs/audit/214-open-finance-investment-income-write-recovery-candidate-2026-08-10.md`.
+- reauditoria: achados `ALTO` e `MEDIO` fechados, zero achados residuais e
+  nenhuma lacuna causal indispensavel;
+- fechamento: `docs/audit/215-open-finance-investment-income-write-independent-close-2026-08-10.md`.

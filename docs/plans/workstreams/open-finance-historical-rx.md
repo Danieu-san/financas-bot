@@ -198,10 +198,10 @@ misturar historico, alertas, propostas e escrita financeira.
     Gate 38.5: aplicacao e resgate de reserva patrimonial, `GO tecnico local`
     independente, sem deploy (`1624/1614/0/10`, zero falhas). Preserva conta
     bancaria, reserva e impacto neutro.
-    Gate 38.6: rendimento de investimento; primeiro candidato recebeu `NO-GO`.
-    Recovery de categoria fixa e prova writer-projetor verde
-    (`1629/1619/0/10`, zero falhas), aguardando reauditoria; nao pode absorver
-    principal, aplicacao ou resgate.
+    Gate 38.6: rendimento de investimento, `GO tecnico local` independente,
+    sem deploy (`1629/1619/0/10`, zero falhas). O recovery fechou categoria
+    fixa e prova integrada writer-projetor; principal, aplicacao e resgate
+    permanecem fora.
 
 ## Criterios de GO
 

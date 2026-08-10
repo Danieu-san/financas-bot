@@ -17,9 +17,9 @@ ganho separado, sem alterar producao.
   entrada, estorno/reembolso e transferencia interna forte.
 - Gate 38.5: `GO TECNICO LOCAL INDEPENDENTE; SEM DEPLOY` para aplicacao/resgate
   de reserva (`1624/1614/0/10`, zero falhas).
-- Gate 38.6: primeiro candidato recebeu `NO-GO`; recovery de categoria fixa e
-  prova writer-projetor esta verde (`1629/1619/0/10`, zero falhas) e aguarda
-  reauditoria independente.
+- Gate 38.6: `GO TECNICO LOCAL INDEPENDENTE; SEM DEPLOY`; o recovery fechou a
+  categoria fixa e a prova writer-projetor (`1629/1619/0/10`, zero falhas),
+  sem achado ou lacuna residual.
 
 ## Fechamento do Gate 38.4
 
@@ -36,7 +36,7 @@ hermetica `1617/1607/0/10`, zero falhas. Fechamento:
 
 - worktree: `C:\Users\Administrador\AppData\Local\Temp\financas-bot-phasea-8972205`;
 - branch: `codex/open-finance-numeric-save-release`;
-- ultimo HEAD publicado: `27e0295a4f7ea1a27e4c7208a9e7ded4cf4f6492`;
+- ultimo HEAD publicado: `d946c0b90a1e0068c0a8221d5f22084d5473f90e`;
 - preservar arvores alheias ou sujas.
 
 ## Producao conhecida
@@ -50,12 +50,13 @@ hermetica `1617/1607/0/10`, zero falhas. Fechamento:
 
 ## Próxima ação exata
 
-Publicar o recovery do Gate 38.6 e obter reauditoria independente por novo hash
-imutavel.
+Registrar o fechamento independente do Gate 38.6 e preparar o gate consolidado
+de release das classes 38.1 a 38.6, sem promover producao antes da validacao
+operacional propria.
 
 ## Capacidade para retomar
 
-`Codex -> Sol -> Alto -> publicar e reauditar o recovery do Gate 38.6.`
+`Codex -> Sol -> Alto -> preparar o gate consolidado de release dos Gates 38.1 a 38.6.`
 
 ## Referencias dirigidas
 
@@ -64,6 +65,7 @@ imutavel.
 - read-only: `docs/plans/workstreams/open-finance-transfer-reserve.md`;
 - Gate 38.4: `docs/audit/209-open-finance-transfer-write-independent-close-2026-08-10.md`;
 - Gate 38.5: `docs/audit/212-open-finance-reserve-write-independent-close-2026-08-10.md`;
+- Gate 38.6: `docs/audit/215-open-finance-investment-income-write-independent-close-2026-08-10.md`;
 - finalizacao: `src/openFinance/openFinanceSaveProposalFinalization.js`;
 - deploy: `docs/runbooks/release-checklist.md`;
 - producao: `docs/runbooks/production-health.md`.
