@@ -1,6 +1,6 @@
 # Plano - RX historico e evolucao operacional Open Finance
 
-Status: `gate 34 pausado; gate 35 Fase C em REVIEWED; gates 36 a 38 ordenados`.
+Status: `gate 34 pausado; gate 35 concluido em PARTIAL_NO_GO; gates 36 a 38 ordenados`.
 
 ## Objetivo
 
@@ -144,7 +144,7 @@ misturar historico, alertas, propostas e escrita financeira.
     provar lotes independentes nos dois telefones, cutoff, processo unico,
     health e rollback sem ressuscitar backlog. O charter e
     `docs/plans/workstreams/open-finance-numeric-save-oci.md`.
-35. [revisor local com GO tecnico; proxima Fase A; dados reais bloqueados]
+35. [concluido em PARTIAL_NO_GO; Fases A-D executadas; zero escrita]
     Concluir o RX historico por revisao humana
     das ambiguidades remanescentes. Ativar de forma controlada a revisao
     numerada, consumir decisoes duraveis, recalcular o RX e separar: resolvido,
@@ -163,9 +163,13 @@ misturar historico, alertas, propostas e escrita financeira.
     `error.message` no stderr do CLI; o recovery usa codigos publicos fixos e
     possui focal `3/3`, causal `42/42` e suite ampla `1566/1556/0/10`. A
     reauditoria do hash `b8d1004f2ee216f95a7f71047f568221159573f6`
-    emitiu GO tecnico local sem lacuna residual. O proximo estado e a nova Fase
-    A local; abrir dados privados continua pertencendo as fases seguintes.
-36. [planejada; depende do gate 35] Acrescentar tratamento proativo de estornos
+    emitiu GO tecnico local sem lacuna residual. As Fases A-D locais foram
+    executadas; vinte e tres decisoes duraveis resolveram as ambiguidades
+    revisaveis, mas permaneceu
+    `daniel_nubank:investment_history_unlinked`. O RX continua nao reconciliavel
+    e sem autorizacao de importacao; classes independentes podem seguir em gates
+    proprios.
+36. [planejada; gate 35 parcial nao bloqueia classes independentes] Acrescentar tratamento proativo de estornos
     e entradas. Estorno exige vinculo forte com a compra quando esse vinculo for
     necessario para a semantica; entrada genuina exige reconciliacao com o
     ledger. Nenhum deles pode absorver transferencia interna, rendimento de

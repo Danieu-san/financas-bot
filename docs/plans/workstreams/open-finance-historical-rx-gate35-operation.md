@@ -110,6 +110,17 @@ Evidencia:
 
 ## Fase D — recalculo privado
 
+### Execucao de 2026-08-09
+
+Resultado: `partial_no_go`, `ready_for_reconciliation=false` e
+`financial_writes=0`. O snapshot novo reproduziu a identidade HMAC/RX, o store
+restaurou vinte e tres decisoes e o orquestrador auditado as aplicou. Restou
+somente `daniel_nubank:investment_history_unlinked`.
+
+Origem SQLite/WAL/SHM inalterada e relatorio privado final gravado por troca
+atomica fora do Git. Evidencia:
+`docs/audit/187-open-finance-historical-rx-gate35-phase-d-partial-no-go-2026-08-09.md`.
+
 Somente com snapshot `reviewed`, `pending_count=0` e `financial_writes=0`:
 
 1. repetir snapshot consistente da mesma origem privada;

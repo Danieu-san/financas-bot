@@ -2,6 +2,20 @@
 
 Atualizado em: 2026-08-09
 
+## Gate 35 - Fase D concluida em PARTIAL_NO_GO
+
+As vinte e tres decisoes explicitas foram consumidas no snapshot novo pelo
+orquestrador auditado. O inventario permaneceu em quatro fontes, nove segmentos,
+cinco contas, quatro cartoes e vinte e quatro investimentos. Origem inalterada,
+relatorio privado atomico e `financial_writes=0`.
+
+O unico blocker restante e `daniel_nubank:investment_history_unlinked`; o RX
+nao esta pronto para reconciliacao e nenhuma importacao historica foi
+autorizada. Evidencia:
+`docs/audit/187-open-finance-historical-rx-gate35-phase-d-partial-no-go-2026-08-09.md`.
+
+Proxima fronteira independente: Gate 36 read-only para estornos e entradas.
+
 ## Gate 35 — Fase C concluida em REVIEWED
 
 As vinte e tres pendencias receberam decisoes explicitas de Daniel sobre os

@@ -2,19 +2,19 @@
 
 Atualizado em: 2026-08-09
 
-## Gate 35 — Fase C concluida em REVIEWED
+## Gate 35 - Fase D concluida em PARTIAL_NO_GO
 
-Daniel decidiu `distinct_rows` para uma ocorrencia do Grupo 1 e
-`reserve_application` para vinte e duas ocorrencias do Grupo 2. Os conjuntos
-exatos e codigos coletivos foram validados antes de cada transacao.
+O snapshot novo reproduziu o RX revisado e o orquestrador auditado consumiu as
+vinte e tres decisoes duraveis. Inventario preservado: quatro fontes, nove
+segmentos, cinco contas, quatro cartoes e vinte e quatro investimentos.
 
-O store cifrado ficou `reviewed`, com zero pendencias; restart preservou o
-estado e o envelope original nao reabriu a revisao. HTML temporario removido e
+Restou somente `daniel_nubank:investment_history_unlinked`; por isso o RX nao
+esta pronto para reconciliacao. Origem inalterada, relatorio privado atomico e
 `financial_writes=0`. Evidencia:
-`docs/audit/186-open-finance-historical-rx-gate35-phase-c-reviewed-2026-08-09.md`.
+`docs/audit/187-open-finance-historical-rx-gate35-phase-d-partial-no-go-2026-08-09.md`.
 
-Proxima acao: Fase D read-only sobre snapshot novo; o blocker de historico de
-investimento nao ligado continua sem inferencia.
+Proxima acao: Gate 36, tratamento proativo read-only de estornos e entradas;
+o blocker historico continua preservado sem inferencia.
 
 ## Gate 35 — GO tecnico local do revisor privado
 

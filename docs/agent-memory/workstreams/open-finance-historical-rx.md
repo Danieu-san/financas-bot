@@ -2,6 +2,19 @@
 
 Atualizado em: 2026-08-09
 
+## Gate 35 - Fase D concluida em PARTIAL_NO_GO
+
+O snapshot novo confirmou a identidade do RX e as vinte e tres decisoes
+duraveis foram aplicadas pelo orquestrador auditado. O resultado manteve quatro
+fontes, nove segmentos, cinco contas, quatro cartoes e vinte e quatro
+investimentos, com origem inalterada e `financial_writes=0`.
+
+Permanece somente `daniel_nubank:investment_history_unlinked`; logo o RX nao
+esta pronto para reconciliacao. Evidencia:
+`docs/audit/187-open-finance-historical-rx-gate35-phase-d-partial-no-go-2026-08-09.md`.
+
+Proximo passo independente: Gate 36 read-only para estornos e entradas.
+
 ## Gate 35 — Fase C concluida em REVIEWED
 
 Daniel aplicou `distinct_rows` a uma ocorrencia e `reserve_application` a vinte
