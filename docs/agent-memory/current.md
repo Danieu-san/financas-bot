@@ -2,7 +2,7 @@
 
 Atualizado em: 2026-08-10
 
-## Gate 37 - recovery local verde
+## Gate 37 - GO tecnico local independente
 
 Transferencias e reservas agora geram revisao familiar read-only. Um par exige
 referencia forte compartilhada, contas bancarias distintas, sinais opostos,
@@ -13,10 +13,12 @@ generico e descricao apenas abrem revisao sem decidir.
 A primeira auditoria confirmou pareamento, familia, outbox e runtime, mas emitiu
 `NO-GO` porque o store ainda aceitava a decisao legada generica `reserve` em
 uma revisao de entrada. O recovery removeu esse valor e prova sua rejeicao sem
-terminalizar a revisao. Focal Gate 36+37: `25/25`; suite hermetica
-`1592/1582/0/10`; `financial_writes=0`.
+terminalizar a revisao. A reauditoria do hash
+`e6402d9100f09eb461d253eec5696d8ce35b351b` confirmou o fechamento do HIGH,
+sem achado novo ou lacuna causal residual. Focal Gate 36+37: `25/25`; suite
+hermetica `1592/1582/0/10`; `financial_writes=0`.
 
-Proxima acao: novo commit e reauditoria. Sem deploy.
+Proxima acao: Gate 38, escrita financeira gradual por classe. Sem deploy.
 
 ## Gate 36 - GO tecnico local independente
 

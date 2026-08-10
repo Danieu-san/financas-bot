@@ -179,7 +179,7 @@ misturar historico, alertas, propostas e escrita financeira.
     necessario para a semantica; entrada genuina exige reconciliacao com o
     ledger. Nenhum deles pode absorver transferencia interna, rendimento de
     reserva sem evidencia ou duplicidade. Primeiro prompt/revisao, sem escrita.
-37. [recovery local verde; aguarda reauditoria] Tratar transferencias e reservas
+37. [GO tecnico local independente; sem deploy] Tratar transferencias e reservas
     patrimoniais. Parear pontas somente por identidade forte e escopo de contas;
     aplicacao/resgate de Caixinha nao vira receita ou despesa, rendimento
     continua ganho e transferencia nao pareada permanece alertavel/revisavel,

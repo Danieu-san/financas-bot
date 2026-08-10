@@ -2,7 +2,7 @@
 
 Atualizado em: 2026-08-10
 
-## Gate 37 - recovery local verde
+## Gate 37 - GO tecnico local independente
 
 Par de transferencia exige referencia forte compartilhada, contas bancarias
 distintas, sinais opostos, valor exato, janela de dois dias e unicidade mutua.
@@ -11,10 +11,12 @@ descricao. Uma revisao cifrada representa o par e mostra ambas as pontas.
 
 O primeiro parecer confirmou o caminho causal, mas encontrou `reserve` generico
 ainda aceito diretamente pelo store para entrada. O recovery removeu esse valor
-e prova a rejeicao no store real. Focal combinado `25/25`, suite hermetica
+e prova a rejeicao no store real. A reauditoria do hash
+`e6402d9100f09eb461d253eec5696d8ce35b351b` confirmou o fechamento do HIGH,
+sem achado novo ou lacuna residual. Focal combinado `25/25`, suite hermetica
 `1592/1582/0/10`, com `financial_writes=0`.
 
-Proximo passo: novo hash imutavel e reauditoria independente.
+Proximo passo: Gate 38, escrita financeira gradual por classe.
 Sem deploy.
 
 ## Gate 36 - GO tecnico local independente

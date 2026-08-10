@@ -2,7 +2,7 @@
 
 Atualizado em: 2026-08-10
 
-## Gate 37 - recovery local verde
+## Gate 37 - GO tecnico local independente
 
 O tratamento read-only de transferencias e reservas foi implementado. Par
 interno exige identidade forte e unica; pontas sem essa prova continuam
@@ -13,10 +13,10 @@ O primeiro parecer foi `NO-GO`: o store aceitava `reserve` generico para uma
 entrada apesar de a conversa tipar resgate e rendimento. O recovery removeu
 essa decisao e adicionou prova de rejeicao com estado ainda pendente.
 
-Estado: `RECOVERY LOCAL VERDE; AGUARDA REAUDITORIA`.
+Estado: `GO TECNICO LOCAL INDEPENDENTE`.
 Evidencia: focal combinada `25/25`; suite hermetica `1592/1582/0/10`.
-Manifesto: `docs/audit/194-open-finance-transfer-reserve-recovery-candidate-2026-08-10.md`.
-Proxima fronteira: commit, GitHub e Chat. Sem deploy.
+Fechamento: `docs/audit/195-open-finance-transfer-reserve-independent-close-2026-08-10.md`.
+Proxima fronteira: Gate 38, escrita gradual por classe. Sem deploy.
 
 ## Gate 36 - GO tecnico local independente
 
