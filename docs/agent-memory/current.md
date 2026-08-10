@@ -4,8 +4,8 @@ Atualizado em: 2026-08-10
 
 ## Objetivo ativo
 
-Gate 38.5: implementar localmente a escrita neutra de aplicacao e resgate de
-reserva patrimonial, sem alterar producao.
+Gate 38.6: implementar localmente a escrita de rendimento de investimento como
+ganho separado, sem alterar producao.
 
 ## Estado vigente
 
@@ -15,10 +15,9 @@ reserva patrimonial, sem alterar producao.
 - Gates 36 e 37: `GO TECNICO LOCAL INDEPENDENTE`; fluxos proativos read-only.
 - Gates 38.1 a 38.4: `GO TECNICO LOCAL INDEPENDENTE; SEM DEPLOY` para compra,
   entrada, estorno/reembolso e transferencia interna forte.
-- Gate 38.5: aplicacao/resgate de reserva, candidato local verde
-  (`1624/1614/0/10`, zero falhas); a primeira auditoria terminou em `ACESSO
-  INSUFICIENTE` e o pacote focal 211 aguarda publicacao/reauditoria.
-- Gate 38.6: rendimento de investimento, enfileirado separadamente.
+- Gate 38.5: `GO TECNICO LOCAL INDEPENDENTE; SEM DEPLOY` para aplicacao/resgate
+  de reserva (`1624/1614/0/10`, zero falhas).
+- Gate 38.6: rendimento de investimento, charter local aberto.
 
 ## Fechamento do Gate 38.4
 
@@ -35,7 +34,7 @@ hermetica `1617/1607/0/10`, zero falhas. Fechamento:
 
 - worktree: `C:\Users\Administrador\AppData\Local\Temp\financas-bot-phasea-8972205`;
 - branch: `codex/open-finance-numeric-save-release`;
-- ultimo HEAD tecnico publicado: `431a0cf21d4c059925c17078209e0fae428cdcb4`;
+- ultimo HEAD publicado: `27e0295a4f7ea1a27e4c7208a9e7ded4cf4f6492`;
 - preservar arvores alheias ou sujas.
 
 ## Producao conhecida
@@ -49,12 +48,12 @@ hermetica `1617/1607/0/10`, zero falhas. Fechamento:
 
 ## Próxima ação exata
 
-Publicar o pacote focal 211 e reauditar o patch imutavel do Gate 38.5 antes de
-qualquer deploy.
+Criar a prova RED focal do Gate 38.6, separando rendimento comprovado de
+principal, aplicacao e resgate.
 
 ## Capacidade para retomar
 
-`Codex -> Sol -> Alto -> publicar e auditar o Gate 38.5.`
+`Codex -> Sol -> Alto -> implementar e validar o Gate 38.6.`
 
 ## Referencias dirigidas
 
@@ -62,6 +61,7 @@ qualquer deploy.
 - fila: `docs/plans/workstreams/open-finance-historical-rx.md`;
 - read-only: `docs/plans/workstreams/open-finance-transfer-reserve.md`;
 - Gate 38.4: `docs/audit/209-open-finance-transfer-write-independent-close-2026-08-10.md`;
+- Gate 38.5: `docs/audit/212-open-finance-reserve-write-independent-close-2026-08-10.md`;
 - finalizacao: `src/openFinance/openFinanceSaveProposalFinalization.js`;
 - deploy: `docs/runbooks/release-checklist.md`;
 - producao: `docs/runbooks/production-health.md`.
