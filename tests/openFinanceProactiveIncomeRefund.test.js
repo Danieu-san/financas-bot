@@ -381,6 +381,45 @@ test('gate 36 rejects an observation that was already expired before ingest', ()
     }
 });
 
+test('gate 36 expiry removes a decided payload while retaining terminal metadata', () => {
+    const source = item('daniel_nubank', [
+        tx('salary', 'daniel_nubank-bank', 100000, 'Salario', '2026-07-01')
+    ]);
+    const result = analyze([source], { salary: 'income_candidate' });
+    let current = new Date('2026-07-01T00:01:00.000Z');
+    const store = new OpenFinanceProactiveReviewStore({
+        secret,
+        retentionDays: 7,
+        clock: () => current
+    });
+    try {
+        const code = store.ingest({
+            reviews: result.reviews,
+            items: [source],
+            policies: [{ alias: 'daniel_nubank', principal: 'daniel', recipients: ['daniel'] }],
+            confirmationActors: [{ principal: 'daniel', whatsappId: '5511999999999@c.us' }],
+            observedAt: '2026-07-01T00:00:00.000Z'
+        }).links[0].review_code;
+        assert.equal(store.decideByCode(code, 'income', {
+            actorWhatsappId: '5511999999999@c.us'
+        }).decided, true);
+        current = new Date('2026-07-09T00:00:00.000Z');
+        assert.deepEqual(store.purgeExpired(), { expired: 1, financial_writes: 0 });
+        const raw = store.db.prepare(`SELECT encrypted_payload,payload_version,review_state,
+            decision,decided_by_ref FROM open_finance_proactive_reviews`).get();
+        assert.equal(raw.encrypted_payload, null);
+        assert.equal(raw.payload_version, null);
+        assert.equal(raw.review_state, 'expired');
+        assert.equal(raw.decision, 'income');
+        assert.match(raw.decided_by_ref, /^[a-f0-9]{32}$/);
+        assert.throws(() => store.readPrivateByCode(code, {
+            actorWhatsappId: '5511999999999@c.us'
+        }), /proactive_review_not_pending/);
+    } finally {
+        store.close();
+    }
+});
+
 test('gate 36 outbox binds one actionable semantic review without creating a save proposal', () => {
     const accountId = 'daniel_nubank-bank';
     const source = item('daniel_nubank', [

@@ -622,7 +622,7 @@ stateMachineTest('public handler consumes an eligible historical ambiguity reply
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
 });
 
-stateMachineTest('public handler consumes one explicit Gate 36 review before every financial writer', async () => {
+stateMachineTest('public handler consumes one explicit Gate 36 review ahead of active financial state and every writer', async () => {
     resetState();
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-public-gate36-review-'));
     const databasePath = path.join(directory, 'preview.sqlite');
@@ -665,12 +665,16 @@ stateMachineTest('public handler consumes one explicit Gate 36 review before eve
     process.env.OPEN_FINANCE_LIVE_STAGING_SECRET_FILE = secretPath;
     process.env.OPEN_FINANCE_SHADOW_PREVIEW_DB = databasePath;
     try {
+        userStateManager.setState(SENDER, {
+            action: 'awaiting_payment_method',
+            data: { amount: 99, description: 'must not be written' }
+        });
         const msg = createMockMessage(`revisar ${code} entrada`);
         await handleMessage(msg);
         assert.match(msg.replies.at(-1), /Decisão registrada para futura conferência/);
         assert.strictEqual(appendedRows.length, 0);
         assert.strictEqual(structuredResponses.length, 0);
-        assert.strictEqual(userStateManager.getState(SENDER), undefined);
+        assert.strictEqual(userStateManager.getState(SENDER).action, 'awaiting_payment_method');
         const reopened = new OpenFinanceProactiveReviewStore({ databasePath, secret });
         try {
             assert.strictEqual(reopened.stats().decided, 1);

@@ -1,6 +1,13 @@
 # Gate 36 — revisão proativa read-only de entradas e estornos
 
-Atualizado em: 2026-08-09
+Atualizado em: 2026-08-10
+
+Estado: `RECOVERY LOCAL VERDE; AGUARDA REAUDITORIA INDEPENDENTE`.
+
+O primeiro parecer independente encontrou duas lacunas: o comando explicito
+ficava atras de um estado financeiro ativo e a expiracao nao removia payload de
+revisao ja decidida. O recovery roteia o comando antes da maquina de estados e
+purga payload cifrado em `pending` e `decided`, com provas focais e publicas.
 
 ## Objetivo
 

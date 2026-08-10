@@ -174,7 +174,7 @@ misturar historico, alertas, propostas e escrita financeira.
     reconstruir a serie temporal ausente. O saldo atual agregado declarado zero
     foi aceito como baseline prospectivo de 2026-08-09; a investigacao historica
     foi encerrada sem inferencia adicional.
-36. [candidato local verde; aguarda auditoria independente] Acrescentar tratamento proativo de estornos
+36. [recovery local verde; aguarda reauditoria independente] Acrescentar tratamento proativo de estornos
     e entradas. Estorno exige vinculo forte com a compra quando esse vinculo for
     necessario para a semantica; entrada genuina exige reconciliacao com o
     ledger. Nenhum deles pode absorver transferencia interna, rendimento de

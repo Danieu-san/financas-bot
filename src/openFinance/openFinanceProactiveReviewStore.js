@@ -197,17 +197,19 @@ class OpenFinanceProactiveReviewStore {
     purgeExpired() {
         const now = this.#now();
         const rows = this.db.prepare(`SELECT * FROM open_finance_proactive_reviews
-            WHERE family_scope_ref=? AND review_state='pending' AND expires_at<=?`)
+            WHERE family_scope_ref=? AND review_state IN ('pending','decided') AND expires_at<=?`)
             .all(this.familyScopeRef, now);
         const update = this.db.prepare(`UPDATE open_finance_proactive_reviews
             SET encrypted_payload=NULL,payload_version=NULL,review_state='expired',
                 updated_at=?,completed_at=?,state_mac=?
-            WHERE review_ref=? AND review_state='pending'`);
+            WHERE review_ref=? AND review_state IN ('pending','decided')`);
         this.db.transaction(() => {
             for (const row of rows) {
                 this.#assertRow(row);
-                const next = { ...row, review_state: 'expired', updated_at: now, completed_at: now };
-                update.run(now, now, this.#stateMac(next), row.review_ref);
+                const completedAt = row.completed_at || now;
+                const next = { ...row, review_state: 'expired', updated_at: now,
+                    completed_at: completedAt };
+                update.run(now, completedAt, this.#stateMac(next), row.review_ref);
             }
         })();
         this.#hardenFiles();

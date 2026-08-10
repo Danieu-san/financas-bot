@@ -1,22 +1,22 @@
 # Estado atual portatil do FinancasBot
 
-Atualizado em: 2026-08-09
+Atualizado em: 2026-08-10
 
-## Gate 36 - candidato local verde
+## Gate 36 - recovery local verde
 
-O tratamento proativo read-only de entradas e estornos foi implementado com
-reconciliacao obrigatoria, neutralizacao de compra ainda nao salva mais estorno
-integral, revisao cifrada familiar e comandos explicitos por codigo opaco.
-Transferencias possiveis e semantica de Caixinha/reserva permanecem adiadas ao
-Gate 37. Nenhuma escrita financeira foi habilitada.
+O primeiro hash recebeu `NO-GO` independente: o comando explicito nao precedia
+um estado financeiro ativo e revisoes ja decididas conservavam payload cifrado
+depois da expiracao. O recovery moveu o roteamento explicito para antes da
+maquina de estados e passou a expirar payloads `pending` e `decided`, mantendo
+somente metadados terminais autenticados. Nenhuma escrita foi habilitada.
 
-Evidencia: focal `13/13`, baterias causais `62/62` e `69/69`, maquina de
-estados publica `130/130` e suite hermetica ampla `1580/1570/0/10`, com zero
-falhas e os dez skips previstos. Cobertura de linhas `90,93%`.
-Manifesto: `docs/audit/190-open-finance-proactive-income-refund-candidate-2026-08-09.md`.
+Evidencia de recovery: focal `14/14`, caso publico adversarial `1/1`, maquina
+de estados completa `130/130` e suite hermetica `1581/1571/0/10`, com zero
+falhas e os dez skips previstos. Cobertura de linhas `90,94%`.
+Manifesto: `docs/audit/191-open-finance-proactive-income-refund-recovery-candidate-2026-08-10.md`.
 
-Proxima acao: commit sanitizado, publicacao e auditoria independente por hash
-imutavel. Sem deploy.
+Proxima acao: publicacao e reauditoria independente por novo hash imutavel.
+Sem deploy.
 
 ## Gate 35 - Fase D concluida em PARTIAL_NO_GO
 

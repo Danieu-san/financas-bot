@@ -9212,6 +9212,15 @@ async function processMessage(msg) {
         }
     }
 
+    const proactiveReviewReply = tryHandleOpenFinanceProactiveReviewReply({
+        actorWhatsappId: senderId,
+        body: messageBody
+    });
+    if (proactiveReviewReply.handled) {
+        await sendPlainMessage(msg, proactiveReviewReply.reply);
+        return;
+    }
+
     let currentState = getConversationStateForMessage(senderId, activeUser);
     if (!currentState) {
         const historicalReviewReply = tryHandleOpenFinanceHistoricalAmbiguityReply({
@@ -9221,14 +9230,6 @@ async function processMessage(msg) {
         });
         if (historicalReviewReply.handled) {
             await sendPlainMessage(msg, historicalReviewReply.reply);
-            return;
-        }
-        const proactiveReviewReply = tryHandleOpenFinanceProactiveReviewReply({
-            actorWhatsappId: senderId,
-            body: messageBody
-        });
-        if (proactiveReviewReply.handled) {
-            await sendPlainMessage(msg, proactiveReviewReply.reply);
             return;
         }
     }

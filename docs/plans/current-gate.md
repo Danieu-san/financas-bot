@@ -1,21 +1,23 @@
 # Gate ativo — PROD-ACT-01 ativação funcional Open Finance
 
-Atualizado em: 2026-08-09
+Atualizado em: 2026-08-10
 
-## Gate 36 - candidato local verde
+## Gate 36 - recovery local verde
 
 Entrada genuina e estorno `POSTED/new` agora seguem para revisao proativa
 read-only. Ponta oposta em outra conta familiar e sinais de Caixinha/reserva
 ficam adiados ao Gate 37. Compra ainda nao salva mais estorno integral sao
 neutralizados sem criar receita, despesa ou proposta concorrente.
 
-O store cifrado e terminal sobrevive a restart; ambos os membros autorizados da
-familia usam `revisar <codigo> ...`, sem `sim` ambiguo. Expiracao e conflito
-falham fechado. Evidencia local: `13/13`, `62/62`, `69/69`, `130/130` e suite
-hermetica ampla `1580/1570/0/10`, com zero falhas e dez skips previstos.
+O primeiro parecer independente apontou que o comando explicito nao precedia
+estado financeiro ativo e que payload decidido nao era removido na expiracao.
+O recovery fecha ambas as lacunas: roteamento antes da maquina de estados e
+purga de `pending` e `decided`. Evidencia focal `14/14`, adversarial publico
+`1/1`, maquina de estados `130/130` e suite hermetica `1581/1571/0/10`, sem
+falhas e com dez skips previstos.
 
-Estado: `CANDIDATO LOCAL VERDE; AGUARDA AUDITORIA INDEPENDENTE`.
-Manifesto: `docs/audit/190-open-finance-proactive-income-refund-candidate-2026-08-09.md`.
+Estado: `RECOVERY LOCAL VERDE; AGUARDA REAUDITORIA INDEPENDENTE`.
+Manifesto: `docs/audit/191-open-finance-proactive-income-refund-recovery-candidate-2026-08-10.md`.
 Proxima fronteira: commit, GitHub e Chat. Sem deploy.
 
 ## Gate 35 - Fase D concluida em PARTIAL_NO_GO
