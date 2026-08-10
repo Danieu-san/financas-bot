@@ -4,7 +4,7 @@ Atualizado em: 2026-08-10
 
 ## Estado
 
-`RECOVERY LOCAL VERDE APOS NO-GO; AGUARDANDO REAUDITORIA; SEM DEPLOY`.
+`GO TECNICO LOCAL DE RELEASE; PREFLIGHT OCI AUTORIZADO; SEM DEPLOY`.
 
 ## Objetivo
 
@@ -66,9 +66,9 @@ OCI, preservando escrita desligada na promocao e separando a ativacao
 
 ## Proxima acao
 
-Publicar o recovery em hash imutavel, reconstruir e verificar o artefato e
-reauditar somente os dois achados ALTO. Somente um `GO` permite iniciar o
-preflight operacional OCI.
+Registrar o fechamento independente e executar somente o preflight operacional
+OCI: redescoberta read-only e backup/restore isolado. Upload, prepare, restart,
+promocao e ativacao dependem do resultado factual desse preflight.
 
 ## Evidencia candidata
 
@@ -78,3 +78,4 @@ preflight operacional OCI.
 - artefato OCI: `886` arquivos e hash interno confirmado;
 - manifesto: `docs/audit/216-open-finance-reviewed-write-release-candidate-2026-08-10.md`.
 - recovery: `docs/audit/217-open-finance-reviewed-write-release-recovery-candidate-2026-08-10.md`.
+- fechamento: `docs/audit/218-open-finance-reviewed-write-release-independent-close-2026-08-10.md`.
