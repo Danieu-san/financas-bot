@@ -249,6 +249,15 @@ temporario foi removido. A resposta unica a `admin stats` prova o novo runtime,
 mas o fechamento funcional ainda exige uma compra real `POSTED/new` produzir o
 lote numerado nos dois telefones, com selecao/revisao e zero escrita.
 
-Depois do GO independente do gate 33, seguir estritamente 34 -> 35 -> 36 -> 37
--> 38. Nenhum GO autoriza automaticamente o gate seguinte, uma nova classe ou
-escrita em producao.
+39. [deploy e ativacao OCI concluidos; smoke financeiro real pendente] O hash
+`38aa275d5928ffe350215727f158e962ff78a999` consolidou as escritas revisadas
+dos Gates 38.1 a 38.6, foi auditado, promovido sem rollback e ativado somente
+pelo controlador em `prompt/confirm/true`. Health local e publico, WhatsApp,
+Google, read-model e SQLite ficaram verdes. O acesso SSH temporario foi
+removido. O fechamento funcional exige uma movimentacao real elegivel,
+revisao individual de Daniel, segundo consentimento, efeito unico e recibo.
+
+Depois do GO independente do gate 33, a sequencia autorizada foi 34 -> 35 ->
+36 -> 37 -> 38 -> 39. O smoke real do Gate 34 continua pausado e o smoke
+financeiro do Gate 39 permanece pendente; nenhum GO autoriza nova classe sem a
+propria evidencia.

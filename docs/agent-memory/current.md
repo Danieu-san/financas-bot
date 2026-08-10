@@ -4,8 +4,8 @@ Atualizado em: 2026-08-10
 
 ## Objetivo ativo
 
-Gate 39: consolidar e auditar o release OCI das escritas revisadas dos Gates
-38.1 a 38.6, antes de qualquer promocao ou ativacao.
+Finalizar o smoke financeiro real do Gate 39 já promovido e ativado na OCI,
+sem fabricar transação nem decidir a revisão em nome de Daniel.
 
 ## Estado vigente
 
@@ -24,7 +24,10 @@ Gate 39: consolidar e auditar o release OCI das escritas revisadas dos Gates
   controlador. O recovery agora exige `prompt/off/false` antes de `confirm` e
   mantem `write-off` disponivel sob degradacao; focal `13/13` e ampla
   `1630/1620/0/10`, zero falhas. A reauditoria emitiu `GO TECNICO LOCAL DE
-  RELEASE`, zero achados e nenhuma lacuna antes do preflight OCI.
+  RELEASE`, zero achados e nenhuma lacuna. O hash
+  `38aa275d5928ffe350215727f158e962ff78a999` foi promovido e ativado em
+  `prompt/confirm/true`, com health local/público verde e sem rollback. Resta o
+  smoke financeiro real com revisão e segundo consentimento de Daniel.
 
 ## Fechamento do Gate 38.4
 
@@ -41,33 +44,30 @@ hermetica `1617/1607/0/10`, zero falhas. Fechamento:
 
 - worktree: `C:\Users\Administrador\AppData\Local\Temp\financas-bot-phasea-8972205`;
 - branch: `codex/open-finance-numeric-save-release`;
-- ultimo HEAD publicado: `d946c0b90a1e0068c0a8221d5f22084d5473f90e`;
+- checkpoint anterior a este fechamento: `88e5611a836d74a7be16dce660ecfe6937ed20b0`;
 - preservar arvores alheias ou sujas.
 
 ## Producao conhecida
 
 - provedor vigente: Oracle/OCI; AWS nao participa de deploy ou rollback;
-- ultimo release documentado: `1a1630949cf6acb301a2a054e61987d1cf516fb4`;
-- proposta `prompt`, write `off`, aprovacao falsa;
-- Daniel esta ausente, mas autorizou consultas e alteracoes externas e deploy
-  OCI somente depois de `GO` independente. Nenhuma promocao pode preceder o
-  parecer; AWS permanece fora do fluxo.
+- release vigente: `38aa275d5928ffe350215727f158e962ff78a999`;
+- proposta `prompt`, write `confirm`, aprovacao verdadeira;
+- health local e publico verdes; WhatsApp `ready/healthy`, Google e cron
+  prontos;
+- regra SSH temporaria removida e porta 22 fechada externamente;
+- rollback operacional: estágio `write-off` e release OCI anterior
+  `09b6dab6e679ce28202cb87f83d38549f64e6ae8`;
+- AWS permanece fora do fluxo.
 
 ## Próxima ação exata
 
-Registrar o fechamento do Gate 39 e executar somente o preflight operacional
-OCI, preservando a sequencia promocao inerte, health, ativacao `confirm` e
-rollback `write-off`.
-
-Tentativa de 2026-08-10: a chave SSH permanente e a configuracao do host foram
-localizadas; a porta 22 esta fechada e nao existe tunel local. A sessao da
-console OCI expirou e pede senha, enquanto o Chrome nao possui aba OCI
-autenticada. Nenhuma regra, comando remoto, upload, restart ou deploy ocorreu.
-Retomar depois que Daniel autenticar a console OCI no navegador interno.
+Aguardar uma movimentacao real elegivel. Daniel deve revisar o lote numerado,
+selecionar o item e fornecer o segundo consentimento. Em seguida, verificar um
+unico efeito financeiro e recibo. Qualquer divergencia exige `write-off`.
 
 ## Capacidade para retomar
 
-`Codex -> Sol -> Alto -> executar o preflight operacional OCI do Gate 39.`
+`Codex -> Sol -> Alto -> executar e validar o smoke financeiro real do Gate 39.`
 
 ## Referencias dirigidas
 
@@ -80,6 +80,7 @@ Retomar depois que Daniel autenticar a console OCI no navegador interno.
 - Gate 39: `docs/audit/216-open-finance-reviewed-write-release-candidate-2026-08-10.md`;
 - recovery Gate 39: `docs/audit/217-open-finance-reviewed-write-release-recovery-candidate-2026-08-10.md`;
 - fechamento Gate 39: `docs/audit/218-open-finance-reviewed-write-release-independent-close-2026-08-10.md`;
+- producao Gate 39: `docs/audit/219-open-finance-reviewed-write-release-production-activation-2026-08-10.md`;
 - finalizacao: `src/openFinance/openFinanceSaveProposalFinalization.js`;
 - deploy: `docs/runbooks/release-checklist.md`;
 - producao: `docs/runbooks/production-health.md`.

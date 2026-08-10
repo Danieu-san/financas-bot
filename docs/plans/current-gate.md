@@ -4,7 +4,7 @@ Atualizado em: 2026-08-10
 
 ## Estado
 
-`GO TECNICO LOCAL DE RELEASE; PREFLIGHT OCI BLOQUEADO POR LOGIN; SEM DEPLOY`.
+`GO OPERACIONAL DE DEPLOY E ATIVACAO; SMOKE FINANCEIRO REAL PENDENTE`.
 
 ## Objetivo
 
@@ -66,17 +66,17 @@ OCI, preservando escrita desligada na promocao e separando a ativacao
 
 ## Proxima acao
 
-Retomar a sessao autenticada da console OCI, abrir acesso SSH temporario
-limitado ao IP atual `/32` e executar o preflight read-only e o backup/restore
-isolado. A chave permanente esta disponivel localmente e a porta 22 permanece
-fechada. Nenhuma regra, upload, restart ou deploy ocorreu nesta tentativa.
+Aguardar uma movimentacao real elegivel, conferir o lote numerado, selecionar
+um item e obter o segundo consentimento de Daniel. Validar um unico efeito e
+recibo. Se qualquer invariavel falhar, usar o controlador para `write-off`.
 
 ## Evidencia candidata
 
-- produto/artefato: `17471ba8a6ec8df737ea97c45ff9d19c01b84b87`;
+- produto/artefato promovido: `38aa275d5928ffe350215727f158e962ff78a999`;
 - suite ampla final do recovery: `1630/1620/0/10`, zero falhas;
 - ativacao, instalador OCI, contrato de ambiente e audit offline: verdes;
-- artefato OCI: `886` arquivos e hash interno confirmado;
+- artefato OCI: `888` arquivos e hash interno confirmado;
 - manifesto: `docs/audit/216-open-finance-reviewed-write-release-candidate-2026-08-10.md`.
 - recovery: `docs/audit/217-open-finance-reviewed-write-release-recovery-candidate-2026-08-10.md`.
 - fechamento: `docs/audit/218-open-finance-reviewed-write-release-independent-close-2026-08-10.md`.
+- producao e ativacao: `docs/audit/219-open-finance-reviewed-write-release-production-activation-2026-08-10.md`.
