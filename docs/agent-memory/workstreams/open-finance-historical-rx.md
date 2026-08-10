@@ -13,6 +13,12 @@ Permanece somente `daniel_nubank:investment_history_unlinked`; logo o RX nao
 esta pronto para reconciliacao. Evidencia:
 `docs/audit/187-open-finance-historical-rx-gate35-phase-d-partial-no-go-2026-08-09.md`.
 
+Daniel declarou que todas as posicoes Nubank Daniel sao Caixinhas. A topologia
+privada confirmou vinte e quatro posicoes modeladas pelo provedor como CDB, mas
+todas sem historico disponivel e com zero linhas ligadas. Isso fecha a natureza
+economica como reserva, nao o historico ausente. Evidencia:
+`docs/audit/188-open-finance-caixinha-declaration-investment-history-diagnosis-2026-08-09.md`.
+
 Proximo passo independente: Gate 36 read-only para estornos e entradas.
 
 ## Gate 35 — Fase C concluida em REVIEWED

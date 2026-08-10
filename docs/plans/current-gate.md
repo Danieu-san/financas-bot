@@ -14,6 +14,12 @@ nao esta pronto para reconciliacao e nenhuma importacao historica foi
 autorizada. Evidencia:
 `docs/audit/187-open-finance-historical-rx-gate35-phase-d-partial-no-go-2026-08-09.md`.
 
+Declaracao posterior de Daniel: todas as posicoes Nubank Daniel sao Caixinhas.
+O snapshot confirma vinte e quatro posicoes modeladas como CDB, todas com
+historico indisponivel e zero linhas ligadas. A semantica de reserva esta
+fixada, mas o blocker temporal permanece. Evidencia:
+`docs/audit/188-open-finance-caixinha-declaration-investment-history-diagnosis-2026-08-09.md`.
+
 Proxima fronteira independente: Gate 36 read-only para estornos e entradas.
 
 ## Gate 35 — Fase C concluida em REVIEWED

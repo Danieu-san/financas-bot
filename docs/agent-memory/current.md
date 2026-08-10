@@ -13,6 +13,13 @@ esta pronto para reconciliacao. Origem inalterada, relatorio privado atomico e
 `financial_writes=0`. Evidencia:
 `docs/audit/187-open-finance-historical-rx-gate35-phase-d-partial-no-go-2026-08-09.md`.
 
+Daniel declarou que todas as vinte e quatro posicoes Nubank Daniel sao
+Caixinhas. A leitura privada confirmou que o provedor as modela como CDB, mas
+as vinte e quatro possuem historico indisponivel e zero linhas ligadas. A
+declaracao resolve a semantica de reserva, nao a reconstrucao temporal; o
+blocker permanece. Evidencia:
+`docs/audit/188-open-finance-caixinha-declaration-investment-history-diagnosis-2026-08-09.md`.
+
 Proxima acao: Gate 36, tratamento proativo read-only de estornos e entradas;
 o blocker historico continua preservado sem inferencia.
 
