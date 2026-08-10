@@ -2,6 +2,30 @@
 
 Atualizado em: 2026-08-10
 
+## Gate 38.5 - charter local
+
+A proxima classe e somente movimento de reserva: decisoes duraveis
+`reserve_application` e `reserve_redemption`, revalidadas contra a fonte atual,
+viram uma unica transferencia patrimonial entre a conta bancaria e a reserva.
+Principal nunca vira receita, despesa ou verba livre. Rendimento permanece fora
+deste gate e sera tratado separadamente no Gate 38.6.
+
+Producao segue write `off`; nao ha deploy ou smoke enquanto Daniel estiver
+ausente.
+
+## Gate 38.4 - GO tecnico local independente
+
+O candidato de transferencia interna recebeu `NO-GO` por uma unica assimetria:
+a geracao da contraparte era consultada no journal imediatamente antes da
+escrita, mas a ancora dependia de limpeza externa. O recovery
+`431a0cf21d4c059925c17078209e0fae428cdcb4` adicionou a consulta primaria e
+um teste pelo carregamento padrao da funcao publica.
+
+A reauditoria confirmou `GO TECNICO LOCAL`, zero achados e nenhuma lacuna
+residual. Evidencia final: focal `8/8`, causal `39/39`, caminho publico `1/1` e
+suite hermetica `1617/1607/0/10`, zero falhas. Fechamento:
+`docs/audit/209-open-finance-transfer-write-independent-close-2026-08-10.md`.
+
 ## Gate 38.2 - charter local
 
 A proxima classe e somente entrada genuina: revisao Gate 36 decidida como

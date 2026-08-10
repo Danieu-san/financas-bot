@@ -1,4 +1,4 @@
-# Gate ativo - Gate 38.4 escrita de transferencia interna pareada
+# Gate ativo - Gate 38.5 escrita de aplicacao e resgate de reserva
 
 Atualizado em: 2026-08-10
 
@@ -8,37 +8,39 @@ Atualizado em: 2026-08-10
 
 ## Objetivo
 
-Permitir escrita gradual somente de transferencia interna `POSTED/new` cujas
-duas pontas tenham sido fortemente pareadas e confirmadas de forma duravel,
-preservando origem, destino e impacto patrimonial neutro.
+Permitir escrita gradual somente de movimentos `POSTED/new` decididos de forma
+duravel como `reserve_application` ou `reserve_redemption`, preservando
+principal e neutralidade patrimonial.
 
 ## Escopo
 
-Promocao da decisao duravel `confirm_transfer_pair`, proposta cifrada,
-conferencia guiada, revalidacao das duas pontas e uma unica linha na aba de
-transferencias, somente em testes locais.
+- aplicacao: uma transferencia unica da conta bancaria para a reserva;
+- resgate: uma transferencia unica da reserva para a conta bancaria;
+- selecao explicita da conta financeira e da reserva inequivoca;
+- revalidacao da fonte, decisao, geracao, catalogo e semantica antes do segundo
+  `sim`;
+- recibo canonico neutro e idempotencia em replay, restart e resultado incerto;
+- somente testes locais.
 
 ## Origem autorizada
 
-- revisao Gate 37 com `review_kind=transfer`;
-- decisao terminal `confirm_transfer_pair` para o unico par forte apresentado;
-- duas pontas atuais `POSTED/new`, uma debito e outra credito de mesmo valor;
-- mesma familia autorizada e duas contas financeiras inequivocas;
-- identidade forte do par, sem inferencia por descricao.
+- revisao Gate 37 com `review_kind=reserve`;
+- decisao terminal `reserve_application` ou `reserve_redemption`;
+- fonte atual `POSTED/new`, sem mudanca de direcao ou valor;
+- semantica fornecida pelo provedor ou confirmada explicitamente na revisao;
+- conta bancaria e reserva pertencentes ao escopo familiar autorizado.
 
-Transferencia nao pareada, `reject_transfer_pair`, `uncertain`, conta ausente,
-cartao, pagamento de fatura, aplicacao/resgate de Caixinha, rendimento, entrada
-genuina ou despesa permanecem inelegiveis.
+Rendimento, movimento generico, descricao isolada, transferencia familiar,
+pagamento de fatura, cartao, entrada genuina ou despesa permanecem inelegiveis.
 
 ## Invariantes
 
-1. Confirmar o par semantico nao constitui consentimento financeiro.
-2. Primeiro aceite e conferencia mantem zero escrita.
-3. Fonte, revisao, par e catalogo sao relidos antes do prompt final.
-4. Origem e destino sao contas distintas, autorizadas e nunca intercambiadas.
-5. Uma transferencia gera um unico registro com origem e destino, nao duas
-   receitas/despesas.
-6. Impacto liquido em receita/despesa e verba livre permanece zero.
+1. A primeira decisao e a conferencia mantem zero escrita.
+2. Aplicacao e resgate nunca viram receita, despesa ou verba livre.
+3. Cada movimento gera uma unica linha em `Transferencias`.
+4. A direcao conta->reserva ou reserva->conta nunca pode ser invertida.
+5. Conta e reserva devem existir, estar autorizadas e ser distintas.
+6. Fonte, geracao, revisao, catalogo e reconciliacao sao relidos no final.
 7. Somente o segundo `sim` pode chamar o writer.
 8. Operation key, recibo, replay, restart e resultado incerto preservam no
    maximo uma tentativa de append.
@@ -46,25 +48,26 @@ genuina ou despesa permanecem inelegiveis.
 
 ## Nao escopo
 
-- transferencia sem par forte ou entre fontes fora do escopo familiar;
-- Caixinha, reserva, rendimento, pagamento de fatura, cartao ou PIX externo;
-- alteracao de flags, deploy, restart, Sheets, Pluggy ou WhatsApp reais.
+- rendimento de investimento, reservado ao Gate 38.6;
+- reconstruir o historico de Caixinhas bloqueado no Gate 35;
+- alterar flags, deployar, reiniciar ou acessar Sheets, Pluggy e WhatsApp reais.
 
 ## Criterios de GO
 
-Teste RED/focal, caminho publico, regressao de compra/entrada/reembolso, uma
-suite hermetica ampla final quando o candidato estabilizar, hash imutavel e
-auditoria independente. Estado maximo: `GO TECNICO LOCAL; SEM DEPLOY`.
+Teste RED/focal, caminho publico, regressao das classes anteriores, uma unica
+suite hermetica ampla final, hash imutavel e auditoria independente. Estado
+maximo: `GO TECNICO LOCAL; SEM DEPLOY`.
 
 ## Condicoes de parada
 
-- ausencia de duas pontas atuais, contas inequivocas ou identidade forte;
-- qualquer gravacao dupla ou impacto em receita, despesa ou verba livre;
-- segunda tentativa de append no replay ou restart;
-- regressao de classe anterior, falha de teste ou NO-GO independente;
+- semantica, direcao, conta ou reserva ambiguas;
+- principal absorvido por receita/despesa ou escrita dupla;
+- segunda tentativa de append em replay/restart;
+- regressao anterior, falha de teste ou `NO-GO` independente;
 - qualquer mutacao de producao enquanto Daniel estiver ausente.
 
 ## Proxima acao
 
-Mapear a decisao `confirm_transfer_pair` e o contrato atual de escrita de
-`Transferencias`, definir o teste RED causal e implementar somente o Gate 38.4.
+Mapear as decisoes `reserve_application` e `reserve_redemption`, o catalogo de
+reservas e o contrato neutro de `Transferencias`; depois criar o teste RED
+causal e implementar somente o Gate 38.5.

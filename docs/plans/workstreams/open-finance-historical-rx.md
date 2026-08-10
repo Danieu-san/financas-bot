@@ -193,8 +193,12 @@ misturar historico, alertas, propostas e escrita financeira.
     independente (`1599/1589/0/10`, zero falhas), sem deploy.
     Gate 38.3: estorno/reembolso fortemente vinculado, `GO tecnico local`
     independente, sem deploy (`1608/1598/0/10`, zero falhas).
-    Gate 38.4: transferencia interna fortemente pareada, objetivo local ativo;
-    deve preservar origem/destino, neutralidade patrimonial e escrita unica.
+    Gate 38.4: transferencia interna fortemente pareada, `GO tecnico local`
+    independente, sem deploy (`1617/1607/0/10`, zero falhas).
+    Gate 38.5: aplicacao e resgate de reserva patrimonial, objetivo local ativo;
+    devem preservar a conta bancaria, a reserva e impacto neutro.
+    Gate 38.6: rendimento de investimento, enfileirado separadamente como ganho;
+    nao pode absorver principal, aplicacao ou resgate.
 
 ## Criterios de GO
 

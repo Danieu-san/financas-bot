@@ -4,76 +4,61 @@ Atualizado em: 2026-08-10
 
 ## Objetivo ativo
 
-Gate 38.4: implementar localmente a escrita de transferencia interna fortemente
-pareada, sem alterar producao.
+Gate 38.5: implementar localmente a escrita neutra de aplicacao e resgate de
+reserva patrimonial, sem alterar producao.
 
 ## Estado vigente
 
-- Gate 34: pausado por decisao de Daniel; retomar no smoke de uma compra
-  `POSTED/new` elegivel.
-- Gate 35: `PARTIAL_NO_GO`; RX historico nao reconciliavel por ausencia do
-  historico vinculavel das Caixinhas. Baseline prospectivo zero em 2026-08-09;
-  sem importacao historica adicional.
-- Gate 36: `GO TECNICO LOCAL INDEPENDENTE`; entradas e estornos read-only.
-- Gate 37: `GO TECNICO LOCAL INDEPENDENTE`; transferencias e reservas read-only.
-- Gate 38.1: compra, `GO TECNICO LOCAL INDEPENDENTE; SEM DEPLOY`.
-- Gate 38.2: entrada genuina, `GO TECNICO LOCAL INDEPENDENTE; SEM DEPLOY`.
-- Gate 38.3: estorno/reembolso fortemente vinculado,
-  `GO TECNICO LOCAL INDEPENDENTE; SEM DEPLOY`.
-- Gate 38.4: transferencia interna fortemente pareada,
-  `CHARTER LOCAL; SEM IMPLEMENTACAO; SEM DEPLOY`.
+- Gate 34: pausado; smoke real de compra `POSTED/new` ainda pendente.
+- Gate 35: `PARTIAL_NO_GO`; historico de Caixinhas nao reconstruivel, baseline
+  prospectivo zero desde 2026-08-09.
+- Gates 36 e 37: `GO TECNICO LOCAL INDEPENDENTE`; fluxos proativos read-only.
+- Gates 38.1 a 38.4: `GO TECNICO LOCAL INDEPENDENTE; SEM DEPLOY` para compra,
+  entrada, estorno/reembolso e transferencia interna forte.
+- Gate 38.5: aplicacao/resgate de reserva, `CHARTER LOCAL; SEM IMPLEMENTACAO`.
+- Gate 38.6: rendimento de investimento, enfileirado separadamente.
 
-## Fechamento do Gate 38.3
+## Fechamento do Gate 38.4
 
-O candidato funcional e dois recoveries fecharam a escrita negativa no mesmo
-cartao da compra original ou o reembolso na mesma conta bancaria. Conta e
-cartao nao sao intercambiaveis; o recibo canonico mantem `refund_pair` e nao
-cria receita genuina ou verba livre.
+O recovery `431a0cf21d4c059925c17078209e0fae428cdcb4` fechou a unica lacuna do
+primeiro parecer: agora as geracoes da ancora e da contraparte sao consultadas
+simetricamente no journal antes da escrita. A reauditoria emitiu `GO TECNICO
+LOCAL`, zero achados e nenhuma lacuna indispensavel.
 
-O ultimo recovery falha fechado quando estados de revisao ou confirmacao final
-nao possuem `proposalRef`, antes de qualquer descoberta global. A auditoria do
-pacote focal `718b93fd7f4d42e43c5a020ed774067a772cdabc` emitiu `GO TECNICO LOCAL`,
-com zero achados em todas as severidades e nenhuma lacuna indispensavel.
-
-Evidencia local final: caminhos publicos `2/2`, bateria causal `61/61`, suite
-hermetica `1608/1598/0/10`, zero falhas, linhas `91,09%`. Fechamento:
-`docs/audit/206-open-finance-refund-write-independent-close-2026-08-10.md`.
+Evidencia final: focal `8/8`, causal `39/39`, caminho publico `1/1` e suite
+hermetica `1617/1607/0/10`, zero falhas. Fechamento:
+`docs/audit/209-open-finance-transfer-write-independent-close-2026-08-10.md`.
 
 ## Git e workspace
 
-- worktree ativa:
-  `C:\Users\Administrador\AppData\Local\Temp\financas-bot-phasea-8972205`;
+- worktree: `C:\Users\Administrador\AppData\Local\Temp\financas-bot-phasea-8972205`;
 - branch: `codex/open-finance-numeric-save-release`;
-- ultimo HEAD publicado antes do fechamento documental:
-  `718b93fd7f4d42e43c5a020ed774067a772cdabc`;
+- ultimo HEAD tecnico publicado: `431a0cf21d4c059925c17078209e0fae428cdcb4`;
 - preservar arvores alheias ou sujas.
 
 ## Producao conhecida
 
 - provedor vigente: Oracle/OCI; AWS nao participa de deploy ou rollback;
 - ultimo release documentado: `1a1630949cf6acb301a2a054e61987d1cf516fb4`;
-- estado documentado: proposta `prompt`, write `off`, aprovacao falsa;
-- nao executar Git no diretorio de producao: usar artefato imutavel, checksum e
-  rollback;
+- proposta `prompt`, write `off`, aprovacao falsa;
 - Daniel esta ausente: nenhum deploy, flag, restart, smoke real, Sheets,
   WhatsApp ou Pluggy.
 
 ## Proxima acao exata
 
-Mapear a decisao duravel `confirm_transfer_pair`, o contrato da aba
-`Transferencias` e o recibo canonico neutro; depois criar o teste RED e
-implementar somente o Gate 38.4.
+Mapear decisoes de reserva, catalogo de Caixinhas e projecao patrimonial neutra;
+criar o teste RED e implementar somente o Gate 38.5.
 
 ## Capacidade para retomar
 
-`Codex -> Sol -> Alto -> implementar e validar localmente o Gate 38.4.`
+`Codex -> Sol -> Alto -> implementar e validar localmente o Gate 38.5.`
 
 ## Referencias dirigidas
 
 - gate ativo: `docs/plans/current-gate.md`;
 - fila: `docs/plans/workstreams/open-finance-historical-rx.md`;
-- Gate 37: `docs/audit/195-open-finance-transfer-reserve-independent-close-2026-08-10.md`;
-- Gate 38.3: `docs/audit/206-open-finance-refund-write-independent-close-2026-08-10.md`;
+- read-only: `docs/plans/workstreams/open-finance-transfer-reserve.md`;
+- Gate 38.4: `docs/audit/209-open-finance-transfer-write-independent-close-2026-08-10.md`;
 - finalizacao: `src/openFinance/openFinanceSaveProposalFinalization.js`;
 - deploy: `docs/runbooks/release-checklist.md`;
 - producao: `docs/runbooks/production-health.md`.
