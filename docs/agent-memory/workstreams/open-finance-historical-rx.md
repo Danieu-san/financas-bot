@@ -2,7 +2,7 @@
 
 Atualizado em: 2026-08-10
 
-## Gate 36 - recovery local verde
+## Gate 36 - GO tecnico local independente
 
 Foi implementada a revisao proativa, read-only e familiar de entradas e
 estornos. Eventos precisam estar `POSTED/new`; transferencias possiveis e
@@ -15,8 +15,12 @@ cifrado expirado tanto em `pending` quanto em `decided`. `financial_writes=0`.
 Evidencia: focal `14/14`, adversarial publico `1/1`, handler completo `130/130`
 e suite hermetica `1581/1571/0/10`, com zero falhas.
 
-Proximo passo: novo commit imutavel e reauditoria independente.
-Gate 34 permanece pausado, Gate 35 permanece parcial e nao ha deploy neste gate.
+A reauditoria do hash `2eaa5f05d5f16ce61b349ea3eb86efe07762a35a`
+confirmou as duas lacunas fechadas, testes causalmente consistentes e nenhum
+residual indispensavel. Estado: `GO TECNICO LOCAL`.
+
+Proximo passo: Gate 37 read-only para transferencias e reservas patrimoniais.
+Gate 34 permanece pausado, Gate 35 permanece parcial e nao houve deploy.
 
 ## Gate 35 - Fase D concluida em PARTIAL_NO_GO
 

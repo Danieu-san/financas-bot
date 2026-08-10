@@ -2,20 +2,20 @@
 
 Atualizado em: 2026-08-10
 
-## Gate 36 - recovery local verde
+## Gate 36 - GO tecnico local independente
 
-O primeiro hash recebeu `NO-GO` independente: o comando explicito nao precedia
-um estado financeiro ativo e revisoes ja decididas conservavam payload cifrado
-depois da expiracao. O recovery moveu o roteamento explicito para antes da
-maquina de estados e passou a expirar payloads `pending` e `decided`, mantendo
-somente metadados terminais autenticados. Nenhuma escrita foi habilitada.
+O recovery moveu o comando explicito para antes de qualquer estado financeiro
+ativo e passou a expirar payloads `pending` e `decided`, mantendo somente
+metadados terminais autenticados. A reauditoria do hash
+`2eaa5f05d5f16ce61b349ea3eb86efe07762a35a` confirmou o fechamento das duas
+lacunas e nao encontrou residual indispensavel. Nenhuma escrita foi habilitada.
 
 Evidencia de recovery: focal `14/14`, caso publico adversarial `1/1`, maquina
 de estados completa `130/130` e suite hermetica `1581/1571/0/10`, com zero
 falhas e os dez skips previstos. Cobertura de linhas `90,94%`.
-Manifesto: `docs/audit/191-open-finance-proactive-income-refund-recovery-candidate-2026-08-10.md`.
+Fechamento: `docs/audit/192-open-finance-proactive-income-refund-independent-close-2026-08-10.md`.
 
-Proxima acao: publicacao e reauditoria independente por novo hash imutavel.
+Proxima acao: Gate 37 read-only para transferencias e reservas patrimoniais.
 Sem deploy.
 
 ## Gate 35 - Fase D concluida em PARTIAL_NO_GO

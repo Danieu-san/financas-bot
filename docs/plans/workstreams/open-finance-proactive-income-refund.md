@@ -2,12 +2,13 @@
 
 Atualizado em: 2026-08-10
 
-Estado: `RECOVERY LOCAL VERDE; AGUARDA REAUDITORIA INDEPENDENTE`.
+Estado: `GO TECNICO LOCAL INDEPENDENTE; SEM DEPLOY`.
 
 O primeiro parecer independente encontrou duas lacunas: o comando explicito
 ficava atras de um estado financeiro ativo e a expiracao nao removia payload de
 revisao ja decidida. O recovery roteia o comando antes da maquina de estados e
 purga payload cifrado em `pending` e `decided`, com provas focais e publicas.
+O novo hash recebeu GO independente sem lacuna indispensavel residual.
 
 ## Objetivo
 

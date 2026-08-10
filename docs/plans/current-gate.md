@@ -2,7 +2,7 @@
 
 Atualizado em: 2026-08-10
 
-## Gate 36 - recovery local verde
+## Gate 36 - GO tecnico local independente
 
 Entrada genuina e estorno `POSTED/new` agora seguem para revisao proativa
 read-only. Ponta oposta em outra conta familiar e sinais de Caixinha/reserva
@@ -16,9 +16,11 @@ purga de `pending` e `decided`. Evidencia focal `14/14`, adversarial publico
 `1/1`, maquina de estados `130/130` e suite hermetica `1581/1571/0/10`, sem
 falhas e com dez skips previstos.
 
-Estado: `RECOVERY LOCAL VERDE; AGUARDA REAUDITORIA INDEPENDENTE`.
-Manifesto: `docs/audit/191-open-finance-proactive-income-refund-recovery-candidate-2026-08-10.md`.
-Proxima fronteira: commit, GitHub e Chat. Sem deploy.
+Estado: `GO TECNICO LOCAL` no hash
+`2eaa5f05d5f16ce61b349ea3eb86efe07762a35a`. A reauditoria confirmou HIGH e
+MEDIUM fechados e nenhuma lacuna indispensavel residual.
+Fechamento: `docs/audit/192-open-finance-proactive-income-refund-independent-close-2026-08-10.md`.
+Proxima fronteira: Gate 37 read-only. Sem deploy.
 
 ## Gate 35 - Fase D concluida em PARTIAL_NO_GO
 
