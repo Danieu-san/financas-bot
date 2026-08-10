@@ -4,7 +4,7 @@ Atualizado em: 2026-08-10
 
 ## Estado
 
-`CANDIDATO LOCAL VALIDADO; AUDITORIA INDEPENDENTE PENDENTE; SEM DEPLOY`.
+`GO TECNICO LOCAL; DEPLOY OCI PENDENTE`.
 
 ## Objetivo
 
@@ -62,8 +62,10 @@ mesmo lancamento de `PENDING` para `POSTED`.
 3. Centralizar elegibilidade e progressao monotona.
 4. Validar store, outbox, entrega, fluxo numerico e finalizacao.
 5. Executar uma unica suite hermetica ampla no candidato estavel.
-6. Publicar commit sanitizado e obter auditoria independente por hash.
-7. Somente com GO, promover por artefato OCI e executar smoke real.
+6. Publicar commit sanitizado e obter auditoria independente por hash. Concluido
+   no commit `421270f98a3a6c5eccee21af39557cfecabb04ac`, sem achados nem lacuna
+   tecnica indispensavel.
+7. Promover por artefato OCI e executar smoke real.
 
 ## Critérios de GO
 
@@ -82,8 +84,8 @@ mesmo lancamento de `PENDING` para `POSTED`.
 
 ## Proxima acao
 
-Criar o commit auditavel, publica-lo e submete-lo ao Chat antes de qualquer
-deploy.
+Registrar o fechamento independente, publicar a evidencia e promover o mesmo
+hash por artefato OCI, condicionado aos preflights do runbook.
 
 ## Referencias
 
@@ -93,5 +95,6 @@ deploy.
 - `src/openFinance/openFinanceSaveProposalFinalization.js`;
 - `src/openFinance/openFinanceWhatsappCanaryDelivery.js`;
 - `docs/audit/220-open-finance-open-invoice-purchase-candidate-2026-08-10.md`;
+- `docs/audit/221-open-finance-open-invoice-purchase-independent-close-2026-08-10.md`;
 - documentacao oficial Pluggy: `https://docs.pluggy.ai/docs/transactions`;
 - documentacao oficial Pluggy: `https://docs.pluggy.ai/docs/credit-card-installments`.

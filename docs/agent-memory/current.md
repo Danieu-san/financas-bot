@@ -21,7 +21,10 @@ de cartao na fatura aberta do Pluggy.
   lancamento e usa um unico marco de transporte da proposta;
 - RED causal convertido em verde no runtime real e na revalidacao final;
 - bateria causal `90/90`, backup/restore afetado `4/4` e suite hermetica ampla
-  `1632/1622/0/10` estao verdes; auditoria independente ainda pendente;
+  `1632/1622/0/10` estao verdes;
+- auditoria independente no hash
+  `421270f98a3a6c5eccee21af39557cfecabb04ac`: `GO TECNICO LOCAL`, zero
+  achados e nenhuma lacuna tecnica indispensavel;
 - nenhum deploy do Gate 40 foi executado.
 
 ## Git e workspace
@@ -40,17 +43,18 @@ de cartao na fatura aberta do Pluggy.
 
 ## Próxima ação exata
 
-Criar e publicar o commit sanitizado, obter auditoria independente no Chat e
-somente com GO promover por artefato OCI e validar a producao.
+Publicar o fechamento independente e promover o hash auditado por artefato OCI,
+condicionado aos preflights e ao rollback do runbook.
 
 ## Capacidade para retomar
 
-`Codex -> Sol -> Alto -> validar e auditar o Gate 40.`
+`Codex -> Sol -> Alto -> promover o Gate 40 por artefato OCI e validar a producao.`
 
 ## Referencias dirigidas
 
 - gate ativo: `docs/plans/current-gate.md`;
 - Gate 39 em producao: `docs/audit/219-open-finance-reviewed-write-release-production-activation-2026-08-10.md`;
+- Gate 40 auditado: `docs/audit/221-open-finance-open-invoice-purchase-independent-close-2026-08-10.md`;
 - elegibilidade: `src/openFinance/openFinancePurchaseProposalEligibility.js`;
 - finalizacao: `src/openFinance/openFinanceSaveProposalFinalization.js`;
 - deploy: `docs/runbooks/release-checklist.md`;
