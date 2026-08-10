@@ -191,7 +191,10 @@ misturar historico, alertas, propostas e escrita financeira.
     auditoria independente e smoke real separados por classe.
     Gate 38.2: entrada genuina, separada de estorno, GO tecnico local
     independente (`1599/1589/0/10`, zero falhas), sem deploy.
-    Gate 38.3: estorno/reembolso fortemente vinculado, objetivo local ativo.
+    Gate 38.3: estorno/reembolso fortemente vinculado, `GO tecnico local`
+    independente, sem deploy (`1608/1598/0/10`, zero falhas).
+    Gate 38.4: transferencia interna fortemente pareada, objetivo local ativo;
+    deve preservar origem/destino, neutralidade patrimonial e escrita unica.
 
 ## Criterios de GO
 
