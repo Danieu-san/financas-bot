@@ -240,7 +240,7 @@ test('gate 36 review store is encrypted, family-scoped, durable and terminal', (
         assert.equal(store.decideByCode(code, 'income', {
             actorWhatsappId: '5511888888888@c.us'
         }).replay, true);
-        assert.throws(() => store.decideByCode(code, 'reserve', {
+        assert.throws(() => store.decideByCode(code, 'investment_income', {
             actorWhatsappId: '5511999999999@c.us'
         }), /proactive_review_decision_conflict/);
         assert.equal(store.stats().decided, 1);

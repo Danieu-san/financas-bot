@@ -2,19 +2,19 @@
 
 Atualizado em: 2026-08-10
 
-## Gate 37 - candidato local verde
+## Gate 37 - recovery local verde
 
 Par de transferencia exige referencia forte compartilhada, contas bancarias
 distintas, sinais opostos, valor exato, janela de dois dias e unicidade mutua.
 Sem isso, a movimentacao continua alertavel e revisavel, nunca pareada por
 descricao. Uma revisao cifrada representa o par e mostra ambas as pontas.
 
-`operation_type` reconhecido pode sugerir aplicacao, resgate ou rendimento;
-tipo generico e descricao apenas abrem revisao. As respostas separam principal
-de ganho. Evidencia: focal `10/10`, combinado `24/24`, causal `173/173` e suite
-hermetica `1591/1581/0/10`, com zero falhas e `financial_writes=0`.
+O primeiro parecer confirmou o caminho causal, mas encontrou `reserve` generico
+ainda aceito diretamente pelo store para entrada. O recovery removeu esse valor
+e prova a rejeicao no store real. Focal combinado `25/25`, suite hermetica
+`1592/1582/0/10`, com `financial_writes=0`.
 
-Proximo passo: hash imutavel e auditoria independente.
+Proximo passo: novo hash imutavel e reauditoria independente.
 Sem deploy.
 
 ## Gate 36 - GO tecnico local independente

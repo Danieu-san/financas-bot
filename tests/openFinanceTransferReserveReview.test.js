@@ -167,6 +167,25 @@ test('gate 37 typed choices never collapse reserve principal and income', () => 
     assert.doesNotMatch(proactiveConversationTest.optionsFor(positiveTransfer), /\*reserva\*/i);
 });
 
+test('gate 37 store rejects the legacy generic reserve decision for income review', () => {
+    const source = item('daniel_nubank', [
+        tx('income', 'daniel-bank', 5000, 'Credito legitimo')
+    ], [{ id: 'daniel-bank', type: 'BANK' }]);
+    const result = analyze([source], { income: 'income_candidate' });
+    const store = new OpenFinanceProactiveReviewStore({ secret });
+    try {
+        const code = store.ingest({
+            reviews: result.reviews, items: [source],
+            policies: [{ alias: 'daniel_nubank', principal: 'daniel', recipients: ['daniel'] }],
+            confirmationActors: [{ principal: 'daniel', whatsappId: '5511999999999@c.us' }]
+        }).links[0].review_code;
+        assert.throws(() => store.decideByCode(code, 'reserve', {
+            actorWhatsappId: '5511999999999@c.us'
+        }), /invalid_open_finance_proactive_review_decision/);
+        assert.equal(store.stats().pending, 1);
+    } finally { store.close(); }
+});
+
 test('gate 37 outbox exposes one review identity for both family recipients of a strong pair', () => {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-gate37-pair-outbox-'));
     const databasePath = path.join(directory, 'state.sqlite');

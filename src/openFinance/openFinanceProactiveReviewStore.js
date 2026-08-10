@@ -452,7 +452,7 @@ class OpenFinanceProactiveReviewStore {
         let allowed;
         if (payload.review_kind === 'income') {
             allowed = ['income', 'transfer', 'reserve_redemption', 'investment_income',
-                'reserve', 'uncertain'];
+                'uncertain'];
         } else if (payload.review_kind === 'transfer') {
             allowed = payload.review_status === 'strong_pair_confirmation_required'
                 ? ['confirm_transfer_pair', 'reject_transfer_pair', 'uncertain']

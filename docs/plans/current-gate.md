@@ -2,17 +2,20 @@
 
 Atualizado em: 2026-08-10
 
-## Gate 37 - candidato local verde
+## Gate 37 - recovery local verde
 
 O tratamento read-only de transferencias e reservas foi implementado. Par
 interno exige identidade forte e unica; pontas sem essa prova continuam
 revisaveis. Principal de Caixinha permanece separado de rendimento tanto no
 classificador quanto nas opcoes de resposta.
 
-Estado: `CANDIDATO LOCAL VERDE; AGUARDA AUDITORIA INDEPENDENTE`.
-Evidencia: focal `10/10`, Gate 36+37 `24/24`, causal `173/173` e suite
-hermetica `1591/1581/0/10`, com zero falhas.
-Manifesto: `docs/audit/193-open-finance-transfer-reserve-candidate-2026-08-10.md`.
+O primeiro parecer foi `NO-GO`: o store aceitava `reserve` generico para uma
+entrada apesar de a conversa tipar resgate e rendimento. O recovery removeu
+essa decisao e adicionou prova de rejeicao com estado ainda pendente.
+
+Estado: `RECOVERY LOCAL VERDE; AGUARDA REAUDITORIA`.
+Evidencia: focal combinada `25/25`; suite hermetica `1592/1582/0/10`.
+Manifesto: `docs/audit/194-open-finance-transfer-reserve-recovery-candidate-2026-08-10.md`.
 Proxima fronteira: commit, GitHub e Chat. Sem deploy.
 
 ## Gate 36 - GO tecnico local independente
