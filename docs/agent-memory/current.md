@@ -2,6 +2,16 @@
 
 Atualizado em: 2026-08-09
 
+## Gate 35 — Fase B em REVIEW_CANDIDATE_READY
+
+A copia privada validou quatro fontes e nove segmentos. O store cifrado
+restaurou vinte e tres pendencias em dois grupos; origem inalterada, snapshot
+removido e `financial_writes=0`. Persistem tres blockers sanitizados. Estado:
+`REVIEW_CANDIDATE_READY`. Evidencia:
+`docs/audit/185-open-finance-historical-rx-gate35-phase-b-review-candidate-ready-2026-08-09.md`.
+
+Proxima acao: Fase C local, somente com autorizacao e decisoes explicitas.
+
 ## Gate 35 — Fase A local em PREFLIGHT_READY
 
 O preflight sucessor fixou o produto auditado em

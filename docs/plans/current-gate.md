@@ -2,6 +2,21 @@
 
 Atualizado em: 2026-08-09
 
+## Gate 35 — Fase B em REVIEW_CANDIDATE_READY
+
+O snapshot privado read-only validou quatro fontes e nove segmentos. O store
+cifrado foi preparado com vinte e tres pendencias em dois grupos e restaurou o
+mesmo estado apos reabertura. Origem inalterada, copia temporaria removida,
+ACL exclusiva e `financial_writes=0`.
+
+Persistem tres blockers sanitizados, incluindo historico de investimento nao
+ligado. A Fase C pode revisar as ambiguidades suportadas, mas nao pode inferir
+o blocker nao revisavel. Nenhum HTML foi gerado. Evidencia:
+`docs/audit/185-open-finance-historical-rx-gate35-phase-b-review-candidate-ready-2026-08-09.md`.
+
+Proxima fronteira: Fase C local com autorizacao especifica e decisoes
+explicitas de Daniel sobre o conjunto exato.
+
 ## Gate 35 — Fase A local em PREFLIGHT_READY
 
 O novo preflight confirmou produto, plano, nucleos locais, conjunto privado,

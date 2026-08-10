@@ -2,6 +2,21 @@
 
 Atualizado em: 2026-08-09
 
+## Gate 35 — Fase B em REVIEW_CANDIDATE_READY
+
+A copia privada read-only validou quatro fontes, nove segmentos, cinco contas
+bancarias, quatro cartoes e vinte e quatro posicoes de investimento. O RX
+preservou tres blockers sanitizados. O revisor local preparou vinte e tres
+pendencias em dois grupos; o store cifrado fechou e reabriu no mesmo estado.
+
+Origem byte a byte inalterada, snapshot removido, ACL exclusiva e nenhuma
+pagina HTML gerada. Estado: `REVIEW_CANDIDATE_READY`,
+`financial_writes=0`. Evidencia:
+`docs/audit/185-open-finance-historical-rx-gate35-phase-b-review-candidate-ready-2026-08-09.md`.
+
+Proximo passo: Fase C local, somente com autorizacao especifica e sem inferir
+qualquer decisao.
+
 ## Gate 35 — nova Fase A local em PREFLIGHT_READY
 
 Produto auditado, plano, HEAD limpo e nucleos locais foram confirmados. Nenhum

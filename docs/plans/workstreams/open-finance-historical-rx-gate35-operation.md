@@ -59,6 +59,15 @@ Somente depois de autorizacao especifica para abrir a copia privada:
 
 Saida: `REVIEW_CANDIDATE_READY` ou `NO_GO`. Nenhuma mensagem e enviada.
 
+### Execucao de 2026-08-09
+
+Resultado: `REVIEW_CANDIDATE_READY`, `financial_writes=0`. Quatro fontes e
+nove segmentos validaram o inventario; o store cifrado preparou vinte e tres
+pendencias em dois grupos e restaurou o mesmo estado apos reabertura. A origem
+permaneceu inalterada, o snapshot foi removido e nenhum HTML foi gerado.
+Evidencia:
+`docs/audit/185-open-finance-historical-rx-gate35-phase-b-review-candidate-ready-2026-08-09.md`.
+
 ## Fase C — revisao local controlada
 
 Precondicoes adicionais:

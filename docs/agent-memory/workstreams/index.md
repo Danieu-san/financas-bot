@@ -10,7 +10,7 @@ Cada conversa/worktree trabalha em um objetivo e preserva seu próprio estado.
 | `lost-ssd-recovery` | concluído | `lost-ssd-recovery.md` | `../../plans/workstreams/lost-ssd-recovery.md` | pacote AES-256 validado; Drive restrito ao proprietário e a Daniel |
 | `phase-8-legacy-retirement` | PHASE8-OBS-01 candidato local | `phase-8-legacy-retirement.md` | `../../plans/workstreams/phase-8-legacy-retirement.md` | sem flag, restart, deploy ou exclusao |
 | `codex-usage-calibration` | instrumentacao prospectiva em implementacao | `codex-usage-calibration.md` | `../../plans/workstreams/codex-usage-calibration.md` | metadados locais sanitizados; sem prompts, comandos, saidas ou dados financeiros |
-| `open-finance-historical-rx` | gate 34 pausado; gate 35 Fase A local em PREFLIGHT_READY | `open-finance-historical-rx.md` | `../../plans/workstreams/open-finance-historical-rx.md` | Fase B exige autorizacao especifica; copia read-only e escrita off |
+| `open-finance-historical-rx` | gate 34 pausado; gate 35 Fase B em REVIEW_CANDIDATE_READY | `open-finance-historical-rx.md` | `../../plans/workstreams/open-finance-historical-rx.md` | Fase C exige autorizacao e decisoes explicitas; escrita off |
 
 Se dois workstreams puderem escrever simultaneamente, usar branches/worktrees
 distintas. Atualizar somente a própria linha e seus arquivos.

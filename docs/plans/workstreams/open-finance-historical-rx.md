@@ -1,6 +1,6 @@
 # Plano - RX historico e evolucao operacional Open Finance
 
-Status: `gate 34 pausado; gate 35 Fase A local em PREFLIGHT_READY; gates 36 a 38 ordenados`.
+Status: `gate 34 pausado; gate 35 Fase B em REVIEW_CANDIDATE_READY; gates 36 a 38 ordenados`.
 
 ## Objetivo
 
