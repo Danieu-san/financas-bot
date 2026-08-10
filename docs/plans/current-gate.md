@@ -4,7 +4,8 @@ Atualizado em: 2026-08-10
 
 ## Estado
 
-`CANDIDATO LOCAL VERDE; AGUARDA AUDITORIA INDEPENDENTE; SEM DEPLOY`.
+`CANDIDATO LOCAL VERDE; PRIMEIRA AUDITORIA COM ACESSO INSUFICIENTE; RECOVERY
+PROBATORIO EM PREPARACAO; SEM DEPLOY`.
 
 ## Objetivo
 
@@ -46,19 +47,19 @@ pagamento de fatura, cartao, entrada genuina ou despesa permanecem inelegiveis.
    maximo uma tentativa de append.
 9. Producao continua com escrita desligada.
 
-## Nao escopo
+## Não escopo
 
 - rendimento de investimento, reservado ao Gate 38.6;
 - reconstruir o historico de Caixinhas bloqueado no Gate 35;
 - alterar flags, deployar, reiniciar ou acessar Sheets, Pluggy e WhatsApp reais.
 
-## Criterios de GO
+## Critérios de GO
 
 Teste RED/focal, caminho publico, regressao das classes anteriores, uma unica
 suite hermetica ampla final, hash imutavel e auditoria independente. Estado
 maximo: `GO TECNICO LOCAL; SEM DEPLOY`.
 
-## Condicoes de parada
+## Condições de parada
 
 - semantica, direcao, conta ou reserva ambiguas;
 - principal absorvido por receita/despesa ou escrita dupla;
@@ -76,5 +77,6 @@ maximo: `GO TECNICO LOCAL; SEM DEPLOY`.
 
 ## Proxima acao
 
-Publicar o commit sanitizado, auditar o hash imutavel no Chat e somente um `GO`
-independente pode encerrar tecnicamente o Gate 38.5 ou autorizar promocao.
+Publicar o pacote focal 211 em novo hash e fazer uma unica reauditoria do patch
+imutavel. Somente um `GO` independente pode encerrar tecnicamente o Gate 38.5
+ou autorizar promocao.

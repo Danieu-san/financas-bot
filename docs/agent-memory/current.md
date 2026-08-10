@@ -15,8 +15,9 @@ reserva patrimonial, sem alterar producao.
 - Gates 36 e 37: `GO TECNICO LOCAL INDEPENDENTE`; fluxos proativos read-only.
 - Gates 38.1 a 38.4: `GO TECNICO LOCAL INDEPENDENTE; SEM DEPLOY` para compra,
   entrada, estorno/reembolso e transferencia interna forte.
-- Gate 38.5: aplicacao/resgate de reserva, `CANDIDATO LOCAL VERDE; AGUARDA
-  AUDITORIA INDEPENDENTE; SEM DEPLOY` (`1624/1614/0/10`, zero falhas).
+- Gate 38.5: aplicacao/resgate de reserva, candidato local verde
+  (`1624/1614/0/10`, zero falhas); a primeira auditoria terminou em `ACESSO
+  INSUFICIENTE` e o pacote focal 211 aguarda publicacao/reauditoria.
 - Gate 38.6: rendimento de investimento, enfileirado separadamente.
 
 ## Fechamento do Gate 38.4
@@ -46,10 +47,10 @@ hermetica `1617/1607/0/10`, zero falhas. Fechamento:
   OCI somente depois de `GO` independente. Nenhuma promocao pode preceder o
   parecer; AWS permanece fora do fluxo.
 
-## Proxima acao exata
+## Próxima ação exata
 
-Publicar o candidato do Gate 38.5, auditar o hash imutavel no Chat e confrontar
-o parecer com a evidencia local antes de qualquer deploy.
+Publicar o pacote focal 211 e reauditar o patch imutavel do Gate 38.5 antes de
+qualquer deploy.
 
 ## Capacidade para retomar
 

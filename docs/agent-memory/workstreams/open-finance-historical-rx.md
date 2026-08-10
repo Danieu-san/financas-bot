@@ -12,9 +12,11 @@ deste gate e sera tratado separadamente no Gate 38.6.
 
 O caminho publico, a revisao guiada e a finalizacao neutra estao implementados.
 Evidencia: focal `6/6`, caminho publico `1/1`, causal `246/246` e suite
-hermetica `1624/1614/0/10`, zero falhas. O candidato aguarda commit imutavel e
-auditoria independente. Producao segue write `off`; Daniel autorizou promocao
-somente depois de `GO` independente.
+hermetica `1624/1614/0/10`, zero falhas. O candidato foi publicado em
+`563abac60c467694a48a42ea410d3f5718b54c2d`; a primeira auditoria terminou em
+`ACESSO INSUFICIENTE`. O pacote focal 211 delimita a reauditoria pelo patch
+imutavel, sem mudanca de codigo. Producao segue write `off`; Daniel autorizou
+promocao somente depois de `GO` independente.
 
 ## Gate 38.4 - GO tecnico local independente
 

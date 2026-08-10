@@ -196,8 +196,9 @@ misturar historico, alertas, propostas e escrita financeira.
     Gate 38.4: transferencia interna fortemente pareada, `GO tecnico local`
     independente, sem deploy (`1617/1607/0/10`, zero falhas).
     Gate 38.5: aplicacao e resgate de reserva patrimonial, candidato local verde
-    (`1624/1614/0/10`, zero falhas), aguardando auditoria independente; preserva
-    conta bancaria, reserva e impacto neutro.
+    (`1624/1614/0/10`, zero falhas); primeira auditoria com acesso insuficiente
+    e recovery probatorio focal em preparacao. Preserva conta bancaria, reserva
+    e impacto neutro.
     Gate 38.6: rendimento de investimento, enfileirado separadamente como ganho;
     nao pode absorver principal, aplicacao ou resgate.
 
