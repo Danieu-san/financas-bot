@@ -171,7 +171,9 @@ misturar historico, alertas, propostas e escrita financeira.
     proprios. Daniel declarou que todas as posicoes sao Caixinhas; a topologia
     privada confirmou vinte e quatro CDBs, todos sem historico disponivel e sem
     linhas ligadas. A declaracao fixa a semantica patrimonial, mas nao permite
-    reconstruir a serie temporal ausente.
+    reconstruir a serie temporal ausente. O saldo atual agregado declarado zero
+    foi aceito como baseline prospectivo de 2026-08-09; a investigacao historica
+    foi encerrada sem inferencia adicional.
 36. [planejada; gate 35 parcial nao bloqueia classes independentes] Acrescentar tratamento proativo de estornos
     e entradas. Estorno exige vinculo forte com a compra quando esse vinculo for
     necessario para a semantica; entrada genuina exige reconciliacao com o

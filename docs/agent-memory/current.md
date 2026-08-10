@@ -20,6 +20,12 @@ declaracao resolve a semantica de reserva, nao a reconstrucao temporal; o
 blocker permanece. Evidencia:
 `docs/audit/188-open-finance-caixinha-declaration-investment-history-diagnosis-2026-08-09.md`.
 
+Daniel tambem declarou saldo atual agregado zero nas Caixinhas. Esse valor foi
+fixado somente como baseline prospectivo de 2026-08-09; nao sera usado para
+inventar o saldo de 2025-07-01. A investigacao historica foi encerrada por baixo
+valor marginal. Evidencia:
+`docs/audit/189-open-finance-caixinha-zero-baseline-decision-2026-08-09.md`.
+
 Proxima acao: Gate 36, tratamento proativo read-only de estornos e entradas;
 o blocker historico continua preservado sem inferencia.
 

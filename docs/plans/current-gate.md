@@ -20,6 +20,11 @@ historico indisponivel e zero linhas ligadas. A semantica de reserva esta
 fixada, mas o blocker temporal permanece. Evidencia:
 `docs/audit/188-open-finance-caixinha-declaration-investment-history-diagnosis-2026-08-09.md`.
 
+Daniel declarou saldo atual agregado zero nas Caixinhas. O baseline foi aceito
+somente a partir de 2026-08-09; a lacuna anterior permanece explicitamente
+desconhecida e nao recebera mais reconstrucao especulativa. Evidencia:
+`docs/audit/189-open-finance-caixinha-zero-baseline-decision-2026-08-09.md`.
+
 Proxima fronteira independente: Gate 36 read-only para estornos e entradas.
 
 ## Gate 35 — Fase C concluida em REVIEWED
