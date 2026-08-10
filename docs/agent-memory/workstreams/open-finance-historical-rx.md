@@ -2,6 +2,16 @@
 
 Atualizado em: 2026-08-10
 
+## Gate 38.1 - candidato de revalidacao local verde
+
+O writer, o store final e a politica fail-closed ja auditados nao mudaram. O
+handler atual preserva o lote numerico durante revisao/finalizacao e so avanca
+depois do recibo. Evidencia: causal `94/94`, publica `2/2` e hermetica
+reutilizada `1592/1582/0/10`.
+
+Proximo passo: hash imutavel e auditoria independente. Producao segue write
+`off`, sem deploy ou smoke enquanto Daniel estiver ausente.
+
 ## Gate 37 - GO tecnico local independente
 
 Par de transferencia exige referencia forte compartilhada, contas bancarias
