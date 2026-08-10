@@ -34,12 +34,14 @@ function createBatchOutbox(size = 5) {
     const item = {
         id: 'item-daniel',
         alias_code: 'daniel_nubank',
+        accounts: [{ id: 'credit-daniel', type: 'CREDIT' }],
         transactions: Array.from({ length: size }, (_, index) => ({
             id: `purchase-${index + 1}`,
             account_id: 'credit-daniel',
             amount_cents: 1000 + index,
             description: `Compra ${index + 1}`,
-            date: '2026-07-29T12:00:00.000Z'
+            date: '2026-07-29T12:00:00.000Z',
+            status: 'POSTED'
         }))
     };
     const refs = item.transactions.map(transaction =>
@@ -357,15 +359,16 @@ test('gate 34 prompt delivery prioritizes a numeric batch without dropping older
     const item = {
         id: 'item-priority',
         alias_code: 'daniel_nubank',
+        accounts: [{ id: 'credit-1', type: 'CREDIT' }],
         transactions: [
             { id: 'common-1', account_id: 'credit-1', amount_cents: 1000,
-                description: 'Alerta sintetico', date: '2026-08-08T10:00:00.000Z' },
+                description: 'Alerta sintetico', date: '2026-08-08T10:00:00.000Z', status: 'POSTED' },
             { id: 'numeric-1', account_id: 'credit-1', amount_cents: 2000,
-                description: 'Proposta sintetica 1', date: '2026-08-08T10:01:00.000Z' },
+                description: 'Proposta sintetica 1', date: '2026-08-08T10:01:00.000Z', status: 'POSTED' },
             { id: 'numeric-2', account_id: 'credit-1', amount_cents: 3000,
-                description: 'Proposta sintetica 2', date: '2026-08-08T10:02:00.000Z' },
+                description: 'Proposta sintetica 2', date: '2026-08-08T10:02:00.000Z', status: 'POSTED' },
             { id: 'numeric-stale', account_id: 'credit-1', amount_cents: 4000,
-                description: 'Proposta sintetica obsoleta', date: '2026-08-08T10:03:00.000Z' }
+                description: 'Proposta sintetica obsoleta', date: '2026-08-08T10:03:00.000Z', status: 'POSTED' }
         ]
     };
     const refs = Object.fromEntries(item.transactions.map(transaction => [

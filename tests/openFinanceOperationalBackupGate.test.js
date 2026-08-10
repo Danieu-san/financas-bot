@@ -26,7 +26,7 @@ test('9F operational gate creates a retained backup and destroys only the isolat
         observed_at: '2026-07-16T12:00:00.000Z', collection_health: { complete: true, warning_count: 0 },
         items: [{ id: 'item-operational-1', alias_code: 'daniel_nubank', owner_scope: 'daniel', status: 'UPDATED',
             availability: { accounts: 'available', transactions: 'available', bills: 'available', investments: 'available' },
-            accounts: [{ id: 'account-1', type: 'BANK', name: 'bank', balance_cents: 0 }],
+            accounts: [{ id: 'account-1', type: 'CREDIT', name: 'card', balance_cents: 0 }],
             transactions: [
                 { id: 'transaction-1', provider_id: 'provider-1', account_id: 'account-1',
                     amount_cents: 100, description: 'PRIVATE PENDING PROPOSAL',

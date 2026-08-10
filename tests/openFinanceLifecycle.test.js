@@ -1,8 +1,37 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const { classifyOpenFinanceLifecycle } = require('../src/openFinance/openFinanceLifecycleClassifier');
+const {
+    isReviewableCreditPurchase,
+    isMonotonicPurchaseStateTransition
+} = require('../src/openFinance/openFinancePurchaseProposalEligibility');
 
 const secret = 'open-finance-lifecycle-test-secret-32-bytes';
+
+test('gate 39.1 limits open-invoice proposals to current non-installment credit purchases', () => {
+    const pendingPurchase = {
+        id: 'pending-current', account_id: 'card', amount_cents: 999,
+        description: 'Assinatura', date: '2026-08-08T10:00:00.000Z', status: 'PENDING'
+    };
+    assert.equal(isReviewableCreditPurchase({
+        classification: 'purchase', providerState: 'PENDING', accountType: 'CREDIT',
+        transaction: pendingPurchase
+    }), true);
+    assert.equal(isReviewableCreditPurchase({
+        classification: 'purchase', providerState: 'PENDING', accountType: 'CREDIT',
+        transaction: { ...pendingPurchase, installment_number: 1, total_installments: 3 }
+    }), false);
+    assert.equal(isReviewableCreditPurchase({
+        classification: 'future_installment', providerState: 'PENDING', accountType: 'CREDIT',
+        transaction: pendingPurchase
+    }), false);
+    assert.equal(isReviewableCreditPurchase({
+        classification: 'purchase', providerState: 'PENDING', accountType: 'BANK',
+        transaction: pendingPurchase
+    }), false);
+    assert.equal(isMonotonicPurchaseStateTransition('PENDING', 'POSTED'), true);
+    assert.equal(isMonotonicPurchaseStateTransition('POSTED', 'PENDING'), false);
+});
 function item({ alias = 'daniel_nubank', accounts, transactions, investments = [] }) {
     return { id: `item-${alias}`, alias_code: alias, accounts, transactions, investments };
 }

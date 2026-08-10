@@ -150,6 +150,22 @@ test('9P.4 revalidates the current provider, family source and catalog before pr
     assert.equal(result.financial_writes, 0);
 });
 
+test('gate 39.1 accepts one current open-invoice purchase and a monotonic pending to posted transition', () => {
+    for (const currentStatus of ['PENDING', 'POSTED']) {
+        const input = fixture();
+        input.proposal.provider_state = 'PENDING';
+        input.proposal.source = { ...input.proposal.source, status: 'PENDING' };
+        input.item.transactions[0] = {
+            ...input.item.transactions[0],
+            status: currentStatus,
+            ...(currentStatus === 'POSTED' ? { bill_id: 'closed-bill-1' } : {})
+        };
+        const result = revalidateOpenFinanceSaveProposal({ ...input, secret });
+        assert.equal(result.status, 'ready');
+        assert.equal(result.financial_writes, 0);
+    }
+});
+
 test('9P.4 writes the selected family member independently of the confirming actor', async () => {
     const cases = [
         {

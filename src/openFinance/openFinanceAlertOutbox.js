@@ -1,5 +1,8 @@
 const crypto = require('node:crypto');
 const Database = require('better-sqlite3');
+const {
+    isReviewableCreditPurchase
+} = require('./openFinancePurchaseProposalEligibility');
 const ALERTABLE_CLASSIFICATIONS = new Set([
     'purchase', 'refund', 'bill_payment', 'transfer',
     'income_candidate', 'purchase_candidate', 'fee_interest'
@@ -193,9 +196,14 @@ class OpenFinanceAlertOutbox {
         }
         const sourceByRef = new Map();
         for (const item of items) {
+            const accounts = new Map((item.accounts || []).map(account => [account.id, account]));
             for (const transaction of item.transactions || []) {
                 const observationRef = this.#ref('observation', `${item.id}:${transaction.account_id}:${transaction.id}`);
-                sourceByRef.set(observationRef, { alias: item.alias_code, transaction });
+                sourceByRef.set(observationRef, {
+                    alias: item.alias_code,
+                    transaction,
+                    accountType: accounts.get(transaction.account_id)?.type
+                });
             }
         }
         let inserted = 0; let replayed = 0; let blocked = 0;
@@ -221,8 +229,12 @@ class OpenFinanceAlertOutbox {
                 if (!policy || ineligible || revoked) { blocked += 1; continue; }
                 if (proposal && (
                     proposal.principal !== policy.principal ||
-                    decision.classification !== 'purchase' ||
-                    decision.provider_state !== 'POSTED' ||
+                    !isReviewableCreditPurchase({
+                        classification: decision.classification,
+                        providerState: decision.provider_state,
+                        accountType: source.accountType,
+                        transaction: source.transaction
+                    }) ||
                     (reconciliationRequired && candidate.reconciliation_status !== 'new')
                 )) {
                     throw new Error('save_proposal_outbox_link_mismatch');
@@ -243,7 +255,11 @@ class OpenFinanceAlertOutbox {
                 )) {
                     throw new Error('proactive_review_outbox_link_mismatch');
                 }
-                const milestone = decision.provider_state === 'PENDING' ? 'first_pending' : decision.lifecycle_milestone;
+                const milestone = proposal
+                    ? 'save_proposal'
+                    : decision.provider_state === 'PENDING'
+                        ? 'first_pending'
+                        : decision.lifecycle_milestone;
                 for (const recipientPrincipal of policy.recipients) {
                     const alertRef = this.#ref(
                         'alert',

@@ -9,6 +9,11 @@ const { classifyOpenFinanceLifecycle } = require('./openFinanceLifecycleClassifi
 const {
     evaluateOpenFinanceWriteActivation
 } = require('./openFinanceWriteActivationPolicy');
+const {
+    isCreditPurchaseProviderState,
+    isReviewableCreditPurchase,
+    isMonotonicPurchaseStateTransition
+} = require('./openFinancePurchaseProposalEligibility');
 
 const inFlightByStore = new WeakMap();
 const MONTH_NAMES = [
@@ -599,12 +604,20 @@ function revalidateOpenFinanceSaveProposal({
     const isRefund = proposal.classification === 'refund';
     const isTransfer = proposal.classification === 'transfer';
     const isReserveTransfer = proposal.classification === 'reserve_transfer';
+    // Installments are deliberately checked by the existing explicit guard below,
+    // so this first readiness gate validates provider state without changing that invariant.
+    const reviewablePurchaseProposal = isCreditPurchaseProviderState({
+        classification: proposal.classification,
+        providerState: proposal.provider_state,
+        accountType: proposal.account_type,
+        transaction: proposal.source
+    });
     if (!/^[a-f0-9]{32}$/.test(String(proposal.proposal_ref || '')) ||
         review.proposal_ref !== proposal.proposal_ref ||
         review.state !== 'ready' ||
         (!isPurchase && !isIncome && !isInvestmentIncome && !isRefund && !isTransfer &&
             !isReserveTransfer) ||
-        proposal.provider_state !== 'POSTED' ||
+        (isPurchase ? !reviewablePurchaseProposal : proposal.provider_state !== 'POSTED') ||
         proposal.reconciliation_status !== 'new' ||
         !/^[a-f0-9]{48}$/.test(String(proposal.operation_key || ''))) {
         throw new Error('open_finance_final_proposal_not_ready');
@@ -736,9 +749,24 @@ function revalidateOpenFinanceSaveProposal({
         ? (pairItem.accounts || []).find(account =>
             String(account.id || '') === String(proposal.paired_source?.account_id || ''))
         : null;
+    const currentFingerprint = currentTransaction && currentAccount
+        ? sourceFingerprint(currentTransaction, currentAccount.type)
+        : null;
+    const proposalFingerprint = sourceFingerprint(proposal.source, proposal.account_type);
+    const purchaseStateAdvanced = isPurchase && currentTransaction && currentAccount &&
+        isReviewableCreditPurchase({
+            classification: 'purchase',
+            providerState: currentTransaction.status,
+            accountType: currentAccount.type,
+            transaction: currentTransaction
+        }) && isMonotonicPurchaseStateTransition(
+            proposal.provider_state,
+            currentTransaction.status
+        ) && stableSerialize({ ...currentFingerprint, status: 'REVIEWABLE' }) ===
+            stableSerialize({ ...proposalFingerprint, status: 'REVIEWABLE' });
     if (!currentTransaction || !currentAccount ||
-        stableSerialize(sourceFingerprint(currentTransaction, currentAccount.type)) !==
-            stableSerialize(sourceFingerprint(proposal.source, proposal.account_type)) ||
+        (!purchaseStateAdvanced &&
+            stableSerialize(currentFingerprint) !== stableSerialize(proposalFingerprint)) ||
         (isInvestmentIncome &&
             String(currentTransaction.operation_type || '').trim().toUpperCase() !==
                 String(proposal.source?.operation_type || '').trim().toUpperCase()) ||
@@ -767,9 +795,17 @@ function revalidateOpenFinanceSaveProposal({
                 ? 'purchase_candidate'
                 : 'income_candidate')
             : 'purchase';
+    const lifecycleStillEligible = isPurchase
+        ? isReviewableCreditPurchase({
+            classification: lifecycleDecision?.classification,
+            providerState: lifecycleDecision?.provider_state,
+            accountType: currentAccount?.type,
+            transaction: currentTransaction
+        })
+        : lifecycleDecision?.provider_state === 'POSTED';
     if (!lifecycleDecision ||
         lifecycleDecision.classification !== expectedLifecycle ||
-        lifecycleDecision.provider_state !== 'POSTED') {
+        !lifecycleStillEligible) {
         throw new Error('open_finance_final_source_changed');
     }
     const candidates = [{

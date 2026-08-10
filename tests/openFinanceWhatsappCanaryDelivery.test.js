@@ -51,14 +51,14 @@ function canaryPolicy(mode = 'canary') {
     return buildOpenFinanceRolloutPolicy({ env: { OPEN_FINANCE_ALERT_MODE: mode, OPEN_FINANCE_ALERT_CANARY_ALIAS: mode === 'canary' ? 'daniel_nubank' : '', OPEN_FINANCE_WRITE_MODE: 'off' }, evidence, mappings, vaultAvailable: true });
 }
 
-test('gate 34 explains why a pending purchase is not yet a save proposal', () => {
+test('gate 39.1 describes Pluggy open-invoice state without calling it bank-pending', () => {
     const message = formatCanaryMessage({
         classification: 'purchase', provider_state: 'PENDING', amount_cents: 1234,
         description: 'Compra privada', date: '2026-08-09T10:00:00.000Z',
         internal_reference: 'pending123'
     }, 'Nubank Daniel');
-    assert.match(message, /compra ainda pendente no banco/i);
-    assert.match(message, /só entrará na proposta de salvamento quando o banco confirmar/i);
+    assert.match(message, /fatura ainda aberta no Pluggy/i);
+    assert.doesNotMatch(message, /pendente no banco|quando o banco confirmar/i);
     assert.match(message, /nada foi salvo automaticamente/i);
 
     const posted = formatCanaryMessage({
@@ -66,7 +66,7 @@ test('gate 34 explains why a pending purchase is not yet a save proposal', () =>
         description: 'Compra privada', date: '2026-08-09T10:00:00.000Z',
         internal_reference: 'posted123'
     }, 'Nubank Daniel');
-    assert.doesNotMatch(posted, /compra ainda pendente/i);
+    assert.doesNotMatch(posted, /fatura ainda aberta no Pluggy/i);
 });
 
 test('9F canary with provider id becomes delivered_confirmed', async () => {

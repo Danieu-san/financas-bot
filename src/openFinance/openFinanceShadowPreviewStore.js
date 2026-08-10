@@ -1,6 +1,10 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const Database = require('better-sqlite3');
+const {
+    isReviewableCreditPurchase,
+    isMonotonicPurchaseStateTransition
+} = require('./openFinancePurchaseProposalEligibility');
 
 function requireSecret(secret) {
     const value = String(secret || '');
@@ -407,6 +411,37 @@ class OpenFinanceShadowPreviewStore {
         });
     }
 
+    #isSaveProposalReplayCompatible(stored, current) {
+        if (stableSerialize(stored) === stableSerialize(current)) return true;
+        if (!isReviewableCreditPurchase({
+            classification: stored.classification,
+            providerState: stored.provider_state,
+            accountType: stored.account_type,
+            transaction: stored.source
+        }) || !isReviewableCreditPurchase({
+            classification: current.classification,
+            providerState: current.provider_state,
+            accountType: current.account_type,
+            transaction: current.source
+        }) || !isMonotonicPurchaseStateTransition(
+            stored.provider_state,
+            current.provider_state
+        )) {
+            return false;
+        }
+        const normalized = payload => ({
+            ...payload,
+            provider_state: 'REVIEWABLE',
+            source: {
+                ...payload.source,
+                status: 'REVIEWABLE',
+                bill_id: null,
+                bill_forecast_month: null
+            }
+        });
+        return stableSerialize(normalized(stored)) === stableSerialize(normalized(current));
+    }
+
     #invalidateSaveProposal(proposalRef, reasonCode) {
         const terminalJournal = this.#requireSaveProposalTerminalJournal();
         const timestamp = this.#now();
@@ -734,8 +769,13 @@ class OpenFinanceShadowPreviewStore {
                         `open-finance-write:${source.aliasRef}:${source.generation}:${decision.observation_ref}`
                     )
                 };
-                if (decision.status !== 'new' || lifecycle?.classification !== 'purchase' ||
-                    lifecycle?.provider_state !== 'POSTED' ||
+                const reviewablePurchase = isReviewableCreditPurchase({
+                    classification: lifecycle?.classification,
+                    providerState: lifecycle?.provider_state,
+                    accountType: source.accountType,
+                    transaction: source.transaction
+                });
+                if (decision.status !== 'new' || !reviewablePurchase ||
                     suppressed.has(decision.observation_ref)) {
                     if (prior) {
                         if (!this.#isSaveProposalIneligibilityTransitionCompatible({
@@ -772,7 +812,10 @@ class OpenFinanceShadowPreviewStore {
                         prior.family_scope_ref !== this.familyScopeRef ||
                         prior.alias_ref !== source.aliasRef ||
                         prior.generation !== source.generation ||
-                        stableSerialize(this.#readBoundSaveProposal(proposalRef, prior)) !== stableSerialize(payload)) {
+                        !this.#isSaveProposalReplayCompatible(
+                            this.#readBoundSaveProposal(proposalRef, prior),
+                            payload
+                        )) {
                         throw new Error('save_proposal_replay_conflict');
                     }
                     replayed += 1;

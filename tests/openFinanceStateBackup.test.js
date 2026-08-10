@@ -223,6 +223,7 @@ test('9P.0 v3 backup preserves pending and cancelled proposals and reapplies pro
         clock: () => '2020-07-23T12:00:00.000Z'
     });
     const source = structuredClone(buildSnapshot().items[0]);
+    source.accounts[0].type = 'CREDIT';
     source.transactions[0].date = '2020-07-23T10:00:00.000Z';
     source.transactions.push({
         ...source.transactions[0],
@@ -370,7 +371,8 @@ test('9F v3 restore purges expired encrypted preview before exposure', async () 
         secret,
         clock: () => '2026-06-01T12:00:00.000Z'
     });
-    const source = buildSnapshot().items[0];
+    const source = structuredClone(buildSnapshot().items[0]);
+    source.accounts[0].type = 'CREDIT';
     const transactionRef = require('node:crypto').createHmac('sha256', secret)
         .update(`${source.id}:${source.transactions[0].id}`).digest('hex').slice(0, 32);
     preview.ingest({

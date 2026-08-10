@@ -10,8 +10,8 @@ function formatCanaryMessage(delivery, sourceLabel) {
     const pendingPurchaseNote = delivery.classification === 'purchase' &&
         delivery.provider_state === 'PENDING'
         ? [
-            'Status: compra ainda pendente no banco.',
-            'Ela só entrará na proposta de salvamento quando o banco confirmar a transação.'
+            'Status do Pluggy: compra na fatura ainda aberta no Pluggy.',
+            'Isso não significa que a autorização bancária esteja pendente.'
         ]
         : [];
     const semanticNotes = {

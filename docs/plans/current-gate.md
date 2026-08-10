@@ -1,82 +1,97 @@
-# Gate ativo - Gate 39 release consolidado das escritas revisadas
+# Gate ativo - Gate 40 compras de cartao em fatura aberta
 
 Atualizado em: 2026-08-10
 
 ## Estado
 
-`GO OPERACIONAL DE DEPLOY E ATIVACAO; SMOKE FINANCEIRO REAL PENDENTE`.
+`CANDIDATO LOCAL VALIDADO; AUDITORIA INDEPENDENTE PENDENTE; SEM DEPLOY`.
 
 ## Objetivo
 
-Consolidar os Gates 38.1 a 38.6 em um unico candidato de release por artefato
-OCI, preservando escrita desligada na promocao e separando a ativacao
-`confirm` em etapa operacional com rollback `write-off`.
+Permitir que uma compra real e nao parcelada da fatura aberta gere proposta
+numerada sem esperar o fechamento da fatura, preservando identidade,
+reconciliacao, segundo consentimento e efeito unico quando o Pluggy promover o
+mesmo lancamento de `PENDING` para `POSTED`.
+
+## Commit de partida
+
+`f0d94d1eff341335e1a2077396018ac6239f72c1`.
 
 ## Escopo
 
-- compra, entrada genuina, estorno/reembolso fortemente vinculado,
-  transferencia interna forte, aplicacao/resgate de reserva e rendimento de
-  investimento;
-- confrontar os seis fechamentos tecnicos independentes;
-- validar contrato de ambiente, controlador de ativacao e instalador OCI;
-- construir e verificar artefato imutavel do hash aprovado;
-- auditar a composicao antes de tocar na OCI;
-- depois do GO, executar preflight, prepare, promocao inerte, health, ativacao
-  separada e smokes controlados conforme o runbook.
-
-## Invariantes
-
-1. Classes financeiras permanecem mutuamente exclusivas.
-2. Principal, aplicacao, resgate e transferencias internas nao viram renda ou
-   despesa.
-3. Cada proposta exige revisao individual e segundo consentimento.
-4. Replay, restart, revogacao, concorrencia, recibo e resultado incerto
-   preservam no maximo um efeito.
-5. O codigo e promovido primeiro com escrita `off` e aprovacao falsa.
-6. Ativacao `confirm` ocorre somente pelo controlador auditado e com rollback
-   `write-off` pronto.
-7. O deploy usa somente artefato OCI; AWS nao participa.
-8. Estado, credenciais, sessao WhatsApp e segredos permanecem fora do pacote.
+- interpretar `PENDING` de conta `CREDIT` como fatura aberta quando a
+  classificacao real continua `purchase`;
+- gerar proposta somente para compra positiva, reconciliada como `new` e sem
+  parcelamento suportado;
+- aceitar apenas a progressao monotona do mesmo lancamento de `PENDING` para
+  `POSTED`;
+- deduplicar o transporte da proposta entre os dois estados;
+- corrigir a mensagem read-only para nao dizer que o banco ainda nao confirmou.
 
 ## Não escopo
 
-- reconstruir o historico indisponivel de Caixinhas do Gate 35;
-- fabricar transacoes para smoke;
-- editar `.env` manualmente;
-- usar checkout Git, AWS ou duas sessoes WhatsApp em producao;
-- declarar GO de producao antes de health e smokes factuais.
+- liberar parcela futura ou compra parcelada;
+- aplicar a regra a conta bancaria, entrada, estorno ou transferencia;
+- mudar regras de categoria, planilha, segundo consentimento ou escrita;
+- fabricar transacao para smoke;
+- deploy antes da auditoria independente.
+
+## Invariantes
+
+1. `PENDING` continua preservado como estado bruto do provedor.
+2. Parcela futura ou serie parcelada nao recebe proposta por este gate.
+3. Apenas conta `CREDIT` e classificacao `purchase` positiva sao elegiveis.
+4. `POSTED -> PENDING`, mudanca de valor, conta, descricao, data ou identidade
+   falham fechado.
+5. `PENDING -> POSTED` do mesmo lancamento nao cria segunda proposta nem segunda
+   mensagem.
+6. A escrita continua exigindo revisao guiada, segundo consentimento,
+   revalidacao final e reconciliacao `new`.
+
+## Riscos
+
+- confundir fatura aberta com autorizacao bancaria pendente;
+- liberar parcela futura junto com compra corrente;
+- duplicar a proposta na mudanca de estado do provedor;
+- aceitar alteracao causal de fonte sob a aparencia de mudanca de status.
+
+## Etapas
+
+1. Confirmar a semantica oficial do Pluggy.
+2. Produzir RED no runtime e na revalidacao final.
+3. Centralizar elegibilidade e progressao monotona.
+4. Validar store, outbox, entrega, fluxo numerico e finalizacao.
+5. Executar uma unica suite hermetica ampla no candidato estavel.
+6. Publicar commit sanitizado e obter auditoria independente por hash.
+7. Somente com GO, promover por artefato OCI e executar smoke real.
 
 ## Critérios de GO
 
-- seis fechamentos independentes consistentes;
-- suite ampla final sem mudanca causal posterior;
-- testes do controlador de ativacao e instalador OCI verdes;
-- contrato de ambiente e auditoria de dependencias verdes;
-- artefato construido e verificado no mesmo hash completo;
-- auditoria independente do candidato consolidado sem lacuna indispensavel.
+- RED causal convertido em verde no caminho real;
+- bateria afetada e suite hermetica ampla verdes;
+- diff e workflow sem erro;
+- commit imutavel publicado e auditoria independente sem lacuna indispensavel;
+- deploy OCI, health e logs verdes antes do smoke financeiro real.
 
 ## Condições de parada
 
-- divergencia entre hash, artefato, manifesto ou fechamentos independentes;
-- regressao causal, vulnerabilidade bloqueante ou falha no controlador;
-- infraestrutura, slot, flags, stores, processo ou rollback ambiguos;
-- escrita habilitada antes da etapa `confirm` autorizada;
-- health, WhatsApp, Google, read-model ou SQLite degradados;
-- qualquer duplicidade, classificacao cruzada ou escrita sem segundo consentimento.
+- qualquer parcelamento ou conta bancaria se tornar elegivel;
+- regressao de identidade, deduplicacao, segundo consentimento ou efeito unico;
+- auditoria independente emitir NO-GO ou acesso insuficiente;
+- divergencia de hash, artefato, flags ou saude da OCI.
 
 ## Proxima acao
 
-Aguardar uma movimentacao real elegivel, conferir o lote numerado, selecionar
-um item e obter o segundo consentimento de Daniel. Validar um unico efeito e
-recibo. Se qualquer invariavel falhar, usar o controlador para `write-off`.
+Criar o commit auditavel, publica-lo e submete-lo ao Chat antes de qualquer
+deploy.
 
-## Evidencia candidata
+## Referencias
 
-- produto/artefato promovido: `38aa275d5928ffe350215727f158e962ff78a999`;
-- suite ampla final do recovery: `1630/1620/0/10`, zero falhas;
-- ativacao, instalador OCI, contrato de ambiente e audit offline: verdes;
-- artefato OCI: `888` arquivos e hash interno confirmado;
-- manifesto: `docs/audit/216-open-finance-reviewed-write-release-candidate-2026-08-10.md`.
-- recovery: `docs/audit/217-open-finance-reviewed-write-release-recovery-candidate-2026-08-10.md`.
-- fechamento: `docs/audit/218-open-finance-reviewed-write-release-independent-close-2026-08-10.md`.
-- producao e ativacao: `docs/audit/219-open-finance-reviewed-write-release-production-activation-2026-08-10.md`.
+- `src/openFinance/openFinancePurchaseProposalEligibility.js`;
+- `src/openFinance/openFinanceShadowPreviewStore.js`;
+- `src/openFinance/openFinanceAlertOutbox.js`;
+- `src/openFinance/openFinanceSaveProposalFinalization.js`;
+- `src/openFinance/openFinanceWhatsappCanaryDelivery.js`;
+- `docs/audit/220-open-finance-open-invoice-purchase-candidate-2026-08-10.md`;
+- documentacao oficial Pluggy: `https://docs.pluggy.ai/docs/transactions`;
+- documentacao oficial Pluggy: `https://docs.pluggy.ai/docs/credit-card-installments`.

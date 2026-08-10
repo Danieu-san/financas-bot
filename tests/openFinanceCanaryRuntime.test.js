@@ -94,7 +94,7 @@ test('Open Finance runtime alerts reconciled purchase, refund and bank income', 
     assert.equal(messages.length, 3);
 });
 
-test('gate 34 promotes two pending purchases to one numbered batch after both become posted', async () => {
+test('gate 39.1 proposes current open-invoice purchases once and survives pending to posted', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-open-runtime-posted-batch-'));
     const files = Object.fromEntries([
         'credentials', 'mapping', 'visibility', 'evidence', 'secret',
@@ -140,8 +140,10 @@ test('gate 34 promotes two pending purchases to one numbered batch after both be
 
     const pending = snapshot([
         transaction('old-posted-batch', 500, 'old'),
-        transaction('pending-to-posted-1', 1200, 'Compra um', 'PENDING'),
-        transaction('pending-to-posted-2', 2300, 'Compra dois', 'PENDING')
+        { ...transaction('pending-to-posted-1', 1200, 'Compra um', 'PENDING'),
+            bill_forecast_month: '2026-07' },
+        { ...transaction('pending-to-posted-2', 2300, 'Compra dois', 'PENDING'),
+            bill_forecast_month: '2026-07' }
     ], '2026-07-16T12:00:00.000Z');
     let currentSnapshot = pending;
     class FakeApi { async readSnapshot() { return currentSnapshot; } }
@@ -212,25 +214,29 @@ test('gate 34 promotes two pending purchases to one numbered batch after both be
         const first = await runOpenFinanceCanaryCycle({ client, env, dependencies });
         assert.equal(first.outcome, 'GO');
         assert.equal(first.new_observations, 2);
-        assert.equal(first.save_proposals.inserted, 0);
-        assert.equal(messages.length, 2);
-        assert.ok(messages.every(message => message.text.includes('compra ainda pendente no banco')));
-        assert.ok(messages.every(message => message.text.includes('Somente leitura')));
-        assert.equal(userStateManager.getState('daniel@c.us'), undefined);
+        assert.equal(first.save_proposals.inserted, 2);
+        assert.equal(messages.length, 1);
+        assert.match(messages[0].text, /1\./);
+        assert.match(messages[0].text, /2\./);
+        assert.match(messages[0].text, /salvar todas/i);
+        assert.equal(
+            userStateManager.getState('daniel@c.us').action,
+            'awaiting_open_finance_save_selection'
+        );
 
         currentSnapshot = snapshot([
             transaction('old-posted-batch', 500, 'old'),
-            transaction('pending-to-posted-1', 1200, 'Compra um', 'POSTED'),
-            transaction('pending-to-posted-2', 2300, 'Compra dois', 'POSTED')
+            { ...transaction('pending-to-posted-1', 1200, 'Compra um', 'POSTED'),
+                bill_id: 'closed-bill-1', bill_forecast_month: null },
+            { ...transaction('pending-to-posted-2', 2300, 'Compra dois', 'POSTED'),
+                bill_id: 'closed-bill-1', bill_forecast_month: null }
         ], '2026-07-16T13:00:00.000Z');
         const second = await runOpenFinanceCanaryCycle({ client, env, dependencies });
         assert.equal(second.outcome, 'GO');
         assert.equal(second.new_observations, 0);
-        assert.equal(second.save_proposals.inserted, 2);
-        assert.equal(messages.length, 3);
-        assert.match(messages[2].text, /1\./);
-        assert.match(messages[2].text, /2\./);
-        assert.match(messages[2].text, /salvar todas/i);
+        assert.equal(second.save_proposals.inserted, 0);
+        assert.equal(second.save_proposals.replayed, 2);
+        assert.equal(messages.length, 1);
         assert.equal(
             userStateManager.getState('daniel@c.us').action,
             'awaiting_open_finance_save_selection'

@@ -26,7 +26,9 @@ const actorWhatsappId = 'family-actor@c.us';
 function transaction(id, {
     amountCents = 2590,
     description = 'PRIVATE PROPOSAL DESCRIPTION',
-    status = 'POSTED'
+    status = 'POSTED',
+    installmentNumber = null,
+    totalInstallments = null
 } = {}) {
     return {
         id,
@@ -35,7 +37,9 @@ function transaction(id, {
         amount_cents: amountCents,
         description,
         date: '2026-07-23T10:00:00.000Z',
-        status
+        status,
+        installment_number: installmentNumber,
+        total_installments: totalInstallments
     };
 }
 
@@ -48,7 +52,9 @@ function fixture() {
         accounts: [{ id: 'credit-account', type: 'CREDIT' }],
         transactions: [
             transaction('purchase-posted'),
-            transaction('purchase-pending', { status: 'PENDING' }),
+            transaction('purchase-pending', {
+                status: 'PENDING', installmentNumber: 2, totalInstallments: 2
+            }),
             transaction('refund-posted', { amountCents: -2590 }),
             transaction('matched-posted')
         ]
