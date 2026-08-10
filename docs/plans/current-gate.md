@@ -4,8 +4,8 @@ Atualizado em: 2026-08-10
 
 ## Estado
 
-`GO TECNICO DO CODIGO; SANEAMENTO DE DEPENDENCIA VALIDADO LOCALMENTE;
-REAUDITORIA INDEPENDENTE PENDENTE; SEM DEPLOY`.
+`GO TECNICO LOCAL NO HASH 30e23da19db67af601ddec713876966899f3334f;
+DEPLOY OCI PENDENTE`.
 
 ## Objetivo
 
@@ -70,6 +70,9 @@ mesmo lancamento de `PENDING` para `POSTED`.
 8. Preflight de release encontrou `ip-address@10.2.0` vulneravel; a correcao
    minima para `10.5.0` passou em instalacao limpa, audit high zerado, smoke da
    cadeia proxy/SOCKS e nova suite hermetica ampla `1632/1622/0/10`.
+9. Reauditoria independente do hash `30e23da19db67af601ddec713876966899f3334f`
+   confirmou o delta minimo, o fechamento dos tres avisos e preservou o GO
+   tecnico local do Gate 40.
 
 ## Critérios de GO
 
@@ -88,8 +91,8 @@ mesmo lancamento de `PENDING` para `POSTED`.
 
 ## Proxima acao
 
-Publicar o saneamento transitivo em novo hash e obter reauditoria independente
-antes de construir o artefato OCI.
+Construir e verificar o artefato imutavel do hash auditado, autenticar na OCI e
+executar prepare, plan, promote e health conforme o runbook.
 
 ## Referencias
 
@@ -101,5 +104,6 @@ antes de construir o artefato OCI.
 - `docs/audit/220-open-finance-open-invoice-purchase-candidate-2026-08-10.md`;
 - `docs/audit/221-open-finance-open-invoice-purchase-independent-close-2026-08-10.md`;
 - `docs/audit/222-gate40-ip-address-security-preflight-candidate-2026-08-10.md`;
+- `docs/audit/223-gate40-ip-address-security-independent-close-2026-08-10.md`;
 - documentacao oficial Pluggy: `https://docs.pluggy.ai/docs/transactions`;
 - documentacao oficial Pluggy: `https://docs.pluggy.ai/docs/credit-card-installments`.
