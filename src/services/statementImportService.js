@@ -1360,6 +1360,7 @@ function unsupportedImportMessage(reason) {
 }
 
 module.exports = {
+    categorizeExpense,
     buildImportPreviewMessage,
     buildImportPreviewMessages,
     annotateImportDuplicates,
