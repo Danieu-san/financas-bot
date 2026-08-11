@@ -1,6 +1,6 @@
 # Plano - RX historico e evolucao operacional Open Finance
 
-Status: `gate 34 pausado; gate 35 concluido em PARTIAL_NO_GO; gates 36 a 38 ordenados`.
+Status: `gate 34 pausado; gate 35 em GO PROSPECTIVO/OPERACIONAL com historico parcial; gates 36 a 40 executados em escopos proprios`.
 
 ## Objetivo
 
@@ -144,7 +144,7 @@ misturar historico, alertas, propostas e escrita financeira.
     provar lotes independentes nos dois telefones, cutoff, processo unico,
     health e rollback sem ressuscitar backlog. O charter e
     `docs/plans/workstreams/open-finance-numeric-save-oci.md`.
-35. [concluido em PARTIAL_NO_GO; Fases A-D executadas; zero escrita]
+35. [GO PROSPECTIVO/OPERACIONAL; Fases A-D executadas; historico parcial; zero escrita]
     Concluir o RX historico por revisao humana
     das ambiguidades remanescentes. Ativar de forma controlada a revisao
     numerada, consumir decisoes duraveis, recalcular o RX e separar: resolvido,
@@ -173,7 +173,10 @@ misturar historico, alertas, propostas e escrita financeira.
     linhas ligadas. A declaracao fixa a semantica patrimonial, mas nao permite
     reconstruir a serie temporal ausente. O saldo atual agregado declarado zero
     foi aceito como baseline prospectivo de 2026-08-09; a investigacao historica
-    foi encerrada sem inferencia adicional.
+    foi encerrada sem inferencia adicional. Em 2026-08-11 Daniel confirmou que
+    o saldo atual zero e suficiente para o uso prospectivo. O gate recebe GO
+    operacional a partir desse baseline, sem declarar reconciliacao historica,
+    sem inventar saldo inicial e sem autorizar importacao retroativa.
 36. [GO tecnico local independente; sem deploy] Acrescentar tratamento proativo de estornos
     e entradas. Estorno exige vinculo forte com a compra quando esse vinculo for
     necessario para a semantica; entrada genuina exige reconciliacao com o

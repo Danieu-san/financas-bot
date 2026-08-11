@@ -1,16 +1,16 @@
 # Estado atual portatil do FinancasBot
 
-Atualizado em: 2026-08-10
+Atualizado em: 2026-08-11
 
 ## Objetivo ativo
 
-Fechar o Gate 40, que corrige a interpretacao e o salvamento proativo de compras
-de cartao na fatura aberta do Pluggy.
+Observar o primeiro ciclo natural posterior ao deploy do Gate 40 e confirmar,
+sem fabricar transacao, a proposta numerada de uma compra corrente elegivel.
 
 ## Estado vigente
 
-- Gate 39 permanece promovido e ativado na OCI no hash
-  `38aa275d5928ffe350215727f158e962ff78a999`;
+- Gate 40 foi promovido na OCI no hash auditado
+  `30e23da19db67af601ddec713876966899f3334f`;
 - o smoke real revelou que compras correntes de cartao chegam como `PENDING` e
   eram impedidas de gerar proposta numerada;
 - a documentacao oficial do Pluggy confirma que `PENDING` em cartao inclui
@@ -32,7 +32,19 @@ de cartao na fatura aberta do Pluggy.
 - reauditoria independente do hash
   `30e23da19db67af601ddec713876966899f3334f`: `GO TECNICO LOCAL`; delta
   minimo e fechamento dos tres avisos confirmados;
-- nenhum deploy do Gate 40 foi executado.
+- o artefato de 894 arquivos foi verificado, preparado sem alterar producao e
+  promovido sem rollback ou bootstrap de estado;
+- PM2 ficou com um processo online no script do novo hash, zero reinicios e
+  health local/publico `ok/sqlite/whatsapp`, com WhatsApp `ready/healthy`;
+- `.env` e `state_store.json` conservaram os checksums anteriores; as flags
+  continuaram `prompt/confirm/true` e o acesso admin global continuou desligado;
+- o primeiro ciclo Open Finance apos o restart falhou fechado em `NO_GO`, com
+  `writes=0`; o mesmo marcador ja existia antes do deploy, portanto nao prova
+  regressao do Gate 40, mas impede declarar smoke funcional concluido;
+- a regra SSH temporaria `/32` foi removida e a porta 22 voltou a expirar;
+- o RX historico recebeu `GO PROSPECTIVO/OPERACIONAL` desde o baseline atual
+  zero das Caixinhas. A serie historica ausente nao foi reconstruida e continua
+  explicitamente fora desse GO.
 
 ## Git e workspace
 
@@ -44,18 +56,20 @@ de cartao na fatura aberta do Pluggy.
 ## Producao conhecida
 
 - provedor vigente: Oracle/OCI; AWS nao participa;
-- release vigente: `38aa275d5928ffe350215727f158e962ff78a999`;
+- release vigente: `30e23da19db67af601ddec713876966899f3334f`;
 - flags: proposta `prompt`, escrita `confirm`, aprovacao verdadeira;
-- Gate 40 ainda nao esta em producao.
+- Gate 40 esta em producao; observacao funcional real ainda pendente.
 
 ## Próxima ação exata
 
-Construir o artefato do hash auditado e, apos recuperar o acesso SSH OCI,
-executar prepare, plan, promote e health conforme o runbook.
+Observar o proximo ciclo natural Pluggy. Se surgir compra corrente elegivel,
+confirmar lote numerado e ausencia de duplicidade antes de qualquer segundo
+consentimento. Conferir separadamente a proposta de transferencia do Gate 39;
+nao forcar polling nem produzir escrita financeira para o smoke.
 
 ## Capacidade para retomar
 
-`Codex -> Sol -> Alto -> construir o artefato auditado e promover o Gate 40 na OCI.`
+`Codex -> Sol -> Medio -> observar o proximo ciclo Pluggy e conferir as propostas reais.`
 
 ## Referencias dirigidas
 
@@ -64,6 +78,7 @@ executar prepare, plan, promote e health conforme o runbook.
 - Gate 40 auditado: `docs/audit/221-open-finance-open-invoice-purchase-independent-close-2026-08-10.md`;
 - saneamento de dependencia: `docs/audit/222-gate40-ip-address-security-preflight-candidate-2026-08-10.md`;
 - reauditoria do saneamento: `docs/audit/223-gate40-ip-address-security-independent-close-2026-08-10.md`;
+- producao: `docs/audit/224-gate40-open-invoice-purchase-oci-production-close-2026-08-11.md`;
 - elegibilidade: `src/openFinance/openFinancePurchaseProposalEligibility.js`;
 - finalizacao: `src/openFinance/openFinanceSaveProposalFinalization.js`;
 - deploy: `docs/runbooks/release-checklist.md`;

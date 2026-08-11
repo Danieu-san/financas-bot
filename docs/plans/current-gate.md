@@ -1,11 +1,11 @@
 # Gate ativo - Gate 40 compras de cartao em fatura aberta
 
-Atualizado em: 2026-08-10
+Atualizado em: 2026-08-11
 
 ## Estado
 
-`GO TECNICO LOCAL NO HASH 30e23da19db67af601ddec713876966899f3334f;
-DEPLOY OCI PENDENTE`.
+`GO OPERACIONAL DE DEPLOY NO HASH 30e23da19db67af601ddec713876966899f3334f;
+SMOKE FUNCIONAL REAL PENDENTE`.
 
 ## Objetivo
 
@@ -73,6 +73,14 @@ mesmo lancamento de `PENDING` para `POSTED`.
 9. Reauditoria independente do hash `30e23da19db67af601ddec713876966899f3334f`
    confirmou o delta minimo, o fechamento dos tres avisos e preservou o GO
    tecnico local do Gate 40.
+10. Artefato de 894 arquivos verificado e promovido na OCI sem rollback ou
+    bootstrap de estado. Processo unico, zero reinicios, health local/publico
+    e flags ficaram verdes; checksums de `.env` e `state_store.json` foram
+    preservados.
+11. O ciclo Open Finance do restart falhou fechado com `writes=0`, assinatura
+    tambem observada antes do deploy. O deploy esta fechado, mas o smoke do
+    primeiro evento real continua pendente.
+12. A regra SSH temporaria `/32` foi removida e a porta 22 voltou a expirar.
 
 ## Critérios de GO
 
@@ -91,8 +99,10 @@ mesmo lancamento de `PENDING` para `POSTED`.
 
 ## Proxima acao
 
-Construir e verificar o artefato imutavel do hash auditado, autenticar na OCI e
-executar prepare, plan, promote e health conforme o runbook.
+Observar o proximo ciclo natural Pluggy, sem forcar polling. Uma compra corrente
+elegivel deve produzir lote numerado sem duplicidade; uma transferencia deve
+ser conferida separadamente pelo contrato ja promovido no Gate 39. Nenhum smoke
+autoriza escrita sem revisao e segundo consentimento de Daniel.
 
 ## Referencias
 
@@ -105,5 +115,6 @@ executar prepare, plan, promote e health conforme o runbook.
 - `docs/audit/221-open-finance-open-invoice-purchase-independent-close-2026-08-10.md`;
 - `docs/audit/222-gate40-ip-address-security-preflight-candidate-2026-08-10.md`;
 - `docs/audit/223-gate40-ip-address-security-independent-close-2026-08-10.md`;
+- `docs/audit/224-gate40-open-invoice-purchase-oci-production-close-2026-08-11.md`;
 - documentacao oficial Pluggy: `https://docs.pluggy.ai/docs/transactions`;
 - documentacao oficial Pluggy: `https://docs.pluggy.ai/docs/credit-card-installments`.

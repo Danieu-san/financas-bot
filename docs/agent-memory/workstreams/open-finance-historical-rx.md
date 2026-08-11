@@ -113,6 +113,15 @@ Saldo atual agregado declarado: zero. O baseline vale prospectivamente desde
 encerrada; Gate 37 acompanhara movimentos futuros de reserva. Evidencia:
 `docs/audit/189-open-finance-caixinha-zero-baseline-decision-2026-08-09.md`.
 
+### Decisao de escopo em 2026-08-11
+
+Daniel confirmou que o saldo atual zero das Caixinhas e suficiente para a
+operacao prospectiva. O estado do Gate 35 passa a ser
+`GO PROSPECTIVO/OPERACIONAL DESDE O BASELINE ZERO`, preservando como limite
+explicito a ausencia da serie historica vinculavel. Este GO nao afirma que o
+saldo inicial de 2025-07-01 foi reconstruido, nao altera o RX calculado, nao
+autoriza importacao retroativa e nao converte reserva em receita ou despesa.
+
 Proximo passo independente: Gate 36 read-only para estornos e entradas.
 
 ## Gate 35 — Fase C concluida em REVIEWED
