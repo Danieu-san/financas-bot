@@ -5,50 +5,54 @@ Atualizado em: 2026-08-11
 ## Objetivo ativo
 
 Preparar um lote historico idempotente a partir do RX saneado, confrontando cada
-movimento com a planilha familiar e usando o historico categorial existente
-antes de qualquer escrita.
+movimento com a planilha pessoal realmente usada pelo bot antes de qualquer
+escrita financeira.
 
 ## Estado vigente
 
-- worktree isolada: `codex/open-finance-historical-import`;
-- commit de partida: `a8172a25d07968be1f391a26145f3a772ca4ca33`;
-- RX privado: quatro fontes, nove contas/cartoes e 2.207 transacoes;
-- planilha central legada lida em 2026-08-11: 95 linhas de dados em `Saidas`;
-  `Entradas`, `Transferencias` e as quatro abas de cartao possuem somente
-  cabecalho;
-- duas regras privadas confirmadas por Daniel e corroboradas por padroes
-  existentes na planilha; as descricoes permanecem fora do Git;
-- planejador puro, configurador privado, captura read-only e lote de revisao
-  implementados sem dependencia de writer;
-- seis dos nove segmentos possuem vinculo univoco; permanecem sem destino
-  estrutural uma conta, um cartao e uma poupanca sem movimentos relevantes;
-- o snapshot historico observado termina antes do corte operacional, portanto
-  o plano atual e deliberadamente parcial e nao gravavel;
-- o plano parcial reteve duplicatas provaveis, pendencias sem categoria,
-  entradas/estornos sem vinculo e meses de fatura sem evidencia em revisao;
-- pendencias de categoria foram agrupadas privadamente por comerciante, sem
-  publicar descricoes ou referencias;
-- o primeiro candidato publicado (`7f4a333ec8cff07fedeac3c484a173b2ba4e12df`)
-  recebeu `NO-GO` independente por identidade ausente, cobertura declarativa e
-  confinamento apenas lexical; os tres achados foram corrigidos no candidato
-  seguinte;
-- identidade sem `provider_id` e sem `id` agora permanece em revisao;
-  cobertura e recalculada do snapshot exato planejado e caminhos privados
-  resolvem ancestrais simbolicos antes da validacao;
-- bateria causal ampla pos-correcao: 127 testes verdes, sem falhas, cobrindo planejador,
-  RX, ambiguidades, runtime e importador estabelecido;
-- snapshots privados permanecem fora do Git; nenhuma descricao, valor, data,
-  ID ou segredo foi versionado;
-- credenciais efemeras usadas na leitura foram removidas;
-- `financial_writes=0`.
+- worktree isolada: `codex/open-finance-historical-import-g41`;
+- o snapshot da planilha central legada foi invalidado para este gate;
+- um gasto sintetico de R$ 0,01, com marcador exclusivo, foi criado pelo fluxo
+  real do WhatsApp, localizado na planilha pessoal informada por Daniel e
+  removido pelo proprio bot; a releitura confirmou ausencia do marcador;
+- a fonte valida passou a ser somente a planilha pessoal consolidada;
+- o cofre Pluggy foi preservado e atualizado por uma unica leitura live:
+  quatro fontes, nove contas/cartoes e 2.351 transacoes, com observacao em
+  2026-08-11 e `financial_writes=0`;
+- a cobertura de 2025-07-01 ate 2026-07-27 agora esta completa;
+- o planejador usa Saidas, Entradas, Transferencias e Lancamentos Cartao;
+  cartoes sao separados por `card_id` e contas por Conta Financeira;
+- meses de cobranca historicos sao evidenciados pelo `bill_id`, conta do cartao
+  e vencimento da fatura Pluggy; dia de fechamento ausente nao e inventado;
+- dois destinos estruturais faltam: conta Cristina/Nubank e cartao Thais/Itau;
+  Daniel autorizou cria-los;
+- o plano privado desses cadastros foi derivado do RX, Pluggy e padroes da
+  planilha, com saldo inicial reconstruido e vencimento evidenciado;
+- a simulacao apos esses cadastros vincula quatro contas e quatro cartoes; a
+  poupanca Itau sem movimentos no recorte permanece sem destino;
+- plano privado simulado: 856 prontos, 33 duplicatas provaveis, 53 pendentes
+  excluidos, 1.248 em revisao e 161 fora da janela;
+- nenhuma linha historica foi escrita; `financial_writes=0`;
+- a criacao estrutural real aguarda canal Google user-scoped. A leitura local
+  falhou fechada, a interface autenticada nao concluiu a edicao e o SSH OCI
+  estava indisponivel, sem restart, deploy ou escrita parcial.
+
+## Evidencia local atual
+
+- sintaxe do planejador: verde;
+- planejador focal: 19/19;
+- configurador focal: 5/5;
+- bateria causal focal: 33/33 testes verdes;
+- bateria hermetica ampla: 132/132 testes verdes, sem falhas;
+- nenhum artefato privado, descricao, valor, ID ou segredo entrou no Git.
 
 ## Proxima acao
 
-Completar a cobertura da fonte ate a vespera do corte, criar os destinos
-estruturais ausentes em plano separado e revisar os grupos privados residuais.
-Nenhuma escrita financeira e autorizada antes do plano completo, commit
-imutavel e auditoria independente.
+Criar idempotentemente os dois cadastros estruturais na planilha pessoal pelo
+servico Google user-scoped, reler a planilha, recalcular o plano real e resolver
+os grupos privados residuais. Somente depois publicar o hash imutavel e obter
+auditoria independente.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> fechar cobertura e vinculos estruturais do Gate 41.`
+`Codex -> Sol -> Alto -> criar e validar os dois destinos estruturais do Gate 41.`

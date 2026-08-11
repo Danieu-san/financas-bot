@@ -139,6 +139,21 @@ function rowsWithoutHeader(rows) {
 function sheetRecords(sheetSnapshot, binding) {
     const ranges = sheetSnapshot?.ranges || {};
     if (binding.kind === 'card') {
+        if (binding.cardId) {
+            return rowsWithoutHeader(findRange(ranges, 'Lançamentos Cartão'))
+                .map(row => ({
+                    date: row[0],
+                    description: row[1],
+                    category: row[2],
+                    subcategory: '',
+                    amount_cents: parseMoney(row[3]),
+                    installment: row[4],
+                    user_id: row[9],
+                    account: row[6],
+                    scope_known: Boolean(String(row[9] || '').trim() &&
+                        String(row[6] || '').trim())
+                }));
+        }
         return rowsWithoutHeader(findRange(ranges, binding.sheetName)).map(row => ({
             date: row[0],
             description: row[1],
@@ -169,7 +184,12 @@ function scopeRelation(record, binding) {
     if (String(record.user_id || '').trim() !== String(binding.ownerUserId || '').trim()) {
         return 'different';
     }
-    if (binding.kind === 'card') return 'same';
+    if (binding.kind === 'card') {
+        if (!binding.cardId) return 'same';
+        return normalizeText(record.account) === normalizeText(binding.cardId)
+            ? 'same'
+            : 'different';
+    }
     return normalizeText(record.account) === normalizeText(binding.financialAccount)
         ? 'same'
         : 'different';
@@ -212,7 +232,8 @@ function categoryPatterns(sheetSnapshot) {
                     subcategory: row[3] || ''
                 });
             }
-        } else if (name.startsWith(normalizeText('Cartão '))) {
+        } else if (name.startsWith(normalizeText('Cartão ')) ||
+            name === normalizeText('Lançamentos Cartão')) {
             for (const row of rowsWithoutHeader(rows)) {
                 candidates.push({
                     description: row[1],
@@ -278,6 +299,32 @@ function expenseWritePlan(transaction, binding, category, classification = 'expe
     if (binding.kind === 'card') {
         const number = Number(transaction.installment_number) || 1;
         const total = Number(transaction.total_installments) || 1;
+        if (binding.cardId) {
+            return {
+                operation: 'expense.create',
+                sheet_name: 'Lançamentos Cartão',
+                row: [
+                    sheetDate(transaction.date),
+                    transaction.description,
+                    category.category,
+                    amount,
+                    `${number}/${total}`,
+                    billingMonth(transaction, binding),
+                    binding.cardId,
+                    binding.cardName,
+                    'Importação histórica Open Finance revisada.',
+                    binding.ownerUserId
+                ],
+                account_context: {
+                    kind: 'card',
+                    card_id: binding.cardId,
+                    card_name: binding.cardName,
+                    owner_user_id: binding.ownerUserId
+                },
+                classification,
+                financial_writes: 0
+            };
+        }
         return {
             operation: 'expense.create',
             sheet_name: binding.sheetName,
@@ -310,6 +357,11 @@ function expenseWritePlan(transaction, binding, category, classification = 'expe
             binding.ownerUserId,
             binding.financialAccount
         ],
+        account_context: {
+            kind: 'bank',
+            financial_account: binding.financialAccount,
+            owner_user_id: binding.ownerUserId
+        },
         classification,
         financial_writes: 0
     };
@@ -371,6 +423,12 @@ function flattenSnapshot(pluggySnapshot) {
     const accountTypes = new Map();
     const transactions = [];
     for (const item of pluggySnapshot?.items || []) {
+        const billForecastMonths = new Map(
+            (item.bills || []).map(bill => [
+                `${String(bill.account_id || '')}|${String(bill.id || '')}`,
+                /^\d{4}-\d{2}/.exec(String(bill.due_date || ''))?.[0] || ''
+            ]).filter(([identity, month]) => !identity.startsWith('|') && month)
+        );
         for (const account of item.accounts || []) {
             accountTypes.set(String(account.id), normalizeText(account.type).toUpperCase());
         }
@@ -378,7 +436,11 @@ function flattenSnapshot(pluggySnapshot) {
             transactions.push({
                 ...transaction,
                 item_id: transaction.item_id || item.id,
-                account_type: accountTypes.get(String(transaction.account_id)) || ''
+                account_type: accountTypes.get(String(transaction.account_id)) || '',
+                bill_forecast_month: transaction.bill_forecast_month ||
+                    billForecastMonths.get(
+                        `${String(transaction.account_id || '')}|${String(transaction.bill_id || '')}`
+                    ) || null
             });
         }
     }

@@ -53,9 +53,11 @@ function observedAt(snapshot) {
 
 function buildConfig({ pluggySnapshot, sheetSnapshot, historyStartDate,
     historyEndDate, classifyExpense = null } = {}) {
+    const activeValues = new Set(['active', 'ativo', 'ativa', 'sim', 'yes', 'true', '1']);
     const accountRows = findRange(sheetSnapshot, 'Contas Financeiras').slice(1)
-        .filter(row => ['active', 'ativo', 'ativa'].includes(normalizeText(row?.[4])));
-    const rangeNames = Object.keys(sheetSnapshot?.ranges || {});
+        .filter(row => activeValues.has(normalizeText(row?.[4])));
+    const cardRows = findRange(sheetSnapshot, 'Cartões').slice(1)
+        .filter(row => activeValues.has(normalizeText(row?.[5])));
     const accountBindings = {};
     const decisionOverrides = {};
     const diagnostics = {
@@ -116,20 +118,23 @@ function buildConfig({ pluggySnapshot, sheetSnapshot, historyStartDate,
                 continue;
             }
             if (type === 'CREDIT') {
-                const candidates = rangeNames.filter(range => {
-                    const name = normalizeText(rangeSheetName(range));
-                    return name.startsWith('cartao ') && name.includes(subject) &&
-                        name.includes(institution);
+                const candidates = cardRows.filter(row => {
+
+                    const identity = normalizeText(`${row?.[1] || ''} ${row?.[2] || ''}`);
+                    return identity.includes(subject) && identity.includes(institution);
                 });
-                if (candidates.length === 1) {
+                if (candidates.length === 1 && String(candidates[0]?.[0] || '').trim()) {
                     const closeDate = String(account.balance_close_date || '');
                     const match = /-(\d{2})(?:T|$)/.exec(closeDate);
                     accountBindings[account.id] = {
                         kind: 'card',
                         ownerUserId,
                         ownerLabel,
-                        sheetName: rangeSheetName(candidates[0]),
-                        closingDay: match ? Number(match[1]) : 1,
+                        sheetName: 'Lançamentos Cartão',
+                        cardId: String(candidates[0][0]).trim(),
+                        cardName: String(candidates[0][1] || '').trim(),
+                        closingDay: Number(candidates[0][3]) ||
+                            (match ? Number(match[1]) : 1),
                         billingFallbackAuthorized: false
                     };
                     diagnostics.bound_card += 1;

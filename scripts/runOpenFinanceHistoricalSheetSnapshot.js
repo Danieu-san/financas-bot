@@ -3,10 +3,13 @@ const path = require('node:path');
 const Module = require('node:module');
 
 const REQUIRED_CATALOG_RANGES = Object.freeze([
-    'Users!A:J',
+    'Saídas!A:K',
+    'Entradas!A:J',
+    'Transferências!A:I',
     'Categorias!A:E',
-    'Cartões!A:G',
-    'Lançamentos Cartão!A:J'
+    'Cartões!A:H',
+    'Lançamentos Cartão!A:J',
+    'Contas Financeiras!A:I'
 ]);
 
 function argument(name) {
@@ -23,24 +26,44 @@ function requiredAbsolutePath(name) {
 }
 
 function isInside(parent, candidate) {
-    const relative = path.relative(parent, candidate);
-    return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+    const contains = (root, target) => {
+        const relative = path.relative(root, target);
+        return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+    };
+    const canonicalize = value => {
+        let existing = path.resolve(value);
+        const missing = [];
+        while (!fs.existsSync(existing)) {
+            const parentPath = path.dirname(existing);
+            if (parentPath === existing) break;
+            missing.unshift(path.basename(existing));
+            existing = parentPath;
+        }
+        const real = fs.realpathSync.native
+            ? fs.realpathSync.native(existing)
+            : fs.realpathSync(existing);
+        return path.join(real, ...missing);
+    };
+    const lexicalParent = path.resolve(parent);
+    const lexicalCandidate = path.resolve(candidate);
+    return contains(lexicalParent, lexicalCandidate) ||
+        contains(canonicalize(lexicalParent), canonicalize(lexicalCandidate));
 }
 
-async function collectSnapshot({ existingSnapshot, readDataFromSheet }) {
-    const ranges = [...new Set([
-        ...Object.keys(existingSnapshot?.ranges || {}),
-        ...REQUIRED_CATALOG_RANGES
-    ])];
+async function collectSnapshot({ readDataFromSheet, userId }) {
+    const scopedUserId = String(userId || '').trim();
+    if (!scopedUserId) throw new Error('historical_sheet_snapshot_user_id_required');
     const collected = {};
-    for (const range of ranges) {
+    for (const range of REQUIRED_CATALOG_RANGES) {
         collected[range] = await readDataFromSheet(range, {
+            userId: scopedUserId,
+            requireUserScoped: true,
             suppressMissingSheetError: true
         });
     }
     return {
         observed_at: new Date().toISOString(),
-        source: 'central_legacy_read_only',
+        source: 'user_spreadsheet_read_only',
         ranges: collected,
         financial_writes: 0
     };
@@ -51,8 +74,11 @@ async function main() {
         !process.argv.includes('--confirm-private-output')) {
         throw new Error('historical_sheet_snapshot_explicit_confirmation_required');
     }
-    const existingPath = requiredAbsolutePath('--existing-snapshot');
     const outputPath = requiredAbsolutePath('--output');
+    const userId = argument('--user-id');
+    if (!String(userId || '').trim()) {
+        throw new Error('historical_sheet_snapshot_user_id_required');
+    }
     const moduleRoot = argument('--module-root');
     if (moduleRoot) {
         if (!path.isAbsolute(moduleRoot)) {
@@ -74,8 +100,8 @@ async function main() {
     }
     const { readDataFromSheet } = require('../src/services/google');
     const snapshot = await collectSnapshot({
-        existingSnapshot: JSON.parse(fs.readFileSync(existingPath, 'utf8')),
-        readDataFromSheet
+        readDataFromSheet,
+        userId
     });
     fs.mkdirSync(path.dirname(outputPath), { recursive: true });
     fs.writeFileSync(outputPath, `${JSON.stringify(snapshot, null, 2)}\n`, {

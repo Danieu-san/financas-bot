@@ -4,7 +4,7 @@ const {
     buildConfig
 } = require('../scripts/buildOpenFinanceHistoricalImportConfig');
 
-test('derives only unique bank, reserve and legacy card bindings', () => {
+test('derives only unique bank, reserve and consolidated card bindings', () => {
     const config = buildConfig({
         pluggySnapshot: {
             observed_at: ['2026-01-20T00:00:00.000Z'],
@@ -27,7 +27,11 @@ test('derives only unique bank, reserve and legacy card bindings', () => {
                     ['Pessoa - Banco Reserva', 'reserve', '', '', 'active', '',
                         'Pessoa', 'u1']
                 ],
-                "'Cartão Banco - Pessoa'!A:J": [['header']]
+                'Cartões!A:G': [
+                    ['card_id', 'Nome', 'Banco', 'Dia de Fechamento',
+                        'Dia de Vencimento', 'Ativo', 'Observações'],
+                    ['card-1', 'Banco - Pessoa', 'Banco', 18, 25, 'Sim', '']
+                ]
             }
         },
         historyStartDate: '2025-07-01',
@@ -37,7 +41,10 @@ test('derives only unique bank, reserve and legacy card bindings', () => {
     assert.equal(config.accountBindings.bank.financialAccount, 'Pessoa - Banco');
     assert.equal(config.accountBindings.bank.reserveAccount,
         'Pessoa - Banco Reserva');
-    assert.equal(config.accountBindings.card.sheetName, 'Cartão Banco - Pessoa');
+    assert.equal(config.accountBindings.card.sheetName, 'Lançamentos Cartão');
+    assert.equal(config.accountBindings.card.cardId, 'card-1');
+    assert.equal(config.accountBindings.card.cardName, 'Banco - Pessoa');
+    assert.equal(config.accountBindings.card.closingDay, 18);
     assert.equal(config.accountBindings.card.billingFallbackAuthorized, false);
     assert.equal(config.accountBindings.savings, undefined);
     assert.equal(config.diagnostics.unbound_savings, 1);

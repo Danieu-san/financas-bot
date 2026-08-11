@@ -83,8 +83,28 @@ function requiredAbsolutePath(name) {
 }
 
 function isInside(parent, candidate) {
-    const relative = path.relative(parent, candidate);
-    return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+    const contains = (root, target) => {
+        const relative = path.relative(root, target);
+        return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+    };
+    const canonicalize = value => {
+        let existing = path.resolve(value);
+        const missing = [];
+        while (!fs.existsSync(existing)) {
+            const parentPath = path.dirname(existing);
+            if (parentPath === existing) break;
+            missing.unshift(path.basename(existing));
+            existing = parentPath;
+        }
+        const real = fs.realpathSync.native
+            ? fs.realpathSync.native(existing)
+            : fs.realpathSync(existing);
+        return path.join(real, ...missing);
+    };
+    const lexicalParent = path.resolve(parent);
+    const lexicalCandidate = path.resolve(candidate);
+    return contains(lexicalParent, lexicalCandidate) ||
+        contains(canonicalize(lexicalParent), canonicalize(lexicalCandidate));
 }
 
 function main() {
@@ -119,4 +139,4 @@ if (require.main === module) {
     }
 }
 
-module.exports = { buildReviewBatch };
+module.exports = { buildReviewBatch, isInside };

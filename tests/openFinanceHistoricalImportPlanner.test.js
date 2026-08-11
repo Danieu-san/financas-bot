@@ -553,3 +553,99 @@ test('derives coverage only from the exact snapshot being planned', () => {
     assert.equal(result.plan_status, 'PARTIAL_NO_GO');
     assert.equal(result.writable, false);
 });
+
+test('writes consolidated card rows and scopes exact matches by card id', () => {
+    const consolidatedBindings = {
+        ...bindings,
+        'card-1': {
+            kind: 'card', ownerUserId: 'person-1', ownerLabel: 'Pessoa 1',
+            sheetName: 'Lançamentos Cartão', cardId: 'card-daniel',
+            cardName: 'Cartão Daniel', closingDay: 20
+        }
+    };
+    const candidate = transaction({
+        account_id: 'card-1', amount_cents: 1000,
+        bill_forecast_month: '2026-01'
+    });
+    const header = ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela',
+        'Mês de Cobrança', 'card_id', 'Cartão', 'Status', 'user_id'];
+    const merchantRules = [{
+        match: { mode: 'exact', value: 'Fornecedor exemplo' },
+        classification: 'expense', category: 'Outros', subcategory: ''
+    }];
+
+    const differentCard = plan([candidate], {
+        accountBindings: consolidatedBindings,
+        ranges: {
+            'Lançamentos Cartão!A:J': [
+                header,
+                ['10/01/2026', 'Fornecedor exemplo', 'Outros', 10, '1/1',
+                    'Janeiro de 2026', 'card-thais', 'Cartão Thais', '', 'person-1']
+            ]
+        },
+        merchantRules
+    });
+
+    assert.equal(differentCard.entries[0].state, 'ready');
+    assert.equal(differentCard.entries[0].write_plan.sheet_name,
+        'Lançamentos Cartão');
+    assert.equal(differentCard.entries[0].write_plan.row.length, 10);
+    assert.equal(differentCard.entries[0].write_plan.row[6], 'card-daniel');
+    assert.equal(differentCard.entries[0].write_plan.row[9], 'person-1');
+
+    const exactCard = plan([candidate], {
+        accountBindings: consolidatedBindings,
+        ranges: {
+            'Lançamentos Cartão!A:J': [
+                header,
+                differentCard.entries[0].write_plan.row
+            ]
+        },
+        merchantRules
+    });
+
+    assert.equal(exactCard.entries[0].state, 'existing');
+});
+
+test('uses a matching Pluggy bill as evidence for the billing month', () => {
+    const snapshot = pluggy([
+        transaction({
+            account_id: 'card-1',
+            amount_cents: 1000,
+            bill_id: 'bill-1',
+            bill_forecast_month: null
+        })
+    ], [
+        { id: 'bank-1', type: 'BANK' },
+        { id: 'card-1', type: 'CREDIT' }
+    ]);
+    snapshot.items[0].bills = [{
+        id: 'bill-1',
+        account_id: 'card-1',
+        due_date: '2026-02-10'
+    }, {
+        id: 'bill-1',
+        account_id: 'different-card',
+        due_date: '2026-03-10'
+    }];
+    const result = planOpenFinanceHistoricalImport({
+        pluggySnapshot: snapshot,
+        sheetSnapshot: sheet(),
+        accountBindings: {
+            ...bindings,
+            'card-1': {
+                ...bindings['card-1'],
+                billingFallbackAuthorized: false
+            }
+        },
+        merchantRules: [{
+            match: { mode: 'exact', value: 'Fornecedor exemplo' },
+            classification: 'expense', category: 'Outros', subcategory: ''
+        }],
+        historyStartDate: '2025-07-01',
+        historyEndDate: '2026-12-31'
+    });
+
+    assert.equal(result.entries[0].state, 'ready');
+    assert.equal(result.entries[0].write_plan.row[5], 'Fevereiro de 2026');
+});
