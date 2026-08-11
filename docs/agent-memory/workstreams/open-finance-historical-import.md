@@ -24,35 +24,36 @@ escrita financeira.
   cartoes sao separados por `card_id` e contas por Conta Financeira;
 - meses de cobranca historicos sao evidenciados pelo `bill_id`, conta do cartao
   e vencimento da fatura Pluggy; dia de fechamento ausente nao e inventado;
-- dois destinos estruturais faltam: conta Cristina/Nubank e cartao Thais/Itau;
-  Daniel autorizou cria-los;
-- o plano privado desses cadastros foi derivado do RX, Pluggy e padroes da
-  planilha, com saldo inicial reconstruido e vencimento evidenciado;
+- o catalogo real confirmou que `card-itau` ja e o cartao Thais/Itau; nenhum
+  novo cartao deve ser criado;
+- somente a conta Cristina/Nubank faltava e foi criada idempotentemente na aba
+  existente Contas Financeiras, com releitura confirmando uma ocorrencia;
+- o vinculo privado explicito `thais_itau -> card-itau` evita inferir titular
+  pelo nome generico do cartao e preserva o catalogo consolidado;
 - a simulacao apos esses cadastros vincula quatro contas e quatro cartoes; a
   poupanca Itau sem movimentos no recorte permanece sem destino;
 - plano privado simulado: 856 prontos, 33 duplicatas provaveis, 53 pendentes
   excluidos, 1.248 em revisao e 161 fora da janela;
 - nenhuma linha historica foi escrita; `financial_writes=0`;
-- a criacao estrutural real aguarda canal Google user-scoped. A leitura local
-  falhou fechada, a interface autenticada nao concluiu a edicao e o SSH OCI
-  estava indisponivel, sem restart, deploy ou escrita parcial.
+- a unica criacao estrutural necessaria foi concluida pelo canal Google
+  autenticado e confirmada por releitura direta da planilha; nao houve criacao
+  de aba, alteracao do catalogo de cartoes, restart ou deploy.
 
 ## Evidencia local atual
 
 - sintaxe do planejador: verde;
 - planejador focal: 19/19;
-- configurador focal: 5/5;
-- bateria causal focal: 33/33 testes verdes;
-- bateria hermetica ampla: 132/132 testes verdes, sem falhas;
+- configurador focal corrigido: 6/6;
+- bateria hermetica ampla do candidato, cobrindo todas as suites
+  `openFinanceHistorical*.test.js`: 99/99 testes verdes, sem falhas;
 - nenhum artefato privado, descricao, valor, ID ou segredo entrou no Git.
 
 ## Proxima acao
 
-Criar idempotentemente os dois cadastros estruturais na planilha pessoal pelo
-servico Google user-scoped, reler a planilha, recalcular o plano real e resolver
-os grupos privados residuais. Somente depois publicar o hash imutavel e obter
-auditoria independente.
+Recalcular o plano real com a conta Cristina/Nubank existente e o vinculo
+explicito `thais_itau -> card-itau`, resolver os grupos privados residuais e
+publicar um novo hash imutavel para auditoria independente.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> criar e validar os dois destinos estruturais do Gate 41.`
+`Codex -> Sol -> Alto -> recalcular e auditar o Gate 41 corrigido.`

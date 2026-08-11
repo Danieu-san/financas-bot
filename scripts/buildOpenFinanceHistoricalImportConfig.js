@@ -52,7 +52,7 @@ function observedAt(snapshot) {
 }
 
 function buildConfig({ pluggySnapshot, sheetSnapshot, historyStartDate,
-    historyEndDate, classifyExpense = null } = {}) {
+    historyEndDate, classifyExpense = null, cardIdByAlias = {} } = {}) {
     const activeValues = new Set(['active', 'ativo', 'ativa', 'sim', 'yes', 'true', '1']);
     const accountRows = findRange(sheetSnapshot, 'Contas Financeiras').slice(1)
         .filter(row => activeValues.has(normalizeText(row?.[4])));
@@ -60,9 +60,21 @@ function buildConfig({ pluggySnapshot, sheetSnapshot, historyStartDate,
         .filter(row => activeValues.has(normalizeText(row?.[5])));
     const accountBindings = {};
     const decisionOverrides = {};
+    const explicitCardIds = new Map();
+    for (const [alias, cardIdValue] of Object.entries(cardIdByAlias || {})) {
+        const normalizedAlias = normalizeText(alias);
+        const cardId = String(cardIdValue || '').trim();
+        if (!normalizedAlias || !cardId) continue;
+        const existing = explicitCardIds.get(normalizedAlias);
+        if (existing && existing !== cardId) {
+            throw new Error(`historical_import_card_binding_override_ambiguous:${normalizedAlias}`);
+        }
+        explicitCardIds.set(normalizedAlias, cardId);
+    }
     const diagnostics = {
         bound_bank: 0,
         bound_card: 0,
+        explicit_card_bindings: 0,
         unbound_bank: 0,
         unbound_card: 0,
         unbound_savings: 0,
@@ -118,11 +130,13 @@ function buildConfig({ pluggySnapshot, sheetSnapshot, historyStartDate,
                 continue;
             }
             if (type === 'CREDIT') {
-                const candidates = cardRows.filter(row => {
-
-                    const identity = normalizeText(`${row?.[1] || ''} ${row?.[2] || ''}`);
-                    return identity.includes(subject) && identity.includes(institution);
-                });
+                const explicitCardId = explicitCardIds.get(normalizeText(item.alias_code));
+                const candidates = explicitCardId
+                    ? cardRows.filter(row => String(row?.[0] || '').trim() === explicitCardId)
+                    : cardRows.filter(row => {
+                        const identity = normalizeText(`${row?.[1] || ''} ${row?.[2] || ''}`);
+                        return identity.includes(subject) && identity.includes(institution);
+                    });
                 if (candidates.length === 1 && String(candidates[0]?.[0] || '').trim()) {
                     const closeDate = String(account.balance_close_date || '');
                     const match = /-(\d{2})(?:T|$)/.exec(closeDate);
@@ -138,6 +152,7 @@ function buildConfig({ pluggySnapshot, sheetSnapshot, historyStartDate,
                         billingFallbackAuthorized: false
                     };
                     diagnostics.bound_card += 1;
+                    if (explicitCardId) diagnostics.explicit_card_bindings += 1;
                 } else {
                     diagnostics.unbound_card += 1;
                 }
@@ -235,6 +250,15 @@ function requiredAbsolutePath(name) {
     return path.resolve(value);
 }
 
+function optionalAbsolutePath(name) {
+    const value = argument(name);
+    if (!value) return '';
+    if (!path.isAbsolute(value)) {
+        throw new Error(`${name.replace(/^--/, '')}_must_be_absolute`);
+    }
+    return path.resolve(value);
+}
+
 function isInside(parent, candidate) {
     const contains = (root, target) => {
         const relative = path.relative(root, target);
@@ -267,6 +291,7 @@ function main() {
     const pluggyPath = requiredAbsolutePath('--pluggy-snapshot');
     const sheetPath = requiredAbsolutePath('--sheet-snapshot');
     const outputPath = requiredAbsolutePath('--output');
+    const bindingOverridesPath = optionalAbsolutePath('--binding-overrides');
     const historyStartDate = argument('--history-start');
     const historyEndDate = argument('--history-end');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(historyStartDate) ||
@@ -292,7 +317,10 @@ function main() {
         sheetSnapshot: JSON.parse(fs.readFileSync(sheetPath, 'utf8')),
         historyStartDate,
         historyEndDate,
-        classifyExpense
+        classifyExpense,
+        cardIdByAlias: bindingOverridesPath
+            ? JSON.parse(fs.readFileSync(bindingOverridesPath, 'utf8')).cardIdByAlias
+            : {}
     });
     fs.writeFileSync(outputPath, `${JSON.stringify(config, null, 2)}\n`, {
         encoding: 'utf8', flag: 'wx', mode: 0o600

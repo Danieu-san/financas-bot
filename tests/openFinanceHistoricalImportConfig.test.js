@@ -27,10 +27,10 @@ test('derives only unique bank, reserve and consolidated card bindings', () => {
                     ['Pessoa - Banco Reserva', 'reserve', '', '', 'active', '',
                         'Pessoa', 'u1']
                 ],
-                'Cartões!A:G': [
+                'Cartões!A:H': [
                     ['card_id', 'Nome', 'Banco', 'Dia de Fechamento',
-                        'Dia de Vencimento', 'Ativo', 'Observações'],
-                    ['card-1', 'Banco - Pessoa', 'Banco', 18, 25, 'Sim', '']
+                        'Dia de Vencimento', 'Ativo', 'Observações', 'user_id'],
+                    ['card-1', 'Banco - Pessoa', 'Banco', 18, 25, 'Sim', '', '']
                 ]
             }
         },
@@ -50,6 +50,47 @@ test('derives only unique bank, reserve and consolidated card bindings', () => {
     assert.equal(config.diagnostics.unbound_savings, 1);
     assert.equal(config.coverageComplete, false);
     assert.equal(config.financial_writes, 0);
+});
+
+test('binds an explicitly identified existing card without inventing a new catalog row', () => {
+    const input = {
+        pluggySnapshot: {
+            observed_at: '2026-08-11T00:00:00.000Z',
+            items: [{
+                alias_code: 'thais_itau', owner_scope: 'thais',
+                accounts: [{ id: 'itau-credit', type: 'CREDIT',
+                    subtype: 'CREDIT_CARD', balance_close_date: '2026-08-03' }]
+            }]
+        },
+        sheetSnapshot: {
+            ranges: {
+                'Contas Financeiras!A:I': [
+                    ['header'],
+                    ['Thais - Itaú', 'bank', '', '', 'active', '', 'Thais', 'u-thais']
+                ],
+                'Cartões!A:H': [
+                    ['card_id', 'Nome', 'Banco', 'Dia de Fechamento',
+                        'Dia de Vencimento', 'Ativo', 'Observações', 'user_id'],
+                    ['card-itau', 'Cartão Itaú', 'Itaú', 3, 10, 'Sim', '', '']
+                ]
+            }
+        },
+        historyStartDate: '2025-07-01',
+        historyEndDate: '2026-07-27'
+    };
+
+    const withoutOverride = buildConfig(input);
+    assert.equal(withoutOverride.accountBindings['itau-credit'], undefined);
+    assert.equal(withoutOverride.diagnostics.unbound_card, 1);
+
+    const withOverride = buildConfig({
+        ...input,
+        cardIdByAlias: { thais_itau: 'card-itau' }
+    });
+    assert.equal(withOverride.accountBindings['itau-credit'].cardId, 'card-itau');
+    assert.equal(withOverride.accountBindings['itau-credit'].cardName, 'Cartão Itaú');
+    assert.equal(withOverride.diagnostics.explicit_card_bindings, 1);
+    assert.equal(withOverride.financial_writes, 0);
 });
 
 test('does not bind an owner when account rows disagree on user identity', () => {

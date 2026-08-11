@@ -40,7 +40,7 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 
 1. Conta e cartao permanecem fontes distintas mesmo com o mesmo banco/titular.
 2. Linha existente ou possivel duplicata nunca entra no lote gravavel.
-3. Cartoes e catalogo pessoal A:G; Lancamentos Cartao e fonte consolidada A:J.
+3. Cartoes e catalogo pessoal A:H; Lancamentos Cartao e fonte consolidada A:J.
 4. Mes derivado de `bill_id` exige mesma conta e fatura Pluggy real.
 5. Categoria pronta exige decisao explicita ou evidencia deterministica.
 6. Aplicacao/resgate de reserva e neutro em receita e despesa.
@@ -55,9 +55,9 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 3. [concluida] Atualizar Pluggy read-only e fechar cobertura temporal.
 4. [concluida] Adaptar configurador e planejador ao schema consolidado.
 5. [concluida] Vincular meses de fatura por conta e `bill_id` com prova causal.
-6. [em andamento] Criar e reler dois destinos estruturais autorizados.
+6. [concluida] Reusar `card-itau` e criar/reler somente a conta Cristina/Nubank.
 7. [pendente] Recalcular o plano real e resolver revisoes privadas.
-8. [concluida] Executar uma bateria hermetica ampla: 132/132 verdes.
+8. [concluida] Executar a bateria hermetica ampla do candidato: 99/99 verdes.
 9. [pendente] Publicar commit e obter auditoria independente por hash.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
@@ -83,5 +83,5 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 
 ## Proxima acao
 
-Criar idempotentemente conta Cristina/Nubank e cartao Thais/Itau no catalogo
-pessoal, reler a fonte e substituir a simulacao por um plano real atualizado.
+Recalcular o plano real usando a conta Cristina/Nubank criada e o vinculo
+explicito `thais_itau -> card-itau`, sem criar cartao ou aba adicional.
