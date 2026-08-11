@@ -58,7 +58,8 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 6. [concluida] Reusar `card-itau` e criar/reler somente a conta Cristina/Nubank.
 7. [pendente] Recalcular o plano real e resolver revisoes privadas.
 8. [concluida] Executar a bateria hermetica ampla do candidato: 99/99 verdes.
-9. [pendente] Publicar commit e obter auditoria independente por hash.
+9. [concluida] Publicar `fe374a3ee3a67457c02e74268984c7428fbcb2ac` e
+   obter `GO TECNICO LOCAL` independente no escopo read-only.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 
@@ -83,5 +84,5 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 
 ## Proxima acao
 
-Recalcular o plano real usando a conta Cristina/Nubank criada e o vinculo
-explicito `thais_itau -> card-itau`, sem criar cartao ou aba adicional.
+Resolver os grupos privados residuais do plano recalculado, sem habilitar
+writer historico, importacao real ou deploy.

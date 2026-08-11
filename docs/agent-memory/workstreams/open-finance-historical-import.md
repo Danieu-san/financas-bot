@@ -46,14 +46,17 @@ escrita financeira.
 - configurador focal corrigido: 6/6;
 - bateria hermetica ampla do candidato, cobrindo todas as suites
   `openFinanceHistorical*.test.js`: 99/99 testes verdes, sem falhas;
+- auditoria independente do hash
+  `fe374a3ee3a67457c02e74268984c7428fbcb2ac`: `GO TECNICO LOCAL`, zero
+  achados e nenhuma lacuna indispensavel no escopo read-only;
 - nenhum artefato privado, descricao, valor, ID ou segredo entrou no Git.
 
 ## Proxima acao
 
-Recalcular o plano real com a conta Cristina/Nubank existente e o vinculo
-explicito `thais_itau -> card-itau`, resolver os grupos privados residuais e
-publicar um novo hash imutavel para auditoria independente.
+Resolver os grupos privados residuais do plano recalculado, preservando
+`financial_writes=0`; writer historico, importacao real e deploy continuam fora
+do alcance autorizado.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> recalcular e auditar o Gate 41 corrigido.`
+`Codex -> Sol -> Alto -> resolver as ambiguidades privadas do Gate 41.`
