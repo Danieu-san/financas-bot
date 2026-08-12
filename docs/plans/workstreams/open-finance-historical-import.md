@@ -75,11 +75,13 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 9.3. [NO-GO independente] O hash
    `2577ebc49efbfa18c845fe77e6c9e9954b00f109` recebeu um achado ALTO porque a
    prova de ausencia do credito consultava Saidas, mas nao Entradas.
-9.4. [candidato de recuperacao local] Neutralizacao de estorno pre-salvamento exige par
+9.4. [GO tecnico local independente] Neutralizacao de estorno pre-salvamento exige par
    mutuamente unico, mesma conta bancaria, valor oposto, semantica explicita,
    identidades estaveis, ate 30 dias e ausencia dos dois lados na aba coerente
    com sua direcao; o teste novo prova estorno ja salvo em Entradas. Focal
-   31/31, bateria ampla 115/115 e `financial_writes=0`, aguardando reauditoria.
+   31/31, bateria ampla 115/115 e `financial_writes=0`; o hash
+   `6dc4e7e36e36f011fa3252412aae36071d654e1e` recebeu `GO TECNICO LOCAL`,
+   zero achados e nenhuma lacuna indispensavel no escopo read-only.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 

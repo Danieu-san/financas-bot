@@ -96,6 +96,10 @@ escrita financeira.
   a ausencia do estorno era verificada somente em Saidas, sem consultar
   Entradas; a recuperacao agora seleciona a aba pela direcao do movimento e
   possui teste causal proprio;
+- reauditoria independente do hash
+  `6dc4e7e36e36f011fa3252412aae36071d654e1e`: `GO TECNICO LOCAL`, achado
+  anterior fechado, zero achados por severidade e nenhuma lacuna indispensavel
+  no escopo read-only;
 - auditoria independente do hash
   `fe374a3ee3a67457c02e74268984c7428fbcb2ac`: `GO TECNICO LOCAL`, zero
   achados e nenhuma lacuna indispensavel no escopo read-only;
