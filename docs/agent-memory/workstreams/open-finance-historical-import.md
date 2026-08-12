@@ -91,6 +91,19 @@ escrita financeira.
 - a proxima reducao exige decisao humana sobre grupos repetidos opacos; nenhuma
   classificacao fraca sera inferida e `financial_writes=0` permanece.
 
+## Atualizacao privada v9
+
+- Daniel confirmou que PIX recebidos de Cristina sao reembolsos de parcelas do
+  casamento e que as transferencias recorrentes para Dhalyn sao mensalidades do
+  Spotify, classificadas como Assinaturas;
+- a direcao foi preservada: os 11 PIX enviados a Cristina continuam retidos e
+  nao foram confundidos com os recebimentos;
+- as duas regras fecharam 17 itens e elevaram o plano privado a 1.341 prontos,
+  34 duplicatas provaveis, 195 excluidos, 620 em revisao e 161 fora da janela;
+- o residual e composto por 396 categorias, 151 creditos bancarios, 69
+  creditos ou ajustes de cartao sem vinculo forte e 4 moedas nao BRL;
+- nenhuma linha financeira foi escrita e nenhum dado privado entrou no Git.
+
 ## Evidencia local atual
 
 - planejador focal com controles adversariais de pagamento de fatura: 22/22;
@@ -139,10 +152,10 @@ escrita financeira.
 
 ## Proxima acao
 
-Obter de Daniel a semantica dos grupos privados repetidos de maior impacto,
-aplicar cada decisao somente ao conjunto equivalente confirmado e recalcular o
-plano com `financial_writes=0`.
+Obter de Daniel a semantica dos grupos privados repetidos restantes usando
+data, valor, conta/cartao e recorrencia, aplicar cada decisao somente ao conjunto
+equivalente confirmado e recalcular o plano com `financial_writes=0`.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> resolver as ambiguidades privadas residuais do Gate 41.`
+`Codex -> Sol -> Baixo -> coletar a semantica dos grupos privados residuais do Gate 41.`
