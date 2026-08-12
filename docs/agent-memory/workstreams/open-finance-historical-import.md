@@ -43,6 +43,15 @@ escrita financeira.
 - plano privado vigente: 1.202 prontos, 33 duplicatas provaveis, 118 excluidos,
   837 em revisao e 161 fora da janela; restam 489 categorias, 238 entradas ou
   estornos, 106 creditos/pagamentos de cartao e 4 moedas nao BRL para revisao;
+- uma regra exata semanticamente inequívoca foi ampliada para correspondencia
+  parcial e elevou o plano a 1.205 prontos, com 834 revisoes;
+- o pareamento familiar sem referencia agora exige valor oposto, datas dentro
+  da janela e a ate um dia, contas bancarias distintas, correspondencia
+  mutuamente unica e identificacao bilateral pela identidade explicita de cada
+  conta; a identidade da conta prevalece sobre o titular vinculado;
+- o produto real consolidou 32 pares familiares: plano privado atual com 1.237
+  prontos, 33 duplicatas provaveis, 150 excluidos, 770 em revisao e 161 fora da
+  janela, sempre com `financial_writes=0`;
 - nenhuma linha historica foi escrita; `financial_writes=0`;
 - a unica criacao estrutural necessaria foi concluida pelo canal Google
   autenticado e confirmada por releitura direta da planilha; nao houve criacao
@@ -54,8 +63,9 @@ escrita financeira.
 - runtime focal com relogio deterministico: 12/12;
 - configurador focal apos a auditoria: 10/10; caminho absoluto de decisoes
   privadas dentro do repositorio agora e rejeitado antes da leitura;
-- bateria hermetica ampla do candidato, cobrindo todas as suites
-  `openFinanceHistorical*.test.js`: 106/106 testes verdes, sem falhas;
+- planejador focal do pareamento familiar bilateral: 27/27;
+- bateria hermetica ampla do candidato familiar, cobrindo todas as suites
+  `openFinanceHistorical*.test.js`: 111/111 testes verdes, sem falhas;
 - auditoria independente do hash
   `e9a73b8a6d982d94941dfc73d9b1f393f561e0fd`: `NO-GO`, com um achado ALTO
   na fronteira do caminho privado;
@@ -69,9 +79,9 @@ escrita financeira.
 
 ## Proxima acao
 
-Revisar duplicatas, entradas, estornos e os grupos de categoria ainda ambiguos,
-aplicando apenas evidencia privada confirmada e preservando
-`financial_writes=0`.
+Validar e auditar o pareamento familiar bilateral; depois revisar duplicatas,
+entradas, estornos e os grupos de categoria ainda ambiguos, aplicando apenas
+evidencia privada confirmada e preservando `financial_writes=0`.
 
 ## Capacidade
 

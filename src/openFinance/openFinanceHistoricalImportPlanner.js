@@ -452,20 +452,59 @@ function flattenSnapshot(pluggySnapshot) {
     return transactions;
 }
 
-function strongTransferPairs(transactions, accountBindings) {
+function strongTransferPairs(transactions, accountBindings,
+    historyStartDate, historyEndDate) {
     const paired = new Map();
+    const causalCandidatesByRef = new Map();
+    const identityTokens = binding => {
+        const accountIdentity = normalizeText(binding?.financialAccount)
+            .split(' ').filter(token => token.length >= 4 &&
+                !['conta', 'corrente', 'nubank', 'itau', 'banco'].includes(token));
+        const ownerTokens = normalizeText(binding?.ownerLabel).split(' ')
+            .filter(token => token.length >= 4);
+        return accountIdentity.length ? accountIdentity : ownerTokens;
+    };
+    const identifiesBinding = (description, binding) => {
+        const normalizedDescription = normalizeText(description);
+        return identityTokens(binding).some(token =>
+            normalizedDescription.split(' ').includes(token));
+    };
+    const causalCandidates = left => {
+        const ref = sourceRef(left);
+        if (causalCandidatesByRef.has(ref)) return causalCandidatesByRef.get(ref);
+        const candidates = transactions.filter(right => {
+            const leftBinding = accountBindings[left.account_id];
+            const rightBinding = accountBindings[right.account_id];
+            const leftDate = isoDate(left.date);
+            const rightDate = isoDate(right.date);
+            return Number(right.amount_cents) === -Number(left.amount_cents) &&
+                right.account_id !== left.account_id &&
+                leftDate >= historyStartDate && leftDate <= historyEndDate &&
+                rightDate >= historyStartDate && rightDate <= historyEndDate &&
+                !String(left.reference_number || '').trim() &&
+                !String(right.reference_number || '').trim() &&
+                dayDistance(left.date, right.date) <= 1 &&
+                leftBinding?.kind === 'bank' && rightBinding?.kind === 'bank' &&
+                identifiesBinding(left.description, rightBinding) &&
+                identifiesBinding(right.description, leftBinding);
+        });
+        causalCandidatesByRef.set(ref, candidates);
+        return candidates;
+    };
     for (let i = 0; i < transactions.length; i += 1) {
         const left = transactions[i];
         if (Number(left.amount_cents) >= 0 || !accountBindings[left.account_id] ||
             accountBindings[left.account_id].kind !== 'bank') continue;
         const reference = String(left.reference_number || '').trim();
-        if (!reference) continue;
-        const candidates = transactions.filter((right, index) =>
-            index !== i && Number(right.amount_cents) === -Number(left.amount_cents) &&
-            right.account_id !== left.account_id &&
-            String(right.reference_number || '').trim() === reference &&
-            dayDistance(left.date, right.date) <= 1 &&
-            accountBindings[right.account_id]?.kind === 'bank');
+        const candidates = reference
+            ? transactions.filter((right, index) =>
+                index !== i && Number(right.amount_cents) === -Number(left.amount_cents) &&
+                right.account_id !== left.account_id &&
+                String(right.reference_number || '').trim() === reference &&
+                dayDistance(left.date, right.date) <= 1 &&
+                accountBindings[right.account_id]?.kind === 'bank')
+            : causalCandidates(left).filter(right =>
+                causalCandidates(right).length === 1);
         if (candidates.length === 1) {
             paired.set(sourceRef(left), {
                 role: 'origin',
@@ -684,7 +723,8 @@ function planOpenFinanceHistoricalImport({
     }
     const transactions = flattenSnapshot(pluggySnapshot);
     const patterns = categoryPatterns(sheetSnapshot);
-    const pairs = strongTransferPairs(transactions, accountBindings);
+    const pairs = strongTransferPairs(transactions, accountBindings,
+        historyStartDate, historyEndDate);
     const pairedCounterparts = new Set();
     const duplicates = new Set();
     const entries = transactions.map(transaction => {

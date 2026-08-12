@@ -57,8 +57,10 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 5. [concluida] Vincular meses de fatura por conta e `bill_id` com prova causal.
 6. [concluida] Reusar `card-itau` e criar/reler somente a conta Cristina/Nubank.
 7. [em andamento] Recalcular o plano real e resolver revisoes privadas; regras
-   semanticas reduziram as revisoes de 1.248 para 837 sem escrita.
-8. [concluida] Executar a bateria hermetica ampla do candidato: 106/106 verdes.
+   semanticas e 32 pares familiares bilaterais reduziram as revisoes de 1.248
+   para 770 sem escrita.
+8. [concluida] Executar a bateria hermetica ampla do candidato privado inicial:
+   106/106 verdes; candidato familiar posterior: 111/111 verdes.
 9. [concluida] Publicar `fe374a3ee3a67457c02e74268984c7428fbcb2ac` e
    obter `GO TECNICO LOCAL` independente no escopo read-only.
 9.1. [concluida] O hash `e9a73b8a6d982d94941dfc73d9b1f393f561e0fd`
@@ -90,6 +92,6 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 
 ## Proxima acao
 
-Tratar duplicatas, entradas, estornos e categorias residuais somente com
-evidencia privada confirmada, sem habilitar writer historico, importacao real
-ou deploy.
+Validar e auditar o pareamento familiar bilateral; depois tratar duplicatas,
+entradas, estornos e categorias residuais somente com evidencia privada
+confirmada, sem habilitar writer historico, importacao real ou deploy.

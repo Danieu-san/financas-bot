@@ -379,6 +379,171 @@ test('consolidates a strong transfer even when the inbound side appears first', 
     assert.equal(result.entries[1].state, 'ready');
 });
 
+test('consolidates a mutually unique family transfer without provider reference', () => {
+    const accountBindings = {
+        ...bindings,
+        'bank-1': { ...bindings['bank-1'], ownerLabel: 'Daniel' },
+        'bank-2': {
+            kind: 'bank', ownerUserId: 'person-2', ownerLabel: 'Thais',
+            financialAccount: 'Conta 2', paymentMethod: 'DÃ©bito'
+        }
+    };
+    const result = plan([
+        transaction({
+            id: 'outbound-no-ref', provider_id: 'out-no-ref', amount_cents: -1234,
+            description: 'Pix enviado Thais', operation_type: 'PIX'
+        }),
+        transaction({
+            id: 'inbound-no-ref', provider_id: 'in-no-ref', account_id: 'bank-2',
+            amount_cents: 1234, description: 'Pix recebido Daniel',
+            type: 'CREDIT', operation_type: 'PIX'
+        })
+    ], {
+        accounts: [{ id: 'bank-1', type: 'BANK' }, { id: 'bank-2', type: 'BANK' }],
+        accountBindings
+    });
+
+    assert.equal(result.entries[0].classification, 'transfer');
+    assert.equal(result.entries[0].state, 'ready');
+    assert.equal(result.entries[1].classification, 'paired_transfer_counterpart');
+    assert.equal(result.entries[1].state, 'excluded');
+    assert.equal(result.financial_writes, 0);
+});
+
+test('keeps reference-free family transfers in review without bilateral unique identity', () => {
+    const accountBindings = {
+        ...bindings,
+        'bank-1': { ...bindings['bank-1'], ownerLabel: 'Daniel' },
+        'bank-2': {
+            kind: 'bank', ownerUserId: 'person-2', ownerLabel: 'Thais',
+            financialAccount: 'Conta 2', paymentMethod: 'DÃ©bito'
+        }
+    };
+    const transactions = [
+        transaction({
+            id: 'outbound-ambiguous', provider_id: 'out-ambiguous', amount_cents: -1234,
+            description: 'Pix enviado Thais', operation_type: 'PIX'
+        }),
+        transaction({
+            id: 'inbound-ambiguous-a', provider_id: 'in-ambiguous-a',
+            account_id: 'bank-2', amount_cents: 1234,
+            description: 'Pix recebido Daniel', type: 'CREDIT', operation_type: 'PIX'
+        }),
+        transaction({
+            id: 'inbound-ambiguous-b', provider_id: 'in-ambiguous-b',
+            account_id: 'bank-2', amount_cents: 1234,
+            description: 'Pix recebido Daniel', type: 'CREDIT', operation_type: 'PIX'
+        })
+    ];
+    const result = plan(transactions, {
+        accounts: [{ id: 'bank-1', type: 'BANK' }, { id: 'bank-2', type: 'BANK' }],
+        accountBindings
+    });
+
+    assert.equal(result.entries[0].state, 'needs_review');
+    assert.equal(result.entries[0].reason, 'category_required');
+    assert.equal(result.summary.ready, 0);
+    assert.equal(result.financial_writes, 0);
+});
+
+test('keeps a reference-free family match in review when its counterpart is outside the RX', () => {
+    const accountBindings = {
+        ...bindings,
+        'bank-1': { ...bindings['bank-1'], ownerLabel: 'Daniel' },
+        'bank-2': {
+            kind: 'bank', ownerUserId: 'person-2', ownerLabel: 'Thais',
+            financialAccount: 'Conta 2', paymentMethod: 'DÃ©bito'
+        }
+    };
+    const result = plan([
+        transaction({
+            id: 'outbound-in-window', provider_id: 'out-in-window', amount_cents: -1234,
+            date: '2026-12-31', description: 'Pix enviado Thais', operation_type: 'PIX'
+        }),
+        transaction({
+            id: 'inbound-outside', provider_id: 'in-outside', account_id: 'bank-2',
+            amount_cents: 1234, date: '2027-01-01', description: 'Pix recebido Daniel',
+            type: 'CREDIT', operation_type: 'PIX'
+        })
+    ], {
+        accounts: [{ id: 'bank-1', type: 'BANK' }, { id: 'bank-2', type: 'BANK' }],
+        accountBindings
+    });
+
+    assert.equal(result.entries[0].state, 'needs_review');
+    assert.equal(result.entries[0].reason, 'category_required');
+    assert.equal(result.entries[1].state, 'outside_window');
+    assert.equal(result.financial_writes, 0);
+});
+
+test('keeps a one-sided family name match in review without bilateral identity', () => {
+    const accountBindings = {
+        ...bindings,
+        'bank-1': { ...bindings['bank-1'], ownerLabel: 'Daniel' },
+        'bank-2': {
+            kind: 'bank', ownerUserId: 'person-2', ownerLabel: 'Thais',
+            financialAccount: 'Conta 2', paymentMethod: 'DÃ©bito'
+        }
+    };
+    const result = plan([
+        transaction({
+            id: 'outbound-one-sided', provider_id: 'out-one-sided', amount_cents: -1234,
+            description: 'Pix enviado Thais', operation_type: 'PIX'
+        }),
+        transaction({
+            id: 'inbound-one-sided', provider_id: 'in-one-sided', account_id: 'bank-2',
+            amount_cents: 1234, description: 'Pix recebido',
+            type: 'CREDIT', operation_type: 'PIX'
+        })
+    ], {
+        accounts: [{ id: 'bank-1', type: 'BANK' }, { id: 'bank-2', type: 'BANK' }],
+        accountBindings
+    });
+
+    assert.equal(result.entries[0].state, 'needs_review');
+    assert.equal(result.entries[1].state, 'needs_review');
+    assert.equal(result.summary.ready, 0);
+    assert.equal(result.financial_writes, 0);
+});
+
+test('uses the financial-account identity before its linked owner identity', () => {
+    const accountBindings = {
+        ...bindings,
+        'bank-1': { ...bindings['bank-1'], ownerLabel: 'Daniel',
+            financialAccount: 'Daniel - Nubank' },
+        'bank-2': {
+            kind: 'bank', ownerUserId: 'person-2', ownerLabel: 'Thais',
+            financialAccount: 'Cristina - Nubank', paymentMethod: 'DÃ©bito'
+        }
+    };
+    const transactions = [
+        transaction({
+            id: 'outbound-cristina', provider_id: 'out-cristina', amount_cents: -1234,
+            description: 'Pix enviado Cristina', operation_type: 'PIX'
+        }),
+        transaction({
+            id: 'inbound-daniel', provider_id: 'in-daniel', account_id: 'bank-2',
+            amount_cents: 1234, description: 'Pix recebido Daniel',
+            type: 'CREDIT', operation_type: 'PIX'
+        })
+    ];
+    const matched = plan(transactions, {
+        accounts: [{ id: 'bank-1', type: 'BANK' }, { id: 'bank-2', type: 'BANK' }],
+        accountBindings
+    });
+    const wrongIdentity = plan(transactions.map(item => item.account_id === 'bank-1'
+        ? { ...item, description: 'Pix enviado Thais' }
+        : item), {
+        accounts: [{ id: 'bank-1', type: 'BANK' }, { id: 'bank-2', type: 'BANK' }],
+        accountBindings
+    });
+
+    assert.equal(matched.entries[0].classification, 'transfer');
+    assert.equal(matched.entries[1].classification, 'paired_transfer_counterpart');
+    assert.equal(wrongIdentity.entries[0].state, 'needs_review');
+    assert.equal(wrongIdentity.financial_writes, 0);
+});
+
 test('requires review for unbound sources and unmatched card credits', () => {
     const result = plan([
         transaction({ account_id: 'unknown-account' }),
