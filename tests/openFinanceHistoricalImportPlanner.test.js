@@ -544,6 +544,105 @@ test('uses the financial-account identity before its linked owner identity', () 
     assert.equal(wrongIdentity.financial_writes, 0);
 });
 
+test('neutralizes a mutually unique explicit bank refund before either side is saved', () => {
+    const debit = transaction({
+        id: 'refunded-debit', provider_id: 'refunded-debit-provider',
+        description: 'Compra via NuPay', amount_cents: -3490,
+        date: '2026-01-10'
+    });
+    const refund = transaction({
+        id: 'explicit-refund', provider_id: 'explicit-refund-provider',
+        description: 'Estorno - Compra via NuPay', amount_cents: 3490,
+        type: 'CREDIT', date: '2026-01-10'
+    });
+
+    const forward = plan([debit, refund]);
+    const reversed = plan([refund, debit]);
+
+    assert.deepEqual(forward.entries.map(item => [item.state, item.classification]), [
+        ['excluded', 'paired_refund_purchase'],
+        ['excluded', 'paired_refund']
+    ]);
+    assert.deepEqual(reversed.entries.map(item => [item.state, item.classification]), [
+        ['excluded', 'paired_refund'],
+        ['excluded', 'paired_refund_purchase']
+    ]);
+    assert.equal(forward.summary.ready, 0);
+    assert.equal(forward.summary.excluded, 2);
+    assert.equal(forward.financial_writes, 0);
+    assert.ok(forward.entries.every(item => !item.write_plan));
+});
+
+test('does not neutralize an explicit refund when the debit is already recorded', () => {
+    const expenseRange = Object.keys(sheet().ranges).find(key => key.startsWith('Sa'));
+    const result = plan([
+        transaction({
+            id: 'recorded-debit', provider_id: 'recorded-debit-provider',
+            description: 'Compra via NuPay', amount_cents: -3490,
+            date: '2026-01-10'
+        }),
+        transaction({
+            id: 'refund-for-recorded-debit', provider_id: 'refund-recorded-provider',
+            description: 'Estorno - Compra via NuPay', amount_cents: 3490,
+            type: 'CREDIT', date: '2026-01-10'
+        })
+    ], {
+        ranges: {
+            [expenseRange]: [
+                ['Data', 'DescriÃ§Ã£o', 'Categoria', 'Subcategoria', 'Valor',
+                    'ResponsÃ¡vel', 'Pagamento', 'Recorrente', 'ObservaÃ§Ãµes',
+                    'user_id', 'Conta Financeira'],
+                ['10/01/2026', 'Compra via NuPay', 'Outros', '', 34.90,
+                    'Pessoa 1', 'DÃ©bito', 'NÃ£o', '', 'person-1', 'Conta 1']
+            ]
+        }
+    });
+
+    assert.equal(result.entries[0].state, 'existing');
+    assert.equal(result.entries[1].state, 'possible_duplicate');
+    assert.equal(result.entries[1].classification, 'already_recorded');
+});
+
+test('keeps ambiguous, cross-account, stale and non-explicit refund candidates out of pairing', () => {
+    const accountBindings = {
+        ...bindings,
+        'bank-2': {
+            kind: 'bank', ownerUserId: 'person-2', ownerLabel: 'Pessoa 2',
+            financialAccount: 'Conta 2', paymentMethod: 'DÃ©bito'
+        }
+    };
+    const cases = [
+        [
+            transaction({ id: 'ambiguous-debit-a', provider_id: 'ambiguous-debit-a', amount_cents: -2500 }),
+            transaction({ id: 'ambiguous-debit-b', provider_id: 'ambiguous-debit-b', amount_cents: -2500 }),
+            transaction({ id: 'ambiguous-refund', provider_id: 'ambiguous-refund', description: 'Estorno compra', amount_cents: 2500, type: 'CREDIT' })
+        ],
+        [
+            transaction({ id: 'cross-debit', provider_id: 'cross-debit', amount_cents: -2500 }),
+            transaction({ id: 'cross-refund', provider_id: 'cross-refund', account_id: 'bank-2', description: 'Estorno compra', amount_cents: 2500, type: 'CREDIT' })
+        ],
+        [
+            transaction({ id: 'stale-debit', provider_id: 'stale-debit', amount_cents: -2500, date: '2025-10-01' }),
+            transaction({ id: 'stale-refund', provider_id: 'stale-refund', description: 'Estorno compra', amount_cents: 2500, type: 'CREDIT', date: '2026-01-10' })
+        ],
+        [
+            transaction({ id: 'ordinary-debit', provider_id: 'ordinary-debit', amount_cents: -2500 }),
+            transaction({ id: 'ordinary-credit', provider_id: 'ordinary-credit', description: 'Pix recebido', amount_cents: 2500, type: 'CREDIT' })
+        ]
+    ];
+
+    for (const candidates of cases) {
+        const result = plan(candidates, {
+            accounts: [{ id: 'bank-1', type: 'BANK' }, { id: 'bank-2', type: 'BANK' }],
+            accountBindings
+        });
+        assert.ok(result.entries.every(item => ![
+            'paired_refund_purchase', 'paired_refund'
+        ].includes(item.classification)));
+        assert.equal(result.financial_writes, 0);
+    }
+});
+
 test('requires review for unbound sources and unmatched card credits', () => {
     const result = plan([
         transaction({ account_id: 'unknown-account' }),

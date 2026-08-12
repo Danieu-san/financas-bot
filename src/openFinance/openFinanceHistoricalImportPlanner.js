@@ -519,6 +519,73 @@ function strongTransferPairs(transactions, accountBindings,
     return paired;
 }
 
+function strongUnwrittenRefundPairs(transactions, accountBindings, sheetSnapshot,
+    historyStartDate, historyEndDate) {
+    const paired = new Map();
+    const providerCounts = transactions.reduce((counts, transaction) => {
+        const identity = providerIdentity(transaction);
+        if (identity) counts.set(identity, (counts.get(identity) || 0) + 1);
+        return counts;
+    }, new Map());
+    const isInsideWindow = transaction => {
+        const date = isoDate(transaction.date);
+        return date >= historyStartDate && date <= historyEndDate;
+    };
+    const isStableBankTransaction = transaction => {
+        const binding = accountBindings[transaction.account_id];
+        const identity = providerIdentity(transaction);
+        return binding?.kind === 'bank' && transaction.account_type === 'BANK' &&
+            Number.isFinite(Number(transaction.amount_cents)) &&
+            Number(transaction.amount_cents) !== 0 &&
+            String(transaction.currency || '').trim().toUpperCase() === 'BRL' &&
+            identity && providerCounts.get(identity) === 1 && isInsideWindow(transaction) &&
+            !duplicateState(transaction, sheetRecords(sheetSnapshot, binding), binding);
+    };
+    const isExplicitRefund = transaction => {
+        const words = new Set(normalizeText([
+            transaction.description,
+            transaction.operation_type
+        ].join(' ')).split(' '));
+        return ['estorno', 'reembolso', 'devolucao'].some(word => words.has(word));
+    };
+    const candidatesByRef = new Map();
+    const candidates = refund => {
+        const ref = sourceRef(refund);
+        if (candidatesByRef.has(ref)) return candidatesByRef.get(ref);
+        const refundDate = parseDate(refund.date);
+        const matches = transactions.filter(debit => {
+            const debitDate = parseDate(debit.date);
+            return Number(refund.amount_cents) > 0 && Number(debit.amount_cents) < 0 &&
+                debit.account_id === refund.account_id && debit !== refund &&
+                Number(debit.amount_cents) === -Number(refund.amount_cents) &&
+                isStableBankTransaction(refund) && isStableBankTransaction(debit) &&
+                debitDate && refundDate && debitDate <= refundDate &&
+                dayDistance(debit.date, refund.date) <= 30;
+        });
+        candidatesByRef.set(ref, matches);
+        return matches;
+    };
+    const refundsByDebit = new Map();
+    const eligibleRefunds = transactions.filter(transaction =>
+        Number(transaction.amount_cents) > 0 && isExplicitRefund(transaction));
+    for (const refund of eligibleRefunds) {
+        for (const debit of candidates(refund)) {
+            const debitRef = sourceRef(debit);
+            if (!refundsByDebit.has(debitRef)) refundsByDebit.set(debitRef, []);
+            refundsByDebit.get(debitRef).push(refund);
+        }
+    }
+    for (const refund of eligibleRefunds) {
+        const matches = candidates(refund);
+        if (matches.length !== 1) continue;
+        const debit = matches[0];
+        if (refundsByDebit.get(sourceRef(debit))?.length !== 1) continue;
+        paired.set(sourceRef(debit), { role: 'debit', pair: refund });
+        paired.set(sourceRef(refund), { role: 'refund', pair: debit });
+    }
+    return paired;
+}
+
 function resolveCategory(transaction, rule, patterns) {
     if (String(rule?.category || '').trim()) {
         return {
@@ -541,6 +608,7 @@ function classifyTransaction({
     patterns,
     duplicates,
     transferRole,
+    refundRole,
     accountBindings,
     pairedCounterparts,
     historyStartDate,
@@ -598,6 +666,15 @@ function classifyTransaction({
             transferWritePlan(transaction, binding,
                 accountBindings[transferRole.pair.account_id],
                 'transfer'));
+    }
+
+    if (refundRole?.role === 'debit') {
+        return entry(transaction, 'excluded', 'paired_refund_purchase',
+            'pre_save_refund_pair_neutralized');
+    }
+    if (refundRole?.role === 'refund') {
+        return entry(transaction, 'excluded', 'paired_refund',
+            'pre_save_refund_pair_neutralized');
     }
 
     const duplicate = duplicateState(
@@ -725,6 +802,8 @@ function planOpenFinanceHistoricalImport({
     const patterns = categoryPatterns(sheetSnapshot);
     const pairs = strongTransferPairs(transactions, accountBindings,
         historyStartDate, historyEndDate);
+    const refundPairs = strongUnwrittenRefundPairs(transactions, accountBindings,
+        sheetSnapshot, historyStartDate, historyEndDate);
     const pairedCounterparts = new Set();
     const duplicates = new Set();
     const entries = transactions.map(transaction => {
@@ -742,6 +821,7 @@ function planOpenFinanceHistoricalImport({
             patterns,
             duplicates,
             transferRole: pairs.get(ref),
+            refundRole: refundPairs.get(ref),
             accountBindings,
             pairedCounterparts,
             historyStartDate,

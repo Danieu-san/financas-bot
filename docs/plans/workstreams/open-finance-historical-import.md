@@ -58,7 +58,8 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 6. [concluida] Reusar `card-itau` e criar/reler somente a conta Cristina/Nubank.
 7. [em andamento] Recalcular o plano real e resolver revisoes privadas; regras
    semanticas e 32 pares familiares bilaterais reduziram as revisoes de 1.248
-   para 770 sem escrita.
+   para 770; rendimentos confirmados de Caixinha e quatro pares de estorno
+   pre-salvamento reduziram o residual a 727, sem escrita.
 8. [concluida] Executar a bateria hermetica ampla do candidato privado inicial:
    106/106 verdes; candidato familiar posterior: 111/111 verdes.
 9. [concluida] Publicar `fe374a3ee3a67457c02e74268984c7428fbcb2ac` e
@@ -71,6 +72,11 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 9.2. [concluida] O pareamento familiar bilateral no hash
    `c5d325927721436432d2d38caa7366c77ab1d732` recebeu `GO TECNICO LOCAL`
    independente, sem achados ou lacuna indispensavel.
+9.3. [candidato local] Neutralizacao de estorno pre-salvamento exige par
+   mutuamente unico, mesma conta bancaria, valor oposto, semantica explicita,
+   identidades estaveis, ate 30 dias e ausencia dos dois lados na planilha;
+   focal 30/30, bateria ampla 114/114 e `financial_writes=0`, aguardando
+   auditoria independente.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 
@@ -95,6 +101,6 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 
 ## Proxima acao
 
-Tratar entradas, estornos, duplicatas e categorias residuais somente com
+Tratar duplicatas e categorias residuais somente com
 evidencia privada confirmada, sem habilitar writer historico, importacao real
 ou deploy.

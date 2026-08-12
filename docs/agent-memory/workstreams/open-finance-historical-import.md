@@ -52,6 +52,15 @@ escrita financeira.
 - o produto real consolidou 32 pares familiares: plano privado atual com 1.237
   prontos, 33 duplicatas provaveis, 150 excluidos, 770 em revisao e 161 fora da
   janela, sempre com `financial_writes=0`;
+- rendimentos explicitamente identificados de Caixinha foram classificados por
+  decisao privada confirmada, sem transformar principal de reserva em receita;
+- estorno bancario pre-salvamento agora neutraliza tambem o debito original
+  somente quando ambos estao ausentes da planilha, pertencem a mesma conta,
+  possuem valores exatamente opostos, semantica explicita, identidades unicas e
+  intervalo de ate 30 dias; qualquer concorrencia permanece retida;
+- o recálculo privado atual tem 1.272 prontos, 33 duplicatas provaveis, 158
+  excluidos, 727 em revisao e 161 fora da janela, sempre com
+  `financial_writes=0`;
 - nenhuma linha historica foi escrita; `financial_writes=0`;
 - a unica criacao estrutural necessaria foi concluida pelo canal Google
   autenticado e confirmada por releitura direta da planilha; nao houve criacao
@@ -64,8 +73,11 @@ escrita financeira.
 - configurador focal apos a auditoria: 10/10; caminho absoluto de decisoes
   privadas dentro do repositorio agora e rejeitado antes da leitura;
 - planejador focal do pareamento familiar bilateral: 27/27;
+- planejador focal apos a neutralizacao de estorno pre-salvamento: 30/30;
 - bateria hermetica ampla do candidato familiar, cobrindo todas as suites
   `openFinanceHistorical*.test.js`: 111/111 testes verdes, sem falhas;
+- bateria hermetica ampla do candidato de estorno pre-salvamento: 114/114
+  testes verdes, sem falhas;
 - auditoria independente do hash
   `e9a73b8a6d982d94941dfc73d9b1f393f561e0fd`: `NO-GO`, com um achado ALTO
   na fronteira do caminho privado;
@@ -82,7 +94,7 @@ escrita financeira.
 
 ## Proxima acao
 
-Revisar entradas e estornos residuais, preservando creditos de cartao sem
+Revisar duplicatas e categorias residuais, preservando creditos de cartao sem
 vinculo forte e demais ambiguidades em revisao, com `financial_writes=0`.
 
 ## Capacidade
