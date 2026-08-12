@@ -120,13 +120,17 @@ escrita financeira.
 - auditoria independente do hash
   `fe374a3ee3a67457c02e74268984c7428fbcb2ac`: `GO TECNICO LOCAL`, zero
   achados e nenhuma lacuna indispensavel no escopo read-only;
+- auditoria independente do hash
+  `7387a371ef4805ea7b8966685a9ec9411a70530c`: `GO TECNICO LOCAL`, sem
+  achados altos ou medios e sem lacuna indispensavel; o unico achado baixo e
+  de granularidade focal de testes e nao abre caminho causal;
 - nenhum artefato privado, descricao, valor, ID ou segredo entrou no Git.
 
 ## Proxima acao
 
-Publicar o candidato bilateral de pagamento de fatura e obter auditoria
-independente por hash; preservar creditos sem vinculo forte e demais
-ambiguidades em revisao, com `financial_writes=0`.
+Continuar a revisao privada das categorias, creditos e duplicatas residuais,
+preservando todo item sem vinculo forte em revisao e mantendo
+`financial_writes=0`.
 
 ## Capacidade
 

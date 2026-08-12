@@ -82,12 +82,15 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    31/31, bateria ampla 115/115 e `financial_writes=0`; o hash
    `6dc4e7e36e36f011fa3252412aae36071d654e1e` recebeu `GO TECNICO LOCAL`,
    zero achados e nenhuma lacuna indispensavel no escopo read-only.
-9.5. [candidato aguardando auditoria] Pagamento de fatura bilateral exige
+9.5. [GO tecnico local independente] Pagamento de fatura bilateral exige
    debito bancario explicitamente classificado, credito `POSTED` de cartao,
    BRL, identidades unicas, ausencia na planilha, mesmo valor, ate tres dias e
    correspondencia mutuamente unica. Focal 34/34, bateria historica 118/118 e
    impacto privado de 37 contrapartes fechadas, sempre com
-   `financial_writes=0`.
+   `financial_writes=0`. O hash
+   `7387a371ef4805ea7b8966685a9ec9411a70530c` recebeu GO independente, sem
+   achados altos ou medios e sem lacuna indispensavel; um achado baixo de
+   granularidade focal nao bloqueia o escopo.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 
@@ -112,6 +115,5 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 
 ## Proxima acao
 
-Publicar e auditar independentemente o pareamento bilateral de pagamento de
-fatura; depois continuar a revisao privada residual sem habilitar writer
-historico, importacao real ou deploy.
+Continuar a revisao privada residual sem habilitar writer historico,
+importacao real ou deploy.
