@@ -10,6 +10,69 @@ const SIGNATURE_STOPWORDS = new Set([
     'transferencia', 'ifd', 'mp', 'pag', 'payment', 'ltda', 'brasil'
 ]);
 
+const PRIVATE_RULE_CLASSIFICATIONS = new Set(['expense', 'income', 'card_payment']);
+const PRIVATE_DECISION_CLASSIFICATIONS = new Set([
+    'expense', 'income', 'reserve_application', 'reserve_redemption'
+]);
+
+function isRecord(value) {
+    return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function normalizePrivateDecisions(value = {}) {
+    if (!isRecord(value)) {
+        throw new Error('historical_import_private_decisions_invalid');
+    }
+    const rawRules = value.merchantRules ?? [];
+    const rawOverrides = value.decisionOverrides ?? {};
+    if (!Array.isArray(rawRules) || !isRecord(rawOverrides)) {
+        throw new Error('historical_import_private_decisions_invalid');
+    }
+    const merchantRules = rawRules.map((rule, index) => {
+        const mode = String(rule?.match?.mode || '').trim();
+        const matchValue = String(rule?.match?.value || '').trim();
+        const classification = String(rule?.classification || '').trim();
+        const category = String(rule?.category || '').trim();
+        const subcategory = String(rule?.subcategory || '').trim();
+        const categoryRequired = ['expense', 'income'].includes(classification);
+        if (!isRecord(rule) || !isRecord(rule.match) ||
+            !['exact', 'contains'].includes(mode) || !matchValue ||
+            !PRIVATE_RULE_CLASSIFICATIONS.has(classification) ||
+            (categoryRequired && !category) ||
+            (!categoryRequired && (category || subcategory))) {
+            throw new Error(`historical_import_private_merchant_rule_invalid:${index}`);
+        }
+        return {
+            match: { mode, value: matchValue },
+            classification,
+            category,
+            subcategory
+        };
+    });
+    const decisionOverrides = {};
+    for (const [sourceRefValue, decision] of Object.entries(rawOverrides)) {
+        const ref = String(sourceRefValue || '').trim();
+        const classification = String(decision?.classification || '').trim();
+        const category = String(decision?.category || '').trim();
+        const subcategory = String(decision?.subcategory || '').trim();
+        const allowedKeys = new Set(['classification', 'category', 'subcategory']);
+        const hasOnlyAllowedKeys = isRecord(decision) &&
+            Object.keys(decision).every(key => allowedKeys.has(key));
+        const categoryRequired = ['expense', 'income'].includes(classification);
+        if (!ref || !hasOnlyAllowedKeys ||
+            !PRIVATE_DECISION_CLASSIFICATIONS.has(classification) ||
+            (categoryRequired && !category) ||
+            (!categoryRequired && (category || subcategory))) {
+            throw new Error(`historical_import_private_decision_invalid:${ref || 'missing_ref'}`);
+        }
+        decisionOverrides[ref] = {
+            classification,
+            ...(category ? { category, subcategory } : {})
+        };
+    }
+    return { merchantRules, decisionOverrides };
+}
+
 function merchantSignature(value) {
     const meaningful = normalizeText(value).split(' ').filter(token =>
         token.length >= 3 && !/^\d+$/.test(token) &&
@@ -52,7 +115,8 @@ function observedAt(snapshot) {
 }
 
 function buildConfig({ pluggySnapshot, sheetSnapshot, historyStartDate,
-    historyEndDate, classifyExpense = null, cardIdByAlias = {} } = {}) {
+    historyEndDate, classifyExpense = null, cardIdByAlias = {},
+    privateDecisions = {} } = {}) {
     const activeValues = new Set(['active', 'ativo', 'ativa', 'sim', 'yes', 'true', '1']);
     const accountRows = findRange(sheetSnapshot, 'Contas Financeiras').slice(1)
         .filter(row => activeValues.has(normalizeText(row?.[4])));
@@ -60,6 +124,7 @@ function buildConfig({ pluggySnapshot, sheetSnapshot, historyStartDate,
         .filter(row => activeValues.has(normalizeText(row?.[5])));
     const accountBindings = {};
     const decisionOverrides = {};
+    const reviewed = normalizePrivateDecisions(privateDecisions);
     const explicitCardIds = new Map();
     for (const [alias, cardIdValue] of Object.entries(cardIdByAlias || {})) {
         const normalizedAlias = normalizeText(alias);
@@ -78,7 +143,9 @@ function buildConfig({ pluggySnapshot, sheetSnapshot, historyStartDate,
         unbound_bank: 0,
         unbound_card: 0,
         unbound_savings: 0,
-        owners_without_unique_user: 0
+        owners_without_unique_user: 0,
+        private_merchant_rules: reviewed.merchantRules.length,
+        private_decision_overrides: Object.keys(reviewed.decisionOverrides).length
     };
 
     for (const item of pluggySnapshot?.items || []) {
@@ -230,8 +297,11 @@ function buildConfig({ pluggySnapshot, sheetSnapshot, historyStartDate,
         coverageComplete: Boolean(sourceObservedAt &&
             sourceObservedAt.slice(0, 10) >= historyEndDate),
         accountBindings,
-        merchantRules: [],
-        decisionOverrides,
+        merchantRules: reviewed.merchantRules,
+        decisionOverrides: {
+            ...decisionOverrides,
+            ...reviewed.decisionOverrides
+        },
         diagnostics,
         financial_writes: 0
     };
@@ -292,6 +362,7 @@ function main() {
     const sheetPath = requiredAbsolutePath('--sheet-snapshot');
     const outputPath = requiredAbsolutePath('--output');
     const bindingOverridesPath = optionalAbsolutePath('--binding-overrides');
+    const privateDecisionsPath = optionalAbsolutePath('--private-decisions');
     const historyStartDate = argument('--history-start');
     const historyEndDate = argument('--history-end');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(historyStartDate) ||
@@ -320,6 +391,9 @@ function main() {
         classifyExpense,
         cardIdByAlias: bindingOverridesPath
             ? JSON.parse(fs.readFileSync(bindingOverridesPath, 'utf8')).cardIdByAlias
+            : {},
+        privateDecisions: privateDecisionsPath
+            ? JSON.parse(fs.readFileSync(privateDecisionsPath, 'utf8'))
             : {}
     });
     fs.writeFileSync(outputPath, `${JSON.stringify(config, null, 2)}\n`, {
@@ -343,4 +417,10 @@ if (require.main === module) {
     }
 }
 
-module.exports = { buildConfig, normalizeText, rangeSheetName, merchantSignature };
+module.exports = {
+    buildConfig,
+    normalizeText,
+    rangeSheetName,
+    merchantSignature,
+    normalizePrivateDecisions
+};

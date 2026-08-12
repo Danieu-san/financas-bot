@@ -1,6 +1,6 @@
 # Gate 41 - importacao historica idempotente para a planilha
 
-Atualizado em: 2026-08-11
+Atualizado em: 2026-08-12
 
 ## Estado
 
@@ -56,8 +56,9 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 4. [concluida] Adaptar configurador e planejador ao schema consolidado.
 5. [concluida] Vincular meses de fatura por conta e `bill_id` com prova causal.
 6. [concluida] Reusar `card-itau` e criar/reler somente a conta Cristina/Nubank.
-7. [pendente] Recalcular o plano real e resolver revisoes privadas.
-8. [concluida] Executar a bateria hermetica ampla do candidato: 99/99 verdes.
+7. [em andamento] Recalcular o plano real e resolver revisoes privadas; regras
+   semanticas reduziram as revisoes de 1.248 para 837 sem escrita.
+8. [concluida] Executar a bateria hermetica ampla do candidato: 106/106 verdes.
 9. [concluida] Publicar `fe374a3ee3a67457c02e74268984c7428fbcb2ac` e
    obter `GO TECNICO LOCAL` independente no escopo read-only.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
@@ -84,5 +85,6 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 
 ## Proxima acao
 
-Resolver os grupos privados residuais do plano recalculado, sem habilitar
-writer historico, importacao real ou deploy.
+Validar e auditar a entrada privada revisada e a exclusao explicita de
+pagamentos de fatura; depois tratar duplicatas, entradas, estornos e categorias
+residuais, sem habilitar writer historico, importacao real ou deploy.

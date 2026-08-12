@@ -122,6 +122,53 @@ test('applies only an explicit private merchant rule and keeps financial writes 
     assert.equal(result.entries[0].write_plan.row[3], 'Aluguel');
 });
 
+test('excludes an explicitly confirmed bank card-payment instead of creating an expense', () => {
+    const result = plan([transaction({
+        description: 'Pagamento de fatura',
+        amount_cents: -12345,
+        account_id: 'bank-1'
+    })], {
+        merchantRules: [{
+            match: { mode: 'exact', value: 'Pagamento de fatura' },
+            classification: 'card_payment',
+            category: '',
+            subcategory: ''
+        }]
+    });
+
+    assert.equal(result.financial_writes, 0);
+    assert.equal(result.entries[0].state, 'excluded');
+    assert.equal(result.entries[0].classification, 'card_bill_payment');
+    assert.equal(result.entries[0].reason, 'confirmed_card_bill_payment');
+    assert.equal(result.entries[0].write_plan, undefined);
+});
+
+test('card-payment rules fail closed for bank credits and credit-card transactions', () => {
+    const merchantRules = [{
+        match: { mode: 'exact', value: 'Pagamento de fatura' },
+        classification: 'card_payment',
+        category: '',
+        subcategory: ''
+    }];
+    const bankCredit = plan([transaction({
+        description: 'Pagamento de fatura',
+        amount_cents: 12345,
+        account_id: 'bank-1'
+    })], { merchantRules });
+    const cardCredit = plan([transaction({
+        description: 'Pagamento de fatura',
+        amount_cents: -12345,
+        account_id: 'card-1'
+    })], { merchantRules });
+
+    assert.equal(bankCredit.entries[0].state, 'needs_review');
+    assert.notEqual(bankCredit.entries[0].reason, 'confirmed_card_bill_payment');
+    assert.equal(cardCredit.entries[0].state, 'needs_review');
+    assert.equal(cardCredit.entries[0].reason, 'refund_or_card_payment_requires_link');
+    assert.equal(bankCredit.financial_writes, 0);
+    assert.equal(cardCredit.financial_writes, 0);
+});
+
 test('does not deduplicate a card purchase against the bank expense sheet', () => {
     const result = plan([transaction({
         account_id: 'card-1',
@@ -419,6 +466,25 @@ test('fails closed on conflicting merchant rules and invalid installment metadat
     })], { merchantRules: [rules[0]] });
     assert.equal(invalidInstallment.entries[0].state, 'needs_review');
     assert.equal(invalidInstallment.entries[0].reason, 'invalid_installment_metadata');
+});
+
+test('does not report a conflict when overlapping rules have the same decision', () => {
+    const result = plan([transaction({
+        description: 'Ifd restaurante alimentos'
+    })], {
+        merchantRules: [{
+            match: { mode: 'contains', value: 'ifd' },
+            classification: 'expense', category: 'Alimentação', subcategory: ''
+        }, {
+            match: { mode: 'contains', value: 'alimentos' },
+            classification: 'expense', category: 'Alimentação', subcategory: ''
+        }]
+    });
+
+    assert.equal(result.entries[0].state, 'ready');
+    assert.equal(result.entries[0].reason, 'explicit_merchant_rule');
+    assert.equal(result.entries[0].write_plan.row[2], 'Alimentação');
+    assert.equal(result.financial_writes, 0);
 });
 
 test('requires an evidenced billing month for a historical card row', () => {

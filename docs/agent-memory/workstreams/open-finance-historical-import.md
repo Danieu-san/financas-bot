@@ -1,6 +1,6 @@
 # Estado - importacao historica Open Finance
 
-Atualizado em: 2026-08-11
+Atualizado em: 2026-08-12
 
 ## Objetivo ativo
 
@@ -34,6 +34,15 @@ escrita financeira.
   poupanca Itau sem movimentos no recorte permanece sem destino;
 - plano privado simulado: 856 prontos, 33 duplicatas provaveis, 53 pendentes
   excluidos, 1.248 em revisao e 161 fora da janela;
+- o configurador agora aceita regras e decisoes privadas revisadas somente por
+  arquivo absoluto fora do repositorio, valida o schema e as mantem separadas
+  das sugestoes automaticas;
+- descricoes semanticamente inequivocas e evidencias ja usadas na planilha
+  elevaram o plano para 1.202 prontos; pagamentos de fatura confirmados foram
+  excluidos como movimento financeiro, nunca categorizados como despesa;
+- plano privado vigente: 1.202 prontos, 33 duplicatas provaveis, 118 excluidos,
+  837 em revisao e 161 fora da janela; restam 489 categorias, 238 entradas ou
+  estornos, 106 creditos/pagamentos de cartao e 4 moedas nao BRL para revisao;
 - nenhuma linha historica foi escrita; `financial_writes=0`;
 - a unica criacao estrutural necessaria foi concluida pelo canal Google
   autenticado e confirmada por releitura direta da planilha; nao houve criacao
@@ -41,11 +50,10 @@ escrita financeira.
 
 ## Evidencia local atual
 
-- sintaxe do planejador: verde;
-- planejador focal: 19/19;
-- configurador focal corrigido: 6/6;
+- planejador focal com controles adversariais de pagamento de fatura: 22/22;
+- runtime focal com relogio deterministico: 12/12;
 - bateria hermetica ampla do candidato, cobrindo todas as suites
-  `openFinanceHistorical*.test.js`: 99/99 testes verdes, sem falhas;
+  `openFinanceHistorical*.test.js`: 106/106 testes verdes, sem falhas;
 - auditoria independente do hash
   `fe374a3ee3a67457c02e74268984c7428fbcb2ac`: `GO TECNICO LOCAL`, zero
   achados e nenhuma lacuna indispensavel no escopo read-only;
@@ -53,10 +61,10 @@ escrita financeira.
 
 ## Proxima acao
 
-Resolver os grupos privados residuais do plano recalculado, preservando
-`financial_writes=0`; writer historico, importacao real e deploy continuam fora
-do alcance autorizado.
+Publicar e auditar independentemente o candidato de regras privadas e exclusao
+de pagamento de fatura; depois revisar duplicatas, entradas, estornos e os
+grupos de categoria ainda ambiguos, preservando `financial_writes=0`.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> resolver as ambiguidades privadas do Gate 41.`
+`Codex -> Sol -> Alto -> validar e auditar o saneamento privado do Gate 41.`

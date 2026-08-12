@@ -412,14 +412,15 @@ test('prompt initialization consumes an external sealed file and restart preserv
         STATE_STORE_ENCRYPTION_KEY: OUTBOX_KEY
     };
     try {
-        const first = await initializeOpenFinanceHistoricalAmbiguityWhatsappRuntime({ client, env });
+        const clock = () => new Date(NOW);
+        const first = await initializeOpenFinanceHistoricalAmbiguityWhatsappRuntime({ client, env, clock });
         assert.equal(first.enabled, true);
         assert.equal(first.delivered_confirmed, 2);
         const selected = tryHandleOpenFinanceHistoricalAmbiguityReply({
             actorWhatsappId: DANIEL, body: '1', messageTimestamp: (Date.now() / 1000) + 2
         });
         assert.equal(selected.state, 'awaiting_resolution_number');
-        const second = await initializeOpenFinanceHistoricalAmbiguityWhatsappRuntime({ client, env });
+        const second = await initializeOpenFinanceHistoricalAmbiguityWhatsappRuntime({ client, env, clock });
         assert.equal(second.queued, 0);
         assert.equal(second.transport_calls, 0);
         assert.equal(sent.length, 2);
@@ -474,6 +475,12 @@ test('ready bootstrap waits for the real prompt runtime before unread discovery'
             dependencies: {
                 initializeScheduler: () => order.push('scheduler'),
                 initializeOpenFinanceCanaryRuntime: () => order.push('canary'),
+                initializeOpenFinanceHistoricalAmbiguityWhatsappRuntime: args => (
+                    initializeOpenFinanceHistoricalAmbiguityWhatsappRuntime({
+                        ...args,
+                        clock: () => new Date(NOW)
+                    })
+                ),
                 handleMessageForBackfill: async () => { throw new Error('unexpected_message'); }
             }
         });

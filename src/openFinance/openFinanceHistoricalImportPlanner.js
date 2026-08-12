@@ -267,9 +267,14 @@ function selectRule(transaction, merchantRules) {
         if (rule.match.mode === 'contains') return description.includes(expected);
         return false;
     });
+    const decisions = new Set(matches.map(rule => [
+        normalizeText(rule.classification),
+        normalizeText(rule.category),
+        normalizeText(rule.subcategory)
+    ].join('|')));
     return {
-        rule: matches.length === 1 ? matches[0] : null,
-        conflict: matches.length > 1
+        rule: matches.length && decisions.size === 1 ? matches[0] : null,
+        conflict: decisions.size > 1
     };
 }
 
@@ -609,6 +614,12 @@ function classifyTransaction({
     if (binding.kind === 'card' && Number(transaction.amount_cents) < 0) {
         return entry(transaction, 'needs_review', 'card_credit_or_payment',
             'refund_or_card_payment_requires_link');
+    }
+
+    if (binding.kind === 'bank' && classification === 'card_payment' &&
+        Number(transaction.amount_cents) < 0) {
+        return entry(transaction, 'excluded', 'card_bill_payment',
+            'confirmed_card_bill_payment');
     }
 
     if (binding.kind === 'card' && !String(transaction.bill_forecast_month || '').trim() &&

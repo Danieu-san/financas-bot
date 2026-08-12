@@ -229,7 +229,8 @@ let runtimeLogger = null;
 async function initializeOpenFinanceHistoricalAmbiguityWhatsappRuntime({
     client,
     logger = null,
-    env = process.env
+    env = process.env,
+    clock = () => new Date()
 } = {}) {
     runtimeLogger = logger;
     const mode = String(env.OPEN_FINANCE_HISTORICAL_AMBIGUITY_REVIEW_MODE || 'off')
@@ -272,7 +273,8 @@ async function initializeOpenFinanceHistoricalAmbiguityWhatsappRuntime({
             secret,
             familyScope: String(env.OPEN_FINANCE_HISTORICAL_AMBIGUITY_REVIEW_FAMILY_SCOPE
                 || 'shared-family'),
-            authorizedWhatsAppIds
+            authorizedWhatsAppIds,
+            clock
         });
         outbox = new SchedulerMessageOutbox({
             databasePath: String(env.OPEN_FINANCE_HISTORICAL_AMBIGUITY_REVIEW_OUTBOX_DB_PATH
@@ -281,7 +283,7 @@ async function initializeOpenFinanceHistoricalAmbiguityWhatsappRuntime({
         });
         runtime?.close?.();
         runtime = new OpenFinanceHistoricalAmbiguityWhatsappRuntime({
-            reviewStore, outbox, client, authorizedWhatsAppIds
+            reviewStore, outbox, client, authorizedWhatsAppIds, clock
         });
         const activation = await runtime.prepareAndDeliver({ sealedState });
         return { enabled: true, mode: 'prompt', actor_count: 2,

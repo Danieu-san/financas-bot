@@ -1,5 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 const {
     buildConfig
 } = require('../scripts/buildOpenFinanceHistoricalImportConfig');
@@ -91,6 +95,133 @@ test('binds an explicitly identified existing card without inventing a new catal
     assert.equal(withOverride.accountBindings['itau-credit'].cardName, 'Cartão Itaú');
     assert.equal(withOverride.diagnostics.explicit_card_bindings, 1);
     assert.equal(withOverride.financial_writes, 0);
+});
+
+test('keeps reviewed private decisions separate from automatic suggestions', () => {
+    const config = buildConfig({
+        pluggySnapshot: { observed_at: '2026-08-11T00:00:00.000Z', items: [] },
+        sheetSnapshot: { ranges: {} },
+        historyStartDate: '2025-07-01',
+        historyEndDate: '2026-07-27',
+        privateDecisions: {
+            merchantRules: [{
+                match: { mode: 'contains', value: 'grpqa' },
+                classification: 'expense',
+                category: 'Moradia',
+                subcategory: 'Aluguel'
+            }],
+            decisionOverrides: {
+                'source-ref-1': {
+                    classification: 'income',
+                    category: 'Entradas',
+                    subcategory: 'Reembolso'
+                }
+            }
+        }
+    });
+
+    assert.deepEqual(config.merchantRules, [{
+        match: { mode: 'contains', value: 'grpqa' },
+        classification: 'expense',
+        category: 'Moradia',
+        subcategory: 'Aluguel'
+    }]);
+    assert.deepEqual(config.decisionOverrides['source-ref-1'], {
+        classification: 'income',
+        category: 'Entradas',
+        subcategory: 'Reembolso'
+    });
+    assert.equal(config.diagnostics.private_merchant_rules, 1);
+    assert.equal(config.diagnostics.private_decision_overrides, 1);
+    assert.equal(config.financial_writes, 0);
+});
+
+test('fails closed for malformed private review decisions', () => {
+    const input = {
+        pluggySnapshot: { observed_at: '2026-08-11T00:00:00.000Z', items: [] },
+        sheetSnapshot: { ranges: {} },
+        historyStartDate: '2025-07-01',
+        historyEndDate: '2026-07-27'
+    };
+
+    assert.throws(() => buildConfig({
+        ...input,
+        privateDecisions: {
+            merchantRules: [{
+                match: { mode: 'regex', value: '.*' },
+                classification: 'expense', category: 'Outros'
+            }]
+        }
+    }), /historical_import_private_merchant_rule_invalid:0/);
+    assert.throws(() => buildConfig({
+        ...input,
+        privateDecisions: {
+            decisionOverrides: { 'source-ref-1': { classification: 'income' } }
+        }
+    }), /historical_import_private_decision_invalid:source-ref-1/);
+});
+
+test('accepts a category-free reviewed card-payment rule', () => {
+    const config = buildConfig({
+        pluggySnapshot: { observed_at: '2026-08-11T00:00:00.000Z', items: [] },
+        sheetSnapshot: { ranges: {} },
+        historyStartDate: '2025-07-01',
+        historyEndDate: '2026-07-27',
+        privateDecisions: {
+            merchantRules: [{
+                match: { mode: 'contains', value: 'pagamento de fatura' },
+                classification: 'card_payment'
+            }]
+        }
+    });
+
+    assert.deepEqual(config.merchantRules[0], {
+        match: { mode: 'contains', value: 'pagamento de fatura' },
+        classification: 'card_payment', category: '', subcategory: ''
+    });
+    assert.equal(config.financial_writes, 0);
+});
+
+test('CLI requires an absolute private-decisions path and applies the reviewed file', t => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'historical-config-private-'));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const pluggyPath = path.join(root, 'pluggy.json');
+    const sheetPath = path.join(root, 'sheet.json');
+    const decisionsPath = path.join(root, 'decisions.json');
+    const outputPath = path.join(root, 'config.json');
+    fs.writeFileSync(pluggyPath, JSON.stringify({
+        observed_at: '2026-08-11T00:00:00.000Z', items: []
+    }));
+    fs.writeFileSync(sheetPath, JSON.stringify({ ranges: {} }));
+    fs.writeFileSync(decisionsPath, JSON.stringify({
+        merchantRules: [{
+            match: { mode: 'contains', value: 'grpqa' },
+            classification: 'expense', category: 'Moradia', subcategory: 'Aluguel'
+        }]
+    }));
+    const script = path.resolve(__dirname,
+        '../scripts/buildOpenFinanceHistoricalImportConfig.js');
+    const common = [script, '--confirm-private-output',
+        '--pluggy-snapshot', pluggyPath, '--sheet-snapshot', sheetPath,
+        '--history-start', '2025-07-01', '--history-end', '2026-07-27'];
+
+    const relative = spawnSync(process.execPath, [
+        ...common, '--output', path.join(root, 'relative.json'),
+        '--private-decisions', 'decisions.json'
+    ], { encoding: 'utf8' });
+    assert.notEqual(relative.status, 0);
+    assert.match(relative.stderr, /private-decisions_must_be_absolute/);
+
+    const applied = spawnSync(process.execPath, [
+        ...common, '--output', outputPath, '--private-decisions', decisionsPath
+    ], { encoding: 'utf8' });
+    assert.equal(applied.status, 0, applied.stderr);
+    const config = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
+    assert.equal(config.merchantRules.length, 1);
+    assert.equal(config.merchantRules[0].match.value, 'grpqa');
+    assert.equal(config.diagnostics.private_merchant_rules, 1);
+    assert.equal(config.financial_writes, 0);
+    assert.doesNotMatch(applied.stdout, /grpqa|Aluguel/);
 });
 
 test('does not bind an owner when account rows disagree on user identity', () => {
