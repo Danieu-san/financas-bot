@@ -599,8 +599,41 @@ test('does not neutralize an explicit refund when the debit is already recorded'
     });
 
     assert.equal(result.entries[0].state, 'existing');
-    assert.equal(result.entries[1].state, 'possible_duplicate');
+    assert.equal(result.entries[1].state, 'needs_review');
+    assert.equal(result.entries[1].classification, 'income_or_refund');
+});
+
+test('does not neutralize an explicit refund already recorded as bank income', () => {
+    const incomeRange = Object.keys(sheet().ranges).find(key => key.startsWith('Entr'));
+    const result = plan([
+        transaction({
+            id: 'unwritten-debit', provider_id: 'unwritten-debit-provider',
+            description: 'Compra via NuPay', amount_cents: -3490,
+            date: '2026-01-10'
+        }),
+        transaction({
+            id: 'recorded-refund', provider_id: 'recorded-refund-provider',
+            description: 'Estorno - Compra via NuPay', amount_cents: 3490,
+            type: 'CREDIT', date: '2026-01-10'
+        })
+    ], {
+        ranges: {
+            [incomeRange]: [
+                ['Data', 'Descrição', 'Categoria', 'Valor', 'Responsável',
+                    'Recebimento', 'Recorrente', 'Observações', 'user_id',
+                    'Conta Financeira'],
+                ['10/01/2026', 'Estorno - Compra via NuPay', 'Reembolso', 34.90,
+                    'Pessoa 1', 'Conta Corrente', 'Não', '', 'person-1', 'Conta 1']
+            ]
+        }
+    });
+
+    assert.ok(result.entries.every(item => ![
+        'paired_refund_purchase', 'paired_refund'
+    ].includes(item.classification)));
+    assert.equal(result.entries[1].state, 'existing');
     assert.equal(result.entries[1].classification, 'already_recorded');
+    assert.equal(result.financial_writes, 0);
 });
 
 test('keeps ambiguous, cross-account, stale and non-explicit refund candidates out of pairing', () => {

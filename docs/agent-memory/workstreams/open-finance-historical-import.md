@@ -74,10 +74,14 @@ escrita financeira.
   privadas dentro do repositorio agora e rejeitado antes da leitura;
 - planejador focal do pareamento familiar bilateral: 27/27;
 - planejador focal apos a neutralizacao de estorno pre-salvamento: 30/30;
+- revalidacao focal apos fechar a leitura de creditos ja salvos em Entradas:
+  31/31;
 - bateria hermetica ampla do candidato familiar, cobrindo todas as suites
   `openFinanceHistorical*.test.js`: 111/111 testes verdes, sem falhas;
 - bateria hermetica ampla do candidato de estorno pre-salvamento: 114/114
   testes verdes, sem falhas;
+- bateria hermetica ampla do recovery apos o NO-GO: 115/115 testes verdes,
+  sem falhas;
 - auditoria independente do hash
   `e9a73b8a6d982d94941dfc73d9b1f393f561e0fd`: `NO-GO`, com um achado ALTO
   na fronteira do caminho privado;
@@ -87,6 +91,11 @@ escrita financeira.
 - auditoria independente do hash
   `c5d325927721436432d2d38caa7366c77ab1d732`: `GO TECNICO LOCAL`, zero
   achados e nenhuma lacuna indispensavel no pareamento familiar bilateral;
+- auditoria independente do hash
+  `2577ebc49efbfa18c845fe77e6c9e9954b00f109`: `NO-GO`, com um achado ALTO:
+  a ausencia do estorno era verificada somente em Saidas, sem consultar
+  Entradas; a recuperacao agora seleciona a aba pela direcao do movimento e
+  possui teste causal proprio;
 - auditoria independente do hash
   `fe374a3ee3a67457c02e74268984c7428fbcb2ac`: `GO TECNICO LOCAL`, zero
   achados e nenhuma lacuna indispensavel no escopo read-only;

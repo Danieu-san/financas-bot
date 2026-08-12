@@ -136,7 +136,7 @@ function rowsWithoutHeader(rows) {
     return Array.isArray(rows) && rows.length > 1 ? rows.slice(1) : [];
 }
 
-function sheetRecords(sheetSnapshot, binding) {
+function sheetRecords(sheetSnapshot, binding, transaction = null) {
     const ranges = sheetSnapshot?.ranges || {};
     if (binding.kind === 'card') {
         if (binding.cardId) {
@@ -164,6 +164,19 @@ function sheetRecords(sheetSnapshot, binding) {
             user_id: row[6],
             account: binding.sheetName,
             scope_known: Boolean(String(row[6] || '').trim())
+        }));
+    }
+    if (Number(transaction?.amount_cents) > 0) {
+        return rowsWithoutHeader(findRange(ranges, 'Entradas')).map(row => ({
+            date: row[0],
+            description: row[1],
+            category: row[2],
+            subcategory: '',
+            amount_cents: parseMoney(row[3]),
+            user_id: row[8],
+            account: row[9],
+            scope_known: Boolean(String(row[8] || '').trim() &&
+                String(row[9] || '').trim())
         }));
     }
     return rowsWithoutHeader(findRange(ranges, 'Saídas')).map(row => ({
@@ -539,7 +552,8 @@ function strongUnwrittenRefundPairs(transactions, accountBindings, sheetSnapshot
             Number(transaction.amount_cents) !== 0 &&
             String(transaction.currency || '').trim().toUpperCase() === 'BRL' &&
             identity && providerCounts.get(identity) === 1 && isInsideWindow(transaction) &&
-            !duplicateState(transaction, sheetRecords(sheetSnapshot, binding), binding);
+            !duplicateState(transaction,
+                sheetRecords(sheetSnapshot, binding, transaction), binding);
     };
     const isExplicitRefund = transaction => {
         const words = new Set(normalizeText([
@@ -679,7 +693,7 @@ function classifyTransaction({
 
     const duplicate = duplicateState(
         transaction,
-        sheetRecords(override.sheetSnapshot, binding),
+        sheetRecords(override.sheetSnapshot, binding, transaction),
         binding
     );
     if (duplicate) {

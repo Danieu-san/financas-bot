@@ -72,11 +72,14 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 9.2. [concluida] O pareamento familiar bilateral no hash
    `c5d325927721436432d2d38caa7366c77ab1d732` recebeu `GO TECNICO LOCAL`
    independente, sem achados ou lacuna indispensavel.
-9.3. [candidato local] Neutralizacao de estorno pre-salvamento exige par
+9.3. [NO-GO independente] O hash
+   `2577ebc49efbfa18c845fe77e6c9e9954b00f109` recebeu um achado ALTO porque a
+   prova de ausencia do credito consultava Saidas, mas nao Entradas.
+9.4. [candidato de recuperacao local] Neutralizacao de estorno pre-salvamento exige par
    mutuamente unico, mesma conta bancaria, valor oposto, semantica explicita,
-   identidades estaveis, ate 30 dias e ausencia dos dois lados na planilha;
-   focal 30/30, bateria ampla 114/114 e `financial_writes=0`, aguardando
-   auditoria independente.
+   identidades estaveis, ate 30 dias e ausencia dos dois lados na aba coerente
+   com sua direcao; o teste novo prova estorno ja salvo em Entradas. Focal
+   31/31, bateria ampla 115/115 e `financial_writes=0`, aguardando reauditoria.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 
