@@ -59,7 +59,7 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 7. [em andamento] Recalcular o plano real e resolver revisoes privadas; regras
    semanticas e 32 pares familiares bilaterais reduziram as revisoes de 1.248
    para 770; rendimentos confirmados de Caixinha, quatro pares de estorno
-   pre-salvamento e as decisoes privadas v9 reduziram o residual a 620, sem
+   pre-salvamento e as decisoes privadas v10 reduziram o residual a 615, sem
    escrita.
 8. [concluida] Executar a bateria hermetica ampla do candidato privado inicial:
    106/106 verdes; candidato familiar posterior: 111/111 verdes.
@@ -97,10 +97,10 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 
 ## Estado privado vigente
 
-- 1.341 prontos;
+- 1.346 prontos;
 - 34 duplicatas provaveis;
 - 195 excluidos;
-- 620 em revisao;
+- 615 em revisao;
 - 161 fora da janela;
 - zero escrita financeira.
 
@@ -128,6 +128,7 @@ BRL, creditos sem vinculo forte e duplicatas provaveis continuam retidos.
 
 ## Proxima acao
 
-Coletar a semantica dos grupos privados repetidos restantes usando data, valor,
-conta/cartao e recorrencia, aplicar somente equivalencias confirmadas e
-recalcular o plano sem habilitar writer historico, importacao real ou deploy.
+Identificar a conta de destino das transferencias internas, reconciliar as duas
+parcelas de emprestimo possivelmente ja existentes e coletar a semantica dos
+grupos privados restantes, sem habilitar writer historico, importacao real ou
+deploy.

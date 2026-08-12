@@ -104,6 +104,20 @@ escrita financeira.
   creditos ou ajustes de cartao sem vinculo forte e 4 moedas nao BRL;
 - nenhuma linha financeira foi escrita e nenhum dado privado entrou no Git.
 
+## Atualizacao privada v10
+
+- uma recorrencia de servico e um pagamento eventual, antes agrupados pelo
+  primeiro nome do recebedor, foram separados pela identidade completa e
+  classificados conforme decisao de Daniel;
+- cinco itens passaram a prontos: o plano privado tem 1.346 prontos, 34
+  duplicatas provaveis, 195 excluidos, 615 em revisao e 161 fora da janela;
+- um grupo confirmado como pagamento de emprestimo permanece retido porque
+  duas parcelas parecem ja estar representadas na planilha sob outra descricao;
+- cinco transferencias confirmadas como internas permanecem retidas ate a conta
+  de destino ser identificada, evitando inventar contraparte ou trata-las como
+  despesa;
+- `financial_writes=0` e nenhum dado privado entrou no Git.
+
 ## Evidencia local atual
 
 - planejador focal com controles adversariais de pagamento de fatura: 22/22;
@@ -152,9 +166,9 @@ escrita financeira.
 
 ## Proxima acao
 
-Obter de Daniel a semantica dos grupos privados repetidos restantes usando
-data, valor, conta/cartao e recorrencia, aplicar cada decisao somente ao conjunto
-equivalente confirmado e recalcular o plano com `financial_writes=0`.
+Obter de Daniel a conta de destino das transferencias internas, reconciliar as
+duas parcelas de emprestimo possivelmente ja existentes e continuar a coleta da
+semantica dos grupos privados restantes, sempre com `financial_writes=0`.
 
 ## Capacidade
 
