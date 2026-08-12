@@ -61,6 +61,9 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 8. [concluida] Executar a bateria hermetica ampla do candidato: 106/106 verdes.
 9. [concluida] Publicar `fe374a3ee3a67457c02e74268984c7428fbcb2ac` e
    obter `GO TECNICO LOCAL` independente no escopo read-only.
+9.1. [em reauditoria] O hash `e9a73b8a6d982d94941dfc73d9b1f393f561e0fd`
+   recebeu `NO-GO` por aceitar decisoes privadas em caminho absoluto dentro do
+   repositorio; a fronteira foi fechada e a bateria ampla permanece 106/106.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 
@@ -85,6 +88,6 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 
 ## Proxima acao
 
-Validar e auditar a entrada privada revisada e a exclusao explicita de
-pagamentos de fatura; depois tratar duplicatas, entradas, estornos e categorias
-residuais, sem habilitar writer historico, importacao real ou deploy.
+Reauditar a fronteira corrigida do arquivo privado; depois tratar duplicatas,
+entradas, estornos e categorias residuais, sem habilitar writer historico,
+importacao real ou deploy.

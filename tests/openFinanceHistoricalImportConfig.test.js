@@ -212,6 +212,14 @@ test('CLI requires an absolute private-decisions path and applies the reviewed f
     assert.notEqual(relative.status, 0);
     assert.match(relative.stderr, /private-decisions_must_be_absolute/);
 
+    const insideRepository = spawnSync(process.execPath, [
+        ...common, '--output', path.join(root, 'inside-repository.json'),
+        '--private-decisions', path.resolve(__dirname, '../package.json')
+    ], { encoding: 'utf8' });
+    assert.notEqual(insideRepository.status, 0);
+    assert.match(insideRepository.stderr,
+        /historical_import_private_decisions_must_stay_outside_repository/);
+
     const applied = spawnSync(process.execPath, [
         ...common, '--output', outputPath, '--private-decisions', decisionsPath
     ], { encoding: 'utf8' });

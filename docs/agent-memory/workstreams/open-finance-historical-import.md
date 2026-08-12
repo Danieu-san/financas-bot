@@ -52,8 +52,14 @@ escrita financeira.
 
 - planejador focal com controles adversariais de pagamento de fatura: 22/22;
 - runtime focal com relogio deterministico: 12/12;
+- configurador focal apos a auditoria: 10/10; caminho absoluto de decisoes
+  privadas dentro do repositorio agora e rejeitado antes da leitura;
 - bateria hermetica ampla do candidato, cobrindo todas as suites
   `openFinanceHistorical*.test.js`: 106/106 testes verdes, sem falhas;
+- auditoria independente do hash
+  `e9a73b8a6d982d94941dfc73d9b1f393f561e0fd`: `NO-GO`, com um achado ALTO
+  na fronteira do caminho privado; o achado foi corrigido e aguarda reauditoria
+  em novo hash;
 - auditoria independente do hash
   `fe374a3ee3a67457c02e74268984c7428fbcb2ac`: `GO TECNICO LOCAL`, zero
   achados e nenhuma lacuna indispensavel no escopo read-only;
@@ -61,9 +67,9 @@ escrita financeira.
 
 ## Proxima acao
 
-Publicar e auditar independentemente o candidato de regras privadas e exclusao
-de pagamento de fatura; depois revisar duplicatas, entradas, estornos e os
-grupos de categoria ainda ambiguos, preservando `financial_writes=0`.
+Publicar e reauditar a correcao da fronteira do arquivo privado; depois revisar
+duplicatas, entradas, estornos e os grupos de categoria ainda ambiguos,
+preservando `financial_writes=0`.
 
 ## Capacidade
 

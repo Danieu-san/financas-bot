@@ -372,6 +372,10 @@ function main() {
     if (isInside(path.resolve(__dirname, '..'), outputPath)) {
         throw new Error('historical_import_config_output_must_stay_outside_repository');
     }
+    if (privateDecisionsPath &&
+        isInside(path.resolve(__dirname, '..'), privateDecisionsPath)) {
+        throw new Error('historical_import_private_decisions_must_stay_outside_repository');
+    }
     const moduleRoot = argument('--module-root');
     if (moduleRoot) {
         if (!path.isAbsolute(moduleRoot)) {
