@@ -58,8 +58,10 @@ escrita financeira.
   `openFinanceHistorical*.test.js`: 106/106 testes verdes, sem falhas;
 - auditoria independente do hash
   `e9a73b8a6d982d94941dfc73d9b1f393f561e0fd`: `NO-GO`, com um achado ALTO
-  na fronteira do caminho privado; o achado foi corrigido e aguarda reauditoria
-  em novo hash;
+  na fronteira do caminho privado;
+- reauditoria independente do hash
+  `87f5e9ad767301cb3ec34197ca13cd470ade55af`: `GO TECNICO LOCAL`, zero
+  achados e nenhuma lacuna indispensavel; o achado anterior foi fechado;
 - auditoria independente do hash
   `fe374a3ee3a67457c02e74268984c7428fbcb2ac`: `GO TECNICO LOCAL`, zero
   achados e nenhuma lacuna indispensavel no escopo read-only;
@@ -67,10 +69,10 @@ escrita financeira.
 
 ## Proxima acao
 
-Publicar e reauditar a correcao da fronteira do arquivo privado; depois revisar
-duplicatas, entradas, estornos e os grupos de categoria ainda ambiguos,
-preservando `financial_writes=0`.
+Revisar duplicatas, entradas, estornos e os grupos de categoria ainda ambiguos,
+aplicando apenas evidencia privada confirmada e preservando
+`financial_writes=0`.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> validar e auditar o saneamento privado do Gate 41.`
+`Codex -> Sol -> Alto -> resolver as ambiguidades privadas residuais do Gate 41.`
