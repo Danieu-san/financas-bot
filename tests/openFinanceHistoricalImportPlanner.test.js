@@ -169,6 +169,122 @@ test('card-payment rules fail closed for bank credits and credit-card transactio
     assert.equal(cardCredit.financial_writes, 0);
 });
 
+test('neutralizes a mutually unique two-sided card bill payment', () => {
+    const merchantRules = [{
+        match: { mode: 'exact', value: 'Pagamento de fatura' },
+        classification: 'card_payment',
+        category: '',
+        subcategory: ''
+    }];
+    const bankDebit = transaction({
+        id: 'bill-payment-bank', provider_id: 'bill-payment-bank-provider',
+        description: 'Pagamento de fatura', amount_cents: -12345,
+        account_id: 'bank-1', type: 'DEBIT', date: '2026-01-10'
+    });
+    const cardCredit = transaction({
+        id: 'bill-payment-card', provider_id: 'bill-payment-card-provider',
+        description: 'Pagamento recebido', amount_cents: -12345,
+        account_id: 'card-1', type: 'CREDIT', date: '2026-01-11'
+    });
+
+    const forward = plan([bankDebit, cardCredit], { merchantRules });
+    const reversed = plan([cardCredit, bankDebit], { merchantRules });
+
+    assert.deepEqual(forward.entries.map(current => [
+        current.state, current.classification, current.reason
+    ]), [
+        ['excluded', 'card_bill_payment', 'strong_two_sided_card_payment'],
+        ['excluded', 'card_bill_payment_counterpart',
+            'strong_two_sided_card_payment']
+    ]);
+    assert.deepEqual(reversed.entries.map(current => [
+        current.state, current.classification, current.reason
+    ]), [
+        ['excluded', 'card_bill_payment_counterpart',
+            'strong_two_sided_card_payment'],
+        ['excluded', 'card_bill_payment', 'strong_two_sided_card_payment']
+    ]);
+    assert.equal(forward.financial_writes, 0);
+    assert.equal(reversed.financial_writes, 0);
+    assert.equal(forward.entries.some(current => current.write_plan), false);
+    assert.equal(reversed.entries.some(current => current.write_plan), false);
+});
+
+test('keeps ambiguous, stale and non-payment card credits out of bill pairing', () => {
+    const merchantRules = [{
+        match: { mode: 'contains', value: 'Pagamento de fatura' },
+        classification: 'card_payment',
+        category: '',
+        subcategory: ''
+    }];
+    const shared = {
+        description: 'Pagamento de fatura', amount_cents: -12345,
+        account_id: 'bank-1', type: 'DEBIT'
+    };
+    const result = plan([
+        transaction({ ...shared, id: 'bank-a', provider_id: 'bank-a',
+            date: '2026-01-10' }),
+        transaction({ ...shared, id: 'bank-b', provider_id: 'bank-b',
+            date: '2026-01-11' }),
+        transaction({ id: 'ambiguous-credit', provider_id: 'ambiguous-credit',
+            description: 'Pagamento recebido', amount_cents: -12345,
+            account_id: 'card-1', type: 'CREDIT', date: '2026-01-11' }),
+        transaction({ id: 'stale-credit', provider_id: 'stale-credit',
+            description: 'Pagamento recebido', amount_cents: -67890,
+            account_id: 'card-1', type: 'CREDIT', date: '2026-01-20' }),
+        transaction({ id: 'non-payment-credit', provider_id: 'non-payment-credit',
+            description: 'CrÃ©dito de atraso', amount_cents: -5555,
+            account_id: 'card-1', type: 'CREDIT', date: '2026-01-10' })
+    ], { merchantRules });
+
+    assert.deepEqual(result.entries.map(current => current.state), [
+        'excluded', 'excluded', 'needs_review', 'needs_review', 'needs_review'
+    ]);
+    assert.deepEqual(result.entries.slice(2).map(current => current.reason), [
+        'refund_or_card_payment_requires_link',
+        'refund_or_card_payment_requires_link',
+        'refund_or_card_payment_requires_link'
+    ]);
+    assert.equal(result.financial_writes, 0);
+});
+
+test('does not pair a card payment when the bank side is already recorded', () => {
+    const bankRangeName = Object.keys(sheet().ranges)[0];
+    const ranges = {
+        [bankRangeName]: [
+            sheet().ranges[bankRangeName][0],
+            ['10/01/2026', 'Pagamento de fatura', 'Outros', '', 123.45,
+                'Pessoa 1', 'DÃ©bito', 'NÃ£o', '', 'person-1', 'Conta 1']
+        ]
+    };
+    const result = plan([
+        transaction({
+            id: 'recorded-bank-payment', provider_id: 'recorded-bank-provider',
+            description: 'Pagamento de fatura', amount_cents: -12345,
+            account_id: 'bank-1', type: 'DEBIT', date: '2026-01-10'
+        }),
+        transaction({
+            id: 'unlinked-card-credit', provider_id: 'unlinked-card-provider',
+            description: 'Pagamento recebido', amount_cents: -12345,
+            account_id: 'card-1', type: 'CREDIT', date: '2026-01-10'
+        })
+    ], {
+        ranges,
+        merchantRules: [{
+            match: { mode: 'exact', value: 'Pagamento de fatura' },
+            classification: 'card_payment',
+            category: '',
+            subcategory: ''
+        }]
+    });
+
+    assert.equal(result.entries[0].state, 'existing');
+    assert.equal(result.entries[1].state, 'needs_review');
+    assert.equal(result.entries[1].reason,
+        'refund_or_card_payment_requires_link');
+    assert.equal(result.financial_writes, 0);
+});
+
 test('does not deduplicate a card purchase against the bank expense sheet', () => {
     const result = plan([transaction({
         account_id: 'card-1',

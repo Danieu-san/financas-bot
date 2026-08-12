@@ -66,6 +66,20 @@ escrita financeira.
   autenticado e confirmada por releitura direta da planilha; nao houve criacao
   de aba, alteracao do catalogo de cartoes, restart ou deploy.
 
+## Atualizacao prevalente do candidato bilateral
+
+- uma passagem semantica conservadora, limitada a descricoes comerciais
+  inequivocas, elevou o plano privado a 1.311 prontos, 34 duplicatas provaveis,
+  158 excluidos e 687 em revisao;
+- o candidato bilateral de pagamento de fatura exige debito bancario
+  explicitamente classificado, credito `POSTED` de cartao, BRL, identidades
+  unicas, ausencia na planilha, valor igual, ate tres dias e unicidade mutua;
+- o snapshot privado fechou 37 contrapartes sem criar item pronto: o plano
+  candidato tem 1.311 prontos, 34 duplicatas provaveis, 195 excluidos, 650 em
+  revisao e 161 fora da janela, sempre com `financial_writes=0`;
+- o residual permanece retido: 417 categorias, 160 creditos bancarios, 69
+  creditos ou ajustes de cartao sem vinculo forte e 4 moedas nao BRL.
+
 ## Evidencia local atual
 
 - planejador focal com controles adversariais de pagamento de fatura: 22/22;
@@ -82,6 +96,9 @@ escrita financeira.
   testes verdes, sem falhas;
 - bateria hermetica ampla do recovery apos o NO-GO: 115/115 testes verdes,
   sem falhas;
+- teste focal do pareamento bilateral de pagamento de fatura: 34/34;
+- bateria explicita das 12 suites historicas no novo candidato: 118/118, sem
+  falhas ou skips;
 - auditoria independente do hash
   `e9a73b8a6d982d94941dfc73d9b1f393f561e0fd`: `NO-GO`, com um achado ALTO
   na fronteira do caminho privado;
@@ -107,8 +124,9 @@ escrita financeira.
 
 ## Proxima acao
 
-Revisar duplicatas e categorias residuais, preservando creditos de cartao sem
-vinculo forte e demais ambiguidades em revisao, com `financial_writes=0`.
+Publicar o candidato bilateral de pagamento de fatura e obter auditoria
+independente por hash; preservar creditos sem vinculo forte e demais
+ambiguidades em revisao, com `financial_writes=0`.
 
 ## Capacidade
 

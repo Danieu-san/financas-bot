@@ -600,6 +600,74 @@ function strongUnwrittenRefundPairs(transactions, accountBindings, sheetSnapshot
     return paired;
 }
 
+function strongCardBillPaymentPairs(transactions, accountBindings, merchantRules,
+    decisionOverrides, sheetSnapshot, historyStartDate, historyEndDate) {
+    const paired = new Map();
+    const providerCounts = transactions.reduce((counts, transaction) => {
+        const identity = providerIdentity(transaction);
+        if (identity) counts.set(identity, (counts.get(identity) || 0) + 1);
+        return counts;
+    }, new Map());
+    const isInsideWindow = transaction => {
+        const date = isoDate(transaction.date);
+        return date >= historyStartDate && date <= historyEndDate;
+    };
+    const isStable = (transaction, kind, accountType) => {
+        const binding = accountBindings[transaction.account_id];
+        const identity = providerIdentity(transaction);
+        return binding?.kind === kind && transaction.account_type === accountType &&
+            Number.isFinite(Number(transaction.amount_cents)) &&
+            Number(transaction.amount_cents) !== 0 &&
+            String(transaction.currency || '').trim().toUpperCase() === 'BRL' &&
+            identity && providerCounts.get(identity) === 1 && isInsideWindow(transaction) &&
+            !duplicateState(transaction,
+                sheetRecords(sheetSnapshot, binding, transaction), binding);
+    };
+    const isConfirmedBankPayment = transaction => {
+        if (!isStable(transaction, 'bank', 'BANK') ||
+            Number(transaction.amount_cents) >= 0) return false;
+        const selection = selectRule(transaction, merchantRules);
+        const override = decisionOverrides[sourceRef(transaction)] ||
+            decisionOverrides[transaction.id] || {};
+        return !selection.conflict &&
+            (override.classification || selection.rule?.classification) ===
+                'card_payment';
+    };
+    const isCardPaymentCredit = transaction => {
+        const description = normalizeText(transaction.description);
+        return isStable(transaction, 'card', 'CREDIT') &&
+            Number(transaction.amount_cents) < 0 && transaction.type === 'CREDIT' &&
+            normalizeText(transaction.status).toUpperCase() === 'POSTED' &&
+            ['pagamento recebido', 'pagamento com saldo'].includes(description);
+    };
+    const bankPayments = transactions.filter(isConfirmedBankPayment);
+    const cardCredits = transactions.filter(isCardPaymentCredit);
+    const candidatesByCredit = new Map(cardCredits.map(credit => [
+        sourceRef(credit),
+        bankPayments.filter(debit =>
+            Math.abs(Number(debit.amount_cents)) ===
+                Math.abs(Number(credit.amount_cents)) &&
+            dayDistance(debit.date, credit.date) <= 3)
+    ]));
+    const creditsByDebit = new Map();
+    for (const credit of cardCredits) {
+        for (const debit of candidatesByCredit.get(sourceRef(credit)) || []) {
+            const debitRef = sourceRef(debit);
+            if (!creditsByDebit.has(debitRef)) creditsByDebit.set(debitRef, []);
+            creditsByDebit.get(debitRef).push(credit);
+        }
+    }
+    for (const credit of cardCredits) {
+        const candidates = candidatesByCredit.get(sourceRef(credit)) || [];
+        if (candidates.length !== 1) continue;
+        const debit = candidates[0];
+        if (creditsByDebit.get(sourceRef(debit))?.length !== 1) continue;
+        paired.set(sourceRef(debit), { role: 'bank_payment', pair: credit });
+        paired.set(sourceRef(credit), { role: 'card_credit', pair: debit });
+    }
+    return paired;
+}
+
 function resolveCategory(transaction, rule, patterns) {
     if (String(rule?.category || '').trim()) {
         return {
@@ -623,6 +691,7 @@ function classifyTransaction({
     duplicates,
     transferRole,
     refundRole,
+    cardPaymentRole,
     accountBindings,
     pairedCounterparts,
     historyStartDate,
@@ -689,6 +758,15 @@ function classifyTransaction({
     if (refundRole?.role === 'refund') {
         return entry(transaction, 'excluded', 'paired_refund',
             'pre_save_refund_pair_neutralized');
+    }
+
+    if (cardPaymentRole?.role === 'bank_payment') {
+        return entry(transaction, 'excluded', 'card_bill_payment',
+            'strong_two_sided_card_payment');
+    }
+    if (cardPaymentRole?.role === 'card_credit') {
+        return entry(transaction, 'excluded', 'card_bill_payment_counterpart',
+            'strong_two_sided_card_payment');
     }
 
     const duplicate = duplicateState(
@@ -818,6 +896,9 @@ function planOpenFinanceHistoricalImport({
         historyStartDate, historyEndDate);
     const refundPairs = strongUnwrittenRefundPairs(transactions, accountBindings,
         sheetSnapshot, historyStartDate, historyEndDate);
+    const cardPaymentPairs = strongCardBillPaymentPairs(transactions, accountBindings,
+        merchantRules, decisionOverrides, sheetSnapshot, historyStartDate,
+        historyEndDate);
     const pairedCounterparts = new Set();
     const duplicates = new Set();
     const entries = transactions.map(transaction => {
@@ -836,6 +917,7 @@ function planOpenFinanceHistoricalImport({
             duplicates,
             transferRole: pairs.get(ref),
             refundRole: refundPairs.get(ref),
+            cardPaymentRole: cardPaymentPairs.get(ref),
             accountBindings,
             pairedCounterparts,
             historyStartDate,
