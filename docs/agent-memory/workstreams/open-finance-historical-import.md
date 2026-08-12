@@ -80,6 +80,17 @@ escrita financeira.
 - o residual permanece retido: 417 categorias, 160 creditos bancarios, 69
   creditos ou ajustes de cartao sem vinculo forte e 4 moedas nao BRL.
 
+## Atualizacao privada v8
+
+- doze regras privadas adicionais, restritas a comerciantes inequivocos e uma
+  receita institucional explicita, fecharam 13 itens sem alterar codigo;
+- o plano privado vigente tem 1.324 prontos, 34 duplicatas provaveis, 195
+  excluidos, 637 em revisao e 161 fora da janela;
+- o residual e composto por 406 categorias, 158 creditos bancarios, 69
+  creditos ou ajustes de cartao sem vinculo forte e 4 moedas nao BRL;
+- a proxima reducao exige decisao humana sobre grupos repetidos opacos; nenhuma
+  classificacao fraca sera inferida e `financial_writes=0` permanece.
+
 ## Evidencia local atual
 
 - planejador focal com controles adversariais de pagamento de fatura: 22/22;
@@ -128,9 +139,9 @@ escrita financeira.
 
 ## Proxima acao
 
-Continuar a revisao privada das categorias, creditos e duplicatas residuais,
-preservando todo item sem vinculo forte em revisao e mantendo
-`financial_writes=0`.
+Obter de Daniel a semantica dos grupos privados repetidos de maior impacto,
+aplicar cada decisao somente ao conjunto equivalente confirmado e recalcular o
+plano com `financial_writes=0`.
 
 ## Capacidade
 

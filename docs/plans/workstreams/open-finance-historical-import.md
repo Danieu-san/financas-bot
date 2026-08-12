@@ -94,6 +94,18 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 
+## Estado privado vigente
+
+- 1.324 prontos;
+- 34 duplicatas provaveis;
+- 195 excluidos;
+- 637 em revisao;
+- 161 fora da janela;
+- zero escrita financeira.
+
+O residual exige decisoes privadas sobre grupos repetidos opacos; moedas nao
+BRL, creditos sem vinculo forte e duplicatas provaveis continuam retidos.
+
 ## Criterios de GO do planejador
 
 - toda transacao recebe exatamente um estado terminal;
@@ -115,5 +127,6 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 
 ## Proxima acao
 
-Continuar a revisao privada residual sem habilitar writer historico,
-importacao real ou deploy.
+Coletar a semantica dos grupos privados repetidos de maior impacto, aplicar
+somente equivalencias confirmadas e recalcular o plano sem habilitar writer
+historico, importacao real ou deploy.
