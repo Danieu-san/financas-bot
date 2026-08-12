@@ -68,6 +68,9 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    repositorio; a fronteira foi fechada, a bateria ampla permaneceu 106/106 e
    `87f5e9ad767301cb3ec34197ca13cd470ade55af` recebeu `GO TECNICO LOCAL` em
    reauditoria independente, sem achados ou lacuna indispensavel.
+9.2. [concluida] O pareamento familiar bilateral no hash
+   `c5d325927721436432d2d38caa7366c77ab1d732` recebeu `GO TECNICO LOCAL`
+   independente, sem achados ou lacuna indispensavel.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 
@@ -92,6 +95,6 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 
 ## Proxima acao
 
-Validar e auditar o pareamento familiar bilateral; depois tratar duplicatas,
-entradas, estornos e categorias residuais somente com evidencia privada
-confirmada, sem habilitar writer historico, importacao real ou deploy.
+Tratar entradas, estornos, duplicatas e categorias residuais somente com
+evidencia privada confirmada, sem habilitar writer historico, importacao real
+ou deploy.

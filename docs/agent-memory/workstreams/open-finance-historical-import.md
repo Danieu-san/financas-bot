@@ -73,15 +73,17 @@ escrita financeira.
   `87f5e9ad767301cb3ec34197ca13cd470ade55af`: `GO TECNICO LOCAL`, zero
   achados e nenhuma lacuna indispensavel; o achado anterior foi fechado;
 - auditoria independente do hash
+  `c5d325927721436432d2d38caa7366c77ab1d732`: `GO TECNICO LOCAL`, zero
+  achados e nenhuma lacuna indispensavel no pareamento familiar bilateral;
+- auditoria independente do hash
   `fe374a3ee3a67457c02e74268984c7428fbcb2ac`: `GO TECNICO LOCAL`, zero
   achados e nenhuma lacuna indispensavel no escopo read-only;
 - nenhum artefato privado, descricao, valor, ID ou segredo entrou no Git.
 
 ## Proxima acao
 
-Validar e auditar o pareamento familiar bilateral; depois revisar duplicatas,
-entradas, estornos e os grupos de categoria ainda ambiguos, aplicando apenas
-evidencia privada confirmada e preservando `financial_writes=0`.
+Revisar entradas e estornos residuais, preservando creditos de cartao sem
+vinculo forte e demais ambiguidades em revisao, com `financial_writes=0`.
 
 ## Capacidade
 
