@@ -105,10 +105,12 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    historica exata conserva precedencia sem apagar recorrencia. Focal 56/56,
    bateria historica 127/127 e `financial_writes=0`; a auditoria encontrou que
    aba ausente ainda era silenciosamente aceita e faltava cobertura focal.
-9.8. [recovery candidato local] Snapshot e configurador agora abortam sem
+9.8. [GO tecnico local independente] Snapshot e configurador agora abortam sem
    `Contas`; regra inativa, cartao sem recorrencia sintetica e CLI com a funcao
    real possuem provas negativas. Focal 60/60, bateria historica 131/131 e
-   `financial_writes=0`; reauditoria independente ainda pendente.
+   `financial_writes=0`. O hash
+   `a1bdaa55c66613b5027132760e356f2530c734c0` recebeu GO independente, sem
+   achados materiais ou lacuna indispensavel no escopo read-only.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 
@@ -146,7 +148,8 @@ BRL, creditos sem vinculo forte e duplicatas provaveis continuam retidos.
 
 ## Proxima acao
 
-Publicar e auditar o candidato do catalogo recorrente. Depois do veredito,
-coletar somente a semantica dos grupos privados realmente residuais. Manter
-retidos moedas nao BRL, creditos sem vinculo forte e duplicatas provaveis; nao
-habilitar writer historico, importacao real ou deploy.
+Coletar somente a semantica dos grupos privados realmente residuais. Consultar
+primeiro planilha, catalogos e decisoes registradas, depois pesquisa publica e
+somente entao Daniel. Manter retidos moedas nao BRL, creditos sem vinculo forte
+e duplicatas provaveis; nao habilitar writer historico, importacao real ou
+deploy.

@@ -167,7 +167,11 @@ escrita financeira.
 - recovery focal 60/60 e bateria historica ampla 131/131 verdes;
 - recovery documentado em
   `docs/audit/234-open-finance-historical-recurring-accounts-recovery-candidate-2026-08-13.md`,
-  ainda aguardando reauditoria independente por novo hash imutavel.
+  recebeu `GO TECNICO LOCAL` independente no hash
+  `a1bdaa55c66613b5027132760e356f2530c734c0`, sem achados materiais ou
+  lacuna indispensavel no escopo read-only;
+- fechamento registrado em
+  `docs/audit/235-open-finance-historical-recurring-accounts-independent-close-2026-08-13.md`.
 
 ## Evidencia local atual
 
@@ -223,11 +227,12 @@ escrita financeira.
 
 ## Proxima acao
 
-Publicar o candidato sanitizado do catalogo recorrente e obter auditoria
-independente por hash imutavel. Somente depois continuar a pesquisa dos grupos
-privados realmente residuais; manter moedas nao BRL, creditos sem vinculo forte
-e duplicatas provaveis retidos, com `financial_writes=0`.
+Continuar a pesquisa somente dos grupos privados realmente residuais, usando
+primeiro planilha, catalogos e decisoes ja registradas; recorrer a pesquisa
+publica somente depois e perguntar a Daniel apenas quando essas fontes forem
+insuficientes. Manter moedas nao BRL, creditos sem vinculo forte e duplicatas
+provaveis retidos, com `financial_writes=0`.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> auditar o candidato do catalogo recorrente do Gate 41.`
+`Codex -> Sol -> Medio -> pesquisar e classificar somente ambiguidades residuais do Gate 41.`
