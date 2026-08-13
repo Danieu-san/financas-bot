@@ -59,7 +59,7 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 7. [em andamento] Recalcular o plano real e resolver revisoes privadas; regras
    semanticas e 32 pares familiares bilaterais reduziram as revisoes de 1.248
    para 770; rendimentos confirmados de Caixinha, quatro pares de estorno
-   pre-salvamento e as decisoes privadas v10 reduziram o residual a 615, sem
+   pre-salvamento e as decisoes privadas v11 reduziram o residual a 566, sem
    escrita.
 8. [concluida] Executar a bateria hermetica ampla do candidato privado inicial:
    106/106 verdes; candidato familiar posterior: 111/111 verdes.
@@ -97,10 +97,10 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 
 ## Estado privado vigente
 
-- 1.346 prontos;
+- 1.395 prontos;
 - 34 duplicatas provaveis;
 - 195 excluidos;
-- 615 em revisao;
+- 566 em revisao;
 - 161 fora da janela;
 - zero escrita financeira.
 

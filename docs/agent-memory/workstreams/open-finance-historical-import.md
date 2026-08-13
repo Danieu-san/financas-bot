@@ -118,6 +118,17 @@ escrita financeira.
   despesa;
 - `financial_writes=0` e nenhum dado privado entrou no Git.
 
+## Atualizacao privada v11
+
+- sete grupos comerciais repetidos receberam semantica explicita de Daniel e
+  foram classificados somente nos conjuntos equivalentes confirmados;
+- 49 itens passaram a prontos: o plano privado tem 1.395 prontos, 34
+  duplicatas provaveis, 195 excluidos, 566 em revisao e 161 fora da janela;
+- os grupos ainda nao conferidos, o pagamento de emprestimo parcialmente
+  representado e as transferencias internas sem destino identificado continuam
+  retidos;
+- `financial_writes=0` e nenhum dado privado entrou no Git.
+
 ## Evidencia local atual
 
 - planejador focal com controles adversariais de pagamento de fatura: 22/22;
