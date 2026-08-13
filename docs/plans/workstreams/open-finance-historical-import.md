@@ -57,10 +57,10 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 5. [concluida] Vincular meses de fatura por conta e `bill_id` com prova causal.
 6. [concluida] Reusar `card-itau` e criar/reler somente a conta Cristina/Nubank.
 7. [em andamento] Recalcular o plano real e resolver revisoes privadas; regras
-   semanticas e 32 pares familiares bilaterais reduziram as revisoes de 1.248
-   para 770; rendimentos confirmados de Caixinha, quatro pares de estorno
-   pre-salvamento e as decisoes privadas v11 reduziram o residual a 566, sem
-   escrita.
+   semanticas, pares familiares e decisoes explicitas reduziram o residual a
+   521. A rodada v17 reaproveitou decisoes anteriores, catalogo recorrente e
+   pesquisa publica somente para identidades comerciais fortes, levando o
+   residual a 431 e os prontos a 1.528, sem escrita.
 8. [concluida] Executar a bateria hermetica ampla do candidato privado inicial:
    106/106 verdes; candidato familiar posterior: 111/111 verdes.
 9. [concluida] Publicar `fe374a3ee3a67457c02e74268984c7428fbcb2ac` e
@@ -116,11 +116,11 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 
 ## Estado privado vigente
 
-- 1.438 prontos;
+- 1.528 prontos;
 - 2 existentes comprovados;
 - 34 duplicatas provaveis;
 - 195 excluidos;
-- 521 em revisao;
+- 431 em revisao;
 - 161 fora da janela;
 - zero escrita financeira.
 
@@ -148,8 +148,8 @@ BRL, creditos sem vinculo forte e duplicatas provaveis continuam retidos.
 
 ## Proxima acao
 
-Coletar somente a semantica dos grupos privados realmente residuais. Consultar
-primeiro planilha, catalogos e decisoes registradas, depois pesquisa publica e
-somente entao Daniel. Manter retidos moedas nao BRL, creditos sem vinculo forte
-e duplicatas provaveis; nao habilitar writer historico, importacao real ou
-deploy.
+Agrupar primeiro os descritores de intermediadores pelo beneficiario real;
+consultar planilha, catalogos e decisoes registradas, depois pesquisa publica e
+somente entao Daniel, uma vez por identidade ainda opaca. Manter retidos moedas
+nao BRL, creditos sem vinculo forte, saldos rotativos e duplicatas provaveis;
+nao habilitar writer historico, importacao real ou deploy.

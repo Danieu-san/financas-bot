@@ -227,11 +227,19 @@ escrita financeira.
 
 ## Proxima acao
 
-Continuar a pesquisa somente dos grupos privados realmente residuais, usando
-primeiro planilha, catalogos e decisoes ja registradas; recorrer a pesquisa
-publica somente depois e perguntar a Daniel apenas quando essas fontes forem
-insuficientes. Manter moedas nao BRL, creditos sem vinculo forte e duplicatas
-provaveis retidos, com `financial_writes=0`.
+O saneamento privado por recorrencia e pesquisa comercial reduziu o plano de
+`1.438` para `1.528` itens prontos e de `521` para `431` itens em revisao. O
+catalogo privado vigente e `historical-private-decisions-v17.json`; config,
+plano, lote de revisao e revisao enriquecida vigentes sao, respectivamente,
+`v105`, `v106`, `v107` e `v108`. O hash privado do plano e
+`b6de0c737624f64a1e5fa88994364894639197af2116def62b2201d21ac6565a`;
+cobertura completa, oito bindings e `financial_writes=0` foram preservados.
+
+Continuar somente com os 431 residuais: agrupar descritores de intermediadores
+por beneficiario antes de perguntar, pesquisar apenas estabelecimentos e
+consultar Daniel uma vez por identidade humana ainda sem semantica. Manter
+moedas nao BRL, creditos sem vinculo forte, saldos rotativos e duplicatas
+provaveis retidos. Nao habilitar writer historico.
 
 ## Capacidade
 
