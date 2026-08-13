@@ -9,7 +9,8 @@ const REQUIRED_CATALOG_RANGES = Object.freeze([
     'Categorias!A:E',
     'Cartões!A:H',
     'Lançamentos Cartão!A:J',
-    'Contas Financeiras!A:I'
+    'Contas Financeiras!A:I',
+    'Contas!A:I'
 ]);
 
 function argument(name) {

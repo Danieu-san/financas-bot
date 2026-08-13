@@ -330,7 +330,8 @@ function billingMonth(transaction, binding) {
     return `${MONTH_NAMES[month]} de ${year}`;
 }
 
-function expenseWritePlan(transaction, binding, category, classification = 'expense') {
+function expenseWritePlan(transaction, binding, category, classification = 'expense',
+    recurring = false) {
     const amount = Math.abs(Number(transaction.amount_cents)) / 100;
     if (binding.kind === 'card') {
         const number = Number(transaction.installment_number) || 1;
@@ -388,7 +389,7 @@ function expenseWritePlan(transaction, binding, category, classification = 'expe
             amount,
             binding.ownerLabel,
             binding.paymentMethod || 'Débito',
-            'Não',
+            recurring ? 'Sim' : 'Não',
             'Importação histórica Open Finance revisada.',
             binding.ownerUserId,
             binding.financialAccount
@@ -898,7 +899,8 @@ function classifyTransaction({
             rule ? 'explicit_merchant_rule' : patterns.has(
                 normalizeText(transaction.description)
             ) ? 'unique_sheet_pattern' : 'established_import_rule',
-            expenseWritePlan(transaction, binding, category, finalClassification));
+            expenseWritePlan(transaction, binding, category, finalClassification,
+                override.suggestedRecurring === true));
     }
 
     if (classification === 'income' && category) {

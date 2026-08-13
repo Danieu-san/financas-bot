@@ -118,6 +118,43 @@ function findRange(snapshot, name) {
     return match ? match[1] : [];
 }
 
+function buildRecurringExpenseClassifier(recurringRows = [],
+    applyAccountClassificationRules = null) {
+    if (typeof applyAccountClassificationRules !== 'function' ||
+        !Array.isArray(recurringRows) || recurringRows.length < 2) {
+        return null;
+    }
+    return input => {
+        const description = typeof input === 'string'
+            ? input
+            : String(input?.description || '');
+        const matches = [];
+        for (const row of recurringRows.slice(1)) {
+            const rawName = normalizeText(row?.[0]);
+            const singleTermRule = rawName && !rawName.includes(' ');
+            const paymentContext = normalizeText(description);
+            if (singleTermRule && ![
+                'pagamento', 'pgt', 'fatura', 'transferencia', 'boleto',
+                'debito automatico', 'banda larga', 'internet'
+            ].some(marker => paymentContext.includes(marker))) {
+                continue;
+            }
+            const [classified] = applyAccountClassificationRules([{
+                type: 'Saídas', descricao: description
+            }], [row]);
+            if (!classified?.categoria) continue;
+            matches.push({
+                categoria: String(classified.categoria).trim(),
+                subcategoria: String(classified.subcategoria || '').trim()
+            });
+        }
+        const decisions = unique(matches.map(match =>
+            `${match.categoria}\u0000${match.subcategoria}`));
+        if (decisions.length !== 1) return null;
+        return matches[0];
+    };
+}
+
 function unique(values) {
     return [...new Set(values.filter(Boolean).map(String))];
 }
@@ -130,7 +167,8 @@ function observedAt(snapshot) {
 }
 
 function buildConfig({ pluggySnapshot, sheetSnapshot, historyStartDate,
-    historyEndDate, classifyExpense = null, cardIdByAlias = {},
+    historyEndDate, classifyExpense = null, classifyRecurringExpense = null,
+    cardIdByAlias = {},
     privateDecisions = {} } = {}) {
     const activeValues = new Set(['active', 'ativo', 'ativa', 'sim', 'yes', 'true', '1']);
     const accountRows = findRange(sheetSnapshot, 'Contas Financeiras').slice(1)
@@ -159,6 +197,7 @@ function buildConfig({ pluggySnapshot, sheetSnapshot, historyStartDate,
         unbound_card: 0,
         unbound_savings: 0,
         owners_without_unique_user: 0,
+        registered_recurring_bill_suggestions: 0,
         private_merchant_rules: reviewed.merchantRules.length,
         private_decision_overrides: Object.keys(reviewed.decisionOverrides).length
     };
@@ -242,7 +281,8 @@ function buildConfig({ pluggySnapshot, sheetSnapshot, historyStartDate,
         }
     }
 
-    if (typeof classifyExpense === 'function') {
+    if (typeof classifyExpense === 'function' ||
+        typeof classifyRecurringExpense === 'function') {
         const patterns = categoryPatterns(sheetSnapshot);
         const expenseCandidates = [];
         for (const item of pluggySnapshot?.items || []) {
@@ -258,19 +298,34 @@ function buildConfig({ pluggySnapshot, sheetSnapshot, historyStartDate,
                     ...transaction,
                     item_id: transaction.item_id || item.id
                 });
-                const suggestion = classifyExpense(transaction.description);
+                const recurringSuggestion = typeof classifyRecurringExpense === 'function'
+                    ? classifyRecurringExpense(transaction.description, transaction)
+                    : null;
+                const suggestion = typeof classifyExpense === 'function'
+                    ? classifyExpense(transaction.description)
+                    : null;
                 const exactPattern = patterns.get(normalizeText(transaction.description));
                 const category = String(exactPattern?.category ||
+                    recurringSuggestion?.categoria || recurringSuggestion?.category ||
                     suggestion?.categoria || suggestion?.category || '').trim();
                 const subcategory = String(exactPattern?.subcategory ||
+                    recurringSuggestion?.subcategoria ||
+                    recurringSuggestion?.subcategory ||
                     suggestion?.subcategoria || suggestion?.subcategory || '').trim();
                 const fallback = !exactPattern && normalizeText(category) === 'outros' &&
                     normalizeText(subcategory) === 'importacao';
                 if (category && !fallback) {
                     decisionOverrides[ref] = {
                         suggestedCategory: category,
-                        suggestedSubcategory: subcategory
+                        suggestedSubcategory: subcategory,
+                        ...(recurringSuggestion ? {
+                            suggestedRecurring: true,
+                            suggestionOrigin: 'registered_recurring_bill'
+                        } : {})
                     };
+                    if (recurringSuggestion) {
+                        diagnostics.registered_recurring_bill_suggestions += 1;
+                    }
                 }
                 expenseCandidates.push({
                     ref,
@@ -399,15 +454,23 @@ function main() {
         process.env.NODE_PATH = path.resolve(moduleRoot);
         Module._initPaths();
     }
-    const classifyExpense = process.argv.includes('--use-established-category-rules')
-        ? require('../src/services/statementImportService').categorizeExpense
+    const sheetSnapshot = JSON.parse(fs.readFileSync(sheetPath, 'utf8'));
+    const statementImportService = process.argv.includes('--use-established-category-rules')
+        ? require('../src/services/statementImportService')
         : null;
+    const classifyExpense = statementImportService?.categorizeExpense || null;
+    const recurringRows = findRange(sheetSnapshot, 'Contas');
+    const classifyRecurringExpense = buildRecurringExpenseClassifier(
+        recurringRows,
+        statementImportService?.applyAccountClassificationRules
+    );
     const config = buildConfig({
         pluggySnapshot: JSON.parse(fs.readFileSync(pluggyPath, 'utf8')),
-        sheetSnapshot: JSON.parse(fs.readFileSync(sheetPath, 'utf8')),
+        sheetSnapshot,
         historyStartDate,
         historyEndDate,
         classifyExpense,
+        classifyRecurringExpense,
         cardIdByAlias: bindingOverridesPath
             ? JSON.parse(fs.readFileSync(bindingOverridesPath, 'utf8')).cardIdByAlias
             : {},
@@ -438,6 +501,7 @@ if (require.main === module) {
 
 module.exports = {
     buildConfig,
+    buildRecurringExpenseClassifier,
     normalizeText,
     rangeSheetName,
     merchantSignature,

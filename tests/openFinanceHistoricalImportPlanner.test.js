@@ -122,6 +122,32 @@ test('applies only an explicit private merchant rule and keeps financial writes 
     assert.equal(result.entries[0].write_plan.row[3], 'Aluguel');
 });
 
+test('preserves a registered recurring-bill suggestion in the planned bank row', () => {
+    const tx = transaction({
+        id: 'registered-bill',
+        provider_id: 'registered-bill-provider',
+        description: 'Prestador recorrente',
+        amount_cents: -10000
+    });
+    const stableRef = plan([tx]).entries[0].source_ref;
+    const result = plan([tx], {
+        decisionOverrides: {
+            [stableRef]: {
+                suggestedCategory: 'Educação',
+                suggestedSubcategory: 'Aula',
+                suggestedRecurring: true,
+                suggestionOrigin: 'registered_recurring_bill'
+            }
+        }
+    });
+
+    assert.equal(result.entries[0].state, 'ready');
+    assert.equal(result.entries[0].write_plan.row[2], 'Educação');
+    assert.equal(result.entries[0].write_plan.row[3], 'Aula');
+    assert.equal(result.entries[0].write_plan.row[7], 'Sim');
+    assert.equal(result.financial_writes, 0);
+});
+
 test('excludes an explicitly confirmed bank card-payment instead of creating an expense', () => {
     const result = plan([transaction({
         description: 'Pagamento de fatura',

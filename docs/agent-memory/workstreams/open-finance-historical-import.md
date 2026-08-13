@@ -147,6 +147,20 @@ escrita financeira.
   independente, sem achados bloqueantes ou lacuna indispensavel;
 - nenhuma linha financeira foi escrita e `financial_writes=0` permanece.
 
+## Atualizacao do catalogo recorrente
+
+- a captura da planilha agora inclui o catalogo `Contas`; o configurador
+  reutiliza a regra real do produto, falha fechado em conflito e protege regras
+  curtas contra coincidencia comercial sem contexto de pagamento;
+- o recalculo privado passou a 1.438 prontos, 2 existentes, 34 duplicatas
+  provaveis, 195 excluidos, 521 em revisao e 161 fora da janela;
+- 82 sugestoes recorrentes foram registradas; grupos ja cadastrados deixaram a
+  fila residual e preservaram `Recorrente=Sim` nas linhas bancarias aplicaveis;
+- bateria focal 56/56 e bateria historica ampla 127/127 verdes;
+- candidato documentado em
+  `docs/audit/233-open-finance-historical-recurring-accounts-candidate-2026-08-12.md`,
+  ainda aguardando auditoria independente por hash imutavel.
+
 ## Evidencia local atual
 
 - planejador focal com controles adversariais de pagamento de fatura: 22/22;
@@ -201,10 +215,11 @@ escrita financeira.
 
 ## Proxima acao
 
-Continuar a coleta da semantica dos grupos privados restantes e recalcular o
-plano read-only, mantendo moedas nao BRL, creditos sem vinculo forte e
-duplicatas provaveis retidos; `financial_writes=0`.
+Publicar o candidato sanitizado do catalogo recorrente e obter auditoria
+independente por hash imutavel. Somente depois continuar a pesquisa dos grupos
+privados realmente residuais; manter moedas nao BRL, creditos sem vinculo forte
+e duplicatas provaveis retidos, com `financial_writes=0`.
 
 ## Capacidade
 
-`Codex -> Sol -> Baixo -> coletar a semantica dos grupos privados residuais do Gate 41.`
+`Codex -> Sol -> Alto -> auditar o candidato do catalogo recorrente do Gate 41.`

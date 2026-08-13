@@ -26,6 +26,7 @@ test('collects only consolidated personal ranges through a required user-scoped 
     assert.equal(result.source, 'user_spreadsheet_read_only');
     assert.equal(result.financial_writes, 0);
     assert.equal(Object.keys(result.ranges).length, REQUIRED_CATALOG_RANGES.length);
+    assert.ok(REQUIRED_CATALOG_RANGES.includes('Contas!A:I'));
 });
 
 test('refuses a personal snapshot without an explicit user identity', async () => {

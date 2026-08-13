@@ -99,16 +99,22 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    e o hash `3a528407f97d1bc7aa923807de74c62af23200ab` recebeu `GO TECNICO LOCAL`,
    sem achados bloqueantes ou lacuna indispensavel. O recálculo permaneceu
    read-only e sem criar vinculo operacional.
+9.7. [candidato local] O snapshot passa a exigir o catalogo `Contas` e o
+   configurador reutiliza as regras recorrentes reais do produto. Conflitos
+   falham fechado, regras curtas exigem contexto de pagamento e categoria
+   historica exata conserva precedencia sem apagar recorrencia. Focal 56/56,
+   bateria historica 127/127 e `financial_writes=0`; auditoria independente
+   ainda pendente.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 
 ## Estado privado vigente
 
-- 1.404 prontos;
+- 1.438 prontos;
 - 2 existentes comprovados;
 - 34 duplicatas provaveis;
 - 195 excluidos;
-- 555 em revisao;
+- 521 em revisao;
 - 161 fora da janela;
 - zero escrita financeira.
 
@@ -136,6 +142,7 @@ BRL, creditos sem vinculo forte e duplicatas provaveis continuam retidos.
 
 ## Proxima acao
 
-Coletar a semantica dos grupos privados restantes e recalcular o plano
-read-only. Manter retidos moedas nao BRL, creditos sem vinculo forte e
-duplicatas provaveis; nao habilitar writer historico, importacao real ou deploy.
+Publicar e auditar o candidato do catalogo recorrente. Depois do veredito,
+coletar somente a semantica dos grupos privados realmente residuais. Manter
+retidos moedas nao BRL, creditos sem vinculo forte e duplicatas provaveis; nao
+habilitar writer historico, importacao real ou deploy.

@@ -5,8 +5,12 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const {
-    buildConfig
+    buildConfig,
+    buildRecurringExpenseClassifier
 } = require('../scripts/buildOpenFinanceHistoricalImportConfig');
+const {
+    applyAccountClassificationRules
+} = require('../src/services/statementImportService');
 
 test('derives only unique bank, reserve and consolidated card bindings', () => {
     const config = buildConfig({
@@ -336,6 +340,122 @@ test('records only non-fallback suggestions from the established classifier', ()
     assert.equal(Object.keys(config.decisionOverrides).length, 1);
     assert.equal(Object.values(config.decisionOverrides)[0].suggestedCategory,
         'Moradia');
+});
+
+test('uses a registered recurring bill before the generic classifier', () => {
+    const config = buildConfig({
+        pluggySnapshot: {
+            observed_at: '2026-02-01T00:00:00.000Z',
+            items: [{
+                id: 'item-1', alias_code: 'pessoa banco', owner_scope: 'Pessoa',
+                accounts: [{ id: 'bank-1', type: 'BANK', subtype: 'CHECKING_ACCOUNT' }],
+                transactions: [{
+                    id: 'recurring-1', item_id: 'item-1', account_id: 'bank-1',
+                    provider_id: 'recurring-provider-1', description: 'Pix Prestador recorrente',
+                    amount_cents: -10000, date: '2026-01-02'
+                }]
+            }]
+        },
+        sheetSnapshot: {
+            ranges: {
+                'Contas Financeiras!A:I': [
+                    ['Nome', 'Tipo', '', '', 'Status', '', 'Responsável', 'user_id'],
+                    ['Pessoa - Banco', 'bank', '', '', 'active', '', 'Pessoa', 'u1']
+                ],
+                'Contas!A:I': [
+                    ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id',
+                        'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado',
+                        'Regra Ativa'],
+                    ['Pix Prestador recorrente', '5', '', 'u1', 'Serviço mensal',
+                        'Educação', 'Aula', '100', 'Sim']
+                ]
+            }
+        },
+        historyStartDate: '2025-07-01',
+        historyEndDate: '2026-01-31',
+        classifyExpense: () => ({ categoria: 'Outros', subcategoria: 'Importação' }),
+        classifyRecurringExpense: description => description.includes('Prestador recorrente')
+            ? { categoria: 'Educação', subcategoria: 'Aula' }
+            : null
+    });
+
+    const override = Object.values(config.decisionOverrides)[0];
+    assert.equal(override.suggestedCategory, 'Educação');
+    assert.equal(override.suggestedSubcategory, 'Aula');
+    assert.equal(override.suggestedRecurring, true);
+    assert.equal(override.suggestionOrigin, 'registered_recurring_bill');
+    assert.equal(config.diagnostics.registered_recurring_bill_suggestions, 1);
+    assert.equal(config.financial_writes, 0);
+});
+
+test('fails closed when matching recurring bill rows disagree on classification', () => {
+    const classify = buildRecurringExpenseClassifier([
+        ['Nome da Conta', 'Dia', 'Obs', 'user_id', 'Nome Amigável',
+            'Categoria', 'Subcategoria', 'Valor', 'Regra Ativa'],
+        ['Prestador recorrente', '5', '', 'u1', 'Serviço mensal',
+            'Educação', 'Aula', '100', 'Sim'],
+        ['Prestador recorrente', '5', '', 'u1', 'Outro serviço',
+            'Assinaturas', 'Aplicativo', '100', 'Sim']
+    ], applyAccountClassificationRules);
+
+    assert.equal(classify('Pix Prestador recorrente'), null);
+});
+
+test('does not turn a store purchase into a bill from a one-term recurring rule', () => {
+    const classify = buildRecurringExpenseClassifier([
+        ['Nome da Conta', 'Dia', 'Obs', 'user_id', 'Nome Amigável',
+            'Categoria', 'Subcategoria', 'Valor', 'Regra Ativa'],
+        ['Claro', '4', '', 'u1', 'Claro',
+            'Moradia', 'INTERNET / TELEFONE', '', 'Sim']
+    ], applyAccountClassificationRules);
+
+    assert.equal(classify('Compra no débito|CLARO LJ MADUREIRA S'), null);
+    assert.deepEqual(classify('Net Pgt*Fatura Claro'), {
+        categoria: 'Moradia',
+        subcategoria: 'INTERNET / TELEFONE'
+    });
+    assert.deepEqual(classify('CLARO BANDA LARGA - INTERNET'), {
+        categoria: 'Moradia',
+        subcategoria: 'INTERNET / TELEFONE'
+    });
+});
+
+test('keeps exact historical category precedence without losing recurrence', () => {
+    const config = buildConfig({
+        pluggySnapshot: {
+            observed_at: '2026-02-01T00:00:00.000Z',
+            items: [{
+                id: 'item-1', alias_code: 'pessoa banco', owner_scope: 'Pessoa',
+                accounts: [{ id: 'bank-1', type: 'BANK', subtype: 'CHECKING_ACCOUNT' }],
+                transactions: [{
+                    id: 'exact-recurring', item_id: 'item-1', account_id: 'bank-1',
+                    provider_id: 'exact-recurring-provider', description: 'Prestador mensal',
+                    amount_cents: -10000, date: '2026-01-02'
+                }]
+            }]
+        },
+        sheetSnapshot: { ranges: {
+            'Contas Financeiras!A:I': [
+                ['Nome', 'Tipo', '', '', 'Status', '', 'Responsável', 'user_id'],
+                ['Pessoa - Banco', 'bank', '', '', 'active', '', 'Pessoa', 'u1']
+            ],
+            'Saídas!A:K': [
+                ['Data', 'Descrição', 'Categoria', 'Subcategoria'],
+                ['01/01/2026', 'Prestador mensal', 'Outros', 'Aula particular']
+            ]
+        } },
+        historyStartDate: '2025-07-01',
+        historyEndDate: '2026-01-31',
+        classifyRecurringExpense: () => ({
+            categoria: 'Educação', subcategoria: 'Aula'
+        })
+    });
+
+    const override = Object.values(config.decisionOverrides)[0];
+    assert.equal(override.suggestedCategory, 'Outros');
+    assert.equal(override.suggestedSubcategory, 'Aula particular');
+    assert.equal(override.suggestedRecurring, true);
+    assert.equal(override.suggestionOrigin, 'registered_recurring_bill');
 });
 
 test('propagates a category only inside an unambiguous recurring merchant group', () => {
