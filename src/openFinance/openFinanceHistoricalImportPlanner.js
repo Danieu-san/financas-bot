@@ -291,6 +291,24 @@ function selectRule(transaction, merchantRules) {
     };
 }
 
+function explicitExistingRowProven(transaction, records, binding, expectedDescription) {
+    const expected = normalizeText(expectedDescription);
+    if (!expected) return false;
+    const matches = records.filter(record => {
+        const sameUser = String(record.user_id || '').trim() &&
+            String(record.user_id || '').trim() ===
+                String(binding.ownerUserId || '').trim();
+        const account = String(record.account || '').trim();
+        const accountCompatible = !account || scopeRelation(record, binding) === 'same';
+        return normalizeText(record.description) === expected &&
+            Math.abs(Number(record.amount_cents)) ===
+                Math.abs(Number(transaction.amount_cents)) &&
+            dayDistance(transaction.date, record.date) <= 2 &&
+            sameUser && accountCompatible;
+    });
+    return matches.length === 1;
+}
+
 function billingMonth(transaction, binding) {
     const forecast = /^(\d{4})-(\d{2})/.exec(
         String(transaction.bill_forecast_month || '').trim()
@@ -769,11 +787,18 @@ function classifyTransaction({
             'strong_two_sided_card_payment');
     }
 
-    const duplicate = duplicateState(
-        transaction,
-        sheetRecords(override.sheetSnapshot, binding, transaction),
-        binding
-    );
+    const scopedSheetRecords = sheetRecords(override.sheetSnapshot, binding, transaction);
+    if (override.classification === 'existing_sheet_match') {
+        if (explicitExistingRowProven(transaction, scopedSheetRecords, binding,
+            override.existingDescription)) {
+            return entry(transaction, 'existing', 'already_recorded',
+                'explicit_reviewed_sheet_match');
+        }
+        return entry(transaction, 'needs_review', 'existing_sheet_match',
+            'explicit_sheet_match_not_proven');
+    }
+
+    const duplicate = duplicateState(transaction, scopedSheetRecords, binding);
     if (duplicate) {
         return entry(transaction, duplicate, 'already_recorded',
             duplicate === 'existing' ? 'exact_scoped_sheet_match' :
@@ -785,6 +810,22 @@ function classifyTransaction({
             'merchant_rule_conflict');
     }
     const classification = override.classification || rule?.classification || '';
+    if (classification === 'internal_transfer') {
+        const destination = String(override.destinationFinancialAccount || '').trim();
+        if (binding.kind !== 'bank' || Number(transaction.amount_cents) >= 0 ||
+            !destination || normalizeText(destination) ===
+                normalizeText(binding.financialAccount)) {
+            return entry(transaction, 'needs_review', 'transfer',
+                'explicit_transfer_requires_bank_debit');
+        }
+        return entry(transaction, 'ready', 'transfer',
+            'explicit_one_sided_internal_transfer', transferWritePlan(
+                transaction,
+                binding,
+                { financialAccount: destination, ownerUserId: binding.ownerUserId },
+                'transfer'
+            ));
+    }
     const operation = normalizeText(transaction.operation_type).toUpperCase();
     const reserveDirection = classification === 'reserve_application' ||
         classification === 'reserve_redemption'

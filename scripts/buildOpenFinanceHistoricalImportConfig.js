@@ -12,7 +12,8 @@ const SIGNATURE_STOPWORDS = new Set([
 
 const PRIVATE_RULE_CLASSIFICATIONS = new Set(['expense', 'income', 'card_payment']);
 const PRIVATE_DECISION_CLASSIFICATIONS = new Set([
-    'expense', 'income', 'reserve_application', 'reserve_redemption'
+    'expense', 'income', 'reserve_application', 'reserve_redemption',
+    'internal_transfer', 'existing_sheet_match'
 ]);
 
 function isRecord(value) {
@@ -55,19 +56,33 @@ function normalizePrivateDecisions(value = {}) {
         const classification = String(decision?.classification || '').trim();
         const category = String(decision?.category || '').trim();
         const subcategory = String(decision?.subcategory || '').trim();
-        const allowedKeys = new Set(['classification', 'category', 'subcategory']);
+        const destinationFinancialAccount = String(
+            decision?.destinationFinancialAccount || '').trim();
+        const existingDescription = String(decision?.existingDescription || '').trim();
+        const allowedKeys = new Set([
+            'classification', 'category', 'subcategory',
+            'destinationFinancialAccount', 'existingDescription'
+        ]);
         const hasOnlyAllowedKeys = isRecord(decision) &&
             Object.keys(decision).every(key => allowedKeys.has(key));
         const categoryRequired = ['expense', 'income'].includes(classification);
+        const transferDecision = classification === 'internal_transfer';
+        const existingDecision = classification === 'existing_sheet_match';
         if (!ref || !hasOnlyAllowedKeys ||
             !PRIVATE_DECISION_CLASSIFICATIONS.has(classification) ||
             (categoryRequired && !category) ||
-            (!categoryRequired && (category || subcategory))) {
+            (!categoryRequired && (category || subcategory)) ||
+            (transferDecision !== Boolean(destinationFinancialAccount)) ||
+            (existingDecision !== Boolean(existingDescription)) ||
+            (transferDecision && existingDescription) ||
+            (existingDecision && destinationFinancialAccount)) {
             throw new Error(`historical_import_private_decision_invalid:${ref || 'missing_ref'}`);
         }
         decisionOverrides[ref] = {
             classification,
-            ...(category ? { category, subcategory } : {})
+            ...(category ? { category, subcategory } : {}),
+            ...(destinationFinancialAccount ? { destinationFinancialAccount } : {}),
+            ...(existingDescription ? { existingDescription } : {})
         };
     }
     return { merchantRules, decisionOverrides };

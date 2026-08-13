@@ -495,6 +495,120 @@ test('consolidates a strong transfer even when the inbound side appears first', 
     assert.equal(result.entries[1].state, 'ready');
 });
 
+test('plans an explicitly reviewed one-sided internal transfer without cataloging its destination', () => {
+    const tx = transaction({
+        id: 'one-sided-transfer',
+        provider_id: 'one-sided-transfer-provider',
+        amount_cents: -3000,
+        description: 'TransferÃªncia enviada Daniel',
+        operation_type: 'PIX'
+    });
+    const result = plan([tx], {
+        decisionOverrides: {
+            'one-sided-transfer': {
+                classification: 'internal_transfer',
+                destinationFinancialAccount: 'Conta histÃ³rica externa'
+            }
+        }
+    });
+
+    assert.equal(result.entries[0].state, 'ready');
+    assert.equal(result.entries[0].classification, 'transfer');
+    assert.equal(result.entries[0].reason, 'explicit_one_sided_internal_transfer');
+    assert.equal(result.entries[0].write_plan.sheet_name, `Transfer\u00eancias`);
+    assert.equal(result.entries[0].write_plan.row[3], 'Conta 1');
+    assert.equal(result.entries[0].write_plan.row[4], 'Conta histÃ³rica externa');
+    assert.equal(result.financial_writes, 0);
+});
+
+test('fails closed when an explicit one-sided transfer is not a bank debit', () => {
+    const result = plan([transaction({
+        id: 'positive-transfer',
+        provider_id: 'positive-transfer-provider',
+        amount_cents: 3000,
+        type: 'CREDIT'
+    })], {
+        decisionOverrides: {
+            'positive-transfer': {
+                classification: 'internal_transfer',
+                destinationFinancialAccount: 'Conta histÃ³rica externa'
+            }
+        }
+    });
+
+    assert.equal(result.entries[0].state, 'needs_review');
+    assert.equal(result.entries[0].reason, 'explicit_transfer_requires_bank_debit');
+
+    const sameAccount = plan([transaction({
+        id: 'same-account-transfer',
+        provider_id: 'same-account-transfer-provider'
+    })], {
+        decisionOverrides: {
+            'same-account-transfer': {
+                classification: 'internal_transfer',
+                destinationFinancialAccount: 'Conta 1'
+            }
+        }
+    });
+    assert.equal(sameAccount.entries[0].state, 'needs_review');
+    assert.equal(sameAccount.entries[0].reason,
+        'explicit_transfer_requires_bank_debit');
+});
+
+test('accepts an explicit existing-row decision only with a unique factual sheet match', () => {
+    const expensesRange = Object.keys(sheet().ranges)
+        .find(key => key.endsWith('!A:K'));
+    const tx = transaction({
+        id: 'loan-may',
+        provider_id: 'loan-may-provider',
+        amount_cents: -225,
+        date: '2026-05-07',
+        description: 'Parcela quitada | Contas'
+    });
+    const options = {
+        ranges: {
+            [expensesRange]: [
+                ['Data', 'DescriÃ§Ã£o', 'Categoria', 'Subcategoria', 'Valor',
+                    'ResponsÃ¡vel', 'Pagamento', 'Recorrente', 'ObservaÃ§Ãµes',
+                    'user_id', 'Conta Financeira'],
+                ['06/05/2026', 'Pagamento de empr\u00e9stimo hist\u00f3rico',
+                    'Outros', 'ImportaÃ§Ã£o',
+                    2.25, 'Pessoa 1', 'DÃ©bito', 'NÃ£o', '', 'person-1', '']
+            ]
+        },
+        decisionOverrides: {
+            'loan-may': {
+                classification: 'existing_sheet_match',
+                existingDescription: 'Pagamento de empr\u00e9stimo hist\u00f3rico'
+            }
+        }
+    };
+    const result = plan([tx], options);
+
+    assert.equal(result.entries[0].state, 'existing');
+    assert.equal(result.entries[0].classification, 'already_recorded');
+    assert.equal(result.entries[0].reason, 'explicit_reviewed_sheet_match');
+    assert.equal(result.entries[0].write_plan, undefined);
+    assert.equal(result.financial_writes, 0);
+
+    options.ranges[expensesRange][1][4] = 9.99;
+    const mismatch = plan([tx], options);
+    assert.equal(mismatch.entries[0].state, 'needs_review');
+    assert.equal(mismatch.entries[0].reason, 'explicit_sheet_match_not_proven');
+
+    options.ranges[expensesRange][1][4] = 2.25;
+    options.ranges[expensesRange][1][9] = 'another-user';
+    const wrongUser = plan([tx], options);
+    assert.equal(wrongUser.entries[0].state, 'needs_review');
+    assert.equal(wrongUser.entries[0].reason, 'explicit_sheet_match_not_proven');
+
+    options.ranges[expensesRange][1][9] = 'person-1';
+    options.ranges[expensesRange].push([...options.ranges[expensesRange][1]]);
+    const ambiguous = plan([tx], options);
+    assert.equal(ambiguous.entries[0].state, 'needs_review');
+    assert.equal(ambiguous.entries[0].reason, 'explicit_sheet_match_not_proven');
+});
+
 test('consolidates a mutually unique family transfer without provider reference', () => {
     const accountBindings = {
         ...bindings,

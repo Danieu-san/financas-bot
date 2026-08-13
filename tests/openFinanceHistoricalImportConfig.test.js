@@ -161,6 +161,55 @@ test('fails closed for malformed private review decisions', () => {
     }), /historical_import_private_decision_invalid:source-ref-1/);
 });
 
+test('accepts only scoped one-sided transfers and evidenced existing rows as private overrides', () => {
+    const base = {
+        pluggySnapshot: { observed_at: '2026-08-11T00:00:00.000Z', items: [] },
+        sheetSnapshot: { ranges: {} },
+        historyStartDate: '2025-07-01',
+        historyEndDate: '2026-07-27'
+    };
+    const config = buildConfig({
+        ...base,
+        privateDecisions: {
+            decisionOverrides: {
+                'transfer-ref': {
+                    classification: 'internal_transfer',
+                    destinationFinancialAccount: 'Conta histÃ³rica externa'
+                },
+                'existing-ref': {
+                    classification: 'existing_sheet_match',
+                    existingDescription: 'Pagamento de emprÃ©stimo histÃ³rico'
+                }
+            }
+        }
+    });
+
+    assert.deepEqual(config.decisionOverrides['transfer-ref'], {
+        classification: 'internal_transfer',
+        destinationFinancialAccount: 'Conta histÃ³rica externa'
+    });
+    assert.deepEqual(config.decisionOverrides['existing-ref'], {
+        classification: 'existing_sheet_match',
+        existingDescription: 'Pagamento de emprÃ©stimo histÃ³rico'
+    });
+    assert.throws(() => buildConfig({
+        ...base,
+        privateDecisions: { decisionOverrides: {
+            bad: { classification: 'internal_transfer' }
+        } }
+    }), /historical_import_private_decision_invalid:bad/);
+    assert.throws(() => buildConfig({
+        ...base,
+        privateDecisions: { decisionOverrides: {
+            bad: {
+                classification: 'existing_sheet_match',
+                existingDescription: 'Pagamento de emprÃ©stimo histÃ³rico',
+                category: 'Outros'
+            }
+        } }
+    }), /historical_import_private_decision_invalid:bad/);
+});
+
 test('accepts a category-free reviewed card-payment rule', () => {
     const config = buildConfig({
         pluggySnapshot: { observed_at: '2026-08-11T00:00:00.000Z', items: [] },
