@@ -56,11 +56,15 @@ async function collectSnapshot({ readDataFromSheet, userId }) {
     if (!scopedUserId) throw new Error('historical_sheet_snapshot_user_id_required');
     const collected = {};
     for (const range of REQUIRED_CATALOG_RANGES) {
-        collected[range] = await readDataFromSheet(range, {
+        const rows = await readDataFromSheet(range, {
             userId: scopedUserId,
             requireUserScoped: true,
             suppressMissingSheetError: true
         });
+        if (!Array.isArray(rows) || rows.length === 0) {
+            throw new Error(`historical_sheet_snapshot_required_range_missing:${range}`);
+        }
+        collected[range] = rows;
     }
     return {
         observed_at: new Date().toISOString(),

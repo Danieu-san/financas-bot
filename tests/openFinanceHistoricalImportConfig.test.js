@@ -245,7 +245,12 @@ test('CLI requires an absolute private-decisions path and applies the reviewed f
     fs.writeFileSync(pluggyPath, JSON.stringify({
         observed_at: '2026-08-11T00:00:00.000Z', items: []
     }));
-    fs.writeFileSync(sheetPath, JSON.stringify({ ranges: {} }));
+    fs.writeFileSync(sheetPath, JSON.stringify({ ranges: {
+        'Contas!A:I': [[
+            'Nome da Conta', 'Dia', 'Obs', 'user_id', 'Nome Amigavel',
+            'Categoria', 'Subcategoria', 'Valor', 'Regra Ativa'
+        ]]
+    } }));
     fs.writeFileSync(decisionsPath, JSON.stringify({
         merchantRules: [{
             match: { mode: 'contains', value: 'grpqa' },
@@ -283,6 +288,70 @@ test('CLI requires an absolute private-decisions path and applies the reviewed f
     assert.equal(config.diagnostics.private_merchant_rules, 1);
     assert.equal(config.financial_writes, 0);
     assert.doesNotMatch(applied.stdout, /grpqa|Aluguel/);
+});
+
+test('CLI fails closed without Contas and uses active product rules end to end', t => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'historical-config-recurring-'));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const pluggyPath = path.join(root, 'pluggy.json');
+    const missingSheetPath = path.join(root, 'missing-sheet.json');
+    const sheetPath = path.join(root, 'sheet.json');
+    const missingOutputPath = path.join(root, 'missing-config.json');
+    const outputPath = path.join(root, 'config.json');
+    fs.writeFileSync(pluggyPath, JSON.stringify({
+        observed_at: '2026-01-31T00:00:00.000Z',
+        items: [{
+            id: 'item-1',
+            accounts: [{ id: 'bank-1', type: 'BANK' }],
+            transactions: [
+                { id: 'active', item_id: 'item-1', account_id: 'bank-1',
+                    provider_id: 'active-provider',
+                    description: 'Pagamento Prestador recorrente',
+                    amount_cents: -10000, date: '2026-01-02' },
+                { id: 'inactive', item_id: 'item-1', account_id: 'bank-1',
+                    provider_id: 'inactive-provider',
+                    description: 'Pagamento Prestador desativado',
+                    amount_cents: -20000, date: '2026-01-03' }
+            ]
+        }]
+    }));
+    fs.writeFileSync(missingSheetPath, JSON.stringify({ ranges: {} }));
+    fs.writeFileSync(sheetPath, JSON.stringify({ ranges: {
+        'Contas!A:I': [
+            ['Nome da Conta', 'Dia', 'Obs', 'user_id', 'Nome Amigavel',
+                'Categoria', 'Subcategoria', 'Valor', 'Regra Ativa'],
+            ['Prestador recorrente', '5', '', 'u1', 'Servico mensal',
+                'Educacao', 'Aula', '100', 'Sim'],
+            ['Prestador desativado', '5', '', 'u1', 'Servico antigo',
+                'Assinaturas', 'Aplicativo', '200', 'Nao']
+        ]
+    } }));
+    const script = path.resolve(__dirname,
+        '../scripts/buildOpenFinanceHistoricalImportConfig.js');
+    const baseArgs = [script, '--confirm-private-output',
+        '--pluggy-snapshot', pluggyPath,
+        '--history-start', '2025-07-01', '--history-end', '2026-01-31',
+        '--use-established-category-rules'];
+
+    const missing = spawnSync(process.execPath, [
+        ...baseArgs, '--sheet-snapshot', missingSheetPath,
+        '--output', missingOutputPath
+    ], { encoding: 'utf8' });
+    assert.notEqual(missing.status, 0);
+    assert.match(missing.stderr, /historical_import_required_range_missing:Contas/);
+    assert.equal(fs.existsSync(missingOutputPath), false);
+
+    const applied = spawnSync(process.execPath, [
+        ...baseArgs, '--sheet-snapshot', sheetPath, '--output', outputPath
+    ], { encoding: 'utf8' });
+    assert.equal(applied.status, 0, applied.stderr);
+    const config = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
+    assert.equal(Object.keys(config.decisionOverrides).length, 1);
+    assert.equal(Object.values(config.decisionOverrides)[0].suggestedRecurring, true);
+    assert.equal(Object.values(config.decisionOverrides)[0].suggestionOrigin,
+        'registered_recurring_bill');
+    assert.equal(config.diagnostics.registered_recurring_bill_suggestions, 1);
+    assert.equal(config.financial_writes, 0);
 });
 
 test('does not bind an owner when account rows disagree on user identity', () => {
@@ -399,6 +468,17 @@ test('fails closed when matching recurring bill rows disagree on classification'
     ], applyAccountClassificationRules);
 
     assert.equal(classify('Pix Prestador recorrente'), null);
+});
+
+test('ignores an inactive recurring bill through the real product classifier', () => {
+    const classify = buildRecurringExpenseClassifier([
+        ['Nome da Conta', 'Dia', 'Obs', 'user_id', 'Nome Amigavel',
+            'Categoria', 'Subcategoria', 'Valor', 'Regra Ativa'],
+        ['Prestador desativado', '5', '', 'u1', 'Servico antigo',
+            'Assinaturas', 'Aplicativo', '100', 'Nao']
+    ], applyAccountClassificationRules);
+
+    assert.equal(classify('Pagamento Prestador desativado'), null);
 });
 
 test('does not turn a store purchase into a bill from a one-term recurring rule', () => {

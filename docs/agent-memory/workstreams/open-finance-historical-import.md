@@ -159,7 +159,15 @@ escrita financeira.
 - bateria focal 56/56 e bateria historica ampla 127/127 verdes;
 - candidato documentado em
   `docs/audit/233-open-finance-historical-recurring-accounts-candidate-2026-08-12.md`,
-  ainda aguardando auditoria independente por hash imutavel.
+  recebeu `NO-GO` independente: a leitura suprimia erro de aba ausente e nao
+  provava que `Contas` era realmente obrigatoria;
+- o recovery agora valida retorno nao vazio no snapshot e exige novamente o
+  catalogo na fronteira de configuracao; regra inativa, cartao sem recorrencia
+  sintetica e CLI com a funcao real receberam testes negativos;
+- recovery focal 60/60 e bateria historica ampla 131/131 verdes;
+- recovery documentado em
+  `docs/audit/234-open-finance-historical-recurring-accounts-recovery-candidate-2026-08-13.md`,
+  ainda aguardando reauditoria independente por novo hash imutavel.
 
 ## Evidencia local atual
 

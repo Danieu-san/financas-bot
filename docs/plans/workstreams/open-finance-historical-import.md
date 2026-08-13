@@ -99,12 +99,16 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    e o hash `3a528407f97d1bc7aa923807de74c62af23200ab` recebeu `GO TECNICO LOCAL`,
    sem achados bloqueantes ou lacuna indispensavel. O recálculo permaneceu
    read-only e sem criar vinculo operacional.
-9.7. [candidato local] O snapshot passa a exigir o catalogo `Contas` e o
+9.7. [NO-GO independente] O snapshot passa a incluir o catalogo `Contas` e o
    configurador reutiliza as regras recorrentes reais do produto. Conflitos
    falham fechado, regras curtas exigem contexto de pagamento e categoria
    historica exata conserva precedencia sem apagar recorrencia. Focal 56/56,
-   bateria historica 127/127 e `financial_writes=0`; auditoria independente
-   ainda pendente.
+   bateria historica 127/127 e `financial_writes=0`; a auditoria encontrou que
+   aba ausente ainda era silenciosamente aceita e faltava cobertura focal.
+9.8. [recovery candidato local] Snapshot e configurador agora abortam sem
+   `Contas`; regra inativa, cartao sem recorrencia sintetica e CLI com a funcao
+   real possuem provas negativas. Focal 60/60, bateria historica 131/131 e
+   `financial_writes=0`; reauditoria independente ainda pendente.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 

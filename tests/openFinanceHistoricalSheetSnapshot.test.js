@@ -36,6 +36,18 @@ test('refuses a personal snapshot without an explicit user identity', async () =
     );
 });
 
+test('fails closed when a required range is absent from the personal sheet', async () => {
+    await assert.rejects(
+        collectSnapshot({
+            userId: 'user-1',
+            readDataFromSheet: async range => range === 'Contas!A:I'
+                ? []
+                : [[range]]
+        }),
+        /historical_sheet_snapshot_required_range_missing:Contas!A:I/
+    );
+});
+
 test('sheet snapshot path guard resolves symbolic ancestors', (t) => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'historical-sheet-root-'));
     const privateDirectory = path.join(root, 'private');

@@ -118,6 +118,16 @@ function findRange(snapshot, name) {
     return match ? match[1] : [];
 }
 
+function requiredRange(snapshot, name) {
+    const expected = normalizeText(name);
+    const match = Object.entries(snapshot?.ranges || {}).find(([range]) =>
+        normalizeText(rangeSheetName(range)) === expected);
+    if (!match || !Array.isArray(match[1]) || match[1].length === 0) {
+        throw new Error(`historical_import_required_range_missing:${name}`);
+    }
+    return match[1];
+}
+
 function buildRecurringExpenseClassifier(recurringRows = [],
     applyAccountClassificationRules = null) {
     if (typeof applyAccountClassificationRules !== 'function' ||
@@ -459,7 +469,7 @@ function main() {
         ? require('../src/services/statementImportService')
         : null;
     const classifyExpense = statementImportService?.categorizeExpense || null;
-    const recurringRows = findRange(sheetSnapshot, 'Contas');
+    const recurringRows = requiredRange(sheetSnapshot, 'Contas');
     const classifyRecurringExpense = buildRecurringExpenseClassifier(
         recurringRows,
         statementImportService?.applyAccountClassificationRules
@@ -502,6 +512,7 @@ if (require.main === module) {
 module.exports = {
     buildConfig,
     buildRecurringExpenseClassifier,
+    requiredRange,
     normalizeText,
     rangeSheetName,
     merchantSignature,

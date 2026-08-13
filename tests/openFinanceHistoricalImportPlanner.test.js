@@ -148,6 +148,34 @@ test('preserves a registered recurring-bill suggestion in the planned bank row',
     assert.equal(result.financial_writes, 0);
 });
 
+test('does not add a recurring field to a card row from a recurring suggestion', () => {
+    const tx = transaction({
+        id: 'registered-card-bill',
+        provider_id: 'registered-card-bill-provider',
+        account_id: 'card-1',
+        description: 'Prestador recorrente no cartao',
+        amount_cents: 10000,
+        bill_forecast_month: '2026-01'
+    });
+    const stableRef = plan([tx]).entries[0].source_ref;
+    const result = plan([tx], {
+        decisionOverrides: {
+            [stableRef]: {
+                suggestedCategory: 'Educacao',
+                suggestedSubcategory: 'Aula',
+                suggestedRecurring: true,
+                suggestionOrigin: 'registered_recurring_bill'
+            }
+        }
+    });
+
+    assert.equal(result.entries[0].state, 'ready');
+    assert.equal(result.entries[0].write_plan.sheet_name, bindings['card-1'].sheetName);
+    assert.equal(result.entries[0].write_plan.row.length, 7);
+    assert.equal(result.entries[0].write_plan.row.includes('Sim'), false);
+    assert.equal(result.financial_writes, 0);
+});
+
 test('excludes an explicitly confirmed bank card-payment instead of creating an expense', () => {
     const result = plan([transaction({
         description: 'Pagamento de fatura',
