@@ -228,14 +228,14 @@ escrita financeira.
 ## Proxima acao
 
 O saneamento privado por recorrencia e pesquisa comercial reduziu o plano de
-`1.438` para `1.528` itens prontos e de `521` para `431` itens em revisao. O
-catalogo privado vigente e `historical-private-decisions-v17.json`; config,
+`1.438` para `1.540` itens prontos e de `521` para `419` itens em revisao. O
+catalogo privado vigente e `historical-private-decisions-v19.json`; config,
 plano, lote de revisao e revisao enriquecida vigentes sao, respectivamente,
-`v105`, `v106`, `v107` e `v108`. O hash privado do plano e
-`b6de0c737624f64a1e5fa88994364894639197af2116def62b2201d21ac6565a`;
+`v117`, `v118`, `v119` e `v120`. O hash privado do plano e
+`8fcbb16dbde69fa85c2ef86de4faacdbe01f554b2d35118a6df3f0552a59f52c`;
 cobertura completa, oito bindings e `financial_writes=0` foram preservados.
 
-Continuar somente com os 431 residuais: agrupar descritores de intermediadores
+Continuar somente com os 419 residuais: agrupar descritores de intermediadores
 por beneficiario antes de perguntar, pesquisar apenas estabelecimentos e
 consultar Daniel uma vez por identidade humana ainda sem semantica. Manter
 moedas nao BRL, creditos sem vinculo forte, saldos rotativos e duplicatas

@@ -60,7 +60,7 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    semanticas, pares familiares e decisoes explicitas reduziram o residual a
    521. A rodada v17 reaproveitou decisoes anteriores, catalogo recorrente e
    pesquisa publica somente para identidades comerciais fortes, levando o
-   residual a 431 e os prontos a 1.528, sem escrita.
+   residual a 419 e os prontos a 1.540, sem escrita.
 8. [concluida] Executar a bateria hermetica ampla do candidato privado inicial:
    106/106 verdes; candidato familiar posterior: 111/111 verdes.
 9. [concluida] Publicar `fe374a3ee3a67457c02e74268984c7428fbcb2ac` e
@@ -116,11 +116,11 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 
 ## Estado privado vigente
 
-- 1.528 prontos;
+- 1.540 prontos;
 - 2 existentes comprovados;
 - 34 duplicatas provaveis;
 - 195 excluidos;
-- 431 em revisao;
+- 419 em revisao;
 - 161 fora da janela;
 - zero escrita financeira.
 
