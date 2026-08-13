@@ -4,7 +4,7 @@ Atualizado em: 2026-08-12
 
 ## Estado
 
-`PLANEJADOR LOCAL EM CORRECAO; COBERTURA COMPLETA; PLANO PRIVADO EM REVISAO;
+`PLANEJADOR COM GO TECNICO LOCAL; COBERTURA COMPLETA; PLANO PRIVADO EM REVISAO;
 SEM WRITER HISTORICO`.
 
 ## Objetivo
@@ -92,15 +92,23 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    `7387a371ef4805ea7b8966685a9ec9411a70530c` recebeu GO independente, sem
    achados altos ou medios e sem lacuna indispensavel; um achado baixo de
    granularidade focal nao bloqueia o escopo.
+9.6. [GO tecnico local independente] Decisoes privadas individuais permitem
+   transferencia historica para destino textual sem cadastra-lo e comprovacao
+   de linha ja existente somente por correspondencia factual unica. O primeiro
+   candidato recebeu `NO-GO` probatorio; as cinco lacunas focais foram cobertas
+   e o hash `3a528407f97d1bc7aa923807de74c62af23200ab` recebeu `GO TECNICO LOCAL`,
+   sem achados bloqueantes ou lacuna indispensavel. O recálculo permaneceu
+   read-only e sem criar vinculo operacional.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 
 ## Estado privado vigente
 
-- 1.395 prontos;
+- 1.404 prontos;
+- 2 existentes comprovados;
 - 34 duplicatas provaveis;
 - 195 excluidos;
-- 566 em revisao;
+- 555 em revisao;
 - 161 fora da janela;
 - zero escrita financeira.
 
@@ -128,7 +136,6 @@ BRL, creditos sem vinculo forte e duplicatas provaveis continuam retidos.
 
 ## Proxima acao
 
-Identificar a conta de destino das transferencias internas, reconciliar as duas
-parcelas de emprestimo possivelmente ja existentes e coletar a semantica dos
-grupos privados restantes, sem habilitar writer historico, importacao real ou
-deploy.
+Coletar a semantica dos grupos privados restantes e recalcular o plano
+read-only. Manter retidos moedas nao BRL, creditos sem vinculo forte e
+duplicatas provaveis; nao habilitar writer historico, importacao real ou deploy.

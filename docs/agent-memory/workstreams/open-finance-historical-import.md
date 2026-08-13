@@ -129,6 +129,24 @@ escrita financeira.
   retidos;
 - `financial_writes=0` e nenhum dado privado entrou no Git.
 
+## Atualizacao privada v12 e fechamento tecnico local
+
+- o destino das cinco transferencias internas foi confirmado como uma conta
+  historica externa que nao deve integrar o catalogo operacional do bot;
+- as seis parcelas do grupo revisado foram reconciliadas: quatro permanecem
+  despesas prontas e duas foram comprovadas como linhas ja existentes, sem
+  `write_plan` e sem duplicacao;
+- o recálculo privado vigente tem 1.404 prontos, 2 existentes, 34 duplicatas
+  provaveis, 195 excluidos, 555 em revisao e 161 fora da janela;
+- o catalogo permaneceu com oito vinculos; nenhum vinculo foi criado para o
+  destino historico textual;
+- o primeiro candidato recebeu `NO-GO` apenas por cobertura negativa focal
+  incompleta; conta divergente, data fora da janela, descricao divergente,
+  fonte nao bancaria e identidade `source_ref` receberam provas explicitas;
+- o hash `3a528407f97d1bc7aa923807de74c62af23200ab` recebeu `GO TECNICO LOCAL`
+  independente, sem achados bloqueantes ou lacuna indispensavel;
+- nenhuma linha financeira foi escrita e `financial_writes=0` permanece.
+
 ## Evidencia local atual
 
 - planejador focal com controles adversariais de pagamento de fatura: 22/22;
@@ -173,13 +191,19 @@ escrita financeira.
   `7387a371ef4805ea7b8966685a9ec9411a70530c`: `GO TECNICO LOCAL`, sem
   achados altos ou medios e sem lacuna indispensavel; o unico achado baixo e
   de granularidade focal de testes e nao abre caminho causal;
+- testes focais das decisoes historicas explicitas: 48/48 verdes; a bateria
+  historica ampla anterior permaneceu 122/122 e nao foi repetida sem mudanca
+  causal de produto;
+- reauditoria independente do hash
+  `3a528407f97d1bc7aa923807de74c62af23200ab`: `GO TECNICO LOCAL`, zero
+  achados bloqueantes e nenhuma lacuna indispensavel no escopo;
 - nenhum artefato privado, descricao, valor, ID ou segredo entrou no Git.
 
 ## Proxima acao
 
-Obter de Daniel a conta de destino das transferencias internas, reconciliar as
-duas parcelas de emprestimo possivelmente ja existentes e continuar a coleta da
-semantica dos grupos privados restantes, sempre com `financial_writes=0`.
+Continuar a coleta da semantica dos grupos privados restantes e recalcular o
+plano read-only, mantendo moedas nao BRL, creditos sem vinculo forte e
+duplicatas provaveis retidos; `financial_writes=0`.
 
 ## Capacidade
 
