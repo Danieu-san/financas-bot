@@ -503,9 +503,10 @@ test('plans an explicitly reviewed one-sided internal transfer without catalogin
         description: 'TransferÃªncia enviada Daniel',
         operation_type: 'PIX'
     });
+    const stableRef = plan([tx]).entries[0].source_ref;
     const result = plan([tx], {
         decisionOverrides: {
-            'one-sided-transfer': {
+            [stableRef]: {
                 classification: 'internal_transfer',
                 destinationFinancialAccount: 'Conta histÃ³rica externa'
             }
@@ -522,14 +523,16 @@ test('plans an explicitly reviewed one-sided internal transfer without catalogin
 });
 
 test('fails closed when an explicit one-sided transfer is not a bank debit', () => {
-    const result = plan([transaction({
+    const positiveTransaction = transaction({
         id: 'positive-transfer',
         provider_id: 'positive-transfer-provider',
         amount_cents: 3000,
         type: 'CREDIT'
-    })], {
+    });
+    const positiveRef = plan([positiveTransaction]).entries[0].source_ref;
+    const result = plan([positiveTransaction], {
         decisionOverrides: {
-            'positive-transfer': {
+            [positiveRef]: {
                 classification: 'internal_transfer',
                 destinationFinancialAccount: 'Conta histÃ³rica externa'
             }
@@ -539,12 +542,14 @@ test('fails closed when an explicit one-sided transfer is not a bank debit', () 
     assert.equal(result.entries[0].state, 'needs_review');
     assert.equal(result.entries[0].reason, 'explicit_transfer_requires_bank_debit');
 
-    const sameAccount = plan([transaction({
+    const sameAccountTransaction = transaction({
         id: 'same-account-transfer',
         provider_id: 'same-account-transfer-provider'
-    })], {
+    });
+    const sameAccountRef = plan([sameAccountTransaction]).entries[0].source_ref;
+    const sameAccount = plan([sameAccountTransaction], {
         decisionOverrides: {
-            'same-account-transfer': {
+            [sameAccountRef]: {
                 classification: 'internal_transfer',
                 destinationFinancialAccount: 'Conta 1'
             }
@@ -552,6 +557,26 @@ test('fails closed when an explicit one-sided transfer is not a bank debit', () 
     });
     assert.equal(sameAccount.entries[0].state, 'needs_review');
     assert.equal(sameAccount.entries[0].reason,
+        'explicit_transfer_requires_bank_debit');
+
+    const cardDebit = transaction({
+        id: 'card-debit-transfer',
+        provider_id: 'card-debit-transfer-provider',
+        account_id: 'card-1',
+        amount_cents: -3000,
+        type: 'DEBIT'
+    });
+    const cardDebitRef = plan([cardDebit]).entries[0].source_ref;
+    const nonBankSource = plan([cardDebit], {
+        decisionOverrides: {
+            [cardDebitRef]: {
+                classification: 'internal_transfer',
+                destinationFinancialAccount: 'Conta historica externa'
+            }
+        }
+    });
+    assert.equal(nonBankSource.entries[0].state, 'needs_review');
+    assert.equal(nonBankSource.entries[0].reason,
         'explicit_transfer_requires_bank_debit');
 });
 
@@ -565,6 +590,7 @@ test('accepts an explicit existing-row decision only with a unique factual sheet
         date: '2026-05-07',
         description: 'Parcela quitada | Contas'
     });
+    const stableRef = plan([tx]).entries[0].source_ref;
     const options = {
         ranges: {
             [expensesRange]: [
@@ -577,7 +603,7 @@ test('accepts an explicit existing-row decision only with a unique factual sheet
             ]
         },
         decisionOverrides: {
-            'loan-may': {
+            [stableRef]: {
                 classification: 'existing_sheet_match',
                 existingDescription: 'Pagamento de empr\u00e9stimo hist\u00f3rico'
             }
@@ -603,6 +629,27 @@ test('accepts an explicit existing-row decision only with a unique factual sheet
     assert.equal(wrongUser.entries[0].reason, 'explicit_sheet_match_not_proven');
 
     options.ranges[expensesRange][1][9] = 'person-1';
+    options.ranges[expensesRange][1][10] = 'Conta 2';
+    const wrongAccount = plan([tx], options);
+    assert.equal(wrongAccount.entries[0].state, 'needs_review');
+    assert.equal(wrongAccount.entries[0].reason, 'explicit_sheet_match_not_proven');
+
+    options.ranges[expensesRange][1][10] = '';
+    options.ranges[expensesRange][1][0] = '03/05/2026';
+    const outsideDateWindow = plan([tx], options);
+    assert.equal(outsideDateWindow.entries[0].state, 'needs_review');
+    assert.equal(outsideDateWindow.entries[0].reason,
+        'explicit_sheet_match_not_proven');
+
+    options.ranges[expensesRange][1][0] = '06/05/2026';
+    options.ranges[expensesRange][1][1] = 'Descricao historica divergente';
+    const wrongDescription = plan([tx], options);
+    assert.equal(wrongDescription.entries[0].state, 'needs_review');
+    assert.equal(wrongDescription.entries[0].reason,
+        'explicit_sheet_match_not_proven');
+
+    options.ranges[expensesRange][1][1] =
+        'Pagamento de empr\u00e9stimo hist\u00f3rico';
     options.ranges[expensesRange].push([...options.ranges[expensesRange][1]]);
     const ambiguous = plan([tx], options);
     assert.equal(ambiguous.entries[0].state, 'needs_review');
