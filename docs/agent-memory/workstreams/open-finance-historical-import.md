@@ -245,19 +245,22 @@ escrita financeira.
   provaveis, 198 excluidos, 324 em revisao e 161 fora da janela;
 - cobertura completa, oito bindings e `financial_writes=0` foram preservados.
 
-## Atualizacao privada v35
+## Atualizacao privada v36
 
-- trinta e sete ocorrencias adicionais foram saneadas por decisoes contextuais e
+- oitenta ocorrencias adicionais foram saneadas por decisoes contextuais e
   comprovantes consultados somente no cofre privado: alimentacao, lazer,
   presentes, combustivel, moradia e mercado;
 - regras amplas explicitamente autorizadas cobriram tres ocorrencias `Du M` e
   mantiveram `Du Maduro` preparado sem atingir item no snapshot vigente;
 - as duas ocorrencias do mesmo estabelecimento de itens para casa foram
   classificadas individualmente, sem generalizar o descritor para terceiros;
-- as sete comparacoes causais intermediarias provaram 4, 5, 4, 2, 2, 10 e 10
+- a regra privada autorizada de valor classificou como lanche 43 despesas BRL
+  ainda ambiguas de ate R$ 20: 37 saidas de conta e 6 compras de cartao; ela
+  nao alcancou entradas, estornos, pagamentos de fatura ou reservas;
+- as oito comparacoes causais intermediarias provaram 4, 5, 4, 2, 2, 10, 10 e 43
   transicoes para `ready`, sempre sem mudanca colateral;
-- o plano privado vigente tem 1.669 prontos, 2 existentes, 34 duplicatas
-  provaveis, 198 excluidos, 287 em revisao e 161 fora da janela;
+- o plano privado vigente tem 1.712 prontos, 2 existentes, 34 duplicatas
+  provaveis, 198 excluidos, 244 em revisao e 161 fora da janela;
 - cobertura completa, oito bindings e `financial_writes=0` foram preservados;
   nenhum comprovante, valor, NSU, identificador ou dado bancario entrou no Git.
 
@@ -342,15 +345,15 @@ escrita financeira.
 ## Proxima acao
 
 O saneamento privado por recorrencia, pesquisa comercial e decisoes humanas
-elevou o plano de `1.438` para `1.669` itens prontos e reduziu de `521` para
-`287` itens em revisao. O catalogo privado vigente e
-`historical-private-decisions-v35.json`; config, plano, lote de revisao e
-revisao enriquecida vigentes sao, respectivamente, `v181`, `v182`, `v183` e
-`v184`. O hash privado do plano e
-`b9d6aa4cdb5cd92df7d396c5a440e74e16b92b5ba089cfe9022b5afe93fd8dfa`;
+elevou o plano de `1.438` para `1.712` itens prontos e reduziu de `521` para
+`244` itens em revisao. O catalogo privado vigente e
+`historical-private-decisions-v36.json`; config, plano, lote de revisao e
+revisao enriquecida vigentes sao, respectivamente, `v185`, `v186`, `v187` e
+`v188`. O hash privado do plano e
+`c61fa8cd14c1dc8238f6c1528d17c50effa13c2ee96f19895208525308402f43`;
 cobertura completa, oito bindings e `financial_writes=0` foram preservados.
 
-Continuar somente com os 287 residuais: apresentar data, valor, conta/cartao,
+Continuar somente com os 244 residuais: apresentar data, valor, conta/cartao,
 titular/origem e descricao de cada ocorrencia; agrupar intermediadores
 por beneficiario antes de perguntar, pesquisar apenas estabelecimentos e
 consultar Daniel uma vez por identidade humana ainda sem semantica. Manter
