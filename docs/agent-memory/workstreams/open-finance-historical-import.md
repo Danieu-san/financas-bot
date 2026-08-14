@@ -397,8 +397,10 @@ como `category_required` e um pagamento de Pix, que nao deve virar despesa
 comum. O candidato atual provou que ela pertence a uma triade de Pix financiado
 por cartao; existem quatro taxas em revisao. A primeira auditoria encontrou que
 dois titulares ausentes podiam comparar como iguais; a recuperacao agora exige
-identidade nao vazia nos dois bindings. Reauditar o candidato e, com GO,
-abrir uma rodada incremental separada de 2026-07-28 a 2026-08-14 sem alterar o
+identidade nao vazia nos dois bindings. O hash
+`f45a7b2a1b86ab3386482bb86429b538f2c84757` recebeu GO independente sem
+achados ou lacuna indispensavel. Abrir uma rodada incremental separada de
+2026-07-28 a 2026-08-14 sem alterar o
 RX historico. O residual historico tem 171 itens: 147 entradas/estornos sem
 decisao semantica, 16 creditos de cartao sem vinculo, 4 taxas e 4 moedas nao
 suportadas.
@@ -411,4 +413,4 @@ provaveis retidos. Nao habilitar writer historico.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> auditar o Pix financiado e abrir o RX incremental ate 2026-08-14.`
+`Codex -> Sol -> Alto -> abrir o RX incremental separado ate 2026-08-14.`

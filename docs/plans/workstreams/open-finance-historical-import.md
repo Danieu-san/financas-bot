@@ -146,7 +146,7 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    44/44, bateria historica ampla unica 136/136 e `financial_writes=0`. O hash
    `e17a991a9d89d3b9d1ad423420f784f9205021b7` recebeu GO independente, sem
    achados por severidade ou lacuna indispensavel no escopo read-only.
-9.10. [candidato corrigido aguardando reauditoria] Pix financiado por cartao exige triade
+9.10. [concluida] Pix financiado por cartao exige triade
    mutuamente unica no mesmo item e titular: saida e credito bancarios do
    principal, seguidos em ate cinco segundos por debito maior no cartao. O
    principal fica neutro e somente a taxa permanece em revisao, sem write plan.
@@ -154,7 +154,9 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    `financial_writes=0`. A auditoria do primeiro hash encontrou igualdade entre
    titulares ausentes; a recuperacao exige `ownerUserId` nao vazio nos dois
    bindings, tem focal 47/47, ampla final 139/139 e plano privado `v208` com o
-   mesmo hash e contagens.
+   mesmo hash e contagens. O hash
+   `f45a7b2a1b86ab3386482bb86429b538f2c84757` recebeu GO independente sem
+   achados por severidade nem lacuna indispensavel no escopo read-only.
 9.11. [pendente apos 9.10] Preservar o RX historico fechado e abrir plano
    incremental separado para 2026-07-28 a 2026-08-14, com snapshots novos de
    Pluggy e planilha; reconciliar o que ja estiver lancado e nunca reescrever o
@@ -198,8 +200,7 @@ creditos sem vinculo forte e duplicatas provaveis continuam retidos.
 
 ## Proxima acao
 
-Auditar primeiro o candidato de Pix financiado por cartao. Com GO, abrir o
-plano incremental separado ate 2026-08-14 e depois agrupar os descritores de
+Abrir o plano incremental separado ate 2026-08-14 e depois agrupar os descritores de
 intermediadores pelo beneficiario real;
 consultar planilha, catalogos e decisoes registradas, depois pesquisa publica e
 somente entao Daniel, uma vez por identidade ainda opaca. Toda pergunta deve
