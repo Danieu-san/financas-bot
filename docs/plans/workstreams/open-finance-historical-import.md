@@ -67,7 +67,9 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    o residual a 374 e os prontos a 1.585; perguntas futuras exigem contexto
    completo por movimento antes de aplicar a resposta. O terceiro lote usou
    somente decisoes por ocorrencia e fechou mais 15 itens distintos: residual
-   359 e prontos 1.600, sem escrita.
+   359 e prontos 1.600, sem escrita. O quarto lote fechou seis transferencias
+   contextualizadas e duas quitacoes inequivocas: residual 351 e prontos
+   1.608, restando somente `saldo em atraso` como grupo de categoria repetido.
 8. [concluida] Executar a bateria hermetica ampla do candidato privado inicial:
    106/106 verdes; candidato familiar posterior: 111/111 verdes.
 9. [concluida] Publicar `fe374a3ee3a67457c02e74268984c7428fbcb2ac` e
@@ -123,11 +125,11 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 
 ## Estado privado vigente
 
-- 1.600 prontos;
+- 1.608 prontos;
 - 2 existentes comprovados;
 - 34 duplicatas provaveis;
 - 195 excluidos;
-- 359 em revisao;
+- 351 em revisao;
 - 161 fora da janela;
 - zero escrita financeira.
 
