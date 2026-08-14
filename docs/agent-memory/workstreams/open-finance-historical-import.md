@@ -447,9 +447,11 @@ escrita financeira.
 
 ## Proxima acao
 
-Publicar o candidato do Gate 41.2 e obter auditoria independente por hash
-imutavel. Somente apos GO registrar o fechamento; writer, planilha, recorrencia
-e producao permanecem fora deste candidato.
+Publicar o recovery do Gate 41.2 e obter reauditoria independente por novo hash
+imutavel. A primeira auditoria confirmou a implementacao, mas apontou lacuna
+probatoria MEDIA; os controles ausentes agora passam em focal `68/68` e ampla
+historica `143/143`. Somente apos GO registrar o fechamento; writer, planilha,
+recorrencia e producao permanecem fora deste candidato.
 
 O saneamento privado por recorrencia, pesquisa comercial e decisoes humanas
 elevou o plano inicialmente ate `1.729` itens prontos; as correcoes causais

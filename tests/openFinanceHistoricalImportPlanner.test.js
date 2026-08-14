@@ -438,6 +438,74 @@ test('keeps reviewed card-payment reversals closed without the full causal link'
     ]);
     assert.equal(ambiguous.entries.some(current => current.write_plan), false);
     assert.equal(ambiguous.financial_writes, 0);
+
+    const repeatedIdentity = { ...template, id: 'repeated-identity-copy',
+        provider_id: template.provider_id,
+        date: '2026-01-10T10:21:00.000Z' };
+    const repeatedFirst = plan([
+        bankPayment, cardCredit, template, repeatedIdentity
+    ], { accountBindings, accounts, merchantRules });
+    const repeated = plan([
+        bankPayment, cardCredit, template, repeatedIdentity
+    ], {
+        accountBindings, accounts, merchantRules,
+        decisionOverrides: {
+            [repeatedFirst.entries[2].source_ref]: {
+                classification: 'card_payment_reversal'
+            }
+        }
+    });
+    assert.notEqual(repeated.entries[2].reason,
+        'strong_linked_card_payment_reversal');
+    assert.equal(repeated.entries[2].write_plan, undefined);
+
+    const recordedFirst = plan([bankPayment, cardCredit, template], {
+        accountBindings, accounts, merchantRules
+    });
+    const recorded = plan([bankPayment, cardCredit, template], {
+        accountBindings, accounts, merchantRules,
+        ranges: {
+            'Entradas!A:J': [
+                sheet().ranges['Entradas!A:J'][0],
+                ['10/01/2026', 'Ajuste (Nubank)', 'Outros', 123.45,
+                    'Titular', 'Conta Corrente', 'Não', '',
+                    'card-owner', 'Conta Titular']
+            ]
+        },
+        decisionOverrides: {
+            [recordedFirst.entries[2].source_ref]: {
+                classification: 'card_payment_reversal'
+            }
+        }
+    });
+    assert.equal(recorded.entries[2].state, 'existing');
+    assert.notEqual(recorded.entries[2].reason,
+        'strong_linked_card_payment_reversal');
+    assert.equal(recorded.entries[2].write_plan, undefined);
+
+    const secondPayment = { ...bankPayment, id: 'second-payment',
+        provider_id: 'second-payment-provider',
+        date: '2026-01-11T10:00:00.000Z' };
+    const secondCredit = { ...cardCredit, id: 'second-card-credit',
+        provider_id: 'second-card-credit-provider',
+        date: '2026-01-11T03:00:00.000Z' };
+    const inverseFirst = plan([
+        bankPayment, cardCredit, secondPayment, secondCredit, template
+    ], { accountBindings, accounts, merchantRules });
+    const inverse = plan([
+        bankPayment, cardCredit, secondPayment, secondCredit, template
+    ], {
+        accountBindings, accounts, merchantRules,
+        decisionOverrides: {
+            [inverseFirst.entries[4].source_ref]: {
+                classification: 'card_payment_reversal'
+            }
+        }
+    });
+    assert.notEqual(inverse.entries[4].reason,
+        'strong_linked_card_payment_reversal');
+    assert.equal(inverse.entries[4].write_plan, undefined);
+    assert.equal(inverse.financial_writes, 0);
 });
 
 test('excludes explicit card-side payments while keeping non-payment credits closed', () => {

@@ -167,13 +167,16 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    `7e7166823f4e2d77be76d864a14ef979ed11e524` recebeu GO independente,
    sem achados bloqueantes ou lacuna indispensavel no escopo read-only; a suite
    geral continua sem veredito e sera exigida antes de writer ou release.
-9.12. [candidato local aguardando auditoria] Oito decisoes incrementais por
+9.12. [recovery local aguardando reauditoria] Oito decisoes incrementais por
    ocorrencia passaram a `ready` sem mudanca colateral. A devolucao restante
    agora exige decisao privada exata e o par forte original de pagamento,
    identidade de titular/conexao, valor, tempo, estado e unicidade mutua. RED
    de duas falhas, focal `68/68`, bateria historica ampla `143/143` e plano
    privado com 71 prontos, 18 excluidos, zero revisoes, cobertura completa e
-   `financial_writes=0`. Aguardando auditoria independente por hash.
+   `financial_writes=0`. A primeira auditoria confirmou a implementacao, mas
+   apontou uma lacuna probatoria MEDIA. O recovery adiciona controles para
+   identidade repetida, linha ja existente e ambiguidade inversa; focal
+   `68/68` e ampla final `143/143`. Aguardando reauditoria por novo hash.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 
@@ -213,8 +216,8 @@ creditos sem vinculo forte e duplicatas provaveis continuam retidos.
 
 ## Proxima acao
 
-Publicar o candidato sanitizado do Gate 41.2 e obter auditoria independente
-por hash imutavel. Sem GO externo, o estado maximo e candidato local; nao
+Publicar o recovery sanitizado do Gate 41.2 e obter reauditoria independente
+por novo hash imutavel. Sem GO externo, o estado maximo e candidato local; nao
 habilitar writer nem alterar planilha ou producao.
 
 Para revisoes futuras, agrupar os descritores de intermediadores pelo
