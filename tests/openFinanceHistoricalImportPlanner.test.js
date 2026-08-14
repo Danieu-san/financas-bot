@@ -98,6 +98,8 @@ function plan(transactions, options = {}) {
         accountBindings: options.accountBindings || bindings,
         merchantRules: options.merchantRules || [],
         decisionOverrides: options.decisionOverrides || {},
+        includeOpenInvoiceCurrentPurchases:
+            options.includeOpenInvoiceCurrentPurchases === true,
         historyStartDate: '2025-07-01',
         historyEndDate: '2026-12-31'
     });
@@ -444,6 +446,57 @@ test('defers an ordinary pending card purchase but preserves a future installmen
     assert.equal(result.entries[1].state, 'ready');
     assert.equal(result.entries[1].classification, 'planned_card_installment');
     assert.equal(result.entries[1].write_plan.row[4], '3/6');
+});
+
+test('incremental opt-in admits only current open-invoice purchases and keeps raw provider state', () => {
+    const merchantRules = [{
+        match: { mode: 'contains', value: 'compra corrente' },
+        classification: 'expense', category: 'Outros', subcategory: ''
+    }];
+    const result = plan([
+        transaction({
+            account_id: 'card-1', id: 'current', provider_id: 'provider-current',
+            amount_cents: 4500, status: 'PENDING', type: 'DEBIT',
+            description: 'Compra corrente', bill_forecast_month: '2026-01'
+        }),
+        transaction({
+            account_id: 'card-1', id: 'descriptor-installment',
+            provider_id: 'provider-descriptor-installment', amount_cents: 4200,
+            status: 'PENDING', type: 'DEBIT', description: 'Compra corrente 1/4',
+            bill_forecast_month: '2026-01'
+        }),
+        transaction({
+            account_id: 'card-1', id: 'metadata-installment',
+            provider_id: 'provider-metadata-installment', amount_cents: 4300,
+            status: 'PENDING', type: 'DEBIT', description: 'Compra corrente',
+            installment_number: 1, total_installments: 4,
+            bill_forecast_month: '2026-01'
+        }),
+        transaction({
+            account_id: 'card-1', id: 'pending-credit',
+            provider_id: 'provider-pending-credit', amount_cents: -4500,
+            status: 'PENDING', type: 'CREDIT', description: 'Estorno compra corrente',
+            bill_forecast_month: '2026-01'
+        }),
+        transaction({
+            account_id: 'card-1', id: 'overdue-balance',
+            provider_id: 'provider-overdue-balance', amount_cents: 4400,
+            status: 'PENDING', type: 'DEBIT', description: 'Saldo em atraso',
+            bill_forecast_month: '2026-01'
+        })
+    ], { merchantRules, includeOpenInvoiceCurrentPurchases: true });
+
+    assert.equal(result.include_open_invoice_current_purchases, true);
+    assert.equal(result.entries[0].state, 'ready');
+    assert.equal(result.entries[0].classification, 'card_expense');
+    assert.equal(result.entries[0].reason, 'reviewable_open_invoice_purchase');
+    assert.equal(result.entries[0].review_context.provider_state, 'PENDING');
+    assert.equal(result.entries[0].review_context.source_classification, 'purchase');
+    assert.equal(result.entries[1].state, 'excluded');
+    assert.equal(result.entries[2].state, 'excluded');
+    assert.equal(result.entries[3].state, 'excluded');
+    assert.equal(result.entries[4].state, 'excluded');
+    assert.equal(result.financial_writes, 0);
 });
 
 test('keeps reserve principal neutral and emits a transfer plan only with a bound reserve', () => {

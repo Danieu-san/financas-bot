@@ -1,4 +1,10 @@
 const crypto = require('node:crypto');
+const {
+    classifyInitialOpenFinanceTransaction
+} = require('./openFinanceLifecycleClassifier');
+const {
+    isReviewableCreditPurchase
+} = require('./openFinancePurchaseProposalEligibility');
 
 const TERMINAL_STATES = new Set([
     'ready',
@@ -897,7 +903,9 @@ function classifyTransaction({
     accountBindings,
     pairedCounterparts,
     historyStartDate,
-    historyEndDate
+    historyEndDate,
+    sourceObservedAt,
+    includeOpenInvoiceCurrentPurchases
 }) {
     const date = isoDate(transaction.date);
     const originalDate = isoDate(transaction.original_date);
@@ -1055,7 +1063,21 @@ function classifyTransaction({
         return entry(transaction, 'needs_review', 'invalid_installment',
             'invalid_installment_metadata');
     }
-    if (binding.kind === 'card' && pending &&
+    const sourceClassification = binding.kind === 'card' && pending
+        ? classifyInitialOpenFinanceTransaction(
+            transaction,
+            { type: transaction.account_type },
+            sourceObservedAt || historyEndDate
+        ).classification
+        : '';
+    const reviewableOpenInvoicePurchase = includeOpenInvoiceCurrentPurchases === true &&
+        isReviewableCreditPurchase({
+            classification: sourceClassification,
+            providerState: transaction.status,
+            accountType: transaction.account_type,
+            transaction
+        });
+    if (binding.kind === 'card' && pending && !reviewableOpenInvoicePurchase &&
         !(totalInstallments > 1 && installmentNumber > 1)) {
         return entry(transaction, 'excluded', 'pending_card_purchase',
             'provider_pending_not_historical_fact');
@@ -1096,11 +1118,16 @@ function classifyTransaction({
         const finalClassification = planned ? 'planned_card_installment' :
             binding.kind === 'card' ? 'card_expense' : 'expense';
         return entry(transaction, 'ready', finalClassification,
-            rule ? 'explicit_merchant_rule' : patterns.has(
+            reviewableOpenInvoicePurchase ? 'reviewable_open_invoice_purchase' :
+                rule ? 'explicit_merchant_rule' : patterns.has(
                 normalizeText(transaction.description)
             ) ? 'unique_sheet_pattern' : 'established_import_rule',
             expenseWritePlan(transaction, binding, category, finalClassification,
-                override.suggestedRecurring === true));
+                override.suggestedRecurring === true),
+            reviewableOpenInvoicePurchase ? {
+                provider_state: normalizeText(transaction.status).toUpperCase(),
+                source_classification: sourceClassification
+            } : null);
     }
 
     if (classification === 'income' && category) {
@@ -1127,6 +1154,7 @@ function planOpenFinanceHistoricalImport({
     accountBindings = {},
     merchantRules = [],
     decisionOverrides = {},
+    includeOpenInvoiceCurrentPurchases = false,
     historyStartDate,
     historyEndDate
 } = {}) {
@@ -1134,6 +1162,7 @@ function planOpenFinanceHistoricalImport({
         throw new Error('open_finance_historical_import_input_required');
     }
     const transactions = flattenSnapshot(pluggySnapshot);
+    const sourceObservedAt = snapshotObservedAt(pluggySnapshot);
     const patterns = categoryPatterns(sheetSnapshot);
     const pairs = strongTransferPairs(transactions, accountBindings,
         historyStartDate, historyEndDate);
@@ -1167,7 +1196,9 @@ function planOpenFinanceHistoricalImport({
             accountBindings,
             pairedCounterparts,
             historyStartDate,
-            historyEndDate
+            historyEndDate,
+            sourceObservedAt,
+            includeOpenInvoiceCurrentPurchases
         });
     });
     const summary = entries.reduce((counts, current) => {
@@ -1181,14 +1212,20 @@ function planOpenFinanceHistoricalImport({
         needs_review: 0,
         outside_window: 0
     });
-    const hashPayload = { historyStartDate, historyEndDate, entries };
-    const sourceObservedAt = snapshotObservedAt(pluggySnapshot);
+    const hashPayload = {
+        historyStartDate,
+        historyEndDate,
+        includeOpenInvoiceCurrentPurchases: includeOpenInvoiceCurrentPurchases === true,
+        entries
+    };
     const coverageComplete = Boolean(sourceObservedAt &&
         sourceObservedAt.slice(0, 10) >= historyEndDate);
     return {
         history_start_date: historyStartDate,
         history_end_date: historyEndDate,
         source_observed_at: sourceObservedAt || null,
+        include_open_invoice_current_purchases:
+            includeOpenInvoiceCurrentPurchases === true,
         coverage_complete: coverageComplete,
         plan_status: coverageComplete ? 'REVIEW_REQUIRED' : 'PARTIAL_NO_GO',
         writable: false,

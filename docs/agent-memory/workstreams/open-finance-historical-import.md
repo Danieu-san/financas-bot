@@ -320,6 +320,26 @@ escrita financeira.
   nenhuma lacuna indispensavel no escopo read-only; fechamento em
   `docs/audit/237-open-finance-historical-card-causality-independent-close-2026-08-14.md`.
 
+## RX incremental ate 2026-08-14
+
+- snapshots novos de Pluggy e planilha foram capturados somente para leitura;
+- uma segunda captura apos atualizacao manual das conexoes nao trouxe
+  transacoes novas, removidas ou alteradas;
+- o plano incremental nao reutiliza a regra historica de valor ate R$ 20 como
+  lanche;
+- o planejador passou a aceitar, somente por opt-in, compras positivas e nao
+  parceladas da fatura aberta pelo mesmo contrato do Gate 40;
+- 46 itens sairam da exclusao indevida: 31 ficaram prontos e 15 aguardam
+  categoria; o plano tem 46 prontos, 26 em revisao, 17 excluidos e 2.268 fora
+  da janela, com cobertura completa e `financial_writes=0`;
+- saldo agregado, estornos, creditos, pagamentos de fatura e parcelamentos nao
+  foram tratados como compra comum;
+- o candidato esta documentado em
+  `docs/audit/241-open-finance-incremental-open-invoice-candidate-2026-08-14.md`
+  e aguarda commit imutavel e auditoria independente;
+- apos fechar, revisar e aplicar o RX, diagnosticar separadamente por que a
+  producao nao enviou mensagens proativas desde o ultimo deploy.
+
 ## Evidencia local atual
 
 - candidato de Pix financiado por cartao: RED focal de 1 falha, focal 47/47 e

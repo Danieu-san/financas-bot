@@ -43,7 +43,8 @@ test('derives only unique bank, reserve and consolidated card bindings', () => {
             }
         },
         historyStartDate: '2025-07-01',
-        historyEndDate: '2026-01-31'
+        historyEndDate: '2026-01-31',
+        includeOpenInvoiceCurrentPurchases: true
     });
 
     assert.equal(config.accountBindings.bank.financialAccount, 'Pessoa - Banco');
@@ -57,6 +58,7 @@ test('derives only unique bank, reserve and consolidated card bindings', () => {
     assert.equal(config.accountBindings.savings, undefined);
     assert.equal(config.diagnostics.unbound_savings, 1);
     assert.equal(config.coverageComplete, false);
+    assert.equal(config.includeOpenInvoiceCurrentPurchases, true);
     assert.equal(config.financial_writes, 0);
 });
 
@@ -279,13 +281,15 @@ test('CLI requires an absolute private-decisions path and applies the reviewed f
         /historical_import_private_decisions_must_stay_outside_repository/);
 
     const applied = spawnSync(process.execPath, [
-        ...common, '--output', outputPath, '--private-decisions', decisionsPath
+        ...common, '--output', outputPath, '--private-decisions', decisionsPath,
+        '--include-open-invoice-current-purchases'
     ], { encoding: 'utf8' });
     assert.equal(applied.status, 0, applied.stderr);
     const config = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
     assert.equal(config.merchantRules.length, 1);
     assert.equal(config.merchantRules[0].match.value, 'grpqa');
     assert.equal(config.diagnostics.private_merchant_rules, 1);
+    assert.equal(config.includeOpenInvoiceCurrentPurchases, true);
     assert.equal(config.financial_writes, 0);
     assert.doesNotMatch(applied.stdout, /grpqa|Aluguel/);
 });

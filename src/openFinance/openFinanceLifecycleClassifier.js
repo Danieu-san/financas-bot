@@ -123,4 +123,8 @@ function classifyOpenFinanceLifecycle({ items = [], observedAt = new Date().toIS
     return { decisions, summary, investments_excluded: items.reduce((sum, item) => sum + (item.investments || []).length, 0), alert_candidates: 0, financial_writes: 0 };
 }
 
-module.exports = { classifyOpenFinanceLifecycle, __test__: { initialClassification, normalized } };
+module.exports = {
+    classifyOpenFinanceLifecycle,
+    classifyInitialOpenFinanceTransaction: initialClassification,
+    __test__: { initialClassification, normalized }
+};

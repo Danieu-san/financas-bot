@@ -29,6 +29,10 @@ test('gate 39.1 limits open-invoice proposals to current non-installment credit 
         classification: 'purchase', providerState: 'PENDING', accountType: 'BANK',
         transaction: pendingPurchase
     }), false);
+    assert.equal(isReviewableCreditPurchase({
+        classification: 'purchase', providerState: 'PENDING', accountType: 'CREDIT',
+        transaction: { ...pendingPurchase, description: 'Electrolux 1/4' }
+    }), false);
     assert.equal(isMonotonicPurchaseStateTransition('PENDING', 'POSTED'), true);
     assert.equal(isMonotonicPurchaseStateTransition('POSTED', 'PENDING'), false);
 });

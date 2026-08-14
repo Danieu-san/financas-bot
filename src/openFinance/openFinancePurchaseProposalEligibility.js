@@ -3,8 +3,14 @@ function normalizedStatus(value) {
 }
 
 function hasUnsupportedInstallments(transaction = {}) {
-    return Number(transaction.total_installments) > 1 ||
-        Number(transaction.installment_number) > 1;
+    if (Number(transaction.total_installments) > 1 ||
+        Number(transaction.installment_number) > 1) return true;
+    const descriptor = String(transaction.description || '');
+    const match = /(?:^|\D)(\d{1,2})\s*\/\s*(\d{1,2})(?:\D|$)/.exec(descriptor);
+    if (!match) return false;
+    const installment = Number(match[1]);
+    const total = Number(match[2]);
+    return total > 1 && installment >= 1 && installment <= total;
 }
 
 function isCreditPurchaseProviderState({

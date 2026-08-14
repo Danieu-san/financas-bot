@@ -157,10 +157,13 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    mesmo hash e contagens. O hash
    `f45a7b2a1b86ab3386482bb86429b538f2c84757` recebeu GO independente sem
    achados por severidade nem lacuna indispensavel no escopo read-only.
-9.11. [pendente apos 9.10] Preservar o RX historico fechado e abrir plano
-   incremental separado para 2026-07-28 a 2026-08-14, com snapshots novos de
-   Pluggy e planilha; reconciliar o que ja estiver lancado e nunca reescrever o
-   plano historico `v208`.
+9.11. [candidato aguardando auditoria] O RX historico fechado foi preservado e
+   o plano incremental separado de 2026-07-28 a 2026-08-14 usa snapshots novos
+   de Pluggy e planilha. O opt-in de fatura aberta reutiliza o contrato do Gate
+   40, preserva o estado bruto e mantem parcelamentos, creditos, estornos,
+   pagamentos e saldo agregado fora de compras comuns. Bateria causal 168/168,
+   plano privado com 46 prontos, 26 em revisao, 17 excluidos, cobertura completa
+   e `financial_writes=0`. Falta commit imutavel e auditoria independente.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 
@@ -200,11 +203,13 @@ creditos sem vinculo forte e duplicatas provaveis continuam retidos.
 
 ## Proxima acao
 
-Abrir o plano incremental separado ate 2026-08-14 e depois agrupar os descritores de
-intermediadores pelo beneficiario real;
+Publicar e auditar o candidato incremental; depois resolver as 26 revisoes,
+agrupar os descritores de intermediadores pelo beneficiario real;
 consultar planilha, catalogos e decisoes registradas, depois pesquisa publica e
 somente entao Daniel, uma vez por identidade ainda opaca. Toda pergunta deve
 trazer data, valor, conta/cartao, titular/origem e descricao por ocorrencia.
 Manter retidos moedas
 nao BRL, creditos sem vinculo forte, saldos rotativos e duplicatas provaveis;
-nao habilitar writer historico, importacao real ou deploy.
+nao habilitar writer historico, importacao real ou deploy. Depois da aplicacao
+do RX, abrir gate operacional separado para explicar a ausencia de alertas
+proativos posteriores ao ultimo deploy.

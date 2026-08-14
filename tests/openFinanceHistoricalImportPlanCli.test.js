@@ -40,6 +40,7 @@ test('CLI writes only to an external private path and reports aggregates', () =>
         historyEndDate: '2026-12-31',
         sourceObservedAt: '2026-01-31T00:00:00.000Z',
         coverageComplete: false,
+        includeOpenInvoiceCurrentPurchases: true,
         accountBindings: {
             account: {
                 kind: 'bank', ownerUserId: 'person', ownerLabel: 'Pessoa',
@@ -72,6 +73,7 @@ test('CLI writes only to an external private path and reports aggregates', () =>
     assert.equal(stored.entries.length, 1);
     assert.equal(stored.writable, false);
     assert.equal(stored.source_observed_at, '2026-01-31T00:00:00.000Z');
+    assert.equal(stored.include_open_invoice_current_purchases, true);
 });
 
 test('CLI refuses to place a private plan inside the repository', () => {

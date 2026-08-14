@@ -178,6 +178,7 @@ function observedAt(snapshot) {
 
 function buildConfig({ pluggySnapshot, sheetSnapshot, historyStartDate,
     historyEndDate, classifyExpense = null, classifyRecurringExpense = null,
+    includeOpenInvoiceCurrentPurchases = false,
     cardIdByAlias = {},
     privateDecisions = {} } = {}) {
     const activeValues = new Set(['active', 'ativo', 'ativa', 'sim', 'yes', 'true', '1']);
@@ -374,6 +375,8 @@ function buildConfig({ pluggySnapshot, sheetSnapshot, historyStartDate,
         historyStartDate,
         historyEndDate,
         sourceObservedAt,
+        includeOpenInvoiceCurrentPurchases:
+            includeOpenInvoiceCurrentPurchases === true,
         coverageComplete: Boolean(sourceObservedAt &&
             sourceObservedAt.slice(0, 10) >= historyEndDate),
         accountBindings,
@@ -479,6 +482,8 @@ function main() {
         sheetSnapshot,
         historyStartDate,
         historyEndDate,
+        includeOpenInvoiceCurrentPurchases:
+            process.argv.includes('--include-open-invoice-current-purchases'),
         classifyExpense,
         classifyRecurringExpense,
         cardIdByAlias: bindingOverridesPath

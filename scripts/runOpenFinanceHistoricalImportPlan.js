@@ -67,6 +67,8 @@ function main() {
         accountBindings: config.accountBindings,
         merchantRules: config.merchantRules,
         decisionOverrides: config.decisionOverrides,
+        includeOpenInvoiceCurrentPurchases:
+            config.includeOpenInvoiceCurrentPurchases === true,
         historyStartDate: config.historyStartDate,
         historyEndDate: config.historyEndDate
     });
