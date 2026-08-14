@@ -13,7 +13,8 @@ excluir o debito integral apaga a taxa do financiamento.
 
 O planejador read-only reconhece a triade somente quando:
 
-- os tres fatos pertencem ao mesmo item Pluggy e ao mesmo titular autorizado;
+- os tres fatos pertencem ao mesmo item Pluggy e ao mesmo titular autorizado,
+  com `ownerUserId` nao vazio nos dois bindings;
 - debito e credito bancarios usam a mesma conta, com principal exatamente
   oposto;
 - o credito tem descricao e operacao exatas de valor adicionado para Pix no
@@ -36,7 +37,7 @@ taxa antes de categoria explicita.
 
 ## Controles negativos
 
-Ambiguidade, `PENDING`, data sem horario preciso, descricao aproximada do
+Ambiguidade, titular ausente, `PENDING`, data sem horario preciso, descricao aproximada do
 credito, prefixo bancario diferente, operacao diferente, favorecido divergente,
 taxa nao positiva, intervalo superior a cinco segundos, titular diferente ou
 qualquer lado ja registrado falham fechado.
@@ -47,7 +48,7 @@ qualquer lado ja registrado falham fechado.
 - focal final: 47/47 testes verdes;
 - unica bateria historica ampla do candidato: 139/139 testes verdes, zero
   falhas e zero skips;
-- recalc privado `v206`: 1.704 prontos, 2 existentes, 34 duplicatas provaveis,
+- recalc privado `v208`: 1.704 prontos, 2 existentes, 34 duplicatas provaveis,
   279 excluidos, 171 em revisao e 161 fora da janela;
 - impacto privado exato: quatro creditos bancarios passaram de revisao para
   funding excluido; tres debitos de cartao passaram de compra pronta para taxa
@@ -67,4 +68,4 @@ qualquer lado ja registrado falham fechado.
 
 ## Estado
 
-`CANDIDATO LOCAL AGUARDANDO AUDITORIA INDEPENDENTE`.
+`CANDIDATO LOCAL CORRIGIDO AGUARDANDO REAUDITORIA INDEPENDENTE`.

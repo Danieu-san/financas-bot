@@ -809,6 +809,8 @@ function strongCardFundedPixTriples(transactions, accountBindings, sheetSnapshot
         const creditTime = preciseTimestamp(credit.date);
         const principal = Number(credit.amount_cents);
         const bankBinding = accountBindings[credit.account_id];
+        const bankOwnerUserId = String(bankBinding?.ownerUserId || '').trim();
+        if (!bankOwnerUserId) continue;
         const debits = transactions.filter(debit => {
             const debitTime = preciseTimestamp(debit.date);
             return isStable(debit, 'bank', 'BANK') &&
@@ -823,11 +825,12 @@ function strongCardFundedPixTriples(transactions, accountBindings, sheetSnapshot
             const cards = transactions.filter(card => {
                 const cardTime = preciseTimestamp(card.date);
                 const cardBinding = accountBindings[card.account_id];
+                const cardOwnerUserId = String(cardBinding?.ownerUserId || '').trim();
                 const description = normalizeText(card.description);
                 return isStable(card, 'card', 'CREDIT') &&
                     card.item_id === credit.item_id &&
                     card.account_id !== credit.account_id &&
-                    cardBinding?.ownerUserId === bankBinding?.ownerUserId &&
+                    cardOwnerUserId && cardOwnerUserId === bankOwnerUserId &&
                     card.type === 'DEBIT' && Number(card.amount_cents) > principal &&
                     (description === 'pagamento de pix' ||
                         description === expectedRecipient) &&

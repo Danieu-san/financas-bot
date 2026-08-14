@@ -1473,11 +1473,25 @@ test('fails closed for ambiguous, pending or imprecise card-funded Pix triples',
             }
         }
     });
+    const missingOwners = plan([...base, card()], {
+        merchantRules,
+        accountBindings: {
+            ...bindings,
+            'bank-1': {
+                ...bindings['bank-1'],
+                ownerUserId: ''
+            },
+            'card-1': {
+                ...bindings['card-1'],
+                ownerUserId: ''
+            }
+        }
+    });
 
     for (const result of [
         ambiguous, pending, imprecise, approximateDescription,
         wrongBankDescription, wrongOperation, wrongCardDescription, noFee,
-        staleCard, crossOwner
+        staleCard, crossOwner, missingOwners
     ]) {
         assert.ok(result.entries.every(item => ![
             'card_funded_pix_principal', 'card_funded_pix_fee'

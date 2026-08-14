@@ -146,16 +146,19 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    44/44, bateria historica ampla unica 136/136 e `financial_writes=0`. O hash
    `e17a991a9d89d3b9d1ad423420f784f9205021b7` recebeu GO independente, sem
    achados por severidade ou lacuna indispensavel no escopo read-only.
-9.10. [candidato aguardando auditoria] Pix financiado por cartao exige triade
+9.10. [candidato corrigido aguardando reauditoria] Pix financiado por cartao exige triade
    mutuamente unica no mesmo item e titular: saida e credito bancarios do
    principal, seguidos em ate cinco segundos por debito maior no cartao. O
    principal fica neutro e somente a taxa permanece em revisao, sem write plan.
    Focal 47/47, bateria historica ampla unica 139/139 e
-   `financial_writes=0`.
+   `financial_writes=0`. A auditoria do primeiro hash encontrou igualdade entre
+   titulares ausentes; a recuperacao exige `ownerUserId` nao vazio nos dois
+   bindings, tem focal 47/47, ampla final 139/139 e plano privado `v208` com o
+   mesmo hash e contagens.
 9.11. [pendente apos 9.10] Preservar o RX historico fechado e abrir plano
    incremental separado para 2026-07-28 a 2026-08-14, com snapshots novos de
    Pluggy e planilha; reconciliar o que ja estiver lancado e nunca reescrever o
-   plano historico `v206`.
+   plano historico `v208`.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 

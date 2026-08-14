@@ -325,7 +325,7 @@ escrita financeira.
 - candidato de Pix financiado por cartao: RED focal de 1 falha, focal 47/47 e
   bateria historica ampla unica 139/139 verdes; quatro creditos de principal
   ficaram neutros e quatro debitos de cartao passaram a expor somente a taxa;
-- plano privado `v206`, inventario residual `v207`, hash
+- plano privado corrigido `v208`, inventario residual `v207`, hash
   `70bc39c8572cbe7851a2d3f8f918b6e2d108a84cbb5819dc9345ce7324f3f745`,
   cobertura completa e `financial_writes=0`;
 
@@ -386,7 +386,7 @@ elevou o plano inicialmente ate `1.729` itens prontos; as correcoes causais
 posteriores resultaram em `1.704` prontos e reduziram de `521` para `171` itens
 em revisao. O catalogo privado vigente e
 `historical-private-decisions-v42.json`; config, plano, lote de revisao e
-revisao enriquecida vigentes sao, respectivamente, `v193`, `v206`, `v203` e
+revisao enriquecida vigentes sao, respectivamente, `v193`, `v208`, `v203` e
 `v204`; esses dois ultimos permanecem da rodada anterior e nao representam as
 taxas novas. O inventario residual vigente e `v207`. O hash privado do plano e
 `70bc39c8572cbe7851a2d3f8f918b6e2d108a84cbb5819dc9345ce7324f3f745`;
@@ -395,7 +395,9 @@ cobertura completa, oito bindings e `financial_writes=0` foram preservados.
 As ambiguidades comuns de categoria terminaram. A unica linha ainda marcada
 como `category_required` e um pagamento de Pix, que nao deve virar despesa
 comum. O candidato atual provou que ela pertence a uma triade de Pix financiado
-por cartao; existem quatro taxas em revisao. Auditar o candidato e, com GO,
+por cartao; existem quatro taxas em revisao. A primeira auditoria encontrou que
+dois titulares ausentes podiam comparar como iguais; a recuperacao agora exige
+identidade nao vazia nos dois bindings. Reauditar o candidato e, com GO,
 abrir uma rodada incremental separada de 2026-07-28 a 2026-08-14 sem alterar o
 RX historico. O residual historico tem 171 itens: 147 entradas/estornos sem
 decisao semantica, 16 creditos de cartao sem vinculo, 4 taxas e 4 moedas nao
