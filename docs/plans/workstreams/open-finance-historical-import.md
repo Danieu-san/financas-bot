@@ -157,13 +157,16 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    mesmo hash e contagens. O hash
    `f45a7b2a1b86ab3386482bb86429b538f2c84757` recebeu GO independente sem
    achados por severidade nem lacuna indispensavel no escopo read-only.
-9.11. [candidato aguardando auditoria] O RX historico fechado foi preservado e
+9.11. [GO tecnico local independente] O RX historico fechado foi preservado e
    o plano incremental separado de 2026-07-28 a 2026-08-14 usa snapshots novos
    de Pluggy e planilha. O opt-in de fatura aberta reutiliza o contrato do Gate
    40, preserva o estado bruto e mantem parcelamentos, creditos, estornos,
    pagamentos e saldo agregado fora de compras comuns. Bateria causal 168/168,
    plano privado com 46 prontos, 26 em revisao, 17 excluidos, cobertura completa
-   e `financial_writes=0`. Falta commit imutavel e auditoria independente.
+   e `financial_writes=0`. O hash
+   `7e7166823f4e2d77be76d864a14ef979ed11e524` recebeu GO independente,
+   sem achados bloqueantes ou lacuna indispensavel no escopo read-only; a suite
+   geral continua sem veredito e sera exigida antes de writer ou release.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 
@@ -203,7 +206,7 @@ creditos sem vinculo forte e duplicatas provaveis continuam retidos.
 
 ## Proxima acao
 
-Publicar e auditar o candidato incremental; depois resolver as 26 revisoes,
+Resolver as 26 revisoes do plano incremental,
 agrupar os descritores de intermediadores pelo beneficiario real;
 consultar planilha, catalogos e decisoes registradas, depois pesquisa publica e
 somente entao Daniel, uma vez por identidade ainda opaca. Toda pergunta deve

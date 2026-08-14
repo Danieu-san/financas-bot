@@ -334,9 +334,11 @@ escrita financeira.
   da janela, com cobertura completa e `financial_writes=0`;
 - saldo agregado, estornos, creditos, pagamentos de fatura e parcelamentos nao
   foram tratados como compra comum;
-- o candidato esta documentado em
-  `docs/audit/241-open-finance-incremental-open-invoice-candidate-2026-08-14.md`
-  e aguarda commit imutavel e auditoria independente;
+- o candidato no hash
+  `7e7166823f4e2d77be76d864a14ef979ed11e524` recebeu `GO TECNICO LOCAL`
+  independente, sem achados criticos, altos ou medios e sem lacuna
+  indispensavel no escopo read-only; fechamento em
+  `docs/audit/242-open-finance-incremental-open-invoice-independent-close-2026-08-14.md`;
 - apos fechar, revisar e aplicar o RX, diagnosticar separadamente por que a
   producao nao enviou mensagens proativas desde o ultimo deploy.
 
