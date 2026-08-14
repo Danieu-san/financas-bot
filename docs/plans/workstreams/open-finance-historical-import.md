@@ -65,7 +65,9 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    a 390 e os prontos a 1.569, sem mudancas inesperadas e sem escrita. O segundo
    lote humano fechou mais 16 ocorrencias explicitamente apresentadas, levando
    o residual a 374 e os prontos a 1.585; perguntas futuras exigem contexto
-   completo por movimento antes de aplicar a resposta.
+   completo por movimento antes de aplicar a resposta. O terceiro lote usou
+   somente decisoes por ocorrencia e fechou mais 15 itens distintos: residual
+   359 e prontos 1.600, sem escrita.
 8. [concluida] Executar a bateria hermetica ampla do candidato privado inicial:
    106/106 verdes; candidato familiar posterior: 111/111 verdes.
 9. [concluida] Publicar `fe374a3ee3a67457c02e74268984c7428fbcb2ac` e
@@ -121,11 +123,11 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 
 ## Estado privado vigente
 
-- 1.585 prontos;
+- 1.600 prontos;
 - 2 existentes comprovados;
 - 34 duplicatas provaveis;
 - 195 excluidos;
-- 374 em revisao;
+- 359 em revisao;
 - 161 fora da janela;
 - zero escrita financeira.
 
