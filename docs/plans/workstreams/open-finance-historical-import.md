@@ -1,6 +1,6 @@
 # Gate 41 - importacao historica idempotente para a planilha
 
-Atualizado em: 2026-08-12
+Atualizado em: 2026-08-14
 
 ## Estado
 
@@ -60,7 +60,9 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    semanticas, pares familiares e decisoes explicitas reduziram o residual a
    521. A rodada v17 reaproveitou decisoes anteriores, catalogo recorrente e
    pesquisa publica somente para identidades comerciais fortes, levando o
-   residual a 419 e os prontos a 1.540, sem escrita.
+   residual a 419 e os prontos a 1.540, sem escrita. Nove decisoes humanas
+   agrupadas posteriores fecharam exatamente mais 29 itens, levando o residual
+   a 390 e os prontos a 1.569, sem mudancas inesperadas e sem escrita.
 8. [concluida] Executar a bateria hermetica ampla do candidato privado inicial:
    106/106 verdes; candidato familiar posterior: 111/111 verdes.
 9. [concluida] Publicar `fe374a3ee3a67457c02e74268984c7428fbcb2ac` e
@@ -116,11 +118,11 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 
 ## Estado privado vigente
 
-- 1.540 prontos;
+- 1.569 prontos;
 - 2 existentes comprovados;
 - 34 duplicatas provaveis;
 - 195 excluidos;
-- 419 em revisao;
+- 390 em revisao;
 - 161 fora da janela;
 - zero escrita financeira.
 

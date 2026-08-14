@@ -1,6 +1,6 @@
 # Estado - importacao historica Open Finance
 
-Atualizado em: 2026-08-12
+Atualizado em: 2026-08-14
 
 ## Objetivo ativo
 
@@ -147,6 +147,20 @@ escrita financeira.
   independente, sem achados bloqueantes ou lacuna indispensavel;
 - nenhuma linha financeira foi escrita e `financial_writes=0` permanece.
 
+## Atualizacao privada v20
+
+- nove decisoes humanas agrupadas foram registradas fora do repositorio:
+  cursos, cabelo, devolucao de emprestimo, churrasco, itens para casa e
+  manutencao do carro;
+- os descritores foram limitados ao beneficiario completo ou ao beneficiario
+  real do intermediador `JIM.COM`, sem classificar transferencias homonimas;
+- a comparacao causal provou exatamente 29 transicoes de `needs_review` para
+  `ready`, nas contagens esperadas, sem nenhuma mudanca inesperada;
+- o plano privado vigente tem 1.569 prontos, 2 existentes, 34 duplicatas
+  provaveis, 195 excluidos, 390 em revisao e 161 fora da janela;
+- cobertura completa, oito bindings e `financial_writes=0` foram preservados;
+  nenhuma linha financeira foi escrita e nenhum dado privado entrou no Git.
+
 ## Atualizacao do catalogo recorrente
 
 - a captura da planilha agora inclui o catalogo `Contas`; o configurador
@@ -227,15 +241,16 @@ escrita financeira.
 
 ## Proxima acao
 
-O saneamento privado por recorrencia e pesquisa comercial reduziu o plano de
-`1.438` para `1.540` itens prontos e de `521` para `419` itens em revisao. O
-catalogo privado vigente e `historical-private-decisions-v19.json`; config,
-plano, lote de revisao e revisao enriquecida vigentes sao, respectivamente,
-`v117`, `v118`, `v119` e `v120`. O hash privado do plano e
-`8fcbb16dbde69fa85c2ef86de4faacdbe01f554b2d35118a6df3f0552a59f52c`;
+O saneamento privado por recorrencia, pesquisa comercial e decisoes humanas
+elevou o plano de `1.438` para `1.569` itens prontos e reduziu de `521` para
+`390` itens em revisao. O catalogo privado vigente e
+`historical-private-decisions-v20.json`; config, plano, lote de revisao e
+revisao enriquecida vigentes sao, respectivamente, `v121`, `v122`, `v123` e
+`v124`. O hash privado do plano e
+`fa5dbc96d7d9d1585ee187479063ee7a88868ad50e4e9d8efe193c9d9d41948f`;
 cobertura completa, oito bindings e `financial_writes=0` foram preservados.
 
-Continuar somente com os 419 residuais: agrupar descritores de intermediadores
+Continuar somente com os 390 residuais: agrupar descritores de intermediadores
 por beneficiario antes de perguntar, pesquisar apenas estabelecimentos e
 consultar Daniel uma vez por identidade humana ainda sem semantica. Manter
 moedas nao BRL, creditos sem vinculo forte, saldos rotativos e duplicatas
