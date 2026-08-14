@@ -124,7 +124,7 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    de linha ja existente somente por correspondencia factual unica. O primeiro
    candidato recebeu `NO-GO` probatorio; as cinco lacunas focais foram cobertas
    e o hash `3a528407f97d1bc7aa923807de74c62af23200ab` recebeu `GO TECNICO LOCAL`,
-   sem achados bloqueantes ou lacuna indispensavel. O recálculo permaneceu
+   sem achados bloqueantes ou lacuna indispensavel. O recÃ¡lculo permaneceu
    read-only e sem criar vinculo operacional.
 9.7. [NO-GO independente] O snapshot passa a incluir o catalogo `Contas` e o
    configurador reutiliza as regras recorrentes reais do produto. Conflitos
@@ -167,6 +167,11 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    `7e7166823f4e2d77be76d864a14ef979ed11e524` recebeu GO independente,
    sem achados bloqueantes ou lacuna indispensavel no escopo read-only; a suite
    geral continua sem veredito e sera exigida antes de writer ou release.
+9.12. [em andamento] Oito decisoes incrementais por ocorrencia passaram a
+   `ready` sem mudanca colateral; o plano ficou com 71 prontos, 17 excluidos e
+   uma revisao, cobertura completa e `financial_writes=0`. O residual e uma
+   devolucao positiva de pagamento de fatura feito por engano e exige uma
+   classificacao exata, neutra e fail-closed antes de zerar o plano.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 
@@ -206,8 +211,14 @@ creditos sem vinculo forte e duplicatas provaveis continuam retidos.
 
 ## Proxima acao
 
-Resolver as 26 revisoes do plano incremental,
-agrupar os descritores de intermediadores pelo beneficiario real;
+Fechar a unica revisao incremental com suporte causal a devolucao de pagamento
+de fatura, sem transforma-la em receita ou transferencia. Recalcular o plano e
+provar ausencia de alteracao colateral. Depois, registrar a nova recorrencia
+mensal no catalogo apropriado somente pela trilha de escrita autorizada e
+agrupar as entradas historicas residuais por identidade forte.
+
+Para revisoes futuras, agrupar os descritores de intermediadores pelo
+beneficiario real;
 consultar planilha, catalogos e decisoes registradas, depois pesquisa publica e
 somente entao Daniel, uma vez por identidade ainda opaca. Toda pergunta deve
 trazer data, valor, conta/cartao, titular/origem e descricao por ocorrencia.

@@ -342,6 +342,30 @@ escrita financeira.
 - apos fechar, revisar e aplicar o RX, diagnosticar separadamente por que a
   producao nao enviou mensagens proativas desde o ultimo deploy.
 
+## Atualizacao incremental privada v8
+
+- oito decisoes humanas por ocorrencia foram aplicadas ao plano incremental:
+  dois salarios, um presente recebido, tres lanches, um rateio de churrasco,
+  uma nova mensalidade de aula de musica e a parcela 2/10 de uma bicicleta;
+- a comparacao causal provou exatamente oito transicoes de `needs_review` para
+  `ready`, sem referencia ou estado adicional alterado;
+- a parcela da bicicleta permaneceu `planned_card_installment`; nao foi
+  convertida em compra unica;
+- o plano privado vigente tem 71 prontos, 17 excluidos, 1 em revisao e 2.268
+  fora da janela, com cobertura completa e `financial_writes=0`; hash privado
+  `91fc6d9b332326368672793feb0f65866e5062e8a99e466cce37d5c5d56ef753`;
+- o unico residual incremental e a devolucao positiva de um pagamento de
+  fatura feito por engano. As pernas do pagamento ja sao identificaveis, mas o
+  planejador nao possui decisao exata para neutralizar a devolucao sem
+  confundi-la com receita ou transferencia;
+- a nova mensalidade foi classificada nesta ocorrencia com a categoria
+  recorrente ja usada. A atualizacao do catalogo `Contas` permanece pendente e
+  nao foi feita dentro desta etapa read-only;
+- entradas historicas nao foram presumidas como salario: o residual historico
+  ainda contem 147 entradas ou estornos sem decisao semantica, que devem ser
+  agrupados por pagador, conta, valor e recorrencia antes de nova consulta a
+  Daniel.
+
 ## Evidencia local atual
 
 - candidato de Pix financiado por cartao: RED focal de 1 falha, focal 47/47 e
@@ -402,6 +426,12 @@ escrita financeira.
 - nenhum artefato privado, descricao, valor, ID ou segredo entrou no Git.
 
 ## Proxima acao
+
+Implementar uma decisao exata e fail-closed para devolucao de pagamento de
+fatura, com prova causal de conta bancaria positiva e sem plano de escrita;
+recalcular o incremental ate zerar a revisao. Depois, atualizar de forma
+controlada a recorrencia mensal informada e agrupar as entradas historicas por
+identidade forte, sem presumir salario.
 
 O saneamento privado por recorrencia, pesquisa comercial e decisoes humanas
 elevou o plano inicialmente ate `1.729` itens prontos; as correcoes causais
