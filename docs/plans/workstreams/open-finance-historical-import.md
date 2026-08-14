@@ -76,8 +76,8 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    residual 334, prontos 1.622 e excluidos 198, sem escrita. O setimo lote
    classificou dez ocorrencias contextuais, incluindo uma unica Wise coberta
    pela regra ampla autorizada: residual 324 e prontos 1.632, sem escrita. O
-   lote de comprovantes Nubank e decisoes associadas fechou mais quinze
-   ocorrencias: residual 309 e prontos 1.647, sem escrita.
+   lote de comprovantes Nubank e decisoes associadas fechou mais dezessete
+   ocorrencias: residual 307 e prontos 1.649, sem escrita.
 8. [concluida] Executar a bateria hermetica ampla do candidato privado inicial:
    106/106 verdes; candidato familiar posterior: 111/111 verdes.
 9. [concluida] Publicar `fe374a3ee3a67457c02e74268984c7428fbcb2ac` e
@@ -133,11 +133,11 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 
 ## Estado privado vigente
 
-- 1.647 prontos;
+- 1.649 prontos;
 - 2 existentes comprovados;
 - 34 duplicatas provaveis;
 - 198 excluidos;
-- 309 em revisao;
+- 307 em revisao;
 - 161 fora da janela;
 - zero escrita financeira.
 
