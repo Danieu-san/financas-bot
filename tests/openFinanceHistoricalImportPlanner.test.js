@@ -483,6 +483,33 @@ test('keeps reviewed card-payment reversals closed without the full causal link'
         'strong_linked_card_payment_reversal');
     assert.equal(recorded.entries[2].write_plan, undefined);
 
+    const probableFirst = plan([bankPayment, cardCredit, template], {
+        accountBindings, accounts, merchantRules
+    });
+    const probable = plan([bankPayment, cardCredit, template], {
+        accountBindings, accounts, merchantRules,
+        ranges: {
+            'Entradas!A:J': [
+                sheet().ranges['Entradas!A:J'][0],
+                ['10/01/2026', 'Lancamento manual diferente', 'Outros', 123.45,
+                    'Titular', 'Conta Corrente', 'Não', '',
+                    'card-owner', 'Conta Titular']
+            ]
+        },
+        decisionOverrides: {
+            [probableFirst.entries[2].source_ref]: {
+                classification: 'card_payment_reversal'
+            }
+        }
+    });
+    assert.equal(probable.entries[2].state, 'possible_duplicate');
+    assert.equal(probable.entries[2].reason,
+        'strong_non_identical_sheet_match');
+    assert.notEqual(probable.entries[2].reason,
+        'strong_linked_card_payment_reversal');
+    assert.equal(probable.entries[2].write_plan, undefined);
+    assert.equal(probable.financial_writes, 0);
+
     const secondPayment = { ...bankPayment, id: 'second-payment',
         provider_id: 'second-payment-provider',
         date: '2026-01-11T10:00:00.000Z' };

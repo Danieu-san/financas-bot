@@ -176,7 +176,9 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    `financial_writes=0`. A primeira auditoria confirmou a implementacao, mas
    apontou uma lacuna probatoria MEDIA. O recovery adiciona controles para
    identidade repetida, linha ja existente e ambiguidade inversa; focal
-   `68/68` e ampla final `143/143`. Aguardando reauditoria por novo hash.
+   `68/68` e ampla final `143/143`. A reauditoria confirmou esses controles,
+   mas pediu a prova integrada de duplicata forte nao identica. A segunda
+   recuperacao acrescenta esse cenario e aguarda novo hash e reauditoria.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 

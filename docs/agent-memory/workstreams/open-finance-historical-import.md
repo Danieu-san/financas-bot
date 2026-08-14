@@ -449,9 +449,12 @@ escrita financeira.
 
 Publicar o recovery do Gate 41.2 e obter reauditoria independente por novo hash
 imutavel. A primeira auditoria confirmou a implementacao, mas apontou lacuna
-probatoria MEDIA; os controles ausentes agora passam em focal `68/68` e ampla
-historica `143/143`. Somente apos GO registrar o fechamento; writer, planilha,
-recorrencia e producao permanecem fora deste candidato.
+probatoria MEDIA; os primeiros controles ausentes passaram em focal `68/68`
+e ampla historica `143/143`. A reauditoria confirmou identidade repetida,
+existente exato e ambiguidade inversa, mas pediu a integracao da duplicata forte
+nao identica. A segunda recuperacao adiciona essa prova. Somente apos GO
+registrar o fechamento; writer, planilha, recorrencia e producao permanecem fora
+deste candidato.
 
 O saneamento privado por recorrencia, pesquisa comercial e decisoes humanas
 elevou o plano inicialmente ate `1.729` itens prontos; as correcoes causais
