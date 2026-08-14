@@ -108,6 +108,54 @@ function sourceRef(transaction) {
     return crypto.createHash('sha256').update(stableId).digest('hex').slice(0, 24);
 }
 
+const CARD_PAYMENT_CREDIT_DESCRIPTIONS = new Set([
+    'pagamento recebido',
+    'pagamento com saldo'
+]);
+
+const CARD_BALANCE_CARRYOVER_DESCRIPTIONS = new Set([
+    'saldo em atraso',
+    'saldo em rotativo'
+]);
+
+const CARD_FINANCING_ADJUSTMENT_DESCRIPTIONS = new Set([
+    'credito de atraso',
+    'credito de rotativo',
+    'encerramento de divida'
+]);
+
+function explicitCardStatementRole(transaction, binding) {
+    if (binding?.kind !== 'card' ||
+        transaction.account_type !== 'CREDIT' ||
+        normalizeText(transaction.status).toUpperCase() !== 'POSTED') {
+        return null;
+    }
+    const description = normalizeText(transaction.description);
+    const amount = Number(transaction.amount_cents);
+    if (amount < 0 && transaction.type === 'CREDIT' &&
+        CARD_PAYMENT_CREDIT_DESCRIPTIONS.has(description)) {
+        return {
+            classification: 'card_bill_payment_counterpart',
+            reason: 'explicit_card_payment_credit'
+        };
+    }
+    if (amount > 0 && transaction.type === 'DEBIT' &&
+        CARD_BALANCE_CARRYOVER_DESCRIPTIONS.has(description)) {
+        return {
+            classification: 'card_balance_carryover',
+            reason: 'explicit_card_statement_balance'
+        };
+    }
+    if (amount < 0 && transaction.type === 'CREDIT' &&
+        CARD_FINANCING_ADJUSTMENT_DESCRIPTIONS.has(description)) {
+        return {
+            classification: 'card_financing_adjustment',
+            reason: 'explicit_card_financing_adjustment'
+        };
+    }
+    return null;
+}
+
 function providerIdentity(transaction) {
     return String(transaction.provider_id || transaction.id || '').trim();
 }
@@ -563,10 +611,12 @@ function strongUnwrittenRefundPairs(transactions, accountBindings, sheetSnapshot
         const date = isoDate(transaction.date);
         return date >= historyStartDate && date <= historyEndDate;
     };
-    const isStableBankTransaction = transaction => {
+    const isStableTransaction = transaction => {
         const binding = accountBindings[transaction.account_id];
         const identity = providerIdentity(transaction);
-        return binding?.kind === 'bank' && transaction.account_type === 'BANK' &&
+        const expectedType = binding?.kind === 'card' ? 'CREDIT' :
+            binding?.kind === 'bank' ? 'BANK' : '';
+        return expectedType && transaction.account_type === expectedType &&
             Number.isFinite(Number(transaction.amount_cents)) &&
             Number(transaction.amount_cents) !== 0 &&
             String(transaction.currency || '').trim().toUpperCase() === 'BRL' &&
@@ -586,12 +636,24 @@ function strongUnwrittenRefundPairs(transactions, accountBindings, sheetSnapshot
         const ref = sourceRef(refund);
         if (candidatesByRef.has(ref)) return candidatesByRef.get(ref);
         const refundDate = parseDate(refund.date);
+        const binding = accountBindings[refund.account_id];
+        const refundAmount = Number(refund.amount_cents);
+        const expectedPurchaseAmount = -refundAmount;
         const matches = transactions.filter(debit => {
             const debitDate = parseDate(debit.date);
-            return Number(refund.amount_cents) > 0 && Number(debit.amount_cents) < 0 &&
+            const debitAmount = Number(debit.amount_cents);
+            const directionMatches = binding?.kind === 'bank'
+                ? refundAmount > 0 && debitAmount < 0
+                : binding?.kind === 'card'
+                    ? refundAmount < 0 && refund.type === 'CREDIT' &&
+                        debitAmount > 0 && debit.type === 'DEBIT' &&
+                        normalizeText(refund.status).toUpperCase() === 'POSTED' &&
+                        normalizeText(debit.status).toUpperCase() === 'POSTED'
+                    : false;
+            return directionMatches &&
                 debit.account_id === refund.account_id && debit !== refund &&
-                Number(debit.amount_cents) === -Number(refund.amount_cents) &&
-                isStableBankTransaction(refund) && isStableBankTransaction(debit) &&
+                debitAmount === expectedPurchaseAmount &&
+                isStableTransaction(refund) && isStableTransaction(debit) &&
                 debitDate && refundDate && debitDate <= refundDate &&
                 dayDistance(debit.date, refund.date) <= 30;
         });
@@ -599,8 +661,14 @@ function strongUnwrittenRefundPairs(transactions, accountBindings, sheetSnapshot
         return matches;
     };
     const refundsByDebit = new Map();
-    const eligibleRefunds = transactions.filter(transaction =>
-        Number(transaction.amount_cents) > 0 && isExplicitRefund(transaction));
+    const eligibleRefunds = transactions.filter(transaction => {
+        const binding = accountBindings[transaction.account_id];
+        const amount = Number(transaction.amount_cents);
+        return isExplicitRefund(transaction) &&
+            (binding?.kind === 'bank' && amount > 0 ||
+                binding?.kind === 'card' && amount < 0 &&
+                transaction.type === 'CREDIT');
+    });
     for (const refund of eligibleRefunds) {
         for (const debit of candidates(refund)) {
             const debitRef = sourceRef(debit);
@@ -804,6 +872,12 @@ function classifyTransaction({
         return entry(transaction, duplicate, 'already_recorded',
             duplicate === 'existing' ? 'exact_scoped_sheet_match' :
                 'strong_non_identical_sheet_match');
+    }
+
+    const cardStatementRole = explicitCardStatementRole(transaction, binding);
+    if (cardStatementRole) {
+        return entry(transaction, 'excluded', cardStatementRole.classification,
+            cardStatementRole.reason);
     }
 
     if (override.ruleConflict) {

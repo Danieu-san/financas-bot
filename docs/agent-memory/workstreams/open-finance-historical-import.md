@@ -295,6 +295,28 @@ escrita financeira.
 - fechamento registrado em
   `docs/audit/235-open-finance-historical-recurring-accounts-independent-close-2026-08-13.md`.
 
+## Candidato causal de cartao
+
+- pares de compra e estorno de cartao agora exigem mesmo cartao, valor oposto,
+  semantica explicita, identidade estavel, unicidade mutua, ate 30 dias,
+  ausencia dos dois lados na planilha e status `POSTED` em ambos;
+- pagamentos de fatura, saldos de fatura e ajustes de financiamento so sao
+  excluidos por descricoes exatas, direcao, sinal, origem e status coerentes;
+- controles aproximados, pendentes, bancarios, ambiguos ou ja registrados
+  permanecem fora da neutralizacao;
+- focal 44/44 e bateria historica ampla unica 136/136 verdes;
+- recalc privado: 1.707 prontos, 2 existentes, 34 duplicatas provaveis, 275
+  excluidos, 172 em revisao e 161 fora da janela;
+- 22 compras antes prontas foram corretamente excluidas junto aos respectivos
+  estornos; a queda de prontos nao representa perda de cobertura;
+- plano privado `v202`, revisao `v203`, revisao enriquecida `v204` e inventario
+  residual `v205`; hash do plano
+  `2073b9cdbb9e03f678202eca142e3d89c31c957c7a14417bc4e5e8f2f2cbda5a`;
+- cobertura completa, oito bindings e `financial_writes=0` preservados;
+- candidato documentado em
+  `docs/audit/236-open-finance-historical-card-causality-candidate-2026-08-14.md`
+  e ainda nao possui GO independente.
+
 ## Evidencia local atual
 
 - planejador focal com controles adversariais de pagamento de fatura: 22/22;
@@ -350,20 +372,21 @@ escrita financeira.
 ## Proxima acao
 
 O saneamento privado por recorrencia, pesquisa comercial e decisoes humanas
-elevou o plano de `1.438` para `1.729` itens prontos e reduziu de `521` para
-`227` itens em revisao. O catalogo privado vigente e
+elevou o plano inicialmente ate `1.729` itens prontos; a neutralizacao causal
+posterior de 22 compras com seus estornos resultou em `1.707` prontos e reduziu
+de `521` para `172` itens em revisao. O catalogo privado vigente e
 `historical-private-decisions-v42.json`; config, plano, lote de revisao e
-revisao enriquecida vigentes sao, respectivamente, `v193`, `v194`, `v195` e
-`v196`. O hash privado do plano e
-`9a5043cad23478461cad6b6a3f8c190d9eda344f7306a92313df3d268f443b23`;
+revisao enriquecida vigentes sao, respectivamente, `v193`, `v202`, `v203` e
+`v204`; o inventario residual e `v205`. O hash privado do plano e
+`2073b9cdbb9e03f678202eca142e3d89c31c957c7a14417bc4e5e8f2f2cbda5a`;
 cobertura completa, oito bindings e `financial_writes=0` foram preservados.
 
-As ambiguidades comuns de categoria terminaram. As quatro linhas ainda marcadas
-como `category_required` sao dois saldos em atraso, um saldo rotativo e um
-pagamento de Pix; nao devem virar despesas comuns. Continuar com os 227
-residuais por classe causal: 151 entradas/estornos sem decisao semantica, 68
-creditos/pagamentos de cartao sem vinculo, 4 marcadores especiais e 4 moedas
-nao suportadas. Ao exibir ocorrencias privadas, apresentar data, valor, conta/cartao,
+As ambiguidades comuns de categoria terminaram. A unica linha ainda marcada
+como `category_required` e um pagamento de Pix, que nao deve virar despesa
+comum. Auditar o candidato por hash imutavel e, com GO, continuar com os 172
+residuais por classe causal: 151 entradas/estornos sem decisao semantica, 16
+creditos de cartao sem vinculo, um marcador especial e 4 moedas nao suportadas.
+Ao exibir ocorrencias privadas, apresentar data, valor, conta/cartao,
 titular/origem e descricao de cada ocorrencia; agrupar intermediadores
 por beneficiario antes de perguntar, pesquisar apenas estabelecimentos e
 consultar Daniel uma vez por identidade humana ainda sem semantica. Manter
@@ -372,4 +395,4 @@ provaveis retidos. Nao habilitar writer historico.
 
 ## Capacidade
 
-`Codex -> Sol -> Medio -> pesquisar e classificar somente ambiguidades residuais do Gate 41.`
+`Codex -> Sol -> Alto -> auditar o candidato causal de cartao do Gate 41 por hash imutavel.`

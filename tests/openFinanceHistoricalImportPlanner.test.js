@@ -264,7 +264,7 @@ test('neutralizes a mutually unique two-sided card bill payment', () => {
     assert.equal(reversed.entries.some(current => current.write_plan), false);
 });
 
-test('keeps ambiguous, stale and non-payment card credits out of bill pairing', () => {
+test('excludes explicit card-side payments while keeping non-payment credits closed', () => {
     const merchantRules = [{
         match: { mode: 'contains', value: 'Pagamento de fatura' },
         classification: 'card_payment',
@@ -292,17 +292,17 @@ test('keeps ambiguous, stale and non-payment card credits out of bill pairing', 
     ], { merchantRules });
 
     assert.deepEqual(result.entries.map(current => current.state), [
-        'excluded', 'excluded', 'needs_review', 'needs_review', 'needs_review'
+        'excluded', 'excluded', 'excluded', 'excluded', 'needs_review'
     ]);
     assert.deepEqual(result.entries.slice(2).map(current => current.reason), [
-        'refund_or_card_payment_requires_link',
-        'refund_or_card_payment_requires_link',
+        'explicit_card_payment_credit',
+        'explicit_card_payment_credit',
         'refund_or_card_payment_requires_link'
     ]);
     assert.equal(result.financial_writes, 0);
 });
 
-test('does not pair a card payment when the bank side is already recorded', () => {
+test('excludes the explicit card side when the bank payment is already recorded', () => {
     const bankRangeName = Object.keys(sheet().ranges)[0];
     const ranges = {
         [bankRangeName]: [
@@ -333,9 +333,10 @@ test('does not pair a card payment when the bank side is already recorded', () =
     });
 
     assert.equal(result.entries[0].state, 'existing');
-    assert.equal(result.entries[1].state, 'needs_review');
-    assert.equal(result.entries[1].reason,
-        'refund_or_card_payment_requires_link');
+    assert.equal(result.entries[1].state, 'excluded');
+    assert.equal(result.entries[1].classification,
+        'card_bill_payment_counterpart');
+    assert.equal(result.entries[1].reason, 'explicit_card_payment_credit');
     assert.equal(result.financial_writes, 0);
 });
 
@@ -1005,6 +1006,320 @@ test('keeps ambiguous, cross-account, stale and non-explicit refund candidates o
         ].includes(item.classification)));
         assert.equal(result.financial_writes, 0);
     }
+});
+
+test('neutralizes a mutually unique explicit card refund before either side is saved', () => {
+    const purchase = transaction({
+        id: 'card-refunded-purchase',
+        provider_id: 'card-refunded-purchase-provider',
+        account_id: 'card-1',
+        description: 'Compra via NuPay',
+        amount_cents: 3490,
+        type: 'DEBIT',
+        date: '2026-01-10',
+        bill_forecast_month: '2026-01'
+    });
+    const refund = transaction({
+        id: 'card-explicit-refund',
+        provider_id: 'card-explicit-refund-provider',
+        account_id: 'card-1',
+        description: 'Estorno - Compra via NuPay',
+        amount_cents: -3490,
+        type: 'CREDIT',
+        date: '2026-01-11',
+        bill_forecast_month: '2026-01'
+    });
+    const options = {
+        merchantRules: [{
+            match: { mode: 'exact', value: 'Compra via NuPay' },
+            classification: 'expense',
+            category: 'Transporte',
+            subcategory: ''
+        }]
+    };
+
+    const forward = plan([purchase, refund], options);
+    const reversed = plan([refund, purchase], options);
+
+    assert.deepEqual(forward.entries.map(item => [item.state, item.classification]), [
+        ['excluded', 'paired_refund_purchase'],
+        ['excluded', 'paired_refund']
+    ]);
+    assert.deepEqual(reversed.entries.map(item => [item.state, item.classification]), [
+        ['excluded', 'paired_refund'],
+        ['excluded', 'paired_refund_purchase']
+    ]);
+    assert.ok(forward.entries.every(item => !item.write_plan));
+    assert.equal(forward.financial_writes, 0);
+    assert.equal(reversed.financial_writes, 0);
+});
+
+test('does not neutralize a card refund when its purchase is already recorded', () => {
+    const purchase = transaction({
+        id: 'recorded-card-purchase',
+        provider_id: 'recorded-card-purchase-provider',
+        account_id: 'card-1',
+        description: 'Compra via NuPay',
+        amount_cents: 3490,
+        type: 'DEBIT',
+        date: '2026-01-10',
+        bill_forecast_month: '2026-01'
+    });
+    const refund = transaction({
+        id: 'refund-for-recorded-card-purchase',
+        provider_id: 'refund-for-recorded-card-purchase-provider',
+        account_id: 'card-1',
+        description: 'Estorno - Compra via NuPay',
+        amount_cents: -3490,
+        type: 'CREDIT',
+        date: '2026-01-11',
+        bill_forecast_month: '2026-01'
+    });
+    const merchantRules = [{
+        match: { mode: 'exact', value: 'Compra via NuPay' },
+        classification: 'expense',
+        category: 'Transporte',
+        subcategory: ''
+    }];
+    const purchasePlan = plan([purchase], { merchantRules });
+    const cardRangeName = Object.keys(sheet().ranges)
+        .find(key => key.includes('Cart'));
+    const result = plan([purchase, refund], {
+        merchantRules,
+        ranges: {
+            [cardRangeName]: [
+                sheet().ranges[cardRangeName][0],
+                purchasePlan.entries[0].write_plan.row
+            ]
+        }
+    });
+
+    assert.equal(result.entries[0].state, 'existing');
+    assert.equal(result.entries[1].state, 'possible_duplicate');
+    assert.equal(result.entries[1].classification, 'already_recorded');
+    assert.ok(result.entries.every(item => ![
+        'paired_refund_purchase', 'paired_refund'
+    ].includes(item.classification)));
+    assert.equal(result.financial_writes, 0);
+});
+
+test('keeps ambiguous and near-match card refunds out of neutralization', () => {
+    const sharedPurchase = {
+        account_id: 'card-1',
+        description: 'Compra via NuPay',
+        amount_cents: 3490,
+        type: 'DEBIT',
+        bill_forecast_month: '2026-01'
+    };
+    const result = plan([
+        transaction({
+            ...sharedPurchase,
+            id: 'card-purchase-a',
+            provider_id: 'card-purchase-a-provider',
+            date: '2026-01-10'
+        }),
+        transaction({
+            ...sharedPurchase,
+            id: 'card-purchase-b',
+            provider_id: 'card-purchase-b-provider',
+            date: '2026-01-10'
+        }),
+        transaction({
+            id: 'card-ambiguous-refund',
+            provider_id: 'card-ambiguous-refund-provider',
+            account_id: 'card-1',
+            description: 'Estorno de compra',
+            amount_cents: -3490,
+            type: 'CREDIT',
+            date: '2026-01-11'
+        }),
+        transaction({
+            id: 'card-near-match-credit',
+            provider_id: 'card-near-match-credit-provider',
+            account_id: 'card-1',
+            description: 'Credito promocional',
+            amount_cents: -3490,
+            type: 'CREDIT',
+            date: '2026-01-11'
+        })
+    ], {
+        merchantRules: [{
+            match: { mode: 'exact', value: 'Compra via NuPay' },
+            classification: 'expense',
+            category: 'Transporte',
+            subcategory: ''
+        }]
+    });
+
+    assert.ok(result.entries.every(item => ![
+        'paired_refund_purchase', 'paired_refund'
+    ].includes(item.classification)));
+    assert.equal(result.entries[2].state, 'needs_review');
+    assert.equal(result.entries[3].state, 'needs_review');
+    assert.equal(result.financial_writes, 0);
+
+    const pending = plan([
+        transaction({
+            ...sharedPurchase,
+            id: 'card-pending-purchase',
+            provider_id: 'card-pending-purchase-provider',
+            status: 'PENDING'
+        }),
+        transaction({
+            id: 'card-pending-refund',
+            provider_id: 'card-pending-refund-provider',
+            account_id: 'card-1',
+            description: 'Estorno de compra',
+            amount_cents: -3490,
+            type: 'CREDIT',
+            status: 'PENDING'
+        })
+    ]);
+    assert.ok(pending.entries.every(item => ![
+        'paired_refund_purchase', 'paired_refund'
+    ].includes(item.classification)));
+    assert.equal(pending.financial_writes, 0);
+});
+
+test('excludes only exact posted card payment credits without a bank counterpart', () => {
+    const result = plan([
+        transaction({
+            id: 'card-payment-received',
+            provider_id: 'card-payment-received-provider',
+            account_id: 'card-1',
+            description: 'Pagamento recebido',
+            amount_cents: -5000,
+            type: 'CREDIT'
+        }),
+        transaction({
+            id: 'card-payment-balance',
+            provider_id: 'card-payment-balance-provider',
+            account_id: 'card-1',
+            description: 'Pagamento com saldo',
+            amount_cents: -5000,
+            type: 'CREDIT'
+        }),
+        transaction({
+            id: 'card-payment-pending',
+            provider_id: 'card-payment-pending-provider',
+            account_id: 'card-1',
+            description: 'Pagamento recebido',
+            amount_cents: -5000,
+            type: 'CREDIT',
+            status: 'PENDING'
+        }),
+        transaction({
+            id: 'card-payment-near-match',
+            provider_id: 'card-payment-near-match-provider',
+            account_id: 'card-1',
+            description: 'Pagamento recebido parcial',
+            amount_cents: -5000,
+            type: 'CREDIT'
+        }),
+        transaction({
+            id: 'bank-payment-received',
+            provider_id: 'bank-payment-received-provider',
+            account_id: 'bank-1',
+            description: 'Pagamento recebido',
+            amount_cents: 5000,
+            type: 'CREDIT'
+        })
+    ]);
+
+    assert.deepEqual(result.entries.slice(0, 2).map(item => [
+        item.state, item.classification, item.reason
+    ]), [
+        ['excluded', 'card_bill_payment_counterpart',
+            'explicit_card_payment_credit'],
+        ['excluded', 'card_bill_payment_counterpart',
+            'explicit_card_payment_credit']
+    ]);
+    assert.deepEqual(result.entries.slice(2).map(item => item.state), [
+        'excluded', 'needs_review', 'needs_review'
+    ]);
+    assert.equal(result.entries[2].reason, 'provider_pending_not_historical_fact');
+    assert.equal(result.financial_writes, 0);
+});
+
+test('excludes exact posted card statement and financing adjustments only', () => {
+    const result = plan([
+        transaction({
+            id: 'overdue-balance',
+            provider_id: 'overdue-balance-provider',
+            account_id: 'card-1',
+            description: 'Saldo em atraso',
+            amount_cents: 5000,
+            type: 'DEBIT'
+        }),
+        transaction({
+            id: 'revolving-balance',
+            provider_id: 'revolving-balance-provider',
+            account_id: 'card-1',
+            description: 'Saldo em rotativo',
+            amount_cents: 5000,
+            type: 'DEBIT'
+        }),
+        transaction({
+            id: 'overdue-credit',
+            provider_id: 'overdue-credit-provider',
+            account_id: 'card-1',
+            description: 'Credito de atraso',
+            amount_cents: -5000,
+            type: 'CREDIT'
+        }),
+        transaction({
+            id: 'revolving-credit',
+            provider_id: 'revolving-credit-provider',
+            account_id: 'card-1',
+            description: 'Credito de rotativo',
+            amount_cents: -5000,
+            type: 'CREDIT'
+        }),
+        transaction({
+            id: 'debt-close',
+            provider_id: 'debt-close-provider',
+            account_id: 'card-1',
+            description: 'Encerramento de divida',
+            amount_cents: -5000,
+            type: 'CREDIT'
+        }),
+        transaction({
+            id: 'near-balance',
+            provider_id: 'near-balance-provider',
+            account_id: 'card-1',
+            description: 'Saldo em atraso da compra',
+            amount_cents: 5000,
+            type: 'DEBIT'
+        }),
+        transaction({
+            id: 'pending-balance',
+            provider_id: 'pending-balance-provider',
+            account_id: 'card-1',
+            description: 'Saldo em atraso',
+            amount_cents: 5000,
+            type: 'DEBIT',
+            status: 'PENDING'
+        })
+    ]);
+
+    assert.deepEqual(result.entries.slice(0, 5).map(item => [
+        item.state, item.classification, item.reason
+    ]), [
+        ['excluded', 'card_balance_carryover',
+            'explicit_card_statement_balance'],
+        ['excluded', 'card_balance_carryover',
+            'explicit_card_statement_balance'],
+        ['excluded', 'card_financing_adjustment',
+            'explicit_card_financing_adjustment'],
+        ['excluded', 'card_financing_adjustment',
+            'explicit_card_financing_adjustment'],
+        ['excluded', 'card_financing_adjustment',
+            'explicit_card_financing_adjustment']
+    ]);
+    assert.equal(result.entries[5].state, 'needs_review');
+    assert.equal(result.entries[6].state, 'excluded');
+    assert.equal(result.entries[6].reason, 'provider_pending_not_historical_fact');
+    assert.equal(result.financial_writes, 0);
 });
 
 test('requires review for unbound sources and unmatched card credits', () => {

@@ -80,7 +80,10 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    ocorrencias, incluindo 43 despesas BRL ambiguas de ate R$ 20 classificadas
    como lanche, o lote posterior de nove lanches e um teatro e o fechamento de
    quatro lanches, Renner, curso e chip Claro: residual 227 e prontos 1.729,
-   sem escrita.
+   sem escrita. O candidato causal posterior neutralizou pares unicos de
+   compra/estorno de cartao e papeis explicitos de fatura, reduzindo o residual
+   a 172; 22 compras antes prontas passaram corretamente a excluidas junto aos
+   estornos, resultando em 1.707 prontos e 275 excluidos, sem escrita.
 8. [concluida] Executar a bateria hermetica ampla do candidato privado inicial:
    106/106 verdes; candidato familiar posterior: 111/111 verdes.
 9. [concluida] Publicar `fe374a3ee3a67457c02e74268984c7428fbcb2ac` e
@@ -131,23 +134,29 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    `financial_writes=0`. O hash
    `a1bdaa55c66613b5027132760e356f2530c734c0` recebeu GO independente, sem
    achados materiais ou lacuna indispensavel no escopo read-only.
+9.9. [candidato aguardando auditoria] Pares de compra/estorno de cartao exigem
+   mesmo cartao, valores opostos, semantica explicita, identidade estavel,
+   unicidade mutua, ate 30 dias, ausencia na planilha e status `POSTED` dos dois
+   lados. Pagamentos de fatura, saldos e ajustes de financiamento so sao
+   excluidos por descricoes exatas, papel, sinal e status coerentes. Focal
+   44/44, bateria historica ampla unica 136/136 e `financial_writes=0`.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 
 ## Estado privado vigente
 
-- 1.729 prontos;
+- 1.707 prontos;
 - 2 existentes comprovados;
 - 34 duplicatas provaveis;
-- 198 excluidos;
-- 227 em revisao;
+- 275 excluidos;
+- 172 em revisao;
 - 161 fora da janela;
 - zero escrita financeira.
 
 As ambiguidades comuns de categoria terminaram. O residual exige decisoes
-causais sobre 151 entradas/estornos, 68 creditos ou pagamentos de cartao,
-quatro marcadores especiais e quatro moedas nao suportadas; moedas nao
-BRL, creditos sem vinculo forte e duplicatas provaveis continuam retidos.
+causais sobre 151 entradas ou estornos sem vinculo, 16 creditos de cartao, um
+pagamento de Pix e quatro moedas nao suportadas; moedas nao BRL, creditos sem
+vinculo forte e duplicatas provaveis continuam retidos.
 
 ## Criterios de GO do planejador
 
@@ -170,7 +179,8 @@ BRL, creditos sem vinculo forte e duplicatas provaveis continuam retidos.
 
 ## Proxima acao
 
-Agrupar primeiro os descritores de intermediadores pelo beneficiario real;
+Submeter o candidato causal de cartao a auditoria independente pelo hash
+imutavel. Com GO, agrupar primeiro os descritores de intermediadores pelo beneficiario real;
 consultar planilha, catalogos e decisoes registradas, depois pesquisa publica e
 somente entao Daniel, uma vez por identidade ainda opaca. Toda pergunta deve
 trazer data, valor, conta/cartao, titular/origem e descricao por ocorrencia.
