@@ -70,6 +70,8 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    359 e prontos 1.600, sem escrita. O quarto lote fechou seis transferencias
    contextualizadas e duas quitacoes inequivocas: residual 351 e prontos
    1.608, restando somente `saldo em atraso` como grupo de categoria repetido.
+   O quinto lote fechou sete gastos do casamento e um curso: residual 343 e
+   prontos 1.616, sempre sem escrita.
 8. [concluida] Executar a bateria hermetica ampla do candidato privado inicial:
    106/106 verdes; candidato familiar posterior: 111/111 verdes.
 9. [concluida] Publicar `fe374a3ee3a67457c02e74268984c7428fbcb2ac` e
@@ -125,11 +127,11 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 
 ## Estado privado vigente
 
-- 1.608 prontos;
+- 1.616 prontos;
 - 2 existentes comprovados;
 - 34 duplicatas provaveis;
 - 195 excluidos;
-- 351 em revisao;
+- 343 em revisao;
 - 161 fora da janela;
 - zero escrita financeira.
 

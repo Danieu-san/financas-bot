@@ -205,6 +205,18 @@ escrita financeira.
   permanece retido por nao representar compra nova;
 - cobertura completa, oito bindings e `financial_writes=0` foram preservados.
 
+## Atualizacao privada v26
+
+- sete gastos do casamento foram classificados individualmente: tres servicos,
+  tres alimentos e uma compra, todos preservando a subcategoria `CASAMENTO`;
+- uma transferencia para empresa de educacao foi classificada como curso por
+  semantica comercial explicita;
+- a comparacao causal provou exatamente oito transicoes para `ready`, com
+  distribuicao 3/3/1/1 e nenhum estado inesperado;
+- o plano privado vigente tem 1.616 prontos, 2 existentes, 34 duplicatas
+  provaveis, 195 excluidos, 343 em revisao e 161 fora da janela;
+- cobertura completa, oito bindings e `financial_writes=0` foram preservados.
+
 ## Atualizacao do catalogo recorrente
 
 - a captura da planilha agora inclui o catalogo `Contas`; o configurador
@@ -286,15 +298,15 @@ escrita financeira.
 ## Proxima acao
 
 O saneamento privado por recorrencia, pesquisa comercial e decisoes humanas
-elevou o plano de `1.438` para `1.608` itens prontos e reduziu de `521` para
-`351` itens em revisao. O catalogo privado vigente e
-`historical-private-decisions-v25.json`; config, plano, lote de revisao e
-revisao enriquecida vigentes sao, respectivamente, `v141`, `v142`, `v143` e
-`v144`. O hash privado do plano e
-`7ea9f607c2b8fe6a73bf49eed9f6d1a4c643dd197fda548455ca577709106135`;
+elevou o plano de `1.438` para `1.616` itens prontos e reduziu de `521` para
+`343` itens em revisao. O catalogo privado vigente e
+`historical-private-decisions-v26.json`; config, plano, lote de revisao e
+revisao enriquecida vigentes sao, respectivamente, `v145`, `v146`, `v147` e
+`v148`. O hash privado do plano e
+`c3299ce1b0e42b68e8ba9a24fd1c8eb55b6e4c82426f7e1830f3cbf797f291a6`;
 cobertura completa, oito bindings e `financial_writes=0` foram preservados.
 
-Continuar somente com os 351 residuais: apresentar data, valor, conta/cartao,
+Continuar somente com os 343 residuais: apresentar data, valor, conta/cartao,
 titular/origem e descricao de cada ocorrencia; agrupar intermediadores
 por beneficiario antes de perguntar, pesquisar apenas estabelecimentos e
 consultar Daniel uma vez por identidade humana ainda sem semantica. Manter
