@@ -149,6 +149,12 @@ cada pergunta valida e qual resultado é esperado. Esta trava é obrigatória
 mesmo em respostas curtas e mesmo quando a única ação seguinte depende de
 Daniel.
 
+Ao pedir decisão humana sobre lançamento ambíguo, nunca apresentar apenas nome
+ou valor agregado. Para cada ocorrência, informar data, valor, conta ou cartão,
+titular/origem e descrição disponível; só agrupar movimentos quando a
+equivalência estiver comprovada. Uma resposta autoriza somente as ocorrências
+que foram efetivamente apresentadas com esse contexto.
+
 ## Controle de Esforco
 Antes de iniciar cada nova tarefa de implementacao, diagnostico, teste, deploy ou revisao substancial, informar a proxima acao e o nivel de esforco recomendado. O Codex determina tecnicamente a recomendacao; nao pede ao usuario que escolha modelo ou esforco. O usuario apenas aplica a configuracao indicada quando ela diferir da atual.
 

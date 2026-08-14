@@ -62,7 +62,10 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    pesquisa publica somente para identidades comerciais fortes, levando o
    residual a 419 e os prontos a 1.540, sem escrita. Nove decisoes humanas
    agrupadas posteriores fecharam exatamente mais 29 itens, levando o residual
-   a 390 e os prontos a 1.569, sem mudancas inesperadas e sem escrita.
+   a 390 e os prontos a 1.569, sem mudancas inesperadas e sem escrita. O segundo
+   lote humano fechou mais 16 ocorrencias explicitamente apresentadas, levando
+   o residual a 374 e os prontos a 1.585; perguntas futuras exigem contexto
+   completo por movimento antes de aplicar a resposta.
 8. [concluida] Executar a bateria hermetica ampla do candidato privado inicial:
    106/106 verdes; candidato familiar posterior: 111/111 verdes.
 9. [concluida] Publicar `fe374a3ee3a67457c02e74268984c7428fbcb2ac` e
@@ -118,11 +121,11 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 
 ## Estado privado vigente
 
-- 1.569 prontos;
+- 1.585 prontos;
 - 2 existentes comprovados;
 - 34 duplicatas provaveis;
 - 195 excluidos;
-- 390 em revisao;
+- 374 em revisao;
 - 161 fora da janela;
 - zero escrita financeira.
 
@@ -152,6 +155,8 @@ BRL, creditos sem vinculo forte e duplicatas provaveis continuam retidos.
 
 Agrupar primeiro os descritores de intermediadores pelo beneficiario real;
 consultar planilha, catalogos e decisoes registradas, depois pesquisa publica e
-somente entao Daniel, uma vez por identidade ainda opaca. Manter retidos moedas
+somente entao Daniel, uma vez por identidade ainda opaca. Toda pergunta deve
+trazer data, valor, conta/cartao, titular/origem e descricao por ocorrencia.
+Manter retidos moedas
 nao BRL, creditos sem vinculo forte, saldos rotativos e duplicatas provaveis;
 nao habilitar writer historico, importacao real ou deploy.

@@ -161,6 +161,22 @@ escrita financeira.
 - cobertura completa, oito bindings e `financial_writes=0` foram preservados;
   nenhuma linha financeira foi escrita e nenhum dado privado entrou no Git.
 
+## Atualizacao privada v23
+
+- o segundo lote humano classificou almocos, manutencao e montagem da casa,
+  compras do casamento e duas transferencias internas familiares;
+- uma regra inicial alcancou um terceiro movimento de Juliana que nao havia
+  sido apresentado; o plano foi fechado novamente, o movimento permaneceu em
+  revisao e somente depois da confirmacao explicita de Daniel foi classificado;
+- o resultado final possui exatamente 16 transicoes autorizadas para `ready`,
+  incluindo tres ocorrencias de Juliana e duas transferencias, sem estados
+  inesperados;
+- o plano privado vigente tem 1.585 prontos, 2 existentes, 34 duplicatas
+  provaveis, 195 excluidos, 374 em revisao e 161 fora da janela;
+- toda consulta humana futura deve apresentar por ocorrencia data, valor,
+  conta/cartao, titular/origem e descricao antes de aplicar a resposta;
+- cobertura completa, oito bindings e `financial_writes=0` foram preservados.
+
 ## Atualizacao do catalogo recorrente
 
 - a captura da planilha agora inclui o catalogo `Contas`; o configurador
@@ -242,15 +258,16 @@ escrita financeira.
 ## Proxima acao
 
 O saneamento privado por recorrencia, pesquisa comercial e decisoes humanas
-elevou o plano de `1.438` para `1.569` itens prontos e reduziu de `521` para
-`390` itens em revisao. O catalogo privado vigente e
-`historical-private-decisions-v20.json`; config, plano, lote de revisao e
-revisao enriquecida vigentes sao, respectivamente, `v121`, `v122`, `v123` e
-`v124`. O hash privado do plano e
-`fa5dbc96d7d9d1585ee187479063ee7a88868ad50e4e9d8efe193c9d9d41948f`;
+elevou o plano de `1.438` para `1.585` itens prontos e reduziu de `521` para
+`374` itens em revisao. O catalogo privado vigente e
+`historical-private-decisions-v23.json`; config, plano, lote de revisao e
+revisao enriquecida vigentes sao, respectivamente, `v133`, `v134`, `v135` e
+`v136`. O hash privado do plano e
+`72bbb29dbf7f952d3d6f3ecdfc22794d664d78b7c61dfd044f10a7fc133e4ca0`;
 cobertura completa, oito bindings e `financial_writes=0` foram preservados.
 
-Continuar somente com os 390 residuais: agrupar descritores de intermediadores
+Continuar somente com os 374 residuais: apresentar data, valor, conta/cartao,
+titular/origem e descricao de cada ocorrencia; agrupar intermediadores
 por beneficiario antes de perguntar, pesquisar apenas estabelecimentos e
 consultar Daniel uma vez por identidade humana ainda sem semantica. Manter
 moedas nao BRL, creditos sem vinculo forte, saldos rotativos e duplicatas
