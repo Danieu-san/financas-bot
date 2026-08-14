@@ -108,6 +108,13 @@ function sourceRef(transaction) {
     return crypto.createHash('sha256').update(stableId).digest('hex').slice(0, 24);
 }
 
+function preciseTimestamp(value) {
+    const text = String(value || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(text)) return NaN;
+    const timestamp = Date.parse(text);
+    return Number.isFinite(timestamp) ? timestamp : NaN;
+}
+
 const CARD_PAYMENT_CREDIT_DESCRIPTIONS = new Set([
     'pagamento recebido',
     'pagamento com saldo'
@@ -490,7 +497,8 @@ function reserveWritePlan(transaction, binding, direction) {
     );
 }
 
-function entry(transaction, state, classification, reason, writePlan = null) {
+function entry(transaction, state, classification, reason, writePlan = null,
+    reviewContext = null) {
     if (!TERMINAL_STATES.has(state)) {
         throw new Error('open_finance_historical_import_non_terminal_state');
     }
@@ -500,6 +508,7 @@ function entry(transaction, state, classification, reason, writePlan = null) {
         classification,
         reason,
         ...(writePlan ? { write_plan: writePlan } : {}),
+        ...(reviewContext ? { review_context: reviewContext } : {}),
         financial_writes: 0
     };
 }
@@ -755,6 +764,108 @@ function strongCardBillPaymentPairs(transactions, accountBindings, merchantRules
     return paired;
 }
 
+function strongCardFundedPixTriples(transactions, accountBindings, sheetSnapshot,
+    historyStartDate, historyEndDate) {
+    const roles = new Map();
+    const providerCounts = transactions.reduce((counts, transaction) => {
+        const identity = providerIdentity(transaction);
+        if (identity) counts.set(identity, (counts.get(identity) || 0) + 1);
+        return counts;
+    }, new Map());
+    const isInsideWindow = transaction => {
+        const date = isoDate(transaction.date);
+        return date >= historyStartDate && date <= historyEndDate;
+    };
+    const isStable = (transaction, kind, accountType) => {
+        const binding = accountBindings[transaction.account_id];
+        const identity = providerIdentity(transaction);
+        return binding?.kind === kind && transaction.account_type === accountType &&
+            normalizeText(transaction.status).toUpperCase() === 'POSTED' &&
+            Number.isFinite(Number(transaction.amount_cents)) &&
+            Number(transaction.amount_cents) !== 0 &&
+            String(transaction.currency || '').trim().toUpperCase() === 'BRL' &&
+            identity && providerCounts.get(identity) === 1 &&
+            isInsideWindow(transaction) &&
+            Number.isFinite(preciseTimestamp(transaction.date)) &&
+            !duplicateState(transaction,
+                sheetRecords(sheetSnapshot, binding, transaction), binding);
+    };
+    const recipient = transaction => {
+        const parts = String(transaction.description || '').split('|');
+        if (parts.length < 2 || normalizeText(parts.shift()) !==
+            'transferencia enviada') return '';
+        return normalizeText(parts.join('|'));
+    };
+    const exactCreditDescription =
+        'valor adicionado na conta por cartao de credito valor adicionado para pix no credito';
+    const credits = transactions.filter(transaction =>
+        isStable(transaction, 'bank', 'BANK') &&
+        Number(transaction.amount_cents) > 0 && transaction.type === 'CREDIT' &&
+        normalizeText(transaction.description) === exactCreditDescription &&
+        normalizeText(transaction.operation_type).toUpperCase() ===
+            'TRANSFERENCIA MESMA INSTITUICAO');
+    const triples = [];
+    for (const credit of credits) {
+        const creditTime = preciseTimestamp(credit.date);
+        const principal = Number(credit.amount_cents);
+        const bankBinding = accountBindings[credit.account_id];
+        const debits = transactions.filter(debit => {
+            const debitTime = preciseTimestamp(debit.date);
+            return isStable(debit, 'bank', 'BANK') &&
+                debit.item_id === credit.item_id &&
+                debit.account_id === credit.account_id &&
+                debit.type === 'DEBIT' && Number(debit.amount_cents) === -principal &&
+                recipient(debit) && debitTime <= creditTime &&
+                creditTime - debitTime <= 5000;
+        });
+        for (const debit of debits) {
+            const expectedRecipient = recipient(debit);
+            const cards = transactions.filter(card => {
+                const cardTime = preciseTimestamp(card.date);
+                const cardBinding = accountBindings[card.account_id];
+                const description = normalizeText(card.description);
+                return isStable(card, 'card', 'CREDIT') &&
+                    card.item_id === credit.item_id &&
+                    card.account_id !== credit.account_id &&
+                    cardBinding?.ownerUserId === bankBinding?.ownerUserId &&
+                    card.type === 'DEBIT' && Number(card.amount_cents) > principal &&
+                    (description === 'pagamento de pix' ||
+                        description === expectedRecipient) &&
+                    cardTime >= creditTime && cardTime - creditTime <= 5000;
+            });
+            for (const card of cards) triples.push({ credit, debit, card });
+        }
+    }
+    const componentCounts = new Map();
+    for (const triple of triples) {
+        for (const transaction of [triple.credit, triple.debit, triple.card]) {
+            const ref = sourceRef(transaction);
+            componentCounts.set(ref, (componentCounts.get(ref) || 0) + 1);
+        }
+    }
+    for (const triple of triples) {
+        if ([triple.credit, triple.debit, triple.card].some(transaction =>
+            componentCounts.get(sourceRef(transaction)) !== 1)) continue;
+        const principalAmount = Number(triple.credit.amount_cents);
+        const feeAmount = Number(triple.card.amount_cents) - principalAmount;
+        const context = {
+            principal_amount_cents: principalAmount,
+            fee_amount_cents: feeAmount,
+            bank_debit_ref: sourceRef(triple.debit),
+            bank_credit_ref: sourceRef(triple.credit)
+        };
+        roles.set(sourceRef(triple.credit), {
+            role: 'bank_credit',
+            context
+        });
+        roles.set(sourceRef(triple.card), {
+            role: 'card_debit',
+            context
+        });
+    }
+    return roles;
+}
+
 function resolveCategory(transaction, rule, patterns) {
     if (String(rule?.category || '').trim()) {
         return {
@@ -779,6 +890,7 @@ function classifyTransaction({
     transferRole,
     refundRole,
     cardPaymentRole,
+    cardFundedPixRole,
     accountBindings,
     pairedCounterparts,
     historyStartDate,
@@ -854,6 +966,17 @@ function classifyTransaction({
     if (cardPaymentRole?.role === 'card_credit') {
         return entry(transaction, 'excluded', 'card_bill_payment_counterpart',
             'strong_two_sided_card_payment');
+    }
+
+    if (cardFundedPixRole?.role === 'bank_credit') {
+        return entry(transaction, 'excluded', 'card_funded_pix_principal',
+            'represented_by_card_funded_pix_flow', null,
+            cardFundedPixRole.context);
+    }
+    if (cardFundedPixRole?.role === 'card_debit') {
+        return entry(transaction, 'needs_review', 'card_funded_pix_fee',
+            'card_funded_pix_fee_category_required', null,
+            cardFundedPixRole.context);
     }
 
     const scopedSheetRecords = sheetRecords(override.sheetSnapshot, binding, transaction);
@@ -1016,6 +1139,8 @@ function planOpenFinanceHistoricalImport({
     const cardPaymentPairs = strongCardBillPaymentPairs(transactions, accountBindings,
         merchantRules, decisionOverrides, sheetSnapshot, historyStartDate,
         historyEndDate);
+    const cardFundedPixRoles = strongCardFundedPixTriples(transactions,
+        accountBindings, sheetSnapshot, historyStartDate, historyEndDate);
     const pairedCounterparts = new Set();
     const duplicates = new Set();
     const entries = transactions.map(transaction => {
@@ -1035,6 +1160,7 @@ function planOpenFinanceHistoricalImport({
             transferRole: pairs.get(ref),
             refundRole: refundPairs.get(ref),
             cardPaymentRole: cardPaymentPairs.get(ref),
+            cardFundedPixRole: cardFundedPixRoles.get(ref),
             accountBindings,
             pairedCounterparts,
             historyStartDate,

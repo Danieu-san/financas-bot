@@ -1322,6 +1322,222 @@ test('excludes exact posted card statement and financing adjustments only', () =
     assert.equal(result.financial_writes, 0);
 });
 
+test('isolates a unique card-funded Pix principal and keeps only its fee in review', () => {
+    const bankDebit = transaction({
+        id: 'funded-pix-bank-debit',
+        provider_id: 'funded-pix-bank-debit-provider',
+        description: 'Transferencia enviada|Mercado Exemplo',
+        amount_cents: -5445,
+        type: 'DEBIT',
+        operation_type: 'PIX',
+        date: '2026-01-10T12:00:00.000Z'
+    });
+    const bankCredit = transaction({
+        id: 'funded-pix-bank-credit',
+        provider_id: 'funded-pix-bank-credit-provider',
+        description: 'Valor adicionado na conta por cartao de credito | Valor adicionado para PIX no Credito',
+        amount_cents: 5445,
+        type: 'CREDIT',
+        operation_type: 'TRANSFERENCIA_MESMA_INSTITUICAO',
+        date: '2026-01-10T12:00:00.500Z'
+    });
+    const cardDebit = transaction({
+        id: 'funded-pix-card-debit',
+        provider_id: 'funded-pix-card-debit-provider',
+        account_id: 'card-1',
+        description: 'Pagamento de pix',
+        amount_cents: 6172,
+        type: 'DEBIT',
+        date: '2026-01-10T12:00:03.000Z',
+        bill_forecast_month: '2026-01'
+    });
+    const options = {
+        merchantRules: [
+            {
+                match: { mode: 'contains', value: 'mercado exemplo' },
+                classification: 'expense',
+                category: 'Alimentacao',
+                subcategory: 'Mercado'
+            },
+            {
+                match: { mode: 'exact', value: 'Pagamento de pix' },
+                classification: 'expense',
+                category: 'Alimentacao',
+                subcategory: 'Lanche'
+            }
+        ]
+    };
+
+    const forward = plan([bankDebit, bankCredit, cardDebit], options);
+    const reversed = plan([cardDebit, bankCredit, bankDebit], options);
+
+    assert.deepEqual(forward.entries.map(item => [
+        item.state, item.classification, item.reason
+    ]), [
+        ['ready', 'expense', 'explicit_merchant_rule'],
+        ['excluded', 'card_funded_pix_principal',
+            'represented_by_card_funded_pix_flow'],
+        ['needs_review', 'card_funded_pix_fee',
+            'card_funded_pix_fee_category_required']
+    ]);
+    assert.deepEqual(forward.entries[2].review_context, {
+        principal_amount_cents: 5445,
+        fee_amount_cents: 727,
+        bank_debit_ref: forward.entries[0].source_ref,
+        bank_credit_ref: forward.entries[1].source_ref
+    });
+    assert.deepEqual(forward.entries[1].review_context,
+        forward.entries[2].review_context);
+    assert.equal(forward.entries[2].write_plan, undefined);
+    assert.deepEqual(reversed.entries.map(item => item.classification), [
+        'card_funded_pix_fee', 'card_funded_pix_principal', 'expense'
+    ]);
+    assert.equal(forward.financial_writes, 0);
+    assert.equal(reversed.financial_writes, 0);
+});
+
+test('fails closed for ambiguous, pending or imprecise card-funded Pix triples', () => {
+    const base = [
+        transaction({
+            id: 'funded-pix-bank-debit-negative',
+            provider_id: 'funded-pix-bank-debit-negative-provider',
+            description: 'Transferencia enviada|Pessoa Exemplo',
+            amount_cents: -1000,
+            date: '2026-01-10T12:00:00.000Z'
+        }),
+        transaction({
+            id: 'funded-pix-bank-credit-negative',
+            provider_id: 'funded-pix-bank-credit-negative-provider',
+            description: 'Valor adicionado na conta por cartao de credito | Valor adicionado para PIX no Credito',
+            amount_cents: 1000,
+            type: 'CREDIT',
+            operation_type: 'TRANSFERENCIA_MESMA_INSTITUICAO',
+            date: '2026-01-10T12:00:00.500Z'
+        })
+    ];
+    const card = overrides => transaction({
+        id: 'funded-pix-card-negative',
+        provider_id: 'funded-pix-card-negative-provider',
+        account_id: 'card-1',
+        description: 'Pessoa Exemplo',
+        amount_cents: 1114,
+        type: 'DEBIT',
+        date: '2026-01-10T12:00:03.000Z',
+        bill_forecast_month: '2026-01',
+        ...overrides
+    });
+    const merchantRules = [{
+        match: { mode: 'contains', value: 'pessoa exemplo' },
+        classification: 'expense',
+        category: 'Outros',
+        subcategory: ''
+    }];
+    const ambiguous = plan([...base, card(), card({
+        id: 'funded-pix-card-negative-2',
+        provider_id: 'funded-pix-card-negative-provider-2',
+        amount_cents: 1120
+    })], { merchantRules });
+    const pending = plan([...base, card({ status: 'PENDING' })], { merchantRules });
+    const imprecise = plan(base.map(item => ({
+        ...item,
+        date: item.date.slice(0, 10)
+    })).concat(card({ date: '2026-01-10' })), { merchantRules });
+    const approximateDescription = plan([
+        base[0],
+        { ...base[1], description: `${base[1].description} promocional` },
+        card()
+    ], { merchantRules });
+    const wrongBankDescription = plan([
+        { ...base[0], description: 'Transferencia agendada|Pessoa Exemplo' },
+        base[1], card()
+    ], { merchantRules });
+    const wrongOperation = plan([
+        base[0], { ...base[1], operation_type: 'PIX' }, card()
+    ], { merchantRules });
+    const wrongCardDescription = plan([
+        ...base, card({ description: 'Pessoa Exemplo parcial' })
+    ], { merchantRules });
+    const noFee = plan([
+        ...base, card({ amount_cents: 1000 })
+    ], { merchantRules });
+    const staleCard = plan([
+        ...base, card({ date: '2026-01-10T12:00:06.000Z' })
+    ], { merchantRules });
+    const crossOwner = plan([...base, card()], {
+        merchantRules,
+        accountBindings: {
+            ...bindings,
+            'card-1': {
+                ...bindings['card-1'],
+                ownerUserId: 'person-2'
+            }
+        }
+    });
+
+    for (const result of [
+        ambiguous, pending, imprecise, approximateDescription,
+        wrongBankDescription, wrongOperation, wrongCardDescription, noFee,
+        staleCard, crossOwner
+    ]) {
+        assert.ok(result.entries.every(item => ![
+            'card_funded_pix_principal', 'card_funded_pix_fee'
+        ].includes(item.classification)));
+        assert.equal(result.financial_writes, 0);
+    }
+});
+
+test('does not form a card-funded Pix triple when one side is already recorded', () => {
+    const bankDebit = transaction({
+        id: 'saved-funded-pix-bank-debit',
+        provider_id: 'saved-funded-pix-bank-debit-provider',
+        description: 'Transferencia enviada|Pessoa Exemplo',
+        amount_cents: -1000,
+        date: '2026-01-10T12:00:00.000Z'
+    });
+    const bankCredit = transaction({
+        id: 'saved-funded-pix-bank-credit',
+        provider_id: 'saved-funded-pix-bank-credit-provider',
+        description: 'Valor adicionado na conta por cartao de credito | Valor adicionado para PIX no Credito',
+        amount_cents: 1000,
+        type: 'CREDIT',
+        operation_type: 'TRANSFERENCIA_MESMA_INSTITUICAO',
+        date: '2026-01-10T12:00:00.500Z'
+    });
+    const cardDebit = transaction({
+        id: 'saved-funded-pix-card-debit',
+        provider_id: 'saved-funded-pix-card-debit-provider',
+        account_id: 'card-1',
+        description: 'Pessoa Exemplo',
+        amount_cents: 1114,
+        type: 'DEBIT',
+        date: '2026-01-10T12:00:03.000Z',
+        bill_forecast_month: '2026-01'
+    });
+    const merchantRules = [{
+        match: { mode: 'contains', value: 'pessoa exemplo' },
+        classification: 'expense',
+        category: 'Outros',
+        subcategory: ''
+    }];
+    const debitOnly = plan([bankDebit], { merchantRules });
+    const bankRangeName = Object.keys(sheet().ranges)
+        .find(key => key.endsWith('A:K'));
+    const result = plan([bankDebit, bankCredit, cardDebit], {
+        merchantRules,
+        ranges: {
+            [bankRangeName]: [
+                sheet().ranges[bankRangeName][0],
+                debitOnly.entries[0].write_plan.row
+            ]
+        }
+    });
+
+    assert.ok(result.entries.every(item => ![
+        'card_funded_pix_principal', 'card_funded_pix_fee'
+    ].includes(item.classification)));
+    assert.equal(result.financial_writes, 0);
+});
+
 test('requires review for unbound sources and unmatched card credits', () => {
     const result = plan([
         transaction({ account_id: 'unknown-account' }),

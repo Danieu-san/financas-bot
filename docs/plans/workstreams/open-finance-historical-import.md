@@ -84,6 +84,10 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    compra/estorno de cartao e papeis explicitos de fatura, reduzindo o residual
    a 172; 22 compras antes prontas passaram corretamente a excluidas junto aos
    estornos, resultando em 1.707 prontos e 275 excluidos, sem escrita.
+   A triade de Pix financiado por cartao corrigiu oito itens adicionais: quatro
+   creditos de principal ficaram neutros e quatro debitos de cartao passaram a
+   representar somente a taxa em revisao. O plano ficou com 1.704 prontos, 279
+   excluidos e 171 em revisao, sem escrita.
 8. [concluida] Executar a bateria hermetica ampla do candidato privado inicial:
    106/106 verdes; candidato familiar posterior: 111/111 verdes.
 9. [concluida] Publicar `fe374a3ee3a67457c02e74268984c7428fbcb2ac` e
@@ -142,23 +146,33 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    44/44, bateria historica ampla unica 136/136 e `financial_writes=0`. O hash
    `e17a991a9d89d3b9d1ad423420f784f9205021b7` recebeu GO independente, sem
    achados por severidade ou lacuna indispensavel no escopo read-only.
+9.10. [candidato aguardando auditoria] Pix financiado por cartao exige triade
+   mutuamente unica no mesmo item e titular: saida e credito bancarios do
+   principal, seguidos em ate cinco segundos por debito maior no cartao. O
+   principal fica neutro e somente a taxa permanece em revisao, sem write plan.
+   Focal 47/47, bateria historica ampla unica 139/139 e
+   `financial_writes=0`.
+9.11. [pendente apos 9.10] Preservar o RX historico fechado e abrir plano
+   incremental separado para 2026-07-28 a 2026-08-14, com snapshots novos de
+   Pluggy e planilha; reconciliar o que ja estiver lancado e nunca reescrever o
+   plano historico `v206`.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 
 ## Estado privado vigente
 
-- 1.707 prontos;
+- 1.704 prontos;
 - 2 existentes comprovados;
 - 34 duplicatas provaveis;
-- 275 excluidos;
-- 172 em revisao;
+- 279 excluidos;
+- 171 em revisao;
 - 161 fora da janela;
 - zero escrita financeira.
 
 As ambiguidades comuns de categoria terminaram. O residual exige decisoes
-causais sobre 151 entradas ou estornos sem vinculo, 16 creditos de cartao, um
-pagamento de Pix e quatro moedas nao suportadas; moedas nao BRL, creditos sem
-vinculo forte e duplicatas provaveis continuam retidos.
+causais sobre 147 entradas ou estornos sem vinculo, 16 creditos de cartao,
+quatro taxas de Pix financiado e quatro moedas nao suportadas; moedas nao BRL,
+creditos sem vinculo forte e duplicatas provaveis continuam retidos.
 
 ## Criterios de GO do planejador
 
@@ -181,7 +195,9 @@ vinculo forte e duplicatas provaveis continuam retidos.
 
 ## Proxima acao
 
-Agrupar primeiro os descritores de intermediadores pelo beneficiario real;
+Auditar primeiro o candidato de Pix financiado por cartao. Com GO, abrir o
+plano incremental separado ate 2026-08-14 e depois agrupar os descritores de
+intermediadores pelo beneficiario real;
 consultar planilha, catalogos e decisoes registradas, depois pesquisa publica e
 somente entao Daniel, uma vez por identidade ainda opaca. Toda pergunta deve
 trazer data, valor, conta/cartao, titular/origem e descricao por ocorrencia.
