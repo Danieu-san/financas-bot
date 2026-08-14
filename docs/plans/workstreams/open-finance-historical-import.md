@@ -167,11 +167,13 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    `7e7166823f4e2d77be76d864a14ef979ed11e524` recebeu GO independente,
    sem achados bloqueantes ou lacuna indispensavel no escopo read-only; a suite
    geral continua sem veredito e sera exigida antes de writer ou release.
-9.12. [em andamento] Oito decisoes incrementais por ocorrencia passaram a
-   `ready` sem mudanca colateral; o plano ficou com 71 prontos, 17 excluidos e
-   uma revisao, cobertura completa e `financial_writes=0`. O residual e uma
-   devolucao positiva de pagamento de fatura feito por engano e exige uma
-   classificacao exata, neutra e fail-closed antes de zerar o plano.
+9.12. [candidato local aguardando auditoria] Oito decisoes incrementais por
+   ocorrencia passaram a `ready` sem mudanca colateral. A devolucao restante
+   agora exige decisao privada exata e o par forte original de pagamento,
+   identidade de titular/conexao, valor, tempo, estado e unicidade mutua. RED
+   de duas falhas, focal `68/68`, bateria historica ampla `143/143` e plano
+   privado com 71 prontos, 18 excluidos, zero revisoes, cobertura completa e
+   `financial_writes=0`. Aguardando auditoria independente por hash.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 
@@ -211,11 +213,9 @@ creditos sem vinculo forte e duplicatas provaveis continuam retidos.
 
 ## Proxima acao
 
-Fechar a unica revisao incremental com suporte causal a devolucao de pagamento
-de fatura, sem transforma-la em receita ou transferencia. Recalcular o plano e
-provar ausencia de alteracao colateral. Depois, registrar a nova recorrencia
-mensal no catalogo apropriado somente pela trilha de escrita autorizada e
-agrupar as entradas historicas residuais por identidade forte.
+Publicar o candidato sanitizado do Gate 41.2 e obter auditoria independente
+por hash imutavel. Sem GO externo, o estado maximo e candidato local; nao
+habilitar writer nem alterar planilha ou producao.
 
 Para revisoes futuras, agrupar os descritores de intermediadores pelo
 beneficiario real;

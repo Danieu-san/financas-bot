@@ -770,6 +770,82 @@ function strongCardBillPaymentPairs(transactions, accountBindings, merchantRules
     return paired;
 }
 
+function strongCardPaymentReversals(transactions, accountBindings,
+    decisionOverrides, sheetSnapshot, historyStartDate, historyEndDate,
+    cardPaymentPairs) {
+    const roles = new Map();
+    const providerCounts = transactions.reduce((counts, transaction) => {
+        const identity = providerIdentity(transaction);
+        if (identity) counts.set(identity, (counts.get(identity) || 0) + 1);
+        return counts;
+    }, new Map());
+    const isInsideWindow = transaction => {
+        const date = isoDate(transaction.date);
+        return date >= historyStartDate && date <= historyEndDate;
+    };
+    const isReviewedReversal = transaction => {
+        const binding = accountBindings[transaction.account_id];
+        const identity = providerIdentity(transaction);
+        const decision = decisionOverrides[sourceRef(transaction)] ||
+            decisionOverrides[transaction.id] || {};
+        return decision.classification === 'card_payment_reversal' &&
+            binding?.kind === 'bank' && transaction.account_type === 'BANK' &&
+            transaction.type === 'CREDIT' && Number(transaction.amount_cents) > 0 &&
+            normalizeText(transaction.status).toUpperCase() === 'POSTED' &&
+            String(transaction.currency || '').trim().toUpperCase() === 'BRL' &&
+            identity && providerCounts.get(identity) === 1 && isInsideWindow(transaction) &&
+            Number.isFinite(preciseTimestamp(transaction.date)) &&
+            !duplicateState(transaction,
+                sheetRecords(sheetSnapshot, binding, transaction), binding);
+    };
+    const payments = transactions.filter(transaction =>
+        cardPaymentPairs.get(sourceRef(transaction))?.role === 'bank_payment');
+    const reversals = transactions.filter(isReviewedReversal);
+    const candidatesByReversal = new Map(reversals.map(reversal => [
+        sourceRef(reversal),
+        payments.filter(payment => {
+            const paymentRole = cardPaymentPairs.get(sourceRef(payment));
+            const cardCredit = paymentRole?.pair;
+            const reversalBinding = accountBindings[reversal.account_id];
+            const cardBinding = accountBindings[cardCredit?.account_id];
+            const reversalOwner = String(reversalBinding?.ownerUserId || '').trim();
+            const cardOwner = String(cardBinding?.ownerUserId || '').trim();
+            const reversalItem = String(reversal.item_id || '').trim();
+            const cardItem = String(cardCredit?.item_id || '').trim();
+            const paymentTime = preciseTimestamp(payment.date);
+            const reversalTime = preciseTimestamp(reversal.date);
+            return cardCredit && reversalOwner && cardOwner &&
+                reversalOwner === cardOwner && reversalItem && cardItem &&
+                reversalItem === cardItem &&
+                Number(reversal.amount_cents) ===
+                    Math.abs(Number(payment.amount_cents)) &&
+                Number.isFinite(paymentTime) && paymentTime <= reversalTime &&
+                reversalTime - paymentTime <= 3 * 86400000;
+        })
+    ]));
+    const reversalsByPayment = new Map();
+    for (const reversal of reversals) {
+        for (const payment of candidatesByReversal.get(sourceRef(reversal)) || []) {
+            const paymentRef = sourceRef(payment);
+            if (!reversalsByPayment.has(paymentRef)) {
+                reversalsByPayment.set(paymentRef, []);
+            }
+            reversalsByPayment.get(paymentRef).push(reversal);
+        }
+    }
+    for (const reversal of reversals) {
+        const candidates = candidatesByReversal.get(sourceRef(reversal)) || [];
+        if (candidates.length !== 1) continue;
+        const payment = candidates[0];
+        if (reversalsByPayment.get(sourceRef(payment))?.length !== 1) continue;
+        const cardCredit = cardPaymentPairs.get(sourceRef(payment)).pair;
+        roles.set(sourceRef(reversal), {
+            role: 'reversal', payment, cardCredit
+        });
+    }
+    return roles;
+}
+
 function strongCardFundedPixTriples(transactions, accountBindings, sheetSnapshot,
     historyStartDate, historyEndDate) {
     const roles = new Map();
@@ -899,6 +975,7 @@ function classifyTransaction({
     transferRole,
     refundRole,
     cardPaymentRole,
+    cardPaymentReversalRole,
     cardFundedPixRole,
     accountBindings,
     pairedCounterparts,
@@ -977,6 +1054,10 @@ function classifyTransaction({
     if (cardPaymentRole?.role === 'card_credit') {
         return entry(transaction, 'excluded', 'card_bill_payment_counterpart',
             'strong_two_sided_card_payment');
+    }
+    if (cardPaymentReversalRole?.role === 'reversal') {
+        return entry(transaction, 'excluded', 'card_payment_reversal',
+            'strong_linked_card_payment_reversal');
     }
 
     if (cardFundedPixRole?.role === 'bank_credit') {
@@ -1171,6 +1252,9 @@ function planOpenFinanceHistoricalImport({
     const cardPaymentPairs = strongCardBillPaymentPairs(transactions, accountBindings,
         merchantRules, decisionOverrides, sheetSnapshot, historyStartDate,
         historyEndDate);
+    const cardPaymentReversalRoles = strongCardPaymentReversals(transactions,
+        accountBindings, decisionOverrides, sheetSnapshot, historyStartDate,
+        historyEndDate, cardPaymentPairs);
     const cardFundedPixRoles = strongCardFundedPixTriples(transactions,
         accountBindings, sheetSnapshot, historyStartDate, historyEndDate);
     const pairedCounterparts = new Set();
@@ -1192,6 +1276,7 @@ function planOpenFinanceHistoricalImport({
             transferRole: pairs.get(ref),
             refundRole: refundPairs.get(ref),
             cardPaymentRole: cardPaymentPairs.get(ref),
+            cardPaymentReversalRole: cardPaymentReversalRoles.get(ref),
             cardFundedPixRole: cardFundedPixRoles.get(ref),
             accountBindings,
             pairedCounterparts,

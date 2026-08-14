@@ -13,7 +13,7 @@ const SIGNATURE_STOPWORDS = new Set([
 const PRIVATE_RULE_CLASSIFICATIONS = new Set(['expense', 'income', 'card_payment']);
 const PRIVATE_DECISION_CLASSIFICATIONS = new Set([
     'expense', 'income', 'reserve_application', 'reserve_redemption',
-    'internal_transfer', 'existing_sheet_match'
+    'internal_transfer', 'existing_sheet_match', 'card_payment_reversal'
 ]);
 
 function isRecord(value) {

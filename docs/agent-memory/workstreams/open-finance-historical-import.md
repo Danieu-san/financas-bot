@@ -366,6 +366,26 @@ escrita financeira.
   agrupados por pagador, conta, valor e recorrencia antes de nova consulta a
   Daniel.
 
+## Candidato Gate 41.2
+
+- o configurador aceita `card_payment_reversal` somente como decisao privada
+  exata; regras de comerciante nao podem produzir essa classificacao;
+- o planejador exige o par forte original de pagamento de fatura, conta
+  receptora e cartao no mesmo titular e conexao, mesmo valor, ordem temporal,
+  janela de tres dias, BRL, `POSTED`, identidades unicas, ausencia na planilha
+  e unicidade mutua;
+- RED focal de duas falhas foi convertido em focal `68/68`; a bateria
+  hermetica ampla unica das doze suites historicas passou `143/143`, sem
+  falhas ou skips;
+- o recalculo privado `v9` alterou exatamente uma ocorrencia de
+  `needs_review` para `excluded`, sem `write_plan`; o plano incremental
+  ficou com 71 prontos, 18 excluidos, zero revisoes, cobertura completa e
+  `financial_writes=0`, hash privado
+  `11fc5a3a5fa0f685d98e9db5677b3c082db3644509fa9a8049b70abb42fcaf2a`;
+- candidato documentado em
+  `docs/audit/243-open-finance-card-payment-reversal-candidate-2026-08-14.md`;
+  auditoria independente por hash imutavel ainda e obrigatoria.
+
 ## Evidencia local atual
 
 - candidato de Pix financiado por cartao: RED focal de 1 falha, focal 47/47 e
@@ -427,11 +447,9 @@ escrita financeira.
 
 ## Proxima acao
 
-Implementar uma decisao exata e fail-closed para devolucao de pagamento de
-fatura, com prova causal de conta bancaria positiva e sem plano de escrita;
-recalcular o incremental ate zerar a revisao. Depois, atualizar de forma
-controlada a recorrencia mensal informada e agrupar as entradas historicas por
-identidade forte, sem presumir salario.
+Publicar o candidato do Gate 41.2 e obter auditoria independente por hash
+imutavel. Somente apos GO registrar o fechamento; writer, planilha, recorrencia
+e producao permanecem fora deste candidato.
 
 O saneamento privado por recorrencia, pesquisa comercial e decisoes humanas
 elevou o plano inicialmente ate `1.729` itens prontos; as correcoes causais

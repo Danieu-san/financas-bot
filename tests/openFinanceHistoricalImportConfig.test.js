@@ -216,6 +216,32 @@ test('accepts only scoped one-sided transfers and evidenced existing rows as pri
     }), /historical_import_private_decision_invalid:bad/);
 });
 
+test('accepts only an exact reviewed card-payment reversal decision', () => {
+    const base = {
+        pluggySnapshot: { observed_at: '2026-08-11T00:00:00.000Z', items: [] },
+        sheetSnapshot: { ranges: {} },
+        historyStartDate: '2025-07-01',
+        historyEndDate: '2026-08-14'
+    };
+    const config = buildConfig({
+        ...base,
+        privateDecisions: { decisionOverrides: {
+            'reversal-ref': { classification: 'card_payment_reversal' }
+        } }
+    });
+
+    assert.deepEqual(config.decisionOverrides['reversal-ref'], {
+        classification: 'card_payment_reversal'
+    });
+    assert.throws(() => buildConfig({
+        ...base,
+        privateDecisions: { merchantRules: [{
+            match: { mode: 'contains', value: 'ajuste' },
+            classification: 'card_payment_reversal'
+        }] }
+    }), /historical_import_private_merchant_rule_invalid:0/);
+});
+
 test('accepts a category-free reviewed card-payment rule', () => {
     const config = buildConfig({
         pluggySnapshot: { observed_at: '2026-08-11T00:00:00.000Z', items: [] },

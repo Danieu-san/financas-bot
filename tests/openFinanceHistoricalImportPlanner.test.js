@@ -266,6 +266,180 @@ test('neutralizes a mutually unique two-sided card bill payment', () => {
     assert.equal(reversed.entries.some(current => current.write_plan), false);
 });
 
+test('neutralizes only an exact and strongly linked card-payment reversal', () => {
+    const accountBindings = {
+        'bank-payer': {
+            kind: 'bank', ownerUserId: 'payer', ownerLabel: 'Pagador',
+            financialAccount: 'Conta Pagador', paymentMethod: 'Débito'
+        },
+        'bank-card-owner': {
+            kind: 'bank', ownerUserId: 'card-owner', ownerLabel: 'Titular',
+            financialAccount: 'Conta Titular', paymentMethod: 'Débito'
+        },
+        'card-owner': {
+            kind: 'card', ownerUserId: 'card-owner', ownerLabel: 'Titular',
+            sheetName: 'Cartão Familiar', closingDay: 20
+        }
+    };
+    const accounts = [
+        { id: 'bank-payer', type: 'BANK' },
+        { id: 'bank-card-owner', type: 'BANK' },
+        { id: 'card-owner', type: 'CREDIT' }
+    ];
+    const merchantRules = [{
+        match: { mode: 'exact', value: 'Pagamento de fatura' },
+        classification: 'card_payment', category: '', subcategory: ''
+    }];
+    const bankPayment = transaction({
+        id: 'bank-payment', provider_id: 'bank-payment-provider',
+        item_id: 'payer-item', account_id: 'bank-payer',
+        description: 'Pagamento de fatura', amount_cents: -12345,
+        type: 'DEBIT', date: '2026-01-10T10:00:00.000Z'
+    });
+    const cardCredit = transaction({
+        id: 'card-credit', provider_id: 'card-credit-provider',
+        item_id: 'card-owner-item', account_id: 'card-owner',
+        description: 'Pagamento recebido', amount_cents: -12345,
+        type: 'CREDIT', date: '2026-01-10T03:00:00.000Z'
+    });
+    const reversal = transaction({
+        id: 'payment-reversal', provider_id: 'payment-reversal-provider',
+        item_id: 'card-owner-item', account_id: 'bank-card-owner',
+        description: 'Ajuste (Nubank)', amount_cents: 12345,
+        type: 'CREDIT', operation_type: 'OUTROS',
+        date: '2026-01-10T10:20:00.000Z'
+    });
+    const first = plan([bankPayment, cardCredit, reversal], {
+        accountBindings, accounts, merchantRules
+    });
+    const reversalRef = first.entries[2].source_ref;
+    const result = plan([bankPayment, cardCredit, reversal], {
+        accountBindings, accounts, merchantRules,
+        decisionOverrides: {
+            [reversalRef]: { classification: 'card_payment_reversal' }
+        }
+    });
+
+    assert.deepEqual(result.entries.map(current => [
+        current.state, current.classification, current.reason
+    ]), [
+        ['excluded', 'card_bill_payment', 'strong_two_sided_card_payment'],
+        ['excluded', 'card_bill_payment_counterpart',
+            'strong_two_sided_card_payment'],
+        ['excluded', 'card_payment_reversal',
+            'strong_linked_card_payment_reversal']
+    ]);
+    assert.equal(result.entries.some(current => current.write_plan), false);
+    assert.equal(result.financial_writes, 0);
+});
+
+test('keeps reviewed card-payment reversals closed without the full causal link', () => {
+    const accountBindings = {
+        'bank-payer': {
+            kind: 'bank', ownerUserId: 'payer', ownerLabel: 'Pagador',
+            financialAccount: 'Conta Pagador', paymentMethod: 'Débito'
+        },
+        'bank-card-owner': {
+            kind: 'bank', ownerUserId: 'card-owner', ownerLabel: 'Titular',
+            financialAccount: 'Conta Titular', paymentMethod: 'Débito'
+        },
+        'bank-other': {
+            kind: 'bank', ownerUserId: 'other-owner', ownerLabel: 'Terceiro',
+            financialAccount: 'Conta Terceiro', paymentMethod: 'Débito'
+        },
+        'card-owner': {
+            kind: 'card', ownerUserId: 'card-owner', ownerLabel: 'Titular',
+            sheetName: 'Cartão Familiar', closingDay: 20
+        }
+    };
+    const accounts = [
+        { id: 'bank-payer', type: 'BANK' },
+        { id: 'bank-card-owner', type: 'BANK' },
+        { id: 'bank-other', type: 'BANK' },
+        { id: 'card-owner', type: 'CREDIT' }
+    ];
+    const merchantRules = [{
+        match: { mode: 'exact', value: 'Pagamento de fatura' },
+        classification: 'card_payment', category: '', subcategory: ''
+    }];
+    const bankPayment = transaction({
+        id: 'bank-payment-control', provider_id: 'bank-payment-control-provider',
+        item_id: 'payer-item', account_id: 'bank-payer',
+        description: 'Pagamento de fatura', amount_cents: -12345,
+        type: 'DEBIT', date: '2026-01-10T10:00:00.000Z'
+    });
+    const cardCredit = transaction({
+        id: 'card-credit-control', provider_id: 'card-credit-control-provider',
+        item_id: 'card-owner-item', account_id: 'card-owner',
+        description: 'Pagamento recebido', amount_cents: -12345,
+        type: 'CREDIT', date: '2026-01-10T03:00:00.000Z'
+    });
+    const template = transaction({
+        id: 'payment-reversal-control',
+        provider_id: 'payment-reversal-control-provider',
+        item_id: 'card-owner-item', account_id: 'bank-card-owner',
+        description: 'Ajuste (Nubank)', amount_cents: 12345,
+        type: 'CREDIT', operation_type: 'OUTROS',
+        date: '2026-01-10T10:20:00.000Z'
+    });
+    const controls = [
+        { name: 'pending', patch: { status: 'PENDING' } },
+        { name: 'wrong-item', patch: { item_id: 'unrelated-item' } },
+        { name: 'wrong-owner', patch: { account_id: 'bank-other' } },
+        { name: 'wrong-amount', patch: { amount_cents: 12346 } },
+        { name: 'before-payment', patch: { date: '2026-01-10T09:59:59.000Z' } },
+        { name: 'too-late', patch: { date: '2026-01-14T10:20:00.000Z' } },
+        { name: 'wrong-direction', patch: { amount_cents: -12345, type: 'DEBIT' } },
+        { name: 'foreign-currency', patch: { currency: 'USD' } }
+    ];
+
+    for (const control of controls) {
+        const reversal = { ...template, ...control.patch,
+            id: 'reversal-' + control.name,
+            provider_id: 'reversal-provider-' + control.name };
+        const preliminary = plan([bankPayment, cardCredit, reversal], {
+            accountBindings, accounts, merchantRules
+        });
+        const reversalRef = preliminary.entries[2].source_ref;
+        const result = plan([bankPayment, cardCredit, reversal], {
+            accountBindings, accounts, merchantRules,
+            decisionOverrides: {
+                [reversalRef]: { classification: 'card_payment_reversal' }
+            }
+        });
+        assert.notEqual(result.entries[2].reason,
+            'strong_linked_card_payment_reversal', control.name);
+        assert.equal(result.entries[2].write_plan, undefined, control.name);
+        assert.equal(result.financial_writes, 0, control.name);
+    }
+
+    const reversalA = { ...template, id: 'ambiguous-reversal-a',
+        provider_id: 'ambiguous-reversal-provider-a' };
+    const reversalB = { ...template, id: 'ambiguous-reversal-b',
+        provider_id: 'ambiguous-reversal-provider-b',
+        date: '2026-01-10T10:21:00.000Z' };
+    const ambiguousFirst = plan([
+        bankPayment, cardCredit, reversalA, reversalB
+    ], { accountBindings, accounts, merchantRules });
+    const ambiguous = plan([bankPayment, cardCredit, reversalA, reversalB], {
+        accountBindings, accounts, merchantRules,
+        decisionOverrides: {
+            [ambiguousFirst.entries[2].source_ref]: {
+                classification: 'card_payment_reversal'
+            },
+            [ambiguousFirst.entries[3].source_ref]: {
+                classification: 'card_payment_reversal'
+            }
+        }
+    });
+    assert.deepEqual(ambiguous.entries.slice(2).map(current => current.reason), [
+        'positive_bank_movement_requires_semantic_decision',
+        'positive_bank_movement_requires_semantic_decision'
+    ]);
+    assert.equal(ambiguous.entries.some(current => current.write_plan), false);
+    assert.equal(ambiguous.financial_writes, 0);
+});
+
 test('excludes explicit card-side payments while keeping non-payment credits closed', () => {
     const merchantRules = [{
         match: { mode: 'contains', value: 'Pagamento de fatura' },
