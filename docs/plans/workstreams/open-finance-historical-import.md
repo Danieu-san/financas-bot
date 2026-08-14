@@ -134,12 +134,14 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    `financial_writes=0`. O hash
    `a1bdaa55c66613b5027132760e356f2530c734c0` recebeu GO independente, sem
    achados materiais ou lacuna indispensavel no escopo read-only.
-9.9. [candidato aguardando auditoria] Pares de compra/estorno de cartao exigem
+9.9. [GO tecnico local independente] Pares de compra/estorno de cartao exigem
    mesmo cartao, valores opostos, semantica explicita, identidade estavel,
    unicidade mutua, ate 30 dias, ausencia na planilha e status `POSTED` dos dois
    lados. Pagamentos de fatura, saldos e ajustes de financiamento so sao
    excluidos por descricoes exatas, papel, sinal e status coerentes. Focal
-   44/44, bateria historica ampla unica 136/136 e `financial_writes=0`.
+   44/44, bateria historica ampla unica 136/136 e `financial_writes=0`. O hash
+   `e17a991a9d89d3b9d1ad423420f784f9205021b7` recebeu GO independente, sem
+   achados por severidade ou lacuna indispensavel no escopo read-only.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 
@@ -179,8 +181,7 @@ vinculo forte e duplicatas provaveis continuam retidos.
 
 ## Proxima acao
 
-Submeter o candidato causal de cartao a auditoria independente pelo hash
-imutavel. Com GO, agrupar primeiro os descritores de intermediadores pelo beneficiario real;
+Agrupar primeiro os descritores de intermediadores pelo beneficiario real;
 consultar planilha, catalogos e decisoes registradas, depois pesquisa publica e
 somente entao Daniel, uma vez por identidade ainda opaca. Toda pergunta deve
 trazer data, valor, conta/cartao, titular/origem e descricao por ocorrencia.

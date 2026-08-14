@@ -315,7 +315,10 @@ escrita financeira.
 - cobertura completa, oito bindings e `financial_writes=0` preservados;
 - candidato documentado em
   `docs/audit/236-open-finance-historical-card-causality-candidate-2026-08-14.md`
-  e ainda nao possui GO independente.
+  e auditado no hash `e17a991a9d89d3b9d1ad423420f784f9205021b7`;
+- auditoria independente: `GO TECNICO LOCAL`, zero achados por severidade e
+  nenhuma lacuna indispensavel no escopo read-only; fechamento em
+  `docs/audit/237-open-finance-historical-card-causality-independent-close-2026-08-14.md`.
 
 ## Evidencia local atual
 
@@ -383,7 +386,7 @@ cobertura completa, oito bindings e `financial_writes=0` foram preservados.
 
 As ambiguidades comuns de categoria terminaram. A unica linha ainda marcada
 como `category_required` e um pagamento de Pix, que nao deve virar despesa
-comum. Auditar o candidato por hash imutavel e, com GO, continuar com os 172
+comum. Continuar com os 172
 residuais por classe causal: 151 entradas/estornos sem decisao semantica, 16
 creditos de cartao sem vinculo, um marcador especial e 4 moedas nao suportadas.
 Ao exibir ocorrencias privadas, apresentar data, valor, conta/cartao,
@@ -395,4 +398,4 @@ provaveis retidos. Nao habilitar writer historico.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> auditar o candidato causal de cartao do Gate 41 por hash imutavel.`
+`Codex -> Sol -> Alto -> fechar causalmente os residuais de entradas e creditos do Gate 41.`
