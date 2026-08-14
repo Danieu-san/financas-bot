@@ -232,6 +232,19 @@ escrita financeira.
   provaveis, 198 excluidos, 334 em revisao e 161 fora da janela;
 - cobertura completa, oito bindings e `financial_writes=0` foram preservados.
 
+## Atualizacao privada v28
+
+- dez ocorrencias foram classificadas com base nas respostas contextuais de
+  Daniel: refeicoes, registro profissional, rateio de trabalho, presentes e
+  refeicoes da lua de mel, imposto de renda e multa de transito;
+- a autorizacao ampla para Wise foi registrada como compra do celular da
+  Thais, mas a regra encontrou somente uma ocorrencia no snapshot vigente;
+- a comparacao causal provou exatamente dez transicoes de `needs_review` para
+  `ready`, sem qualquer outra alteracao de estado;
+- o plano privado vigente tem 1.632 prontos, 2 existentes, 34 duplicatas
+  provaveis, 198 excluidos, 324 em revisao e 161 fora da janela;
+- cobertura completa, oito bindings e `financial_writes=0` foram preservados.
+
 ## Atualizacao do catalogo recorrente
 
 - a captura da planilha agora inclui o catalogo `Contas`; o configurador
@@ -313,15 +326,15 @@ escrita financeira.
 ## Proxima acao
 
 O saneamento privado por recorrencia, pesquisa comercial e decisoes humanas
-elevou o plano de `1.438` para `1.622` itens prontos e reduziu de `521` para
-`334` itens em revisao. O catalogo privado vigente e
-`historical-private-decisions-v27.json`; config, plano, lote de revisao e
-revisao enriquecida vigentes sao, respectivamente, `v149`, `v150`, `v151` e
-`v152`. O hash privado do plano e
-`136af44611798b9570105204035229bf73627f2bdb51ddf8a3f92893c5e637dc`;
+elevou o plano de `1.438` para `1.632` itens prontos e reduziu de `521` para
+`324` itens em revisao. O catalogo privado vigente e
+`historical-private-decisions-v28.json`; config, plano, lote de revisao e
+revisao enriquecida vigentes sao, respectivamente, `v153`, `v154`, `v155` e
+`v156`. O hash privado do plano e
+`be78b87aca3c11fdbd2afe1a2475a328e6f627694e9618983793f9bdf21ea26d`;
 cobertura completa, oito bindings e `financial_writes=0` foram preservados.
 
-Continuar somente com os 334 residuais: apresentar data, valor, conta/cartao,
+Continuar somente com os 324 residuais: apresentar data, valor, conta/cartao,
 titular/origem e descricao de cada ocorrencia; agrupar intermediadores
 por beneficiario antes de perguntar, pesquisar apenas estabelecimentos e
 consultar Daniel uma vez por identidade humana ainda sem semantica. Manter

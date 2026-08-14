@@ -73,7 +73,9 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    O quinto lote fechou sete gastos do casamento e um curso: residual 343 e
    prontos 1.616, sempre sem escrita. O sexto lote fechou seis movimentos,
    excluiu dois pagamentos de fatura e uma contraparte bilateral forte:
-   residual 334, prontos 1.622 e excluidos 198, sem escrita.
+   residual 334, prontos 1.622 e excluidos 198, sem escrita. O setimo lote
+   classificou dez ocorrencias contextuais, incluindo uma unica Wise coberta
+   pela regra ampla autorizada: residual 324 e prontos 1.632, sem escrita.
 8. [concluida] Executar a bateria hermetica ampla do candidato privado inicial:
    106/106 verdes; candidato familiar posterior: 111/111 verdes.
 9. [concluida] Publicar `fe374a3ee3a67457c02e74268984c7428fbcb2ac` e
@@ -129,11 +131,11 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 
 ## Estado privado vigente
 
-- 1.622 prontos;
+- 1.632 prontos;
 - 2 existentes comprovados;
 - 34 duplicatas provaveis;
 - 198 excluidos;
-- 334 em revisao;
+- 324 em revisao;
 - 161 fora da janela;
 - zero escrita financeira.
 
