@@ -76,10 +76,11 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    residual 334, prontos 1.622 e excluidos 198, sem escrita. O setimo lote
    classificou dez ocorrencias contextuais, incluindo uma unica Wise coberta
    pela regra ampla autorizada: residual 324 e prontos 1.632, sem escrita. O
-   lote de comprovantes Nubank e decisoes associadas fechou mais noventa
+   lote de comprovantes Nubank e decisoes associadas fechou mais noventa e sete
    ocorrencias, incluindo 43 despesas BRL ambiguas de ate R$ 20 classificadas
-   como lanche e o lote posterior de nove lanches e um teatro: residual 234 e
-   prontos 1.722, sem escrita.
+   como lanche, o lote posterior de nove lanches e um teatro e o fechamento de
+   quatro lanches, Renner, curso e chip Claro: residual 227 e prontos 1.729,
+   sem escrita.
 8. [concluida] Executar a bateria hermetica ampla do candidato privado inicial:
    106/106 verdes; candidato familiar posterior: 111/111 verdes.
 9. [concluida] Publicar `fe374a3ee3a67457c02e74268984c7428fbcb2ac` e
@@ -135,15 +136,17 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 
 ## Estado privado vigente
 
-- 1.722 prontos;
+- 1.729 prontos;
 - 2 existentes comprovados;
 - 34 duplicatas provaveis;
 - 198 excluidos;
-- 234 em revisao;
+- 227 em revisao;
 - 161 fora da janela;
 - zero escrita financeira.
 
-O residual exige decisoes privadas sobre grupos repetidos opacos; moedas nao
+As ambiguidades comuns de categoria terminaram. O residual exige decisoes
+causais sobre 151 entradas/estornos, 68 creditos ou pagamentos de cartao,
+quatro marcadores especiais e quatro moedas nao suportadas; moedas nao
 BRL, creditos sem vinculo forte e duplicatas provaveis continuam retidos.
 
 ## Criterios de GO do planejador
