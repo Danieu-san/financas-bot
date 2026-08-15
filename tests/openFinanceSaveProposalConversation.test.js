@@ -8,7 +8,8 @@ const { OpenFinanceAlertOutbox } = require('../src/openFinance/openFinanceAlertO
 const { OpenFinanceRevocationJournal } = require('../src/openFinance/openFinanceRevocationJournal');
 const { OpenFinanceShadowPreviewStore } = require('../src/openFinance/openFinanceShadowPreviewStore');
 const {
-    OpenFinanceSaveProposalReviewStore
+    OpenFinanceSaveProposalReviewStore,
+    __test__: reviewStoreTestHelpers
 } = require('../src/openFinance/openFinanceSaveProposalReviewStore');
 const {
     handleOpenFinanceSaveProposalReply,
@@ -71,7 +72,8 @@ const fullPaymentCatalog = {
     ]
 };
 
-function createHarness({ transactionId = 'purchase-posted', transactionIds } = {}) {
+function createHarness({ transactionId = 'purchase-posted', transactionIds,
+    description = 'Compra privada de teste' } = {}) {
     const ids = transactionIds || [transactionId];
     const now = new Date();
     const observedAt = new Date(now.getTime() - 60_000).toISOString();
@@ -101,7 +103,7 @@ function createHarness({ transactionId = 'purchase-posted', transactionIds } = {
             provider_id: `provider-${id}`,
             account_id: 'credit-account',
             amount_cents: 2590,
-            description: 'Compra privada de teste',
+            description,
             date: new Date(now.getTime() - 3_600_000).toISOString(),
             status: 'POSTED'
         }))
@@ -440,6 +442,116 @@ test('9P.3 prepares a durable guided review before accepting the proposal', asyn
             reopened.close();
         }
         assert.equal(harness.store.stats().save_confirmations_accepted, 1);
+    } finally {
+        harness.close();
+    }
+});
+
+test('proactive purchase pre-fills an exact source card and deterministic merchant category', async () => {
+    const harness = createHarness({
+        transactionId: 'purchase-strong-prefill',
+        description: 'Neide Lanches e Pizzar'
+    });
+    const catalog = {
+        ...reviewCatalog,
+        categories: [
+            ...reviewCatalog.categories,
+            {
+                id: 'alimentacao|padaria-lanche',
+                label: 'Alimentação / PADARIA / LANCHE',
+                category: 'Alimentação',
+                subcategory: 'PADARIA / LANCHE'
+            }
+        ]
+    };
+    try {
+        await deliverOneOpenFinanceCanary(deliveryInput(harness, {
+            sendMessage: async () => ({ id: 'strong-prefill-message-id' })
+        }));
+        const accepted = handleOpenFinanceSaveProposalReply({
+            messageBody: 'sim',
+            actorWhatsappId,
+            env: harness.env,
+            reviewCatalog: catalog
+        });
+
+        assert.equal(accepted.state, 'review_editing');
+        assert.match(accepted.reply, /Pessoa: Daniel/i);
+        assert.match(accepted.reply, /Categoria: Alimentação \/ PADARIA \/ LANCHE/i);
+        assert.match(accepted.reply, /Pagamento: Crédito/i);
+        assert.match(accepted.reply, /Cartão: Nubank Daniel/i);
+
+        const completed = handleOpenFinanceSaveProposalReviewReply({
+            messageBody: '6',
+            actorWhatsappId,
+            expectedProposalRef: accepted.proposal_ref,
+            env: harness.env
+        });
+        assert.equal(completed.state, 'review_ready');
+        assert.equal(completed.financial_writes, 0);
+    } finally {
+        harness.close();
+    }
+});
+
+test('proactive pre-fill stays empty when merchant or source identity is ambiguous', () => {
+    const draft = reviewStoreTestHelpers.initialDraft({
+        alias: 'daniel_nubank',
+        principal: 'daniel',
+        classification: 'purchase',
+        account_type: 'CREDIT',
+        source: { description: 'Lanches Restaurante' }
+    }, {
+        ...reviewCatalog,
+        cards: [
+            ...reviewCatalog.cards,
+            { id: 'card-nubank-second', label: 'Daniel Nubank',
+                cardId: 'daniel-nubank', closingDay: 15 }
+        ],
+        categories: [
+            ...reviewCatalog.categories,
+            { id: 'alimentacao|lanche', label: 'Alimentação / LANCHE',
+                category: 'Alimentação', subcategory: 'LANCHE' },
+            { id: 'alimentacao|restaurante', label: 'Alimentação / RESTAURANTE',
+                category: 'Alimentação', subcategory: 'RESTAURANTE' }
+        ]
+    });
+
+    assert.equal(draft.category, null);
+    assert.equal(draft.card, null);
+});
+
+test('user can override a deterministic proactive pre-fill before completion', async () => {
+    const harness = createHarness({
+        transactionId: 'purchase-prefill-override',
+        description: 'Neide Lanches e Pizzar'
+    });
+    const catalog = {
+        ...reviewCatalog,
+        categories: [
+            ...reviewCatalog.categories,
+            { id: 'alimentacao|padaria-lanche', label: 'Alimentação / PADARIA / LANCHE',
+                category: 'Alimentação', subcategory: 'PADARIA / LANCHE' }
+        ]
+    };
+    try {
+        await deliverOneOpenFinanceCanary(deliveryInput(harness, {
+            sendMessage: async () => ({ id: 'prefill-override-message-id' })
+        }));
+        const accepted = handleOpenFinanceSaveProposalReply({
+            messageBody: 'sim', actorWhatsappId, env: harness.env, reviewCatalog: catalog
+        });
+        const reply = body => handleOpenFinanceSaveProposalReviewReply({
+            messageBody: body,
+            actorWhatsappId,
+            expectedProposalRef: accepted.proposal_ref,
+            env: harness.env
+        });
+
+        assert.match(reply('2').reply, /Escolha a categoria/i);
+        const overridden = reply('1');
+        assert.match(overridden.reply, /Categoria: Alimentação \/ SUPERMERCADO/i);
+        assert.equal(reply('6').state, 'review_ready');
     } finally {
         harness.close();
     }
@@ -861,6 +973,15 @@ test('9P.3 fails closed when a durable legacy review contains an incompatible pa
 
 test('9P.3 blocks completion while a required card is missing', async () => {
     const harness = createHarness({ transactionId: 'purchase-missing-card' });
+    const catalogWithoutSourceCard = {
+        ...reviewCatalog,
+        cards: [{
+            id: 'card-itau-thais',
+            label: 'Itaú Thais',
+            cardId: 'itau-thais',
+            closingDay: 10
+        }]
+    };
     try {
         await deliverOneOpenFinanceCanary(deliveryInput(harness, {
             sendMessage: async () => ({ id: 'missing-card-message-id' })
@@ -869,7 +990,7 @@ test('9P.3 blocks completion while a required card is missing', async () => {
             messageBody: 'sim',
             actorWhatsappId,
             env: harness.env,
-            reviewCatalog
+            reviewCatalog: catalogWithoutSourceCard
         });
         const reply = body => handleOpenFinanceSaveProposalReviewReply({
             messageBody: body,
@@ -884,7 +1005,7 @@ test('9P.3 blocks completion while a required card is missing', async () => {
         assert.equal(blocked.keep_pending, true);
         assert.match(blocked.reply, /falta cartão/i);
         assert.match(reply('5').reply, /Escolha o cartão/i);
-        assert.match(reply('1').reply, /Cartão: Nubank Daniel/i);
+        assert.match(reply('1').reply, /Cartão: Itaú Thais/i);
         assert.equal(reply('6').state, 'review_ready');
     } finally {
         harness.close();

@@ -4,7 +4,7 @@ Atualizado em: 2026-08-15
 
 ## Estado
 
-`FLUXO NUMERICO E WRITER UNITARIO PROVADOS; QUALIDADE DA PROPOSTA PENDENTE`.
+`PRE-PREENCHIMENTO: CANDIDATO LOCAL VERDE, AGUARDANDO AUDITORIA INDEPENDENTE`.
 
 ## Objetivo
 
@@ -52,13 +52,13 @@ ambiguidade real.
 
 ## Etapas
 
-1. localizar a perda de origem e de sinais de categorização entre reconciliador,
-   fila numérica e revisão guiada;
-2. criar RED causal com produto real;
-3. implementar a correção mínima;
-4. executar teste focal e bateria afetada;
-5. executar uma única suíte ampla no candidato estável;
-6. publicar hash sanitizado e obter auditoria independente;
+1. [feito] localizar a perda de origem e de sinais de categorização entre
+   reconciliador, fila numérica e revisão guiada;
+2. [feito] criar RED causal com produto real;
+3. [feito] implementar a correção mínima;
+4. [feito] executar teste focal e bateria afetada;
+5. [feito] executar a suíte ampla final no candidato estável;
+6. [em andamento] publicar hash sanitizado e obter auditoria independente;
 7. promover por artefato e repetir o smoke em pendência real;
 8. registrar fechamento dos gates proativos antigos;
 9. só então abrir o writer histórico do Gate 41.
@@ -88,5 +88,5 @@ ambiguidade real.
 
 ## Próxima ação
 
-Localizar a fronteira em que alias, pessoa/cartão e sinais de categoria deixam
-de chegar à revisão guiada, sem escrita real adicional.
+Publicar o candidato sanitizado, auditar uma vez pelo hash imutável e somente
+depois preparar promoção OCI e smoke com uma pendência real.

@@ -34,6 +34,70 @@ function normalizeAccountType(value) {
     return type;
 }
 
+function identityKey(value) {
+    return normalizeText(value)
+        .replace(/[^a-z0-9]+/g, ' ')
+        .split(/\s+/)
+        .filter(Boolean)
+        .sort()
+        .join('|');
+}
+
+const DETERMINISTIC_EXPENSE_RULES = [
+    { terms: ['mercado', 'supermercado', 'guanabara', 'assai'],
+        category: 'alimentacao', subcategories: ['supermercado'] },
+    { terms: ['restaurante'], category: 'alimentacao', subcategories: ['restaurante'] },
+    { terms: ['ifood', 'delivery'], category: 'alimentacao', subcategories: ['delivery', 'ifood'] },
+    { terms: ['lanche', 'lanches', 'lanchonete', 'padaria'],
+        category: 'alimentacao', subcategories: ['lanche', 'padaria'] },
+    { terms: ['uber', '99'], category: 'transporte', subcategories: ['uber', '99'] },
+    { terms: ['gasolina', 'combustivel'], category: 'transporte', subcategories: ['combustivel'] },
+    { terms: ['aluguel'], category: 'moradia', subcategories: ['aluguel'] },
+    { terms: ['condominio'], category: 'moradia', subcategories: ['condominio'] },
+    { terms: ['farmacia', 'remedio'], category: 'saude', subcategories: ['farmacia'] }
+];
+
+function exactAliasCatalogMatch(items = [], alias = '', identityFields = []) {
+    const aliasKey = identityKey(alias);
+    if (!aliasKey) return null;
+    const matches = items.filter(item => identityFields.some(field =>
+        identityKey(item?.[field]) === aliasKey));
+    return matches.length === 1 ? matches[0] : null;
+}
+
+function deterministicCategoryFromDescription(description = '', categories = []) {
+    const words = new Set(normalizeText(description)
+        .replace(/[^a-z0-9]+/g, ' ')
+        .split(/\s+/)
+        .filter(Boolean));
+    const matchedRules = DETERMINISTIC_EXPENSE_RULES.filter(rule =>
+        rule.terms.some(term => words.has(term)));
+    if (matchedRules.length !== 1) return null;
+    const rule = matchedRules[0];
+    const categoryMatches = categories.filter(item =>
+        normalizeText(item.category) === rule.category);
+    const subcategoryMatches = categoryMatches.filter(item => {
+        const subcategory = normalizeText(item.subcategory);
+        return subcategory && rule.subcategories.some(term => subcategory.includes(term));
+    });
+    if (subcategoryMatches.length === 1) return subcategoryMatches[0];
+    const broadMatches = categoryMatches.filter(item => !normalizeText(item.subcategory));
+    return broadMatches.length === 1 ? broadMatches[0] : null;
+}
+
+function draftCatalogItem(item, kind) {
+    if (!item) return null;
+    if (kind === 'category') {
+        return { id: item.id, label: item.label, category: item.category,
+            subcategory: item.subcategory };
+    }
+    if (kind === 'card') {
+        return { id: item.id, label: item.label, cardId: item.cardId,
+            closingDay: item.closingDay };
+    }
+    return null;
+}
+
 function normalizeCatalogItems(items, kind, limit) {
     if (!Array.isArray(items) || items.length > limit) {
         throw new Error(`invalid_open_finance_save_review_${kind}_catalog`);
@@ -302,14 +366,24 @@ function initialDraft(proposal, catalog) {
         ? 'Crédito'
         : (['CHECKING', 'SAVINGS', 'BANK'].includes(accountType) ? 'Débito' : '');
     const paymentMethod = catalog.paymentMethods.find(item => item.value === paymentValue) || null;
+    const exactCard = exactAliasCatalogMatch(
+        catalog.cards,
+        proposal?.alias,
+        ['cardId', 'label']
+    );
+    const deterministicCategory = proposal?.classification === 'purchase'
+        ? deterministicCategoryFromDescription(proposal?.source?.description, catalog.categories)
+        : null;
     return {
         person: person ? { id: person.id, label: person.label } : null,
-        category: null,
+        category: draftCatalogItem(deterministicCategory, 'category'),
         paymentMethod: paymentMethod
             ? { id: paymentMethod.id, label: paymentMethod.label, value: paymentMethod.value }
             : null,
         financialAccount: null,
-        card: null
+        card: paymentMethod?.value === 'Crédito'
+            ? draftCatalogItem(exactCard, 'card')
+            : null
     };
 }
 
@@ -806,5 +880,10 @@ class OpenFinanceSaveProposalReviewStore {
 module.exports = {
     OpenFinanceSaveProposalReviewStore,
     normalizeOpenFinanceSaveReviewCatalog: normalizeCatalog,
-    __test__: { catalogForProposal, initialDraft }
+    __test__: {
+        catalogForProposal,
+        initialDraft,
+        deterministicCategoryFromDescription,
+        exactAliasCatalogMatch
+    }
 };
