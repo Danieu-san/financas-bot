@@ -45,6 +45,9 @@ o check diario das 09:05 e revisar o limite mensal.
 - candidato local promove `dashboard` ao v2, preserva `dashboard v1` e rollback
   por `DASHBOARD_V2_ENABLED=false`; focal 10/10, contratos 41/41 e ampla
   1727/1717/0/10, cobertura de linhas 91.53%.
+- hash imutavel `28f106d4e9b150cd7e04f589075d3eb873e7cc25` recebeu
+  `GO TECNICO LOCAL` independente, sem achados bloqueantes nem lacuna residual;
+  promocao OCI controlada esta autorizada, preservando v1 e a flag de rollback.
 
 ## Git e workspace
 
@@ -54,8 +57,8 @@ o check diario das 09:05 e revisar o limite mensal.
 
 ## Próxima ação exata
 
-Publicar o hash sanitizado da promocao do v2 e obter auditoria independente no
-Chat antes de qualquer deploy.
+Preparar e promover na OCI o hash auditado, validar saude e smoke real de
+`dashboard`, sem alterar a planilha ou o RX historico.
 
 ## Capacidade para retomar
 

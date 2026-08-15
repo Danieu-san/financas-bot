@@ -4,7 +4,7 @@ Atualizado em: 2026-08-15
 
 ## Estado
 
-`GATE 43 GO DE PRODUCAO; DASHBOARD V2 CANDIDATO AGUARDANDO AUDITORIA`.
+`GATE 43 GO DE PRODUCAO; DASHBOARD V2 GO TECNICO LOCAL, AGUARDANDO PROMOCAO OCI`.
 
 ## Objetivo
 
@@ -57,5 +57,5 @@ dashboard.
 
 ## Proxima acao
 
-Publicar um commit sanitizado e auditar por hash imutavel se a promocao do v2
-preserva o v1 e a flag de rollback sem alterar fontes, calculos ou escritas.
+Preparar artefato imutavel do hash auditado, promover na OCI e validar saude,
+comando padrao v2, v1 explicito e ausencia de escrita financeira.
