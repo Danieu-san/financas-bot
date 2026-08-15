@@ -1,6 +1,6 @@
 # Estado - importacao historica Open Finance
 
-Atualizado em: 2026-08-14
+Atualizado em: 2026-08-15
 
 ## Objetivo ativo
 
@@ -533,17 +533,21 @@ escrita financeira.
 - reauditoria independente do hash
   `3a528407f97d1bc7aa923807de74c62af23200ab`: `GO TECNICO LOCAL`, zero
   achados bloqueantes e nenhuma lacuna indispensavel no escopo;
+- auditoria independente do hash
+  `388d13e7a35ff45b2718dc54fce14681d976ca76`: `GO TECNICO LOCAL`, zero
+  achados materiais e nenhuma lacuna causal indispensavel; autorizado somente
+  o fechamento read-only do Gate 41.6;
 - nenhum artefato privado, descricao, valor, ID ou segredo entrou no Git.
 
 ## Proxima acao
 
-Publicar e auditar o candidato causal do Gate 41.6. O residual bancario
-semantico esta encerrado no candidato; os 24 itens tecnicos permanecem retidos.
-Writer, importacao em lote, planilha e producao continuam bloqueados.
+Inspecionar e separar causalmente os 24 residuos tecnicos, sem promover item
+sem vinculo forte nem habilitar writer. Writer, importacao em lote, planilha,
+WhatsApp, deploy e producao continuam bloqueados.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> publicar e auditar o candidato causal do Gate 41.6.`
+`Codex -> Sol -> Medio -> inspecionar e separar os 24 residuos tecnicos.`
 
 ## Estado prevalente - Gate 41.6
 
@@ -567,5 +571,9 @@ Writer, importacao em lote, planilha e producao continuam bloqueados.
   skips controlados; nenhuma suite ampla foi repetida;
 - candidato sanitizado em
   `docs/audit/254-open-finance-historical-bank-credit-causality-candidate-2026-08-15.md`;
+- o hash imutavel `388d13e7a35ff45b2718dc54fce14681d976ca76`
+  recebeu `GO TECNICO LOCAL`, zero achados materiais e nenhuma lacuna causal
+  indispensavel; fechamento em
+  `docs/audit/255-open-finance-historical-bank-credit-causality-independent-close-2026-08-15.md`;
 - writer, importacao real, planilha, WhatsApp, deploy e producao permanecem
   bloqueados.

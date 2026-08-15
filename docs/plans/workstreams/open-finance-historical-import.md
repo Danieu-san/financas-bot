@@ -216,7 +216,7 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    O hash imutavel `f350897c4ceea748c6fa3a8666c42301c2c34dd1` recebeu parecer
    `SUFICIENTE`, sem lacuna documental indispensavel, autorizando somente o
    fechamento documental e a continuidade read-only.
-9.16. [candidato aguardando auditoria] Encerrar as 25 entradas bancarias
+9.16. [concluida tecnicamente] Encerrar as 25 entradas bancarias
    semanticas restantes com 27 decisoes exatas, incluindo duas contrapartes de
    pares ja planejados. Transferencia interna recebida exige origem textual e
    credito bancario positivo; transferencias iguais exigem referencias
@@ -229,6 +229,10 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    oito bindings e `financial_writes=0`. Focal 73/73 e suite ampla final com
    1.705 aprovados, zero falhas e dez skips controlados. Candidato em
    `docs/audit/254-open-finance-historical-bank-credit-causality-candidate-2026-08-15.md`.
+   O hash `388d13e7a35ff45b2718dc54fce14681d976ca76` recebeu `GO TECNICO
+   LOCAL`, zero achados materiais e nenhuma lacuna causal indispensavel;
+   fechamento em
+   `docs/audit/255-open-finance-historical-bank-credit-causality-independent-close-2026-08-15.md`.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 
@@ -268,9 +272,9 @@ provaveis continuam retidos.
 
 ## Proxima acao
 
-Publicar e auditar o candidato sanitizado do Gate 41.6. Se receber GO tecnico
-local, registrar o fechamento e tratar separadamente os 24 residuos tecnicos;
-nao habilitar writer historico, importacao real ou deploy.
+Inspecionar e separar causalmente os 24 residuos tecnicos, preservando em
+revisao todo item sem vinculo forte. Nao habilitar writer historico, importacao
+real, planilha, WhatsApp, deploy ou producao.
 
 Para revisoes futuras, agrupar os descritores de intermediadores pelo
 beneficiario real;
