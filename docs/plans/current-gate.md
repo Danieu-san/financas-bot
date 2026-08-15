@@ -4,7 +4,7 @@ Atualizado em: 2026-08-15
 
 ## Estado
 
-`PRE-PREENCHIMENTO: CANDIDATO LOCAL VERDE, AGUARDANDO AUDITORIA INDEPENDENTE`.
+`PRE-PREENCHIMENTO: GO TECNICO LOCAL; PROMOCAO OCI E SMOKE PENDENTES`.
 
 ## Objetivo
 
@@ -58,8 +58,8 @@ ambiguidade real.
 3. [feito] implementar a correção mínima;
 4. [feito] executar teste focal e bateria afetada;
 5. [feito] executar a suíte ampla final no candidato estável;
-6. [em andamento] publicar hash sanitizado e obter auditoria independente;
-7. promover por artefato e repetir o smoke em pendência real;
+6. [feito] publicar hash sanitizado e obter auditoria independente;
+7. [em andamento] promover por artefato e repetir o smoke em pendência real;
 8. registrar fechamento dos gates proativos antigos;
 9. só então abrir o writer histórico do Gate 41.
 
@@ -88,5 +88,5 @@ ambiguidade real.
 
 ## Próxima ação
 
-Publicar o candidato sanitizado, auditar uma vez pelo hash imutável e somente
-depois preparar promoção OCI e smoke com uma pendência real.
+Registrar o GO independente, promover por artefato na OCI e repetir o smoke
+com uma pendência real, sem iniciar o writer histórico antes dessa prova.

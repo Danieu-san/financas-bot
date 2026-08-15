@@ -123,14 +123,14 @@ os totais e revalidar a apresentacao do gasto livre no WhatsApp.
 
 ## Próxima ação exata
 
-Publicar e auditar por hash o candidato de pre-preenchimento. Depois do GO,
-promover na OCI e repetir o smoke com uma pendencia real. Somente apos esse
-smoke abrir o writer historico idempotente do Gate 41; sua aplicacao real exige
-dry-run sobre o plano privado vigente, backup, recibos, rollback e auditoria.
+Registrar o GO independente do pre-preenchimento, promover por artefato na OCI
+e repetir o smoke com uma pendencia real. Somente apos esse smoke abrir o
+writer historico idempotente do Gate 41; sua aplicacao real exige dry-run sobre
+o plano privado vigente, backup, recibos, rollback e auditoria.
 
 ## Capacidade para retomar
 
-`Codex -> Sol -> Alto -> auditar o pre-preenchimento por hash imutavel.`
+`Codex -> Sol -> Alto -> promover o pre-preenchimento e executar smoke real.`
 
 ## Referencias
 
@@ -149,3 +149,4 @@ dry-run sobre o plano privado vigente, backup, recibos, rollback e auditoria.
 - `docs/audit/270-open-finance-numeric-save-financial-write-production-close-2026-08-15.md`.
 - `docs/audit/271-monthly-free-budget-production-observation-2026-08-15.md`.
 - `docs/audit/272-open-finance-proactive-prefill-candidate-2026-08-15.md`.
+- `docs/audit/273-open-finance-proactive-prefill-independent-close-2026-08-15.md`.
