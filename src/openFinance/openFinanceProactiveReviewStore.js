@@ -375,7 +375,12 @@ class OpenFinanceProactiveReviewStore {
                 const prior = select.get(reviewRef);
                 if (prior) {
                     const priorPayload = this.#readPayload(prior);
-                    if (stableSerialize(priorPayload) !== stableSerialize(payload)) {
+                    const replayPayload = {
+                        ...payload,
+                        created_at: prior.created_at,
+                        expires_at: prior.expires_at
+                    };
+                    if (stableSerialize(priorPayload) !== stableSerialize(replayPayload)) {
                         throw new Error('open_finance_proactive_review_replay_conflict');
                     }
                     replayed += 1;

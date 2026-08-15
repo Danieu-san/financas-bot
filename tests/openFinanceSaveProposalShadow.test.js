@@ -258,6 +258,54 @@ test('9P.0 replay is content-immutable across causal fields and store instances'
     }
 });
 
+test('Gate 42 refreshes provider date only before any proposal transport evidence', () => {
+    const databasePath = path.join(fs.mkdtempSync(path.join(
+        os.tmpdir(), 'finbot-save-proposal-provider-date-'
+    )), 'preview.sqlite');
+    const input = fixture();
+    input.item.transactions[0].status = 'PENDING';
+    input.lifecycleDecisions[0].provider_state = 'PENDING';
+    const store = openStore(databasePath);
+    try {
+        store.ingestSaveProposals(proposalInput(input));
+        const [pending] = store.listPendingSaveProposals({ actorWhatsappId });
+        const changed = structuredClone(input);
+        changed.item.transactions[0].date = '2026-07-24T10:00:00.000Z';
+        assert.deepEqual(store.ingestSaveProposals({
+            ...proposalInput(changed),
+            proposalTransportStateResolver: () => null
+        }), {
+            inserted: 0,
+            replayed: 1,
+            blocked: 3,
+            pending: 1,
+            refreshed: 1,
+            financial_writes: 0
+        });
+        assert.equal(
+            store.readSaveProposalPrivate(pending.proposal_ref, { actorWhatsappId }).source.date,
+            changed.item.transactions[0].date
+        );
+
+        const delivered = structuredClone(changed);
+        delivered.item.transactions[0].date = '2026-07-25T10:00:00.000Z';
+        assert.throws(() => store.ingestSaveProposals({
+            ...proposalInput(delivered),
+            proposalTransportStateResolver: () => 'pending'
+        }), /save_proposal_replay_conflict/);
+        assert.equal(
+            store.readSaveProposalPrivate(pending.proposal_ref, { actorWhatsappId }).source.date,
+            changed.item.transactions[0].date
+        );
+        assert.throws(() => store.ingestSaveProposals({
+            ...proposalInput(delivered),
+            proposalTransportStateResolver: 'invalid'
+        }), /valid_save_proposal_transport_state_resolver_required/);
+    } finally {
+        store.close();
+    }
+});
+
 test('OF-ALERT-BIND-01 eligibility loss durably invalidates a stale prompt without reopening it', () => {
     for (const scenario of ['lifecycle', 'reconciliation']) {
         const directory = fs.mkdtempSync(path.join(os.tmpdir(), `finbot-save-proposal-invalidation-${scenario}-`));

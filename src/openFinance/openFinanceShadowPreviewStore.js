@@ -442,6 +442,31 @@ class OpenFinanceShadowPreviewStore {
         return stableSerialize(normalized(stored)) === stableSerialize(normalized(current));
     }
 
+    #isUndeliveredProviderDateRefreshCompatible(stored, current) {
+        if (!isReviewableCreditPurchase({
+            classification: stored.classification,
+            providerState: stored.provider_state,
+            accountType: stored.account_type,
+            transaction: stored.source
+        }) || !isReviewableCreditPurchase({
+            classification: current.classification,
+            providerState: current.provider_state,
+            accountType: current.account_type,
+            transaction: current.source
+        }) || stored.provider_state !== current.provider_state ||
+            stored.source?.status !== current.source?.status ||
+            !Number.isFinite(Date.parse(stored.source?.date)) ||
+            !Number.isFinite(Date.parse(current.source?.date)) ||
+            stored.source.date === current.source.date) {
+            return false;
+        }
+        const normalized = payload => ({
+            ...payload,
+            source: { ...payload.source, date: 'PROVIDER_DATE' }
+        });
+        return stableSerialize(normalized(stored)) === stableSerialize(normalized(current));
+    }
+
     #invalidateSaveProposal(proposalRef, reasonCode) {
         const terminalJournal = this.#requireSaveProposalTerminalJournal();
         const timestamp = this.#now();
@@ -623,7 +648,8 @@ class OpenFinanceShadowPreviewStore {
         policies = [],
         observedAt = new Date().toISOString(),
         includeProposalLinks = false,
-        suppressedObservationRefs = []
+        suppressedObservationRefs = [],
+        proposalTransportStateResolver = null
     } = {}) {
         if (typeof includeProposalLinks !== 'boolean') {
             throw new Error('valid_save_proposal_link_mode_required');
@@ -631,6 +657,10 @@ class OpenFinanceShadowPreviewStore {
         if (!Array.isArray(suppressedObservationRefs) || suppressedObservationRefs.some(value =>
             !/^[a-f0-9]{32}$/.test(String(value || '')))) {
             throw new Error('valid_save_proposal_suppression_refs_required');
+        }
+        if (proposalTransportStateResolver !== null &&
+            typeof proposalTransportStateResolver !== 'function') {
+            throw new Error('valid_save_proposal_transport_state_resolver_required');
         }
         const suppressed = new Set(suppressedObservationRefs);
         const created = validTimestamp(observedAt, 'valid_save_proposal_time_required');
@@ -678,10 +708,11 @@ class OpenFinanceShadowPreviewStore {
         let replayed = 0;
         let blocked = 0;
         let invalidated = 0;
+        let refreshed = 0;
         const proposalLinks = [];
         const insertedThisRun = new Set();
         const existing = this.db.prepare(`SELECT transaction_ref,family_scope_ref,alias_ref,generation,
-            encrypted_payload,payload_version,proposal_state,created_at,expires_at
+            encrypted_payload,payload_version,proposal_state,confirmation_state,created_at,expires_at
             FROM open_finance_save_proposals WHERE proposal_ref=?`);
         const existingByTransaction = this.db.prepare(
             'SELECT proposal_ref FROM open_finance_save_proposals WHERE transaction_ref=?'
@@ -808,12 +839,44 @@ class OpenFinanceShadowPreviewStore {
                         created_at: prior.created_at,
                         expires_at: prior.expires_at
                     };
-                    if (prior.transaction_ref !== transactionRef ||
-                        prior.family_scope_ref !== this.familyScopeRef ||
-                        prior.alias_ref !== source.aliasRef ||
-                        prior.generation !== source.generation ||
+                    const identityCompatible = prior.transaction_ref === transactionRef &&
+                        prior.family_scope_ref === this.familyScopeRef &&
+                        prior.alias_ref === source.aliasRef &&
+                        prior.generation === source.generation;
+                    const storedPayload = this.#readBoundSaveProposal(proposalRef, prior);
+                    if (identityCompatible &&
+                        !this.#isSaveProposalReplayCompatible(storedPayload, payload) &&
+                        this.#isUndeliveredProviderDateRefreshCompatible(storedPayload, payload) &&
+                        prior.proposal_state === 'pending' &&
+                        prior.confirmation_state === 'pending' &&
+                        proposalTransportStateResolver?.(proposalRef) === null) {
+                        const refreshedRow = this.db.prepare(`UPDATE open_finance_save_proposals
+                            SET encrypted_payload=?,payload_version=2,updated_at=?
+                            WHERE proposal_ref=? AND family_scope_ref=? AND
+                                proposal_state='pending' AND confirmation_state='pending'`)
+                            .run(
+                                this.#encrypt(proposalRef, payload),
+                                now,
+                                proposalRef,
+                                this.familyScopeRef
+                            );
+                        if (refreshedRow.changes !== 1) {
+                            throw new Error('save_proposal_replay_conflict');
+                        }
+                        refreshed += 1;
+                        replayed += 1;
+                        if (includeProposalLinks) {
+                            proposalLinks.push({
+                                observation_ref: decision.observation_ref,
+                                proposal_ref: proposalRef,
+                                principal
+                            });
+                        }
+                        continue;
+                    }
+                    if (!identityCompatible ||
                         !this.#isSaveProposalReplayCompatible(
-                            this.#readBoundSaveProposal(proposalRef, prior),
+                            storedPayload,
                             payload
                         )) {
                         throw new Error('save_proposal_replay_conflict');
@@ -918,6 +981,7 @@ class OpenFinanceShadowPreviewStore {
             blocked,
             pending,
             ...(invalidated ? { invalidated } : {}),
+            ...(refreshed ? { refreshed } : {}),
             ...(includeProposalLinks ? { proposal_links: proposalLinks } : {}),
             financial_writes: 0
         };

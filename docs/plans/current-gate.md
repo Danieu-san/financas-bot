@@ -1,120 +1,35 @@
-# Gate ativo - Gate 40 compras de cartao em fatura aberta
+# Gate ativo - Gate 42 recuperacao dos alertas proativos
 
-Atualizado em: 2026-08-11
+Atualizado em: 2026-08-15
 
 ## Estado
 
-`GO OPERACIONAL DE DEPLOY NO HASH 30e23da19db67af601ddec713876966899f3334f;
-SMOKE FUNCIONAL REAL PENDENTE`.
+`CANDIDATO TECNICO LOCAL; AGUARDANDO AUDITORIA INDEPENDENTE`.
 
 ## Objetivo
 
-Permitir que uma compra real e nao parcelada da fatura aberta gere proposta
-numerada sem esperar o fechamento da fatura, preservando identidade,
-reconciliacao, segundo consentimento e efeito unico quando o Pluggy promover o
-mesmo lancamento de `PENDING` para `POSTED`.
-
-## Commit de partida
-
-`f0d94d1eff341335e1a2077396018ac6239f72c1`.
-
-## Escopo
-
-- interpretar `PENDING` de conta `CREDIT` como fatura aberta quando a
-  classificacao real continua `purchase`;
-- gerar proposta somente para compra positiva, reconciliada como `new` e sem
-  parcelamento suportado;
-- aceitar apenas a progressao monotona do mesmo lancamento de `PENDING` para
-  `POSTED`;
-- deduplicar o transporte da proposta entre os dois estados;
-- corrigir a mensagem read-only para nao dizer que o banco ainda nao confirmou.
-
-## Não escopo
-
-- liberar parcela futura ou compra parcelada;
-- aplicar a regra a conta bancaria, entrada, estorno ou transferencia;
-- mudar regras de categoria, planilha, segundo consentimento ou escrita;
-- fabricar transacao para smoke;
-- deploy antes da auditoria independente.
+Impedir que replay temporal legitimo de proposta ou revisao nunca apresentada
+derrube todo o ciclo Open Finance, sem aceitar mudanca causal ou consentimento
+obsoleto.
 
 ## Invariantes
 
-1. `PENDING` continua preservado como estado bruto do provedor.
-2. Parcela futura ou serie parcelada nao recebe proposta por este gate.
-3. Apenas conta `CREDIT` e classificacao `purchase` positiva sao elegiveis.
-4. `POSTED -> PENDING`, mudanca de valor, conta, descricao, data ou identidade
-   falham fechado.
-5. `PENDING -> POSTED` do mesmo lancamento nao cria segunda proposta nem segunda
-   mensagem.
-6. A escrita continua exigindo revisao guiada, segundo consentimento,
-   revalidacao final e reconciliacao `new`.
+1. Proposta com qualquer evidencia de transporte nao pode mudar.
+2. Apenas `source.date` pode ser corrigida antes do transporte, mantendo todos
+   os outros campos e o mesmo estado elegivel do provedor.
+3. Revisao duravel conserva criacao e expiracao originais em todo replay.
+4. Erro externo ou texto livre nao aparece no log.
+5. Nenhum caminho deste gate cria escrita financeira.
 
-## Riscos
+## Evidencia
 
-- confundir fatura aberta com autorizacao bancaria pendente;
-- liberar parcela futura junto com compra corrente;
-- duplicar a proposta na mudanca de estado do provedor;
-- aceitar alteracao causal de fonte sob a aparencia de mudanca de status.
-
-## Etapas
-
-1. Confirmar a semantica oficial do Pluggy.
-2. Produzir RED no runtime e na revalidacao final.
-3. Centralizar elegibilidade e progressao monotona.
-4. Validar store, outbox, entrega, fluxo numerico e finalizacao.
-5. Executar uma unica suite hermetica ampla no candidato estavel.
-6. Publicar commit sanitizado e obter auditoria independente por hash. Concluido
-   no commit `421270f98a3a6c5eccee21af39557cfecabb04ac`, sem achados nem lacuna
-   tecnica indispensavel.
-7. Promover por artefato OCI e executar smoke real.
-8. Preflight de release encontrou `ip-address@10.2.0` vulneravel; a correcao
-   minima para `10.5.0` passou em instalacao limpa, audit high zerado, smoke da
-   cadeia proxy/SOCKS e nova suite hermetica ampla `1632/1622/0/10`.
-9. Reauditoria independente do hash `30e23da19db67af601ddec713876966899f3334f`
-   confirmou o delta minimo, o fechamento dos tres avisos e preservou o GO
-   tecnico local do Gate 40.
-10. Artefato de 894 arquivos verificado e promovido na OCI sem rollback ou
-    bootstrap de estado. Processo unico, zero reinicios, health local/publico
-    e flags ficaram verdes; checksums de `.env` e `state_store.json` foram
-    preservados.
-11. O ciclo Open Finance do restart falhou fechado com `writes=0`, assinatura
-    tambem observada antes do deploy. O deploy esta fechado, mas o smoke do
-    primeiro evento real continua pendente.
-12. A regra SSH temporaria `/32` foi removida e a porta 22 voltou a expirar.
-
-## Critérios de GO
-
-- RED causal convertido em verde no caminho real;
-- bateria afetada e suite hermetica ampla verdes;
-- diff e workflow sem erro;
-- commit imutavel publicado e auditoria independente sem lacuna indispensavel;
-- deploy OCI, health e logs verdes antes do smoke financeiro real.
-
-## Condições de parada
-
-- qualquer parcelamento ou conta bancaria se tornar elegivel;
-- regressao de identidade, deduplicacao, segundo consentimento ou efeito unico;
-- auditoria independente emitir NO-GO ou acesso insuficiente;
-- divergencia de hash, artefato, flags ou saude da OCI.
+- clone real OCI: `GO`, `refreshed=8`, `pending=76`, duas entregas simuladas e
+  `financial_writes=0`;
+- focal `43/43`;
+- causal `402/402`;
+- ampla `1723` total, `1713` pass, `0` fail, `10` skip.
 
 ## Proxima acao
 
-Observar o proximo ciclo natural Pluggy, sem forcar polling. Uma compra corrente
-elegivel deve produzir lote numerado sem duplicidade; uma transferencia deve
-ser conferida separadamente pelo contrato ja promovido no Gate 39. Nenhum smoke
-autoriza escrita sem revisao e segundo consentimento de Daniel.
-
-## Referencias
-
-- `src/openFinance/openFinancePurchaseProposalEligibility.js`;
-- `src/openFinance/openFinanceShadowPreviewStore.js`;
-- `src/openFinance/openFinanceAlertOutbox.js`;
-- `src/openFinance/openFinanceSaveProposalFinalization.js`;
-- `src/openFinance/openFinanceWhatsappCanaryDelivery.js`;
-- `docs/audit/220-open-finance-open-invoice-purchase-candidate-2026-08-10.md`;
-- `docs/audit/221-open-finance-open-invoice-purchase-independent-close-2026-08-10.md`;
-- `docs/audit/222-gate40-ip-address-security-preflight-candidate-2026-08-10.md`;
-- `docs/audit/223-gate40-ip-address-security-independent-close-2026-08-10.md`;
-- `docs/audit/224-gate40-open-invoice-purchase-oci-production-close-2026-08-11.md`;
-- documentacao oficial Pluggy: `https://docs.pluggy.ai/docs/transactions`;
-- documentacao oficial Pluggy: `https://docs.pluggy.ai/docs/credit-card-installments`.
+Publicar o hash e obter auditoria independente. Deploy e smoke real dependem de
+`GO` sem lacuna indispensavel.

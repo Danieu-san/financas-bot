@@ -213,6 +213,18 @@ test('gate 36 review store is encrypted, family-scoped, durable and terminal', (
         assert.match(code, /^[a-f0-9]{10}$/);
         assert.doesNotMatch(fs.readFileSync(databasePath).toString('latin1'), /Salário/);
         assert.equal(store.ingest(input).replayed, 1);
+        const beforeReplay = store.readPrivateByCode(code, {
+            actorWhatsappId: '5511999999999@c.us'
+        });
+        assert.equal(store.ingest({
+            ...input,
+            observedAt: '2026-08-09T15:01:00.000Z'
+        }).replayed, 1);
+        const afterReplay = store.readPrivateByCode(code, {
+            actorWhatsappId: '5511999999999@c.us'
+        });
+        assert.equal(afterReplay.created_at, beforeReplay.created_at);
+        assert.equal(afterReplay.expires_at, beforeReplay.expires_at);
         assert.throws(() => store.readPrivateByCode(code, {
             actorWhatsappId: '5511777777777@c.us'
         }), /proactive_review_actor_unauthorized/);

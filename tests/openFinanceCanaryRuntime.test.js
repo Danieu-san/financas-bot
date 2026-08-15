@@ -566,6 +566,32 @@ test('9E.1 runtime log separates cycle deliveries from cumulative outbox state',
     }
 });
 
+test('Gate 42 runtime log exposes only allowlisted fail-closed reason codes', async () => {
+    const warnings = [];
+    let error = new Error('save_proposal_replay_conflict');
+    const runtime = initializeOpenFinanceCanaryRuntime({
+        client: {},
+        env: { OPEN_FINANCE_ALERT_MODE: 'canary', OPEN_FINANCE_STARTUP_DELAY_MS: '600000' },
+        logger: { info() {}, warn: message => warnings.push(message) },
+        runCycle: async () => { throw error; }
+    });
+    try {
+        assert.deepEqual(await runtime.execute(), {
+            outcome: 'NO_GO',
+            financial_writes: 0
+        });
+        assert.match(warnings[0], /reason=save_proposal_replay_conflict/);
+        assert.match(warnings[0], /code=unknown/);
+
+        error = new Error('unsafe detail user@example.com');
+        await runtime.execute();
+        assert.match(warnings[1], /reason=unknown/);
+        assert.doesNotMatch(warnings[1], /user@example\.com/);
+    } finally {
+        runtime.stop();
+    }
+});
+
 test('9E.1 fast polling requires a short expiry and every safe Open Finance flag', () => {
     const now = Date.parse('2026-08-09T00:00:00.000Z');
     const safe = {

@@ -398,7 +398,9 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
                     observedAt: snapshot.observed_at,
                     includeProposalLinks: proposalMode === 'prompt',
                     suppressedObservationRefs:
-                        proactiveReviews.suppressed_purchase_observation_refs
+                        proactiveReviews.suppressed_purchase_observation_refs,
+                    proposalTransportStateResolver: proposalRef =>
+                        outbox.getProposalDeliveryState(proposalRef)
                 });
                 ({ proposal_links: saveProposalLinks = [], ...saveProposals } = {
                     mode: proposalMode,
@@ -582,7 +584,10 @@ function initializeOpenFinanceCanaryRuntime({
             logger.info(`[open-finance] cycle=${result.outcome} new=${result.new_observations || 0} delivered=${deliveredThisCycle} accepted_unconfirmed=${acceptedThisCycle} retries=${retriesThisCycle} cumulative_confirmed=${result.outbox?.delivered_confirmed || 0} cumulative_unconfirmed=${result.outbox?.accepted_unconfirmed || 0} cumulative_legacy_sent=${result.outbox?.legacy_sent || 0} writes=0`);
             return result;
         } catch (error) {
-            logger.warn(`[open-finance] cycle=NO_GO ${defaultLogger.safeError(error)} writes=0`);
+            const reason = /^[a-z0-9_]{2,96}$/.test(String(error?.message || ''))
+                ? error.message
+                : 'unknown';
+            logger.warn(`[open-finance] cycle=NO_GO reason=${reason} ${defaultLogger.safeError(error)} writes=0`);
             return { outcome: 'NO_GO', financial_writes: 0 };
         } finally { running = false; }
     };
