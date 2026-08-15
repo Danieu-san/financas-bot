@@ -233,23 +233,32 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    LOCAL`, zero achados materiais e nenhuma lacuna causal indispensavel;
    fechamento em
    `docs/audit/255-open-finance-historical-bank-credit-causality-independent-close-2026-08-15.md`.
-10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
+9.17. [GO tecnico local independente] Encerrar os 24 residuos tecnicos com
+   decisoes privadas exatas: pares reciprocos de estorno, ajustes negativos de
+   credito, somente a taxa do Pix financiado e conversao BRL revisada de moeda
+   estrangeira `POSTED`; moeda estrangeira `PENDING` nao vira fato. Plano
+   privado com 1.863 prontos, 291 excluidos, zero revisoes, cobertura completa
+   e `financial_writes=0`. Focal 79/79 e suite ampla final com 1.711 aprovados,
+   zero falhas e dez skips controlados. O hash
+   `a98f99133ab12e036c914b08654116f3fb4f4b68` recebeu GO independente, sem
+   achados materiais nem lacuna indispensavel no escopo read-only; fechamento
+   em `docs/audit/257-open-finance-historical-card-residuals-independent-close-2026-08-15.md`.
+10. [pronta para gate separado] Implementar e ensaiar writer historico
+   idempotente depois das correcoes operacionais priorizadas por Daniel.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 
 ## Estado privado vigente
 
-- 1.846 prontos;
+- 1.863 prontos;
 - 2 existentes comprovados;
 - 34 duplicatas provaveis;
-- 284 excluidos;
-- 24 em revisao;
+- 291 excluidos;
+- zero em revisao;
 - 161 fora da janela;
 - zero escrita financeira.
 
-As ambiguidades comuns e bancarias terminaram. O residual tecnico contem 16
-creditos de cartao sem vinculo forte, quatro taxas de Pix financiado e quatro
-moedas nao suportadas; moedas nao BRL, creditos sem vinculo forte e duplicatas
-provaveis continuam retidos.
+As ambiguidades comuns, bancarias e tecnicas terminaram no planejador read-only.
+As 34 duplicatas provaveis permanecem corretamente fora do conjunto gravavel.
 
 ## Criterios de GO do planejador
 
@@ -272,9 +281,9 @@ provaveis continuam retidos.
 
 ## Proxima acao
 
-Inspecionar e separar causalmente os 24 residuos tecnicos, preservando em
-revisao todo item sem vinculo forte. Nao habilitar writer historico, importacao
-real, planilha, WhatsApp, deploy ou producao.
+Abrir gate operacional separado para diagnosticar a ausencia de alertas
+proativos posteriores ao ultimo deploy. Nao habilitar writer historico,
+importacao real ou aplicacao na planilha dentro desse diagnostico.
 
 Para revisoes futuras, agrupar os descritores de intermediadores pelo
 beneficiario real;

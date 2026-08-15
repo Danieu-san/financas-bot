@@ -541,13 +541,13 @@ escrita financeira.
 
 ## Proxima acao
 
-Inspecionar e separar causalmente os 24 residuos tecnicos, sem promover item
-sem vinculo forte nem habilitar writer. Writer, importacao em lote, planilha,
-WhatsApp, deploy e producao continuam bloqueados.
+O Gate 41.7 encerrou o planejador RX read-only sem revisoes. Por ordem
+operacional vigente, abrir gate separado para diagnosticar a ausencia de
+mensagens proativas; writer historico e aplicacao real permanecem separados.
 
 ## Capacidade
 
-`Codex -> Sol -> Medio -> inspecionar e separar os 24 residuos tecnicos.`
+`Codex -> Sol -> Alto -> diagnosticar a ausencia de mensagens proativas.`
 
 ## Estado prevalente - Gate 41.6
 
@@ -577,3 +577,24 @@ WhatsApp, deploy e producao continuam bloqueados.
   `docs/audit/255-open-finance-historical-bank-credit-causality-independent-close-2026-08-15.md`;
 - writer, importacao real, planilha, WhatsApp, deploy e producao permanecem
   bloqueados.
+
+## Estado prevalente - Gate 41.7
+
+- os 24 residuos tecnicos foram resolvidos por decisoes privadas exatas: tres
+  pares de estorno, 13 ajustes de credito, quatro taxas de Pix financiado e
+  tres compras estrangeiras confirmadas; uma compra estrangeira pendente ficou
+  excluida como fato ainda nao historico;
+- plano privado vigente: 1.863 prontos, 2 existentes, 34 duplicatas provaveis,
+  291 excluidos, zero em revisao e 161 fora da janela;
+- cardinalidade 2.351, cobertura completa, oito bindings, hash do plano
+  `4b765e1a7c2ebdf3fa21d0b2659effbd1f8e979e884dc6d56c9c8a1f7230de92`
+  e `financial_writes=0`;
+- bateria focal 79/79 e unica suite ampla final com 1.711 aprovados, zero
+  falhas e dez skips controlados;
+- o hash `a98f99133ab12e036c914b08654116f3fb4f4b68` recebeu `GO TECNICO
+  LOCAL`, sem achados materiais e sem lacuna indispensavel; fechamento em
+  `docs/audit/257-open-finance-historical-card-residuals-independent-close-2026-08-15.md`;
+- nenhum artefato privado, descricao, referencia, valor, pessoa ou segredo
+  entrou no Git;
+- writer historico, aplicacao real, planilha e producao continuam em gates
+  separados.
