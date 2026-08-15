@@ -80,11 +80,15 @@ function plan(entries) {
         entries,
         financial_writes: 0
     };
+    return rehashPlan(value);
+}
+
+function rehashPlan(value) {
     value.plan_hash = crypto.createHash('sha256').update(stableSerialize({
         historyStartDate: value.history_start_date,
         historyEndDate: value.history_end_date,
         includeOpenInvoiceCurrentPurchases: true,
-        entries
+        entries: value.entries
     })).digest('hex');
     return value;
 }
@@ -191,6 +195,27 @@ test('historical writer rejects mutated hashes and any review residue', () => {
     assert.throws(() => buildOpenFinanceHistoricalImportWriteBatch({
         plan: staleCoverage
     }), /historical_import_writer_coverage_evidence_invalid/);
+
+    const nonReadyWritePlan = plan([nonReady('ref-4', 'excluded')]);
+    nonReadyWritePlan.entries[0].write_plan = readyEntry('unused').write_plan;
+    rehashPlan(nonReadyWritePlan);
+    assert.throws(() => buildOpenFinanceHistoricalImportWriteBatch({
+        plan: nonReadyWritePlan
+    }), /historical_import_writer_non_ready_write_plan_blocked/);
+
+    const missingUser = plan([readyEntry('ref-5', 'Saídas')]);
+    missingUser.entries[0].write_plan.row[9] = '';
+    rehashPlan(missingUser);
+    assert.throws(() => buildOpenFinanceHistoricalImportWriteBatch({
+        plan: missingUser
+    }), /historical_import_writer_user_scope_required/);
+
+    const missingCard = plan([readyEntry('ref-6', 'Lançamentos Cartão')]);
+    missingCard.entries[0].write_plan.row[6] = '';
+    rehashPlan(missingCard);
+    assert.throws(() => buildOpenFinanceHistoricalImportWriteBatch({
+        plan: missingCard
+    }), /historical_import_writer_card_scope_required/);
 });
 
 test('historical writer requires explicit apply confirmation and exact plan hash', async () => {
@@ -246,8 +271,9 @@ test('historical writer stops on partial failure and resumes without duplicate w
         });
         assert.equal(resumed.status, 'committed');
         assert.equal(resumed.replayed, 1);
-        assert.equal(resumed.committed, 2);
-        assert.equal(resumed.financial_writes, 2);
+        assert.equal(resumed.reconciled, 1);
+        assert.equal(resumed.committed, 1);
+        assert.equal(resumed.financial_writes, 1);
         assert.equal(resumeCalls.length, 2);
 
         const replayCalls = [];
@@ -296,6 +322,169 @@ test('historical writer reconciles pending or uncertain ledger entries without a
         assert.equal(calls[0].options.reconcileOnly, true);
     } finally {
         ledger.close();
+        fs.rmSync(directory, { recursive: true, force: true });
+    }
+});
+
+test('historical writer reopens the durable ledger and never blindly appends uncertain or failed operations', async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'historical-google-restart-'));
+    const ledgerPath = path.join(directory, 'financial-writes.sqlite');
+    const previous = {
+        dbPath: process.env.OAUTH_TOKEN_DB_PATH,
+        key: process.env.OAUTH_TOKEN_ENCRYPTION_KEY,
+        clientId: process.env.GOOGLE_OAUTH_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET
+    };
+    process.env.OAUTH_TOKEN_DB_PATH = path.join(directory, 'oauth.sqlite');
+    process.env.OAUTH_TOKEN_ENCRYPTION_KEY = '7'.repeat(64);
+    process.env.GOOGLE_OAUTH_CLIENT_ID = 'test-client-id';
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET = 'test-client-secret';
+    oauthTokenStore.__test__.closeDatabaseForTests();
+    const rowsBySheet = new Map();
+    let appendCalls = 0;
+    const sheetNameFromRange = range => String(range || '').split('!')[0]
+        .replace(/^'|'$/g, '')
+        .replace(/''/g, "'");
+    const fakeUserSheets = {
+        spreadsheets: {
+            values: {
+                append: async ({ range, resource }) => {
+                    appendCalls += 1;
+                    const sheetName = sheetNameFromRange(range);
+                    const rows = rowsBySheet.get(sheetName) || [];
+                    rows.push(resource.values[0]);
+                    rowsBySheet.set(sheetName, rows);
+                    return { data: { updates: { updatedRange: `${sheetName}!A2:K2` } } };
+                },
+                get: async ({ range }) => ({
+                    data: { values: rowsBySheet.get(sheetNameFromRange(range)) || [] }
+                })
+            },
+            batchUpdate: async () => ({})
+        }
+    };
+    let ledger = null;
+    try {
+        oauthTokenStore.saveOAuthConnection('user-family', {
+            scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+            tokens: {
+                access_token: 'test-access-token',
+                refresh_token: 'test-refresh-token'
+            },
+            spreadsheetId: 'family-sheet'
+        });
+        googleService.__test__.setUserSheetsClientFactoryForTest(() => fakeUserSheets);
+
+        const uncertainInput = plan([
+            readyEntry('ref-uncertain-restart', 'Saídas', 'user-family')
+        ]);
+        const uncertainBatch = buildOpenFinanceHistoricalImportWriteBatch({
+            plan: uncertainInput
+        });
+        ledger = new FinancialWriteLedger({ dbPath: ledgerPath });
+        ledger.beginOperation({
+            operationKey: uncertainBatch.items[0].operation_key,
+            actorScope: { scope: 'user_spreadsheet' },
+            operation: 'append.Saídas',
+            payload: {},
+            provenance: {}
+        });
+        ledger.markUncertain(uncertainBatch.items[0].operation_key);
+        ledger.close();
+
+        ledger = new FinancialWriteLedger({ dbPath: ledgerPath });
+        const blocked = await executeOpenFinanceHistoricalImportWriteBatch({
+            plan: uncertainInput,
+            mode: 'apply',
+            ...applyConfirmation(uncertainInput),
+            writeLedger: ledger,
+            appendRowToSheet: googleService.appendRowToSheet
+        });
+        assert.equal(blocked.status, 'stopped');
+        assert.equal(blocked.financial_writes, 0);
+        assert.equal(appendCalls, 0);
+        assert.equal(
+            ledger.getOperation(uncertainBatch.items[0].operation_key).status,
+            'uncertain'
+        );
+        ledger.close();
+
+        rowsBySheet.set('Saídas', [uncertainInput.entries[0].write_plan.row]);
+        ledger = new FinancialWriteLedger({ dbPath: ledgerPath });
+        const reconciled = await executeOpenFinanceHistoricalImportWriteBatch({
+            plan: uncertainInput,
+            mode: 'apply',
+            ...applyConfirmation(uncertainInput),
+            writeLedger: ledger,
+            appendRowToSheet: googleService.appendRowToSheet
+        });
+        assert.equal(reconciled.status, 'committed');
+        assert.equal(reconciled.reconciled, 1);
+        assert.equal(reconciled.financial_writes, 0);
+        assert.equal(appendCalls, 0);
+        ledger.close();
+
+        const failedInput = plan([
+            readyEntry('ref-failed-restart', 'Entradas', 'user-family')
+        ]);
+        const failedBatch = buildOpenFinanceHistoricalImportWriteBatch({
+            plan: failedInput
+        });
+        ledger = new FinancialWriteLedger({ dbPath: ledgerPath });
+        ledger.beginOperation({
+            operationKey: failedBatch.items[0].operation_key,
+            actorScope: { scope: 'user_spreadsheet' },
+            operation: 'append.Entradas',
+            payload: {},
+            provenance: {}
+        });
+        ledger.markFailed(failedBatch.items[0].operation_key);
+        ledger.close();
+
+        ledger = new FinancialWriteLedger({ dbPath: ledgerPath });
+        const failedBlocked = await executeOpenFinanceHistoricalImportWriteBatch({
+            plan: failedInput,
+            mode: 'apply',
+            ...applyConfirmation(failedInput),
+            writeLedger: ledger,
+            appendRowToSheet: googleService.appendRowToSheet
+        });
+        assert.equal(failedBlocked.status, 'stopped');
+        assert.equal(failedBlocked.financial_writes, 0);
+        assert.equal(appendCalls, 0);
+        assert.equal(
+            ledger.getOperation(failedBatch.items[0].operation_key).status,
+            'failed'
+        );
+        ledger.close();
+
+        rowsBySheet.set('Entradas', [failedInput.entries[0].write_plan.row]);
+        ledger = new FinancialWriteLedger({ dbPath: ledgerPath });
+        const failedReconciled = await executeOpenFinanceHistoricalImportWriteBatch({
+            plan: failedInput,
+            mode: 'apply',
+            ...applyConfirmation(failedInput),
+            writeLedger: ledger,
+            appendRowToSheet: googleService.appendRowToSheet
+        });
+        assert.equal(failedReconciled.status, 'committed');
+        assert.equal(failedReconciled.reconciled, 1);
+        assert.equal(failedReconciled.financial_writes, 0);
+        assert.equal(appendCalls, 0);
+        ledger.close();
+    } finally {
+        try { ledger?.close(); } catch {}
+        googleService.__test__.setUserSheetsClientFactoryForTest(null);
+        googleService.__test__.clearSheetsReadCache();
+        oauthTokenStore.__test__.closeDatabaseForTests();
+        if (previous.dbPath === undefined) delete process.env.OAUTH_TOKEN_DB_PATH;
+        else process.env.OAUTH_TOKEN_DB_PATH = previous.dbPath;
+        if (previous.key === undefined) delete process.env.OAUTH_TOKEN_ENCRYPTION_KEY;
+        else process.env.OAUTH_TOKEN_ENCRYPTION_KEY = previous.key;
+        if (previous.clientId === undefined) delete process.env.GOOGLE_OAUTH_CLIENT_ID;
+        else process.env.GOOGLE_OAUTH_CLIENT_ID = previous.clientId;
+        if (previous.clientSecret === undefined) delete process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+        else process.env.GOOGLE_OAUTH_CLIENT_SECRET = previous.clientSecret;
         fs.rmSync(directory, { recursive: true, force: true });
     }
 });

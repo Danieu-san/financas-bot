@@ -854,7 +854,10 @@ async function appendRowToSheet(sheetName, row, options = {}) {
             });
             return existing;
         }
-        if (existing?.status === 'pending' || existing?.status === 'uncertain') {
+        const mustReconcileExisting = existing?.status === 'pending' ||
+            existing?.status === 'uncertain' ||
+            (existing?.status === 'failed' && options.reconcileOnly);
+        if (mustReconcileExisting) {
             const reconciled = await reconcileUncertainAppend(target, mappedSheetName, mappedRow);
             if (reconciled) {
                 const committed = writeLedger.commitOperation(operationKey, {

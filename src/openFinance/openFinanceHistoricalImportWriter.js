@@ -262,8 +262,8 @@ async function executeOpenFinanceHistoricalImportWriteBatch({
                 replayed += 1;
                 continue;
             }
-            const reconcileOnly = current?.status === 'pending' ||
-                current?.status === 'uncertain';
+            const reconcileOnly = ['pending', 'uncertain', 'failed']
+                .includes(current?.status);
             if (!reconcileOnly && newWriteAttempts >= writeLimit) {
                 return resultSnapshot({
                     status: 'partial',
