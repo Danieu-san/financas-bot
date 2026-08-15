@@ -4,7 +4,7 @@ Atualizado em: 2026-08-15
 
 ## Estado
 
-`GATE 41 WRITER: IMPLEMENTACAO E DRY-RUN; APLICACAO REAL BLOQUEADA`.
+`GATE 41 WRITER: GO TECNICO LOCAL; PRE-APLICACAO OPERACIONAL`.
 
 ## Objetivo
 
@@ -24,6 +24,8 @@ fora da janela, com idempotência, recibos, backup e rollback verificáveis.
 - oito bindings de conta/cartão;
 - hash privado do plano:
   `4b765e1a7c2ebdf3fa21d0b2659effbd1f8e979e884dc6d56c9c8a1f7230de92`.
+- fingerprint integral do artefato:
+  `6a88bffd275292e6365538e7f146859d5af12bd2de5af877499d23df5d574bf7`.
 
 ## Pré-requisitos satisfeitos
 
@@ -33,6 +35,8 @@ fora da janela, com idempotência, recibos, backup e rollback verificáveis.
   GO funcional de produção;
 - despesas reais do smoke foram preservadas na planilha e devem ser detectadas
   como já existentes pelo dry-run atualizado.
+- writer e recovery receberam `GO TECNICO LOCAL` independente no hash
+  `ba4b2f9fff2ad3e199bd6d8d2a0850a62c90009d`.
 
 ## Escopo
 
@@ -65,13 +69,13 @@ fora da janela, com idempotência, recibos, backup e rollback verificáveis.
 
 ## Etapas
 
-1. [em andamento] localizar e validar o plano privado vigente pelo hash;
-2. implementar o writer e o ledger de recibos sem habilitar aplicação real;
-3. criar RED e executar bateria causal afetada;
-4. executar uma única suíte ampla no candidato estável;
-5. produzir dry-run atualizado e conferir cardinalidade;
-6. publicar commit sanitizado e obter auditoria independente;
-7. criar backup real e verificar restauração isolada;
+1. [concluido] localizar e validar o plano privado vigente pelo hash;
+2. [concluido] implementar o writer e o ledger de recibos sem habilitar aplicação real;
+3. [concluido] criar RED e executar bateria causal afetada;
+4. [concluido] executar suíte ampla final proporcional ao candidato e recovery;
+5. [concluido] provar dry-run estrutural contra o plano fechado anterior;
+6. [concluido] publicar commits sanitizados e obter auditoria independente;
+7. [em andamento] criar backup real, snapshot vigente, novo dry-run e verificar restauração isolada;
 8. aplicar o lote com recibos e parada segura em divergência;
 9. reconciliar novamente e provar zero pendência gravável inesperada;
 10. confirmar que o backlog importado deixou de gerar propostas;
@@ -97,5 +101,6 @@ fora da janela, com idempotência, recibos, backup e rollback verificáveis.
 
 ## Próxima ação
 
-Localizar o artefato privado fechado, validar seu hash sem expor conteúdo e
-mapear as fronteiras canônicas de escrita que o novo writer deve reutilizar.
+Capturar snapshot privado vigente das abas afetadas, gerar backup verificavel,
+regenerar o plano contra a planilha posterior aos smokes e ensaiar o rollback
+somente em copia isolada antes de qualquer escrita real.

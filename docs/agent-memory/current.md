@@ -10,6 +10,17 @@ apresentacao do gasto livre no WhatsApp.
 
 ## Estado vigente
 
+- o writer historico do Gate 41 validou integralmente o plano privado e produz
+  1.863 chaves unicas com zero escrita no dry-run estrutural;
+- o primeiro candidato recebeu `NO-GO` porque `failed` podia voltar como append
+  novo; o recovery passou a reconciliar `pending`, `uncertain` e `failed` sem
+  append cego e provou restart por fechamento/reabertura do SQLite;
+- testes focais 8/8, Google ledger 6/6 e suite ampla final 1.737 aprovados,
+  zero falhas e dez skips; cobertura de linhas 91,57%;
+- o hash `ba4b2f9fff2ad3e199bd6d8d2a0850a62c90009d` recebeu
+  `GO TECNICO LOCAL`, zero achados e nenhuma lacuna indispensavel;
+- aplicacao real permanece bloqueada ate snapshot vigente, backup, rollback
+  isolado e novo plano identico ao dry-run aprovado;
 - Gate 41.7 recebeu `GO TECNICO LOCAL` read-only e permanece sem writer;
 - Gate 42 recebeu `GO TECNICO LOCAL` e foi promovido na OCI no release
   `579afb2abffb47f470b19a827a5c3a8c441add82`;
@@ -117,19 +128,19 @@ apresentacao do gasto livre no WhatsApp.
 
 ## Git e workspace
 
-- branch: `codex/dashboard-truth-g44`;
-- produto implantado: `37e58c57c9cccd622556fe849dbc6230416ec8b3`;
-- arvore deve preservar `release-artifacts-g44/` como nao rastreado.
+- branch: `codex/open-finance-proactive-prefill-g45`;
+- produto implantado: `6fbf73048a8dceb5ce8e366c67c1c2cac5b6930a`;
+- arvore deve preservar `release-artifacts-g45/` como nao rastreado.
 
 ## Próxima ação exata
 
-Abrir o writer historico idempotente do Gate 41. Sua aplicacao real exige
-dry-run sobre o plano privado vigente, backup, cardinalidade, recibos, rollback
-e auditoria independente antes de tocar na planilha.
+Capturar snapshot privado vigente da planilha familiar, gerar backup
+verificavel, regenerar o plano posterior aos smokes e ensaiar rollback isolado.
+Somente depois considerar a aplicacao real do writer auditado.
 
 ## Capacidade para retomar
 
-`Codex -> Sol -> Alto -> implementar e ensaiar o writer historico do Gate 41.`
+`Codex -> Sol -> Alto -> preparar backup, novo dry-run e rollback isolado do Gate 41.`
 
 ## Referencias
 
@@ -150,3 +161,6 @@ e auditoria independente antes de tocar na planilha.
 - `docs/audit/272-open-finance-proactive-prefill-candidate-2026-08-15.md`.
 - `docs/audit/273-open-finance-proactive-prefill-independent-close-2026-08-15.md`.
 - `docs/audit/274-open-finance-proactive-prefill-production-close-2026-08-15.md`.
+- `docs/audit/275-open-finance-historical-import-writer-candidate-2026-08-15.md`.
+- `docs/audit/276-open-finance-historical-import-writer-recovery-candidate-2026-08-15.md`.
+- `docs/audit/277-open-finance-historical-import-writer-independent-close-2026-08-15.md`.
