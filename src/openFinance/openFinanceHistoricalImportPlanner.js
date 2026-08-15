@@ -488,6 +488,31 @@ function transferWritePlan(transaction, origin, destination, classification) {
     };
 }
 
+function transferWritePlanExists(sheetSnapshot, writePlan) {
+    const expected = writePlan?.row;
+    if (!Array.isArray(expected) || expected.length !== 9) return false;
+    return rowsWithoutHeader(findRange(sheetSnapshot?.ranges || {}, 'Transferências'))
+        .some(row => (
+            isoDate(row[0]) === isoDate(expected[0]) &&
+            normalizeText(row[1]) === normalizeText(expected[1]) &&
+            parseMoney(row[2]) === parseMoney(expected[2]) &&
+            normalizeText(row[3]) === normalizeText(expected[3]) &&
+            normalizeText(row[4]) === normalizeText(expected[4]) &&
+            normalizeText(row[5]) === normalizeText(expected[5]) &&
+            normalizeText(row[6]) === normalizeText(expected[6]) &&
+            normalizeText(row[7]) === normalizeText(expected[7]) &&
+            String(row[8] || '').trim() === String(expected[8] || '').trim()
+        ));
+}
+
+function reviewedTransferEntry(transaction, writePlan, sheetSnapshot, reason) {
+    if (transferWritePlanExists(sheetSnapshot, writePlan)) {
+        return entry(transaction, 'existing', 'already_recorded',
+            'exact_scoped_transfer_match');
+    }
+    return entry(transaction, 'ready', writePlan.classification, reason, writePlan);
+}
+
 function reserveWritePlan(transaction, binding, direction) {
     const application = direction === 'reserve_application';
     const reserve = {
@@ -1151,10 +1176,10 @@ function classifyTransaction({
     }
     if (transferRole?.role === 'origin' && Number(transaction.amount_cents) < 0) {
         pairedCounterparts.add(sourceRef(transferRole.pair));
-        return entry(transaction, 'ready', 'transfer', 'strong_two_sided_pair',
-            transferWritePlan(transaction, binding,
-                accountBindings[transferRole.pair.account_id],
-                'transfer'));
+        const writePlan = transferWritePlan(transaction, binding,
+            accountBindings[transferRole.pair.account_id], 'transfer');
+        return reviewedTransferEntry(transaction, writePlan,
+            override.sheetSnapshot, 'strong_two_sided_pair');
     }
 
     if (refundRole?.role === 'debit') {
@@ -1251,19 +1276,20 @@ function classifyTransaction({
                         ? 'explicit_transfer_requires_bank_credit'
                         : 'explicit_transfer_requires_directional_bank_movement');
         }
-        return entry(transaction, 'ready', 'transfer',
-            'explicit_one_sided_internal_transfer', transferWritePlan(
-                transaction,
-                outgoing ? binding : {
-                    financialAccount: origin,
-                    ownerUserId: binding.ownerUserId
-                },
-                outgoing ? {
-                    financialAccount: destination,
-                    ownerUserId: binding.ownerUserId
-                } : binding,
-                'transfer'
-            ));
+        const writePlan = transferWritePlan(
+            transaction,
+            outgoing ? binding : {
+                financialAccount: origin,
+                ownerUserId: binding.ownerUserId
+            },
+            outgoing ? {
+                financialAccount: destination,
+                ownerUserId: binding.ownerUserId
+            } : binding,
+            'transfer'
+        );
+        return reviewedTransferEntry(transaction, writePlan,
+            override.sheetSnapshot, 'explicit_one_sided_internal_transfer');
     }
     if (classification === 'loan_proceeds') {
         if (binding.kind !== 'bank' || Number(transaction.amount_cents) <= 0 ||
@@ -1287,9 +1313,9 @@ function classifyTransaction({
             return entry(transaction, 'needs_review', 'reserve_transfer',
                 'reserve_binding_required');
         }
-        return entry(transaction, 'ready', 'reserve_transfer',
-            'confirmed_reserve_principal',
-            reserveWritePlan(transaction, binding, reserveDirection));
+        return reviewedTransferEntry(transaction,
+            reserveWritePlan(transaction, binding, reserveDirection),
+            override.sheetSnapshot, 'confirmed_reserve_principal');
     }
 
     const pending = normalizeText(transaction.status).toUpperCase() === 'PENDING';

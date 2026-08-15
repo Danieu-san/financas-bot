@@ -831,6 +831,96 @@ test('consolidates a strong two-sided family transfer into one write plan', () =
     assert.equal(result.summary.ready, 1);
 });
 
+test('recognizes a written family transfer when Google formats its amount as currency', () => {
+    const accountBindings = {
+        ...bindings,
+        'bank-2': {
+            kind: 'bank',
+            ownerUserId: 'person-2',
+            ownerLabel: 'Pessoa 2',
+            financialAccount: 'Conta 2',
+            paymentMethod: 'Débito'
+        }
+    };
+    const transactions = [
+        transaction({
+            id: 'written-outbound',
+            provider_id: 'written-out-provider',
+            amount_cents: -1234,
+            operation_type: 'PIX',
+            reference_number: 'written-pair-ref'
+        }),
+        transaction({
+            id: 'written-inbound',
+            provider_id: 'written-in-provider',
+            account_id: 'bank-2',
+            amount_cents: 1234,
+            type: 'CREDIT',
+            operation_type: 'PIX',
+            reference_number: 'written-pair-ref'
+        })
+    ];
+    const transferRange = Object.keys(sheet().ranges)
+        .find(key => key.startsWith('Transfer'));
+    const result = plan(transactions, {
+        accounts: [
+            { id: 'bank-1', type: 'BANK' },
+            { id: 'bank-2', type: 'BANK' }
+        ],
+        accountBindings,
+        ranges: {
+            [transferRange]: [
+                ['Data', 'Descrição', 'Valor', 'Conta Origem', 'Conta Destino',
+                    'Método', 'Observações', 'Status', 'user_id'],
+                ['10/01/2026', 'Fornecedor exemplo', 'R$ 12,34', 'Conta 1',
+                    'Conta 2', 'Transferência',
+                    'Importação histórica Open Finance revisada.', 'Conferida',
+                    'person-1']
+            ]
+        }
+    });
+
+    assert.equal(result.entries[0].state, 'existing');
+    assert.equal(result.entries[0].reason, 'exact_scoped_transfer_match');
+    assert.equal(result.entries[1].state, 'excluded');
+    assert.equal(result.summary.existing, 1);
+    assert.equal(result.summary.ready, 0);
+});
+
+test('does not accept a transfer row from another account or user scope', () => {
+    const tx = transaction({
+        id: 'scoped-transfer',
+        provider_id: 'scoped-transfer-provider',
+        amount_cents: -3000,
+        description: 'Transferência enviada',
+        operation_type: 'PIX'
+    });
+    const stableRef = plan([tx]).entries[0].source_ref;
+    const transferRange = Object.keys(sheet().ranges)
+        .find(key => key.startsWith('Transfer'));
+    const result = plan([tx], {
+        decisionOverrides: {
+            [stableRef]: {
+                classification: 'internal_transfer',
+                destinationFinancialAccount: 'Conta histórica externa'
+            }
+        },
+        ranges: {
+            [transferRange]: [
+                ['Data', 'Descrição', 'Valor', 'Conta Origem', 'Conta Destino',
+                    'Método', 'Observações', 'Status', 'user_id'],
+                ['10/01/2026', 'Transferência enviada', 'R$ 30,00', 'Conta 1',
+                    'Outra conta', 'Transferência',
+                    'Importação histórica Open Finance revisada.', 'Conferida',
+                    'person-2']
+            ]
+        }
+    });
+
+    assert.equal(result.entries[0].state, 'ready');
+    assert.equal(result.entries[0].reason, 'explicit_one_sided_internal_transfer');
+});
+
 test('consolidates a strong transfer even when the inbound side appears first', () => {
     const accountBindings = {
         ...bindings,
