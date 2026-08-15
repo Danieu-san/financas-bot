@@ -390,6 +390,27 @@ escrita financeira.
   independente, com zero achados e nenhuma lacuna indispensavel; fechamento em
   `docs/audit/246-open-finance-card-payment-reversal-independent-close-2026-08-14.md`.
 
+## Gate 41.3 - catalogo recorrente reconciliado
+
+- o cadastro mensal existente foi substituido pelo favorecido atual; nenhuma
+  segunda regra ou alias concorrente permaneceu na planilha;
+- vencimento, valor esperado, escopo de usuario e ativacao foram preservados;
+- a classificacao foi corrigida para `Educacao / CURSOS / ESTUDOS`;
+- uma nova captura somente leitura reproduziu todas as contagens anteriores e
+  reduziu `Contas` de 15 para 14 linhas, exatamente pela remocao da duplicacao
+  intermediaria; `financial_writes=0` no snapshot;
+- o config final preserva as 1.098 decisoes incrementais e as 208 regras de
+  comerciante; uma reconstrucao intermediaria que omitia 23 decisoes foi
+  rejeitada e nao integra o candidato;
+- o plano privado final tem 71 prontos, 18 excluidos, zero revisoes e 2.268
+  fora da janela, cobertura completa e `financial_writes=0`, hash privado
+  `1fb4e50f4290ea59fe6b56b2143578df671e0cafc41fe99da162554e7fefee23`;
+- a comparacao das 2.357 entradas provou uma unica mudanca: categoria,
+  subcategoria e recorrencia da mensalidade; resumo e todas as demais entradas
+  permaneceram identicos;
+- nenhum writer historico, importacao em lote, WhatsApp, deploy ou producao foi
+  acionado. O fechamento aguarda auditoria do commit sanitizado.
+
 ## Evidencia local atual
 
 - candidato de Pix financiado por cartao: RED focal de 1 falha, focal 47/47 e
@@ -451,11 +472,11 @@ escrita financeira.
 
 ## Proxima acao
 
-Gate 41.2 encerrado com GO tecnico local independente no hash
-`3a9e09f6b816a26c873eb339aa09027b5b39b820`. Abrir uma etapa separada para
-atualizar no catalogo `Contas` a nova mensalidade de aula de musica ja
-classificada e recalcular o plano incremental read-only. Writer, importacao em
-lote e producao permanecem bloqueados.
+Auditar o fechamento operacional do Gate 41.3 por commit sanitizado. Se o
+parecer nao encontrar lacuna indispensavel, agrupar as 147 entradas ou estornos
+historicos ainda sem decisao por pagador, conta, valor e recorrencia, usando
+primeiro catalogos e decisoes existentes. Writer, importacao em lote e producao
+permanecem bloqueados.
 
 O saneamento privado por recorrencia, pesquisa comercial e decisoes humanas
 elevou o plano inicialmente ate `1.729` itens prontos; as correcoes causais
@@ -489,4 +510,4 @@ provaveis retidos. Nao habilitar writer historico.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> abrir o RX incremental separado ate 2026-08-14.`
+`Codex -> Sol -> Alto -> auditar o Gate 41.3 e agrupar as entradas historicas residuais.`

@@ -181,6 +181,15 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    recuperacao acrescentou esse cenario. O hash
    `3a9e09f6b816a26c873eb339aa09027b5b39b820` recebeu GO independente,
    com zero achados e nenhuma lacuna indispensavel no escopo read-only.
+9.13. [candidato aguardando auditoria] Substituir o favorecido da mensalidade
+   recorrente no cadastro existente, sem criar alias concorrente, e corrigir a
+   classificacao para `Educacao / CURSOS / ESTUDOS`. A captura read-only final
+   preservou as demais faixas e retornou `Contas` ao total anterior; a
+   comparacao das 2.357 entradas do plano mostrou exatamente uma alteracao de
+   categoria, subcategoria e recorrencia. O plano privado manteve 71 prontos,
+   18 excluidos, zero revisoes, cobertura completa e `financial_writes=0`, hash
+   `1fb4e50f4290ea59fe6b56b2143578df671e0cafc41fe99da162554e7fefee23`.
+   Nenhum writer, importacao ou deploy foi acionado.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 
@@ -220,9 +229,10 @@ creditos sem vinculo forte e duplicatas provaveis continuam retidos.
 
 ## Proxima acao
 
-Abrir uma etapa separada para atualizar no catalogo `Contas` a nova mensalidade
-de aula de musica ja classificada e recalcular o plano incremental read-only.
-Manter writer historico, importacao em lote e producao bloqueados.
+Submeter o Gate 41.3 a auditoria por hash imutavel. Depois do fechamento,
+agrupar as 147 entradas ou estornos residuais por pagador, conta, valor e
+recorrencia, sem presumir salario e sem habilitar writer historico, importacao
+real ou deploy.
 
 Para revisoes futuras, agrupar os descritores de intermediadores pelo
 beneficiario real;
