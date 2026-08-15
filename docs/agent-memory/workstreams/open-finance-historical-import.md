@@ -409,7 +409,12 @@ escrita financeira.
   subcategoria e recorrencia da mensalidade; resumo e todas as demais entradas
   permaneceram identicos;
 - nenhum writer historico, importacao em lote, WhatsApp, deploy ou producao foi
-  acionado. O fechamento aguarda auditoria do commit sanitizado.
+  acionado;
+- o hash `69491a7728ca5c9fc4544c30a7acb40e10c315c0` recebeu parecer documental
+  `SUFICIENTE`: os tres arquivos foram lidos no mesmo hash, nenhuma lacuna
+  indispensavel foi encontrada no alcance declarado e ficou autorizado apenas
+  o fechamento operacional/documental do Gate 41.3; fechamento em
+  `docs/audit/248-open-finance-recurring-catalog-reconciliation-independent-close-2026-08-14.md`.
 
 ## Evidencia local atual
 
