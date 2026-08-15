@@ -216,23 +216,36 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    O hash imutavel `f350897c4ceea748c6fa3a8666c42301c2c34dd1` recebeu parecer
    `SUFICIENTE`, sem lacuna documental indispensavel, autorizando somente o
    fechamento documental e a continuidade read-only.
+9.16. [candidato aguardando auditoria] Encerrar as 25 entradas bancarias
+   semanticas restantes com 27 decisoes exatas, incluindo duas contrapartes de
+   pares ja planejados. Transferencia interna recebida exige origem textual e
+   credito bancario positivo; transferencias iguais exigem referencias
+   reciprocas, contas distintas, valores opostos, BRL, `POSTED`, identidade
+   unica e janela causal. Credito de emprestimo confirmado fica excluido de
+   renda e qualquer direcao/status divergente falha fechado. A comparacao
+   `v213 -> v214` preservou 2.351 entradas e alterou somente as 27 referencias
+   autorizadas: 20 para `ready`, cinco para `excluded` e duas `ready -> ready`.
+   Plano privado: 1.846 prontos, 284 excluidos, 24 revisoes, cobertura completa,
+   oito bindings e `financial_writes=0`. Focal 73/73 e suite ampla final com
+   1.705 aprovados, zero falhas e dez skips controlados. Candidato em
+   `docs/audit/254-open-finance-historical-bank-credit-causality-candidate-2026-08-15.md`.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 
 ## Estado privado vigente
 
-- 1.770 prontos;
+- 1.846 prontos;
 - 2 existentes comprovados;
 - 34 duplicatas provaveis;
-- 279 excluidos;
-- 105 em revisao;
+- 284 excluidos;
+- 24 em revisao;
 - 161 fora da janela;
 - zero escrita financeira.
 
-As ambiguidades comuns de categoria terminaram. O residual exige decisoes
-causais sobre 81 entradas ou estornos sem vinculo, 16 creditos de cartao,
-quatro taxas de Pix financiado e quatro moedas nao suportadas; moedas nao BRL,
-creditos sem vinculo forte e duplicatas provaveis continuam retidos.
+As ambiguidades comuns e bancarias terminaram. O residual tecnico contem 16
+creditos de cartao sem vinculo forte, quatro taxas de Pix financiado e quatro
+moedas nao suportadas; moedas nao BRL, creditos sem vinculo forte e duplicatas
+provaveis continuam retidos.
 
 ## Criterios de GO do planejador
 
@@ -255,11 +268,9 @@ creditos sem vinculo forte e duplicatas provaveis continuam retidos.
 
 ## Proxima acao
 
-Tratar o residual bancario vigente sem ampliar inferencias. Preservar em
-revisao transferencias proprias ou familiares sem par de debito nas contas
-vinculadas, creditos de emprestimo e depositos em dinheiro; pesquisar somente
-estabelecimentos e agrupar identidades humanas antes de nova consulta a Daniel.
-Nao habilitar writer historico, importacao real ou deploy.
+Publicar e auditar o candidato sanitizado do Gate 41.6. Se receber GO tecnico
+local, registrar o fechamento e tratar separadamente os 24 residuos tecnicos;
+nao habilitar writer historico, importacao real ou deploy.
 
 Para revisoes futuras, agrupar os descritores de intermediadores pelo
 beneficiario real;

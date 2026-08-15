@@ -216,6 +216,74 @@ test('accepts only scoped one-sided transfers and evidenced existing rows as pri
     }), /historical_import_private_decision_invalid:bad/);
 });
 
+test('accepts incoming internal transfers, reciprocal exact pairs and loan proceeds only with complete evidence', () => {
+    const base = {
+        pluggySnapshot: { observed_at: '2026-08-11T00:00:00.000Z', items: [] },
+        sheetSnapshot: { ranges: {} },
+        historyStartDate: '2025-07-01',
+        historyEndDate: '2026-07-27'
+    };
+    const config = buildConfig({
+        ...base,
+        privateDecisions: { decisionOverrides: {
+            incoming: {
+                classification: 'internal_transfer',
+                originFinancialAccount: 'Conta histÃ³rica externa'
+            },
+            debit: {
+                classification: 'internal_transfer_pair',
+                counterpartSourceRef: 'credit'
+            },
+            credit: {
+                classification: 'internal_transfer_pair',
+                counterpartSourceRef: 'debit'
+            },
+            loan: { classification: 'loan_proceeds' }
+        } }
+    });
+
+    assert.deepEqual(config.decisionOverrides.incoming, {
+        classification: 'internal_transfer',
+        originFinancialAccount: 'Conta histÃ³rica externa'
+    });
+    assert.deepEqual(config.decisionOverrides.debit, {
+        classification: 'internal_transfer_pair',
+        counterpartSourceRef: 'credit'
+    });
+    assert.deepEqual(config.decisionOverrides.credit, {
+        classification: 'internal_transfer_pair',
+        counterpartSourceRef: 'debit'
+    });
+    assert.deepEqual(config.decisionOverrides.loan, {
+        classification: 'loan_proceeds'
+    });
+    assert.throws(() => buildConfig({
+        ...base,
+        privateDecisions: { decisionOverrides: {
+            bad: {
+                classification: 'internal_transfer',
+                originFinancialAccount: 'Origem',
+                destinationFinancialAccount: 'Destino'
+            }
+        } }
+    }), /historical_import_private_decision_invalid:bad/);
+    assert.throws(() => buildConfig({
+        ...base,
+        privateDecisions: { decisionOverrides: {
+            debit: {
+                classification: 'internal_transfer_pair',
+                counterpartSourceRef: 'missing'
+            }
+        } }
+    }), /historical_import_private_transfer_pair_invalid:debit/);
+    assert.throws(() => buildConfig({
+        ...base,
+        privateDecisions: { decisionOverrides: {
+            bad: { classification: 'loan_proceeds', category: 'Outros' }
+        } }
+    }), /historical_import_private_decision_invalid:bad/);
+});
+
 test('accepts only an exact reviewed card-payment reversal decision', () => {
     const base = {
         pluggySnapshot: { observed_at: '2026-08-11T00:00:00.000Z', items: [] },

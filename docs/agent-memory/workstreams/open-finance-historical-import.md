@@ -537,45 +537,35 @@ escrita financeira.
 
 ## Proxima acao
 
-Tratar o residual bancario vigente sem ampliar inferencias: manter em revisao
-as 15 transferencias proprias ou do casal sem par de debito, tres creditos de
-emprestimo e sete depositos em dinheiro; pesquisar somente estabelecimentos e
-agrupar identidades humanas antes de nova consulta unica a Daniel. Writer,
-importacao em lote e producao permanecem bloqueados.
-
-O saneamento privado por recorrencia, pesquisa comercial e decisoes humanas
-elevou o plano inicialmente ate `1.729` itens prontos; as correcoes causais
-posteriores levaram primeiro a `1.704` prontos e `171` itens em revisao. As 58
-decisoes exatas do Gate 41.4 levaram o estado a `1.762` prontos e `113` itens
-em revisao; as oito decisoes do Gate 41.5 levaram o estado vigente a `1.770`
-prontos e `105` itens em revisao. O catalogo privado vigente e
-`historical-private-decisions-v45.json`; config e plano vigentes sao,
-respectivamente, `v196` e `v211`. O lote de revisao `v203`, a revisao
-enriquecida `v204` e o inventario `v207` sao artefatos anteriores, preservados
-somente para rastreabilidade e nao representam o residual vigente. O hash
-privado do plano e
-`d6dd5174cda03fa3375675dfe645b5178c8ad6b79562630d59f7c9ad6b96ecb4`;
-cobertura completa, oito bindings e `financial_writes=0` foram preservados.
-
-As ambiguidades comuns de categoria terminaram. A unica linha ainda marcada
-como `category_required` e um pagamento de Pix, que nao deve virar despesa
-comum. O candidato atual provou que ela pertence a uma triade de Pix financiado
-por cartao; existem quatro taxas em revisao. A primeira auditoria encontrou que
-dois titulares ausentes podiam comparar como iguais; a recuperacao agora exige
-identidade nao vazia nos dois bindings. O hash
-`f45a7b2a1b86ab3386482bb86429b538f2c84757` recebeu GO independente sem
-achados ou lacuna indispensavel. Abrir uma rodada incremental separada de
-2026-07-28 a 2026-08-14 sem alterar o
-RX historico. O residual historico vigente tem 105 itens: 81 entradas/estornos
-sem decisao semantica, 16 creditos de cartao sem vinculo, 4 taxas e 4 moedas
-nao suportadas.
-Ao exibir ocorrencias privadas, apresentar data, valor, conta/cartao,
-titular/origem e descricao de cada ocorrencia; agrupar intermediadores
-por beneficiario antes de perguntar, pesquisar apenas estabelecimentos e
-consultar Daniel uma vez por identidade humana ainda sem semantica. Manter
-moedas nao BRL, creditos sem vinculo forte, saldos rotativos e duplicatas
-provaveis retidos. Nao habilitar writer historico.
+Publicar e auditar o candidato causal do Gate 41.6. O residual bancario
+semantico esta encerrado no candidato; os 24 itens tecnicos permanecem retidos.
+Writer, importacao em lote, planilha e producao continuam bloqueados.
 
 ## Capacidade
 
-`Codex -> Sol -> Medio -> agrupar o residual bancario sem ampliar inferencias.`
+`Codex -> Sol -> Alto -> publicar e auditar o candidato causal do Gate 41.6.`
+
+## Estado prevalente - Gate 41.6
+
+- todas as decisoes semanticas do residual bancario foram confirmadas e
+  aplicadas somente por referencia exata no catalogo privado `v48`;
+- transferencia interna recebida agora aceita conta de origem textual somente
+  em credito bancario positivo; transferencias iguais exigem referencias
+  reciprocas e todos os controles causais do par;
+- credito de emprestimo confirmado fica excluido de renda; debito ou pendencia
+  continua em revisao;
+- a comparacao integral `v213 -> v214` manteve 2.351 entradas e encontrou
+  exatamente 27 alteracoes autorizadas, nenhuma inesperada e nenhuma ausente;
+- plano privado vigente: 1.846 prontos, 2 existentes, 34 duplicatas provaveis,
+  284 excluidos, 24 em revisao e 161 fora da janela;
+- os 24 residuos sao exclusivamente tecnicos: 16 creditos de cartao sem
+  vinculo forte, quatro taxas de Pix financiado e quatro moedas nao suportadas;
+- config `v199`, plano `v214`, hash privado
+  `24ee5ded6b0e63b2d00afdea43a86a68a2cbf5f52858eeb12cdc6685edb0a494`,
+  cobertura completa, oito bindings e `financial_writes=0`;
+- bateria focal 73/73 e suite ampla final 1.705 aprovados, zero falhas e dez
+  skips controlados; nenhuma suite ampla foi repetida;
+- candidato sanitizado em
+  `docs/audit/254-open-finance-historical-bank-credit-causality-candidate-2026-08-15.md`;
+- writer, importacao real, planilha, WhatsApp, deploy e producao permanecem
+  bloqueados.

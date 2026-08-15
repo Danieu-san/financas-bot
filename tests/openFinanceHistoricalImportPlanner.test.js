@@ -899,6 +899,179 @@ test('plans an explicitly reviewed one-sided internal transfer without catalogin
     assert.equal(result.financial_writes, 0);
 });
 
+test('plans an explicitly reviewed incoming internal transfer from a historical account', () => {
+    const tx = transaction({
+        id: 'incoming-one-sided-transfer',
+        provider_id: 'incoming-one-sided-transfer-provider',
+        amount_cents: 3000,
+        type: 'CREDIT',
+        description: 'TransferÃªncia recebida Pessoa 1',
+        operation_type: 'PIX'
+    });
+    const stableRef = plan([tx]).entries[0].source_ref;
+    const result = plan([tx], {
+        decisionOverrides: {
+            [stableRef]: {
+                classification: 'internal_transfer',
+                originFinancialAccount: 'Conta histÃ³rica externa'
+            }
+        }
+    });
+
+    assert.equal(result.entries[0].state, 'ready');
+    assert.equal(result.entries[0].classification, 'transfer');
+    assert.equal(result.entries[0].reason, 'explicit_one_sided_internal_transfer');
+    assert.equal(result.entries[0].write_plan.sheet_name, `Transfer\u00eancias`);
+    assert.equal(result.entries[0].write_plan.row[3], 'Conta histÃ³rica externa');
+    assert.equal(result.entries[0].write_plan.row[4], 'Conta 1');
+    assert.equal(result.financial_writes, 0);
+});
+
+test('uses reciprocal exact decisions to disambiguate equal family transfers without duplicate effects', () => {
+    const accountBindings = {
+        ...bindings,
+        'bank-2': {
+            kind: 'bank',
+            ownerUserId: 'person-2',
+            ownerLabel: 'Pessoa 2',
+            financialAccount: 'Conta 2',
+            paymentMethod: 'DÃ©bito'
+        }
+    };
+    const transactions = [
+        transaction({ id: 'out-1', provider_id: 'out-provider-1', amount_cents: -12345,
+            date: '2026-01-10T10:00:00.000Z', description: 'TransferÃªncia enviada Pessoa 2' }),
+        transaction({ id: 'in-1', provider_id: 'in-provider-1', account_id: 'bank-2',
+            amount_cents: 12345, type: 'CREDIT', date: '2026-01-10T10:00:01.000Z',
+            description: 'TransferÃªncia recebida Pessoa 1' }),
+        transaction({ id: 'out-2', provider_id: 'out-provider-2', amount_cents: -12345,
+            date: '2026-01-10T10:02:00.000Z', description: 'TransferÃªncia enviada Pessoa 2' }),
+        transaction({ id: 'in-2', provider_id: 'in-provider-2', account_id: 'bank-2',
+            amount_cents: 12345, type: 'CREDIT', date: '2026-01-10T10:02:01.000Z',
+            description: 'TransferÃªncia recebida Pessoa 1' })
+    ];
+    const refs = plan(transactions, {
+        accounts: [{ id: 'bank-1', type: 'BANK' }, { id: 'bank-2', type: 'BANK' }],
+        accountBindings
+    }).entries.map(item => item.source_ref);
+    const decisionOverrides = {
+        [refs[0]]: { classification: 'internal_transfer_pair', counterpartSourceRef: refs[1] },
+        [refs[1]]: { classification: 'internal_transfer_pair', counterpartSourceRef: refs[0] },
+        [refs[2]]: { classification: 'internal_transfer_pair', counterpartSourceRef: refs[3] },
+        [refs[3]]: { classification: 'internal_transfer_pair', counterpartSourceRef: refs[2] }
+    };
+    const result = plan(transactions, {
+        accounts: [{ id: 'bank-1', type: 'BANK' }, { id: 'bank-2', type: 'BANK' }],
+        accountBindings,
+        decisionOverrides
+    });
+
+    assert.deepEqual(result.entries.map(item => item.state),
+        ['ready', 'excluded', 'ready', 'excluded']);
+    assert.equal(result.summary.ready, 2);
+    assert.equal(result.summary.excluded, 2);
+    assert.equal(result.entries.filter(item => item.write_plan).length, 2);
+    assert.equal(result.financial_writes, 0);
+
+    const invalid = plan(transactions, {
+        accounts: [{ id: 'bank-1', type: 'BANK' }, { id: 'bank-2', type: 'BANK' }],
+        accountBindings,
+        decisionOverrides: {
+            [refs[0]]: { classification: 'internal_transfer_pair', counterpartSourceRef: refs[3] }
+        }
+    });
+    assert.equal(invalid.entries[0].state, 'needs_review');
+    assert.equal(invalid.entries[3].state, 'needs_review');
+    assert.equal(invalid.entries.filter(item => item.write_plan).length, 0);
+});
+
+test('keeps reciprocal transfer decisions closed across amount, status and source boundaries', () => {
+    const accountBindings = {
+        ...bindings,
+        'bank-2': {
+            kind: 'bank', ownerUserId: 'person-2', ownerLabel: 'Pessoa 2',
+            financialAccount: 'Conta 2', paymentMethod: 'DÃ©bito'
+        }
+    };
+    const close = (transactions, accounts, scopedBindings = accountBindings) => {
+        const refs = plan(transactions, { accounts, accountBindings: scopedBindings })
+            .entries.map(item => item.source_ref);
+        const result = plan(transactions, {
+            accounts,
+            accountBindings: scopedBindings,
+            decisionOverrides: {
+                [refs[0]]: {
+                    classification: 'internal_transfer_pair',
+                    counterpartSourceRef: refs[1]
+                },
+                [refs[1]]: {
+                    classification: 'internal_transfer_pair',
+                    counterpartSourceRef: refs[0]
+                }
+            }
+        });
+        assert.equal(result.entries.filter(item => item.write_plan).length, 0);
+        assert.equal(result.entries.every(item => item.state === 'needs_review'), true);
+    };
+    const bankAccounts = [{ id: 'bank-1', type: 'BANK' }, { id: 'bank-2', type: 'BANK' }];
+    close([
+        transaction({ id: 'amount-out', provider_id: 'amount-out-provider', amount_cents: -12345 }),
+        transaction({ id: 'amount-in', provider_id: 'amount-in-provider', account_id: 'bank-2',
+            amount_cents: 12346, type: 'CREDIT' })
+    ], bankAccounts);
+    close([
+        transaction({ id: 'pending-out', provider_id: 'pending-out-provider', amount_cents: -23456 }),
+        transaction({ id: 'pending-in', provider_id: 'pending-in-provider', account_id: 'bank-2',
+            amount_cents: 23456, type: 'CREDIT', status: 'PENDING' })
+    ], bankAccounts);
+    close([
+        transaction({ id: 'card-out', provider_id: 'card-out-provider', amount_cents: -34567 }),
+        transaction({ id: 'card-in', provider_id: 'card-in-provider', account_id: 'card-1',
+            amount_cents: 34567, type: 'DEBIT' })
+    ], [{ id: 'bank-1', type: 'BANK' }, { id: 'card-1', type: 'CREDIT' }], bindings);
+});
+
+test('excludes exact reviewed loan proceeds only for a posted bank credit', () => {
+    const credit = transaction({
+        id: 'loan-credit', provider_id: 'loan-credit-provider',
+        amount_cents: 3000, type: 'CREDIT', status: 'POSTED',
+        description: 'DepÃ³sito de emprÃ©stimo'
+    });
+    const creditRef = plan([credit]).entries[0].source_ref;
+    const result = plan([credit], {
+        decisionOverrides: { [creditRef]: { classification: 'loan_proceeds' } }
+    });
+    assert.equal(result.entries[0].state, 'excluded');
+    assert.equal(result.entries[0].classification, 'loan_proceeds');
+    assert.equal(result.entries[0].reason, 'explicit_loan_proceeds_not_income');
+
+    const debit = transaction({
+        id: 'loan-debit', provider_id: 'loan-debit-provider',
+        amount_cents: -3000, type: 'DEBIT', status: 'POSTED',
+        description: 'DepÃ³sito de emprÃ©stimo'
+    });
+    const debitRef = plan([debit]).entries[0].source_ref;
+    const invalid = plan([debit], {
+        decisionOverrides: { [debitRef]: { classification: 'loan_proceeds' } }
+    });
+    assert.equal(invalid.entries[0].state, 'needs_review');
+    assert.equal(invalid.entries[0].reason,
+        'explicit_loan_proceeds_requires_posted_bank_credit');
+
+    const pending = transaction({
+        id: 'loan-pending', provider_id: 'loan-pending-provider',
+        amount_cents: 3000, type: 'CREDIT', status: 'PENDING',
+        description: 'DepÃ³sito de emprÃ©stimo'
+    });
+    const pendingRef = plan([pending]).entries[0].source_ref;
+    const pendingResult = plan([pending], {
+        decisionOverrides: { [pendingRef]: { classification: 'loan_proceeds' } }
+    });
+    assert.equal(pendingResult.entries[0].state, 'needs_review');
+    assert.equal(pendingResult.entries[0].reason,
+        'explicit_loan_proceeds_requires_posted_bank_credit');
+});
+
 test('fails closed when an explicit one-sided transfer is not a bank debit', () => {
     const positiveTransaction = transaction({
         id: 'positive-transfer',

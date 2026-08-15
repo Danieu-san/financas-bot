@@ -548,9 +548,56 @@ function flattenSnapshot(pluggySnapshot) {
 }
 
 function strongTransferPairs(transactions, accountBindings,
-    historyStartDate, historyEndDate) {
+    historyStartDate, historyEndDate, decisionOverrides = {}) {
     const paired = new Map();
     const causalCandidatesByRef = new Map();
+    const transactionsByRef = new Map(transactions.map(transaction => [
+        sourceRef(transaction), transaction
+    ]));
+    const providerCounts = transactions.reduce((counts, transaction) => {
+        const identity = providerIdentity(transaction);
+        if (identity) counts.set(identity, (counts.get(identity) || 0) + 1);
+        return counts;
+    }, new Map());
+    const isInsideWindow = transaction => {
+        const date = isoDate(transaction.date);
+        return date >= historyStartDate && date <= historyEndDate;
+    };
+    const isStableReviewedPairSide = transaction => {
+        const binding = accountBindings[transaction?.account_id];
+        const identity = providerIdentity(transaction || {});
+        return binding?.kind === 'bank' && transaction.account_type === 'BANK' &&
+            normalizeText(transaction.status).toUpperCase() === 'POSTED' &&
+            String(transaction.currency || '').trim().toUpperCase() === 'BRL' &&
+            Number.isFinite(Number(transaction.amount_cents)) &&
+            Number(transaction.amount_cents) !== 0 && identity &&
+            providerCounts.get(identity) === 1 && isInsideWindow(transaction);
+    };
+    for (const transaction of transactions) {
+        const ref = sourceRef(transaction);
+        if (paired.has(ref)) continue;
+        const decision = decisionOverrides[ref] ||
+            decisionOverrides[transaction.id] || {};
+        if (decision.classification !== 'internal_transfer_pair') continue;
+        const counterpartRef = String(decision.counterpartSourceRef || '').trim();
+        const counterpart = transactionsByRef.get(counterpartRef);
+        const reciprocal = counterpart && (decisionOverrides[counterpartRef] ||
+            decisionOverrides[counterpart.id] || {});
+        if (reciprocal?.classification !== 'internal_transfer_pair' ||
+            reciprocal.counterpartSourceRef !== ref ||
+            !isStableReviewedPairSide(transaction) ||
+            !isStableReviewedPairSide(counterpart) ||
+            transaction.account_id === counterpart.account_id ||
+            Number(transaction.amount_cents) !== -Number(counterpart.amount_cents) ||
+            dayDistance(transaction.date, counterpart.date) > 1) {
+            continue;
+        }
+        const origin = Number(transaction.amount_cents) < 0
+            ? transaction : counterpart;
+        const credit = origin === transaction ? counterpart : transaction;
+        paired.set(sourceRef(origin), { role: 'origin', pair: credit });
+        paired.set(sourceRef(credit), { role: 'counterpart', pair: origin });
+    }
     const identityTokens = binding => {
         const accountIdentity = normalizeText(binding?.financialAccount)
             .split(' ').filter(token => token.length >= 4 &&
@@ -588,6 +635,7 @@ function strongTransferPairs(transactions, accountBindings,
     };
     for (let i = 0; i < transactions.length; i += 1) {
         const left = transactions[i];
+        if (paired.has(sourceRef(left))) continue;
         if (Number(left.amount_cents) >= 0 || !accountBindings[left.account_id] ||
             accountBindings[left.account_id].kind !== 'bank') continue;
         const reference = String(left.reference_number || '').trim();
@@ -601,6 +649,7 @@ function strongTransferPairs(transactions, accountBindings,
             : causalCandidates(left).filter(right =>
                 causalCandidates(right).length === 1);
         if (candidates.length === 1) {
+            if (paired.has(sourceRef(candidates[0]))) continue;
             paired.set(sourceRef(left), {
                 role: 'origin',
                 pair: candidates[0]
@@ -1100,21 +1149,49 @@ function classifyTransaction({
             'merchant_rule_conflict');
     }
     const classification = override.classification || rule?.classification || '';
+    if (classification === 'internal_transfer_pair') {
+        return entry(transaction, 'needs_review', 'transfer',
+            'explicit_transfer_pair_not_proven');
+    }
     if (classification === 'internal_transfer') {
         const destination = String(override.destinationFinancialAccount || '').trim();
-        if (binding.kind !== 'bank' || Number(transaction.amount_cents) >= 0 ||
-            !destination || normalizeText(destination) ===
-                normalizeText(binding.financialAccount)) {
+        const origin = String(override.originFinancialAccount || '').trim();
+        const amount = Number(transaction.amount_cents);
+        const outgoing = amount < 0 && destination && !origin &&
+            normalizeText(destination) !== normalizeText(binding.financialAccount);
+        const incoming = amount > 0 && origin && !destination &&
+            normalizeText(origin) !== normalizeText(binding.financialAccount);
+        if (binding.kind !== 'bank' || (!outgoing && !incoming)) {
             return entry(transaction, 'needs_review', 'transfer',
-                'explicit_transfer_requires_bank_debit');
+                destination && !origin
+                    ? 'explicit_transfer_requires_bank_debit'
+                    : origin && !destination
+                        ? 'explicit_transfer_requires_bank_credit'
+                        : 'explicit_transfer_requires_directional_bank_movement');
         }
         return entry(transaction, 'ready', 'transfer',
             'explicit_one_sided_internal_transfer', transferWritePlan(
                 transaction,
-                binding,
-                { financialAccount: destination, ownerUserId: binding.ownerUserId },
+                outgoing ? binding : {
+                    financialAccount: origin,
+                    ownerUserId: binding.ownerUserId
+                },
+                outgoing ? {
+                    financialAccount: destination,
+                    ownerUserId: binding.ownerUserId
+                } : binding,
                 'transfer'
             ));
+    }
+    if (classification === 'loan_proceeds') {
+        if (binding.kind !== 'bank' || Number(transaction.amount_cents) <= 0 ||
+            transaction.type !== 'CREDIT' ||
+            normalizeText(transaction.status).toUpperCase() !== 'POSTED') {
+            return entry(transaction, 'needs_review', 'loan_proceeds',
+                'explicit_loan_proceeds_requires_posted_bank_credit');
+        }
+        return entry(transaction, 'excluded', 'loan_proceeds',
+            'explicit_loan_proceeds_not_income');
     }
     const operation = normalizeText(transaction.operation_type).toUpperCase();
     const reserveDirection = classification === 'reserve_application' ||
@@ -1246,7 +1323,7 @@ function planOpenFinanceHistoricalImport({
     const sourceObservedAt = snapshotObservedAt(pluggySnapshot);
     const patterns = categoryPatterns(sheetSnapshot);
     const pairs = strongTransferPairs(transactions, accountBindings,
-        historyStartDate, historyEndDate);
+        historyStartDate, historyEndDate, decisionOverrides);
     const refundPairs = strongUnwrittenRefundPairs(transactions, accountBindings,
         sheetSnapshot, historyStartDate, historyEndDate);
     const cardPaymentPairs = strongCardBillPaymentPairs(transactions, accountBindings,
