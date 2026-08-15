@@ -587,6 +587,15 @@ test('Gate 42 runtime log exposes only allowlisted fail-closed reason codes', as
         await runtime.execute();
         assert.match(warnings[1], /reason=unknown/);
         assert.doesNotMatch(warnings[1], /user@example\.com/);
+
+        error = new Error('private_token_12345');
+        await runtime.execute();
+        assert.match(warnings[2], /reason=unknown/);
+        assert.doesNotMatch(warnings[2], /private_token_12345/);
+
+        error = new Error('open_finance_proactive_review_replay_conflict');
+        await runtime.execute();
+        assert.match(warnings[3], /reason=open_finance_proactive_review_replay_conflict/);
     } finally {
         runtime.stop();
     }

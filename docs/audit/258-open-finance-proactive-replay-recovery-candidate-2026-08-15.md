@@ -34,19 +34,31 @@ Nenhuma fila ou arquivo de producao foi alterado e `financial_writes=0`.
   proposta ja transportada continua produzindo conflito e rollback atomico;
 - revisoes proativas reaproveitam `created_at` e `expires_at` duraveis no replay,
   sem estender retencao;
-- o log de `NO_GO` inclui apenas `reason` em formato allowlisted; texto livre ou
-  erro externo continua reduzido a `unknown`.
+- o log de `NO_GO` inclui `reason` somente para os dois codigos fechados
+  `save_proposal_replay_conflict` e
+  `open_finance_proactive_review_replay_conflict`; qualquer outro texto,
+  inclusive um identificador sintaticamente valido, e reduzido a `unknown`.
+
+## Reauditoria corretiva
+
+O primeiro hash publicado, `f413010a2a8b58cc12808476cfb9cee5f1b3d6f9`,
+recebeu `NO-GO` independente por um unico achado `MEDIO`: a validacao de
+`reason` era uma expressao regular e nao uma lista fechada. A recuperacao das
+propostas, o replay proativo e a fronteira de transporte foram aprovados.
+
+O candidato atual substitui a expressao regular pela lista fechada acima e
+acrescenta prova causal de que `private_token_12345` nao aparece no log.
 
 ## Evidencia
 
-- testes focais: `43/43` verdes;
+- testes focais depois da correcao: `43/43` verdes;
 - bateria causal ampliada: `402/402` verde;
 - uma unica suite hermetica ampla:
   - `1723` testes;
   - `1713` aprovados;
   - `0` falhas;
   - `10` ignorados previstos;
-  - cobertura de linhas `91.51%`;
+  - cobertura de linhas `91.49%`;
 - clone do estado real da OCI com o candidato:
   - `outcome=GO`;
   - `refreshed=8` propostas nunca transportadas;
