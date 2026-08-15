@@ -206,13 +206,16 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    reconciliacao documental, o hash
    `59468cad282f911921feaeb4d084e143c6ae6d45` recebeu `SUFICIENTE`, sem lacuna
    indispensavel no alcance declarado e sem autorizar escrita.
-9.15. [candidato aguardando auditoria] Aplicar oito decisoes individuais
+9.15. [concluida documentalmente] Aplicar oito decisoes individuais
    confirmadas por Daniel ao residual bancario, sem criar regra ampla por
    pagador, valor ou descricao. A comparacao integral manteve 2.351 entradas e
    encontrou somente as oito transicoes esperadas para `ready / income`, na
    aba `Entradas`, sem recorrencia e com zero escrita. O plano privado ficou
    com 1.770 prontos, 105 revisoes, cobertura completa e hash
    `d6dd5174cda03fa3375675dfe645b5178c8ad6b79562630d59f7c9ad6b96ecb4`.
+   O hash imutavel `f350897c4ceea748c6fa3a8666c42301c2c34dd1` recebeu parecer
+   `SUFICIENTE`, sem lacuna documental indispensavel, autorizando somente o
+   fechamento documental e a continuidade read-only.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 
@@ -252,8 +255,7 @@ creditos sem vinculo forte e duplicatas provaveis continuam retidos.
 
 ## Proxima acao
 
-Submeter o Gate 41.5 a auditoria documental por hash imutavel. Depois do
-parecer, tratar o residual bancario vigente sem ampliar inferencias. Preservar em
+Tratar o residual bancario vigente sem ampliar inferencias. Preservar em
 revisao transferencias proprias ou familiares sem par de debito nas contas
 vinculadas, creditos de emprestimo e depositos em dinheiro; pesquisar somente
 estabelecimentos e agrupar identidades humanas antes de nova consulta a Daniel.

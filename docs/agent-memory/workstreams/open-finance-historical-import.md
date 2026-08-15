@@ -468,7 +468,13 @@ escrita financeira.
   producao foi acionado;
 - candidato sanitizado em
   `docs/audit/252-open-finance-historical-residual-income-candidate-2026-08-14.md`,
-  ainda aguardando auditoria independente.
+  publicado no hash `f350897c4ceea748c6fa3a8666c42301c2c34dd1`;
+- a auditoria independente leu os quatro arquivos no mesmo hash, confirmou a
+  consistencia dos numeros e do alcance, declarou nenhuma lacuna documental
+  indispensavel e retornou `SUFICIENTE`;
+- ficou autorizado apenas o fechamento documental do Gate 41.5 e a continuidade
+  read-only. Fechamento em
+  `docs/audit/253-open-finance-historical-residual-income-independent-close-2026-08-14.md`.
 
 ## Evidencia local atual
 
@@ -572,4 +578,4 @@ provaveis retidos. Nao habilitar writer historico.
 
 ## Capacidade
 
-`Codex -> Sol -> Medio -> auditar documentalmente o Gate 41.5 por hash imutavel.`
+`Codex -> Sol -> Medio -> agrupar o residual bancario sem ampliar inferencias.`
