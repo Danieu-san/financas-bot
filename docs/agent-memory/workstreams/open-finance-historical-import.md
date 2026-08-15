@@ -366,7 +366,7 @@ escrita financeira.
   agrupados por pagador, conta, valor e recorrencia antes de nova consulta a
   Daniel.
 
-## Candidato Gate 41.2
+## Gate 41.2 fechado
 
 - o configurador aceita `card_payment_reversal` somente como decisao privada
   exata; regras de comerciante nao podem produzir essa classificacao;
@@ -384,7 +384,11 @@ escrita financeira.
   `11fc5a3a5fa0f685d98e9db5677b3c082db3644509fa9a8049b70abb42fcaf2a`;
 - candidato documentado em
   `docs/audit/243-open-finance-card-payment-reversal-candidate-2026-08-14.md`;
-  auditoria independente por hash imutavel ainda e obrigatoria.
+- duas recuperacoes probatorias fecharam identidade repetida, existente exato,
+  duplicata forte nao identica e ambiguidade inversa;
+- o hash `3a9e09f6b816a26c873eb339aa09027b5b39b820` recebeu `GO TECNICO LOCAL`
+  independente, com zero achados e nenhuma lacuna indispensavel; fechamento em
+  `docs/audit/246-open-finance-card-payment-reversal-independent-close-2026-08-14.md`.
 
 ## Evidencia local atual
 
@@ -447,14 +451,11 @@ escrita financeira.
 
 ## Proxima acao
 
-Publicar o recovery do Gate 41.2 e obter reauditoria independente por novo hash
-imutavel. A primeira auditoria confirmou a implementacao, mas apontou lacuna
-probatoria MEDIA; os primeiros controles ausentes passaram em focal `68/68`
-e ampla historica `143/143`. A reauditoria confirmou identidade repetida,
-existente exato e ambiguidade inversa, mas pediu a integracao da duplicata forte
-nao identica. A segunda recuperacao adiciona essa prova. Somente apos GO
-registrar o fechamento; writer, planilha, recorrencia e producao permanecem fora
-deste candidato.
+Gate 41.2 encerrado com GO tecnico local independente no hash
+`3a9e09f6b816a26c873eb339aa09027b5b39b820`. Abrir uma etapa separada para
+atualizar no catalogo `Contas` a nova mensalidade de aula de musica ja
+classificada e recalcular o plano incremental read-only. Writer, importacao em
+lote e producao permanecem bloqueados.
 
 O saneamento privado por recorrencia, pesquisa comercial e decisoes humanas
 elevou o plano inicialmente ate `1.729` itens prontos; as correcoes causais

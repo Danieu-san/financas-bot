@@ -167,7 +167,7 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    `7e7166823f4e2d77be76d864a14ef979ed11e524` recebeu GO independente,
    sem achados bloqueantes ou lacuna indispensavel no escopo read-only; a suite
    geral continua sem veredito e sera exigida antes de writer ou release.
-9.12. [recovery local aguardando reauditoria] Oito decisoes incrementais por
+9.12. [GO tecnico local independente] Oito decisoes incrementais por
    ocorrencia passaram a `ready` sem mudanca colateral. A devolucao restante
    agora exige decisao privada exata e o par forte original de pagamento,
    identidade de titular/conexao, valor, tempo, estado e unicidade mutua. RED
@@ -178,7 +178,9 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    identidade repetida, linha ja existente e ambiguidade inversa; focal
    `68/68` e ampla final `143/143`. A reauditoria confirmou esses controles,
    mas pediu a prova integrada de duplicata forte nao identica. A segunda
-   recuperacao acrescenta esse cenario e aguarda novo hash e reauditoria.
+   recuperacao acrescentou esse cenario. O hash
+   `3a9e09f6b816a26c873eb339aa09027b5b39b820` recebeu GO independente,
+   com zero achados e nenhuma lacuna indispensavel no escopo read-only.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 
@@ -218,9 +220,9 @@ creditos sem vinculo forte e duplicatas provaveis continuam retidos.
 
 ## Proxima acao
 
-Publicar o recovery sanitizado do Gate 41.2 e obter reauditoria independente
-por novo hash imutavel. Sem GO externo, o estado maximo e candidato local; nao
-habilitar writer nem alterar planilha ou producao.
+Abrir uma etapa separada para atualizar no catalogo `Contas` a nova mensalidade
+de aula de musica ja classificada e recalcular o plano incremental read-only.
+Manter writer historico, importacao em lote e producao bloqueados.
 
 Para revisoes futuras, agrupar os descritores de intermediadores pelo
 beneficiario real;
