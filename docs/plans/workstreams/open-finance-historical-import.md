@@ -193,7 +193,7 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    `69491a7728ca5c9fc4544c30a7acb40e10c315c0` recebeu parecer documental
    `SUFICIENTE`, sem lacuna indispensavel no escopo declarado e sem alegar
    verificacao independente dos artefatos privados.
-9.14. [candidato aguardando auditoria] Agrupar as 147 entradas ou estornos uma
+9.14. [concluida documentalmente] Agrupar as 147 entradas ou estornos uma
    unica vez e aplicar somente 58 decisoes confirmadas: 33 salarios pelos mesmos
    padroes da rodada incremental e 25 entradas do casamento pela fronteira exata
    definida por Daniel, sem ampliar a janela temporal. Decisoes exatas por
@@ -202,6 +202,10 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    demais estados permaneceram identicos. O plano privado ficou com 1.762
    prontos, 113 revisoes, cobertura completa e `financial_writes=0`, hash
    `cfd0df66c4753d376ab03847fd376112af7d9703a482c70b4336e8e08e8e1fc3`.
+   A primeira auditoria encontrou checkpoints vigentes obsoletos; depois da
+   reconciliacao documental, o hash
+   `59468cad282f911921feaeb4d084e143c6ae6d45` recebeu `SUFICIENTE`, sem lacuna
+   indispensavel no alcance declarado e sem autorizar escrita.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 
@@ -241,9 +245,10 @@ creditos sem vinculo forte e duplicatas provaveis continuam retidos.
 
 ## Proxima acao
 
-Submeter o Gate 41.4 a auditoria por hash imutavel. Preservar em revisao as
-transferencias proprias ou familiares sem par de debito nas contas vinculadas,
-creditos de emprestimo, depositos em dinheiro e demais pagadores sem semantica.
+Tratar o residual bancario vigente sem ampliar inferencias. Preservar em
+revisao transferencias proprias ou familiares sem par de debito nas contas
+vinculadas, creditos de emprestimo e depositos em dinheiro; pesquisar somente
+estabelecimentos e agrupar identidades humanas antes de nova consulta a Daniel.
 Nao habilitar writer historico, importacao real ou deploy.
 
 Para revisoes futuras, agrupar os descritores de intermediadores pelo

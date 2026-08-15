@@ -437,8 +437,16 @@ escrita financeira.
   mudaram. O plano privado ficou com 1.762 prontos e 113 em revisao, cobertura
   completa, `financial_writes=0` e hash
   `cfd0df66c4753d376ab03847fd376112af7d9703a482c70b4336e8e08e8e1fc3`;
-- nenhum item foi importado ou escrito na planilha. O candidato aguarda
-  auditoria por hash imutavel.
+- nenhum item foi importado ou escrito na planilha;
+- a primeira auditoria do hash
+  `f53793e536eff47737ff3c5eb34b4ad29f8d49e3` considerou coerentes a selecao e
+  a comparacao causal, mas emitiu `INSUFICIENTE` porque checkpoints rotulados
+  como vigentes ainda exibiam os totais anteriores;
+- os checkpoints foram reconciliados sem alterar a evidencia privada. A
+  reauditoria do hash `59468cad282f911921feaeb4d084e143c6ae6d45`
+  retornou `SUFICIENTE`, sem lacuna indispensavel no alcance documental, e
+  autorizou apenas o fechamento documental do Gate 41.4. Fechamento em
+  `docs/audit/251-open-finance-historical-income-decisions-independent-close-2026-08-14.md`.
 
 ## Evidencia local atual
 
@@ -501,10 +509,11 @@ escrita financeira.
 
 ## Proxima acao
 
-Auditar o Gate 41.4 por commit sanitizado. Depois do parecer, manter em
-revisao as 15 transferencias proprias ou do casal sem par de debito, tres
-creditos de emprestimo, sete depositos em dinheiro e os demais pagadores ainda
-sem semantica. Writer, importacao em lote e producao permanecem bloqueados.
+Tratar o residual bancario vigente sem ampliar inferencias: manter em revisao
+as 15 transferencias proprias ou do casal sem par de debito, tres creditos de
+emprestimo e sete depositos em dinheiro; pesquisar somente estabelecimentos e
+agrupar identidades humanas antes de nova consulta unica a Daniel. Writer,
+importacao em lote e producao permanecem bloqueados.
 
 O saneamento privado por recorrencia, pesquisa comercial e decisoes humanas
 elevou o plano inicialmente ate `1.729` itens prontos; as correcoes causais
