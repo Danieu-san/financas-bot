@@ -207,16 +207,16 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
 
 ## Estado privado vigente
 
-- 1.704 prontos;
+- 1.762 prontos;
 - 2 existentes comprovados;
 - 34 duplicatas provaveis;
 - 279 excluidos;
-- 171 em revisao;
+- 113 em revisao;
 - 161 fora da janela;
 - zero escrita financeira.
 
 As ambiguidades comuns de categoria terminaram. O residual exige decisoes
-causais sobre 147 entradas ou estornos sem vinculo, 16 creditos de cartao,
+causais sobre 89 entradas ou estornos sem vinculo, 16 creditos de cartao,
 quatro taxas de Pix financiado e quatro moedas nao suportadas; moedas nao BRL,
 creditos sem vinculo forte e duplicatas provaveis continuam retidos.
 

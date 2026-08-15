@@ -361,10 +361,10 @@ escrita financeira.
 - a nova mensalidade foi classificada nesta ocorrencia com a categoria
   recorrente ja usada. A atualizacao do catalogo `Contas` permanece pendente e
   nao foi feita dentro desta etapa read-only;
-- entradas historicas nao foram presumidas como salario: o residual historico
-  ainda contem 147 entradas ou estornos sem decisao semantica, que devem ser
-  agrupados por pagador, conta, valor e recorrencia antes de nova consulta a
-  Daniel.
+- naquele checkpoint, entradas historicas nao foram presumidas como salario:
+  o residual tinha 147 entradas ou estornos sem decisao semantica e exigia
+  agrupamento por pagador, conta, valor e recorrencia antes de nova consulta a
+  Daniel. O estado vigente posterior esta no Gate 41.4.
 
 ## Gate 41.2 fechado
 
@@ -508,13 +508,15 @@ sem semantica. Writer, importacao em lote e producao permanecem bloqueados.
 
 O saneamento privado por recorrencia, pesquisa comercial e decisoes humanas
 elevou o plano inicialmente ate `1.729` itens prontos; as correcoes causais
-posteriores resultaram em `1.704` prontos e reduziram de `521` para `171` itens
-em revisao. O catalogo privado vigente e
-`historical-private-decisions-v42.json`; config, plano, lote de revisao e
-revisao enriquecida vigentes sao, respectivamente, `v193`, `v208`, `v203` e
-`v204`; esses dois ultimos permanecem da rodada anterior e nao representam as
-taxas novas. O inventario residual vigente e `v207`. O hash privado do plano e
-`70bc39c8572cbe7851a2d3f8f918b6e2d108a84cbb5819dc9345ce7324f3f745`;
+posteriores levaram primeiro a `1.704` prontos e `171` itens em revisao. As 58
+decisoes exatas do Gate 41.4 levaram o estado vigente a `1.762` prontos e `113`
+itens em revisao. O catalogo privado vigente e
+`historical-private-decisions-v44.json`; config e plano vigentes sao,
+respectivamente, `v195` e `v210`. O lote de revisao `v203`, a revisao
+enriquecida `v204` e o inventario `v207` sao artefatos anteriores, preservados
+somente para rastreabilidade e nao representam o residual vigente. O hash
+privado do plano e
+`cfd0df66c4753d376ab03847fd376112af7d9703a482c70b4336e8e08e8e1fc3`;
 cobertura completa, oito bindings e `financial_writes=0` foram preservados.
 
 As ambiguidades comuns de categoria terminaram. A unica linha ainda marcada
@@ -526,9 +528,9 @@ identidade nao vazia nos dois bindings. O hash
 `f45a7b2a1b86ab3386482bb86429b538f2c84757` recebeu GO independente sem
 achados ou lacuna indispensavel. Abrir uma rodada incremental separada de
 2026-07-28 a 2026-08-14 sem alterar o
-RX historico. O residual historico tem 171 itens: 147 entradas/estornos sem
-decisao semantica, 16 creditos de cartao sem vinculo, 4 taxas e 4 moedas nao
-suportadas.
+RX historico. O residual historico vigente tem 113 itens: 89 entradas/estornos
+sem decisao semantica, 16 creditos de cartao sem vinculo, 4 taxas e 4 moedas
+nao suportadas.
 Ao exibir ocorrencias privadas, apresentar data, valor, conta/cartao,
 titular/origem e descricao de cada ocorrencia; agrupar intermediadores
 por beneficiario antes de perguntar, pesquisar apenas estabelecimentos e
