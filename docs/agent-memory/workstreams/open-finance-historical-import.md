@@ -448,6 +448,28 @@ escrita financeira.
   autorizou apenas o fechamento documental do Gate 41.4. Fechamento em
   `docs/audit/251-open-finance-historical-income-decisions-independent-close-2026-08-14.md`.
 
+## Gate 41.5 - entradas residuais confirmadas
+
+- Daniel confirmou oito ocorrencias individuais do residual bancario: presente
+  de casamento, servicos de arquitetura, entrada sem finalidade lembrada,
+  reembolso de cota imobiliaria e renda extra por entregas;
+- cada decisao foi aplicada por referencia exata e conferida contra origem,
+  data, valor e moeda, sem criar regra ampla por identidade ou descricao;
+- o catalogo privado passou de 209 para 217 decisoes e preservou 208 regras;
+- a comparacao integral das 2.351 entradas encontrou somente as oito
+  referencias esperadas em transicao de `needs_review / income_or_refund` para
+  `ready / income`, todas na aba `Entradas`, sem recorrencia e com
+  `financial_writes=0`;
+- o plano privado ficou com 1.770 prontos e 105 em revisao; os demais estados,
+  a cobertura completa e os oito bindings permaneceram identicos;
+- o hash privado do plano e
+  `d6dd5174cda03fa3375675dfe645b5178c8ad6b79562630d59f7c9ad6b96ecb4`;
+- nenhum writer, importacao real, alteracao de planilha, WhatsApp, deploy ou
+  producao foi acionado;
+- candidato sanitizado em
+  `docs/audit/252-open-finance-historical-residual-income-candidate-2026-08-14.md`,
+  ainda aguardando auditoria independente.
+
 ## Evidencia local atual
 
 - candidato de Pix financiado por cartao: RED focal de 1 falha, focal 47/47 e
@@ -518,14 +540,15 @@ importacao em lote e producao permanecem bloqueados.
 O saneamento privado por recorrencia, pesquisa comercial e decisoes humanas
 elevou o plano inicialmente ate `1.729` itens prontos; as correcoes causais
 posteriores levaram primeiro a `1.704` prontos e `171` itens em revisao. As 58
-decisoes exatas do Gate 41.4 levaram o estado vigente a `1.762` prontos e `113`
-itens em revisao. O catalogo privado vigente e
-`historical-private-decisions-v44.json`; config e plano vigentes sao,
-respectivamente, `v195` e `v210`. O lote de revisao `v203`, a revisao
+decisoes exatas do Gate 41.4 levaram o estado a `1.762` prontos e `113` itens
+em revisao; as oito decisoes do Gate 41.5 levaram o estado vigente a `1.770`
+prontos e `105` itens em revisao. O catalogo privado vigente e
+`historical-private-decisions-v45.json`; config e plano vigentes sao,
+respectivamente, `v196` e `v211`. O lote de revisao `v203`, a revisao
 enriquecida `v204` e o inventario `v207` sao artefatos anteriores, preservados
 somente para rastreabilidade e nao representam o residual vigente. O hash
 privado do plano e
-`cfd0df66c4753d376ab03847fd376112af7d9703a482c70b4336e8e08e8e1fc3`;
+`d6dd5174cda03fa3375675dfe645b5178c8ad6b79562630d59f7c9ad6b96ecb4`;
 cobertura completa, oito bindings e `financial_writes=0` foram preservados.
 
 As ambiguidades comuns de categoria terminaram. A unica linha ainda marcada
@@ -537,7 +560,7 @@ identidade nao vazia nos dois bindings. O hash
 `f45a7b2a1b86ab3386482bb86429b538f2c84757` recebeu GO independente sem
 achados ou lacuna indispensavel. Abrir uma rodada incremental separada de
 2026-07-28 a 2026-08-14 sem alterar o
-RX historico. O residual historico vigente tem 113 itens: 89 entradas/estornos
+RX historico. O residual historico vigente tem 105 itens: 81 entradas/estornos
 sem decisao semantica, 16 creditos de cartao sem vinculo, 4 taxas e 4 moedas
 nao suportadas.
 Ao exibir ocorrencias privadas, apresentar data, valor, conta/cartao,
@@ -549,4 +572,4 @@ provaveis retidos. Nao habilitar writer historico.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> auditar o Gate 41.3 e agrupar as entradas historicas residuais.`
+`Codex -> Sol -> Medio -> auditar documentalmente o Gate 41.5 por hash imutavel.`
