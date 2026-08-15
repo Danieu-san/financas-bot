@@ -4,12 +4,12 @@ const { getAllUsers, getUserSettingsByUserId } = require('./userService');
 const { parseSheetDate, parseValue, normalizeText, getFormattedDateOnly } = require('../utils/helpers');
 const {
     normalizeCycleStartDay,
-    getBudgetCycleForPeriod,
+    getBudgetCycleForReportingPeriod,
     dateIsWithinCycle
 } = require('../utils/budgetCycle');
 const { goalRowToObject } = require('./goalService');
 const { decorateDashboardSummary } = require('./dashboardSummaryService');
-const { isRegisteredBillPayment } = require('../utils/recurringBillMatcher');
+const { isFreeBudgetExpense } = require('../utils/freeBudgetEligibility');
 
 const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
@@ -225,19 +225,16 @@ function getSaoPauloDateParts() {
     };
 }
 
-function isFreeSpendingRow(row) {
-    const category = normalizeText(row?.[2] || '');
-    const recurring = normalizeText(row?.[7] || '');
-    if (recurring === 'sim') return false;
-    return ![
-        'transferencia',
-        'transferencias',
-        'divida',
-        'dividas',
-        'investimento',
-        'investimentos',
-        'reserva'
-    ].some(term => category.includes(term));
+function isFreeSpendingRow(row, accountRows = [], options = {}) {
+    return isFreeBudgetExpense({
+        date: row?.[0] || '',
+        description: row?.[1] || '',
+        category: row?.[2] || '',
+        subcategory: row?.[3] || '',
+        value: parseValue(row?.[4]),
+        recurrence: row?.[7] || '',
+        userId: row?.[9] || ''
+    }, accountRows, options);
 }
 
 function buildReserveSummary(transfers = []) {
@@ -492,7 +489,7 @@ function buildDailyGoalSummary({ settings, saidasRows, cartaoRows, cardConfigRow
     const cycleStartDay = normalizeCycleStartDay(settings?.monthly_budget_cycle_start_day || '1');
     const normalizedPeriod = normalizePeriod(period);
     const todayParts = getSaoPauloDateParts();
-    const cycle = getBudgetCycleForPeriod(normalizedPeriod, cycleStartDay, todayParts);
+    const cycle = getBudgetCycleForReportingPeriod(normalizedPeriod, cycleStartDay, todayParts);
     const isCurrentCycle = cycle.isCurrent;
 
     const today = getTodaySaoPauloDateString();
@@ -502,18 +499,17 @@ function buildDailyGoalSummary({ settings, saidasRows, cartaoRows, cardConfigRow
     };
     const saidasEligible = saidasRows.slice(1)
         .filter(row => {
-            if (!rowBelongsToAnyUser(row, 9, userIds) || !isFreeSpendingRow(row)) return false;
-            return !isRegisteredBillPayment({
-                date: row[0] || '',
-                description: row[1] || '',
-                category: row[2] || '',
-                subcategory: row[3] || '',
-                value: parseValue(row[4]),
-                userId: row[9] || ''
-            }, accountRows, { userIds });
+            return rowBelongsToAnyUser(row, 9, userIds) && isFreeSpendingRow(row, accountRows, { userIds });
         });
     const cartoesEligible = cartaoRows.slice(1)
-        .filter(row => rowBelongsToAnyUser(row, 9, userIds));
+        .filter(row => rowBelongsToAnyUser(row, 9, userIds) && isFreeBudgetExpense({
+            date: row[0] || '',
+            description: row[1] || '',
+            category: row[2] || '',
+            subcategory: 'Cartão de Crédito',
+            value: parseValue(row[3]),
+            userId: row[9] || ''
+        }, accountRows, { userIds }));
     const cardDueDayMap = buildCardDueDayMap(cardConfigRows);
     const saidasToday = isCurrentCycle
         ? saidasEligible.filter(row => todayMatches(row[0])).reduce((sum, row) => sum + parseValue(row[4]), 0)

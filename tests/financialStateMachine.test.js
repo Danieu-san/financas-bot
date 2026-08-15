@@ -4803,6 +4803,37 @@ stateMachineTest('financial states: monthly budget alert counts explicit credit 
     assert.strictEqual(sheets.UserSettings[1][16], '100');
 });
 
+stateMachineTest('financial states: monthly budget alert excludes registered bills paid by card', async () => {
+    resetState();
+    sheets.UserSettings[1][13] = 'SIM';
+    sheets.UserSettings[1][14] = String(20 * daysRemainingTodaySaoPaulo());
+    const day = Number(todayBr().slice(0, 2));
+    const billingMonth = new Intl.DateTimeFormat('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        month: 'long',
+        year: 'numeric'
+    }).format(new Date());
+    sheets.Contas.push(['Spotify', String(day), '', USER_ID, 'Spotify', 'Assinaturas', 'Streaming', '50', 'SIM']);
+    sheets['Cartão Nubank - Thais'].push([todayBr(), 'Spotify', 'Assinaturas', 50, '1/1', billingMonth, USER_ID]);
+    enqueueStructuredResponse({
+        intent: 'gasto',
+        gastoDetails: [{
+            descricao: 'mercado',
+            valor: 20,
+            categoria: 'Alimentação',
+            subcategoria: 'SUPERMERCADO',
+            pagamento: 'Crédito',
+            recorrente: 'Não'
+        }]
+    });
+
+    const reply = await send('gastei 20 reais no mercado no crédito no cartão nubank thais à vista');
+
+    assert.match(reply, /Gasto livre de hoje: R\$\s*20,00/i);
+    assert.match(reply, /100%/);
+    assert.doesNotMatch(reply, /R\$\s*70,00/);
+});
+
 stateMachineTest('financial states: saved credit card expense is not reported as failed when budget alert send fails', async () => {
     resetState();
     sheets.UserSettings[1][13] = 'SIM';

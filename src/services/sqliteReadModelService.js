@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const logger = require('../utils/logger');
 const { normalizeText, parseValue, parseSheetDate } = require('../utils/helpers');
 const { matchesAnyField } = require('../utils/textMatcher');
-const { normalizeCycleStartDay, getBudgetCycleForDate, getBudgetCycleForPeriod } = require('../utils/budgetCycle');
+const { normalizeCycleStartDay, getBudgetCycleForDate, getBudgetCycleForReportingPeriod } = require('../utils/budgetCycle');
 
 let Database = null;
 try {
@@ -2120,7 +2120,7 @@ function queryBudgetFinancialQueryDataSourcesSql(plan, { userId, userIds, curren
     };
     const period = plan.filters?.period || {};
     const cycle = period.type === 'month' && Number.isInteger(period.month) && Number.isInteger(period.year)
-        ? getBudgetCycleForPeriod(period, cycleStartDay, referenceParts)
+        ? getBudgetCycleForReportingPeriod(period, cycleStartDay, referenceParts)
         : getBudgetCycleForDate(referenceParts, cycleStartDay);
     const startIso = formatIsoDate(cycle.start);
     const endIso = formatIsoDate(cycle.end);

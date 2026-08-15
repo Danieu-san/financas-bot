@@ -1,11 +1,12 @@
 const { normalizeFinancialQueryPlan } = require('./financialQueryPlan');
 const { parseSheetDate, parseValue, normalizeText, getFormattedDateOnly } = require('../utils/helpers');
 const { matchesAnyField } = require('../utils/textMatcher');
-const { isRegisteredBillPayment, recurringBillPaymentScore } = require('../utils/recurringBillMatcher');
+const { recurringBillPaymentScore } = require('../utils/recurringBillMatcher');
+const { isFreeBudgetExpense } = require('../utils/freeBudgetEligibility');
 const {
     normalizeCycleStartDay,
     getBudgetCycleForDate,
-    getBudgetCycleForPeriod,
+    getBudgetCycleForReportingPeriod,
     dateIsWithinCycle
 } = require('../utils/budgetCycle');
 const { validDueDay, buildRecurringDueDate } = require('../utils/recurringDueDate');
@@ -657,16 +658,13 @@ function budgetCycleFromPlan(plan = {}, cycleStartDay = 1, referenceDate = new D
     const period = plan.filters?.period || {};
     const referenceParts = datePartsFromDate(referenceDate);
     if (period.type === 'month' && Number.isInteger(period.month) && Number.isInteger(period.year)) {
-        return getBudgetCycleForPeriod(period, cycleStartDay, referenceParts);
+        return getBudgetCycleForReportingPeriod(period, cycleStartDay, referenceParts);
     }
     return getBudgetCycleForDate(referenceParts, cycleStartDay);
 }
 
-function isBudgetFreeSpendingItem(item = {}) {
-    if (normalizeText(item.recurrence || '') === 'sim') return false;
-    const text = normalizeText(`${item.category || ''} ${item.subcategory || ''} ${item.description || ''}`);
-    return !['transferencia', 'transferencias', 'divida', 'dividas', 'investimento', 'investimentos', 'reserva', 'caixinha']
-        .some(term => text.includes(term));
+function isBudgetFreeSpendingItem(item = {}, accountRows = [], options = {}) {
+    return isFreeBudgetExpense(item, accountRows, options);
 }
 
 function sameCalendarDay(date, referenceDate) {
@@ -706,8 +704,7 @@ function getBudgetRows(dataSources = {}, plan = {}, cycle = {}, referenceDate = 
     if (Array.isArray(dataSources.saidas)) {
         dataSources.saidas.slice(1).forEach((row) => {
             const item = toExpenseFromOutput(row);
-            if (!allowed(item) || !isBudgetFreeSpendingItem(item)) return;
-            if (isRegisteredBillPayment(item, accountRows, { userIds: scopeUserIds, allowFamilyPayment })) return;
+            if (!allowed(item) || !isBudgetFreeSpendingItem(item, accountRows, { userIds: scopeUserIds, allowFamilyPayment })) return;
             const impactDate = parseSheetDate(item.date);
             if (!dateIsWithinCycle(impactDate, cycle)) return;
             rows.push({
@@ -724,7 +721,7 @@ function getBudgetRows(dataSources = {}, plan = {}, cycle = {}, referenceDate = 
             if (!Array.isArray(sheetRows)) return;
             sheetRows.slice(1).forEach((row) => {
                 const item = toExpenseFromCard(row);
-                if (!allowed(item)) return;
+                if (!allowed(item) || !isBudgetFreeSpendingItem(item, accountRows, { userIds: scopeUserIds, allowFamilyPayment })) return;
                 const impactDate = getCardBudgetImpactDate(item, dueDayMap);
                 if (!dateIsWithinCycle(impactDate, cycle)) return;
                 rows.push({

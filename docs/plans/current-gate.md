@@ -4,7 +4,7 @@ Atualizado em: 2026-08-15
 
 ## Estado
 
-`DASHBOARD V2 E CHECK 09:05 ENCERRADOS; LIMITE MENSAL EM DIAGNOSTICO`.
+`LIMITE MENSAL: CANDIDATO LOCAL VERDE, AGUARDANDO AUDITORIA INDEPENDENTE`.
 
 ## Objetivo
 
@@ -51,4 +51,4 @@ aprovadas; corrigir qualquer divergencia encontrada.
 
 ## Proxima acao
 
-Mapear codigo, testes e configuracoes que definem limite mensal e categorias.
+Criar e publicar commit sanitizado; auditar uma vez no Chat pelo hash imutavel.

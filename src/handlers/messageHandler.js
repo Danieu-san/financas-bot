@@ -163,7 +163,7 @@ const {
 } = require('../reliability/interpretationReliabilityGate');
 const { recordInterpretationReliabilityShadow } = require('../reliability/reliabilityTelemetry');
 const { evaluateFamilyModeAccess } = require('../services/familyModeService');
-const { isRegisteredBillPayment } = require('../utils/recurringBillMatcher');
+const { isFreeBudgetExpense } = require('../utils/freeBudgetEligibility');
 
 // Base de Conhecimento para Gastos
 const mapeamentoGastos = {
@@ -2807,19 +2807,47 @@ function getSaoPauloDateParts() {
     };
 }
 
-function isFreeSpendingRow(row) {
-    const category = normalizeText(row?.[2] || '');
-    const recurring = normalizeText(row?.[7] || '');
-    if (recurring === 'sim') return false;
-    return ![
-        'transferencia',
-        'transferencias',
-        'divida',
-        'dividas',
-        'investimento',
-        'investimentos',
-        'reserva'
-    ].some(term => category.includes(term));
+function isFreeSpendingRow(row, accountRows = [], options = {}) {
+    return isFreeBudgetExpense({
+        date: row?.[0] || '',
+        description: row?.[1] || '',
+        category: row?.[2] || '',
+        subcategory: row?.[3] || '',
+        value: parseValue(row?.[4]),
+        recurrence: row?.[7] || '',
+        userId: row?.[9] || ''
+    }, accountRows, options);
+}
+
+function parseMonthlyBudgetBillingMonth(value) {
+    const text = normalizeText(String(value || '').trim());
+    const match = text.match(/^(.+?)\s+de\s+(\d{4})$/);
+    if (!match) return null;
+    const month = MONTH_NAMES.findIndex(name => normalizeText(name) === match[1]);
+    const year = Number.parseInt(match[2], 10);
+    return month >= 0 && Number.isInteger(year) ? { month, year } : null;
+}
+
+function buildMonthlyBudgetCardDueDayMap(rows = []) {
+    const map = new Map();
+    (rows || []).slice(1).forEach(row => {
+        const dueDay = Number.parseInt(row?.[4], 10);
+        if (!Number.isInteger(dueDay) || dueDay < 1 || dueDay > 31) return;
+        [row?.[0], row?.[1]].forEach(value => {
+            const key = normalizeText(value || '');
+            if (key) map.set(key, dueDay);
+        });
+    });
+    return map;
+}
+
+function getMonthlyBudgetCardImpactDate(row = [], dueDayMap = new Map()) {
+    const billing = parseMonthlyBudgetBillingMonth(row?.[5]);
+    if (!billing) return parseSheetDate(row?.[0]);
+    const keys = [row?.[6], row?.[7]].map(value => normalizeText(value || '')).filter(Boolean);
+    const dueDay = keys.reduce((result, key) => result || dueDayMap.get(key), 0) || 1;
+    const lastDay = new Date(billing.year, billing.month + 1, 0).getDate();
+    return new Date(billing.year, billing.month, Math.min(dueDay, lastDay), 12, 0, 0, 0);
 }
 
 async function calculateMonthlyBudgetSpend(userId, today = getTodaySaoPauloDateString(), userIds = [userId], cycleStartDay = 1) {
@@ -2831,10 +2859,11 @@ async function calculateMonthlyBudgetSpend(userId, today = getTodaySaoPauloDateS
             return [];
         }
     };
-    const [saidasRows, cardRows, accountRows] = await Promise.all([
+    const [saidasRows, cardRows, accountRows, cardConfigRows] = await Promise.all([
         safeReadRows('Saídas!A:J'),
         safeReadRows('Lançamentos Cartão!A:J'),
-        safeReadRows('Contas!A:I')
+        safeReadRows('Contas!A:I'),
+        safeReadRows('Cartões!A:G')
     ]);
     const allowedUserIds = new Set((Array.isArray(userIds) ? userIds : [userId]).map(id => String(id || '').trim()).filter(Boolean));
     const matchesUser = (row, index) => allowedUserIds.has(String(row?.[index] || '').trim());
@@ -2842,15 +2871,10 @@ async function calculateMonthlyBudgetSpend(userId, today = getTodaySaoPauloDateS
     const cycle = getBudgetCycleForDate(todayParts, cycleStartDay);
     const sumRows = (rows, userIndex, amountIndex) => rows
         .filter(row => {
-            if (!matchesUser(row, userIndex) || !isFreeSpendingRow(row)) return false;
-            return !isRegisteredBillPayment({
-                date: row[0] || '',
-                description: row[1] || '',
-                category: row[2] || '',
-                subcategory: row[3] || '',
-                value: parseValue(row[amountIndex]),
-                userId: row[userIndex] || ''
-            }, accountRows, { userIds: Array.from(allowedUserIds), allowFamilyPayment: allowedUserIds.size > 1 });
+            return matchesUser(row, userIndex) && isFreeSpendingRow(row, accountRows, {
+                userIds: Array.from(allowedUserIds),
+                allowFamilyPayment: allowedUserIds.size > 1
+            });
         })
         .reduce((acc, row) => {
             const amount = parseValue(row[amountIndex]);
@@ -2864,11 +2888,23 @@ async function calculateMonthlyBudgetSpend(userId, today = getTodaySaoPauloDateS
 
     const saidas = sumRows((saidasRows || []).slice(1), 9, 4);
     const cardDataRows = (cardRows || []).slice(1);
+    const cardDueDayMap = buildMonthlyBudgetCardDueDayMap(cardConfigRows);
+    const cardIsEligible = (row, userIndex) => matchesUser(row, userIndex) && isFreeBudgetExpense({
+        date: row[0] || '',
+        description: row[1] || '',
+        category: row[2] || '',
+        subcategory: 'Cartão de Crédito',
+        value: parseValue(row[3]),
+        userId: row[userIndex] || ''
+    }, accountRows, {
+        userIds: Array.from(allowedUserIds),
+        allowFamilyPayment: allowedUserIds.size > 1
+    });
     let cartoes = cardDataRows
-        .filter(row => matchesUser(row, 9))
+        .filter(row => cardIsEligible(row, 9))
         .reduce((acc, row) => {
             const amount = parseValue(row[3]);
-            const parsedDate = parseSheetDate(row[0]);
+            const parsedDate = getMonthlyBudgetCardImpactDate(row, cardDueDayMap);
             if (dateStringMatchesToday(row[0], today)) acc.today += amount;
             if (dateIsWithinCycle(parsedDate, cycle)) acc.month += amount;
             return acc;
@@ -2879,10 +2915,10 @@ async function calculateMonthlyBudgetSpend(userId, today = getTodaySaoPauloDateS
             Object.values(creditCardConfig).map(card => safeReadRows(`${card.sheetName}!A:G`))
         );
         cartoes = legacyCardRows.flatMap(rows => (rows || []).slice(1))
-            .filter(row => matchesUser(row, 6))
+            .filter(row => cardIsEligible(row, 6))
             .reduce((acc, row) => {
                 const amount = parseValue(row[3]);
-                const parsedDate = parseSheetDate(row[0]);
+                const parsedDate = getMonthlyBudgetCardImpactDate(row, cardDueDayMap);
                 if (dateStringMatchesToday(row[0], today)) acc.today += amount;
                 if (dateIsWithinCycle(parsedDate, cycle)) acc.month += amount;
                 return acc;

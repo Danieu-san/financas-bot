@@ -83,6 +83,19 @@ function getBudgetCycleForPeriod(period, cycleStartDay = 1, todayParts = null) {
     return buildCycle(start, nextStart, referenceDate);
 }
 
+function getBudgetCycleForReportingPeriod(period, cycleStartDay = 1, todayParts = null) {
+    const today = toDateParts(todayParts || new Date());
+    const selectedYear = Number(period?.year);
+    const selectedMonth = Number(period?.month);
+    const representative = {
+        year: selectedYear,
+        month: selectedMonth,
+        day: Math.min(15, daysInMonth(selectedYear, selectedMonth))
+    };
+    const selected = getBudgetCycleForDate(representative, cycleStartDay);
+    return buildCycle(selected.start, addDays(selected.end, 1), buildDate(today.year, today.month, today.day));
+}
+
 function dateIsWithinCycle(date, cycle) {
     if (!(date instanceof Date) || !cycle?.start || !cycle?.end) return false;
     const time = dateOnlyTime(date);
@@ -94,6 +107,7 @@ module.exports = {
     getCycleStartForMonth,
     getBudgetCycleForDate,
     getBudgetCycleForPeriod,
+    getBudgetCycleForReportingPeriod,
     dateIsWithinCycle,
     formatDateBR,
     __test__: {

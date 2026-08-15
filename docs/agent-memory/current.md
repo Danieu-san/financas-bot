@@ -55,6 +55,13 @@ corrigir qualquer divergencia sem misturar despesas excluidas.
 - o check operacional das 09:05 foi desativado em producao pela flag existente,
   com testes focais 34/34; outros crons permaneceram intactos e o health final
   voltou a `ready/healthy`.
+- o diagnostico do limite mensal encontrou duas causas: cartoes nao aplicavam a
+  exclusao de contas recorrentes e o dashboard apontava o mes corrente para um
+  ciclo futuro quando o inicio era dia 28;
+- o candidato unifica elegibilidade entre alerta, dashboard e Query Engine e
+  resolve agosto como 28/07 a 27/08; despesas avulsas continuam elegiveis;
+- provas focais 3/3, bateria causal 22/22, estados 9/9 e ampla final
+  1731/1721/0/10, cobertura de linhas 91.53%.
 
 ## Git e workspace
 
@@ -64,12 +71,12 @@ corrigir qualquer divergencia sem misturar despesas excluidas.
 
 ## Próxima ação exata
 
-Mapear o limite mensal, suas fontes e categorias incluidas/excluidas; confrontar
-o contrato com testes e com a configuracao financeira vigente.
+Publicar o commit sanitizado do candidato e obter auditoria independente por
+hash antes de qualquer promocao OCI.
 
 ## Capacidade para retomar
 
-`Codex -> Sol -> Alto -> revisar e corrigir o limite mensal.`
+`Codex -> Sol -> Alto -> auditar o candidato do limite mensal por hash.`
 
 ## Referencias
 
@@ -83,3 +90,4 @@ o contrato com testes e com a configuracao financeira vigente.
 - `docs/audit/263-open-finance-orphan-conversation-recovery-production-close-2026-08-15.md`.
 - `docs/audit/266-dashboard-v2-default-promotion-production-close-2026-08-15.md`.
 - `docs/audit/267-daily-ops-check-disable-production-close-2026-08-15.md`.
+- `docs/audit/268-monthly-free-budget-truth-candidate-2026-08-15.md`.
