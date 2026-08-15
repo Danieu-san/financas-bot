@@ -9,7 +9,7 @@ imutabilidade depois que uma proposta foi apresentada.
 
 ## Estado
 
-`CANDIDATO TECNICO LOCAL; AGUARDANDO AUDITORIA INDEPENDENTE`.
+`GO TECNICO LOCAL; PROMOCAO OCI AUTORIZADA`.
 
 - branch: `codex/open-finance-proactive-alert-g42`;
 - base: `960e8e82d1c4aae5f6b49f0d17e75e731de6dbc2`;
@@ -24,10 +24,11 @@ imutabilidade depois que uma proposta foi apresentada.
 - correcao posterior: `reason` agora usa lista fechada de dois codigos, com
   teste causal para identificador privado sintaticamente valido; focal `43/43`
   e nova suite ampla unica `1713/1723`, zero falhas;
+- reauditoria do hash `579afb2abffb47f470b19a827a5c3a8c441add82`:
+  `GO TECNICO LOCAL`, zero achados e nenhuma lacuna indispensavel residual;
 - candidato: `docs/audit/258-open-finance-proactive-replay-recovery-candidate-2026-08-15.md`.
 
 ## Proxima acao
 
-Publicar o novo commit sanitizado, obter uma unica auditoria independente do
-novo hash e, somente com `GO`, promover por artefato OCI e observar o primeiro
-lote real.
+Registrar o fechamento, promover por artefato OCI e observar o primeiro lote
+real sem consentimento ou escrita financeira automatica.

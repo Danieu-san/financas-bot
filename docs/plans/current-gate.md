@@ -4,7 +4,7 @@ Atualizado em: 2026-08-15
 
 ## Estado
 
-`CANDIDATO CORRIGIDO; AGUARDANDO REAUDITORIA INDEPENDENTE`.
+`GO TECNICO LOCAL; PROMOCAO OCI AUTORIZADA`.
 
 ## Objetivo
 
@@ -61,5 +61,5 @@ obsoleto.
 
 ## Proxima acao
 
-Publicar o novo hash e obter reauditoria independente. Deploy e smoke real
-dependem de `GO` sem lacuna indispensavel.
+Registrar o fechamento independente, promover o artefato auditado na OCI e
+validar o primeiro ciclo/lote numerado sem escrita financeira automatica.

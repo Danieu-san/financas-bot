@@ -19,6 +19,8 @@ familiares antes de seguir para dashboard, check diario e limite mensal.
 - a primeira auditoria independente aprovou a recuperacao e retornou `NO-GO`
   somente porque `reason` usava filtro sintatico; o candidato atual usa lista
   fechada de dois codigos e repetiu focal `43/43` e ampla `1723/1713/0/10`;
+- o hash `579afb2abffb47f470b19a827a5c3a8c441add82` recebeu `GO TECNICO
+  LOCAL`, com zero achados e nenhuma lacuna indispensavel residual;
 - clone do estado real concluiu `GO`, com oito refreshes nunca transportados,
   76 propostas pendentes, duas entregas simuladas e `financial_writes=0`;
 - nenhuma mensagem real, restart ou mutacao de producao ocorreu.
@@ -31,10 +33,9 @@ familiares antes de seguir para dashboard, check diario e limite mensal.
 
 ## Próxima ação exata
 
-Criar e publicar o novo commit sanitizado; executar uma unica reauditoria
-independente no Chat pelo novo hash imutavel. Com `GO`, promover por artefato
-OCI, executar o ciclo real e confirmar o lote numerado familiar sem escrita
-financeira automatica.
+Registrar o fechamento independente, promover por artefato OCI, executar o
+primeiro ciclo real e confirmar o lote numerado familiar sem escrita financeira
+automatica.
 
 ## Capacidade para retomar
 
@@ -46,3 +47,4 @@ financeira automatica.
 - `docs/agent-memory/workstreams/open-finance-proactive-alert-recovery.md`;
 - `docs/plans/workstreams/open-finance-proactive-alert-recovery.md`;
 - `docs/audit/258-open-finance-proactive-replay-recovery-candidate-2026-08-15.md`.
+- `docs/audit/259-open-finance-proactive-replay-recovery-independent-close-2026-08-15.md`.
