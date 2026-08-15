@@ -1,77 +1,92 @@
-# Gate ativo - verdade do limite mensal
+# Gate ativo — pré-preenchimento da proposta Open Finance
 
 Atualizado em: 2026-08-15
 
 ## Estado
 
-`LIMITE MENSAL: CANDIDATO CORRIGIDO VERDE, AGUARDANDO NOVA AUDITORIA INDEPENDENTE`.
+`FLUXO NUMERICO E WRITER UNITARIO PROVADOS; QUALIDADE DA PROPOSTA PENDENTE`.
 
 ## Objetivo
 
-Confirmar se o limite mensal usa a fonte, o periodo e somente as categorias
-aprovadas; corrigir qualquer divergencia encontrada.
+Fazer a proposta proativa chegar com pessoa, conta/cartão e categoria já
+preenchidos quando a origem Open Finance e regras determinísticas existentes
+fornecerem evidência suficiente, preservando revisão humana e falha fechada em
+ambiguidade real.
+
+## Contexto causal
+
+- o lote numerado, a seleção individual, a segunda confirmação, a escrita única
+  e o recibo passaram em produção;
+- a compra real identificava o cartão/titular na origem e continha sinal
+  comercial inequívoco de lanche, mas a revisão pediu categoria e cartão;
+- importar o RX agora apagaria o backlog disponível para provar essa correção;
+  portanto, o writer histórico deve vir somente depois do novo smoke;
+- o gasto livre não pode ser fechado antes de a planilha receber o RX completo.
 
 ## Escopo
 
-- localizar configuracao, calculo e mensagens do limite mensal;
-- identificar categorias incluidas e excluidas e sua origem;
-- confrontar codigo, testes e configuracao financeira vigente;
-- corrigir com prova causal se houver erro.
+- preservar na proposta o vínculo forte de origem com pessoa e conta/cartão;
+- reutilizar somente categorização determinística já autorizada por catálogo,
+  regra de comerciante ou descrição comercial inequívoca;
+- não inferir pessoa, conta, cartão, categoria ou subcategoria por aproximação;
+- provar que revisão permite alterar qualquer pré-preenchimento antes da
+  confirmação final;
+- repetir smoke com uma pendência real, sem salvar mais de uma linha.
 
 ## Não escopo
 
-- gravar o RX historico na planilha;
-- alterar classificacoes financeiras sem evidencia;
-- reabrir dashboard, check das 09:05 ou Gate 43 sem regressao.
+- importar o RX histórico;
+- reclassificar itens já decididos no plano privado;
+- alterar política ou apresentação do gasto livre;
+- remover a conferência e o segundo consentimento;
+- criar regra ampla a partir de uma única ocorrência ambígua.
 
 ## Invariantes
 
-1. Ausencia de alocacao ou fonte nao vira zero.
-2. Categorias excluidas nao consomem o limite.
-3. Periodo mensal e ciclo orcamentario nao sao misturados silenciosamente.
-4. Nenhuma correcao entra em producao sem teste e auditoria independente.
+1. O alias Open Finance resolve somente a pessoa e a conta/cartão vinculados.
+2. Conta e cartão nunca são misturados.
+3. Categoria automática exige regra determinística e explicável.
+4. Ambiguidade verdadeira continua visível e bloqueia conclusão sem revisão.
+5. Nenhuma proposta é salva antes da confirmação final.
+6. Replay e concorrência familiar continuam idempotentes.
 
-## Evidência
+## Etapas
 
-- check das 09:05 desativado pela flag existente, sem alterar outros crons;
-- dashboard v2 e Gate 43 permanecem em `GO DE PRODUCAO`.
-- o hash anterior não recebeu GO por acesso parcial e expôs catálogo de contas
-  ausente no fallback SQLite e divergência de pagamento familiar;
-- ambos os cenários tiveram RED 70 contra 20 e ficaram verdes após correção;
-- focal 26/26, bateria afetada 175/175 e ampla 1733/1723/0/10.
-- a segunda auditoria identificou perda de `Saídas.Recorrente` no fallback;
-  RED 60 contra 20 foi fechado com coluna persistida/migrada e reconstrução no
-  payload; bateria afetada 175/175 e ampla pós-correção 1733/1723/0/10.
-- a terceira auditoria mostrou que `mapSaidasRows` ainda descartava a coluna 8
-  antes do SQLite; o teste agora atravessa o produtor real, reproduziu 60 contra
-  20 e ficou verde após preservar `Recorrente`;
-- dois fixtures Open Finance expiraram pelo relógio durante a suíte ampla e
-  foram estabilizados com datas relativas; prova isolada 20/20, sem alteração
-  no produto.
-- a política familiar aprovada passou a ser positiva: somente restaurante,
-  delivery, lanche, lazer, presentes, vestuário, cuidados/serviços pessoais e
-  compras discricionárias entram; essenciais e ambíguos ficam fora;
-- supermercado reproduziu RED 140 contra 20 e fechou nos três consumidores;
-  bateria causal final verde;
-- o cálculo agora separa limite livre de orçamento por categoria: os essenciais
-  não entram no primeiro, mas permanecem no realizado categorial;
-- regressão focal 9/9, bateria afetada verde e suíte hermética ampla final
-  1736/1726/0/10, com cobertura de linhas 91,56%.
+1. localizar a perda de origem e de sinais de categorização entre reconciliador,
+   fila numérica e revisão guiada;
+2. criar RED causal com produto real;
+3. implementar a correção mínima;
+4. executar teste focal e bateria afetada;
+5. executar uma única suíte ampla no candidato estável;
+6. publicar hash sanitizado e obter auditoria independente;
+7. promover por artefato e repetir o smoke em pendência real;
+8. registrar fechamento dos gates proativos antigos;
+9. só então abrir o writer histórico do Gate 41.
 
 ## Critérios de GO
 
-1. Fonte, periodo, categorias e formula estao identificados.
-2. Casos de inclusao, exclusao e ausencia tem testes causais.
-3. Valores observados nao misturam fontes nem inferem zeros.
-4. Correcao material, se necessaria, recebe auditoria independente.
+- pessoa e conta/cartão fortes chegam preenchidos sem seleção manual;
+- comerciante inequívoco recebe categoria determinística correta;
+- caso ambíguo permanece sem preenchimento inventado;
+- usuário consegue corrigir campos antes de salvar;
+- escrita única, recibo, restart e replay permanecem verdes;
+- auditoria independente e smoke real aprovados.
 
 ## Condições de parada
 
-- configuracao financeira vigente nao puder ser determinada;
-- regra de negocio depender de escolha nova de Daniel;
-- diagnostico exigir escrita na planilha ou dados nao autorizados.
+- origem Open Finance não fornecer vínculo forte;
+- categoria depender de nova decisão de negócio de Daniel;
+- correção ampliar regra para comerciantes não equivalentes;
+- NO-GO independente.
 
-## Proxima acao
+## Fila posterior preservada
 
-Criar e publicar novo commit sanitizado e auditar uma vez no Chat pelo novo hash
-imutável.
+1. implementar, auditar e aplicar o writer histórico idempotente do Gate 41;
+2. verificar que itens importados deixam de ser propostos;
+3. recalcular o gasto livre automaticamente a partir da planilha completa;
+4. destacar limite, gasto, restante e ritmo com asteriscos no WhatsApp.
+
+## Próxima ação
+
+Localizar a fronteira em que alias, pessoa/cartão e sinais de categoria deixam
+de chegar à revisão guiada, sem escrita real adicional.

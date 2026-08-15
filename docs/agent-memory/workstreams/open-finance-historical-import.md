@@ -541,13 +541,16 @@ escrita financeira.
 
 ## Proxima acao
 
-O Gate 41.7 encerrou o planejador RX read-only sem revisoes. Por ordem
-operacional vigente, abrir gate separado para diagnosticar a ausencia de
-mensagens proativas; writer historico e aplicacao real permanecem separados.
+O Gate 41.7 encerrou o planejador RX read-only sem revisoes. O smoke funcional
+de 2026-08-15 confirmou que a ausencia de materializacao deixa backlog antigo
+no fluxo prospectivo e torna incompletos os totais do gasto livre. Antes do
+writer, fechar o pre-preenchimento da proposta e repetir o smoke usando esse
+backlog. Depois, implementar e ensaiar o writer historico idempotente; aplicacao
+real continua separada e exige GO, backup, dry-run identico, recibos e rollback.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> diagnosticar a ausencia de mensagens proativas.`
+`Codex -> Sol -> Alto -> corrigir o pre-preenchimento da proposta proativa.`
 
 ## Estado prevalente - Gate 41.6
 

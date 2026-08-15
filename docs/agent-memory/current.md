@@ -4,8 +4,9 @@ Atualizado em: 2026-08-15
 
 ## Objetivo ativo
 
-Revisar o limite mensal, confirmar quais categorias entram no calculo e
-corrigir qualquer divergencia sem misturar despesas excluidas.
+Fechar primeiro o pre-preenchimento da mensagem proativa; em seguida executar
+o writer historico idempotente do Gate 41 e somente depois declarar verdadeiros
+os totais e revalidar a apresentacao do gasto livre no WhatsApp.
 
 ## Estado vigente
 
@@ -95,21 +96,41 @@ corrigir qualquer divergencia sem misturar despesas excluidas.
   realizado de supermercado, combustível, saúde, educação, moradia etc.;
 - regressão focal 9/9 e bateria afetada verdes; suíte hermética final
   1736/1726/0/10, cobertura de linhas 91,56%.
+- o hash `37e58c57c9cccd622556fe849dbc6230416ec8b3` recebeu `GO TECNICO
+  LOCAL` independente e foi promovido na OCI; processo unico, health
+  local/publico e WhatsApp ficaram verdes;
+- smoke real do lote numerico selecionou uma compra, percorreu revisao e
+  segunda confirmacao, criou uma unica operacao `committed` e entregou recibo;
+  o nucleo dos Gates 34 e 39 recebe GO funcional para compra; o fechamento
+  ampliado da mensagem proativa aguarda o pre-preenchimento forte;
+- o smoke revelou backlog anterior no lote: o RX saneado possui 1.863 itens
+  prontos, mas permaneceu read-only e nao foi materializado na planilha;
+- por isso, o codigo do gasto livre e sua politica publica estao verdes, mas o
+  valor realizado/restante permanece em `NO-GO CONTROLADO` por incompletude da
+  base;
+- a proposta real exigiu preencher categoria e cartao embora a descricao e a
+  origem Open Finance trouxessem evidencias; esse ajuste deve fechar antes do
+  writer historico, usando o backlog real no smoke;
+- a resposta suportada de categorias declarou corretamente inclusoes e
+  exclusoes; a apresentacao ainda deve destacar valores principais em negrito
+  no fechamento final.
 
 ## Git e workspace
 
 - branch: `codex/dashboard-truth-g44`;
-- produto implantado: `28f106d4e9b150cd7e04f589075d3eb873e7cc25`;
+- produto implantado: `37e58c57c9cccd622556fe849dbc6230416ec8b3`;
 - arvore deve preservar `release-artifacts-g44/` como nao rastreado.
 
 ## Próxima ação exata
 
-Publicar o novo commit sanitizado e obter auditoria independente integral por
-hash antes de qualquer promocao OCI.
+Registrar este fechamento no GitHub e corrigir em worktree isolada o
+pre-preenchimento da proposta proativa. Depois do smoke aprovado, abrir o
+writer historico idempotente do Gate 41; sua aplicacao real exige dry-run sobre
+o plano privado vigente, backup, recibos, rollback e auditoria independente.
 
 ## Capacidade para retomar
 
-`Codex -> Sol -> Alto -> auditar o candidato do limite mensal por hash.`
+`Codex -> Sol -> Alto -> corrigir o pre-preenchimento da proposta proativa.`
 
 ## Referencias
 
@@ -124,3 +145,6 @@ hash antes de qualquer promocao OCI.
 - `docs/audit/266-dashboard-v2-default-promotion-production-close-2026-08-15.md`.
 - `docs/audit/267-daily-ops-check-disable-production-close-2026-08-15.md`.
 - `docs/audit/268-monthly-free-budget-truth-candidate-2026-08-15.md`.
+- `docs/audit/269-monthly-free-budget-truth-independent-close-2026-08-15.md`.
+- `docs/audit/270-open-finance-numeric-save-financial-write-production-close-2026-08-15.md`.
+- `docs/audit/271-monthly-free-budget-production-observation-2026-08-15.md`.
