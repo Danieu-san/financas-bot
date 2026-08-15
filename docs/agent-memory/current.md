@@ -4,8 +4,8 @@ Atualizado em: 2026-08-15
 
 ## Objetivo ativo
 
-Comparar dashboard v1/v2 e confirmar qual superficie deve permanecer, depois
-validar seus dados, desativar o check diario das 09:05 e revisar o limite mensal.
+Promover o dashboard v2 como superficie padrao com rollback v1, depois desativar
+o check diario das 09:05 e revisar o limite mensal.
 
 ## Estado vigente
 
@@ -37,6 +37,14 @@ validar seus dados, desativar o check diario das 09:05 e revisar o limite mensal
   `financial_writes=0`;
 - WhatsApp Daniel confirmou uma unica lista numerada com quatro itens, sem
   duplicacao; Gate 43 esta em `GO DE PRODUCAO`.
+- v1 e v2 foram comparados no mesmo recorte real e receberam a mesma posicao
+  Open Finance; o v2 foi escolhido por separar melhor saldo, fluxo, competencia,
+  orcamento, previsao e qualidade e por nao oferecer seletor de usuario;
+- os totais mensais zerados refletem a ausencia atual de RX escrito na planilha,
+  nao uma divergencia entre os dashboards;
+- candidato local promove `dashboard` ao v2, preserva `dashboard v1` e rollback
+  por `DASHBOARD_V2_ENABLED=false`; focal 10/10, contratos 41/41 e ampla
+  1727/1717/0/10, cobertura de linhas 91.53%.
 
 ## Git e workspace
 
@@ -46,8 +54,8 @@ validar seus dados, desativar o check diario das 09:05 e revisar o limite mensal
 
 ## Próxima ação exata
 
-Comparar tecnicamente dashboard v1 e v2 sem alterar producao; escolher a melhor
-base e auditar a veracidade de seus dados contra as fontes vigentes.
+Publicar o hash sanitizado da promocao do v2 e obter auditoria independente no
+Chat antes de qualquer deploy.
 
 ## Capacidade para retomar
 

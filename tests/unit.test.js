@@ -76,7 +76,7 @@ test('local transaction description removes arbitrary credit card routing suffix
     }
 });
 
-test('dashboard v2 command issues an opt-in link while dashboard keeps the current route', async () => {
+test('dashboard defaults to v2 and keeps v1 available explicitly', async () => {
     const previousBaseUrl = process.env.DASHBOARD_BASE_URL;
     const previousSecret = process.env.DASHBOARD_TOKEN_SECRET;
     const previousAccessLog = process.env.DASHBOARD_ACCESS_LOG_ENABLED;
@@ -93,7 +93,7 @@ test('dashboard v2 command issues an opt-in link while dashboard keeps the curre
         process.env.LEGACY_USAGE_TELEMETRY_PATH = telemetryPath;
         process.env.LEGACY_USAGE_TELEMETRY_HMAC_SECRET = 'dashboard-link-test-hmac-secret';
         const user = { user_id: 'dashboard-v2-test-user', display_name: 'Daniel' };
-        const msg = { body: 'dashboard v2', reply: async text => replies.push(String(text || '')) };
+        const msg = { body: 'dashboard', reply: async text => replies.push(String(text || '')) };
 
         const handled = await messageHandler.__test__.handleDashboardCommand(msg, user, '5599990000001@c.us');
 
@@ -108,6 +108,12 @@ test('dashboard v2 command issues an opt-in link while dashboard keeps the curre
         assert.match(telemetry.actor_ref, /^[a-f0-9]{16}$/);
         assert.strictEqual(telemetry.session_ref, '');
         assert.ok(!JSON.stringify(telemetry).includes(user.user_id));
+
+        replies.length = 0;
+        msg.body = 'dashboard v1';
+        assert.strictEqual(await messageHandler.__test__.handleDashboardCommand(msg, user, '5599990000001@c.us'), true);
+        assert.match(replies[0], /\/dashboard#token=/);
+        assert.doesNotMatch(replies[0], /\/dashboard\/v2#token=/);
     } finally {
         if (previousBaseUrl === undefined) delete process.env.DASHBOARD_BASE_URL;
         else process.env.DASHBOARD_BASE_URL = previousBaseUrl;
@@ -124,7 +130,7 @@ test('dashboard v2 command issues an opt-in link while dashboard keeps the curre
     }
 });
 
-test('dashboard v2 command falls back visibly to the current dashboard when rollback flag is disabled', async () => {
+test('dashboard default falls back visibly to v1 when the v2 rollback flag is disabled', async () => {
     const previousBaseUrl = process.env.DASHBOARD_BASE_URL;
     const previousSecret = process.env.DASHBOARD_TOKEN_SECRET;
     const previousAccessLog = process.env.DASHBOARD_ACCESS_LOG_ENABLED;
@@ -136,13 +142,14 @@ test('dashboard v2 command falls back visibly to the current dashboard when roll
         process.env.DASHBOARD_ACCESS_LOG_ENABLED = 'false';
         process.env.DASHBOARD_V2_ENABLED = 'false';
         const user = { user_id: 'dashboard-v2-rollback-user', display_name: 'Daniel' };
-        const msg = { body: 'dashboard v2', reply: async text => replies.push(String(text || '')) };
+        const msg = { body: 'dashboard', reply: async text => replies.push(String(text || '')) };
 
         const handled = await messageHandler.__test__.handleDashboardCommand(msg, user, '5599990000001@c.us');
 
         assert.strictEqual(handled, true);
         assert.strictEqual(replies.length, 1);
-        assert.match(replies[0], /vers[aã]o atual/i);
+        assert.match(replies[0], /rollback/i);
+        assert.match(replies[0], /vers[aã]o anterior/i);
         assert.match(replies[0], /\/dashboard#token=/);
         assert.doesNotMatch(replies[0], /\/dashboard\/v2#token=/);
     } finally {

@@ -4,7 +4,7 @@ Atualizado em: 2026-08-15
 
 ## Estado
 
-`GATE 43 GO DE PRODUCAO; DASHBOARD EM DIAGNOSTICO`.
+`GATE 43 GO DE PRODUCAO; DASHBOARD V2 CANDIDATO AGUARDANDO AUDITORIA`.
 
 ## Objetivo
 
@@ -57,5 +57,5 @@ dashboard.
 
 ## Proxima acao
 
-Inspecionar codigo, contratos e dados read-only de v1/v2; produzir um veredito
-comparativo e delimitar a correcao necessaria sem alterar producao ainda.
+Publicar um commit sanitizado e auditar por hash imutavel se a promocao do v2
+preserva o v1 e a flag de rollback sem alterar fontes, calculos ou escritas.

@@ -6928,9 +6928,12 @@ async function handleSettingsCommands(msg, user) {
 async function handleDashboardCommand(msg, user, senderId) {
     const body = normalizeText(String(msg.body || '').trim());
     if (!body) return false;
+    const defaultCommands = ['dashboard', 'painel', 'painel financeiro'];
     const v2Commands = ['dashboard v2', 'painel v2', 'painel novo', 'novo painel'];
-    const wantsV2 = v2Commands.includes(body);
-    if (!wantsV2 && !['dashboard', 'painel', 'painel financeiro'].includes(body)) return false;
+    const v1Commands = ['dashboard v1', 'painel v1', 'painel antigo'];
+    if (![...defaultCommands, ...v2Commands, ...v1Commands].includes(body)) return false;
+    const wantsV1 = v1Commands.includes(body);
+    const wantsV2 = !wantsV1;
 
     let linkData = null;
     try {
@@ -6952,7 +6955,7 @@ async function handleDashboardCommand(msg, user, senderId) {
     }
 
     const rollbackNotice = wantsV2 && linkData.version !== 'v2'
-        ? `O painel novo está temporariamente desabilitado; enviei a versão atual.\n\n`
+        ? `O painel principal está temporariamente em rollback; enviei a versão anterior.\n\n`
         : '';
     await sendPlainMessage(
         msg,

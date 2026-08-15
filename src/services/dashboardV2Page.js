@@ -279,7 +279,7 @@ function dashboardV2Html() {
         <div id="qualityPanel"></div>
       </section>
     </main>
-    <p class="footer"><strong>Versão de avaliação.</strong> O painel atual continua sendo o padrão. Este painel é somente leitura e não permite trocar o usuário pelo navegador.</p>
+    <p class="footer"><strong>Painel financeiro.</strong> Esta visão é somente leitura e não permite trocar o usuário pelo navegador. A versão anterior permanece disponível como rollback explícito.</p>
   </div>
 
   <script>
