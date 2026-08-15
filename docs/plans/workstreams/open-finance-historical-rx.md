@@ -138,7 +138,7 @@ misturar historico, alertas, propostas e escrita financeira.
     `accepted_unconfirmed`, estados individuais preexistentes, restart e
     rollback do artefato. O charter e
     `docs/plans/workstreams/open-finance-numeric-save-release.md`.
-34. [nucleo funcional em GO; qualidade da proposta pendente] Promover o fluxo numerico de compras
+34. [GO funcional de producao] Promover o fluxo numerico de compras
     na OCI por artefato imutavel e executar smoke com Daniel presente. Manter
     proposta em `prompt`, escrita `off`, aprovacao falsa e `confirm` bloqueado;
     provar lotes independentes nos dois telefones, cutoff, processo unico,
@@ -245,14 +245,14 @@ misturar historico, alertas, propostas e escrita financeira.
 em `ea803c5c29919daa582355046536bd22bf8f88a1` fechou a corrida de temporarios
 e recebeu zero achados na reauditoria focal.
 
-34. [nucleo funcional em GO; qualidade da proposta pendente] O hash
+34. [GO funcional de producao] O hash
 `09b6dab6e679ce28202cb87f83d38549f64e6ae8` foi promovido sem rollback;
 processo, health, WhatsApp, flags e estado ficaram verdes. Todo acesso SSH
 temporario foi removido. A resposta unica a `admin stats` prova o novo runtime,
 mas o fechamento funcional ainda exige uma compra real `POSTED/new` produzir o
 lote numerado nos dois telefones, com selecao/revisao e zero escrita.
 
-39. [nucleo funcional em GO para compra; fechamento proativo pendente] O hash
+39. [GO funcional de producao para compra] O hash
 `38aa275d5928ffe350215727f158e962ff78a999` consolidou as escritas revisadas
 dos Gates 38.1 a 38.6, foi auditado, promovido sem rollback e ativado somente
 pelo controlador em `prompt/confirm/true`. Health local e publico, WhatsApp,
@@ -262,8 +262,9 @@ revisao individual de Daniel, segundo consentimento, efeito unico e recibo.
 
 Depois do GO independente do gate 33, a sequencia autorizada foi 34 -> 35 ->
 36 -> 37 -> 38 -> 39. Em 2026-08-15, um lote numerado real percorreu selecao,
-revisao, segunda confirmacao, escrita unica e recibo. O nucleo dos Gates 34 e
-39 recebe GO funcional no escopo de compra, mas o fechamento ampliado aguarda
-o pre-preenchimento forte da proposta. Nenhum GO autoriza nova classe sem a
-propria evidencia. O backlog antigo observado permanece responsabilidade do
-writer historico idempotente do Gate 41, nao do fluxo prospectivo.
+revisao, segunda confirmacao, escrita unica e recibo. Em 2026-08-15, o
+pre-preenchimento forte tambem recebeu GO independente e smoke real em
+producao. Gates 34 e 39 ficam fechados funcionalmente no escopo de compra.
+Nenhum GO autoriza nova classe sem a propria evidencia. O backlog antigo
+observado permanece responsabilidade do writer historico idempotente do Gate
+41, nao do fluxo prospectivo.

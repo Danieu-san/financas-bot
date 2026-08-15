@@ -1,92 +1,101 @@
-# Gate ativo — pré-preenchimento da proposta Open Finance
+# Gate ativo — writer histórico idempotente do Gate 41
 
 Atualizado em: 2026-08-15
 
 ## Estado
 
-`PRE-PREENCHIMENTO: GO TECNICO LOCAL; PROMOCAO OCI E SMOKE PENDENTES`.
+`GATE 41 WRITER: IMPLEMENTACAO E DRY-RUN; APLICACAO REAL BLOQUEADA`.
 
 ## Objetivo
 
-Fazer a proposta proativa chegar com pessoa, conta/cartão e categoria já
-preenchidos quando a origem Open Finance e regras determinísticas existentes
-fornecerem evidência suficiente, preservando revisão humana e falha fechada em
-ambiguidade real.
+Materializar na planilha familiar somente os 1.863 itens `ready` do plano RX
+privado fechado, sem gravar existentes, duplicatas prováveis, excluídos ou itens
+fora da janela, com idempotência, recibos, backup e rollback verificáveis.
 
-## Contexto causal
+## Entrada imutável
 
-- o lote numerado, a seleção individual, a segunda confirmação, a escrita única
-  e o recibo passaram em produção;
-- a compra real identificava o cartão/titular na origem e continha sinal
-  comercial inequívoco de lanche, mas a revisão pediu categoria e cartão;
-- importar o RX agora apagaria o backlog disponível para provar essa correção;
-  portanto, o writer histórico deve vir somente depois do novo smoke;
-- o gasto livre não pode ser fechado antes de a planilha receber o RX completo.
+- 2.351 itens totais e cobertura completa;
+- 1.863 `ready`;
+- 2 `existing`;
+- 34 `probable_duplicate`;
+- 291 `excluded`;
+- zero `review`;
+- 161 `outside_window`;
+- oito bindings de conta/cartão;
+- hash privado do plano:
+  `4b765e1a7c2ebdf3fa21d0b2659effbd1f8e979e884dc6d56c9c8a1f7230de92`.
+
+## Pré-requisitos satisfeitos
+
+- planejador RX read-only recebeu GO independente;
+- resíduos bancários e de cartão receberam GO independente;
+- mensagem proativa numerada, pré-preenchimento e escrita unitária receberam
+  GO funcional de produção;
+- despesas reais do smoke foram preservadas na planilha e devem ser detectadas
+  como já existentes pelo dry-run atualizado.
 
 ## Escopo
 
-- preservar na proposta o vínculo forte de origem com pessoa e conta/cartão;
-- reutilizar somente categorização determinística já autorizada por catálogo,
-  regra de comerciante ou descrição comercial inequívoca;
-- não inferir pessoa, conta, cartão, categoria ou subcategoria por aproximação;
-- provar que revisão permite alterar qualquer pré-preenchimento antes da
-  confirmação final;
-- repetir smoke com uma pendência real, sem salvar mais de uma linha.
+- localizar e validar o artefato privado pelo hash, sem publicar seu conteúdo;
+- definir contrato do writer e dos recibos por item/lote;
+- usar as mesmas fronteiras canônicas de escrita de conta e cartão já provadas;
+- produzir dry-run sem efeitos e conferir cardinalidade por estado e destino;
+- criar backup verificável das abas afetadas e plano de rollback;
+- provar replay, falha parcial, restart, itens já existentes e lote misto;
+- publicar somente código, testes, contagens e hashes sanitizados;
+- obter auditoria independente antes da aplicação real.
 
 ## Não escopo
 
-- importar o RX histórico;
-- reclassificar itens já decididos no plano privado;
-- alterar política ou apresentação do gasto livre;
-- remover a conferência e o segundo consentimento;
-- criar regra ampla a partir de uma única ocorrência ambígua.
+- reclassificar o RX ou reabrir ambiguidades já decididas;
+- gravar os 34 duplicados prováveis;
+- tratar ausência como zero;
+- misturar conta, cartão, transferência, estorno, reserva ou investimento;
+- alterar gasto livre ou sua apresentação antes da reconciliação pós-escrita.
 
 ## Invariantes
 
-1. O alias Open Finance resolve somente a pessoa e a conta/cartão vinculados.
-2. Conta e cartão nunca são misturados.
-3. Categoria automática exige regra determinística e explicável.
-4. Ambiguidade verdadeira continua visível e bloqueia conclusão sem revisão.
-5. Nenhuma proposta é salva antes da confirmação final.
-6. Replay e concorrência familiar continuam idempotentes.
+1. Cada item recebe no máximo uma operação durável e idempotente.
+2. Uma falha parcial não transforma item sem recibo em sucesso.
+3. Replay reconcilia antes de escrever e não duplica linha existente.
+4. Conta e cartão preservam identidade, titular, destino e esquema próprios.
+5. O conjunto gravável é exatamente o `ready` ainda ausente no momento do
+   dry-run; itens já escritos pelos smokes migram para `existing`.
+6. Nenhum dado privado entra no Git, prompt de auditoria ou logs públicos.
 
 ## Etapas
 
-1. [feito] localizar a perda de origem e de sinais de categorização entre
-   reconciliador, fila numérica e revisão guiada;
-2. [feito] criar RED causal com produto real;
-3. [feito] implementar a correção mínima;
-4. [feito] executar teste focal e bateria afetada;
-5. [feito] executar a suíte ampla final no candidato estável;
-6. [feito] publicar hash sanitizado e obter auditoria independente;
-7. [em andamento] promover por artefato e repetir o smoke em pendência real;
-8. registrar fechamento dos gates proativos antigos;
-9. só então abrir o writer histórico do Gate 41.
+1. [em andamento] localizar e validar o plano privado vigente pelo hash;
+2. implementar o writer e o ledger de recibos sem habilitar aplicação real;
+3. criar RED e executar bateria causal afetada;
+4. executar uma única suíte ampla no candidato estável;
+5. produzir dry-run atualizado e conferir cardinalidade;
+6. publicar commit sanitizado e obter auditoria independente;
+7. criar backup real e verificar restauração isolada;
+8. aplicar o lote com recibos e parada segura em divergência;
+9. reconciliar novamente e provar zero pendência gravável inesperada;
+10. confirmar que o backlog importado deixou de gerar propostas;
+11. recalcular e validar gasto livre sobre a planilha completa;
+12. destacar os valores principais da resposta no WhatsApp.
 
-## Critérios de GO
+## Critérios de GO para aplicação
 
-- pessoa e conta/cartão fortes chegam preenchidos sem seleção manual;
-- comerciante inequívoco recebe categoria determinística correta;
-- caso ambíguo permanece sem preenchimento inventado;
-- usuário consegue corrigir campos antes de salvar;
-- escrita única, recibo, restart e replay permanecem verdes;
-- auditoria independente e smoke real aprovados.
+- plano privado e dry-run possuem hash e cardinalidade coerentes;
+- testes de idempotência, falha parcial, restart e mistura estão verdes;
+- backup e rollback foram ensaiados sem tocar na planilha ativa;
+- auditoria independente não possui lacuna bloqueante;
+- diferença entre dry-run aprovado e aplicação é zero.
 
 ## Condições de parada
 
-- origem Open Finance não fornecer vínculo forte;
-- categoria depender de nova decisão de negócio de Daniel;
-- correção ampliar regra para comerciantes não equivalentes;
-- NO-GO independente.
-
-## Fila posterior preservada
-
-1. implementar, auditar e aplicar o writer histórico idempotente do Gate 41;
-2. verificar que itens importados deixam de ser propostos;
-3. recalcular o gasto livre automaticamente a partir da planilha completa;
-4. destacar limite, gasto, restante e ritmo com asteriscos no WhatsApp.
+- hash ou cardinalidade do plano divergir;
+- qualquer item não `ready` entrar no conjunto gravável;
+- destino, titular, conta/cartão ou categoria ficarem ambíguos;
+- backup ou restauração isolada falhar;
+- auditoria independente emitir NO-GO;
+- dry-run mudar antes da aplicação.
 
 ## Próxima ação
 
-Registrar o GO independente, promover por artefato na OCI e repetir o smoke
-com uma pendência real, sem iniciar o writer histórico antes dessa prova.
+Localizar o artefato privado fechado, validar seu hash sem expor conteúdo e
+mapear as fronteiras canônicas de escrita que o novo writer deve reutilizar.

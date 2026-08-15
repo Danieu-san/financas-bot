@@ -541,16 +541,15 @@ escrita financeira.
 
 ## Proxima acao
 
-O Gate 41.7 encerrou o planejador RX read-only sem revisoes. O smoke funcional
-de 2026-08-15 confirmou que a ausencia de materializacao deixa backlog antigo
-no fluxo prospectivo e torna incompletos os totais do gasto livre. Antes do
-writer, fechar o pre-preenchimento da proposta e repetir o smoke usando esse
-backlog. Depois, implementar e ensaiar o writer historico idempotente; aplicacao
+O Gate 41.7 encerrou o planejador RX read-only sem revisoes. Em 2026-08-15, o
+pre-preenchimento recebeu GO independente, foi promovido e passou smoke real
+com pessoa, categoria e cartao fortes, segunda confirmacao, escrita unica e
+recibo. Implementar e ensaiar agora o writer historico idempotente; aplicacao
 real continua separada e exige GO, backup, dry-run identico, recibos e rollback.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> corrigir o pre-preenchimento da proposta proativa.`
+`Codex -> Sol -> Alto -> implementar e ensaiar o writer historico do Gate 41.`
 
 ## Estado prevalente - Gate 41.6
 

@@ -243,7 +243,7 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    `a98f99133ab12e036c914b08654116f3fb4f4b68` recebeu GO independente, sem
    achados materiais nem lacuna indispensavel no escopo read-only; fechamento
    em `docs/audit/257-open-finance-historical-card-residuals-independent-close-2026-08-15.md`.
-10. [pronta; aguarda fechamento da proposta proativa] Implementar e ensaiar
+10. [em andamento apos GO proativo] Implementar e ensaiar
    writer historico idempotente sobre o plano privado fechado, sem misturar os
    estados que nao sao `ready`.
 11. [bloqueada ate GO, backup e dry-run identico] Aplicar o lote real com
