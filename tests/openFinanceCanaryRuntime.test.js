@@ -12,7 +12,8 @@ const { observationRef } = require('../src/openFinance/openFinanceRuntimeReconci
 const { runOpenFinanceCanaryCycle, initializeOpenFinanceCanaryRuntime,
     resolveOpenFinancePollSchedule, resolveWhatsAppRecipient,
     resolveInternalUserIds, shadowPreviewMode,
-    bindOpenFinanceProposalConversation } = require('../src/openFinance/openFinanceCanaryRuntime');
+    bindOpenFinanceProposalConversation,
+    reconcileOpenFinanceRecipientAvailability } = require('../src/openFinance/openFinanceCanaryRuntime');
 
 const secret = 'open-finance-runtime-test-secret-32-bytes';
 
@@ -771,6 +772,98 @@ test('resolved no-id proposal binds one conversation and ambiguous delivery stil
     }), false);
     assert.equal(states.size, 1);
     assert.equal(excludedRecipients.has('thais'), true);
+});
+
+test('orphaned Open Finance conversation state is durably removed before recipient delivery', () => {
+    const deleted = [];
+    const result = reconcileOpenFinanceRecipientAvailability({
+        actor: { principal: 'daniel', whatsappId: 'daniel@c.us' },
+        stateManager: {
+            getState: () => ({
+                action: 'awaiting_open_finance_save_selection',
+                data: { proposals: [{ proposalRef: 'a'.repeat(32) }] }
+            }),
+            deleteStateDurably: whatsappId => deleted.push(whatsappId)
+        },
+        proposalReviewStore: {
+            listActiveReviews: () => [],
+            listReadyReviews: () => [{
+                proposal_ref: 'f'.repeat(32),
+                expires_at: '2026-01-01T00:00:00.000Z'
+            }]
+        },
+        proposalStore: { listReadySaveProposalConfirmations: () => [] },
+        outbox: { getProposalDeliveryState: () => null }
+    });
+    assert.deepEqual(result, {
+        blocked: false,
+        recovered: true,
+        reason: 'orphaned_open_finance_conversation_state',
+        financial_writes: 0
+    });
+    assert.deepEqual(deleted, ['daniel@c.us']);
+});
+
+test('recipient recovery preserves unrelated state and every live Open Finance backing', () => {
+    const deleted = [];
+    const base = {
+        actor: { principal: 'daniel', whatsappId: 'daniel@c.us' },
+        stateManager: {
+            getState: () => ({ action: 'confirming_delete' }),
+            deleteStateDurably: whatsappId => deleted.push(whatsappId)
+        },
+        proposalReviewStore: {
+            listActiveReviews: () => [],
+            listReadyReviews: () => []
+        },
+        proposalStore: { listReadySaveProposalConfirmations: () => [] },
+        outbox: { getProposalDeliveryState: () => null }
+    };
+    assert.equal(reconcileOpenFinanceRecipientAvailability(base).blocked, true);
+    assert.equal(deleted.length, 0);
+
+    const activeReview = reconcileOpenFinanceRecipientAvailability({
+        ...base,
+        stateManager: {
+            ...base.stateManager,
+            getState: () => ({ action: 'awaiting_open_finance_save_review' })
+        },
+        proposalReviewStore: {
+            listActiveReviews: () => [{ proposal_ref: 'b'.repeat(32) }],
+            listReadyReviews: () => []
+        }
+    });
+    assert.equal(activeReview.blocked, true);
+    assert.equal(activeReview.reason, 'active_open_finance_review');
+
+    const readyReview = reconcileOpenFinanceRecipientAvailability({
+        ...base,
+        stateManager: {
+            ...base.stateManager,
+            getState: () => ({ action: 'awaiting_open_finance_final_confirmation' })
+        },
+        proposalReviewStore: {
+            listActiveReviews: () => [],
+            listReadyReviews: () => [{
+                proposal_ref: 'c'.repeat(32),
+                expires_at: '2027-01-01T00:00:00.000Z'
+            }]
+        }
+    });
+    assert.equal(readyReview.blocked, true);
+    assert.equal(readyReview.reason, 'ready_open_finance_review');
+
+    const transportedConfirmation = reconcileOpenFinanceRecipientAvailability({
+        ...base,
+        stateManager: { ...base.stateManager, getState: () => undefined },
+        proposalStore: {
+            listReadySaveProposalConfirmations: () => [{ proposal_ref: 'd'.repeat(32) }]
+        },
+        outbox: { getProposalDeliveryState: () => 'accepted_unconfirmed' }
+    });
+    assert.equal(transportedConfirmation.blocked, true);
+    assert.equal(transportedConfirmation.reason, 'transported_open_finance_confirmation');
+    assert.equal(deleted.length, 0);
 });
 
 test('ambiguous first proposal prevents the outbox from claiming a second prompt for that recipient', () => {

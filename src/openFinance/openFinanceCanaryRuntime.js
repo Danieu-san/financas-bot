@@ -32,6 +32,13 @@ const defaultLogger = require('../utils/logger');
 const NATURAL_POLL_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const FAST_POLL_MIN_INTERVAL_MS = 5 * 60 * 1000;
 const FAST_POLL_MAX_WINDOW_MS = 2 * 60 * 60 * 1000;
+const OPEN_FINANCE_CONVERSATION_ACTIONS = new Set([
+    'awaiting_open_finance_save_selection',
+    'awaiting_open_finance_save_confirmation',
+    'awaiting_open_finance_save_review',
+    'awaiting_open_finance_save_batch_continue',
+    'awaiting_open_finance_final_confirmation'
+]);
 
 function readJson(file, reason) {
     if (!file || !fs.existsSync(file)) throw new Error(reason);
@@ -247,6 +254,84 @@ function bindOpenFinanceProposalConversation({
         }, ttlSeconds);
     return true;
 }
+
+function reconcileOpenFinanceRecipientAvailability({
+    actor,
+    stateManager,
+    proposalReviewStore,
+    proposalStore,
+    outbox,
+    now = Date.now()
+} = {}) {
+    const state = stateManager.getState(actor.whatsappId);
+    const activeReviews = proposalReviewStore.listActiveReviews({
+        actorWhatsappId: actor.whatsappId,
+        limit: 2
+    });
+    const nowMs = typeof now === 'number' ? now : Date.parse(String(now));
+    if (!Number.isFinite(nowMs)) throw new Error('valid_open_finance_recovery_time_required');
+    const readyReviews = proposalReviewStore.listReadyReviews({
+        actorWhatsappId: actor.whatsappId,
+        limit: 2
+    }).filter(review => Date.parse(review.expires_at) > nowMs);
+    const readyConfirmations = proposalStore.listReadySaveProposalConfirmations({
+        actorWhatsappId: actor.whatsappId,
+        limit: 100
+    });
+    const transportedConfirmation = readyConfirmations.some(confirmation =>
+        ['in_flight', 'delivered_confirmed', 'accepted_unconfirmed']
+            .includes(outbox.getProposalDeliveryState(
+                confirmation.proposal_ref,
+                { recipient: actor.principal }
+            )));
+
+    if (!state) {
+        if (activeReviews.length > 0) return {
+            blocked: true, recovered: false,
+            reason: 'active_open_finance_review', financial_writes: 0
+        };
+        if (readyReviews.length > 0) return {
+            blocked: true, recovered: false,
+            reason: 'ready_open_finance_review', financial_writes: 0
+        };
+        if (transportedConfirmation) return {
+            blocked: true, recovered: false,
+            reason: 'transported_open_finance_confirmation', financial_writes: 0
+        };
+        return { blocked: false, recovered: false, reason: 'available', financial_writes: 0 };
+    }
+    if (!OPEN_FINANCE_CONVERSATION_ACTIONS.has(state.action)) {
+        return {
+            blocked: true, recovered: false,
+            reason: 'unrelated_conversation_state', financial_writes: 0
+        };
+    }
+    if (activeReviews.length > 0) return {
+        blocked: true, recovered: false,
+        reason: 'active_open_finance_review', financial_writes: 0
+    };
+    if (readyReviews.length > 0) return {
+        blocked: true, recovered: false,
+        reason: 'ready_open_finance_review', financial_writes: 0
+    };
+    if (readyConfirmations.length > 0) return {
+        blocked: true, recovered: false,
+        reason: transportedConfirmation
+            ? 'transported_open_finance_confirmation'
+            : 'ready_open_finance_confirmation',
+        financial_writes: 0
+    };
+    if (typeof stateManager.deleteStateDurably !== 'function') {
+        throw new Error('open_finance_conversation_state_cleanup_unavailable');
+    }
+    stateManager.deleteStateDurably(actor.whatsappId);
+    return {
+        blocked: false,
+        recovered: true,
+        reason: 'orphaned_open_finance_conversation_state',
+        financial_writes: 0
+    };
+}
 async function runOpenFinanceCanaryCycle({ client, env = process.env, dependencies = {} } = {}) {
     if (!client || typeof client.sendMessage !== 'function') throw new Error('whatsapp_client_required');
     const evidence = readJson(env.OPEN_FINANCE_COMMERCIAL_EVIDENCE_FILE, 'commercial_evidence_unavailable');
@@ -457,32 +542,21 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
                 activatedAfterByAlias: policy.canary_activations })
             : { blocked: 0, financial_writes: 0 };
         const deliveries = [];
+        let recoveredConversationStates = 0;
         if (policy.can_send_whatsapp) {
             activeUsers ||= await (dependencies.getActiveUsers || getActiveUsers)();
             const excludedRecipients = new Set();
             if (proposalMode === 'prompt') {
                 for (const actor of confirmationActors) {
-                    if (stateManager.getState(actor.whatsappId)) {
-                        excludedRecipients.add(actor.principal);
-                        continue;
-                    }
-                    if (proposalReviewStore.listActiveReviews({
-                        actorWhatsappId: actor.whatsappId,
-                        limit: 2
-                    }).length > 0) {
-                        excludedRecipients.add(actor.principal);
-                        continue;
-                    }
-                    const ready = proposalStore.listReadySaveProposalConfirmations({
-                        actorWhatsappId: actor.whatsappId,
-                        limit: 100
+                    const availability = reconcileOpenFinanceRecipientAvailability({
+                        actor,
+                        stateManager,
+                        proposalReviewStore,
+                        proposalStore,
+                        outbox
                     });
-                    if (ready.some(confirmation =>
-                        ['in_flight', 'delivered_confirmed', 'accepted_unconfirmed']
-                            .includes(outbox.getProposalDeliveryState(
-                                confirmation.proposal_ref,
-                                { recipient: actor.principal }
-                            )))) {
+                    if (availability.recovered) recoveredConversationStates += 1;
+                    if (availability.blocked) {
                         excludedRecipients.add(actor.principal);
                     }
                 }
@@ -528,6 +602,10 @@ async function runOpenFinanceCanaryCycle({ client, env = process.env, dependenci
             },
             quarantined,
             pre_activation: preActivation, outbox: outbox.stats(), deliveries,
+            conversation_recovery: {
+                recovered: recoveredConversationStates,
+                financial_writes: 0
+            },
             transport_calls: deliveries.filter(value => ['delivered_confirmed', 'accepted_unconfirmed', 'retry'].includes(value)).length,
             financial_writes: 0 };
     } finally {
@@ -581,7 +659,7 @@ function initializeOpenFinanceCanaryRuntime({
             const deliveredThisCycle = (result.deliveries || []).filter(value => value === 'delivered_confirmed').length;
             const acceptedThisCycle = (result.deliveries || []).filter(value => value === 'accepted_unconfirmed').length;
             const retriesThisCycle = (result.deliveries || []).filter(value => value === 'retry').length;
-            logger.info(`[open-finance] cycle=${result.outcome} new=${result.new_observations || 0} delivered=${deliveredThisCycle} accepted_unconfirmed=${acceptedThisCycle} retries=${retriesThisCycle} cumulative_confirmed=${result.outbox?.delivered_confirmed || 0} cumulative_unconfirmed=${result.outbox?.accepted_unconfirmed || 0} cumulative_legacy_sent=${result.outbox?.legacy_sent || 0} writes=0`);
+            logger.info(`[open-finance] cycle=${result.outcome} new=${result.new_observations || 0} delivered=${deliveredThisCycle} accepted_unconfirmed=${acceptedThisCycle} retries=${retriesThisCycle} recovered_states=${result.conversation_recovery?.recovered || 0} cumulative_confirmed=${result.outbox?.delivered_confirmed || 0} cumulative_unconfirmed=${result.outbox?.accepted_unconfirmed || 0} cumulative_legacy_sent=${result.outbox?.legacy_sent || 0} writes=0`);
             return result;
         } catch (error) {
             const safeReasonCodes = new Set([
@@ -621,5 +699,6 @@ module.exports = {
     saveProposalMode,
     saveProposalConfiguration,
     resolveOpenFinancePollSchedule,
-    bindOpenFinanceProposalConversation
+    bindOpenFinanceProposalConversation,
+    reconcileOpenFinanceRecipientAvailability
 };

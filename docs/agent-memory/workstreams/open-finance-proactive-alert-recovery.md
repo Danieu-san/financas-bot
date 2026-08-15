@@ -9,7 +9,7 @@ imutabilidade depois que uma proposta foi apresentada.
 
 ## Estado
 
-`GO TECNICO LOCAL; PROMOCAO OCI AUTORIZADA`.
+`GATE 43 CANDIDATO TECNICO LOCAL; AUDITORIA INDEPENDENTE PENDENTE`.
 
 - branch: `codex/open-finance-proactive-alert-g42`;
 - base: `960e8e82d1c4aae5f6b49f0d17e75e731de6dbc2`;
@@ -27,8 +27,14 @@ imutabilidade depois que uma proposta foi apresentada.
 - reauditoria do hash `579afb2abffb47f470b19a827a5c3a8c441add82`:
   `GO TECNICO LOCAL`, zero achados e nenhuma lacuna indispensavel residual;
 - candidato: `docs/audit/258-open-finance-proactive-replay-recovery-candidate-2026-08-15.md`.
+- Gate 42 foi promovido, mas o smoke real encontrou os dois principals presos
+  por estado de selecao orfao, sem revisao ou confirmacao viva;
+- Gate 43 autocura apenas esse estado orfao e preserva todas as fronteiras
+  duraveis; focal `17/17`, afetada `31/31`, ampla `1715/1725`, zero falhas;
+- candidato Gate 43:
+  `docs/audit/260-open-finance-orphan-conversation-recovery-candidate-2026-08-15.md`.
 
 ## Proxima acao
 
-Registrar o fechamento, promover por artefato OCI e observar o primeiro lote
-real sem consentimento ou escrita financeira automatica.
+Publicar e auditar o Gate 43; com `GO`, promover por artefato OCI e observar a
+autocura e o primeiro lote real sem escrita financeira automatica.

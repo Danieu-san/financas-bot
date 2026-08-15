@@ -1,56 +1,53 @@
-# Gate ativo - Gate 42 recuperacao dos alertas proativos
+# Gate ativo - Gate 43 recuperacao de conversa Open Finance orfa
 
 Atualizado em: 2026-08-15
 
 ## Estado
 
-`GO TECNICO LOCAL; PROMOCAO OCI AUTORIZADA`.
+`CANDIDATO TECNICO LOCAL; AUDITORIA INDEPENDENTE PENDENTE`.
 
 ## Objetivo
 
-Impedir que replay temporal legitimo de proposta ou revisao nunca apresentada
-derrube todo o ciclo Open Finance, sem aceitar mudanca causal ou consentimento
-obsoleto.
+Remover somente estado conversacional Open Finance sem respaldo duravel vivo,
+para que os dois principals voltem a receber o lote numerado.
 
 ## Escopo
 
-- refresh exclusivo de `source.date` antes de qualquer transporte;
-- replay duravel de revisoes proativas sem renovar retencao;
-- lista fechada de codigos seguros no `reason` do log `NO_GO`;
-- testes e evidencia de recuperacao sem escrita financeira.
+- confronto entre estado, revisoes ativas/prontas e confirmacoes prontas;
+- limpeza duravel somente de estado Open Finance orfao;
+- metrica sanitizada de estados recuperados;
+- testes de preservacao das fronteiras vivas e alheias.
 
 ## Não escopo
 
-- habilitar writer financeiro ou consentir lancamentos;
-- alterar elegibilidade de transacoes;
+- reabrir ou reenviar transportes historicos;
+- alterar elegibilidade, reconciliacao ou classificacao de transacoes;
 - corrigir dashboard, check diario ou limite mensal;
 - reconstruir o RX historico.
 
 ## Invariantes
 
-1. Proposta com qualquer evidencia de transporte nao pode mudar.
-2. Apenas `source.date` pode ser corrigida antes do transporte, mantendo todos
-   os outros campos e o mesmo estado elegivel do provedor.
-3. Revisao duravel conserva criacao e expiracao originais em todo replay.
-4. Erro externo ou texto livre nao aparece no log.
+1. Conversa alheia ao Open Finance nunca e removida.
+2. Revisao ativa, revisao pronta valida ou confirmacao pronta nunca e removida.
+3. Transporte historico nunca e reaberto ou reenviado por esta correcao.
+4. Apenas contagem sanitizada aparece no log.
 5. Nenhum caminho deste gate cria escrita financeira.
 
 ## Evidencia
 
-- clone real OCI: `GO`, `refreshed=8`, `pending=76`, duas entregas simuladas e
-  `financial_writes=0`;
-- focal `43/43`;
-- causal `402/402`;
-- ampla `1723` total, `1713` pass, `0` fail, `10` skip.
+- producao: dois estados de selecao vivos, zero revisoes ativas e zero
+  confirmacoes prontas;
+- focal `17/17`;
+- bateria diretamente afetada `31/31`;
+- ampla `1725` total, `1715` pass, `0` fail, `10` skip.
 
 ## Critérios de GO
 
-1. Auditor independente confirma a fronteira exclusiva de data e transporte.
-2. Auditor confirma que apenas os dois codigos fechados podem aparecer em
-   `reason` e que texto livre vira `unknown`.
+1. Auditor independente confirma que somente estado Open Finance orfao e limpo.
+2. Auditor confirma preservacao de revisoes, confirmacoes e conversas alheias.
 3. Deploy por artefato preserva estado e processo unico.
-4. Primeiro ciclo OCI conclui `GO`, entrega um unico lote familiar e mantem
-   `financial_writes=0` antes do consentimento normal.
+4. Primeiro ciclo OCI registra `recovered_states=2`, entrega um unico lote por
+   principal e mantem `financial_writes=0`.
 
 ## Condições de parada
 
@@ -61,5 +58,5 @@ obsoleto.
 
 ## Proxima acao
 
-Registrar o fechamento independente, promover o artefato auditado na OCI e
-validar o primeiro ciclo/lote numerado sem escrita financeira automatica.
+Publicar o commit sanitizado, obter auditoria independente e, com `GO`, promover
+o artefato auditado na OCI e validar a autocura/lote numerado.

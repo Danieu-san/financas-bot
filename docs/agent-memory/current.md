@@ -4,26 +4,26 @@ Atualizado em: 2026-08-15
 
 ## Objetivo ativo
 
-Encerrar o Gate 42, restaurando o ciclo Open Finance e as propostas numeradas
-familiares antes de seguir para dashboard, check diario e limite mensal.
+Encerrar o Gate 43, removendo somente estados conversacionais Open Finance
+orfaos para restaurar as propostas numeradas familiares antes de seguir para
+dashboard, check diario e limite mensal.
 
 ## Estado vigente
 
 - Gate 41.7 recebeu `GO TECNICO LOCAL` read-only e permanece sem writer;
-- producao OCI continua no release
-  `30e23da19db67af601ddec713876966899f3334f`;
-- o ciclo de producao falha fechado, com zero escrita, antes do outbox;
-- diagnostico isolado provou dois conflitos de replay duravel;
-- o candidato Gate 42 passou focal `43/43`, causal `402/402` e uma unica suite
-  ampla `1723/1713/0/10`;
-- a primeira auditoria independente aprovou a recuperacao e retornou `NO-GO`
-  somente porque `reason` usava filtro sintatico; o candidato atual usa lista
-  fechada de dois codigos e repetiu focal `43/43` e ampla `1723/1713/0/10`;
-- o hash `579afb2abffb47f470b19a827a5c3a8c441add82` recebeu `GO TECNICO
-  LOCAL`, com zero achados e nenhuma lacuna indispensavel residual;
-- clone do estado real concluiu `GO`, com oito refreshes nunca transportados,
-  76 propostas pendentes, duas entregas simuladas e `financial_writes=0`;
-- nenhuma mensagem real, restart ou mutacao de producao ocorreu.
+- Gate 42 recebeu `GO TECNICO LOCAL` e foi promovido na OCI no release
+  `579afb2abffb47f470b19a827a5c3a8c441add82`;
+- processo unico, WhatsApp e health permaneceram verdes, com zero reinicios;
+- o primeiro ciclo real concluiu `GO`, mas nao entregou lote numerado;
+- diagnostico sanitizado provou que Daniel e Thais tinham estado
+  `awaiting_open_finance_save_selection`, com zero revisoes ativas e zero
+  confirmacoes prontas: ambos eram excluidos por estado orfao;
+- Gate 43 remove somente estado das cinco acoes Open Finance conhecidas quando
+  nao existe revisao ativa/pronta valida nem confirmacao pronta;
+- conversas alheias, revisoes e confirmacoes vivas continuam bloqueadas;
+- focal `17/17`, bateria diretamente afetada `31/31` e suite ampla unica
+  `1725/1715/0/10`, com cobertura de linhas `91.52%`;
+- candidato aguarda commit imutavel e auditoria independente.
 
 ## Git e workspace
 
@@ -33,13 +33,12 @@ familiares antes de seguir para dashboard, check diario e limite mensal.
 
 ## Próxima ação exata
 
-Registrar o fechamento independente, promover por artefato OCI, executar o
-primeiro ciclo real e confirmar o lote numerado familiar sem escrita financeira
-automatica.
+Criar e publicar o commit imutavel do Gate 43, obter auditoria independente e,
+somente com `GO`, promover por artefato OCI e confirmar a autocura/lote real.
 
 ## Capacidade para retomar
 
-`Codex -> Sol -> Alto -> auditar e promover o Gate 42 na OCI.`
+`Codex -> Sol -> Alto -> auditar e promover o Gate 43 na OCI.`
 
 ## Referencias
 
@@ -48,3 +47,4 @@ automatica.
 - `docs/plans/workstreams/open-finance-proactive-alert-recovery.md`;
 - `docs/audit/258-open-finance-proactive-replay-recovery-candidate-2026-08-15.md`.
 - `docs/audit/259-open-finance-proactive-replay-recovery-independent-close-2026-08-15.md`.
+- `docs/audit/260-open-finance-orphan-conversation-recovery-candidate-2026-08-15.md`.
