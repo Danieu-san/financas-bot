@@ -4,9 +4,8 @@ Atualizado em: 2026-08-15
 
 ## Objetivo ativo
 
-Encerrar o Gate 43, removendo somente estados conversacionais Open Finance
-orfaos para restaurar as propostas numeradas familiares antes de seguir para
-dashboard, check diario e limite mensal.
+Comparar dashboard v1/v2 e confirmar qual superficie deve permanecer, depois
+validar seus dados, desativar o check diario das 09:05 e revisar o limite mensal.
 
 ## Estado vigente
 
@@ -32,6 +31,12 @@ dashboard, check diario e limite mensal.
   `GO TECNICO LOCAL` independente, sem achados nem lacuna indispensavel;
 - promocao OCI e primeiro ciclo controlado estao autorizados, mantendo
   `financial_writes=0`.
+- Gate 43 foi promovido na OCI no hash auditado `72e526fac3dde1d00907d4e03725472ea8c67c60`;
+- processo unico, zero reinicios, health local/publico e WhatsApp verdes;
+- primeiro ciclo: `GO`, `recovered_states=2`, duas entregas, oito propostas e
+  `financial_writes=0`;
+- WhatsApp Daniel confirmou uma unica lista numerada com quatro itens, sem
+  duplicacao; Gate 43 esta em `GO DE PRODUCAO`.
 
 ## Git e workspace
 
@@ -41,12 +46,12 @@ dashboard, check diario e limite mensal.
 
 ## Próxima ação exata
 
-Promover por artefato OCI o hash auditado, preservar estado e validar o primeiro
-ciclo real, inclusive recuperacao e lote numerado.
+Comparar tecnicamente dashboard v1 e v2 sem alterar producao; escolher a melhor
+base e auditar a veracidade de seus dados contra as fontes vigentes.
 
 ## Capacidade para retomar
 
-`Codex -> Sol -> Alto -> auditar e promover o Gate 43 na OCI.`
+`Codex -> Sol -> Alto -> comparar dashboard v1/v2 e validar a verdade financeira.`
 
 ## Referencias
 
@@ -57,3 +62,4 @@ ciclo real, inclusive recuperacao e lote numerado.
 - `docs/audit/259-open-finance-proactive-replay-recovery-independent-close-2026-08-15.md`.
 - `docs/audit/260-open-finance-orphan-conversation-recovery-candidate-2026-08-15.md`.
 - `docs/audit/261-open-finance-orphan-conversation-recovery-independent-close-2026-08-15.md`.
+- `docs/audit/263-open-finance-orphan-conversation-recovery-production-close-2026-08-15.md`.

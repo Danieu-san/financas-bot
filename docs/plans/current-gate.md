@@ -1,68 +1,61 @@
-# Gate ativo - Gate 43 recuperacao de conversa Open Finance orfa
+# Gate ativo - comparacao e verdade financeira do dashboard
 
 Atualizado em: 2026-08-15
 
 ## Estado
 
-`GO TECNICO LOCAL; PROMOCAO OCI AUTORIZADA`.
+`GATE 43 GO DE PRODUCAO; DASHBOARD EM DIAGNOSTICO`.
 
 ## Objetivo
 
-Remover somente estado conversacional Open Finance sem respaldo duravel vivo,
-para que os dois principals voltem a receber o lote numerado.
+Comparar v1 e v2, escolher a superficie mais correta e verificar seus valores
+contra as fontes financeiras vigentes antes de substituir ou retirar qualquer
+dashboard.
 
 ## Escopo
 
-- confronto entre estado, revisoes ativas/prontas e confirmacoes prontas;
-- limpeza duravel somente de estado Open Finance orfao;
-- metrica sanitizada de estados recuperados;
-- testes de preservacao das fronteiras vivas e alheias.
+- rotas, contratos e fontes de dados dos dashboards v1 e v2;
+- semantica de saldos de conta, faturas, limites e movimentacoes;
+- comparacao read-only no mesmo usuario e instante;
+- verificacao contra read-model, Sheets e snapshot Open Finance vigente.
 
 ## Não escopo
 
-- reabrir ou reenviar transportes historicos;
-- alterar elegibilidade, reconciliacao ou classificacao de transacoes;
-- corrigir dashboard, check diario ou limite mensal;
-- reconstruir o RX historico.
+- alterar ou retirar qualquer dashboard antes do veredito;
+- gravar na planilha ou nos stores financeiros;
+- mudar o check diario ou o limite mensal nesta etapa;
+- reabrir o Gate 43 sem regressao observada.
 
 ## Invariantes
 
-1. Conversa alheia ao Open Finance nunca e removida.
-2. Revisao ativa, revisao pronta valida ou confirmacao pronta nunca e removida.
-3. Transporte historico nunca e reaberto ou reenviado por esta correcao.
-4. Apenas contagem sanitizada aparece no log.
-5. Nenhum caminho deste gate cria escrita financeira.
+1. Toda comparacao usa o mesmo recorte temporal e usuario.
+2. Saldo de conta, fatura, limite e fluxo nao sao misturados.
+3. Ausencia de fonte nao vira zero.
+4. Diagnostico permanece somente leitura e sem dados privados em commits.
+5. A excecao admin temporaria respeita o ADR-002 e nao e ampliada.
 
 ## Evidencia
 
-- producao: dois estados de selecao vivos, zero revisoes ativas e zero
-  confirmacoes prontas;
-- focal `17/17`;
-- bateria diretamente afetada `31/31`;
-- ampla `1725` total, `1715` pass, `0` fail, `10` skip.
-- primeiro hash `882a44984eeb75332c0e5be6d9826062da1580ed`: `NO-GO`,
-  sem deploy;
-- correcao focal `44/44` e afetada `149/149`.
-- ampla corretiva final `1727` total, `1717` pass, `0` fail, `10` skip,
-  cobertura de linhas `91.54%`.
-- hash `72e526fac3dde1d00907d4e03725472ea8c67c60`: `GO TECNICO LOCAL`
-  independente, zero achados e nenhuma lacuna indispensavel.
+- Gate 43 encerrado em producao no hash
+  `72e526fac3dde1d00907d4e03725472ea8c67c60`;
+- health local/publico e WhatsApp verdes;
+- diagnostico de dashboard ainda nao iniciado neste checkpoint.
 
 ## Critérios de GO
 
-1. Auditor independente confirma que somente estado Open Finance orfao e limpo.
-2. Auditor confirma preservacao de revisoes, confirmacoes e conversas alheias.
-3. Deploy por artefato preserva estado e processo unico.
-4. Primeiro ciclo OCI registra `recovered_states=2`, entrega um unico lote por
-   principal e mantem `financial_writes=0`.
+1. Fontes e semantica de v1/v2 estao mapeadas no codigo.
+2. Valores comparaveis foram confrontados no mesmo recorte.
+3. Divergencias tem causa factual, sem inferir zero por ausencia.
+4. Existe veredito sobre a superficie a manter e um plano fechado de correcao.
 
 ## Condições de parada
 
-- `NO-GO` independente ou lacuna indispensavel;
-- divergencia de codigo depois do hash auditado;
-- checksum, health, processo, sessao WhatsApp ou estado OCI divergente;
-- qualquer indicio de escrita financeira automatica.
+- fonte privada ou recorte nao puder ser confirmado;
+- comparacao exigir escrita ou mutacao externa;
+- descoberta de exposicao admin contraria ao ADR-002;
+- qualquer risco de misturar saldo, fatura, limite ou fluxo.
 
 ## Proxima acao
 
-Promover o hash auditado por artefato OCI e validar o primeiro ciclo real.
+Inspecionar codigo, contratos e dados read-only de v1/v2; produzir um veredito
+comparativo e delimitar a correcao necessaria sem alterar producao ainda.

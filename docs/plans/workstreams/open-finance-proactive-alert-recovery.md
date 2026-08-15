@@ -2,7 +2,7 @@
 
 ## Estado
 
-`GATE 42 PROMOVIDO; GATE 43 GO AGUARDA PROMOCAO OCI`.
+`GATES 42 E 43 EM GO DE PRODUCAO`.
 
 ## Criterios de fechamento
 

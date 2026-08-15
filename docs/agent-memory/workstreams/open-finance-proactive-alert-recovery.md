@@ -9,7 +9,7 @@ imutabilidade depois que uma proposta foi apresentada.
 
 ## Estado
 
-`GATE 43 GO TECNICO LOCAL; PROMOCAO OCI AUTORIZADA`.
+`GATE 43 GO DE PRODUCAO`.
 
 - branch: `codex/open-finance-proactive-alert-g42`;
 - base: `960e8e82d1c4aae5f6b49f0d17e75e731de6dbc2`;
@@ -35,10 +35,14 @@ imutabilidade depois que uma proposta foi apresentada.
   `1717/1727`, zero falhas;
 - hash corrigido `72e526fac3dde1d00907d4e03725472ea8c67c60` recebeu GO
   independente sem achados nem lacuna indispensavel;
+- release OCI promovido no mesmo hash, processo unico, zero reinicios, health
+  local/publico verde e primeiro ciclo `GO` com `recovered_states=2`, oito
+  propostas, duas mensagens e `financial_writes=0`;
+- WhatsApp Daniel confirmou uma unica lista numerada de quatro itens.
 - candidato Gate 43:
   `docs/audit/260-open-finance-orphan-conversation-recovery-candidate-2026-08-15.md`.
 
 ## Proxima acao
 
-Promover o Gate 43 por artefato OCI e observar a
-autocura e o primeiro lote real sem escrita financeira automatica.
+Workstream encerrado. Retomar somente se o salvamento numerico ou nova entrega
+proativa apresentar regressao.
