@@ -4,8 +4,8 @@ Atualizado em: 2026-08-15
 
 ## Objetivo ativo
 
-Desativar somente o check operacional diario das 09:05, preservando os demais
-resumos e agendamentos; depois revisar o limite mensal.
+Revisar o limite mensal, confirmar quais categorias entram no calculo e
+corrigir qualquer divergencia sem misturar despesas excluidas.
 
 ## Estado vigente
 
@@ -52,6 +52,9 @@ resumos e agendamentos; depois revisar o limite mensal.
   health local/publico e WhatsApp verdes;
 - smoke real de `dashboard` respondeu uma unica vez com `/dashboard/v2`, sem
   consumir a lista financeira pendente; dashboard v2 esta em `GO DE PRODUCAO`.
+- o check operacional das 09:05 foi desativado em producao pela flag existente,
+  com testes focais 34/34; outros crons permaneceram intactos e o health final
+  voltou a `ready/healthy`.
 
 ## Git e workspace
 
@@ -61,12 +64,12 @@ resumos e agendamentos; depois revisar o limite mensal.
 
 ## Próxima ação exata
 
-Localizar e desativar somente a notificacao operacional diaria das 09:05,
-preservando resumos matinal/noturno e demais crons.
+Mapear o limite mensal, suas fontes e categorias incluidas/excluidas; confrontar
+o contrato com testes e com a configuracao financeira vigente.
 
 ## Capacidade para retomar
 
-`Codex -> Sol -> Alto -> desativar somente o check diario das 09:05.`
+`Codex -> Sol -> Alto -> revisar e corrigir o limite mensal.`
 
 ## Referencias
 
@@ -79,3 +82,4 @@ preservando resumos matinal/noturno e demais crons.
 - `docs/audit/261-open-finance-orphan-conversation-recovery-independent-close-2026-08-15.md`.
 - `docs/audit/263-open-finance-orphan-conversation-recovery-production-close-2026-08-15.md`.
 - `docs/audit/266-dashboard-v2-default-promotion-production-close-2026-08-15.md`.
+- `docs/audit/267-daily-ops-check-disable-production-close-2026-08-15.md`.

@@ -1,52 +1,54 @@
-# Gate ativo - desativacao do check diario das 09:05
+# Gate ativo - verdade do limite mensal
 
 Atualizado em: 2026-08-15
 
 ## Estado
 
-`GATE 43 E DASHBOARD V2 EM GO DE PRODUCAO; CHECK 09:05 EM DIAGNOSTICO`.
+`DASHBOARD V2 E CHECK 09:05 ENCERRADOS; LIMITE MENSAL EM DIAGNOSTICO`.
 
 ## Objetivo
 
-Desativar somente a mensagem operacional `FinancasBot - check diario` enviada
-as 09:05, sem afetar os resumos de agenda/financeiro nem outros agendamentos.
+Confirmar se o limite mensal usa a fonte, o periodo e somente as categorias
+aprovadas; corrigir qualquer divergencia encontrada.
 
 ## Escopo
 
-- localizar o job e sua fronteira de envio;
-- desativar o envio por configuracao ou codigo com teste causal;
-- preservar todos os demais jobs e mensagens programadas.
+- localizar configuracao, calculo e mensagens do limite mensal;
+- identificar categorias incluidas e excluidas e sua origem;
+- confrontar codigo, testes e configuracao financeira vigente;
+- corrigir com prova causal se houver erro.
 
-## Nao escopo
+## Não escopo
 
-- mudar horarios ou conteudo de outros resumos;
-- alterar dados financeiros, RX ou Open Finance;
-- revisar o limite mensal nesta etapa.
+- gravar o RX historico na planilha;
+- alterar classificacoes financeiras sem evidencia;
+- reabrir dashboard, check das 09:05 ou Gate 43 sem regressao.
 
 ## Invariantes
 
-1. Somente o check operacional das 09:05 deixa de ser enviado.
-2. Resumos matinal/noturno e demais crons permanecem ativos.
-3. Nenhum dado financeiro ou estado conversacional e alterado.
+1. Ausencia de alocacao ou fonte nao vira zero.
+2. Categorias excluidas nao consomem o limite.
+3. Periodo mensal e ciclo orcamentario nao sao misturados silenciosamente.
+4. Nenhuma correcao entra em producao sem teste e auditoria independente.
 
-## Evidencia
+## Evidência
 
-- dashboard v2 encerrado em producao no hash
-  `28f106d4e9b150cd7e04f589075d3eb873e7cc25`;
-- WhatsApp mostra mensagens distintas de resumo as 07:00/20:00 e o check
-  operacional `FinancasBot - check diario` as 09:05.
+- check das 09:05 desativado pela flag existente, sem alterar outros crons;
+- dashboard v2 e Gate 43 permanecem em `GO DE PRODUCAO`.
 
-## Criterios de GO
+## Critérios de GO
 
-1. Teste causal prova ausencia do envio das 09:05.
-2. Testes preservam os demais agendamentos.
-3. Auditoria independente confirma o escopo do diff.
+1. Fonte, periodo, categorias e formula estao identificados.
+2. Casos de inclusao, exclusao e ausencia tem testes causais.
+3. Valores observados nao misturam fontes nem inferem zeros.
+4. Correcao material, se necessaria, recebe auditoria independente.
 
-## Condicoes de parada
+## Condições de parada
 
-- o check compartilhar uma fronteira inseparavel com outro resumo;
-- a alteracao afetar qualquer escrita financeira ou outro job.
+- configuracao financeira vigente nao puder ser determinada;
+- regra de negocio depender de escolha nova de Daniel;
+- diagnostico exigir escrita na planilha ou dados nao autorizados.
 
 ## Proxima acao
 
-Mapear o agendamento e criar prova causal focal antes da alteracao.
+Mapear codigo, testes e configuracoes que definem limite mensal e categorias.
