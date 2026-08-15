@@ -1,61 +1,52 @@
-# Gate ativo - comparacao e verdade financeira do dashboard
+# Gate ativo - desativacao do check diario das 09:05
 
 Atualizado em: 2026-08-15
 
 ## Estado
 
-`GATE 43 GO DE PRODUCAO; DASHBOARD V2 GO TECNICO LOCAL, AGUARDANDO PROMOCAO OCI`.
+`GATE 43 E DASHBOARD V2 EM GO DE PRODUCAO; CHECK 09:05 EM DIAGNOSTICO`.
 
 ## Objetivo
 
-Comparar v1 e v2, escolher a superficie mais correta e verificar seus valores
-contra as fontes financeiras vigentes antes de substituir ou retirar qualquer
-dashboard.
+Desativar somente a mensagem operacional `FinancasBot - check diario` enviada
+as 09:05, sem afetar os resumos de agenda/financeiro nem outros agendamentos.
 
 ## Escopo
 
-- rotas, contratos e fontes de dados dos dashboards v1 e v2;
-- semantica de saldos de conta, faturas, limites e movimentacoes;
-- comparacao read-only no mesmo usuario e instante;
-- verificacao contra read-model, Sheets e snapshot Open Finance vigente.
+- localizar o job e sua fronteira de envio;
+- desativar o envio por configuracao ou codigo com teste causal;
+- preservar todos os demais jobs e mensagens programadas.
 
-## Não escopo
+## Nao escopo
 
-- alterar ou retirar qualquer dashboard antes do veredito;
-- gravar na planilha ou nos stores financeiros;
-- mudar o check diario ou o limite mensal nesta etapa;
-- reabrir o Gate 43 sem regressao observada.
+- mudar horarios ou conteudo de outros resumos;
+- alterar dados financeiros, RX ou Open Finance;
+- revisar o limite mensal nesta etapa.
 
 ## Invariantes
 
-1. Toda comparacao usa o mesmo recorte temporal e usuario.
-2. Saldo de conta, fatura, limite e fluxo nao sao misturados.
-3. Ausencia de fonte nao vira zero.
-4. Diagnostico permanece somente leitura e sem dados privados em commits.
-5. A excecao admin temporaria respeita o ADR-002 e nao e ampliada.
+1. Somente o check operacional das 09:05 deixa de ser enviado.
+2. Resumos matinal/noturno e demais crons permanecem ativos.
+3. Nenhum dado financeiro ou estado conversacional e alterado.
 
 ## Evidencia
 
-- Gate 43 encerrado em producao no hash
-  `72e526fac3dde1d00907d4e03725472ea8c67c60`;
-- health local/publico e WhatsApp verdes;
-- diagnostico de dashboard ainda nao iniciado neste checkpoint.
+- dashboard v2 encerrado em producao no hash
+  `28f106d4e9b150cd7e04f589075d3eb873e7cc25`;
+- WhatsApp mostra mensagens distintas de resumo as 07:00/20:00 e o check
+  operacional `FinancasBot - check diario` as 09:05.
 
-## Critérios de GO
+## Criterios de GO
 
-1. Fontes e semantica de v1/v2 estao mapeadas no codigo.
-2. Valores comparaveis foram confrontados no mesmo recorte.
-3. Divergencias tem causa factual, sem inferir zero por ausencia.
-4. Existe veredito sobre a superficie a manter e um plano fechado de correcao.
+1. Teste causal prova ausencia do envio das 09:05.
+2. Testes preservam os demais agendamentos.
+3. Auditoria independente confirma o escopo do diff.
 
-## Condições de parada
+## Condicoes de parada
 
-- fonte privada ou recorte nao puder ser confirmado;
-- comparacao exigir escrita ou mutacao externa;
-- descoberta de exposicao admin contraria ao ADR-002;
-- qualquer risco de misturar saldo, fatura, limite ou fluxo.
+- o check compartilhar uma fronteira inseparavel com outro resumo;
+- a alteracao afetar qualquer escrita financeira ou outro job.
 
 ## Proxima acao
 
-Preparar artefato imutavel do hash auditado, promover na OCI e validar saude,
-comando padrao v2, v1 explicito e ausencia de escrita financeira.
+Mapear o agendamento e criar prova causal focal antes da alteracao.

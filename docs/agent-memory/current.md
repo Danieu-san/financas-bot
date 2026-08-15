@@ -4,8 +4,8 @@ Atualizado em: 2026-08-15
 
 ## Objetivo ativo
 
-Promover o dashboard v2 como superficie padrao com rollback v1, depois desativar
-o check diario das 09:05 e revisar o limite mensal.
+Desativar somente o check operacional diario das 09:05, preservando os demais
+resumos e agendamentos; depois revisar o limite mensal.
 
 ## Estado vigente
 
@@ -47,22 +47,26 @@ o check diario das 09:05 e revisar o limite mensal.
   1727/1717/0/10, cobertura de linhas 91.53%.
 - hash imutavel `28f106d4e9b150cd7e04f589075d3eb873e7cc25` recebeu
   `GO TECNICO LOCAL` independente, sem achados bloqueantes nem lacuna residual;
-  promocao OCI controlada esta autorizada, preservando v1 e a flag de rollback.
+  promocao OCI controlada esta autorizada, preservando v1 e a flag de rollback;
+- o hash auditado foi promovido na OCI com processo unico, zero reinicios e
+  health local/publico e WhatsApp verdes;
+- smoke real de `dashboard` respondeu uma unica vez com `/dashboard/v2`, sem
+  consumir a lista financeira pendente; dashboard v2 esta em `GO DE PRODUCAO`.
 
 ## Git e workspace
 
-- branch: `codex/open-finance-proactive-alert-g42`;
-- base: `960e8e82d1c4aae5f6b49f0d17e75e731de6dbc2`;
-- arvore deve conter apenas o candidato e sua documentacao.
+- branch: `codex/dashboard-truth-g44`;
+- produto implantado: `28f106d4e9b150cd7e04f589075d3eb873e7cc25`;
+- arvore deve preservar `release-artifacts-g44/` como nao rastreado.
 
 ## Próxima ação exata
 
-Preparar e promover na OCI o hash auditado, validar saude e smoke real de
-`dashboard`, sem alterar a planilha ou o RX historico.
+Localizar e desativar somente a notificacao operacional diaria das 09:05,
+preservando resumos matinal/noturno e demais crons.
 
 ## Capacidade para retomar
 
-`Codex -> Sol -> Alto -> comparar dashboard v1/v2 e validar a verdade financeira.`
+`Codex -> Sol -> Alto -> desativar somente o check diario das 09:05.`
 
 ## Referencias
 
@@ -74,3 +78,4 @@ Preparar e promover na OCI o hash auditado, validar saude e smoke real de
 - `docs/audit/260-open-finance-orphan-conversation-recovery-candidate-2026-08-15.md`.
 - `docs/audit/261-open-finance-orphan-conversation-recovery-independent-close-2026-08-15.md`.
 - `docs/audit/263-open-finance-orphan-conversation-recovery-production-close-2026-08-15.md`.
+- `docs/audit/266-dashboard-v2-default-promotion-production-close-2026-08-15.md`.
