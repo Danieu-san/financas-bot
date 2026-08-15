@@ -62,6 +62,15 @@ corrigir qualquer divergencia sem misturar despesas excluidas.
   resolve agosto como 28/07 a 27/08; despesas avulsas continuam elegiveis;
 - provas focais 3/3, bateria causal 22/22, estados 9/9 e ampla final
   1731/1721/0/10, cobertura de linhas 91.53%.
+- o primeiro hash do limite mensal teve auditoria externa parcial e não recebeu
+  GO; os achados preliminares de catálogo `Contas` ausente no fallback SQLite
+  e escopo familiar divergente no dashboard foram confirmados localmente;
+- o candidato corrigido transporta `Contas` no fallback e reconhece pagamentos
+  familiares cruzados somente dentro do escopo autorizado; cartões usam o
+  catálogo para recorrência porque a planilha não possui coluna autônoma para
+  esse campo;
+- RED corretivo 70 contra 20; focal 26/26, afetada 175/175 e ampla final
+  1733/1723/0/10, cobertura de linhas 91.54%.
 
 ## Git e workspace
 
@@ -71,7 +80,7 @@ corrigir qualquer divergencia sem misturar despesas excluidas.
 
 ## Próxima ação exata
 
-Publicar o commit sanitizado do candidato e obter auditoria independente por
+Publicar o novo commit sanitizado e obter auditoria independente integral por
 hash antes de qualquer promocao OCI.
 
 ## Capacidade para retomar

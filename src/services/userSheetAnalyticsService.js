@@ -491,6 +491,10 @@ function buildDailyGoalSummary({ settings, saidasRows, cartaoRows, cardConfigRow
     const todayParts = getSaoPauloDateParts();
     const cycle = getBudgetCycleForReportingPeriod(normalizedPeriod, cycleStartDay, todayParts);
     const isCurrentCycle = cycle.isCurrent;
+    const budgetEligibilityOptions = {
+        userIds,
+        allowFamilyPayment: scope === 'family' && Array.isArray(userIds) && userIds.length > 1
+    };
 
     const today = getTodaySaoPauloDateString();
     const todayMatches = (value) => {
@@ -499,7 +503,7 @@ function buildDailyGoalSummary({ settings, saidasRows, cartaoRows, cardConfigRow
     };
     const saidasEligible = saidasRows.slice(1)
         .filter(row => {
-            return rowBelongsToAnyUser(row, 9, userIds) && isFreeSpendingRow(row, accountRows, { userIds });
+            return rowBelongsToAnyUser(row, 9, userIds) && isFreeSpendingRow(row, accountRows, budgetEligibilityOptions);
         });
     const cartoesEligible = cartaoRows.slice(1)
         .filter(row => rowBelongsToAnyUser(row, 9, userIds) && isFreeBudgetExpense({
@@ -509,7 +513,7 @@ function buildDailyGoalSummary({ settings, saidasRows, cartaoRows, cardConfigRow
             subcategory: 'Cartão de Crédito',
             value: parseValue(row[3]),
             userId: row[9] || ''
-        }, accountRows, { userIds }));
+        }, accountRows, budgetEligibilityOptions));
     const cardDueDayMap = buildCardDueDayMap(cardConfigRows);
     const saidasToday = isCurrentCycle
         ? saidasEligible.filter(row => todayMatches(row[0])).reduce((sum, row) => sum + parseValue(row[4]), 0)

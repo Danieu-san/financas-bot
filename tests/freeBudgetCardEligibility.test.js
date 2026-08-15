@@ -99,6 +99,31 @@ test('dashboard monthly free budget excludes registered bills paid by card', () 
     assert.strictEqual(summary.spent, 20);
 });
 
+test('family dashboard excludes a registered bill paid on the other family member card', () => {
+    const today = currentSaoPaulo();
+    const familyCards = cardRows(today).map((row, index) => {
+        if (index === 0) return row;
+        return [...row.slice(0, 9), 'user-2'];
+    });
+    const summary = userSheetAnalyticsService.__test__.buildDailyGoalSummary({
+        settings: {
+            monthly_budget_enabled: 'SIM',
+            monthly_budget_amount: '938.11',
+            monthly_budget_scope: 'family',
+            monthly_budget_cycle_start_day: '28'
+        },
+        userIds: ['user-1', 'user-2'],
+        period: { month: today.month, year: today.year },
+        saidasRows: [['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id']],
+        cartaoRows: familyCards,
+        cardConfigRows: cardConfig(today),
+        accountRows: accountRows(today)
+    });
+
+    assert.strictEqual(summary.monthSpent, 20);
+    assert.strictEqual(summary.spent, 20);
+});
+
 test('financial query monthly free budget excludes registered bills paid by card', async () => {
     const today = currentSaoPaulo();
     const result = await financialQueryEngine.executeFinancialQuery({

@@ -699,7 +699,10 @@ function getBudgetRows(dataSources = {}, plan = {}, cycle = {}, referenceDate = 
         : null;
     const allowed = (item) => !allowedUserIds || allowedUserIds.has(String(item.userId || '').trim());
     const scopeUserIds = dataSources.scopeUserIds || [];
-    const allowFamilyPayment = normalizeText(plan.filters?.scope || '') === 'family' && scopeUserIds.length > 1;
+    const effectiveBudgetScope = normalizeText(
+        plan.filters?.scope || budgetSettingsFromDataSources(dataSources, plan)?.category || ''
+    );
+    const allowFamilyPayment = effectiveBudgetScope === 'family' && scopeUserIds.length > 1;
     const accountRows = dataSources.contas || dataSources.accountRows || [];
     if (Array.isArray(dataSources.saidas)) {
         dataSources.saidas.slice(1).forEach((row) => {

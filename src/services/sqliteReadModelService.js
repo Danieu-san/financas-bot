@@ -2145,11 +2145,31 @@ function queryBudgetFinancialQueryDataSourcesSql(plan, { userId, userIds, curren
         FROM card_configs
         ORDER BY name ASC, card_id ASC
     `).all();
+    const billRows = db.prepare(`
+        SELECT user_id, account_name, friendly_name, due_day, notes, category, subcategory, expected_value, rule_active
+        FROM recurring_bills
+        WHERE user_id IN (${userPlaceholders})
+        ORDER BY due_day ASC, friendly_name ASC, account_name ASC
+    `).all(...scopeUserIds);
 
     return {
         ...buildExpensesDataSourcesFromRows(expenseRows),
         userSettings: buildUserSettingsDataSource(settingsRows),
         cartoesConfig: buildCardConfigsDataSource(cardConfigRows),
+        contas: [
+            ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa'],
+            ...billRows.map(row => [
+                row.account_name || '',
+                row.due_day || '',
+                row.notes || '',
+                row.user_id || '',
+                row.friendly_name || '',
+                row.category || '',
+                row.subcategory || '',
+                Number(row.expected_value || 0),
+                row.rule_active || ''
+            ])
+        ],
         scopeUserIds,
         currentDate: currentDate || ''
     };

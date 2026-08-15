@@ -4,7 +4,7 @@ Atualizado em: 2026-08-15
 
 ## Estado
 
-`LIMITE MENSAL: CANDIDATO LOCAL VERDE, AGUARDANDO AUDITORIA INDEPENDENTE`.
+`LIMITE MENSAL: CANDIDATO CORRIGIDO VERDE, AGUARDANDO NOVA AUDITORIA INDEPENDENTE`.
 
 ## Objetivo
 
@@ -35,6 +35,10 @@ aprovadas; corrigir qualquer divergencia encontrada.
 
 - check das 09:05 desativado pela flag existente, sem alterar outros crons;
 - dashboard v2 e Gate 43 permanecem em `GO DE PRODUCAO`.
+- o hash anterior não recebeu GO por acesso parcial e expôs catálogo de contas
+  ausente no fallback SQLite e divergência de pagamento familiar;
+- ambos os cenários tiveram RED 70 contra 20 e ficaram verdes após correção;
+- focal 26/26, bateria afetada 175/175 e ampla 1733/1723/0/10.
 
 ## Critérios de GO
 
@@ -51,4 +55,5 @@ aprovadas; corrigir qualquer divergencia encontrada.
 
 ## Proxima acao
 
-Criar e publicar commit sanitizado; auditar uma vez no Chat pelo hash imutavel.
+Criar e publicar novo commit sanitizado; auditar uma vez no Chat pelo novo hash
+imutavel.

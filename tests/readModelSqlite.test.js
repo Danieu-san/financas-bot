@@ -131,7 +131,7 @@ function syncControlledSnapshot() {
         ],
         contas: [
             { user_id: 'user-read-a', headers: ['Categoria', 'Nome Amigável', 'Dia do Vencimento', 'Valor Esperado', 'Regra Ativa', 'Subcategoria', 'Nome da Conta', 'Observações', 'user_id'], row: ['Moradia', 'Internet', '28', '120', 'SIM', 'INTERNET', 'NET', '', 'user-read-a'] },
-            { user_id: 'user-read-b', headers: ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa'], row: ['OUTRA', '28', '', 'user-read-b', 'Conta outro', 'Moradia', '', '9999', 'SIM'] }
+            { user_id: 'user-read-b', headers: ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa'], row: ['ENERGIA', '28', '', 'user-read-b', 'Conta de energia', 'Moradia', 'Energia elétrica', '9999', 'SIM'] }
         ]
     });
     assert.strictEqual(synced, true);
@@ -595,6 +595,50 @@ test('sqlite read-model feeds Packet 05 budget plans into Query Engine with scop
     );
     assert.strictEqual(outsider.results.monthlyAmount, 500);
     assert.strictEqual(outsider.results.cycleSpent, 1998);
+});
+
+test('sqlite budget fallback excludes a family registered bill paid on another member card', async () => {
+    assert.strictEqual(syncSnapshotToSqlite({
+        saidas: [],
+        cartoes: [
+            { user_id: 'budget-member', source: 'Cartão Família', card_id: 'family-card', cartao: 'Cartão Família', data: '10/02/2026', descricao: 'Spotify', categoria: 'Assinaturas', valor: 50, parcela: '1/1', month: 1, year: 2026 },
+            { user_id: 'budget-member', source: 'Cartão Família', card_id: 'family-card', cartao: 'Cartão Família', data: '11/02/2026', descricao: 'Restaurante livre', categoria: 'Alimentação', valor: 20, parcela: '1/1', month: 1, year: 2026 }
+        ],
+        entradas: [],
+        transferencias: [],
+        userSettings: [
+            { user_id: 'budget-owner', monthly_budget_enabled: 'SIM', monthly_budget_amount: '938.11', monthly_budget_scope: 'family', monthly_budget_cycle_start_day: '1' }
+        ],
+        cartoesConfig: [
+            { card_id: 'family-card', nome: 'Cartão Família', due_day: 15, active: 'SIM' }
+        ],
+        metas: [],
+        movimentacoesMetas: [],
+        dividas: [],
+        contas: [
+            { user_id: 'budget-owner', headers: ['Nome da Conta', 'Dia do Vencimento', 'Observações', 'user_id', 'Nome Amigável', 'Categoria', 'Subcategoria', 'Valor Esperado', 'Regra Ativa'], row: ['Spotify', '15', '', 'budget-owner', 'Spotify', 'Assinaturas', 'Streaming', '50', 'SIM'] }
+        ]
+    }), true);
+
+    const result = await executeFinancialQueryPlanFromReadModel({
+        kind: 'financial_query',
+        domain: 'budget',
+        operation: 'forecast',
+        filters: { period: { type: 'month', month: 1, year: 2026 }, scope: 'family' },
+        groupBy: [],
+        sort: { by: 'value', direction: 'desc' },
+        limit: 10,
+        timeBasis: 'budget_cycle',
+        needsContext: false,
+        answerStyle: 'detailed'
+    }, 'orcamento_usado_ciclo', { currentDate: '15/02/2026' }, {
+        userId: 'budget-owner',
+        resolvedScope: resolvedScope('family', ['budget-owner', 'budget-member'])
+    });
+
+    assert.strictEqual(result.source, 'sqlite_query_engine');
+    assert.strictEqual(result.results.cycleSpent, 20);
+    assert.strictEqual(result.results.totals.cards, 20);
 });
 
 test('sqlite Query Engine source filters period in SQL before large histories', async () => {
