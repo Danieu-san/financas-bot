@@ -2,7 +2,7 @@ const { normalizeFinancialQueryPlan } = require('./financialQueryPlan');
 const { parseSheetDate, parseValue, normalizeText, getFormattedDateOnly } = require('../utils/helpers');
 const { matchesAnyField } = require('../utils/textMatcher');
 const { recurringBillPaymentScore } = require('../utils/recurringBillMatcher');
-const { isFreeBudgetExpense } = require('../utils/freeBudgetEligibility');
+const { isCategoryBudgetExpense, isFreeBudgetExpense } = require('../utils/freeBudgetEligibility');
 const {
     normalizeCycleStartDay,
     getBudgetCycleForDate,
@@ -692,7 +692,7 @@ function groupBudgetRowsByPublicMember(rows = [], limit = 10) {
         .slice(0, limit);
 }
 
-function getBudgetRows(dataSources = {}, plan = {}, cycle = {}, referenceDate = new Date()) {
+function getBudgetRows(dataSources = {}, plan = {}, cycle = {}, referenceDate = new Date(), options = {}) {
     const rows = [];
     const allowedUserIds = Array.isArray(dataSources.scopeUserIds)
         ? new Set(dataSources.scopeUserIds.map(id => String(id || '').trim()).filter(Boolean))
@@ -704,10 +704,11 @@ function getBudgetRows(dataSources = {}, plan = {}, cycle = {}, referenceDate = 
     );
     const allowFamilyPayment = effectiveBudgetScope === 'family' && scopeUserIds.length > 1;
     const accountRows = dataSources.contas || dataSources.accountRows || [];
+    const eligibility = options.categoryBudget === true ? isCategoryBudgetExpense : isBudgetFreeSpendingItem;
     if (Array.isArray(dataSources.saidas)) {
         dataSources.saidas.slice(1).forEach((row) => {
             const item = toExpenseFromOutput(row);
-            if (!allowed(item) || !isBudgetFreeSpendingItem(item, accountRows, { userIds: scopeUserIds, allowFamilyPayment })) return;
+            if (!allowed(item) || !eligibility(item, accountRows, { userIds: scopeUserIds, allowFamilyPayment })) return;
             const impactDate = parseSheetDate(item.date);
             if (!dateIsWithinCycle(impactDate, cycle)) return;
             rows.push({
@@ -724,7 +725,7 @@ function getBudgetRows(dataSources = {}, plan = {}, cycle = {}, referenceDate = 
             if (!Array.isArray(sheetRows)) return;
             sheetRows.slice(1).forEach((row) => {
                 const item = toExpenseFromCard(row);
-                if (!allowed(item) || !isBudgetFreeSpendingItem(item, accountRows, { userIds: scopeUserIds, allowFamilyPayment })) return;
+                if (!allowed(item) || !eligibility(item, accountRows, { userIds: scopeUserIds, allowFamilyPayment })) return;
                 const impactDate = getCardBudgetImpactDate(item, dueDayMap);
                 if (!dateIsWithinCycle(impactDate, cycle)) return;
                 rows.push({
@@ -849,11 +850,17 @@ function buildBudgetSummary(dataSources = {}, plan = {}) {
         ...plan,
         filters: Object.fromEntries(Object.entries(plan.filters || {}).filter(([key]) => !['category', 'subcategory', 'status'].includes(key)))
     };
-    const allRows = [
+    const freeRows = [
         ...getBudgetRows(dataSources, categoryContractPlan, cycle, referenceDate),
         ...(dataSources.budgetActualSource === 'query_engine' ? canonicalCompensationBudgetRows(dataSources, cycle) : [])
     ];
-    const rows = applyFilters(allRows, plan.filters || {});
+    const categoryRows = dataSources.budgetActualSource === 'query_engine'
+        ? [
+            ...getBudgetRows(dataSources, categoryContractPlan, cycle, referenceDate, { categoryBudget: true }),
+            ...canonicalCompensationBudgetRows(dataSources, cycle)
+        ]
+        : null;
+    const rows = applyFilters(freeRows, plan.filters || {});
     const todayRows = rows.filter(item => item.isToday);
     const hasSpendingSources = Array.isArray(dataSources.saidas) || Array.isArray(dataSources.cartoes);
     const settingsItem = publicItem(settings);
@@ -871,7 +878,7 @@ function buildBudgetSummary(dataSources = {}, plan = {}) {
         cards: roundMoney(rows.filter(item => item.sourceType === 'card').reduce((sum, item) => sum + Number(item.value || 0), 0))
     };
     const expectedByToday = cycle.isCurrent ? roundMoney(monthlyAmount - (dailyRecommendedAmount * daysRemaining) + dailyRecommendedAmount) : 0;
-    const categoryBudget = buildCategoryBudgetContract(dataSources, settings, referenceDate, cycleStartDay, allRows);
+    const categoryBudget = buildCategoryBudgetContract(dataSources, settings, referenceDate, cycleStartDay, categoryRows);
     return {
         active: true,
         total: monthlyAmount,
@@ -892,9 +899,9 @@ function buildBudgetSummary(dataSources = {}, plan = {}) {
         cycleStartDay,
         period: { label: cycle.label, start: cycle.startLabel, end: cycle.endLabel },
         totals,
-        excluded: { transfers: true, recurring: true, reserve: true, debts: true },
-        criteria: 'Orçamento considera o ciclo configurado; saídas livres entram pela data do lançamento e cartões entram pelo vencimento/competência da parcela. Transferências, reserva/caixinha, dívidas e recorrentes não entram no gasto livre.',
-        explanation: 'O cálculo usa gasto livre do ciclo de orçamento configurado. Entram saídas não recorrentes e parcelas de cartão cujo vencimento/competência cai no ciclo; ficam fora transferências internas, caixinha/reserva, dívidas e despesas recorrentes.',
+        excluded: { transfers: true, recurring: true, reserve: true, debts: true, essential: true, ambiguous: true },
+        criteria: 'Orçamento considera o ciclo configurado; saídas livres entram pela data do lançamento e cartões entram pelo vencimento/competência da parcela. Entram restaurante, delivery, lanche, lazer, presentes, vestuário, cuidados pessoais e compras discricionárias. Despesas essenciais, recorrentes, financeiras ou ambíguas ficam fora.',
+        explanation: 'O gasto livre cobre somente despesas flexíveis: restaurante, delivery, lanche, lazer, presentes, vestuário, cuidados pessoais e compras discricionárias. Supermercado, combustível, transporte, saúde, educação e moradia devem ser acompanhados separadamente por categoria; transferências, fatura, dívidas, caixinha/reserva, investimentos e recorrentes não são consumo livre.',
         items: hasSpendingSources ? sortRows(todayRows, plan.sort).slice(0, plan.limit).map(publicItem) : [settingsItem],
         cycleItems: sortRows(rows, plan.sort).slice(0, plan.limit).map(publicItem),
         groups: {

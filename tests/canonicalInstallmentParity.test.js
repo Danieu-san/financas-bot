@@ -24,10 +24,10 @@ function queryPlan(month, year) {
 test('Phase 3E keeps canonical invoices, WhatsApp forecast and dashboard commitments in monthly parity', async () => {
     const header = ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Obs', 'user_id'];
     const rows = [
-        ['20/05/2026', 'Notebook idêntico', 'Eletrônicos', '500,00', '1/2', 'Junho de 2026', 'card-a', 'Cartão A', '', 'daniel'],
-        ['20/05/2026', 'Notebook idêntico', 'Eletrônicos', '500,00', '2/2', 'Julho de 2026', 'card-a', 'Cartão A', '', 'daniel'],
-        ['20/05/2026', 'Notebook idêntico', 'Eletrônicos', '500,00', '1/2', 'Junho de 2026', 'card-a', 'Cartão A', '', 'daniel'],
-        ['20/05/2026', 'Notebook idêntico', 'Eletrônicos', '500,00', '2/2', 'Julho de 2026', 'card-a', 'Cartão A', '', 'daniel']
+        ['20/05/2026', 'Notebook idêntico', 'Compras', '500,00', '1/2', 'Junho de 2026', 'card-a', 'Cartão A', '', 'daniel'],
+        ['20/05/2026', 'Notebook idêntico', 'Compras', '500,00', '2/2', 'Julho de 2026', 'card-a', 'Cartão A', '', 'daniel'],
+        ['20/05/2026', 'Notebook idêntico', 'Compras', '500,00', '1/2', 'Junho de 2026', 'card-a', 'Cartão A', '', 'daniel'],
+        ['20/05/2026', 'Notebook idêntico', 'Compras', '500,00', '2/2', 'Julho de 2026', 'card-a', 'Cartão A', '', 'daniel']
     ];
     const projected = projectLegacyRowsToCanonicalLedger({
         householdId: 'household-family',

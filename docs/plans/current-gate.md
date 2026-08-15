@@ -42,6 +42,21 @@ aprovadas; corrigir qualquer divergencia encontrada.
 - a segunda auditoria identificou perda de `Saídas.Recorrente` no fallback;
   RED 60 contra 20 foi fechado com coluna persistida/migrada e reconstrução no
   payload; bateria afetada 175/175 e ampla pós-correção 1733/1723/0/10.
+- a terceira auditoria mostrou que `mapSaidasRows` ainda descartava a coluna 8
+  antes do SQLite; o teste agora atravessa o produtor real, reproduziu 60 contra
+  20 e ficou verde após preservar `Recorrente`;
+- dois fixtures Open Finance expiraram pelo relógio durante a suíte ampla e
+  foram estabilizados com datas relativas; prova isolada 20/20, sem alteração
+  no produto.
+- a política familiar aprovada passou a ser positiva: somente restaurante,
+  delivery, lanche, lazer, presentes, vestuário, cuidados/serviços pessoais e
+  compras discricionárias entram; essenciais e ambíguos ficam fora;
+- supermercado reproduziu RED 140 contra 20 e fechou nos três consumidores;
+  bateria causal final verde;
+- o cálculo agora separa limite livre de orçamento por categoria: os essenciais
+  não entram no primeiro, mas permanecem no realizado categorial;
+- regressão focal 9/9, bateria afetada verde e suíte hermética ampla final
+  1736/1726/0/10, com cobertura de linhas 91,56%.
 
 ## Critérios de GO
 
@@ -58,5 +73,5 @@ aprovadas; corrigir qualquer divergencia encontrada.
 
 ## Proxima acao
 
-Criar e publicar novo commit sanitizado; auditar uma vez no Chat pelo novo hash
-imutavel.
+Criar e publicar novo commit sanitizado e auditar uma vez no Chat pelo novo hash
+imutável.

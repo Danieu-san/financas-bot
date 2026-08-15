@@ -19,7 +19,15 @@ cadastradas, transferências, dívidas e reserva. Antes deste candidato:
 
 - uma política compartilhada de elegibilidade exclui recorrentes, contas
   cadastradas, transferências, dívidas, investimento, caixinha e reserva;
-- despesas avulsas de qualquer outra categoria continuam elegíveis;
+- somente despesas flexíveis aprovadas permanecem elegíveis: restaurante,
+  delivery, lanche, lazer, presentes, vestuário, cuidados/serviços pessoais e
+  compras discricionárias;
+- supermercado, combustível, transporte, saúde, educação e moradia ficam fora
+  do gasto livre e devem ser acompanhados separadamente por categoria;
+- a Query Engine usa duas elegibilidades explícitas: a lista positiva no limite
+  livre e a elegibilidade de consumo nos orçamentos por categoria, de modo que
+  retirar um essencial do limite não apaga seu realizado categorial;
+- categorias novas, `Outros` ou itens ambíguos não entram por padrão;
 - a mesma política é usada no alerta, dashboard e Query Engine, inclusive para
   cartão;
 - o mês de relatório passa a representar o ciclo que contém o meio daquele mês,
@@ -33,6 +41,9 @@ cadastradas, transferências, dívidas e reserva. Antes deste candidato:
   do outro membro, sem liberar usuários fora do escopo autorizado.
 - o read-model SQLite persiste e reconstrói `Saídas.Recorrente`, inclusive em
   bancos já existentes por migração aditiva de schema.
+- o produtor real `mapSaidasRows` preserva a coluna `Recorrente` antes de o
+  snapshot chegar ao SQLite; a prova não injeta mais esse campo depois do
+  mapeamento da planilha.
 
 Cartões não possuem uma coluna autônoma `Recorrente` no contrato vigente da
 planilha. Neles, uma cobrança recorrente é excluída por correspondência com o
@@ -61,12 +72,29 @@ catálogo `Contas`; saídas em conta continuam usando também a coluna
   `Saídas.Recorrente`; esse hash também não foi implantado;
 - RED da recorrência no fallback: R$ 60,00 contra R$ 20,00; após persistir e
   reconstruir o campo, o mesmo cenário ficou verde;
+- o terceiro hash `f622a657d8382c35f089ad2103b1eaea5216e862` recebeu
+  `NO-GO` porque o produtor `mapSaidasRows` ainda descartava a coluna antes da
+  persistência; esse hash não foi implantado;
+- RED atravessando o produtor real: R$ 60,00 contra R$ 20,00; após preservar
+  `row[7]`, o mesmo caminho planilha -> snapshot -> SQLite -> Query Engine
+  retornou R$ 20,00;
+- RED da política aprovada: supermercado elevou os três consumidores a
+  R$ 140,00 contra R$ 20,00; a lista positiva compartilhada exclui essenciais
+  e ambíguos sem confundir `Mercado Livre` com supermercado;
+- a primeira suíte ampla após a lista positiva revelou oito fixtures antigos e
+  o acoplamento entre limite livre e orçamento categorial; a regressão focal
+  confirmou que essenciais permanecem nos próprios orçamentos, enquanto os
+  fixtures de gasto livre passaram a usar somente categorias aprovadas (`9/9`);
+- durante a suíte ampla, dois fixtures Open Finance completaram exatamente 30
+  dias e expiraram pelo relógio real; as falhas foram reproduzidas isoladamente
+  e os testes passaram a usar instantes relativos, sem mudança de produto
+  (`20/20` verdes);
 - provas focais de cartão/dashboard e fallback SQLite: 26/26;
-- bateria causal afetada: 175/175;
-- suíte hermética ampla do candidato corrigido: 1.733 testes, 1.723 aprovados,
+- bateria causal afetada final: verde;
+- suíte hermética ampla do candidato corrigido: 1.736 testes, 1.726 aprovados,
   zero falha e 10 skips
   esperados;
-- cobertura final pós-correção: linhas 91,52%, branches 74,31%, funções 91,10%;
+- cobertura final pós-correção: linhas 91,56%, branches 74,41%, funções 91,12%;
 - sintaxe e `git diff --check`: verdes.
 
 As contagens são execução local do Codex e não devem ser tratadas pelo auditor

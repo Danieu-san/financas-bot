@@ -4230,26 +4230,51 @@ stateMachineTest('financial states: monthly budget alert fires when spending rea
     resetState();
     sheets.UserSettings[1][13] = 'SIM';
     sheets.UserSettings[1][14] = String(50 * daysRemainingTodaySaoPaulo());
-    sheets.Saídas.push([todayBr(), 'mercado anterior', 'Alimentação', 'SUPERMERCADO', 20, 'Usuario Estado', 'PIX', 'Não', '', USER_ID]);
+    sheets.Saídas.push([todayBr(), 'restaurante anterior', 'Alimentação', 'RESTAURANTE', 20, 'Usuario Estado', 'PIX', 'Não', '', USER_ID]);
     enqueueStructuredResponse({
         intent: 'gasto',
         gastoDetails: [{
-            descricao: 'farmácia',
+            descricao: 'lanche',
             valor: 25,
-            categoria: 'Saúde',
-            subcategoria: 'FARMÁCIA',
+            categoria: 'Alimentação',
+            subcategoria: 'PADARIA / LANCHE',
             pagamento: 'PIX',
             recorrente: 'Não',
             data: todayBr()
         }]
     });
 
-    const reply = await send('gastei 25 na farmácia no pix');
+    const reply = await send('gastei 25 no lanche no pix');
 
     assert.match(reply, /orçamento mensal/i);
     assert.match(reply, /90%/);
     assert.strictEqual(sheets.UserSettings[1][15], todayBr());
     assert.strictEqual(String(sheets.UserSettings[1][16]), '80');
+});
+
+stateMachineTest('financial states: monthly budget alert ignores supermarket spending', async () => {
+    resetState();
+    sheets.UserSettings[1][13] = 'SIM';
+    sheets.UserSettings[1][14] = String(10 * daysRemainingTodaySaoPaulo());
+    enqueueStructuredResponse({
+        intent: 'gasto',
+        gastoDetails: [{
+            descricao: 'mercado',
+            valor: 20,
+            categoria: 'Alimentação',
+            subcategoria: 'SUPERMERCADO',
+            pagamento: 'PIX',
+            recorrente: 'Não',
+            data: todayBr()
+        }]
+    });
+
+    const reply = await send('gastei 20 no mercado no pix');
+
+    assert.match(reply, /registrado|lançado/i);
+    assert.doesNotMatch(reply, /orçamento mensal/i);
+    assert.strictEqual(sheets.UserSettings[1][15], '');
+    assert.strictEqual(sheets.UserSettings[1][16], '');
 });
 
 stateMachineTest('financial states: reminder creation writes Calendar event scoped to user', async () => {
@@ -4786,16 +4811,16 @@ stateMachineTest('financial states: monthly budget alert counts explicit credit 
     enqueueStructuredResponse({
         intent: 'gasto',
         gastoDetails: [{
-            descricao: 'mercado',
+            descricao: 'restaurante',
             valor: 20,
             categoria: 'Alimentação',
-            subcategoria: 'SUPERMERCADO',
+            subcategoria: 'RESTAURANTE',
             pagamento: 'Crédito',
             recorrente: 'Não'
         }]
     });
 
-    const reply = await send('gastei 20 reais no mercado no crédito no cartão nubank thais à vista');
+    const reply = await send('gastei 20 reais no restaurante no crédito no cartão nubank thais à vista');
 
     assert.match(reply, /orçamento mensal/i);
     assert.match(reply, /100%/);
@@ -4818,16 +4843,16 @@ stateMachineTest('financial states: monthly budget alert excludes registered bil
     enqueueStructuredResponse({
         intent: 'gasto',
         gastoDetails: [{
-            descricao: 'mercado',
+            descricao: 'restaurante',
             valor: 20,
             categoria: 'Alimentação',
-            subcategoria: 'SUPERMERCADO',
+            subcategoria: 'RESTAURANTE',
             pagamento: 'Crédito',
             recorrente: 'Não'
         }]
     });
 
-    const reply = await send('gastei 20 reais no mercado no crédito no cartão nubank thais à vista');
+    const reply = await send('gastei 20 reais no restaurante no crédito no cartão nubank thais à vista');
 
     assert.match(reply, /Gasto livre de hoje: R\$\s*20,00/i);
     assert.match(reply, /100%/);
@@ -4874,21 +4899,21 @@ stateMachineTest('financial states: family monthly budget alert includes partner
     sheets.UserSettings[1][13] = 'SIM';
     sheets.UserSettings[1][14] = String(50 * daysRemainingTodaySaoPaulo());
     sheets.UserSettings[1][17] = 'family';
-    sheets.Saídas.push([todayBr(), 'mercado parceiro', 'Alimentação', 'SUPERMERCADO', 20, 'Thais', 'PIX', 'Não', '', PARTNER_ID]);
+    sheets.Saídas.push([todayBr(), 'restaurante parceiro', 'Alimentação', 'RESTAURANTE', 20, 'Thais', 'PIX', 'Não', '', PARTNER_ID]);
     enqueueStructuredResponse({
         intent: 'gasto',
         gastoDetails: [{
-            descricao: 'farmácia',
+            descricao: 'lanche',
             valor: 25,
-            categoria: 'Saúde',
-            subcategoria: 'FARMÁCIA',
+            categoria: 'Alimentação',
+            subcategoria: 'PADARIA / LANCHE',
             pagamento: 'PIX',
             recorrente: 'Não',
             data: todayBr()
         }]
     });
 
-    const reply = await send('gastei 25 na farmácia no pix');
+    const reply = await send('gastei 25 no lanche no pix');
 
     assert.match(reply, /orçamento mensal familiar/i);
     assert.match(reply, /90%/);

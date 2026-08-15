@@ -203,6 +203,7 @@ function mapSaidasRows(rows) {
             categoria: row[2] || '',
             subcategoria: row[3] || '',
             valor: parseValue(row[4]),
+            recorrente: row[7] || '',
             contaFinanceira: row[10] || '',
             month: dateObj.getMonth(),
             year: dateObj.getFullYear()
@@ -1481,6 +1482,7 @@ module.exports = {
     buildCanonicalCardEntries,
     loadCardRowsForReadModel,
     __test__: {
+        mapSaidasRows,
         mapLegacyCardRows,
         mapUnifiedCardRows,
         buildCanonicalCardEntries,

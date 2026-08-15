@@ -153,8 +153,8 @@ test('LangGraph financial agent uses the authorized family budget configuration'
     assert.strictEqual(ensureSqliteReady(), true);
     assert.strictEqual(syncSnapshotToSqlite({
         saidas: [
-            { user_id: 'agent-daniel', data: '10/06/2026', descricao: 'mercado', categoria: 'Alimentação', subcategoria: '', valor: 100, month: 5, year: 2026 },
-            { user_id: 'agent-thais', data: '12/06/2026', descricao: 'farmácia', categoria: 'Saúde', subcategoria: '', valor: 50, month: 5, year: 2026 }
+            { user_id: 'agent-daniel', data: '10/06/2026', descricao: 'restaurante', categoria: 'Alimentação', subcategoria: 'Restaurante', valor: 100, month: 5, year: 2026 },
+            { user_id: 'agent-thais', data: '12/06/2026', descricao: 'cinema', categoria: 'Lazer', subcategoria: 'Cinema', valor: 50, month: 5, year: 2026 }
         ],
         cartoes: [], entradas: [], transferencias: [], cartoesConfig: [], metas: [], movimentacoesMetas: [], dividas: [], contas: [],
         userSettings: [

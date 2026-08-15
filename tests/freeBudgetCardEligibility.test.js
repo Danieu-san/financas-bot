@@ -4,6 +4,7 @@ const assert = require('node:assert');
 const financialQueryEngine = require('../src/query/financialQueryEngine');
 const userSheetAnalyticsService = require('../src/services/userSheetAnalyticsService');
 const { getBudgetCycleForReportingPeriod } = require('../src/utils/budgetCycle');
+const { isCategoryBudgetExpense, isFreeBudgetExpense } = require('../src/utils/freeBudgetEligibility');
 
 const MONTH_NAMES = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -43,6 +44,7 @@ function cardRows(today) {
     return [
         ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Observações', 'user_id'],
         [today.br, 'Spotify', 'Assinaturas', 50, '1/1', today.billing, 'card-1', 'Nubank', '', 'user-1'],
+        [today.br, 'Supermercado Guanabara', 'Alimentação', 120, '1/1', today.billing, 'card-1', 'Nubank', 'SUPERMERCADO', 'user-1'],
         [today.br, 'Restaurante livre', 'Alimentação', 20, '1/1', today.billing, 'card-1', 'Nubank', '', 'user-1']
     ];
 }
@@ -53,6 +55,48 @@ function cardConfig(today) {
         ['card-1', 'Nubank', 'Nubank', '1', String(today.day), 'SIM', '']
     ];
 }
+
+test('monthly grocery is essential while restaurant and Mercado Livre stay flexible', () => {
+    assert.strictEqual(isFreeBudgetExpense({
+        description: 'Supermercado Guanabara', category: 'Alimentação', subcategory: 'SUPERMERCADO'
+    }), false);
+    assert.strictEqual(isFreeBudgetExpense({
+        description: 'Restaurante', category: 'Alimentação', subcategory: 'RESTAURANTE'
+    }), true);
+    assert.strictEqual(isFreeBudgetExpense({
+        description: 'Mercado Livre', category: 'Compras', subcategory: 'COMPRAS ONLINE'
+    }), true);
+    for (const expense of [
+        { description: 'Posto', category: 'Transporte', subcategory: 'COMBUSTÍVEL' },
+        { description: 'Uber', category: 'Transporte', subcategory: 'UBER / 99' },
+        { description: 'Farmácia', category: 'Saúde', subcategory: 'FARMÁCIA' },
+        { description: 'Curso', category: 'Educação', subcategory: 'CURSOS' },
+        { description: 'Aluguel', category: 'Moradia', subcategory: 'ALUGUEL' },
+        { description: 'Sem classificação', category: 'Outros', subcategory: '' }
+    ]) assert.strictEqual(isFreeBudgetExpense(expense), false);
+    for (const expense of [
+        { description: 'Cinema', category: 'Lazer' },
+        { description: 'Presente', category: 'Presentes' },
+        { description: 'Roupa', category: 'Vestuário' },
+        { description: 'Cabeleireiro', category: 'Cuidados Pessoais' },
+        { description: 'Item para casa', category: 'Compras' },
+        { description: 'Ifood', category: 'Alimentação', subcategory: 'DELIVERY / IFOOD' }
+    ]) assert.strictEqual(isFreeBudgetExpense(expense), true);
+});
+
+test('essential consumption remains eligible for its own category budget', () => {
+    for (const expense of [
+        { description: 'Supermercado', category: 'Alimentação', subcategory: 'SUPERMERCADO' },
+        { description: 'Posto', category: 'Transporte', subcategory: 'COMBUSTÍVEL' },
+        { description: 'Farmácia', category: 'Saúde', subcategory: 'FARMÁCIA' },
+        { description: 'Curso', category: 'Educação', subcategory: 'CURSOS' },
+        { description: 'Aluguel', category: 'Moradia', subcategory: 'ALUGUEL' }
+    ]) assert.strictEqual(isCategoryBudgetExpense(expense), true);
+    for (const expense of [
+        { description: 'Caixinha', category: 'Transferências' },
+        { description: 'Aluguel recorrente', category: 'Moradia', recurrence: 'Sim' }
+    ]) assert.strictEqual(isCategoryBudgetExpense(expense), false);
+});
 
 test('current reporting month resolves the active salary cycle instead of the future cycle', () => {
     const current = getBudgetCycleForReportingPeriod(

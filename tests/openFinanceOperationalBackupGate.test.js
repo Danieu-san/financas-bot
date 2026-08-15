@@ -16,6 +16,10 @@ const secret = 'open-finance-operational-backup-secret-32-bytes';
 const actorWhatsappId = 'operational-family-actor@c.us';
 
 test('9F operational gate creates a retained backup and destroys only the isolated restore', async () => {
+    const fixtureNow = Date.now();
+    const observedAt = new Date(fixtureNow - 60000).toISOString();
+    const firstTransactionAt = new Date(fixtureNow - 3600000).toISOString();
+    const secondTransactionAt = new Date(fixtureNow - 1800000).toISOString();
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-operational-backup-'));
     const files = Object.fromEntries(['staging', 'baseline', 'outbox', 'preview', 'journal', 'secret', 'mappings', 'backups']
         .map(name => [name, path.join(root, name.includes('backup') ? name : `${name}.${['staging','baseline','outbox','preview','journal'].includes(name) ? 'sqlite' : name === 'secret' ? 'txt' : 'json'}`)]));
@@ -23,17 +27,17 @@ test('9F operational gate creates a retained backup and destroys only the isolat
     fs.writeFileSync(files.mappings, JSON.stringify([{ alias: 'daniel_nubank', itemId: 'item-operational-1',
         ownerScope: 'daniel', generation: 1 }]));
     const snapshot = { provider: 'pluggy', mode: 'live_readonly_staging', event_id: 'operational-event',
-        observed_at: '2026-07-16T12:00:00.000Z', collection_health: { complete: true, warning_count: 0 },
+        observed_at: observedAt, collection_health: { complete: true, warning_count: 0 },
         items: [{ id: 'item-operational-1', alias_code: 'daniel_nubank', owner_scope: 'daniel', status: 'UPDATED',
             availability: { accounts: 'available', transactions: 'available', bills: 'available', investments: 'available' },
             accounts: [{ id: 'account-1', type: 'CREDIT', name: 'card', balance_cents: 0 }],
             transactions: [
                 { id: 'transaction-1', provider_id: 'provider-1', account_id: 'account-1',
                     amount_cents: 100, description: 'PRIVATE PENDING PROPOSAL',
-                    date: '2026-07-16T10:00:00.000Z', status: 'POSTED' },
+                    date: firstTransactionAt, status: 'POSTED' },
                 { id: 'transaction-2', provider_id: 'provider-2', account_id: 'account-1',
                     amount_cents: 200, description: 'PRIVATE CANCELLED PROPOSAL',
-                    date: '2026-07-16T11:00:00.000Z', status: 'POSTED' }
+                    date: secondTransactionAt, status: 'POSTED' }
             ], bills: [], investments: [] }] };
     const vault = new OpenFinanceLiveStagingVault({ databasePath: files.staging, secret });
     const baseline = new OpenFinanceBaselineStore({ databasePath: files.baseline, secret });
@@ -42,7 +46,7 @@ test('9F operational gate creates a retained backup and destroys only the isolat
         databasePath: files.preview,
         secret,
         authorizedWhatsAppIds: [actorWhatsappId],
-        clock: () => '2026-07-16T12:00:00.000Z'
+        clock: () => observedAt
     });
     vault.ingestSnapshot(snapshot); baseline.ingestSnapshot(snapshot);
     const refs = snapshot.items[0].transactions.map(row =>
@@ -61,7 +65,7 @@ test('9F operational gate creates a retained backup and destroys only the isolat
         })),
         openFinanceItems: [{ ...snapshot.items[0], generation: 1 }],
         policies: [{ alias: 'daniel_nubank', write_confirmation_principal: 'daniel' }],
-        observedAt: '2026-07-16T12:00:00.000Z'
+        observedAt
     });
     const proposals = preview.listPendingSaveProposals({ actorWhatsappId });
     preview.cancelSaveProposal(proposals[1].proposal_ref, { actorWhatsappId });

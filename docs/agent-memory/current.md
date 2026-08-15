@@ -59,7 +59,7 @@ corrigir qualquer divergencia sem misturar despesas excluidas.
   exclusao de contas recorrentes e o dashboard apontava o mes corrente para um
   ciclo futuro quando o inicio era dia 28;
 - o candidato unifica elegibilidade entre alerta, dashboard e Query Engine e
-  resolve agosto como 28/07 a 27/08; despesas avulsas continuam elegiveis;
+  resolve agosto como 28/07 a 27/08;
 - provas focais 3/3, bateria causal 22/22, estados 9/9 e ampla final
   1731/1721/0/10, cobertura de linhas 91.53%.
 - o primeiro hash do limite mensal teve auditoria externa parcial e não recebeu
@@ -77,6 +77,24 @@ corrigir qualquer divergencia sem misturar despesas excluidas.
   a coluna correta de `Saídas` e exclui a linha mesmo sem pareamento em
   `Contas`; RED 60 contra 20, focal verde, afetada 175/175 e ampla final
   1733/1723/0/10, cobertura de linhas 91.52%.
+- o hash `f622a657d8382c35f089ad2103b1eaea5216e862` também recebeu
+  NO-GO: o produtor real `mapSaidasRows` descartava `row[7]` antes de formar o
+  snapshot; a nova prova atravessa planilha -> produtor -> SQLite -> Query
+  Engine, reproduziu 60 contra 20 e ficou verde após preservar a recorrência;
+- dois testes Open Finance expiraram exatamente ao completar 30 dias durante a
+  suíte; os fixtures agora usam instantes relativos e fecharam isoladamente em
+  20/20, sem mudança no produto.
+- por decisão de Daniel, gasto livre usa lista positiva: restaurante, delivery,
+  lanche, lazer, presentes, vestuário, cuidados/serviços pessoais e compras
+  discricionárias; supermercado, combustível, transporte, saúde, educação,
+  moradia, itens ambíguos e `Outros` ficam fora;
+- RED de supermercado 140 contra 20 fechou nos três consumidores; `Mercado
+  Livre` continua compra flexível;
+- o limite livre e o orçamento por categoria agora têm elegibilidades
+  separadas: essenciais não consomem o limite, mas continuam compondo o
+  realizado de supermercado, combustível, saúde, educação, moradia etc.;
+- regressão focal 9/9 e bateria afetada verdes; suíte hermética final
+  1736/1726/0/10, cobertura de linhas 91,56%.
 
 ## Git e workspace
 

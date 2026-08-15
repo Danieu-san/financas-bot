@@ -1527,19 +1527,19 @@ function buildPacket05BudgetDataSources() {
         ],
         saidas: [
             ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id'],
-            ['31/05/2026', 'Mercado ciclo', 'Alimentação', 'SUPERMERCADO', '100,00', '', 'PIX', 'Não', '', 'user-a'],
-            ['14/06/2026', 'Uber ontem', 'Transporte', 'UBER / 99', '30,00', '', 'PIX', 'Não', '', 'user-a'],
+            ['31/05/2026', 'Restaurante ciclo', 'Alimentação', 'RESTAURANTE', '100,00', '', 'PIX', 'Não', '', 'user-a'],
+            ['14/06/2026', 'Cinema ontem', 'Lazer', 'CINEMA', '30,00', '', 'PIX', 'Não', '', 'user-a'],
             ['15/06/2026', 'Padaria hoje', 'Alimentação', 'PADARIA', '50,00', '', 'PIX', 'Não', '', 'user-a'],
             ['15/06/2026', 'Aluguel recorrente', 'Moradia', 'ALUGUEL', '500,00', '', 'PIX', 'Sim', '', 'user-a'],
             ['15/06/2026', 'Caixinha', 'Transferências', '', '200,00', '', 'PIX', 'Não', '', 'user-a'],
-            ['15/06/2026', 'Outro usuario', 'Alimentação', '', '999,00', '', 'PIX', 'Não', '', 'user-b']
+            ['15/06/2026', 'Lazer outro usuario', 'Lazer', 'CINEMA', '999,00', '', 'PIX', 'Não', '', 'user-b']
         ],
         cartoes: [[
             ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Observações', 'user_id'],
-            ['10/05/2026', 'Compra parcelada vence no ciclo', 'Casa', '80,00', '1/2', 'Junho de 2026', 'nubank', 'Nubank', '', 'user-a'],
-            ['10/05/2026', 'Compra parcelada fora do ciclo', 'Casa', '80,00', '2/2', 'Julho de 2026', 'nubank', 'Nubank', '', 'user-a'],
-            ['15/06/2026', 'Cartão hoje', 'Alimentação', '20,00', '1/1', 'Junho de 2026', 'nubank', 'Nubank', '', 'user-a'],
-            ['15/06/2026', 'Cartão outro usuario', 'Alimentação', '999,00', '1/1', 'Junho de 2026', 'nubank', 'Nubank', '', 'user-b']
+            ['10/05/2026', 'Compra parcelada vence no ciclo', 'Compras', '80,00', '1/2', 'Junho de 2026', 'nubank', 'Nubank', '', 'user-a'],
+            ['10/05/2026', 'Compra parcelada fora do ciclo', 'Compras', '80,00', '2/2', 'Julho de 2026', 'nubank', 'Nubank', '', 'user-a'],
+            ['15/06/2026', 'Cartão hoje', 'Lazer', '20,00', '1/1', 'Junho de 2026', 'nubank', 'Nubank', '', 'user-a'],
+            ['15/06/2026', 'Cartão outro usuario', 'Lazer', '999,00', '1/1', 'Junho de 2026', 'nubank', 'Nubank', '', 'user-b']
         ]]
     };
 }
@@ -1566,8 +1566,8 @@ test('financialQueryEngine calculates Packet 05 budget cycle with dashboard-comp
     assert.strictEqual(budget.result.value.totals.cards, 100);
     assert.match(budget.result.value.criteria, /ciclo configurado/i);
     assert.match(budget.result.value.criteria, /vencimento\/competência/i);
-    assert.ok(!budget.result.value.items.some(item => /Uber ontem/i.test(item.description)));
-    assert.ok(budget.result.value.cycleItems.some(item => /Uber ontem/i.test(item.description)));
+    assert.ok(!budget.result.value.items.some(item => /Cinema ontem/i.test(item.description)));
+    assert.ok(budget.result.value.cycleItems.some(item => /Cinema ontem/i.test(item.description)));
     assert.ok(!JSON.stringify(budget.result.value.groups.member).includes('user-a'));
 });
 
@@ -6956,7 +6956,7 @@ test('userSheetAnalytics monthly budget summary combines free debit and card ins
         ],
         saidasRows: [
             ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id'],
-            [today, 'Mercado', 'Alimentação', 'SUPERMERCADO', 35, '', 'PIX', 'Não', '', 'user-1'],
+            [today, 'Restaurante', 'Alimentação', 'RESTAURANTE', 35, '', 'PIX', 'Não', '', 'user-1'],
             [today, 'Aluguel', 'Moradia', 'ALUGUEL', 1000, '', 'PIX', 'Sim', '', 'user-1'],
             [today, 'Caixinha', 'Transferências', '', 500, '', 'PIX', 'Não', '', 'user-1'],
             [today, 'Outro usuário', 'Casa', '', 99, '', 'PIX', 'Não', '', 'user-2'],
@@ -6964,9 +6964,9 @@ test('userSheetAnalytics monthly budget summary combines free debit and card ins
         ],
         cartaoRows: [
             ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Observações', 'user_id'],
-            [today, 'Compra parcelada', 'Casa', 20, '1/3', billingLabel(0), 'nubank', 'Nubank', '', 'user-1'],
-            [today, 'Compra parcelada', 'Casa', 20, '2/3', billingLabel(1), 'nubank', 'Nubank', '', 'user-1'],
-            [today, 'Compra parcelada', 'Casa', 20, '3/3', billingLabel(2), 'nubank', 'Nubank', '', 'user-1']
+            [today, 'Compra parcelada', 'Compras', 20, '1/3', billingLabel(0), 'nubank', 'Nubank', '', 'user-1'],
+            [today, 'Compra parcelada', 'Compras', 20, '2/3', billingLabel(1), 'nubank', 'Nubank', '', 'user-1'],
+            [today, 'Compra parcelada', 'Compras', 20, '3/3', billingLabel(2), 'nubank', 'Nubank', '', 'user-1']
         ]
     });
 
@@ -7013,7 +7013,7 @@ test('userSheetAnalytics excludes registered bill payments from daily budget sum
         },
         saidasRows: [
             ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Responsável', 'Pagamento', 'Recorrente', 'Obs', 'user_id'],
-            [today, 'Mercado livre', 'Alimentação', 'SUPERMERCADO', 10, '', 'PIX', 'Não', '', 'user-1'],
+            [today, 'Restaurante livre', 'Alimentação', 'RESTAURANTE', 10, '', 'PIX', 'Não', '', 'user-1'],
             [today, 'Claro internet casa', 'Moradia', 'INTERNET', 90, '', 'PIX', 'Não', '', 'user-1']
         ],
         cartaoRows: [['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'card_id', 'Cartão', 'Observações', 'user_id']],

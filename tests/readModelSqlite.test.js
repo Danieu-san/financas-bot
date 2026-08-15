@@ -565,7 +565,7 @@ test('sqlite read-model feeds Packet 05 budget plans into Query Engine with scop
         { currentDate: '15/02/2026' },
         { userId: 'user-read-a', resolvedScope: resolvedScope('family', ['user-read-a', 'user-read-b']) }
     );
-    assert.strictEqual(family.results.cycleSpent, 3198);
+    assert.strictEqual(family.results.cycleSpent, 80);
     assert.strictEqual(family.results.scope, 'family');
 
     const familyFromMember = await executeFinancialQueryPlanFromReadModel(
@@ -575,7 +575,7 @@ test('sqlite read-model feeds Packet 05 budget plans into Query Engine with scop
         { userId: 'user-read-b', resolvedScope: resolvedScope('family', ['user-read-a', 'user-read-b']) }
     );
     assert.strictEqual(familyFromMember.results.monthlyAmount, 1000);
-    assert.strictEqual(familyFromMember.results.cycleSpent, 3198);
+    assert.strictEqual(familyFromMember.results.cycleSpent, 80);
     assert.strictEqual(familyFromMember.results.scope, 'family');
 
     const implicitFamilyFromMember = await executeFinancialQueryPlanFromReadModel(
@@ -594,14 +594,17 @@ test('sqlite read-model feeds Packet 05 budget plans into Query Engine with scop
         { userId: 'user-read-b' }
     );
     assert.strictEqual(outsider.results.monthlyAmount, 500);
-    assert.strictEqual(outsider.results.cycleSpent, 1998);
+    assert.strictEqual(outsider.results.cycleSpent, 0);
 });
 
 test('sqlite budget fallback excludes a family registered bill paid on another member card', async () => {
+    const mappedSaidas = readModelTestHelpers.mapSaidasRows([
+        ['Data', 'Descrição', 'Categoria', 'Subcategoria', 'Valor', 'Pagamento', 'Observações', 'Recorrente', 'ID', 'user_id', 'Conta Financeira'],
+        ['12/02/2026', 'Mensalidade recorrente sem cadastro', 'Serviços', '', '40', '', '', 'Sim', '', 'budget-member', 'Conta Família']
+    ]);
+    assert.strictEqual(mappedSaidas[0].recorrente, 'Sim');
     assert.strictEqual(syncSnapshotToSqlite({
-        saidas: [
-            { user_id: 'budget-member', data: '12/02/2026', descricao: 'Mensalidade recorrente sem cadastro', categoria: 'Serviços', subcategoria: '', valor: 40, recorrente: 'Sim', month: 1, year: 2026 }
-        ],
+        saidas: mappedSaidas,
         cartoes: [
             { user_id: 'budget-member', source: 'Cartão Família', card_id: 'family-card', cartao: 'Cartão Família', data: '10/02/2026', descricao: 'Spotify', categoria: 'Assinaturas', valor: 50, parcela: '1/1', month: 1, year: 2026 },
             { user_id: 'budget-member', source: 'Cartão Família', card_id: 'family-card', cartao: 'Cartão Família', data: '11/02/2026', descricao: 'Restaurante livre', categoria: 'Alimentação', valor: 20, parcela: '1/1', month: 1, year: 2026 }

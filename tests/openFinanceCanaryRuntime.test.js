@@ -96,6 +96,11 @@ test('Open Finance runtime alerts reconciled purchase, refund and bank income', 
 });
 
 test('gate 39.1 proposes current open-invoice purchases once and survives pending to posted', async () => {
+    const fixtureNow = Date.now();
+    const pendingObservedAt = new Date(fixtureNow - 120000).toISOString();
+    const postedObservedAt = new Date(fixtureNow - 60000).toISOString();
+    const transactionDate = new Date(fixtureNow - 3600000).toISOString();
+    const forecastMonth = pendingObservedAt.slice(0, 7);
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-open-runtime-posted-batch-'));
     const files = Object.fromEntries([
         'credentials', 'mapping', 'visibility', 'evidence', 'secret',
@@ -142,10 +147,10 @@ test('gate 39.1 proposes current open-invoice purchases once and survives pendin
     const pending = snapshot([
         transaction('old-posted-batch', 500, 'old'),
         { ...transaction('pending-to-posted-1', 1200, 'Compra um', 'PENDING'),
-            bill_forecast_month: '2026-07' },
+            date: transactionDate, bill_forecast_month: forecastMonth },
         { ...transaction('pending-to-posted-2', 2300, 'Compra dois', 'PENDING'),
-            bill_forecast_month: '2026-07' }
-    ], '2026-07-16T12:00:00.000Z');
+            date: transactionDate, bill_forecast_month: forecastMonth }
+    ], pendingObservedAt);
     let currentSnapshot = pending;
     class FakeApi { async readSnapshot() { return currentSnapshot; } }
     const messages = [];
@@ -242,10 +247,10 @@ test('gate 39.1 proposes current open-invoice purchases once and survives pendin
         currentSnapshot = snapshot([
             transaction('old-posted-batch', 500, 'old'),
             { ...transaction('pending-to-posted-1', 1200, 'Compra um', 'POSTED'),
-                bill_id: 'closed-bill-1', bill_forecast_month: null },
+                date: transactionDate, bill_id: 'closed-bill-1', bill_forecast_month: null },
             { ...transaction('pending-to-posted-2', 2300, 'Compra dois', 'POSTED'),
-                bill_id: 'closed-bill-1', bill_forecast_month: null }
-        ], '2026-07-16T13:00:00.000Z');
+                date: transactionDate, bill_id: 'closed-bill-1', bill_forecast_month: null }
+        ], postedObservedAt);
         const second = await runOpenFinanceCanaryCycle({ client, env, dependencies });
         assert.equal(second.outcome, 'GO');
         assert.equal(second.new_observations, 0);
