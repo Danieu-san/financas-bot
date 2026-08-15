@@ -392,8 +392,11 @@ function billingMonth(transaction, binding) {
 }
 
 function expenseWritePlan(transaction, binding, category, classification = 'expense',
-    recurring = false) {
-    const amount = Math.abs(Number(transaction.amount_cents)) / 100;
+    recurring = false, reviewedAmountCents = null) {
+    const amountCents = reviewedAmountCents === null
+        ? Math.abs(Number(transaction.amount_cents))
+        : Number(reviewedAmountCents);
+    const amount = amountCents / 100;
     if (binding.kind === 'card') {
         const number = Number(transaction.installment_number) || 1;
         const total = Number(transaction.total_installments) || 1;
@@ -664,7 +667,7 @@ function strongTransferPairs(transactions, accountBindings,
 }
 
 function strongUnwrittenRefundPairs(transactions, accountBindings, sheetSnapshot,
-    historyStartDate, historyEndDate) {
+    historyStartDate, historyEndDate, decisionOverrides = {}) {
     const paired = new Map();
     const providerCounts = transactions.reduce((counts, transaction) => {
         const identity = providerIdentity(transaction);
@@ -695,6 +698,39 @@ function strongUnwrittenRefundPairs(transactions, accountBindings, sheetSnapshot
         ].join(' ')).split(' '));
         return ['estorno', 'reembolso', 'devolucao'].some(word => words.has(word));
     };
+    const transactionsByRef = new Map(transactions.map(transaction => [
+        sourceRef(transaction), transaction
+    ]));
+    for (const transaction of transactions) {
+        const ref = sourceRef(transaction);
+        if (paired.has(ref)) continue;
+        const decision = decisionOverrides[ref] ||
+            decisionOverrides[transaction.id] || {};
+        if (decision.classification !== 'card_refund_pair') continue;
+        const counterpartRef = String(decision.counterpartSourceRef || '').trim();
+        const counterpart = transactionsByRef.get(counterpartRef);
+        const reciprocal = counterpart && (decisionOverrides[counterpartRef] ||
+            decisionOverrides[counterpart.id] || {});
+        const debit = Number(transaction.amount_cents) > 0
+            ? transaction : counterpart;
+        const refund = debit === transaction ? counterpart : transaction;
+        if (reciprocal?.classification !== 'card_refund_pair' ||
+            reciprocal.counterpartSourceRef !== ref || !debit || !refund ||
+            accountBindings[debit.account_id]?.kind !== 'card' ||
+            debit.account_id !== refund.account_id ||
+            debit.account_type !== 'CREDIT' || refund.account_type !== 'CREDIT' ||
+            debit.type !== 'DEBIT' || refund.type !== 'CREDIT' ||
+            normalizeText(debit.status).toUpperCase() !== 'POSTED' ||
+            normalizeText(refund.status).toUpperCase() !== 'POSTED' ||
+            Number(debit.amount_cents) !== -Number(refund.amount_cents) ||
+            parseDate(debit.date) > parseDate(refund.date) ||
+            dayDistance(debit.date, refund.date) > 30 ||
+            !isStableTransaction(debit) || !isStableTransaction(refund)) {
+            continue;
+        }
+        paired.set(sourceRef(debit), { role: 'debit', pair: refund });
+        paired.set(sourceRef(refund), { role: 'refund', pair: debit });
+    }
     const candidatesByRef = new Map();
     const candidates = refund => {
         const ref = sourceRef(refund);
@@ -1059,10 +1095,6 @@ function classifyTransaction({
         return entry(transaction, 'needs_review', 'invalid_amount',
             'non_positive_absolute_amount');
     }
-    if (String(transaction.currency || '').trim().toUpperCase() !== 'BRL') {
-        return entry(transaction, 'needs_review', 'unsupported_currency',
-            'unsupported_currency');
-    }
     const sourceKey = providerIdentity(transaction);
     if (!sourceKey) {
         return entry(transaction, 'needs_review', 'unstable_source_identity',
@@ -1073,6 +1105,44 @@ function classifyTransaction({
             'provider_identity_repeated');
     }
     duplicates.add(sourceKey);
+
+    const transactionCurrency = String(transaction.currency || '').trim().toUpperCase();
+    if (transactionCurrency !== 'BRL') {
+        const pendingForeignCard = binding.kind === 'card' &&
+            normalizeText(transaction.status).toUpperCase() === 'PENDING' &&
+            !(Number(transaction.total_installments) > 1 &&
+                Number(transaction.installment_number) > 1);
+        if (pendingForeignCard) {
+            return entry(transaction, 'excluded', 'pending_card_purchase',
+                'provider_pending_not_historical_fact');
+        }
+        const reviewedBrlAmount = Number(override.brlAmountCents);
+        const explicitForeignExpense =
+            override.classification === 'foreign_card_expense' &&
+            binding.kind === 'card' && transaction.account_type === 'CREDIT' &&
+            transaction.type === 'DEBIT' &&
+            normalizeText(transaction.status).toUpperCase() === 'POSTED' &&
+            Number(transaction.amount_cents) > 0 &&
+            Number.isSafeInteger(reviewedBrlAmount) && reviewedBrlAmount > 0 &&
+            String(transaction.bill_forecast_month || '').trim() &&
+            String(override.category || '').trim();
+        if (!explicitForeignExpense) {
+            return entry(transaction, 'needs_review', 'unsupported_currency',
+                'unsupported_currency');
+        }
+        const category = {
+            category: override.category,
+            subcategory: override.subcategory || ''
+        };
+        return entry(transaction, 'ready', 'foreign_card_expense',
+            'explicit_reviewed_brl_conversion',
+            expenseWritePlan(transaction, binding, category,
+                'foreign_card_expense', false, reviewedBrlAmount), {
+                original_amount_cents: Number(transaction.amount_cents),
+                original_currency: transactionCurrency,
+                reviewed_brl_amount_cents: reviewedBrlAmount
+            });
+    }
 
     if (transferRole?.role === 'counterpart' ||
         pairedCounterparts.has(sourceRef(transaction))) {
@@ -1115,6 +1185,18 @@ function classifyTransaction({
             cardFundedPixRole.context);
     }
     if (cardFundedPixRole?.role === 'card_debit') {
+        const feeAmount = Number(cardFundedPixRole.context?.fee_amount_cents);
+        if (override.classification === 'expense' &&
+            String(override.category || '').trim() &&
+            Number.isSafeInteger(feeAmount) && feeAmount > 0) {
+            return entry(transaction, 'ready', 'card_funded_pix_fee',
+                'explicit_reviewed_card_funded_pix_fee',
+                expenseWritePlan(transaction, binding, {
+                    category: override.category,
+                    subcategory: override.subcategory || ''
+                }, 'card_funded_pix_fee', false, feeAmount),
+                cardFundedPixRole.context);
+        }
         return entry(transaction, 'needs_review', 'card_funded_pix_fee',
             'card_funded_pix_fee_category_required', null,
             cardFundedPixRole.context);
@@ -1242,6 +1324,18 @@ function classifyTransaction({
     }
 
     if (binding.kind === 'card' && Number(transaction.amount_cents) < 0) {
+        if (override.classification === 'card_credit_adjustment' &&
+            transaction.type === 'CREDIT' &&
+            normalizeText(transaction.status).toUpperCase() === 'POSTED' &&
+            String(override.category || '').trim()) {
+            return entry(transaction, 'ready', 'card_credit_adjustment',
+                'explicit_reviewed_card_credit_adjustment',
+                expenseWritePlan(transaction, binding, {
+                    category: override.category,
+                    subcategory: override.subcategory || ''
+                }, 'card_credit_adjustment', false,
+                Number(transaction.amount_cents)));
+        }
         return entry(transaction, 'needs_review', 'card_credit_or_payment',
             'refund_or_card_payment_requires_link');
     }
@@ -1325,7 +1419,7 @@ function planOpenFinanceHistoricalImport({
     const pairs = strongTransferPairs(transactions, accountBindings,
         historyStartDate, historyEndDate, decisionOverrides);
     const refundPairs = strongUnwrittenRefundPairs(transactions, accountBindings,
-        sheetSnapshot, historyStartDate, historyEndDate);
+        sheetSnapshot, historyStartDate, historyEndDate, decisionOverrides);
     const cardPaymentPairs = strongCardBillPaymentPairs(transactions, accountBindings,
         merchantRules, decisionOverrides, sheetSnapshot, historyStartDate,
         historyEndDate);

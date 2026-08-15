@@ -2070,6 +2070,200 @@ test('requires review for unbound sources and unmatched card credits', () => {
     assert.equal(result.entries[1].classification, 'card_credit_or_payment');
 });
 
+test('uses reciprocal reviewed refund decisions to neutralize one exact card purchase', () => {
+    const merchantRules = [{
+        match: { mode: 'exact', value: 'Fornecedor exemplo' },
+        classification: 'expense',
+        category: 'Outros',
+        subcategory: ''
+    }];
+    const purchase = transaction({
+        id: 'reviewed-refund-purchase',
+        provider_id: 'reviewed-refund-purchase-provider',
+        account_id: 'card-1',
+        amount_cents: 6917,
+        type: 'DEBIT',
+        bill_forecast_month: '2026-01'
+    });
+    const refund = transaction({
+        id: 'reviewed-refund-credit',
+        provider_id: 'reviewed-refund-credit-provider',
+        account_id: 'card-1',
+        amount_cents: -6917,
+        type: 'CREDIT',
+        date: '2026-01-11',
+        bill_forecast_month: '2026-01'
+    });
+    const initial = plan([purchase, refund], { merchantRules });
+    const purchaseRef = initial.entries[0].source_ref;
+    const refundRef = initial.entries[1].source_ref;
+    const decisionOverrides = {
+        [purchaseRef]: {
+            classification: 'card_refund_pair',
+            counterpartSourceRef: refundRef
+        },
+        [refundRef]: {
+            classification: 'card_refund_pair',
+            counterpartSourceRef: purchaseRef
+        }
+    };
+    const result = plan([purchase, refund], {
+        merchantRules,
+        decisionOverrides
+    });
+
+    assert.deepEqual(result.entries.map(item => [item.state, item.classification]), [
+        ['excluded', 'paired_refund_purchase'],
+        ['excluded', 'paired_refund']
+    ]);
+    const purchasePlan = plan([purchase], { merchantRules });
+    const cardRangeName = Object.keys(sheet().ranges)
+        .find(key => key.includes('Cart'));
+    const recordedResult = plan([purchase, refund], {
+        merchantRules,
+        decisionOverrides: {
+            ...decisionOverrides
+        },
+        ranges: {
+            [cardRangeName]: [
+                sheet().ranges[cardRangeName][0],
+                purchasePlan.entries[0].write_plan.row
+            ]
+        }
+    });
+
+    assert.ok(recordedResult.entries.every(item => ![
+        'paired_refund_purchase', 'paired_refund'
+    ].includes(item.classification)));
+    assert.equal(result.financial_writes, 0);
+});
+
+test('plans reviewed unmatched card credits as negative adjustments', () => {
+    const credit = transaction({
+        id: 'reviewed-card-credit',
+        provider_id: 'reviewed-card-credit-provider',
+        account_id: 'card-1',
+        amount_cents: -1289,
+        type: 'CREDIT',
+        bill_forecast_month: '2026-01'
+    });
+    const ref = plan([credit]).entries[0].source_ref;
+    const result = plan([credit], {
+        decisionOverrides: {
+            [ref]: {
+                classification: 'card_credit_adjustment',
+                category: 'Outros',
+                subcategory: ''
+            }
+        }
+    });
+
+    assert.equal(result.entries[0].state, 'ready');
+    assert.equal(result.entries[0].classification, 'card_credit_adjustment');
+    assert.equal(result.entries[0].write_plan.row[3], -12.89);
+    assert.equal(result.financial_writes, 0);
+});
+
+test('uses only the reviewed fee of a card-funded Pix triple', () => {
+    const bankDebit = transaction({
+        id: 'reviewed-fee-bank-debit',
+        provider_id: 'reviewed-fee-bank-debit-provider',
+        description: 'Transferencia enviada|Pessoa Exemplo',
+        amount_cents: -5445,
+        date: '2026-01-10T12:00:00.000Z'
+    });
+    const bankCredit = transaction({
+        id: 'reviewed-fee-bank-credit',
+        provider_id: 'reviewed-fee-bank-credit-provider',
+        description: 'Valor adicionado na conta por cartao de credito | Valor adicionado para PIX no Credito',
+        amount_cents: 5445,
+        type: 'CREDIT',
+        operation_type: 'TRANSFERENCIA_MESMA_INSTITUICAO',
+        date: '2026-01-10T12:00:00.500Z'
+    });
+    const cardDebit = transaction({
+        id: 'reviewed-fee-card-debit',
+        provider_id: 'reviewed-fee-card-debit-provider',
+        account_id: 'card-1',
+        description: 'Pagamento de pix',
+        amount_cents: 6172,
+        type: 'DEBIT',
+        date: '2026-01-10T12:00:03.000Z',
+        bill_forecast_month: '2026-01'
+    });
+    const initial = plan([bankDebit, bankCredit, cardDebit], {
+        merchantRules: [{
+            match: { mode: 'contains', value: 'pessoa exemplo' },
+            classification: 'expense', category: 'Outros', subcategory: ''
+        }]
+    });
+    const cardRef = initial.entries[2].source_ref;
+    const result = plan([bankDebit, bankCredit, cardDebit], {
+        merchantRules: [{
+            match: { mode: 'contains', value: 'pessoa exemplo' },
+            classification: 'expense', category: 'Outros', subcategory: ''
+        }],
+        decisionOverrides: {
+            [cardRef]: {
+                classification: 'expense',
+                category: 'Taxas e Juros',
+                subcategory: ''
+            }
+        }
+    });
+
+    assert.equal(result.entries[2].state, 'ready');
+    assert.equal(result.entries[2].classification, 'card_funded_pix_fee');
+    assert.equal(result.entries[2].write_plan.row[3], 7.27);
+    assert.equal(result.financial_writes, 0);
+});
+
+test('accepts only an explicit BRL amount for a posted foreign card expense and excludes pending foreign purchases', () => {
+    const posted = transaction({
+        id: 'posted-foreign-card',
+        provider_id: 'posted-foreign-card-provider',
+        account_id: 'card-1',
+        amount_cents: 500,
+        currency: 'USD',
+        type: 'DEBIT',
+        bill_forecast_month: '2026-03'
+    });
+    const pending = transaction({
+        id: 'pending-foreign-card',
+        provider_id: 'pending-foreign-card-provider',
+        account_id: 'card-1',
+        amount_cents: 1970,
+        currency: 'USD',
+        type: 'DEBIT',
+        status: 'PENDING',
+        bill_forecast_month: null
+    });
+    const initial = plan([posted, pending]);
+    const postedRef = initial.entries[0].source_ref;
+    const result = plan([posted, pending], {
+        decisionOverrides: {
+            [postedRef]: {
+                classification: 'foreign_card_expense',
+                category: 'Outros',
+                subcategory: '',
+                brlAmountCents: 2738
+            }
+        }
+    });
+
+    assert.equal(result.entries[0].state, 'ready');
+    assert.equal(result.entries[0].classification, 'foreign_card_expense');
+    assert.equal(result.entries[0].write_plan.row[3], 27.38);
+    assert.deepEqual(result.entries[0].review_context, {
+        original_amount_cents: 500,
+        original_currency: 'USD',
+        reviewed_brl_amount_cents: 2738
+    });
+    assert.equal(result.entries[1].state, 'excluded');
+    assert.equal(result.entries[1].classification, 'pending_card_purchase');
+    assert.equal(result.financial_writes, 0);
+});
+
 test('fails closed on source type mismatch, zero amount and non-BRL currency', () => {
     const result = plan([
         transaction({

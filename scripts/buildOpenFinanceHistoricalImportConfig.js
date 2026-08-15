@@ -14,7 +14,8 @@ const PRIVATE_RULE_CLASSIFICATIONS = new Set(['expense', 'income', 'card_payment
 const PRIVATE_DECISION_CLASSIFICATIONS = new Set([
     'expense', 'income', 'reserve_application', 'reserve_redemption',
     'internal_transfer', 'internal_transfer_pair', 'loan_proceeds',
-    'existing_sheet_match', 'card_payment_reversal'
+    'existing_sheet_match', 'card_payment_reversal', 'card_refund_pair',
+    'card_credit_adjustment', 'foreign_card_expense'
 ]);
 
 function isRecord(value) {
@@ -64,17 +65,25 @@ function normalizePrivateDecisions(value = {}) {
         const counterpartSourceRef = String(
             decision?.counterpartSourceRef || '').trim();
         const existingDescription = String(decision?.existingDescription || '').trim();
+        const hasBrlAmountCents = Object.prototype.hasOwnProperty.call(
+            decision || {}, 'brlAmountCents');
+        const brlAmountCents = Number(decision?.brlAmountCents);
         const allowedKeys = new Set([
             'classification', 'category', 'subcategory',
             'destinationFinancialAccount', 'originFinancialAccount',
-            'counterpartSourceRef', 'existingDescription'
+            'counterpartSourceRef', 'existingDescription', 'brlAmountCents'
         ]);
         const hasOnlyAllowedKeys = isRecord(decision) &&
             Object.keys(decision).every(key => allowedKeys.has(key));
-        const categoryRequired = ['expense', 'income'].includes(classification);
+        const categoryRequired = [
+            'expense', 'income', 'card_credit_adjustment',
+            'foreign_card_expense'
+        ].includes(classification);
         const transferDecision = classification === 'internal_transfer';
         const pairedTransferDecision = classification === 'internal_transfer_pair';
+        const pairedRefundDecision = classification === 'card_refund_pair';
         const existingDecision = classification === 'existing_sheet_match';
+        const foreignDecision = classification === 'foreign_card_expense';
         const hasTransferAccount = Boolean(destinationFinancialAccount) !==
             Boolean(originFinancialAccount);
         if (!ref || !hasOnlyAllowedKeys ||
@@ -83,12 +92,18 @@ function normalizePrivateDecisions(value = {}) {
             (!categoryRequired && (category || subcategory)) ||
             (transferDecision !== hasTransferAccount) ||
             (!transferDecision && (destinationFinancialAccount || originFinancialAccount)) ||
-            (pairedTransferDecision !== Boolean(counterpartSourceRef)) ||
-            (pairedTransferDecision && counterpartSourceRef === ref) ||
+            ((pairedTransferDecision || pairedRefundDecision) !==
+                Boolean(counterpartSourceRef)) ||
+            ((pairedTransferDecision || pairedRefundDecision) &&
+                counterpartSourceRef === ref) ||
             (existingDecision !== Boolean(existingDescription)) ||
-            ((transferDecision || pairedTransferDecision) && existingDescription) ||
+            ((transferDecision || pairedTransferDecision || pairedRefundDecision) &&
+                existingDescription) ||
             (existingDecision && (destinationFinancialAccount ||
-                originFinancialAccount || counterpartSourceRef))) {
+                originFinancialAccount || counterpartSourceRef)) ||
+            (foreignDecision !== hasBrlAmountCents) ||
+            (foreignDecision && (!Number.isSafeInteger(brlAmountCents) ||
+                brlAmountCents <= 0))) {
             throw new Error(`historical_import_private_decision_invalid:${ref || 'missing_ref'}`);
         }
         decisionOverrides[ref] = {
@@ -97,7 +112,8 @@ function normalizePrivateDecisions(value = {}) {
             ...(destinationFinancialAccount ? { destinationFinancialAccount } : {}),
             ...(originFinancialAccount ? { originFinancialAccount } : {}),
             ...(counterpartSourceRef ? { counterpartSourceRef } : {}),
-            ...(existingDescription ? { existingDescription } : {})
+            ...(existingDescription ? { existingDescription } : {}),
+            ...(foreignDecision ? { brlAmountCents } : {})
         };
     }
     for (const [ref, decision] of Object.entries(decisionOverrides)) {
@@ -106,6 +122,14 @@ function normalizePrivateDecisions(value = {}) {
         if (counterpart?.classification !== 'internal_transfer_pair' ||
             counterpart.counterpartSourceRef !== ref) {
             throw new Error(`historical_import_private_transfer_pair_invalid:${ref}`);
+        }
+    }
+    for (const [ref, decision] of Object.entries(decisionOverrides)) {
+        if (decision.classification !== 'card_refund_pair') continue;
+        const counterpart = decisionOverrides[decision.counterpartSourceRef];
+        if (counterpart?.classification !== 'card_refund_pair' ||
+            counterpart.counterpartSourceRef !== ref) {
+            throw new Error(`historical_import_private_refund_pair_invalid:${ref}`);
         }
     }
     return { merchantRules, decisionOverrides };

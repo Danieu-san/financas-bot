@@ -310,6 +310,67 @@ test('accepts only an exact reviewed card-payment reversal decision', () => {
     }), /historical_import_private_merchant_rule_invalid:0/);
 });
 
+test('accepts exact reviewed card refund, adjustment and foreign amount decisions', () => {
+    const input = {
+        pluggySnapshot: { observed_at: '2026-08-11T00:00:00.000Z', items: [] },
+        sheetSnapshot: { ranges: {} },
+        historyStartDate: '2025-07-01',
+        historyEndDate: '2026-07-27'
+    };
+    const config = buildConfig({
+        ...input,
+        privateDecisions: { decisionOverrides: {
+            purchase: {
+                classification: 'card_refund_pair',
+                counterpartSourceRef: 'refund'
+            },
+            refund: {
+                classification: 'card_refund_pair',
+                counterpartSourceRef: 'purchase'
+            },
+            adjustment: {
+                classification: 'card_credit_adjustment',
+                category: 'Outros', subcategory: ''
+            },
+            foreign: {
+                classification: 'foreign_card_expense',
+                category: 'Outros', subcategory: '', brlAmountCents: 2738
+            }
+        } }
+    });
+
+    assert.equal(config.decisionOverrides.foreign.brlAmountCents, 2738);
+    assert.equal(config.decisionOverrides.adjustment.category, 'Outros');
+    assert.equal(config.decisionOverrides.purchase.counterpartSourceRef, 'refund');
+});
+
+test('fails closed for nonreciprocal refunds and malformed foreign BRL amounts', () => {
+    const input = {
+        pluggySnapshot: { observed_at: '2026-08-11T00:00:00.000Z', items: [] },
+        sheetSnapshot: { ranges: {} },
+        historyStartDate: '2025-07-01',
+        historyEndDate: '2026-07-27'
+    };
+    assert.throws(() => buildConfig({
+        ...input,
+        privateDecisions: { decisionOverrides: {
+            purchase: {
+                classification: 'card_refund_pair',
+                counterpartSourceRef: 'refund'
+            }
+        } }
+    }), /historical_import_private_refund_pair_invalid:purchase/);
+    assert.throws(() => buildConfig({
+        ...input,
+        privateDecisions: { decisionOverrides: {
+            foreign: {
+                classification: 'foreign_card_expense',
+                category: 'Outros', subcategory: '', brlAmountCents: 0
+            }
+        } }
+    }), /historical_import_private_decision_invalid:foreign/);
+});
+
 test('accepts a category-free reviewed card-payment rule', () => {
     const config = buildConfig({
         pluggySnapshot: { observed_at: '2026-08-11T00:00:00.000Z', items: [] },
