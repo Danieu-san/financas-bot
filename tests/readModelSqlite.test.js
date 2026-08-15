@@ -599,7 +599,9 @@ test('sqlite read-model feeds Packet 05 budget plans into Query Engine with scop
 
 test('sqlite budget fallback excludes a family registered bill paid on another member card', async () => {
     assert.strictEqual(syncSnapshotToSqlite({
-        saidas: [],
+        saidas: [
+            { user_id: 'budget-member', data: '12/02/2026', descricao: 'Mensalidade recorrente sem cadastro', categoria: 'Serviços', subcategoria: '', valor: 40, recorrente: 'Sim', month: 1, year: 2026 }
+        ],
         cartoes: [
             { user_id: 'budget-member', source: 'Cartão Família', card_id: 'family-card', cartao: 'Cartão Família', data: '10/02/2026', descricao: 'Spotify', categoria: 'Assinaturas', valor: 50, parcela: '1/1', month: 1, year: 2026 },
             { user_id: 'budget-member', source: 'Cartão Família', card_id: 'family-card', cartao: 'Cartão Família', data: '11/02/2026', descricao: 'Restaurante livre', categoria: 'Alimentação', valor: 20, parcela: '1/1', month: 1, year: 2026 }

@@ -39,6 +39,9 @@ aprovadas; corrigir qualquer divergencia encontrada.
   ausente no fallback SQLite e divergência de pagamento familiar;
 - ambos os cenários tiveram RED 70 contra 20 e ficaram verdes após correção;
 - focal 26/26, bateria afetada 175/175 e ampla 1733/1723/0/10.
+- a segunda auditoria identificou perda de `Saídas.Recorrente` no fallback;
+  RED 60 contra 20 foi fechado com coluna persistida/migrada e reconstrução no
+  payload; bateria afetada 175/175 e ampla pós-correção 1733/1723/0/10.
 
 ## Critérios de GO
 

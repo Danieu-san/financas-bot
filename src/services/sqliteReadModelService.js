@@ -63,6 +63,7 @@ function initSchema() {
             card_id TEXT,
             card_name TEXT,
             installment_text TEXT,
+            recurrence TEXT,
             last_seen_sync INTEGER NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_expenses_user_period ON expenses(user_id, year, month);
@@ -424,6 +425,7 @@ function ensureExpenseSchemaColumns() {
         ['card_id', 'TEXT'],
         ['card_name', 'TEXT'],
         ['installment_text', 'TEXT'],
+        ['recurrence', 'TEXT'],
         ['financial_account', 'TEXT']
     ];
     additions.forEach(([name, type]) => {
@@ -546,8 +548,8 @@ function syncSnapshotToSqlite(snapshot) {
     currentSyncId = Date.now();
 
     const upsertExpense = db.prepare(`
-        INSERT INTO expenses(fingerprint, user_id, source_type, source_name, date_text, year, month, description, category, subcategory, value, card_id, card_name, installment_text, financial_account, last_seen_sync)
-        VALUES(@fingerprint, @user_id, @source_type, @source_name, @date_text, @year, @month, @description, @category, @subcategory, @value, @card_id, @card_name, @installment_text, @financial_account, @last_seen_sync)
+        INSERT INTO expenses(fingerprint, user_id, source_type, source_name, date_text, year, month, description, category, subcategory, value, card_id, card_name, installment_text, recurrence, financial_account, last_seen_sync)
+        VALUES(@fingerprint, @user_id, @source_type, @source_name, @date_text, @year, @month, @description, @category, @subcategory, @value, @card_id, @card_name, @installment_text, @recurrence, @financial_account, @last_seen_sync)
         ON CONFLICT(fingerprint) DO UPDATE SET
             user_id = excluded.user_id,
             source_type = excluded.source_type,
@@ -562,6 +564,7 @@ function syncSnapshotToSqlite(snapshot) {
             card_id = excluded.card_id,
             card_name = excluded.card_name,
             installment_text = excluded.installment_text,
+            recurrence = excluded.recurrence,
             financial_account = excluded.financial_account,
             last_seen_sync = excluded.last_seen_sync
     `);
@@ -749,6 +752,7 @@ function syncSnapshotToSqlite(snapshot) {
                 card_id: '',
                 card_name: '',
                 installment_text: '',
+                recurrence: item.recorrente || item.recurrence || '',
                 financial_account: item.contaFinanceira || item.financialAccount || '',
                 last_seen_sync: currentSyncId
             });
@@ -784,6 +788,7 @@ function syncSnapshotToSqlite(snapshot) {
                 card_id: item.card_id || item.cardId || item.source || '',
                 card_name: item.cartao || item.cardName || item.source || '',
                 installment_text: item.parcela || item.installment || '',
+                recurrence: '',
                 financial_account: item.contaFinanceira || item.financialAccount || '',
                 last_seen_sync: currentSyncId
             });
@@ -2129,7 +2134,7 @@ function queryBudgetFinancialQueryDataSourcesSql(plan, { userId, userIds, curren
 
     const userPlaceholders = scopeUserIds.map(() => '?').join(', ');
     const expenseRows = db.prepare(`
-        SELECT user_id, source_type, source_name, date_text, year, month, description, category, subcategory, value, card_id, card_name, installment_text
+        SELECT user_id, source_type, source_name, date_text, year, month, description, category, subcategory, value, card_id, card_name, installment_text, recurrence
         FROM expenses
         WHERE user_id IN (${userPlaceholders})
           AND (
@@ -2220,7 +2225,7 @@ function queryFinancialQueryDataSourcesSql(plan, { userId, userIds, currentDate 
             end = start;
         }
         const expenseRows = db.prepare(`
-            SELECT user_id, source_type, source_name, date_text, year, month, description, category, subcategory, value, card_id, card_name, installment_text
+            SELECT user_id, source_type, source_name, date_text, year, month, description, category, subcategory, value, card_id, card_name, installment_text, recurrence
             FROM expenses
             WHERE ${ownerClause} AND source_type = 'saida'
               AND ${sqlDateExpression()} >= date(?)
@@ -2333,7 +2338,7 @@ function queryFinancialQueryDataSourcesSql(plan, { userId, userIds, currentDate 
         `).all(...sqlFilter.params);
 
         const expenseRows = db.prepare(`
-            SELECT user_id, source_type, source_name, date_text, year, month, description, category, subcategory, value, card_id, card_name, installment_text
+            SELECT user_id, source_type, source_name, date_text, year, month, description, category, subcategory, value, card_id, card_name, installment_text, recurrence
             FROM expenses
             ${buildFinancialQuerySqlWhere({ ...plan, domain: 'expenses', timeBasis: 'billing_month' }, { allUsers, scopeUserIds }).clause}
             ORDER BY year DESC, month DESC, date_text DESC
@@ -2350,7 +2355,7 @@ function queryFinancialQueryDataSourcesSql(plan, { userId, userIds, currentDate 
     }
 
     const rows = db.prepare(`
-        SELECT user_id, source_type, source_name, date_text, year, month, description, category, subcategory, value, card_id, card_name, installment_text
+        SELECT user_id, source_type, source_name, date_text, year, month, description, category, subcategory, value, card_id, card_name, installment_text, recurrence
         FROM expenses
         ${sqlFilter.clause}
         ORDER BY year DESC, month DESC, date_text DESC
@@ -2398,7 +2403,7 @@ function buildExpensesDataSourcesFromRows(rows = []) {
             Number(row.value || 0),
             '',
             '',
-            '',
+            row.recurrence || '',
             '',
             row.user_id || ''
         ]);

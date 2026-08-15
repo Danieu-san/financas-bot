@@ -71,6 +71,12 @@ corrigir qualquer divergencia sem misturar despesas excluidas.
   esse campo;
 - RED corretivo 70 contra 20; focal 26/26, afetada 175/175 e ampla final
   1733/1723/0/10, cobertura de linhas 91.54%.
+- o hash `306f3b6ce8c3f4573e3eeab1844d248934a89f1c` recebeu NO-GO
+  independente porque `Saídas.Recorrente` era perdido no fallback SQLite;
+- a recorrência agora é coluna persistida e migrada em `expenses`, volta para
+  a coluna correta de `Saídas` e exclui a linha mesmo sem pareamento em
+  `Contas`; RED 60 contra 20, focal verde, afetada 175/175 e ampla final
+  1733/1723/0/10, cobertura de linhas 91.52%.
 
 ## Git e workspace
 

@@ -31,6 +31,8 @@ cadastradas, transferências, dívidas e reserva. Antes deste candidato:
   em vez de reclassificar uma conta cadastrada como gasto livre;
 - o escopo familiar permite reconhecer uma conta de um membro paga no cartão
   do outro membro, sem liberar usuários fora do escopo autorizado.
+- o read-model SQLite persiste e reconstrói `Saídas.Recorrente`, inclusive em
+  bancos já existentes por migração aditiva de schema.
 
 Cartões não possuem uma coluna autônoma `Recorrente` no contrato vigente da
 planilha. Neles, uma cobrança recorrente é excluída por correspondência com o
@@ -54,12 +56,17 @@ catálogo `Contas`; saídas em conta continuam usando também a coluna
   localmente: catálogo ausente no fallback SQLite e pagamento familiar
   divergente no dashboard; esse hash não foi implantado;
 - RED corretivo: os dois cenários retornaram R$ 70,00 em vez de R$ 20,00;
+- o segundo hash `306f3b6ce8c3f4573e3eeab1844d248934a89f1c`
+  recebeu `NO-GO` porque o fallback SQLite descartava
+  `Saídas.Recorrente`; esse hash também não foi implantado;
+- RED da recorrência no fallback: R$ 60,00 contra R$ 20,00; após persistir e
+  reconstruir o campo, o mesmo cenário ficou verde;
 - provas focais de cartão/dashboard e fallback SQLite: 26/26;
 - bateria causal afetada: 175/175;
 - suíte hermética ampla do candidato corrigido: 1.733 testes, 1.723 aprovados,
   zero falha e 10 skips
   esperados;
-- cobertura: linhas 91,54%, branches 74,38%, funções 91,10%;
+- cobertura final pós-correção: linhas 91,52%, branches 74,31%, funções 91,10%;
 - sintaxe e `git diff --check`: verdes.
 
 As contagens são execução local do Codex e não devem ser tratadas pelo auditor
