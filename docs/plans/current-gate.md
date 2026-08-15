@@ -4,7 +4,7 @@ Atualizado em: 2026-08-15
 
 ## Estado
 
-`CANDIDATO CORRIGIDO; NOVA AUDITORIA INDEPENDENTE PENDENTE`.
+`GO TECNICO LOCAL; PROMOCAO OCI AUTORIZADA`.
 
 ## Objetivo
 
@@ -45,6 +45,8 @@ para que os dois principals voltem a receber o lote numerado.
 - correcao focal `44/44` e afetada `149/149`.
 - ampla corretiva final `1727` total, `1717` pass, `0` fail, `10` skip,
   cobertura de linhas `91.54%`.
+- hash `72e526fac3dde1d00907d4e03725472ea8c67c60`: `GO TECNICO LOCAL`
+  independente, zero achados e nenhuma lacuna indispensavel.
 
 ## Critérios de GO
 
@@ -63,5 +65,4 @@ para que os dois principals voltem a receber o lote numerado.
 
 ## Proxima acao
 
-Publicar novo hash sanitizado, obter nova auditoria independente e, com `GO`,
-promover o artefato auditado na OCI.
+Promover o hash auditado por artefato OCI e validar o primeiro ciclo real.

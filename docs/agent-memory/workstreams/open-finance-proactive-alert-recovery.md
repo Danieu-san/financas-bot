@@ -9,7 +9,7 @@ imutabilidade depois que uma proposta foi apresentada.
 
 ## Estado
 
-`GATE 43 CANDIDATO CORRIGIDO; NOVA AUDITORIA INDEPENDENTE PENDENTE`.
+`GATE 43 GO TECNICO LOCAL; PROMOCAO OCI AUTORIZADA`.
 
 - branch: `codex/open-finance-proactive-alert-g42`;
 - base: `960e8e82d1c4aae5f6b49f0d17e75e731de6dbc2`;
@@ -33,10 +33,12 @@ imutabilidade depois que uma proposta foi apresentada.
 - a correcao filtra revisoes prontas expiradas no SQL antes do limite e prova
   limpeza com o gerenciador real; focal `44/44`, afetada `149/149`, ampla
   `1717/1727`, zero falhas;
+- hash corrigido `72e526fac3dde1d00907d4e03725472ea8c67c60` recebeu GO
+  independente sem achados nem lacuna indispensavel;
 - candidato Gate 43:
   `docs/audit/260-open-finance-orphan-conversation-recovery-candidate-2026-08-15.md`.
 
 ## Proxima acao
 
-Publicar e auditar o Gate 43; com `GO`, promover por artefato OCI e observar a
+Promover o Gate 43 por artefato OCI e observar a
 autocura e o primeiro lote real sem escrita financeira automatica.

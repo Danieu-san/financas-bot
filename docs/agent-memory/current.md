@@ -28,7 +28,10 @@ dashboard, check diario e limite mensal.
   real e usa o `userStateManager` real no ciclo completo;
 - evidencia corretiva focal `44/44`, afetada `149/149` e ampla final
   `1727/1717/0/10`, com cobertura de linhas `91.54%`;
-- candidato corrigido aguarda novo hash e nova auditoria independente.
+- hash corrigido `72e526fac3dde1d00907d4e03725472ea8c67c60` recebeu
+  `GO TECNICO LOCAL` independente, sem achados nem lacuna indispensavel;
+- promocao OCI e primeiro ciclo controlado estao autorizados, mantendo
+  `financial_writes=0`.
 
 ## Git e workspace
 
@@ -38,8 +41,8 @@ dashboard, check diario e limite mensal.
 
 ## Próxima ação exata
 
-Publicar novo hash do candidato corrigido, obter nova auditoria independente e,
-somente com `GO`, promover por artefato OCI.
+Promover por artefato OCI o hash auditado, preservar estado e validar o primeiro
+ciclo real, inclusive recuperacao e lote numerado.
 
 ## Capacidade para retomar
 
@@ -53,3 +56,4 @@ somente com `GO`, promover por artefato OCI.
 - `docs/audit/258-open-finance-proactive-replay-recovery-candidate-2026-08-15.md`.
 - `docs/audit/259-open-finance-proactive-replay-recovery-independent-close-2026-08-15.md`.
 - `docs/audit/260-open-finance-orphan-conversation-recovery-candidate-2026-08-15.md`.
+- `docs/audit/261-open-finance-orphan-conversation-recovery-independent-close-2026-08-15.md`.
