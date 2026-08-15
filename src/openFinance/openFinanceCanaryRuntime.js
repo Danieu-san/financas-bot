@@ -273,7 +273,7 @@ function reconcileOpenFinanceRecipientAvailability({
     const readyReviews = proposalReviewStore.listReadyReviews({
         actorWhatsappId: actor.whatsappId,
         limit: 2
-    }).filter(review => Date.parse(review.expires_at) > nowMs);
+    });
     const readyConfirmations = proposalStore.listReadySaveProposalConfirmations({
         actorWhatsappId: actor.whatsappId,
         limit: 100

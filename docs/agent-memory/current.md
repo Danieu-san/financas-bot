@@ -21,9 +21,14 @@ dashboard, check diario e limite mensal.
 - Gate 43 remove somente estado das cinco acoes Open Finance conhecidas quando
   nao existe revisao ativa/pronta valida nem confirmacao pronta;
 - conversas alheias, revisoes e confirmacoes vivas continuam bloqueadas;
-- focal `17/17`, bateria diretamente afetada `31/31` e suite ampla unica
-  `1725/1715/0/10`, com cobertura de linhas `91.52%`;
-- candidato aguarda commit imutavel e auditoria independente.
+- o primeiro hash do Gate 43 recebeu `NO-GO` e nao foi implantado: duas
+  revisoes prontas expiradas podiam ocultar uma terceira valida antes do
+  limite, e faltava prova com persistencia real;
+- a correcao filtra validade no SQL antes do limite, prova o caso com o store
+  real e usa o `userStateManager` real no ciclo completo;
+- evidencia corretiva focal `44/44`, afetada `149/149` e ampla final
+  `1727/1717/0/10`, com cobertura de linhas `91.54%`;
+- candidato corrigido aguarda novo hash e nova auditoria independente.
 
 ## Git e workspace
 
@@ -33,8 +38,8 @@ dashboard, check diario e limite mensal.
 
 ## Próxima ação exata
 
-Criar e publicar o commit imutavel do Gate 43, obter auditoria independente e,
-somente com `GO`, promover por artefato OCI e confirmar a autocura/lote real.
+Publicar novo hash do candidato corrigido, obter nova auditoria independente e,
+somente com `GO`, promover por artefato OCI.
 
 ## Capacidade para retomar
 

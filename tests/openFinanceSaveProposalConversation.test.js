@@ -71,7 +71,8 @@ const fullPaymentCatalog = {
     ]
 };
 
-function createHarness({ transactionId = 'purchase-posted' } = {}) {
+function createHarness({ transactionId = 'purchase-posted', transactionIds } = {}) {
+    const ids = transactionIds || [transactionId];
     const now = new Date();
     const observedAt = new Date(now.getTime() - 60_000).toISOString();
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-save-conversation-'));
@@ -95,30 +96,30 @@ function createHarness({ transactionId = 'purchase-posted' } = {}) {
         alias_code: 'daniel_nubank',
         generation: 2,
         accounts: [{ id: 'credit-account', type: 'CREDIT' }],
-        transactions: [{
-            id: transactionId,
-            provider_id: `provider-${transactionId}`,
+        transactions: ids.map(id => ({
+            id,
+            provider_id: `provider-${id}`,
             account_id: 'credit-account',
             amount_cents: 2590,
             description: 'Compra privada de teste',
             date: new Date(now.getTime() - 3_600_000).toISOString(),
             status: 'POSTED'
-        }]
+        }))
     };
-    const ref = observationRef(secret, item.id, 'credit-account', transactionId);
-    const lifecycleDecisions = [{
-        observation_ref: ref,
+    const refs = ids.map(id => observationRef(secret, item.id, 'credit-account', id));
+    const lifecycleDecisions = refs.map(observation_ref => ({
+        observation_ref,
         classification: 'purchase',
         provider_state: 'POSTED',
         lifecycle_milestone: 'first_posted'
-    }];
-    const reconciliationDecisions = [{
+    }));
+    const reconciliationDecisions = refs.map((observation_ref, index) => ({
         alias: 'daniel_nubank',
-        observation_ref: ref,
-        transaction_ref: `transaction-ref-${transactionId}`,
+        observation_ref,
+        transaction_ref: `transaction-ref-${ids[index]}`,
         status: 'new',
         rule: 'no_candidate'
-    }];
+    }));
     const ingested = store.ingestSaveProposals({
         reconciliationDecisions,
         lifecycleDecisions,
@@ -130,12 +131,12 @@ function createHarness({ transactionId = 'purchase-posted' } = {}) {
     const [link] = ingested.proposal_links;
     const outbox = new OpenFinanceAlertOutbox({ databasePath: outboxPath, secret });
     outbox.enqueue({
-        candidates: [{
-            observation_ref: ref,
-            external_event_ref: `external-${transactionId}`,
+        candidates: refs.map((observation_ref, index) => ({
+            observation_ref,
+            external_event_ref: `external-${ids[index]}`,
             correlation_state: 'new_event',
             reconciliation_status: 'new'
-        }],
+        })),
         lifecycleDecisions,
         items: [item],
         policies,
@@ -161,6 +162,7 @@ function createHarness({ transactionId = 'purchase-posted' } = {}) {
         outbox,
         now: now.toISOString(),
         proposalRef: link.proposal_ref,
+        proposalRefs: ingested.proposal_links.map(item => item.proposal_ref),
         close() {
             if (closed) return;
             closed = true;
@@ -500,6 +502,59 @@ test('9P.3 corrects every guided field and only completes a causally valid draft
             reopened.close();
         }
     } finally {
+        harness.close();
+    }
+});
+
+test('ready review lookup filters expired rows before applying its limit', () => {
+    const harness = createHarness({
+        transactionIds: [
+            'ready-expired-first',
+            'ready-expired-second',
+            'ready-live-third'
+        ]
+    });
+    let clock = new Date(harness.now);
+    const reviewStore = new OpenFinanceSaveProposalReviewStore({
+        databasePath: harness.env.OPEN_FINANCE_SHADOW_PREVIEW_DB,
+        secret,
+        authorizedWhatsAppIds: [actorWhatsappId],
+        clock: () => new Date(clock)
+    });
+    try {
+        const expiryOffsets = [60_000, 120_000, 3_600_000];
+        harness.proposalRefs.forEach((proposalRef, index) => {
+            const proposal = {
+                proposal_ref: proposalRef,
+                principal: 'daniel',
+                classification: 'purchase',
+                account_type: 'CREDIT',
+                source: {
+                    description: `Compra ${index + 1}`,
+                    amount_cents: 2590,
+                    date: harness.now
+                },
+                review_expires_at: new Date(
+                    new Date(harness.now).getTime() + expiryOffsets[index]
+                ).toISOString()
+            };
+            reviewStore.prepareReview({
+                proposalRef,
+                proposal,
+                actorWhatsappId,
+                catalog: reviewCatalog
+            });
+            reviewStore.activateReview(proposalRef, { actorWhatsappId });
+            reviewStore.completeReview(proposalRef, { actorWhatsappId });
+            clock = new Date(clock.getTime() + 1_000);
+        });
+
+        clock = new Date(new Date(harness.now).getTime() + 300_000);
+        const ready = reviewStore.listReadyReviews({ actorWhatsappId, limit: 2 });
+        assert.deepEqual(ready.map(item => item.proposal_ref), [harness.proposalRefs[2]]);
+        assert.equal(ready[0].financial_writes, 0);
+    } finally {
+        reviewStore.close();
         harness.close();
     }
 });

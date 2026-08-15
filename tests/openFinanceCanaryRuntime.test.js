@@ -187,6 +187,9 @@ test('gate 39.1 proposes current open-invoice purchases once and survives pendin
     };
     const client = {
         sendMessage: async (to, text) => {
+            if (messages.length === 0) {
+                assert.equal(userStateManager.getState('daniel@c.us'), undefined);
+            }
             messages.push({ to, text });
             return { id: `message-${messages.length}` };
         }
@@ -200,6 +203,16 @@ test('gate 39.1 proposes current open-invoice purchases once and survives pendin
         delete require.cache[stateManagerPath];
         userStateManager = require(stateManagerPath);
         process.chdir(originalCwd);
+        userStateManager.setStateDurably('daniel@c.us', {
+            action: 'awaiting_open_finance_save_selection',
+            data: {
+                proposals: [{
+                    number: 1,
+                    proposalRef: 'f'.repeat(32),
+                    recipientPrincipal: 'daniel'
+                }]
+            }
+        }, 3600);
         const dependencies = {
             PluggyReadOnlyClient: FakeApi,
             userStateManager,
@@ -214,6 +227,7 @@ test('gate 39.1 proposes current open-invoice purchases once and survives pendin
 
         const first = await runOpenFinanceCanaryCycle({ client, env, dependencies });
         assert.equal(first.outcome, 'GO');
+        assert.equal(first.conversation_recovery.recovered, 1);
         assert.equal(first.new_observations, 2);
         assert.equal(first.save_proposals.inserted, 2);
         assert.equal(messages.length, 1);
@@ -787,10 +801,7 @@ test('orphaned Open Finance conversation state is durably removed before recipie
         },
         proposalReviewStore: {
             listActiveReviews: () => [],
-            listReadyReviews: () => [{
-                proposal_ref: 'f'.repeat(32),
-                expires_at: '2026-01-01T00:00:00.000Z'
-            }]
+            listReadyReviews: () => []
         },
         proposalStore: { listReadySaveProposalConfirmations: () => [] },
         outbox: { getProposalDeliveryState: () => null }
@@ -802,6 +813,27 @@ test('orphaned Open Finance conversation state is durably removed before recipie
         financial_writes: 0
     });
     assert.deepEqual(deleted, ['daniel@c.us']);
+});
+
+test('orphan cleanup failure aborts availability reconciliation before delivery can run', () => {
+    let deliveryReached = false;
+    assert.throws(() => {
+        reconcileOpenFinanceRecipientAvailability({
+            actor: { principal: 'daniel', whatsappId: 'daniel@c.us' },
+            stateManager: {
+                getState: () => ({ action: 'awaiting_open_finance_save_selection' }),
+                deleteStateDurably: () => { throw new Error('state_store_persist_failed'); }
+            },
+            proposalReviewStore: {
+                listActiveReviews: () => [],
+                listReadyReviews: () => []
+            },
+            proposalStore: { listReadySaveProposalConfirmations: () => [] },
+            outbox: { getProposalDeliveryState: () => null }
+        });
+        deliveryReached = true;
+    }, /state_store_persist_failed/);
+    assert.equal(deliveryReached, false);
 });
 
 test('recipient recovery preserves unrelated state and every live Open Finance backing', () => {

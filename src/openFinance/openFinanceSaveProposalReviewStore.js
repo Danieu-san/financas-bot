@@ -760,10 +760,12 @@ class OpenFinanceSaveProposalReviewStore {
             throw new Error('valid_open_finance_save_review_limit_required');
         }
         this.purgeExpired();
+        const now = this.#now();
         return this.db.prepare(`SELECT * FROM open_finance_save_proposal_reviews
             WHERE family_scope_ref=? AND actor_ref=? AND review_state='ready'
+                AND expires_at>?
             ORDER BY updated_at,proposal_ref LIMIT ?`)
-            .all(this.familyScopeRef, actorRef, limit)
+            .all(this.familyScopeRef, actorRef, now, limit)
             .map((row) => {
                 const payload = this.#readPayload(row);
                 return {

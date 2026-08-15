@@ -9,7 +9,7 @@ imutabilidade depois que uma proposta foi apresentada.
 
 ## Estado
 
-`GATE 43 CANDIDATO TECNICO LOCAL; AUDITORIA INDEPENDENTE PENDENTE`.
+`GATE 43 CANDIDATO CORRIGIDO; NOVA AUDITORIA INDEPENDENTE PENDENTE`.
 
 - branch: `codex/open-finance-proactive-alert-g42`;
 - base: `960e8e82d1c4aae5f6b49f0d17e75e731de6dbc2`;
@@ -29,8 +29,10 @@ imutabilidade depois que uma proposta foi apresentada.
 - candidato: `docs/audit/258-open-finance-proactive-replay-recovery-candidate-2026-08-15.md`.
 - Gate 42 foi promovido, mas o smoke real encontrou os dois principals presos
   por estado de selecao orfao, sem revisao ou confirmacao viva;
-- Gate 43 autocura apenas esse estado orfao e preserva todas as fronteiras
-  duraveis; focal `17/17`, afetada `31/31`, ampla `1715/1725`, zero falhas;
+- primeiro hash do Gate 43 recebeu `NO-GO` e nao foi implantado;
+- a correcao filtra revisoes prontas expiradas no SQL antes do limite e prova
+  limpeza com o gerenciador real; focal `44/44`, afetada `149/149`, ampla
+  `1717/1727`, zero falhas;
 - candidato Gate 43:
   `docs/audit/260-open-finance-orphan-conversation-recovery-candidate-2026-08-15.md`.
 

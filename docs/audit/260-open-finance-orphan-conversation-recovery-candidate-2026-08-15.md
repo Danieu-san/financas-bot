@@ -6,6 +6,17 @@ Data: 2026-08-15
 
 `CANDIDATO TECNICO LOCAL; AGUARDANDO AUDITORIA INDEPENDENTE`.
 
+O primeiro candidato imutavel, `882a44984eeb75332c0e5be6d9826062da1580ed`,
+recebeu `NO-GO` independente. O parecer encontrou um achado alto e um medio:
+
+- `listReadyReviews(limit: 2)` limitava as linhas antes de o runtime descartar
+  revisoes prontas expiradas, permitindo que duas expiradas ocultassem uma
+  terceira revisao pronta valida;
+- a evidencia testava a limpeza com um duplo em memoria, sem provar a fronteira
+  duravel real nem a falha antes do transporte.
+
+O hash foi corretamente impedido de chegar a producao.
+
 O Gate 42 foi promovido na OCI e o primeiro ciclo concluiu `GO`, mas nao
 transportou o lote numerado. A producao permaneceu com processo unico, WhatsApp
 saudavel e `financial_writes=0`.
@@ -42,6 +53,20 @@ A resposta do ciclo inclui apenas a contagem sanitizada de estados recuperados,
 e o log passa a emitir `recovered_states=<n>`, sem telefone, referencia, valor
 ou descricao.
 
+## Correcao apos o primeiro NO-GO
+
+`listReadyReviews` agora aplica `expires_at > agora` na propria consulta SQL,
+antes de `ORDER BY` e `LIMIT`. O runtime consome diretamente esse contrato e
+nao repete filtragem posterior. Uma prova com o store real cria duas revisoes
+prontas expiradas seguidas de uma terceira valida e exige que `limit: 2`
+devolva a terceira.
+
+O teste do ciclo completo agora pregrava o estado orfao pelo
+`userStateManager` real, exige que ele esteja ausente no instante em que o
+transporte e chamado e reabre o store para provar que o novo lote ficou
+persistido. Uma prova negativa adicional faz `deleteStateDurably` falhar e
+exige propagacao da falha antes de qualquer passo posterior de entrega.
+
 ## Invariantes
 
 - nenhuma revisao ou confirmacao viva e removida;
@@ -63,6 +88,17 @@ ou descricao.
   - `10` ignorados previstos;
   - cobertura de linhas `91.52%`.
 
+Evidencia corretiva posterior ao primeiro `NO-GO`:
+
+- nucleo runtime/conversa: `44/44`;
+- handler e finalizacao afetados: `149/149`;
+- uma unica nova suite hermetica ampla final:
+  - `1727` testes;
+  - `1717` aprovados;
+  - `0` falhas;
+  - `10` ignorados previstos;
+  - cobertura de linhas `91.54%`.
+
 ## Limites e proximo estado
 
 Este documento nao autoriza deploy isoladamente. Depois do `GO` independente,
@@ -78,4 +114,5 @@ no primeiro ciclo `recovered_states=2`, um unico lote numerado por principal e
 - `src/openFinance/openFinanceShadowPreviewStore.js`;
 - `src/openFinance/openFinanceAlertOutbox.js`;
 - `src/state/userStateManager.js`;
-- `tests/openFinanceCanaryRuntime.test.js`.
+- `tests/openFinanceCanaryRuntime.test.js`;
+- `tests/openFinanceSaveProposalConversation.test.js`.
