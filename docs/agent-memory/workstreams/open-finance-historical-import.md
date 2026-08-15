@@ -416,6 +416,30 @@ escrita financeira.
   o fechamento operacional/documental do Gate 41.3; fechamento em
   `docs/audit/248-open-finance-recurring-catalog-reconciliation-independent-close-2026-08-14.md`.
 
+## Gate 41.4 - salarios e entradas do casamento
+
+- as 147 entradas ou estornos residuais foram atribuidas exatamente uma vez a
+  classes semanticas privadas, sem escrita;
+- 33 ocorrencias reproduzem os dois padroes que Daniel ja confirmou como
+  salario: mesma origem, descricao e tipo operacional, sem regra por valor;
+- Daniel confirmou uma fronteira exata para casamento: todas as 23 entradas de
+  2025-08-07 e os dois repasses do provedor de lista de casamento; nenhuma outra
+  data proxima foi incluida;
+- foram adicionadas 58 decisoes privadas exatas: 33 `income / Salario` e 25
+  `income / Presentes`. O catalogo passou de 151 para 209 decisoes e manteve
+  208 regras;
+- o config preservou oito bindings, cobertura completa e `financial_writes=0`;
+- a comparacao integral das 2.351 entradas encontrou exatamente as 58
+  referencias esperadas em transicao de `needs_review / income_or_refund` para
+  `ready / income`; os 33 salarios usam `Salario` e as 25 entradas de
+  casamento usam `Presentes`, sempre na aba `Entradas` e sem recorrencia;
+- `existing`, `possible_duplicate`, `excluded` e `outside_window` nao
+  mudaram. O plano privado ficou com 1.762 prontos e 113 em revisao, cobertura
+  completa, `financial_writes=0` e hash
+  `cfd0df66c4753d376ab03847fd376112af7d9703a482c70b4336e8e08e8e1fc3`;
+- nenhum item foi importado ou escrito na planilha. O candidato aguarda
+  auditoria por hash imutavel.
+
 ## Evidencia local atual
 
 - candidato de Pix financiado por cartao: RED focal de 1 falha, focal 47/47 e
@@ -477,11 +501,10 @@ escrita financeira.
 
 ## Proxima acao
 
-Auditar o fechamento operacional do Gate 41.3 por commit sanitizado. Se o
-parecer nao encontrar lacuna indispensavel, agrupar as 147 entradas ou estornos
-historicos ainda sem decisao por pagador, conta, valor e recorrencia, usando
-primeiro catalogos e decisoes existentes. Writer, importacao em lote e producao
-permanecem bloqueados.
+Auditar o Gate 41.4 por commit sanitizado. Depois do parecer, manter em
+revisao as 15 transferencias proprias ou do casal sem par de debito, tres
+creditos de emprestimo, sete depositos em dinheiro e os demais pagadores ainda
+sem semantica. Writer, importacao em lote e producao permanecem bloqueados.
 
 O saneamento privado por recorrencia, pesquisa comercial e decisoes humanas
 elevou o plano inicialmente ate `1.729` itens prontos; as correcoes causais

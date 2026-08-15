@@ -193,6 +193,15 @@ existentes e sem misturar conta, cartao, transferencia, estorno ou reserva.
    `69491a7728ca5c9fc4544c30a7acb40e10c315c0` recebeu parecer documental
    `SUFICIENTE`, sem lacuna indispensavel no escopo declarado e sem alegar
    verificacao independente dos artefatos privados.
+9.14. [candidato aguardando auditoria] Agrupar as 147 entradas ou estornos uma
+   unica vez e aplicar somente 58 decisoes confirmadas: 33 salarios pelos mesmos
+   padroes da rodada incremental e 25 entradas do casamento pela fronteira exata
+   definida por Daniel, sem ampliar a janela temporal. Decisoes exatas por
+   referencia evitam regra por valor ou por data aproximada. A comparacao das
+   2.351 entradas exigiu exatamente 58 transicoes para `ready / income`; os
+   demais estados permaneceram identicos. O plano privado ficou com 1.762
+   prontos, 113 revisoes, cobertura completa e `financial_writes=0`, hash
+   `cfd0df66c4753d376ab03847fd376112af7d9703a482c70b4336e8e08e8e1fc3`.
 10. [bloqueada ate GO] Implementar e ensaiar writer historico idempotente.
 11. [bloqueada ate GO e backup] Aplicar lote real com recibo e rollback.
 
@@ -232,10 +241,10 @@ creditos sem vinculo forte e duplicatas provaveis continuam retidos.
 
 ## Proxima acao
 
-Submeter o Gate 41.3 a auditoria por hash imutavel. Depois do fechamento,
-agrupar as 147 entradas ou estornos residuais por pagador, conta, valor e
-recorrencia, sem presumir salario e sem habilitar writer historico, importacao
-real ou deploy.
+Submeter o Gate 41.4 a auditoria por hash imutavel. Preservar em revisao as
+transferencias proprias ou familiares sem par de debito nas contas vinculadas,
+creditos de emprestimo, depositos em dinheiro e demais pagadores sem semantica.
+Nao habilitar writer historico, importacao real ou deploy.
 
 Para revisoes futuras, agrupar os descritores de intermediadores pelo
 beneficiario real;
