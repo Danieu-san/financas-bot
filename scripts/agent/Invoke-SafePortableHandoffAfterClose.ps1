@@ -3,6 +3,7 @@ param(
     [string]$SourceProfile = $env:USERPROFILE,
     [string]$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
     [string]$PortableFinancasBotRoot,
+    [string[]]$AllowedUntrackedPath = @(),
     [string]$GitBin = 'git',
     [string]$NodeBin = 'node',
     [int]$TimeoutMinutes = 1440,
@@ -67,6 +68,7 @@ while ((Get-Date) -lt $deadline) {
             if ($PortableFinancasBotRoot) {
                 $syncResult = & $syncScript -RepoRoot $RepoRoot `
                     -PortableFinancasBotRoot $PortableFinancasBotRoot `
+                    -AllowedUntrackedPath $AllowedUntrackedPath `
                     -GitBin $GitBin -NodeBin $NodeBin 2>&1
                 if ($LASTEXITCODE -ne 0) {
                     throw "sincronização portátil pós-fechamento falhou: $($syncResult -join [Environment]::NewLine)"
