@@ -4,7 +4,7 @@ Atualizado em: 2026-08-15
 
 ## Estado
 
-`GATE 41 WRITER: GO TECNICO LOCAL; PRE-APLICACAO OPERACIONAL`.
+`GATE 41 WRITER: CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE DO RECOVERY`.
 
 ## Objetivo
 
@@ -35,8 +35,12 @@ fora da janela, com idempotência, recibos, backup e rollback verificáveis.
   GO funcional de produção;
 - despesas reais do smoke foram preservadas na planilha e devem ser detectadas
   como já existentes pelo dry-run atualizado.
-- writer e recovery receberam `GO TECNICO LOCAL` independente no hash
-  `ba4b2f9fff2ad3e199bd6d8d2a0850a62c90009d`.
+- writer e primeiro recovery receberam `GO TECNICO LOCAL` independente no hash
+  `ba4b2f9fff2ad3e199bd6d8d2a0850a62c90009d`;
+- a reconciliação posterior do primeiro lote real exigiu igualdade textual
+  estrita em transferências; o primeiro hash corretivo recebeu `NO-GO` somente
+  por leitura incompleta dos arquivos longos, e o recovery de acesso curto
+  aguarda novo parecer independente.
 
 ## Escopo
 
@@ -75,12 +79,13 @@ fora da janela, com idempotência, recibos, backup e rollback verificáveis.
 4. [concluido] executar suíte ampla final proporcional ao candidato e recovery;
 5. [concluido] provar dry-run estrutural contra o plano fechado anterior;
 6. [concluido] publicar commits sanitizados e obter auditoria independente;
-7. [em andamento] criar backup real, snapshot vigente, novo dry-run e verificar restauração isolada;
-8. aplicar o lote com recibos e parada segura em divergência;
-9. reconciliar novamente e provar zero pendência gravável inesperada;
-10. confirmar que o backlog importado deixou de gerar propostas;
-11. recalcular e validar gasto livre sobre a planilha completa;
-12. destacar os valores principais da resposta no WhatsApp.
+7. [em andamento] fechar a auditoria independente da reconciliação estrita;
+8. criar backup real, snapshot vigente, novo dry-run e verificar restauração isolada;
+9. aplicar o lote com recibos e parada segura em divergência;
+10. reconciliar novamente e provar zero pendência gravável inesperada;
+11. confirmar que o backlog importado deixou de gerar propostas;
+12. recalcular e validar gasto livre sobre a planilha completa;
+13. destacar os valores principais da resposta no WhatsApp.
 
 ## Critérios de GO para aplicação
 
@@ -101,6 +106,6 @@ fora da janela, com idempotência, recibos, backup e rollback verificáveis.
 
 ## Próxima ação
 
-Capturar snapshot privado vigente das abas afetadas, gerar backup verificavel,
-regenerar o plano contra a planilha posterior aos smokes e ensaiar o rollback
-somente em copia isolada antes de qualquer escrita real.
+Publicar o recovery curto e obter `GO` independente lendo integralmente os
+patches imutáveis e a prova causal curta. Só depois capturar o snapshot privado
+vigente e retomar a pré-aplicação operacional.

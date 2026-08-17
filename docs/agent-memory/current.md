@@ -125,6 +125,14 @@ apresentacao do gasto livre no WhatsApp.
 - a resposta suportada de categorias declarou corretamente inclusoes e
   exclusoes; a apresentacao ainda deve destacar valores principais em negrito
   no fechamento final.
+- o recovery de reconciliação estrita de transferências no hash
+  `c1e6deda511ca1348cf8101dde8e87f838b22531` recebeu `NO-GO` apenas por
+  acesso incompleto do auditor aos dois arquivos longos; nenhum defeito técnico
+  foi demonstrado no código acessível;
+- um novo recovery de acesso adiciona prova curta pelo planejador público,
+  inclusive divergência isolada de `user_id`; prova curta 3/3 e focal completo
+  62/62, sem nova mudança de produto;
+- a escrita real permanece bloqueada até o novo hash receber `GO` independente.
 
 ## Git e workspace
 
@@ -134,9 +142,9 @@ apresentacao do gasto livre no WhatsApp.
 
 ## Próxima ação exata
 
-Capturar snapshot privado vigente da planilha familiar, gerar backup
-verificavel, regenerar o plano posterior aos smokes e ensaiar rollback isolado.
-Somente depois considerar a aplicacao real do writer auditado.
+Publicar o recovery curto de acesso e obter auditoria independente pelo patch
+imutável completo. Após `GO`, capturar snapshot privado vigente da planilha,
+regenerar plano/fingerprint e retomar o writer com ledger novo.
 
 ## Capacidade para retomar
 

@@ -975,7 +975,8 @@ test('requires byte-exact transfer text fields before classifying a row as exist
         [4, 'Conta histórica   externa!', 'destination'],
         [5, 'TRANSFERENCIA', 'method'],
         [6, 'Importação histórica Open Finance revisada', 'note'],
-        [7, 'CONFERIDA', 'status']
+        [7, 'CONFERIDA', 'status'],
+        [8, 'person-2', 'user_id']
     ];
 
     for (const [index, value, field] of variants) {
