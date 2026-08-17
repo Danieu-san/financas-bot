@@ -138,6 +138,10 @@ apresentacao do gasto livre no WhatsApp.
   públicos; a página do conector mostrou que o plugin GitHub ainda não estava
   instalado nesta sessão. Esse parecer não aponta defeito técnico e não autoriza
   escrita real; a auditoria deve ser retomada após conectar o GitHub.
+- o diretório não rastreado `release-artifacts-g45/` é artefato operacional
+  preservado fora do Git; a sincronização portátil permite explicitamente esse
+  único estado não rastreado, mas sua cópia privada para o cofre do SSD depende
+  de o cofre estar desbloqueado.
 
 ## Git e workspace
 

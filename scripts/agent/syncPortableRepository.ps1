@@ -3,6 +3,7 @@ param(
     [string]$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
     [Parameter(Mandatory = $true)]
     [string]$PortableFinancasBotRoot,
+    [string[]]$AllowedUntrackedPath = @(),
     [string]$GitBin = 'git',
     [string]$NodeBin = 'node'
 )
@@ -48,8 +49,19 @@ $head = (Invoke-Captured -Executable $GitBin -Arguments @(
 $porcelain = @(Invoke-Captured -Executable $GitBin -Arguments @(
     '-C', $sourceRoot, 'status', '--porcelain=v1'
 ))
-if ($porcelain.Count -gt 0 -and ($porcelain -join '').Trim()) {
-    throw 'A raiz canônica possui mudanças não commitadas; registre o checkpoint antes de sincronizar o SSD.'
+$unexpectedStatus = @($porcelain | Where-Object {
+    $line = [string]$_
+    if (-not $line.StartsWith('?? ')) {
+        return $true
+    }
+    $relativePath = $line.Substring(3).TrimEnd('/').Replace('/', '\')
+    -not ($AllowedUntrackedPath | ForEach-Object {
+        $allowed = ([string]$_).TrimEnd('/').Replace('/', '\')
+        $relativePath -ieq $allowed
+    } | Where-Object { $_ })
+})
+if ($unexpectedStatus.Count -gt 0) {
+    throw 'A raiz canônica possui mudanças não commitadas fora da allowlist; registre o checkpoint antes de sincronizar o SSD.'
 }
 
 Invoke-Captured -Executable $GitBin -Arguments @(
