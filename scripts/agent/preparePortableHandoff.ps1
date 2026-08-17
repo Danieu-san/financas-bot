@@ -87,13 +87,14 @@ if (-not (Test-Path -LiteralPath (Join-Path $resolvedRoot '.git'))) {
 }
 
 $workspaceParent = Split-Path -Parent $resolvedRoot
-$financasBotRoot = if (
-    (Split-Path -Leaf $workspaceParent) -ieq 'worktrees'
+$canonicalRepoRoot = if (
+    (Split-Path -Leaf $workspaceParent) -in @('worktrees', '.codex-worktrees')
 ) {
     Split-Path -Parent $workspaceParent
 } else {
-    $workspaceParent
+    $resolvedRoot
 }
+$financasBotRoot = Split-Path -Parent $canonicalRepoRoot
 
 if (-not $ReportPath) {
     $portableRoot = Join-Path $financasBotRoot 'Trabalho Codex no outro PC'

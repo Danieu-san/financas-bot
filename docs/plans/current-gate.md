@@ -40,7 +40,9 @@ fora da janela, com idempotência, recibos, backup e rollback verificáveis.
 - a reconciliação posterior do primeiro lote real exigiu igualdade textual
   estrita em transferências; o primeiro hash corretivo recebeu `NO-GO` somente
   por leitura incompleta dos arquivos longos, e o recovery de acesso curto
-  aguarda novo parecer independente.
+  também recebeu `ACESSO INSUFICIENTE` porque o Chat não tinha o conector GitHub
+  instalado para buscar os arquivos públicos; aguarda conexão do conector e
+  novo hash antes de nova tentativa.
 
 ## Escopo
 

@@ -133,6 +133,11 @@ apresentacao do gasto livre no WhatsApp.
   inclusive divergência isolada de `user_id`; prova curta 3/3 e focal completo
   62/62, sem nova mudança de produto;
 - a escrita real permanece bloqueada até o novo hash receber `GO` independente.
+- o recovery curto `afe9c93ea0b47f3964a32be1fb076824454acf78` também recebeu
+  `ACESSO INSUFICIENTE`: o Chat não conseguiu buscar os arquivos nem os patches
+  públicos; a página do conector mostrou que o plugin GitHub ainda não estava
+  instalado nesta sessão. Esse parecer não aponta defeito técnico e não autoriza
+  escrita real; a auditoria deve ser retomada após conectar o GitHub.
 
 ## Git e workspace
 
@@ -142,9 +147,10 @@ apresentacao do gasto livre no WhatsApp.
 
 ## Próxima ação exata
 
-Publicar o recovery curto de acesso e obter auditoria independente pelo patch
-imutável completo. Após `GO`, capturar snapshot privado vigente da planilha,
-regenerar plano/fingerprint e retomar o writer com ledger novo.
+Concluir o handoff portátil no SSD. Na retomada, instalar/conectar o GitHub no
+Chat, produzir um novo hash de recovery de acesso e obter auditoria
+independente; só após `GO`, capturar snapshot privado da planilha, regenerar
+plano/fingerprint e retomar o writer com ledger novo.
 
 ## Capacidade para retomar
 

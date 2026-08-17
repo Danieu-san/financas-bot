@@ -2,6 +2,7 @@
 param(
     [string]$SourceProfile = $env:USERPROFILE,
     [string]$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
+    [string]$PortableFinancasBotRoot,
     [string]$GitBin = 'git',
     [string]$NodeBin = 'node',
     [int]$TimeoutMinutes = 1440,
@@ -38,6 +39,7 @@ if (-not $LogPath) {
 }
 $reportPath = Join-Path $portableRoot 'last-safe-handoff.json'
 $prepareScript = Join-Path $PSScriptRoot 'preparePortableHandoff.ps1'
+$syncScript = Join-Path $PSScriptRoot 'syncPortableRepository.ps1'
 $deadline = (Get-Date).AddMinutes($TimeoutMinutes)
 $guardFiles = @(
     (Join-Path $SourceProfile '.codex\state_5.sqlite'),
@@ -53,9 +55,19 @@ while ((Get-Date) -lt $deadline) {
         try {
             $result = & $prepareScript -RepoRoot $RepoRoot -GitBin $GitBin `
                 -NodeBin $NodeBin -ReportPath $reportPath -PostClose 2>&1
+            $syncResult = @()
+            if ($PortableFinancasBotRoot) {
+                $syncResult = & $syncScript -RepoRoot $RepoRoot `
+                    -PortableFinancasBotRoot $PortableFinancasBotRoot `
+                    -GitBin $GitBin -NodeBin $NodeBin 2>&1
+                if ($LASTEXITCODE -ne 0) {
+                    throw "sincronização portátil pós-fechamento falhou: $($syncResult -join [Environment]::NewLine)"
+                }
+            }
             @(
                 "$(Get-Date -Format o) validação segura pós-fechamento concluída."
                 $result
+                $syncResult
                 'Nenhum conteúdo privado do Codex foi copiado.'
             ) | Set-Content -LiteralPath $LogPath -Encoding UTF8
             exit 0
