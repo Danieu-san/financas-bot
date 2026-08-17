@@ -124,6 +124,11 @@ $pointer = [ordered]@{
     head = $head
     start_here = Join-Path $destination 'docs\agent-memory\START-HERE.md'
     resume_command = "powershell -ExecutionPolicy Bypass -File `"$destination\scripts\agent\resumePortableWork.ps1`" -RepoRoot `"$destination`""
+    operational_references = [ordered]@{
+        oracle_production_key_relative = '..\financas_bot_oci_ed25519_20260722'
+        aws_rollback_key_relative = '..\financasBot.pem'
+        instruction = 'Use paths relative to repo_root; verify existence only and never print, commit, or transmit key contents.'
+    }
 }
 $temporaryPointer = "$pointerPath.tmp-$PID"
 $pointer | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $temporaryPointer -Encoding UTF8
