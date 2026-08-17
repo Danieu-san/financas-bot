@@ -32,8 +32,16 @@ function Test-ExclusiveRead {
     }
 }
 
-$workspaceParent = Split-Path -Parent $RepoRoot
-$portableRoot = Join-Path $workspaceParent 'Trabalho Codex no outro PC'
+$resolvedRepoRoot = (Resolve-Path -LiteralPath $RepoRoot).Path
+$workspaceParent = Split-Path -Parent $resolvedRepoRoot
+$canonicalRepoRoot = if (
+    (Split-Path -Leaf $workspaceParent) -in @('worktrees', '.codex-worktrees')
+) {
+    Split-Path -Parent $workspaceParent
+} else {
+    $resolvedRepoRoot
+}
+$portableRoot = Join-Path (Split-Path -Parent $canonicalRepoRoot) 'Trabalho Codex no outro PC'
 if (-not $LogPath) {
     $LogPath = Join-Path $portableRoot 'last-safe-handoff-after-close.log'
 }
