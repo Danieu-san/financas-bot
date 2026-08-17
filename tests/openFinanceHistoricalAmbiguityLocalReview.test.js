@@ -75,7 +75,7 @@ function build() {
     return buildOpenFinanceHistoricalAmbiguityReview({
         ...fixture(), secret: SECRET, familyScope: 'family',
         reviewChannel: 'local_private', authorizedLocalReviewerIds: [REVIEWER],
-        clock: () => new Date('2026-08-09T15:00:00.000Z')
+        clock: () => new Date()
     });
 }
 
@@ -248,6 +248,6 @@ test('persists the exact collective decision across restart with encrypted stora
         const bytes = fs.readFileSync(databasePath).toString('latin1');
         assert.doesNotMatch(bytes, /Reserva antiga|Reserva diferente|daniel-local-review/);
     } finally {
-        fs.rmSync(directory, { recursive: true, force: true });
+        fs.rmSync(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
     }
 });

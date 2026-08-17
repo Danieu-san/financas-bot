@@ -887,6 +887,114 @@ test('recognizes a written family transfer when Google formats its amount as cur
     assert.equal(result.summary.ready, 0);
 });
 
+test('recognizes written one-sided and reserve transfers through their real planner paths', () => {
+    const transferRange = Object.keys(sheet().ranges)
+        .find(key => key.startsWith('Transfer'));
+    const oneSided = transaction({
+        id: 'written-one-sided',
+        provider_id: 'written-one-sided-provider',
+        amount_cents: -3000,
+        description: 'Transferência enviada',
+        operation_type: 'PIX'
+    });
+    const oneSidedRef = plan([oneSided]).entries[0].source_ref;
+    const oneSidedOptions = {
+        decisionOverrides: {
+            [oneSidedRef]: {
+                classification: 'internal_transfer',
+                destinationFinancialAccount: 'Conta histórica externa'
+            }
+        }
+    };
+    const plannedOneSided = plan([oneSided], oneSidedOptions).entries[0];
+    const existingOneSided = plan([oneSided], {
+        ...oneSidedOptions,
+        ranges: {
+            [transferRange]: [
+                ['Data', 'Descrição', 'Valor', 'Conta Origem', 'Conta Destino',
+                    'Método', 'Observações', 'Status', 'user_id'],
+                plannedOneSided.write_plan.row.map((value, index) =>
+                    index === 2 ? 'R$ 30,00' : value)
+            ]
+        }
+    });
+
+    assert.equal(existingOneSided.entries[0].state, 'existing');
+
+    const reserve = transaction({
+        id: 'written-reserve',
+        provider_id: 'written-reserve-provider',
+        operation_type: 'RESGATE_APLIC_FINANCEIRA',
+        amount_cents: 25000,
+        type: 'CREDIT'
+    });
+    const reserveOptions = {
+        merchantRules: [{
+            match: { mode: 'exact', value: 'Fornecedor exemplo' },
+            classification: 'reserve_redemption'
+        }]
+    };
+    const plannedReserve = plan([reserve], reserveOptions).entries[0];
+    const existingReserve = plan([reserve], {
+        ...reserveOptions,
+        ranges: {
+            [transferRange]: [
+                ['Data', 'Descrição', 'Valor', 'Conta Origem', 'Conta Destino',
+                    'Método', 'Observações', 'Status', 'user_id'],
+                plannedReserve.write_plan.row.map((value, index) =>
+                    index === 2 ? 'R$ 250,00' : value)
+            ]
+        }
+    });
+
+    assert.equal(existingReserve.entries[0].state, 'existing');
+});
+
+test('requires byte-exact transfer text fields before classifying a row as existing', () => {
+    const tx = transaction({
+        id: 'strict-transfer',
+        provider_id: 'strict-transfer-provider',
+        amount_cents: -3000,
+        description: 'Transferência enviada',
+        operation_type: 'PIX'
+    });
+    const stableRef = plan([tx]).entries[0].source_ref;
+    const decisionOverrides = {
+        [stableRef]: {
+            classification: 'internal_transfer',
+            destinationFinancialAccount: 'Conta histórica externa'
+        }
+    };
+    const expected = plan([tx], { decisionOverrides })
+        .entries[0].write_plan.row;
+    const transferRange = Object.keys(sheet().ranges)
+        .find(key => key.startsWith('Transfer'));
+    const variants = [
+        [1, 'TRANSFERENCIA ENVIADA', 'description'],
+        [3, 'CONTA 1', 'origin'],
+        [4, 'Conta histórica   externa!', 'destination'],
+        [5, 'TRANSFERENCIA', 'method'],
+        [6, 'Importação histórica Open Finance revisada', 'note'],
+        [7, 'CONFERIDA', 'status']
+    ];
+
+    for (const [index, value, field] of variants) {
+        const row = [...expected];
+        row[2] = 'R$ 30,00';
+        row[index] = value;
+        const result = plan([tx], {
+            decisionOverrides,
+            ranges: {
+                [transferRange]: [
+                    ['Data', 'Descrição', 'Valor', 'Conta Origem', 'Conta Destino',
+                        'Método', 'Observações', 'Status', 'user_id'],
+                    row
+                ]
+            }
+        });
+        assert.equal(result.entries[0].state, 'ready', field);
+    }
+});
 test('does not accept a transfer row from another account or user scope', () => {
     const tx = transaction({
         id: 'scoped-transfer',

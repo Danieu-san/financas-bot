@@ -494,14 +494,14 @@ function transferWritePlanExists(sheetSnapshot, writePlan) {
     return rowsWithoutHeader(findRange(sheetSnapshot?.ranges || {}, 'Transferências'))
         .some(row => (
             isoDate(row[0]) === isoDate(expected[0]) &&
-            normalizeText(row[1]) === normalizeText(expected[1]) &&
+            String(row[1] ?? '') === String(expected[1] ?? '') &&
             parseMoney(row[2]) === parseMoney(expected[2]) &&
-            normalizeText(row[3]) === normalizeText(expected[3]) &&
-            normalizeText(row[4]) === normalizeText(expected[4]) &&
-            normalizeText(row[5]) === normalizeText(expected[5]) &&
-            normalizeText(row[6]) === normalizeText(expected[6]) &&
-            normalizeText(row[7]) === normalizeText(expected[7]) &&
-            String(row[8] || '').trim() === String(expected[8] || '').trim()
+            String(row[3] ?? '') === String(expected[3] ?? '') &&
+            String(row[4] ?? '') === String(expected[4] ?? '') &&
+            String(row[5] ?? '') === String(expected[5] ?? '') &&
+            String(row[6] ?? '') === String(expected[6] ?? '') &&
+            String(row[7] ?? '') === String(expected[7] ?? '') &&
+            String(row[8] ?? '') === String(expected[8] ?? '')
         ));
 }
 
