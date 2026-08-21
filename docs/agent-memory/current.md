@@ -25,8 +25,12 @@ apresentacao do gasto livre no WhatsApp.
 - ciclo integral do candidato em bancos isolados: `GO`, 73 propostas antigas
   invalidadas, três atuais preservadas, zero escrita financeira e nenhum envio
   externo; suíte hermética final 1.756/1.746/0/10;
-- `docs/audit/283-gate41-post-rx-proactive-reconciliation-candidate-2026-08-21.md`
-  aguarda auditoria independente antes de qualquer deploy.
+- o hash `ec2219f131ed29933dd093967eacb093dc661ea0` recebeu `GO TÉCNICO
+  LOCAL` independente, sem achados críticos, altos ou médios e sem lacuna
+  causal indispensável; o artefato OCI de 975 arquivos foi verificado pelo
+  manifesto e checksum `772facc3a9c5b8763971605c1220f63693cae5120e8082645be7fd27c666556c`;
+- a dívida transitiva `extract-zip` permanece a exceção alta não regressiva e
+  não exercitada já registrada no Gate 43; `package-lock.json` não mudou.
 
 - o writer historico do Gate 41 validou integralmente o plano privado e produz
   1.863 chaves unicas com zero escrita no dry-run estrutural;
@@ -179,9 +183,8 @@ apresentacao do gasto livre no WhatsApp.
 
 ## Próxima ação exata
 
-Publicar o candidato pós-RX, obter auditoria independente por hash imutável e,
-com GO, promover na OCI, executar um ciclo controlado e os smokes de lista
-numérica e gasto livre.
+Promover o hash auditado `ec2219f131ed29933dd093967eacb093dc661ea0` na OCI,
+executar um ciclo controlado e os smokes de lista numérica e gasto livre.
 
 ## Capacidade para retomar
 

@@ -4,7 +4,7 @@ Atualizado em: 2026-08-21
 
 ## Estado
 
-`GATE 41 RX: APLICADO E RECONCILIADO; RECOVERY PROATIVO POS-RX AGUARDANDO AUDITORIA`.
+`GATE 41 RX: APLICADO E RECONCILIADO; RECOVERY PROATIVO POS-RX COM GO TECNICO LOCAL`.
 
 ## Objetivo
 
@@ -93,9 +93,9 @@ snapshot deve recalcular todas as classes e reconhecer as linhas já gravadas.
 8. [concluido] criar backup real, snapshot vigente até 21/08/2026, novo dry-run e verificar restauração isolada;
 9. [concluido] aplicar o lote com recibos e parada segura em divergência;
 10. [concluido] reconciliar novamente e provar zero pendência gravável inesperada;
-11. [candidato] cancelar o backlog já importado sem bloquear propostas novas;
+11. [auditado] cancelar o backlog já importado sem bloquear propostas novas;
 12. [concluido] recalcular e validar gasto livre sobre a planilha completa;
-13. [candidato] destacar os valores principais da resposta no WhatsApp.
+13. [auditado] destacar os valores principais da resposta no WhatsApp.
 
 ## Critérios de GO para aplicação
 
@@ -116,5 +116,5 @@ snapshot deve recalcular todas as classes e reconhecer as linhas já gravadas.
 
 ## Próxima ação
 
-Publicar o candidato pós-RX, obter auditoria independente por hash imutável e,
-somente com GO, promover por artefato OCI e executar ciclo/smokes controlados.
+Promover o hash auditado `ec2219f131ed29933dd093967eacb093dc661ea0` por
+artefato OCI e executar ciclo/smokes controlados.
