@@ -5717,12 +5717,12 @@ function buildLocalPerguntaResponse({ userQuestion, intent, analyzedData }) {
             `Orçamento mensal livre ${scopeLabel}`,
             `Ciclo: ${cycle.start || '-'} a ${cycle.end || '-'}`,
             `Dia inicial do ciclo: ${summary.cycleStartDay || '-'}`,
-            `Limite do ciclo: ${formatCurrencyBR(summary.monthlyAmount || 0)}`,
-            `Gasto livre no ciclo: ${formatCurrencyBR(summary.cycleSpent || 0)}`,
-            `Gasto livre de hoje: ${formatCurrencyBR(summary.todaySpent || 0)}`,
-            `Ritmo diário recomendado: ${formatCurrencyBR(summary.dailyRecommendedAmount || 0)}`,
-            `Restante no ciclo: ${formatCurrencyBR(summary.remainingInCycle || 0)}`,
-            `Disponível hoje pelo ritmo: ${formatCurrencyBR(summary.remainingToday || 0)}`,
+            `*Limite do ciclo: ${formatCurrencyBR(summary.monthlyAmount || 0)}*`,
+            `*Gasto livre no ciclo: ${formatCurrencyBR(summary.cycleSpent || 0)}*`,
+            `*Gasto livre de hoje: ${formatCurrencyBR(summary.todaySpent || 0)}*`,
+            `*Ritmo diário recomendado: ${formatCurrencyBR(summary.dailyRecommendedAmount || 0)}*`,
+            `*Restante no ciclo: ${formatCurrencyBR(summary.remainingInCycle || 0)}*`,
+            `*Disponível hoje pelo ritmo: ${formatCurrencyBR(summary.remainingToday || 0)}*`,
             `Dias restantes: ${summary.daysRemaining ?? 0}`,
             budgetTemporalBasisNote()
         ];

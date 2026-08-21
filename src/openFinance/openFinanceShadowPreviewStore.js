@@ -398,7 +398,7 @@ class OpenFinanceShadowPreviewStore {
             return false;
         }
         const payload = this.#readBoundSaveProposal(proposalRef, prior);
-        return stableSerialize(payload) === stableSerialize({
+        const expected = {
             ...basePayload,
             classification: payload.classification,
             provider_state: payload.provider_state,
@@ -408,7 +408,18 @@ class OpenFinanceShadowPreviewStore {
             alias_ref: source.aliasRef,
             created_at: prior.created_at,
             expires_at: prior.expires_at
+        };
+        if (stableSerialize(payload) === stableSerialize(expected)) return true;
+        if (!Number.isFinite(Date.parse(payload.source?.date)) ||
+            !Number.isFinite(Date.parse(expected.source?.date))) {
+            return false;
+        }
+        const normalizeProviderDate = value => ({
+            ...value,
+            source: { ...value.source, date: 'PROVIDER_DATE' }
         });
+        return stableSerialize(normalizeProviderDate(payload)) ===
+            stableSerialize(normalizeProviderDate(expected));
     }
 
     #isSaveProposalReplayCompatible(stored, current) {

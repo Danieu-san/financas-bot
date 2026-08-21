@@ -10,6 +10,24 @@ apresentacao do gasto livre no WhatsApp.
 
 ## Estado vigente
 
+- o RX histórico foi aplicado integralmente: 1.942 escritas confirmadas; replay
+  final com zero escrita e reconciliação final sem item gravável residual;
+- a verdade pós-RX do dashboard v2 usa a planilha pessoal familiar, filtra 14
+  linhas públicas de teste para zero e lê cinco contas e quatro cartões do
+  Open Finance; faturas formais permanecem parciais porque o provedor não
+  entregou bills, sem converter limite usado em fatura;
+- o gasto livre pós-RX totaliza R$ 1.106,81 no ciclo de R$ 938,11, com zero
+  violação das categorias essenciais excluídas;
+- ciclos reais proativos falharam fechados porque oito propostas já
+  reconciliadas diferiam apenas em `source.date`; o candidato aceita somente
+  essa deriva de data válida na invalidação, preservando imutabilidade dos
+  demais campos;
+- ciclo integral do candidato em bancos isolados: `GO`, 73 propostas antigas
+  invalidadas, três atuais preservadas, zero escrita financeira e nenhum envio
+  externo; suíte hermética final 1.756/1.746/0/10;
+- `docs/audit/283-gate41-post-rx-proactive-reconciliation-candidate-2026-08-21.md`
+  aguarda auditoria independente antes de qualquer deploy.
+
 - o writer historico do Gate 41 validou integralmente o plano privado e produz
   1.863 chaves unicas com zero escrita no dry-run estrutural;
 - o primeiro candidato recebeu `NO-GO` porque `failed` podia voltar como append
@@ -161,13 +179,13 @@ apresentacao do gasto livre no WhatsApp.
 
 ## Próxima ação exata
 
-Capturar snapshot privado vigente de Pluggy e planilha até 21/08/2026, gerar
-backup, novo plano/fingerprint e ledger de execução, provar o rollback em cópia
-isolada e somente então avaliar a aplicação real do writer.
+Publicar o candidato pós-RX, obter auditoria independente por hash imutável e,
+com GO, promover na OCI, executar um ciclo controlado e os smokes de lista
+numérica e gasto livre.
 
 ## Capacidade para retomar
 
-`Codex -> Sol -> Alto -> preparar backup, novo dry-run e rollback isolado do Gate 41.`
+`Codex -> Sol -> Alto -> auditar e promover o recovery proativo pós-RX do Gate 41.`
 
 ## Referencias
 

@@ -4,7 +4,7 @@ Atualizado em: 2026-08-21
 
 ## Estado
 
-`GATE 41 WRITER: GO TECNICO LOCAL; PRE-APLICACAO OPERACIONAL EM ANDAMENTO`.
+`GATE 41 RX: APLICADO E RECONCILIADO; RECOVERY PROATIVO POS-RX AGUARDANDO AUDITORIA`.
 
 ## Objetivo
 
@@ -90,12 +90,12 @@ snapshot deve recalcular todas as classes e reconhecer as linhas já gravadas.
 5. [concluido] provar dry-run estrutural contra o plano fechado anterior;
 6. [concluido] publicar commits sanitizados e obter auditoria independente;
 7. [concluido] fechar a auditoria independente da reconciliação estrita;
-8. [em andamento] criar backup real, snapshot vigente até 21/08/2026, novo dry-run e verificar restauração isolada;
-9. aplicar o lote com recibos e parada segura em divergência;
-10. reconciliar novamente e provar zero pendência gravável inesperada;
-11. confirmar que o backlog importado deixou de gerar propostas;
-12. recalcular e validar gasto livre sobre a planilha completa;
-13. destacar os valores principais da resposta no WhatsApp.
+8. [concluido] criar backup real, snapshot vigente até 21/08/2026, novo dry-run e verificar restauração isolada;
+9. [concluido] aplicar o lote com recibos e parada segura em divergência;
+10. [concluido] reconciliar novamente e provar zero pendência gravável inesperada;
+11. [candidato] cancelar o backlog já importado sem bloquear propostas novas;
+12. [concluido] recalcular e validar gasto livre sobre a planilha completa;
+13. [candidato] destacar os valores principais da resposta no WhatsApp.
 
 ## Critérios de GO para aplicação
 
@@ -116,6 +116,5 @@ snapshot deve recalcular todas as classes e reconhecer as linhas já gravadas.
 
 ## Próxima ação
 
-Capturar o snapshot privado vigente até 21/08/2026, gerar backup e novo
-plano/fingerprint, ensaiar restauração em cópia isolada e conferir o dry-run
-antes de qualquer escrita real.
+Publicar o candidato pós-RX, obter auditoria independente por hash imutável e,
+somente com GO, promover por artefato OCI e executar ciclo/smokes controlados.

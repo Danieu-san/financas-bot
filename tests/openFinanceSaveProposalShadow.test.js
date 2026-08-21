@@ -306,6 +306,52 @@ test('Gate 42 refreshes provider date only before any proposal transport evidenc
     }
 });
 
+test('Gate 41 cancels a reconciled proposal when only the provider date changed', () => {
+    const directory = fs.mkdtempSync(path.join(
+        os.tmpdir(), 'finbot-save-proposal-reconciled-date-'
+    ));
+    const databasePath = path.join(directory, 'preview.sqlite');
+    const journalPath = path.join(directory, 'journal.sqlite');
+    const input = fixture();
+    const journal = new OpenFinanceRevocationJournal({ databasePath: journalPath, secret });
+    const store = new OpenFinanceShadowPreviewStore({
+        databasePath,
+        secret,
+        revocationJournal: journal,
+        authorizedWhatsAppIds: [actorWhatsappId],
+        confirmationActors: [{ principal: 'daniel', whatsappId: actorWhatsappId }]
+    });
+    try {
+        store.ingestSaveProposals(proposalInput(input));
+        const [pending] = store.listPendingSaveProposals({ actorWhatsappId });
+        const reconciled = structuredClone(input);
+        reconciled.item.transactions[0].date = '2026-07-24T10:00:00.000Z';
+        reconciled.reconciliationDecisions[0].status = 'matched';
+        reconciled.reconciliationDecisions[0].rule = 'amount_date_description';
+
+        const tampered = structuredClone(reconciled);
+        tampered.item.transactions[0].amount_cents += 1;
+        assert.throws(() => store.ingestSaveProposals(proposalInput(tampered)),
+            /save_proposal_replay_conflict/);
+
+        assert.deepEqual(store.ingestSaveProposals(proposalInput(reconciled)), {
+            inserted: 0,
+            replayed: 0,
+            blocked: 4,
+            pending: 0,
+            invalidated: 1,
+            financial_writes: 0
+        });
+        assert.equal(
+            store.readSaveProposalDecisionState(pending.proposal_ref, { actorWhatsappId }).proposal_state,
+            'cancelled'
+        );
+    } finally {
+        store.close();
+        journal.close();
+    }
+});
+
 test('OF-ALERT-BIND-01 eligibility loss durably invalidates a stale prompt without reopening it', () => {
     for (const scenario of ['lifecycle', 'reconciliation']) {
         const directory = fs.mkdtempSync(path.join(os.tmpdir(), `finbot-save-proposal-invalidation-${scenario}-`));

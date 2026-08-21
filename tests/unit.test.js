@@ -4889,6 +4889,39 @@ test('messageHandler formats personal sheet list rows with serial dates and BR v
     assert.doesNotMatch(reply, /NaN/);
 });
 
+test('messageHandler highlights every monetary value in the free-budget reply', () => {
+    const { buildLocalPerguntaResponse } = messageHandler.__test__;
+    const reply = buildLocalPerguntaResponse({
+        intent: 'orcamento_ritmo_diario',
+        analyzedData: {
+            results: {
+                active: true,
+                scope: 'family',
+                period: { start: '28/07/2026', end: '27/08/2026' },
+                cycleStartDay: 28,
+                monthlyAmount: 938.11,
+                cycleSpent: 1106.81,
+                todaySpent: 12.34,
+                dailyRecommendedAmount: 0,
+                remainingInCycle: 0,
+                remainingToday: 0,
+                daysRemaining: 7
+            }
+        }
+    });
+
+    for (const line of [
+        'Limite do ciclo: R$ 938,11',
+        'Gasto livre no ciclo: R$ 1.106,81',
+        'Gasto livre de hoje: R$ 12,34',
+        'Ritmo diário recomendado: R$ 0,00',
+        'Restante no ciclo: R$ 0,00',
+        'Disponível hoje pelo ritmo: R$ 0,00'
+    ]) {
+        assert.ok(reply.includes(`*${line}*`));
+    }
+});
+
 test('messageHandler clears cached analytical replies after financial writes', (t) => {
     const cache = require('../src/utils/cache');
     const { markFinancialReadModelDirty } = messageHandler.__test__;
